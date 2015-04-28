@@ -1,4 +1,4 @@
-function optical_flow_for_vif(im1, im2, mask1, mask2)
+function [vx,vy]=optical_flow_for_vif(im1, im2, mask1, mask2)
 % optical flow analysis for vif structure
 
 % set optical flow parameters (see Coarse2FineTwoFrames.m for the definition of the parameters)

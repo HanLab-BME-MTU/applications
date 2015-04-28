@@ -54,10 +54,13 @@ for iCompleteFrame = 1 :nCompleteFrame-1
 end
 
 
+prot_retract_map_based_on_branch_cell = cell(1,nCompleteFrame);
+
 for iCompleteFrame = 1 :nCompleteFrame
 %     current_seg = current_seg_cell{1,iCompleteFrame};
     iFrame = iCompleteFrame+FirstFrame-1;
-    
+    prot_retract_map_based_on_branch = zeros(size(smoothed_mask_cell{1,1}));
+
     smoothed_current_mask = smoothed_mask_cell{1,iCompleteFrame};
     
     C_xy = regionprops(smoothed_current_mask,'Centroid');
@@ -82,6 +85,43 @@ for iCompleteFrame = 1 :nCompleteFrame
         red_new = RG_framem1(:,:,1)-RG_framem1(:,:,2);
         green_old = RG_framem1(:,:,2)-RG_framem1(:,:,1);
         
+        red_new_positive  = red_new>0;
+        green_old_positive  = green_old>0;
+        
+        
+         for iT = 1 : length(tracksFinal)
+             this_branch_this_frame = ...
+                 (new_region_branch_label_cell{iFrame}==iT);
+             
+             %              if(iFrame>1)
+             %                  this_branch_last_frame = ...
+             %                      (new_region_branch_label_cell{iFrame-1}==iT);
+             %              else
+             %                  this_branch_last_frame=[];
+             %              end
+             %
+             %              if(iFrame<=numel(new_region_branch_label_cell)-1)
+             %                  this_branch_next_frame = ...
+             %                      (new_region_branch_label_cell{iFrame+1}==iT);
+             %              else
+             %                  this_branch_next_frame=[];
+             %              end
+             
+             
+             if(sum(sum(this_branch_this_frame))>0)                 
+                 if(sum(sum(red_new_positive(this_branch_this_frame>0))) > ...
+                         sum(sum(green_old_positive(this_branch_this_frame>0))) )
+                     prot_retract_map_based_on_branch(this_branch_this_frame>0)=1;
+                 else
+                     prot_retract_map_based_on_branch(this_branch_this_frame>0)=-1;
+                 end
+             end
+         end
+         
+         % keep down the protusion and retraction definition
+         prot_retract_map_based_on_branch_cell{iCompleteFrame} = prot_retract_map_based_on_branch;
+         
+         
         % for protrustion
         %             try
         red_vif_t_pool = [red_vif_t_pool; current_VIF_image(red_new>0)];
@@ -93,6 +133,8 @@ for iCompleteFrame = 1 :nCompleteFrame
         %             end
     else
         RG_framem1(:,:,2) = smoothed_current_mask;
+        prot_retract_map_based_on_branch_cell{iCompleteFrame} = prot_retract_map_based_on_branch;
+        
     end
     
     blue_mask = current_mask*0;
@@ -160,6 +202,7 @@ for iCompleteFrame = 1 :nCompleteFrame
     if(~isempty(current_seg_cell{1,iCompleteFrame}) && filament_stat_flag>0)
         current_seg = current_seg_cell{1,iCompleteFrame};
         orienation_map_filtered = orienation_map_filtered_cell{1,iCompleteFrame};
+        
         nms_map = nms_cell{1,iCompleteFrame};
         nms_map = nms_map.*current_seg;
         
@@ -196,6 +239,61 @@ for iCompleteFrame = 1 :nCompleteFrame
                 [fila_trajectory_orientation_pool; ...
                 filament_orientation-trajectory_angle_this_frame];
         end
+        
+        % network analysis for the following 3 properties
+        % 1. Straghtness using the curvalture definition
+        % 2. Filament orientation local alignment
+        % 3. Filament Compression -- density
+        
+        
+        % 1, Straghtness, has to be calculated from model
+        
+        curvature_map = nan(size(smoothed_mask_cell{1,1}));
+        
+        current_model = current_model_cell{iCompleteFrame};
+        for iFm = 1 : length(current_model)
+%             try
+                x = current_model{iF}(:,1);
+                y = current_model{iF}(:,2);
+                
+                line_smooth_H = fspecial('gaussian',5,1.5);
+                
+                line_i_x = (imfilter(x, line_smooth_H, 'replicate', 'same'));
+                line_i_y = (imfilter(y, line_smooth_H, 'replicate', 'same'));
+                
+                Vertices = [line_i_x line_i_y];
+                Lines=[(1:size(Vertices,1)-1)' (2:size(Vertices,1))'];
+                k=LineCurvature2D(Vertices,Lines);
+                
+                curvature_map(sub2ind(y,x,size(smoothed_mask_cell{1,1}))) = k;
+%             end
+        end
+        
+        
+        % 2. Orientation local alignment as circular std
+        
+        region_orientation(current_seg==0)=nan;
+        
+        dilated_current_seg = imdilate(current_seg, ones(radius,radius));
+        [ify_array, ifx_array] = find(dilated_current_seg>0);
+            
+        filament_alignment_map = nan(size(smoothed_mask_cell{1,1}));
+
+        for if_ind = 1 : numel(ify_array)
+            ifx = ifx_array(if_ind);
+            ify = ify_array(if_ind);            
+            
+            filament_squre = region_orientation( round(ify-radius/2): round(ify+radius/2), ...
+                round(ifx-radius/2): round(ifx+radius/2));
+            filament_small_pool = filament_squre(isnan(filament_squre)==0);
+            filament_alignment_map(ify,ifx) = circ_std(filament_small_pool);
+        end
+        
+        % 3. Density
+        current_seg_double = double(current_seg);
+        
+        filament_density = imfilter(current_seg_double, ones(radius, radius)/(radius*radius), 'same','implicate');
+        
     end
     
     if(figure_flag>0 && ~isempty(current_seg_cell{1,iCompleteFrame}) )

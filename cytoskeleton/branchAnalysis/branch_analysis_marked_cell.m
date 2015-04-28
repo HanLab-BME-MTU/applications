@@ -129,6 +129,8 @@ current_seg_cell= cell(1,nCompleteFrame);
 nms_cell= cell(1,nCompleteFrame);
 orienation_map_filtered_cell= cell(1,nCompleteFrame);
 region_orientation_cell = cell(1,nCompleteFrame);
+current_model_cell = cell(1,nCompleteFrame);
+
 
 min_y = Inf;
 min_x = Inf;
@@ -154,14 +156,14 @@ for iFrame = CompletedFrame
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',...
-            filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+            filename_short_strs{iFrame},'.mat']),'current_seg_orientation','current_model');
         current_seg = ~isnan(current_seg_orientation);
-        orienation_map_filtered = current_seg_orientation;
+        orienation_map_filtered = current_seg_orientation;        
         
     else
         if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
             load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',...
-                filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+                filename_short_strs{iFrame},'.mat']),'current_seg_orientation','current_model');
             current_seg = ~isnan(current_seg_orientation);
             orienation_map_filtered = current_seg_orientation;
             
@@ -178,6 +180,9 @@ for iFrame = CompletedFrame
     
     current_seg_cell{1,iCompleteFrame} = current_seg;
     orienation_map_filtered_cell{1,iCompleteFrame} = orienation_map_filtered;
+    current_model_cell{1,iCompleteFrame} = current_model;
+    
+  
     nms_cell{1,iCompleteFrame} = nms;
     
     %% Load the mask and smooth the cell mask
