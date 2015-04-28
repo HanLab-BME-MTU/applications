@@ -85,22 +85,27 @@ refFrame = double(imread(p.referenceFramePath));
 croppedRefFrame = imcrop(refFrame,p.cropROI);
 
 % Detect beads in reference frame
-disp('Detecting beads in the reference frame...')
+disp('Determining PSF sigma from reference frame...')
 beadsChannel = movieData.channels_(p.ChannelIndex(1));
-% psfSigma = beadsChannel.psfSigma_;
-if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-    psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-    psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-    psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-else
-    error('image type should be chosen among Widefield, confocal and TIRF!');
-end
+% % psfSigma = beadsChannel.psfSigma_;
+% if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+%     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+% elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+%     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+% elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+%     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+% else
+%     error('image type should be chosen among Widefield, confocal and TIRF!');
+% end
+
+% Adaptation of psfSigma from bead channel image data
+psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
 
 assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
     'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
     'as well as the pixel size and numerical aperture of the movie']);
+
+disp('Detecting beads in the reference frame...')
 pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
 beads = [pstruct.x' pstruct.y'];
 

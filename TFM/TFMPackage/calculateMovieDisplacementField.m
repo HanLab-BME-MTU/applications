@@ -134,20 +134,25 @@ x_shift = find(any(firstMask,1),1);
 
 tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
 firstMask = tempMask2 & firstMask;
-% Detect beads in reference frame 
-disp('Detecting beads in the reference frame...')
+
 % if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
 if ~p.useGrid
-    if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield') || movieData.pixelSize_>130
-        sigmaPSF = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-    elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Confocal')
-        sigmaPSF = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-    elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
-        sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-    else
-        error('image type should be chosen among Widefield, confocal and TIRF!');
-    end
-    pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
+    % if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+    %     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+    %     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+    %     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+    % else
+    %     error('image type should be chosen among Widefield, confocal and TIRF!');
+    % end
+    % Detect beads in reference frame
+    disp('Determining PSF sigma from reference frame...')
+    % Adaptation of psfSigma from bead channel image data
+    psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+
+    disp('Detecting beads in the reference frame...')
+    pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
     assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
     % filtering out points in saturated image based on pstruct.c
     [N,edges]= histcounts(pstruct.c);
