@@ -1,3 +1,10 @@
 *~
 *.asv
 .DS_Store
+/GrowthConeAnalyzer/ANALYSIS/ScreenTools/heatmaps/html
+/GrowthConeAnalyzer/VISUALIZATION_TOOLKIT/*
+/GrowthConeAnalyzer/VALIDATION/EXTRA
+/GrowthConeAnalyzer/SMALL_HELPER/Depricated
+/GrowthConeAnalyzer/PREPARE_DATA/test.m
+/GrowthConeAnalyzer/ANALYSIS/ScreenTools
+/GrowthConeAnalyzer/ANALYSIS/ExpressionLevel/depricated

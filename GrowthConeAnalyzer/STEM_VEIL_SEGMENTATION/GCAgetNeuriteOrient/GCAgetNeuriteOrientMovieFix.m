@@ -57,6 +57,10 @@ function [ backboneInfo] = GCAgetNeuriteOrientMovie(movieData,varargin)
 % OUTPUT: (see main function GCAgetNeuriteOrient- for details):
 %      
 %% INPUTPARSER
+% for now check movieData separately. 
+if nargin < 1 || ~isa(movieData,'MovieData')
+    error('The first input must be a valid MovieData object!')
+end
 %%Input check
 ip = inputParser;
 
@@ -64,7 +68,7 @@ ip.CaseSensitive = false;
 
 % PARAMETERS
  defaultOutDir = [movieData.outputDirectory_ filesep...
-     'Segmentation' filesep 'neurite_orientation_estimations'];
+     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'I_neurite_orientation'];
 
  ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x)); 
  ip.addParameter('ChannelIndex',1); 
@@ -88,41 +92,7 @@ ip.addParameter('MaxDistBorderFirstTry',10);
  
 ip.parse(varargin{:});
 
-% % quick fix is to just set the defaults again here. 
-% if isempty(paramsInS); 
-%     
-% ip.Results.paramInS.'TSOverlays',true,@(x) islogical(x));
-% 
-% ip.addParamValue('BBScale',[5 6 7 8 9 10]);
-% ip.addParamValue('FilterOrderBB',4,@(x) ismember(x, 2,4));
-% 
-% ip.addParamValue('MaxRadiusLargeScaleLink',10) ;
-% 
-% ip.addParamValue('ThreshNMSResponse',25);
-% ip.addParamValue('MinCCRidgeBeforeConnect',3);
-% ip.addParamValue('MinCCRidgeAfterConnect',5);
-% 
-% ip.addParamValue('MinCCEntranceRidgeFirstTry',10);
-% ip.addParamValue('MaxDistBorderFirstTry',10);
 
-
-% %% OLD 
-% if nargin < 2
-%     % Generic
-%     ip.Results.OutputDirectory = [movieData.outputDirectory_ filesep 'GCSegmentation' filesep 'neurite_orientation_estimations'];
-%     ip.Results.ChannelIndex = 1;
-%     ip.R.ProcessIndex = 0; % use raw images
-%     paramsIn.startFrame = 'auto';   % 'auto'
-%     paramsIn.endFrame = 'auto'; % 'auto' or number, default auto.    
-%     paramsIn.plots = 1;
-%     
-%    % Specific
-%     paramsIn.BBScale = 5:10; % PERSONAL NOTE: not sure if this is optimal ...
-%     paramsIn.FilterOrderBB = 4;  
-%     paramsIn.MaxRadiusLargeScaleLink = 10; % Defines the Search Radius for Linking Linear Pieces by the KD tree
-%     paramsIn.ThreshNonMaxSuppResponse = 25; 
-%     
-% end
 %%
 % FOR WHEN MAKE PROCESS
 %Get the indices of any previous mask refinement processes from this function
@@ -140,6 +110,7 @@ ip.parse(varargin{:});
 %% Init:
 nFrames = movieData.nFrames_;
 nChan = numel(ip.Results.ChannelIndex);
+p = ip.Results.OutputDirectory; 
 
 %% Loop for each channel
 for iCh = 1:nChan
@@ -148,12 +119,15 @@ for iCh = 1:nChan
     %% Get Start and End Frames Based on Restart Choice
     
     % make final output dir where backboneInfo will be saved
-    saveDir =  [ip.Results.OutputDirectory filesep 'Neurite_Backbone_Seed_Channel_' num2str(iCh)];
+    saveDir =  [ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh)];
     
     if ~isdir(saveDir)
         mkdir(saveDir);
     end
     
+    save([saveDir filesep 'params.mat'],'p');  
+    
+    orientFile = [saveDir filesep 'backboneInfo.mat'];
     % If file exists
     if  exist(orientFile,'file')==2;
         load(orientFile) % load the file
