@@ -147,7 +147,12 @@ for iFrame = start_frame1 : nFrame
         
         MT_current_seg = (isnan(MT_orientation)==0);
         
-        MT_img =  MD_1.processes_{indexFlattenProcess_1}.loadChannelOutput(iChannel1,iFrame);
+        try
+            MT_img =  MD_1.processes_{indexFlattenProcess_1}.loadChannelOutput(iChannel1,iFrame);
+        catch
+            MT_img =  MD_1.channels_(1).loadImage(iFrame);
+        end
+        
         %
         % load second movie, at the defined frame number
         VIF_orientation = MD_2.processes_{indexFilamentSegmentationProcess_2}.loadChannelOutput(iChannel2,iFrame_2+0,'output','current_seg_orientation');
@@ -155,7 +160,11 @@ for iFrame = start_frame1 : nFrame
         
         VIF_current_seg = (isnan(VIF_orientation)==0);
         
-        VIF_img =  MD_2.processes_{indexFlattenProcess_2}.loadChannelOutput(iChannel2,iFrame_2);
+        try
+            VIF_img =  MD_2.processes_{indexFlattenProcess_2}.loadChannelOutput(iChannel2,iFrame_2);
+        catch
+            VIF_img =  MD.channels_(2).loadImage(iFrame);
+        end
         
         % % display the two channel frame together
         two_channel_img = zeros(size(VIF_img,1),size(VIF_img,2),3);
