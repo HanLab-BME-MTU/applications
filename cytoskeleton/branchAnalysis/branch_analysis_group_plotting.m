@@ -144,11 +144,11 @@ Group_Pool_branch_seg_mean  = [];
 Group_Pool_branch_nms_total = [];
 Group_Pool_branch_nms_mean  = [];
 Group_Pool_branch_number_weighted = cell(1,numel(branch_percent_threshold));
-Group_Pool_Travel_Speed_short_time = cell{1, numel(short_time_frames)};
-Group_Pool_reorienting_status_short_time = cell{numel(short_time_frames),numel(speed_percent_threshold),numel(branch_orientation_p_threshold)};
-Group_Pool_vim_fila_shorttime = cell{1, numel(short_time_frames)};
-Group_Pool_vim_nms_shorttime = cell{1, numel(short_time_frames)};
-Group_Pool_vim_int_shorttime = cell{1, numel(short_time_frames)};
+Group_Pool_Travel_Speed_short_time = cell(1, numel(short_time_frames));
+Group_Pool_reorienting_status_short_time = cell{numel(short_time_frames),numel(speed_percent_threshold),numel(branch_orientation_p_threshold));
+Group_Pool_vim_fila_shorttime = cell(1, numel(short_time_frames));
+Group_Pool_vim_nms_shorttime = cell(1, numel(short_time_frames));
+Group_Pool_vim_int_shorttime = cell(1, numel(short_time_frames));
 
 Identifier_cell = [];
 

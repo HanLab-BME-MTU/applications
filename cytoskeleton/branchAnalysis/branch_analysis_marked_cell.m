@@ -127,8 +127,11 @@ raw_mask_cell = cell(1,nCompleteFrame);
 smoothed_mask_cell = cell(1,nCompleteFrame);
 current_seg_cell= cell(1,nCompleteFrame);
 nms_cell= cell(1,nCompleteFrame);
+MAX_st_res_cell = cell(1,nCompleteFrame);
 orienation_map_filtered_cell= cell(1,nCompleteFrame);
 region_orientation_cell = cell(1,nCompleteFrame);
+current_model_cell = cell(1,nCompleteFrame);
+
 
 min_y = Inf;
 min_x = Inf;
@@ -154,14 +157,14 @@ for iFrame = CompletedFrame
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',...
-            filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+            filename_short_strs{iFrame},'.mat']),'current_seg_orientation','current_model');
         current_seg = ~isnan(current_seg_orientation);
-        orienation_map_filtered = current_seg_orientation;
+        orienation_map_filtered = current_seg_orientation;        
         
     else
         if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
             load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',...
-                filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+                filename_short_strs{iFrame},'.mat']),'current_seg_orientation','current_model');
             current_seg = ~isnan(current_seg_orientation);
             orienation_map_filtered = current_seg_orientation;
             
@@ -172,13 +175,18 @@ for iFrame = CompletedFrame
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',...
-            filename_short_strs{iFrame},'.mat']),'nms');
+            filename_short_strs{iFrame},'.mat']),'nms', 'MAX_st_res');
     end
     
     
     current_seg_cell{1,iCompleteFrame} = current_seg;
+    
     orienation_map_filtered_cell{1,iCompleteFrame} = orienation_map_filtered;
+    current_model_cell{1,iCompleteFrame} = current_model;
+    
+  
     nms_cell{1,iCompleteFrame} = nms;
+    MAX_st_res_cell{1,iCompleteFrame} = MAX_st_res;
     
     %% Load the mask and smooth the cell mask
     if(exist([truthPath,filesep,'mask_',num2str(iFrame),'.tif'],'file'))
@@ -698,6 +706,9 @@ lbh = uicontrol(display_message_window,'style','text','Units','normalized','posi
 set(lbh,'HorizontalAlignment','left');
 
 set(lbh,'string',strings);
+
+
+
 
 save([outputPath,filesep,'branch_analysis_results_balloon.mat'],'BA_output');
 
