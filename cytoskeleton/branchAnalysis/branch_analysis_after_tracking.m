@@ -175,8 +175,8 @@ for iCompleteFrame = 1 :nCompleteFrame
         
         % correction on direct pixel comparison
         
-        this_frame_prot_retract_map_based_on_branch(red_new_positive>0)=1;
-        last_frame_prot_retract_map_based_on_branch(green_old_positive>0)=-1;
+        this_frame_prot_retract_map_based_on_branch(red_new_positive>0) = 1;
+%         last_frame_prot_retract_map_based_on_branch(green_old_positive>0) = -1;
         
         % plot for debugging
         
@@ -359,11 +359,15 @@ for iCompleteFrame = 1 :nCompleteFrame
             ifx = ifx_array(if_ind);
             ify = ify_array(if_ind);
             
+            try
             filament_squre = filament_orientation_map( round(ify-radius/2): round(ify+radius/2), ...
                 round(ifx-radius/2): round(ifx+radius/2));
             filament_small_pool = filament_squre(isnan(filament_squre)==0);
             alignment_value = circ_std(filament_small_pool);
             filament_alignment_map(ify,ifx) = real(alignment_value);
+            catch
+                filament_alignment_map(ify,ifx) = nan;
+            end
         end
         
         filament_alignment_map_cell{iCompleteFrame} = filament_alignment_map;
