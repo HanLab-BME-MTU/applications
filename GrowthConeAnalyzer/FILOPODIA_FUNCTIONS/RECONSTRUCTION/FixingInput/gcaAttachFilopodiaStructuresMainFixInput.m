@@ -1,4 +1,4 @@
-function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,bodyMask,scaleMap,maxRes,maxTh,analInfoC,normalC,smoothedEdgeC,iFrame,framesPath)
+function [reconstruct,filoInfo,hFigs] = gcaAttachFilopodiaStructuresMain(img,skelIn,analInfoC,protrusionC,varargin)
 % gcaAttachFilopodiaStructures: was
 % cleanMaskWithBackEst_withInternalFiloClean until 20141022
 % Cleans the steerable filter ridge response based on the neurite body
@@ -6,19 +6,34 @@ function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,b
 % thresholding to an output to a filoInfo data structure and corresponding finished
 % reconstruction mask
 %
-% INPUT: (should condense I think into one structure);
-% img = original image needed as we are thresholding out any response that
+% INPUT:
+% img = (REQUIRED) original image needed as we are thresholding out any response that
 %       is located in the background: in future can maybe do this step
 %       earlier
-% skelIn : the response from the steerable filter-maxNMS-thresholding
+% skelIn : (REQUIRED) the response from the steerable filter-maxNMS-thresholding
 %          that needs to be cleaned
-% bodyMask: the estimated outline from the body of the neurite to make the
-% seed (rename veilStem Mask)
-% scaleMap: the scalemap corresponding to the multiscale steerable filter %
-% no longer using scales (all one scale at this point - was previoulsy
-% using the scales to try to get some estimate of the filopodia thickness.
 %
-% preConnInt
+% analInfoC: (REQUIRED)
+%
+% protrusionC: (OPTIONAL)
+%
+% detectEmbedded:   structure with fields (DEFAULT empty)
+%                                 if not empty will search for filopodia
+%                                 embedded within the veil. (useful for lifeAct expressing cells only)
+%
+%         .maxRadiusInternal:      scalar : maxRadius from external
+%                                  filopodia seeds that the endpoints of potential embedded
+%                                  filopodia candidates must remain within to be considered for
+%                                  connection (Default: 10 pixels)
+%
+%         .troubleshootOverlays:      logical: flag to make troubleshoot plots
+%                                  (Default true)
+%
+%
+%
+%
+%
+
 %
 % OUTPUT:
 % filoInfo: an nx1 structure where n = the number of filopodia in the image
@@ -35,6 +50,44 @@ function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,b
 %
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Check Input
+ip = inputParser;
+ip.addRequired('img',@isnumeric);
+ip.addRequired('skelIn',@logical);
+ip.addRequired('analInfoC',@isstruct);
+ip.addOptional('protrusionC',@isstruct);
+
+ip.addParamValue('detectEmbedded',[],@isstruct);
+
+
+ip.parse(img,skelIn,analInfoC,varargin{:});
+
+protrusionC = ip.Results.protrusionC;
+detectEmbedded = ip.Results.detectEmbedded;
+
+
+
+%% Collect Info from analInfo
+maxTh =  analnfoC.filterInfo.maxTh ;
+maxRes = analnfoC.filterInfo.maxRes ;
+%scaleMap = analInfoC.filterInfo.scaleMap;
+bodyMask = analInfoC.masks.neuriteEdge;
+
+
+
+% load protrusionVectors from the body
+if  ~isempty(protrusionC)
+    % load([protrusion filesep 'protrusion_vectors.mat']);
+    normalC = protrusionC.normals; % need to load the normal input from the smoothed edges in order  to calculation the filopodia body orientation
+    smoothedEdgeC = protrusionC.smoothedEdge;
+else
+    display(['No Protrusion Vectors Found: No Orientation Calculations of Filopodia Relative to' ...
+        'Veil will be Performed']);
+end
+
+% Always inititate figure count 
+countFigs = 1; 
 
 %% PREPARE HIGH CONFIDENCE RIDGE 'SEEDS' FOR SUBSEQUANT ITERATIVE MATCHING STEPS
 % Notes: ridge junctions are typically not reliably detected in the NMS and
@@ -94,8 +147,10 @@ filoExtAll = (filoTips|edgeMask);
 %MARIA CHECK BEFORE RELEASE - MAKE SURE OPTION FOR INTERNAL IS STABLE AND
 %DOESN'T CRASH
 %% INTERNAL LINKING OPTION
-preConnInt = 1; % MAKE FORMAL INPUT - NEED TO MAKE AN OPTION
-if preConnInt == 1
+if ~isempty(detectEmbedded); %
+    
+   
+    
     filoExtSeedForInt = double(getLargestCC(filoExtAll));
     filoExtSeedForInt = filoExtSeedForInt.*~edgeMask;
     
@@ -239,13 +294,13 @@ if preConnInt == 1
     % for each orientation Change cut
     toChangeVect = cellfun(@(x)  ~isempty(x),orientChangePtsCell);
     IDCCToChange = find(toChangeVect);
-    troubleShootFigs.internal= 1;
+   
     % SANITY CHECK
     beforeCut = zeros(size(maxTh));
     beforeCut(vertcat(CCInt.PixelIdxList{:})) = 1;
-    if troubleShootFigs.internal == 1;
+    if detectEmbedded.troubleshootOverlays == true;
         [ny,nx] = size(img);
-        h = setFigure(nx,ny);
+        cutCurveFig  = setFigure(nx,ny);
         imshow(img,[]) ;
         hold on
         
@@ -280,13 +335,15 @@ if preConnInt == 1
     if troubleShootFigs.internal ==1;
         
         spy(afterCut,'r');
-        cutDir = [framesPath filesep 'Troubleshoot_Internal' filesep 'Cut_Curve'] ;
         
-        if ~isdir(cutDir)
-            mkdir(cutDir)
-        end
+        % cutDir = [framesPath filesep 'Troubleshoot_Internal' filesep 'Cut_Curve'] ;
         
-        saveas(gcf,[cutDir filesep 'Cut_Curvature' num2str(iFrame) '.tif']);
+        
+        hFigs(countFigs).h = cutCurvFig;
+        hFigs(countFigs).name = 'Cut_Curvature';
+        countFigs = countFigs +1;
+        
+        %saveas(gcf,[cutDir filesep 'Cut_Curvature' num2str(iFrame) '.tif']);
         
     end
     
@@ -419,29 +476,32 @@ if preConnInt == 1
             
             
             %% Troubleshoot figure internal
-            troubleShootFigs.internal = 1;
-            if troubleShootFigs.internal == 1
-                inSpurDir = [framesPath filesep 'TroubleShoot_Internal' filesep 'internalFiloBeforeSpur' ];
-                if ~isdir(inSpurDir)
-                    mkdir(inSpurDir)
-                end
+            
+            if detectEmbedded.troubleshootOverlays == true
+                
                 [ny,nx] = size(img);
-                h = setFigure(nx,ny);
+                spurFig = setFigure(nx,ny);
                 
                 imshow(img,[]);
                 hold on
                 
                 spy(internalFilo,'g'); % green is the original filo detection after thresholding
-                saveas(gcf,[inSpurDir filesep 'interalFiloBeforeSpur' num2str(iFrame) '.tif']);
+%                 hFigs(countFigs).h = filoBeforeSpur; 
+%                 hFigs(countFigs).name = 'internalFiloSpur';
+%                 countFigs = countFigs +1; 
                 
                 spy(internalFiloSpur,'b'); % blue is after spur
-                saveas(gcf,[inSpurDir filesep 'internalFiloAfterCleanUp' num2str(iFrame) '.tif']);
-                close gcf
-                linkDir = [framesPath filesep 'TroubleShoot_Internal' filesep 'GraphConnect'];
+                %saveas(gcf,[inSpurDir filesep 'internalFiloAfterCleanUp' num2str(iFrame) '.tif']);
+                
+                hFigs(countFigs).name = 'BeforeAfterSpur';
+                hFigs(countFigs).h = spurFig; 
+                countFigs = countFigs +1; 
+                
+                %linkDir = [framesPath filesep 'TroubleShoot_Internal' filesep 'GraphConnect'];
                 if ~isdir(linkDir)
                     mkdir(linkDir)
                 end
-                h = setFigure(nx,ny);
+                graphConnectFig = setFigure(nx,ny,'off');
                 imshow(img,[]);
                 hold on
                 
@@ -450,23 +510,28 @@ if preConnInt == 1
                 spy(internalFiloSpur,'b');
                 
                 
-            end
+                
+            end % making trouble shoot internal figures 
             %%
             % run through
             % maskpostconnect1 should have all the CC filos after first connection
             % between in and out
-            [maskPostConnect1,linkMask1,status]  = gcaConnectInternalFilopodia(internalFilo1EPsFinal,seedFilo1EPsFinal,maxTh,filoExtSeedForInt,10,labelMatCandInt1,vectInt,vectSeed,dInt,dSeed);
+            [maskPostConnect1,linkMask1,status]  = gcaConnectInternalFilopodia(internalFilo1EPsFinal,seedFilo1EPsFinal,maxTh,filoExtSeedForInt,detectEmbedded.radius,labelMatCandInt1,vectInt,vectSeed,dInt,dSeed);
             % need to get the internal Filoconnect
             
             
             
-            if troubleShootFigs.internal == 1;
-                saveas(gcf,[linkDir filesep 'internalInputEPs' num2str(iFrame) '.tif']);
-                hold on
+            if detectEmbedded.troubleshootOverlays == 1;
+                %saveas(gcf,[linkDir filesep 'internalInputEPs' num2str(iFrame) '.tif']);
+                %hold on
                 if status ==1
                     spy(linkMask1,'y',10); % plot the link mask
                 end
-                saveas(gcf,[linkDir filesep 'internalInputEPsWithLinks' num2str(iFrame) '.tif']);
+                hFigs(countFigs).name = 'graphConnect'; 
+                hFigs(countFigs).h = graphConnectFig; 
+                countFigs = countFigs +1; 
+                
+                %saveas(gcf,[linkDir filesep 'internalInputEPsWithLinks' num2str(iFrame) '.tif']);
             end
             reconstruct.Int.links{1} = linkMask1;
             reconstruct.Int.Seed{2} = maskPostConnect1;
@@ -559,8 +624,12 @@ if preConnInt == 1
 else % do not perform internal filopodia matching use the original
     maskPostConnect1 = double(getLargestCC(filoExtAll)); % changed 20141026
     
-end % if perform internal matching
-%% Record information for the troubleshooting reconstruction movie making
+end % if ~isempty(detectEmbedded) : NOTE option only turned on for life-act images 
+
+%%%%%%%%%%%%%%%%%%%%%% END TESTING FOR EMBEDDED FILO %%%%%%%%%%%%%%%%%%%%%%%%
+
+%% START EXTERNAL FILOPODA RECONSTRUCT 
+%Record information for the troubleshooting reconstruction movie making
 filoSkelPreConnectExt = (filoTips |edgeMask);
 
 reconstruct.input = filoExtAll; % don't input the internal filo for the reconstruct
@@ -573,7 +642,7 @@ CCFiloObjs = bwconncomp(maskPostConnect1);
 % that attempts to categorize filo
 % filter out small filo
 csizeTest = cellfun(@(x) length(x),CCFiloObjs.PixelIdxList);
-CCFiloObjs.PixelIdxList(csizeTest<3) = [];
+CCFiloObjs.PixelIdxList(csizeTest<3) = []; % MAKE a parameter filters out pixels CCs that are less than 3 pixels 
 CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<3);
 
 [ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!!
@@ -685,7 +754,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         % % %       weakCandMask = zeros(ny,nx);
         % % %       strongCandMask = zeros(ny,nx);
         % % %
-        toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2;
+        toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2;%%% NOTE: MARIA YOU ARE INTRODUCING SOME PARAMS HERE 
         % % %
         % % %       weakCandMask(vertcat(CC.PixelIdxList{toExclude} ))=1;
         % % %       strongCandMask(vertcat(CC.PixelIdxList{~toExclude}))=1 ;
@@ -752,17 +821,13 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     if reconIter ==1 % only do this initial clustering step for the first iteration... hmmm need to make sure
         % don't loose this information though
-        [ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],10);%% 10 
+        [ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],5);
         % it might be easiest just to recalculate the new end points from the
         % new labelMatrix
-        % find all post cluster labels these will be slightly different
-        % than the pre-cluster labels (ie some will be removed as linear
-        % structures are merged) 
+        
         postClustLabels = unique(labelMatCanFilo(labelMatCanFilo~=0));
         numLabels = length(postClustLabels);
-        % find all the pixels for these labels 
         pixIdxCand = arrayfun(@(i) find(labelMatCanFilo==postClustLabels(i)), 1:numLabels, 'uniformoutput',0);
-        % get each of these labels endpoints
         EPCandidateSort = cellfun(@(x) getEndpoints(x,size(maxTh)),pixIdxCand,'uniformoutput',0);
         
         
@@ -779,12 +844,11 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     %get rid segments that might not have canonical endpoints as these
     %are very likely noise.
     filoSkelPreConnectFiltered = (filoMask | candidateMask1 );
-    % be careful with your indexing here (Note 20150326 yours label numbers
-    % maybe different than the length of EPCandidateSort
+    
     nonCanonical = cellfun(@(x) length(x(:,1))~=2,EPCandidateSort);
     
     nonCanonicalIdx = find(nonCanonical==1);
-    idxRemove = arrayfun(@(x) find(labelMatCanFilo == postClustLabels(nonCanonicalIdx(x))),1:length(nonCanonicalIdx),'uniformoutput',0);
+    idxRemove = arrayfun(@(x) find(labelMatCanFilo == nonCanonicalIdx(x)),1:length(nonCanonicalIdx),'uniformoutput',0);
     labelMatCanFilo(vertcat(idxRemove{:})) = 0;
     EPCandidateSort =  EPCandidateSort(~nonCanonical) ;
     
@@ -799,7 +863,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     % have a gate that is set to 10 pixels so far (things beyond that distance will
     % not be considered)
-    % start with 10...
+    
     [outputMasks,filoInfo,status] = gcaConnectExternalFilopodia(xySeed,EPCandidateSort,10,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC);
     if status == 1 ;
         %           % note filoInfo will be updated and this will be used to remake the seed

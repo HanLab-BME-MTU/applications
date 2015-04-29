@@ -3,8 +3,11 @@ function [ output_args ] = GCAValidationDocumentFilopodiaReconstructError(movieD
 % GCAValidationCalcPercentFiloError (previous name until 20141203
 
 % load analInfo
-load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep ...
-    'Filopodia_Fits_Channel_1' filesep 'analInfoTestSave.mat']);
+% load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep ...
+%     'Filopodia_Fits_Channel_1' filesep 'analInfoTestSave.mat']);
+
+%load([movieData.outputDirectory_ filesep 'filterSet'
+
 
 for iFrame = 1:movieData.nFrames_ -1
     
@@ -26,7 +29,7 @@ for iFrame = 1:movieData.nFrames_ -1
     c = linspecer(n);
     idxRand = randperm(n);
     c = c(idxRand,:);
-    display(['Loading Overlays for Frame ' num2str(iFrame)]); 
+    display(['Loading Overlays for Frame ' num2str(iFrame)]);
     for ifilo = 1:length(filoInfoC)
         filoInfoIdx = filoInfoC(ifilo);
         GCAVisualsMakeOverlaysFilopodia(filoInfoIdx,[ny,nx],1,1,c(ifilo,:),0);
@@ -61,7 +64,7 @@ for iFrame = 1:movieData.nFrames_ -1
     
     % initiate false false positive counter
     hText =  text(20,20, ['N false positives = 0 for Frame ' num2str(iFrame)]);
-  % while asking the user to click filo 
+    % while asking the user to click filo
     while clickFilo == 1
         
         reply2 = questdlg('Document False Negative Filopodia?');
@@ -88,50 +91,50 @@ for iFrame = 1:movieData.nFrames_ -1
             
             % if no or cancel show the total
         elseif strcmpi(reply2,'no')  || strcmpi(reply2,'cancel')
-            % if no plot the filo 
+            % if no plot the filo
             if ~isnan(coordsFN(1,1))
-            for i = 1:length(h)
-                
-                %setString(h(i),'False Negative');
-                % tag it on opposite side
-              text(coordsFN(i,1)+nx+2,coordsFN(i,2),'False Neg');
-                % setColor(h(i),'r');
-                scatter(coordsFN(i,1)+nx,coordsFN(i,2),10,'b','filled')
+                for i = 1:length(h)
+                    
+                    %setString(h(i),'False Negative');
+                    % tag it on opposite side
+                    text(coordsFN(i,1)+nx+2,coordsFN(i,2),'False Neg');
+                    % setColor(h(i),'r');
+                    scatter(coordsFN(i,1)+nx,coordsFN(i,2),10,'b','filled')
+                end
+                % ask if correct-
             end
-            % ask if correct-
+            
+            % Ask if correct
+            reply3 = questdlg('Is This Final Number of False Negatives Correct?');
+            % if yes end while move to next
+            if strcmpi(reply3,'yes')
+                clear h
+                clickFilo = 0;
+                % if no reset the values
+            elseif strcmpi(reply3,'no') || strcmpi(reply3,'cancel')
+                delete(hText)
+                clear h
+                display(['Restarted False Negative Calculation for ' num2str(iFrame)]);
+                % if not or cancel restart counter
+                filoCount = 1;
+                coordsFN = [NaN,NaN];
             end
-        
-        % Ask if correct
-        reply3 = questdlg('Is This Final Number of False Negatives Correct?');
-        % if yes end while move to next
-        if strcmpi(reply3,'yes')
-            clear h
-            clickFilo = 0;
-            % if no reset the values
-        elseif strcmpi(reply3,'no') || strcmpi(reply3,'cancel')
-            delete(hText)
-            clear h
-            display(['Restarted False Negative Calculation for ' num2str(iFrame)]);
-            % if not or cancel restart counter
-            filoCount = 1;
-            coordsFN = [NaN,NaN];
-        end
-        
-         
-        end % strcmpi 
+            
+            
+        end % strcmpi
         
         
         
         
-       
+        
     end % while
     % save every frame
     filoValidation(iFrame).coordsFN = coordsFN;
-  save([movieData.outputDirectory_ filesep 'filoValidation.mat'],'filoValidation');   
-   
+    save([movieData.outputDirectory_ filesep 'filoValidation.mat'],'filoValidation');
+    
     reply4 = questdlg('Move To Next Frame?') ;
     if strcmpi(reply4,'yes');
-      close gcf  
+        close gcf
     else
         close gcf
         break
@@ -140,7 +143,7 @@ for iFrame = 1:movieData.nFrames_ -1
 end  % iFrame
 
 
-%% Document False Positives : Start Movie Loop Again 
+%% Document False Positives : Start Movie Loop Again
 for iFrame = 1:movieData.nFrames_ -1
     
     filoInfoC = analInfo(iFrame).filoInfo;
@@ -161,24 +164,24 @@ for iFrame = 1:movieData.nFrames_ -1
     c = linspecer(n);
     idxRand = randperm(n);
     c = c(idxRand,:);
-    display(['Loading Overlays for Frame ' num2str(iFrame)]); 
+    display(['Loading Overlays for Frame ' num2str(iFrame)]);
     for ifilo = 1:length(filoInfoC)
         filoInfoIdx = filoInfoC(ifilo);
         GCAVisualsMakeOverlaysFilopodia(filoInfoIdx,[ny,nx],1,1,c(ifilo,:),0);
         clear filoInfoIdx
     end
-%%%%%%%%%%%%%%%%%% Initiate Counter  %%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%% Initiate Counter  %%%%%%%%%%%%%%%%%%%
     filoCount = 1;
     clickFilo = 1;
     coordsFP = [NaN,NaN];
     
     %load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_1' filesep ...
-     %   'analInfoTestSave.mat']);
-   % filoInfo = analInfo(iFrame).filoInfo;
+    %   'analInfoTestSave.mat']);
+    % filoInfo = analInfo(iFrame).filoInfo;
     
     % initiate false false positive counter
     hText =  text(20,20, ['N FALSE POSITIVES = 0 for Frame ' num2str(iFrame)]);
-  % while asking the user to click filo 
+    % while asking the user to click filo
     while clickFilo == 1
         
         reply2 = questdlg('Document False Positive Filopodia?');
@@ -205,63 +208,63 @@ for iFrame = 1:movieData.nFrames_ -1
             
             % if no or cancel show the total
         elseif strcmpi(reply2,'no')  || strcmpi(reply2,'cancel')
-            % if no plot the filo 
+            % if no plot the filo
             if ~isnan(coordsFP(1,1))
-            for i = 1:length(h)
-                
-                %setString(h(i),'False Negative');
-                % tag it on opposite side
-                text(coordsFP(i,1)+nx+2,coordsFP(i,2),'False Positive');
-                % setColor(h(i),'r');
-                scatter(coordsFP(i,1)+nx,coordsFP(i,2),10,'r','filled')
+                for i = 1:length(h)
+                    
+                    %setString(h(i),'False Negative');
+                    % tag it on opposite side
+                    text(coordsFP(i,1)+nx+2,coordsFP(i,2),'False Positive');
+                    % setColor(h(i),'r');
+                    scatter(coordsFP(i,1)+nx,coordsFP(i,2),10,'r','filled')
+                end
+                % ask if correct-
             end
-            % ask if correct-
+            
+            % Ask if correct
+            reply3 = questdlg('Is This Final Number of False Positives Correct?');
+            % if yes end while move to next
+            if strcmpi(reply3,'yes')
+                delete(hText)
+                clear h
+                clickFilo = 0;
+                % if no reset the values
+            elseif strcmpi(reply3,'no') || strcmpi(reply3,'cancel')
+                close gcf
+                display(['Restarted False Positive Calculation for ' num2str(iFrame)]);
+                % if not or cancel restart counter
+                filoCount = 1;
+                coordsFP = [NaN,NaN];
             end
-        
-        % Ask if correct
-        reply3 = questdlg('Is This Final Number of False Positives Correct?');
-        % if yes end while move to next
-        if strcmpi(reply3,'yes')
-            delete(hText)
-            clear h
-            clickFilo = 0;
-            % if no reset the values
-        elseif strcmpi(reply3,'no') || strcmpi(reply3,'cancel')
-            close gcf
-            display(['Restarted False Positive Calculation for ' num2str(iFrame)]);
-            % if not or cancel restart counter
-            filoCount = 1;
-            coordsFP = [NaN,NaN];
-        end
-        
-         
-        end % strcmpi 
+            
+            
+        end % strcmpi
         
         
         
         
-       
+        
     end % while
-
-% save record from frame
+    
+    % save record from frame
     filoValidation(iFrame).coordsFP = coordsFP;
     
     
     
- reply4 = questdlg('Move To Next Frame?') ;
+    reply4 = questdlg('Move To Next Frame?') ;
     if strcmpi(reply4,'yes');
-      close gcf  
+        close gcf
     else
         close gcf
         break
     end
-     
+    
 end % iframe
 
 
- 
+
 %%
-%% Document Misconnections 
+%% Document Misconnections
 for iFrame = 1:movieData.nFrames_ -1
     
     filoInfoC = analInfo(iFrame).filoInfo;
@@ -282,24 +285,24 @@ for iFrame = 1:movieData.nFrames_ -1
     c = linspecer(n);
     idxRand = randperm(n);
     c = c(idxRand,:);
-    display(['Loading Overlays for Frame ' num2str(iFrame)]); 
+    display(['Loading Overlays for Frame ' num2str(iFrame)]);
     for ifilo = 1:length(filoInfoC)
         filoInfoIdx = filoInfoC(ifilo);
         GCAVisualsMakeOverlaysFilopodia(filoInfoIdx,[ny,nx],1,1,c(ifilo,:),0);
         clear filoInfoIdx
     end
-%%%%%%%%%%%%%%%%%% Initiate Counter  %%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%% Initiate Counter  %%%%%%%%%%%%%%%%%%%
     filoCount = 1;
     clickFilo = 1;
     coordsMis = [NaN,NaN];
     
     %load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_1' filesep ...
-     %   'analInfoTestSave.mat']);
-   % filoInfo = analInfo(iFrame).filoInfo;
+    %   'analInfoTestSave.mat']);
+    % filoInfo = analInfo(iFrame).filoInfo;
     
     % initiate false false positive counter
     hText =  text(20,20, ['N Misconnections = 0 for Frame ' num2str(iFrame)]);
-  % while asking the user to click filo 
+    % while asking the user to click filo
     while clickFilo == 1
         
         reply2 = questdlg('Document Misconnected Filopodia ?');
@@ -326,55 +329,55 @@ for iFrame = 1:movieData.nFrames_ -1
             
             % if no or cancel show the total
         elseif strcmpi(reply2,'no')  || strcmpi(reply2,'cancel')
-            % if no plot the filo 
+            % if no plot the filo
             if ~isnan(coordsMis(1,1))
-            for i = 1:length(h)
-                
-                %setString(h(i),'False Negative');
-                % tag it on opposite side
-                text(coordsMis(i,1)+nx+2,coordsMis(i,2),'Misconnections');
-                % setColor(h(i),'r');
-                scatter(coordsMis(i,1)+nx,coordsMis(i,2),10,'g','filled')
+                for i = 1:length(h)
+                    
+                    %setString(h(i),'False Negative');
+                    % tag it on opposite side
+                    text(coordsMis(i,1)+nx+2,coordsMis(i,2),'Misconnections');
+                    % setColor(h(i),'r');
+                    scatter(coordsMis(i,1)+nx,coordsMis(i,2),10,'g','filled')
+                end
+                % ask if correct-
             end
-            % ask if correct-
-            end
-        
-        % Ask if correct
-        reply3 = questdlg('Is This Final Number of Misconnections Correct?');
-        % if yes end while move to next
-        if strcmpi(reply3,'yes')
-            delete(hText)
-            clear h
-            clickFilo = 0;
             
-            % if no reset the values
-        elseif strcmpi(reply3,'no') || strcmpi(reply3,'cancel')
-            close gcf
-            display(['Restarted Misconnection Calculation for ' num2str(iFrame)]);
-            % if not or cancel restart counter
-            filoCount = 1;
-            coordsMis = [NaN,NaN];
-        end
+            % Ask if correct
+            reply3 = questdlg('Is This Final Number of Misconnections Correct?');
+            % if yes end while move to next
+            if strcmpi(reply3,'yes')
+                delete(hText)
+                clear h
+                clickFilo = 0;
+                
+                % if no reset the values
+            elseif strcmpi(reply3,'no') || strcmpi(reply3,'cancel')
+                close gcf
+                display(['Restarted Misconnection Calculation for ' num2str(iFrame)]);
+                % if not or cancel restart counter
+                filoCount = 1;
+                coordsMis = [NaN,NaN];
+            end
+            
+            
+        end % strcmpi
         
-         
-        end % strcmpi 
         
         
         
         
-       
     end % while
-
- reply4 = questdlg('Move To Next Frame?') ;
+    
+    reply4 = questdlg('Move To Next Frame?') ;
     if strcmpi(reply4,'yes');
-      close gcf  
+        close gcf
     else
         close gcf
         break
     end
-    %Record Misconnections in a structure 
+    %Record Misconnections in a structure
     filoValidation(iFrame).coordsMis = coordsMis;
-
+    
 end % iframe
 
 
