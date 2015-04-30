@@ -80,11 +80,11 @@ setappdata(hFig,'tracksNA',tracksNA);
 %// Display 1st frame
 imshow(imgMap(:,:,startFrame),[]), hold on
 plot(arrayfun(@(x) x.xCoord(startFrame),tracksNA),arrayfun(@(x) x.yCoord(startFrame),tracksNA),'ro')
-idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
-idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{startFrame}),tracksNA(idAdhLogic));
-idAdh = find(idAdhLogic);
-idAdhCur = idAdh(idAdhCur);
-arrayfun(@(x) plot(x.adhBoundary{startFrame}(:,1),x.adhBoundary{startFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
+% idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+% idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{startFrame}),tracksNA(idAdhLogic));
+% idAdh = find(idAdhLogic);
+% idAdhCur = idAdh(idAdhCur);
+% arrayfun(@(x) plot(x.adhBoundary{startFrame}(:,1),x.adhBoundary{startFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
 xmat = cell2mat(arrayfun(@(x) x.xCoord(1:startFrame),tracksNA,'UniformOutput',false));
 ymat = cell2mat(arrayfun(@(x) x.yCoord(1:startFrame),tracksNA,'UniformOutput',false));
 if size(xmat,2)==1
@@ -393,14 +393,14 @@ function XListenerCallBack
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
 
-    try
-        idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
-        idAdh = find(idAdhLogic);
-        idAdhCur = idAdh(idAdhCur);
-        arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
-    catch
-        disp(' ')
-    end
+%     try
+%         idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
+%         idAdh = find(idAdhLogic);
+%         idAdhCur = idAdh(idAdhCur);
+%         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
+%     catch
+%         disp(' ')
+%     end
     
 %     arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
     xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
@@ -435,15 +435,15 @@ function XSliderCallback(~,~)
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
     
-    idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
-    try
-        idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
-        idAdh = find(idAdhLogic);
-        idAdhCur = idAdh(idAdhCur);
-        arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
-    catch
-        disp(' ')
-    end
+%     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+%     try
+%         idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
+%         idAdh = find(idAdhLogic);
+%         idAdhCur = idAdh(idAdhCur);
+%         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
+%     catch
+%         disp(' ')
+%     end
         
     xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
     ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));

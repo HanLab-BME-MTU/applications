@@ -210,7 +210,7 @@ else
         'minLifetime',minLifetime,'outputPath',['Colocalization' filesep outputPath]);
 end
 % re-express tracksNA so that each track has information for every frame
-if ~isempty(iSDCProc)
+if ~isempty(iSDCProc) && ~exist(outputFile,'file')
     disp('Applying stage drift correction ...')
     tracksNA = applyDriftToTracks(tracksNA, T); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
 end
@@ -651,6 +651,11 @@ toc
 % on the next protrusion onset) in frame, based on tracksNA.distToEdge
 % First I have to quantify when the protrusion and retraction onset take
 % place.
+for ii=1:numel(tracksNA)
+    idxZeros = tracksNA(ii).closestBdPoint(:)==0;
+    tracksNA(ii).closestBdPoint(idxZeros)=NaN;
+end
+
 disp('Post-analysis on adhesion movement and cross-correlation between fluorescence intensity and traction...')
 deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
 tIntervalMin = deltaT/60; % in min
@@ -781,7 +786,24 @@ for k=1:numel(tracksNA)
 %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
 %             plot(tracksNA(k).xCoord(tracksNA(k).startingFrame),tracksNA(k).yCoord(tracksNA(k).startingFrame),'yo'),plot(tracksNA(k).xCoord(tracksNA(k).endingFrame),tracksNA(k).yCoord(tracksNA(k).endingFrame),'mo')
         else
-            disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. This does not make sense!'])
+            disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
+            firstAdhToFirstBdPoint = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(sF,2)];
+            lastAdhToFirstBdPoint = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(sF,2)];
+            firstAdhToLastBdPoint = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(eF,2)];
+            lastAdhToLastBdPoint = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(eF,2)];
+            firstBDproduct=firstAdhToFirstBdPoint*lastAdhToFirstBdPoint';
+            lastBDproduct=firstAdhToLastBdPoint*lastAdhToLastBdPoint';
+            if firstBDproduct>lastBDproduct
+                tracksNA(k).advanceDist = (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5 - ...
+                                                                (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+                tracksNA(k).edgeAdvanceDist = (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5 - ...
+                                                                (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+            else
+                tracksNA(k).advanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
+                                                                (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5; % in pixel
+                tracksNA(k).edgeAdvanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
+                                                                (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+            end
         end
     end
     
