@@ -23,8 +23,8 @@ h=setFigure(nx,ny);
 imshow(-img,[]) ; 
 hold on 
 text(nx/10, 10,'Original Image ', fontText{:});
-pixels = round(10/pixSizeMic); 
-    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+pixels = 10/pixSizeMic; 
+     plotScaleBar(pixels,pixels/10,'Color',textColor);
      
 %print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
            % [saveDir filesep 'ReconstructMovie00.png']); 
@@ -126,6 +126,9 @@ close gcf
  
   
   text(nx/10, 10,'Get Seed For Reconstruction', fontText{:});
+    bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
   seedMask = analInfo(frame).reconstructInfo.seedMask{1}; 
   spy(seedMask,'b',5); 
   pixels = round(10/pixSizeMic); 
@@ -141,6 +144,9 @@ close gcf
   hold on 
   text(nx/10, 10,'Get Candidates', fontText{:});
   spy(seedMask,'b'); 
+    bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
   preClust = analInfo(frame).reconstructInfo.CandMaskPreCluster; 
   
   spy(preClust,'m',5); 
@@ -157,6 +163,9 @@ h = setFigure(nx,ny) ;
 imshow(-img,[]) 
   hold on 
     spy(seedMask,'b'); 
+      bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
   text(nx/10, 10,'Cluster Linear Candidates', fontText{:});
   clusterLinks = analInfo(frame).reconstructInfo.clusterlinks; 
   
@@ -176,6 +185,9 @@ imshow(-img,[])
   hold on 
   text(nx/10, 10,' Linear Candidates Clustered', fontText{:});
    spy(seedMask,'b'); 
+     bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
   postClust= analInfo(frame).reconstructInfo.CandMaskPostCluster; 
   spy(postClust,'m'); 
   pixels = round(10/pixSizeMic); 
@@ -187,6 +199,7 @@ imshow(-img,[])
 close gcf
 %% Iterate over reconstruction 
 imageNum = 10; 
+if isfield(analInfo(frame).reconstructInfo,'output'); 
 for iReconst = 1:numel(analInfo(frame).reconstructInfo.output)
 
 h = setFigure(nx,ny) ;
@@ -195,6 +208,9 @@ imshow(-img,[])
  text(nx/10, 10,'Link Candidates', fontText{:});
  spy(postClust,'m'); 
   spy(seedMask,'b'); 
+    bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
  
  links= analInfo(frame).reconstructInfo.output{iReconst}.links; 
   spy(links,'y',5); 
@@ -214,6 +230,9 @@ imshow(-img,[])
   hold on 
    spy(postClust,'m'); 
   spy(seedMask,'b'); 
+    bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
  
   spy(links,'b'); 
   text(nx/10, 10,'Add to Body', fontText{:});
@@ -231,6 +250,9 @@ imshow(-img,[])
   hold on 
    spy(postClust,'m');
   spy(seedMask,'b'); 
+    bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
  
   spy(links,'b'); 
   spy(bodyAdd,'b')
@@ -251,6 +273,10 @@ imshow(-img,[])
   
   spy(postClust,'b'); 
   spy(seedMask,'b'); 
+   
+    bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
   spy(links,'b');
    spy(bodyAdd,'b')
    spy(branchAdd,'b'); 
@@ -279,6 +305,9 @@ imshow(-img,[])
   text(nx/10, 10,title, fontText{:});
   seedMask =  analInfo(frame).reconstructInfo.seedMask{iReconst+1} ; 
   spy(seedMask,'b')
+    bodyFinal = analInfo(frame).masks.neuriteEdge; 
+  edgeYX = bwboundaries(bodyFinal); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
  
   pixels = round(10/pixSizeMic); 
    %  plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
@@ -290,6 +319,7 @@ imshow(-img,[])
        
        close gcf
 end % iReconst
+end 
 %% sanity check show crosses 
 
 

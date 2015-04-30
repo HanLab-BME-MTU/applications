@@ -54,7 +54,7 @@ end
            sampleSize = 5; 
            downSample = outgrowthFilt(1:sampleSize:end); 
            
-           figure; 
+           %figure; 
            vel = diff(downSample).*(60/timeInterval); % should be um/min
            % plot both the outgrowth values and the velocity 
            plot(1:length(outgrowthFilt),outgrowthFilt); 
