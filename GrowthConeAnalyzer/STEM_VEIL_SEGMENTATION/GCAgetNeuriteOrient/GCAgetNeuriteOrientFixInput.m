@@ -172,6 +172,8 @@ ip.addParameter('BBScale',[5 6 7 8 9 10]);
 ip.addParameter('FilterOrderBB',4,@(x) ismember(x,[2 4]));
 
 ip.addParameter('MaxRadiusLargeScaleLink',10) ;
+ip.addParameter('NoLinkDistanceFromBorder',10); 
+ip.addParameter('MaxDistNoGeoTerm',3); 
 
 ip.addParameter('ThreshNMSResponse',25);
 ip.addParameter('MinCCRidgeBeforeConnect',3);
@@ -194,7 +196,7 @@ else
 end
 
 %% START PART I. Detect large scale ridges and perform NMS
-[~, maxThLarge ,maxNMSLarge ,scaleMapLarge]= gcaMultiscaleSteerableDetector(img,ip.Results.FilterOrderBB,ip.Results.BBScale);
+[~, ~ ,maxNMSLarge ,scaleMapLarge]= gcaMultiscaleSteerableDetector(img,ip.Results.FilterOrderBB,ip.Results.BBScale);
 
 backboneInfo.scaleMapLarge = scaleMapLarge;
 
@@ -237,18 +239,24 @@ ridgeCand = maxNMSLarge>cutoff;
 ridgeCand(ridgeCand>0)=1;
 % Perform a thinning operation to keep tidy
 ridgeCand = bwmorph(ridgeCand,'thin','inf');
-
-%% Optional TroubleShoot Overlay II: RidgeCand Before After Clean : BEFORE 
-if  ip.Results.TSOverlays == true
-    TSFig2H = setFigure(nx,ny,'off');
-    TSFigs(figCount).h  = TSFig2H;
-    TSFigs(figCount).name = 'RidgeCandBeforeAfterClean';
+ridgeCandBeforeClean = ridgeCand; 
+%% OPTIONAL Troubleshoot Overlay
+if ip.Results.TSOverlays == true
+  
+    TSFigs(figCount).h  = setAxis('off');
+     
+    TSFigs(figCount).name = 'HistogramNMSResponse';
     
-    imshow(img,[]);
-    hold on
-    spy(ridgeCand,'b'); % ridge candidates before connections
-    hold on % figure open 
+    [n,b] =  hist(values,100);
+    hist(values,100); 
+    hold on 
+    line([cutoff cutoff],[0,max(n)],'color','r');  
+    ylabel('Count'); 
+    xlabel('Large Scale NMS Response Values'); 
+    
+    figCount = figCount + 1; % figure closed
 end
+
 %% 2 Ridge Cleaning: Threshold the NonMaximalSuppression Ridge Response Values:
 %
 % Note this thresholding is a bit arbitrary and one of the weaker steps in
@@ -259,7 +267,9 @@ end
 values = maxNMSLarge(maxNMSLarge~=0);
 cutoff = prctile(values,ip.Results.ThreshNMSResponse); % note arbitrarily set this cut-off to the 25th percentile- tried to fit the first mode of
 %backboneInfo.bodyEst.cutoff = cutoff; % save the information in the output
-
+if cutoff <0 
+    cutoff = 0 ; 
+end 
 % get ridge candidates
 ridgeCand = maxNMSLarge>cutoff;
 ridgeCand(ridgeCand>0)=1;
@@ -297,8 +307,17 @@ CCRidgeBone.NumObjects = CCRidgeBone.NumObjects - sum(csizeRidgeFirst<ip.Results
 cleanedRidgeLabels = labelmatrix(CCRidgeBone);
 cleanedRidge = cleanedRidgeLabels>0;
 
-%% Optional Troubleshoot (TS) Overlay II:: RidgeCand Before After Clean : AFTER
+%% Optional Troubleshoot (TS) Overlay II:: RidgeCand Before After Clean :
 if ip.Results.TSOverlays == true
+  
+    TSFigs(figCount).h  = setFigure(nx,ny,'off');
+     
+    TSFigs(figCount).name = 'RidgeCandBeforeAfterClean';
+    
+    imshow(-img,[]);
+    hold on
+    spy(ridgeCandBeforeClean,'b'); % ridge candidates before connections
+    hold on %   
     % finish overlay
     spy(cleanedRidge,'g'); % After Connection
     figCount = figCount + 1; % figure closed
@@ -313,22 +332,14 @@ cleanedRidgeLabelsPreLink = labelmatrix(CCRidgeBonePreLink);
 EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img),0,1),CCRidgeBonePreLink.PixelIdxList,'uniformoutput',0);
 backboneInfo.beforeConnect= cleanedRidge;
 
-%% Optional TroubleShoot Plot III: Before and after connect : BEFORE
-if ip.Results.TSOverlays == true
-    TSFig3H = setFigure(nx,ny,'off');
-    TSFigs(figCount).h  = TSFig3H;
-    TSFigs(figCount).name = 'BeforeAndAfterConnect';
-    
-    imshow(img,[]) ;
-    hold on
-    % plot ridge before connect
-    spy(cleanedRidge)
-    hold on
-    test = vertcat(EPCandidateSort{:}); % figure open 
-end
 %% 6. Ridge Cleaning : Ridge Linking Step:  PERFORM LINKING
 
-[cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearRidges(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink, ip.Results.MaxRadiusLargeScaleLink);%NEED to make a variable!
+[cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearRidgesFixInput(EPCandidateSort,cleanedRidgeLabelsPreLink,ip.Results);%NEED to make a variable!
+% MB CHECK BEFORE RELEASE : part of the problem may be that you are
+% introducing junctions at this stage... see how deal with in the next
+% step. The two components you ~ out are the EPs of hte new CCs and the
+% labelMatof the new CCs- you should really potentially put these new CCs
+% into a cellarray so you can pick apart junctions.  
 cleanedRidge = bwmorph(cleanedRidge,'thin');  % thinning is very important for subsequent steps
 
 %% 7. Ridge Cleaning :  Remove small connected components < ip.Results.MinCCRidgeAfterConnect
@@ -346,13 +357,25 @@ cleanedRidge = cleanedRidgeLabels>0;
 
 %% Optional TroubleShoot Plot III: Before and after connect : AFTER
 if ip.Results.TSOverlays == true
+     TSFig3H = setFigure(nx,ny,'off');
+    TSFigs(figCount).h  = TSFig3H;
+    TSFigs(figCount).name = 'BeforeAndAfterConnect';
+    
+    imshow(-img,[]) ;
+    hold on
+    % plot ridge before connect
+    spy(cleanedRidge)
+    hold on
+    test = vertcat(EPCandidateSort{:}); % figure open 
+    
+    
     if madeLinks == 1
         spy(linkMask,'r'); % plot any links made
     end
-    scatter(test(:,1),test(:,2),5,'y','filled'); % scatter end points of ridges
+    scatter(test(:,1),test(:,2),5,'c','filled'); % scatter end points of ridges
     figCount = figCount +1; % figure closed
 end % ip.Results.TSOverlays
-%  END PART II
+%  END PART I
 %% START PART III. SELECT NEURITE ENTRANCE RIDGE CANDIDATES
 
 % Get connected components of all ridges and make label matrix
@@ -419,7 +442,7 @@ if ip.Results.TSOverlays == true
     TSFig4H = setFigure(nx,ny,'off');
     TSFigs(figCount).h  = TSFig4H;
     TSFigs(figCount).name = 'CandSeeds';
-    imshow(img,[]);
+    imshow(-img,[]);
     hold on
     candidateSeeds = zeros(size(img));
     candidateSeeds(vertcat(CCBorderRidgeCandPixels{:})) = 1;

@@ -1,6 +1,6 @@
 function [ backboneInfo] = GCAgetNeuriteOrientMovie(movieData,varargin)
-% GCAgetNeuriteOrientMovie.m :  movieWrapper function for GCAgetNeuriteOrient
-% STEP I in Veil/Stem estimation of GCA package
+%% GCAgetNeuriteOrientMovie.m :  movieDataWrapper function for GCAgetNeuriteOrient
+% STEP I in Veil/Stem estimation of GCA Segmenttation
 %
 % %%PERSONAL NOTE: was getNeuriteOrientationMovie.m until 20140529)%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -8,12 +8,7 @@ function [ backboneInfo] = GCAgetNeuriteOrientMovie(movieData,varargin)
 %
 %   movieData (REQUIRED)  - The MovieData object describing the movie, as created using
 %   movieSelectorGUI.m
-%
-%  
-%
-%
-%   
-%     
+%    
 % Generic Fields: 
 %       ('Input/Output Fields Needed for Wrapper' -> Possible Values)
 %
@@ -110,7 +105,7 @@ ip.parse(varargin{:});
 %% Init:
 nFrames = movieData.nFrames_;
 nChan = numel(ip.Results.ChannelIndex);
-p = ip.Results.OutputDirectory; 
+params = ip.Results; 
 
 %% Loop for each channel
 for iCh = 1:nChan
@@ -125,8 +120,7 @@ for iCh = 1:nChan
         mkdir(saveDir);
     end
     
-    save([saveDir filesep 'params.mat'],'p');  
-    
+   
     orientFile = [saveDir filesep 'backboneInfo.mat'];
     % If file exists
     if  exist(orientFile,'file')==2;
@@ -186,19 +180,25 @@ for iCh = 1:nChan
                mkdir([saveDir filesep TSFigs(iFig).name]); 
            end  
         end 
-            
+            type{1} = '.fig'; 
+            type{2} = '.tif'; 
             
         if ~isempty(TSFigs)
+            for iType = 1:numel(type)
             arrayfun(@(x) saveas(x.h,...
-                [saveDir filesep x.name filesep num2str(iFrame,'%03d') '.tif']),TSFigs);               
+                [saveDir filesep x.name filesep num2str(iFrame,'%03d') type{iType}]),TSFigs);   
+            end 
         end 
             
-        
+        close all
         hashTag =  gcaArchiveGetGitHashTag;
         backboneFrame.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         backboneInfo(iFrame) = backboneFrame;
         save( [saveDir filesep 'backboneInfo.mat'],'backboneInfo');
-       
+        display(['Finished Finding Neurite Orientation for Frame ' num2str(iFrame)]);
+        p(iFrame) = params; 
+        save([saveDir filesep 'params.mat'],'p');  
+    
     end % iFrame
     
 end   % for iCh
