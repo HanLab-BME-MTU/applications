@@ -224,7 +224,7 @@ try
     tMapIn=forceFieldProc.loadChannelOutput('output','tMap');
     tmaxAuto = 0.8*max(tMapIn{1}(:));
     tmin = min(tMapIn{1}(:));
-    cropInfo = [forceField(1).pos(1,:),forceField(1).pos(end,:)];
+    cropInfo = [floor(forceField(1).pos(1,:)),floor(forceField(1).pos(end,:))];
 catch
     [tMapIn, tmaxAuto, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,0);
 end
@@ -681,7 +681,7 @@ for k=1:numel(tracksNA)
             tracksNA(k).closestBdPoint(real_kk,:)).^2,2));
         lastPointIntX = round(tracksNA(k).closestBdPoint(real_kk+1,1));
         lastPointIntY = round(tracksNA(k).closestBdPoint(real_kk+1,2));
-        if cropMaskStack(lastPointIntY,lastPointIntX,real_kk) %if the last point is in the first mask, it is inward
+        if cropMaskStack(lastPointIntY-(floor(cropInfo(2))+band-1),lastPointIntX-(floor(cropInfo(1))+band-1),real_kk) %if the last point is in the first mask, it is inward
             distTrajec(kk) = -distTrajec(kk);
         end
     end
