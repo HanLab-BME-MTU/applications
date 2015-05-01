@@ -150,6 +150,7 @@ if ~p.useGrid
     disp('Determining PSF sigma from reference frame...')
     % Adaptation of psfSigma from bead channel image data
     psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+    disp(['Determined sigma: ' num2str(psfSigma)])
 
     disp('Detecting beads in the reference frame...')
     pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);

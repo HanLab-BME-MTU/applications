@@ -215,6 +215,9 @@ if strcmpi(props{1}{props{2}},'fastbem'),
     set(get(handles.uipanel_BEM,'Children'),'Enable','on');
 else
     set(get(handles.uipanel_BEM,'Children'),'Enable','off');
+    set(handles.useLcurve,'Value',false);
+    set(handles.useLcurve,'Enable','off');
+    set(get(handles.groupCornerOptimal,'Children'),'Enable','off');
 end
 
 

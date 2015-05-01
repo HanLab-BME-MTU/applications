@@ -85,37 +85,37 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
         fnorm = (force(:,1).^2 + force(:,2).^2).^0.5;
         eta(i) = sum(fnorm(:));
         % residual norm calculation
-        G_xx=V*((1-s).*k.^2+s*ky.^2)./(k.^3);
-        G_xy=V*s*kx.*ky./(k.^3);
-        G_yy=V*((1-s).*k.^2+s*kx.^2)./(k.^3);
-
-%         Ginv_xx =k*(-kx.^2+ky.^2.*(-1+s))/(V*(-1+s));
+%         G_xx=V*((1-s).*k.^2+s*ky.^2)./(k.^3);
+%         G_xy=V*s*kx.*ky./(k.^3);
+%         G_yy=V*((1-s).*k.^2+s*kx.^2)./(k.^3);
 % 
-%         Ginv_xx =k.*(kx.^2+(1-s)*ky.^2)./(V*(1-s));
-%         G_xxfor =V.*(1-s)./(k.*(k.^2-ky.^2.*s));
-        
-%         G_xx(1,1) = g0x;
-%         G_yy(1,1) = g0y;
-        G_xx(1,1) = 0;
-        G_yy(1,1) = 0;
-        G_xy(1,1) = 0;
-        G_xy(i_max/2+1,:) = 0;
-        G_xy(:,j_max/2+1) = 0;
-
-        Ftu_estm(:,:,1) = G_xx.*Ftf(:,:,1)+G_xy.*Ftf(:,:,2);
-        Ftu_estm(:,:,2) = G_xy.*Ftf(:,:,1)+G_yy.*Ftf(:,:,2);
-%         ue(:,:,1) = ifft2(Ftu_estm(:,:,1),'symmetric');
-%         ue(:,:,2) = ifft2(Ftu_estm(:,:,2),'symmetric');
-        ue(:,:,1) = real(ifft2(Ftu_estm(:,:,1),'symmetric'));
-        ue(:,:,2) = real(ifft2(Ftu_estm(:,:,2),'symmetric'));
+% %         Ginv_xx =k*(-kx.^2+ky.^2.*(-1+s))/(V*(-1+s));
+% % 
+% %         Ginv_xx =k.*(kx.^2+(1-s)*ky.^2)./(V*(1-s));
+% %         G_xxfor =V.*(1-s)./(k.*(k.^2-ky.^2.*s));
+%         
+% %         G_xx(1,1) = g0x;
+% %         G_yy(1,1) = g0y;
+%         G_xx(1,1) = 0;
+%         G_yy(1,1) = 0;
+%         G_xy(1,1) = 0;
+%         G_xy(i_max/2+1,:) = 0;
+%         G_xy(:,j_max/2+1) = 0;
+% 
+%         Ftu_estm(:,:,1) = G_xx.*Ftf(:,:,1)+G_xy.*Ftf(:,:,2);
+%         Ftu_estm(:,:,2) = G_xy.*Ftf(:,:,1)+G_yy.*Ftf(:,:,2);
+% %         ue(:,:,1) = ifft2(Ftu_estm(:,:,1),'symmetric');
+% %         ue(:,:,2) = ifft2(Ftu_estm(:,:,2),'symmetric');
+%         ue(:,:,1) = real(ifft2(Ftu_estm(:,:,1),'symmetric'));
+%         ue(:,:,2) = real(ifft2(Ftu_estm(:,:,2),'symmetric'));
 %         
 %         figure, quiver(grid_mat(:,:,1),grid_mat(:,:,2),u(:,:,1),u(:,:,2),0)     
 %         hold on
 %         quiver(grid_mat(:,:,1),grid_mat(:,:,2),ue(:,:,1),ue(:,:,2),0,'r')
         
-%         [ue(:,:,1),ue(:,:,2)]=fwdSolution(grid_mat(:,:,1),grid_mat(:,:,2),E,...
-%             grid_mat(1,1,1),grid_mat(end,end,1),grid_mat(1,1,2),grid_mat(end,end,2),...
-%             f(:,:,1),f(:,:,2),'fft','Intp',2^10,[],0.5,false,false);
+        [ue(:,:,1),ue(:,:,2)]=fwdSolution(grid_mat(:,:,1),grid_mat(:,:,2),E,...
+            grid_mat(1,1,1),grid_mat(end,end,1),grid_mat(1,1,2),grid_mat(end,end,2),...
+            f(:,:,1),f(:,:,2),'fft','Intp',2^10,[],0.5,false,false);
 %         [ue(:,:,1),ue(:,:,2)]=fwdSolution(grid_mat(:,:,1),grid_mat(:,:,2),E,...
 %             grid_mat(1,1,1),grid_mat(end,end,1),grid_mat(1,1,2),grid_mat(end,end,2),...
 %             f(:,:,1),f(:,:,2),'fft','noIntp',[],[],0.5,false,true);

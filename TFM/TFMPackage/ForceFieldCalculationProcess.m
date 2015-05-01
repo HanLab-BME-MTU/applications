@@ -98,7 +98,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1:end})
                 iFrame=ip.Results.iFrame;
-                data=obj.loadChannelOutput(iFrame,2,'output',ip.Results.output);
+                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
                 if iscell(data), data = data{1}; end
             else % forcefield
                 % Input parser
@@ -111,7 +111,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.parse(obj,varargin{1},varargin{2:end})
                 iFrame=ip.Results.iFrame;
                 
-                data=obj.loadChannelOutput(iFrame,1,'output',ip.Results.output);
+                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
             end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),

@@ -8,7 +8,10 @@
 % end
 trackedBranches=BA_output.branch_number_tracked;
 
-radius=40;
+radius = 40;
+min_change = 100;
+peri_dist = 60;
+
 BA_output.curvature_map_pool = [];
 BA_output.filament_alignment_map_pool = [];
 BA_output.filament_density_pool = [];
@@ -17,6 +20,7 @@ BA_output.curvature_map_full_pool = [];
 BA_output.filament_alignment_map_full_pool = [];
 BA_output.filament_density_full_pool = [];
 BA_output.prot_or_retr_fila_full_pool = [];
+BA_output.scale_map_pool = [];
 
 BA_output.last_curvature_map_pool = [];
 BA_output.last_filament_alignment_map_pool = [];
@@ -26,6 +30,7 @@ BA_output.last_curvature_map_full_pool = [];
 BA_output.last_filament_alignment_map_full_pool = [];
 BA_output.last_filament_density_full_pool = [];
 BA_output.last_prot_or_retr_fila_full_pool = [];
+BA_output.last_scale_map_pool = [];
 
 BA_output.int_map_pool = [];
 BA_output.st_map_pool = [];
@@ -116,6 +121,7 @@ for iCompleteFrame = 1 :nCompleteFrame
     cell_vimtotal_pool = [cell_vimtotal_pool; sum(current_VIF_image(smoothed_current_mask>0))];
     
     
+       
     if iCompleteFrame>1
         RG_framem1(:,:,2) = smoothed_mask_cell{1,iCompleteFrame-1};
         previous_VIF_image = MD.channels_(VIF_channel).loadImage(iFrame-1);
@@ -125,6 +131,13 @@ for iCompleteFrame = 1 :nCompleteFrame
         
         red_new_positive  = red_new>0;
         green_old_positive  = green_old>0;
+        
+        this_cell_mask = squeeze(RG_framem1(:,:,1));
+        last_cell_mask = squeeze(RG_framem1(:,:,2));
+        
+        this_cell_mask_center = (bwdist(1-this_cell_mask))>peri_dist;
+        last_cell_mask_center = (bwdist(1-last_cell_mask))>peri_dist;
+        
         
         
         for iT = 1 : trackedBranches
@@ -138,6 +151,12 @@ for iCompleteFrame = 1 :nCompleteFrame
                 this_branch_last_frame=[];
             end
             
+            this_branch_min_change = min(min_change, ...
+                sum(sum(this_branch_last_frame))/3);
+            last_branch_min_change = min(min_change, ...
+                sum(sum(this_branch_last_frame))/3);
+            
+            
             %              if(iFrame<=numel(new_region_branch_label_cell)-1)
             %                  this_branch_next_frame = ...
             %                      (new_region_branch_label_cell{iFrame+1}==iT);
@@ -145,6 +164,8 @@ for iCompleteFrame = 1 :nCompleteFrame
             %                  this_branch_next_frame=[];
             %              end
             
+            this_frame_prot_retract_map_based_on_branch(this_branch_this_frame>0)=0.5;
+            last_frame_prot_retract_map_based_on_branch(this_branch_last_frame>0)=0.5;
             
             if(sum(sum(this_branch_this_frame))>0)
                 
@@ -153,19 +174,26 @@ for iCompleteFrame = 1 :nCompleteFrame
                     % prot i-1 to i frame counted in frame i
                     % compared with
                     % retract from i-1 to i frame counted in frame i-1
+                    
+                    % and also need to be more than a number of pixels, if
+                    % really just a few pixels, don't consider
+                    
                     if(sum(sum(red_new_positive(this_branch_this_frame>0))) > ...
-                            sum(sum(green_old_positive(this_branch_last_frame>0))) )
+                            max(this_branch_min_change,sum(sum(green_old_positive(this_branch_last_frame>0)))) )
                         this_frame_prot_retract_map_based_on_branch(this_branch_this_frame>0)=1;
                         last_frame_prot_retract_map_based_on_branch(this_branch_last_frame>0)=1;
                     else
-                        this_frame_prot_retract_map_based_on_branch(this_branch_this_frame>0)=-1;
-                        last_frame_prot_retract_map_based_on_branch(this_branch_last_frame>0)=-1;
-                        
+                        if(sum(sum(green_old_positive(this_branch_last_frame>0)))>last_branch_min_change)
+                            this_frame_prot_retract_map_based_on_branch(this_branch_this_frame>0)=-1;
+                            last_frame_prot_retract_map_based_on_branch(this_branch_last_frame>0)=-1;
+                        end
                     end
                     
                 else
                     % if there is no previous frame for this branch
-                    this_frame_prot_retract_map_based_on_branch(this_branch_this_frame>0)=1;
+                    if(sum(sum(red_new_positive(this_branch_this_frame>0))) > this_branch_min_change)
+                        this_frame_prot_retract_map_based_on_branch(this_branch_this_frame>0)=1;
+                    end
                 end
             else
                 last_frame_prot_retract_map_based_on_branch(this_branch_last_frame>0)=-1;
@@ -176,7 +204,12 @@ for iCompleteFrame = 1 :nCompleteFrame
         % correction on direct pixel comparison
         
         this_frame_prot_retract_map_based_on_branch(red_new_positive>0) = 1;
-%         last_frame_prot_retract_map_based_on_branch(green_old_positive>0) = -1;
+        %         last_frame_prot_retract_map_based_on_branch(green_old_positive>0) = -1;
+        
+        % put the center away
+        this_frame_prot_retract_map_based_on_branch(this_cell_mask_center>0) = 0.5;
+        last_frame_prot_retract_map_based_on_branch(last_cell_mask_center>0) = 0.5;
+        
         
         % plot for debugging
         
@@ -195,6 +228,7 @@ for iCompleteFrame = 1 :nCompleteFrame
         this_frame_prot_retract_map_based_on_branch_cell{iCompleteFrame} = this_frame_prot_retract_map_based_on_branch;
         last_frame_prot_retract_map_based_on_branch_cell{iCompleteFrame} = last_frame_prot_retract_map_based_on_branch;
         
+       
         
         % for protrustion
         %             try
@@ -360,11 +394,11 @@ for iCompleteFrame = 1 :nCompleteFrame
             ify = ify_array(if_ind);
             
             try
-            filament_squre = filament_orientation_map( round(ify-radius/2): round(ify+radius/2), ...
-                round(ifx-radius/2): round(ifx+radius/2));
-            filament_small_pool = filament_squre(isnan(filament_squre)==0);
-            alignment_value = circ_std(filament_small_pool);
-            filament_alignment_map(ify,ifx) = real(alignment_value);
+                filament_squre = filament_orientation_map( round(ify-radius/2): round(ify+radius/2), ...
+                    round(ifx-radius/2): round(ifx+radius/2));
+                filament_small_pool = filament_squre(isnan(filament_squre)==0);
+                alignment_value = circ_std(filament_small_pool);
+                filament_alignment_map(ify,ifx) = real(alignment_value);
             catch
                 filament_alignment_map(ify,ifx) = nan;
             end
@@ -381,6 +415,9 @@ for iCompleteFrame = 1 :nCompleteFrame
         
         if(iCompleteFrame>1)
             this_nms = nms_cell{iCompleteFrame};
+            this_scaleMap =  scaleMap_cell{1,iCompleteFrame};
+            last_scaleMap =  scaleMap_cell{1,iCompleteFrame-1};
+            
             last_VIF_image = MD.channels_(VIF_channel).loadImage(iFrame-1);
             last_nms = nms_cell{iCompleteFrame-1};
             last_MAX_st_res = MAX_st_res_cell{iCompleteFrame-1};
@@ -389,11 +426,13 @@ for iCompleteFrame = 1 :nCompleteFrame
             curvature_map_pool = curvature_map(current_seg>0);
             filament_alignment_map_pool = filament_alignment_map(current_seg>0);
             filament_density_pool = filament_density(current_seg>0);
+            scale_map_pool = this_scaleMap(current_seg>0);
             prot_or_retr_fila_pool = this_frame_prot_retract_map_based_on_branch(current_seg>0);
             
             
             curvature_map(isnan(curvature_map))=0;
             filament_alignment_map(isnan(filament_alignment_map))=0;
+            
             
             curvature_map_full = imfilter(curvature_map,ones(radius, radius)/(radius*radius), 'same','replicate')./filament_density;
             filament_alignment_map_full = imfilter(filament_alignment_map,ones(radius, radius)/(radius*radius), 'same','replicate')./filament_density;
@@ -415,6 +454,7 @@ for iCompleteFrame = 1 :nCompleteFrame
             BA_output.prot_or_retr_fila_pool = [BA_output.prot_or_retr_fila_pool; prot_or_retr_fila_pool(:);];
             BA_output.int_map_pool = [BA_output.int_map_pool; int_map_pool(:);];
             BA_output.st_map_pool = [BA_output.st_map_pool; st_map_pool(:);];
+            BA_output.scale_map_pool = [BA_output.scale_map_pool; scale_map_pool(:);];
             
             BA_output.curvature_map_full_pool = [BA_output.curvature_map_full_pool; curvature_map_full_pool(:);];
             BA_output.filament_alignment_map_full_pool = [BA_output.filament_alignment_map_full_pool; filament_alignment_map_full_pool(:);];
@@ -439,12 +479,14 @@ for iCompleteFrame = 1 :nCompleteFrame
             last_filament_alignment_map_pool = last_filament_alignment_map(last_current_seg>0);
             last_filament_density_pool = last_filament_density(last_current_seg>0);
             last_prot_or_retr_fila_pool = last_frame_prot_retract_map_based_on_branch(last_current_seg>0);
+            last_scale_map_pool = last_scaleMap(last_current_seg>0);
             
             last_curvature_map(isnan(last_curvature_map))=0;
             last_filament_alignment_map(isnan(last_filament_alignment_map))=0;
             
             last_curvature_map_full = imfilter(last_curvature_map,ones(radius, radius)/(radius*radius), 'same','replicate')./last_filament_density;
             last_filament_alignment_map_full = imfilter(last_filament_alignment_map,ones(radius, radius)/(radius*radius), 'same','replicate')./last_filament_density;
+            
             
             last_curvature_map_full_pool = last_curvature_map_full(last_filament_density>0);
             last_filament_alignment_map_full_pool = last_filament_alignment_map_full(last_filament_density>0);
@@ -465,7 +507,7 @@ for iCompleteFrame = 1 :nCompleteFrame
             BA_output.last_prot_or_retr_fila_pool = [BA_output.last_prot_or_retr_fila_pool; last_prot_or_retr_fila_pool(:);];
             BA_output.last_int_map_pool = [BA_output.last_int_map_pool; last_int_map_pool(:);];
             BA_output.last_st_map_pool = [BA_output.last_st_map_pool; last_st_map_pool(:);];
-            
+            BA_output.last_scale_map_pool =[BA_output.last_scale_map_pool; last_scale_map_pool(:);];
             
             BA_output.last_curvature_map_full_pool = [BA_output.last_curvature_map_full_pool; last_curvature_map_full_pool(:);];
             BA_output.last_filament_alignment_map_full_pool = [BA_output.last_filament_alignment_map_full_pool; last_filament_alignment_map_full_pool(:);];
@@ -473,6 +515,13 @@ for iCompleteFrame = 1 :nCompleteFrame
             BA_output.last_prot_or_retr_fila_full_pool = [BA_output.last_prot_or_retr_fila_full_pool; last_prot_or_retr_fila_full_pool(:);];
             BA_output.last_int_map_full_pool = [BA_output.last_int_map_full_pool; last_int_map_full_pool(:);];
             BA_output.last_st_map_full_pool = [BA_output.last_st_map_full_pool; last_st_map_full_pool(:);];
+            
+      
+            %%
+            BA_output.vim_intensity_cell_frame_avg(iCompleteFrame) = mean(current_VIF_image(this_cell_mask>0));
+            BA_output.vif_densiity_cell_frame_avg(iCompleteFrame) = mean(filament_density(this_cell_mask>0));
+            BA_output.vim_intensity_filaall_frame_avg(iCompleteFrame) = mean(current_VIF_image(current_seg>0));
+            BA_output.vif_densiity_filaall_frame_avg(iCompleteFrame) = mean(filament_density(current_seg>0));
             
         end
     end
