@@ -100,6 +100,7 @@ beadsChannel = movieData.channels_(p.ChannelIndex(1));
 
 % Adaptation of psfSigma from bead channel image data
 psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+disp(['Determined sigma: ' num2str(psfSigma)])
 
 assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
     'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
