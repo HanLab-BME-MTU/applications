@@ -1,4 +1,4 @@
-function [ backboneInfo,TSFigs] = GCAgetNeuriteOrientFixInput(img,varargin)
+function [ backboneInfo,TSFigs] = GCAgetNeuriteOrient(img,varargin)
 % GCAgetNeuriteOrient: (STEP I of GCA PACKAGE)
 % This function finds the large scale ridge that is most likely to
 % correspond to the point of entry of the neurite in the image, hence
