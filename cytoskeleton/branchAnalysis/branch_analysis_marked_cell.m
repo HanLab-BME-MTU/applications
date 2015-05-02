@@ -175,7 +175,7 @@ for iFrame = CompletedFrame
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',...
-            filename_short_strs{iFrame},'.mat']),'nms', 'MAX_st_res');
+            filename_short_strs{iFrame},'.mat']),'nms', 'MAX_st_res','scaleMap');
     end
     
     
@@ -187,6 +187,7 @@ for iFrame = CompletedFrame
   
     nms_cell{1,iCompleteFrame} = nms;
     MAX_st_res_cell{1,iCompleteFrame} = MAX_st_res;
+    scaleMap_cell{1,iCompleteFrame} = scaleMap;
     
     %% Load the mask and smooth the cell mask
     if(exist([truthPath,filesep,'mask_',num2str(iFrame),'.tif'],'file'))
