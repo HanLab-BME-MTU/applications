@@ -739,7 +739,7 @@ for i = 1:numel(tracks)
                 newTracks(i).amp(jj+kk-1) = ((gap+1-kk)*newTracks(i).amp(jj-1)+kk*newTracks(i).amp(jj+gap))/(gap+1);
                 newTracks(i).bkgAmp(jj+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(jj-1)+kk*newTracks(i).bkgAmp(jj+gap))/(gap+1);
             end
-            jj=jj+gap+1;
+            jj=jj+gap;
         end
     end
 %     end
