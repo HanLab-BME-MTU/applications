@@ -1,33 +1,115 @@
-function [ candidateMaskNew,linkMask,EPCandidateSort, labelMatFill,status] = gcaConnectLinearRidges(EPCandidateSort,maxTh,candidateMask,labelMat,radius)
-% gcaConnectLinearRidges: Updated connect linear structures function 
-% INPUT:
-% EPCandidateSort: 
+function [ candidateMaskNew,linkMask,EPCandidateSort, labelMatPostConnect,status] = gcaConnectLinearRidges(EPCandidateSort,labelMat,varargin)
+% gcaConnectLinearRidges: This function connects end-points of linear
+% ridge candidates by searching for linkage candidates using a KD tree 
+% and then performing maxWeigthedGraphMatching to determine the optimal
+% attachment in the case there are competing possible attachments
+% - the cost is currenlty a simple linear summation of the 
+% local co-linearity of the tangent at the endpoint of the ridge and the vector formed
+% by the connection between the two points. Negative values for these
+% colinearity terms are not allowed for linkage distances >  and these links will be removed as
+% these linkages will result in angle formation > 90 degrees between the
+% two ridges. In this function we also disfavor formaing junctions by removing 
+% connections that pass over the original candidate mask. 
 % 
-% maxTh: 
-% 
-% candidateMask
-% 
-% labelMat
-% 
-% 
-
+%% INPUT:
 %
-% radius: radius in pixels for the KD tree endpoint search.
+%   EPCandidateSort: (REQUIRED) : 1 x c cell-array of 2x4 double arrays
+%         where c is the number of candidate ridges. 
+%         and each cell contains a double array with the 
+%         endpoint coordinate (x,y) where x is the local direction 
+%         moving toward the endpoint along the ridge(x,y) 
+%         sorted by the label
+% 
+%   labelMat: (REQUIRED) : rxc unit8 array 
+%         where r (row) is the height (ny) and c (col) is the width
+%         (nx) of the original input image
+%         the candiate ridges labeled by connected
+%         component. Labels should correspond to the order of
+%         EPCandidateSort- 
+%         Output of labelmatrix.m function 
+%   (MB CHECK BEFORE RELEASE: might want to make one input of a candidateMask and calculate
+%   these other two inputs here) - 
+%
+% PARAMS:         
+%
+%  'MaxRadiusLargeScaleLink' (PARAM): Positive Scalar
+%        Maximum radius for linking the endpoints neighboring large-scale ridge candidates
+%       Default : 10 (In Pixels)          
+%
+%  'NoLinkDistanceFromBorder' (PARAM) : Positive Scalar
+%        Endpoints within this distance of the image boundary will not be
+%        considered for ridge linking.  This parameter was added to ensure that 
+%        no ridge filter edge effects are linked. Practically 
+%       Default : 10 (In Pixels)
+%      
+%  'MaxRadiusNoGeoTerm'  (PARAM) : Positive Scalar
+%       The max radius for which geometry will be considered when linking 
+%       ridges - for the large scale ridge linking one often does not want
+%       to consider geometry of the ridges as the current scale integration often 
+%       leads to small and abrupt changes in the NMS when the neurite
+%       changes scales and we wish to link these. 
+%      Default : 3 (In Pixels)
+%
+% OUTPUT: 
+%   candidateMaskNew: rxc logical array 
+%         where r (row) is the height (ny) and c (col) is the width
+%        (nx) of the original input image of the candidates post linkage 
+% 
+%   linkMask: rxc logical array 
+%         where r (row) is the height (ny) and c (col) is the width
+%         (nx) of the original input image marking the optimized interpolated 
+%         new linkages between candidate ridges 
+%
+%   EPCandidateSortPostConnect: 1 x c cell-array of 2x2 double arrays
+%         where c is still the number of the original connected component 
+%         ridge labels prior to linking and each cell contains a double array with the 
+%         endpoint coordinate (x,y) (vectors removed). Labels which have been removed due to
+%         linking (merging) are replace by NaNs and the new endpoints of
+%         each ridge label are documented 
+%         (MB CHECK TO MAKE SURE THIS IS OK
+%         BEFORE RELEASE) - CURRENTLY DO NOT USE this output - more
+%         important when consider the filopodia 
+% 
+%  labelMatPostConnect:  rxc int8 array 
+%         where r (row) is the height (ny) and c (col) is the width
+%         (nx) of the original input image. The label matrix merges the
+%         labels of two linked CCs. (MB CHECK TO MAKE SURE THIS IS OK
+%         BEFORE RELEASE: CURRENTLY DO NOT USE this output) 
+% 
+%  status: 1 if viable links were found: 0 if no links were made 
+%% InputParser 
+ip = inputParser;
+
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true; 
+%REQUIRED
+ip.addRequired('EPCandidateSort');
+ip.addRequired('labelMat'); 
+
+% PARAMETERS
+ip.addParameter('MaxRadiusLargeScaleLink',10); 
+ip.addParameter('NoLinkDistanceFromBorder',10); 
+ip.addParameter('MaxRadiusNoGeoTerm',3) ; 
+%ip.addParameter('TSOverlays',true,@(x) islogical(x));
+
+ip.parse(EPCandidateSort,labelMat,varargin{:});
 
 
-[ny,nx] = size(maxTh);
+
+%% Initiate 
+candidateMask = labelMat>0; 
+[ny,nx] = size(labelMat);
 imSize = [ny,nx];
-maxTh = maxTh + pi/2;
+
 endPoints = vertcat(EPCandidateSort{:}); % taking these out of a cell array so
 endPoints =  endPoints(:,1:2); % take first two columns as added vector 20140913
 % create a repmat for indexing
-labels = arrayfun(@(i) repmat(i,2,1),1:numel(EPCandidateSort),'uniformoutput',0);
-labels = vertcat(labels{:});
+%labels = arrayfun(@(i) repmat(i,2,1),1:numel(EPCandidateSort),'uniformoutput',0);
+%labels = vertcat(labels{:});
 
 % typically you want to exclude endpoints from being connected that fall
 % within a certain range of the image boundary as these pieces are more
-% likely connected to the boundary itself and these paths are typically
-% just cause
+% likely connected to the boundary itself
 boundaryMask = zeros(imSize);
 boundaryMask(1:imSize(1),1) =1;
 boundaryMask(1:imSize(1),imSize(2))=1;
@@ -37,7 +119,7 @@ boundaryMask(imSize(1),1:imSize(2)) =1;
 boundaryCoordXY = [boundaryX,boundaryY];
 % first input is the input points second input is the query points
 % want to find the endpoints around the boundary
-[idxEPsNearBound,dBound] = KDTreeBallQuery(endPoints,boundaryCoordXY,10);
+[idxEPsNearBound,~] = KDTreeBallQuery(endPoints,boundaryCoordXY,ip.Results.NoLinkDistanceFromBorder);
 toRemove = unique(vertcat(idxEPsNearBound{:}));
 
 endPoints(toRemove,:) = [];
@@ -51,7 +133,7 @@ end
 
 %% Find all enpoints within x radius of one another- note there will be some
 % redundancy that one has to filter and each query point will find itself.
-[idx,d] = KDTreeBallQuery(endPoints, endPoints, radius); % originally 5
+[idx,d] = KDTreeBallQuery(endPoints, endPoints, ip.Results.MaxRadiusLargeScaleLink); % originally 5
 
 
 
@@ -98,15 +180,15 @@ E(E(:,1)<=E(:,2),:)=[];
 % remove self associations (ie connection with same label) : this should
 % take out those points where it found 'itself' and the distance = 0
 % as well as avoid possible edges between endpoints of the same piece.
-label1 = arrayfun(@(i) labelMat(sub2ind(size(maxTh),endPoints(E(i,1),2), endPoints(E(i,1),1))),1:length(E(:,1)))  ;
-label2 = arrayfun(@(i) labelMat(sub2ind(size(maxTh),endPoints(E(i,2),2),endPoints(E(i,2),1))),1:length(E(:,1)));
+label1 = arrayfun(@(i) labelMat(sub2ind([ny,nx],endPoints(E(i,1),2), endPoints(E(i,1),1))),1:length(E(:,1)))  ;
+label2 = arrayfun(@(i) labelMat(sub2ind([ny,nx],endPoints(E(i,2),2),endPoints(E(i,2),1))),1:length(E(:,1)));
 
 E = E(label1~=label2,:);
 d = d(label1~=label2,:);
 
 %% Remove all overlap with previous pixels
 % find path between edges
-paths=arrayfun(@(i) bresenham([endPoints(E(i,1),1) endPoints(E(i,1),2)], [endPoints(E(i,2),1) endPoints(E(i,2),2)]),...
+paths=arrayfun(@(i) gcaBresenham([endPoints(E(i,1),1) endPoints(E(i,1),2)], [endPoints(E(i,2),1) endPoints(E(i,2),2)]),...
     1:length(E(:,1)),'uniformoutput',0);
 
 pathsidx = cellfun(@(x) sub2ind([ny,nx],x(2:end-1,2),x(2:end-1,1)),paths,'uniformoutput',0);
@@ -124,7 +206,7 @@ if sanityCheck2 == 1
     imshow(labelMat>0,[]);
     hold on
     % should eventually color code by cost... but for now
-    cmap = jet(length(E));
+    %cmap = jet(length(E));
     % easier to keep track of indexing if just use a for loop
     for iEdge = 1:length(E);
         % coords of first point of edge
@@ -176,7 +258,7 @@ if ~isempty(E)
     dotProd21 = arrayfun(@(i) dot(vect(E(i,2),:),[deltXCon21(i) deltYCon21(i)])/d(i),1:length(E(:,1)));
     
     %% Filter for long distance links by geometry
-    idxFilt = (d>3 & (dotProd21' <=0 | dotProd12' <=0));
+    idxFilt = (d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=0 | dotProd12' <=0));
     ERemove = E(idxFilt,:);
     
     %% Plot the bad link sanity check if user desires
@@ -200,8 +282,8 @@ if ~isempty(E)
             plot([xCoord1,xCoord2],[yCoord1,yCoord2],'color','r','Linewidth',2);
         end
         %plot the remove vectors in red
-        idx21Bad = find(d>3 & (dotProd21' <=0));
-        idx12Bad = find(d>3 & (dotProd12'<=0));
+        idx21Bad = find(d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=0));
+        idx12Bad = find(d>ip.Results.MaxRadiusNoGeoTerm & (dotProd12'<=0));
         if (~isempty(idx21Bad) || ~isempty(idx12Bad))
             quiver(endPoints(E(idx21Bad,2),1),endPoints(E(idx21Bad,2),2),...
                 vect(E(idx21Bad,2),1), vect(E(idx21Bad,2),2),'color','g');
@@ -251,23 +333,23 @@ if ~isempty(E) %check if there are reasonable edges
     M = maxWeightedMatching(numberNodes, EFinal, costTotal);
     E = E(M,:);
     
-    paths=arrayfun(@(i) bresenham([endPoints(E(i,1),1) endPoints(E(i,1),2)], [endPoints(E(i,2),1) endPoints(E(i,2),2)]),...
+    paths=arrayfun(@(i) gcaBresenham([endPoints(E(i,1),1) endPoints(E(i,1),2)], [endPoints(E(i,2),1) endPoints(E(i,2),2)]),...
         1:length(E(:,1)),'uniformoutput',0);
-    linkMask = zeros(size(maxTh));
+    linkMask = zeros([ny,nx]);
     
     links = vertcat(paths{:});
     
-else % no goo links
+else % no good links
     
     links = []; % since links is empty this will default to mask bad
-    linkMask = zeros(size(maxTh));
+    linkMask = zeros([ny,nx]);
 end % isempty E
 
 
 
 if ~isempty(links) % nothing that falls under this criteria
     % Add links to candidate mask
-    idxLinks = sub2ind(size(maxTh),links(:,2),links(:,1));
+    idxLinks = sub2ind([ny,nx],links(:,2),links(:,1));
     % need to add to mask  iteratively and check for junctions... later
     % see how much comp time this sucks.
     %         linkMaskCheck = zeros(size(maxTh));
@@ -281,37 +363,45 @@ if ~isempty(links) % nothing that falls under this criteria
     linkMask(idxLinks) = 1;
     candidateMaskNew = (candidateMask| linkMask);
     % Fix the label mat to unite those pixels that need to be clustered
-    labelMatFill = labelMat; % initiate a labelMatrix that connects the two pieces
+    labelMatPostConnect = labelMat; % initiate a labelMatrix that connects the two pieces
+    
+    EPCandidateSortPostConnect = cellfun(@(x) x(:,1:2),EPCandidateSort,'uniformoutput',0); % take out the vectors. 
+    % for all edges 
     for i =  1:length(E(:,1))
-        label1 = labelMatFill(sub2ind(size(maxTh),endPoints(E(i,1),2), endPoints(E(i,1),1)));
-        label2 = labelMatFill(sub2ind(size(maxTh),endPoints(E(i,2),2),endPoints(E(i,2),1)));
+        % get the label of endpoint 1
+        label1 = labelMatPostConnect(sub2ind([ny,nx],endPoints(E(i,1),2), endPoints(E(i,1),1)));
+        % get the label of endpoint 2 in linkage
+        label2 = labelMatPostConnect(sub2ind([ny,nx],endPoints(E(i,2),2),endPoints(E(i,2),1)));
         test = [label1 ;label2];
         
+        % keep the maxvalue label (arbitrary assignment)
         labelKeep  = max(test);
         labelSwitch = min(test);
-        labelMatFill(labelMatFill==labelSwitch) = labelKeep; % change the label.
+        % change the label of the portion of the connected piece we chose
+        % to switch
+        labelMatPostConnect(labelMatPostConnect==labelSwitch) = labelKeep; % 
         
-        labelMatFill(sub2ind(size(maxTh),paths{i}(:,2),paths{i}(:,1)))= labelKeep;
+        % add the same label to the path between the two pieces
+        labelMatPostConnect(sub2ind([ny,nx],paths{i}(:,2),paths{i}(:,1)))= labelKeep;
         
         % make new mask of the new connected filo and get endpoints
-        
-        testMask = double(labelMatFill==labelKeep);
+        testMask = double(labelMatPostConnect==labelKeep);
         sumKernel = [1 1 1];
-        % find endpoints of the floating candidates to attach (note in the
-        % future might want to prune so that the closest end to the
-        % body is the only one to be re-attatched: this will avoid double connections)
+        % find and record the new EPs for the CC
         newEPs = double((testMask.* (conv2(sumKernel, sumKernel', padarrayXT(testMask, [1 1]), 'valid')-1))==1);
         [ye,xe] = find(newEPs~=0);
         %     coords(:,1) = xe;
         %     coords(:,2) = ye;
-        EPCandidateSort{labelKeep} = [xe ye];
-        EPCandidateSort{labelSwitch} = [NaN NaN ;NaN NaN]; % take out those endpoints that were previously considered
+        EPCandidateSortPostConnect{labelKeep} = [xe ye];
+        % keep in same format therefore simply remove all the endpoint
+        % information corresponding to the label you eradicated. 
+        EPCandidateSortPostConnect{labelSwitch} = [NaN NaN ;NaN NaN]; % take out those endpoints that were previously considered
         
     end
     status = 1; % there were links
 else
     candidateMaskNew = candidateMask;
-    labelMatFill = labelMat;
+    labelMatPostConnect = labelMat;
     status = 0; % no links
     
     
