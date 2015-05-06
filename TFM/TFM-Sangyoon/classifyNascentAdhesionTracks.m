@@ -282,22 +282,22 @@ end
 
 linclass = fitcdiscr(meas,species);
 distEdge = meas(:,1);
-relDist = meas(:,2);
-figure
-h1 = gscatter(distEdge,relDist,species,'krb','ov^',[],'off');
-h1(1).LineWidth = 2;
-h1(2).LineWidth = 2;
-legend('Group 1','Group 3','Location','best')
-hold on
-% Plot the classification boundaries.
-K = linclass.Coeffs(1,2).Const; % First retrieve the coefficients for the linear
-L = linclass.Coeffs(1,2).Linear;% boundary between the second and third classes
-                           % (versicolor and virginica).
-% Plot the curve K + [x,y]*L  = 0.
-f = @(x1,x2) K + L(1)*x1 + L(2)*x2;
-h2 = ezplot(f,[0 max(distEdge) 0 max(relDist)]);
-h2.Color = 'r';
-h2.LineWidth = 2;
+% relDist = meas(:,2);
+% figure
+% h1 = gscatter(distEdge,relDist,species,'krb','ov^',[],'off');
+% h1(1).LineWidth = 2;
+% h1(2).LineWidth = 2;
+% legend('Group 1','Group 3','Location','best')
+% hold on
+% % Plot the classification boundaries.
+% K = linclass.Coeffs(1,2).Const; % First retrieve the coefficients for the linear
+% L = linclass.Coeffs(1,2).Linear;% boundary between the second and third classes
+%                            % (versicolor and virginica).
+% % Plot the curve K + [x,y]*L  = 0.
+% f = @(x1,x2) K + L(1)*x1 + L(2)*x2;
+% h2 = ezplot(f,[0 max(distEdge) 0 max(relDist)]);
+% h2.Color = 'r';
+% h2.LineWidth = 2;
 % predict now
 allData = [advanceDistNAs];
 % allData = [advanceDistNAs, distToEdgeLastNAs];

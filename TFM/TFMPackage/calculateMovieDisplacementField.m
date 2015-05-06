@@ -80,7 +80,7 @@ if exist(outputFile{1},'file');
     s=load(outputFile{1},'displField');
     frameDisplField=~arrayfun(@(x)isempty(x.pos),s.displField);
     
-    if ~all(frameDisplField) && ~all(~frameDisplField)
+    if ~all(frameDisplField) && ~all(~frameDisplField) && usejava('desktop')
         % Look at the first non-analyzed frame
         firstFrame = find(~frameDisplField,1);
         % Ask the user if display mode is active
@@ -149,7 +149,7 @@ if ~p.useGrid
     % Detect beads in reference frame
     disp('Determining PSF sigma from reference frame...')
     % Adaptation of psfSigma from bead channel image data
-    psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+    psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
     disp(['Determined sigma: ' num2str(psfSigma)])
 
     disp('Detecting beads in the reference frame...')
@@ -283,7 +283,7 @@ for j= firstFrame:nFrames
         if p.noFlowOutwardOnBorder
             erosionDist=(p.minCorLength+1)/2;
         else
-            erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/2);
+            erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
         end            
         beadsMask=bwmorph(beadsMask,'erode',erosionDist);
 %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
@@ -307,17 +307,33 @@ for j= firstFrame:nFrames
         [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
 %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
-        pivPar.iaSizeX = [64 32 16 16];     % size of interrogation area in X 
-%         pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
-        pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
-        pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
-        pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
+        pivPar.iaSizeX = [64 32 16 8];     % size of interrogation area in X 
+        pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
+        pivPar.iaSizeY = [64 32 16 8];     % size of interrogation area in X 
+        pivPar.iaStepY = [32 16  8 4];     % grid spacing of velocity vectors in X
+%         pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
+%         pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
+%         pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
         pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
         pivPar.smMethod = 'none';
 
         [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
         displField(j).pos=[pivData.X(:), pivData.Y(:)];
         displField(j).vec=[pivData.U(:)+residualT(j,2), pivData.V(:)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+
+%         % testing additional pass of piv processing
+%         pivPar.iaSizeX=[ 8];
+%         pivPar.iaStepX=[ 4];
+%         pivPar.anVelocityEst = 'pivData'; % use velocity data stored in pivData as velocity estimate used for image deformation. 
+%         % By this setting, results of previous passes are transferred
+%         pivPar.ccMethod = 'dcn';
+%         pivPar.qvPair = {'U', 'clipLo', -0.2, 'clipHi', 0.2};
+%         figure;
+%         [pivPar2] = pivParams([],pivPar,'defaults');
+%         pivData2 = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar2);
+%         
+%         displField(j).pos=[pivData2.X(:), pivData2.Y(:)];
+%         displField(j).vec=[pivData2.U(:)+residualT(j,2), pivData2.V(:)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
     end
     
     % Update the waitbar
