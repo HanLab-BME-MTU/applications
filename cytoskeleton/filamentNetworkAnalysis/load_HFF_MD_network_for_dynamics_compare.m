@@ -57,32 +57,20 @@ sigma_theta_ratio =     sigma_theta/((pi/(2*sqrt(3))));
     
 
 % input: save_everything_flag:
-MD1 = load(MD1_filename);
-MD2 = load(MD2_filename);
+MD = load(MD1_filename);
+
 
 indexVIFChannel=2;
 indexMTChannel=1;
 
-% check each of the MD files
-MD = MD1.MD;
+
 package_process_ind_script;
-indexFilamentSegmentationProcess_1 = indexFilamentSegmentationProcess;
-indexCellRefineProcess_1 = indexCellRefineProcess;
-indexCellSegProcess_1 = indexCellSegProcess;
+indexFilamentSegmentationProcess = indexFilamentSegmentationProcess;
+indexCellRefineProcess = indexCellRefineProcess;
+indexCellSegProcess = indexCellSegProcess;
 
-MD = MD2.MD;
-package_process_ind_script;
-indexFilamentSegmentationProcess_2 = indexFilamentSegmentationProcess;
-indexCellRefineProcess_2 = indexCellRefineProcess;
-indexCellSegProcess_2 = indexCellSegProcess;
 
-indexVIFChannel=2;
-indexMTChannel=1;
-
-MD_1 = MD1.MD;
-MD_2 = MD2.MD;
-
-nFrame = MD_1.nFrames_;
+nFrame = MD.nFrames_;
 
 %initialize output
 similarity_scoremap_cell = cell(1,nFrame);
@@ -113,11 +101,9 @@ else
         '_sa',num2str(round(sigma_theta_ratio*100),'%d')];
 end
 
-
 if(~exist(customized_outdir,'dir'))
     mkdir(customized_outdir);
 end
-
 
 for iFrame = start_frame1 : nFrame
     
@@ -127,65 +113,17 @@ for iFrame = start_frame1 : nFrame
         disp(['Frame: ',num2str(iFrame)]);       
         
         % load first movie
-        MT_orientation = MD_1.processes_{indexFilamentSegmentationProcess_1}.loadChannelOutput(iChannel1,iFrame,'output','current_seg_orientation');
-        MT_current_model = MD_1.processes_{indexFilamentSegmentationProcess_1}.loadChannelOutput(iChannel1,iFrame,'output','current_model');
+        MT_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel1,iFrame,'output','current_seg_orientation');
+        MT_current_model = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel1,iFrame,'output','current_model');
         
         MT_current_seg = (isnan(MT_orientation)==0);
-%         
-%         try
-%             MT_img =  MD_1.processes_{indexFlattenProcess_1}.loadChannelOutput(iChannel1,iFrame);
-%         catch
-            MT_img =  MD_1.channels_(1).loadImage(iFrame);
-%         end
-        
+
         %
         % load second movie, at the defined frame number
-        VIF_orientation = MD_2.processes_{indexFilamentSegmentationProcess_2}.loadChannelOutput(iChannel2,iFrame_2+0,'output','current_seg_orientation');
-        VIF_current_model = MD_2.processes_{indexFilamentSegmentationProcess_2}.loadChannelOutput(iChannel2,iFrame_2+0,'output','current_model');
+        VIF_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel2,iFrame_2+0,'output','current_seg_orientation');
+        VIF_current_model = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel2,iFrame_2+0,'output','current_model');
         
         VIF_current_seg = (isnan(VIF_orientation)==0);
-        
-%         try
-%             VIF_img =  MD_2.processes_{indexFlattenProcess_2}.loadChannelOutput(iChannel2,iFrame_2);
-%         catch
-             VIF_img =  MD.channels_(2).loadImage(iFrame);
-%         end
-        
-        % % display the two channel frame together
-        two_channel_img = zeros(size(VIF_img,1),size(VIF_img,2),3);
-        two_channel_img(:,:,1) = VIF_img;
-        two_channel_img(:,:,2) = MT_img;
-        
-        h1=figure(1);imagesc(two_channel_img/255);axis equal;axis off;
-        saveas(h1,[outdir,filesep,'VIFMT_img_frame_',num2str(iFrame),'.tif']);
-        saveas(h1,[outdir,filesep,'VIFMT_img_frame_',num2str(iFrame),'.fig']);
-        
-        two_channel_seg= zeros(size(VIF_img,1),size(VIF_img,2),3);
-        
-        VIF_plus_MT_current_seg = VIF_current_seg + MT_current_seg >0;
-        
-        ch1_white_background_segment = double(MT_current_seg);
-        ch2_white_background_segment = double(VIF_current_seg);
-        ch3_white_background_segment = double(1-VIF_plus_MT_current_seg);
-        
-        ch1_white_background_segment(find(VIF_plus_MT_current_seg==0))=1;
-        ch2_white_background_segment(find(VIF_plus_MT_current_seg==0))=1;
-        
-        two_channel_seg(:,:,1)= double(ch1_white_background_segment);
-        two_channel_seg(:,:,2)= double(ch2_white_background_segment);
-        two_channel_seg(:,:,3) = double(ch3_white_background_segment);
-        
-        % % plotting
-        h2=figure(2);imagesc(two_channel_seg(:,1:end,:));axis equal;axis off;
-        set(h2, 'Position', get(gca, 'OuterPosition') - ...
-            get(h2, 'TightInset') * [-1 0 1 0; 0 -1 0 1; 0 0 1 0; 0 0 0 1]);
-        
-        ch2_white_background_segment(find(VIF_current_seg==1))=0.85;
-        two_channel_seg(:,:,2)= double(ch2_white_background_segment);
-        
-        h2=figure(2);imagesc(two_channel_seg(:,1:end,:));axis equal;axis off;
-        saveas(h2,[outdir,filesep,'darkgreenVIF_white_VIFMT_seg_frame_',num2str(iFrame),'.tif']);
-        saveas(h2,[outdir,filesep,'darkgreenVIF_white_VIFMT_seg_frame_',num2str(iFrame),'.fig']);
         
         img_size = size(MT_img);
         

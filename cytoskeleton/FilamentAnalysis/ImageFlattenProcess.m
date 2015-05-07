@@ -24,7 +24,7 @@ classdef ImageFlattenProcess < ImageProcessingProcess
                 super_args{2} = ImageFlattenProcess.getName;
                 super_args{3} = @image_flatten;
                 if isempty(funParams)
-                    funParams = ImageFlattenProcess.getDefaultParams(owner,outputDir);
+                    funParams = ImageFlattenProcess.getDefaultParams(owner);
                 end
                 super_args{4} = funParams;
                 
@@ -256,13 +256,13 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
-            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+%             ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
             ip.parse(owner, varargin{:})
-            outputDir=ip.Results.outputDir;
+%             outputDir=ip.Results.outputDir;
             
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);
-            funParams.outputDir = outputDir;
+%             funParams.outputDir = outputDir;
             funParams.method_ind = 3;
             funParams.imageflattening_mode = 2;
             funParams.GaussFilterSigma = 0.2;                        
