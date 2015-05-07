@@ -1,6 +1,6 @@
 function [similarity_scoremap_cell,similarity_scoremap_1to2_cell,similarity_scoremap_2to1_cell, distance_map_1_2_cell, distance_map_2_1_cell, angle_map_1_2_cell, angle_map_2_1_cell] ...
     = load_HFF_MD_network_for_dynamics_compare(MD1_filename,iChannel1, start_frame1,...
-    MD2_filename, iChannel2, start_frame2, ...
+    iChannel2, start_frame2, ...
     radius,show_save_everything_flag,...
     longest_radius,sigma_gaussian, sigma_d, sigma_theta)
 % function to compare two networks
@@ -58,7 +58,7 @@ sigma_theta_ratio =     sigma_theta/((pi/(2*sqrt(3))));
 
 % input: save_everything_flag:
 MD = load(MD1_filename);
-
+MD = MD.MD;
 
 indexVIFChannel=2;
 indexMTChannel=1;
@@ -125,7 +125,7 @@ for iFrame = start_frame1 : nFrame
         
         VIF_current_seg = (isnan(VIF_orientation)==0);
         
-        img_size = size(MT_img);
+        img_size = size(MT_orientation);
         
         tic
         [similarity_scoremap, difference_map]= ...
