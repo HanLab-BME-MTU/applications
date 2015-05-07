@@ -3,7 +3,7 @@ function plot_differnce_map_wrapper(difference_map,outdir,customized_outdir,iFra
 
 %%
 % nan as white
-
+difference_map.similarity_scoremap_proximity(difference_map.similarity_scoremap_proximity<0.1)=nan;
 if(show_save_everything_flag==1)
     h3=figure(3);hold off;
     imagesc_white_nan(difference_map.similarity_scoremap_proximity,0,1);axis image;axis off;colorbar;
@@ -25,7 +25,7 @@ colorbar;
     
     saveas(h3,[customized_outdir,filesep,'proximity_score_frame_',num2str(iFrame),'.fig']);
    
-     
+     difference_map.similarity_scoremap_alignment(difference_map.similarity_scoremap_alignment<0.1)=nan;
      h4=figure(4);hold off;
     imagesc_white_nan(difference_map.similarity_scoremap_alignment,0,1);axis image;axis off;colorbar;
   CCC = colormap;
@@ -39,7 +39,8 @@ colorbar;
 %   saveas(h4,[customized_outdir,filesep,'alignment_score_frame_',num2str(iFrame),'.tif']);
     saveas(h4,[customized_outdir,filesep,'alignment_score_frame_',num2str(iFrame),'.fig']);
 %   display('4');
-    
+    difference_map.similarity_scoremap_combined((difference_map.similarity_scoremap_combined)<0.1)=nan;
+
          h5=figure(5);hold off;
     imagesc_white_nan(difference_map.similarity_scoremap_combined,0,1);axis image;axis off;colorbar;
     CCC = colormap;
