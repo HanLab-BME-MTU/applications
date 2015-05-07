@@ -65,6 +65,8 @@ end
 
 %%
 movieNumber =  length(ML.movieDataFile_);
+similarity_scoremap_ML_cell = cell(1,movieNumber);
+difference_map_ML_cell = cell(1,movieNumber);
 
 for iM  = 1 :movieNumber
     
@@ -73,8 +75,8 @@ for iM  = 1 :movieNumber
         'show_save_everything_flag' ...
         'iChannel1' 'start_frame1' ...
         'iChannel2' 'start_frame2' ...
-        'longest_radius' 'sigma_gaussian' 'sigma_d' 'sigma_theta'
-    
+        'longest_radius' 'sigma_gaussian' 'sigma_d' 'sigma_theta'...
+        'similarity_scoremap_ML_cell' 'difference_map_ML_cell'
 
     close all;
     
@@ -82,10 +84,14 @@ for iM  = 1 :movieNumber
     display('======================================================================');
     display(['iM:', num2str(iM)]);
     
-    load_HFF_MD_network_for_dynamics_compare(ML.movieDataFile_{iM},iChannel1, start_frame1,...
+    [similarity_scoremap_cell,difference_map_cell] = load_HFF_MD_network_for_dynamics_compare(ML.movieDataFile_{iM},iChannel1, start_frame1,...
     iChannel2, start_frame2, ...
     radius,show_save_everything_flag,...
     longest_radius,sigma_gaussian, sigma_d, sigma_theta);
 
- 
+    similarity_scoremap_ML_cell{1,iM} = similarity_scoremap_cell;
+    difference_map_ML_cell{1,iM} = difference_map_cell;
 end
+
+save([ML.outputDirectory_,filesep,'similarity_scoremap_ML_result_all.mat'],'similarity_scoremap_ML_cell','difference_map_ML_cell');
+
