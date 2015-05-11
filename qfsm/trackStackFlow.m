@@ -133,13 +133,13 @@ backSpc =repmat('\b',1,L);
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-if isempty(gcp('nocreate'))
-    try
-        parpool local
-    catch
-        matlabpool
-    end
-end
+% if isempty(gcp('nocreate'))
+%     try
+%         parpool local
+%     catch
+%         matlabpool
+%     end
+% end % we don't need this any more.
 
 parfor k = 1:nPoints
 % for k = 1:nPoints
@@ -326,6 +326,8 @@ parfor k = 1:nPoints
     %                         maxV = locMaxV(ind,:);
 
                             maxV2 = [vP2(maxI2(1)) vF2(maxI2(2))];
+                            [~,locMaxI] = findMaxScoreI(score,zeroI,minFeatureSize,0.3); %to find the most closest candidate. This needs to be tested.
+
                             locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
 
                             distToMaxV2 = sqrt(sum((locMaxV- ...
@@ -555,10 +557,55 @@ bI2e = round(centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end));
 %Find the part of the image block that is outside the cropped image and cut it off from the template.
 % vP([find(bI1e<1) find(bI1e>kymWidth)-corL+1])=[];
 % vF([find(bI2e<1) find(bI2e>kymLen)-corL+1])=[];
-bI1(bI1<1 | bI1>kymWidth) = [];
-bI2(bI2<1 | bI2>kymLen) = [];
-bI1e(bI1e<1 | bI1e>kymWidth) = [];
-bI2e(bI2e<1 | bI2e>kymLen) = [];
+
+% this part needs to be a bit smarter. If bI1 or bI2 are cut, it should not
+% affect vP or vF because only template size was changed. If bI1e or bI2e are cut, it should affect vP or vF.
+% bI1(bI1<1 | bI1>kymWidth) = [];
+% bI2(bI2<1 | bI2>kymLen) = [];
+% bI1e(bI1e<1 | bI1e>kymWidth) = [];
+% bI2e(bI2e<1 | bI2e>kymLen) = [];
+idxBI1cutFirst = find(bI1<1);
+idxBI1cutLast = find(bI1>kymWidth);
+idxBI2cutFirst = find(bI2<1);
+idxBI2cutLast = find(bI2>kymLen);
+if ~isempty(idxBI1cutFirst)
+    bI1(idxBI1cutFirst)=[];
+    bI1e(idxBI1cutFirst)=[];
+end
+if ~isempty(idxBI2cutFirst)
+    bI2(idxBI2cutFirst)=[];
+    bI2e(idxBI2cutFirst)=[];
+end
+if ~isempty(idxBI1cutLast)
+    bI1(idxBI1cutLast)=[];
+    bI1e(end-length(idxBI1cutLast)+1:end)=[];
+end
+if ~isempty(idxBI2cutLast)
+    bI2(idxBI2cutLast)=[];
+    bI2e(end-length(idxBI2cutLast)+1:end)=[];
+end
+
+% For bI1e or bI2e, vP and vF are affected
+idxBI1EcutFirst = find(bI1e<1);
+idxBI1EcutLast = find(bI1e>kymWidth);
+idxBI2EcutFirst = find(bI2e<1);
+idxBI2EcutLast = find(bI2e>kymLen);
+if ~isempty(idxBI1EcutFirst)
+    bI1e(idxBI1EcutFirst)=[];
+    vP(idxBI1EcutFirst)=[];
+end
+if ~isempty(idxBI2EcutFirst)
+    bI2e(idxBI2EcutFirst)=[];
+    vF(idxBI2EcutFirst)=[];
+end
+if ~isempty(idxBI1EcutLast)
+    bI1e(idxBI1EcutLast)=[];
+    vP(1:1+length(idxBI1EcutLast)-1)=[];
+end
+if ~isempty(idxBI2EcutLast)
+    bI2e(idxBI2EcutLast)=[];
+    vP(1:1+length(idxBI2EcutLast)-1)=[];
+end
 
 score = zeros(length(vP),length(vF));
 if strcmp(mode,'difference')
@@ -1007,8 +1054,8 @@ elseif length(locMaxS) > 1
     return;
 end
 
-if maxI(1) < m/40 || maxI(1) > 39*m/40 || ...
-        maxI(2) < n/40 || maxI(2) > 39*n/40
+if maxI(1) < min(m/4,2*minFeatureRadius) || maxI(1) > max(3*m/4,m-2*minFeatureRadius) || ...
+        maxI(2) < min(n/4,2*minFeatureRadius) || maxI(2) > max(3*n/4, n-2*minFeatureRadius)
     pass = 0;
     return;
 end
