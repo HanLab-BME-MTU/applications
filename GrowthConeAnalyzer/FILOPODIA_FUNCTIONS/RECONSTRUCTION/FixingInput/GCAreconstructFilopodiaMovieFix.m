@@ -1,15 +1,10 @@
-function [analInfo] = GCAReconstructFilopodiaMovie(movieData,paramsIn)
+function [analInfo] = GCAReconstructFilopodiaMovie(movieData,varargin)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT
 %
 %   movieData - The MovieData object describing the movie, as created using
 %   movieSelectorGUI.m
-%
-%   paramsIn - Structure with inputs for optional parameters. The
-%   parameters should be stored as fields in the structure, with the field
-%   names and possible values as described below:
-%
 %
 %   Parameter Structure Field Names:
 %
@@ -45,13 +40,42 @@ function [analInfo] = GCAReconstructFilopodiaMovie(movieData,paramsIn)
 %       .filoInfo has many subfields that store information regarding the
 %       filopodias coordinates,orientation,grouping(for branching) etc. 
 
-p = paramsIn;
 
+%%
+%% INPUTPARSER
+% for now check movieData separately. 
+if nargin < 1 || ~isa(movieData,'MovieData')
+    error('The first input must be a valid MovieData object!')
+end
+%%Input check
+ip = inputParser;
 
+ip.CaseSensitive = false;
 
+% PARAMETERS
+ defaultOutDir = [movieData.outputDirectory_ filesep...
+     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction'];
+
+ ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x)); 
+ ip.addParameter('ChannelIndex',1); 
+ ip.addParameter('ProcessIndex',0);
+ ip.addParameter('StartFrame','auto'); 
+ ip.addParameter('EndFrame','auto'); 
+
+% Specific
+ ip.addParameter('steerFiltOrder',2,@(x) ismember(x,[2,4])); 
+ ip.addParameter('steerFiltScales',1.5); 
+ ip.addParameter('multSTDNMSResponse',3);
+ ip.addParameter('smallCCSizeThreshold',3); 
+ ip.addParameter('detectEmbedded',true);
+ ip.addParameter('TSOverlays',true); 
+  
+ip.parse(varargin{:});
+p = ip.Results; 
 %% Init:
 nFrames = movieData.nFrames_;
 nChan = numel(p.ChannelIndex);
+channels = p.ChannelIndex;
 imSize = movieData.imSize_;
 ny = imSize(1);
 nx = imSize(2);
@@ -60,26 +84,27 @@ nx = imSize(2);
 %% Loop for each channel
 for iCh = 1:nChan
     
-    display(['Finding Neurite Orientation Channel ' num2str(iCh)]);
+    display(['Reconstructing Filopodia Channel ' num2str(channels(iCh))]);
        
     %% Get Start and End Frames Based on Restart Choice
     
     
     
-    outDir = [movieData.outputDirectory_ filesep ...
-        'filopodia_reconstruct' filefsep 'Filopodia_Reconstruct_Channel_' num2str(iCh)]; 
+    saveDir = [movieData.outputDirectory_ filesep ...
+         'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction' ...
+         filesep 'Channel_' num2str(channels(iCh))]; 
     
-    if ~isdir(outDir);
-        mkdir(outDir);
+    if ~isdir(saveDir);
+        mkdir(saveDir);
     end 
     
-    reconstructFile = [outDir filesep 'analInfoTestSave.mat']; 
+    reconstructFile = [saveDir filesep 'analInfoTestSave.mat']; 
       
     % If file exists
     if  exist(reconstructFile,'file')==2;
         load(reconstructFile) % load the file
         display('Loading Previously Run Filopodia Reconstructions ');
-        if strcmpi(p.restart.startFrame,'auto')
+        if strcmpi(p.startFrame,'auto')
             startFrame = numel(analInfo)-1;
             if startFrame == 0
                 startFrame = 1; % reset to 1;
@@ -92,16 +117,16 @@ for iCh = 1:nChan
     else % if doesn't exist
         startFrame = 1;
         display('No Filopodia Reconstruction Folder Found: Creating and Starting at Frame 1');
-        % load analInfo from neuriteEstimation folder 
-        load( [movieData.outputDirectory_ filesep 'neurite_body_masks' filesep 'Neurite_Body_Masks_Channel_1' ... 
+        % load analInfo from veil/stem folder 
+        load( [movieData.outputDirectory_ filesep 'III_veilStem_reconstruction' ... 
             filesep 'analInfoTestSave.mat']);    
     end % exist(orientFile,'file') == 2
     
-    if strcmpi(p.restart.endFrame,'auto');
+    if strcmpi(p.endFrame,'auto');
         endFrame = nFrames;
         display(['Auto End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     else
-        endFrame = p.restart.endFrame;
+        endFrame = p.endFrame;
         display(['Manual End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
     %%  
@@ -154,7 +179,7 @@ for iCh = 1:nChan
             protrusionC = []; 
         end 
         
-        [analInfo,troubleshootFigs] = GCAReconstructFilopodia(img,analInfoC,protrusionC,paramsIn);
+        [analInfo,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,analInfoC,protrusionC,p);
         
         
         

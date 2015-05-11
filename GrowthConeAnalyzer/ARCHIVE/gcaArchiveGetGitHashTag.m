@@ -4,7 +4,7 @@ function [hashTag] = gcaArchiveGetGitHashTag
 
 OS = getenv('OS') ;
 if ~isempty(regexp(OS,'Windows','once'));
-    load('C:\Users\Maria\matlab\REPOSITORY_GIT\sandbox\GrowthConeAnalyzer\hashTag.mat');
+    load('C:\Users\Maria\matlab\REPOSITORY_GIT\applications\GrowthConeAnalyzer\hashTag.mat');
     % i am running it - later figure out how to get the hash tag
     % generically...
 else

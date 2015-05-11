@@ -1,4 +1,4 @@
-function [analInfoC,TSFigs] = GCAReconstructFilopodia(img,analInfoC,varargin)
+function [analInfoC,TSFigsFinal] = GCAReconstructFilopodia(img,analInfoC,varargin)
 %% GCAReconstructFilopodia: Adds Filopodia and Branch Structures to a Veil/Stem Estimation
 % This function rebuilds and records the filopodia network around a
 % veil/stem mask (in the case of the neurite) or any binary cell mask 
@@ -58,14 +58,7 @@ function [analInfoC,TSFigs] = GCAReconstructFilopodia(img,analInfoC,varargin)
 %       
 %     
 % 
-%       p : parameter structure with fields
-%          .steerFiltOrder  = order of steerable ridge filter (Default = 4)
-%          .steerFiltScales = scales of filopodia (Default: 1.5) to be
-%           intergrated over
-%          .plots.internal =  make trouble shooting plots for internal
-%          filodoia (Default True) 
-% 
-%       iFrame : Quick fix until get figure handles 
+%
 %
 %      
 
@@ -79,23 +72,34 @@ function [analInfoC,TSFigs] = GCAReconstructFilopodia(img,analInfoC,varargin)
 % extraction in later steps (ie each filopodia was given an field ID 
 % specifying branch order rather than nesting the structure)
 
-%% Check Input% NOTE TO SELF FIX INPUT 
-filterOrder = 4; 
-scales = 1.5; 
+%% Input Parser 
+ip = inputParser;
+
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true; 
+
+ip.addRequired('img'); 
+ip.addRequired('analInfoC'); 
 
 
+% PARAMETERS
+ ip.addParameter('steerFiltOrder',2,@(x) ismember(x,[2,4])); 
+ ip.addParameter('steerFiltScales',1.5); 
  
-if nargin<3 
-  p.steerFiltOrder  = 4; 
-  p.steerFiltScales = 1.5; 
-  p.embedded.on = true; % lifeAct only
-  p.embedded.troubleshoot = true; 
-  p.candRidgeHists = true; 
-end 
+ 
+ ip.addParameter('multSTDNMSResponse',3);
+ ip.addParameter('smallCCSizeThreshold',3); 
+ %ip.addParmaeter(
+ 
+ ip.addParameter('detectEmbedded',true);
+ 
+ ip.addParameter('TSOverlays',true); 
+ 
+ip.parse(varargin{:});
+p = ip.Results;  
 
-if nargin<4
-   iFrame  = 1 ;   
-end 
+%% Initiate 
+countFigs = 1; 
 
 
 %% STEP I: Detect Thin Ridge Structures 
@@ -110,7 +114,7 @@ analnfoC.scaleMap = scaleMap;
 
 %% Mask out all NMS 
 %perform an initial thresholding first to get out main components 
-[maskBack,backMu,backSig] = gcaEstimateBackgroundArea(img); 
+[maskBack,~,backSig] = gcaEstimateBackgroundArea(img); 
 
 %% Threshold out maxNMS values less than 3* first mode gaussian fit from the area 
 % in the image falling within the forframe
@@ -123,36 +127,36 @@ analnfoC.scaleMap = scaleMap;
     % by pixel basis. 
     
     [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(valuesFilter); 
-    cutoffTrueResponse = respNMSMean+3*respNMSSTD; % can make this a variable 
+    cutoffTrueResponse = respNMSMean+ip.Results.multSTDNMSResponse*respNMSSTD; % can make this a variable 
     n1 = hist(valuesFilter,100);
-    %% Plot the Candidate Ridge Thresholding Histogram If Desired for Troubleshooting
-        if p.candRidgeHists == true % plot the histogram with cut-off overlay so can see what losing 
+%% OPTIONAL TS PLOT 
+        if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFig1H = figure('visible','off'); 
-          TSFigs(1).h  = TSFig1H;
-          TSFigs(1).name = 'candidateRidges'; 
+          TSFigs(countFigs).h = figure('visible','off'); 
+       
+          TSFigs(countFigs).name = 'candidateRidges'; 
            
           hist(valuesFilter,100); 
-          hold on ed
+          hold on 
           line([cutoffTrueResponse cutoffTrueResponse],[0,max(n1)],'color','r','Linewidth',2); 
           title('Red line 3*std of first mode'); 
+          countFigs = countFigs+1; % close figure 
         end
-        
+ %%      
     canRidges = maxNMS.*~maskBack;
     canRidges(canRidges<cutoffTrueResponse) = 0; 
     
-    analnfoC.filterInfo.ThreshNMS = canRidges; 
-       
-%% clean the thresholded NMS response using the body estimation information 
-    
+    analInfoC.filterInfo.ThreshNMS = canRidges; 
+        
 skelIn = canRidges; 
 skelIn = bwmorph(skelIn,'thin',inf ); 
 
 
 
 % Main Function (should rename) that performs the reconstructions
-[reconstruct,filoInfo,TSFigs] = gcaAttachFilopodiaStructuresMain(img,skelIn,analInfoC,protrusionC);
+[reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMainFixInput(img,skelIn,analInfoC,protrusionC,p);
 
+TSFigsFinal = [TSFigs; TSFigs2]; 
 
 analInfoC.filoInfo = filoInfo; % 
 analInfoC.reconstructInfo = reconstruct;
