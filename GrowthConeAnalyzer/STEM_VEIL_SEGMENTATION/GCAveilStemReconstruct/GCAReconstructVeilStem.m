@@ -110,7 +110,7 @@ if ~isempty(p.veilStemInfo);
     veilStemInfo = p.veilStemInfo{1}; 
     paramsArchived = p.paramsArchived{1};
 end 
- pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStemInfo'});
+ pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStemInfo','paramsArchived'});
 %% Start Loop
 for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     if p.TSMovie == true;
@@ -132,6 +132,8 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     veilStemInfo(iFrame).bridged = false;
     
     %% Get Amorphous Large Scale Veil/Pieces
+    
+    % load local patch size if user already specified. 
     
     % Perform local thresholding
     [~,maskForErod] = gcaThresholdOtsu_local(img, ip.Results.LocalThresholdPatchSize,3);
@@ -591,53 +593,53 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     notBody = double(backbone).*~double(newBodyMask);
     notBody = bwmorph(notBody,'thin','inf');
     
-    %% 
-    % Break junctions
-    % also don't want to break junctions in the original backbone...
-    nn = padarrayXT(double(notBody~=0), [1 1]);
-    sumKernel = [1 1 1];
-    nn = conv2(sumKernel, sumKernel', nn, 'valid');
-    forJunctBreak = notBody~=0;
-    % for now just make sure not f-ing up the original backbone
-    %
-    forJunctBreak(backboneInfo(iFrame).backboneSeedMask==1) = 0;
-    
-    
-    cRidgeTest = backboneInfo(iFrame).linkedRidgesFinal;
-    nnR = padarrayXT(double(cRidgeTest~=0), [1 1]);
-    nnR= conv2(sumKernel, sumKernel', nnR, 'valid');
-    nnR1 = (nnR-1).*cRidgeTest;
-    junctSaveMask = (nnR1>2);
-    CCTest = bwconncomp(junctSaveMask);
-    if CCTest.NumObjects~=0
-        for i = 1:numel(CCTest.PixelIdxList)
-            pixIdx = CCTest.PixelIdxList{i};
-            if exist('saveJunct','var') ==1
-                
-                saveJunct{end+1} = pixIdx;
-            else
-                
-                saveJunct{1} = pixIdx;
-            end
-        end
-        
-        
-        
-        
-    end
-    
-    nn1 = (nn-1).*forJunctBreak; 
-    junctionMask = nn1>2; 
-    
-    forJunctBreak(backboneInfo(iFrame).linkedRidgesFinal) = 0; %
-    % remove anything that was originall in teh cleaned version (eventually
-    % need to make it so that you are absolutely certain that there is no
-    % residual junctions left in the cleaned ridge connect.
-    % 2014 03 09
-    
-    
-    nn1 = (nn-1) .* forJunctBreak;
-    junctionMask = nn1>2;
+%     %% 
+%     % Break junctions
+%     % also don't want to break junctions in the original backbone...
+%     nn = padarrayXT(double(notBody~=0), [1 1]);
+%     sumKernel = [1 1 1];
+%     nn = conv2(sumKernel, sumKernel', nn, 'valid');
+%     forJunctBreak = notBody~=0;
+%     % for now just make sure not f-ing up the original backbone
+%     %
+%     forJunctBreak(backboneInfo(iFrame).backboneSeedMask==1) = 0;
+%     
+%     
+%     cRidgeTest = backboneInfo(iFrame).linkedRidgesFinal;
+%     nnR = padarrayXT(double(cRidgeTest~=0), [1 1]);
+%     nnR= conv2(sumKernel, sumKernel', nnR, 'valid');
+%     nnR1 = (nnR-1).*cRidgeTest;
+%     junctSaveMask = (nnR1>2);
+%     CCTest = bwconncomp(junctSaveMask);
+%     if CCTest.NumObjects~=0
+%         for i = 1:numel(CCTest.PixelIdxList)
+%             pixIdx = CCTest.PixelIdxList{i};
+%             if exist('saveJunct','var') ==1
+%                 
+%                 saveJunct{end+1} = pixIdx;
+%             else
+%                 
+%                 saveJunct{1} = pixIdx;
+%             end
+%         end
+%         
+%         
+%         
+%         
+%     end
+%     
+%     nn1 = (nn-1).*forJunctBreak; 
+%     junctionMask = nn1>2; 
+%     
+%     forJunctBreak(backboneInfo(iFrame).linkedRidgesFinal) = 0; %
+%     % remove anything that was originall in teh cleaned version (eventually
+%     % need to make it so that you are absolutely certain that there is no
+%     % residual junctions left in the cleaned ridge connect.
+%     % 2014 03 09
+%     
+%     
+%     nn1 = (nn-1) .* forJunctBreak;
+%     junctionMask = nn1>2;
     
     
     
@@ -702,39 +704,60 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     
     %%
     veilStem(iFrame).backbone = backbone;
+   
+    
+    
     
     [EPs,~,coords] = skel2graph2D(notBody|bodyNoFill);
-    
-    
-    if ~isempty(vertcat(coords{:}))
-        indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
-        
-        
-        
+    % make sure the endpoint is not the neurite entrance... 
+     indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
         
         %idxSave = find(indEP == idxEnterNeurite); %% note sometimes bug here... should make so reiterate if this fails...
         %instead of doing find use intersect
         overlap = intersect(idxEnterNeurite,indEP);
         % save the entering neurite pieces from erosion
         if ~isempty(overlap)
-            % maybe add to take it up or down a scale...but for now
-            % just leave it
             idxSave = arrayfun(@(x) find(indEP == overlap(x)),1:length(overlap));
             idxSave = idxSave';
             
             EPs(idxSave,:) = [];
             coords(idxSave) = [];
         end
-        
-        
+    
+    
+    
+    if ~isempty(vertcat(coords{:}))
+        while ~isempty(EPs) 
+       
         
         if ~isempty(vertcat(coords{:}));
             coordBBOver = vertcat(coords{:});
             idxBBOver = sub2ind(size(img),coordBBOver(:,1),coordBBOver(:,2));
             idxEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
-            backbone([idxBBOver ; idxEP]) = 0;
+            notBody([idxBBOver ; idxEP]) = 0;
+            backbone([idxBBOver ;idxEP]) = 0; 
         end
-    end
+        new = (notBody|bodyNoFill);
+        new = bwmorph(new,'thin','inf'); 
+        % recalc 
+           [EPs,~,coords] = skel2graph2D(new);        
+             indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
+        
+        %idxSave = find(indEP == idxEnterNeurite); %% note sometimes bug here... should make so reiterate if this fails...
+        %instead of doing find use intersect
+        overlap = intersect(idxEnterNeurite,indEP);
+        % save the entering neurite pieces from erosion
+        if ~isempty(overlap)
+            idxSave = arrayfun(@(x) find(indEP == overlap(x)),1:length(overlap));
+            idxSave = idxSave';
+            
+            EPs(idxSave,:) = [];
+            coords(idxSave) = [];
+        end
+    
+        end % while 
+    end % isempty 
+
     
     %%% take the new body mask and make some calculation corresponding
     %%% to geometry initially we discussed we wanted this to be skel
@@ -743,7 +766,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     %analInfo(iFrame).bodyEst.skelFatBody = thinnedBody;
     newBodyMask= imfill(newBodyMask,'holes');
     
-    %%
+%% This was another means for removing end piece by checking labels: 
+% Dipshit: you implemented another means of removing these non-overlapping 
+% pieces- check the log...  not sure why I duplicated... 
+% 
     backbone2Dil = backbone;
     backbone2Dil(backbone==1 & newBodyMask==1) = 0;
     % for now the dilation might be the best
