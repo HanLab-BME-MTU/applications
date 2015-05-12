@@ -71,6 +71,7 @@ ip.addParameter('DiskSizeSmall',3,@(x) isscalar(x));
 
 ip.parse(varargin{:});
 p = ip.Results;
+
 %% Initiate
 nFrames = movieData.nFrames_;
 nChan = numel(p.ChannelIndex);
@@ -82,8 +83,7 @@ for iCh = 1:nChan
     
     display(['Reconstructing the Veil/Stem for Channel ' num2str(iCh)]);
     
-    % Test for local copy of patch size and update if necessary. 
-    
+
     
     %% Get Start and End Frames Based on Restart Choice
     
@@ -148,6 +148,14 @@ for iCh = 1:nChan
     load([ [movieData.outputDirectory_ filesep...
         'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'II_neurite_orientation_refinements'] filesep 'Channel_' num2str(iCh)...
         filesep 'backboneInfoFix.mat']);
+%% Test for a manually chosen local patch size
+    if exist([outDirC filesep 'LocalThreshPatchSizeTest' filesep ... 
+          'manualPatchSizeSelect.mat'  ],'file')==2; 
+      load([outDirC filesep 'LocalThreshPatchSizeTest' filesep ... 
+          'manualPatchSizeSelect.mat']); 
+      p.LocalThresholdPatchSize = patchSize;  
+      display(['Manually Chosen Patch Size of ' num2str(p.LocalThresholdPatchSize) ' Will Be Used']); 
+    end 
 %% Main Function: 
     % (Note: Requires temporal information so input is per movie) 
     p.StartFrame = startFrame;
