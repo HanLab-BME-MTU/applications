@@ -12,7 +12,7 @@ function [ backboneInfo,TSFigs] = GCAgetNeuriteOrient(img,varargin)
 %        of image to analyze where R is the height (ny) and C is the width
 %       (nx) of the input image
 %
-%
+%% PARAMS
 %
 % %% PARAMS: STEERABLE FILTER: RIDGE FINDING %%
 %

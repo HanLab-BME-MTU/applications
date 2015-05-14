@@ -1,40 +1,84 @@
-function [maskPostConnect,linkMask,status] = gcaConnectInternalFilopodia(internalCandEPs,internalSeedEPs,maxTh,seedMask,searchRadius,labelMat,vectInt,vectSeed,dInt,dSeed)
-%% SUMMARY: Connects Co-linear Candidate Internal Ridges (a filoTracker Filo Reconstruction Function)
+function [maskPostConnect,linkMask,status] = gcaConnectEmbeddedRidgeCandidates(internalCandEPs,internalSeedEPs,seedMask,labelMatRidgeCandEmbed,vectSeed,vectInt,dSeed,dInt,varargin)
+%% gcaConnectEmbeddedRidgeCandidates
+
+% SUMMARY: Connects Co-linear Candidate Internal Ridges (a filoTracker Filo Reconstruction Function)
 % This function will take the internal filopodia endpoints and attempt to
 % reconnect them to the user defined seed points (typically high-confidence external/internal filo)
 % Candidates are filtered
 % linking the two candidate ridges
-% The cost between the candidate ridges and .
-%% INPUT:
 
-% internalCanEPs: an nx2 array of candidate endpoints: these will be input
+
+%% INPUT: 
+
+% internalCanEPs: an rx2 array of candidate endpoints: these will be input
 %                 points (ie you are searching for points in this population
-%                 that meet the specified dist criteria )
+%                 that meet the specified dist criteria ) (Post Cleaning)
+%                 
 %
-% internalSeedEPs: an nx2 array of candidate endpoints of high confidence
-% ridge sigal (connected to cell edge-or added in a previous reconstruction step) that will serve as query pts
-% for the KDTree Ball Query search
+% internalSeedEPs: (REQUIRED) : an rx2 array 
+%    marking the positions of the endpoints of high confidence
+%    ridge signal (filopodia) outside of veilStemMask which will serve 
+%    as query pts for the KDTree Ball Query search
+%    where r is the number of endpoints and 2 is the xy coords
+%    of the endpoint. These ridge endpoints are typically pre-filterd such 
+%    that the endpoint of the ridge nearest the veilStem estimate is chosen, 
+%    as this is typically the only reasonable value of linking- though 
+%    
+% 
+% seedMask: (REQUIRED) : an rxc logical array (binary mask) 
+%    marking the full mask of the ridge candidates (Filopodia) post-cleaning 
+%    outside the veil that will serve as the seed for the internal filopodia linking 
+%     
+%    
+% labelMatRidgeCandEmbed: (REQUIRED) : an rxc double array 
+%    of the embedded ridge candidates (actin bundles) where each ridge 
+%    candidate connected component is given an independent numeric label 
+%    1:number of CCs 
+%    
+%% PARAMS: 
+% 'maxRadiusLinkEmbedded' (PARAM) : Scalar 
+%    Only embedded ridge candidate end points that are within this max 
+%    search radius around each seed ridge endpoint are considered for matching.
+%    Default: 10 Pixels
+%
+% add linearity filter... currently 0.7 see line 189
+%
+%
 
-% maxTh: nxm matrix the size of the img
-% gives the local orientation of the ridge at a given point so one need not recalculate
-% used as matching criteria.
+
+%% OUTPUT:
+% maskPostConnect: 
+%   2D double matrix the size of the image, binary mask of all ridges 
+%   (ie filopdia) post connection
 %
-% searchRadius: scalar, only interalCanEPs that are within this max search radius
-% around each internalSeedEP (inputPt) are considered for matching.
-%%%% NOTE you are going to need a label matrix of the candidates to keep
-%%%% ONLY those that you connected. otherwise the output is problematic..
-%%%% the reson why many of these were broken in the first place was due to
-%%%% junctions therefore putting them back together without the filtering just recreates the
-%%%% mess. ( did you take care of that 2013_07-14
+% linkMask: 
+%   2D double matrix the size of the image , binary mask of all viable links between ridge candidates made
 %
-% OUTPUT:
-% maskPostConnect: 2D double matrix the size of the image, binary mask of all ridges (ie filopdia) post connection
-% linkMask: 2D double matrix the size of the image , binary mask of all viable links between ridge candidates made
-% status: scalar, 1 if links were found, 0 if no viable links were found
+% status: logical 
+%    1 if links were found, 0 if no viable links were found
+%% INPUT Parser 
+ip = inputParser;
+
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true; 
+ip.addRequired('internalCandEPs'); 
+ip.addRequired('internalSeedEPs'); 
+ip.addRequired('seedMask'); 
+ip.addRequired('labelMatRidgeCandEmbed'); 
+
+ 
+ip.addParameter('maxRadiusLinkEmbedded',10,@(x) isscalar(x));
+ip.addParameter('TSOverlays',true); 
+ip.parse(internalCandEPs,internalSeedEPs,seedMask,labelMatRidgeCandEmbed,varargin{:});
+
+p = ip.Results;
+
+%% Initiate 
+imSize = size(seedMask); 
+
 %%
-maxTh = maxTh + pi/2; % orientation is documented by ridge detector perpendicular to feature
 % find all query points (internal filo EP coordinates) within a search radius surrounding the seed points (external filo EP coords)
-[idx,d] = KDTreeBallQuery(internalCandEPs, internalSeedEPs, searchRadius);
+[idx,d] = KDTreeBallQuery(internalCandEPs, internalSeedEPs, ip.Results.maxRadiusLinkEmbedded);
 % remove all with distance ==0
 % idxInput{iQuery} = [idxInput1, idxInput2, idxIndput3...]);
 % first col E = idx filo Cand, 2nd col = idx input point,
@@ -45,7 +89,7 @@ maxTh = maxTh + pi/2; % orientation is documented by ridge detector perpendicula
 E = arrayfun(@(i) [repmat(i, [numel(idx{i}) 1]) idx{i}], 1:length(internalSeedEPs(:,1)), 'UniformOutput', false);
 E = vertcat(E{:});
 % sanity check
-spy(labelMat,'b');
+spy(labelMatRidgeCandEmbed,'b');
 hold on
 spy(seedMask,'r');
 for i = 1:length(E(:,1))
@@ -54,11 +98,6 @@ for i = 1:length(E(:,1))
     plot([internalCandEPs(idxCand,1),internalSeedEPs(idxSeed,1)],[internalCandEPs(idxCand,2),internalSeedEPs(idxSeed,2)]);
     
 end
-
-
-
-
-
 %% sanity check
 % plot all paths
 examplePlot =1 ;
@@ -103,8 +142,8 @@ if ~isempty(E) % continue
     
     costCandAndSeed = arrayfun(@(i) dot(vectInt(i,:),vectSeed(i,:))./dInt(i)./dSeed(i),1:length(dInt));
     
-    EPidxSeed = sub2ind(size(maxTh),internalSeedEPs(:,2),internalSeedEPs(:,1));
-    EPidxCand = sub2ind(size(maxTh),internalCandEPs(:,2),internalCandEPs(:,1));
+    EPidxSeed = sub2ind(imSize,internalSeedEPs(:,2),internalSeedEPs(:,1));
+    EPidxCand = sub2ind(imSize,internalCandEPs(:,2),internalCandEPs(:,1));
     
     %% NOTE: 2013_07_22: Change from taking the orientation using the end points
     % to using the full disp vector
@@ -146,18 +185,6 @@ if ~isempty(E) % continue
     
     
     
-    %         angleConn= atan2(deltY,deltX)';
-    
-    %         deltAngleWithCan1 = abs(angleConn-t1);
-    %         test1 = abs(deltAngleWithCan1-pi);
-    %         minAngle1 = min(deltAngleWithCan1,test1);
-    %         deltAngleWithCand2 = abs(angleConn-t2);
-    %         test2 = abs(deltAngleWithCand2-pi);
-    %         minAngle2 = min(deltAngleWithCand2,test2);
-    %         costCand1Path = cos(minAngle1);
-    %         costCand2Path = cos(minAngle2);
-    %
-    
     
     
     % for now just filter out;
@@ -168,12 +195,31 @@ if ~isempty(E) % continue
     % ends.
     costTotal =  abs(costIntAndConn) + abs(costSeedAndConn) + abs(costCandAndSeed);
     costTotal = costTotal(idxGood)';
-    %        % sanity check
-    %        figure;
-    %         spy(labelMat,'b',10);
-    % hold on
-    % spy(seedMask,'r',10);
-    % c = colormap(lines(size(E,1)));
+%% TSOverlays : Plot Linear Connections Color-Coded by Cost 
+if ip.Results.TSOverlays == true;
+    
+    spy(labelMatRidgeCandEmbed,'w',10);
+    hold on
+    spy(seedMask,'w',10);
+   
+     cMapLength=10; cMap=jet(cMapLength);
+                        mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
+                        
+                        % get closest colormap index for each feature
+                        D=createDistanceMatrix(costTotal,mapper);
+                        [sD,idxCMap]=sort(abs(D),2);
+                                              
+for k=1:cMapLength
+       idxCand = E(idxCMap(:,1) == k,2);
+       idxSeed = E(idxCMap(:,1)==k,1);
+   plot([internalCandEPs(idxCand,1),internalSeedEPs(idxSeed,1)],[internalCandEPs(idxCand,2),internalSeedEPs(idxSeed,2)],'color',cMap(k,:)); 
+end 
+  
+end % end ip.Results.TSOverlays 
+%%    
+   
+
+   % c = colormap(lines(size(E,1)));
     % for i = 1:length(E(:,1))
     %     idxCand = E(i,2);
     %     idxSeed = E(i,1);
@@ -181,9 +227,9 @@ if ~isempty(E) % continue
     %     text(internalCandEPs(idxCand,1),internalCandEPs(idxCand,2),num2str(costCand1Path(idxCand),2),'color',c(i,:));
     %
     % end
-    
+%%    
     E = E(idxGood',:);
-    
+%% TSOverlays: Filter     
     %% just in case put through graph matching
     % this is likely a bit overkill and maybe not the fastest way
     % what we are doing here is simply picking the maximum weight of
@@ -206,19 +252,19 @@ if ~isempty(E) % continue
     E = E(M,:);
     paths=arrayfun(@(i) bresenham([internalSeedEPs(E(i,1),1) internalSeedEPs(E(i,1),2)], [internalCandEPs(E(i,2),1) internalCandEPs(E(i,2),2)]),...
         1:length(E(:,1)),'uniformoutput',0);
-    linkMask = zeros(size(maxTh));
-    goodCands = zeros(size(maxTh));
+    linkMask = zeros(imSize);
+    goodCands = zeros(imSize);
     % find labels of internal candidates to keep
-    labels = arrayfun(@(i) labelMat(sub2ind(size(maxTh),internalCandEPs(E(i,2),2),internalCandEPs(E(i,2),1))), 1:length(E(:,1)));
+    labels = arrayfun(@(i) labelMatRidgeCandEmbed(sub2ind(imSize,internalCandEPs(E(i,2),2),internalCandEPs(E(i,2),1))), 1:length(E(:,1)));
     % find the indexing of those labels
-    idxCandKeep = arrayfun(@(i) find(labelMat == i),labels,'uniformoutput',0);
+    idxCandKeep = arrayfun(@(i) find(labelMatRidgeCandEmbed == i),labels,'uniformoutput',0);
     goodCands(vertcat(idxCandKeep{:})) = 1;
     
     links = vertcat(paths{:});
     
     if ~isempty(links) % nothing that falls under this criteria
         % Add links to candidate mask
-        idxLinks = sub2ind(size(maxTh),links(:,2),links(:,1));
+        idxLinks = sub2ind(imSize,links(:,2),links(:,1));
         
         linkMask(idxLinks) = 1;
         maskPostConnect = (linkMask|goodCands|seedMask);
@@ -230,7 +276,7 @@ if ~isempty(E) % continue
 else
     status = 0 ; % not links within range to even consider
     maskPostConnect = seedMask;
-    linkMask = zeros(size(maxTh));
+    linkMask = zeros(imSize);
 end
 
 

@@ -1,42 +1,39 @@
-function [reconstruct,filoInfo,hFigs] = gcaAttachFilopodiaStructuresMain(img,skelIn,analInfoC,protrusionC,varargin)
-% gcaAttachFilopodiaStructures: was
-% cleanMaskWithBackEst_withInternalFiloClean until 20141022
-% Cleans the steerable filter ridge response based on the neurite body
-% estimation and calls a number of functions to take the messy first pass
-% thresholding to an output to a filoInfo data structure and corresponding finished
-% reconstruction mask
+function [reconstruct,filoInfo,TSFigs] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,varargin)
+% gcaAttachFilopodiaStructures: 
+% 
+% 
+%%
+% INPUT: 
+% img: (REQUIRED) : RxC double array
+%    of image to analyze where R is the height (ny) and C is the width
+%    (nx) of the input image
 %
-% INPUT:
-% img = (REQUIRED) original image needed as we are thresholding out any response that
-%       is located in the background: in future can maybe do this step
-%       earlier
-% skelIn : (REQUIRED) the response from the steerable filter-maxNMS-thresholding
-%          that needs to be cleaned
+% cleanedRidgesAll : (REQUIRED) : RxC logical array (binary mask)
+%    of filopodia (small-scale) ridges after removal of junctions and 
+%    and very small size CC pieces where R is the height (ny) and C is 
+%    the width (nx) of the input image
 %
-% analInfoC: (REQUIRED)
+% veilStemMaskC: (REQUIRED)  RxC logical array (binary mask) 
+%      of veil/stem reconstruction where R is the height (ny) and C is the width
+%     (nx) of the  original input image
 %
 % protrusionC: (OPTIONAL)
+%     protrusionC: (OPTIONAL) : structure with fields:
+%    .normals: a rx2 double of array of unit normal                               
+%              vectors along edge: where r is the number of 
+%              coordinates along the veil/stem edge
 %
-% 'detectEmbedded':   structure with fields (DEFAULT empty)
-%                                 if not empty will search for filopodia
-%                                 embedded within the veil. (useful for lifeAct expressing cells only)
+%    .smoothedEdge: a rx2 double array of edge coordinates 
+%                   after spline parameterization: 
+%                   where r is the number of coordinates along the veil/stem edge
+%                   (see output: output.pixel_tm1_output in prSamProtrusion)
+%     Default : [] , NOTE: if empty the field
+%                    filoInfo(xFilo).orientation for all filodpodia attached
+%                    to veil will be set to NaN (not calculated)- there will be a warning if
+%                    to the user if this is the case
+% output from the protrusion process (see getMovieProtrusion.m)
 %
-%         'maxRadiusInternal':      scalar : maxRadius from external
-%                                  filopodia seeds that the endpoints of potential embedded
-%                                  filopodia candidates must remain within to be considered for
-%                                  connection (Default: 10 pixels)
 % 
-%         'maxRadiusExternal':     scalar: maxRadius candidate endpoints
-%         that are further from this distance from the seed will not be considered. 
-%
-%         'TSOverlays':      logical: flag to make troubleshoot plots
-%                                  (Default true)
-%   'maxCCSizeExternal'
-%
-%
-%
-%
-
 %
 % OUTPUT:
 % filoInfo: an nx1 structure where n = the number of filopodia in the image
@@ -56,31 +53,33 @@ function [reconstruct,filoInfo,hFigs] = gcaAttachFilopodiaStructuresMain(img,ske
 
 %% Check Input
 ip = inputParser;
-ip.addRequired('img',@isnumeric);
-ip.addRequired('skelIn',@logical);
-ip.addRequired('analInfoC',@isstruct);
-ip.addOptional('protrusionC',[],(@isstruct || @isempty));
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addRequired('img');
+ip.addRequired('cleanedRidgesAll',@islogical);
+ip.addRequired('veilStemMaskC',@islogical); 
+ip.addRequired('filoBranchC',@isstruct);
+ip.addOptional('protrusionC',[]);
 
-ip.addParamValue('detectEmbedded',[],@isstruct);
-ip.addParamValue('maxRadiusInternal',10); 
-ip.addParamValue('maxRadiusExternal',10); 
+% Parameters
+ip.addParameter('maxRadiusInitialConnectLink',10); 
+ip.addParameter('maxRadiusLinkFiloOutsideVeil',10); 
+
+ip.addParameter('maxRadiusLinkEmbedded',10); 
 
 
-
-
-ip.parse(img,skelIn,analInfoC,varargin{:});
-
-protrusionC = ip.Results.protrusionC;
-
+ip.addParameter('detectEmbedded',true); 
+ip.parse(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,varargin{:});
+p = ip.Results; 
+p = rmfield(p,{'img','veilStemMaskC','protrusionC','filoBranchC'}); 
 %% Initiate 
 countFigs = 1; 
-maxTh =  analnfoC.filterInfo.maxTh ;
-maxRes = analnfoC.filterInfo.maxRes ;
-%scaleMap = analInfoC.filterInfo.scaleMap;
-bodyMask = analInfoC.masks.neuriteEdge;
+maxTh =  filoBranchC.filterInfo.maxTh ;
+maxRes = filoBranchC.filterInfo.maxRes ;
 
 % load protrusionVectors from the body
-if  ~isempty(protrusionC)
+if  ~isempty(ip.Results.protrusionC)
+    protrusionC = ip.Results.protrusionC{1};
     % load([protrusion filesep 'protrusion_vectors.mat']);
     normalC = protrusionC.normals; % need to load the normal input from the smoothed edges in order  to calculation the filopodia body orientation
     smoothedEdgeC = protrusionC.smoothedEdge;
@@ -88,73 +87,38 @@ else
     display(['No Protrusion Vectors Found: No Orientation Calculations of Filopodia Relative to' ...
         'Veil will be Performed']);
 end
-
-
-%% PREPARE HIGH CONFIDENCE RIDGE 'SEEDS' FOR SUBSEQUANT ITERATIVE MATCHING STEPS
-% Notes: ridge junctions are typically not reliably detected in the NMS and
-% if they are (we should re-check the NMS code - it is debatable if they
-% should exist at all)- it is often ambigious as to whether these are a
-% cross-over, a branch-point, or noise. Therefore we break them here so we
-% can appropriately assign these junction pixels to individual filopdodia in the
-% subsequent matching steps.
-
-% Initiate the cleaned array.
-skelInClean = skelIn;
-
-% Break the junctions
-nn = padarrayXT(double(skelInClean~=0), [1 1]);
-sumKernel = [1 1 1];
-nn = conv2(sumKernel, sumKernel', nn, 'valid');
-nn1 = (nn-1) .* (skelInClean~=0);
-junctionMask = nn1>2;
-skelInClean(junctionMask) =0;
-%testing
-% % % figure
-% % % imshow(-img,[]);
-% % % hold on
-% % % spy(skelInClean,'r');
-% Remove candidate ridges less than 3 pixels (note this might eventually
-% be a problem is have small spans of filopodia between small branches
-% Can potentially save these in two ways do not remove if segment
-% surrounded by two junctions or could potential clean using graph matching
-% later
-% individual ridges: connected components
-CCRidges = bwconncomp(skelInClean,8); % FIRST PLACE WHERE I BEGIN TO FILTER out signal
-csize = cellfun(@(c) numel(c), CCRidges.PixelIdxList);
-nsmall = sum(csize<=ip.Results.maxCCSizeExternal);% was 3 pixels 
-CCRidges.NumObjects = CCRidges.NumObjects-nsmall;
-CCRidges.PixelIdxList(csize<=ip.Results.maxCCSizeExternal) = []; % was 3 pixels
-
-% MASK OF CLEANED RIDGES MINUS ALL JUNCTIONS
-prunedMask = labelmatrix(CCRidges)>0;
-%%%spy(prunedMask,'b');
+%% Extract Information 
 % MASK OF EXTERNAL FILOPODIA RIDGE CANDIDATES
-filoTips = prunedMask.*~bodyMask;
+filoTips = cleanedRidgesAll.*~veilStemMaskC;
 
 % VEIL/STEM MASK (NO FILL)
-neuriteEdge = bwboundaries(bodyMask);
+neuriteEdge = bwboundaries(veilStemMaskC);
 edgeMask = zeros(size(img));
 idx  = cellfun(@(x) sub2ind(size(img),x(:,1),x(:,2)),neuriteEdge,'uniformoutput',0);
 idx = vertcat(idx{:});
 edgeMask(idx) = 1;
 
-% CREATE THE HIGH CONDIDENCE 'SEED' (IE THOSE CANDIDATES DIRECTLY ATTACHED
-% TO THE VEIL STEM ESTIMATION -
-% NOTE: This seed will be used for iterative graph matching steps to
-% attach by internal and external filopodia riges based on geometry.
-filoExtAll = (filoTips|edgeMask);
+% get the outline of the veil/stem estimation and all the ridge candidates
+% outside the veil 
+  filoExtAll = (filoTips|edgeMask);  
 
 %% INTERNAL LINKING OPTION: NOTE option should only be turned on for life-act images 
 if ip.Results.detectEmbedded == true; %
     
+    % Create the seed extra-veil ridge seed for the subsequent embedded reattachment steps 
+    % Get rid of non connected component ridge response 
     filoExtSeedForInt = double(getLargestCC(filoExtAll));
+    % Take out the edge mask
     filoExtSeedForInt = filoExtSeedForInt.*~edgeMask;
-    internalFilo = prunedMask.*bodyMask; %   
     
-   maskPostConnect1 =  gcaReconstructEmbedded(filoExtSeedForInt,internalFilo,p); 
+    % Get embedded ridge candidates
+    internalFilo = cleanedRidgesAll.*veilStemMaskC; %   
+    
+   % Clean the embedded filo candidates/seed and perform linkage. 
+   [maskPostConnect1,TSFigs,reconstructInternal] =  gcaReconstructEmbedded(img,maxTh,edgeMask,filoExtSeedForInt,internalFilo,p); 
 
 else % do not perform internal filopodia matching use the original
-    maskPostConnect1 = double(getLargestCC(filoExtAll)); % changed 20141026
+    maskPostConnect1 = double(getLargestCC(filoExtAll)); %
 
 end % if ~isempty(detectEmbedded) 
 %% START EXTERNAL FILOPODA RECONSTRUCT 
@@ -174,7 +138,7 @@ csizeTest = cellfun(@(x) length(x),CCFiloObjs.PixelIdxList);
 CCFiloObjs.PixelIdxList(csizeTest<ip.Results.CCFilt) = []; % MAKE a parameter filters out pixels CCs that are less than 3 pixels 
 CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<ip.Results.CCFilt);% originally 3 
 
-[ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!!
+[ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,veilStemMaskC,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!!
 
 %% Reconstruct the external filopodia network from the initial seed
 

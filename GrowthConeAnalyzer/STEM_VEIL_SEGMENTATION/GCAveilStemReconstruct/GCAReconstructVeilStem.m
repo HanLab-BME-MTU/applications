@@ -1,5 +1,5 @@
-function [ veilStemInfo ] = GCAReconstructVeilStem(listOfImages,backboneInfo,varargin)
-% GCAveilStemReconstruct: (STEP III of GCA PACKAGE)
+function [ veilStem ] = GCAReconstructVeilStem(listOfImages,backboneInfo,varargin)
+% GCAReconstructVeilStem: (STEP III of GCA PACKAGE)
 % This function reconstructs the veil/stem of the neurite.
 % Veil here is broad protrusions typically associated with branched actin network.
 % while Stem are thinner consolidated regions of neurite bridging larger amorphous veil pieces)
@@ -11,7 +11,7 @@ function [ veilStemInfo ] = GCAReconstructVeilStem(listOfImages,backboneInfo,var
 %   backboneInfo: (REQUIRED) :
 %
 
-%   veilStemInfo: (OPTIONAL) : n x 1 structure with fields
+%   veilStem: (OPTIONAL) : input as a cell array of a struct
 %
 %  (only relavent if need to restart)
 %
@@ -27,28 +27,25 @@ function [ veilStemInfo ] = GCAReconstructVeilStem(listOfImages,backboneInfo,var
 % %% PARAMS: Morphological Opening %%
 %
 %    'DiskSizeLarge' (PARAM) : Positive scalar
-%
-%       Default = 6 for LifeAct: 4 for membrane markers
-%       This parameter specifies the radius of the disk (in pixels) to be used for
+%       that specifies the radius of the disk (in pixels) to be used for
 %       the removal of thin objects from the input mask (ie the filopodia)
 %       Larger values will remove thicker structures. Note for the lifeAct
 %       channels that have very strong filopodia signal very often these
 %       gradients for crossing filopodia tend not to be well segmented so
-%       disks use are typically slightly bigger than if using a membrane
-%       marker where the filpodia often exhibit weak signal relative to
-%       entire image and are those not segmented at all.
-%
-%      gcaMorphologicalOpeningWithGeometryConstraints.m
-%
+%       practically larger disk sizes are used in these cases.  If using a membrane
+%       marker the filpodia often exhibit weak signal relative to
+%       entire image and are often not segmented at all.
+%       gcaMorphologicalOpeningWithGeometryConstraints.m
+%       Default: 4
+% 
 %    'DiskSizeSmall' (PARAM) : Positive scalar
 %
 %     Default = 3 :
-%
-%     gcaMorphologicalOpeningWithGeometryConstraints.m
+%       See gcaMorphologicalOpeningWithGeometryConstraints.m
 %
 %    'TSMovie' (PARAM) : logical
-%     Default : False
-%     Used for paper
+%       Default : False
+%       Used for paper
 %
 %     'MaxRadiusBridgeRidges' (PARAM) :  Positive scalar
 %      Default : 5 (pixels)
@@ -86,7 +83,7 @@ ip.KeepUnmatched = true;
  ip.addRequired('listOfImages');
  ip.addRequired('backboneInfo');
 % 
-ip.addOptional('veilStemInfo',[]);
+ip.addOptional('veilStem',[]);
 ip.addOptional('paramsArchived',[]); 
 
 
@@ -106,11 +103,11 @@ ip.addParameter('EndFrame',nFrames,@(x) isscalar(x));
 
 ip.parse(listOfImages,backboneInfo,varargin{:});
 p = ip.Results;
-if ~isempty(p.veilStemInfo); 
-    veilStemInfo = p.veilStemInfo{1}; 
+if ~isempty(p.veilStem); 
+    veilStem = p.veilStem{1}; 
     paramsArchived = p.paramsArchived{1};
 end 
- pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStemInfo','paramsArchived'});
+ pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStem','paramsArchived'});
 %% Start Loop
 for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     if p.TSMovie == true;
@@ -129,7 +126,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     cleanedRidge(backbone==1) = 0;
     % added 20140307
     cleanedRidge =  bwmorph(cleanedRidge,'spur');
-    veilStemInfo(iFrame).bridged = false;
+    veilStem(iFrame).bridged = false;
     
     %% Get Amorphous Large Scale Veil/Pieces
     
@@ -338,9 +335,9 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             cleanedRidge =  bwmorph(cleanedRidge,'spur');
         end
-        veilStemInfo(iFrame).trunc = 1;
+        veilStem(iFrame).trunc = 1;
     else
-        veilStemInfo(iFrame).trunc = 0;
+        veilStem(iFrame).trunc = 0;
         
     end %%   sumNewBodyMask == 0 (test for complete truncation)
     
@@ -348,7 +345,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     newBodyMask = newBodyMask>0;
     moreVeilStemNodes = sum(floatingBodyIdxCC);
     if  moreVeilStemNodes == 0 ;
-        veilStemInfo(iFrame).rmHiIntPieces = [];
+        veilStem(iFrame).rmHiIntPieces = [];
     end
     %%    If there are more have it enter the reconstruct...
     if moreVeilStemNodes > 0
@@ -563,11 +560,11 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                     rmHiIntPieces = zeros(ny,nx);
                     rmHiIntPieces(vertcat(CCAllBody.PixelIdxList{floatingBodyIdxCCNew}))=1;
                     
-                    veilStemInfo(iFrame).rmHiIntPieces = rmHiIntPieces;
+                    veilStem(iFrame).rmHiIntPieces = rmHiIntPieces;
                     
                 else
                     
-                    veilStemInfo(iFrame).rmHiIntPieces = [];
+                    veilStem(iFrame).rmHiIntPieces = [];
                     break
                 end
                 reconstruct = 0; 
@@ -861,20 +858,20 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
        % plotScaleBar(pixels,pixels/20,'Color',[0 0 0]);
         saveas(gcf,[saveDirMov filesep '06.png'])
     end
-    %% Save the veilStemInfo
-    veilStemInfo(iFrame).finalMask = fullMask;
+    %% Save the veilStem
+    veilStem(iFrame).finalMask = fullMask;
     % update so can restart if crash (as for now not saving as .tif (could
     % change that- wanted to keep the filenames adaptable..)
-    veilStemInfo(iFrame).idxEnterNeurite = idxEnterNeurite; % save this information to test for later;
+    veilStem(iFrame).idxEnterNeurite = idxEnterNeurite; % save this information to test for later;
     
-    veilStemInfo(iFrame).cycleFlag = cycleFlag;
-    veilStemInfo(iFrame).timeStamp = clock;
+    veilStem(iFrame).cycleFlag = cycleFlag;
+    veilStem(iFrame).timeStamp = clock;
     hashTag =  gcaArchiveGetGitHashTag;
-    veilStemInfo(iFrame).hashTag = hashTag;
+    veilStem(iFrame).hashTag = hashTag;
     
     paramsArchived(iFrame) = pToSave; 
     save([ip.Results.OutputDirectory filesep 'params.mat'],'paramsArchived'); 
-    save([ip.Results.OutputDirectory filesep 'veilStemInfo.mat'],'veilStemInfo','-v7.3');
+    save([ip.Results.OutputDirectory filesep 'veilStem.mat'],'veilStem','-v7.3');
     %%    Make Trouble Shoot Overlays if User Desires
 %     if  ip.Results.TSOverlays == true
 %         if ~isdir([outDirChan filesep 'troubleshootVeilStem'])
