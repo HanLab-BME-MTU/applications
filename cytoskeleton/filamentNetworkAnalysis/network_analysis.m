@@ -1,6 +1,6 @@
 function [output_feature, VIF_ROI_model, VIF_ROI_orientation_model] = ...
     network_analysis(VIF_current_model,...
-    VIF_current_seg, ROI, radius,feature_flag)
+    VIF_current_seg, CellROI, radius,feature_flag)
 % function for calculation the property of network, simply based the network structures.
 % for input description see function load_MD_network_for_analysis.
 
@@ -19,7 +19,7 @@ output_feature.orientation_pixel_pool_display=[];
 output_feature.orientation_pixel_pool_display_center=[];
 
 
-%% confine filament model in ROI and also do digitalization on model
+%% confine filament model in CellROI and also do digitalization on model
 % size of image
 img_size = size(VIF_current_seg);
 
@@ -27,7 +27,7 @@ img_size = size(VIF_current_seg);
 VIF_current_seg = filament_model_to_seg_bwim(VIF_current_model,img_size,[]);
               
 [VIF_ROI_model, VIF_ROI_orientation_model] = ...
-    ROIed_digital_filament_model(VIF_current_model,img_size, ROI);
+    ROIed_digital_filament_model(VIF_current_model,img_size, CellROI);
 
 %% First check if needed to do analysis
 
@@ -125,7 +125,7 @@ end
 %% scrambled density
 if(feature_flag(5)>0)
     scrable_output_feature = ...
-        scrable_network_analysis(VIF_current_model,VIF_current_seg,ROI, radius,T_sigma,O_sigma);
+        scrable_network_analysis(VIF_current_model,VIF_current_seg,CellROI, radius,T_sigma,O_sigma);
     output_feature.scrabled_density_filament=scrable_output_feature.density_filament;
 end
 
@@ -158,7 +158,9 @@ if(feature_flag(7)>0)
     orientation_pixel_pool_display_center = mod(orientation_pixel_pool_display_center,pi);
     orientation_pixel_pool_display_center(orientation_pixel_pool_display_center>=pi/2) = orientation_pixel_pool_display_center(orientation_pixel_pool_display_center>=pi/2)-pi;
     
-    orientation_pixel_pool_display_center = orientation_pixel_pool_display_center + mode_bin;
+    % center the orientation at 0
+%     orientation_pixel_pool_display_center = orientation_pixel_pool_display_center + mode_bin;
+    orientation_pixel_pool_display_center = orientation_pixel_pool_display_center + 0;
 else
     orientation_pixel_pool_display_center=[];
 end

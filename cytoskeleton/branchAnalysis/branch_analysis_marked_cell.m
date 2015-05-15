@@ -127,8 +127,11 @@ raw_mask_cell = cell(1,nCompleteFrame);
 smoothed_mask_cell = cell(1,nCompleteFrame);
 current_seg_cell= cell(1,nCompleteFrame);
 nms_cell= cell(1,nCompleteFrame);
+MAX_st_res_cell = cell(1,nCompleteFrame);
 orienation_map_filtered_cell= cell(1,nCompleteFrame);
 region_orientation_cell = cell(1,nCompleteFrame);
+current_model_cell = cell(1,nCompleteFrame);
+
 
 min_y = Inf;
 min_x = Inf;
@@ -154,14 +157,14 @@ for iFrame = CompletedFrame
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',...
-            filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+            filename_short_strs{iFrame},'.mat']),'current_seg_orientation','current_model');
         current_seg = ~isnan(current_seg_orientation);
-        orienation_map_filtered = current_seg_orientation;
+        orienation_map_filtered = current_seg_orientation;        
         
     else
         if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
             load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',...
-                filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+                filename_short_strs{iFrame},'.mat']),'current_seg_orientation','current_model');
             current_seg = ~isnan(current_seg_orientation);
             orienation_map_filtered = current_seg_orientation;
             
@@ -172,13 +175,19 @@ for iFrame = CompletedFrame
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',...
-            filename_short_strs{iFrame},'.mat']),'nms');
+            filename_short_strs{iFrame},'.mat']),'nms', 'MAX_st_res','scaleMap');
     end
     
     
     current_seg_cell{1,iCompleteFrame} = current_seg;
+    
     orienation_map_filtered_cell{1,iCompleteFrame} = orienation_map_filtered;
+    current_model_cell{1,iCompleteFrame} = current_model;
+    
+  
     nms_cell{1,iCompleteFrame} = nms;
+    MAX_st_res_cell{1,iCompleteFrame} = MAX_st_res;
+    scaleMap_cell{1,iCompleteFrame} = scaleMap;
     
     %% Load the mask and smooth the cell mask
     if(exist([truthPath,filesep,'mask_',num2str(iFrame),'.tif'],'file'))
@@ -386,6 +395,7 @@ movieInfo =[];
 BA_output.cell_travel_length = ...
     sum(sqrt((center_x(2:end)-center_x(1:end-1)).^2 + (center_y(2:end)-center_y(1:end-1)).^2 ));
 
+
 BA_output.cell_travel_distance = ...
     (sqrt((center_x(end)-center_x(1)).^2 + (center_y(end)-center_y(1)).^2 ));
 
@@ -407,6 +417,16 @@ H = H./(sum(H));
 
 smooth_center_x =  imfilter(center_x,H','replicate','same');
 smooth_center_y =  imfilter(center_y,H','replicate','same');
+
+%%
+BA_output.center_x = center_x;
+BA_output.center_y = center_y;
+BA_output.smooth_center_x = smooth_center_x;
+BA_output.smooth_center_y = smooth_center_y;
+BA_output.speed_marked_frames = sqrt((center_x(2:end)-center_x(1:end-1)).^2 + (center_y(2:end)-center_y(1:end-1)).^2 );
+BA_output.smoothed_speed_marked_frames = sqrt((smooth_center_x(2:end)-smooth_center_x(1:end-1)).^2 + (smooth_center_y(2:end)-smooth_center_y(1:end-1)).^2 );
+
+%%
 
 h11=figure(11);hold off;
 plot(center_x,center_y,'r');
@@ -561,6 +581,7 @@ new_region_branch_label_cell = region_branch_label_cell;
 for iCompleteFrame = 1 : nCompleteFrame
     new_label_skel_cell{iCompleteFrame} = new_label_skel_cell{iCompleteFrame}*0;
     new_region_branch_label_cell{iCompleteFrame} = new_region_branch_label_cell{iCompleteFrame}*0;
+    
 end
 
 % final output of the number of branches tracked
@@ -571,6 +592,9 @@ BA_output.branch_number_max = max(branch_number_per_frame);
 
 % the mean number branches among all frames
 BA_output.branch_number_mean = mean(branch_number_per_frame);
+
+% the number branches among each frame
+BA_output.branch_number_per_frame = (branch_number_per_frame);
 
 
 for iT = 1 : length(tracksFinal)
@@ -683,6 +707,9 @@ lbh = uicontrol(display_message_window,'style','text','Units','normalized','posi
 set(lbh,'HorizontalAlignment','left');
 
 set(lbh,'string',strings);
+
+
+
 
 save([outputPath,filesep,'branch_analysis_results_balloon.mat'],'BA_output');
 

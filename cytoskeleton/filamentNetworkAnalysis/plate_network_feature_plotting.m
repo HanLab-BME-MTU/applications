@@ -59,24 +59,41 @@ for iF = 1:18
 end
   
 
-textcell = {'Straightness of filament (for each filament)',...
-    'Length (for each filament)',...
-    'Pixel number of segmentation (for each filament)',...
-    'Filament density (for each valid pixel)',...
-    'Scrabled filament density (for each valid pixel)',...
-    'Filament orientation (for each pixel)',...
-    'Filament orientation (for each pixel,centered)',...
-    'Filamet intensity (integrated for each filament)',...
-    'Filamet intensity (average for each filament)',...
-    'Filamet intensity (integrated for each dilated filament)',...
-    'Filamet intensity (average for each dilated filament)',...
-    'Scale of detected filaments (for each pixel)',...
-    'ST Responce (integrated for each filament)',...
-    'ST Responce (average for each filament)',...
-    'ST Responce (integrated for each dilated filament)',...
-    'ST Responce (average for each dilated filament)',...
-    'Filament curvature (average for each filament)',...
-    'Filament curvature (for each pixel on filaments)'};
+textcell = {'Straightness of filament (for each filament)',... % 1
+    'Length (for each filament)',...                           % 2
+    'Pixel number of segmentation (for each filament)',...     % 3
+    'Filament density (for each valid pixel)',...                   % 4
+    'Scrabled filament density (for each valid pixel)',...          % 5
+    'Filament orientation (for each pixel)',...                % 6
+    'Filament orientation (for each pixel,centered)',...       % 7
+    'Filamet intensity (integrated for each filament)',...           % 8
+    'Filamet intensity (average for each filament)',...              % 9
+    'Filamet intensity (integrated for each dilated filament)',...   % 10
+    'Filamet intensity (average for each dilated filament)',...      % 11
+    'Scale of detected filaments (for each pixel)',...                   % 12
+    'ST Responce (integrated for each filament)',...            % 13
+    'ST Responce (average for each filament)',...               % 14
+    'ST Responce (integrated for each dilated filament)',...    % 15
+    'ST Responce (average for each dilated filament)',...       % 16
+    'Filament curvature (average for each filament)',...     % 17
+    'Filament curvature (for each pixel on filaments)',...   % 18
+    'NMS Sum Periphery-Center Ratio (for each sections for cell (Dpc40p))',...           % 19
+    'NMS Ave Periphery-Center Ratio (for each sections for cell(Dpc40p))',...            % 20
+    'Intensity Sum Periphery-Center Ratio (for each sections for cell(Dpc40p))',...      % 21
+    'Intensity Ave Periphery-Center Ratio (for each sections for cell(Dpc40p))',...      % 22
+    'Filament Pixel Sum Periphery-Center Ratio (for each sections for cell(Dpc40p))',... % 23
+    'Filament Density Periphery-Center Ratio (for each sections for cell(Dpc40p))',...   % 24
+    'NMS Sum Periphery-Center Ratio (for each sections for cell (AutoDpc))',...           % 25
+    'NMS Ave Periphery-Center Ratio (for each sections for cell(AutoDpc))',...            % 26
+    'Intensity Sum Periphery-Center Ratio (for each sections for cell(AutoDpc))',...      % 27
+    'Intensity Ave Periphery-Center Ratio (for each sections for cell(AutoDpc))',...      % 28
+    'Filament Pixel Sum Periphery-Center Ratio (for each sections for cell(AutoDpc))',... % 29
+    'Filament Density Periphery-Center Ratio (for each sections for cell(AutoDpc))',...   % 30
+    'Filament Centripetal angle (for each filament)',...   % 31
+    'Filament Centripetal angle (for each pixel)',...      % 32
+    'Number of Nucleus(per well)'...                    %33
+    };
+
 
 for iF =  [ 1 2 8:16] 
     % for the background, plot 25%~50%~75% patch

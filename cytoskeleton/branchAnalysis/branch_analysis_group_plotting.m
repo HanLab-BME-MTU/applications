@@ -1,4 +1,4 @@
-function BA_Group = branch_analysis_group_plotting(ML_name_cell, T_branchsize, T_branchduration, Group_ROOT_DIR)
+function BA_Group = branch_analysis_group_plotting(ML_name_cell, T_branchsize, T_branchduration, Group_ROOT_DIR, branch_percent_threshold, short_time_frames, speed_percent_threshold,branch_orientation_p_threshold)
 % function to do branch analysis for a whole movielist
 % Liya Ding, March, 2014
 %
@@ -18,6 +18,20 @@ end
 if(nargin<4)
     Group_ROOT_DIR=[];
 end
+if(nargin<5)
+    branch_percent_threshold = 1; % anything larger than 1% of cell size
+end
+if(nargin<6)
+    short_time_frames = 1; % check things on each period of time  1 frame
+end
+if(nargin<7)
+    speed_percent_threshold = 1; % the speed to be considered as valid, not reorienting, 1% of cell demension( sqrt of cell pixels) is very low
+end
+if(nargin<8)
+    branch_orientation_p_threshold = 0.999; %  the threshold to consider branch orientation as different 0.99 means they can be really similar to each other
+end
+
+T_speed=4;
 
 close all;
 
@@ -34,8 +48,8 @@ for iML = 1 : nList
     
     % if the batch results exist, load it
     if 0
-%         (exist([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered.mat'], 'file'))
-        load([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered.mat'],'BA_output_ML_cell');
+        %         (exist([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered_balloon.mat'], 'file'))
+        %         load([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered_balloon.mat'],'BA_output_ML_cell');
     else
         % otherwise load one by one
         BA_output_ML_cell= cell(1,1,1);
@@ -65,8 +79,8 @@ for iML = 1 : nList
                     if(exist(outputPath,'dir'))
                         % if it exist, try to do the branch analysis
                         try
-                            if(exist([outputPath,filesep,'branch_analysis_results.mat'],'file'))
-                                load([outputPath,filesep,'branch_analysis_results.mat'],'BA_output');
+                            if(exist([outputPath,filesep,'branch_analysis_results_balloon.mat'],'file'))
+                                load([outputPath,filesep,'branch_analysis_results_balloon.mat'],'BA_output');
                             else
                                 continue;
                             end
@@ -93,6 +107,7 @@ end
 Group_Pool_Travel_Length = [];
 Group_Pool_Travel_Distance = [];
 Group_Pool_Travel_Speed = [];
+Group_Pool_Travel_Speed_without_pausing = [];
 Group_Pool_Cell_Marked_Frame_Number = [];
 Group_Pool_branch_number_tracked = [];
 Group_Pool_branch_number_max = [];
@@ -128,6 +143,54 @@ Group_Pool_branch_seg_total = [];
 Group_Pool_branch_seg_mean  = [];
 Group_Pool_branch_nms_total = [];
 Group_Pool_branch_nms_mean  = [];
+Group_Pool_branch_number_weighted = cell(1,numel(branch_percent_threshold));
+Group_Pool_Travel_Speed_short_time = cell(1, numel(short_time_frames));
+Group_Pool_reorienting_status_short_time = cell(numel(short_time_frames),numel(speed_percent_threshold),numel(branch_orientation_p_threshold));
+Group_Pool_vim_fila_shorttime = cell(1, numel(short_time_frames));
+Group_Pool_vim_nms_shorttime = cell(1, numel(short_time_frames));
+Group_Pool_vim_int_shorttime = cell(1, numel(short_time_frames));
+
+
+
+
+Group_Pool_curvature_map_pool = [];
+Group_Pool_filament_alignment_map_pool = [];
+Group_Pool_filament_density_pool = [];
+Group_Pool_prot_or_retr_fila_pool = [];
+Group_Pool_curvature_map_full_pool = [];
+Group_Pool_filament_alignment_map_full_pool = [];
+Group_Pool_filament_density_full_pool = [];
+Group_Pool_prot_or_retr_fila_full_pool = [];
+Group_Pool_scale_map_pool = [];
+
+Group_Pool_last_curvature_map_pool = [];
+Group_Pool_last_filament_alignment_map_pool = [];
+Group_Pool_last_filament_density_pool = [];
+Group_Pool_last_prot_or_retr_fila_pool = [];
+Group_Pool_last_curvature_map_full_pool = [];
+Group_Pool_last_filament_alignment_map_full_pool = [];
+Group_Pool_last_filament_density_full_pool = [];
+Group_Pool_last_prot_or_retr_fila_full_pool = [];
+Group_Pool_last_scale_map_pool = [];
+
+Group_Pool_int_map_pool = [];
+Group_Pool_st_map_pool = [];
+Group_Pool_int_map_full_pool = [];
+Group_Pool_st_map_full_pool = [];
+
+Group_Pool_last_int_map_pool = [];
+Group_Pool_last_st_map_pool = [];
+Group_Pool_last_int_map_full_pool = [];
+Group_Pool_last_st_map_full_pool = [];
+
+
+
+
+
+
+
+
+
 
 
 Identifier_cell = [];
@@ -185,12 +248,70 @@ for iML = 1 : nList
     ML_Pool_branch_seg_mean = [];
     ML_Pool_branch_nms_total = [];
     ML_Pool_branch_nms_mean = [];
-   
-    % the number of movies
-    movieNumber =  20;
+    ML_Pool_Travel_Speed_without_pausing = [];
+    
+    ML_Pool_branch_number_weighted = cell(1,numel(branch_percent_threshold));
+    ML_Pool_Travel_Speed_short_time = cell(1, numel(short_time_frames));
+    ML_Pool_reorienting_status_short_time = cell(numel(short_time_frames),numel(speed_percent_threshold),numel(branch_orientation_p_threshold));
+    ML_Pool_vim_fila_shorttime = cell(1, numel(short_time_frames));
+    ML_Pool_vim_nms_shorttime = cell(1, numel(short_time_frames));
+    ML_Pool_vim_int_shorttime = cell(1, numel(short_time_frames));
+    
+    
+    ML_Pool_curvature_map_pool = [];
+    ML_Pool_filament_alignment_map_pool = [];
+    ML_Pool_filament_density_pool = [];
+    ML_Pool_prot_or_retr_fila_pool = [];
+    ML_Pool_curvature_map_full_pool = [];
+    ML_Pool_filament_alignment_map_full_pool = [];
+    ML_Pool_filament_density_full_pool = [];
+    ML_Pool_prot_or_retr_fila_full_pool = [];
+    ML_Pool_scale_map_pool = [];
+    
+    ML_Pool_last_curvature_map_pool = [];
+    ML_Pool_last_filament_alignment_map_pool = [];
+    ML_Pool_last_filament_density_pool = [];
+    ML_Pool_last_prot_or_retr_fila_pool = [];
+    ML_Pool_last_curvature_map_full_pool = [];
+    ML_Pool_last_filament_alignment_map_full_pool = [];
+    ML_Pool_last_filament_density_full_pool = [];
+    ML_Pool_last_prot_or_retr_fila_full_pool = [];
+    ML_Pool_last_scale_map_pool = [];
+    
+    ML_Pool_int_map_pool = [];
+    ML_Pool_st_map_pool = [];
+    ML_Pool_int_map_full_pool = [];
+    ML_Pool_st_map_full_pool = [];
+    
+    ML_Pool_last_int_map_pool = [];
+    ML_Pool_last_st_map_pool = [];
+    ML_Pool_last_int_map_full_pool = [];
+    ML_Pool_last_st_map_full_pool = [];
+    
+    
+    for iB = 1 : numel(branch_percent_threshold)
+        
+        percent_threshold = branch_percent_threshold(iB);
+        
+        branch_size_matrix = BA_output.branch_size_matrix;
+        cell_size_pool = BA_output.cell_size_array;
+        
+        cell_size_matrix = repmat(cell_size_pool, 1,size(branch_size_matrix,2));
+        
+        
+        branch_size_percent_matrix = branch_size_matrix./cell_size_matrix*100;
+        
+        branch_size_percent_thresholded_matrix  = branch_size_percent_matrix/percent_threshold;
+        branch_size_percent_thresholded_matrix(branch_size_percent_thresholded_matrix>1)=1;
+        
+        ML_Pool_branch_number_weighted{iB} = [ ML_Pool_branch_number_weighted{iB}; nanmean(branch_size_percent_thresholded_matrix,1)];
+        
+    end
+    
+    movieNumber =  length(ML.movieDataFile_);
     
     for iM  = 1 : movieNumber
-        nChannel=2;
+        nChannel = 2;
         for iChannel = 1 : nChannel
             for iCell = 1 :  10
                 try
@@ -200,13 +321,14 @@ for iML = 1 : nList
                 end
                 
                 if(~isempty(BA_output))
+                    if(~isfield(BA_output,'curvature_map_pool'))
+                        continue;
+                    end
                     ML_Pool_CompletedFrame_last=[ML_Pool_CompletedFrame_last BA_output.CompletedFrame(end)];
-    
                     ML_Pool_branch_size_mean = [ML_Pool_branch_size_mean BA_output.branch_mean_size];
                     ML_Pool_whole_cell_size_mean= [ML_Pool_whole_cell_size_mean BA_output.whole_cell_size_mean];
                     ML_Pool_branch_number_mean_pat = [ML_Pool_branch_number_mean_pat repmat(BA_output.branch_number_mean, [1, length(BA_output.branch_vif_mean_intensity)])];
                     Identifier_cell{1,numel(Identifier_cell)+1} = BA_output.Identifier;
-                    
                     
                     Thresholded_branch_number_mean = sum(BA_output.branch_duration_array(find(BA_output.branch_mean_size>T_branchsize & BA_output.branch_duration_array>T_branchduration)))...
                         ./ BA_output.cell_marked_frame_number;
@@ -233,18 +355,84 @@ for iML = 1 : nList
                     ML_Pool_pool_vif_intensity= [ML_Pool_pool_vif_intensity; BA_output.pool_all_vif_intensity];
                     
                     
+                    ML_Pool_whole_cell_vim_seg_total = [ML_Pool_whole_cell_vim_seg_total; BA_output.whole_cell_vim_seg_total];
+                    ML_Pool_whole_cell_vim_seg_mean = [ML_Pool_whole_cell_vim_seg_mean; BA_output.whole_cell_vim_seg_mean];
+                    ML_Pool_whole_cell_vim_nms_total = [ML_Pool_whole_cell_vim_nms_total; BA_output.whole_cell_vim_nms_total];
+                    ML_Pool_whole_cell_vim_nms_mean = [ML_Pool_whole_cell_vim_nms_mean; BA_output.whole_cell_vim_nms_mean];
                     
-  ML_Pool_whole_cell_vim_seg_total= [ML_Pool_whole_cell_vim_seg_total; BA_output.whole_cell_vim_seg_total];
-  ML_Pool_whole_cell_vim_seg_mean= [ML_Pool_whole_cell_vim_seg_mean; BA_output.whole_cell_vim_seg_mean];
-  ML_Pool_whole_cell_vim_nms_total= [ML_Pool_whole_cell_vim_nms_total; BA_output.whole_cell_vim_nms_total];
-  ML_Pool_whole_cell_vim_nms_mean= [ML_Pool_whole_cell_vim_nms_mean; BA_output.whole_cell_vim_nms_mean];
-
-  ML_Pool_branch_seg_total= [ML_Pool_branch_seg_total BA_output.branch_seg_total];
-   ML_Pool_branch_seg_mean= [ML_Pool_branch_seg_mean BA_output.branch_seg_mean];
-   ML_Pool_branch_nms_total= [ML_Pool_branch_nms_total BA_output.branch_nms_total];
-   ML_Pool_branch_nms_mean= [ML_Pool_branch_nms_mean BA_output.branch_nms_mean];
-   
+                    ML_Pool_branch_seg_total = [ML_Pool_branch_seg_total BA_output.branch_seg_total];
+                    ML_Pool_branch_seg_mean = [ML_Pool_branch_seg_mean BA_output.branch_seg_mean];
+                    ML_Pool_branch_nms_total = [ML_Pool_branch_nms_total BA_output.branch_nms_total];
+                    ML_Pool_branch_nms_mean = [ML_Pool_branch_nms_mean BA_output.branch_nms_mean];
                     
+                    try
+                    if isfield(BA_output,'speed_marked_frames')
+                        S = BA_output.speed_marked_frames;
+                        ML_Pool_Travel_Speed_without_pausing = [ML_Pool_Travel_Speed_without_pausing mean(S(S>T_speed))];
+                        smoothed_speed_marked_frames = BA_output.smoothed_speed_marked_frames;
+                        center_x = BA_output.center_x;
+                        center_y = BA_output.center_y;
+                        center_x = center_x(:);
+                        center_y = center_y(:);
+                        % assume the last frame is moving in the same speed
+                        % as the end-1 to end
+                        smoothed_speed_marked_frames(numel(smooth_center_x)) = smoothed_speed_marked_frames(numel(smooth_center_x)-1);
+                        smoothed_speed_marked_frames = smoothed_speed_marked_frames(:);
+                        
+                        
+                        %%  speed with shorttime definition
+                        for iShorttime = 1 : numel(short_time_frames)
+                            ShortTimeFrames = short_time_frames(iShorttime);
+                            %                             give_up_frame = floor(ShortTimeFrames/2);
+                            give_up_frame = 1;
+                            H = ones(ShortTimeFrames,1)/ShortTimeFrames;
+                            
+                            smoothed_speed_marked_frames_shorttime = imfilter(smoothed_speed_marked_frames,H,'same','replicate');
+                            
+                            vif_fila_mean = BA_output.cell_vif_seg_total_array ./(BA_output.cell_size_array);
+                            vif_nms_mean = BA_output.cell_vif_nms_total_array ./(BA_output.cell_size_array);
+                            vif_int_mean = BA_output.cell_vimtotal_pool ./(BA_output.cell_size_array);
+                            
+                            vif_fila_mean = vif_fila_mean(:);
+                            vif_nms_mean  = vif_nms_mean(:);
+                            vif_int_mean  = vif_int_mean(:);
+                            
+                            vif_fila_mean_shorttime = imfilter(vif_fila_mean,H,'same','replicate');
+                            vif_nms_mean_shorttime = imfilter(vif_nms_mean,H,'same','replicate');
+                            vif_int_mean_shorttime = imfilter(vif_int_mean,H,'same','replicate');
+                            
+                            ML_Pool_Travel_Speed_short_time{iShorttime} = [ML_Pool_Travel_Speed_short_time{iShorttime}; smoothed_speed_marked_frames_shorttime(give_up_frame:end-give_up_frame+1,1)] ;
+                            ML_Pool_vim_fila_shorttime{iShorttime} = [ML_Pool_vim_fila_shorttime{iShorttime}; vif_fila_mean_shorttime(give_up_frame:end-give_up_frame+1,1)];
+                            ML_Pool_vim_nms_shorttime{iShorttime} = [ML_Pool_vim_nms_shorttime{iShorttime}; vif_nms_mean_shorttime(give_up_frame:end-give_up_frame+1,1)];
+                            ML_Pool_vim_int_shorttime{iShorttime} = [ML_Pool_vim_int_shorttime{iShorttime}; vif_int_mean_shorttime(give_up_frame:end-give_up_frame+1,1)];
+                        end
+                        
+                        %% branch number with weight
+                        for iB = 1 : numel(branch_percent_threshold)
+                            branch_size_percent = BA_output.branch_size_matrix./(repmat(BA_output.cell_size_array, 1, size(BA_output.branch_size_matrix,2)))*100;
+                            branch_size_percent(branch_size_percent> branch_percent_threshold(iB)) = branch_percent_threshold(iB);
+                            branch_size_percent = branch_size_percent/branch_size_percent(iB);
+                            branch_number_afterweight = sum(branch_size_percent,2);
+                            ML_Pool_branch_number_weighted{iB} = [ ML_Pool_branch_number_weighted{iB}; branch_number_afterweight];
+                        end
+                        %%
+                        
+                        for iSpeed = 1 : numel(speed_percent_threshold)
+                            for iPvalue = 1 : numel(speed_percent_threshold)
+                                for iShorttime = 1 : numel(short_time_frames)
+                                    ShortTimeFrames = short_time_frames(iShorttime);
+                                    
+                                    %%
+                                    
+                                end
+                            end
+                        end
+                        
+                        
+                        
+                        
+                    end
+                    end
                     
                     % some old analysis doens't have orient std,
                     % but as space holder, add nan
@@ -304,6 +492,48 @@ for iML = 1 : nList
                             ML_Pool_fila_trajectory_orientation_pool_slow=[ML_Pool_fila_branch_orientation_pool_slow; BA_output.fila_branch_orientation_pool];
                         end
                     end
+                    
+                    
+                    
+                    ML_Pool_curvature_map_pool= [ML_Pool_curvature_map_pool; BA_output.curvature_map_pool];
+                    ML_Pool_filament_alignment_map_pool= [ML_Pool_filament_alignment_map_pool; BA_output.filament_alignment_map_pool];
+                    ML_Pool_filament_density_pool= [ML_Pool_filament_density_pool; BA_output.filament_density_pool];
+                    ML_Pool_prot_or_retr_fila_pool= [ML_Pool_prot_or_retr_fila_pool; BA_output.prot_or_retr_fila_pool];
+                    ML_Pool_curvature_map_full_pool= [ML_Pool_curvature_map_full_pool; BA_output.curvature_map_full_pool];
+                    ML_Pool_filament_alignment_map_full_pool= [ML_Pool_filament_alignment_map_full_pool; BA_output.filament_alignment_map_full_pool];
+                    
+                    ML_Pool_prot_or_retr_fila_full_pool= [ML_Pool_prot_or_retr_fila_full_pool; BA_output.prot_or_retr_fila_full_pool];
+                    ML_Pool_scale_map_pool= [ML_Pool_scale_map_pool; BA_output.scale_map_pool];
+                    
+                    ML_Pool_last_curvature_map_pool= [ML_Pool_last_curvature_map_pool; BA_output.last_curvature_map_pool];
+                    ML_Pool_last_filament_alignment_map_pool= [ML_Pool_last_filament_alignment_map_pool; BA_output.last_filament_alignment_map_pool];
+                    ML_Pool_last_filament_density_pool= [ML_Pool_last_filament_density_pool; BA_output.last_filament_density_pool];
+                    ML_Pool_last_prot_or_retr_fila_pool= [ML_Pool_last_prot_or_retr_fila_pool; BA_output.last_prot_or_retr_fila_pool];
+                    ML_Pool_last_curvature_map_full_pool= [ML_Pool_last_curvature_map_full_pool; BA_output.last_curvature_map_full_pool];
+                    ML_Pool_last_filament_alignment_map_full_pool= [ML_Pool_last_filament_alignment_map_full_pool; BA_output.last_filament_alignment_map_full_pool];
+                    ML_Pool_last_filament_density_full_pool= [ML_Pool_last_filament_density_full_pool; BA_output.last_filament_density_full_pool];
+                    ML_Pool_last_scale_map_pool= [ML_Pool_last_scale_map_pool; BA_output.last_scale_map_pool];
+                    
+                    
+                    
+                    ML_Pool_int_map_pool= [ML_Pool_int_map_pool; BA_output.int_map_pool];
+                    ML_Pool_st_map_pool= [ML_Pool_st_map_pool; BA_output.st_map_pool];
+                    ML_Pool_int_map_full_pool= [ML_Pool_int_map_full_pool; BA_output.int_map_full_pool];
+                    ML_Pool_st_map_full_pool= [ML_Pool_st_map_full_pool; BA_output.st_map_full_pool];
+                    
+                    ML_Pool_last_int_map_pool= [ML_Pool_last_int_map_pool; BA_output.last_int_map_pool];
+                    ML_Pool_last_st_map_pool= [ML_Pool_last_st_map_pool; BA_output.last_st_map_pool];
+                    ML_Pool_last_int_map_full_pool= [ML_Pool_last_int_map_full_pool; BA_output.last_int_map_full_pool];
+                    ML_Pool_last_st_map_full_pool= [ML_Pool_last_st_map_full_pool; BA_output.last_st_map_full_pool];
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                     iAllCell = iAllCell + 1;
                 end
             end
@@ -332,11 +562,17 @@ for iML = 1 : nList
     ML_Pool_whole_cell_vif_mean_intensity_pat = ML_Pool_whole_cell_vif_mean_intensity_pat/vim_max;
     ML_Pool_whole_cell_vim_totalamount_mean = ML_Pool_whole_cell_vim_totalamount_mean/vim_max;
     
+    
+    %     for shorttime also need this normalization
+    %         """""""""""""""""""""""""""""""
+    %
+    
     %% in the end put data from this ML to the pool of all MLs
-        
+    
     Group_Pool_Travel_Length = [Group_Pool_Travel_Length ML_Pool_Travel_Length];
     Group_Pool_Travel_Distance = [Group_Pool_Travel_Distance ML_Pool_Travel_Distance];
     Group_Pool_Travel_Speed = [Group_Pool_Travel_Speed ML_Pool_Travel_Speed];
+    Group_Pool_Travel_Speed_without_pausing = [Group_Pool_Travel_Speed_without_pausing ML_Pool_Travel_Speed_without_pausing];
     Group_Pool_Cell_Marked_Frame_Number = [Group_Pool_Cell_Marked_Frame_Number ML_Pool_Cell_Marked_Frame_Number];
     Group_Pool_branch_number_tracked = [Group_Pool_branch_number_tracked ML_Pool_branch_number_tracked];
     Group_Pool_branch_number_max = [Group_Pool_branch_number_max ML_Pool_branch_number_max];
@@ -374,6 +610,44 @@ for iML = 1 : nList
     Group_Pool_branch_seg_mean  = [Group_Pool_branch_seg_mean  ML_Pool_branch_seg_mean ];
     Group_Pool_branch_nms_total = [Group_Pool_branch_nms_total ML_Pool_branch_nms_total];
     Group_Pool_branch_nms_mean  = [Group_Pool_branch_nms_mean  ML_Pool_branch_nms_mean ];
+    
+    
+    
+    
+    Group_Pool_curvature_map_pool= [Group_Pool_curvature_map_pool;ML_Pool_curvature_map_pool];
+    Group_Pool_filament_alignment_map_pool= [Group_Pool_filament_alignment_map_pool;ML_Pool_filament_alignment_map_pool];
+    Group_Pool_filament_density_pool= [Group_Pool_filament_density_pool;ML_Pool_filament_density_pool];
+    Group_Pool_prot_or_retr_fila_pool= [Group_Pool_prot_or_retr_fila_pool;ML_Pool_prot_or_retr_fila_pool];
+    Group_Pool_curvature_map_full_pool= [Group_Pool_curvature_map_full_pool;ML_Pool_curvature_map_full_pool];
+    Group_Pool_filament_alignment_map_full_pool= [Group_Pool_filament_alignment_map_full_pool;ML_Pool_filament_alignment_map_full_pool];
+    
+    Group_Pool_prot_or_retr_fila_full_pool= [Group_Pool_prot_or_retr_fila_full_pool;ML_Pool_prot_or_retr_fila_full_pool];
+    Group_Pool_scale_map_pool= [Group_Pool_scale_map_pool;ML_Pool_scale_map_pool];
+    
+    Group_Pool_last_curvature_map_pool= [Group_Pool_last_curvature_map_pool;ML_Pool_last_curvature_map_pool];
+    Group_Pool_last_filament_alignment_map_pool= [Group_Pool_last_filament_alignment_map_pool;ML_Pool_last_filament_alignment_map_pool];
+    Group_Pool_last_filament_density_pool= [Group_Pool_last_filament_density_pool;ML_Pool_last_filament_density_pool];
+    Group_Pool_last_prot_or_retr_fila_pool= [Group_Pool_last_prot_or_retr_fila_pool;ML_Pool_last_prot_or_retr_fila_pool];
+    Group_Pool_last_curvature_map_full_pool= [Group_Pool_last_curvature_map_full_pool;ML_Pool_last_curvature_map_full_pool];
+    Group_Pool_last_filament_alignment_map_full_pool= [Group_Pool_last_filament_alignment_map_full_pool;ML_Pool_last_filament_alignment_map_full_pool];
+    Group_Pool_last_filament_density_full_pool= [Group_Pool_last_filament_density_full_pool;ML_Pool_last_filament_density_full_pool];
+    Group_Pool_last_scale_map_pool= [Group_Pool_last_scale_map_pool;ML_Pool_last_scale_map_pool];
+    
+    
+    
+    Group_Pool_int_map_pool= [Group_Pool_int_map_pool;ML_Pool_int_map_pool];
+    Group_Pool_st_map_pool= [Group_Pool_st_map_pool;ML_Pool_st_map_pool];
+    Group_Pool_int_map_full_pool= [Group_Pool_int_map_full_pool;ML_Pool_int_map_full_pool];
+    Group_Pool_st_map_full_pool= [Group_Pool_st_map_full_pool;ML_Pool_st_map_full_pool];
+    
+    Group_Pool_last_int_map_pool= [Group_Pool_last_int_map_pool;ML_Pool_last_int_map_pool];
+    Group_Pool_last_st_map_pool= [Group_Pool_last_st_map_pool;ML_Pool_last_st_map_pool];
+    Group_Pool_last_int_map_full_pool= [Group_Pool_last_int_map_full_pool;ML_Pool_last_int_map_full_pool];
+    Group_Pool_last_st_map_full_pool= [Group_Pool_last_st_map_full_pool;ML_Pool_last_st_map_full_pool];
+    
+    
+    
+    
     
 end
 
@@ -521,7 +795,7 @@ try
         ', Sample Size:',num2str(numel(Group_Pool_fila_branch_orientation_pool_std(~isnan(Group_Pool_fila_branch_orientation_pool_std)&~isnan(Group_Pool_branch_number_mean))))]},'Fontsize',13);
     axis([0.6 0.9 0 10]);
     set(gca,'fontsize',13);
-
+    
     saveas(h36,[Group_ROOT_DIR,filesep,'FilaOrient_wrt_branch_vs_Branchness.fig']);
     saveas(h36,[Group_ROOT_DIR,filesep,'FilaOrient_wrt_branch_vs_Branchness.tif']);
     print(h36,'-depsc',[Group_ROOT_DIR,filesep,'FilaOrient_wrt_branch_vs_Branchness.eps']);
@@ -785,9 +1059,9 @@ h58 = figure(58);hold off;
 for i = 1 : length(Group_Pool_whole_cell_vif_mean_intensity)
     % text(Group_Pool_Travel_Speed(i)-0.02, Group_Pool_whole_cell_vif_mean_intensity(i)+0.2, num2str(i), 'color',colorarray(i,:));
     if(Group_Pool_Cell_Marked_Frame_Number(i)>15 && Group_Pool_CompletedFrame_last(i)>60)
-    hold on;
-    %     plot(Group_Pool_Travel_Speed(i), Group_Pool_whole_cell_vif_mean_intensity(i), '.', 'color',colorarray(i,:),'MarkerSize',16);
-    plot(Group_Pool_Travel_Speed(i), Group_Pool_whole_cell_vif_mean_intensity(i), 'bo','linewidth',2,'markersize',7);
+        hold on;
+        %     plot(Group_Pool_Travel_Speed(i), Group_Pool_whole_cell_vif_mean_intensity(i), '.', 'color',colorarray(i,:),'MarkerSize',16);
+        plot(Group_Pool_Travel_Speed(i), Group_Pool_whole_cell_vif_mean_intensity(i), 'bo','linewidth',2,'markersize',7);
     end
 end
 xlabel('Cell Speed','Fontsize',13);
@@ -911,8 +1185,120 @@ saveas(h13,[Group_ROOT_DIR,filesep,'EachBranch_Duration_vs_Vim_with_Thres.fig'])
 saveas(h13,[Group_ROOT_DIR,filesep,'EachBranch_Duration_vs_Vim_with_Thres.tif']);
 print(h13,'-depsc',[Group_ROOT_DIR,filesep,'EachBranch_Duration_vs_Vim_with_Thres.eps']);
 
-save([Group_ROOT_DIR,filesep,'branch_analysis_group_results.mat']);
-
+h15 = figure(15); hold off;
+        subplot(3,2,1);
+        hist(Group_Pool_curvature_map_pool(Group_Pool_prot_or_retr_fila_pool==1),30);
+         title('Curvature centerline prot-ed');
+       subplot(3,2,2);
+        hist(Group_Pool_curvature_map_pool(Group_Pool_prot_or_retr_fila_pool==-1),30);
+        title('Curvature centerline retract-ed');
+        subplot(3,2,3);
+        hist(Group_Pool_filament_alignment_map_pool(Group_Pool_prot_or_retr_fila_pool==1),30);
+         title('Filament Alignment centerline prot-ed');
+       subplot(3,2,4);
+        hist(Group_Pool_filament_alignment_map_pool(Group_Pool_prot_or_retr_fila_pool==-1),30);
+          title('Filament Alignment centerline retract-ed');
+       subplot(3,2,5);
+        hist(Group_Pool_filament_density_pool(Group_Pool_prot_or_retr_fila_pool==1),30);
+        title('Filament density centerline prot-ed');
+       subplot(3,2,6);
+        hist(Group_Pool_filament_density_pool(Group_Pool_prot_or_retr_fila_pool==-1),30);
+        title('Filament density centerline retract-ed');
+       saveas(h15,[Group_ROOT_DIR,filesep,'this_filament_prot_retract_center.tif']);
+        saveas(h15,[Group_ROOT_DIR,filesep,'this_filament_prot_retract_center.fig']);
+        
+        
+        h16 = figure(16); hold off;
+        subplot(3,2,1);
+        hist(Group_Pool_curvature_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==1),0:0.01:0.4);
+        title('Curvature full prot-ed');
+        subplot(3,2,2);
+        hist(Group_Pool_curvature_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==-1),0:0.01:0.4);
+        title('Curvature full retract-ed');
+        subplot(3,2,3);
+        hist(Group_Pool_filament_alignment_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==1),30);
+        title('Filament Alignment full prot-ed');
+        subplot(3,2,4);
+        hist(Group_Pool_filament_alignment_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==-1),30);
+        title('Filament Alignment full retract-ed');
+        subplot(3,2,5);
+        hist(Group_Pool_filament_density_full_pool(Group_Pool_prot_or_retr_fila_full_pool==1),30);
+        title('Filament density full prot-ed');
+        subplot(3,2,6);
+        hist(Group_Pool_filament_density_full_pool(Group_Pool_prot_or_retr_fila_full_pool==-1),30);
+        title('Filament density full retract-ed');
+        saveas(h16,[Group_ROOT_DIR,filesep,'this_filament_prot_retract_full.tif']);
+        saveas(h16,[Group_ROOT_DIR,filesep,'this_filament_prot_retract_full.fig']);
+        
+        h17 = figure(17); hold off;
+        subplot(3,2,1);
+        hist(Group_Pool_last_curvature_map_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==1),0:0.01:0.4);
+        title('Curvature full pre-prot');
+        subplot(3,2,2);
+        hist(Group_Pool_last_curvature_map_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==-1),0:0.01:0.4);
+        title('Curvature full pre-retract');
+        subplot(3,2,3);
+        hist(Group_Pool_last_filament_alignment_map_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==1),30);
+        title('Filament Alignment full pre-prot');
+        subplot(3,2,4);
+        hist(Group_Pool_last_filament_alignment_map_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==-1),30);
+        title('Filament Alignment full pre-retract');
+        subplot(3,2,5);
+        hist(Group_Pool_last_filament_density_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==1),30);
+        title('Filament density full pre-prot');
+        subplot(3,2,6);
+        hist(Group_Pool_last_filament_density_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==-1),30);
+        title('Filament density full pre-retract');
+        
+        saveas(h17,[Group_ROOT_DIR,filesep,'last_filament_prot_retract_full.tif']);
+        saveas(h17,[Group_ROOT_DIR,filesep,'last_filament_prot_retract_full.fig']);
+        
+        h18 = figure(18); hold off;
+        
+        subplot(3,2,1);
+        hist(double(Group_Pool_int_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==1)),30);
+        title('Int full prot-ed');
+        subplot(3,2,2);
+        hist(double(Group_Pool_int_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==-1)),30);
+        title('Int full retract-ed');
+        subplot(3,2,3);
+        hist(double(Group_Pool_last_int_map_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==1)),30);
+        title('Int full pre-prot');
+        subplot(3,2,4);
+        hist(double(Group_Pool_last_int_map_full_pool(Group_Pool_last_prot_or_retr_fila_full_pool==-1)),30);
+        title('Int full pre-retract');
+        subplot(3,2,5);
+        hist(Group_Pool_st_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==1),30);
+        title('ST full prot-ed');
+        subplot(3,2,6);
+        hist(Group_Pool_st_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==-1),30);
+        title('ST full retract-ed');
+        saveas(h18,[outputPath,filesep,'this_filament_intst_prot_retract_full.tif']);
+        saveas(h18,[outputPath,filesep,'this_filament_intst_prot_retract_full.fig']);
+        
+         h19= figure(19); hold off;
+        
+        subplot(3,2,1);
+        hist(double(Group_Pool_scale_map_pool(Group_Pool_prot_or_retr_fila_full_pool==1)),30);
+        title('Scale full prot-ed');
+        subplot(3,2,2);
+        hist(double(Group_Pool_scale_map_pool(Group_Pool_prot_or_retr_fila_full_pool==-1)),30);
+        title('Scale full retract-ed');
+        subplot(3,2,3);
+        hist(double(Group_Pool_last_scale_map_pool(Group_Pool_last_prot_or_retr_fila_full_pool==1)),30);
+        title('Scale full pre-prot');
+        subplot(3,2,4);
+        hist(double(Group_Pool_last_scale_map_pool(Group_Pool_last_prot_or_retr_fila_full_pool==-1)),30);
+        title('Scale full pre-retract');
+%         subplot(3,2,5);
+%         hist(Group_Pool_st_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==1),30);
+%         title('ST full prot-ed');
+%         subplot(3,2,6);
+%         hist(Group_Pool_st_map_full_pool(Group_Pool_prot_or_retr_fila_full_pool==-1),30);
+%         title('ST full retract-ed');
+         saveas(h19,[Group_ROOT_DIR,filesep,'this_filament_intst_prot_retract_full.tif']);
+        saveas(h19,[Group_ROOT_DIR,filesep,'this_filament_scale_prot_retract_full.fig']);
+        
 
 %%
 branch_analysis_plotting_VimNms;
@@ -920,4 +1306,5 @@ branch_analysis_plotting_VimTotalNms;
 branch_analysis_plotting_VimFilaDen;
 branch_analysis_plotting_VimFilaTotal;
 
+save([Group_ROOT_DIR,filesep,'branch_analysis_group_results.mat']);
 

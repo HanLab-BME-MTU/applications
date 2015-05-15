@@ -143,8 +143,16 @@ elseif strcmp(sol_mats.tool,'backslash')
 %     [normWeights]=getNormWeights(forceMesh);
 %     eyeWeights =diag(normWeights);
     eyeWeights = sol_mats.eyeWeights;
-    MpM=sol_mats.MpM;
-    sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+    idxNonan = ~isnan(u);
+    if any(~idxNonan) 
+        u = u(idxNonan);
+        Mreal = M(idxNonan,:);
+        MpM = Mreal'*Mreal;
+    else
+        MpM=sol_mats.MpM;
+        Mreal = M;
+    end
+    sol_coef=(L*eyeWeights+ MpM)\(Mreal'*u);
 else
     error('No solution matrices have been found')
 end

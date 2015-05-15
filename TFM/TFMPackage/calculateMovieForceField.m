@@ -104,7 +104,7 @@ end
 % Add a recovery mechanism if process has been stopped in the middle of the
 % computation to re-use previous results
 firstFrame =1; % Set the strating fram eto 1 by default
-if exist(outputFile{1},'file');
+if exist(outputFile{1},'file')
     % Check analyzed frames
     s=load(outputFile{1},'forceField');
     frameForceField=~arrayfun(@(x)isempty(x.pos),s.forceField);
@@ -123,10 +123,18 @@ if exist(outputFile{1},'file');
         end
     end
 end
-
+% asking if you want to reuse the fwdMap again (you have to make sure that
+% you are solving the same problem with only different reg. param.) -SH
+reuseFwdMap = 'No';
+if strcmpi(p.method,'FastBEM') && exist(outputFile{3,1},'file')
+    reuseFwdMap = questdlg(...
+        ['BEM parameters were dectected. Do you' ...
+        ' want to use these parameter and overwrite the results?'],...
+        'Reuse Fwdmap','Yes','No','No');
+end
 
 % Backup the original vectors to backup folder
-if firstFrame==1
+if firstFrame==1 && strcmpi(reuseFwdMap,'No')
     display('Backing up the original data')
     backupFolder = [p.OutputDirectory ' Backup']; % name]);
     if exist(p.OutputDirectory,'dir')
@@ -140,9 +148,14 @@ if firstFrame==1
     end
     forceField(nFrames)=struct('pos','','vec','','par','');
     mkClrDir(p.OutputDirectory);
+    M = [];
+elseif strcmpi(reuseFwdMap,'Yes')
+    fwdMapFile = load(outputFile{3,1},'M');
+    M = fwdMapFile.M;
 else
-    % Load old displacement field structure 
+    % Load old force field structure 
     forceField=s.forceField;
+    M = [];
 end
 
 forceFieldProc.setOutFilePaths(outputFile);
@@ -201,7 +214,7 @@ end
 if ~p.highRes
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1,0);
 else
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.5,0); %denser force mesh for ROI
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.0,0); %no dense mesh in any case. It causes aliasing issue!
 end
 tMap = cell(1,nFrames);
 
@@ -272,6 +285,17 @@ if strcmpi(p.method,'FastBEM')
                 %         if ishandle(wtBar)
 %             waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
 %         end
+        expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix'];
+        % match basisClassTblPath name to include gridSpacing
+        basisFunctionFolderPath = fileparts(p.basisClassTblPath);
+        expectedPath = [basisFunctionFolderPath filesep expectedName '.mat'];
+        if ~strcmp(expectedPath,p.basisClassTblPath)
+            p.basisClassTblPath = expectedPath;
+            disp(['basisClassTblPath has different name for estimated mesh grid spacing (' num2str(gridSpacing) '). ']);
+            disp('Now the path is automatically changed to :')
+            disp([expectedPath '.'])
+        end
+            
         if p.useLcurve
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
@@ -279,7 +303,8 @@ if strcmpi(p.method,'FastBEM')
                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
                 'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
-                'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1});
+                'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1},'fwdMap',M,...
+                'lcornerOptimal',p.lcornerOptimal);
             params = parseProcessParams(forceFieldProc,paramsIn);
             params.regParam = sol_mats.L;
             p.regParam = sol_mats.L;
@@ -293,7 +318,7 @@ if strcmpi(p.method,'FastBEM')
                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_);
+                'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_,'fwdMap',M);
             forceField(i).pos=pos_f;
             forceField(i).vec=force;
             save(outputFile{1},'forceField');
@@ -303,7 +328,7 @@ if strcmpi(p.method,'FastBEM')
         % The following values should/could be stored for the BEM-method.
         % In most cases, except the sol_coef this has to be stored only
         % once for all frames!
-        if p.saveBEMparams
+        if p.saveBEMparams && strcmpi(reuseFwdMap,'No')
             disp(['saving forward map and force mesh at ' outputFile{3} '...'])
             save(outputFile{3},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
         end

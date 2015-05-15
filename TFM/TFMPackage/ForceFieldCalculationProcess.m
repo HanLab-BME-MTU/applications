@@ -48,16 +48,21 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
-            ip.addOptional('iOut',1,@isnumeric);
+%             ip.addOptional('iOut',1,@isnumeric);
 %             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) ismember(x,1:obj.owner_.nFrames_));
 %             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
-            ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
+            ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
-            iOut = ip.Results.iOut;
+%             iOut = ip.Results.iOut;
             
             % Data loading
             output = ip.Results.output;
+            if strcmp(output,outputList{1})
+                iOut=1;
+            else
+                iOut=2;
+            end
             if ischar(output), output = {output}; end
             s = load(obj.outFilePaths_{iOut},output{1});
             
@@ -93,7 +98,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1:end})
                 iFrame=ip.Results.iFrame;
-                data=obj.loadChannelOutput(iFrame,2,'output',ip.Results.output);
+                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
                 if iscell(data), data = data{1}; end
             else % forcefield
                 % Input parser
@@ -106,7 +111,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.parse(obj,varargin{1},varargin{2:end})
                 iFrame=ip.Results.iFrame;
                 
-                data=obj.loadChannelOutput(iFrame,1,'output',ip.Results.output);
+                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
             end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
@@ -182,6 +187,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.LcurveFactor=10;
             funParams.thickness=34000;
             funParams.useLcurve=true;
+            funParams.lcornerOptimal='optimal';
         end
         function units = getUnits(varargin)
             units = 'Traction (Pa)';

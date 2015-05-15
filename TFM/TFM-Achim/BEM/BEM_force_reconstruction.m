@@ -32,17 +32,18 @@ ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
 ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
 ip.addParamValue('LcurveDataPath','',@ischar);
-ip.addParamValue('LcurveFigPath','',@ischar);
+ip.addParameter('LcurveFigPath','',@ischar);
 ip.addParamValue('LcurveFactor','',@isscalar);
 ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
-ip.addOptional('fwdMap',[],@isnumeric);
+ip.addParamValue('fwdMap',[],@isnumeric);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('PoissonRatio',0.5,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('strictBEM',false,@islogical); 
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -54,6 +55,7 @@ wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
 M = ip.Results.fwdMap;
+lcornerOptimal = ip.Results.lcornerOptimal;
 thickness = ip.Results.thickness;    
 paxImage = ip.Results.paxImg;
 useLcurve = ip.Results.useLcurve;    
@@ -84,20 +86,25 @@ pos_u=horzcat(x_vec,y_vec);
 %construction of forward map, this takes a long time!
 
 display('2.) Building up forward map:...');
+inputFwdMap = false;
 tic;
 if nargin >= 10 && strcmp(method,'fast') && isempty(M) && ~strictBEM
     if isempty(imgRows) || isempty(imgCols)
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'PoissonRatio',v);
     else
-        M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
-            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'PoissonRatio',v);    
+%         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+%             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'PoissonRatio',v);    
+            % for old calcFwdMapFastBEM
+            M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);    
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
-    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol/2^5,'fast');
+    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol/2^3,'fast');
 else
     display('Using input Forward Map');
+    inputFwdMap = true;
 end
 toc;
 display('Done: forward map!');
@@ -234,19 +241,33 @@ if nargin >= 10 && strcmp(method,'fast')
         disp(['tolerance value: ' num2str(tolx)])
         %Check for nan in u
         idxNonan = ~isnan(u);
-        if any(~idxNonan)
+        if any(~idxNonan) && ~inputFwdMap
             u = u(idxNonan);
             Mreal = M(idxNonan,:);
             MpM = Mreal'*Mreal;
+        elseif inputFwdMap
+            u = u(idxNonan);
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
+%             MpM=M'*M;
+%             Mreal = M;
         else
             MpM=M'*M;
             Mreal = M;
-        end
-        maxIter = 20;
+       end
+%         if any(~idxNonan)
+%             u = u(idxNonan);
+%             Mreal = M(idxNonan,:);
+%             MpM = Mreal'*Mreal;
+%         else
+%             MpM=M'*M;
+%             Mreal = M;
+%         end
+        maxIter = 50;
         tolr = 10;
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor,'lcornerOptimal',lcornerOptimal);
         else
             sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
 %             sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr,1,forceMesh); 
@@ -286,7 +307,7 @@ if nargin >= 10 && strcmp(method,'fast')
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,-Lap,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,-Lap,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor,'lcornerOptimal',lcornerOptimal);
         else
             sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
         end
@@ -304,17 +325,22 @@ if nargin >= 10 && strcmp(method,'fast')
         [eyeWeights,~] =getGramMatrix(forceMesh);
         %Check for nan in u
         idxNonan = ~isnan(u);
-        if any(~idxNonan)
+        if any(~idxNonan) && ~inputFwdMap
             u = u(idxNonan);
-            M = M(idxNonan,:);
-            MpM = M'*M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
+        elseif inputFwdMap
+            u = u(idxNonan);
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
         else
             MpM=M'*M;
+            Mreal = M;
         end
         if useLcurve
-            [sol_coef,L] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurve(L,Mreal,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor,'lcornerOptimal',lcornerOptimal);
         else
-            sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+            sol_coef=(L*eyeWeights+ MpM)\(Mreal'*u);
         end
         sol_mats.eyeWeights=eyeWeights;
         sol_mats.MpM=MpM;
@@ -398,22 +424,37 @@ display('Done: coefficients!');
 
 %if no points of interests are specified, i.e x_out, y_out, then forces are 
 %calculated on the nodes of the force mesh:                                                      
-if nargin<9 || isempty(x_out)
+if nargin<9 || isempty(x_out) && ~strictBEM
     x_out=forceMesh.p(:,1);
     y_out=forceMesh.p(:,2);
+else
+    x_min=min(forceMesh.p(:,1));
+    x_max=max(forceMesh.p(:,1));
+    y_min=min(forceMesh.p(:,2));
+    y_max=max(forceMesh.p(:,2));
+    x_out_vec = x_min:x_max;
+    y_out_vec = y_min:y_max;
+    [x_out,y_out] = meshgrid(x_out_vec,y_out_vec);
+    x_out = x_out(:);
+    y_out = y_out(:);
 end
 
 %Evaluation of the solution:
 display('4.) Evaluate solution:... ')
 tic;
-if nargin >= 10 && strcmp(method,'fast')
+if nargin >= 10 && strcmp(method,'fast') && ~strictBEM
     [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
 else
     fx = zeros(size(x_out));
     fy = zeros(size(y_out));
+    t=cputime;
     for j=1:2*forceMesh.numNodes
         fx = fx+sol_coef(j)*forceMesh.base(j).f_intp_x(x_out,y_out);
         fy = fy+sol_coef(j)*forceMesh.base(j).f_intp_y(x_out,y_out);
+        if mod(j,20)==0
+            display([num2str(j) 'th basis function was processed so far ... time passed: ' num2str(cputime-t)])
+            t=cputime;
+        end
     end
 end
 toc;
@@ -509,7 +550,13 @@ for ii=1:nBasisx
 end
 toc
 
-function [sol_coef,reg_corner] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor)
+function [sol_coef,reg_corner] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor,varargin)
+% Input check
+ip =inputParser;
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
+ip.parse(varargin{:});
+lcornerOptimal = ip.Results.lcornerOptimal;
+
 %examine a logarithmically spaced range of regularization parameters
 alphas=10.^(log10(L)-4.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
@@ -523,8 +570,19 @@ for i=1:length(alphas);
 end
 % Find the corner of the Tikhonov L-curve
 try
-    disp('Inflection point smaller than L-corner will be chosen')
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',2);
+    if strcmp(lcornerOptimal,'optimal')
+        disp('Inflection point smaller than L-corner will be chosen')
+        [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',2);
+        if isempty(reg_corner)
+            disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+            [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+        end
+    elseif strcmp(lcornerOptimal,'lcorner')
+        disp('L-corner will be chosen')
+        [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+    end
+    %     ireg_corner=[];
+    %     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
 catch
     ireg_corner=[];
     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
@@ -600,7 +658,12 @@ end
 % answer = inputdlg('Please identify the corner:','Input for corner',1,{num2str(L)},options);
 % Lout = str2double(answer{1});
 
-function [sol_coef,reg_corner] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor)
+function [sol_coef,reg_corner] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor,varargin)
+% Input check
+ip =inputParser;
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
+ip.parse(varargin{:});
+lcornerOptimal = ip.Results.lcornerOptimal;
 %examine a logarithmically spaced range of regularization parameters
 alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
@@ -623,9 +686,19 @@ end
 % Find the L-corner
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
 save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
-disp('Inflection point larger than L-corner will be chosen')
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',1); %inflection point larger than l-corner
-
+if strcmp(lcornerOptimal,'optimal')
+    disp('Inflection point larger than L-corner will be chosen')
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',1); %inflection point larger than l-corner
+    if isempty(reg_corner)
+        disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+        [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+    %     ireg_corner=[];
+    %     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
+    end    
+elseif strcmp(lcornerOptimal,'lcorner')
+    disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner    
+end
 % Also, I can use L0 norm information to choose regularization parameter
 
 % Plot the sparse deconvolution L-curve.

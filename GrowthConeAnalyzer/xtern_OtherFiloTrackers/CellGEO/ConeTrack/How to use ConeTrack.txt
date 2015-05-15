@@ -1,0 +1,80 @@
+RUN:
+
+To use the ConeTrack GUI, open the "ConeTrack.m" file in MATLAB and select the "Run" menu option.
+
+INPUT:
+
+The input for the GUI is a MATLAB file (*.mat) saved as the output of the BisectoGraph GUI. The data in this file is described in 
+"How to use BisectoGraph.txt" in the BisectoGraph GUI folder.  
+
+OUTPUT:
+
+The output is a MATLAB file (*.mat). It contains the growth cone boundary as detected and tracked by ConeTrack processing. The description of 
+the output data is provided at the end of this file.
+
+PROCESSING STEPS:
+
+1. Import a file for processing using the GUI menu: File -> Import (.mat). The GUI will display the outline of the cell. Use the frame slider 
+under the image to display a specific time frame. 
+
+2. To activate the Cone Detection Controls, click the "Activate Cone Detection" checkbox. Use the top slider to define the critical size. Use the 
+bottom slider to define the neck width. Changing these two parameters interactively changes the growth cone number and its cutoff base and, 
+thus, the growth cone outlines. 
+
+3. Once the critical parameters are adjusted to provide satisfactory detection of a cone of interest, the results can be displayed in the right 
+panel by clicking the "Show Results" button. However, this feature inherited from the FiloTrack GUI is not particularly useful for the growth 
+cone analysis. 
+
+4. To activate Cone Tracking Controls, click the "Activate Cone Tracking" checkbox. The centroids of the detected cones from two consecutive 
+time frames are shown together and pairwise association is marked by connected green dots. The three sliders specify the parameters for the 
+critical distance, gap filling and duration filter (as described in the Method paper).
+
+5. To display tracking results, click the "Show Results" button. The right panel now displays the time lines of all tracked growth cones as 
+green vertical lines. The first line always represents the cell body. The filled gaps are marked as empty circles, although this feature is 
+also inherited from the FiloTrack GUI and is not expected to be particularly useful for the growth cone analysis. The slider under the panel allows 
+you to choose and highlight individual growth cone centroids in yellow. The beginning and the ending frames of a chosen track are shown also 
+above the right panel. All this helps to assess the quality of the tracking. If needed, the parameters of the detection and tracking can be 
+adjusted and the tracking process can be repeated. 
+
+6. Since the geometry of the growth cones usually varies significantly for any given cell, the detection and tracking should be performed for 
+growth cones one-at-a-time and saved separately using the menu: File -> Save Results (.mat).
+
+
+OUTPUT DATA:
+
+"fp" is the index (numerical label) of the saved object. fp=1 means that the object is the cell body. fp>1 means that this is one of the tracked 
+ growth cones.
+
+"mp" is the total length of the movie (the total number of the time frames)
+
+. 
+
+"fw" is the critical radius parameter
+. 
+"FL" is the neck width parameter
+. 
+"fd" is the critical distance parameter. 
+
+"fg" is the ago filing parameter. 
+
+"ff" is the time-life filter value. 
+
+
+
+"i1" is the beginning time frame of the track.
+
+"i2" is the ending time frame of the track. 
+
+
+
+"nA" is the area of the growth cone as a function of time. 
+
+"nCx" and "nCy" are the (x,y)-coordinated of the growth cone centroid.
+ 
+"nConeBnd"is a cell array with each element being an [N x 2] matrix of (x,y)-coordinates of the growth cone boundary, where N is the number of 
+ the boundary points at a given time frame.
+
+
+
+
+ 

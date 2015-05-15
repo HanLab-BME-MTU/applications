@@ -8,6 +8,13 @@ function [reg_corner,ireg_corner,kappa,h]=regParamSelecetionLcurve(rho,eta,lambd
 %   rho       - misfit
 %   eta       - model norm or seminorm
 %   reg_param - the regularization parameter
+%   inflection - 0: L-corner, 1: Inflection point before corner (lambda smaller than l-corner), 2:
+%   Inflectionpoint after corner  (lambda smaller than l-corner). If
+%   the second derivative has a shape of which curvature approaches
+%   assymtotically to zero, the algorithm uses strict definition of
+%   curvature (instead of second derivative) to find L-corner, and find the
+%   optimal lambda (by comparing solution norm difference and noise level
+%   in non-cell area)...
 %   manualSelection - true if you want to iterate selection process to get
 %   better reg parameter. (default: false)
 %
@@ -90,8 +97,13 @@ elseif inflection==2 % if inflection point smaller than lcorner is to be chosen.
     reg_corner = lambda_cut(inflectionIdx);
     disp(['L-inflection value (smaller than L-corner): ' num2str(reg_corner)])
 else
-    ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-    reg_corner = lambda_cut(maxKappaIdx);
+    if maxKappaIdx==1 || sum(kappa>0)/length(kappa)>0.8 % if kappa is assymtotically approaching to zero from large positive...
+        [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,lambda);
+        kappa = kappa(4:end-3);
+    else
+        ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+        reg_corner = lambda_cut(maxKappaIdx);
+    end
     disp(['L-corner regularization parameter value: ' num2str(reg_corner)])
 end
 % [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
@@ -129,11 +141,14 @@ if manualSelection
     text(x(ireg_corner),1.01*y(ireg_corner),...
         ['    ',num2str(reg_corner,'%5.3e')]);
     subplot(3,1,2), plot(x_slope,slope), title('slope')
-    subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
+    if ireg_corner-2>0
+        subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
+    end
     subplot(3,1,3), plot(x_kappa,kappa), title('curvature')
 %     subplot(3,1,3), plot(x_cut(3:end-5),diff(kappa)),title('jerk')
-
-    subplot(3,1,3), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
+    if ireg_corner-3>0
+        subplot(3,1,3), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
+    end
 %     subplot(3,1,3), hold on,plot(x_cut(maxKappaIdx),kappadiff(maxKappaIdx),'ro')
 
 %     poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');

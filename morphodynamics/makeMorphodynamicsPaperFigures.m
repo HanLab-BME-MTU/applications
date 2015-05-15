@@ -1469,28 +1469,35 @@ for j = 1:nEx
     iMaskProc = MLerk.movies_{iEx(j)}.getProcessIndex('MaskRefinementProcess',1,0);
     currMask = MLerk.movies_{iEx(j)}.processes_{iMaskProc}.loadChannelOutput(iActChan,1);
     
-    sampRng = prctile(samps(j).avg(:),[satPct/2 (100-satPct/2)]);
+    if j == 1
+        sampRng = prctile(samps(j).avg(:),[satPct/2 (100-satPct/2)]);
+    end
     satSamps = samps(j).avg;
     satSamps(satSamps>sampRng(2)) = sampRng(2);
     satSamps(satSamps<sampRng(1)) = sampRng(1);        
     
-    cMap = hot;
     
     panelFile = [figParentDir filesep panelName ' image cell ' num2str(j)];
-    panelFig = figure('Position',[810         262        1021         861]);
-    hold on            
+    panelFig = figure;%('Position',[810         262        1021         861]);
+             
     %imageViewer(MLerk.movies_{iEx(j)},'ChannelIndex',iErkChan,'Saturate',satPct/100,'AxesHandle',gca);colormap(cMap)    
-    imHan = MLerk.movies_{iEx(j)}.channels_(iErkChan).draw(1);
+    %imHan = MLerk.movies_{iEx(j)}.channels_(iErkChan).draw(1);
+    im = MLerk.movies_{iEx(j)}.channels_(iErkChan).loadImage(1);
+    imHan = imshow(im,[]);
+    cMap = hot;
     set(imHan,'AlphaData',currMask);
     colormap(cMap)
-    saturateImageColormap(imHan,satPct);
+    %saturateImageColormap(imHan,satPct);
+    caxis(sampRng)
+    hold on   
     plotScaleBar(scBarSz / MLerk.movies_{iEx(j)}.pixelSize_,'Location',scBarLoc,'Color',scBarCol);
     axis xy
     axis on
+    box off
     set(gca,'XTick',[])
     set(gca,'YTick',[])
     set(gca,'Color','w')
-    
+    set(panelFig,'color','w')
     if saveFigs
         print(panelFig,panelFile,pOptTIFF{:});
         print(panelFig,panelFile,pOptEPS{:});
@@ -1534,17 +1541,15 @@ for j = 1:nEx
         print(panelFig,panelFile,pOptEPS{:});
         hgsave(panelFig,panelFile);
     end    
-    
-    panelName = [panelName ' colorbar'];
-    panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+        
+    panelFile = [figParentDir filesep panelName ' colorbar'];
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
     axis off
     caxis(sampRng);
-    set(get(cBarAx,'YLabel'),'String','p-Erk Fluorescence, a.u.',cBarPars{:})
-
+    set(get(cBarAx,'YLabel'),'String','p-Erk Fluorescence, a.u.',cBarPars{:})    
     
     if saveFigs
         print(panelFig,panelFile,pOptTIFF{:});
@@ -1620,7 +1625,7 @@ end
 
 panelName = [panelName ' colorbar'];
 panelFile = [figParentDir filesep panelName];
-panelFig = figure;
+panelFig = figure(cBarFigPars{:});
 
 colormap(rawErkCmap);
 cBarAx = colorbar(cBarPars{:});
@@ -1813,6 +1818,9 @@ for j = 1:nChan
     
     if j == iWaveChan || j == iActChan%For some reason the actin looks like shit, so stretch range
         mapRngEGF(j,:) = prctile(tmp(:),[useSat*3 (100-useSat*4)]); 
+    elseif j == iErkChan
+        %use the same as the raw and windowed panels above
+        mapRngEGF(j,:) = [erkMin erkMax];
     else
         mapRngEGF(j,:) = prctile(tmp(:),[useSat/2 (100-useSat/2)]);        
     end
@@ -1859,7 +1867,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' fluorescence colormap colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMapFluor);
     cBarAx = colorbar(cBarPars{:});
@@ -1878,7 +1886,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -1899,7 +1907,7 @@ end
 
 
 
-%% ----- Circle-Mapped Unstimulated Cell Avg ----- %%
+%% ----- Circle-Mapped Unstimulated (-EGF) Cell Avg ----- %%
  
  panelNameBase = 'Erk circle mapped regionally averaged no EGF ';
 useSat = satPct * 3;
@@ -1909,7 +1917,7 @@ subplot(1,nChan,1)
 
 cMap = jet;
 
-for j = 1:nChan
+for j = iErkChan%1:nChan
     
     
     panelName = [panelNameBase chanNames{j}];
@@ -1997,7 +2005,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -2016,7 +2024,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' fluorescence colormap colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMapFluor);
     cBarAx = colorbar(cBarPars{:});
@@ -2095,7 +2103,7 @@ for j = 1:nChan
     % --- Colorbar for above figure
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -2123,6 +2131,15 @@ end
 %Output for EGF-only
 cellAvgFigDir = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Michelle_IF_Erk_Wave_converted/HMEC EGF use for figs';
 
+%Keep only Erk and Wave since we don't analyze/discuss the others
+iErkScan = 3;
+iWavScan = 4;
+showLines = false(1,4);
+showLines([iErkScan iWavScan]) = true;
+
+%Correlation coef text props
+rTextPos = [.75 .9];
+rTextProps = {'Units','normalized','FontSize',18};
 
 %% ---- Lamellar
 
@@ -2133,6 +2150,9 @@ panelFile = [figParentDir filesep panelName];
 
 panelFig = open([cellAvgFigDir filesep 'away from edge profile lamellar average interp both directions all channels.fig']);
 
+set(panelFig,'PaperPositionMode','auto')
+set(panelFig,'color','w')
+
 % chanCols = jet(nChan);
 % 
 % sampLamMean = nanmean(sampLamIntBothAvg,3);
@@ -2142,21 +2162,44 @@ panelFig = open([cellAvgFigDir filesep 'away from edge profile lamellar average 
 % legend(chanNames)
 % 
 
+
+
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
-xlabel('Distance From Cell Edge, Band #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+%Get erk-wave corr coef
+erkDat = get(lineHans(iErkScan),'YData')';
+wavDat = get(lineHans(iWavScan),'YData')';
+goodPts = ~(isnan(erkDat) | isnan(wavDat));%Exclude NaNs
+[rho,p] = corr(erkDat(goodPts),wavDat(goodPts),'type','Pearson');
+%Keep sig digits
+%rho = round(rho*100)/100;
+corrText = {['\bf{\itR}=' num2str(rho,2)],['{\itp}\bf=' num2str(p,2)]};
+tHan = text(rTextPos(1),rTextPos(2),corrText,rTextProps{:});
+
+
+%We only discuss Erk and Wave so remove other lines
+arrayfun(@(x)(delete(x)),lineHans(~showLines))
+%Fix the x limits
+allMin = arrayfun(@(x)(min(get(x,'XData'))),lineHans(showLines));
+allMax = arrayfun(@(x)(max(get(x,'XData'))),lineHans(showLines));
+xlim([min(allMin) max(allMax)])
+ylim(ylim .* [1 1.1]);%To make room for correlation text
+
+xlabel('Distance From Cell Edge, Band #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(panelAxes,axPars{:});
 legend('hide')%turn legends off on these, we'll have one legend for all panels
 
 
 if saveFigs
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
+    %print(panelFig,panelFile,pOptTIFF{:});
+    %print(panelFig,panelFile,pOptEPS{:});
+    export_fig(panelFile,expFigOps{:})
     hgsave(panelFig,panelFile);
 end
 
@@ -2165,24 +2208,46 @@ end
 
 panelName = 'Erk line scan non-lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
 
 panelFig = open([cellAvgFigDir filesep 'away from edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
+set(panelFig,'color','w')
+
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
-xlabel('Distance From Cell Edge, Band #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+%Get erk-wave corr coef
+erkDat = get(lineHans(iErkScan),'YData')';
+wavDat = get(lineHans(iWavScan),'YData')';
+goodPts = ~(isnan(erkDat) | isnan(wavDat));%Exclude NaNs
+[rho,p] = corr(erkDat(goodPts),wavDat(goodPts),'type','Pearson');
+%Keep sig digits
+%rho = round(rho*100)/100;
+corrText = {['\bf{\itR}=' num2str(rho,2)],['{\itp}\bf=' num2str(p,2)]};
+tHan = text(rTextPos(1),rTextPos(2),corrText,rTextProps{:});
+
+
+%We only discuss Erk and Wave so remove other lines
+arrayfun(@(x)(delete(x)),lineHans(~showLines))
+%Fix the x limits
+allMin = arrayfun(@(x)(min(get(x,'XData'))),lineHans(showLines));
+allMax = arrayfun(@(x)(max(get(x,'XData'))),lineHans(showLines));
+xlim([min(allMin) max(allMax)])
+
+xlabel('Distance From Cell Edge, Band #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(gca,axPars{:});
 
 legend('hide')%turn legends off on these, we'll have one legend for all panels
 
 if saveFigs
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
+%     print(panelFig,panelFile,pOptTIFF{:});
+%     print(panelFig,panelFile,pOptEPS{:});
+    export_fig(panelFile,expFigOps{:})
     hgsave(panelFig,panelFile);
 end
 
@@ -2191,26 +2256,45 @@ end
 
 panelName = 'Erk line scan across lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
-
 panelFig = open([cellAvgFigDir filesep 'along edge profile lamellar average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
+set(panelFig,'color','w')
 
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
+%Get erk-wave corr coef
+erkDat = get(lineHans(iErkScan),'YData')';
+wavDat = get(lineHans(iWavScan),'YData')';
+goodPts = ~(isnan(erkDat) | isnan(wavDat));%Exclude NaNs
+[rho,p] = corr(erkDat(goodPts),wavDat(goodPts),'type','Pearson');
+%Keep sig digits
+%rho = round(rho*100)/100;
+corrText = {['\bf{\itR}=' num2str(rho,2)],['{\itp}\bf=' num2str(p,2)]};
+tHan = text(rTextPos(1),rTextPos(2),corrText,rTextProps{:});
 
-xlabel('Distance Along Cell Edge, Strip #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+
+%We only discuss Erk and Wave so remove other lines
+arrayfun(@(x)(delete(x)),lineHans(~showLines))
+%Fix the x limits
+allMin = arrayfun(@(x)(min(get(x,'XData'))),lineHans(showLines));
+allMax = arrayfun(@(x)(max(get(x,'XData'))),lineHans(showLines));
+xlim([min(allMin) max(allMax)])
+
+xlabel('Distance Along Cell Edge, Strip #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(gca,axPars{:});
 
 legend('hide')%turn legends off on these, we'll have one legend for all panels
 
 if saveFigs
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
+%     print(panelFig,panelFile,pOptTIFF{:});
+%     print(panelFig,panelFile,pOptEPS{:});
+    export_fig(panelFile,expFigOps{:})
     hgsave(panelFig,panelFile);
 end
 
@@ -2219,25 +2303,45 @@ end
 
 panelName = 'Erk line scan across non-lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
 
 panelFig = open([cellAvgFigDir filesep 'along edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
+set(panelFig,'color','w')
+
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
+%Get erk-wave corr coef
+erkDat = get(lineHans(iErkScan),'YData')';
+wavDat = get(lineHans(iWavScan),'YData')';
+goodPts = ~(isnan(erkDat) | isnan(wavDat));%Exclude NaNs
+[rho,p] = corr(erkDat(goodPts),wavDat(goodPts),'type','Pearson');
+%Keep sig digits
+%rho = round(rho*100)/100;
+corrText = {['\bf{\itR}=' num2str(rho,2)],['{\itp}\bf=' num2str(p,2)]};
+tHan = text(rTextPos(1),rTextPos(2),corrText,rTextProps{:});
 
-xlabel('Distance Along Cell Edge, Strip #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+%We only discuss Erk and Wave so remove other lines
+arrayfun(@(x)(delete(x)),lineHans(~showLines))
+%Fix the x limits
+allMin = arrayfun(@(x)(min(get(x,'XData'))),lineHans(showLines));
+allMax = arrayfun(@(x)(max(get(x,'XData'))),lineHans(showLines));
+xlim([min(allMin) max(allMax)])
+
+xlabel('Distance Along Cell Edge, Strip #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(panelAxes,axPars{:});
 
 legend('hide')%turn legends off on these, we'll have one legend for all panels
 
 if saveFigs
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
+%     print(panelFig,panelFile,pOptTIFF{:});
+%     print(panelFig,panelFile,pOptEPS{:});
+    export_fig(panelFile,expFigOps{:})
     hgsave(panelFig,panelFile);
 end
 
@@ -2246,30 +2350,46 @@ end
 
 panelName = 'Erk line scan legend';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
+
+
 
 panelFig = open([cellAvgFigDir filesep 'along edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
+set(panelFig,'color','w')
+
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 set(panelAxes,axPars{:})
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);%Set plot params so legend shows up correctly
+
+%Fix the legend
+legHan = get(panelFig,'Children');
+legHan = legHan(legHan~=panelAxes);
+legStr = get(legHan,'String');
+legend(legStr(showLines(end:-1:1)));
+
+
 arrayfun(@(x)(delete(x)),lineHans);%Remove all the plot crap
 
 title('');
 axis off
 
 
+
+
 if saveFigs
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
+     print(panelFig,panelFile,pOptTIFF{:});
+     print(panelFig,panelFile,pOptEPS{:});
+%    export_fig(panelFile,expFigOps{:})
     hgsave(panelFig,panelFile);
 end
 
 
 
 
-%% %%%%%%%% ================ FIGURE 6 ======================== %%%%%%%% %%
+%% %%%%%%%% ================ FIGURE 7 ======================== %%%%%%%% %%
 %%%%%%%%%%%%%%% ARP2/3 & Protrusion FIG%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -2304,13 +2424,18 @@ tDataArpCC = nLags*tIntArpEx:-tIntArpEx:-nLags*tIntArpEx;
 
 tLagLim = [-100 100];%Use common time-lag limits;
 corrLim = [-.5 .5];%Use common correlation value limits
+figPos = [ 580   730   560   420];
+boxPars ={'LineWidth',3};
+dBorder = 1e-3;
 
 %% ---------Arp2/3 per-window correlation curves ----- %%
 
 panelName = 'Arp23 example per window correlation';
 panelFile = [figParentDir filesep panelName];
-panelFig = fsFigure(.5);
+panelFig = figure('Position',figPos);
+set(panelFig,'PaperPositionMode','Auto')
 hold on;
+
 panelAxes = get(panelFig,'CurrentAxes');    
 
 ccPerWinCols = [0 0 1];
@@ -2351,8 +2476,11 @@ ylabel('Correlation',axLabPars{:});
 set(panelAxes,axPars{:})
 set(panelFig,'DefaultLineLineSmoothing','on');
 set(panelFig,'DefaultPatchLineSmoothing','on');
-box on
-
+%Do this because we can't workaround the opengl axis borders bug
+hRec = rectangle('Position',[min(xlim)+2*diff(xlim)*dBorder ...
+                          min(ylim)+2*diff(ylim)*dBorder ...
+                          diff(xlim)-(diff(xlim)*dBorder) ...
+                          diff(ylim)-(diff(ylim)*dBorder)],boxPars{:});
 
 
 if saveFigs
@@ -2366,7 +2494,8 @@ end
 
 panelName = 'Arp23 example correlation variation';
 panelFile = [figParentDir filesep panelName];
-panelFig = fsFigure(.5);
+panelFig = figure('Position',figPos);
+set(panelFig,'PaperPositionMode','Auto')
 hold on;
 
 
@@ -2399,7 +2528,8 @@ windowsTP = cellfun(@(z)(cellfun(@(y)(cellfun(@(x)(x([2 1],:)),y,'Unif',0)),z,'U
 
 plotWindows(windowsTP,{'k','EdgeColor','None'})
 plotWindowsColormapped(windowsTP,ccPerWinMat,ccPerWinCmap);
-box on
+box off
+%h = rectangle(boxPars{:});
 set(gca,'XTick',[])
 set(gca,'YTick',[])
 axis ij
@@ -2440,8 +2570,8 @@ end
 
 panelName = 'arp23 combined cross correlation';
 panelFile = [figParentDir filesep panelName];
-panelFig = fsFigure(.5);
-
+panelFig = figure('Position',figPos);
+set(panelFig,'PaperPositionMode','Auto')
 
 nMov = numel(MLarp.movies_);
 sizeUse = 1e3;%Windowing result size to use.
@@ -2512,6 +2642,7 @@ end
 %Bootstrap the combined CC curves
 [bandMeanCC,bandBootCI] = correlationBootstrap(ccAllCell',cbAllCell');
 
+
 plot(tData,bandMeanCC,plotPars{:})
 hold on
 %plot(tData,squeeze(bandBootCI(1,:)),'--b',plotPars{:})
@@ -2524,6 +2655,11 @@ xlim(tLagLim)
 ylim(corrLim)
 plot(xlim,[0 0],'k',plotPars{:})
 plot([0 0],ylim,'k',plotPars{:})
+hRec = rectangle('Position',[min(xlim)+2*diff(xlim)*dBorder ...
+                          min(ylim)+2*diff(ylim)*dBorder ...
+                          diff(xlim)-(diff(xlim)*dBorder) ...
+                          diff(ylim)-(diff(ylim)*dBorder)],boxPars{:});
+
 set(gca,axPars{:})
 xlabel('Delay, Seconds',axLabPars{:})
 ylabel('Correlation',axLabPars{:})
@@ -2534,6 +2670,67 @@ if saveFigs
     print(panelFig,panelFile,pOptEPS{:});
     hgsave(panelFig,panelFile);
 end
+
+%% ----------- Arp3 combined CC peak CI calc --------- %%
+
+%Do the (overly?) simplified peak confidence interval calc
+spCC = spaps(tData,bandMeanCC,0);%Get interpolating spline
+%Find the interpolated time for the peack CC
+maxCC = max(abs(bandMeanCC));
+extremaCC = mean(fnzeros(fnder(spCC,1)),1);
+[~,iMax] = max(abs(fnval(spCC,extremaCC)));%But we still use the measured maximum correlation
+tMaxCC = extremaCC(iMax);
+%Now get the range where the upper CI is at least as large as this value
+spCIUp = spaps(tData,bandBootCI(2,:),0);%Get interpolating spline
+peakCI(1) = fzero(@(x)(fnval(spCIUp,x) - maxCC),[min(tData) tMaxCC]);
+peakCI(2) = fzero(@(x)(fnval(spCIUp,x) - maxCC),[tMaxCC max(tData)]);
+
+
+
+panelName = 'arp23 combined cross correlation peak CI';
+panelFile = [figParentDir filesep panelName];
+panelFig = figure('Position',figPos);
+set(panelFig,'PaperPositionMode','Auto')
+
+plot(tData,bandMeanCC,plotPars{:})
+hold on
+%plot(tData,squeeze(bandBootCI(1,:)),'--b',plotPars{:})
+%legend('Mean Cross-Correlation','95% Confidence Interval')
+%plot(tData,squeeze(bandBootCI(2,:)),'--b',plotPars{:})
+
+patch([tData tData(end:-1:1)],[bandBootCI(1,:),bandBootCI(2,end:-1:1)],[0 0 1],'EdgeColor','none','FaceAlpha',.4)
+
+tInterp = linspace(min(tData),max(tData),1e3);
+ccInt = fnval(spCC,tInterp);
+ciInt = fnval(spCIUp,tInterp);
+plot(tInterp,ccInt,'r--')
+plot(tInterp,ciInt,'b--')
+
+plot(peakCI,[maxCC maxCC],'k-','LineWidth',3)
+
+xlim(tLagLim)
+ylim(corrLim)
+plot(xlim,[0 0],'k',plotPars{:})
+plot([0 0],ylim,'k',plotPars{:})
+hRec = rectangle('Position',[min(xlim)+2*diff(xlim)*dBorder ...
+                          min(ylim)+2*diff(ylim)*dBorder ...
+                          diff(xlim)-(diff(xlim)*dBorder) ...
+                          diff(ylim)-(diff(ylim)*dBorder)],boxPars{:});
+
+set(gca,axPars{:})
+xlabel('Delay, Seconds',axLabPars{:})
+ylabel('Correlation',axLabPars{:})
+
+title({['Peak correlation: ' num2str(maxCC) ' at t=' num2str(tMaxCC) 's delay'],...
+       ['95% Confidence interval: ' num2str(peakCI(1)) ' to ' num2str(peakCI(2)) 's']})   
+%legend('Mean','95% CI','Mean Interpolation','CI Interpolation')
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
 
 %% ------ Arp2/3 Sample size variation and CC ------- %%
 
@@ -2602,7 +2799,8 @@ end
 
 panelName = 'arp23 oversized sample cross correlation';
 panelFile = [figParentDir filesep panelName];
-panelFig = fsFigure(.5);
+panelFig = figure('Position',figPos);
+set(panelFig,'PaperPositionMode','Auto')
 hold on
 sizeCols = isomorphicColormap('b',nSizes);
 %sizeCols = jet(nSizes);
@@ -2654,7 +2852,12 @@ ylim(corrLim)
 plot(xlim,[0 0],'k',plotPars{:})
 plot([0 0],ylim,'k',plotPars{:})
 set(gca,axPars{:})
-box on
+box off
+hRec = rectangle('Position',[min(xlim)+2*diff(xlim)*dBorder ...
+                          min(ylim)+2*diff(ylim)*dBorder ...
+                          diff(xlim)-(diff(xlim)*dBorder) ...
+                          diff(ylim)-(diff(ylim)*dBorder)],boxPars{:});
+
 xlabel('Delay, Seconds',axLabPars{:})
 ylabel('Correlation',axLabPars{:})
 
@@ -2679,8 +2882,8 @@ end
 
 panelName = 'halo only combined cross correlation';
 panelFile = [figParentDir filesep panelName];
-panelFig = fsFigure(.5);
-
+panelFig = figure('Position',figPos);
+set(panelFig,'PaperPositionMode','Auto')
 
 nMov = numel(MLhalo.movies_);
 sizeUse = 1e3;%Windowing result size to use.
@@ -2690,6 +2893,7 @@ ccString = ['sample_crosscorrelation_' num2str(sizeUse) 'nm_' winUse];
 ccFile = 'temporal crosscorrelation channel 1.mat';
 
 iBand = 1;%Band to use to combine crosscorr
+tInt = nan(nMov,1);
 
 for j =  1:nMov        
     cc(j) = load([MLhalo.movies_{j}.outputDirectory_ filesep ccString filesep ccFile]);              
@@ -2764,6 +2968,11 @@ ylim(corrLim)
 plot(xlim,[0 0],'k',plotPars{:})
 plot([0 0],ylim,'k',plotPars{:})
 set(gca,axPars{:})
+hRec = rectangle('Position',[min(xlim)+2*diff(xlim)*dBorder ...
+                          min(ylim)+2*diff(ylim)*dBorder ...
+                          diff(xlim)-(diff(xlim)*dBorder) ...
+                          diff(ylim)-(diff(ylim)*dBorder)],boxPars{:});
+
 xlabel('Delay, Seconds',axLabPars{:})
 ylabel('Correlation',axLabPars{:})
 
@@ -2774,6 +2983,65 @@ if saveFigs
     hgsave(panelFig,panelFile);
 end
 
+%% ----------- Halo only combined CC peak CI calc --------- %%
+
+%Do the (overly?) simplified peak confidence interval calc
+spCC = spaps(tData,bandMeanCC,0);%Get interpolating spline
+%Find the interpolated time for the peack CC
+maxCC = min(bandMeanCC);
+extremaCC = mean(fnzeros(fnder(spCC,1)),1);
+[~,iMax] = min(fnval(spCC,extremaCC));%But we still use the measured maximum correlation
+tMaxCC = extremaCC(iMax);
+%Now get the range where the upper CI is at least as large as this value
+spCILo = spaps(tData,bandBootCI(1,:),0);%Get interpolating spline
+peakCI(1) = fzero(@(x)(fnval(spCILo,x) - maxCC),[min(tData) tMaxCC]);
+peakCI(2) = fzero(@(x)(fnval(spCILo,x) - maxCC),[tMaxCC max(tData)]);
+
+
+
+panelName = 'halo only combined cross correlation peak CI';
+panelFile = [figParentDir filesep panelName];
+panelFig = figure('Position',figPos);
+set(panelFig,'PaperPositionMode','Auto')
+
+plot(tData,bandMeanCC,plotPars{:})
+hold on
+%plot(tData,squeeze(bandBootCI(1,:)),'--b',plotPars{:})
+%legend('Mean Cross-Correlation','95% Confidence Interval')
+%plot(tData,squeeze(bandBootCI(2,:)),'--b',plotPars{:})
+
+patch([tData tData(end:-1:1)],[bandBootCI(1,:),bandBootCI(2,end:-1:1)],[0 0 1],'EdgeColor','none','FaceAlpha',.4)
+
+tInterp = linspace(min(tData),max(tData),1e3);
+ccInt = fnval(spCC,tInterp);
+ciInt = fnval(spCILo,tInterp);
+plot(tInterp,ccInt,'r--')
+plot(tInterp,ciInt,'b--')
+
+plot(peakCI,[maxCC maxCC],'k-','LineWidth',3)
+
+xlim(tLagLim)
+ylim(corrLim)
+plot(xlim,[0 0],'k',plotPars{:})
+plot([0 0],ylim,'k',plotPars{:})
+hRec = rectangle('Position',[min(xlim)+2*diff(xlim)*dBorder ...
+                          min(ylim)+2*diff(ylim)*dBorder ...
+                          diff(xlim)-(diff(xlim)*dBorder) ...
+                          diff(ylim)-(diff(ylim)*dBorder)],boxPars{:});
+
+set(gca,axPars{:})
+xlabel('Delay, Seconds',axLabPars{:})
+ylabel('Correlation',axLabPars{:})
+
+title({['Peak correlation: ' num2str(maxCC) ' at t=' num2str(tMaxCC) 's delay'],...
+       ['95% Confidence interval: ' num2str(peakCI(1)) ' to ' num2str(peakCI(2)) 's']})   
+%legend('Mean','95% CI','Mean Interpolation','CI Interpolation')
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
 
 
 

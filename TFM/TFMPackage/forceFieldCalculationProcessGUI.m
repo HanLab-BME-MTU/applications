@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 02-May-2014 18:11:30
+% Last Modified by GUIDE v2.5 22-Mar-2015 17:50:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -136,6 +136,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 % Check user input
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 % Read numerical parameters
 for i=1:numel(userData.numParams)  
@@ -178,6 +179,9 @@ funParams.useLcurve = get(handles.useLcurve, 'Value');
 % Read basis class lookup table path
 funParams.basisClassTblPath=get(handles.edit_basisClassTblPath,'String');
 
+% Read radio button about regularization parameter selection
+funParams.lcornerOptimal = get(get(handles.groupCornerOptimal,'SelectedObject'),'Tag');
+
 % Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
@@ -209,8 +213,13 @@ function popupmenu_method_Callback(hObject, eventdata, handles)
 props=get(handles.popupmenu_method,{'UserData','Value'});
 if strcmpi(props{1}{props{2}},'fastbem'),
     set(get(handles.uipanel_BEM,'Children'),'Enable','on');
+    set(handles.useLcurve,'Enable','on');
+    set(get(handles.groupCornerOptimal,'Children'),'Enable','on');
 else
     set(get(handles.uipanel_BEM,'Children'),'Enable','off');
+    set(handles.useLcurve,'Value',false);
+    set(handles.useLcurve,'Enable','off');
+    set(get(handles.groupCornerOptimal,'Children'),'Enable','off');
 end
 
 
@@ -274,9 +283,14 @@ useLcurve=get(handles.useLcurve,{'UserData','Value'});
 if useLcurve{2}
 %     set(handles.edit_regParam,'Enable','off');
     set(handles.edit_LcurveFactor,'Enable','on');
+    set(handles.lcorner,'Enable','on');
+    set(handles.optimal,'Enable','on');
 else
 %     set(handles.edit_regParam,'Enable','on');
     set(handles.edit_LcurveFactor,'Enable','off');
+%     set(handles.groupCornerOptimal,'Enable','off');
+    set(handles.lcorner,'Enable','off');
+    set(handles.optimal,'Enable','off');
 end
 
 % Hint: get(hObject,'Value') returns toggle state of useLcurve

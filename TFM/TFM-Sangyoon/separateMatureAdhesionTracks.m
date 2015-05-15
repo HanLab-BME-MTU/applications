@@ -1,13 +1,17 @@
-function [tracksNA,tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio] = separateMatureAdhesionTracks(tracksNA, outputPath)
-% [tracksNA,lifeTimeNA] = separateMatureAdhesionTracks
+function [tracksNA,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio] = separateMatureAdhesionTracks(tracksNA, outputPath)
+%  [tracksNA,tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio] = separateMatureAdhesionTracks(tracksNA, outputPath)
 % separates failing and maturing NA tracks from existing tracksNA, obtain life time of each NA tracks
 
 % Sangyoon Han April 2014
-
+if nargin<2
+    outputPath = [];
+end
 % Set up the output file path
-dataPath = [outputPath filesep 'data'];
-if ~exist(dataPath,'dir') 
-    mkdir(dataPath);
+if ~isempty(outputPath)
+    dataPath = [outputPath filesep 'data'];
+    if ~exist(dataPath,'dir') 
+        mkdir(dataPath);
+    end
 end
 %% Lifetime analysis
 minLifetime = 5;
@@ -20,8 +24,8 @@ for k=1:numel(tracksNA)
     firstFCidx = find(strcmp(tracksNA(k).state,'FC'),1,'first');
     firstFAidx = find(strcmp(tracksNA(k).state,'FA'),1,'first');
     % see if the state is 'BA' before 'NA' state
-    if (~isempty(firstNAidx) && firstNAidx>1 && strcmp(tracksNA(k).state(firstNAidx-1),'BA')) %%|| (~isempty(firstNAidx) &&firstNAidx==1)
-%     if ~isempty(firstNAidx) && (isempty(firstFCidx) || firstNAidx<firstFCidx) && (isempty(firstFAidx) || firstNAidx<firstFAidx)
+%     if (~isempty(firstNAidx) && firstNAidx>1 && strcmp(tracksNA(k).state(firstNAidx-1),'BA')) %%|| (~isempty(firstNAidx) &&firstNAidx==1)
+    if ~isempty(firstNAidx) && (isempty(firstFCidx) || firstNAidx<firstFCidx) && (isempty(firstFAidx) || firstNAidx<firstFAidx)
         p=p+1;
         idx(k) = true;
         tracksNA(k).emerging = true;
@@ -71,6 +75,8 @@ end
 maturingRatio = p/(p+q);
 tracksNAmaturing = tracksNA(indMature);
 tracksNAfailing = tracksNA(indFail);
-save([dataPath filesep 'failingMaturingTracks.mat'], 'trNAonly', 'tracksNA', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
+if ~isempty(outputPath)
+    save([dataPath filesep 'failingMaturingTracks.mat'], 'trNAonly', 'tracksNA', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
+end
 
 end

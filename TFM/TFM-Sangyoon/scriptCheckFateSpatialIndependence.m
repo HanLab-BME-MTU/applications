@@ -2,37 +2,49 @@
 % load('movieData.mat')
 load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130429_cell11_100f/ROI/Colocalization/Region1_gc5/data/tracksNA.mat')
 MD=MovieData.load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130429_cell11_100f/ROI/movieData.mat');
+% Do it for 130511 Cell2 before FAKi too
+load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130511 Cell2 beforeFAKi/ROItop/Colocalization/tracksSeparation/data/tracksNA.mat')
+MD=MovieData.load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130511 Cell2 beforeFAKi/ROItop/movieData.mat');
 %% separateMatureAdhesionTracks
-outputPath = [MD.getPath filesep 'Colocalization' filesep 'trackSeparation'];
+outputPath = [MD.getPath filesep 'Colocalization' filesep 'tracksSeparation'];
 tracksNA = separateMatureAdhesionTracks(tracksNA, outputPath);
 %% checkAdhesionFateSpatialIndependence
 pixSize = MD.pixelSize_; % 72 nm/pixel
 h1 = figure;
 hold all
-for r_um = [1,2,4,8,16]
+p=0;
+for r_um = [2,4,6,8,16]
+    p=p+1;
     r=r_um*1000/pixSize;
-    [popStat,failNeiStat,matureNeiStat] = checkAdhesionFateSpatialIndependence(tracksNA, r, outputPath);
-    errorbar([nanmean(popStat.mRatio),nanmean(failNeiStat.mRatio),nanmean(matureNeiStat.mRatio)],...
-                                [nanstd(popStat.mRatio)/sqrt(length(popStat.mRatio)),nanstd(failNeiStat.mRatio)/sqrt(length(failNeiStat.mRatio)),...
-                                nanstd(matureNeiStat.mRatio)/sqrt(length(matureNeiStat.mRatio))])
+    [popStat(p),failNeiStat(p),matureNeiStat(p)] = checkAdhesionFateSpatialIndependence(tracksNA, r, outputPath);
+    errorbar([nanmean(popStat(p).mRatio),nanmean(failNeiStat(p).mRatio),nanmean(matureNeiStat(p).mRatio)],...
+                                [nanstd(popStat(p).mRatio)/sqrt(length(popStat(p).mRatio)),nanstd(failNeiStat(p).mRatio)/sqrt(length(failNeiStat(p).mRatio)),...
+                                nanstd(matureNeiStat(p).mRatio)/sqrt(length(matureNeiStat(p).mRatio))])
 end
-ylim([0 0.45])                        
-r_um = [1,2,4,8,16];
+% ylim([0 0.60])
+r_um = [2,4,6,8,16];
 ylabel('ratio of maturing NAs over all NAs at the emerging time')
 legend(num2str(r_um(1)), num2str(r_um(2)),num2str(r_um(3)),num2str(r_um(4)),num2str(r_um(5)))
+%% Statistical test
+[h,p]=ttest2(failNeiStat(2).mRatio,matureNeiStat(2).mRatio)
+[h,p]=ttest2(failNeiStat(3).mRatio,matureNeiStat(3).mRatio)
+[h,p]=ttest2(failNeiStat(4).mRatio,matureNeiStat(4).mRatio)
+[h,p]=ttest2(failNeiStat(5).mRatio,matureNeiStat(5).mRatio)
+
 %% N
 h2 = figure;
 hold all
-for r_um = [1,2,4,8,16]
+for r_um = [1,2,4,6,8,16,32]
     r=r_um*1000/pixSize;
     [popStat,failNeiStat,matureNeiStat] = checkAdhesionFateSpatialIndependence(tracksNA, r, outputPath);
     errorbar([mean(popStat.nFail+popStat.nMature),mean(failNeiStat.nMature+failNeiStat.nFail),mean(matureNeiStat.nFail+matureNeiStat.nMature)],...
                                 [std(popStat.nFail+popStat.nMature)/sqrt(length(popStat.mRatio)),std(failNeiStat.nMature+failNeiStat.nFail)/sqrt(length(failNeiStat.mRatio)),...
                                 std(matureNeiStat.nFail+matureNeiStat.nMature)/sqrt(length(matureNeiStat.mRatio))])
 end
-r_um = [1,2,4,8,16];
+r_um = [1,2,4,6,8,16,32];
 ylabel('the number')
-legend(num2str(r_um(1)), num2str(r_um(2)),num2str(r_um(3)),num2str(r_um(4)),num2str(r_um(5)))
+% legend(num2str(r_um(1)), num2str(r_um(2)),num2str(r_um(3)),num2str(r_um(4)),num2str(r_um(5)))
+legend(num2str(r_um(1)), num2str(r_um(2)),num2str(r_um(3)),num2str(r_um(4)),num2str(r_um(5)),num2str(r_um(6)),num2str(r_um(7)))
 
 %% Showing maturing vs. failing adhesion tracks on cell image in different colors
 % showing cell channel
