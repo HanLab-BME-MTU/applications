@@ -47,19 +47,21 @@ end
 
 nCell = numel(ML.movies_);
 
-ip.addParamValue('includeWin', cell(1,nCell),@iscell);
-ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
-ip.addParamValue('signalOutLevel',  zeros(1,nCell),@isvector);
-ip.addParamValue('edgeOutLevel',  zeros(1,nCell),@isvector);
-ip.addParamValue('trendType',-ones(1,nCell),@isvector);
-ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
-ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
-ip.addParamValue('scale',false,@islogical);
-ip.addParamValue('maxLag',0,@isscalar);
-ip.addParamValue('layer',1,@isscalar);
-ip.addParamValue('signalChannel',1,@isscalar);
-ip.addParamValue('interval',{[]},@iscell);
-ip.addParamValue('robust',false,@islogical);
+ip.addParameter('includeWin', cell(1,nCell),@iscell);
+ip.addParameter('winInterval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('signalOutLevel',  zeros(1,nCell),@isvector);
+ip.addParameter('edgeOutLevel',  zeros(1,nCell),@isvector);
+ip.addParameter('trendType',-ones(1,nCell),@isvector);
+ip.addParameter('minLength', 30*ones(1,nCell),@isvector);
+ip.addParameter('gapSize',   zeros(1,nCell),@isvector);
+ip.addParameter('scale',false,@islogical);
+ip.addParameter('maxLag',0,@isscalar);
+ip.addParameter('layer',1,@isscalar);
+ip.addParameter('signalChannel',1,@isscalar);
+ip.addParameter('interval',{[]},@iscell);
+ip.addParameter('robust',false,@islogical);
+ip.addParameter('fixJump', false,@islogical);
+ip.addParameter('jumps',cell(1,nCell),@iscell);
 
 ip.parse(movieObj,varargin{:});
 scale            = ip.Results.scale;
@@ -74,12 +76,18 @@ layer            = ip.Results.layer;
 channel          = ip.Results.signalChannel;
 interval         = ip.Results.interval;
 robust           = ip.Results.robust;
+fixJump          = ip.Results.fixJump;
+jumps            = ip.Results.jumps;
 
 cellData{1,nCell} = [];
-edgeInputParam    = {'winInterval',winInterval,'outLevel',edgeOutLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale,'outputPath','correlationEstimation'};
-signalInputParam  = {'winInterval',winInterval,'outLevel',signalOutLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'outputPath','correlationEstimation'};
-edge              = edgeVelocityQuantification(ML,edgeInputParam{:});
+signalInputParam  = {'winInterval',winInterval,'outLevel',signalOutLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'outputPath','correlationEstimation','fixJump',fixJump};
 signal            = sampledSignalQuantification(ML,channel,signalInputParam{:});
+
+for i=1:nCell; jumps{i} = signal{i}.data.fixedWindows;end
+
+edgeInputParam    = {'winInterval',winInterval,'outLevel',edgeOutLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale,'outputPath','correlationEstimation','fixJump',fixJump,'jumps',jumps};
+edge              = edgeVelocityQuantification(ML,edgeInputParam{:});
+
 nInterval         = cellfun(@(x) 1:size(x.data.procEdgeMotion,2),edge,'Unif',0);
 
 
