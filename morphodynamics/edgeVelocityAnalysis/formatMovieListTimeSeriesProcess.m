@@ -53,16 +53,17 @@ end
 
 nCell = numel(ML.movies_);
 
-ip.addParamValue('channel',   1,@isscalar);
-ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
-ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
-ip.addParamValue('trendType',-ones(1,nCell),@isvector);
-ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
-ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
-ip.addParamValue('saveOn',    false,@islogical);
-ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
-ip.addParamValue('fileName','EdgeMotion',@isstr);
-
+ip.addParameter('channel',   1,@isscalar);
+ip.addParameter('interval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('outLevel',  zeros(1,nCell),@isvector);
+ip.addParameter('trendType',-ones(1,nCell),@isvector);
+ip.addParameter('minLength', 30*ones(1,nCell),@isvector);
+ip.addParameter('gapSize',   zeros(1,nCell),@isvector);
+ip.addParameter('saveOn',    false,@islogical);
+ip.addParameter('outputPath','EdgeVelocityQuantification',@isstr);
+ip.addParameter('fileName','EdgeMotion',@isstr);
+ip.addParameter('fixJump', false,@islogical);
+ip.addParameter('jumps',cell(1,nCell),@iscell);
 
 ip.parse(movieObj,processType,varargin{:});
 interval    = ip.Results.interval;
@@ -74,6 +75,8 @@ channel     = ip.Results.channel;
 saveOn      = ip.Results.saveOn;
 outputPath  = ip.Results.outputPath;
 fileName    = ip.Results.fileName;
+fixJump     = ip.Results.fixJump;
+jumps       = ip.Results.jumps;
 
 
 dataSet                       = [];
@@ -163,9 +166,28 @@ for iCell = 1:nCell
         cellData{iCell}.data.timeSeriesOperations = timeSeriesOperations{iCell};
         preProcessingInput                        = [timeSeriesOperations{iCell} {'interval',cellData{iCell}.data.interval}];
         
+        if fixJump && isempty(jumps{iCell})
+            
+            [~,jumps(iCell)] = fixWindowJumps(currMD,'samplingProcess',processType,'signalChannel',channel);
+            
+        end
+        
+        cellData{iCell}.data.fixedWindows = jumps{iCell};
         for iLayer = 1:nLayer
             
-            [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar{iLayer}] = timeSeriesPreProcessing(squeeze(cellData{iCell}.data.rawTimeSeries(:,:,iLayer)),preProcessingInput{:});
+            if fixJump
+                
+                rawTS   = squeeze(cellData{iCell}.data.rawTimeSeries(:,:,iLayer));
+                fixedTS = amendWindowJump(jumps{iCell},rawTS);
+                
+            else
+                
+                fixedTS = squeeze(cellData{iCell}.data.rawTimeSeries(:,:,iLayer));
+                
+            end
+            
+            cellData{iCell}.data.jumpFixed{iLayer}                               = fixedTS;
+            [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar{iLayer}] = timeSeriesPreProcessing(fixedTS,preProcessingInput{:});
             cellData{iCell}.data.excludedWin{iLayer}                             = excludeVar{iLayer};
             
         end
@@ -198,5 +220,18 @@ elseif strcmp(processType,forProc{2})
     samples = currMD.processes_{procIdx}.loadChannelOutput(channel,1).avg;
     
 end
+
+end
+
+
+function out = amendWindowJump(jump,matrix)
+
+out  = matrix;
+nFix = numel(jump.location);
+
+for iF = 1:nFix
+    out(:,jump.location{iF})    = circshift(out(:,jump.location{iF}),jump.magnitude{iF});
+end
+
 
 end
