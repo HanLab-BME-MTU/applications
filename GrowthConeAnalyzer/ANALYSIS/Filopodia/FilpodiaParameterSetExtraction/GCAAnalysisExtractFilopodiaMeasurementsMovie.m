@@ -51,7 +51,7 @@ ip.CaseSensitive = false;
 
 % PARAMETERS
 defaultOutDir = [movieData.outputDirectory_ filesep...
-    'GrowthConeAnalyzer' filesep 'GCAMeasurementExtraction' filesep 'WholeNeurite' ];
+   'GCAMeasurementExtraction' filesep 'WholeNeurite' ];
 
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
 ip.addParameter('ChannelIndex',1);
@@ -139,7 +139,7 @@ for iCh = 1:nChan
             
             
             % Make the Respective Folders
-            newFiloDir  = [movieData.outputDirectory_ filesep 'PARAMETER_EXTRACTION' ...
+            newFiloDir  = [ ip.Results.OutputDirectory filesep 'Channel' num2str(channels(iCh))...
                 filesep 'Descriptor' filesep 'Filopodia' filesep analInput(iAnalType).filterType];
             if isdir(newFiloDir)
                 display([newFiloDir ' Found: SKIPPING']) ; % for now skip but can make an option to re-write
