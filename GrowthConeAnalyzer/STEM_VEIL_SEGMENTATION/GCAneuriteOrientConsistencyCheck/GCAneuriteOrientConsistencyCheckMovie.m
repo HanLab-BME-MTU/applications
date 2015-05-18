@@ -188,6 +188,7 @@ for iCh = 1:nChan
         end % iFrame
     end % if ip.Results
     %% Save Information
+    backboneInfo  = backboneInfoFix; 
     save([saveDir filesep 'backboneInfoFix.mat'],'backboneInfo');
     save([saveDir filesep 'framesFixed.mat'],'frames2Fix');
     save([saveDir filesep 'paramsIn.mat'],'p');
