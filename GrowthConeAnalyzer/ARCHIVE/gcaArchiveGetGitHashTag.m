@@ -1,4 +1,4 @@
-function [hashTag] = gcaArchiveGetGitHashTag
+function [success,hashTag] = gcaArchiveGetGitHashTag
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 

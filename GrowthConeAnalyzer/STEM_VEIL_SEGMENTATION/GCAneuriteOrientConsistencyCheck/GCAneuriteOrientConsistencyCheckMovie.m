@@ -141,20 +141,32 @@ for iCh = 1:nChan
         for iFrame = 1:length(frames2Fix)
             
             img = double(imread([listOfImages{frames2Fix(iFrame),2} filesep listOfImages{frames2Fix(iFrame),1}]));
-            setFigure(xSize,ySize,'off');
+            setFigure(xSize,ySize,'on');
             
             imshow(-img,[]) ;
             hold on
+            % plot the original signal 
+            spy(backboneInfo(frames2Fix(iFrame)).linkedRidgesFinal,'b');  
+            
+            % plot the alignment mask 
+            spy(backboneInfoFix(frames2Fix(iFrame)).alignmentMask,'m');
+            
+            % plot the origBB 
             origBBMask = backboneInfo(frames2Fix(iFrame)).backboneSeedMask;
             spy(origBBMask,'g')
             hold on
+            
+            % plot the final BB seed
             backboneSeed = backboneInfoFix(frames2Fix(iFrame)).backboneSeedMask;
             spy(backboneSeed,'r');
+            
+            % plot the old and new input neurite coords 
             [coordsOrg] = backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite;
             scatter(coordsOrg(1),coordsOrg(2),'g','filled');
             [coordsNew] = backboneInfoFix(frames2Fix(iFrame)).coordsEnterNeurite ;
             scatter(coordsNew(1),coordsNew(2),'y','filled');
-            text(10,10,{'Yellow Marks' ; 'Corrected Entry Point'}, 'Color','y');
+           
+            text(10,10,{'Yellow Marks' ; 'Corrected Entry Point'}, 'Color','k');
             
             saveas(gcf,[fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.tif']);
             close gcf
@@ -192,6 +204,8 @@ for iCh = 1:nChan
     save([saveDir filesep 'backboneInfoFix.mat'],'backboneInfo');
     save([saveDir filesep 'framesFixed.mat'],'frames2Fix');
     save([saveDir filesep 'paramsIn.mat'],'p');
+    
+    display(['Finished Neurite Orientation Consistency Test : ' movieData.outputDirectory_ ' for Ch' num2str(iCh) ]); 
 end % iCh
 end % The END
 
