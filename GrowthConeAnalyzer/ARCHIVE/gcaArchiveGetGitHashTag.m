@@ -10,7 +10,7 @@ if ~isempty(regexp(OS,'Windows','once'));
 else
     % try to load hashtag (likely on linux)
     cDir = pwd;
-    cd(['home2' filesep 'mbagonis' filesep 'matlab' filesep 'applications']);
+    cd(['/home2' filesep 'mbagonis' filesep 'matlab' filesep 'applications']);
     cmd = ['TERM=ansi git log --pretty=%H -2'];
     [success,hashTag] =  system(cmd);
     cd(pwd);    
