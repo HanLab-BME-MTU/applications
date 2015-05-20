@@ -15,6 +15,9 @@ if(nargin<4)
     O_sigma = pi/2;
 end
 
+
+[roi_ind_y, roi_ind_x]  = find(CellROI>0);
+
 model_length = length(current_model);
 
 scrable_digital_model = cell(1,model_length);
@@ -105,121 +108,54 @@ for iFila = 1 : model_length
             digital_y_section = round(scrable_line_i_y(ind_a:ind_b));
             angles_section = angles(ind_a:ind_b);
             
+            mean_x = mean(digital_x_section);
+            mean_y = mean(digital_y_section);
+            
+            
             for i_iterate = 1 :10000
                 try
-                    translation_rand_A = (randn(2,1))*T_sigma;
-                    digital_x_section_new = round(digital_x_section +translation_rand_A(1));
-                    digital_y_section_new = round(digital_y_section +translation_rand_A(2));
+                    rand_ind = round(rand(1,1)*numel(roi_ind_x));
+                    rand_ind = max(1,rand_ind);
+                    
+                    Tx = roi_ind_x(rand_ind) - mean_x;
+                    Ty = roi_ind_y(rand_ind) - mean_y;
+                    
+                    digital_x_section_new = round(digital_x_section + Tx);
+                    digital_y_section_new = round(digital_y_section + Ty);
                     
                     new_in_ROI_array = CellROI(sub2ind(img_size, digital_y_section_new, digital_x_section_new));
+                    
                     if(sum(1-new_in_ROI_array))==0
                         digital_x_section = digital_x_section_new;
                         digital_y_section = digital_y_section_new;
-                        
                         break;
                     end
                 end
             end
             
-            if(i_iterate==10000)                
+            
+            if(i_iterate==10000)
+                % this means relocation not successful, so just break the left over into one pixel
+                 rand_ind_array = round(rand(ind_b-ind_a+1,1)*numel(roi_ind_x));
+                    rand_ind_array(rand_ind_array==0)=1;
+                    
+                for sprinkle_i = 1 : ind_b - ind_a +1
                 
-                digital_x_section = round(scrable_line_i_x(ind_a:round((ind_b-ind_a)/3+ind_a)));
-                digital_y_section = round(scrable_line_i_y(ind_a:round((ind_b-ind_a)/3+ind_a)));
-                angles_section = angles(ind_a:round((ind_b-ind_a)/3+ind_a));
-                
-                for i_iterate = 1 :100000
-                    try
-                        translation_rand_A = round((randn(2,1))*T_sigma*2);
-                        digital_x_section_new = (digital_x_section +translation_rand_A(1));
-                        digital_y_section_new = (digital_y_section +translation_rand_A(2));
-                        
-                        new_in_ROI_array = CellROI(sub2ind(img_size, digital_y_section_new, digital_x_section_new));
-                        if(sum(1-new_in_ROI_array))==0
-                            digital_x_section = digital_x_section_new;
-                            digital_y_section = digital_y_section_new;
-                            
-                            break;
-                        end
-                    end
-                end
-                                
-                
-                i_iterate_array(count_new_part)=i_iterate;
-                
-                count_new_part = count_new_part+1;
-                iFila_section = count_new_part;
-                
-                % put this one in
-                if(i_iterate<100000)
+                    digital_x_section = roi_ind_x(rand_ind_array(sprinkle_i));
+                    digital_y_section = roi_ind_y(rand_ind_array(sprinkle_i));
+                    angles_section = angles(sprinkle_i);
+                    
+                    i_iterate_array(count_new_part)=-9;
+                    
+                    count_new_part = count_new_part+1;
+                    iFila_section = count_new_part;
+                    
                     scrabled_one_fila;
-                end
-                
-                
-                digital_x_section = round(scrable_line_i_x(round((ind_b-ind_a)/3+ind_a)+1:round((ind_b-ind_a)*2/3+ind_a)));
-                digital_y_section = round(scrable_line_i_y(round((ind_b-ind_a)/3+ind_a)+1:round((ind_b-ind_a)*2/3+ind_a)));
-                angles_section = angles(round((ind_b-ind_a)/3+ind_a)+1:round((ind_b-ind_a)*2/3+ind_a));
-                if(~isempty(digital_x_section))
-                    for i_iterate = 1 :100000
-                        try
-                            translation_rand_A = round((randn(2,1))*T_sigma*2);
-                            digital_x_section_new = (digital_x_section +translation_rand_A(1));
-                            digital_y_section_new = (digital_y_section +translation_rand_A(2));
-                            
-                            new_in_ROI_array = CellROI(sub2ind(img_size, digital_y_section_new, digital_x_section_new));
-                            if(sum(1-new_in_ROI_array))==0
-                                digital_x_section = digital_x_section_new;
-                                digital_y_section = digital_y_section_new;
-                                
-                                break;
-                            end
-                        end
-                    end
                     
-                    
-                    i_iterate_array(count_new_part)=i_iterate;
-                    
-                    count_new_part = count_new_part+1;
-                    iFila_section = count_new_part;
-                    
-                    % put this one in
-                    if(i_iterate<100000)
-                        
-                        scrabled_one_fila;
-                    end
-                end
-                
-                digital_x_section = round(scrable_line_i_x(round((ind_b-ind_a)*2/3+ind_a)+1:ind_b));
-                digital_y_section = round(scrable_line_i_y(round((ind_b-ind_a)*2/3+ind_a)+1:ind_b));
-                angles_section = angles(round((ind_b-ind_a)*2/3+ind_a)+1:ind_b);
-                if(~isempty(digital_x_section))
-                    for i_iterate = 1 :100000
-                        try
-                            translation_rand_A = round((randn(2,1))*T_sigma*2);
-                            digital_x_section_new = (digital_x_section +translation_rand_A(1));
-                            digital_y_section_new = (digital_y_section +translation_rand_A(2));
-                            
-                            new_in_ROI_array = CellROI(sub2ind(img_size, digital_y_section_new, digital_x_section_new));
-                            if(sum(1-new_in_ROI_array))==0
-                                digital_x_section = digital_x_section_new;
-                                digital_y_section = digital_y_section_new;
-                                
-                                break;
-                            end
-                        end
-                    end
-                    
-                    i_iterate_array(count_new_part)=i_iterate;
-                    
-                    count_new_part = count_new_part+1;
-                    iFila_section = count_new_part;
-                    
-                    % put this one in
-                    if(i_iterate<100000)
-                        scrabled_one_fila;
-                    end
-                end
+                end                
                 
             else
+                % this means relocation is successful, so just put this into the new model
                 
                 count_new_part = count_new_part+1;
                 iFila_section = count_new_part;
@@ -230,6 +166,8 @@ for iFila = 1 : model_length
         end
         
     else
+        % this means no relocation is needed, so just put this into the new model
+                
         
         ind_a = 1;
         ind_b = numel(scrable_line_i_x);
