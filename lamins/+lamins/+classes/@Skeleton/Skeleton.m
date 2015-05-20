@@ -10,7 +10,9 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
     methods
         function obj = Skeleton(bw)
             if(nargin > 0)
-                if(isa(bw,'lamins.classes.LaminsImage'))
+                if(isa(bw,'lamins.classes.LaminsImageMultiLength'))
+                    obj.bw = bw.orientationExtendedSkel;
+                elseif(isa(bw,'lamins.classes.LaminsImage'))
 %                     obj.bw = bw.auditedSkel;
                     obj.bw = bw.extendedSkel;
                 else
@@ -35,7 +37,9 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 % sort PixelIdxList along the edges
                 endpts = find(bwmorph(edgesbw,'endpoints'));
                 edges_startpt = zeros(1,obj.edges.NumObjects);
-                edges_startpt(obj.edges.lm(endpts)) = endpts;
+                labels = obj.edges.lm(endpts);
+                labels = labels(labels ~= 0);
+                edges_startpt(labels) = endpts(labels ~= 0);
                 geo = bwdistgeodesic(edgesbw,edges_startpt(edges_startpt ~= 0));
                 I = obj.edges.PixelIdxList;
                 I = cellfun(@(x) sortrows([geo(x) x]),I,'UniformOutput',false);
