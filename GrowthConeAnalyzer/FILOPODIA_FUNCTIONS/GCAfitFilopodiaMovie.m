@@ -1,5 +1,5 @@
-function [ filoInfo] = GCAfitFilopodiaMovie( movieData,paramsIn)
-%fitLinescansMovie: performs automated fitting of filopodia detections 
+function [ filoInfo] = GCAfitFilopodiaMovie(movieData,paramsIn)
+%fitLinescansMovie: performs automated fitting of filopodia detections
 
 % INPUT:
 % filoInfo: output of filopodiaReconstruct function
@@ -22,7 +22,7 @@ function [ filoInfo] = GCAfitFilopodiaMovie( movieData,paramsIn)
 %       integer index of the channel(s) to fit the filopodia. If not input,
 %       all channels with a filopodia reconstruction will be used.
 %
-% Internal Function Params:  
+% Internal Function Params:
 % ('InternalFiloOn' -> scalar ) Optional If true , fit internal filo as marked in filoInfo data struct,
 %      if false, fits external filo as marked in data struct
 %      NOTE TO SELF: (need to have an option where it will run through both!!!)
@@ -49,26 +49,26 @@ function [ filoInfo] = GCAfitFilopodiaMovie( movieData,paramsIn)
 %
 % ('ValuesForFit' -> character 'Intensity','Response','Both') Optional
 % Default = 'Intensity'
-%         The values to use the fitting: 
+%         The values to use the fitting:
 %         Intensity: The values corresponding to the intensity will be fit
 %         to a sigmoid
 %         Response: The values corresponding to the NMS response from the
-%         steerable filter will be fit to a sigmoid. 
+%         steerable filter will be fit to a sigmoid.
 %         Both: Both of the above operations will be performed- this is
 %         mainly for comparison in the early stages of development
-%         
+%
 %('Averaging' -> character ('Gaussian Weighted' , 'Perpendicular'
-% For Fitting: Response or 
+% For Fitting: Response or
 %
 
 %
-%('SavePlots' -> logical) Optional Default = 1 
+%('SavePlots' -> logical) Optional Default = 1
 %
 %
 %
 %
 %
-%      
+%
 
 
 % Output:
@@ -80,15 +80,7 @@ function [ filoInfo] = GCAfitFilopodiaMovie( movieData,paramsIn)
 %   parameter OutputDirectory, they are stored as a single .mat file.
 %   filoInfo will be updated with fields...
 %
-
-
-
-
-
-
-
 %% ----- Input ------ %%
-
 if nargin < 1 || ~isa(movieData,'MovieData')
     error('The first input must be a valid MovieData object!')
 end
@@ -97,13 +89,14 @@ if nargin < 2
     outputDirectory = [movieData.outputDirectory_ filesep 'filopodia_fits'];
     paramsIn.OutputDirectory = outputDirectory ;
     paramsIn.ChannelIndex = 1  ;
-    paramsIn.InternalFiloOn = 3; % types 1, 2, or 3.  
+    paramsIn.InternalFiloOn = 3; % types 1, 2, or 3.
     paramsIn.NumPixForFitBack = 10; % should maybe eventually make this distance?
     paramsIn.ValuesForFit = 'Intensity'; % default is the intensity;
-    paramsIn.SavePlots = 1; 
-    paramsIn.Restart = 2;
+    paramsIn.SavePlots = 1;
+    paramsIn.restart.startFrame = 'auto';   % 'auto'
+    paramsIn.restart.endFrame = 'auto'; % 'auto' or number, default auto.
 end
-p = paramsIn ; 
+p = paramsIn ;
 %Get the indices of any previous mask refinement processes from this function
 % iProc = movieData.getProcessIndex('FitFiloProcess',1,0);
 %
@@ -115,124 +108,79 @@ p = paramsIn ;
 %
 % %Parse input, store in parameter structure
 % p = parseProcessParams(movieData.processes_{iProc},paramsIn);
-
-
-
-
-
-
 %% Start Wrapper
-load('C:\Users\Maria\matlab\REPOSITORY_GIT\sandbox\GrowthConeAnalyzer\hashTag.mat'); 
-
-        
-
 for iCh = 1:numel(paramsIn.ChannelIndex)
     
-     
-    
-    
-    
-    
-   
     % Make Output Directory
-   
-        outPutDirC = [p.OutputDirectory filesep 'Filopodia_Fits_Channel_' num2str(p.ChannelIndex(iCh))]; 
+    outPutDirC = [p.OutputDirectory filesep 'Filopodia_Fits_Channel_' num2str(p.ChannelIndex(iCh)) ];
+    %% Get Start and End Frame Based on Restart Choices
+    withFiloFit  = [outPutDirC filesep 'analInfoTestSave.mat'];
+    % If file exists
+    if  exist(withFiloFit,'file')==2;
+        load(withFiloFit) % load the file
+        display('Loading Previously Run Filopodia Fits');
+        if strcmpi(p.restart.startFrame,'auto')
+            startFrame = find(arrayfun(@(x) ~isfield(analInfo(x).filoInfo, 'Ext_exitFlag')...
+                ,1:length(analInfo)),1,'first');
+            startFrame  = startFrame-1;
+            display(['Auto Start: Starting Neurite Body Reconstruction at Frame ' num2str(startFrame)]);
+        else
+            startFrame = p.restart.startFrame; % use user input
+            display(['Manual Start: Starting Neurite Body Reconstruction at Frame ' num2str(startFrame)]);
+        end
+    else % if doesn't exist : load from reconstruct file
+        withoutFiloFit =  [movieData.outputDirectory_ filesep 'filopodia_reconstruct'  filesep ...
+            'Filopodia_Reconstruct_Channel_' num2str(p.ChannelIndex(iCh)) filesep 'analInfoTestSave.mat'];
+        % load reconstruction data
+        load(withoutFiloFit) ; %
+        %  test to make sure
+        firstEmpty= find(arrayfun(@(x) isempty(x.reconstructInfo),analInfo),1,'first');
+        if firstEmpty ~= movieData.nFrames_;
+            
+            allEmpty = find(arrayfun(@(x)  isempty(x.reconstructInfo),analInfo));
+            display('Note: Filopodia reconstructions have not been performed for all frames of movie')
+            
+            arrayfun(@(x) display(['No Filopodia Reconstruction Found for Frame ' num2str(allEmpty(x))]),1:length(allEmpty));
+        end % firstEmpty
+        startFrame = 1; 
+    end % if exist withFiloFit
     
-        
-        %mkClrDir(outPutDirC) 
-      if p.Restart ==0  
-          
-        filoInfoDir  = [movieData.outputDirectory_ filesep  'filopodia_reconstruct' filesep 'Filopodia_Reconstruct_Channel_' num2str(iCh)];
-      else 
-        filoInfoDir =  [movieData.outputDirectory_ filesep  'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(iCh)];
-      end 
-        % load reconstruction data including filoInfo per frame 
-    load([filoInfoDir filesep 'analInfoTestSave.mat']) ; %
+    if strcmpi(p.restart.endFrame,'auto');
+        endFrame = movieData.nFrames_;
+        display(['Auto End: Fitting Filopodia From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
+    else
+        endFrame = p.restart.endFrame;
+        display(['Manual End: Fitting Filopodia From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
+    end
     
-if p.Restart ==1; 
-    startFrame = find(arrayfun(@(x) ~isfield(analInfo(x).filoInfo, 'Ext_exitFlag')...
-        ,1:length(analInfo)),1,'first');
-    startFrame  = startFrame-1; 
-    display(['Resuming Filopodia Fitting at ' num2str(startFrame) ])
-elseif p.Restart == 2 
-    
-     startFrame = 23;    
-     display(['Resuming Filopodia Fitting at ' num2str(startFrame)]); 
-    else 
-        
-    startFrame = 1; 
-end    
-    
-  % GET FRAME INFORMATION - this function wraps per frame 
-    for iFrame = startFrame:length(analInfo)-1
+    %% Start Loop Over Movie
+    % GET FRAME INFORMATION - this function wraps per frame
+    for iFrame = startFrame:endFrame
         % get the filoInfo for the current frame
         filoInfo = analInfo(iFrame).filoInfo;
         imgPath = [movieData.getChannelPaths{p.ChannelIndex(iCh)} filesep movieData.getImageFileNames{p.ChannelIndex(iCh)}{iFrame}];
-        img = double(imread(imgPath)); 
-        % make a specific output directory for the plotting for each frame 
-        pSpecific = p; 
-        pSpecific.sigma = movieData.channels_.psfSigma_; 
-        if isempty(pSpecific.sigma) 
-            display(['Using sigma 0.43']); 
+        img = double(imread(imgPath));
+        % make a specific output directory for the plotting for each frame
+        pSpecific = p;
+        pSpecific.sigma = movieData.channels_.psfSigma_;
+        if isempty(pSpecific.sigma)
+            display(['Using sigma 0.43']);
             pSpecific.sigma = 0.43;
-        end 
-        if pSpecific.SavePlots == 1 
-            
-        pSpecific.OutputDirectory = [outPutDirC filesep 'Linescans' filesep 'Frame ' num2str(iFrame,'%03d')];
-        mkClrDir(pSpecific.OutputDirectory)
-        end 
+        end
+        if pSpecific.SavePlots == 1
+            pSpecific.OutputDirectory = [outPutDirC filesep 'Linescans' filesep 'Frame ' num2str(iFrame,'%03d')];
+            mkClrDir(pSpecific.OutputDirectory)
+        end
         
-        filoInfo = GCAfitFilopodia(filoInfo,img,pSpecific) ; 
-        % rewrite the filoInfo with the extra filo Info fields. 
+        filoInfo = GCAfitFilopodia(filoInfo,img,pSpecific) ;
+        % rewrite the filoInfo with the extra filo Info fields.
         analInfo(iFrame).filoInfo = filoInfo;
-        display(['Finished Fitting Filopodia for  Channel ' num2str(p.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]); 
+        display(['Finished Fitting Filopodia for  Channel ' num2str(p.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]);
         analInfo(iFrame).reconstructInfo.createTimeFiloFit = clock;
-        analInfo(iFrame).reconstructInfo.hashTagFiloFit = hashTag; 
-       
+        hashTag = gcaArchiveGetGitHashTag;
+        analInfo(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
+        
         save([outPutDirC filesep 'analInfoTestSave.mat'],'analInfo','-v7.3')
         
-        
-     
-        
-        
-
-        
-       
-            
-            
-         
-           
-            
-                
-                
-                
-                
-                
-              
-                
-                
-               
-                    
-                    
-                    
-                    
-                
-                
-                
-                
-                
-              
-           
- 
     end % for iFrame
 end % for iCh
-
-
-
-
-
-
-
-
-
-

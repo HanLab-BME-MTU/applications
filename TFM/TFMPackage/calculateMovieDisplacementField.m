@@ -80,7 +80,7 @@ if exist(outputFile{1},'file');
     s=load(outputFile{1},'displField');
     frameDisplField=~arrayfun(@(x)isempty(x.pos),s.displField);
     
-    if ~all(frameDisplField) && ~all(~frameDisplField)
+    if ~all(frameDisplField) && ~all(~frameDisplField) && usejava('desktop')
         % Look at the first non-analyzed frame
         firstFrame = find(~frameDisplField,1);
         % Ask the user if display mode is active
@@ -134,20 +134,26 @@ x_shift = find(any(firstMask,1),1);
 
 tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
 firstMask = tempMask2 & firstMask;
-% Detect beads in reference frame 
-disp('Detecting beads in the reference frame...')
+
 % if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
 if ~p.useGrid
-    if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield') || movieData.pixelSize_>130
-        sigmaPSF = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-    elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Confocal')
-        sigmaPSF = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-    elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
-        sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-    else
-        error('image type should be chosen among Widefield, confocal and TIRF!');
-    end
-    pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
+    % if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+    %     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+    %     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+    %     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+    % else
+    %     error('image type should be chosen among Widefield, confocal and TIRF!');
+    % end
+    % Detect beads in reference frame
+    disp('Determining PSF sigma from reference frame...')
+    % Adaptation of psfSigma from bead channel image data
+    psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
+    disp(['Determined sigma: ' num2str(psfSigma)])
+
+    disp('Detecting beads in the reference frame...')
+    pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
     assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
     % filtering out points in saturated image based on pstruct.c
     [N,edges]= histcounts(pstruct.c);
@@ -274,7 +280,11 @@ for j= firstFrame:nFrames
 %         erosionDist=round((p.minCorLength+1)/2);
         % Erode the mask with the correlation length + half maxFlowSpeed
         % and filter beads to minimize error
-        erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/2);
+        if p.noFlowOutwardOnBorder
+            erosionDist=(p.minCorLength+1)/2;
+        else
+            erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
+        end            
         beadsMask=bwmorph(beadsMask,'erode',erosionDist);
 %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
         indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
@@ -297,17 +307,33 @@ for j= firstFrame:nFrames
         [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
 %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
-        pivPar.iaSizeX = [64 32 16 16];     % size of interrogation area in X 
-%         pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
-        pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
-        pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
-        pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
+        pivPar.iaSizeX = [64 32 16 8];     % size of interrogation area in X 
+        pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
+        pivPar.iaSizeY = [64 32 16 8];     % size of interrogation area in X 
+        pivPar.iaStepY = [32 16  8 4];     % grid spacing of velocity vectors in X
+%         pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
+%         pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
+%         pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
         pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
         pivPar.smMethod = 'none';
 
         [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
         displField(j).pos=[pivData.X(:), pivData.Y(:)];
         displField(j).vec=[pivData.U(:)+residualT(j,2), pivData.V(:)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+
+%         % testing additional pass of piv processing
+%         pivPar.iaSizeX=[ 8];
+%         pivPar.iaStepX=[ 4];
+%         pivPar.anVelocityEst = 'pivData'; % use velocity data stored in pivData as velocity estimate used for image deformation. 
+%         % By this setting, results of previous passes are transferred
+%         pivPar.ccMethod = 'dcn';
+%         pivPar.qvPair = {'U', 'clipLo', -0.2, 'clipHi', 0.2};
+%         figure;
+%         [pivPar2] = pivParams([],pivPar,'defaults');
+%         pivData2 = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar2);
+%         
+%         displField(j).pos=[pivData2.X(:), pivData2.Y(:)];
+%         displField(j).vec=[pivData2.U(:)+residualT(j,2), pivData2.V(:)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
     end
     
     % Update the waitbar

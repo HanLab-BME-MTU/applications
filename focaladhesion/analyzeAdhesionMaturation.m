@@ -157,39 +157,40 @@ if onlyEdge
         end
     end    
 else
-    disp(['Entire adhesion tracks are considered'])
+    disp('Entire adhesion tracks are considered.')
     trackIdx = true(numel(tracksNA),1);
-    bandwidthNA = 5; %um 
-    bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
-    for ii=1:nFrames
-        % Cell Boundary Mask 
-        mask = maskProc.loadChannelOutput(iChan,ii);
-        % mask for band from edge
-        iMask = imcomplement(mask);
-        distFromEdge = bwdist(iMask);
-        bandMask = distFromEdge <= bandwidthNA_pix;
-
-        maskOnlyBand = bandMask & mask;
-        bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
-        % filter tracks with naMasks
-        % only deal with presence and status
-        % Tracks in its emerging state ever overlap with bandMask are
-        % considered.
-        for k=1:numel(tracksNA)
-            if tracksNA(k).presence(ii) && ~isnan(tracksNA(k).yCoord(ii)) && ...
-                    ((round(tracksNA(k).xCoord(ii)) > size(maskOnlyBand,2) || ...
-                    round(tracksNA(k).xCoord(ii)) < 1 || ...
-                    round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
-                    round(tracksNA(k).yCoord(ii)) < 1) || ...
-                    ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
-                tracksNA(k).state{ii} = 'Out_of_Band';
-                tracksNA(k).presence(ii) = false;
-                if trackIdx(k)
-                    trackIdx(k) = false;
-                end
-            end
-        end
-    end
+    mask = maskProc.loadChannelOutput(iChan,1);
+%     bandwidthNA = 5; %um 
+%     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
+%     for ii=1:nFrames
+%         % Cell Boundary Mask 
+%         mask = maskProc.loadChannelOutput(iChan,ii);
+%         % mask for band from edge
+%         iMask = imcomplement(mask);
+%         distFromEdge = bwdist(iMask);
+%         bandMask = distFromEdge <= bandwidthNA_pix;
+% 
+%         maskOnlyBand = bandMask & mask;
+%         bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
+%         % filter tracks with naMasks
+%         % only deal with presence and status
+%         % Tracks in its emerging state ever overlap with bandMask are
+%         % considered.
+%         for k=1:numel(tracksNA)
+%             if tracksNA(k).presence(ii) && ~isnan(tracksNA(k).yCoord(ii)) && ...
+%                     ((round(tracksNA(k).xCoord(ii)) > size(maskOnlyBand,2) || ...
+%                     round(tracksNA(k).xCoord(ii)) < 1 || ...
+%                     round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
+%                     round(tracksNA(k).yCoord(ii)) < 1) || ...
+%                     ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
+%                 tracksNA(k).state{ii} = 'Out_of_Band';
+%                 tracksNA(k).presence(ii) = false;
+%                 if trackIdx(k)
+%                     trackIdx(k) = false;
+%                 end
+%             end
+%         end
+%     end
 end
 % get rid of tracks that have out of bands...
 tracksNA = tracksNA(trackIdx);
@@ -284,8 +285,8 @@ for ii=1:nFrames
                         (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame))).^2));
 
                     tracksNA(k).state{ii} = 'FC';
-                    tracksNA(k).xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
-                    tracksNA(k).yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
+%                     tracksNA(k).xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
+%                     tracksNA(k).yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
                     tracksNA(k).FApixelList{ii} = propSubMaskFAs(subMaskFAsIdx).PixelList;
                     tracksNA(k).adhBoundary{ii} = subAdhBound{subMaskFAsIdx};
                 end
@@ -638,53 +639,54 @@ for i = 1:numel(tracks)
     % Get the x and y coordinate of all compound tracks
     startNA = true;
     endNA = true;
-    for  j = 1 : nFrames
-        newTracks(i).iFrame(j) = j;
-        if j<tracks(i).seqOfEvents(1,1)
-            newTracks(i).state{j} = 'BA';
-            newTracks(i).xCoord(j) = NaN;
-            newTracks(i).yCoord(j) = NaN;
-            newTracks(i).presence(j) = false;
-            newTracks(i).amp(j) = NaN;
-            newTracks(i).bkgAmp(j) = NaN;
-        elseif j>tracks(i).seqOfEvents(end,1)
-            newTracks(i).state{j} = 'ANA';
-            newTracks(i).xCoord(j) = NaN;
-            newTracks(i).yCoord(j) = NaN;
-            newTracks(i).amp(j) = NaN;
-            newTracks(i).bkgAmp(j) = NaN;
-            newTracks(i).presence(j) = false;
+    for  jj = 1 : nFrames
+        newTracks(i).iFrame(jj) = jj;
+        if jj<tracks(i).seqOfEvents(1,1)
+            newTracks(i).state{jj} = 'BA';
+            newTracks(i).xCoord(jj) = NaN;
+            newTracks(i).yCoord(jj) = NaN;
+            newTracks(i).presence(jj) = false;
+            newTracks(i).amp(jj) = NaN;
+            newTracks(i).bkgAmp(jj) = NaN;
+        elseif jj>tracks(i).seqOfEvents(end,1)
+            newTracks(i).state{jj} = 'ANA';
+            newTracks(i).xCoord(jj) = NaN;
+            newTracks(i).yCoord(jj) = NaN;
+            newTracks(i).amp(jj) = NaN;
+            newTracks(i).bkgAmp(jj) = NaN;
+            newTracks(i).presence(jj) = false;
             if endNA
-                newTracks(i).endingFrame = j-1;
+                newTracks(i).endingFrame = jj-1;
                 endNA = false;
             end
-        elseif j==tracks(i).seqOfEvents(2,1)
-            newTracks(i).state{j} = 'NA';
-            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)));
-            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)));
-            newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
-            if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
-                newTracks(i).bkgAmp(j) = NaN;
+        elseif jj==tracks(i).seqOfEvents(2,1)
+            newTracks(i).state{jj} = 'NA';
+            newTracks(i).xCoord(jj) = tracks(i).tracksCoordAmpCG(1,1+8*(jj-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).yCoord(jj) = tracks(i).tracksCoordAmpCG(1,2+8*(jj-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).amp(jj) = tracks(i).tracksCoordAmpCG(1,4+8*(jj-tracks(i).seqOfEvents(1,1)));
+            if tracks(i).tracksFeatIndxCG(jj-tracks(i).seqOfEvents(1,1)+1)==0
+                newTracks(i).bkgAmp(jj) = NaN;
             else
-                newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-                newTracks(i).sigma(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).sigmaX(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
+                jFromBirth=jj-tracks(i).seqOfEvents(1,1)+1;
+                newTracks(i).bkgAmp(jj) = detectedNAs(jj).bkg(tracks(i).tracksFeatIndxCG(jFromBirth));
+                newTracks(i).sigma(jj) = detectedNAs(jj).sigmaX(tracks(i).tracksFeatIndxCG(jFromBirth));
             end
-            newTracks(i).presence(j) = true;
+            newTracks(i).presence(jj) = true;
             if startNA
-                newTracks(i).startingFrame = j;
+                newTracks(i).startingFrame = jj;
                 startNA = false;
             end
             if endNA
-                newTracks(i).endingFrame = j;
+                newTracks(i).endingFrame = jj;
                 endNA = false;
             end
         else
-            newTracks(i).state{j} = 'NA';
-            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)));
-            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)));
-            newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
-            if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
-                newTracks(i).bkgAmp(j) = NaN;
+            newTracks(i).state{jj} = 'NA';
+            newTracks(i).xCoord(jj) = tracks(i).tracksCoordAmpCG(1,1+8*(jj-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).yCoord(jj) = tracks(i).tracksCoordAmpCG(1,2+8*(jj-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).amp(jj) = tracks(i).tracksCoordAmpCG(1,4+8*(jj-tracks(i).seqOfEvents(1,1)));
+            if tracks(i).tracksFeatIndxCG(jj-tracks(i).seqOfEvents(1,1)+1)==0
+                newTracks(i).bkgAmp(jj) = NaN;
             else % tracksFeatIndxCG: [x1 y1 z1 a1 dx1 dy1 dz1 da1 x2 y2 z2 a2 dx2 dy2 dz2 da2 ...]
 %           .tracksFeatIndxCG: Connectivity matrix of features between
 %                              frames, after gap closing. Number of rows
@@ -697,12 +699,12 @@ for i = 1:numel(tracks)
 %                              of losing parts of a segment.
 %                 newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
 %                 newTracks(i).sigma(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).sigmaX(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-                newTracks(i).bkgAmp(j) = detectedNAs(j).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-                newTracks(i).sigma(j) = detectedNAs(j).sigmaX(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
+                newTracks(i).bkgAmp(jj) = detectedNAs(jj).bkg(tracks(i).tracksFeatIndxCG(jj-tracks(i).seqOfEvents(1,1)+1));
+                newTracks(i).sigma(jj) = detectedNAs(jj).sigmaX(tracks(i).tracksFeatIndxCG(jj-tracks(i).seqOfEvents(1,1)+1));
             end
-            newTracks(i).presence(j) = true;
+            newTracks(i).presence(jj) = true;
             if startNA
-                newTracks(i).startingFrame = j;
+                newTracks(i).startingFrame = jj;
                 startNA = false;
             end
         end
@@ -713,142 +715,169 @@ for i = 1:numel(tracks)
     end
     % go through frames again and fill NaNs with numbers at the gap
     % position
-    for j=1:nFrames-1
-        if j<nFrames-9 && sum(newTracks(i).presence(j:j+9))==10 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+9)))==10 
-            gap = 10;
-            for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-                newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
+%     masGap=20;
+%     for gap = masGap:-1:1;
+    jj=newTracks(i).startingFrame;
+    gap=0;
+    while jj<newTracks(i).endingFrame
+        if newTracks(i).presence(jj) && ~isnan(newTracks(i).xCoord(jj))
+            % jump to the next broken block
+            nNextConsecBlock = find(isnan(newTracks(i).xCoord) & newTracks(i).iFrame>jj,1,'first');
+            if isempty(nNextConsecBlock)
+                break % there is no gap afterward
+            else
+                % see if abscence (or gap) is until the end of frame
+                % find the next presence after this gap
+                nNextNextConsecBlock = find(~isnan(newTracks(i).xCoord) & newTracks(i).iFrame>nNextConsecBlock,1,'first');
+                gap = nNextNextConsecBlock-nNextConsecBlock;
+                jj=nNextConsecBlock;
             end
-        elseif j<nFrames-8 && sum(newTracks(i).presence(j:j+8))==9 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+8)))==9 
-            gap = 9;
+        else
             for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-                newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
+                newTracks(i).xCoord(jj+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(jj-1)+kk*newTracks(i).xCoord(jj+gap))/(gap+1);
+                newTracks(i).yCoord(jj+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(jj-1)+kk*newTracks(i).yCoord(jj+gap))/(gap+1);
+                newTracks(i).amp(jj+kk-1) = ((gap+1-kk)*newTracks(i).amp(jj-1)+kk*newTracks(i).amp(jj+gap))/(gap+1);
+                newTracks(i).bkgAmp(jj+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(jj-1)+kk*newTracks(i).bkgAmp(jj+gap))/(gap+1);
             end
-        elseif j<nFrames-7 && sum(newTracks(i).presence(j:j+7))==8 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+7)))==8 
-            gap = 8;
-            for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-                newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
-           end
-        elseif j<nFrames-6 && sum(newTracks(i).presence(j:j+6))==7 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+6)))==7 
-            gap = 7;
-            for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-                newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
-            end
-        elseif j<nFrames-5 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-               && newTracks(i).presence(j+4) && newTracks(i).presence(j+5) && isnan(newTracks(i).xCoord(j)) ...
-               && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))...
-               && isnan(newTracks(i).xCoord(j+4)) && isnan(newTracks(i).xCoord(j+5))
-            newTracks(i).xCoord(j) = (6*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j) = (6*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j) = (6*newTracks(i).amp(j-1)+newTracks(i).amp(j+6))/7;
-            newTracks(i).bkgAmp(j) = (6*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+6))/7;
-            newTracks(i).xCoord(j+1) = (5*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+1) = (5*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+1) = (5*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+6))/7;
-            newTracks(i).bkgAmp(j+1) = (5*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+6))/7;
-            newTracks(i).xCoord(j+2) = (4*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+2) = (4*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+2) = (4*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+6))/7;
-            newTracks(i).bkgAmp(j+2) = (4*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+6))/7;
-            newTracks(i).xCoord(j+3) = (3*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+3) = (3*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+3) = (3*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+6))/7;
-            newTracks(i).bkgAmp(j+3) = (3*newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+6))/7;
-            newTracks(i).xCoord(j+4) = (2*newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+4) = (2*newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+4) = (2*newTracks(i).amp(j-1)+5*newTracks(i).amp(j+6))/7;
-            newTracks(i).bkgAmp(j+4) = (2*newTracks(i).bkgAmp(j-1)+5*newTracks(i).bkgAmp(j+6))/7;
-            newTracks(i).xCoord(j+5) = (newTracks(i).xCoord(j-1)+6*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+5) = (newTracks(i).yCoord(j-1)+6*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+5) = (newTracks(i).amp(j-1)+6*newTracks(i).amp(j+6))/7;
-            newTracks(i).bkgAmp(j+5) = (newTracks(i).bkgAmp(j-1)+6*newTracks(i).bkgAmp(j+6))/7;
-        elseif j<nFrames-4 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-                && newTracks(i).presence(j+4) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) ...
-                && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3)) && isnan(newTracks(i).xCoord(j+4))
-            newTracks(i).xCoord(j) = (5*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j) = (5*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j) = (5*newTracks(i).amp(j-1)+newTracks(i).amp(j+5))/6;
-            newTracks(i).bkgAmp(j) = (5*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+5))/6;
-            newTracks(i).xCoord(j+1) = (4*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+1) = (4*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+1) = (4*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+5))/6;
-            newTracks(i).bkgAmp(j+1) = (4*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+5))/6;
-            newTracks(i).xCoord(j+2) = (3*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+2) = (3*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+2) = (3*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+5))/6;
-            newTracks(i).bkgAmp(j+2) = (3*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+5))/6;
-            newTracks(i).xCoord(j+3) = (2*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+3) = (2*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+3) = (2*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+5))/6;
-            newTracks(i).bkgAmp(j+3) = (2*newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+5))/6;
-            newTracks(i).xCoord(j+4) = (newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+4) = (newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+4) = (newTracks(i).amp(j-1)+5*newTracks(i).amp(j+5))/6;
-            newTracks(i).bkgAmp(j+4) = (newTracks(i).bkgAmp(j-1)+5*newTracks(i).bkgAmp(j+5))/6;
-        elseif j<nFrames-3 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-                && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))
-            newTracks(i).xCoord(j) = (4*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j) = (4*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j) = (4*newTracks(i).amp(j-1)+newTracks(i).amp(j+4))/5;
-            newTracks(i).bkgAmp(j) = (4*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+4))/5;
-            newTracks(i).xCoord(j+1) = (3*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j+1) = (3*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j+1) = (3*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+4))/5;
-            newTracks(i).bkgAmp(j+1) = (3*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+4))/5;
-            newTracks(i).xCoord(j+2) = (2*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j+2) = (2*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j+2) = (2*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+4))/5;
-            newTracks(i).bkgAmp(j+2) = (2*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+4))/5;
-            newTracks(i).xCoord(j+3) = (newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j+3) = (newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j+3) = (newTracks(i).amp(j-1)+4*newTracks(i).amp(j+4))/5;
-            newTracks(i).bkgAmp(j+3) = (newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+4))/5;
-        elseif j<nFrames-2 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) ...
-                && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2))
-            newTracks(i).xCoord(j) = (3*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+3))/4;
-            newTracks(i).yCoord(j) = (3*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+3))/4;
-            newTracks(i).amp(j) = (3*newTracks(i).amp(j-1)+newTracks(i).amp(j+3))/4;
-            newTracks(i).bkgAmp(j) = (3*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+3))/4;
-            newTracks(i).xCoord(j+1) = (2*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+3))/4;
-            newTracks(i).yCoord(j+1) = (2*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+3))/4;
-            newTracks(i).amp(j+1) = (2*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+3))/4;
-            newTracks(i).bkgAmp(j+1) = (2*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+3))/4;
-            newTracks(i).xCoord(j+2) = (newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+3))/4;
-            newTracks(i).yCoord(j+2) = (newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+3))/4;
-            newTracks(i).amp(j+2) = (newTracks(i).amp(j-1)+3*newTracks(i).amp(j+3))/4;
-            newTracks(i).bkgAmp(j+2) = (newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+3))/4;
-        elseif j<nFrames-1 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1))
-            newTracks(i).xCoord(j) = (2*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+2))/3;
-            newTracks(i).yCoord(j) = (2*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+2))/3;
-            newTracks(i).amp(j) = (2*newTracks(i).amp(j-1)+newTracks(i).amp(j+2))/3;
-            newTracks(i).bkgAmp(j) = (2*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+2))/3;
-            newTracks(i).xCoord(j+1) = (newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+2))/3;
-            newTracks(i).yCoord(j+1) = (newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+2))/3;
-            newTracks(i).amp(j+1) = (newTracks(i).amp(j-1)+2*newTracks(i).amp(j+2))/3;
-            newTracks(i).bkgAmp(j+1) = (newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+2))/3;
-        elseif newTracks(i).presence(j) && isnan(newTracks(i).xCoord(j))
-            newTracks(i).xCoord(j) = (newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+1))/2;
-            newTracks(i).yCoord(j) = (newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+1))/2;
-            newTracks(i).amp(j) = (newTracks(i).amp(j-1)+newTracks(i).amp(j+1))/2;
-            newTracks(i).bkgAmp(j) = (newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+1))/2;
+            jj=jj+gap;
         end
     end
+%     end
+%         if j<nFrames-9 && sum(newTracks(i).presence(j:j+9))==10 ...
+%                 && sum(isnan(newTracks(i).xCoord(j:j+9)))==10 
+%             gap = 10;
+%             for kk=1:gap
+%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
+%             end
+%         elseif j<nFrames-8 && sum(newTracks(i).presence(j:j+8))==9 ...
+%                 && sum(isnan(newTracks(i).xCoord(j:j+8)))==9 
+%             gap = 9;
+%             for kk=1:gap
+%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
+%             end
+%         elseif j<nFrames-7 && sum(newTracks(i).presence(j:j+7))==8 ...
+%                 && sum(isnan(newTracks(i).xCoord(j:j+7)))==8 
+%             gap = 8;
+%             for kk=1:gap
+%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
+%            end
+%         elseif j<nFrames-6 && sum(newTracks(i).presence(j:j+6))==7 ...
+%                 && sum(isnan(newTracks(i).xCoord(j:j+6)))==7 
+%             gap = 7;
+%             for kk=1:gap
+%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
+%             end
+%         elseif j<nFrames-5 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
+%                && newTracks(i).presence(j+4) && newTracks(i).presence(j+5) && isnan(newTracks(i).xCoord(j)) ...
+%                && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))...
+%                && isnan(newTracks(i).xCoord(j+4)) && isnan(newTracks(i).xCoord(j+5))
+%             newTracks(i).xCoord(j) = (6*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+6))/7;
+%             newTracks(i).yCoord(j) = (6*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+6))/7;
+%             newTracks(i).amp(j) = (6*newTracks(i).amp(j-1)+newTracks(i).amp(j+6))/7;
+%             newTracks(i).bkgAmp(j) = (6*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+6))/7;
+%             newTracks(i).xCoord(j+1) = (5*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+6))/7;
+%             newTracks(i).yCoord(j+1) = (5*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+6))/7;
+%             newTracks(i).amp(j+1) = (5*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+6))/7;
+%             newTracks(i).bkgAmp(j+1) = (5*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+6))/7;
+%             newTracks(i).xCoord(j+2) = (4*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+6))/7;
+%             newTracks(i).yCoord(j+2) = (4*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+6))/7;
+%             newTracks(i).amp(j+2) = (4*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+6))/7;
+%             newTracks(i).bkgAmp(j+2) = (4*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+6))/7;
+%             newTracks(i).xCoord(j+3) = (3*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+6))/7;
+%             newTracks(i).yCoord(j+3) = (3*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+6))/7;
+%             newTracks(i).amp(j+3) = (3*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+6))/7;
+%             newTracks(i).bkgAmp(j+3) = (3*newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+6))/7;
+%             newTracks(i).xCoord(j+4) = (2*newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+6))/7;
+%             newTracks(i).yCoord(j+4) = (2*newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+6))/7;
+%             newTracks(i).amp(j+4) = (2*newTracks(i).amp(j-1)+5*newTracks(i).amp(j+6))/7;
+%             newTracks(i).bkgAmp(j+4) = (2*newTracks(i).bkgAmp(j-1)+5*newTracks(i).bkgAmp(j+6))/7;
+%             newTracks(i).xCoord(j+5) = (newTracks(i).xCoord(j-1)+6*newTracks(i).xCoord(j+6))/7;
+%             newTracks(i).yCoord(j+5) = (newTracks(i).yCoord(j-1)+6*newTracks(i).yCoord(j+6))/7;
+%             newTracks(i).amp(j+5) = (newTracks(i).amp(j-1)+6*newTracks(i).amp(j+6))/7;
+%             newTracks(i).bkgAmp(j+5) = (newTracks(i).bkgAmp(j-1)+6*newTracks(i).bkgAmp(j+6))/7;
+%         elseif j<nFrames-4 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
+%                 && newTracks(i).presence(j+4) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) ...
+%                 && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3)) && isnan(newTracks(i).xCoord(j+4))
+%             newTracks(i).xCoord(j) = (5*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+5))/6;
+%             newTracks(i).yCoord(j) = (5*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+5))/6;
+%             newTracks(i).amp(j) = (5*newTracks(i).amp(j-1)+newTracks(i).amp(j+5))/6;
+%             newTracks(i).bkgAmp(j) = (5*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+5))/6;
+%             newTracks(i).xCoord(j+1) = (4*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+5))/6;
+%             newTracks(i).yCoord(j+1) = (4*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+5))/6;
+%             newTracks(i).amp(j+1) = (4*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+5))/6;
+%             newTracks(i).bkgAmp(j+1) = (4*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+5))/6;
+%             newTracks(i).xCoord(j+2) = (3*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+5))/6;
+%             newTracks(i).yCoord(j+2) = (3*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+5))/6;
+%             newTracks(i).amp(j+2) = (3*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+5))/6;
+%             newTracks(i).bkgAmp(j+2) = (3*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+5))/6;
+%             newTracks(i).xCoord(j+3) = (2*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+5))/6;
+%             newTracks(i).yCoord(j+3) = (2*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+5))/6;
+%             newTracks(i).amp(j+3) = (2*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+5))/6;
+%             newTracks(i).bkgAmp(j+3) = (2*newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+5))/6;
+%             newTracks(i).xCoord(j+4) = (newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+5))/6;
+%             newTracks(i).yCoord(j+4) = (newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+5))/6;
+%             newTracks(i).amp(j+4) = (newTracks(i).amp(j-1)+5*newTracks(i).amp(j+5))/6;
+%             newTracks(i).bkgAmp(j+4) = (newTracks(i).bkgAmp(j-1)+5*newTracks(i).bkgAmp(j+5))/6;
+%         elseif j<nFrames-3 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
+%                 && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))
+%             newTracks(i).xCoord(j) = (4*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+4))/5;
+%             newTracks(i).yCoord(j) = (4*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+4))/5;
+%             newTracks(i).amp(j) = (4*newTracks(i).amp(j-1)+newTracks(i).amp(j+4))/5;
+%             newTracks(i).bkgAmp(j) = (4*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+4))/5;
+%             newTracks(i).xCoord(j+1) = (3*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+4))/5;
+%             newTracks(i).yCoord(j+1) = (3*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+4))/5;
+%             newTracks(i).amp(j+1) = (3*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+4))/5;
+%             newTracks(i).bkgAmp(j+1) = (3*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+4))/5;
+%             newTracks(i).xCoord(j+2) = (2*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+4))/5;
+%             newTracks(i).yCoord(j+2) = (2*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+4))/5;
+%             newTracks(i).amp(j+2) = (2*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+4))/5;
+%             newTracks(i).bkgAmp(j+2) = (2*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+4))/5;
+%             newTracks(i).xCoord(j+3) = (newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+4))/5;
+%             newTracks(i).yCoord(j+3) = (newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+4))/5;
+%             newTracks(i).amp(j+3) = (newTracks(i).amp(j-1)+4*newTracks(i).amp(j+4))/5;
+%             newTracks(i).bkgAmp(j+3) = (newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+4))/5;
+%         elseif j<nFrames-2 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) ...
+%                 && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2))
+%             newTracks(i).xCoord(j) = (3*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+3))/4;
+%             newTracks(i).yCoord(j) = (3*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+3))/4;
+%             newTracks(i).amp(j) = (3*newTracks(i).amp(j-1)+newTracks(i).amp(j+3))/4;
+%             newTracks(i).bkgAmp(j) = (3*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+3))/4;
+%             newTracks(i).xCoord(j+1) = (2*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+3))/4;
+%             newTracks(i).yCoord(j+1) = (2*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+3))/4;
+%             newTracks(i).amp(j+1) = (2*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+3))/4;
+%             newTracks(i).bkgAmp(j+1) = (2*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+3))/4;
+%             newTracks(i).xCoord(j+2) = (newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+3))/4;
+%             newTracks(i).yCoord(j+2) = (newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+3))/4;
+%             newTracks(i).amp(j+2) = (newTracks(i).amp(j-1)+3*newTracks(i).amp(j+3))/4;
+%             newTracks(i).bkgAmp(j+2) = (newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+3))/4;
+%         elseif j<nFrames-1 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1))
+%             newTracks(i).xCoord(j) = (2*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+2))/3;
+%             newTracks(i).yCoord(j) = (2*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+2))/3;
+%             newTracks(i).amp(j) = (2*newTracks(i).amp(j-1)+newTracks(i).amp(j+2))/3;
+%             newTracks(i).bkgAmp(j) = (2*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+2))/3;
+%             newTracks(i).xCoord(j+1) = (newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+2))/3;
+%             newTracks(i).yCoord(j+1) = (newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+2))/3;
+%             newTracks(i).amp(j+1) = (newTracks(i).amp(j-1)+2*newTracks(i).amp(j+2))/3;
+%             newTracks(i).bkgAmp(j+1) = (newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+2))/3;
+%         elseif newTracks(i).presence(j) && isnan(newTracks(i).xCoord(j))
+%             newTracks(i).xCoord(j) = (newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+1))/2;
+%             newTracks(i).yCoord(j) = (newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+1))/2;
+%             newTracks(i).amp(j) = (newTracks(i).amp(j-1)+newTracks(i).amp(j+1))/2;
+%             newTracks(i).bkgAmp(j) = (newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+1))/2;
+%         end
+%     end
     if isempty(newTracks(i).startingFrame)
         warning(['startingFrame is empty for track #' num2str(i)])
     end

@@ -1,4 +1,5 @@
-function [similarity_scoremap_cell,difference_map_cell]=load_MD_network_for_compare(MD,radius,show_save_everything_flag,...
+function [similarity_scoremap_cell,difference_map_cell]=...
+    load_MD_network_for_compare(MD,radius,show_save_everything_flag,...
     longest_radius,sigma_gaussian, sigma_d, sigma_theta)
 % function to compare two networks
 % Input:   MD: movieData object loaded
@@ -46,7 +47,10 @@ if(isempty(sigma_theta))
      sigma_theta = pi/(2*sqrt(3));
 end
 
-
+sigma_gaussian_ratio =     sigma_gaussian/((3*radius/8));
+sigma_d_ratio =     sigma_d/((sqrt(3)*radius/4)) ;
+sigma_theta_ratio =     sigma_theta/((pi/(2*sqrt(3))));
+ 
 
 package_process_ind_script;
 
@@ -58,16 +62,23 @@ VIF_model = cell(1,nFrame);
 MT_model = cell(1,nFrame);
 % flatten_dir{1} = MD.processes_{3}.outFilePaths_{1};
 % flatten_dir{2} = MD.processes_{3}.outFilePaths_{2};
-outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},filesep,'similarity_results'];
-if(flag_default==1)
-    customized_outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},filesep,...
-        'similarity_results_r',num2str(radius),'_s_default'];
-else
-    customized_outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},filesep,...
-        'similarity_results_r',num2str(radius),'_sg',num2str(sigma_gaussian,'%.1f'),...
-        '_sd',num2str(sigma_d,'%.1f'),...
-        '_sa',num2str(sigma_theta,'%.1f')];
+outdir = [MD.outputDirectory_,filesep,'ch',num2str(iChannel1),'_',num2str(iChannel2),'_similarity_results'];
+
+if(~exist(outdir,'dir'))
+    mkdir(outdir);
 end
+
+if(flag_default==1)
+    customized_outdir = [MD.outputDirectory_,filesep,'ch',num2str(iChannel1),'_',num2str(iChannel2),...
+        '_similarity_r',num2str(radius),'_s_default'];
+else
+      customized_outdir = [MD.outputDirectory_,filesep,'ch',num2str(iChannel1),'_',num2str(iChannel2),...
+        '_similarity_r',num2str(radius),'_sg',num2str(round(sigma_gaussian_ratio*100),'%d'),...
+        '_sd',num2str(round(sigma_d_ratio*100),'%d'),...
+        '_sa',num2str(round(sigma_theta_ratio*100),'%d')];
+%     customized_outdir(customized_outdir=='.')='p';
+end
+
 
 if(~exist(outdir,'dir'))
     mkdir(outdir);
@@ -186,9 +197,22 @@ for iFrame = 1 : nFrame
     % put results for all the frames together
     similarity_scoremap_cell{1, iFrame} = similarity_scoremap;
     difference_map_cell{1, iFrame} = difference_map;
-        
+    
+    
+    save([outdir,filesep,'Similarity_maps_frame',num2str(iFrame),'.mat'], 'similarity_scoremap', 'difference_map');
+    save([customized_outdir,filesep,'Similarity_maps_frame',num2str(iFrame),'.mat'], 'similarity_scoremap', 'difference_map');
+    
+    
     %       close all;
 end
 
-winopen(outdir);
-
+        
+save([outdir,filesep,'VIFMT_sm_maps_allframe.mat'], ...
+    'similarity_scoremap_cell','difference_map_cell');
+        
+save([customized_outdir,filesep,'VIFMT_sm_maps_allframe.mat'], ...
+    'similarity_scoremap_cell','difference_map_cell',...
+    
+% 
+% winopen(outdir);
+% 

@@ -2,8 +2,11 @@
 % load('movieData.mat')
 load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130429_cell11_100f/ROI/Colocalization/Region1_gc5/data/tracksNA.mat')
 MD=MovieData.load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130429_cell11_100f/ROI/movieData.mat');
+% Do it for 130511 Cell2 before FAKi too
+load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130511 Cell2 beforeFAKi/ROItop/Colocalization/tracksSeparation/data/tracksNA.mat')
+MD=MovieData.load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130511 Cell2 beforeFAKi/ROItop/movieData.mat');
 %% separateMatureAdhesionTracks
-outputPath = [MD.getPath filesep 'Colocalization' filesep 'trackSeparation'];
+outputPath = [MD.getPath filesep 'Colocalization' filesep 'tracksSeparation'];
 tracksNA = separateMatureAdhesionTracks(tracksNA, outputPath);
 %% checkAdhesionFateSpatialIndependence
 pixSize = MD.pixelSize_; % 72 nm/pixel

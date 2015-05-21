@@ -140,7 +140,6 @@ end
 
 [reg_grid,~,~,spacing]=createRegGridFromDisplField(displField,4); %2=2 times fine interpolation
 
-hold off
 hl = []; %handle for scale bar
 iiformat = ['%.' '3' 'd'];
 TSlevel = zeros(nFrames,1);
@@ -184,19 +183,23 @@ if ~isempty(iMask)
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
         I = padarray(bwPI4, [maxY, maxX]);
         bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    else
+        iMask = movieData.getProcessIndex('ThresholdProcess');
+        maskProc = movieData.getProcess(iMask);
+        bwPI4 = maskProc.loadChannelOutput(iChan,ii);
+        if ~isempty(iSDCProc)
+            maxX = ceil(max(abs(T(:, 2))));
+            maxY = ceil(max(abs(T(:, 1))));
+            Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+            I = padarray(bwPI4, [maxY, maxX]);
+            bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+        end
     end
 else
-    iMask = movieData.getProcessIndex('ThresholdProcess');
-    maskProc = movieData.getProcess(iMask);
-    bwPI4 = maskProc.loadChannelOutput(iChan,ii);
-    if ~isempty(iSDCProc)
-        maxX = ceil(max(abs(T(:, 2))));
-        maxY = ceil(max(abs(T(:, 1))));
-        Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-        I = padarray(bwPI4, [maxY, maxX]);
-        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
-    end
-end    
+    % if there was no cell mask, just use the entire pixel as a mask
+    firstBeadImg=SDCProc.loadChannelOutput(iBeadChan,1);
+    bwPI4 = true(size(firstBeadImg,1),size(firstBeadImg,2));
+end
 strainEnergy = zeros(nFrames,1);
 % Boundary cutting - I'll take care of this boundary effect later
 if band>0
@@ -214,6 +217,7 @@ if ~isempty(selectedChannel)
     totalIntSelecChan = zeros(nFrames,1);
     pixelIntSelecChan = zeros(nSegPixel,nFrames);
 end
+h1 = figure('color','w');
 for ii=1:nFrames
     [grid_mat,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
     pos = [reshape(grid_mat(:,:,1),[],1) reshape(grid_mat(:,:,2),[],1)]; %dense
@@ -231,7 +235,6 @@ for ii=1:nFrames
 %             'EdgeColor','none', 'FaceLighting','gouraud');%, 'FaceLighting','phong');
 %         zlim([tmin tmax]), view(0,90)
 %     hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
-    h1 = figure('color','w');
     imSizeX = grid_mat(end,end,1)-grid_mat(1,1,1);
     imSizeY = grid_mat(end,end,2)-grid_mat(1,1,2);
     set(h1, 'Position', [100 100 (imSizeX+1)*1.25 imSizeY+1])
@@ -292,7 +295,7 @@ for ii=1:nFrames
         disp(['Scale bar: ', num2str(scale), ' um.'])
     end
     axis off
-    hold on
+    hold off
     subplot('Position',[0.8 0.1 0.1 0.8])
     axis tight
     caxis([tmin tmax]), axis off
@@ -483,13 +486,13 @@ for ii=1:nFrames
     print(h1,strcat(epsPath,'/stressMagEps',num2str(ii,iiformat),'.eps'),'-depsc2')
     hold off
 %     delete(hs)
-    delete(hq)
-    delete(hl);
-    delete(hc);
-    hl = []; %handle for scale bar
-    
-    close(h1)
+%     delete(hq)
+%     delete(hl);
+%     delete(hc);
+%     hl = []; %handle for scale bar
+%     
 end
+close(h1)
 return;
 % to run the function:
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);

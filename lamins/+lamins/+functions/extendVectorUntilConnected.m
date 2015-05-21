@@ -6,6 +6,8 @@ function [ extended, extended_raw ] = extendVectorUntilConnected( bw, pts, vecto
 %
 % pts a p x 2 matrix describing the starting point [x y] or [c r]
 %   for extension and is   usually an endpoint of a segment from bwmorph
+%   Alternatively a vector of linear indices for bw
+%   Alternatively a logical vector
 %
 % vector is either a vector with length p containing the vector angles
 %   or a p x 2 matrix containing the change in [x y] or [c r]
@@ -26,6 +28,11 @@ end
 if(size(pts,2) == 2)
     c = pts(:,1);
     r = pts(:,2);
+elseif(isvector(pts))
+    if(islogical(pts))
+        pts = find(pts);
+    end    
+    [r,c] = ind2sub(size(bw),pts);
 else
     [r,c] = find(pts);
 end
@@ -66,9 +73,15 @@ keepExtending = ~isnan(u);
 for i=1:maxPixels
     keepExtending(vvr(:,i) < 1) = false;
     keepExtending(uuc(:,i) < 1) = false;
-    keepExtending(vvr(:,i) > 1024) = false;
-    keepExtending(uuc(:,i) > 1024) = false;
+    keepExtending(vvr(:,i) > size(bw,1)) = false;
+    keepExtending(uuc(:,i) > size(bw,2)) = false;
     extend_idx = sub2ind(size(bw),vvr(keepExtending,i),uuc(keepExtending,i));
+    
+    % 2015 05 18
+    % If we bump directly into something while extending, stop
+    keepExtending(keepExtending) = ~bw(extend_idx);
+    extend_idx = extend_idx(~bw(extend_idx));
+    
     extended(extend_idx) = 1;
     neighbors = imfilter(extended,neighborsFilter);
     extend_neighbors = zeros(size(keepExtending));

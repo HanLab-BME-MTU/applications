@@ -26,6 +26,10 @@ if(~exist('radius','var'))
     radius = 20;
 end
 
+if(~exist('longest_radius','var'))
+    longest_radius = 2*radius;
+end
+
 if(~exist('figure_flag','var'))
     figure_flag = 0;
 end
@@ -78,7 +82,6 @@ for iM  = 1 :movieNumber
     display('======================================================================');
     display(['iM:', num2str(iM)]);
     
-   
     load_2_MD_network_for_dynamics_compare(ML.movieDataFile_{iM},iChannel1, start_frame1,...
     ML.movieDataFile_{iM}, iChannel2, start_frame2, ...
     radius,show_save_everything_flag,...

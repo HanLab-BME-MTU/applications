@@ -116,6 +116,8 @@ ip.addParameter('interval',num2cell(cell(1,nCell)),@iscell);
 ip.addParameter('lwPerc',2.5,@isscalar);
 ip.addParameter('upPerc',97.5,@isscalar);
 ip.addParameter('selectMotion',{[]},@iscell);
+ip.addParameter('fixJump', false,@islogical);
+ip.addParameter('jumps',cell(1,nCell),@iscell);
 
 ip.parse(movieObj,varargin{:});
 nBoot       = ip.Results.nBoot;
@@ -136,6 +138,8 @@ winInterval = ip.Results.winInterval;
 upPerc      = ip.Results.upPerc;
 lwPerc      = ip.Results.lwPerc;
 selection   = ip.Results.selectMotion;
+fixJump     = ip.Results.fixJump;
+jumps       = ip.Results.jumps;
 
 if numel(interval) == 1
     interval = repmat(interval,1,nCell);
@@ -151,7 +155,7 @@ end
 
 
 %% Formatting Time Series
-operations = {'interval',interval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName};
+operations = {'interval',interval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName,'fixJump',fixJump,'jumps',jumps};
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
 winFlag    = false;
 

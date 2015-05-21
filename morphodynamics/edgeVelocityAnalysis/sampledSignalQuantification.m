@@ -87,10 +87,10 @@ function cellData = sampledSignalQuantification(movieObj,channel,varargin)
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
 ip.addRequired('channel',@isscalar);
-ip.addParamValue('nBoot',1e3,@isscalar);
-ip.addParamValue('alpha',.05,@isscalar);
-ip.addParamValue('cluster',false,@isscalar);
-ip.addParamValue('nCluster',2,@isscalar);
+ip.addParameter('nBoot',1e3,@isscalar);
+ip.addParameter('alpha',.05,@isscalar);
+ip.addParameter('cluster',false,@isscalar);
+ip.addParameter('nCluster',2,@isscalar);
 
 
 if isa(movieObj,'MovieData')
@@ -106,15 +106,17 @@ end
 nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
-ip.addParamValue('includeWin', cell(1,nCell),@iscell);
-ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
-ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
-ip.addParamValue('trendType',-ones(1,nCell),@isvector);
-ip.addParamValue('minLength', 10*ones(1,nCell),@isvector);
-ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
-ip.addParamValue('outputPath','sampledSignalQuantification',@isstr);
-ip.addParamValue('fileName','Signal',@isstr);
-ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('includeWin', cell(1,nCell),@iscell);
+ip.addParameter('winInterval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('outLevel',  zeros(1,nCell),@isvector);
+ip.addParameter('trendType',-ones(1,nCell),@isvector);
+ip.addParameter('minLength', 10*ones(1,nCell),@isvector);
+ip.addParameter('gapSize',   zeros(1,nCell),@isvector);
+ip.addParameter('outputPath','sampledSignalQuantification',@isstr);
+ip.addParameter('fileName','Signal',@isstr);
+ip.addParameter('interval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('fixJump', false,@islogical);
+ip.addParameter('jumps',cell(1,nCell),@iscell);
 
 ip.parse(movieObj,channel,varargin{:});
 
@@ -126,9 +128,11 @@ outputPath  = ip.Results.outputPath;
 fileName    = ip.Results.fileName;
 gapSize     = ip.Results.gapSize;
 winInterval = ip.Results.winInterval;
+fixJump     = ip.Results.fixJump;
+jumps       = ip.Results.jumps;
 
 %% Formatting Time Series
-operations = {'channel',channel,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'outputPath',outputPath,'fileName',fileName};
+operations = {'channel',channel,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'outputPath',outputPath,'fileName',fileName,'fixJump',fixJump,'jumps',jumps};
 cellData   = formatMovieListTimeSeriesProcess(ML,'WindowSamplingProcess',operations{:});
 
 for iCell = 1:nCell

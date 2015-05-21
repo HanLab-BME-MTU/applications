@@ -14,8 +14,8 @@ elseif nargin == 2
     edgeErode=1;
 end
 % First get the corners (here we take field no.1 but that is arbitrary):
-LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
-RightLowerCorner(1:2) = [max(displField(1).pos(:,1)), max(displField(1).pos(:,2))];
+LeftUpperCorner(1:2) = floor([min(displField(1).pos(:,1)), min(displField(1).pos(:,2))]);
+RightLowerCorner(1:2) = ceil([max(displField(1).pos(:,1)), max(displField(1).pos(:,2))]);
 oldSize=RightLowerCorner-LeftUpperCorner;
 
 % Next get the average inter bead distance (here we take field no.1 but that is arbitrary):

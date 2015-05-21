@@ -1,0 +1,64 @@
+RUN:
+
+To use the MovThresh GUI, open "MovThresh.m" file in MATLAB and select the "Run" menu option.
+
+INPUT:
+
+The input for the GUI is assumed to be a gray-scale TIF file. It can be a single-frame or a multi-frame (stack) file. 
+If you try to import a colored image or a multi-channel file, the GUI will always read the red component or the first channel. 
+If you have your files in different format, please use ImageJ or any other available software for conversion to the TIF format. 
+
+OUTPUT:
+
+The output is a thresholded mask as a 16-bit TIF file. It is a single-frame or a multi-frame (stack) file depending on 
+whether the input was a single- or multi-frame file. 
+
+PROCESSING STEPS:
+
+1. Import a file for processing using the GUI menu: File -> Import (.tif). The GUI will automatically threshold each frame and 
+display the object's boundary and the threshold vales as a function of time.
+Use the frame slider under the image to see the results for different frames and assess to quality of the automatic thresholding. 
+If the boundary is properly detected, no further steps are required and you can save the masks using the menu: File -> Save as masks. 
+Otherwise, proceed to step 2.
+
+2. Select "Smoothed Curve" in the "Curve selection" box. The red curve will appear over the suggested threshold values (blue curve). 
+Click "Re-threshold" button to threshold images according to the red-curve values. You can move the red curve up and down 
+using the vertical slider on the right. To check the results for new values, click "Re-threshold". To change the range of 
+the threshold values type the maximum and minimum values above and below the slider, respectively. If the boundary is properly detected now, 
+no further steps are required and you can save the masks using the menu: File -> Save as masks. Otherwise, proceed to step 3.
+
+3. Select "Custom Curve" in the "Curve selection" box. A black line with two pivot points for the first and the last frame 
+will appear over the suggested threshold values. To create and/or move pivot points, select the time frame with the slider 
+under the image and use the vertical slider on the right to change the threshold value. To remove a pivot point, select the time frame 
+with the slider under the image and click the "Remove pivot" button. To remove all pivot points except for the first and the last frame, 
+click "Reset mean line" button. To check the results for new threshold values, click "Re-threshold". To explore the results of 
+thresholding for a given time frame within a range of threshold values, select the time frame and click "Threshold range". Now using 
+the vertical slider on the right, you can see how the object boundary changes with the change of threshold values. With such manual 
+adjustments any desired time dependence of threshold values can be set up. If the boundary is properly detected now, no further steps 
+are required and you can save the masks using the menu: File -> Save as masks. If not, the amplitude thresholding is not a proper 
+segmentation procedure for your data and a different tool is needed for segmentation.
+
+WARNINGS:
+
+1. Do not forget to click "Re-threshold" after manipulations with the threshold curves before saving the results.
+
+2. If there are several objects in the image, the GUI will process only the biggest one. If two or more objects in the image 
+are close in size, so that different objects get processed in different frames, we recommend to pre-process the data (e.g. in ImageJ) 
+so that only one large object is present in the imported image. The GUI saves as a mask only one (the largest) object.
+
+OPTIONS: 
+
+1. "Zoom in", "Zoom out" and "Pan" tools are available in the toolbar under the menu for a closer look at the parts of boundary and 
+assessment of the detection quality. 
+
+2. "Colormap" in the menu allows you to change the default colormap of the image.
+
+3. "Boundary line" in the menu allows you to change the color of the object boundary.
+
+4. "Algorithm" in the menu allows you to switch between two algorithms of the automatic thresholding: histogram dip between noise 
+and signal and the Otsu algorithm.
+
+5. "Boost resolution" converts NxM image into (2N)x(2M) image using bilinear interpolation. If boosting is selected, the tif file 
+will have to be imported again. The saved file will also have a (2N)x(2M) pixel size. 
+
+

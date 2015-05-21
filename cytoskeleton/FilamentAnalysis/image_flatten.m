@@ -58,11 +58,16 @@ nFrame = movieData.nFrames_;
 % default image flateen output dir
 ImageFlattenProcessOutputDir = [movieData.outputDirectory_, filesep 'ImageFlatten'];
 
-if(~isempty(funParams.outputDir))
-    % if there is a user defined folder as output folder
-    % definitely follow that
-    ImageFlattenProcessOutputDir = funParams.outputDir;
-else
+%%
+% user defined way is not working for the GUI interface part if a ML is
+% defined and applied setting to all of the movies, (which causes the
+% folder all changed into movie 1)
+
+% if(~isempty(funParams.outputDir))
+%     % if there is a user defined folder as output folder
+%     % definitely follow that
+%     ImageFlattenProcessOutputDir = funParams.outputDir;
+% else
     % if there is no user defined, but there is a filamentanalysispackage
     % and there is a defined folder for the package, append for that.
     if (indexFilamentPackage>0)
@@ -75,7 +80,7 @@ else
             ImageFlattenProcessOutputDir  = [movieData.packages_{indexFilamentPackage}.outputDirectory_, filesep 'ImageFlatten'];
         end
     end
-end
+% end
 
 if (~exist(ImageFlattenProcessOutputDir,'dir'))
     mkdir(ImageFlattenProcessOutputDir);
@@ -466,3 +471,6 @@ for iChannel = selected_channels
     %%
     % this the end of "for" of each channel
 end
+
+movieData.sanityCheck();
+

@@ -306,7 +306,7 @@ for iChannel = validChannels
         if(indexCellRefineProcess>0 && vimscreen_flag == 0)
             try
                 Cell_Mask = CellROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
-              Cell_Mask(Cell_Mask==0)=nan;
+%               Cell_Mask(Cell_Mask==0)=nan;
       
             end            
         end

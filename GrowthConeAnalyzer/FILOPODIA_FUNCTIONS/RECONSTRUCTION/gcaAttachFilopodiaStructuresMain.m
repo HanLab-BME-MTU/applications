@@ -1,4 +1,4 @@
-function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,bodyMask,scaleMap,maxRes,maxTh,nImTot,analInfoC,normalC,smoothedEdgeC,iFrame,framesPath)
+function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,bodyMask,scaleMap,maxRes,maxTh,analInfoC,normalC,smoothedEdgeC,iFrame,framesPath)
 % gcaAttachFilopodiaStructures: was
 % cleanMaskWithBackEst_withInternalFiloClean until 20141022
 % Cleans the steerable filter ridge response based on the neurite body
@@ -13,11 +13,11 @@ function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,b
 % skelIn : the response from the steerable filter-maxNMS-thresholding
 %          that needs to be cleaned
 % bodyMask: the estimated outline from the body of the neurite to make the
-% seed (rename veilStem Mask) 
+% seed (rename veilStem Mask)
 % scaleMap: the scalemap corresponding to the multiscale steerable filter %
 % no longer using scales (all one scale at this point - was previoulsy
-% using the scales to try to get some estimate of the filopodia thickness. 
-% 
+% using the scales to try to get some estimate of the filopodia thickness.
+%
 % preConnInt
 %
 % OUTPUT:
@@ -36,15 +36,15 @@ function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,b
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% PREPARE HIGH CONFIDENCE RIDGE 'SEEDS' FOR SUBSEQUANT ITERATIVE MATCHING STEPS 
-% Notes: ridge junctions are typically not reliably detected in the NMS and 
-% if they are (we should re-check the NMS code - it is debatable if they 
-% should exist at all)- it is often ambigious as to whether these are a 
-% cross-over, a branch-point, or noise. Therefore we break them here so we 
-% can appropriately assign these junction pixels to individual filopdodia in the 
-% subsequent matching steps. 
+%% PREPARE HIGH CONFIDENCE RIDGE 'SEEDS' FOR SUBSEQUANT ITERATIVE MATCHING STEPS
+% Notes: ridge junctions are typically not reliably detected in the NMS and
+% if they are (we should re-check the NMS code - it is debatable if they
+% should exist at all)- it is often ambigious as to whether these are a
+% cross-over, a branch-point, or noise. Therefore we break them here so we
+% can appropriately assign these junction pixels to individual filopdodia in the
+% subsequent matching steps.
 
-% Initiate the cleaned array. 
+% Initiate the cleaned array.
 skelInClean = skelIn;
 
 % Break the junctions
@@ -57,23 +57,23 @@ skelInClean(junctionMask) =0;
 %testing
 % % % figure
 % % % imshow(-img,[]);
-% % % hold on 
-% % % spy(skelInClean,'r'); 
+% % % hold on
+% % % spy(skelInClean,'r');
 % Remove candidate ridges less than 3 pixels (note this might eventually
 % be a problem is have small spans of filopodia between small branches
 % Can potentially save these in two ways do not remove if segment
 % surrounded by two junctions or could potential clean using graph matching
 % later
 % individual ridges: connected components
-CCRidges = bwconncomp(skelInClean,8); % FIRST PLACE WHERE I BEGIN TO FILTER out signal 
+CCRidges = bwconncomp(skelInClean,8); % FIRST PLACE WHERE I BEGIN TO FILTER out signal
 csize = cellfun(@(c) numel(c), CCRidges.PixelIdxList);
 nsmall = sum(csize<=3);
 CCRidges.NumObjects = CCRidges.NumObjects-nsmall;
 CCRidges.PixelIdxList(csize<=3) = [];
 
-% MASK OF CLEANED RIDGES MINUS ALL JUNCTIONS 
+% MASK OF CLEANED RIDGES MINUS ALL JUNCTIONS
 prunedMask = labelmatrix(CCRidges)>0;
-%%%spy(prunedMask,'b'); 
+%%%spy(prunedMask,'b');
 % MASK OF EXTERNAL FILOPODIA RIDGE CANDIDATES
 filoTips = prunedMask.*~bodyMask;
 
@@ -84,17 +84,17 @@ idx  = cellfun(@(x) sub2ind(size(img),x(:,1),x(:,2)),neuriteEdge,'uniformoutput'
 idx = vertcat(idx{:});
 edgeMask(idx) = 1;
 
-% CREATE THE HIGH CONDIDENCE 'SEED' (IE THOSE CANDIDATES DIRECTLY ATTACHED 
-% TO THE VEIL STEM ESTIMATION - 
+% CREATE THE HIGH CONDIDENCE 'SEED' (IE THOSE CANDIDATES DIRECTLY ATTACHED
+% TO THE VEIL STEM ESTIMATION -
 % NOTE: This seed will be used for iterative graph matching steps to
-% attach by internal and external filopodia riges based on geometry.  
+% attach by internal and external filopodia riges based on geometry.
 filoExtAll = (filoTips|edgeMask);
 
 
 %MARIA CHECK BEFORE RELEASE - MAKE SURE OPTION FOR INTERNAL IS STABLE AND
-%DOESN'T CRASH 
+%DOESN'T CRASH
 %% INTERNAL LINKING OPTION
-preConnInt = 1; % MAKE FORMAL INPUT - NEED TO MAKE AN OPTION 
+preConnInt = 1; % MAKE FORMAL INPUT - NEED TO MAKE AN OPTION
 if preConnInt == 1
     filoExtSeedForInt = double(getLargestCC(filoExtAll));
     filoExtSeedForInt = filoExtSeedForInt.*~edgeMask;
@@ -141,7 +141,7 @@ if preConnInt == 1
     CCFiloExtSeedForInt = bwconncomp(filoExtSeedForInt);
     
     seedFilo1EPs = cellfun(@(x) getEndpoints(x,size(img)),CCFiloExtSeedForInt.PixelIdxList,'uniformoutput',0);
-   
+    
     % filter out those CCs with no or more than 2 end points
     weirdSeed = cellfun(@(x) size(x,1)~=2,seedFilo1EPs);
     seedFilo1EPs = seedFilo1EPs(~weirdSeed);
@@ -299,7 +299,7 @@ if preConnInt == 1
     csize = cellfun(@(x) size(x,1), CCInt.PixelIdxList);
     CCInt.PixelIdxList(csize<=2) =  [];
     CCInt.NumObjects = CCInt.NumObjects - sum(csize<=2);
-     
+    
     %GetInternal Endpoints
     
     internalFilo1EPs = cellfun(@(x) getEndpoints(x,size(img)),CCInt.PixelIdxList,'uniformoutput',0);
@@ -385,211 +385,211 @@ if preConnInt == 1
         % do it for internal candidate coords
         idxKeepInt = vertcat(idxKeepInt{:});
         if ~isempty(idxKeepInt)
-        idxKeepExtSeed = vertcat(idxKeepExtSeed{:})';
-        %
-        % % for now just do a for loop  ** work out better later if can **
-        % % get the internalFiloCoordsClosest to the edge
-        for i = 1:length(idxKeepInt)
-            internalFilo1EPsFinal{i} = internalFilo1EPs{i}(idxKeepInt(i),:); % just take the point closest to the neurite edge
-        end
-        %
-        %cellfun(@(x) (x(1,1)-x(1,2))^2
-        internalFilo1EPsFinal = vertcat(internalFilo1EPsFinal{:}); % only the coords closest to the cell edge will
-        %
-        % do it for external candidate coords
-        for i = 1:length(idxKeepExtSeed)
-            seedFilo1EPsFinal{i} = seedFilo1EPs{i}(idxKeepExtSeed(i),:);
-        end
-        %
-        %
-        seedFilo1EPsFinal = vertcat(seedFilo1EPsFinal{:});
-        %
-        %  % Only one end-point per candidate/seed (the closet to the neurite body)
-        %  % will now be considered for matching
-        
-        % make labelMatCandidate
-        labelMatCandInt1 = labelmatrix(CCInt);
-        
-        internalFiloSpur =double(labelMatCandInt1>0);
-        reconstruct.Int.Seed{1} = filoExtSeedForInt; % internal candidates
-        reconstruct.Int.Cand{1} = internalFiloSpur; % interal Candidates
-        
-        
-        
-        
-        
-        %% Troubleshoot figure internal
-        troubleShootFigs.internal = 1;
-        if troubleShootFigs.internal == 1
-            inSpurDir = [framesPath filesep 'TroubleShoot_Internal' filesep 'internalFiloBeforeSpur' ];
-            if ~isdir(inSpurDir)
-                mkdir(inSpurDir)
+            idxKeepExtSeed = vertcat(idxKeepExtSeed{:})';
+            %
+            % % for now just do a for loop  ** work out better later if can **
+            % % get the internalFiloCoordsClosest to the edge
+            for i = 1:length(idxKeepInt)
+                internalFilo1EPsFinal{i} = internalFilo1EPs{i}(idxKeepInt(i),:); % just take the point closest to the neurite edge
             end
-            [ny,nx] = size(img);
-            h = setFigure(nx,ny);
-            
-            imshow(img,[]);
-            hold on
-            
-            spy(internalFilo,'g'); % green is the original filo detection after thresholding
-            saveas(gcf,[inSpurDir filesep 'interalFiloBeforeSpur' num2str(iFrame) '.tif']);
-            
-            spy(internalFiloSpur,'b'); % blue is after spur
-            saveas(gcf,[inSpurDir filesep 'internalFiloAfterCleanUp' num2str(iFrame) '.tif']);
-            close gcf
-            linkDir = [framesPath filesep 'TroubleShoot_Internal' filesep 'GraphConnect'];
-            if ~isdir(linkDir)
-                mkdir(linkDir)
+            %
+            %cellfun(@(x) (x(1,1)-x(1,2))^2
+            internalFilo1EPsFinal = vertcat(internalFilo1EPsFinal{:}); % only the coords closest to the cell edge will
+            %
+            % do it for external candidate coords
+            for i = 1:length(idxKeepExtSeed)
+                seedFilo1EPsFinal{i} = seedFilo1EPs{i}(idxKeepExtSeed(i),:);
             end
-            h = setFigure(nx,ny);
-            imshow(img,[]);
-            hold on
+            %
+            %
+            seedFilo1EPsFinal = vertcat(seedFilo1EPsFinal{:});
+            %
+            %  % Only one end-point per candidate/seed (the closet to the neurite body)
+            %  % will now be considered for matching
             
-            scatter(internalFilo1EPsFinal(:,1),internalFilo1EPsFinal(:,2),20,'b','filled'); % the endpoint to connect
-            scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),20,'r','filled');
-            spy(internalFiloSpur,'b');
+            % make labelMatCandidate
+            labelMatCandInt1 = labelmatrix(CCInt);
+            
+            internalFiloSpur =double(labelMatCandInt1>0);
+            reconstruct.Int.Seed{1} = filoExtSeedForInt; % internal candidates
+            reconstruct.Int.Cand{1} = internalFiloSpur; % interal Candidates
             
             
-        end
-        %%
-        % run through
-        % maskpostconnect1 should have all the CC filos after first connection
-        % between in and out
-        [maskPostConnect1,linkMask1,status]  = gcaConnectInternalFilopodia(internalFilo1EPsFinal,seedFilo1EPsFinal,maxTh,filoExtSeedForInt,10,labelMatCandInt1,vectInt,vectSeed,dInt,dSeed);
-        % need to get the internal Filoconnect
-        
-        
-        
-        if troubleShootFigs.internal == 1;
-            saveas(gcf,[linkDir filesep 'internalInputEPs' num2str(iFrame) '.tif']);
-            hold on
-            if status ==1
-                spy(linkMask1,'y',10); % plot the link mask
+            
+            
+            
+            %% Troubleshoot figure internal
+            troubleShootFigs.internal = 1;
+            if troubleShootFigs.internal == 1
+                inSpurDir = [framesPath filesep 'TroubleShoot_Internal' filesep 'internalFiloBeforeSpur' ];
+                if ~isdir(inSpurDir)
+                    mkdir(inSpurDir)
+                end
+                [ny,nx] = size(img);
+                h = setFigure(nx,ny);
+                
+                imshow(img,[]);
+                hold on
+                
+                spy(internalFilo,'g'); % green is the original filo detection after thresholding
+                saveas(gcf,[inSpurDir filesep 'interalFiloBeforeSpur' num2str(iFrame) '.tif']);
+                
+                spy(internalFiloSpur,'b'); % blue is after spur
+                saveas(gcf,[inSpurDir filesep 'internalFiloAfterCleanUp' num2str(iFrame) '.tif']);
+                close gcf
+                linkDir = [framesPath filesep 'TroubleShoot_Internal' filesep 'GraphConnect'];
+                if ~isdir(linkDir)
+                    mkdir(linkDir)
+                end
+                h = setFigure(nx,ny);
+                imshow(img,[]);
+                hold on
+                
+                scatter(internalFilo1EPsFinal(:,1),internalFilo1EPsFinal(:,2),20,'b','filled'); % the endpoint to connect
+                scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),20,'r','filled');
+                spy(internalFiloSpur,'b');
+                
+                
             end
-            saveas(gcf,[linkDir filesep 'internalInputEPsWithLinks' num2str(iFrame) '.tif']);
-        end
-        reconstruct.Int.links{1} = linkMask1;
-        reconstruct.Int.Seed{2} = maskPostConnect1;
-        
-        %% 2nd iteration internal reconstruct
-        
-        % 2013_07_14 note here you need to likewise make sure that have a 1 to 1
-        % attachment (ie both ends do not attach) also need to filter small pieces
-        % also might want to check intern filopodia for highest diff in the maxTh
-        % along the edge
-        
-        %%% Will need to change this
-        % make an internal filo only mask and get those connected to the edge those
-        % will be your high confidence "seed"
-        %internalAll = (internalFilo|edgeMask);
-        %internalSeed = getLargestCC(internalAll);
-        %internalCand = internalAll;
-        
-        % get the internal seed
-        % internalSeed = (maskPostConnect1.*~filoTips) | edgeMask;
-        % % try to filter this seed by changes of orientation
-        % test= bwconncomp(internalSeed);
-        % orientations = cellfun(@(x) maxTh(x), test.PixelIdxList,'uniformoutput',0);
-        % % cellfun(@(x) diff(x,1)
-        % % find where the derivative is greater than x and cut
-        %
-        %
-        % % get new interal candidates
-        % internalFiloSpur(find(internalSeed==1)) =0;
-        % % at the very least filter based on pixel size
-        % ccInternCand = bwconncomp(internalFiloSpur);
-        % csize = cellfun(@(x) length(x), ccInternCand.PixelIdxList);
-        % ccInternCand.PixelIdxList(csize<3) = [];
-        % internalCand = zeros(size(img)); % initiate mask
-        % internalCand(vertcat(ccInternCand.PixelIdxList{:})) = 1; % make new mask of cleaned internal candidates
-        %
-        % % get endpoints for seed.
-        % nn = padarrayXT(double(internalSeed~=0), [1 1]);
-        % sumKernel = [1 1 1];
-        % nn = conv2(sumKernel, sumKernel', nn, 'valid');
-        % nn1 = (nn-1) .* (internalSeed~=0);
-        % [EPIntY,EPIntX] = ind2sub(size(img),find(nn1==1));
-        % internalSeedEPs = [EPIntX EPIntY];
-        
-        % clear nn nn1
-        %
-        % % get endpoints for candidate- NOTE need to have endpoints competing here
-        % % to allow only one node connect.
-        % % orientation but also potentially distance in this case need to be
-        % % associated with the cost. also would want to filter linear structures to
-        % % the cell edge.
-        % % anything within x distance and
-        %
-        % nn = padarrayXT(double(internalCand~=0), [1 1]);
-        % sumKernel = [1 1 1];
-        % nn = conv2(sumKernel, sumKernel', nn, 'valid');
-        % nn1 = (nn-1) .* (internalCand~=0);
-        % [EPCandY,EPCandX] = ind2sub(size(img),find(nn1==1));
-        % internalCandsEPs = [EPCandX EPCandY];
-        %
-        % labelMatCandInt = bwlabel(internalFiloSpur);
-        % final output here needs to be the CCFiloObjs
-        % need to make the second iteration such that each EP competing which can
-        % be a bit of a pain....try for now to just cut out second iteration and
-        % modify how I do the response fits walk out farther and take back
-        % farther...
-        %[internalMaskPostConnect, linksInternal,status] = connectInternalFilo(internalCandsEPs,internalSeedEPs,maxTh,maskPostConnect1,18,labelMatCandInt);
-        
-        % reconstruct.Int.Cand{2} = labelMatCandInt>0;
-        % reconstruct.Int.links{2}  = internalMaskPostConnect;
-        % reconstruct.Int.links{2} = linksInternal;
-        % reconstruct.Int.end = internalMaskPostConnect;
-        %%
-        % if troubleFigInt == 1;
-        %     if status == 1;
-        %         spy(linksInternal,'y',10);
-        %     end
-        %     saveas(gcf,[saveDir filesep 'troubleshootInternal' num2str(iFrame,fmt) '.tif']);
-        % end
+            %%
+            % run through
+            % maskpostconnect1 should have all the CC filos after first connection
+            % between in and out
+            [maskPostConnect1,linkMask1,status]  = gcaConnectInternalFilopodia(internalFilo1EPsFinal,seedFilo1EPsFinal,maxTh,filoExtSeedForInt,10,labelMatCandInt1,vectInt,vectSeed,dInt,dSeed);
+            % need to get the internal Filoconnect
+            
+            
+            
+            if troubleShootFigs.internal == 1;
+                saveas(gcf,[linkDir filesep 'internalInputEPs' num2str(iFrame) '.tif']);
+                hold on
+                if status ==1
+                    spy(linkMask1,'y',10); % plot the link mask
+                end
+                saveas(gcf,[linkDir filesep 'internalInputEPsWithLinks' num2str(iFrame) '.tif']);
+            end
+            reconstruct.Int.links{1} = linkMask1;
+            reconstruct.Int.Seed{2} = maskPostConnect1;
+            
+            %% 2nd iteration internal reconstruct
+            
+            % 2013_07_14 note here you need to likewise make sure that have a 1 to 1
+            % attachment (ie both ends do not attach) also need to filter small pieces
+            % also might want to check intern filopodia for highest diff in the maxTh
+            % along the edge
+            
+            %%% Will need to change this
+            % make an internal filo only mask and get those connected to the edge those
+            % will be your high confidence "seed"
+            %internalAll = (internalFilo|edgeMask);
+            %internalSeed = getLargestCC(internalAll);
+            %internalCand = internalAll;
+            
+            % get the internal seed
+            % internalSeed = (maskPostConnect1.*~filoTips) | edgeMask;
+            % % try to filter this seed by changes of orientation
+            % test= bwconncomp(internalSeed);
+            % orientations = cellfun(@(x) maxTh(x), test.PixelIdxList,'uniformoutput',0);
+            % % cellfun(@(x) diff(x,1)
+            % % find where the derivative is greater than x and cut
+            %
+            %
+            % % get new interal candidates
+            % internalFiloSpur(find(internalSeed==1)) =0;
+            % % at the very least filter based on pixel size
+            % ccInternCand = bwconncomp(internalFiloSpur);
+            % csize = cellfun(@(x) length(x), ccInternCand.PixelIdxList);
+            % ccInternCand.PixelIdxList(csize<3) = [];
+            % internalCand = zeros(size(img)); % initiate mask
+            % internalCand(vertcat(ccInternCand.PixelIdxList{:})) = 1; % make new mask of cleaned internal candidates
+            %
+            % % get endpoints for seed.
+            % nn = padarrayXT(double(internalSeed~=0), [1 1]);
+            % sumKernel = [1 1 1];
+            % nn = conv2(sumKernel, sumKernel', nn, 'valid');
+            % nn1 = (nn-1) .* (internalSeed~=0);
+            % [EPIntY,EPIntX] = ind2sub(size(img),find(nn1==1));
+            % internalSeedEPs = [EPIntX EPIntY];
+            
+            % clear nn nn1
+            %
+            % % get endpoints for candidate- NOTE need to have endpoints competing here
+            % % to allow only one node connect.
+            % % orientation but also potentially distance in this case need to be
+            % % associated with the cost. also would want to filter linear structures to
+            % % the cell edge.
+            % % anything within x distance and
+            %
+            % nn = padarrayXT(double(internalCand~=0), [1 1]);
+            % sumKernel = [1 1 1];
+            % nn = conv2(sumKernel, sumKernel', nn, 'valid');
+            % nn1 = (nn-1) .* (internalCand~=0);
+            % [EPCandY,EPCandX] = ind2sub(size(img),find(nn1==1));
+            % internalCandsEPs = [EPCandX EPCandY];
+            %
+            % labelMatCandInt = bwlabel(internalFiloSpur);
+            % final output here needs to be the CCFiloObjs
+            % need to make the second iteration such that each EP competing which can
+            % be a bit of a pain....try for now to just cut out second iteration and
+            % modify how I do the response fits walk out farther and take back
+            % farther...
+            %[internalMaskPostConnect, linksInternal,status] = connectInternalFilo(internalCandsEPs,internalSeedEPs,maxTh,maskPostConnect1,18,labelMatCandInt);
+            
+            % reconstruct.Int.Cand{2} = labelMatCandInt>0;
+            % reconstruct.Int.links{2}  = internalMaskPostConnect;
+            % reconstruct.Int.links{2} = linksInternal;
+            % reconstruct.Int.end = internalMaskPostConnect;
+            %%
+            % if troubleFigInt == 1;
+            %     if status == 1;
+            %         spy(linksInternal,'y',10);
+            %     end
+            %     saveas(gcf,[saveDir filesep 'troubleshootInternal' num2str(iFrame,fmt) '.tif']);
+            % end
         else
-            maskPostConnect1 = filoExtSeedForInt; 
-        end % if idxKeepInt % 20140301 SEE IF YOU CAN CLEAN THIS UP 
-            
-    else 
-        maskPostConnect1 = filoExtSeedForInt; 
+            maskPostConnect1 = filoExtSeedForInt;
+        end % if idxKeepInt % 20140301 SEE IF YOU CAN CLEAN THIS UP
+        
+    else
+        maskPostConnect1 = filoExtSeedForInt;
         
     end  %isempty(idxKeepInt)
-       
-       
+    
+    
 else % do not perform internal filopodia matching use the original
     maskPostConnect1 = double(getLargestCC(filoExtAll)); % changed 20141026
     
-end % if perform internal matching 
+end % if perform internal matching
 %% Record information for the troubleshooting reconstruction movie making
-filoSkelPreConnectExt = (filoTips |edgeMask); 
+filoSkelPreConnectExt = (filoTips |edgeMask);
 
 reconstruct.input = filoExtAll; % don't input the internal filo for the reconstruct
-%% DOCUMENT THE FILOPODIA INFORMATION FROM THE HIGH CONFIDENCE 'SEED' - 
+%% DOCUMENT THE FILOPODIA INFORMATION FROM THE HIGH CONFIDENCE 'SEED' -
 % and any internal (ie veil embedded) actin bundles matched in the
-% previous step if that option was selected. 
+% previous step if that option was selected.
 
-CCFiloObjs = bwconncomp(maskPostConnect1); 
+CCFiloObjs = bwconncomp(maskPostConnect1);
 
 % that attempts to categorize filo
-% filter out small filo 
-     csizeTest = cellfun(@(x) length(x),CCFiloObjs.PixelIdxList);
-     CCFiloObjs.PixelIdxList(csizeTest<3) = [];
-     CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<3); 
-     
-    [ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!! 
- 
-%% Reconstruct the external filopodia network from the initial seed  
+% filter out small filo
+csizeTest = cellfun(@(x) length(x),CCFiloObjs.PixelIdxList);
+CCFiloObjs.PixelIdxList(csizeTest<3) = [];
+CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<3);
 
-%%%% INITIATE THE ITERATIVE WHILE LOOP %%%%    
+[ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!!
+
+%% Reconstruct the external filopodia network from the initial seed
+
+%%%% INITIATE THE ITERATIVE WHILE LOOP %%%%
 
 numViableCand =1; % flag to continue with reconstruction interations as there are viable candidates to attach
 filoSkelPreConnect = double(filoSkelPreConnectExt); % initial skeleton before linking : includes all candidates
 filoSkelPreConnect = bwmorph(filoSkelPreConnect,'spur');
 links = zeros(size(img)); % initiate link matrix
 reconIter = 1; % initiate recording reconstruction iterations
-linksPre = zeros(size(img)); 
+linksPre = zeros(size(img));
 %%%% BEGIN ITERATING THE REATTACHMENT PROCESS %%%%
-  status = 1; 
+status = 1;
 while numViableCand >0  % stop the reconstruction process when no more candidates that meet a certain criteria are found
     
     
@@ -605,13 +605,13 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     %[xyCoordsSeedFilo] = vertcat(filoInfo(:).coordsXY); % this includes
     %projections forward.
     
-     yx  = vertcat(neuriteEdge{:});
-     xyCoordsNeurite = [yx(:,2),yx(:,1)];
-
+    yx  = vertcat(neuriteEdge{:});
+    xyCoordsNeurite = [yx(:,2),yx(:,1)];
+    
     xySeed = [xyCoordsSeedFilo;xyCoordsNeurite];
     % label the neuriteEdge with 1 and 2
     % create own label mat to ensure your labels are what you think they
-    % are! 
+    % are!
     for iFilo = 1:numel(filoInfo)
         if ~isnan(filoInfo(iFilo).Ext_pixIndicesBack)
             labelMatSeedFilo(filoInfo(iFilo).Ext_pixIndicesBack) = iFilo+2;
@@ -628,12 +628,12 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     end
     
     labelMatSeedFilo(analInfoC.bodyEst.pixIndThickBody) = 1; % label thick parts of body as 1
-    labelMatSeedFilo(analInfoC.bodyEst.pixIndThinBody) = 2; % label thin parts of body as 2 
+    labelMatSeedFilo(analInfoC.bodyEst.pixIndThinBody) = 2; % label thin parts of body as 2
     
-    % labelMatSeedFilo(sub2ind(size(img),neuriteEdge{1}(:,1),neuriteEdge{1}(:,2))) = 1; % the edge is labeled 1 
-    % this is how you will know if it is backbone 
+    % labelMatSeedFilo(sub2ind(size(img),neuriteEdge{1}(:,1),neuriteEdge{1}(:,2))) = 1; % the edge is labeled 1
+    % this is how you will know if it is backbone
     filoMask = labelMatSeedFilo>0; % heres the new filopodia mask
-      reconstruct.seedMask{reconIter} = filoMask;   % always record..
+    reconstruct.seedMask{reconIter} = filoMask;   % always record..
     
     
     
@@ -652,64 +652,64 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     %get rid of small CCs lower than x number of pixels and your largest CC
     % maybe make the top ten percent of response etc need to get reattached
     
-    %NEW 20141026 
+    %NEW 20141026
     
-    maskSeed = zeros([ny,nx]); 
+    maskSeed = zeros([ny,nx]);
     maskSeed(vertcat(CC.PixelIdxList{numPix==max(numPix)}))= 1;
     seedFilos = maskSeed.*~bodyMask;
     CCSeeds = bwconncomp(seedFilos);
-    respValuesSeed = cellfun(@(x) maxRes(x),CCSeeds.PixelIdxList,'uniformoutput',0); 
+    respValuesSeed = cellfun(@(x) maxRes(x),CCSeeds.PixelIdxList,'uniformoutput',0);
     meanRespValuesSeed= cellfun(@(x) mean(x), respValuesSeed);
-    sizeSeed = cellfun(@(x) length(x),CCSeeds.PixelIdxList); 
+    sizeSeed = cellfun(@(x) length(x),CCSeeds.PixelIdxList);
     
-% % %     figure; 
-% % %     scatter(sizeSeed,meanRespValuesSeed,10,'k','filled');
+    % % %     figure;
+    % % %     scatter(sizeSeed,meanRespValuesSeed,10,'k','filled');
     
-    hold on 
+    hold on
     
-    CC.PixelIdxList(numPix==max(numPix))= []; % filter out the new seed 
+    CC.PixelIdxList(numPix==max(numPix))= []; % filter out the new seed
     CC.NumObjects = CC.NumObjects -1; % note should make there be a criteria for intensity a
-    if reconIter ==1 
-         
-      % get the response of the pieces   
-      respValuesCand =   cellfun(@(x) maxRes(x),CC.PixelIdxList,'uniformoutput',0); 
-      meanRespValuesCand = cellfun(@(x) mean(x),respValuesCand); 
-      sizeCand = cellfun(@(x) length(x), CC.PixelIdxList); 
-      % get the response of the high confidence seeds 
-% % %       scatter(sizeCand,meanRespValuesCand,10,'r','filled'); 
-% % %       figure
-    cutoff = prctile(meanRespValuesSeed,5); % SEE if it is this filtering step here. for frame 120
-% % %       
-% % %      
-% % %       
-% % %       weakCandMask = zeros(ny,nx);
-% % %       strongCandMask = zeros(ny,nx); 
-% % %       
-       toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2; 
-% % %       
-% % %       weakCandMask(vertcat(CC.PixelIdxList{toExclude} ))=1;
-% % %       strongCandMask(vertcat(CC.PixelIdxList{~toExclude}))=1 ; 
-% % %       imshow(-img,[])
-% % %       hold on 
-% % %       spy(weakCandMask,'r',10); 
-% % %       spy(strongCandMask,'g',10);
-% % %       spy(maskSeed,'b',10);
-% % %          close gcf
-    
-  % erase these candidates completely so they will not be considered in
-  % future iterations
-    filoSkelPreConnect(vertcat(CC.PixelIdxList{toExclude'}))= 0; 
-    CC.PixelIdxList(toExclude') = []; 
-    CC.NumObjects = CC.NumObjects -sum(toExclude);% 
-    % erase from filoSkelPreConnect 
-    
-    end 
+    if reconIter ==1
+        
+        % get the response of the pieces
+        respValuesCand =   cellfun(@(x) maxRes(x),CC.PixelIdxList,'uniformoutput',0);
+        meanRespValuesCand = cellfun(@(x) mean(x),respValuesCand);
+        sizeCand = cellfun(@(x) length(x), CC.PixelIdxList);
+        % get the response of the high confidence seeds
+        % % %       scatter(sizeCand,meanRespValuesCand,10,'r','filled');
+        % % %       figure
+        cutoff = prctile(meanRespValuesSeed,5); % SEE if it is this filtering step here. for frame 120
+        % % %
+        % % %
+        % % %
+        % % %       weakCandMask = zeros(ny,nx);
+        % % %       strongCandMask = zeros(ny,nx);
+        % % %
+        toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2;
+        % % %
+        % % %       weakCandMask(vertcat(CC.PixelIdxList{toExclude} ))=1;
+        % % %       strongCandMask(vertcat(CC.PixelIdxList{~toExclude}))=1 ;
+        % % %       imshow(-img,[])
+        % % %       hold on
+        % % %       spy(weakCandMask,'r',10);
+        % % %       spy(strongCandMask,'g',10);
+        % % %       spy(maskSeed,'b',10);
+        % % %          close gcf
+        
+        % erase these candidates completely so they will not be considered in
+        % future iterations
+        filoSkelPreConnect(vertcat(CC.PixelIdxList{toExclude'}))= 0;
+        CC.PixelIdxList(toExclude') = [];
+        CC.NumObjects = CC.NumObjects -sum(toExclude);%
+        % erase from filoSkelPreConnect
+        
+    end
     
     % keep on iterating until no more viable candidates
     % check the number of objects here
     if (CC.NumObjects == 0 || status ==0)
         
-      break % flag to break loop i snot more viable candidates/linkages
+        break % flag to break loop i snot more viable candidates/linkages
     end
     
     
@@ -723,22 +723,22 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     candidateMask1 = double(candidateMask1);
     
     if reconIter ==1
-    reconstruct.CandMaskPreCluster = candidateMask1; 
-    end 
+        reconstruct.CandMaskPreCluster = candidateMask1;
+    end
     % 20141026 I dont' think I need below any more if I did my job
     % correctly above - only would need if mistakenly made junctions in the
     
     % even after first filtering step it helps to prune junctions
-%     nn = padarrayXT(double(candidateMask1~=0), [1 1]);
-%     sumKernel = [1 1 1];
-%     nn = conv2(sumKernel, sumKernel', nn, 'valid');
-%     nn1 = (nn-1) .* (candidateMask1~=0);
-%     junctionMask = nn1>2;
-%     candidateMask1(junctionMask==1) = 0;
-   CCCandidates = bwconncomp(candidateMask1);
-%     csize = cellfun(@(x) numel(x),CCCandidates.PixelIdxList);
-%     CCCandidates.PixelIdxList(csize<4)= [];
-%     CCCandidates.NumObjects = CCCandidates.NumObjects - sum(csize<4);
+    %     nn = padarrayXT(double(candidateMask1~=0), [1 1]);
+    %     sumKernel = [1 1 1];
+    %     nn = conv2(sumKernel, sumKernel', nn, 'valid');
+    %     nn1 = (nn-1) .* (candidateMask1~=0);
+    %     junctionMask = nn1>2;
+    %     candidateMask1(junctionMask==1) = 0;
+    CCCandidates = bwconncomp(candidateMask1);
+    %     csize = cellfun(@(x) numel(x),CCCandidates.PixelIdxList);
+    %     CCCandidates.PixelIdxList(csize<4)= [];
+    %     CCCandidates.NumObjects = CCCandidates.NumObjects - sum(csize<4);
     
     
     
@@ -750,80 +750,85 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img)),CCCandidates.PixelIdxList,'uniformoutput',0);
     
-    if reconIter ==1 % only do this initial clustering step for the first iteration... hmmm need to make sure 
+    if reconIter ==1 % only do this initial clustering step for the first iteration... hmmm need to make sure
         % don't loose this information though
-    [ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],5); 
-    % it might be easiest just to recalculate the new end points from the
-    % new labelMatrix 
-   
-    postClustLabels = unique(labelMatCanFilo(labelMatCanFilo~=0)); 
-    numLabels = length(postClustLabels);
-    pixIdxCand = arrayfun(@(i) find(labelMatCanFilo==postClustLabels(i)), 1:numLabels, 'uniformoutput',0); 
-    EPCandidateSort = cellfun(@(x) getEndpoints(x,size(maxTh)),pixIdxCand,'uniformoutput',0); 
+        [ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],10);%% 10 
+        % it might be easiest just to recalculate the new end points from the
+        % new labelMatrix
+        % find all post cluster labels these will be slightly different
+        % than the pre-cluster labels (ie some will be removed as linear
+        % structures are merged) 
+        postClustLabels = unique(labelMatCanFilo(labelMatCanFilo~=0));
+        numLabels = length(postClustLabels);
+        % find all the pixels for these labels 
+        pixIdxCand = arrayfun(@(i) find(labelMatCanFilo==postClustLabels(i)), 1:numLabels, 'uniformoutput',0);
+        % get each of these labels endpoints
+        EPCandidateSort = cellfun(@(x) getEndpoints(x,size(maxTh)),pixIdxCand,'uniformoutput',0);
+        
+        
+        
+        reconstruct.CandMaskPostCluster = candidateMask1;
+        reconstruct.clusterlinks = linkMask;
+        linksPre = linkMask;
+        % add these points to the mask
+        
+    end % if reconIt ==1
     
     
-    
-    reconstruct.CandMaskPostCluster = candidateMask1; 
-    reconstruct.clusterlinks = linkMask; 
-    linksPre = linkMask;
-    % add these points to the mask 
-    
-    end % if reconIt ==1  
-    
- 
     
     %get rid segments that might not have canonical endpoints as these
     %are very likely noise.
     filoSkelPreConnectFiltered = (filoMask | candidateMask1 );
-    
+    % be careful with your indexing here (Note 20150326 yours label numbers
+    % maybe different than the length of EPCandidateSort
     nonCanonical = cellfun(@(x) length(x(:,1))~=2,EPCandidateSort);
-   
-    nonCanonicalIdx = find(nonCanonical==1); 
-    idxRemove = arrayfun(@(x) find(labelMatCanFilo == nonCanonicalIdx(x)),1:length(nonCanonicalIdx),'uniformoutput',0); 
-    labelMatCanFilo(vertcat(idxRemove{:})) = 0; 
-    EPCandidateSort =  EPCandidateSort(~nonCanonical) ; 
     
-    % get rid of those with no EPs 
+    nonCanonicalIdx = find(nonCanonical==1);
+    idxRemove = arrayfun(@(x) find(labelMatCanFilo == postClustLabels(nonCanonicalIdx(x))),1:length(nonCanonicalIdx),'uniformoutput',0);
+    labelMatCanFilo(vertcat(idxRemove{:})) = 0;
+    EPCandidateSort =  EPCandidateSort(~nonCanonical) ;
+    
+    % get rid of those with no EPs
     nonEmpty = cellfun(@(x) ~isempty(x),EPCandidateSort);
     EPCandidateSort = EPCandidateSort(nonEmpty);
-    % if no more viable candidates break the while loop 
+    % if no more viable candidates break the while loop
     if isempty(EPCandidateSort)
         break
     end
     
     
-   % have a gate that is set to 10 pixels so far (things beyond that distance will
-   % not be considered)
-    
+    % have a gate that is set to 10 pixels so far (things beyond that distance will
+    % not be considered)
+    % start with 10...
     [outputMasks,filoInfo,status] = gcaConnectExternalFilopodia(xySeed,EPCandidateSort,10,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC);
     if status == 1 ;
         %           % note filoInfo will be updated and this will be used to remake the seed
         reconstruct.output{reconIter} = outputMasks;
         links = (links|outputMasks.links);
-
+        
         
         
         
     end % if status
     
-     reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
-     display(num2str(reconIter))
+    reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
+    display(num2str(reconIter))
     
     
 end % while
- % results1stRound = getLargestCC(filoSkelBranchingFilo); 
-end  
+% results1stRound = getLargestCC(filoSkelBranchingFilo);
+end
 
 function [coords] = getEndpoints(pixIdx,size)
 
 endpoints = zeros(size);
 endpoints(pixIdx)=1;
 sumKernel = [1 1 1];
-% find endpoints of the floating candidates to attach (note in the 
-% future might want to prune so that the closest end to the 
+% find endpoints of the floating candidates to attach (note in the
+% future might want to prune so that the closest end to the
 % body is the only one to be re-attatched: this will avoid double connections)
-endpoints = double((endpoints.* (conv2(sumKernel, sumKernel', padarrayXT(endpoints, [1 1]), 'valid')-1))==1); 
-[ye,xe] = find(endpoints~=0); 
-coords(:,1) = xe; 
-coords(:,2) = ye; 
-end 
+endpoints = double((endpoints.* (conv2(sumKernel, sumKernel', padarrayXT(endpoints, [1 1]), 'valid')-1))==1);
+[ye,xe] = find(endpoints~=0);
+coords(:,1) = xe;
+coords(:,2) = ye;
+end

@@ -1,4 +1,4 @@
-function optical_flow_for_vif(im1, im2, mask1, mask2)
+function [vx,vy]=optical_flow_for_vif(im1, im2, mask1, mask2)
 % optical flow analysis for vif structure
 
 % set optical flow parameters (see Coarse2FineTwoFrames.m for the definition of the parameters)
@@ -22,7 +22,7 @@ mask12 = (mask1+mask2)>0;
 vx(mask12==0)=0;
 vy(mask12==0)=0;
 
-h101 = figure(101);imagesc(im1); colormap(gray);axis image; axis off;
+h101 = figure(101); hold off; imagesc(im1); colormap(gray);axis image; axis off;
 hold on;
 
 vx_desample = vx*0;
