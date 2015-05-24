@@ -62,8 +62,9 @@ ip.addRequired('filoBranchC',@isstruct);
 ip.addOptional('protrusionC',[]);
 
 % Parameters
-ip.addParameter('maxRadiusInitialConnectLink',10); 
+ip.addParameter('maxRadiusLink',5); % initial connect
 ip.addParameter('maxRadiusLinkFiloOutsideVeil',10); 
+ip.addParameter('minCCRidgeOutsideVeil',3);
 
 ip.addParameter('maxRadiusLinkEmbedded',10); 
 
@@ -135,8 +136,8 @@ CCFiloObjs = bwconncomp(maskPostConnect1);
 % that attempts to categorize filo
 % filter out small filo
 csizeTest = cellfun(@(x) length(x),CCFiloObjs.PixelIdxList);
-CCFiloObjs.PixelIdxList(csizeTest<ip.Results.CCFilt) = []; % MAKE a parameter filters out pixels CCs that are less than 3 pixels 
-CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<ip.Results.CCFilt);% originally 3 
+CCFiloObjs.PixelIdxList(csizeTest<ip.Results.minCCRidgeOutsideVeil) = []; % MAKE a parameter filters out pixels CCs that are less than 3 pixels 
+CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<ip.Results.minCCRidgeOutsideVeil);% originally 3 
 
 [ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,veilStemMaskC,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!!
 
@@ -302,7 +303,10 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     if reconIter ==1 % only do this initial clustering step for the first iteration... hmmm need to make sure
         % don't loose this information though
-        [ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],5);
+        %[ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],5);
+        
+        gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCandFilo,p); 
+        
         % it might be easiest just to recalculate the new end points from the
         % new labelMatrix
         

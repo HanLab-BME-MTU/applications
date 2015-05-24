@@ -79,6 +79,7 @@ p = ip.Results;
     % you already only have 2-3 pixels to work with anyway.
     embeddedRidgeCandSpur = bwmorph(embeddedRidgeCand,'spur',2);
     
+   
     % Remove Singletons
     CCInt = bwconncomp(embeddedRidgeCandSpur);
     csize = cellfun(@(x) length(x),CCInt.PixelIdxList);
@@ -98,42 +99,128 @@ p = ip.Results;
     CCFiloExtSeedForInt.PixelIdxList(weirdSeed) = [];
     CCFiloExtSeedForInt.NumObjects = CCFiloExtSeedForInt.NumObjects- sum(weirdSeed);
     
+    % SANITY CHECK
+    beforeCut = zeros(size(maxTh));
+    beforeCut(vertcat(CCInt.PixelIdxList{:})) = 1;
+    
+%%  %%  OPTIONAL TS OVERLAY : Before after spur
+    if ip.Results.TSOverlays == true;
+        [ny,nx] = size(img);
+        TSFigs(countFigs).h  = setFigure(nx,ny,'off');
+        TSFigs(countFigs).name = 'BeforeAfterCleanStepI';
+
+        imshow(-img,[]) ;
+        hold on
+        spy(embeddedRidgeCand,'b');
+        spy(beforeCut,'g'); 
+        text(5,5,'Before Clean Step I','FontSize',10, 'color','b'); 
+        text(5,20,'After Clean Step I','FontSize',10,'color','g'); 
+        countFigs = countFigs +1; 
+    end % 
+    
  %%  Cut Embedded Candidates At Points of High Curvature  
  % This step is required because 
  % there are very often embedded ridge candidates that are true candidates 
  % but merge with the ridge response arising at the border of the veil   
- % This helps eliminate this problem. 
+ % This helps eliminate this problem.
+ 
+ %% Sort the pixel indices so they are labeled in order from one endpoint 
+ % (arbitrary choice) as bwconncomp will not do this completely correctly.
+  
+ EPsCCsIntForCut = cellfun(@(x) getEndpoints(x,[ny,nx]),CCInt.PixelIdxList,'uniformoutput',0); 
+ 
+ for iCC = 1:numel(CCInt.PixelIdxList) 
+     testMask = zeros(ny,nx);  
+     testMask(CCInt.PixelIdxList{iCC})=1;
+     testMask = logical(testMask);
+     startX = EPsCCsIntForCut{iCC}(1,1);
+     startY = EPsCCsIntForCut{iCC}(1,2); 
+     
+     pixIdxBack = nan(length(CCInt.PixelIdxList{iCC}),1);
+     transform = bwdistgeodesic(testMask,startX,startY); 
+     
+      iPix = 0;
+        while length(find(transform==iPix)) == 1
+            pixIdxBack(iPix+1) = find(transform==iPix); % start at the endpoint
+            iPix = iPix +1;
+        end
+        %pixIdxBack = pixIdxBack(~isnan(pixIdxBack));
+     
+        CCIntSorted.PixelIdxList{iCC} = pixIdxBack; 
+ end 
+ CCInt = CCIntSorted; % replace
+%%     
+  [y,x] = cellfun(@(x) ind2sub([ny,nx],x),CCInt.PixelIdxList,'uniformoutput',0);  
+ 
    
- % Currently simply get orientations of internal ridge candidates per pixel from the
+ 
+%     if ip.Results.TSOverlays == true 
+%         % get the xycoords
+         
+% 
+
+%% for now make these TS plots as well  
+if ip.Results.TSOverlays == true
+    %   for iFig = 1:4
+    TSFigs(countFigs).h  = setFigure(nx,ny,'off');
+    TSFigs(countFigs).name = 'PixelOrder';
+    %
+    imshow(-img,[]);
+    %
+    hold on
+
+    for iCC = 1:numel(x)
+        x1 = x{iCC};
+        y1 = y{iCC};
+        %         orient1 = orient{iCC};
+        %         diffOrient1 = diffOrient{iCC};
+        %
+        %         %cmap = jet(length(x1));
+        %
+        arrayfun(@(i) text(x1(i),y1(i),num2str(i)),1:length(x1));
+    end
+    countFigs = countFigs +1; 
+end
+%% Currently simply get orientations of internal ridge candidates per pixel from the
  % steerable filter output. (NOTE MB: investigate better ways to do this
  % before release)
     orient = cellfun(@(x) rad2deg(maxTh(x)+pi/2),CCInt.PixelIdxList,'uniformoutput',0);
-    
-    % calc gradient of orientation
+     % calc gradient of orientation
     diffOrient = cellfun(@(x) abs(diff(x)),orient,'uniformoutput',0);
+%%    
+% if ip.Results.TSOverlays == true ; 
+%         
+% figure; 
+% imshow(-img,[]); 
+% hold on 
+%arrayfun(@(i) plot(x{i},y{i},'color','b'),1:numel(x)); 
+         
+%         
+%         
+%         % plotByOrient 
+%    cMapLength=128; cMap=jet(cMapLength);
+%     orientsAll = vertcat(orient{:});
+%                          mapper=linspace(min(orientsAll),max(orientsAll),cMapLength)';
+% %                         
+% %                         % get closest colormap index for each feature
+%                         D=createDistanceMatrix(orientsAll,mapper);
+%                         [sD,idxCMap]=sort(abs(D),2);
+% %                         
+% for iCC = 1:numel(x) % for each piece
+%     D = 
+%     % plot the orientation 
+%     arrayfun(@(i) plot(x
+% end 
+% end         
+
+%%    
     
     % where orientation differences greater than 90 degrees cut segment.
     orientChangePtsCell= cellfun(@(x) find(x>20 & x <170,1,'first'),diffOrient,'uniformoutput',0);
     
     % for each orientation Change cut
     toChangeVect = cellfun(@(x)  ~isempty(x),orientChangePtsCell);
-    IDCCToChange = find(toChangeVect);
-
-    % SANITY CHECK
-    beforeCut = zeros(size(maxTh));
-    beforeCut(vertcat(CCInt.PixelIdxList{:})) = 1;
-%%  OPTIONAL TS OVERLAY 
-    if ip.Results.TSOverlays == true;
-        [ny,nx] = size(img);
-        TSFigs(countFigs).h  = setFigure(nx,ny,'on');
-        TSFigs(countFigs).name = 'Cut_Curvature';
-
-        imshow(-img,[]) ;
-        hold on
-        spy(beforeCut,'b');
-        hold on
-    end % figure open 
-%%    
+    IDCCToChange = find(toChangeVect);  
     
     for iChange = 1:length(IDCCToChange)
         IDC = IDCCToChange(iChange);
@@ -153,16 +240,7 @@ p = ip.Results;
    
     afterCut = zeros(size(maxTh));
     afterCut(vertcat(CCInt.PixelIdxList{:})) = 1;
-    %
-%% OPTIONAL TS Overlay  Cut-Curvature 
-    if ip.Results.TSOverlays == true;
-        % overlay after the cut
-        spy(afterCut,'r'); 
-        % NOTE: eventually make an plot color coded by maxTh over the
-        % img... 
-        text(5,5,'After Curvature Cut','FontSize',10,'Color','r'); 
-        countFigs = countFigs +1;   % close fig
-    end 
+
     %% Reget ConnectedComponents now that have broken based on orientation
     clear CCInt csize
     
@@ -185,8 +263,38 @@ p = ip.Results;
    % afterCut(vertcat(CCInt.PixelIdxList{idxLogicNoEPs})) = 0; % set these equal to zero in the original mask
     CCInt.PixelIdxList(idxLogicNoEPs) = [];
     CCInt.NumObjects = CCInt.NumObjects - sum(idxLogicNoEPs);
+%% OPTIONAL TS Overlay  Cut-Curvature 
+    if ip.Results.TSOverlays == true;
+        
+         
+        [ny,nx] = size(img);
+        TSFigs(countFigs).h  = setFigure(nx,ny,'on');
+        TSFigs(countFigs).name = 'BeforeAfterCleanStepII_CutCurves';
 
+        imshow(-img,[]);
+        hold on 
+        spy(beforeCut,'b',10);
+        % overlay after the cut
+        spy(afterCut,'r',10);
+        finalIntCands = zeros([ny,nx]); 
+        finalIntCands(vertcat((CCInt.PixelIdxList{:})))=1; 
+        spy(finalIntCands,'g',10); 
+       % finalIntCands
+        
+        % NOTE: eventually make an plot color coded by maxTh over the
+        % img... 
+        text(5,5, 'Before Curvature Cut', 'FontSize',10,'Color','b'); 
+        text(5,15,'After Curvature Cut','FontSize',10,'Color','r');
+        text(5,25,'Final Candidates','FontSize',10,'Color','g');  
+        countFigs = countFigs +1;   % close fig
+    end 
+    
+    
+    
+    
 %% Calc displacement vectors of the ridges: will use for matching 
+% NOTE 20150524 think have made this more local with getEndpoints can try
+% to see if this helps matching. 
     vectInt =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], embeddedRidgeCand1EPs ,'uniformoutput',0);
     dInt  = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),embeddedRidgeCand1EPs,'uniformoutput',0);
     
@@ -198,7 +306,7 @@ p = ip.Results;
     
     
     
-    
+    % 
     [intEPIdx] = cellfun(@(x) sub2ind(size(img),x(:,2),x(:,1)),embeddedRidgeCand1EPs,'uniformoutput',0);
     %
     [seedEPIdx] = cellfun(@(x) sub2ind(size(img),x(:,2),x(:,1)),seedFilo1EPs,'uniformoutput',0);
@@ -284,41 +392,41 @@ p = ip.Results;
             labelMatCandInt1 = labelmatrix(CCInt);
             
             embeddedRidgeCandSpur =double(labelMatCandInt1>0);
-            reconstruct.Int.Seed{1} = filoExtSeedForInt; % internal candidates
+            reconstruct.Int.Seed{1} = filoExtSeedForInt; % internal Seed
             reconstruct.Int.Cand{1} = embeddedRidgeCandSpur; % interal Candidates
             
+ %%           
+      if ip.Results.TSFigs == true 
+           
+        TSFigs(countFigs).h  = setFigure(nx,ny,'on');
+        TSFigs(countFigs).name = 'Before Matching';
+        imshow(-img,[]); 
+        hold on 
+        % plot seeds 
+        
+        
+        % plot embedded cands 
+        
+          
+        % plot endpoints   
+          
+           
             
-            
-            
-%% Troubleshoot figure internal
-%             
-%             if ip.Results.TSOverlays == true
-%                 TSFigs(countFigs).h = setFigure(nx,ny,'on'); 
-%                 TSFigs(countFigs).name = 'beforeAfterSpur';
-%                
-%                 
-%                 imshow(img,[]);
-%                 hold on
-%                 
-%                 spy(embeddedRidgeCand,'g'); % green is the original filo detection after thresholding 
-%                 spy(embeddedRidgeCandSpur,'b'); % blue is after spur
-                
-               
-             
-%                 countFigs = countFigs +1; 
+
                 
 
                 
 %                 imshow(img,[]);
-%                 hold on
+                hold on
                 
-%                 scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),20,'b','filled'); % the endpoint to connect
-%                 scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),20,'r','filled');
-%                 spy(embeddedRidgeCandSpur,'b');
-%                 countFigs = countFigs +1; 
+                 scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),20,'b','filled'); % the endpoint to connect
+                 scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),20,'r','filled');
+                 spy(embeddedRidgeCandSpur,'b');
+                 countFigs = countFigs +1; 
 %                 
 %                 
 %             end % making trouble shoot internal figures %%
+      end 
 % END CLEANING 
            %% Perform the linking 
             % run through
@@ -331,13 +439,13 @@ p = ip.Results;
             
             
             
-            if ip.Results.detectEmbedded == true;
+            if ip.Results.TSOverlays == true;
                 if status ==1
                     spy(linkMask1,'y',10); % plot the link mask
                 end
-                TSFigs(countFigs).name = 'graphConnect'; 
-                TSFigs(countFigs).h = graphConnectFig; 
-                countFigs = countFigs +1; 
+                %TSFigs(countFigs).name = 'graphConnect'; 
+                %TSFigs(countFigs).h = graphConnectFig; 
+                %countFigs = countFigs +1; 
                 
                 %saveas(gcf,[linkDir filesep 'internalInputEPsWithLinks' num2str(iFrame) '.tif']);
             end

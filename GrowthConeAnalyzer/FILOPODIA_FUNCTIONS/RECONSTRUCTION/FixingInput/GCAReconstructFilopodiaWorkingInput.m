@@ -113,7 +113,7 @@ ip.addParameter('FiloScale',1.5);
 ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
 
-ip.addParameter('maxRadiusInitialConnectLink',10); 
+ip.addParameter('maxRadiusLink',5); 
 ip.addParameter('maxRadiusLinkFiloOutsideVeil',10); 
 
 ip.addParameter('maxRadiusLinkEmbedded',10); 

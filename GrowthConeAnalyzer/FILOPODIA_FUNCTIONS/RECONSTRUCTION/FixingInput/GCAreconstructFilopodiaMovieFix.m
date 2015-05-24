@@ -145,7 +145,7 @@ for iCh = 1:nChan
     %%
     % get the list of image filenames
     if p.ProcessIndex == 0
-        imDir = movieData.channels_(iCh).channelPath_;
+        imDir = movieData.channels_(channels(iCh)).channelPath_;
     else
         imDir = movieData.proceses_{p.ProcessIndex}.outfilePaths_;
     end
@@ -164,7 +164,7 @@ for iCh = 1:nChan
         % If for some reason there is more than one protrusion process
         % associated with the data, tell the user that your are using the
         % most recently run
-        if length(protS) >1
+        if length(idxProt) >1
             display(['There was more than one veil protrusion process associated with ' ...
                 'this movie: local filopodia to veil calculations will be '...
                 'will be performed using the most recently run protrusion process']);
