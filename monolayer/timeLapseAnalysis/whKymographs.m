@@ -8,7 +8,7 @@ generateSpeedKymograph(params,dirs);
 generateDirectionalMigrationKymograph(params,dirs);
 generateCoordinatedMigrationKymograph(params,dirs);
 generateStrainRateKymograph(params,dirs);
-generateAccelerationKymograph(params,dirs);
+% generateAccelerationKymograph(params,dirs);
 
 close all;
 end

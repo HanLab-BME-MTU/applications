@@ -1,14 +1,22 @@
 function [exps] = whArrangeData(mainDirname)
-% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/LCCBcommon'));
-% addpath(genpath('/work/gdanuser/azaritsky/TAU/UTSW/code'));
-% addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/MET/woundHealing/utils'));
-% addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/algs/'));
-addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/utils/'));
-addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/LCCBextern/bioformats/'));
-addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/MET/woundHealing/utils/'));
-% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/Hall'));
-% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils'));
-% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs'));
+% % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/LCCBcommon'));
+% % addpath(genpath('/work/gdanuser/azaritsky/TAU/UTSW/code'));
+% % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/MET/woundHealing/utils'));
+% % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/algs/'));
+% addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/utils/'));
+% % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/LCCBextern/bioformats/'));
+% addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/MET/woundHealing/utils/'));
+% % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/Hall'));
+% % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils'));
+% % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs'));
+
+
+workdir = '/home2/azaritsky/code/applications/monolayer/';
+
+cd(workdir);
+
+addpath(genpath('./'));
+
 filenames = dir(mainDirname);
 nfiles = length(filenames);
 
