@@ -83,19 +83,27 @@ p = ip.Results;
     % Remove Singletons
     CCInt = bwconncomp(embeddedRidgeCandSpur);
     csize = cellfun(@(x) length(x),CCInt.PixelIdxList);
-    CCInt.PixelIdxList(csize<2)= [];
-    CCInt.NumObjects = CCInt.NumObjects - sum(csize<2);
+    CCInt.PixelIdxList(csize<3)= [];
+    CCInt.NumObjects = CCInt.NumObjects - sum(csize<3);% changed to 3 20150526 so to make sure can run through 
+    % getEndpoints to get local vectors 
       
 %% Clean the Seed 
-    
-    % keep the endpoints in a cell array that corresponds to EACH CC for Seed
+
+% take out CCs less than 2 
     CCFiloExtSeedForInt = bwconncomp(filoExtSeedForInt);
+    csize = cellfun(@(x) length(x),CCFiloExtSeedForInt.PixelIdxList);
+    CCFiloExtSeedForInt.PixelIdxList(csize<3)= [];
+    CCFiloExtSeedForInt.NumObjects = CCFiloExtSeedForInt.NumObjects - sum(csize<3);
+
     
-    seedFilo1EPs = cellfun(@(x) getEndpoints(x,size(img)),CCFiloExtSeedForInt.PixelIdxList,'uniformoutput',0);
+    
+    
+    [seedFilo1EPs] = cellfun(@(x) getEndpoints(x,size(img),0,1),CCFiloExtSeedForInt.PixelIdxList,'uniformoutput',0);
     
     % filter out those CCs with no or more than 2 end points
     weirdSeed = cellfun(@(x) size(x,1)~=2,seedFilo1EPs);
     seedFilo1EPs = seedFilo1EPs(~weirdSeed);
+    
     CCFiloExtSeedForInt.PixelIdxList(weirdSeed) = [];
     CCFiloExtSeedForInt.NumObjects = CCFiloExtSeedForInt.NumObjects- sum(weirdSeed);
     
@@ -162,7 +170,7 @@ p = ip.Results;
 %% for now make these TS plots as well  
 if ip.Results.TSOverlays == true
     %   for iFig = 1:4
-    TSFigs(countFigs).h  = setFigure(nx,ny,'off');
+    TSFigs(countFigs).h  = setFigure(nx,ny,'on');
     TSFigs(countFigs).name = 'PixelOrder';
     %
     imshow(-img,[]);
@@ -214,20 +222,21 @@ end
 % end         
 
 %%    
-    
+    % originally 20 
     % where orientation differences greater than 90 degrees cut segment.
     orientChangePtsCell= cellfun(@(x) find(x>20 & x <170,1,'first'),diffOrient,'uniformoutput',0);
     
     % for each orientation Change cut
     toChangeVect = cellfun(@(x)  ~isempty(x),orientChangePtsCell);
     IDCCToChange = find(toChangeVect);  
-    
+    removeMask = zeros([ny,nx]); 
     for iChange = 1:length(IDCCToChange)
         IDC = IDCCToChange(iChange);
         % get the pixel indices to change
         pixIdx = CCInt.PixelIdxList{IDC};
         % get where to cut
         cutHere = orientChangePtsCell{IDCCToChange(iChange)};
+        removeMask(pixIdx(cutHere+1))= 1; 
         pixIdx(cutHere+1) = [];
         
         CCInt.PixelIdxList{IDC} = pixIdx; % change the pixels
@@ -246,14 +255,15 @@ end
     
     CCInt = bwconncomp(afterCut);
     
-    % get rid of singletons
+    % for orientation calcs want to make sure to get rid of pieces less
+    % than 3 ccs 
     csize = cellfun(@(x) size(x,1), CCInt.PixelIdxList);
-    CCInt.PixelIdxList(csize<=2) =  [];
-    CCInt.NumObjects = CCInt.NumObjects - sum(csize<=2);
+    CCInt.PixelIdxList(csize<=3) =  [];
+    CCInt.NumObjects = CCInt.NumObjects - sum(csize<=3);
     
     %GetInternal Endpoints
     
-    embeddedRidgeCand1EPs = cellfun(@(x) getEndpoints(x,size(img)),CCInt.PixelIdxList,'uniformoutput',0);
+    embeddedRidgeCand1EPs = cellfun(@(x) getEndpoints(x,size(img),0,1),CCInt.PixelIdxList,'uniformoutput',0);
     %  % change EPs to pixIdx
     
     % make sure to clean out noise (ie those fragments without any endpoints)
@@ -287,19 +297,33 @@ end
         text(5,15,'After Curvature Cut','FontSize',10,'Color','r');
         text(5,25,'Final Candidates','FontSize',10,'Color','g');  
         countFigs = countFigs +1;   % close fig
-    end 
+        
     
-    
-    
-    
+        TSFigs(countFigs).h  = setFigure(nx,ny,'on');
+        TSFigs(countFigs).name = 'OrientationAndCutSites';
+        beforeCut(beforeCut==0) = NaN; 
+        orientMaskedByNMS = beforeCut.*rad2deg(maxTh+pi/2);
+        %orientsMaskByNMS(orientsMaskByNMS==0) = NaN; 
+        imagesc(orientMaskedByNMS); 
+        
+               cmap = get(gcf,'colormap');
+               add = [0 0 0 ];
+               cmap = [add;cmap]; 
+               set(gcf,'colormap',cmap);
+               % over lay removed 
+               hold on 
+               spy(removeMask,'w',10); 
+    countFigs = countFigs+1; 
+    end    
 %% Calc displacement vectors of the ridges: will use for matching 
 % NOTE 20150524 think have made this more local with getEndpoints can try
-% to see if this helps matching. 
-    vectInt =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], embeddedRidgeCand1EPs ,'uniformoutput',0);
-    dInt  = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),embeddedRidgeCand1EPs,'uniformoutput',0);
-    
-    vectSeed =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], seedFilo1EPs ,'uniformoutput',0);
-    dSeed = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),seedFilo1EPs,'uniformoutput',0);
+% to see if this helps matching. (DELETED 20150526 silly not necessarily
+% sorted so that the vect is always facing the same way...dipshit)
+     vectInt =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], embeddedRidgeCand1EPs ,'uniformoutput',0);
+     dInt  = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),embeddedRidgeCand1EPs,'uniformoutput',0);
+%     
+     vectSeed =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], seedFilo1EPs ,'uniformoutput',0);
+     dSeed = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),seedFilo1EPs,'uniformoutput',0);
 %%   
     
    
@@ -380,10 +404,15 @@ end
             % do it for external candidate coords
             for i = 1:length(idxKeepExtSeed)
                 seedFilo1EPsFinal{i} = seedFilo1EPs{i}(idxKeepExtSeed(i),:);
+               
             end
             %
             %
             seedFilo1EPsFinal = vertcat(seedFilo1EPsFinal{:});
+          
+            
+            
+            
             %
             %  % Only one end-point per candidate/seed (the closet to the neurite body)
             %  % will now be considered for matching
@@ -392,11 +421,33 @@ end
             labelMatCandInt1 = labelmatrix(CCInt);
             
             embeddedRidgeCandSpur =double(labelMatCandInt1>0);
+            
+            % sanity
+            figure
+            imshow(-img,[]) 
+            hold on 
+            spy(filoExtSeedForInt,'r'); 
+            scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),10,'r','filled'); 
+            quiver(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),seedFilo1EPsFinal(:,3),seedFilo1EPsFinal(:,4),0.2,'color','r')
+            spy(embeddedRidgeCandSpur,'b')
+            scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),10,'b','filled'); 
+            quiver(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),...
+                embeddedRidgeCand1EPsFinal(:,3),embeddedRidgeCand1EPsFinal(:,4),0.2,'color','b'); 
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             reconstruct.Int.Seed{1} = filoExtSeedForInt; % internal Seed
             reconstruct.Int.Cand{1} = embeddedRidgeCandSpur; % interal Candidates
             
  %%           
-      if ip.Results.TSFigs == true 
+      if ip.Results.TSOverlays == true 
            
         TSFigs(countFigs).h  = setFigure(nx,ny,'on');
         TSFigs(countFigs).name = 'Before Matching';
@@ -421,7 +472,10 @@ end
                 
                  scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),20,'b','filled'); % the endpoint to connect
                  scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),20,'r','filled');
-                 spy(embeddedRidgeCandSpur,'b');
+                 fromLabels = double(labelMatCandInt1>0); 
+                 spy(embeddedRidgeCandSpur,'y'); 
+                 spy(fromLabels,'b');
+                 spy(filoExtSeedForInt,'r')
                  countFigs = countFigs +1; 
 %                 
 %                 
@@ -434,21 +488,13 @@ end
             % between in and out - NOTE you need to keep the vect as input 
             % set up the endpoints to choose only the closest point so 
             % it makes sense not to calculate again. 
-            [maskPostConnect1,linkMask1,status]  = gcaConnectEmbeddedRidgeCandidates(embeddedRidgeCand1EPsFinal,seedFilo1EPsFinal,filoExtSeedForInt,labelMatCandInt1,vectSeed,vectInt,dSeed,dInt,p);
+            [maskPostConnect1,linkMask1,status,TSFigs2]  = gcaConnectEmbeddedRidgeCandidatesFix(embeddedRidgeCand1EPsFinal,seedFilo1EPsFinal,filoExtSeedForInt, ...
+                labelMatCandInt1,img,edgeMask,p);
             % need to get the internal Filoconnect
             
             
             
-            if ip.Results.TSOverlays == true;
-                if status ==1
-                    spy(linkMask1,'y',10); % plot the link mask
-                end
-                %TSFigs(countFigs).name = 'graphConnect'; 
-                %TSFigs(countFigs).h = graphConnectFig; 
-                %countFigs = countFigs +1; 
-                
-                %saveas(gcf,[linkDir filesep 'internalInputEPsWithLinks' num2str(iFrame) '.tif']);
-            end
+          
             reconstruct.Int.links{1} = linkMask1;
             reconstruct.Int.Seed{2} = maskPostConnect1;
             
