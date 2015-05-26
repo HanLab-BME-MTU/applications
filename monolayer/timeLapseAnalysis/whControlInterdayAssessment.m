@@ -23,16 +23,20 @@ allGeneDiffs = allMeanGenes - remapMetaMeanControl;
 
 L1DistControls =  sum(allControlDiffs,1);
 L1DistGene =  sum(allGeneDiffs,1);
-absDistControls =  sum(allControlDiffs,1);
-absDistdistGene =  sum(allGeneDiffs,1);
+% absDistControls =  sum(abs(allControlDiffs),1);
+% absDistdistGene =  sum(abs(allGeneDiffs),1);
 
 loggerFname = [mainDirname 'controlInterdayAssessment/log_controlAssessment_' propertyStr '.txt'];
 logger = fopen(loggerFname,'w');
 
+
+fprintf(logger,'    Distance from mean control (L1 control, L1 KD)    \n');
+fprintf(logger,'*************\n');
 for i = 1 : iDayGeneSeq
     curInd = sortedInds(i);        
-    fprintf(logger,sprintf('%s: %.2f (%.2f)\n',geneDayDiff{curInd}.dayGeneSeqStr,sortedDists(i),L1DistControls(curInd),L1DistGene(curInd)));
+    fprintf(logger,sprintf('%s: %.1f (%.1f, %.1f)\n',geneDayDiff{curInd}.dayGeneSeqStr,sortedDists(i),L1DistControls(curInd),L1DistGene(curInd)));
 end
+fprintf(logger,'*************\n');
 
 fclose(logger);
 
@@ -63,7 +67,7 @@ export_fig([mainDirname 'controlInterdayAssessment/controlDiffDistribution.eps']
 
 %% visualize: distance from mean control: control vs. gene
 doVisualize(L1DistControls,L1DistGene,geneDayDiff,targetGenesStr,[mainDirname 'controlInterdayAssessment/' propertyStr '_relativeToMeanControlL1'],propertyStr);
-doVisualize(absDistControls,absDistdistGene,geneDayDiff,targetGenesStr,[mainDirname 'controlInterdayAssessment/' propertyStr '_relativeToMeanControlAbs'],propertyStr);
+% doVisualize(absDistControls,absDistdistGene,geneDayDiff,targetGenesStr,[mainDirname 'controlInterdayAssessment/' propertyStr '_relativeToMeanControlAbs'],propertyStr);
 doVisualize(allDistsControl,allDistsGene,geneDayDiff,targetGenesStr,[mainDirname 'controlInterdayAssessment/' propertyStr '_relativeToMeanControlL2'],propertyStr);
 doVisualize(controlHealingDists,geneHealingDists,geneDayDiff,targetGenesStr,[mainDirname 'controlInterdayAssessment/' propertyStr '_relativeHealing'],propertyStr);
 
@@ -91,7 +95,7 @@ plot(controlx(restInds),geney(restInds),'o','MarkerEdgeColor',cmap(2,:),'LineWid
 for t = 1 : nTargets
     plot(controlx(targetsInds{t}),geney(targetsInds{t}),'o','MarkerEdgeColor',cmap(t+2,:),'LineWidth',LineWidth,'MarkerSize',markerSize+3,'DisplayName',targetGenesStr{t});
 end
-plot(controlx(posCntrl.inds),geney(posCntrl.inds),'o','MarkerEdgeColor',cmap(nConditions,:),'LineWidth',LineWidth,'MarkerSize',markerSize,'DisplayName','CDC42/RAC1/beta-PIX');
+plot(controlx(posCntrl.inds),geney(posCntrl.inds),'o','MarkerEdgeColor',cmap(nConditions,:),'LineWidth',LineWidth,'MarkerSize',markerSize,'DisplayName','Pos Ctrl');
 
 haxes = get(h,'CurrentAxes');
 
@@ -99,17 +103,17 @@ xlim = get(haxes,'xlim');
 
 set(haxes,'FontSize',fontsize);
 
-% legend('show','Location','NorthEastOutside');
+legend('show','Location','NorthEastOutside');
 
 plot([xlim(1),xlim(2)],[xlim(1),xlim(2)],'-k','LineWidth',2);
 plot(0,0,'*k','LineWidth',2,'MarkerSize',10); 
 
 set(h,'Color','none');
 
-% outFname = [fnamePrefix '_legend.eps'];
-% export_fig(outFname);
-% 
-% legend off;
+outFname = [fnamePrefix '_legend.eps'];
+export_fig(outFname);
+
+legend off;
 outFname = [fnamePrefix '.eps'];
 export_fig(outFname);
 

@@ -179,6 +179,33 @@ if (curRoiSize2 > 0.3 * curRoiSize)
 end
 end
 
+%% UTILS
+function [Aer] = erode(A,maskSize)
+
+if nargin < 2
+    error('whTemporalBasedSegmentation: erode missing mask size');
+end
+
+mask = ones(maskSize);
+se1 = strel(mask);
+
+Aer = imerode(A,se1);
+
+end
+
+function [Aer] = dilate(A,maskSize)
+
+if nargin < 2
+    error('whTemporalBasedSegmentation: dilate missing mask size');
+end
+
+mask = ones(maskSize);
+se1 = strel(mask);
+
+Aer = imdilate(A,se1);
+
+end
+
 
 %%
 % function [gcBin] = whGCSegmentation(ROI, I, confidence, patchSize, changeRadius)

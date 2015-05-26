@@ -1,27 +1,54 @@
 function [] = whMetaDayAnalysis(allFeatures,healingRate,strLabels,metaData,mainDirname)
-
 warning('off','all');
 
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs/libsvm-3.18'),'-begin');
 addpath(genpath('/apps/MATLAB/R2013a/toolbox/stats/stats'));
 
-% targetGenesStr = {'TRIO','TUBA','FGD6','ARHGEF3','VAV1','SOS1','ARHGEF11'};
-targetGenesStr = {'TRIO','ARHGEF3','ARHGEF11'};
+% % targetGenesStr = {'TRIO','TUBA','FGD6','ARHGEF3','VAV1','SOS1','ARHGEF11'};
+% targetGenesSpeedStr = {'TRIO','SOS1','ARHGEF9','TUBA'};
+% targetGenesDirectionalityStr = {'TRIO','SOS1','ARHGEF28','ARHGEF11'};
+% targetGenesCoordinationStr = {'TRIO','SOS1','ARHGEF9','ARHGEF28','TUBA','ARHGEF12','ARHGEF1','SWAP-70'};
 
-[speedDiffs,healingRateSpeed,geneDayDiffSpeed] = dayAnalysisProperty(allFeatures.speedFeats,targetGenesStr,healingRate,strLabels,metaData,mainDirname,'Speed');
-[directionalityDiffs,healingRateDirectionality,geneDayDiffDirectionality] = dayAnalysisProperty(allFeatures.directionalityFeats,targetGenesStr,healingRate,strLabels,metaData,mainDirname,'Directionality');
-% % dayAnalysisProperty(allFeatures.strainRateFeats.features,healingRate,strLabels,metaData,mainDirname,'StrainRate');
-[coordinationDiffs,healingRateCoordination,geneDayDiffCoordination] = dayAnalysisProperty(allFeatures.coordinationFeats,targetGenesStr,healingRate,strLabels,metaData,mainDirname,'Coordination');
+targetGenesSpeedStr = {'RHOA'};
+targetGenesDirectionalityStr = {'RHOA'};
+targetGenesCoordinationStr = {'RHOA'};
 
-whAssociatePropertyDirection(geneDayDiffSpeed,healingRateSpeed,speedDiffs,directionalityDiffs,coordinationDiffs,targetGenesStr,mainDirname);
+[speedDiffs,healingRateSpeed,geneDayDiffSpeed] = dayAnalysisProperty(allFeatures.speedFeats,targetGenesSpeedStr,healingRate,strLabels,metaData,mainDirname,'Speed');
+[directionalityDiffs,healingRateDirectionality,geneDayDiffDirectionality] = dayAnalysisProperty(allFeatures.directionalityFeats,targetGenesDirectionalityStr,healingRate,strLabels,metaData,mainDirname,'Directionality');
+% [directionalityStrainRate,healingRateStrainRate,geneDayDiffStrainRate] = dayAnalysisProperty(allFeatures.strainRateFeats.features,healingRate,strLabels,metaData,mainDirname,'StrainRate');
+[coordinationDiffs,healingRateCoordination,geneDayDiffCoordination] = dayAnalysisProperty(allFeatures.coordinationFeats,targetGenesCoordinationStr,healingRate,strLabels,metaData,mainDirname,'Coordination');
+
+% whAssociatePropertyDirection(geneDayDiffSpeed,healingRateSpeed,speedDiffs,directionalityDiffs,coordinationDiffs,targetGenesStr,mainDirname);
 
 close all;
 end
 
-
+%% dayAnalysisProperty
 % TODO: update by day
+%   1. Construct geneDayDiff structure that includes the atomic unit of a daily experiment, print kymographs, etc. (till line 196)
+%   2. PCA of (gene KD - control) - line 200
+%   3. Assess variance
+%   4. dayAnalysis - PCA analysis: printing PCs, mean PCA per day, and for each condition
+%   5. dayClassification - detect targtes (hits) via cluster seperation measures (in svm directory)
+%   6. dayClustering - clustering GEFs by phenotype (not active)
+%   7. dayVisualizeKymographs - mean kymographs of control, KD and the subtraction KD - control (in dayGeneControlKymograph directory)
+%   8. whVisualizeTargets - PCA of (KD - control), highlighting targets. (in targets directory)
+%   9. whControlInterdayAssessment - assesseing variability of control
+%   between days experiments (specifically targets), (in controlInterdayAssessment directory)
+
+% TODO: (1) Z-scores for step 3 and 5 (2) Fix bug in Dunn score in step 5
+
 function [allDiffMeanGeneToMeanControl,healingRateOut,geneDayDiff] = dayAnalysisProperty(data,targetGenesStr,healingRate,strLabels,metaData,mainDirname,propertyStr)
 close all;
+
+flags.variance = 1;
+flags.dayAnalysisPCA = 0;
+flags.dayClassification = 1;
+flags.dayClustering = 0;
+flags.dayVisKymographs = 0;
+flags.dayVisTargets = 0;
+flags.controlInterdayAssessment = 1;
+
 
 features = data.features;
 kymographs = data.kymographs;
@@ -90,7 +117,7 @@ for day = 1 : N
                 continue;
             end
             
-            assert(nCurDayGeneSeq <= 6);                        
+            %             assert(nCurDayGeneSeq <= 6);
             
             depletionRate = metaData.KD{find(seqIndsDay,1)};
             seqStrStr = seqStr{seq}; seqStrStr = seqStrStr(2:end-1);
@@ -140,9 +167,10 @@ for day = 1 : N
                 end
                 close all;
             end            
-            %%
+            %%           
             
             diffMeanGeneToMeanControl = meanGene - meanControl;
+            pdist2MeanGeneToMeanControl = pdist2(meanGene',meanControl');
         
             
             % For each gene-sh includes matrix of distance-vectors from day's
@@ -184,19 +212,65 @@ for day = 1 : N
             geneDayDiff{nDayGeneSeq}.diffToMeanControlInds = (size(allDiffToMeanControl,2)-size(diffGeneToMeanControl,2)+1):size(allDiffToMeanControl,2);
             geneDayDiff{nDayGeneSeq}.diffMeanGeneToMeanControl = diffMeanGeneToMeanControl;
             geneDayDiff{nDayGeneSeq}.diffMeanGeneToMeanControlInds = size(allDiffMeanGeneToMeanControl,2);
+            geneDayDiff{nDayGeneSeq}.pdist2MeanGeneToMeanControl = pdist2MeanGeneToMeanControl;
             
             geneDayDiff{nDayGeneSeq}.meanKDKymograph = meanKDKymograph;
             geneDayDiff{nDayGeneSeq}.meanKControlKymograph = meanKControlKymograph;
             geneDayDiff{nDayGeneSeq}.diffKymograph = diffMeanKymograph;
             fprintf(sprintf('%s: gene: %d, control: %d\n',geneDayDiff{nDayGeneSeq}.geneStr,geneDayDiff{nDayGeneSeq}.nGeneFeatures,geneDayDiff{nDayGeneSeq}.nControlFeatures))
+            
+            printSpaceTime = false;
+            if printSpaceTime  
+                yLabelStr = propertyStr;
+                yLimits = nan;
+                if strcmp(propertyStr,'Speed')
+                    yLimits = [0 60];
+                else if strcmp(propertyStr,'Directionality')
+                        yLimits = [0 8];                        
+                    else
+                        if strcmp(propertyStr,'Coordination')
+                            yLimits = [0 1];                            
+                        end
+                    end
+                end
+                
+                % Space
+                xSpace = [30,90,150];
+                xLabelStr = 'Distance from edge (\mum)';               
+                outFname = [mainDirname 'dayGenePlots/' dayGeneSeqStr '_' propertyStr '_Space.eps'];
+                titleStr = [strjoin(strsplit(dayGeneSeqStr,'_'),' ') ': spatial ' lower(propertyStr)];
+                
+                ysControl = [mean(featsControl(1:4,:));mean(featsControl(5:8,:));mean(featsControl(9:12,:))];
+                ysKD = [mean(featsGene(1:4,:));mean(featsGene(5:8,:));mean(featsGene(9:12,:))];                
+                
+                plotTimeOrSpacePlot(xSpace,ysControl,ysKD,xLabelStr,yLabelStr,yLimits,titleStr,outFname);
+                
+                % Time
+                xTime = [28,78,128,178];
+                xLabelStr = 'Time (minutes)';                                
+                outFname = [mainDirname 'dayGenePlots/' dayGeneSeqStr '_' propertyStr '_Time.eps'];
+                titleStr = [strjoin(strsplit(dayGeneSeqStr,'_'),' ') ': temporal ' lower(propertyStr)];
+                
+                ysControl = [mean(featsControl(1:4:12,:));mean(featsControl(2:4:12,:));mean(featsControl(3:4:12,:));mean(featsControl(4:4:12,:))];
+                ysKD = [mean(featsGene(1:4:12,:));mean(featsGene(2:4:12,:));mean(featsGene(3:4:12,:));mean(featsGene(4:4:12,:))];      
+                
+                plotTimeOrSpacePlot(xTime,ysControl,ysKD,xLabelStr,yLabelStr,yLimits,titleStr,outFname);
+                
+                close all;
+            end
          end
     end    
     close all;        
 end
 
+save([mainDirname '/plithotaxisOut/geneDay' propertyStr '.mat'],'geneDayDiff');
+
+%% 2. PCA of (gene KD - control)
+
 [coeff,score,latent] = pca(allDiffVectors');
 accVariance = cumsum(latent)./sum(latent);
 
+%% Unused code
 % TODO: now take the geneDayDiff per gene & day --> use the PCA to
 % transform. Check how the PCA looks.
 
@@ -212,16 +286,45 @@ accVariance = cumsum(latent)./sum(latent);
 % Calculate day variance of control + GEF
 % % dayVariance(features,geneDayDiff,interDayControlInds,indsPSup,mainDirname,propertyStr);
 % % dayVariance(features,geneDayDiff,indsPSup,mainDirname,propertyStr);
-% whVariance(features,geneDayDiff,indsPSup,mainDirname,propertyStr);
-% dayAnalysis(allDiffVectors,allDiffToMeanControl,allDiffMeanGeneToMeanControl,geneDayDiff,mainDirname,propertyStr);
-% dayClassification(features,geneDayDiff,mainDirname,propertyStr);
-% dayClustering(geneDayDiff,allDiffVectors,allDiffMeanGeneToMeanControl,mainDirname,propertyStr);
-% dayVisualizeKymographs(geneDayDiff,mainDirname,propertyStr,metaData);
-% 
-% whVisualizeTargets(geneDayDiff,allDiffMeanGeneToMeanControl,targetGenesStr,mainDirname,propertyStr);
-whControlInterdayAssessment(geneDayDiff,mainDirname,propertyStr,metaData,targetGenesStr,healingRateControl,healingRateGene);
+
+%% 3. Assess variance
+if flags.variance
+    geneDayDiff = whVariance(features,geneDayDiff,indsPSup,mainDirname,propertyStr);
+    save([mainDirname '/plithotaxisOut/geneDay' propertyStr '.mat'],'geneDayDiff');
 end
 
+%% 4. dayAnalysis: PCA analysis: printing PCs, mean PCA per day, and for each condition KD - Control
+if flags.dayAnalysisPCA
+    dayAnalysis(allDiffVectors,allDiffToMeanControl,allDiffMeanGeneToMeanControl,geneDayDiff,mainDirname,propertyStr);
+end
+
+%% 5. dayClassification - hit detection via cluster seperation measures (in svm directory)
+if flags.dayClassification
+    dayClassification(features,geneDayDiff,mainDirname,propertyStr);
+end
+
+%% 6. dayClustering: clustering GEFs by phenotype (not active)
+if flags.dayClustering
+    dayClustering(geneDayDiff,allDiffVectors,allDiffMeanGeneToMeanControl,mainDirname,propertyStr);
+end
+
+%% 7. dayVisualizeKymographs: mean kymographs of control, KD and the subtraction KD - control (in dayGeneControlKymograph directory)
+if flags.dayVisKymographs
+    dayVisualizeKymographs(geneDayDiff,mainDirname,propertyStr,metaData);
+end
+
+%% 8. whVisualizeTargets: PCA of (KD - control), highlighting targets. Output in targets directory.
+if flags.dayVisTargets
+    whVisualizeTargets(geneDayDiff,allDiffMeanGeneToMeanControl,targetGenesStr,mainDirname,propertyStr);
+end
+
+%% 9. whControlInterdayAssessment: 
+if flags.controlInterdayAssessment
+    whControlInterdayAssessment(geneDayDiff,mainDirname,propertyStr,metaData,targetGenesStr,healingRateControl,healingRateGene);
+end
+end
+
+%%
 
 %%
 % function [] = dayVariance(features,geneDayDiff,interDayControlInds,indsPSup,mainDirname,propertyStr)
@@ -406,9 +509,9 @@ if strcmp(propertyStr,'Speed')
     set(haxes,'YTick',-100:50:100);
     set(haxes,'YTickLabel',-100:50:100);
 else if strcmp(propertyStr,'Directionality')
-        assert(max(abs(score(:,1))) < 16);
+        assert(max(abs(score(:,1))) < 17);
         assert(max(abs(score(:,2))) < 10);
-        set(haxes,'XLim',[-16,16]);
+        set(haxes,'XLim',[-17,17]);
         set(haxes,'XTick',-16:8:16);
         set(haxes,'XTickLabel',-16:8:16);
         set(haxes,'YLim',[-10,10]);
@@ -466,9 +569,9 @@ for iGeneDay = 1 : nGeneDay
         set(haxes,'YTick',-100:50:100);
         set(haxes,'YTickLabel',-100:50:100);
     else if strcmp(propertyStr,'Directionality')
-            assert(max(abs(score(:,1))) < 16);
+            assert(max(abs(score(:,1))) < 17);
             assert(max(abs(score(:,2))) < 10);
-            set(haxes,'XLim',[-16,16]);
+            set(haxes,'XLim',[-17,17]);
             set(haxes,'XTick',-16:8:16);
             set(haxes,'XTickLabel',-16:8:16);
             set(haxes,'YLim',[-10,10]);
@@ -523,9 +626,9 @@ if strcmp(propertyStr,'Speed')
     set(haxes,'YTick',-100:50:100);
     set(haxes,'YTickLabel',-100:50:100);
 else if strcmp(propertyStr,'Directionality')
-        assert(max(abs(score(:,1))) < 16);
+        assert(max(abs(score(:,1))) < 17);
         assert(max(abs(score(:,2))) < 10);
-        set(haxes,'XLim',[-16,16]);
+        set(haxes,'XLim',[-17,17]);
         set(haxes,'XTick',-16:8:16);
         set(haxes,'XTickLabel',-16:8:16);
         set(haxes,'YLim',[-10,10]);
@@ -592,9 +695,9 @@ if strcmp(propertyStr,'Speed')
     set(haxes,'YTick',-100:50:100);
     set(haxes,'YTickLabel',-100:50:100);
 else if strcmp(propertyStr,'Directionality')
-        assert(max(abs(score(:,1))) < 16);
+        assert(max(abs(score(:,1))) < 17);
         assert(max(abs(score(:,2))) < 10);
-        set(haxes,'XLim',[-16,16]);
+        set(haxes,'XLim',[-17,17]);
         set(haxes,'XTick',-16:8:16);
         set(haxes,'XTickLabel',-16:8:16);
         set(haxes,'YLim',[-10,10]);
@@ -655,9 +758,9 @@ if strcmp(propertyStr,'Speed')
     set(haxes,'YTick',-100:50:100);
     set(haxes,'YTickLabel',-100:50:100);
 else if strcmp(propertyStr,'Directionality')
-        assert(max(abs(score(:,1))) < 16);
+        assert(max(abs(score(:,1))) < 17);
         assert(max(abs(score(:,2))) < 10);
-        set(haxes,'XLim',[-16,16]);
+        set(haxes,'XLim',[-17,17]);
         set(haxes,'XTick',-16:8:16);
         set(haxes,'XTickLabel',-16:8:16);
         set(haxes,'YLim',[-10,10]);
@@ -694,7 +797,8 @@ export_fig(controlGeneVarFname);
 hold off;
 end
 
-%% SVM classification and statistical significance!
+%% Cluster measures for detection
+% TODO: use Z-score for ranking!
 function [] = dayClassification(features,geneDayDiff,mainDirname,propertyStr)
 addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs/libsvm-3.18'),'-begin');
 nGeneDay = length(geneDayDiff);
@@ -706,7 +810,7 @@ PC1 = score(:,1); % magnitude
 PC2 = score(:,2); % temporal
 PC3 = score(:,3); % spatial
 
-loggerFname = [mainDirname 'svm/log_' propertyStr '.txt'];
+loggerFname = [mainDirname 'svm/log_seperation_' propertyStr '.txt'];
 logger = fopen(loggerFname,'w');
 
 
@@ -753,6 +857,9 @@ for iGeneDay = 1 : nGeneDay
     geneDayDiff{iGeneDay}.DunnIndexPC3 = DunnIndexPC3;
     geneDayDiff{iGeneDay}.SilhouetteCoefficientPC3 = SilhouetteCoefficientPC3;
 end
+
+%% calculate off-target controls mean and std for these indices (for z-score)
+
 
 % --------------
 printAll = true;
@@ -1098,6 +1205,10 @@ DunnIndices = [];
 SilhouetteCoefficients = [];
 dayGenesSeqStr = {};
 
+controlIntrawellVariance = [];
+geneIntrawellVariance = [];
+kd0InterwellDist = [];
+
 DaviesBouldinIndicesKD0 = [];
 DunnIndicesKD0 = [];
 SilhouetteCoefficientsKD0 = [];
@@ -1110,15 +1221,26 @@ DaviesBouldinIndicesRest = [];
 DunnIndicesRest = [];
 SilhouetteCoefficientsRest = [];
 
+strKD0 = {}; ikd0 = 0;
+strCdc42Rac1 = {}; icdc42rac1 = 0;
+strRest = {}; irest = 0;
+
+restInds = [];
+kd0Inds = [];
+Cdc42Rac1Inds = [];
+
 curExp = 0;
 for iGeneDay = 1 : nGeneDay   
     if isfield(geneDayDiff{iGeneDay},'DaviesBouldinIndex')
         curExp = curExp + 1;       
         
+        controlIntrawellVariance = [controlIntrawellVariance geneDayDiff{iGeneDay}.varControl];
+        geneIntrawellVariance = [geneIntrawellVariance geneDayDiff{iGeneDay}.varGene];
+        
         if strcmp(representativeStr,'')
             DaviesBouldinIndex = geneDayDiff{iGeneDay}.DaviesBouldinIndex;
             DunnIndex = geneDayDiff{iGeneDay}.DunnIndex;
-            SilhouetteCoefficient = geneDayDiff{iGeneDay}.SilhouetteCoefficient;
+            SilhouetteCoefficient = geneDayDiff{iGeneDay}.SilhouetteCoefficient;            
         else if strcmp(representativeStr,'PC1')
                 DaviesBouldinIndex = geneDayDiff{iGeneDay}.DaviesBouldinIndexPC1;
                 DunnIndex = geneDayDiff{iGeneDay}.DunnIndexPC1;
@@ -1142,18 +1264,34 @@ for iGeneDay = 1 : nGeneDay
         SilhouetteCoefficients = [SilhouetteCoefficients SilhouetteCoefficient];
         dayGenesSeqStr{curExp} = geneDayDiff{iGeneDay}.dayGeneSeqStr;
         
+        
         if geneDayDiff{iGeneDay}.KD == 0
+            ikd0 = ikd0 + 1;
+            strKD0{ikd0} = dayGenesSeqStr{curExp};
             DaviesBouldinIndicesKD0 = [DaviesBouldinIndicesKD0 DaviesBouldinIndex];
             DunnIndicesKD0 = [DunnIndicesKD0 DunnIndex];
-            SilhouetteCoefficientsKD0 = [SilhouetteCoefficientsKD0 SilhouetteCoefficient];            
-        else if strcmp(geneDayDiff{iGeneDay}.geneStr,'RAC1') || strcmp(geneDayDiff{iGeneDay}.geneStr,'CDC42') || strcmp(geneDayDiff{iGeneDay}.geneStr,'beta-PIX')
+            SilhouetteCoefficientsKD0 = [SilhouetteCoefficientsKD0 SilhouetteCoefficient];                                    
+                        
+            kd0Inds = [kd0Inds iGeneDay];
+
+            kd0InterwellDist = [kd0InterwellDist geneDayDiff{iGeneDay}.pdist2MeanGeneToMeanControl];
+        else if strcmp(geneDayDiff{iGeneDay}.geneStr,'RAC1') || strcmp(geneDayDiff{iGeneDay}.geneStr,'CDC42') || ...
+                    strcmp(geneDayDiff{iGeneDay}.geneStr,'beta-PIX') || strcmp(geneDayDiff{iGeneDay}.geneStr,'RHOA')
+                icdc42rac1 = icdc42rac1 + 1;
+                strCdc42Rac1{icdc42rac1} = dayGenesSeqStr{curExp};
                 DaviesBouldinIndicesCdc42Rac1 = [DaviesBouldinIndicesCdc42Rac1 DaviesBouldinIndex];
                 DunnIndicesCdc42Rac1 = [DunnIndicesCdc42Rac1 DunnIndex];
                 SilhouetteCoefficientsCdc42Rac1 = [SilhouetteCoefficientsCdc42Rac1 SilhouetteCoefficient];
+                
+                Cdc42Rac1Inds = [Cdc42Rac1Inds iGeneDay];
             else
+                irest = irest + 1;
+                strRest{irest} = dayGenesSeqStr{curExp};
                 DaviesBouldinIndicesRest = [DaviesBouldinIndicesRest DaviesBouldinIndex];
                 DunnIndicesRest = [DunnIndicesRest DunnIndex];
                 SilhouetteCoefficientsRest = [SilhouetteCoefficientsRest SilhouetteCoefficient];
+                
+                restInds = [restInds iGeneDay];
             end
             
         end
@@ -1164,79 +1302,196 @@ nZero = length(DaviesBouldinIndicesKD0);
 nKnown = length(DaviesBouldinIndicesCdc42Rac1);
 nRest = length(DaviesBouldinIndicesRest);
 
+%% off-target controls for z-score calculations
+meanDB = mean(DaviesBouldinIndicesKD0); stdDB = std(DaviesBouldinIndicesKD0);
+meanDunn = mean(DunnIndicesKD0); stdDunn = std(DunnIndicesKD0);
+meanSilhouette = mean(SilhouetteCoefficientsKD0); stdSilhouette = std(SilhouetteCoefficientsKD0);
+
+zScoreDaviesBouldinKD0 = (DaviesBouldinIndicesKD0 - meanDB) ./ stdDB;
+zScoreDunnKD0 = (DunnIndicesKD0 - meanDunn) ./ stdDunn;
+zScoreSilhouetteKD0 = (SilhouetteCoefficientsKD0 - meanSilhouette) ./ stdSilhouette;
+
+zScoreDaviesBouldinCdc42Rac1 = (DaviesBouldinIndicesCdc42Rac1 - meanDB) ./ stdDB;
+zScoreDunnCdc42Rac1 = (DunnIndicesCdc42Rac1 - meanDunn) ./ stdDunn;
+zScoreSilhouetteCdc42Rac1 = (SilhouetteCoefficientsCdc42Rac1 - meanSilhouette) ./ stdSilhouette;
+
+zScoreDaviesBouldinRest = (DaviesBouldinIndicesRest - meanDB) ./ stdDB;
+zScoreDunnRest = (DunnIndicesRest - meanDunn) ./ stdDunn;
+zScoreSilhouetteRest = (SilhouetteCoefficientsRest - meanSilhouette) ./ stdSilhouette;
+
+
+meanControlIntrawellVar = mean(controlIntrawellVariance); stdControlIntrawellVar = std(controlIntrawellVariance);
+meanGeneIntrawellVar = mean(geneIntrawellVariance); stdGeneIntrawellVar = std(geneIntrawellVariance);
+meanInterwellDist = mean(kd0InterwellDist); stdInterwellVar = std(kd0InterwellDist);
+
+medianIntrawellVar = median([controlIntrawellVariance geneIntrawellVariance]);
+medianInterwellDist = median(kd0InterwellDist);
+%%
 labels = [repmat(' KD = 0%',nZero,1);repmat('Positive',nKnown,1);repmat('KD > 50%',nRest,1)];
 dataDaviesBouldin = [DaviesBouldinIndicesKD0';DaviesBouldinIndicesCdc42Rac1';DaviesBouldinIndicesRest'];
 dataDunn = [DunnIndicesKD0';DunnIndicesCdc42Rac1';DunnIndicesRest'];
 dataSilhouette = [SilhouetteCoefficientsKD0';SilhouetteCoefficientsCdc42Rac1';SilhouetteCoefficientsRest'];
 
-displayBoxPlot(dataDaviesBouldin,labels,'Davies Bouldin Index',[mainDirname 'svm/' propertyStr representativeStr '_DaviesBouldinZero-effectors.eps']);
-displayBoxPlot(dataDunn,labels,'Dunn Index',[mainDirname 'svm/' propertyStr representativeStr '_DunnZero-effectors.eps']);
-displayBoxPlot(dataSilhouette,labels,'Silhouette Coefficients',[mainDirname 'svm/' propertyStr representativeStr '_SilhouetteZero-effectors.eps']);
+displayBoxPlot(dataDaviesBouldin,labels,'Davies Bouldin Index',[mainDirname 'svm/' propertyStr representativeStr '_DaviesBouldin.eps']);
+displayBoxPlot(dataDunn,labels,'Dunn Index',[mainDirname 'svm/' propertyStr representativeStr '_Dunn.eps']);
+displayBoxPlot(dataSilhouette,labels,'Silhouette Coefficients',[mainDirname 'svm/' propertyStr representativeStr '_Silhouette.eps']);
 
-%
-[sortedDB,sortedIndsDB] = sort(DaviesBouldinIndices);
-sortedDayGeneSeqsStrDB = dayGenesSeqStr(sortedIndsDB);
+%% boxplots z-score
+zScoreTH = 2;
+zScoreSumTH = 5;
 
-[sortedDunn,sortedIndsDunn] = sort(DunnIndices);
-sortedDayGeneSeqsStrDunn = dayGenesSeqStr(sortedIndsDunn);
+zScoreDaviesBouldin = [zScoreDaviesBouldinKD0';zScoreDaviesBouldinCdc42Rac1';zScoreDaviesBouldinRest'];
+zScoreDunn = [zScoreDunnKD0';zScoreDunnCdc42Rac1';zScoreDunnRest'];
+zScoreSilhouette = [zScoreSilhouetteKD0';zScoreSilhouetteCdc42Rac1';zScoreSilhouetteRest'];
+displayBoxPlot(zScoreDaviesBouldin,labels,'Z-score',[mainDirname 'svm/' propertyStr representativeStr '_DaviesBouldinZScore.eps']);
+displayBoxPlot(zScoreDunn,labels,'Z-score',[mainDirname 'svm/' propertyStr representativeStr '_DunnZScore.eps']);
+displayBoxPlot(zScoreSilhouette,labels,'Z-score',[mainDirname 'svm/' propertyStr representativeStr '_SilhouetteZScore.eps']);
 
-[sortedSC,sortedIndsSC] = sort(SilhouetteCoefficients);
-sortedDayGeneSeqsStrSC = dayGenesSeqStr(sortedIndsSC);
 
+sumZScoreRest = zScoreDaviesBouldinRest + zScoreDunnRest + zScoreSilhouetteRest;
+[sortedZScoreRest,sortedIndsZScoreRest] = sort(sumZScoreRest);
+sortedStrRest = strRest(sortedIndsZScoreRest);
+restIndsSorted = restInds(sortedIndsZScoreRest);
 
 if printAll
-    fprintf(logger,sprintf('\n ****** Davies Bouldin ********\n'));
-    for iGeneDay = 1 : length(sortedDayGeneSeqsStrDB)
-        fprintf(logger,sprintf('%s: %.2f\n',sortedDayGeneSeqsStrDB{iGeneDay},sortedDB(iGeneDay)));
-    end
-    
-    fprintf(logger,sprintf('\n ****** Dunn ********\n'));
-    for iGeneDay = 1 : length(sortedDayGeneSeqsStrDB)
-        fprintf(logger,sprintf('%s: %.2f\n',sortedDayGeneSeqsStrDunn{iGeneDay},sortedDunn(iGeneDay)));
-    end
-    
-    fprintf(logger,sprintf('\n ****** Silhouette ********\n'));
-    for iGeneDay = 1 : length(sortedDayGeneSeqsStrDB)
-        fprintf(logger,sprintf('%s: %.2f\n',sortedDayGeneSeqsStrSC{iGeneDay},sortedSC(iGeneDay)));
+    fprintf(logger,sprintf('\n ****** Z-score ********\n'));
+    for iGeneDay = 1 : length(sortedZScoreRest)
+        curOrigInd = restIndsSorted(iGeneDay);
+        curSortedInd = sortedIndsZScoreRest(iGeneDay);
+        % THIS IS NOT Z-SCORE OF COURSE, JUST # OF MEDIANS
+        varControlZscore = geneDayDiff{curOrigInd}.varControl / medianIntrawellVar;%(geneDayDiff{curOrigInd}.varControl - meanControlIntrawellVar) ./ stdControlIntrawellVar;
+        varGeneZscore = geneDayDiff{curOrigInd}.varGene / medianIntrawellVar;%(geneDayDiff{curOrigInd}.varGene - meanGeneIntrawellVar) ./ stdGeneIntrawellVar;
+        distInterwell = geneDayDiff{curOrigInd}.pdist2MeanGeneToMeanControl / medianInterwellDist;%(geneDayDiff{curOrigInd}.pdist2MeanGeneToMeanControl - meanInterwellDist) ./ stdInterwellVar;
+        fprintf(logger,sprintf('%s: %.1f (%.1f,%.1f,%.1f)\n                    dist: %.1f, variance (cnt,kd): (%.1f,%.1f) \n',...
+            sortedStrRest{iGeneDay},sortedZScoreRest(iGeneDay),...
+            zScoreDaviesBouldinRest(curSortedInd),zScoreDunnRest(curSortedInd),...
+            zScoreSilhouetteRest(curSortedInd),...
+            distInterwell,varControlZscore,varGeneZscore));
     end
 end
 
+% nPosControl = sum((abs(zScoreDaviesBouldinCdc42Rac1) > zScoreTH & abs(zScoreDunnCdc42Rac1) > zScoreTH & abs(zScoreSilhouetteCdc42Rac1) > zScoreTH));
+% nOffTargetControl = sum((abs(zScoreDaviesBouldinKD0) > zScoreTH & abs(zScoreDunnKD0) > zScoreTH & abs(zScoreSilhouetteKD0) > zScoreTH));
+% nHits = sum((abs(zScoreDaviesBouldinRest) > zScoreTH & abs(zScoreDunnRest) > zScoreTH & abs(zScoreSilhouetteRest) > zScoreTH));
 
-if strcmp(propertyStr,'Speed')
-    DBTH = thresholds.speed.DBTH;
-    DunnTH = thresholds.speed.DunnTH;
-    SilTH = thresholds.speed.SilTH;
-    inds1 = (DaviesBouldinIndicesCdc42Rac1 > DBTH & DunnIndicesCdc42Rac1 > DunnTH & SilhouetteCoefficientsCdc42Rac1 > SilTH);
-    inds0 = (DaviesBouldinIndicesKD0 > DBTH & DunnIndicesKD0 > DunnTH & SilhouetteCoefficientsKD0 > SilTH);
-else if strcmp(propertyStr,'Directionality')
-        DBTH = thresholds.directionality.DBTH;
-        DunnTH = thresholds.directionality.DunnTH;
-        SilTH = thresholds.directionality.SilTH;
-        inds1 = (DaviesBouldinIndicesCdc42Rac1 > DBTH & DunnIndicesCdc42Rac1 > DunnTH & SilhouetteCoefficientsCdc42Rac1 > SilTH);
-        inds0 = (DaviesBouldinIndicesKD0 > DBTH & DunnIndicesKD0 > DunnTH & SilhouetteCoefficientsKD0 > SilTH);
-    else if strcmp(propertyStr,'Coordination')
-            DBTH = thresholds.coordination.DBTH;
-            DunnTH = thresholds.coordination.DunnTH;
-            SilTH = thresholds.coordination.SilTH;
-            inds1 = (DaviesBouldinIndicesCdc42Rac1 > DBTH & DunnIndicesCdc42Rac1 > DunnTH & SilhouetteCoefficientsCdc42Rac1 > SilTH);
-            inds0 = (DaviesBouldinIndicesKD0 > DBTH & DunnIndicesKD0 > DunnTH & SilhouetteCoefficientsKD0 > SilTH);
-        end
-    end
-end
+nPosControl = sum((zScoreDaviesBouldinCdc42Rac1 +  zScoreDunnCdc42Rac1 + zScoreSilhouetteCdc42Rac1) > zScoreSumTH);
+nOffTargetControl = sum((zScoreDaviesBouldinKD0 + zScoreDunnKD0 + zScoreSilhouetteKD0) > zScoreSumTH);
+nHits = sum((zScoreDaviesBouldinRest+ zScoreDunnRest+ zScoreSilhouetteRest) > zScoreSumTH);
+
 fprintf(logger,sprintf('\n --------------------------------\n'));
 fprintf(logger,sprintf('\n ****** Targets %s ********\n',representativeStr));
-fprintf(logger,sprintf('KD == 0: %d/%d\n',sum(inds0),nZero));
-fprintf(logger,sprintf('CDC42/RAC1/beta-PIX: %d/%d\n',sum(inds1),nKnown));
-fprintf(logger,sprintf('Threshholds: %.2f, %.2f, %.2f\n\n',DBTH,DunnTH,SilTH));
+fprintf(logger,sprintf('Targets: %d/%d\n',nHits,nRest));
+fprintf(logger,sprintf('KD == 0: %d/%d\n',nOffTargetControl,nZero));
+fprintf(logger,sprintf('CDC42/RAC1/beta-PIX: %d/%d\n',nPosControl,nKnown));
+% fprintf(logger,sprintf('Threshholds: %.2f, %.2f, %.2f\n\n',zScoreTH,zScoreTH,zScoreTH));
+fprintf(logger,sprintf('Threshholds: sum of 3 z-scores > %.1f\n\n',zScoreSumTH));
 
-for iGeneDay = 1 : length(DaviesBouldinIndices)   
-    if DaviesBouldinIndices(iGeneDay) > DBTH && DunnIndices(iGeneDay) > DunnTH && SilhouetteCoefficients(iGeneDay) > SilTH
-        fprintf(logger,sprintf('%s: %.2f, %.2f, %.2f \n',dayGenesSeqStr{iGeneDay},DaviesBouldinIndices(iGeneDay),DunnIndices(iGeneDay),SilhouetteCoefficients(iGeneDay)));
+targetsInds = find((zScoreDaviesBouldinRest + zScoreDunnRest + zScoreSilhouetteRest) > zScoreSumTH);
+nTargets = length(targetsInds);
+
+sumZScoreHits = sumZScoreRest(targetsInds);
+[sortedSumZScoreHits,sortedIndsSumZScoreHits] = sort(sumZScoreHits);
+
+for iTarget = 1 : nTargets
+    curSortedInd = sortedIndsSumZScoreHits(iTarget);
+    curRestInd = targetsInds(curSortedInd);
+    curOriginalInd = restInds(curRestInd);
+    if strcmp(representativeStr,'')
+        % THIS IS NOT Z-SCORE OF COURSE, JUST # OF MEDIANS
+        %         varControlZscore = (geneDayDiff{curOriginalInd}.varControl - meanControlIntrawellVar) ./ stdControlIntrawellVar;
+        %         varGeneZscore = (geneDayDiff{curOriginalInd}.varGene - meanGeneIntrawellVar) ./ stdGeneIntrawellVar;
+        %         distInterwell = (geneDayDiff{curOriginalInd}.pdist2MeanGeneToMeanControl - meanInterwellDist) ./ stdInterwellVar;
+        varControlZscore = geneDayDiff{curOriginalInd}.varControl / medianIntrawellVar;
+        varGeneZscore = geneDayDiff{curOriginalInd}.varGene / medianIntrawellVar;
+        distInterwell = geneDayDiff{curOriginalInd}.pdist2MeanGeneToMeanControl / medianInterwellDist;
+
+        fprintf(logger,sprintf('%s: %.1f (%.1f, %.1f, %.1f)\n                   dist: %.1f, variance (cnt,kd): (%.1f,%.1f) \n',...
+            geneDayDiff{curOriginalInd}.dayGeneSeqStr,...
+            sortedSumZScoreHits(iTarget),...
+            zScoreDaviesBouldinRest(curRestInd),...
+            zScoreDunnRest(curRestInd),...
+            zScoreSilhouetteRest(curRestInd),...
+            distInterwell,varControlZscore,varGeneZscore));
+    else
+        fprintf(logger,sprintf('%s: %.1f (%.1f, %.1f, %.1f)\n',...
+            geneDayDiff{curOriginalInd}.dayGeneSeqStr,...
+            sortedSumZScoreHits(iTarget),...
+            zScoreDaviesBouldinRest(curRestInd),...
+            zScoreDunnRest(curRestInd),...
+            zScoreSilhouetteRest(curRestInd)));
     end
 end
+%%
+
+%
+% [sortedDB,sortedIndsDB] = sort(DaviesBouldinIndices);
+% sortedDayGeneSeqsStrDB = dayGenesSeqStr(sortedIndsDB);
+% 
+% [sortedDunn,sortedIndsDunn] = sort(DunnIndices);
+% sortedDayGeneSeqsStrDunn = dayGenesSeqStr(sortedIndsDunn);
+% 
+% [sortedSC,sortedIndsSC] = sort(SilhouetteCoefficients);
+% sortedDayGeneSeqsStrSC = dayGenesSeqStr(sortedIndsSC);
+% 
+
+% if printAll
+%     fprintf(logger,sprintf('\n ****** Davies Bouldin ********\n'));
+%     for iGeneDay = 1 : length(sortedDayGeneSeqsStrDB)
+%         fprintf(logger,sprintf('%s: %.2f\n',sortedDayGeneSeqsStrDB{iGeneDay},sortedDB(iGeneDay)));
+%     end
+%     
+%     fprintf(logger,sprintf('\n ****** Dunn ********\n'));
+%     for iGeneDay = 1 : length(sortedDayGeneSeqsStrDB)
+%         fprintf(logger,sprintf('%s: %.2f\n',sortedDayGeneSeqsStrDunn{iGeneDay},sortedDunn(iGeneDay)));
+%     end
+%     
+%     fprintf(logger,sprintf('\n ****** Silhouette ********\n'));
+%     for iGeneDay = 1 : length(sortedDayGeneSeqsStrDB)
+%         fprintf(logger,sprintf('%s: %.2f\n',sortedDayGeneSeqsStrSC{iGeneDay},sortedSC(iGeneDay)));
+%     end
+% end
+% 
+% 
+% 
+% 
+% if strcmp(propertyStr,'Speed')
+%     DBTH = thresholds.speed.DBTH;
+%     DunnTH = thresholds.speed.DunnTH;
+%     SilTH = thresholds.speed.SilTH;
+%     inds1 = (DaviesBouldinIndicesCdc42Rac1 > DBTH & DunnIndicesCdc42Rac1 > DunnTH & SilhouetteCoefficientsCdc42Rac1 > SilTH);
+%     inds0 = (DaviesBouldinIndicesKD0 > DBTH & DunnIndicesKD0 > DunnTH & SilhouetteCoefficientsKD0 > SilTH);
+% else if strcmp(propertyStr,'Directionality')
+%         DBTH = thresholds.directionality.DBTH;
+%         DunnTH = thresholds.directionality.DunnTH;
+%         SilTH = thresholds.directionality.SilTH;
+%         inds1 = (DaviesBouldinIndicesCdc42Rac1 > DBTH & DunnIndicesCdc42Rac1 > DunnTH & SilhouetteCoefficientsCdc42Rac1 > SilTH);
+%         inds0 = (DaviesBouldinIndicesKD0 > DBTH & DunnIndicesKD0 > DunnTH & SilhouetteCoefficientsKD0 > SilTH);
+%     else if strcmp(propertyStr,'Coordination')
+%             DBTH = thresholds.coordination.DBTH;
+%             DunnTH = thresholds.coordination.DunnTH;
+%             SilTH = thresholds.coordination.SilTH;
+%             inds1 = (DaviesBouldinIndicesCdc42Rac1 > DBTH & DunnIndicesCdc42Rac1 > DunnTH & SilhouetteCoefficientsCdc42Rac1 > SilTH);
+%             inds0 = (DaviesBouldinIndicesKD0 > DBTH & DunnIndicesKD0 > DunnTH & SilhouetteCoefficientsKD0 > SilTH);
+%         end
+%     end
+% end
+% fprintf(logger,sprintf('\n --------------------------------\n'));
+% fprintf(logger,sprintf('\n ****** Targets %s ********\n',representativeStr));
+% fprintf(logger,sprintf('KD == 0: %d/%d\n',sum(inds0),nZero));
+% fprintf(logger,sprintf('CDC42/RAC1/beta-PIX: %d/%d\n',sum(inds1),nKnown));
+% fprintf(logger,sprintf('Threshholds: %.2f, %.2f, %.2f\n\n',DBTH,DunnTH,SilTH));
+% 
+% for iGeneDay = 1 : length(DaviesBouldinIndices)   
+%     if DaviesBouldinIndices(iGeneDay) > DBTH && DunnIndices(iGeneDay) > DunnTH && SilhouetteCoefficients(iGeneDay) > SilTH
+%         fprintf(logger,sprintf('%s: %.2f, %.2f, %.2f \n',dayGenesSeqStr{iGeneDay},DaviesBouldinIndices(iGeneDay),DunnIndices(iGeneDay),SilhouetteCoefficients(iGeneDay)));
+%     end
+% end
 end
 
-
+%% whAssociatePropertyDirection
+%   Healing rate for different color-coded classes (positive controls, off-target controls, non-hits and hits) in combinedProperties directpry
+%   Associations between the different properties (Rho vs. p-value) in combinedProperties directpry
+%   plotPCsDirectionAcrossProperties - plot angles between PCs of each experiment. in angelsPC directory
 function [] = whAssociatePropertyDirection(geneDayDiff,healingRate,speedDiffs,directionalityDiffs,coordinationDiffs,targetGenesStr,mainDirname)
 n = length(speedDiffs);
 assert(n == length(directionalityDiffs) && n == length(coordinationDiffs));
@@ -1482,4 +1737,24 @@ hold off;
 pcaFname = [mainDirname 'combinedProperties/anglesPC/' geneDayDiff{iGeneDay}.dayGeneSeqStr '_PC1PC' num2str(pcNumber) '.eps'];
 export_fig(pcaFname);
 close all;
+end
+
+
+function [] = plotTimeOrSpacePlot(x,ysControl,ysKD,xLabelStr,yLabelStr,yLimits,titleStr,outFname)
+fontsize = 24;
+lineWidth = 2;
+markerSize = 8;
+h = figure;
+hold on;
+title(titleStr,'FontSize',fontsize);
+plot(x,ysControl,'ok--','MarkerEdgeColor','k','LineWidth',lineWidth,'MarkerSize',markerSize,'DisplayName','Control');
+plot(x,ysKD,'or--','MarkerEdgeColor','r','LineWidth',lineWidth,'MarkerSize',markerSize,'DisplayName','KD');
+ylim(yLimits);
+haxes = get(h,'CurrentAxes');
+set(haxes,'FontSize',32);
+xlabel(xLabelStr,'FontSize',fontsize); ylabel(yLabelStr,'FontSize',fontsize);
+set(haxes,'box','off','XMinorTick','off','TickDir','out','YMinorTick','off','FontSize',fontsize,'LineWidth',2);
+set(h,'Color','w');
+hold off;
+export_fig(outFname);
 end

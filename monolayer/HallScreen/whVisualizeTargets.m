@@ -92,8 +92,8 @@ if strcmp(propertyStr,'Speed')
         set(haxes,'YTick',-50:25:50);
         set(haxes,'YTickLabel',-50:25:50);
     else if PCn == 3
-            assert(max(abs(scoreMeanGeneMeanControl(:,3))) < 21);
-            set(haxes,'YLim',[-21,21]);
+            assert(max(abs(scoreMeanGeneMeanControl(:,3))) < 23);
+            set(haxes,'YLim',[-23,23]);
             set(haxes,'YTick',-20:10:20);
             set(haxes,'YTickLabel',-20:10:20);
         else
@@ -184,8 +184,8 @@ if strcmp(propertyStr,'Speed')
         set(haxes,'YTick',-50:25:50);
         set(haxes,'YTickLabel',-50:25:50);
     else if PCn == 3
-            assert(max(abs(scoreMeanGeneMeanControl(:,3))) < 21);
-            set(haxes,'YLim',[-21,21]);
+            assert(max(abs(scoreMeanGeneMeanControl(:,3))) < 23);
+            set(haxes,'YLim',[-23,23]);
             set(haxes,'YTick',-20:10:20);
             set(haxes,'YTickLabel',-20:10:20);
         else

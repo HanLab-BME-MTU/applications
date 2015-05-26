@@ -3,16 +3,17 @@ function [] = whSeedsOfPlithotaxis(params,dirs)
 % plithotaxisFname = [dirs.plithotaxis dirs.expname '_plithotaxis.eps'];
 plithotaxisFname = [dirs.plithotaxis dirs.expname '_plithotaxis'];
 
-% if exist(plithotaxisFname,'file') &&  ~params.always
-%     return;
-% end
-
 % time = 1 : params.nTime - params.frameJump - 1; % -1 because segmentation is based on motion
 time = 1 : 91 - params.frameJump - 1; % -1 because segmentation is based on motion
 ntime = length(time);
 
 load([dirs.roiData pad(1,3) '_roi.mat']); % ROI
 [ySize,xSize] = size(ROI);
+
+if exist([plithotaxisFname '.mat'],'file') &&  ~params.always
+    outputSeeds(plithotaxisFname,params,ntime,ySize);
+    return;
+end
 
 seeds = false(ySize,ntime);
 seedsLocation = nan(ySize,ntime);
@@ -207,7 +208,7 @@ seedsLocation1 = nan(size(seeds1));
 for y = 1 : size(seeds1,1)
     for x = 1 : size(seeds1,2)
         yorig = (y*patchSize-patchSize+1);
-        seeds1(y,x) = (sum(seeds(yorig:min(yorig+patchSize-1,size(seeds,1)),x)) > length(yorig:min(yorig+patchSize-1,size(seeds,1)))/3);
+        seeds1(y,x) = (sum(seeds(yorig:min(yorig+patchSize-1,size(seeds,1)),x)) > length(yorig:min(yorig+patchSize-1,size(seeds,1)))/3); % just arbitrary 1/3
         if seeds1(y,x)
             seedsLocation1(y,x) = min(seedsLocation(yorig:min(yorig+patchSize-1,size(seeds,1)),x)); % max??
         end
@@ -330,7 +331,7 @@ for p = 1 : length(patterns)
     for i = 1 : 3
         candidateXs(i) = xs(patternYs(i),patternXs(i));
     end
-    if sum(candidateXs == sort(candidateXs)) < 3
+    if sum(candidateXs == sort(candidateXs)) < 3 % so the leader cells is located before the follower cell in x-axis!
         continue;
     end
     
@@ -394,4 +395,43 @@ for t = time
     close all;
 end
 aviobj = close(aviobj);
+end
+
+function [] = outputSeeds(plithotaxisFname,params,ntime,ySize)
+close all;
+load([plithotaxisFname '.mat']);
+
+maxTime = ntime * params.timePerFrame;
+
+% xTick = 1:(60/params.timePerFrame):((maxTime/params.timePerFrame)+1);
+% xTickLabel = 0:60:maxTime;
+xTick = 1:(200/params.timePerFrame):((maxTime/params.timePerFrame)+1);
+xTickLabel = 0:200:maxTime;
+yTick = 1:200:ySize;
+yTickLabel = (1:200:ySize)-1;
+
+h = figure;
+imagescnan(seedsLocation);
+hold on;
+
+strainEvents = strainEventsOutput.strainEventsOrigResolution;
+for t = 1 : ntime
+     curEvents = strainEvents{t};
+     for e = 1: length(curEvents)
+         curY = curEvents{e}.ys(1);
+         plot(t,curY,'ok','MarkerFaceColor','k','MarkerSize',4,'LineWidth',2);         
+     end
+end
+    
+haxes = get(h,'CurrentAxes');
+set(haxes,'XLim',[1,maxTime/params.timePerFrame]);
+set(haxes,'XTick',xTick);
+set(haxes,'XTickLabel',xTickLabel);
+set(haxes,'YTick',yTick);
+set(haxes,'YTickLabel',yTickLabel);
+set(haxes,'FontSize',32);
+xlabel('Time (minutes)','FontSize',32); ylabel('Y-axis','FontSize',32);
+set(h,'Color','none');
+hold off;
+eval(sprintf('print -dbmp16m  %s', [plithotaxisFname '_seeds.bmp']));
 end

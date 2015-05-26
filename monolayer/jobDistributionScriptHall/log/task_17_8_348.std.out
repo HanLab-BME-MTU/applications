@@ -1,0 +1,39 @@
+cd /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall
+
+
+commandline arguments:
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall
+runHallOneAtATime
+348
+
+matlab -nodisplay -nodesktop -nosplash -singleCompThread -r runHallOneAtATime(348);
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2013 The MathWorks, Inc.
+                    R2013b (8.2.0.701) 64-bit (glnxa64)
+                              August 13, 2013
+
+ 
+To get started, type one of these: helpwin, helpdesk, or demo.
+For product information, visit www.mathworks.com.
+ 
+processing Yunyu_20140423_16hr_5min_0001_AB02_01
+correcting motion estimation frame 1
+correcting motion estimation frame 2
+correcting motion estimation frame 3
+correcting motion estimation frame 4
+correcting motion estimation frame 5
+correcting motion estimation frame 6
+correcting motion estimation frame 7
+correcting motion estimation frame 8
+correcting motion estimation frame 9
+correcting motion estimation frame 10
+correcting motion estimation frame 11
+correcting motion estimation frame 12
+correcting motion estimation frame 13
+correcting motion estimation frame 14
+correcting motion estimation frame 15
+correcting motion estimation frame 16
+correcting motion estimation frame 17
+>> 

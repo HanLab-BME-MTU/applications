@@ -18,18 +18,20 @@ else
     [params,dirs] = whInitParamsDirs(params, mainDirname, exp, nFrames);
 end
 
-% whLocalMotionEstimation(params,dirs);
-% whTemporalBasedSegmentation(params,dirs);
+whLocalMotionEstimation(params,dirs);
+whTemporalBasedSegmentation(params,dirs);
+whCorrectGlobalMotion(params,dirs);
 % whSegmentationMovie(params,dirs);
-% whHealingRate(params,dirs);
-% whStrainRate(params,dirs);
-% whAcceleration(params,dirs);
-% % whTrajectories(params,dirs);
-% whCoordination(params,dirs);
-% whKymographs(params,dirs);
+% whHealingRate(params,dirs); % todo: check that this is not affected from frame-frame microscope repeat error
 
-whSeedsOfPlithotaxis(params,dirs);
-pval = whVectorFlowAccumulation(params,dirs);
+whStrainRate(params,dirs);
+whAcceleration(params,dirs);
+% whTrajectories(params,dirs);
+whCoordination(params,dirs);
+whKymographs(params,dirs);
+
+% whSeedsOfPlithotaxis(params,dirs);
+% pval = whVectorFlowAccumulation(params,dirs);
 
 % whPlithotaxisTrajectories(params,dirs);
 end

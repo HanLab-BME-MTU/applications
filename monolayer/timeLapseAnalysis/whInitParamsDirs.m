@@ -89,6 +89,7 @@ dirs.images = [dirs.dirname '/images/'];
 % MF
 dirs.mf = [dirs.dirname '/MF/'];
 dirs.mfData = [dirs.mf 'mf/'];
+dirs.mfDataOrig = [dirs.mf 'mfOrig/'];
 dirs.mfScores = [dirs.mf 'scoresVis/'];
 dirs.mfBilateral = [dirs.mf 'bilateral/'];
 
@@ -122,6 +123,9 @@ dirs.healingRate = [dirs.main 'healingRate/'];
 dirs.segmentation = [dirs.main 'segmentation/'];
 dirs.plithotaxis = [dirs.main 'plithotaxis/'];
 
+% motion correction (micrscope repeat error)
+dirs.correctMotion = [dirs.main 'correctMotion/'];
+
 %% Create local directories
 if ~exist(dirs.dirname,'dir')
     unix(sprintf('mkdir %s',dirs.dirname));
@@ -138,6 +142,11 @@ end
 if ~exist(dirs.mfData,'dir')
     unix(sprintf('mkdir %s',dirs.mfData));
 end
+
+if ~exist(dirs.mfDataOrig,'dir')
+    unix(sprintf('mkdir %s',dirs.mfDataOrig));
+end
+
 
 if ~exist(dirs.mfScores,'dir')
     unix(sprintf('mkdir %s',dirs.mfScores));
@@ -210,6 +219,10 @@ end
 
 if ~exist(dirs.plithotaxis,'dir')
     unix(sprintf('mkdir %s',dirs.plithotaxis));
+end
+
+if ~exist(dirs.correctMotion,'dir')
+    unix(sprintf('mkdir %s',dirs.correctMotion));
 end
 
 end

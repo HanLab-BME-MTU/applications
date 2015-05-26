@@ -3,12 +3,14 @@
 function [] = whMetaAnalysis(mainDirname,metaDataFname,timePerFrame)
 
 % % mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20140829/';
+% % mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20141013/';
 % % metaDataFname = 'GEFsScreenMetaData20140909_all.mat';
 % % metaDataFname = 'GEFsScreenMetaData20140911_all_kd50.mat';
 % % metaDataFname = 'GEFsScreenMetaData20140911_all_kd40.mat';
+% % metaDataFname = 'GEFsScreenMetaData20141013_kd50.mat';
 
-% mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20141013/';
-% metaDataFname = 'GEFsScreenMetaData20141013_kd50.mat';
+% mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20150504/';
+% metaDataFname = 'GEFsScreenMetaData20150424_kd50.mat';
 % timePerFrame = 5;
 
 tic;
@@ -40,12 +42,21 @@ daySVMDir = [mainDirname 'svm/'];
 dayClusterDir = [mainDirname 'clusters/'];
 dayGeneDir = [mainDirname 'day/gene/'];
 shStatsDir = [mainDirname 'shSeqEffStats/'];
+micrscopeRepeatErrorStatsDir = [mainDirname 'micrscopeError/'];
 targetsDir = [mainDirname 'targets/'];
 dayGeneControlKymographDir = [mainDirname 'dayGeneControlKymograph/'];
+dayGenePlotsDir = [mainDirname 'dayGenePlots/'];
 dayWellReplicatesKymographDir = [mainDirname 'dayWellReplicatesKymographs/'];
 combinedPropertiesDir = [mainDirname 'combinedProperties/'];
 combinedPropertiesAnglesPcsDir = [mainDirname 'combinedProperties/anglesPC/'];
 controlInterdayAssessmentDir = [mainDirname 'controlInterdayAssessment/'];
+
+plithotaxisDir = [mainDirname 'plithotaxis/'];
+plithotaxisOutDir = [mainDirname 'plithotaxisOut/'];
+
+correctMotionDir = [mainDirname 'correctMotion/'];
+
+RhoGTPasesDir = [mainDirname 'RhoGTPases/'];
 
 if ~exist(kymographDir,'dir')
     mkdir(kymographDir);
@@ -99,12 +110,20 @@ if ~exist(shStatsDir,'dir')
     mkdir(shStatsDir);
 end
 
+if ~exist(micrscopeRepeatErrorStatsDir,'dir')
+    mkdir(micrscopeRepeatErrorStatsDir);
+end
+
 if ~exist(targetsDir,'dir')
     mkdir(targetsDir);
 end
 
 if ~exist(dayGeneControlKymographDir,'dir')
     mkdir(dayGeneControlKymographDir);
+end
+
+if ~exist(dayGenePlotsDir,'dir')
+    mkdir(dayGenePlotsDir);
 end
 
 if ~exist(dayWellReplicatesKymographDir,'dir')
@@ -123,12 +142,56 @@ if ~exist(controlInterdayAssessmentDir,'dir')
     mkdir(controlInterdayAssessmentDir);
 end
 
-[labels, strLabels] = getLabels(metaData);
+if ~exist(plithotaxisOutDir,'dir')
+    mkdir(plithotaxisOutDir);
+end
 
+if ~exist(RhoGTPasesDir,'dir')
+    mkdir(RhoGTPasesDir);
+end
+
+[labels, strLabels] = getLabels(metaData); % labels are combination of gene & shSeq
+
+%% META ANALYSIS
+%   1. KD efficiency
+%   2. Micrscopy error correction
+%   3. Extract high-dimensional features from the data
+%       a. Spatiotemporal associations (time delay) between measures (commented out)
+%       b. PCA
+%   4. Visualize PCs
+%   5. Gene abalysis (not day as atomic unit)
+%   6. Correlate PCs of each measure to wound healing rate (healingRate directory)
+%   7. MetaDayAnalysis
+%   8. Shear strain analysis: correlation shear strain events and motion
+%       a. CDC42 vs. Control
+%       b. All experiments
+%   9. RhoGTPAses analysis
+
+flags.kdEfficiency = 0;
+flags.correctMicroscopeError = 0;
+flags.visualizePCs = 0;
+flags.geneAnalysis = 0;
+flags.corrPCsHealingRate = 0;
+flags.metaDayAnalysis = 1;
+flags.shearStrainAnalysis = 0;
+flags.RhoGTPAsesAnalysis = 0;
+
+
+
+%% 1. KD efficiency
 % Statistics of KD efficiency of all sh-sequences
-% whMetaKnockdownEfficiency(metaData,strLabels,shStatsDir);
+if flags.kdEfficiency
+    whMetaKnockdownEfficiency(metaData,strLabels,shStatsDir);
+end
 
+%% 2. Statistics (printouts) of correction microscope repeat errors
+if flags.correctMicroscopeError
+    whMetaMicrscopeRepeatCorrectionStats(metaData,correctMotionDir);
+end
 
+%% 3. Extract high-dimensional features from the data
+%       a. Spatiotemporal associations (time delay) between measures (commented out)
+%       b. PCA
 allFeatsFname = [mainDirname '/allFeatures.mat'];
 reuseFeats = true; 
 
@@ -139,6 +202,9 @@ else
     save(allFeatsFname,'allFeatures');
 end
 
+% patch for fix directionality > 8
+allFeatures.directionalityFeats.features(allFeatures.directionalityFeats.features > 10) = 10;
+save(allFeatsFname,'allFeatures');
 
 % associations = spatioTemporalAssociations(allFeatures,strLabels,mainDirname,timePerFrame);
 
@@ -156,35 +222,68 @@ else
     save(plotBasicPCAFname,'out');
 end
 
-
-% toc
-
-% visualizePCs(out,metaData,mainDirname);
-
-% 
-% 
-% 
-% % % DOES NOT USE DAILY CONTROLS!
-% % geneVsControl(out,strLabels,metaData,mainDirname);
-% 
-% For each gene & day plot all sh-seqences + control
-% geneAnalysis(out,strLabels,metaData,mainDirname);% gene x 3 shRNAs, Control, pSup of the same gene (defined by day), BetaPIX & ARHGEF12 as reference points 
-% 
-toc
-
-% % similar to geneAnalysis just not using the sh-sequences
-% dayAnalysisControl(out,strLabels,metaData,mainDirname);
-
-% % same as dayAnalysisControl? Why is it commented out?
-% dayAnalysisGene(out,strLabels,metaData,mainDirname);
-
-% Correlates PC1 to monolayer speed (same for PC2)
-% healingRateAnalysis(out,metaData,mainDirname);
-
-whMetaDayAnalysis(allFeatures,out.healingRate,strLabels,metaData,mainDirname);
-
+%%   4. Visualize PCs
+if flags.visualizePCs
+    close all;
+    visualizePCs(out,metaData,mainDirname);
 end
 
+
+
+%%  5. Gene abalysis (not day as atomic unit)
+if flags.geneAnalysis
+    close all;
+    % % DOES NOT USE DAILY CONTROLS!
+    % geneVsControl(out,strLabels,metaData,mainDirname);
+    
+    % For each gene & day plot all sh-seqences + control
+    geneAnalysis(out,strLabels,metaData,mainDirname);% gene x 3 shRNAs, Control, pSup of the same gene (defined by day), BetaPIX & ARHGEF12 as reference points
+    
+    
+    % similar to geneAnalysis just not using the sh-sequences
+    dayAnalysisControl(out,strLabels,metaData,mainDirname);
+    
+    % % same as dayAnalysisControl? Why is it commented out?
+    % dayAnalysisGene(out,strLabels,metaData,mainDirname);
+end
+
+%%  6. Correlate PCs of each measure to wound healing rate
+if flags.corrPCsHealingRate
+    % Correlates PC1 to monolayer speed (same for PC2)
+    close all;
+    healingRateAnalysis(out,metaData,mainDirname);
+end
+
+%%  7. Meta day analysis
+if flags.metaDayAnalysis
+    whMetaDayAnalysis(allFeatures,out.healingRate,strLabels,metaData,mainDirname);
+end
+
+%%  8. Shear strain analysis: correlation shear strain events and motion
+%       a. CDC42 vs. Control
+%       b. All experiments
+if flags.shearStrainAnalysis
+    [p,x0,x1] = whShearStrainCntrlCdc42(metaData,mainDirname); % motion-shear strain for all controls + CDC42
+    whMotionShearStrainGeneDaySeq(metaData,mainDirname,p,x0,x1);
+end
+
+%%  9. RhoGTPAses analysis
+if flags.RhoGTPAsesAnalysis
+    close all;
+    % TODO: implement this
+    RhoGTPasesAnalysis(out,metaData,RhoGTPasesDir);
+end
+
+% TODO? take pooled correlations (for each well) between the control and
+% the KD phenotype
+end
+
+
+
+
+
+
+%%
 
 %%
 function [labels, strLabels] = getLabels(metaData)
@@ -1246,4 +1345,144 @@ set(haxes,'FontSize',22);
 set(h,'Color','none');
 hold off;
 export_fig(outFname);
+end
+
+
+
+%%
+function [] = RhoGTPasesAnalysis(out,metaData,mainDirname)
+nDays = length(metaData.groupsByDays);
+inds = [];
+for i = 1 : nDays 
+    if strcmp(metaData.groupsByDays{i}.dates,'20150401') || strcmp(metaData.groupsByDays{i}.dates,'20150402')
+        inds = [inds metaData.groupsByDays{i}.inds];
+    end
+end
+treatments = metaData.treatment(inds);
+uniqueTreatments = unique(treatments);
+nTreats = length(uniqueTreatments);
+indsTreats = cell(1,nTreats);
+for i = 1 : nTreats
+    indsTreats{i} = inds(strcmp(uniqueTreatments{i},treatments));
+end
+
+plotRhoGTPasesPCA(out.speed,uniqueTreatments,indsTreats,mainDirname,'Speed');
+plotRhoGTPasesPCA(out.directional,uniqueTreatments,indsTreats,mainDirname,'Directionality');
+plotRhoGTPasesPCA(out.coordination,uniqueTreatments,indsTreats,mainDirname,'Coordination');
+end
+
+function [] = plotRhoGTPasesPCA(data,treatsStr,treatsInds,dirname,measureStr)
+
+close all;
+
+nTreats = length(treatsStr);
+colorsPerm = 'mkbcr';
+
+%% PC1 vs. PC2
+h = figure;
+xlabel('PC1','FontSize',15);
+ylabel('PC2','FontSize',15);
+hold all;
+for i = 1 : nTreats
+    inds = treatsInds{i};    
+    plot(data.score(inds,1)',data.score(inds,2)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(i)),'MarkerSize',10,...
+        'DisplayName',treatsStr{i});    
+end
+legend('Location','southwest');
+haxes = get(h,'CurrentAxes');
+set(haxes,'FontSize',32);
+
+xlim = get(haxes,'XLim');
+ylim = get(haxes,'YLim');
+newAxes = [xlim, ylim];
+
+pcaFname = [dirname measureStr 'PCA_legend.jpg'];
+eval(sprintf('print -djpeg %s', pcaFname));
+
+legend off;
+
+hold off;
+
+pcaFname = [dirname measureStr 'PCA12.jpg'];
+eval(sprintf('print -djpeg %s', pcaFname));
+
+%% PC1 vs. PC3
+h = figure;
+xlabel('PC1','FontSize',15);
+ylabel('PC3','FontSize',15);
+hold all;
+for i = 1 : nTreats
+    inds = treatsInds{i};    
+    plot(data.score(inds,1)',data.score(inds,3)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(i)),'MarkerSize',10,...
+        'DisplayName',treatsStr{i});    
+end
+
+haxes = get(h,'CurrentAxes');
+set(haxes,'FontSize',32);
+
+xlim = get(haxes,'XLim');
+ylim = get(haxes,'YLim');
+newAxes = [xlim, ylim];
+
+
+hold off;
+
+pcaFname = [dirname measureStr 'PCA13.jpg'];
+eval(sprintf('print -djpeg %s', pcaFname));
+%%
+
+cdc42DiffScore =  data.score(treatsInds{1},:) - repmat(mean(data.score(treatsInds{5},:)),size(data.score(treatsInds{1},:),1),1);
+rac1DiffScore = data.score(treatsInds{3},:) - repmat(mean(data.score(treatsInds{2},:)),size(data.score(treatsInds{3},:),1),1);
+rhoaDiffScore = data.score(treatsInds{4},:) - repmat(mean(data.score(treatsInds{2},:)),size(data.score(treatsInds{4},:),1),1);
+
+%% PC1 vs. PC2
+h = figure;
+xlabel('PC1 (KD - control)','FontSize',15);
+ylabel('PC2 (KD - control)','FontSize',15);
+hold all;
+
+plot(cdc42DiffScore(:,1)',cdc42DiffScore(:,2)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(1)),'MarkerSize',10,'DisplayName',treatsStr{1});
+plot(rac1DiffScore(:,1)',rac1DiffScore(:,2)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(3)),'MarkerSize',10,'DisplayName',treatsStr{3});
+plot(rhoaDiffScore(:,1)',rhoaDiffScore(:,2)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(4)),'MarkerSize',10,'DisplayName',treatsStr{4});
+
+legend('Location','southwest');
+haxes = get(h,'CurrentAxes');
+set(haxes,'FontSize',32);
+
+xlim = get(haxes,'XLim');
+ylim = get(haxes,'YLim');
+newAxes = [xlim, ylim];
+
+pcaFname = [dirname measureStr 'PCADiff_legend.jpg'];
+eval(sprintf('print -djpeg %s', pcaFname));
+
+legend off;
+
+hold off;
+
+pcaFname = [dirname measureStr 'PCADiff12.jpg'];
+eval(sprintf('print -djpeg %s', pcaFname));
+
+%% PC1 vs. PC3
+h = figure;
+xlabel('PC1 (KD - control)','FontSize',15);
+ylabel('PC3 (KD - control)','FontSize',15);
+hold all;
+plot(cdc42DiffScore(:,1)',cdc42DiffScore(:,3)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(1)),'MarkerSize',10,'DisplayName',treatsStr{1});
+plot(rac1DiffScore(:,1)',rac1DiffScore(:,3)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(3)),'MarkerSize',10,'DisplayName',treatsStr{3});
+plot(rhoaDiffScore(:,1)',rhoaDiffScore(:,3)','ok','MarkerFaceColor',sprintf('%s',colorsPerm(4)),'MarkerSize',10,'DisplayName',treatsStr{4});
+
+haxes = get(h,'CurrentAxes');
+set(haxes,'FontSize',32);
+
+xlim = get(haxes,'XLim');
+ylim = get(haxes,'YLim');
+newAxes = [xlim, ylim];
+
+
+hold off;
+
+pcaFname = [dirname measureStr 'PCA13Diff.jpg'];
+eval(sprintf('print -djpeg %s', pcaFname));
+
 end
