@@ -173,16 +173,16 @@ classdef SteerableFilteringProcess < ImageProcessingProcess
              % these loads are for old version of the naming system
              
              try
-                out_data_all = load([obj.outFilePaths_{1,iChan},'/steerable_',filename_short_strs{iFrame},'.mat'], ...
+                out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'steerable_',filename_short_strs{iFrame},'.mat'], ...
                     'orienation_map', 'MAX_st_res','nms','scaleMap');
             catch
                 try
-                    out_data_all = load([obj.outFilePaths_{1,iChan},'/steerable_',filename_shortshort_strs{iFrame},'.mat'], ...
+                    out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'steerable_',filename_shortshort_strs{iFrame},'.mat'], ...
                                             'orienation_map', 'MAX_st_res','nms','scaleMap');
                 catch
                     % when only on channel, one image, it will be last
                     % character of the image, so 'f'
-                    out_data_all = load([obj.outFilePaths_{1,iChan},'/steerable_','f','.mat'], ...
+                    out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'steerable_','f','.mat'], ...
                                    'orienation_map', 'MAX_st_res','nms','scaleMap');
                 end
             end
