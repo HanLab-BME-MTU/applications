@@ -5,6 +5,7 @@ plithotaxisFname = [dirs.plithotaxis dirs.expname '_plithotaxis'];
 
 % if exist([flowFname '.mat'],'file')
 %     load([flowFname '.mat']); % flowAccumulation
+%     return;
 % end
 
 % time = 1 : params.nTime - params.frameJump - 1; % -1 because segmentation is based on motion
@@ -21,16 +22,41 @@ nDistPixels = round(180 ./ params.pixelSize);
 nParticles = 500;
 nIterations = 500;
 
+load([plithotaxisFname '.mat']);% strainEventsOutput.numEventsYAxis
+strainEventsOrigResolution = strainEventsOutput.strainEventsOrigResolution;
+
+flowStretchDirname = [dirs.dirname filesep 'flowStretchVisualization'];
+if ~exist(flowStretchDirname,'dir')
+    mkdir(flowStretchDirname);
+end
+
 for t = time
-    load([dirs.mfData pad(t,3) '_mf.mat']); % dxs, dys
-    load([dirs.roiData pad(t,3) '_roi.mat']); % ROI
+    load([dirs.mfData sprintf('%.3d',t) '_mf.mat']); % dxs, dys
+    load([dirs.roiData sprintf('%.3d',t) '_roi.mat']); % ROI
+    I = imread([dirs.images sprintf('%.3d',t) '.tif']); % images data
     
     [ysAcc, ysAccPatch] = getAccumulation(ROI,dxs,dys,nDistPixels,nParticles,nIterations,params.patchSize);
     
     flowAccumulation(:,t) = ysAcc;
     flowAccumulationPatch(:,t) = ysAccPatch;
+    
+    %% Visualize motion flows and stretching events!    
+    [qh] = visualizeMotionFields(I,ROI,dxs,dys,params.patchSize,0.5);% last parameter is reduced resolution
+    hold on;
+    curEvents = strainEventsOrigResolution{t};    
+    for e = 1: length(curEvents)
+        curY = min(curEvents{e}.ys(1),ySize);
+        assert(curEvents{e}.ys(1) <= ySize + 3 && curEvents{e}.ys(1) > 1);
+        curX = max(find(ROI(curY,:)));
+        plot(curX,curY,'*g','MarkerFaceColor','g','MarkerSize',12,'LineWidth',1);
+    end
+    hold off;
+    export_fig([flowStretchDirname filesep sprintf('%.3d',t) '_flowStretchVis.eps']);  
+    close all;
+    
+    patchSize = params.patchSize;
+    save([flowStretchDirname filesep sprintf('%.3d',t) '_flowStretchVis.mat'],'I','ROI','dxs','dys','patchSize','curEvents','ySize');
 end
-
 
 ySize = size(flowAccumulation,1);
 
@@ -60,11 +86,11 @@ flowEvents = sum(flowAccumulation,2);
 cumsumFlowOrigRes = cumsum(flowAccumulation,2);
 cumsumFlow = cumsum(flowAccumulationPatch,2);
 
-load([plithotaxisFname '.mat']);% strainEventsOutput.numEventsYAxis
-strechEvents = strainEventsOutput.numEventsYAxis;
+% strechEvents = strainEventsOutput.numEventsYAxis;
+strechEvents = strainEventsOutput.seedsVis == 2;
+protrudingCellsNoStretch = strainEventsOutput.seedsVis == 1;
 cumsumStrech = strainEventsOutput.cumsumVis;
 cumsumStrechOrigRes = imresize(cumsumStrech,size(cumsumFlowOrigRes));
-
 
 h = figure;
 imagesc(cumsumStrechOrigRes);
@@ -120,6 +146,65 @@ xlabel('Time (minutes)','FontSize',32); ylabel('RHO','FontSize',32);
 hold off;
 eval(sprintf('print -dbmp16m  %s', [dirs.plithotaxis dirs.expname '_accStretchFlowTimeLag.bmp']));
 
+
+%% Boxplots for flow in different stretching resolution - (not very informative)
+% [stretchFlow,protNoStretchFlow,noStretchFlow] = getFlowForStretchingAndNonStretchingEvents(flowAccumulationPatch,strechEvents,protrudingCellsNoStretch);
+% 
+% n1 = length(stretchFlow);
+% n2 = length(protNoStretchFlow);
+% n3 = length(noStretchFlow);
+% 
+% % Plithotaxis
+% data = [stretchFlow;protNoStretchFlow;noStretchFlow];
+% 
+% labels = [...
+%     repmat('Stretching   ',n1,1);repmat('Protruding   ',n2,1);repmat('No stretching',n3,1)];
+% colors = 'rck';
+% fontsize = 24;
+% h = figure;
+% hold on;
+% boxplot(data,labels,'whisker',0.7193); % 0.7193 --> 90 % of the data  {'Speed      ','Speed      ','Stress Mag.','Stress Mag.','Plithotaxis','Plithotaxis','Anisotropy ','Anisotropy '}
+% haxes = get(h,'CurrentAxes');
+% % set(haxes,'YLim',[-1.1,5]);
+% % set(haxes,'YTick',-1:2:5);
+% % set(haxes,'YTickLabel',-1:2:5);
+% set(gca,'FontSize',fontsize);
+% text_h = findobj(gca, 'Type', 'text');
+% for cnt = 1:length(text_h)
+%     set(text_h(cnt),'FontSize', fontsize,'VerticalAlignment', 'top','HorizontalAlignment', 'center');%,'Rotation',45    
+% end
+% % rotateticklabel(haxes,45);
+% h1 = findobj(gca,'Tag','Box');
+% h2 = findobj(gca,'Tag','Upper Whisker');
+% h3 = findobj(gca,'Tag','Lower Whisker');
+% h4 = findobj(gca,'Tag','Median');
+% h5 = findobj(gca,'Tag','Upper Adjacent Value');
+% h6 = findobj(gca,'Tag','Lower Adjacent Value');
+% for j=1:length(h1)
+%     patch(get(h1(j),'XData'),get(h1(j),'YData'),colors(j),'FaceAlpha',.5,'LineWidth',2);
+%     patch(get(h2(j),'XData'),get(h2(j),'YData'),colors(j),'FaceAlpha',.5,'LineWidth',2);
+%     patch(get(h3(j),'XData'),get(h3(j),'YData'),colors(j),'FaceAlpha',.5,'LineWidth',2);
+%     patch(get(h4(j),'XData'),get(h4(j),'YData'),colors(j),'FaceAlpha',.5,'LineWidth',2);
+%     patch(get(h5(j),'XData'),get(h5(j),'YData'),colors(j),'FaceAlpha',.5,'LineWidth',2);
+%     patch(get(h6(j),'XData'),get(h6(j),'YData'),colors(j),'FaceAlpha',.5,'LineWidth',2);
+% end
+% ylabel('Flow probability');
+% oh=findobj(gca,'tag','Outliers');
+% set(oh,'Visible','off');
+% set(h,'Color','none');
+% 
+% % position = get(h,'position');
+% % set(h,'position',[position(1:2) round(1.5*position(3:4))]);
+% 
+% % set(gcf,'Position',[100 100 500 500]) %this changes the size of the figure window 
+% % set(gca,'Position',[0.1 0.1 0.70 0.7]) %this changes the area in between the figure window and the plot axis
+% hold off;
+% 
+% export_fig([dirs.plithotaxis dirs.expname '_stretchFlowBoxplot.eps']);
+
+
+
+%%
 save([flowFname '.mat'],'flowAccumulation','flowAccumulationPatch',...
     'cumsumFlowOrigRes','cumsumFlow',...
     'cumsumStrechOrigRes','cumsumStrech',...
@@ -243,4 +328,10 @@ for lag = -maxTimeDelay : maxTimeDelay
     %     end
     rsDelay(lag+maxTimeDelay+1) = corr(curStretch(:),curFlow(:));
 end
+end
+
+function [stretchFlow,protNoStretchFlow,noStretchFlow] = getFlowForStretchingAndNonStretchingEvents(flowAccumulationPatch,strechEvents,protrudingCellsNoStretch)
+stretchFlow = flowAccumulationPatch(strechEvents);
+protNoStretchFlow = flowAccumulationPatch(protrudingCellsNoStretch);
+noStretchFlow = flowAccumulationPatch(~strechEvents);
 end

@@ -1,4 +1,4 @@
-function [] = whVariance(features,geneDayDiff,indsPSup,mainDirname,propertyStr)
+function [geneDayDiff] = whVariance(features,geneDayDiff,indsPSup,mainDirname,propertyStr)
 close all;
 nGeneDaySeq = length(geneDayDiff);
 
@@ -6,7 +6,7 @@ varControl = [];
 varGene = [];
 dayGenesSeqStr = {};
 
-loggerFname = [mainDirname 'variance/log_' propertyStr '.txt'];
+loggerFname = [mainDirname 'variance/log_var_' propertyStr '.txt'];
 logger = fopen(loggerFname,'w');
 
 fontsize = 24;
@@ -29,7 +29,7 @@ distsAllControl = pdist2(featsAllControls',meanAllControls);
 varInterDayPSup = var(distsAllControl);
 generalVariance = var(distsAll);
 
-fprintf(logger,sprintf('General variace = %.2f \nControls variance = %.2f\n\n',...
+fprintf(logger,sprintf('General variace = %.2f \nInter-well (Controls) variance = %.2f\n\n',...
     generalVariance,varInterDayPSup));    
 
 % ---------------------
@@ -60,8 +60,13 @@ for iGeneDay = 1 : nGeneDaySeq
     varControl = [varControl var(distsControl)];
     varGene = [varGene var(distsGEF)];
 
+    geneDayDiff{iGeneDay}.varControl = var(distsControl);
+    geneDayDiff{iGeneDay}.varGene = var(distsGEF);    
+    
     plot(varControl(curExp),varGene(curExp),'o','MarkerEdgeColor','k','LineWidth',2,'MarkerSize',7);       
 end
+
+% geneDayDiff.interWellVariance = varInterDayPSup;
 
 fprintf(logger,sprintf('Mean control variance = %.2f\nStd control variance = %.2f\n\n',mean(varControl),std(varControl)));    
 fprintf(logger,sprintf('Mean GEFs variance = %.2f\nStd GEFs variance = %.2f\n\n',mean(varGene),std(varGene)));    

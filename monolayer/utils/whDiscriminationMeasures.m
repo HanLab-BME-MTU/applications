@@ -18,7 +18,7 @@ c2 = mean(controlDist); % control mean distance to cluster center
 DaviesBouldinIndex = d / (c1+c2);
 
 % max(c1,c2) / d
-DunnIndex = d / max(c1,c2);
+DunnIndex = d / max(max(genesDist),max(controlDist));
 
 % Silhouette Coefficient
 SilhouetteCoefficient = Silhouette(featsGEF,featsControl);

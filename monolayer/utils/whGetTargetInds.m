@@ -7,8 +7,11 @@ negCtrlInds = [];
 restInds = [];
 targetsInds = cell(1,nTargets);
 posCntrl.inds = [];
-posCntrl.targetInds = cell(1,3);
-posCntrl.targetStrs = {'CDC42','RAC1','beta-PIX'};
+posCntrl.targetInds = cell(1,4);
+posCntrl.targetStrs = {'CDC42','RAC1','beta-PIX','RHOA'};
+ 
+% posCntrl.targetInds = cell(1,3);
+% posCntrl.targetStrs = {'CDC42','RAC1','beta-PIX'};
 
 for i = 1 : nTargets
     targetsInds{i} = [];
@@ -29,6 +32,9 @@ for iGeneDay = 1 : nGeneDay
                     posCntrl.targetInds{2} = [posCntrl.targetInds{2} iGeneDay];
                 else if strcmp(geneStr,'beta-PIX')
                         posCntrl.targetInds{3} = [posCntrl.targetInds{3} iGeneDay];
+                    else if strcmp(geneStr,'RHOA')
+                            posCntrl.targetInds{3} = [posCntrl.targetInds{4} iGeneDay];
+                        end
                     end
                 end
             end

@@ -1,12 +1,13 @@
-function [] = pcInitiateData(dataDirname,analysisDirname,metaDataFname)
-% Reads all nds2 files from the dataDirname that exist in the metaDataFname, initiates corresponding MovieData objects, 
+% dataDirname = '/project/cellbiology/gdanuser/melanomaModel/RawData/2DMorphodynamicsNikon/Data/';
+% analysisDirname = '/project/cellbiology/gdanuser/melanomaModel/Analysis/Data/';
+function [] = pcInitiateData(dataDirname,analysisDirname)
+% Reads all nds2 files from the dataDirname, initiates corresponding MovieData objects, 
 % creates corresponding folders in the analysisDirname
-% Assaf Zaritsky, May 2014
+% Assaf Zaritsky, May 2015
 
 if nargin  == 0
-    dataDirname = '/project/cellbiology/gdanuser/melanomaModel/RawData/2DMorphodynamicsNikon/';
-    analysisDirname = '/project/cellbiology/gdanuser/melanomaModel/Analysis/';
-    metaDataFname = [analysisDirname 'Experiments20141119.mat'];
+    dataDirname = '/project/cellbiology/gdanuser/melanomaModel/RawData/2DMorphodynamicsNikon/Data/';
+    analysisDirname = '/project/cellbiology/gdanuser/melanomaModel/Analysis/Data/';
 end
 
 addpath(genpath('/project/cellbiology/gdanuser/melanomaModel/Analysis/code/common/toolfun'));
@@ -14,21 +15,35 @@ addpath(genpath('/project/cellbiology/gdanuser/melanomaModel/Analysis/code/exter
 
 % loci.common.DebugTools.enableLogging('INFO');
 
-load(metaDataFname);
+cellLinesDataDir = [dataDirname filesep 'CellLines' filesep];
+cellLinesAnalysisDir = [analysisDirname filesep 'CellLines' filesep];
+prepareMovieData(cellLinesDataDir,cellLinesAnalysisDir);
 
-jobs = metaData.experiments;
-njobs = jobs.N;
+melanocytesDataDir = [dataDirname filesep 'Melanocytes' filesep];
+melanocytesAnalysisDir = [analysisDirname filesep 'Melanocytes' filesep];
+prepareMovieData(melanocytesDataDir,melanocytesAnalysisDir);
 
-for i = 1 : njobs
-    curFname = jobs.fnames{i};
-    source = metaData.tumors.source{ismember(metaData.tumors.ids,metaData.experiments.tumor1ID{i})}; % assumes tumor1 is present && both tumor's sources are the same
-    name = [source filesep curFname];
-    if exist([analysisDirname name],'dir')
-        continue; % the MovieData file was created in corresponding analysis folder
-    end
-    MDs = MovieData([dataDirname name '.nd2'],'outputDirectory', [analysisDirname name filesep curFname]); % job1_task1, job1_task2... (for job1/task1, task2... use [analysisDirname name filesep curFname]
-    %     MDs = MovieData([dataDirname name '.nd2'],'outputDirectory', [analysisDirname name],'reuseReader',true);
-    %     MDs = MovieData([dataDirname curFname '.nd2'],'outputDirectory', [analysisDirname curFname '/' curFname]);
+TumorsDataDir = [dataDirname filesep 'Tumors' filesep];
+TumorsAnalysisDir = [analysisDirname filesep 'Tumors' filesep];
+prepareMovieData(TumorsDataDir,TumorsAnalysisDir);
+
 end
 
+%%
+function [] = prepareMovieData(dataDir,analysisDir)
+filenames = dir(dataDir);
+nfiles = length(filenames);
+
+for i = 1 : nfiles
+    filename = filenames(i).name;
+    
+    [pathstr, name, ext] = fileparts(filename);
+    
+    if (strcmp(ext, '.nd2'))
+        if exist([analysisDir name],'dir')
+            continue; % the MovieData file was created in corresponding analysis folder
+        end
+        MDs = MovieData([dataDir name '.nd2'],'outputDirectory', [analysisDir name filesep name]);
+    end
+end
 end

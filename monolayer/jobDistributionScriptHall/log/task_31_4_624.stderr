@@ -1,0 +1,20 @@
+{Error using load
+Unable to read MAT-file
+/project/cellbiology/gdanuser/collab/hall/allData/Angeles_20140314_16hr_5min_0001_AA02_04/strainRate/025_strainRate.mat
+
+File may be corrupt.
+
+Error in whKymographs>generateStrainRateKymograph (line 144)
+    load(strainRateFname);
+
+Error in whKymographs (line 10)
+generateStrainRateKymograph(params,dirs);
+
+Error in whProcessTimeLapse (line 31)
+whKymographs(params,dirs);
+
+Error in runHallOneAtATime (line 59)
+whProcessTimeLapse(metaData.pixelSize{ind}, timePerFrame, mainDirname,
+metaData.fnames{ind}, initParams);
+} 
+

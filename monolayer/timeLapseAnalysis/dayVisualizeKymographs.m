@@ -4,9 +4,13 @@ nGeneDay = length(geneDayDiff);
 params.timePerFrame = metaData.timePerFrame;
 params.patchSize = 15;
 
-for iGeneDay = 1 : nGeneDay    
+for iGeneDay = 1 : nGeneDay        
     params.pixelSize = geneDayDiff{iGeneDay}.pixelSize;
     dayGeneSeqStr = geneDayDiff{iGeneDay}.dayGeneSeqStr;
+    
+    if exist([mainDirname 'dayGeneControlKymograph/' dayGeneSeqStr '_' propertyStr '_Diff.eps'],'file')
+        continue;
+    end
     
     geneKymograph = geneDayDiff{iGeneDay}.meanKDKymograph;
     controlKymograph = geneDayDiff{iGeneDay}.meanKControlKymograph;
