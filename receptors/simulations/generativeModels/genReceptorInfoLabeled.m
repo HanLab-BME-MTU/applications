@@ -12,11 +12,15 @@ function receptorInfoLabeled = genReceptorInfoLabeled(receptorInfoAll,...
 %                         receptor labeling intensities.
 %                         Optional. Default: [1 0].
 %
-%OUTPUT receptorInfoLabeled: Same as receptorInfoAll, but for labaled
-%                         receptors only. It also has the additional field:
-%           .compTracks : The receptor trajectories and interactions over
-%                         time, as converted by convReceptClust2CompTracks.
-%                         Same format as output of trackCloseGapsKalman.
+%OUTPUT receptorInfoLabeled: Structure array with number of elements =
+%                         number of different labeling ratios. For each
+%                         labeling ratio, fields are similar to
+%                         receptorInfoAll, but for the labaled
+%                         receptors only. It has two additional fields:
+%               .compTracks : The receptor trajectories and interactions over
+%                             time, as converted by convReceptClust2CompTracks.
+%                             Same format as output of trackCloseGapsKalman.
+%               .labelRatio : The labeling ratio used to subsample.
 %
 %Code started by Robel Yirdaw in 2014, initially as a copy-paste from
 %receptorAggregationSimple_new.

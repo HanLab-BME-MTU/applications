@@ -1,6 +1,6 @@
-function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksALT_defFormatTracks)
-%CLUSTERHISTORYFROMCOMPTRACKS_AGGREGSTATE determines the size and lifetime 
-%of all clusters that formed during a simulation.
+function [clustHistoryAll,clustHistoryMerged] = ...
+    clusterHistoryFromCompTracks_aggregState(tracksAggregStateDef)
+%CLUSTERHISTORYFROMCOMPTRACKS_AGGREGSTATE determines the size and lifetime of all clusters that formed during a simulation
 %
 %   The function uses the information conatined in seqOfEvents and
 %   aggregState, two fields from the output of aggregStateFromCompTracks,
@@ -9,19 +9,25 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 %   of this function which uses aggregState from the field
 %   alternativeFormatTracks but seqOfEvents from defaultFormatTracks.     
 %
+%   SYNOPSIS: [clustHistoryAll,clustHistoryMerged] = ...
+%    clusterHistoryFromCompTracks_aggregState(tracksAggregStateDef)
+%
 %   INPUT:
-%       comTracksALT.defaultFormatTracks:  
+%       tracksAggregStateDef:  
 %                         the structure of track information including 
 %                         aggregState in default format.
 %
 %   OUTPUT:
 %       clustHistoryAll:  a 1D cell with rows = number of tracks in
-%                         compTracks. Each entry contains a clusterHistory 
-%                         table a track in compTracks.  clusterHistory is
-%                         a 2D array with each row corresponding to an
-%                         association or a dissociation event. The 6 colums
-%                         give the following information:
-%                         1) Track number
+%                         compTracks. 
+%                         Each entry contains a clusterHistory table for a
+%                         track in compTracks. Cluster history is only
+%                         recorded for clusters that start and end during
+%                         the obervation time.
+%                         clusterHistory is a 2D array with each row
+%                         corresponding to an association or a dissociation
+%                         event. The 6 colums give the following information:
+%                         1) Track segment number
 %                         2) Cluster size    
 %                         3) Starting iteration
 %                         4) Ending iteration
@@ -33,6 +39,9 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 %                            and its partner are both listed and NaN
 %                            indicates only the current segment is listed,
 %                            i.e. the partner is not listed. 
+%       clustHistoryMerged: Same information as in clustHistoryAll but with
+%                         all cells merged into one 2D array, i.e.
+%                         individual track information is lost.
 %
 %   Robel Yirdaw, 09/19/13
 %       modified, 02/20/14
@@ -43,7 +52,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
     %Determine number of compTracks generated
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %040814 - now passing defaultFormatTracks directly for memory reasons.
-    [numCompTracks,~] = size(compTracksALT_defFormatTracks);
+    [numCompTracks,~] = size(tracksAggregStateDef);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      
     %Cluster history from all compTracks will be saved
@@ -54,7 +63,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
         %seqOfEvents for current compTrack
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %040814 - now passing defaultFormatTracks directly for memory reasons.        
-        seqOfEvents = compTracksALT_defFormatTracks(compTrackIter,1).seqOfEvents;                
+        seqOfEvents = tracksAggregStateDef(compTrackIter,1).seqOfEvents;                
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %111814
@@ -73,7 +82,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
         %aggregState will be used to get cluster sizes 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %040814 - now passing defaultFormatTracks directly for memory reasons.        
-        aggregState = compTracksALT_defFormatTracks(compTrackIter,1).aggregState;
+        aggregState = tracksAggregStateDef(compTrackIter,1).aggregState;
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -94,7 +103,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
             %fprintf('\n%d',eventIndx);
             %If event is a dissociation
             if (seqOfEvents(eventIndx,2) == 1)
-                %The dissociating receptor's (cluster's) track number
+                %The dissociating receptor's (cluster's) segment number
                 clustHistoryTemp(clustHistIndx,1) = seqOfEvents(eventIndx,3);
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -102,8 +111,8 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
                 %Getting cluster size from entries in aggregState
 
                 %Use the row to access seqOfEvents and obtain
-                %the track number in column 3 which corresponds to the
-                %newly split track.  Then access aggregState with this
+                %the segment number in column 3 which corresponds to the
+                %newly split segment.  Then access aggregState with this
                 %number as the row and the current iteration value (column
                 %1 in seqOfEvents of the same row) as the column to
                 %get the size of the cluster that split
@@ -122,7 +131,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
             else
                 %Event is association
                 %Find the cluster that is ending in clustHistory.  If it
-                %doesn't exists, then this event is at the start of the
+                %doesn't exist, then this event is at the start of the
                 %simulation and its beginning time is unknown. Only the
                 %cluster it is joining will be saved below as a new cluster.
                 endingTrackIndx = find(clustHistoryTemp(:,1)==seqOfEvents(eventIndx,3),1,'last');
@@ -152,7 +161,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 
             %The cluster from/with which the above is occuring is also
             %changing. Update accordingly.
-            %Find the chaning track in clustHistory.  If it doesn't exist, then
+            %Find the changing segment in clustHistory.  If it doesn't exist, then
             %this event is at the start of the simulation and its beginning
             %time is unkown.  The newly created cluster will be saved below.
             changingTrackIndx = find(clustHistoryTemp(:,1)==seqOfEvents(eventIndx,4),1,'last');
@@ -201,8 +210,8 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
             end
 
             %A dissociation or association has occured invovling the cluster
-            %with track number on column 4 of seqOfEvents.  This starts a new
-            %cluster - save its track number, current size and starting
+            %with segment number on column 4 of seqOfEvents.  This starts a new
+            %cluster - save its segment number, current size and starting
             %iteration point in clustHistory.
             %Modified 111814 to accomodate seqOfEvents from experimental 
             %data which can have NaN entries for column #4 corresponding to
@@ -235,7 +244,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 
         end  %For each event in seqOfEvents  
         
-        %Remove those events that did not terminate by end of simulation. 
+        %Remove those events that did not terminate by end of simulation.
         clustHistoryTemp(isnan(clustHistoryTemp(:,4)),:) = [];
         
         %Save current clustHistory in collection
@@ -243,6 +252,10 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
         
         %Reset vars
         clear clustHistoryTemp tracksCoordAmpCG firstEventIter lastEventIter
+        
     end %For each compTrack
+    
+    %combine cluster histories for all tracks into one output variable
+    clustHistoryMerged = cat(1,clustHistoryAll{:,1});
     
 end %Function
