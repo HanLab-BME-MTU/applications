@@ -44,6 +44,14 @@ mean_st_per_filament_pool = [];
 st_per_fat_filament_pool = [];
 mean_st_per_fat_filament_pool = [];        
 
+
+StPatch_Size = 51;
+StPace_Size = 13;
+Stlowerbound = 100;
+
+[level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound,'showPlots',0);
+               
+
 % for each filament, calculate the length, orientation, and straightness
 % and put them into the pool
 for iF = 1 : length(VIF_ROI_model)
@@ -126,4 +134,11 @@ output_feature.mean_st_per_fat_filament_pool = mean_st_per_fat_filament_pool;
 end
 
 
+if(feature_flag(27)>0)
+output_feature.SteerabelRes_Segment = SteerabelRes_Segment;
+end
+
+if(feature_flag(28)>0)
+output_feature.GM_current_seg = VIF_current_seg;
+end
 
