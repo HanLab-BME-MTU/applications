@@ -116,6 +116,8 @@ if(nargin<6)
     feature_flag = ones(1,28);
 end
 
+
+
 if(numel(feature_flag)<28)
     feature_flag = [feature_flag(:); zeros(18-numel(feature_flag),1)];
 end
@@ -137,6 +139,20 @@ end
 
 
 
+%% dependency
+
+if(feature_flag(4)==0)
+    feature_flag(25)=0;
+end
+
+if(feature_flag(5)==0)
+    feature_flag(26)=0;
+end
+
+
+if(vimscreen_flag==0)
+    feature_flag(24)=0;
+end
 
 
 %% Get movie data ready
