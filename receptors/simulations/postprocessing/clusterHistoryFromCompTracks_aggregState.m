@@ -47,6 +47,7 @@ function [clustHistoryAll,clustHistoryMerged] = ...
 %       modified, 02/20/14
 %       modified, 04/08/14               
 %       modified, 11/18/14
+%       modified, 28 May 2015 (Khuloud Jaqaman)
 %
 
     %Determine number of compTracks generated
@@ -209,7 +210,7 @@ function [clustHistoryAll,clustHistoryMerged] = ...
                 %} should really use one of the above blocks.
             end
 
-            %A dissociation or association has occured invovling the cluster
+            %A dissociation or association has occured involving the cluster
             %with segment number on column 4 of seqOfEvents.  This starts a new
             %cluster - save its segment number, current size and starting
             %iteration point in clustHistory.
