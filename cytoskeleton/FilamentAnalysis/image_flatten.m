@@ -202,7 +202,7 @@ for iChannel = selected_channels
         img_pixel_pool = double(img_pixel_pool(:));
         nonzero_img_pixel_pool= img_pixel_pool(img_pixel_pool>0);
         
-        low_005_percentile = prctile(img_pixel_pool,0.5);
+        low_005_percentile = prctile(img_pixel_pool,0.01);
         
         % for log mode, need to find a min bigger than 0
         if(low_005_percentile==0 && flatten_method_ind==1)
@@ -213,7 +213,7 @@ for iChannel = selected_channels
         end        
         
         % if not found the loop use 1 max
-        high_995_percentile = prctile(img_pixel_pool,99.5);
+        high_995_percentile = prctile(img_pixel_pool,99.99);
         
         if exist('img_pixel_pool','var')
             clearvars img_pixel_pool;
@@ -287,7 +287,7 @@ for iChannel = selected_channels
         % Get rid of extreme noises
 %         currentImg(find(currentImg>high_995_percentile- center_value_int))=high_995_percentile- center_value_int;
         currentImg(find(currentImg>high_995_percentile))= high_995_percentile;
-        currentImg(find(currentImg<=0.00000001))=0.00000001;
+        currentImg(find(currentImg<low_005_percentile))= low_005_percentile;
         
         % based on the given method index, do log or sqrt to flatten the image
         if flatten_method_ind == 1

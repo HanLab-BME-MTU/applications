@@ -97,8 +97,10 @@ if(figure_flag>0)
         
         
         h6 = figure(6); set(h6,'Visible',set_visible); hold off;
+        if(~isempty(output_feature.orientation_pixel_pool_display))
+            rose(output_feature.orientation_pixel_pool_display);
+        end
         
-        rose(output_feature.orientation_pixel_pool_display);
         title([im_name_title,' Orientation of Filaments']);
         if(save_everything_flag>0)
             saveas(h6, [outdir,filesep,'network_orientationrose_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
@@ -126,8 +128,10 @@ if(figure_flag>0)
         
         
         h7 = figure(7); set(h7,'Visible',set_visible); hold off;
+        if(~isempty(output_feature.orientation_pixel_pool_display_center))            
+            rose(output_feature.orientation_pixel_pool_display_center);
+        end
         
-        rose(output_feature.orientation_pixel_pool_display_center);
         title([im_name_title,' Orientation of Filaments']);
         
         if(save_everything_flag>0)

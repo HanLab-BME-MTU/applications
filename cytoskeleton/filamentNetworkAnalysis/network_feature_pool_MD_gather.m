@@ -51,7 +51,10 @@ for iFrame = 1 : size(network_feature,2)
         network_feature_MD_thisCh_wholepool.number_of_nucleus  = [];
         network_feature_MD_thisCh_wholepool.filament_density_mean = [];
         network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean = [];
-               
+        
+        network_feature_MD_thisCh_wholepool.ST_seg_ratio = [];
+        network_feature_MD_thisCh_wholepool.GM_seg_ratio = [];
+                       
     end
     
     if(~isempty(network_feature{iChannel, iFrame}))
@@ -186,19 +189,35 @@ for iFrame = 1 : size(network_feature,2)
                 network_feature_MD_thisCh_wholepool.Centripetal_pixel    = [ network_feature_MD_thisCh_wholepool.Centripetal_pixel;  ...
                     network_feature{iChannel, iFrame}.Centripetal_pixel(:)];
             end
-            if(feature_flag(23)==1)
-                network_feature_MD_thisCh_wholepool.number_of_nucleus    =  [network_feature_MD_thisCh_wholepool.number_of_nucleus;  ...
-                    network_feature{iChannel, iFrame}.number_of_nucleus(:)];
-                
-            end
+                        
+            
+%             if(feature_flag(23)==1)
+%                 network_feature_MD_thisCh_wholepool.Cell_Mask    =  [network_feature_MD_thisCh_wholepool.Cell_Mask;  ...
+%                     network_feature{iChannel, iFrame}.Cell_Mask(:)];
+%             end
             if(feature_flag(24)==1)
+                network_feature_MD_thisCh_wholepool.number_of_nucleus    =  [network_feature_MD_thisCh_wholepool.number_of_nucleus;  ...
+                    network_feature{iChannel, iFrame}.number_of_nucleus(:)];                
+            end
+            
+            if(feature_flag(25)==1)
                 network_feature_MD_thisCh_wholepool.filament_density_mean    =  [network_feature_MD_thisCh_wholepool.filament_density_mean;  ...
                     network_feature{iChannel, iFrame}.filament_density_mean(:)];
             end
-            if(feature_flag(25)==1)
+            if(feature_flag(26)==1)
                 network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean    =  [network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean;  ...
                     network_feature{iChannel, iFrame}.scrabled_density_filament_mean(:)];
             end
+            
+            if(feature_flag(27)==1)
+                network_feature_MD_thisCh_wholepool.ST_seg_ratio    =  [network_feature_MD_thisCh_wholepool.ST_seg_ratio;  ...
+                    network_feature{iChannel, iFrame}.ST_seg_ratio(:)];
+            end
+            if(feature_flag(28)==1)
+                network_feature_MD_thisCh_wholepool.GM_seg_ratio    =  [network_feature_MD_thisCh_wholepool.GM_seg_ratio;  ...
+                    network_feature{iChannel, iFrame}.GM_seg_ratio(:)];
+            end
+            
         end
     end
 end
