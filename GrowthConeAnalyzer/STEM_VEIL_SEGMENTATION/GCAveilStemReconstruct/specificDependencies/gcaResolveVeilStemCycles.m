@@ -1,4 +1,4 @@
-function [resolvedVeilStemMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(dilBBMask,veilStemNodeMask,varargin)
+function [resolvedVeilStemMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfo,varargin)
 % gcaResolveVeilStemCycles : this function tests for and resolved veil stem
 % cycles 
 
@@ -10,7 +10,7 @@ function [resolvedVeilStemMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(dilB
 %               marking the current binary veil/stem mask for which to test
 %               for cycles. 
 %
-% dilBBMask : (REQUIRED)  an rxc logical array (binary mask) 
+% backbone2Dil : (REQUIRED)  an rxc logical array (binary mask) 
 %
 %
 % veilStemNodeMask: (REQUIRED) an rxc logical array (binary mask) 
@@ -23,24 +23,89 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 %REQUIRED
-ip.addRequired('dilBBMask');
+ip.addRequired('backbone2Dil');
 ip.addRequired('veilStemNodeMask');
+ip.addRequired('backboneInfo'); 
+%ip.addRequired('BBScaleC'); 
 
 
-
+ip.addOptional('img',[]); 
 
 % PARAMETERS
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
-ip.parse(dilBBMask,veilStemNodeMask, varargin{:});
+
+ip.parse(backbone2Dil,veilStemNodeMask, backboneInfo,varargin{:});
 p = ip.Results;
 
 %% Initiate 
 if p.TSOverlays == true 
     iFig = 1; 
 end 
+[ny,nx] = size(backbone2Dil); 
 TSFigs = []; 
 %% TEST FOR CYCLES AND CORRECT
+        % dilBBMask = imdilate(backbone2Dil,strel('disk',4));
+        [~,~,~,scaleMapFine] = gcaMultiscaleSteerableDetector(ip.Results.img,4,'sigmaArray',[1:0.5:10]);
+        dilBBMask =  gcaImdilateWithScale(backbone2Dil,scaleMapFine,[1:0.5:10]); 
+        
+        
+        
+         
+        
+        
         fullMask = dilBBMask | veilStemNodeMask;
+        
+        if p.TSOverlays == true
+            
+            
+            TSFigs(iFig).h = setFigure(nx,ny,'on');
+            TSFigs(iFig).name = 'Ridge Radius Estimation';
+            if ~(isempty(ip.Results.img)) ;
+                
+                imshow(-ip.Results.img,[]);
+                
+                hold on
+            end 
+                
+                spy(backbone2Dil,'k');
+%                 idx =  find(backbone2Dil); 
+%                   values = scaleMap(idx); 
+%                   cmap = colormap('jet',128); 
+%                 [y,x] = ind2sub([ny,nx],idx); 
+%                 scatter(x(:),y(:),values'filled'
+                
+                roiYX = bwboundaries(dilBBMask);
+               
+                roiYX2 = bwboundaries(fullMask);
+                cellfun(@(x) plot(x(:,2),x(:,1),'color','b'),roiYX2);
+                 cellfun(@(x) plot(x(:,2),x(:,1),'color','r'),roiYX);
+                text(5,5,'NMS from 1st Scale Integration to Dilate','Color','k'); 
+                text(5,15,'Radius Estimation','Color','r'); 
+                text(5,25,'Final Mask','Color','b'); 
+                
+                
+            
+            iFig = iFig+1; 
+        end
+        
+        if p.TSOverlays == true 
+           TSFigs(iFig).h = setFigure(nx,ny,'on');
+           TSFigs(iFig).name = 'Scale Integration Original';
+           imagesc(backboneInfo.scaleMapLarge); 
+           colorbar
+           iFig = iFig+1;   
+        end 
+        
+        if p.TSOverlays == true 
+            TSFigs(iFig).h = setFigure(nx,ny,'on'); 
+            TSFigs(iFig).name = 'Scale Integration Fine';
+            imagesc(scaleMapFine); 
+            colorbar
+            iFig = iFig+1; 
+            
+            
+        end 
+        
         % take largest cc and fill holes
         fullMask = logical(getLargestCC(fullMask));
         prefill = fullMask; % added 20140819
@@ -67,7 +132,7 @@ TSFigs = [];
             % integration reponse metrics but don't want this to be -
             % think about reworks in this coding for the final release as
             % it is a bit rough.
-            
+            dilBBMask = imdilate(backbone2Dil,strel('disk',4));
             CCPreDil = bwconncomp(backbone2Dil);
             CCEdges = bwconncomp(dilBBMask);
             stopFlagLowerDil = CCPreDil.NumObjects  > CCEdges.NumObjects;
@@ -116,7 +181,7 @@ TSFigs = [];
             
             % most probable paths have high response steerable filter
             % response values.
-            responseMap = backboneInfo(iFrame).maxNMSLarge; % currently do NOT save the full
+            responseMap = backboneInfo.maxNMSLarge; % currently do NOT save the full
             % response in the backboneInfo need to check if this is more
             % helpful.
             
@@ -155,7 +220,7 @@ TSFigs = [];
             % think the max response is defaulting to max scale tested due
             % to either potential bug or something have to actually work
             % out.
-            scaleMap = backboneInfo(iFrame).scaleMapLarge ;
+            scaleMap = backboneInfo.scaleMapLarge ;
             scaleScore =  cellfun(@(x) mean(scaleMap(x)),CCEdges.PixelIdxList);
             scaleScore = scaleScore./max(scaleScore); % make between 0 and 1
             
