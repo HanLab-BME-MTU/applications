@@ -21,7 +21,7 @@ function [similarity_scoremap_cell,similarity_scoremap_1to2_cell,similarity_scor
 %          at the end of the function the output dir is opened
 
 if(nargin<9)
-    longest_radius = 100;
+    longest_radius = radius;
 end
 
 flag_default = 0;
@@ -168,6 +168,22 @@ for iFrame = start_frame1 : nFrame
         catch
             VIF_img =  MD.channels_(2).loadImage(iFrame);
         end
+        
+        % get rid of out of cell filament, if not having done so previously
+            
+        
+        try
+            MT_cell_mask =  MD_1.processes_{indexCellRefineProcess_1}.loadChannelOutput(iChannel1,iFrame);            
+            MT_current_model =  ROIed_digital_filament_model(MT_current_model,size(VIF_img), MT_cell_mask);
+            MT_current_seg = filament_model_to_seg_bwim(MT_current_model,size(VIF_img),[]);
+        end
+        
+        try
+            VIF_cell_mask =  MD_2.processes_{indexCellRefineProcess_2}.loadChannelOutput(iChannel2,iFrame);            
+            VIF_current_model =  ROIed_digital_filament_model(VIF_current_model,size(VIF_img), VIF_cell_mask);
+            VIF_current_seg = filament_model_to_seg_bwim(VIF_current_model,size(VIF_img),[]);
+        end
+        
         
         % % display the two channel frame together
         two_channel_img = zeros(size(VIF_img,1),size(VIF_img,2),3);
