@@ -1,23 +1,19 @@
-%Script to calculate aggregation state from compound tracks. Compound
-%tracks with appended aggregation state (in default and alternative formats)
-%will be saved in same directory as original compound tracks.
+%Script to calculate interactions rates and cluster densities using
+%aggregation information. Results will be saved in same directory as
+%compound tracks and aggregation state.
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/10/102414/probeISruns';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150602_simsVaryDiffCoef/probeISruns';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD14','rD16'};
-aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
+rDDir = {'rD10'};
+aPDir = {'dC0p2','dC0p05'};
 outDirNum = 1:10;
-lRDir = {'lR0p6'};
+lRDir = {'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5','lR0p6','lR1p0'};
 
-%define intensity mean and stadnard deviation. Must match simulation input
-%or experimentally-derived values
-intensityQuantum = [1 0.3];
-
-%Define number of label ratio
-numLabelRatio = length(lRDir);
+%define space and time information
+infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
 
 fprintf('\n===============================================================');
 
@@ -41,23 +37,22 @@ for rDDirIndx = 1 : length(rDDir)
                     aPDir{aPDirIndx},filesep,'out',int2str(outDirNum(outDirIndx)),...
                     filesep,lRDir{lRDirIndx}];
                 
-                %load compTracks
-                tmp = load([currDir,filesep,'compTracks.mat']);
-                compTracksIn = tmp.compTracks;
+                %load compTracksAggregState
+                tmp = load([currDir,filesep,'compTracksAggregState.mat']);
+                compTracksAggregState = tmp.compTracksAggregState;
                 clear tmp
                 
-                %get aggregation state
-                [compTracksAggregState,segmentStat] = aggregStateFromCompTracks_new(...
-                    compTracksIn,intensityQuantum);
-
-                fprintf('\n   Out = %d, lR = %s ',outDirIndx,lRDir{lRDirIndx});
+                %get rates and densities
+                [rateOnPerClust,rateOffPerClust,densityPerClust,...
+                    numClustForRateCalc,clustHistory,clustStats] = ...
+                    clusterOnOffRatesAndDensity(compTracksAggregState,infoSpaceTime);
                 
-                %save tracks with aggregation state
-                save([currDir,'/compTracksAggregState'],'compTracksAggregState','segmentStat','-v7.3');
+                %save results
+                save([currDir,'/ratesAndDensity_dt0p1_T10'],'rateOnPerClust',...
+                    'rateOffPerClust','densityPerClust','numClustForRateCalc',...
+                    'clustHistory','clustStats','-v7.3');
                 
-                clear compTracksAggregState compTracksIn
-                
-                fprintf('... done.');
+                clear compTracksAggregState
                 
             end %for each labelRatio
             

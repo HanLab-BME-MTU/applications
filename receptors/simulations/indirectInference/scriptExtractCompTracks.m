@@ -1,6 +1,6 @@
 %Script to extract compTracks from receptorInfoLabeled located in the
 %indicated source folders. Note that receptorInfoLabeled has multiple entries
-%for different label ratios used.
+%for different label ratios used, which will each get its own directory.
 %
 %Khuloud Jaqaman, May 2015
 

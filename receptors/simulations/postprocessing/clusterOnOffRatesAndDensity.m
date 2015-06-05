@@ -1,12 +1,17 @@
-function [rateOnPerClust,rateOffPerClust,densityPerClust,clustHistory,clustStats] = ...
+function [rateOnPerClust,rateOffPerClust,densityPerClust,...
+    numClustForRateCalc,clustHistory,clustStats] = ...
     clusterOnOffRatesAndDensity(compTracksAggregState,infoSpaceTime)
-%clusterOnOffRatesAndDensity calculates cluster on and off rates and densities
+%CLUSTERONOFFRATESANDDENSITY calculates cluster on and off rates and densities
+%
+%   SYNPOSIS: [rateOnPerClust,rateOffPerClust,densityPerClust,...
+%               numClustForRateCalc,clustHistory,clustStats] = ...
+%               clusterOnOffRatesAndDensity(compTracksAggregState,infoSpaceTime)
 %
 %   INPUT:   
 %       compTracksAggregState: Compound tracks as output by
 %                              aggregStateFromCompTracks_new. Contains
 %                              tracks in both default and alternative
-%                              formats.
+%                              formats, including aggregation state.
 %                            
 %       infoSpaceTime: Structure with fields:
 %           .probDim        : Problem dimensionality.
@@ -15,6 +20,20 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,clustHistory,clustStats
 %                             side. In units of interest (e.g. um).
 %           .timeStep       : Time between frames/time points. In units of
 %                             interest (e.g. s).
+%           .sampleStep     : Sampling time step, in same units as
+%                             timeStep. Mostly relevant for
+%                             simulated data where simulation time step
+%                             might be 0.01 s but sampling time step of
+%                             interest is e.g. 0.1 s.
+%                             Optional. If not input, then sampleStep =
+%                             timeStep.
+%           .firstLastTP    : Row vector of first and last time points to
+%                             use for calculating rates and densities. In
+%                             same units as timeStep. 
+%                             If only one value is input, it is taken as
+%                             the last time point.
+%                             If no value is input, then all time points
+%                             are used.
 %
 %   OUTPUT:
 %       rateOnPerClust    :  A 1D array of calculated on rates for clusters
@@ -30,39 +49,45 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,clustHistory,clustStats
 %       densityPerClust   :  A 1D array of calculated density for clusters
 %                            of size 1, 2, 3, etc. Units: # molecules/unit
 %                            area. Area unit = square of areaSideLen unit.
-%       clustHistory      : Output of
-%                           clusterHistoryFromCompTracks_aggregState.
-%       clustStats        : Output of clusterNumbersFromCompTracks.
+%       numClustForRateCalc: First column indicates number of clusters of
+%                            each size used to calculate off rate.
+%                            Second column indicates mean number of
+%                            clusters of each size per iteration,
+%                            indirectly used to calculate on rate.
+%       clustHistory      :  Output of clusterHistoryFromCompTracks_aggregState.
+%       clustStats        :  Output of clusterNumbersFromCompTracks.
 %
 %   Khuloud Jaqaman, May 2015
 
 %% Input
 
-%get space and time information
-probDim = infoSpaceTime.probDim;
-areaSideLen = infoSpaceTime.areaSideLen;
-timeStep = infoSpaceTime.timeStep;
+%Nothing to do
 
 %% Calculation
 
 %get cluster history
+
 % *** 1st line (commented out) gets complete cluster history, including clusters
 %that do not start or end in middle of time lapse; however it is very slow
-% *** 2nd line (used for now) gets cluster history only for clusters that start
-%AND end in midle of time lapse; this suffices for current analysis
+%ALSO, IT HAS A BUG FOR GETTING STARTING EVENT TYPES - FIX BEFORE USING
 % % [clustHistory,clustHistoryMerged] = clusterHistoryFromCompTracksComplete( ...
 % %     compTracksAggregState.alternativeFormatTracks);
+
+% *** 2nd line (used for now) gets cluster history only for clusters that start
+%AND end in middle of time lapse; this suffices for current analysis
 [clustHistory,clustHistoryMerged] = ...
-    clusterHistoryFromCompTracks_aggregState(compTracksAggregState.defaultFormatTracks);
+    clusterHistoryFromCompTracks_aggregState(compTracksAggregState.defaultFormatTracks,infoSpaceTime);
 
 %get cluster densities
-clustStats = clusterNumbersFromCompTracks(compTracksAggregState.defaultFormatTracks,areaSideLen,probDim);
-densityPerClust = mean(clustStats.densityPerClust,2);
+clustStats = clusterNumbersFromCompTracks(compTracksAggregState.defaultFormatTracks,infoSpaceTime);
+densityPerClust = mean(clustStats.clusterDensity,2);
+clustCount = mean(clustStats.clusterCount,2);
 
 %get maximum cluster size
-maxClusterSize = max(clustHistoryMerged(:,2));
+maxClusterSize = min([max(clustHistoryMerged(:,2)) length(densityPerClust)]);
 rateOffPerClust = NaN(maxClusterSize,1);
 rateOnPerClust = NaN(maxClusterSize,1);
+numClustForRateCalc = [NaN(maxClusterSize,1) clustCount(1:maxClusterSize)];
 
 %go over each cluster size > 1 and calculate off rate
 for iSize = 2 : maxClusterSize
@@ -72,17 +97,23 @@ for iSize = 2 : maxClusterSize
     %only look at clusters with known start and end time
     indxClust = find(clustHistoryMerged(:,2)==iSize&~isnan(clustHistoryMerged(:,5)));
     clustLft = clustHistoryMerged(indxClust,5);
-    clustEndType = clustHistoryMerged(indxClust,6);
+    clustEndType = clustHistoryMerged(indxClust,7);
     
     %calculate dissociation rate
+    numClusters = length(clustEndType);
     rateOffPerClust(iSize) = ...
-        (length(find(clustEndType==1))/length(clustEndType)) / ...
-        (mean(clustLft)*timeStep);
+        (length(find(clustEndType==1))/numClusters) / mean(clustLft);
+    
+    %record number of clusters used for off rate calculation
+    numClustForRateCalc(iSize,1) = numClusters;
     
 end
 
 %calculate on rates from off rates and densities (assumes steady state)
-rateOnPerClust(2:end) = rateOffPerClust(2:end) .* densityPerClust(2:maxClusterSize) ./ ...
-    ( densityPerClust(1:maxClusterSize-1) * densityPerClust(1) );
+if maxClusterSize > 1
+    rateOnPerClust(2:end) = rateOffPerClust(2:end) .* densityPerClust(2:maxClusterSize) ./ ...
+        ( densityPerClust(1:maxClusterSize-1) * densityPerClust(1) );
+end
+
 
 %% ~~~ the end ~~~

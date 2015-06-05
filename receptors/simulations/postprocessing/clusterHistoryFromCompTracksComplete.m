@@ -20,25 +20,28 @@ function [clustHistoryAll,clustHistoryMerged] = ...
 %                         clusterHistory is a 2D array with each row
 %                         corresponding to an association or a dissociation
 %                         event. The 6 colums give the following information:
-%                         1) Track segment number
-%                         2) Cluster size    
-%                         3) Starting iteration
-%                         4) Ending iteration
-%                         5) Lifetime
-%                         6) Event that ended the cluster 
-%                           (1 = dissociation, 2 = association)
-%                         7) Resulting cluster size
-%                         8) Association flag - 1 indicates the segment
+%                         1) Track segment number.
+%                         2) Cluster size.
+%                         3) Starting iteration.
+%                         4) Ending iteration.
+%                         5) Lifetime.
+%                         6) Event that started the cluster
+%                           (1 = dissociation, 2 = association).
+%                         7) Event that ended the cluster 
+%                           (1 = dissociation, 2 = association).
+%                         8) Resulting cluster size.
+%                         9) Association flag - 1 indicates the segment
 %                            and its partner are both listed and NaN
 %                            indicates only the current segment is listed,
-%                            i.e. the partner is not listed. 
+%                            i.e. the partner is not listed.
 %       clustHistoryMerged: Same information as in clustHistoryAll but with
 %                         all cells merged into one 2D array, i.e.
 %                         individual track information is lost.
 %
-%   Khuloud Jaqaman, May 2015, starting with
+%   Khuloud Jaqaman, May/June 2015, starting with
 %   clusterHistoryFromCompTracks_aggregState
 %
+%NEEDS FIXING, SEE LINE 80
 
 %Determine number of compTracks
 numCompTracks = length(tracksAggregStateAlt);
@@ -56,7 +59,7 @@ for compTrackIter=1:numCompTracks
     aggregState = full(max(tracksAggregStateAlt(compTrackIter,1).aggregState,[],2));
     numSeg = size(aggregState,1);
     
-    clustHistoryTmp = NaN(numSeg,8);
+    clustHistoryTmp = NaN(numSeg,9);
     
     %go over each segment and extract cluster history
     for iSeg = 1 : numSeg
@@ -73,11 +76,13 @@ for compTrackIter=1:numCompTracks
         iRowE = iRowE(1);
         endTime = seqOfEvents(iRowE,1) * seqOfEvents(iRowE,4) / seqOfEvents(iRowE,4);
         
-        %determine ending event type
-        eventType = seqOfEvents(iRowE,2) * seqOfEvents(iRowE,4) / seqOfEvents(iRowE,4);
+        %determine starting and ending event types
+        %!!!SOMETHING IS WRONG WITH STARTING EVENT TYPE - FIX!!!
+        eventTypeStart = seqOfEvents(iRowS,2) * seqOfEvents(iRowS,4) / seqOfEvents(iRowS,4);
+        eventTypeEnd = seqOfEvents(iRowE,2) * seqOfEvents(iRowE,4) / seqOfEvents(iRowE,4);
         
-        clustHistoryTmp(iSeg,1:6) = [iSeg aggregState(iSeg) ...
-            startTime endTime endTime-startTime eventType];
+        clustHistoryTmp(iSeg,1:7) = [iSeg aggregState(iSeg) ...
+            startTime endTime endTime-startTime eventTypeStart eventTypeEnd];
         
     end
             
