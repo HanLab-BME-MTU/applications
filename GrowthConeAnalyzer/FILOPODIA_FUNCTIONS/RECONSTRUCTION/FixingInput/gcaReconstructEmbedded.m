@@ -4,39 +4,49 @@ function [ maskPostConnect1,TSFigs,reconstruct ] = gcaReconstructEmbedded(img,ma
 % Several cleaning steps on the embedded actin bundle ridges are first employed. 
 % One of the most important being a cut to orientation. 
 
-%% INPUT: 
+%% INPUT:
 
 % img: (REQUIRED) : RxC double array
-%    of image to analyze 
-%    where R is the height (ny) and C is the width (nx) of the input image
-% 
-% maxTh: (REQUIRED) : RxC double array
-%    of local orientation of ridge response from steerable filter. 
+%    of image to analyze
 %    where R is the height (ny) and C is the width (nx) of the input image
 %
-% edgeMask (REQUIRED) : RxC logical array (binary mask)  
-%    of the border pixels of the current veilStem mask 
+% maxTh: (REQUIRED) : RxC double array
+%    of local orientation of ridge response from steerable filter.
+%    where R is the height (ny) and C is the width (nx) of the input image
+%
+% edgeMask (REQUIRED) : RxC logical array (binary mask)
+%    of the border pixels of the current veilStem mask
 %    where R is the height (ny) and C is the width
 %    (nx) of the original input image
 %
 % filoExtSeedForInt (REQUIRED) : RxC logical array (binary mask)
-%    of the ridge seed associated with  
+%    of the ridge seed associated with
 %    traditional filopodia structures (ie those outside the veil)
 %    to which the embedded ridge candidates will be linked
 %    where R is the height (ny) and C is the width
 %    (nx) of the original input image (Pre-Cleaning Operations)
-% 
-% embeddedRidgeCand: (REQUIRED) RxC logical array (binary mask) 
-%        of the embedded ridge candidates to be linked
-%        where R is the height (ny) and C is the width
-%        (nx) of the original input image (Pre-Cleaning Operations)
+%
+% embeddedRidgeCand: (REQUIRED) RxC logical array (binary mask)
+%    of the embedded ridge candidates to be linked
+%    where R is the height (ny) and C is the width
+%    (nx) of the original input image (Pre-Cleaning Operations)
 %
 %% PARAMS: 
-% 'maxRadiusLinkEmbedded' (PARAM) : Scalar 
-%          Only embedded ridge candidate end points that are within this max 
-%          search radius around each seed ridge endpoint are considered for matching.
-%          Default: 10 Pixels
-%          See gcaConnectEmbeddedRidgeCandidates.m 
+% 'maxRadiusLinkEmbedded' (PARAM) : Scalar
+%    Only embedded ridge candidate end points that are within this max
+%    search radius around each seed ridge endpoint are considered for matching.
+%    Default: 10 Pixels
+%    See gcaConnectEmbeddedRidgeCandidates.m
+%
+% 'geoThreshEmbedded' (PARAM) : Scalar
+%    Hard threshold for the geometry of links: geometric linkages with
+%    dot products of the vector of the ridge at the linking point and the
+%    linear connection between the two ridges.
+%    1 indicates perfect colinearity (0 degree angle), 0 indicates complete
+%    orthoganality (90 angle angle), -1 indicates complete colinearity (-180
+%    degree angle)
+%    Default = 0.9 (~ 25 Degree Angle)
+%    See: gcaConnectEmbeddedRidgeCandidates.m
 %
 %% OUTPUT: 
 % maskPostConnect1: RxC logical array (binary mask) 
@@ -60,8 +70,10 @@ ip.addRequired('embeddedRidgeCand');
 
 ip.addParameter('numPixelsForSpur',2,@(x) isscalar(x)); 
 
- 
+% Pass to: gcaConnectEmbeddedRidgeCandidates.m
 ip.addParameter('maxRadiusLinkEmbedded',10,@(x) isscalar(x));
+ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+
 ip.addParameter('TSOverlays',true); 
 ip.parse(img,maxTh,filoExtSeedForInt,embeddedRidgeCand,varargin{:});
 
@@ -119,10 +131,10 @@ p = ip.Results;
 
         imshow(-img,[]) ;
         hold on
-        spy(embeddedRidgeCand,'b');
-        spy(beforeCut,'g'); 
-        text(5,5,'Before Clean Step I','FontSize',10, 'color','b'); 
-        text(5,20,'After Clean Step I','FontSize',10,'color','g'); 
+        spy(embeddedRidgeCand,'g');
+        spy(beforeCut,'b'); 
+        text(5,5,'Signal Removed in Cleaning','FontSize',10, 'color','g'); 
+        text(5,20,'After Embedded Ridge Clean Step I','FontSize',10,'color','b'); 
         countFigs = countFigs +1; 
     end % 
     
@@ -168,27 +180,27 @@ p = ip.Results;
 % 
 
 %% for now make these TS plots as well  
-if ip.Results.TSOverlays == true
-    %   for iFig = 1:4
-    TSFigs(countFigs).h  = setFigure(nx,ny,'on');
-    TSFigs(countFigs).name = 'PixelOrder';
-    %
-    imshow(-img,[]);
-    %
-    hold on
-
-    for iCC = 1:numel(x)
-        x1 = x{iCC};
-        y1 = y{iCC};
-        %         orient1 = orient{iCC};
-        %         diffOrient1 = diffOrient{iCC};
-        %
-        %         %cmap = jet(length(x1));
-        %
-        arrayfun(@(i) text(x1(i),y1(i),num2str(i)),1:length(x1));
-    end
-    countFigs = countFigs +1; 
-end
+% if ip.Results.TSOverlays == true
+%     %   for iFig = 1:4
+%     TSFigs(countFigs).h  = setFigure(nx,ny,'on');
+%     TSFigs(countFigs).name = 'PixelOrder';
+%     %
+%     imshow(-img,[]);
+%     %
+%     hold on
+% 
+%     for iCC = 1:numel(x)
+%         x1 = x{iCC};
+%         y1 = y{iCC};
+%         %         orient1 = orient{iCC};
+%         %         diffOrient1 = diffOrient{iCC};
+%         %
+%         %         %cmap = jet(length(x1));
+%         %
+%         arrayfun(@(i) text(x1(i),y1(i),num2str(i)),1:length(x1));
+%     end
+%     countFigs = countFigs +1; 
+% end
 %% Currently simply get orientations of internal ridge candidates per pixel from the
  % steerable filter output. (NOTE MB: investigate better ways to do this
  % before release)
@@ -278,28 +290,28 @@ end
         
          
         [ny,nx] = size(img);
-        TSFigs(countFigs).h  = setFigure(nx,ny,'on');
+        TSFigs(countFigs).h  = setFigure(nx,ny,'off');
         TSFigs(countFigs).name = 'BeforeAfterCleanStepII_CutCurves';
 
         imshow(-img,[]);
         hold on 
-        spy(beforeCut,'b',10);
+        spy(beforeCut,'r',5);
         % overlay after the cut
-        spy(afterCut,'r',10);
+        spy(afterCut,'g',5);
         finalIntCands = zeros([ny,nx]); 
         finalIntCands(vertcat((CCInt.PixelIdxList{:})))=1; 
-        spy(finalIntCands,'g',10); 
+        spy(finalIntCands,'b',5); 
        % finalIntCands
         
         % NOTE: eventually make an plot color coded by maxTh over the
         % img... 
-        text(5,5, 'Before Curvature Cut', 'FontSize',10,'Color','b'); 
-        text(5,15,'After Curvature Cut','FontSize',10,'Color','r');
-        text(5,25,'Final Candidates','FontSize',10,'Color','g');  
+        text(5,5, 'Small Pieces Removed', 'FontSize',10,'Color','g'); 
+        text(5,15,'Curvature Cut Sites','FontSize',10,'Color','r');
+        text(5,25,'Final Candidates','FontSize',10,'Color','b');  
         countFigs = countFigs +1;   % close fig
         
     
-        TSFigs(countFigs).h  = setFigure(nx,ny,'on');
+        TSFigs(countFigs).h  = setFigure(nx,ny,'off');
         TSFigs(countFigs).name = 'OrientationAndCutSites';
         beforeCut(beforeCut==0) = NaN; 
         orientMaskedByNMS = beforeCut.*rad2deg(maxTh+pi/2);
@@ -315,81 +327,57 @@ end
                spy(removeMask,'w',10); 
     countFigs = countFigs+1; 
     end    
-%% Calc displacement vectors of the ridges: will use for matching 
-% NOTE 20150524 think have made this more local with getEndpoints can try
-% to see if this helps matching. (DELETED 20150526 silly not necessarily
-% sorted so that the vect is always facing the same way...dipshit)
-     vectInt =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], embeddedRidgeCand1EPs ,'uniformoutput',0);
-     dInt  = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),embeddedRidgeCand1EPs,'uniformoutput',0);
-%     
-     vectSeed =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], seedFilo1EPs ,'uniformoutput',0);
-     dSeed = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),seedFilo1EPs,'uniformoutput',0);
-%%   
+
+%%   Get the Seed and Candidate End points closest to the veil/stem boundary
+    % All the endpoints don't necessarily need to be put through matching: 
+    % only the ones nearest to the veil stem boundary typically need to be considered. 
+    % NOTE: Other option would be to set up to have the two end points compete.  
+    % MB: If have time could test processing time for both options and see if save
+    % anything; LESS PRIORITY
     
-   
-    
-    
-    
-    % 
     [intEPIdx] = cellfun(@(x) sub2ind(size(img),x(:,2),x(:,1)),embeddedRidgeCand1EPs,'uniformoutput',0);
-    %
     [seedEPIdx] = cellfun(@(x) sub2ind(size(img),x(:,2),x(:,1)),seedFilo1EPs,'uniformoutput',0);
     
-    % Don't need to put all pixels through matching only the ones nearest to
-    % the cell body should be considered (other option would be to set up to
-    % have the two end points compete.  If have time could test processing
-    % time for both and see if save anything
-    
-    % get distTrans relative to veilStem
+    % Get distance transform relative to veilStem boundary
     distTrans = bwdist(edgeMask);
     [distTransIntEPFromEdge] = cellfun(@(x) distTrans(x),intEPIdx,'uniformoutput',0);
     [distTransExtEPFromEdge] = cellfun(@(x) distTrans(x),seedEPIdx,'uniformoutput',0);
     
+    % Find the closest endpoint index for the embedded candidate ridges 
     [idxKeepInt] = cellfun(@(x) find(x==min(x)),distTransIntEPFromEdge,'uniformoutput',0);
     
-    %  % sometimes might have more than one for each so just take the first
-    %idxKeepInt = cellfun(@(x) x(1),idxKeepInt);
-    %
-    %
-    %
-    %  % find those with dist trans that are exactly the same an indication that
-    %  % they are paralllel to the Neurite body edge so filter- might be a faster
-    %  % way to do in the future but good enough for now.
-    %
+    
+    %    Find those with distance transformation that are exactly the same- 
+    %    this is a quick indication that the ridge is running parallel to 
+    %    the veilStem mask. Filter these ridges out as they are typically the ridge
+    %    filter picking up on the veil/stem edge. 
+    %    (Note they would be typically filtered in the next step anyway as
+    %    we implement a hard geometeric threshold to maintain linearity of the connections). 
+   
     if ~isempty(idxKeepInt) % if no candidates
         parLIdx = cellfun(@(x) size(x,1)>1,idxKeepInt); % get the indices of those that are parallel
         %   % filter these out
         idxKeepInt(parLIdx') = [];
         CCInt.PixelIdxList(parLIdx') = [];
-        vectInt(parLIdx')=[];
-        dInt(parLIdx') = [];
         CCInt.NumObjects = CCInt.NumObjects - sum(parLIdx);
         embeddedRidgeCand1EPs(parLIdx') = [];
         
         
-        %  Do the same for the external filo
+        %  Do the same for the seed filo 
+        % (Typically doesn't happen but just in case) 
         
-        %  % sometimes might have the two endpoint pixels have the very same
-        %  % distTrans therefore need to fix this (could actually remove this here)
-        %  % idxKeepExtSeed = cellfun(@(x) x(1), idxKeepExtSeed);
-        %
         [idxKeepExtSeed] = cellfun(@(x) find(x==min(x)),distTransExtEPFromEdge,'uniformoutput',0);
-        %
         
         parLIdxE = cellfun(@(x) size(x,1)>1,idxKeepExtSeed);
         % %   % filter these out
         idxKeepExtSeed(parLIdxE') = [];
         CCFiloExtSeedForInt.PixelIdxList(parLIdxE') = [];
-         vectSeed(parLIdxE') =[];
-         dSeed(parLIdxE') = [];
         seedFilo1EPs(parLIdxE') = [];
         
-        % convert the coordinates to put into graph matching from pixInd to xy
+        % Convert the coordinates choices in from pixel indices to xy
         % coords (put into a cell)
-        
-        % do it for internal candidate coords
         idxKeepInt = vertcat(idxKeepInt{:});
-        if ~isempty(idxKeepInt)
+        if ~isempty(idxKeepInt) % if there are vialbe 
             idxKeepExtSeed = vertcat(idxKeepExtSeed{:})';
             %
             % % for now just do a for loop  ** work out better later if can **
@@ -417,58 +405,35 @@ end
             %  % Only one end-point per candidate/seed (the closet to the neurite body)
             %  % will now be considered for matching
             
-            % make labelMatCandidate
+            % make labelMatrix for the Embedded Candidates
             labelMatCandInt1 = labelmatrix(CCInt);
             
             embeddedRidgeCandSpur =double(labelMatCandInt1>0);
-            
-            % sanity
-            figure
-            imshow(-img,[]) 
-            hold on 
-            spy(filoExtSeedForInt,'r'); 
-            scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),10,'r','filled'); 
-            quiver(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),seedFilo1EPsFinal(:,3),seedFilo1EPsFinal(:,4),0.2,'color','r')
-            spy(embeddedRidgeCandSpur,'b')
-            scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),10,'b','filled'); 
-            quiver(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),...
-                embeddedRidgeCand1EPsFinal(:,3),embeddedRidgeCand1EPsFinal(:,4),0.2,'color','b'); 
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
             reconstruct.Int.Seed{1} = filoExtSeedForInt; % internal Seed
             reconstruct.Int.Cand{1} = embeddedRidgeCandSpur; % interal Candidates
             
+%% sanity: To Remove
+%             figure
+%             imshow(-img,[]) 
+%             hold on 
+%             spy(filoExtSeedForInt,'r'); 
+%             scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),10,'r','filled'); 
+%             quiver(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),seedFilo1EPsFinal(:,3),seedFilo1EPsFinal(:,4),0.2,'color','r')
+%             spy(embeddedRidgeCandSpur,'b')
+%             scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),10,'b','filled'); 
+%             quiver(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),...
+%                 embeddedRidgeCand1EPsFinal(:,3),embeddedRidgeCand1EPsFinal(:,4),0.2,'color','b'); 
+%             
+%%                
  %%           
       if ip.Results.TSOverlays == true 
            
-        TSFigs(countFigs).h  = setFigure(nx,ny,'on');
+        TSFigs(countFigs).h  = setFigure(nx,ny,'off');
         TSFigs(countFigs).name = 'Before Matching';
         imshow(-img,[]); 
         hold on 
-        % plot seeds 
-        
-        
-        % plot embedded cands 
-        
-          
-        % plot endpoints   
-          
-           
-            
-
-                
-
-                
-%                 imshow(img,[]);
-                hold on
+       
+               
                 
                  scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),20,'b','filled'); % the endpoint to connect
                  scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),20,'r','filled');
@@ -476,7 +441,43 @@ end
                  spy(embeddedRidgeCandSpur,'y'); 
                  spy(fromLabels,'b');
                  spy(filoExtSeedForInt,'r')
+                 text(5,10,'Seeds','FontSize',10,'color','r'); 
+                 text(5,20,'Ridge Candidates Embedded','FontSize',10,'color','b'); 
                  countFigs = countFigs +1; 
+                 
+      % Next Figure           
+               
+                 TSFigs(countFigs).h  = setFigure(nx,ny,'off');      
+                 TSFigs(countFigs).name = 'Before Matching with Vectors';
+                 
+                 
+                  imshow(-img,[]); 
+                  hold on 
+     
+                 scatter(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),20,'b','filled'); % the endpoint to connect
+                 scatter(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),20,'r','filled');
+                 fromLabels = double(labelMatCandInt1>0); 
+                 spy(embeddedRidgeCandSpur,'y'); 
+                 spy(fromLabels,'b');
+                 spy(filoExtSeedForInt,'r')
+                 text(5,10,'Seeds','FontSize',10,'color','r'); 
+                 text(5,20,'Ridge Candidates Embedded','FontSize',10,'color','b'); 
+                 text(5,30,'With Local Geometry Vectors','FontSize',10,'color','k'); 
+                 
+                 
+                 quiver(embeddedRidgeCand1EPsFinal(:,1),embeddedRidgeCand1EPsFinal(:,2),...
+                     embeddedRidgeCand1EPsFinal(:,3),embeddedRidgeCand1EPsFinal(:,4),0.2,'color','b');
+                 quiver(seedFilo1EPsFinal(:,1),seedFilo1EPsFinal(:,2),seedFilo1EPsFinal(:,3),seedFilo1EPsFinal(:,4),...
+                     0.2,'color','r');
+                 countFigs = countFigs +1;
+                 
+                 % Next Fig 
+                 
+                 
+                 
+                 
+                
+       
 %                 
 %                 
 %             end % making trouble shoot internal figures %%
@@ -491,8 +492,8 @@ end
             [maskPostConnect1,linkMask1,status,TSFigs2]  = gcaConnectEmbeddedRidgeCandidatesFix(embeddedRidgeCand1EPsFinal,seedFilo1EPsFinal,filoExtSeedForInt, ...
                 labelMatCandInt1,img,edgeMask,p);
             % need to get the internal Filoconnect
-            
-            
+            TSFigs = [TSFigs TSFigs2];
+           
             
           
             reconstruct.Int.links{1} = linkMask1;

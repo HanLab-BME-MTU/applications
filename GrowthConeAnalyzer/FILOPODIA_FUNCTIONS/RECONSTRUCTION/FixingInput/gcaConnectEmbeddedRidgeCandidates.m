@@ -139,6 +139,17 @@ if ~isempty(E) % continue
     dSeed = vertcat(dSeed{idxSeedAll});
     
     
+    % vector of connectivity from edge 2 to 1
+    deltXCon21 = arrayfun(@(i) endPoints(E(i,1),1)-endPoints(E(i,2),1),1:length(E(:,1)));
+    deltYCon21= arrayfun(@(i) endPoints(E(i,1),2)-endPoints(E(i,2),2),1:length(E(:,1)));
+    
+    % vector of connectivity 1 to 2
+    deltXCon12 = arrayfun(@(i) endPoints(E(i,2),1)-endPoints(E(i,1),1),1:length(E(:,1)));
+    deltYCon12 = arrayfun(@(i) endPoints(E(i,2),2)-endPoints(E(i,1),2),1:length(E(:,1)));
+    
+    
+    
+    
     
     costCandAndSeed = arrayfun(@(i) dot(vectInt(i,:),vectSeed(i,:))./dInt(i)./dSeed(i),1:length(dInt));
     
@@ -176,6 +187,7 @@ if ~isempty(E) % continue
     % need to likewise need to maintain linearity
     % among the connection and the two pieces
     % get orientation of the connecting piece
+    
     deltX = arrayfun(@(i) internalSeedEPs(E(i,1),1)-internalCandEPs(E(i,2),1),1:length(E(:,1)));
     deltY= arrayfun(@(i) internalSeedEPs(E(i,1),2)-internalCandEPs(E(i,2),2),1:length(E(:,1)));
     vectConn = [deltX' deltY'];
