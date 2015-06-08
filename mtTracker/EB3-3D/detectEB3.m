@@ -39,7 +39,7 @@ if (strcmp(ip.Results.type,'pointSourceAutoSigma') ...
     for i=1:5
         volList=[volList double(MD.getChannel(ip.Results.channel).loadStack(i))];
     end
-    scales=getGaussianPSFsigmaFrom3DData(volList,'Display',showAll);
+    scales=getGaussianPSFsigmaFrom3DData(volList,'Display',ip.Results.showAll);
     disp(['Estimed scales: ' num2str(scales)]);
 else
     scales=ip.Results.scales;

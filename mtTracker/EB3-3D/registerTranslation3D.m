@@ -1,4 +1,4 @@
-function [Pr]=registerTranslation3D(MD,varargin)
+function [Pr,jumpIdx,displacements]=registerTranslation3D(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched=true;
@@ -41,9 +41,9 @@ if(ip.Results.computeImageDistance)
         plot(dist,'color','r');
         hline(thresh);
     end
-end 
-%% register image jumpIdx with jumpIdx+1
+end
 
+%% register image jumpIdx with jumpIdx+1
 if(ip.Results.computeShift)
     displacements=cell(1,length(jumpIdx));
     parfor i=1:length(jumpIdx)
@@ -56,8 +56,8 @@ if(ip.Results.computeShift)
     end
     save([outputDir filesep 'driftParameter.mat'],'jumpIdx','displacements');
 end
- %% Register 
 
+%% Register 
  if(ip.Results.warp)
      load([outputDir filesep 'driftParameter.mat']);
      fileDir=[outputDir filesep 'registeredVol' filesep ip.Results.warpMode];mkdir(fileDir);
