@@ -106,20 +106,20 @@ for iCh = 1:nChan
     
     
 %% Get Restart Information 
-    veilStemFile = [outDirC filesep 'veilStemInfo.mat'];
+    veilStemFile = [outDirC filesep 'veilStem.mat'];
     
     % If veilStemInfo already exists load it
     if  exist(veilStemFile,'file')==2;
         load(veilStemFile) % load the file
         display('Loading Previously Run VeilStem Estimations');
         if strcmpi(ip.Results.StartFrame,'auto')
-            startFrame = numel(veilStemInfo)-1;
+            startFrame = numel(veilStem)-1;
             if startFrame == 0
                 startFrame = 1; % reset to 1;
             end
             display(['Auto Start: Starting Veil/Stem Reconstruction at Frame ' num2str(startFrame)]);
         else
-            startFrame = ip.Results.startFrame; % use user input
+            startFrame = ip.Results.StartFrame; % use user input
             display(['Manual Start: Starting Veil/Stem Reconstruction at Frame ' num2str(startFrame)]);
         end
     else % if doesn't exist
@@ -145,9 +145,14 @@ for iCh = 1:nChan
         display(['Manual End: Finding Veil/Stem From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
 %%    Load Backbone Information
-    load([ [movieData.outputDirectory_ filesep...
-        'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'II_neurite_orientation_refinements'] filesep 'Channel_' num2str(iCh)...
+    load([ movieData.outputDirectory_ filesep...
+        'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'II_neurite_orientation_refinements' filesep 'Channel_' num2str(iCh)...
         filesep 'backboneInfoFix.mat']);
+  pBackbone =  load( [movieData.outputDirectory_ filesep ... 
+        'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'I_neurite_orientation' filesep 'Channel_' num2str(iCh) ...
+        filesep 'params.mat']); 
+    pBackbone = pBackbone.p;
+    BBScales = arrayfun(@(x) pBackbone(x).BBScale,1:length(pBackbone),'uniformoutput',0)'; 
 %% Test for a manually chosen local patch size
     if exist([outDirC filesep 'LocalThreshPatchSizeTest' filesep ... 
           'manualPatchSizeSelect.mat'  ],'file')==2; 
@@ -161,14 +166,15 @@ for iCh = 1:nChan
     p.StartFrame = startFrame;
     p.EndFrame = endFrame;
     p.OutputDirectory = outDirC; 
+    p.BBScales = BBScales; 
     
     if p.StartFrame == 1
         
-    GCAReconstructVeilStem(listOfImages,backboneInfo,p);
+    GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,p);
     else % for restart
-        x{1} = veilStemInfo;
+        x{1} = veilStem;
         y{1} = paramsArchived; 
-        GCAReconstructVeilStem(listOfImages,backboneInfo,x,y,p); 
+        GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,x,y,p); 
     end 
     
 end % for iCh
