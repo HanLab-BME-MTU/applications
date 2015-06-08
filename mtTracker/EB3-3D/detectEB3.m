@@ -39,7 +39,7 @@ if (strcmp(ip.Results.type,'pointSourceAutoSigma') ...
     for i=1:5
         volList=[volList double(MD.getChannel(ip.Results.channel).loadStack(i))];
     end
-    scales=getGaussianPSFsigmaFrom3DData(volList);
+    scales=getGaussianPSFsigmaFrom3DData(volList,'Display',showAll);
     disp(['Estimed scales: ' num2str(scales)]);
 else
     scales=ip.Results.scales;
@@ -134,7 +134,7 @@ movieInfo.int=amp;
 function movieInfo= pointCloudToMovieInfo(imgLM,vol)
     lmIdx = find(imgLM~=0);
     [lmy,lmx,lmz] = ind2sub(size(vol), lmIdx);
-    N=length(lmy)
+    N=length(lmy);
     % centroid coordinates with 0.5 uncertainties
     xCoord = [lmx-1 0.5*ones(N,1)]; yCoord = [lmy-1 0.5*ones(N,1)]; zCoord = [lmz-1 0.5*ones(N,1)];
     amp=[vol(lmIdx) 0.5*ones(N,1)];
