@@ -9,25 +9,25 @@ function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,va
 %         by NMS (non-maximum suppression) to detect filopodia. 
 %         It then reconstructs the filopodia network from this 
 % 
-%% INPUT: 
+%% INPUT: REQUIRED AND OPTIONAL
 %
 %   img: (REQUIRED) : RxC double array
 %      of image to analyze where R is the height (ny) and C is the width
 %     (nx) of the input image
 %
-%  veilStemMaskC: (REQUIRED)  RxC logical array (binary mask) 
+%  veilStemMaskC: (REQUIRED)  RxC logical array (binary mask)
 %      of veil/stem reconstruction where R is the height (ny) and C is the width
-%     (nx) of the  original input image
+%      (nx) of the  original input image
 %
 %  protrusionC: (OPTIONAL) : structure with fields:
-%    .normals: a rx2 double of array of unit normal                               
-%              vectors along edge: where r is the number of 
-%              coordinates along the veil/stem edge
+%    .normals: a rx2 double of array of unit normal
+%      vectors along edge: where r is the number of
+%      coordinates along the veil/stem edge
 %
-%    .smoothedEdge: a rx2 double array of edge coordinates 
-%                   after spline parameterization: 
-%                   where r is the number of coordinates along the veil/stem edge
-%                   (see output: output.pixel_tm1_output in prSamProtrusion)
+%    .smoothedEdge: a rx2 double array of edge coordinates
+%       after spline parameterization:
+%       where r is the number of coordinates along the veil/stem edge
+%      (see output: output.pixel_tm1_output in prSamProtrusion)
 %     Default : [] , NOTE: if empty the field
 %                    filoInfo(xFilo).orientation for all filodpodia attached
 %                    to veil will be set to NaN (not calculated)- there will be a warning if
@@ -35,6 +35,7 @@ function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,va
 %    Output from the protrusion process (see getMovieProtrusion.m)
 %
 %% PARAMS
+%    
 % %% PARAMS: STEERABLE FILTER: RIDGE FINDING %%
 %
 %    'FiloScale' (PARAM) : Positive scalar or vector
@@ -63,25 +64,40 @@ function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,va
 %
 % %% PARAMS: RIDGE LINKING %%  
 %
-%    % INITIAL LINKING %
-%      'maxRadiusInitialConnectLink' : Scalar 
+%    % FILO CANDIDATE BUILDING %
+%      'maxRadiusLink' (PARAM) : Scalar 
+%         Maximum radius for connecting linear endpoints points of two 
+%         filopodia candidates in the initial candidate building step of the 
+%         algorithm.
+%         Default: 5
+%         See gcaAttachFilopodiaStructuresMain.m 
 %
-%    % TRADITIONAL FILO LINKING %
-%      'maxRadiusLinkFiloOutsideVeil' : Scalar  
-%       
+%    % TRADITIONAL FILO/BRANCH LINKING %
+%      'maxRadiusLinkFiloOutsideVeil' (PARAM): Scalar  
+%         Maximum radius for connecting endpoints of candidate filopodia ridges 
+%         to the current iteration of the  high confidence seed. 
+%         Default : 
+% 
+% 
 %    % EMBEDDED ACTIN SIGNAL LINKING %
 %      'maxRadiusLinkEmbedded' (PARAM) : Scalar 
 %          Only embedded ridge candidate end points that are within this max 
 %          search radius around each seed ridge endpoint are considered for matching.
 %          Default: 10 Pixels
 %          (Only applicable if 'detectEmbedded' set to 'true')
-%          See gcaConnectEmbeddedRidgeCandidates.m 
+%          See: gcaAttachFilopodiaStructuresMain.m 
+%                   gcaReconstructEmbedded.m 
+%                       gcaConnectEmbeddedRidgeCandidates.m 
 %
+%      'geoThreshEmbedded' (PARAM) : Scalar 
+%          Only embedded ridge candidates meeting this geometric criteria
+%          will be considered. 
+%          Default: 0.9 
+%          (Only applicable if 'detectEmbedded' set to 'true')
+%          See: gcaAttachFilopodiaStructuresMain.m 
+%                   gcaReconstructEmbedded.m 
+%                       gcaConnectEmbeddedRidgeCandidates.m 
 %
-% %% PARAMS: OPTIONS: 
-%
-%    'detectEmbedded': (PARAM) logical 
-%    
 %% OUTPUT: 
 % adds a field to filoBranch. called filoInfo
 % filoInfo is a R structure x 1 structure with fields providing information
@@ -102,23 +118,38 @@ ip.KeepUnmatched = true;
 
 ip.addRequired('img');
 ip.addRequired('veilStemMaskC');
+
+%OPTIONAL
 ip.addOptional('protrusionC',[],@(x) iscell(x)); % if restarting
 
 
-% PARAMETERS
+% PARAMS: STEERABLE FILTER: RIDGE FINDING
+% Pass to gcaMultiscaleSteerableDetector.m
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
 ip.addParameter('FiloScale',1.5);
 
-
+% RIDGE CLEANING
 ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
 
-ip.addParameter('maxRadiusInitialConnectLink',10); 
-ip.addParameter('maxRadiusLinkFiloOutsideVeil',10); 
+% CANDIDATE BUILDING %
+% Pass to: gcaAttachFilopodiaStructuresMain.m
+ip.addParameter('maxRadiusLink',5); 
+ip.addParameter('geoThresh',0.9, @(x) isscalar(x));  
 
-ip.addParameter('maxRadiusLinkEmbedded',10); 
+% TRADITIONAL FILOPODIA/BRANCH RECONSTRUCT           
+% Pass to: gcaAttachFilopodiaStructuresMain.m
+ip.addParameter('maxRadiusConnectFiloBranch',5); 
 
-ip.addParameter('detectEmbedded',true);
+
+% EMBEDDED ACTIN SIGNAL LINKING %
+ip.addParameter('detectEmbedded',true)
+% Pass to: gcaAttachFilopodiaStructuresMain.m
+  ip.addParameter('maxRadiusLinkEmbedded',10); 
+  ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+
+  
+% TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
 ip.parse(img,veilStemMaskC,varargin{:});
@@ -205,7 +236,7 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 %% Optional TS Figure : Ridge Signal Cleaning Steps 
  if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFigs(countFigs).h = figure('visible','off'); 
+          TSFigs(countFigs).h = figure('visible','on'); 
        
           TSFigs(countFigs).name = 'RidgeSignalCleaning'; 
           imshow(-img,[]) ; 

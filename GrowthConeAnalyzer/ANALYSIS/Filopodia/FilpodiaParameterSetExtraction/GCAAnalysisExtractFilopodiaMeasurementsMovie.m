@@ -31,14 +31,6 @@ function [ output_args ] = GCAAnalysisExtractFilopodiaMeasurementsMovie(movieDat
 %       backbone information will be calculated from the channels (ie raw
 %       images)
 %% Check input
-% for now check movieData separately.
-if nargin < 1 || ~isa(movieData,'MovieData')
-    error('The first input must be a valid MovieData object!')
-end
-%%Input check
-ip = inputParser;
-
-ip.CaseSensitive = false;
 
 % for now check movieData separately.
 if nargin < 1 || ~isa(movieData,'MovieData')
@@ -131,6 +123,43 @@ for iCh = 1:nChan
         analInput(2).paramFunc{2} = 'filoDensityAlongVeil';
         analInput(2).paramName{2} = 'filoDensityAlongVeil';
         analInput(2).paramInput{2} = [];
+        
+        % Curvature 
+        analInput(2).paramFunc{3} = 'filoCurvature'; 
+        analInput(2).paramName{3} = 'filoCurvature'; 
+        analInput(2).paramInput{3} = []; 
+        %% Branch 2nd Order : Intensity and Length 
+        analInput(3).filterType = 'Branch2ndOrder_LengthInt'; 
+        % 
+        analInput(3).paramFunc{1} = 'filoLength';
+        analInput(3).paramName{1} = 'branch2ndOrder_Length';
+        analInput(3).paramInput{1} = 'Ext_'; 
+        
+        analInput(3).paramFunc{2} = 'filoAvgIntensity'; 
+        analInput(3).paramName{2} = 'branch2ndOrder_Intensity';
+        analInput(3).paramInput{2} = 'Ext';
+        
+        
+        %% Branch 2nd Order : Orient and Density
+       
+        
+        
+        
+        %%  analInput(3).filterType = 'Branch3rdOrder_LengthInt'; 
+        analInput(4).filterType = 'Branch3rdOrder_LengthInt';
+        analInput(4).paramFunc{1} = 'filoLength';
+        analInput(4).paramName{1} = 'branch3rdOrder_Length';
+        analInput(4).paramInput{1} = 'Ext_'; 
+        
+        analInput(4).paramFunc{2} = 'filoAvgIntensity'; 
+        analInput(4).paramName{2} = 'branch3rdOrder_Intensity';
+        analInput(4).paramInput{2} = 'Ext';
+        
+
+        analInput(4).paramFunc{3} = 'filoCurvature'; 
+        analInput(4).paramName{3} = 'filoCurvature'; 
+        analInput(4).paramInput{3} = []; 
+        
         %% Wrap through for each analysis type
         for iAnalType = 1:length(analInput);
             
@@ -138,11 +167,12 @@ for iCh = 1:nChan
             [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSet(analInfo,analInput(iAnalType).filterType);
             
             
-            % Make the Respective Folders
+            % Make the Respective Folders: HAVE TO FIX THE ORGANIZATION
+            % HERE TO CHECK FOR THE INDIVIDUAL FOLDERS 
             newFiloDir  = [ ip.Results.OutputDirectory filesep 'Channel' num2str(channels(iCh))...
                 filesep 'Descriptor' filesep 'Filopodia' filesep analInput(iAnalType).filterType];
             if isdir(newFiloDir)
-                display([newFiloDir ' Found: SKIPPING']) ; % for now skip but can make an option to re-write
+                display([newFiloDir ' Found: ']) ; % for now skip but can make an option to re-write
             else
                 mkdir(newFiloDir);
             end

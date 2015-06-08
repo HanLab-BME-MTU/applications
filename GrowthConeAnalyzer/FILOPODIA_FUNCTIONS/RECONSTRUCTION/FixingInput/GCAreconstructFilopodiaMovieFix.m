@@ -62,18 +62,27 @@ ip.addParameter('EndFrame','auto');
 
 % Specific
 % PARAMETERS
+
+% Steerable Filter 
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
 ip.addParameter('FiloScale',1.5);
 
-
+% Cleaning Response of Steerable Filter 
 ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
 
-ip.addParameter('maxRadiusSmallScaleLinkOutsideVeil',10);
-ip.addParameter('maxRadiusSmallScaleLinkEmbedded',10);
+% Linking Parameters Embedded 
+ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+ip.addParameter('maxRadiusLinkOutsideVeil',10);
+ip.addParameter('maxRadiusLinkEmbedded',10);
 
-ip.addParameter('detectEmbedded',true);
-ip.addParameter('TSOverlays',true);
+% Linking Parameters Candidate Building
+ip.addParameter('maxRadiusLink',5); 
+ip.addParameter('geoThresh',0.9, @(x) isscalar(x));  
+
+% Linking Parameters Traditional Filopodia/Branch Reconstruct
+ip.addParameter('maxRadiusConnectFiloBranch',5); 
+
 
 
 ip.parse(varargin{:});
@@ -134,7 +143,7 @@ for iCh = 1:nChan
         endFrame = nFrames;
         display(['Auto End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     else
-        endFrame = p.endFrame;
+        endFrame = p.EndFrame;
         display(['Manual End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
     %% Load veilStem from veil/stem folder
@@ -145,7 +154,7 @@ for iCh = 1:nChan
     %%
     % get the list of image filenames
     if p.ProcessIndex == 0
-        imDir = movieData.channels_(iCh).channelPath_;
+        imDir = movieData.channels_(channels(iCh)).channelPath_;
     else
         imDir = movieData.proceses_{p.ProcessIndex}.outfilePaths_;
     end
@@ -164,7 +173,7 @@ for iCh = 1:nChan
         % If for some reason there is more than one protrusion process
         % associated with the data, tell the user that your are using the
         % most recently run
-        if length(protS) >1
+        if length(idxProt) >1
             display(['There was more than one veil protrusion process associated with ' ...
                 'this movie: local filopodia to veil calculations will be '...
                 'will be performed using the most recently run protrusion process']);

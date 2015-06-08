@@ -1,4 +1,4 @@
-function [ veilStem ] = GCAReconstructVeilStem(listOfImages,backboneInfo,varargin)
+function [ veilStem ] = GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,varargin)
 % GCAReconstructVeilStem: (STEP III of GCA PACKAGE)
 % This function reconstructs the veil/stem of the neurite.
 % Veil here is broad protrusions typically associated with branched actin network.
@@ -82,7 +82,8 @@ ip.KeepUnmatched = true;
 
  ip.addRequired('listOfImages');
  ip.addRequired('backboneInfo');
-% 
+ ip.addRequired('BBScales'); 
+ % 
 ip.addOptional('veilStem',[]);
 ip.addOptional('paramsArchived',[]); 
 
@@ -97,23 +98,32 @@ ip.addParameter('DiskSizeLarge',6,@(x) isscalar(x));
 ip.addParameter('DiskSizeSmall',3,@(x) isscalar(x));
 ip.addParameter('MaxRadiusBridgeRidges',5,@(x) isscalar(x));
 ip.addParameter('StartFrame',1,@(x) isscalar(x));
+
 nFrames = size(listOfImages,1);
 ip.addParameter('EndFrame',nFrames,@(x) isscalar(x));
 
 
-ip.parse(listOfImages,backboneInfo,varargin{:});
+ip.parse(listOfImages,backboneInfo,BBScales,varargin{:});
 p = ip.Results;
 if ~isempty(p.veilStem); 
     veilStem = p.veilStem{1}; 
     paramsArchived = p.paramsArchived{1};
 end 
- pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStem','paramsArchived'});
+
+% get the backoneParams  
+
+
+
+% 
+ pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStem','BBScales','paramsArchived'});
+ %% 
+ figCount = 1;
 %% Start Loop
 for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     if p.TSMovie == true;
         countMovie = 1;
     end
-    
+   % BBScaleC = BBScales{iFrame}; 
     %% Load information
     fileName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
     img = double(imread(fileName));
@@ -303,14 +313,35 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             
             
-            oldBody = analInfo(iFrame-1).masks.thickBodyMask;
+            %oldBody = analInfo(iFrame-1).masks.thickBodyMask;
+            oldBody = veilStem(iFrame-1).finalMask; 
             pixOldBody= find(oldBody==1);
+            
+            
+            
+            
+            
             % try again: find veil/stem nodes pieces that overlap
             CC = bwconncomp(erodfilo);
             floatingBodyIdxCC = cellfun(@(x) isempty(intersect(pixOldBody,x)),CC.PixelIdxList);
             CC.NumObjects = CC.NumObjects -length(CC.PixelIdxList(floatingBodyIdxCC));
             CC.PixelIdxList(floatingBodyIdxCC) = [];
             newBodyMask= labelmatrix(CC);
+            
+            % plot old body : old backbone/new backbone
+            if ip.Results.TSOverlays == true
+                TSFigs(countFig).h = setFigure([nx,ny],'on'); 
+                TSFigs(countFig).name = 'Initial Scan For Truncations'; 
+                imshow(-img,[]); 
+                hold on 
+                roiYXOld=  bwboudaries(oldBody);
+                cellfun(@(x) plot(x(:,2),x(:,1),'b'),roiYXOld);
+                spy(backebone,'r'); 
+                roiYXNew = bwboundaries(newBodyMask);
+                cellfun(@(x) plot(x(:,2),x(:,1),'g'),roiYXNew); 
+                countFig  = countFig +1; 
+            end 
+            
             
             
             % update the current backbone information as well since it
@@ -334,6 +365,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             cleanedRidge(backbone==1) = 0;
             
             cleanedRidge =  bwmorph(cleanedRidge,'spur');
+            
+            
+            
+            
         end
         veilStem(iFrame).trunc = 1;
     else
@@ -386,6 +421,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             % Find all points either ridge or floating body with in 2 pixels
             % of the endpoint. do this from the new body mask
             % added 2014-01-29
+            bridge = 1; 
+        if bridge == 1;     
+            
+            
             if sum(cleanedRidge(:))~=0 % if there are more cleaned ridge paths left... try to bridge them
                 % with endpoints of those overlapping with the current
                 % iteration of the veil/stem mask.
@@ -503,23 +542,37 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                         
                         % in some cases just make sure to thin and it will fix junction
                         % problems
-                        backbone = bwmorph(backbone,'thin','inf');
-                        % update pixBB
-                        pixBB = find(backbone==1) ;
+%                         backbone = bwmorph(backbone,'thin','inf');
+%                         % update pixBB
+%                         pixBB = find(backbone==1) ;
                         % does the new piece of backbone help pick up any more body
                         % pieces if it does save junction
                         
                         % get the logical indices of those body pieces that intersect
                         % with the backbone
-                        floatingBodyIdxCC = cellfun(@(x) isempty(intersect(pixBB,x)),CCAllBody.PixelIdxList);
-                        % if
-                        if ~isempty(vertcat(CCAllBody.PixelIdxList{~floatingBodyIdxCC}))
-                            
-                            saveJunct{iter}= vertcat(segSave{:});
-                        end
-                        newBodyMask(vertcat(CCAllBody.PixelIdxList{~floatingBodyIdxCC}))= 1;
+%                         floatingBodyIdxCC = cellfun(@(x) isempty(intersect(pixBB,x)),CCAllBody.PixelIdxList);
+%                         % if
+%                         if ~isempty(vertcat(CCAllBody.PixelIdxList{~floatingBodyIdxCC}))
+%                             
+%                             saveJunct{iter}= vertcat(segSave{:});
+%                         end
+%                         newBodyMask(vertcat(CCAllBody.PixelIdxList{~floatingBodyIdxCC}))= 1;
+%                         
+                         veilStem(iFrame).bridged = true;
                         
-                        veilStem(iFrame).bridged = true;
+                       if  ip.Results.TSOverlays == true
+                           TSFigs1(figCount).h = setFigure(nx,ny,'on');
+                           TSFigs1(figCount).name = 'Bridging'; 
+                           imshow(backbone,[]);
+                           hold on 
+                           scatter(EPCoordsBodyMask(:,1),EPCoordsBodyMask(:,2),'r','filled'); 
+                           scatter(xyCandRidge(:,1),xyCandRidge(:,2),'y','filled'); 
+                            figCount = figCount +1;           
+                       end 
+                         
+                         
+                         
+                         
                     end % isempty(E)
                     
                     
@@ -530,6 +583,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                 % New backbone complete
                 %%
             end % if sumCleanedRidge %%Potentially Remove completely
+        end 
             %%
             %       %% TSMovie Overlay - maybe remove
             %                     if ip.Results.TSMovie == 1
@@ -571,6 +625,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             end % if NoAdd
             floatingBodyIdxCCOld = floatingBodyIdxCCNew; 
             iter = iter +1;
+            display(num2str(iter))
             if iter>100
                 error('FiloTracker:NeuriteBodyEst:FailureToTerminate','Too Many Iterations Check Code');
             end
@@ -705,7 +760,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     
     
     
-    [EPs,~,coords] = skel2graph2D(notBody|bodyNoFill);
+    [EPs,~,coords] = skel2graph2D(notBody|newBodyMask);
     % make sure the endpoint is not the neurite entrance... 
      indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
         
@@ -733,9 +788,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             idxEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
             notBody([idxBBOver ; idxEP]) = 0;
             backbone([idxBBOver ;idxEP]) = 0; 
+            %bodyNoFill([idxBBOver;idxEP])= 0; 
         end
-        new = (notBody|bodyNoFill);
-        new = bwmorph(new,'thin','inf'); 
+        new = (notBody|newBodyMask);
+        %new = bwmorph(new,'thin','inf'); 
         % recalc 
            [EPs,~,coords] = skel2graph2D(new);        
              indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
@@ -821,9 +877,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
         saveas(gcf,[saveDirMov filesep '05.png']);
     end
     %%  RE-DILATE the ridge regions
-    dilBB = imdilate(backbone2Dil,strel('disk',4)); % arbitrary... need to find small function redilate based on ridge estimation
+    %dilBB = imdilate(backbone2Dil,strel('disk',4)); % arbitrary... need to find small function redilate based on ridge estimation
     veilStemNodeMask = newBodyMask;
-    [fullMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(dilBB,veilStemNodeMask,p);
+    backboneInfoC = backboneInfo(iFrame);
+    [fullMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfoC,img,p);
     if ~isempty(TSFigs)
         
     % Save any trouble shoot figures associated with the cycle resolutions
