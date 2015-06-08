@@ -39,21 +39,35 @@ end
 maxSizeRatesAll = max(maxSizeRates);
 maxSizeDensityAll = max(maxSizeDensity);
 
+%Only use values coming from at least 10 datapoints
+MIN_CLUST = 10;
+
 %% Calculation
 
 %reserve memory
-paramMatrix = [zeros(maxSizeRatesAll,numMovies); ... %on rate (0 if cluster not observed)
+paramMatrix = [NaN(maxSizeRatesAll,numMovies); ... %on rate (NaN if cluster not observed)
     NaN(maxSizeRatesAll,numMovies); ... %off rate (NaN if cluster not observed)
     zeros(maxSizeDensityAll,numMovies)]; %density (0 if cluster not observed)
 
 %collect values for each movie
 for iMovie = 1 : numMovies
     
+    %get number of clusters used for off rate calculation
+    numClust = ratesDensityPerMovie{iMovie}.numClustForRateCalc(:,1);
+    
+    %identify rates calculated from less than MIN_CLUST clusters
+    %these rates will be ignored
+    indxBad = find(numClust < MIN_CLUST);
+    
     %on rates
-    paramMatrix(1:maxSizeRates(iMovie),iMovie) = ratesDensityPerMovie{iMovie}.rateOnPerClust;
+    tmp = ratesDensityPerMovie{iMovie}.rateOnPerClust;
+    tmp(indxBad) = NaN;
+    paramMatrix(1:maxSizeRates(iMovie),iMovie) = tmp;
     
     %off rates
-    paramMatrix(maxSizeRatesAll+1:maxSizeRatesAll+maxSizeRates(iMovie),iMovie) = ratesDensityPerMovie{iMovie}.rateOffPerClust;
+    tmp = ratesDensityPerMovie{iMovie}.rateOffPerClust;
+    tmp(indxBad) = NaN;
+    paramMatrix(maxSizeRatesAll+1:maxSizeRatesAll+maxSizeRates(iMovie),iMovie) = tmp;
     
     %densities
     paramMatrix(2*maxSizeRatesAll+1:2*maxSizeRatesAll+maxSizeDensity(iMovie),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust;

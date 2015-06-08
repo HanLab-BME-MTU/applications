@@ -1,5 +1,5 @@
 function tracksCrop = cropCompTracksFR(tracks0,frameRange)
-%cropCompTracksFR crops tracks to a particular time range
+%cropCompTracksFR crops tracks to a particular frame range
 %
 %SYNOPSIS tracksCrop = cropCompTracksFR(tracks0,frameRange)
 %
@@ -36,7 +36,7 @@ sparseForm = issparse(tracks0(1).tracksFeatIndxCG);
 %get number of tracks
 numTracks = length(tracks0);
 
-%go over all tracks and sub-sample
+%go over all tracks and crop frames
 tracksCrop = tracks0;
 for iTrack = 1 : numTracks
     
@@ -63,7 +63,7 @@ for iTrack = 1 : numTracks
         indxGone  = [];
     end
     
-    %get the track's sequence of events
+    %get the track's original sequence of events
     seqOfEvents = tracks0(iTrack).seqOfEvents;
     
     %"delete" merges and splits happening outside of the frame range
