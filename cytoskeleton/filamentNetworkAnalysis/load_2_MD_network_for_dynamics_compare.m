@@ -2,7 +2,7 @@ function [similarity_scoremap_cell,similarity_scoremap_1to2_cell,similarity_scor
     = load_2_MD_network_for_dynamics_compare(MD1_filename,iChannel1, start_frame1,...
     MD2_filename, iChannel2, start_frame2, ...
     radius,show_save_everything_flag,...
-    longest_radius,sigma_gaussian, sigma_d, sigma_theta)
+    longest_radius,sigma_gaussian, sigma_d, sigma_theta,save_tif_flag)
 % function to compare two networks
 % Input:   MD1_filename,MD2_filename:
 %                       two MD file names,these two movie should be one channel with same number of frames.
@@ -21,7 +21,7 @@ function [similarity_scoremap_cell,similarity_scoremap_1to2_cell,similarity_scor
 %          at the end of the function the output dir is opened
 
 if(nargin<9)
-    longest_radius = 100;
+    longest_radius = radius;
 end
 
 flag_default = 0;
@@ -50,6 +50,9 @@ if(isempty(sigma_theta))
      sigma_theta = pi/(2*sqrt(3));
 end
 
+if(~exist('save_tif_flag','var'))
+    save_tif_flag = 0;
+end
 
 sigma_gaussian_ratio =     sigma_gaussian/((3*radius/8));
 sigma_d_ratio =     sigma_d/((sqrt(3)*radius/4)) ;
@@ -166,6 +169,22 @@ for iFrame = start_frame1 : nFrame
             VIF_img =  MD.channels_(2).loadImage(iFrame);
         end
         
+        % get rid of out of cell filament, if not having done so previously
+            
+        
+        try
+            MT_cell_mask =  MD_1.processes_{indexCellRefineProcess_1}.loadChannelOutput(iChannel1,iFrame);            
+            MT_current_model =  ROIed_digital_filament_model(MT_current_model,size(VIF_img), MT_cell_mask);
+            MT_current_seg = filament_model_to_seg_bwim(MT_current_model,size(VIF_img),[]);
+        end
+        
+        try
+            VIF_cell_mask =  MD_2.processes_{indexCellRefineProcess_2}.loadChannelOutput(iChannel2,iFrame);            
+            VIF_current_model =  ROIed_digital_filament_model(VIF_current_model,size(VIF_img), VIF_cell_mask);
+            VIF_current_seg = filament_model_to_seg_bwim(VIF_current_model,size(VIF_img),[]);
+        end
+        
+        
         % % display the two channel frame together
         two_channel_img = zeros(size(VIF_img,1),size(VIF_img,2),3);
         two_channel_img(:,:,1) = VIF_img;
@@ -222,7 +241,7 @@ for iFrame = start_frame1 : nFrame
         
 %         display('Start plotting');
         % plot the detailed results if requested.
-        plot_differnce_map_wrapper(difference_map,outdir,customized_outdir,iFrame,radius,show_save_everything_flag);        
+        plot_differnce_map_wrapper(difference_map,outdir,customized_outdir,iFrame,radius,show_save_everything_flag,save_tif_flag);        
         
         save([outdir,filesep,'Similarity_maps_frame',num2str(iFrame),'.mat'], 'similarity_scoremap', 'difference_map');
         save([customized_outdir,filesep,'Similarity_maps_frame',num2str(iFrame),'.mat'], 'similarity_scoremap', 'difference_map');

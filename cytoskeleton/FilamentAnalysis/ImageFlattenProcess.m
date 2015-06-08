@@ -176,11 +176,17 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             currentImg=[];
             
             try
-                currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                     filename_short_strs{iFrame},'.tif']);
             catch
-                currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                try
+                currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                     filename_shortshort_strs{iFrame},'.tif']);
+                catch
+                    if(iFrame==1)
+                    currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_f.tif']);
+                    end
+                end
             end
             
             out_data = currentImg;

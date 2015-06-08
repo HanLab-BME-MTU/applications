@@ -1,17 +1,16 @@
 function [rateAssocPerClust,rateDissocPerClust,eventTable,eventTable_mono] =...
     calcRatesByClustSize(sizeHist,timeStep)
-%CALCRATESBYCLUSTSIZE calculates association and dissociation rates per
-%cluster size.
+%CALCRATESBYCLUSTSIZE calculates association and dissociation rates per cluster size
 %
 %   INPUT:   
 %       sizeHist:   A 2D array with each row corresponding to an
 %                   association or dissociation event.  Column 1 gives the
-%                   track number (as in compTracks.seqOfEvents), columns 2
+%                   segment number (as in compTracks.seqOfEvents), column 2
 %                   gives the cluster size, columns 3 and 4 give the
-%                   cluster's starting and ending iteration points, column
-%                   5 is the lifetime and column 6 indicates how the
+%                   cluster's starting and ending frames, column
+%                   5 is the lifetime (in frames) and column 6 indicates how the
 %                   cluster ended - 1 = dissociation and 2 = association.
-%       timeStep:   the time step used in the simulation
+%       timeStep:   the time step between frames
 %
 %   OUTPUT:
 %       rateAssocPerClust:   A 1D array of calculated association rates
@@ -20,23 +19,21 @@ function [rateAssocPerClust,rateDissocPerClust,eventTable,eventTable_mono] =...
 %                            with each row corresponding to a cluster size.
 %       eventTable:          A 2D array with dimensions of rows equal to
 %                            the maximum cluster size and 8 columns.
-%                            For each cluster size (row), column 1 gives
-%                            the total number of occurrences, column 2
-%                            gives the mean lifetime, column 3 gives the
-%                            total number of dissociation events with
-%                            columns 4 and 5 giving the calculated
-%                            probabilities and rates of dissociation,
-%                            column 6 gives the total number of association
-%                            events and columns 7 and 8 give the calculated
-%                            probabilities and rates of association.
+%                            For each cluster size (row), columns give:
+%                            1: total number of occurrences
+%                            2: mean lifetime
+%                            3: total number of dissociation events
+%                            4/5: calculated probabilities/rates of dissociation
+%                            6: total number of association events
+%                            7/8: calculated probabilities/rates of association
 %
-%       eventTable_mono:     A 2D array wiht number rows equal to the
+%       eventTable_mono:     A 2D array with number of rows equal to the
 %                            maximum cluster size and 3 columns containing
 %                            information for monomer association events. 
-%                            Column 1 gives the number of associations for 
-%                            monomers to cluster of size row+1. Column 2
-%                            gives the probability of the transition and
-%                            column 3 gives the calculated association rate.
+%                            1: number of associations for monomers to
+%                            cluster of size row+1
+%                            2: probability of the transition
+%                            3: calculated association rate
 %
 %   Robel Yirdaw, 08/29/13
 %       Modified, 02/20/14

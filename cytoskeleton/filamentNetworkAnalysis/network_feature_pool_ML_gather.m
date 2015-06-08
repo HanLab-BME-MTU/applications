@@ -57,6 +57,11 @@ for iChannel = 1 : numel(network_feature_ML_wholepool_cell{1})
             network_feature_ML_thisCh_wholepool.number_of_nucleus  = [];
              network_feature_ML_thisCh_wholepool.filament_density_mean  = [];
             network_feature_ML_thisCh_wholepool.scrabled_density_filament_mean  = [];
+            
+            
+            network_feature_ML_thisCh_wholepool.ST_seg_ratio = [];
+            network_feature_ML_thisCh_wholepool.GM_seg_ratio = [];
+            
         end
         
         
@@ -197,14 +202,25 @@ for iChannel = 1 : numel(network_feature_ML_wholepool_cell{1})
                         network_feature_ML_wholepool_cell{iMD}{iChannel}.number_of_nucleus];
                     
                 end
-                if(feature_flag(24)==1)
+                if(feature_flag(25)==1)
                     network_feature_ML_thisCh_wholepool.filament_density_mean    =  [network_feature_ML_thisCh_wholepool.filament_density_mean;  ...
                         network_feature_ML_wholepool_cell{iMD}{iChannel}.filament_density_mean];
                 end
-                if(feature_flag(25)==1)
+                if(feature_flag(26)==1)
                     network_feature_ML_thisCh_wholepool.scrabled_density_filament_mean    =  [network_feature_ML_thisCh_wholepool.scrabled_density_filament_mean;  ...
                         network_feature_ML_wholepool_cell{iMD}{iChannel}.scrabled_density_filament_mean];
                 end
+                
+                
+                if(feature_flag(27)==1)
+                    network_feature_ML_thisCh_wholepool.ST_seg_ratio    =  [network_feature_ML_thisCh_wholepool.ST_seg_ratio;  ...
+                        network_feature_ML_wholepool_cell{iMD}{iChannel}.ST_seg_ratio(:)];
+                end
+                if(feature_flag(28)==1)
+                    network_feature_ML_thisCh_wholepool.GM_seg_ratio    =  [network_feature_ML_thisCh_wholepool.GM_seg_ratio;  ...
+                        network_feature_ML_wholepool_cell{iMD}{iChannel}.GM_seg_ratio(:)];
+                end
+                 
             end
         end
     end
