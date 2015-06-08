@@ -1,4 +1,4 @@
-function [resolvedVeilStemMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfo,varargin)
+function [resolvedVeilStemMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfo,img,varargin)
 % gcaResolveVeilStemCycles : this function tests for and resolved veil stem
 % cycles 
 
@@ -26,10 +26,11 @@ ip.KeepUnmatched = true;
 ip.addRequired('backbone2Dil');
 ip.addRequired('veilStemNodeMask');
 ip.addRequired('backboneInfo'); 
+ip.addRequired('img'); 
 %ip.addRequired('BBScaleC'); 
 
 
-ip.addOptional('img',[]); 
+%ip.addOptional('img',[]); 
 
 % PARAMETERS
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
@@ -45,24 +46,23 @@ end
 TSFigs = []; 
 %% TEST FOR CYCLES AND CORRECT
         % dilBBMask = imdilate(backbone2Dil,strel('disk',4));
-        [~,~,~,scaleMapFine] = gcaMultiscaleSteerableDetector(ip.Results.img,4,'sigmaArray',[1:0.5:10]);
+        [~,~,~,scaleMapFine] = gcaMultiscaleSteerableDetector(img,4,'sigmaArray',[1:0.5:10]);
         dilBBMask =  gcaImdilateWithScale(backbone2Dil,scaleMapFine,[1:0.5:10]); 
         
         
         
          
         
-        
         fullMask = dilBBMask | veilStemNodeMask;
         
         if p.TSOverlays == true
             
             
-            TSFigs(iFig).h = setFigure(nx,ny,'on');
+            TSFigs(iFig).h = setFigure(nx,ny,'off');
             TSFigs(iFig).name = 'Ridge Radius Estimation';
             if ~(isempty(ip.Results.img)) ;
                 
-                imshow(-ip.Results.img,[]);
+                imshow(-img,[]);
                 
                 hold on
             end 
@@ -89,7 +89,7 @@ TSFigs = [];
         end
         
         if p.TSOverlays == true 
-           TSFigs(iFig).h = setFigure(nx,ny,'on');
+           TSFigs(iFig).h = setFigure(nx,ny,'off');
            TSFigs(iFig).name = 'Scale Integration Original';
            imagesc(backboneInfo.scaleMapLarge); 
            colorbar
@@ -97,7 +97,7 @@ TSFigs = [];
         end 
         
         if p.TSOverlays == true 
-            TSFigs(iFig).h = setFigure(nx,ny,'on'); 
+            TSFigs(iFig).h = setFigure(nx,ny,'off'); 
             TSFigs(iFig).name = 'Scale Integration Fine';
             imagesc(scaleMapFine); 
             colorbar
@@ -105,6 +105,19 @@ TSFigs = [];
             
             
         end 
+        
+        if p.TSOverlays == true 
+           TSFigs(iFig).h = setFigure(nx,ny,'on'); 
+           TSFigs(iFig).name = 'Scale Integration Fine Plus Overlay'; 
+           imagesc(scaleMapFine); 
+           hold on 
+           cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX2); % fullMask
+           cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX); % dilated region
+           roiYX3 =  bwboundaries(backbone2Dil);
+           cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX3); 
+           colorbar 
+        end 
+        
         
         % take largest cc and fill holes
         fullMask = logical(getLargestCC(fullMask));
