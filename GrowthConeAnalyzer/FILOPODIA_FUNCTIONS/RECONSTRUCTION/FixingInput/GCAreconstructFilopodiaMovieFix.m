@@ -73,8 +73,9 @@ ip.addParameter('minCCRidgeOutsideVeil',3);
 
 % Linking Parameters Embedded 
 ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
-ip.addParameter('maxRadiusLinkOutsideVeil',10);
+%ip.addParameter('maxRadiusLinkOutsideVeil',10);
 ip.addParameter('maxRadiusLinkEmbedded',10);
+ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 
 % Linking Parameters Candidate Building
 ip.addParameter('maxRadiusLink',5); 
