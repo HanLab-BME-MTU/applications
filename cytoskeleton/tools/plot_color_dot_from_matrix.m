@@ -11,15 +11,24 @@ inMatrix = double(inMatrix);
 if(nargin<2)
     inMarkersize = 24;
 end
+
+mean_value = mean(inMatrix(~isnan(inMatrix)));
+std_value = std(inMatrix(~isnan(inMatrix)));
+
 if(nargin<3)
     min_value = min(min(inMatrix(~isnan(inMatrix))));
+    min_value = max(min_value,mean_value-4*std_value);
 end
 if(nargin<4)
     max_value = (max(max(inMatrix(~isnan(inMatrix)))) - median(inMatrix(~isnan(inMatrix))))*1.2 + median(inMatrix(~isnan(inMatrix)));
+    max_value = min(max_value,mean_value+5*std_value);
+
 end
 
 % normalize matrix to 0~1
 inMatrix =  double(inMatrix-min_value)/(max_value-min_value);
+inMatrix(inMatrix<0)=0;
+inMatrix(inMatrix>1)=1;
 
 % give the color index
 colorIndexMatrix = round(inMatrix*size(colorArray,1));
@@ -65,7 +74,17 @@ for i = 1 : numel(X)
     end
 end
 axis equal;
-axis([0 size(inMatrix,2)+2  0 size(inMatrix,1)+2]);
+axis([0 size(inMatrix,2)+0  0 size(inMatrix,1)+0]);
 box off;
 plot([0 size(inMatrix,2)],[size(inMatrix,1) size(inMatrix,1)]);
 plot([size(inMatrix,2) size(inMatrix,2)],[0 size(inMatrix,1)]);
+
+%set colorbar
+hh=colorbar;
+set(hh,'YTick',(0:0.2:1)*64)
+YTicker_cell =cell(1,11);
+for iT= 1 : 11
+YTicker_cell{iT} = num2str( round(((max_value-min_value)/10*(iT-1)+min_value)/10)*10);
+end
+set(hh,'YTickLabel',YTicker_cell);
+
