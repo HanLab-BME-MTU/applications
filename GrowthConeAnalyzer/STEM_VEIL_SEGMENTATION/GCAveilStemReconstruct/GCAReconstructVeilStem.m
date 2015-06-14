@@ -1,4 +1,4 @@
-function [ veilStem ] = GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,varargin)
+function [ veilStem,TSFigs ] = GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,varargin)
 % GCAReconstructVeilStem: (STEP III of GCA PACKAGE)
 % This function reconstructs the veil/stem of the neurite.
 % Veil here is broad protrusions typically associated with branched actin network.
@@ -117,9 +117,10 @@ end
 % 
  pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStem','BBScales','paramsArchived'});
  %% 
- figCount = 1;
+
 %% Start Loop
 for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
+     figCount = 1;
     if p.TSMovie == true;
         countMovie = 1;
     end
@@ -150,12 +151,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     %% TS Overlays: Show Mask Before Morphological Opening, After Morphological Opening, and the mask that I 'save'
     % using some geometry constraints.
     if ip.Results.TSOverlays == true;
-        TSDir1 = [ip.Results.OutputDirectory filesep 'MorphologicalOpening'];
-        if ~isdir(TSDir1);
-            mkdir(TSDir1);
-        end
+        
         [ny,nx] = size(img);
-        h = setFigure(nx,ny,'off');
+        TSFigs1(figCount).h = setFigure(nx,ny,'off');
+        TSFigs1(figCount).name = 'Morphological Opening'; 
         imshow(-img,[]);
         hold on
         roiYX  = bwboundaries(maskForErod);
@@ -171,9 +170,8 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             [ num2str(ip.Results.DiskSizeSmall) ' in Region Due to Geometry Constraints']},'color','r','FontSize',10)
         
         
-        saveas(h,[TSDir1 filesep num2str(iFrame,'%03d') '.fig']);
-        saveas(h,[TSDir1 filesep num2str(iFrame,'%03d') '.tif']);
-        close(h);
+       
+        figCount= figCount+1; 
     end
     
     %%  Delete Body pieces that are located along the edge of the frame that are not
@@ -208,19 +206,17 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     %% TS Figure
     toRemove = ~toKeep;
     if sum(toRemove)~=0;
-        TSDir2 = [ip.Results.OutputDirectory filesep 'BorderPixelsRemoved'];
-        if ~isdir(TSDir2);
-            mkdir(TSDir2);
-        end
+       
+       
         removed = zeros([ny,nx]);
         removed(vertcat(CCBodyPieces.PixelIdxList{toRemove})) = 1;
-        h = setFigure(nx,ny,'off');
+        TSFigs1(figCount).h = setFigure(nx,ny,'off');
+        TSFigs1(figCount).name = 'BorderPixelsRemoved'; 
         imshow(-img,[])
         hold on
         spy(removed,'r');
         text(5,5,'Border Node Removed To Avoid Cycles', 'color','r','FontSize',10);
-        saveas(h,[TSDir2 filesep num2str(iFrame,'%03d') '.tif']);
-        saveas(h,[TSDir2 filesep num2str(iFrame,'%03d') '.fig']);
+       figCount = figCount +1; 
     end
     
     
@@ -330,16 +326,16 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             % plot old body : old backbone/new backbone
             if ip.Results.TSOverlays == true
-                TSFigs(countFig).h = setFigure([nx,ny],'on'); 
-                TSFigs(countFig).name = 'Initial Scan For Truncations'; 
+                TSFigs1(figCount).h = setFigure(nx,ny,'on'); 
+                TSFigs1(figCount).name = 'Initial Scan For Truncations'; 
                 imshow(-img,[]); 
                 hold on 
-                roiYXOld=  bwboudaries(oldBody);
+                roiYXOld=  bwboundaries(oldBody);
                 cellfun(@(x) plot(x(:,2),x(:,1),'b'),roiYXOld);
-                spy(backebone,'r'); 
+                spy(backbone,'r'); 
                 roiYXNew = bwboundaries(newBodyMask);
                 cellfun(@(x) plot(x(:,2),x(:,1),'g'),roiYXNew); 
-                countFig  = countFig +1; 
+                figCount  = figCount +1; 
             end 
             
             
@@ -880,7 +876,8 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     %dilBB = imdilate(backbone2Dil,strel('disk',4)); % arbitrary... need to find small function redilate based on ridge estimation
     veilStemNodeMask = newBodyMask;
     backboneInfoC = backboneInfo(iFrame);
-    [fullMask,cycleFlag,TSFigs] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfoC,img,p);
+    [fullMask,cycleFlag,TSFigs2] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfoC,img,p);
+    TSFigs = [TSFigs1 TSFigs2];
     if ~isempty(TSFigs)
         
     % Save any trouble shoot figures associated with the cycle resolutions
@@ -901,6 +898,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
         end 
             
         close all
+        clear TSFigs TSFigs1 TSFigs2
     end 
     
     %% this was a small movie for troubleshooting for report
