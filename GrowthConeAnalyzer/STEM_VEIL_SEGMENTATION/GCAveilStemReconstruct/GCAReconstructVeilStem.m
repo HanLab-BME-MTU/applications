@@ -756,7 +756,8 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     
     
     
-    [EPs,~,coords] = skel2graph2D(notBody|newBodyMask);
+    [EPs,~,coords,branchPtMask] = skel2graph2D(notBody|newBodyMask);
+    %[EPs,branchPt,coords,~,branchPtMask] = skel2graph2D(notBody|bodyNoFill);
     % make sure the endpoint is not the neurite entrance... 
      indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
         
@@ -784,12 +785,19 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             idxEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
             notBody([idxBBOver ; idxEP]) = 0;
             backbone([idxBBOver ;idxEP]) = 0; 
+            backbone(branchPtMask==1) = 1; 
+            backbone = bwmorph(backbone,'thin',inf); 
+           
+            notBody(branchPtMask==1) = 1; 
+             notBody = bwmorph(notBody,'thin',inf); 
             %bodyNoFill([idxBBOver;idxEP])= 0; 
         end
+        
+        
         new = (notBody|newBodyMask);
         %new = bwmorph(new,'thin','inf'); 
         % recalc 
-           [EPs,~,coords] = skel2graph2D(new);        
+           [EPs,~,coords,branchPtMask] = skel2graph2D(new);        
              indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
         
         %idxSave = find(indEP == idxEnterNeurite); %% note sometimes bug here... should make so reiterate if this fails...
