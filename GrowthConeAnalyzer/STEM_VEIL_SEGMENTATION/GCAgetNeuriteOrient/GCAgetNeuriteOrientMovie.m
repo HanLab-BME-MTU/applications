@@ -191,8 +191,8 @@ for iCh = 1:nChan
         end 
             
         close all
-%         hashTag =  gcaArchiveGetGitHashTag;
-%         backboneFrame.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+         hashTag =  gcaArchiveGetGitHashTag;
+         backboneFrame.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         backboneInfo(iFrame) = backboneFrame;
         save( [saveDir filesep 'backboneInfo.mat'],'backboneInfo');
         display(['Finished Finding Neurite Orientation for Frame ' num2str(iFrame)]);
