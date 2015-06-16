@@ -1,4 +1,4 @@
-function [ output_args ] = gcaMakeVeilStemMaskFolderMovie( movieData,varargin)
+function [ output_args ] = gcaMakeVeilStemMaskFolder( movieData)
 %GCAMakeVeilStemMask
 % was makeNeuriteBodyMaskFolder until 2015067
 %
