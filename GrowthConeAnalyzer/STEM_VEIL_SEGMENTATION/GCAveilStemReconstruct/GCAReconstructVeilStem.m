@@ -942,7 +942,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
 %         end
 %         troubleshootBodyEstMovie(movieData,p.ChannelIndex,analInfo,backboneInfo,iFrame,[outDirChan filesep 'troubleShootVeilStem']);
 %     end
-    display(['Finished VeilStem Reconstruct For Frame ' num2str(iFrame)]); 
+%     display(['Finished VeilStem Reconstruct For Frame ' num2str(iFrame)]); 
 end % for iFrame
 end
 
