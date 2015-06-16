@@ -119,7 +119,7 @@ end
 
 
 if(numel(feature_flag)<28)
-    feature_flag = [feature_flag(:); zeros(18-numel(feature_flag),1)];
+    feature_flag = [feature_flag(:); zeros(28-numel(feature_flag),1)];
 end
 
 % if no input as if it is vim screen, set to no

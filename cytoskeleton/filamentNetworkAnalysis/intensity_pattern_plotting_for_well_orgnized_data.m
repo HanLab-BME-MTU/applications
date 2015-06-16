@@ -67,9 +67,11 @@ for iChannel = 1 : nChannel
     ML_pattern_median{iChannel} = nan(end_row_ind,end_col);
     ML_pattern_mean{iChannel} = nan(end_row_ind,end_col);
 end
+% save the theresholds
+save([ML_ROOT_DIR,filesep,'intensity_stat_threshs.mat'],'T_array');
+
 
 intensity_thisMovie_pool=cell(1,nChannel);
-
 
 
 for iMD  = 1 : movieNumber
@@ -123,6 +125,8 @@ for iMD  = 1 : movieNumber
     
 end
 
+save([ML_ROOT_DIR,filesep,'intensity_stat.mat'],'ML_pattern_median','ML_pattern_mean','T_array');
+
 
 for iChannel = 1 : nChannel    
     
@@ -148,3 +152,5 @@ for iChannel = 1 : nChannel
     saveas(h4,[ML_ROOT_DIR,filesep,'IntensityPattern_',num2str(iChannel),'-perwell.tif']);
     saveas(h4,[ML_ROOT_DIR,filesep,'IntensityPattern_',num2str(iChannel),'-perwell.fig']);
 end
+
+

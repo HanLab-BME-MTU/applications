@@ -184,11 +184,24 @@ for iFrame = start_frame1 : nFrame
             VIF_current_seg = filament_model_to_seg_bwim(VIF_current_model,size(VIF_img),[]);
         end
         
+        % when the image is uint16, it is usually a original image, so
+        % normalize it for visualizetion
+        
+        if( isa(VIF_img,'uint16'))
+            VIF_img = double(VIF_img);          
+            VIF_img = uint8(255*(VIF_img)/(max(max(VIF_img))));
+        end
+        
+        if( isa(MT_img,'uint16'))
+            MT_img = double(MT_img);
+            MT_img = uint8(255*MT_img/(max(max(MT_img))));
+        end
         
         % % display the two channel frame together
         two_channel_img = zeros(size(VIF_img,1),size(VIF_img,2),3);
         two_channel_img(:,:,1) = VIF_img;
-        two_channel_img(:,:,2) = MT_img;
+        two_channel_img(:,:,2) = MT_img;        
+              
         
         h1=figure(1);imagesc(two_channel_img/255);axis equal;axis off;
         saveas(h1,[outdir,filesep,'VIFMT_img_frame_',num2str(iFrame),'.tif']);

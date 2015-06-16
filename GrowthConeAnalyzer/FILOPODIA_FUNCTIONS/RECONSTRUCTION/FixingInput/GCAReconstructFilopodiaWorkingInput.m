@@ -147,8 +147,7 @@ ip.addParameter('detectEmbedded',true)
 % Pass to: gcaAttachFilopodiaStructuresMain.m
   ip.addParameter('maxRadiusLinkEmbedded',10); 
   ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
-
-  
+   ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 % TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
