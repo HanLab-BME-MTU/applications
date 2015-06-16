@@ -64,7 +64,7 @@ for iGroup = 1:nGroups
         if ~isempty(excludedFiles); 
          reasons  = arrayfun(@(x) notesAll(x).notes.ExcludeAtStep,1:length(notesAll),'uniformoutput',0);
          reasons =  reasons(~idxInclude); 
-         excludeReport{iDay} = [excludedFiles reasons]; 
+         excludeReport{iDay} = [excludedFiles reasons']; 
         end 
         
         else 
