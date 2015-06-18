@@ -45,9 +45,9 @@ end
 [ny,nx] = size(backbone2Dil); 
 TSFigs = []; 
 %% TEST FOR CYCLES AND CORRECT
-        % dilBBMask = imdilate(backbone2Dil,strel('disk',4));
-        [~,~,~,scaleMapFine] = gcaMultiscaleSteerableDetector(img,4,'sigmaArray',[1:0.5:10]);
-        dilBBMask =  gcaImdilateWithScale(backbone2Dil,scaleMapFine,[1:0.5:10]); 
+        dilBBMask = imdilate(backbone2Dil,strel('disk',4));
+        %[~,~,~,scaleMapFine] = gcaMultiscaleSteerableDetector(img,4,'sigmaArray',[1:0.5:6]);
+        %dilBBMask =  gcaImdilateWithScale(backbone2Dil,scaleMapFine,[1:0.5:6]); 
         
         
         
@@ -96,28 +96,28 @@ TSFigs = [];
            iFig = iFig+1;   
         end 
         
-        if p.TSOverlays == true 
-            TSFigs(iFig).h = setFigure(nx,ny,'off'); 
-            TSFigs(iFig).name = 'Scale Integration Fine';
-            imagesc(scaleMapFine); 
-            colorbar
-            iFig = iFig+1; 
-            
-            
-        end 
-        
-        if p.TSOverlays == true 
-           TSFigs(iFig).h = setFigure(nx,ny,'on'); 
-           TSFigs(iFig).name = 'Scale Integration Fine Plus Overlay'; 
-           imagesc(scaleMapFine); 
-           hold on 
-           cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX2); % fullMask
-           cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX); % dilated region
-           roiYX3 =  bwboundaries(backbone2Dil);
-           cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX3); 
-           colorbar 
-        end 
-        
+%         if p.TSOverlays == true 
+%             TSFigs(iFig).h = setFigure(nx,ny,'off'); 
+%             TSFigs(iFig).name = 'Scale Integration Fine';
+%             imagesc(scaleMapFine); 
+%             colorbar
+%             iFig = iFig+1; 
+%             
+%             
+%         end 
+%         
+%         if p.TSOverlays == true 
+%            TSFigs(iFig).h = setFigure(nx,ny,'off'); 
+%            TSFigs(iFig).name = 'Scale Integration Fine Plus Overlay'; 
+%            imagesc(scaleMapFine); 
+%            hold on 
+%            cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX2); % fullMask
+%            cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX); % dilated region
+%            roiYX3 =  bwboundaries(backbone2Dil);
+%            cellfun(@(x) plot(x(:,2),x(:,1),'color','w','Linewidth',2),roiYX3); 
+%            colorbar 
+%         end 
+%         
         
         % take largest cc and fill holes
         fullMask = logical(getLargestCC(fullMask));
@@ -244,7 +244,7 @@ TSFigs = [];
 %                 if ~isdir(TBScalePath)
 %                     mkdir(TBScalePath)
 %                 end
-                TSFigs(iFig).h = setFigure(nx,ny,'on');
+                TSFigs(iFig).h = setFigure(nx,ny,'off');
                 TSFigs(iFig).name = 'ScaleScore'; 
                 imagesc(scaleMap)
                 hold on
@@ -259,7 +259,7 @@ TSFigs = [];
                 arrayfun(@(i) text(centers(i).Centroid(1),centers(i).Centroid(2),num2str(scaleScore(i),3),'color','w'),1:length(centers));
 %                 saveas(gcf,[TBScalePath filesep num2str(iFrame,'%03d') '.tif']);
 %                 saveas(gcf,[TBScalePath filesep num2str(iFrame,'%03d') '.fig']);
-                close gcf
+%                 close gcf
             end % p.plots == 1
             
 %% Calculate Scores For the Edges : INTENSITY SCORE 

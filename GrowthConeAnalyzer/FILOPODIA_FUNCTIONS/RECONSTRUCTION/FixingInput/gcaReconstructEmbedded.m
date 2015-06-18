@@ -68,7 +68,8 @@ ip.addRequired('maxTh');
 ip.addRequired('filoExtSeedForInt'); 
 ip.addRequired('embeddedRidgeCand'); 
 
-ip.addParameter('numPixelsForSpur',2,@(x) isscalar(x)); 
+ip.addParameter('numPixelsForSpur',1,@(x) isscalar(x)); 
+ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 
 % Pass to: gcaConnectEmbeddedRidgeCandidates.m
 ip.addParameter('maxRadiusLinkEmbedded',10,@(x) isscalar(x));
@@ -89,7 +90,7 @@ p = ip.Results;
     % This just cleans things up a bit have to be careful not to lose too much
     % info though sometimes the signal can be a bit weak on some of these so
     % you already only have 2-3 pixels to work with anyway.
-    embeddedRidgeCandSpur = bwmorph(embeddedRidgeCand,'spur',2);
+    embeddedRidgeCandSpur = bwmorph(embeddedRidgeCand,'spur',ip.Results.numPixelsForSpur);
     
    
     % Remove Singletons
@@ -204,9 +205,57 @@ p = ip.Results;
 %% Currently simply get orientations of internal ridge candidates per pixel from the
  % steerable filter output. (NOTE MB: investigate better ways to do this
  % before release)
-    orient = cellfun(@(x) rad2deg(maxTh(x)+pi/2),CCInt.PixelIdxList,'uniformoutput',0);
+ 
+ 
+ 
+ [yValues,xValues]  = cellfun(@(x) ind2sub([ny,nx],x),CCInt.PixelIdxList,'uniformoutput',0);
+ vertices = cellfun(@(x,y) [x,y],xValues,yValues,'uniformoutput',0); 
+ vertices = cellfun(@(x) x',vertices,'uniformoutput',0); 
+ % fit spline
+  [~,verticesFit]   = cellfun(@(i) spaps( 1:size(i,2),i,2),vertices,'uniformoutput',0); 
+ 
+ kValues = cellfun(@(i) gcaLineCurvature2D(i'),verticesFit,'uniformoutput',0); 
+ 
+ filoCurvsAll =   abs(vertcat(kValues{:}));
+verticesFit = cellfun(@(i) i',verticesFit,'uniformoutput',0); 
+ xy = vertcat(verticesFit{:});
+ 
+ %% TS Overlay
+ 
+ if ip.Results.TSOverlays == true; 
+  TSFigs(countFigs).h  = setFigure(nx,ny,'off');
+  TSFigs(countFigs).name = 'ShowCurvature';
+ 
+ 
+ % create distance mapper
+ cMapLength=128; cMap=jet(cMapLength);
+ mapper=linspace(min(filoCurvsAll),max(filoCurvsAll),cMapLength)';
+ 
+ D=createDistanceMatrix(filoCurvsAll,mapper);
+ [sD,idxCMap]=sort(abs(D),2);
+ 
+ imshow(-img,[])
+ hold on
+ 
+ for k=1:cMapLength
+     %                 idxCand = EPreFilt(idxCMap(:,1) == k,2);
+     %                 idxSeed = EPreFilt(idxCMap(:,1)==k,1);
+     %                 for iEdge = 1:length(idxCand) % some can have the same color
+     scatter(xy(idxCMap(:,1)==k,1),xy(idxCMap(:,1) == k,2),10,...
+         cMap(k,:),'filled');
+     %end
+ end
+ countFigs = countFigs +1;
+end
+
+ 
+ 
+ 
+   % k = gcaLineCurvature2D(vertices); 
+ 
+   % orient = cellfun(@(x) rad2deg(maxTh(x)+pi/2),CCInt.PixelIdxList,'uniformoutput',0);
      % calc gradient of orientation
-    diffOrient = cellfun(@(x) abs(diff(x)),orient,'uniformoutput',0);
+   % diffOrient = cellfun(@(x) abs(diff(x)),orient,'uniformoutput',0);
 %%    
 % if ip.Results.TSOverlays == true ; 
 %         
@@ -236,34 +285,59 @@ p = ip.Results;
 %%    
     % originally 20 
     % where orientation differences greater than 90 degrees cut segment.
-    orientChangePtsCell= cellfun(@(x) find(x>20 & x <170,1,'first'),diffOrient,'uniformoutput',0);
-    
-    % for each orientation Change cut
-    toChangeVect = cellfun(@(x)  ~isempty(x),orientChangePtsCell);
-    IDCCToChange = find(toChangeVect);  
-    removeMask = zeros([ny,nx]); 
-    for iChange = 1:length(IDCCToChange)
-        IDC = IDCCToChange(iChange);
-        % get the pixel indices to change
-        pixIdx = CCInt.PixelIdxList{IDC};
-        % get where to cut
-        cutHere = orientChangePtsCell{IDCCToChange(iChange)};
-        removeMask(pixIdx(cutHere+1))= 1; 
-        pixIdx(cutHere+1) = [];
-        
-        CCInt.PixelIdxList{IDC} = pixIdx; % change the pixels
-       % [y,x] = ind2sub(size(maxTh),pixIdx);
-%         if ip.Results.TSOverlays == true; 
-%         scatter(x,y,10,'r','filled');
-%         text(x(1),y(1),num2str(IDC),'color','r');
-%         end 
-    end
+   % orientChangePtsCell= cellfun(@(x) find(x>20 & x <170,1,'first'),diffOrient,'uniformoutput',0);
    
-    afterCut = zeros(size(maxTh));
-    afterCut(vertcat(CCInt.PixelIdxList{:})) = 1;
-
+   % find pieces that meet the max curvature criteria 
+   toChangeVect =  cellfun(@(x) ~isempty(find(abs(x)> ip.Results.curvBreakCandEmbed ,1)),kValues); 
+   
+  % cut these candidates at the max curvature point to make sure the canidates pieces
+  % are relatively linear-
+  % Practically this step is helpful as the edge of
+  % the veil/stem can also give a relatively strong ridge response  
+  % this can result in an  embedded filo (linear) signal attached to 
+  % the edge reponse by points of high curvature. 
+  % breaking pieces with high curvature allows for us to save the
+  % embedded ridge candidate signal we want and remove the edge artifacts of the 
+  % ridge detector 
+  % 
+  mask = zeros(ny,nx);
+  mask(vertcat(CCInt.PixelIdxList{toChangeVect}))=1 ; 
+  hold on 
+  spy(mask,'k'); 
+  
+  idxMaxCurvPerStruct = cellfun(@(x) find(abs(x)==max(abs(x))),kValues,'uniformoutput',0); 
+  pixIdxRemove = cellfun(@(x,y) x(y),CCInt.PixelIdxList(toChangeVect),idxMaxCurvPerStruct(toChangeVect),'uniformoutput',0); 
+  afterCut= zeros(ny,nx);
+  afterCut(vertcat(CCInt.PixelIdxList{:})) = 1; 
+  afterCut(vertcat(pixIdxRemove{:})) = 0;  
+  
+  
+   
+  %% OLD  
+    % for each orientation Change cut
+   % toChangeVect = cellfun(@(x)  ~isempty(x),orientChangePtsCell);
+%     IDCCToChange = find(toChangeVect);  
+%     removeMask = zeros([ny,nx]); 
+%     for iChange = 1:length(IDCCToChange)
+%         IDC = IDCCToChange(iChange);
+%         % get the pixel indices to change
+%         pixIdx = CCInt.PixelIdxList{IDC};
+%         % get where to cut
+%         cutHere = orientChangePtsCell{IDCCToChange(iChange)};
+%         removeMask(pixIdx(cutHere+1))= 1; 
+%         pixIdx(cutHere+1) = [];
+%         
+%         CCInt.PixelIdxList{IDC} = pixIdx; % change the pixels
+%        % [y,x] = ind2sub(size(maxTh),pixIdx);
+% %         if ip.Results.TSOverlays == true; 
+% %         scatter(x,y,10,'r','filled');
+% %         text(x(1),y(1),num2str(IDC),'color','r');
+% %         end 
+%     end
+   
+%%
     %% Reget ConnectedComponents now that have broken based on orientation
-    clear CCInt csize
+%     clear CCInt csize
     
     CCInt = bwconncomp(afterCut);
     
@@ -311,21 +385,21 @@ p = ip.Results;
         countFigs = countFigs +1;   % close fig
         
     
-        TSFigs(countFigs).h  = setFigure(nx,ny,'off');
-        TSFigs(countFigs).name = 'OrientationAndCutSites';
-        beforeCut(beforeCut==0) = NaN; 
-        orientMaskedByNMS = beforeCut.*rad2deg(maxTh+pi/2);
-        %orientsMaskByNMS(orientsMaskByNMS==0) = NaN; 
-        imagesc(orientMaskedByNMS); 
-        
-               cmap = get(gcf,'colormap');
-               add = [0 0 0 ];
-               cmap = [add;cmap]; 
-               set(gcf,'colormap',cmap);
-               % over lay removed 
-               hold on 
-               spy(removeMask,'w',10); 
-    countFigs = countFigs+1; 
+%         TSFigs(countFigs).h  = setFigure(nx,ny,'off');
+%         TSFigs(countFigs).name = 'OrientationAndCutSites';
+%         beforeCut(beforeCut==0) = NaN; 
+%         orientMaskedByNMS = beforeCut.*rad2deg(maxTh+pi/2);
+%         %orientsMaskByNMS(orientsMaskByNMS==0) = NaN; 
+%         imagesc(orientMaskedByNMS); 
+%         
+%                cmap = get(gcf,'colormap');
+%                add = [0 0 0 ];
+%                cmap = [add;cmap]; 
+%                set(gcf,'colormap',cmap);
+%                % over lay removed 
+%               % hold on 
+%               % spy(removeMask,'w',10); 
+%     countFigs = countFigs+1; 
     end    
 
 %%   Get the Seed and Candidate End points closest to the veil/stem boundary

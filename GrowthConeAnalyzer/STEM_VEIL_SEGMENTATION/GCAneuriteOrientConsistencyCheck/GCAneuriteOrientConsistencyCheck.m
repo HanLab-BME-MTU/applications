@@ -316,6 +316,7 @@ else
         end
         
         EPsDistFromMClust = distTransFromMClust(idxEPs);
+        
         idxEPs = idxEPs(EPsDistFromMClust == min(EPsDistFromMClust));
         [EPY,EPX] = ind2sub([ySize,xSize],idxEPs);
         EPsBackbone = [EPX, EPY];

@@ -184,7 +184,11 @@ classdef ImageFlattenProcess < ImageProcessingProcess
                     filename_shortshort_strs{iFrame},'.tif']);
                 catch
                     if(iFrame==1)
-                    currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_f.tif']);
+                        try
+                            currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_f.tif']);
+                        catch
+                            currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_F.tif']);
+                        end
                     end
                 end
             end

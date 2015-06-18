@@ -114,6 +114,7 @@ ip.addParameter('detectEmbedded',true);
 % Pass To: gcaReconstructEmbedded
     ip.addParameter('maxRadiusLinkEmbedded',10); 
     ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+    ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 
     % OVERLAYS 
     ip.addParameter('TSOverlays',false); 
