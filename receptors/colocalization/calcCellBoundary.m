@@ -1,4 +1,4 @@
-function [maskList,mask,fixedFrames] = calcCellBoundary(firstImageFile,outputDirectory,doPlot,isMultiChannel,fixFrameUp, fixFrameDown)
+function [maskList,mask,fixedFrames] = calcCellBoundary(imageDirectory,outputDirectory,doPlot,isMultiChannel,fixFrameUp, fixFrameDown)
 %CALCCELLBOUNDARY applies mutli-otsu threshold to determine cell boundary
 % Mask is best suited for images in which cell is large relative to image
 % dimensions
@@ -32,20 +32,21 @@ function [maskList,mask,fixedFrames] = calcCellBoundary(firstImageFile,outputDir
 %   lower or higher threshold for later reference
 %% Input
 
-if nargin < 1 || isempty(firstImageFile)
+if nargin < 1 || isempty(imageDirectory)
     [fName,dirName] = uigetfile('*.tif','PLEASE SPECIFY FIRST IMAGE IN STACK');
 else
-    if iscell(firstImageFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstImageFile{1});
-        dirName=[fpath,filesep];
-        fName=[fname,fno,fext];
-    elseif ischar(firstImageFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstImageFile);
-        dirName=[fpath,filesep];
-        fName=[fname,fno,fext];
-    end
+    fName = imDir(imageDirectory);
+%     if iscell(firstImageFile)
+%         [fpath,fname,fno,fext]=getFilenameBody(firstImageFile{1});
+%         dirName=[fpath,filesep];
+%         fName=[fname,fno,fext];
+%     elseif ischar(firstImageFile)
+%         [fpath,fname,fno,fext]=getFilenameBody(firstImageFile);
+%         dirName=[fpath,filesep];
+%         fName=[fname,fno,fext];
+%     end
 end
-outFileListCnt = getFileStackNames([dirName,fName]);
+outFileListCnt = vertcat(fName.name);
 numFiles = length(outFileListCnt);
 
 if nargin < 3 || isempty(doPlot)
@@ -68,7 +69,7 @@ end
  fixedFrames = struct('HigherThreshold',fixFrameUp,'LowerThreshold',fixFrameDown);
 %% Masking Process
 for a = 1:numFiles
-    image  = imread(outFileListCnt{a},channel);
+    image  = imread(outFileListCnt(a,:),channel);
     %keep original image for plotting
     image0 = image;
 
@@ -152,5 +153,5 @@ for a = 1:numFiles
 end
 close(writerObj);
 
-% save('/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/140723_ActinCD36Fyn/+PAO+TSP/analysis/maskingFileFyn.mat','mask','maskList','fixedFrames');
+save('/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/CtxB-CD36-Actin/maskingFileNoTSP.mat','mask','maskList','fixedFrames');
 end
