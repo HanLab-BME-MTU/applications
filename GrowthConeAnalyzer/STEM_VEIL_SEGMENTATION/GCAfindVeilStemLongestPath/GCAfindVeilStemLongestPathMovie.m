@@ -66,6 +66,7 @@ ip.addParameter('TSOverlays',true,@(x) islogical(x));
 ip.addParameter('neuriteElongTS_medFiltWindSize',10,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 ip.addParameter('neuriteElongTSOutlier_outlierDef_k',3,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 
+
 ip.parse(varargin{:});
 p = ip.Results;
 %% Initiate
@@ -183,10 +184,10 @@ for iCh = 1:nChan
         display('A .flagOutlier field was previously found and was overwritten');
     end
     
+   
+    neuriteLengthSub = neuriteLength - neuriteLength(1);
     
-    neuriteLength = neuriteLength - neuriteLength(1);
-    
-    [~, outlierIdx, TSFig] = gcaFindOutliersFromMedFilt(neuriteLength,ip.Results.neuriteElongTS_medFiltWindSize,ip.Results.neuriteElongTSOutlier_outlierDef_k); % add these parameters
+    [~, outlierIdx, TSFig] = gcaFindOutliersFromMedFilt(neuriteLengthSub,ip.Results.neuriteElongTS_medFiltWindSize,ip.Results.neuriteElongTSOutlier_outlierDef_k); % add these parameters
     
     fileType{1} = '.fig';
     fileType{2} = '.png';
@@ -207,8 +208,11 @@ for iCh = 1:nChan
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'veilStem.mat'],'veilStem','-v7.3') ;
 
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'params.mat'],'p');  
- %% Extra: Extract Thickness (may do this eventually in a different step  
- GCAAnalysisExtract_veilStemThicknessMovie(movieData,veilStem); 
+ %% Extra: Extract Thickness : Make an option - don't necessarily always want this step 
+ veilStemCell{1} = veilStem; % note I am just putting these into cell form as the optional input gets a bit messed up
+ % in the input parser when these are structures- go back and troubleshoot if time. 
+ neuriteLengthCell{1} = neuriteLength; 
+ GCAAnalysisExtract_VeilStemThicknessMovie(movieData,veilStemCell,neuriteLengthCell); 
     
 end % for iCh
 end % function
