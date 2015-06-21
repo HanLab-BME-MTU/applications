@@ -213,6 +213,7 @@ for iCh = 1:nChan
  % in the input parser when these are structures- go back and troubleshoot if time. 
  neuriteLengthCell{1} = neuriteLength; 
  GCAAnalysisExtract_VeilStemThicknessMovie(movieData,veilStemCell,neuriteLengthCell); 
+ 
     
 end % for iCh
 end % function
