@@ -795,9 +795,11 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
         
         
         new = (notBody|newBodyMask);
+        new = logical(getLargestCC(new)); 
         %new = bwmorph(new,'thin','inf'); 
         % recalc 
-           [EPs,~,coords,branchPtMask] = skel2graph2D(new);        
+           [EPs,~,coords,branchPtMask] = skel2graph2D(new);   
+           
              indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
         
         %idxSave = find(indEP == idxEnterNeurite); %% note sometimes bug here... should make so reiterate if this fails...
