@@ -1,24 +1,66 @@
-function [outputMasks, filoInfo,status,TSFigs] = gcaConnectFiloBranch(inputPoints, candFiloEPs, pixIdxCands, labelMatSeedFilo,cellBoundary,filoInfo, maxRes,maxTh,img,normalsC,smoothedEdgeC,varargin)
-% gcaConnectFilopodia: used to be connectFilo until 20141022
+function [outputMasks, filoInfo,status,TSFigs] = gcaConnectFiloBranch(inputPoints, candFiloEPs, pixIdxCands, labelMatSeedFilo,filoInfo, maxRes,maxTh,img,normalsC,smoothedEdgeC,varargin)
+% gcaConnectFilopodia:
+% NOTES: used to be connectFilo until 20141022
 % someday should consolidate some of these input parameters into structures
 % I think right now it's annoying
 
-%% INPUT 
-% REQUIRED 
-% inputPoints: 
-%   
+%% INPUT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REQUIRED
+%
+%  %% SEED INFORMATION: 
+%     (ie High confidence regions to which the candidates will be attached)  %% 
 % 
-% candFiloEPs: 
+%  inputPoints: (REQUIRED) Rx2 double array 
+%     documenting the seed locations
+%     where R is the number of points 
+%     and 2 is the vector of x,y coordinates respectively
+%
+%  filoInfo: (REQUIRED) 1xC structure array 
+%     with many flexible fields describing each individual ridge structure 
+%     of the filopodia/branch network, including each
+%     filopodia's correponding coordinates. 
+%     C is the number of filopodia ridge structures currently documented,
+%     hence each c value gives information as to the filo objects label
+%     number used in labelMatSeedFilo
+%     This structure will be appended in this function as the
+%     filopodia/branch network is reconstructed. 
+%     (Output of gcaRecordFilopodiaSeedInformation.m, and
+%      gcaConnectFiloBranch.m (ie current function))
+% 
+%  labelMatSeedFilo: (REQUIRED) RxC double array 
+%     where R is the size y  of the original image and C 
+%     where each filopodia is labeled- note this format does not allow for crossings 
+%     by definition- as each filopodia coordinate can only at  max have one label. 
+%     It is created by the filoInfo: The veil/stem boundary always
+%     has a label of 1, while each filopodia is labeled according to the
+%     the number in filoInfo structure. 
+%  
+%  
+%
+%  %% CANDIDATE FILOPODIA INFORMATION: %%
+% 
+%  candFiloEPs: (REQUIRED) 1xC cell of 2x4 double arrays
+%     where C is the number of possible candidate filopdia (ridges) to be attached. 
+%     and each 2x4 double array holds the 
+%     [coordX, coordY, vectX, vectY] where coordX/coordY denote the endpoint 
+%     of the candidate filopodia and vectX,vectY specificies the
+%     direction toward the endpoint to be used for the cost 
+%     
+% pixIdxCands: (REQUIRED) 
+%      the corresponding pixIndices of the candidates 
+% 
+%
+% maxRes : (maybe able to remove - no longer collecting the response for fitting. 
+% 
+% maxTh : (REQUIRED) 
+%
+%
+% 
 %% This needs to be replaced by a cellArray for labels 20150604
-% labelCandidates: rxc double 
-%%   
-% 
-% 
-% labelMatSeed: rxc double 
-
-
-
-% 
+% labelCandidates: rxc double
+%%
+%
 % Output: outputMasks: structure containing fields
 %                      .finalReconstruct (binary mask of the final
 %                      reconstruction)
@@ -32,76 +74,79 @@ function [outputMasks, filoInfo,status,TSFigs] = gcaConnectFiloBranch(inputPoint
 % simple recostructions for internal filo
 %         filoInfo: the corresponding filoInfo data structure with the new filopodia information for
 %                   each candidate filopodia attached added
-%% CHECK INPUT 
+%% CHECK INPUT
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('inputPoints');
-ip.addRequired('candFiloEPs'); 
-ip.addRequired('pixIdxCands'); 
-%ip.addRequired('labelCandidates'); 
-ip.addRequired('labelMatSeedFilo'); 
-ip.addRequired('cellBoundary'); 
-ip.addRequired('filoInfo'); 
-ip.addRequired('maxRes'); 
-ip.addRequired('maxTh'); 
-ip.addRequired('img'); 
-ip.addRequired('normalsC'); 
-ip.addRequired('smoothedEdgeC'); 
+ip.addRequired('candFiloEPs');
+ip.addRequired('pixIdxCands');
+%ip.addRequired('labelCandidates');
+ip.addRequired('labelMatSeedFilo');
+
+ip.addRequired('filoInfo');
+ip.addRequired('maxRes');
+ip.addRequired('maxTh');
+ip.addRequired('img');
+ip.addRequired('normalsC');
+ip.addRequired('smoothedEdgeC');
 
 
 
-ip.addParameter('maxRadiusConnectFiloBranch',5); 
-ip.addParameter('TSOverlays',false); 
-ip.parse(inputPoints,candFiloEPs,pixIdxCands,labelMatSeedFilo,cellBoundary,filoInfo,maxRes,maxTh,img,normalsC,smoothedEdgeC,varargin{:});
-p = ip.Results; 
+ip.addParameter('maxRadiusConnectFiloBranch',5);
+ip.addParameter('TSOverlays',false);
+ip.parse(inputPoints,candFiloEPs,pixIdxCands,labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalsC,smoothedEdgeC,varargin{:});
+p = ip.Results;
 
-%% INITIATE 
-dims = size(cellBoundary);
+%% INITIATE
+dims = size(labelMatSeedFilo); 
+%dims = size(cellBoundary);
 out = zeros(dims);
 queryPoints = vertcat(candFiloEPs{:});
 nq = size(queryPoints,1);
 countFig = 1;
 % replaces line 122
-vectCand = cellfun(@(x) x(:,3:4),candFiloEPs,'uniformoutput',0); 
+vectCand = cellfun(@(x) x(:,3:4),candFiloEPs,'uniformoutput',0);
 % take out the unit vectors
-candFiloEPs = cellfun(@(x) x(:,1:2),candFiloEPs,'uniformoutput',0); 
+candFiloEPs = cellfun(@(x) x(:,1:2),candFiloEPs,'uniformoutput',0);
+
 
 %% WORKING : To Remove
-% 20150604 for now just make a workshift labelCandidates 
-% note don't want to keep this because we know that the labels need to 
-% be assigned to more than one pixel which will not be the case here. 
-labelCandidates = zeros(dims); 
+% 20150604 for now just make a workshift labelCandidates
+% note don't want to keep this because we know that the labels need to
+% be assigned to more than one pixel which will not be the case here.
+labelCandidates = zeros(dims);
 for iCand = 1:numel(pixIdxCands)
-    labelCandidates(pixIdxCands{iCand})= iCand; 
-end 
+    labelCandidates(pixIdxCands{iCand})= iCand;
+end
 %% START
 % note the output of KDTreeBall is of the form of a cell array n = the
 % number of query points, first parameter is the index of the input points
 % around that query within the given search radius. so
 % idxInput{iQuery} = [idxInput1, idxInput2, idxIndput3...]);
- %candFiloEPs = candFiloEPs(:,1:2); 
+%candFiloEPs = candFiloEPs(:,1:2);
 
-% Here the InputPoints are all points along the seed. 
-% We find all input points (seedPoints) within the given maxRadius input by 
+% Here the InputPoints are all points along the seed.
+% We find all input points (seedPoints) within the given maxRadius input by
 % the user
-% We loop here as each candFilo has more than one end point 
+% We loop here as each candFilo has more than one end point
 
-
+                            
+%% 
 
 for iCanFilo = 1:numel(candFiloEPs)
-    [idxInput, dist] = KDTreeBallQuery(inputPoints, candFiloEPs{iCanFilo}, ip.Results.maxRadiusConnectFiloBranch);   
+    [idxInput, dist] = KDTreeBallQuery(inputPoints, candFiloEPs{iCanFilo}, ip.Results.maxRadiusConnectFiloBranch);
     node{iCanFilo} = idxInput; % combine all possible attachments for the candidateFilo
     distNode{iCanFilo}=dist;
 end
 testMatch =  cellfun(@(x) ~isempty(vertcat(x{:})),node); % if all are empty no matches within Dist
 
 if sum(testMatch) ~= 0 ;
-      
+    
     %% Assign Edges: Each candidate filo has N competing attachment sites
     
-   % Each candidate is labeled as a node: paths are searched on either end
-   % but only a single path is retained 
+    % Each candidate is labeled as a node: paths are searched on either end
+    % but only a single path is retained
     
     % generate edge map
     % the query point has a possible path or "edge" with each of the input
@@ -121,7 +166,7 @@ if sum(testMatch) ~= 0 ;
     
     % calc the vector of each candidate and it's length for the orientation
     % part of the costMat
-    %vectCand =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], candFiloEPs ,'uniformoutput',0);
+    % vectCand =  cellfun(@(x) [x(1,1)-x(2,1), x(1,2) - x(2,2)], candFiloEPs ,'uniformoutput',0);
     %dCand = cellfun(@(x) sqrt((x(1,1)-x(2,1))^2 + (x(1,2)-x(2,2))^2),candFiloEPs,'uniformoutput',0);
     
     % calculate the orientation of each candidate filo
@@ -139,56 +184,64 @@ if sum(testMatch) ~= 0 ;
     
     labelsSeed(labelsSeed==0)=[];% get rid of inconsitencies between the two inputs
     
-        
+    
+    %% get the normals of the cellEdge.
+    
     %%%HERE IS QUITE A LARGE   PROBLEM WE HAVE: don't want to have the same
     %%%orienation criteria for ALL attachments endOn is different than body
     % attatchments.
-%     dotCandAndSeed = zeros(length(labelsSeed),1);
-%     for iPath = 1 :length(labelsSeed) % over all potential connection paths
-%         maskDisk = zeros(dims);
-%         maskDisk(sub2ind(dims,seedPtsy(iPath),seedPtsx(iPath)))= 1;
-%         maskDisk = imdilate(maskDisk,strel('disk',4));
-%         maskFilo = zeros(dims);
-%         maskFilo(labelMatSeedFilo==labelsSeed(iPath)) =1;
-%         maskTest = maskFilo.*maskDisk;
-%         [y,x] = ind2sub(dims,find(maskTest==1));
-%         vectInput = [(x(1)-x(end)) , (y(1)-y(end))];
-%         dInput = sqrt((x(1)-x(end))^2 + (y(1)-y(end))^2);
-%         vectorCand = vectCand{E(iPath,1)};
-%         dotCandAndSeed{iPath} = abs(dot(vectInput,vectorCand)./dInput); 
-%         %dotCandAndSeed(iPath) = abs(dot(vectInput,vectorCand)./dInput./dCand{E(iPath,1)});
-%     end
+    dotCandAndSeed = zeros(length(labelsSeed),1);
+    for iPath = 1 :length(labelsSeed) % over all potential connection paths
+        maskDisk = zeros(dims);
+        maskDisk(sub2ind(dims,seedPtsy(iPath),seedPtsx(iPath)))= 1;
+        maskDisk = imdilate(maskDisk,strel('disk',4));
+        maskFilo = zeros(dims);
+        maskFilo(labelMatSeedFilo==labelsSeed(iPath)) =1;
+        maskTest = maskFilo.*maskDisk;
+        [y,x] = ind2sub(dims,find(maskTest==1));
+        vectInput(iPath,:) = [(x(1)-x(end)) , (y(1)-y(end))];
+        %dInput = sqrt((x(1)-x(end))^2 + (y(1)-y(end))^2);
+        %         vectorCand = vectCand(E(iPath,1),:);
+   %              dotCandAndSeed{iPath} = abs(dot(vectInput,vectorCand)./dInput);
+        %         dotCandAndSeed(iPath) = abs(dot(vectInput,vectorCand)./dInput./dCand{E(iPath,1)});
+    end
     
     
-    if ip.Results.TSOverlays == true; 
-        TSFigs(countFig).h= setFigure(dims(1),dims(2),'on'); 
-        TSFigs(countFig).name = 'Seed and Candidates'; 
-        imshow(-img,[]); 
-         hold on
+    
+    
+    
+    if ip.Results.TSOverlays == true;
+        TSFigs(countFig).h= setFigure(dims(1),dims(2),'on');
+        TSFigs(countFig).name = 'Seed and Candidates';
+        imshow(-img,[]);
+        hold on
         spy(labelMatSeedFilo,'b');
         spy(labelCandidates,'r');
         text(5,10,'Seed','FontSize',10,'color','r');
         text(5,25,'Candidate Ridges','FontSize',10,'color','b');
-        countFig = countFig+1; 
+        countFig = countFig+1;
+        
+        
+        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+        TSFigs(countFig).name = 'Seed and Candidates With Vectors';
+        imshow(-img,[]);
+        hold on
+        spy(labelMatSeedFilo,'b',5);
+        scatter(seedPtsx(:),seedPtsy(:),10,'y','filled');
+        spy(labelCandidates,'r',5);
+        xyall = vertcat(candFiloEPs{:});
+        vectall = vertcat(vectCand{:});
+        quiver(xyall(:,1),xyall(:,2),vectall(:,1),vectall(:,2),0.2,'r');
+        scatter(seedPtsx(:),seedPtsy(:),'y','filled');
+        % old vectors
+        quiver(seedPtsx(:),seedPtsy(:),vectInput(:,1),vectInput(:,2),0.2,'y');
+        
+        countFig = countFig  +1;
+        
+    end
     
-        
-        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-        TSFigs(countFig).name = 'Seed and Candidates With Vectors'; 
-        imshow(-img,[]); 
-        hold on 
-        spy(labelMatSeedFilo,'b',5); 
-        scatter(seedPtsx(:),seedPtsy(:),10,'y','filled'); 
-        spy(labelCandidates,'r',5); 
-        xyall = vertcat(candFiloEPs{:}); 
-        vectall = vertcat(vectCand{:}); 
-    quiver(xyall(:,1),xyall(:,2),vectall(:,1),vectall(:,2),0.2,'r'); 
-           
-        countFig = countFig  +1; 
     
-    end 
-        
-        
-        
+    %%
     
     
     
@@ -211,18 +264,18 @@ if sum(testMatch) ~= 0 ;
     % 2) have a high amount of image intensity, and 3) is a relatively short
     % distance (though this maybe should be slightly less emphasized)
     
-    %% TS Overlay : Plot 
-    figure('Visible','on');
+    %% TS Overlay : Plot
+   % figure('Visible','on');
     %img = img./((2^16)-1); % ask ludo the bitdepth of the camera should do in beginning
-    plotPaths =1;
-    c = colormap(lines(size(E,1)));
-    if plotPaths ==1
-        imshow(img,[])
-        hold on
-        spy(labelMatSeedFilo,'b');
-        spy(labelCandidates,'y');
-        
-    end
+    plotPaths =0;
+%     c = colormap(lines(size(E,1)));
+%     if plotPaths ==1
+%         imshow(img,[])
+%         hold on
+%         spy(labelMatSeedFilo,'b');
+%         spy(labelCandidates,'y');
+%         
+%     end
     % remember 1st Col E = idx filo Cand, 2nd col = idx input point, and 3rd
     % col = sideOfCandFilo Idx
     for iPath = 1:size(E,1)
@@ -232,15 +285,15 @@ if sum(testMatch) ~= 0 ;
         yCoordInput = inputPoints(E(iPath,2),2);
         iSeg{iPath} = bresenham([xCoordQuery yCoordQuery], [xCoordInput yCoordInput]);
         int{iPath}  = img(sub2ind(dims, iSeg{iPath}(:,2), iSeg{iPath}(:,1)));
-        vectTest = [(xCoordQuery-xCoordInput), (yCoordQuery-yCoordInput)];
+        vectTest = [(xCoordInput-xCoordQuery), (yCoordInput-yCoordQuery)];
         % value of 1 : two segments well aligned (angle) between them = 0
         % as we want alignment of added attatchments
         dTest = D(iPath,1);
-        vectorCand = vectCand{E(iPath,1)};
+        vectorCand = vectCand{E(iPath,1)}(E(iPath,3),:);
         if plotPaths ==1
             plot([xCoordQuery;xCoordInput],[yCoordQuery;yCoordInput],'color',c(iPath,:));
         end
-        dotProd(iPath,1) = abs(dot(vectorCand,vectTest)/dTest/dCand{E(iPath,1)});
+        dotProd(iPath,1) = dot(vectorCand,vectTest)/dTest;
     end
     
     % plot for paper
@@ -267,7 +320,7 @@ if sum(testMatch) ~= 0 ;
     %               plot(x,y,'color',c(iPath,:))
     %     end
     % end
- %% COST Definition   
+    %% COST Definition
     % Distance Term: make so that a lower distance = positive weight
     D = max(D)-D;
     % normalize
@@ -283,24 +336,124 @@ if sum(testMatch) ~= 0 ;
     costTotal = (0.5*D + int+dotProd+dotCandAndSeed); % note to self: let's see what we get by just combining these values
     % linearly at first: in the end might want to disfavor the distance term
     % and favor more the int and dotProd term.
- %%
+    %% Plot all the paths by the costTotal
+    % take 
+    if ip.Results.TSOverlays == true 
+        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
+        TSFigs(countFig).name = 'Potential Paths with Cost'; 
+        
+        
+        
+        
+        
+        
+        imshow(-img,[]); 
+        
+        
+        
+%             candFiloNum = 1;% the number of the candidate filo you would like to plot
+%             EPlot = E(E(:,1)==candFiloNum,:);
+%     %
+%     %
+%     
+%          pathidxPlot = find(E(:,1)==candFiloNum);
+%         
+%         
+%         
+        
+        %spy(seedMask
+        % show the canidate filo and the seedMask in black 
+        hold on 
+        spy(labelMatSeedFilo>0,'k'); 
+        spy(labelCandidates>0,'k',5); 
+        scatter(seedPtsx(:),seedPtsy(:),'k','filled'); 
+        allCandEPs = vertcat(candFiloEPs{:}); 
+        scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
+        % create distance mapper
+        cMapLength=128; cMap=jet(cMapLength);
+        mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
+        
+        D=createDistanceMatrix(costTotal,mapper);
+        [sD,idxCMap]=sort(abs(D),2);
+        
+        for k = 1:length(cMap);
+            if sum(idxCMap(:,1)==k)~=0
+                toPlot = iSeg(idxCMap(:,1) == k);
+                
+                cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
+                clear toPlot
+            else
+            end
+            % make colormap of costs.
+            
+            % show each segment in iSeg cell plotted by the costTotal color
+            %
+        end 
+    
+    countFig = countFig+1; 
+    end % if TSOverlays
+    
+    
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- %% Perform Matching to Resolve Graph
+    %% Perform Matching to Resolve Graph
     E = [E costTotal D int dotProd dotCandAndSeed];
- 
+    E = E(dotProd>0.5,:); 
+    EFinal = EFinal(dotProd>0.5,:);
+    costTotal = costTotal(dotProd>0.5); 
+   idxCMap =  idxCMap(dotProd>0.5,:); 
+   iSeg= iSeg(:,dotProd>0.5); 
+    
+    [candFiloNodes,~,nodeLabels] = unique(EFinal(:,1),'stable'); % reason note: some of the filo will not be candidates as their endpoints are not within the given radius
+  %  NNodeQuery = length(candFiloNodes);
+    [inputLinks,~,nodeLabelsInput] = unique(EFinal(:,2),'stable'); % reason note: just in case two filo are competing over the same seed point
+    %nodeLabelsInputFinal = nodeLabelsInput+NNodeQuery;
+  %  EFinal = [nodeLabels nodeLabelsInputFinal]; % put in independent node form
+    numberNodes = length(inputLinks) + length(candFiloNodes);
+    
+    
+    
+    %% TS Overlay : Geometry Thresholds
+    if ip.Results.TSOverlays == true
+        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+        TSFigs(countFig).name = 'Potential Paths After Geometry Threshold';
+        
+     
+        imshow(-img,[]);
+        
+        hold on
+           text(5,10,'Geometry Threshold 0.5','FontSize',10,'Color','k'); 
+        
+        spy(labelMatSeedFilo>0,'k');
+        spy(labelCandidates>0,'k',5);
+        scatter(seedPtsx(:),seedPtsy(:),'k','filled');
+        allCandEPs = vertcat(candFiloEPs{:});
+        scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled');
+        % create distance mapper
+        cMapLength=128; cMap=jet(cMapLength);
+%         mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
+%         
+%         D=createDistanceMatrix(costTotal,mapper);
+%         [sD,idxCMap]=sort(abs(D),2);
+        
+        for k = 1:length(cMap);
+            if sum(idxCMap(:,1)==k)~=0
+                toPlot = iSeg(idxCMap(:,1) == k);
+                
+                cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
+                clear toPlot
+            else
+            end
+            % make colormap of costs.
+            
+            % show each segment in iSeg cell plotted by the costTotal color
+            %
+        end
+        
+    end % ip.Results.TSOverlays
+    %% Perform Weighted Graph Matching
+    
+    
+    
     if ~isempty(EFinal)
         %     idx = E(:,1) < E(:,2);
         
@@ -313,7 +466,7 @@ if sum(testMatch) ~= 0 ;
         E = E(M,:);% get those edges that matched (from original indexing)
     end   % isempty
     
-  
+    
     
     %
     if ~isempty(E) % might be empty now if all were repeats
@@ -329,14 +482,20 @@ if sum(testMatch) ~= 0 ;
         % convert to pixIdx
         pixGoodConnect = cellfun(@(i) sub2ind(dims,i(:,2),i(:,1)), goodConnect,'uniformoutput',0);
         out(vertcat(pixGoodConnect{:}))= 1;
-           
+        
     end
-    %% Plot final results. 
+   %% If only keep smooth continuations.  
+    
+    
+    
+    %% Plot final results.
     
     
     links = out;
     outputMasks.links = links;
-    out = double(out | cellBoundary);
+    allInputMask= (labelCandidates>0|labelMatSeedFilo>0); 
+    out = double(out|allInputMask); 
+    %out = double(out | cellBoundary);
     outputMasks.finalReconstruct = out;
     
     %% start documenting data
@@ -344,13 +503,13 @@ if sum(testMatch) ~= 0 ;
     % get the filoIdx of those filo to which attachments have been made
     for iMatch = 1:length(E(:,1))
         labelInputCon(iMatch) = labelMatSeedFilo(sub2ind(dims,inputPoints(E(iMatch,2),2),inputPoints(E(iMatch,2),1)));
-        %% Need to Fix 20150604 Change to a cell array 
+        %% Need to Fix 20150604 Change to a cell array
         %labelCandCon(iMatch) = labelCandidates(sub2ind(dims,candFiloEPs{E(iMatch,1)}(1,2),candFiloEPs{E(iMatch,1)}(1,1)));
-        % get the label 
-       % labelCanCon(iMatch) = E(iMatch,1)}; 
+        % get the label
+        % labelCanCon(iMatch) = E(iMatch,1)};
         
         
-       %%
+        %%
         
         if E(iMatch,3) == 1;
             EPsCand(iMatch) = 2 ;
@@ -368,153 +527,181 @@ if sum(testMatch) ~= 0 ;
     
     % neurite edge mask is labeled with 1 (thick parts) and  2 (thin parts), so
     % indexing is off by 2 : FIX
-    labelInputCon = labelInputCon -1;% change back to 1 
+    labelInputCon = labelInputCon -1;% change back to 1
     
     
     % some might be attached to mask some will make new branch structures
-%     idxBodyAttachThick = find(labelInputCon ==-1); % idx of those matches that are attached to the body
-%     idxBodyAttachThin = find(labelInputCon ==0);
-idxBodyAttach = find(labelInputCon==0); 
+    %     idxBodyAttachThick = find(labelInputCon ==-1); % idx of those matches that are attached to the body
+    %     idxBodyAttachThin = find(labelInputCon ==0);
+    idxBodyAttach = find(labelInputCon==0);
     
     %for iBody = 1:2
-%         if iBody == 1;
-%             idxBodyAttach = idxBodyAttachThick;
-%             
-%         else
-%             idxBodyAttach = idxBodyAttachThin;
-%         end
-        
-        
-        if ~isempty(idxBodyAttach)
-            num = length(idxBodyAttach);
-            % record the new attachments to the body
-            for iFilo = 1:num
-                % quickfix for bug
-                if labelCandCon(idxBodyAttach(iFilo))~=0 % proceed otherwise don't count
-                    EPNum = EPsCand(idxBodyAttach(iFilo));
-                    xEP = candFiloEPs{E(idxBodyAttach(iFilo),1)}(EPNum,1);
-                    yEP = candFiloEPs{E(idxBodyAttach(iFilo),1)}(EPNum,2);
+    %         if iBody == 1;
+    %             idxBodyAttach = idxBodyAttachThick;
+    %
+    %         else
+    %             idxBodyAttach = idxBodyAttachThin;
+    %         end
+    
+    
+    if ~isempty(idxBodyAttach)
+        num = length(idxBodyAttach);
+        % record the new attachments to the body
+        for iFilo = 1:num
+            % quickfix for bug
+            if labelCandCon(idxBodyAttach(iFilo))~=0 % proceed otherwise don't count
+                EPNum = EPsCand(idxBodyAttach(iFilo));
+                xEP = candFiloEPs{E(idxBodyAttach(iFilo),1)}(EPNum,1);
+                yEP = candFiloEPs{E(idxBodyAttach(iFilo),1)}(EPNum,2);
+                
+                testMask = zeros(dims);
+               %  testMask(labelMatSeedFilo==1|labelMatSeedFilo==2) = 1; % get neuriteBodyAll
+                testMask(labelMatSeedFilo==1)=1; 
+                testMask(labelCandidates == labelCandCon(idxBodyAttach(iFilo)))=1;
+                testMask(pixGoodConnect{idxBodyAttach(iFilo)}) = 1;
+                testMask = bwmorph(testMask,'thin','inf'); % added 20141026 NEED TO THIN
+                testMask = logical(testMask);
+                transform = bwdistgeodesic(testMask,xEP,yEP);
+                % now need to get pixels and do fit on the branch
+                pixIdxBack = nan(50,1); % overinitialize to make happy
+                %endpoint of candidate coord find coord NOT part of connection
+                
+                
+                iPix = 1;
+                while length(find(transform==iPix)) == 1
+                    pixIdxBack(iPix) = find(transform==iPix); %
+                    iPix = iPix +1;
+                end
+                
+                
+                pixIdxBack = pixIdxBack(~isnan(pixIdxBack));
+                if ~isempty(pixIdxBack)
                     
-                    testMask = zeros(dims);
-                    testMask(labelMatSeedFilo==1|labelMatSeedFilo==2) = 1; % get neuriteBodyAll
-                    testMask(labelCandidates == labelCandCon(idxBodyAttach(iFilo)))=1;
-                    testMask(pixGoodConnect{idxBodyAttach(iFilo)}) = 1;
-                    testMask = bwmorph(testMask,'thin','inf'); % added 20141026 NEED TO THIN
-                    testMask = logical(testMask);
-                    transform = bwdistgeodesic(testMask,xEP,yEP);
-                    % now need to get pixels and do fit on the branch
-                    pixIdxBack = nan(50,1); % overinitialize to make happy
-                    %endpoint of candidate coord find coord NOT part of connection
+                    % get coords of the these pixels
+                    [yBack,xBack]= ind2sub(size(out),pixIdxBack);
+                    
+                    verticesEP = [yEP xEP];
                     
                     
-                    iPix = 1;
-                    while length(find(transform==iPix)) == 1
-                        pixIdxBack(iPix) = find(transform==iPix); %
-                        iPix = iPix +1;
+                    
+                    edgePathCoord{1} = [yBack, xBack];
+                    
+                    
+                    
+                    
+                    
+                    
+                    x = walkFiloForAndBack([], verticesEP,edgePathCoord,maxTh,maxRes,img,0,10);
+                    x.type = 0; % label a primary filo
+                    x.cross = 0;
+                    x.groupCount = max(vertcat(filoInfo(:).groupCount)) +1; % start a group
+                    %x.bodyType = iBody;
+                    if isfield(filoInfo,'conIdx')
+                        x.conIdx = []; % just to make sure fields are consistent
+                        x.conXYCoords= [];
                     end
                     
+                    if ~isempty(smoothedEdgeC)
+                        
+                        %%%% CALCULATE THE LOCAL ORIENTATION %%%%
+                        baseFilo = [xBack(end),yBack(end)];
+                        % region identification)
+                        [idx, dist] = KDTreeBallQuery(smoothedEdgeC,baseFilo,3);
+                        idx = idx{:};
+                        
+                        % Note can either get orientation of filo from the maxTh output of the steerable filter or from just calculating
+                        % a small local vector. we will see which one is cleaner ... so far I tend
+                        % to favor the small vector...
+                        
+                        % would potentially add a normalsC rotated. 
+   %% TESTING 20150616                     
+                        %20150616 POTENTIALLY CHANGE? Note maybe want to
+                        %the rotation on the average vector?
+                        avgNormLocal = mean(normalsC(idx,:),1);% might want to change to a majority? (i don't think these vectors are really normalized)
+                        pathCoords = [yBack xBack]; 
                     
-                    pixIdxBack = pixIdxBack(~isnan(pixIdxBack));
-                    if ~isempty(pixIdxBack)
+ %%                      
+                sanityCheck =1; 
+                if sanityCheck == 1
+                
+                    
+                   imshow(-img,[]); 
+                   hold on 
+                
+                
+                   roiYX = bwboundaries(labelMatSeed==1); 
+                   cellfun(@(x) plot(x(:,2),x(:,1),'b'),roiYX); 
+                   scatter(smoothedEdgeC(idx,1),smoothedEdgeC(idx,2),10,'b','filled'); 
+                   quiver(smoothedEdgeC(idx(3),1),smoothedEdgeC(idx(3),2), avgNormLocal(1),avgNormLocal(2),10,'filled','color','c','Linewidth',2); 
+                   quiver(smoothedEdgeC(idx,1),smoothedEdgeC(idx,2),normalsC(idx,1),normalsC(idx,2),'color','g'); 
+                end
+                       
+                       
+                        %%
                         
-                        % get coords of the these pixels
-                        [yBack,xBack]= ind2sub(size(out),pixIdxBack);
-                        
-                        verticesEP = [yEP xEP];
-                        
-                        
-                        
-                        edgePathCoord{1} = [yBack, xBack];
-                        
-                        
-                        
-                        
-                        
-                        
-                        x = walkFiloForAndBack([], verticesEP,edgePathCoord,maxTh,maxRes,img,0,10);
-                        x.type = 0; % label a primary filo
-                        x.cross = 0;
-                        x.groupCount = max(vertcat(filoInfo(:).groupCount)) +1; % start a group
-                        %x.bodyType = iBody;
-                        if isfield(filoInfo,'conIdx')
-                            x.conIdx = []; % just to make sure fields are consistent
-                            x.conXYCoords= [];
-                        end
-                        
-                        if ~isempty(smoothedEdgeC)
-                            
-                            %%%% CALCULATE THE LOCAL ORIENTATION %%%%
-                            baseFilo = [xBack(end),yBack(end)];
-                            % region identification)
-                            [idx, dist] = KDTreeBallQuery(smoothedEdgeC,baseFilo,3);
-                            idx = idx{:};
-                            
-                            % Note can either get orientation of filo from the maxTh output of the steerable filter or from just calculating
-                            % a small local vector. we will see which one is cleaner ... so far I tend
-                            % to favor the small vector...
-                            avgNormLocal = mean(normalsC(idx,:),1);% might want to change to a majority? (i don't think these vectors are really normalized)
-                            pathCoords = [yBack xBack];
-                            
-                            % test length of pathCoords
-                            pixFilo = size(pathCoords,1);
-                            if pixFilo <= 4
-                                back = pixFilo-1;
-                            else
-                                back = 4;
-                            end
-                            
-                            if back ~=0
-                                localVectFilo = [pathCoords(end-back,2)-pathCoords(end-1,2),pathCoords(end-back,1)-pathCoords(end-1,1)];
-                                vectLength = sqrt((pathCoords(end-back,2)-pathCoords(end-1,2)) ^2 + (pathCoords(end-back,1) - pathCoords(end-1,1))^2);
-                                normLength = sqrt(avgNormLocal(1)^2 + avgNormLocal(2)^2);
-                                cosAngle = dot(avgNormLocal,localVectFilo)/vectLength/normLength;
-                                angle = rad2deg(acos(cosAngle));
-                                angleToBody = 180- angle -90;
-                            else
-                                angleToBody = NaN;
-                                localVectFilo = NaN;
-                            end
-                            x.orientation = angleToBody;
-                            x.localVectAttach = avgNormLocal; % for now just save the normal vector
-                            x.localVectFilo= localVectFilo;
+                        % test length of pathCoords
+                        pixFilo = size(pathCoords,1);
+                        if pixFilo <= 4
+                            back = pixFilo-1;
                         else
-                            x.orientation = [];
-                            x.localVectAttach = [];
-                            x.localVectFilo = [];
+                            back = 4;
+                        end
+                        
+                        if back ~=0
+                             localVectFilo = [pathCoords(end-back,2)-pathCoords(end-1,2),pathCoords(end-back,1)-pathCoords(end-1,1)];
+                             vectLength = sqrt((pathCoords(end-back,2)-pathCoords(end-1,2)) ^2 + (pathCoords(end-back,1) - pathCoords(end-1,1))^2);
+                             normLength = sqrt(avgNormLocal(1)^2 + avgNormLocal(2)^2);
+                             cosAngle = dot(avgNormLocal,localVectFilo)/vectLength/normLength;
+                             angleToBody = rad2deg(acos(cosAngle));
+                             %angleToBody = 180- angle -90;
                             
+                            
+                            
+                        else
+                            angleToBody = NaN;
+                            localVectFilo = NaN;
                         end
-                        % x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
+                        x.orientation = angleToBody;
+                        x.localVectAttach = avgNormLocal; % for now just save the normal vector
+                        x.localVectFilo= localVectFilo;
+                    else
+                        x.orientation = [];
+                        x.localVectAttach = [];
+                        x.localVectFilo = [];
                         
-                        idxBodyAttachFiloInfo = numel(filoInfo) +1;
-                        
-                        %Fix fieldnames to match (might not be a problem in later versions
-                        %if initialize data structure more appropriately: we'll see if it's
-                        %worth fixing
-                        fieldsx = fieldnames(x);
-                        fieldsFiloInfo = fieldnames(filoInfo);
-                        fieldsAddtoX = setdiff(fieldsFiloInfo,fieldsx);
-                        
-                        %         for i = 1:length(fieldsAddtoFiloInfo)
-                        %             filoInfo(idxBodyAttachFiloInfo).(char(fieldsAddtoFiloInfo(i))) = [];
-                        %         end
-                        for i = 1:length(fieldsAddtoX)
-                            x.(char(fieldsAddtoX(i))) = NaN; % In future actually should look for internal filo here.
-                        end
-                        
-                        x = orderfields(x); % put in alphabetical order
-                        filoInfo = orderfields(filoInfo);
-                        
-                        filoInfo(idxBodyAttachFiloInfo) = x;
-                        
-                        candFiloAdded.Body{iFilo} = pixIdxBack;
-                        clear x edgePathCoord xBack yBack
-                        %
-                        
-                    end % don't record if isempty (this sometimes happens if there are weird cycles in the response % 20140426
-                end % if labelCandCon
-            end % iFilo
-        end % ~isempty
-   % end % for iBody
+                    end
+                    % x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
+                    
+                    idxBodyAttachFiloInfo = numel(filoInfo) +1;
+                    
+                    %Fix fieldnames to match (might not be a problem in later versions
+                    %if initialize data structure more appropriately: we'll see if it's
+                    %worth fixing
+                    fieldsx = fieldnames(x);
+                    fieldsFiloInfo = fieldnames(filoInfo);
+                    fieldsAddtoX = setdiff(fieldsFiloInfo,fieldsx);
+                    
+                    %         for i = 1:length(fieldsAddtoFiloInfo)
+                    %             filoInfo(idxBodyAttachFiloInfo).(char(fieldsAddtoFiloInfo(i))) = [];
+                    %         end
+                    for i = 1:length(fieldsAddtoX)
+                        x.(char(fieldsAddtoX(i))) = NaN; % In future actually should look for internal filo here.
+                    end
+                    
+                    x = orderfields(x); % put in alphabetical order
+                    filoInfo = orderfields(filoInfo);
+                    
+                    filoInfo(idxBodyAttachFiloInfo) = x;
+                    
+                    candFiloAdded.Body{iFilo} = pixIdxBack;
+                    clear x edgePathCoord xBack yBack
+                    %
+                    
+                end % don't record if isempty (this sometimes happens if there are weird cycles in the response % 20140426
+            end % if labelCandCon
+        end % iFilo
+    end % ~isempty
+    % end % for iBody
     
     
     idxFiloAttach = find(labelInputCon >0); % idx of those matches that are attached to a seed filo
@@ -823,6 +1010,8 @@ idxBodyAttach = find(labelInputCon==0);
                     magBranchVect = NaN;
                 end
                 edgePathCoord{1} = [yBack, xBack];
+                % eventually replace
+                % x = gcaProjectAndRecordFiloCoords(verticesEP,edgePathCoord,maxTh,maxRes,img,'numPixSearchForward',10); 
                 x = walkFiloForAndBack([], verticesEP,edgePathCoord,maxTh,maxRes,img,0,10);
                 x.type = filoInfo(idxSeedFilo).type +1; % label type as subsidiary (might want to change this)
                 x.conIdx = idxFiloAttach(iFilo);
@@ -842,7 +1031,7 @@ idxBodyAttach = find(labelInputCon==0);
                     x.(char(fieldsAddtoX(i))) = NaN; % no internal filopodia if branch
                 end
                 x.groupCount = filoInfo(idxSeedFilo).groupCount; % propogate this value forward
-               % x.bodyType = NaN;
+                % x.bodyType = NaN;
                 x = orderfields(x); % put in alphabetical order
                 filoInfo = orderfields(filoInfo);
                 filoInfo(idxBranch) = x;
