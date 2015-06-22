@@ -1,4 +1,4 @@
-function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,varargin)
+function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin)
 % GCAReconstructFilopodia: (Step VI of GCA PACKAGE)
 % This function rebuilds and records the filopodia network around a
 % veil/stem mask (in the case of the neurite) or any binary cell mask 
@@ -33,7 +33,8 @@ function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,va
 %                    to veil will be set to NaN (not calculated)- there will be a warning if
 %                    to the user if this is the case
 %    Output from the protrusion process (see getMovieProtrusion.m)
-%
+% 
+%  Rotate
 %% PARAMS
 %    
 % %% PARAMS: STEERABLE FILTER: RIDGE FINDING %%
@@ -118,9 +119,11 @@ ip.KeepUnmatched = true;
 
 ip.addRequired('img');
 ip.addRequired('veilStemMaskC');
-
+ip.addRequired('protrusionC'); 
+ip.addRequired('leadProtrusionPtC'); 
+ip.addRequired('LPIndices'); 
 %OPTIONAL
-ip.addOptional('protrusionC',[],@(x) iscell(x)); % if restarting
+%ip.addOptional('protrusionC',[],@(x) iscell(x)); % if restarting
 
 
 % PARAMS: STEERABLE FILTER: RIDGE FINDING
@@ -151,11 +154,100 @@ ip.addParameter('detectEmbedded',true)
 % TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
-ip.parse(img,veilStemMaskC,varargin{:});
+ip.parse(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin{:});
 p = ip.Results;
 p = rmfield(p,{'img','veilStemMaskC','protrusionC'}); 
 %% Initiate 
 countFigs = 1; 
+dims = size(img); 
+[ny,nx] = size(img);
+normalsC = protrusionC.normal;
+
+
+%% these were the pixelated values used to calculate the normals 
+ %Get the outline of the object in this mask. We use contourc instead of
+    %bwboundaries for 2 reasons: It returns its results in matrix
+    %coordinates, and the resulting outline encloses the border pixels
+    %instead of running through their centers. This better agrees with the
+    %windows, as the windows are designed to enclose the entire mask.
+    
+    
+    veilStemMaskC(1:ny,1) =0;
+    veilStemMaskC(1:ny,nx)=0;
+    veilStemMaskC(1,1:nx)= 0;
+    veilStemMaskC(ny,1:nx) =0;
+    
+    
+    
+    currOutline = contourc(double(veilStemMaskC),[0 0]);
+    currOutline = separateContours(currOutline);%Post-processing of contourc output
+    currOutline = cleanUpContours(currOutline);    
+    currOutline = currOutline{1}';%We know we only have one object...
+   % currOutline = currOutline(:,[2,1]); 
+    %Make sure the outline is correctly oriented
+    %if ~isCurrClosed
+        %Close the curve before checking handedness
+        %closedOutline = closeContours({currOutline'},bwdist(~veilStemMaskC));
+       % isClockWise = isCurveClockwise(closedOutline{1});        
+    %else
+        isClockWise = isCurveClockwise(currOutline);        
+    %end        
+    
+    if ~isClockWise
+        %Sam requires the curves run in the same direction
+        currOutline = currOutline(end:-1:1,:);
+    end
+%%
+smoothedEdgeC = protrusionC.smoothedEdge; 
+figure
+cmap = hsv(length(smoothedEdgeC(:,1))); 
+imshow(-img,[]); 
+hold on 
+%quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'b')
+
+arrayfun(@(i) scatter(smoothedEdgeC(i,1),smoothedEdgeC(i,2),10,cmap(i,:),'filled'),1:length(smoothedEdgeC(:,1)));   
+text(5,5,'1'); 
+%quiver(currOutline(:,1),currOutline(:,2),normalsC(:,1),normalsC(:,2),'b')
+ imshow(-img,[]); 
+ hold on 
+ arrayfun(@(i) scatter(currOutline(i,1),currOutline(i,2),10,cmap(i,:),'filled'),1:length(currOutline(:,1)));
+% rotate the normals of the edge of the veilstem in the direction of the
+% outgrowth for orientation metrics. 
+[normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims); 
+% add the rotated field. 
+
+if ip.Results.TSOverlays
+  TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'off'); 
+  TSFigs(countFigs).name = 'Normals Rotated'; 
+    imshow(-img,[]); 
+    hold on 
+    side1 = find(normalsCRotated(:,3) == 1); 
+    side2 = find(normalsCRotated(:,3) == 2) ; 
+    % sanity check 
+    side1 = find(normalsCRotated(:,3) == 1); 
+    side2 = find(normalsCRotated(:,3) == 2) ; 
+    quiver(smoothedEdgeC(side1,1),smoothedEdgeC(side1,2),normalsCRotated(side1,1),...
+    normalsCRotated(side1,2),'b'); 
+    quiver(smoothedEdgeC(side2,1),smoothedEdgeC(side2,2),normalsCRotated(side2,1),...
+    normalsCRotated(side2,2),'r');
+    quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g')
+    scatter(leadProtrusionPtC(:,1),leadProtrusionPtC(:,2),'k','filled'); 
+    maskPath = false(dims); 
+    maskPath(LPIndices) = true; 
+    spy(maskPath,'k'); 
+    
+    text(5,10,'"Lead" Protrusion Point From Skeleton ', 'color','k','FontSize',10); 
+    text(5,20,'Veil/Stem Edge Normals', 'color','g','FontSize',10); 
+    text(5,30,'Direction Veil/Stem Edge Toward Lead Protrusion Side 1 (0 Degrees)','color','b','FontSize',10); 
+    text(5,40,'Direction Veil/Stem Edge Toward Lead Protrusion Side 2 (0 Degrees)', 'color', 'r','FontSize',10);
+    
+   % text(5,40,'Direction Veil/Stem Edge Normal','color','g'); 
+    countFigs = countFigs+1; 
+  %  text
+end 
+protrusionC.normal = normalsC; % note sometimes have to remove some of the boundary pixels from the original 
+protrusionC.smoothedEdge = smoothedEdgeC; 
+protrusionC.normalsRotated = normalsCRotated;  
 
 %% STEP I: Detect Thin Ridge Structures 
     
@@ -246,11 +338,13 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
           text(5,20,'Ridges After Cleaning', 'Color','r','FontSize',10); 
           countFigs = countFigs +1; 
  end 
+%% 
+% Add NormalsRotated to ProtrusionC
 
 
 
 %% Run Main Function that performs the reconstructions
-[reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMainFixInput(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,p);
+[reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMainFixInput(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
 
 TSFigsFinal = [TSFigs; TSFigs2]; 
 

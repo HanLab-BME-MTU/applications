@@ -85,6 +85,7 @@ p = ip.Results;
    reconstruct.Int.Seed = []; 
    reconstruct.Int.Cand =[]; 
    reconstruct.Int.links = []; 
+   [ny,nx] = size(img); 
 %% Clean Embedded Filopodia Candidates
 
     % This just cleans things up a bit have to be careful not to lose too much
