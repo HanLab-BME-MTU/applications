@@ -564,7 +564,7 @@ end
             % between in and out - NOTE you need to keep the vect as input 
             % set up the endpoints to choose only the closest point so 
             % it makes sense not to calculate again. 
-            [maskPostConnect1,linkMask1,status,TSFigs2]  = gcaConnectEmbeddedRidgeCandidatesFix(embeddedRidgeCand1EPsFinal,seedFilo1EPsFinal,filoExtSeedForInt, ...
+            [maskPostConnect1,linkMask1,status,TSFigs2]  = gcaConnectEmbeddedRidgeCandidates(embeddedRidgeCand1EPsFinal,seedFilo1EPsFinal,filoExtSeedForInt, ...
                 labelMatCandInt1,img,edgeMask,p);
             % need to get the internal Filoconnect
             TSFigs = [TSFigs TSFigs2];
