@@ -37,7 +37,7 @@ function [neuriteLength,longPathLinInd,EPLongPath,error] =  GCAfindVeilStemLonge
 %% Initiate
 error = false;
 [ny,nx] = size(veilStemMaskC); 
-
+veilStemMaskC = logical(getLargestCC(veilStemMaskC)); 
 %%   % I think that the 2D skeletonization method is more appropriate here.
 %thinnedBodyAll = bwmorph(veilStemMaskC,'skel','inf');
 %% this is internal for didatic purposes to show the skeletonization once
