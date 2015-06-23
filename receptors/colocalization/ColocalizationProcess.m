@@ -41,7 +41,7 @@ classdef ColocalizationProcess < ImageAnalysisProcess
             colocalizationMethods(1).name = 'Point2Point';
             colocalizationMethods(1).func = @colocalMeasurePt2Pt;
             colocalizationMethods(2).name = 'Point2Continuum';
-            colocalizationMethods(2).func = @colocalMeasurePt2CntTest;
+            colocalizationMethods(2).func = @colocalMeasurePt2Cnt;
             colocalizationMethods(3).name = 'Continuum2Continuum';
             colocalizationMethods(3).func = @colocalMeasureCnt2Cnt;
             
