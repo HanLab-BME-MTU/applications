@@ -78,7 +78,7 @@ imSize = movieData.imSize_;
 
 for iCh = 1:nChan
     
-    display(['Finding VeilStem Longest Path for Channel ' num2str(iCh)]);
+   % display(['Finding VeilStem Longest Path for Channel ' num2str(iCh)]);
     %% Get Start and End Frames Based on Restart Choice
     
     % make final output dir where backboneInfo will be saved
@@ -164,7 +164,7 @@ for iCh = 1:nChan
         
         save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'veilStem.mat'],'veilStem','-v7.3') ;
         save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'neuriteLength.mat'], 'neuriteLength');
-        display(['Longest Path Found for Frame ' num2str(iFrame)]);
+        %display(['Longest Path Found for Frame ' num2str(iFrame)]);
     end
     
     
@@ -208,6 +208,7 @@ for iCh = 1:nChan
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'veilStem.mat'],'veilStem','-v7.3') ;
 
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'params.mat'],'p');  
+    display(['Finished Neurite Outgrowth Metric for ' movieData.outputDirectory_]); 
  %% Extra: Extract Thickness : Make an option - don't necessarily always want this step 
  veilStemCell{1} = veilStem; % note I am just putting these into cell form as the optional input gets a bit messed up
  % in the input parser when these are structures- go back and troubleshoot if time. 

@@ -212,7 +212,7 @@ csizeTest = cellfun(@(x) length(x),CCFiloObjs.PixelIdxList);
 CCFiloObjs.PixelIdxList(csizeTest<ip.Results.minCCRidgeOutsideVeil) = []; % MAKE a parameter filters out pixels CCs that are less than 3 pixels 
 CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<ip.Results.minCCRidgeOutsideVeil);% originally 3 
 
-[ filoInfo ] = gcaRecordFilopodiaSeedInformationFix( CCFiloObjs,img,filoBranchC,edgeMask,veilStemMaskC,normalC,smoothedEdgeC,p); %% NOTE fix input here!!
+[ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,filoBranchC,edgeMask,veilStemMaskC,normalC,smoothedEdgeC,p); %% NOTE fix input here!!
 
 %% Reconstruct the external filopodia network from the initial seed
 

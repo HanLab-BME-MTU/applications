@@ -5,7 +5,18 @@ function  GCAVisualsMakeOverlaysVeilStemWindows(windowC,normalsC,protC,edgeC)
 
 
 %% OUTPUT
- 
+ if ~isempty(windowC{1}) ; % not sure why but it appears hunter leaves this empty sometimes ? 
+      
+ windowFirst = windowC{1}(1) ; 
+ else 
+     windowFirst = windowC{2}(1); 
+     
+ end 
+     
+  
+
+
+            gcaPlotWindows(windowFirst,{'y','FaceAlpha',1},0,'bandMax',1); 
             gcaPlotWindows(windowC,{'g','FaceAlpha',0},5,'bandMax',1);   
             %Insure all normals for this frame have unit length - for some reason
             %Sam's software doesn't return them with unit length...

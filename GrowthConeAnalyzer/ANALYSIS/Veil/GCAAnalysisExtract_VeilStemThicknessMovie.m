@@ -81,15 +81,18 @@ for iFrame = 1:(nFrames-1)
     measC{iFrame,1} = thicknessValues;
     if ip.Results.visual == true
         
-        saveas(TSFig.h,[measDirVis num2str(iFrame,'%03d') '.png' ]);
+        saveas(TSFig.h,[measDirVis filesep num2str(iFrame,'%03d') '.png' ]);
+        saveas(TSFig.h,[measDirVis filesep num2str(iFrame,'%03d') '.fig']); 
          
     end
-    clear TSFig
+    clear TSFig 
+    close gcf
 end
 
 save([outDir filesep 'meas_VeilStemThickness.mat'],'measC');
 % save the input
 save([outDir filesep 'p.mat'],'pToSave');
+display(['Finished Veil Thickness Metric For ' movieData.outputDirectory_]); 
 end
 
 

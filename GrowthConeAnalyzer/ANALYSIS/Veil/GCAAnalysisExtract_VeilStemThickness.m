@@ -21,7 +21,7 @@ p = ip.Results;
 
 distCutOff = ip.Results.distCutOffForThickness;  
 
-[~,pixMeasure] = calculateDistance(neuriteLongPathIndicesC,[ny,nx],1,'distCutOff',distCutOff); 
+[~,pixMeasure] = calculateDistance(neuriteLongPathIndicesC,[ny,nx],'distCutOff',distCutOff); 
 
 distTrans = bwdist(~veilStemMaskC); 
 distTransMic = distTrans.*ip.Results.pixelSize; 
@@ -31,7 +31,7 @@ thicknessValues = distTransMic(pixMeasure);
 %% Make the Visuals : Eventually want to make this such that read in image and overlays the colormap 
 if ip.Results.visual == true 
     
-    TSFig(1).h = setFigure(nx,ny,'on');
+    TSFig(1).h = setFigure(nx,ny,'off');
     pixMask = false([ny,nx]);
     pixMask(pixMeasure) = true;
     roiYX =  bwboundaries(veilStemMaskC);
@@ -51,7 +51,7 @@ if ip.Results.visual == true
     text(5,20,'Circle plots the radius of the thickest point','color','w','FontSize',10); 
     text(5,30,['Distance From Leading Protrusion = ' num2str(p.distCutOffForThickness) 'um'],'color','w','FontSize',10); 
     forScaleBar = 10/ip.Results.pixelSize; % 10 um scale bar 
-    plotScaleBar(forScaleBar,'height', 2, 'Color',[1 1 1],'Location', 'SouthEast')
+    plotScaleBar(forScaleBar,'height', 2, 'Color',[1 1 1],'Location', 'SouthEast');
     colorbar
     
 end 

@@ -66,10 +66,13 @@ ip.addRequired('veilStemMaskC');
 ip.addOptional('normalsC',[]);
 ip.addOptional('smoothedEdgeC',[]); 
 
+ip.addParameter('numPixSearchForward',10,@isscalar)
+ip.addParameter('numPixSearchForwardEmbed',20,@isscalar);  
+
 
 %   
-ip.addParameter('maxRadiusLinkFiloOutsideVeil',10);
-ip.addParameter('minCCRidgeOutsideVeil',3);
+% ip.addParameter('maxRadiusLinkFiloOutsideVeil',10);
+% ip.addParameter('minCCRidgeOutsideVeil',3);
 
 
 ip.parse(CCFiloObjs,img,filoBranchC,edgeMask,veilStemMaskC,varargin{:});
@@ -169,10 +172,13 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
     [verticesEP,verticesBP, edgePathCoord] = skel2graph2D(maskCurrentExt);
     
     if ~isempty(verticesEP)
-        
+        %%
+        % To Replace. add the parameter 
+        % x = gcaProjectAndRecordFiloCoords(verticesEP,edgePathCoord,maxTh,maxRes,img,'ip.Results.numPixSearchForward',10);
         %
-        x = walkFiloForAndBack([],verticesEP,edgePathCoord,maxTh,maxRes,img,0,10); % typiclly use 10 pixels forward for the external
         
+        x = walkFiloForAndBack([],verticesEP,edgePathCoord,maxTh,maxRes,img,0,10); % typiclly use 10 pixels forward for the external
+        %%
         
         if length(verticesEP(:,1)) > 1
             % means that there is something fishy going on in theory
@@ -296,6 +302,21 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
                 % a small local vector. we will see which one is cleaner ... so far I tend
                 % to favor the small vector...
                 avgNormLocal = mean(normalsC(idx,:));% might want to change to a majority? (i don't think these vectors are really normalized)
+ %% SANITY CHECK 
+                sanityCheck =0; 
+                if sanityCheck == 1
+                if iFiloObj == 1
+                    
+                   imshow(-img,[]); 
+                   hold on 
+                end
+                   roiYX = bwboundaries(veilStemMaskC); 
+                   cellfun(@(x) plot(x(:,2),x(:,1),'b'),roiYX); 
+                   scatter(smoothedEdgeC(idx,1),smoothedEdgeC(idx,2),10,'b','filled'); 
+                   quiver(smoothedEdgeC(idx(3),1),smoothedEdgeC(idx(3),2), avgNormLocal(1),avgNormLocal(2),10,'filled','color','c','Linewidth',2); 
+                   quiver(smoothedEdgeC(idx,1),smoothedEdgeC(idx,2),normalsC(idx,1),normalsC(idx,2),'color','g'); 
+                end
+%%                
                 % test length of pathCoords
                 pixFilo = size(pathCoords,1);
                 if pixFilo <= 4
@@ -310,6 +331,12 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
                 if back ~=0  % if the filo is long enough and you are averaging over enough of the edge proceed
                     localVectFilo = [pathCoords(end-back,2)-pathCoords(end-1,2),pathCoords(end-back,1)-pathCoords(end-1,1)];
                     vectLength = sqrt((pathCoords(end-back,2)-pathCoords(end-1,2)) ^2 + (pathCoords(end-back,1) - pathCoords(end-1,1))^2);
+                    %% 
+                    if sanityCheck == 1
+                        scatter(pathCoords(end-back:end,2),pathCoords(end-back:end,1),10,'filled','r');
+                        quiver(pathCoords(end,2),pathCoords(end,1),localVectFilo(1),localVectFilo(2),10,'filled','r'); 
+                    end
+                    %%
                 else
                     localVectFilo = [NaN,NaN];
                     vectLength = NaN;
@@ -324,11 +351,18 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
                 end % idx > = 3
                 
                 % calculate angle to body
-                cosAngle = dot(avgNormLocal,localVectFilo)/vectLength/normLength;
-                angle = rad2deg(acos(cosAngle));
-                angleToBody = 180- angle -90;
+                cosAngle = dot(avgNormLocal(1:2),localVectFilo)/vectLength/normLength;
+                angleToBody = rad2deg(acos(cosAngle));
+                %%
+                if sanityCheck ==1 
+                    text(pathCoords(end,2),pathCoords(end,1),num2str(angleToBody,3),'color','k'); 
+%                     saveas(gcf,[num2str(iFiloObj,'%03d') '.png']); 
+%                    close gcf 
+                end
+                %%
+                % angleToBody = 180- angle -90;
                 
-                x.orientation = angleToBody;
+                x.orientation = angleToBody; % in degrees
                 x.localVectAttach = avgNormLocal; % for now just save the normal vector
                 x.localVectFilo= localVectFilo;
             else
@@ -354,9 +388,14 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
         [verticesEP,~, edgePathCoord] = skel2graph2D(maskCurrentInt);
         
         if length(verticesEP(:,1))==1
+            %% To Replace 
             x = walkFiloForAndBack(x,verticesEP,edgePathCoord,maxTh,maxRes,img,1,20,veilStemMaskC );% 2013_07_14 try 15 pixels
             % or if just start fitting to noise.
-            
+            %x =
+            %gcaProjectAndRecordFiloCoords(verticesEP,edgePatchCoord,maxTh,maxRes,img,veilStemMaskC, ...
+            %'embeddedFlag',true,'numPixSearchForwardEmbed',p.numPixSearchForwardEmbed);
+            %
+            %%
             x = orderfields(x);
             filoInfo(countFilo) = x;
             clear x
@@ -418,6 +457,11 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
     end 
      
 end
+if sanityCheck==1 
+    saveas(gcf,'test.fig'); 
+    saveas(gcf,'test.png'); 
+    close gcf
+end 
 
 display(['Number not 2' num2str(count)]);
 
