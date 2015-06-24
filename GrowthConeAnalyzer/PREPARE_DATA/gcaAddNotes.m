@@ -10,8 +10,8 @@ if plotCropped == true
     plotCroppedRegion(upDirectory(MD.outputDirectory_,1));
 end
 
-s = {'Morphology','Crop','VeilStem','Filopodia','LastStepChecked','Include_Currently'...
-    ,'Specific_Questions','Task','ExcludeAtStep'};
+s = {'LastStepChecked','Include_Currently'...
+    ,'Specific_Questions','Task','Morphology','Crop','VeilStem','Filopodia','ExcludeAtStep'};
 
 
 reply = listdlg('ListString',s);
@@ -29,6 +29,9 @@ end
 
 
 toDocument = s(reply);
+% put last step checked first 
+% put Last Step Checked First 
+
 
 for i = 1:numel(toDocument)
     % if field isn't empty show the previous comments
@@ -37,11 +40,38 @@ for i = 1:numel(toDocument)
         
         checkStepFlag  = questdlg('CheckAStep?');
         
+        
+       stepsFolder{1} = [MD.outputDirectory_ filesep 'SegmentationPackage/StepsToReconstruct' ...
+                        filesep 'I_neurite_orientation' filesep 'Channel_1' ...
+                        filesep 'CandSeeds']; 
+       stepsFolder{2} = [MD.outputDirectory_ filesep 'SegmentationPackage/StepsToReconstruct'...
+                        filesep 'II_neurite_orientation_refinements' filesep 'Channel_1' ];
+       
+       stepsFolder{3} =  [MD.outputDirectory_ filesep 'masks' filesep 'masks_for_channel_1' filesep 'Overlays'];
+        
+       stepsFolder{4} =  [MD.outputDirectory_ filesep 'VisualizationOverlays/WholeNeurite/VeilWindows/Channel_1']; 
+       
+        
+       % test if exist 
+       idxExist = cellfun(@(x) exist(x,'file'),stepsFolder);
+       idxExist = idxExist>0;
+       if idxExist(2) == 1 
+           load([stepsFolder{2} filesep 'backboneInfoFix.mat']); 
+           if length(backboneInfo)<121
+           idxExist(2) = 0 ;
+           end 
+           
+       end 
+       stepNames{1} = 'StepI'; 
+       stepNames{2}= 'StepII'; 
+       stepNames{3} = 'StepIII'; 
+       stepNames{4} = 'StepIV'; 
+       
         while strcmpi(checkStepFlag,'yes');
             
             
             
-            toCheck = {'StepI','StepII','StepIII'};
+            toCheck = stepNames(idxExist);
             replyCheck = listdlg('ListString',toCheck);
             
             
@@ -117,6 +147,32 @@ for i = 1:numel(toDocument)
 %                       uiwait(msg); 
                     end  
                     
+                case 4     
+                 direct =  [MD.outputDirectory_ filesep ...
+                     'VisualizationOverlays' filesep 'WholeNeurite' filesep 'VeilWindows' filesep 'Channel_1']; 
+                  if exist(direct)~=0
+                        
+                    
+                    
+                    test2 = searchFiles('.png',[],direct ...
+                        ,0,'all',1);
+                    for iFrame = 1:size(test2,1);
+                        forMovie2(:,:,:,iFrame) = imread(test2{iFrame});
+                    end
+                    movieC = immovie(forMovie2);
+                      imSize = MD.imSize_;
+                    h = setFigure(imSize(2),imSize(1),'on');
+                  
+                    imshow(forMovie2(:,:,:,1),[]);
+                    
+                    implay(movieC);
+                    uiwait(h);
+%                     else 
+%                       msg=   msgbox('No Orientation Outliers Found');    
+%                       uiwait(msg); 
+            end 
+                    
+                    
             end
             
             checkStepFlag  = questdlg('CheckAStep?');
@@ -132,7 +188,7 @@ for i = 1:numel(toDocument)
     
     comment = inputdlg(['Comment for ' MD.outputDirectory_ ' ' toDocument{i}, '  Last Step Checked ' notes.LastStepChecked],'Comments',1,{default});
     
-    notes.(toDocument{i}) = comment{1};
+    gnotes.(toDocument{i}) = comment{1};
     save([MD.outputDirectory_ filesep 'notes.mat'],'notes');
     
     
