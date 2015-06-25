@@ -1,4 +1,4 @@
-function [ candidateMaskNew,linkMask,EPCandidateSortPostConnect, labelMatPostConnect,status,TSFigs] = gcaConnectLinearRidges(EPCandidateSort,labelMat,varargin)
+function [ candidateMaskNew,linkMask,EPsPostConnect, pixIdxPostConnect,status,TSFigs] = gcaConnectLinearRidges(EPCandidateSort,labelMat,varargin)
 % gcaConnectLinearRidges: This function connects end-points of linear
 % ridge candidates by searching for linkage candidates using a KD tree
 % and then performing maxWeigthedGraphMatching to determine the optimal
@@ -68,8 +68,21 @@ function [ candidateMaskNew,linkMask,EPCandidateSortPostConnect, labelMatPostCon
 %         where r (row) is the height (ny) and c (col) is the width
 %         (nx) of the original input image marking the optimized interpolated
 %         new linkages between candidate ridges
-%
-%   EPCandidateSortPostConnect: 1 x c cell-array of 2x2 double arrays
+%   
+%   pixIdxPostConnect : 1xc cell of rx1 doubles
+%         storing the pixel indices for each new ridge candidate
+%         c is the number of candidate labels (should be lower than the
+%         original number of labels if connections were made) and provides
+%         the ridge candidates ID. 
+%         r is the number of pixels corresponding to each candidate after
+%         ridge candidate building.
+%         Note that in this format two pixels can share multiple labels 
+%         and hence crossovers are resolved. (This is not the case if we
+%         put these in a simple labelMat) 
+%   
+% status: 1 if viable links were found: 0 if no links were made
+%% OLD 
+% %%%  EPCandidateSortPostConnect: 1 x c cell-array of 2x2 double arrays
 %         where c is still the number of the original connected component
 %         ridge labels prior to linking and each cell contains a double array with the
 %         endpoint coordinate (x,y) (vectors removed). Labels which have been removed due to
@@ -79,13 +92,13 @@ function [ candidateMaskNew,linkMask,EPCandidateSortPostConnect, labelMatPostCon
 %         BEFORE RELEASE) - CURRENTLY DO NOT USE this output - more
 %         important when consider the filopodia
 %
-%  labelMatPostConnect:  rxc int8 array
+%%%%%  labelMatPostConnect:  rxc int8 array
 %         where r (row) is the height (ny) and c (col) is the width
 %         (nx) of the original input image. The label matrix merges the
 %         labels of two linked CCs. (MB CHECK TO MAKE SURE THIS IS OK
 %         BEFORE RELEASE: CURRENTLY DO NOT USE this output)
 %
-%  status: 1 if viable links were found: 0 if no links were made
+
 %% InputParser
 ip = inputParser;
 
@@ -111,6 +124,8 @@ candidateMask = labelMat>0;
 [ny,nx] = size(labelMat);
 imSize = [ny,nx];
 countFigs = 1;
+EPsPostConnect = [];
+pixIdxPostConnect = []; 
 %%
 endPoints = vertcat(EPCandidateSort{:}); % taking these out of a cell array so
 endPoints =  endPoints(:,1:2); % take first two columns as added vector 20140913
@@ -260,210 +275,210 @@ if ~isempty(E)
     
     dotProd12 = arrayfun(@(i) dot([vect(E(i,1),1) vect(E(i,1),2)],[deltXCon12(i) deltYCon12(i)])/d(i),1:length(E(:,1)));
     dotProd21 = arrayfun(@(i) dot(vect(E(i,2),:),[deltXCon21(i) deltYCon21(i)])/d(i),1:length(E(:,1)));
-%%
+    %%
     if ip.Results.TSOverlays == true;
+        TSFigs(countFigs).h = setFigure(nx,ny,'on');
+        TSFigs(countFigs).name =  'Plot Connections With Vectors';
+        if ~isempty(ip.Results.img);
+            imshow(-ip.Results.img,[]);
+            hold on
+        end
+        
+        spy(labelMat>0,'b',1);
+        hold on
+        % should eventually color code by cost... but for now
+        %cmap = jet(length(E));
+        % easier to keep track of indexing if just use a for loop
+        
+        idxAll1 = E(:,1);
+        idxAll2= E(:,2);
+        endPoints1KD = endPoints(idxAll1,:);
+        endPoints2KD = endPoints(idxAll2,:);
+        
+        % scatter the endpoints found
+        nEdges = size(E(:,1),1);
+        scatter(endPoints1KD(:,1),endPoints1KD(:,2),5,'b','filled');
+        scatter(endPoints2KD(:,1),endPoints2KD(:,2),5,'b','filled');
+        
+        arrayfun(@(x) plot([endPoints1KD(x,1),endPoints2KD(x,1)],...
+            [endPoints1KD(x,2),endPoints2KD(x,2)],'color','g'),1:nEdges);
+        
+        quiver(endPoints1KD(:,1),endPoints1KD(:,2),vect(idxAll1,1),vect(idxAll1,2),0.2,'color','b');
+        quiver(endPoints2KD(:,1),endPoints2KD(:,2),vect(idxAll2,1),vect(idxAll2,2),0.2,'color','b');
+        deltCon12N = [deltXCon12'./d deltYCon12'./d];
+        deltCon21N = [deltXCon21'./d deltYCon21'./d];
+        
+        
+        quiver(endPoints1KD(:,1),endPoints1KD(:,2),deltCon12N(:,1),deltCon12N(:,2),0.2,'color','g');
+        quiver(endPoints2KD(:,1),endPoints2KD(:,2),deltCon21N(:,1),deltCon21N(:,2),0.2,'color','g');
+        
+        countFigs = countFigs +1;
+        
+        
+    end % ip.Results
+    
+    %%
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    %% Filter for long distance links by geometry
+    idxFilt = (d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=ip.Results.GeoThresh | dotProd12' <=ip.Results.GeoThresh)); % could potentially make the linearity threshold
+    ERemove = E(idxFilt,:);
+    
+    %     %% Plot the bad link sanity check if user desires
+    %     if sanityCheck2 == 1
+    %         hold on
+    %         % easier to keep track of indexing if just use a for loop
+    %         for iEdge = 1:length(ERemove);
+    %             %    % coords of first point of edge
+    %             xCoord1 = endPoints(ERemove(iEdge,1),1);
+    %             yCoord1 = endPoints(ERemove(iEdge,1),2);
+    %             %
+    %             %    % coords of second point of edge
+    %             xCoord2 = endPoints(ERemove(iEdge,2),1);
+    %             yCoord2 = endPoints(ERemove(iEdge,2),2);
+    %             %
+    %             %
+    %             %
+    %             hold on
+    %             %
+    %             %   plot([xCoord1,xCoord2],[yCoord1,yCoord2],'color',cmap(iEdge,:));
+    %             plot([xCoord1,xCoord2],[yCoord1,yCoord2],'color','r','Linewidth',2);
+    %         end
+    %         %plot the remove vectors in red
+    %         idx21Bad = find(d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=0));
+    %         idx12Bad = find(d>ip.Results.MaxRadiusNoGeoTerm & (dotProd12'<=0));
+    %         if (~isempty(idx21Bad) || ~isempty(idx12Bad))
+    %             quiver(endPoints(E(idx21Bad,2),1),endPoints(E(idx21Bad,2),2),...
+    %                 vect(E(idx21Bad,2),1), vect(E(idx21Bad,2),2),'color','g');
+    %
+    %             quiver(endPoints(E(idx12Bad,1),1),endPoints(E(idx12Bad,1),2),...
+    %                 vect(E(idx12Bad,1),1), vect(E(idx12Bad,1),2),'color','m');
+    %
+    %
+    %             %strDot12 = arrayfun(@(x) num2str(dotProd12,2),1:length(dotProd12),'uniformoutput',0);
+    %
+    %
+    %             arrayfun(@(i) text(endPoints(E(idx12Bad(i),1),1),...
+    %                 endPoints(E(idx12Bad(i),1),2),num2str(dotProd12(idx12Bad(i)),2),...
+    %                 'FontSize',12,'Color','g'),1:length(idx12Bad));
+    %             % plot the distance at the query point
+    %             %  %  text(xCoord1,yCoord1,num2str(d(iEdge),3),'color','y');
+    %             %arrayfun(@(i) text(endPoints(E(idx21Bad(i),1),1),...
+    %             arrayfun(@(i) text(endPoints(E(idx21Bad(i),2),1),...
+    %                 endPoints(E(idx21Bad(i),2),2),num2str(dotProd21(idx21Bad(i)),2),...
+    %                 'FontSize',12,'Color','m'),1:length(idx21Bad));
+    %             %
+    %         end
+    %     end
+    %%
+    %
+    d = max(d)-d; % max with =0
+    d = d./max(d);
+    costTotalPreFilt = d+dotProd12'+dotProd21';
+    EPreFilt = E;
+    E(idxFilt,:) = [];
+    d(idxFilt) = [];
+    dotProd21(idxFilt) = [];
+    dotProd12(idxFilt) = [];
+    
+end % isempty E
+
+%% TSOverlays : Plot Cost by Color
+if ip.Results.TSOverlays == true;
+    
     TSFigs(countFigs).h = setFigure(nx,ny,'on');
-    TSFigs(countFigs).name =  'Plot Connections With Vectors';
+    TSFigs(countFigs).name = ' Color By Cost';
     if ~isempty(ip.Results.img);
         imshow(-ip.Results.img,[]);
         hold on
     end
     
-    spy(labelMat>0,'b',1);
-    hold on
-    % should eventually color code by cost... but for now
-    %cmap = jet(length(E));
-    % easier to keep track of indexing if just use a for loop
     
-    idxAll1 = E(:,1);
-    idxAll2= E(:,2);
-    endPoints1KD = endPoints(idxAll1,:);
-    endPoints2KD = endPoints(idxAll2,:);
-    
-    % scatter the endpoints found
-    nEdges = size(E(:,1),1);
     scatter(endPoints1KD(:,1),endPoints1KD(:,2),5,'b','filled');
     scatter(endPoints2KD(:,1),endPoints2KD(:,2),5,'b','filled');
     
-    arrayfun(@(x) plot([endPoints1KD(x,1),endPoints2KD(x,1)],...
-        [endPoints1KD(x,2),endPoints2KD(x,2)],'color','g'),1:nEdges);
+    cMapLength=128; cMap=jet(cMapLength);
+    mapper=linspace(min(costTotalPreFilt),max(costTotalPreFilt),cMapLength)';
     
-    quiver(endPoints1KD(:,1),endPoints1KD(:,2),vect(idxAll1,1),vect(idxAll1,2),0.2,'color','b'); 
-    quiver(endPoints2KD(:,1),endPoints2KD(:,2),vect(idxAll2,1),vect(idxAll2,2),0.2,'color','b'); 
-    deltCon12N = [deltXCon12'./d deltYCon12'./d];
-    deltCon21N = [deltXCon21'./d deltYCon21'./d]; 
-    
-    
-    quiver(endPoints1KD(:,1),endPoints1KD(:,2),deltCon12N(:,1),deltCon12N(:,2),0.2,'color','g'); 
-    quiver(endPoints2KD(:,1),endPoints2KD(:,2),deltCon21N(:,1),deltCon21N(:,2),0.2,'color','g'); 
-    
-    countFigs = countFigs +1;
-    
-    
-end % ip.Results   
- 
- %%  
-    
-    
-    
-    
-    
-    
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    %% Filter for long distance links by geometry
-    idxFilt = (d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=ip.Results.GeoThresh | dotProd12' <=ip.Results.GeoThresh)); % could potentially make the linearity threshold
-    ERemove = E(idxFilt,:);
-    
-%     %% Plot the bad link sanity check if user desires
-%     if sanityCheck2 == 1
-%         hold on
-%         % easier to keep track of indexing if just use a for loop
-%         for iEdge = 1:length(ERemove);
-%             %    % coords of first point of edge
-%             xCoord1 = endPoints(ERemove(iEdge,1),1);
-%             yCoord1 = endPoints(ERemove(iEdge,1),2);
-%             %
-%             %    % coords of second point of edge
-%             xCoord2 = endPoints(ERemove(iEdge,2),1);
-%             yCoord2 = endPoints(ERemove(iEdge,2),2);
-%             %
-%             %
-%             %
-%             hold on
-%             %
-%             %   plot([xCoord1,xCoord2],[yCoord1,yCoord2],'color',cmap(iEdge,:));
-%             plot([xCoord1,xCoord2],[yCoord1,yCoord2],'color','r','Linewidth',2);
-%         end
-%         %plot the remove vectors in red
-%         idx21Bad = find(d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=0));
-%         idx12Bad = find(d>ip.Results.MaxRadiusNoGeoTerm & (dotProd12'<=0));
-%         if (~isempty(idx21Bad) || ~isempty(idx12Bad))
-%             quiver(endPoints(E(idx21Bad,2),1),endPoints(E(idx21Bad,2),2),...
-%                 vect(E(idx21Bad,2),1), vect(E(idx21Bad,2),2),'color','g');
-%             
-%             quiver(endPoints(E(idx12Bad,1),1),endPoints(E(idx12Bad,1),2),...
-%                 vect(E(idx12Bad,1),1), vect(E(idx12Bad,1),2),'color','m');
-%             
-%             
-%             %strDot12 = arrayfun(@(x) num2str(dotProd12,2),1:length(dotProd12),'uniformoutput',0);
-%             
-%             
-%             arrayfun(@(i) text(endPoints(E(idx12Bad(i),1),1),...
-%                 endPoints(E(idx12Bad(i),1),2),num2str(dotProd12(idx12Bad(i)),2),...
-%                 'FontSize',12,'Color','g'),1:length(idx12Bad));
-%             % plot the distance at the query point
-%             %  %  text(xCoord1,yCoord1,num2str(d(iEdge),3),'color','y');
-%             %arrayfun(@(i) text(endPoints(E(idx21Bad(i),1),1),...
-%             arrayfun(@(i) text(endPoints(E(idx21Bad(i),2),1),...
-%                 endPoints(E(idx21Bad(i),2),2),num2str(dotProd21(idx21Bad(i)),2),...
-%                 'FontSize',12,'Color','m'),1:length(idx21Bad));
-%             %
-%         end
-%     end
-    %%
+    % get closest colormap index for each feature
+    D=createDistanceMatrix(costTotalPreFilt,mapper);
+    [sD,idxCMap]=sort(abs(D),2);
+    %  %
+    %  % for each Edge find the xy coords of the seed point and the candidate
+    %  % point and plot
+    %          for i = 1:length(E(:,1))
+    %              % get the indexes of the edge relative to the original input EPs
+    %             idxCand = E(i,2);
+    %             idxSeed = E(i,1);
+    %             plot([internalCandEPs(idxCand,1),internalSeedEPs(idxSeed,1)],[internalCandEPs(idxCand,2),internalSeedEPs(idxSeed,2)]);
     %
-    d = max(d)-d; % max with =0
-    d = d./max(d); 
-    costTotalPreFilt = d+dotProd12'+dotProd21'; 
-    EPreFilt = E;
-    E(idxFilt,:) = [];
-    d(idxFilt) = [];
-    dotProd21(idxFilt) = [];
-    dotProd12(idxFilt) = []; 
-   
-end % isempty E
-
-%% TSOverlays : Plot Cost by Color 
-if ip.Results.TSOverlays == true; 
+    %         end
+    for k=1:cMapLength
+        idxCand = EPreFilt(idxCMap(:,1) == k,2);
+        idxSeed = EPreFilt(idxCMap(:,1)==k,1);
+        for iEdge = 1:length(idxCand) % some can have the same color
+            plot([endPoints(idxCand(iEdge),1),endPoints(idxSeed(iEdge),1)],...
+                [endPoints(idxCand(iEdge),2),endPoints(idxSeed(iEdge),2)],'color',cMap(k,:),'Linewidth',2);
+        end
+    end
+    spy(labelMat>0,'b');
+    text(5,5,'Color Paths By Cost ','FontSize',10,'Color','k');
+    text(5,15,'Red : High : Stong Path' ,'FontSize',10,'Color','r');
+    text(5,25,'Blue : Low : Weak Path', 'FontSize',10,'Color','b');
+    text(5,35,['MaxRadius = ' num2str(ip.Results.MaxRadiusLink) ' Pixels']);
+    countFigs = countFigs+1;
     
-    TSFigs(countFigs).h = setFigure(nx,ny,'on'); 
-    TSFigs(countFigs).name = ' Color By Cost';
-    if ~isempty(ip.Results.img); 
-        imshow(-ip.Results.img,[]); 
-        hold on
-    end 
+    %% TSOverlays : Plot Cost by Color
+    if ip.Results.TSOverlays == true;
+        
+        TSFigs(countFigs).h = setFigure(nx,ny,'on');
+        TSFigs(countFigs).name = 'KD Results AFter Filter By Geometry';
+        if ~isempty(ip.Results.img);
+            imshow(-ip.Results.img,[]);
+            hold on
+        end
         
         
- scatter(endPoints1KD(:,1),endPoints1KD(:,2),5,'b','filled');
- scatter(endPoints2KD(:,1),endPoints2KD(:,2),5,'b','filled'); 
-           
-            cMapLength=128; cMap=jet(cMapLength);
-            mapper=linspace(min(costTotalPreFilt),max(costTotalPreFilt),cMapLength)';
+        scatter(endPoints1KD(:,1),endPoints1KD(:,2),5,'k','filled');
+        scatter(endPoints2KD(:,1),endPoints2KD(:,2),5,'k','filled');
+        
+        
+        idxCMap(idxFilt,:) =[];
+        for k=1:cMapLength
             
-            % get closest colormap index for each feature
-            D=createDistanceMatrix(costTotalPreFilt,mapper);
-            [sD,idxCMap]=sort(abs(D),2);
-            %  %
-            %  % for each Edge find the xy coords of the seed point and the candidate
-            %  % point and plot
-            %          for i = 1:length(E(:,1))
-            %              % get the indexes of the edge relative to the original input EPs
-            %             idxCand = E(i,2);
-            %             idxSeed = E(i,1);
-            %             plot([internalCandEPs(idxCand,1),internalSeedEPs(idxSeed,1)],[internalCandEPs(idxCand,2),internalSeedEPs(idxSeed,2)]);
-            %
-            %         end
-            for k=1:cMapLength
-                idxCand = EPreFilt(idxCMap(:,1) == k,2);
-                idxSeed = EPreFilt(idxCMap(:,1)==k,1);
-                for iEdge = 1:length(idxCand) % some can have the same color
-                    plot([endPoints(idxCand(iEdge),1),endPoints(idxSeed(iEdge),1)],...
-                        [endPoints(idxCand(iEdge),2),endPoints(idxSeed(iEdge),2)],'color',cMap(k,:),'Linewidth',2);
-                end
+            idxCand = E(idxCMap(:,1) == k,2);
+            idxSeed = E(idxCMap(:,1)==k,1);
+            for iEdge = 1:length(idxCand) % some can have the same color
+                plot([endPoints(idxCand(iEdge),1),endPoints(idxSeed(iEdge),1)],...
+                    [endPoints(idxCand(iEdge),2),endPoints(idxSeed(iEdge),2)],'color',cMap(k,:),'Linewidth',2);
             end
-            spy(labelMat>0,'b'); 
-            text(5,5,'Color Paths By Cost ','FontSize',10,'Color','k');
-            text(5,15,'Red : High : Stong Path' ,'FontSize',10,'Color','r');
-            text(5,25,'Blue : Low : Weak Path', 'FontSize',10,'Color','b');
-            text(5,35,['MaxRadius = ' num2str(ip.Results.MaxRadiusLink) ' Pixels']);
-    countFigs = countFigs+1; 
-    
-    %% TSOverlays : Plot Cost by Color 
-if ip.Results.TSOverlays == true; 
-    
-    TSFigs(countFigs).h = setFigure(nx,ny,'on'); 
-    TSFigs(countFigs).name = 'KD Results AFter Filter By Geometry';
-    if ~isempty(ip.Results.img); 
-        imshow(-ip.Results.img,[]); 
-        hold on
-    end 
+        end
+        spy(labelMat>0,'k');
+        text(5,5,'After Application of Geometry Threshold','FontSize',10);
+        text(5,20,['of ' num2str(ip.Results.GeoThresh)],'FontSize',10);
         
+        countFigs = countFigs+1;
         
- scatter(endPoints1KD(:,1),endPoints1KD(:,2),5,'k','filled');
- scatter(endPoints2KD(:,1),endPoints2KD(:,2),5,'k','filled'); 
-           
-            
-           idxCMap(idxFilt,:) =[];
-            for k=1:cMapLength
-                
-                idxCand = E(idxCMap(:,1) == k,2);
-                idxSeed = E(idxCMap(:,1)==k,1);
-                for iEdge = 1:length(idxCand) % some can have the same color
-                    plot([endPoints(idxCand(iEdge),1),endPoints(idxSeed(iEdge),1)],...
-                        [endPoints(idxCand(iEdge),2),endPoints(idxSeed(iEdge),2)],'color',cMap(k,:),'Linewidth',2);
-                end
-            end
-            spy(labelMat>0,'k'); 
-            text(5,5,'After Application of Geometry Threshold','FontSize',10);
-            text(5,20,['of ' num2str(ip.Results.GeoThresh)],'FontSize',10);
-          
-    countFigs = countFigs+1; 
-    
-end % ip.Results.
+    end % ip.Results.
     
     
     
@@ -484,7 +499,7 @@ end % ip.Results.
 %%
 if ~isempty(E) %check if there are reasonable edges
     % make sure to make d so that minimum d are favored
-   
+    
     
     
     costTotal = d + dotProd12' + dotProd21'; % again this cost need to be refined a bit
@@ -530,56 +545,102 @@ if ~isempty(links) % nothing that falls under this criteria
     linkMask(idxLinks) = 1;
     candidateMaskNew = (candidateMask| linkMask);
     % Fix the label mat to unite those pixels that need to be clustered
-    labelMatPostConnect = labelMat; % initiate a labelMatrix that connects the two pieces
+    % labelMatPostConnect = labelMat; % initiate a labelMatrix that connects the two pieces
     
-    EPCandidateSortPostConnect =EPCandidateSort; % take out the vectors.
-    nLabels = max(labelMat(:)); 
-    pixIdxLabelsPostConnect = arrayfun(@(x) find(candidateMask == x),1:nLabels); 
+    % pixIdxLabelsPostConnect = arrayfun(@(x) find(labelMat== x),1:nLabels,'uniformoutput',0);
+    labelsAll = labelMat(labelMat~=0);
+    labelsAll = unique(labelsAll);
     % for all edges
-    for i =  1:length(E(:,1))
-        % get the label of endpoint 1
-        label1 = labelMatPostConnect(sub2ind([ny,nx],endPoints(E(i,1),2), endPoints(E(i,1),1)));
-        % get the label of endpoint 2 in linkage
-        label2 = labelMatPostConnect(sub2ind([ny,nx],endPoints(E(i,2),2),endPoints(E(i,2),1)));
-        test = [label1 ;label2];
+    
+    
+    % get the labels of endpoints
+    
+    % get the label of endpoint 1
+    labels1 = labelMat(sub2ind([ny,nx],endPoints(E(:,1),2), endPoints(E(:,1),1)));
+    % get the label of endpoint 2 in linkage
+    labels2 = labelMat(sub2ind([ny,nx],endPoints(E(:,2),2),endPoints(E(:,2),1)));
+    
+    %group edges with commonn labesl
+    labelsMoreThanOneEdge = intersect(labels1, labels2);
+    if ~isempty(labelsMoreThanOneEdge)
+        for iGroup = 1:length(labelsMoreThanOneEdge);
+            % find idx of edges that that need to be combined
+            idxGrpEdges = find(labels1==labelsMoreThanOneEdge(iGroup) | labels2==labelsMoreThanOneEdge(iGroup));
+            idxGrpEdgesAll{iGroup} = labels1==labelsMoreThanOneEdge(iGroup) | labels2==labelsMoreThanOneEdge(iGroup); % marks Edges
+            % get paths for these edges
+            pathsConnect = vertcat( paths{idxGrpEdges});
+            pixIdxPaths = sub2ind([ny,nx], pathsConnect(:,2),pathsConnect(:,1));
+            pixIdxCands= arrayfun(@(x) find(labelMat==labels1(idxGrpEdges(x))|labelMat==labels2(idxGrpEdges(x))),1:length(idxGrpEdges), ...
+                'uniformoutput',0);
+            pixIdxNew = [pixIdxPaths; vertcat(pixIdxCands{:})];
+            pixIdxPostConnect{iGroup} = pixIdxNew;
+            EPsPostConnect{iGroup} =  getEndpoints(pixIdxNew,[ny,nx], 0,1);
+            clear pixIdxNew
+        end % for iGroup
         
-        % keep the maxvalue label (arbitrary assignment)
-        labelKeep  = max(test);
-        labelSwitch = min(test);
-        % change the label of the portion of the connected piece we chose
-        % to switch
-        labelMatPostConnect(labelMatPostConnect==labelSwitch) = labelKeep; %
-      
-        % add the same label to the path between the two pieces
-        labelMatPostConnect(sub2ind([ny,nx],paths{i}(:,2),paths{i}(:,1)))= labelKeep;
-        
-        % make new mask of the new connected filo and get endpoints
-        testMask = double(labelMatPostConnect==labelKeep);
-        [coords] = getEndpoints(find(testMask==1),size(testMask),0,1); 
-%         sumKernel = [1 1 1];
-%         % find and record the new EPs for the CC
-%         newEPs = double((testMask.* (conv2(sumKernel, sumKernel', padarrayXT(testMask, [1 1]), 'valid')-1))==1);
-%         [ye,xe] = find(newEPs~=0);
-%         %     coords(:,1) = xe;
-%         %     coords(:,2) = ye;
-        EPCandidateSortPostConnect{labelKeep} = coords;
-        % keep in same format therefore simply remove all the endpoint
-        % information corresponding to the label you eradicated.
-        EPCandidateSortPostConnect{labelSwitch} = [NaN NaN ;NaN NaN]; % take out those endpoints that were previously considered
-        %% 
-        
-        
-        
-        
-        
-        
-        
-        
+        idxNotEdgeGrp = sum(horzcat(~idxGrpEdgesAll{:}),2)./numel(idxGrpEdgesAll);
+        nPiecesGroup = numel(pixIdxPostConnect);
+    else
+        idxNotEdgeGrp = ones(size(E,1),1);
+        nPiecesGroup = 0;
+    end %isempty % do not have to cluster more than one edge
+    %pixIdxPostConnect{iGroup} =
+    
+    
+    %% START FIXING
+    % the idx of the edges that need not be grouped 
+    notGrpEdges  =  find(idxNotEdgeGrp);
+    labels1NG = labels2(notGrpEdges);
+    labels2NG = labels1(notGrpEdges);
+    pathsNG = paths(notGrpEdges);
+     
+    % document pieces that form a single connection
+    for i = 1:length(labels1NG)
+        newPiece{1} = find(labelMat==labels1NG(i));
+        newPiece{3} = find(labelMat==labels2NG(i));
+        newPiece{2} = sub2ind([ny,nx],pathsNG{i}(:,2),pathsNG{i}(:,1));
+        idxC = i + nPiecesGroup;
+        pixIdxPostConnect{idxC} = vertcat(newPiece{:});
+        clear newPiece;
+        EPsPostConnect{idxC} = getEndpoints(pixIdxPostConnect{idxC},[ny,nx],0,1);
     end
+    %% get the other labels
+    nPiecesConnect = numel(EPsPostConnect);
+    % find labels not connected.
+    labelsUsed = [labels1;labels2];
+    nonConnect = setdiff(labelsAll,labelsUsed);
+    % labelsAll
+    for iCand = 1:length(nonConnect)
+        idxC = nPiecesConnect+iCand;
+        pixIdxPostConnect{idxC} = find(labelMat==nonConnect(iCand));
+        EPsPostConnect{idxC} = getEndpoints(pixIdxPostConnect{idxC},[ny,nx],0,1); 
+    end
+    %%
+    %labelAll(~
+    % EPsPostConnect{
+    figure;
+    imshow(labelMat>0,[]);
+    hold on
+    % plot the new EPS
+    % plot the new labels
+    cmap = lines(numel(EPsPostConnect));
+    
+    nLabels =  numel(EPsPostConnect);
+    
+    %cmap = lines(7);
+    % sanity check
+    [yCand,xCand] = cellfun(@(x) ind2sub([ny,nx],x),pixIdxPostConnect,'uniformoutput',0);
+    
+    for x = 1:nLabels
+        scatter(EPsPostConnect{x}(:,1),EPsPostConnect{x}(:,2),50,cmap(x,:),'filled');
+        scatter(xCand{x},yCand{x},20,cmap(x,:),'filled');
+        % scatter(
+    end ;
+   
     status = 1; % there were links
 else
     candidateMaskNew = candidateMask;
-    labelMatPostConnect = labelMat;
+    %labelMatPostConnect = labelMat;
     status = 0; % no links
     
     
