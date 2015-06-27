@@ -138,7 +138,7 @@ if indexCellSegProcess == 0
 end
 
 indexCellRefineProcess = 0;
-for i = 1 : nProcesses
+for i = nProcesses:(-1):1
     if(strcmp(MD.processes_{i}.getName,'Mask Refinement')==1)
         indexCellRefineProcess = i;
         break;
