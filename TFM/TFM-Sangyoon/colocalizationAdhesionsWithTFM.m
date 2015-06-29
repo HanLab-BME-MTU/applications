@@ -220,11 +220,13 @@ end
 % First build overall TFM images
 % We don't need to build traction map again if this one is already built
 % during force field calculation process.
+tMapFromOutput = false;
 try
     tMapIn=forceFieldProc.loadChannelOutput('output','tMap');
     tmaxAuto = 0.8*max(tMapIn{1}(:));
     tmin = min(tMapIn{1}(:));
-    cropInfo = [floor(forceField(1).pos(1,:)),floor(forceField(1).pos(end,:))];
+    cropInfo = [ceil(min(forceField(1).pos(:,1))),ceil(min(forceField(1).pos(:,2))),floor(max(forceField(1).pos(:,1))),floor(max(forceField(1).pos(:,2)))];
+    tMapFromOutput = true;
 catch
     [tMapIn, tmaxAuto, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,0);
 end
@@ -317,7 +319,7 @@ for ii=1:nFrames
         bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
     end
     cropMask = bwPI4(cropInfo(2)+band:cropInfo(4)-band,cropInfo(1)+band:cropInfo(3)-band);
-    cropMaskStack(:,:,ii) = cropMask;
+%     cropMaskStack(:,:,ii) = cropMask;
     [B,~,nBD]  = bwboundaries(cropMask,'noholes');
 
     % mask for band from edge
@@ -326,117 +328,117 @@ for ii=1:nFrames
 %     bandwidth_pix = round(bandwidth*1000/MD.pixelSize_);
 %     bandMask = distFromEdge <= bandwidth_pix;
 
-    maskAdhesion = maskFAs>0;
-    % erode once and separate some dumbel shaped adhesion into two
-    maskAdhesion2 = bwmorph(maskAdhesion,'hbreak',1);
-    % Somehow  this doesn't work. I need find out better way of showing
-    % adhesions.
+%     maskAdhesion = maskFAs>0;
+%     % erode once and separate some dumbel shaped adhesion into two
+%     maskAdhesion2 = bwmorph(maskAdhesion,'hbreak',1);
+%     % Somehow  this doesn't work. I need find out better way of showing
+%     % adhesions.
+% 
+%     maskAdhesion = maskAdhesion2(cropInfo(2)+band:cropInfo(4)-band,cropInfo(1)+band:cropInfo(3)-band);
+%     maskFAs = maskFAs(cropInfo(2)+band:cropInfo(4)-band,cropInfo(1)+band:cropInfo(3)-band);
 
-    maskAdhesion = maskAdhesion2(cropInfo(2)+band:cropInfo(4)-band,cropInfo(1)+band:cropInfo(3)-band);
-    maskFAs = maskFAs(cropInfo(2)+band:cropInfo(4)-band,cropInfo(1)+band:cropInfo(3)-band);
-
-    if matchWithFA
-        % focal contact (FC) analysis
-        conn=4;
-        CC = bwconncomp(maskAdhesion,conn);
-        Adhs = regionprops(CC,'Area','Eccentricity','PixelIdxList','PixelList','Centroid' );
-
-    %     %filter out focal adhesions that are in 1 um band along the edge: they might
-    %     %be connected nascent adhesions - SH 20140708
-    %     indAdh = true(numel(Adhs),1);
-    %     for k=1:numel(Adhs)
-    % %         plot(Adhs(k).Centroid(1),Adhs(k).Centroid(2),'mo')
-    %         if bandMaskFA(round(Adhs(k).Centroid(2)),round(Adhs(k).Centroid(1)))
-    %             indAdh(k,1) = false;
-    %             maskAdhesion(Adhs(k).PixelIdxList) = false;
-    %         end
-    %     end
-    %     Adhs = Adhs(indAdh);
-
-    %     propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
-        minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1 um2
-%         minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=.24 um2
-        minFCSize = round((300/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.09 um2
-
-        fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
-        FCs = Adhs(fcIdx);
-        FCForce = arrayfun(@(x) tsMap(x.PixelIdxList),FCs,'UniformOutput',false);
-        forceFC(ii) = mean(cell2mat(FCForce));
-        FCIdx = find(fcIdx);
-        adhBound = bwboundaries(maskAdhesion,conn,'noholes');    
-
-        % for larger adhesions
-        faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
-        FAs = Adhs(faIdx);
-        FAForce = arrayfun(@(x) tsMap(x.PixelIdxList),FAs,'UniformOutput',false);
-        forceFA(ii) = mean(cell2mat(FAForce));
-        FAIdx =  find(faIdx);
-        neighPix = 2;
-
-        % Reading traction force at each track location
-        for k=1:numel(tracksNA)
-            if tracksNA(k).presence(ii)
-                % decide if each track is associated with FC or FA
-                p = 0;
-                for jj=FCIdx'
-                    p=p+1;
-                    if any(round(tracksNA(k).xCoord(ii))-cropInfo(1)==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))-cropInfo(2)==Adhs(jj).PixelList(:,2))
-                        tracksNA(k).state{ii} = 'FC';
-    %                     tracksNA(k).forceMag(ii) = forceFC(p);
-                        tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
-                        tracksNA(k).FApixelList{ii} = [Adhs(jj).PixelList(:,1)+cropInfo(1) Adhs(jj).PixelList(:,2)+cropInfo(2)];
-                        tracksNA(k).adhBoundary{ii} = [adhBound{jj}(:,2)+cropInfo(1) adhBound{jj}(:,1)+cropInfo(2)];
-                        tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii))-cropInfo(2),round(tracksNA(k).xCoord(ii))-cropInfo(1));
-                    end
-                end
-                p = 0;
-                for jj=FAIdx'
-                    p=p+1;
-                    if any(round(tracksNA(k).xCoord(ii))-cropInfo(1)==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))-cropInfo(2)==Adhs(jj).PixelList(:,2))
-                        tracksNA(k).state{ii} = 'FA';
-    %                     tracksNA(k).forceMag(ii) = forceFA(p);
-                        tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
-                        tracksNA(k).FApixelList{ii} = [Adhs(jj).PixelList(:,1)+cropInfo(1) Adhs(jj).PixelList(:,2)+cropInfo(2)];
-                        tracksNA(k).adhBoundary{ii} = [adhBound{jj}(:,2)+cropInfo(1) adhBound{jj}(:,1)+cropInfo(2)];
-%                         tracksNA(k).FApixelList{ii} = Adhs(jj).PixelList;
-%                         tracksNA(k).adhBoundary{ii} = adhBound{jj};
-                        tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii))-cropInfo(2),round(tracksNA(k).xCoord(ii))-cropInfo(1));
-                    end
-                end
-            elseif ii>tracksNA(k).endingFrame && (strcmp(tracksNA(k).state{tracksNA(k).endingFrame},'FA')...
-                    || strcmp(tracksNA(k).state{tracksNA(k).endingFrame},'FC'))
-                % starting from indexed maskFAs, find out segmentation that is
-                % closest to the last track point.
-                subMaskFAs = maskFAs==tracksNA(k).faID(tracksNA(k).endingFrame);
-                if max(subMaskFAs(:))==0
-                    tracksNA(k).state{ii} = 'ANA';
-                    tracksNA(k).FApixelList{ii} = NaN;
-                    tracksNA(k).adhBoundary{ii} = NaN;
-                    continue
-                else
-                    propSubMaskFAs = regionprops(subMaskFAs,'PixelList');
-                    minDist = zeros(length(propSubMaskFAs),1);
-                    for q=1:length(propSubMaskFAs)
-                        minDist(q) = min(sqrt((propSubMaskFAs(q).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame) - cropInfo(1))).^2 +...
-                            (propSubMaskFAs(q).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame) - cropInfo(2))).^2));
-                    end
-                    % find the closest segment
-                    [~,subMaskFAsIdx] = min(minDist);
-                    subAdhBound = bwboundaries(subMaskFAs,'noholes');    
-                    [~,closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame) - cropInfo(1))).^2 +...
-                        (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame) - cropInfo(2))).^2));
-
-                    tracksNA(k).state{ii} = 'FC';
-%                     tracksNA(k).xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
-%                     tracksNA(k).yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
-                    tracksNA(k).FApixelList{ii} = propSubMaskFAs(subMaskFAsIdx).PixelList;
-                    tracksNA(k).adhBoundary{ii} = subAdhBound{subMaskFAsIdx};
-                end
-            else
-                tracksNA(k).forceMag(ii) = NaN;
-            end
-        end
-    end
+%     if matchWithFA
+%         % focal contact (FC) analysis
+%         conn=4;
+%         CC = bwconncomp(maskAdhesion,conn);
+%         Adhs = regionprops(CC,'Area','Eccentricity','PixelIdxList','PixelList','Centroid' );
+% 
+%     %     %filter out focal adhesions that are in 1 um band along the edge: they might
+%     %     %be connected nascent adhesions - SH 20140708
+%     %     indAdh = true(numel(Adhs),1);
+%     %     for k=1:numel(Adhs)
+%     % %         plot(Adhs(k).Centroid(1),Adhs(k).Centroid(2),'mo')
+%     %         if bandMaskFA(round(Adhs(k).Centroid(2)),round(Adhs(k).Centroid(1)))
+%     %             indAdh(k,1) = false;
+%     %             maskAdhesion(Adhs(k).PixelIdxList) = false;
+%     %         end
+%     %     end
+%     %     Adhs = Adhs(indAdh);
+% 
+%     %     propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
+%         minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1 um2
+% %         minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=.24 um2
+%         minFCSize = round((300/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.09 um2
+% 
+%         fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
+%         FCs = Adhs(fcIdx);
+%         FCForce = arrayfun(@(x) tsMap(x.PixelIdxList),FCs,'UniformOutput',false);
+%         forceFC(ii) = mean(cell2mat(FCForce));
+%         FCIdx = find(fcIdx);
+%         adhBound = bwboundaries(maskAdhesion,conn,'noholes');    
+% 
+%         % for larger adhesions
+%         faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
+%         FAs = Adhs(faIdx);
+%         FAForce = arrayfun(@(x) tsMap(x.PixelIdxList),FAs,'UniformOutput',false);
+%         forceFA(ii) = mean(cell2mat(FAForce));
+%         FAIdx =  find(faIdx);
+%         neighPix = 2;
+% 
+%         % Reading traction force at each track location
+%         for k=1:numel(tracksNA)
+%             if tracksNA(k).presence(ii)
+%                 % decide if each track is associated with FC or FA
+%                 p = 0;
+%                 for jj=FCIdx'
+%                     p=p+1;
+%                     if any(round(tracksNA(k).xCoord(ii))-cropInfo(1)==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))-cropInfo(2)==Adhs(jj).PixelList(:,2))
+%                         tracksNA(k).state{ii} = 'FC';
+%     %                     tracksNA(k).forceMag(ii) = forceFC(p);
+%                         tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
+%                         tracksNA(k).FApixelList{ii} = [Adhs(jj).PixelList(:,1)+cropInfo(1) Adhs(jj).PixelList(:,2)+cropInfo(2)];
+%                         tracksNA(k).adhBoundary{ii} = [adhBound{jj}(:,2)+cropInfo(1) adhBound{jj}(:,1)+cropInfo(2)];
+%                         tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii))-cropInfo(2),round(tracksNA(k).xCoord(ii))-cropInfo(1));
+%                     end
+%                 end
+%                 p = 0;
+%                 for jj=FAIdx'
+%                     p=p+1;
+%                     if any(round(tracksNA(k).xCoord(ii))-cropInfo(1)==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))-cropInfo(2)==Adhs(jj).PixelList(:,2))
+%                         tracksNA(k).state{ii} = 'FA';
+%     %                     tracksNA(k).forceMag(ii) = forceFA(p);
+%                         tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
+%                         tracksNA(k).FApixelList{ii} = [Adhs(jj).PixelList(:,1)+cropInfo(1) Adhs(jj).PixelList(:,2)+cropInfo(2)];
+%                         tracksNA(k).adhBoundary{ii} = [adhBound{jj}(:,2)+cropInfo(1) adhBound{jj}(:,1)+cropInfo(2)];
+% %                         tracksNA(k).FApixelList{ii} = Adhs(jj).PixelList;
+% %                         tracksNA(k).adhBoundary{ii} = adhBound{jj};
+%                         tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii))-cropInfo(2),round(tracksNA(k).xCoord(ii))-cropInfo(1));
+%                     end
+%                 end
+%             elseif ii>tracksNA(k).endingFrame && (strcmp(tracksNA(k).state{tracksNA(k).endingFrame},'FA')...
+%                     || strcmp(tracksNA(k).state{tracksNA(k).endingFrame},'FC'))
+%                 % starting from indexed maskFAs, find out segmentation that is
+%                 % closest to the last track point.
+%                 subMaskFAs = maskFAs==tracksNA(k).faID(tracksNA(k).endingFrame);
+%                 if max(subMaskFAs(:))==0
+%                     tracksNA(k).state{ii} = 'ANA';
+%                     tracksNA(k).FApixelList{ii} = NaN;
+%                     tracksNA(k).adhBoundary{ii} = NaN;
+%                     continue
+%                 else
+%                     propSubMaskFAs = regionprops(subMaskFAs,'PixelList');
+%                     minDist = zeros(length(propSubMaskFAs),1);
+%                     for q=1:length(propSubMaskFAs)
+%                         minDist(q) = min(sqrt((propSubMaskFAs(q).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame) - cropInfo(1))).^2 +...
+%                             (propSubMaskFAs(q).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame) - cropInfo(2))).^2));
+%                     end
+%                     % find the closest segment
+%                     [~,subMaskFAsIdx] = min(minDist);
+%                     subAdhBound = bwboundaries(subMaskFAs,'noholes');    
+%                     [~,closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame) - cropInfo(1))).^2 +...
+%                         (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame) - cropInfo(2))).^2));
+% 
+%                     tracksNA(k).state{ii} = 'FC';
+% %                     tracksNA(k).xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
+% %                     tracksNA(k).yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
+%                     tracksNA(k).FApixelList{ii} = propSubMaskFAs(subMaskFAsIdx).PixelList;
+%                     tracksNA(k).adhBoundary{ii} = subAdhBound{subMaskFAsIdx};
+%                 end
+%             else
+%                 tracksNA(k).forceMag(ii) = NaN;
+%             end
+%         end
+%     end
     % force at the background
     % mask for band from edge
     distOutEdge = bwdist(cropMask);
@@ -454,29 +456,29 @@ for ii=1:nFrames
     
     %% recording features
     % get the point on the boundary closest to the adhesion
-    allBdPoints = [];
-    for kk=1:nBD
-        boundary = B{kk};
-        allBdPoints = [allBdPoints; boundary(:,2), boundary(:,1)];
-    end
-    for k=1:numel(tracksNA)
-        % distance to the cell edge
-        if tracksNA(k).presence(ii)
-            xCropped = tracksNA(k).xCoord(ii)-cropInfo(1)-band+1;
-            yCropped = tracksNA(k).yCoord(ii)-cropInfo(2)-band+1;
-            distToAdh = sqrt(sum((allBdPoints- ...
-                ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
-            [minDistToBd,indMinBdPoint] = min(distToAdh);
-            tracksNA(k).distToEdge(ii) = minDistToBd;
-            tracksNA(k).closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:)+[cropInfo(1)+band-1 cropInfo(2)+band-1]; % this is lab frame of reference. (not relative to adhesion position)
-            % figure, subplot(2,1,1),plot(tracksNA((ii)).closestBdPoint(:,1),tracksNA((ii)).closestBdPoint(:,2)); hold on
-%                 plot(tracksNA((ii)).xCoord,tracksNA((ii)).yCoord,'g')
-%                 subplot(2,1,2),  fRange=tracksNA(ii).startingFrame:(tracksNA(ii).endingFrame); figure, plot(fRange,tracksNA(ii).distToEdge(fRange));
-%             threeAdjPoints = allBdPoints(indMinBdPoint-1:indMinBdPoint+1,:); % this is clockwise by default. I assume indMinBdPoint>1 and indMinBdPoint<end
-%             adjLine = polyfit(threeAdjPoints(:,1),threeAdjPoints(:,2),1);
-%             tracksNA(k).bdAdjVec(ii,:) = [1,adjLine]; % boundary adjacent vector, this might be errorneous if the local boundary is vertical
-        end
-    end
+%     allBdPoints = [];
+%     for kk=1:nBD
+%         boundary = B{kk};
+%         allBdPoints = [allBdPoints; boundary(:,2), boundary(:,1)];
+%     end
+%     for k=1:numel(tracksNA)
+%         % distance to the cell edge
+%         if tracksNA(k).presence(ii)
+%             xCropped = tracksNA(k).xCoord(ii)-cropInfo(1)-band+1;
+%             yCropped = tracksNA(k).yCoord(ii)-cropInfo(2)-band+1;
+%             distToAdh = sqrt(sum((allBdPoints- ...
+%                 ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
+%             [minDistToBd,indMinBdPoint] = min(distToAdh);
+%             tracksNA(k).distToEdge(ii) = minDistToBd;
+%             tracksNA(k).closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:)+[cropInfo(1)+band-1 cropInfo(2)+band-1]; % this is lab frame of reference. (not relative to adhesion position)
+%             % figure, subplot(2,1,1),plot(tracksNA((ii)).closestBdPoint(:,1),tracksNA((ii)).closestBdPoint(:,2)); hold on
+% %                 plot(tracksNA((ii)).xCoord,tracksNA((ii)).yCoord,'g')
+% %                 subplot(2,1,2),  fRange=tracksNA(ii).startingFrame:(tracksNA(ii).endingFrame); figure, plot(fRange,tracksNA(ii).distToEdge(fRange));
+% %             threeAdjPoints = allBdPoints(indMinBdPoint-1:indMinBdPoint+1,:); % this is clockwise by default. I assume indMinBdPoint>1 and indMinBdPoint<end
+% %             adjLine = polyfit(threeAdjPoints(:,1),threeAdjPoints(:,2),1);
+% %             tracksNA(k).bdAdjVec(ii,:) = [1,adjLine]; % boundary adjacent vector, this might be errorneous if the local boundary is vertical
+%         end
+%     end
     
     % Showing for debug (TFM)
     if showAllTracks
@@ -484,6 +486,7 @@ for ii=1:nFrames
 %         set(h1, 'Position', [100 50 (cropInfo(3)-cropInfo(1)-2*band+1)*1.25 cropInfo(4)-cropInfo(2)-2*band+1])
         figure(h1), hold off
         ax1 = subplot('Position',[0 0 0.8 1]);
+        hold off
         imshow(tsMap,[tmin tmax]), colormap jet;
         hold on;
     %     plot(pstruct.x,pstruct.y,'mo') % all peaks
@@ -519,45 +522,56 @@ for ii=1:nFrames
 
 %         plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.5) % cell boundary
         if matchWithFA
-            for k = FCIdx'
-        %         eachFA = maskFAs==k;
-        %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
-        %         for kk=1:nEachFA
-        %             adhBoundary = adhBound{kk};
-        %             plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
-        %         end
-                adhBoundary = adhBound{k};
-                plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
-            end
+            idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+            idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{ii}),tracksNA(idAdhLogic));
+            idAdh = find(idAdhLogic);
+            idAdhCur = idAdh(idAdhCur);
+            arrayfun(@(x) plot(x.adhBoundary{ii}(:,1)-cropInfo(1)-band+1,x.adhBoundary{ii}(:,2)-cropInfo(2)-band+1, 'k', 'LineWidth', 0.5),tracksNA(idAdhCur))
 
-            for k = FAIdx'
-        %         eachFA = maskFAs==k;
-        %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
-        %         for kk=1:nEachFA
-        %             adhBoundary = adhBound{kk};
-        %             plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
-        %         end
-                adhBoundary = adhBound{k};
-                plot(adhBoundary(:,2), adhBoundary(:,1),  'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
-            end
+%             for k = FCIdx'
+%         %         eachFA = maskFAs==k;
+%         %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
+%         %         for kk=1:nEachFA
+%         %             adhBoundary = adhBound{kk};
+%         %             plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
+%         %         end
+%                 adhBoundary = adhBound{k};
+%                 plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
+%             end
+% 
+%             for k = FAIdx'
+%         %         eachFA = maskFAs==k;
+%         %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
+%         %         for kk=1:nEachFA
+%         %             adhBoundary = adhBound{kk};
+%         %             plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
+%         %         end
+%                 adhBoundary = adhBound{k};
+%                 plot(adhBoundary(:,2), adhBoundary(:,1),  'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
+%             end
         end
         for k=1:numel(tracksNA)
             if tracksNA(k).presence(ii)
-                if strcmp(tracksNA(k).state{ii} , 'NA')
-                    % drawing tracks
+                if onlyEdge
                     plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'r', 'LineWidth', 0.5)
                     plot(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
-                    if showTrackID
-                        text(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1+4,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,['\leftarrow' num2str(k)],'Color','r','FontSize',6.5)
+                else
+                    if strcmp(tracksNA(k).state{ii} , 'NA')
+                        % drawing tracks
+                        plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'r', 'LineWidth', 0.5)
+                        plot(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
+                        if showTrackID
+                            text(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1+4,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,['\leftarrow' num2str(k)],'Color','r','FontSize',6.5)
+                        end
+                    elseif strcmp(tracksNA(k).state{ii} , 'FC')
+                        % drawing tracks
+                        plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
+    %                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
+                    elseif strcmp(tracksNA(k).state{ii} , 'FA')
+                        % drawing tracks
+                        plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) 
+    %                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                     end
-                elseif strcmp(tracksNA(k).state{ii} , 'FC')
-                    % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
-%                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
-                elseif strcmp(tracksNA(k).state{ii} , 'FA')
-                    % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) 
-%                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                 end
             end
         end
@@ -566,10 +580,10 @@ for ii=1:nFrames
         axis tight
         caxis([tmin tmax]), axis off
         hc = colorbar('West');
-        set(hc,'Fontsize',16)
+        set(hc,'Fontsize',12)
         hold on;
 
-        syFigureStyle(h1,ax1,cropInfo(4)-cropInfo(2)-2*band+1);
+%         syFigureStyle(h1,ax1,cropInfo(4)-cropInfo(2)-2*band+1);
         print('-dtiff', '-r150', strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat),'.tif'));
     %     hgexport(h1,strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/forcePeakFig',num2str(ii,iiformat)),'-v7.3')
@@ -596,37 +610,47 @@ for ii=1:nFrames
         end
     %     plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
         if matchWithFA
-            for k = FCIdx'
-                adhBoundary = adhBound{k};
-                plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
-            end
-            % for larger adhesions
-            for k = FAIdx'
-                adhBoundary = adhBound{k};
-                plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
-            end
+            idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+            idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{ii}),tracksNA(idAdhLogic));
+            idAdh = find(idAdhLogic);
+            idAdhCur = idAdh(idAdhCur);
+            arrayfun(@(x) plot(x.adhBoundary{ii}(:,1)-cropInfo(1)-band+1,x.adhBoundary{ii}(:,2)-cropInfo(2)-band+1, 'k', 'LineWidth', 0.5),tracksNA(idAdhCur))
+%             for k = FCIdx'
+%                 adhBoundary = adhBound{k};
+%                 plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
+%             end
+%             % for larger adhesions
+%             for k = FAIdx'
+%                 adhBoundary = adhBound{k};
+%                 plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
+%             end
         end
         for k=1:numel(tracksNA)
             if tracksNA(k).presence(ii)
-                if strcmp(tracksNA(k).state{ii} , 'NA')
-                    % drawing tracks
+                if onlyEdge
                     plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'r', 'LineWidth', 0.5)
                     plot(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
-                    if showTrackID
-                        text(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1+4,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,['\leftarrow' num2str(k)],'Color','r','FontSize',6.5)
+                else
+                    if strcmp(tracksNA(k).state{ii} , 'NA')
+                        % drawing tracks
+                        plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'r', 'LineWidth', 0.5)
+                        plot(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
+                        if showTrackID
+                            text(tracksNA(k).xCoord(ii)-cropInfo(1)-band+1+4,tracksNA(k).yCoord(ii)-cropInfo(2)-band+1,['\leftarrow' num2str(k)],'Color','r','FontSize',6.5)
+                        end
+                    elseif strcmp(tracksNA(k).state{ii} , 'FC')
+                        % drawing tracks
+                        plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
+    %                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
+                    elseif strcmp(tracksNA(k).state{ii} , 'FA')
+                        % drawing tracks
+                        plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) 
+    %                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                     end
-                elseif strcmp(tracksNA(k).state{ii} , 'FC')
-                    % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
-%                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
-                elseif strcmp(tracksNA(k).state{ii} , 'FA')
-                    % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-cropInfo(1)-band+1,tracksNA(k).yCoord(1:ii)-cropInfo(2)-band+1, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) 
-%                     plot(tracksNA(k).xCoord(ii)-cropInfo(1),tracksNA(k).yCoord(ii)-cropInfo(2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                 end
             end
         end
-        syFigureStyle(h2,gca,cropInfo(4)-cropInfo(2)-2*band+1);
+%         syFigureStyle(h2,gca,cropInfo(4)-cropInfo(2)-2*band+1);
 
         print('-depsc2', '-r150', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
         print('-dtiff', '-r150', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
@@ -641,26 +665,31 @@ for ii=1:nFrames
 %     imwrite(uint16(round(tsMap*2^15/3500)),strcat(forcemapPath,'/force',num2str(ii,iiformat),'max',num2str(tmax),'.tif'));
     imwrite(uint16(paxImageCropped),strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
     if ii==1
-        cropPosition = [cropInfo(1) cropInfo(2) cropInfo(3)-cropInfo(1) cropInfo(4)-cropInfo(2)];
-        save(strcat(dataPath,'/cropInfo.mat'),'cropPosition');
+        if tMapFromOutput
+            save(strcat(dataPath,'/cropInfo.mat'),'cropInfo');
+        else
+            cropInfo = [cropInfo(1) cropInfo(2) cropInfo(3)-cropInfo(1) cropInfo(4)-cropInfo(2)];
+            save(strcat(dataPath,'/cropInfo.mat'),'cropInfo');
+        end
     end
 end
 toc
-%% protrusion/retraction information
+%% protrusion/retraction information - most of these are now done in analyzeAdhesionsMaturation
 % time after protrusion onset (negative value if retraction, based
 % on the next protrusion onset) in frame, based on tracksNA.distToEdge
 % First I have to quantify when the protrusion and retraction onset take
 % place.
-for ii=1:numel(tracksNA)
-    idxZeros = tracksNA(ii).closestBdPoint(:)==0;
-    tracksNA(ii).closestBdPoint(idxZeros)=NaN;
-end
+% for ii=1:numel(tracksNA)
+%     idxZeros = tracksNA(ii).closestBdPoint(:)==0;
+%     tracksNA(ii).closestBdPoint(idxZeros)=NaN;
+% end
 
 disp('Post-analysis on adhesion movement and cross-correlation between fluorescence intensity and traction...')
 deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
 tIntervalMin = deltaT/60; % in min
 periodMin = 1;
 periodFrames = floor(periodMin/tIntervalMin); % early period in frames
+timeInterval = deltaT/60; % in min
 for k=1:numel(tracksNA)
     % cross-correlation scores
     presIdx = logical(tracksNA(k).presence);
@@ -670,142 +699,156 @@ for k=1:numel(tracksNA)
     tracksNA(k).CCbounds = curBounds;
     tracksNA(k).CClag = curLag;
     tracksNA(k).CC_p = curP;
-    % get the instantaneous velocity
-    % get the distance first
-    curTrackVelLength=sum(presIdx)-1;
-    distTrajec=zeros(curTrackVelLength,1);
-    presIdxSeq = find(presIdx);
-    for kk=1:curTrackVelLength
-        real_kk = presIdxSeq(kk);
-        distTrajec(kk) = sqrt(sum((tracksNA(k).closestBdPoint(real_kk+1,:)- ...
-            tracksNA(k).closestBdPoint(real_kk,:)).^2,2));
-        lastPointIntX = round(tracksNA(k).closestBdPoint(real_kk+1,1));
-        lastPointIntY = round(tracksNA(k).closestBdPoint(real_kk+1,2));
-        if cropMaskStack(lastPointIntY-(floor(cropInfo(2))+band-1),lastPointIntX-(floor(cropInfo(1))+band-1),real_kk) %if the last point is in the first mask, it is inward
-            distTrajec(kk) = -distTrajec(kk);
+    try
+        sF=tracksNA(k).startingFrameExtra;
+        eF=tracksNA(k).endingFrameExtra;
+        if isempty(sF)
+            sF=tracksNA(k).startingFrame;
         end
-    end
-    if any(distTrajec~=0)
-        [Protrusion,Retraction] = getPersistenceTime(distTrajec,deltaT);%,'plotYes',true)
-        if any(isnan(Retraction.persTime)) || sum(Protrusion.persTime) - sum(Retraction.persTime)>0 % this is protrusion for this track
-            tracksNA(k).isProtrusion = true;
-        else
-            tracksNA(k).isProtrusion = false;
+        if isempty(eF)
+            eF=tracksNA(k).endingFrame;
         end
-        % average velocity (positive for protrusion)
-        curProtVel = (Protrusion.Veloc); curProtVel(isnan(curProtVel))=0;
-        curProtPersTime = (Protrusion.persTime); curProtPersTime(isnan(curProtPersTime))=0;
-        curRetVel = (Retraction.Veloc); curRetVel(isnan(curRetVel))=0;
-        curRetPersTime = (Retraction.persTime); curRetPersTime(isnan(curRetPersTime))=0;
-
-        tracksNA(k).edgeVel = (mean(curProtVel.*curProtPersTime)-mean(curRetVel.*curRetPersTime))/mean([curProtPersTime;curRetPersTime]);
-    else
-        tracksNA(k).edgeVel = 0;
+    catch
+        sF=tracksNA(k).startingFrame;
+        eF=tracksNA(k).endingFrame;
+        tracksNA(k).lifeTime = eF-sF+1;    
     end
-    % lifetime information
-    tracksNA(k).lifeTime = tracksNA(k).endingFrame-tracksNA(k).startingFrame+1;    
-    % Inital intensity slope for one min
-    timeInterval = deltaT/60; % in min
+%     % get the instantaneous velocity
+%     % get the distance first
+%     curTrackVelLength=sum(presIdx)-1;
+%     distTrajec=zeros(curTrackVelLength,1);
+%     presIdxSeq = find(presIdx);
+%     for kk=1:curTrackVelLength
+%         real_kk = presIdxSeq(kk);
+%         distTrajec(kk) = sqrt(sum((tracksNA(k).closestBdPoint(real_kk+1,:)- ...
+%             tracksNA(k).closestBdPoint(real_kk,:)).^2,2));
+%         lastPointIntX = round(tracksNA(k).closestBdPoint(real_kk+1,1));
+%         lastPointIntY = round(tracksNA(k).closestBdPoint(real_kk+1,2));
+%         if cropMaskStack(lastPointIntY-(floor(cropInfo(2))+band-1),lastPointIntX-(floor(cropInfo(1))+band-1),real_kk) %if the last point is in the first mask, it is inward
+%             distTrajec(kk) = -distTrajec(kk);
+%         end
+%     end
+%     if any(distTrajec~=0)
+%         [Protrusion,Retraction] = getPersistenceTime(distTrajec,deltaT);%,'plotYes',true)
+%         if any(isnan(Retraction.persTime)) || sum(Protrusion.persTime) - sum(Retraction.persTime)>0 % this is protrusion for this track
+%             tracksNA(k).isProtrusion = true;
+%         else
+%             tracksNA(k).isProtrusion = false;
+%         end
+%         % average velocity (positive for protrusion)
+%         curProtVel = (Protrusion.Veloc); curProtVel(isnan(curProtVel))=0;
+%         curProtPersTime = (Protrusion.persTime); curProtPersTime(isnan(curProtPersTime))=0;
+%         curRetVel = (Retraction.Veloc); curRetVel(isnan(curRetVel))=0;
+%         curRetPersTime = (Retraction.persTime); curRetPersTime(isnan(curRetPersTime))=0;
+% 
+%         tracksNA(k).edgeVel = (mean(curProtVel.*curProtPersTime)-mean(curRetVel.*curRetPersTime))/mean([curProtPersTime;curRetPersTime]);
+%     else
+%         tracksNA(k).edgeVel = 0;
+%     end
+%     % lifetime information
+%     tracksNA(k).lifeTime = tracksNA(k).endingFrame-tracksNA(k).startingFrame+1;    
+%     % Inital intensity slope for one min
+%     timeInterval = deltaT/60; % in min
     earlyPeriod = floor(1/timeInterval); % frames per minute
-    lastFrame = min(sum(~isnan(tracksNA(k).amp)),tracksNA(k).startingFrame+earlyPeriod-1);
-    lastFrameFromOne = lastFrame - tracksNA(k).startingFrame+1;
-    [curR,curM] = regression(timeInterval*(1:lastFrameFromOne),tracksNA(k).amp(tracksNA(k).startingFrame:lastFrame));
-    tracksNA(k).ampSlope = curM; % in a.u./min
-    tracksNA(k).ampSlopeR = curR; % Pearson's correlation coefficient
-    [curForceR,curForceM] = regression(timeInterval*(1:lastFrameFromOne),tracksNA(k).forceMag(tracksNA(k).startingFrame:lastFrame));
+    lastFrame = min(sum(~isnan(tracksNA(k).amp)),sF+earlyPeriod-1);
+    lastFrameFromOne = lastFrame - sF+1;
+%     [curR,curM] = regression(timeInterval*(1:lastFrameFromOne),tracksNA(k).amp(tracksNA(k).startingFrame:lastFrame));
+%     tracksNA(k).ampSlope = curM; % in a.u./min
+%     tracksNA(k).ampSlopeR = curR; % Pearson's correlation coefficient
+    [curForceR,curForceM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame));
     tracksNA(k).forceSlope = curForceM; % in Pa/min
     tracksNA(k).forceSlopeR = curForceR; % Pearson's correlation coefficient
     
-    curEndFrame = min(tracksNA(k).startingFrameExtra+periodFrames-1,tracksNA(k).endingFrame);
-    curEarlyPeriod = curEndFrame - tracksNA(k).startingFrameExtra+1;
-    [~,curM] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).ampTotal(tracksNA(k).startingFrameExtra:curEndFrame));
-    tracksNA(k).earlyAmpSlope = curM; % in a.u./min
-
-    curStartFrame = max(tracksNA(k).startingFrame,tracksNA(k).endingFrameExtra-periodFrames+1);
-    curLatePeriod = tracksNA(k).endingFrameExtra - curStartFrame+1;
-    [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),tracksNA(k).ampTotal(curStartFrame:tracksNA(k).endingFrameExtra));
-    tracksNA(k).lateAmpSlope = curMlate; % in a.u./min
-
-    curEndFrame = min(tracksNA(k).startingFrame+periodFrames-1,tracksNA(k).endingFrame);
-    curEarlyPeriod = curEndFrame - tracksNA(k).startingFrame+1;
-    [~,curMdist] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).distToEdge(tracksNA(k).startingFrame:curEndFrame));
-    tracksNA(k).distToEdgeSlope = curMdist; % in a.u./min
-    tracksNA(k).distToEdgeChange = (tracksNA(k).distToEdge(end)-tracksNA(k).distToEdge(tracksNA(k).startingFrame)); % in pixel
-    sF=tracksNA(k).startingFrame;
-    eF=tracksNA(k).endingFrame;
-    % Determining protrusion/retraction based on closestBdPoint and [xCoord
-    % yCoord]. If the edge at one time point does not cross the adhesion
-    % tracks over entire life time, there is no problem. But that's not
-    % always the case: adhesion tracks crosses the cell boundary at first
-    % or last time point. And we don't know if the adhesion tracks are
-    % moving in the direction of protrusion or retraction. Thus, what I
-    % will do is to calculate the inner product of vectors from the
-    % adhesion tracks from the closestBdPoint at the first frame. If the
-    % product is positive, it means both adhesion points are in the same
-    % side. And if distance from the boundary to the last point is larger
-    % than the distance to the first point, it means the adhesion track is
-    % retracting. In the opposite case, the track is protruding (but it
-    % will happen less likely because usually the track would cross the
-    % first frame boundary if it is in the protrusion direction). 
-    
-    % We need to find out boundary points projected on the line of adhesion track 
-%     edge = [tracksNA(k).xCoord(sF) tracksNA(k).yCoord(sF) tracksNA(k).xCoord(eF) tracksNA(k).yCoord(eF)];
-%     [aLine,bLine,cLine,fitnessLine]=ortho2Dlinefit(tracksNA(k).xCoord,tracksNA(k).yCoord);
-    fitobj = fit(tracksNA(k).xCoord(sF:eF)',tracksNA(k).yCoord(sF:eF)','poly1');
-    x0=nanmedian(tracksNA(k).xCoord);
-    y0=fitobj(x0);
-    dx = 1;
-    dy = fitobj.p1;
-    trackLine = createLine(x0,y0,dx,dy);
-    
-%     trackLine = edgeToLine(edge);
-    firstBdPoint = [tracksNA(k).closestBdPoint(sF,1) tracksNA(k).closestBdPoint(sF,2)];
-    firstBdPointProjected = projPointOnLine(firstBdPoint, trackLine);
-    lastBdPoint = [tracksNA(k).closestBdPoint(eF,1) tracksNA(k).closestBdPoint(eF,2)];
-    lastBdPointProjected = projPointOnLine(lastBdPoint, trackLine);
-    
-    firstAdhToFirstBdPoint = [tracksNA(k).xCoord(sF)-firstBdPointProjected(1), tracksNA(k).yCoord(sF)-firstBdPointProjected(2)];
-    lastAdhToFirstBdPoint = [tracksNA(k).xCoord(eF)-firstBdPointProjected(1), tracksNA(k).yCoord(eF)-firstBdPointProjected(2)];
-    firstAdhToLastBdPoint = [tracksNA(k).xCoord(sF)-lastBdPointProjected(1), tracksNA(k).yCoord(sF)-lastBdPointProjected(2)];
-    lastAdhToLastBdPoint = [tracksNA(k).xCoord(eF)-lastBdPointProjected(1), tracksNA(k).yCoord(eF)-lastBdPointProjected(2)];
-    firstBDproduct=firstAdhToFirstBdPoint*lastAdhToFirstBdPoint';
-    lastBDproduct=firstAdhToLastBdPoint*lastAdhToLastBdPoint';
-    if firstBDproduct>0 && firstBDproduct>lastBDproduct% both adhesion points are in the same side
-        tracksNA(k).advanceDist = (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5 - ...
-                                                        (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
-        tracksNA(k).edgeAdvanceDist = (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5 - ...
-                                                        (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
-    else
-        if lastBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
-            tracksNA(k).advanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
-                                                            (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5; % in pixel
-            tracksNA(k).edgeAdvanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
-                                                            (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5; % in pixel
-            % this code is nice to check:
-%             figure, imshow(paxImgStack(:,:,tracksNA(k).endingFrame),[]), hold on, plot(tracksNA(k).xCoord,tracksNA(k).yCoord,'w'), plot(tracksNA(k).closestBdPoint(:,1),tracksNA(k).closestBdPoint(:,2),'r')
-%             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
-%             plot(tracksNA(k).xCoord(tracksNA(k).startingFrame),tracksNA(k).yCoord(tracksNA(k).startingFrame),'yo'),plot(tracksNA(k).xCoord(tracksNA(k).endingFrame),tracksNA(k).yCoord(tracksNA(k).endingFrame),'mo')
-        else
-            disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
-            firstAdhToFirstBdPoint = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(sF,2)];
-            lastAdhToFirstBdPoint = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(sF,2)];
-            firstAdhToLastBdPoint = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(eF,2)];
-            lastAdhToLastBdPoint = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(eF,2)];
-            firstBDproduct=firstAdhToFirstBdPoint*lastAdhToFirstBdPoint';
-            lastBDproduct=firstAdhToLastBdPoint*lastAdhToLastBdPoint';
-            if firstBDproduct>lastBDproduct
-                tracksNA(k).advanceDist = (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5 - ...
-                                                                (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
-                tracksNA(k).edgeAdvanceDist = (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5 - ...
-                                                                (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
-            else
-                tracksNA(k).advanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
-                                                                (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5; % in pixel
-                tracksNA(k).edgeAdvanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
-                                                                (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5; % in pixel
-            end
-        end
-    end
+%     curEndFrame = min(tracksNA(k).startingFrameExtra+periodFrames-1,tracksNA(k).endingFrame);
+%     curEarlyPeriod = curEndFrame - tracksNA(k).startingFrameExtra+1;
+%     [~,curM] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).ampTotal(tracksNA(k).startingFrameExtra:curEndFrame));
+%     tracksNA(k).earlyAmpSlope = curM; % in a.u./min
+% 
+%     curStartFrame = max(tracksNA(k).startingFrame,tracksNA(k).endingFrameExtra-periodFrames+1);
+%     curLatePeriod = tracksNA(k).endingFrameExtra - curStartFrame+1;
+%     [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),tracksNA(k).ampTotal(curStartFrame:tracksNA(k).endingFrameExtra));
+%     tracksNA(k).lateAmpSlope = curMlate; % in a.u./min
+% 
+%     curEndFrame = min(tracksNA(k).startingFrame+periodFrames-1,tracksNA(k).endingFrame);
+%     curEarlyPeriod = curEndFrame - tracksNA(k).startingFrame+1;
+%     [~,curMdist] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).distToEdge(tracksNA(k).startingFrame:curEndFrame));
+%     tracksNA(k).distToEdgeSlope = curMdist; % in a.u./min
+%     tracksNA(k).distToEdgeChange = (tracksNA(k).distToEdge(end)-tracksNA(k).distToEdge(tracksNA(k).startingFrame)); % in pixel
+%     sF=tracksNA(k).startingFrame;
+%     eF=tracksNA(k).endingFrame;
+%     % Determining protrusion/retraction based on closestBdPoint and [xCoord
+%     % yCoord]. If the edge at one time point does not cross the adhesion
+%     % tracks over entire life time, there is no problem. But that's not
+%     % always the case: adhesion tracks crosses the cell boundary at first
+%     % or last time point. And we don't know if the adhesion tracks are
+%     % moving in the direction of protrusion or retraction. Thus, what I
+%     % will do is to calculate the inner product of vectors from the
+%     % adhesion tracks from the closestBdPoint at the first frame. If the
+%     % product is positive, it means both adhesion points are in the same
+%     % side. And if distance from the boundary to the last point is larger
+%     % than the distance to the first point, it means the adhesion track is
+%     % retracting. In the opposite case, the track is protruding (but it
+%     % will happen less likely because usually the track would cross the
+%     % first frame boundary if it is in the protrusion direction). 
+%     
+%     % We need to find out boundary points projected on the line of adhesion track 
+% %     edge = [tracksNA(k).xCoord(sF) tracksNA(k).yCoord(sF) tracksNA(k).xCoord(eF) tracksNA(k).yCoord(eF)];
+% %     [aLine,bLine,cLine,fitnessLine]=ortho2Dlinefit(tracksNA(k).xCoord,tracksNA(k).yCoord);
+%     fitobj = fit(tracksNA(k).xCoord(sF:eF)',tracksNA(k).yCoord(sF:eF)','poly1');
+%     x0=nanmedian(tracksNA(k).xCoord);
+%     y0=fitobj(x0);
+%     dx = 1;
+%     dy = fitobj.p1;
+%     trackLine = createLineGeom2d(x0,y0,dx,dy);
+%     
+% %     trackLine = edgeToLine(edge);
+%     firstBdPoint = [tracksNA(k).closestBdPoint(sF,1) tracksNA(k).closestBdPoint(sF,2)];
+%     firstBdPointProjected = projPointOnLine(firstBdPoint, trackLine);
+%     lastBdPoint = [tracksNA(k).closestBdPoint(eF,1) tracksNA(k).closestBdPoint(eF,2)];
+%     lastBdPointProjected = projPointOnLine(lastBdPoint, trackLine);
+%     
+%     firstAdhToFirstBdPoint = [tracksNA(k).xCoord(sF)-firstBdPointProjected(1), tracksNA(k).yCoord(sF)-firstBdPointProjected(2)];
+%     lastAdhToFirstBdPoint = [tracksNA(k).xCoord(eF)-firstBdPointProjected(1), tracksNA(k).yCoord(eF)-firstBdPointProjected(2)];
+%     firstAdhToLastBdPoint = [tracksNA(k).xCoord(sF)-lastBdPointProjected(1), tracksNA(k).yCoord(sF)-lastBdPointProjected(2)];
+%     lastAdhToLastBdPoint = [tracksNA(k).xCoord(eF)-lastBdPointProjected(1), tracksNA(k).yCoord(eF)-lastBdPointProjected(2)];
+%     firstBDproduct=firstAdhToFirstBdPoint*lastAdhToFirstBdPoint';
+%     lastBDproduct=firstAdhToLastBdPoint*lastAdhToLastBdPoint';
+%     if firstBDproduct>0 && firstBDproduct>lastBDproduct% both adhesion points are in the same side
+%         tracksNA(k).advanceDist = (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5 - ...
+%                                                         (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+%         tracksNA(k).edgeAdvanceDist = (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5 - ...
+%                                                         (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+%     else
+%         if lastBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
+%             tracksNA(k).advanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
+%                                                             (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5; % in pixel
+%             tracksNA(k).edgeAdvanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
+%                                                             (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+%             % this code is nice to check:
+% %             figure, imshow(paxImgStack(:,:,tracksNA(k).endingFrame),[]), hold on, plot(tracksNA(k).xCoord,tracksNA(k).yCoord,'w'), plot(tracksNA(k).closestBdPoint(:,1),tracksNA(k).closestBdPoint(:,2),'r')
+% %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
+% %             plot(tracksNA(k).xCoord(tracksNA(k).startingFrame),tracksNA(k).yCoord(tracksNA(k).startingFrame),'yo'),plot(tracksNA(k).xCoord(tracksNA(k).endingFrame),tracksNA(k).yCoord(tracksNA(k).endingFrame),'mo')
+%         else
+%             disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
+%             firstAdhToFirstBdPoint = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(sF,2)];
+%             lastAdhToFirstBdPoint = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(sF,2)];
+%             firstAdhToLastBdPoint = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(eF,2)];
+%             lastAdhToLastBdPoint = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(eF,2)];
+%             firstBDproduct=firstAdhToFirstBdPoint*lastAdhToFirstBdPoint';
+%             lastBDproduct=firstAdhToLastBdPoint*lastAdhToLastBdPoint';
+%             if firstBDproduct>lastBDproduct
+%                 tracksNA(k).advanceDist = (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5 - ...
+%                                                                 (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+%                 tracksNA(k).edgeAdvanceDist = (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5 - ...
+%                                                                 (lastAdhToFirstBdPoint(1)^2 + lastAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+%             else
+%                 tracksNA(k).advanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
+%                                                                 (lastAdhToLastBdPoint(1)^2 + lastAdhToLastBdPoint(2)^2)^0.5; % in pixel
+%                 tracksNA(k).edgeAdvanceDist = (firstAdhToLastBdPoint(1)^2 + firstAdhToLastBdPoint(2)^2)^0.5 - ...
+%                                                                 (firstAdhToFirstBdPoint(1)^2 + firstAdhToFirstBdPoint(2)^2)^0.5; % in pixel
+%             end
+%         end
+%     end
     
 end
 disp('Saving...')
@@ -1069,6 +1112,13 @@ function tracksNA = applyDriftToTracks(tracksNA, T)
         for  j = 1 : nFrames
             tracksNA(i).xCoord(j) = tracksNA(i).xCoord(j)+T(j,2)+maxX;
             tracksNA(i).yCoord(j) = tracksNA(i).yCoord(j)+T(j,1)+maxY;
+            tracksNA(i).closestBdPoint(:,1) = tracksNA(i).closestBdPoint(:,1)+T(j,2)+maxX;
+            tracksNA(i).closestBdPoint(:,2) = tracksNA(i).closestBdPoint(:,2)+T(j,1)+maxY;
+            try
+                tracksNA(i).adhBoundary{j} = [tracksNA(i).adhBoundary{j}(:,2)+T(j,2)+maxX tracksNA(i).adhBoundary{j}(:,1)+T(j,1)+maxY];
+            catch
+                tracksNA(i).adhBoundary{j} = [];
+            end
         end
     end
 end
