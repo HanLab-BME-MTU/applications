@@ -33,7 +33,7 @@ import ij.text.*;
 imp = WindowManager.getCurrentImage();
 MIJ.run('Properties...','slices=1 frames=10'); %Make sure image is read properly
 MIJ.run('32-bit'); %Seriously, program ONLY runs this format
-map = STICS_map(32,16);
+map = STICS_map(32,32);
 stack=imp.getStack();
 width=imp.getWidth();
 height = imp.getHeight();
@@ -49,7 +49,7 @@ centered = true;
 norm = true;
 multiplier = 1;
 magthresh = 2;
-stepsize = 16;
+stepsize = 4;
 
 
 %Update map with parameters and and run STICS analysis

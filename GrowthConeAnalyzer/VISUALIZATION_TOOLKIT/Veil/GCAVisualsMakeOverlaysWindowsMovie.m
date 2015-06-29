@@ -51,6 +51,7 @@ ip.addParameter('ChannelIndex',1);
 ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
+ip.addParameter('OnlyFirstWind',true); 
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -60,13 +61,13 @@ nFrames = movieData.nFrames_;
 nChan = numel(p.ChannelIndex);
 channels = p.ChannelIndex;
 imSize = movieData.imSize_;
-ny = imSize(2); 
-nx = imSize(1); 
+ny = imSize(1); 
+nx = imSize(2); 
 
 %% Loop for each channel
 for iCh = 1:nChan
     
-    display(['Making Window Overlays For ' num2str(channels(iCh))]);
+    display(['Making Window Overlays For Channel' num2str(channels(iCh)) ':' movieData.outputDirectory_]);
     
 %% Make the OutputDirectory 
     saveDir = [ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh)]; 
@@ -110,10 +111,11 @@ for iCh = 1:nChan
                 'this movie: '...
                 'will be performed using the most recently run protrusion process']);
         % if length(protS)
+        end
     else % no veil protrusion vectors were found
         display(['The veil protrusion process was not found for this movie :'...
             'Please Run the Protrusion Vectors']); 
-        end 
+    
     end % idxProt
             
 %% MOVIE WRAPPER 
@@ -128,15 +130,21 @@ for iCh = 1:nChan
         protrusionC = protrusion{iFrame}; 
         edgeC = smoothedEdge{iFrame}; 
       
-        setFigure(nx,ny,'on'); 
+        setFigure(nx,ny,'off'); 
         imshow(-img,[]) ; 
         hold on 
        
-            display(['Plotting Frame' num2str(iFrame)]);
-            
-            
-            GCAVisualsMakeOverlaysVeilStemWindows(windows,normalsC,protrusionC,edgeC); 
-   
+%         if ip.Results.OnlyFirstWind == true; 
+%             %display(['Plotting Frame' num2str(iFrame)]);
+%             windows = windows{1}(1); 
+%         end 
+          
+            GCAVisualsMakeOverlaysVeilStemWindows(windows,normalsC,protrusionC,edgeC);
+%              pixelSizeMicron= movieData.pixelSize_/1000;
+%              forScaleBar = (10/pixelSizeMicron); % default 10 um scale bar
+% %             
+%             plotScaleBar(forScaleBar,'Color',[0 0 0],'Location', 'SouthEast');
+%             
             saveas(gcf,[saveDir filesep   num2str(iFrame,'%03d') '.png']);
             saveas(gcf,[saveDir filesep   num2str(iFrame,'%03d') '.eps'],'psc2');
             saveas(gcf,[saveDir filesep   num2str(iFrame,'%03d') '.fig']);

@@ -344,7 +344,7 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 
 
 %% Run Main Function that performs the reconstructions
-[reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMainFixInput(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
+[reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
 
 TSFigsFinal = [TSFigs; TSFigs2]; 
 

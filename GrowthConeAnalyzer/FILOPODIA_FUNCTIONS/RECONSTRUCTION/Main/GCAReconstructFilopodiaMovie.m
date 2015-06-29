@@ -216,7 +216,7 @@ for iCh = 1:nChan
         EPLead = veilStem(iFrame).endPointLeadingProt; 
         LPIndices = veilStem(iFrame).neuriteLongPathIndices;
     
-        GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,protrusionC,EPLead,LPIndices,p); 
+        GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,p); 
         
         
         

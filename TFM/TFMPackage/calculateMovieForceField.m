@@ -217,6 +217,8 @@ else
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.0,0); %no dense mesh in any case. It causes aliasing issue!
 end
 tMap = cell(1,nFrames);
+tMapX = cell(1,nFrames);
+tMapY = cell(1,nFrames);
 
 disp('Calculating force field...')
 logMsg = 'Please wait, calculating force field';
@@ -381,14 +383,20 @@ end
 % For calculation of traction map
 % The drift-corrected frames should have independent channel
 % ->StageDriftCorrectionProcess
-[tMapIn, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,0);
+[tMapIn, tmax, tmin, cropInfo,tMapXin,tMapYin] = generateHeatmapShifted(forceField,displField,0);
 % Insert traction map in forceField.pos 
 disp('Generating traction maps ...')
 for ii=frameSequence
     % starts with original size of beads
     cur_tMap = zeros(size(firstMask));
+    cur_tMapX = zeros(size(firstMask));
+    cur_tMapY = zeros(size(firstMask));
     cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii};
+    cur_tMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapXin{ii};
+    cur_tMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapYin{ii};
     tMap{ii} = cur_tMap;
+    tMapX{ii} = cur_tMapX;
+    tMapY{ii} = cur_tMapY;
 end
 
 % Fill in the values to be stored:
@@ -398,7 +406,7 @@ clear iu_mat;
                 
 disp('Saving ...')
 save(outputFile{1},'forceField');
-save(outputFile{2},'tMap'); % need to be updated for faster loading. SH 20141106
+save(outputFile{2},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
 forceFieldProc.setTractionMapLimits([tmin tmax])
 
 % Close waitbar

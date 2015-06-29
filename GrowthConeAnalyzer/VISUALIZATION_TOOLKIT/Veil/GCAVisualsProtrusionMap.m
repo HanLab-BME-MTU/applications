@@ -40,7 +40,7 @@ end
                  xlabel('Time (s)' , lfont{:});
              %  title(name,sfont{:});
                frameNum = get(gca,'XTickLabel');
-                 inSec  = str2num(frameNum).*5; % SET THE TIME INTERVAL
+                 inSec  = str2double(frameNum).*5; % SET THE TIME INTERVAL
                  num2str(inSec);
                  set(gca,'XTickLabel',inSec);
                  set(gca,'FontSize',10,'FontName','Arial');
