@@ -1,0 +1,105 @@
+RUN:
+
+To use the BisectoGraph GUI, open the "BisectoGraph.m" file in MATLAB and select the "Run" menu option.
+
+INPUT:
+
+The input for the GUI is assumed to be a TIF file with the background intensity equal to zero and the object intensity greater than or equal to 1. 
+It can be a single-frame or a multi-frame (stack) file. If you try to import masks saved in RGB format, the GUI will always read only the 
+red component. The output of the MovThresh GUI is a proper input for BisectoGraph, but any other mask stack saved as a gray-scale TIF file 
+should work. If you have masks saved in a different format, please use ImageJ or any other available software for conversion to the TIF format. 
+
+OUTPUT:
+
+The output is a MATLAB file (*.mat). It contains all the data needed for FiloTrack, ConeTrack and ProActive GUIs as an input. The description 
+of the output data is provided at the end of this file.
+
+PROCESSING STEPS:
+
+1. Import a file for processing using the GUI menu: File -> Import masks (.tif). The GUI will display the outline of the masked object. Use the 
+frame slider under the image to display a specific time frame. 
+
+2. To process a single frame, click "Graph 1 Frame". To process all time frames, click "Graph All Frames". The Voronoi graph will be displayed 
+in the left panel and the "Profile" button will become activated.
+
+3. To find the boundary profile, click "Profile". The boundary profile will be displayed in the top right panel. Use the slider under the panel 
+to display the medial path from a protrusion tip to the graph root (red curve in the left panel) and to display the protrusion width as a 
+function of the distance from its tip in the bottom right panel. The results can now be saved. 
+
+4. Use the "Show Cell Body" checkbox to display the cell body as a green outline in the left panel. The critical radius (the parameter that 
+defines the protrusion cutoff) will be displayed as a green line in the bottom right panel. Use the vertical slider on the right to change the 
+value of the critical radius. Changing the critical radius interactively changes the cell body outline in the left panel. 
+
+5. If all frames have been processed, the results can be saved using the menu: File -> Save results (.mat).
+
+6. The above steps are needed only if you want to explore the processing results for a given cell. Otherwise, you can process and save multiple 
+cells (multiple tif stacks) using the "Batch Processing". For that you would need to import one of the consistently named and numbered tif files. 
+For example, if the files f1.tif, f2.tif, etc. are grouped by day in folders Day1, Day2, etc, which in turn are grouped by genotype in folders 
+Type1, Type2, etc, the GUI will display file and folder prefixes (here "f", "Day" and "Type") that appear before the numbers 1,2, etc. Then, you 
+need to specify the ranges of number after the prefixes and click "List Files". All the files with the specified numbering will be shown in the 
+table. Now, these files can be processed with a single click on the "Process" button.
+
+
+WARNINGS:
+
+If there are several objects in the mask image, the GUI will process only the biggest one. If two or more objects in the image are close in size, 
+so that different objects get displayed for different time frames, we recommend to pre-process the data (e.g. in ImageJ) so that only one big 
+object is present in the imported image. 
+
+OPTIONS: 
+
+The smoothing window defines the degree of smoothing of the original boundary profile. Smoothing prevents small scale bumps from being detected as 
+protrusion tips. Depending on the length of the cell outline one value for the smoothing window might work better then another value. The value can be 
+changed in the top right corner of the GUI. However, even without smoothing, keeping small scale bumps as protrusion tips does not create a 
+problem, because in FiloTrack the critical length parameter will exclude small bumps from the protrusion count anyway. 
+
+
+OUTPUT DATA: 
+
+1. "sNegde" gives the number of edges in the graph for each time frame.
+
+2. "sNconvex" gives the number of convex boundary points for each time frame.
+
+3. "sNconcave" gives the number of concave boundary points for each time frame.
+
+Comment: 
+ Lb=Nconvex+Nconcave is the total number of boundary points.
+ Nvert=2*(Nconvex+Nconcave)+1*Nconcave-2 is the number of graph vertices.
+
+4. "sXbYb" is a cell array with each element being [Lb x 2] matrix of boundary (x,y)-coordinates, within which the graph was built.
+
+5. "sINDX" is a cell array with each element being an [Nedge x 2] index matrix, where the numbers [ch,ph] in each 
+ line give indexes of the "child" and "parent" vertices of an edge.
+ The graph-tree starts at the root, INDX(1,2), and ends on the boundary, 
+ going from a parent vertex to a child one. Every parent has two children. 
+ Every child has one parent accept for concave boundary points 
+ that have two parents.
+
+6. "sVb" is a cell array with each element being an Lb-long array of the boundary point indexes, 
+ according the graph vertex labeling.
+
+7. "sCoor" is a cell array with each element being [Nvert x 2] matrix which gives vertex (x,y)-coordinates.
+
+8. "sDIST" is a cell array with each element being Nvert-long arrays of distances from 
+ each vertex to the graph root along graph edges. 
+
+9. "sRad" is a cell array with each element being Nvert-long array of minimal distances from each vertex
+ to the boundary.
+
+10. "sTip" is a cell array with each element being an array of indexes of protrusion tips, so that 
+ sXbYb{fr}(Tip,1:2) are the coordinates of the tips in the time frame fr.
+
+11. "boundaries" is a cell array with each element being an [M x 2] matrix of cell body boundary (x,y)-coordinates, 
+ where M is number of cell body boundary points.
+
+12. "sPathInd" is a cell array with each element being a [P x Lb] matric of vertex indexes for each path from a 
+ boundary point to the tree root. Here P is the number of vertices in the path with the largest number of vertices. 
+
+13. "sPathLngb" is a cell array with each element being a Lb-long array, that gives the length of each path from 
+ boundary points to the tree root. 
+
+14. "sREM1" and "sREM2" are cell arrays with each element giving the graph edge coordinates, so that 
+ [sREM1{fr}; sREM2{fr}] is an [Nedge x 4] matrix where each line [x1 y1 x2 y2] gives the coordinates 
+ of two vertices connected by an edge. sREM1 corresponds to the Medial Axis and sREM1 and sREM2 
+ together correspond to the full Voronoi graph. 
+

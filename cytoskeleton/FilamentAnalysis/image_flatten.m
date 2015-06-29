@@ -58,11 +58,16 @@ nFrame = movieData.nFrames_;
 % default image flateen output dir
 ImageFlattenProcessOutputDir = [movieData.outputDirectory_, filesep 'ImageFlatten'];
 
-if(~isempty(funParams.outputDir))
-    % if there is a user defined folder as output folder
-    % definitely follow that
-    ImageFlattenProcessOutputDir = funParams.outputDir;
-else
+%%
+% user defined way is not working for the GUI interface part if a ML is
+% defined and applied setting to all of the movies, (which causes the
+% folder all changed into movie 1)
+
+% if(~isempty(funParams.outputDir))
+%     % if there is a user defined folder as output folder
+%     % definitely follow that
+%     ImageFlattenProcessOutputDir = funParams.outputDir;
+% else
     % if there is no user defined, but there is a filamentanalysispackage
     % and there is a defined folder for the package, append for that.
     if (indexFilamentPackage>0)
@@ -75,7 +80,7 @@ else
             ImageFlattenProcessOutputDir  = [movieData.packages_{indexFilamentPackage}.outputDirectory_, filesep 'ImageFlatten'];
         end
     end
-end
+% end
 
 if (~exist(ImageFlattenProcessOutputDir,'dir'))
     mkdir(ImageFlattenProcessOutputDir);
@@ -197,7 +202,7 @@ for iChannel = selected_channels
         img_pixel_pool = double(img_pixel_pool(:));
         nonzero_img_pixel_pool= img_pixel_pool(img_pixel_pool>0);
         
-        low_005_percentile = prctile(img_pixel_pool,0.5);
+        low_005_percentile = prctile(img_pixel_pool,0.01);
         
         % for log mode, need to find a min bigger than 0
         if(low_005_percentile==0 && flatten_method_ind==1)
@@ -208,7 +213,7 @@ for iChannel = selected_channels
         end        
         
         % if not found the loop use 1 max
-        high_995_percentile = prctile(img_pixel_pool,99.5);
+        high_995_percentile = prctile(img_pixel_pool,99.99);
         
         if exist('img_pixel_pool','var')
             clearvars img_pixel_pool;
@@ -282,7 +287,7 @@ for iChannel = selected_channels
         % Get rid of extreme noises
 %         currentImg(find(currentImg>high_995_percentile- center_value_int))=high_995_percentile- center_value_int;
         currentImg(find(currentImg>high_995_percentile))= high_995_percentile;
-        currentImg(find(currentImg<=0.00000001))=0.00000001;
+        currentImg(find(currentImg<low_005_percentile))= low_005_percentile;
         
         % based on the given method index, do log or sqrt to flatten the image
         if flatten_method_ind == 1
@@ -466,3 +471,6 @@ for iChannel = selected_channels
     %%
     % this the end of "for" of each channel
 end
+
+movieData.sanityCheck();
+

@@ -172,7 +172,7 @@ for iCh = 1:nChan
         % note here we just pass in ALL of the parameters even the
         % non-specific for now - if the unmatched option is set to true in 
         % the main function there is no problem with this. 
-        [backboneFrame,TSFigs] = GCAgetNeuriteOrientFixInput(img,ip.Results); % quick fix for the plots is to just make the frame number an input for not 20140812
+        [backboneFrame,TSFigs] = GCAgetNeuriteOrient(img,ip.Results); % quick fix for the plots is to just make the frame number an input for not 20140812
        
         % make the directories for the figures if required. 
         for iFig = 1:length(TSFigs)
@@ -191,8 +191,8 @@ for iCh = 1:nChan
         end 
             
         close all
-        hashTag =  gcaArchiveGetGitHashTag;
-        backboneFrame.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+         hashTag =  gcaArchiveGetGitHashTag;
+         backboneFrame.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         backboneInfo(iFrame) = backboneFrame;
         save( [saveDir filesep 'backboneInfo.mat'],'backboneInfo');
         display(['Finished Finding Neurite Orientation for Frame ' num2str(iFrame)]);

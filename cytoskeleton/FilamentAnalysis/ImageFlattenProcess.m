@@ -24,7 +24,7 @@ classdef ImageFlattenProcess < ImageProcessingProcess
                 super_args{2} = ImageFlattenProcess.getName;
                 super_args{3} = @image_flatten;
                 if isempty(funParams)
-                    funParams = ImageFlattenProcess.getDefaultParams(owner,outputDir);
+                    funParams = ImageFlattenProcess.getDefaultParams(owner);
                 end
                 super_args{4} = funParams;
                 
@@ -176,11 +176,21 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             currentImg=[];
             
             try
-                currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                     filename_short_strs{iFrame},'.tif']);
             catch
-                currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                try
+                currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                     filename_shortshort_strs{iFrame},'.tif']);
+                catch
+                    if(iFrame==1)
+                        try
+                            currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_f.tif']);
+                        catch
+                            currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_F.tif']);
+                        end
+                    end
+                end
             end
             
             out_data = currentImg;
@@ -256,13 +266,13 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
-            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+%             ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
             ip.parse(owner, varargin{:})
-            outputDir=ip.Results.outputDir;
+%             outputDir=ip.Results.outputDir;
             
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);
-            funParams.outputDir = outputDir;
+%             funParams.outputDir = outputDir;
             funParams.method_ind = 3;
             funParams.imageflattening_mode = 2;
             funParams.GaussFilterSigma = 0.2;                        

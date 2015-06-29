@@ -9,7 +9,7 @@ function [ output_args ] = GCAAnalysisToolsMakeToPlotFileFromGroups(searchDirect
 % just numbers in case there is extra crap in there- here I include those. 
 % 
 
-
+excludeReport = []; 
 % get everything with KD
 % fitlerByNotes: will check the notes flag ...
 s = dir(searchDirectory);
@@ -57,8 +57,16 @@ for iGroup = 1:nGroups
         forProjList  = arrayfun(@(x) [directoriesExpDay{iDay} filesep  x.name],directoriesMovie,'uniformoutput',0);
         if screenByNotes == true
         % test the notes to see if should include
-        notesAll = cellfun(@(x) load([x filesep 'ANALYSIS' filesep 'notes.mat']), forProjList);
+        notesAll = cellfun(@(x) load([x filesep 'GrowthConeAnalyzer' filesep 'notes.mat']), forProjList);
         idxInclude = arrayfun(@(x) ~isempty(regexpi(notesAll(x).notes.Include_Currently,'yes')),1:length(notesAll));
+        
+        excludedFiles = forProjList(~idxInclude); 
+        if ~isempty(excludedFiles); 
+         reasons  = arrayfun(@(x) notesAll(x).notes.ExcludeAtStep,1:length(notesAll),'uniformoutput',0);
+         reasons =  reasons(~idxInclude); 
+         excludeReport{iDay} = [excludedFiles reasons']; 
+        end 
+        
         else 
             idxInclude = true(size(forProjList,1),1); % include them all 
         end 
@@ -86,6 +94,7 @@ toPlot.info.grouping = vertcat(grouping{:});
 
 
 save('toPlotGroup.mat','toPlot');
+save('ExcludeReport.mat','excludeReport'); 
 
 end
 

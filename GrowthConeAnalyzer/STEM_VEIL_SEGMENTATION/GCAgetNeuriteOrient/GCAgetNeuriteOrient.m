@@ -12,7 +12,7 @@ function [ backboneInfo,TSFigs] = GCAgetNeuriteOrient(img,varargin)
 %        of image to analyze where R is the height (ny) and C is the width
 %       (nx) of the input image
 %
-%
+%% PARAMS
 %
 % %% PARAMS: STEERABLE FILTER: RIDGE FINDING %%
 %
@@ -334,7 +334,7 @@ backboneInfo.beforeConnect= cleanedRidge;
 
 %% 6. Ridge Cleaning : Ridge Linking Step:  PERFORM LINKING
 
-[cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearRidgesFixInput(EPCandidateSort,cleanedRidgeLabelsPreLink,ip.Results);%NEED to make a variable!
+[cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearRidges(EPCandidateSort,cleanedRidgeLabelsPreLink,ip.Results);%NEED to make a variable!
 % MB CHECK BEFORE RELEASE : part of the problem may be that you are
 % introducing junctions at this stage... see how deal with in the next
 % step. The two components you ~ out are the EPs of hte new CCs and the

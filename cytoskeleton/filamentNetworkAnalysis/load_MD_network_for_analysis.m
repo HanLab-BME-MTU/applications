@@ -43,7 +43,14 @@ function [network_feature,network_feature_MD_allCh_wholepool_cell] =...
 
 %           21:   output_feature.Centripetal_fila 
 %           22:   output_feature.Centripetal_pixel 
+%           23:   output_feature.Cell_Mask
+%           24:   output_feature.number_of_nucleus
 
+%           25:   output_feature.filament_density_mean
+%           26:   output_feature.scrabled_density_filament_mean
+            
+%           27:   output_feature.ST_seg_ratio
+%           28:   output_feature.GM_seg_ratio
 
 % 
 % textcell = {'Straightness of filament (for each filament)',... % 1
@@ -70,6 +77,12 @@ function [network_feature,network_feature_MD_allCh_wholepool_cell] =...
 %     'Filament Centripetal angle for each pixel on filament (for vim screen only)',... %22
 %     'Cell Mask',... % 23
 %     'Number of Nucleus'... %24
+
+%           25:   output_feature.filament_density_mean
+%           26:   output_feature.scrabled_density_filament_mean
+            
+%           27:   output_feature.ST_seg_ratio
+%           28:   output_feature.GM_seg_ratio
 %     }
 
 
@@ -100,11 +113,13 @@ end
 
 % if no input as which feature to calculate, do for all features
 if(nargin<6)
-    feature_flag = ones(1,18);
+    feature_flag = ones(1,28);
 end
 
-if(numel(feature_flag)<18)
-    feature_flag = [feature_flag(:); zeros(18-numel(feature_flag),1)];
+
+
+if(numel(feature_flag)<28)
+    feature_flag = [feature_flag(:); zeros(28-numel(feature_flag),1)];
 end
 
 % if no input as if it is vim screen, set to no
@@ -116,6 +131,29 @@ end
 if(nargin<8)
     set_visible = 1;
 end
+
+
+if(~exist('save_tif_flag','var'))
+    save_tif_flag = 0;
+end
+
+
+
+%% dependency
+
+if(feature_flag(4)==0)
+    feature_flag(25)=0;
+end
+
+if(feature_flag(5)==0)
+    feature_flag(26)=0;
+end
+
+
+if(vimscreen_flag==0)
+    feature_flag(24)=0;
+end
+
 
 %% Get movie data ready
 
@@ -310,15 +348,26 @@ for iChannel = validChannels
       
             end            
         end
-        
-        
+                
         output_feature.Cell_Mask = Cell_Mask;
         
+        if(feature_flag(27)>0)        
+             output_feature.ST_seg_ratio = sum(sum(output_feature.SteerabelRes_Segment))./sum(sum(Cell_Mask));
+             output_feature = rmfield(output_feature, 'SteerabelRes_Segment');
+        end
+        
+        if(feature_flag(28)>0)
+             output_feature.GM_seg_ratio = sum(sum(output_feature.GM_current_seg))./sum(sum(Cell_Mask));
+             output_feature = rmfield(output_feature, 'GM_current_seg');  
+        end
+ 
+                  
         if(~isempty(Cell_Mask) && feature_flag(4)==1 && feature_flag(5)==1)            
             output_feature.density_filament =  (output_feature.density_filament).*(output_feature.Cell_Mask);
             output_feature.density_filament(~Cell_Mask)=nan;
             output_feature.scrabled_density_filament =  (output_feature.scrabled_density_filament).*(output_feature.Cell_Mask);
             output_feature.scrabled_density_filament(~Cell_Mask)=nan;
+
         end
         
         output_feature.filament_density_mean = nanmean(output_feature.density_filament(:));

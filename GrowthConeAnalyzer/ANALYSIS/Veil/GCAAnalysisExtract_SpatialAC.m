@@ -22,7 +22,7 @@ nFrames = movieData.nFrames_;
 %   'PARAMETER_EXTRACTION' filesep 'Spatial_AutoCorrelation_Test'];
 
 outDir = [movieData.outputDirectory_ filesep ...
-    'PARAMETER_EXTRACTION' filesep 'Descriptor' filesep 'Veil' filesep ...
+    'MEASUREMENT_EXTRACTION' filesep 'Descriptor' filesep 'Veil' filesep ...
     'SpatialACF'];
 
 if ~isempty(outDir)
@@ -85,15 +85,15 @@ save([outDir filesep 'AvgAC'],'muCC','muCI','lags','ACF','maxSigLag');
 % reformat into the parameter version (cell for each frame) - for now as
 % just replicate the values as this
 
-paramC = arrayfun(@(x) maxSigLag,1:nFrames,'uniformoutput',0)';
-save([outDir filesep 'param_maxACFLagSpatial'],'paramC');
+measC = arrayfun(@(x) maxSigLag,1:nFrames,'uniformoutput',0)';
+save([outDir filesep 'meas_maxACFLagSpatial'],'measC');
 
 
 %% Plot
 makePlot = 1;
 
 if makePlot == 1;
-    setAxis
+    setAxis('off'); 
     stem(lags,muCC,'fill');
     hold on
     arrayfun(@(i) plot(lags,muCI(i,:),'color','r','lineStyle','--'),1:2);

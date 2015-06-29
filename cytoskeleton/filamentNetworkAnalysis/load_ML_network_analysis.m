@@ -50,19 +50,23 @@ end
 
 ML_ROOT_DIR = ML.outputDirectory_;
 
-feature_flag = feature_flag(:);  
-if(numel(feature_flag)<25)
-    feature_flag = [feature_flag; zeros(25-numel(feature_flag), 1)];
-end
-
-
 if(feature_flag(4)==0)
-    feature_flag(24)=0;
+    feature_flag(25)=0;
 end
 
 if(feature_flag(5)==0)
-    feature_flag(25)=0;
+    feature_flag(26)=0;
 end
+
+
+if(vimscreen_flag==0)
+    feature_flag(24)=0;
+end
+
+if(numel(feature_flag)<28)
+    feature_flag = [feature_flag(:); zeros(28-numel(feature_flag),1)];
+end
+
 
 %%
 movieNumber =  length(ML.movieDataFile_);

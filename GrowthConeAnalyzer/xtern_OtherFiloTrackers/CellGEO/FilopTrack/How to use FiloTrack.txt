@@ -1,0 +1,94 @@
+RUN:
+
+To use the FiloTrack GUI, open "FiloTrack.m" file in MATLAB and select the "Run" menu option.
+
+INPUT:
+
+The input for the GUI is a MATLAB file (*.mat) saved as the output of the BisectoGraph GUI. The data in this file is described in 
+"How to use BisectoGraph.txt" in the BisectoGraph GUI folder.  
+
+OUTPUT:
+
+The output is a MATLAB file (*.mat). It contains all the measurements and data produced by FiloTrack processing. The description of 
+the output data is provided at the end of this file.
+
+PROCESSING STEPS:
+
+1. Import a file for processing using the GUI menu: File -> Import (.mat). The GUI will display the outline of the cell. Use the frame slider
+ under the image to display a specific time frame. 
+
+2. To activate Filopodia Detection Controls, click the "Activate Filopodia Detection" checkbox. Use the top slider to define the critical radius. 
+Changing the critical radius interactively changes the location of the filopodia bases. Use the bottom slider to define the critical lengths. 
+The filopodia longer than the critical length are marked by red skeletons and will be included in further analysis. The protrusions shorter 
+than the critical length are marked by yellow skeletons and will be excluded from further analysis. 
+
+3. Once the critical parameters are adjusted to provide satisfactory detection of all filopodia, the results can be displayed in the right panel 
+by clicking the "Show Results" button. Top and bottom parts of the panel display the filopodia number and mean length as a function of time, 
+respectively. The line above the panel shows the average over time number and length of filopodia plus-minus one standard deviation. For any 
+given time frame the GUI also shows the number and mean length of filopodia and the perimeter of the cell body in the "Filopodia Detection 
+Controls" box.
+
+4. To activate Filopodia Tracking Controls, click the "Activate Filopodia Tracking" checkbox. Cell boundaries from two consecutive time frames 
+are shown in red and blue. The paired filopodia from these time points are marked by connected green dots. The three sliders specify the 
+parameters for the critical distance, gap filling and duration filter (as described in the Method paper).
+
+5. To display tracking results, click the "Show Results" button. The right panel now displays the time lines of all tracked filopodia as green 
+vertical lines. The filled gaps are marked as empty circles. The slider under the panel allows you to choose and highlight individual filopodia 
+in yellow. The beginning and the ending frames of a chosen track are shown also above the right panel. All this helps to assess the quality of 
+the tracking. If needed the parameters of tracking can be adjusted and the tracking process can be repeated. The average track duration 
+(filopodia life time) is shown in the right bottom corner.
+    
+6. If the detection and tracking work well for a chosen set of parameters, the above steps are unnecessary. You just need to import the file 
+and immediately save the results by using the menu: File -> Save Results (.mat).
+
+
+OUTPUT DATA:
+
+"crL" is the critical length parameter. 
+
+"crW" is the critical width parameter. 
+
+"crD" is the critical distance parameter
+. 
+"crG" is the gap filling parameter
+. 
+"crF" is the time-life filter value
+
+
+"N" is the number of detected protrusions in each time frame. 
+
+"mL" is the mean length of detected protrusions (that are over crL in length) in each time frame
+. 
+"sL" is the standard deviation of detected protrusions (that are over crL in length) for each time frame. 
+
+"Per" is the perimeter of the cell body in each time frame. 
+
+"mtN" is the averaged over time N and "stN" is the standard deviation of N. 
+
+"mtL" is the averaged over time mL and "stL" is the standard deviation of mL. 
+"mtPer" is the averaged over time Per and "stPer" is the standard deviation of Per. 
+
+
+
+"prN" is the number of tracked protrusions (only the ones with lifetime longer than crF are counted). 
+"prL" is the mean (over time) length of each tracked protrusion
+. 
+"prML" is the max (over time) length of each tracked protrusion. 
+
+"prT" is the lifetime of each tracked protrusion.
+
+
+"mprL" is the average prL over all tracked protrusions, "sprL" is the standard deviation of prL.
+
+"mprML" is the average prML over all tracked protrusions, "sprML" is the standard deviation of prML.
+
+"mprT" is the average prT over all tracked protrusions, "sprT" is the standard deviation of prT. 
+
+"POS" is the index matrix (or association matrix) with each column giving the protrusion index at each time frame. 
+For example, 
+ POS(5,7)=9 means that the tracked protrusion number 7 has been labeled as detected protrusion number 9 at the time frame 5.
+ 
+"LEN" is a matrix of the length values with each column giving the length of the tracked protrusion as a function of time.
+ 
+
+ 

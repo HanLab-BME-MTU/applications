@@ -303,7 +303,7 @@ end % end i
 % imwrite(angle_map_2_1,[outdir,filesep,'Ang21_frame_',num2str(iFrame),'.tif']);  end;
 % imwrite(angle_map_1_2,[outdir,filesep,'Ang12_frame_',num2str(iFrame),'.tif']);  end;
 % 
-whole_ROI = imdilate(VIF_current_seg,ones(radius,radius)) + imdilate(MT_current_seg,ones(radius,radius))>0;
+whole_ROI = imdilate(VIF_current_seg,ones(longest_radius,longest_radius)) + imdilate(MT_current_seg,ones(longest_radius,longest_radius))>0;
 % 
 % % disgard the boundary ones
 % whole_ROI(1:radius+1,:)=0;
@@ -319,19 +319,19 @@ score_maps_distance_2_1 = nan(img_size);
 score_maps_angle_1_2 = nan(img_size);
 score_maps_angle_2_1 = nan(img_size);
 
-[cy,cx] = find(fspecial('disk',radius)>0);
+[cy,cx] = find(fspecial('disk',longest_radius)>0);
 
 
-distance_map_1_2_pad = nan(img_size+2*radius);
-distance_map_2_1_pad = nan(img_size+2*radius);
-angle_map_1_2_pad = nan(img_size+2*radius);
-angle_map_2_1_pad = nan(img_size+2*radius);
+distance_map_1_2_pad = nan(img_size+2*longest_radius);
+distance_map_2_1_pad = nan(img_size+2*longest_radius);
+angle_map_1_2_pad = nan(img_size+2*longest_radius);
+angle_map_2_1_pad = nan(img_size+2*longest_radius);
 
 
-distance_map_1_2_pad(radius+1:end-radius,radius+1:end-radius) = distance_map_1_2;
-distance_map_2_1_pad(radius+1:end-radius,radius+1:end-radius) = distance_map_2_1;
-angle_map_1_2_pad(radius+1:end-radius,radius+1:end-radius) = angle_map_1_2;
-angle_map_2_1_pad(radius+1:end-radius,radius+1:end-radius) = angle_map_2_1;
+distance_map_1_2_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = distance_map_1_2;
+distance_map_2_1_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = distance_map_2_1;
+angle_map_1_2_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = angle_map_1_2;
+angle_map_2_1_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = angle_map_2_1;
 
 % 
 % distance_map_1_2_pad_stack = nan(img_size(1)+2*radius,img_size(2)+2*radius,length(cx));
@@ -348,8 +348,8 @@ angle_map_2_1_pad(radius+1:end-radius,radius+1:end-radius) = angle_map_2_1;
 % end
 % 
 % 
-Weight_mask = fspecial('gaussian',2*radius+1,sigma_gaussian);
-Weight_mask = Weight_mask(sub2ind([2*radius+1,2*radius+1,],cy,cx));
+Weight_mask = fspecial('gaussian',2*longest_radius+1,sigma_gaussian);
+Weight_mask = Weight_mask(sub2ind([2*longest_radius+1,2*longest_radius+1,],cy,cx));
 
 % for all these points, get local support
 for j = 1 : length(Y)
@@ -357,11 +357,11 @@ for j = 1 : length(Y)
     x = X(j);
     y = Y(j);
         
-    dis_1 = distance_map_1_2_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1));
-    dis_2 = distance_map_2_1_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1));
+    dis_1 = distance_map_1_2_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1));
+    dis_2 = distance_map_2_1_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1));
 
-    ang_1 = abs(angle_map_1_2_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1)));
-    ang_2 = abs(angle_map_2_1_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1)));
+    ang_1 = abs(angle_map_1_2_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1)));
+    ang_2 = abs(angle_map_2_1_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1)));
     
     if(~isempty(dis_1))
         score_maps_distance_1_2(y,x) = sum(dis_1(~isnan(dis_1)).*Weight_mask(~isnan(dis_1)))/sum(Weight_mask(~isnan(dis_1)));

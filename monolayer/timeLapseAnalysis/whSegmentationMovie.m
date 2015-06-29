@@ -4,7 +4,7 @@ fprintf('start segmentation movie\n')
 
 segmentationFname = [dirs.segmentation dirs.expname '_segmentation.avi'];
 
-aviFname = [dirs.roiVis dirs.expname '_segmentation.avi'];
+% aviFname = [dirs.roiVis dirs.expname '_segmentation.avi'];
 aviobj = avifile(segmentationFname,'fps',3,'compression','None');
 
 for t = 1 : params.nTime - params.frameJump
@@ -28,4 +28,31 @@ for t = 1 : params.nTime - params.frameJump
 end
 aviobj = close(aviobj);
 fprintf('start segmentation movie\n')
+end
+
+%% UTILS
+function [Aer] = erode(A,maskSize)
+
+if nargin < 2
+    error('whTemporalBasedSegmentation: erode missing mask size');
+end
+
+mask = ones(maskSize);
+se1 = strel(mask);
+
+Aer = imerode(A,se1);
+
+end
+
+function [Aer] = dilate(A,maskSize)
+
+if nargin < 2
+    error('whTemporalBasedSegmentation: dilate missing mask size');
+end
+
+mask = ones(maskSize);
+se1 = strel(mask);
+
+Aer = imdilate(A,se1);
+
 end

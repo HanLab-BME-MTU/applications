@@ -46,6 +46,9 @@ for iFrame = 1:length(analInfo)-1
     else
         lengthsInt =  vertcat(filoInfoFilt(:).Int_length).*.216;
         lengthsExt = vertcat(filoInfoFilt(:).Ext_length).*.216;
+        % convert NaN lengths of internal to zero 
+        lengthsInt(isnan(lengthsInt))=0; 
+        
         lengths = lengthsInt + lengthsExt;
     end
     

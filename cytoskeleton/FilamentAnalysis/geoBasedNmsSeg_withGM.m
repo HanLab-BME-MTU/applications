@@ -92,7 +92,7 @@ T_otsu_start =  max(mode_nms/2, (-abs(T_otsu - mode_nms)*0.1+mode_nms));
 
 MaskCell=MaskCell>0;
 
-T_otsu_start=0.4;
+% T_otsu_start=0.4;
 
 MaskCell_nohole = MaskCell;
 MaskCell_nohole = bwmorph(MaskCell,'fill');

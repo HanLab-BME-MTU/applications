@@ -1,0 +1,17 @@
+{Error using load
+Unable to read MAT-file
+/project/cellbiology/gdanuser/collab/hall/allData/Yunyu_20140405_16hr_5min_0001_AB02_01/MF/mf/030_mf.mat:
+not a binary MAT-file.
+Try LOAD -ASCII to read as text.
+
+Error in whCorrectGlobalMotion (line 34)
+    load(mfFname); % dxs, dys
+
+Error in whProcessTimeLapse (line 23)
+whCorrectGlobalMotion(params,dirs);
+
+Error in runHallOneAtATime (line 59)
+whProcessTimeLapse(metaData.pixelSize{ind}, timePerFrame, mainDirname,
+metaData.fnames{ind}, initParams);
+} 
+

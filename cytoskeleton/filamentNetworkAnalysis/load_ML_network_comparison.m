@@ -1,7 +1,7 @@
 function load_ML_network_comparison(ML,iChannel1, start_frame1,...
     iChannel2, start_frame2, ...
     radius, show_save_everything_flag, ...
-    longest_radius, sigma_gaussian, sigma_d, sigma_theta)
+    longest_radius, sigma_gaussian, sigma_d, sigma_theta,save_tif_flag)
 % function to compare two networks for a movieList
 
 % function to do network comparison for a whole movielist
@@ -38,6 +38,9 @@ if(~exist('show_save_everything_flag','var'))
     show_save_everything_flag = 0;
 end
 
+if(~exist('save_tif_flag','var'))
+    save_tif_flag = 0;
+end
 
 flag_default=0;
 
@@ -73,7 +76,7 @@ for iM  = 1 :movieNumber
         'show_save_everything_flag' ...
         'iChannel1' 'start_frame1' ...
         'iChannel2' 'start_frame2' ...
-        'longest_radius' 'sigma_gaussian' 'sigma_d' 'sigma_theta'
+        'longest_radius' 'sigma_gaussian' 'sigma_d' 'sigma_theta' 'save_tif_flag'
     
 
     close all;
@@ -84,8 +87,8 @@ for iM  = 1 :movieNumber
     
     load_2_MD_network_for_dynamics_compare(ML.movieDataFile_{iM},iChannel1, start_frame1,...
     ML.movieDataFile_{iM}, iChannel2, start_frame2, ...
-    radius,show_save_everything_flag,...
-    longest_radius,sigma_gaussian, sigma_d, sigma_theta);
+    radius, show_save_everything_flag,...
+    longest_radius, sigma_gaussian, sigma_d, sigma_theta,save_tif_flag);
 
  
 end

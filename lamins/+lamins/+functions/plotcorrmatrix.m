@@ -28,8 +28,10 @@ function [fig, ax, h, hcb] = plotcorrmatrix(corrmatrix,datasetname)
     set(h,'YLim',[0.5 total + 0.5]);
     set(h,'XTick',perChannel/2:perChannel:total);
     set(h,'YTick',perChannel/2:perChannel:total);
-    set(h,'XTickLabel',{'DAPI','Lamin A','Lamin B1','anti-Lamin B1, B2'})
-    set(h,'YTickLabel',{'DAPI','Lamin A','Lamin B1','anti-Lamin B1, B2'})
+    set(h,'XTickLabel',{'Red','Green'})
+    set(h,'YTickLabel',{'Red','Green'})
+%     set(h,'XTickLabel',{'DAPI','Lamin A','Lamin B1','anti-Lamin B1, B2'})
+%     set(h,'YTickLabel',{'DAPI','Lamin A','Lamin B1','anti-Lamin B1, B2'})
     xlabel('Channel, z position');
     ylabel('Channel, z position');
     %set(get(hcb,'YLabel'),'String','2D Correlation');

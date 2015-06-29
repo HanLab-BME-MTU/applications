@@ -41,7 +41,9 @@ function [ backboneInfo,frames2Fix,modified,TSFigs ] = GCAneuriteOrientConsisten
 %           of the input img and c is the width (nx) marking cleaned large
 %           scale ridge candidate paths that will be used for the
 %           final reconstruction in GCAveilStemReconstruct.m
-%
+% 
+% img (OPTIONAL) : rxc array of image  
+%        only necessary if TSFigs == true 
 %
 % PARAMS
 %       ('TSOverlays' -> if true will make three troubleshoot
@@ -184,12 +186,28 @@ else
     % dist transform of that mask
     distTransFromMClust = bwdist(maskMClust);
     
-    
+    %% get the majority body
+        % collect backbone from all good frame
+        goodFrames = setdiff(1:nFrames,frames2Fix);
+        backbones = arrayfun(@(x) x.backboneSeedMask,backboneInfo(goodFrames),'uniformoutput',0);
+        sumBB = zeros(ySize,xSize);
+        for iBB = 1:length(goodFrames)
+            sumBB = sumBB+backbones{iBB}; % likely better way than a loop for this but quick fix
+        end
+        
+        % find pixels in structure that were more in more than 5 frames (to remove
+        % outliers)
+        sumBB(sumBB<=5) =0;
+        sumBB(sumBB>0) = 1;% make a logical mask
+        pixMajBB = find(sumBB==1) ;
+        
+      
     
     %%
     for iFrame = 1:length(frames2Fix)
         display(['Fixing Frame ' num2str(frames2Fix(iFrame))])
         % load the candidate ridgeMask (mask after cleaning and linear connectivity)
+        backboneInfo(frames2Fix(iFrame)).alignmentMask = sumBB; 
         
         candRidges =  backboneInfo(frames2Fix(iFrame)).linkedRidgesFinal;
         
@@ -213,19 +231,8 @@ else
         % find all ridges within 50 pixels
         candLabels = labelsRidges(distRidgeMat<20&distRidgeMat~=0);
         candLabels = unique(candLabels);
-        % get the majority body
-        % collect backbone from all good frame
-        goodFrames = setdiff(1:nFrames,frames2Fix);
-        backbones = arrayfun(@(x) x.backboneSeedMask,backboneInfo(goodFrames),'uniformoutput',0);
-        sumBB = zeros(ySize,xSize);
-        for iBB = 1:length(goodFrames)
-            sumBB = sumBB+backbones{iBB}; % likely better way than a loop for this but quick fix
-        end
-        % find pixels in structure that were more in more than 5 frames (to remove
-        % outliers)
-        sumBB(sumBB<=5) =0;
-        sumBB(sumBB>0) = 1;% make a logical mask
-        pixMajBB = find(sumBB==1) ;
+     
+        
         % find max overlap between cand ridge and
         overlap = cellfun(@(x) length(intersect(pixMajBB,x)),CCNMS.PixelIdxList(candLabels));
         labelKeep = candLabels(overlap==max(overlap));
@@ -309,6 +316,7 @@ else
         end
         
         EPsDistFromMClust = distTransFromMClust(idxEPs);
+        
         idxEPs = idxEPs(EPsDistFromMClust == min(EPsDistFromMClust));
         [EPY,EPX] = ind2sub([ySize,xSize],idxEPs);
         EPsBackbone = [EPX, EPY];
@@ -337,21 +345,35 @@ else
         yEnter = yBoundary(E(toSave,2));
         
         %% Optional Troubleshoot Overlay 
-if ip.Results.TSOverlays == true 
-%     [ny,nx] = size(img); 
-%     TSFigs(figCount).h = setFigure(nx,ny,'on'); 
-%     TSFigs(figCount).name = 'Re-Alignment'; 
-%     imshow(-img,[]); 
-    hold on 
-    spy(sumBB,'m'); 
-    spy(candRidges,'b'); 
-    spy(backboneSeed,'y'); 
-    figCount = figCount +1; 
-  
-end 
-        
-       
-        
+% if ip.Results.TSOverlays == true 
+%   [ny,nx] = size(backboneSeed); 
+%   
+%   TSFigs(figCount).h = setFigure(nx,ny,'on'); 
+%   TSFigs(figCount).name = 'Re-Alignment';  
+%  
+%   if ~isempty(ip.Results.img)
+%       imshow(-img,[]); 
+%       hold on 
+%   end 
+%  
+%     hold on 
+%     % plot the information to which to align
+%     spy(sumBB,'m'); 
+%     % plot the candidate ridges 
+%     spy(candRidges,'b'); 
+%   
+%     spy(
+%     
+%     % plot the new backbone choice 
+%     spy(backboneSeed,''); 
+%     
+%     
+%     figCount = figCount +1; 
+%   
+% end 
+%         
+%        
+%         
         
         
         
@@ -362,9 +384,9 @@ end
         % save new neurite entrance and the new backboneSeed
         backboneInfo(frames2Fix(iFrame)).backboneSeedMask= backboneSeed;
         backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite = [xEnter,yEnter];
-        backboneInfo(frames2Fix(iFrame)).timeStamp = clock;
-        hashTag = gcaArchiveGetGitHashTag;
-        backboneInfo(frames2Fix(iFrame)).hashTag = hashTag;
+         backboneInfo(frames2Fix(iFrame)).timeStamp = clock;
+%         hashTag = gcaArchiveGetGitHashTag;
+%         backboneInfo(frames2Fix(iFrame)).hashTag = hashTag;
         % document in a folder
         close gcf
         

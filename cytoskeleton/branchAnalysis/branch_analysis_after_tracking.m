@@ -73,19 +73,20 @@ cell_vif_nms_total_array = [];
 
 
 
-% for iCompleteFrame = 1 :nCompleteFrame-1
-% %     current_seg = current_seg_cell{1,iCompleteFrame};
-%     iFrame = iCompleteFrame+FirstFrame-1;
-%     smoothed_current_mask = smoothed_mask_cell{1,iCompleteFrame};
-%     current_VIF_image = MD.channels_(VIF_channel). loadImage(iFrame);
-%
-%     next_smoothed_mask = smoothed_mask_cell{1,iCompleteFrame+1};
-%     next_VIF_image = MD.channels_(VIF_channel). loadImage(iFrame+1);
-%
-%     optical_flow_for_vif;
-%     saveas(h101,[outputPath,filesep,'vif_flow_frame_',num2str(iFrame),'.tif']);
-%
-% end
+for iCompleteFrame = 1 :nCompleteFrame-1
+%     current_seg = current_seg_cell{1,iCompleteFrame};
+    iFrame = iCompleteFrame+FirstFrame-1;
+    smoothed_current_mask = smoothed_mask_cell{1,iCompleteFrame};
+    current_VIF_image = MD.channels_(VIF_channel). loadImage(iFrame);
+
+    next_smoothed_mask = smoothed_mask_cell{1,iCompleteFrame+1};
+    next_VIF_image = MD.channels_(VIF_channel). loadImage(iFrame+1);
+
+    [vx,vy]=optical_flow_for_vif(current_VIF_image, next_VIF_image, smoothed_current_mask, next_smoothed_mask);
+    h101=figure(101);
+    saveas(h101,[outputPath,filesep,'vif_flow_frame_',num2str(iFrame),'.tif']);
+    save([outputPath,filesep,'vif_flow_data_frame_',num2str(iFrame),'.mat'], 'vx','vy');
+end
 
 
 this_frame_prot_retract_map_based_on_branch_cell = cell(1,nCompleteFrame);
