@@ -5,6 +5,8 @@ classdef LaminsImage < hgsetget
         parent
         image
         adjusted
+        adjustedComplement
+        stretchedComplement
         skeleton
         reader
         mask
@@ -61,6 +63,12 @@ classdef LaminsImage < hgsetget
                 obj.adjusted = imadjust(obj.image,stretchlim(I,0));
             end
             A = obj.adjusted;
+        end
+        function C = get.adjustedComplement(obj)
+            C = imcomplement(obj.adjusted);
+        end
+        function C = get.stretchedComplement(obj)
+            C = imcomplement(imadjust(double(obj)));
         end
         function E = get.clear(obj)
             E = [];
@@ -273,6 +281,14 @@ classdef LaminsImage < hgsetget
                 S = load(['~/matlab/lamins/work/steerable_' num2str(obj(1).parent.params.movieNum)  '.mat']);
                 [obj.steerable] = S.steerable{:};
             end
+        end
+        function c = getMaskCircularity(obj)
+            % calculate nucleus shape factor from mask
+            % a perfect circle has a circularity of 1
+            % a straight line has a circularity of 0
+            rp = regionprops(obj.mask,'Area','Perimeter');
+            assert(isscalar(rp));
+            c = 4*pi*(rp.Area)/rp.Perimeter.^2;
         end
     end
 end

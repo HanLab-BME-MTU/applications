@@ -202,16 +202,23 @@ for ii=1:nFrames
     imgStack(:,:,ii)=MD.channels_(iChan).loadImage(ii); 
 end
 % get the intensity
-tracksNA = readIntensityFromTracks(tracksNA,imgStack,1); % 1 means intensity collection from pax image
-
+disp('Reading intensities with additional tracking...')
+tic
+tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',350); % 1 means intensity collection from pax image
+toc
+firstMask=maskProc.loadChannelOutput(iChan,1);
+cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
+numTracks=numel(tracksNA);
+progressText(0,'Matching with segmented adhesions:');
 for ii=1:nFrames
     % Cell Boundary Mask 
     mask = maskProc.loadChannelOutput(iChan,ii);
     % Cell Boundary
     [B,~,nBD]  = bwboundaries(mask,'noholes');
+    cropMaskStack(:,:,ii) = maskProc.loadChannelOutput(iChan,ii);
     if matchWithFA
         % filter tracks with naMasks
-        disp(['Processing ' num2str(ii) 'th frame out of ' num2str(nFrames) ' total frames...'])
+%         disp(['Processing ' num2str(ii) 'th frame out of ' num2str(nFrames) ' total frames...'])
         % focal contact (FC) analysis
         % Get the mask for FAs
         maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
@@ -296,6 +303,25 @@ for ii=1:nFrames
         FCIdx = [];
         FAIdx = [];
     end
+    %% recording features
+    % get the point on the boundary closest to the adhesion
+    allBdPoints = [];
+    for kk=1:nBD
+        boundary = B{kk};
+        allBdPoints = [allBdPoints; boundary(:,2), boundary(:,1)];
+    end
+    for k=1:numel(tracksNA)
+        % distance to the cell edge
+        if tracksNA(k).presence(ii)
+            xCropped = tracksNA(k).xCoord(ii);
+            yCropped = tracksNA(k).yCoord(ii);
+            distToAdh = sqrt(sum((allBdPoints- ...
+                ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
+            [minDistToBd,indMinBdPoint] = min(distToAdh);
+            tracksNA(k).distToEdge(ii) = minDistToBd;
+            tracksNA(k).closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+        end
+    end
     
     if showAllTracks
         h2=figure;
@@ -366,7 +392,245 @@ for ii=1:nFrames
     if saveAnalysis
         imwrite(paxImageCropped,strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
     end
+    progressText(ii/(nFrames-1),'Matching with segmented adhesions:');
 end
+%% protrusion/retraction information
+% time after protrusion onset (negative value if retraction, based
+% on the next protrusion onset) in frame, based on tracksNA.distToEdge
+% First I have to quantify when the protrusion and retraction onset take
+% place.
+for ii=1:numTracks
+    idxZeros = tracksNA(ii).closestBdPoint(:)==0;
+    tracksNA(ii).closestBdPoint(idxZeros)=NaN;
+end
+
+disp('Post-analysis on adhesion movement...')
+deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
+tIntervalMin = deltaT/60; % in min
+periodMin = 1;
+periodFrames = floor(periodMin/tIntervalMin); % early period in frames
+frames2min = floor(2/tIntervalMin); % early period in frames
+progressText(0,'Post-analysis:');
+for k=1:numTracks
+    % cross-correlation scores
+    presIdx = logical(tracksNA(k).presence);
+    % get the instantaneous velocity
+    % get the distance first
+    curTrackVelLength=sum(presIdx)-1;
+    distTrajec=zeros(curTrackVelLength,1);
+    presIdxSeq = find(presIdx);
+    for kk=1:curTrackVelLength
+        real_kk = presIdxSeq(kk);
+        distTrajec(kk) = sqrt(sum((tracksNA(k).closestBdPoint(real_kk+1,:)- ...
+            tracksNA(k).closestBdPoint(real_kk,:)).^2,2));
+        lastPointIntX = round(tracksNA(k).closestBdPoint(real_kk+1,1));
+        lastPointIntY = round(tracksNA(k).closestBdPoint(real_kk+1,2));
+        if cropMaskStack(lastPointIntY,lastPointIntX,real_kk) %if the last point is in the first mask, it is inward
+            distTrajec(kk) = -distTrajec(kk);
+        end
+    end
+    if any(distTrajec~=0)
+        [Protrusion,Retraction] = getPersistenceTime(distTrajec,deltaT);%,'plotYes',true)
+        if any(isnan(Retraction.persTime)) || sum(Protrusion.persTime) - sum(Retraction.persTime)>0 % this is protrusion for this track
+            tracksNA(k).isProtrusion = true;
+        else
+            tracksNA(k).isProtrusion = false;
+        end
+        % average velocity (positive for protrusion)
+        curProtVel = (Protrusion.Veloc); curProtVel(isnan(curProtVel))=0;
+        curProtPersTime = (Protrusion.persTime); curProtPersTime(isnan(curProtPersTime))=0;
+        curRetVel = (Retraction.Veloc); curRetVel(isnan(curRetVel))=0;
+        curRetPersTime = (Retraction.persTime); curRetPersTime(isnan(curRetPersTime))=0;
+
+        tracksNA(k).edgeVel = (mean(curProtVel.*curProtPersTime)-mean(curRetVel.*curRetPersTime))/mean([curProtPersTime;curRetPersTime]);
+    else
+        tracksNA(k).edgeVel = 0;
+    end
+    % lifetime information
+    try
+        sF=tracksNA(k).startingFrameExtra;
+        eF=tracksNA(k).endingFrameExtra;
+        if isempty(sF)
+            sF=tracksNA(k).startingFrame;
+        end
+        if isempty(eF)
+            eF=tracksNA(k).endingFrame;
+        end
+    catch
+        sF=tracksNA(k).startingFrame;
+        eF=tracksNA(k).endingFrame;
+        tracksNA(k).lifeTime = eF-sF+1;    
+    end
+    tracksNA(k).lifeTime = eF-sF+1;    
+    % Inital intensity slope for one min
+    timeInterval = deltaT/60; % in min
+    earlyPeriod = floor(1/timeInterval); % frames per minute
+    lastFrame = min(sum(~isnan(tracksNA(k).amp)),sF+earlyPeriod-1);
+    lastFrameFromOne = lastFrame - sF+1;
+%     lastFrameFromOne = sF;
+%     lastFrame = min(sum(~isnan(tracksNA(k).amp)),sF+earlyPeriod-1);
+    [curR,curM] = regression(timeInterval*(1:lastFrameFromOne),tracksNA(k).amp(sF:lastFrame));
+    tracksNA(k).ampSlope = curM; % in a.u./min
+    tracksNA(k).ampSlopeR = curR; % Pearson's correlation coefficient
+    
+    curEndFrame = min(tracksNA(k).startingFrameExtra+periodFrames-1,tracksNA(k).endingFrame);
+    curEarlyPeriod = curEndFrame - tracksNA(k).startingFrameExtra+1;
+    [~,curM] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).ampTotal(tracksNA(k).startingFrameExtra:curEndFrame));
+    tracksNA(k).earlyAmpSlope = curM; % in a.u./min
+
+    curStartFrame = max(tracksNA(k).startingFrame,tracksNA(k).endingFrameExtra-periodFrames+1);
+    curLatePeriod = tracksNA(k).endingFrameExtra - curStartFrame+1;
+    [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),tracksNA(k).ampTotal(curStartFrame:tracksNA(k).endingFrameExtra));
+    tracksNA(k).lateAmpSlope = curMlate; % in a.u./min
+
+    curEndFrame = min(sF+periodFrames-1,eF);
+    curEarlyPeriod = curEndFrame - sF+1;
+    [~,curMdist] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).distToEdge(sF:curEndFrame));
+    tracksNA(k).distToEdgeSlope = curMdist; % in a.u./min
+    tracksNA(k).distToEdgeChange = (tracksNA(k).distToEdge(end)-tracksNA(k).distToEdge(tracksNA(k).startingFrame)); % in pixel
+    % Determining protrusion/retraction based on closestBdPoint and [xCoord
+    % yCoord]. If the edge at one time point does not cross the adhesion
+    % tracks over entire life time, there is no problem. But that's not
+    % always the case: adhesion tracks crosses the cell boundary at first
+    % or last time point. And we don't know if the adhesion tracks are
+    % moving in the direction of protrusion or retraction. Thus, what I
+    % will do is to calculate the inner product of vectors from the
+    % adhesion tracks from the closestBdPoint at the first frame. If the
+    % product is positive, it means both adhesion points are in the same
+    % side. And if distance from the boundary to the last point is larger
+    % than the distance to the first point, it means the adhesion track is
+    % retracting. In the opposite case, the track is protruding (but it
+    % will happen less likely because usually the track would cross the
+    % first frame boundary if it is in the protrusion direction). 
+    
+    % We need to find out boundary points projected on the line of adhesion track 
+    fitobj = fit(tracksNA(k).xCoord(sF:eF)',tracksNA(k).yCoord(sF:eF)','poly1'); % this is an average linear line fit of the adhesion track
+    x0=nanmedian(tracksNA(k).xCoord);
+    y0=fitobj(x0);
+    dx = 1;
+    dy = fitobj.p1;
+    trackLine = createLineGeom2d(x0,y0,dx,dy); % this is a geometric average linear line of the adhesion track
+    
+%     trackLine = edgeToLine(edge);
+    firstBdPoint = [tracksNA(k).closestBdPoint(sF,1) tracksNA(k).closestBdPoint(sF,2)];
+    firstBdPointProjected = projPointOnLine(firstBdPoint, trackLine); % this is an edge boundary point at the first time point projected on the average line of track.
+    % try to record advanceDist and edgeAdvanceDist for every single time
+    % point ...
+    for ii=sF:eF
+        curBdPoint = [tracksNA(k).closestBdPoint(ii,1) tracksNA(k).closestBdPoint(ii,2)];
+        curBdPointProjected = projPointOnLine(curBdPoint, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
+
+        fromFirstBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-firstBdPointProjected(1), tracksNA(k).yCoord(sF)-firstBdPointProjected(2)]; % a vector from the first edge point to the first track point
+        fromFirstBdPointToLastAdh = [tracksNA(k).xCoord(ii)-firstBdPointProjected(1), tracksNA(k).yCoord(ii)-firstBdPointProjected(2)]; % a vector from the first edge point to the last track point
+        fromCurBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-curBdPointProjected(1), tracksNA(k).yCoord(sF)-curBdPointProjected(2)]; % a vector from the last edge point to the first track point
+        fromCurBdPointToLastAdh = [tracksNA(k).xCoord(ii)-curBdPointProjected(1), tracksNA(k).yCoord(ii)-curBdPointProjected(2)]; % a vector from the last edge point to the last track point
+        firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+        curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
+        if firstBDproduct>0 && firstBDproduct>curBDproduct% both adhesion points are in the same side
+            tracksNA(k).advanceDist(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                            (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+            tracksNA(k).edgeAdvanceDist(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
+                                                            (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+        else
+            if curBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
+                tracksNA(k).advanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5; % in pixel
+                tracksNA(k).edgeAdvanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+                % this code is nice to check:
+    %             figure, imshow(paxImgStack(:,:,tracksNA(k).endingFrame),[]), hold on, plot(tracksNA(k).xCoord,tracksNA(k).yCoord,'w'), plot(tracksNA(k).closestBdPoint(:,1),tracksNA(k).closestBdPoint(:,2),'r')
+    %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
+    %             plot(tracksNA(k).xCoord(tracksNA(k).startingFrame),tracksNA(k).yCoord(tracksNA(k).startingFrame),'yo'),plot(tracksNA(k).xCoord(tracksNA(k).endingFrame),tracksNA(k).yCoord(tracksNA(k).endingFrame),'mo')
+            else % Neither products are positive. This means the track crossed both the first and last boundaries. These would show shear movement. Relative comparison is performed.
+    %             disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
+                % Using actual BD points instead of projected ones because
+                % somehow the track might be tilted...
+                fromFirstBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(sF,2)];
+                fromFirstBdPointToLastAdh = [tracksNA(k).xCoord(ii)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(ii)-tracksNA(k).closestBdPoint(sF,2)];
+                fromCurBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(ii,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(ii,2)];
+                fromCurBdPointToLastAdh = [tracksNA(k).xCoord(ii)-tracksNA(k).closestBdPoint(ii,1), tracksNA(k).yCoord(ii)-tracksNA(k).closestBdPoint(ii,2)];
+                firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+                curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
+                if firstBDproduct>curBDproduct % First BD point is in more distant position from the two adhesion points than the current BD point is.
+                    tracksNA(k).advanceDist(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                    (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                    tracksNA(k).edgeAdvanceDist(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
+                                                                    (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                else
+                    tracksNA(k).advanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                    (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5; % in pixel
+                    tracksNA(k).edgeAdvanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                    (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+                end
+            end
+        end
+    end
+    % Record average advanceDist and edgeAdvanceDist for entire lifetime,
+    % last 2 min, and every 2 minutes, and maximum of those
+    % protrusion/retraction distance to figure out if the adhesion
+    % experienced any previous protrusion ...
+    for ii=sF:eF
+        i2minBefore = max(sF,ii-frames2min);
+        tracksNA(k).advanceDistChange2min(ii) = tracksNA(k).advanceDist(ii)-tracksNA(k).advanceDist(i2minBefore);
+        tracksNA(k).edgeAdvanceDistChange2min(ii) = tracksNA(k).edgeAdvanceDist(ii)-tracksNA(k).edgeAdvanceDist(i2minBefore);
+    end
+    % Get the maximum of them. 
+    tracksNA(k).maxAdvanceDistChange = max(tracksNA(k).advanceDistChange2min(sF:eF-1));
+    tracksNA(k).maxEdgeAdvanceDistChange = max(tracksNA(k).edgeAdvanceDistChange2min(sF:eF-1));
+%     lastBdPoint = [tracksNA(k).closestBdPoint(eF,1) tracksNA(k).closestBdPoint(eF,2)];
+%     lastBdPointProjected = projPointOnLine(lastBdPoint, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
+%     
+%     fromFirstBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-firstBdPointProjected(1), tracksNA(k).yCoord(sF)-firstBdPointProjected(2)]; % a vector from the first edge point to the first track point
+%     fromFirstBdPointToLastAdh = [tracksNA(k).xCoord(eF)-firstBdPointProjected(1), tracksNA(k).yCoord(eF)-firstBdPointProjected(2)]; % a vector from the first edge point to the last track point
+%     fromLastBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-lastBdPointProjected(1), tracksNA(k).yCoord(sF)-lastBdPointProjected(2)]; % a vector from the last edge point to the first track point
+%     fromLastBdPointToLastAdh = [tracksNA(k).xCoord(eF)-lastBdPointProjected(1), tracksNA(k).yCoord(eF)-lastBdPointProjected(2)]; % a vector from the last edge point to the last track point
+%     firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+%     lastBDproduct=fromLastBdPointToFirstAdh*fromLastBdPointToLastAdh';
+%     if firstBDproduct>0 && firstBDproduct>lastBDproduct% both adhesion points are in the same side
+%         tracksNA(k).advanceDist = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+%                                                         (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+%         tracksNA(k).edgeAdvanceDist = (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5 - ...
+%                                                         (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+%     else
+%         if lastBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
+%             tracksNA(k).advanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
+%                                                             (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5; % in pixel
+%             tracksNA(k).edgeAdvanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
+%                                                             (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+%             % this code is nice to check:
+% %             figure, imshow(paxImgStack(:,:,tracksNA(k).endingFrame),[]), hold on, plot(tracksNA(k).xCoord,tracksNA(k).yCoord,'w'), plot(tracksNA(k).closestBdPoint(:,1),tracksNA(k).closestBdPoint(:,2),'r')
+% %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
+% %             plot(tracksNA(k).xCoord(tracksNA(k).startingFrame),tracksNA(k).yCoord(tracksNA(k).startingFrame),'yo'),plot(tracksNA(k).xCoord(tracksNA(k).endingFrame),tracksNA(k).yCoord(tracksNA(k).endingFrame),'mo')
+%         else
+% %             disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
+%             fromFirstBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(sF,2)];
+%             fromFirstBdPointToLastAdh = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(sF,2)];
+%             fromLastBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(eF,2)];
+%             fromLastBdPointToLastAdh = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(eF,2)];
+%             firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+%             lastBDproduct=fromLastBdPointToFirstAdh*fromLastBdPointToLastAdh';
+%             if firstBDproduct>lastBDproduct
+%                 tracksNA(k).advanceDist = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+%                                                                 (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+%                 tracksNA(k).edgeAdvanceDist = (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5 - ...
+%                                                                 (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+%             else
+%                 tracksNA(k).advanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
+%                                                                 (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5; % in pixel
+%                 tracksNA(k).edgeAdvanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
+%                                                                 (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+%             end
+%         end
+%     end
+    %Mean Squared Displacement
+    meanX = mean(tracksNA(k).xCoord(logical(tracksNA(k).presence)));
+    meanY = mean(tracksNA(k).yCoord(logical(tracksNA(k).presence)));
+    tracksNA(k).MSD=sum((tracksNA(k).xCoord(logical(tracksNA(k).presence))'-meanX).^2+...
+        (tracksNA(k).yCoord(logical(tracksNA(k).presence))'-meanY).^2);
+    tracksNA(k).MSDrate = tracksNA(k).MSD/tracksNA(k).lifeTime;
+    progressText(k/(numTracks-1),'Post-analysis:');
+end
+%% saving
 if saveAnalysis
     % saving
     save([dataPath filesep 'tracksNA.mat'], 'tracksNA')

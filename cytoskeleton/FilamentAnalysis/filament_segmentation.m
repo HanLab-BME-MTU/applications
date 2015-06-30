@@ -194,15 +194,30 @@ if indexFlattenProcess == 0 && ImageFlattenFlag==2
     return;
 end
 
-indexCellSegProcess = 0;
+
+indexCellSegSegProcess = 0;
 for i = 1 : nProcesses
-    if(strcmp(movieData.processes_{i}.getName,'Mask Refinement')==1)
-        indexCellSegProcess = i;
+    if(strcmp(movieData.processes_{i}.getName,'Thresholding')==1)
+        indexCellSegSegProcess = i;
         break;
     end
 end
 
-if indexCellSegProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4 || Cell_Mask_ind(1) == 6)
+if indexCellSegSegProcess == 0
+         disp('Please run segmentation and refinement first.');  
+    %     return;
+end
+
+
+indexCellRefinementProcess = 0;
+for i =  nProcesses:(-1):1
+    if(strcmp(movieData.processes_{i}.getName,'Mask Refinement')==1)
+        indexCellRefinementProcess = i;
+        break;
+    end
+end
+
+if indexCellRefinementProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4 || Cell_Mask_ind(1) == 6)
     msgbox('Please run segmentation and refinement first.')
     return;
 end
@@ -436,8 +451,13 @@ for iChannel = selected_channels
         
         MaskCell = ones(size(currentImg));
         
+        Seg_Mask = zeros( size(currentImg));
+        try
+            Seg_Mask = movieData.processes_{indexCellSegSegProcess}.loadChannelOutput(iChannel,iFrame);
+        end
+        
         if Cell_Mask_ind == 1 % using cell segmentation from same channel
-            MaskCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(iChannel,iFrame);
+            MaskCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(iChannel,iFrame);
         else
             if Cell_Mask_ind == 2 % Using input static ROI tiff
                 MaskCell = user_input_mask>0;
@@ -451,15 +471,15 @@ for iChannel = selected_channels
                         
                     else
                         if Cell_Mask_ind == 4 % Combine from both channel directly
-                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            MaskVIFCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(1,iFrame);
                             MaskCell = MaskVIFCell | MaskMTCell;
                             
                         else
                             % Combine from both channel
                             % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
-                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            MaskVIFCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(1,iFrame);
                             
                             H_close_cell = fspecial('disk',5);
                             H_close_cell = H_close_cell>0;
@@ -524,6 +544,9 @@ for iChannel = selected_channels
                 
             case 'st_only'
                 %                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound,0,Whole_movie_stat_cell{iChannel}.otsu_ST);
+                cell_mask_dilate = imdilate(MaskCell,ones(3,3));
+                MAX_st_res(Seg_Mask>0 & cell_mask_dilate==0)=nan;
+                
                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound,'showPlots',0);
                 current_seg = SteerabelRes_Segment;
                 Intensity_Segment = current_seg;

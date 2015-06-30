@@ -1,4 +1,4 @@
-function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam)
+function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam,saveFile)
 %RESULTSINDTIMECOURSE compiles the results of a group of movies making one or multiple timecourse datasets and orders them based on time
 %
 %SYNOPSIS [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam)
@@ -20,6 +20,8 @@ function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam)
 %                      negative relative time, movies after wil have a
 %                      positive relative time. If 1, relative time and
 %                      absolute time are the same.
+%        saveFile: Boolean that determines if this function saves a file.
+%                  The default is 'true'.
 %    
 %OUTPUT caseTimeList  : 2-column vector indicating the movie times. Column 1
 %                       shows absolute time, Column 2 shows relative time.
@@ -56,6 +58,8 @@ function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam)
 
 if nargin < 2
     error('resultsIndTimeCourse: Too few input arguments')
+elseif nargin == 2
+    saveFile = true;
 end
 
 %get number of movies and number of cases
@@ -208,13 +212,18 @@ for iCase = 1 : numCases
     caseResSummary = resSummary(caseIndx);
     caseResSummary = caseResSummary(indxSort);
     
-    %name variables properly for saving
-    eval(['timeList_' caseName ' = caseTimeList;'])
-    eval(['resSummary_' caseName ' = caseResSummary;'])
+    %Saves by default
+    if saveFile
     
-    %save results
-    file2save = fullfile(dir2save,['resSummary_' caseName]); %#ok<NASGU>
-    eval(['save(file2save,''timeList_' caseName ''',''resSummary_' caseName ''');']);
+        %name variables properly for saving
+        eval(['timeList_' caseName ' = caseTimeList;'])
+        eval(['resSummary_' caseName ' = caseResSummary;'])
+        
+        %save results
+        file2save = fullfile(dir2save,['resSummary_' caseName]); %#ok<NASGU>
+        eval(['save(file2save,''timeList_' caseName ''',''resSummary_' caseName ''');']);
+        
+    end
     
 end
 

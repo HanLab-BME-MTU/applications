@@ -23,5 +23,5 @@ function score = deleteEdgesAndScore(S,I,e)
     score = zeros(size(e));
     score(newFaces > 0) = cost(newFaces(newFaces > 0));
     % maybe NaN
-    score(newFaces == 0) = 0;
+    score(newFaces == 0) = NaN;
 end

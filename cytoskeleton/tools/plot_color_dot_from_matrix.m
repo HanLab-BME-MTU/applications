@@ -82,9 +82,13 @@ plot([size(inMatrix,2) size(inMatrix,2)],[0 size(inMatrix,1)]);
 %set colorbar
 hh=colorbar;
 set(hh,'YTick',(0:0.2:1)*64)
-YTicker_cell =cell(1,11);
-for iT= 1 : 11
-YTicker_cell{iT} = num2str( round(((max_value-min_value)/10*(iT-1)+min_value)/10)*10);
+YTicker_cell =cell(1,6);
+for iT= 1 : 6
+    if(max_value>1000)
+YTicker_cell{iT} = num2str( round(((max_value-min_value)/5*(iT-1)+min_value)/10)*10);
+    else
+YTicker_cell{iT} = num2str((max_value-min_value)/5*(iT-1)+min_value);
+    end
 end
 set(hh,'YTickLabel',YTicker_cell);
 

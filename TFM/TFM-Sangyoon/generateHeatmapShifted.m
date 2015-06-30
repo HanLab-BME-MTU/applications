@@ -1,4 +1,4 @@
-function [tMap, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,band)
+function [tMap, tmax, tmin, cropInfo,tMapX,tMapY] = generateHeatmapShifted(forceField,displField,band)
 %[tMap, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,band)
 % generates an image of traction in the place of deformed position defined
 % by displField. 
@@ -49,6 +49,8 @@ ymax = floor(centerY+h/2-band);
 cropInfo = [xmin,ymin,xmax,ymax];
 [reg_grid(:,:,1),reg_grid(:,:,2)] = meshgrid(xmin:xmax,ymin:ymax);
 tMap = cell(1,numel(forceField));
+tMapX = cell(1,numel(forceField));
+tMapY = cell(1,numel(forceField));
 for ii=1:numel(displField)
     [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid1);
     [~,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1);
@@ -57,5 +59,7 @@ for ii=1:numel(displField)
     force_vec = [reshape(if_mat(:,:,1),[],1) reshape(if_mat(:,:,2),[],1)]; 
     [~,tmat, ~, ~] = interp_vec2grid(pos+disp_vec, force_vec,[],reg_grid); %1:cluster size
     tMap{ii} = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
+    tMapX{ii} = tmat(:,:,1);
+    tMapY{ii} = tmat(:,:,2);
 end
 
