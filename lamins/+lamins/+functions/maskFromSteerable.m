@@ -20,8 +20,8 @@ function mask = maskFromSteerable(steerable)
     rp = regionprops(cc,'Area');
     [maxArea,maxIdx] = max([rp.Area]);
     mask(:) = 0;
-    % if the largest area detected is less than 60% of total area
-    if(maxArea < 0.6*numel(steerable.res))
+    % if the largest area detected is less than 70% of total area
+    if(maxArea < 0.7*numel(steerable.res))
         mask(cc.PixelIdxList{maxIdx}) = 1;
     end
 end

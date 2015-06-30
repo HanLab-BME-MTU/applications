@@ -434,10 +434,12 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             rgb = zeros([size(obj.bw) 3]);
             rgb(:,:,1) = obj.edges.lm > 0;
             rgb(:,:,2) = obj.vertices.lm > 0;
+            % encode edges as magenta
+            rgb(:,:,3) = rgb(:,:,2);
             if(nargin > 1)
                 I = double(I);
                 rgbI = rgb;
-                rgbI(:,:,3) = I .* ~any(rgb,3);
+                rgbI(:,:,3) = I .* ~rgb(:,:,3);
                 rgbI(:,:,1) = I .* ~rgb(:,:,2);
                 rgbI(:,:,2) = I .* ~rgb(:,:,1);
                 rgb = rgbI;
