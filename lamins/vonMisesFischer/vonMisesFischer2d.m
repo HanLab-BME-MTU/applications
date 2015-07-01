@@ -44,7 +44,11 @@ sin_theta = sin(doubleTheta);
             cos_angle(j,:) = cos_theta*cos_mu(j) + sin_theta*sin_mu(j);
         end
         
-        F = norm*1./(bessel0_kappa).*exp(kappa*cos_angle);
+        %F = norm*1./(bessel0_kappa).*exp(kappa*cos_angle);
+        F = exp(kappa*cos_angle);
+        % F = F*36/sum(F);
+        F = norm.*F;
+        F = F./bessel0_kappa;
         
         if(nargout > 1)
 %             sin_angle = sin(angle);
@@ -55,9 +59,11 @@ sin_theta = sin(doubleTheta);
             if(useBessel)
                 bessel1_kappa = besseli(1,kappa);
             else
-                bessel1_kappa = 1;
+                % derivative of 1
+                bessel1_kappa = 0;
             end
             J = zeros([size(F) 2]);
+%             J = cat(3,F,F);
             % partial derivative with respect to mu
             J(:,:,1) = 2*kappa*sin_angle.*F;
             % partial derivative with respect to kappa

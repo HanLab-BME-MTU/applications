@@ -11,158 +11,155 @@ end
 
 N = length(data);
 theta = -pi/2:pi/N:pi/2-pi/N;
-% vmf = vonMisesFischer2d(theta);
-% vmfres = @(x) data - x(2:2:end-2)*vmf(x(1:2:end-2)',x(end-1)) - x(end);
 
 vmfres = vonMisesFischer2dMult(theta,data);
 
-r = zeros(1,maxN);
+stop.TolResnorm = eps;
+stop.TolX = eps;
+stop.TolFun = eps;
+stop.Fcn = @(x,optimValues,state) strcmp(state,'iter') && optimValues.resnorm < stop.TolResnorm;
+options = optimoptions(@lsqnonlin,'TolX',eps,'TolFun',eps,'Display','off','Jacobian','on','DerivativeCheck','off','OutputFcn',stop.Fcn);
+% besseli = @(a,b) 1;
 
 init = zeros(1,maxN*2+2);
-init(1:2:end-2) = rand(1,maxN)*pi-pi/2;
-% init(2:2:end-2) = rand(1,maxN);
 init(end-1) = length(data);
 init(end) = mean(data);
 
 [maxv,maxres] = max(data);
 init(1) = theta(maxres);
 init(2) = (maxv-init(end)) / (1./2/pi/besseli(0,init(end-1))*exp(init(end-1)));
-% init(end) = mean(data - vmfres(init([1:2 end-1 end])));
 
-muMax = 0;
-if(nargin > 3)
-    muMax = min(length(mu)*2,length(init)-2);
-    init(1:2:muMax) = mu(1:muMax/2);
-end
+% muMax = 0;
+% if(nargin > 3)
+%     muMax = min(length(mu)*2,length(init)-2);
+%     init(1:2:muMax) = mu(1:muMax/2);
+% end
 
-% options = optimoptions(@lsqnonlin,'PlotFcns',@optimplotfval,'TolX',1e-8,'TolFun',1e-8);
 
-options = optimoptions(@lsqnonlin,'TolX',1e-8,'TolFun',1e-8,'Display','off','Jacobian','on');
-
+% lower bound
 lb = zeros(1,(maxN+1)*2);
-ub = Inf(1,(maxN+1)*2);
-lb(2:2:end-2) = 0.1;
+% lb(2:2:end-2) = 0.1;
 lb(1:2:end-2) = -pi/2;
-% lb(end-1) = 0.3;
 lb(end) = 0;
+
+% upper bound
+ub = Inf(1,(maxN+1)*2);
 ub(1:2:end-2) = pi/2;
 
 numDegFree_last = 0;
 resnorm_last = 0;
 bic_last = 0;
+minBic = Inf;
+
+numDegFreeT = 0;
+bicT = 0;
+
+accept = true;
+firstTime = true;
+
+use.ftest = true;
+use.minbic = false;
+use.dbic = false;
+breakOnReject = false;
+
+if(nargout > 1)
+    % debugging
+    r = zeros(1,maxN);
+    bic = zeros(1,maxN);
+    fits = cell(1,maxN);
+end
 
 for n=1:maxN
     nparams = (n+1)*2;
     % aT, trial solution
     % resnormT, trial residual
-    [aT,resnormT,residual] = lsqnonlin(vmfres,[init(1:nparams-2) init(end-1:end)],[lb(1:nparams-2) lb(end-1:end)],[ub(1:nparams-2) ub(end-1:end)],options);
-    fits{n} = aT;
-%     r(n) = sum(vmfres(aT).^2);
-    r(n) = resnormT;
-%     if(r(n) < tol)
-%         break;
-%     end
-
-    % 
-    numDegFreeT = length(data)-length(aT);
-    bicT = length(data)*log(resnormT/length(data))+log(length(data))*length(aT);
-    bic(n) = bicT;
+    % resnormT == sum(vmfres(aT).^2
+    s = [1:nparams-2 length(init)-1 length(init)];
+    [aT,resnormT,residual,exitflag,output,lambda,jacobian] = lsqnonlin(vmfres,init(s),lb(s),ub(s),options);
     
-    if(n > 1)
-            %get test statistic, which is F-distributed
-%             testStat = (sum(residualsT.^2)/numDegFreeT)/...
-%                 (sum(residuals.^2)/numDegFree);
-            testStat = (resnormT/numDegFreeT)/...
-                (resnorm_last/numDegFree_last);
-            
-            %get p-value of test statistic
-            pValue = fcdf(testStat,numDegFreeT,numDegFree_last);
-            
-            dBic = bicT-min(bic(1:end-1));
-            evidenceRatio = exp(0.5*(bicT-bic_last));
-            
-            
-            %compare p-value to alpha
-            %1-sided F-test: H0: F=1, H1: F<1
-%             pValue
-%            if dBic < 10
-            if bicT == min(bic)
-%             if pValue < alpha %if p-value is smaller, accept this fit
-%                 fit = 1; %and attempt another one with an additional kernel
-                numDegFree_last = numDegFreeT;
-                resnorm_last = resnormT;
-                bic_last = bicT;
-                a = aT;
-%                 init(1:length(aT)-2) = aT(1:end-2);
-% %                 
-%                 [maxv,maxres] = max(residual);
-%                 init(length(aT)-1) = theta(maxres);
-% %                 init(length(aT)) = aT(end-2);
-% 
-%                 init(length(aT)) = (maxv) / (1./2/pi/besseli(0,aT(end-1))*exp(aT(end-1)));
-% %                 
-% % %                 init(length(aT)-1:2:muMax) = mu(length(aT)/2:muMax/2);
-% %                 
-%                 init(length(aT)+1:length(aT)+2) = aT(end-1:end);
-%                 init(end-1:end) = aT(end-1:end);
-                
-            else %if p-value is larger, do not accept this fit and exit
-%                 fit = 0;
-%                 break;
-            
+
+    if(firstTime)
+%         accept = true;
+        firstTime = false;
+        numDegFreeT = N - nparams;
+    elseif(use.ftest)
+        %compare p-value to alpha
+        %1-sided F-test: H0: F=1, H1: F<1
+        %get test statistic, which is F-distributed
+        numDegFreeT = N - nparams;
+        testStat = (resnormT/numDegFreeT)/...
+            (resnorm_last/numDegFree_last);
+        %get p-value of test statistic
+        pValue = fcdf(testStat,numDegFreeT,numDegFree_last);
+        accept = pValue < alpha;
+    elseif(use.minbic || use.dbic)
+        logN = log(N);
+        bicT = N*(log(resnormT) - logN) + logN*nparams;
+        accept = bicT < bic_last;
+        if(use.dbic)
+            dBic = bicT-minBic;
+            if(accept)
+                minBic = bicT;
             end
-%             if(dBic > 20)
-%                 break;
-%             end
-    else
-        bic_last = bicT;
-        numDegFree_last = numDegFreeT;
-        resnorm_last = resnormT;
-        a = aT;
-        init(1:length(aT)-2) = aT(1:end-2);
-%         
-%         [~,maxres] = max(residual);
-%         init(length(aT)-1) = theta(maxres);
-%         init(length(aT)) = aT(end-2);
-%                 [maxv,maxres] = max(residual);
-%                 init(length(aT)-1) = theta(maxres);
-% %                 init(length(aT)) = aT(end-2);
-% 
-%                 init(length(aT)) = (maxv) / (1./2/pi/besseli(0,aT(end-1))*exp(aT(end-1)));
-% %                 
-% % %                 init(length(aT)-1:2:muMax) = mu(length(aT)/2:muMax/2);
-% %                 
-%                 init(length(aT)+1:length(aT)+2) = aT(end-1:end);
-% %         
-% % %         init(length(aT)-1:2:muMax) = mu(length(aT)/2:muMax/2);
-%         init(length(aT)+1:length(aT)+2) = aT(end-1:end);
-%         init(end-1:end) = aT(end-1:end);
+    %           evidenceRatio = exp(0.5*(bicT-bic_last));
+            accept = dBic < alpha;
+        end
     end
-        init(1:length(aT)-2) = aT(1:end-2);
-        [maxv,maxres] = max(residual);
-        % next location
-        init(length(aT)-1) = theta(maxres);
-        % next scaling factor
-        init(length(aT)) = (maxv) / (1./2/pi/besseli(0,aT(end-1))*exp(aT(end-1)));
-%         init(length(aT)+1:length(aT)+2) = aT(end-1:end);
-%         init(length(aT)+1:length(aT)+2) = aT(end-1:end);
-        % carry over kappa and offset
-        init(end-1:end) = aT(end-1:end);
+    
+    if(nargout > 1)
+        % debugging
+        r(n) = resnormT;
+        bic(n) = bicT;
+        fits{n} = aT;
+    end
+    
+    if(accept)
+        a = aT;
+        resnorm_last = resnormT;
+        numDegFree_last = numDegFreeT;
+        bic_last = bicT;
+        if(resnormT < stop.TolResnorm)
+            break;
+        end
+%         if(use.ftest)
+%             % adjust tolerance to be below ftest limit
+%             nextStat = finv(alpha,numDegFree_last+2,numDegFree_last);
+%             options.TolFun = min(nextStat *resnorm_last/numDegFree_last*(numDegFree_last-2) /2,options.TolFun);
+%         end
+    elseif(breakOnReject)
+        break;
+    end
+   
+    % initialize the next parameters at the same location and amplitude
+    init(1:length(aT)-2) = aT(1:end-2);
+    
+    kappa = aT(end-1);
+    
+    % next location will be centered at the maximum residual
+    [maxv,maxres] = max(residual);
+    init(length(aT)-1) = theta(maxres);
+    
+%     maxima = [aT(2:2:end-2)*(1./2/pi/besseli(0,kappa)*exp(kappa)) maxv];
+    
+    % next scaling factor
+%     kappa = length(data);
+    init(length(aT)) = (maxv) / (1./2/pi/besseli(0,kappa)*exp(kappa));
+%     init(2:2:length(aT)) = maxima / (1./2/pi/besseli(0,kappa)*exp(kappa));
+
+    % carry over kappa and offset
+    init(end-1:end) = aT(end-1:end);
+    init(end-1) = kappa;
+    
+
+    
 end
 
-if(nargout > 2)
+if(nargout > 1)
+    % debugging
     r = r(1:n);
     bic = bic(1:n);
+    fits = fits(1:n);
 end
 
-% figure;
-% plot(r);
-
-% figure;
-% plot(theta,data);
-% hold on;
-% % plot(theta,data - vmfres(a));
-% plotVMFfit(a);
-% hold off;
 end
 
