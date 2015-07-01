@@ -1,8 +1,14 @@
 classdef PartitionAnalysisProcess < DataProcessingProcess
-    % untitled2 Add summary here
+    % MovieData process that stores information about the paritioning fraction of tracks
     %
-    % This template includes the minimum set of functions required
-    % to define a System object with discrete state.
+    % funParams : function parameters for maskDetectedStrucutre similar
+    %                   to other DataProcessingProcesses
+    %   .channel_tracks     : channel index of the MD that contains the track
+    %                       information
+    %   .channel_struct     : channel index of the MD that contains the mask
+    %                       information
+    %   .outputDirectory    : directory where partitioning information will
+    %                       be stored
     
     properties
         % Public, tunable properties.
