@@ -3,8 +3,9 @@ function [ score ] = scoreEdges( S,I )
 
 import lamins.functions.*;
 
-[FE, EF] = S.faceEdges;
-edgeFilter = cellfun('length',EF) == 2;
+[~, EF] = S.faceEdges;
+numFacesPerEdge = cellfun('length',EF);
+edgeFilter = numFacesPerEdge == 2;
 twoFaceEdges = find(edgeFilter);
 EE = [EF{edgeFilter}]';
 sets = independentSetDecomposition(EE);
@@ -14,16 +15,17 @@ better = cell(1,length(sets));
 for s=1:length(sets)
     better{s} = twoFaceEdges(sets{s});
 end
-for s=1:length(sets)
-    s
+better{end+1} = find(numFacesPerEdge == 1);
+for s=1:length(better)
+%     s
 %     score(twoFaceEdges(sets{s})) = deleteEdgesAndScore(S,I, twoFaceEdges(sets{s}));
 
     out{s} = deleteEdgesAndScore(S,I, better{s});
 end
-for s=1:length(sets)
-    score(twoFaceEdges(sets{s})) = out{s};
+for s=1:length(better)
+    score(better{s}) = out{s};
 end
 % NaN?
-% score(~edgeFilter) = 0;
+% score(~edgeFilter) = NaN;
 
 end
