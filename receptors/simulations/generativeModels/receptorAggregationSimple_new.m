@@ -6,7 +6,7 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag,assocStats,c
 %    = receptorAggregationSimple(modelParam,simParam)
 %
 %INPUT  modelParam: Structure with the fields:
-%           diffCoef        : Diffusion coefficient (microns^2/
+%           diffCoef        : Diffusion coefficient (microns^2/s).
 %           receptorDensity : Receptor density (#/microns^probDim).
 %           aggregationProb : Probability of aggregation if a receptor
 %                             bumps into another receptor or receptor
@@ -96,7 +96,7 @@ receptorInfoAll = [];
 %09/05/14 (ryirdaw)
 %need to block the following otherwise conversion from struct to double
 %error at at the end
-%receptorInfoLabeled = struct;
+%receptorInfoLabeled = [];
 timeIterArray = [];
 
 %% Input
@@ -158,13 +158,6 @@ else
     errFlag = 1;
 end
 
-if isfield(modelParam,'locError')
-    locError = modelParam.locError;
-else
-    disp('--receptorAgggregationSimple: Please supply localization error');
-    errFlag = 1;
-end
-
 %receptor initial positions
 if isfield(modelParam,'initPositions')
     initPositions = modelParam.initPositions;
@@ -190,7 +183,7 @@ end
 
 %some must be positive
 %09/05/14 - modified to accomodate a vector labelRatio
-if any([receptorDensity aggregationDist (labelRatio(:)') intensityQuantum(1)] <= 0)
+if any([receptorDensity aggregationDist (labelRatio') intensityQuantum(1)] <= 0)
     disp('--receptorAggregationSimple: Receptor density, aggregation distance, labeling ratio and intensity quantum should be positive');
     errFlag = 1;
     return
@@ -714,8 +707,8 @@ receptorInfoAll = struct('receptorTraj',receptorTraj,'recept2clustAssign',...
 %% Receptor labeling and sub-sampling
 
 %KJ (150528): call function to label and sub-sample
-receptorInfoLabeled = genReceptorInfoLabeledError(receptorInfoAll,...
-    labelRatio,intensityQuantum,locError);
+receptorInfoLabeled = genReceptorInfoLabeled(receptorInfoAll,...
+    labelRatio,intensityQuantum);
 
 
 %% ~~~ the end ~~~
