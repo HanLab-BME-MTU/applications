@@ -20,8 +20,9 @@ function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam,saveF
 %                      negative relative time, movies after wil have a
 %                      positive relative time. If 1, relative time and
 %                      absolute time are the same.
-%        saveFile: Boolean that determines if this function saves a file.
-%                  The default is 'true'.
+%        saveFile: Logical that determines if this function saves a file.
+%                  The default is 'true'. 0 or 1 instead of true or false
+%                  will work.
 %    
 %OUTPUT caseTimeList  : 2-column vector indicating the movie times. Column 1
 %                       shows absolute time, Column 2 shows relative time.
@@ -58,7 +59,8 @@ function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam,saveF
 
 if nargin < 2
     error('resultsIndTimeCourse: Too few input arguments')
-elseif nargin == 2
+end
+if nargin < 3
     saveFile = true;
 end
 
