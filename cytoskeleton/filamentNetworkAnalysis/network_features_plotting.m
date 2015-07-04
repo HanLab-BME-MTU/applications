@@ -25,10 +25,10 @@ if(figure_flag>0)
         
         h3 = figure(3); set(h3,'Visible',set_visible); hold off;
         
-        [h,bin] = hist(output_feature.pixel_number_per_filament_pool,0:20:1000);
+        [h,bin] = hist(output_feature.pixel_number_per_filament_pool,0:5:1000);
         h = h/length(output_feature.pixel_number_per_filament_pool);
         bar(bin,h);
-        axis([-10 310 0 0.3]);
+        axis([-10 150 0 0.3]);
         
         title([im_name_title,' Pixels Number Distribution']);
         
