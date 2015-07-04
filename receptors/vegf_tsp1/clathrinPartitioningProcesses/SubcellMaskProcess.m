@@ -1,11 +1,14 @@
 classdef SubcellMaskProcess < DataProcessingProcess
-    % untitled3 Add summary here
+    % MovieData Process that stores a mask that covers subcellular structures detected by SubResolutionProcess
     %
-    % This template includes the minimum set of functions required
-    % to define a System object with discrete state.
+    % funParams     : function parameters for maskDetectedStrucutre similar
+    %                   to other DataProcessingProcesses
+    %   .channel            : channel index of the MD to be analyzed
+    %   .psfSigmaMult       : imdilate radius = psfSigma * pasfSigmaMult
+    %   .outputDirectory    : directory where mask will be stored
     
     properties
-        imSize_;% Image size 1x2 array[height width]
+        imSize_;% Image size 1x2 array[height, width]
         nFrames_;% Number of frames
     end
     
