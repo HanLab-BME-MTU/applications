@@ -578,7 +578,8 @@ if ~isempty(links) % nothing that falls under this criteria
             clear pixIdxNew
         end % for iGroup
         
-        idxNotEdgeGrp = sum(horzcat(~idxGrpEdgesAll{:}),2)./numel(idxGrpEdgesAll);
+        
+        idxNotEdgeGrp = ~sum(horzcat(idxGrpEdgesAll{:}),2);
         nPiecesGroup = numel(pixIdxPostConnect);
     else
         idxNotEdgeGrp = ones(size(E,1),1);
@@ -615,28 +616,50 @@ if ~isempty(links) % nothing that falls under this criteria
         pixIdxPostConnect{idxC} = find(labelMat==nonConnect(iCand));
         EPsPostConnect{idxC} = getEndpoints(pixIdxPostConnect{idxC},[ny,nx],0,1); 
     end
-    %%
-    %labelAll(~
-    % EPsPostConnect{
-    figure;
-    imshow(labelMat>0,[]);
-    hold on
-    % plot the new EPS
-    % plot the new labels
-    cmap = lines(numel(EPsPostConnect));
     
-    nLabels =  numel(EPsPostConnect);
+    % remove the extra pixels per pixIdx 
+    pixIdxPostConnect = cellfun(@(x) unique(x),pixIdxPostConnect,'uniformoutput',0); 
     
-    %cmap = lines(7);
-    % sanity check
-    [yCand,xCand] = cellfun(@(x) ind2sub([ny,nx],x),pixIdxPostConnect,'uniformoutput',0);
+    %% TSOverlays Figure 
+    if ip.Results.TSOverlays == true;
+        
+        TSFigs(countFigs).h = setFigure(nx,ny,'on');
+        TSFigs(countFigs).name = 'Post Connection Labels';
+        imshow(labelMat>0,[]);
+        hold on
+        % plot the new EPS
+        % plot the new labels
+        cmap = lines(numel(EPsPostConnect));
+        
+        nLabels =  numel(EPsPostConnect);
+        
+        %cmap = lines(7);
+        % sanity check
+        [yCand,xCand] = cellfun(@(x) ind2sub([ny,nx],x),pixIdxPostConnect,'uniformoutput',0);
+        
+        
+        
+        for x = 1:nLabels
+            scatter(EPsPostConnect{x}(:,1),EPsPostConnect{x}(:,2),50,cmap(x,:),'filled');
+            scatter(xCand{x},yCand{x},20,cmap(x,:),'filled');
+            
+            % scatter(
+        end ;
+        % plot shared pixels
+        idxAll =  vertcat(pixIdxPostConnect{:});
+        [~,idxSingle] = unique(idxAll,'stable');
+        shared = idxAll;
+        
+        shared(idxSingle) = [];
+        
+        
+        
+        [yShare,xShare] = ind2sub([ny,nx],shared);
+        scatter(xShare,yShare,10,'w');
+        countFigs = countFigs+1;
+    end
     
-    for x = 1:nLabels
-        scatter(EPsPostConnect{x}(:,1),EPsPostConnect{x}(:,2),50,cmap(x,:),'filled');
-        scatter(xCand{x},yCand{x},20,cmap(x,:),'filled');
-        % scatter(
-    end ;
-   
+    
     status = 1; % there were links
 else
     candidateMaskNew = candidateMask;
