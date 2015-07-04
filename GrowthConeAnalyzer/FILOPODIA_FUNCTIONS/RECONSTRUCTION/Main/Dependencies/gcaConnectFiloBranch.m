@@ -227,12 +227,12 @@ if sum(testMatch) ~= 0 ;
         imshow(-img,[]);
         hold on
         spy(labelMatSeedFilo,'b',5);
-        scatter(seedPtsx(:),seedPtsy(:),10,'y','filled');
+       % scatter(seedPtsx(:),seedPtsy(:),5,'y','filled');
         spy(labelCandidates,'r',5);
         xyall = vertcat(candFiloEPs{:});
         vectall = vertcat(vectCand{:});
         quiver(xyall(:,1),xyall(:,2),vectall(:,1),vectall(:,2),0.2,'r');
-        scatter(seedPtsx(:),seedPtsy(:),'y','filled');
+        scatter(seedPtsx(:),seedPtsy(:),5,'y','filled');
         % old vectors
         quiver(seedPtsx(:),seedPtsy(:),vectInput(:,1),vectInput(:,2),0.2,'y');
         
@@ -336,6 +336,10 @@ if sum(testMatch) ~= 0 ;
     costTotal = (0.5*D + int+dotProd+dotCandAndSeed); % note to self: let's see what we get by just combining these values
     % linearly at first: in the end might want to disfavor the distance term
     % and favor more the int and dotProd term.
+    
+    
+    setAxis
+    hist(costTotal)
     %% Plot all the paths by the costTotal
     % take 
     if ip.Results.TSOverlays == true 
@@ -397,19 +401,21 @@ if sum(testMatch) ~= 0 ;
  
     %% Perform Matching to Resolve Graph
     E = [E costTotal D int dotProd dotCandAndSeed];
-    E = E(dotProd>0.5,:); 
+    %E = E(dotProd>0.5,:); 
     EFinal = EFinal(dotProd>0.5,:);
-    costTotal = costTotal(dotProd>0.5); 
-   idxCMap =  idxCMap(dotProd>0.5,:); 
-   iSeg= iSeg(:,dotProd>0.5); 
+    costTotal = costTotal(dotProd>0.5);
+    idxCMap =  idxCMap(dotProd>0.5,:);
+    iSeg= iSeg(:,dotProd>0.5);
+     %numberNodes =  sum(dotProd); 
     
+    %numberNodes = size(EFinal,1); 
     [candFiloNodes,~,nodeLabels] = unique(EFinal(:,1),'stable'); % reason note: some of the filo will not be candidates as their endpoints are not within the given radius
-  %  NNodeQuery = length(candFiloNodes);
+    NNodeQuery = length(candFiloNodes);
     [inputLinks,~,nodeLabelsInput] = unique(EFinal(:,2),'stable'); % reason note: just in case two filo are competing over the same seed point
-    %nodeLabelsInputFinal = nodeLabelsInput+NNodeQuery;
-  %  EFinal = [nodeLabels nodeLabelsInputFinal]; % put in independent node form
+    nodeLabelsInputFinal = nodeLabelsInput+NNodeQuery;
+    EFinal = [nodeLabels nodeLabelsInputFinal]; % put in independent node form
     numberNodes = length(inputLinks) + length(candFiloNodes);
-    
+    %numberOfNodes = 98; 
     
     
     %% TS Overlay : Geometry Thresholds
@@ -458,7 +464,12 @@ if sum(testMatch) ~= 0 ;
         %     idx = E(:,1) < E(:,2);
         
         %     E = E(idx,:); % remove redundancy
-        
+        %% NOTE Currently not counting the number of nodes correctly! 
+        % might be because I never considered the seed coords might have
+        % the same labels. 
+        %% TESTING 
+        %numberNodes = size(EFinal,1)-1;  
+        %% 
         M = maxWeightedMatching(numberNodes, EFinal, costTotal);
         % check for double labels
         % convertBack
@@ -478,6 +489,13 @@ if sum(testMatch) ~= 0 ;
         % it's a little stupid because we have some of this junction info
         % before the NMS but I throw it away
         goodConnect = iSeg(M);
+        
+%% Troubleshoot overlay 
+
+        
+        
+        
+        
         
         % convert to pixIdx
         pixGoodConnect = cellfun(@(i) sub2ind(dims,i(:,2),i(:,1)), goodConnect,'uniformoutput',0);
@@ -504,18 +522,18 @@ if sum(testMatch) ~= 0 ;
     for iMatch = 1:length(E(:,1))
         labelInputCon(iMatch) = labelMatSeedFilo(sub2ind(dims,inputPoints(E(iMatch,2),2),inputPoints(E(iMatch,2),1)));
         %% Need to Fix 20150604 Change to a cell array
-        %labelCandCon(iMatch) = labelCandidates(sub2ind(dims,candFiloEPs{E(iMatch,1)}(1,2),candFiloEPs{E(iMatch,1)}(1,1)));
+        labelCandCon(iMatch) = labelCandidates(sub2ind(dims,candFiloEPs{E(iMatch,1)}(1,2),candFiloEPs{E(iMatch,1)}(1,1)));
         % get the label
-        % labelCanCon(iMatch) = E(iMatch,1)};
-        
-        
-        %%
-        
-        if E(iMatch,3) == 1;
-            EPsCand(iMatch) = 2 ;
-        else
-            EPsCand(iMatch) = 1;
-        end
+        labelCanCon(iMatch) = E(iMatch,1);
+%         
+%         
+%         %%
+%         
+         if E(iMatch,3) == 1;
+             EPsCand(iMatch) = 2 ;
+         else
+             EPsCand(iMatch) = 1;
+         end
     end
     
     
@@ -621,7 +639,7 @@ if sum(testMatch) ~= 0 ;
                         pathCoords = [yBack xBack]; 
                     
  %%                      
-                sanityCheck =1; 
+                sanityCheck =0; 
                 if sanityCheck == 1
                 
                     
@@ -629,7 +647,7 @@ if sum(testMatch) ~= 0 ;
                    hold on 
                 
                 
-                   roiYX = bwboundaries(labelMatSeed==1); 
+                   roiYX = bwboundaries(labelMatSeedFilo==1); 
                    cellfun(@(x) plot(x(:,2),x(:,1),'b'),roiYX); 
                    scatter(smoothedEdgeC(idx,1),smoothedEdgeC(idx,2),10,'b','filled'); 
                    quiver(smoothedEdgeC(idx(3),1),smoothedEdgeC(idx(3),2), avgNormLocal(1),avgNormLocal(2),10,'filled','color','c','Linewidth',2); 
@@ -651,7 +669,7 @@ if sum(testMatch) ~= 0 ;
                              localVectFilo = [pathCoords(end-back,2)-pathCoords(end-1,2),pathCoords(end-back,1)-pathCoords(end-1,1)];
                              vectLength = sqrt((pathCoords(end-back,2)-pathCoords(end-1,2)) ^2 + (pathCoords(end-back,1) - pathCoords(end-1,1))^2);
                              normLength = sqrt(avgNormLocal(1)^2 + avgNormLocal(2)^2);
-                             cosAngle = dot(avgNormLocal,localVectFilo)/vectLength/normLength;
+                             cosAngle = dot(avgNormLocal(1:2),localVectFilo)/vectLength/normLength;
                              angleToBody = rad2deg(acos(cosAngle));
                              %angleToBody = 180- angle -90;
                             
