@@ -83,6 +83,8 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 
 % Linking Parameters Traditional Filopodia/Branch Reconstruct
 ip.addParameter('maxRadiusConnectFiloBranch',5); 
+ip.addParameter('geoThreshFiloBranch',0.5); 
+
 
 
 
@@ -106,38 +108,36 @@ for iCh = 1:nChan
     
     
     
-    saveDir = [movieData.outputDirectory_ filesep ...
-        'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction' ...
-        filesep 'Channel_' num2str(channels(iCh))];
+    outDir = [ip.Results.OutputDirectory filesep  'Channel_' num2str(channels(iCh))];
     
-    if ~isdir(saveDir);
-        mkdir(saveDir);
+    if ~isdir(outDir);
+        mkdir(outDir);
     end
     
-    reconstructFile = [saveDir filesep 'filoBranch.mat'];
+    reconstructFile = [outDir filesep 'filoBranch.mat'];
     
     % If file exists
-    if  exist(reconstructFile,'file')==2;
-        load(reconstructFile) % load the file
-        display('Loading Previously Run Filopodia Reconstructions ');
-        if strcmpi(p.startFrame,'auto')
-            startFrame = numel(analInfo)-1;
-            if startFrame == 0
-                startFrame = 1; % reset to 1;
-            end
-            display(['Auto Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
-        else
-            startFrame = p.restart.startFrame; % use user input
-            display(['Manual Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
-        end
-    else % if doesn't exist
-        startFrame = 1;
-        display('No Filopodia Reconstruction Folder Found: Creating and Starting at Frame 1');
-        
-    end % exist(orientFile,'file') == 2
+   %  if  exist(reconstructFile,'file')==2;
+  %      load(reconstructFile) % load the file
+%         display('Loading Previously Run Filopodia Reconstructions ');
+%         if strcmpi(p.startFrame,'auto')
+%             startFrame = numel(analInfo)-1;
+%             if startFrame == 0
+%                 startFrame = 1; % reset to 1;
+%             end
+%             display(['Auto Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
+%         else
+%             startFrame = p.restart.startFrame; % use user input
+%             display(['Manual Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
+%         end
+%     else % if doesn't exist
+%         startFrame = 1;
+%         display('No Filopodia Reconstruction Folder Found: Creating and Starting at Frame 1');
+%         
+%     end % exist(orientFile,'file') == 2
     
     
-    
+    startFrame = p.StartFrame;
     
     
     if strcmpi(p.EndFrame,'auto');
@@ -216,7 +216,7 @@ for iCh = 1:nChan
         EPLead = veilStem(iFrame).endPointLeadingProt; 
         LPIndices = veilStem(iFrame).neuriteLongPathIndices;
     
-        GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,p); 
+       [filoBranchC,TSFigs] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,p); 
         
         
         
@@ -225,8 +225,8 @@ for iCh = 1:nChan
         
         % quick fix for the plots is to just make the frame number an input for not 20140812
         hashTag =  gcaArchiveGetGitHashTag;
-        filoBranch.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
-        filoBranch(iFrame) = filoBranch;
+        filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+        filoBranch(iFrame) = filoBranchC;
         save( [outDir filesep 'filoBranch.mat'],'filoBranch');
     end % iFrame
     
