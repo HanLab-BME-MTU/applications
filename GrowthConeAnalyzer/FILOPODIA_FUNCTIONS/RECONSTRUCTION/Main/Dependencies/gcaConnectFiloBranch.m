@@ -687,7 +687,7 @@ if sum(testMatch) ~= 0 ;
                              vectLength = sqrt((pathCoords(end-back,2)-pathCoords(end-1,2)) ^2 + (pathCoords(end-back,1) - pathCoords(end-1,1))^2);
                              normLength = sqrt(avgNormLocal(1)^2 + avgNormLocal(2)^2);
                              cosAngle = dot(avgNormLocal(1:2),localVectFilo)/vectLength/normLength;
-                             angleToBody = rad2deg(acos(cosAngle));
+                             angleToBody = acosd(cosAngle);
                              %angleToBody = 180- angle -90;
                             
                             
@@ -1060,11 +1060,11 @@ if sum(testMatch) ~= 0 ;
                 
                 
                 x.cross = 0;
-                orientBranch = rad2deg(acos(dot( vectSeedFiloLocBranchReg ,vectBranch)/magBranchVect/magSeedVect));
+                orientBranch = acosd(dot( vectSeedFiloLocBranchReg ,vectBranch)/magBranchVect/magSeedVect);
                 x.orientation = orientBranch; % in degrees.
                 x.localVectFilo = vectBranch;
                 x.localVectAttach = vectSeedFiloLocBranchReg;
-                %         x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
+               
                 fieldsx = fieldnames(x);
                 fieldsFiloInfo = fieldnames(filoInfo);
                 fieldsAddtoX = setdiff(fieldsFiloInfo,fieldsx);

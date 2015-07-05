@@ -528,7 +528,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
 
    %% NOTE NEED to fix to update pixIdxPostConnect and the EP candidates after the linkages with the new pixIndices. 
    
-   [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch_FixIdxCand(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
+   [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
    
    %%
    
