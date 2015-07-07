@@ -50,6 +50,11 @@ end
 
 ML_ROOT_DIR = ML.outputDirectory_;
 
+if(numel(feature_flag)<28)
+    feature_flag = [feature_flag(:); zeros(28-numel(feature_flag),1)];
+end
+
+
 if(feature_flag(4)==0)
     feature_flag(25)=0;
 end
@@ -63,9 +68,6 @@ if(vimscreen_flag==0)
     feature_flag(24)=0;
 end
 
-if(numel(feature_flag)<28)
-    feature_flag = [feature_flag(:); zeros(28-numel(feature_flag),1)];
-end
 
 
 %%

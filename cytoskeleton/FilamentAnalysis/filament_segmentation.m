@@ -884,6 +884,8 @@ for iChannel = selected_channels
             orienation_map_filtered(sub2ind(size(currentImg), VIF_YY,VIF_XX))=OO_flip;
         end
         
+        currentImg = double(currentImg);
+        currentImg = (currentImg-min(min(currentImg)))/(max(max(currentImg))-min(min(currentImg)))*255;
         currentImg = uint8(currentImg/1);
         Hue = (-orienation_map_filtered(:)+pi/2)/(pi)-0.2;
         Hue(find(Hue>=1)) = Hue(find(Hue>=1)) -1;
@@ -917,6 +919,8 @@ for iChannel = selected_channels
             end
         end
         
+        RGB_seg_orient_heat_map_white = RGB_seg_orient_heat_map;
+        
         enhanced_im_r = 255-currentImg;
         enhanced_im_g = 255-currentImg;
         enhanced_im_b = 255-currentImg;
@@ -925,14 +929,14 @@ for iChannel = selected_channels
         enhanced_im_g(find(current_seg>0))=255*G_seg_orient_heat_map(find(current_seg>0));
         enhanced_im_b(find(current_seg>0))=255*B_seg_orient_heat_map(find(current_seg>0));
         
-        RGB_seg_orient_heat_map(:,:,1 ) = enhanced_im_r;
-        RGB_seg_orient_heat_map(:,:,2 ) = enhanced_im_g;
-        RGB_seg_orient_heat_map(:,:,3 ) = enhanced_im_b;
+        RGB_seg_orient_heat_map_white(:,:,1 ) = enhanced_im_r;
+        RGB_seg_orient_heat_map_white(:,:,2 ) = enhanced_im_g;
+        RGB_seg_orient_heat_map_white(:,:,3 ) = enhanced_im_b;
         
         if(SaveFigures_movie==1)
             for sub_i = 1 : Sub_Sample_Num
                 if iFrame + sub_i-1 <= nFrame
-                    imwrite(RGB_seg_orient_heat_map, ...
+                    imwrite(RGB_seg_orient_heat_map_white, ...
                         [HeatEnhOutputDir,filesep,'white_segment_heat_',...
                         filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 end

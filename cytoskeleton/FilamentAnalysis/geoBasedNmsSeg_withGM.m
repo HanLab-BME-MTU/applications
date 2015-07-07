@@ -254,7 +254,11 @@ if(isempty(classifier_trained))
     
     % And the length as Otsu threshold
     %     T_xie_length =CoefAlpha*max(thresholdOtsu(feature_Length),thresholdRosin(feature_Length));
+    try
     T_xie_length = CoefAlpha*(thresholdRosin(feature_Length));
+    catch        
+     T_xie_length = CoefAlpha*(thresholdOtsu(feature_Length));        
+    end
     
     % Make a classification function as whether it is above the line
     T_xie_int_train = T_xie_int;
