@@ -352,7 +352,7 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
                 
                 % calculate angle to body
                 cosAngle = dot(avgNormLocal(1:2),localVectFilo)/vectLength/normLength;
-                angleToBody = rad2deg(acos(cosAngle));
+                angleToBody = acosd(cosAngle);
                 %%
                 if sanityCheck ==1 
                     text(pathCoords(end,2),pathCoords(end,1),num2str(angleToBody,3),'color','k'); 
@@ -463,7 +463,6 @@ if sanityCheck==1
     close gcf
 end 
 
-display(['Number not 2' num2str(count)]);
 
 
 

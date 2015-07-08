@@ -142,7 +142,8 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 
 % TRADITIONAL FILOPODIA/BRANCH RECONSTRUCT           
 % Pass to: gcaAttachFilopodiaStructuresMain.m
-ip.addParameter('maxRadiusConnectFiloBranch',5); 
+ip.addParameter('maxRadiusConnectFiloBranch',5);
+ip.addParameter('geoThreshFiloBranch',0.5);
 
 
 % EMBEDDED ACTIN SIGNAL LINKING %
@@ -197,20 +198,23 @@ normalsC = protrusionC.normal;
         %Sam requires the curves run in the same direction
         currOutline = currOutline(end:-1:1,:);
     end
-%%
-smoothedEdgeC = protrusionC.smoothedEdge; 
-figure
-cmap = hsv(length(smoothedEdgeC(:,1))); 
-imshow(-img,[]); 
-hold on 
-%quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'b')
 
-arrayfun(@(i) scatter(smoothedEdgeC(i,1),smoothedEdgeC(i,2),10,cmap(i,:),'filled'),1:length(smoothedEdgeC(:,1)));   
-text(5,5,'1'); 
-%quiver(currOutline(:,1),currOutline(:,2),normalsC(:,1),normalsC(:,2),'b')
- imshow(-img,[]); 
- hold on 
- arrayfun(@(i) scatter(currOutline(i,1),currOutline(i,2),10,cmap(i,:),'filled'),1:length(currOutline(:,1)));
+%% OLD From Testing to Remove
+% figure
+% cmap = hsv(length(smoothedEdgeC(:,1))); 
+% imshow(-img,[]); 
+% hold on 
+% %quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'b')
+% 
+% arrayfun(@(i) scatter(smoothedEdgeC(i,1),smoothedEdgeC(i,2),10,cmap(i,:),'filled'),1:length(smoothedEdgeC(:,1)));   
+% text(5,5,'1'); 
+% %quiver(currOutline(:,1),currOutline(:,2),normalsC(:,1),normalsC(:,2),'b')
+%  imshow(-img,[]); 
+%  hold on 
+%  arrayfun(@(i) scatter(currOutline(i,1),currOutline(i,2),10,cmap(i,:),'filled'),1:length(currOutline(:,1)));
+
+%% Reorient Normals Toward Outgrowth 
+%smoothedEdgeC = protrusionC.smoothedEdge;  
 % rotate the normals of the edge of the veilstem in the direction of the
 % outgrowth for orientation metrics. 
 [normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims); 
@@ -218,7 +222,8 @@ text(5,5,'1');
 
 if ip.Results.TSOverlays
   TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'off'); 
-  TSFigs(countFigs).name = 'Normals Rotated'; 
+  TSFigs(countFigs).name = 'Normals_Rotated'; 
+  TSFigs(countFigs).group = []; 
     imshow(-img,[]); 
     hold on 
     side1 = find(normalsCRotated(:,3) == 1); 
@@ -271,11 +276,12 @@ filoBranchC.filterInfo.scaleMap = scaleMap;
     valuesFilter = forValues(forValues~=0);  
     [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(valuesFilter); 
     cutoffTrueResponse = respNMSMean+ip.Results.multSTDNMSResponse*respNMSSTD; % can make this a variable 
-    n1 = hist(valuesFilter,100);
+    n1 = hist(valuesFilter,500);
     
     % Filter NMS based on Threshold: This will form the basis for your
     % candidate ridges
     canRidges = maxNMS.*~maskBack;
+    canRidgesPre = canRidges;
     canRidges(canRidges<cutoffTrueResponse) = 0; 
     filoBranchC.filterInfo.ThreshNMS = canRidges; 
     
@@ -283,14 +289,20 @@ filoBranchC.filterInfo.scaleMap = scaleMap;
 %% OPTIONAL TS PLOT : Show Histogram to see if cut-off reasonable given the distribution
         if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFigs(countFigs).h = figure('visible','off'); 
-       
-          TSFigs(countFigs).name = 'SmallRidgeNMSThreshold'; 
-           
-          hist(valuesFilter,100); 
+          TSFigs(countFigs).h = figure('visible','on'); 
+          
+          TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist'; 
+          TSFigs(countFigs).group = 'Cleaning_Small_Ridges' ; 
+         
+          setAxis('on')
+          hist(valuesFilter,500); 
           hold on 
           line([cutoffTrueResponse cutoffTrueResponse],[0,max(n1)],'color','r','Linewidth',2); 
-          title('Red line 3*std of first mode'); 
+          axis([min(valuesFilter),max(valuesFilter),0,max(n1)]); 
+          title(['Red line ' num2str(ip.Results.multSTDNMSResponse) '*std of first mode']); 
+          xlabel('Response per pixel (NMS Pixels Only)'); 
+          ylabel('Count'); 
+          
           countFigs = countFigs+1; % close figure 
         end
 %% Eliminate Ridge Junctions
@@ -327,12 +339,14 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 %% Optional TS Figure : Ridge Signal Cleaning Steps 
  if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFigs(countFigs).h = figure('visible','on'); 
+          TSFigs(countFigs).h = figure('visible','off'); 
        
-          TSFigs(countFigs).name = 'RidgeSignalCleaning'; 
+          TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist';
+          TSFigs(countFigs).group = 'Cleaning_Small_Ridges'; 
+         
           imshow(-img,[]) ; 
           hold on 
-          spy(canRidges,'b'); 
+          spy(canRidgesPre,'b'); 
           spy(cleanedRidgesAll,'r'); 
           text(5,5,'Ridges Before Cleaning','Color','b','FontSize',10);
           text(5,20,'Ridges After Cleaning', 'Color','r','FontSize',10); 
@@ -346,7 +360,7 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 %% Run Main Function that performs the reconstructions
 [reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
 
-TSFigsFinal = [TSFigs; TSFigs2]; 
+TSFigsFinal = [TSFigs  TSFigs2]; 
 
 filoBranch.filoInfo = filoInfo; % 
 filoBranch.reconstructInfo = reconstruct;

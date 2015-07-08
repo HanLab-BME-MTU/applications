@@ -56,13 +56,13 @@ distMat(distMat==0 | distMat==max(distMat(:)))= NaN;
 % maskD = false(dims); 
 % maskD(LPIndices) = 1; 
 % maskD = imdilate(maskD,strel('disk',1)); 
-
-
+% 
+% 
 % distMat(maskD) = NaN; 
 % imshow(distMat>0,[]); 
 % hold on 
 % spy(maskD,'r',10); 
-%imagesc(distMat) ; 
+% imagesc(distMat) ; 
 % get the two CCs created. (will be in wrong order)
 CCs = bwconncomp(distMat>0);
 
