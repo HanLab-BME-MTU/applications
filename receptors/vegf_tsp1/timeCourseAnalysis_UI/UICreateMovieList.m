@@ -31,44 +31,10 @@ if isempty(emissionWL)
 end
 %% MovieList creation part 1
 [fileNameML, filePathML] = uiputfile('*.mat', 'Find a place to save your movie list');
-outputDir = filePathML(1:end-1);
-%outputDir = uigetdir(filePathML, 'Select the directory to store the list analysis output');
-%% MovieData creation
+outputDir = uigetdir(filePathML, 'Select the directory to store the list analysis output');
+%% MovieData creation part 1
 %User file selection for MD creation
 [fileName, filePath] = uigetfile('*.tif', 'Select Movies', 'MultiSelect', 'on');
-%User file selection
-if iscellstr(fileName)
-    nMD = length(fileName);
-    iMD = 1;
-    for MCounter = nMD:-1:1
-        printLength = fprintf('MD %g/%g\n', iMD, nMD);
-        name = fileName{MCounter}(1:end-4);
-        movies{MCounter} = [filePath name filesep name '.mat'];
-        %create new MD if one doesn't exist already
-        if exist(movies{MCounter}, 'file') == 0
-            evalc('MD(MCounter) = MovieData([filePath fileName{MCounter}])');
-            MD(MCounter).pixelSize_ = ip.Results.pixelSize_;
-            MD(MCounter).timeInterval_ = ip.Results.timeInterval_;
-            MD(MCounter).numAperture_ = ip.Results.numAperature_;
-            evalc('MD(MCounter).sanityCheck;');
-            MD(MCounter).channels_.emissionWavelength_ = emissionWL;
-            MD(MCounter).channels_.exposureTime_ = ip.Results.exposureTime_;
-            MD(MCounter).channels_.imageType_ = ip.Results.imageType_;
-            evalc('MD(MCounter).channels_.sanityCheck;');
-            MD(MCounter).save;
-        else
-            evalc('MD(MCounter) = MovieData.load(movies{MCounter})');
-        end
-        fprintf(repmat('\b',1,printLength));
-        iMD = iMD + 1;
-    end
-else
-    name = fileName(1:end-4);
-    movies = {[filePath name filesep name '.mat']};
-end
-%% MovieList creation part 2
-ML = MovieList(movies, outputDir, 'movieListFileName_', fileNameML, 'movieListPath_', filePathML(1:end-1), 'createTime_', clock());
-evalc('ML.sanityCheck();');
 %% Relative time zero selection
 %This is for timecourse analysis
 %Obtain relative time zero from user
@@ -100,18 +66,6 @@ if isempty(userInputNum)
     %if strcmpi(userInputStr, 'min')
     %    zeroSelect = 3; %need to get relTime0
     %end
-end
-%% Relative time zero set
-%if index number
-if zeroSelect == 1
-    %evalc('MD = MovieData.load(movies{userInputNum})');
-    relTimeZero = MD(userInputNum).acquisitionDate_;
-end
-%if select
-if zeroSelect == 2
-    userChoiceMD = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', fileName);
-    %evalc('MD = MovieData.load(movies{userChoiceMD})');
-    relTimeZero = MD(userChoiceMD).acquisitionDate_;
 end
 %% Relative time zero selection2
 %'same' means same as time above
@@ -145,19 +99,63 @@ if isempty(userInputNum2)
     %    zeroSelect = 3; %need to get relTime0
     %end
 end
+%% MovieData creation part2
+%User file selection
+if iscellstr(fileName)
+    nMD = length(fileName);
+    iMD = 1;
+    for MCounter = nMD:-1:1
+        printLength = fprintf('MD %g/%g\n', iMD, nMD);
+        name = fileName{MCounter}(1:end-4);
+        movies{MCounter} = [filePath name filesep name '.mat'];
+        %create new MD if one doesn't exist already
+        if exist(movies{MCounter}, 'file') == 0
+            evalc('MD = MovieData([filePath fileName{MCounter}])');
+            MD.pixelSize_ = ip.Results.pixelSize_;
+            MD.timeInterval_ = ip.Results.timeInterval_;
+            MD.numAperture_ = ip.Results.numAperature_;
+            evalc('MD.sanityCheck;');
+            MD.channels_.emissionWavelength_ = emissionWL;
+            MD.channels_.exposureTime_ = ip.Results.exposureTime_;
+            MD.channels_.imageType_ = ip.Results.imageType_;
+            evalc('MD.channels_.sanityCheck;');
+            MD.save;
+        end
+        fprintf(repmat('\b',1,printLength));
+        iMD = iMD + 1;
+    end
+else
+    name = fileName(1:end-4);
+    movies = [filePath name filesep name '.mat'];
+end
+%% MovieList creation part 2
+ML = MovieList(movies, outputDir, 'movieListFileName_', fileNameML, 'movieListPath_', filePathML(1:end-1), 'createTime_', clock());
+evalc('ML.sanityCheck();');
+%% Relative time zero set
+%if index number
+if zeroSelect == 1
+    evalc('MD = MovieData.load([filePath fileName{userInputNum}])');
+    relTimeZero = MD.acquisitionDate_;
+end
+%if select
+if zeroSelect == 2
+    userChoiceMD = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', fileName);
+    evalc('MD = MovieData.load([filePath fileName{userChoiceMD}])');
+    relTimeZero = MD.acquisitionDate_;
+end
 %% Relative time zero 2 set
 %If one is adding clathrin 
 if zeroSelect2 == 1
-    %evalc('MD = MovieData.load(movies{userInputNum2})');
-    relTimeZero2 = MD(userInputNum2).acquisitionDate_;
+    evalc('MD = MovieData.load([filePath fileName{userInputNum2}])');
+    relTimeZero2 = MD.acquisitionDate_;
 end
 %if select
 if zeroSelect2 == 2
     userChoiceMD2 = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', fileName);
-    %evalc('MD = MovieData.load(movies{userChoiceMD2})');
-    relTimeZero2 = MD(userChoiceMD2).acquisitionDate_;
+    evalc('MD = MovieData.load([filePath fileName{userChoiceMD2}])');
+    relTimeZero2 = MD.acquisitionDate_;
 end
-%% Save ML
+%% Save relative time
 ML.addProcess(TimePoints(ML));
 ML.processes_{1}.addTimePoint(relTimeZero, 'start');
 if addTZ2
