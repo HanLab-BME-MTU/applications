@@ -201,11 +201,13 @@ if sum(testMatch) ~= 0 ;
         maskFilo(labelMatSeedFilo==labelsSeed(iPath)) =1;
         maskTest = maskFilo.*maskDisk;
         [y,x] = ind2sub(dims,find(maskTest==1));
-        vectInput(iPath,:) = [(x(1)-x(end)) , (y(1)-y(end))];
-        %dInput = sqrt((x(1)-x(end))^2 + (y(1)-y(end))^2);
-        %         vectorCand = vectCand(E(iPath,1),:);
-   %              dotCandAndSeed{iPath} = abs(dot(vectInput,vectorCand)./dInput);
-        %         dotCandAndSeed(iPath) = abs(dot(vectInput,vectorCand)./dInput./dCand{E(iPath,1)});
+        
+         vectInputC = [(x(1)-x(end)) , (y(1)-y(end))];
+         vectInput(iPath,:) = vectInputC; 
+         dInput = sqrt((x(1)-x(end))^2 + (y(1)-y(end))^2);
+             vectorCand = vectCand{E(iPath,1)}(E(iPath,3),:); 
+                  dotCandAndSeed(iPath) = abs(dot(vectInputC,vectorCand)./dInput);
+%                  dotCandAndSeed(iPath) = abs(dot(vectInput,vectorCand)./dInput./dCand{E(iPath,1)});
     end
     
     
@@ -214,7 +216,8 @@ if sum(testMatch) ~= 0 ;
     
     if ip.Results.TSOverlays == true;
         TSFigs(countFig).h= setFigure(dims(1),dims(2),'on');
-        TSFigs(countFig).name = 'Seed and Candidates';
+        TSFigs(countFig).name = 'Seed_and_Candidates';
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch';
         imshow(-img,[]);
         hold on
         spy(labelMatSeedFilo,'b');
@@ -225,7 +228,8 @@ if sum(testMatch) ~= 0 ;
         
         
         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
-        TSFigs(countFig).name = 'Seed and Candidates With Vectors';
+        TSFigs(countFig).name = 'Seed_and_Candidates_With_Vectors';
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
         imshow(-img,[]);
         hold on
         spy(labelMatSeedFilo,'b',5);
@@ -328,59 +332,145 @@ if sum(testMatch) ~= 0 ;
     % normalize
     D= D./max(D);
     
+    %% Color Code by distance term 
+    
+
+    
+    %% Color Code by Intensity Term 
+    
+    
+    
     % Intensity Term: defined as the average intensity from end point to body attachment: higher intensity = higher weights
-    intMax = max(vertcat(int{:}));
-    int = cellfun(@(x) x./intMax,int,'uniformoutput',0); % normalize by max intensity
-    int = cellfun(@(x) mean(x), int,'uniformoutput',0); % higher this intensity the more likely to like
-    int = cell2mat(int)';
+    % OLD Normaliztion Method : based on normalization by intensity of per
+    % pixel max 
+    %intMax = max(vertcat(int{:}));
+    %int = cellfun(@(x) x./intMax,int,'uniformoutput',0); % normalize by max intensity
+    
+    % should probably do per path max (20150708) 
+    % get the average intensity. 
+    int = cellfun(@(x) mean(x), int); % higher this intensity the more likely to like
+    maxIntPath = max(int);  
+    minIntPath = min(int); 
+    normInt = (int - minIntPath)./(maxIntPath-minIntPath); 
+    normInt = normInt'; 
+    
+   
+    
+  
     
     % Orientation Term:  above 1 favored 0 unfavored
-    costTotal = (0.5*D + int+dotProd+dotCandAndSeed); % note to self: let's see what we get by just combining these values
+    costTotal = (0.5*D + normInt +dotProd+dotCandAndSeed); % note to self: let's see what we get by just combining these values
     % linearly at first: in the end might want to disfavor the distance term
     % and favor more the int and dotProd term.
     
+   
     
-    setAxis
-    hist(costTotal)
+    
+    
+%     setAxis
+%     hist(costTotal)
     %% Plot all the paths by the costTotal
-    % take 
-    if ip.Results.TSOverlays == true 
+    % %% FIRST DO INDIVIDUAL COMPONENTS 
+%     if ip.Results.TSOverlays == true 
+%         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
+%         TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_BeforeGeoThresh'; 
+%         TSFigs(countFig).group = 'Resconstruct_FiloBranch'; 
+%         
+%         setAxis('on'); 
+%         subplot(5,1,1); 
+%         hist(D,100); 
+%         
+%         subplot(5,1,2); 
+%         hist(normInt,100); 
+%         
+%         subplot(5,1,3); 
+%         hist(dotProd,100); 
+%         
+%         
+%         subplot(5,1,4); 
+%         hist(dotCandAndSeed,100); 
+%         
+%         subplot(5,1,5); 
+%         hist(costTotal);  
+%     end 
+       
+        
+        
+      
+    
+    
+    
+    
+    
+     %% Color Code by distance term 
+     
+     if ip.Results.TSOverlays == true 
         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-        TSFigs(countFig).name = 'Potential Paths with Cost'; 
+        TSFigs(countFig).name = 'Potential_Paths_with_Cost_D'; 
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
+    
+      
         
         
         
-        
-        
-        
+    % % Start Plot
         imshow(-img,[]); 
-        
-        
-        
-%             candFiloNum = 1;% the number of the candidate filo you would like to plot
-%             EPlot = E(E(:,1)==candFiloNum,:);
-%     %
-%     %
-%     
-%          pathidxPlot = find(E(:,1)==candFiloNum);
-%         
-%         
-%         
-        
-        %spy(seedMask
-        % show the canidate filo and the seedMask in black 
         hold on 
         spy(labelMatSeedFilo>0,'k'); 
         spy(labelCandidates>0,'k',5); 
         scatter(seedPtsx(:),seedPtsy(:),'k','filled'); 
         allCandEPs = vertcat(candFiloEPs{:}); 
         scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
+        
+        % create distance mapper
+        cMapLength=128; cMap=jet(cMapLength);
+        mapper=linspace(min(D),max(D),cMapLength)';
+        
+        DMap=createDistanceMatrix(costTotal,mapper);
+        [sD,idxCMap]=sort(abs(DMap),2);
+        
+        for k = 1:length(cMap);
+            if sum(idxCMap(:,1)==k)~=0
+                toPlot = iSeg(idxCMap(:,1) == k);
+                
+                cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
+                clear toPlot
+            else
+            end
+            % make colormap of costs.
+            
+            % show each segment in iSeg cell plotted by the costTotal color
+            %
+        end 
+     
+    countFig = countFig+1; 
+     end
+ %%   
+    
+    
+    
+    
+ %% TOTAL    
+    if ip.Results.TSOverlays == true 
+        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
+        TSFigs(countFig).name = 'Potential_Paths_with_Cost'; 
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
+        
+        % Start Plot
+        imshow(-img,[]); 
+        hold on 
+        spy(labelMatSeedFilo>0,'k'); 
+        spy(labelCandidates>0,'k',5); 
+        scatter(seedPtsx(:),seedPtsy(:),'k','filled'); 
+        allCandEPs = vertcat(candFiloEPs{:}); 
+        scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
+        
         % create distance mapper
         cMapLength=128; cMap=jet(cMapLength);
         mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
         
-        D=createDistanceMatrix(costTotal,mapper);
-        [sD,idxCMap]=sort(abs(D),2);
+        DMap=createDistanceMatrix(costTotal,mapper);
+        [sD,idxCMap]=sort(abs(DMap),2);
         
         for k = 1:length(cMap);
             if sum(idxCMap(:,1)==k)~=0
@@ -402,8 +492,9 @@ if sum(testMatch) ~= 0 ;
     
  
     %% Perform Matching to Resolve Graph
-    E = [E costTotal D int dotProd dotCandAndSeed];
-    E = E(dotProd>0.5,:); 
+    E = [E costTotal D normInt dotProd dotCandAndSeed];
+    
+    E = E(dotProd>ip.Results.geoThreshFiloBranch,:); 
     EFinal = EFinal(dotProd>ip.Results.geoThreshFiloBranch,:);
     costTotal = costTotal(dotProd>ip.Results.geoThreshFiloBranch);
     idxCMap =  idxCMap(dotProd>ip.Results.geoThreshFiloBranch,:);
@@ -421,10 +512,48 @@ if sum(testMatch) ~= 0 ;
     
     
     %% TS Overlay : Geometry Thresholds
+    if ip.Results.TSOverlays == true 
+       TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
+       TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_AfterGeoThresh'; 
+       TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
+        setAxis('on'); 
+        subplot(5,1,1); 
+        [n,center] = hist(E(:,4),100); 
+        bar(center,n/max(n)); 
+        xlabel('Cost Total'); 
+        axis([-1,3.5,0,1]); 
+        
+        
+        subplot(5,1,2); 
+        [n,center] = hist(E(:,5),100); 
+        bar(center,n/max(n)); 
+        xlabel('Distance'); 
+        axis([0,1,0,1]); 
+        
+        subplot(5,1,3); 
+        [n,center] = hist(E(:,6),100); 
+        bar(center,n/max(n)); 
+        xlabel('Mean Intensity'); 
+        axis([0,1,0,1]); 
+        
+        subplot(5,1,4); 
+        [n,center] = hist(E(:,7),100);
+        bar(center,n/max(n)); 
+        xlabel('Geometry With Linker'); 
+        axis([-1,1,0,1]); 
+        
+        subplot(5,1,5); 
+        [n,center] =  hist(E(:,8),100);  
+        bar(center,n/max(n)); 
+        xlabel('Geometry Candidate and Seed'); 
+        axis([0,1,0,1]); 
+    end 
+    
+    
     if ip.Results.TSOverlays == true
         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
-        TSFigs(countFig).name = 'Potential Paths After Geometry Threshold';
-        
+        TSFigs(countFig).name = 'Potential_Paths_After_Geometry_Threshold';
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
      
         imshow(-img,[]);
         

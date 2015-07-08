@@ -463,7 +463,6 @@ if sanityCheck==1
     close gcf
 end 
 
-display(['Number not 2' num2str(count)]);
 
 
 
