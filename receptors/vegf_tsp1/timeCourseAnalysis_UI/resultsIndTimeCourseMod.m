@@ -95,7 +95,11 @@ for iM = 1 : numMovies
     else
         MD = ML.movies_{iM};
     end
+    
     iProcDiff = MD.getProcessIndex('MotionAnalysisProcess',1,0); %diffusion analysis and tracks
+    if isempty(iProcDiff)
+        error([MD.movieDataPath_ ' : Process Missing']);
+    end
     load(MD.processes_{iProcDiff}.outFilePaths_{1});
     iProcMask = MD.getProcessIndex('ImportCellMaskProcess',1,0); %cell mask
     if ~isempty(iProcMask)
