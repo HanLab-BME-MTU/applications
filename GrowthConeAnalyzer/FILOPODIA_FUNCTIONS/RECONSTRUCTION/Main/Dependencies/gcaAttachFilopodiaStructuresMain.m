@@ -361,6 +361,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         if ip.Results.TSOverlays == true 
         TSFigs2(countFigs).h  = setAxis('on'); 
         TSFigs2(countFigs).name = 'Thresholding_Candidates_Based_On_Seed';
+        TSFigs2(countFigs).group = 'Reconstruct_FiloBranch'; 
         
         subplot(3,1,1);
         count = hist(meanRespValuesSeed,20); 
@@ -528,7 +529,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
 
    %% NOTE NEED to fix to update pixIdxPostConnect and the EP candidates after the linkages with the new pixIndices. 
    
-   [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch_FixIdxCand(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
+   [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4{reconIter}] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
    
    %%
    
@@ -542,7 +543,8 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     display(num2str(reconIter))
 end % while
 
-TSFigs = [TSFigs1  TSFigs2  TSFigs3 TSFigs4]; 
+TSFigs = [TSFigs1  TSFigs2 TSFigs3]; 
+%TSFigs3 TSFigs4]; 
 
 % results1stRound = getLargestCC(filoSkelBranchingFilo);
 end
