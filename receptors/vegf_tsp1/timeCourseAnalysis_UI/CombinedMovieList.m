@@ -49,7 +49,7 @@ classdef CombinedMovieList < MovieObject
             ip.addParameter('name', '', @(x) ischar(x));
             ip.parse(varargin{:});
             obj.outputDirectory_ = outputDirectory;
-            obj.name_ = ip.Result.name;
+            obj.name_ = ip.Results.name;
             %set default parameter values
             obj.analysisPara_ = CombinedMovieList.getDefaultPara();
         end
@@ -153,6 +153,19 @@ classdef CombinedMovieList < MovieObject
         %MovieObject Abstract
         function propName = getFilenameProperty()
             propName = 'fileName_';
+        end
+        %????????????????????????
+        function status=checkValue(property,value)
+           % Return true/false if the value for a given property is valid
+            
+           % Parse input
+           ip = inputParser;
+           ip.addRequired('property',@(x) ischar(x) || iscell(x));
+           ip.parse(property);
+
+           
+           % Return result of validation
+           status = true;
         end
     end
 end
