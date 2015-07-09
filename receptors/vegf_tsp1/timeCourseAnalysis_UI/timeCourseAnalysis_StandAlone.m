@@ -104,6 +104,7 @@ condColorAll = {...
     [0.3 0.8 1],... %light blue 13
     };
 colors = condColorAll(mod(1:nConditions, 13) + 1);
+
 %% Plot
 %Each line calls the nested function plotData
 %the first input subData must be cellarray of arrays
