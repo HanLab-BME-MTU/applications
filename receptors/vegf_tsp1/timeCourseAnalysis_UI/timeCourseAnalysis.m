@@ -53,11 +53,9 @@ nCML = numel(CMLs);
     function [CMLSummary, CMLTime, CMLExtra] = CMLAnalyze(CML, iCML)
         alignEvent = CML.analysisPara_.alignEvent;
         %[CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
-        CMLSummary(nML) = [];
-        CMLTime(nML) = [];
-        CMLExtra(nML) = [];
-        for iML = 1:nML
-            printLength = fprintf ('Analyzing Movie List %g/%g of CML %g/%g\n', iML, nML, iCML, nCML);
+        nML = numel(CML.movieLists_);
+        for iML = nML:-1:1
+            printLength = fprintf ('Analyzing Movie List %g/%g of CML %g/%g\n', nML-iML+1, nML, iCML, nCML);
             [CMLSummary(iML), CMLTime(iML), CMLExtra(iML)] = MLAnalyze(CML.movieLists_(iML), alignEvent);
             fprintf(repmat('\b',1,printLength));
         end
