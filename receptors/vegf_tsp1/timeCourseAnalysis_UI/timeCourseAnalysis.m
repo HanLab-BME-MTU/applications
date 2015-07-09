@@ -44,19 +44,23 @@ channel = round(ip.Results.channel);
 analysisPara.doPartition = ip.Results.doPartitionAnalysis;
 %% Main Time Course Analysis
 %For analysis progress display
-nML = sum(arrayfun(@(y) numel(y.movieLists_), CMLs));
-iML = 0;
-printLength = 0;
+nCML = numel(CMLs);
 %Using resultsIndTimeCourseMod.m to do basic analysis
 %and extract time data and align
-[summary, time, extra] = arrayfun(@CMLAnalyze, CMLs, 'UniformOutput', false);
+[summary, time, extra] = arrayfun(@CMLAnalyze, CMLs, 1:nCML, 'UniformOutput', false);
 %nested function for above cellfun
 %deals with individual CML
-    function [CMLSummary, CMLTime, CMLExtra] = CMLAnalyze(CML)
+    function [CMLSummary, CMLTime, CMLExtra] = CMLAnalyze(CML, iCML)
         alignEvent = CML.analysisPara_.alignEvent;
-        printLength = fprintf(1,'%g/%g MovieLists analyzed\n', iML, nML);
-        [CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
-        fprintf(repmat('\b',1,printLength));
+        %[CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
+        CMLSummary(nML) = [];
+        CMLTime(nML) = [];
+        CMLExtra(nML) = [];
+        for iML = 1:nML
+            printLength = fprintf ('Analyzing Movie List %g/%g of CML %g/%g\n', iML, nML, iCML, nCML);
+            [CMLSummary(iML), CMLTime(iML), CMLExtra(iML)] = MLAnalyze(CML.movieLists_(iML), alignEvent);
+            fprintf(repmat('\b',1,printLength));
+        end
         CMLSummary = vertcat(CMLSummary{:});
         CMLTime = vertcat(CMLTime{:});
         CMLExtra = vertcat(CMLExtra{:});
@@ -74,10 +78,6 @@ printLength = 0;
         %Conditional (Extra) Analysis
         MLExtra = cellfun(@MDAnalyze, ML.movies_, 'UniformOutput', false);
         MLExtra = vertcat(MLExtra{:});
-        %Progress Counter
-        fprintf(repmat('\b',1,printLength));
-        iML = iML + 1;
-        printLength = fprintf(1,'%g/%g MovieLists analyzed\n', iML, nML);
     end
 %deals with MD
     function [MDExtra] = MDAnalyze(MD)
@@ -136,7 +136,6 @@ printLength = 0;
 %Using resultsCombTimeCourseMod.m to store data in correct format
 summary = cellfun(@resultsCombTimeCourseMod, summary, 'UniformOutput', false);
 %adds time and name (because that's not in resultsCombTimeCourseMod.m)
-nCML = numel(CMLs);
 for iCML = 1:nCML
     summary{iCML}.time = time{iCML};
     summary{iCML}.name = CMLs(iCML).name_;
