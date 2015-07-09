@@ -58,6 +58,7 @@ if iscellstr(fileName)
             MD(MCounter).save;
         else
             evalc('MD(MCounter) = MovieData.load(movies{MCounter})');
+            evalc('MD(MCounter).channels_.sanityCheck;');
         end
         fprintf(repmat('\b',1,printLength));
         iMD = iMD + 1;
