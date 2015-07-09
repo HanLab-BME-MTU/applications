@@ -214,6 +214,7 @@ for iM = 1 : numMovies
     iMD = iMD + 1;
     printLength = fprintf(1,'%g/%g MovieData analyzed\n', iMD, nMD);
 end
+fprintf(repmat('\b',1,printLength));
 
 %% Sorting and Saving
 
