@@ -33,11 +33,12 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('CMLs', @(x) isa(x, 'CombinedMovieList'));
 ip.addRequired('outputDir', @ischar);
-ip.addParameter('smoothingPara', .95, @(x) isnumeric(x) && x>=0 && x<=1);
+ip.addParameter('smoothingPara', .01, @(x) isnumeric(x) && x>=0 && x<=1);
 ip.addParameter('channel', 1, @isnumeric);
 ip.addParameter('doPartitionAnalysis', false, @(x) isnumeric(x) || islogical(x));
 ip.parse(CMLs, outputDir, varargin{:});
 smoothingPara = ip.Results.smoothingPara;
+analysisPara.smoothingPara = smoothingPara;
 channel = round(ip.Results.channel);
 %used for Extra Analysis
 analysisPara.doPartition = ip.Results.doPartitionAnalysis;
@@ -45,16 +46,17 @@ analysisPara.doPartition = ip.Results.doPartitionAnalysis;
 %For analysis progress display
 nML = sum(arrayfun(@(y) numel(y.movieLists_), CMLs));
 iML = 0;
-printLength = fprintf(1,'%g/%g MovieLists analyzed\n', iML, nML);
+printLength = 0;
 %Using resultsIndTimeCourseMod.m to do basic analysis
 %and extract time data and align
 [summary, time, extra] = arrayfun(@CMLAnalyze, CMLs, 'UniformOutput', false);
-fprintf(repmat('\b',1,printLength));
 %nested function for above cellfun
 %deals with individual CML
     function [CMLSummary, CMLTime, CMLExtra] = CMLAnalyze(CML)
         alignEvent = CML.analysisPara_.alignEvent;
+        printLength = fprintf(1,'%g/%g MovieLists analyzed\n', iML, nML);
         [CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
+        fprintf(repmat('\b',1,printLength));
         CMLSummary = vertcat(CMLSummary{:});
         CMLTime = vertcat(CMLTime{:});
         CMLExtra = vertcat(CMLExtra{:});
@@ -143,6 +145,24 @@ end
 if analysisPara.doPartition
     for iCML = 1:nCML
         summary{iCML}.partitionFrac = extra{iCML}.partitionFrac;
+    end
+end
+%% Sort
+%order data from earliest time point to latest
+for iCML = 1:nCML
+    [summary{iCML}.time, sortIndx] = sort(summary{iCML}.time);
+    summary{iCML}.numAbsClass = summary{iCML}.numAbsClass(sortIndx, :);
+    summary{iCML}.numNorm0Class = summary{iCML}.numNorm0Class(sortIndx, :);
+    summary{iCML}.probClass = summary{iCML}.probClass(sortIndx, :);
+    summary{iCML}.diffCoefClass = summary{iCML}.diffCoefClass(sortIndx, :);
+    summary{iCML}.confRadClass = summary{iCML}.confRadClass(sortIndx, :);
+    summary{iCML}.ampClass = summary{iCML}.ampClass(sortIndx, :);
+    summary{iCML}.ampNormClass = summary{iCML}.ampNormClass(sortIndx, :);
+    summary{iCML}.ampStatsF20 = summary{iCML}.ampStatsF20(sortIndx, :);
+    summary{iCML}.ampStatsL20 = summary{iCML}.ampStatsL20(sortIndx, :);
+    summary{iCML}.rateMS = summary{iCML}.rateMS(sortIndx, :);
+    if analysisPara.doPartition
+        summary{iCML}.partitionFrac = summary{iCML}.partitionFrac(sortIndx, :);
     end
 end
 %% Plot and Save

@@ -24,8 +24,11 @@ if isempty(smoothingPara)
     smoothingPara = .95;
 end
 try
-%% Fitting
-    dataFit = cellfun(@(x, y) fit(x, y, 'smoothingspline', 'smoothingParam', smoothingPara), times, data, 'UniformOutput', false);
+    %% Smoothing data
+    smoothData = cellfun(@(x) smooth(x, 5), data, 'UniformOutput', false);
+    smoothData = cellfun(@(x) x(3:end-2), smoothData, 'UniformOutput', false);
+    %% Fitting
+    dataFit = cellfun(@(x, y) fit(x(3:end-2), y, 'smoothingspline', 'smoothingParam', smoothingPara), times, smoothData, 'UniformOutput', false);
     %% Plotting
     %creates figure and stores the figure handle
     figureHandle = figure('Name', plotTitle);
@@ -40,6 +43,7 @@ try
     %label axis
     xlabel('Time (min)');
     ylabel(yLabelName);
+    title(plotTitle);
     %% Saving
     %save and close
     savefig(figureHandle, [outputDir filesep plotTitle '.fig']);
