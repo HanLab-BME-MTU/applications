@@ -77,7 +77,7 @@ evalc('ML.sanityCheck();');
 % or 'select' to bring up another dialogue box with list dialogue box later
 % or 'min' to use MD with earliest acquisition / observation time as time zero
 userInputStr = inputdlg('6 element time array -or- index number -or- ''select''', 'Enter start time', 1, {'2015 7 2 14 44 18.9'});
-userInputNum = str2num(userInputStr{1});
+userInputNum = str2num(userInputStr{1}); %#ok<ST2NM>
 %if time array
 if numel(userInputNum) == 6
     relTimeZero = userInputNum;
@@ -116,7 +116,7 @@ end
 %% Relative time zero selection2
 %'same' means same as time above
 userInputStr2 = inputdlg('6 element time array -or- index number -or- ''select'' -or- ''no VEGF''', 'Enter VEGF addition time', 1, {'no VEGF'});
-userInputNum2 = str2num(userInputStr2{1});
+userInputNum2 = str2num(userInputStr2{1}); %#ok<ST2NM>
 addTZ2 = true;
 %if time array
 if numel(userInputNum2) == 6
