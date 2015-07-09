@@ -135,10 +135,16 @@ end
 %                     column number
 %yLabelName         : used for ylabel of the plot
     function plotData(subData, title_Base, title_Variable, yLabelName)
+        %initialization
         nColumns = numel(title_Variable);
         plotData(nColumns) = struct('fitData', [], 'condition', []);
+        %determine maximum y value to determine y axis limit
+        maxValue = max(cellfun(@max, subData));
+        axisTick = 10^(round(log10(maxValue) + 0.2)-1);
+        yMax = (floor(maxValue / axisTick) + 1) * axisTick;
+        %plot by column
         for iColumns = 1:nColumns
-            fitData = plotMultipleSmoothingSpline(outputDirFig, cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false), times, names, colors, [title_Base '_' title_Variable{iColumns}], yLabelName, smoothingPara);
+            fitData = plotMultipleSmoothingSpline(outputDirFig, cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false), times, names, colors, [title_Base '_' title_Variable{iColumns}], yLabelName, smoothingPara, yMax);
             plotData(iColumns).fitData = fitData;
             plotData(iColumns).condition = title_Variable{iColumns};
         end

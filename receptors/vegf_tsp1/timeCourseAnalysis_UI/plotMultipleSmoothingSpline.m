@@ -1,4 +1,4 @@
-function [dataFit] = plotMultipleSmoothingSpline(outputDir, data, times, names, colors, plotTitle, yLabelName, smoothingPara)
+function [dataFit] = plotMultipleSmoothingSpline(outputDir, data, times, names, colors, plotTitle, yLabelName, smoothingPara, yMax)
 %Scatter plots given data sets in one plot and fits smoothing spline through the scatterplots
 %
 %SYNOPSIS [dataFit] = plotMultipleSmoothingSpline(outputDir, data, times, names, colors, plotTitle, yLabelName, smoothingPara)
@@ -12,6 +12,7 @@ function [dataFit] = plotMultipleSmoothingSpline(outputDir, data, times, names, 
 %   plotTitle       : name of the plot
 %   unit            : y axis name
 %   smoothingPara   : smoothing parameter for smoothing spline fit
+%   yMax            : y axis range maximum
 %   
 %OUTPUT
 %   dataFit         : cell array of fitObjects from the smoothing spline fit
@@ -40,6 +41,10 @@ try
     %create legends only contain the fit
     fitHandle = [lineHandle{:}];
     legend(fitHandle(2,:), names);
+    %axis limit
+    if ~isempty(yMax)
+        ylim([0, yMax]);
+    end
     %label axis
     xlabel('Time (min)');
     ylabel(yLabelName);
