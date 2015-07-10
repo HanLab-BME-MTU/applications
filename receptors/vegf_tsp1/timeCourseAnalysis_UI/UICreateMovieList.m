@@ -10,12 +10,12 @@ function [ML] = UICreateMovieList(varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
-ip.addOptional('pixelSize_', 90, @isnumeric);
-ip.addOptional('timeInterval_', 0.1, @isnumeric);
-ip.addOptional('numAperature_', 1.49, @isnumeric);
-ip.addOptional('emissionWavelength_', [], @isnumeric);%590nm for Rhod Red X, 525nm for GFP
-ip.addOptional('exposureTime_', 20, @isnumeric);
-ip.addOptional('imageType_', 'TIRF', @isstr);
+ip.addParameter('pixelSize_', 90, @isnumeric);
+ip.addParameter('timeInterval_', 0.1, @isnumeric);
+ip.addParameter('numAperature_', 1.49, @isnumeric);
+ip.addParameter('emissionWavelength_', [], @isnumeric);%590nm for Rhod Red X, 525nm for GFP
+ip.addParameter('exposureTime_', 20, @isnumeric);
+ip.addParameter('imageType_', 'TIRF', @isstr);
 ip.parse(varargin{:});
 emissionWL = ip.Results.emissionWavelength_;
 %Ask for emission wavelength
