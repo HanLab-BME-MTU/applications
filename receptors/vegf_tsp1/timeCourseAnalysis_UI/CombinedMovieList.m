@@ -119,21 +119,14 @@ classdef CombinedMovieList < MovieObject
             sanityCheck@MovieObject(obj, varargin{:});
             iML = 0;
             nML = numel(obj.movieListDirectory_);
-            printLength = fprintf(1,'%g/%g MovieLists loaded\n', iML, nML);
+            printLength = fprintf('Loading Movie Lists\n');
             if suppressPrinting
-                evalc('obj.movieLists_ = cellfun(@MLLoad, obj.movieListDirectory_, ''UniformOutput'', false);');
+                evalc('obj.movieLists_ = cellfun(@MovieList.load, obj.movieListDirectory_, ''UniformOutput'', false);');
             else
-                obj.movieLists_ = cellfun(@MLLoad, obj.movieListDirectory_, 'UniformOutput', false);
+                obj.movieLists_ = cellfun(@MovieList.load, obj.movieListDirectory_, 'UniformOutput', false);
             end
             fprintf(repmat('\b',1,printLength));
             obj.movieLists_ = [obj.movieLists_{:}];
-            %Loads MLs but outputs how many MLs have been loaded
-            function ML = MLLoad(MLPath)
-                ML = MovieList.load(MLPath);
-                iML = iML + 1;
-                fprintf(repmat('\b',1,printLength));
-                printLength = fprintf(1,'%g/%g MovieLists loaded\n', iML, nML);
-            end
         end
     end
     methods(Static)
