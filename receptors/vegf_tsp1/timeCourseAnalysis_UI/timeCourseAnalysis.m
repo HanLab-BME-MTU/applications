@@ -26,25 +26,48 @@ if iscellstr(CMLs)
     CMLs = [CMLs{:}];
 elseif isa(CMLs, 'CombinedMovieList')
     directory_CML = arrayfun(@(x) x.getFullPath(), CMLs, 'UniformOutput', false); %#ok<NASGU>
+else
+    error('CMLs must be class object CombinedMovieList');
 end
 %input parser
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
-ip.addRequired('CMLs', @(x) isa(x, 'CombinedMovieList'));
 ip.addRequired('outputDir', @ischar);
 ip.addParameter('smoothingPara', .01, @(x) isnumeric(x) && x>=0 && x<=1);
 ip.addParameter('channel', 1, @isnumeric);
 ip.addParameter('doPartitionAnalysis', false, @(x) isnumeric(x) || islogical(x));
-ip.parse(CMLs, outputDir, varargin{:});
+ip.parse(outputDir, varargin{:});
 smoothingPara = ip.Results.smoothingPara;
 analysisPara.smoothingPara = smoothingPara;
 channel = round(ip.Results.channel);
 %used for Extra Analysis
 analysisPara.doPartition = ip.Results.doPartitionAnalysis;
-%% Main Time Course Analysis
-%For analysis progress display
+%checks if CMLs are loaded or not
 nCML = numel(CMLs);
+for iCML = 1:nCML
+    progressDisp = fprintf('Loading Combined Movie List %g/%g\n', iCML, nCML); %loading progress display
+    % if not loads it
+    if numel(CMLs(iCML).movieLists_) ~= numel(CMLs(iCML).movieListDirectory_)
+        CMLs(iCML).sanityCheck();
+    end
+    %checks if all MD has necessary processes
+    arrayfun(@(x) MLCheck(x, analysisPara), CMLs(iCML).movieLists_);
+    fprintf(repmat('\b', 1, progressDisp)); %loading progress display
+end
+%nested function for above: checking MD has necessary processes
+    function [] = MLCheck(ML, parameter)
+        nMD = numel(ML.movies_);
+        for iMD = 1:nMD
+            if isempty(ML.movies_{iMD}.getProcessIndex('MotionAnalysisProcess'))
+                error(['MovieData ' ML.movies_{iMD}.movieDataFileName_ '\n at ' ML.movies_{iMD}.movieDataPath_ '\n does not contain MotionAnalysisProcess']);
+            end
+            if parameter.doPartition && isempty(ML.movies_{iMD}.getProcessIndex('PartitionAnalysisProcess'))
+                error(['MovieData ' ML.movies_{iMD}.movieDataFileName_ '\n at ' ML.movies_{iMD}.movieDataPath_ '\n does not contain PartitionAnalysisProcess']);
+            end
+        end
+    end
+%% Main Time Course Analysis
 %Using resultsIndTimeCourseMod.m to do basic analysis
 %and extract time data and align
 [summary, time, extra] = arrayfun(@CMLAnalyze, CMLs, 1:nCML, 'UniformOutput', false);
