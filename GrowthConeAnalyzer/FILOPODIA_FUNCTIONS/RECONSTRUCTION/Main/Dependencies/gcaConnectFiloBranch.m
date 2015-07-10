@@ -218,6 +218,7 @@ if sum(testMatch) ~= 0 ;
         TSFigs(countFig).h= setFigure(dims(1),dims(2),'on');
         TSFigs(countFig).name = 'Seed_and_Candidates';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+        
         imshow(-img,[]);
         hold on
         spy(labelMatSeedFilo,'b');
@@ -354,143 +355,60 @@ if sum(testMatch) ~= 0 ;
     normInt = (int - minIntPath)./(maxIntPath-minIntPath); 
     normInt = normInt'; 
     
-   
-    
-  
-    
     % Orientation Term:  above 1 favored 0 unfavored
     costTotal = (0.5*D + normInt +dotProd+dotCandAndSeed); % note to self: let's see what we get by just combining these values
     % linearly at first: in the end might want to disfavor the distance term
     % and favor more the int and dotProd term.
-    
-   
-    
-    
-    
-%     setAxis
-%     hist(costTotal)
-    %% Plot all the paths by the costTotal
-    % %% FIRST DO INDIVIDUAL COMPONENTS 
-%     if ip.Results.TSOverlays == true 
-%         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-%         TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_BeforeGeoThresh'; 
-%         TSFigs(countFig).group = 'Resconstruct_FiloBranch'; 
-%         
-%         setAxis('on'); 
-%         subplot(5,1,1); 
-%         hist(D,100); 
-%         
-%         subplot(5,1,2); 
-%         hist(normInt,100); 
-%         
-%         subplot(5,1,3); 
-%         hist(dotProd,100); 
-%         
-%         
-%         subplot(5,1,4); 
-%         hist(dotCandAndSeed,100); 
-%         
-%         subplot(5,1,5); 
-%         hist(costTotal);  
-%     end 
-       
-        
-        
-      
-    
-    
-    
-    
-    
-     %% Color Code by distance term 
+ 
+     %% Perform the sanity checks for the cost terms  
      
-     if ip.Results.TSOverlays == true 
-        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-        TSFigs(countFig).name = 'Potential_Paths_with_Cost_D'; 
-        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-    
-      
-        
-        
-        
-    % % Start Plot
-        imshow(-img,[]); 
-        hold on 
-        spy(labelMatSeedFilo>0,'k'); 
-        spy(labelCandidates>0,'k',5); 
-        scatter(seedPtsx(:),seedPtsy(:),'k','filled'); 
-        allCandEPs = vertcat(candFiloEPs{:}); 
-        scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
-        
-        % create distance mapper
-        cMapLength=128; cMap=jet(cMapLength);
-        mapper=linspace(min(D),max(D),cMapLength)';
-        
-        DMap=createDistanceMatrix(costTotal,mapper);
-        [sD,idxCMap]=sort(abs(DMap),2);
-        
-        for k = 1:length(cMap);
-            if sum(idxCMap(:,1)==k)~=0
-                toPlot = iSeg(idxCMap(:,1) == k);
-                
-                cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
-                clear toPlot
-            else
-            end
-            % make colormap of costs.
-            
-            % show each segment in iSeg cell plotted by the costTotal color
-            %
-        end 
-     
-    countFig = countFig+1; 
-     end
- %%   
-    
-    
-    
+     if ip.Results.TSOverlays == true
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_D';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,D,128);
+         text(10,5,'Score By Distance');
+         countFig = countFig+1;
+         
+         %%   if ip.Results.TSOverlays == true
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_Int';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,normInt,128);
+         text(10,5,'Score By Intensity Mean'); 
+         
+         countFig = countFig+1;
+         %% 
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_CandLinkerGeo';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotProd,128);
+         text(10,5,'Score By Candidate Linker Geometry') 
+         countFig = countFig+1;
+         %% Cand And Seed Value will be from 0 to 1 
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_CandSeedGeo';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotCandAndSeed,128);
+         text(10,5,'Score By Candidate Seed Geometry'); 
+         countFig = countFig+1;
+     end 
     
  %% TOTAL    
-    if ip.Results.TSOverlays == true 
-        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-        TSFigs(countFig).name = 'Potential_Paths_with_Cost'; 
-        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-        
-        % Start Plot
-        imshow(-img,[]); 
-        hold on 
-        spy(labelMatSeedFilo>0,'k'); 
-        spy(labelCandidates>0,'k',5); 
-        scatter(seedPtsx(:),seedPtsy(:),'k','filled'); 
-        allCandEPs = vertcat(candFiloEPs{:}); 
-        scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
-        
-        % create distance mapper
-        cMapLength=128; cMap=jet(cMapLength);
-        mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
-        
-        DMap=createDistanceMatrix(costTotal,mapper);
-        [sD,idxCMap]=sort(abs(DMap),2);
-        
-        for k = 1:length(cMap);
-            if sum(idxCMap(:,1)==k)~=0
-                toPlot = iSeg(idxCMap(:,1) == k);
-                
-                cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
-                clear toPlot
-            else
-            end
-            % make colormap of costs.
-            
-            % show each segment in iSeg cell plotted by the costTotal color
-            %
-        end 
-    
-    countFig = countFig+1; 
-    end % if TSOverlays
-    
-    
- 
+ if ip.Results.TSOverlays == true
+     TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+     TSFigs(countFig).name = 'Potential_Paths_with_Cost';
+     TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+     
+     [idxCMap] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,costTotal,128);
+     text(10,5,'Final Score');
+     countFig = countFig+1;
+ end % if TSOverlays
+     
     %% Perform Matching to Resolve Graph
     E = [E costTotal D normInt dotProd dotCandAndSeed];
     
@@ -513,40 +431,52 @@ if sum(testMatch) ~= 0 ;
     
     %% TS Overlay : Geometry Thresholds
     if ip.Results.TSOverlays == true 
-       TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-       TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_AfterGeoThresh'; 
-       TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-        setAxis('on'); 
-        subplot(5,1,1); 
-        [n,center] = hist(E(:,4),100); 
-        bar(center,n/max(n)); 
-        xlabel('Cost Total'); 
-        axis([-1,3.5,0,1]); 
+        TSFigs(countFig).h = setAxis('on');
+        TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_AfterGeoThresh';
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+        nPaths = size(E,1);  
+        
+        for i = 1:5 
+        [n{i},center{i}] = hist(E(:,3+i),50);
+        end 
+        
+       allN = horzcat(n{:});
+       maxYVal = max(allN./nPaths);
+       %maxYVal = allN(:); 
         
         
-        subplot(5,1,2); 
-        [n,center] = hist(E(:,5),100); 
-        bar(center,n/max(n)); 
-        xlabel('Distance'); 
-        axis([0,1,0,1]); 
+       
+        subplot(5,1,1);
         
-        subplot(5,1,3); 
-        [n,center] = hist(E(:,6),100); 
-        bar(center,n/max(n)); 
-        xlabel('Mean Intensity'); 
-        axis([0,1,0,1]); 
+        bar(center{1},n{1}/nPaths); 
+        xlabel('Cost Total');
+        axis([ip.Results.geoThreshFiloBranch,3.5,0,maxYVal]);
         
-        subplot(5,1,4); 
-        [n,center] = hist(E(:,7),100);
-        bar(center,n/max(n)); 
-        xlabel('Geometry With Linker'); 
-        axis([-1,1,0,1]); 
         
-        subplot(5,1,5); 
-        [n,center] =  hist(E(:,8),100);  
-        bar(center,n/max(n)); 
-        xlabel('Geometry Candidate and Seed'); 
-        axis([0,1,0,1]); 
+        subplot(5,1,2);
+       
+        bar(center{2},n{2}/nPaths);
+        xlabel('Distance');
+        axis([0,1,0,maxYVal]);
+        
+        subplot(5,1,3);
+       
+        bar(center{3},n{3}/nPaths);
+        xlabel('Mean Intensity');
+        axis([0,1,0,maxYVal]);
+        
+        subplot(5,1,4);
+       
+        bar(center{4},n{4}/nPaths);
+        xlabel('Geometry With Linker');
+        axis([ip.Results.geoThreshFiloBranch,1,0,maxYVal]);
+        
+        subplot(5,1,5);
+        
+        bar(center{5},n{5}/nPaths);
+        xlabel('Geometry Candidate and Seed');
+        axis([0,1,0,maxYVal]);
+        countFig = countFig+1;
     end 
     
     
@@ -585,7 +515,7 @@ if sum(testMatch) ~= 0 ;
             % show each segment in iSeg cell plotted by the costTotal color
             %
         end
-        
+        countFig = countFig +1; 
     end % ip.Results.TSOverlays
     %% Perform Weighted Graph Matching
     
@@ -893,6 +823,7 @@ if sum(testMatch) ~= 0 ;
         labelsEndon = labelMatSeedFilo(sub2ind(dims,attachSitesEndOn(:,2),attachSitesEndOn(:,1)));
         labelsEndon = labelsEndon-1;
         subtractEndOn = 0;
+        
         for iEndon = 1:length(attachSitesEndOn(:,1))
             
             EPNum = EPsCand(idxEndOnAttach(iEndon));
@@ -914,7 +845,7 @@ if sum(testMatch) ~= 0 ;
                 % if this connection introduces points of intersection it is
                 % not cool
                 
-                close gcf
+              
                 
                 nn = padarrayXT(double(testMask~=0), [1 1]);
                 sumKernel = [1 1 1];
@@ -999,6 +930,7 @@ if sum(testMatch) ~= 0 ;
                     
                     
                     links(pixGoodConnect{idxEndOnAttach(iEndon)}) =0;
+                    
                     
                     if ~isempty(savePix)
                         % find those pixel that are in more than one link and save.

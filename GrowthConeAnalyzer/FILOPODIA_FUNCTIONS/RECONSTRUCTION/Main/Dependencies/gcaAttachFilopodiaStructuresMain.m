@@ -1,4 +1,4 @@
-function [reconstruct,filoInfo,TSFigs] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,varargin)
+function [reconstruct,filoInfo,TSFigs,TSFigsReconAll] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,varargin)
 % gcaAttachFilopodiaStructures: 
 % 
 % 
@@ -363,20 +363,23 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         TSFigs2(countFigs).name = 'Thresholding_Candidates_Based_On_Seed';
         TSFigs2(countFigs).group = 'Reconstruct_FiloBranch'; 
         
+        totalPop = [meanRespValuesSeed meanRespValuesCand]; 
+        
+        
         subplot(3,1,1);
         count = hist(meanRespValuesSeed,20); 
         hist(meanRespValuesSeed,20); 
         hold on 
         line([cutoff,cutoff],[0,max(count)],'color','r'); 
         xlabel('Mean Ridge Filter Response of Veil Attached Filopodia'); 
-        
+        axis([0,max(totalPop),0,max(count)]); 
         subplot(3,1,2); 
         
       
         count = hist(meanRespValuesCand,20); 
         hist(meanRespValuesCand,20); 
         line([cutoff,cutoff],[0,max(count)],'color','r'); 
-       
+        axis([0,max(totalPop),0,max(count)]); 
         ylabel('Count'); 
         xlabel('Mean Ridge Filter Response of Candidates');
        
@@ -390,6 +393,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         line([cutoff,cutoff],[0,max(sizeCand)],'color','r'); 
         xlabel({'Mean Ridge Filter Response ' 'Per Candidate'}); 
         ylabel('Size of Candidate Ridge (Pixels)'); 
+        axis([0,max(totalPop),0,max(sizeCand)]); 
         countFigs = countFigs +1; 
         end 
         
@@ -531,7 +535,11 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
    
    [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
 
-   
+   for i = 1:length(TSFigs4) 
+       TSFigs4(i).ReconIt = reconIter; 
+   end 
+ TSFigsRecon{reconIter} = TSFigs4; 
+ clear TSFigs4 
    %%
    
     if status == 1 ;
@@ -543,7 +551,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
     display(num2str(reconIter))
 end % while
-
+TSFigsReconAll = horzcat(TSFigsRecon{:});
 TSFigs = [TSFigs1  TSFigs2 TSFigs3]; 
 %TSFigs3 TSFigs4]; 
 

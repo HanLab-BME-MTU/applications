@@ -1,4 +1,4 @@
-function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin)
+function [filoBranch,TSFigsFinal,TSFigsRecon] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin)
 % GCAReconstructFilopodia: (Step VI of GCA PACKAGE)
 % This function rebuilds and records the filopodia network around a
 % veil/stem mask (in the case of the neurite) or any binary cell mask 
@@ -358,9 +358,9 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 
 
 %% Run Main Function that performs the reconstructions
-[reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
+[reconstruct,filoInfo,TSFigs2,TSFigsRecon] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
 
-TSFigsFinal = [TSFigs  TSFigs2]; 
+TSFigsFinal = [TSFigs  TSFigs2 ]; 
 
 filoBranch.filoInfo = filoInfo; % 
 filoBranch.reconstructInfo = reconstruct;
