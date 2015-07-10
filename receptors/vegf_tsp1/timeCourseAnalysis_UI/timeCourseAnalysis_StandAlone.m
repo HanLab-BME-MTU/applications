@@ -145,7 +145,7 @@ end
         yMax = (floor(maxValue / axisTick) + 1) * axisTick;
         %plot by column
         for iColumns = 1:nColumns
-            fitData = plotMultipleSmoothingSpline(outputDirFig, cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false), times, names, colors, [title_Base '_' title_Variable{iColumns}], yLabelName, smoothingPara, yMax);
+            fitData = plotMultipleSmoothingSpline(outputDirFig, cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false), times, names, colors, [title_Base ' ' title_Variable{iColumns}], yLabelName, smoothingPara, yMax);
             plotData(iColumns).fitData = fitData;
             plotData(iColumns).condition = title_Variable{iColumns};
         end
