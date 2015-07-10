@@ -140,7 +140,7 @@ end
         nColumns = numel(title_Variable);
         plotData(nColumns) = struct('fitData', [], 'condition', []);
         %determine maximum y value to determine y axis limit
-        maxValue = max(cellfun(@max, subData));
+        maxValue = max(cellfun(@(x) max(max(x)), subData));
         axisTick = 10^(round(log10(maxValue) + 0.2)-1);
         yMax = (floor(maxValue / axisTick) + 1) * axisTick;
         %plot by column
