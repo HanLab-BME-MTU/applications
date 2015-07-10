@@ -45,6 +45,7 @@ if iscellstr(fileName)
         name = fileName{MCounter}(1:end-4);
         movies{MCounter} = [filePath name filesep name '.mat'];
         %create new MD if one doesn't exist already
+        %use evalc to silence the output
         if exist(movies{MCounter}, 'file') == 0
             evalc('MD(MCounter) = MovieData([filePath fileName{MCounter}])');
             MD(MCounter).pixelSize_ = ip.Results.pixelSize_;
