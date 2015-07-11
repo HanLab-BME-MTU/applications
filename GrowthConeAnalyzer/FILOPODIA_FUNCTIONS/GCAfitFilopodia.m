@@ -1,9 +1,80 @@
-function [ filoInfo] = GCAfitFilopodia( filoInfo,img,paramsIn)
+function [ filoInfo] = GCAfitFilopodia( filoInfo,img,varargin)
 
-% Perform fits on the filopodia reconstruction in formation
-% currently designed to take in/read out information per frame.
-% was fitLinescansNewDistFinal until 20140529
-p = paramsIn;
+
+%% INPUT:
+%
+%  filoInfo: (REQUIRED) : Rx1 structure array
+%       where R is the number of filopodia like ridges detected
+%       .filoInfo has many subfields that store information regarding the
+%       filopodias coordinates,orientation,grouping(for branching) etc.
+%       notes that each independent ridge is considered a "filopodia" 
+%       and if branch structures do exist these "filopodia" substructures 
+%       are marked as related by their fields .groupCount (the scalar 
+%       identifying the group label, .conIdx (the filoInfo ID of each filopodia 
+%       ridge branch structrue directly attached to each filopodia ridge) 
+%       .conXYCoords (the linear indexing of the attachment sites) 
+%  img: (REQUIRED) 
+% 
+% 
+%  InternalFiloOn: (PARAM) :  scalar 
+%      1: will fit external only
+%      2: will fit internal only 
+%      3. will fit both 
+%
+% ('NumPixForFitBack' -> scalar) Optional Default = 10 Pixels
+%         This parameter dictates the number of pixels back along the filopodia
+%         that will be used in the fit relative to the end of the high confidence filopodia tip
+%         estimated via the steerable filter response thresholding.
+%         Note the signal is often quite noisy along the filopodia - ie there can be
+%         multiple possible viable sigmoidal fits. This is especially the
+%         case when fitting a lifeAct reporter signal- so one just wants to fit the
+%         signal in a local area around the putative tip of the filopodia
+%         If the number of pixels in the filopodia is less than this value
+%         the entire filopodia length from the thresholded steerable filter response
+%         will be used for the respective filopodia tip localization fit.
+%
+% NOTE TO SELF: this was actually dictated first in the original walkFiloForandBack function
+%         ('NumberPixForFitFor' -> scalar) Optional Default = 10 Pixels
+%         This parameter dictates the number of pixels forward (relative to
+%         the steerable filter threshold set in the filopodia
+%         reconstruction) used in the fitting.
+%
+%
+%
+% ('ValuesForFit' -> character 'Intensity','Response','Both') Optional
+% Default = 'Intensity'
+%         The values to use the fitting:
+%         Intensity: The values corresponding to the intensity will be fit
+%         to a sigmoid
+%         Response: The values corresponding to the NMS response from the
+%         steerable filter will be fit to a sigmoid.
+%         Both: Both of the above operations will be performed- this is
+%         mainly for comparison in the early stages of development
+%
+%('Averaging' -> character ('Gaussian Weighted' , 'Perpendicular'
+% For Fitting: Response or
+%
+
+%
+%('SavePlots' -> logical) Optional Default = 1
+%
+%%Input check
+ip = inputParser;
+ip.KeepUnmatched = true;
+
+ip.CaseSensitive = false;
+
+ip.addParameter('TSOverlays',true,@(x) islogical(x));
+
+ip.addParameter('InternalFiloOn',3,@(x) isscalar(x));
+ip.addParameter('NumPixForFitBack',10,@(x) isscalar(x));
+ip.addParameter('ValuesForFit','Intensity',@(x) ischar(x)); % maybe remove 
+ip.addParameter('PSFSigma',0.43,@(x) isnumeric(x)) ; %% NOTE CHANGE THIS TO BE READ IN FROM MD. 
+ip.addParameter('OutputDirectory',pwd,@ischar); 
+
+ip.parse(varargin{:});
+p = ip.Results;
+%%
 
 toAddCell{1} = 'Ext_';
 toAddCell{2} = 'Int_';
@@ -35,7 +106,7 @@ end
 numFilo2Fit = length(idx2fill);
 %%
 % currently use the built in matlab funtction but potentially use other
-H = fspecial('gaussian',3,p.sigma);
+H = fspecial('gaussian',3,p.PSFSigma);
 imgFilt = imfilter(img,H); % for weighted averaging
 
 
@@ -92,7 +163,7 @@ for iType = typeStart:typeEnd
                 filoInfo(idxCurrent).distFilo = distFilo; % the distance (in pixels) along the filopodia- will be helpful for calculating branch distances could test if this is a field. .
                 
                 
-                if strcmpi(paramsIn.ValuesForFit,'Intensity')
+                if strcmpi(p.ValuesForFit,'Intensity')
                     maskIndices = filoInfo(idxCurrent).([toAdd 'maskIndices']);
                     % quick fix 20141023
                     
@@ -102,7 +173,7 @@ for iType = typeStart:typeEnd
                         
                     end
                     yData = imgFilt(maskIndices(:,1)); % just take the center line check to see the order of the data row 1 = base I think wherease end = tip
-                    if p.SavePlots  == 1
+                    if p.TSOverlays  == true
                         if sum(isnan(maskIndices(:)))==0;
                             figure('visible','off')
                             subplot(3,2,(1:2));
@@ -175,7 +246,7 @@ for iType = typeStart:typeEnd
                     % relavent with the very short filo) Note added 03-02-2013
                     % i am not sure why they wouldn't be but this would be bad (i'll add it given my previous check below 02-22
                     %     if (length(xData) == length(yData) && numBack>3) % hmmm not sure why I made this criteria that the data had to be equal?? maybe sometimes the response was nan? now should always be equal
-                    if p.SavePlots ==1
+                    if p.TSOverlays ==1
                         
                         %     figure('visible','on');
                         subplot(3,2,3:4)
@@ -229,7 +300,7 @@ for iType = typeStart:typeEnd
                         
                     end % abs params(2)
                     
-                    if p.SavePlots
+                    if p.TSOverlays
                         line([params(2),params(2)],[max(yData),min(yData)]);
                         %text(params(2),(max(yDataFit)-min(yDataFit)./2)+min(yDataFit),['mean = ' num2str(params(2),3)]);
                     end
@@ -290,7 +361,7 @@ for iType = typeStart:typeEnd
                     
                     filoInfo(idxCurrent).([toAdd 'resnorm']) = resnorm/length(distFiloFit); % divide by the number of points
                     
-                    if exitFlag>1 && p.SavePlots == 1
+                    if exitFlag>1 && p.TSOverlays == 1
                         title({['Length = ' num2str(params(2).*0.216,3) ' um'] , ['p1 = ' num2str(params(1,1))] , ['ExitFlag = ' num2str(exitFlag)]})
                         
                     end
@@ -300,7 +371,7 @@ for iType = typeStart:typeEnd
                     
                     
                     hold on
-                    if p.SavePlots ==1
+                    if p.TSOverlays ==1
                         plot(distFilo,yFit,'r')
                         scatter(distFiloFit,yDataFit,'b','filled'); % color in the data specifically used for the fitting.
                         if exist('distFiloFitOld','var')
