@@ -1,4 +1,4 @@
-function [ output_args ] = makeMovieOfReconstruct( analInfo,frame,pixSizeMic,saveDir,imDir)
+function [ output_args ] = makeMovieOfReconstruct( filoBranch,veilStem,frame,pixSizeMic,saveDir,imDir)
 % Small function that makes a cool movie of the different steps in the reconstruction
 % likely also will be very helpful for troubleshooting
 
@@ -52,32 +52,32 @@ close gcf
 %         close gcf
 
 %% 02 - EROD FILO %%%%
-h = setFigure(nx,ny) ;
-imshow(-img,[])
-hold on
-erosion =analInfo(frame).bodyEst.erodForBody;
-cellfun(@(x) plot(x(:,2),x(:,1),'b'),erosion)
-text(nx/10, 20,{'Estimate Larger-Scale'; 'Veil/Stem Pieces'}, fontText{:});
-pixels = round(10/pixSizeMic);
-plotScaleBar(pixels,pixels/20,'Color',textColor);
-
-%  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%          [saveDir filesep 'ReconstructMovie02.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie02.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie02.eps'],'psc2');
-saveas(h,[saveDir filesep 'ReconstructMovie02.fig']);
-
-close gcf
+% h = setFigure(nx,ny) ;
+% imshow(-img,[])
+% hold on
+% erosion =veilStem(frame).bodyEst.erodForBody;
+% cellfun(@(x) plot(x(:,2),x(:,1),'b'),erosion)
+% text(nx/10, 20,{'Estimate Larger-Scale'; 'Veil/Stem Pieces'}, fontText{:});
+% pixels = round(10/pixSizeMic);
+% plotScaleBar(pixels,pixels/20,'Color',textColor);
+% 
+% %  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+% %          [saveDir filesep 'ReconstructMovie02.png']);
+% saveas(h,[saveDir filesep 'ReconstructMovie02.png']);
+% saveas(h,[saveDir filesep 'ReconstructMovie02.eps'],'psc2');
+% saveas(h,[saveDir filesep 'ReconstructMovie02.fig']);
+% 
+% close gcf
 
 %% 03 BACKBONE SAVE %%%%
 h = setFigure(nx,ny) ;
 imshow(-img,[])
 hold on
-backbone =  analInfo(frame).bodyEst.backbone;
+backbone =  veilStem(frame).backbone;
 % extra = zeros(size(img));
 % backbone = [backbone extra];
 spy(backbone,'r')
-cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
+%cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
 text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
 pixels = round(10/pixSizeMic);
 %plotScaleBar(pixels,pixels/20,'Color',textColor);
@@ -90,7 +90,7 @@ close gcf
 h = setFigure(nx,ny);
 imshow(-img,[]) ;
 hold on
-bodyFinal = analInfo(frame).masks.neuriteEdge;
+bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
 text(nx/10, 10,'Veil/Stem Estimation Complete', fontText{:});
@@ -103,21 +103,21 @@ saveas(h,[saveDir filesep 'ReconstructMovie04.png']);
 saveas(h,[saveDir filesep 'ReconstructMovie04.eps'],'psc2');
 close gcf
 %% 05 Overlay Ridges %%%%
-h = setFigure(nx,ny);
-imshow(-img,[]) ;
-hold on
-candRidges = analInfo(frame).filterInfo.ThreshNMS;
-spy(candRidges ,'m');
-cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-text(nx/10, 10,'Detect Small Scale Ridges', fontText{:});
-pixels = round(10/pixSizeMic);
-%  plotScaleBar(pixels,pixels/20,'Color',textColor);
-% print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%         [saveDir filesep 'ReconstructMovie05.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie05.png'] );
-saveas(h,[saveDir filesep 'ReconstructMovie05.eps'],'psc2');
+% h = setFigure(nx,ny);
+% imshow(-img,[]) ;
+% hold on
+% candRidges = filoBranch(frame).filterInfo.ThreshNMS;
+% spy(candRidges ,'m');
+% cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
+% text(nx/10, 10,'Detect Small Scale Ridges', fontText{:});
+% pixels = round(10/pixSizeMic);
+% %  plotScaleBar(pixels,pixels/20,'Color',textColor);
+% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+% %         [saveDir filesep 'ReconstructMovie05.png']);
+% saveas(h,[saveDir filesep 'ReconstructMovie05.png'] );
+% saveas(h,[saveDir filesep 'ReconstructMovie05.eps'],'psc2');
 
-close gcf
+% close gcf
 
 %% 06 Show Seed
 h = setFigure(nx,ny);
@@ -126,10 +126,10 @@ hold on
 
 
 text(nx/10, 10,'Get Seed For Reconstruction', fontText{:});
-bodyFinal = analInfo(frame).masks.neuriteEdge;
+bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-seedMask = analInfo(frame).reconstructInfo.seedMask{1};
+seedMask = filoBranch(frame).reconstructInfo.seedMask{1};
 spy(seedMask,'b',5);
 pixels = round(10/pixSizeMic);
 % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
@@ -144,10 +144,10 @@ imshow(-img,[])
 hold on
 text(nx/10, 10,'Get Candidates', fontText{:});
 spy(seedMask,'b');
-bodyFinal = analInfo(frame).masks.neuriteEdge;
+bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-preClust = analInfo(frame).reconstructInfo.CandMaskPreCluster;
+preClust = filoBranch(frame).reconstructInfo.CandMaskPreCluster;
 
 spy(preClust,'m',5);
 pixels = round(10/pixSizeMic);
@@ -163,13 +163,13 @@ h = setFigure(nx,ny) ;
 imshow(-img,[])
 hold on
 spy(seedMask,'b');
-bodyFinal = analInfo(frame).masks.neuriteEdge;
+bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
 text(nx/10, 10,'Cluster Linear Candidates', fontText{:});
-clusterLinks = analInfo(frame).reconstructInfo.clusterlinks;
+clusterLinks = filoBranch(frame).reconstructInfo.clusterlinks;
 
-preClust = analInfo(frame).reconstructInfo.CandMaskPreCluster;
+preClust = filoBranch(frame).reconstructInfo.CandMaskPreCluster;
 spy(preClust,'m');
 spy(clusterLinks,'y');
 pixels = round(10/pixSizeMic);
@@ -185,10 +185,10 @@ imshow(-img,[])
 hold on
 text(nx/10, 10,' Linear Candidates Clustered', fontText{:});
 spy(seedMask,'b');
-bodyFinal = analInfo(frame).masks.neuriteEdge;
+bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-postClust= analInfo(frame).reconstructInfo.CandMaskPostCluster;
+postClust= filoBranch(frame).reconstructInfo.CandMaskPostCluster;
 spy(postClust,'m');
 pixels = round(10/pixSizeMic);
 %plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
@@ -199,8 +199,8 @@ saveas(h,[saveDir filesep 'ReconstructMovie09.png']);
 close gcf
 %% Iterate over reconstruction
 imageNum = 10;
-if isfield(analInfo(frame).reconstructInfo,'output');
-    for iReconst = 1:numel(analInfo(frame).reconstructInfo.output)
+if isfield(filoBranch(frame).reconstructInfo,'output');
+    for iReconst = 1:numel(filoBranch(frame).reconstructInfo.output)
         
         h = setFigure(nx,ny) ;
         imshow(-img,[])
@@ -208,11 +208,11 @@ if isfield(analInfo(frame).reconstructInfo,'output');
         text(nx/10, 10,'Link Candidates', fontText{:});
         spy(postClust,'m');
         spy(seedMask,'b');
-        bodyFinal = analInfo(frame).masks.neuriteEdge;
+        bodyFinal = veilStem(frame).finalMask;
         edgeYX = bwboundaries(bodyFinal);
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
-        links= analInfo(frame).reconstructInfo.output{iReconst}.links;
+        links= filoBranch(frame).reconstructInfo.output{iReconst}.links;
         spy(links,'y',5);
         pixels = round(10/pixSizeMic);
         % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
@@ -230,13 +230,13 @@ if isfield(analInfo(frame).reconstructInfo,'output');
         hold on
         spy(postClust,'m');
         spy(seedMask,'b');
-        bodyFinal = analInfo(frame).masks.neuriteEdge;
+        bodyFinal = veilStem(frame).finalMask;
         edgeYX = bwboundaries(bodyFinal);
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
         spy(links,'b');
         text(nx/10, 10,'Add to Body', fontText{:});
-        bodyAdd =  analInfo(frame).reconstructInfo.output{iReconst}.candFiloAdded.Body ;
+        bodyAdd =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.Body ;
         spy(bodyAdd,'g',5)
         pixels = round(10/pixSizeMic);
         % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
@@ -250,14 +250,14 @@ if isfield(analInfo(frame).reconstructInfo,'output');
         hold on
         spy(postClust,'m');
         spy(seedMask,'b');
-        bodyFinal = analInfo(frame).masks.neuriteEdge;
+        bodyFinal = veilStem(frame).finalMask;
         edgeYX = bwboundaries(bodyFinal);
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
         spy(links,'b');
         spy(bodyAdd,'b')
         text(nx/10, 10,'Add Branch', fontText{:});
-        branchAdd =  analInfo(frame).reconstructInfo.output{iReconst}.candFiloAdded.Branch ;
+        branchAdd =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.Branch ;
         spy(branchAdd,'g',5)
         pixels = round(10/pixSizeMic);
         %  plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
@@ -274,14 +274,14 @@ if isfield(analInfo(frame).reconstructInfo,'output');
         spy(postClust,'b');
         spy(seedMask,'b');
         
-        bodyFinal = analInfo(frame).masks.neuriteEdge;
+        bodyFinal = veilStem(frame).finalMask;
         edgeYX = bwboundaries(bodyFinal);
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         spy(links,'b');
         spy(bodyAdd,'b')
         spy(branchAdd,'b');
         text(nx/10, 10,'Add End-On Attachment', fontText{:});
-        endOn =  analInfo(frame).reconstructInfo.output{iReconst}.candFiloAdded.EndOn ;
+        endOn =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.EndOn ;
         spy(endOn,'g',5)
         pixels = round(10/pixSizeMic);
         % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
@@ -292,7 +292,7 @@ if isfield(analInfo(frame).reconstructInfo,'output');
         imageNum = imageNum+1;
         close gcf
         %%
-        if iReconst == numel(analInfo(frame).reconstructInfo.output);
+        if iReconst == numel(filoBranch(frame).reconstructInfo.output);
             
             title = 'End Reconstruction';
             
@@ -303,9 +303,9 @@ if isfield(analInfo(frame).reconstructInfo,'output');
         imshow(-img,[])
         hold on
         text(nx/10, 10,title, fontText{:});
-        seedMask =  analInfo(frame).reconstructInfo.seedMask{iReconst+1} ;
+        seedMask =  filoBranch(frame).reconstructInfo.seedMask{iReconst+1} ;
         spy(seedMask,'b')
-        bodyFinal = analInfo(frame).masks.neuriteEdge;
+        bodyFinal = veilStem(frame).finalMask;
         edgeYX = bwboundaries(bodyFinal);
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
@@ -584,19 +584,19 @@ end
 %             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
 %         close gcf
 
-filoInfo = analInfo(frame).filoInfo;
-%% Filopodia Fits
-imageNum = imageNum +1;
-h = setFigure(nx,ny);
-imshow(-img,[]);
-hold on
-cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
-GCAVisualsMakeOverlaysFilopodia(filoInfo,[ny,nx],1,1,[],0);
-text(nx/10,10,'Filopodia Fits', fontText{:})
-% print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
-saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-close gcf
+filoInfo = filoBranch(frame).filoInfo;
+% %% Filopodia Fits
+% imageNum = imageNum +1;
+% h = setFigure(nx,ny);
+% imshow(-img,[]);
+% hold on
+% cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
+% GCAVisualsMakeOverlaysFilopodia(filoInfo,[ny,nx],1,1,[],0);
+% text(nx/10,10,'Filopodia Fits', fontText{:})
+% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+% %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+% saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
+% close gcf
 %%   Filopodia By Branch Group
 imageNum = imageNum +1;
 h  = setFigure(nx,ny);
