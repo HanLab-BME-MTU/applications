@@ -409,16 +409,67 @@ if sum(testMatch) ~= 0 ;
      countFig = countFig+1;
  end % if TSOverlays
      
-    %% Perform Matching to Resolve Graph
+    %% Filter links by geometery of candidate and linker 
     E = [E costTotal D normInt dotProd dotCandAndSeed];
     
     E = E(dotProd>ip.Results.geoThreshFiloBranch,:); 
     EFinal = EFinal(dotProd>ip.Results.geoThreshFiloBranch,:);
     costTotal = costTotal(dotProd>ip.Results.geoThreshFiloBranch);
+    if ip.Results.TSOverlays == 1
     idxCMap =  idxCMap(dotProd>ip.Results.geoThreshFiloBranch,:);
+    end 
     iSeg= iSeg(:,dotProd>ip.Results.geoThreshFiloBranch);
      %numberNodes =  sum(dotProd); 
-    
+     %% Always take out links that cross the veil stem
+     
+     iSegLinIdx = cellfun(@(x) sub2ind(dims,x(:,2),x(:,1)),iSeg,'uniformoutput',0);
+     
+     veilMask = zeros(dims);
+     linIdx = sub2ind(dims,inputPoints(:,2),inputPoints(:,1));
+     veilMask(linIdx) = 1;
+     veilMask = imfill(veilMask,'holes');
+     veilMask(linIdx) = 0;
+     linIdxVeilStem= find(veilMask);
+     noOverlapLinks1 = cellfun(@(x) isempty(intersect(x,linIdxVeilStem)),iSegLinIdx);
+     
+     E = E(noOverlapLinks1,:);
+     EFinal = EFinal(noOverlapLinks1,:);
+     costTotal = costTotal(noOverlapLinks1);
+     if ip.Results.TSOverlays == 1
+         idxCMap =  idxCMap(noOverlapLinks1,:);
+     end
+     iSeg= iSeg(noOverlapLinks1);
+     
+   %% OPTIONAL : Do NOT allow linkers to cross other candidate filopodia (can only introduce a cross by crossing a seed)  
+   noOverlap = 1;
+   
+   if noOverlap == 1
+      
+       iSegLinIdx = cellfun(@(x) sub2ind(dims,x(:,2),x(:,1)),iSeg,'uniformoutput',0);
+       
+       candPix = vertcat(pixIdxCands{:});
+       % Fill along the cadidate pixels to make sure overlapping
+       % links are removed 
+       diagFill = zeros(dims);      
+       diagFill(candPix) = 1; 
+       diagFill = bwmorph(diagFill,'diag'); 
+       candPix = find(diagFill); 
+       % Remove endpoints (these are connected to the linker in all cases)
+       cEPsAll = vertcat(candFiloEPs{:}); 
+       [linIdxCandEPs]  = sub2ind(dims,cEPsAll(:,2),cEPsAll(:,1));  
+       candPix   = setdiff(candPix,linIdxCandEPs); 
+       
+       noOverlapLinks = cellfun(@(x) isempty(intersect(x,candPix)),iSegLinIdx); % have no interesction with the candidate mask
+       E = E(noOverlapLinks,:);
+       EFinal = EFinal(noOverlapLinks,:);
+       costTotal = costTotal(noOverlapLinks);
+       if ip.Results.TSOverlays == 1
+       idxCMap =  idxCMap(noOverlapLinks,:);
+       end 
+       iSeg= iSeg(noOverlapLinks);
+       
+   end
+   %% 
     %numberNodes = size(EFinal,1); 
     [candFiloNodes,~,nodeLabels] = unique(EFinal(:,1),'stable'); % reason note: some of the filo will not be candidates as their endpoints are not within the given radius
     NNodeQuery = length(candFiloNodes);
@@ -482,7 +533,7 @@ if sum(testMatch) ~= 0 ;
     
     if ip.Results.TSOverlays == true
         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
-        TSFigs(countFig).name = 'Potential_Paths_After_Geometry_Threshold';
+        TSFigs(countFig).name = 'Potential_Pathg_After_Geometry_Threshold';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
      
         imshow(-img,[]);
