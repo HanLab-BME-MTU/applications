@@ -62,7 +62,7 @@ ip.addParameter('EndFrame','auto');
 
 % Specific
 % PARAMETERS
-ip.addParameter('TSOverlays',true,@(x) islogical); 
+ip.addParameter('TSOverlays',true); 
 
 % Steerable Filter 
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
