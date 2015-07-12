@@ -359,9 +359,9 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 
 %% Run Main Function that performs the reconstructions
 [reconstruct,filoInfo,TSFigs2,TSFigsRecon] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
-
+if ip.Results.TSOverlays == 1 
 TSFigsFinal = [TSFigs  TSFigs2 ]; 
-
+end 
 filoBranch.filoInfo = filoInfo; % 
 filoBranch.reconstructInfo = reconstruct;
 
