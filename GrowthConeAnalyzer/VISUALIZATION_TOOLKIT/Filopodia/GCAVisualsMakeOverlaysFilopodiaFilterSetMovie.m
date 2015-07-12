@@ -1,6 +1,46 @@
 function [ output_args ] = GCAVisualsMakeOverlaysFilopodiaMovie(movieData,paramsIn)
 %GCAVisualsMakeOverlaysFilopodiaMovie: movieData which overlays the
 %segmented filopodia given a certain filopodia filter set
+%If no parameters are specified function will search for filter sets and
+%parameter extractions already run. It plots the value for each filopodia
+%for the user. 
+%%  % INPUT
+%
+%   movieData (REQUIRED)  - The MovieData object describing the movie, as created using
+%   movieSelectorGUI.m
+%    
+%   'filoFilterSet' (OPTIONAL) : Cell Array
+%     rx1 cell of logical filters for the filopodia for each frame
+%     where r is the number of frames: 
+%     Output from GCACreateFilopodiaFilterSet.m 
+%     
+% 
+%   'measurementsC' (OPTIONAL); Cell Array
+%     rx1 cell of logical filters for the filopodia for each frame
+%     where r is the number of frames: 
+%     Output from GCACreateFilopodiaFilterSet.m 
+% 
+% 
+%  
+%   colorScheme (PARAM)  : character array 
+% 
+
+% %% PARAMS: RIDGE CLEANING %%
+%
+%     'colorScheme'  (PARAM) :  Postive Scalar
+%        Percentile for the NMS response threshold cut-off
+%        Default: 25
+%
+%     'MinCCRidgeBeforeConnect' (PARAM) : Positive Scalar
+%         Size of the connected components of the ridge NMS to filter
+%         BEFORE linking, note for small candidate ridges it is difficult
+%         to maintain a good orientation definition for linking.
+%         Default: 3 (in pixels)
+%
+%     'MinCCRidgeAfterConnect' (PARAM) : Positive Scalar
+%         Size of the connected components of the ridge NMS to filter
+%         AFTER ridge linking.
+%         Default: 5 (in pixels)
 %
 
 plotSpecificFrame =0;
