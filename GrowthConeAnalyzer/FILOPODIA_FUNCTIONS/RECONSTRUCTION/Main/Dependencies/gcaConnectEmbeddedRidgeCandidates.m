@@ -487,6 +487,36 @@ if ~isempty(E) % continue
             countFigs = countFigs+1;
             
         end % ip.Results.
+        
+        
+        if ip.Results.TSOverlays == true 
+            TSFigs(countFigs).h = setFigure(imSize(2),imSize(1),'off'); 
+            TSFigs(countFigs).name = 'Final_Embedded';
+                 
+            
+            
+            if ~isempty(ip.Results.img)
+                
+                imshow(-ip.Results.img,[]);
+                hold on
+            end 
+            
+             if ~isempty(ip.Results.edgeMask);
+                
+                spy(ip.Results.edgeMask,'k');
+            end
+        
+        spy(linkMask,'y'); 
+        
+        spy(goodCands,'b'); 
+        
+        spy(seedMask,'r'); 
+        countFigs = countFigs +1; 
+        
+        end 
+         
+            
+        
     else
         status = 0 ; % not links within range to even consider
         maskPostConnect = seedMask;

@@ -375,13 +375,7 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
     else intFlag =0; % don't countinue if verticesEP is empty
     end % verticesEP
     clear verticesEP edgePathCoord
-    %% 2013_07_14 note think this was the old way of doing things before internal
-    % was done via graph match..should likely take out this option ..all
-    % internal should have a corresponding external by the way they were
-    % saved. ...
-    
-    % OLD NOTES : for now if there is no corresponding external filopodia there is a high chance
-    % that  the internal signal is just noise we will not record %
+%% Fit the embedded actin content response if appropriate
     
     if intFlag ==2 % fit internal filo using response % 2013_07_14 again should take out before release....
         % get internal info
@@ -450,11 +444,11 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
         
         
     end
-    count = 0; 
-    if intFlag~=2; 
-        display(num2str(intFlag)); 
-        count = count+1;
-    end 
+%     count = 0; 
+%     if intFlag~=2; 
+%         display(num2str(intFlag)); 
+%         count = count+1;
+%     end 
      
 end
 if sanityCheck==1 

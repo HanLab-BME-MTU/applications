@@ -60,6 +60,7 @@ ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
 
+
 % Specific
 % PARAMETERS
 ip.addParameter('TSOverlays',true); 
@@ -273,7 +274,9 @@ close all
         filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         filoBranch(iFrame) = filoBranchC;
         p(iFrame) = params; 
-        save( [outDir filesep 'filoBranch.mat'],'filoBranch');
+        save( [outDir filesep 'filoBranch.mat'], 'filoBranch','-v7.3');
+       
+        
         save([outDir filesep 'params.mat'],'p'); 
     end % iFrame
     

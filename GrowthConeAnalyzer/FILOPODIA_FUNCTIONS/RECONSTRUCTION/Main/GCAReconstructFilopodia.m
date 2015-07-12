@@ -163,7 +163,7 @@ countFigs = 1;
 dims = size(img); 
 [ny,nx] = size(img);
 normalsC = protrusionC.normal;
-
+TSFigsFinal = []; 
 
 %% these were the pixelated values used to calculate the normals 
  %Get the outline of the object in this mask. We use contourc instead of
@@ -289,12 +289,12 @@ filoBranchC.filterInfo.scaleMap = scaleMap;
 %% OPTIONAL TS PLOT : Show Histogram to see if cut-off reasonable given the distribution
         if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFigs(countFigs).h = figure('visible','on'); 
+          TSFigs(countFigs).h = setAxis('on'); 
           
           TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist'; 
           TSFigs(countFigs).group = 'Cleaning_Small_Ridges' ; 
          
-          setAxis('on')
+      
           hist(valuesFilter,500); 
           hold on 
           line([cutoffTrueResponse cutoffTrueResponse],[0,max(n1)],'color','r','Linewidth',2); 
