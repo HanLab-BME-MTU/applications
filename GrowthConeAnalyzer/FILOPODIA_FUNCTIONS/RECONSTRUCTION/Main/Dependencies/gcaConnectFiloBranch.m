@@ -222,9 +222,9 @@ if sum(testMatch) ~= 0 ;
         imshow(-img,[]);
         hold on
         spy(labelMatSeedFilo,'b');
-        spy(labelCandidates,'r');
-        text(5,10,'Seed','FontSize',10,'color','r');
-        text(5,25,'Candidate Ridges','FontSize',10,'color','b');
+        spy(labelCandidates,'m');
+        text(5,10,'Seed','FontSize',10,'color','b');
+        text(5,25,'Candidate Ridges','FontSize',10,'color','m');
         countFig = countFig+1;
         
         
@@ -480,44 +480,53 @@ if sum(testMatch) ~= 0 ;
     %numberOfNodes = 98; 
     
     
-    %% TS Overlay : Geometry Thresholds
-    if ip.Results.TSOverlays == true 
+   
+    
+    
+    
+%% Perform Weighted Graph Matching if Edges Exist
+
+if ~isempty(EFinal)
+    
+    
+    %% TS Overlays After Geometry Thresholds : Histograms of Cost Components 
+    if ip.Results.TSOverlays == true
         TSFigs(countFig).h = setAxis('on');
         TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_AfterGeoThresh';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
-        nPaths = size(E,1);  
+        nPaths = size(E,1);
         
-        for i = 1:5 
-        [n{i},center{i}] = hist(E(:,3+i),50);
-        end 
+        for i = 1:5
+            [n{i},center{i}] = hist(E(:,3+i),50);
+        end
         
-       allN = horzcat(n{:});
-       maxYVal = max(allN./nPaths);
-       %maxYVal = allN(:); 
+        allN = horzcat(n{:});
+        maxYVal = max(allN./nPaths);
+        %maxYVal = allN(:);
         
         
-       
+        
         subplot(5,1,1);
         
-        bar(center{1},n{1}/nPaths); 
+        bar(center{1},n{1}/nPaths);
         xlabel('Cost Total');
         axis([ip.Results.geoThreshFiloBranch,3.5,0,maxYVal]);
         
         
         subplot(5,1,2);
-       
+        
         bar(center{2},n{2}/nPaths);
         xlabel('Distance');
         axis([0,1,0,maxYVal]);
         
         subplot(5,1,3);
-       
+        
         bar(center{3},n{3}/nPaths);
         xlabel('Mean Intensity');
         axis([0,1,0,maxYVal]);
         
         subplot(5,1,4);
-       
+        
         bar(center{4},n{4}/nPaths);
         xlabel('Geometry With Linker');
         axis([ip.Results.geoThreshFiloBranch,1,0,maxYVal]);
@@ -528,18 +537,19 @@ if sum(testMatch) ~= 0 ;
         xlabel('Geometry Candidate and Seed');
         axis([0,1,0,maxYVal]);
         countFig = countFig+1;
-    end 
-    
+    end
+        
+    %% TS Overlays After Geometry Thresholds : Color Code By Cost
     
     if ip.Results.TSOverlays == true
         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
         TSFigs(countFig).name = 'Potential_Pathg_After_Geometry_Threshold';
-        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-     
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+        
         imshow(-img,[]);
         
         hold on
-           text(5,10,['Geometry Threshold' num2str(ip.Results.geoThreshFiloBranch)],'FontSize',10,'Color','k'); 
+        text(5,10,['Geometry Threshold' num2str(ip.Results.geoThreshFiloBranch)],'FontSize',10,'Color','k');
         
         spy(labelMatSeedFilo>0,'k');
         spy(labelCandidates>0,'k',5);
@@ -548,10 +558,7 @@ if sum(testMatch) ~= 0 ;
         scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled');
         % create distance mapper
         cMapLength=128; cMap=jet(cMapLength);
-%         mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
-%         
-%         D=createDistanceMatrix(costTotal,mapper);
-%         [sD,idxCMap]=sort(abs(D),2);
+        
         
         for k = 1:length(cMap);
             if sum(idxCMap(:,1)==k)~=0
@@ -566,22 +573,10 @@ if sum(testMatch) ~= 0 ;
             % show each segment in iSeg cell plotted by the costTotal color
             %
         end
-        countFig = countFig +1; 
+        countFig = countFig +1;
     end % ip.Results.TSOverlays
-    %% Perform Weighted Graph Matching
-    
-    
-    
-    if ~isempty(EFinal)
-        %     idx = E(:,1) < E(:,2);
         
-        %     E = E(idx,:); % remove redundancy
-        %% NOTE Currently not counting the number of nodes correctly! 
-        % might be because I never considered the seed coords might have
-        % the same labels. 
-        %% TESTING 
-        %numberNodes = size(EFinal,1)-1;  
-        %% 
+%% Matching        
         M = maxWeightedMatching(numberNodes, EFinal, costTotal);
         % check for double labels
         % convertBack
@@ -589,9 +584,8 @@ if sum(testMatch) ~= 0 ;
         E = E(M,:);% get those edges that matched (from original indexing)
     end   % isempty
     
-    
-    
-    %
+%% Update the unmatched candidate list and prepare output
+
     if ~isempty(E) % might be empty now if all were repeats
         pixIdxCandsUnMatched(E(:,1)) = []; % take out the matched candidates 
         candFiloEPsUnMatched(E(:,1)) =[]; 
@@ -602,36 +596,25 @@ if sum(testMatch) ~= 0 ;
         % it's a little stupid because we have some of this junction info
         % before the NMS but I throw it away
         goodConnect = iSeg(M);
-        
-%% Troubleshoot overlay 
-
-        
-        
-        
-        
-        
-        % convert to pixIdx
+        % convert to logical indexing 
         pixGoodConnect = cellfun(@(i) sub2ind(dims,i(:,2),i(:,1)), goodConnect,'uniformoutput',0);
         out(vertcat(pixGoodConnect{:}))= 1;
-        
     end
-   %% If only keep smooth continuations.  
-    
-    
-    
-    %% Plot final results.
-    
-    
+%% Update the final results 
     links = out;
     outputMasks.links = links;
     allInputMask= (labelCandidates>0|labelMatSeedFilo>0); 
     out = double(out|allInputMask); 
-    %out = double(out | cellBoundary);
     outputMasks.finalReconstruct = out;
     
     %% start documenting data
     labelInputCon = zeros(length(E(:,1)),1);
     % get the filoIdx of those filo to which attachments have been made
+    % NOTE : Check one more time before final release to make sure this
+    % is completely ok - remember however that if E is empty length will 
+    % be zero and by small favors this doesn't error in matlab when one has
+    % 1:0 (though this is likely not good practice) it will just skip as we
+    % would like it to - 20150711
     for iMatch = 1:length(E(:,1))
         labelInputCon(iMatch) = labelMatSeedFilo(sub2ind(dims,inputPoints(E(iMatch,2),2),inputPoints(E(iMatch,2),1)));
         %% Need to Fix 20150604 Change to a cell array

@@ -339,9 +339,9 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 %% Optional TS Figure : Ridge Signal Cleaning Steps 
  if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFigs(countFigs).h = figure('visible','off'); 
+          TSFigs(countFigs).h = setFigure(nx,ny,'on'); 
        
-          TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist';
+          TSFigs(countFigs).name =  'Thin_Ridge_NMS_Cleaning';
           TSFigs(countFigs).group = 'Cleaning_Small_Ridges'; 
          
           imshow(-img,[]) ; 

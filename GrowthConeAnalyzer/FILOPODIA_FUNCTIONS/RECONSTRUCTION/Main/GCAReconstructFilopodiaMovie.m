@@ -221,7 +221,8 @@ for iCh = 1:nChan
     
        [filoBranchC,TSFigs,TSFigsRecon] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,params); 
 %% Plot the results. 
-if ip.Results.TSOverlays == 1         
+if ip.Results.TSOverlays == 1 
+    display('Saving Trouble Shoot Overlays') 
        for iFig = 1:length(TSFigs)
            if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
                mkdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
@@ -235,32 +236,30 @@ if ip.Results.TSOverlays == 1
             arrayfun(@(x) saveas(TSFigs(x).h,...
                 [outDir filesep TSFigs(x).group filesep num2str(x,'%02d') TSFigs(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigs));   
             end 
-        end 
-            
-       
+        end        
 end 
 
 if ip.Results.TSOverlays == 1
-    for iFig = 1:length(TSFigsRecon) 
+    for iFig = 1:length(TSFigsRecon)
         cDir = [outDir filesep TSFigsRecon(iFig).group  filesep 'ReconIter' num2str(TSFigsRecon(iFig).ReconIt,'%02d') ...
             filesep TSFigsRecon(iFig).name];
-         if ~isdir(cDir); 
-               mkdir(cDir); 
-         end  
-    end      
-          type{1} = '.fig'; 
-            type{2} = '.tif'; 
-            
-        if ~isempty(TSFigsRecon)
-            for iType = 1:numel(type)
+        if ~isdir(cDir);
+            mkdir(cDir);
+        end
+    end
+    type{1} = '.fig';
+    type{2} = '.tif';
+    
+    if ~isempty(TSFigsRecon)
+        for iType = 1:numel(type)
             arrayfun(@(x) saveas(TSFigsRecon(x).h,...
                 [outDir filesep TSFigsRecon(x).group  filesep 'ReconIter' num2str(TSFigsRecon(x).ReconIt,'%02d') ...
-            filesep TSFigsRecon(x).name filesep num2str(iFig,'%03d') type{iType}]),1:length(TSFigsRecon));   
-            end 
-        end 
-        
-        %if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(TSFigs(iFig).iter),
-    end 
+                filesep TSFigsRecon(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigsRecon));
+        end
+    end
+    
+    %if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(TSFigs(iFig).iter),
+end
     
    
 
@@ -278,6 +277,7 @@ close all
        
         
         save([outDir filesep 'params.mat'],'p'); 
+        display(['Finished Reconstructing Filopodia for Frame ' num2str(iFrame) ' for ' movieData.outputDirectory_])
     end % iFrame
     
 end   % for iCh
