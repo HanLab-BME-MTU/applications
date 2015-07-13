@@ -426,6 +426,11 @@ if sum(testMatch) ~= 0 ;
      
      veilMask = zeros(dims);
      linIdx = sub2ind(dims,inputPoints(:,2),inputPoints(:,1));
+     % need to make sure not NaN 20150713 - problem with Trio frame 45 -
+     % think Nan exist in the seedMask due to the fact there is a small
+     % filo- recheck where the Nan coming from and make sure does not 
+      %cause a problem. 
+     linIdx = linIdx(~isnan(linIdx)); 
      veilMask(linIdx) = 1;
      veilMask = imfill(veilMask,'holes');
      veilMask(linIdx) = 0;
