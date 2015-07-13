@@ -461,9 +461,16 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         %[ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],5);
         
         % [candidateMask1,linkMask,EPCandidateSort, labelMatCanFilo, ~,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p);
-        [candidateMask1,linkMask,EPCandidateSort, pixIdxPostConnect,~,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p);
+        [candidateMask1,linkMask,EPCandidateSortLinked, pixIdxPostConnectLinked,status,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p);
         
-        
+        if status == 0 % no links
+            pixIdxPostConnect = CCCandidates.PixelIdxList; 
+        else 
+            % update
+            pixIdxPostConnect = pixIdxPostConnectLinked; 
+            EPCandidateSort = EPCandidateSortLinked; 
+        end 
+       
         
         %  %% Intermediate Sanity
         %        makeSummary =1;
@@ -501,7 +508,12 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     
     
-    %     %get rid segments that might not have canonical endpoints as these
+   
+    if isempty(EPCandidateSort)
+        break
+    end
+    
+     %     %get rid segments that might not have canonical endpoints as these
     %     %are very likely noise.
     %     filoSkelPreConnectFiltered = (filoMask | candidateMask1 );
     
@@ -517,9 +529,10 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     EPCandidateSort = EPCandidateSort(nonEmpty);
     pixIdxPostConnect = pixIdxPostConnect(nonEmpty);
     % if no more viable candidates break the while loop
-    if isempty(EPCandidateSort)
-        break
-    end
+    
+    
+    
+    
     %% Perform the connections.
     %% FIX 20150604 - labelMatCanFilo no longer appropriate here : need to change to cell input of pixIdxPostConnect
     % [outputMasks,filoInfo,status] = gcaConnectFiloBranch(xySeed,EPCandidateSort,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
