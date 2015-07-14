@@ -115,7 +115,7 @@ ip.addParameter('MaxRadiusLink',10);
 ip.addParameter('NoLinkDistanceFromBorder',0);
 ip.addParameter('MaxRadiusNoGeoTerm',0) ;
 ip.addParameter('GeoThresh',0.9);
-ip.addParameter('TSOverlays',true,@(x) islogical(x));
+ip.addParameter('TSOverlays',true);
 
 ip.parse(EPCandidateSort,labelMat,varargin{:});
 
@@ -126,6 +126,7 @@ imSize = [ny,nx];
 countFigs = 1;
 EPsPostConnect = [];
 pixIdxPostConnect = []; 
+TSFigs = []; 
 %%
 endPoints = vertcat(EPCandidateSort{:}); % taking these out of a cell array so
 endPoints =  endPoints(:,1:2); % take first two columns as added vector 20140913
@@ -223,6 +224,8 @@ d = d(noOverlap);
 if ip.Results.TSOverlays == true;
     TSFigs(countFigs).h = setFigure(nx,ny,'on');
     TSFigs(countFigs).name =  'Plot Connections';
+    TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
     if ~isempty(ip.Results.img);
         imshow(-ip.Results.img,[]);
         hold on
@@ -278,7 +281,9 @@ if ~isempty(E)
     %%
     if ip.Results.TSOverlays == true;
         TSFigs(countFigs).h = setFigure(nx,ny,'on');
-        TSFigs(countFigs).name =  'Plot Connections With Vectors';
+        TSFigs(countFigs).name =  'Plot_Connections_With_Vectors';
+        TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
         if ~isempty(ip.Results.img);
             imshow(-ip.Results.img,[]);
             hold on
@@ -406,7 +411,9 @@ end % isempty E
 if ip.Results.TSOverlays == true;
     
     TSFigs(countFigs).h = setFigure(nx,ny,'on');
-    TSFigs(countFigs).name = ' Color By Cost';
+    TSFigs(countFigs).name = ' Color_By_Cost';
+    TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
     if ~isempty(ip.Results.img);
         imshow(-ip.Results.img,[]);
         hold on
@@ -451,7 +458,10 @@ if ip.Results.TSOverlays == true;
     if ip.Results.TSOverlays == true;
         
         TSFigs(countFigs).h = setFigure(nx,ny,'on');
-        TSFigs(countFigs).name = 'KD Results AFter Filter By Geometry';
+        TSFigs(countFigs).name = 'KD_Results_AFter_Filter_By_Geometry';
+        TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
+        
         if ~isempty(ip.Results.img);
             imshow(-ip.Results.img,[]);
             hold on
@@ -624,7 +634,10 @@ if ~isempty(links) % nothing that falls under this criteria
     if ip.Results.TSOverlays == true;
         
         TSFigs(countFigs).h = setFigure(nx,ny,'on');
-        TSFigs(countFigs).name = 'Post Connection Labels';
+        TSFigs(countFigs).name = 'Post_Connection_Labels';
+        TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+     
+        
         imshow(labelMat>0,[]);
         hold on
         % plot the new EPS

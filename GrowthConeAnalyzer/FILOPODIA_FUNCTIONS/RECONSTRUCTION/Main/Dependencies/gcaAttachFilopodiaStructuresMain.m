@@ -1,4 +1,4 @@
-function [reconstruct,filoInfo,TSFigs] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,varargin)
+function [reconstruct,filoInfo,TSFigs,TSFigsReconAll] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,varargin)
 % gcaAttachFilopodiaStructures: 
 % 
 % 
@@ -142,6 +142,12 @@ maxRes = filoBranchC.filterInfo.maxRes ;
 %     display(['No Protrusion Vectors Found: No Orientation Calculations of Filopodia Relative to' ...
 %         'Veil will be Performed']);
 % end
+
+TSFigs =[]; 
+TSFigsReconAll = []; 
+
+
+
 %% Extract Information 
 % MASK OF EXTERNAL FILOPODIA RIDGE CANDIDATES
 filoTips = cleanedRidgesAll.*~veilStemMaskC;
@@ -338,60 +344,67 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
 %%               %% currently filtering candidates based on mean response values < 5th percentile of 
                    % seeds attached and less then 
                    % if size candidate <2 
-               figure
+              % figure
         cutoff = prctile(meanRespValuesSeed,5); % SEE if it is this filtering step here. for frame 120
-      % % %
-        % % %
-        % % %
+        toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2; %%% NOTE: MARIA YOU ARE INTRODUCING SOME PARAMS HERE
+        
+        if ip.Results.TSOverlays == true
+            TSFigs2(countFigs).h = setFigure(nx,ny,'on');
+            TSFigs2(countFigs).name = 'Thresholding_Candidates_Based_On_Seed';
+            TSFigs2(countFigs).group = 'Reconstruct_FiloBranch';
+            % % %
             weakCandMask = zeros(ny,nx);
             strongCandMask = zeros(ny,nx);
-        % % %
-        toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2;%%% NOTE: MARIA YOU ARE INTRODUCING SOME PARAMS HERE 
-        % % %
-               weakCandMask(vertcat(CC.PixelIdxList{toExclude} ))=1;
-               strongCandMask(vertcat(CC.PixelIdxList{~toExclude}))=1 ;
-               imshow(-img,[])
-              hold on
-              spy(weakCandMask,'r',10);
-              spy(strongCandMask,'k',10);
-              spy(maskSeed,'b',10);
-        % % %          close gcf
-        
-        %% TSFigs 
-        if ip.Results.TSOverlays == true 
-        TSFigs2(countFigs).h  = setAxis('on'); 
-        TSFigs2(countFigs).name = 'Thresholding_Candidates_Based_On_Seed';
-        TSFigs2(countFigs).group = 'Reconstruct_FiloBranch'; 
-        
-        subplot(3,1,1);
-        count = hist(meanRespValuesSeed,20); 
-        hist(meanRespValuesSeed,20); 
-        hold on 
-        line([cutoff,cutoff],[0,max(count)],'color','r'); 
-        xlabel('Mean Ridge Filter Response of Veil Attached Filopodia'); 
-        
-        subplot(3,1,2); 
-        
-      
-        count = hist(meanRespValuesCand,20); 
-        hist(meanRespValuesCand,20); 
-        line([cutoff,cutoff],[0,max(count)],'color','r'); 
-       
-        ylabel('Count'); 
-        xlabel('Mean Ridge Filter Response of Candidates');
-       
-        
-        
-        
-        subplot(3,1,3); 
-        scatter(meanRespValuesCand,sizeCand,10,'k','filled'); 
-        hold on 
-        scatter(meanRespValuesCand(toExclude),sizeCand(toExclude),10,'r','filled'); 
-        line([cutoff,cutoff],[0,max(sizeCand)],'color','r'); 
-        xlabel({'Mean Ridge Filter Response ' 'Per Candidate'}); 
-        ylabel('Size of Candidate Ridge (Pixels)'); 
-        countFigs = countFigs +1; 
-        end 
+            
+            weakCandMask(vertcat(CC.PixelIdxList{toExclude} ))=1;
+            strongCandMask(vertcat(CC.PixelIdxList{~toExclude}))=1 ;
+            imshow(-img,[])
+            hold on
+            spy(weakCandMask,'r',10);
+            spy(strongCandMask,'k',10);
+            spy(maskSeed,'b',10);
+            % % %          close gcf
+            countFigs = countFigs +1;
+        end
+        %% TSFigs
+        if ip.Results.TSOverlays == true
+            TSFigs2(countFigs).h  = setAxis('on');
+            TSFigs2(countFigs).name = 'Thresholding_Candidates_Based_On_Seed_Hist';
+            TSFigs2(countFigs).group = 'Reconstruct_FiloBranch';
+            
+            totalPop = [meanRespValuesSeed meanRespValuesCand];
+            
+            
+            subplot(3,1,1);
+            count = hist(meanRespValuesSeed,20);
+            hist(meanRespValuesSeed,20);
+            hold on
+            line([cutoff,cutoff],[0,max(count)],'color','r');
+            xlabel('Mean Ridge Filter Response of Veil Attached Filopodia');
+            axis([0,max(totalPop),0,max(count)]);
+            subplot(3,1,2);
+            
+            
+            count = hist(meanRespValuesCand,20);
+            hist(meanRespValuesCand,20);
+            line([cutoff,cutoff],[0,max(count)],'color','r');
+            axis([0,max(totalPop),0,max(count)]);
+            ylabel('Count');
+            xlabel('Mean Ridge Filter Response of Candidates');
+            
+            
+            
+            
+            subplot(3,1,3);
+            scatter(meanRespValuesCand,sizeCand,10,'k','filled');
+            hold on
+            scatter(meanRespValuesCand(toExclude),sizeCand(toExclude),10,'r','filled');
+            line([cutoff,cutoff],[0,max(sizeCand)],'color','r');
+            xlabel({'Mean Ridge Filter Response ' 'Per Candidate'});
+            ylabel('Size of Candidate Ridge (Pixels)');
+            axis([0,max(totalPop),0,max(sizeCand)]);
+            countFigs = countFigs +1;
+        end
         
         
         
@@ -401,24 +414,8 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         CC.PixelIdxList(toExclude') = [];
         CC.NumObjects = CC.NumObjects -sum(toExclude);%
         % erase from filoSkelPreConnect
-      
-        %% TS Figs 
-%   TSFigs(countFigs).h = setAxis('on');  
-%   TSFigs(countFigs).name = 'Test'; 
-%   
-%   scatter(sizeSeed,meanRespValuesSeed,10,'k','filled'); 
-%   hold on
-%   scatter(sizeSeed(toExclude),meanRespValuesSeed(toExclude),'r','filled'); 
-%   xlabel('Seed Filopodia Size') ; 
-%   ylabel('Seed Filopodia Mean Response'); 
-  
-  %scatter(
-  
-        
-        
-        
-        
-    end
+           
+    end % recon iter == 1 
 %%    
     % keep on iterating until no more viable candidates
     % check the number of objects here
@@ -438,24 +435,24 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     
     if reconIter ==1 % only do this initial clustering step for the first iteration... hmmm need to make sure
-       
-    candidateMask1 = labelmatrix(CC) >0;
-    candidateMask1 = double(candidateMask1);
- 
- 
-    
+        
+        candidateMask1 = labelmatrix(CC) >0;
+        candidateMask1 = double(candidateMask1);
+        
+        
+        
         reconstruct.CandMaskPreCluster = candidateMask1;
-    
-  
-    CCCandidates = bwconncomp(candidateMask1);
-   
-    labelMatCanFilo = labelmatrix(CCCandidates);
-
-    % now the endpoints are indexed according to the CC Candidates so as
-    % unite edges can record the info
-    
-    
-    EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img),0,1),CCCandidates.PixelIdxList,'uniformoutput',0);  
+        
+        
+        CCCandidates = bwconncomp(candidateMask1);
+        
+        labelMatCanFilo = labelmatrix(CCCandidates);
+        
+        % now the endpoints are indexed according to the CC Candidates so as
+        % unite edges can record the info
+        
+        
+        EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img),0,1),CCCandidates.PixelIdxList,'uniformoutput',0);
         
         
         
@@ -463,50 +460,50 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         % don't loose this information though
         %[ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],5);
         
-       % [candidateMask1,linkMask,EPCandidateSort, labelMatCanFilo, ~,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p); 
-         [candidateMask1,linkMask,EPCandidateSort, pixIdxPostConnect,~,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p); 
-       
-      
-         
-%  %% Intermediate Sanity         
-%        makeSummary =1;
-%  if makeSummary  == 1
-%      mkdir([pwd filesep 'StepsLinearRidges']);
-% %     
-% %     
-% %     
-% %     
-%     if ~isempty(TSFigs3)
-%        
-%        
-%         type{1} = '.tif';
-%         type{2} = '.fig';
-%         for iType = 1:numel(type)
-%             arrayfun(@(x) saveas(TSFigs3(x).h,...
-%                 [pwd filesep 'StepsLinearRidges' filesep num2str(x,'%02d') TSFigs3(x).name  type{iType}]),1:length(TSFigs3));
-%         end
-%     end
-%  end
-       
- %% TAKE OUT 20150604       : postClustLabels needs to be replaced by a cell array 
-%         postClustLabels = unique(labelMatCanFilo(labelMatCanFilo~=0));
-%         numLabels = length(postClustLabels);
-%         pixIdxCand = arrayfun(@(i) find(labelMatCanFilo==postClustLabels(i)), 1:numLabels, 'uniformoutput',0);
- %       EPCandidateSort = cellfun(@(x) getEndpoints(x,[ny,nx]),pixIdxCand,'uniformoutput',0);
-%%          
+        % [candidateMask1,linkMask,EPCandidateSort, labelMatCanFilo, ~,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p);
+        [candidateMask1,linkMask,EPCandidateSort, pixIdxPostConnect,~,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p);
+        
+        
+        
+        %  %% Intermediate Sanity
+        %        makeSummary =1;
+        %  if makeSummary  == 1
+        %      mkdir([pwd filesep 'StepsLinearRidges']);
+        % %
+        % %
+        % %
+        % %
+        %     if ~isempty(TSFigs3)
+        %
+        %
+        %         type{1} = '.tif';
+        %         type{2} = '.fig';
+        %         for iType = 1:numel(type)
+        %             arrayfun(@(x) saveas(TSFigs3(x).h,...
+        %                 [pwd filesep 'StepsLinearRidges' filesep num2str(x,'%02d') TSFigs3(x).name  type{iType}]),1:length(TSFigs3));
+        %         end
+        %     end
+        %  end
+        
+        %% TAKE OUT 20150604       : postClustLabels needs to be replaced by a cell array
+        %         postClustLabels = unique(labelMatCanFilo(labelMatCanFilo~=0));
+        %         numLabels = length(postClustLabels);
+        %         pixIdxCand = arrayfun(@(i) find(labelMatCanFilo==postClustLabels(i)), 1:numLabels, 'uniformoutput',0);
+        %       EPCandidateSort = cellfun(@(x) getEndpoints(x,[ny,nx]),pixIdxCand,'uniformoutput',0);
+        %%
         reconstruct.CandMaskPostCluster = candidateMask1;
         reconstruct.clusterlinks = linkMask;
         linksPre = linkMask;
         % add these points to the mask
-    
-       
+        
+        
     end % if reconIt ==1
     
     
     
-%     %get rid segments that might not have canonical endpoints as these
-%     %are very likely noise.
-%     filoSkelPreConnectFiltered = (filoMask | candidateMask1 );
+    %     %get rid segments that might not have canonical endpoints as these
+    %     %are very likely noise.
+    %     filoSkelPreConnectFiltered = (filoMask | candidateMask1 );
     
     nonCanonical = cellfun(@(x) length(x(:,1))~=2,EPCandidateSort);
     pixIdxPostConnect = pixIdxPostConnect(~nonCanonical);
@@ -518,34 +515,42 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     % get rid of those with no EPs
     nonEmpty = cellfun(@(x) ~isempty(x),EPCandidateSort);
     EPCandidateSort = EPCandidateSort(nonEmpty);
-    pixIdxPostConnect = pixIdxPostConnect(nonEmpty); 
+    pixIdxPostConnect = pixIdxPostConnect(nonEmpty);
     % if no more viable candidates break the while loop
     if isempty(EPCandidateSort)
         break
     end
- %% Perform the connections.    
- %% FIX 20150604 - labelMatCanFilo no longer appropriate here : need to change to cell input of pixIdxPostConnect
-   % [outputMasks,filoInfo,status] = gcaConnectFiloBranch(xySeed,EPCandidateSort,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
-
-   %% NOTE NEED to fix to update pixIdxPostConnect and the EP candidates after the linkages with the new pixIndices. 
-   
-   [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
-
-   
-   %%
-   
+    %% Perform the connections.
+    %% FIX 20150604 - labelMatCanFilo no longer appropriate here : need to change to cell input of pixIdxPostConnect
+    % [outputMasks,filoInfo,status] = gcaConnectFiloBranch(xySeed,EPCandidateSort,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
+    
+    %% NOTE NEED to fix to update pixIdxPostConnect and the EP candidates after the linkages with the new pixIndices.
+    
+    [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
+    
+    for i = 1:length(TSFigs4)
+        TSFigs4(i).ReconIt = reconIter;
+    end
+    TSFigsRecon{reconIter} = TSFigs4;
+    clear TSFigs4
+    %%
+    
     if status == 1 ;
         %           % note filoInfo will be updated and this will be used to remake the seed
         reconstruct.output{reconIter} = outputMasks;
-        links = (links|outputMasks.links); 
+        links = (links|outputMasks.links);
     end % if status
     
     reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
     display(num2str(reconIter))
-end % while
+end % while numViaCand
 
-TSFigs = [TSFigs1  TSFigs2 TSFigs3]; 
-%TSFigs3 TSFigs4]; 
+%%
+if ip.Results.TSOverlays == true
+    TSFigsReconAll = horzcat(TSFigsRecon{:});
+    TSFigs = [TSFigs1  TSFigs2 TSFigs3];
+end
+
 
 % results1stRound = getLargestCC(filoSkelBranchingFilo);
 end

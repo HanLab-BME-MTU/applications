@@ -218,12 +218,13 @@ if sum(testMatch) ~= 0 ;
         TSFigs(countFig).h= setFigure(dims(1),dims(2),'on');
         TSFigs(countFig).name = 'Seed_and_Candidates';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+        
         imshow(-img,[]);
         hold on
         spy(labelMatSeedFilo,'b');
-        spy(labelCandidates,'r');
-        text(5,10,'Seed','FontSize',10,'color','r');
-        text(5,25,'Candidate Ridges','FontSize',10,'color','b');
+        spy(labelCandidates,'m');
+        text(5,10,'Seed','FontSize',10,'color','b');
+        text(5,25,'Candidate Ridges','FontSize',10,'color','m');
         countFig = countFig+1;
         
         
@@ -354,153 +355,121 @@ if sum(testMatch) ~= 0 ;
     normInt = (int - minIntPath)./(maxIntPath-minIntPath); 
     normInt = normInt'; 
     
-   
-    
-  
-    
     % Orientation Term:  above 1 favored 0 unfavored
     costTotal = (0.5*D + normInt +dotProd+dotCandAndSeed); % note to self: let's see what we get by just combining these values
     % linearly at first: in the end might want to disfavor the distance term
     % and favor more the int and dotProd term.
-    
-   
-    
-    
-    
-%     setAxis
-%     hist(costTotal)
-    %% Plot all the paths by the costTotal
-    % %% FIRST DO INDIVIDUAL COMPONENTS 
-%     if ip.Results.TSOverlays == true 
-%         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-%         TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_BeforeGeoThresh'; 
-%         TSFigs(countFig).group = 'Resconstruct_FiloBranch'; 
-%         
-%         setAxis('on'); 
-%         subplot(5,1,1); 
-%         hist(D,100); 
-%         
-%         subplot(5,1,2); 
-%         hist(normInt,100); 
-%         
-%         subplot(5,1,3); 
-%         hist(dotProd,100); 
-%         
-%         
-%         subplot(5,1,4); 
-%         hist(dotCandAndSeed,100); 
-%         
-%         subplot(5,1,5); 
-%         hist(costTotal);  
-%     end 
-       
-        
-        
-      
-    
-    
-    
-    
-    
-     %% Color Code by distance term 
+ 
+     %% Perform the sanity checks for the cost terms  
      
-     if ip.Results.TSOverlays == true 
-        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-        TSFigs(countFig).name = 'Potential_Paths_with_Cost_D'; 
-        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-    
-      
-        
-        
-        
-    % % Start Plot
-        imshow(-img,[]); 
-        hold on 
-        spy(labelMatSeedFilo>0,'k'); 
-        spy(labelCandidates>0,'k',5); 
-        scatter(seedPtsx(:),seedPtsy(:),'k','filled'); 
-        allCandEPs = vertcat(candFiloEPs{:}); 
-        scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
-        
-        % create distance mapper
-        cMapLength=128; cMap=jet(cMapLength);
-        mapper=linspace(min(D),max(D),cMapLength)';
-        
-        DMap=createDistanceMatrix(costTotal,mapper);
-        [sD,idxCMap]=sort(abs(DMap),2);
-        
-        for k = 1:length(cMap);
-            if sum(idxCMap(:,1)==k)~=0
-                toPlot = iSeg(idxCMap(:,1) == k);
-                
-                cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
-                clear toPlot
-            else
-            end
-            % make colormap of costs.
-            
-            % show each segment in iSeg cell plotted by the costTotal color
-            %
-        end 
-     
-    countFig = countFig+1; 
-     end
- %%   
-    
-    
-    
+     if ip.Results.TSOverlays == true
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_D';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,D,128);
+         text(10,5,'Score By Distance');
+         countFig = countFig+1;
+         
+         %%   if ip.Results.TSOverlays == true
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_Int';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,normInt,128);
+         text(10,5,'Score By Intensity Mean'); 
+         
+         countFig = countFig+1;
+         %% 
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_CandLinkerGeo';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotProd,128);
+         text(10,5,'Score By Candidate Linker Geometry') 
+         countFig = countFig+1;
+         %% Cand And Seed Value will be from 0 to 1 
+         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+         TSFigs(countFig).name = 'Potential_Paths_with_Cost_CandSeedGeo';
+         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+         
+         gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotCandAndSeed,128);
+         text(10,5,'Score By Candidate Seed Geometry'); 
+         countFig = countFig+1;
+     end 
     
  %% TOTAL    
-    if ip.Results.TSOverlays == true 
-        TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-        TSFigs(countFig).name = 'Potential_Paths_with_Cost'; 
-        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-        
-        % Start Plot
-        imshow(-img,[]); 
-        hold on 
-        spy(labelMatSeedFilo>0,'k'); 
-        spy(labelCandidates>0,'k',5); 
-        scatter(seedPtsx(:),seedPtsy(:),'k','filled'); 
-        allCandEPs = vertcat(candFiloEPs{:}); 
-        scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
-        
-        % create distance mapper
-        cMapLength=128; cMap=jet(cMapLength);
-        mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
-        
-        DMap=createDistanceMatrix(costTotal,mapper);
-        [sD,idxCMap]=sort(abs(DMap),2);
-        
-        for k = 1:length(cMap);
-            if sum(idxCMap(:,1)==k)~=0
-                toPlot = iSeg(idxCMap(:,1) == k);
-                
-                cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
-                clear toPlot
-            else
-            end
-            % make colormap of costs.
-            
-            % show each segment in iSeg cell plotted by the costTotal color
-            %
-        end 
-    
-    countFig = countFig+1; 
-    end % if TSOverlays
-    
-    
- 
-    %% Perform Matching to Resolve Graph
+ if ip.Results.TSOverlays == true
+     TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
+     TSFigs(countFig).name = 'Potential_Paths_with_Cost';
+     TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+     
+     [idxCMap] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,costTotal,128);
+     text(10,5,'Final Score');
+     countFig = countFig+1;
+ end % if TSOverlays
+     
+    %% Filter links by geometery of candidate and linker 
     E = [E costTotal D normInt dotProd dotCandAndSeed];
     
     E = E(dotProd>ip.Results.geoThreshFiloBranch,:); 
     EFinal = EFinal(dotProd>ip.Results.geoThreshFiloBranch,:);
     costTotal = costTotal(dotProd>ip.Results.geoThreshFiloBranch);
+    if ip.Results.TSOverlays == 1
     idxCMap =  idxCMap(dotProd>ip.Results.geoThreshFiloBranch,:);
+    end 
     iSeg= iSeg(:,dotProd>ip.Results.geoThreshFiloBranch);
      %numberNodes =  sum(dotProd); 
-    
+     %% Always take out links that cross the veil stem
+     
+     iSegLinIdx = cellfun(@(x) sub2ind(dims,x(:,2),x(:,1)),iSeg,'uniformoutput',0);
+     
+     veilMask = zeros(dims);
+     linIdx = sub2ind(dims,inputPoints(:,2),inputPoints(:,1));
+     veilMask(linIdx) = 1;
+     veilMask = imfill(veilMask,'holes');
+     veilMask(linIdx) = 0;
+     linIdxVeilStem= find(veilMask);
+     noOverlapLinks1 = cellfun(@(x) isempty(intersect(x,linIdxVeilStem)),iSegLinIdx);
+     
+     E = E(noOverlapLinks1,:);
+     EFinal = EFinal(noOverlapLinks1,:);
+     costTotal = costTotal(noOverlapLinks1);
+     if ip.Results.TSOverlays == 1
+         idxCMap =  idxCMap(noOverlapLinks1,:);
+     end
+     iSeg= iSeg(noOverlapLinks1);
+     
+   %% OPTIONAL : Do NOT allow linkers to cross other candidate filopodia (can only introduce a cross by crossing a seed)  
+   noOverlap = 1;
+   
+   if noOverlap == 1
+      
+       iSegLinIdx = cellfun(@(x) sub2ind(dims,x(:,2),x(:,1)),iSeg,'uniformoutput',0);
+       
+       candPix = vertcat(pixIdxCands{:});
+       % Fill along the cadidate pixels to make sure overlapping
+       % links are removed 
+       diagFill = zeros(dims);      
+       diagFill(candPix) = 1; 
+       diagFill = bwmorph(diagFill,'diag'); 
+       candPix = find(diagFill); 
+       % Remove endpoints (these are connected to the linker in all cases)
+       cEPsAll = vertcat(candFiloEPs{:}); 
+       [linIdxCandEPs]  = sub2ind(dims,cEPsAll(:,2),cEPsAll(:,1));  
+       candPix   = setdiff(candPix,linIdxCandEPs); 
+       
+       noOverlapLinks = cellfun(@(x) isempty(intersect(x,candPix)),iSegLinIdx); % have no interesction with the candidate mask
+       E = E(noOverlapLinks,:);
+       EFinal = EFinal(noOverlapLinks,:);
+       costTotal = costTotal(noOverlapLinks);
+       if ip.Results.TSOverlays == 1
+       idxCMap =  idxCMap(noOverlapLinks,:);
+       end 
+       iSeg= iSeg(noOverlapLinks);
+       
+   end
+   %% 
     %numberNodes = size(EFinal,1); 
     [candFiloNodes,~,nodeLabels] = unique(EFinal(:,1),'stable'); % reason note: some of the filo will not be candidates as their endpoints are not within the given radius
     NNodeQuery = length(candFiloNodes);
@@ -511,54 +480,76 @@ if sum(testMatch) ~= 0 ;
     %numberOfNodes = 98; 
     
     
-    %% TS Overlay : Geometry Thresholds
-    if ip.Results.TSOverlays == true 
-       TSFigs(countFig).h = setFigure(dims(1),dims(2),'on'); 
-       TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_AfterGeoThresh'; 
-       TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-        setAxis('on'); 
-        subplot(5,1,1); 
-        [n,center] = hist(E(:,4),100); 
-        bar(center,n/max(n)); 
-        xlabel('Cost Total'); 
-        axis([-1,3.5,0,1]); 
-        
-        
-        subplot(5,1,2); 
-        [n,center] = hist(E(:,5),100); 
-        bar(center,n/max(n)); 
-        xlabel('Distance'); 
-        axis([0,1,0,1]); 
-        
-        subplot(5,1,3); 
-        [n,center] = hist(E(:,6),100); 
-        bar(center,n/max(n)); 
-        xlabel('Mean Intensity'); 
-        axis([0,1,0,1]); 
-        
-        subplot(5,1,4); 
-        [n,center] = hist(E(:,7),100);
-        bar(center,n/max(n)); 
-        xlabel('Geometry With Linker'); 
-        axis([-1,1,0,1]); 
-        
-        subplot(5,1,5); 
-        [n,center] =  hist(E(:,8),100);  
-        bar(center,n/max(n)); 
-        xlabel('Geometry Candidate and Seed'); 
-        axis([0,1,0,1]); 
-    end 
+   
     
+    
+    
+%% Perform Weighted Graph Matching if Edges Exist
+
+if ~isempty(EFinal)
+    
+    
+    %% TS Overlays After Geometry Thresholds : Histograms of Cost Components 
+    if ip.Results.TSOverlays == true
+        TSFigs(countFig).h = setAxis('on');
+        TSFigs(countFig).name = 'Histograms_of_Cost_Parameters_AfterGeoThresh';
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+        nPaths = size(E,1);
+        
+        for i = 1:5
+            [n{i},center{i}] = hist(E(:,3+i),50);
+        end
+        
+        allN = horzcat(n{:});
+        maxYVal = max(allN./nPaths);
+        %maxYVal = allN(:);
+        
+        
+        
+        subplot(5,1,1);
+        
+        bar(center{1},n{1}/nPaths);
+        xlabel('Cost Total');
+        axis([ip.Results.geoThreshFiloBranch,3.5,0,maxYVal]);
+        
+        
+        subplot(5,1,2);
+        
+        bar(center{2},n{2}/nPaths);
+        xlabel('Distance');
+        axis([0,1,0,maxYVal]);
+        
+        subplot(5,1,3);
+        
+        bar(center{3},n{3}/nPaths);
+        xlabel('Mean Intensity');
+        axis([0,1,0,maxYVal]);
+        
+        subplot(5,1,4);
+        
+        bar(center{4},n{4}/nPaths);
+        xlabel('Geometry With Linker');
+        axis([ip.Results.geoThreshFiloBranch,1,0,maxYVal]);
+        
+        subplot(5,1,5);
+        
+        bar(center{5},n{5}/nPaths);
+        xlabel('Geometry Candidate and Seed');
+        axis([0,1,0,maxYVal]);
+        countFig = countFig+1;
+    end
+        
+    %% TS Overlays After Geometry Thresholds : Color Code By Cost
     
     if ip.Results.TSOverlays == true
         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
-        TSFigs(countFig).name = 'Potential_Paths_After_Geometry_Threshold';
-        TSFigs(countFig).group = 'Reconstruct_FiloBranch'; 
-     
+        TSFigs(countFig).name = 'Potential_Pathg_After_Geometry_Threshold';
+        TSFigs(countFig).group = 'Reconstruct_FiloBranch';
+        
         imshow(-img,[]);
         
         hold on
-           text(5,10,['Geometry Threshold' num2str(ip.Results.geoThreshFiloBranch)],'FontSize',10,'Color','k'); 
+        text(5,10,['Geometry Threshold' num2str(ip.Results.geoThreshFiloBranch)],'FontSize',10,'Color','k');
         
         spy(labelMatSeedFilo>0,'k');
         spy(labelCandidates>0,'k',5);
@@ -567,10 +558,7 @@ if sum(testMatch) ~= 0 ;
         scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled');
         % create distance mapper
         cMapLength=128; cMap=jet(cMapLength);
-%         mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
-%         
-%         D=createDistanceMatrix(costTotal,mapper);
-%         [sD,idxCMap]=sort(abs(D),2);
+        
         
         for k = 1:length(cMap);
             if sum(idxCMap(:,1)==k)~=0
@@ -585,22 +573,10 @@ if sum(testMatch) ~= 0 ;
             % show each segment in iSeg cell plotted by the costTotal color
             %
         end
-        
+        countFig = countFig +1;
     end % ip.Results.TSOverlays
-    %% Perform Weighted Graph Matching
-    
-    
-    
-    if ~isempty(EFinal)
-        %     idx = E(:,1) < E(:,2);
         
-        %     E = E(idx,:); % remove redundancy
-        %% NOTE Currently not counting the number of nodes correctly! 
-        % might be because I never considered the seed coords might have
-        % the same labels. 
-        %% TESTING 
-        %numberNodes = size(EFinal,1)-1;  
-        %% 
+%% Matching        
         M = maxWeightedMatching(numberNodes, EFinal, costTotal);
         % check for double labels
         % convertBack
@@ -608,9 +584,8 @@ if sum(testMatch) ~= 0 ;
         E = E(M,:);% get those edges that matched (from original indexing)
     end   % isempty
     
-    
-    
-    %
+%% Update the unmatched candidate list and prepare output
+
     if ~isempty(E) % might be empty now if all were repeats
         pixIdxCandsUnMatched(E(:,1)) = []; % take out the matched candidates 
         candFiloEPsUnMatched(E(:,1)) =[]; 
@@ -621,36 +596,25 @@ if sum(testMatch) ~= 0 ;
         % it's a little stupid because we have some of this junction info
         % before the NMS but I throw it away
         goodConnect = iSeg(M);
-        
-%% Troubleshoot overlay 
-
-        
-        
-        
-        
-        
-        % convert to pixIdx
+        % convert to logical indexing 
         pixGoodConnect = cellfun(@(i) sub2ind(dims,i(:,2),i(:,1)), goodConnect,'uniformoutput',0);
         out(vertcat(pixGoodConnect{:}))= 1;
-        
     end
-   %% If only keep smooth continuations.  
-    
-    
-    
-    %% Plot final results.
-    
-    
+%% Update the final results 
     links = out;
     outputMasks.links = links;
     allInputMask= (labelCandidates>0|labelMatSeedFilo>0); 
     out = double(out|allInputMask); 
-    %out = double(out | cellBoundary);
     outputMasks.finalReconstruct = out;
     
     %% start documenting data
     labelInputCon = zeros(length(E(:,1)),1);
     % get the filoIdx of those filo to which attachments have been made
+    % NOTE : Check one more time before final release to make sure this
+    % is completely ok - remember however that if E is empty length will 
+    % be zero and by small favors this doesn't error in matlab when one has
+    % 1:0 (though this is likely not good practice) it will just skip as we
+    % would like it to - 20150711
     for iMatch = 1:length(E(:,1))
         labelInputCon(iMatch) = labelMatSeedFilo(sub2ind(dims,inputPoints(E(iMatch,2),2),inputPoints(E(iMatch,2),1)));
         %% Need to Fix 20150604 Change to a cell array
@@ -893,6 +857,7 @@ if sum(testMatch) ~= 0 ;
         labelsEndon = labelMatSeedFilo(sub2ind(dims,attachSitesEndOn(:,2),attachSitesEndOn(:,1)));
         labelsEndon = labelsEndon-1;
         subtractEndOn = 0;
+        
         for iEndon = 1:length(attachSitesEndOn(:,1))
             
             EPNum = EPsCand(idxEndOnAttach(iEndon));
@@ -914,7 +879,7 @@ if sum(testMatch) ~= 0 ;
                 % if this connection introduces points of intersection it is
                 % not cool
                 
-                close gcf
+              
                 
                 nn = padarrayXT(double(testMask~=0), [1 1]);
                 sumKernel = [1 1 1];
@@ -999,6 +964,7 @@ if sum(testMatch) ~= 0 ;
                     
                     
                     links(pixGoodConnect{idxEndOnAttach(iEndon)}) =0;
+                    
                     
                     if ~isempty(savePix)
                         % find those pixel that are in more than one link and save.

@@ -22,9 +22,9 @@ normalsCRotated = zeros(nSamples,2);
 distToSmoothEdge = arrayfun(@(i) sqrt((leadProtrusionPt(1,1)-smoothedEdgeC(i,1))^2 + (leadProtrusionPt(1,2)-smoothedEdgeC(i,2))^2),1:nSamples);
 
 
-hold on 
-scatter(smoothedEdgeC(:,1),smoothedEdgeC(:,2),10,'g','filled'); 
-hold on 
+% hold on 
+% scatter(smoothedEdgeC(:,1),smoothedEdgeC(:,2),10,'g','filled'); 
+% hold on 
 % show the plot 
 % quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g'); 
 % scatter(leadProtrusionPt(:,1),leadProtrusionPt(:,2),'b'); 
@@ -34,7 +34,7 @@ hold on
 leadProtPtSmoothEdge= smoothedEdgeC(distToSmoothEdge == min(distToSmoothEdge),:); 
 %zeros(idxLead,)
 
-scatter(leadProtPtSmoothEdge(:,1),leadProtPtSmoothEdge(:,2),'y'); 
+% scatter(leadProtPtSmoothEdge(:,1),leadProtPtSmoothEdge(:,2),'y'); 
 
 % create a boder mask to make sure that the length of the border = the the
 % length of the smoothEdge coords which we will use for hte normal calcs 
@@ -104,7 +104,7 @@ end
 % mark the pixIdxs to be rotated counter
 
 [~,~,ib2]= intersect(CCs.PixelIdxList{2},smoothedEdgeCIdxPix,'stable'); 
-figure
+% figure
 % make first mask 
 % mask1 = false(size(distMat)); 
 % mask1(CCs.PixelIdxList{1}) = true; 
@@ -120,7 +120,7 @@ figure
 % if 
 % plot before 
 % quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g'); 
-hold on 
+%hold on 
 
 % test CCs dir 
  mask1 = false(dims); 

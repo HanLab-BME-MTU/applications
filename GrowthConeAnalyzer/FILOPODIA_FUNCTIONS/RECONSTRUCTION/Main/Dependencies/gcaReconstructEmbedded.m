@@ -86,6 +86,7 @@ reconstruct.Int.Seed = [];
 reconstruct.Int.Cand =[];
 reconstruct.Int.links = [];
 [ny,nx] = size(img);
+TSFigs = []; 
 %% Clean Embedded Filopodia Candidates
 
 % This just cleans things up a bit have to be careful not to lose too much
@@ -524,9 +525,10 @@ if ~isempty(idxKeepInt) % if no candidates
         % it makes sense not to calculate again.
         [maskPostConnect1,linkMask1,status,TSFigs2]  = gcaConnectEmbeddedRidgeCandidates(embeddedRidgeCand1EPsFinal,seedFilo1EPsFinal,filoExtSeedForInt, ...
             labelMatCandInt1,img,edgeMask,p);
+        if ip.Results.TSOverlays == 1
         % need to get the internal Filoconnect
         TSFigs = [TSFigs TSFigs2];
-        
+        end 
         
         
         reconstruct.Int.links{1} = linkMask1;

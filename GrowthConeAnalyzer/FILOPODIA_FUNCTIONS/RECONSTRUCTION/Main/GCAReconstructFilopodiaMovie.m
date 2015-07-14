@@ -60,8 +60,10 @@ ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
 
+
 % Specific
 % PARAMETERS
+ip.addParameter('TSOverlays',true); 
 
 % Steerable Filter 
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
@@ -217,26 +219,53 @@ for iCh = 1:nChan
         EPLead = veilStem(iFrame).endPointLeadingProt; 
         LPIndices = veilStem(iFrame).neuriteLongPathIndices;
     
-       [filoBranchC,TSFigs] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,params); 
-%         
-%        for iFig = 1:length(TSFigs)
-%            if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
-%                mkdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
-%            end  
-%         end 
-%             type{1} = '.fig'; 
-%             type{2} = '.tif'; 
-%             
-%         if ~isempty(TSFigs)
-%             for iType = 1:numel(type)
-%             arrayfun(@(x) saveas(TSFigs(x).h,...
-%                 [outDir filesep TSFigs(x).group filesep num2str(x,'%02d') TSFigs(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigs));   
-%             end 
-%         end 
+       [filoBranchC,TSFigs,TSFigsRecon] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,params); 
+%% Plot the results. 
+if ip.Results.TSOverlays == 1 
+    display('Saving Trouble Shoot Overlays') 
+       for iFig = 1:length(TSFigs)
+           if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
+               mkdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
+           end  
+        end 
+            type{1} = '.fig'; 
+            type{2} = '.tif'; 
             
-        close all
-        
-        
+        if ~isempty(TSFigs)
+            for iType = 1:numel(type)
+            arrayfun(@(x) saveas(TSFigs(x).h,...
+                [outDir filesep TSFigs(x).group filesep num2str(x,'%02d') TSFigs(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigs));   
+            end 
+        end        
+end 
+
+if ip.Results.TSOverlays == 1
+    for iFig = 1:length(TSFigsRecon)
+        cDir = [outDir filesep TSFigsRecon(iFig).group  filesep 'ReconIter' num2str(TSFigsRecon(iFig).ReconIt,'%02d') ...
+            filesep TSFigsRecon(iFig).name];
+        if ~isdir(cDir);
+            mkdir(cDir);
+        end
+    end
+    type{1} = '.fig';
+    type{2} = '.tif';
+    
+    if ~isempty(TSFigsRecon)
+        for iType = 1:numel(type)
+            arrayfun(@(x) saveas(TSFigsRecon(x).h,...
+                [outDir filesep TSFigsRecon(x).group  filesep 'ReconIter' num2str(TSFigsRecon(x).ReconIt,'%02d') ...
+                filesep TSFigsRecon(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigsRecon));
+        end
+    end
+    
+    %if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(TSFigs(iFig).iter),
+end
+    
+   
+
+close all 
+
+ %%        
         
         
         % quick fix for the plots is to just make the frame number an input for not 20140812
@@ -244,8 +273,11 @@ for iCh = 1:nChan
         filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         filoBranch(iFrame) = filoBranchC;
         p(iFrame) = params; 
-        save( [outDir filesep 'filoBranch.mat'],'filoBranch');
+        save( [outDir filesep 'filoBranch.mat'], 'filoBranch','-v7.3');
+       
+        
         save([outDir filesep 'params.mat'],'p'); 
+        display(['Finished Reconstructing Filopodia for Frame ' num2str(iFrame) ' for ' movieData.outputDirectory_])
     end % iFrame
     
 end   % for iCh

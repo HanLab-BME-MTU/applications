@@ -1,4 +1,4 @@
-function [filoBranch,TSFigsFinal] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin)
+function [filoBranch,TSFigsFinal,TSFigsRecon] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin)
 % GCAReconstructFilopodia: (Step VI of GCA PACKAGE)
 % This function rebuilds and records the filopodia network around a
 % veil/stem mask (in the case of the neurite) or any binary cell mask 
@@ -163,7 +163,7 @@ countFigs = 1;
 dims = size(img); 
 [ny,nx] = size(img);
 normalsC = protrusionC.normal;
-
+TSFigsFinal = []; 
 
 %% these were the pixelated values used to calculate the normals 
  %Get the outline of the object in this mask. We use contourc instead of
@@ -289,12 +289,12 @@ filoBranchC.filterInfo.scaleMap = scaleMap;
 %% OPTIONAL TS PLOT : Show Histogram to see if cut-off reasonable given the distribution
         if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFigs(countFigs).h = figure('visible','on'); 
+          TSFigs(countFigs).h = setAxis('on'); 
           
           TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist'; 
           TSFigs(countFigs).group = 'Cleaning_Small_Ridges' ; 
          
-          setAxis('on')
+      
           hist(valuesFilter,500); 
           hold on 
           line([cutoffTrueResponse cutoffTrueResponse],[0,max(n1)],'color','r','Linewidth',2); 
@@ -339,9 +339,9 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 %% Optional TS Figure : Ridge Signal Cleaning Steps 
  if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
          
-          TSFigs(countFigs).h = figure('visible','off'); 
+          TSFigs(countFigs).h = setFigure(nx,ny,'on'); 
        
-          TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist';
+          TSFigs(countFigs).name =  'Thin_Ridge_NMS_Cleaning';
           TSFigs(countFigs).group = 'Cleaning_Small_Ridges'; 
          
           imshow(-img,[]) ; 
@@ -358,10 +358,10 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
 
 
 %% Run Main Function that performs the reconstructions
-[reconstruct,filoInfo,TSFigs2] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
-
-TSFigsFinal = [TSFigs  TSFigs2]; 
-
+[reconstruct,filoInfo,TSFigs2,TSFigsRecon] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
+if ip.Results.TSOverlays == 1 
+TSFigsFinal = [TSFigs  TSFigs2 ]; 
+end 
 filoBranch.filoInfo = filoInfo; % 
 filoBranch.reconstructInfo = reconstruct;
 
