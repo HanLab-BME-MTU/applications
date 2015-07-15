@@ -125,10 +125,34 @@ for iCh = 1:nChan
 %         analInput(5).paramInput{1} = []; % func doesn't require input    
         
 %% TEST 
+% Key parameters for scan 
+%% Branch Density : 2nd Order 
 analInput(1).filterType = 'Branch2ndOrder_Density';
-analInput(1).paramFunc{1} = 'filoDensityAlongBranch'; 
-analInput(1).paramName{1} = 'filoDensityAlongBranch'; 
-analInput(1).paramInput{1} = []; 
+analInput(1).paramFunc{1} = 'filoDensityAlongBranch';
+analInput(1).paramName{1} = 'filoDensityAlongBranch_2ndOrder';
+analInput(1).paramInput{1} = [];
+
+%% Branch Length : 2nd Order 
+analInput(2).filterType = 'Branch2ndOrder_LengthInt';
+analInput(2).paramFunc{1} = 'filoLength'; 
+analInput(2).paramName{1} = 'filoBranchLength_2ndOrder';
+analInput(2).paramInput{1} = 'Ext_'; 
+
+%% Length Filo Veil : 
+analInput(3).filterType =   'ConnectToVeil_LengthInt';
+analInput(3).paramFunc{1} = 'filoLength'; % % function ID
+analInput(3).paramName{1} = 'filoLengthToVeil'; % paramName-
+analInput(3).paramInput{1} = 'Ext_';
+
+%% Density Filo Veil  
+analInput(4).filterType = 'ConnectToVeil_DensityOrient';
+analInput(4).paramFunc{1} = 'filoDensityAlongVeil';
+analInput(4).paramName{1} = 'filoDensityAlongVeil';
+
+load([movieData.outputDirectory_ filesep 'SegmentationPackage' filesep ...
+    'StepsToReconstruct' filesep 'III_veilStem_reconstruction' filesep 'Channel_1'...
+    filesep 'veilStem.mat']);
+analInput(4).paramInput{1} = veilStem ; 
 
         %% Wrap through for each analysis type
         for iAnalType = 1:length(analInput);
@@ -163,6 +187,7 @@ analInput(1).paramInput{1} = [];
                 % for that parameter
                 paramFuncC = str2func(['GCAAnalysisExtract_' analInput(iAnalType).paramFunc{iParamExtract}]);
                 inputC =  analInput(iAnalType).paramInput{iParamExtract};
+              
                 if ~isempty(inputC)
                     paramC =  paramFuncC(filoBranch,filoFilterSet, inputC);
                 else
