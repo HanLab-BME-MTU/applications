@@ -1029,7 +1029,20 @@ if ~isempty(EFinal)
             filoSeedPix = filoInfo(idxSeedFilo).Ext_pixIndicesBack;
             idxBranchPt = sub2ind(dims,branchPointY,branchPointX);
             distPix =  find(idxBranchPt==filoSeedPix);
-            filoInfo(idxSeedFilo).conXYCoords = [branchPointX, branchPointY, distPix]; % for now save in same part of
+            
+            % fixed 201507
+            if ~isfield(filoInfo,'conXYCoords');
+                filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix];
+            else
+                if isempty(filoInfo(idxSeedFilo).conXYCoords)
+                    filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix];
+                else
+                    filoInfo(idxSeedFilo).conXYCoords(end+1,:) = [branchPointX,branchPointY,distPix];
+                end
+            end
+            
+            
+            % filoInfo(idxSeedFilo).conXYCoords = [branchPointX, branchPointY, distPix]; % for now save in same part of
             %structure the distance from base of attachment
             % get the local orientation of the seed filo (note could also get
             % this from the maxTh info..
@@ -1155,17 +1168,22 @@ if ~isempty(EFinal)
                 % x = gcaProjectAndRecordFiloCoords(verticesEP,edgePathCoord,maxTh,maxRes,img,'numPixSearchForward',10); 
                 x = walkFiloForAndBack([], verticesEP,edgePathCoord,maxTh,maxRes,img,0,10);
                 x.type = filoInfo(idxSeedFilo).type +1; % label type as subsidiary (might want to change this)
-                x.conIdx = idxFiloAttach(iFilo);
-                if ~isfield(filoInfo,'conXYCoords'); 
-                    filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix]; 
-                else 
-                    if isempty(filoInfo(idxSeedFilo).conXYCoords)
-                        filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix]; 
-                    else 
-                        filoInfo(idxSeedFilo).conXYCoords(end+1,:) = [branchPointX,branchPointY,distPix]; 
-                    end 
-                end 
-                 
+%                 x.conIdx = labelCanCon(idxFiloAttach(iFilo)); % fixed 201507
+                % make it such that this is kept empty the connection is
+                % only stored once on the main branch. 
+                x.conIdx = []; 
+                x.conXYCoords = []; 
+
+%                   if ~isfield(filoInfo,'conXYCoords'); 
+%                     filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix]; 
+%                 else 
+%                     if isempty(filoInfo(idxSeedFilo).conXYCoords)
+%                         filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix]; 
+%                     else 
+%                         filoInfo(idxSeedFilo).conXYCoords(end+1,:) = [branchPointX,branchPointY,distPix]; 
+%                     end 
+%                 end 
+                
                 x.cross = 0;
                 orientBranch = acosd(dot( vectSeedFiloLocBranchReg ,vectBranch)/magBranchVect/magSeedVect);
                 x.orientation = orientBranch; % in degrees.
