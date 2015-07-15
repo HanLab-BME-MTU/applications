@@ -23,6 +23,10 @@ function [ extended, extended_raw ] = extendVectorUntilConnected( bw, pts, vecto
 if(size(vector,2) == 1)
     % vector describes the angle theta
     vector = [cos(theta) sin(theta)];
+elseif(isempty(vector))
+    extended = bw;
+    extended_raw = bw;
+    return;
 end
 
 if(size(pts,2) == 2)

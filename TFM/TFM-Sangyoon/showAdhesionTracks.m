@@ -1,10 +1,10 @@
-function [IDs]=showAdhesionTracks(pathForColocalization,idList,varargin)
+function [IDs, iGroups]=showAdhesionTracks(pathForColocalization,idList,varargin)
 % this function reads from Colocalization folder and shows the specified
 % tracks on selected Channel interactively.
 %% input reading
 ip =inputParser;
 ip.addRequired('pathForColocalization',@ischar)
-ip.addOptional('idList','all',@(x)islogical(x)||ischar(x)||isempty(x))
+ip.addOptional('idList','all',@(x)islogical(x)||ischar(x)||isempty(x)||isscalar(x)||isvector(x))
 ip.addParamValue('numChan',2,@isscalar); % selcted track ids
 ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
 ip.parse(pathForColocalization,idList,varargin{:});
@@ -100,11 +100,12 @@ imgWidth = size(imgMap,2);
 imgHeight = size(imgMap,1);
 selectedID = [];
 IDs=[];
+iGroups=[];
 %// IMPORTANT. Update handles structure.
 guidata(hFig,handles);
 waitfor(hFig)
 if isempty(IDs)
-    disp('No track was selected by data cursor. No ID is returend...')
+    disp('No track was selected by data cursor. No ID is returned...')
 else
     disp(['Selected track is ' num2str(IDs) '.'])
 end
@@ -127,9 +128,13 @@ function pushInspectAdhesion(~,~)
     plot(curTrack.startingFrame:curTrack.endingFrame,curTrack.ampTotal(curTrack.startingFrame:curTrack.endingFrame),'k')
     set(h,'Position',[500,300,400,200]),title(['ID:' num2str(IDtoInspect)])
     disp('Use data cursor to find out which frame you want to set as starting frame and ending frame')
-    chosenStartFrame = input('Chosen starting frame number : ');
-    chosenEndFrame = input('Chosen ending frame number : ');
-    chosenFRange = chosenStartFrame:chosenEndFrame;
+    chosenStartFrame = curStartFrame;
+    chosenEndFrame = curEndFrame;
+%     chosenStartFrame = input('Chosen starting frame number : ');
+%     chosenEndFrame = input('Chosen ending frame number : ');
+%     chosenFRange = chosenStartFrame:chosenEndFrame;
+    input('Check starting and ending frame and press enter ...');
+    chosenFRange = curFrameRange;
     [~,peakFrame] = max(curTrack.ampTotal(chosenFRange));
     peakFrame = chosenFRange(peakFrame);
     close(h)
@@ -265,6 +270,7 @@ function pushInspectAdhesion(~,~)
     numCols = ceil(length(1:montInterval:numChosenFrames)/2);
     monImgW = floor(hm1.XData(2)/numCols);
     p=0;
+    hold on
     for ii= 1:montInterval:numChosenFrames
         p=p+1;
         iCol=mod(p-1,numCols);
@@ -273,6 +279,13 @@ function pushInspectAdhesion(~,~)
         set(txtMont1,'Fontsize',6)
         set(txtMont1,'horizontalAlignment','right')
         set(txtMont1,'position',[(iCol+1)*monImgW-0.5, (q+1)*monImgH-1.5])
+        % Showing tracks
+        sF = chosenStartFrame;
+        eF = chosenStartFrame+ii-1;
+        plot(curTrack.xCoord(sF:eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(sF:eF)-bBottom+q*monImgH+1,'r', 'LineWidth', 0.5)
+        plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,'ro','MarkerSize',7, 'LineWidth', 0.5)
+%         plot(curTrack.xCoord(chosenStartFrame:(chosenStartFrame+ii-1))-bLeft+(iCol)*monImgW+1,curTrack.yCoord(chosenStartFrame:(chosenStartFrame+ii-1))-bBottom+q*monImgH+1,'r', 'LineWidth', 0.5)
+%         plot(curTrack.xCoord(chosenStartFrame+ii-1)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(chosenStartFrame+ii-1)-bBottom+q*monImgH+1,'ro','MarkerSize',8, 'LineWidth', 0.5)
     end
     
     ax7=subplot('Position',[marginX, 200/figHeight, 540/figWidth-marginX,50/figHeight]);
@@ -280,6 +293,7 @@ function pushInspectAdhesion(~,~)
     tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
     montage(cropTmap,'DisplayRange',[tCropMin, tCropMax],'Size',[2, NaN], 'Indices', 1:montInterval:numChosenFrames)
     p=0;
+    hold on
     for ii= 1:montInterval:numChosenFrames
         p=p+1;
         iCol=mod(p-1,numCols);
@@ -288,6 +302,11 @@ function pushInspectAdhesion(~,~)
         set(txtMont2,'Fontsize',6)
         set(txtMont2,'horizontalAlignment','right')
         set(txtMont2,'position',[(iCol+1)*monImgW-0.5, (q+1)*monImgH-1.5])
+        % Showing tracks
+        sF = chosenStartFrame;
+        eF = chosenStartFrame+ii-1;
+        plot(curTrack.xCoord(sF:eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(sF:eF)-bBottom+q*monImgH+1,'w', 'LineWidth', 0.5)
+        plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,'wo','MarkerSize',7, 'LineWidth', 0.5)
     end
     colormap(ax4,'jet')
     colormap(ax5,'jet')
@@ -323,33 +342,71 @@ function pushInspectAdhesion(~,~)
     colormap(ax10,'jet')
     colormap(ax11,'jet')
     % saving
-    iGroup = input('Which group does this adhesion belong to (1: turn-over 2: maturing 3: edge-transient)? ');
-    if iGroup==1
+    iCurGroup = input(['Which group does this adhesion belong to :  \ngroup 1 (forming and disassembling as edge protrude),\ngroup 2 (maturing adhesions),', ...
+        '\ngroup 3 (moving along with protruding edge), \ngroup 4 (adhesions at the retracting edges),' ...
+        '\ngroup 5 (strong stable adhesion at the edge)','\ngroup 6 (noisy and transient) and ...','\ngroup 7 (adhesions experiencing stalling edge)',...
+        '\ngroup 8 (strong stable adhesion inside edge) \ngroup 9 (weak adhesion inside edge)?']);
+    if iCurGroup==1
         gPath = [outputPath filesep 'group1'];
         if ~exist(gPath,'dir')
             mkdir(gPath)
         end
-    elseif iGroup==2
+    elseif iCurGroup==2
         gPath = [outputPath filesep 'group2'];
         if ~exist(gPath,'dir')
             mkdir(gPath)
         end
-    elseif iGroup==3
+    elseif iCurGroup==3
         gPath = [outputPath filesep 'group3'];
         if ~exist(gPath,'dir')
             mkdir(gPath)
         end
-    else
-        disp('Unidentified group. Assining to group 4 ...')
+    elseif iCurGroup==4
         gPath = [outputPath filesep 'group4'];
         if ~exist(gPath,'dir')
             mkdir(gPath)
         end
+    elseif iCurGroup==5
+        gPath = [outputPath filesep 'group5'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
+    elseif iCurGroup==6
+        gPath = [outputPath filesep 'group6'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
+    elseif iCurGroup==7
+        gPath = [outputPath filesep 'group7'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
+    elseif iCurGroup==8
+        gPath = [outputPath filesep 'group8'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
+    elseif iCurGroup==9
+        gPath = [outputPath filesep 'group9'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
+    else
+        disp('Unidentified group. Assining to group 10 ...')
+        iCurGroup=10;
+        gPath = [outputPath filesep 'group10'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
     end
+    iGroups=[iGroups iCurGroup];
+
+    tracksNA(IDtoInspect) = curTrack;
     print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
     savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
-    save([outputPath filesep 'selectedIDs.mat'], 'IDs')
+    save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
     setappdata(hFig,'IDs',IDs);
+    setappdata(hFig,'iGroups',iGroups);
     close(h2)
     axes(handles.axes1)
 end
@@ -365,7 +422,12 @@ function txt=myupdateDC(~,event_obj)
     
     setappdata(hFig,'selPointID',selectedID); 
     try
-        txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))],['Advance: ' num2str(tracksNA(selectedID).advanceDist)]};
+        txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))],['Advance: ' num2str(tracksNA(selectedID).advanceDist(tracksNA(selectedID).endingFrameExtra))],...
+            ['edgeAdvanceDist: ' num2str(tracksNA(selectedID).edgeAdvanceDist(tracksNA(selectedID).endingFrameExtra))],['MSDrate: ' num2str(tracksNA(selectedID).MSDrate)],...
+            ['distToEdge: ' num2str(tracksNA(selectedID).distToEdge(CurrentFrame))], ['distToEdgeChange: ' num2str(tracksNA(selectedID).distToEdgeChange)]...
+            , ['meanIntensity: ' num2str(nanmean(tracksNA(selectedID).amp))] , ['decayingIntensity: ' num2str(nanmax(tracksNA(selectedID).ampTotal)-tracksNA(selectedID).ampTotal(tracksNA(selectedID).endingFrameExtra))],...
+            ['lifeTime: ' num2str(tracksNA(selectedID).lifeTime)],['edgeAdvanceDistLastChange: ' num2str(tracksNA(selectedID).advanceDistChange2min(tracksNA(selectedID).endingFrameExtra))],...
+            ['maxEdgeAdvanceDistChange: ' num2str(tracksNA(selectedID).maxEdgeAdvanceDistChange)]};
     catch
         txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))]};
     end

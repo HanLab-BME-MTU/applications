@@ -1,8 +1,8 @@
-function [ filoInfo ] = GCAAddFilopodiaActinContentMetric(img,veilMask,filoInfo)
+function [ filoInfo, avgVeilIntensity ] = GCAAddFilopodiaActinContentMetric(img,veilMask,filoInfo)
 %
 %% Calculate the veil intensity without internal filopodia as a normalization factor
 % for the actin content intensity.
-
+[ny,nx] =size(img); 
 % filter the image based on the psf of the microscope.
 H = fspecial('gaussian',3,0.43); % make variable
 imgFilt = imfilter(img,H); % for weighted averaging
@@ -23,12 +23,20 @@ for i = 1:length(filoInfo)
 end
 maskIntFilo = zeros(size(veilMask));
 maskIntFilo(vertcat(pixIndicesInt{:})) = 1;
-
+maskIntFilo = imdilate(maskIntFilo,(strel('disk',2))); 
 veilMaskMinusFilo = (veilMask-maskIntFilo);
 veilIntensityValues = imgFilt(logical(veilMaskMinusFilo));
 avgVeilIntensity = mean(veilIntensityValues(:)); % normalization factor 
-
-
+%%
+sanityCheck = 0; 
+if sanityCheck == 1 
+    setFigure(nx,ny,'on'); 
+    imshow(imgFilt,[]); 
+    hold on 
+    spy(~veilMaskMinusFilo,'b'); 
+    text(5,5,['Mean Fluorescence Veil/Stem ' num2str(avgVeilIntensity,4) 'AU'],'color','y'); 
+end 
+    
 
 % run through all the filopodia collect the intensity to the
 % endpoint- calc an normInt Ext, normInt Int, normInt Total.
@@ -64,8 +72,6 @@ for iFilo = 1:length(filoInfo)
     filoInfo(iFilo).Tot_IntensityNormToVeil = avgFiloIntensityTot/avgVeilIntensity; 
     
 end
-
-
 
 
 

@@ -1,4 +1,4 @@
-function [reconstruct,filoInfo,TSFigs] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,varargin)
+function [reconstruct,filoInfo,TSFigs] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,varargin)
 % gcaAttachFilopodiaStructures: 
 % 
 % 
@@ -17,7 +17,7 @@ function [reconstruct,filoInfo,TSFigs] = gcaAttachFilopodiaStructuresMain(img,cl
 %      of veil/stem reconstruction where R is the height (ny) and C is the width
 %     (nx) of the  original input image
 %
-% protrusionC: (OPTIONAL)
+% protrusionC: (REQUIRED)
 %     protrusionC: (OPTIONAL) : structure with fields:
 %    .normals: a rx2 double of array of unit normal                               
 %              vectors along edge: where r is the number of 
@@ -89,7 +89,7 @@ ip.addRequired('img');
 ip.addRequired('cleanedRidgesAll',@islogical);
 ip.addRequired('veilStemMaskC',@islogical); 
 ip.addRequired('filoBranchC',@isstruct);
-ip.addOptional('protrusionC',[]);
+ip.addRequired('protrusionC');
 
 
 
@@ -120,7 +120,7 @@ ip.addParameter('detectEmbedded',true);
     ip.addParameter('TSOverlays',false); 
     
 
-ip.parse(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,varargin{:});
+ip.parse(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,varargin{:});
 p = ip.Results; 
 p = rmfield(p,{'img','veilStemMaskC','protrusionC','filoBranchC'}); 
 %% Initiate 
@@ -130,17 +130,18 @@ maxRes = filoBranchC.filterInfo.maxRes ;
 [ny,nx] = size(img); 
 
 % load protrusionVectors from the body
-if  ~isempty(ip.Results.protrusionC)
-    protrusionC = ip.Results.protrusionC{1};
-    % load([protrusion filesep 'protrusion_vectors.mat']);
-    normalC = protrusionC.normals; % need to load the normal input from the smoothed edges in order  to calculation the filopodia body orientation
-    smoothedEdgeC = protrusionC.smoothedEdge;
-else
-    normalC = []; 
-    smoothedEdgeC= []; 
-    display(['No Protrusion Vectors Found: No Orientation Calculations of Filopodia Relative to' ...
-        'Veil will be Performed']);
-end
+% if  ~isempty(ip.Results.protrusionC)
+%     protrusionC = ip.Results.protrusionC{1};
+%     % load([protrusion filesep 'protrusion_vectors.mat']);
+     normalC = protrusionC.normalsRotated; % need to load the normal input from the smoothed edges in order  to calculation the filopodia body orientation
+     
+     smoothedEdgeC = protrusionC.smoothedEdge;
+% else
+%     normalC = []; 
+%     smoothedEdgeC= []; 
+%     display(['No Protrusion Vectors Found: No Orientation Calculations of Filopodia Relative to' ...
+%         'Veil will be Performed']);
+% end
 %% Extract Information 
 % MASK OF EXTERNAL FILOPODIA RIDGE CANDIDATES
 filoTips = cleanedRidgesAll.*~veilStemMaskC;
@@ -241,9 +242,9 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     xyCoordsNeurite = [yx(:,2),yx(:,1)];
     
     xySeed = [xyCoordsSeedFilo;xyCoordsNeurite];
-    % label the neuriteEdge with 1 and 2
-    % create own label mat to ensure your labels are what you think they
-    % are!
+    % label the neuriteEdge with 1 
+    % create a labelMat to ensure your labels are what you think they
+    % are
     for iFilo = 1:numel(filoInfo)
         if ~isnan(filoInfo(iFilo).Ext_pixIndicesBack)
             labelMatSeedFilo(filoInfo(iFilo).Ext_pixIndicesBack) = iFilo+1; %the veilStem will be labeled 1 
@@ -437,7 +438,10 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
  %% Perform the connections.    
  %% FIX 20150604 - labelMatCanFilo no longer appropriate here : need to change to cell input of pixIdxPostConnect
    % [outputMasks,filoInfo,status] = gcaConnectFiloBranch(xySeed,EPCandidateSort,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
-[outputMasks,filoInfo,status] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
+
+   
+   
+   [outputMasks,filoInfo,status] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p); 
    
    %%
    

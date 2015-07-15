@@ -1,5 +1,5 @@
 
-function [coords,vect] = getEndpoints(pixIdx,size,checkSingletons,getVector,endPointType)
+function [coords] = getEndpoints(pixIdx,size,checkSingletons,getVector,endPointType)
 % checkSingletons input added for maintaining functionality with
 % skel2Graph4OutGrowthMetric - here need to just get coordinates of
 %

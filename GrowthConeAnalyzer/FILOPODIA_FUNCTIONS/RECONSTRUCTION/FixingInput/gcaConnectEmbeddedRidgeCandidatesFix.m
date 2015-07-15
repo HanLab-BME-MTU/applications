@@ -1,3 +1,4 @@
+
 function [maskPostConnect,linkMask,status,TSFigs] = gcaConnectEmbeddedRidgeCandidates(internalCandEPs,internalSeedEPs,seedMask,labelMatRidgeCandEmbed,varargin)
 %% gcaConnectEmbeddedRidgeCandidates
 
@@ -343,7 +344,7 @@ if ~isempty(E) % continue
         
         costTotal = costTotal(idxGood)';
         E = E(idxGood',:);
-        idxCMap = idxCMap(idxGood',:);
+       
         %% TSOverlays: Histogram of Costs
         if ip.Results.TSOverlays == true
             TSFigs(countFigs).h = setAxis('off');
@@ -376,7 +377,7 @@ if ~isempty(E) % continue
         %% TSOverlays : Plot Linear Connections Color-Coded by Cost
         if ip.Results.TSOverlays == true;
             
-            
+             idxCMap = idxCMap(idxGood',:);
             
             TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
             TSFigs(countFigs).name = 'KD Results AFter Filter By Geometry';

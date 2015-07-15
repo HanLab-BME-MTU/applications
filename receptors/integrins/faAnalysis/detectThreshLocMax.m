@@ -1,6 +1,6 @@
-function [maskComb,imageMinusBackground,detectedFeatures,h,pixelPos] = detectThreshLocMax(image,...
+function [detectedFeatures,pixelPos,maskBlobs] = detectThreshLocMax(image,...
     thresholdMethod,methodValue,filterNoise,filterBackground,minSize,...
-    alphaLocMax,plotRes,mask, bgImageDir,alphaLocMaxAbs)
+    alphaLocMax,plotRes,mask,maxSize,maskThresh)
 %detectThreshLocMax combines blob segmentation with local maxima detection
 %
 %SYNOPSIS maskComb = detectThreshLocMax(image,thresholdMethod,methodValue,...
@@ -40,8 +40,7 @@ function [maskComb,imageMinusBackground,detectedFeatures,h,pixelPos] = detectThr
 
 %% Output
 maskComb = [];
-imageMinusBackground = [];
-h= [];
+
 
 %% Input
 
@@ -114,6 +113,7 @@ end
 
 %remove background from image
 imageMinusBackground = image - imageBackground;
+ 
 
 %remove noise by filtering image-background with a narrow Gaussian
 if filterNoise > 0
@@ -123,7 +123,8 @@ else
 end
 
 %estimate noise per pixel
-imageMinusBackgroundNoise = imageMinusBackground - imageMinusBackgroundFiltered;
+% imageMinusBackgroundFiltered = imageMinusBackground - imageMinusBackgroundFiltered;
+
 
 %crop image
 imageMinusBackgroundFiltered = imageMinusBackgroundFiltered .* mask;
@@ -203,15 +204,23 @@ idx = find([stats.Area] > minSize);
 
 %output final blob mask from thresholding
 maskBlobs = ismember(labels, idx);
-
+testMask = regionprops(maskBlobs,'Area');
+if find(vertcat(testMask.Area)>maxSize)
+    if isempty(maskThresh)
+        disp('First image failed to mask properly, check filtering size or method')
+        return
+    else
+    maskBlobs = maskThresh;
+    end
+end
 %Select centroids instead of local maxima for position 
 %stats = regionprops(maskBlobs, 'Centroid');
 
 %% Local maxima
 
 % %estimate local background and noise statistics
-% [bgMean,bgStd] = ...
-%     spatialMovAveBG(imageFilteredMinusBackground,imageSizeX,imageSizeY);
+% % [bgMean,bgStd] = ...
+% %     spatialMovAveBG(imageMinusBackgroundFiltered,imageSizeX,imageSizeY);
 
 % %estimate background/noise statistics %% This was added BACK, TONY
 bgIntDistr = imageMinusBackgroundFiltered(~maskBlobs);
@@ -219,42 +228,47 @@ bgIntDistr = imageMinusBackgroundFiltered(~maskBlobs);
 bgStd = max(bgStd,eps);
 
 %estimate background/noise statistics
-% % bgMean = 0;
-% % [~,bgStd] = robustMean(imageMinusBackgroundNoise(~maskBlobs));
+% bgMean = 0;
+% [~,bgStd] = robustMean(imageMinusBackgroundFiltered(~maskBlobs));
 
 %call locmax2d to get local maxima in filtered image
 fImg = locmax2d(imageMinusBackgroundFiltered,[3 3],1);
 
+
+
 %get positions and amplitudes of local maxima
 localMax1DIndx = find(fImg);
 [localMaxPosX,localMaxPosY,localMaxAmp] = find(fImg);
+testMaxAmp = image(localMax1DIndx);
 
 % %get background values corresponding to local maxima%% This was added BACK, TONY
-% bgMeanMax = bgMean(localMax1DIndx);
-% bgStdMax = bgStd(localMax1DIndx);
+% % bgMeanMax = bgMean(localMax1DIndx);
+% % bgStdMax = bgStd(localMax1DIndx);
 
 %calculate the p-value corresponding to the local maxima's amplitudes
 %assume that background intensity is normally
 %distributed with mean bgMeanMax and standard deviation bgStdMax
-% pValue = 1 - normcdf(localMaxAmp,bgMeanMax,bgStdMax);
 pValue = 1 - normcdf(localMaxAmp,bgMean,bgStd);
+
 
 %calculate the threshold to distinguish significant local maxima
 [~,threshLocMax] = cutFirstHistMode(localMaxAmp,0);
 %------------------------------------------------------------------------
 % Keep indices either normally or using bgImageDir 
-if bgImageDir
-    bgImg = double(imread(bgImageDir));
-% %     bgMeanAbs = mean(bgImg(:));
-% %     bgStdAbs = std(bgImg(:));
-    [bgMeanAbs,bgStdAbs] = robustMean(bgImg(:));
-    bgStdAbs = max(bgStdAbs,eps);
-    pValueAbs = 1 - normcdf(localMaxAmp,bgMeanAbs,bgStdAbs);
-    indxKeep = pValue < alphaLocMax & pValueAbs < alphaLocMaxAbs;
-else
+% % if bgImageDir
+% %     bgImg = double(imread(bgImageDir));
+% % % %     nzInd = find(bgImg);
+% % % %     bgImgNorm = zeros(size(bgImg));
+% % % %     bgImgNorm(nzInd) = (bgImg(nzInd) - minSignal) / (maxSignal - minSignal);
+% % 
+% % % %     [bgMeanAbs,bgStdAbs] = robustMean(bgImg(:));
+% % % %     bgStdAbs = max(bgStdAbs,eps);
+% %     pValueAbs = 1 - normcdf(testMaxAmp,bgMeanAbs,bgStdAbs);
+% %     indxKeep = pValue < alphaLocMax & pValueAbs < alphaLocMaxAbs;
+% % else
 %retain only those maxima with significant amplitude
 indxKeep = pValue < alphaLocMax;
-end
+% % end
 %------------------------------------------------------------------------
 % % indxKeep = localMaxAmp > threshLocMax;
 localMax1DIndx = localMax1DIndx(indxKeep);
@@ -265,7 +279,7 @@ localMaxPosY = localMaxPosY(indxKeep);
 %make a mask image from the local maxima
 maskLocMax = zeros(imageSizeX,imageSizeY);
 maskLocMax(localMax1DIndx) = 1;
-SE = strel('square',3);
+SE = strel('disk',4);
 maskLocMax = imdilate(maskLocMax,SE);
 
 %% Final mask
@@ -318,7 +332,8 @@ for k =1:nLabels
     
 end
 
-spreadThreshold = mean(vertcat(s.Spread));%-std(vertcat(s.Spread));
+spreadThreshold = mean(vertcat(s.Spread))-std(vertcat(s.Spread));
+
 listVar =vertcat(s.StandardDev);
 indxVar = find(listVar);        
 testArray(:,2) = localMaxPosX;
@@ -415,7 +430,7 @@ fixedTestArray = [testArray];%round(newPos)];%round(newPosB)]; %Add centroid loc
 fixedTestArray( ~any(fixedTestArray,2), : ) = [];
 %Implement Watershed segmentation to correct/center positions
 imageQ = imcomplement(image);
-markers = zeros(512,512);
+markers = zeros(size(image,1),size(image,1));
 for q = 1: length(fixedTestArray)
     markers(fixedTestArray(q,2),fixedTestArray(q,1)) = 1;
 end
@@ -423,15 +438,25 @@ markers = logical(markers);
 % maskComb = bwdist(maskComb)<=1;
 wsInput = imimposemin(imageQ, ~maskComb | markers);
 wsOutput = watershed(wsInput);
-postWS = regionprops(wsOutput, image, {'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
-postWS(1) = [];
-% % test = vertcat(postWS.Eccentricity);
-% % discard = find(test>0.6);
-% % postWS(discard) = [];
+% % postWS = regionprops(wsOutput, image, {'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+% % postWS(1) = [];
+wsOutputNoBg = wsOutput;
+wsOutputNoBg(wsOutput == 1) = 0;
+cc = connectedComponents.label2conncomp(wsOutputNoBg);
+cc.PixelIdxList = cc.PixelIdxList(2:end);
+cc.NumObjects = cc.NumObjects-1;
+cc_dilated = connectedComponents.ccDilate(cc,strel('disk',1));
+rp = regionprops(cc_dilated,image,{'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+test = vertcat(rp.Area);
+minCluster = find(test < minSize);
+rp(minCluster) = [];
+maxCluster = find(test > maxSize);
+rp(maxCluster) = [];
 
 clear fixedTestArray
-fixedTestArray = round(vertcat(postWS.Centroid));
-objectAmp = round(vertcat(postWS.MeanIntensity));
+dispCentroid = round(vertcat(rp.Centroid));
+fixedTestArray = (vertcat(rp.Centroid));
+objectAmp = (vertcat(rp.MeanIntensity));
 localMaxPosZ = zeros(length(fixedTestArray),1); %Find better way to ignore axis
 varPosX = 0.5*ones(length(fixedTestArray),1);
 varPosY = 0.5*ones(length(fixedTestArray),1);
@@ -464,21 +489,21 @@ if plotRes
 %     plot(localMaxPosY,localMaxPosX,'go')
     
     %figure 2: final mask
-% % %     h = figure;
-% % %     imshow(image,[prctile(image(:),1) prctile(image(:),99)]);
-% % %     hold on
-%     maskBounds = bwboundaries(wsOutput);
-%     cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',1)),maskBounds);
-    %scatter(localMaxPosY, localMaxPosX);
-% % %     scatter(fixedTestArray(:,1), fixedTestArray(:,2));
+% %     h = figure;
+% %     imshow(image,[prctile(image(:),1) prctile(image(:),99)]);
+% %     hold on
+% %     maskBounds = bwboundaries(labelmatrix(cc_dilated) > 0);
+% %     cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',1)),maskBounds);
+% %     scatter(dispCentroid(:,1), dispCentroid(:,2));
     %Record x, y positions
     %positions = regionprops(maskComb,'Centroid');
+end
     detectedFeatures.xCoord = [fixedTestArray(:,1) varPosX];
     detectedFeatures.yCoord = [fixedTestArray(:,2) varPosY];%Understand this!
     detectedFeatures.zCoord = [localMaxPosZ localMaxPosZ];
-    detectedFeatures.amp = [objectAmp varAmp];
-    pixelPos(:,1) = {postWS.PixelIdxList};
-    detectedFeatures.size = [vertcat(postWS.Area) varAmp];
+    detectedFeatures.amp = [objectAmp vertcat(rp.Area)];
+    pixelPos(:,1) = {rp.PixelIdxList};
+    detectedFeatures.size = [vertcat(rp.Area) varAmp];
     
     %[positions(:).Centroid(2)];
     

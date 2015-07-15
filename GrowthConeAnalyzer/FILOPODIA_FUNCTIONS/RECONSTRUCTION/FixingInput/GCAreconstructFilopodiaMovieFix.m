@@ -148,9 +148,17 @@ for iCh = 1:nChan
         display(['Manual End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
     %% Load veilStem from veil/stem folder
-    load( [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep ...
-        'StepsToReconstruct' filesep 'III_veilStem_reconstruction' ...
-        filesep 'Channel_' num2str(channels(iCh)) filesep 'veilStem.mat']);
+    
+    load([movieData.outputDirectory_ filesep 'SegmentationPackage' ...
+        filesep 'StepsToReconstruct' filesep ...
+        'IV_veilStem_length' filesep 'Channel_' num2str(channels(iCh)) filesep 'veilStem.mat']);
+    
+   % load( [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep ...
+    %    'StepsToReconstruct' filesep 'III_veilStem_reconstruction' ...
+     %   filesep 'Channel_' num2str(channels(iCh)) filesep 'veilStem.mat']);
+    
+    
+     
     
     %%
     % get the list of image filenames
@@ -170,7 +178,7 @@ for iCh = 1:nChan
     if ~isempty(idxProt)
         % load the three protrusion process associated cell structures,
         % 'normals','protrusion','smoothedEdge'
-        load(MD.processes_{idxProt(end)}.outFilePaths_);
+        load(movieData.processes_{idxProt(end)}.outFilePaths_);
         % If for some reason there is more than one protrusion process
         % associated with the data, tell the user that your are using the
         % most recently run
@@ -193,17 +201,22 @@ for iCh = 1:nChan
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;
         
-        if ~isempty(normals)
-            protrusionC.normal = normals{iFrame};
-            protrusionC.smoothedEdge = smoothedEdge{iFrame};
-            x{1} = protrusionC; % make a cell for parsing input. 
-            [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,x,p);
-        else
-            [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,p);
-        end
+%         if ~isempty(normals)
+%             protrusionC.normal = normals{iFrame};
+%             protrusionC.smoothedEdge = smoothedEdge{iFrame};
+%             x{1} = protrusionC; % make a cell for parsing input. 
+%             [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,x,p);
+%         else
+%             [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,p);
+%         end
+%         
         
-        
-        
+        protrusionC.normal = normals{iFrame}; 
+        protrusionC.smoothedEdge = smoothedEdge{iFrame}; 
+        EPLead = veilStem(iFrame).endPointLeadingProt; 
+        LPIndices = veilStem(iFrame).neuriteLongPathIndices;
+    
+        GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,protrusionC,EPLead,LPIndices,p); 
         
         
         

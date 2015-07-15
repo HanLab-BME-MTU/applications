@@ -194,15 +194,30 @@ if indexFlattenProcess == 0 && ImageFlattenFlag==2
     return;
 end
 
-indexCellSegProcess = 0;
+
+indexCellSegSegProcess = 0;
 for i = 1 : nProcesses
-    if(strcmp(movieData.processes_{i}.getName,'Mask Refinement')==1)
-        indexCellSegProcess = i;
+    if(strcmp(movieData.processes_{i}.getName,'Thresholding')==1)
+        indexCellSegSegProcess = i;
         break;
     end
 end
 
-if indexCellSegProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4 || Cell_Mask_ind(1) == 6)
+if indexCellSegSegProcess == 0
+         disp('Please run segmentation and refinement first.');  
+    %     return;
+end
+
+
+indexCellRefinementProcess = 0;
+for i =  nProcesses:(-1):1
+    if(strcmp(movieData.processes_{i}.getName,'Mask Refinement')==1)
+        indexCellRefinementProcess = i;
+        break;
+    end
+end
+
+if indexCellRefinementProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4 || Cell_Mask_ind(1) == 6)
     msgbox('Please run segmentation and refinement first.')
     return;
 end
@@ -436,8 +451,13 @@ for iChannel = selected_channels
         
         MaskCell = ones(size(currentImg));
         
+        Seg_Mask = zeros( size(currentImg));
+        try
+            Seg_Mask = movieData.processes_{indexCellSegSegProcess}.loadChannelOutput(iChannel,iFrame);
+        end
+        
         if Cell_Mask_ind == 1 % using cell segmentation from same channel
-            MaskCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(iChannel,iFrame);
+            MaskCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(iChannel,iFrame);
         else
             if Cell_Mask_ind == 2 % Using input static ROI tiff
                 MaskCell = user_input_mask>0;
@@ -451,15 +471,15 @@ for iChannel = selected_channels
                         
                     else
                         if Cell_Mask_ind == 4 % Combine from both channel directly
-                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            MaskVIFCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(1,iFrame);
                             MaskCell = MaskVIFCell | MaskMTCell;
                             
                         else
                             % Combine from both channel
                             % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
-                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            MaskVIFCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(1,iFrame);
                             
                             H_close_cell = fspecial('disk',5);
                             H_close_cell = H_close_cell>0;
@@ -524,6 +544,9 @@ for iChannel = selected_channels
                 
             case 'st_only'
                 %                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound,0,Whole_movie_stat_cell{iChannel}.otsu_ST);
+                cell_mask_dilate = imdilate(MaskCell,ones(3,3));
+                MAX_st_res(Seg_Mask>0 & cell_mask_dilate==0)=nan;
+                
                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound,'showPlots',0);
                 current_seg = SteerabelRes_Segment;
                 Intensity_Segment = current_seg;
@@ -861,6 +884,8 @@ for iChannel = selected_channels
             orienation_map_filtered(sub2ind(size(currentImg), VIF_YY,VIF_XX))=OO_flip;
         end
         
+        currentImg = double(currentImg);
+        currentImg = (currentImg-min(min(currentImg)))/(max(max(currentImg))-min(min(currentImg)))*255;
         currentImg = uint8(currentImg/1);
         Hue = (-orienation_map_filtered(:)+pi/2)/(pi)-0.2;
         Hue(find(Hue>=1)) = Hue(find(Hue>=1)) -1;
@@ -894,6 +919,8 @@ for iChannel = selected_channels
             end
         end
         
+        RGB_seg_orient_heat_map_white = RGB_seg_orient_heat_map;
+        
         enhanced_im_r = 255-currentImg;
         enhanced_im_g = 255-currentImg;
         enhanced_im_b = 255-currentImg;
@@ -902,14 +929,14 @@ for iChannel = selected_channels
         enhanced_im_g(find(current_seg>0))=255*G_seg_orient_heat_map(find(current_seg>0));
         enhanced_im_b(find(current_seg>0))=255*B_seg_orient_heat_map(find(current_seg>0));
         
-        RGB_seg_orient_heat_map(:,:,1 ) = enhanced_im_r;
-        RGB_seg_orient_heat_map(:,:,2 ) = enhanced_im_g;
-        RGB_seg_orient_heat_map(:,:,3 ) = enhanced_im_b;
+        RGB_seg_orient_heat_map_white(:,:,1 ) = enhanced_im_r;
+        RGB_seg_orient_heat_map_white(:,:,2 ) = enhanced_im_g;
+        RGB_seg_orient_heat_map_white(:,:,3 ) = enhanced_im_b;
         
         if(SaveFigures_movie==1)
             for sub_i = 1 : Sub_Sample_Num
                 if iFrame + sub_i-1 <= nFrame
-                    imwrite(RGB_seg_orient_heat_map, ...
+                    imwrite(RGB_seg_orient_heat_map_white, ...
                         [HeatEnhOutputDir,filesep,'white_segment_heat_',...
                         filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 end
