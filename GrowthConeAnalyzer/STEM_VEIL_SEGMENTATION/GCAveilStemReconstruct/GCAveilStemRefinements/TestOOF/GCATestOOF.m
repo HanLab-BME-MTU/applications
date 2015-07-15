@@ -32,7 +32,7 @@ if ~isdir(outputDir)
     mkdir(outputDir) 
 end 
 
-[NMSSteerFilt, img ]= GCAGetSteerableFilterScaleOverlaysMovie(MD,'OutputDirectory',outputDir,'frame',75); 
+[NMSSteerFilt, img ]= GCAGetSteerableFilterScaleOverlaysMovie(MD,'OutputDirectory',outputDir,'frame',frame); 
 
 % load the currrent img 
 
@@ -52,7 +52,31 @@ for iScale = 1:length(1:10)
     scatter(cx,cy,10,cmap(iScale,:),'filled');
 end
 
-
+% setFigure(nx,ny,'on');
+% % get the values of the response in the NMS
+%  values = res(NMSSteerFilt~=0);
+%  NMSApproxOOF = res.*NMSSteerFilt; 
+% 
+%  cutoff = prctile(values,95); 
+%  imshow(res.*NMSSteerFilt,[cutoff,max(values(:))]);
+%  
+%  setAxis('on')
+% 
+% [count  ] = hist(values,100);
+%     hist(values,100);
+%     hold on
+%     line([cutoff cutoff],[0 max(count)],'color','r','Linewidth',2);
+%     xlabel('Ridge Response NMS');
+%     ylabel('Count');
+%     title(['Red Line = The 75th percentile']);
+%     set(gcf,'Color',[1,1,1]);
+% 
+% 
+%  ridgeCand = (NMSApproxOOF>cutoff) & scaleMap>3;
+%  setFigure(nx,ny,'on'); 
+%  imshow(res.*ridgeCand);  
+%   [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(values); 
+% cutoffTrueResponse = respNMSMean+3*respNMSSTD;
 saveas(gcf,[OOFFigDir filesep num2str(frame,'%03d') '.png']); 
 saveas(gcf,[OOFFigDir filesep num2str(frame,'%03d'),'.fig']); 
 end 
