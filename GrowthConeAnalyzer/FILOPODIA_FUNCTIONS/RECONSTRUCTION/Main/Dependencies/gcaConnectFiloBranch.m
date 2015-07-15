@@ -1156,9 +1156,16 @@ if ~isempty(EFinal)
                 x = walkFiloForAndBack([], verticesEP,edgePathCoord,maxTh,maxRes,img,0,10);
                 x.type = filoInfo(idxSeedFilo).type +1; % label type as subsidiary (might want to change this)
                 x.conIdx = idxFiloAttach(iFilo);
-                x.conXYCoords =  [branchPointX branchPointY distPix];
-                
-                
+                if ~isfield(filoInfo,'conXYCoords'); 
+                    filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix]; 
+                else 
+                    if isempty(filoInfo(idxSeedFilo).conXYCoords)
+                        filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix]; 
+                    else 
+                        filoInfo(idxSeedFilo).conXYCoords(end+1,:) = [branchPointX,branchPointY,distPix]; 
+                    end 
+                end 
+                 
                 x.cross = 0;
                 orientBranch = acosd(dot( vectSeedFiloLocBranchReg ,vectBranch)/magBranchVect/magSeedVect);
                 x.orientation = orientBranch; % in degrees.
