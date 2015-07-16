@@ -14,14 +14,17 @@ ip.addParamValue('prop',{}, @iscell);
 ip.parse( varargin{:});
 p=ip.Results;
 
+if(~exist(fileparts(filename))) mkdir(fileparts(filename)); end;
+
+
 [pathstr,name,ext] = fileparts(filename); 
-basename=[pathstr name];
-    
+basename=[pathstr filesep name];
+
 parfor fIdx=1:length(movieInfo)
     fMI=movieInfo(fIdx);
     numVertices=size(fMI.xCoord,1);
     %Write end points to Amira Surf object
-    frameFilename=[filename '_t_' num2str(fIdx,'%04.0f'),'.am'];
+    frameFilename=[basename '_t_' num2str(fIdx,'%04.0f'),'.am'];
     fid = fopen(frameFilename, 'w');
     fprintf(fid,['# Amira 2.0 ASCII\n\n']);
     fprintf(fid,['define VERTEX ',num2str(numVertices),'\n']);
@@ -38,12 +41,13 @@ parfor fIdx=1:length(movieInfo)
     fprintf(fid,'0 0\n\n');
     fprintf(fid,'@2\n');
     fprintf(fid,'2\n\n');
-    fprintf(fid,'@3\n');
-    fprintf(fid,[num2str(fMI.xCoord(1,1)*p.scales(1)) ' ' num2str(fMI.yCoord(1,1)*p.scales(2)) ' ' num2str(fMI.zCoord(1,1)*p.scales(3)) '\n']);
-    fprintf(fid,[num2str(fMI.xCoord(1,1)*p.scales(1)) ' ' num2str(fMI.yCoord(1,1)*p.scales(2)) ' ' num2str(fMI.zCoord(1,1)*p.scales(3)) '\n\n']);
+    fprintf(fid,'\n@3\n');
+    fclose(fid);
+    dlmwrite(frameFilename, repmat([(fMI.xCoord(1,1)-1)*p.scales(1) (fMI.yCoord(1,1)-1)*p.scales(2) (fMI.zCoord(1,1)-1)*p.scales(3)],2,1), '-append', 'delimiter',' ','precision', 16);
+    fid = fopen(frameFilename, 'a');
     fprintf(fid,'@4\n');
     fclose(fid);
-    dlmwrite(frameFilename, [fMI.xCoord(:,1)*p.scales(1) fMI.yCoord(:,1)*p.scales(2) fMI.zCoord(:,1)*p.scales(3)], '-append', 'delimiter',' ','precision', 16);
+    dlmwrite(frameFilename, [(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)], '-append', 'delimiter',' ','precision', 16);
     for propIdx=1:length(p.prop)
         fid = fopen(frameFilename, 'a');
         fprintf(fid,['\n VERTEX { float ' p.prop{propIdx}{1} ' } @' num2str(4+propIdx) '\n']);
