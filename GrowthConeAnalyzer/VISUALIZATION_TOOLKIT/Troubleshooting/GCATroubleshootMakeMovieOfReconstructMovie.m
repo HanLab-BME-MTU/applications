@@ -56,8 +56,15 @@ pixSize_um = movieData.pixelSize_/1000;
 %load([movieData.outputDirectory_ filesep 'filopodia_reconstruct' filesep 'Filopodia_Reconstruct_Channel_1' filesep 'analInfoTestSave.mat']); 
  
 %load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_1' filesep 'analInfoTestSave.mat'])
-GCATroubleShootMakeMovieOfReconstruct(filoBranch,veilStem,frames(iFrame),pixSize_um,saveDir,imDir); 
+hSet = GCATroubleShootMakeMovieOfReconstruct(filoBranch,veilStem,frames(iFrame),pixSize_um,imDir); 
 
+
+
+for i = 1:length(hSet) 
+    saveas(hSet(i).h, [saveDir filesep num2str(i,'%03d') '.png']);   
+    saveas(hSet(i).h,[saveDir filesep num2str(i,'%03d') '.fig']); 
+    
+end 
 
 
 
