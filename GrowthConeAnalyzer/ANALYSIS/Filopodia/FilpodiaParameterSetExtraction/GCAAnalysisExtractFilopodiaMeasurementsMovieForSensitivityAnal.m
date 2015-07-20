@@ -60,6 +60,8 @@ p = ip.Results;
 nFrames = movieData.nFrames_;
 nChan = numel(p.ChannelIndex);
 channels = p.ChannelIndex;
+
+
 %% Loop for each channel
 for iCh = 1:nChan
     

@@ -1,4 +1,4 @@
-function [ output_args ] = GCAAnalysisExtractFilopodiaMeasurementsMovie(movieData,varargin)
+function [ output_args ] = GCAAnalysisExtractFilopodiaMeasurementsMovieBranchScan(movieData,varargin)
 %GCAAnalysisExtractFilopodiaParamsMovie
 %   This function makes the default filopodia filter sets and extracts all
 %   default filopodia parameters

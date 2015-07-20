@@ -53,16 +53,18 @@ for iGroup = 1:numel(toPlot.info.names)
             
             
             for iProj = 1:size(projListC,1)
+                folder = [projListC{iProj,1} filesep 'GrowthConeAnalyzer']; 
+%                 if isempty(regexp(projListC{iProj},'GrowthConeAnalyzer','ONCE')) == 1
+%                     folder = [projListC{iProj} filesep 'ANALYSIS'];
+%                 else
+%                     folder = projListC{iProj};
+%                 end
+%                 
+                toLoad = [folder filesep 'EdgeVelocityQuantification' filesep 'EdgeMotion.mat'  ];
                 
-                if isempty(regexp(projListC{iProj},'ANALYSIS','ONCE')) == 1
-                    folder = [projListC{iProj} filesep 'ANALYSIS'];
-                else
-                    folder = projListC{iProj};
-                end
-                
-                toLoad = [folder filesep 'edgeVelocityQuantification' filesep 'edgeMotion.mat'  ];
                 if exist(toLoad,'file')~=0
                     load(toLoad);
+                
                     % want to collect prot persTime, retract persTime,prot mednvel in
                     % my old format for boxplot so i have the values groupable and I
                     % can do myown stats on them.
@@ -74,6 +76,8 @@ for iGroup = 1:numel(toPlot.info.names)
                         
                     end
                     dataMat(1:length(valuesC),iProj) = valuesC;
+                else 
+                    display(['No File Found for ' projListC{iProj,1}]); 
                 end
             end
             toPlot.([analType{iAnal} '_' params{iParam}]){iGroup} = dataMat;

@@ -17,7 +17,7 @@ img = double(imread(filename));
 [ny nx] = size(img);
 imgSize = [ny nx];
 zoom = 1;
-
+countFig = 1; 
 %% 00 -original image
 h=setFigure(nx,ny);
 imshow(-img,[]) ;
@@ -27,10 +27,11 @@ pixels = 10/pixSizeMic;
 plotScaleBar(pixels,pixels/10,'Color',textColor);
 
 %print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% [saveDir filesep 'ReconstructMovie00.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie00.png']);
+% [saveDir filesep 'frame00.png']);
 
-saveas(h,[saveDir filesep 'ReconstructMovie00.eps'],'psc2')
+saveas(h,[saveDir filesep ''.png']);
+
+saveas(h,[saveDir filesep 'frame00.eps'],'psc2')
 close gcf
 %% 01 - LOCAL THRESH %%%%
 % h = setFigure(nx,ny);
@@ -46,8 +47,8 @@ close gcf
 %      plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
 %
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie01.png']);
-%         saveas(h,[saveDir filesep 'ReconstructMovie01.eps'],'psc2');
+%             [saveDir filesep 'frame01.png']);
+%         saveas(h,[saveDir filesep 'frame01.eps'],'psc2');
 
 %         close gcf
 
@@ -62,30 +63,30 @@ close gcf
 % plotScaleBar(pixels,pixels/20,'Color',textColor);
 % 
 % %  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %          [saveDir filesep 'ReconstructMovie02.png']);
-% saveas(h,[saveDir filesep 'ReconstructMovie02.png']);
-% saveas(h,[saveDir filesep 'ReconstructMovie02.eps'],'psc2');
-% saveas(h,[saveDir filesep 'ReconstructMovie02.fig']);
+% %          [saveDir filesep 'frame02.png']);
+% saveas(h,[saveDir filesep 'frame02.png']);
+% saveas(h,[saveDir filesep 'frame02.eps'],'psc2');
+% saveas(h,[saveDir filesep 'frame02.fig']);
 % 
 % close gcf
 
 %% 03 BACKBONE SAVE %%%%
-h = setFigure(nx,ny) ;
-imshow(-img,[])
-hold on
-backbone =  veilStem(frame).backbone;
-% extra = zeros(size(img));
-% backbone = [backbone extra];
-spy(backbone,'r')
-%cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
-text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
-pixels = round(10/pixSizeMic);
-%plotScaleBar(pixels,pixels/20,'Color',textColor);
-
-% print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%         [saveDir filesep 'ReconstructMovie03.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie03.png']);
-close gcf
+% h = setFigure(nx,ny) ;
+% imshow(-img,[])
+% hold on
+% backbone =  veilStem(frame).backbone;
+% % extra = zeros(size(img));
+% % backbone = [backbone extra];
+% spy(backbone,'r')
+% %cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
+% text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
+% pixels = round(10/pixSizeMic);
+% %plotScaleBar(pixels,pixels/20,'Color',textColor);
+% 
+% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+% %         [saveDir filesep 'frame03.png']);
+% saveas(h,[saveDir filesep 'frame03.png']);
+% close gcf
 %% 04 Final Body Mask %%%%
 h = setFigure(nx,ny);
 imshow(-img,[]) ;
@@ -98,9 +99,9 @@ pixels = round(10/pixSizeMic);
 % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
 
 %saveas(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% [saveDir filesep 'ReconstructMovie04.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie04.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie04.eps'],'psc2');
+% [saveDir filesep 'frame04.png']);
+saveas(h,[saveDir filesep 'frame04.png']);
+saveas(h,[saveDir filesep 'frame04.eps'],'psc2');
 close gcf
 %% 05 Overlay Ridges %%%%
 % h = setFigure(nx,ny);
@@ -113,9 +114,9 @@ close gcf
 % pixels = round(10/pixSizeMic);
 % %  plotScaleBar(pixels,pixels/20,'Color',textColor);
 % % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %         [saveDir filesep 'ReconstructMovie05.png']);
-% saveas(h,[saveDir filesep 'ReconstructMovie05.png'] );
-% saveas(h,[saveDir filesep 'ReconstructMovie05.eps'],'psc2');
+% %         [saveDir filesep 'frame05.png']);
+% saveas(h,[saveDir filesep 'frame05.png'] );
+% saveas(h,[saveDir filesep 'frame05.eps'],'psc2');
 
 % close gcf
 
@@ -135,8 +136,8 @@ pixels = round(10/pixSizeMic);
 % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
 
 % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%          [saveDir filesep 'ReconstructMovie06.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie06.png']);
+%          [saveDir filesep 'frame06.png']);
+saveas(h,[saveDir filesep 'frame06.png']);
 close gcf
 %% 07 Show Candidates
 h = setFigure(nx,ny) ;
@@ -154,9 +155,9 @@ pixels = round(10/pixSizeMic);
 % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
 
 % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%          [saveDir filesep 'ReconstructMovie07.png']);
-% saveas(h,[saveDir filesep 'ReconstructMovie07.eps'],'psc2');
-saveas(h,[saveDir filesep 'ReconstructMovie07.png']);
+%          [saveDir filesep 'frame07.png']);
+% saveas(h,[saveDir filesep 'frame07.eps'],'psc2');
+saveas(h,[saveDir filesep 'frame07.png']);
 
 %% 08 Show Clustering
 h = setFigure(nx,ny) ;
@@ -176,8 +177,8 @@ pixels = round(10/pixSizeMic);
 %plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
 
 % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%          [saveDir filesep 'ReconstructMovie08.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie08.png']);
+%          [saveDir filesep 'frame08.png']);
+saveas(h,[saveDir filesep 'frame08.png']);
 close gcf
 %% 09 Candidates Post Clustering
 h = setFigure(nx,ny) ;
@@ -194,8 +195,8 @@ pixels = round(10/pixSizeMic);
 %plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
 
 % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%          [saveDir filesep 'ReconstructMovie09.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie09.png']);
+%          [saveDir filesep 'frame09.png']);
+saveas(h,[saveDir filesep 'frame09.png']);
 close gcf
 %% Iterate over reconstruction
 imageNum = 10;
@@ -218,8 +219,8 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
         
         %print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-        %         [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum,'%02d') '.png']);
+        %         [saveDir filesep 'frame' num2str(imageNum) '.png']);
+        saveas(h,[saveDir filesep 'frame' num2str(imageNum,'%02d') '.png']);
         imageNum = imageNum +1;
         close gcf
         
@@ -242,8 +243,8 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
         
         % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-        %           [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum,'%02d') '.png']);
+        %           [saveDir filesep 'frame' num2str(imageNum) '.png']);
+        saveas(h,[saveDir filesep 'frame' num2str(imageNum,'%02d') '.png']);
         imageNum = imageNum+1;
         %%
         imshow(-img,[])
@@ -263,8 +264,8 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         %  plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
         
         % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-        %           [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
+        %           [saveDir filesep 'frame' num2str(imageNum) '.png']);
+        saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.png']);
         
         imageNum = imageNum+1;
         %%
@@ -287,8 +288,8 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
         
         %print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-        %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .png']);
+        %          [saveDir filesep 'frame' num2str(imageNum) ' .png']);
+        saveas(h,[saveDir filesep 'frame' num2str(imageNum) ' .png']);
         imageNum = imageNum+1;
         close gcf
         %%
@@ -313,8 +314,8 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         %  plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
         
         % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-        %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .png']);
+        %          [saveDir filesep 'frame' num2str(imageNum) '.png']);
+        saveas(h,[saveDir filesep 'frame' num2str(imageNum) ' .png']);
         imageNum = imageNum+1;
         
         close gcf
@@ -351,7 +352,7 @@ end
 %
 % text(nx/10,10,'Color-Coded by Filopodia Number','color',textColor);
 %  print(h, '-depsc', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps']);
+%             [saveDir filesep 'frame' num2str(imageNum) '.eps']);
 % imageNum = imageNum+1;
 %
 % close gcf
@@ -455,7 +456,7 @@ end
 %
 % text(nx/10,20,[num2str(numBranchPoints) ' Branch Junctions'],'color',textColor);
 %  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
 %         imageNum = imageNum+1;
 %        close gcf
 %% plot fits
@@ -471,8 +472,8 @@ end
 %   hold on
 %     plotfilosIntAndExt(filoInfo,[ny,nx],1,1,[]);
 %     print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
-%             saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2');
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
+%             saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.eps'],'psc2');
 %         imageNum = imageNum+1;
 %         close gcf
 % %% plot fits 1st, 2nd, and higher order branches
@@ -511,7 +512,7 @@ end
 %
 %   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
 %  clear filoInfoFilt
 %         imageNum = imageNum+1;
 %         close gcf
@@ -546,7 +547,7 @@ end
 %   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
 %    text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor);
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
 %
 %         close gcf
 %         imageNum = imageNum+1;
@@ -581,7 +582,7 @@ end
 %   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
 %   text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor);
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
 %         close gcf
 
 filoInfo = filoBranch(frame).filoInfo;
@@ -594,8 +595,8 @@ filoInfo = filoBranch(frame).filoInfo;
 % GCAVisualsMakeOverlaysFilopodia(filoInfo,[ny,nx],1,1,[],0);
 % text(nx/10,10,'Filopodia Fits', fontText{:})
 % % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
-% saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
+% %          [saveDir filesep 'frame' num2str(imageNum) '.png'])
+% saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.png']);
 % close gcf
 %%   Filopodia By Branch Group
 imageNum = imageNum +1;
@@ -611,10 +612,10 @@ cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
 text(nx/10,10,'Color-Coded By Branch Group', fontText{:});
 
 %   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%         [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
-saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2');
-saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.fig']);
+%         [saveDir filesep 'frame' num2str(imageNum) '.png'])
+saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.png']);
+saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.eps'],'psc2');
+saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.fig']);
 close gcf
 
 %% Plot Individual
@@ -624,7 +625,7 @@ h  = setFigure(nx,ny);
 
 imshow(-img,[]);
 hold on
-cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
+cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
 %type = vertcat(filoInfo(:).type);
 %idxBlack = (type == 0 | type ==1);
 %filoInfoBlack  = filoInfo(idxBlack);
@@ -646,14 +647,19 @@ end
 text(nx/10,10,'Color-Coded Individual Segment', fontText{:});
 
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
-saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2');
+%          [saveDir filesep 'frame' num2str(imageNum) '.png'])
+saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.png']);
+saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.eps'],'psc2');
 
 
-cd(saveDir)
-execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
-system(execute);
+execute = ['ffmpeg -r 1 -i ' saveDir filesep 'frame' '%02d.png' ...
+    ' -crf 22 -pix_fmt yuv420p -b 20000k ' saveDir filesep 'ReconstructMovie.mp4'];
+system(execute)
+
+
+% cd(saveDir)
+% execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
+% system(execute);
 
 
 

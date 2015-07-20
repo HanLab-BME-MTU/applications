@@ -15,9 +15,9 @@ ip.CaseSensitive = false;
 
 % PARAMETERS
 defaultInDir = [movieData.outputDirectory_ filesep...
-    'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction'];
+    'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VII_filopodiaBranch_fits'];
 
-defaultOutDir = [movieData.outputDirectory_ filesep 'ReconstructMovies']; 
+defaultOutDir = [movieData.outputDirectory_ ]; 
 
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
 ip.addParameter('InputDirectory', defaultInDir,@(x) ischar(x)); 
@@ -33,7 +33,7 @@ frames = ip.Results.frames;
 %% Wrap 
 for iFrame = 1:length(frames) 
     
-saveDir = [ip.Results.OutputDirectory filesep 'Frame_' num2str(frames(iFrame),'%03d')]; 
+saveDir = [ip.Results.OutputDirectory filesep 'Reconstruct_Movies' filesep 'Frame_' num2str(frames(iFrame),'%03d')]; 
 
 if ~isdir(saveDir)
     mkdir(saveDir)

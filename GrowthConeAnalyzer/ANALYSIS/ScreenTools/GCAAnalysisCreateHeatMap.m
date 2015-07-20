@@ -1,6 +1,8 @@
 function [ dataMat ] = GCAAnalysisCreateHeatMap( toPlot ,displayRange)
 %
-
+if nargin<2 
+    displayRange = []; 
+end 
 % collect mean values for the per neurite data per group 
 
 fields = fieldnames(toPlot); 
@@ -38,9 +40,9 @@ dataMat = vertcat(perChange{:}); % make the  data Mat such that each row is a
  
  yLabels = fieldsFinal; 
  xLabels = toPlot.info.names; 
- displayRange  = repmat(displayRange,1,(numel(xLabels))); 
- buffer = zeros(2,numel(xLabels)); 
- dataMat = [dataMat;buffer;displayRange]; 
+%  displayRange  = repmat(displayRange,1,(numel(xLabels))); 
+%  buffer = zeros(2,numel(xLabels)); 
+%  dataMat = [dataMat;buffer;displayRange]; 
  %dataMat = dataMat.*100;
  colorMap = HeatMap(dataMat(:,2:end),'RowLabels',fieldsFinal,'ColumnLabels',toPlot.info.names(2:end),... 
     'colormap','redbluecmap','ColumnLabelsRotate',45); 

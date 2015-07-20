@@ -10,7 +10,12 @@ function [ output_args ] = GCAVisualsMontagingMovie(movieData,inputFolders,outpu
         movieName = 'movie';
  end
  
-for fi = 1:movieData.nFrames_
+ 
+ 
+ 
+ 
+ 
+for fi = 1:movieData.nFrames_-1
     
     fstr = num2str(fi, '%.3d');
     
@@ -27,9 +32,10 @@ for fi = 1:movieData.nFrames_
     cmd = [' montage -tile x1 -geometry +5+5+0+0 -background "rgb(255,255,255)"' filenamesStr ...
         '  -compress lzw ' outC];
     system(cmd);
+end 
     %% TEST IF ON WINDOWS
     OSc = getenv('OS');
-    if ~isempty(regexp(OSc,'Windows'),'ONCE')
+    if ~isempty(regexp(OSc,'Windows','ONCE'))
         % if on a windows  machine test (if on linux do not need to crop -
         % windows just sucks)
         imgTest = imread(outC);

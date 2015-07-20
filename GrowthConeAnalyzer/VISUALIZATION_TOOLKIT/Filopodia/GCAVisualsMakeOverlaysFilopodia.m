@@ -167,7 +167,7 @@ for iType = typeStart:typeEnd
             idxEnd = find(pixIndices == filoInfoFilt(i).([toAdd{iType} 'endpointCoordFitPix']));
             pixIndicesPlot = pixIndices(1:idxEnd);
             [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
-            plot(xC,yC,'color',colorC,'Linewidth',3);
+            plot(xC,yC,'color',colorC,'Linewidth',1.5);
         end
         %             filoMask(pixIndicesPlot) = 1;
         %         end
@@ -212,7 +212,7 @@ for iType = typeStart:typeEnd
     if   ~isempty(filoInfoOther)
         [toPlotY,toPlotX]  =  arrayfun(@(x) ind2sub(imgSize,x.([toAdd{iType} 'pixIndicesBack'])),filoInfoOther,'uniformoutput',0);
         for i = 1:numel(toPlotY)
-            plot(toPlotX{i}(:),toPlotY{i}(:),':','color',c(iType,:),'Linewidth',2);
+            plot(toPlotX{i}(:),toPlotY{i}(:),':','color',c(iType,:),'Linewidth',1.5);
         end
     end
 end

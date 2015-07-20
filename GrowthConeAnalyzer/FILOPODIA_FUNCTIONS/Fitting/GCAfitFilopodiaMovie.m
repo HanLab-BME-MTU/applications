@@ -122,7 +122,7 @@ for iCh = 1:numel(params.ChannelIndex)
         display('Loading Previously Run Fits');
         if strcmpi(ip.Results.StartFrame,'auto')
              startFrame = find(arrayfun(@(x) ~isfield(filoBranch(x).filoInfo, 'Ext_exitFlag')...
-                ,1:length(analInfo)),1,'first')-1;
+                ,1:length(filoBranch)),1,'first')-1;
           
             if startFrame == 0
                 startFrame = 1; % reset to 1;
@@ -159,7 +159,7 @@ for iCh = 1:numel(params.ChannelIndex)
    
     %% Start Loop Over Movie
     % GET FRAME INFORMATION - this function wraps per frame
-    for iFrame = startFrame:endFrame
+    for iFrame = startFrame:endFrame-1
         % get the filoInfo for the current frame
         filoInfo = filoBranch(iFrame).filoInfo;
         imgPath = [movieData.getChannelPaths{params.ChannelIndex(iCh)} filesep movieData.getImageFileNames{params.ChannelIndex(iCh)}{iFrame}];
