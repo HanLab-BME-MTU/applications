@@ -1,6 +1,8 @@
 function [ output_args ] = GCAValidationReconstructDocumentErrorFinal(reconstructDir)
 % 
 
+
+
 x = dir(reconstructDir);
 x = x(3:end); 
 list = arrayfun(@(i) x(i).name,1:length(x),'uniformoutput',0); 
@@ -16,8 +18,19 @@ idxInclude  = listSelectGUI(list,[],'move');
 toTest = list(idxInclude); 
 
 
+
+
+
 for iProj = 1: numel(toTest) 
-   listOfImages =  searchFiles('.png',[],[reconstructDir filesep toTest{iProj} filesep 'ReconstructMovie'],0,'all',1); 
+    % make documentation directory 
+    overlayDirC = [reconstructDir filesep toTest{iProj} filesep  'ValidationOverlays']; 
+
+    if ~isdir(overlayDirC)
+    mkdir(overlayDirC) 
+    end 
+    
+    
+   listOfImages =  searchFiles('.png',[],[reconstructDir filesep toTest{iProj} filesep 'Reconstruct_Movie'],0,'all',1); 
     imgRaw = imread(listOfImages{1}); 
     imgOverlay = imread(listOfImages{end}); 
     imgLarge = [imgOverlay imgRaw]; 
@@ -112,8 +125,8 @@ for iProj = 1: numel(toTest)
                         delete(hfiloT)
                         delete(h)
                         % initiate false false positive counter
-                        hText =  text(20,20, ['N false positives = 0 for Frame ' num2str(iFrame)]);
-                        display(['Restarted False Negative Calculation for ' num2str(iFrame)]);
+                        hText =  text(20,20, ['N false positives = 0']);
+                        display(['Restarted False Negative Calculation']);
                         % if not or cancel restart counter
                         filoCount = 1;
                         coordsFN = [NaN,NaN];
@@ -122,42 +135,18 @@ for iProj = 1: numel(toTest)
             
             
         end % strcmpi
-        
-        
-        
-        
-        
+              
     end % while
     % save every frame
-    filoValidation(iFrame).coordFN = coordsFN;
-   % save([movieData.outputDirectory_ filesep 'filoValidation.mat'],'filoValidation');
-    
-%     saveDir =  [movieData.outputDirectory_ filesep 'ValidationDirectory' filesep 'FalseNeg'];
-%     if ~isdir(saveDir)
-%         mkdir(saveDir)
-%     end
-    
-%     saveas(gcf,[saveDir filesep num2str(iFrame,'%03d') '.png' ]);
-    
-    
-    
-%     reply4 = questdlg('Move To Next Documentation?') ;
-%     if strcmpi(reply4,'yes');
-%         close gcf
-%     else
-%         close gcf
-%         break
-%     end
-    
+    %filoValidation.coordFN = coordsFN;
+  
+    save('coordsFN.mat','coordsFN'); 
+    saveas(gcf,[overlayDirC filesep 'FalseNegativeOverlay.png']); 
 %% End 
 
 
     
-    imgRaw = imread(listOfFilesRaw{iFrame});
-    imgOverlay =imread(listOfFilesOverlay{iFrame});
-    [ny,nx,~] = size(imgRaw);
-    imgLarge = [imgOverlay imgRaw];
-    [nyLarge,nxLarge,~] = size(imgLarge);
+   
     setFigure(nxLarge,nyLarge,'on');
     % setFigure(nxLarge,nyLarge,'on');
     imshow(imgLarge,[]);
@@ -166,41 +155,16 @@ for iProj = 1: numel(toTest)
     
     
     
-    % filoInfoC = analInfo(iFrame).filoInfo;
-    
-    % load the raw images
-    % img =  double(imread([movieData.getChannelPaths{1} filesep movieData.getImageFileNames{1}{iFrame}]));
-    %[ny,nx] = size(img);
-    %subplot(1,2,1);
-    
-    %imgLarge = [img img];
-    %[nyLarge,nxLarge] = size(imgLarge);
-    
-    %setFigure(nxLarge,nyLarge,'on');
-    %imshow(-imgLarge,[]);
-    %hold on
-    
-    %     n = length(filoInfoC);
-    %     c = linspecer(n);
-    %     idxRand = randperm(n);
-    %     c = c(idxRand,:);
-    %     display(['Loading Overlays for Frame ' num2str(iFrame)]);
-    %     for ifilo = 1:length(filoInfoC)
-    %         filoInfoIdx = filoInfoC(ifilo);
-    %         GCAVisualsMakeOverlaysFilopodia(filoInfoIdx,[ny,nx],1,1,c(ifilo,:),0);
-    %         clear filoInfoIdx
-    %     end
+   
     %%%%%%%%%%%%%%%%%% Initiate Counter  %%%%%%%%%%%%%%%%%%%
     filoCount = 1;
     clickFilo = 1;
     coordsFP = [NaN,NaN];
     
-    %load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_1' filesep ...
-    %   'analInfoTestSave.mat']);
-    % filoInfo = analInfo(iFrame).filoInfo;
+   
     
     % initiate false false positive counter
-    hText =  text(20,20, ['N FALSE POSITIVES = 0 for Frame ' num2str(iFrame)]);
+    hText =  text(20,20, ['N FALSE POSITIVES = 0 ']);
     % while asking the user to click filo
     while clickFilo == 1
         
@@ -223,8 +187,7 @@ for iProj = 1: numel(toTest)
             %   total = nFilos + filoCount; % add the false negatives to the total
             % set(hText,'string',['Percent False Negatives = ' num2str((filoCount - 1)./total*100,3) ' for Frame ' ...
             %num2str(iFrame)]);
-            set(hText,'string',['Number False Positives = ' num2str(filoCount - 1) ' for Frame ' ...
-                num2str(iFrame)]);
+            set(hText,'string',['Number False Positives = ' num2str(filoCount - 1)] );
             
             % if no or cancel show the total
         elseif strcmpi(reply2,'no')  || strcmpi(reply2,'cancel')
@@ -251,7 +214,7 @@ for iProj = 1: numel(toTest)
                 % if no reset the values
             elseif strcmpi(reply3,'no') || strcmpi(reply3,'cancel')
                 close gcf
-                display(['Restarted False Positive Calculation for ' num2str(iFrame)]);
+                display('Restarted False Positive Calculation ');
                 % if not or cancel restart counter
                 filoCount = 1;
                 coordsFP = [NaN,NaN];
@@ -265,25 +228,11 @@ for iProj = 1: numel(toTest)
         
         
     end % while
-    
-    % save record from frame
-    filoValidation(iFrame).coordsFP = coordsFP;
-    saveDir = [movieData.outputDirectory_ filesep 'ValidationDirectory' filesep 'coordsFP'];
-    if ~isdir(saveDir) 
-        mkdir(saveDir) 
-    end 
-    saveas(gcf,[saveDir filesep num2str(iFrame,'%03d') '.png']); 
+     
+
 
     
-    reply4 = questdlg('Move To Next Frame?') ;
-    if strcmpi(reply4,'yes');
-        close gcf
-    else
-        close gcf
-        break
-    end
-    
-%end % iframe
+
 
 
 
