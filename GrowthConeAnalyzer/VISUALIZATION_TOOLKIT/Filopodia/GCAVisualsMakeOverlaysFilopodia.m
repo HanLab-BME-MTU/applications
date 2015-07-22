@@ -1,4 +1,4 @@
-function [ h ] = GCAVisualsMakeOverlaysFilopodia( filoInfo ,imgSize,filterByFit,justExt,c,plotOrientFlag)
+function [ h,filoInfoFilt ] = GCAVisualsMakeOverlaysFilopodia( filoInfo ,imgSize,filterByFit,justExt,c,plotOrientFlag,forceResponse)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 % justExt is a flag for plotting only the external filopodia (looks less
@@ -26,6 +26,12 @@ if (nargin<6 || isempty(plotOrientFlag))
     
     plotOrientFlag = 0;
 end
+
+if (nargin<7 || isempty(forceResponse))
+   forceResponse = 0;  
+end
+
+
 filoID = 1:length(filoInfo);
 for iType = typeStart:typeEnd
     colorC = c(iType,:);
@@ -137,6 +143,12 @@ for iType = typeStart:typeEnd
         
     else % plot everything in bold 
         filoInfoFilt  = filoInfo;
+        if forceResponse == 0
+        filoInfoOther = [];
+        else 
+            filoInfoOther = filoInfo; 
+        
+        end 
     end
     
     if ~isempty(filoInfoFilt)
