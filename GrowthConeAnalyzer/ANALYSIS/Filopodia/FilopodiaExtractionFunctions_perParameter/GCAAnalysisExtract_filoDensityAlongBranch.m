@@ -11,46 +11,48 @@ for iFrame = 1:length(analInfo) -1
     filterFrameC= filoFilterSet{iFrame};
     filoInfoFilt  = filoInfo(filterFrameC); % after this filter should have only N order branch and its corresponding N-1 branchstem
  %% get the branch stems 
-   NTypes = unique(vertcat(filoInfoFilt(:).type)); 
-   NTypes(NTypes==0)= 1; % for now just switch the 0 order (no filo to 1) 
+   types = vertcat(filoInfoFilt(:).type);
+   % change type 0 (no filo) to type 1 as want to calculate density of
+   % branching using ALL filo attached to veil. 
+   types(types==0) = 1; 
+   NTypes = unique(types); 
+  % NTypes(NTypes==0)= 1; % for now just switch the 0 order (no filo to 1) 
    typeStem = min(NTypes);
    
    if length(NTypes)==2 % filter ok
-       % get the stem lengths 
-       idxStem= vertcat(filoInfoFilt(:).type)==typeStem; 
-       lengthsStem = vertcat(filoInfoFilt(idxStem).Ext_length); 
+       % get the stem lengths
+       idxStem= vertcat(types)==typeStem;
+       lengthStem = vertcat(filoInfoFilt(idxStem).Ext_length).*0.216;
        
-       filoInfoStem = filoInfoFilt(idxStem); 
+       filoInfoStem = filoInfoFilt(idxStem);
        
        
        % get the number of branches per stem - tricky part here is this need to
-       % likewise be filtered by fit etc which it will not be in the length of the .conIdx. 
-       % get the number of filo 
-       IDsCurrentSet = find(filterFrameC); 
-       % for each stem get the conIdx and filter by filtInfo 
-       numFiloBeforeFilt = arrayfun(@(x) length(filoInfoStem(x).conIdx),1:sum(idxStem)); 
+       % likewise be filtered by fit etc which it will not be in the length of the .conIdx.
+       % get the number of filo
+       IDsCurrentSet = find(filterFrameC);
+       % for each stem get the conIdx and filter by filtInfo
+       numFiloBeforeFilt = arrayfun(@(x) length(filoInfoStem(x).conIdx),1:sum(idxStem));
        numFilo = arrayfun(@(x) length(intersect(filoInfoStem(x).conIdx,IDsCurrentSet)),1:sum(idxStem)) ;
        
-       % test if that filo is in the current filter set 
+       % test if that filo is in the current filter set
        
-       % density = number/length 
-    
-   % note maybe should include 0 order in this set?
-    
-    %% Get Filopodia Number 
-    filterFrameC= filoFilterSet{iFrame};
-    numFilo = sum(filterFrameC);
+       density = numFilo'./lengthStem*10;
        
-    %% Calculate Density 
-    
-  
-    
-    % for now just convert
-
-    densitiesCell{iFrame,1} = numFilo/branchLength*10; % output 
-   else 
-       display('Check Branch Filter: N~=2'); 
-end
+       % note maybe should include 0 order in this set?
+       
+     
+       
+       %% Calculate Density
+       
+       
+       
+       % for now just convert
+       
+       branchDensitiesCell{iFrame,1} = density; % output
+   else
+       display('Check Branch Filter: N~=2');
+   end
 
 %  if mkPlot ==1
 %      scatter((1:length(densities))*5,densities,50,'k','filled');

@@ -49,7 +49,7 @@ for i = 1:numel(toDocument)
        
        stepsFolder{3} =  [MD.outputDirectory_ filesep 'masks' filesep 'masks_for_channel_1' filesep 'Overlays'];
         
-       stepsFolder{4} =  [MD.outputDirectory_ filesep 'VisualizationOverlays/WholeNeurite/VeilWindows/Channel_1']; 
+       stepsFolder{4} =  [MD.outputDirectory_ filesep 'VisualizationOverlays/WholeNeurite/VeilWindows_SignalProcCheck/Channel_1']; 
        
         
        % test if exist 
@@ -149,7 +149,7 @@ for i = 1:numel(toDocument)
                     
                 case 4     
                  direct =  [MD.outputDirectory_ filesep ...
-                     'VisualizationOverlays' filesep 'WholeNeurite' filesep 'VeilWindows' filesep 'Channel_1']; 
+                     'VisualizationOverlays' filesep 'WholeNeurite' filesep 'VeilWindows_SignalProcCheck' filesep 'Channel_1']; 
                   if exist(direct)~=0
                         
                     
@@ -188,7 +188,7 @@ for i = 1:numel(toDocument)
     
     comment = inputdlg(['Comment for ' MD.outputDirectory_ ' ' toDocument{i}, '  Last Step Checked ' notes.LastStepChecked],'Comments',1,{default});
     
-    gnotes.(toDocument{i}) = comment{1};
+    notes.(toDocument{i}) = comment{1};
     save([MD.outputDirectory_ filesep 'notes.mat'],'notes');
     
     

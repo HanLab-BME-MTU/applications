@@ -94,13 +94,21 @@ TSFigs = [];
 % you already only have 2-3 pixels to work with anyway.
 embeddedRidgeCandSpur = bwmorph(embeddedRidgeCand,'spur',ip.Results.numPixelsForSpur);
 
-
 % Remove Singletons
 CCInt = bwconncomp(embeddedRidgeCandSpur);
 csize = cellfun(@(x) length(x),CCInt.PixelIdxList);
 CCInt.PixelIdxList(csize<3)= [];
 CCInt.NumObjects = CCInt.NumObjects - sum(csize<3);% changed to 3 20150526 so to make sure can run through
 % getEndpoints to get local vectors
+
+EPsCCsIntForCut = cellfun(@(x) getEndpoints(x,[ny,nx]),CCInt.PixelIdxList,'uniformoutput',0);
+% filter out those CCs with no or more than 2 end points
+weirdCand = cellfun(@(x) size(x,1)~=2,EPsCCsIntForCut);
+EPsCCsIntForCut = EPsCCsIntForCut(~weirdCand);
+
+CCInt.PixelIdxList(weirdCand) = [];
+CCInt.NumObjects = CCInt.NumObjects- sum(weirdCand);
+
 
 %% Clean the Seed
 
@@ -150,7 +158,7 @@ end %
 %% Sort the pixel indices so they are labeled in order from one endpoint
 % (arbitrary choice) as bwconncomp will not do this completely correctly.
 
-EPsCCsIntForCut = cellfun(@(x) getEndpoints(x,[ny,nx]),CCInt.PixelIdxList,'uniformoutput',0);
+
 
 for iCC = 1:numel(CCInt.PixelIdxList)
     testMask = zeros(ny,nx);

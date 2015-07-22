@@ -1,4 +1,4 @@
-function [ hSet ] = GCATroubleShootMakeMovieOfReconstruct( filoBranch,veilStem,frame,pixSizeMic,imDir)
+function [ hSet,filoFilterSet,filoParams ] = GCATroubleShootMakeMovieOfReconstruct( filoBranch,veilStem,frame,pixSizeMic,imDir)
 % Small function that makes a cool movie of the different steps in the reconstruction
 % likely also will be very helpful for troubleshooting
 
@@ -13,10 +13,11 @@ textColor = [ 0 0 0 ];
 fontText =  {'FontName','Arial','FontSize',14,'FontName','Arial','color',textColor};
 %%%% START %%%%
 img = double(imread(filename));
-% img = [img img];
+
 [ny,nx] = size(img);
 
 %% Initiate 
+
 countFig = 1; 
 %% 00 -original image
 
@@ -26,6 +27,9 @@ hold on
 text(nx/10, 10,'Original Image ', fontText{:});
 pixels = 10/pixSizeMic;
 plotScaleBar(pixels,pixels/10,'Color',textColor);
+
+
+
 countFig = countFig+1; 
 %% 01 - LOCAL THRESH %%%%
 % h = setFigure(nx,ny);
@@ -41,8 +45,8 @@ countFig = countFig+1;
 %      plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
 %
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie01.png']);
-%         saveas(h,[saveDir filesep 'ReconstructMovie01.eps'],'psc2');
+%             [saveDir filesep 'frame01.png']);
+%         saveas(h,[saveDir filesep 'frame01.eps'],'psc2');
 
 %         close gcf
 
@@ -57,27 +61,46 @@ countFig = countFig+1;
 % plotScaleBar(pixels,pixels/20,'Color',textColor);
 % 
 % %  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %          [saveDir filesep 'ReconstructMovie02.png']);
-% saveas(h,[saveDir filesep 'ReconstructMovie02.png']);
-% saveas(h,[saveDir filesep 'ReconstructMovie02.eps'],'psc2');
-% saveas(h,[saveDir filesep 'ReconstructMovie02.fig']);
+% %          [saveDir filesep 'frame02.png']);
+% saveas(h,[saveDir filesep 'frame02.png']);
+% saveas(h,[saveDir filesep 'frame02.eps'],'psc2');
+% saveas(h,[saveDir filesep 'frame02.fig']);
 % 
 % close gcf
 
 %% 03 BACKBONE SAVE %%%%
-hSet(countFig).h = setFigure(nx,ny) ;
-imshow(-img,[])
-hold on
-backbone =  veilStem(frame).backbone;
-% extra = zeros(size(img));
-% backbone = [backbone extra];
-spy(backbone,'r')
-%cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
-text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
-pixels = round(10/pixSizeMic);
-plotScaleBar(pixels,pixels/20,'Color',textColor);
 
-countFig = countFig+1; 
+% h = setFigure(nx,ny) ;
+% imshow(-img,[])
+% hold on
+% backbone =  veilStem(frame).backbone;
+% % extra = zeros(size(img));
+% % backbone = [backbone extra];
+% spy(backbone,'r')
+% %cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
+% text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
+% pixels = round(10/pixSizeMic);
+% %plotScaleBar(pixels,pixels/20,'Color',textColor);
+% 
+% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+% %         [saveDir filesep 'frame03.png']);
+% saveas(h,[saveDir filesep 'frame03.png']);
+% close gcf
+
+% hSet(countFig).h = setFigure(nx,ny) ;
+% imshow(-img,[])
+% hold on
+% backbone =  veilStem(frame).backbone;
+% % extra = zeros(size(img));
+% % backbone = [backbone extra];
+% spy(backbone,'r')
+% %cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
+% text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
+% pixels = round(10/pixSizeMic);
+% plotScaleBar(pixels,pixels/20,'Color',textColor);
+% 
+% countFig = countFig+1; 
+
 %% 04 Final Body Mask %%%%
 hSet(countFig).h = setFigure(nx,ny);
 imshow(-img,[]) ;
@@ -87,8 +110,14 @@ edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
 text(nx/10, 10,'Veil/Stem Estimation Complete', fontText{:});
 pixels = round(10/pixSizeMic);
-plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+
+% plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+
+
+
+plotScaleBar(pixels,pixels/10,'Color',textColor);
 countFig = countFig+1; 
+
 %% 05 Overlay Ridges %%%%
 % h = setFigure(nx,ny);
 % imshow(-img,[]) ;
@@ -100,9 +129,9 @@ countFig = countFig+1;
 % pixels = round(10/pixSizeMic);
 % %  plotScaleBar(pixels,pixels/20,'Color',textColor);
 % % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %         [saveDir filesep 'ReconstructMovie05.png']);
-% saveas(h,[saveDir filesep 'ReconstructMovie05.png'] );
-% saveas(h,[saveDir filesep 'ReconstructMovie05.eps'],'psc2');
+% %         [saveDir filesep 'frame05.png']);
+% saveas(h,[saveDir filesep 'frame05.png'] );
+% saveas(h,[saveDir filesep 'frame05.eps'],'psc2');
 
 % close gcf
 
@@ -119,7 +148,10 @@ cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
 seedMask = filoBranch(frame).reconstructInfo.seedMask{1};
 spy(seedMask,'b',5);
 pixels = round(10/pixSizeMic);
- plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+
+
+
+ plotScaleBar(pixels,pixels/10,'Color',textColor);
 countFig = countFig+1; 
 %% 07 Show Candidates
 hSet(countFig).h = setFigure(nx,ny) ;
@@ -134,8 +166,10 @@ preClust = filoBranch(frame).reconstructInfo.CandMaskPreCluster;
 
 spy(preClust,'m',5);
 pixels = round(10/pixSizeMic);
+
 plotScaleBar(pixels,pixels/20,'Color',textColor);
 countFig = countFig+1; 
+
 
 %% 08 Show Clustering
 hSet(countFig).h = setFigure(nx,ny) ;
@@ -154,7 +188,9 @@ spy(clusterLinks,'y');
 pixels = round(10/pixSizeMic);
 plotScaleBar(pixels,pixels/20,'Color',textColor);
 
+
 countFig = countFig+1; 
+
 %% 09 Candidates Post Clustering
 hSet(countFig).h = setFigure(nx,ny) ;
 imshow(-img,[])
@@ -169,6 +205,9 @@ spy(postClust,'m');
 pixels = round(10/pixSizeMic);
 plotScaleBar(pixels,pixels/10,'Color',textColor);
 countFig = countFig+1; 
+
+
+
 
 %% Iterate over reconstruction
 if isfield(filoBranch(frame).reconstructInfo,'output');
@@ -187,8 +226,12 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         links= filoBranch(frame).reconstructInfo.output{iReconst}.links;
         spy(links,'y',5);
         pixels = round(10/pixSizeMic);
+
+        
+
         plotScaleBar(pixels,pixels/10,'Color',textColor); 
         countFig  = countFig+1; 
+
         %%
         hSet(countFig).h = setFigure(nx,ny) ;
         
@@ -205,6 +248,7 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         bodyAdd =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.Body ;
         spy(bodyAdd,'g',5)
         pixels = round(10/pixSizeMic);
+
          plotScaleBar(pixels,pixels/10,'Color',textColor);
         countFig = countFig+1; 
         %%
@@ -223,7 +267,11 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         branchAdd =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.Branch ;
         spy(branchAdd,'g',5)
         pixels = round(10/pixSizeMic);
+
+      
+
           plotScaleBar(pixels,pixels/10,'Color',textColor);
+
         
         countFig  = countFig +1; 
         %%
@@ -248,6 +296,8 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
        
         countFig = countFig+1; 
         
+
+
         %%
         if iReconst == numel(filoBranch(frame).reconstructInfo.output);
             
@@ -256,7 +306,7 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         else
             title = 'New Seed';
         end
-        hSet(countFig) = setFigure(nx,ny) ;
+        hSet(countFig).h = setFigure(nx,ny) ;
         imshow(-img,[])
         hold on
         text(nx/10, 10,title, fontText{:});
@@ -267,13 +317,17 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
         pixels = round(10/pixSizeMic);
-        plotScaleBar(pixels,pixels/10,textColor);
+        plotScaleBar(pixels,pixels/10,'Color',textColor);
         
-       
-        countFig = countFig+1; 
+        countFig = countFig +1; 
+        
+      
     end % iReconst
 end
+
+    
 %% 
+
 % %% plot fits 1st, 2nd, and higher order branches
 %
 %   h  = setFigure(nx,ny);
@@ -310,7 +364,7 @@ end
 %
 %   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
 %  clear filoInfoFilt
 %         imageNum = imageNum+1;
 %         close gcf
@@ -345,7 +399,7 @@ end
 %   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
 %    text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor);
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
 %
 %         close gcf
 %         imageNum = imageNum+1;
@@ -380,14 +434,27 @@ end
 %   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
 %   text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor);
 %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
 %         close gcf
 
 filoInfo = filoBranch(frame).filoInfo;
 
+% %% Filopodia Fits
+% imageNum = imageNum +1;
+% h = setFigure(nx,ny);
+% imshow(-img,[]);
+% hold on
+% cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
+% GCAVisualsMakeOverlaysFilopodia(filoInfo,[ny,nx],1,1,[],0);
+% text(nx/10,10,'Filopodia Fits', fontText{:})
+% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+% %          [saveDir filesep 'frame' num2str(imageNum) '.png'])
+% saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.png']);
+% close gcf
+
 %%   Filopodia By Branch Group
 
-hSet(countFig)  = setFigure(nx,ny);
+hSet(countFig).h  = setFigure(nx,ny);
 imshow(-img,[]);
 hold on
 
@@ -395,7 +462,11 @@ GCAVisualsPlotFilopodiaPerBranchGroup(filoInfo,[ny,nx]);
 cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
 
 text(nx/10,10,'Color-Coded By Branch Group', fontText{:});
+
+
+
 countFig  = countFig+1; 
+
 
 %% Plot Individual
 hSet(countFig).h = setFigure(nx,ny);
@@ -403,21 +474,50 @@ imshow(-img,[]);
 hold on
 cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
 
+%type = vertcat(filoInfo(:).type);
+%idxBlack = (type == 0 | type ==1);
+%filoInfoBlack  = filoInfo(idxBlack);
+%GCAVisualsMakeOverlaysFilopodia(filoInfoBlack,[ny,nx],1,1,'k',0);
+%filoInfoBranch = filoInfo(type>1);
+
+
+[filoFilterSet,filoParams] = GCACreateFilopodiaFilterSet(filoBranch,'Validation'); % for now just get the entire filter set per movie  
+
+filoFilterSetC = filoFilterSet{frame}; 
 n = length(filoInfo);
-c = linspecer(n);
+%c = linspecer(n);
+c = brewermap(n,'spectral'); 
+
 idxRand = randperm(n);
 c = c(idxRand,:);
+filoInfoG = filoInfo(filoFilterSetC);
 
-for ifilo = 1:length(filoInfo)
-    filoInfoC = filoInfo(ifilo);
-    GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,1,c(ifilo,:),0);
+
+for ifilo = 1:length(filoInfoG)
+    filoInfoC = filoInfoG(ifilo);
+    GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],0,1,c(ifilo,:),0);
     clear filoInfoC
 end
 
 
+filoInfoB = filoInfo(~filoFilterSetC); 
+GCAVisualsMakeOverlaysFilopodia(filoInfoB,[ny,nx],0,1,'k',0,1); 
+
+
+
 text(nx/10,10,'Color-Coded Individual Segment', fontText{:});
 
-countFig  = countFig+1; 
+
+
+
+
+% execute = ['ffmpeg -r 1 -i ' saveDir filesep 'frame' '%02d.png' ...
+%     ' -crf 22 -pix_fmt yuv420p -b 20000k ' saveDir filesep 'ReconstructMovie.mp4'];
+% system(execute)
+
+
+
+
 
 % cd(saveDir)
 % execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';

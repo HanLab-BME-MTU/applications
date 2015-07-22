@@ -205,6 +205,7 @@ for iCh = 1:nChan
         veilStem(frame).flagOutlier = true;
     end
     
+    params.timeStamp= clock; 
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'veilStem.mat'],'veilStem','-v7.3') ;
 
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'params.mat'],'p');  

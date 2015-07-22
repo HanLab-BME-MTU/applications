@@ -13,7 +13,7 @@ idxDirectoryInclude  = listSelectGUI(forListSelect,[],'move');
  directories = directories(idxDirectoryInclude).name ; 
  
  
- for iDir = 1:length(directores) 
+ for iDir = 1:length(directories) 
    toPlot =   GCAAnalysisToolsMakeToPlotFile(directories(iDir),1); 
    outDir = [directories(iDir) filesep 'Grouping']; 
    if ~isdir(outDir) 

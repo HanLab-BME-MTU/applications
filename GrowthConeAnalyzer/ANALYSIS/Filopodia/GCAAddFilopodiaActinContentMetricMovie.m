@@ -11,7 +11,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 
 % PARAMETERS
-defaultInDir = [movieData.outputDirectory filesep 'SegmentationPackage' ... 
+defaultInDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' ... 
     filesep 'StepsToReconstruct'... 
     'VII_filopodiaBranch_fits']; 
 ip.addParameter('InputDirectory',defaultInDir,@(x) ischar(x)); 
@@ -19,12 +19,16 @@ ip.addParameter('InputDirectory',defaultInDir,@(x) ischar(x));
 ip.parse(varargin{:});
 p = ip.Results;
 %% Initiate
-load([defaultInDir filesep 'filoBranch.mat'])
+load([ip.Results.InputDirectory filesep 'filoBranch.mat'])
 
 
 for iFrame = 1:length(filoBranch)-1
+load([movieData.outputDirectory_ filesep .... 
+    'SegmentationPackage' filesep 'StepsToReconstruct' filesep ... 
+    'III_veilStem_reconstruction' filesep 'Channel_1' filesep 'veilStem.mat']);    
+    
 % extract the veil
-veilMask = filoBranch(iFrame).masks.neuriteEdge;
+veilMask = veilStem(iFrame).finalMask;
 % extract the img to feed into the function
 img = double(imread([movieData.getChannelPaths{1} filesep movieData.getImageFileNames{1}{iFrame}])); 
 % extract the filo info to read into the function 

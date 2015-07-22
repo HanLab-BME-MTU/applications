@@ -1,4 +1,4 @@
-function [ output_args ] = gcaMakeVeilStemMaskFolder( movieData)
+function [ output_args ] = gcaMakeVeilStemMaskFolder( movieData,movefile)
 %GCAMakeVeilStemMask
 % was makeNeuriteBodyMaskFolder until 2015067
 %
@@ -7,8 +7,13 @@ function [ output_args ] = gcaMakeVeilStemMaskFolder( movieData)
 % movieData
 %
 %
+if nargin<2
+    movefile=true; 
+end
 %% Move the old file
 source = [movieData.outputDirectory_ filesep 'masks' filesep 'masks_for_channel_1'];
+if movefile == true
+
 Global = [movieData.outputDirectory_ filesep 'GlobalThresholding'];
 if ~isdir(Global)
     mkdir(Global)
@@ -22,6 +27,7 @@ copyfile(source1,dest1);
 
 rmdir(source,'s');
 mkdir(source);
+end 
 %% Load the veilStemMasks and put them in the original thereshold folder
 %  until can re-adjust the input-output path workflow easier to keep them in
 %  the same format as the default - input output.

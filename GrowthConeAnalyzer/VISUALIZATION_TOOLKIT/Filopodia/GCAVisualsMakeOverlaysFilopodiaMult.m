@@ -200,12 +200,13 @@ for iType = typeStart:typeEnd
         
         clear  idxEnd pixIndicesPlot xycoordsEndFit
     end % isempty
-    
-    %plot the lower confidence filo
-    if   ~isempty(filoInfoOther)
-        [toPlotY,toPlotX]  =  arrayfun(@(x) ind2sub(imgSize,x.([toAdd{iType} 'pixIndicesBack'])),filoInfoOther,'uniformoutput',0);
-        for i = 1:numel(toPlotY)
-            plot(toPlotX{i}(:),toPlotY{i}(:),':','color',c(iType,:),'Linewidth',2);
+    if filterByFit  == 1
+        %plot the lower confidence filo
+        if   ~isempty(filoInfoOther)
+            [toPlotY,toPlotX]  =  arrayfun(@(x) ind2sub(imgSize,x.([toAdd{iType} 'pixIndicesBack'])),filoInfoOther,'uniformoutput',0);
+            for i = 1:numel(toPlotY)
+                plot(toPlotX{i}(:),toPlotY{i}(:),':','color',c(iType,:),'Linewidth',2);
+            end
         end
     end
 end

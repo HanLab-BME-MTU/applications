@@ -1,7 +1,9 @@
-function [ output_args ] = GCAVisualsPlotFilopodiaPerBranchGroup(filoInfo,imgSize)
+function [ output_args ] = GCAVisualsPlotFilopodiaPerBranchGroup(filoInfo,imgSize,groupLabels)
 %GCAVisualsPlotFilopodiaPerBranchGroup
-
+if  (nargin<3 || isempty(groupLabels)) 
 groupLabels = unique(vertcat(filoInfo.groupCount),'stable');
+end 
+
 n = length(groupLabels);
 c = linspecer(n);
 % c = colormap(jet(n));
@@ -14,7 +16,7 @@ hold on
 % for each group plot the xy coords of all the filo in that group
 for iGroup = 1:length(groupLabels)
     groupLabelsAll = vertcat(filoInfo.groupCount);
-    clusterC =  filoInfo(groupLabelsAll == iGroup);
+    clusterC =  filoInfo(groupLabelsAll == groupLabels(iGroup));
     GCAVisualsMakeOverlaysFilopodia(clusterC,imgSize,1,1,c(iGroup,:),0);
     %arrayfun(@(x) plot(x.Ext_coordsXY(:,1),x.Ext_coordsXY(:,2),'color', c(iGroup,:),'Linewidth',2),clusterC);
     % clusterInt = clusterC;
