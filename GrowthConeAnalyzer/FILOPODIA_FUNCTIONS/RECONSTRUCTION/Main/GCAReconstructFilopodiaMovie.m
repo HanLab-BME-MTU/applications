@@ -201,7 +201,7 @@ for iCh = 1:nChan
     end % ~isempty(idxProt)
     
     %% Start Movie Loop %%%%
-    for iFrame = startFrame:endFrame
+    for iFrame = startFrame:endFrame-1
         % Load image
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;

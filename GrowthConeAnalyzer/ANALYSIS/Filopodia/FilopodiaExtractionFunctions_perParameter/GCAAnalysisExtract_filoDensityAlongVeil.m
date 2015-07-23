@@ -1,4 +1,4 @@
-function [ densitiesCell] = GCAAnalysisExtract_filoDensityAlongVeil( analInfo,filoFilterSet )
+function [ densitiesCell] = GCAAnalysisExtract_filoDensityAlongVeil( analInfo,filoFilterSet, veilStem )
 %
 %mkPlot = 1;
 densitiesCell = cell(length(analInfo)-1,1);
@@ -7,10 +7,10 @@ for iFrame = 1:length(analInfo) -1
     % get filopodia 
    
     
-  
+ 
     
     % get masks 
-    neuriteMask = analInfo(iFrame).masks.neuriteEdge;
+    neuriteMask = veilStem(iFrame).finalMask;
     
     % sort pixels
     [ny,nx] = size(neuriteMask);

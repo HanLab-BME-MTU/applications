@@ -377,6 +377,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     moreVeilStemNodes = sum(floatingBodyIdxCC);
     if  moreVeilStemNodes == 0 ;
         veilStem(iFrame).rmHiIntPieces = [];
+        moreVeilStemNodes = 1; 
     end
     %%    If there are more have it enter the reconstruct...
     if moreVeilStemNodes > 0
@@ -406,10 +407,13 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             %% TSMovie : Exploring paths 
             if ip.Results.TSMovie == 1
+                TSFigs1(countFigs).h= setFigure(nx,ny,'on');
+                TSFigs1(countFigs).name = 'Explore Paths'; 
                 [yBack,xBack]=  ind2sub([ny,nx],pixRidgeConn);
                 scatter(xBack,yBack,10,'r','filled') % 'color','r','linewidth',2);
                 text(5,35,'Explore New Ridge Paths','color','r','Fontsize',10);
-                saveas(gcf,[saveDirMov filesep '03.png']);
+              
+                countFigs = countFigs+1; 
             end
             
             %% NOTE: 20150508 LIKELY REMOVE COMPLETELY Try to bridge small gaps in seed with with other nearby ridges/BodyCCs
