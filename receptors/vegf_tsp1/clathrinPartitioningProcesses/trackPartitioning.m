@@ -90,7 +90,7 @@ yMax = MD_tracks.imSize_(1);
 isSingleFrame = MD_struct.nFrames_ == 1;
 %% Partitioning Analysis
 %calls function that does partititoning analysis
-partitionResult = trackPartitioning_StandAlone(tracks, mask, xMax, yMax, isSingleFrame);
+partitionResult = trackPartitioning_StandAlone(tracks, mask, MD_tracks.getROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', parameter.scrambleTracks); %#ok<NASGU>
 %% Saving
 save(outFilePaths{1,channel_tracks},'partitionResult');
 MD_struct.save;
