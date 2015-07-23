@@ -321,29 +321,7 @@ if ~isempty(E)
         
         
     end % ip.Results
-    
-    %%
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        
     %% Filter for long distance links by geometry
     idxFilt = (d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=ip.Results.GeoThresh | dotProd12' <=ip.Results.GeoThresh)); % could potentially make the linearity threshold
     ERemove = E(idxFilt,:);
@@ -419,7 +397,6 @@ if ip.Results.TSOverlays == true;
         hold on
     end
     
-    
     scatter(endPoints1KD(:,1),endPoints1KD(:,2),5,'b','filled');
     scatter(endPoints2KD(:,1),endPoints2KD(:,2),5,'b','filled');
     
@@ -490,27 +467,12 @@ if ip.Results.TSOverlays == true;
         
     end % ip.Results.
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+      
 end % ip.Results.
-
-
-
 
 %%
 if ~isempty(E) %check if there are reasonable edges
     % make sure to make d so that minimum d are favored
-    
-    
     
     costTotal = d + dotProd12' + dotProd21'; % again this cost need to be refined a bit
     
@@ -549,9 +511,7 @@ if ~isempty(links) % nothing that falls under this criteria
     %         linkMaskIndCheck(links(iLink,2),links(iLink,1))=1;
     %
     %         end
-    
-    
-    
+       
     linkMask(idxLinks) = 1;
     candidateMaskNew = (candidateMask| linkMask);
     % Fix the label mat to unite those pixels that need to be clustered
@@ -650,8 +610,6 @@ if ~isempty(links) % nothing that falls under this criteria
         % sanity check
         [yCand,xCand] = cellfun(@(x) ind2sub([ny,nx],x),pixIdxPostConnect,'uniformoutput',0);
         
-        
-        
         for x = 1:nLabels
             scatter(EPsPostConnect{x}(:,1),EPsPostConnect{x}(:,2),50,cmap(x,:),'filled');
             scatter(xCand{x},yCand{x},20,cmap(x,:),'filled');
@@ -665,21 +623,16 @@ if ~isempty(links) % nothing that falls under this criteria
         
         shared(idxSingle) = [];
         
-        
-        
         [yShare,xShare] = ind2sub([ny,nx],shared);
         scatter(xShare,yShare,10,'w');
         countFigs = countFigs+1;
     end
-    
-    
+     
     status = 1; % there were links
 else
     candidateMaskNew = candidateMask;
     %labelMatPostConnect = labelMat;
     status = 0; % no links
-    
-    
-    
+
 end
 

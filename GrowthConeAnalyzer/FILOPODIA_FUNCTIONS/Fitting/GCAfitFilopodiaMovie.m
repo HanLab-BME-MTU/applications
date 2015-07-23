@@ -75,15 +75,15 @@ ip.addParameter('ValuesForFit','Intensity',@(x) ischar(x)); % maybe remove
 ip.addParameter('PSFSigma',0.43,@(x) isnumeric(x)) ; %% NOTE CHANGE THIS TO BE READ IN FROM MD. 
 
 ip.parse(varargin{:});
-p = ip.Results;
+params = ip.Results;
  %% Initiate
 nFrames = movieData.nFrames_;
-nChan = numel(p.ChannelIndex);
+nChan = numel(params.ChannelIndex);
 imSize = movieData.imSize_;
 
 
 %% Start Wrapper
-for iCh = 1:numel(p.ChannelIndex)
+for iCh = 1:numel(params.ChannelIndex)
     
     
     display(['Fitting Filopodia for Channel ' num2str(iCh)]);
@@ -100,10 +100,10 @@ for iCh = 1:numel(p.ChannelIndex)
         mkdir(outDirC);
     end
     
-    if p.ProcessIndex == 0
-        imgDir =  movieData.channels_(p.ChannelIndex).channelPath_; % currently mainly needed if you do the local thresholding/ otherwise just overlay
+    if params.ProcessIndex == 0
+        imgDir =  movieData.channels_(params.ChannelIndex).channelPath_; % currently mainly needed if you do the local thresholding/ otherwise just overlay
     else
-        imgDir = movieData.proccesses_(p.ProcessIndex).outFilePaths_{p.ChannelIndex};
+        imgDir = movieData.proccesses_(params.ProcessIndex).outFilePaths_{params.ChannelIndex};
     end
     
     % collect images and initiate
@@ -122,7 +122,7 @@ for iCh = 1:numel(p.ChannelIndex)
         display('Loading Previously Run Fits');
         if strcmpi(ip.Results.StartFrame,'auto')
              startFrame = find(arrayfun(@(x) ~isfield(filoBranch(x).filoInfo, 'Ext_exitFlag')...
-                ,1:length(analInfo)),1,'first')-1;
+                ,1:length(filoBranch)),1,'first')-1;
           
             if startFrame == 0
                 startFrame = 1; % reset to 1;
@@ -144,9 +144,9 @@ for iCh = 1:numel(p.ChannelIndex)
     end % exist fitFile
     
     % if restarting add saved parameters 
-%     if startFrame ~= 1 
-%         load([outDirC filesep 'params.mat']); 
-%     end 
+     if startFrame ~= 1 
+         load([outDirC filesep 'params.mat']); 
+     end 
     
     
     if strcmpi(ip.Results.EndFrame,'auto');
@@ -159,10 +159,10 @@ for iCh = 1:numel(p.ChannelIndex)
    
     %% Start Loop Over Movie
     % GET FRAME INFORMATION - this function wraps per frame
-    for iFrame = startFrame:endFrame
+    for iFrame = startFrame:endFrame-1
         % get the filoInfo for the current frame
         filoInfo = filoBranch(iFrame).filoInfo;
-        imgPath = [movieData.getChannelPaths{p.ChannelIndex(iCh)} filesep movieData.getImageFileNames{p.ChannelIndex(iCh)}{iFrame}];
+        imgPath = [movieData.getChannelPaths{params.ChannelIndex(iCh)} filesep movieData.getImageFileNames{params.ChannelIndex(iCh)}{iFrame}];
         img = double(imread(imgPath));
         % make a specific output directory for the plotting for each frame
 %         pSpecific = p;
@@ -173,11 +173,11 @@ for iCh = 1:numel(p.ChannelIndex)
 %         end
 %         if pSpecific.SavePlots == 1
         if ip.Results.TSOverlays == 1
-             p.OutputDirectory = [outDirC filesep 'Linescans' filesep 'Frame ' num2str(iFrame,'%03d')];
-             mkClrDir(p.OutputDirectory)
+             params.OutputDirectory = [outDirC filesep 'Linescans' filesep 'Frame ' num2str(iFrame,'%03d')];
+             mkClrDir(params.OutputDirectory)
         end
         
-        [filoInfo] = GCAfitFilopodiaFix(filoInfo,img,p) ;
+        [filoInfo] = GCAfitFilopodia(filoInfo,img,params) ;
         
         
         
@@ -185,12 +185,13 @@ for iCh = 1:numel(p.ChannelIndex)
         
         % rewrite the filoInfo with the extra filo Info fields.
         filoBranch(iFrame).filoInfo = filoInfo;
-        display(['Finished Fitting Filopodia for  Channel ' num2str(p.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]);
+        display(['Finished Fitting Filopodia for  Channel ' num2str(params.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]);
         filoBranch(iFrame).reconstructInfo.createTimeFiloFit = clock;
         hashTag = gcaArchiveGetGitHashTag;
         filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
-        
+        p(iFrame) = params; 
         save([outDirC filesep 'filoBranch.mat'],'filoBranch','-v7.3')
+        save([outDirC filesep 'params.mat'],'p'); 
         
     end % for iFrame
 end % for iCh

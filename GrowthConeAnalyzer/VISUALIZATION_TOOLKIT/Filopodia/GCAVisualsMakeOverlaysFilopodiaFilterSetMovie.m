@@ -83,8 +83,10 @@ for iCh = 1:numel(nChannels)
     listOfNames = movieData.getImageFileNames{iCh};
     
     %% LOAD SEGMENTATION INFO
-    load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(iCh)...
-        filesep 'analInfoTestSave.mat']);
+%     load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(iCh)...
+%         filesep 'analInfoTestSave.mat']);
+
+
     %% LOAD FILOPODIA FILTER INFO (IF DESIRED)
     if ~isempty(paramsIn.filterSetFile)
         % load the filter set

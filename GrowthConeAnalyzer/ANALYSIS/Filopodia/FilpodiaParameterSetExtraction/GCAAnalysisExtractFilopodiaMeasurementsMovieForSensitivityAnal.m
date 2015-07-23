@@ -1,4 +1,4 @@
-function [ output_args ] = GCAAnalysisExtractFilopodiaMeasurementsMovieBranchScan(movieData,varargin)
+function [ output_args ] = GCAAnalysisExtractFilopodiaMeasurementsMovieForSensitivityAnal(movieData,varargin)
 %GCAAnalysisExtractFilopodiaParamsMovie
 %   This function makes the default filopodia filter sets and extracts all
 %   default filopodia parameters
@@ -45,6 +45,11 @@ ip.CaseSensitive = false;
 defaultOutDir = [movieData.outputDirectory_ filesep...
    'GCAMeasurementExtraction' filesep 'WholeNeurite' ];
 
+defaultInDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' ... 
+    filesep 'StepsToReconstruct'... 
+    'VII_filopodiaBranch_fits']; 
+    
+ip.addParameter('InputDirectory',defaultInDir,@(x) ischar(x)); 
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
 ip.addParameter('ChannelIndex',1);
 ip.addParameter('ProcessIndex',0);
@@ -55,117 +60,107 @@ p = ip.Results;
 nFrames = movieData.nFrames_;
 nChan = numel(p.ChannelIndex);
 channels = p.ChannelIndex;
+
+
 %% Loop for each channel
 for iCh = 1:nChan
     
     %% Load the segmenatation analysis
     display('Please Be Patient This File Takes a While to Load...');
-    load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(channels(iCh)) filesep 'analInfoTestSave.mat']);
-    display('Finished Loading');
+    %load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(channels(iCh)) filesep 'analInfoTestSave.mat']);
+    load([ip.Results.InputDirectory filesep 'filoBranch.mat'])
     
-    
+    display('Finished Loading'); 
     
     % Check to make sure everything run completely eventually will just look at
     % the movieData process.
-    for iFrame = 1:numel(analInfo) -1
-        filoInfo = analInfo(iFrame).filoInfo;
+    for iFrame = 1:numel(filoBranch) -1
+        filoInfo = filoBranch(iFrame).filoInfo;
         % arrayfun(@(x)
         % test if the field associated with endpoint coordinate is empty
         % 1 if missing fits 0 if not
         missingFits(iFrame,1)= sum(arrayfun(@(x) isempty(x.Ext_endpointCoordFitPix),filoInfo));
     end
-    if sum(missingFits) ==0  % continue all is ok
+     if sum(missingFits) ==0  % continue all is ok 
+%         %% Set Up 'ConnectToVeil_LengthInt' Filopodia Filter Analysis Structure
+%         % Each analInput Structure specifies the filo filter type,
+%         % the param functions that need to be called, and the descriptive parameter name
+%         
+%         analInput(1).filterType = 'ConnectToVeil_LengthInt'; %
+%         
+%         % Length To Veil
+%         analInput(1).paramFunc{1} = 'filoLength'; % % function ID
+%         analInput(1).paramName{1} = 'filoLengthToVeil'; % paramName-
+%         analInput(1).paramInput{1} = 'Ext_';
+%                
+%         %% Set up ConnectToVeil_DensityOrient Filter Type
+%         analInput(2).filterType = 'ConnectToVeil_DensityOrient';
+%    
+%         % % Density
+%         analInput(2).paramFunc{1} = 'filoDensityAlongVeil';
+%         analInput(2).paramName{1} = 'filoDensityAlongVeil';
+%         analInput(2).paramInput{1} = [];
+%   
+%         %% Branch 2nd Order : Intensity and Length
+%         analInput(3).filterType = 'Branch2ndOrder_LengthInt';
+%         %
+%         analInput(3).paramFunc{1} = 'filoLength';
+%         analInput(3).paramName{1} = 'branch2ndOrder_Length';
+%         analInput(3).paramInput{1} = 'Ext_';
+%         
+%         analInput(3).paramFunc{2} = 'branchDistance';
+%         analInput(3).paramName{2} = 'branchDistanceFromVeil';
+%         analInput(3).paramInput{2} = [];
+%         
+%         %%  analInput(3).filterType = 'Branch3rdOrder_LengthInt';
+%         analInput(4).filterType = 'Branch3rdOrder_LengthInt';
+%         analInput(4).paramFunc{1} = 'filoLength';
+%         analInput(4).paramName{1} = 'branch3rdOrder_Length';
+%         analInput(4).paramInput{1} = 'Ext_';
+%         
+%         analInput(4).paramFunc{2} = 'branchDistance';
+%         analInput(4).paramName{2} = 'branchDistanceFromJunction';
+%         analInput(4).paramInput{2} = [];
+%         %% analInput(5)
+%         analInput(5).filterType = 'Branch2ndOrder_Density'; %reqires type N =2 and N = 1 and fit filter 
+%         analInput(5).paramFunc{1} = 'filoDensityAlongBranch'; 
+%         analInput(5).paramInput{1} = []; % func doesn't require input    
         
-        
-        
-        %% Set Up 'ConnectToVeil_LengthInt' Filopodia Filter Analysis Structure
-        % Each analInput Structure specifies the filo filter type,
-        % the param functions that need to be called, and the descriptive parameter name
-        
-        analInput(1).filterType = 'ConnectToVeil_LengthInt'; %
-        
-        % Length To Veil
-        analInput(1).paramFunc{1} = 'filoLength'; % % function ID
-        analInput(1).paramName{1} = 'filoLengthToVeil'; % paramName-
-        analInput(1).paramInput{1} = 'Ext_';
-        
-        % Length Embedded
-        analInput(1).paramFunc{2} = 'filoLength';
-        analInput(1).paramName{2} = 'filoLengthEmbedded';
-        analInput(1).paramInput{2} = 'Int_';
-        
-        % Total Length Actin Bundle
-        analInput(1).paramFunc{3} = 'filoLength';
-        analInput(1).paramName{3} = 'filoLengthFullActinBundle';
-        analInput(1).paramInput{3} = 'Tot';
-        
-        % Intensity To Veil
-        analInput(1).paramFunc{4} = 'filoAvgIntensity'; % function ID
-        analInput(1).paramName{4} = 'filoIntensityToVeil'; % paramName for output
-        analInput(1).paramInput{4} = 'Ext'; % other information for function
-        
-        % Intensity Embed
-        analInput(1).paramFunc{5} = 'filoAvgIntensity';
-        analInput(1).paramName{5} = 'filoIntensityEmbedded';
-        analInput(1).paramInput{5}  = 'Int';
-        
-        
-        
-        %% Set up ConnectToVeil_DensityOrient Filter Type
-        analInput(2).filterType = 'ConnectToVeil_DensityOrient';
-        %
-        % % Orientation
-        analInput(2).paramFunc{1} = 'filoOrient';
-        analInput(2).paramName{1} = 'filoOrient';
-        analInput(2).paramInput{1} = [];
-        %
-        % % Density
-        analInput(2).paramFunc{2} = 'filoDensityAlongVeil';
-        analInput(2).paramName{2} = 'filoDensityAlongVeil';
-        analInput(2).paramInput{2} = [];
-        
-        % Curvature 
-        analInput(2).paramFunc{3} = 'filoCurvature'; 
-        analInput(2).paramName{3} = 'filoCurvature'; 
-        analInput(2).paramInput{3} = []; 
-        %% Branch 2nd Order : Intensity and Length 
-        analInput(3).filterType = 'Branch2ndOrder_LengthInt'; 
-        % 
-        analInput(3).paramFunc{1} = 'filoLength';
-        analInput(3).paramName{1} = 'branch2ndOrder_Length';
-        analInput(3).paramInput{1} = 'Ext_'; 
-        
-        analInput(3).paramFunc{2} = 'filoAvgIntensity'; 
-        analInput(3).paramName{2} = 'branch2ndOrder_Intensity';
-        analInput(3).paramInput{2} = 'Ext';
-        
-        
-        %% Branch 2nd Order : Orient and Density
-       
-        
-        
-        
-        %%  analInput(3).filterType = 'Branch3rdOrder_LengthInt'; 
-        analInput(4).filterType = 'Branch3rdOrder_LengthInt';
-        analInput(4).paramFunc{1} = 'filoLength';
-        analInput(4).paramName{1} = 'branch3rdOrder_Length';
-        analInput(4).paramInput{1} = 'Ext_'; 
-        
-        analInput(4).paramFunc{2} = 'filoAvgIntensity'; 
-        analInput(4).paramName{2} = 'branch3rdOrder_Intensity';
-        analInput(4).paramInput{2} = 'Ext';
-        
+%% TEST 
+% Key parameters for scan 
+%% Branch Density : 2nd Order 
+analInput(1).filterType = 'Branch2ndOrder_Density';
+analInput(1).paramFunc{1} = 'filoDensityAlongBranch';
+analInput(1).paramName{1} = 'filoDensityAlongBranch_2ndOrder';
+analInput(1).paramInput{1} = [];
 
-        analInput(4).paramFunc{3} = 'filoCurvature'; 
-        analInput(4).paramName{3} = 'filoCurvature'; 
-        analInput(4).paramInput{3} = []; 
-        
+%% Branch Length : 2nd Order 
+analInput(2).filterType = 'Branch2ndOrder_LengthInt';
+analInput(2).paramFunc{1} = 'filoLength'; 
+analInput(2).paramName{1} = 'filoBranchLength_2ndOrder';
+analInput(2).paramInput{1} = 'Ext_'; 
+
+%% Length Filo Veil : 
+analInput(3).filterType =   'ConnectToVeil_LengthInt';
+analInput(3).paramFunc{1} = 'filoLength'; % % function ID
+analInput(3).paramName{1} = 'filoLengthToVeil'; % paramName-
+analInput(3).paramInput{1} = 'Ext_';
+
+%% Density Filo Veil  
+analInput(4).filterType = 'ConnectToVeil_DensityOrient';
+analInput(4).paramFunc{1} = 'filoDensityAlongVeil';
+analInput(4).paramName{1} = 'filoDensityAlongVeil';
+
+load([movieData.outputDirectory_ filesep 'SegmentationPackage' filesep ...
+    'StepsToReconstruct' filesep 'III_veilStem_reconstruction' filesep 'Channel_1'...
+    filesep 'veilStem.mat']);
+analInput(4).paramInput{1} = veilStem ; 
+
         %% Wrap through for each analysis type
         for iAnalType = 1:length(analInput);
             
             % get the filopodia filter for analInput
-            [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSet(analInfo,analInput(iAnalType).filterType);
-            
+            [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSet(filoBranch,analInput(iAnalType).filterType);
             
             % Make the Respective Folders: HAVE TO FIX THE ORGANIZATION
             % HERE TO CHECK FOR THE INDIVIDUAL FOLDERS 
@@ -194,10 +189,11 @@ for iCh = 1:nChan
                 % for that parameter
                 paramFuncC = str2func(['GCAAnalysisExtract_' analInput(iAnalType).paramFunc{iParamExtract}]);
                 inputC =  analInput(iAnalType).paramInput{iParamExtract};
+              
                 if ~isempty(inputC)
-                    paramC =  paramFuncC(analInfo,filoFilterSet, inputC);
+                    paramC =  paramFuncC(filoBranch,filoFilterSet, inputC);
                 else
-                    paramC = paramFuncC(analInfo,filoFilterSet);
+                    paramC = paramFuncC(filoBranch,filoFilterSet);
                 end
                 % Make the output directory: Each extraction has its own folder for now so have a place to
                 % save associated plots and movies- will collect in a later step

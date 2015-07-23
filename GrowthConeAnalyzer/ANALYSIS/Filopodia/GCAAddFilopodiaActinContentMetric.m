@@ -28,7 +28,7 @@ veilMaskMinusFilo = (veilMask-maskIntFilo);
 veilIntensityValues = imgFilt(logical(veilMaskMinusFilo));
 avgVeilIntensity = mean(veilIntensityValues(:)); % normalization factor 
 %%
-sanityCheck = 1; 
+sanityCheck = 0; 
 if sanityCheck == 1 
     setFigure(nx,ny,'on'); 
     imshow(imgFilt,[]); 

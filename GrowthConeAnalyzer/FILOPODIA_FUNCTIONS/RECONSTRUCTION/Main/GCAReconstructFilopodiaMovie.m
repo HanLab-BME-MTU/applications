@@ -120,27 +120,29 @@ for iCh = 1:nChan
     reconstructFile = [outDir filesep 'filoBranch.mat'];
     
     % If file exists
-   %  if  exist(reconstructFile,'file')==2;
-  %      load(reconstructFile) % load the file
-%         display('Loading Previously Run Filopodia Reconstructions ');
-%         if strcmpi(p.startFrame,'auto')
-%             startFrame = numel(analInfo)-1;
-%             if startFrame == 0
-%                 startFrame = 1; % reset to 1;
-%             end
-%             display(['Auto Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
-%         else
-%             startFrame = p.restart.startFrame; % use user input
-%             display(['Manual Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
-%         end
-%     else % if doesn't exist
-%         startFrame = 1;
-%         display('No Filopodia Reconstruction Folder Found: Creating and Starting at Frame 1');
-%         
-%     end % exist(orientFile,'file') == 2
+    if  exist(reconstructFile,'file')==2;
+       load(reconstructFile) % load the file
+        display('Loading Previously Run Filopodia Reconstructions ');
+        if strcmpi(params.StartFrame,'auto')
+            startFrame = numel(filoBranch)-1;
+            if startFrame == 0
+                startFrame = 1; % reset to 1;
+            end
+            display(['Auto Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
+        else
+            startFrame = params.StartFrame; % use user input
+            display(['Manual Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
+        end
+    else % if doesn't exist
+        startFrame = 1;
+        display('No Filopodia Reconstruction Folder Found: Creating and Starting at Frame 1');
+        
+    end % exist(orientFile,'file') == 2
     
-    
-    startFrame = params.StartFrame;
+      if startFrame ~= 1 
+         load([outDir filesep 'params.mat']); 
+     end 
+   % startFrame = params.StartFrame;
     
     
     if strcmpi(params.EndFrame,'auto');
@@ -199,7 +201,7 @@ for iCh = 1:nChan
     end % ~isempty(idxProt)
     
     %% Start Movie Loop %%%%
-    for iFrame = startFrame:endFrame
+    for iFrame = startFrame:endFrame-1
         % Load image
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;
@@ -271,6 +273,7 @@ close all
         % quick fix for the plots is to just make the frame number an input for not 20140812
         hashTag =  gcaArchiveGetGitHashTag;
         filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+        filoBranchC.timeStamp = clock; 
         filoBranch(iFrame) = filoBranchC;
         p(iFrame) = params; 
         save( [outDir filesep 'filoBranch.mat'], 'filoBranch','-v7.3');

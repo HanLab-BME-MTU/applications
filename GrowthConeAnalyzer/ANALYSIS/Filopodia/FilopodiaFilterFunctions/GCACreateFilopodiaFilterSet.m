@@ -58,14 +58,13 @@ switch filterType
         filterParams.filterByBundleLength = [0.2, inf];
         filterParams.saveFiloByLengthAndSig = [];
         
-    case 'Branch2ndOrder_DensityOrient';
-        filterParams.filoTypes = 2; % 0 order attached to veil (no Branch), 1st order attached to a veil with a branch
+    case 'Branch2ndOrder_Density'; % WORKING 
+        filterParams.filoTypes = [0,1,2]; % 1st order attached to a veil with a branch, 2 branch 
         filterParams.filterByFit = 1;
         filterParams.filterByBundleLength = [0.2,inf];
-        
-        filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
-        
-        
+        %filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
+        filterParams.saveFiloByLengthAndSig = []; 
+          
     case 'Branch3rdOrder_LengthInt';
         filterParams.filoTypes = 3;
         filterParams.filterByFit = 1;
