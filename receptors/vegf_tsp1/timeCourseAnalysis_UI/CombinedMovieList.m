@@ -81,12 +81,12 @@ classdef CombinedMovieList < MovieObject
         end
         %delete
         function deleteML(obj, index)
-            mask = true(1,numel(nML));
+            mask = true(1,numel(obj.movieListDirectory_));
             mask(index) = false;
             obj.movieListDirectory_ = obj.movieListDirectory_(mask);
             %obj.alignIndx_ = obj.alignIndx_(mask);
             %obj.relTime_ = obj.relTime_(mask);
-            obj.relativeTimeZero_ = obj.relativeTimeZero_(mask);
+            %obj.relativeTimeZero_ = obj.relativeTimeZero_(mask);
         end
     end
     %% Loading, Saving, and SanityCheck
@@ -117,16 +117,20 @@ classdef CombinedMovieList < MovieObject
             end
             % Call the superclass sanityCheck
             sanityCheck@MovieObject(obj, varargin{:});
-            iML = 0;
             nML = numel(obj.movieListDirectory_);
-            printLength = fprintf('Loading Movie Lists\n');
+            progressText_Increment('Loading Movie Lists', nML)
             if suppressPrinting
-                evalc('obj.movieLists_ = cellfun(@MovieList.load, obj.movieListDirectory_, ''UniformOutput'', false);');
+                for iML = 1:nML
+                    evalc('ML(iML) = MovieList.load(obj.movieListDirectory_{iML});');
+                    progressText_Increment();
+                end
             else
-                obj.movieLists_ = cellfun(@MovieList.load, obj.movieListDirectory_, 'UniformOutput', false);
+                for iML = 1:nML
+                    ML(iML) = MovieList.load(obj.movieListDirectory_{iML});
+                    progressText_Increment();
+                end
             end
-            fprintf(repmat('\b',1,printLength));
-            obj.movieLists_ = [obj.movieLists_{:}];
+            obj.movieLists_ = ML;
         end
     end
     methods(Static)
