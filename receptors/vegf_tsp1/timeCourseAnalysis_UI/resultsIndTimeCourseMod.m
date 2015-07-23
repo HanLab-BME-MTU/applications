@@ -4,28 +4,12 @@ function [caseResSummary] = resultsIndTimeCourseMod(ML, saveFile)
 %SYNOPSIS [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam)
 %
 %INPUT  ML       : MovieList object containing all movies, either all
-%                  belonging to one timecourse, or potentially belonging
-%                  to multiple timecourses. The number of timecourses is
-%                  indicated in the next variable.
-%       caseParam: Structure array with number of entries = number of
-%                  timecourses among which the movies will be divided. For
-%                  each time course, it contains the following fields:
-%           .indx    : Indices of movies in ML belonging to this
-%                      timecourse.
-%           .timeList: The time point of each movie, with order following
-%                      the movie order in ML.
-%           .name    : Case name, to be used in naming output variables.
-%           .indx0min: Index of movie to be considered at time 0, e.g. when
-%                      a ligand is added. If > 1, movies before will have a
-%                      negative relative time, movies after wil have a
-%                      positive relative time. If 1, relative time and
-%                      absolute time are the same.
+%                  belonging to one timecourse.
 %        saveFile: Logical that determines if this function saves a file.
 %                  The default is 'true'. 0 or 1 instead of true or false
 %                  will work.
 %    
-%OUTPUT caseTimeList  : 2-column vector indicating the movie times. Column 1
-%                       shows absolute time, Column 2 shows relative time.
+%OUTPUT 
 %       caseResSummary: Structure array storing various results for each
 %                       movie, ordered based on their time (corresponding
 %                       to caseTimeList). Contains the fields: 
