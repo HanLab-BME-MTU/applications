@@ -40,7 +40,7 @@ if isempty(emissionWL)
     end
     if userChoiceWL == 6
         emissionWL = [];
-        param.imageType_ = 'Brightfield';
+        param.imageType_ = '';
     end
 end
 %% MovieList creation part 1
