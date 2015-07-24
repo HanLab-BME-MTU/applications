@@ -90,9 +90,9 @@ yMax = MD_tracks.imSize_(1);
 isSingleFrame = MD_struct.nFrames_ == 1;
 %% Partitioning Analysis
 %get ROI mask
-iProcMask = MD.getProcessIndex('ImportCellMaskProcess',1,0); %cell mask
+iProcMask = MD_tracks.getProcessIndex('ImportCellMaskProcess',1,0); %cell mask
 if ~isempty(iProcMask)
-    ROIMask = imread(fullfile(MD.processes_{iProcMask}.funParams_.OutputDirectory,'cellMask_channel_1.tif'));
+    ROIMask = imread(fullfile(MD_tracks.processes_{iProcMask}.funParams_.OutputDirectory,'cellMask_channel_1.tif'));
 else
     ROIMask = true(yMax, xMax);
 end

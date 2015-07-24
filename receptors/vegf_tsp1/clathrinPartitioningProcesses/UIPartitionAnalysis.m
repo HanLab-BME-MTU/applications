@@ -26,6 +26,7 @@ ip.addParameter('scrambleTracks', false, @(x) islogical(x) || isnumeric(x));
 ip.parse(varargin{:});
 psfSigmaMult = ip.Results.psfSigmaMult;
 scrambleTracks = ip.Results.scrambleTracks;
+fprintf('Tracks will be scrambled');
 
 %% User prompt
 %ML for tracks

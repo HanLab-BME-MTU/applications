@@ -99,7 +99,7 @@ if saveData
     savefig(figObj, [path filesep name ' undetermined.fig']);
     close(figObj);
     %save data
-    save([path filesep name ' data.mat'], 'partFrac', 'meanPart');
+    save([path filesep name '_data.mat'], 'partFrac', 'meanPart');
 end
 
 end
