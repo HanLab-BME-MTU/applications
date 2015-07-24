@@ -98,6 +98,8 @@ receptorInfoAll = [];
 %error at at the end
 %receptorInfoLabeled = struct;
 timeIterArray = [];
+%assocStats = [];
+%collProbStats = [];
 
 %% Input
 
@@ -155,13 +157,6 @@ if isfield(modelParam,'labelRatio')
     labelRatio = modelParam.labelRatio;
 else
     disp('--receptorAggregationSimple: Please supply labeling ratio');
-    errFlag = 1;
-end
-
-if isfield(modelParam,'locError')
-    locError = modelParam.locError;
-else
-    disp('--receptorAgggregationSimple: Please supply localization error');
     errFlag = 1;
 end
 
@@ -714,8 +709,9 @@ receptorInfoAll = struct('receptorTraj',receptorTraj,'recept2clustAssign',...
 %% Receptor labeling and sub-sampling
 
 %KJ (150528): call function to label and sub-sample
-receptorInfoLabeled = genReceptorInfoLabeledError(receptorInfoAll,...
-    labelRatio,intensityQuantum,locError);
+receptorInfoLabeled = genReceptorInfoLabeled(receptorInfoAll,...
+    labelRatio,intensityQuantum);
+
 
 
 %% ~~~ the end ~~~

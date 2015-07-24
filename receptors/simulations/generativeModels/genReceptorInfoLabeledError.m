@@ -1,5 +1,5 @@
 function receptorInfoLabeled = genReceptorInfoLabeledError(receptorInfoAll,...
-    labelRatio,intensityQuantum,posError)
+    labelRatio,intensityQuantum,locError)
 %GENRECEPTORINFOLABELED sub-samples simulated receptor trajectories and outputs information for labeled subset, including compound tracks
 %
 %SYNPOSIS receptorInfoLabeled = genReceptorInfoLabeled(receptorInfoAll,...
@@ -42,7 +42,7 @@ clust2receptAssign = receptorInfoAll.clust2receptAssign;
 
 %09/05/14 (ryirdaw) - modified to allow a vector labelRatio
 %06/04/15 (pblaze) -modified to allow matrix labelRatio (i.e. multi-color)
-if isempty(labelRatio) 
+if isempty(labelRatio)
     labelRatio = 1;
 end
 
@@ -105,7 +105,7 @@ for lRindx=1:numSamples
         rng('shuffle')
         
         %06/04/15 (pblaze) iterate over all the colors in the sample
-        for color = 1:numColors
+        for color=1:numColors
             indxLabeled = find(labelFlag==color);
             indxNotLabeled = find(labelFlag~=color);
             
@@ -113,7 +113,7 @@ for lRindx=1:numSamples
             %06/05/15 (pblaze) include positional error with std of
             %posError along each dimension and keep within boundaries
             receptorTrajLabeled = receptorTraj(indxLabeled,:,:);
-            receptorTrajLabeled = receptorTrajLabeled + randn(size(receptorTrajLabeled))*posError;
+            receptorTrajLabeled = receptorTrajLabeled + randn(size(receptorTrajLabeled))*locError;
             
             %keep within boundaries
             correctionBoundaryLow = min(receptorTrajLabeled,0);
@@ -130,10 +130,10 @@ for lRindx=1:numSamples
             %Reset intensity values that are < epsilon to epsilon
             receptorIntensityLabeled(receptorIntensityLabeled < eps) = eps;
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+            
             %extract the cluster assignments of the labeled receptors
             recept2clustAssignLabeled = recept2clustAssign(indxLabeled,:);
-
+            
             %modify the cluster-to-receptor assignments to include only labeled
             %receptors
             clust2receptAssignLabeled = clust2receptAssign;
@@ -147,7 +147,7 @@ for lRindx=1:numSamples
             end
             %make sure that zeros come after receptor indices
             clust2receptAssignLabeled = sort(clust2receptAssignLabeled,2,'descend');
-
+            
             %remove empty clusters (which include unlabeled receptors)
             %modify receptor-to-cluster assignments accordingly
             for iIter = 1 : numIterSim
@@ -161,25 +161,25 @@ for lRindx=1:numSamples
                         ==indxFull(iFull),iIter) = iFull;
                 end
             end
-
+            
             %remove empty rows and columns from clust2receptAssign
             cluster2receptor = max(clust2receptAssignLabeled,[],3);
             columnSum = sum(cluster2receptor);
             clust2receptAssignLabeled = clust2receptAssignLabeled(:,columnSum~=0,:);
             rowSum = sum(cluster2receptor,2);
             clust2receptAssignLabeled = clust2receptAssignLabeled(rowSum~=0,:,:);
-
+            
             convTracksStartTime = tic;
-
+            
             %put labeled receptor trajectories and clusters into the format of the
             %output of trackCloseGapsKalman
             compTracksLabeled = convReceptClust2CompTracks(clust2receptAssignLabeled,...
                 recept2clustAssignLabeled,receptorTrajLabeled,receptorIntensityLabeled);
-
+            
             convTracksETime = toc(convTracksStartTime);
-            fprintf('\n============\nTime for convReceptClust2CompTracks sample %d, color %d is %g seconds. \n============\n',...
-                lRindx,color,convTracksETime);
-
+            fprintf('\n============\nTime for convReceptClust2CompTracks sample %d is %g seconds. \n============\n',...
+                lRindx,convTracksETime);
+            
             %put information in receptorInfoLabeled
             %09/05/14 (ryirdaw) - modified to allow a vector labelRatio
             %{
@@ -189,6 +189,7 @@ for lRindx=1:numSamples
                 'clust2receptAssign',clust2receptAssignLabeled,...
                 'compTracks',compTracksLabeled);
             %}
+            
             receptorInfoLabeled(nextColor).receptorTraj = receptorTrajLabeled;
             receptorInfoLabeled(nextColor).recept2clustAssign = recept2clustAssignLabeled;
             receptorInfoLabeled(nextColor).clust2receptAssign = clust2receptAssignLabeled;
@@ -198,12 +199,12 @@ for lRindx=1:numSamples
             
             nextColor = nextColor + 1;
         end
-      
+        
     else %if all receptors are labeled
         
         %09/05/14 (ryirdaw) - modified to allow a vector labelRatio
         %{
-        %original        
+        %original
         %copy receptor information from all to labaled
         receptorInfoLabeled = receptorInfoAll;
         %}
@@ -223,28 +224,28 @@ for lRindx=1:numSamples
         %Reset intensity values that are < epsilon to epsilon
         receptorIntensity(receptorIntensity < eps) = eps;
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+        
         convTracksStartTime = tic;
-
+        
         %put labeled receptor trajectories and clusters into the format of the
         %output of trackCloseGapsKalman
         compTracksLabeled = convReceptClust2CompTracks(clust2receptAssign,...
             recept2clustAssign,receptorTraj,receptorIntensity);
-
+        
         convTracksETime = toc(convTracksStartTime);
         fprintf('\n============\nTime for convReceptClust2CompTracks sample %d, color 1 is %g seconds. \n============\n',...
-                lRindx,convTracksETime);
-
+            lRindx,convTracksETime);
+        
         %09/05/14 (ryirdaw) - modified to allow a vector labelRatio
         %{
-        %original        
+        %original
         %store the new compound tracks with the labeling intensity
         receptorInfoLabeled.compTracks = compTracksLabeled;
         %}
         receptorInfoLabeled(nextColor).compTracks = compTracksLabeled;
         
         nextColor = nextColor + 1;
-
+        
     end %(if labelRatio < 1 ... else ...)
     
 end % for each labelRatio element
