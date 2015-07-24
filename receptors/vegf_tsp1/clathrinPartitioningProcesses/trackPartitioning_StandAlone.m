@@ -57,8 +57,8 @@ partitionResult = arrayfun(@partition, tracks);
             if scrambleTracks
                 x_mean = mean(x_all(~isnan(x_all)));
                 y_mean = mean(y_all(~isnan(y_all)));
-                x_all = x_all - x_mean + rand() * xMax;
-                y_all = y_all - y_mean + rand() * yMax;
+                x_all = x_all - x_mean + rand() * xMax + 0.5;
+                y_all = y_all - y_mean + rand() * yMax + 0.5;
             end
             %determine partition fraction-------------------
             nFramesTot = 0;
@@ -67,7 +67,7 @@ partitionResult = arrayfun(@partition, tracks);
             for iLoc = 1:nLoc
                 x = round(x_all(iLoc));
                 y = round(y_all(iLoc));
-                if x>0 && x<=xMax && y>0 && y<=yMax && ROIMask
+                if x>0 && x<=xMax && y>0 && y<=yMax && ROIMask(y, x)
                     nFramesTot = nFramesTot + 1;
                     if isSingleFrame
                         if mask(y,x)

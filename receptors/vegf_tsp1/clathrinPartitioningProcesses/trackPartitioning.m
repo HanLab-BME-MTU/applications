@@ -89,8 +89,15 @@ xMax = MD_tracks.imSize_(2);
 yMax = MD_tracks.imSize_(1);
 isSingleFrame = MD_struct.nFrames_ == 1;
 %% Partitioning Analysis
+%get ROI mask
+iProcMask = MD.getProcessIndex('ImportCellMaskProcess',1,0); %cell mask
+if ~isempty(iProcMask)
+    ROIMask = imread(fullfile(MD.processes_{iProcMask}.funParams_.OutputDirectory,'cellMask_channel_1.tif'));
+else
+    ROIMask = true(yMax, xMax);
+end
 %calls function that does partititoning analysis
-partitionResult = trackPartitioning_StandAlone(tracks, mask, MD_tracks.getROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', parameter.scrambleTracks); %#ok<NASGU>
+partitionResult = trackPartitioning_StandAlone(tracks, mask, ROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', parameter.scrambleTracks); %#ok<NASGU>
 %% Saving
 save(outFilePaths{1,channel_tracks},'partitionResult');
 MD_struct.save;
