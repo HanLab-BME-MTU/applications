@@ -1,4 +1,4 @@
-function [status,kOff,lifetimes] = estimateParameters(receptorInfoLabel,locError)
+function [states,kOff,lifetimes] = estimateParameters(receptorInfoLabel,locError)
 
 %ESTIMATEPARAMETERS estimates the binding state and kOff rate for a given set of trajectories
 %
@@ -17,7 +17,7 @@ function [status,kOff,lifetimes] = estimateParameters(receptorInfoLabel,locError
 %                            this for each time point and particle from the
 %                            observed data.
 %
-%OUTPUT status             : A structure array containing the binding
+%OUTPUT states             : A structure array containing the binding
 %                            status (1 = monomer, 2 = dimer) for pairs of
 %                            red and green particles
 %              .status     : This field holds all the statuses for each set
@@ -31,7 +31,10 @@ function [status,kOff,lifetimes] = estimateParameters(receptorInfoLabel,locError
 %                            this is a list of which red and which green
 %                            particle correspond to which set in the
 %                            .status field.
-%        kOff
+%        kOff              : Returns the estimated kOff rate
+%        lifetimes         : A vector with a sorted list of all the
+%                            individual lifetimes that were found in the
+%                            given data
 %
 %Code by Paul Blazek June 2015.
 
@@ -236,7 +239,7 @@ fprintf('\nkOff = %g\n',currOff/dT);
 
 %% Hidden Markov Model
 %get statuses for each good pair and store it in the structure status
-status(numSamples,1) = struct('status',[],'pairs',[]);
+states(numSamples,1) = struct('status',[],'pairs',[]);
 for s=1:numSamples
     rTraj = receptorInfoLabeled(2*s-1).receptorTraj; %for sample s
     gTraj = receptorInfoLabeled(2*s).receptorTraj; %for sample s
@@ -255,11 +258,11 @@ for s=1:numSamples
     end
     
     %store this information in the status output structure
-    status(s).status = sampleStatus;
-    status(s).pairs = goodPairs;
+    states(s).status = sampleStatus;
+    states(s).pairs = goodPairs;
 end
 
-[kOff,lifetimes] = getKOff(status,dT); %estimate kOff from the statuses
+[kOff,lifetimes] = getKOff(states,dT); %estimate kOff from the statuses
 fprintf('\nRecalculated kOff = %g\n',kOff); %print the estimated off rate
 
 
@@ -412,15 +415,15 @@ for s = 1:numSamples
             end
         end
     end
-    lifetimes = lifetimes(lifetimes>=minLifetime);
-    if  isempty(lifetimes)
+    cutoffLifetimes = lifetimes(lifetimes>=minLifetime);
+    if  isempty(cutoffLifetimes)
         continue
     end
         
     %this sets up the cumulative distribution function
-    cdf = zeros(length(lifetimes),2);
-    cdf(:,1) = sort(lifetimes);
-    cdf(:,2) = (1:length(lifetimes))/length(lifetimes);
+    cdf = zeros(length(cutoffLifetimes),2);
+    cdf(:,1) = sort(cutoffLifetimes);
+    cdf(:,2) = (1:length(cutoffLifetimes))/length(cutoffLifetimes);
     
     %The equation in this fit is the cumulative distribution of the length of
     %the measured times within a given viewing time frame. t is the tau (or
@@ -438,13 +441,16 @@ for s = 1:numSamples
     allLifetimes = [allLifetimes; lifetimes];
 end
 
+allLifetimes = sort(allLifetimes);
+cutoffAllLifetimes = allLifetimes(allLifetimes>=minLifetime);
+
 %get the ultimate kOff rate for the whole thing; if they all have the same
 %frame length, refit for all the lifetimes, otherwise take the geometric
 %mean for all the inidividually calculated kOff's
 if numSamples > 1
     if sum(abs(frames(2:end)-frames(1:end-1))) == 0 %if all sample same length
-        cdf = zeros(length(allLifetimes),2);
-        cdf(:,1) = sort(allLifetimes);
+        cdf = zeros(length(cutoffAllLifetimes),2);
+        cdf(:,1) = cutoffAllLifetimes;
         cdf(:,2) = (1:length(cdf))/length(cdf);
         f = fit(cdf(:,1),cdf(:,2),myfittype,options,'problem',{numFrames,minLifetime});
         kOff = 1/(f.t*dT);
