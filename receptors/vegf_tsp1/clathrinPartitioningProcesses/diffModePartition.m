@@ -33,6 +33,10 @@ function [partFrac, meanPart] = diffModePartition(ML, saveData)
 if saveData
     path = uigetdir('Select a directory for saving figures');
     name = input('What is the title?\n', 's');
+    %creates directory if doesn't exist
+    if ~exist(path, 'dir')
+        mkdir(path);
+    end
 end
 %Check input
 assert(isa(ML, 'MovieList'));

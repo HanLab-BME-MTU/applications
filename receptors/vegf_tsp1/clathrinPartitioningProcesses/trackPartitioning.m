@@ -97,9 +97,11 @@ else
     ROIMask = true(yMax, xMax);
 end
 %calls function that does partititoning analysis
-partitionResult = trackPartitioning_StandAlone(tracks, mask, ROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', parameter.scrambleTracks); %#ok<NASGU>
+partitionResult = trackPartitioning_StandAlone(tracks, mask, ROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', false); %#ok<NASGU>
+%do randomized control
+partitionControl = trackPartitioning_StandAlone(tracks, mask, ROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', true); %#ok<NASGU>
 %% Saving
-save(outFilePaths{1,channel_tracks},'partitionResult');
+save(outFilePaths{1,channel_tracks}, 'partitionResult', 'partitionControl');
 MD_struct.save;
 MD_tracks.save;
 end

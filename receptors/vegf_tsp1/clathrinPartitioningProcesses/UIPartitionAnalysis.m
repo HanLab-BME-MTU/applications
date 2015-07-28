@@ -12,7 +12,7 @@ function [] = UIPartitionAnalysis(varargin)
 %                                 of mask. radius = psfSigmaMult *
 %                                 pasfSigma. Part of maskDetectedStructure.
 %       'scrambleTracks'        : scrambles mean track position for control
-%                                 data set generation
+%                                 data set generation <Unused>
 %
 %Tae H Kim, July 2015
 
@@ -26,7 +26,9 @@ ip.addParameter('scrambleTracks', false, @(x) islogical(x) || isnumeric(x));
 ip.parse(varargin{:});
 psfSigmaMult = ip.Results.psfSigmaMult;
 scrambleTracks = ip.Results.scrambleTracks;
-fprintf('Tracks will be scrambled');
+if scrambleTracks
+    fprintf('Tracks will be scrambled\n');
+end
 
 %% User prompt
 %ML for tracks
@@ -73,7 +75,7 @@ for iMD = 1:nMD
     %track partitioning process--------------------------------------------
     %get default para
     trackPara = PartitionAnalysisProcess.getDefaultParams(ML_Mask.movies_{iMD}.outputDirectory_);
-    trackPara.scrambleTracks = scrambleTracks;
+    %trackPara.scrambleTracks = scrambleTracks;
     %call analysis function
     trackPartitioning(ML_Track.movies_{iMD}, ML_Mask.movies_{iMD}, trackPara);
     multipleProgressText();
