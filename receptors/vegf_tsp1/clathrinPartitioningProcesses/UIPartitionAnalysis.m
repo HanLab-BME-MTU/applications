@@ -64,7 +64,7 @@ end
 %}
 
 %% Partition Analysis
-multipleProgressText('Analyzing MD', nMD);
+progressTextMultiple('Analyzing MD', nMD);
 for iMD = 1:nMD
     %SubcellMaskProcess-------------------------------------------------------
     %get default para
@@ -78,7 +78,7 @@ for iMD = 1:nMD
     %trackPara.scrambleTracks = scrambleTracks;
     %call analysis function
     trackPartitioning(ML_Track.movies_{iMD}, ML_Mask.movies_{iMD}, trackPara);
-    multipleProgressText();
+    progressTextMultiple();
 end
 
 %% Save

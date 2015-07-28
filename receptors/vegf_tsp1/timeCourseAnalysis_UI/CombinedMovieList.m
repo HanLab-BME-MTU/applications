@@ -118,16 +118,16 @@ classdef CombinedMovieList < MovieObject
             % Call the superclass sanityCheck
             sanityCheck@MovieObject(obj, varargin{:});
             nML = numel(obj.movieListDirectory_);
-            progressText_Increment('Loading Movie Lists', nML)
+            progressTextMultiple('Loading Movie Lists', nML)
             if suppressPrinting
                 for iML = 1:nML
                     evalc('ML(iML) = MovieList.load(obj.movieListDirectory_{iML});');
-                    progressText_Increment();
+                    progressTextMultiple();
                 end
             else
                 for iML = 1:nML
                     ML(iML) = MovieList.load(obj.movieListDirectory_{iML});
-                    progressText_Increment();
+                    progressTextMultiple();
                 end
             end
             obj.movieLists_ = ML;
