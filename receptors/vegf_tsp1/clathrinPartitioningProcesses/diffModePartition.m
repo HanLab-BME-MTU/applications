@@ -35,6 +35,10 @@ function [result] = diffModePartition(ML, saveData)
 %       .meanCont       : control group eq of meanPart
 %       .weightCont     : control group eq of weightPart
 %       .wMeanPart      : control group eq of wMeanPart
+%       .KS             : p value obtained from two sample Kolmogorov-
+%                         Smirnov test between data and randomized control.
+%                         Smaller p means the null hypothesis (two data
+%                         sets are same) is rejected.
 %
 %Tae H Kim, July 2015
 
@@ -123,6 +127,13 @@ wMeanCont.free = sum(weightCont.free .* partCont.free, 'omitnan') ./ sum(weightC
 wMeanCont.directed = sum(weightCont.directed .* partCont.directed, 'omitnan') ./ sum(weightCont.directed);
 wMeanCont.undetermined = sum(weightCont.undetermined .* partCont.undetermined, 'omitnan') ./ sum(weightCont.undetermined);
 
+%% KS-test
+[~, KS.immobile] = kstest2(partFrac.immobile, partCont.immobile);
+[~, KS.confined] = kstest2(partFrac.confined, partCont.confined);
+[~, KS.free] = kstest2(partFrac.free, partCont.free);
+[~, KS.directed] = kstest2(partFrac.directed, partCont.directed);
+[~, KS.undetermined] = kstest2(partFrac.undetermined, partCont.undetermined);
+
 %% Combine Data
 %Combined all result into one structure
 result.partFrac = partFrac;
@@ -133,6 +144,7 @@ result.partCont = partCont;
 result.weightCont = weightCont;
 result.meanCont = meanCont;
 result.wMeanCont = wMeanCont;
+result.KS = KS;
 
 %% Plot and save
 if saveData
