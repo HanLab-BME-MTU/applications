@@ -395,6 +395,24 @@ if sum(testMatch) ~= 0 ;
          
          gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotCandAndSeed,128);
          text(10,5,'Score By Candidate Seed Geometry'); 
+         
+         
+         %% Response Normalized 
+         %
+         %
+         %
+         %% Size Normalized 
+         %
+         %
+         %
+         
+         
+         
+         
+         %% 
+         
+         
+         
          countFig = countFig+1;
      end 
     
@@ -484,8 +502,8 @@ if sum(testMatch) ~= 0 ;
     numberNodes = length(inputLinks) + length(candFiloNodes);
     %numberOfNodes = 98; 
     
-    
-   
+    %% Death Cost 
+    deathCost = prctile(costTotal ,25);
     
     
     
@@ -516,7 +534,7 @@ if ~isempty(EFinal)
         bar(center{1},n{1}/nPaths);
         xlabel('Cost Total');
         axis([ip.Results.geoThreshFiloBranch,3.5,0,maxYVal]);
-        
+        line([ deathCost, deathCost],[ 0 ,maxYVal],'color','r'); 
         
         subplot(5,1,2);
         
@@ -580,20 +598,39 @@ if ~isempty(EFinal)
         end
         countFig = countFig +1;
     end % ip.Results.TSOverlays
-        
+  
+    
+%% Add death cost to E : for every candidate add the non-link cost as a competing option. 
+% get the unique number of candidates. 
+candNodes = unique(EFinal(:,1));
+deathCosts = repmat(deathCost,1,length(candNodes))';
+% create a fake node that is the death node
+deathNodes = [numberNodes + 1:numberNodes+length(candNodes)]';
+toAdd = [candNodes deathNodes];
+EFinal = [EFinal;toAdd];
+costTotal = [costTotal;deathCosts];
+numberNodes = numberNodes + length(deathNodes);
+fillSeg = cell(1,length(deathNodes)) ;
+iSeg = [iSeg  fillSeg];
+filler = nan(length(candNodes),1); 
+deathMatE = [ candNodes filler filler deathCosts filler filler filler filler]; 
+E  = [E;deathMatE]; 
 %% Matching        
         M = maxWeightedMatching(numberNodes, EFinal, costTotal);
         % check for double labels
         % convertBack
         % E = [candFiloNodes(nodeLabels) inputLinks(nodeLabelsInput)]; % convert back to original indices of input and query points
         E = E(M,:);% get those edges that matched (from original indexing)
+        % take out nonlink candidates : keep in pool 
+        E = E(~isnan(E(:,2)),:); 
     end   % isempty
     
 %% Update the unmatched candidate list and prepare output
 
     if ~isempty(E) % might be empty now if all were repeats
-        pixIdxCandsUnMatched(E(:,1)) = []; % take out the matched candidates 
+        pixIdxCandsUnMatched(E(:,1))  = []; % take out the matched candidates 
         candFiloEPsUnMatched(E(:,1)) =[]; 
+        
         % add linear segments corresponding to linked endpoints
         % actually this gets me into trouble if really want to link
         % these effectively need to consider the fluorescence intensity
@@ -601,6 +638,9 @@ if ~isempty(EFinal)
         % it's a little stupid because we have some of this junction info
         % before the NMS but I throw it away
         goodConnect = iSeg(M);
+        idx =  cellfun(@(x) ~isempty(x),goodConnect);
+        goodConnect = goodConnect(idx); 
+        
         % convert to logical indexing 
         pixGoodConnect = cellfun(@(i) sub2ind(dims,i(:,2),i(:,1)), goodConnect,'uniformoutput',0);
         out(vertcat(pixGoodConnect{:}))= 1;
