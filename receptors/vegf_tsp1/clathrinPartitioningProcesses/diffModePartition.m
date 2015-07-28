@@ -67,7 +67,7 @@ end
 
 %% Analysis
 %progress display
-%multipleProgressText('analyzing MovieList', nMD);
+progressTextMultiple('analyzing MovieList', nMD);
 %deals out MovieData
 [partFrac_, weightPart_, partCont_, weightCont_] = cellfun(@analyzeMD, ML.movies_, 'UniformOutput', false);
 %combine output (partition fraction: experimental)
@@ -151,52 +151,52 @@ if saveData
     %Plot and save figures -------------------------------------------------------------------------------------------------------------------------------
     %immobile
     figObj = figure;
-    histogram(partFrac.immobile, 0:.05:1);
+    histogram(partFrac.immobile, 0:.05:1, 'Normalization', 'probability');
     hold on;
-    histogram(partCont.immobile, 0:.05:1);
+    histogram(partCont.immobile, 0:.05:1, 'Normalization', 'probability');
     title(['Partition Fraction Histogram: ' name ' immobile']);
     legend('data', 'randomized control');
     savefig(figObj, [path filesep name ' immobile.fig']);
     close(figObj);
     %confined
     figObj = figure;
-    histogram(partFrac.confined, 0:.05:1);
+    histogram(partFrac.confined, 0:.05:1, 'Normalization', 'probability');
     hold on;
-    histogram(partCont.confined, 0:.05:1);
+    histogram(partCont.confined, 0:.05:1, 'Normalization', 'probability');
     title(['Partition Fraction Histogram: ' name ' confined']);
     legend('data', 'randomized control');
     savefig(figObj, [path filesep name ' confined.fig']);
     close(figObj);
     %free
     figObj = figure;
-    histogram(partFrac.free, 0:.05:1);
+    histogram(partFrac.free, 0:.05:1, 'Normalization', 'probability');
     hold on;
-    histogram(partCont.free, 0:.05:1);
+    histogram(partCont.free, 0:.05:1, 'Normalization', 'probability');
     title(['Partition Fraction Histogram: ' name ' free']);
     legend('data', 'randomized control');
     savefig(figObj, [path filesep name ' free.fig']);
     close(figObj);
     %directed
     figObj = figure;
-    histogram(partFrac.directed, 0:.05:1);
+    histogram(partFrac.directed, 0:.05:1, 'Normalization', 'probability');
     hold on;
-    histogram(partCont.directed, 0:.05:1);
+    histogram(partCont.directed, 0:.05:1, 'Normalization', 'probability');
     title(['Partition Fraction Histogram: ' name ' directed']);
     legend('data', 'randomized control');
     savefig(figObj, [path filesep name ' directed.fig']);
     close(figObj);
     %undetermined
     figObj = figure;
-    histogram(partFrac.undetermined, 0:.05:1);
+    histogram(partFrac.undetermined, 0:.05:1, 'Normalization', 'probability');
     hold on;
-    histogram(partCont.undetermined, 0:.05:1);
+    histogram(partCont.undetermined, 0:.05:1, 'Normalization', 'probability');
     title(['Partition Fraction Histogram: ' name ' undetermined']);
     legend('data', 'randomized control');
     savefig(figObj, [path filesep name ' undetermined.fig']);
     close(figObj);
 
     %save data
-    save([path filesep name '_data.mat'], 'partFrac', 'meanPart');
+    save([path filesep name '_data.mat'], 'result');
 end
 
 end
@@ -251,7 +251,7 @@ for iTrack = 1:nTrack
     end
 end
 %progressText
-%multipleProgressText();
+progressTextMultiple();
 end
 
 
