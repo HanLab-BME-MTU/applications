@@ -10,7 +10,7 @@ classdef PartitionAnalysisProcess < DataProcessingProcess
     %   .outputDirectory    : directory where partitioning information will
     %                       be stored
     %   .scrambleTracks     : randomize track location to create control
-    %                       data set
+    %                       data set <Unused>
     
     properties
         % Public, tunable properties.
@@ -50,7 +50,7 @@ classdef PartitionAnalysisProcess < DataProcessingProcess
             funParams.channel_tracks = 1;
             funParams.channel_struct = 1;
             funParams.outputDirectory = [outputDir filesep 'TrackingPackage' filesep 'PartitionAnalysis'];
-            funParams.scrambleTracks = false;
+            %funParams.scrambleTracks = false;
         end
         function name = getName()
             name = 'PartitionAnalysisProcess';

@@ -91,7 +91,7 @@ end
     end
 %% Main Time Course Analysis (CML-level)
 %Progress Display
-multipleProgressText('Time Course Analysis', nMLTot);
+progressTextMultiple('Time Course Analysis', nMLTot);
 %Using resultsIndTimeCourseMod.m to do basic analysis
 %and extract time data and align
 [summary, time, extra] = arrayfun(@CMLAnalyze, CMLs, 1:nCML, 'UniformOutput', false);
@@ -139,7 +139,7 @@ multipleProgressText('Time Course Analysis', nMLTot);
         MLExtra = cellfun(@MDAnalyze, ML.movies_, 'UniformOutput', false);
         MLExtra = vertcat(MLExtra{:});
         %progress text
-        multipleProgressText();
+        progressTextMultiple();
     end
 %% Time Course Analysis (MD-level)
     function [MDExtra] = MDAnalyze(MD)
