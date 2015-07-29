@@ -54,32 +54,52 @@ partitionResult = arrayfun(@partition, tracks);
                 y_all(indx) = data.tracksCoordAmpCG(iSubtracks, iCoord+1);
                 indx = indx + 1;
             end
+            %check if track should be masked to begin with
+            x_mean = mean(x_all, 'omitnan');
+            y_mean = mean(y_all, 'omitnan');
+            x = round(x_mean);
+            y = round(y_mean);
+            analyzeTrack = x>0 && x<=xMax && y>0 && y<=yMax && ROIMask(y, x);
+            %scramble tracks
             if scrambleTracks
-                x_mean = mean(x_all(~isnan(x_all)));
-                y_mean = mean(y_all(~isnan(y_all)));
-                x_all = x_all - x_mean + rand() * xMax;
-                y_all = y_all - y_mean + rand() * yMax;
+                x_all = x_all - x_mean + rand() * xMax + 0.5;
+                y_all = y_all - y_mean + rand() * yMax + 0.5;
+                x_mean = mean(x_all, 'omitnan');
+                y_mean = mean(y_all, 'omitnan');
+                x = round(x_mean);
+                y = round(y_mean);
+                %repeat if outside the mask
+                while x<0 || x>=xMax || y<0 || y>=yMax || ~ROIMask(y, x)
+                    x_all = x_all - x_mean + rand() * xMax + 0.5;
+                    y_all = y_all - y_mean + rand() * yMax + 0.5;
+                    x_mean = mean(x_all, 'omitnan');
+                    y_mean = mean(y_all, 'omitnan');
+                    x = round(x_mean);
+                    y = round(y_mean);
+                end
             end
             %determine partition fraction-------------------
             nFramesTot = 0;
             nFramesIn = 0;
-            frame = data.seqOfEvents(1,1);
-            for iLoc = 1:nLoc
-                x = round(x_all(iLoc));
-                y = round(y_all(iLoc));
-                if x>0 && x<=xMax && y>0 && y<=yMax && ROIMask
-                    nFramesTot = nFramesTot + 1;
-                    if isSingleFrame
-                        if mask(y,x)
-                            nFramesIn = nFramesIn +1;
-                        end
-                    else
-                        if mask(y,x,frame)
-                            nFramesIn = nFramesIn +1;
+            if analyzeTrack
+                frame = data.seqOfEvents(1,1);
+                for iLoc = 1:nLoc
+                    x = round(x_all(iLoc));
+                    y = round(y_all(iLoc));
+                    if x>0 && x<=xMax && y>0 && y<=yMax && ROIMask(y, x)
+                        nFramesTot = nFramesTot + 1;
+                        if isSingleFrame
+                            if mask(y,x)
+                                nFramesIn = nFramesIn +1;
+                            end
+                        else
+                            if mask(y,x,frame)
+                                nFramesIn = nFramesIn +1;
+                            end
                         end
                     end
+                    frame = frame +1;
                 end
-                frame = frame +1;
             end
             result.nFramesTot(iSubtracks) = nFramesTot;
             result.nFramesIn(iSubtracks) = nFramesIn;
