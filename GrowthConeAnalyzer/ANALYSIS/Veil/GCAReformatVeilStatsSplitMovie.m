@@ -11,28 +11,6 @@ if clearOldFields == 1
     toPlot = rmfield(toPlot,params);
 end
 
-
-% Collect
-
-for iGroup = 1:numel(toPlot.info.names)
-    
-    projListC = toPlot.info.projList{iGroup};
-    % sort projList by outgrowth in 10 min
-    %     delta = cellfun(@(x) x(end)-x(1),groupData.netOutgrowthTimeSeries{iGroup});
-    %     [sorted,idx] = sort(delta);
-    
-    %     projListC = projListC(idx,:);
-    %     groupData.projList{iGroup} = projListC; % save the new project list
-    %
-    
-    
-    %% if collect veil params
-    % make a boxplot of the distribution for individual groups and then
-    % pooled.
-    % make .csv files for individual window values
-    
-    
-    
     params{1} = 'mednVeloc';
     params{2} = 'persTime';
     
@@ -46,14 +24,28 @@ for iGroup = 1:numel(toPlot.info.names)
     
     ylim{1} = 100; 
     ylim{2} = 60; 
+
+% Collect
+for iGroup = 1:numel(toPlot.info.names)
     
+    projListC = toPlot.info.projList{iGroup};
     
-    %
-    %
     [nplots,~] = size(projListC);
-    grpVar{iGroup} = repmat(iGroup,nplots*2,1); % grouping variable is a repeat matrix the number of cells long
+    
+% Grouping Var1 : grouping per condition   
+    % create the grouping variable for pooling full group data 
+    % [1,(Repeated 2*nCellsProj1 times), 2(Repeated
+    % 2*nCellsProj2)....[n,(Repeated 2*ncellsProjN times)]
+    grpVar{iGroup} = repmat(iGroup,nplots*2,1); % 
+    
+    % create the grouping variable for examining data per cell
+   
+% Grouping Var2  :   grouping per cell 
+% [1,1,2,2,3,3,...numCellsTotal,numCellsTotal]
     g = arrayfun(@(x) repmat(x,2,1),1:nplots,'uniformoutput',0);  
-    grpVar2{iGroup} = size(vertcat(toPlot.info.projList{1:iGroup-1}),1)*(iGroup-1) + vertcat(g{:}); 
+    grpVar2{iGroup} = size(vertcat(toPlot.info.projList{1:iGroup-1}),1) + vertcat(g{:}); 
+
+% Grouping Var3 : grouping per treatment
     g3 = repmat([1,2],1,nplots)'; 
     grpVar3{iGroup} = g3 + 2*(iGroup-1); 
     for iAnal = 1:2
