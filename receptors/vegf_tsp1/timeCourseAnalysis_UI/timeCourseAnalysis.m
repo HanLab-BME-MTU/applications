@@ -13,38 +13,85 @@ function [] = timeCourseAnalysis(CMLs, outputDir, varargin)
 %   varargin    : name_value pairs for analysis parameter
 %       'smoothingPara'         : parameter used for smoothing spline fit
 %       'channel'               : Channel of MD to be analyzed. Default = 1
+%       'doNewAnalysis'           : (logical) true: always do new analysis even if
+%                                 the analysis has already been done.
+%                                 false: avoid doing the analysis again if
+%                                 analysis has already been done and the
+%                                 analysis parameters are identical.
+%                                 true by default
 %       'doPartitionAnalysis'   : (logical) to analyzes trackPartitioning
-%                                 process or not
+%                                 process or not. false by default
+%       'shiftPlotPositive'     : (logical) determines whether or not whole
+%                                 plots are shifted so that no negative
+%                                 time values are present. In other words,
+%                                 minimum time point is taken to be the
+%                                 zero. Default is false.
 %
 %Tae H Kim, July 2015
 
 %% Input
 %convert CMLs if it's cell of strings
+nCML = numel(CMLs);
 if iscellstr(CMLs)
     directory_CML = CMLs;
-    CMLs = cellfun(@CombinedMovieList.load, directory_CML, 'UniformOutput', false);
-    CMLs = [CMLs{:}];
+    clear CMLs
+    for iCML = 1:nCML
+        fprintf('Loading CombinedMovieList %g/%g\n', iCML, nCML);
+        CMLs(iCML) = CombinedMovieList.load(directory_CML{iCML});
+    end
 elseif isa(CMLs, 'CombinedMovieList')
     directory_CML = arrayfun(@(x) x.getFullPath(), CMLs, 'UniformOutput', false); %#ok<NASGU>
+else
+    error('CMLs must be class object CombinedMovieList');
 end
 %input parser
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
-ip.addRequired('CMLs', @(x) isa(x, 'CombinedMovieList'));
 ip.addRequired('outputDir', @ischar);
 ip.addParameter('smoothingPara', .01, @(x) isnumeric(x) && x>=0 && x<=1);
 ip.addParameter('channel', 1, @isnumeric);
 ip.addParameter('doPartitionAnalysis', false, @(x) isnumeric(x) || islogical(x));
-ip.parse(CMLs, outputDir, varargin{:});
+ip.addParameter('doNewAnalysis', true, @(x) isnumeric(x) || islogical(x));
+ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
+ip.parse(outputDir, varargin{:});
+%for easier access to ip.Result variables
 smoothingPara = ip.Results.smoothingPara;
 analysisPara.smoothingPara = smoothingPara;
+analysisPara.shiftPlotPositive = ip.Results.shiftPlotPositive;
 channel = round(ip.Results.channel);
+doNewAnalysis = ip.Results.doNewAnalysis;
 %used for Extra Analysis
 analysisPara.doPartition = ip.Results.doPartitionAnalysis;
-%% Main Time Course Analysis
-%For analysis progress display
-nCML = numel(CMLs);
+%checks if CMLs are loaded or not
+%AND determines how many ML there are total
+nMLTot = 0;
+for iCML = 1:nCML
+    progressDisp = fprintf('Loading Combined Movie List %g/%g\n', iCML, nCML); %loading progress display
+    % if not loads it
+    if numel(CMLs(iCML).movieLists_) ~= numel(CMLs(iCML).movieListDirectory_)
+        CMLs(iCML).sanityCheck();
+    end
+    %checks if all MD has necessary processes
+    arrayfun(@(x) MLCheck(x, analysisPara), CMLs(iCML).movieLists_);
+    fprintf(repmat('\b', 1, progressDisp)); %loading progress display
+    nMLTot = nMLTot + numel(CMLs(iCML).movieLists_);
+end
+%nested function for above: checking MD has necessary processes
+    function [] = MLCheck(ML, parameter)
+        nMD = numel(ML.movies_);
+        for iMD = 1:nMD
+            if isempty(ML.movies_{iMD}.getProcessIndex('MotionAnalysisProcess'))
+                error(['MovieData ' ML.movies_{iMD}.movieDataFileName_ '\n at ' ML.movies_{iMD}.movieDataPath_ '\n does not contain MotionAnalysisProcess']);
+            end
+            if parameter.doPartition && isempty(ML.movies_{iMD}.getProcessIndex('PartitionAnalysisProcess'))
+                error(['MovieData ' ML.movies_{iMD}.movieDataFileName_ '\n at ' ML.movies_{iMD}.movieDataPath_ '\n does not contain PartitionAnalysisProcess']);
+            end
+        end
+    end
+%% Main Time Course Analysis (CML-level)
+%Progress Display
+progressTextMultiple('Time Course Analysis', nMLTot);
 %Using resultsIndTimeCourseMod.m to do basic analysis
 %and extract time data and align
 [summary, time, extra] = arrayfun(@CMLAnalyze, CMLs, 1:nCML, 'UniformOutput', false);
@@ -53,33 +100,48 @@ nCML = numel(CMLs);
     function [CMLSummary, CMLTime, CMLExtra] = CMLAnalyze(CML, iCML)
         alignEvent = CML.analysisPara_.alignEvent;
         %[CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
-        CMLSummary(nML) = [];
-        CMLTime(nML) = [];
-        CMLExtra(nML) = [];
-        for iML = 1:nML
-            printLength = fprintf ('Analyzing Movie List %g/%g of CML %g/%g\n', iML, nML, iCML, nCML);
-            [CMLSummary(iML), CMLTime(iML), CMLExtra(iML)] = MLAnalyze(CML.movieLists_(iML), alignEvent);
-            fprintf(repmat('\b',1,printLength));
+        nML = numel(CML.movieLists_);
+        for iML = nML:-1:1
+            [CMLSummary{iML}, CMLTime{iML}, CMLExtra{iML}] = MLAnalyze(CML.movieLists_(iML), alignEvent);
         end
         CMLSummary = vertcat(CMLSummary{:});
         CMLTime = vertcat(CMLTime{:});
         CMLExtra = vertcat(CMLExtra{:});
     end
-%deals with ML
+%% Time Course Analysis (ML-level)
     function [MLSummary, MLTime, MLExtra] = MLAnalyze(ML, alignEvent)
-        %Basic Analysis
-        MLSummary = resultsIndTimeCourseMod(ML, false);
-        %Time Analysis
+        %Basic Analysis-------------------------------
+        %new analysis if doNewAnalysis is true or analysis has not been
+        %done yet
+        TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
+        %(I'm not exactly sure what resultsIndTimeCourseMod does)
+        %It is used like blackbox that does the basic analysis
+        if isempty(TCAPIndx) || isempty(ML.processes_{TCAPIndx}.summary_)
+            MLSummary = resultsIndTimeCourseMod(ML, false);
+            ML.addProcess(TimeCourseAnalysisProcess(ML));
+            TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
+            ML.processes_{TCAPIndx}.setSummary(MLSummary);
+            ML.save;
+        elseif doNewAnalysis
+            MLSummary = resultsIndTimeCourseMod(ML, false);
+            ML.processes_{TCAPIndx}.setSummary(MLSummary);
+            ML.save;
+        else
+            MLSummary = ML.processes_{TCAPIndx}.summary_;
+        end
+        %Time Analysis---------------------------------
         timeProcIndx = ML.getProcessIndex('TimePoints');
         alignIndx = ML.processes_{timeProcIndx}.getIndex(alignEvent);
         offSet = datenum(ML.processes_{timeProcIndx}.times_{alignIndx});
         MLTime = cellfun(@(x) (datenum(x.acquisitionDate_) - offSet) .* 1440, ML.movies_, 'UniformOutput', false);
         MLTime = vertcat(MLTime{:});
-        %Conditional (Extra) Analysis
+        %Conditional (Extra) Analysis-------------------------
         MLExtra = cellfun(@MDAnalyze, ML.movies_, 'UniformOutput', false);
         MLExtra = vertcat(MLExtra{:});
+        %progress text
+        progressTextMultiple();
     end
-%deals with MD
+%% Time Course Analysis (MD-level)
     function [MDExtra] = MDAnalyze(MD)
         %Need blank if not used
         MDExtra.blank = [];
@@ -164,8 +226,9 @@ for iCML = 1:nCML
         summary{iCML}.partitionFrac = summary{iCML}.partitionFrac(sortIndx, :);
     end
 end
-%% Plot and Save
-timeCourseAnalysis_StandAlone(summary, outputDir, 'smoothingPara', smoothingPara, 'showPartitionAnalysis', analysisPara.doPartition);
+%% Plot by Calling StandAlone Function
+timeCourseAnalysis_StandAlone(summary, outputDir, 'smoothingPara', smoothingPara, 'showPartitionAnalysis', analysisPara.doPartition, 'shiftPlotPositive', analysisPara.shiftPlotPositive);
+%% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
 end
 

@@ -35,6 +35,10 @@ for iGroup = 1:numel(toPlot.info.names)
     
     params{1} = 'mednVeloc';
     params{2} = 'persTime';
+    params{3} = 'maxVeloc'; 
+    params{4} = 'minVeloc' ; 
+    params{5} = 'Veloc'; 
+    
     
     analType{1} = 'protrusionAnalysis';
     analType{2} = 'retractionAnalysis';
@@ -44,7 +48,7 @@ for iGroup = 1:numel(toPlot.info.names)
     grpVar{iGroup} = repmat(iGroup,nplots,1); % grouping variable is a repeat matrix the number of cells long
     
     for iAnal = 1:2
-        for iParam= 1:2
+        for iParam= 1:numel(params)
             [nProjs, ~]= size(projListC);
             % initialize mat
             dataMat = nan(7000,nProjs); % over initialize

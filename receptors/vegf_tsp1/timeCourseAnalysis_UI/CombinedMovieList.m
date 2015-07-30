@@ -81,12 +81,12 @@ classdef CombinedMovieList < MovieObject
         end
         %delete
         function deleteML(obj, index)
-            mask = true(1,numel(nML));
+            mask = true(1,numel(obj.movieListDirectory_));
             mask(index) = false;
             obj.movieListDirectory_ = obj.movieListDirectory_(mask);
             %obj.alignIndx_ = obj.alignIndx_(mask);
             %obj.relTime_ = obj.relTime_(mask);
-            obj.relativeTimeZero_ = obj.relativeTimeZero_(mask);
+            %obj.relativeTimeZero_ = obj.relativeTimeZero_(mask);
         end
     end
     %% Loading, Saving, and SanityCheck
@@ -117,23 +117,20 @@ classdef CombinedMovieList < MovieObject
             end
             % Call the superclass sanityCheck
             sanityCheck@MovieObject(obj, varargin{:});
-            iML = 0;
             nML = numel(obj.movieListDirectory_);
-            printLength = fprintf(1,'%g/%g MovieLists loaded\n', iML, nML);
+            progressTextMultiple('Loading Movie Lists', nML)
             if suppressPrinting
-                evalc('obj.movieLists_ = cellfun(@MLLoad, obj.movieListDirectory_, ''UniformOutput'', false);');
+                for iML = 1:nML
+                    evalc('ML(iML) = MovieList.load(obj.movieListDirectory_{iML});');
+                    progressTextMultiple();
+                end
             else
-                obj.movieLists_ = cellfun(@MLLoad, obj.movieListDirectory_, 'UniformOutput', false);
+                for iML = 1:nML
+                    ML(iML) = MovieList.load(obj.movieListDirectory_{iML});
+                    progressTextMultiple();
+                end
             end
-            fprintf(repmat('\b',1,printLength));
-            obj.movieLists_ = [obj.movieLists_{:}];
-            %Loads MLs but outputs how many MLs have been loaded
-            function ML = MLLoad(MLPath)
-                ML = MovieList.load(MLPath);
-                iML = iML + 1;
-                fprintf(repmat('\b',1,printLength));
-                printLength = fprintf(1,'%g/%g MovieLists loaded\n', iML, nML);
-            end
+            obj.movieLists_ = ML;
         end
     end
     methods(Static)

@@ -118,7 +118,7 @@ end
 
 %% % RunVeilStem
 if strcmpi(startAnal,'veilStem') || strcmpi(startAnal,'all')
-    GCAveilStemReconstructMovie(MD);
+    GCAReconstructVeilStemMovie(MD);
 end
 
 

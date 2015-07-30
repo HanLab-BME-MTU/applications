@@ -22,12 +22,19 @@ while ~isnumeric(fileName)
     end
     [fileName, filePath] = uigetfile('*.mat', 'Select CombinedMovieLists', 'MultiSelect', 'on');
 end
+%prompts user if new timeCourse analysis should be done
+userChoiceNTCA = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', {'Use old timeCourseAnalysis if possible', 'Do new timeCourseAnalysis'}, 'ListSize', [300, 300]);
+if userChoiceNTCA == 1
+    doNewAnalysis = false;
+else
+    doNewAnalysis = true;
+end
 %prompts user for analysis parameters
 %the function will call actual timeCourseAnalysis
-parameterCheckGUI(outputDir, CML_FullPath);
+parameterCheckGUI(outputDir, CML_FullPath, doNewAnalysis);
 end
 %% Parameter Checkbox GUI
-function parameterCheckGUI(outputDir, CML_FullPath)
+function parameterCheckGUI(outputDir, CML_FullPath, doNewAnalysis)
 % Create figure
 h.f = figure('units','pixels','position',[400,400,500,100],...
              'toolbar','none','menu','none','name','Choose TimeCourseAnalysis to be done');
@@ -35,7 +42,7 @@ h.f = figure('units','pixels','position',[400,400,500,100],...
 h.c(1) = uicontrol('style','checkbox','units','pixels',...
                 'position',[10,40,450,20],'string','Partitioning Analysis');
 h.c(2) = uicontrol('style','checkbox','units','pixels',...
-                'position',[10,70,450,20],'string','Testing');    
+                'position',[10,70,450,20],'string','Shift Time Points to Positive Values');    
 % Create OK pushbutton   
 h.p = uicontrol('style','pushbutton','units','pixels',...
                 'position',[40,5,70,20],'string','OK',...
@@ -45,8 +52,9 @@ h.p = uicontrol('style','pushbutton','units','pixels',...
         parameter = get(h.c,'Value');
         %closes the dialogue box
         close(h.f);
+        pause(1);
         %calls the function that does the timeCourseAnalysis
-        timeCourseAnalysis(CML_FullPath, outputDir, 'doPartitionAnalysis', parameter{1});
+        timeCourseAnalysis(CML_FullPath, outputDir, 'doNewAnalysis', doNewAnalysis, 'doPartitionAnalysis', parameter{1}, 'shiftPlotPositive', parameter{2});
     end
 end
 
