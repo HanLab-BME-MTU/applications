@@ -13,6 +13,9 @@ end
 
     params{1} = 'mednVeloc';
     params{2} = 'persTime';
+    params{3} = 'maxVeloc'; 
+    params{4} = 'minVeloc' ; 
+    params{5} = 'Veloc';
     
     analType{1} = 'protrusionAnalysis';
     analType{2} = 'retractionAnalysis';
@@ -21,10 +24,20 @@ end
     ylabel{1,2} = {'Median Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'}; 
     ylabel{2,1} = {'Persistence' ; 'of Protrusion Event ' ; '(s)'}; 
     ylabel{2,2} = {'Persistence' ; 'of Retraction Event ' ; '(s)'};
+    ylabel{3,1} = {'Max Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
+    ylabel{3,2} = {'Max Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
+    ylabel{4,1} = {'Min Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'}; 
+    ylabel{4,2} = {'Min Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
+    ylabel{5,1} = {'Mean Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
+    ylabel{5,2} = {'Mean Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
     
     ylim{1} = 100; 
     ylim{2} = 60; 
-
+    ylim{3} = 100; 
+    ylim{4} = 100; 
+    ylim{5} = 100; 
+    
+    
 % Collect
 for iGroup = 1:numel(toPlot.info.names)
     
