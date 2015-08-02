@@ -62,7 +62,7 @@ for iGroup = 1:numel(toPlot.info.names)
     g3 = repmat([1,2],1,nplots)'; 
     grpVar3{iGroup} = g3 + 2*(iGroup-1); 
     for iAnal = 1:2
-        for iParam= 1:2
+        for iParam= 1:5
             [nProjs, ~]= size(projListC);
             % initialize mat
             %dataMat = nan(7000,nProjs); % over initialize
