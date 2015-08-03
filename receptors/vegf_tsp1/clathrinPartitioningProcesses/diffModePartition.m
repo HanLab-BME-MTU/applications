@@ -1,4 +1,4 @@
-function [result] = diffModePartition(ML, saveData)
+function [result] = diffModePartition(MDML, saveData)
 %DIFFMODEPARTITION sperates tracks based on diffusion mode and saves patition fraction, and compares it to the control
 %
 %INPUT
@@ -52,12 +52,12 @@ if saveData
     end
 end
 %Check input
-assert(isa(ML, 'MovieList'));
-nMD = numel(ML.movieDataFile_);
+assert(isa(MDML, 'MovieList') || isa(MDML, 'MovieData'));
+%nMD = numel(MDML.movieDataFile_);
 %Check if ML is loaded. If not, load.
-if isempty(ML.movies_)
+if isa(MDML, 'MovieList') && isempty(MDML.movies_)
     pLength = fprintf('Loading MovieList\n');
-    evalc('ML.sanityCheck()');
+    evalc('MDML.sanityCheck()');
     fprintf(repmat('\b', 1, pLength));
     fprintf('MovieList loaded\n')
 end
@@ -67,9 +67,13 @@ end
 
 %% Analysis
 %progress display
-progressTextMultiple('analyzing MovieList', nMD);
+%progressTextMultiple('analyzing MovieList', nMD);
 %deals out MovieData
-[partFrac_, weightPart_, partCont_, weightCont_] = cellfun(@analyzeMD, ML.movies_, 'UniformOutput', false);
+if isa(MDML, 'MovieList')
+    [partFrac_, weightPart_, partCont_, weightCont_] = cellfun(@analyzeMD, MDML.movies_, 'UniformOutput', false);
+elseif isa(MDML, 'MovieData')
+    [partFrac_{1}, weightPart_{1}, partCont_{1}, weightCont_{1}] = analyzeMD(MDML);
+end
 %combine output (partition fraction: experimental)
 partFrac_ = [partFrac_{:}];
 partFrac.immobile = horzcat(partFrac_.immobile);
@@ -128,11 +132,31 @@ wMeanCont.directed = sum(weightCont.directed .* partCont.directed, 'omitnan') ./
 wMeanCont.undetermined = sum(weightCont.undetermined .* partCont.undetermined, 'omitnan') ./ sum(weightCont.undetermined);
 
 %% KS-test
-[~, KS.immobile] = kstest2(partFrac.immobile, partCont.immobile);
-[~, KS.confined] = kstest2(partFrac.confined, partCont.confined);
-[~, KS.free] = kstest2(partFrac.free, partCont.free);
-[~, KS.directed] = kstest2(partFrac.directed, partCont.directed);
-[~, KS.undetermined] = kstest2(partFrac.undetermined, partCont.undetermined);
+try
+    [~, KS.immobile] = kstest2(partFrac.immobile, partCont.immobile);
+catch
+    KS.immobile = nan;
+end
+try
+    [~, KS.confined] = kstest2(partFrac.confined, partCont.confined);
+catch
+    KS.confined = nan;
+end
+try
+    [~, KS.free] = kstest2(partFrac.free, partCont.free);
+catch
+    KS.free = nan;
+end
+try
+    [~, KS.directed] = kstest2(partFrac.directed, partCont.directed);
+catch
+    KS.directed = nan;
+end
+try
+    [~, KS.undetermined] = kstest2(partFrac.undetermined, partCont.undetermined);
+catch
+    KS.undetermined = nan;
+end
 
 %% Combine Data
 %Combined all result into one structure
@@ -203,55 +227,62 @@ end
 %% Local functions
 % analyzes MD
 function [partFrac, weightPart, partCont, weightCont] = analyzeMD(MD)
-%initialize
-partFrac = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
-weightPart = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
-partCont = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
-weightCont = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
 %load PartitionAnalysisProcess
 processIndx = MD.getProcessIndex('PartitionAnalysisProcess');
 load(MD.processes_{processIndx}.outFilePaths_{1});
 %load MotionAnalysisProcess
 processIndx = MD.getProcessIndex('MotionAnalysisProcess');
 load(MD.processes_{processIndx}.outFilePaths_{1});
+track = arrayfun(@(x) x.classification(:,2), tracks, 'UniformOutput', false);
 %analyze
-nTrack = numel(tracks);
+nTrack = numel(track);
+[partFrac, weightPart] = sortTracks(partitionResult, nTrack, track);
+[partCont, weightCont] = cellfun(@(x) sortTracks(x, nTrack, track), partitionControl, 'UniformOutput', false);
+%consolidate partCont and weightCont
+partCont = [partCont{:}];
+weightCont = [weightCont{:}];
+partCont = concatStruct(partCont);
+weightCont = concatStruct(weightCont);
+%progressText
+%progressTextMultiple();
+end
+
+%% Concatenates structures
+function result = concatStruct(input)
+names = fieldnames(input);
+nField = numel(names);
+for iField = 1:nField
+    result.(names{iField}) = [input.(names{iField})];
+end
+end
+
+%% Analyzes each set of tracks
+function [fraction, weight] = sortTracks(partition, nTrack, track)
+%initialize
+fraction = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
+weight = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
 for iTrack = 1:nTrack
-    nSubTrack = numel(partitionResult(iTrack).partitionFrac);
+    nSubTrack = numel(partition(iTrack).partitionFrac);
     for iSubTrack = 1:nSubTrack
-        diffMode = tracks(iTrack).classification(iSubTrack, 2);
+        diffMode = track{iTrack}(iSubTrack);
         if isnan(diffMode)
-            %exp
-            partFrac.undetermined(end+1) = partitionResult(iTrack).partitionFrac(iSubTrack);
-            weightPart.undetermined(end+1) = partitionResult(iTrack).nFramesTot(iSubTrack);
-            %cont
-            partCont.undetermined(end+1) = partitionControl(iTrack).partitionFrac(iSubTrack);
-            weightCont.undetermined(end+1) = partitionControl(iTrack).nFramesTot(iSubTrack);
+            fraction.undetermined(end+1) = partition(iTrack).partitionFrac(iSubTrack);
+            weight.undetermined(end+1) = partition(iTrack).nFramesTot(iSubTrack);
         elseif diffMode == 0
-            partFrac.immobile(end+1) = partitionResult(iTrack).partitionFrac(iSubTrack);
-            weightPart.immobile(end+1) = partitionResult(iTrack).nFramesTot(iSubTrack);
-            partCont.immobile(end+1) = partitionControl(iTrack).partitionFrac(iSubTrack);
-            weightCont.immobile(end+1) = partitionControl(iTrack).nFramesTot(iSubTrack);
+            fraction.immobile(end+1) = partition(iTrack).partitionFrac(iSubTrack);
+            weight.immobile(end+1) = partition(iTrack).nFramesTot(iSubTrack);
         elseif diffMode == 1
-            partFrac.confined(end+1) = partitionResult(iTrack).partitionFrac(iSubTrack);
-            weightPart.confined(end+1) = partitionResult(iTrack).nFramesTot(iSubTrack);
-            partCont.confined(end+1) = partitionControl(iTrack).partitionFrac(iSubTrack);
-            weightCont.confined(end+1) = partitionControl(iTrack).nFramesTot(iSubTrack);
+            fraction.confined(end+1) = partition(iTrack).partitionFrac(iSubTrack);
+            weight.confined(end+1) = partition(iTrack).nFramesTot(iSubTrack);
         elseif diffMode == 2
-            partFrac.free(end+1) = partitionResult(iTrack).partitionFrac(iSubTrack);
-            weightPart.free(end+1) = partitionResult(iTrack).nFramesTot(iSubTrack);
-            partCont.free(end+1) = partitionControl(iTrack).partitionFrac(iSubTrack);
-            weightCont.free(end+1) = partitionControl(iTrack).nFramesTot(iSubTrack);
+            fraction.free(end+1) = partition(iTrack).partitionFrac(iSubTrack);
+            weight.free(end+1) = partition(iTrack).nFramesTot(iSubTrack);
         elseif diffMode == 3
-            partFrac.directed(end+1) = partitionResult(iTrack).partitionFrac(iSubTrack);
-            weightPart.directed(end+1) = partitionResult(iTrack).nFramesTot(iSubTrack);
-            partCont.directed(end+1) = partitionControl(iTrack).partitionFrac(iSubTrack);
-            weightCont.directed(end+1) = partitionControl(iTrack).nFramesTot(iSubTrack);
+            fraction.directed(end+1) = partition(iTrack).partitionFrac(iSubTrack);
+            weight.directed(end+1) = partition(iTrack).nFramesTot(iSubTrack);
         end
     end
 end
-%progressText
-progressTextMultiple();
 end
 
 
