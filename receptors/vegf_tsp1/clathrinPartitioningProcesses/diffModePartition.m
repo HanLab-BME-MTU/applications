@@ -78,8 +78,10 @@ nFN = 5;
 %deals out MovieData
 if isa(MDML, 'MovieList')
     [partFrac_, weightPart_, partCont_, weightCont_] = cellfun(@analyzeMD, MDML.movies_, 'UniformOutput', false);
+    nLocE = nan;
+    nDelocE = nan;
 elseif isa(MDML, 'MovieData')
-    [partFrac_{1}, weightPart_{1}, partCont_{1}, weightCont_{1}] = analyzeMD(MDML);
+    [partFrac_{1}, weightPart_{1}, partCont_{1}, weightCont_{1}, nLocE, nDelocE] = analyzeMD(MDML);
 end
 %combine output (partition fraction: experimental)
 partFrac_ = [partFrac_{:}];
@@ -176,6 +178,8 @@ result.weightCont = weightCont;
 result.meanCont = meanCont;
 result.wMeanCont = wMeanCont;
 result.KS = KS;
+result.nLocE = nLocE;
+result.nDelocE = nDelocE;
 
 %% Plot and save
 if saveData
@@ -233,7 +237,10 @@ end
 end
 %% Local functions
 % analyzes MD
-function [partFrac, weightPart, partCont, weightCont] = analyzeMD(MD)
+function [partFrac, weightPart, partCont, weightCont, nLocE, nDelocE] = analyzeMD(MD)
+%struct field
+FN = {'immobile', 'confined', 'free', 'directed', 'undetermined'};
+nFN = 5;
 %load PartitionAnalysisProcess
 processIndx = MD.getProcessIndex('PartitionAnalysisProcess');
 load(MD.processes_{processIndx}.outFilePaths_{1});
@@ -243,7 +250,7 @@ load(MD.processes_{processIndx}.outFilePaths_{1});
 track = arrayfun(@(x) x.classification(:,2), tracks, 'UniformOutput', false);
 %analyze
 nTrack = numel(track);
-[partFrac, weightPart] = sortTracks(partitionResult, nTrack, track);
+[partFrac, weightPart, nLocE, nDelocE] = sortTracks(partitionResult, nTrack, track);
 [partCont, weightCont] = cellfun(@(x) sortTracks(x, nTrack, track), partitionControl, 'UniformOutput', false);
 %consolidate partCont and weightCont
 partCont = [partCont{:}];
@@ -264,10 +271,12 @@ end
 end
 
 %% Analyzes each set of tracks
-function [fraction, weight] = sortTracks(partition, nTrack, track)
+function [fraction, weight, nLocE, nDelocE] = sortTracks(partition, nTrack, track)
 %initialize
 fraction = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
 weight = struct('immobile', [], 'confined', [], 'free', [], 'directed', [], 'undetermined', []);
+nLocE = struct('immobile', 0, 'confined', 0, 'free', 0, 'directed', 0, 'undetermined', 0);
+nDelocE = struct('immobile', 0, 'confined', 0, 'free', 0, 'directed', 0, 'undetermined', 0);
 for iTrack = 1:nTrack
     nSubTrack = numel(partition(iTrack).partitionFrac);
     for iSubTrack = 1:nSubTrack
@@ -275,18 +284,28 @@ for iTrack = 1:nTrack
         if isnan(diffMode)
             fraction.undetermined(end+1) = partition(iTrack).partitionFrac(iSubTrack);
             weight.undetermined(end+1) = partition(iTrack).nFramesTot(iSubTrack);
+            nLocE.undetermined = nLocE.undetermined + partition(iTrack).nLocEvent(iSubTrack);
+            nDelocE.undetermined = nDelocE.undetermined + partition(iTrack).nDelocEvent(iSubTrack);
         elseif diffMode == 0
             fraction.immobile(end+1) = partition(iTrack).partitionFrac(iSubTrack);
             weight.immobile(end+1) = partition(iTrack).nFramesTot(iSubTrack);
+            nLocE.immobile = nLocE.immobile + partition(iTrack).nLocEvent(iSubTrack);
+            nDelocE.immobile = nDelocE.immobile + partition(iTrack).nDelocEvent(iSubTrack);
         elseif diffMode == 1
             fraction.confined(end+1) = partition(iTrack).partitionFrac(iSubTrack);
             weight.confined(end+1) = partition(iTrack).nFramesTot(iSubTrack);
+            nLocE.confined = nLocE.confined + partition(iTrack).nLocEvent(iSubTrack);
+            nDelocE.confined = nDelocE.confined + partition(iTrack).nDelocEvent(iSubTrack);
         elseif diffMode == 2
             fraction.free(end+1) = partition(iTrack).partitionFrac(iSubTrack);
             weight.free(end+1) = partition(iTrack).nFramesTot(iSubTrack);
+            nLocE.free = nLocE.free + partition(iTrack).nLocEvent(iSubTrack);
+            nDelocE.free = nDelocE.free + partition(iTrack).nDelocEvent(iSubTrack);
         elseif diffMode == 3
             fraction.directed(end+1) = partition(iTrack).partitionFrac(iSubTrack);
             weight.directed(end+1) = partition(iTrack).nFramesTot(iSubTrack);
+            nLocE.directed = nLocE.directed + partition(iTrack).nLocEvent(iSubTrack);
+            nDelocE.directed = nDelocE.directed + partition(iTrack).nDelocEvent(iSubTrack);
         end
     end
 end
