@@ -1,4 +1,4 @@
-function [h2,uMap]=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,band,umax,quiverTrue,w,h)
+function [h2,uMap]=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,band,umin,umax,quiverTrue,w,h)
 imSizeX = x_mat_u(end,end)-x_mat_u(1,1);
 imSizeY = y_mat_u(end,end)-y_mat_u(1,1);
 if nargin<5
@@ -7,11 +7,11 @@ if nargin<5
     quiverTrue=true;
     w = imSizeX;
     h = imSizeY;
-elseif nargin<8
+elseif nargin<9
     quiverTrue=true;
     w = imSizeX;
     h = imSizeY;
-elseif nargin<9
+elseif nargin<10
     w = imSizeX;
     h = imSizeY;
 end
@@ -26,8 +26,10 @@ ymax = centerY+h/2-band;
 % [XI,YI]=meshgrid(x_mat_u(1,1):x_mat_u(1,1,1)+imSizeX,y_mat_u(1,1):y_mat_u(1,1)+imSizeY);
 unorm = (ux.^2 + uy.^2).^0.5;
 uMap = griddata(x_mat_u,y_mat_u,unorm,XI,YI,'linear');
-umin = min(uMap(:));
-if nargin<7 || isempty(umax)
+if nargin<7 || isempty(umin)
+    umin = min(uMap(:));
+end
+if nargin<8 || isempty(umax)
     umax = max(uMap(:));
 end
 

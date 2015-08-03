@@ -66,7 +66,10 @@ for i = p.ChannelIndex;
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i)];
     mkClrDir(outFilePaths{1,i});
 end
-[~,refName,refExt]=fileparts(movieData.processes_{1}.funParams_.referenceFramePath);
+iTFM = movieData.getPackageIndex('TFMPackage');
+TFMpackage = movieData.getPackage(iTFM);
+SDCProcess = TFMpackage.getProcess(1);
+[~,refName,refExt]=fileparts(SDCProcess.funParams_.referenceFramePath);
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
 outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationParameters.mat'];
 displFieldProc.setOutFilePaths(outFilePaths);
@@ -82,22 +85,28 @@ refFrame = double(imread(p.referenceFramePath));
 croppedRefFrame = imcrop(refFrame,p.cropROI);
 
 % Detect beads in reference frame
-disp('Detecting beads in the reference frame...')
+disp('Determining PSF sigma from reference frame...')
 beadsChannel = movieData.channels_(p.ChannelIndex(1));
-% psfSigma = beadsChannel.psfSigma_;
-if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield')
-    psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-    psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-    psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-else
-    error('image type should be chosen among Widefield, confocal and TIRF!');
-end
+% % psfSigma = beadsChannel.psfSigma_;
+% if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+%     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+% elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+%     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+% elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+%     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+% else
+%     error('image type should be chosen among Widefield, confocal and TIRF!');
+% end
+
+% Adaptation of psfSigma from bead channel image data
+psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+disp(['Determined sigma: ' num2str(psfSigma)])
 
 assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
     'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
     'as well as the pixel size and numerical aperture of the movie']);
+
+disp('Detecting beads in the reference frame...')
 pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
 beads = [pstruct.x' pstruct.y'];
 
@@ -108,7 +117,7 @@ erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
 beads(indx,:)=[];
-assert(size(beads,1)>=30, ['Insufficient number of detected beads (less than 50): current number: ' num2str(length(beads)) '.']);
+assert(size(beads,1)>=30, ['Insufficient number of detected beads (less than 30): current number: ' num2str(length(beads)) '.']);
 
 stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');
@@ -125,12 +134,14 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     tic;
     
     % Create crop of reference frame for autocorrelation
-    [rows, cols] = size(croppedRefFrame);
-    rect=[floor(cols/4) floor(rows/4) floor(cols/2)-1 floor(rows/2)-1] ;
-    preRegTemplate = imcrop(croppedRefFrame,rect);
+%     [rows, cols] = size(croppedRefFrame);
+%     rect=[floor(cols/4) floor(rows/4) floor(cols/2)-1 floor(rows/2)-1] ;
+%     preRegTemplate = imcrop(croppedRefFrame,rect);
     
     % Caclulate autocorrelation of the reference frame
-    selfCorr = normxcorr2(preRegTemplate,croppedRefFrame);
+    
+    selfCorr = normxcorr2(croppedRefFrame,refFrame);
+%     selfCorr = normxcorr2(preRegTemplate,croppedRefFrame);
     [~ , imax] = max(abs(selfCorr(:)));
     [rowPosInRef, colPosInRef] = ind2sub(size(selfCorr),imax(1));
 
@@ -138,7 +149,8 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     for j= 1:nFrames       
         % Find the maximum of the cross correlation between the template and
         % the current image:
-        xCorr  = normxcorr2(preRegTemplate,imcrop(stack(:,:,j),p.cropROI));
+        xCorr  = normxcorr2(croppedRefFrame,stack(:,:,j));%imcrop(stack(:,:,j),p.cropROI));
+%         xCorr  = normxcorr2(preRegTemplate,imcrop(stack(:,:,j),p.cropROI));
         [~ , imax] = max(abs(xCorr(:)));
         [rowPosInCurr, colPosInCurr] = ind2sub(size(xCorr),imax(1));
         

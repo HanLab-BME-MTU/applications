@@ -20,16 +20,20 @@ ip.addParamValue('imgRows',@isscalar);
 ip.addParamValue('imgCols',@isscalar);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical);
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
 ip.addParamValue('LcurveFactor',@isscalar);
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('forceMesh',[],@isstruct);
 ip.addParamValue('pixelSize',@isscalar);
+ip.addParamValue('strictBEM',false,@islogical);
+ip.addParamValue('fwdMap',[],@ismatrix);
 ip.parse(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
 basisClassTblPath=ip.Results.basisClassTblPath;
 LcurveDataPath=ip.Results.LcurveDataPath;
 LcurveFigPath=ip.Results.LcurveFigPath;
+lcornerOptimal=ip.Results.lcornerOptimal;
 wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
@@ -39,6 +43,8 @@ pixelSize = ip.Results.pixelSize;
 forceMesh = ip.Results.forceMesh;
 useLcurve = ip.Results.useLcurve;
 LcurveFactor = ip.Results.LcurveFactor;
+strictBEM = ip.Results.strictBEM;
+M = ip.Results.fwdMap;
 
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
@@ -59,9 +65,23 @@ end
 
 display('1.) Creating mesh & basis [~5sec]:...');
 tic;
-keepBDPts=true;
+keepBDPts=true; %this might lead to unmatching forward map that lead to
+% diagonalized traction map
+% keepBDPts=false;
 doPlot=0;
-if isempty(paxImage)
+% strictBEM = false;
+% if strcmp(solMethodBEM,'1NormReg') || strcmp(solMethodBEM,'1NormRegLaplacian')
+%     strictBEM = true;
+% end
+if strictBEM
+    xvec = displField(frame).pos(:,1);
+    yvec = displField(frame).pos(:,2);
+    idxNonan = ~isnan(displField(frame).vec(:,1));
+    xvec = xvec(idxNonan);
+    yvec = yvec(idxNonan);
+
+    forceMesh=createMeshAndBasis(xvec,yvec,doPlot);
+elseif isempty(paxImage)
     forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
 elseif isempty(forceMesh)
     forceMesh=createMeshAndBasisFromAdhesions(xvec,yvec,paxImage,displField(frame),pixelSize);
@@ -69,13 +89,21 @@ end
 toc;
 display('Done: mesh & basis!');
 
-if isempty(paxImage)
+if strictBEM
+    [fx,fy,x_out,y_out,M,pos_u,u,sol_coef,sol_mats] = ...
+        BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
+        displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
+        [],[],'fast',meshPtsFwdSol,solMethodBEM,'wtBar',wtBar,'thickness',thickness,'useLcurve',useLcurve,...
+        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath,...
+        'strictBEM',strictBEM);    
+elseif isempty(paxImage)
     [fx,fy,x_out,y_out,M,pos_u,u,sol_coef,sol_mats] = ...
         BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
         [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath,...
         'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'useLcurve',useLcurve,...
-        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath);
+        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath,'fwdMap',M,...
+        'lcornerOptimal',lcornerOptimal);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 else
     xmin = min(forceMesh.p(:,1));
@@ -90,7 +118,7 @@ else
         BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
         x_out,y_out,'slow',meshPtsFwdSol,solMethodBEM,'wtBar',wtBar,'imgRows',imgRows,...
-        'imgCols',imgCols,'thickness',thickness,'paxImg',paxImage);
+        'imgCols',imgCols,'thickness',thickness,'paxImg',paxImage,'fwdMap',M);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 end
 

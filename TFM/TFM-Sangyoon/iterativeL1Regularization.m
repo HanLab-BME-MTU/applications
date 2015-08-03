@@ -1,4 +1,4 @@
-function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,m_diff)
+function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,doPlot,forceMesh)
 % mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,m_diff)
 % solves L1 regularization problem with forward matrix G, displacement
 % vector d, regularization parameter alpha, semi-norm matrix L.
@@ -6,7 +6,7 @@ function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,m_diff
 
 % Default for tolr=1.0e-6
 if (nargin < 9)
-  m_diff=400; % unit: Pa. 
+  doPlot=false; % plot all iterations
 end
 
 if (nargin < 8)
@@ -33,12 +33,23 @@ tic
 m=(2*GTG+alpha*(L'*L))\(2*G'*d);
 toc
 % iterate until maxiter or we converge and return
+sparFac = 1;
+accFac = 0.9;
 while (iter < maxiter)
   iter=iter+1;
 
   % get get the magnitude of Lm, but don't let any element be less than tolr
   absLm=abs(L*m);
-  absLm(absLm<tolr)=tolr;
+  if doPlot
+      height = sum(forceMesh.p(:,1)==forceMesh.p(1,1));
+      figure, imshow(reshape(m,height,[]),[])
+      colorbar
+      colormap jet
+      title(['iteration number=' num2str(iter-1)])
+%       sparFac = sparFac*accFac;
+  end
+  absLm(absLm<tolr)=tolr*sparFac;
+  
 
   % build the diagonal weighting matrix for this iteration
   R=diag(1./absLm);
@@ -71,9 +82,13 @@ while (iter < maxiter)
     display(['norm(m-mold)=' num2str(norm(m-mold)) ', 1+norm(mold)=' num2str(1+norm(mold)) ', norm(m-mold)/(1+norm(mold))=' ...
       num2str(norm(m-mold)/(1+norm(mold)))])
     return
+  else
+      display(['norm(m-mold)=' num2str(norm(m-mold)) ', 1+norm(mold)=' num2str(1+norm(mold)) ', norm(m-mold)/(1+norm(mold))=' ...
+      num2str(norm(m-mold)/(1+norm(mold)))])
   end
 end
 
 % Give a warning, if desired, but return best solution.
-display('L1 norm regularization: maximum iterations exceeded.');
+display('L1 norm regularization: maximum iterations exceeded.')
+display(['Final ratio= norm(m-mold)/(1+norm(mold))='  num2str(norm(m-mold)/(1+norm(mold)))]);
 mreg=m;

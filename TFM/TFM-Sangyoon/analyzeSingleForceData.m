@@ -1,9 +1,13 @@
-function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh] = analyzeSingleForceData(f,d,minCorLength,dataPath)
+function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh] = analyzeSingleForceData(d,dataPath,useBackup)
 %% single force experiment
 % input parameters to be replaced with function inputs
 % f=2000; %Pa
 % d=10;
 % minCorLength = 21;
+if nargin<3
+    useBackup=false;
+end
+
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];
 orgPath=[dataPath filesep 'Original'];
@@ -95,8 +99,11 @@ else
     end
 end
 % Load the forcefield
-forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
-
+if ~useBackup
+    forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
+else
+    load([dataPath filesep 'TFMPackage/forceField Backup/forceField.mat'], 'forceField')
+end
 % finding force at mesh location
 org_fx = zeros(size(forceField(1).pos(:,1)));
 org_fy = zeros(size(forceField(1).pos(:,1)));
@@ -156,7 +163,8 @@ if isempty(forceFieldMag)
 else
     peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
     forceFieldBgdMag = sort(forceFieldBgdMag,'descend');
-    forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+%     forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+    forceDetec = max(forceFieldMag)/max(forceFieldBgdMag(1:length(forceFieldMag)));
 end
 %% errors in force field
 forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);

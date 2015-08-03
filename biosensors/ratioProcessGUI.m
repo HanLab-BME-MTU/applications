@@ -50,6 +50,7 @@ function ratioProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 funParams = userData.crtProc.funParams_;
 
 % Channel setup
@@ -109,7 +110,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-
+if isempty(userData), userData = struct(); end
 %Check user input
 nuChannelIndex = get(handles.edit_nu_input, 'Userdata');
 deChannelIndex = get(handles.edit_de_input, 'Userdata');
@@ -264,6 +265,7 @@ end
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 

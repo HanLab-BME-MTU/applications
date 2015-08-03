@@ -9,7 +9,7 @@ function experiment_local_thresholding(imInput, metadata)
     numHistogramBins = round( range(ImageIntensityRange)/5 );    
     imThreshOtsu = matitk_custom( 'FOtsuThreshold', { numHistogramBins } , imAdjusted );    
     OtsuThreshold = min( imAdjusted( imThreshOtsu > 0 ) );
-    figure, histogram( imAdjusted );
+    figure, optimalHistogram( imAdjusted );
     
     % apply local thesholding algorithms
     windowRadius = [60,60,2];

@@ -46,6 +46,7 @@ ip.addParamValue('InitDensity', 'mean', @(x) any(strcmpi(x, {'mean', 'median'}))
 ip.addParamValue('AmplitudeCorrection', []);
 ip.addParamValue('MaskPath', ['Detection' filesep 'cellmask.tif'], @ischar);
 ip.addParamValue('Binning', 1, @isposint);
+ip.addParamValue('CellArea', [], @isnumeric);
 ip.parse(data, varargin{:});
 cb = ip.Results.CohortBounds;
 nc = numel(cb)-1; % # cohorts
@@ -132,7 +133,7 @@ for i = 1:nd
     if bf>1
         w = mean(reshape(w(1:floor(numel(w)/bf)*bf), [bf floor(numel(w)/bf)]),1);
     end
-    pad0 = zeros(1,Nmax-N);
+    pad0 = zeros(1,(Nmax-N)/bf);
     lftHist_Ia =  [hist(lftData(i).lifetime_s_all(idx_Ia), t).*w  pad0];
     lftHist_Ib =  [hist(lftData(i).lifetime_s_all(idx_Ib), t).*w  pad0];
     lftHist_IIa = [hist(lftData(i).lifetime_s_all(idx_IIa), t).*w pad0];
@@ -296,7 +297,7 @@ for i = 1:nd
     if bf>1
         w = mean(reshape(w(1:floor(numel(w)/bf)*bf), [bf floor(numel(w)/bf)]),1);
     end
-    pad0 = zeros(1,Nmax-N);
+    pad0 = zeros(1,(Nmax-N)/bf);
     lftHistCCP = [hist(res(i).lftAboveT, t).*w pad0];
     lftHistCS = [hist(res(i).lftBelowT, t).*w pad0];
     % Normalization
@@ -353,7 +354,9 @@ for i = 1:nd
     % Initiation density
     %-----------------------------------
     % Cell area
-    if exist([data(i).source ip.Results.MaskPath], 'file')==2
+    if ~isempty(ip.Results.CellArea)
+        lftRes.cellArea(i) = ip.Results.CellArea(i);
+    elseif exist([data(i).source ip.Results.MaskPath], 'file')==2
         px = data(i).pixelSize / data(i).M; % pixels size in object space
         mask = logical(readtiff([data(i).source ip.Results.MaskPath]));
         lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in µm^2
@@ -383,6 +386,18 @@ for i = 1:nd
     end
     lftRes.persistentDensity(i,:) = sum(lftData(i).catIdx_all==4) / lftRes.cellArea(i);
 end
+
+% print lifetime distribution percentiles
+lftCDF = cumsum(mean(lftRes.lftHistCS,1));
+[~,uidx] = unique(lftCDF);
+lftPctCS = interp1(lftCDF(uidx), lftRes.t(uidx), [0.05 0.25 0.5 0.75 0.95]);
+lftCDF = cumsum(mean(lftRes.lftHistCCP,1));
+[~,uidx] = unique(lftCDF);
+lftPctCCP = interp1(lftCDF(uidx), lftRes.t(uidx), [0.05 0.25 0.5 0.75 0.95]);
+fprintf('Lifetime distribution percentiles (5th, 25th, 50th, 75th, 95th):\n');
+fprintf(['  CSs:  [' strjoin(arrayfun(@(i) num2str(i, '%.1f'), lftPctCS, 'unif', 0), ', ') '] s\n']);
+fprintf(['  CCPs: [' strjoin(arrayfun(@(i) num2str(i, '%.1f'), lftPctCCP, 'unif', 0), ', ') '] s\n']);
+
 %====================
 % Initiation density
 %====================
@@ -440,7 +455,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     fprintf('Initiation density, valid tracks (CCPs + CSs + visitors): %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
     fprintf('Initiation density, CCPs:                                 %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityCCP(:,1)), std(lftRes.initDensityCCP(:,1)));
     fprintf('Density of persistent structures:                         %.3f ± %.3f [µm^-2]\n', mean(lftRes.persistentDensity), std(lftRes.persistentDensity));
-    fprintf('Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
+    fprintf('  Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
     
     % gap statistics
     ha = setupFigure(1,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...

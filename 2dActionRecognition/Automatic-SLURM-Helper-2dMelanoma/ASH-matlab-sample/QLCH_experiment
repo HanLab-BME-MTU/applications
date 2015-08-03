@@ -1,0 +1,20 @@
+#!/bin/sh
+#SBATCH --job-name=JobName
+#SBATCH --output=QLCH_exp-%j.out
+#SBATCH --error=QLCH_exp-%j.err
+##SBATCH --mail-user=Assaf.Zaritsky@utsouthwestern.edu
+##SBATCH --mail-type=all
+#SBATCH --partition=256GB
+#SBATCH --nodes=1
+
+module add matlab/2013a
+
+cd /home2/azaritsky/HTC_scripts
+
+
+for ((  i = 1 ;  i <= 20;  i++  ))
+do
+  matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "runQLCHOneAtATime(1,$i);" > QLCH_out_8_${i}.txt &
+done
+
+wait

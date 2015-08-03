@@ -29,7 +29,8 @@ function [frame, xv, yv, sv, Av] = simGaussianBeads(nx, ny, sigma, varargin)
 % Example:
 % img = simGaussianBeads(200, 100, 2, 'npoints', 50, 'Border', 'periodic');
 
-% Francois Aguet, last modified July 30, 2012
+% adapted from simGaussianSpots written by Francois Aguet, 2012
+% Sangyoon Han, 2014
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -112,7 +113,7 @@ else
         yv = ny*rand(np,1)+0.5;
         % beads separation - beads should be separated by bead diameter physically
         beads = [xv yv];
-        r_pix = d/pixelSize + 2*d/pixelSize; % bead radius in pixel *2 + repellent distance
+        r_pix = 2*d/pixelSize;% + 2*d/pixelSize; % bead radius in pixel *2 + repellent distance
         idxSep = KDTreeBallQuery(beads, beads, r_pix);
         valid = true(numel(idxSep),1);
         for i = 1:numel(idxSep)
@@ -121,11 +122,30 @@ else
             valid(neighbors_KD) = false;
         end
         beads = beads(valid, :);
-        disp([num2str(sum(valid)) ' beads were created out of ' num2str(length(xv))])
+        % take care of discarded beads
+        notSaturated=true;
+        maxNumTry = 100; % the number of maximum trial without detecting possible point
+        numTried = 0;
+        while notSaturated
+            x_new = nx*rand()+0.5;
+            y_new = ny*rand()+0.5;
+            [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
+            if distToPoints>r_pix 
+                beads = [beads; x_new, y_new];
+                numTried = 0;
+            else
+                numTried=numTried+1;
+            end
+            if numTried>maxNumTry || length(beads)>=length(xv)
+                notSaturated = false; % basically saturated or used up input number
+            end
+        end
+        
+        disp([num2str(length(beads)) ' beads were created out of ' num2str(length(xv))])
         xv = beads(:,1);
         yv = beads(:,2);
-        Av = Av(valid);
-        wv = wv(valid);
+        Av = Av(1:length(beads));
+        wv = wv(1:length(beads));
     end
 end
 

@@ -1,0 +1,17 @@
+MD = ColorStackMovieData(pwd);
+MD.sanityCheck
+imageDir = '/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/CtxB-CD36-Actin/NoTSP';
+MD = MovieData.load([imageDir filesep 'colorStackMovieData.mat']);
+%MD.setReader(LinearReader);
+process = SubResolutionProcess(MD);
+MD.addProcess(process);
+p = MD.getProcess(1).getParameters();
+p.ChannelIndex = 2;
+p.detectionParam.psfSigma = 1;
+p.detectionParam.calcMethod = 'g';
+p.lastImageNum = 56;
+p.detectionParam.testAlpha = struct('alphaR',0.05,'alphaA',0.1,'alphaD',0.1,'alphaF',0);
+p.detectionParam.alphaLocMax = 0.10;
+p.detectionParam.doMMF = 1;
+MD.getProcess(1).setParameters(p);
+MD.getProcess(1).run;

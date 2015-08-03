@@ -5,6 +5,8 @@ classdef LaminsImage < hgsetget
         parent
         image
         adjusted
+        adjustedComplement
+        stretchedComplement
         skeleton
         reader
         mask
@@ -48,12 +50,12 @@ classdef LaminsImage < hgsetget
             end
         end
         function I = get.image(obj)
-            %if(isempty(obj.image))
+            if(isempty(obj.image))
                 R = obj.reader;
                 I = R{obj.coordinates{:}};
-            %    obj.image = R{obj.coordinates{:}};
-            %end
-            %I = obj.image;
+               obj.image = R{obj.coordinates{:}};
+            end
+            I = obj.image;
         end
         function A = get.adjusted(obj)
             if(isempty(obj.adjusted))
@@ -61,6 +63,12 @@ classdef LaminsImage < hgsetget
                 obj.adjusted = imadjust(obj.image,stretchlim(I,0));
             end
             A = obj.adjusted;
+        end
+        function C = get.adjustedComplement(obj)
+            C = imcomplement(obj.adjusted);
+        end
+        function C = get.stretchedComplement(obj)
+            C = imcomplement(imadjust(double(obj)));
         end
         function E = get.clear(obj)
             E = [];
@@ -70,8 +78,9 @@ classdef LaminsImage < hgsetget
         end
         function steerable = get.steerable(obj)
             if(isempty(obj.steerable))
-                if(obj.steerableFromFile)
-                    matobj = matfile(['~/matlab/lamins/work/steerable_' num2str(obj.parent.params.movieNum)  '.mat']);
+                path = ['~/matlab/lamins/work/steerable_' num2str(obj.parent.params.movieNum)  '.mat'];
+                if(obj.steerableFromFile && exist(path))
+                    matobj = matfile(path);
                     obj.steerable = matobj.steerable(obj.coordinates{[1 3]});
                     obj.steerable = obj.steerable{1};
                 else
@@ -259,9 +268,27 @@ classdef LaminsImage < hgsetget
                 X = arrayfun(@flattenIntensity,obj,'UniformOutput',false);
             end
         end
+        function s = saveSteerable(obj)
+            path = ['~/matlab/lamins/work/steerable_' num2str(obj(1).parent.params.movieNum)  '.mat'];
+            assert(~exist(path),[path ' exists. Not saving steerable']);            
+            S.steerable = {obj.steerable};
+            save(path,'-struct','S','-v7.3');
+            s = true
+        end
         function loadSteerable(obj)
-            S = load(['~/matlab/lamins/work/steerable_' num2str(obj(1).parent.params.movieNum)  '.mat']);
-            [obj.steerable] = S.steerable{:};
+            path = ['~/matlab/lamins/work/steerable_' num2str(obj(1).parent.params.movieNum)  '.mat'];
+            if(exist(path))
+                S = load(['~/matlab/lamins/work/steerable_' num2str(obj(1).parent.params.movieNum)  '.mat']);
+                [obj.steerable] = S.steerable{:};
+            end
+        end
+        function c = getMaskCircularity(obj)
+            % calculate nucleus shape factor from mask
+            % a perfect circle has a circularity of 1
+            % a straight line has a circularity of 0
+            rp = regionprops(obj.mask,'Area','Perimeter');
+            assert(isscalar(rp));
+            c = 4*pi*(rp.Area)/rp.Perimeter.^2;
         end
     end
 end

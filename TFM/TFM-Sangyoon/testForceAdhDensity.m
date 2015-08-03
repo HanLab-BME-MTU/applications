@@ -1,4 +1,4 @@
-function [rmsError,EOA,lcurvePath,fMap,cropInfo,orgMap,bead_x, bead_y, Av] = testForceAdhDensity(n,method,dataPath,baseDataPath, bead_x, bead_y, Av)
+function [rmsError,EOA,lcurvePath,fMap,cropInfo,orgMap,bead_x, bead_y, Av] = testForceAdhDensity(n,method,dataPath,baseDataPath, bead_x, bead_y, Av, theta)
 % testForceAdhProximity is a function that tests how  forces from two close
 % adhesions are identified independently.
 % input: 
@@ -17,8 +17,8 @@ function [rmsError,EOA,lcurvePath,fMap,cropInfo,orgMap,bead_x, bead_y, Av] = tes
 
 %% Preparing synthetic bead images
 % reference image (200x200)
-xmax=200;
-ymax=200;
+xmax=300;
+ymax=300;
 nPoints = 12000; % was 7000
 % bead_r = 40; % nm
 pixSize = 72; % nm/pix 90x
@@ -35,8 +35,9 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
             refimg = simGaussianBeads(xmax,ymax, sigma, ...
             'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
     else
-        Aorg = [300+100*randn(1,nPoints*3/5) 300+600*rand(1,nPoints*2/5)];
-        Aorg(Aorg<300)=300+400*rand(1,sum(Aorg<300));
+%         Aorg = [300+100*randn(1,nPoints*3/5) 300+600*rand(1,nPoints*2/5)];
+%         Aorg(Aorg<300)=300+400*rand(1,sum(Aorg<300));
+        Aorg = [300+600*rand(1,nPoints)];
 
         [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
             'npoints', nPoints, 'Border', 'truncated','A',Aorg);
@@ -44,7 +45,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
 
     %% Noise addition (10%) % it was 5%
     noiseLevel = 0.1;
-    refimg2 = 700+100*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+    refimg2 = 300+100*noiseLevel*rand(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
     % figure, imshow(refimg2,[])
 
     % bead images
@@ -76,7 +77,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
 %     figure, hist(rx,20)
 %     figure, hist(ry,20)
     % magnitude 
-    fmin = 100; % Pa
+    fmin = 200; % Pa
     fmax= 1600;
 %     f = [fmin+2*fmin*rand(1,round(n*1/3)), (fmax)*rand(1,round(n*2/3))];
     f = fmin+(fmax-fmin)*rand(1,n);
@@ -94,8 +95,8 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     bandWith = 10;
     posDiscard = [];
     for ii=1:n
-        posx_min = bandWith+rx(ii); posx_max = xmax-(bandWith+rx(ii));
-        posy_min = bandWith+ry(ii); posy_max = ymax-(bandWith+ry(ii));
+        posx_min = bandWith+2*rx(ii); posx_max = xmax-(bandWith+2*rx(ii));
+        posy_min = bandWith+2*ry(ii); posy_max = ymax-(bandWith+2*ry(ii));
         if ii==1
             posx(ii) = posx_min+(posx_max-posx_min)*rand();
             posy(ii) = posy_min+(posy_max-posy_min)*rand();
@@ -103,7 +104,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
 %             distEE=0;
 %             p=0;
             maxDistEE = 0;
-            for p=1:iMax
+            for p=1:iMax %Place this adhesion without any overlapping
                 posx(ii) = posx_min+(posx_max-posx_min)*rand();
                 posy(ii) = posy_min+(posy_max-posy_min)*rand();
                 [idx, distCC]= KDTreeBallQuery([posx(1:ii-1),posy(1:ii-1)],[posx(ii),posy(ii)],distMin+5*rmax*2);
@@ -113,6 +114,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
                 distCC = distCC{1};
                 if isempty(idx)
                     break
+%                     continue
                 else
                     angle = atan2(posy(ii)-posy(idx),posx(ii)-posx(idx));
                     % in elipse, (x,y) = (a cos(theta), b sin(theta)) where a
@@ -122,6 +124,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
                     [minDistEE,~]=min(distEE);
                     if minDistEE>distMin
                         break
+%                         continue
                     else
                         if minDistEE>maxDistEE
                             oldPosx = posx(ii);
@@ -145,26 +148,37 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     force_x = zeros(size(x_mat_u));
     force_y = zeros(size(x_mat_u));
     % filtering misplaced adhesions
-   n = n - length(posDiscard);
-   posx(posDiscard) = [];
-   posy(posDiscard) = [];
-   rx(posDiscard) = [];
-   ry(posDiscard) = [];
-   f(posDiscard) = [];
-    
+    n = n - length(posDiscard);
+    posx(posDiscard) = [];
+    posy(posDiscard) = [];
+    rx(posDiscard) = [];
+    ry(posDiscard) = [];
+    f(posDiscard) = [];
+    theta = theta/180*pi; % this is an angle from +y axis. it controls uniform direction of elongated adhesions
     for ii=1:n
-        [ux_cur, uy_cur]= fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
-        @(x,y) assumedForceAniso2D(1,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),...
-        @(x,y) assumedForceAniso2D(2,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),'fft',[],meshPtsFwdSol);
-        ux = ux + ux_cur;
-        uy = uy + uy_cur;
-
-        force_x_cur = assumedForceAniso2D(1,x_mat_u,y_mat_u,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType);
-        force_y_cur = assumedForceAniso2D(2,x_mat_u,y_mat_u,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType);
+        force_x_cur = assumedForceAniso2D(1,x_mat_u,y_mat_u,posx(ii),posy(ii),f(ii)*sin(theta),f(ii)*cos(theta),rx(ii),ry(ii),forceType);
+        force_y_cur = assumedForceAniso2D(2,x_mat_u,y_mat_u,posx(ii),posy(ii),f(ii)*sin(theta),f(ii)*cos(theta),rx(ii),ry(ii),forceType);
         force_x = force_x + force_x_cur;
         force_y = force_y + force_y_cur;
     end
-    %% finding displacement at bead location
+    %% force noise
+    maxFnoixe = 100;
+    fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
+    foreground = fnorm_org>100;
+    background = ~foreground;
+    
+    force_x = (maxFnoixe*randn(ymax,xmax)).*background + force_x;
+    force_y = (maxFnoixe*randn(ymax,xmax)).*background + force_y;
+%% displacement calculation
+%     [ux_cur, uy_cur]= fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+%     @(x,y) assumedForceAniso2D(1,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),...
+%     @(x,y) assumedForceAniso2D(2,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),'fft',[],meshPtsFwdSol);
+%     ux = ux + ux_cur;
+%     uy = uy + uy_cur;
+    [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+        force_x,force_y,'fft',[],meshPtsFwdSol,50000,0.5,false,true); %,'conv',[],meshPtsFwdSol);
+
+%% finding displacement at bead location
     nPoints = length(bead_x);
     bead_ux = zeros(size(bead_x));
     bead_uy = zeros(size(bead_y));
@@ -193,7 +207,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
     %% Noise addition (10%) % it was 5% before
     % beadimg = beadimg+0.1*rand(ymax,xmax)*max(beadimg(:));
-    beadimg = 700+100*noiseLevel*randn(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+    beadimg = 300+100*noiseLevel*rand(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
     %% saving
     imgPath=[dataPath filesep 'Beads'];
     refPath=[dataPath filesep 'Reference'];
@@ -283,13 +297,14 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
         params.regParam = 2.4e-4;
     elseif strcmp(method,'L2')
         params.solMethodBEM = 'QR';
-        params.regParam = 1e-7;
+%         params.regParam = 1e-7;
+        params.regParam = 1e-8;
     else
         display('The method should be either L1 or L2. The input does not belong to any of those. We use L2 as a default.')
         params.solMethodBEM = 'QR';
     end
     params.method = 'FastBEM';
-    params.useLcurve = true;
+    params.useLcurve = false;
     params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/basisClass8kPaSimul.mat';
     MD.getPackage(iPack).getProcess(4).setPara(params);
     MD.getPackage(iPack).getProcess(4).run();
@@ -345,7 +360,7 @@ cropInfo = [XI(1,1), YI(1,1)];
 % RMS error
 % get x-component and y-component of forceField
 beta = [forceField.vec(:,1); forceField.vec(:,2)];
-load(MD.getPackage(iPack).getProcess(4).outFilePaths_{2},'forceMesh')
+load(MD.getPackage(iPack).getProcess(4).outFilePaths_{3},'forceMesh')
 [fx,fy]=calcForcesFromCoef(forceMesh,beta,XI,YI,'new');
 % compare fx, fy with force_x and force_y 
 force_x_crop = force_x(cropInfo(2):cropInfo(2)+size(YI,1)-1,cropInfo(1):cropInfo(1)+size(XI,2)-1);
@@ -367,7 +382,7 @@ EOA = sum(EOA(:))/floor(pi*distThres^2/4)/n; % error per adhesion
 %% L-curve scrutinization - regularization parameter, convexness?
 lcurvePath = MD.getPackage(iPack).getProcess(4).outFilePaths_{3};
 %% save original forcefield
-[h2,orgMap] = generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield'],0,fmax,false,size(XI,2),size(YI,1));
+[h2,orgMap] = generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield'],0,0,fmax,false,size(XI,2),size(YI,1));
 close(h2)
 
 % if ((x1-x1m)^2+(y1-y1m)^2)^0.5<7 && ((x2-x2m)^2+(y2-y2m)^2)^0.5<7

@@ -140,6 +140,8 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             funParams.highRes = true;
             funParams.mode = 'fast';
             funParams.useGrid = false;
+            funParams.noFlowOutwardOnBorder = true;
+            funParams.addNonLocMaxBeads = false;
         end
     end
 end

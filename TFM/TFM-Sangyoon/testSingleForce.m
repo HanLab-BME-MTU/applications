@@ -3,8 +3,12 @@ function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForce
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('solMethodBEM','QR', @ischar);
+ip.addParameter('regParam',1e-6,@isnumeric);
+ip.addParameter('addNoise',false,@islogical);
 ip.parse(varargin{:});
 solMethodBEM = ip.Results.solMethodBEM;    
+regParam = ip.Results.regParam;    
+addNoise = ip.Results.addNoise;    
 
 %% single force experiment
 % input parameters to be replaced with function inputs
@@ -21,8 +25,9 @@ if ~exist(refPath,'dir') || ~exist(orgPath,'dir')
     mkdir(orgPath);
 end
 %% reference image (300x200)
-xmax=200;
-ymax=300;
+meshPtsFwdSol=2^8;
+xmax=meshPtsFwdSol;
+ymax=meshPtsFwdSol;
 
 nPoints = 7000;
 % bead_r = 40; % nm
@@ -50,7 +55,6 @@ refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
 % refimg = refimg+0.10*rand(ymax,xmax)*max(refimg(:));
 %% Now displacement field from given force
 E=8000;  %Young's modulus, unit: Pa
-meshPtsFwdSol=2^10;
 forceType = 'groupForce';
 
 gridSpacing = 1;
@@ -59,11 +63,20 @@ ymin = gridSpacing;
 
 [x_mat_u, y_mat_u]=meshgrid(xmin:gridSpacing:xmax,ymin:gridSpacing:ymax);
 
-
-[ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
-    @(x,y) assumedForceAniso2D(1,x,y,(100),150,0,f,d,d,forceType),...
-    @(x,y) assumedForceAniso2D(2,x,y,(100),150,0,f,d,d,forceType),'fft',[],meshPtsFwdSol); %,'conv',[],meshPtsFwdSol);
-
+%% original force for comparison
+force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(xmax/2),ymax/2,0,f,d,d,forceType);
+force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,(xmax/2),ymax/2,0,f,d,d,forceType);
+%% force noise
+if addNoise
+    force_x = 100*rand(ymax,xmax)-50 + force_x;
+    force_y = 100*rand(ymax,xmax)-50 + force_y;
+    [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+        force_x,force_y,'fft',[],meshPtsFwdSol,50000,0.5,false,true); %,'conv',[],meshPtsFwdSol);
+else
+    [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+        @(x,y) assumedForceAniso2D(1,x,y,(xmax/2),ymax/2,0,f,d,d,forceType),...
+        @(x,y) assumedForceAniso2D(2,x,y,(xmax/2),ymax/2,0,f,d,d,forceType),'fft',[],meshPtsFwdSol); %,'conv',[],meshPtsFwdSol);
+end
 % figure, quiver(x_mat_u,y_mat_u,ux,uy)
 
 %% bead image
@@ -102,9 +115,6 @@ beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
 % %% Noise addition (10%)
 % beadimg = beadimg+0.10*rand(ymax,xmax)*max(beadimg(:));
 
-%% original force for comparison
-force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(100),150,0,f,d,d,forceType);
-force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,(100),150,0,f,d,d,forceType);
 %% saving original displacement field and force field
 save([orgPath filesep 'data.mat'],'ux','uy','x_mat_u','y_mat_u','bead_x','bead_ux','bead_y','bead_uy','force_x','force_y');
 %% save images
@@ -161,9 +171,16 @@ params = MD.getPackage(iPack).getProcess(2).funParams_;
 refFullPath = [refPath filesep 'img1ref.tif'];
 
 params.referenceFramePath = refFullPath;
-params.maxFlowSpeed = 40;
+if f<1000
+    params.maxFlowSpeed = 10;
+elseif f<2000
+    params.maxFlowSpeed = 20;
+else
+    params.maxFlowSpeed = 40;
+end    
 params.alpha = 0.05;
 params.minCorLength = minCorLength;
+params.mode = 'accurate';
 MD.getPackage(iPack).getProcess(2).setPara(params);
 %% Run the displacement field tracking
 MD.getPackage(iPack).getProcess(2).run();
@@ -178,10 +195,12 @@ MD.getPackage(iPack).createDefaultProcess(4)
 params = MD.getPackage(iPack).getProcess(4).funParams_;
 
 params.YoungModulus = 8000;
-params.regParam = 1e-6;
+params.regParam = regParam;
 params.solMethodBEM = solMethodBEM;
+params.useLcurve = false;
 % params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
-params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
+% params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
+params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
 
@@ -218,13 +237,13 @@ for k=1:nmPoints
 end
 %% errors in displacementfield
 % displField.vec(isnan(displField.vec(:,1)),:) = 0;
-maskForce2 = ((x_mat_u-100).^2+(y_mat_u-150).^2).^0.5<=d/2*6;
+maskForce2 = ((x_mat_u-xmax/2).^2+(y_mat_u-ymax/2).^2).^0.5<=d/2*6;
 dispIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce2);
 
 meanDispErrorAdh= nansum(((org_ux(dispIdx)-displField(1).vec(dispIdx,1)).^2+(org_uy(dispIdx)-displField(1).vec(dispIdx,2)).^2).^.5)/sum(~isnan((displField(1).vec(dispIdx,2)))); %normalized by the number of beads
 meanDispErrorBG= nansum(((org_ux(~dispIdx)-displField(1).vec(~dispIdx,1)).^2+(org_uy(~dispIdx)-displField(1).vec(~dispIdx,2)).^2).^.5)/sum(~isnan((displField(1).vec(~dispIdx,2)))); %normalized by the number of beads
 % detectability (u at force application / u at background)
-maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2).^0.5<=d/2*2;
+maskForce = ((x_mat_u-xmax/2).^2+(y_mat_u-ymax/2).^2).^0.5<=d/2*2;
 dispDetecIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce);
 if isempty(dispDetecIdx)
     dispDetec = 0;
@@ -273,13 +292,13 @@ end
 % heatmap creation and saving - i'll do it later
 
 % force peak ratio
-maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2).^0.5<=d/2;
+maskForce = ((x_mat_u-xmax/2).^2+(y_mat_u-ymax/2).^2).^0.5<=d/2;
 % forceForceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);
 % make  a an interpolated TF image and get the peak force because force
 % mesh is sparse
 [fMap,XI,YI]=generateHeatmapFromField(forceField);
 %new mask with XI and YI
-maskForceXIYI = ((XI-100).^2+(YI-150).^2).^0.5<=d/2;
+maskForceXIYI = ((XI-xmax/2).^2+(YI-ymax/2).^2).^0.5<=d/2;
 
 % if isempty(forceForceIdx)
 %     peakForceRatio = 0;
@@ -304,7 +323,8 @@ if isempty(forceFieldMag)
 else
     peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
     forceFieldBgdMag = sort(forceFieldBgdMag,'descend');
-    forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+%     forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+    forceDetec = max(forceFieldMag)/max(forceFieldBgdMag(1:length(forceFieldMag)));
 end
 %% errors in force field
 forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);

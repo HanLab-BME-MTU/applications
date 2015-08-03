@@ -17,7 +17,7 @@ function varargout=plotWindows(windowIn,varargin)
 %   but in this case if the showNum option is enabled, the numbering
 %   displayed will be altered.
 % 
-%   stringIn - Plot style option(s) to pass to the patch command,
+%   plotStyle - Plot style option(s) to pass to the patch command,
 %   determining the appearance of the windows when plotted. To pass
 %   multiple options, include them in a cell array. See the patch.m help
 %   for more details. Optional. Default is {'r','FaceAlpha',.2}, which
@@ -109,7 +109,7 @@ switch cellDepth
         
     case 2
 
-        for j = 1:numel(windowIn)            
+        for j = max(1,ip.Results.bandMin):min(numel(windowIn),ip.Results.bandMax)
             if ~isempty(windowIn{j})                
                 currWin = [windowIn{j}{:}];
                 if ~isempty(currWin)

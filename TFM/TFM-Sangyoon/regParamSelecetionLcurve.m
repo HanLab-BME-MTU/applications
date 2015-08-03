@@ -1,4 +1,4 @@
-function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda, varargin)%,dataPath)
+function [reg_corner,ireg_corner,kappa,h]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda, varargin)%,dataPath)
 % [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,reg_param)
 % returns l curve corner estimated using a maximum curvature (kappa) estimation 
 % in log-log space
@@ -8,6 +8,13 @@ function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,
 %   rho       - misfit
 %   eta       - model norm or seminorm
 %   reg_param - the regularization parameter
+%   inflection - 0: L-corner, 1: Inflection point before corner (lambda smaller than l-corner), 2:
+%   Inflectionpoint after corner  (lambda smaller than l-corner). If
+%   the second derivative has a shape of which curvature approaches
+%   assymtotically to zero, the algorithm uses strict definition of
+%   curvature (instead of second derivative) to find L-corner, and find the
+%   optimal lambda (by comparing solution norm difference and noise level
+%   in non-cell area)...
 %   manualSelection - true if you want to iterate selection process to get
 %   better reg parameter. (default: false)
 %
@@ -21,8 +28,8 @@ ip.addRequired('rho',@isnumeric);
 ip.addRequired('eta',@isnumeric);
 ip.addRequired('lambda',@isnumeric);
 ip.addOptional('init_lambda',median(lambda),@isnumeric);
-ip.addParameter('inflection',false,@islogical);
-ip.addParameter('manualSelection',false,@islogical);
+ip.addParamValue('inflection',0,@isnumeric);
+ip.addParamValue('manualSelection',false,@islogical);
 ip.parse(rho,eta,lambda,init_lambda, varargin{:});
 rho=ip.Results.rho;
 eta=ip.Results.eta;
@@ -76,16 +83,27 @@ elseif length(maxKappaCandIdx)>1
 %     [~,tempIndex] = max(kappa(maxKappaCandIdx));% use the first one %max(maxKappaCandIdx);
 %     maxKappaIdx = maxKappaCandIdx(tempIndex);
 elseif isempty(maxKappaCandIdx)
-    error('there is no local maximum in curvature in the input lambda range');
+    disp('There is no local maximum in curvature in the input lambda range.Using global maximum instead ...');
+    [~, maxKappaIdx] = max(kappa);
 end
-if inflection % if inflection point is to be chosen instead of L-corner
+if inflection==1 % if inflection point larger than lcorner is to be chosen.
     inflectionIdx = find(kappa<0 & (1:nPoints)'>maxKappaIdx,1,'first');
     ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
     reg_corner = lambda_cut(inflectionIdx);
-    disp(['L-inflection value: ' num2str(reg_corner)])
+    disp(['L-inflection value (larger than L-corner): ' num2str(reg_corner)])
+elseif inflection==2 % if inflection point smaller than lcorner is to be chosen.
+    inflectionIdx = find(kappa<0 & (1:nPoints)'<maxKappaIdx,1,'last');
+    ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+    reg_corner = lambda_cut(inflectionIdx);
+    disp(['L-inflection value (smaller than L-corner): ' num2str(reg_corner)])
 else
-    ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-    reg_corner = lambda_cut(maxKappaIdx);
+    if maxKappaIdx==1 || sum(kappa>0)/length(kappa)>0.8 % if kappa is assymtotically approaching to zero from large positive...
+        [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,lambda);
+        kappa = kappa(4:end-3);
+    else
+        ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+        reg_corner = lambda_cut(maxKappaIdx);
+    end
     disp(['L-corner regularization parameter value: ' num2str(reg_corner)])
 end
 % [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
@@ -110,22 +128,27 @@ end
 % end
 
 if manualSelection
-    numCutPoints = 0;
+%     numCutPoints = 0;
 
     % show the l curve and make sure this is fittable with 5th order polynomial
-    x_cut = x((numCutPoints+1:end));
+%     x_cut = x((numCutPoints+1:end));
     
     h=figure; set(h,'Position',[1000,100,350,600])
-    subplot(2,1,1),plot(x,y,'k')
+    subplot(3,1,1),plot(x,y,'k')
     xlabel('Residual Norm ||Gm-d||_{2}');
     ylabel('Simi-Norm ||Lm||_{2}');
-    subplot(2,1,1), hold on,plot(x(maxKappaIdx+3),y(maxKappaIdx+3),'ro')
-    text(x(maxKappaIdx+3),1.01*y(maxKappaIdx+3),...
+    subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
+    text(x(ireg_corner),1.01*y(ireg_corner),...
         ['    ',num2str(reg_corner,'%5.3e')]);
-    subplot(2,1,2), plot(x_kappa,kappa), title('curvature')
+    subplot(3,1,2), plot(x_slope,slope), title('slope')
+    if ireg_corner-2>0
+        subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
+    end
+    subplot(3,1,3), plot(x_kappa,kappa), title('curvature')
 %     subplot(3,1,3), plot(x_cut(3:end-5),diff(kappa)),title('jerk')
-
-    subplot(2,1,2), hold on,plot(x_kappa(maxKappaIdx),kappa(maxKappaIdx),'ro')
+    if ireg_corner-3>0
+        subplot(3,1,3), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
+    end
 %     subplot(3,1,3), hold on,plot(x_cut(maxKappaIdx),kappadiff(maxKappaIdx),'ro')
 
 %     poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');
