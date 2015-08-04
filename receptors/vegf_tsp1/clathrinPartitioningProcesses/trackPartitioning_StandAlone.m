@@ -85,10 +85,10 @@ partitionResult = arrayfun(@partition, tracks);
             %determine localization event
             nFramesTot = 0;
             nFramesIn = 0;
+            nLocEvent = 0;
+            nDelocEvent = 0;
             if analyzeTrack
                 frame = data.seqOfEvents(1,1);
-                nLocEvent = 0;
-                nDelocEvent = 0;
                 wasInside = nan;
                 for iLoc = 1:nLoc
                     x = round(x_all(iLoc));

@@ -35,9 +35,9 @@ end
 
 %% User prompt
 %ML for tracks
-[fileNameTrack, filePathTrack] = uigetfile('*.mat', 'Select MovieList containing tracks for partition analysis'); %#ok<ASGLU>
+[fileNameTrack, filePathTrack] = uigetfile('*.mat', 'Select MovieList containing TRACKS for partition analysis'); %#ok<ASGLU>
 %ML for masks
-[fileNameMask, filePathMask] = uigetfile('*.mat', 'Select MovieList containing mask information for partition analysis'); %#ok<ASGLU>
+[fileNameMask, filePathMask] = uigetfile('*.mat', 'Select MovieList containing MASK information for partition analysis'); %#ok<ASGLU>
 
 %% Input Check
 % the length of MLs and track2mask must be equal
