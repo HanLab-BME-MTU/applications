@@ -131,6 +131,7 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %       .data               : cellarray of plotted data sets
 %                             (each element in a column)
 %       .yMax               : y-axis maximum on plot
+%       .yMin               : y-axis minimum on plot
 %       .yLabel             : y axis label
 %       .getTimes           : function handle that returns commonInfo.times
 %                             Don't rely on this!!!
@@ -243,7 +244,10 @@ plotFigure(cellfun(@(x) x.rateMS, data, 'UniformOutput', false), 'Merging and Sp
 %Do only if input specify that this plot be shown. Will cause error if
 %data.partitionFrac is not present
 if params.showPartition
-    plotFigure(cellfun(@(x) x.partitionFrac, data, 'UniformOutput', false), 'Partitioning Behavior', {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'}, 'Partition fraction', true);
+    plotFigure(cellfun(@(x) x.chemEnergy, data, 'UniformOutput', false), 'Chemical Energy of Localization', defCond(1:5), 'Chemical Energy (arbitrary energy units)', false);
+    plotFigure(cellfun(@(x) x.locFreq, data, 'UniformOutput', false), 'Localization Frequency', defCond(1:5), 'k on (arbitrary units)', true);
+    plotFigure(cellfun(@(x) x.delocFreq, data, 'UniformOutput', false), 'Delocalization Frequency', defCond(1:5), 'k off (arbitrary units)', true);
+    plotFigure(cellfun(@(x) x.eqCond, data, 'UniformOutput', false), 'Equilibrium Condition', defCond(1:5), 'Proximity to equilibrium condition (arbitrary units)', false);
 end
 %get rid of figure data that was not plotted
 mask = arrayfun(@(x) ~isempty(x.fitData), figureData);

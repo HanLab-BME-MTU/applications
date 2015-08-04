@@ -121,6 +121,8 @@ startTime = [startTime{:}];
         %new analysis if doNewAnalysis is true or analysis has not been
         %done yet
         TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
+        %progressText
+        progressTextMultiple('part 1', 2);
         %(I'm not exactly sure what resultsIndTimeCourseMod does)
         %It is used like blackbox that does the basic analysis
         if isempty(TCAPIndx) || isempty(ML.processes_{TCAPIndx}.summary_)
@@ -136,6 +138,7 @@ startTime = [startTime{:}];
         else
             MLSummary = ML.processes_{TCAPIndx}.summary_;
         end
+        progressTextMultiple('part 2');
         %Time Analysis---------------------------------
         timeProcIndx = ML.getProcessIndex('TimePoints');
         alignIndx = ML.processes_{timeProcIndx}.getIndex(alignEvent);
@@ -148,13 +151,33 @@ startTime = [startTime{:}];
         %Conditional (Extra) Analysis-------------------------
         MLExtra = cellfun(@MDAnalyze, ML.movies_, 'UniformOutput', false);
         MLExtra = vertcat(MLExtra{:});
+        %--------------------TrackPartitioning analysis---------------
+        if analysisPara.doPartition
+            %Column 1 : immobile
+            %Column 2 : confined
+            %Column 3 : free
+            %Column 4 : directional
+            %Column 5 : undetermined
+            FN = {'immobile', 'confined', 'free', 'directed', 'undetermined'};
+            nFN = numel(FN);
+            [result_pCoef, ~] = partitionCoef(ML);
+            for iFN = 1:nFN
+                MLExtra.chemEnergy(:,iFN) = log(vertcat(result_pCoef.partCoef.(FN{iFN})));
+                MLExtra.locFreq(:,iFN) = vertcat(result_pCoef.locFreq.(FN{iFN}));
+                MLExtra.delocFreq(:,iFN) = vertcat(result_pCoef.delocFreq.(FN{iFN}));
+                MLExtra.eqCond(:,iFN) = vertcat(result_pCoef.eqCond.(FN{iFN}));
+            end
+        end
+        progressTextMultiple();
+        %---------------------
         %progress text
         progressTextMultiple();
     end
 %% Time Course Analysis (MD-level)
-    function [MDExtra] = MDAnalyze(MD)
+    function [MDExtra] = MDAnalyze(MD) %#ok<INUSD>
         %Need blank if not used
         MDExtra.blank = [];
+        %{
         %loads 'partitionResult'
         if analysisPara.doPartition
             load(MD.processes_{channel, MD.getProcessIndex('PartitionAnalysisProcess')}.outFilePaths_{1});
@@ -163,46 +186,7 @@ startTime = [startTime{:}];
         if analysisPara.doPartition
             load(MD.processes_{channel, MD.getProcessIndex('MotionAnalysisProcess')}.outFilePaths_{1});
         end
-        %--------------------TrackPartitioning analysis---------------
-        if analysisPara.doPartition
-            %Column 1 : immobile
-            %Column 2 : confined
-            %Column 3 : free
-            %Column 4 : directional
-            %Column 5 : undetermined
-            %Column 6 : determined
-            %Column 7 : total
-            %Initialize
-            partitionSum = [0 0 0 0 0];
-            trackTotal = [0 0 0 0 0];
-            arrayfun(@(x, y) partitionTrack(x.classification(:,2), y.partitionFrac), tracks, partitionResult);
-            MDExtra.partitionFrac = partitionSum ./ trackTotal;
-            MDExtra.partitionFrac(6) = sum(partitionSum(1:4)) ./ sum(trackTotal(1:4));
-            MDExtra.partitionFrac(7) = sum(partitionSum) ./ sum(trackTotal);
-        end
-        %Nested function that looks at each track
-        function partitionTrack(diffClass, partition)
-            nSubTrack = numel(partition);
-            for iSubTrack = 1:nSubTrack
-                if diffClass(iSubTrack) == 0
-                    trackTotal(1) = trackTotal(1) + 1;
-                    partitionSum(1) = partitionSum(1) + partition(iSubTrack);
-                elseif diffClass(iSubTrack) == 1
-                    trackTotal(2) = trackTotal(2) + 1;
-                    partitionSum(2) = partitionSum(2) + partition(iSubTrack);
-                elseif diffClass(iSubTrack) == 2
-                    trackTotal(3) = trackTotal(3) + 1;
-                    partitionSum(3) = partitionSum(3) + partition(iSubTrack);
-                elseif diffClass(iSubTrack) == 3
-                    trackTotal(4) = trackTotal(4) + 1;
-                    partitionSum(4) = partitionSum(4) + partition(iSubTrack);
-                elseif isnan(diffClass(iSubTrack))
-                    trackTotal(5) = trackTotal(5) + 1;
-                    partitionSum(5) = partitionSum(5) + partition(iSubTrack);
-                end
-            end
-        end
-        %---------------------
+        %}
     end
 %% Format Change
 %Using resultsCombTimeCourseMod.m to store data in correct format
@@ -215,7 +199,10 @@ end
 %adds extra analysis if applicable
 if analysisPara.doPartition
     for iCML = 1:nCML
-        summary{iCML}.partitionFrac = extra{iCML}.partitionFrac;
+        summary{iCML}.chemEnergy = extra{iCML}.chemEnergy;
+        summary{iCML}.locFreq = extra{iCML}.locFreq;
+        summary{iCML}.delocFreq = extra{iCML}.delocFreq;
+        summary{iCML}.eqCond = extra{iCML}.eqCond;
     end
 end
 %% Sort
@@ -233,7 +220,10 @@ for iCML = 1:nCML
     summary{iCML}.ampStatsL20 = summary{iCML}.ampStatsL20(sortIndx, :);
     summary{iCML}.rateMS = summary{iCML}.rateMS(sortIndx, :);
     if analysisPara.doPartition
-        summary{iCML}.partitionFrac = summary{iCML}.partitionFrac(sortIndx, :);
+        summary{iCML}.chemEnergy = summary{iCML}.chemEnergy(sortIndx, :);
+        summary{iCML}.locFreq = summary{iCML}.locFreq(sortIndx, :);
+        summary{iCML}.delocFreq = summary{iCML}.delocFreq(sortIndx, :);
+        summary{iCML}.eqCond = summary{iCML}.eqCond(sortIndx, :);
     end
 end
 
