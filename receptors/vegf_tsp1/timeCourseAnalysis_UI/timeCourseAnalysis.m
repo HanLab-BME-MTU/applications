@@ -108,12 +108,12 @@ startTime = [startTime{:}];
         %[CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
         nML = numel(CML.movieLists_);
         for iML = nML:-1:1
-            [CMLSummary{iML}, CMLTime{iML}, CMLExtra{iML}, startTime] = MLAnalyze(CML.movieLists_(iML), alignEvent);
+            [CMLSummary{iML}, CMLTime{iML}, CMLExtra{iML}, startTime(iML)] = MLAnalyze(CML.movieLists_(iML), alignEvent);
         end
         CMLSummary = vertcat(CMLSummary{:});
         CMLTime = vertcat(CMLTime{:});
         CMLExtra = vertcat(CMLExtra{:});
-        startTime = mean([startTime{:}]);
+        startTime = mean(startTime);
     end
 %% Time Course Analysis (ML-level)
     function [MLSummary, MLTime, MLExtra, startTime] = MLAnalyze(ML, alignEvent)
@@ -232,7 +232,7 @@ if analysisPara.start2zero
     shiftTimeIndx = startTime~=0;
     offset = - mean(startTime(shiftTimeIndx));
     shiftTime = zeros(1, nCML);
-    for iCML = shiftTimeIndx
+    for iCML = find(shiftTimeIndx)
         shiftTime(iCML) = offset;
     end
 end

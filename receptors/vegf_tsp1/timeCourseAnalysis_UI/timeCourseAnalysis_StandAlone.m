@@ -226,6 +226,8 @@ iFD = 0;
 %% Plot and Fit Smoothing Spline
 %Initialize
 defCond = {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'};
+%progressText
+fprintf('Plotting figures: scatter plots\n');
 %Each line calls the nested function plotData
 %the first input subData must be cellarray of arrays
 %So using cell fun convert data which is a cellarray of structure of arrays
@@ -235,7 +237,7 @@ plotFigure(cellfun(@(x) x.numAbsClass, data, 'UniformOutput', false), 'Absolute 
 plotFigure(cellfun(@(x) x.numNorm0Class, data, 'UniformOutput', false), 'Normalized Number of Class Types', defCond, 'Relative number of tracks', true);
 plotFigure(cellfun(@(x) x.probClass, data, 'UniformOutput', false), 'Probability of Class Types', {'immobile', 'confined', 'free', 'directed', 'determined'}, 'Probability', true);
 plotFigure(cellfun(@(x) x.diffCoefClass, data, 'UniformOutput', false), 'Diffusion Coefficient', defCond(1:4), 'Diffusion coefficient(pixels^2/frame)', true); %no 5th
-plotFigure(cellfun(@(x) x.confRadClass, data, 'UniformOutput', false), 'Confinement Radius', defCond(1:2), 'Radius (pixels)');%no 3 4 5th column
+plotFigure(cellfun(@(x) x.confRadClass, data, 'UniformOutput', false), 'Confinement Radius', defCond(1:2), 'Radius (pixels)', true);%no 3 4 5th column
 plotFigure(cellfun(@(x) x.ampClass, data, 'UniformOutput', false), 'Fluorescence Amplitude', defCond(1:5), 'Intensity (arbitrary units)', true);
 plotFigure(cellfun(@(x) x.ampNormClass, data, 'UniformOutput', false), 'Normalized Fluorescence Amplitude', defCond(1:5), 'Normalized intensity (monomer units)', true);
 %plotData(cellfun(@(x) x.ampStatsF20, data, 'UniformOutput', false), '', {'mean', 'first mode mean', 'first mode std', 'first mode fraction', 'number of modes', 'normalized mean'}, '', true);
@@ -253,6 +255,8 @@ end
 mask = arrayfun(@(x) ~isempty(x.fitData), figureData);
 figureData = figureData(mask);
 pause(1);
+%progressText
+fprintf('\b Complete\n');
 
 %% Nested function for plotting
 % Splits data structure elements by columns and calls the plotting function
@@ -294,6 +298,7 @@ pause(1);
             figureData(iFD).figureDir = [outputDirFig filesep plotTitle '.fig'];
             figureData(iFD).getTimes = @() commonInfo.times;
             figureData(iFD).yMax = yMax;
+            figureData(iFD).yMin = yMin;
             figureData(iFD).yLabel = yLabelName;
         end
     end
@@ -341,13 +346,14 @@ for iFig = 1:nFig
         plot(commonInfo.analysisTimes{iCond}, fitValues + figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
         plot(commonInfo.analysisTimes{iCond}, fitValues - figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
         lineObj{iCond} = plot(commonInfo.analysisTimes{iCond}, fitValues, 'color', colors{iCond});
+        plot([timeShift(iCond), timeShift(iCond)], [figureData(iFig).yMax, figureData(iFig).yMin], 'Color', colors{iCond});
     end
     lineObj2 = [lineObj{:}];
     legend(lineObj2, commonInfo.conditions);
     title([figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable])
     xlabel('Time (min)');
     ylabel(figureData(iFig).yLabel);
-    ylim([0, figureData(iFig).yMax]);
+    ylim([figureData(iFig).yMin, figureData(iFig).yMax]);
     %save and close
     savefig(figObj, [outputDirFig2, filesep, figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable, '.fig']);
     close(figObj);
@@ -389,7 +395,11 @@ fitCompare = arrayfun(@callGetP, figureData, 'UniformOutput', false);
 
 %% Nested Function: deals out pair of curves to getP
     function [fitCompare]  = callGetP(FD)
-        pValue = cellfun(@(x, y, index1, index2) getPValues(FD.fitData{x(1)}, FD.fitData{x(2)}, FD.fitError{x(1)}(index1(1):index1(2)), FD.fitError{x(2)}(index2(1):index2(2)), y), curveIndxPair, commonInfo.compareTimes, commonIndx1, commonIndx2, 'UniformOutput', false, 'ErrorHandler', @getPEH);
+        if isempty(curveIndxPair)
+            pValue = [];
+        else
+            pValue = cellfun(@(x, y, index1, index2) getPValues(FD.fitData{x(1)}, FD.fitData{x(2)}, FD.fitError{x(1)}(index1(1):index1(2)), FD.fitError{x(2)}(index2(1):index2(2)), y), curveIndxPair, commonInfo.compareTimes, commonIndx1, commonIndx2, 'UniformOutput', false, 'ErrorHandler', @getPEH);
+        end
         fitCompare(nConditions, nConditions) = struct('geoMeanP', [], 'p', [], 'timeIndx', []);
         for iPair = 1:nPair
             fitCompare(curveIndxPair{iPair}(1), curveIndxPair{iPair}(2)).p = pValue{iPair};
