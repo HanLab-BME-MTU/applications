@@ -40,9 +40,7 @@ function [result] = diffModePartition(MDML, saveData)
 %                         Smaller p means the null hypothesis (two data
 %                         sets are same) is rejected.
 %       .nLocE          : number of localization event (of entire MD or ML)
-%       .locFreq        : localization frequency or k_on
 %       .nDelocE        : number of delocalization event
-%       .delocFreq      : delocalization frequency or k_off
 %
 %Tae H Kim, July 2015
 
