@@ -108,13 +108,17 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %                                 time values are present. In other words,
 %                                 minimum time point is taken to be the
 %                                 zero. Default is false.
+%           .shiftTime          : (array, numeric) how much the aligned time are
+%                                 shifted. if ==1, align Event will be at 1
 %       .fullPath       : fullpath of where commonInfo and figureData are
 %                         saved
 %       .timeShift      : how much time values have been changed from the
 %                         original values due to time shifting mechanisms
-%                         like .shiftPlotPositive
+%                         like .start2zero
 %                         To get to the original value, simply subtract
 %                         .timeShift from the recorded time values
+%                         Here, original value means that the align event is
+%                         at 0.
 %   figureData      : array of information and data specific to a figure
 %       .titleBase          : constant part of plot title
 %       .titleVariable      : variable part of plot title
@@ -156,10 +160,11 @@ ip.addParameter('timeResolution', 1, @isnumeric);
 ip.addParameter('curveCompareAlpha', 0.05, @(x) isnumeric(x) && x>0 && x<1);
 ip.addParameter('compareCurves', true, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
+ip.addParameter('shiftTime', [], @(x) isnumeric(x));
 ip.parse(varargin{:});
 params = struct('showPartition', ip.Results.showPartitionAnalysis, 'smoothingPara', ip.Results.smoothingPara, 'nBootstrp', round(ip.Results.nBootstrp),...
     'timeResolution', ip.Results.timeResolution, 'curveCompareAlpha', ip.Results.curveCompareAlpha, 'compareCurves', ip.Results.compareCurves,...
-    'shiftPlotPositive', ip.Results.shiftPlotPositive);
+    'shiftPlotPositive', ip.Results.shiftPlotPositive, 'shiftTime', ip.Results.shiftTime);
 outputDirFig = [outputDir filesep 'figures'];
 outputDirFig2 = [outputDir filesep 'figures_SE'];
 %makes sure outputDir folder exists
@@ -175,6 +180,7 @@ end
 
 %% Inititalization
 nConditions = numel(data);
+timeShift = zeros(1, nConditions);
 times = cellfun(@(x) x.time, data, 'UniformOutput', false);
 names = cellfun(@(x) x.name, data, 'UniformOutput', false);
 %Shift values
@@ -182,6 +188,13 @@ if params.shiftPlotPositive
     minTime = min(cellfun(@min, times));
     if minTime < 0
         times = cellfun(@(x) x - minTime, times, 'UniformOutput', false);
+        timeShift = timeShift - minTime;
+    end
+end
+if numel(params.shiftTime) == nConditions
+    for iCond = 1:nConditions
+        times{iCond} = times{iCond} + params.shiftTime(iCond);
+        timeShift(iCond) = timeShift(iCond) + params.shiftTime(iCond);
     end
 end
 %Color initialization
@@ -203,32 +216,34 @@ condColorAll = {...
 colors = condColorAll(mod(1:nConditions, 13) + 1);
 %For saving plot data
 figureData(37) = struct('titleBase', [], 'titleVariable', [], 'figureDir', [], 'fitData', [], 'data', [], 'getTimes', [], 'fitError', [], 'fitCompare', []);
-commonInfo = struct('times', [], 'compareTimes', [], 'conditions', [], 'parameters', [], 'fullPath', [outputDir filesep 'figureData.mat'], 'timeShift', -minTime);
+commonInfo = struct('times', [], 'compareTimes', [], 'conditions', [], 'parameters', [], 'fullPath', [outputDir filesep 'figureData.mat'], 'timeShift', timeShift);
 commonInfo.times = times;
 commonInfo.conditions = names;
 commonInfo.parameters = params;
 iFD = 0;
 
 %% Plot and Fit Smoothing Spline
+%Initialize
+defCond = {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'};
 %Each line calls the nested function plotData
 %the first input subData must be cellarray of arrays
 %So using cell fun convert data which is a cellarray of structure of arrays
 %into a cellarray of arrays
 %Other inputs are explained in plotData
-plotFigure(cellfun(@(x) x.numAbsClass, data, 'UniformOutput', false), 'Absolute Number of Class Types', {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'}, 'Number of tracks (molecules)');
-plotFigure(cellfun(@(x) x.numNorm0Class, data, 'UniformOutput', false), 'Normalized Number of Class Types', {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'}, 'Relative number of tracks');
-plotFigure(cellfun(@(x) x.probClass, data, 'UniformOutput', false), 'Probability of Class Types', {'immobile', 'confined', 'free', 'directed', 'determined'}, 'Probability');
-plotFigure(cellfun(@(x) x.diffCoefClass, data, 'UniformOutput', false), 'Diffusion Coefficient', {'immobile', 'confined', 'free', 'directed'}, 'Diffusion coefficient(pixels^2/frame)'); %no 5th
-plotFigure(cellfun(@(x) x.confRadClass, data, 'UniformOutput', false), 'Confinement Radius', {'immobile', 'confined'}, 'Radius (pixels)');%no 3 4 5th column
-plotFigure(cellfun(@(x) x.ampClass, data, 'UniformOutput', false), 'Fluorescence Amplitude', {'immobile', 'confined', 'free', 'directed', 'undetermined'}, 'Intensity (arbitrary units)');
-plotFigure(cellfun(@(x) x.ampNormClass, data, 'UniformOutput', false), 'Normalized Fluorescence Amplitude', {'immobile', 'confined', 'free', 'directed', 'undetermined'}, 'Normalized intensity (monomer units)');
-%plotData(cellfun(@(x) x.ampStatsF20, data, 'UniformOutput', false), '', {'mean', 'first mode mean', 'first mode std', 'first mode fraction', 'number of modes', 'normalized mean'}, '');
-%plotData(cellfun(@(x) x.ampStatsL20, data, 'UniformOutput', false), '', {'mean', 'first mode mean', 'first mode std', 'first mode fraction', 'number of modes', 'normalized mean'}, '');
-plotFigure(cellfun(@(x) x.rateMS, data, 'UniformOutput', false), 'Merging and Spliting', {'merging', 'spliting'}, '(per frame)');
+plotFigure(cellfun(@(x) x.numAbsClass, data, 'UniformOutput', false), 'Absolute Number of Class Types', defCond, 'Number of tracks (molecules)', true);
+plotFigure(cellfun(@(x) x.numNorm0Class, data, 'UniformOutput', false), 'Normalized Number of Class Types', defCond, 'Relative number of tracks', true);
+plotFigure(cellfun(@(x) x.probClass, data, 'UniformOutput', false), 'Probability of Class Types', {'immobile', 'confined', 'free', 'directed', 'determined'}, 'Probability', true);
+plotFigure(cellfun(@(x) x.diffCoefClass, data, 'UniformOutput', false), 'Diffusion Coefficient', defCond(1:4), 'Diffusion coefficient(pixels^2/frame)', true); %no 5th
+plotFigure(cellfun(@(x) x.confRadClass, data, 'UniformOutput', false), 'Confinement Radius', defCond(1:2), 'Radius (pixels)');%no 3 4 5th column
+plotFigure(cellfun(@(x) x.ampClass, data, 'UniformOutput', false), 'Fluorescence Amplitude', defCond(1:5), 'Intensity (arbitrary units)', true);
+plotFigure(cellfun(@(x) x.ampNormClass, data, 'UniformOutput', false), 'Normalized Fluorescence Amplitude', defCond(1:5), 'Normalized intensity (monomer units)', true);
+%plotData(cellfun(@(x) x.ampStatsF20, data, 'UniformOutput', false), '', {'mean', 'first mode mean', 'first mode std', 'first mode fraction', 'number of modes', 'normalized mean'}, '', true);
+%plotData(cellfun(@(x) x.ampStatsL20, data, 'UniformOutput', false), '', {'mean', 'first mode mean', 'first mode std', 'first mode fraction', 'number of modes', 'normalized mean'}, '', true);
+plotFigure(cellfun(@(x) x.rateMS, data, 'UniformOutput', false), 'Merging and Spliting', {'merging', 'spliting'}, '(per frame)', true);
 %Do only if input specify that this plot be shown. Will cause error if
 %data.partitionFrac is not present
 if params.showPartition
-    plotFigure(cellfun(@(x) x.partitionFrac, data, 'UniformOutput', false), 'Partitioning Behavior', {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'}, 'Partition fraction');
+    plotFigure(cellfun(@(x) x.partitionFrac, data, 'UniformOutput', false), 'Partitioning Behavior', {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'}, 'Partition fraction', true);
 end
 %get rid of figure data that was not plotted
 mask = arrayfun(@(x) ~isempty(x.fitData), figureData);
@@ -244,19 +259,26 @@ pause(1);
 %title_variable     : part of plot title that does change depending on the
 %                     column number
 %yLabelName         : used for ylabel of the plot
-    function plotFigure(subData, title_Base, title_Variable, yLabelName)
+    function plotFigure(subData, title_Base, title_Variable, yLabelName, isYMin0)
         %initialization
         nColumns = numel(title_Variable);
         plotData(nColumns) = struct('fitData', [], 'condition', []);
         %determine maximum y value to determine y axis limit
         maxValue = max(cellfun(@(x) max(max(x)), subData));
         axisTick = 10^(round(log10(maxValue) + 0.2)-1);
+        if isYMin0
+            yMin = 0;
+        else
+            minValue = min(cellfun(@(x) min(min(x)), subData));
+            axisTick = max(10^(round(log10(abs(minValue)) + 0.2)-1), axisTick);
+            yMin = (ceil(minValue / axisTick) - 1) * axisTick;
+        end
         yMax = (floor(maxValue / axisTick) + 1) * axisTick;
         %plot by column
         for iColumns = 1:nColumns
             subSubData = cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false);
             plotTitle = [title_Base ' ' title_Variable{iColumns}];
-            [fitData] = plotMultipleSmoothingSpline(outputDirFig, subSubData, times, names, colors, plotTitle, yLabelName, params.smoothingPara, yMax);
+            [fitData] = plotMultipleSmoothingSpline(outputDirFig, subSubData, times, names, colors, plotTitle, yLabelName, params.smoothingPara, yMax, yMin, timeShift);
             plotData(iColumns).fitData = fitData;
             plotData(iColumns).condition = title_Variable{iColumns};
             %Save data in figureData

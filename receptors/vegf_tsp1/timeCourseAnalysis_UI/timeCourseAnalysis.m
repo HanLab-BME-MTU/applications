@@ -25,7 +25,10 @@ function [] = timeCourseAnalysis(CMLs, outputDir, varargin)
 %                                 plots are shifted so that no negative
 %                                 time values are present. In other words,
 %                                 minimum time point is taken to be the
-%                                 zero. Default is false.
+%                                 zero. Default is false. <don't use>
+%       'start2zero'            : (logical) sets the average start time to
+%                                 be zero, even if the align event is not
+%                                 'start'
 %
 %Tae H Kim, July 2015
 
@@ -54,11 +57,13 @@ ip.addParameter('channel', 1, @isnumeric);
 ip.addParameter('doPartitionAnalysis', false, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('doNewAnalysis', true, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
+ip.addParameter('start2zero', false, @(x) islogical(x)||isnumeric(x));
 ip.parse(outputDir, varargin{:});
 %for easier access to ip.Result variables
 smoothingPara = ip.Results.smoothingPara;
 analysisPara.smoothingPara = smoothingPara;
 analysisPara.shiftPlotPositive = ip.Results.shiftPlotPositive;
+analysisPara.start2zero = ip.Results.start2zero;
 channel = round(ip.Results.channel);
 doNewAnalysis = ip.Results.doNewAnalysis;
 %used for Extra Analysis
@@ -94,22 +99,24 @@ end
 progressTextMultiple('Time Course Analysis', nMLTot);
 %Using resultsIndTimeCourseMod.m to do basic analysis
 %and extract time data and align
-[summary, time, extra] = arrayfun(@CMLAnalyze, CMLs, 1:nCML, 'UniformOutput', false);
+[summary, time, extra, startTime] = arrayfun(@CMLAnalyze, CMLs, 'UniformOutput', false);
+startTime = [startTime{:}];
 %nested function for above cellfun
 %deals with individual CML
-    function [CMLSummary, CMLTime, CMLExtra] = CMLAnalyze(CML, iCML)
+    function [CMLSummary, CMLTime, CMLExtra, startTime] = CMLAnalyze(CML)
         alignEvent = CML.analysisPara_.alignEvent;
         %[CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
         nML = numel(CML.movieLists_);
         for iML = nML:-1:1
-            [CMLSummary{iML}, CMLTime{iML}, CMLExtra{iML}] = MLAnalyze(CML.movieLists_(iML), alignEvent);
+            [CMLSummary{iML}, CMLTime{iML}, CMLExtra{iML}, startTime] = MLAnalyze(CML.movieLists_(iML), alignEvent);
         end
         CMLSummary = vertcat(CMLSummary{:});
         CMLTime = vertcat(CMLTime{:});
         CMLExtra = vertcat(CMLExtra{:});
+        startTime = mean([startTime{:}]);
     end
 %% Time Course Analysis (ML-level)
-    function [MLSummary, MLTime, MLExtra] = MLAnalyze(ML, alignEvent)
+    function [MLSummary, MLTime, MLExtra, startTime] = MLAnalyze(ML, alignEvent)
         %Basic Analysis-------------------------------
         %new analysis if doNewAnalysis is true or analysis has not been
         %done yet
@@ -135,6 +142,9 @@ progressTextMultiple('Time Course Analysis', nMLTot);
         offSet = datenum(ML.processes_{timeProcIndx}.times_{alignIndx});
         MLTime = cellfun(@(x) (datenum(x.acquisitionDate_) - offSet) .* 1440, ML.movies_, 'UniformOutput', false);
         MLTime = vertcat(MLTime{:});
+        %get relative startTime
+        startIndx = ML.processes_{timeProcIndx}.getIndex('start');
+        startTime = (datenum(ML.processes_{timeProcIndx}.times_{startIndx}) - offSet) * 1440;
         %Conditional (Extra) Analysis-------------------------
         MLExtra = cellfun(@MDAnalyze, ML.movies_, 'UniformOutput', false);
         MLExtra = vertcat(MLExtra{:});
@@ -226,8 +236,19 @@ for iCML = 1:nCML
         summary{iCML}.partitionFrac = summary{iCML}.partitionFrac(sortIndx, :);
     end
 end
+
+%% Shift time
+if analysisPara.start2zero
+    shiftTimeIndx = startTime~=0;
+    offset = - mean(startTime(shiftTimeIndx));
+    shiftTime = zeros(1, nCML);
+    for iCML = shiftTimeIndx
+        shiftTime(iCML) = offset;
+    end
+end
+
 %% Plot by Calling StandAlone Function
-timeCourseAnalysis_StandAlone(summary, outputDir, 'smoothingPara', smoothingPara, 'showPartitionAnalysis', analysisPara.doPartition, 'shiftPlotPositive', analysisPara.shiftPlotPositive);
+timeCourseAnalysis_StandAlone(summary, outputDir, 'smoothingPara', smoothingPara, 'showPartitionAnalysis', analysisPara.doPartition, 'shiftTime', shiftTime);
 %% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
 end
