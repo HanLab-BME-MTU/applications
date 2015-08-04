@@ -33,6 +33,10 @@ if scrambleTracks
     fprintf('Tracks will be scrambled\n');
 end
 
+%% Initializae
+%Progresstext
+clear progressTextMultiple;
+
 %% User prompt
 %ML for tracks
 [fileNameTrack, filePathTrack] = uigetfile('*.mat', 'Select MovieList containing TRACKS for partition analysis'); %#ok<ASGLU>

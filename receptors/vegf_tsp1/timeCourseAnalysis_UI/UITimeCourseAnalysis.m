@@ -7,6 +7,10 @@ function [] = UITimeCourseAnalysis()
 %
 %Tae H Kim, July 2015
 
+%% Initialize
+%Progresstext
+clear progressTextMultiple;
+
 %% Prompt user
 %prompt user to select a folder where all figures and data will be stored
 outputDir = uigetdir('', 'Select output folder');

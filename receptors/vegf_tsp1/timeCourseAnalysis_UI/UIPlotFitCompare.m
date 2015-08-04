@@ -18,6 +18,9 @@ if ~exist(outputDir, 'dir')
 end
 
 %% Initialize
+%progreetext
+clear progressTextMultiple;
+%
 nCond = numel(commonInfo.times);
 nFig = numel(figIndx);
 %obtain condition pairs
