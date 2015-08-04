@@ -22,13 +22,23 @@ function [dataFit] = plotMultipleSmoothingSpline(outputDir, data, times, names, 
 %
 %Tae H Kim, July 2015
 
-%% Input
+%% Initialization
 %assign default value
 if isempty(smoothingPara)
     smoothingPara = .05;
 end
+%creates figure and stores the figure handle
+figureHandle = figure('Name', plotTitle);
 try
     %% Smoothing data
+    %remove nan and inf and inf
+    nCond = numel(data);
+    for iCond = 1:nCond
+        mask = ~(isnan(data{iCond}) | isinf(data{iCond}));
+        data{iCond} = data{iCond}(mask);
+        times{iCond} = times{iCond}(mask);
+    end
+    %smoothing
     smoothData = cellfun(@(x) smooth(x, 5), data, 'UniformOutput', false);
     smoothData = cellfun(@(x) x(3:end-2), smoothData, 'UniformOutput', false);
     smoothTimes = cellfun(@(x) smooth(x, 5), times, 'UniformOutput', false);
@@ -36,8 +46,7 @@ try
     %% Fitting
     dataFit = cellfun(@(x, y) fit(x, y, 'smoothingspline', 'smoothingParam', smoothingPara), smoothTimes, smoothData, 'UniformOutput', false);
     %% Plotting
-    %creates figure and stores the figure handle
-    figureHandle = figure('Name', plotTitle);
+    
     hold on;
     %plots all data and stores all line handles
     lineHandle = cellfun(@plot, dataFit, times, data, 'UniformOutput', false);
@@ -66,5 +75,6 @@ try
 catch
     warning(['Could not plot ' plotTitle]);
     dataFit = [];
+    close(figureHandle);
 end
 end

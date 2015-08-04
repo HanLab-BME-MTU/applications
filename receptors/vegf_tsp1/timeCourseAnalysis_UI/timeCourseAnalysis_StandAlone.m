@@ -272,12 +272,12 @@ fprintf('\b Complete\n');
         nColumns = numel(title_Variable);
         plotData(nColumns) = struct('fitData', [], 'condition', []);
         %determine maximum y value to determine y axis limit
-        maxValue = max(cellfun(@(x) max(max(x)), subData));
+        maxValue = max(cellfun(@(x) max(max(x(~(isnan(x)|isinf(x))))), subData));
         axisTick = 10^(round(log10(maxValue) + 0.2)-1);
         if isYMin0
             yMin = 0;
         else
-            minValue = min(cellfun(@(x) min(min(x)), subData));
+            minValue = min(cellfun(@(x) min(min(x(~(isnan(x)|isinf(x))))), subData));
             axisTick = max(10^(round(log10(abs(minValue)) + 0.2)-1), axisTick);
             yMin = (ceil(minValue / axisTick) - 1) * axisTick;
         end
@@ -327,7 +327,7 @@ end
 commonInfo.analysisTimes = cellfun(@(x) x(1) : params.timeResolution : x(2), timeLimit, 'UniformOutput', false);
 %for progress display
 nFig = numel(figureData);
-progressText_Increment('Determining confidence interval', nFig);
+progressTextMultiple('Determining confidence interval', nFig);
 %call determineSE_Bootstrp.m
 fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara), figureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
 [figureData.fitError] = fitError{:};
@@ -362,7 +362,7 @@ pause(1);
 
 %% Compare Fitted Curves
 %progress display
-progressText_Increment('Comparing fittted curves', nFig);
+progressTextMultiple('Comparing fittted curves', nFig);
 %pairs up curve indices for comparison----------------
 %And
 %determines the commonInfo.compareTimes
@@ -406,7 +406,7 @@ fitCompare = arrayfun(@callGetP, figureData, 'UniformOutput', false);
             fitCompare(curveIndxPair{iPair}(1), curveIndxPair{iPair}(2)).geoMeanP = geomean(pValue{iPair});
             fitCompare(curveIndxPair{iPair}(1), curveIndxPair{iPair}(2)).timeIndx = iPair;
         end
-        progressText_Increment();
+        progressTextMultiple();
     end
 
 %% Save
@@ -417,7 +417,7 @@ end
 %function for progressDisplay and calls determineSE_Bootstrp.m
 function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara)
 fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara);
-progressText_Increment();
+progressTextMultiple();
 end
 %error handle for determineSE_Bootstrp.m
 function [fitError] = determineSEEH(varargin)

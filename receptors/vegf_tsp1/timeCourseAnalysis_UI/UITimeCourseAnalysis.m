@@ -56,6 +56,7 @@ h.p = uicontrol('style','pushbutton','units','pixels',...
         parameter = get(h.c,'Value');
         %closes the dialogue box
         close(h.f);
+        clear progressTextMultiple;
         pause(1);
         %calls the function that does the timeCourseAnalysis
         timeCourseAnalysis(CML_FullPath, outputDir, 'doNewAnalysis', doNewAnalysis, 'doPartitionAnalysis', parameter{1}, 'start2zero', parameter{2});

@@ -161,11 +161,14 @@ startTime = [startTime{:}];
             FN = {'immobile', 'confined', 'free', 'directed', 'undetermined'};
             nFN = numel(FN);
             [result_pCoef, ~] = partitionCoef(ML);
-            for iFN = 1:nFN
-                MLExtra.chemEnergy(:,iFN) = log(vertcat(result_pCoef.partCoef.(FN{iFN})));
-                MLExtra.locFreq(:,iFN) = vertcat(result_pCoef.locFreq.(FN{iFN}));
-                MLExtra.delocFreq(:,iFN) = vertcat(result_pCoef.delocFreq.(FN{iFN}));
-                MLExtra.eqCond(:,iFN) = vertcat(result_pCoef.eqCond.(FN{iFN}));
+            nMD = numel(ML.movies_);
+            for iMD = 1:nMD
+                for iFN = 1:nFN
+                    MLExtra(iMD,1).chemEnergy(iFN) = log(result_pCoef.partCoef(iMD).(FN{iFN}));
+                    MLExtra(iMD,1).locFreq(iFN) = result_pCoef.locFreq(iMD).(FN{iFN});
+                    MLExtra(iMD,1).delocFreq(iFN) = result_pCoef.delocFreq(iMD).(FN{iFN});
+                    MLExtra(iMD,1).eqCond(iFN) = result_pCoef.eqCond(iMD).(FN{iFN});
+                end
             end
         end
         progressTextMultiple();
@@ -199,10 +202,10 @@ end
 %adds extra analysis if applicable
 if analysisPara.doPartition
     for iCML = 1:nCML
-        summary{iCML}.chemEnergy = extra{iCML}.chemEnergy;
-        summary{iCML}.locFreq = extra{iCML}.locFreq;
-        summary{iCML}.delocFreq = extra{iCML}.delocFreq;
-        summary{iCML}.eqCond = extra{iCML}.eqCond;
+        summary{iCML}.chemEnergy = vertcat(extra{iCML}.chemEnergy);
+        summary{iCML}.locFreq = vertcat(extra{iCML}.locFreq);
+        summary{iCML}.delocFreq = vertcat(extra{iCML}.delocFreq);
+        summary{iCML}.eqCond = vertcat(extra{iCML}.eqCond);
     end
 end
 %% Sort
