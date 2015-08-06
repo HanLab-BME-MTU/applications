@@ -39,6 +39,19 @@ displFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldProc,paramsIn);
 
+%% Backup the original vectors to backup folder
+if exist(p.OutputDirectory,'dir')
+    display('Backing up the original data')
+    ii = 1;
+    backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+    while exist(backupFolder,'dir')
+        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+        ii=ii+1;
+    end
+    mkdir(backupFolder);
+    copyfile(p.OutputDirectory, backupFolder,'f')
+end
+mkClrDir(p.OutputDirectory);
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
@@ -113,11 +126,11 @@ beads = [pstruct.x' pstruct.y'];
 % Select only beads  which are minCorLength away from the border of the
 % cropped reference frame
 beadsMask = true(size(croppedRefFrame));
-erosionDist=p.minCorLength+1;
+erosionDist=ceil((p.minCorLength+1+floor(p.maxFlowSpeed))/2);
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
 beads(indx,:)=[];
-assert(size(beads,1)>=30, ['Insufficient number of detected beads (less than 30): current number: ' num2str(length(beads)) '.']);
+assert(size(beads,1)>=20, ['Insufficient number of detected beads (less than 20): current number: ' num2str(length(beads)) '.']);
 
 stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');

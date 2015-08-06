@@ -54,27 +54,70 @@ ind=find(~isnan(data(:,3)));
 data=data(ind,:);
     
 % Take out duplicate points (Sangyoon)
-[data,idata,iudata] = unique(data,'rows'); %data2 = data(idata,:),data = data2(iudata,:)
+[data,idata,~] = unique(data,'rows'); %data2 = data(idata,:),data = data2(iudata,:)
     
 % calculate maximum closest distance
 distance=zeros(length(data),1);
-for i=1:length(data)
-    neiBeads = data(:,1:2);
+% distanceAll=cell(length(data),1); % the second closest distance
+distance2=zeros(length(data),1); % the second closest distance
+neiBeadsWhole = data(:,1:2);
+parfor i=1:length(data)
+    neiBeads = neiBeadsWhole;
     neiBeads(i,:)=[];
     [~,distance(i)] = KDTreeClosestPoint(neiBeads,data(i,1:2));
+    [~,curDistanceAll] = KDTreeBallQuery(neiBeads,data(i,1:2),5*distance(i));
+    if length(curDistanceAll{1})>1
+        distance2(i) = curDistanceAll{1}(2);
+    else
+        distance2(i) = NaN;
+    end
 end
-neighborhood_distance = 3*max(distance);%quantile(distance,0.95);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+
+% Discard vectors that are in sparse location
+opts = statset('maxIter', 200);
+objDist = cell(3,1);
+n = 0;
+lastwarn('');
+[~, msgidlast] = lastwarn;
+warning('off','stats:gmdistribution:FailedToConverge')
+warning('off','stats:gmdistribution:MissingData')
+fitError = false;
+while ~strcmp(msgidlast,'stats:gmdistribution:FailedToConverge') && n<4 && ~fitError
+    n = n+1;
+    try
+        objDist{n} = gmdistribution.fit(distance2, n, 'Options', opts);
+        [~, msgidlast] = lastwarn;
+    catch
+        fitError=true;
+    end
+end
+objDist = objDist(1:n-1);
+[~,idx] = min(cellfun(@(i) i.BIC, objDist));
+objDist = objDist{idx};
+[mu,idx] = sort(objDist.mu);
+svec = squeeze(objDist.Sigma(:,:,idx));
+if length(mu)>1
+    threshDist= max(mu(1)+4*svec(1),mu(2)+4*svec(2));
+else
+    threshDist= mu+4*svec;
+end
+idxCloseVectors = distance2<threshDist & ~isnan(distance2);
+dataFiltered = data(idxCloseVectors,:);
+idCloseVectors = find(idxCloseVectors);
+idAwayVectors = find(~idxCloseVectors);
+neighborhood_distance = 5*max(distance(idxCloseVectors));%quantile(distance,0.95);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
 
 % Find neighbors and distances
-[idx,neiDist] = KDTreeBallQuery(data(:,1:2), data(:,1:2), neighborhood_distance);
+% [idx,neiDist] = KDTreeBallQuery(data(:,1:2), data(:,1:2), neighborhood_distance);
+[idx,neiDist] = KDTreeBallQuery(dataFiltered(:,1:2), dataFiltered(:,1:2), neighborhood_distance);
 
 % Get the triangulation edges and calculate all distances
 % edges= tri.edges;
 % dp=(data(edges(:,2),1:2)-data(edges(:,1),1:2));
-D= cellfun(@(x) sqrt(sum(x.^2)),neiDist);
-if ~weighted
-    D=ones(size(D));
-end
+% D= cellfun(@(x) sqrt(sum(x.^2)),neiDist);
+% if ~weighted
+%     D=ones(size(D));
+% end
 
 % Convert the edge list into an adjacency list 
 % nodes = unique([edges(:,1)' edges(:,2)']);
@@ -89,11 +132,11 @@ end
 N = idx;
 
 % Measure weighted local and neighborhood velocities
-options = {1:size(data,1),'Unif',false};
+options = {1:size(dataFiltered,1),'Unif',false};
 % d =arrayfun(@(x)D(E{x}),options{:});
 d = neiDist;
-localVel=arrayfun(@(x)data(x,3:4)/(median(d{x})+epsilon),options{:});
-neighVel=arrayfun(@(x)data(N{x},3:4)./repmat(d{x}+epsilon,1,2),options{:});
+localVel=arrayfun(@(x)dataFiltered(x,3:4)/(median(d{x})+epsilon),options{:});
+neighVel=arrayfun(@(x)dataFiltered(N{x},3:4)./repmat(d{x}+epsilon,1,2),options{:});
 
 % Get median weighted neighborhood velocity
 medianVel=cellfun(@median,neighVel,'Unif',false);
@@ -104,4 +147,4 @@ normFluct = arrayfun(@(x) abs(localVel{x}-medianVel{x})./(medianRes{x}+epsilon),
 r=cellfun(@norm, normFluct);
 
 % Filter outliers using threshold
-outlierIndex = ind(idata(r>threshold));
+outlierIndex = ind(idata([idCloseVectors(r>threshold); idAwayVectors]));
