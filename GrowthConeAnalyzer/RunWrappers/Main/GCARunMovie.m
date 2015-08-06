@@ -118,7 +118,7 @@ end
 
 %% % RunVeilStem
 if strcmpi(startAnal,'veilStem') || strcmpi(startAnal,'all')
-    GCAveilStemReconstructMovie(MD);
+    GCAReconstructVeilStemMovie(MD);
 end
 
 
@@ -159,7 +159,8 @@ if (strcmpi(startAnal,'prot') || strcmpi(startAnal,'all') )
     prot = ProtrusionProcess(MD);
     MD.addProcess(prot);
     idxProtProc = find(cellfun(@(x) sum(strcmpi(x.name_,'Protrusion')),MD.processes_));
-    idxProtProc = idxProtProc(end); %
+    
+    %idxProtProc = idxProtProc(end); %
     protParams = MD.processes_{idxProtProc}.funParams_;
     protParams.ChannelIndex = 1; % use the DONOR CHANNEL
     protParams.SegProcessIndex = 1; % NEED to make my own neurite body est process

@@ -60,8 +60,10 @@ ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
 
+
 % Specific
 % PARAMETERS
+ip.addParameter('TSOverlays',true); 
 
 % Steerable Filter 
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
@@ -83,15 +85,18 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 
 % Linking Parameters Traditional Filopodia/Branch Reconstruct
 ip.addParameter('maxRadiusConnectFiloBranch',5); 
+ip.addParameter('geoThreshFiloBranch',0.5); 
+
 
 
 
 ip.parse(varargin{:});
-p = ip.Results;
+params = ip.Results;
+
 %% Init:
 nFrames = movieData.nFrames_;
-nChan = numel(p.ChannelIndex);
-channels = p.ChannelIndex;
+nChan = numel(params.ChannelIndex);
+channels = params.ChannelIndex;
 imSize = movieData.imSize_;
 ny = imSize(1);
 nx = imSize(2);
@@ -106,28 +111,26 @@ for iCh = 1:nChan
     
     
     
-    saveDir = [movieData.outputDirectory_ filesep ...
-        'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction' ...
-        filesep 'Channel_' num2str(channels(iCh))];
+    outDir = [ip.Results.OutputDirectory filesep  'Channel_' num2str(channels(iCh))];
     
-    if ~isdir(saveDir);
-        mkdir(saveDir);
+    if ~isdir(outDir);
+        mkdir(outDir);
     end
     
-    reconstructFile = [saveDir filesep 'filoBranch.mat'];
+    reconstructFile = [outDir filesep 'filoBranch.mat'];
     
     % If file exists
     if  exist(reconstructFile,'file')==2;
-        load(reconstructFile) % load the file
+       load(reconstructFile) % load the file
         display('Loading Previously Run Filopodia Reconstructions ');
-        if strcmpi(p.startFrame,'auto')
-            startFrame = numel(analInfo)-1;
+        if strcmpi(params.StartFrame,'auto')
+            startFrame = numel(filoBranch)-1;
             if startFrame == 0
                 startFrame = 1; % reset to 1;
             end
             display(['Auto Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
         else
-            startFrame = p.restart.startFrame; % use user input
+            startFrame = params.StartFrame; % use user input
             display(['Manual Start: Starting Filopodia Reconstruction at Frame ' num2str(startFrame)]);
         end
     else % if doesn't exist
@@ -136,15 +139,17 @@ for iCh = 1:nChan
         
     end % exist(orientFile,'file') == 2
     
+      if startFrame ~= 1 
+         load([outDir filesep 'params.mat']); 
+     end 
+   % startFrame = params.StartFrame;
     
     
-    
-    
-    if strcmpi(p.EndFrame,'auto');
+    if strcmpi(params.EndFrame,'auto');
         endFrame = nFrames;
         display(['Auto End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     else
-        endFrame = p.EndFrame;
+        endFrame = params.EndFrame;
         display(['Manual End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
     %% Load veilStem from veil/stem folder
@@ -162,10 +167,10 @@ for iCh = 1:nChan
     
     %%
     % get the list of image filenames
-    if p.ProcessIndex == 0
+    if params.ProcessIndex == 0
         imDir = movieData.channels_(channels(iCh)).channelPath_;
     else
-        imDir = movieData.proceses_{p.ProcessIndex}.outfilePaths_;
+        imDir = movieData.proceses_{params.ProcessIndex}.outfilePaths_;
     end
     
     listOfImages = searchFiles('.tif',[],imDir,0);
@@ -196,7 +201,7 @@ for iCh = 1:nChan
     end % ~isempty(idxProt)
     
     %% Start Movie Loop %%%%
-    for iFrame = startFrame:endFrame
+    for iFrame = startFrame:endFrame-1
         % Load image
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;
@@ -216,18 +221,66 @@ for iCh = 1:nChan
         EPLead = veilStem(iFrame).endPointLeadingProt; 
         LPIndices = veilStem(iFrame).neuriteLongPathIndices;
     
-        GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,p); 
-        
-        
-        
-        
+       [filoBranchC,TSFigs,TSFigsRecon] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,params); 
+%% Plot the results. 
+if ip.Results.TSOverlays == 1 
+    display('Saving Trouble Shoot Overlays') 
+       for iFig = 1:length(TSFigs)
+           if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
+               mkdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]); 
+           end  
+        end 
+            type{1} = '.fig'; 
+            type{2} = '.tif'; 
+            
+        if ~isempty(TSFigs)
+            for iType = 1:numel(type)
+            arrayfun(@(x) saveas(TSFigs(x).h,...
+                [outDir filesep TSFigs(x).group filesep num2str(x,'%02d') TSFigs(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigs));   
+            end 
+        end        
+end 
+
+if ip.Results.TSOverlays == 1
+    for iFig = 1:length(TSFigsRecon)
+        cDir = [outDir filesep TSFigsRecon(iFig).group  filesep 'ReconIter' num2str(TSFigsRecon(iFig).ReconIt,'%02d') ...
+            filesep TSFigsRecon(iFig).name];
+        if ~isdir(cDir);
+            mkdir(cDir);
+        end
+    end
+    type{1} = '.fig';
+    type{2} = '.tif';
+    
+    if ~isempty(TSFigsRecon)
+        for iType = 1:numel(type)
+            arrayfun(@(x) saveas(TSFigsRecon(x).h,...
+                [outDir filesep TSFigsRecon(x).group  filesep 'ReconIter' num2str(TSFigsRecon(x).ReconIt,'%02d') ...
+                filesep TSFigsRecon(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigsRecon));
+        end
+    end
+    
+    %if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(TSFigs(iFig).iter),
+end
+    
+   
+
+close all 
+
+ %%        
         
         
         % quick fix for the plots is to just make the frame number an input for not 20140812
         hashTag =  gcaArchiveGetGitHashTag;
-        filoBranch.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
-        filoBranch(iFrame) = filoBranch;
-        save( [outDir filesep 'filoBranch.mat'],'filoBranch');
+        filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+        filoBranchC.timeStamp = clock; 
+        filoBranch(iFrame) = filoBranchC;
+        p(iFrame) = params; 
+        save( [outDir filesep 'filoBranch.mat'], 'filoBranch','-v7.3');
+       
+        
+        save([outDir filesep 'params.mat'],'p'); 
+        display(['Finished Reconstructing Filopodia for Frame ' num2str(iFrame) ' for ' movieData.outputDirectory_])
     end % iFrame
     
 end   % for iCh

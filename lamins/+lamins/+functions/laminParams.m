@@ -12,7 +12,7 @@ function p = laminParams(MD)
     p.channels.LaminB1B2 = 0;
     p.goodZ = 1;
     p.movieNum = -1;
-    p.steerable.sigma = 2;
+    p.steerable.sigma = 5;
 
     switch(filename)
         case 'ag_072612_wt_Reconstructed 2.mat'

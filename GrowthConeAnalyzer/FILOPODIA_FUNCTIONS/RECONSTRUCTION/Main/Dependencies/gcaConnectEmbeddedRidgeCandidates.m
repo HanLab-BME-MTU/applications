@@ -222,6 +222,7 @@ if ~isempty(E) % continue
     %%
     TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off');
     TSFigs(countFigs).name = 'Before Matching with Vectors';
+    TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
     
     if ~isempty(ip.Results.img);
         imshow(-ip.Results.img,[]);
@@ -281,7 +282,8 @@ if ~isempty(E) % continue
             
             
             TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
-            TSFigs(countFigs).name = 'KD Results By Cost';
+            TSFigs(countFigs).name = 'KD_Results_By_Cost';
+            TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
             
             if ~isempty(ip.Results.img)
                 
@@ -338,8 +340,7 @@ if ~isempty(E) % continue
             % end
         end % end ip.Results.TSOverlays
         %% Filter Based on a Geometric Threshold
-        %idxGood = find(abs(costIntAndConn)>0.70 & abs(costSeedAndConn)>0.70 & abs(costCandAndSeed)>0.70); % quickest fix is to up the cost
-        
+       
         idxGood = (costGeo1>ip.Results.geoThreshEmbedded & costGeo2>ip.Results.geoThreshEmbedded);
         
         costTotal = costTotal(idxGood)';
@@ -349,6 +350,7 @@ if ~isempty(E) % continue
         if ip.Results.TSOverlays == true
             TSFigs(countFigs).h = setAxis('off');
             TSFigs(countFigs).name = 'Cost Function Hist';
+            TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
             % plot the cost histogram
             subplot(2,1,1);
             hist(costTotal);
@@ -381,6 +383,7 @@ if ~isempty(E) % continue
             
             TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
             TSFigs(countFigs).name = 'KD Results AFter Filter By Geometry';
+            TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
             if ~isempty(ip.Results.img)
                 
                 imshow(-ip.Results.img,[]);
@@ -460,7 +463,7 @@ if ~isempty(E) % continue
         if ip.Results.TSOverlays == true
             TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
             TSFigs(countFigs).name = 'Linking Results';
-            
+            TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
             
             if ~isempty(ip.Results.img)
                 
@@ -484,6 +487,36 @@ if ~isempty(E) % continue
             countFigs = countFigs+1;
             
         end % ip.Results.
+        
+        
+        if ip.Results.TSOverlays == true 
+            TSFigs(countFigs).h = setFigure(imSize(2),imSize(1),'off'); 
+            TSFigs(countFigs).name = 'Final_Embedded';
+                 
+            
+            
+            if ~isempty(ip.Results.img)
+                
+                imshow(-ip.Results.img,[]);
+                hold on
+            end 
+            
+             if ~isempty(ip.Results.edgeMask);
+                
+                spy(ip.Results.edgeMask,'k');
+            end
+        
+        spy(linkMask,'y'); 
+        
+        spy(goodCands,'b'); 
+        
+        spy(seedMask,'r'); 
+        countFigs = countFigs +1; 
+        
+        end 
+         
+            
+        
     else
         status = 0 ; % not links within range to even consider
         maskPostConnect = seedMask;

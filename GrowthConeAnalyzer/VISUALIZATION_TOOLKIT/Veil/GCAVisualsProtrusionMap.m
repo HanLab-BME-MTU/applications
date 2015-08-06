@@ -1,56 +1,85 @@
-function [ output_args ] = protrusionMapMine( protSamples,saveDir,makeMovie )
+function [ h ] = protrusionMapMine( imgData,pixSizeNm,frameInSec,umPerMinFlag,CLim,blackOutHi,blackOutLo)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here 
-if nargin<3 
-    makeMovie =0 ;
-end 
+% if nargin<3 
+%     makeMovie =0 ;
+% end 
 %setFigureMoviePlots(200,200,'off')
 
-  sfont = {'FontName','Arial','FontSize',12,'FontName','Arial','FontWeight','bold'};
-                lfont = {'FontName','Arial', 'FontSize',14,'FontName','Arial'};
-   imgData = protSamples.avgNormal;
+h = setAxis;
+
+
+
+Colormap='jet';
+x = colormap;
+if blackOutLo == 1
+% colormap set to go from lowest to highest
+x(1,:) = [1,1,1]; % set the original data to white
+end 
+if blackOutHi ==1
+x(end,:) = [0,0,0]; % set the outlier data to black
+end 
+colormap(x)
+
+
+colorbar
+
+
+% convert imageData to nm per sec
+                imgData = imgData.*pixSizeNm; % currently 216 nm per pixel % convert to um
+                if umPerMinFlag ==1 
+                    imgData = imgData./1000; 
+                end 
+                                             
+                imgData= imgData./frameInSec;  % 5 sec per frame ( convert to minutes)
                 
+                if umPerMinFlag ==1 
+                    imgData = imgData.*60; 
+                end 
                 
-                %subplot(3,2,1:2);
-              
-                
-                % For now just plot yourself but should learn to use ScalarMapDisplay
-                % object
-                
-                Colormap='jet';
-                x = colormap;
-                x(1,:) = [1,1,1];
-                colormap(x)
-                
-                Colorbar ='on';
-                CLim = [-100 100];
-                
-                % convert imageData to nm per sec
-                imgData = imgData.*216; % currently 216 nm per pixel
-                imgData = imgData./5;  % 5 sec per frame
-               % imgData = imgData(1:130,:); 
-   %             imgData = imgData(1:90,:); 
-                h= imagesc(imgData,CLim);
-            axis xy
-                % white out NaN values
-                             alphamask =true(size(imgData));
-                             alphamask(isnan(imgData))=false;
-                             set(h,'AlphaData',alphamask,'AlphaDataMapping','none');
-                ylabel('Window Number',lfont{:});
-                 xlabel('Time (s)' , lfont{:});
-             %  title(name,sfont{:});
-               frameNum = get(gca,'XTickLabel');
-                 inSec  = str2double(frameNum).*5; % SET THE TIME INTERVAL
-                 num2str(inSec);
-                 set(gca,'XTickLabel',inSec);
-                 set(gca,'FontSize',10,'FontName','Arial');
-                 % colorbar
-                  
-                 
-                  if makeMovie~=1
-                  saveas(gcf,[saveDir filesep 'WindowsAll.eps'],'psc2');
-                  saveas(gcf,[saveDir filesep 'WindowsAll.fig']); 
-                  saveas(gcf,[saveDir filesep 'WindowsAll.png']);
-                  end % else add scatters 
+imagesc(imgData,CLim);
+
+
+
+axis xy
+% white out NaN values
+%                              alphamask =true(size(imgData));
+%                              alphamask(isnan(imgData))=false;
+%                              set(h,'AlphaData',alphamask,'AlphaDataMapping','none');
+ylabel('Window Number');
+
+if umPerMinFlag ==1
+forLabel = 'min'; 
+else 
+
+forLabel = 'sec'; 
+end 
+
+xlabel('Time (s)' )
+
+% if umPerMinFlag ==1 
+%     converted = converted./60;  
+% end 
+%end 
+ 
+ 
+
+%set(gca,'FontSize',10,'FontName','Arial');
+colorbar
+[ny,nx] = size(imgData); 
+axis([1,nx-1,1,ny]); 
+%  title(name,sfont{:});
+frameNum = get(gca,'XTickLabel');
+%frameInMin = frameInSec*60; 
+
+converted = str2double(frameNum).*frameInSec; % SET THE TIME INTERVAL
+num2str(converted);
+set(gca,'XTickLabel',converted);
+%else 
+% if makeMovie~=1
+% saveas(gcf,[saveDir filesep filename '.eps'],'psc2');
+% saveas(gcf,[saveDir filesep filename '.fig']);
+% saveas(gcf,[saveDir filesep filename '.png']);
+%end % else add scatters
 end
 

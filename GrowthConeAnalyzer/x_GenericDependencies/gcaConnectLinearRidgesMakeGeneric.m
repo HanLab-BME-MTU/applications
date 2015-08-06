@@ -115,7 +115,7 @@ ip.addParameter('MaxRadiusLink',10);
 ip.addParameter('NoLinkDistanceFromBorder',0);
 ip.addParameter('MaxRadiusNoGeoTerm',0) ;
 ip.addParameter('GeoThresh',0.9);
-ip.addParameter('TSOverlays',true,@(x) islogical(x));
+ip.addParameter('TSOverlays',true);
 
 ip.parse(EPCandidateSort,labelMat,varargin{:});
 
@@ -126,6 +126,7 @@ imSize = [ny,nx];
 countFigs = 1;
 EPsPostConnect = [];
 pixIdxPostConnect = []; 
+TSFigs = []; 
 %%
 endPoints = vertcat(EPCandidateSort{:}); % taking these out of a cell array so
 endPoints =  endPoints(:,1:2); % take first two columns as added vector 20140913
@@ -223,6 +224,8 @@ d = d(noOverlap);
 if ip.Results.TSOverlays == true;
     TSFigs(countFigs).h = setFigure(nx,ny,'on');
     TSFigs(countFigs).name =  'Plot Connections';
+    TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
     if ~isempty(ip.Results.img);
         imshow(-ip.Results.img,[]);
         hold on
@@ -278,7 +281,9 @@ if ~isempty(E)
     %%
     if ip.Results.TSOverlays == true;
         TSFigs(countFigs).h = setFigure(nx,ny,'on');
-        TSFigs(countFigs).name =  'Plot Connections With Vectors';
+        TSFigs(countFigs).name =  'Plot_Connections_With_Vectors';
+        TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
         if ~isempty(ip.Results.img);
             imshow(-ip.Results.img,[]);
             hold on
@@ -316,29 +321,7 @@ if ~isempty(E)
         
         
     end % ip.Results
-    
-    %%
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        
     %% Filter for long distance links by geometry
     idxFilt = (d>ip.Results.MaxRadiusNoGeoTerm & (dotProd21' <=ip.Results.GeoThresh | dotProd12' <=ip.Results.GeoThresh)); % could potentially make the linearity threshold
     ERemove = E(idxFilt,:);
@@ -406,12 +389,13 @@ end % isempty E
 if ip.Results.TSOverlays == true;
     
     TSFigs(countFigs).h = setFigure(nx,ny,'on');
-    TSFigs(countFigs).name = ' Color By Cost';
+    TSFigs(countFigs).name = ' Color_By_Cost';
+    TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
     if ~isempty(ip.Results.img);
         imshow(-ip.Results.img,[]);
         hold on
     end
-    
     
     scatter(endPoints1KD(:,1),endPoints1KD(:,2),5,'b','filled');
     scatter(endPoints2KD(:,1),endPoints2KD(:,2),5,'b','filled');
@@ -451,7 +435,10 @@ if ip.Results.TSOverlays == true;
     if ip.Results.TSOverlays == true;
         
         TSFigs(countFigs).h = setFigure(nx,ny,'on');
-        TSFigs(countFigs).name = 'KD Results AFter Filter By Geometry';
+        TSFigs(countFigs).name = 'KD_Results_AFter_Filter_By_Geometry';
+        TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+        
+        
         if ~isempty(ip.Results.img);
             imshow(-ip.Results.img,[]);
             hold on
@@ -480,27 +467,12 @@ if ip.Results.TSOverlays == true;
         
     end % ip.Results.
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+      
 end % ip.Results.
-
-
-
 
 %%
 if ~isempty(E) %check if there are reasonable edges
     % make sure to make d so that minimum d are favored
-    
-    
     
     costTotal = d + dotProd12' + dotProd21'; % again this cost need to be refined a bit
     
@@ -539,9 +511,7 @@ if ~isempty(links) % nothing that falls under this criteria
     %         linkMaskIndCheck(links(iLink,2),links(iLink,1))=1;
     %
     %         end
-    
-    
-    
+       
     linkMask(idxLinks) = 1;
     candidateMaskNew = (candidateMask| linkMask);
     % Fix the label mat to unite those pixels that need to be clustered
@@ -578,7 +548,8 @@ if ~isempty(links) % nothing that falls under this criteria
             clear pixIdxNew
         end % for iGroup
         
-        idxNotEdgeGrp = sum(horzcat(~idxGrpEdgesAll{:}),2)./numel(idxGrpEdgesAll);
+        
+        idxNotEdgeGrp = ~sum(horzcat(idxGrpEdgesAll{:}),2);
         nPiecesGroup = numel(pixIdxPostConnect);
     else
         idxNotEdgeGrp = ones(size(E,1),1);
@@ -615,35 +586,53 @@ if ~isempty(links) % nothing that falls under this criteria
         pixIdxPostConnect{idxC} = find(labelMat==nonConnect(iCand));
         EPsPostConnect{idxC} = getEndpoints(pixIdxPostConnect{idxC},[ny,nx],0,1); 
     end
-    %%
-    %labelAll(~
-    % EPsPostConnect{
-    figure;
-    imshow(labelMat>0,[]);
-    hold on
-    % plot the new EPS
-    % plot the new labels
-    cmap = lines(numel(EPsPostConnect));
     
-    nLabels =  numel(EPsPostConnect);
+    % remove the extra pixels per pixIdx 
+    pixIdxPostConnect = cellfun(@(x) unique(x),pixIdxPostConnect,'uniformoutput',0); 
     
-    %cmap = lines(7);
-    % sanity check
-    [yCand,xCand] = cellfun(@(x) ind2sub([ny,nx],x),pixIdxPostConnect,'uniformoutput',0);
-    
-    for x = 1:nLabels
-        scatter(EPsPostConnect{x}(:,1),EPsPostConnect{x}(:,2),50,cmap(x,:),'filled');
-        scatter(xCand{x},yCand{x},20,cmap(x,:),'filled');
-        % scatter(
-    end ;
-   
+    %% TSOverlays Figure 
+    if ip.Results.TSOverlays == true;
+        
+        TSFigs(countFigs).h = setFigure(nx,ny,'on');
+        TSFigs(countFigs).name = 'Post_Connection_Labels';
+        TSFigs(countFigs).group = 'Connect_Ridge_Ends'; 
+     
+        
+        imshow(labelMat>0,[]);
+        hold on
+        % plot the new EPS
+        % plot the new labels
+        cmap = lines(numel(EPsPostConnect));
+        
+        nLabels =  numel(EPsPostConnect);
+        
+        %cmap = lines(7);
+        % sanity check
+        [yCand,xCand] = cellfun(@(x) ind2sub([ny,nx],x),pixIdxPostConnect,'uniformoutput',0);
+        
+        for x = 1:nLabels
+            scatter(EPsPostConnect{x}(:,1),EPsPostConnect{x}(:,2),50,cmap(x,:),'filled');
+            scatter(xCand{x},yCand{x},20,cmap(x,:),'filled');
+            
+            % scatter(
+        end ;
+        % plot shared pixels
+        idxAll =  vertcat(pixIdxPostConnect{:});
+        [~,idxSingle] = unique(idxAll,'stable');
+        shared = idxAll;
+        
+        shared(idxSingle) = [];
+        
+        [yShare,xShare] = ind2sub([ny,nx],shared);
+        scatter(xShare,yShare,10,'w');
+        countFigs = countFigs+1;
+    end
+     
     status = 1; % there were links
 else
     candidateMaskNew = candidateMask;
     %labelMatPostConnect = labelMat;
     status = 0; % no links
-    
-    
-    
+
 end
 

@@ -65,6 +65,7 @@ ip.addOptional('stringIn',{'r','FaceAlpha',.2},@(x)iscell(x) || ...
 ip.addOptional('showNum',0,@isscalar)
 ip.addParamValue('bandMin',1,@isscalar);
 ip.addParamValue('bandMax',Inf,@isscalar);
+ip.addParamValue('colorWind','k'); 
 ip.parse(varargin{:});
 
 stringIn = ip.Results.stringIn;
@@ -106,7 +107,7 @@ switch cellDepth
             if ~isempty(currWin)
                 
                 h=patch(currWin(1,:),currWin(2,:),stringIn{:});
-                h = plot(currWin(1,:),currWin(2,:),'color','k');
+                h = plot(currWin(1,:),currWin(2,:),'color',ip.Results.colorWind);
             end
         end
         
@@ -118,7 +119,7 @@ switch cellDepth
                 if ~isempty(currWin)
                     
                     h(end+1)=patch(currWin(1,:),currWin(2,:),stringIn{:});
-                    h(end+1)=plot(currWin(1,:),currWin(2,:),'color','k');
+                    h(end+1)=plot(currWin(1,:),currWin(2,:),'color',ip.Results.colorWind);
                     if showNum && mod(j,showNum)==0
                         h(end+1)=text(currWin(1,1),currWin(2,1),num2str(j));
                     end
@@ -146,7 +147,7 @@ switch cellDepth
                     if ~isempty(currWin)
                         
                         h(end+1)=patch(currWin(1,:),currWin(2,:),stringIn{:});
-                        h(end+1)=plot(currWin(1,:),currWin(2,:),'color','k');%
+                        h(end+1)=plot(currWin(1,:),currWin(2,:),'color',ip.Results.colorWind);%
                         
                         
                         
@@ -160,24 +161,24 @@ switch cellDepth
         end
         
         % try for now plotting the numbers after to see if can make sure
-        % they are saved forward.
-        for j = 1:numel(windowIn)
-            
+%         % they are saved forward.
+         for j = 1:numel(windowIn)
+%             
             for k = max(1,ip.Results.bandMin):min(numel(windowIn{j}),ip.Results.bandMax)
-                if ~isempty(windowIn{j}{k})
-                    currWin = [windowIn{j}{k}{:}];
-                    if ~isempty(currWin)
-                        
-                        h(end+1)=patch(currWin(1,:),currWin(2,:),stringIn{:});
-                        
-                        if showNum && mod(j,showNum)==0 %&& mod(k,showNum) == 0
-                            h(end+1)=text(currWin(1,1),currWin(2,1),[num2str(j) ],'color','k','fontWeight','bold','FontSize',9);
-                        end
-                    end
-                end
-            end
-        end
-        
+                 if ~isempty(windowIn{j}{k})
+                     currWin = [windowIn{j}{k}{:}];
+                     if ~isempty(currWin)
+%                         
+%                         h(end+1)=patch(currWin(1,:),currWin(2,:),stringIn{:});
+%                         
+                         if showNum && mod(j,showNum)==0 %&& mod(k,showNum) == 0
+                             h(end+1)=text(currWin(1,1),currWin(2,1),[num2str(j) ],'color','k','fontWeight','bold','FontSize',9);
+                         end
+                     end
+                 end
+             end
+         end
+%         
         
 end
 

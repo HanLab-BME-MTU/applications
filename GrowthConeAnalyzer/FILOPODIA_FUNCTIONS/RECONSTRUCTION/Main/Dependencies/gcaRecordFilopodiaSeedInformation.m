@@ -352,7 +352,7 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
                 
                 % calculate angle to body
                 cosAngle = dot(avgNormLocal(1:2),localVectFilo)/vectLength/normLength;
-                angleToBody = rad2deg(acos(cosAngle));
+                angleToBody = acosd(cosAngle);
                 %%
                 if sanityCheck ==1 
                     text(pathCoords(end,2),pathCoords(end,1),num2str(angleToBody,3),'color','k'); 
@@ -375,13 +375,7 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
     else intFlag =0; % don't countinue if verticesEP is empty
     end % verticesEP
     clear verticesEP edgePathCoord
-    %% 2013_07_14 note think this was the old way of doing things before internal
-    % was done via graph match..should likely take out this option ..all
-    % internal should have a corresponding external by the way they were
-    % saved. ...
-    
-    % OLD NOTES : for now if there is no corresponding external filopodia there is a high chance
-    % that  the internal signal is just noise we will not record %
+%% Fit the embedded actin content response if appropriate
     
     if intFlag ==2 % fit internal filo using response % 2013_07_14 again should take out before release....
         % get internal info
@@ -450,11 +444,11 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
         
         
     end
-    count = 0; 
-    if intFlag~=2; 
-        display(num2str(intFlag)); 
-        count = count+1;
-    end 
+%     count = 0; 
+%     if intFlag~=2; 
+%         display(num2str(intFlag)); 
+%         count = count+1;
+%     end 
      
 end
 if sanityCheck==1 
@@ -463,7 +457,6 @@ if sanityCheck==1
     close gcf
 end 
 
-display(['Number not 2' num2str(count)]);
 
 
 
