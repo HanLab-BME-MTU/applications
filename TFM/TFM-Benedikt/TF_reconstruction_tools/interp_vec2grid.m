@@ -25,7 +25,15 @@ function [grid_mat,u, i_max, j_max] = interp_vec2grid(pos, vec, cluster_size, gr
     else
         i_max = size(grid_mat,1);
         j_max = size(grid_mat,2);
-        cluster_size = grid_mat(1,1,1) - grid_mat(2,2,1);
+        cluster_size = abs(grid_mat(2,2,1)-grid_mat(1,1,1));
+        if ~ismatrix(pos) || ~ismatrix(vec)
+            temp_pos(:,1)=reshape(pos(:,:,1),[],1);
+            temp_pos(:,2)=reshape(pos(:,:,2),[],1);
+            temp_vec(:,1)=reshape(vec(:,:,1),[],1);
+            temp_vec(:,2)=reshape(vec(:,:,2),[],1);
+            pos = temp_pos;
+            vec = temp_vec;
+        end
     end
     
     if any(isnan(vec))
@@ -33,6 +41,7 @@ function [grid_mat,u, i_max, j_max] = interp_vec2grid(pos, vec, cluster_size, gr
         pos(isnan(vec(:,1)) | isnan(vec(:,2)),:) = [];
         vec(isnan(vec(:,1)) | isnan(vec(:,2)),:) = [];
     end
+    
     
     u(1:i_max,1:j_max,1) = griddata(pos(:,1),pos(:,2),vec(:,1),grid_mat(:,:,1),grid_mat(:,:,2),'cubic');
     u(1:i_max,1:j_max,2) = griddata(pos(:,1),pos(:,2),vec(:,2),grid_mat(:,:,1),grid_mat(:,:,2),'cubic');

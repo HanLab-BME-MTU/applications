@@ -70,7 +70,8 @@ inFilePaths{1,p.ChannelIndex} = imDirs{:};
 displFieldProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outputFile{1} = [p.OutputDirectory filesep 'displField.mat'];
+outputFile{1,1} = [p.OutputDirectory filesep 'displField.mat'];
+outputFile{2,1} = [p.OutputDirectory filesep 'dispMaps.mat'];
 
 % Add a recovery mechanism if process has been stopped in the middle of the
 % computation to re-use previous results
@@ -346,6 +347,40 @@ for j= firstFrame:nFrames
     % Save each iteration (for recovery of unfinished processes)
     save(outputFile{1},'displField');
 end
+%% Displacement map creation - this is shifted version
+[dMapIn, dmax, dmin, cropInfo,dMapXin,dMapYin,reg_grid] = generateHeatmapShifted(displField,displField,0);
+display(['Estimated displacement maximum = ' num2str(dmax) ' pixel.'])
+% Insert traction map in forceField.pos 
+disp('Generating displacement maps ...')
+dMap = cell(1,nFrames);
+dMapX = cell(1,nFrames);
+dMapY = cell(1,nFrames);
+displFieldShifted(nFrames)=struct('pos','','vec','');
+for ii=1:nFrames
+    % starts with original size of beads
+    cur_dMap = zeros(size(firstMask));
+    cur_dMapX = zeros(size(firstMask));
+    cur_dMapY = zeros(size(firstMask));
+    cur_dMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{ii};
+    cur_dMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapXin{ii};
+    cur_dMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapYin{ii};
+    dMap{ii} = cur_dMap;
+    dMapX{ii} = cur_dMapX;
+    dMapY{ii} = cur_dMapY;
+    % Shifted displField vector field
+    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
+   
+    [displFieldShiftedpos,displFieldShiftedvec, ~, ~] = interp_vec2grid(grid_mat+iu_mat, iu_mat,[],grid_mat); %1:cluster size
+    pos = [reshape(displFieldShiftedpos(:,:,1),[],1) reshape(displFieldShiftedpos(:,:,2),[],1)]; %dense
+    disp_vec = [reshape(displFieldShiftedvec(:,:,1),[],1) reshape(displFieldShiftedvec(:,:,2),[],1)]; 
+
+    displFieldShifted(ii).pos = pos;
+    displFieldShifted(ii).vec = disp_vec;
+end
+disp('Saving ...')
+save(outputFile{1},'displField','displFieldShifted');
+save(outputFile{2},'dMap','dMapX','dMapY'); % need to be updated for faster loading. SH 20141106
+displFieldProc.setTractionMapLimits([dmin dmax])
 
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end

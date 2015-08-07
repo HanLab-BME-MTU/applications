@@ -234,10 +234,20 @@ if nargin >= 10 && strcmp(method,'fast')
 %         Achim's approach.
 %         [normWeights]=getNormWeights(forceMesh);
 %         eyeWeights =diag(normWeights);    
-            tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+%             tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+%             % the larger tolerance should be, because misfit norm can be larger out of more nodes).
+%             tolx =  sqrt(forceMesh.numBasis)*1e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are,the larger tolerance should be, because misfit norm can be larger out of more nodes). 
+            % Filter out u by forceMesh boundary
+            bwstackImg=zeros(ceil(max(y)),ceil(max(x)));
+            bwstackImg(min(forceMesh.p(:,2)):max(forceMesh.p(:,2)),min(forceMesh.p(:,1)):max(forceMesh.p(:,1)))=1;
+            [insideIdx] = maskVectors(x,y,bwstackImg);
+            cur_ux=ux(insideIdx);
+            cur_uy=uy(insideIdx);
+            cur_u = [cur_ux; cur_uy];
+            tolxScale=0.1;
+            tolx =  max(0.01,tolxScale*quantile(abs(cur_u),0.95)*quantile(abs(cur_u),0.2)*(forceMesh.numBasis)^(49/60)/E); % based on u to estimate
         end
         % plot the solution for the corner
-        % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         %Check for nan in u
         idxNonan = ~isnan(u);
@@ -329,10 +339,18 @@ if nargin >= 10 && strcmp(method,'fast')
             u = u(idxNonan);
             Mreal = M(idxNonan,:);
             MpM = Mreal'*Mreal;
+            % for pos_u
+            pos_u=reshape(pos_u,[],1);
+            pos_u = pos_u(idxNonan);
+            pos_u=reshape(pos_u,[],2);
         elseif inputFwdMap
             u = u(idxNonan);
             Mreal = M(idxNonan,:);
             MpM = Mreal'*Mreal;
+            % for pos_u
+            pos_u=reshape(pos_u,[],1);
+            pos_u = pos_u(idxNonan);
+            pos_u=reshape(pos_u,[],2);
         else
             MpM=M'*M;
             Mreal = M;
