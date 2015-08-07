@@ -196,7 +196,24 @@ arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',c
 legend([htrackG1{1} htrackG2{1} htrackG3{1}],{'G1 with high CC','G1 with intermediate CC','G1 with low CC'},'TextColor','w','Location','best')
 legend('boxoff')
 print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithTracksInGroup1.eps']);
-
+%% See if there is any time lag
+avgTimeLag = mean(arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxLongLTG1))));
+avgTimeLagHiCC = mean(arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxHighCCG1 & idxLongLTG1))));
+stdTimeLagHiCC = std(arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxHighCCG1 & idxLongLTG1))));
+avgTimeLagMidCC = mean(arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxIntmedCCG1 & idxLongLTG1))));
+stdTimeLagMidCC = std(arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxIntmedCCG1 & idxLongLTG1))));
+avgTimeLagLoCC = mean(arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxLowCCG1 & idxLongLTG1))));
+stdTimeLagLoCC = std(arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxLowCCG1 & idxLongLTG1))));
+%% Plot edge protrusion distance
+figure, hold all
+fileStoreG1_hiCC_edge = [epsPath filesep 'edgeDistPlotG1_hiCC_shifted.eps'];
+plotIntensityForce(tracksNA(idGroup1f(idxHighCCG1 & idxLongLTG1)),fileStoreG1_hiCC_edge,true,'Source', 'edgeAdvanceDist')
+fileStoreG1_midCC_edge = [epsPath filesep 'edgeDistPlotG1_midCC_shifted.eps'];
+plotIntensityForce(tracksNA(idGroup1f(idxIntmedCCG1 & idxLongLTG1)),fileStoreG1_midCC_edge,true,'Source', 'edgeAdvanceDist')
+fileStoreG1_loCC_edge = [epsPath filesep 'edgeDistPlotG1_loCC_shifted.eps'];
+plotIntensityForce(tracksNA(idGroup1f(idxLowCCG1 & idxLongLTG1)),fileStoreG1_loCC_edge,true,'Source', 'edgeAdvanceDist')
+fileStoreG1_loCC_edgeNoshift = [epsPath filesep 'edgeDistPlotG1_loCC.eps'];
+plotIntensityForce(tracksNA(idGroup1f(idxLowCCG1 & idxLongLTG1)),fileStoreG1_loCC_edgeNoshift,false,'Source', 'edgeAdvanceDist')
 % ii=idGroup1f(4);
 % fileStoreG1_1 = [epsPath filesep 'ampForcePlotG1_' num2str(ii) '.eps'];
 % plotIntensityForce(tracksNA(ii),fileStoreG1_1)

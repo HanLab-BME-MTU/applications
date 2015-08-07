@@ -538,8 +538,11 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     % [outputMasks,filoInfo,status] = gcaConnectFiloBranch(xySeed,EPCandidateSort,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
     
     %% NOTE NEED to fix to update pixIdxPostConnect and the EP candidates after the linkages with the new pixIndices.
-    
+    before = vertcat(pixIdxPostConnect{:});
     [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
+    after = vertcat(pixIdxPostConnect{:}); 
+    display(num2str(isequal(before,after))); 
+    
     
     for i = 1:length(TSFigs4)
         TSFigs4(i).ReconIt = reconIter;
@@ -553,6 +556,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         reconstruct.output{reconIter} = outputMasks;
         links = (links|outputMasks.links);
     end % if status
+    
     
     reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
     display(num2str(reconIter))

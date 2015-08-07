@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 15-Apr-2015 14:40:11
+% Last Modified by GUIDE v2.5 04-Aug-2015 15:34:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,6 +62,8 @@ set(handles.edit_maxFlowSpeedNmMin,'String',...
     funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
 set(handles.checkbox_highRes, 'Value', funParams.highRes);
 set(handles.checkbox_useGrid, 'Value', funParams.useGrid);
+set(handles.checkbox_addNonLocMaxBeads, 'Value', funParams.addNonLocMaxBeads);
+set(handles.checkbox_lastToFirst, 'Value', funParams.lastToFirst);
 set(handles.checkbox_noOutwardDeform, 'Value', funParams.noFlowOutwardOnBorder);
 set(handles.checkbox_mode, 'Value', strcmp(funParams.mode, 'accurate'));
 
@@ -173,6 +175,7 @@ end
 
 funParams.highRes = get(handles.checkbox_highRes, 'Value');
 funParams.useGrid = get(handles.checkbox_useGrid, 'Value');
+funParams.lastToFirst = get(handles.checkbox_lastToFirst, 'Value');
 funParams.noFlowOutwardOnBorder = get(handles.checkbox_noOutwardDeform, 'Value');
 funParams.addNonLocMaxBeads = get(handles.checkbox_addNonLocMaxBeads, 'Value');
 if get(handles.checkbox_mode, 'Value'),
@@ -281,3 +284,12 @@ function checkbox_noOutwardDeform_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_noOutwardDeform
+
+
+% --- Executes on button press in checkbox_lastToFirst.
+function checkbox_lastToFirst_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_lastToFirst (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_lastToFirst
