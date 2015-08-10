@@ -156,7 +156,7 @@ ip.addParameter('detectEmbedded',true)
 % TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
-ip.parse(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin{:});
+ip.parse(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,idxEnter,varargin{:});
 p = ip.Results;
 p = rmfield(p,{'img','veilStemMaskC','protrusionC'}); 
 %% Initiate 
