@@ -47,8 +47,9 @@ borderMask = false(dims);
 borderMask(smoothedEdgeCIdxPix) = true;
 borderMaskAll = borderMask;
 
-borderMask(leadProtPtSmoothEdge(1,2),leadProtPtSmoothEdge(1,1)) = false;
+borderMask(round(leadProtPtSmoothEdge(1,2)),round(leadProtPtSmoothEdge(1,1))) = false;
 borderMask(neuriteEnterSmoothedEdge(1,2),neuriteEnterSmoothedEdge(1,1)) = false;
+
 %figure;
 
 % the distMat doesn't always work well if the two sides not assymetric
@@ -91,6 +92,9 @@ if CCs.NumObjects == 1
     
     borderMask(backboneMask==1) = 0;
     borderMaskAll(backboneMask==1) = 0; 
+    
+    
+    
     %distMat  = bwdistgeodesic(borderMask,round(leadProtPtSmoothEdge(1,1)),round(leadProtPtSmoothEdge(1,2)));
     %imagesc(distMat);
     %distMatBorder =  bwdist(borderMask);
@@ -148,6 +152,10 @@ toRot = [normalsC(smoothedEdgeCIdxPix==idx1,1),normalsC(smoothedEdgeCIdxPix==idx
 
 idx2 = find(CC1Dist==2);
 [y2,x2] = find(CC1Dist == 2);
+% just take the first (sometimes have more than one value) 
+y2 = y2(1); 
+x2 = x2(1); 
+
 % scatter(x1,y1,'filled','r');
 % scatter(x2,y2,'filled','g');
 signs =[ -1,1,1,-1];
