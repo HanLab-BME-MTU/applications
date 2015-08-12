@@ -244,7 +244,7 @@ if ~isempty(E) % continue
             0.2,'color','r');
         
           arrayfun(@(x) plot([EPsCandPostKD(x,1),EPsSeedPostKD(x,1)],...
-                        [EPsCandPostKD(x,2),EPsSeedPostKD(x,2)],'color','g'),1:length(EPsCandPostKD));
+                        [EPsCandPostKD(x,2),EPsSeedPostKD(x,2)],'color','g'),1:size(EPsCandPostKD,1));
         % plot the small vectors
         quiver(internalCandEPs(:,1),internalCandEPs(:,2),...
             internalCandEPs(:,3),internalCandEPs(:,4),0.2,'color','b');
