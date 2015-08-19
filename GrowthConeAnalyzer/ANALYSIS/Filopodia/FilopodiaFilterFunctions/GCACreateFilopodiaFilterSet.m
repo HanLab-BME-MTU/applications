@@ -58,12 +58,21 @@ switch filterType
         filterParams.filterByBundleLength = [0.2, inf];
         filterParams.saveFiloByLengthAndSig = [];
         
-    case 'Branch2ndOrder_Density'; % WORKING 
+    case 'Branch2ndOrder_Density_WithZeroOrder'; % WORKING 
         filterParams.filoTypes = [0,1,2]; % 1st order attached to a veil with a branch, 2 branch 
         filterParams.filterByFit = 1;
         filterParams.filterByBundleLength = [0.2,inf];
         %filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
         filterParams.saveFiloByLengthAndSig = []; 
+        
+   case 'Branch2ndOrder'; % WORKING 
+        filterParams.filoTypes = [1,2]; % 1st order attached to a veil with a branch, 2 branch 
+        filterParams.filterByFit = 1;
+        filterParams.filterByBundleLength = [0.2,inf];
+        %filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
+        filterParams.saveFiloByLengthAndSig = [];      
+        
+        
           
     case 'Branch3rdOrder_LengthInt';
         filterParams.filoTypes = 3;
@@ -94,7 +103,13 @@ switch filterType
         
         filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
         
+    case 'Validation'; 
+        filterParams.filoTypes = [0 Inf]; % 0 order attached to veil (no Branch), 1st order attached to a veil with a branch
+        filterParams.filterByFit = 1;
+        filterParams.filterByBundleLength = [0.2,inf];
         
+        filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
+
         
         
 end
@@ -165,7 +180,7 @@ for iFrame = 1:length(analInfo)-1
         % get filopodia that meet length cut-off..
         lengthExt = vertcat(filoInfo(:).Ext_length)*.216; % convert
         
-        savePop1 = lengthExt>s(1,1) & lengthExt < s(2,1) ;
+        savePop1 = lengthExt>s(1,1) & lengthExt < s(2,1) & toKeepBasedOnType ; % fixed 201508
         
         % get the full population
         intensities = vertcat(filoInfo(:).Ext_IntensityNormToVeil);
@@ -174,7 +189,7 @@ for iFrame = 1:length(analInfo)-1
         cutoffMax = prctile(intensitiesForPer,s(2,2));
         
         
-        savePop2 = intensities>cutoffMin & intensities<cutoffMax & ~isnan(intensities);
+        savePop2 = intensities>cutoffMin & intensities<cutoffMax & ~isnan(intensities) & toKeepBasedOnType; %fixed 201508
         
         savePop = savePop1 & savePop2;
         % get filopoida that meet intensity cut-off (defined by percentile)
@@ -189,7 +204,7 @@ for iFrame = 1:length(analInfo)-1
     %
     filoFilterSet{iFrame} = filoFilter;
     
-    
+     
 end % for iFrame
 
 
