@@ -1,4 +1,4 @@
-function [filoBranch,TSFigsFinal,TSFigsRecon] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin)
+function [filoBranch,TSFigsFinal,TSFigsRecon] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,idxEnter,varargin)
 % GCAReconstructFilopodia: (Step VI of GCA PACKAGE)
 % This function rebuilds and records the filopodia network around a
 % veil/stem mask (in the case of the neurite) or any binary cell mask 
@@ -122,6 +122,7 @@ ip.addRequired('veilStemMaskC');
 ip.addRequired('protrusionC'); 
 ip.addRequired('leadProtrusionPtC'); 
 ip.addRequired('LPIndices'); 
+ip.addRequired('idxEnter'); 
 %OPTIONAL
 %ip.addOptional('protrusionC',[],@(x) iscell(x)); % if restarting
 
@@ -155,7 +156,7 @@ ip.addParameter('detectEmbedded',true)
 % TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
-ip.parse(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,varargin{:});
+ip.parse(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,idxEnter,varargin{:});
 p = ip.Results;
 p = rmfield(p,{'img','veilStemMaskC','protrusionC'}); 
 %% Initiate 
@@ -217,11 +218,11 @@ TSFigsFinal = [];
 %smoothedEdgeC = protrusionC.smoothedEdge;  
 % rotate the normals of the edge of the veilstem in the direction of the
 % outgrowth for orientation metrics. 
-[normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims); 
+[normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims,idxEnter); 
 % add the rotated field. 
 
 if ip.Results.TSOverlays
-  TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'off'); 
+  TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'on'); 
   TSFigs(countFigs).name = 'Normals_Rotated'; 
   TSFigs(countFigs).group = []; 
     imshow(-img,[]); 

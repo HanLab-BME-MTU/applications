@@ -19,6 +19,8 @@ function [partitionResult] = trackPartitioning_StandAlone(tracks, mask, ROIMask,
 %       .partitionFrac  : the partitioning fraction. 0 = the track was
 %                         never found within mask. 1 = the track was always
 %                         found within the mask.
+%       .nLocEvent      : number of localization events
+%       .nDelocEvent    : number of delocalization events
 %
 %Notes
 %   Mask array is in plot coordinate system [y, x]
@@ -79,28 +81,55 @@ partitionResult = arrayfun(@partition, tracks);
                 end
             end
             %determine partition fraction-------------------
+            %and
+            %determine localization event
             nFramesTot = 0;
             nFramesIn = 0;
+            nLocEvent = 0;
+            nDelocEvent = 0;
             if analyzeTrack
                 frame = data.seqOfEvents(1,1);
+                wasInside = nan;
                 for iLoc = 1:nLoc
                     x = round(x_all(iLoc));
                     y = round(y_all(iLoc));
+                    %partition fraction determination
                     if x>0 && x<=xMax && y>0 && y<=yMax && ROIMask(y, x)
                         nFramesTot = nFramesTot + 1;
                         if isSingleFrame
                             if mask(y,x)
                                 nFramesIn = nFramesIn +1;
+                                isInside = 1;
+                            else
+                                isInside = 0;
                             end
                         else
                             if mask(y,x,frame)
                                 nFramesIn = nFramesIn +1;
+                                isInside = 1;
+                            else
+                                isInside = 0;
                             end
                         end
+                    elseif isnan(x)
+                        isInside = wasInside;
+                    else
+                        isInside = nan;
                     end
+                    %localization event determination
+                    if isInside == 1 && wasInside == 0
+                        nLocEvent = nLocEvent + 1;
+                    end
+                    if isInside == 0 && wasInside == 1
+                        nDelocEvent = nDelocEvent + 1;
+                    end
+                    wasInside = isInside;
+                    %iterational
                     frame = frame +1;
                 end
             end
+            result.nLocEvent(iSubtracks) = nLocEvent;
+            result.nDelocEvent(iSubtracks) = nDelocEvent;
             result.nFramesTot(iSubtracks) = nFramesTot;
             result.nFramesIn(iSubtracks) = nFramesIn;
             result.partitionFrac(iSubtracks) = nFramesIn / nFramesTot;

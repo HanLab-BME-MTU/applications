@@ -2,6 +2,9 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
     % Concrete class for a displacement field calculation process
     %
     % Sebastien Besson, Aug 2011
+    properties (SetAccess = protected)  
+        tMapLimits_
+    end
     
     methods
         function obj = DisplacementFieldCalculationProcess(owner,varargin)
@@ -29,7 +32,6 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             end
             
             obj = obj@ImageAnalysisProcess(super_args{:});
-            
         end
         
         function status = checkChannelOutput(obj,varargin)
@@ -49,7 +51,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'displField'};
+            outputList = {'displField','dMap'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'DisplacementFieldCalculationProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
@@ -61,9 +63,11 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            s = load(obj.outFilePaths_{1},output{:});
+            iOut = cellfun(@(x) strcmp(x,output),outputList);
+            s = load(obj.outFilePaths_{iOut},output{:});
             
-            if numel(iFrame)>1,
+            varargout = cell(numel(output),1);
+            if numel(iFrame)>1
                 for i=1:numel(output),
                     varargout{i}=s.(output{i});
                 end
@@ -74,35 +78,69 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             end
         end
         
+        function setTractionMapLimits(obj,tMapLimits)
+            obj.tMapLimits_ = tMapLimits;
+        end
+        
         function h=draw(obj,iFrame,varargin)
             % Function to draw process output (template method)
             
             if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
             outputList = obj.getDrawableOutput();
-            ip = inputParser;
-            ip.addRequired('obj',@(x) isa(x,'Process'));
-            ip.addRequired('iFrame',@isnumeric);
-            ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
-            ip.KeepUnmatched = true;
-            ip.parse(obj,iFrame,varargin{:})
-            
-            data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
+
+            rendertMap = any(strcmpi('dMap',varargin));
+            if rendertMap
+                % Input parser
+                ip = inputParser;
+                ip.addRequired('obj',@(x) isa(x,'Process'));
+%                 ip.addRequired('iChan',@isnumeric);
+                ip.addRequired('iFrame',@isnumeric);
+                ip.addParamValue('output',outputList(2).var,...
+                    @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+                ip.KeepUnmatched = true;
+                ip.parse(obj,varargin{1:end})
+                iFrame=ip.Results.iFrame;
+                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
+                if iscell(data), data = data{1}; end
+            else                
+                ip = inputParser;
+                ip.addRequired('obj',@(x) isa(x,'Process'));
+                ip.addRequired('iFrame',@isnumeric);
+                ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+                ip.KeepUnmatched = true;
+                ip.parse(obj,iFrame,varargin{:})
+                data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
+            end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
-                data=outputList(iOutput).formatData(data);
+                data=outputList(iOutput,1).formatData(data);
             end
             try
-                assert(~isempty(obj.displayMethod_{iOutput}));
+                assert(~isempty(obj.displayMethod_{iOutput,1}));
             catch ME
-                obj.displayMethod_{iOutput}=...
+                obj.displayMethod_{iOutput,1}=...
                     outputList(iOutput).defaultDisplayMethod();
             end
-            
+
             % Delegate to the corresponding method
             tag = ['process' num2str(obj.getIndex) '_output' num2str(iOutput)];
             drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
                 2*numel(fieldnames(ip.Unmatched)),1);
             h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
+        end
+        
+        function output = getDrawableOutput(obj)
+            output(1).name='Displacement field';
+            output(1).var='displField';
+            output(1).formatData=@(x) [x.pos x.vec];
+            output(1).type='movieOverlay';
+            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+
+            output(2).name='Displacement map';
+            output(2).var='dMap';
+            output(2).formatData=[];
+            output(2).type='image';
+            output(2).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet','Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
         end
         
     end
@@ -114,13 +152,6 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             h= @displacementFieldCalculationProcessGUI;
         end
         
-        function output = getDrawableOutput()
-            output(1).name='Displacement field';
-            output(1).var='displField';
-            output(1).formatData=@(x) [x.pos x.vec];
-            output(1).type='movieOverlay';
-            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
-        end
         
         function funParams = getDefaultParams(owner,varargin)
             % Input check
@@ -141,7 +172,11 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             funParams.mode = 'fast';
             funParams.useGrid = false;
             funParams.noFlowOutwardOnBorder = true;
+            funParams.lastToFirst=false;
             funParams.addNonLocMaxBeads = false;
+        end
+        function units = getUnits(varargin)
+            units = 'Displacement (Pix)';
         end
     end
 end

@@ -694,11 +694,22 @@ for k=1:numel(tracksNA)
     % cross-correlation scores
     presIdx = logical(tracksNA(k).presence);
 %         [curCC,curLag] = xcorr(tracksNA(k).ampTotal(presIdx),tracksNA(k).forceMag(presIdx),'biased');
-    [curCC,curBounds,curLag,curP]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),tracksNA(k).forceMag(presIdx),'corrType','Pearson');
+    maxLag = ceil(tracksNA(k).lifeTime/2);
+    [curCC,curBounds,curLag,curP]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),tracksNA(k).forceMag(presIdx),'corrType','Pearson','maxLag',maxLag);
     tracksNA(k).CCscore = curCC;
     tracksNA(k).CCbounds = curBounds;
     tracksNA(k).CClag = curLag;
     tracksNA(k).CC_p = curP;
+    [tracksNA(k).CCscoreMax,curMaxInd] = max(curCC);
+    tracksNA(k).CCmaxLag = curLag(curMaxInd);
+    % kurtosis around the peak to measure 'peakness' of the peak
+    minIndKur = max(1, curMaxInd-10);
+    maxIndKur = min(length(curCC), curMaxInd+10);
+    tracksNA(k).CCkurtosis = kurtosis(curCC(minIndKur:maxIndKur));
+    % the sharper the peak is, the higher CCkurtosis is.
+    
+%     [curAC,curBoundsAC,curLagAC,curAC_P]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),tracksNA(k).ampTotal(presIdx),'corrType','Pearson','maxLag',maxLag);
+%     [curFAC,curBoundsFAC,curLagFAC,curFAC_P]  = nanCrossCorrelation(tracksNA(k).forceMag(presIdx),tracksNA(k).forceMag(presIdx),'corrType','Pearson','maxLag',maxLag);
     try
         sF=tracksNA(k).startingFrameExtra;
         eF=tracksNA(k).endingFrameExtra;

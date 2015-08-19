@@ -7,6 +7,10 @@ function [] = UITimeCourseAnalysis()
 %
 %Tae H Kim, July 2015
 
+%% Initialize
+%Progresstext
+clear progressTextMultiple;
+
 %% Prompt user
 %prompt user to select a folder where all figures and data will be stored
 outputDir = uigetdir('', 'Select output folder');
@@ -42,7 +46,7 @@ h.f = figure('units','pixels','position',[400,400,500,100],...
 h.c(1) = uicontrol('style','checkbox','units','pixels',...
                 'position',[10,40,450,20],'string','Partitioning Analysis');
 h.c(2) = uicontrol('style','checkbox','units','pixels',...
-                'position',[10,70,450,20],'string','Shift Time Points to Positive Values');    
+                'position',[10,70,450,20],'string','Set Average Start Time to Zero');    
 % Create OK pushbutton   
 h.p = uicontrol('style','pushbutton','units','pixels',...
                 'position',[40,5,70,20],'string','OK',...
@@ -52,9 +56,10 @@ h.p = uicontrol('style','pushbutton','units','pixels',...
         parameter = get(h.c,'Value');
         %closes the dialogue box
         close(h.f);
+        clear progressTextMultiple;
         pause(1);
         %calls the function that does the timeCourseAnalysis
-        timeCourseAnalysis(CML_FullPath, outputDir, 'doNewAnalysis', doNewAnalysis, 'doPartitionAnalysis', parameter{1}, 'shiftPlotPositive', parameter{2});
+        timeCourseAnalysis(CML_FullPath, outputDir, 'doNewAnalysis', doNewAnalysis, 'doPartitionAnalysis', parameter{1}, 'start2zero', parameter{2});
     end
 end
 

@@ -4,6 +4,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
     % Sebastien Besson, Aug 2011
     properties (SetAccess = protected)  
         tMapLimits_
+        dELimits_
+        distBeadMapLimits_
     end
     
     methods
@@ -44,7 +46,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField','tMap'};
+            outputList = {'forceField','tMap','forceFieldShifted'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -58,7 +60,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             
             % Data loading
             output = ip.Results.output;
-            if strcmp(output,outputList{1})
+            if strcmp(output,outputList{1}) || strcmp(output,outputList{3})
                 iOut=1;
             else
                 iOut=2;
@@ -134,6 +136,12 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         function setTractionMapLimits(obj,tMapLimits)
             obj.tMapLimits_ = tMapLimits;
         end
+        function setDisplErrMapLimits(obj,dELimits)
+            obj.dELimits_ = dELimits;
+        end
+        function setDistBeadMapLimits(obj,distBeadMapLimits)
+            obj.distBeadMapLimits_ = distBeadMapLimits;
+        end
         
         function output = getDrawableOutput(obj)
             output(1).name='Force  field';
@@ -149,13 +157,34 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             output(2).type='image';
             output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
                 'Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
-            if ~strcmp(obj.funParams_.solMethodBEM,'QR')
-                output(3).name='Lcurve';
-                output(3).var='lcurve';
-                output(3).formatData=[];
-                output(3).type='movieGraph';
-                output(3).defaultDisplayMethod=@FigFileDisplay;
-            end
+
+            output(3).name='Force field shifted';
+            output(3).var='forceFieldShifted';
+            output(3).formatData=@(x) [x.pos x.vec(:,1)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
+            output(3).type='movieOverlay';
+            output(3).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[175/255 30/255 230/255]);
+
+            if ~strcmp(obj.funParams_.method,'FTTC')
+                output(4).name='Prediction Err map';
+                output(4).var='dErrMap';
+                output(4).formatData=[];
+                output(4).type='image';
+                output(4).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.dELimits_);
+
+                output(5).name='Map of distance to bead';
+                output(5).var='distBeadMap';
+                output(5).formatData=[];
+                output(5).type='image';
+                output(5).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.distBeadMapLimits_);
+
+                output(6).name='Lcurve';
+                output(6).var='lcurve';
+                output(6).formatData=[];
+                output(6).type='movieGraph';
+                output(6).defaultDisplayMethod=@FigFileDisplay;
+            end                
         end
         
         
@@ -187,6 +216,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.LcurveFactor=10;
             funParams.thickness=34000;
             funParams.useLcurve=true;
+            funParams.lastToFirst=false;
             funParams.lcornerOptimal='optimal';
         end
         function units = getUnits(varargin)

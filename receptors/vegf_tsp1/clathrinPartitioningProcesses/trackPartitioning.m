@@ -35,6 +35,7 @@ end
 channel_tracks = parameter.channel_tracks;
 channel_struct = parameter.channel_struct;
 outputDirectory = parameter.outputDirectory;
+nControl = parameter.nControl;
 %Get the indices of any previous partitioning processes from this function 
 iPartProcess = MD_tracks.getProcessIndex('PartitionAnalysisProcess', 1, 0);
 %If it doesn't exist already, create a new one
@@ -96,10 +97,18 @@ if ~isempty(iProcMask)
 else
     ROIMask = true(yMax, xMax);
 end
+%ProgressText
+progressTextMultiple('Analyzing MD', nControl + 1);
 %calls function that does partititoning analysis
 partitionResult = trackPartitioning_StandAlone(tracks, mask, ROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', false); %#ok<NASGU>
+progressTextMultiple();
 %do randomized control
-partitionControl = trackPartitioning_StandAlone(tracks, mask, ROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', true); %#ok<NASGU>
+partitionControl = cell(1, nControl);
+for iControl = 1:nControl
+    partitionControl{iControl} = trackPartitioning_StandAlone(tracks, mask, ROIMask, xMax, yMax, isSingleFrame, 'scrambleTracks', true); %%#ok<NASGU>
+    progressTextMultiple();
+end
+%partitionControl = vertcat(partitionControl_{:}); %#ok<NASGU>
 %% Saving
 save(outFilePaths{1,channel_tracks}, 'partitionResult', 'partitionControl');
 MD_struct.save;

@@ -18,22 +18,25 @@ for iGroup = 1:nGroups
     nMovies = size(projListC,1);
     % check for consistency among the parameters that were run.
     for iProj = 1:nMovies
-        load([projListC{iProj} filesep 'ANALYSIS'  filesep 'movieData.mat']);
-        parameterDir = [MD.outputDirectory_ filesep 'PARAMETER_EXTRACTION' ];
+        load([projListC{iProj} filesep 'GrowthConeAnalyzer'  filesep 'movieData.mat']);
+        parameterDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' ]; % 
         % for now just search files - redesign so that the parameters in the
         % future are more cleverly named
         
-        % search all descriptor parameters.
-        localParamFiles = searchFiles('param_',[],[parameterDir filesep 'Descriptor'],1);
+        % might also include ylabel name and ylim for each parameter and
+        % read in each Descriptor directory to keep constant. 
         
-        paramNamesC = cellfun(@(x) strrep(x,'param_',''),localParamFiles(:,1),'uniformoutput',0);
+        % search all descriptor parameters.
+        localParamFiles = searchFiles('meas_',[],[parameterDir filesep 'Descriptor'],1);
+        
+        paramNamesC = cellfun(@(x) strrep(x,'meas_',''),localParamFiles(:,1),'uniformoutput',0);
         paramNamesC = cellfun(@(x) strrep(x,'.mat',''),paramNamesC,'uniformoutput',0);
         
         for iParam = 1:numel(paramNamesC)
             
             % collect the data for each parameter.
             load([localParamFiles{iParam,2} filesep localParamFiles{iParam,1}]);
-            dataSetGroup.(paramNamesC{iParam}).valuesWholeMovie{iProj} = vertcat(paramC{:});
+            dataSetGroup.(paramNamesC{iParam}).valuesWholeMovie{iProj} = vertcat(measC{:});
         end
         
         
@@ -49,11 +52,13 @@ for iGroup = 1:nGroups
      'uniformoutput',0);
 % 
      for iParam = 1:numel(paramsAll)
-         toPlot.(paramsAll{iParam}){iGroup} = reformat{iParam};
+         toPlot.(paramsAll{iParam}).dataMat{iGroup} = reformat{iParam};
+         
      end
     clear reformat paramsAll dataSetGroup
 end  % iGroup
 
-
+toPlot.info.groupingPerCell = 1:size(vertcat(toPlot.info.projList{:}),1); 
+toPlot.info.groupingPoolWholeMovie = toPlot.info.grouping; 
 
 end
