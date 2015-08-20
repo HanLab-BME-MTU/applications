@@ -1,4 +1,4 @@
-function [ output_args ] = gcaMakeGroupBoxplots( toPlot,saveDir)
+function [ output_args ] = gcaMakeGroupBoxplots( toPlot,varargin)
 %INPUT: toPlot  a structure with fields of parameters to plot such that
 % toPlot.params{iGroup} = dataMat where each row is an observation and each
 % column is data corresponding to the 1st and 2nd half of the cell/neurite
@@ -15,9 +15,21 @@ function [ output_args ] = gcaMakeGroupBoxplots( toPlot,saveDir)
 %  treatment data and can be generalized to the rest with the correct grouping
 %  framework .
 
+
+%%Input check
+ip = inputParser;
+
+ip.CaseSensitive = false;
+ip.addRequired('toPlot'); 
+ip.addParameter('OutputDirectory',pwd,@(x) ischar(x));
+ip.addParameter('yLimOff',false,@(x) islogical(x)); 
+
+ip.parse(toPlot,varargin{:}); 
+%%
+
 params = fieldnames(toPlot);
 params = params(~strcmpi('info',params)) ;
-
+saveDir = ip.Results.OutputDirectory; 
 for iParam = 1:length(params)
     
     % get the dataMat (all groups horizontally catenated)
@@ -27,11 +39,11 @@ for iParam = 1:length(params)
     
     dataMatLargeC = horzcat(forDataMat{:});
     
-    turnOff = 1;
+    turnOff = 0;
     if turnOff ~= 1
     %% Make the boxplot of the individual cells
     % Start boxplots : if user desires plot begin and end of movie separately for each neurite
-    setAxis('on');
+    setAxis('off');
     projListAll = vertcat(toPlot.info.projList{:}) ;
     names = projListAll(:,2);
     names = strrep(names,'_',' ');
@@ -56,10 +68,29 @@ for iParam = 1:length(params)
     
     h1 =  boxplot(dataMatLargeC,'colorGroup',toPlot.info.groupingPoolBeginEndMovie,...
         'colors',colorShadesFinal,'notch','on','outlierSize',1,'symbol','+','Labels',labels,'labelorientation','inline');
-    
+    if (~isfield(toPlot.(params{iParam}),'ylim') || ip.Results.yLimOff == true) ; 
+    else  
     axis([0.5 size(dataMatLargeC,2)+ 0.5 0 toPlot.(params{iParam}).ylim]);
+    end 
+    if isfield(toPlot.(params{iParam}),'yLabel'); 
     ylabel(toPlot.(params{iParam}).yLabel);
+    else 
+        ylabel(strrep(params{iParam},'_',' ')); 
+    end 
     
+    
+    % perform the individual stats 
+%     
+%     for i = 2:2:size(dataMatLargeC)
+%         permTest([dataMatLargeC(i,:), dataMatLargeC(i+1,:)],'Cmp 
+%         
+%     end 
+    
+    
+    
+    % 
+    
+%     
     % h1 = boxplot(dataMatLargeC,'colorGroup',toPlot.info.grouping,'notch','on','outlierSize',1,'colors',colors,'Labels',names,'labelorientation','inline');
     set(h1(:),'Linewidth',2);
     
@@ -69,7 +100,7 @@ for iParam = 1:length(params)
     
     
     %% pooled boxplots
-    setAxis('on')
+    setAxis('off')
     
     
     prePool=  cellfun(@(x) [x ' PreTreat'],toPlot.info.names,'uniformoutput',0);
@@ -86,8 +117,19 @@ for iParam = 1:length(params)
     
     set(h(:),'Linewidth',2);
     nPooledGrps = length(unique(toPlot.info.groupingPoolBeginEndMovie));
-    axis([0.5 nPooledGrps + 0.5 0 toPlot.(params{iParam}).ylim]);
-    ylabel(toPlot.(params{iParam}).yLabel);
+    
+    
+    if (~isfield(toPlot.(params{iParam}),'ylim') || ip.Results.yLimOff == true) ;
+    else
+        axis([0.5 nPooledGrps + 0.5 0 toPlot.(params{iParam}).ylim]);
+    end
+    
+    
+    if isfield(toPlot.(params{iParam}),'yLabel');
+        ylabel(toPlot.(params{iParam}).yLabel);
+    else
+        ylabel(strrep(params{iParam},'_',' '));
+    end
     
     
     
@@ -106,9 +148,16 @@ for iParam = 1:length(params)
     %     line([0.5 numel(toPlot.info.names)+0.5] ,[forLine, forLine],'Linewidth',2,'color','k');
     
     % get the values for each group before and after treat
+    % forN will be a cell 2*the number of conditions long (for before and after the condition)
+    % each forN will contain a double matrix : max observation number x n neurite matrix  
     forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPoolBeginEndMovie==x),1:nPooledGrps,'uniformoutput',0);
+    % combine the data for all neurites in the condition. 
     forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
     %forN = cellfun(@(x) x(:),toPlot.(params{iParam}).dataMat,'uniformoutput',0);
+    
+    medianValuesAll = cellfun(@(x) nanmedian(x),forN) ; 
+    
+    
     
     N = cellfun(@(x) length(x(~isnan(x))),forN);
     Nstring = num2cell(N);
@@ -116,9 +165,14 @@ for iParam = 1:length(params)
     title(Nstring);
     
     pairs = unique(toPlot.info.groupingPoolBeginEndMovie);
+    % row is before after treat, column is the condition 
     pairs = reshape(pairs,2,length(pairs)/2);
+    
+   
+    
+    
     for ipair = 1:size(pairs,2)
-        [hit(ipair),pValues(ipair)] = permTest(forN{pairs(1,ipair)},forN{pairs(1,ipair)},'CmpFunction',@mean);
+        [hit(ipair),pValues(ipair)] = permTest(forN{pairs(1,ipair)},forN{pairs(2,ipair)},'CmpFunction',@nanmedian,'nrep',5000);
         
         % plot line
         forLine = nanmedian(forN{pairs(1,ipair)});
@@ -127,22 +181,30 @@ for iParam = 1:length(params)
             'color',colorShadesFinal(pairs(1,ipair),:),'linewidth',2);
         
         if hit(ipair)==0
-            text(pairs(1,ipair),nanmedian(forN{pairs(1,ipair)}+2),'NS','FontSize',10);
+            text(pairs(1,ipair),double(nanmedian(forN{pairs(1,ipair)}+2)),'NS','FontSize',10);
             % text(pairs(2,ipair),nanmedian(forN{pairs(2,ipair)}),'NS','FontSize',10);
         else
-            text(pairs(1,ipair),nanmedian(forN{pairs(1,ipair)}+2),num2str(pValues(ipair),'%04'),'FontSize',10);
+            text(pairs(1,ipair),double(nanmedian(forN{pairs(1,ipair)}+2)),num2str(pValues(ipair),4),'FontSize',10);
             
         end
         % test the difference between groups
-        
+        percentChange(ipair) = ( nanmedian(forN{pairs(2,ipair)}) -nanmedian(forN{pairs(1,ipair)})) / nanmedian(forN{pairs(1,ipair)});
+     
     end
+    
+    toPlot.(params{iParam}).percentChange= percentChange;
+    toPlot.(params{iParam}).pValues = pValues; % add a percent change field 
+    clear percentChange
     
     saveas(gcf,[saveDir filesep 'pooled_TimeSplit' params{iParam} '.fig']);
     saveas(gcf,[saveDir filesep 'pooled_TimeSplit' params{iParam} '.png']);
     saveas(gcf,[saveDir filesep 'pooled_TimeSplit' params{iParam} '.eps'],'psc2');
-    end 
+    end
+    
+    turnOff2 = 1; 
+    if turnOff2 ~=1
     %% start pooled.
-    setAxis('on')
+    setAxis('off')
     colors  = vertcat(toPlot.info.color{:});
     grpNames = vertcat(toPlot.info.names(:));
     h1 =  boxplot(dataMatLargeC,toPlot.info.groupingPoolWholeMovie,...
@@ -175,13 +237,17 @@ for iParam = 1:length(params)
             end
         end % if hit
     end % for iGroup
+    
+%     axis([0.5 length(toPlot.info.names) + 0.5 0 toPlot.(params{iParam}).ylim]);
+%     ylabel(toPlot.(params{iParam}).yLabel);
+    
     saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.fig']);
     saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.png']);
     saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.eps'],'psc2');
    
     %% plot per cell
     
-    setAxis('on'); 
+    setAxis('off'); 
     nCells = length(unique(toPlot.info.groupingPerCell));
     forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPerCell==x),1:nCells,'uniformoutput',0);
     forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
@@ -226,18 +292,31 @@ for iParam = 1:length(params)
     set(gca,'XTick',1:numel(toPlot.info.names));
     set(gca,'XTickLabel',toPlot.info.names,'FontSize',10);
     
+%         axis([0.5 length(toPlot.info.names)+ 0.5 0 toPlot.(params{iParam}).ylim]);
+%     ylabel(toPlot.(params{iParam}).yLabel);
+    
     saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.fig']);
     saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.png']);
     saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.eps'],'psc2');
     
 end
 
-
+end
 
 %save('compMat.mat','compMat');
 
+% collect data 
+ forHeatMap = arrayfun(@(x) toPlot.(params{x}).percentChange,1:numel(params),'uniformoutput',0); 
+ forHeatMap = vertcat(forHeatMap{:}); 
+close all  
+ colorMap = HeatMap(forHeatMap,'RowLabels',params,'ColumnLabels',toPlot.info.names,... 
+    'colormap','redbluecmap','ColumnLabelsRotate',45); 
+save('colorMap','colorMap'); 
+  saveas(gcf,'SummaryFigure.png');
+  saveas(gcf,'SummaryFigure.fig'); 
+  saveas(gcf,'SummaryFigure.eps','psc2'); 
 
-
+save('toPlotWithStats','toPlot'); 
 
 
 
