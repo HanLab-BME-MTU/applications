@@ -164,7 +164,7 @@ for iChannel =selected_channels
               OtsuRosin_Segment = ...
                   nucleus_segmentation_refinemask(OtsuRosin_Segment,min_size, max_num, close_radius);
               % count the nubmer of nucleus, with separations
-              nucleus_count = nucleus_counting_with_fracs(OtsuRosin_Segment,NucleusSegmentationChannelOutputDir, iChannel, iFrame, 1);
+              nucleus_count = nucleus_counting_with_fracs(OtsuRosin_Segment,currentImg, NucleusSegmentationChannelOutputDir, iChannel, iFrame, 1);
               nucleus_number_matrix(iChannel, iFrame) = nucleus_count;
           end
           
