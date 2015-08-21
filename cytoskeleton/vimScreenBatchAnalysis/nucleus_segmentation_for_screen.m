@@ -32,7 +32,7 @@ nPackage = length(movieData.packages_);
 nProcesses = length(movieData.processes_);
 
 % with no input funparam, use the one the process has on its own
-if nargin < 2
+if nargin < 3
     funParams.ChannelIndex = 1;
     if(numel(movieData.channels_)>=3)
          funParams.ChannelIndex = 3;
@@ -150,10 +150,16 @@ for iChannel =selected_channels
           level_img_OR = (level_img_Otsu+level_img_Rosin)/2;
           OtsuRosin_Segment = currentImg>level_img_OR;
           
-          % if there are saturated area in thresholds, set the flag as -1;
+          % if there are lots of saturated area, set the flag as -1;
           % 0 for normal
-          saturated_level = level_img_OR >4000;
-          if(sum(sum(saturated_level))>10000)
+          if indexFlattenProcess > 0 && ImageFlattenFlag==2        
+           saturated_level = double(currentImg).*double(OtsuRosin_Segment) >0.9;
+          else
+           saturated_level = double(currentImg).*double(OtsuRosin_Segment) >3500;   
+          end
+          sum(sum(saturated_level))
+          
+          if(sum(sum(saturated_level))>150000)
               result_flag_matrix(iChannel, iFrame) = -1;
               nucleus_number_matrix(iChannel, iFrame) = -1;         
           else
