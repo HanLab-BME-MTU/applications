@@ -1,5 +1,5 @@
-function [movieData, result_flag_matrix, nucleus_number_matrix] = ...
-    nucleus_segmentation_for_screen(movieData, plot_save_flag, paramsIn, varargin)
+function [movieData, result_flag_matrix, nucleus_number_matrix] =...
+    nucleus_segmentation_for_screen_tempplot(movieData, paramsIn, varargin)
 % Main function for the nucleus segmentation for the screen
 
 % Input:     movieData:  movieData object, with the parameters
@@ -142,53 +142,18 @@ for iChannel =selected_channels
         if  funParams.background_removal > 0 
            currentImg = currentImg - imfilter(currentImg, fspecial('gaussian', 501,200),'replicate','same'); 
         end
-        
-             
-          [level1, Otsu_Segment,level_img_Otsu ] = thresholdLocalSeg(currentImg,'Otsu',funParams.Patch_Size,funParams.Pace_Size,funParams.lowerbound,'showPlots',0);
-          [level2, Rosin_Segment,level_img_Rosin ] = thresholdLocalSeg(currentImg,'Rosin',funParams.Patch_Size,funParams.Pace_Size,funParams.lowerbound,'showPlots',0);
-     
-          level_img_OR = (level_img_Otsu+level_img_Rosin)/2;
-          OtsuRosin_Segment = currentImg>level_img_OR;
-          
-          % if there are saturated area in thresholds, set the flag as -1;
-          % 0 for normal
-          saturated_level = level_img_OR >4000;
-          if(sum(sum(saturated_level))>10000)
-              result_flag_matrix(iChannel, iFrame) = -1;
-              nucleus_number_matrix(iChannel, iFrame) = -1;         
-          else
-              result_flag_matrix(iChannel, iFrame) = 0;
-              % refine the masl, with separations
-              min_size=1000;
-              max_num=200;
-              close_radius=5;
-              OtsuRosin_Segment = ...
-                  nucleus_segmentation_refinemask(OtsuRosin_Segment,min_size, max_num, close_radius);
-              % count the nubmer of nucleus, with separations
-              nucleus_count = nucleus_counting_with_fracs(OtsuRosin_Segment,currentImg,NucleusSegmentationChannelOutputDir, iChannel, iFrame, plot_save_flag);
-              nucleus_number_matrix(iChannel, iFrame) = nucleus_count;
-          end
-          
+                  
           
         %% For heat presentation of the segmented filaments
         
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
-                if(plot_save_flag>0)
-                imwrite(Otsu_Segment, ...
-                    [NucleusSegmentationChannelOutputDir,filesep,'nucleus_O_segment_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);                
-                imwrite(Rosin_Segment, ...
-                    [NucleusSegmentationChannelOutputDir,filesep,'nucleus_R_segment_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);   
-                imwrite(OtsuRosin_Segment, ...
-                    [NucleusSegmentationChannelOutputDir,filesep,'nucleus_OR_segment_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);   
-                end
-                
-                imwrite(OtsuRosin_Segment, ...
+
+                OtsuRosin_Segment = imread( ...
                     [MaskrefineChannelOutputDir,filesep,'refined_mask_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);                   
+                    filename_short_strs{iFrame+ sub_i-1},'.tif']);   
+                 nucleus_count = nucleus_counting_with_fracs(OtsuRosin_Segment,currentImg,NucleusSegmentationChannelOutputDir, iChannel, iFrame, 1);
+            
             end
         end
         
@@ -198,4 +163,4 @@ for iChannel =selected_channels
     end
 end
 
-save([NucleusSegmentationOutputDir,filesep,'result_flag_nucleus_count.mat'],'result_flag_matrix','nucleus_number_matrix');
+
