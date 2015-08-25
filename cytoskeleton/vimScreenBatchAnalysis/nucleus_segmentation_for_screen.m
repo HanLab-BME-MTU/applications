@@ -71,6 +71,8 @@ if (indexFilamentPackage>0)
             NucleusSegmentationOutputDir  = [movieData.packages_{indexFilamentPackage}.outputDirectory_, filesep 'NucleusSegmentation'];            
         end
     end
+else
+    NucleusSegmentationOutputDir = [movieData.outputDirectory_,filesep,'NucleusSegmentation'];    
 end
 
 
@@ -94,8 +96,14 @@ for iChannel =selected_channels
     
     if(indexCellRefineProcess>0)
         MaskrefineChannelOutputDir = movieData.processes_{indexCellRefineProcess}.outFilePaths_{iChannel};    
+       else
+        MaskrefineChannelOutputDir = NucleusSegmentationChannelOutputDir;
     end
-  
+    
+    if (~exist(MaskrefineChannelOutputDir,'dir'))
+        mkdir(MaskrefineChannelOutputDir);
+    end
+   
     % Get frame number from the title of the image, this not neccesarily
     % the same as iFrame due to some shorting problem of the channel
     try
@@ -154,12 +162,15 @@ for iChannel =selected_channels
           % 0 for normal
           if indexFlattenProcess > 0 && ImageFlattenFlag==2        
            saturated_level = double(currentImg).*double(OtsuRosin_Segment) >0.9;
+           saturated_img = double(currentImg)>0.9;
           else
            saturated_level = double(currentImg).*double(OtsuRosin_Segment) >3500;   
-          end
-          sum(sum(saturated_level))
+            saturated_img = double(currentImg)>3500;
+         end
+          sum(sum(saturated_level))/sum(sum(OtsuRosin_Segment))
+          sum(sum(saturated_img))
           
-          if(sum(sum(saturated_level))>150000)
+          if(sum(sum(saturated_level))>0.5*sum(sum(OtsuRosin_Segment))) || sum(sum(saturated_img))>100000
               result_flag_matrix(iChannel, iFrame) = -1;
               nucleus_number_matrix(iChannel, iFrame) = -1;         
           else
