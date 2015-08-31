@@ -66,7 +66,8 @@ dir2save = [ML.movieListPath_ filesep 'analysisKJ'];
 %% Calculations
 nMD = numMovies;
 iMD = 0;
-printLength = fprintf(1,'%g/%g MovieData analyzed\n', iMD, nMD);
+%printLength = fprintf(1,'%g/%g MovieData analyzed\n', iMD, nMD);
+progressTextMultiple('analyzing MD', nMD)
 
 %go over all movies
 for iM = 1 : numMovies
@@ -194,11 +195,14 @@ for iM = 1 : numMovies
     resSummary(iM).statsMS = statsMS;
     
     %Progress Counter
+    progressTextMultiple();
+    %{
     fprintf(repmat('\b',1,printLength));
     iMD = iMD + 1;
     printLength = fprintf(1,'%g/%g MovieData analyzed\n', iMD, nMD);
+    %}
 end
-fprintf(repmat('\b',1,printLength));
+%fprintf(repmat('\b',1,printLength));
 
 %% Sorting and Saving
 

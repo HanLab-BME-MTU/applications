@@ -11,6 +11,8 @@ classdef PartitionAnalysisProcess < DataProcessingProcess
     %                       be stored
     %   .scrambleTracks     : randomize track location to create control
     %                       data set <Unused>
+    %   .nControl           : number of times the randomized control
+    %                         (scrambling track location) is repeated.
     
     properties
         % Public, tunable properties.
@@ -51,6 +53,7 @@ classdef PartitionAnalysisProcess < DataProcessingProcess
             funParams.channel_struct = 1;
             funParams.outputDirectory = [outputDir filesep 'TrackingPackage' filesep 'PartitionAnalysis'];
             %funParams.scrambleTracks = false;
+            funParams.nControl = 5;
         end
         function name = getName()
             name = 'PartitionAnalysisProcess';

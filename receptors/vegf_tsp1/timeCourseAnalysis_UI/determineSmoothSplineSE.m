@@ -21,6 +21,9 @@ function [fitError] = determineSmoothSplineSE(data, time, nBoot, timeResolution,
 fitError = cellfun(@doAnalysis, data, time, timeLimit, 'UniformOutput', false);
 %nested function that deals with each data set
     function fitStd = doAnalysis(subData, subTime, subTimeLimit)
+        mask = ~(isnan(subData) | isinf(subData));
+        subData = subData(mask);
+        subTime = subTime(mask);
         nData = numel(subData);
         %create random numbers (bootstraping)
         newDataIndx = randi(nData, nBoot, nData);

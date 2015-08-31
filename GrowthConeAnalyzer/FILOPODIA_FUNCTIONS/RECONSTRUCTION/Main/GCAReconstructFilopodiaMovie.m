@@ -220,8 +220,9 @@ for iCh = 1:nChan
         protrusionC.smoothedEdge = smoothedEdge{iFrame}; 
         EPLead = veilStem(iFrame).endPointLeadingProt; 
         LPIndices = veilStem(iFrame).neuriteLongPathIndices;
+        idxEnter = veilStem(iFrame).idxEnterNeurite; 
     
-       [filoBranchC,TSFigs,TSFigsRecon] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,params); 
+       [filoBranchC,TSFigs,TSFigsRecon] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,idxEnter,params); 
 %% Plot the results. 
 if ip.Results.TSOverlays == 1 
     display('Saving Trouble Shoot Overlays') 

@@ -1,4 +1,4 @@
-function [tMap, tmax, tmin, cropInfo,tMapX,tMapY] = generateHeatmapShifted(forceField,displField,band)
+function [tMap, tmax, tmin, cropInfo,tMapX,tMapY,reg_grid1] = generateHeatmapShifted(forceField,displField,band)
 %[tMap, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,band)
 % generates an image of traction in the place of deformed position defined
 % by displField. 
@@ -33,7 +33,7 @@ for ii=1:numel(forceField)
     tmin = min(tmin,min(fnorm_vec));
 end
 tmax = 0.8*tmax;
-display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
+% display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
 %% tMap creation    
 % account for if displField contains more than one frame
 imSizeX = reg_grid1(end,end,1)-reg_grid1(1,1,1)+1;
