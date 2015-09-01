@@ -18,9 +18,10 @@ Pr.setInFilePaths({})
 Pr.setOutFilePaths({[outputDir filesep 'driftParameter.mat'],[outputDir filesep 'movieData.mat']})
 pa = Pr.getParameters();
 pa.name = 'registration';
+pa.inputParam=ip.Results;
 Pr.setParameters(pa);
 Pr.setDateTime();
-MD.addProcess(Pr);
+%MD.addProcess(Pr);
 
 %% detect a single jump
 channelIdx=ip.Results.channel;
@@ -65,7 +66,7 @@ end
          jIdx=find((jumpIdx<i));
          vol=MD.getChannel(1).loadStack(i);
          for j=jIdx
-             vol=imwarp(vol,displacements{j},ip.Results.warpModecomp,'OutputView',imref3d(size(vol)));
+             vol=imwarp(vol,displacements{j},ip.Results.warpMode,'OutputView',imref3d(size(vol)));
          end
          stackWrite(vol,[fileDir filesep 'registered-frame-'  num2str(i,'%04d') '.tif'])
      end

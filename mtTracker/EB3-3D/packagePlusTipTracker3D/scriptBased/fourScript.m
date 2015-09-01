@@ -1,0 +1,7 @@
+function fourScript()
+scriptDeskewLatticeData
+movieSelectorGUI
+createMovieManagementFile
+loadMoviesManagementFile
+scriptAnalyseResults
+scriptEB3DetectAndTracking

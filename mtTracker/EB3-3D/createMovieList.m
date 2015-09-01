@@ -33,7 +33,7 @@ for i=1:length(condNames)
     ML=cell(1,length(cellFolder));
     for k=1:length(cellFolder)
         if (cellFolder(k).isdir)
-            channelFolder=dir([dataRootPath filesep condNames{i} filesep cellFolder(k).name]);
+            channelFolder=dir([dataRootPath filesep condNames{i} filesep cellFolder(k).name filesep 'ch*']);
             channelFolder = channelFolder(arrayfun(@(x) x.name(1)~= '.', channelFolder) );
             channelCell=Channel.empty(0,length(channelFolder));
             for j=1:length(channelFolder)
@@ -48,7 +48,7 @@ for i=1:length(condNames)
             outputDir=[resPath filesep condNames{i} filesep cellFolder(k).name filesep 'analysis'];
             mkdir(outputDir);
              try
-                disp([dataRootPath filesep cellFolder(k).name]);
+                disp([condNames{i} ': ' cellFolder(k).name]);
                 MD=MovieData(channelCell,outputDir, ...
                     'pixelSize_',ip.Results.lateralPixelSize,'pixelSizeZ_',ip.Results.axialPixelSize, ...
                     'timeInterval_',ip.Results.timeInterval, ...

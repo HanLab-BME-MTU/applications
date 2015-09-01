@@ -25,7 +25,7 @@ s=ip.Results.scales;
 
 if(~exist(fileparts(filename))) mkdir(fileparts(filename)); end;
 
-% GAP filling using. 
+% GAP filling using the last known position
 se=[zeros(1,tracks.numTimePoints) 1 ones(1,tracks.numTimePoints)];
 for tIdx=1:length(tracks)
     gi=tracks(tIdx).gapMask;
@@ -96,7 +96,7 @@ parfor fIdx=1:tracks.numTimePoints
     paramCount=0;
     frameFilename=[basename '_t_' num2str(fIdx,'%04.0f'),'.am'];
     fid = fopen(frameFilename, 'w');
-    fprintf(fid,['# Amira 2.0 ASCII\n\n']);
+    fprintf(fid,['# AmiraMesh 3D ASCII 2.0\n\n']);
     fprintf(fid,['define VERTEX ' num2str(nbTracsOn*2) '\n']);
     fprintf(fid,['define EDGE ' num2str(nbTracsOn) ' \n']);
     fprintf(fid,['define POINT ' num2str(numPoints) '\n']);

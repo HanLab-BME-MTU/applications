@@ -1,0 +1,23 @@
+UTSW BioHPC remoteGUI
+---------------------
+
+Running as job 52532
+Running on node(s) Nucleus037
+All required binaries found.
+Set job memory limit to 95% of node RAM.
+Started VNC Server with PID 7235
+Started SSH port forwarding with PID 7245
+Compute Node Port: 5909
+Login Node   Port: 30379
+
+=======================================================================
+  To connect via VNC client:  nucleus.biohpc.swmed.edu:30379
+=======================================================================
+
+GNOME exists - launching a GNOME session
+slurmd[Nucleus037]: *** JOB 52532 CANCELLED AT 2015-06-19T10:08:40 DUE TO TIME LIMIT ***
+Job is ending, cleaning up.
+Sending kill signal to Window Manager PID 7246
+Sending kill signal to VNC Server PID 7235
+Sending kill signal to SSH Forwarder PID 7245
+Cleanup complete. Job is finished.

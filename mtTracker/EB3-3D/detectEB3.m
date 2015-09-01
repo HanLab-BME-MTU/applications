@@ -15,9 +15,10 @@ ip.addParamValue('waterThresh', 120, @isnumeric);
 ip.addParamValue('waterStep',10, @isnumeric);
 ip.addParamValue('lowFreq',3, @isnumeric);
 ip.addParamValue('highFreq',1, @isnumeric);
-ip.addParamValue('scales',1.5, @isnumeric);
+ip.addParamValue('scales',[], @isnumeric);
 ip.addParamValue('Alpha',0.05, @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
+ip.addParamValue('printAll', false, @islogical);
 ip.addParamValue('type', 'watershedApplegate',  @ischar);
 ip.parse(MD, varargin{:});
 
@@ -34,7 +35,8 @@ if (strcmp(ip.Results.type,'pointSourceAutoSigma') ...
     ||strcmp(ip.Results.type,'pointSourceAutoSigmaMixture') ... 
     ||strcmp(ip.Results.type,'pointSourceAutoSigmaLM') ...     
     ||strcmp(ip.Results.type,'pointSourceAutoSigmaFitSig') ... 
-    ||strcmp(ip.Results.type,'pSAutoSigmaWatershed'))
+    ||strcmp(ip.Results.type,'pSAutoSigmaWatershed')) ... 
+    &&(isempty(ip.Results.scales))
     volList=[];
     for i=1:5
         volList=[volList double(MD.getChannel(ip.Results.channel).loadStack(i))];
@@ -48,6 +50,9 @@ end
 labels=cell(1,numel(processFrames));
 movieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 
+outputDirDetect=[MD.outputDirectory_ filesep 'EB3' filesep ip.Results.type];
+mkdir(outputDirDetect);
+mkdir([outputDirDetect filesep 'mask']);
 parfor frameIdx=1:numel(processFrames)
     timePoint=processFrames(frameIdx);
     disp(['Processing time point ' num2str(timePoint,'%04.f')])
@@ -92,7 +97,7 @@ parfor frameIdx=1:numel(processFrames)
       case {'pointSourceFit','pointSourceAutoSigmaFit'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
-        labels{frameIdx}=double(mask); % adjust label
+        %labels{frameIdx}=double(mask); % adjust label
       case {'pointSourceAutoSigmaMixture'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'FitMixtures', true, varargin{:});
         movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
@@ -109,12 +114,19 @@ parfor frameIdx=1:numel(processFrames)
     
     if ip.Results.showAll
         figure()
-        imseriesmaskshow(vol,labels{frameIdx});
-        figure()
-        stackShow(vol,'overlay',labels{frameIdx});
+        imseriesmaskshow(vol,logical(labels{frameIdx}));
+%         figure()
+%         stackShow(vol,'overlay',labels{frameIdx});
+    end
+    if(ip.Results.printAll)
+    stackWrite(labels{frameIdx},[outputDirDetect filesep 'mask' filesep 'detect_T_' num2str(frameIdx,'%05d') '.tif']);
     end
     
-end  
+end 
+if(ip.Results.printAll)
+ mkdir([outputDirDetect filesep 'amiraVertex']);
+ amiraWriteMovieInfo([outputDirDetect filesep 'amiraVertex' filesep 'detect.am'],movieInfo,'scales',[MD.pixelSize_ MD.pixelSize_ MD.pixelSizeZ_]);
+end
 
 function movieInfo= labelToMovieInfo(label,vol)
 [feats,nFeats] = bwlabeln(label);
@@ -136,7 +148,7 @@ function movieInfo= pointCloudToMovieInfo(imgLM,vol)
     [lmy,lmx,lmz] = ind2sub(size(vol), lmIdx);
     N=length(lmy);
     % centroid coordinates with 0.5 uncertainties
-    xCoord = [lmx-1 0.5*ones(N,1)]; yCoord = [lmy-1 0.5*ones(N,1)]; zCoord = [lmz-1 0.5*ones(N,1)];
+    xCoord = [lmx 0.5*ones(N,1)]; yCoord = [lmy 0.5*ones(N,1)]; zCoord = [lmz 0.5*ones(N,1)];
     amp=[vol(lmIdx) 0.5*ones(N,1)];
 
     % u-track formating
@@ -148,9 +160,9 @@ function movieInfo= pointCloudToMovieInfo(imgLM,vol)
 
 
 function movieInfo= pstructToMovieInfo(pstruct)
-movieInfo.xCoord = [pstruct.x'-1 pstruct.x_pstd'];
-movieInfo.yCoord = [pstruct.y'-1 pstruct.y_pstd'];
-movieInfo.zCoord = [pstruct.z'-1 pstruct.z_pstd'];
+movieInfo.xCoord = [pstruct.x' pstruct.x_pstd'];
+movieInfo.yCoord = [pstruct.y' pstruct.y_pstd'];
+movieInfo.zCoord = [pstruct.z' pstruct.z_pstd'];
 movieInfo.amp = [pstruct.A' pstruct.A_pstd'];
 movieInfo.int= [pstruct.A' pstruct.A_pstd'];
 

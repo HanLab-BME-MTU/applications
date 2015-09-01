@@ -4,6 +4,7 @@ function [dist,poleId,inliers,originProb,minProb,azimuth,elevation,rho] = poleDi
 % WARNING:  designed and implemented for N poles, but tested with 2 poled
 %           only. 
 % WARNING:  3D only
+% 
 % Philippe Roudot 2015
 ip = inputParser;
 ip.CaseSensitive = false;
