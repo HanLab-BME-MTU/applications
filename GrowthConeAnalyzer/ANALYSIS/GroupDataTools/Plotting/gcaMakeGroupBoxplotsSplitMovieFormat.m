@@ -308,9 +308,10 @@ end
 % collect data 
  forHeatMap = arrayfun(@(x) toPlot.(params{x}).percentChange,1:numel(params),'uniformoutput',0); 
  forHeatMap = vertcat(forHeatMap{:}); 
+ forHeatMap = forHeatMap.*100; 
 close all  
  colorMap = HeatMap(forHeatMap,'RowLabels',params,'ColumnLabels',toPlot.info.names,... 
-    'colormap','redbluecmap','ColumnLabelsRotate',45); 
+    'colormap','redbluecmap','ColumnLabelsRotate',45,'DisplayRange',70,'Symmetric',1); 
 save('colorMap','colorMap'); 
   saveas(gcf,'SummaryFigure.png');
   saveas(gcf,'SummaryFigure.fig'); 
