@@ -12,8 +12,8 @@ ip.CaseSensitive = false;
 
 % PARAMETERS
 defaultInDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' ... 
-    filesep 'StepsToReconstruct'... 
-    'VII_filopodiaBranch_fits']; 
+    filesep 'StepsToReconstruct' filesep... 
+    'VII_filopodiaBranch_fits' filesep 'Channel_1']; 
 ip.addParameter('InputDirectory',defaultInDir,@(x) ischar(x)); 
 
 ip.parse(varargin{:});
@@ -37,7 +37,7 @@ filoInfo = filoBranch(iFrame).filoInfo;
 % calculate automaticaly at the time of fitting to be more efficient. 
 [filoInfo,normFactPerFrame] = GCAAddFilopodiaActinContentMetric(img,veilMask,filoInfo); 
 filoBranch(iFrame).filoInfo = filoInfo; 
-paramC{iFrame} = normFactPerFrame; 
+measC{iFrame} = normFactPerFrame; 
 end
 % resave the values 
 save([ip.Results.InputDirectory filesep 'filoBranch.mat'],'filoBranch','-v7.3'); 
@@ -45,12 +45,12 @@ save([ip.Results.InputDirectory filesep 'filoBranch.mat'],'filoBranch','-v7.3');
 %% save the normalization factor in the measurements folder 
 
 % NOTE For final change to MEASUREMENT_EXTRACTION 
-% expFolder = ['PARAMETER_EXTRACTION' filespe 'Descriptor' filespe 'GrowthCone' filesep 'ExpressionNormalization']; 
+ expFolder = [movieData.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' filesep 'Descriptor' filesep 'GrowthCone' filesep 'ExpressionNormalization']; 
 % 
-% if ~isdir(measurementFolder) 
-%     mkdir(measurementFolder);
-% end 
-% save([expFolder filesep 'param_ExpressionNormalization.mat'],'paramC'); 
+if ~isdir(expFolder) 
+    mkdir(expFolder);
+end 
+ save([expFolder filesep 'meas_ExpressionNormalization.mat'],'measC'); 
 
 
 
