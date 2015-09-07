@@ -1,26 +1,39 @@
-function [ output_args ] = GCAAddSplineFitFilopodiaMovie(movieData)
+function [ output_args ] = GCAAddSplineFitFilopodiaMovie(movieData,varargin)
 %GCAAddActinContentMetricMovie(movieData) 
 
-load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_1' ...
-    filesep 'analInfoTestSave.mat']); 
+%% CheckInput
+ip = inputParser;
 
-for iFrame = 1:length(analInfo)-1
+ip.CaseSensitive = false;
+
+% PARAMETERS
+defaultInDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' ... 
+    filesep 'StepsToReconstruct' filesep... 
+    'VII_filopodiaBranch_fits' filesep 'Channel_1']; 
+ip.addParameter('InputDirectory',defaultInDir,@(x) ischar(x)); 
+
+ip.parse(varargin{:});
+%%
+
+load([ip.Results.InputDirectory filesep 'filoBranch.mat']); 
+
+for iFrame = 1:length(filoBranch)-1
 % extract the veil
 %veilMask = analInfo(iFrame).masks.neuriteEdge;
 % extract the img to feed into the function
 %img = double(imread([movieData.getChannelPaths{1} filesep movieData.getImageFileNames{1}{iFrame}])); 
 % extract the filo info to read into the function 
-filoInfo = analInfo(iFrame).filoInfo;
+filoInfo = filoBranch(iFrame).filoInfo;
 % add the metric to the filo info - NOTE in the future might want to just
 % calculate automaticaly at the time of fitting to be more efficient. 
 filoInfo = GCASplineFitFilopodia(filoInfo); 
-analInfo(iFrame).filoInfo = filoInfo; 
-display(['Finished Frame ' num2str(iFrame)]); 
+filoBranch(iFrame).filoInfo = filoInfo; 
+%display(['Finished Frame ' num2str(iFrame)]); 
 
 end
 % resave the values 
-save([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_1'...
-    filesep 'analInfoTestSave.mat'],'analInfo','-v7.3'); 
+save([ip.Results.InputDirectory
+    filesep 'filoBranch.mat'],'filoBranch','-v7.3'); 
 
 
 
