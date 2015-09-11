@@ -13,6 +13,8 @@ function [] = UIPartitionAnalysis(varargin)
 %                                 pasfSigma. Part of maskDetectedStructure.
 %       'scrambleTracks'        : scrambles mean track position for control
 %                                 data set generation <Unused>
+%       'nControl'              : number of times the randomized control
+%                                 (scrambling track location) is repeated.
 %
 %Tae H Kim, July 2015
 
@@ -23,6 +25,7 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addParameter('psfSigmaMult', 3, @isnumeric);
 ip.addParameter('scrambleTracks', false, @(x) islogical(x) || isnumeric(x));
+ip.addParameter('nControl', 10, @isnumeric);
 ip.parse(varargin{:});
 psfSigmaMult = ip.Results.psfSigmaMult;
 scrambleTracks = ip.Results.scrambleTracks;
@@ -30,11 +33,15 @@ if scrambleTracks
     fprintf('Tracks will be scrambled\n');
 end
 
+%% Initializae
+%Progresstext
+clear progressTextMultiple;
+
 %% User prompt
 %ML for tracks
-[fileNameTrack, filePathTrack] = uigetfile('*.mat', 'Select MovieList containing tracks for partition analysis'); %#ok<ASGLU>
+[fileNameTrack, filePathTrack] = uigetfile('*.mat', 'Select MovieList containing TRACKS for partition analysis'); %#ok<ASGLU>
 %ML for masks
-[fileNameMask, filePathMask] = uigetfile('*.mat', 'Select MovieList containing mask information for partition analysis'); %#ok<ASGLU>
+[fileNameMask, filePathMask] = uigetfile('*.mat', 'Select MovieList containing MASK information for partition analysis'); %#ok<ASGLU>
 
 %% Input Check
 % the length of MLs and track2mask must be equal
@@ -64,7 +71,7 @@ end
 %}
 
 %% Partition Analysis
-progressTextMultiple('Analyzing MD', nMD);
+progressTextMultiple('Analyzing ML', nMD);
 for iMD = 1:nMD
     %SubcellMaskProcess-------------------------------------------------------
     %get default para
@@ -74,7 +81,8 @@ for iMD = 1:nMD
     maskDetectedStructure(ML_Mask.movies_{iMD}, maskPara);
     %track partitioning process--------------------------------------------
     %get default para
-    trackPara = PartitionAnalysisProcess.getDefaultParams(ML_Mask.movies_{iMD}.outputDirectory_);
+    trackPara = PartitionAnalysisProcess.getDefaultParams(ML_Track.movies_{iMD}.outputDirectory_);
+    trackPara.nControl = ip.Results.nControl;
     %trackPara.scrambleTracks = scrambleTracks;
     %call analysis function
     trackPartitioning(ML_Track.movies_{iMD}, ML_Mask.movies_{iMD}, trackPara);

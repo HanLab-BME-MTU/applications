@@ -27,6 +27,8 @@ for iParam = 1:length(params)
     
     dataMatLargeC = horzcat(forDataMat{:});
     
+    turnOff = 1;
+    if turnOff ~= 1
     %% Make the boxplot of the individual cells
     % Start boxplots : if user desires plot begin and end of movie separately for each neurite
     setAxis('on');
@@ -138,14 +140,17 @@ for iParam = 1:length(params)
     saveas(gcf,[saveDir filesep 'pooled_TimeSplit' params{iParam} '.fig']);
     saveas(gcf,[saveDir filesep 'pooled_TimeSplit' params{iParam} '.png']);
     saveas(gcf,[saveDir filesep 'pooled_TimeSplit' params{iParam} '.eps'],'psc2');
+    end 
     %% start pooled.
     setAxis('on')
     colors  = vertcat(toPlot.info.color{:});
     grpNames = vertcat(toPlot.info.names(:));
     h1 =  boxplot(dataMatLargeC,toPlot.info.groupingPoolWholeMovie,...
         'colors',colors,'notch','on','outlierSize',1,'symbol','+','Labels',grpNames,'labelorientation','inline');
-    axis([0.5 numel(grpNames)+ 0.5 0 toPlot.(params{iParam}).ylim]);
-    ylabel(toPlot.(params{iParam}).yLabel);
+    
+    
+%     axis([0.5 numel(grpNames)+ 0.5 0 toPlot.(params{iParam}).ylim]);
+%     ylabel(toPlot.(params{iParam}).yLabel);
     set(h1(:),'Linewidth',2);
     
     forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPoolWholeMovie==x),1:numel(grpNames),'uniformoutput',0);
@@ -155,7 +160,7 @@ for iParam = 1:length(params)
     Nstring = num2cell(N);
     Nstring = cellfun(@(x) ['N = '  num2str(x) ] ,Nstring,'uniformoutput',0);
     title(Nstring);
-    line([0.5,numel(grpNames)+0.5],[nanmedian(forN{1}),nanmedian(forN{1})]);
+    line([0.5,numel(grpNames)+0.5],[nanmedian(forN{1}),nanmedian(forN{1})],'color','k','linewidth',2);
     
     % Perform some simple stats against control
     for i = 2:numel(grpNames)
@@ -163,57 +168,67 @@ for iParam = 1:length(params)
         if hit(i) == 0
             text(i,nanmedian(forN{i}),'NS','color','k','FontSize',10);
         else
-            if pValue == 0
-                text( i,nanmedian(forN{i}),num2str(pValue(i),'%01d'),'color','k','FontSize',10);
+            if pValue(i) == 0
+                text( i,double(nanmedian(forN{i})),num2str(pValue(i),'%01d'),'color','k','FontSize',10);
             else
-                text(i,nanmedian(forN{i}),num2str(pValue(i),'%04d'),'color','k','FontSize',10);
+                text(i,double(nanmedian(forN{i})),num2str(pValue(i),'%04d'),'color','k','FontSize',10);
             end
         end % if hit
     end % for iGroup
     saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.fig']);
     saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.png']);
     saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.eps'],'psc2');
+   
     %% plot per cell
-    nCells = unique(toPlot.info.groupingPerCell);
+    
+    setAxis('on'); 
+    nCells = length(unique(toPlot.info.groupingPerCell));
     forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPerCell==x),1:nCells,'uniformoutput',0);
     forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
     
     % get the means of each neurite for the entire dataMat (condigion info
     % lost unfortunately)
-    means = cellfun(@(x) mean(x), forN);
+    means = cellfun(@(x) nanmean(x), forN);
     
     % add back the condition grouping info
-    meansPerGp =  arrayfun(@(x) means(toPlot.info.grouping==x),1:numel(toPlot.info.names),'uniformoutput',0);
+    meansPerGp =  arrayfun(@(x) means(toPlot.info.grouping==x)',1:numel(toPlot.info.names),'uniformoutput',0);
     
     % reformat cell to double for notBoxplot
     % each column should now be the means/medians for each  cells in a condition
     % group
     perCellDataMat = reformatDataCell(meansPerGp);
     
-    h = notBoxplot(perCellDataMat);
+    h = notBoxPlot(perCellDataMat);
     
     %set the colors
     arrayfun(@(i) set(h(i).data,'markerFaceColor', toPlot.info.color{i}),1:numel(toPlot.info.names));
-    arrayfun(@(i) set(h(i).data,'markerEdgeColor',toPlot.info.color{i}),1:numel(toPlot.info.names));
-    arrayfun(@(i) set(h(i).mu,'color',toPlot.inf.color{i}),1:numel(toPlot.info.names));
-    arrayfun(@(i) set(h(i).semPtch,'faceColor',toPlot.info.colorShades{i}(4,:),1:numel(toPlot.info.names)));
-    arrayfun(@(i) set(h(i).stdPtch,'faceColor',toPlot.info.colorShades{i}(1,:),1:numel(toPlot.info.names)));
+    arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:numel(toPlot.info.names));
+    arrayfun(@(i) set(h(i).mu,'color',toPlot.info.color{i}),1:numel(toPlot.info.names));
+    arrayfun(@(i) set(h(i).semPtch,'faceColor',toPlot.info.colorShades{i}(4,:)),1:numel(toPlot.info.names));
+    arrayfun(@(i) set(h(i).sdPtch,'faceColor',toPlot.info.colorShades{i}(1,:)),1:numel(toPlot.info.names));
+    
     
     % perform some quick stat tests
     for i = 2:numel(toPlot.info.names)
-        [hit(i),pValues(i)] = permTest(perCellDataMat{1},perCellDataMat{i});
+        [hit(i),pValues(i)] = permTest(meansPerGp{1},meansPerGp{i});
         if hit(i) == 0
-            text(i,mean(perCellDataMat{i}),'NS');
+            text(i,double(mean(meansPerGp{i})),'NS');
         else
-            text(i,mean(perCellDataMat{i}),num2str(pValues(i),'%04d'));
+            if pValues(i) == 0 
+                text(i,double(mean(meansPerGp{i})),num2str(pValues(i),1)); 
+            else 
+            text(i,double(mean(meansPerGp{i})),num2str(pValues(i),4));
+            end 
         end
     end
     
+   % ylabel(toPlot.(params{iParam}).yLabel);
+    set(gca,'XTick',1:numel(toPlot.info.names));
+    set(gca,'XTickLabel',toPlot.info.names,'FontSize',10);
     
-    %set(gca,'XTick',1:nPooledGrps);
-    %     set(gca,'XTickLabel',labelsPool,'FontSize',10);
-    
-    
+    saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.fig']);
+    saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.png']);
+    saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.eps'],'psc2');
     
 end
 
