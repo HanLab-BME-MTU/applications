@@ -7,7 +7,9 @@ function network_features_plotting(output_feature, figure_flag, save_everything_
 
 
 % Plot only if the user requested
-
+if isnumeric(set_visible)
+    set_visible = 'on';
+end
 if(figure_flag>0)
     display(' --- Feature plotting');
     

@@ -16,8 +16,12 @@ alignEvent=ip.Results.alignEvent;
 indivColor=ip.Results.indivColor;
 source = ip.Results.Source;
 
-h=figure; hold on
 nTracks = numel(tracksNA);
+if nTracks<1
+    disp('No data in tracksNA ... Aborting ...')
+    return
+end
+h=figure; hold on
 % alignment might be necessary:
 % events = detectProtrusionEvents(v,dThreshold)
 lifeTime = arrayfun(@(x) x.lifeTime,tracksNA);
@@ -115,7 +119,11 @@ else
     end
     % title(['Group 1:' num2str(idGroup1f')])
     % set the life time to be 80 percentile
-    if length(lifeTime)>30
+    if length(lifeTime)>100
+        thresLifeTime = quantile(lifeTime,0.95);
+    elseif length(lifeTime)>50
+        thresLifeTime = quantile(lifeTime,0.9);
+    elseif length(lifeTime)>30
         thresLifeTime = quantile(lifeTime,0.8);
     elseif length(lifeTime)>20
         thresLifeTime = quantile(lifeTime,0.7);
@@ -172,7 +180,9 @@ else
     set(h,'Position',[200,400,400,200])%,title(['ID:' num2str(ii) ', CC-score:' num2str(tracksNA(ii).CCscore)])
     subplot(1,2,1) 
 end
-plot(1:nSampleFrames,AmpG1avg,'k','Linewidth',3)
+if nTracks>1
+    plot(1:nSampleFrames,AmpG1avg,'k','Linewidth',3)
+end
 xlim([0 maxLifeTime])
 maxYamp = quantile(nanmax(AmpArray),0.99);
 minYamp = quantile(nanmin(AmpArray),0.01);
@@ -184,7 +194,9 @@ if strcmp(source,'edgeAdvanceDist')
 else
     subplot(1,2,2) 
 end
-plot(1:nSampleFrames,forceG1avg,'r','Linewidth',3)
+if nTracks>1
+    plot(1:nSampleFrames,forceG1avg,'r','Linewidth',3)
+end
 xlim([0 maxLifeTime])
 maxYforce = quantile(nanmax(forceArray),0.95);
 minYforce = quantile(nanmin(forceArray),0.01);
@@ -203,10 +215,11 @@ if strcmp(source,'edgeAdvanceDist')
     ylabel('Edge distance (Pixel)')
 end
 
-[pathStore]=fileparts(fileStore);
-if ~exist(pathStore,'dir')
-    mkdir(pathStore)
+if ~isempty(fileStore)
+    [pathStore]=fileparts(fileStore);
+    if ~exist(pathStore,'dir')
+        mkdir(pathStore)
+    end
+    set(gcf,'PaperPositionMode','auto')
+    print('-depsc2', '-r300', strcat(fileStore));
 end
-set(gcf,'PaperPositionMode','auto')
-print('-depsc2', '-r300', strcat(fileStore));
-

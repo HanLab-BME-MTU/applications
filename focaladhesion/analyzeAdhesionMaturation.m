@@ -134,7 +134,7 @@ end
 if onlyEdge
     disp(['Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered'])
     trackIdx = false(numel(tracksNA),1);
-    bandwidthNA = 2; %um 
+    bandwidthNA = 7; %um 
     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
     for ii=1:nFrames
         % Cell Boundary Mask 
@@ -204,7 +204,7 @@ end
 % get the intensity
 disp('Reading intensities with additional tracking...')
 tic
-tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',350); % 1 means intensity collection from pax image
+tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',10); % 1 means intensity collection from pax image
 toc
 firstMask=maskProc.loadChannelOutput(iChan,1);
 cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
