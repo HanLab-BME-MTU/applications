@@ -63,7 +63,7 @@ ip.addParameter('EndFrame','auto');
 
 % Specific
 % PARAMETERS
-ip.addParameter('TSOverlays',true); 
+ip.addParameter('TSOverlays',false); 
 
 % Steerable Filter 
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
@@ -205,6 +205,9 @@ for iCh = 1:nChan
         % Load image
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;
+        % you store all pieces make sure only considering the largest
+        % connected component 
+        veilStemMaskC = logical(getLargestCC(veilStemMaskC)); 
         
 %         if ~isempty(normals)
 %             protrusionC.normal = normals{iFrame};
@@ -272,7 +275,7 @@ close all
         
         
         % quick fix for the plots is to just make the frame number an input for not 20140812
-        hashTag =  gcaArchiveGetGitHashTag;
+        [~,hashTag] =  gcaArchiveGetGitHashTag;
         filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         filoBranchC.timeStamp = clock; 
         filoBranch(iFrame) = filoBranchC;
