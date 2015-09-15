@@ -126,7 +126,7 @@ for i = 1:nd
     % P(obs. lifetime==N) = 1
     % => weighting:
     if ip.Results.CorrectObservationBias
-        w = N./(N-cutoff_f+1:-1:1);
+        w = N./((N-cutoff_f+1):-1:1);
     else
         w = ones(1,N-cutoff_f+1);
     end
@@ -301,8 +301,8 @@ for i = 1:nd
     lftHistCCP = [hist(res(i).lftAboveT, t).*w pad0];
     lftHistCS = [hist(res(i).lftBelowT, t).*w pad0];
     % Normalization
-    lftRes.lftHistCCP(i,:) = lftHistCCP / sum(lftHistCCP) / framerate / bf;
-    lftRes.lftHistCS(i,:) = lftHistCS / sum(lftHistCS) / framerate / bf;
+    lftRes.lftHistCCP(i,:) = lftHistCCP / sum(lftHistCCP) /   bf;
+    lftRes.lftHistCS(i,:) = lftHistCS / sum(lftHistCS) /  bf;
     
     % Raw, unweighted histograms with counts/bin
     lftRes.lftHistCCP_counts(i,:) = [hist(res(i).lftAboveT, t) pad0];
@@ -311,7 +311,7 @@ for i = 1:nd
     
     if ip.Results.ExcludeVisitors
         lftHistVisit = [hist(res(i).lftVisitors, t).*w pad0];
-        lftRes.lftHistVisit(i,:) = lftHistVisit / sum(lftHistVisit) / framerate / bf;
+        lftRes.lftHistVisit(i,:) = lftHistVisit / sum(lftHistVisit) /  bf;
     end
     
     % Multi-channel data
@@ -331,16 +331,16 @@ for i = 1:nd
             lftHistSlaveCCP = [hist(lftData(i).lifetime_s(sIdx & idxMI), t).*w pad0];
             lftHistSlaveCS = [hist(lftData(i).lifetime_s(sIdx & ~idxMI), t).*w pad0];
             if ~(sum(lftHistSlaveAll)==0)
-                lftRes.lftHistSlaveAll{s}(i,:) = lftHistSlaveAll / sum(lftHistSlaveAll) / framerate / bf;
+                lftRes.lftHistSlaveAll{s}(i,:) = lftHistSlaveAll / sum(lftHistSlaveAll) / bf;
             else
                 lftRes.lftHistSlaveAll{s}(i,:) = zeros(size(lftHistSlaveAll));
             end
             if ~(sum(lftHistSlaveCCP)==0)
-                lftRes.lftHistSlaveCCP{s}(i,:) = lftHistSlaveCCP / sum(lftHistSlaveCCP) / framerate / bf;
+                lftRes.lftHistSlaveCCP{s}(i,:) = lftHistSlaveCCP / sum(lftHistSlaveCCP) /  bf;
             else
                 lftRes.lftHistSlaveCCP{s}(i,:) = zeros(size(lftHistSlaveCCP));
             end
-            lftRes.lftHistSlaveCS{s}(i,:) = lftHistSlaveCS / sum(sIdx & ~idxMI) / framerate / bf;
+            lftRes.lftHistSlaveCS{s}(i,:) = lftHistSlaveCS / sum(sIdx & ~idxMI) /  bf;
             lftRes.lftHistSlaveAll_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx), t) pad0];
             lftRes.lftHistSlaveCCP_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx & idxMI), t) pad0];
             lftRes.lftHistSlaveCS_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx & ~idxMI), t) pad0];
@@ -359,7 +359,7 @@ for i = 1:nd
     elseif exist([data(i).source ip.Results.MaskPath], 'file')==2
         px = data(i).pixelSize / data(i).M; % pixels size in object space
         mask = logical(readtiff([data(i).source ip.Results.MaskPath]));
-        lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in µm^2
+        lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in ï¿½m^2
     else
         lftRes.cellArea(i) = NaN;
     end
@@ -373,7 +373,7 @@ for i = 1:nd
     startsPerFrameCCP = startsPerFrameCCP(6:end-2);
     lftRes.startsPerFrameAll(i,:) = startsPerFrameAll;
     
-    % in µm^-2 min^-1
+    % in ï¿½m^-2 min^-1
     dnorm = 60/data(i).framerate/lftRes.cellArea(i);
     if strcmpi(ip.Results.InitDensity, 'mean')
         lftRes.initDensityAll(i,:) = [mean(startsPerFrameAll); std(startsPerFrameAll)]*dnorm;
@@ -451,11 +451,11 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     
     formatTickLabels(ha(1:2));
     
-    fprintf('Initiation density, all detected tracks:                  %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
-    fprintf('Initiation density, valid tracks (CCPs + CSs + visitors): %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
-    fprintf('Initiation density, CCPs:                                 %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityCCP(:,1)), std(lftRes.initDensityCCP(:,1)));
-    fprintf('Density of persistent structures:                         %.3f ± %.3f [µm^-2]\n', mean(lftRes.persistentDensity), std(lftRes.persistentDensity));
-    fprintf('  Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
+    fprintf('Initiation density, all detected tracks:                  %.3f ï¿½ %.3f [ï¿½m^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
+    fprintf('Initiation density, valid tracks (CCPs + CSs + visitors): %.3f ï¿½ %.3f [ï¿½m^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
+    fprintf('Initiation density, CCPs:                                 %.3f ï¿½ %.3f [ï¿½m^-2 min^-1]\n', mean(lftRes.initDensityCCP(:,1)), std(lftRes.initDensityCCP(:,1)));
+    fprintf('Density of persistent structures:                         %.3f ï¿½ %.3f [ï¿½m^-2]\n', mean(lftRes.persistentDensity), std(lftRes.persistentDensity));
+    fprintf('  Valid tracks/cell: %.1f ï¿½ %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
     
     % gap statistics
     ha = setupFigure(1,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...

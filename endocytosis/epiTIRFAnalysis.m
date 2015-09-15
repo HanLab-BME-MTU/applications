@@ -115,7 +115,7 @@ for ri = 1:numel(rRange)
     ratio2GT = cellfun(@(x,y) x>=rf & y>=T, res(2).iRatio, res(2).iMaxTIR, 'unif', 0);
     ratio2LT = cellfun(@(x,y) x<rf & y>=T, res(2).iRatio, res(2).iMaxTIR, 'unif', 0);
     opts = {'MaxIntensityThreshold', T, 'Display', 'off', 'Rescale', false,...
-        'ExcludeVisitors', true, 'RemoveOutliers', false, 'Overwrite', false};
+        'ExcludeVisitors', true, 'RemoveOutliers', false, 'Overwrite', false,'CorrectObservationBias',true};
     lftRes1GT = runLifetimeAnalysis(data{1}, opts{:}, 'SelectIndex', ratio1GT);
     lftRes1LT = runLifetimeAnalysis(data{1}, opts{:}, 'SelectIndex', ratio1LT);
     lftRes2GT = runLifetimeAnalysis(data{2}, opts{:}, 'SelectIndex', ratio2GT);
