@@ -216,7 +216,7 @@ for i_end = 1 : size(idx,1)
         %   j end cannot be i it self and cannot be smaller, since it i big - j samll will
         %   be calculated on the other pair, which is i small- j big
         
-        for j_end =  setdiff(idx{i_end,1}',[1:2*round(i_end/2)])
+        for j_end =  setdiff(idx{i_end,1},[1:2*round(i_end/2)])
             %         try
             num_loop = num_loop+1;
             %             display(['loop num: ',num2str(num_loop)]);
