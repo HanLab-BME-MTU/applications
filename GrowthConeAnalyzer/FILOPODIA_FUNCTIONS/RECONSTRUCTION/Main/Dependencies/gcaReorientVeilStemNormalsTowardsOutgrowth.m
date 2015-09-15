@@ -146,9 +146,16 @@ mask1 = false(dims);
 mask1(CCs.PixelIdxList{1})= true;
 CC1Dist= distMat.*mask1;
 [y1,x1] = find(CC1Dist == 1);
+% just take the first sometimes have more than one value 
+x1 = x1(1); 
+y1= y1(1); 
+
 %find(smoothedEdgeCIdxPix,1);
 idx1 = find(CC1Dist==1);
+idx1 = idx1(1); 
 toRot = [normalsC(smoothedEdgeCIdxPix==idx1,1),normalsC(smoothedEdgeCIdxPix==idx1,2)];
+%make sure toRot is 
+toRot = toRot(1,:); 
 
 idx2 = find(CC1Dist==2);
 [y2,x2] = find(CC1Dist == 2);
