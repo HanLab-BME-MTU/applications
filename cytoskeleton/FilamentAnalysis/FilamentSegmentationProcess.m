@@ -189,9 +189,13 @@ classdef FilamentSegmentationProcess < ImageProcessingProcess
                      catch
                          % when only on channel, one image, it will be last
                          % character of the image, so 'f'
-                         out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_','f','.mat'], ...
+                         try
+                            out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_','f','.mat'], ...
                              'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
-                         
+                         catch
+                             out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_','F','.mat'], ...
+                             'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                         end
                      end
                  end
              end

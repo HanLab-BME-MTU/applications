@@ -151,6 +151,8 @@ end
 
 
 if(vimscreen_flag==0)
+    feature_flag(21)=0;
+    feature_flag(22)=0;
     feature_flag(24)=0;
 end
 
