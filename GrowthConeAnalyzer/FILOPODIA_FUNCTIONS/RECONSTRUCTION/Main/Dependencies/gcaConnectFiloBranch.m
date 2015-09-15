@@ -1023,7 +1023,9 @@ if sum(testMatch) ~= 0 ;
             filoSeedPix = filoInfo(idxSeedFilo).Ext_pixIndicesBack;
             idxBranchPt = sub2ind(dims,branchPointY,branchPointX);
             distPix =  find(idxBranchPt==filoSeedPix);
-            
+            if isempty(distPix)
+                distPix =NaN;
+            end
             % fixed 201507
             if ~isfield(filoInfo,'conXYCoords');
                 filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix];
@@ -1031,6 +1033,8 @@ if sum(testMatch) ~= 0 ;
                 if isempty(filoInfo(idxSeedFilo).conXYCoords)
                     filoInfo(idxSeedFilo).conXYCoords = [branchPointX,branchPointY,distPix];
                 else
+                    % first test length to make sure ok 
+                   
                     filoInfo(idxSeedFilo).conXYCoords(end+1,:) = [branchPointX,branchPointY,distPix];
                 end
             end
