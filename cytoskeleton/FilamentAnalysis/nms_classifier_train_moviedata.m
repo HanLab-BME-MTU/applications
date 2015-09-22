@@ -302,7 +302,11 @@ for iChannel = channelIndex
     radius_for_kd = (S_mask.MajorAxisLength)/20;
     
     tic
-    [idx, dist] = KDTreeBallQuery([feature_MeanX feature_MeanY], [feature_MeanX feature_MeanY], radius_for_kd);
+    %[idx, dist] = KDTreeBallQuery([feature_MeanX feature_MeanY], [feature_MeanX feature_MeanY], radius_for_kd);
+    
+    idx = rangesearch([feature_MeanX feature_MeanY],[feature_MeanX feature_MeanY],...
+        radii,'nsmethod','kdtree');
+  
     display('Find Neighbor');
     toc
     

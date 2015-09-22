@@ -1,11 +1,12 @@
 %% -------- Common Parameters ----------- %%
 
 
-movieDir = '/home/he19/orchestra/home/Papers/windowing methods paper/Movies';
+%movieDir = '/home/he19/orchestra/home/Papers/windowing methods paper/Movies';
+movieDir = '/home/he19/Desktop/TEMP/temp_morpho_mov_writing';%Workaround problems writing to SMB mounted nucleus drive...
 
 makeAvi = true;
 makeMov = true;
-movQual = .75;
+movQual = .99;
 
 satPct = 1;
 
@@ -26,6 +27,8 @@ end
 
 scBarSz = 5e3; %Scale bar size in nm
 
+tInt = MLarp.movies_{iArpEx}.timeInterval_;
+
 %% ------Arp  Example w/ Edge Seg ----- %%
 
 movieName = 'Movie 1 - Arp3 example with edge segmentation';
@@ -44,9 +47,7 @@ prot = MLarp.movies_{iArpEx}.processes_{MLarp.movies_{iArpEx}.getProcessIndex('P
 %figure....
 
 
-tInt = MLarp.movies_{iArpEx}.timeInterval_;
-
-for iFrame = 1:nFrames
+for iFrame = 1:141%nFrames
 
     %MLarp.movies_{iArpEx}.channels_(1).draw(iFrame,'hAxes',panelAxes);
     %Transpose so it fits in the figure better
@@ -119,7 +120,7 @@ prot = MLarp.movies_{iArpEx}.processes_{MLarp.movies_{iArpEx}.getProcessIndex('P
 
 movieFrames(1:nFrames) = struct('cdata',[],'colormap',[]);
 
-for iFrame = 1:nFrames
+for iFrame = 1:141%nFrames
 
     %MLarp.movies_{iArpEx}.channels_(1).draw(iFrame,'hAxes',panelAxes);
     %Transpose so it fits in the figure better
@@ -366,7 +367,7 @@ if makeAvi
 end
 
 
-%% %%%%%%%% ================ Movie 4 ======================== %%%%%%%% %%
+%% %%%%%%%% ================ Movie 5 ======================== %%%%%%%% %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Rac1 whole cell circle mapping side-by-side
 

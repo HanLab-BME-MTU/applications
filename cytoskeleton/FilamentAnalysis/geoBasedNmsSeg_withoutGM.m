@@ -283,7 +283,14 @@ for i_E = 1 : length(Good_ind)
     current_all_seg_bw = or(current_all_seg_bw, current_good_bw);
     [y_i, x_i] = find(labelMask==Good_ind(i_E));
     
-    current_model{i_E} = [x_i y_i];
+    end_points_this = bwmorph(current_good_bw,'endpoints');
+    [y,x] = find(end_points_this);
+    
+    [line_i_x, line_i_y] = line_following_with_limit(current_good_bw, sum(sum(current_good_bw)), x(1),y(1));
+     line_i_x = line_i_x';
+     line_i_y = line_i_y';
+    
+    current_model{i_E} = [line_i_x line_i_y];
     model_ind{i_E} = Good_ind(i_E);
 end
 
