@@ -8,10 +8,11 @@ function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, vararg
 ip =inputParser;
 ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
 ip.parse(varargin{:});
-extraLength=ip.Results.extraLength;
+extraLengthForced=ip.Results.extraLength;
+extraLength = 300;
 % get stack size
 numFrames = size(imgStack,3);
-w4 = 8;
+% w4 = 8;
 sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 % parfor_progress(numel(tracksNA));
@@ -60,7 +61,8 @@ for k=1:numTracks
                 pitFound = false;
                 curAlpha = 0.05+p/100;
                 pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                if ~isnan(pstruct.x) && abs(pstruct.x-x)<2 && abs(pstruct.y-y)<2 && pstruct.A>0 && pstruct.A<2*A
+                searchRadius = 1;
+                if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
                     x = pstruct.x;
                     y = pstruct.y;
                     A = pstruct.A;
@@ -180,13 +182,58 @@ for k=1:numTracks
         if endFrame==curEndingFrame
             tracksNA(k).endingFrameExtra = curEndingFrame;
         end
+        if ~isempty(extraLengthForced)
+            tracksNA(k).startingFrameExtraExtra = tracksNA(k).startingFrameExtra;
+            tracksNA(k).endingFrameExtraExtra = tracksNA(k).endingFrameExtra;
+            if tracksNA(k).startingFrameExtra>1
+                tracksNA(k).startingFrameExtraExtra = max(1, tracksNA(k).startingFrameExtra-extraLengthForced);
+                x = tracksNA(k).xCoord(tracksNA(k).startingFrameExtra);
+                y = tracksNA(k).yCoord(tracksNA(k).startingFrameExtra);
+                xi = round(x);
+                yi = round(y);
+                xRange = xi-1:xi+1;
+                yRange = yi-1:yi+1;
+                for ii=tracksNA(k).startingFrameExtraExtra:tracksNA(k).startingFrameExtra
+                    curImg = imgStack(:,:,ii);
+                    curAmpTotal = curImg(yRange,xRange);
+                    curAmpTotal = mean(curAmpTotal(:));
+                    tracksNA(k).xCoord(ii) = x;
+                    tracksNA(k).yCoord(ii) = y;
+                    tracksNA(k).ampTotal(ii) =  curAmpTotal;
+%                     tracksNA(k).presence(ii) =  1;
+                end
+            end
+            if tracksNA(k).endingFrameExtra<numFrames
+                tracksNA(k).endingFrameExtraExtra = min(numFrames,tracksNA(k).endingFrameExtra+extraLengthForced);            
+                x = tracksNA(k).xCoord(tracksNA(k).endingFrameExtra);
+                y = tracksNA(k).yCoord(tracksNA(k).endingFrameExtra);
+                xi = round(x);
+                yi = round(y);
+                xRange = xi-1:xi+1;
+                yRange = yi-1:yi+1;
+                for ii=tracksNA(k).endingFrameExtra:tracksNA(k).endingFrameExtraExtra
+                    curImg = imgStack(:,:,ii);
+                    curAmpTotal = curImg(yRange,xRange);
+                    curAmpTotal = mean(curAmpTotal(:));
+                    tracksNA(k).xCoord(ii) = x;
+                    tracksNA(k).yCoord(ii) = y;
+                    tracksNA(k).ampTotal(ii) =  curAmpTotal;
+%                     tracksNA(k).presence(ii) =  1;
+                end
+            end
+        end
     elseif attribute==2
         try
-            startFrame = tracksNA(k).startingFrameExtra;
-            endFrame = tracksNA(k).endingFrameExtra;
+            startFrame = tracksNA(k).startingFrameExtraExtra;
+            endFrame = tracksNA(k).endingFrameExtraExtra;
         catch
-            startFrame = max(1, tracksNA(k).startingFrame-extraLength);
-            endFrame = min(numFrames,tracksNA(k).endingFrame+extraLength);
+            try
+                startFrame = tracksNA(k).startingFrameExtra;
+                endFrame = tracksNA(k).endingFrameExtra;
+            catch
+                startFrame = max(1, tracksNA(k).startingFrame-extraLengthForced);
+                endFrame = min(numFrames,tracksNA(k).endingFrame+extraLengthForced);
+            end
         end
         for ii=startFrame:endFrame
             curImg = imgStack(:,:,ii);

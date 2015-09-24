@@ -12,7 +12,8 @@ clear
 %dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Control_Halo_TMR_12262011/Cropped';
 %TEMP!
 %dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Control_Halo_TMR_12262011/Cropped/Halo_PBS_90x_cropped_3';
-dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3';
+%dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3';
+dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/Arp3_HaloTMR_07042011_1_driftCorrected_cropped_timeCropped';
 %dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco';
 
 doProc = true;%If true, windowing, sampling, etc will be run.
@@ -46,8 +47,8 @@ winTypeStrings = {'ProtrusionBased'};
 % winTypeStrings = {'ConstantNumber'};
                             
 
-winSizes = 250 * (2 .^ (6:-1:0));%Window sizes in nm                                
-%winSizes = 1e3; 
+%winSizes = 250 * (2 .^ (6:-1:0));%Window sizes in nm                                
+winSizes = 1e3; 
 %winSizes = 250;
 %winSizes = [8e3 16e3];
 %winSizes = [500 250];
@@ -82,7 +83,7 @@ psp.BatchMode = true;
 
 %Common autocorrelation/crosscorrelation parameters
 ccp.UseBands = 1:4;
-if doPost && ~doProc
+if 1 % doPost && ~doProc
     acp.BatchMode = false;
     ccp.BatchMode = false;
     lcp.BatchMode = false;
@@ -164,7 +165,7 @@ for iWinType = 1:nWinType
 
         if doProc
 
-            parfor j = 1:nMov
+            for j = 1:nMov
 
                 try
 

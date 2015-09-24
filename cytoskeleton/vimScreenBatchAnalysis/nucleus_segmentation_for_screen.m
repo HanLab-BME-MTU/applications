@@ -1,4 +1,4 @@
-function [movieData, result_flag_matrix, nucleus_number_matrix] = ...
+function [movieData, result_flag_matrix, nucleus_number_matrix,saturate_measure] = ...
     nucleus_segmentation_for_screen(movieData, plot_save_flag, paramsIn, varargin)
 % Main function for the nucleus segmentation for the screen
 
@@ -48,7 +48,7 @@ end
 
 result_flag_matrix = nan(numel(movieData.channels_), movieData.nFrames_);
 nucleus_number_matrix = nan(numel(movieData.channels_), movieData.nFrames_);
-
+saturate_measure = nan(3,numel(movieData.channels_), movieData.nFrames_);
 
 selected_channels = funParams.ChannelIndex;
 %% Output Directories
@@ -148,44 +148,54 @@ for iChannel =selected_channels
         filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
         
         if  funParams.background_removal > 0 
-           currentImg = currentImg - imfilter(currentImg, fspecial('gaussian', 501,200),'replicate','same'); 
+            currentImg_background = imfilter(currentImg, fspecial('gaussian', 501,200),'replicate','same'); 
+           currentImg_nobackground = currentImg - currentImg_background;
         end
         
              
-          [level1, Otsu_Segment,level_img_Otsu ] = thresholdLocalSeg(currentImg,'Otsu',funParams.Patch_Size,funParams.Pace_Size,funParams.lowerbound,'showPlots',0);
-          [level2, Rosin_Segment,level_img_Rosin ] = thresholdLocalSeg(currentImg,'Rosin',funParams.Patch_Size,funParams.Pace_Size,funParams.lowerbound,'showPlots',0);
+          [level1, Otsu_Segment,level_img_Otsu ] = thresholdLocalSeg(currentImg_nobackground,'Otsu',funParams.Patch_Size,funParams.Pace_Size,funParams.lowerbound,'showPlots',0);
+          [level2, Rosin_Segment,level_img_Rosin ] = thresholdLocalSeg(currentImg_nobackground,'Rosin',funParams.Patch_Size,funParams.Pace_Size,funParams.lowerbound,'showPlots',0);
      
           level_img_OR = (level_img_Otsu+level_img_Rosin)/2;
-          OtsuRosin_Segment = currentImg>level_img_OR;
+          OtsuRosin_Segment = currentImg_nobackground>level_img_OR;
           
           % if there are lots of saturated area, set the flag as -1;
           % 0 for normal
           if indexFlattenProcess > 0 && ImageFlattenFlag==2        
            saturated_level = double(currentImg).*double(OtsuRosin_Segment) >0.9;
            saturated_img = double(currentImg)>0.9;
+           saturated_background = currentImg_background>0.9;
           else
            saturated_level = double(currentImg).*double(OtsuRosin_Segment) >3500;   
             saturated_img = double(currentImg)>3500;
+         saturated_background = currentImg_background>3500;
          end
-          sum(sum(saturated_level))/sum(sum(OtsuRosin_Segment))
-          sum(sum(saturated_img))
-          
-          if(sum(sum(saturated_level))>0.5*sum(sum(OtsuRosin_Segment))) || sum(sum(saturated_img))>100000
-              result_flag_matrix(iChannel, iFrame) = -1;
-              nucleus_number_matrix(iChannel, iFrame) = -1;         
-          else
-              result_flag_matrix(iChannel, iFrame) = 0;
-              % refine the masl, with separations
-              min_size=1000;
-              max_num=200;
-              close_radius=5;
-              OtsuRosin_Segment = ...
-                  nucleus_segmentation_refinemask(OtsuRosin_Segment,min_size, max_num, close_radius);
-              % count the nubmer of nucleus, with separations
-              nucleus_count = nucleus_counting_with_fracs(OtsuRosin_Segment,currentImg,NucleusSegmentationChannelOutputDir, iChannel, iFrame, plot_save_flag);
-              nucleus_number_matrix(iChannel, iFrame) = nucleus_count;
-          end
-          
+         saturate_measure(1,iChannel,iFrame) =  sum(sum(saturated_level))/sum(sum(OtsuRosin_Segment));
+          saturate_measure(2,iChannel,iFrame) = sum(sum(saturated_img));
+        saturate_measure(3,iChannel,iFrame) =   sum(sum(saturated_background));
+         
+        % if the background is saturated , -2
+        if  sum(sum(saturated_background))>100000
+            result_flag_matrix(iChannel, iFrame) = -2;
+            nucleus_number_matrix(iChannel, iFrame) = -2;            
+        else
+            % if segmentated nucleus is saturated , -1
+            if(sum(sum(saturated_level))>0.5*sum(sum(OtsuRosin_Segment)))
+                result_flag_matrix(iChannel, iFrame) = -1;
+                nucleus_number_matrix(iChannel, iFrame) = -1;
+            else
+                result_flag_matrix(iChannel, iFrame) = 0;
+                % refine the masl, with separations
+                min_size=1000;
+                max_num=200;
+                close_radius=5;
+                OtsuRosin_Segment = ...
+                    nucleus_segmentation_refinemask(OtsuRosin_Segment,min_size, max_num, close_radius);
+                % count the nubmer of nucleus, with separations
+                nucleus_count = nucleus_counting_with_fracs(OtsuRosin_Segment,currentImg,NucleusSegmentationChannelOutputDir, iChannel, iFrame, plot_save_flag);
+                nucleus_number_matrix(iChannel, iFrame) = nucleus_count;
+            end
+        end
           
         %% For heat presentation of the segmented filaments
         
@@ -215,4 +225,4 @@ for iChannel =selected_channels
     end
 end
 
-save([NucleusSegmentationOutputDir,filesep,'result_flag_nucleus_count.mat'],'result_flag_matrix','nucleus_number_matrix');
+save([NucleusSegmentationOutputDir,filesep,'result_flag_nucleus_count.mat'],'result_flag_matrix','nucleus_number_matrix','saturate_measure');

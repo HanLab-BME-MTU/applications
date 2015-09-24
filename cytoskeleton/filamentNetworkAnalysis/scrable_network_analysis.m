@@ -23,4 +23,5 @@ density_filament = imfilter(scrable_VIF_current_seg,density_H, 'replicate','same
 scrable_output_feature=[];
 
 scrable_output_feature.density_filament=density_filament;
+scrable_output_feature.current_seg=scrable_VIF_current_seg;
 

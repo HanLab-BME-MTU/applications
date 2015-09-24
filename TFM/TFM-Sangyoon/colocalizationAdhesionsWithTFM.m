@@ -67,7 +67,13 @@ showTrackID = ip.Results.showTrackID;
 
 %% Data Set up
 % Load the MovieData
-movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
+[pathStr,name,ext]= fileparts(pathForTheMovieDataFile);
+if strcmp([name ext],'movieData.mat')
+    movieDataPath = pathForTheMovieDataFile;
+    pathForTheMovieDataFile = pathStr;
+else
+    movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
+end
 MD = MovieData.load(movieDataPath);
 % Get whole frame number
 nFrames = MD.nFrames_;
@@ -265,6 +271,8 @@ disp('Reading traction...')
 tic
 tracksNA = readIntensityFromTracks(tracksNA,tMap,2); % 2 means traction magnitude collection from traction stacks
 toc
+%% Read force uncertainty
+tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
 %% Save SDC-shifted paxillin image stack
 disp('Loading adhesion channel image stacks...')
 tic

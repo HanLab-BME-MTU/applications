@@ -182,10 +182,17 @@ classdef SteerableFilteringProcess < ImageProcessingProcess
                 catch
                     % when only on channel, one image, it will be last
                     % character of the image, so 'f'
-                    out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'steerable_','f','.mat'], ...
-                                   'orienation_map', 'MAX_st_res','nms','scaleMap');
+                    try
+                        out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'steerable_','f','.mat'], ...
+                            'orienation_map', 'MAX_st_res','nms','scaleMap');
+                    catch
+                        
+                        out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'steerable_','f','.mat'], ...
+                            'orienation_map', 'MAX_st_res','nms','scaleMap');
+                        
+                    end
                 end
-            end
+             end
             
             
             % if there is no output parameter
