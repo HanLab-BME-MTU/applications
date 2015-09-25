@@ -33,7 +33,7 @@ layerMat = MD.getChannel(channelNum).loadImage(frameN,avgLayer);
 %     zStack3D(:,:,ii) = MD.getChannel(channelNum).loadImage(frameN,ii);
 % end
 
-figName = strcat(ippnputname(3), '; layer:', num2str(avgLayer), '; spotsFound:', num2str(spotsNum));
+figName = strcat(inputname(3), '; layer:', num2str(avgLayer), '; spotsFound:', num2str(spotsNum));
 figure('name', figName);
 imshow(layerMat,[]);
 hold on;

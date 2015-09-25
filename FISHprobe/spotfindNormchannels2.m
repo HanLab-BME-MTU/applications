@@ -49,8 +49,8 @@ end
 dataProperties.sigmaCorrection=[1 1];
 
 % Pixel size in um
-% XY pixel size 10X calibration error for nikon widefield
-dataProperties.PIXELSIZE_XY = MD.pixelSize_/1000;
+% XY pixel size 10-fold calibration for nikon widefield
+dataProperties.PIXELSIZE_XY = MD.pixelSize_/1000*10;
 dataProperties.PIXELSIZE_Z = MD.pixelSizeZ_/1000;
 
 % Gaussian filter sigma 1-3 and size 4-6 for x y z respectively
