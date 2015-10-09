@@ -13,6 +13,8 @@ function [ filterKernel, radialFilter, angularFilter ] = steerableVanGinkelKerne
 % Jaqaman Lab
 % UT Southwestern
 
+    import vanGinkel.*;
+
 if(nargin < 3)
     K = 36;
 end
@@ -26,14 +28,21 @@ end
 [X, Y] = meshgrid(-N:(N-1));
 [theta, rho] = cart2pol(X,Y);
 
+theta = fftshift(theta);
+rho = fftshift(rho);
+
+
 % theta_shifted = acos(cos(theta - angle + pi));
 % theta = acos(cos(theta - angle));
 % 
-theta = theta - angle;
+% theta = theta - angle;
+theta = bsxfun(@minus,theta,shiftdim(angle(:),-2));
 % theta_shifted = theta + pi;
 
-theta = atan2(sin(theta),cos(theta));
+theta = mod(theta+pi,2*pi)-pi;
+% theta = atan2(sin(theta),cos(theta));
 % theta_shifted = atan2(sin(theta_shifted),cos(theta_shifted));
+
 
 
 
@@ -63,11 +72,15 @@ theta_s = theta / s_a;
 
 angularFilter = 2*exp(-theta_s.^2/2);
 % angularFilter_shifted = 2*exp(-theta_shifed_s.^2/2);
-angularFilter_shifted = angularFilter([1 end:-1:2],[1 end:-1:2]);
+angularFilter_shifted = angularFilter([1 end:-1:2],[1 end:-1:2],:);
 
-filterKernel = radialFilter .* 0.5 .* (angularFilter + angularFilter_shifted);
-filterKernel(abs(theta) < pi/2) = filterKernel(abs(theta) < pi/2) + filterKernel(abs(theta) < pi/2)*1j;
-filterKernel(abs(theta) >= pi/2) = filterKernel(abs(theta) >= pi/2) - filterKernel(abs(theta) >= pi/2)*1j;
+filterKernel = bsxfun(@times,radialFilter .* 0.5,angularFilter + angularFilter_shifted);
+
+% could we simplify this? neg/pos dividing line does not have to rotate
+posMask = abs(theta) < pi/2;
+negMask = ~posMask;
+filterKernel(posMask) = filterKernel(posMask) + filterKernel(posMask)*1j;
+filterKernel(negMask) = filterKernel(negMask) - filterKernel(negMask)*1j;
 
 
 % shift = exp(1i*2*pi*(X/2+Y/2));
