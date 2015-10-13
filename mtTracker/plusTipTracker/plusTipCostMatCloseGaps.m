@@ -555,10 +555,14 @@ costComponents(:,5)=sFrameAll(indx2)-eFrameAll(indx1);
 type=costComponents(:,4);
 
 % calculate the cost
-costPerp = costComponents(:,1)./prctile(costComponents(:,1),99); % normalized dperp only
-costPara = costComponents(:,2)./prctile(costComponents(:,2),99); % normalized dpara only
-costAngle = 1-costComponents(:,3);                               % 1-cos(angle) only
-costPerpParaAngle = costPerp + costPara + costAngle;             
+costPerpPerc=prctile(costComponents(:,1),99);
+costParaPerc=prctile(costComponents(:,2),99);
+if((costPerpPerc==0)||(costParaPerc==0)) costPerpPerc=1;costParaPerc=1; end;
+
+costPerp = costComponents(:,1)./costPerpPerc; % normalized dperp only
+costPara = costComponents(:,2)./costParaPerc; % normalized dpara only
+costAngle = 1-costComponents(:,3);    % 1-cos(angle) only
+costPerpParaAngle=costPerp+costPara+costAngle;
 cost = 1.1.^costComponents(:,5).*costPerpParaAngle; % for now, this seems to be the best cost
 
 % plot histograms of costs for forward and backward

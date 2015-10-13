@@ -44,6 +44,7 @@ for frameIdx=1:numel(processFrames)
     poleNumber=size(poleMovieInfo(frameIdx).xCoord,1);
     particleNumber=size(pMovieInfo(frameIdx).xCoord,1);
     
+    % Recenter each cart. coord. wrt each pole
     recenterCoord=zeros(particleNumber,poleNumber,3);
     recenterCoord(:,:,1)=anis(1)*(repmat(pMovieInfo(frameIdx).xCoord(:,1),1,poleNumber) - ...
                          repmat(poleMovieInfo(frameIdx).xCoord(:,1)',particleNumber,1));
@@ -52,16 +53,19 @@ for frameIdx=1:numel(processFrames)
     recenterCoord(:,:,3)=anis(3)*(repmat(pMovieInfo(frameIdx).zCoord(:,1),1,poleNumber) - ...
                          repmat(poleMovieInfo(frameIdx).zCoord(:,1)',particleNumber,1));
     
+    % Compute distances
     dist{frameIdx}= sum(recenterCoord.^2,3).^0.5;  
     
+    % compute the closest pole
     originProb{frameIdx}=dist{frameIdx}./repmat(sum(dist{frameIdx},2),1,poleNumber);
-    minProb{frameIdx}=min(originProb{frameIdx},[],2);
-    
+    minProb{frameIdx}=min(originProb{frameIdx},[],2);   
     [minDist,closestPoleIdx]=min(dist{frameIdx},[],2);
     [sortMinDist,sortedPoleIdx]=sort(dist{frameIdx},2);
     minDist=sortMinDist(:,1);
     closestPoleIdx=sortedPoleIdx(:,1);
     poleId{frameIdx}=closestPoleIdx;
+    
+    
 %    reshapCloserPoleIdx=((repmat(minDist,[1,2,3])==repmat(dist{frameIdx},[1,1,3])))
 %     recenterCloserCoord=zeros(particleNumber,3);
 %     recenterCloserCoord(:)=recenterCoord(reshapCloserPoleIdx);
@@ -101,7 +105,7 @@ for frameIdx=1:numel(processFrames)
         interPolarAxis=(secondBestPoles-bestPoles);
         
         %% change coordinate for each EB3 (Z is along the polar axis)
-        % New Base
+        % Create a New Base
         vZ=interPolarAxis./repmat(sum(interPolarAxis.^2,2).^0.5,1,3);
         vX=[0*vZ(:,1),vZ(:,3),-vZ(:,2)];
         vX=vX./repmat(sum(vX.^2,2).^0.5,1,3);

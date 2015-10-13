@@ -1,4 +1,4 @@
-function [azimuth,elevation,time,trackId]=sphericalDistribution(tracks,azimuthCells,elevationCells,rhoCells,radius)
+function [azimuth,elevation,time,trackId,poleId]=sphericalDistribution(tracks,azimuthCells,elevationCells,rhoCells,poleIdCells,radius)
 % Todo:  preeallocate and strip. 
 
 crossingEB3 = repmat(struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]),max([tracks.endFrame]),1);
@@ -8,6 +8,7 @@ azimuth=[];
 elevation=[];
 time=[];
 trackId=[];
+poleId=[];
 
 
 %% allocation of Amira coloring properties 
@@ -40,6 +41,7 @@ for tIdx=1:length(tracks)
     tracksRhos=arrayfun(@(f,i) rhoCells{f}(i) ,F,aTrack.tracksFeatIndxCG);
     tracksAzimuth=arrayfun(@(f,i) azimuthCells{f}(i),F,aTrack.tracksFeatIndxCG);
     tracksElevation=arrayfun(@(f,i) elevationCells{f}(i),F,aTrack.tracksFeatIndxCG);
+    tracksPoleId=arrayfun(@(f,i) poleIdCells{f}(i),F,aTrack.tracksFeatIndxCG);
     % find the first detection over the radius
     crossIdx=find(tracksRhos>radius,1);
     % If there is detection over the radius and 
@@ -60,9 +62,9 @@ for tIdx=1:length(tracks)
         elevation=[elevation elevationCrossing+rhoRatio*(elevationCrossed-elevationCrossing)];
         time=[time aTrack.t(crossIdx-1)+rhoRatio*(aTrack.t(crossIdx)-aTrack.t(crossIdx-1))];
         trackId=[trackId tIdx];
+        poleId=[poleId tracksPoleId(1)];
         
-        
-        % Cardinal for amira    
+        % Cartesian coord. for amira    
         xCross=aTrack.x(crossIdx-1)+rhoRatio*(aTrack.x(crossIdx)-aTrack.x(crossIdx-1));
         yCross=aTrack.y(crossIdx-1)+rhoRatio*(aTrack.y(crossIdx)-aTrack.y(crossIdx-1));
         zCross=aTrack.z(crossIdx-1)+rhoRatio*(aTrack.z(crossIdx)-aTrack.z(crossIdx-1));
