@@ -43,11 +43,15 @@ parfor fIdx=1:length(movieInfo)
     fprintf(fid,'2\n\n');
     fprintf(fid,'\n@3\n');
     fclose(fid);
-    dlmwrite(frameFilename, repmat([(fMI.xCoord(1,1)-1)*p.scales(1) (fMI.yCoord(1,1)-1)*p.scales(2) (fMI.zCoord(1,1)-1)*p.scales(3)],2,1), '-append', 'delimiter',' ','precision', 16);
+    if(~isempty(fMI.xCoord))
+        dlmwrite(frameFilename, repmat([(fMI.xCoord(1,1)-1)*p.scales(1) (fMI.yCoord(1,1)-1)*p.scales(2) (fMI.zCoord(1,1)-1)*p.scales(3)],2,1), '-append', 'delimiter',' ','precision', 16);
+        end
     fid = fopen(frameFilename, 'a');
     fprintf(fid,'@4\n');
     fclose(fid);
-    dlmwrite(frameFilename, [(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)], '-append', 'delimiter',' ','precision', 16);
+    if(~isempty(fMI.xCoord))
+       dlmwrite(frameFilename, [(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)], '-append', 'delimiter',' ','precision', 16);
+    end
     for propIdx=1:length(p.prop)
         fid = fopen(frameFilename, 'a');
         fprintf(fid,['\n VERTEX { float ' p.prop{propIdx}{1} ' } @' num2str(4+propIdx) '\n']);
