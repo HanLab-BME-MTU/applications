@@ -51,7 +51,8 @@ classdef SteerableVanGinkelResponse < handle
         end
         function nms = get.nms(obj)
             if(~isfield(obj.cache,'nms') || isempty(obj.cache.nms))
-                [~,obj.cache.nms] = nonMaximumSuppression(obj.res,obj.theta);
+                [obj.cache.nms] = nonMaximumSuppression(real(obj.res),real(obj.theta)) + ...
+                                   + 1j .* nonMaximumSuppression(imag(obj.res),imag(obj.theta));
             end
             nms = obj.cache.nms;
         end
@@ -158,6 +159,13 @@ classdef SteerableVanGinkelResponse < handle
             [response_i,theta_i] = max(cat(3,imag(a),-imag(a)),[],3);
             response = response +1j*response_i;
             theta = theta + 1j*theta_i;
+            
+            outAnglesRidge = wraparoundN(0:  nn-1,-nn/2,nn/2) * pi/nn;
+            outAnglesEdge  = wraparoundN(0:2*nn-1,-nn,  nn)   * pi/nn;
+            
+            if(nargout > 1)
+                theta = outAnglesRidge(real(theta)) + 1j*outAnglesEdge(imag(theta));
+            end
         end
         function varargout = subsref(obj,S)
             switch(S(1).type)
