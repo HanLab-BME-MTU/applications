@@ -47,7 +47,7 @@ angles = 0:pi/n:pi-pi/n;
 
 
 
-F = steerableVanGinkelKernel(f_c, b_f, K ,angles,length(If)/2);
+F = steerableVanGinkelKernel(f_c, b_f, K ,angles,size(If));
 % F = fftshift(fftshift(F,1),2);
 
 angularResponse = apply_freq_filter(If,F);

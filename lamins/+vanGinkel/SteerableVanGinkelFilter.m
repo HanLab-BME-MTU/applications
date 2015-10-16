@@ -98,15 +98,15 @@ classdef SteerableVanGinkelFilter < handle
             import vanGinkel.*;
             if( isempty(obj.size) || siz ~= obj.size || isempty(obj.F))
                 obj.size = siz;
-                obj.F = steerableVanGinkelKernel(obj.f_c, obj.b_f, obj.K, obj.angles, obj.size/2);
+                obj.F = steerableVanGinkelKernel(obj.f_c, obj.b_f, obj.K, obj.angles, obj.size);
             end
         end
         function ridgeResponse = applyRidgeFilter(obj,If)
-            obj.setupFilter(length(If));
+            obj.setupFilter(size(If));
             ridgeResponse = real(ifft2(bsxfun(@times,If,real(obj.F))));
         end
         function edgeResponse = applyEdgeFilter(obj,If)
-            obj.setupFilter(length(If));
+            obj.setupFilter(size(If));
             edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(obj.F))));
         end
     end

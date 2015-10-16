@@ -22,14 +22,20 @@ if(nargin < 4)
     angle = 0;
 end
 if(nargin < 5)
-    N = 512;
+    N = 1024;
 end
 
-[X, Y] = meshgrid(-N:(N-1));
-[theta, rho] = cart2pol(X,Y);
+if(isscalar(N))
+    N = [N N];
+end
 
-theta = fftshift(theta);
-rho = fftshift(rho);
+% [X, Y] = meshgrid(-N:(N-1));
+[X, Y] = meshgrid( (0:N(2)-1) - floor(N(2)/2), (0:N(1)-1) - floor(N(1)/2) );
+[theta, f] = cart2pol(X / floor(N(2)/2) / 2,Y / floor(N(1)/2) / 2);
+
+theta = ifftshift(theta);
+f = ifftshift(f);
+% rho = ifftshift(rho);
 
 
 % theta_shifted = acos(cos(theta - angle + pi));
@@ -46,7 +52,7 @@ theta = mod(theta+pi,2*pi)-pi;
 
 
 
-f = rho / N / 2;
+% f = rho / N / 2;
 
 %% Radial part
 % compute radial order, f_c = sqrt(K_f * b_f^2)

@@ -5,7 +5,7 @@ function [ s, rho, I ] = synthesizeIntersection( lineAngle, noise)
 if(nargin < 2)
     noise = 1e-3;
 end
-
+    import intersections.*;
 
     I = drawTwoLines(lineAngle);
     I = imfilter(I,fspecial('gaussian',10,2));
