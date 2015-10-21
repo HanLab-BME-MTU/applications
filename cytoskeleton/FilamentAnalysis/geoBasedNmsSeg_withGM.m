@@ -270,7 +270,7 @@ if(isempty(classifier_trained))
     %
     %     T_xie_length_train
     
-    F_classifer = @(nms,length,int,curv) (((T_xie_int_train + (T_xie_int_train/T_xie_length_train)*(-length) )<nms));
+    F_classifer = @(nms,length,int,curv) (((T_xie_int_train + (T_xie_int_train/T_xie_length_train)*(-length) )<nms) & nms > T_xie_int_train/10);
     
 else
     % when there is an input classifer, use the input one
