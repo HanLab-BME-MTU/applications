@@ -232,7 +232,7 @@ end
 
 %% Shift time
 shiftTime = [];
-if analysisPara.start2zeroUI
+if isfield(analysisPara,'start2zeroUI') && analysisPara.start2zeroUI
     shiftTimeIndx = startTime~=0;
     offset = - mean(startTime(shiftTimeIndx));
     shiftTime = zeros(1, nCML);
