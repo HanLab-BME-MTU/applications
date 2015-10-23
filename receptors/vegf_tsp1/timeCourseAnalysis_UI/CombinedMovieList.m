@@ -67,7 +67,7 @@ classdef CombinedMovieList < MovieObject
     methods
         %add
         function addML(obj, movieList, varargin)
-            nML = numel(obj.movieListDirectory) + 1;
+            nML = numel(obj.movieListDirectory_) + 1;
             if isa(movieList, 'MovieList')
                 obj.movieListDirectory_{nML} = movieList.getFullPath();
             elseif ischar(movieList)
@@ -77,7 +77,7 @@ classdef CombinedMovieList < MovieObject
             end
             %obj.alignIndx_(nML) = 0;
             %obj.relTime_(nML) = 0;
-            obj.relativeTimeZero_{nML} = clock();
+            %obj.relativeTimeZero_{nML} = clock();
         end
         %delete
         function deleteML(obj, index)
