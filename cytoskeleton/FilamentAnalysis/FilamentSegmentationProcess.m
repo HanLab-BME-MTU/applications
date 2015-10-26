@@ -175,7 +175,7 @@ classdef FilamentSegmentationProcess < ImageProcessingProcess
        
              % these loads are for old version of the naming system
              try
-                 out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/filament_seg_',filename_short_strs{iFrame},'.mat'], ...
+                 out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'filament_seg_',filename_short_strs{iFrame},'.mat'], ...
                      'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
              catch
                  
