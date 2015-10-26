@@ -1,13 +1,13 @@
-function [ theta, residual ] = vanGinkelLocalExtrema( orientationMatrix, ind )
-%vanGinkelMaxima finds the absolute maxima
-    import vanGinkel.*;
+function [ theta, residual ] = localExtrema( orientationMatrix, ind )
+%orientationSpace.localExtrema finds the absolute maxima
+    import orientationSpace.*;
     s = size(orientationMatrix);
     M = real(reshape(orientationMatrix,s(1)*s(2),s(3)));
     n = (s(3))/2;
     
     % new
     % estimate zeros in derivative
-    deriv = vanGinkelDerivative(real(orientationMatrix),pi/s(3)/8);
+    deriv = orientationSpace.derivative(real(orientationMatrix),pi/s(3)/8);
     derivDiff = -diff(deriv(:,:,[1:end 1]),1,3);
     offset = deriv./derivDiff;
     zeroEstimate = bsxfun(@plus,offset,shiftdim(0:s(3)*8-1,-1));
@@ -67,7 +67,7 @@ function [ theta, residual ] = vanGinkelLocalExtrema( orientationMatrix, ind )
 %     theta = wraparoundN(theta,-n,n);
     
 %     if(~isreal(orientationMatrix))
-%         theta_i = vanGinkelLocalExtrema(cat(3,imag(orientationMatrix),-imag(orientationMatrix)),ind);
+%         theta_i = orientationSpace.localExtrema(cat(3,imag(orientationMatrix),-imag(orientationMatrix)),ind);
 %         theta = theta + 2j*theta_i;
 %     end
 %     

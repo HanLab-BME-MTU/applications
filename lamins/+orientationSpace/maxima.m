@@ -1,6 +1,6 @@
-function [ theta, response, nms ] = vanGinkelMaxima( orientationMatrix, upsample_factor )
-%vanGinkelMaxima finds the absolute maxima
-    import vanGinkel.*;
+function [ theta, response, nms ] = maxima( orientationMatrix, upsample_factor )
+%orientationSpace.maxima finds the absolute maxima
+    import orientationSpace.*;
     
     if(nargin < 2)
         % factor to upsample by to increase efficiency of algorithm
@@ -10,7 +10,7 @@ function [ theta, response, nms ] = vanGinkelMaxima( orientationMatrix, upsample
     s = size(orientationMatrix);
     
     if(upsample_factor > 1)
-        M_upsample = vanGinkelUpsample(orientationMatrix,pi/s(3)/upsample_factor);
+        M_upsample = orientationSpace.upsample(orientationMatrix,pi/s(3)/upsample_factor);
         M_upsample = real(reshape(M_upsample,s(1)*s(2),s(3)*upsample_factor));
     end
     
@@ -82,13 +82,13 @@ function [ theta, response, nms ] = vanGinkelMaxima( orientationMatrix, upsample
         response = sum(M.*T,2);
         response = reshape(response,s(1),s(2));
         if(~isreal(orientationMatrix))
-            [theta_i,response_i] = vanGinkelMaxima(cat(3,imag(orientationMatrix),-imag(orientationMatrix)),upsample_factor);
+            [theta_i,response_i] = orientationSpace.maxima(cat(3,imag(orientationMatrix),-imag(orientationMatrix)),upsample_factor);
             % multiply theta by 2 to expand range to [-pi,pi)
             theta = theta + 2j*theta_i;
             response = response + 1j*response_i;
         end
     elseif(~isreal(orientationMatrix))
-        theta_i = vanGinkelMaxima(cat(3,imag(orientationMatrix),-imag(orientationMatrix)),upsample_factor);
+        theta_i = orientationSpace.maxima(cat(3,imag(orientationMatrix),-imag(orientationMatrix)),upsample_factor);
         theta = theta + 2j*theta_i;
     end
     

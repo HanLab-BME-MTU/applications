@@ -1,4 +1,4 @@
-classdef SteerableVanGinkelResponse < handle
+classdef OrientationSpaceResponse < handle
     %SteerableVanGinkelResponse Response object for SteerableVanGinkelFilter
     %
     %
@@ -28,7 +28,7 @@ classdef SteerableVanGinkelResponse < handle
     
     
     methods
-        function obj = SteerableVanGinkelResponse(filter,angularResponse)
+        function obj = OrientationSpaceResponse(filter,angularResponse)
             obj.filter = filter;
             obj.angularResponse = angularResponse;
             obj.n = size(angularResponse,3);
@@ -139,21 +139,19 @@ classdef SteerableVanGinkelResponse < handle
             end
         end
         function [response,theta] = getMaxResponse(obj,nn)
-            import vanGinkel.*;
             if(nargin < 2)
                 nn = obj.n;
             end
             if(isfinite(nn))
                 [response,theta] = obj.getMaxFiniteResponse(nn);
             else
-                [theta,response] = vanGinkelMaxima(obj.angularResponse);
+                [theta,response] = orientationSpace.maxima(obj.angularResponse);
             end
         end
         function [response,theta] = getMaxFiniteResponse(obj,nn)
-            import vanGinkel.*;
             a = obj.angularResponse;
             if(obj.n ~= nn)
-                vanGinkelUpsample(a,pi/nn);
+                orientationSpace.upsample(a,pi/nn);
             end
             [response,theta] = max(real(a),[],3);
             [response_i,theta_i] = max(cat(3,imag(a),-imag(a)),[],3);

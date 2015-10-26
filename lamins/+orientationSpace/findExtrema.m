@@ -1,8 +1,8 @@
-function [ out ] = vanGinkelFindExtrema( orientationMatrix )
-%vanGinkelFindExtrema finds the local maxima and minima by solving for the
+function [ out ] = findExtrema( orientationMatrix )
+%orientationSpace.findExtrema finds the local maxima and minima by solving for the
 %roots of the first derivative
 
-    import vanGinkel.*;
+    import orientationSpace.*;
 
     s = size(orientationMatrix);
     M = reshape(orientationMatrix,s(1)*s(2),s(3));

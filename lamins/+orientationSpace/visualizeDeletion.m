@@ -1,5 +1,5 @@
-function [ h ] = vanGinkelVisualizeDeletion( orientationMatrix, target, r, c)
-%vanGinkelUpsample upsample orientation information
+function [ h ] = visualizeDeletion( orientationMatrix, target, r, c)
+%orientationspace.visualizeDeletion upsample orientation information
 %
 % INPUT
 % orientationMatrix : YxXxOrientation
@@ -7,7 +7,7 @@ function [ h ] = vanGinkelVisualizeDeletion( orientationMatrix, target, r, c)
 %
 % OUTPUT
 % y                 : YxXxTarget
-    import vanGinkel.*;
+    import orientationSpace.*;
     if(nargin < 2)
         target = pi/72;
     end
@@ -40,7 +40,7 @@ function [ h ] = vanGinkelVisualizeDeletion( orientationMatrix, target, r, c)
 
     A = 2*exp(-xx.^2/2);
     
-    [vderiv,vderiv2] = vanGinkelDerivative(orientationMatrix,target);
+    [vderiv,vderiv2] = orientationSpace.derivative(orientationMatrix,target);
 
 
     if(isscalar(target))

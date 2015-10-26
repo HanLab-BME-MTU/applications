@@ -1,6 +1,6 @@
-function [ maxima, maxima_r, minima, minima_r ] = vanGinkelLocalExtremaEstimate( orientationMatrix, scale, doSort, doCompact )
-%vanGinkelLocalExtremaEstimate Estimate location of local extrema
-    import vanGinkel.*;
+function [ maxima, maxima_r, minima, minima_r ] = localExtremaEstimate( orientationMatrix, scale, doSort, doCompact )
+%orientationSpace.localExtremaEstimate Estimate location of local extrema
+    import orientationSpace.*;
     s = size(orientationMatrix);
 %     M = real(reshape(orientationMatrix,s(1)*s(2),s(3)));
     n = (s(3))/2;
@@ -17,7 +17,7 @@ function [ maxima, maxima_r, minima, minima_r ] = vanGinkelLocalExtremaEstimate(
     
     % new
     % estimate zeros in derivative
-    deriv = vanGinkelDerivative(real(orientationMatrix),pi/s(3)/scale);
+    deriv = orientationSpace.derivative(real(orientationMatrix),pi/s(3)/scale);
     derivDiff = -diff(deriv(:,:,[1:end 1]),1,3);
     offset = deriv./derivDiff;
     maxima = bsxfun(@plus,offset,shiftdim(0:s(3)*scale-1,-1));
@@ -38,7 +38,7 @@ function [ maxima, maxima_r, minima, minima_r ] = vanGinkelLocalExtremaEstimate(
         if(doSort)
             [minima, minima_r] = sortExtrema(minima,Inf);
         elseif(nargout > 3)
-            minima_r = vanGinkelInterpolate(orientationMatrix,minima);
+            minima_r = orientationSpace.interpolate(orientationMatrix,minima);
         end
     end
     maxima(derivDiff < 0 ) = NaN;
@@ -54,7 +54,7 @@ function [ maxima, maxima_r, minima, minima_r ] = vanGinkelLocalExtremaEstimate(
     if(doSort)
         [maxima , maxima_r] = sortExtrema(maxima,-Inf);
     elseif(nargout > 1)
-        maxima_r = vanGinkelInterpolate(orientationMatrix,maxima);
+        maxima_r = orientationSpace.interpolate(orientationMatrix,maxima);
     end
     
     function out =  compactNaN(in)
@@ -79,7 +79,7 @@ function [ maxima, maxima_r, minima, minima_r ] = vanGinkelLocalExtremaEstimate(
         out = wraparoundN(out,-pi/2,pi/2);
     end
     function [out,sr] = sortExtrema(in,nanValue)
-        r = vanGinkelInterpolate(orientationMatrix,in);
+        r = orientationSpace.interpolate(orientationMatrix,in);
         r(~isfinite(in)) = nanValue;
         [sr,~,out] = cosort(r,3,'descend',in);
     end

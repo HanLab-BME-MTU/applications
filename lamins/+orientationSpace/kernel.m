@@ -1,5 +1,5 @@
-function [ filterKernel, radialFilter, angularFilter ] = steerableVanGinkelKernel( f_c, b_f, K, angle, N)
-%steerableVanGinkelKernel
+function [ filterKernel, radialFilter, angularFilter ] = kernel( f_c, b_f, K, angle, N)
+%orientationSpace.kernel
 %
 % Based on the thesis by Michael van Ginkel. Chapter 3
 % "Image Analysis using Orientation Sapce based on Steerable Filters".
@@ -13,7 +13,7 @@ function [ filterKernel, radialFilter, angularFilter ] = steerableVanGinkelKerne
 % Jaqaman Lab
 % UT Southwestern
 
-    import vanGinkel.*;
+    import orientationSpace.*;
 
 if(nargin < 3)
     K = 36;

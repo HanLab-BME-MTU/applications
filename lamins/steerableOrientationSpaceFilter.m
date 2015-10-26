@@ -1,5 +1,5 @@
-function [ response, nms, theta, angularResponse, angularLocalMaxima  ] = steerableVanGinkelFilter( I, f_c, b_f, K, nn, n )
-%steerableVanGinkelFilter
+function [ response, nms, theta, angularResponse, angularLocalMaxima  ] = steerableOrientationSpaceFilter( I, f_c, b_f, K, nn, n )
+%steerableOrientationSpaceFilter
 %
 % Based on the thesis by Michael van Ginkel. Chapter 3
 % "Image Analysis using Orientation Sapce based on Steerable Filters".
@@ -13,7 +13,8 @@ function [ response, nms, theta, angularResponse, angularLocalMaxima  ] = steera
 % Jaqaman Lab
 % UT Southwestern
 
-    import vanGinkel.*;
+% Rather than import, explicitly state the full name of the function
+%     import orientationSpace.*;
 
 I = double(I);
 % I = gpuArray(I);
@@ -47,7 +48,7 @@ angles = 0:pi/n:pi-pi/n;
 
 
 
-F = steerableVanGinkelKernel(f_c, b_f, K ,angles,size(If));
+F = orientationSpace.kernel(f_c, b_f, K ,angles,size(If));
 % F = fftshift(fftshift(F,1),2);
 
 angularResponse = apply_freq_filter(If,F);
@@ -69,7 +70,7 @@ if(isfinite(nn))
     outAnglesEdge  = wraparoundN(0:2*nn-1,-nn,  nn)   * pi/nn;
     
     if(n ~= nn)
-        angularResponse = vanGinkelUpsample(angularResponse,pi/nn);
+        angularResponse = orientationSpace.upsample(angularResponse,pi/nn);
     end
     [response,theta] = max(real(angularResponse),[],3);
 
@@ -91,7 +92,7 @@ if(isfinite(nn))
     %     theta = theta - pi/2;
     end
 else
-    [theta, response, nms] = vanGinkelMaxima(angularResponse);
+    [theta, response, nms] = orientationSpace.maxima(angularResponse);
 end
 if(nargout > 4)
     angularLocalMaxima = real(angularResponse) > real(angularResponse(:,:,[end 1:end-1])) ...

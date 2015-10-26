@@ -1,14 +1,13 @@
-function [ response ] = vanGinkelInterpolate( orientationMatrix, theta )
-%vanGinkelInterpolate Evaluate each orientation repsonse at arbitrary angle
-%at each position
+function [ y ] = upsample( orientationMatrix, target )
+%orientationSpace.upsample upsample orientation information
 %
 % INPUT
 % orientationMatrix : YxXxOrientation
-% theta            : Orientation angles to interpolate
+% target            : Orientation angles to estimate
 %
 % OUTPUT
 % y                 : YxXxTarget
-    import vanGinkel.*;
+    import orientationSpace.*;
     % 
     s = size(orientationMatrix);
     M = reshape(orientationMatrix,s(1)*s(2),s(3));
@@ -25,29 +24,22 @@ function [ response ] = vanGinkelInterpolate( orientationMatrix, theta )
     % xx = vertcat(xx{:});
 
     A = exp(-xx.^2/2);
-    M = M/A;
-    
-%     x = shiftdim(x,-1);
-  
-    % note we factor out the exp(1/2) constant factor
-    
-    theta = theta*s(3)/pi;
-    theta = reshape(theta,s(1)*s(2),1,[]);
 
-    T = bsxfun(@minus,x,theta);
+    if(isscalar(target))
+        target = 0:target:pi-target;
+    end
+    target = target./(pi/s(3));
+    
+    % note we factor out the exp(1/2) constant factor
+
+    T = bsxfun(@minus,x,target')';
     T = wraparoundN(T,[-n n]);
     T = exp(-T.^2/2);
-%     T = reshape(T,s(1)*s(2),1,[]);
-    
-    response = sum(bsxfun(@times,M,T),2);
-
+    w = A\T;
     % normalize the weights such that the columns sum to 1
 %     w = w./repmat(sum(w),s(3),1);
 
-
-    response = reshape(response,s(1),s(2),[]);
-
-
+    y = M*w;
+    y = reshape(y,s(1),s(2),[]);
 
 end
-

@@ -1,4 +1,4 @@
-classdef SteerableVanGinkelFilter < handle
+classdef OrientationSpaceFilter < handle
     %SteerableVanGinkelFilter is a class object that represents a polar
     %seperable frequency domain filter
     %
@@ -64,24 +64,21 @@ classdef SteerableVanGinkelFilter < handle
             R = getResponse(obj,I);
         end
         function R = getResponse(obj,I)
-            import vanGinkel.*;
             If = fft2(I);
             ridgeResponse = obj.applyRidgeFilter(If);
             edgeResponse = obj.applyEdgeFilter(If);
             angularResponse = ridgeResponse + edgeResponse;
-            R = SteerableVanGinkelResponse(obj,angularResponse);
+            R = OrientationSpaceResponse(obj,angularResponse);
         end
         function R = getRidgeResponse(obj,I)
-            import vanGinkel.*;
             If = fft2(I);
             ridgeResponse = obj.applyRidgeFilter(If);
-            R = SteerableVanGinkelResponse(obj,ridgeResponse);
+            R = OrientationSpaceResponse(obj,ridgeResponse);
         end
         function R = getEdgeResponse(obj,I)
-            import vanGinkel.*;
             If = fft2(I);
             edgeResponse = obj.applyEdgeFilter(If);
-            R = SteerableVanGinkelResponse(obj,edgeResponse);
+            R = OrientationSpaceResponse(obj,edgeResponse);
         end
         function imshow(obj,n,varargin)
             if(nargin < 2 || isempty(n))
@@ -95,10 +92,9 @@ classdef SteerableVanGinkelFilter < handle
     end
     methods
         function setupFilter(obj,siz)
-            import vanGinkel.*;
             if( isempty(obj.size) || siz ~= obj.size || isempty(obj.F))
                 obj.size = siz;
-                obj.F = steerableVanGinkelKernel(obj.f_c, obj.b_f, obj.K, obj.angles, obj.size);
+                obj.F = orientationSpace.kernel(obj.f_c, obj.b_f, obj.K, obj.angles, obj.size);
             end
         end
         function ridgeResponse = applyRidgeFilter(obj,If)
