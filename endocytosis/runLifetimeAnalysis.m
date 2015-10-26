@@ -398,6 +398,22 @@ fprintf('Lifetime distribution percentiles (5th, 25th, 50th, 75th, 95th):\n');
 fprintf(['  CSs:  [' strjoin(arrayfun(@(i) num2str(i, '%.1f'), lftPctCS, 'unif', 0), ', ') '] s\n']);
 fprintf(['  CCPs: [' strjoin(arrayfun(@(i) num2str(i, '%.1f'), lftPctCCP, 'unif', 0), ', ') '] s\n']);
 
+% print lifetime distribution percentiles
+if isfield(res, 'significantMaster')
+    
+    for s=1:size(lftRes.slaveCombs,1)
+        lftCDF = cumsum(mean(lftRes.lftHistSlaveCS{s},1));
+        [~,uidx] = unique(lftCDF);
+        lftPctCS = interp1(lftCDF(uidx), lftRes.t(uidx), [0.05 0.25 0.5 0.75 0.95]);
+        lftCDF = cumsum(mean(lftRes.lftHistSlaveCCP{s},1));
+        [~,uidx] = unique(lftCDF);
+        lftPctCCP = interp1(lftCDF(uidx), lftRes.t(uidx), [0.05 0.25 0.5 0.75 0.95]);
+        fprintf(['Lifetime distribution percentiles for slave ' num2str(s) ' positive population (5th, 25th, 50th, 75th, 95th):\n']);
+        fprintf(['  CSs:  [' strjoin(arrayfun(@(i) num2str(i, '%.1f'), lftPctCS, 'unif', 0), ', ') '] s\n']);
+        fprintf(['  CCPs: [' strjoin(arrayfun(@(i) num2str(i, '%.1f'), lftPctCCP, 'unif', 0), ', ') '] s\n']);
+    end
+end
+
 %====================
 % Initiation density
 %====================
