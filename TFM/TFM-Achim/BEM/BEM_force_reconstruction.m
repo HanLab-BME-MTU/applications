@@ -238,14 +238,23 @@ if nargin >= 10 && strcmp(method,'fast')
 %             % the larger tolerance should be, because misfit norm can be larger out of more nodes).
 %             tolx =  sqrt(forceMesh.numBasis)*1e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are,the larger tolerance should be, because misfit norm can be larger out of more nodes). 
             % Filter out u by forceMesh boundary
-            bwstackImg=zeros(ceil(max(y)),ceil(max(x)));
-            bwstackImg(min(forceMesh.p(:,2)):max(forceMesh.p(:,2)),min(forceMesh.p(:,1)):max(forceMesh.p(:,1)))=1;
-            [insideIdx] = maskVectors(x,y,bwstackImg);
-            cur_ux=ux(insideIdx);
-            cur_uy=uy(insideIdx);
-            cur_u = [cur_ux; cur_uy];
-            tolxScale=0.1;
-            tolx =  max(0.01,tolxScale*quantile(abs(cur_u),0.95)*quantile(abs(cur_u),0.2)*(forceMesh.numBasis)^(49/60)/E); % based on u to estimate
+%             bwstackImg=zeros(ceil(max(y)),ceil(max(x)));
+%             bwstackImg(min(forceMesh.p(:,2)):max(forceMesh.p(:,2)),min(forceMesh.p(:,1)):max(forceMesh.p(:,1)))=1;
+%             [insideIdx] = maskVectors(x,y,bwstackImg);
+%             cur_ux=ux(insideIdx);
+%             cur_uy=uy(insideIdx);
+%             cur_u = [cur_ux; cur_uy];
+%             cur_umag = (cur_u(:,1).^2+cur_u(:,1).^2).^0.5;
+%             tolxScale=1;
+%             tolxEstimate = tolxScale*quantile((cur_umag),0.95)*quantile((cur_umag),0.2)*(forceMesh.numBasis)^(49/60)/E; %empirical based on cur_u
+%             if tolxEstimate<1e-5 % this is when u is almost none. We have to be generous
+%                 tolx = 0.05;
+%             elseif tolxEstimate<1e-3
+%                 tolx = 0.03;
+%             else
+%                 tolx =  max(0.02,tolxEstimate); % based on u to estimate
+%             end
+            tolx = 0.012; % based on u to estimate
         end
         % plot the solution for the corner
         disp(['tolerance value: ' num2str(tolx)])
