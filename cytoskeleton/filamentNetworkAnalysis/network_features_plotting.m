@@ -30,7 +30,9 @@ if(figure_flag>0)
         [h,bin] = hist(output_feature.pixel_number_per_filament_pool,0:5:1000);
         h = h/length(output_feature.pixel_number_per_filament_pool);
         bar(bin,h);
-        axis([-10 150 0 0.3]);
+        ind_length_h = find(h>0);
+        length_max = min(2*bin(ind_length_h(end)), 1000);
+        axis([-1 length_max 0 max(h)*1.2]);
         
         title([im_name_title,' Pixels Number Distribution']);
         
@@ -45,11 +47,13 @@ if(figure_flag>0)
         
         h2 = figure(2); set(h2,'Visible',set_visible); hold off;
         
-        [h,bin] = hist(output_feature.length_per_filament_pool,0:20:1000);
+        [h,bin] = hist(output_feature.length_per_filament_pool,0:5:1000);
         h = h/length(output_feature.length_per_filament_pool);
         
         bar(bin,h);
-        axis([-10 310 0 0.3]);
+        ind_length_h = find(h>0);
+        length_max = min(2*bin(ind_length_h(end)), 1000);
+        axis([-1 length_max 0 max(h)*1.2]);
         
         title([im_name_title,' Length Distribution']);
         if(save_everything_flag>0)

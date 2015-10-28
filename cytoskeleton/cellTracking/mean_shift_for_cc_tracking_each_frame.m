@@ -91,6 +91,6 @@ mean_intensity_matrix = zeros(nFrame, clustering_nCell);
 VIF_intensity = zeros(nFrame, clustering_nCell);
 
 % title(sprintf('Mean-shift clustering result - %d clusters were found', numel(clusterInfo)));
-saveas(h2,[MD.outputDirectory_,'/CC_tracking/mean_shift_clustering_frame_',num2str(iFrame),'.tif']);
+saveas(h2,[MD.outputDirectory_,filesep,'CC_tracking',filesep,'mean_shift_clustering_frame_',num2str(iFrame),'.tif']);
 
 

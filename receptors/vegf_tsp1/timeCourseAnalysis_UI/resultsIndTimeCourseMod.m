@@ -38,6 +38,8 @@ function [caseResSummary] = resultsIndTimeCourseMod(ML, saveFile)
 %                                  frames of movie.
 %
 %Khuloud Jaqaman, March 2015
+%modified from resultsIndTimeCourse
+%Tae Kim, July 2015
 
 %% Input and pre-processing
 

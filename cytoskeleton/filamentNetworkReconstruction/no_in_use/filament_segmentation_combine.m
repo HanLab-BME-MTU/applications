@@ -73,7 +73,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -178,28 +178,28 @@ for iChannel = selected_channels
         mkdir(FilamentSegmentationChannelOutputDir);
     end
     
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
     
     if (~exist(HeatOutputDir,'dir'))
         mkdir(HeatOutputDir);
     end
     
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
     
     if (~exist(HeatEnhOutputDir,'dir'))
         mkdir(HeatEnhOutputDir);
     end
     
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
-     NMS_DataOutputDir = [NMS_FilamentSegmentationChannelOutputDir,'/DataOutput'];
-    ST_DataOutputDir = [ST_FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
+     NMS_DataOutputDir = [NMS_FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
+    ST_DataOutputDir = [ST_FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
     
     if (~exist(DataOutputDir,'dir'))
         mkdir(DataOutputDir);
     end
     
     
-    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,'/OrientImage'];
+    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'OrientImage'];
     
     if (~exist(OrientationOutputDir,'dir'))
         mkdir(OrientationOutputDir);
@@ -233,11 +233,11 @@ for iChannel = selected_channels
             if iFrame + sub_i-1 <= nFrame
         disp(['Frame: ',num2str(iFrame)]);
         
-        ST_results = load([ST_DataOutputDir,'/steerable_vote_', ...
+        ST_results = load([ST_DataOutputDir,filesep,'steerable_vote_', ...
             filename_short_strs{iFrame+ sub_i-1},'.mat'],...
             'currentImg','orienation_map_filtered','current_seg');
         
-        NMS_results = load([NMS_DataOutputDir,'/steerable_vote_', ...
+        NMS_results = load([NMS_DataOutputDir,filesep,'steerable_vote_', ...
             filename_short_strs{iFrame+ sub_i-1},'.mat'],...
             'current_seg','current_model');
         
@@ -283,7 +283,7 @@ for iChannel = selected_channels
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
                 imwrite(RGB_seg_orient_heat_map, ...
-                    [HeatEnhOutputDir,'/segment_heat_',...
+                    [HeatEnhOutputDir,filesep,'segment_heat_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
             end
         end
@@ -292,7 +292,7 @@ for iChannel = selected_channels
         %% Save segmentation results
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
-                save([DataOutputDir,'/steerable_vote_', ...
+                save([DataOutputDir,filesep,'steerable_vote_', ...
                     filename_short_strs{iFrame+ sub_i-1},'.mat'],...
                     'currentImg','orienation_map_filtered','current_seg',...
                     'current_model', 'RGB_seg_orient_heat_map');

@@ -49,21 +49,25 @@ outputDir = filePathML(1:end-1);
 %outputDir = uigetdir(filePathML, 'Select the directory to store the list analysis output');
 %% MovieData creation
 %User file selection for MD creation
-[fileName, filePath] = uigetfile('*.tif', 'Select Movies', 'MultiSelect', 'on');
+[fileName, filePath] = uigetfile({'*.tif','*.ome.tiff','*488.ome.tiff','*561.ome.tiff','*640.ome.tiff'}', 'Select Movies', 'MultiSelect', 'on');
 %User file selection
 if iscellstr(fileName)
     nMD = length(fileName);
     iMD = 1;
     for MCounter = nMD:-1:1
         printLength = fprintf('MD %g/%g\n', iMD, nMD);
-        name = fileName{MCounter}(1:end-4);
+        
+        name = strsplit(fileName{MCounter},'.');
+        name = name{1};
+        
         movies{MCounter} = [filePath name filesep name '.mat'];
         %create new MD if one doesn't exist already
         %use evalc to silence the output
         if exist(movies{MCounter}, 'file') == 0
             evalc('MD(MCounter) = MovieData([filePath fileName{MCounter}])');
             MD(MCounter).pixelSize_ = param.pixelSize_;
-            MD(MCounter).timeInterval_ = param.timeInterval_;
+%            MD(MCounter).timeInterval_ = param.timeInterval_; commented
+%            out on 9/2/15
             MD(MCounter).numAperture_ = param.numAperature_;
             evalc('MD(MCounter).sanityCheck;');
             MD(MCounter).channels_.emissionWavelength_ = emissionWL;
@@ -79,12 +83,16 @@ if iscellstr(fileName)
         iMD = iMD + 1;
     end
 else
-    name = fileName(1:end-4);
+% mkitti, 20150903
+%     name = fileName(1:end-4);
+    name = strsplit(fileName,'.');
+    name = name{1};
     movies = {[filePath name filesep name '.mat']};
 end
 %% MovieList creation part 2
 ML = MovieList(movies, outputDir, 'movieListFileName_', fileNameML, 'movieListPath_', filePathML(1:end-1), 'createTime_', clock());
-evalc('ML.sanityCheck();');
+%%% evalc('ML.sanityCheck();');
+ML.sanityCheck();
 %% Relative time zero selection
 %This is for timecourse analysis
 %Obtain relative time zero from user
@@ -93,6 +101,9 @@ evalc('ML.sanityCheck();');
 % or 'select' to bring up another dialogue box with list dialogue box later
 % or 'min' to use MD with earliest acquisition / observation time as time zero
 userInputStr = inputdlg('6 element time array -or- index number -or- ''select'' -or- ''no start''', 'Enter start time', 1, {'2015 7 2 14 44 18.9'});
+if(isempty(userInputStr))
+    return;
+end
 userInputNum = str2num(userInputStr{1}); %#ok<ST2NM>
 addTZ1 = true;
 %if time array
@@ -126,17 +137,20 @@ end
 %if index number
 if zeroSelect == 1
     %evalc('MD = MovieData.load(movies{userInputNum})');
-    relTimeZero = MD(userInputNum).acquisitionDate_;
+    relTimeZero = ML.movies_{userInputNum}.acquisitionDate_;
 end
 %if select
 if zeroSelect == 2
     userChoiceMD = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', fileName);
     %evalc('MD = MovieData.load(movies{userChoiceMD})');
-    relTimeZero = MD(userChoiceMD).acquisitionDate_;
+    relTimeZero = ML.movies_{userChoiceMD}.acquisitionDate_;
 end
 %% Relative time zero selection2
 %'same' means same as time above
 userInputStr2 = inputdlg('6 element time array -or- index number -or- ''select'' -or- ''no VEGF''', 'Enter VEGF addition time', 1, {'no VEGF'});
+if(isempty(userInputStr2))
+    return;
+end
 userInputNum2 = str2num(userInputStr2{1}); %#ok<ST2NM>
 addTZ2 = true;
 %if time array

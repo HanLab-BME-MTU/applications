@@ -100,7 +100,8 @@ LengthThreshold_movie = funParams.LengthThreshold;
 IternationNumber_movie = funParams.IternationNumber;
 CurvatureThreshold_movie = funParams.CurvatureThreshold;
 Cell_Mask_ind = Cell_Mask_ind_movie;
-
+Combine_Way = funParams.Combine_Way;
+   
 % if the package was run with old version with only one set of parameter
 % for all channels, make a copy of parameter to every channel
 if(length(funParams.StPace_Size)==1 && numel(movieData.channels_)>1)
@@ -170,8 +171,8 @@ for i = 1 : nProcesses
     end
 end
 
-if indexSteerabeleProcess==0 && Combine_Way~=2
-    msgbox('Please run steerable filtering first.')
+if indexSteerabeleProcess==0 && ~strcmp(Combine_Way{1},'int_only')
+   msgbox('Please run steerable filtering first.')
     return;
 end
 
@@ -227,6 +228,9 @@ if nargin >=3
     load(wholemovie_input_filename);
     funParams.Whole_movie_stat_cell = Whole_movie_stat_cell;
 else
+    
+    if ~strcmp(Combine_Way{1},'int_only')
+          
     % or, calculate it
     %% May 1st 2014, due to change in flattening precedure, this whole movie stat need rerun,
     % if there is already whole movie file and the user didn't ask for
@@ -266,7 +270,7 @@ else
     end
     
     funParams.Whole_movie_stat_cell = Whole_movie_stat_cell;
-    
+    end
 end
 
 %%
@@ -436,15 +440,17 @@ for iChannel = selected_channels
         % this line in commandation for shortest version of filename
         filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
         
-        try
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_short_strs{iFrame},'.mat']);
-        catch
-            % in the case of only having the short-old version
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_shortshort_strs{iFrame},'.mat']);
+        if ~strcmp(Combine_Way,'int_only')
+            
+            try
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_short_strs{iFrame},'.mat']);
+            catch
+                % in the case of only having the short-old version
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_shortshort_strs{iFrame},'.mat']);
+            end
         end
-        
         
         %%
         
@@ -508,13 +514,15 @@ for iChannel = selected_channels
         %
         %         median_nms = median(nms(:));
         %         quarter_nms = median(nms(find(nms>median_nms)));
-        
+         if ~strcmp(Combine_Way,'int_only')
+       
         open_nms = imopen(nms, ones(2,2));
         eroded_nms = nms-open_nms;
         
         %use the opened image;
         nms = eroded_nms;
-        
+         end
+         
         stophere=1;
         
         
@@ -741,7 +749,8 @@ for iChannel = selected_channels
         MaskCell=MaskCell>0;
         current_seg = current_seg.*MaskCell;
         
-        
+         if ~strcmp(Combine_Way,'int_only')
+       
         %%
         % A smoothing done only at the steerable filtering results, if only intensity only, then the same
         orienation_map_filtered = OrientationSmooth(orienation_map, SteerabelRes_Segment);
@@ -758,7 +767,11 @@ for iChannel = selected_channels
         if (~isempty(max(max(intensity_addon))>0))
             orienation_map_filtered(find(intensity_addon>0)) = OrientationVoted(find(intensity_addon>0));
         end
-        
+         else
+             orienation_map_filtered = ones(size(current_seg));
+             nms = zeros(size(current_seg));
+         end
+         
         if(~strcmp(Combine_Way,'geo_based'))
             % if the segmentation is not done with geo_based method, do
             % some geometry based checking on the results
@@ -884,8 +897,6 @@ for iChannel = selected_channels
             orienation_map_filtered(sub2ind(size(currentImg), VIF_YY,VIF_XX))=OO_flip;
         end
         
-        currentImg = double(currentImg);
-        currentImg = (currentImg-min(min(currentImg)))/(max(max(currentImg))-min(min(currentImg)))*255;
         currentImg = uint8(currentImg/1);
         Hue = (-orienation_map_filtered(:)+pi/2)/(pi)-0.2;
         Hue(find(Hue>=1)) = Hue(find(Hue>=1)) -1;
@@ -919,8 +930,6 @@ for iChannel = selected_channels
             end
         end
         
-        RGB_seg_orient_heat_map_white = RGB_seg_orient_heat_map;
-        
         enhanced_im_r = 255-currentImg;
         enhanced_im_g = 255-currentImg;
         enhanced_im_b = 255-currentImg;
@@ -929,14 +938,14 @@ for iChannel = selected_channels
         enhanced_im_g(find(current_seg>0))=255*G_seg_orient_heat_map(find(current_seg>0));
         enhanced_im_b(find(current_seg>0))=255*B_seg_orient_heat_map(find(current_seg>0));
         
-        RGB_seg_orient_heat_map_white(:,:,1 ) = enhanced_im_r;
-        RGB_seg_orient_heat_map_white(:,:,2 ) = enhanced_im_g;
-        RGB_seg_orient_heat_map_white(:,:,3 ) = enhanced_im_b;
+        RGB_seg_orient_heat_map(:,:,1 ) = enhanced_im_r;
+        RGB_seg_orient_heat_map(:,:,2 ) = enhanced_im_g;
+        RGB_seg_orient_heat_map(:,:,3 ) = enhanced_im_b;
         
         if(SaveFigures_movie==1)
             for sub_i = 1 : Sub_Sample_Num
                 if iFrame + sub_i-1 <= nFrame
-                    imwrite(RGB_seg_orient_heat_map_white, ...
+                    imwrite(RGB_seg_orient_heat_map, ...
                         [HeatEnhOutputDir,filesep,'white_segment_heat_',...
                         filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 end
