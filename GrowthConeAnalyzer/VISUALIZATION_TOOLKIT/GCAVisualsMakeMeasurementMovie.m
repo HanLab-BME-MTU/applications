@@ -52,10 +52,10 @@ defaults{4,1} = 'filoIntensityToVeil'; defaults{4,2} = [0.5,2];
 defaults{5,1} = 'filoLengthEmbedded';defaults{5,2} = [0,10];
 defaults{6,1} = 'filoLengthFullActinBundle';defaults{6,2} = [0,10];
 defaults{7,1} = 'filoLengthToVeil'; defaults{7,2} = [0,10];
-defaults{8,1} = 'filoMaxCurvature'; defaults{8,2} = [0,1.5]; 
+defaults{8,1} = 'filoMaxCurvature'; defaults{8,2} = [0,.5]; 
 defaults{9,1} = 'branchLength_2ndOrder'; defaults{9,2} =[0,10];
 defaults{10,1} = 'branchOrientation_2ndOrder' ; defaults{10,2} = [0,180]; 
-
+defaults{11,1} = 'validation' ; defaults{11,2} = [0,10]; 
 
 ip.addParameter('minMaxDefaults',defaults); % defaults for me are set below
 
