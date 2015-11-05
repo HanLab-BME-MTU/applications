@@ -35,8 +35,16 @@ if alignEvent
 
         %   perform spline filter for ampTotal
         nTime = length(d);
-        sd_spline= csaps(1:nTime,d,splineParam);
-        sd=ppval(sd_spline,1:nTime);
+        tRange = 1:nTime;
+        numNan = find(isnan(d),1,'last');
+        tRange(isnan(d)) = [];
+        d(isnan(d)) = [];
+        sd_spline= csaps(tRange,d,splineParam);
+        sd=ppval(sd_spline,tRange);
+%         d = [NaN(1,numNan) d];
+%         tRange = [NaN(1,numNan) tRange];
+        sd = [NaN(1,numNan) sd];
+%         sd(isnan(d)) = NaN;
         % Find the maximum
         [~,curFrameMaxAmp]=max(sd);
         frameMaxAmp(ii)=curFrameMaxAmp;
@@ -99,12 +107,12 @@ else
         d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
         if indivColor
             if strcmp(source,'edgeAdvanceDist')
-                subplot(1,3,1), plot(1:tracksNA(ii).lifeTime,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,3,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
-                subplot(1,3,3), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,3,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                subplot(1,3,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,3,3), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
             else
-                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
             end
         else
             if strcmp(source,'edgeAdvanceDist')
@@ -112,8 +120,8 @@ else
                 subplot(1,3,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
                 subplot(1,3,3), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence)),'Color',[10/255 220/255 64/255]), hold on
             else
-                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime,d,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d,'Color',[0.5 0.5 0.5]), hold on
+                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
             end
         end
     end
@@ -216,10 +224,11 @@ if strcmp(source,'edgeAdvanceDist')
 end
 
 if ~isempty(fileStore)
-    [pathStore]=fileparts(fileStore);
+    [pathStore,nameStore]=fileparts(fileStore);
     if ~exist(pathStore,'dir')
         mkdir(pathStore)
     end
     set(gcf,'PaperPositionMode','auto')
     print('-depsc2', '-r300', strcat(fileStore));
+    savefig(fullfile(pathStore,[nameStore '.fig']));
 end

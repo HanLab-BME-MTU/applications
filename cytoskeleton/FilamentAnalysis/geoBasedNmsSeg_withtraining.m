@@ -249,12 +249,12 @@ if(graph_matching_flag==1)
     [y,x]=find(current_all_seg_bw>0);
     plot(x,y,'.','MarkerSize',3);
     
-    if(~exist([FilamentSegmentationChannelOutputDir,'/GEO'],'dir'))
+    if(~exist([FilamentSegmentationChannelOutputDir,filesep,'GEO'],'dir'))
         mkdir(FilamentSegmentationChannelOutputDir,'GEO');
     end
     
     if(SaveFigures==1)        
-        saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round0_all_match_bw.tif']);
+        saveas(h3,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round0_all_match_bw.tif']);
     end
     
     confidency_interval = 0.7;
@@ -264,10 +264,10 @@ if(graph_matching_flag==1)
     = graph_matching_linking_once([], current_all_seg_bw, confidency_interval,imageInt, ...
                                 Good_ind,ind_long, [],feature_all,labelMask,master_flassier,iIteration,funParams);
     if(SaveFigures==1)
-        imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round1_begin.tif']);
-        imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round1_end.tif']);
-        h1=figure(1);set(h1,'Visible',set_visible);saveas(h1,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round1_match_color.tif']);
-        h3=figure(3);set(h3,'Visible',set_visible);saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round1_all_match_bw.tif']);
+        imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round1_begin.tif']);
+        imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round1_end.tif']);
+        h1=figure(1);set(h1,'Visible',set_visible);saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round1_match_color.tif']);
+        h3=figure(3);set(h3,'Visible',set_visible);saveas(h3,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round1_all_match_bw.tif']);
     end
 
     current_all_matching_bw = current_matching_bw>0;

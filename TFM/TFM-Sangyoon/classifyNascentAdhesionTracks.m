@@ -231,9 +231,15 @@ if ~isempty(importSelectedGroups) && importSelectedGroups
         idGroup9Selected = idGroups.idGroup9Selected;
         idGroupSelected={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
                                     idGroup7Selected,idGroup8Selected,idGroup9Selected};
-        curImportFilePathTracks = fullfile(PathName,'tracksNA.mat');
-        curTracksNA = load(curImportFilePathTracks,'tracksNA');
-        curTracksNA = curTracksNA.tracksNA;
+        try
+            curImportFilePathTracks = fullfile(PathName,'idsClassified.mat');
+            curTracksNA = load(curImportFilePathTracks,'tracksNA');
+            curTracksNA = curTracksNA.tracksNA;
+        catch
+            curImportFilePathTracks = fullfile(PathName,'idsClassified_org.mat');
+            curTracksNA = load(curImportFilePathTracks,'tracksNA');
+            curTracksNA = curTracksNA.tracksNA;
+        end            
         T=[T; extractFeatureNA(curTracksNA,idGroupSelected)];
         doneLoadingTrainedData = input('Done with importing existing trained data (1/0)?: ');
     end
@@ -274,6 +280,11 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         fh2.Color=[0 0 0];
         hold on
         colors = distinguishable_colors(9,'k');
+        % switching colors between group 6 and 9
+        tempColor = colors(6,:);
+        colors(6,:) = colors(9,:);
+        colors(9,:) = tempColor;
+        
         for pp=1:9
             htrackG{pp}=plot(pp,1,'o','Color',colors(pp,:));
         end
@@ -413,6 +424,7 @@ elseif strcmp(useDefinedClassifier,'y')
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix_otherClassifier.eps']);
     disp('The order is :')
     disp(order)
+    [~,allData] = extractFeatureNA(tracksNA);
 end
 
 allDataClass = predict(trainedClassifier,allData);
@@ -440,16 +452,16 @@ arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',c
 htrackG5=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(5,:)),tracksNA(idGroup5),'UniformOutput',false);
 arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(5,:)),tracksNA(idGroup5));
 htrackG6=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(6,:)),tracksNA(idGroup6),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(6,:)),tracksNA(idGroup6));
+arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(9,:)),tracksNA(idGroup6));
 htrackG7=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(7,:)),tracksNA(idGroup7),'UniformOutput',false);
 arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(7,:)),tracksNA(idGroup7));
 htrackG8=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(8,:)),tracksNA(idGroup8),'UniformOutput',false);
 arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(8,:)),tracksNA(idGroup8));
 htrackG9=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(9,:)),tracksNA(idGroup9),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(9,:)),tracksNA(idGroup9));
-legend([htrackG1{1} htrackG2{1} htrackG3{1} htrackG4{1} htrackG5{1} htrackG6{1} htrackG7{1} htrackG8{1} htrackG9{1}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
-    'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
-legend('boxoff')
+arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(6,:)),tracksNA(idGroup9));
+% legend([htrackG1{1} htrackG2{1} htrackG3{1} htrackG4{1} htrackG5{1} htrackG6{1} htrackG7{1} htrackG8{1} htrackG9{1}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
+%     'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
+% legend('boxoff')
 if strcmp(useDefinedClassifier,'n')
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
     save([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA')

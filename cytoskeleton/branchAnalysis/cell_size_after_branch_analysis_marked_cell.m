@@ -72,7 +72,7 @@ max_x = 1;
 for iFrame = CompletedFrame
     iCompleteFrame = iFrame - FirstFrame +1;
     
-    current_mask = imread([truthPath,'/mask_',num2str(iFrame),'.tif']);
+    current_mask = imread([truthPath,filesep,'mask_',num2str(iFrame),'.tif']);
     current_mask([ 1 end], :)=0;
     current_mask(:, [ 1 end])=0;
     current_mask = keep_largest_area(current_mask);
@@ -83,7 +83,7 @@ for iFrame = CompletedFrame
     max_y = max(max_y,max(indy));
     max_x = max(max_x,max(indx));
     
-%     load([ROOT_DIR,'/FilamentAnalysisPackage/FilamentSegmentation/Channel2/DataOutput/steerable_vote_',...
+%     load([ROOT_DIR,filesep,'FilamentAnalysisPackage/FilamentSegmentation/Channel2/DataOutput/steerable_vote_',...
 %         num2str(iFrame),'.mat'],'current_seg','orienation_map_filtered');
 %     
      current_seg_cell{1,iCompleteFrame} = [];
