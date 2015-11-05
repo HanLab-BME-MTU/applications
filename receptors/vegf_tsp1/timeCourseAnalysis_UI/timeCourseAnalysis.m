@@ -87,10 +87,17 @@ end
         nMD = numel(ML.movies_);
         for iMD = 1:nMD
             if isempty(ML.movies_{iMD}.getProcessIndex('MotionAnalysisProcess'))
-                error(['MovieData ' ML.movies_{iMD}.movieDataFileName_ '\n at ' ML.movies_{iMD}.movieDataPath_ '\n does not contain MotionAnalysisProcess']);
+                error('timeCourseAnalysis:MotionAnalysisProcessMissing', ...
+                    ['MovieData ' ML.movies_{iMD}.movieDataFileName_ ...
+                    '\n at ' ML.movies_{iMD}.movieDataPath_ ...
+                    '\n does not contain MotionAnalysisProcess']);
             end
-            if parameter.doPartition && isempty(ML.movies_{iMD}.getProcessIndex('PartitionAnalysisProcess'))
-                error(['MovieData ' ML.movies_{iMD}.movieDataFileName_ '\n at ' ML.movies_{iMD}.movieDataPath_ '\n does not contain PartitionAnalysisProcess']);
+            if parameter.doPartition ...
+                    && isempty(ML.movies_{iMD}.getProcessIndex('PartitionAnalysisProcess'))
+                error('timeCourseAnalysis:PartitionAnalysisProcessMissing', ... 
+                    ['MovieData ' ML.movies_{iMD}.movieDataFileName_ ...
+                    '\n at ' ML.movies_{iMD}.movieDataPath_ ...
+                    '\n does not contain PartitionAnalysisProcess']);
             end
         end
     end
@@ -232,7 +239,8 @@ end
 
 %% Shift time
 shiftTime = [];
-if isfield(analysisPara,'start2zeroUI') && analysisPara.start2zeroUI
+% if isfield(analysisPara,'start2zeroUI') && analysisPara.start2zeroUI
+if analysisPara.start2zero
     shiftTimeIndx = startTime~=0;
     offset = - mean(startTime(shiftTimeIndx));
     shiftTime = zeros(1, nCML);
