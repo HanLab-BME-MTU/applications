@@ -20,7 +20,13 @@ ip.CaseSensitive = false;
 % Check input 
 ip.addRequired('toPlot'); 
 ip.addParameter('interactive',false);
+defaultOut = pwd; 
+ip.addParameter('OutputDirectory',defaultOut); 
+
 ip.parse(toPlot,varargin{:}); 
+
+% 
+
 
 %
 varNames  = fieldnames(toPlot); 
@@ -126,6 +132,11 @@ saveas(gcf,'PercentVarianceExplained.png');
 
 %% 2D Plots 
 for iPC = 1:2; 
+    
+    cDir = ([ip.Results.OutputDirectory filesep 'PC' num2str(iPC) 'vs' 'PC' num2str(iPC+1) ] ) ; 
+    if ~isdir(cDir)
+        mkdir(cDir); 
+    end 
     %% Biplot  
        
     fsFigure(0.75)
@@ -133,9 +144,9 @@ for iPC = 1:2;
     xlabel({['PC' num2str(iPC)] ; ['Percent Variance Explained ' num2str(exp(iPC),3) '%']});
     ylabel({['PC' num2str(iPC+1)] ; ['Percent Variance Explained ' num2str(exp(iPC+1),3) '%']});
     
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '.fig']);
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '.eps'],'psc2');
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '.png']);
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '.fig']);
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '.eps'],'psc2');
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '.png']);
     
     %% Scores (Per Neurite) Overlay ColorCoded By Experimental Condition
     scaleFact1 = max(max(abs(scores(:,iPC:iPC+1)))) ;
@@ -147,9 +158,9 @@ for iPC = 1:2;
         (scores(grouping==x,iPC+1)./scaleFact1).*maxCoefLen,50,toPlot.info.color{x},'filled'),1:nGroups);
     
     grid('off')
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByGroup.fig' '.fig']);
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByGroup.eps'],'psc2');
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByGroup.png']);
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByGroup.fig']);
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByGroup.eps'],'psc2');
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByGroup.png']);
     
     %% 
 %     % Plot Events Selected
@@ -180,33 +191,38 @@ for iPC = 1:2;
     xlabel({['PC' num2str(iPC)] ; ['Percent Variance Explained ' num2str(exp(iPC),3) '%']});
     ylabel({['PC' num2str(iPC+1)] ; ['Percent Variance Explained ' num2str(exp(iPC+1),3) '%']});
     
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10Min.fig']);
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10Min.eps'],'psc2');
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10Min.png']);
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10Min.fig']);
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10Min.eps'],'psc2');
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10Min.png']);
     
     hold on
     obsNames =  cellfun(@(x) strrep(x,'_',' '),obsNames,'uniformoutput',0);
     
     arrayfun(@(x) text((scores(x,iPC)./scaleFact1).*maxCoefLen,(scores(x,iPC+1)./scaleFact1).*maxCoefLen,obsNames{x}),1:length(scores(:,1)));
     
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10MinWithText.fig']);
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10MinWithText.eps'],'psc2');
-    saveas(gcf,['PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10MinWithText.png']);
-        
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10MinWithText.fig']);
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10MinWithText.eps'],'psc2');
+    saveas(gcf,[cDir filesep 'PCABiPlotPC' num2str(iPC) 'vs' num2str(iPC+1) '_ScoresByNetOutgrowth10MinWithText.png']);
+        close gcf
 end % for iPC
 
 %% 3D data plots 
     %% Biplot 
     fsFigure(0.75)
     biplot(coef(:,1:3),'varlabels',varNamesString);
-    xlabel({'PC1' ; ['Percent Variance Explained ' num2str(exp(1),3) '%']});
-    ylabel({'PC2' ; ['Percent Variance Explained ' num2str(exp(2),3) '%']});
-    zlabel({'PC3' ; ['Percent Variance Explained ' num2str(exp(3),3) '%']});
+    xlabel({'PC1' ; [ 'Percent Variance Explained ' num2str(exp(1),3) '%']});
+    ylabel({'PC2' ; [ 'Percent Variance Explained ' num2str(exp(2),3) '%']});
+    zlabel({'PC3' ; [ 'Percent Variance Explained ' num2str(exp(3),3) '%']});
+    
 
-    saveas(gcf,'PCABiPlotFirst3PCs.fig');
-    saveas(gcf,'PCABiPlotFirst3PCs.eps','psc2');
-
+    saveas(gcf,[ip.Results.OutputDirectory filesep 'PCABiPlotFirst3PCs.fig']);
+    saveas(gcf,[ip.Results.OutputDirectory filesep 'PCABiPlotFirst3PCs.eps'],'psc2');
+    saveas(gcf,[ip.Results.OutputDirectory filesep 'PCABiPlotFirst3PCs.eps'],'png');
+    
+    fsFigure(0.75)
     %% Color by Group Condition
+    
+    biplot(coef(:,1:3));
     scaleFact1 = max(max(abs(scores(:,1:3)))) ;
     coefs = coef(:,1:3);
     maxCoefLen = sqrt(max(sum(coefs.^2,2)));
@@ -222,8 +238,9 @@ end % for iPC
 
 
     view(45,45);
-    saveas(gcf,'PCABiPlotFirst3PCs.fig');
-    saveas(gcf,'PCABiPlotFirst3PCs.eps','psc2');
+    saveas(gcf,[ip.Results.OutputDirectory  filesep 'PCABiPlotFirst3PCs_scatter.fig']);
+    saveas(gcf,[ip.Results.OutputDirectory filesep 'PCABiPlotFirst3PCs_scatter.eps'],'psc2');
+    saveas(gcf,[ip.Results.OutputDirectory filesep 'PCABiPlotFirst3PCs_scatter.png']);
     close gcf
 
 %% Discrimination Metrics 
@@ -235,7 +252,7 @@ forCell  = num2cell([DB' Dunn']);
 values = [names forCell]; 
 % cell2dataset(values); 
 discrimValues =cell2table(values); 
-save('Table_Dunn_DB','discrimValues'); 
+save([ip.Results.OutputDirectory filesep 'Table_Dunn_DB'],'discrimValues'); 
 
 % By PCA 
 
@@ -245,7 +262,7 @@ forCellPCA  = num2cell([DBPCA' DunnPCA']);
 valuesPCA = [names forCellPCA]; 
 % cell2dataset(values); 
 discrimValuesPCA =cell2table(valuesPCA); 
-save('Table_Dunn_DB_PCA','discrimValuesPCA','scoresPC'); 
+save([ip.Results.OutputDirectory filesep 'Table_Dunn_DB_PCA'],'discrimValuesPCA','scoresPC'); 
 
 
 
