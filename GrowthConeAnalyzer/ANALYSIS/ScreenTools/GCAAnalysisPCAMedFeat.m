@@ -66,8 +66,8 @@ fsFigure(0.75,'visible','off');
 test = -2:2; 
 imagesc(test);
 outgrowth = gcaCollectOutgrowthDeltasPerGroup(toPlot);
-outgrowth = outgrowth./10 ; % um per min 
 outgrowth = vertcat(outgrowth{:});
+outgrowth = outgrowth./10; 
 cmap = brewermap(128,'RdBu');
 cmap = flip(cmap,1);
 % get the average velocity values for all the windows in the current frame
