@@ -57,10 +57,22 @@ movieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [
 outputDirDetect=[MD.outputDirectory_ filesep p.subDirectory filesep p.type];
 mkdir(outputDirDetect);
 mkdir([outputDirDetect filesep 'mask']);
+
+% find mask offset (WARNING works only for cubic mask)
+[maskMinX,maskMinY,maskMinZ]=ind2sub(size(p.mask), find(p.mask,1));
+[maskMaxX,maskMaxY,maskMaxZ]=ind2sub(size(p.mask), find(p.mask,1,'last'));
+
 parfor frameIdx=1:numel(processFrames)
     timePoint=processFrames(frameIdx);
     disp(['Processing time point ' num2str(timePoint,'%04.f')])
     vol=double(MD.getChannel(p.channel).loadStack(timePoint));
+    volSize=size(vol);
+    lab=[];
+    if(~isempty(p.mask))
+        tmp=nan(1+[maskMaxX,maskMaxY,maskMaxZ]-[maskMinX,maskMinY,maskMinZ]);
+        tmp(:)=vol(p.mask>0);
+        vol=tmp;
+    end
     switch p.type
       case 'watershedApplegate'
           filterVol=filterGauss3D(vol,p.highFreq)-filterGauss3D(vol,p.lowFreq);
@@ -75,63 +87,75 @@ parfor frameIdx=1:numel(processFrames)
         movieInfo(frameIdx)=labelToMovieInfo(label,filterVol);
       case 'watershedMatlab'
         label=watershed(-vol); label(vol<p.waterThresh)=0;[dummy,nFeats]=bwlabeln(label);
-        labels{frameIdx}=label;
+       lab=label;
         movieInfo(frameIdx)=labelToMovieInfo(label,vol);
       case 'markedWatershed'
         [labels{frameIdx}]=markedWatershed(vol,scales,p.waterThresh);
         movieInfo(frameIdx)=labelToMovieInfo(labels{frameIdx},vol);
       case {'pointSource','pointSourceAutoSigma'}
-        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mask',p.mask,varargin{:});
-        labels{frameIdx}=double(mask); % adjust labellabel
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
+       lab=double(mask); % adjust labellabel
         movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol);
       case {'pointSourceLM','pointSourceAutoSigmaLM'}
-        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mask',p.mask,varargin{:});
-        labels{frameIdx}=double(mask); % adjust label
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
+       lab=double(mask); % adjust label
         movieInfo(frameIdx)=pointCloudToMovieInfo(imgLM,vol);  
       case 'pSAutoSigmaMarkedWatershed'
-        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mask',p.mask,varargin{:});
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         wat=markedWatershed(vol,scales,0);wat(mask==0)=0;       
-        labels{frameIdx}=double(wat); % adjust label
+       lab=double(wat); % adjust label
         movieInfo(frameIdx)=labelToMovieInfo(double(wat),vol);
       case 'pSAutoSigmaWatershed'
-        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mask',p.mask,varargin{:});
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         wat=watershed(-vol.*mask);wat(mask==0)=0;
-        labels{frameIdx}=double(wat); % adjust label
+       lab=double(wat); % adjust label
         movieInfo(frameIdx)=labelToMovieInfo(double(wat),vol);
       case {'pointSourceFit','pointSourceAutoSigmaFit'}
-        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mask',p.mask,varargin{:});
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
-          labels{frameIdx}=double(mask);
+        lab=double(mask);%.*imgLoG;
         %labels{frameIdx}=double(mask); % adjust label
       case {'pointSourceAutoSigmaMixture'}
-        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mask',p.mask,'FitMixtures', true, varargin{:});
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'FitMixtures', true, varargin{:});
         movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
-        labels{frameIdx}=double(mask); % adjust label
+       lab=double(mask); % adjust label
       case {'pointSourceAutoSigmaFitSig'}
-        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mask',p.mask,'Mode','xyzAcsr',varargin{:});
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mode','xyzAcsr',varargin{:});
         movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
-        labels{frameIdx}=double(mask); % adjust label
+       lab=double(mask); % adjust label
       otherwise 
         disp('Unsupported detection method.');
         disp('Supported method:');
         disp('\twatershed');
     end
     
+    if(~isempty(p.mask))
+        tmplab=zeros(volSize);
+        tmplab(p.mask>0)=lab;
+        lab=tmplab; 
+        movieInfo(frameIdx).xCoord(:,1)=movieInfo(frameIdx).xCoord(:,1)+maskMinY-1;
+        movieInfo(frameIdx).yCoord(:,1)=movieInfo(frameIdx).yCoord(:,1)+maskMinX-1;
+        movieInfo(frameIdx).zCoord(:,1)=movieInfo(frameIdx).zCoord(:,1)+maskMinZ-1;
+    end
+    
     if p.showAll
         figure()
+        vol=double(MD.getChannel(p.channel).loadStack(timePoint));
         imseriesmaskshow(vol,logical(labels{frameIdx}));
 %         figure()
 %         stackShow(vol,'overlay',labels{frameIdx});
     end
     if(p.printAll)
-        stackWrite(labels{frameIdx},[outputDirDetect filesep 'mask' filesep 'detect_T_' num2str(frameIdx,'%05d') '.tif']);
+        stackWrite(uint8(255*lab/max(lab(:))),[outputDirDetect filesep 'mask' filesep 'detect_T_' num2str(timePoint,'%05d') '.tif']);
     end
+    %labels{frameIdx}=lab;
     
 end 
 
 if(p.printAll)
  mkdir([outputDirDetect filesep 'amiraVertex']);
  amiraWriteMovieInfo([outputDirDetect filesep 'amiraVertex' filesep 'detect.am'],movieInfo,'scales',[MD.pixelSize_ MD.pixelSize_ MD.pixelSizeZ_]);
+ save([outputDirDetect filesep 'detection.mat'],'movieInfo');
 end
 
 function movieInfo= labelToMovieInfo(label,vol)
