@@ -1,9 +1,26 @@
 function [Pr,jumpIdx,displacements]=registerTranslation3D(MD,varargin)
+% Example of use with specified jumpIdx (whole stack here), and
+% registration of the detection point stored in a movieInfo structure:
+% =====
+% [process,jumpIdx,displacements]=registerTranslation3D(MD,'channel',1,'jumpIdx',1:(MD.nFrames_-1));
+% parfor i=1:MD.nFrames_
+%     jIdx=find((jumpIdx<i));
+%     for j=jIdx
+%         movieInfo(i).xCoord(:,1)=movieInfo(i).xCoord(:,1)+displacements{j}.T(4,1);
+%         movieInfo(i).yCoord(:,1)=movieInfo(i).yCoord(:,1)+displacements{j}.T(4,2);
+%         movieInfo(i).zCoord(:,1)=movieInfo(i).zCoord(:,1)+displacements{j}.T(4,3);
+%     end
+% end
+% save([outputDirDetect filesep 'detectionReg.mat'],'movieInfo');
+% ======
+% P. Roudot 2015
+
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched=true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParamValue('channel',1,@isnumeric);
+ip.addParamValue('jumpIdx',[],@isnumeric);
 ip.addParamValue('computeImageDistance',true, @islogical);
 ip.addParamValue('computeShift',true, @islogical);
 ip.addParamValue('warp', true, @islogical);
@@ -27,17 +44,17 @@ Pr.setDateTime();
 channelIdx=ip.Results.channel;
 frameNb=MD.nFrames_;
 dist=NaN(1,frameNb);
-jumpIdx=0;
-if(ip.Results.computeImageDistance)
+jumpIdx=[];
+if( (~isempty(ip.Results.jumpIdx))||(ip.Results.computeImageDistance))
     parfor i=1:(frameNb-1)
         disp(['Processing frame ' int2str(i)]);
         voli=MD.getChannel(channelIdx).loadStack(i);
         volip1=MD.getChannel(channelIdx).loadStack(i+1);
         dist(i)=norm(double(volip1(:) - voli(:)));
-    end 
+    end
     thresh=nanmedian(dist)+3*1.4826*mad(dist,1);
     jumpIdx=find(dist>thresh)
-
+    
     if(ip.Results.show)
         plot(dist,'color','r');
         hline(thresh);
