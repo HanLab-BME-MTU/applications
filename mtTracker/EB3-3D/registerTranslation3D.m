@@ -45,7 +45,7 @@ channelIdx=ip.Results.channel;
 frameNb=MD.nFrames_;
 dist=NaN(1,frameNb);
 jumpIdx=ip.Results.jumpIdx;
-if( (~isempty(jumpIdx))||(ip.Results.computeImageDistance))
+if( (isempty(jumpIdx))||(ip.Results.computeImageDistance))
     parfor i=1:(frameNb-1)
         disp(['Processing frame ' int2str(i)]);
         voli=MD.getChannel(channelIdx).loadStack(i);
@@ -63,6 +63,7 @@ end
 
 %% register image jumpIdx with jumpIdx+1
 if(ip.Results.computeShift)
+    disp('Computing shift');
     displacements=cell(1,length(jumpIdx));
     parfor i=1:length(jumpIdx)
         idx=jumpIdx(i)
