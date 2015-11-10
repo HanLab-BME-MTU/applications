@@ -79,15 +79,19 @@ end
 %% Register 
  if(ip.Results.warp)
      load([outputDir filesep 'driftParameter.mat']);
-     fileDir=[outputDir filesep 'registeredVol' filesep ip.Results.warpMode];mkdir(fileDir);
-     parfor i=1:MD.nFrames_
-         jIdx=find((jumpIdx<i));
-         vol=MD.getChannel(1).loadStack(i);
-         for j=jIdx
-             vol=imwarp(vol,displacements{j},ip.Results.warpMode,'OutputView',imref3d(size(vol)));
+     channelList=[];     
+     for ch=1:length(MD.channels_)
+         fileDir=[outputDir filesep 'registeredVol' filesep ip.Results.warpMode filesep 'ch' num2str(ch)];mkdir(fileDir);
+         parfor i=1:MD.nFrames_
+             jIdx=find((jumpIdx<i));
+             vol=MD.getChannel(ch).loadStack(i);
+             for j=jIdx
+                 vol=imwarp(vol,displacements{j},ip.Results.warpMode,'OutputView',imref3d(size(vol)));
+             end
+             stackWrite(vol,[fileDir filesep 'registered-frame-'  num2str(i,'%04d') '.tif'])
+             channelList=[channelList Channel([fileDir filesep])];              
          end
-         stackWrite(vol,[fileDir filesep 'registered-frame-'  num2str(i,'%04d') '.tif'])
      end
-     MD1=MovieData(Channel([fileDir filesep]),[outputDir filesep 'xp/'],'movieDataPath_' , outputDir, 'movieDataFileName_', 'movieData.mat')
+     MD1=MovieData(channelList,[outputDir filesep 'analysis/'],'movieDataPath_' , outputDir, 'movieDataFileName_', 'movieData.mat');
      MD1.sanityCheck();
  end
