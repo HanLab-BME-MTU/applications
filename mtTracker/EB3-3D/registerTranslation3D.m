@@ -44,8 +44,8 @@ Pr.setDateTime();
 channelIdx=ip.Results.channel;
 frameNb=MD.nFrames_;
 dist=NaN(1,frameNb);
-jumpIdx=[];
-if( (~isempty(ip.Results.jumpIdx))||(ip.Results.computeImageDistance))
+jumpIdx=ip.Results.jumpIdx;
+if( (~isempty(jumpIdx))||(ip.Results.computeImageDistance))
     parfor i=1:(frameNb-1)
         disp(['Processing frame ' int2str(i)]);
         voli=MD.getChannel(channelIdx).loadStack(i);
