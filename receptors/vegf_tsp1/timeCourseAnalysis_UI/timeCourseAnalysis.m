@@ -54,7 +54,7 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('outputDir', @ischar);
 ip.addParameter('smoothingPara', .01, @(x) isnumeric(x) && x>=0 && x<=1);
-ip.addParameter('channels', 1, @isnumeric);
+ip.addParameter('channels', [], @isnumeric);
 ip.addParameter('doPartitionAnalysis', false, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('doNewAnalysis', true, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
@@ -270,7 +270,11 @@ if analysisPara.start2zero
 end
 
 %% Plot by Calling StandAlone Function
-timeCourseAnalysis_StandAlone(summary, outputDir, 'smoothingPara', smoothingPara, 'showPartitionAnalysis', analysisPara.doPartition, 'shiftTime', shiftTime);
+timeCourseAnalysis_StandAlone(summary, outputDir, ...
+    'smoothingPara', smoothingPara, ...
+    'showPartitionAnalysis', analysisPara.doPartition, ...
+    'shiftTime', shiftTime, ...
+    'shiftPlotPositive', analysisPara.shiftPlotPositive);
 %% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
 end

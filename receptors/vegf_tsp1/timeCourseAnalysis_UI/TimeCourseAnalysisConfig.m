@@ -22,7 +22,7 @@ function varargout = TimeCourseAnalysisConfig(varargin)
 
 % Edit the above text to modify the response to help TimeCourseAnalysisConfig
 
-% Last Modified by GUIDE v2.5 12-Nov-2015 14:18:58
+% Last Modified by GUIDE v2.5 12-Nov-2015 16:02:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -163,6 +163,7 @@ function okButton_Callback(hObject, eventdata, handles)
 handles.p.doNewAnalysis = get(handles.doNewAnalysis,'Value');
 handles.p.partitioningAnalysis = get(handles.partitioningAnalysis,'Value');
 handles.p.start2zero = get(handles.start2zero,'Value');
+handles.p.shiftPlotPositive = get(handles.shiftPlotPositive,'Value');
 handles.p.channelTable = get(handles.channelTable,'Data');
 guidata(handles.figure1, handles);
 uiresume(handles.figure1);
@@ -173,3 +174,12 @@ uiresume(handles.figure1);
 % pause(1);
 % %calls the function that does the timeCourseAnalysis
 % timeCourseAnalysis(CML_FullPath, outputDir, 'doNewAnalysis', p.doNewAnalysis, 'doPartitionAnalysis', p.partitioningAnalysis, 'start2zero', p.start2zero, 'channelNames', p.channelTable{:,1});
+
+
+% --- Executes on button press in shiftPlotPositive.
+function shiftPlotPositive_Callback(hObject, eventdata, handles)
+% hObject    handle to shiftPlotPositive (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of shiftPlotPositive
