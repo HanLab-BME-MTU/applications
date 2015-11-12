@@ -40,6 +40,7 @@ classdef TimeCourseAnalysisProcess < Process
             %obj.name_ = getName();
             obj = obj@Process(owner, TimeCourseAnalysisProcess.getName());
             obj.summary_ = [];
+            obj.funName_ = @(varargin) true;
         end
     end
     %% Get Set

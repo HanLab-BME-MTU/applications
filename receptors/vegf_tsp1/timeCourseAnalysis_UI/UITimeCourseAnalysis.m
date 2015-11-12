@@ -37,6 +37,7 @@ end
 %the function will call actual timeCourseAnalysis
 parameterCheckGUI(outputDir, CML_FullPath, doNewAnalysis);
 end
+
 %% Parameter Checkbox GUI
 function parameterCheckGUI(outputDir, CML_FullPath, doNewAnalysis)
 % Create figure
