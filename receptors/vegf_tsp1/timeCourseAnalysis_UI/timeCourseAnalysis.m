@@ -29,6 +29,7 @@ function [] = timeCourseAnalysis(CMLs, outputDir, varargin)
 %       'start2zero'            : (logical) sets the average start time to
 %                                 be zero, even if the align event is not
 %                                 'start'
+%       'channelNames'          : (cellstr) cell array of channel names
 %
 %Tae H Kim, July 2015
 
@@ -53,21 +54,23 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('outputDir', @ischar);
 ip.addParameter('smoothingPara', .01, @(x) isnumeric(x) && x>=0 && x<=1);
-ip.addParameter('channel', 1, @isnumeric);
+ip.addParameter('channels', 1, @isnumeric);
 ip.addParameter('doPartitionAnalysis', false, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('doNewAnalysis', true, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('start2zero', false, @(x) islogical(x)||isnumeric(x));
+ip.addParameter('channelNames', false, @(x) iscellstr(x));
 ip.parse(outputDir, varargin{:});
 %for easier access to ip.Result variables
 smoothingPara = ip.Results.smoothingPara;
 analysisPara.smoothingPara = smoothingPara;
 analysisPara.shiftPlotPositive = ip.Results.shiftPlotPositive;
 analysisPara.start2zero = ip.Results.start2zero;
-channel = round(ip.Results.channel);
+channels = round(ip.Results.channels);
 doNewAnalysis = ip.Results.doNewAnalysis;
 %used for Extra Analysis
 analysisPara.doPartition = ip.Results.doPartitionAnalysis;
+analysisPara.channelNames = ip.Results.channelNames;
 %checks if CMLs are loaded or not
 %AND determines how many ML there are total
 nMLTot = 0;
@@ -139,7 +142,7 @@ startTime = [startTime{:}];
             ML.processes_{TCAPIndx}.setSummary(MLSummary);
             ML.save;
         elseif doNewAnalysis
-            MLSummary = resultsIndTimeCourseMod(ML, false);
+            MLSummary = resultsIndTimeCourseMod(ML, false,channels);
             ML.processes_{TCAPIndx}.setSummary(MLSummary);
             ML.save;
         else
@@ -199,13 +202,30 @@ startTime = [startTime{:}];
         %}
     end
 %% Format Change
+% Break summary apart by channel
+summary = cellfun(@(s) num2cell(s,1),summary,'UniformOutput',false);
+% Should a nCML x nChannel cell array
+% Made an assumption that all that CMLs have the same channel length here
+summary = vertcat(summary{:});
 %Using resultsCombTimeCourseMod.m to store data in correct format
 summary = cellfun(@resultsCombTimeCourseMod, summary, 'UniformOutput', false);
 %adds time and name (because that's not in resultsCombTimeCourseMod.m)
 for iCML = 1:nCML
-    summary{iCML}.time = time{iCML};
-    summary{iCML}.name = CMLs(iCML).name_;
+    if(isempty(channels))
+        channels = 1:size(summary,2);
+    end
+    for iChannel = channels;
+        summary{iCML,iChannel}.time = time{iCML};
+        % mkitti: todo, MAKE DEPEND ON CHANNEL
+%         summary{iCML}.name = CMLs(iCML).name_;
+%         summary{iCML,iChannel}.name = ['Channel ' num2str(iChannel)];
+        summary{iCML,iChannel}.name = analysisPara.channelNames{iChannel};
+    end
 end
+% HACK, FIX
+% essentially let the rest of the analysis use linear indexing to access
+% summary
+nCML = numel(summary);
 %adds extra analysis if applicable
 if analysisPara.doPartition
     for iCML = 1:nCML
