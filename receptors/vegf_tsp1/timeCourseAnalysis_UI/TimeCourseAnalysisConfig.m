@@ -94,6 +94,8 @@ if(nargin < 6 || isempty(varargin{3}))
         S = load(S.ML.movieDataFile_{1});
         c = S.MD.channels_;
         data(:,3:4) = [{c.name_}' {c.emissionWavelength_}'];
+        data(:,2) = strcat({'Channel '},cellstr(num2str((1:size(data,1))')));
+        data(:,1) = num2cell(true(size(data,1),1));
         set(handles.channelTable,'data',data);
     catch
         disp('Could not obtain channel data');
@@ -122,9 +124,15 @@ function varargout = TimeCourseAnalysisConfig_OutputFcn(hObject, eventdata, hand
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.p;
-close(handles.figure1);
-pause(1);
+if(isstruct(handles))
+    varargout{1} = handles.p;
+    close(handles.figure1);
+    pause(1);
+else
+    % Canceled
+    warning('TimeCourseAnalysisConfig canceled');
+    varargout{1} = [];
+end
 
 
 % --- Executes on button press in start2zero.

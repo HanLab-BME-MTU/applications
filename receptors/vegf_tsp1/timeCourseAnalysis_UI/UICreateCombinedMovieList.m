@@ -12,8 +12,9 @@ function [] = UICreateCombinedMovieList()
 %prompt user to determine where to save CML
 [CML_FileName, CML_FilePath] = uiputfile('*.mat', 'Find a place to save your combined movie list');
 %prompt user to enter the name
-nameCML = inputdlg('Enter a name or the experimental conditions of combined movie list', 'Enter a name', 1, {'no VEGF'});
-nameCML = nameCML{1};
+% nameCML is obsolete because each channel may be a different condition
+% nameCML = inputdlg('Enter a name or the experimental conditions of combined movie list', 'Enter a name', 1, {'no VEGF'});
+% nameCML = nameCML{1};
 %prompts user to select ML files until the user presses cancel
 ML_FullPath = {};
 [fileName, filePath] = uigetfile('*.mat', 'Select MovieLists', 'MultiSelect', 'on');
@@ -52,7 +53,7 @@ end
 assert(~any(arrayfun(@(x) isempty(x.ML.getProcessIndex('TimePoints')), MLs)), 'Not all Movie Lists contain TimePoints process. Makes sure MovieLists have timePoints process.');
 
 %% Create CombinedMovieList object and save
-CML = CombinedMovieList(ML_FullPath, CML_FilePath(1:end-1), 'name', nameCML);
+CML = CombinedMovieList(ML_FullPath, CML_FilePath(1:end-1));
 CML.fileName_ = CML_FileName;
 CML.filePath_ = CML_FilePath;
 CML.analysisPara_ = CML_analysisPara;
