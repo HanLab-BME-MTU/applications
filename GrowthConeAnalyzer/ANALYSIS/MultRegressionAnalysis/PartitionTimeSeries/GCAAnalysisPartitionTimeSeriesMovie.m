@@ -5,13 +5,13 @@ function [ output_args ] = GCAAnalysisPartitionTimeSeriesMovie(MD)
 % make a nice outgrowth overlay (require fixing of the spy function )
 % collect local params. 
 
-outgrowthFile = [MD.outputDirectory_ filesep 'PARAMETER_EXTRACTION' ... 
+outgrowthFile = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' ... 
         filesep 'GlobalFunctional' filesep 'neurite_outgrowth_measurements'... 
         filesep 'neuriteLengthOutput.mat'];
 % load the neurite Length info 
 if exist(outgrowthFile)~= 0 ;
     load(outgrowthFile); 
-    outDir = [MD.outputDirectory_ filesep 'PARAMETER_EXTRACTION' filesep ... 
+    outDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' filesep ... 
         'Partition_Outgrowth_Trajectory']; 
     if ~isdir(outDir); 
         mkdir(outDir); 
@@ -26,32 +26,35 @@ if exist(outgrowthFile)~= 0 ;
    %  grouping = globalParams.grouping;
   
   %% for now just searchFiles  
- parameterDir = [MD.outputDirectory_ filesep 'PARAMETER_EXTRACTION_20150305' ]; 
+ parameterDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' ]; 
  % for now just search files - redesign so that the parameters in the
  % future are more cleverly named 
  
  % search all descriptor parameters. 
- localParamFiles = searchFiles('param_',[],[parameterDir filesep 'Descriptor'],1); 
+ localParamFiles = searchFiles('meas_',[],[parameterDir filesep 'Descriptor'],1); 
   
- paramNames = cellfun(@(x) strrep(x,'param_',''),localParamFiles(:,1),'uniformoutput',0); 
+ paramNames = cellfun(@(x) strrep(x,'meas_',''),localParamFiles(:,1),'uniformoutput',0); 
  paramNames = cellfun(@(x) strrep(x,'.mat',''),paramNames,'uniformoutput',0); 
  
  % for now just create a structure 
  for iParam = 1:size(localParamFiles,1)
      load([localParamFiles{iParam,2} filesep localParamFiles{iParam,1}]); 
-     paramCR = reformatDataCell(paramC); 
-     localParams.(paramNames{iParam}) = paramCR;   
+     measCR = reformatDataCell(measC); 
+     localParams.(paramNames{iParam}) = measCR;   
  end 
  
  
   
   %% Group all non-marco parameters based on outgrowth and get the predictor and response values  
-   [localParms,predictors,responses] = GCAAnalysisPartitionTimeSeries(localParams,globalParams); % 
+   [localParams,predictors,responses] = GCAAnalysisPartitionTimeSeries(localParams,globalParams); % 
    save([outDir filesep 'localParams.mat'],'localParams'); 
   %% Group all marco veil params (persTime of local veil protrusion and velocity veil prot)  
   
+ 
+      
+  
   % load marcos analysis where he identifies viable protrusion/retraction events; 
-   load([MD.outputDirectory_ filesep 'EdgeVelocityQuantification' filesep 'EdgeMotion.mat']); 
+%    load([MD.outputDirectory_ filesep 'EdgeVelocityQuantification' filesep 'EdgeMotion.mat']); 
   
   
    
@@ -61,18 +64,20 @@ if exist(outgrowthFile)~= 0 ;
    % veil params intrinsically not measured per frame but the event may span 
    % several frames choose only events that are completed within the given 
    % window. 
-   [localParamsVeil,predictorsVeil] = GCAAnalysisPartitionVeilParamsByOutgrowth(analysisResults,globalParams); 
+%    [localParamsVeil,predictorsVeil] = GCAAnalysisPartitionVeilParamsByOutgrowth(analysisResults,globalParams); 
    
     
    
    % Create the dataset array of predictors and responses (response will be
    % the last 
    
-   paramNamesVeil = fieldnames(localParamsVeil); 
-   forMultReg = [predictors predictorsVeil responses];
+%    paramNamesVeil = fieldnames(localParamsVeil); 
+%    forMultReg = [predictors predictorsVeil responses];
+   forMultReg = [predictors responses]; 
    forMultRegCell = num2cell(forMultReg); 
    responseName = {'Neurite_Velocity'}; 
-   paramNamesAll = [paramNames' paramNamesVeil' responseName];
+   paramNamesAll = [paramNames' responseName]; 
+   %paramNamesAll = [paramNames' paramNamesVeil' responseName];
    forMultRegCell = [paramNamesAll;forMultRegCell]; 
    
    

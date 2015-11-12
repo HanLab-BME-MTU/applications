@@ -91,13 +91,34 @@ if writePredMat == true;
 end
 
 %% Cluster
-groupingF = grouping(1:end-1);
+
 for iParam = 1:numel(params)
+    groupingF = grouping(1:end-1); 
     values = localParams.(params{iParam}); % remember each set is of the form rxc
     % such that r is the number of obs in a given frame
     numGroups = max(unique(grouping));
     % matrices of values for each distribution maintaining frame info per
     % column 
+    
+    % test to make sure the grouping var and the descriptor per frame match
+    % (they should always but I was sloppy with the number of frames I
+    % used)
+    if size(values,2) > length(groupingF) % measured an extra frame at the end
+        % trunc values
+        values = values(:,1:length(groupingF));
+        display(['Number frames calculated for ' params{iParam} 'is larger than the '...
+            'neurite length calculation!: Assuming Truncation at End of Movie']);
+    elseif size(values,2) < length(groupingF) 
+        % trunc the grouping var
+         groupingF = groupingF(1:size(values,2));
+        
+      
+        display(['Number of frames calculated for ' params{iParam} 'is shorter than the '...
+            'neurite length calculation! : Assuming Truncation of the End of Movie']); 
+        
+    end
+    
+    
     valsClust = arrayfun(@(i) values(:,groupingF==i),1:numGroups,'uniformoutput',0);
       
     % add field
