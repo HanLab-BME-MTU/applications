@@ -11,7 +11,7 @@ function [dataFit] = plotMultipleSmoothingSpline(outputDir, data, times, names, 
 %   colors          : cell array of colors to be used for each set
 %   plotTitle       : name of the plot
 %   unit            : y axis name
-%   smoothingPara   : smoothing parameter for smoothing spline fit
+%   smoothingPara   : smoothing parameter for smoothing spline fit, see fitoptions('smoothingspline')
 %   yMax            : y axis range maximum
 %   yMax            : y axis range minimum
 %   alignTimes      : time point where the data was aligned for each
@@ -20,6 +20,7 @@ function [dataFit] = plotMultipleSmoothingSpline(outputDir, data, times, names, 
 %OUTPUT
 %   dataFit         : cell array of fitObjects from the smoothing spline fit
 %
+% See also csaps, fit, curvefit, smoothing-splines, splinetool, fitoptions('smoothingspline')
 %Tae H Kim, July 2015
 
 %% Initialization
@@ -44,6 +45,7 @@ try
     smoothTimes = cellfun(@(x) smooth(x, 5), times, 'UniformOutput', false);
     smoothTimes = cellfun(@(x) x(3:end-2), smoothTimes, 'UniformOutput', false);
     %% Fitting
+    % See csaps, fitoptions('smoothingspline')
     dataFit = cellfun(@(x, y) fit(x, y, 'smoothingspline', 'smoothingParam', smoothingPara), smoothTimes, smoothData, 'UniformOutput', false);
     %% Plotting
     
