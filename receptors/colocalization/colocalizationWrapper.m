@@ -97,10 +97,10 @@ switch p.MethodIndx
 %         []=deal(zeros(length(imageAInfo),1));
         [ratioInd,localInd,randRatioInd]=deal(cell(nImages,1));
         for iImage = 1:nImages
-%     if ~isempty(find(iImage ==[13,21,28] ))
+    if ~isempty(find(iImage ==[28] ))
 % 
-%         continue
-%     end
+        continue
+    end
             %load image in reference channel
             imageRef = movieData.channels_(p.ChannelRef).loadImage(iImage);
             %load image in observed channel
@@ -114,12 +114,12 @@ switch p.MethodIndx
             %Run Function
 
             [ratioAve(iImage,:),localAve(iImage,:),bgAve(iImage,:),randRatioAve(iImage,:),...
-            ratioInd{iImage,:},localInd{iImage,:},randRatioInd{iImage,:}] = colocalMeasurePt2CntTest(p.SearchRadius,...
+            ratioInd{iImage,:},localInd{iImage,:},randRatioInd{iImage,:},clusterDensity(iImage),cellIntensity(iImage,1),backgroundStd(iImage,1)] = colocalMeasurePt2Cnt(p.SearchRadius,...
             p.RandomRuns,detectionData,imageRef,imageObs,currMask);
 %             colocalInfoAve(iImage) = colocalFeaturesAve;
 %             colocalInfoInd(iImage) = colocalFeaturesInd;
         end
-        save(p.OutputDirectory,'ratioAve','localAve','bgAve','randRatioAve','ratioInd','localInd','randRatioInd');
+        save(p.OutputDirectory,'ratioAve','localAve','bgAve','randRatioAve','ratioInd','localInd','randRatioInd','clusterDensity','cellIntensity','backgroundStd');
     case 3
         for iImage = 1:nImages
             %load image in reference channel
