@@ -22,7 +22,7 @@ function varargout = TimeCourseAnalysisConfig(varargin)
 
 % Edit the above text to modify the response to help TimeCourseAnalysisConfig
 
-% Last Modified by GUIDE v2.5 12-Nov-2015 16:02:20
+% Last Modified by GUIDE v2.5 17-Nov-2015 16:54:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -97,8 +97,9 @@ if(nargin < 6 || isempty(varargin{3}))
         data(:,2) = strcat({'Channel '},cellstr(num2str((1:size(data,1))')));
         data(:,1) = num2cell(true(size(data,1),1));
         set(handles.channelTable,'data',data);
-    catch
+    catch err
         disp('Could not obtain channel data');
+        disp(getReport(err));
     end
 else
     set(handles.channelTable,'data',varargin{6});
@@ -164,6 +165,7 @@ handles.p.doNewAnalysis = get(handles.doNewAnalysis,'Value');
 handles.p.partitioningAnalysis = get(handles.partitioningAnalysis,'Value');
 handles.p.start2zero = get(handles.start2zero,'Value');
 handles.p.shiftPlotPositive = get(handles.shiftPlotPositive,'Value');
+handles.p.nBootstrp = get(handles.nBootstrp,'Value');
 handles.p.channelTable = get(handles.channelTable,'Data');
 guidata(handles.figure1, handles);
 uiresume(handles.figure1);
@@ -183,3 +185,12 @@ function shiftPlotPositive_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of shiftPlotPositive
+
+
+% --- Executes on button press in nBootstrp.
+function nBootstrp_Callback(hObject, eventdata, handles)
+% hObject    handle to nBootstrp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of nBootstrp

@@ -72,8 +72,9 @@ try
     %save and close
     savefig(figureHandle, [outputDir filesep plotTitle '.fig']);
     close(figureHandle);
-catch
+catch err
     warning(['Could not plot ' plotTitle]);
+    disp(getReport(err));
     dataFit = [];
     close(figureHandle);
 end

@@ -30,7 +30,7 @@ fitError = cellfun(@doAnalysis, data, time, timeLimit, 'UniformOutput', false);
         newDataIndx = sort(newDataIndx, 2);
         mask = true(1,nBoot);
         fitData = cell(1,nBoot);
-        for iBoot = nBoot:-1:1
+        parfor iBoot = 1:nBoot
             %Create new data set from the old by picking randomly
             newData = subData(newDataIndx(iBoot, :));
             newTime = subTime(newDataIndx(iBoot, :));
@@ -43,7 +43,7 @@ fitError = cellfun(@doAnalysis, data, time, timeLimit, 'UniformOutput', false);
             try
                 fitData{iBoot} = fit(smoothTime, smoothData, 'smoothingSpline', 'smoothingParam', smoothingPara);
             catch
-                mask(nBoot) = false;
+                mask(iBoot) = false;
             end
         end
         fitData = fitData(mask);

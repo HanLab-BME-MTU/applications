@@ -215,6 +215,7 @@ condColorAll = {...
     [0.3 0.8 1],... %light blue 13
     };
 colors = condColorAll(mod(1:nConditions, 13) + 1);
+colors = reshape(colors,size(data));
 %For saving plot data
 figureData(37) = struct('titleBase', [], 'titleVariable', [], 'figureDir', [], 'fitData', [], 'data', [], 'getTimes', [], 'fitError', [], 'fitCompare', []);
 commonInfo = struct('times', [], 'compareTimes', [], 'conditions', [], 'parameters', [], 'fullPath', [outputDir filesep 'figureData.mat'], 'timeShift', timeShift);
@@ -307,6 +308,16 @@ fprintf('\b Complete\n');
 %This is used to determine the standard error of the fitted curve
 %determination of time limit for the analysis--------------------------
 %determine the limit of each conditions
+
+if(~params.nBootstrp)
+    % If nBootstrp is zero, then assign empty values and quit
+    commonInfo.analysisTimes = [];
+    if(~isempty(figureData))
+        [figureData.fitError] = deal([]);
+    end
+    return;
+end
+
 timeMax = cellfun(@(x) max(x), commonInfo.times);
 timeMin = cellfun(@(x) min(x), commonInfo.times);
 %determine the overall range of all conditions (This is useful later when comparing two curves)
@@ -323,6 +334,7 @@ for iCond = 1:nConditions
     timeLimitIndx{iCond} = [find(analysisTime_Union <= timeMin(iCond), 1, 'last'), find(analysisTime_Union >= timeMax(iCond), 1, 'first')];
     timeLimit{iCond} = [analysisTime_Union(timeLimitIndx{iCond}(1)), analysisTime_Union(timeLimitIndx{iCond}(2))];
 end
+timeLimit = reshape(timeLimit,size(data));
 %store this in commonInfo
 commonInfo.analysisTimes = cellfun(@(x) x(1) : params.timeResolution : x(2), timeLimit, 'UniformOutput', false);
 %for progress display
@@ -333,31 +345,32 @@ fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp,
 [figureData.fitError] = fitError{:};
 
 %% Add Standard Error to Figures
-lineObj = cell(1,nConditions);
-for iFig = 1:nFig
-    %open up the figure and make it current figure
-    %figObj = openfig(figureData(iFig).figureDir);
-    figObj = figure();
-    hold on;
-    %plot standard errors
-    for iCond = 1:nConditions
-        fitValues = figureData(iFig).fitData{iCond}(commonInfo.analysisTimes{iCond});
-        fitValues = fitValues';
-        plot(commonInfo.analysisTimes{iCond}, fitValues + figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
-        plot(commonInfo.analysisTimes{iCond}, fitValues - figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
-        lineObj{iCond} = plot(commonInfo.analysisTimes{iCond}, fitValues, 'color', colors{iCond});
-        plot([timeShift(iCond), timeShift(iCond)], [figureData(iFig).yMax, figureData(iFig).yMin], 'Color', colors{iCond});
-    end
-    lineObj2 = [lineObj{:}];
-    legend(lineObj2, commonInfo.conditions);
-    title([figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable])
-    xlabel('Time (min)');
-    ylabel(figureData(iFig).yLabel);
-    ylim([figureData(iFig).yMin, figureData(iFig).yMax]);
-    %save and close
-    savefig(figObj, [outputDirFig2, filesep, figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable, '.fig']);
-    close(figObj);
-end
+timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2);
+% lineObj = cell(1,nConditions);
+% for iFig = 1:nFig
+%     %open up the figure and make it current figure
+%     %figObj = openfig(figureData(iFig).figureDir);
+%     figObj = figure();
+%     hold on;
+%     %plot standard errors
+%     for iCond = 1:nConditions
+%         fitValues = figureData(iFig).fitData{iCond}(commonInfo.analysisTimes{iCond});
+%         fitValues = fitValues';
+%         plot(commonInfo.analysisTimes{iCond}, fitValues + figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
+%         plot(commonInfo.analysisTimes{iCond}, fitValues - figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
+%         lineObj{iCond} = plot(commonInfo.analysisTimes{iCond}, fitValues, 'color', colors{iCond});
+%         plot([timeShift(iCond), timeShift(iCond)], [figureData(iFig).yMax, figureData(iFig).yMin], 'Color', colors{iCond});
+%     end
+%     lineObj2 = [lineObj{:}];
+%     legend(lineObj2, commonInfo.conditions);
+%     title([figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable])
+%     xlabel('Time (min)');
+%     ylabel(figureData(iFig).yLabel);
+%     ylim([figureData(iFig).yMin, figureData(iFig).yMax]);
+%     %save and close
+%     savefig(figObj, [outputDirFig2, filesep, figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable, '.fig']);
+%     close(figObj);
+% end
 pause(1);
 
 %% Compare Fitted Curves

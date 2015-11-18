@@ -60,6 +60,7 @@ ip.addParameter('doNewAnalysis', true, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('start2zero', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('channelNames', false, @(x) iscellstr(x));
+ip.addParameter('nBootstrp',100,@isnumeric);
 ip.parse(outputDir, varargin{:});
 %for easier access to ip.Result variables
 smoothingPara = ip.Results.smoothingPara;
@@ -71,6 +72,7 @@ doNewAnalysis = ip.Results.doNewAnalysis;
 %used for Extra Analysis
 analysisPara.doPartition = ip.Results.doPartitionAnalysis;
 analysisPara.channelNames = ip.Results.channelNames;
+analysisPara.nBootstrp = ip.Results.nBootstrp;
 %checks if CMLs are loaded or not
 %AND determines how many ML there are total
 nMLTot = 0;
@@ -220,7 +222,16 @@ for iCML = 1:nCML
 %         summary{iCML}.name = CMLs(iCML).name_;
 %         summary{iCML,iChannel}.name = ['Channel ' num2str(iChannel)];
         summary{iCML,iChannel}.name = analysisPara.channelNames{iChannel};
+        if(~isempty(summary{iCML,iChannel}.name))
+            summary{iCML,iChannel}.name = [ '/' summary{iCML,iChannel}.name];
+        end
+        if(~isempty(CMLs(iCML).name_))
+            summary{iCML,iChannel}.name = [ CMLs(iCML).name_ summary{iCML,iChannel}.name];
+        end
     end
+%     if(~isempty(CMLs(iCML).name_) && size(summary,2) == 1)
+%         summary{iCML}.name = CMLs(iCML).name_;
+%     end
 end
 % HACK, FIX
 % essentially let the rest of the analysis use linear indexing to access
@@ -274,7 +285,9 @@ timeCourseAnalysis_StandAlone(summary, outputDir, ...
     'smoothingPara', smoothingPara, ...
     'showPartitionAnalysis', analysisPara.doPartition, ...
     'shiftTime', shiftTime, ...
-    'shiftPlotPositive', analysisPara.shiftPlotPositive);
+    'shiftPlotPositive', analysisPara.shiftPlotPositive, ...
+    'nBootstrp',analysisPara.nBootstrp ...
+    );
 %% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
 end
