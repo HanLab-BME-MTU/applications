@@ -26,6 +26,7 @@ ip.KeepUnmatched = true;
 ip.addParameter('psfSigmaMult', 3, @isnumeric);
 ip.addParameter('scrambleTracks', false, @(x) islogical(x) || isnumeric(x));
 ip.addParameter('nControl', 10, @isnumeric);
+ip.addParameter('runSubcellMaskProcess', false, @islogical);
 ip.parse(varargin{:});
 psfSigmaMult = ip.Results.psfSigmaMult;
 scrambleTracks = ip.Results.scrambleTracks;
@@ -73,12 +74,14 @@ end
 %% Partition Analysis
 progressTextMultiple('Analyzing ML', nMD);
 for iMD = 1:nMD
-    %SubcellMaskProcess-------------------------------------------------------
-    %get default para
-    maskPara = SubcellMaskProcess.getDefaultParams(ML_Mask.movies_{iMD}.outputDirectory_);
-    maskPara.psfSigmaMult = psfSigmaMult;
-    %call analysis function
-    maskDetectedStructure(ML_Mask.movies_{iMD}, maskPara);
+    if(ip.Results.runSubcellMaskProcess)
+        %SubcellMaskProcess-------------------------------------------------------
+        %get default para
+        maskPara = SubcellMaskProcess.getDefaultParams(ML_Mask.movies_{iMD}.outputDirectory_);
+        maskPara.psfSigmaMult = psfSigmaMult;
+        %call analysis function
+        maskDetectedStructure(ML_Mask.movies_{iMD}, maskPara);
+    end
     %track partitioning process--------------------------------------------
     %get default para
     trackPara = PartitionAnalysisProcess.getDefaultParams(ML_Track.movies_{iMD}.outputDirectory_);
