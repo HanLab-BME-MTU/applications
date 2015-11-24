@@ -8,6 +8,17 @@ function [ figureHandles ] = scatterFigure( commonInfo, figureData, outputDirFig
 %
 % OUTPUT
 % figureHandles - if requested, all figures will stay open
+%
+% Mark Kittisopikul, November 2015
+% based on Tae Kim, Summer 2015
+
+if(nargin < 1)
+    [figureData,commonInfo] = timeCourseAnalysis.util.getFigureData;
+end
+
+if(nargin < 2 && ischar(commonInfo))
+    [figureData,commonInfo] = timeCourseAnalysis.util.getFigureData(commonInfo);
+end
 
     if(nargin < 3)
         outputDirFig = [];
@@ -71,7 +82,9 @@ function figureHandle = scatterIndividualFigure(dataFit, times, data, alignTimes
     if(~isempty(outputDirFig))
         savefig(figureHandle, [outputDirFig filesep plotTitle '.fig']);
     else
-        pause;
+        if(~noClose)
+            pause;
+        end
     end
     if(~noClose)
         close(figureHandle);

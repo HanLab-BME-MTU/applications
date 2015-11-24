@@ -10,11 +10,26 @@ function [ figObj ] = standardErrorFigure( commonInfo, figureData, scatterData, 
 % OUTPUT
 % none
 %
-% Mark Kittisopikul based on Tae Kim
+% Mark Kittisopikul, November 2015
+% based on Tae Kim, Summer 2015
+
+if(nargin < 1)
+    [figureData,commonInfo] = timeCourseAnalysis.util.getFigureData;
+end
+
+if(nargin < 2 && ischar(commonInfo))
+    [figureData,commonInfo] = timeCourseAnalysis.util.getFigureData(commonInfo);
+end
 
 if(nargin < 3)
     scatterData = true;
 end
+
+    if(nargout > 0)
+        noClose = true;
+    else
+        noClose = false;
+    end
 
 nConditions = numel(commonInfo.conditions);
 nFig = numel(figureData);
@@ -48,12 +63,16 @@ for iFig = 1:nFig
     ylim([figureData(iFig).yMin, figureData(iFig).yMax]);
     %save and close
     if(nargin < 4 || isempty(outputDirFig2))
-        pause;
+        if(~noClose)
+            pause;
+        end
     else
         savefig(figObj(iFig), [outputDirFig2, filesep, figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable, '.fig']);
     end
     if(nargout == 0)
-        close(figObj(iFig));
+        if(~noClose)
+            close(figObj(iFig));
+        end
     end
 end
 

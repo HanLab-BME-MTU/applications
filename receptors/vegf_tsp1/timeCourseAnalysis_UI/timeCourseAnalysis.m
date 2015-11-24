@@ -222,10 +222,10 @@ for iCML = 1:nCML
 %         summary{iCML}.name = CMLs(iCML).name_;
 %         summary{iCML,iChannel}.name = ['Channel ' num2str(iChannel)];
         summary{iCML,iChannel}.name = analysisPara.channelNames{iChannel};
-        if(~isempty(summary{iCML,iChannel}.name))
-            summary{iCML,iChannel}.name = [ '/' summary{iCML,iChannel}.name];
-        end
         if(~isempty(CMLs(iCML).name_))
+            if(~isempty(summary{iCML,iChannel}.name))
+                summary{iCML,iChannel}.name = [ '/' summary{iCML,iChannel}.name];
+            end
             summary{iCML,iChannel}.name = [ CMLs(iCML).name_ summary{iCML,iChannel}.name];
         end
     end
