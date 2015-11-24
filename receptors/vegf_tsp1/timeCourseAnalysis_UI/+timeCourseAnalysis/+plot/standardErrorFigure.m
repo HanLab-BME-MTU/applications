@@ -2,10 +2,19 @@ function [ figObj ] = standardErrorFigure( commonInfo, figureData, scatterData, 
 %standardErrorFigure Plots time course analysis figure with standard error
 %
 % INPUT
-% commonInfo
-% figureData
+% commonInfo (optional) - structure or string indicating folder of
+%                         figureData.mat
+% figureData (optional) - structure containing data per figure
+%                         
+% outputDirFig (optional) - will pause between figures
 % scatterData - logical whether to scatter data (default: true)
 % outputDirFig2 - directory to save the figure
+%
+% If no parameters are given, figureData.mat will be loaded from the
+% current directory.
+%
+% If a single parameter is given, figureData.mat will be loaded from the
+% directory indicated.
 %
 % OUTPUT
 % none

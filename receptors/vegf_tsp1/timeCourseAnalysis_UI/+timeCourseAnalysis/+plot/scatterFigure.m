@@ -2,9 +2,17 @@ function [ figureHandles ] = scatterFigure( commonInfo, figureData, outputDirFig
 %scatterFigure Scatter figure for time course analysis
 %
 % INPUT
-% commonInfo
-% figureData
+% commonInfo (optional) - structure or string indicating folder of
+%                         figureData.mat
+% figureData (optional) - structure containing data per figure
+%                         
 % outputDirFig (optional) - will pause between figures
+%
+% If no parameters are given, figureData.mat will be loaded from the
+% current directory.
+%
+% If a single parameter is given, figureData.mat will be loaded from the
+% directory indicated.
 %
 % OUTPUT
 % figureHandles - if requested, all figures will stay open
