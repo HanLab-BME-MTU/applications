@@ -1,4 +1,4 @@
-function [fitError] = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara)
+function [fitError] = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag)
 %determines the standard error of a fitted curve using Bootstrapping method
 %
 %SYNOPSIS [fitError] = determineSE_Bootstrp(data, time, nBoot, timeResolution)
@@ -12,18 +12,24 @@ function [fitError] = determineSmoothSplineSE(data, time, nBoot, timeResolution,
 %                     analysis.
 %   timeResolution  : time resolution of bootstrap analysis
 %   timeLimit       : [min, max] limit of analysis
+%   inOutFlag       : cellArray of inlier and outlier flags in a column
 %
 %OUTPUT
 %   fitError    : cellArray of standard error
 
 %% Analysis
 %Divide data up based on conditions
-fitError = cellfun(@doAnalysis, data, time, timeLimit, 'UniformOutput', false);
+fitError = cellfun(@doAnalysis, data, time, timeLimit, inOutFlag, 'UniformOutput', false);
 %nested function that deals with each data set
-    function fitStd = doAnalysis(subData, subTime, subTimeLimit)
+    function fitStd = doAnalysis(subData, subTime, subTimeLimit, inOutFlag)
         mask = ~(isnan(subData) | isinf(subData));
         subData = subData(mask);
         subTime = subTime(mask);
+        inOutFlag = inOutFlag(mask);
+        %KJ: discard outliers not used in original fit
+        inIdx = find(inOutFlag == 1);
+        subTime = subTime(inIdx);
+        subData = subData(inIdx);
         nData = numel(subData);
         %create random numbers (bootstraping)
         newDataIndx = randi(nData, nBoot, nData);

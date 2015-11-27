@@ -55,7 +55,8 @@ function [resSummaryInd] = resultsCombTimeCourseMod(dsSummary)
 %                         frames.
 %                         Rows and columns as above.
 %           .rateMS     : Rate of merging and rate of splitting per
-%                         feature. Columns: merging, splitting.
+%                         feature (per time unit per number of features).
+%                         Columns: merging, splitting.
 %           .timeList   : List of time points in combined time course. Same
 %                         as input timeListComb.
 %           .timeAbsOrRel:'abs' or 'rel' to indicate, respectively, whether
@@ -87,7 +88,7 @@ function [resSummaryInd] = resultsCombTimeCourseMod(dsSummary)
 for iDS = 1
     
     %absolute numbers of molecules in various motion classes
-    %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet, 6 det, 7 tot
+    %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet, 6 det, 7 tot, 8 imm+conf
     %rows are for different timepoints, as listed in corresponding timeList
     diffSummary = vertcat(dsSummary.diffSummary); %#ok<NASGU>
     numAbsClassCurrent = [...
@@ -96,7 +97,8 @@ for iDS = 1
         catStruct(1,'diffSummary.probMotionType(8,3)') ...
         catStruct(1,'diffSummary.probMotionType(9,3)') ...
         catStruct(1,'diffSummary.probMotionType(11,3)')];
-    numAbsClassCurrent = [numAbsClassCurrent sum(numAbsClassCurrent(:,1:4),2) sum(numAbsClassCurrent(:,1:5),2)]; %#ok<AGROW>
+    numAbsClassCurrent = [numAbsClassCurrent sum(numAbsClassCurrent(:,1:4),2) ...
+        sum(numAbsClassCurrent(:,1:5),2) sum(numAbsClassCurrent(:,1:2),2)]; %#ok<AGROW>
     numAbsClassInd = numAbsClassCurrent;
         
     %numbers in various motion classes normalized to 1 at absolute time 0
@@ -105,9 +107,21 @@ for iDS = 1
     
     %absolute probabilities of various motion classes
     %columns are: 1 imm, 2 conf, 3 free, 4 dir (all relative to det), 
-    %5 det (relative to tot)
+    %5 det (relative to tot), 6 imm+conf (relative to det)
     probClassInd = [numAbsClassCurrent(:,1:4)./repmat(numAbsClassCurrent(:,6),1,4) ...
-        numAbsClassCurrent(:,6)./numAbsClassCurrent(:,7)];
+        numAbsClassCurrent(:,6)./numAbsClassCurrent(:,7) ...
+        numAbsClassCurrent(:,8)./numAbsClassCurrent(:,6)];
+    
+    %cell area in order to get densities
+    cellAreaInd = repmat(vertcat(dsSummary.cellArea),1,8);
+    
+    %densities of molecules in various motion classes
+    %columns and rows same as absolute numbers
+    densityAbsClassInd = numAbsClassInd ./ cellAreaInd;
+    
+    %densities in various motion classes normalized to 1 at absolute time 0
+    %columns and rows same as absolute numbers
+    densityNorm0ClassInd = densityAbsClassInd ./ repmat(densityAbsClassInd(1,:),length(dsSummary),1);
     
     %diffusion coefficient in various motion classes
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet
@@ -133,7 +147,7 @@ for iDS = 1
     
     %rate of merging and rate of splitting
     tmp = vertcat(dsSummary.statsMS);
-    rateMSInd = tmp(:,6:7);
+    rateMSInd = tmp(:,8:9);
     
 end
 
@@ -175,11 +189,9 @@ ampStatsL20Ind(isnan(ampStatsL20Ind)) = 0;
 %}
 
 resSummaryInd = struct('numAbsClass',numAbsClassInd,'numNorm0Class',numNorm0ClassInd,...
-    'probClass',probClassInd,'diffCoefClass',diffCoefClassInd,...
-    'confRadClass',confRadClassInd,'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
-    'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'rateMS',...
-    rateMSInd);
-
-
+    'densityAbsClass',densityAbsClassInd,'densityNorm0Class',densityNorm0ClassInd,...
+    'probClass',probClassInd,'diffCoefClass',diffCoefClassInd,'confRadClass',confRadClassInd,...
+    'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
+    'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'rateMS',rateMSInd);
 
 %% ~~~ the end ~~~

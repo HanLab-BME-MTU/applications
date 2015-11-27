@@ -226,7 +226,7 @@ iFD = 0;
 
 %% Plot and Fit Smoothing Spline
 %Initialize
-defCond = {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total'};
+defCond = {'immobile', 'confined', 'free', 'directed', 'undetermined', 'determined', 'total','sub-diffusive'};
 %progressText
 fprintf('Plotting figures: scatter plots\n');
 %Each line calls the nested function plotData
@@ -235,15 +235,17 @@ fprintf('Plotting figures: scatter plots\n');
 %into a cellarray of arrays
 %Other inputs are explained in plotData
 plotFigure(cellfun(@(x) x.numAbsClass, data, 'UniformOutput', false), 'Absolute Number of Class Types', defCond, 'Number of tracks (molecules)', true);
-plotFigure(cellfun(@(x) x.numNorm0Class, data, 'UniformOutput', false), 'Normalized Number of Class Types', defCond, 'Relative number of tracks', true);
-plotFigure(cellfun(@(x) x.probClass, data, 'UniformOutput', false), 'Probability of Class Types', {'immobile', 'confined', 'free', 'directed', 'determined'}, 'Probability', true);
-plotFigure(cellfun(@(x) x.diffCoefClass, data, 'UniformOutput', false), 'Diffusion Coefficient', defCond(1:4), 'Diffusion coefficient(pixels^2/frame)', true); %no 5th
-plotFigure(cellfun(@(x) x.confRadClass, data, 'UniformOutput', false), 'Confinement Radius', defCond(1:2), 'Radius (pixels)', true);%no 3 4 5th column
+plotFigure(cellfun(@(x) x.numNorm0Class, data, 'UniformOutput', false), 'Normalized Number of Class Types', defCond, 'Number of tracks relative to time 0', true);
+plotFigure(cellfun(@(x) x.densityAbsClass, data, 'UniformOutput', false), 'Absolute Density of Class Types', defCond, 'Density of tracks (molecules/pixel^2)', true);
+plotFigure(cellfun(@(x) x.densityNorm0Class, data, 'UniformOutput', false), 'Normalized Density of Class Types', defCond, 'Density of tracks relative to time 0', true);
+plotFigure(cellfun(@(x) x.probClass, data, 'UniformOutput', false), 'Probability of Class Types', {'immobile', 'confined', 'free', 'directed', 'determined','sub-diffusive'}, 'Probability', true);
+plotFigure(cellfun(@(x) x.diffCoefClass, data, 'UniformOutput', false), 'Diffusion Coefficient', defCond(1:4), 'Diffusion coefficient (pixels^2/frame)', true); %no 5th
+plotFigure(cellfun(@(x) x.confRadClass, data, 'UniformOutput', false), 'Confinement Radius', defCond(1:2), 'Confinement radius (pixels)', true);%no 3 4 5th column
 plotFigure(cellfun(@(x) x.ampClass, data, 'UniformOutput', false), 'Fluorescence Amplitude', defCond(1:5), 'Intensity (arbitrary units)', true);
 plotFigure(cellfun(@(x) x.ampNormClass, data, 'UniformOutput', false), 'Normalized Fluorescence Amplitude', defCond(1:5), 'Normalized intensity (monomer units)', true);
-%plotData(cellfun(@(x) x.ampStatsF20, data, 'UniformOutput', false), '', {'mean', 'first mode mean', 'first mode std', 'first mode fraction', 'number of modes', 'normalized mean'}, '', true);
-%plotData(cellfun(@(x) x.ampStatsL20, data, 'UniformOutput', false), '', {'mean', 'first mode mean', 'first mode std', 'first mode fraction', 'number of modes', 'normalized mean'}, '', true);
-plotFigure(cellfun(@(x) x.rateMS, data, 'UniformOutput', false), 'Merging and Spliting', {'merging', 'spliting'}, '(per frame)', true);
+plotFigure(cellfun(@(x) x.ampStatsF20, data, 'UniformOutput', false), 'First 20 Frames - ', {'Fluorescence Amplitude Overall (a.u.)', 'First Mode Mean (a.u.)', 'First Mode Std (a.u.)', 'First Mode Fraction', 'Number of Modes','Normalized Fluorescence Amplitude Overall (monomer units)'}, '', true);
+plotFigure(cellfun(@(x) x.ampStatsL20, data, 'UniformOutput', false), 'Last 20 Frames - ', {'Fluorescence Amplitude Overall (a.u.)', 'First Mode Mean (a.u.)', 'First Mode Std (a.u.)', 'First Mode Fraction', 'Number of Modes','Normalized Fluorescence Amplitude Overall (monomer units)'}, '', true);
+plotFigure(cellfun(@(x) x.rateMS, data, 'UniformOutput', false), 'Merging and Spliting', {'merging', 'splitting'}, '(per frame per particle)', true);
 %Do only if input specify that this plot be shown. Will cause error if
 %data.partitionFrac is not present
 if params.showPartition
@@ -286,8 +288,15 @@ fprintf('\b Complete\n');
         %plot by column
         for iColumns = 1:nColumns
             subSubData = cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false);
+            %KJ: identify inlier and outlier data points
+            inOutFlag = subSubData;
+            for iData = 1 : length(subSubData)
+                [outIdx,inIdx] = detectOutliers(subSubData{iData},3);
+                inOutFlag{iData}(outIdx) = 0; %outliers get flag 0
+                inOutFlag{iData}(inIdx)  = 1; %inliers get flag 1
+            end           
             plotTitle = [title_Base ' ' title_Variable{iColumns}];
-            [fitData] = plotMultipleSmoothingSpline(outputDirFig, subSubData, times, names, colors, plotTitle, yLabelName, params.smoothingPara, yMax, yMin, timeShift);
+            [fitData] = plotMultipleSmoothingSpline(outputDirFig, subSubData, times, names, colors, plotTitle, yLabelName, params.smoothingPara, yMax, yMin, timeShift, inOutFlag);
             plotData(iColumns).fitData = fitData;
             plotData(iColumns).condition = title_Variable{iColumns};
             %Save data in figureData
@@ -301,6 +310,7 @@ fprintf('\b Complete\n');
             figureData(iFD).yMax = yMax;
             figureData(iFD).yMin = yMin;
             figureData(iFD).yLabel = yLabelName;
+            figureData(iFD).inOutFlag = inOutFlag;
         end
     end
 
@@ -341,7 +351,7 @@ commonInfo.analysisTimes = cellfun(@(x) x(1) : params.timeResolution : x(2), tim
 nFig = numel(figureData);
 progressTextMultiple('Determining confidence interval', nFig);
 %call determineSE_Bootstrp.m
-fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara), figureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
+fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag), figureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
 [figureData.fitError] = fitError{:};
 
 %% Add Standard Error to Figures
@@ -428,8 +438,8 @@ save(commonInfo.fullPath, 'commonInfo', 'figureData');
 end
 %% Local Functions
 %function for progressDisplay and calls determineSE_Bootstrp.m
-function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara)
-fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara);
+function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag)
+fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
 progressTextMultiple();
 end
 %error handle for determineSE_Bootstrp.m
