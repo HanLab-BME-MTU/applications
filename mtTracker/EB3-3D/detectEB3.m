@@ -76,21 +76,21 @@ parfor frameIdx=1:numel(processFrames)
     switch p.type
       case 'watershedApplegate'
           filterVol=filterGauss3D(vol,p.highFreq)-filterGauss3D(vol,p.lowFreq);
-            [movieInfo(frameIdx),labels{frameIdx}]=detectComets3D(filterVol,p.waterStep,p.waterThresh,[1 1 1]);
+            [movieInfo(frameIdx),lab]=detectComets3D(filterVol,p.waterStep,p.waterThresh,[1 1 1]);
       case 'watershedApplegateAuto'
             filterVol=filterGauss3D(vol,p.highFreq)-filterGauss3D(vol,p.lowFreq);
             thresh=QDApplegateThesh(filterVol,p.showAll);
-            [movieInfo(frameIdx),labels{frameIdx}]=detectComets3D(filterVol,p.waterStep,thresh,[1 1 1]);
+            [movieInfo(frameIdx),lab]=detectComets3D(filterVol,p.waterStep,thresh,[1 1 1]);
       case 'bandPassWatershed'
         filterVol=filterGauss3D(vol,p.highFreq)-filterGauss3D(vol,p.lowFreq);
-        label=watershed(-filterVol); label(filterVol<p.waterThresh)=0;labels{frameIdx}=label;
+        label=watershed(-filterVol); label(filterVol<p.waterThresh)=0;lab=label;
         movieInfo(frameIdx)=labelToMovieInfo(label,filterVol);
       case 'watershedMatlab'
         label=watershed(-vol); label(vol<p.waterThresh)=0;[dummy,nFeats]=bwlabeln(label);
-       lab=label;
+        lab=label;
         movieInfo(frameIdx)=labelToMovieInfo(label,vol);
       case 'markedWatershed'
-        [labels{frameIdx}]=markedWatershed(vol,scales,p.waterThresh);
+        lab=markedWatershed(vol,scales,p.waterThresh);
         movieInfo(frameIdx)=labelToMovieInfo(labels{frameIdx},vol);
       case {'pointSource','pointSourceAutoSigma'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
@@ -98,7 +98,7 @@ parfor frameIdx=1:numel(processFrames)
         movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol);
       case {'pointSourceLM','pointSourceAutoSigmaLM'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
-       lab=double(mask); % adjust label
+        lab=double(mask); % adjust label
         movieInfo(frameIdx)=pointCloudToMovieInfo(imgLM,vol);  
       case 'pSAutoSigmaMarkedWatershed'
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
@@ -148,7 +148,7 @@ parfor frameIdx=1:numel(processFrames)
     if(p.printAll)
         stackWrite(uint8(255*lab/max(lab(:))),[outputDirDetect filesep 'mask' filesep 'detect_T_' num2str(timePoint,'%05d') '.tif']);
     end
-    %labels{frameIdx}=lab;
+    labels{frameIdx}=lab;
     
 end 
 

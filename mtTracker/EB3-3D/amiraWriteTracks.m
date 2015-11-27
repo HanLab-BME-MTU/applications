@@ -54,7 +54,7 @@ parfor fIdx=0:tracks.numTimePoints
     %% Indx of tracks on the current frame
     if(fIdx>0)
         tracksOn=([tracks.endFrame]>=fIdx)&(fIdx>[tracks.startFrame]);
-    else
+    else % 0 frames is the cumulative display
         tracksOn=true(1,length(tracks));
     end
     nbTracsOn=sum(tracksOn);
@@ -111,8 +111,8 @@ parfor fIdx=0:tracks.numTimePoints
     tracksMedSpeed= arrayfun(@(t) nanmedian(sum((   [s(1)*t.x(1:end-1);s(2)*t.y(1:end-1);s(3)*t.z(1:end-1)]- ... 
                                                     [s(1)*t.x(2:end);  s(2)*t.y(2:end); s(3)*t.z(2:end)  ]).^2).^0.5/s(4)) ,tracks(tracksOn));
     %% Track Max Speed (edge property)
-    tracksMaxSpeed= arrayfun(@(t) nanmax(sum((   [s(1)*t.x(1:end-1);s(2)*t.y(1:end-1);s(3)*t.z(1:end-1)]- ... 
-                                                    [s(1)*t.x(2:end);  s(2)*t.y(2:end); s(3)*t.z(2:end)  ]).^2).^0.5/s(4)) ,tracks(tracksOn));
+%     tracksMaxSpeed= arrayfun(@(t)    nanmax(sum((   [s(1)*t.x(1:end-1);s(2)*t.y(1:end-1);s(3)*t.z(1:end-1)]- ... 
+%                                                     [s(1)*t.x(2:end);  s(2)*t.y(2:end); s(3)*t.z(2:end)  ]).^2).^0.5/s(4)) ,tracks(tracksOn),'unif',0);
                                                 
     %% Track diffCoeff (edge property)
     tracksDiffCoeff=arrayfun(@(t) nanmean(sum([s(1)*t.x(1)-s(1)*t.x(2:end); s(2)*t.y(1)-s(2)*t.y(2:end); s(3)*t.z(1)-s(3)*t.z(2:end)].^2))/(6*t.lifetime*s(4)) ,tracks(tracksOn));
@@ -138,8 +138,8 @@ parfor fIdx=0:tracks.numTimePoints
     fprintf(fid,'VERTEX {int startEnd } @6\n');
     fprintf(fid,'EDGE { int lifetime } @7\n');    
     fprintf(fid,'EDGE { float medianSpeed} @8\n');  
-    fprintf(fid,'EDGE { float maxSpeed} @9\n');  
-    fprintf(fid,'EDGE { float diffCoeff} @10\n');  
+    %fprintf(fid,'EDGE { float maxSpeed} @9\n');  
+    fprintf(fid,'EDGE { float diffCoeff} @9\n');  
     fclose(fid);
     if(nbTracsOn)
         paramCount=paramCount+1;
@@ -190,15 +190,15 @@ parfor fIdx=0:tracks.numTimePoints
         fclose(fid);
         dlmwrite(frameFilename, tracksMedSpeed, '-append', 'delimiter',' ','precision', 16);
 
-        paramCount=paramCount+1;
-        fid = fopen(frameFilename, 'a');
-        fprintf(fid,'\n@9\n');
-        fclose(fid);
-        dlmwrite(frameFilename, tracksMaxSpeed, '-append', 'delimiter',' ','precision', 16);
+%         paramCount=paramCount+1;
+%         fid = fopen(frameFilename, 'a');
+%         fprintf(fid,'\n@9\n');
+%         fclose(fid);
+%         dlmwrite(frameFilename, tracksMaxSpeed, '-append', 'delimiter',' ','precision', 16);
         
         paramCount=paramCount+1;
         fid = fopen(frameFilename, 'a');
-        fprintf(fid,'\n@10\n');
+        fprintf(fid,'\n@9\n');
         fclose(fid);
         dlmwrite(frameFilename, tracksDiffCoeff, '-append', 'delimiter',' ','precision', 16);
         

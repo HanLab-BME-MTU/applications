@@ -7,26 +7,40 @@
 
 %% %% USER INPUT 
 
-%% INPUT MOVIES
-% After movie loading (see loadMoviesManagementFile.m). provide an array of
-% MovieList. 
-aMovieListArray=[ inter10nML inter33nML inter100nML];%interControlNoco
+%% LOADING MOVIES INFORMATION (TWO OPTIONS)
+%% Loading MovieList file
+% MovieList paths: 
+%MLPath='/work/gdanuser/proudot/project/EB3-3D-track/packaging/alpha/plusTipTracker3D-alpha-1/data/A1_HeLa_Cells_EB1/prometaphase/analysis/'
+MLPath='/project/cellbiology/gdanuser/shared/proudot/project/lattice-track/data-analysis/chemical-inhibition/2015_06_17(EB1_GFP_drugs)/analysis/';
 
-%% pixelSizes (while movieData does not work properly)
-pixelSizeLat=100;
-pixelSizeAxial=235;
+% MovieList FileName (the combination of condition you want to compare). 
+%movieListFileNames={'movieList.mat'};
+movieListFileNames={'controlAnaphase.mat'};
+%movieListFileNames={'controlMetaphase.mat','10nMMetaphase.mat'};
+%movieListFileNames={'controlMetaphase.mat','10nMMetaphase.mat','33nMMetaphase.mat','100nMMetaphase.mat'};
+%movieListFileNames={'controlInterphase.mat','10nMInterphase.mat','33nMInterphase.mat','100nMInterphase.mat',};
+%movieListFileNames={'controlAnaphase.mat','10nMAnaphase.mat','33nMAnaphase.mat'};
+
+% Build the array of MovieList (automatic)
+aMovieListArray=cellfun(@(x) MovieList.loadMatFile([MLPath x]), movieListFileNames,'unif',0);
+aMovieListArray=aMovieListArray{:};
+
+%% Using movieList object that are already loaded (see loadMoviesManagementFile.m).
+%  aMovieListArray=[ inter10nML inter33nML inter100nML];
 
 % Frame to be processed ( [] for whole movie)
 processFrame=[];
 
-
 %% PROCESS MANAGEMENT 
 %  - 1 to (re-)run the algorithm
 %  - 0 to load previously computed results (if any)
-runEB3Detection=1;     
-runPoleDetection=1; 
+runEB3Detection=0;     
+runPoleDetection=0; 
 runRegistration=0;  % Register sudden stage shift during acquisition.
-runEB3Tracking=1;      
+runEB3Tracking=1; runAmiraWrite=1;      
+
+%% DEBUGGING PARAMETER (Could void your waranty)
+trackAfterRegistration=1;
 
 %% ALGORITHM PARAMETERS
 
@@ -84,13 +98,9 @@ for aPoleScale=poleScale
         ML=aMovieListArray(k);
         
         %% loop over each different cell in each condition
-        for i=1:length(ML.movieDataFile_)            
-            MD=ML.getMovie(i);
+        for i=1:1%length(ML.movieDataFile_)            
+            MD=MovieData.loadMatFile(ML.movieDataFile_{i});
             disp(['Processing movie: ' MD.getFullPath]);
-            MD.sanityCheck;
-            disp(['Processing movie: ' MD.getFullPath]);
-            MD.pixelSize_=pixelSizeLat;
-            MD.pixelSizeZ_=pixelSizeAxial;
             dataAnisotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSizeZ_];
             
             %% EB3 Detection
@@ -113,23 +123,28 @@ for aPoleScale=poleScale
             %% Pole detection
             poleDetectionMethod=['simplex_scale_' num2str(aPoleScale,'%03d')];
             outputDirPoleDetect=[MD.outputDirectory_ filesep 'poles' filesep poleDetectionMethod];mkdir(outputDirPoleDetect);
+            outputDirDist=[MD.outputDirectory_ filesep 'EB3PoleRef' filesep poleDetectionMethod filesep detectionMethod];mkdir(outputDirDist);
             if(runPoleDetection)
+                % Detect Poles and write results
                 [poleMovieInfo]=detectPoles(MD,'showAll',false,'processFrames',processFrame,'scales',(aPoleScale*(dataAnisotropy/dataAnisotropy(1)).^(-1)));
-                save([outputDirPoleDetect filesep 'detection.mat'],'poleMovieInfo');
+                save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo');
                 mkdir([outputDirPoleDetect filesep 'amiraVertex']);
                 amiraWriteMovieInfo([outputDirPoleDetect filesep 'amiraVertex' filesep poleDetectionMethod '.am'],poleMovieInfo,'scales',dataAnisotropy);
 
             
-                
-                outputDirDist=[MD.outputDirectory_ filesep 'EB3PoleRef' filesep poleDetectionMethod filesep detectionMethod];mkdir(outputDirDist);
-                [dist,poleId,inliers,originProb,minProb,azimuth,elevation,rho]=poleDist(poleMovieInfo,movieInfo,'anisotropy',dataAnisotropy,'angleRef','poles');
+                % Set detection in the spindle referential
+                [dist,poleId,inliers,originProb,minProb,azimuth,elevation,rho,movieInfoSpindle]=poleDist(poleMovieInfo,movieInfo,'anisotropy',dataAnisotropy,'angleRef','poles');
                 save([outputDirDist filesep 'dist.mat'],'dist','minProb','poleId','inliers');
                 save([outputDirDist filesep 'sphericalCoord.mat'],'azimuth','elevation','rho');
+                save([outputDirDist filesep 'cartesianCoord.mat'],'movieInfoSpindle');
                 mkdir([outputDirDist filesep 'amiraVertex']);
                 amiraWriteMovieInfo([outputDirDist filesep 'amiraVertex' filesep poleDetectionMethod '_' detectionMethod '.am'],movieInfo, ...
                     'scales',dataAnisotropy,'prop',{{'minProb',minProb},{'azimuth',azimuth},{'elevation',elevation},{'poleId',cellfun(@(x,y) x.*y,inliers,poleId,'unif',0)}});
+                amiraWriteMovieInfo([outputDirDist filesep 'amiraVertexSpindle' filesep poleDetectionMethod '_' detectionMethod '.am'],movieInfoSpindle, ...
+                    'scales',dataAnisotropy,'prop',{{'minProb',minProb},{'azimuth',azimuth},{'elevation',elevation},{'poleId',cellfun(@(x,y) x.*y,inliers,poleId,'unif',0)}});
             else
                 load([outputDirPoleDetect filesep 'detection.mat']);
+                load([outputDirDist filesep 'cartesianCoord.mat']);
             end
             
 
@@ -155,11 +170,20 @@ for aPoleScale=poleScale
             
             %% Tracking
             outputDirTrack=[outputDirDetect filesep 'plustipTrackerio'];
+            if(trackAfterRegistration);
+                            outputDirTrack=[outputDirDist filesep 'plustipTrackerio'];
+            end;
             if runEB3Tracking
                 mkdir(outputDirTrack);
                 mkdir([outputDirTrack '/feat']);
+                
+                if(trackAfterRegistration);
+                    movieInfo=movieInfoSpindle;
+                end
+                
                 save([outputDirTrack '/feat/movieInfo.mat'],'movieInfo');
                 
+      
                 projDir=struct();
                 projDir.anDir=outputDirTrack;
                 projDir.imDir='';                       % tested but useless
@@ -174,14 +198,27 @@ for aPoleScale=poleScale
                     searchRadiusMult,searchRadiusFirstIteration);
                 
                 %% Convert tracks final in a user-friendlier format
-                tmp=load([outputDirTrack filesep 'track' filesep 'trackResults.mat']);
-                tracks=TracksHandle(tmp.tracksFinal);
+                trackFile=load([outputDirTrack filesep 'track' filesep 'trackResults.mat']);
+                tracks=TracksHandle(trackFile.tracksFinal);
                 save([outputDirTrack filesep 'track' filesep 'trackNewFormat.mat'],'tracks')
                 
-                %% load track results and save them to Amira
-                mkdir([outputDirTrack filesep 'AmiraTrack']);
-                amiraWriteTracks([outputDirTrack filesep 'AmiraTrack' filesep 'test.am'],tracks,'scales',dataAnisotropy);
+            end
+            if(runAmiraWrite)
+                trackFile=load([outputDirTrack filesep 'track' filesep 'trackResults.mat']);
+                               
+                tmp=load([outputDirDetect filesep 'detection.mat']);
+                movieInfoLab=tmp.movieInfo;
                 
+                %% Tracks in the lab FoR.
+                tracks=TracksHandle(trackFile.tracksFinal,movieInfoLab);
+                amiraWriteTracks([outputDirTrack filesep 'AmiraTrackLabRef' filesep 'trackLabRef.am'],tracks,'MD',MD);
+                amiraWriteTracks([outputDirTrack filesep 'AmiraTrackLabRef20plus' filesep 'trackLabRef20plus.am'],tracks([tracks.lifetime]>20),'MD',MD);
+
+                %% Tracks in the spindle FoR. 
+                tracks=TracksHandle(trackFile.tracksFinal,movieInfoSpindle);
+                amiraWriteTracks([outputDirTrack filesep 'AmiraTrackSpindleRef' filesep 'trackSpindleRef.am'],tracks,'MD',MD);
+                amiraWriteTracks([outputDirTrack filesep 'AmiraTrackSpindleRef20plus' filesep 'trackSpindleRef20plus.am'],tracks([tracks.lifetime]>20),'MD',MD);
+
             end
             
             
