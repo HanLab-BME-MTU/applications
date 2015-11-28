@@ -61,6 +61,7 @@ ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('start2zero', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('channelNames', false, @(x) iscellstr(x));
 ip.addParameter('nBootstrp',100,@isnumeric);
+ip.addParameter('detectOutliers_k_sigma',0,@isnumeric);
 ip.parse(outputDir, varargin{:});
 %for easier access to ip.Result variables
 smoothingPara = ip.Results.smoothingPara;
@@ -73,6 +74,7 @@ doNewAnalysis = ip.Results.doNewAnalysis;
 analysisPara.doPartition = ip.Results.doPartitionAnalysis;
 analysisPara.channelNames = ip.Results.channelNames;
 analysisPara.nBootstrp = ip.Results.nBootstrp;
+analysisPara.detectOutliers_k_sigma = ip.Results.detectOutliers_k_sigma;
 %checks if CMLs are loaded or not
 %AND determines how many ML there are total
 nMLTot = 0;
@@ -288,7 +290,8 @@ timeCourseAnalysis_StandAlone(summary, outputDir, ...
     'showPartitionAnalysis', analysisPara.doPartition, ...
     'shiftTime', shiftTime, ...
     'shiftPlotPositive', analysisPara.shiftPlotPositive, ...
-    'nBootstrp',analysisPara.nBootstrp ...
+    'nBootstrp',analysisPara.nBootstrp, ...
+    'detectOutliers_k_sigma',analysisPara.detectOutliers_k_sigma ...
     );
 %% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');

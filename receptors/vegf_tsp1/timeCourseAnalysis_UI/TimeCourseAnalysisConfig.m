@@ -22,7 +22,7 @@ function varargout = TimeCourseAnalysisConfig(varargin)
 
 % Edit the above text to modify the response to help TimeCourseAnalysisConfig
 
-% Last Modified by GUIDE v2.5 17-Nov-2015 16:54:46
+% Last Modified by GUIDE v2.5 27-Nov-2015 20:32:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -167,6 +167,8 @@ handles.p.start2zero = get(handles.start2zero,'Value');
 handles.p.shiftPlotPositive = get(handles.shiftPlotPositive,'Value');
 handles.p.nBootstrp = get(handles.nBootstrp,'Value');
 handles.p.channelTable = get(handles.channelTable,'Data');
+handles.p.detectOutliers_k_sigma = get(handles.detectOutliers,'Value') ...
+                                   .*str2double(get(handles.k_sigma,'String'));
 guidata(handles.figure1, handles);
 uiresume(handles.figure1);
 % close(handles.figure1);
@@ -194,3 +196,38 @@ function nBootstrp_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of nBootstrp
+
+
+% --- Executes on button press in detectOutliers.
+function detectOutliers_Callback(hObject, eventdata, handles)
+% hObject    handle to detectOutliers (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of detectOutliers
+detectOutliers = get(hObject, 'Value') == get(hObject,'Max');
+visibleStates = {'off', 'on'};
+set([handles.k_sigma_label handles.k_sigma], ...
+    'Visible',visibleStates{detectOutliers + 1});
+
+
+function k_sigma_Callback(hObject, eventdata, handles)
+% hObject    handle to k_sigma (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of k_sigma as text
+%        str2double(get(hObject,'String')) returns contents of k_sigma as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function k_sigma_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to k_sigma (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

@@ -162,10 +162,11 @@ ip.addParameter('curveCompareAlpha', 0.05, @(x) isnumeric(x) && x>0 && x<1);
 ip.addParameter('compareCurves', true, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftTime', [], @(x) isnumeric(x));
+ip.addParameter('detectOutliers_k_sigma', [], @(x) isnumeric(x));
 ip.parse(varargin{:});
-params = struct('showPartition', ip.Results.showPartitionAnalysis, 'smoothingPara', ip.Results.smoothingPara, 'nBootstrp', round(ip.Results.nBootstrp),...
-    'timeResolution', ip.Results.timeResolution, 'curveCompareAlpha', ip.Results.curveCompareAlpha, 'compareCurves', ip.Results.compareCurves,...
-    'shiftPlotPositive', ip.Results.shiftPlotPositive, 'shiftTime', ip.Results.shiftTime);
+params = ip.Results;
+params.showPartition = params.showPartitionAnalysis;
+
 outputDirFig = [outputDir filesep 'figures'];
 outputDirFig2 = [outputDir filesep 'figures_SE'];
 %makes sure outputDir folder exists
@@ -289,12 +290,16 @@ fprintf('\b Complete\n');
         for iColumns = 1:nColumns
             subSubData = cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false);
             %KJ: identify inlier and outlier data points
-            inOutFlag = subSubData;
-            for iData = 1 : length(subSubData)
-                [outIdx,inIdx] = detectOutliers(subSubData{iData},3);
-                inOutFlag{iData}(outIdx) = 0; %outliers get flag 0
-                inOutFlag{iData}(inIdx)  = 1; %inliers get flag 1
-            end           
+            if(params.detectOutliers_k_sigma > 0)
+                inOutFlag = subSubData;
+                for iData = 1 : length(subSubData)
+                    [outIdx,inIdx] = detectOutliers(subSubData{iData},3);
+                    inOutFlag{iData}(outIdx) = 0; %outliers get flag 0
+                    inOutFlag{iData}(inIdx)  = 1; %inliers get flag 1
+                end
+            else
+                inOutFlag = cellfun(@(x) true(size(x)),subSubData,'UniformOutput',false);
+            end
             plotTitle = [title_Base ' ' title_Variable{iColumns}];
             [fitData] = plotMultipleSmoothingSpline(outputDirFig, subSubData, times, names, colors, plotTitle, yLabelName, params.smoothingPara, yMax, yMin, timeShift, inOutFlag);
             plotData(iColumns).fitData = fitData;
