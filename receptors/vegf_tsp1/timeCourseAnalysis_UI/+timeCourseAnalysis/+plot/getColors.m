@@ -16,7 +16,7 @@ condColorAll = {...
     [0.5 0.5 1],... %purple 12
     [0.3 0.8 1],... %light blue 13
     };
-colors = condColorAll(mod(1:numel(data), 13) + 1);
+colors = condColorAll(mod(1:numel(data), length(condColorAll) + 1));
 colors = reshape(colors,size(data));
 
 end

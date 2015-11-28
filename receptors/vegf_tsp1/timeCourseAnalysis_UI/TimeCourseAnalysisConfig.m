@@ -61,7 +61,7 @@ if(nargin < 4 || isempty(varargin{1}))
     %prompt user to select a folder where all figures and data will be stored
     handles.p.outputDir = uigetdir('', 'Select output folder');
 else
-    handles.p.outputDir = varargin{1};
+    handles.p.outputDir = varargin{1}{1};
 end
 
 if(nargin < 5 || isempty(varargin{2}))
