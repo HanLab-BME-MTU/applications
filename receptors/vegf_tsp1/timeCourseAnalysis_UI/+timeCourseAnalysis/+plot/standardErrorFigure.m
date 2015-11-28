@@ -61,10 +61,12 @@ for iFig = 1:nFig
         lineObj{iCond} = plot(commonInfo.analysisTimes{iCond}, fitValues, 'color', colors{iCond});
         plot([commonInfo.timeShift(iCond), commonInfo.timeShift(iCond)], [figureData(iFig).yMax, figureData(iFig).yMin], 'Color', colors{iCond});
         if(scatterData)
-            %KJ: indicate outliers not used in fit
-            outIdx = ~figureData(iFig).inOutFlag{iCond};
             plot(commonInfo.times{iCond},figureData(iFig).data{iCond},'.','color',colors{iCond});
-            plot(commonInfo.times{iCond}(outIdx),figureData(iFig).data{iCond}(outIdx),'ko')
+            if(isfield(figureData,'inOutFlag'))
+                %KJ: indicate outliers not used in fit
+                outIdx = ~figureData(iFig).inOutFlag{iCond};
+                plot(commonInfo.times{iCond}(outIdx),figureData(iFig).data{iCond}(outIdx),'ko')
+            end
         end
     end
     lineObj2 = [lineObj{:}];

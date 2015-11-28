@@ -38,19 +38,16 @@ end
     end
     
     colors = timeCourseAnalysis.plot.getColors(commonInfo.conditions);
+    
+    if(~isfield(figureData,'inOutFlag'))
+        [figureData.inOutFlag] = deal([]);
+    end
 
     figureHandles = arrayfun( ... 
         @(f) scatterIndividualFigure( ...
-            f.fitData, ...
-            commonInfo.times, ...
-            f.data, ...
-            commonInfo.timeShift, ...
-            f.yMax, ...
-            f.yMin, ...
+            commonInfo, ...
+            f, ...
             colors, ...
-            commonInfo.conditions, ...
-            f.yLabel, ...
-            [f.titleBase ' ' f.titleVariable], ...
             outputDirFig, ...
             noClose), ...
         figureData, ...
@@ -62,28 +59,37 @@ end
     end
         
 end
-function figureHandle = scatterIndividualFigure(dataFit, times, data, alignTimes, yMax, yMin, colors, names, yLabelName, plotTitle, outputDirFig,noClose)
+function figureHandle = scatterIndividualFigure(commonInfo, figureData, colors, outputDirFig,noClose)
+
+    plotTitle = [figureData.titleBase ' ' figureData.titleVariable];
+
+
     figureHandle = figure('Name', plotTitle);
     hold on;
     %plots all data and stores all line handles
-    lineHandle = cellfun(@plot, dataFit, times, data, 'UniformOutput', false);
+    lineHandle = cellfun(@plot, figureData.fitData, commonInfo.times, figureData.data, 'UniformOutput', false);
+    %KJ: indicate outliers not used in fit
+    if(~isempty(figureData.inOutFlag))
+        outIdx = cellfun(@(inOutFlag) ~inOutFlag,figureData.inOutFlag,'UniformOutput',false);
+        cellfun(@(times,data,outIdx) plot(times(outIdx),data(outIdx),'ko'),commonInfo.times,figureData.data,outIdx,'UniformOutput',false);
+    end
     %plot vertical lines indicating aligning Times
-    nCond = numel(data);
+    nCond = numel(figureData.data);
     for iCond = 1:nCond
-        plot([alignTimes(iCond), alignTimes(iCond)], [yMax, yMin], 'Color', colors{iCond});
+        plot([commonInfo.timeShift(iCond), commonInfo.timeShift(iCond)], [figureData.yMax, figureData.yMin], 'Color', colors{iCond});
     end
     %change the color so that color of data and fit match
     cellfun(@(x, y) set(x, 'Color', y), lineHandle, colors);
     %create legends only contain the fit
     fitHandle = [lineHandle{:}];
-    legend(fitHandle(2,:), names);
+    legend(fitHandle(2,:), commonInfo.conditions);
     %axis limit
-    if ~isempty(yMax)
-        ylim([yMin, yMax]);
+    if ~isempty(figureData.yMax)
+        ylim([figureData.yMin, figureData.yMax]);
     end
     %label axis
     xlabel('Time (min)');
-    ylabel(yLabelName);
+    ylabel(figureData.yLabel);
     title(plotTitle);
     %% Saving
     %save and close
