@@ -325,8 +325,7 @@ if(~params.nBootstrp)
     if(~isempty(figureData))
         [figureData.fitError] = deal([]);
     end
-    return;
-end
+else
 
 timeMax = cellfun(@(x) max(x), commonInfo.times);
 timeMin = cellfun(@(x) min(x), commonInfo.times);
@@ -347,11 +346,19 @@ end
 timeLimit = reshape(timeLimit,size(data));
 %store this in commonInfo
 commonInfo.analysisTimes = cellfun(@(x) x(1) : params.timeResolution : x(2), timeLimit, 'UniformOutput', false);
-%for progress display
-nFig = numel(figureData);
-progressTextMultiple('Determining confidence interval', nFig);
-%call determineSE_Bootstrp.m
-fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag), figureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
+determineSEInParallel = true;
+if(~determineSEInParallel)
+    %for progress display
+    nFig = numel(figureData);
+    progressTextMultiple('Determining confidence interval', nFig);
+else
+    %call determineSE_Bootstrp.m
+    dFigureData = distributed(figureData);
+end
+fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag), dFigureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
+if(determineSEInParallel)
+    fitError = gather(fitError);
+end
 [figureData.fitError] = fitError{:};
 
 %% Add Standard Error to Figures
@@ -416,6 +423,9 @@ end
 fitCompare = arrayfun(@callGetP, figureData, 'UniformOutput', false);
 [figureData.fitCompare] = fitCompare{:};
 
+
+end
+
 %% Nested Function: deals out pair of curves to getP
     function [fitCompare]  = callGetP(FD)
         if isempty(curveIndxPair)
@@ -439,8 +449,10 @@ end
 %% Local Functions
 %function for progressDisplay and calls determineSE_Bootstrp.m
 function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag)
-fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
-progressTextMultiple();
+    fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
+    if(numlabs == 1)
+        progressTextMultiple();
+    end
 end
 %error handle for determineSE_Bootstrp.m
 function [fitError] = determineSEEH(varargin)
