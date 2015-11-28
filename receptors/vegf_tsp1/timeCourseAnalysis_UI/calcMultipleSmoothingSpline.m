@@ -21,7 +21,7 @@ function [dataFit] = calcMultipleSmoothingSpline(data, times, inOutFlag, smoothi
 %% Initialization
 %assign default value
 if isempty(smoothingPara)
-    smoothingPara = .05;
+    smoothingPara = .01;
 end
 %creates figure and stores the figure handle
     fxn = @(varargin) calcMultipleSmoothingSplinePerCondition(varargin{:}, smoothingPara);

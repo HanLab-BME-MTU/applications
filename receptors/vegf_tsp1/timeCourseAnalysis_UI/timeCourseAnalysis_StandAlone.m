@@ -74,6 +74,7 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %                                 should compare curves within a figure to
 %                                 see if they are significantly different
 %                                 or not.
+%       detectOutliers_k_sigma  : (numeric, scalar) see detectOutliers
 % 
 %OUTPUT
 %   commonInfo      : contains information and data common to all figures
@@ -133,8 +134,6 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %       .yMax               : y-axis maximum on plot
 %       .yMin               : y-axis minimum on plot
 %       .yLabel             : y axis label
-%       .getTimes           : function handle that returns commonInfo.times
-%                             Don't rely on this!!!
 %       .fitError           : cellarray of the standard error calculated
 %                             from bootstrap analysis
 %       .fitCompare(i,j)    : n by n array that compares the curve
@@ -243,38 +242,42 @@ fprintf('Plotting figures: scatter plots\n');
 %So using cell fun convert data which is a cellarray of structure of arrays
 %into a cellarray of arrays
 %Other inputs are explained in plotData
-plotFigure({data.numAbsClass}', 'Absolute Number of Class Types', ...
+calcFigure({data.numAbsClass}', 'Absolute Number of Class Types', ...
     defCond, 'Number of tracks (molecules)');
-plotFigure({data.numNorm0Class}', 'Normalized Number of Class Types', ...
+calcFigure({data.numNorm0Class}', 'Normalized Number of Class Types', ...
     defCond, 'Number of tracks relative to time 0');
-plotFigure({data.densityAbsClass}', 'Absolute Density of Class Types', ...
+calcFigure({data.densityAbsClass}', 'Absolute Density of Class Types', ...
     defCond, 'Density of tracks (molecules/pixel^2)');
-plotFigure({data.densityNorm0Class}', 'Normalized Density of Class Types', ...
+calcFigure({data.densityNorm0Class}', 'Normalized Density of Class Types', ...
     defCond, 'Density of tracks relative to time 0');
-plotFigure({data.probClass}', 'Probability of Class Types', ...
+calcFigure({data.probClass}', 'Probability of Class Types', ...
     defCond([1:4 6 8]), ...
     'Probability');
-plotFigure({data.diffCoefClass}', 'Diffusion Coefficient', ...
+calcFigure({data.diffCoefClass}', 'Diffusion Coefficient', ...
     defCond(1:4), 'Diffusion coefficient (pixels^2/frame)'); %no 5th
-plotFigure({data.confRadClass}', 'Confinement Radius', ... 
+calcFigure({data.confRadClass}', 'Confinement Radius', ... 
     defCond(1:2), 'Confinement radius (pixels)');%no 3 4 5th column
-plotFigure({data.ampClass}', 'Fluorescence Amplitude', ...
+calcFigure({data.ampClass}', 'Fluorescence Amplitude', ...
     defCond(1:5), 'Intensity (arbitrary units)');
-plotFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ... 
+calcFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ... 
     defCond(1:5), 'Normalized intensity (monomer units)');
-plotFigure({data.ampStatsF20}', 'First 20 Frames - ', ...
+calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ...
     ampLabels, '');
-plotFigure({data.ampStatsL20}', 'Last 20 Frames - ', ...
+calcFigure({data.ampStatsL20}', 'Last 20 Frames - ', ...
     ampLabels, '');
-plotFigure({data.rateMS}', 'Merging and Spliting', ...
+calcFigure({data.rateMS}', 'Merging and Spliting', ...
     {'merging', 'splitting'}, '(per frame per particle)');
 %Do only if input specify that this plot be shown. Will cause error if
 %data.partitionFrac is not present
 if params.showPartition
-    plotFigure({data.chemEnergy}', 'Chemical Energy of Localization', defCond(1:5), 'Chemical Energy (arbitrary energy units)', false);
-    plotFigure({data.locFreq}', 'Localization Frequency', defCond(1:5), 'k on (arbitrary units)');
-    plotFigure({data.delocFreq}', 'Delocalization Frequency', defCond(1:5), 'k off (arbitrary units)');
-    plotFigure({data.eqCond}', 'Equilibrium Condition', defCond(1:5), 'Proximity to equilibrium condition (arbitrary units)', false);
+    calcFigure({data.chemEnergy}', 'Chemical Energy of Localization', ...
+        defCond(1:5), 'Chemical Energy (arbitrary energy units)', false);
+    calcFigure({data.locFreq}', ...
+        'Localization Frequency', defCond(1:5), 'k on (arbitrary units)');
+    calcFigure({data.delocFreq}', 'Delocalization Frequency', ...
+        defCond(1:5), 'k off (arbitrary units)');
+    calcFigure({data.eqCond}', 'Equilibrium Condition', ...
+        defCond(1:5), 'Proximity to equilibrium condition (arbitrary units)', false);
 end
 %get rid of figure data that was not plotted
 figureData = [figureData{:}];
@@ -286,7 +289,8 @@ pause(1);
 fprintf('\b Complete\n');
 
 %% Nested function for plotting
-% Splits data structure elements by columns and calls the plotting function
+% Splits data structure elements by columns and sotre information for
+% plotting
 %In other words, converts subData which is cell array of arrays into cell
 %array of columns.
 %subData            : contains all data to be plotted
@@ -294,7 +298,7 @@ fprintf('\b Complete\n');
 %title_variable     : part of plot title that does change depending on the
 %                     column number
 %yLabelName         : used for ylabel of the plot
-    function plotFigure(subData, title_Base, title_Variable, yLabelName, isYMin0)
+    function calcFigure(subData, title_Base, title_Variable, yLabelName, isYMin0)
         if(nargin < 4)
             yLabelName = '';
         end
@@ -302,52 +306,6 @@ fprintf('\b Complete\n');
             isYMin0 = true;
         end
         figureData{end+1} = timeCourseAnalysis.calcFigureData(commonInfo, subData, title_Base, title_Variable, yLabelName, isYMin0);
-        
-%         %initialization
-%         nColumns = numel(title_Variable);
-%         plotData(nColumns) = struct('fitData', [], 'condition', []);
-%         %determine maximum y value to determine y axis limit
-%         maxValue = max(cellfun(@(x) max(max(x(~(isnan(x)|isinf(x))))), subData));
-%         axisTick = 10^(round(log10(maxValue) + 0.2)-1);
-%         if isYMin0
-%             yMin = 0;
-%         else
-%             minValue = min(cellfun(@(x) min(min(x(~(isnan(x)|isinf(x))))), subData));
-%             axisTick = max(10^(round(log10(abs(minValue)) + 0.2)-1), axisTick);
-%             yMin = (ceil(minValue / axisTick) - 1) * axisTick;
-%         end
-%         yMax = (floor(maxValue / axisTick) + 1) * axisTick;
-%         %plot by column
-%         for iColumns = 1:nColumns
-%             subSubData = cellfun(@(x) x(:,iColumns), subData, 'UniformOutput', false);
-%             %KJ: identify inlier and outlier data points
-%             if(params.detectOutliers_k_sigma > 0)
-%                 inOutFlag = subSubData;
-%                 for iData = 1 : length(subSubData)
-%                     [outIdx,inIdx] = detectOutliers(subSubData{iData},3);
-%                     inOutFlag{iData}(outIdx) = 0; %outliers get flag 0
-%                     inOutFlag{iData}(inIdx)  = 1; %inliers get flag 1
-%                 end
-%             else
-%                 inOutFlag = cellfun(@(x) true(size(x)),subSubData,'UniformOutput',false);
-%             end
-%             plotTitle = [title_Base ' ' title_Variable{iColumns}];
-%             [fitData] = plotMultipleSmoothingSpline(outputDirFig, subSubData, times, names, colors, plotTitle, yLabelName, params.smoothingPara, yMax, yMin, timeShift, inOutFlag);
-%             plotData(iColumns).fitData = fitData;
-%             plotData(iColumns).condition = title_Variable{iColumns};
-%             %Save data in figureData
-%             iFD = iFD + 1;
-%             figureData(iFD).titleBase = title_Base;
-%             figureData(iFD).titleVariable = title_Variable{iColumns};
-%             figureData(iFD).fitData = fitData;
-%             figureData(iFD).data = subSubData;
-%             figureData(iFD).figureDir = [outputDirFig filesep plotTitle '.fig'];
-%             figureData(iFD).getTimes = @() commonInfo.times;
-%             figureData(iFD).yMax = yMax;
-%             figureData(iFD).yMin = yMin;
-%             figureData(iFD).yLabel = yLabelName;
-%             figureData(iFD).inOutFlag = inOutFlag;
-%         end
     end
 
 
@@ -367,25 +325,7 @@ else
 
 [commonInfo.analysisTimes, timeLimit, commonInfo.timeLimitIndx] = timeCourseAnalysis.getAnalysisTimes(commonInfo.times,params.timeResolution);
     
-% timeMax = cellfun(@(x) max(x), commonInfo.times);
-% timeMin = cellfun(@(x) min(x), commonInfo.times);
-% %determine the overall range of all conditions (This is useful later when comparing two curves)
-% timeMaxMax = max(timeMax);
-% timeMinMin = min(timeMin);
-% %convert to number divisible by timeResolution
-% timeMinMin = timeMinMin - mod(timeMinMin, params.timeResolution);
-% timeMaxMax = timeMaxMax - mod(timeMaxMax, -params.timeResolution);
-% analysisTime_Union = timeMinMin : params.timeResolution : timeMaxMax;
-% %Determine the indx and value of timemin and max for each conditions
-% timeLimit = cell(1, nConditions);
-% timeLimitIndx = cell(1, nConditions);
-% for iCond = 1:nConditions
-%     timeLimitIndx{iCond} = [find(analysisTime_Union <= timeMin(iCond), 1, 'last'), find(analysisTime_Union >= timeMax(iCond), 1, 'first')];
-%     timeLimit{iCond} = [analysisTime_Union(timeLimitIndx{iCond}(1)), analysisTime_Union(timeLimitIndx{iCond}(2))];
-% end
-% timeLimit = reshape(timeLimit,size(data));
-% %store this in commonInfo
-% commonInfo.analysisTimes = cellfun(@(x) x(1) : params.timeResolution : x(2), timeLimit, 'UniformOutput', false);
+% Computer standard error
 determineSEInParallel = true;
 nFig = numel(figureData);
 if(~determineSEInParallel)
@@ -407,95 +347,15 @@ end
 
 %% Add Standard Error to Figures
 timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2);
-% lineObj = cell(1,nConditions);
-% for iFig = 1:nFig
-%     %open up the figure and make it current figure
-%     %figObj = openfig(figureData(iFig).figureDir);
-%     figObj = figure();
-%     hold on;
-%     %plot standard errors
-%     for iCond = 1:nConditions
-%         fitValues = figureData(iFig).fitData{iCond}(commonInfo.analysisTimes{iCond});
-%         fitValues = fitValues';
-%         plot(commonInfo.analysisTimes{iCond}, fitValues + figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
-%         plot(commonInfo.analysisTimes{iCond}, fitValues - figureData(iFig).fitError{iCond}, ':', 'color', colors{iCond});
-%         lineObj{iCond} = plot(commonInfo.analysisTimes{iCond}, fitValues, 'color', colors{iCond});
-%         plot([timeShift(iCond), timeShift(iCond)], [figureData(iFig).yMax, figureData(iFig).yMin], 'Color', colors{iCond});
-%     end
-%     lineObj2 = [lineObj{:}];
-%     legend(lineObj2, commonInfo.conditions);
-%     title([figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable])
-%     xlabel('Time (min)');
-%     ylabel(figureData(iFig).yLabel);
-%     ylim([figureData(iFig).yMin, figureData(iFig).yMax]);
-%     %save and close
-%     savefig(figObj, [outputDirFig2, filesep, figureData(iFig).titleBase, ' ', figureData(iFig).titleVariable, '.fig']);
-%     close(figObj);
-% end
+
 pause(1);
 
 %% Compare Fitted Curves
 [fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
-% %progress display
-% progressTextMultiple('Comparing fittted curves', nFig);
-% %pairs up curve indices for comparison----------------
-% %And
-% %determines the commonInfo.compareTimes
-% %which are simply intersection of two commonInfo.analysisTimes sets
-% %And
-% %determines the indx of these overlap------------
-% nPair = nConditions * (nConditions - 1) / 2;
-% curveIndxPair = cell(1, nPair);
-% commonIndx1 = cell(1, nPair);
-% commonIndx2 = cell(1, nPair);
-% iPair_ = 0;
-% for indx1 = 1:nConditions-1
-%     for indx2 = indx1+1:nConditions
-%         iPair_ = iPair_ + 1;
-%         curveIndxPair{iPair_} = [indx1, indx2];
-%         commonMinIndx = max(timeLimitIndx{indx1}(1), timeLimitIndx{indx2}(1));
-%         commonMaxIndx = min(timeLimitIndx{indx1}(2), timeLimitIndx{indx2}(2));
-%         %for indx1
-%         commonIndx1{iPair_} = [commonMinIndx, commonMaxIndx] - timeLimitIndx{indx1}(1) + 1;
-%         %for indx2
-%         commonIndx2{iPair_} = [commonMinIndx, commonMaxIndx] - timeLimitIndx{indx2}(1) + 1;
-%         %indx to value conversion
-%         commonInfo.compareTimes{iPair_} = commonInfo.analysisTimes{indx1}(commonIndx1{iPair_}(1):commonIndx1{iPair_}(2));
-%     end
-% end
-% %determine p-values at each timepoints = commonInfo.compareTimes
-% %deals out figureData to callGetP
-% fitCompare = arrayfun(@(fd) callGetP(fd,curveIndxPair,nConditions,nPair,commonInfo,commonIndx1, commonIndx2), ...
-%     figureData, 'UniformOutput', false);
 [figureData.fitCompare] = fitCompare{:};
 
 
-end
-
-%% Nested Function: deals out pair of curves to getP
-%     function [fitCompare]  = callGetP(FD,curveIndxPair,nConditions,nPair,commonInfo,commonIndx1, commonIndx2)
-%         if isempty(curveIndxPair)
-%             pValue = [];
-%         else
-%             pValue = cellfun(@(x, y, index1, index2) getPValues(FD.fitData{x(1)}, FD.fitData{x(2)}, ...
-%                     FD.fitError{x(1)}(index1(1):index1(2)), ...
-%                     FD.fitError{x(2)}(index2(1):index2(2)), ...
-%                     y), ...
-%                 curveIndxPair, ...
-%                 commonInfo.compareTimes, ...
-%                 commonIndx1, ...
-%                 commonIndx2, ...
-%                 'UniformOutput', false, ...
-%                 'ErrorHandler', @getPEH);
-%         end
-%         fitCompare(nConditions, nConditions) = struct('geoMeanP', [], 'p', [], 'timeIndx', []);
-%         for iPair = 1:nPair
-%             fitCompare(curveIndxPair{iPair}(1), curveIndxPair{iPair}(2)).p = pValue{iPair};
-%             fitCompare(curveIndxPair{iPair}(1), curveIndxPair{iPair}(2)).geoMeanP = geomean(pValue{iPair});
-%             fitCompare(curveIndxPair{iPair}(1), curveIndxPair{iPair}(2)).timeIndx = iPair;
-%         end
-%         progressTextMultiple();
-%     end
+end % end of if(~params.nBootstrp)
 
 %% Save
 save(commonInfo.fullPath, 'commonInfo', 'figureData');

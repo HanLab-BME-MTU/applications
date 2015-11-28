@@ -18,13 +18,14 @@ function figureData = calcFigureData(commonInfo, subData, title_Base, title_Vari
 % figureData
 %
 % Mark Kittisopikul, November 2015
-
+    if(nargin < 5)
+        yLabelName = '';
+    end
     if(nargin < 6)
         isYMin0 = true;
     end
     %initialization
     nColumns = numel(title_Variable);
-%         plotData(nColumns) = struct('fitData', [], 'condition', []);
     %determine maximum y value to determine y axis limit
     finiteData = cellfun(@(x) x(isfinite(x(:))),subData,'UniformOutput',false);
     finiteData = vertcat(finiteData{:});
@@ -56,8 +57,6 @@ function figureData = calcFigureData(commonInfo, subData, title_Base, title_Vari
         if(isempty(fitData))
             warning(['Could not calculate smoothing spline for ' plotTitle]);
         end
-%             plotData(iColumns).fitData = fitData;
-%             plotData(iColumns).condition = title_Variable{iColumns};
         %Save data in figureData
         figureData(iColumns).titleBase = title_Base;
         figureData(iColumns).titleVariable = title_Variable{iColumns};

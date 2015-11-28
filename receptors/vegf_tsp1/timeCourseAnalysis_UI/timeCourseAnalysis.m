@@ -30,6 +30,8 @@ function [] = timeCourseAnalysis(CMLs, outputDir, varargin)
 %                                 be zero, even if the align event is not
 %                                 'start'
 %       'channelNames'          : (cellstr) cell array of channel names
+%        detectOutliers_k_sigma : (numeric, scalar) see detectOutliers
+%
 %
 %Tae H Kim, July 2015
 
@@ -51,18 +53,15 @@ end
 %input parser
 ip = inputParser;
 ip.CaseSensitive = false;
+% Extra (Unmatched) parameters forwarded to timeCourseAnalysis_StandAlone
 ip.KeepUnmatched = true;
 ip.StructExpand = true;
 ip.addRequired('outputDir', @ischar);
-% ip.addParameter('smoothingPara', .01, @(x) isnumeric(x) && x>=0 && x<=1);
 ip.addParameter('channels', [], @isnumeric);
 ip.addParameter('doPartition', false, @(x) isnumeric(x) || islogical(x));
 ip.addParameter('doNewAnalysis', true, @(x) isnumeric(x) || islogical(x));
-% ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('start2zero', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('channelNames', false, @(x) iscellstr(x));
-% ip.addParameter('nBootstrp',100,@isnumeric);
-% ip.addParameter('detectOutliers_k_sigma',0,@isnumeric);
 ip.parse(outputDir, varargin{:});
 %for easier access to ip.Result variables
 analysisPara = ip.Results;
@@ -80,25 +79,7 @@ for iCML = 1:nCML
     fprintf(repmat('\b', 1, progressDisp)); %loading progress display
     nMLTot = nMLTot + numel(CMLs(iCML).movieLists_);
 end
-% %nested function for above: checking MD has necessary processes
-%     function [] = MLCheck(ML, parameter)
-%         nMD = numel(ML.movies_);
-%         for iMD = 1:nMD
-%             if isempty(ML.movies_{iMD}.getProcessIndex('MotionAnalysisProcess'))
-%                 error('timeCourseAnalysis:MotionAnalysisProcessMissing', ...
-%                     ['MovieData ' ML.movies_{iMD}.movieDataFileName_ ...
-%                     '\n at ' ML.movies_{iMD}.movieDataPath_ ...
-%                     '\n does not contain MotionAnalysisProcess']);
-%             end
-%             if parameter.doPartition ...
-%                     && isempty(ML.movies_{iMD}.getProcessIndex('PartitionAnalysisProcess'))
-%                 error('timeCourseAnalysis:PartitionAnalysisProcessMissing', ... 
-%                     ['MovieData ' ML.movies_{iMD}.movieDataFileName_ ...
-%                     '\n at ' ML.movies_{iMD}.movieDataPath_ ...
-%                     '\n does not contain PartitionAnalysisProcess']);
-%             end
-%         end
-%     end
+
 %% Main Time Course Analysis (CML-level)
 %Progress Display
 progressTextMultiple('Time Course Analysis', nMLTot);
@@ -106,96 +87,7 @@ progressTextMultiple('Time Course Analysis', nMLTot);
 %and extract time data and align
 [summary, time, extra, startTime] = arrayfun(@(CML) timeCourseAnalysis.CMLAnalyze(CML,analysisPara), CMLs, 'UniformOutput', false);
 startTime = [startTime{:}];
-%nested function for above cellfun
-% %deals with individual CML
-%     function [CMLSummary, CMLTime, CMLExtra, startTime] = CMLAnalyze(CML,analysisPara)
-%         alignEvent = CML.analysisPara_.alignEvent;
-%         %[CMLSummary, CMLTime, CMLExtra] = arrayfun(@(x) MLAnalyze(x, alignEvent), CML.movieLists_, 'UniformOutput', false);
-%         nML = numel(CML.movieLists_);
-%         for iML = nML:-1:1
-%             [CMLSummary{iML}, CMLTime{iML}, CMLExtra{iML}, startTime(iML)] = MLAnalyze(CML.movieLists_(iML), alignEvent,analysisPara);
-%         end
-%         CMLSummary = vertcat(CMLSummary{:});
-%         CMLTime = vertcat(CMLTime{:});
-%         CMLExtra = vertcat(CMLExtra{:});
-%         startTime = mean(startTime);
-%     end
-% %% Time Course Analysis (ML-level)
-%     function [MLSummary, MLTime, MLExtra, startTime] = MLAnalyze(ML, alignEvent,analysisPara)
-%         %Basic Analysis-------------------------------
-%         %new analysis if doNewAnalysis is true or analysis has not been
-%         %done yet
-%         TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
-%         %progressText
-%         progressTextMultiple('part 1', 2);
-%         %(I'm not exactly sure what resultsIndTimeCourseMod does)
-%         %It is used like blackbox that does the basic analysis
-%         if isempty(TCAPIndx) || isempty(ML.processes_{TCAPIndx}.summary_)
-%             MLSummary = resultsIndTimeCourseMod(ML, false);
-%             ML.addProcess(TimeCourseAnalysisProcess(ML));
-%             TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
-%             ML.processes_{TCAPIndx}.setSummary(MLSummary);
-%             ML.save;
-%         elseif analysisPara.doNewAnalysis
-%             MLSummary = resultsIndTimeCourseMod(ML, false,analysisPara.channels);
-%             ML.processes_{TCAPIndx}.setSummary(MLSummary);
-%             ML.save;
-%         else
-%             MLSummary = ML.processes_{TCAPIndx}.summary_;
-%         end
-%         progressTextMultiple('part 2');
-%         %Time Analysis---------------------------------
-%         timeProcIndx = ML.getProcessIndex('TimePoints');
-%         alignIndx = ML.processes_{timeProcIndx}.getIndex(alignEvent);
-%         offSet = datenum(ML.processes_{timeProcIndx}.times_{alignIndx});
-%         MLTime = cellfun(@(x) (datenum(x.acquisitionDate_) - offSet) .* 1440, ML.movies_, 'UniformOutput', false);
-%         MLTime = vertcat(MLTime{:});
-%         %get relative startTime
-%         startIndx = ML.processes_{timeProcIndx}.getIndex('start');
-%         startTime = (datenum(ML.processes_{timeProcIndx}.times_{startIndx}) - offSet) * 1440;
-%         %Conditional (Extra) Analysis-------------------------
-%         MLExtra = cellfun(@MDAnalyze, ML.movies_, 'UniformOutput', false);
-%         MLExtra = vertcat(MLExtra{:});
-%         %--------------------TrackPartitioning analysis---------------
-%         if analysisPara.doPartition
-%             %Column 1 : immobile
-%             %Column 2 : confined
-%             %Column 3 : free
-%             %Column 4 : directional
-%             %Column 5 : undetermined
-%             FN = {'immobile', 'confined', 'free', 'directed', 'undetermined'};
-%             nFN = numel(FN);
-%             [result_pCoef, ~] = partitionCoef(ML);
-%             nMD = numel(ML.movies_);
-%             for iMD = 1:nMD
-%                 for iFN = 1:nFN
-%                     MLExtra(iMD,1).chemEnergy(iFN) = log(result_pCoef.partCoef(iMD).(FN{iFN}));
-%                     MLExtra(iMD,1).locFreq(iFN) = result_pCoef.locFreq(iMD).(FN{iFN});
-%                     MLExtra(iMD,1).delocFreq(iFN) = result_pCoef.delocFreq(iMD).(FN{iFN});
-%                     MLExtra(iMD,1).eqCond(iFN) = result_pCoef.eqCond(iMD).(FN{iFN});
-%                 end
-%             end
-%         end
-%         progressTextMultiple();
-%         %---------------------
-%         %progress text
-%         progressTextMultiple();
-%     end
-% %% Time Course Analysis (MD-level)
-%     function [MDExtra] = MDAnalyze(MD) %#ok<INUSD>
-%         %Need blank if not used
-%         MDExtra.blank = [];
-%         %{
-%         %loads 'partitionResult'
-%         if analysisPara.doPartition
-%             load(MD.processes_{channel, MD.getProcessIndex('PartitionAnalysisProcess')}.outFilePaths_{1});
-%         end
-%         %loads 'tracks' and 'diffAnalysisRes'
-%         if analysisPara.doPartition
-%             load(MD.processes_{channel, MD.getProcessIndex('MotionAnalysisProcess')}.outFilePaths_{1});
-%         end
-%         %}
-%     end
+
 %% Format Change
 % Break summary apart by channel
 summary = cellfun(@(s) num2cell(s,1),summary,'UniformOutput',false);
@@ -211,9 +103,6 @@ end
 for iCML = 1:nCML
     for iChannel = analysisPara.channels;
         summary{iCML,iChannel}.time = time{iCML};
-        % mkitti: todo, MAKE DEPEND ON CHANNEL
-%         summary{iCML}.name = CMLs(iCML).name_;
-%         summary{iCML,iChannel}.name = ['Channel ' num2str(iChannel)];
         summary{iCML,iChannel}.name = analysisPara.channelNames{iChannel};
         if(~isempty(CMLs(iCML).name_))
             if(~isempty(summary{iCML,iChannel}.name))
@@ -222,9 +111,6 @@ for iCML = 1:nCML
             summary{iCML,iChannel}.name = [ CMLs(iCML).name_ summary{iCML,iChannel}.name];
         end
     end
-%     if(~isempty(CMLs(iCML).name_) && size(summary,2) == 1)
-%         summary{iCML}.name = CMLs(iCML).name_;
-%     end
 end
 % HACK, FIX
 % essentially let the rest of the analysis use linear indexing to access
@@ -247,30 +133,10 @@ for iCML = 1:nCML
     name = summary{iCML}.name;
     summary{iCML} = structfun(@(x) x(sortIndx,:),summary{iCML},'UniformOutput',false,'ErrorHandler',@(~,x) x);
     summary{iCML}.name = name;
-%     [summary{iCML}.time, sortIndx] = sort(summary{iCML}.time);
-%     summary{iCML}.numAbsClass = summary{iCML}.numAbsClass(sortIndx, :);
-%     summary{iCML}.numNorm0Class = summary{iCML}.numNorm0Class(sortIndx, :);
-%     summary{iCML}.densityAbsClass = summary{iCML}.densityAbsClass(sortIndx, :);
-%     summary{iCML}.densityNorm0Class = summary{iCML}.densityNorm0Class(sortIndx, :);
-%     summary{iCML}.probClass = summary{iCML}.probClass(sortIndx, :);
-%     summary{iCML}.diffCoefClass = summary{iCML}.diffCoefClass(sortIndx, :);
-%     summary{iCML}.confRadClass = summary{iCML}.confRadClass(sortIndx, :);
-%     summary{iCML}.ampClass = summary{iCML}.ampClass(sortIndx, :);
-%     summary{iCML}.ampNormClass = summary{iCML}.ampNormClass(sortIndx, :);
-%     summary{iCML}.ampStatsF20 = summary{iCML}.ampStatsF20(sortIndx, :);
-%     summary{iCML}.ampStatsL20 = summary{iCML}.ampStatsL20(sortIndx, :);
-%     summary{iCML}.rateMS = summary{iCML}.rateMS(sortIndx, :);
-%     if analysisPara.doPartition
-%         summary{iCML}.chemEnergy = summary{iCML}.chemEnergy(sortIndx, :);
-%         summary{iCML}.locFreq = summary{iCML}.locFreq(sortIndx, :);
-%         summary{iCML}.delocFreq = summary{iCML}.delocFreq(sortIndx, :);
-%         summary{iCML}.eqCond = summary{iCML}.eqCond(sortIndx, :);
-%     end
 end
 
 %% Shift time
 shiftTime = [];
-% if isfield(analysisPara,'start2zeroUI') && analysisPara.start2zeroUI
 if analysisPara.start2zero
     shiftTimeIndx = startTime~=0;
     offset = - mean(startTime(shiftTimeIndx));
@@ -285,13 +151,6 @@ timeCourseAnalysis_StandAlone(summary, outputDir, ...
       ip.Unmatched ...
     , 'shiftTime', shiftTime ...
     );
-%     'smoothingPara', analysisPara.smoothingPara, ...
-%     'showPartitionAnalysis', analysisPara.doPartition, ...
-%     'shiftTime', shiftTime, ...
-%     'shiftPlotPositive', analysisPara.shiftPlotPositive, ...
-%     'nBootstrp',analysisPara.nBootstrp, ...
-%     'detectOutliers_k_sigma',analysisPara.detectOutliers_k_sigma ...
-%     );
 %% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
 end
