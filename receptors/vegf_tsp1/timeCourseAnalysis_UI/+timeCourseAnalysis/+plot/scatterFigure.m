@@ -51,7 +51,8 @@ end
             outputDirFig, ...
             noClose), ...
         figureData, ...
-        'UniformOutput', false ...
+        'UniformOutput', false, ...
+        'ErrorHandler',@scatterFigureError ...
     );
     
     if(nargout > 0)
@@ -103,4 +104,13 @@ function figureHandle = scatterIndividualFigure(commonInfo, figureData, colors, 
     if(~noClose)
         close(figureHandle);
     end
+end
+function out = scatterFigureError(err,figureData)
+    if(isempty(err.identifier))
+        error('scatterFigure:scatterFigureError',['Could not plot ' figureData.titleBase ' ' figureData.titleVariable])
+    end
+    warning('scatterFigure:scatterFigureError',['Could not plot ' figureData.titleBase ' ' figureData.titleVariable]);
+    disp(err);
+    disp(figureData);
+    out = [];
 end
