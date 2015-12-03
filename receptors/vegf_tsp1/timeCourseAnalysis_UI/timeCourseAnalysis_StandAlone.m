@@ -281,8 +281,13 @@ if params.showPartition
 end
 %get rid of figure data that was not plotted
 figureData = [figureData{:}];
-mask = arrayfun(@(x) ~isempty(x.fitData), figureData);
+mask = arrayfun(@(x) ~any(cellfun('isempty',x.fitData)), figureData);
 figureData = figureData(mask);
+
+%% Save
+save(commonInfo.fullPath, 'commonInfo', 'figureData');
+
+%% Plot
 timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig);
 pause(1);
 %progressText
