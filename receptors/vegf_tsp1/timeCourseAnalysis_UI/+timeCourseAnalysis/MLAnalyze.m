@@ -3,6 +3,7 @@ function [MLSummary, MLTime, MLExtra, startTime] = MLAnalyze(ML, alignEvent,anal
 %Basic Analysis-------------------------------
 %new analysis if doNewAnalysis is true or analysis has not been
 %done yet
+ML.sanityCheck;
 TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
 %progressText
 progressTextMultiple('part 1', 2);
