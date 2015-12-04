@@ -342,6 +342,7 @@ else
     disp('Determining confidence interval');
     disp('Parallel progress not available');
     dFigureData = distributed(figureData);
+    parfor_progress(nFig);
 end
 %call determineSE_Bootstrp.m
 fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag), dFigureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
@@ -353,7 +354,7 @@ end
 %% Add Standard Error to Figures
 timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2);
 
-pause(1);
+drawnow;
 
 %% Compare Fitted Curves
 [fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
@@ -372,6 +373,8 @@ function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, 
     fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
     if(numlabs == 1)
         progressTextMultiple();
+    else
+        parfor_progress();
     end
 end
 %error handle for determineSE_Bootstrp.m
