@@ -60,7 +60,7 @@ numCases = 1;
 %reserve memory for individual movie results
 resSummary = struct('diffSummary',[],'diffCoefMeanPerClass',[],...
     'confRadMeanPerClass',[],'ampMeanPerClass',[],'ampStatsF20',[],...
-    'ampStatsL20',[],'statsMS',[]);
+    'ampStatsL20',[],'statsMS',[],'msTimeInfo',[],'cellArea',[]);
 
 resSummary = repmat(resSummary,numMovies,1);
 
@@ -95,8 +95,6 @@ for iM = 1 : numMovies
     end
     for iC = curChannels
         
-        
-    
         iProcDiff = MD.getProcessIndex('MotionAnalysisProcess',1,0); %diffusion analysis and tracks
         if isempty(iProcDiff)
             error([MD.movieDataPath_ ' : Process Missing']);
@@ -112,7 +110,7 @@ for iM = 1 : numMovies
             mask = [];
             cellArea = 512^2; %hard-code for now - look for better solution given the peculiarities of our simultaneous 2-color imaging
         end
-
+        
         %limit analysis to tracks in mask if supplied
         if ~isempty(mask) && any(mask(:)==0)
             %keep only tracks in mask
@@ -176,7 +174,7 @@ for iM = 1 : numMovies
         %amplitude statistics in first 20 frames
         ampVec = ampMat(:,1:20);
         ampVec = ampVec(~isnan(ampVec));
-        [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,1,[],2,[],1,[],0);
+        [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,0,[],2,[],1,[],0);
         numMode = size(modeParam,1);
         modeParamMean = modeParam(1,1);
         modeParamStd  = modeParam(1,2);
@@ -206,7 +204,11 @@ for iM = 1 : numMovies
 
         %merge and split statistics
         statsMS = calcStatsMS_noMotionInfo(tracks,5,1,1);
-
+        tmp = calcMergeSplitTimes(tracks,5,[],1);
+        tmp = tmp.all;
+        msTimeInfo = [mean(tmp.timeMerge2Split) mean(tmp.timeSplit2MergeSelf) mean(tmp.timeSplit2MergeOther) mean(tmp.timeMerge2End) mean(tmp.timeStart2Split)];
+        %         msTimeInfo = tmp.timeMerge2Split;
+        
         %results for output
         resSummary(iM,iC).diffSummary = diffSummary;
         resSummary(iM,iC).diffCoefMeanPerClass = diffCoefMeanPerClass;
@@ -215,8 +217,10 @@ for iM = 1 : numMovies
         resSummary(iM,iC).ampStatsF20 = ampStatsF20;
         resSummary(iM,iC).ampStatsL20 = ampStatsL20;
         resSummary(iM,iC).statsMS = statsMS;
+        resSummary(iM,iC).msTimeInfo = msTimeInfo;
         resSummary(iM,iC).cellArea = cellArea;
-
+        %         resSummary(iM,iC).ampMatF20 = ampMat(:,1:20);
+        
         %Progress Counter
         progressTextMultiple();
         %{
@@ -234,8 +238,6 @@ end
 
 %go over each case and put its results together
 for iCase = 1 : numCases
-    
-
     
     %collect and sort results
     caseResSummary = resSummary;
