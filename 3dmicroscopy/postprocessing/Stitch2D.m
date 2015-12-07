@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %       small program to stitch axial MIPs of Multiplane data
 %
-%       primitive version with visual stitching
+%       primitive version with visual stitching for light-sheet imaging.
 %       by Reto Fiolka  12-04-2015
 %                    
 %                     
