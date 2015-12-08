@@ -14,8 +14,8 @@ nFrame = MD.nFrames_;
 
 color_array= [1 0 0; 0 1 0; 0 0 1; 1 1 0; 1 0 1;0 1 1 ;rand(150,3)];
 iFrame = 1;
-if(~exist([MD.outputDirectory_,'/CC_tracking/'],'dir'))
-    mkdir([MD.outputDirectory_,'/CC_tracking/']);
+if(~exist([MD.outputDirectory_,filesep,'CC_tracking'],'dir'))
+    mkdir([MD.outputDirectory_,filesep,'CC_tracking']);
 end
 
 intensity_pool = [];
@@ -138,7 +138,7 @@ mean_intensity_matrix = zeros(nFrame, nCell);
 VIF_intensity = zeros(nFrame, nCell);
 
 title( sprintf('Mean-shift clustering result - %d clusters were found', numel(clusterInfo)));
-saveas(h1,[MD.outputDirectory_,'/CC_tracking/mean_shift_clustering.tif']);
+saveas(h1,[MD.outputDirectory_,filesep,'CC_tracking',filesep,'mean_shift_clustering.tif']);
 
 % mask_cells = zeros(size(currentImg,1),size(currentImg,2),nCell);
 
@@ -281,8 +281,8 @@ for iFrame = 1 : nFrame;
                 
     end
     title(['Tracking Frame ',num2str(iFrame)]);
-    print(h3,'-dtiff',[MD.outputDirectory_,'/CC_tracking/tracking_',num2str(iFrame),'.tif']);
-%    print(h13,'-dtiff',[MD.outputDirectory_,'/CC_tracking/VIF_',num2str(iFrame),'.tif']);
+    print(h3,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking',filesep,'tracking_',num2str(iFrame),'.tif']);
+%    print(h13,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking',filesep,'VIF_',num2str(iFrame),'.tif']);
 
 %     These are for level set segmentation
 %     Not ready yet
@@ -294,7 +294,7 @@ for iFrame = 1 : nFrame;
     
 end
 
-save([MD.outputDirectory_,'/CC_tracking/cc_tracking_results.mat'], ...
+save([MD.outputDirectory_,filesep,'CC_tracking',filesep,'cc_tracking_results.mat'], ...
     'position_array','present_cells','mean_intensity_matrix','VIF_intensity');
 
 currentImg = double(MD.channels_(1).loadImage(1));
@@ -345,5 +345,5 @@ for iFrame = 1 : 5: nFrame
 
 end
 
-saveas(h3,[MD.outputDirectory_,'/CC_tracking/whole_tracking.tif']);
-% saveas(h13,[MD.outputDirectory_,'/CC_tracking/VIF_whole_tracking.tif']);
+saveas(h3,[MD.outputDirectory_,filesep,'CC_tracking',filesep,'whole_tracking.tif']);
+% saveas(h13,[MD.outputDirectory_,filesep,'CC_tracking',filesep,'VIF_whole_tracking.tif']);

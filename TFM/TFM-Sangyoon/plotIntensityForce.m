@@ -16,8 +16,12 @@ alignEvent=ip.Results.alignEvent;
 indivColor=ip.Results.indivColor;
 source = ip.Results.Source;
 
-h=figure; hold on
 nTracks = numel(tracksNA);
+if nTracks<1
+    disp('No data in tracksNA ... Aborting ...')
+    return
+end
+h=figure; hold on
 % alignment might be necessary:
 % events = detectProtrusionEvents(v,dThreshold)
 lifeTime = arrayfun(@(x) x.lifeTime,tracksNA);
@@ -31,8 +35,16 @@ if alignEvent
 
         %   perform spline filter for ampTotal
         nTime = length(d);
-        sd_spline= csaps(1:nTime,d,splineParam);
-        sd=ppval(sd_spline,1:nTime);
+        tRange = 1:nTime;
+        numNan = find(isnan(d),1,'last');
+        tRange(isnan(d)) = [];
+        d(isnan(d)) = [];
+        sd_spline= csaps(tRange,d,splineParam);
+        sd=ppval(sd_spline,tRange);
+%         d = [NaN(1,numNan) d];
+%         tRange = [NaN(1,numNan) tRange];
+        sd = [NaN(1,numNan) sd];
+%         sd(isnan(d)) = NaN;
         % Find the maximum
         [~,curFrameMaxAmp]=max(sd);
         frameMaxAmp(ii)=curFrameMaxAmp;
@@ -95,12 +107,12 @@ else
         d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
         if indivColor
             if strcmp(source,'edgeAdvanceDist')
-                subplot(1,3,1), plot(1:tracksNA(ii).lifeTime,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,3,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
-                subplot(1,3,3), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,3,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                subplot(1,3,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,3,3), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
             else
-                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
             end
         else
             if strcmp(source,'edgeAdvanceDist')
@@ -108,14 +120,18 @@ else
                 subplot(1,3,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
                 subplot(1,3,3), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence)),'Color',[10/255 220/255 64/255]), hold on
             else
-                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime,d,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
+                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d,'Color',[0.5 0.5 0.5]), hold on
+                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
             end
         end
     end
     % title(['Group 1:' num2str(idGroup1f')])
     % set the life time to be 80 percentile
-    if length(lifeTime)>30
+    if length(lifeTime)>100
+        thresLifeTime = quantile(lifeTime,0.95);
+    elseif length(lifeTime)>50
+        thresLifeTime = quantile(lifeTime,0.9);
+    elseif length(lifeTime)>30
         thresLifeTime = quantile(lifeTime,0.8);
     elseif length(lifeTime)>20
         thresLifeTime = quantile(lifeTime,0.7);
@@ -172,7 +188,9 @@ else
     set(h,'Position',[200,400,400,200])%,title(['ID:' num2str(ii) ', CC-score:' num2str(tracksNA(ii).CCscore)])
     subplot(1,2,1) 
 end
-plot(1:nSampleFrames,AmpG1avg,'k','Linewidth',3)
+if nTracks>1
+    plot(1:nSampleFrames,AmpG1avg,'k','Linewidth',3)
+end
 xlim([0 maxLifeTime])
 maxYamp = quantile(nanmax(AmpArray),0.99);
 minYamp = quantile(nanmin(AmpArray),0.01);
@@ -184,7 +202,9 @@ if strcmp(source,'edgeAdvanceDist')
 else
     subplot(1,2,2) 
 end
-plot(1:nSampleFrames,forceG1avg,'r','Linewidth',3)
+if nTracks>1
+    plot(1:nSampleFrames,forceG1avg,'r','Linewidth',3)
+end
 xlim([0 maxLifeTime])
 maxYforce = quantile(nanmax(forceArray),0.95);
 minYforce = quantile(nanmin(forceArray),0.01);
@@ -203,10 +223,12 @@ if strcmp(source,'edgeAdvanceDist')
     ylabel('Edge distance (Pixel)')
 end
 
-[pathStore]=fileparts(fileStore);
-if ~exist(pathStore,'dir')
-    mkdir(pathStore)
+if ~isempty(fileStore)
+    [pathStore,nameStore]=fileparts(fileStore);
+    if ~exist(pathStore,'dir')
+        mkdir(pathStore)
+    end
+    set(gcf,'PaperPositionMode','auto')
+    print('-depsc2', '-r300', strcat(fileStore));
+    savefig(fullfile(pathStore,[nameStore '.fig']));
 end
-set(gcf,'PaperPositionMode','auto')
-print('-depsc2', '-r300', strcat(fileStore));
-

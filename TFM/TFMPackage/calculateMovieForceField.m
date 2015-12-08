@@ -122,22 +122,20 @@ if exist(outputFile{1},'file')
                 'Recover previous run','Yes','No','Yes');
             if ~strcmpi(recoverRun,'Yes'), firstFrame=1; end
         end
-        if ~usejava('desktop')
-            firstFrame=1;
-        end
+%         if ~usejava('desktop')
+%             firstFrame=1;
+%         end
     end
 end
 % asking if you want to reuse the fwdMap again (you have to make sure that
 % you are solving the same problem with only different reg. param.) -SH
-reuseFwdMap = 'No';
+reuseFwdMap = 'Yes';
 if strcmpi(p.method,'FastBEM') && exist(outputFile{3,1},'file') 
     if usejava('desktop')
         reuseFwdMap = questdlg(...
             ['BEM parameters were dectected. Do you' ...
             ' want to use these parameter and overwrite the results?'],...
             'Reuse Fwdmap','Yes','No','No');
-    else
-        reuseFwdMap = 'No';
     end
 end
 
@@ -628,8 +626,18 @@ if strcmpi(p.method,'FastBEM')
                 save(outputFile{1},'forceField');
             end
         end
-%         % Error estimation
-%         u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+        % Error estimation
+        % I will use forward matrix to estimate relative uncertainty of
+        % calculated displacement field for each force node. - SH
+        % 09/08/2015
+        % First, get the maxima for each force node from M
+        forceNodeMaxima = max(M);
+        forceConfidence.pos = forceMesh.p;
+        forceConfidence.vec = reshape(forceNodeMaxima,[],2);
+        % Make it relative
+        maxCfd = max(forceNodeMaxima);
+        forceConfidence.vec = forceConfidence.vec/maxCfd;
+        u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
 %         if p.divideConquer>1
 %             %reconstruct M from M_sub
 %             
@@ -641,15 +649,15 @@ if strcmpi(p.method,'FastBEM')
 %         u_diff_vec=reshape(u_diff,[],2);
 %         displErrField(i).pos=pos_u;
 %         displErrField(i).vec=u_diff_vec;
-%         % Distance to the closest bead from each force node
-%         % check if pos_u is already nan-clear in terms of u
-%         if length(pos_u)==length(u)
-%             beadsWhole = pos_u;
-%         else
-%             idNanU = isnan(u_org);
-%             pos_u = pos_u(~idNanU);
-%             beadsWhole = pos_u;
-%         end
+        % Distance to the closest bead from each force node
+        % check if pos_u is already nan-clear in terms of u
+        if length(pos_u)==length(u)
+            beadsWhole = pos_u;
+        else
+            idNanU = isnan(u_org);
+            pos_u = pos_u(~idNanU);
+            beadsWhole = pos_u;
+        end
         
 %         parfor i=1:length(forceField(i).pos(:,1))
 %             [~,distToBead(i)] = KDTreeClosestPoint(beadsWhole,forceField(i).pos(:,1));
@@ -725,8 +733,9 @@ end
 % ->StageDriftCorrectionProcess
 [tMapIn, tmax, tmin, cropInfo,tMapXin,tMapYin] = generateHeatmapShifted(forceField,displField,0);
 display(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
-% [dErrMapIn, dEmax, dEmin] = generateHeatmapShifted(displErrField,displField,0);
-% display(['Displacement error maximum = ' num2str(dEmax) ' pixel.'])
+[fCfdMapIn, fCmax, fCmin] = generateHeatmapShifted(forceConfidence,displField,0);
+fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
+% display(['Displacement error minimum = ' num2str(dEmax) ' pixel.'])
 
 % for ii=frameSequence
 %     distBeadField(ii).pos = forceField(ii).pos;
@@ -735,32 +744,39 @@ display(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
 % [distBeadMapIn, dBeadmax, dBeadmin] = generateHeatmapShifted(distBeadField,displField,0);
 
 % display(['Distance to closest bead maximum = ' num2str(tmax) ' Pa.'])
-% Insert traction map in forceField.pos 
+%% Insert traction map in forceField.pos 
 disp('Generating traction maps ...')
 tMap = cell(1,nFrames);
 tMapX = cell(1,nFrames);
 tMapY = cell(1,nFrames);
-% dErrMap = cell(1,nFrames);
+fCfdMap = cell(1,1); %force confidence
 % distBeadMap = cell(1,nFrames);
 for ii=frameSequence
     % starts with original size of beads
     cur_tMap = zeros(size(firstMask));
     cur_tMapX = zeros(size(firstMask));
     cur_tMapY = zeros(size(firstMask));
-%     cur_dErrMap = zeros(size(firstMask));
 %     cur_distBeadMap = zeros(size(firstMask));
     cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii};
     cur_tMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapXin{ii};
     cur_tMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapYin{ii};
-%     cur_dErrMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dErrMapIn{ii};
 %     cur_distBeadMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = distBeadMapIn{ii};
     tMap{ii} = cur_tMap;
     tMapX{ii} = cur_tMapX;
     tMapY{ii} = cur_tMapY;
-%     dErrMap{ii} = cur_dErrMap;
+    if ii==1
+        cur_fCfdMap = zeros(size(firstMask));
+        cur_fCfdMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = fCfdMapIn{ii};
+        fCfdMap = cur_fCfdMap;
+    end     
 %     distBeadMap{ii} = cur_distBeadMap;
     % Shifted forceField vector field
-    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
+    curDispVec = displField(ii).vec;
+    curDispVec = curDispVec(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    curDispPos = displField(ii).pos;
+    curDispPos = curDispPos(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    [grid_mat,iu_mat, ~,~] = interp_vec2grid(curDispPos, curDispVec,[],reg_grid);
+%     [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
     displ_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
     
     [forceFieldShiftedpos,forceFieldShiftedvec, ~, ~] = interp_vec2grid(forceField(ii).pos+displ_vec, forceField(ii).vec,[],grid_mat); %1:cluster size
@@ -779,7 +795,7 @@ disp('Saving ...')
 % save(outputFile{1},'forceField','forceFieldShifted','displErrField');
 % save(outputFile{2},'tMap','tMapX','tMapY','dErrMap','distBeadMap'); % need to be updated for faster loading. SH 20141106
 save(outputFile{1},'forceField','forceFieldShifted');
-save(outputFile{2},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
+save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
 forceFieldProc.setTractionMapLimits([tmin tmax])
 % forceFieldProc.setDisplErrMapLimits([dEmin dEmax])
 % forceFieldProc.setDistBeadMapLimits([dBeadmin dBeadmax])

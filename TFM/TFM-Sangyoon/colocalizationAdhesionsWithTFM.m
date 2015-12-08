@@ -67,7 +67,13 @@ showTrackID = ip.Results.showTrackID;
 
 %% Data Set up
 % Load the MovieData
-movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
+[pathStr,name,ext]= fileparts(pathForTheMovieDataFile);
+if strcmp([name ext],'movieData.mat')
+    movieDataPath = pathForTheMovieDataFile;
+    pathForTheMovieDataFile = pathStr;
+else
+    movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
+end
 MD = MovieData.load(movieDataPath);
 % Get whole frame number
 nFrames = MD.nFrames_;
@@ -149,7 +155,7 @@ if ~exist(forcetifPath,'dir') || ~exist(paxtifPath,'dir') || ~exist(paxPath,'dir
 end
 %     set(h2, 'Position', [100+cropInfo(3)-cropInfo(1)*10/9 100 cropInfo(3)-cropInfo(1) cropInfo(4)-cropInfo(2)])
 iiformat = ['%.' '3' 'd'];
-minLifetime = min(nFrames,minLifetime);
+minLifetime = min(nFrames,minLifetime/MD.timeInterval_);
 markerSize = 4;
 % tracks
 iPaxChannel = 2; % this should be intentionally done in the analysis level
@@ -157,18 +163,18 @@ if ~trackNAProc.checkChannelOutput(iPaxChannel)
     iPaxChannel = 1;
 end
 
-% Find out force at each tracksNA at this frame
-% find first the index of relevant tracks from seqOfEvents
-% tracksNA = trackNAProc.loadChannelOutput(iPaxChannel,ii);
-disp('Loading NA tracks...')
-tic
-tracksNAorg = trackNAProc.loadChannelOutput(iPaxChannel);
-toc
-% if ii>minLifetime
-SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
-% Remove any less than 3-frame long track.
-isValid = SEL(:,3) >= minLifetime;
-tracksNAorg = tracksNAorg(isValid);
+% % Find out force at each tracksNA at this frame
+% % find first the index of relevant tracks from seqOfEvents
+% % tracksNA = trackNAProc.loadChannelOutput(iPaxChannel,ii);
+% disp('Loading NA tracks...')
+% tic
+% tracksNAorg = trackNAProc.loadChannelOutput(iPaxChannel);
+% toc
+% % if ii>minLifetime
+% SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
+% % Remove any less than 3-frame long track.
+% isValid = SEL(:,3) >= minLifetime;
+% tracksNAorg = tracksNAorg(isValid);
 % end
 % See if there is stage drift correction
 iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
@@ -210,9 +216,13 @@ else
         'minLifetime',minLifetime,'outputPath',['Colocalization' filesep outputPath]);
 end
 % re-express tracksNA so that each track has information for every frame
-if ~isempty(iSDCProc) && ~exist(outputFile,'file')
-    disp('Applying stage drift correction ...')
-    tracksNA = applyDriftToTracks(tracksNA, T); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+if ~isempty(iSDCProc)
+    if ~isfield(tracksNA,'SDC_applied')
+        disp('Applying stage drift correction ...')
+        tracksNA = applyDriftToTracks(tracksNA, T); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+    else
+        disp('Stage drift correction was already applied to tracksNA.')
+    end
 end
 
 %% tracion map stack
@@ -265,6 +275,13 @@ disp('Reading traction...')
 tic
 tracksNA = readIntensityFromTracks(tracksNA,tMap,2); % 2 means traction magnitude collection from traction stacks
 toc
+%% Read force uncertainty
+try
+    tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
+catch
+    getForceConfidence(pathForTheMovieDataFile)
+    tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
+end
 %% Save SDC-shifted paxillin image stack
 disp('Loading adhesion channel image stacks...')
 tic
@@ -315,8 +332,8 @@ for ii=1:nFrames
         % Apply subpixel-wise registration to original masks
         I = padarray(maskFAs, [maxY, maxX]);
         maskFAs = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
-        I = padarray(bwPI4, [maxY, maxX]);
-        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+        Ibw = padarray(bwPI4, [maxY, maxX]);
+        bwPI4 = imtransform(Ibw, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
     end
     cropMask = bwPI4(cropInfo(2)+band:cropInfo(4)-band,cropInfo(1)+band:cropInfo(3)-band);
 %     cropMaskStack(:,:,ii) = cropMask;
@@ -863,7 +880,7 @@ for k=1:numel(tracksNA)
     
 end
 disp('Saving...')
-save(outputFile,'tracksNA');
+save(outputFile,'tracksNA','-v7.3');
 disp('Done!')
 if plotEachTrack
     r1 = 50;
@@ -1114,214 +1131,7 @@ if plotEachTrack
     end
 end
 end
-function tracksNA = applyDriftToTracks(tracksNA, T) 
-    % Get limits of transformation array
-    maxX = ceil(max(abs(T(:, 2))));
-    maxY = ceil(max(abs(T(:, 1)))); % this is to account for zero-padding 
-    nFrames = length(T);
-    for i = 1:numel(tracksNA)
-        for  j = 1 : nFrames
-            tracksNA(i).xCoord(j) = tracksNA(i).xCoord(j)+T(j,2)+maxX;
-            tracksNA(i).yCoord(j) = tracksNA(i).yCoord(j)+T(j,1)+maxY;
-            tracksNA(i).closestBdPoint(:,1) = tracksNA(i).closestBdPoint(:,1)+T(j,2)+maxX;
-            tracksNA(i).closestBdPoint(:,2) = tracksNA(i).closestBdPoint(:,2)+T(j,1)+maxY;
-            try
-                tracksNA(i).adhBoundary{j} = [tracksNA(i).adhBoundary{j}(:,2)+T(j,2)+maxX tracksNA(i).adhBoundary{j}(:,1)+T(j,1)+maxY];
-            catch
-                tracksNA(i).adhBoundary{j} = [];
-            end
-        end
-    end
-end
-%% formatTracks functions
-function newTracks = formatNATracks(tracks,detectedNAs,nFrames,T)
-% Format tracks structure into tracks with every frame
-if nargin<4
-    T=zeros(nFrames,2); % T is a translation matrix
-end
-% Get limits of transformation array
-maxX = ceil(max(abs(T(:, 2))));
-maxY = ceil(max(abs(T(:, 1))));
-
-
-newTracks(numel(tracks),1) = struct('xCoord', [], 'yCoord', [],'state',[],'iFrame',[],'presence',[],'amp',[],'bkgAmp',[]);
-% BA: before adhesion, NA: nascent adh, FC: focal complex, FA: focal adh,
-% ANA: after NA (failed to be matured.
-for i = 1:numel(tracks)
-    % Get the x and y coordinate of all compound tracks
-    startNA = true;
-    endNA = true;
-    for  j = 1 : nFrames
-        newTracks(i).iFrame(j) = j;
-        if j<tracks(i).seqOfEvents(1,1)
-            newTracks(i).state{j} = 'BA';
-            newTracks(i).xCoord(j) = NaN;
-            newTracks(i).yCoord(j) = NaN;
-            newTracks(i).presence(j) = false;
-            newTracks(i).amp(j) = NaN;
-        elseif j>tracks(i).seqOfEvents(2,1)
-            newTracks(i).state{j} = 'ANA';
-            newTracks(i).xCoord(j) = NaN;
-            newTracks(i).yCoord(j) = NaN;
-            newTracks(i).amp(j) = NaN;
-            newTracks(i).presence(j) = false;
-            if endNA
-                newTracks(i).endingFrame = j-1;
-                endNA = false;
-            end
-        elseif j==tracks(i).seqOfEvents(2,1)
-            newTracks(i).state{j} = 'NA';
-            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,2)+maxX;
-            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,1)+maxY;
-            newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
-            if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
-                newTracks(i).bkgAmp(j) = NaN;
-            else
-                newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-                newTracks(i).sigma(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).sigmaX(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-            end
-            newTracks(i).presence(j) = true;
-            if endNA
-                newTracks(i).endingFrame = j;
-                endNA = false;
-            end
-        else
-            newTracks(i).state{j} = 'NA';
-            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,2)+maxX;
-            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,1)+maxY;
-            newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
-            if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
-                newTracks(i).bkgAmp(j) = NaN;
-            else
-                newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-                newTracks(i).sigma(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).sigmaX(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-            end
-            newTracks(i).presence(j) = true;
-            if startNA
-                newTracks(i).startingFrame = j;
-                startNA = false;
-            end
-        end
-            
-        if isfield(tracks, 'label'),
-            newTracks(iTrack).label = tracks(i).label;
-        end
-    end
-    % go through frames again and fill NaNs with numbers at the gap
-    % position
-    for j=1:nFrames-1
-        if j<nFrames-9 && sum(newTracks(i).presence(j:j+9))==10 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+9)))==10 
-            gap = 10;
-            for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-            end
-        elseif j<nFrames-8 && sum(newTracks(i).presence(j:j+8))==9 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+8)))==9 
-            gap = 9;
-            for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-            end
-        elseif j<nFrames-7 && sum(newTracks(i).presence(j:j+7))==8 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+7)))==8 
-            gap = 8;
-            for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-            end
-        elseif j<nFrames-6 && sum(newTracks(i).presence(j:j+6))==7 ...
-                && sum(isnan(newTracks(i).xCoord(j:j+6)))==7 
-            gap = 7;
-            for kk=1:gap
-                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-            end
-        elseif j<nFrames-5 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-               && newTracks(i).presence(j+4) && newTracks(i).presence(j+5) && isnan(newTracks(i).xCoord(j)) ...
-               && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))...
-               && isnan(newTracks(i).xCoord(j+4)) && isnan(newTracks(i).xCoord(j+5))
-            newTracks(i).xCoord(j) = (6*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j) = (6*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j) = (6*newTracks(i).amp(j-1)+newTracks(i).amp(j+6))/7;
-            newTracks(i).xCoord(j+1) = (5*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+1) = (5*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+1) = (5*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+6))/7;
-            newTracks(i).xCoord(j+2) = (4*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+2) = (4*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+2) = (4*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+6))/7;
-            newTracks(i).xCoord(j+3) = (3*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+3) = (3*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+3) = (3*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+6))/7;
-            newTracks(i).xCoord(j+4) = (2*newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+4) = (2*newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+4) = (2*newTracks(i).amp(j-1)+5*newTracks(i).amp(j+6))/7;
-            newTracks(i).xCoord(j+5) = (newTracks(i).xCoord(j-1)+6*newTracks(i).xCoord(j+6))/7;
-            newTracks(i).yCoord(j+5) = (newTracks(i).yCoord(j-1)+6*newTracks(i).yCoord(j+6))/7;
-            newTracks(i).amp(j+5) = (newTracks(i).amp(j-1)+6*newTracks(i).amp(j+6))/7;
-        elseif j<nFrames-4 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-                && newTracks(i).presence(j+4) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) ...
-                && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3)) && isnan(newTracks(i).xCoord(j+4))
-            newTracks(i).xCoord(j) = (5*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j) = (5*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j) = (5*newTracks(i).amp(j-1)+newTracks(i).amp(j+5))/6;
-            newTracks(i).xCoord(j+1) = (4*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+1) = (4*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+1) = (4*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+5))/6;
-            newTracks(i).xCoord(j+2) = (3*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+2) = (3*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+2) = (3*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+5))/6;
-            newTracks(i).xCoord(j+3) = (2*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+3) = (2*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+3) = (2*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+5))/6;
-            newTracks(i).xCoord(j+4) = (newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+5))/6;
-            newTracks(i).yCoord(j+4) = (newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+5))/6;
-            newTracks(i).amp(j+4) = (newTracks(i).amp(j-1)+5*newTracks(i).amp(j+5))/6;
-        elseif j<nFrames-3 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-                && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))
-            newTracks(i).xCoord(j) = (4*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j) = (4*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j) = (4*newTracks(i).amp(j-1)+newTracks(i).amp(j+4))/5;
-            newTracks(i).xCoord(j+1) = (3*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j+1) = (3*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j+1) = (3*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+4))/5;
-            newTracks(i).xCoord(j+2) = (2*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j+2) = (2*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j+2) = (2*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+4))/5;
-            newTracks(i).xCoord(j+3) = (newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+4))/5;
-            newTracks(i).yCoord(j+3) = (newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+4))/5;
-            newTracks(i).amp(j+3) = (newTracks(i).amp(j-1)+4*newTracks(i).amp(j+4))/5;
-        elseif j<nFrames-2 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) ...
-                && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2))
-            newTracks(i).xCoord(j) = (3*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+3))/4;
-            newTracks(i).yCoord(j) = (3*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+3))/4;
-            newTracks(i).amp(j) = (3*newTracks(i).amp(j-1)+newTracks(i).amp(j+3))/4;
-            newTracks(i).xCoord(j+1) = (2*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+3))/4;
-            newTracks(i).yCoord(j+1) = (2*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+3))/4;
-            newTracks(i).amp(j+1) = (2*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+3))/4;
-            newTracks(i).xCoord(j+2) = (newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+3))/4;
-            newTracks(i).yCoord(j+2) = (newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+3))/4;
-            newTracks(i).amp(j+2) = (newTracks(i).amp(j-1)+3*newTracks(i).amp(j+3))/4;
-        elseif j<nFrames-1 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1))
-            newTracks(i).xCoord(j) = (2*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+2))/3;
-            newTracks(i).yCoord(j) = (2*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+2))/3;
-            newTracks(i).amp(j) = (2*newTracks(i).amp(j-1)+newTracks(i).amp(j+2))/3;
-            newTracks(i).xCoord(j+1) = (newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+2))/3;
-            newTracks(i).yCoord(j+1) = (newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+2))/3;
-            newTracks(i).amp(j+1) = (newTracks(i).amp(j-1)+2*newTracks(i).amp(j+2))/3;
-        elseif newTracks(i).presence(j) && isnan(newTracks(i).xCoord(j))
-            newTracks(i).xCoord(j) = (newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+1))/2;
-            newTracks(i).yCoord(j) = (newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+1))/2;
-            newTracks(i).amp(j) = (newTracks(i).amp(j-1)+newTracks(i).amp(j+1))/2;
-        end
-    end
-end
-end
+%
 
 % function pstruct_NAwithForce = findMagCurvature(tsMap,pstruct_NA,neighD)
 %     nPoints = length(pstruct_NA.x);

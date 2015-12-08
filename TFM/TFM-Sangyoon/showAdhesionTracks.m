@@ -7,11 +7,13 @@ ip.addRequired('pathForColocalization',@ischar)
 ip.addOptional('idList','all',@(x)islogical(x)||ischar(x)||isempty(x)||isscalar(x)||isvector(x))
 ip.addParamValue('numChan',2,@isscalar); % selcted track ids
 ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
+ip.addParamValue('trainedData',[],@istable); % trained data
 ip.parse(pathForColocalization,idList,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 idList=ip.Results.idList;
 tracksNA=ip.Results.tracksNA;
 numChan=ip.Results.numChan;
+T=ip.Results.trainedData;
 
 %% Load processed data
 disp('Loading raw files ...')
@@ -55,6 +57,12 @@ MD = MD.MD;
 pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
+
+if ~isempty(T)
+    trainedClassifier = trainClassifierNA(T);
+    [~,allData] = extractFeatureNA(tracksNA);
+    allDataClass = predict(trainedClassifier,allData);
+end
 toc
 %% show interactive movie interface
 curNumFrames = endFrame-startFrame+1;
@@ -79,18 +87,22 @@ setappdata(hFig,'MyMatrix',imgMap); %// You could use %//setappdata(0,'MyMatrix'
 setappdata(hFig,'tracksNA',tracksNA); 
 %// Display 1st frame
 imshow(imgMap(:,:,startFrame),[]), hold on
-plot(arrayfun(@(x) x.xCoord(startFrame),tracksNA),arrayfun(@(x) x.yCoord(startFrame),tracksNA),'ro')
-% idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
-% idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{startFrame}),tracksNA(idAdhLogic));
-% idAdh = find(idAdhLogic);
-% idAdhCur = idAdh(idAdhCur);
-% arrayfun(@(x) plot(x.adhBoundary{startFrame}(:,1),x.adhBoundary{startFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
-xmat = cell2mat(arrayfun(@(x) x.xCoord(1:startFrame),tracksNA,'UniformOutput',false));
-ymat = cell2mat(arrayfun(@(x) x.yCoord(1:startFrame),tracksNA,'UniformOutput',false));
-if size(xmat,2)==1
-    plot(xmat',ymat','r.')
+if ~isempty(T)
+    drawClassifiedTracks(allDataClass,tracksNA,1,gca,true);
 else
-    plot(xmat',ymat','r')
+%     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+%     idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{startFrame}),tracksNA(idAdhLogic));
+%     idAdh = find(idAdhLogic);
+%     idAdhCur = idAdh(idAdhCur);
+%     arrayfun(@(x) plot(x.adhBoundary{startFrame}(:,1),x.adhBoundary{startFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
+    plot(arrayfun(@(x) x.xCoord(startFrame),tracksNA),arrayfun(@(x) x.yCoord(startFrame),tracksNA),'ro')
+    xmat = cell2mat(arrayfun(@(x) x.xCoord(1:startFrame),tracksNA,'UniformOutput',false));
+    ymat = cell2mat(arrayfun(@(x) x.yCoord(1:startFrame),tracksNA,'UniformOutput',false));
+    if size(xmat,2)==1
+        plot(xmat',ymat','r.')
+    else
+        plot(xmat',ymat','r')
+    end
 end
 hold off
 % Supporting data cursor mode to identify an ID of NA track of interest.
@@ -116,15 +128,19 @@ function pushInspectAdhesion(~,~)
     % ending frame
     % read first: 
     IDs=[IDs idxIDList(IDtoInspect)];
-    curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',350);
-    curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',350);
+    curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',20);
+    curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',20);
     % then use startingFrameExtra and endingFrameExtra to plot intensity
     % time series
     h=figure;
     curEndFrame=curTrack.endingFrameExtra;
     curStartFrame = curTrack.startingFrameExtra;
+    curEndFrameEE=curTrack.endingFrameExtraExtra;
+    curStartFrameEE = curTrack.startingFrameExtraExtra;
     curFrameRange= curStartFrame:curEndFrame;
-    plot(curFrameRange,curTrack.ampTotal(curFrameRange),'b'), hold on
+    curFrameRangeEE= curStartFrameEE:curEndFrameEE;
+    plot(curFrameRangeEE,curTrack.ampTotal(curFrameRangeEE),'r'), hold on
+    plot(curFrameRange,curTrack.ampTotal(curFrameRange),'b')
     plot(curTrack.startingFrame:curTrack.endingFrame,curTrack.ampTotal(curTrack.startingFrame:curTrack.endingFrame),'k')
     set(h,'Position',[500,300,400,200]),title(['ID:' num2str(IDtoInspect)])
     disp('Use data cursor to find out which frame you want to set as starting frame and ending frame')
@@ -144,7 +160,7 @@ function pushInspectAdhesion(~,~)
     % r_pix should include all of the track trace ...
     maxX = nanmax(curTrack.xCoord)-nanmin(curTrack.xCoord);
     maxY =  nanmax(curTrack.yCoord)-nanmin(curTrack.yCoord);
-    r_pix = ceil(max(max(maxX,maxY)/2+2,5));
+    r_pix = ceil(max(max(maxX,maxY)/2+7,10));
     meanX = round(nanmean(curTrack.xCoord));
     meanY = round(nanmean(curTrack.yCoord));
     bLeft = max(1,meanX-r_pix);
@@ -317,11 +333,13 @@ function pushInspectAdhesion(~,~)
 %     subplot('Position',[0.5,0,0.5,0.33]), plot(chosenStartFrame:chosenEndFrame,curTrack.forceMag(chosenStartFrame:chosenEndFrame),'r')
     % ax 8: intensity time series
     ax8=axes('Position',[50/figWidth, 40/figHeight, 180/figWidth-marginX,140/figHeight]);
-    plot((chosenStartFrame:chosenEndFrame)*tInterval,curTrack.ampTotal(chosenStartFrame:chosenEndFrame))
+    plot((curStartFrameEE:curEndFrameEE)*tInterval,curTrack.ampTotal(curStartFrameEE:curEndFrameEE),'k'), hold on
+    plot((chosenStartFrame:chosenEndFrame)*tInterval,curTrack.ampTotal(chosenStartFrame:chosenEndFrame),'b')
     xlabel('Time (s)'); ylabel('Fluorescence intensity (a.u.)')
     set(ax8,'FontSize',8)
     % force time series
     ax9=axes('Position',[300/figWidth, 40/figHeight, 180/figWidth-marginX,140/figHeight]);
+    plot((curStartFrameEE:curEndFrameEE)*tInterval,curTrack.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
     plot((chosenStartFrame:chosenEndFrame)*tInterval,curTrack.forceMag(chosenStartFrame:chosenEndFrame),'r')
     xlabel('Time (s)'); ylabel('Traction (Pa)')
     set(ax9,'FontSize',8)
@@ -400,8 +418,23 @@ function pushInspectAdhesion(~,~)
         end
     end
     iGroups=[iGroups iCurGroup];
-
-    tracksNA(IDtoInspect) = curTrack;
+    idGroupSelected = sortIDTracks(idxIDList(IDtoInspect),iCurGroup,true);
+    [curT] = extractFeatureNA(tracksNA,idGroupSelected);
+    T = [T; curT];
+    disp('Training the classifier ...')
+    tic
+    trainedClassifier = trainClassifierNA(T);
+%     [~,allData] = extractFeatureNA(tracksNA);
+    allDataClass = predict(trainedClassifier,allData);
+    toc
+    
+    try
+        tracksNA(IDtoInspect) = curTrack;
+    catch
+        tracksNA(IDtoInspect).startingFrameExtraExtra = [];
+        tracksNA(IDtoInspect).endingFrameExtraExtra = [];
+        tracksNA(IDtoInspect) = curTrack;
+    end
     print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
     savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
     save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
@@ -453,8 +486,19 @@ function XListenerCallBack
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-    plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
-
+%     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
+    if ~isempty(T)
+        drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
+    else
+%         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
+        xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+        ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+        if size(xmat,2)==1
+            plot(xmat',ymat','r.')
+        else
+            plot(xmat',ymat','r')
+        end
+    end
 %     try
 %         idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
 %         idAdh = find(idAdhLogic);
@@ -464,14 +508,6 @@ function XListenerCallBack
 %         disp(' ')
 %     end
     
-%     arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
-    xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-    ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-    if size(xmat,2)==1
-        plot(xmat',ymat','r.')
-    else
-        plot(xmat',ymat','r')
-    end
     hold off
 
     guidata(hFig,handles);
@@ -492,11 +528,25 @@ function XSliderCallback(~,~)
     prevYLim = handles.axes1.YLim;
 
     imshow(imgMap(:,:,CurrentFrame),[],'Parent',handles.axes1); 
+    zoom reset
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-    plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
+%     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
+    if ~isempty(T)
+        drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
+    else
+%         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
+        xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+        ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+        if size(xmat,2)==1
+            plot(xmat',ymat','r.')
+        else
+            plot(xmat',ymat','r')
+        end
+    end
     
+    %% segmented focal adhesions
 %     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
 %     try
 %         idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
@@ -506,14 +556,6 @@ function XSliderCallback(~,~)
 %     catch
 %         disp(' ')
 %     end
-        
-    xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-    ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-    if size(xmat,2)==1
-        plot(xmat',ymat','r.')
-    else
-        plot(xmat',ymat','r')
-    end
     hold off
 
     guidata(hFig,handles);

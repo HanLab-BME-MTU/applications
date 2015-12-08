@@ -70,7 +70,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -167,26 +167,26 @@ for iChannel = selected_channels
         mkdir(FilamentSegmentationChannelOutputDir);
     end
     
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
     
     if (~exist(HeatOutputDir,'dir'))
         mkdir(HeatOutputDir);
     end
     
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
     
     if (~exist(HeatEnhOutputDir,'dir'))
         mkdir(HeatEnhOutputDir);
     end
     
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
     
     if (~exist(DataOutputDir,'dir'))
         mkdir(DataOutputDir);
     end
     
     
-    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,'/OrientImage'];
+    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'OrientImage'];
     
     if (~exist(OrientationOutputDir,'dir'))
         mkdir(OrientationOutputDir);

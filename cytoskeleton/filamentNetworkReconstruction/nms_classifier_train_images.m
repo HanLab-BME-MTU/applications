@@ -330,7 +330,7 @@ for i_mark = 1 : 2*length(training_ind)
     [y,x] = find(labelMask==iLine);
     h1=figure(1);title(['Frame: ',num2str(i_mark)]);
     plot(x,y,'g.');
-    saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_g_',num2str(i_mark),'.jpg']);
+    saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_g_',num2str(i_mark),'.jpg']);
     
     AA = [max(1, round(mean(x))-50), min(size(imageNMS,2), round(mean(x))+50), ...
         max(1, round(mean(y))-50), min(size(imageNMS,1), round(mean(y))+50)];
@@ -347,7 +347,7 @@ for i_mark = 1 : 2*length(training_ind)
             good_bad_label(i_ind) = 2;
             plot(x,y,'b.');
         end
-        saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_rb_',num2str(i_mark),'.jpg']);
+        saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_rb_',num2str(i_mark),'.jpg']);
     
         if(ch==27 || i_ind > length(training_ind))
             i_ind = i_ind-1;
@@ -408,7 +408,7 @@ if(mean(good_bad_label)>1.8)
         [y,x] = find(labelMask==iLine);
         h1=figure(1);title(['Frame: ',num2str(i_mark)]);
         plot(x,y,'g.');
-        saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_g_',num2str(i_mark),'.jpg']);
+        saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_g_',num2str(i_mark),'.jpg']);
         
         AA = [max(1, round(mean(x))-50), min(size(imageNMS,2), round(mean(x))+50), ...
             max(1, round(mean(y))-50), min(size(imageNMS,1), round(mean(y))+50)];
@@ -425,7 +425,7 @@ if(mean(good_bad_label)>1.8)
                 good_bad_label(i_ind) = 2;
                 plot(x,y,'b.');
             end
-            saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_rb_',num2str(i_mark),'.jpg']);
+            saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_rb_',num2str(i_mark),'.jpg']);
             
             if(ch==27 || i_ind > length(training_ind))
                 i_ind = i_ind-1;
@@ -490,7 +490,7 @@ if(mean(good_bad_label)<1.2)
         h1=figure(1);
         plot(x,y,'g.');
         title(['Frame: ',num2str(i_mark)]);
-        saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_g_',num2str(i_mark),'.jpg']);
+        saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_g_',num2str(i_mark),'.jpg']);
         
         AA = [max(1, round(mean(x))-50), min(size(imageNMS,2), round(mean(x))+50), ...
             max(1, round(mean(y))-50), min(size(imageNMS,1), round(mean(y))+50)];
@@ -507,7 +507,7 @@ if(mean(good_bad_label)<1.2)
                 good_bad_label(i_ind) = 2;
                 plot(x,y,'b.');
             end
-            saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_rb_',num2str(i_mark),'.jpg']);
+            saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_rb_',num2str(i_mark),'.jpg']);
             
             if(ch==27 || i_ind > length(training_ind))
                 i_ind = i_ind-1;
@@ -591,6 +591,6 @@ label_bad = zeros(size(train_length_bad));
   T_xie_length_train = train_mat(ind(1), 2);
   F_classifer_train = @(i,l) (((T_xie_int_train + (T_xie_int_train/T_xie_length_train)*(-l) )<i));
   
-   save([FilamentSegmentationChannelOutputDir,'/F_classifer.mat'],'F_classifer_train');
+   save([FilamentSegmentationChannelOutputDir,filesep,'F_classifer.mat'],'F_classifer_train');
      
       

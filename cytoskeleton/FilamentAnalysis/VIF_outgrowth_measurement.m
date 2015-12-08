@@ -102,7 +102,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -129,32 +129,32 @@ for iChannel = selected_channels
 
     
     % Make output directory for the steerable filtered images
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
     
     SteerableChannelOutputDir = movieData.processes_{indexSteerabeleProcess}.outFilePaths_{iChannel};
     
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
     
     if (~exist(HeatOutputDir,'dir'))
         mkdir(HeatOutputDir);
     end
     
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
     
     if (~exist(HeatEnhOutputDir,'dir'))
         mkdir(HeatEnhOutputDir);
     end
     
-    HeatEnhBoundOutputDir = [HeatOutputDir,'/Enh_bound'];
+    HeatEnhBoundOutputDir = [HeatOutputDir,filesep,'Enh_bound'];
     
     if (~exist(HeatEnhBoundOutputDir,'dir'))
         mkdir(HeatEnhBoundOutputDir);
     end
     
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
     
     if (~exist(DataOutputDir,'dir'))
         mkdir(DataOutputDir);
@@ -213,19 +213,19 @@ for iChannel = selected_channels
         
         
         try
-            load([DataOutputDir,'/filament_seg_',...
+            load([DataOutputDir,filesep,'filament_seg_',...
                 filename_short_strs{iFrame},'.mat'],...
                 'orienation_map_filtered', ...
                 'MAX_st_res', 'current_seg','SteerabelRes_Segment');
         catch
             try
-                load([DataOutputDir,'/steerable_vote_',...
+                load([DataOutputDir,filesep,'steerable_vote_',...
                     filename_short_strs{iFrame},'.mat'],...
                     'orienation_map_filtered', ...
                     'MAX_st_res', 'current_seg','SteerabelRes_Segment');
             catch
                 % in the case of only having the short-old version
-                load([DataOutputDir,'/steerable_vote_',...
+                load([DataOutputDir,filesep,'steerable_vote_',...
                     filename_shortshort_strs{iFrame},'.mat'],...
                     'orienation_map_filtered', ...
                     'MAX_st_res', 'current_seg','SteerabelRes_Segment');
@@ -235,7 +235,7 @@ for iChannel = selected_channels
              
         if iFrame==1
             % Read in the initial circle from the 'start_ROI.tif' file
-            MaskFirstFrame = imread([movieData.outputDirectory_,'/start_ROI.tif']);
+            MaskFirstFrame = imread([movieData.outputDirectory_,filesep,'start_ROI.tif']);
             MaskFirstFrame = (MaskFirstFrame)>0;
             
             RoiYX = bwboundaries(MaskFirstFrame);
@@ -337,19 +337,19 @@ for iChannel = selected_channels
         title(['Frame ',num2str(iFrame),', percentage of out growth:', ...
             num2str(100*sum(sum(current_seg_outside))/seg_sum_inside_firstframe), '%'],'FontSize',15);
         
-        saveas(h12,[HeatEnhOutputDir,'/Enh_VIF_heat_display_',...
+        saveas(h12,[HeatEnhOutputDir,filesep,'Enh_VIF_heat_display_',...
             filename_short_strs{iFrame},'.tif']);
         if(save_fig_flag==1)
-            saveas(h12,[HeatEnhOutputDir,'/Enh_VIF_heat_display_',...
+            saveas(h12,[HeatEnhOutputDir,filesep,'Enh_VIF_heat_display_',...
                 filename_short_strs{iFrame},'.fig']);
         end
         
         hold on; plot(RoiYX(:,2),RoiYX(:,1),'m');
         
-        saveas(h12,[HeatEnhOutputDir,'_bound/Enh_Bound_VIF_heat_display_',...
+        saveas(h12,[HeatEnhOutputDir,'_bound',filesep,'Enh_Bound_VIF_heat_display_',...
             filename_short_strs{iFrame},'.tif']);
         if(save_fig_flag==1)
-            saveas(h12,[HeatEnhOutputDir,'_bound/Enh_Bound_VIF_heat_display_',...
+            saveas(h12,[HeatEnhOutputDir,'_bound',filesep,'Enh_Bound_VIF_heat_display_',...
                 filename_short_strs{iFrame},'.fig']);
         end
         seg_outside_current(iChannel, iFrame) = sum(sum(current_seg_outside));
@@ -360,7 +360,7 @@ for iChannel = selected_channels
     display(ratio_outside_firstframeinside'*100);
     
     % Save the outgrowth results
-    save([FilamentSegmentationChannelOutputDir,'/seg_outside.mat'],'seg_outside_current','seg_sum_inside_firstframe','ratio_outside_firstframeinside');
+    save([FilamentSegmentationChannelOutputDir,filesep,'seg_outside.mat'],'seg_outside_current','seg_sum_inside_firstframe','ratio_outside_firstframeinside');
 end
 
 
@@ -431,7 +431,7 @@ for iChannel = selected_channels
         
         hold on; plot(RoiYX(:,2),RoiYX(:,1),'m');
         
-        saveas(h12,[HeatEnhOutputDir,'_bound/Int_display_',num2str(iFrame),'.tif']);
+        saveas(h12,[HeatEnhOutputDir,'_bound'filesep,'Int_display_',num2str(iFrame),'.tif']);
         
         int_outside_current_intensity(iChannel, iFrame) = sum(sum(current_img_outside));
         ratio_int_outside_firstframeinside(iChannel, iFrame) = sum(sum(current_img_outside))/int_sum_inside_firstframe;
@@ -442,12 +442,12 @@ for iChannel = selected_channels
     display(ratio_int_outside_firstframeinside'*100);
     
     % Save the outgrowth results
-    save([FilamentSegmentationChannelOutputDir,'/seg_outside.mat'], ...
+    save([FilamentSegmentationChannelOutputDir,filesep,'seg_outside.mat'], ...
         'seg_outside_current','seg_sum_inside_firstframe','ratio_outside_firstframeinside',...
         'ratio_int_outside_firstframeinside');
     
    
-    xlswrite([FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_seg_growth.xls'], ...
+    xlswrite([FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_seg_growth.xls'], ...
         {'Frame';'First Frame Filament Amount in ROI';...
         'Each Frame Filament Amount outside ROI';...
         'Outgrowth Ratio(with Filament Segmentation)';...
@@ -457,10 +457,10 @@ for iChannel = selected_channels
         'Intensity Sum in ROI(Flattened Image)';'Intensity Sum out ROI(Flattened Image)';...
         'Intensity Mean in ROI(Flattened Image)';'Intensity Mean out ROI(Flattened Image)';}, 1,'A1');
     
-    xlswrite([FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_seg_growth.xls'], ...
+    xlswrite([FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_seg_growth.xls'], ...
        (1:nFrame), 1,'B1');
     
-   xlswrite([FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_seg_growth.xls'], ...
+   xlswrite([FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_seg_growth.xls'], ...
        [repmat(seg_sum_inside_firstframe(iChannel),1,nFrame); ...
        seg_outside_current(iChannel,:); ...
        ratio_outside_firstframeinside(iChannel,:);...
@@ -505,6 +505,6 @@ for iChannel = selected_channels
     title(['Channel ',num2str(iChannel),' VIF growth results'],'FontSize',15);
      legend('Based on Filament Segmenation','Based on Intensity');
      
-    saveas(h2,[FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_results_plot.tif']);
+    saveas(h2,[FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_results_plot.tif']);
     
 end

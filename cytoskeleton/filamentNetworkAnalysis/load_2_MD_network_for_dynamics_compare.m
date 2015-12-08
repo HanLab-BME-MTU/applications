@@ -31,11 +31,11 @@ if(nargin<10)
     flag_default = 1;
 end
 if(nargin<11)
-    sigma_d = sqrt(3)*radius/4;
+    sigma_d = sqrt(3)*radius/4/2;
 end
 
 if(nargin<12)
-    sigma_theta = pi/(2*sqrt(3));
+    sigma_theta = pi/(2*sqrt(3))/2;
 end
 
 if(isempty(sigma_gaussian))
@@ -43,11 +43,11 @@ if(isempty(sigma_gaussian))
 end
 
 if(isempty(sigma_d))
-     sigma_d = sqrt(3)*radius/4;
+     sigma_d = sqrt(3)*radius/4/2;
 end
 
 if(isempty(sigma_theta))
-     sigma_theta = pi/(2*sqrt(3));
+     sigma_theta = pi/(2*sqrt(3))/2;
 end
 
 if(~exist('save_tif_flag','var'))
@@ -55,8 +55,8 @@ if(~exist('save_tif_flag','var'))
 end
 
 sigma_gaussian_ratio =     sigma_gaussian/((3*radius/8));
-sigma_d_ratio =     sigma_d/((sqrt(3)*radius/4)) ;
-sigma_theta_ratio =     sigma_theta/((pi/(2*sqrt(3))));
+sigma_d_ratio =     sigma_d/((sqrt(3)*radius/4/2)) ;
+sigma_theta_ratio =     sigma_theta/((pi/(2*sqrt(3))/2));
     
 
 display( 'Start test for : ')

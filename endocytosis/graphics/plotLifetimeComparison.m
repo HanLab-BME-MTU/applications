@@ -29,6 +29,7 @@ ip.addParamValue('SlaveName', [], @iscell);
 ip.addParamValue('Control', []);
 ip.addParamValue('XSpace', []);
 ip.addParamValue('ShowUncertainty', false, @islogical);
+ip.addParamValue('forceSingle', false, @islogical);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(lftRes, varargin{:});
 
@@ -64,7 +65,7 @@ cf = hsv2rgb(cf);
 madFactor = 1/norminv(0.75, 0, 1); % MAD -> S.D.
 
 % 1) Plot CCP distributions
-if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
+if (~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))||(ip.Results.forceSingle))
     ha = setupFigure('DisplayMode', ip.Results.DisplayMode);
     for i = ip.Results.PlotOrder
         if ip.Results.ShowUncertainty
@@ -102,12 +103,12 @@ else
     switch na
         case 2
             for a = 1:na
-                atext{a} = [tmp(a,1) SlaveName{1} ': ' num2str(meanPct(a)*100, '%.1f') '±' num2str(stdPct(a)*100, '%.1f') '%'];
+                atext{a} = [tmp(a,1) SlaveName{1} ': ' num2str(meanPct(a)*100, '%.1f') 'ï¿½' num2str(stdPct(a)*100, '%.1f') '%'];
             end
         case 3
             for a = 1:na
                 atext{a} = [SlaveName{1} tmp(a,1) ' / ' SlaveName{2} tmp(a,2) ': '...
-                    num2str(meanPct(a)*100, '%.1f') '±' num2str(stdPct(a)*100, '%.1f') '%'];
+                    num2str(meanPct(a)*100, '%.1f') 'ï¿½' num2str(stdPct(a)*100, '%.1f') '%'];
             end
     end
    

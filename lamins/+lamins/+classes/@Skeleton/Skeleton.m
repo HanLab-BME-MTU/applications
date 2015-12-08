@@ -628,13 +628,18 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             rp = regionprops(S.edges,mask,'MeanIntensity');
             S.deleteEdges([rp.MeanIntensity] < 1);
         end
-        function c = getNuclearCircularity(obj)
+        function skeletonMask = getMask(obj)
             skeletonMask = imfill(obj.bw,'holes');
-            rp = regionprops(skeletonMask','Area','Perimeter');
+        end
+        function c = getNuclearCircularity(obj)
+            skeletonMask = getMask(obj);
+            rp = regionprops(skeletonMask,'Area','Perimeter');
             [~,maxidx] = max([rp.Area]);
             rp = rp(maxidx);
             assert(isscalar(rp));
             c = 4*pi*rp.Area / rp.Perimeter.^2;
+        end
+        function out = distanceDensityPlot(obj)
         end
         function score = getEdgeScore(obj,e)
         end

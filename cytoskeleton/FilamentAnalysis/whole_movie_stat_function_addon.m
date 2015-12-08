@@ -70,7 +70,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -196,7 +196,7 @@ for iChannel = selected_channels
             mkdir(HeatOutputDir);
         end
         
-        HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+        HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
         
         if (~exist(HeatEnhOutputDir,'dir'))
             mkdir(HeatEnhOutputDir);

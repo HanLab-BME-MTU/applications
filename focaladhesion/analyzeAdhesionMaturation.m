@@ -37,7 +37,7 @@ ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever clo
 ip.addParamValue('outputPath','AdhesionTracking',@ischar)
 ip.addParamValue('saveAnalysis',true,@islogical)
 ip.addParamValue('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
-ip.addParamValue('minLifetime',3,@isscalar) %For cells with only NAs, we turn this off.
+ip.addParamValue('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
 
 % ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
 ip.parse(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin{:});
@@ -134,7 +134,7 @@ end
 if onlyEdge
     disp(['Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered'])
     trackIdx = false(numel(tracksNA),1);
-    bandwidthNA = 2; %um 
+    bandwidthNA = 7; %um 
     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
     for ii=1:nFrames
         % Cell Boundary Mask 
@@ -204,12 +204,13 @@ end
 % get the intensity
 disp('Reading intensities with additional tracking...')
 tic
-tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',350); % 1 means intensity collection from pax image
+tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',10); % 1 means intensity collection from pax image
 toc
 firstMask=maskProc.loadChannelOutput(iChan,1);
 cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
 numTracks=numel(tracksNA);
 progressText(0,'Matching with segmented adhesions:');
+%% Matching with segmented adhesions
 for ii=1:nFrames
     % Cell Boundary Mask 
     mask = maskProc.loadChannelOutput(iChan,ii);
@@ -303,7 +304,7 @@ for ii=1:nFrames
         FCIdx = [];
         FAIdx = [];
     end
-    %% recording features
+    % recording features
     % get the point on the boundary closest to the adhesion
     allBdPoints = [];
     for kk=1:nBD
@@ -394,6 +395,10 @@ for ii=1:nFrames
     end
     progressText(ii/(nFrames-1),'Matching with segmented adhesions:');
 end
+%% disp('Intermediate saving before post analysis...')
+disp('Intermediate saving before post analysis...')
+save([dataPath filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
+save([dataPath filesep 'intermediateWorkspace.mat'], '-v7.3')
 %% protrusion/retraction information
 % time after protrusion onset (negative value if retraction, based
 % on the next protrusion onset) in frame, based on tracksNA.distToEdge
@@ -459,9 +464,9 @@ for k=1:numTracks
     catch
         sF=tracksNA(k).startingFrame;
         eF=tracksNA(k).endingFrame;
-        tracksNA(k).lifeTime = eF-sF+1;    
+        tracksNA(k).lifeTime = eF-sF;    
     end
-    tracksNA(k).lifeTime = eF-sF+1;    
+    tracksNA(k).lifeTime = eF-sF;    
     % Inital intensity slope for one min
     timeInterval = deltaT/60; % in min
     earlyPeriod = floor(1/timeInterval); % frames per minute
@@ -631,9 +636,10 @@ for k=1:numTracks
     progressText(k/(numTracks-1),'Post-analysis:');
 end
 %% saving
+save([dataPath filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
+%% saving
 if saveAnalysis
     % saving
-    save([dataPath filesep 'tracksNA.mat'], 'tracksNA')
     %% NA FA Density analysis
     numNAs = zeros(nFrames,1);
     for ii=1:nFrames

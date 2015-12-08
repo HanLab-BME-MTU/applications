@@ -120,6 +120,7 @@ if(feature_flag(4)>0)
     T_sigma=40;
     O_sigma=pi/4;
     output_feature.density_filament=density_filament;
+    output_feature.current_seg = VIF_current_seg;
 end
 
 %% scrambled density
@@ -127,6 +128,7 @@ if(feature_flag(5)>0)
     scrable_output_feature = ...
         scrable_network_analysis(VIF_current_model,VIF_current_seg,CellROI, radius,T_sigma,O_sigma);
     output_feature.scrabled_density_filament=scrable_output_feature.density_filament;
+    output_feature.scrabled_filament=scrable_output_feature.current_seg;
 end
 
 

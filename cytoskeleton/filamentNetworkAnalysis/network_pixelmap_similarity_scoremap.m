@@ -65,11 +65,15 @@ O2 = MT_OO;
 
 % find in the pool of the points in the 2nd channel, the closest point of
 % the points in the 1st channel, so query is 1, pool is 2.
-[idx_cell, dist_cell] = KDTreeBallQuery([Y2 X2],[Y1 X1],radius);
+% [idx_cell, dist_cell] = KDTreeBallQuery([Y2 X2],[Y1 X1],radius);
+
+% matlab kdtree built in code
+[idx_cell, dist_cell] = rangesearch([Y2 X2],[Y1 X1],radius,'nsmethod','kdtree');
+
 
 for iQ = 1 : length(Y1)
-    idx_this = idx_cell{iQ};
-    dist_this = dist_cell{iQ};
+    idx_this = idx_cell{iQ}';
+    dist_this = dist_cell{iQ}';
     
     [sort_dist,sort_IX] = sort(dist_this);
     
@@ -174,12 +178,14 @@ end % end i
  %%
 %then the other way around 2->1
 
+% [idx_cell, dist_cell] = KDTreeBallQuery([Y1 X1],[Y2 X2],radius);
+% matlab kdtree built in code
+[idx_cell, dist_cell] = rangesearch([Y1 X1],[Y2 X2],radius,'nsmethod','kdtree');
 
-[idx_cell, dist_cell] = KDTreeBallQuery([Y1 X1],[Y2 X2],radius);
 
 for iQ = 1 : length(Y2)
-    idx_this = idx_cell{iQ};
-    dist_this = dist_cell{iQ};
+    idx_this = idx_cell{iQ}';
+    dist_this = dist_cell{iQ}';
     
     [sort_dist,sort_IX] = sort(dist_this);
     

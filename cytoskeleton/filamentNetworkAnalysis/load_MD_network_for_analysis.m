@@ -14,13 +14,13 @@ function [network_feature,network_feature_MD_allCh_wholepool_cell] =...
 %                         calculate, 0 for skip it to save time.
 
 %           %% here is a list of feature_flag corrspondence:
-% 
+%
 %            1:   output_feature.straightness_per_filament_pool
 %            2:   output_feature.length_per_filament_pool
 %            3:   output_feature.pixel_number_per_filament_pool
 %            4:   output_feature.density_filament
 %            5:   output_feature.scrabled_density_filament
-% 
+%
 %            6:   output_feature.orientation_pixel_pool_display
 %            7:   output_feature.orientation_pixel_pool_display_center
 
@@ -29,30 +29,30 @@ function [network_feature,network_feature_MD_allCh_wholepool_cell] =...
 %           10:   output_feature.intensity_per_fat_filament_pool
 %           11:   output_feature.mean_intensity_per_fat_filament_pool
 %           12:   output_feature.scale_per_filament_pool
-% 
-%           13:   output_feature.st_per_filament_pool 
-%           14:   output_feature.mean_st_per_filament_pool 
+%
+%           13:   output_feature.st_per_filament_pool
+%           14:   output_feature.mean_st_per_filament_pool
 %           15:   output_feature.st_per_fat_filament_pool
 %           16:   output_feature.mean_st_per_fat_filament_pool
 
 %           17:   output_feature.filament_mean_curvature
-%           18:   output_feature.curvature_per_pixel_pool 
+%           18:   output_feature.curvature_per_pixel_pool
 
 %           19:   output_feature.profileCell
 %           20:   output_feature.profileAllCell
 
-%           21:   output_feature.Centripetal_fila 
-%           22:   output_feature.Centripetal_pixel 
+%           21:   output_feature.Centripetal_fila
+%           22:   output_feature.Centripetal_pixel
 %           23:   output_feature.Cell_Mask
 %           24:   output_feature.number_of_nucleus
 
 %           25:   output_feature.filament_density_mean
 %           26:   output_feature.scrabled_density_filament_mean
-            
+
 %           27:   output_feature.ST_seg_ratio
 %           28:   output_feature.GM_seg_ratio
 
-% 
+%
 % textcell = {'Straightness of filament (for each filament)',... % 1
 %     'Length (for each filament)',...                           % 2
 %     'Pixel number of segmentation (for each filament)',...     % 3
@@ -71,24 +71,21 @@ function [network_feature,network_feature_MD_allCh_wholepool_cell] =...
 %     'ST Responce (average for each dilated filament)',...       % 16
 %     'Filament curvature (average for each filament)',...     % 17
 %     'Filament curvature (for each pixel on filaments)',...   % 18
-%     'Filament Profiles for each cell (for vim screen only)',... %19   
+%     'Filament Profiles for each cell (for vim screen only)',... %19
 %     'Filament Profiles for all cells (for vim screen only)',... %20
-%     'Filament Centripetal angle for each filament (for vim screen only)',... %21 
+%     'Filament Centripetal angle for each filament (for vim screen only)',... %21
 %     'Filament Centripetal angle for each pixel on filament (for vim screen only)',... %22
 %     'Cell Mask',... % 23
-%     'Number of Nucleus'... %24
-
-%           25:   output_feature.filament_density_mean
-%           26:   output_feature.scrabled_density_filament_mean
-            
-%           27:   output_feature.ST_seg_ratio
-%           28:   output_feature.GM_seg_ratio
+%     'Number of Nucleus',... % 24
+%     'mean filament density',... % 25
+%     'scrabbled network mean filament density',... % 26
+%     'ratio of ST based filament segmentation vs cell segmentation ratio',... % 27
+%     'ratio of GM based filament segmentation vs cell segmentation ratio',... % 28
 %     }
 
-
 % output:   network_feature, a cell structure for each channel, each frame.
-%           Each struct with field of the 16 features as above
-            
+%           Each struct with field of the 28 features as above
+
 % Liya Ding 2013
 
 % if no input, CellROI is full image
@@ -111,12 +108,10 @@ if(nargin<5)
     save_everything_flag = 1;
 end
 
-% if no input as which feature to calculate, do for all features
+% if no input as which feature to calculate, do for all first 16 features
 if(nargin<6)
-    feature_flag = ones(1,28);
+    feature_flag = [ones(1,16) zeros(1,12)];
 end
-
-
 
 if(numel(feature_flag)<28)
     feature_flag = [feature_flag(:); zeros(28-numel(feature_flag),1)];
@@ -132,12 +127,9 @@ if(nargin<8)
     set_visible = 1;
 end
 
-
 if(~exist('save_tif_flag','var'))
     save_tif_flag = 0;
 end
-
-
 
 %% dependency
 
@@ -149,17 +141,17 @@ if(feature_flag(5)==0)
     feature_flag(26)=0;
 end
 
-
 if(vimscreen_flag==0)
+    feature_flag(21)=0;
+    feature_flag(22)=0;
     feature_flag(24)=0;
 end
-
 
 %% Get movie data ready
 
 movie_Dir = MD.outputDirectory_;
 wholemovie_output_dir = [MD.outputDirectory_,filesep,'whole_movie_network_analysis'];
- 
+
 if(~exist(wholemovie_output_dir,'dir'))
     mkdir(wholemovie_output_dir);
 end
@@ -191,8 +183,8 @@ validChannels = validChannels'; % into row vector
 for iChannel = validChannels
     
     try
-    outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
-     
+        outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
+        
     catch
         continue;
     end
@@ -212,7 +204,7 @@ for iChannel = validChannels
         display(['iChannel: ', num2str(iChannel),', iFrame:', num2str(iFrame)]);
         frame_tic = tic;
         %% % Load the data
-                   
+        
         try
             % load the filament segmentation results
             VIF_tip_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','tip_orientation');
@@ -225,12 +217,12 @@ for iChannel = validChannels
             continue;
         end
         
-         
+        
         % load scale map
-         % this line in commandation for shortest version of filename
+        % this line in commandation for shortest version of filename
         filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
-       
-        try            
+        
+        try
             try
                 load([SteerableChannelOutputDir, filesep, 'steerable_',...
                     filename_short_strs{iFrame},'.mat']);
@@ -249,26 +241,26 @@ for iChannel = validChannels
             continue;
         end
         
-    
         
-%         %% % this part is for tip analysis, not ready, just ignore this part
-%         % find the tip location
-%         [vim_tip_y,vim_tip_x] = find(~isnan(VIF_tip_orientation));
-%         
-%         % load the cell segmentation results from segmentation and mask
-%         % refine processes
-%         CellSegmentation = MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame);
-%         
-%         % define the cell boundary
-%         CellBoundary = bwboundaries(CellSegmentation);
-%         CellBoundary = CellBoundary{1}; %% x in second col
-%         
-%         % display the image with the tips
-%         h1 = figure(1);
-%         imagesc(VIF_RGB_seg_orient_heat_map);axis off; axis image;
-%         hold on;
-%         plot(CellBoundary(:,2),CellBoundary(:,1),'r.');
-%         plot(vim_tip_x,vim_tip_y,'*');
+        
+        %         %% % this part is for tip analysis, not ready, just ignore this part
+        %         % find the tip location
+        %         [vim_tip_y,vim_tip_x] = find(~isnan(VIF_tip_orientation));
+        %
+        %         % load the cell segmentation results from segmentation and mask
+        %         % refine processes
+        %         CellSegmentation = MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame);
+        %
+        %         % define the cell boundary
+        %         CellBoundary = bwboundaries(CellSegmentation);
+        %         CellBoundary = CellBoundary{1}; %% x in second col
+        %
+        %         % display the image with the tips
+        %         h1 = figure(1);
+        %         imagesc(VIF_RGB_seg_orient_heat_map);axis off; axis image;
+        %         hold on;
+        %         plot(CellBoundary(:,2),CellBoundary(:,1),'r.');
+        %         plot(vim_tip_x,vim_tip_y,'*');
         
         %% % transfer into digital representation and define CellROI
         
@@ -281,15 +273,15 @@ for iChannel = validChannels
         if(isempty(CellROI))
             CellROI = ones(size(VIF_current_seg));
         end
-                
+        
         % see if there is cell segmentation to rule out noisy background
         Cell_Mask = CellROI;
         try
-            Cell_Mask = CellROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);                       
-        end        
- 
+            Cell_Mask = CellROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
+        end
+        
         min_length = MD.processes_{indexFilamentSegmentationProcess}.funParams_.LengthThreshold;
-
+        
         if(numel(min_length)>1)
             min_length = min_length(iChannel);
         end
@@ -297,7 +289,7 @@ for iChannel = validChannels
         %% % do analysis
         im_name = MD.channels_(iChannel).getImageFileNames(iFrame);
         current_img =  MD.channels_(iChannel).loadImage(iFrame);
-                
+        
         % get network feature that is only related to the network
         display(' --- network features');
         tic
@@ -306,7 +298,7 @@ for iChannel = validChannels
             VIF_current_seg, Cell_Mask, radius,feature_flag);
         toc
         
-        display(' --- intensity, scale, steerable-response features');   
+        display(' --- intensity, scale, steerable-response features');
         tic
         % get network feature that is related to intensity or st image
         output_image_features = perfilament_analysis(VIF_ROI_model, VIF_ROI_orientation_model,...
@@ -319,65 +311,64 @@ for iChannel = validChannels
         
         %% for vim screen the third channel is nucleus, count the number of cells
         if(vimscreen_flag>0 && indexCellRefineProcess >0)
-           display(' --- Vim Screen - Structure Features');   
-        
+            display(' --- Vim Screen - Structure Features');
+            
             % load the nucleus channel segmentation
             nucleus_mask = (MD.processes_{indexCellRefineProcess}.loadChannelOutput(3,iFrame))>0;
             
             % label the nucleus segmentation image and get the number of
             % cells(nucleus)
-           [labelMaskNucleus, numNucleus] = bwlabel(nucleus_mask);
-           output_feature.number_of_nucleus = numNucleus;
-           
-           % With the nucleus locations, get the vim properties in each
-           % devided region of each cell
-           tic
-           vim_output_feature = vim_screen_network_features(labelMaskNucleus,...
-               VIF_current_seg,VIF_ROI_model,current_img, nms,feature_flag,40);           
-           toc
-           % put these into the final struct
-           output_feature =  cat_struct(output_feature,vim_output_feature);        
-        end           
+            [labelMaskNucleus, numNucleus] = bwlabel(nucleus_mask);
+            output_feature.number_of_nucleus = numNucleus;
+            
+            % With the nucleus locations, get the vim properties in each
+            % devided region of each cell
+            tic
+            vim_output_feature = vim_screen_network_features(labelMaskNucleus,...
+                VIF_current_seg,VIF_ROI_model,current_img, nms,feature_flag,40);
+            toc
+            % put these into the final struct
+            output_feature =  cat_struct(output_feature,vim_output_feature);
+        end
         
         % add one last component, the cell_mask
         Cell_Mask = CellROI;
         if(indexCellRefineProcess>0 && vimscreen_flag == 0)
             try
                 Cell_Mask = CellROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
-%               Cell_Mask(Cell_Mask==0)=nan;
-      
-            end            
+                %               Cell_Mask(Cell_Mask==0)=nan;
+            end
         end
-                
+        
         output_feature.Cell_Mask = Cell_Mask;
         
-        if(feature_flag(27)>0)        
-             output_feature.ST_seg_ratio = sum(sum(output_feature.SteerabelRes_Segment))./sum(sum(Cell_Mask));
-             output_feature = rmfield(output_feature, 'SteerabelRes_Segment');
+        if(feature_flag(27)>0)
+            output_feature.ST_seg_ratio = sum(sum(output_feature.SteerabelRes_Segment))./sum(sum(Cell_Mask));
+            output_feature = rmfield(output_feature, 'SteerabelRes_Segment');
         end
         
         if(feature_flag(28)>0)
-             output_feature.GM_seg_ratio = sum(sum(output_feature.GM_current_seg))./sum(sum(Cell_Mask));
-             output_feature = rmfield(output_feature, 'GM_current_seg');  
+            output_feature.GM_seg_ratio = sum(sum(output_feature.GM_current_seg))./sum(sum(Cell_Mask));
+            output_feature = rmfield(output_feature, 'GM_current_seg');
         end
- 
-                  
-        if(~isempty(Cell_Mask) && feature_flag(4)==1 && feature_flag(5)==1)            
+        
+        
+        if(~isempty(Cell_Mask) && feature_flag(4)==1 && feature_flag(5)==1)
             output_feature.density_filament =  (output_feature.density_filament).*(output_feature.Cell_Mask);
             output_feature.density_filament(~Cell_Mask)=nan;
             output_feature.scrabled_density_filament =  (output_feature.scrabled_density_filament).*(output_feature.Cell_Mask);
             output_feature.scrabled_density_filament(~Cell_Mask)=nan;
-
+            
         end
         
         output_feature.filament_density_mean = nanmean(output_feature.density_filament(:));
         output_feature.scrabled_density_filament_mean = nanmean(output_feature.scrabled_density_filament(:));
         
-         
-%         % save output feature for single image(single channel, single frame)
-%         save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
-%             'output_feature');
-%         
+        
+        %         % save output feature for single image(single channel, single frame)
+        %         save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
+        %             'output_feature');
+        %
         % new name save output feature for single image(single channel, single frame)
         save([outdir,filesep,'network_feature_ch_',num2str(iChannel),'_',filename_short_strs{iFrame},'.mat'],...
             'output_feature');
@@ -386,15 +377,15 @@ for iChannel = validChannels
         tic
         % plot the network features in hists
         network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
-                im_name, outdir,iChannel,iFrame,set_visible)
-%         close all;
+            im_name, outdir,iChannel,iFrame,set_visible)
+        %         close all;
         toc
         
         % put output feature to cell for all channels, all frames
         network_feature{iChannel,iFrame} = output_feature;
         
-       display(' this frame totaling: ');        
-       toc(frame_tic)
+        display(' this frame totaling: ');
+        toc(frame_tic)
     end
     
     network_feature_MD_thisCh_wholepool = network_feature_pool_MD_gather(network_feature, iChannel, feature_flag);
@@ -402,14 +393,14 @@ for iChannel = validChannels
     
     network_features_plotting(network_feature_MD_thisCh_wholepool, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
         '_wholeMD_', wholemovie_output_dir, iChannel,1,set_visible);
-        
-    % save output feature for all channels(till this), all frames)       
+    
+    % save output feature for all channels(till this), all frames)
     save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_allframe.mat'],...
-            'network_feature','network_feature_MD_thisCh_wholepool');
+        'network_feature','network_feature_MD_thisCh_wholepool');
 end
-   
+
 try
-% save output feature for all channels, all frames)
-save([wholemovie_output_dir,filesep,'network_analysis_feature_allch_allframe.mat'],...
-    'network_feature','network_feature_MD_allCh_wholepool_cell');
+    % save output feature for all channels, all frames)
+    save([wholemovie_output_dir,filesep,'network_analysis_feature_allch_allframe.mat'],...
+        'network_feature','network_feature_MD_allCh_wholepool_cell');
 end

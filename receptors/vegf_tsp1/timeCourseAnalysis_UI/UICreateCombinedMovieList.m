@@ -52,7 +52,7 @@ end
 assert(~any(arrayfun(@(x) isempty(x.ML.getProcessIndex('TimePoints')), MLs)), 'Not all Movie Lists contain TimePoints process. Makes sure MovieLists have timePoints process.');
 
 %% Create CombinedMovieList object and save
-CML = CombinedMovieList(ML_FullPath, CML_FilePath(1:end-1), 'name', nameCML);
+CML = CombinedMovieList(ML_FullPath, CML_FilePath(1:end-1),'name',nameCML);
 CML.fileName_ = CML_FileName;
 CML.filePath_ = CML_FilePath;
 CML.analysisPara_ = CML_analysisPara;
