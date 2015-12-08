@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%       small program to stitch axial MIPs of Multiplane data
+%       small program to stitch axial MIPs 
 %
 %       primitive version with visual stitching for light-sheet imaging.
 %       by Reto Fiolka  12-04-2015
@@ -7,7 +7,7 @@
 %                     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear all, close all
-dataP1='/project/cellbiology/gdanuser/december/shared/multiplane/EB3mNG/151203/Cell4'
+dataP1='/project/cellbiology/gdanuser/december/shared/EB3mNG/151203/Cell4'
 
 savePath='/home2/rfiolka/Pictures/test';
 
