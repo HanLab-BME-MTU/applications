@@ -340,24 +340,30 @@ else
 [commonInfo.analysisTimes, timeLimit, commonInfo.timeLimitIndx] = timeCourseAnalysis.getAnalysisTimes(commonInfo.times,params.timeResolution);
     
 % Computer standard error
-determineSEInParallel = true;
+% determineSEInParallel = true;
 nFig = numel(figureData);
-if(~determineSEInParallel)
-    %for progress display
-    
+% if(~determineSEInParallel)
+%     %for progress display
+%     
     progressTextMultiple('Determining confidence interval', nFig);
-else
-    warning('off','parallel:lang:spmd:RemoteTransfer');
-    disp('Determining confidence interval');
-    disp('Parallel progress not available');
-    dFigureData = distributed(figureData);
-    parfor_progress(nFig);
-end
+% else
+%     warning('off','parallel:lang:spmd:RemoteTransfer');
+%     disp('Determining confidence interval');
+%     disp('Parallel progress not available');
+%     dFigureData = distributed(figureData);
+%     parfor_progress(nFig);
+% end
 %call determineSE_Bootstrp.m
-fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag), dFigureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
-if(determineSEInParallel)
-    fitError = gather(fitError);
-end
+fitError = pararrayfun_progress( ...
+    @(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag) ...
+    , figureData ...
+    , 'Uniformoutput', false ...
+    , 'ErrorHandler',  @determineSEEH ...
+    , 'DisplayFunc',   'progressTextMultiple' ...
+    );
+% if(determineSEInParallel)
+%     fitError = gather(fitError);
+% end
 [figureData.fitError] = fitError{:};
 
 %% Add Standard Error to Figures
