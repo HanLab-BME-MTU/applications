@@ -149,6 +149,9 @@ for iDS = 1
     tmp = vertcat(dsSummary.statsMS);
     rateMSInd = tmp(:,8:9);
     
+    %merging and splitting time information
+    msTimeInfoInd = vertcat(dsSummary.msTimeInfo);
+    
 end
 
 %% Combine dataset results
@@ -192,6 +195,7 @@ resSummaryInd = struct('numAbsClass',numAbsClassInd,'numNorm0Class',numNorm0Clas
     'densityAbsClass',densityAbsClassInd,'densityNorm0Class',densityNorm0ClassInd,...
     'probClass',probClassInd,'diffCoefClass',diffCoefClassInd,'confRadClass',confRadClassInd,...
     'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
-    'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'rateMS',rateMSInd);
+    'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,...
+    'rateMS',rateMSInd,'msTimeInfo',msTimeInfoInd);
 
 %% ~~~ the end ~~~

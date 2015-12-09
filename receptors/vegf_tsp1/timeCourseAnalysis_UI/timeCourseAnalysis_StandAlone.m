@@ -233,10 +233,13 @@ ampLabels = { ...
     , 'Number of Modes' ... % 4
     ,'Normalized Fluorescence Amplitude Overall (monomer units)' ... % 5
     };
+
 commonInfo.defCond = defCond;
 commonInfo.ampLabels = ampLabels;
+
 %progressText
 fprintf('Plotting figures: scatter plots\n');
+
 %Each line calls the nested function plotData
 %the first input subData must be cellarray of arrays
 %So using cell fun convert data which is a cellarray of structure of arrays
@@ -253,10 +256,12 @@ calcFigure({data.densityNorm0Class}', 'Normalized Density of Class Types', ...
 calcFigure({data.probClass}', 'Probability of Class Types', ...
     defCond([1:4 6 8]), ...
     'Probability');
+
 calcFigure({data.diffCoefClass}', 'Diffusion Coefficient', ...
     defCond(1:4), 'Diffusion coefficient (pixels^2/frame)'); %no 5th
 calcFigure({data.confRadClass}', 'Confinement Radius', ... 
     defCond(1:2), 'Confinement radius (pixels)');%no 3 4 5th column
+
 calcFigure({data.ampClass}', 'Fluorescence Amplitude', ...
     defCond(1:5), 'Intensity (arbitrary units)');
 calcFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ... 
@@ -265,8 +270,11 @@ calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ...
     ampLabels, '');
 calcFigure({data.ampStatsL20}', 'Last 20 Frames - ', ...
     ampLabels, '');
-calcFigure({data.rateMS}', 'Merging and Spliting', ...
-    {'merging', 'splitting'}, '(per frame per particle)');
+
+calcFigure({data.rateMS}', 'M & S Rate', {'merging', 'splitting'}, '(per frame per particle)');
+calcFigure({data.msTimeInfo}', 'M & S Time Information', ...
+    {'merge-to-split time', 'split-to-merge (self) time','split-to-merge (other) time','merge-to-end time','start-to-split time'}, '(frames)');
+
 %Do only if input specify that this plot be shown. Will cause error if
 %data.partitionFrac is not present
 if params.showPartition
@@ -279,6 +287,7 @@ if params.showPartition
     calcFigure({data.eqCond}', 'Equilibrium Condition', ...
         defCond(1:5), 'Proximity to equilibrium condition (arbitrary units)', false);
 end
+
 %get rid of figure data that was not plotted
 figureData = [figureData{:}];
 mask = arrayfun(@(x) ~any(cellfun('isempty',x.fitData)), figureData);
@@ -342,6 +351,7 @@ else
     disp('Determining confidence interval');
     disp('Parallel progress not available');
     dFigureData = distributed(figureData);
+    parfor_progress(nFig);
 end
 %call determineSE_Bootstrp.m
 fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag), dFigureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
@@ -353,7 +363,7 @@ end
 %% Add Standard Error to Figures
 timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2);
 
-pause(1);
+drawnow;
 
 %% Compare Fitted Curves
 [fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
@@ -372,6 +382,8 @@ function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, 
     fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
     if(numlabs == 1)
         progressTextMultiple();
+    else
+        parfor_progress();
     end
 end
 %error handle for determineSE_Bootstrp.m

@@ -6,7 +6,7 @@ function [MLSummary, MLTime, MLExtra, startTime] = MLAnalyze(ML, alignEvent,anal
 ML.sanityCheck;
 TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
 %progressText
-progressTextMultiple('part 1', 2);
+% progressTextMultiple('part 1', 2);
 %(I'm not exactly sure what resultsIndTimeCourseMod does)
 %It is used like blackbox that does the basic analysis
 if isempty(TCAPIndx) || isempty(ML.processes_{TCAPIndx}.summary_)
@@ -22,7 +22,7 @@ elseif analysisPara.doNewAnalysis
 else
     MLSummary = ML.processes_{TCAPIndx}.summary_;
 end
-progressTextMultiple('part 2');
+% progressTextMultiple('part 2');
 %Time Analysis---------------------------------
 timeProcIndx = ML.getProcessIndex('TimePoints');
 alignIndx = ML.processes_{timeProcIndx}.getIndex(alignEvent);
@@ -55,8 +55,8 @@ if analysisPara.doPartition
         end
     end
 end
-progressTextMultiple();
+% progressTextMultiple();
 %---------------------
 %progress text
-progressTextMultiple();
+% progressTextMultiple();
 end
