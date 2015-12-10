@@ -50,6 +50,7 @@ ip.addParamValue('makePlot',true,@islogical);
 
 ip.addParamValue('splineParam',0.01,@(x) isscalar(x) || isempty(x)); 
 ip.addParamValue('outPath' ,[],@(x) ischar(x) || isempty(x)); 
+ip.addParamValue('forTitle',[]); 
 ip.parse(neuriteOutgrowth,varargin{:});
 
 threshPause = ip.Results.threshPause;
@@ -67,7 +68,8 @@ if d(1)~= 0
 d = d-d(1);
 end 
 
-    
+
+
 % perform spline filter on the neurite distance 
 sd_spline= csaps(linspace(1,nTime,nTime),d,0.01);
 
@@ -211,7 +213,7 @@ if ~isempty(outPath)
    %% make plot if user specifies
    if makePlot == true;
        % plot the velocity in red and the transitions
-       fsFigure(0.75,'visible','on');
+       fsFigure(0.75,'visible','off');
        
        
        subplot(2,1,1)
@@ -294,11 +296,16 @@ if ~isempty(outPath)
        
        axis([0 inTime(end) -10 25]);
        
+       if ~isempty(ip.Results.forTitle)
+           title(ip.Results.forTitle,'Color','k','FontName','Arial','FontSize',14);          
+       end
+       
        
        if ~isempty(outPath)
            
            saveas(gcf,[outPath filesep 'NeuriteTrajectorySubUnits.fig']);
            saveas(gcf,[outPath filesep 'NeuriteTrajectorySubUnits.png']);
+           saveas(gcf,[outPath filesep 'NeuriteTrajectorySubUnits.eps'],'psc2'); 
        end
        
       

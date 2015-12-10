@@ -19,7 +19,10 @@ if exist(outgrowthFile)~= 0 ;
     % Here we will simply partition based on pausing in the neurite
     % trajectory (when the velocity of outgrowth reaches below a user 
     % selected threshold)
-    globalParams =  GCAfindPausingInNeuriteOutgrowthTrajectory(neuriteLength,'outPath',outDir) ;
+      
+    title = gcaGetNeuriteID(MD.outputDirectory_); 
+    
+    globalParams =  GCAfindPausingInNeuriteOutgrowthTrajectory(neuriteLength,'outPath',outDir,'forTitle',title) ;
     % load 
    % load([MD.outputDirectory filesep 'PARAMETER_EXTRACTION_201503015' filesep 'localParams.mat']); 
     % go on to partition the rest of the data if user desires.. 
