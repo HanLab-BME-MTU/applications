@@ -1,4 +1,7 @@
-%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%small program to convert binary files to tiff
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear all
 cd C:\Users\ALSM_Master\Desktop\Data\Reto\RPE_1ms\tractinGFP\151208\Cell10
 
