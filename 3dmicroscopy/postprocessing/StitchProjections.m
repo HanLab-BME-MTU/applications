@@ -4,7 +4,7 @@
 %       primitive version with visual stitching for light-sheet imaging.
 %       by Reto Fiolka  12-04-2015
 %       
-%   MIP are 2D images
+%   MIP are 2D images from light sheet data
 %   shiftvec is a matrix that contains the lateral and vertical shifts
 %   between MIP1 and Mip2 (first row in matrix) and Mip2 and Mip3 (second
 %   row)
