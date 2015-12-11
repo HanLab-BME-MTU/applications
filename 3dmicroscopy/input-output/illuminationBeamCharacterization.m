@@ -1,44 +1,49 @@
-%% Camera registration for XYZ.
+%A script for iterative alignment of the laser illumination and the
+%variable slit for adjustment of the excitation numerical aperture.  The
+%camera is intended to be a ImagingSource DMK21BU04 CCD.  If the beam is
+%rotated clockwise in the propagation direction, then you need to move the
+%slit aperture stage counter clockwise.  Very fine movements are sufficient
+%to have a significant beam impact on alignment.
+% AO 0 = LaserPower.  
+% AO 1 = Remote Piezo.
+% Y Piezo Scan Settings - 59.838 microns/volt.
+% 0 offset is 5 volts
+% Kevin Dean, 2015-12-03.
+
+%% Camera registration and initiation.  Camera is 8-bit, and has a 5.6 micron pixel size.  USB 2.0.
 clear all
 clc
 imaqregister('C:\Program Files (x86)\TIS IMAQ for MATLAB R2013b\x64\TISImaq_R2013.dll');
-
-% Initiate Camera
 vid = videoinput('tisimaq_r2013', 1, 'Y800 (640x480)');
 src = getselectedsource(vid);
 vid.FramesPerTrigger = 1;
 
+%% Initiate National Instruments Session.  Depending on computer, may be Dev1 or Dev2.
+% Positions y-piezo at 5V and triggers the laser TTL high.
 
-%1/4% UBS 2.0 CCD Camera, 8 bit, 5.6 micron pixel size.
-%% Initiate National Instruments Session
 devices=daq.getDevices();  
+
 s = daq.createSession('ni'); 
+
 s.Rate=1E6;
 
-addAnalogOutputChannel(s,'Dev1',0:1,'Voltage'); 
-%AO 0 = LaserPower.  
-%AO 1 = Remote Piezo.
+addAnalogOutputChannel(s,'Dev2',0:1,'Voltage'); 
 
-% Initial beam alignment with camera
-
-queueOutputData(s,[1 5]);
+queueOutputData(s,[5 5]);
 
 s.startForeground();
 
 
-%% Optimize Laser Power
-% Y Piezo Scan Settings - 59.838 microns/volt.
-% 0 offset is 5 volts
-% 4.5 - 4.7 volts scan range
+%% Optimize Laser Power.  Only use with AOTF (never go above 5V).  Otherwise input LaserPower=5;
 
-laserPowerOutput=0:0.05:.1; %Never go above 5V.
+laserPowerOutput=0:0.05:.1; 
+
 outputSize=length(laserPowerOutput);
 
 remotePiezoOutput=ones(outputSize,1)*5; 
-%The correct pinout for AO0 is 22 and 56.
-%The correct pinout for AO1 is 21 and 55.
 
 clear Stack
+
 imageIntensity=zeros(outputSize,1);
 
 for i=1:outputSize
@@ -67,9 +72,6 @@ LaserPower=laserPowerOutput(loc)
 clear i imageIntensity int laserPowerOutput loc outputSize remotePiezoOutput
 
 %% Measure Beam Profile
-
-%If the beam is tilted counterclockwise, then you need to rotate the dial on
-%the micrometer clockwise.
 zStep = 0.01;
 
 remotePiezoOutput=[4.4:zStep:5.7]; %4.8 to 5.2
@@ -116,6 +118,7 @@ beamProfile=sum(temp,1);  %2 if horizontal, 1 if vertical.
 %clear temp beamProfile int
 
 temp=squeeze(Stack(:,loc,:));
+
 temp(:)=0;
 
 for i=1:30; %Mathematical dither of beam in lateral dimension.
@@ -123,13 +126,15 @@ for i=1:30; %Mathematical dither of beam in lateral dimension.
 end
 
 
-% Measure beam axial FWHM
+% Measure beam FOV FWHM
 
 beamProfile=temp(:,loc);
+
 beamProfileMin=min(beamProfile);
+
 beamProfile=beamProfile-beamProfileMin;
 
-[xData, yData] = prepareCurveData( [], beamProfile );
+[xData, yData] = prepareCurveData([], beamProfile );
 
 % Set up fittype and options.
 ft = fittype( 'gauss1' );
@@ -163,7 +168,7 @@ FieldOfView=fitresult.c1*2.35*zStep*60.838/sqrt(2)
 %%
 
 %axialProfile=squeeze(temp(floor(size(temp,1)/2),:));
-axialProfile=squeeze(temp(17,:));
+axialProfile=squeeze(temp(61,:));
 
 [xData, yData] = prepareCurveData( [], axialProfile-min(axialProfile) );
 
@@ -186,5 +191,3 @@ grid on
 
 AxialResolution=fitresult.c1*2.35*.16/sqrt(2)
 
-
-%%

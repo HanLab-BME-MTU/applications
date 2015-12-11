@@ -47,7 +47,7 @@ function figureData = calcFigureData(commonInfo, subData, title_Base, title_Vari
         inOutFlag = cellfun(@(x) true(size(x)),subSubData,'UniformOutput',false);
         if(commonInfo.parameters.detectOutliers_k_sigma > 0)
             for iData = 1 : length(subSubData)
-                [outIdx,inIdx] = detectOutliers(subSubData{iData},3);
+                [outIdx,inIdx] = detectOutliers(subSubData{iData},commonInfo.parameters.detectOutliers_k_sigma);
                 inOutFlag{iData}(outIdx) = false; %outliers get flag 0
                 inOutFlag{iData}(inIdx)  = true; %inliers get flag 1
             end
