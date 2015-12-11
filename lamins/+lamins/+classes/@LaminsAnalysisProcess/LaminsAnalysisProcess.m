@@ -29,9 +29,10 @@ classdef LaminsAnalysisProcess < ImageAnalysisProcess
             end
             
             params = obj.getParameters();
-            if(~isfield(params,'outFilePaths'))
+            if(~isfield(params,'outFilePaths') || isempty(params.outFilePaths))
                 params.outFilePaths = obj.outFilePaths_;
             end
+            params.process = obj;
             
             % Call the superclass runner
             obj.run@ImageAnalysisProcess(params,varargin{:});
@@ -42,7 +43,9 @@ classdef LaminsAnalysisProcess < ImageAnalysisProcess
             name = 'Lamins Analysis Process';
         end
         function params = getDefaultParams(varargin)
-            params = struct();
+            ip = lamins.functions.analyzeLaminsForProcessParameters();
+            ip.parse(varargin{:});
+            params = ip.Results;
         end
     end
     

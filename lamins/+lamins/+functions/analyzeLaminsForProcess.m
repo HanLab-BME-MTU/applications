@@ -44,14 +44,8 @@ function [ out ] = analyzeLaminsForProcess( MD , varargin)
         ip.StructExpand = true;
         ip.KeepUnmatched = true;
         ip.addRequired('MD',@(x) isa(x,'MovieObject'));
-        ip.addParameter('steerable_sigma',5,@(x) isnumeric(x) && isscalar(x));
-        ip.addParameter('channels',[]);
-        ip.addParameter('analysisDate','2015_11_25');
-        ip.addParameter('outFilePaths',[]);
+        analyzeLaminsForProcessParameters(ip);
         ip.addParameter('process',[]);
-        ip.addParameter('tz',[]);
-        ip.addParameter('clearOutputDir',false,@islogical);
-        ip.addParameter('plot',true,@islogical);
         ip.parse(MD,varargin{:});
         
         in = ip.Results;

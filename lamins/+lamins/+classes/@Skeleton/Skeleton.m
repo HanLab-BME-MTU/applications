@@ -639,8 +639,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             assert(isscalar(rp));
             c = 4*pi*rp.Area / rp.Perimeter.^2;
         end
-        function out = distanceDensityPlot(obj)
-        end
+        out = distanceDensityPlot(obj,image,varargin)
         function score = getEdgeScore(obj,e)
         end
         function score = getFaceScore(obj,f)
