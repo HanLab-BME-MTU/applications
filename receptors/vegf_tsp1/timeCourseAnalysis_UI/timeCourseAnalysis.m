@@ -12,7 +12,7 @@ function [] = timeCourseAnalysis(CMLs, outputDir, varargin)
 %                 be stored
 %   varargin    : name_value pairs for analysis parameter
 %       'smoothingPara'         : parameter used for smoothing spline fit
-%       'channel'               : Channel of MD to be analyzed. Default = 1
+%       'channels'               : Channel of MD to be analyzed. Default = 1
 %       'doNewAnalysis'           : (logical) true: always do new analysis even if
 %                                 the analysis has already been done.
 %                                 false: avoid doing the analysis again if

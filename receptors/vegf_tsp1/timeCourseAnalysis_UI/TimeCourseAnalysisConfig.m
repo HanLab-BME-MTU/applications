@@ -22,7 +22,7 @@ function varargout = TimeCourseAnalysisConfig(varargin)
 
 % Edit the above text to modify the response to help TimeCourseAnalysisConfig
 
-% Last Modified by GUIDE v2.5 18-Dec-2015 17:31:25
+% Last Modified by GUIDE v2.5 18-Dec-2015 19:17:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -178,6 +178,9 @@ handles.p.nBootstrp = get(handles.nBootstrp,'Value');
 handles.p.channelTable = get(handles.channelTable,'Data');
 handles.p.detectOutliers_k_sigma = get(handles.detectOutliers,'Value') ...
                                    .*str2double(get(handles.k_sigma,'String'));
+handles.p.channels = find([handles.p.channelTable{:,1}]);
+handles.p.channelNames = handles.p.channelTable(:,2);
+handles.p.showPlots = get(handles.showPlots,'Value');
 guidata(handles.figure1, handles);
 uiresume(handles.figure1);
 % Go to TimeCourseAnalysisConfig_OutputFcn
@@ -234,3 +237,12 @@ function k_sigma_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in showPlots.
+function showPlots_Callback(hObject, eventdata, handles)
+% hObject    handle to showPlots (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of showPlots

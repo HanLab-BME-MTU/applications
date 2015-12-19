@@ -163,6 +163,7 @@ ip.addParameter('compareCurves', true, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftTime', [], @(x) isnumeric(x));
 ip.addParameter('detectOutliers_k_sigma', [], @(x) isnumeric(x));
+ip.addParameter('showPlots',true,@(x) islogical(x)||isnumeric(x));
 ip.parse(varargin{:});
 params = ip.Results;
 params.showPartition = params.showPartitionAnalysis;
@@ -288,7 +289,7 @@ if params.showPartition
         defCond(1:5), 'Proximity to equilibrium condition (arbitrary units)', false);
 end
 
-%get rid of figure data that was not plotted
+%get rid of figure data that was not calculated
 figureData = [figureData{:}];
 mask = arrayfun(@(x) ~any(cellfun('isempty',x.fitData)), figureData);
 figureData = figureData(mask);
@@ -297,7 +298,11 @@ figureData = figureData(mask);
 save(commonInfo.fullPath, 'commonInfo', 'figureData');
 
 %% Plot
-timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig);
+if(~params.showPlots)
+    disp('Figures not shown, but saved in ');
+    disp(commonInfo.outputDirFig);
+end
+timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig,~params.showPlots);
 pause(1);
 %progressText
 fprintf('\b Complete\n');
@@ -367,7 +372,13 @@ fitError = pararrayfun_progress( ...
 [figureData.fitError] = fitError{:};
 
 %% Add Standard Error to Figures
-timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2);
+disp('Plotting figures: standard error');
+if(~params.showPlots)
+    disp('Figures not shown, but saved in ');
+    disp(commonInfo.outputDirFig2);
+end
+timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2,~params.showPlots);
+fprintf('\b Complete\n');
 
 drawnow;
 
