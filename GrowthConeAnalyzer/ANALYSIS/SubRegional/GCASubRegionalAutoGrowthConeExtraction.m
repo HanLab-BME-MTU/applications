@@ -1,4 +1,4 @@
-function [ subRoisOut,xVect,yVect,pixelInfoGC,defineGCPlot ] = GCAgetGrowthConeSubRegions(frontPixelInfo,roiMask,varargin)
+function [ subRoisOut,xVect,yVect,pixelInfoGC,defineGCPlot ] = GCASubRegionalAutoGrowthConeExtraction(frontPixelInfo,roiMask,varargin)
 %GCAgetGrowthConeSubRegions: This function makes a front subregion to the growth cone
 % finding the largest distance transform along a line of pixels from the
 % veil/stem estimated (calculated in previous step), finding the local

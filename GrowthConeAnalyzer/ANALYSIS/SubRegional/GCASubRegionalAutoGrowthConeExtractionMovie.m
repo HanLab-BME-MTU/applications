@@ -1,4 +1,4 @@
-function [ output_args ] = GCAGetGrowthConeSubregionsMovie(movieData,varargin)
+function [ output_args ] =GCASubRegionalAutoGrowthConeExtractionMovie(movieData,varargin)
 %GCASubregionalAnalysisMovie : Function to partition the GC automatically
 %into subregions- module first introduced is currently based on a pre-set 
 % value from the tip of the leading protrusion 
@@ -67,11 +67,13 @@ ip.addParameter('maskFromSmoothedEdge',true);
 ip.addParameter('distFromLeadProt',20); 
 ip.addParameter('GCFinder',[]); 
 ip.addParameter('angle',90); % in degrees- relative to the local direction of the skeleton at the idxPt. 
+ip.addParameter('overwrite',false); 
 
 ip.parse(varargin{:});
 params = ip.Results; 
 %% Initiate 
 %% Init:
+run = 0; 
 nFrames = movieData.nFrames_;
 nChan = numel(params.ChannelIndex);
 channels = params.ChannelIndex;
@@ -94,6 +96,14 @@ end
     subNames{2} = 'Stem';
     
     subRegDir = ip.Results.OutputDirectory; 
+    if ~isdir(subRegDir) 
+      run = 1 ; 
+    end 
+    
+    if ip.Results.overwrite
+        run = 1; 
+    end 
+ if run == 1   
     % make the directories for masks
     arrayfun(@(i) mkClrDir([subRegDir filesep subNames{i} filesep 'masks']),1:2);
  
@@ -143,11 +153,13 @@ if ip.Results.TSOverlays == true
     saveas(gcf, [ subRegDir filesep 'Overlays' filesep num2str(iFrame,'%03d') '.png']); 
     close gcf 
 end 
-    
 
     
 end 
     
+ 
+
+else 
+    display(['GC SubRois Found for ' movieData.outputDirectory_ ': Skipping' ]) ; 
+
 end 
-
-
