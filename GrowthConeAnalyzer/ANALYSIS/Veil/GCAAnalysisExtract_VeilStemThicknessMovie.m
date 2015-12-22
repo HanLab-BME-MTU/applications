@@ -57,8 +57,8 @@ idx  = neuriteLength > ip.Results.distCutOffForThickness;
 if (sum(idx) == length(neuriteLength));
      
 else
-    newVal = max(neuriteLength); 
-   pToSave.distCutOffForThickness  = max(neuriteLength);
+    newVal = min(neuriteLength); 
+   pToSave.distCutOffForThickness  = min(neuriteLength);
     errorMessage =[ 'Max Neurite Length Sampled Less than Value for distCutOffForThickness: Resetting Value to ' num2str(newVal)] ;
     display(errorMessage);
     save([outDir filesep 'ErrorReport.mat'],'errorMessage');
