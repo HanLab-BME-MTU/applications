@@ -192,6 +192,7 @@ switch thresholdMethod
 end
 
 %threshold the image
+level = 0.1;
 imageThresholded = im2bw(imageMinusBackgroundFilteredNorm,level);
 
 %fill holes in thresholded image to make continuous blobs
@@ -205,7 +206,7 @@ idx = find([stats.Area] > minSize);
 %output final blob mask from thresholding
 maskBlobs = ismember(labels, idx);
 testMask = regionprops(maskBlobs,'Area');
-if find(vertcat(testMask.Area)>maxSize)
+if find(vertcat(testMask.Area)>100*maxSize) %Quick fix, find better way to handle bad threshold and just exclusions
     if isempty(maskThresh)
         disp('First image failed to mask properly, check filtering size or method')
         return
@@ -279,7 +280,7 @@ localMaxPosY = localMaxPosY(indxKeep);
 %make a mask image from the local maxima
 maskLocMax = zeros(imageSizeX,imageSizeY);
 maskLocMax(localMax1DIndx) = 1;
-SE = strel('disk',4);
+SE = strel('disk',2);
 maskLocMax = imdilate(maskLocMax,SE);
 
 %% Final mask
@@ -436,22 +437,29 @@ for q = 1: length(fixedTestArray)
 end
 markers = logical(markers);
 % maskComb = bwdist(maskComb)<=1;
-wsInput = imimposemin(imageQ, ~maskComb | markers);
+wsInput = imimposemin(imageQ, markers);
+wsInput(~maskComb) = Inf;
 wsOutput = watershed(wsInput);
 % % postWS = regionprops(wsOutput, image, {'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
 % % postWS(1) = [];
-wsOutputNoBg = wsOutput;
-wsOutputNoBg(wsOutput == 1) = 0;
-cc = connectedComponents.label2conncomp(wsOutputNoBg);
-cc.PixelIdxList = cc.PixelIdxList(2:end);
-cc.NumObjects = cc.NumObjects-1;
-cc_dilated = connectedComponents.ccDilate(cc,strel('disk',1));
-rp = regionprops(cc_dilated,image,{'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+
+wsOutputNoBg = immultiply(wsOutput,maskComb);
+BW = logical(wsOutputNoBg);
+% wsOutputNoBg(wsOutput == 1) = 0;
+% cc = connectedComponents.label2conncomp(wsOutputNoBg);
+% cc.PixelIdxList = cc.PixelIdxList(2:end);
+% cc.NumObjects = cc.NumObjects-1;
+% cc_dilated = connectedComponents.ccDilate(cc,strel('disk',1));
+rp = regionprops(BW,image,{'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
 test = vertcat(rp.Area);
-minCluster = find(test < minSize);
-rp(minCluster) = [];
-maxCluster = find(test > maxSize);
-rp(maxCluster) = [];
+testE = vertcat(rp.Eccentricity);
+% minCluster = find(test < minSize);
+rp(test > maxSize & testE <= 0.7) = [];
+test = vertcat(rp.Area);
+rp(test < minSize) = [];
+% test = vertcat(rp.Area);
+% maxCluster = find(test > maxSize);
+% rp(maxCluster) = [];
 
 clear fixedTestArray
 dispCentroid = round(vertcat(rp.Centroid));

@@ -25,9 +25,9 @@ classdef ColorStackReader < Reader
             obj.sizeC = length(imageInfo);
             obj.sizeX = imageInfo(1).Width;
             obj.sizeY = imageInfo(1).Height;
-            obj.sizeZ = 1;
-            obj.bitDepth = imageInfo(1).BitDepth;
             obj.sizeT = length(fileNames{1});
+            obj.bitDepth = imageInfo(1).BitDepth;
+            obj.sizeZ = 1;
            
         end
         function sizeX = getSizeX(obj,varargin)

@@ -46,7 +46,7 @@ classdef CombinedMovieList < MovieObject
             ip = inputParser;
             ip.CaseSensitive = false;
             ip.KeepUnmatched = true;
-            ip.addParameter('name', '', @(x) ischar(x));
+            ip.addParameter('name', '', @(x) ischar(x) || iscellstr(x));
             ip.parse(varargin{:});
             obj.outputDirectory_ = outputDirectory;
             obj.name_ = ip.Results.name;
