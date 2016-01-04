@@ -92,7 +92,8 @@ for iM = 1 : numMovies
     else
         curChannels = curChannels(curChannels <= length(MD.channels_));
     end
-    file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
+%     file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
+    file2savePerMovie = false;
     resSummary(iM,curChannels) = resultsIndTimeCoursePerMovie(MD, file2savePerMovie, curChannels);
 end
 %fprintf(repmat('\b',1,printLength));
