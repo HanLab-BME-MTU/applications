@@ -1,7 +1,7 @@
 function [caseResSummary] = resultsIndTimeCourseMod(ML, saveFile, channels)
-%RESULTSINDTIMECOURSE compiles the results of a group of movies making one or multiple timecourse datasets and orders them based on time
+%RESULTSINDTIMECOURSEMOD compiles the results of a group of movies making one or multiple timecourse datasets and orders them based on time
 %
-%SYNOPSIS [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam)
+%SYNOPSIS [caseResSummary] = resultsIndTimeCourseMod(ML,caseParam)
 %
 %INPUT  ML       : MovieList object containing all movies, either all
 %                  belonging to one timecourse.
@@ -42,12 +42,8 @@ function [caseResSummary] = resultsIndTimeCourseMod(ML, saveFile, channels)
 %Khuloud Jaqaman, March 2015
 %modified from resultsIndTimeCourse
 %Tae Kim, July 2015
-%
-%% DEPRECATION IMMINENT
-% mkitti: I am merging this back into resultsIndTimeCourse
-%%
-
-%% Input and pre-processing
+%merged back into resultsIndTimeCourse
+%Mark Kittisopikul, January 2016
 
 if nargin < 2
     saveFile = true;
@@ -57,67 +53,5 @@ if nargin < 3
     channels = [];
 end
 
-%get number of movies and number of cases
-numMovies = length(ML.movieDataFile_);
-numCases = 1;
-
-%reserve memory for individual movie results
-resSummary = timeCourseAnalysis.util.emptyResSummaryStruct;
-
-resSummary = repmat(resSummary,numMovies,1);
-
-%define directory for saving results
-dir2save = [ML.movieListPath_ filesep 'analysisKJ'];
-
-%% Calculations
-nMD = numMovies;
-iMD = 0;
-%printLength = fprintf(1,'%g/%g MovieData analyzed\n', iMD, nMD);
-progressTextMultiple('analyzing MD', nMD)
-
-%go over all movies
-for iM = 1 : numMovies
-    
-    %read in raw results
-    %     disp([num2str(iM) '  ' ML.movieDataFile_{iM}]);
-    %No need to load MD again if it has already been loaded
-    if isempty(ML.movies_{iM})
-        MD = MovieData.load(ML.movieDataFile_{iM});
-    else
-        MD = ML.movies_{iM};
-    end
-    curChannels = channels(:)';
-    if(isempty(curChannels))
-        curChannels = 1 : length(MD.channels_);
-    else
-        curChannels = curChannels(curChannels <= length(MD.channels_));
-    end
-%     file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
-    file2savePerMovie = false;
-    resSummary(iM,curChannels) = resultsIndTimeCoursePerMovie(MD, file2savePerMovie, curChannels);
-end
-%fprintf(repmat('\b',1,printLength));
-
-%% Sorting and Saving
-
-%go over each case and put its results together
-for iCase = 1 : numCases
-    
-    %collect and sort results
-    caseResSummary = resSummary;
-    
-    %Saves by default
-    if saveFile
-    
-        %name variables properly for saving
-        eval(['timeList_' caseName ' = caseTimeList;'])
-        eval(['resSummary_' caseName ' = caseResSummary;'])
-        
-        %save results
-        file2save = fullfile(dir2save,['resSummary_' caseName]); %#ok<NASGU>
-        eval(['save(file2save,''timeList_' caseName ''',''resSummary_' caseName ''');']);
-        
-    end
-    
-end
-
+% mkitti: merged into resultsIndTimeCourse
+[~,caseResSummary] = resultsIndTimeCourse(ML,[],saveFile,channels,true,'none');

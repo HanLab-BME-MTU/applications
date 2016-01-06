@@ -53,6 +53,11 @@ classdef TimeCourseAnalysisProcess < Process
         function sanityCheck(obj)
             if(isempty(obj.funName_))
                 obj.funName_ = obj.getFunction(obj.owner_);
+            else
+                funInfo = functions(obj.funName_);
+                if(~strcmp(funInfo.type,'anonymous'))
+                    obj.funName_ = obj.getFunction;
+                end
             end
             if(isempty(obj.outFilePaths_))
                 obj.outFilePaths_ = [obj.owner_.outputDirectory_ filesep 'timeCourseAnalysis'];
@@ -66,21 +71,87 @@ classdef TimeCourseAnalysisProcess < Process
             obj.summary_ = summary;
         end
     end
-    %% Superclass abstracts
-    methods(Static)
-        function fun = getFunction(owner)
+    %% Adapter Methods for MovieObjects
+    methods
+        function fun = getFunction(proc,owner)
+            if(nargin < 2)
+                owner = proc.getOwner;
+            end
             switch(class(owner))
                 case 'CombinedMovieList'
-                    fun = @CML_fxn;
+                    fun = @proc.CML_fxn;
                 case 'MovieList'
-                    fun = @ML_fxn;
+                    fun = @proc.ML_fxn;
                 case 'MovieData'
-                    fun = @MD_fxn;
+                    fun = @proc.MD_fxn;
                 otherwise
                     error('TimeCourseAnalysisProcess:incompatibleOwner', ...
                         'Owner must be a CombinedMovieList, MovieList, or MovieData');
             end
         end
+        function CML_fxn(proc,CML,params,varargin)
+        % CML_fxn Adapter for timeCourseAnalysis.CMLAnalyze
+        % CML: CombinedMovieList
+        % params: (optional) struct, see timeCourseAnalysis.CMLAnalyze
+        %         default: Process.getParameters()
+        %
+        % Output stored in Process
+            if(nargin < 3)
+                params = proc.getParameters();
+            end
+            if(isempty(params.outputDir))
+                params.outputDir = proc.outFilePaths_;
+            end
+            [proc.summary_, proc.time_, proc.extra_, proc.timeCourseStartTime_] = ...
+                timeCourseAnalysis.CMLAnalyze(CML,params,varargin{:});
+        end
+        function ML_fxn(proc,ML,alignEvent,params,varargin)
+        % CML_fxn Adapter for timeCourseAnalysis.MLAnalyze
+        % CML: CombinedMovieList
+        % alignEvent: (optional) default: params.alignEvent
+        % params: (optional) struct, see timeCourseAnalysis.MLAnalyze
+        %         default: Process.getParameters()
+        %
+        % Output stored in Process
+            if(nargin < 4)
+                if(nargin > 1 && isstruct(alignEvent))
+                    params = alignEvent;
+                    alignEvent = params.alignEvent;
+                else
+                    params = proc.getParameters();
+                end
+            end
+            if(nargin < 3)
+                alignEvent = params.alignEvent;
+            end
+            if(isempty(params.outputDir))
+                params.outputDir = proc.outFilePaths_;
+            end
+            [proc.summary_, proc.time_, proc.extra_, proc.timeCourseStartTime_] = ...
+                timeCourseAnalysis.MLAnalyze(ML,alignEvent,params);
+        end
+        function MD_fxn(proc,MD,params,varargin)
+        % MD_fxn Adapter for resultsIndTimeCoursePerMovie
+        % MD: MovieData
+        % params: (optional) struct, see timeCourseAnalysis.MLAnalyze
+        %         default: Process.getParameters()
+        %
+        % Output stored in Process and saved to resSummary_movie.mat (summary only)
+            if(nargin < 3)
+                params = proc.getParameters();
+            end
+            if(isempty(params.outputDir))
+                params.outputDir = proc.outFilePaths_;
+            end
+            if(~exist(params.outputDir,'dir'))
+                mkdir(params.outputDir);
+            end
+            saveFile = fullfile(params.outputDir,'resSummary_movie.mat');
+            [ proc.summary_ ] = resultsIndTimeCoursePerMovie(MD,saveFile,params.channels);
+        end
+    end
+    %% Superclass abstracts
+    methods(Static)
         function funParams = getDefaultParams(owner)
             ip = inputParser;
             % If empty, will be converted to Process outFilePaths_
@@ -99,70 +170,4 @@ classdef TimeCourseAnalysisProcess < Process
             name = 'TimeCourseAnalysisProcess';
         end
     end
-end
-function CML_fxn(CML,params,varargin)
-% CML_fxn Adapter for timeCourseAnalysis.CMLAnalyze
-% CML: CombinedMovieList
-% params: (optional) struct, see timeCourseAnalysis.CMLAnalyze
-%         default: Process.getParameters()
-%
-% Output stored in Process
-    TCAPIndx = CML.getProcessIndex('TimeCourseAnalysisProcess');
-    proc = CML.processes_{TCAPIndx};
-    if(nargin < 2)
-        params = proc.getParameters();
-    end
-    if(isempty(params.outputDir))
-        params.outputDir = proc.outFilePaths_;
-    end
-    [proc.summary_, proc.time_, proc.extra_, proc.timeCourseStartTime_] = ...
-        timeCourseAnalysis.CMLAnalyze(CML,params,varargin{:});
-end
-function ML_fxn(ML,alignEvent,params,varargin)
-% CML_fxn Adapter for timeCourseAnalysis.MLAnalyze
-% CML: CombinedMovieList
-% alignEvent: (optional) default: params.alignEvent
-% params: (optional) struct, see timeCourseAnalysis.MLAnalyze
-%         default: Process.getParameters()
-%
-% Output stored in Process
-    TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
-    proc = ML.processes_{TCAPIndx};
-    if(nargin < 3)
-        if(nargin > 1 && isstruct(alignEvent))
-            params = alignEvent;
-            alignEvent = params.alignEvent;
-        else
-            params = proc.getParameters();
-        end
-    end
-    if(nargin < 2)
-        alignEvent = params.alignEvent;
-    end
-    if(isempty(params.outputDir))
-        params.outputDir = proc.outFilePaths_;
-    end
-    [proc.summary_, proc.time_, proc.extra_, proc.timeCourseStartTime_] = ...
-        timeCourseAnalysis.MLAnalyze(ML,alignEvent,params);
-end
-function MD_fxn(MD,params,varargin)
-% MD_fxn Adapter for resultsIndTimeCoursePerMovie
-% MD: MovieData
-% params: (optional) struct, see timeCourseAnalysis.MLAnalyze
-%         default: Process.getParameters()
-%
-% Output stored in Process and saved to resSummary_movie.mat (summary only)
-    TCAPIndx = MD.getProcessIndex('TimeCourseAnalysisProcess');
-    proc = MD.processes_{TCAPIndx};
-    if(nargin < 2)
-        params = proc.getParameters();
-    end
-    if(isempty(params.outputDir))
-        params.outputDir = proc.outFilePaths_;
-    end
-    if(~exist(params.outputDir,'dir'))
-        mkdir(params.outputDir);
-    end
-    saveFile = fullfile(params.outputDir,'resSummary_movie.mat');
-    [ proc.summary_ ] = resultsIndTimeCoursePerMovie(MD,saveFile,params.channels);
 end

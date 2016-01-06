@@ -88,15 +88,15 @@ if nargin < 6
     parallel = 'none';
 end
 
-%get number of movies and number of cases
+%get number of movies
 numMovies = length(ML.movieDataFile_);
-numCases = length(caseParam);
 
 
 
 %reserve memory for individual movie results
-resSummary = timeCourseAnalysis.util.emptyResSummaryStruct;
-resSummary = repmat(resSummary,numMovies,1);
+% resSummary = timeCourseAnalysis.util.emptyResSummaryStruct;
+% resSummary = repmat(resSummary,numMovies,1);
+% resSummary = cell(numMovies,1);
 
 %define directory for saving results
 dir2save = [ML.movieListPath_ filesep 'analysisKJ'];
@@ -105,141 +105,89 @@ if(~exist(dir2save,'dir'))
 end
 
 %% Calculations
+file2savePerMovie = arrayfun(@(iM) fullfile(dir2save,sprintf(['resSummary_movie_%03d.mat'],iM)),1:numMovies,'UniformOutput',false);
+if(redoPerMovieAnalysis)
+    todo = true(size(ML.movieDataFile_));
+else
+    todo = cellfun(@(file) ~exist(file,'file'),file2savePerMovie);
+end
+resSummary(~todo) = cellfun(@loadResSummary,file2savePerMovie(~todo),'UniformOutput',false);
 
 switch(parallel)
     % mkitti: Moved most of the body to resultsIndTimeCoursePerMovie
     case 'none'
-        %go over all movies
-        for iM = 1 : numMovies
-            file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
-            if(redoPerMovieAnalysis || ~exist(file2savePerMovie,'file'))
-                resSummary(iM) = resultsIndTimeCoursePerMovie(ML.movieDataFile_{iM},file2savePerMovie);
-            else
-                saved = load(file2savePerMovie);
-                resSummary(iM) = saved.resSummary;
-            end
-        end
+        resSummary(todo) = cellfun(@(dataFile,file2save) resultsIndTimeCoursePerMovie(dataFile,file2save,channels), ...
+            ML.movieDataFile_(todo), ...
+            file2savePerMovie(todo), ...
+            'UniformOutput',false);
     case 'cluster'
-        movieFiles = ML.movieDataFile_;
-        parfor iM = 1 : numMovies
-            file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
-            if(redoPerMovieAnalysis || ~exist(file2savePerMovie,'file'))
-                resSummary(iM) = resultsIndTimeCoursePerMovie(movieFiles{iM},file2savePerMovie);
-            else
-                saved = load(file2savePerMovie);
-                resSummary(iM) = saved.resSummary;
-            end
-        end
+        movieFiles = distributed(ML.movieDataFile_(todo));
+        file2savePerMovie = distributed(file2savePerMovie(todo));
+        resSummary(todo) = gather(cellfun(@(dataFile,file2save) resultsIndTimeCoursePerMovie(dataFile,file2save,channels), ...
+            movieFiles, ...
+            file2savePerMovie, ...
+            'UniformOutput',false));
     case 'batch'
-        movieFiles = ML.movieDataFile_;
-        for iM = 1 : numMovies
-            file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
-            if(redoPerMovieAnalysis || ~exist(file2savePerMovie,'file'))
-                resSummary(iM) = batch(@resultsIndTimeCoursePerMovie,1,{movieFiles{iM},file2savePerMovie});
-            else
-                saved = load(file2savePerMovie);
-                resSummary(iM) = saved.resSummary;
-            end
-        end
+        cluster = parcluster('nucleus2015a');
+        jobs = cellfun(...
+            @(dataFile,file2save) ...
+                batch(cluster,@resultsIndTimeCoursePerMovie,1, ...
+                    {dataFile,file2save,channels}, ...
+                    'Pool',31, ...
+                    'AutoAttachFiles',false), ...
+            ML.movieDataFile_(todo), ...
+            file2savePerMovie(todo));
+        cellfun(@submit,jobs);
+        cellfun(@wait,jobs);
+        resSummary(todo) = cellfun(@fetchAndUnwrap,jobs,'UniformOutput',false);
     case 'createJob'
-        movieFiles = ML.movieDataFile_;
         cluster = parcluster('nucleus2015a');
         job = createJob(cluster,'AutoAttachFiles',false);
-        for iM = 1 : numMovies
-            file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
-            if(redoPerMovieAnalysis || ~exist(file2savePerMovie,'file'))
-                createTask(j,@resultsIndTimeCoursePerMovie,1,{movieFiles{iM},file2savePerMovie});
-            else
-                saved = load(file2savePerMovie);
-                resSummary(iM) = saved.resSummary;
-            end
-        end
-        if(~isempty(job.Tasks))
+        tasks = cellfun(...
+            @(dataFile,file2save) ...
+                createTask(@resultsIndTimeCoursePerMovie,1, ...
+                    {dataFile,file2save,channels}), ...
+            ML.movieDataFile_(todo), ...
+            file2savePerMovie(todo));
+        if(~isempty(tasks))
                 submit(job);
         end
-    case 'slurm'
-        scriptName = mfilename('fullpath');
-        ML.runSystemCmdPerMovie(['echo ' scriptName 'PerMovie.sh'],@(iM,movieDataFile_) sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
-%         for iM = 1 : numMovies
-%             file2savePerMovie = fullfile(dir2save,sprintf('resSummary_movie_%03d.mat',iM));
-%             if(redoPerMovieAnalysis || ~exist(file2savePerMovie,'file'))
-%                 
-% %                 resSummary(iM) = resultsIndTimeCoursePerMovie(ML.movieDataFile_{iM},file2savePerMovie);
-% %             else
-% %                 saved = load(file2savePerMovie);
-% %                 resSummary(iM) = saved.resSummary;
-%             end
-%         end
-        caseTimeList = [];
-        caseResSummary = [];
-        return;
+        wait(job);
+        resSummary(todo) = fetchOutputs(job);
+    case 'parcellfun_progress'
+        resSummary(todo) = parcellfun_progress(@(dataFile,file2save) resultsIndTimeCoursePerMovie(dataFile,file2save,channels), ...
+            ML.movieDataFile_(todo), ...
+            file2savePerMovie(todo), ...
+            'UniformOutput',false);
     case 'load_only'
-        for iM = 1 : numMovies
-            file2savePerMovie = fullfile(dir2save,sprintf([dir2save filesep 'resSummary_movie_%03d.mat'],iM));
-            % Block until file exists
-            while(~exist(file2savePerMovie,'file'))
-                % Pause for 5 seconds if analysis file does not exist
-                disp(['Waiting 5 seconds for movie ' num2str(iM) ' out of ' num2str(numMovies)]);
-                pause(5);
-            end
-            saved = load(file2savePerMovie);
-            resSummary(iM) = saved.resSummary;
-        end
+        resSummary(todo) = cellfun(@pauseUntilExistThenLoad,ML.movieDataFile_(todo),'UniformOutput',false);
     otherwise
         error(['Invalid parallel parameter: ' parallel]);
 end
 
+% Convert resSummary into a numMovies x max(channels) struct array
+resSummary = vertcat(resSummary{:});
+
 %% Sorting and Saving
 
+%go over each case and put its results together
+[caseTimeList,caseResSummary] = resultsIndTimeCourseSortAndSave(resSummary,caseParam,saveFile);
 
-if(~isempty(caseParam))
-    %go over each case and put its results together
-    for iCase = 1 : numCases
-
-        %get parameters from input
-        caseTimeList = caseParam(iCase).timeList;
-        caseIndx = caseParam(iCase).indx;
-        caseName = caseParam(iCase).name;
-        caseMin0 = caseParam(iCase).indx0min;
-
-        %sort time and add column for relative time
-        offset = caseTimeList(caseMin0);
-        [caseTimeList,indxSort] = sort(caseTimeList);
-        caseTimeList = [caseTimeList caseTimeList-offset]; %#ok<AGROW>
-
-        %collect and sort results
-        caseResSummary = resSummary(caseIndx);
-        caseResSummary = caseResSummary(indxSort);
-
-        %Saves by default
-        if saveFile
-
-            %name variables properly for saving
-            eval(['timeList_' caseName ' = caseTimeList;'])
-            eval(['resSummary_' caseName ' = caseResSummary;'])
-
-            %save results
-            file2save = fullfile(dir2save,['resSummary_' caseName]); %#ok<NASGU>
-            eval(['save(file2save,''timeList_' caseName ''',''resSummary_' caseName ''');']);
-
-        end
-
-    end
-else
-    caseTimeList = [];
-    caseResSummary = resSummary;
-    caseName = 'default';
-
-    if saveFile
-    
-        %name variables properly for saving
-        eval(['timeList_' caseName ' = caseTimeList;'])
-        eval(['resSummary_' caseName ' = caseResSummary;'])
-        
-        %save results
-        file2save = fullfile(dir2save,['resSummary_' caseName]); %#ok<NASGU>
-        eval(['save(file2save,''timeList_' caseName ''',''resSummary_' caseName ''');']);
-        
-    end
 end
-
+function resSummary = loadResSummary(file)
+    s = load(file);
+    resSummary = s.resSummary;
+end
+function resSummary = pauseUntilExistThenLoad(file)
+    % Block until file exists
+    while(~exist(file,'file'))
+        % Pause for 5 seconds if analysis file does not exist
+        disp(['Waiting 5 seconds for movie ' num2str(iM) ' out of ' num2str(numMovies)]);
+        pause(5);
+    end
+    resSummary = loadResSummary(file);
+end
+function resSummary = fetchAndUnwrap(job)
+    c = fetchOutputs(job);
+    resSummary = c{1};
+end
