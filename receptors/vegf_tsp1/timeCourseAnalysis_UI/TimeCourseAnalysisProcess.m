@@ -114,7 +114,7 @@ classdef TimeCourseAnalysisProcess < Process
         %
         % Output stored in Process
             if(nargin < 4)
-                if(nargin > 1 && isstruct(alignEvent))
+                if(nargin > 2 && isstruct(alignEvent))
                     params = alignEvent;
                     alignEvent = params.alignEvent;
                 else
