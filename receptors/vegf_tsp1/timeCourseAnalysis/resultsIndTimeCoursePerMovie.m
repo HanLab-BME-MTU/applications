@@ -158,7 +158,7 @@ end
         progressTextMultiple();
     end
     
-    if(nargin > 1 && saveFile)
+    if(nargin > 1 && ischar(saveFile))
         try
             save(saveFile,'resSummary');
         catch err
