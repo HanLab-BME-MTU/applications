@@ -1,13 +1,12 @@
 
 ML_name_cell=[];
-
- ML_name_cell{1} = '/project/bioinformatics/Danuser_lab/vimscreen/analysis/tony_zhang/Results/P050_process/row_col_movieList/movieList.mat';
+ML_name_cell{1} = '/project/bioinformatics/Danuser_lab/vimscreen/analysis/lding/fromTony/P042_process_20151115/row_col_movieList/movieList.mat';
 
 feature_index=zeros(28,1);
 feature_index(1:3)=1;
 feature_index(8:16)=1;
 
-Group_ROOT_DIR='/project/bioinformatics/Danuser_lab/vimscreen/analysis/lding/fromTony/P051052053_process_201601/P050';
+Group_ROOT_DIR='/project/bioinformatics/Danuser_lab/vimscreen/analysis/lding/fromTony/P042_process_20151115/';
 
 close all;
 
@@ -105,7 +104,7 @@ for iML = 1 : nList
                
                 Identifier_thisMD{iChannel, iFrame}
                 
-                save([Group_ROOT_DIR,filesep,Identifier_thisMD{iChannel, iFrame},'_movieData_well_NA_results_pool_gathered.mat'],...
+                load([Group_ROOT_DIR,filesep,Identifier_thisMD{iChannel, iFrame},'_movieData_well_NA_results_pool_gathered.mat'],...
                     'Identifier_thisMD',...
                     'ChMP_feature_thisMD',...
                     'NA_feature_whole_thisMD');
@@ -127,7 +126,7 @@ for iML = 1 : nList
 end % end of a ML
 
   %if mod(iMD,24)==0
-     save([Group_ROOT_DIR,filesep,'movieList_plate_4_NA_results_gathered.mat'],...
+     save([Group_ROOT_DIR,filesep,'movieList_plate_4_NA_results_gathered_20160108.mat'],...
                     'vim_mean_st_all_cell', 'vim_sum_st_all_cell','vim_length_all_cell','mt_length_all_cell');
     
    %        end
@@ -139,14 +138,12 @@ end % end of a ML
  
  
  vim_mean_st_KS=nan(384,384);
-  vim_sum_st_KS=nan(384,384);
+ vim_sum_st_KS=nan(384,384);
  vim_length_KS=nan(384,384);
-  mt_length_KS=nan(384,384);
+ mt_length_KS=nan(384,384);
  
  
-
-  for i = 1 :384
-      
+  for i = 1 :384      
     for j = 1:384
         [i j]
         [h,p,ksvalue]=kstest2(vim_mean_st_all_cell{1,i},vim_mean_st_all_cell{1,j},0.05,1);
@@ -155,17 +152,12 @@ end % end of a ML
         vim_sum_st_KS(i,j) = ksvalue;
            [h,p,ksvalue]=kstest2(vim_length_all_cell{1,i},vim_length_all_cell{1,j},0.05,1);
         vim_length_KS(i,j) = ksvalue;
-        [h,p,ksvalue]=kstest2(mt_length_all_cell{1,i},mt_length_all_cell{1,j},0.05,1);
-        mt_length_KS(i,j) = ksvalue;
-      
-    end
-     if mod(i,12)==0
-    save([Group_ROOT_DIR,filesep,'movieList_plate_4_allKS_gathered_1201.mat'],...
-                   'vim_mean_st_KS','vim_sum_st_KS','vim_length_KS','mt_length_KS');
-     end
+           [h,p,ksvalue]=kstest2(mt_length_all_cell{1,i},mt_length_all_cell{1,j},0.05,1);
+        mt_length_KS(i,j) = ksvalue;      
+    end     
 end
 
-  save([Group_ROOT_DIR,filesep,'movieList_plate_4_allKS_gathered_1121.mat'],...
+  save([Group_ROOT_DIR,filesep,'BmovieList_plate_4_allKS_gathered_20160108.mat'],...
                    'vim_mean_st_KS','vim_sum_st_KS','vim_length_KS','mt_length_KS');
 
 
