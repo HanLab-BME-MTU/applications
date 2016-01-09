@@ -105,13 +105,17 @@ if(~exist(dir2save,'dir'))
 end
 
 %% Calculations
-file2savePerMovie = arrayfun(@(iM) fullfile(dir2save,sprintf(['resSummary_movie_%03d.mat'],iM)),1:numMovies,'UniformOutput',false);
+% file2savePerMovie = arrayfun(@(iM) fullfile(dir2save,sprintf(['resSummary_movie_%03d.mat'],iM)),1:numMovies,'UniformOutput',false);
+procs = timeCourseAnalysis.getMovieDataTimeCourseAnalysisProcess(ML.movies_,false);
+resSummary = cellfun(@(proc) proc.summary_,procs,'UniformOutput',false);
+file2savePerMovie = strcat({procs.outFilePaths_},[filesep 'resSummary.mat']);
 if(redoPerMovieAnalysis)
     todo = true(size(ML.movieDataFile_));
 else
-    todo = cellfun(@(file) ~exist(file,'file'),file2savePerMovie);
+    todo = cellfun('isempty',resSummary); %  && cellfun(@(file) ~exist(file,'file'),file2savePerMovie);
+%     cellfun(@progressTextMultiple,resSummary(~todo));
 end
-resSummary(~todo) = cellfun(@loadResSummary,file2savePerMovie(~todo),'UniformOutput',false);
+% resSummary(~todo) = cellfun(@loadResSummary,file2savePerMovie(~todo),'UniformOutput',false);
 
 switch(parallel)
     % mkitti: Moved most of the body to resultsIndTimeCoursePerMovie
@@ -121,6 +125,7 @@ switch(parallel)
             ML.movies_(todo), ...
             file2savePerMovie(todo), ...
             'UniformOutput',false);
+%         cellfun(@progressTextMultiple,resSummary(todo));
     case 'cluster'
         movieFiles = distributed(ML.movieDataFile_(todo));
         file2savePerMovie = distributed(file2savePerMovie(todo));

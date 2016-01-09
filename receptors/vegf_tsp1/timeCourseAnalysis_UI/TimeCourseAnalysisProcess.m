@@ -51,6 +51,12 @@ classdef TimeCourseAnalysisProcess < Process
             obj.funName_ = obj.getFunction(owner);
         end
         function sanityCheck(obj)
+            try
+                % check if this works, otherwise clear it
+                test = nargin(obj.funName_);
+            catch
+                obj.funName_ = [];
+            end
             if(isempty(obj.funName_))
                 obj.funName_ = obj.getFunction(obj.owner_);
             else
