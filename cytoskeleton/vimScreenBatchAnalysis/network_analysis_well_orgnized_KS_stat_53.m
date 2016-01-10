@@ -8,9 +8,9 @@
 % output: the Z index for each well
 
 
-load('/project/bioinformatics/Danuser_lab/vimscreen/analysis/tony_zhang/Results/P050_process/row_col_movieList/movieList.mat');
+load('/project/bioinformatics/Danuser_lab/vimscreen/analysis/tony_zhang/Results/P053_process/row_col_movieList/movieList.mat');
 
-Group_ROOT_DIR='/project/bioinformatics/Danuser_lab/vimscreen/analysis/lding/fromTony/P051052053_process_201601/P050';
+Group_ROOT_DIR='/project/bioinformatics/Danuser_lab/vimscreen/analysis/lding/fromTony/P051052053_process_201601/P053';
 
 
 
@@ -64,9 +64,33 @@ else
                 display(['Checking: iMD:', num2str(iMD), ', iChannel:', num2str(iChannel)]);
                 
                 outdir = [MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(iChannel),filesep,'analysis_results'];
-                Channel_FilesNames = MD.channels_(iChannel).getImageFileNames(1:MD.nFrames_);
-                filename_short_strs = uncommon_str_takeout(Channel_FilesNames);
-                
+                try
+                    Channel_FilesNames = MD.channels_(iChannel).getImageFileNames(1:MD.nFrames_);
+                    filename_short_strs = uncommon_str_takeout(Channel_FilesNames);
+                    catch
+                        col_num = mod(iMD,24);
+                        
+                        row_num = floor(iMD/24)+1;
+                        
+                        if(col_num ==0)
+                            row_num = row_num-1;
+                            col_num =24;
+                        end
+                        row_col_ID = [char(row_num+64) '_' num2str(col_num,'%02d')];
+                        
+                        if iChannel ==1
+                            
+                            for iF = 1 :3
+                                filename_short_strs{iF} = ['vim_rrccs_',num2str(row_num,'%02d'),num2str(col_num,'%02d'),num2str(iF,'%01d')];
+                            end
+                            
+                        else
+                            for iF = 1 :3
+                                filename_short_strs{iF} = ['mt_rrccs_',num2str(row_num,'%02d'),num2str(col_num,'%02d'),num2str(iF,'%01d')];
+                            end
+                        end
+                end
+                    
                 % check if this folder exist
                 if(exist(outdir,'dir'))
                     % if it exist, try to do the branch analysis
@@ -82,7 +106,7 @@ else
                 
             end % end of a Channel
             
-            load([Group_ROOT_DIR,filesep,Identifier_thisMD{iChannel, iFrame},'_movieData_well_NA_results_pool_gathered.mat'],...
+               load([Group_ROOT_DIR,filesep,Identifier_thisMD{iChannel, iFrame},'_movieData_well_NA_results_pool_gathered.mat'],...
                 'Identifier_thisMD',...
                 'ChMP_feature_thisMD',...
                 'NA_feature_whole_thisMD');
@@ -91,6 +115,8 @@ else
             vim_sum_st_all_cell{1,iMD} = NA_feature_whole_thisMD{1}.st_per_filament_pool;            
             vim_length_all_cell{1,iMD} = NA_feature_whole_thisMD{1}.length_per_filament_pool;            
             mt_length_all_cell{1,iMD} = NA_feature_whole_thisMD{2}.length_per_filament_pool;
+                 
+            
         end % end of if previous gathering exists for MD
         
         
@@ -250,7 +276,6 @@ m = bootstrp(20, @std, mt_length_pn_Z(iRow,control_index));
 mt_length_pn_Z_bootstrap_mean(iRow) = nanmean(m);
 
 end
-
 
 
 CCCC1=nan(24,16);

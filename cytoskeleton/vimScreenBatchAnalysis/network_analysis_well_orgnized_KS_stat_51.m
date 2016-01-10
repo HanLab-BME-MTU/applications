@@ -8,9 +8,9 @@
 % output: the Z index for each well
 
 
-load('/project/bioinformatics/Danuser_lab/vimscreen/analysis/tony_zhang/Results/P050_process/row_col_movieList/movieList.mat');
+load('/project/bioinformatics/Danuser_lab/vimscreen/analysis/tony_zhang/Results/P051_process/row_col_movieList/movieList.mat');
 
-Group_ROOT_DIR='/project/bioinformatics/Danuser_lab/vimscreen/analysis/lding/fromTony/P051052053_process_201601/P050';
+Group_ROOT_DIR='/project/bioinformatics/Danuser_lab/vimscreen/analysis/lding/fromTony/P051052053_process_201601/P051';
 
 
 
@@ -250,9 +250,6 @@ m = bootstrp(20, @std, mt_length_pn_Z(iRow,control_index));
 mt_length_pn_Z_bootstrap_mean(iRow) = nanmean(m);
 
 end
-
-
-
 CCCC1=nan(24,16);
 CCCC1(:)=vim_mean_st_pn_Z_bootstrap_mean(:);
 % CCCC(C_IDs)=0;

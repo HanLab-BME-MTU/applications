@@ -4,8 +4,8 @@ output_feature_reorganized = output_feature;
 T_dis_perp =40;
 T_center = 10;
 
-if feature_index(19) == 1
-       
+if ( feature_index(19) == 1 && ~isempty(output_feature.profileAllCell))
+    
     %19
     output_feature_reorganized.nmssum_ratio_pool = output_feature.profileAllCell.nmssum_pool(:);
     %20
