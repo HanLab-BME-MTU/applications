@@ -380,8 +380,10 @@ if(length(smooth_center_x)>3)
     for iF = 1 : length(smooth_center_x)-2
         persistency3(iF) = sqrt((smooth_center_x(iF+2)-smooth_center_x(iF)).^2 + (smooth_center_y(iF+2)-smooth_center_y(iF)).^2 )...
             /sum(sqrt((smooth_center_x(iF+1:iF+2)-smooth_center_x(iF:iF+1)).^2 + (smooth_center_y(iF+1:iF+2)-smooth_center_y(iF:iF+1)).^2));
+        speed3(iF) = sum(sqrt((smooth_center_x(iF+1:iF+2)-smooth_center_x(iF:iF+1)).^2 + (smooth_center_y(iF+1:iF+2)-smooth_center_y(iF:iF+1)).^2))/2;
     end
     BA_output.persistency3=persistency3;
+    BA_output.speed3=speed3;
     
 end
 
@@ -389,8 +391,11 @@ if(length(smooth_center_x)>4)
     for iF = 1 : length(smooth_center_x)-3
         persistency4(iF) = sqrt((smooth_center_x(iF+3)-smooth_center_x(iF)).^2 + (smooth_center_y(iF+3)-smooth_center_y(iF)).^2 )...
             /sum(sqrt((smooth_center_x(iF+1:iF+3)-smooth_center_x(iF:iF+2)).^2 + (smooth_center_y(iF+1:iF+3)-smooth_center_y(iF:iF+2)).^2));
+        speed4(iF) = sum(sqrt((smooth_center_x(iF+1:iF+3)-smooth_center_x(iF:iF+2)).^2 + (smooth_center_y(iF+1:iF+3)-smooth_center_y(iF:iF+2)).^2))/3;
     end
     BA_output.persistency4=persistency4;    
+    BA_output.speed4=speed4;
+    
 end
 
 if(length(smooth_center_x)>5)
@@ -398,9 +403,12 @@ if(length(smooth_center_x)>5)
     for iF = 1 : length(smooth_center_x)-4
         persistency5(iF) = sqrt((smooth_center_x(iF+4)-smooth_center_x(iF)).^2 + (smooth_center_y(iF+4)-smooth_center_y(iF)).^2 )...
             /sum(sqrt((smooth_center_x(iF+1:iF+4)-smooth_center_x(iF:iF+3)).^2 + (smooth_center_y(iF+1:iF+4)-smooth_center_y(iF:iF+3)).^2));
+        speed5(iF) =   sum(sqrt((smooth_center_x(iF+1:iF+4)-smooth_center_x(iF:iF+3)).^2 + (smooth_center_y(iF+1:iF+4)-smooth_center_y(iF:iF+3)).^2))/4;        
+    
     end
     BA_output.persistency5=persistency5;
-    
+     BA_output.speed5=speed5;
+   
 end
 
 if(length(smooth_center_x)>6)
@@ -408,25 +416,35 @@ if(length(smooth_center_x)>6)
     for iF = 1 : length(smooth_center_x)-5
         persistency6(iF) = sqrt((smooth_center_x(iF+5)-smooth_center_x(iF)).^2 + (smooth_center_y(iF+5)-smooth_center_y(iF)).^2 )...
             /sum(sqrt((smooth_center_x(iF+1:iF+5)-smooth_center_x(iF:iF+4)).^2 + (smooth_center_y(iF+1:iF+5)-smooth_center_y(iF:iF+4)).^2));
+        speed6(iF) = sum(sqrt((smooth_center_x(iF+1:iF+5)-smooth_center_x(iF:iF+4)).^2 + (smooth_center_y(iF+1:iF+5)-smooth_center_y(iF:iF+4)).^2))/5;
     end
     BA_output.persistency6=persistency6;
+       BA_output.speed6=speed6;
+ 
     
 end
 
 % pace of 15 since the min length is 20
+if(length(smooth_center_x)>15)
+
 for iF = 1 : length(smooth_center_x)-14
    persistency15(iF) = sqrt((smooth_center_x(iF+14)-smooth_center_x(iF)).^2 + (smooth_center_y(iF+14)-smooth_center_y(iF)).^2 )...
        /sum(sqrt((smooth_center_x(iF+1:iF+14)-smooth_center_x(iF:iF+13)).^2 + (smooth_center_y(iF+1:iF+14)-smooth_center_y(iF:iF+13)).^2));
+   speed15(iF) = sum(sqrt((smooth_center_x(iF+1:iF+14)-smooth_center_x(iF:iF+13)).^2 + (smooth_center_y(iF+1:iF+14)-smooth_center_y(iF:iF+13)).^2))/14;
 end
 BA_output.persistency15=persistency15;
-
+   BA_output.speed15=speed15;
+end
 
 if(length(smooth_center_x)>20)
     for iF = 1 : length(smooth_center_x)-19
         persistency20(iF) = sqrt((smooth_center_x(iF+19)-smooth_center_x(iF)).^2 + (smooth_center_y(iF+19)-smooth_center_y(iF)).^2 )...
             /sum(sqrt((smooth_center_x(iF+1:iF+19)-smooth_center_x(iF:iF+18)).^2 + (smooth_center_y(iF+1:iF+19)-smooth_center_y(iF:iF+18)).^2));
+        speed20(iF) = sum(sqrt((smooth_center_x(iF+1:iF+19)-smooth_center_x(iF:iF+18)).^2 + (smooth_center_y(iF+1:iF+19)-smooth_center_y(iF:iF+18)).^2))/19;
     end
     BA_output.persistency20=persistency20;
+   BA_output.speed20=speed20;
+    
 end
 
 
@@ -436,9 +454,11 @@ if(length(smooth_center_x)>30)
     for iF = 1 : length(smooth_center_x)-29
         persistency30(iF) = sqrt((smooth_center_x(iF+29)-smooth_center_x(iF)).^2 + (smooth_center_y(iF+29)-smooth_center_y(iF)).^2 )...
             /sum(sqrt((smooth_center_x(iF+1:iF+29)-smooth_center_x(iF:iF+28)).^2 + (smooth_center_y(iF+1:iF+29)-smooth_center_y(iF:iF+28)).^2));
-    end
+          speed30(iF) = sum(sqrt((smooth_center_x(iF+1:iF+29)-smooth_center_x(iF:iF+28)).^2 + (smooth_center_y(iF+1:iF+29)-smooth_center_y(iF:iF+28)).^2))/29;
+    end 
     BA_output.persistency30=persistency30;
-    
+       BA_output.speed30=speed30;
+
 end
 
 

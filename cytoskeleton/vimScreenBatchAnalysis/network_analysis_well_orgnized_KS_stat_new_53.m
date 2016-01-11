@@ -64,9 +64,34 @@ else
                 display(['Checking: iMD:', num2str(iMD), ', iChannel:', num2str(iChannel)]);
                 
                 outdir = [MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(iChannel),filesep,'analysis_results'];
-                Channel_FilesNames = MD.channels_(iChannel).getImageFileNames(1:MD.nFrames_);
-                filename_short_strs = uncommon_str_takeout(Channel_FilesNames);
                 
+                try
+                    Channel_FilesNames = MD.channels_(iChannel).getImageFileNames(1:MD.nFrames_);
+                    filename_short_strs = uncommon_str_takeout(Channel_FilesNames);
+                catch
+                    col_num = mod(iMD,24);
+                    
+                    row_num = floor(iMD/24)+1;
+                    
+                    if(col_num ==0)
+                        row_num = row_num-1;
+                        col_num =24;
+                    end
+                    row_col_ID = [char(row_num+64) '_' num2str(col_num,'%02d')];
+                    
+                    if iChannel ==1
+                        
+                        for iF = 1 :3
+                            filename_short_strs{iF} = ['vim_rrccs_',num2str(row_num,'%02d'),num2str(col_num,'%02d'),num2str(iF,'%01d')];
+                        end
+                        
+                    else
+                        for iF = 1 :3
+                            filename_short_strs{iF} = ['mt_rrccs_',num2str(row_num,'%02d'),num2str(col_num,'%02d'),num2str(iF,'%01d')];
+                        end
+                    end
+                end
+                        
                 % check if this folder exist
                 if(exist(outdir,'dir'))
                     % if it exist, try to do the branch analysis
@@ -245,6 +270,15 @@ for iF = 1 : 33
     end
 end
 
+for iF = 1 : 33
+    if(valid_requested_feature_index(iF)>0)
+               
+        feature_PN_KS_cell{iChannel,iF} = KS_NP(feature_KS_cell{iChannel,iF});
+    end
+end
+
+
+
 save([Group_ROOT_DIR,filesep,'movieList_plate_allKS_gathered.mat'],...
     'feature_KS_cell', 'feature_PN_KS_cell');
 
@@ -266,7 +300,7 @@ end
 
 % Z = KS/bootstrap_std
 
-sum_Z = zeros(24,16);
+sum_Z = zeros(16,24);
 feature_Z_cell=cell(2,33);
 feature_Z_bootstrap_mean_cell=cell(2,33);
 
@@ -282,7 +316,7 @@ for iChannel = 1 :2
             
             for iRow = 1:384
                 m = bootstrp(20, @mean, feature_Z_cell{iChannel,iF}(iRow,control_index));
-                feature_Z_bootstrap_mean_cell{iChannel,iF} = nanmean(m);
+                feature_Z_bootstrap_mean_cell{iChannel,iF}(iRow) = nanmean(m);
             end
             
             CCCC1=nan(24,16);
@@ -295,7 +329,7 @@ for iChannel = 1 :2
     end
 end
 
-figure;plot_color_dot_from_matrix(flipud(sum_Z),20, 0, 5, 1);
+figure;plot_color_dot_from_matrix(flipud(sum_Z),20, 0, 45, 1);
 
 save([Group_ROOT_DIR,filesep,'movieList_plate_Z_all.mat']);
 

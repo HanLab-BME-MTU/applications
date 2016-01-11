@@ -239,11 +239,19 @@ for iF = 1 : 33
                     feature_KS_cell{iChannel,iF}(i,j) = ksvalue;
                 end
             end
+            feature_PN_KS_cell{iChannel,iF} = KS_NP(feature_KS_cell{iChannel,iF});
         end
-        
-        feature_PN_KS_cell{iChannel,iF} = KS_NP(feature_KS_cell{iChannel,iF});
     end
 end
+
+for iF = 1 : 33
+    if(valid_requested_feature_index(iF)>0)
+       for iChannel = 1 :2
+            feature_PN_KS_cell{iChannel,iF} = KS_NP(feature_KS_cell{iChannel,iF});
+        end
+    end
+end
+
 
 save([Group_ROOT_DIR,filesep,'movieList_plate_allKS_gathered.mat'],...
     'feature_KS_cell', 'feature_PN_KS_cell');
@@ -266,7 +274,7 @@ end
 
 % Z = KS/bootstrap_std
 
-sum_Z = zeros(24,16);
+sum_Z = zeros(16,24);
 feature_Z_cell=cell(2,33);
 feature_Z_bootstrap_mean_cell=cell(2,33);
 
@@ -275,14 +283,14 @@ for iChannel = 1 :2
         if(valid_requested_feature_index(iF)>0)
             
             % get the std with bootstrap from the control pairs
-            m = bootstrp(200, @std, vim_mean_st_KS_pn(control_control_index));
+            m = bootstrp(200, @std, feature_PN_KS_cell{iChannel,iF}(control_control_index));
             feature_bootstrap_std = nanmean(m);
             
             feature_Z_cell{iChannel,iF} = feature_PN_KS_cell{iChannel,iF}./feature_bootstrap_std;
             
             for iRow = 1:384
                 m = bootstrp(20, @mean, feature_Z_cell{iChannel,iF}(iRow,control_index));
-                feature_Z_bootstrap_mean_cell{iChannel,iF} = nanmean(m);
+                feature_Z_bootstrap_mean_cell{iChannel,iF}(iRow) = nanmean(m);
             end
             
             CCCC1=nan(24,16);
@@ -295,7 +303,7 @@ for iChannel = 1 :2
     end
 end
 
-figure;plot_color_dot_from_matrix(flipud(sum_Z),20, 0, 5, 1);
+figure;plot_color_dot_from_matrix(flipud(sum_Z),20, 0, 45, 1);
 
 save([Group_ROOT_DIR,filesep,'movieList_plate_Z_all.mat']);
 
