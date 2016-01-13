@@ -1,6 +1,10 @@
 function output_feature_reorganized = arrange_network_features(output_feature)
+% to arrange all network features into column vectors
 
-%  straightness_per_filament_pool: [1x1611 double]
+% if there is no such field defined, add empty field
+
+% Original features:
+%    straightness_per_filament_pool: [1x1611 double]
 %                  curvature_per_pixel_pool: [43174x1 double]
 %                  length_per_filament_pool: [1x1611 double]
 %            pixel_number_per_filament_pool: [1x1611 double]
