@@ -10,15 +10,17 @@ tempColor = colors(6,:);
 colors(6,:) = colors(9,:);
 colors(9,:) = tempColor;
 
-idGroup{1} = strcmp(allDataClass,'Group1');
-idGroup{2} = strcmp(allDataClass,'Group2');
-idGroup{3} = strcmp(allDataClass,'Group3');
-idGroup{4} = strcmp(allDataClass,'Group4');
-idGroup{5} = strcmp(allDataClass,'Group5');
-idGroup{6} = strcmp(allDataClass,'Group6');
-idGroup{7} = strcmp(allDataClass,'Group7');
-idGroup{8} = strcmp(allDataClass,'Group8');
-idGroup{9} = strcmp(allDataClass,'Group9');
+idCurrent = arrayfun(@(x) x.startingFrameExtra<=iFrame & x.endingFrameExtra>=iFrame,tracksNA);
+
+idGroup{1} = strcmp(allDataClass,'Group1') & idCurrent;
+idGroup{2} = strcmp(allDataClass,'Group2') & idCurrent;
+idGroup{3} = strcmp(allDataClass,'Group3') & idCurrent;
+idGroup{4} = strcmp(allDataClass,'Group4') & idCurrent;
+idGroup{5} = strcmp(allDataClass,'Group5') & idCurrent;
+idGroup{6} = strcmp(allDataClass,'Group6') & idCurrent;
+idGroup{7} = strcmp(allDataClass,'Group7') & idCurrent;
+idGroup{8} = strcmp(allDataClass,'Group8') & idCurrent;
+idGroup{9} = strcmp(allDataClass,'Group9') & idCurrent;
 if nargin<4
     h=gca;
 end

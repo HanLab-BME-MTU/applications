@@ -1,6 +1,9 @@
-function [] = makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmax,nWorkers)
+function [] = makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmax,nWorkers,drawWithoutClasses)
 %function [] = makeMoviesAdhesionTracks(tracks,pathForColocalization,tmax) makes
 % tif series for movie with classified adhesion tracks
+if nargin<5
+    drawWithoutClasses=false;
+end
 close all
 disp('Loading raw files ...')
 band = 10;
@@ -22,7 +25,11 @@ toc
 [~,allData] = extractFeatureNA(tracksNA);
 allDataClass = predict(trainedClassifier,allData);
 
-moviePath = [pathForColocalization filesep 'movies'];
+if drawWithoutClasses
+    moviePath = [pathForColocalization filesep 'movies_noClass'];
+else
+    moviePath = [pathForColocalization filesep 'movies'];
+end
 movieEpsFluoPath = [moviePath filesep 'epsFluo'];
 movieTifFluoPath = [moviePath filesep 'tifFluo'];
 movieFigFluoPath = [moviePath filesep 'figFluo'];
@@ -47,6 +54,7 @@ if nargin<3 || isempty(tmax)
     tmax = 0.8*max(tMap(:));
 end
 tmin = min(tMap(:));
+markerSize = 4;
 % h1 = figure('color','w'); % for fluorescence
 % set(h1, 'Position', [100 50 width_b height_b])
 % axIMap = axes;
@@ -100,7 +108,16 @@ spmd (nWorkers)
         imshow(curImgFrame,[],'Parent',axIMap); hold on
         set(h1, 'Position', [100 50 width_b height_b])
         set(axIMap,'XLim',[cropInfo(1)+band cropInfo(3)-band],'YLim',[cropInfo(2)+band cropInfo(4)-band])
-        [htrackLine, htrackCircles] =drawClassifiedTracks(allDataClass,tracksNA,ii,axIMap);
+        if drawWithoutClasses
+            for jj=1:numel(tracksNA)
+                if tracksNA(jj).presence
+                    plot(tracksNA(jj).xCoord(ii),tracksNA(jj).yCoord(ii),'ro','MarkerSize',markerSize)
+                    plot(tracksNA(jj).xCoord(1:ii),tracksNA(jj).yCoord(1:ii),'r')
+                end
+            end
+        else
+            [htrackLine, htrackCircles] =drawClassifiedTracks(allDataClass,tracksNA,ii,axIMap);
+        end
         drawnow
         print('-depsc2', '-r150', strcat(movieEpsFluoPath,'/flscInten',num2str(ii,iiformat),'.eps'));
         print('-dtiff', '-r150', strcat(movieTifFluoPath,'/flscInten',num2str(ii,iiformat),'.tif'));
@@ -116,20 +133,29 @@ spmd (nWorkers)
         curForceFrame = curForceFrame.curForceFrame;
         imshow(curForceFrame,[tmin tmax]); colormap jet; hold on;
         set(axTMap,'XLim',[cropInfo(1)+band cropInfo(3)-band],'YLim',[cropInfo(2)+band cropInfo(4)-band])
-        for kk=1:numel(htrackLine)
-            numCurLine = numel(htrackLine{kk});
-            for kkk=1:numCurLine
-                copyobj(htrackLine{kk}{kkk},axTMap)
+        if drawWithoutClasses
+            for jj=1:numel(tracksNA)
+                if tracksNA(jj).presence
+                    plot(tracksNA(jj).xCoord(ii),tracksNA(jj).yCoord(ii),'ro','MarkerSize',markerSize)
+                    plot(tracksNA(jj).xCoord(1:ii),tracksNA(jj).yCoord(1:ii),'r')
+                end
             end
-            %drawing
-%             cellfun(@(x) copyobj(x,axTMap),htrackLine{kk})
-        end
-        for kk=1:numel(htrackCircles)
-            numCurCircle = numel(htrackCircles{kk});
-            for kkk=1:numCurCircle
-                copyobj(htrackCircles{kk}{kkk},axTMap)
+        else
+            for kk=1:numel(htrackLine)
+                numCurLine = numel(htrackLine{kk});
+                for kkk=1:numCurLine
+                    copyobj(htrackLine{kk}{kkk},axTMap)
+                end
+                %drawing
+    %             cellfun(@(x) copyobj(x,axTMap),htrackLine{kk})
             end
-%             cellfun(@(x) copyobj(x,axTMap),htrackCircles{kk})
+            for kk=1:numel(htrackCircles)
+                numCurCircle = numel(htrackCircles{kk});
+                for kkk=1:numCurCircle
+                    copyobj(htrackCircles{kk}{kkk},axTMap)
+                end
+    %             cellfun(@(x) copyobj(x,axTMap),htrackCircles{kk})
+            end
         end
         subplot('Position',[0.8 0.1 0.1 0.8])
         axis tight

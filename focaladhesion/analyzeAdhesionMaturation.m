@@ -204,7 +204,7 @@ end
 % get the intensity
 disp('Reading intensities with additional tracking...')
 tic
-tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',10); % 1 means intensity collection from pax image
+tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',20); % 1 means intensity collection from pax image
 toc
 firstMask=maskProc.loadChannelOutput(iChan,1);
 cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
@@ -313,7 +313,8 @@ for ii=1:nFrames
     end
     for k=1:numel(tracksNA)
         % distance to the cell edge
-        if tracksNA(k).presence(ii)
+%         if tracksNA(k).presence(ii)
+        if ii>=tracksNA(k).startingFrameExtraExtra && ii<=tracksNA(k).endingFrameExtraExtra
             xCropped = tracksNA(k).xCoord(ii);
             yCropped = tracksNA(k).yCoord(ii);
             distToAdh = sqrt(sum((allBdPoints- ...
@@ -453,6 +454,8 @@ for k=1:numTracks
     end
     % lifetime information
     try
+        sFextend=tracksNA(k).startingFrameExtraExtra;
+        eFextend=tracksNA(k).endingFrameExtraExtra;
         sF=tracksNA(k).startingFrameExtra;
         eF=tracksNA(k).endingFrameExtra;
         if isempty(sF)
@@ -521,7 +524,7 @@ for k=1:numTracks
     firstBdPointProjected = projPointOnLine(firstBdPoint, trackLine); % this is an edge boundary point at the first time point projected on the average line of track.
     % try to record advanceDist and edgeAdvanceDist for every single time
     % point ...
-    for ii=sF:eF
+    for ii=sFextend:eFextend
         curBdPoint = [tracksNA(k).closestBdPoint(ii,1) tracksNA(k).closestBdPoint(ii,2)];
         curBdPointProjected = projPointOnLine(curBdPoint, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
 

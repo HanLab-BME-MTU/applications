@@ -58,7 +58,9 @@ pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 
+trainerInitially = false;
 if ~isempty(T)
+    trainerInitially = true;
     trainedClassifier = trainClassifierNA(T);
     [~,allData] = extractFeatureNA(tracksNA);
     allDataClass = predict(trainedClassifier,allData);
@@ -87,7 +89,7 @@ setappdata(hFig,'MyMatrix',imgMap); %// You could use %//setappdata(0,'MyMatrix'
 setappdata(hFig,'tracksNA',tracksNA); 
 %// Display 1st frame
 imshow(imgMap(:,:,startFrame),[]), hold on
-if ~isempty(T)
+if trainerInitially
     drawClassifiedTracks(allDataClass,tracksNA,1,gca,true);
 else
 %     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
@@ -421,13 +423,15 @@ function pushInspectAdhesion(~,~)
     idGroupSelected = sortIDTracks(idxIDList(IDtoInspect),iCurGroup,true);
     [curT] = extractFeatureNA(tracksNA,idGroupSelected);
     T = [T; curT];
-    disp('Training the classifier ...')
-    tic
-    trainedClassifier = trainClassifierNA(T);
-%     [~,allData] = extractFeatureNA(tracksNA);
-    allDataClass = predict(trainedClassifier,allData);
-    toc
-    
+    disp(['Currently labeled groups: ' num2str(iGroups)])
+    if trainerInitially
+        disp('Training the classifier ...')
+        tic
+        trainedClassifier = trainClassifierNA(T);
+    %     [~,allData] = extractFeatureNA(tracksNA);
+        allDataClass = predict(trainedClassifier,allData);
+        toc
+    end    
     try
         tracksNA(IDtoInspect) = curTrack;
     catch
@@ -435,8 +439,10 @@ function pushInspectAdhesion(~,~)
         tracksNA(IDtoInspect).endingFrameExtraExtra = [];
         tracksNA(IDtoInspect) = curTrack;
     end
-    print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
-    savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+    if trainerInitially
+        print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
+        savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+    end
     save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
     setappdata(hFig,'IDs',IDs);
     setappdata(hFig,'iGroups',iGroups);
@@ -486,11 +492,11 @@ function XListenerCallBack
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-%     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
-    if ~isempty(T)
+    if trainerInitially
         drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
     else
 %         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
+%         plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
         xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
         ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
         if size(xmat,2)==1
@@ -532,11 +538,11 @@ function XSliderCallback(~,~)
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-%     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
-    if ~isempty(T)
+    if trainerInitially
         drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
     else
 %         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
+%         plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
         xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
         ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
         if size(xmat,2)==1

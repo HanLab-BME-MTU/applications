@@ -8,23 +8,52 @@ ip = inputParser;
 ip.addOptional('fileStore',[],@(x) isempty(x) || ischar(x));
 ip.addOptional('alignEvent',false,@islogical);
 ip.addOptional('indivColor',false,@islogical);
-ip.addParamValue('Source','ampTotal',@ischar);
+ip.addParamValue('Source',{'ampTotal','forceMag'},@iscell);
+ip.addParamValue('UseCurrentAxis',false,@islogical);
+ip.addParamValue('plotCohorts',false,@islogical);
+ip.addParamValue('tInterval',[],@isnumeric);
+ip.addParamValue('prePostFrames',[],@isnumeric);
+ip.addParamValue('yNormalization',false,@islogical);
+ip.addParamValue('onlyFirstMode',false,@islogical);
 
 ip.parse(fileStore,alignEvent,indivColor,varargin{:});
 
 alignEvent=ip.Results.alignEvent;
 indivColor=ip.Results.indivColor;
 source = ip.Results.Source;
+useCurrentAxis = ip.Results.UseCurrentAxis;
+plotCohorts = ip.Results.plotCohorts;
+tInterval = ip.Results.tInterval;
+prePostFrames = ip.Results.prePostFrames;
+yNormalization = ip.Results.yNormalization;
+onlyFirstMode = ip.Results.onlyFirstMode;
 
+if isempty(tInterval)
+    tInterval_used = 1;
+else
+    tInterval_used = tInterval;
+end
+if isempty(prePostFrames)
+    prePostFramesUsed = 0;
+else
+    prePostFramesUsed = prePostFrames;
+end
+
+% make sure the lifetime calculation is okay
+tracksNA = recalculateLifeTimeTracks(tracksNA);
 nTracks = numel(tracksNA);
 if nTracks<1
     disp('No data in tracksNA ... Aborting ...')
     return
 end
-h=figure; hold on
+if ~useCurrentAxis
+    h=figure; 
+end
+hold on
 % alignment might be necessary:
 % events = detectProtrusionEvents(v,dThreshold)
 lifeTime = arrayfun(@(x) x.lifeTime,tracksNA);
+nSources=numel(source);
 
 frameMaxAmp = zeros(nTracks,1);
 if alignEvent
@@ -55,7 +84,11 @@ if alignEvent
     % Shift each time series w.r.t. the mean time point(meanFrame)
     framesToShift = frameMaxAmp - meanFrame;
     lifeAfterMaxAmp = lifeTime - frameMaxAmp;
-    if length(lifeTime)>30
+    if length(lifeTime)>1000
+        thresLifeAfterMaxAmp = floor(quantile(lifeAfterMaxAmp,0.99));
+    elseif length(lifeTime)>100
+        thresLifeAfterMaxAmp = floor(quantile(lifeAfterMaxAmp,0.95));
+    elseif length(lifeTime)>30
         thresLifeAfterMaxAmp = floor(quantile(lifeAfterMaxAmp,0.8));
     elseif length(lifeTime)>20
         thresLifeAfterMaxAmp = floor(quantile(lifeAfterMaxAmp,0.7));
@@ -70,7 +103,9 @@ if alignEvent
     end
     for ii=1:nTracks
         curAmp = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
+        curAmp = (curAmp-min(curAmp));%/(max(curAmp)-min(curAmp));
         curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
+        curForce = (curForce-min(curForce));%/(max(curForce)-min(curForce));
         
         curFrameRange = tracksNA(ii).iFrame(logical(tracksNA(ii).presence));
         curFrameRangeShifted = curFrameRange - framesToShift(ii);
@@ -97,121 +132,285 @@ if alignEvent
             subplot(1,3,2), plot(1:nSampleFrames,forceArray, 'Color',[240/255 128/255 128/255]), hold on
             subplot(1,3,3), plot(1:nSampleFrames,edgeDistArray, 'Color',[10/255 220/255 64/255]), hold on
         else
-            subplot(1,2,1), plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
-            subplot(1,2,2), plot(1:nSampleFrames,forceArray, 'Color',[240/255 128/255 128/255]), hold on
+            if nSources>1
+                subplot(1,2,1)
+                plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
+            end
+            if strcmp(source{1},'ampTotal')
+                plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
+            end
+            if nSources>1
+                subplot(1,2,2), 
+                plot(1:nSampleFrames,forceArray, 'Color',[240/255 128/255 128/255]), hold on
+            end
+            if strcmp(source{1},'forceMag')
+                plot(1:nSampleFrames,forceArray, 'Color',[240/255 128/255 128/255]), hold on
+
+            end
         end
     end        
     maxLifeTime = nSampleFrames;
-else    
-    for ii=1:nTracks
-        d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
-        if indivColor
-            if strcmp(source,'edgeAdvanceDist')
-                subplot(1,3,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,3,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
-                subplot(1,3,3), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+else  
+    if ~plotCohorts
+        for ii=1:nTracks
+            d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
+            if indivColor
+                if strcmp(source,'edgeAdvanceDist')
+                    subplot(1,3,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                    subplot(1,3,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                    subplot(1,3,3), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                else
+                    subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                    subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                end
             else
-                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                for kk=1:nSources
+                    if ~useCurrentAxis
+                        subplot(1,nSources,kk)
+                        if ii==1
+                            hold on
+                        end
+                    end
+                    plot(1:tracksNA(ii).lifeTime+1,getfield(tracksNA(ii),{1},source{kk},{find(tracksNA(ii).presence)}),'Color',[0.5 0.5 0.5])
+                end
+    %             if strcmp(source,'edgeAdvanceDist')
+    %                 subplot(1,3,1), plot(1:tracksNA(ii).lifeTime,d,'Color',[0.5 0.5 0.5]), hold on
+    %                 subplot(1,3,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
+    %                 subplot(1,3,3), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence)),'Color',[10/255 220/255 64/255]), hold on
+    %             else
+    %                 subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d,'Color',[0.5 0.5 0.5]), hold on
+    %                 subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
+    %             end
             end
+        end
+        % title(['Group 1:' num2str(idGroup1f')])
+        % set the life time to be 80 percentile
+        if length(lifeTime)>1000
+            thresLifeTime = quantile(lifeTime,0.99);
+        elseif length(lifeTime)>100
+            thresLifeTime = quantile(lifeTime,0.95);
+        elseif length(lifeTime)>50
+            thresLifeTime = quantile(lifeTime,0.9);
+        elseif length(lifeTime)>30
+            thresLifeTime = quantile(lifeTime,0.8);
+        elseif length(lifeTime)>20
+            thresLifeTime = quantile(lifeTime,0.7);
         else
+            thresLifeTime = quantile(lifeTime,0.6);
+        end
+
+        nSampleFrames = floor(thresLifeTime);
+        AmpArray = NaN(nTracks,nSampleFrames);
+        forceArray = NaN(nTracks,nSampleFrames);
+        if strcmp(source,'edgeAdvanceDist')
+            edgeDistArray = NaN(nTracks,nSampleFrames);
+        end
+        p=0;
+        for ii=1:nTracks
+            p=p+1;
+            d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
+            curAmp = d;
+            fmax = min(nSampleFrames, length(curAmp));
+            AmpArray(p,1:fmax) = curAmp(1:fmax);
+
+            curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
+            fmax = min(nSampleFrames, length(curForce));
+            forceArray(p,1:fmax) = curForce(1:fmax);
+
             if strcmp(source,'edgeAdvanceDist')
-                subplot(1,3,1), plot(1:tracksNA(ii).lifeTime,d,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,3,2), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
-                subplot(1,3,3), plot(1:tracksNA(ii).lifeTime,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence)),'Color',[10/255 220/255 64/255]), hold on
-            else
-                subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d,'Color',[0.5 0.5 0.5]), hold on
-                subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence)),'Color',[240/255 128/255 128/255]), hold on
+                curEdgeDist = tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence));
+                edgeDistArray(p,1:fmax) = curEdgeDist(1:fmax);
             end
         end
-    end
-    % title(['Group 1:' num2str(idGroup1f')])
-    % set the life time to be 80 percentile
-    if length(lifeTime)>100
-        thresLifeTime = quantile(lifeTime,0.95);
-    elseif length(lifeTime)>50
-        thresLifeTime = quantile(lifeTime,0.9);
-    elseif length(lifeTime)>30
-        thresLifeTime = quantile(lifeTime,0.8);
-    elseif length(lifeTime)>20
-        thresLifeTime = quantile(lifeTime,0.7);
+        maxLifeTime = nSampleFrames;
     else
-        thresLifeTime = quantile(lifeTime,0.6);
-    end
-
-    nSampleFrames = floor(thresLifeTime);
-    AmpArray = NaN(nTracks,nSampleFrames);
-    forceArray = NaN(nTracks,nSampleFrames);
-    if strcmp(source,'edgeAdvanceDist')
-        edgeDistArray = NaN(nTracks,nSampleFrames);
-    end
-    p=0;
-    for ii=1:nTracks
-        p=p+1;
-        d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
-        curAmp = d;
-        fmax = min(nSampleFrames, length(curAmp));
-        AmpArray(p,1:fmax) = curAmp(1:fmax);
-
-        curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
-        fmax = min(nSampleFrames, length(curForce));
-        forceArray(p,1:fmax) = curForce(1:fmax);
-
+        % plot cohorts
+%         [N,edges,bin]=histcounts(lifeTime);
+        % distribution was not normal. Binning depeding on quantile..
+        stepPrc=20; %step percentile increase
+        if strcmp(source{1},'ampTotal')
+            ciColor = [153/255 255/255 51/255];
+            meanColor = [0/255 102/255 0];
+        elseif strcmp(source{1},'forceMag')
+            ciColor = [255/255 153/255 153/255];
+            meanColor = [153/255 0/255 0];
+        end
+%         prevLT=0;
+        for curPrcLT=20:stepPrc:80
+            curLT = floor(prctile(lifeTime,curPrcLT));
+            upperLT = prctile(lifeTime,curPrcLT+stepPrc/2);
+            lowerLT = prctile(lifeTime,curPrcLT-stepPrc/2);
+            % get related track profiles
+            curTrackIDsWithCurLT = arrayfun(@(x) x.lifeTime>lowerLT & x.lifeTime<=upperLT,tracksNA);
+%             arrayfun(@(x) plot(0:x.endingFrameExtra-x.startingFrameExtra,x.ampTotal(x.startingFrameExtra:x.endingFrameExtra)),tracksNA(curTrackIDsWithCurLT))
+            curArray = NaN(sum(curTrackIDsWithCurLT),curLT+1+2*prePostFramesUsed);
+            pp=0;
+            for kk=find(curTrackIDsWithCurLT)'
+                pp=pp+1;
+                x = tracksNA(kk);
+                sF = max(x.startingFrameExtra-prePostFramesUsed,x.startingFrameExtraExtra);
+                eF = min(x.endingFrameExtra+prePostFramesUsed,x.endingFrameExtraExtra);
+%                 interpStep = (curLT+2*prePostFramesUsed)/(eF-sF);
+                % We interpolate the series per predetection, detection,
+                % postdetection periods
+                % pre-detection period
+                if x.startingFrameExtra>sF+1
+                    interpStepPre = (prePostFramesUsed)/(x.startingFrameExtra-sF);
+                    curArray(pp,1:prePostFramesUsed+1)=interp1((1:interpStepPre:prePostFramesUsed+1),...
+                        getfield(x,{1},source{1},{sF:x.startingFrameExtra}),1:prePostFramesUsed+1);
+                end
+                % detection period
+%                 interpStep = (curLT+2*prePostFramesUsed)/(eF-sF);
+%                 curArray(pp,1:curLT+2*prePostFramesUsed+1)=interp1((1:interpStep:curLT+2*prePostFramesUsed+1),...
+%                     getfield(x,{1},source{1},{sF:eF}),1:curLT+2*prePostFramesUsed+1);
+                interpStep = (curLT)/(x.endingFrameExtra-x.startingFrameExtra);
+                curArray(pp,1+prePostFramesUsed:curLT+prePostFramesUsed+1)=...
+                    interp1((1+prePostFramesUsed:interpStep:curLT+prePostFramesUsed+1),...
+                    getfield(x,{1},source{1},{x.startingFrameExtra:x.endingFrameExtra}),1+prePostFramesUsed:curLT+prePostFramesUsed+1);
+                % post-detection period
+                if eF>x.endingFrameExtra+1
+                    interpStepPost = (prePostFramesUsed)/(eF-x.endingFrameExtra);
+                    curArray(pp,curLT+prePostFramesUsed+1:curLT+2*prePostFramesUsed+1)=...
+                        interp1((curLT+prePostFramesUsed+1:interpStepPost:curLT+2*prePostFramesUsed+1),...
+                        getfield(x,{1},source{1},{x.endingFrameExtra:eF}),curLT+prePostFramesUsed+1:curLT+2*prePostFramesUsed+1);
+                end
+%                     x.ampTotal(x.startingFrameExtra:x.endingFrameExtra),1:curLT+1);
+%                 curArray(pp,1:(x.endingFrameExtra-x.startingFrameExtra+1))=x.ampTotal(x.startingFrameExtra:x.endingFrameExtra);
+            end
+%             if strcmp(source{1},'forceMag')
+%                 % In case of force, there can be some effect from large
+%                 % adhesions. Since we are interested in relative change,
+%                 % I'll shift everything to minimum force
+%             [rowsNonNan,colsNonNan]=find(~isnan(curArray));
+%             [~,uniqNonNan] = unique(rowsNonNan);
+%             rowsNonNanUniq = rowsNonNan(uniqNonNan);
+%             colsNonNanUniq = colsNonNan(uniqNonNan);
+%             linearIndNonNan=sub2ind(size(curArray),rowsNonNanUniq, colsNonNanUniq);
+%             medianStartingSig = nanmedian(curArray(linearIndNonNan));
+%             toBeSubtracted = curArray(linearIndNonNan)-medianStartingSig;
+            medianStartingSig = prctile(curArray(:,1),5);
+            toBeSubtracted = nanmin(curArray,[],2)-medianStartingSig;
+            curArray = curArray - repmat(toBeSubtracted,1,curLT+2*prePostFramesUsed+1);
+            meanRangeSig = prctile(prctile(curArray,99,2),90)-prctile(prctile(curArray,1,2),10);
+            if yNormalization
+                for jj=1:size(curArray,1)
+                    curArray(jj,:) = meanRangeSig*(curArray(jj,:)-nanmin(curArray(jj,:)))/(nanmax(curArray(jj,:))-nanmin(curArray(jj,:)))+medianStartingSig;
+                end
+            end
+%             end
+            curMeanSig = nanmean(curArray,1);
+            curSEM = nanstd(curArray,1)/sqrt(size(curArray,1));
+            curTScore = tinv([0.025 0.975],size(curArray,1)-1);
+            curCI_upper = curMeanSig + curTScore*curSEM;
+            curCI_lower = curMeanSig - curTScore*curSEM;
+            if onlyFirstMode
+                allColors =  distinguishable_colors(size(curArray,1),'w');
+%                 co = get(gca,'ColorOrder');
+                set(gca, 'ColorOrder', allColors,'NextPlot','replacechildren')
+                idForceTrans=nanmax(curArray(:,1:prePostFrames),[],2)<nanmax(curArray(:,prePostFrames+1:prePostFrames+1+curLT),[],2);
+                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray(~idForceTrans,:),'Linewidth',0.5,'Color',[0.5 0.5 0.5]), hold on
+                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray(idForceTrans,:),'Linewidth',0.5)
+%                 plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray,'Linewidth',0.5), hold on
+                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curMeanSig,'Linewidth',3,'Color','w')     
+                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curMeanSig,'Linewidth',1,'Color',meanColor)     
+            else
+                fill([-prePostFramesUsed:curLT+prePostFramesUsed curLT+prePostFramesUsed:-1:-prePostFramesUsed]*tInterval_used,[curCI_upper fliplr(curCI_lower)],ciColor,'EdgeColor',ciColor),hold on
+                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curMeanSig,'Linewidth',1,'Color',meanColor)
+            end
+            if ~isempty(prePostFrames)
+                line([curLT*tInterval_used curLT*tInterval_used],[0 curMeanSig(curLT+prePostFramesUsed+1)],'linestyle',':','Color','k')
+            end
+%             prevLT = curLT;
+            if curPrcLT==20
+                if onlyFirstMode
+                    maxYamp = max(curArray(:));
+                    minYamp = min(curArray(:));
+                    break
+                else
+                    maxYamp = max(curCI_upper);
+                    minYamp = min(curCI_lower);
+                end
+            else
+                maxYamp = max([maxYamp curCI_upper]);
+                minYamp = min([minYamp curCI_lower]);
+            end                
+        end
+        maxLifeTime = (curLT+prePostFramesUsed+1)*tInterval_used;
+    end    
+end
+if ~plotCohorts
+    if nTracks<5 %|| alignEvent
+        AmpG1avg = nanmean(AmpArray,1)';
+        % AmpG1std = nanstd(AmpArrayG1,1)';
+        forceG1avg = nanmean(forceArray,1)';
+        % forceG1std = nanstd(forceArrayG1,1)';
         if strcmp(source,'edgeAdvanceDist')
-            curEdgeDist = tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence));
-            edgeDistArray(p,1:fmax) = curEdgeDist(1:fmax);
+            edgeDistAvg = nanmean(edgeDistArray,1)';
+        end
+    else
+        AmpG1avg = nanmedian(AmpArray,1)';
+        % AmpG1std = nanstd(AmpArrayG1,1)';
+        forceG1avg = nanmedian(forceArray,1)';
+        % forceG1std = nanstd(forceArrayG1,1)';
+        if strcmp(source,'edgeAdvanceDist')
+            edgeDistAvg = nanmedian(edgeDistArray,1)';
         end
     end
-    maxLifeTime = quantile(lifeTime,0.99);
-end    
-if nTracks<5
-    AmpG1avg = nanmean(AmpArray,1)';
-    % AmpG1std = nanstd(AmpArrayG1,1)';
-    forceG1avg = nanmean(forceArray,1)';
-    % forceG1std = nanstd(forceArrayG1,1)';
+    maxYamp = quantile(nanmax(AmpArray),0.99);
+    minYamp = quantile(nanmin(AmpArray),0.01);
+end
+if ~useCurrentAxis
     if strcmp(source,'edgeAdvanceDist')
-        edgeDistAvg = nanmean(edgeDistArray,1)';
-    end
-else
-    AmpG1avg = nanmedian(AmpArray,1)';
-    % AmpG1std = nanstd(AmpArrayG1,1)';
-    forceG1avg = nanmedian(forceArray,1)';
-    % forceG1std = nanstd(forceArrayG1,1)';
-    if strcmp(source,'edgeAdvanceDist')
-        edgeDistAvg = nanmedian(edgeDistArray,1)';
+        set(h,'Position',[200,300,600,200])%,title(['ID:' num2str(ii) ', CC-score:' num2str(tracksNA(ii).CCscore)])
+        subplot(1,3,1)
+    else
+        set(h,'Position',[200,400,400,200])%,title(['ID:' num2str(ii) ', CC-score:' num2str(tracksNA(ii).CCscore)])
+        subplot(1,2,1) 
     end
 end
-if strcmp(source,'edgeAdvanceDist')
-    set(h,'Position',[200,300,600,200])%,title(['ID:' num2str(ii) ', CC-score:' num2str(tracksNA(ii).CCscore)])
-    subplot(1,3,1)
-else
-    set(h,'Position',[200,400,400,200])%,title(['ID:' num2str(ii) ', CC-score:' num2str(tracksNA(ii).CCscore)])
-    subplot(1,2,1) 
+if ~plotCohorts
+    nEachFrame = sum(AmpArray>0,1);
+    startAmpAvgFrame=find(nEachFrame>size(AmpArray,1)*0.02,1);
+    if nTracks>1 && strcmp(source{1},'ampTotal')
+        plot(startAmpAvgFrame:nSampleFrames,AmpG1avg(startAmpAvgFrame:nSampleFrames),'k','Linewidth',3)
+    end
 end
-if nTracks>1
-    plot(1:nSampleFrames,AmpG1avg,'k','Linewidth',3)
-end
-xlim([0 maxLifeTime])
-maxYamp = quantile(nanmax(AmpArray),0.99);
-minYamp = quantile(nanmin(AmpArray),0.01);
+xlim([-1-prePostFramesUsed*tInterval_used maxLifeTime])
 ylim([minYamp maxYamp])
-xlabel('Time (frame)')
-ylabel('Fluorescence intensity (a.u.)')
-if strcmp(source,'edgeAdvanceDist')
-    subplot(1,3,2)
+% if strcmp(source{1},'forceMag')
+%     ylim([0 maxYamp])
+% end
+if isempty(tInterval)
+    xlabel('Time (frame)')
 else
-    subplot(1,2,2) 
+    xlabel('Time (sec)')
 end
-if nTracks>1
+if strcmp(source{1},'ampTotal')
+    ylabel('F.I. (a.u.)')
+elseif strcmp(source{1},'forceMag')
+    ylabel('Traction (Pa)')
+end
+set(gca,'FontSize',7)
+
+if ~useCurrentAxis
+    if strcmp(source,'edgeAdvanceDist')
+        subplot(1,3,2)
+    else
+        subplot(1,2,2) 
+    end
+end
+if ~plotCohorts && nTracks>1 && (strcmp(source{1},'forceMag') || (length(source)>1 && strcmp(source{2},'forceMag')))
     plot(1:nSampleFrames,forceG1avg,'r','Linewidth',3)
 end
-xlim([0 maxLifeTime])
-maxYforce = quantile(nanmax(forceArray),0.95);
-minYforce = quantile(nanmin(forceArray),0.01);
-ylim([minYforce maxYforce])
-xlabel('Time (frame)')
-ylabel('Traction (Pa)')
-
+if ~useCurrentAxis
+    xlim([0 maxLifeTime])
+    maxYforce = quantile(nanmax(forceArray),0.95);
+    minYforce = quantile(nanmin(forceArray),0.01);
+    ylim([minYforce maxYforce])
+    xlabel('Time (frame)')
+    ylabel('Traction (Pa)')
+    set(gca,'FontSize',7)
+end
 if strcmp(source,'edgeAdvanceDist')
     subplot(1,3,3)
     plot(1:nSampleFrames,edgeDistAvg,'Color',[30/255 160/255 24/255],'Linewidth',3)
@@ -222,6 +421,7 @@ if strcmp(source,'edgeAdvanceDist')
     xlabel('Time (frame)')
     ylabel('Edge distance (Pixel)')
 end
+
 
 if ~isempty(fileStore)
     [pathStore,nameStore]=fileparts(fileStore);

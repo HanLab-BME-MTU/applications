@@ -1,4 +1,8 @@
 function h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
+% h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
+% This function shows big picture, montage, and time series of fluorescence
+% intensity and traction.
+% Sangyoon Han, Jun 2015
 imgWidth = size(imgMap,2);
 imgHeight = size(imgMap,1);
 curEndFrame=curTrack.endingFrameExtra;
@@ -17,6 +21,10 @@ scaleBar = 1; %micron
 chosenFRange = curFrameRange;
 [~,peakFrame] = max(curTrack.ampTotal(chosenFRange));
 peakFrame = chosenFRange(peakFrame);
+if ~isempty(curTrack.intenPeakness) && curTrack.intenPeakness
+    peakFrame = curTrack.intenPeakFrame;
+end
+
 % ROI
 %     r_pix = 5; % half the width of the ROI
 % this r_pix was shown to be too small if the maturing adhesion slides.
@@ -62,8 +70,9 @@ midStartFrame = ceil((chosenStartFrame+peakFrame)/2);
 ax1=axes('Position',[marginX, 490/figHeight, 175/figWidth,175/figHeight]);
 %get the dynamic range
 cropImg = imgMap(bBottom:bTop,bLeft:bRight,chosenStartFrame:chosenEndFrame);
-maxInt = max(cropImg(:));
-minInt = min(cropImg(:));
+cropImgSmaller = imgMap(bBottom+7:bTop-7,bLeft+7:bRight-7,chosenStartFrame:chosenEndFrame);
+maxInt = max(cropImgSmaller(:));
+minInt = min(cropImgSmaller(:));
 imshow(imgMap(:,:,midStartFrame),[minInt maxInt]), hold on
 % have to show a box indicating a region of interest
 rectangle('Position',[bLeft,bBottom,(bRight-bLeft+1),(bTop-bBottom+1)],'EdgeColor','y'); hold off
@@ -109,8 +118,12 @@ set(findobj(ax3,'Type','text'),'FontUnits',genFontUnit,'FontSize',genFontSize)
 %     tMap2 = tMap(:,:,[chosenStartFrame,peakFrame,chosenEndFrame]);
 tMap2 = tMap(:,:,[midStartFrame,peakFrame,midEndFrame]);
 tMapROI = tMap2(bBottomBig:bTopBig,bLeftBig:bRightBig,:);
-tmax= max(tMapROI(:))*0.9;
-tmin= min(tMapROI(:));
+tCropMax = max(curTrack.forceMag(chosenStartFrame:chosenEndFrame))*1.1;
+tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
+tmax= min(tCropMax*3,max(tMapROI(:))*0.9);
+tmin= tCropMin*0.1;
+% tmax= max(tMapROI(:))*0.9;
+% tmin= min(tMapROI(:));
 
 ax4=subplot('Position',[marginX, 250/figHeight+marginY, 175/figWidth,175/figHeight]);
 imshow(tMap2(:,:,1),[tmin tmax]), hold on
@@ -162,6 +175,11 @@ montWidth = 25; % in pixel
 % find a traction peak
 [~,peakFrameForce] = max(curTrack.forceMag(chosenFRange));
 peakFrameForce = chosenFRange(peakFrameForce);
+if ~isempty(curTrack.forcePeakness) && curTrack.forcePeakness
+    peakFrameForce = curTrack.forcePeakFrame;
+end
+frameFII=round(curTrack.firstIncreseTimeInt/tInterval);
+frameFTI=round(curTrack.firstIncreseTimeForce/tInterval);
 
 maxMontageNum = floor(535/montWidth)*2;
 numChosenFrames = length(chosenStartFrame:chosenEndFrame);
@@ -170,6 +188,22 @@ if montInterval>1
     %Check if peakFrameForce is included in the range
     modShift=mod(peakFrameForce-chosenStartFrame,montInterval);
     indiceRange=1+modShift:montInterval:numChosenFrames;
+    % Add correct first rise frames
+    frameFIIcut = frameFII -chosenStartFrame +1;
+    frameFTIcut = frameFTI -chosenStartFrame +1;
+    peakFrameCut = peakFrame-chosenStartFrame +1;
+    if ~ismember(frameFIIcut,indiceRange)
+        indiceRange = [indiceRange frameFIIcut];
+        indiceRange = sort(indiceRange);
+    end
+    if ~ismember(frameFTIcut,indiceRange)
+        indiceRange = [indiceRange frameFTIcut];
+        indiceRange = sort(indiceRange);
+    end
+    if ~ismember(peakFrameCut,indiceRange)
+        indiceRange = [indiceRange peakFrameCut];
+        indiceRange = sort(indiceRange);
+    end
 elseif montInterval==1
     indiceRange=1:montInterval:numChosenFrames;
 end
@@ -182,8 +216,6 @@ numCols = ceil(length(indiceRange)/2);
 monImgW = floor(hm1.XData(2)/numCols);
 p=0;
 hold on
-frameFII=round(curTrack.firstIncreseTimeInt/tInterval);
-frameFTI=round(curTrack.firstIncreseTimeForce/tInterval);
 
 for ii= indiceRange
     p=p+1;
@@ -201,12 +233,14 @@ for ii= indiceRange
     % Show first increase point if it exists
     if eF>=curStartFrame && eF<curStartFrame+montInterval
         markerType = 'yo';
+    elseif eF==peakFrame
+        markerType = 'wo';
     elseif eF>=curEndFrame && eF<curEndFrame+montInterval
         markerType = 'bo';
     else
         markerType = 'ro';
     end
-    if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting && (eF>=frameFII && eF<frameFII+montInterval)
+    if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
         markerType = 'go';
     end
     plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
@@ -215,8 +249,8 @@ for ii= indiceRange
 end
 
 ax7=subplot('Position',[marginX, 200/figHeight, 540/figWidth-marginX,50/figHeight]);
-tCropMax = max(curTrack.forceMag(chosenStartFrame:chosenEndFrame))*1.1;
-tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
+% tCropMax = max(curTrack.forceMag(chosenStartFrame:chosenEndFrame))*1.1;
+% tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
 try
     montage(cropTmap,'DisplayRange',[tCropMin, tCropMax],'Size',[2, NaN], 'Indices', indiceRange)
 catch
@@ -237,14 +271,16 @@ for ii= indiceRange
 %     sF = chosenStartFrame;
     eF = chosenStartFrame+ii-1;
     if eF>=curStartFrame && eF<curStartFrame+montInterval
-        markerType = 'ko';
+        markerType = 'yo';
+    elseif eF==peakFrameForce 
+        markerType = 'wo';
     elseif eF>=curEndFrame && eF<curEndFrame+montInterval
         markerType = 'bo';
     else
-        markerType = 'wo';
+        markerType = 'ro';
     end
-    if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting && (eF>=frameFTI && eF<frameFTI+montInterval)
-        markerType = 'mo';
+    if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting && (eF==frameFTI)% && eF<frameFTI+montInterval)
+        markerType = 'go';
     end
 %     plot(curTrack.xCoord(sF:eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(sF:eF)-bBottom+q*monImgH+1,'w', 'LineWidth', 0.5)
     plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
@@ -280,7 +316,7 @@ xlabel('Time (s)'); ylabel('Traction (Pa)')
 set(ax9,'FontUnits',genFontUnit,'FontSize',genFontSize)
 
 % Smoothed line and maximum
-splineParam = 0.1;
+splineParam = 0.01;
 d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
 tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 %     numNan = find(isnan(d),1,'last');
@@ -336,7 +372,12 @@ set(get(hcb2,'xlabel'),'String','Traction (Pa)')
 colormap(ax10,'jet')
 colormap(ax11,'jet')
 
-print(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
-savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.fig'))
-
+if exist('gPath','var')
+    print(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
+    savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.fig'))
+end
+if exist('IDtoInspect','var')
+    disp(['This ' num2str(IDtoInspect) ' th track has ' num2str(curTrack.firstIncreseTimeIntAgainstForce,'% 10.1f') ' sec of initial time lag of force after fluorescence signal.'])
+end
+disp('Marker: yellow (track start), green (initial rise), blue(track end), white (peak)')
 end
