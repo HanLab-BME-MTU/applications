@@ -4,8 +4,8 @@ output_feature_reorganized = output_feature;
 T_dis_perp =40;
 T_center = 10;
 
-if feature_index(19) == 1
-       
+if ( feature_index(19) == 1 && ~isempty(output_feature.profileAllCell))
+    
     %19
     output_feature_reorganized.nmssum_ratio_pool = output_feature.profileAllCell.nmssum_pool(:);
     %20
@@ -131,7 +131,34 @@ if feature_index(19) == 1
     %30
     output_feature_reorganized.filamean_ratio_pool_autoDpc = profileFilaMeanPerpCenterRatio(:);           
 
+else
     
+     %19
+    output_feature_reorganized.nmssum_ratio_pool = [];
+    %20
+    output_feature_reorganized.nmsmean_ratio_pool = [];
+    %21
+    output_feature_reorganized.intsum_ratio_pool = [];
+    %22
+    output_feature_reorganized.intmean_ratio_pool = [];
+    %23
+    output_feature_reorganized.filasum_ratio_pool = [];
+    %24
+    output_feature_reorganized.filamean_ratio_pool = [];
+    
+       
+    %25
+    output_feature_reorganized.nmssum_ratio_pool_autoDpc   = [];
+    %26
+    output_feature_reorganized.nmsmean_ratio_pool_autoDpc  = [];
+    %27
+    output_feature_reorganized.intsum_ratio_pool_autoDpc   = [];
+    %28
+    output_feature_reorganized.intmean_ratio_pool_autoDpc  = [];
+    %29
+    output_feature_reorganized.filasum_ratio_pool_autoDpc  = [];
+    %30
+    output_feature_reorganized.filamean_ratio_pool_autoDpc = []; 
     
 end
 

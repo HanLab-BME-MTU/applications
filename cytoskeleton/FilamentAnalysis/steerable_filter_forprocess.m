@@ -170,6 +170,13 @@ for iChannel = selected_channels
             end
         end
         
+        % change these into single to save space in drug screen
+        % for most experiments, single precision is enough.
+        orienation_map = single(orienation_map);
+        MAX_st_res = single(MAX_st_res);
+        nms = single(nms);
+        scaleMap = single(scaleMap);
+        
         save([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'],...
             'orienation_map', 'MAX_st_res','nms','scaleMap');
         

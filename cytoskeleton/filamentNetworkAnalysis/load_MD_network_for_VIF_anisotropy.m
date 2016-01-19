@@ -89,16 +89,16 @@ validChannels = validChannels'; % into row vector
 
 for iChannel = validChannels
     
-    try
-        outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
-    catch
-        continue;
-    end
-    
-    % make out put directory if not existing
-    if(~exist(outdir,'dir'))
-        mkdir(outdir);
-    end
+%     try
+%         outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
+%     catch
+%         continue;
+%     end
+%     
+%     % make out put directory if not existing
+%     if(~exist(outdir,'dir'))
+%         mkdir(outdir);
+%     end
     Channel_FilesNames = MD.channels_(iChannel).getImageFileNames(1:MD.nFrames_);
     
     filename_short_strs = uncommon_str_takeout(Channel_FilesNames);
@@ -181,7 +181,7 @@ for iChannel = validChannels
         output_feature.filament_orientation_STD_median = median(output_feature.filament_orientation_STD);
         
         % new name save output feature for single image(single channel, single frame)
-        save([outdir,filesep,'network_feature_vifstd_ch_',num2str(iChannel),'_',filename_short_strs{iFrame},'.mat'],...
+        save([wholemovie_output_dir,filesep,'network_feature_vifstd_ch_',num2str(iChannel),'_',filename_short_strs{iFrame},'.mat'],...
             'output_feature');
                 
         % put output feature to cell for all channels, all frames

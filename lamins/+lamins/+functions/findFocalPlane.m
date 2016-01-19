@@ -15,8 +15,8 @@ fC = repmat(fC,R.getSizeC,1);
 criteria = eC.*mC.*fC;
 [~,tz] = max(criteria,[],2);
 
-[~,edge_tz] = max(eC);
-[~,mean_tz] = max(mC);
+[~,edge_tz] = max(eC,[],2);
+[~,mean_tz] = max(mC,[],2);
 
 if(any(tz == 1))
     if(tz == 1)

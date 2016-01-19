@@ -113,9 +113,28 @@ if p.doSubPixReg
     %     error('image type should be chosen among Widefield, confocal and TIRF!');
     % end
 
+<<<<<<< HEAD
     % Adaptation of psfSigma from bead channel image data
     psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
     disp(['Determined sigma: ' num2str(psfSigma)])
+=======
+% Adaptation of psfSigma from bead channel image data
+psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3  
+    if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+        psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+        psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+        psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+    else
+        error('image type should be chosen among Widefield, confocal and TIRF!');
+    end
+    disp(['PSF sigma could not be determined by data due to abnormal distribution. Determined sigma using microscope setting: ' num2str(psfSigma)])
+else
+    disp(['Determined sigma: ' num2str(psfSigma)])
+end
+>>>>>>> b80d9acc3a0e4756f3dd76fb6d5f3efff59b4252
 
     assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
         'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
