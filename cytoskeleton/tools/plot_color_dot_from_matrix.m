@@ -81,7 +81,7 @@ plot([size(inMatrix,2) size(inMatrix,2)],[0 size(inMatrix,1)]);
 
 %set colorbar
 hh=colorbar;
-set(hh,'YTick',(0:0.2:1)*64)
+set(hh,'YTick',(0:0.2:1))
 YTicker_cell =cell(1,6);
 for iT= 1 : 6
     if(max_value>1000)

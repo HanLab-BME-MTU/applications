@@ -1,4 +1,4 @@
-function [ML] = UICreateMovieList(varargin)
+function [ML,param] = UICreateMovieList(varargin)
 %Creates ML and MD if it doesn't already exist of movies selected by user
 %Prompts the user to select movie (.tif files) that correspond to MD.
 %This takes advantage of the fact that uTrackPackageGUI will always create
@@ -10,195 +10,118 @@ function [ML] = UICreateMovieList(varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
+ip.StructExpand = true;
 ip.addParameter('pixelSize_', 90, @isnumeric);
 ip.addParameter('timeInterval_', 0.1, @isnumeric);
 ip.addParameter('numAperature_', 1.49, @isnumeric);
 ip.addParameter('emissionWavelength_', [], @isnumeric);%590nm for Rhod Red X, 525nm for GFP
 ip.addParameter('exposureTime_', 20, @isnumeric);
-ip.addParameter('imageType_', 'TIRF', @isstr);
+ip.addParameter('imageType_', {'TIRF'}, @(x) ischar(x) || iscellstr(x));
+% Parameters obtained by user input
+ip.addParameter('fileNameML',[],@ischar);
+ip.addParameter('filePathML',[],@ischar);
+ip.addParameter('fileName',[],@iscellstr);
+ip.addParameter('filePath',[],@ischar);
+ip.addParameter('relTimeZero',[]);
+ip.addParameter('relTimeZero2',[]);
+ip.addParameter('zeroSelect',[]);
+ip.addParameter('zeroSelect2',[]);
+ip.addParameter('addTZ1',[]);
+ip.addParameter('addTZ2',[]);
 ip.parse(varargin{:});
 param = ip.Results;
-emissionWL = ip.Results.emissionWavelength_;
-%Ask for emission wavelength
-if isempty(emissionWL)
-    stringListWL = {'525nm : Alexa 488', '530nm : GFP', '590nm : Rhod Red X', '668nm : Alexa 640', '669nm : Atto 547N', 'Brightfield'};
-    userChoiceWL = listdlg('PromptString','Select wavelength:', 'SelectionMode','single', 'ListString', stringListWL);
-    if userChoiceWL == 1
-        emissionWL = 525;
-    end
-    if userChoiceWL == 2
-        emissionWL = 530;
-    end
-    if userChoiceWL == 3
-        emissionWL = 590;
-    end
-    if userChoiceWL == 4
-        emissionWL = 668;
-    end
-    if userChoiceWL == 5
-        emissionWL = 669;
-    end
-    if userChoiceWL == 6
-        emissionWL = [];
-        param.imageType_ = '';
+% emissionWL = ip.Results.emissionWavelength_;
+ML = [];
+
+if(~iscellstr(param.imageType_))
+    param.imageType_ = {param.imageType_};
+end
+
+%% Ask for emission wavelength
+if isempty(param.emissionWavelength_)
+    canceled = false;
+    while(~canceled)
+        [param.emissionWavelength_(end+1),emissionStr,canceled] = timeCourseAnalysis.UI.waveLengthPrompt;
+        if(~canceled && isempty(param.emissionWavelength_(end)))
+            param.imageType_{length(param.emissionWavelength_)} = '';
+        end
+        if(canceled)
+            param.emissionWavelength_ = param.emissionWavelength_(1:end-1);
+        else
+            disp([ emissionStr ' selected. Select another wavelength for multichannel movies or cancel to continue.']);
+        end
     end
 end
+
 %% MovieList creation part 1
-[fileNameML, filePathML] = uiputfile('*.mat', 'Find a place to save your movie list');
-outputDir = filePathML(1:end-1);
+if(isempty(param.fileNameML) || isempty(param.filePathML))
+    [param.fileNameML, param.filePathML] = uiputfile('*.mat', ... 
+        'Find a place to save your movie list');
+end
+% remove filesep (robust enough?)
+outputDir = param.filePathML(1:end-1);
 %outputDir = uigetdir(filePathML, 'Select the directory to store the list analysis output');
+
 %% MovieData creation
 %User file selection for MD creation
-[fileName, filePath] = uigetfile({'*.tif','*.ome.tiff','*488.ome.tiff','*561.ome.tiff','*640.ome.tiff'}', 'Select Movies', 'MultiSelect', 'on');
-%User file selection
-if iscellstr(fileName)
-    nMD = length(fileName);
-    iMD = 1;
-    for MCounter = nMD:-1:1
-        printLength = fprintf('MD %g/%g\n', iMD, nMD);
-        
-        name = strsplit(fileName{MCounter},'.');
-        name = name{1};
-        
-        movies{MCounter} = [filePath name filesep name '.mat'];
-        %create new MD if one doesn't exist already
-        %use evalc to silence the output
-        if exist(movies{MCounter}, 'file') == 0
-            evalc('MD(MCounter) = MovieData([filePath fileName{MCounter}])');
-            MD(MCounter).pixelSize_ = param.pixelSize_;
-%            MD(MCounter).timeInterval_ = param.timeInterval_; commented
-%            out on 9/2/15
-            MD(MCounter).numAperture_ = param.numAperature_;
-            evalc('MD(MCounter).sanityCheck;');
-            MD(MCounter).channels_.emissionWavelength_ = emissionWL;
-            MD(MCounter).channels_.exposureTime_ = param.exposureTime_;
-            MD(MCounter).channels_.imageType_ = param.imageType_;
-            evalc('MD(MCounter).channels_.sanityCheck;');
-            MD(MCounter).save;
-        else
-            evalc('MD(MCounter) = MovieData.load(movies{MCounter})');
-            evalc('MD(MCounter).channels_.sanityCheck;');
-        end
-        fprintf(repmat('\b',1,printLength));
-        iMD = iMD + 1;
-    end
-else
-% mkitti, 20150903
-%     name = fileName(1:end-4);
-    name = strsplit(fileName,'.');
-    name = name{1};
-    movies = {[filePath name filesep name '.mat']};
+if(isempty(param.fileName) || isempty(param.filePath))
+    [param.fileName, param.filePath] = uigetfile( ...
+        {'*.tif','*.ome.tiff','*488.ome.tiff','*561.ome.tiff','*640.ome.tiff'}', ...
+        'Select Movies', 'MultiSelect', 'on');
 end
-%% MovieList creation part 2
-ML = MovieList(movies, outputDir, 'movieListFileName_', fileNameML, 'movieListPath_', filePathML(1:end-1), 'createTime_', clock());
-%%% evalc('ML.sanityCheck();');
-ML.sanityCheck();
+if(~iscellstr(param.fileName))
+    param.fileName = {param.fileName};
+end
+
+%Moved this prompts to beginning to keep all user input together
 %% Relative time zero selection
-%This is for timecourse analysis
-%Obtain relative time zero from user
-%User can enter 6 element array [yr month day hr min sec]
-% or scalar of the index number of the MD to be used as the relative time zero
-% or 'select' to bring up another dialogue box with list dialogue box later
-% or 'min' to use MD with earliest acquisition / observation time as time zero
-userInputStr = inputdlg('6 element time array -or- index number -or- ''select'' -or- ''no start''', 'Enter start time', 1, {'2015 7 2 14 44 18.9'});
-if(isempty(userInputStr))
-    return;
+if(isempty(param.relTimeZero))
+    [param.relTimeZero, param.addTZ1, param.zeroSelect] = timeCourseAnalysis.relativeTimeZeroSelection('Enter start time',[],param);
 end
-userInputNum = str2num(userInputStr{1}); %#ok<ST2NM>
-addTZ1 = true;
-%if time array
-if numel(userInputNum) == 6
-    relTimeZero = userInputNum;
-    zeroSelect = 0; %done no need to do again
-end
-%if index number
-if isscalar(userInputNum)
-    if userInputNum > numel(fileName)
-        error('Input index for relative time zero out of bounds');
-    end
-    zeroSelect = 1; %need to get relTime0
-end
-%if not a number
-if isempty(userInputNum)
-    %if select
-    if strcmpi(userInputStr, 'select')
-        zeroSelect = 2; %need to get relTime0
-    end
-    if strcmpi(userInputStr, 'no start')
-        addTZ1 = false;
-        zeroSelect = 0; %done no need to do again
-    end
-    %if min
-    %if strcmpi(userInputStr, 'min')
-    %    zeroSelect = 3; %need to get relTime0
-    %end
-end
-%% Relative time zero set
-%if index number
-if zeroSelect == 1
-    %evalc('MD = MovieData.load(movies{userInputNum})');
-    relTimeZero = ML.movies_{userInputNum}.acquisitionDate_;
-end
-%if select
-if zeroSelect == 2
-    userChoiceMD = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', fileName);
-    %evalc('MD = MovieData.load(movies{userChoiceMD})');
-    relTimeZero = ML.movies_{userChoiceMD}.acquisitionDate_;
-end
+
 %% Relative time zero selection2
-%'same' means same as time above
-userInputStr2 = inputdlg('6 element time array -or- index number -or- ''select'' -or- ''no VEGF''', 'Enter VEGF addition time', 1, {'no VEGF'});
-if(isempty(userInputStr2))
-    return;
+if(isempty(param.relTimeZero2))
+    [param.relTimeZero2, param.addTZ2, param.zeroSelect2] = timeCourseAnalysis.relativeTimeZeroSelection('Enter VEGF addition time',{'none'},param);
 end
-userInputNum2 = str2num(userInputStr2{1}); %#ok<ST2NM>
-addTZ2 = true;
-%if time array
-if numel(userInputNum2) == 6
-    relTimeZero2 = userInputNum2;
-    zeroSelect2 = 0; %done no need to do again
-end
-%if index number
-if isscalar(userInputNum2)
-    if userInputNum2 > numel(fileName)
-        error('Input index for relative time zero out of bounds');
+
+try
+    %User file selection
+%     MD(length(param.fileName)) = MovieData;
+    MD = cell(1,length(param.fileName));
+    movies = cell(1,length(MD));
+    for iMD = 1:length(MD)
+        printLength = fprintf('MD %g/%g\n', iMD, length(MD));
+
+        evalc('[MD{iMD}, movies{iMD}] = timeCourseAnalysis.configureMovie(param.fileName{iMD},param.filePath,param)');       
+
+        fprintf(repmat('\b',1,printLength));
     end
-    zeroSelect2 = 1; %need to get relTime0
-end
-%if not a number
-if isempty(userInputNum2)
-    %if select
-    if strcmpi(userInputStr2, 'select')
-        zeroSelect2 = 2; %need to get relTime0
+
+    %% MovieList creation part 2
+    ML = MovieList(MD, outputDir, 'movieListFileName_', param.fileNameML, 'movieListPath_', param.filePathML(1:end-1), 'createTime_', clock());
+    %%% evalc('ML.sanityCheck();');
+    ML.sanityCheck();
+
+    %% Obtain relTimeZero{2} if needed
+    if( param.zeroSelect  < 0)
+        param.relTimeZero  = MD{-param.zeroSelect }.acquisitionDate_;
     end
-    if strcmpi(userInputStr2, 'no VEGF')
-        addTZ2 = false;
-        zeroSelect2 = 0; %done no need to do again
+    if( param.zeroSelect2 < 0)
+        param.relTimeZero2 = MD{-param.zeroSelect2}.acquisitionDate_;
     end
-    %if min
-    %if strcmpi(userInputStr, 'min')
-    %    zeroSelect = 3; %need to get relTime0
-    %end
+
+    %% Save ML
+    ML.addProcess(TimePoints(ML));
+    if param.addTZ1
+        ML.processes_{1}.addTimePoint(param.relTimeZero, 'start');
+    end
+    if param.addTZ2
+        ML.processes_{1}.addTimePoint(param.relTimeZero2, 'VEGF_added');
+    end
+    ML.save;
+catch err
+    disp(getReport(err));
+    warning('UICreateMovieList failed.');
 end
-%% Relative time zero 2 set
-%If one is adding clathrin 
-if zeroSelect2 == 1
-    %evalc('MD = MovieData.load(movies{userInputNum2})');
-    relTimeZero2 = MD(userInputNum2).acquisitionDate_;
-end
-%if select
-if zeroSelect2 == 2
-    userChoiceMD2 = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', fileName);
-    %evalc('MD = MovieData.load(movies{userChoiceMD2})');
-    relTimeZero2 = MD(userChoiceMD2).acquisitionDate_;
-end
-%% Save ML
-ML.addProcess(TimePoints(ML));
-if addTZ1
-    ML.processes_{1}.addTimePoint(relTimeZero, 'start');
-end
-if addTZ2
-    ML.processes_{1}.addTimePoint(relTimeZero2, 'VEGF_added');
-end
-ML.save;
+
 end

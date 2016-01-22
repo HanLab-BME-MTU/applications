@@ -198,13 +198,13 @@ if(~isempty(Parameter_MD))
                             
                             
                                 for iC = pick_channel(:)
-                                    brief_results = [working_ROOT_DIR,filesep,'Channel_',num2str(iC),'_HeatResults/'];
+                                    brief_results = [working_ROOT_DIR,filesep,'Channel_',num2str(iC),'_HeatResults'];
                                     if(exist(brief_results,'dir')==0)
                                         mkdir(brief_results);
                                     end
-                                    HeatOutputDir = [this_MD.processes_{iPro}.outFilePaths_{iC},'/HeatOutput/Enh'];
+                                    HeatOutputDir = [this_MD.processes_{iPro}.outFilePaths_{iC}',filesep,'HeatOutput',filesep,'Enh'];
                                     
-                                    copyfile([HeatOutputDir,'/segment_heat_*.tif'], brief_results);
+                                    copyfile([HeatOutputDir,filesep,'segment_heat_*.tif'], brief_results);
                                 end
                            
                         end
@@ -251,13 +251,13 @@ else
     this_MD = filament_segmentation(this_MD, default_Params);
     
     for iC = pick_channel(:)
-        brief_results = [working_ROOT_DIR,filesep,'Channel_',num2str(iC),'_HeatResults/'];
+        brief_results = [working_ROOT_DIR,filesep,'Channel_',num2str(iC),'_HeatResults'];
         if(exist(brief_results,'dir')==0)
             mkdir(brief_results);
         end
-        HeatOutputDir = [this_MD.processes_{5}.outFilePaths_{iC},'/HeatOutput/Enh'];
+        HeatOutputDir = [this_MD.processes_{5}.outFilePaths_{iC},filesep,'HeatOutput',filesep,'Enh'];
         
-        copyfile([HeatOutputDir,'/segment_heat_*.tif'], brief_results);
+        copyfile([HeatOutputDir,filesep,'segment_heat_*.tif'], brief_results);
     end
 end
 

@@ -122,22 +122,20 @@ if exist(outputFile{1},'file')
                 'Recover previous run','Yes','No','Yes');
             if ~strcmpi(recoverRun,'Yes'), firstFrame=1; end
         end
-        if ~usejava('desktop')
-            firstFrame=1;
-        end
+%         if ~usejava('desktop')
+%             firstFrame=1;
+%         end
     end
 end
 % asking if you want to reuse the fwdMap again (you have to make sure that
 % you are solving the same problem with only different reg. param.) -SH
-reuseFwdMap = 'No';
+reuseFwdMap = 'Yes';
 if strcmpi(p.method,'FastBEM') && exist(outputFile{3,1},'file') 
     if usejava('desktop')
         reuseFwdMap = questdlg(...
             ['BEM parameters were dectected. Do you' ...
             ' want to use these parameter and overwrite the results?'],...
             'Reuse Fwdmap','Yes','No','No');
-    else
-        reuseFwdMap = 'No';
     end
 end
 
@@ -639,7 +637,7 @@ if strcmpi(p.method,'FastBEM')
         % Make it relative
         maxCfd = max(forceNodeMaxima);
         forceConfidence.vec = forceConfidence.vec/maxCfd;
-%         u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+        u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
 %         if p.divideConquer>1
 %             %reconstruct M from M_sub
 %             
@@ -661,9 +659,9 @@ if strcmpi(p.method,'FastBEM')
             beadsWhole = pos_u;
         end
         
-        parfor i=1:length(forceField(i).pos(:,1))
-            [~,distToBead(i)] = KDTreeClosestPoint(beadsWhole,forceField(i).pos(:,1));
-        end
+%         parfor i=1:length(forceField(i).pos(:,1))
+%             [~,distToBead(i)] = KDTreeClosestPoint(beadsWhole,forceField(i).pos(:,1));
+%         end
         
         %             display('The total time for calculating the FastBEM solution: ')
 
@@ -746,7 +744,7 @@ fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
 % [distBeadMapIn, dBeadmax, dBeadmin] = generateHeatmapShifted(distBeadField,displField,0);
 
 % display(['Distance to closest bead maximum = ' num2str(tmax) ' Pa.'])
-% Insert traction map in forceField.pos 
+%% Insert traction map in forceField.pos 
 disp('Generating traction maps ...')
 tMap = cell(1,nFrames);
 tMapX = cell(1,nFrames);
@@ -773,7 +771,12 @@ for ii=frameSequence
     end     
 %     distBeadMap{ii} = cur_distBeadMap;
     % Shifted forceField vector field
-    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
+    curDispVec = displField(ii).vec;
+    curDispVec = curDispVec(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    curDispPos = displField(ii).pos;
+    curDispPos = curDispPos(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    [grid_mat,iu_mat, ~,~] = interp_vec2grid(curDispPos, curDispVec,[],reg_grid);
+%     [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
     displ_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
     
     [forceFieldShiftedpos,forceFieldShiftedvec, ~, ~] = interp_vec2grid(forceField(ii).pos+displ_vec, forceField(ii).vec,[],grid_mat); %1:cluster size
