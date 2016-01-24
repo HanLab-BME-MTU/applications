@@ -91,8 +91,13 @@ classdef TimeCourseAnalysisProcess < Process
                 case 'MovieData'
                     fun = @proc.MD_fxn;
                 otherwise
-                    error('TimeCourseAnalysisProcess:incompatibleOwner', ...
-                        'Owner must be a CombinedMovieList, MovieList, or MovieData');
+                    if(isa(owner,'MovieData'))
+                        % Allow for subclasses
+                        fun = @proc.MD_fxn;
+                    else
+                        error('TimeCourseAnalysisProcess:incompatibleOwner', ...
+                            'Owner must be a CombinedMovieList, MovieList, or MovieData');
+                    end
             end
         end
         function CML_fxn(proc,CML,params,varargin)
