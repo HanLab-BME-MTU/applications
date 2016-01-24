@@ -3,20 +3,20 @@ function [MLSummary, MLTime, MLExtra, startTime] = MLAnalyze(ML, alignEvent,anal
 %Basic Analysis-------------------------------
 %new analysis if doNewAnalysis is true or analysis has not been
 %done yet
-ML.sanityCheck;
+% ML.sanityCheck;
 TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
 %progressText
 % progressTextMultiple('part 1', 2);
 %(I'm not exactly sure what resultsIndTimeCourseMod does)
 %It is used like blackbox that does the basic analysis
 if isempty(TCAPIndx) || isempty(ML.processes_{TCAPIndx}.summary_)
-    MLSummary = resultsIndTimeCourseMod(ML, false);
+    MLSummary = resultsIndTimeCourseMod(ML, false, analysisPara.channels , analysisPara.doNewAnalysis);
     ML.addProcess(TimeCourseAnalysisProcess(ML));
     TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
     ML.processes_{TCAPIndx}.setSummary(MLSummary);
     ML.save;
 elseif analysisPara.doNewAnalysis
-    MLSummary = resultsIndTimeCourseMod(ML, false,analysisPara.channels);
+    MLSummary = resultsIndTimeCourseMod(ML, false,analysisPara.channels, true);
     ML.processes_{TCAPIndx}.setSummary(MLSummary);
     ML.save;
 else
@@ -58,5 +58,5 @@ end
 % progressTextMultiple();
 %---------------------
 %progress text
-% progressTextMultiple();
+progressTextMultiple();
 end
