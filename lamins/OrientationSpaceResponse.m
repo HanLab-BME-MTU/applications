@@ -23,6 +23,7 @@ classdef OrientationSpaceResponse < handle
         nms
         theta
         a
+        NMS
     end
     
     
@@ -55,6 +56,9 @@ classdef OrientationSpaceResponse < handle
                                    + 1j .* nonMaximumSuppression(imag(obj.res),imag(obj.theta));
             end
             nms = obj.cache.nms;
+        end
+        function NMS = get.NMS(obj)
+            NMS = OrientationSpaceNMS(obj);
         end
         
         % Orientation, defaults to best orientation from basis
@@ -178,6 +182,19 @@ classdef OrientationSpaceResponse < handle
         end
         function h = imshow(obj,varargin)
             h = imshow(obj.getMaxResponse,varargin{:});
+        end
+        function h = imshowpair(A,B)
+            if(nargin > 1)
+                if(isa(B,'OrientationSpaceResponse'))
+                    B = real(B.res);
+                end
+            else
+                B = imag(A.res);
+            end
+            if(isa(A,'OrientationSpaceResponse'))
+                A = real(A.res);
+            end
+            h = imshowpair(A,B);
         end
         function h = plot(obj,angles,r,c,varargin)
             [Y,samples] = obj.getResponseAtPoint(r,c,angles);

@@ -42,7 +42,7 @@ classdef OrientationSpaceFilter < handle
     end
     
     methods
-        function obj = SteerableVanGinkelFilter(f_c,b_f,K)
+        function obj = OrientationSpaceFilter(f_c,b_f,K)
             obj.f_c = f_c;
             obj.b_f = b_f;
             obj.K = K;
@@ -50,6 +50,18 @@ classdef OrientationSpaceFilter < handle
             n = 2*K + 1;
             obj.angles = 0:pi/n:pi-pi/n;
             
+        end
+        function ridgeFilter = real(obj)
+            ridgeFilter = OrientationSpaceRidgeFilter(obj.f_c,obj.b_f,obj.K);
+            % The filter itself does not change (for the moment)
+            ridgeFilter.F = obj.F;
+            ridgeFilter.size = obj.size;
+        end
+        function edgeFilter = imag(obj)
+            edgeFilter = OrientationSpaceEdgeFilter(obj.f_c,obj.b_f,obj.K);
+            % The filter itself does not change (for the moment)
+            edgeFilter.F = obj.F;
+            edgeFilter.size = obj.size;
         end
         function f_c = get.centralFrequency(obj)
             f_c = obj.f_c;
@@ -61,7 +73,13 @@ classdef OrientationSpaceFilter < handle
             K = obj.K;
         end
         function R = mtimes(obj,I)
-            R = getResponse(obj,I);
+            % Convolution
+            if(isa(obj,'OrientationSpaceFilter'))
+                R = getResponse(obj,I);
+            elseif(isa(I,'OrientationSpaceFilter'))
+                % The convolution is commutative, swap the parameters
+                R = getResponse(I,obj);
+            end
         end
         function R = getResponse(obj,I)
             If = fft2(I);
@@ -92,17 +110,17 @@ classdef OrientationSpaceFilter < handle
     end
     methods
         function setupFilter(obj,siz)
-            if( isempty(obj.size) || siz ~= obj.size || isempty(obj.F))
+            if( isempty(obj.size) || any(siz ~= obj.size) || isempty(obj.F))
                 obj.size = siz;
                 obj.F = orientationSpace.kernel(obj.f_c, obj.b_f, obj.K, obj.angles, obj.size);
             end
         end
         function ridgeResponse = applyRidgeFilter(obj,If)
-            obj.setupFilter(size(If));
+            obj.setupFilter(size(If)); %#ok<CPROP>
             ridgeResponse = real(ifft2(bsxfun(@times,If,real(obj.F))));
         end
         function edgeResponse = applyEdgeFilter(obj,If)
-            obj.setupFilter(size(If));
+            obj.setupFilter(size(If)); %#ok<CPROP>
             edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(obj.F))));
         end
     end

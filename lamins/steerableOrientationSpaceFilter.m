@@ -1,4 +1,4 @@
-function [ response, nms, theta, angularResponse, angularLocalMaxima  ] = steerableOrientationSpaceFilter( I, f_c, b_f, K, nn, n )
+function [ response, theta, nms, angularResponse, angularLocalMaxima  ] = steerableOrientationSpaceFilter( I, f_c, b_f, K, nn, n )
 %steerableOrientationSpaceFilter
 %
 % Based on the thesis by Michael van Ginkel. Chapter 3
@@ -83,7 +83,7 @@ if(isfinite(nn))
 
     response = response + 1j*response_i;
     theta = theta + 1j*theta_i;
-    if(nargout > 2)
+    if(nargout > 1)
         theta = outAnglesRidge(real(theta)) + 1j*outAnglesEdge(imag(theta));
     %     theta = theta*pi/n;
         nms =   nonMaximumSuppression(real(response),real(theta)) ...
