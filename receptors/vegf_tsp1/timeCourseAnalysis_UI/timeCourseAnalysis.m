@@ -84,13 +84,15 @@ end
 % Analyze all MovieData in parallel first
 timeCourseAnalysis.analyzeMDsInParallel(CMLs,analysisPara.doNewAnalysis);
 % Disable doNewAnalysis, we since we just did it in analyzeMDsInParallel
-analysisPara.doNewAnalysis = false;
+analysisPara_temp_copy = analysisPara;
+analysisPara_temp_copy.doNewAnalysis = false;
 %Progress Display
 progressTextMultiple('Time Course Analysis', nMLTot);
 %Using resultsIndTimeCourseMod.m to do basic analysis
 %and extract time data and align
-[summary, time, extra, startTime] = arrayfun(@(CML) timeCourseAnalysis.CMLAnalyze(CML,analysisPara), CMLs, 'UniformOutput', false);
+[summary, time, extra, startTime] = arrayfun(@(CML) timeCourseAnalysis.CMLAnalyze(CML,analysisPara_temp_copy), CMLs, 'UniformOutput', false);
 startTime = [startTime{:}];
+clear analysisPara_temp_copy;
 
 %% Format Change
 % Break summary apart by channel
