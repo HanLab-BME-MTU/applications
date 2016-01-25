@@ -16,7 +16,7 @@ if isempty(TCAPIndx) || isempty(ML.processes_{TCAPIndx}.summary_)
     ML.processes_{TCAPIndx}.setSummary(MLSummary);
     ML.save;
 elseif analysisPara.doNewAnalysis
-    MLSummary = resultsIndTimeCourseMod(ML, false,analysisPara.channels, true);
+    MLSummary = resultsIndTimeCourseMod(ML, false,analysisPara.channels, false);
     ML.processes_{TCAPIndx}.setSummary(MLSummary);
     ML.save;
 else

@@ -108,7 +108,8 @@ end
 % file2savePerMovie = arrayfun(@(iM) fullfile(dir2save,sprintf(['resSummary_movie_%03d.mat'],iM)),1:numMovies,'UniformOutput',false);
 procs = timeCourseAnalysis.getMovieDataTimeCourseAnalysisProcess(ML.movies_,false);
 resSummary = cellfun(@(proc) proc.summary_,procs,'UniformOutput',false);
-file2savePerMovie = strcat({procs.outFilePaths_},[filesep 'resSummary.mat']);
+outFilePaths = cellfun(@(proc) proc.outFilePaths_,procs,'UniformOutput',false);
+file2savePerMovie = strcat(outFilePaths,[filesep 'resSummary.mat']);
 if(redoPerMovieAnalysis)
     todo = true(size(ML.movieDataFile_));
 else
@@ -120,7 +121,7 @@ end
 switch(parallel)
     % mkitti: Moved most of the body to resultsIndTimeCoursePerMovie
     case 'none'
-        progressTextMultiple('analyzing MD', ML.getSize);
+        progressTextMultiple('analyzing MD', length(ML.movies_(todo)));
         resSummary(todo) = cellfun(@(dataFile,file2save) resultsIndTimeCoursePerMovie(dataFile,file2save,channels), ...
             ML.movies_(todo), ...
             file2savePerMovie(todo), ...
