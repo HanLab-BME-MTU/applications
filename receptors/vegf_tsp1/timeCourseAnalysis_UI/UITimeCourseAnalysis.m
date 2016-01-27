@@ -52,16 +52,16 @@ p = TimeCourseAnalysisConfig(varargin{:});
 
 if(~isempty(p))
     disp(p);
-    switch(p.batchmenu)
+    switch(p.batchClusterName)
         case parallel.clusterProfiles
             job = timeCourseAnalysis.run.batch(p);
-            disp(['Running time course analysis on ' p.batchmenu ' cluster profile, Job ID ' num2str(job.ID)]);
-            disp(timeCourseAnalysis.link.info(p.batchmenu,job.ID));
-            disp(timeCourseAnalysis.link.diary(p.batchmenu,job.ID));
+            disp(['Running time course analysis on ' p.batchClusterName ' cluster profile, Job ID ' num2str(job.ID)]);
+            disp(timeCourseAnalysis.link.info(p.batchClusterName,job.ID));
+            disp(timeCourseAnalysis.link.diary(p.batchClusterName,job.ID));
             disp(' ');
-            disp(timeCourseAnalysis.link.delete(p.batchmenu,job.ID));
+            disp(timeCourseAnalysis.link.delete(p.batchClusterName,job.ID));
         otherwise
-            if(~strcmp(p.batchmenu,'This Client'))
+            if(~strcmp(p.batchClusterName,'This Client'))
                 warning('Unrecognized cluster, running locally');
             end
             overallTime = tic;

@@ -2,7 +2,7 @@ function [ job ] = batch( p, cluster , maxWorkers)
 %timeCourseAnalysis.run.batch Run timeCourseAnalysis in batch mode
 
     if(nargin < 2 || isempty(cluster))
-        cluster = parcluster(p.batchmenu);
+        cluster = parcluster(p.batchClusterName);
     end
     if(nargin < 3)
         maxWorkers = 24;

@@ -183,7 +183,7 @@ handles.p.channels = find([handles.p.channelTable{:,1}]);
 handles.p.channelNames = handles.p.channelTable(:,2);
 handles.p.showPlots = get(handles.showPlots,'Value');
 menuOptions = get(handles.batchmenu,'String');
-handles.p.batchmenu = menuOptions{get(handles.batchmenu,'Value')};
+handles.p.batchClusterName = menuOptions{get(handles.batchmenu,'Value')};
 guidata(handles.figure1, handles);
 uiresume(handles.figure1);
 % Go to TimeCourseAnalysisConfig_OutputFcn

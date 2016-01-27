@@ -5,7 +5,7 @@ function [ job ] = createJob( p, cluster , maxWorkers )
 % See also timeCourseAnalysis.run.batch
 
     if(nargin < 2 || isempty(cluster))
-        cluster = parcluster(p.batchmenu);
+        cluster = parcluster(p.batchClusterName);
     end
     if(nargin < 3)
         maxWorkers = 24;
