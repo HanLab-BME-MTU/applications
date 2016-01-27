@@ -74,7 +74,8 @@ ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
 
 % Linking Parameters Embedded 
-ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+%ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+ip.addParameter('geoThreshEmbedded',0.5,@(x) isscalar(x)); 
 %ip.addParameter('maxRadiusLinkOutsideVeil',10);
 ip.addParameter('maxRadiusLinkEmbedded',10);
 ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
@@ -146,7 +147,7 @@ for iCh = 1:nChan
     
     
     if strcmpi(params.EndFrame,'auto');
-        endFrame = nFrames;
+        endFrame = nFrames-1;
         display(['Auto End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     else
         endFrame = params.EndFrame;
@@ -201,7 +202,7 @@ for iCh = 1:nChan
     end % ~isempty(idxProt)
     
     %% Start Movie Loop %%%%
-    for iFrame = startFrame:endFrame-1
+    for iFrame = startFrame:endFrame
         % Load image
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;
@@ -275,7 +276,7 @@ close all
         
         
         % quick fix for the plots is to just make the frame number an input for not 20140812
-        [~,hashTag] =  gcaArchiveGetGitHashTag;
+         [~,hashTag] =  gcaArchiveGetGitHashTag;
         filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         filoBranchC.timeStamp = clock; 
         filoBranch(iFrame) = filoBranchC;
