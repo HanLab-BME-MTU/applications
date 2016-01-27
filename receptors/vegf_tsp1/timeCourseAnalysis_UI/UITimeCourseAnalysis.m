@@ -1,4 +1,4 @@
-function [p] = UITimeCourseAnalysis(varargin)
+function [p,job] = UITimeCourseAnalysis(varargin)
 %TimeCourseAnalysis of user selected CombinedMovieList objects
 %In TimeCourseAnalysis, MLs in each CML are considered to be in similar
 %condition and grouped together for plotting.
@@ -52,20 +52,25 @@ p = TimeCourseAnalysisConfig(varargin{:});
 
 if(~isempty(p))
     disp(p);
-    overallTime = tic;
-    timeCourseAnalysis(p.CML_FullPath, p.outputDir, ...
-          p ...
-          );
-%         'doNewAnalysis', p.doNewAnalysis, ...
-%         'doPartition', p.doPartition, ...
-%         'start2zero', p.start2zero, ...
-%         'shiftPlotPositive', p.shiftPlotPositive, ...
-%         'channelNames', p.channelTable(:,2), ...
-%         'channels',find([p.channelTable{:,1}]), ...
-%         'nBootstrp',p.nBootstrp, ...
-%         'detectOutliers_k_sigma',p.detectOutliers_k_sigma ...
-%         );
-    fprintf('Total UITimeCourseAnalysis Elapsed Time %s\n', ...
-        char(duration(0,0,toc(overallTime))));
+    switch(p.batchmenu)
+        case parallel.clusterProfiles
+            job = timeCourseAnalysis.run.batch(p);
+            disp(['Running time course analysis on ' p.batchmenu ' cluster profile, Job ID ' num2str(job.ID)]);
+            disp(timeCourseAnalysis.link.info(p.batchmenu,job.ID));
+            disp(timeCourseAnalysis.link.diary(p.batchmenu,job.ID));
+            disp(' ');
+            disp(timeCourseAnalysis.link.delete(p.batchmenu,job.ID));
+        otherwise
+            if(~strcmp(p.batchmenu,'This Client'))
+                warning('Unrecognized cluster, running locally');
+            end
+            overallTime = tic;
+            timeCourseAnalysis(p.CML_FullPath, p.outputDir, ...
+                  p ...
+                  );
+            fprintf('Total UITimeCourseAnalysis Elapsed Time %s\n', ...
+                char(duration(0,0,toc(overallTime))));
+            job = [];
+    end
 end
 
