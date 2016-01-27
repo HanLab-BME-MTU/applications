@@ -1,5 +1,5 @@
-function [ y ] = vanGinkelDelete( orientationMatrix, target )
-%vanGinkelUpsample upsample orientation information
+function [ y ] = delete( orientationMatrix, target )
+%orientationSpace.delete upsample orientation information
 %
 % INPUT
 % orientationMatrix : YxXxOrientation
@@ -8,7 +8,7 @@ function [ y ] = vanGinkelDelete( orientationMatrix, target )
 % OUTPUT
 % y                 : YxXxTarget
 
-    import vanGinkel.*;
+    import orientationSpace.*;
 
     % 
     s = size(orientationMatrix);

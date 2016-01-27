@@ -1,4 +1,4 @@
-import vanGinkel.*;
+import orientationSpace.*;
 
 % x = 0:pi/36:2*pi-pi/36;
 x = 0:pi/9:2*pi-pi/9;

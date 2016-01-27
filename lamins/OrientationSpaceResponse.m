@@ -1,4 +1,4 @@
-classdef SteerableVanGinkelResponse < handle
+classdef OrientationSpaceResponse < handle
     %SteerableVanGinkelResponse Response object for SteerableVanGinkelFilter
     %
     %
@@ -23,12 +23,13 @@ classdef SteerableVanGinkelResponse < handle
         nms
         theta
         a
+        NMS
     end
     
     
     
     methods
-        function obj = SteerableVanGinkelResponse(filter,angularResponse)
+        function obj = OrientationSpaceResponse(filter,angularResponse)
             obj.filter = filter;
             obj.angularResponse = angularResponse;
             obj.n = size(angularResponse,3);
@@ -55,6 +56,9 @@ classdef SteerableVanGinkelResponse < handle
                                    + 1j .* nonMaximumSuppression(imag(obj.res),imag(obj.theta));
             end
             nms = obj.cache.nms;
+        end
+        function NMS = get.NMS(obj)
+            NMS = OrientationSpaceNMS(obj);
         end
         
         % Orientation, defaults to best orientation from basis
@@ -139,21 +143,19 @@ classdef SteerableVanGinkelResponse < handle
             end
         end
         function [response,theta] = getMaxResponse(obj,nn)
-            import vanGinkel.*;
             if(nargin < 2)
                 nn = obj.n;
             end
             if(isfinite(nn))
                 [response,theta] = obj.getMaxFiniteResponse(nn);
             else
-                [theta,response] = vanGinkelMaxima(obj.angularResponse);
+                [theta,response] = orientationSpace.maxima(obj.angularResponse);
             end
         end
         function [response,theta] = getMaxFiniteResponse(obj,nn)
-            import vanGinkel.*;
             a = obj.angularResponse;
             if(obj.n ~= nn)
-                vanGinkelUpsample(a,pi/nn);
+                orientationSpace.upsample(a,pi/nn);
             end
             [response,theta] = max(real(a),[],3);
             [response_i,theta_i] = max(cat(3,imag(a),-imag(a)),[],3);
@@ -180,6 +182,19 @@ classdef SteerableVanGinkelResponse < handle
         end
         function h = imshow(obj,varargin)
             h = imshow(obj.getMaxResponse,varargin{:});
+        end
+        function h = imshowpair(A,B)
+            if(nargin > 1)
+                if(isa(B,'OrientationSpaceResponse'))
+                    B = real(B.res);
+                end
+            else
+                B = imag(A.res);
+            end
+            if(isa(A,'OrientationSpaceResponse'))
+                A = real(A.res);
+            end
+            h = imshowpair(A,B);
         end
         function h = plot(obj,angles,r,c,varargin)
             [Y,samples] = obj.getResponseAtPoint(r,c,angles);
