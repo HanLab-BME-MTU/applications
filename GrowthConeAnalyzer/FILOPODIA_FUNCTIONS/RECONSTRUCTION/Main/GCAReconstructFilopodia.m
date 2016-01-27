@@ -150,9 +150,10 @@ ip.addParameter('geoThreshFiloBranch',0.5);
 % EMBEDDED ACTIN SIGNAL LINKING %
 ip.addParameter('detectEmbedded',true)
 % Pass to: gcaAttachFilopodiaStructuresMain.m
-  ip.addParameter('maxRadiusLinkEmbedded',10); 
-  ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
-   ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
+ip.addParameter('maxRadiusLinkEmbedded',10);
+%ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x));
+ip.addParameter('geoThreshEmbedded',0.5,@(x) isscalar(x)); 
+ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x));
 % TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
@@ -179,7 +180,8 @@ TSFigsFinal = [];
     veilStemMaskC(1,1:nx)= 0;
     veilStemMaskC(ny,1:nx) =0;
     
-    
+    % after this step make sure to clean up CCs as well 
+    veilStemMaskC = logical(getLargestCC(veilStemMaskC)); 
     
     currOutline = contourc(double(veilStemMaskC),[0 0]);
     currOutline = separateContours(currOutline);%Post-processing of contourc output
