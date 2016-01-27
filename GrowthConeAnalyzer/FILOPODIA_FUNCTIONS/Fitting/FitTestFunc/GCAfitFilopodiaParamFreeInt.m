@@ -3,7 +3,7 @@ function [ filoInfo] = GCAfitFilopodia( filoInfo,img,varargin)
 
 %% INPUT:
 %
-%  filoInfo: (REQUIRED) : Rx1 structure array
+%  filoInfo: (REQUIRED) : Rx1 structure arr
 %       where R is the number of filopodia like ridges detected
 %       .filoInfo has many subfields that store information regarding the
 %       filopodias coordinates,orientation,grouping(for branching) etc.
@@ -212,6 +212,8 @@ for iType = typeStart:typeEnd
                 
                 yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
                 
+         if  (~isempty(yData) && length(yData) > 4)
+                
                 %% Quick and Dirty : Estimate the number of sigmoidals
                 % get the values where the sigmoidal is maximally
                 % increasing or decreasing
@@ -365,9 +367,13 @@ for iType = typeStart:typeEnd
                 % Define the data for the fitting.
                 yDataFit = yData(startFit:endFit);
                 distFiloFit = distFilo(startFit:endFit);
-                            
-%% Perform the Fit                 
-                if  (~isempty(yDataFit) && length(yDataFit) > 4) % make a cut off that length yData needs to be at least four pixels..
+         else 
+             yDataFit = []; 
+             distFiloFit = []; 
+         end 
+%% Perform the Fit      
+
+                if  (~isempty(yDataFit) && length(yDataFit) > 4) % make a cut off that length yData needs to be at least four pixels.           
                       
                     % CHECK these starts (20140517)
                     starts = [max(yDataFit)-min(yDataFit),length( filoInfo(idxCurrent).([toAdd 'pixIndicesBack'])),5,...
