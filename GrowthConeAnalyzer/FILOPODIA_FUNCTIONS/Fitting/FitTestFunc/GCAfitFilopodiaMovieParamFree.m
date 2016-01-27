@@ -51,9 +51,12 @@ ip = inputParser;
 
 ip.CaseSensitive = false;
 
+
+
 % PARAMETERS
 defaultOutDir = [movieData.outputDirectory_ filesep...
-    'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VII_filopodiaBranch_fits'];
+    'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VII_filopodiaBranch_fits_new'];
+
 
 defaultInDir = [movieData.outputDirectory_ filesep ... 
     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction']; 
@@ -91,6 +94,8 @@ for iCh = 1:numel(params.ChannelIndex)
 
     
     %% Get Start and End Frames Based on Restart Choice
+    
+    
     
     % make final output dir where backboneInfo will be saved
     outDirC =  [ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh)];
@@ -174,12 +179,12 @@ for iCh = 1:numel(params.ChannelIndex)
 %         if pSpecific.SavePlots == 1
         if ip.Results.TSOverlays == 1
              params.OutputDirectory = [outDirC filesep 'Linescans' filesep 'Frame ' num2str(iFrame,'%03d')];
-             params.OutputDirectory2 = [outDirC filesep 'FindSig' filesep 'Frame' num2str(iFrame,'%03d')]; 
+             
              
              mkClrDir(params.OutputDirectory)
         end
         
-        [filoInfo] = GCAfitFilopodiaParamFree(filoInfo,img,params) ;
+        [filoInfo] = GCAfitFilopodiaParamFreeInt(filoInfo,img,params) ;
         
         
         
