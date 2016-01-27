@@ -1,5 +1,5 @@
 function [slopeMaxNeg,slopeMaxPos] = gcaFindPotentialSigmoidals(yData,varargin)
-%testLocalSmoothMax
+% gcaFindPotentialSigmoidals
 % Small helper function: fits a cubic spline to the yData 
 % calculates the smoothed gradient from this spline 
 % and detects the peaks. (something similar is likely buried in the repo) 
@@ -39,8 +39,6 @@ function [slopeMaxNeg,slopeMaxPos] = gcaFindPotentialSigmoidals(yData,varargin)
 %%Check Input
 ip = inputParser;
 ip.addRequired('yData',@(x) isvector(x));
-
-
 
 ip.addParamValue('makePlot',true,@islogical); 
 
@@ -93,128 +91,72 @@ if ~isempty(ip.Results.img)
 else
     nPlots = 2;
 end
-   %% make plot if user specifies
-   if makePlot == true;
-       % plot the velocity in red and the transitions
-       fsFigure(0.75,'visible','on');
-       
-       
-       subplot(nPlots,1,1)
-       
-       % plot original points
-       %inTime = (1:length(sd)).*secPerFrame;
-       inTime = 1:length(sd); 
-      % inTime = inTime-secPerFrame;
-       
-       hold on
-       c(1) = 'c'; 
-       c(2) = 'b';
-       c(3) = 'r';
-       c(4) = 'm';
-       c(5) = 'k';
-       
-%        forC = globalParams.outgrowth.stateGrp';
-%        forC(forC==0) = 5; 
-%        forC = num2cell(forC); 
-%        
-%        velBinned = globalParams.outgrowth.groupedVelSmoothed;
-%        distBinned = globalParams.outgrowth.groupedDistOrig;
-%        frameBinned = globalParams.outgrowth.groupedFrames;
-       
-       plot(inTime,sv,'Linewidth',2,'Color','k'); 
-%        cellfun(@(x,y,z) plot(x,y,'LineWidth',2,'color',c(z)),frameBinned,velBinned,forC);
-      % plot(inTime,sv,'r');
-      hold on 
-      
-       line([0,length(sd)],[0,0],'color','k')
-%        arrayfun(@(x) line([trans(x),trans(x)],[-4,10],'color','k'),1:length(trans));
-      % line([0,0],[-4 10],'color','k');
-      % axis([0 inTime(end) -4 10]);
-%        xlabel('Time (s)');
-%        ylabel('Neurite Velocity (um/min)');
-%        line([0 600],[0.5,0.5],'color','k','lineStyle','--');
-%        line([0 600],[-0.5,-0.5],'color','k','lineStyle','--');
-       
-      % scatter(inTime(locMaxVel),maxVel,10,'k','filled');
-       scatter(inTime(slopeMaxNeg),sv(slopeMaxNeg),50,'r','filled'); 
-       % get the average of each piece for plotting the text
-%        placeInTime = arrayfun(@(i) mean(inTime(grp==i)),1:length(grp));
-       
-%        arrayfun(@(i) text(placeInTime(i),10,num2str(meanNeuriteVel(i),2),'FontSize',7,'FontName','Arial'),1:nGroups);
-       % Assign heat map colors
-       %  cMapLength=128; cMap=jet(cMapLength);
-       % %
-       % %  %data = dwell(idxPer);
-       %   dataRange = 2;
-       %   meanNeuriteVel(meanNeuriteVel>dataRange)=dataRange;
-       %                          mapper=linspace(0,dataRange,cMapLength)';
-       % %
-       % %                         % get closest colormap index for each feature
-       %                          D=createDistanceMatrix(meanNeuriteVel,mapper);
-       %                          [sD,idxCMap]=sort(abs(D),2);
-       
-       %  for k = 1:cMapLength
-       %      plot(inTime(trans(x):trans(x+1)),sd(trans(x):trans(x+1)))
-       %  end
-       
-       subplot(nPlots,1,2);
-       
-       % assign heat map colors
-       
-       
-       %c = linspecer(length(unique(grp)));
-       
-      % plot(inTime(1:trans(1)),sd(1:trans(1)),'color',c(1,:),'LineWidth',2);
-      
-       hold on
-       %ylabel('Neurite Outgrowth (um)');
-       %arrayfun(@(x) plot(inTime(trans(x):trans(x+1)),sd(trans(x):trans(x+1)),'color',c(x+1,:),'Linewidth',2),1:length(trans(1:end-1)));
-       
-%        hold on
-%        arrayfun(@(x) line([trans(x),trans(x)],[-10,25],'color','k'),1:length(trans));
-%        % plot the original
-%        cellfun(@(x,y,z) scatter(x,y,40,c(z),'filled'),frameBinned,distBinned,forC); 
-       
-       plot(inTime,sd,'color','k');
-       scatter(inTime,yData,10,'k','filled'); 
-          scatter(inTime(slopeMaxNeg),yData(slopeMaxNeg),50,'r','filled'); 
-          scatter(inTime(slopeMaxPos),yData(slopeMaxPos),50,'b','filled'); 
-       
-       %axis([0 inTime(end) -10 25]);
-       
-       if ~isempty(ip.Results.forTitle)
-           title(ip.Results.forTitle,'Color','k','FontName','Arial','FontSize',14);          
-       end
-       
-       if ~isempty(ip.Results.backEst) 
-           line([inTime(1),inTime(end)],[ip.Results.backEst,ip.Results.backEst],'Color','k','Linestyle','--'); 
-       end 
-       
-       if nPlots == 3 
-           subplot(nPlots,1,3);
-           imshow(-img,[]); 
-           hold on 
-           spy(mask,'r');           
-       end 
-       
-       
-       if ~isempty(outPath)
-           
-           saveas(gcf,[outPath filesep  ip.Results.forTitle{2} '.fig']);
-           saveas(gcf,[outPath filesep  ip.Results.forTitle{2} '.png']);
-           %saveas(gcf,[outPath filesep 'NeuriteTrajectorySubUnits.eps'],'psc2'); 
-       end
-       
-      
-       
-   end % if makePlot
+%% make plot if user specifies
+if makePlot == true;
+    % plot the velocity in red and the transitions
+    fsFigure(0.75,'visible','off');
+    
+    %% Plot the original 
+    subplot(nPlots,1,1);
+    
+    hold on
+    inTime = 1:length(sd); 
+    plot(inTime,sd,'color','k');
+    h1 = scatter(inTime,yData,10,'k','filled');
+     scatter(inTime(slopeMaxNeg),yData(slopeMaxNeg),50,'r','filled');
+     scatter(inTime(slopeMaxPos),yData(slopeMaxPos),50,'g','filled');
+  
+    if ~isempty(ip.Results.forTitle)
+        title(strrep(ip.Results.forTitle,'_',' '),'Color','k','FontName','Arial','FontSize',12);
+    end
+    
+    if ~isempty(ip.Results.backEst)
+       h2 =  line([inTime(1),inTime(end)],[ip.Results.backEst,ip.Results.backEst],'Color','k','Linestyle','--');
+    end
+    
    
+    ylabel('Fluorescence Intensity (AU)','FontSize',12,'FontName','Arial');
+    
+    
+    if nPlots == 3
+        subplot(nPlots,1,3);
+        imshow(-img,[]);
+        hold on
+        spy(mask,'r');
+    end
+    
+    %% Plot the smoothed gradient 
+    subplot(nPlots,1,2)
+    
+    % plot original points
+    %inTime = (1:length(sd)).*secPerFrame;
+    inTime = 1:length(sd);
+    
+    plot(inTime,sv,'Linewidth',2,'Color','k');
+    
+    hold on
+    
+    % line at zero 
+    line([0,length(sd)],[0,0],'color','k')
 
+    % red is potential minimum (maximally decreasing)
+    h1 = scatter(inTime(slopeMaxNeg),sv(slopeMaxNeg),50,'r','filled');
+    
+    % green is potential positive 
+    h2 = scatter(inTime(slopeMaxPos),sv(slopeMaxPos),50,'g','filled');
+    
+    ylabel({'Smoothed Derivative' ; ['SplineParam= ' num2str(splineParam)]},'FontSize',12,'FontName','Arial'); 
+    xlabel({'Distance Along Filopodia' ; '(Pixel Number Before Convert)'},'FontSize',12,'FontName','Arial'); 
+    box off
+    
+    
+    if ip.Results.makePlot
+        saveas(gcf,[outPath filesep  ip.Results.forTitle '.fig']);
+        saveas(gcf,[outPath filesep  ip.Results.forTitle '.png']);
+    end
+       
+end % if makePlot
 
-
-   
-   
-% save([outPath filesep 'globalParams'],'globalParams'); 
 end 
-%end
+
 
