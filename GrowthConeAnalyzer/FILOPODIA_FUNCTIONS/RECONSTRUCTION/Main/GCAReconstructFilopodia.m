@@ -143,7 +143,7 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 
 % TRADITIONAL FILOPODIA/BRANCH RECONSTRUCT           
 % Pass to: gcaAttachFilopodiaStructuresMain.m
-ip.addParameter('maxRadiusConnectFiloBranch',5);
+ip.addParameter('maxRadiusConnectFiloBranch',15);
 ip.addParameter('geoThreshFiloBranch',0.5);
 
 

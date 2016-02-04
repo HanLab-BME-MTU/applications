@@ -502,7 +502,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         reconstruct.clusterlinks = linkMask;
         linksPre = linkMask;
         % add these points to the mask
-        
+     
         
     end % if reconIt ==1
     
@@ -559,6 +559,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     
     reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
+    
     display(num2str(reconIter))
 end % while numViaCand
 

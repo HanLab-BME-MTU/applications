@@ -221,7 +221,7 @@ if ~isempty(E) % continue
     
     %%
     TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off');
-    TSFigs(countFigs).name = 'Before Matching with Vectors';
+    TSFigs(countFigs).name = 'Before_Matching_with_Vectors';
     TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
     
     if ~isempty(ip.Results.img);
@@ -382,7 +382,7 @@ if ~isempty(E) % continue
              idxCMap = idxCMap(idxGood',:);
             
             TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
-            TSFigs(countFigs).name = 'KD Results AFter Filter By Geometry';
+            TSFigs(countFigs).name = 'KD_Results_AFter_Filter_By_Geometry';
             TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
             if ~isempty(ip.Results.img)
                 
@@ -462,7 +462,7 @@ if ~isempty(E) % continue
         %% TS Figure : Show the final links
         if ip.Results.TSOverlays == true
             TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
-            TSFigs(countFigs).name = 'Linking Results';
+            TSFigs(countFigs).name = 'Linking_Results';
             TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
             
             if ~isempty(ip.Results.img)

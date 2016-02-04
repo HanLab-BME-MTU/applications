@@ -81,11 +81,11 @@ ip.addParameter('maxRadiusLinkEmbedded',10);
 ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 
 % Linking Parameters Candidate Building
-ip.addParameter('maxRadiusLink',5); 
+ip.addParameter('maxRadiusLink',5); % 
 ip.addParameter('geoThresh',0.9, @(x) isscalar(x));  
 
 % Linking Parameters Traditional Filopodia/Branch Reconstruct
-ip.addParameter('maxRadiusConnectFiloBranch',5); 
+ip.addParameter('maxRadiusConnectFiloBranch',15); % change default to 15
 ip.addParameter('geoThreshFiloBranch',0.5); 
 
 
