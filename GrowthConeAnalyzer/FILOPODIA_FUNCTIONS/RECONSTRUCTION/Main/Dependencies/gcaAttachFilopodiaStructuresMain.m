@@ -101,7 +101,7 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 
 % TRADITIONAL FILOPODIA/BRANCH RECONSTRUCT           
 % Pass to: gcaConnectFiloBranch.m
-ip.addParameter('maxRadiusConnectFiloBranch',5); 
+ip.addParameter('maxRadiusConnectFiloBranch',15); 
 ip.addParameter('geoThreshFiloBranch',0.5);
 
 
@@ -113,7 +113,7 @@ ip.addParameter('minCCRidgeOutsideVeil',3);
 ip.addParameter('detectEmbedded',true); 
 % Pass To: gcaReconstructEmbedded
     ip.addParameter('maxRadiusLinkEmbedded',10); 
-    ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+    ip.addParameter('geoThreshEmbedded',0.5,@(x) isscalar(x)); 
     ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 
     % OVERLAYS 
