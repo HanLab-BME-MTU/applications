@@ -218,14 +218,18 @@ for iType = typeStart:typeEnd
                 % get the values where the sigmoidal is maximally
                 % increasing or decreasing
                 
-                [slopeMaxNeg,slopeMaxPos] = gcaFindPotentialSigmoidals(yData,'makePlot',false,'outPath',[p.OutputDirectory filesep toAdd],...
-                    'forTitle', ['Filopodia_' num2str(idxCurrent,'%03d') 'Ext_der']);
                 
-                 %% Quick and Dirty : Estimate the mean intensity background
-                 
+                [slopeMaxNeg,slopeMaxPos,valuesNeg,valuesPos] = gcaFindPotentialSigmoidals(yData,'makePlot',false,'outPath',[p.OutputDirectory filesep toAdd],...
+                    'forTitle', ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '_der']);
+                
+                %% Quick and Dirty : Estimate the mean intensity background
+                forSearch =filoInfo(idxCurrent).([toAdd 'pixIndicesFor']);
+                nSearch = length(forSearch(~isnan(forSearch))); % make sure don't include nans (sometimes had to truncate the 
+                % search forward if the filopodia are located at the
+                % border. 
                 % Check the size of the mask indices 
-                nSearch = length(filoInfo(idxCurrent).([toAdd 'pixIndicesFor']));
-                
+               
+
                 % get the pixel indices from the forward search mask 
                 % (minus the central position which is still potentially 
                 % filopodia signal 
@@ -256,13 +260,21 @@ for iType = typeStart:typeEnd
                 switch toAdd
                     case 'Ext_'
                         if ip.Results.filterByBackEst
-                            slopeMaxNeg(yData(slopeMaxNeg)<backEstMean) = [];
+                           % slopeMaxNeg(yData(slopeMaxNeg)<backEstMean) = [];
+                            
+                             noiseDip = find(yData<backEstMean,1,'first');
+                             if ~isempty(noiseDip)
+                                slopeMaxNeg = slopeMaxNeg(slopeMaxNeg < noiseDip); 
+                             end 
                         end
+                        
+                       
                         
                         if isempty(slopeMaxNeg)
                             slopeMaxNeg = length(filoInfo(idxCurrent).([toAdd 'pixIndicesBack']));
                         end
-               
+                        
+                      
                                                
                         %%  perform fitting around the first sigmoidal closest to the background
                         
@@ -293,17 +305,35 @@ for iType = typeStart:typeEnd
                             
                             % make sure that do not have an increasing portion
                             % between tentative sigmoidal mean and end point of fit
-                            if (sum(endFit>slopeMaxPos)>0 && sum(slopeMaxPos > slopeMaxNeg(end))>0);
-                                idx =  find(endFit>slopeMaxPos);
-                                endFit = slopeMaxPos(idx(1)) -2;
-                            end
+%                             if (sum(endFit>slopeMaxPos)>0 && sum(slopeMaxPos > slopeMaxNeg(end))>0);
+%                                 idx =  find(endFit>slopeMaxPos);
+%                                 endFit = slopeMaxPos(idx(1)) -2;
+%                             end
+
+                            tentMean = slopeMaxNeg(end); 
+                            % get the indices between 
+                            between1 = tentMean:endFit; 
+                            between2 = startFit:tentMean; 
+                            test1 = intersect(between1,slopeMaxPos); 
+                            test2 = intersect(between2,slopeMaxPos); 
+                          
+                            if ~isempty(test1)
+                                endFit = between1(between1==test1(1))-2; 
+                            end 
+                            
+                            if ~isempty(test2)
+                                startFit = between2(between2==test2(1))+2; 
+                            end 
                             
                             % make sure that do not have an increasing portion
                             % start of fit tentative sigmoidal mean
-                            if (sum(startFit<slopeMaxPos)>0 && sum(slopeMaxPos < slopeMaxNeg(end))>0);
-                                idx = find(startFit<slopeMaxPos);
-                                startFit = slopeMaxPos(idx(1))+2;
-                            end
+%                             if (sum(startFit<slopeMaxPos)>0 && sum(slopeMaxPos < slopeMaxNeg(end))>0);
+%                                 idx = find(startFit<slopeMaxPos);
+%                                 startFit = slopeMaxPos(idx(1))+2;mp
+%                             end
+                              
+
+
                         end
                         
                      
@@ -345,21 +375,41 @@ for iType = typeStart:typeEnd
                         
                         if ~isempty(slopeMaxPos) % you have portions of the linescan with positive slope
                             
-                            % make sure that do not have an increasing portion
-                            % between tentative sigmoidal mean and end point of fit
-                            if (sum(endFit>slopeMaxPos)>0 && sum(slopeMaxPos > slopeMaxNeg(end))>0);
-                                idx =  find(endFit>slopeMaxPos);
-                                endFit = slopeMaxPos(idx(1)) -2;
-                            end
+                             tentMean = slopeMaxNeg(end); 
+                            % get the indices between 
+                            between1 = tentMean:endFit; 
+                            between2 = startFit:tentMean; 
+                            test1 = intersect(between1,slopeMaxPos); 
+                            test2 = intersect(between2,slopeMaxPos); 
+                          
+                            if ~isempty(test1)
+                                endFit = between1(between1==test1(1))-2; 
+                            end 
+                            
+                            if ~isempty(test2)
+                                startFit = between2(between2==test2(1))+2; 
+                            end 
+                            
+                            
+                            
                             
                             % make sure that do not have an increasing portion
-                            % start of fit tentative sigmoidal mean
-                            if (sum(startFit<slopeMaxPos)>0 && sum(slopeMaxPos < slopeMaxNeg(end))>0);
-                                idx = find(startFit<slopeMaxPos);
-                                startFit = slopeMaxPos(idx(1))+2;
-                            end
+                            % between tentative sigmoidal mean and end point of fit
+%                             if (sum(endFit>slopeMaxPos)>0 && sum(slopeMaxPos > slopeMaxNeg(end))>0);
+%                                 idx =  find(endFit>slopeMaxPos);
+%                                 endFit = slopeMaxPos(idx(1)) -2;
+%                             end
+%                             
+%                             % make sure that do not have an increasing portion
+%                             % start of fit tentative sigmoidal mean
+%                             if (sum(startFit<slopeMaxPos)>0 && sum(slopeMaxPos < slopeMaxNeg(end))>0);
+%                                 idx = find(startFit<slopeMaxPos);
+%                                 startFit = slopeMaxPos(idx(1))+2;
+%                             end
                         end
-                        
+                        if endFit < startFit 
+                            display(['Check filo' num2str(ifilo)]); 
+                        end 
                         
                         
                 end % toAdd
@@ -367,6 +417,11 @@ for iType = typeStart:typeEnd
                 % Define the data for the fitting.
                 yDataFit = yData(startFit:endFit);
                 distFiloFit = distFilo(startFit:endFit);
+                
+                % final check 
+%                 if isempty(yDataFit)
+%                     
+%                 end 
          else 
              yDataFit = []; 
              distFiloFit = []; 
@@ -389,7 +444,7 @@ for iType = typeStart:typeEnd
                     %find an approximate single value index of the filo tip position 
                     % (as measured along filo: 0  = the base of the filo)
                     % so can get a quick xy coord for plotting.
-                    delt = abs(distFiloFit-params(2)); % 
+                    delt = abs(distFilo-params(2)); % Whoops 20160128 need this to be distFilo now (notDistFiloFit) (pixIndices are not truncated)
                  
                     pixIdx = find(delt==min(delt));
                     
@@ -426,9 +481,9 @@ for iType = typeStart:typeEnd
                     end
                     
                     filoInfo(idxCurrent).([toAdd 'exitFlag']) = exitFlag; % always include exit flag
-                    
-                    filoInfo(idxCurrent).([toAdd 'resnorm']) = resnorm/length(distFiloFit); % divide by the number of points
-                    
+                    filoInfo(idxCurrent).([toAdd 'resnorm']) = resnorm;
+                    %filoInfo(idxCurrent).([toAdd 'resnorm']) = resnorm/length(distFiloFit); % divide by the number of points
+                    filoInfo(idxCurrent).([toAdd 'resid']) = resid; 
                    
                
                     
@@ -542,10 +597,12 @@ for iType = typeStart:typeEnd
                     filoInfo(idxCurrent).([toAdd 'endpointCoordFitPix']) = NaN;
                     filoInfo(idxCurrent).([toAdd 'exitFlag']) = NaN;
                     filoInfo(idxCurrent).([toAdd 'resnorm']) = NaN;
+                    filoInfo(idxCurrent).([toAdd 'resid']) = NaN;
                     filoInfo(idxCurrent).([toAdd 'length']) = NaN;
                     filoInfo(idxCurrent).([toAdd 'std']) = NaN;
                     % new field added 05/17/2014
                     filoInfo(idxCurrent).([toAdd 'distFilo']) = NaN; %
+                                   
                 end
             else
                 filoInfo(idxCurrent).([toAdd 'params']) = NaN;
@@ -553,10 +610,12 @@ for iType = typeStart:typeEnd
                 filoInfo(idxCurrent).([toAdd 'endpointCoordFitPix']) = NaN;
                 filoInfo(idxCurrent).([toAdd 'exitFlag']) = NaN;
                 filoInfo(idxCurrent).([toAdd 'resnorm']) = NaN;
+                filoInfo(idxCurrent).([toAdd 'resid']) = NaN; 
                 filoInfo(idxCurrent).([toAdd 'length']) = NaN;
                 filoInfo(idxCurrent).([toAdd 'std']) = NaN;
                 % new field added 05/17/2014
                 filoInfo(idxCurrent).([toAdd 'distFilo']) = NaN; %
+                
                 
                 
                 

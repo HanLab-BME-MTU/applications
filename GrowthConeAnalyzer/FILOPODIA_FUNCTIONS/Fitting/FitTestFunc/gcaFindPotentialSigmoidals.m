@@ -1,4 +1,4 @@
-function [slopeMaxNeg,slopeMaxPos] = gcaFindPotentialSigmoidals(yData,varargin)
+function [slopeMaxNeg,slopeMaxPos,valuesNeg,valuesPos] = gcaFindPotentialSigmoidals(yData,varargin)
 % gcaFindPotentialSigmoidals
 % Small helper function: fits a cubic spline to the yData 
 % calculates the smoothed gradient from this spline 
@@ -40,7 +40,7 @@ function [slopeMaxNeg,slopeMaxPos] = gcaFindPotentialSigmoidals(yData,varargin)
 ip = inputParser;
 ip.addRequired('yData',@(x) isvector(x));
 
-ip.addParamValue('makePlot',true,@islogical); 
+ip.addParamValue('makePlot',false,@islogical); 
 
 ip.addParamValue('splineParam',0.1,@(x) isscalar(x) || isempty(x)); 
 ip.addParamValue('outPath' ,[],@(x) ischar(x) || isempty(x)); 
@@ -78,13 +78,16 @@ sv=ppval(sv_spline,linspace(1,nTime,nTime));
 
 %% find places where slope is maximally increasing/decreasing 
 % these sites will be potential target sites for the fitting. 
-% ploblem is techically one of finding multiple significant gaussians then 
+% problem is techically one of finding multiple significant gaussians then 
 % testing which is the first one significantly above the noise 
 [~,slopeMaxPos] = findpeaks(sv);
 slopeMaxPos = slopeMaxPos(sv(slopeMaxPos)>0); % find increasing portions of the curve
 
 [~,slopeMaxNeg] = findpeaks(-sv); 
+slopeMaxNeg = slopeMaxNeg(sv(slopeMaxNeg)<0); % find decreasing portions of the curve
 
+valuesNeg = sv(slopeMaxNeg); 
+valuesPos = sv(slopeMaxPos); 
 %% 
 if ~isempty(ip.Results.img)
     nPlots = 3;
