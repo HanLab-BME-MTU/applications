@@ -12,12 +12,14 @@ defaultInDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' ...
     'VII_filopodiaBranch_fits' filesep 'Channel_1']; 
 ip.addParameter('InputDirectory',defaultInDir,@(x) ischar(x)); 
 
+
 ip.parse(varargin{:});
 %%
 
 load([ip.Results.InputDirectory filesep 'filoBranch.mat']); 
 
 for iFrame = 1:length(filoBranch)-1
+%for iFrame = 1:35
 % extract the veil
 %veilMask = analInfo(iFrame).masks.neuriteEdge;
 % extract the img to feed into the function
@@ -32,7 +34,7 @@ filoBranch(iFrame).filoInfo = filoInfo;
 
 end
 % resave the values 
-save([ip.Results.InputDirectory
+save([ip.Results.InputDirectory ...
     filesep 'filoBranch.mat'],'filoBranch','-v7.3'); 
 
 
