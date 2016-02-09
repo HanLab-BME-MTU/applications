@@ -64,6 +64,7 @@ end
             figureData, ...
             'UniformOutput', false, ...
             'ErrorHandler',@scatterFigureError ...
+           ,'UseErrorStruct',true ...
         );
     else
         figureHandles = arrayfun( ... 
@@ -133,8 +134,13 @@ function out = scatterFigureError(err,figureData)
     if(isempty(err.identifier))
         error('scatterFigure:scatterFigureError',['Could not plot ' figureData.titleBase ' ' figureData.titleVariable])
     end
-    warning('scatterFigure:scatterFigureError',['Could not plot ' figureData.titleBase ' ' figureData.titleVariable]);
-    disp(err);
-    disp(figureData);
-    out = [];
+    try
+        warning('scatterFigure:scatterFigureError',['Could not plot ' figureData.titleBase ' ' figureData.titleVariable]);
+        disp(err);
+        disp(figureData);
+        out = [];
+    catch newError
+        disp('scatterFigureError:ErrorInErrorFunction','An error has occured in timeCourseAnalysis.scatterFigure/scatterFigureError');
+        disp(getReport(newError));
+    end
 end
