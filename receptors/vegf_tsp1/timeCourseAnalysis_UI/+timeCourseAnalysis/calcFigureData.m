@@ -30,13 +30,22 @@ function figureData = calcFigureData(commonInfo, subData, title_Base, title_Vari
     finiteData = cellfun(@(x) x(isfinite(x(:))),subData,'UniformOutput',false);
     finiteData = vertcat(finiteData{:});
     maxValue = max(finiteData);
-    axisTick = 10^(round(log10(maxValue) + 0.2)-1);
+    if ~isempty(maxValue)
+        axisTick = 10^(round(log10(maxValue) + 0.2)-1);
+    else
+        axisTick = 10^(round(log10(1) + 0.2)-1);
+    end
     if isYMin0
         yMin = 0;
     else
         minValue = min(finiteData);
-        axisTick = max(10^(round(log10(abs(minValue)) + 0.2)-1), axisTick);
-        yMin = (ceil(minValue / axisTick) - 1) * axisTick;
+        if ~isempty(minValue)
+            axisTick = max(10^(round(log10(abs(minValue)) + 0.2)-1), axisTick);
+            yMin = (ceil(minValue / axisTick) - 1) * axisTick;
+        else
+            axisTick = max(10^(round(log10(abs(0)) + 0.2)-1), axisTick);
+            yMin = (ceil(0 / axisTick) - 1) * axisTick;            
+        end
     end
     yMax = (floor(maxValue / axisTick) + 1) * axisTick;
     %plot by column

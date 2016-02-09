@@ -83,12 +83,13 @@ end
         %amplitude matrix
         tracksMat = convStruct2MatIgnoreMS(motionAnalysis.tracks);
         ampMat = tracksMat(:,4:8:end);
+        numFrames = size(ampMat,2);
 
         %amplitude per track
         %KJ, 151121: get amplitudes only in first 20 frames of movie
         %(instead of all throughout), to minimize effect of photobleaching.
         %This means not all tracks will get an amplitude
-        ampMeanPerTraj = nanmean(ampMat(:,1:20),2);
+        ampMeanPerTraj = nanmean(ampMat(:,1:min(20,numFrames)),2);
 
         %average properties per motion class
         [ampMeanPerClass,diffCoefMeanPerClass,confRadMeanPerClass] = deal(NaN(5,1));
@@ -106,7 +107,7 @@ end
         ampMeanPerClass(5) = nanmean(ampMeanPerTraj(isnan(trajClass)));
 
         %amplitude statistics in first 20 frames
-        ampVec = ampMat(:,1:20);
+        ampVec = ampMat(:,1:min(20,numFrames));
         ampVec = ampVec(~isnan(ampVec));
         [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,0,[],2,[],1,[],0);
         numMode = size(modeParam,1);
@@ -118,7 +119,7 @@ end
         ampStatsF20 = [mean(ampVec) ampMode1Mean ampMode1Std ampMode1Frac numMode];
 
         %amplitude statistics in last 20 frames
-        ampVec = ampMat(:,end-19:end);
+        ampVec = ampMat(:,max(1,end-19):end);
         ampVec = ampVec(~isnan(ampVec));
         [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,0,[],2,[],1,[],0);
         numMode = size(modeParam,1);
