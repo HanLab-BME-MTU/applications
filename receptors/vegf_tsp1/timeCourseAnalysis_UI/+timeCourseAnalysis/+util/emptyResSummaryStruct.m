@@ -3,7 +3,8 @@ function [ s ] = emptyResSummaryStruct( )
 
 s = struct('diffSummary',[],'diffCoefMeanPerClass',[],...
         'confRadMeanPerClass',[],'ampMeanPerClass',[],'ampStatsF20',[],...
-        'ampStatsL20',[],'statsMS',[],'msTimeInfo',[],'cellArea',[]);
+        'ampStatsL20',[],'ampStatsF01',[],'statsMS',[],'msTimeInfo',[],...
+        'cellArea',[]);
 
 end
 

@@ -149,10 +149,8 @@ if analysisPara.start2zero
 end
 
 %% Plot by Calling StandAlone Function
-timeCourseAnalysis_StandAlone(summary, outputDir, ...
-      ip.Unmatched ...
-    , 'shiftTime', shiftTime ...
-    );
+timeCourseAnalysis_StandAlone(summary, outputDir, ip.Unmatched, 'shiftTime', shiftTime);
+
 %% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
 end

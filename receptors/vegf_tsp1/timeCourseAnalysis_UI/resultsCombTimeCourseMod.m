@@ -145,6 +145,10 @@ for iDS = 1
     %columns are: 1 mean, 2 first mode mean, 3 first mode std, 4 first mode fraction, 5 number of modes
     ampStatsL20Ind = vertcat(dsSummary.ampStatsL20);
     
+    %amplitude statistics in first frame from detection
+    %columns are: 1 mean, 2 first mode mean, 3 first mode std, 4 first mode fraction, 5 number of modes
+    ampStatsF01Ind = vertcat(dsSummary.ampStatsF01);
+    
     %rate of merging and rate of splitting
     tmp = vertcat(dsSummary.statsMS);
     rateMSInd = tmp(:,8:9);
@@ -195,7 +199,7 @@ resSummaryInd = struct('numAbsClass',numAbsClassInd,'numNorm0Class',numNorm0Clas
     'densityAbsClass',densityAbsClassInd,'densityNorm0Class',densityNorm0ClassInd,...
     'probClass',probClassInd,'diffCoefClass',diffCoefClassInd,'confRadClass',confRadClassInd,...
     'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
-    'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,...
+    'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'ampStatsF01',ampStatsF01Ind,...
     'rateMS',rateMSInd,'msTimeInfo',msTimeInfoInd);
 
 %% ~~~ the end ~~~
