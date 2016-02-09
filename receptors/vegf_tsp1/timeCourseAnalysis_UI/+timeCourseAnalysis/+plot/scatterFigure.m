@@ -63,8 +63,8 @@ end
                 noClose), ...
             figureData, ...
             'UniformOutput', false, ...
-            'ErrorHandler',@scatterFigureError ...
-           ,'UseErrorStruct',true ...
+            'ErrorHandler',@scatterFigureErrorParallel ...
+           ,'UseErrorStruct',false ...
         );
     else
         figureHandles = arrayfun( ... 
@@ -86,7 +86,6 @@ end
         
 end
 function figureHandle = scatterIndividualFigure(commonInfo, figureData, colors, outputDirFig,noClose)
-
     plotTitle = [figureData.titleBase ' ' figureData.titleVariable];
 
 
@@ -139,8 +138,29 @@ function out = scatterFigureError(err,figureData)
         disp(err);
         disp(figureData);
         out = [];
+        disp('Continuing ...');
     catch newError
         disp('scatterFigureError:ErrorInErrorFunction','An error has occured in timeCourseAnalysis.scatterFigure/scatterFigureError');
         disp(getReport(newError));
+    end
+end
+function out = scatterFigureErrorParallel(err,d)
+    % Take advantage of the newer MException class to print more
+    % informative errors
+    try
+        figureData = d.InputArguments{1};
+        warning('scatterFigure:scatterFigureError',['Could not plot ' figureData.titleBase ' ' figureData.titleVariable]);
+        disp(getReport(err));
+        disp(d);
+        disp(figureData);
+        out = [];
+        disp('Continuing ...');
+    catch newError
+        warning('scatterFigureErrorParallel:ErrorInErrorFunction','An error has occured in timeCourseAnalysis.scatterFigure/scatterFigureErrorParallel');
+        try
+            disp(getReport(newError));
+        catch newNewError
+            warning('scatterFigureErrorParallel:ErrorInErrorFunction2','A deeper error has occured in timeCourseAnalysis.scatterFigure/scatterFigureErrorParallel');
+        end
     end
 end
