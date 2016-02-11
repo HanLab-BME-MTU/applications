@@ -17,9 +17,12 @@ ip.addRequired('toPlot');
 ip.addParameter('splitMovie',false);
 ip.addParameter('splitFrame', 62);  % last frame you want to include
 ip.addParameter('OutputDirectory',pwd);
+ip.addParameter('MeasurementFolder','MEASUREMENT_EXTRACTION'); 
+ 
 ip.parse(toPlot,varargin{:});
 %%
 nGroups = numel(toPlot.info.names);
+
 
 for iGroup = 1:nGroups
     
@@ -27,6 +30,7 @@ for iGroup = 1:nGroups
     % already for could just check through for the entire data set.
     
     projListC = toPlot.info.projList{iGroup}(:,1);
+
     nMovies = size(projListC,1);
     
     if ip.Results.splitMovie == true
@@ -52,7 +56,8 @@ for iGroup = 1:nGroups
     for iProj = 1:nMovies
         
         load([projListC{iProj} filesep 'GrowthConeAnalyzer'  filesep 'movieData.mat']);
-        parameterDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' ]; %
+        
+        parameterDir = [MD.outputDirectory_ filesep ip.Results.MeasurementFolder]; 
         % for now just search files - redesign so that the parameters in the
         % future are more cleverly named
         
@@ -64,9 +69,9 @@ for iGroup = 1:nGroups
         
         paramNamesC = cellfun(@(x) strrep(x,'meas_',''),localParamFiles(:,1),'uniformoutput',0);
         paramNamesC = cellfun(@(x) strrep(x,'.mat',''),paramNamesC,'uniformoutput',0);
-        idxOut = cellfun(@(x) strcmpi(x,'maxACFLagSpatial'),paramNamesC);
-        paramNamesC(idxOut) = [];
-        localParamFiles(idxOut,:) = [];
+%         idxOut = cellfun(@(x) strcmpi(x,'maxACFLagSpatial'),paramNamesC);
+%         paramNamesC(idxOut) = [];
+    %    localParamFiles(idxOut,:) = [];
         
         for iParam = 1:numel(paramNamesC)
             
@@ -106,5 +111,7 @@ else
     toPlot.info.groupingPoolBeginEndMovie = vertcat(grpVar3{:});
 end
 
-save([ip.Results.OutputDirectory filesep 'toPlotGroupMeas.mat'],'toPlot');
+if ~isempty(ip.Results.OutputDirectory)
+    save([ip.Results.OutputDirectory filesep 'toPlotGroupMeas.mat'],'toPlot');
+end
 end
