@@ -1,4 +1,4 @@
-function [filoLengthToVeil] = GCAAnalysisExtract_filoLength(analInfo,filoFilterSet,filoRegion)
+function [filoLengthToVeil] = GCAAnalysisExtract_filoLength(analInfo,filoFilterSet,filoRegion,includeAllInt)
 %% GCAAnalysisExtract_filoLengthToVeil
 % Collects Filopodia Lengths to the Veil for an entire movie for a
 % Filtered Set of Filopodia
@@ -32,27 +32,67 @@ function [filoLengthToVeil] = GCAAnalysisExtract_filoLength(analInfo,filoFilterS
 %
 
 %%
-frames = length(analInfo);
-filoLengthToVeil = cell(frames,1);
 
-for iFrame = 1:length(analInfo)-1
+if nargin<4 
+   includeAllInt = true;  
+end
+
+
+% 
+
+if length(analInfo) == 1
+    nFrames = 1; 
+else 
+    nFrames = length(analInfo)-1; 
+end 
+filoLengthToVeil = cell(nFrames,1);
+
+for iFrame = 1:nFrames
+    
+    
     filoInfo = analInfo(iFrame).filoInfo;
-    filterFrameC= filoFilterSet{iFrame};
-    filoInfoFilt  = filoInfo(filterFrameC);
     
-    % collect lengths
-    if ~strcmpi(filoRegion,'Tot');
-        lengths =  vertcat(filoInfoFilt(:).([(filoRegion) 'length'])).*.216; % add as a parameter
-    else
-        lengthsInt =  vertcat(filoInfoFilt(:).Int_length).*.216;
-        lengthsExt = vertcat(filoInfoFilt(:).Ext_length).*.216;
-        % convert NaN lengths of internal to zero 
-        lengthsInt(isnan(lengthsInt))=0; 
+    if ~isempty(filoInfo);
+        % currently 2 columns of the filter - one for the external and one for the 
+        % internal based on fitting criteria. 
+        filterFrameAll= filoFilterSet{iFrame};
         
-        lengths = lengthsInt + lengthsExt;
+        if strcmpi(filoRegion,'Int_'); 
+            filterFrameC = (filterFrameAll(:,1) == 1 & filterFrameAll(:,2) == 1); 
+        else 
+            filterFrameC = filterFrameAll(:,1); 
+        end 
+        
+        filoInfoFilt  = filoInfo(filterFrameC);
+        
+        % collect lengths
+        if ~strcmpi(filoRegion,'Tot');
+            lengths =  vertcat(filoInfoFilt(:).([(filoRegion) 'length'])).*.216; % add as a parameter
+            if (strcmpi(filoRegion,'Int_') && includeAllInt);
+                lengths(isnan(lengths)) = 0 ;        
+                
+                
+            end 
+        else
+            % for now filter out all the internal filo that do not pass the
+            % fitting criteria 
+            
+             filterInt = (filterFrameAll(:,1) == 1 & filterFrameAll(:,2) ==0 ); 
+             filterInt = filterInt(filterFrameC);  
+             
+            lengthsInt =  vertcat(filoInfoFilt(:).Int_length).*.216;
+            lengthsExt = vertcat(filoInfoFilt(:).Ext_length).*.216;
+            % convert NaN lengths of internal to zero
+            lengthsInt(isnan(lengthsInt))=0;
+            lengthsInt(filterInt) = 0; 
+            
+            lengths = lengthsInt + lengthsExt;
+        end
+        
+        filoLengthToVeil{iFrame} = lengths;
+    else
+        filoLengthToVeil{iFrame} = [];
     end
-    
-    filoLengthToVeil{iFrame} = lengths;
     clear lengths
 end
 % if ~isempty(outDir)
