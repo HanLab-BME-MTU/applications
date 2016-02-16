@@ -19,9 +19,10 @@
 % '/work/gdanuser/proudot/project/EB3-3D-track/data-analysis/four-phases/analysis'
 
 %% %% USER INPUT
-dataPath='/work/gdanuser/proudot/project/EB3-3D-track/data-analysis/four-phases/';
-timeInterval=1.03;         % in secondes
+dataPath='/project/bioinformatics/Danuser_lab/shared/proudot/3d-vis/utrackPackage/scriptBased/UTrack-QD-v1/data/';
+timeInterval=0.28;                % in secondes
+axialPixelSize=400;               % in nm
+lateralPixelSize=160;             % in nm    
 
-movieListPrometaphase=indexLatticeData([dataPath '/Prometaphase_cell*_deskew/deskewed-cropped/ch{ch}/*.tif'],dataPath,'movieListName','prometaphaseCells.mat','timeInterval',timeInterval);
+movieList=indexLSFMData([dataPath '/Cell12Toy2/ch{ch}/*.tif'],dataPath,'movieListName','singleCellList.mat','axialPixelSize',axialPixelSize,'lateralPixelSize',lateralPixelSize,'timeInterval',timeInterval);
 
-movieListMetaphase=indexLatticeData([dataPath '/Metaphase_cell*_deskew/deskewed-cropped/ch{ch}/*.tif'],dataPath,'movieListName','metaphaseCells.mat','timeInterval',timeInterval);

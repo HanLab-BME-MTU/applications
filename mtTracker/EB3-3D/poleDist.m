@@ -1,8 +1,7 @@
-function [dist,poleId,inliers,originProb,minProb,azimuth,elevation,rho,movieInfoSpindle] = poleDist(poleMovieInfo,pMovieInfo,varargin)
+function [dist,sphCoord,poleId,inliers,originProb,minProb,bestSphCoord,movieInfoSpindle] = poleDist(poleMovieInfo,pMovieInfo,varargin)
 % The angle is defined centered on the closest pole. The base is either the
 % 'absolute' referential of build around the axis between the closest pole and the second closest pole.
-% WARNING:  designed and implemented for N poles, but tested with 2 poled
-%           only. 
+% WARNING:  designed and implemented for 2 poles, extensible to 3 poles.
 % WARNING:  3D only
 % 
 % Philippe Roudot 2015
@@ -33,6 +32,9 @@ minProb=cell(1,numel(processFrames));
 azimuth=cell(1,numel(processFrames));
 elevation=cell(1,numel(processFrames));
 rho=cell(1,numel(processFrames));
+bazimuth=cell(1,numel(processFrames));
+belevation=cell(1,numel(processFrames));
+brho=cell(1,numel(processFrames));
 poleId=cell(1,numel(processFrames));
 inliers=cell(1,numel(processFrames));
 
@@ -68,26 +70,59 @@ parfor frameIdx=1:numel(processFrames)
                          repmat(poleMovieInfo(frameIdx).yCoord(:,1)',particleNumber,1));
     recenterCoord(:,:,3)=anis(3)*(repmat(pMovieInfo(frameIdx).zCoord(:,1),1,poleNumber) - ...
                          repmat(poleMovieInfo(frameIdx).zCoord(:,1)',particleNumber,1));
-    
-    % Compute distances
+    %% Compute distances
     dist{frameIdx}= sum(recenterCoord.^2,3).^0.5;  
     
-    % compute the closest pole
+    %% compute the closest pole ( designed for N poles)
     originProb{frameIdx}=dist{frameIdx}./repmat(sum(dist{frameIdx},2),1,poleNumber);
     minProb{frameIdx}=min(originProb{frameIdx},[],2);   
-    [minDist,closestPoleIdx]=min(dist{frameIdx},[],2);
     [sortMinDist,sortedPoleIdx]=sort(dist{frameIdx},2);
     minDist=sortMinDist(:,1);
     closestPoleIdx=sortedPoleIdx(:,1);
-    poleId{frameIdx}=closestPoleIdx;
+    poleId{frameIdx}=closestPoleIdx; 
     
-    
-%    reshapCloserPoleIdx=((repmat(minDist,[1,2,3])==repmat(dist{frameIdx},[1,1,3])))
-%    recenterCloserCoord=zeros(particleNumber,3);
-%    recenterCloserCoord(:)=recenterCoord(reshapCloserPoleIdx);
     Idx=sub2ind(size(recenterCoord),[1:particleNumber 1:particleNumber 1:particleNumber],[closestPoleIdx' closestPoleIdx' closestPoleIdx'],[ones(1,particleNumber) 2*ones(1,particleNumber) 3*ones(1,particleNumber)]);
     recenterCloserCoord=zeros(particleNumber,3);
     recenterCloserCoord(:)=recenterCoord(Idx);
+                     
+    % compute the azimuth, elevation and rho for each poles. 
+    %% Two bases, one for each poles. 
+    P1P2=zeros(1,3);
+    P1P2(1)=anis(1)*(poleMovieInfo(frameIdx).xCoord(2,1)-poleMovieInfo(frameIdx).xCoord(1,1));
+    P1P2(2)=anis(2)*(poleMovieInfo(frameIdx).yCoord(2,1)-poleMovieInfo(frameIdx).yCoord(1,1));
+    P1P2(3)=anis(3)*(poleMovieInfo(frameIdx).zCoord(2,1)-poleMovieInfo(frameIdx).zCoord(1,1));
+
+    vZ1=P1P2./repmat(sum(P1P2.^2,2).^0.5,1,3);
+    vX1=[0*vZ1(:,1),vZ1(:,3),-vZ1(:,2)];
+    vX1=vX1./repmat(sum(vX1.^2,2).^0.5,1,3);
+    vY1=cross(vX1,vZ1);
+    
+    vZ2=-vZ1;
+    vX2=[0*vZ2(:,1),vZ2(:,3),-vZ2(:,2)];
+    vX2=vX2./repmat(sum(vX2.^2,2).^0.5,1,3);
+    vY2=cross(vX2,vZ2);
+    
+    %% transform
+    transformCoordPole=zeros(size(recenterCoord));
+    for i=1:particleNumber
+       transformCoordPole(i,1,:)=squeeze(recenterCoord(i,1,:))'*[vX1' vY1' vZ1'];
+       transformCoordPole(i,2,:)=squeeze(recenterCoord(i,2,:))'*[vX2' vY2' vZ2'];
+    end
+    
+    transformCoordPoleBestPoles=zeros(particleNumber,3);
+    transformCoordPoleBestPoles(:)=transformCoordPole(Idx);
+    
+    [azimuth1,elevation1,rho1]=cart2sph(transformCoordPole(:,1,1),transformCoordPole(:,1,2),transformCoordPole(:,1,3));
+    [azimuth2,elevation2,rho2]=cart2sph(transformCoordPole(:,2,1),transformCoordPole(:,2,2),transformCoordPole(:,2,3));
+    [azimuthBest,elevationBest,rhoBest]=cart2sph(transformCoordPoleBestPoles(:,1),transformCoordPoleBestPoles(:,2),transformCoordPoleBestPoles(:,3));
+    
+    azimuth{frameIdx}=[azimuth1 azimuth2];
+    elevation{frameIdx}=[elevation1 elevation2];
+    rho{frameIdx}=[rho1 rho2];
+    
+    bazimuth{frameIdx}=azimuthBest;
+    belevation{frameIdx}=elevationBest;
+    brho{frameIdx}=rhoBest;
     
     %% Outlier estimation, flag particle that are too far from theire 
     %  associated pole through an otsu estimation to separate both
@@ -100,65 +135,40 @@ parfor frameIdx=1:numel(processFrames)
     
     l=graythresh(double(minDist)/max(minDist))*max(minDist);
     inliers{frameIdx}=minDist<l;
-    
-    if(strcmp(ip.Results.angleRef,'poles'))
-        %% Define the an interpolar axis associated to each particle
-        poleCoord=zeros(particleNumber,poleNumber,3);
-        poleCoord(:,:,1)=repmat(anis(1)*(poleMovieInfo(frameIdx).xCoord(:,1)'),particleNumber,1);
-        poleCoord(:,:,2)=repmat(anis(2)*(poleMovieInfo(frameIdx).yCoord(:,1)'),particleNumber,1);
-        poleCoord(:,:,3)=repmat(anis(3)*(poleMovieInfo(frameIdx).zCoord(:,1)'),particleNumber,1);
-        
-        bestPoles=zeros(particleNumber,3);
-        bestPoles(:)=poleCoord(Idx);
-        
-        secClosestPoleIdx=sortedPoleIdx(:,2);
-        Idx=sub2ind(size(recenterCoord),[1:particleNumber 1:particleNumber 1:particleNumber],[secClosestPoleIdx' secClosestPoleIdx' secClosestPoleIdx'],[ones(1,particleNumber) 2*ones(1,particleNumber) 3*ones(1,particleNumber)]);
-        
-        secondBestPoles=zeros(particleNumber,3);
-        secondBestPoles(:)=poleCoord(Idx);
-        
-        interPolarAxis=(secondBestPoles-bestPoles);
-        
-        %% change coordinate for each EB3 (Z is along the polar axis)
-        % Create a New Base
-        vZ=interPolarAxis./repmat(sum(interPolarAxis.^2,2).^0.5,1,3);
-        vX=[0*vZ(:,1),vZ(:,3),-vZ(:,2)];
-        vX=vX./repmat(sum(vX.^2,2).^0.5,1,3);
-        vY=cross(vX,vZ);
       
-        
-        % Reference use for registration. 
-        frameRefInterPolarAxis=[anis(1)*poleMovieInfo(frameIdx).xCoord(2,1)-anis(1)*poleMovieInfo(frameIdx).xCoord(1,1) ...
-                                anis(2)*poleMovieInfo(frameIdx).yCoord(2,1)-anis(2)*poleMovieInfo(frameIdx).yCoord(1,1) ...
-                                anis(3)*poleMovieInfo(frameIdx).zCoord(2,1)-anis(3)*poleMovieInfo(frameIdx).zCoord(1,1)];
-                
-        frameRefVZ=frameRefInterPolarAxis./repmat(sum(frameRefInterPolarAxis.^2,2).^0.5,1,3);
-        frameRefVX=[0*frameRefVZ(1),frameRefVZ(3),-frameRefVZ(2)];
-        frameRefVX=frameRefVX./repmat(sum(frameRefVX.^2,2).^0.5,1,3);
-        frameRefVY=cross(frameRefVX,frameRefVZ);
-                
-        refBaseSwitchMatrix=[frameRefVX' frameRefVY' frameRefVZ']*[refVX' refVY' refVZ']^(-1);
-        
-        % Project on both adaptive basis
-        transformCoordPoleRef=zeros(size(recenterCloserCoord));
-        transformCoordAxisRef=zeros(size(recenterCloserCoord));
-        for i=1:particleNumber
-            transformCoordPoleRef(i,:)=recenterCloserCoord(i,:)*[vX(i,:)' vY(i,:)' vZ(i,:)'];
-            transformCoordAxisRef(i,:)=refInterPolarAxisOrigin+squeeze(recenterCoord(i,1,:))'*refBaseSwitchMatrix;
-        end
-        
-        [azimuth{frameIdx},elevation{frameIdx},rho{frameIdx}]=cart2sph(transformCoordPoleRef(:,1),transformCoordPoleRef(:,2),transformCoordPoleRef(:,3));
-        
-        % Set each particle in a single cartesian frame of reference again.
-%         invertCoord=ones(size(closestPoleIdx));
-%         invertCoord(closestPoleIdx==1)=1;
-%         movieInfoSpindle(frameIdx).xCoord=[invertCoord.*transformCoord(:,1)+bestPoles(:,1)  pMovieInfo(frameIdx).xCoord(:,2)];
-%         movieInfoSpindle(frameIdx).yCoord=[             transformCoord(:,2)+bestPoles(:,2)  pMovieInfo(frameIdx).yCoord(:,2)];
-%         movieInfoSpindle(frameIdx).zCoord=[invertCoord.*transformCoord(:,3)+bestPoles(:,3)  pMovieInfo(frameIdx).zCoord(:,2)];
-
-        movieInfoSpindle(frameIdx).xCoord=[transformCoordAxisRef(:,1)/anis(1)  pMovieInfo(frameIdx).xCoord(:,2)];
-        movieInfoSpindle(frameIdx).yCoord=[transformCoordAxisRef(:,2)/anis(2)  pMovieInfo(frameIdx).yCoord(:,2)];
-        movieInfoSpindle(frameIdx).zCoord=[transformCoordAxisRef(:,3)/anis(3)  pMovieInfo(frameIdx).zCoord(:,2)];
-        
+    %% Registration with the first frame spindle orientation
+    % Reference use for registration.
+    frameRefInterPolarAxis=[anis(1)*poleMovieInfo(frameIdx).xCoord(2,1)-anis(1)*poleMovieInfo(frameIdx).xCoord(1,1) ...
+        anis(2)*poleMovieInfo(frameIdx).yCoord(2,1)-anis(2)*poleMovieInfo(frameIdx).yCoord(1,1) ...
+        anis(3)*poleMovieInfo(frameIdx).zCoord(2,1)-anis(3)*poleMovieInfo(frameIdx).zCoord(1,1)];
+    
+    frameRefVZ=frameRefInterPolarAxis./repmat(sum(frameRefInterPolarAxis.^2,2).^0.5,1,3);
+    frameRefVX=[0*frameRefVZ(1),frameRefVZ(3),-frameRefVZ(2)];
+    frameRefVX=frameRefVX./repmat(sum(frameRefVX.^2,2).^0.5,1,3);
+    frameRefVY=cross(frameRefVX,frameRefVZ);
+    
+    refBaseSwitchMatrix=[frameRefVX' frameRefVY' frameRefVZ']*[refVX' refVY' refVZ']^(-1);
+    
+    % Project on both adaptive basis
+    transformCoordAxisRef=zeros(size(recenterCloserCoord));
+    for i=1:particleNumber
+        transformCoordAxisRef(i,:)=refInterPolarAxisOrigin+squeeze(recenterCoord(i,1,:))'*refBaseSwitchMatrix;
     end
+    
+    movieInfoSpindle(frameIdx).xCoord=[transformCoordAxisRef(:,1)/anis(1)  pMovieInfo(frameIdx).xCoord(:,2)];
+    movieInfoSpindle(frameIdx).yCoord=[transformCoordAxisRef(:,2)/anis(2)  pMovieInfo(frameIdx).yCoord(:,2)];
+    movieInfoSpindle(frameIdx).zCoord=[transformCoordAxisRef(:,3)/anis(3)  pMovieInfo(frameIdx).zCoord(:,2)];   
 end
+
+sphCoord.azimuth=azimuth;
+sphCoord.elevation=elevation;
+sphCoord.rho=rho;
+
+bestSphCoord.azimuth=bazimuth;
+bestSphCoord.elevation=belevation;
+bestSphCoord.rho=brho;
+
+
+
+
+

@@ -3,34 +3,44 @@
 % plotting of the track output. 
 
 %% %% USER INPUT 
-xpName='Metaphase'; % For convenience, Figure window will bear this name.
+xpName='prometaphase'; % For convenience, Figure window will bear this name.
 
 %% LOADING MOVIES INFO
 % MovieList paths: 
-MLPath='/project/cellbiology/gdanuser/shared/proudot/project/lattice-track/data-analysis/chemical-inhibition/2015_06_17(EB1_GFP_drugs)/analysis/'
+MLPath='/work/gdanuser/proudot/project/EB3-3D-track/data-analysis/four-phases/'
+%MLPath='/project/cellbiology/gdanuser/december/philippe/+tipTracking/chemical-inhibition/analysis/anaphase/control/';
 
 % MovieList FileName (the combination of condition you want to compare). 
-movieListFileNames={'controlMetaphase.mat','10nMMetaphase.mat'};
+%movieListFileNames={'controlAnaphase.mat'};
+movieListFileNames={'prometaphaseCells.mat'};
+%movieListFileNames={'controlMetaphase.mat','10nMMetaphase.mat'};
 %movieListFileNames={'controlMetaphase.mat','10nMMetaphase.mat','33nMMetaphase.mat','100nMMetaphase.mat'};
 %movieListFileNames={'controlInterphase.mat','10nMInterphase.mat','33nMInterphase.mat','100nMInterphase.mat',};
 %movieListFileNames={'controlAnaphase.mat','10nMAnaphase.mat','33nMAnaphase.mat'};
-
+MLPath='/project/cellbiology/gdanuser/december/philippe/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time';
+movieListFileNames={'movieList.mat'};
 % Name associated to each MovieList
-conditionName={'control','10nM'};
+conditionName={'prometaphase'};
+%conditionName={'control','10nM'};
 %conditionName={'control','10nM','33nM','100nM'};
 
 % Build the array of MovieList (auto)
-aMovieListArray=[];
+% Build the array of MovieList (automatic)
+aMovieListArray=cellfun(@(x) MovieList.loadMatFile([MLPath filesep x]), movieListFileNames,'unif',0);
+aMovieListArray=aMovieListArray{:};
+
+
+% Get the Cell index per condition
 CellIdx=cell(1,length(movieListFileNames));
-for i=1:length(movieListFileNames)
-    aMovieListArray=[aMovieListArray MovieList.loadMatFile([MLPath movieListFileNames{i}])];
+for i=1:length(CellIdx)
     CellIdx{i}=[1:length(aMovieListArray(i).movieDataFile_)];
 end;
 
 
 %% Input parameters
-radius=4000;
-detectionMethod='pointSourceAutoSigmaLM';
+sphericalProjectionRadius=5000;
+detectionMethodEB3='pointSourceAutoSigmaLM';
+detectionMethodKin='pointSourceAutoSigmaFit';  % Empty if no Kinetochore. 
 poleScale=3;
 poleDetectionMethod=['simplex_scale_' num2str(poleScale,'%03d')];
 
@@ -53,35 +63,105 @@ meanLength=nan(length(aMovieListArray),maxCellNb);
 % Per-cell avg track speed
 meanSpeed=nan(length(aMovieListArray),maxCellNb);
 
-% Azimuth and elevation
+% Azimuth and elevation for EB3
 cumulAzi=cell(length(aMovieListArray),maxCellNb); 
 cumulElev=cell(length(aMovieListArray),maxCellNb); 
 cumulPoleId=cell(length(aMovieListArray),maxCellNb); 
+cumulTimePt=cell(length(aMovieListArray),maxCellNb); 
 
-%conditionName=cell(1,length(aMovieListArray));
-%% loop over each different conditions
+% Azimuth and elevation for EB3 that caught a Kinetochore. 
+EB3CatchingId=cell(length(aMovieListArray),maxCellNb); 
+
+% Azimuth and elevation for Kin
+cumulAziKin=cell(length(aMovieListArray),maxCellNb); 
+cumulRhoKin=cell(length(aMovieListArray),maxCellNb); 
+cumulTrackIdKin=cell(length(aMovieListArray),maxCellNb); 
+cumulElevKin=cell(length(aMovieListArray),maxCellNb); 
+cumulTimePtKin=cell(length(aMovieListArray),maxCellNb); 
+
+
+%% Loop over each different conditions to collect all the data. 
 for k=1:length(aMovieListArray)
     ML=aMovieListArray(k);
     %[~,conditionName{k}]=fileparts(fileparts(ML.movieListPath_));
     %% loop over each different cell in each condition
-    parfor i=1:length(ML.movieDataFile_)
+    for i=1:length(ML.movieDataFile_)
         MD=MovieData.loadMatFile(ML.movieDataFile_{i});
         
-        % Load the results of the detection and tracking
-        outputDirDetect=[MD.outputDirectory_ filesep 'EB3' filesep detectionMethod];
-        outputDirTrack=[outputDirDetect filesep 'plustipTrackerio'];       
-        tmp=load([outputDirTrack filesep 'track' filesep 'trackNewFormat.mat']);
-        tracks=tmp.tracks;
+        % Load the tracking results 
+        outputDirTrack=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];     
+        tmp=load([outputDirTrack filesep 'tracksStageRef.mat']);
+        tracks=tmp.tracksStageRef;
         
-        outputDirDist=[MD.outputDirectory_ filesep 'EB3PoleRef' filesep poleDetectionMethod filesep detectionMethod]
-        sphericalCoord=load([outputDirDist filesep 'sphericalCoord.mat']);
-        dist=load([outputDirDist filesep 'dist.mat']);
+        % Load the spherical intersection
+        outpurDir=[MD.outputDirectory_ filesep 'EB3' filesep 'sphericalProjection' filesep 'radius-' num2str(sphericalProjectionRadius)];
+        sphericalProjection=load([outpurDir filesep 'sphericalProjection.mat']);
+        cumulAzi{k,i}=sphericalProjection.sphericalAzimuth;
+        cumulElev{k,i}=sphericalProjection.sphericalElevation;
+        cumulPoleId{k,i}=sphericalProjection.poleId; 
+        cumulTimePt{k,i}=sphericalProjection.time; 
+
+        % Load the spherical coordinate of Kinetochore and their associated
+        % track ID. 
+        if(~isempty(detectionMethodKin))
+            outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
+            sphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
+
+            outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ]
+            trackData=load([outputDirTrack  filesep 'tracksStageRef.mat']);
+            
+            cumulAziKin{k,i}=vertcat(sphericalCoord.sphCoord.azimuth{:}); 
+            cumulElevKin{k,i}=vertcat(sphericalCoord.sphCoord.elevation{:});
+            cumulRhoKin{k,i}=vertcat(sphericalCoord.sphCoord.rho{:});
+            minKinRho=min(cumulRhoKin{k,i},[],2);
+            cumulAziKin{k,i}=cumulAziKin{k,i}(minKinRho>sphericalProjectionRadius,:);
+            cumulElevKin{k,i}=cumulElevKin{k,i}(minKinRho>sphericalProjectionRadius,:);
+            T=arrayfun(@(f) ones(length(sphericalCoord.sphCoord.azimuth{f}),1)*f*MD.timeInterval_,(1:length(sphericalCoord.sphCoord.azimuth)),'unif',0);
+            cumulTimePtKin{k,i}=vertcat(T{:});
+            cumulTimePtKin{k,i}=cumulTimePtKin{k,i}(minKinRho>sphericalProjectionRadius,:);
+            
+            trackIdCell=cellfun(@(x) ones(size(x)),sphericalCoord.sphCoord.azimuth,'unif',0);
+            for tIdx=1:length(trackData.tracksStageRef)
+                aTrack=trackData.tracksStageRef(tIdx);
+                notGapIdx=find(~aTrack.gapMask);
+                F=aTrack.startFrame:aTrack.endFrame;
+                for tpIdx=notGapIdx
+                    trackIdCell{F(tpIdx)}(aTrack.tracksFeatIndxCG(tpIdx))=tIdx;
+                end
+                
+            end
+            cumulTrackIdKin{k,i}=vertcat(trackIdCell{:});
+            cumulTrackIdKin{k,i}=cumulTrackIdKin{k,i}(minKinRho>sphericalProjectionRadius);
+
+            %%
+            
+            for fIdx=2:(length(sphericalCoord.sphCoord.elevation)-1)
+                %%
+                crossingAtFrameIdx=ceil(sphericalProjection.time)==fIdx;
+                EB3Pos=[  sphericalProjection.sphericalAzimuth(crossingAtFrameIdx)' ...
+                          sphericalProjection.sphericalElevation(crossingAtFrameIdx)'];
+                EB3PoleId=sphericalProjection.poleId(crossingAtFrameIdx);
+                EB3PosPole1=EB3Pos(EB3PoleId==1,:);
+                EB3PosPole2=EB3Pos(EB3PoleId==2,:);
+                FarKinIdx=(min(sphericalCoord.sphCoord.rho{fIdx},[],2)>sphericalProjectionRadius);
+                KinPosPole1=[sphericalCoord.sphCoord.azimuth{fIdx}(FarKinIdx,1) sphericalCoord.sphCoord.elevation{fIdx}(FarKinIdx,1)];
+                KinPosPole2=[sphericalCoord.sphCoord.azimuth{fIdx}(FarKinIdx,2) sphericalCoord.sphCoord.elevation{fIdx}(FarKinIdx,2)];
+                [catchingEB3Idx1,caughtKinIdx1]=colocalizationLAP(EB3PosPole1,KinPosPole1,0.2);
+                [catchingEB3Idx2,caughtKinIdx2]=colocalizationLAP(EB3PosPole2,KinPosPole2,0.2);
+                %%
+                EB3FrameIdxP1=find(EB3PoleId==1);EB3FrameIdxP1=EB3FrameIdxP1(catchingEB3Idx1);
+                EB3FrameIdxP2=find(EB3PoleId==2);EB3FrameIdxP2=EB3FrameIdxP2(catchingEB3Idx2);
+                EB3FrameIdx=[EB3FrameIdxP1 EB3FrameIdxP2];
+                EB3Idx=find(crossingAtFrameIdx); EB3Idx=EB3Idx(EB3FrameIdx);
+                EB3CatchingId{k,i}=[EB3CatchingId{k,i} EB3Idx ];
+            end
+
+              %%  
+                   
+            
+
+        end
         
-        %Spherical radius
-        [azimuth,elevation,time,trackId,poleId]=sphericalDistribution(tracks,sphericalCoord.azimuth,sphericalCoord.elevation,sphericalCoord.rho,dist.poleId,radius);
-        cumulAzi{k,i}=azimuth;
-        cumulElev{k,i}=elevation;
-        cumulPoleId{k,i}=poleId; 
         % lifetime
         lifetimesHist{k,i}=hist([tracks.lifetime],lifetimeBins);
         meanLft(k,i)=nanmean([tracks.lifetime]);     
@@ -100,6 +180,7 @@ for k=1:length(aMovieListArray)
     end
 end
 % meanSpeed(2,1)=NaN;
+'filled'
 % meanLength(2,1)=NaN;
 
 %% plot results
@@ -115,7 +196,6 @@ end
 hold off
 xlabel(handles(1),'lifetime (frame)')
 ylabel(handles(1),'count')
-
 v=[];names=[];
 for i=1:size(lifetimesHist,1)
     h = findobj('Color',colors{i});
@@ -139,114 +219,35 @@ ylabel(handles(3),'growth (nm/s)');
 
 
 %% Elevation vs Azimuth
+EB3MarkerSize=10;
+KinMarkerSize=50;
+cmapKin=jet(600);
+cmapEB3=summer(150); %cmapEB3=cmapEB3(1:40,:);
+temporalWindow=1; %Number of Frames used for integration
 %CellIdx={[1:],[1:5],[1:3]};
 for MLIdx=1:length(aMovieListArray)
-    figure('name',conditionName{MLIdx},'Position', [100, 100, 1024, 1200]);
-    nCell=length(CellIdx{MLIdx});
-    %handles=setupFigure(nCell,2,2*nCell,'Name',conditionName{MLIdx},'AxesWidth',4,'AxesHeight',4);
+    ML=aMovieListArray(k); 
     for cIdx=CellIdx{MLIdx}
-        %    title('Growth repartition at 4 microns from the poles')
-        g=subplot(nCell,4,cIdx*4-3);
-        p = get(g,'position');
-        p(4) = p(4)*1.1; % Add 10 percent to height
-        p(3) = p(3)*1.1; % Add 10 percent to height
-        %p(1) = p(1)*0.1; % Add 10 percent to height
-        %p(2) = p(2)*0.1; % Add 10 percent to height
-        set(g, 'position', p);
-        plotTipIdx=(cumulElev{MLIdx,cIdx}<0)&(cumulPoleId{MLIdx,cIdx}==1);
-        polar(cumulAzi{MLIdx,cIdx}(plotTipIdx),abs(-pi/2-cumulElev{MLIdx,cIdx}(plotTipIdx)),'r+');
-        title(['Cell ' num2str(cIdx) ' astral Pole 1']);
-        
-        g=subplot(nCell,4,cIdx*4-2);
-        p = get(g,'position');
-        p(4) = p(4)*1.1; % Add 10 percent to height
-        p(3) = p(3)*1.1; % Add 10 percent to height
-        %p(1) = p(1)*0.1; % Add 10 percent to height
-        %p(2) = p(2)*0.1; % Add 10 percent to height
-        set(g, 'position', p);
-        plotTipIdx=(cumulElev{MLIdx,cIdx}>0)&(cumulPoleId{MLIdx,cIdx}==1);
-        polar(cumulAzi{MLIdx,cIdx}(plotTipIdx),(pi/2-cumulElev{MLIdx,cIdx}(plotTipIdx)),'r+');
-        title(['Cell ' num2str(cIdx) ' interpolar Pole 1']);       
-
-        g=subplot(nCell,4,cIdx*4-1);
-        p = get(g,'position');
-        p(4) = p(4)*1.1; % Add 10 percent to height
-        p(3) = p(3)*1.1; % Add 10 percent to height
-        %p(1) = p(1)*0.1; % Add 10 percent to height
-        %p(2) = p(2)*0.1; % Add 10 percent to height
-        set(g, 'position', p);
-        plotTipIdx=(cumulElev{MLIdx,cIdx}>0)&(cumulPoleId{MLIdx,cIdx}==2);
-        polar(cumulAzi{MLIdx,cIdx}(plotTipIdx),(pi/2-cumulElev{MLIdx,cIdx}(plotTipIdx)),'r+');
-        title(['Cell ' num2str(cIdx) ' interpolar Pole 2']);      
-        
-        g=subplot(nCell,4,cIdx*4);
-        p = get(g,'position');
-        p(4) = p(4)*1.1; % Add 10 percent to height
-        p(3) = p(3)*1.1; % Add 10 percent to height
-        %p(1) = p(1)*0.1; % Add 10 percent to height
-        %p(2) = p(2)*0.1; % Add 10 percent to height
-        set(g, 'position', p);
-        plotTipIdx=(cumulElev{MLIdx,cIdx}<0)&(cumulPoleId{MLIdx,cIdx}==2);
-        polar(cumulAzi{MLIdx,cIdx}(plotTipIdx),abs(-pi/2-cumulElev{MLIdx,cIdx}(plotTipIdx)),'r+');
-        title(['Cell ' num2str(cIdx) ' astral Pole 2']);               
+        MD=MovieData.loadMatFile(ML.movieDataFile_{cIdx});
+        handles=setupFigure(1,4,'Name',[ conditionName{MLIdx} ' Cell ' num2str(cIdx) ],'AxesWidth',4,'AxesHeight',4,'DisplayMode', 'print');
+        plotSpindleSphericalProjection(handles,cumulAzi{MLIdx,cIdx},cumulElev{MLIdx,cIdx},cumulPoleId{MLIdx,cIdx},cumulTimePt{MLIdx,cIdx}, ...
+            cumulAziKin{MLIdx,cIdx},cumulElevKin{MLIdx,cIdx},cumulTimePtKin{MLIdx,cIdx},cumulTrackIdKin{MLIdx,cIdx},[0 MD.nFrames_*MD.timeInterval_],EB3MarkerSize,KinMarkerSize,cmapEB3,cmapKin,[])
+        outpurDir=[MD.outputDirectory_ filesep 'EB3' filesep 'sphericalProjection' filesep 'radius-' num2str(sphericalProjectionRadius)];
+        mkdir(outpurDir);
+        print([outpurDir filesep 'cumulative.eps'],'-depsc');
+        mkdir([outpurDir filesep 'png']);
+        mkdir([outpurDir filesep 'eps']);
+        for t=20:temporalWindow:60%(MD.nFrames_-temporalWindow)
+            [handles,~,fhandle]=setupFigure(1,4,'Name',[ conditionName{MLIdx} ' Cell ' num2str(cIdx) ],'AxesWidth',4,'AxesHeight',4,'DisplayMode', 'print');
+            set(fhandle,'Visible','off');
+            plotSpindleSphericalProjection(handles,cumulAzi{MLIdx,cIdx},cumulElev{MLIdx,cIdx},cumulPoleId{MLIdx,cIdx},cumulTimePt{MLIdx,cIdx}, ... 
+                cumulAziKin{MLIdx,cIdx},cumulElevKin{MLIdx,cIdx},cumulTimePtKin{MLIdx,cIdx},cumulTrackIdKin{MLIdx,cIdx}, ... 
+                MD.timeInterval_*[t t+temporalWindow],EB3MarkerSize,KinMarkerSize,cmapEB3,cmapKin, ...
+                EB3CatchingId{MLIdx,cIdx});
+            
+            print([outpurDir filesep 'png' filesep 'time-' num2str(t,'%03d') '-' num2str(t+temporalWindow,'%03d') '.png'],'-dpng');
+            print([outpurDir filesep 'eps' filesep 'time-' num2str(t,'%03d') '-' num2str(t+temporalWindow,'%03d') '.eps'],'-depsc');
+        end 
     end
-end
-
-%% Integrated Elevation vs Azimuth
-figure('name','Integrated Elevation vs Azimuth','Position', [100, 100, 1024, 1200]);
-colors={'r+','b+','g+','k+','y+','r.'};
-for MLIdx=1:length(aMovieListArray)
-    
-    g=subplot(length(aMovieListArray),4,MLIdx*4-3);
-    p = get(g,'position');
-    p(4) = p(4)*1.1; % Add 10 percent to height
-    p(3) = p(3)*1.1; % Add 10 percent to height
-    set(g, 'position', p);
-    nCell=length(aMovieListArray(MLIdx).movieDataFile_);    
-    for cIdx=CellIdx{MLIdx}
-        plotTipIdxAstralPole1=(cumulElev{MLIdx,cIdx}<0)&(cumulPoleId{MLIdx,cIdx}==1);
-        polar(cumulAzi{MLIdx,cIdx}(plotTipIdxAstralPole1),abs(-pi/2-cumulElev{MLIdx,cIdx}(plotTipIdxAstralPole1)),colors{cIdx});
-        hold on;        
-    end
-    title([ conditionName{MLIdx} ' astral Pole 1'])
-    
-    g=subplot(length(aMovieListArray),4,MLIdx*4-2);
-    p = get(g,'position');
-    p(4) = p(4)*1.1; % Add 10 percent to height
-    p(3) = p(3)*1.1; % Add 10 percent to height
-    set(g, 'position', p);
-    for cIdx=CellIdx{MLIdx}
-        plotTipIdxInterPole1=(cumulElev{MLIdx,cIdx}>0)&(cumulPoleId{MLIdx,cIdx}==1);
-        polar(cumulAzi{MLIdx,cIdx}(plotTipIdxInterPole1),(pi/2-cumulElev{MLIdx,cIdx}(plotTipIdxInterPole1)),colors{cIdx});
-        hold on;
-    end
-    title([ conditionName{MLIdx} ' interpolar Pole 1'])
-    
-    g=subplot(length(aMovieListArray),4,MLIdx*4-1);
-    p = get(g,'position');
-    p(4) = p(4)*1.1; % Add 10 percent to height
-    p(3) = p(3)*1.1; % Add 10 percent to height
-    set(g, 'position', p);
-    for cIdx=CellIdx{MLIdx}
-        plotTipIdxInterPole2=(cumulElev{MLIdx,cIdx}>0)&(cumulPoleId{MLIdx,cIdx}==2);
-
-        polar(cumulAzi{MLIdx,cIdx}(plotTipIdxInterPole2)-pi,(pi/2-cumulElev{MLIdx,cIdx}(plotTipIdxInterPole2)),colors{cIdx});
-        hold on;
-    end
-    title([ conditionName{MLIdx} ' interpolar Pole 2'])
-    
-    g=subplot(length(aMovieListArray),4,MLIdx*4);
-    p = get(g,'position');
-    p(4) = p(4)*1.1; % Add 10 percent to height
-    p(3) = p(3)*1.1; % Add 10 percent to height
-    set(g, 'position', p);
-    nCell=length(aMovieListArray(MLIdx).movieDataFile_);    
-    for cIdx=CellIdx{MLIdx}
-        plotTipIdxAstralPole2=(cumulElev{MLIdx,cIdx}<0)&(cumulPoleId{MLIdx,cIdx}==2);
-        polar((cumulAzi{MLIdx,cIdx}(plotTipIdxAstralPole2)),abs(-pi/2-cumulElev{MLIdx,cIdx}(plotTipIdxAstralPole2)),colors{cIdx});
-        hold on;
-    end
-    title([ conditionName{MLIdx} ' astral Pole 2'])
-    
 end
 

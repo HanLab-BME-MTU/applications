@@ -3,5 +3,7 @@ scriptDeskewLatticeData
 movieSelectorGUI
 createMovieManagementFile
 loadMoviesManagementFile
-scriptAnalyseResults
 scriptEB3DetectAndTracking
+scriptKinetochoreTracking
+scriptAnalyseResults
+scriptCroppingMovie

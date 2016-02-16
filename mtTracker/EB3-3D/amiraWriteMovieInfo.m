@@ -20,9 +20,13 @@ if(~exist(fileparts(filename))) mkdir(fileparts(filename)); end;
 [pathstr,name,ext] = fileparts(filename); 
 basename=[pathstr filesep name];
 
-parfor fIdx=1:length(movieInfo)
+numVerticesCell=cell(1,length(movieInfo));
+cumulDetectionValues=cell(1,length(movieInfo));
+cumulPropValues=cell(length(p.prop)+1,length(movieInfo));
+for fIdx=1:length(movieInfo)
     fMI=movieInfo(fIdx);
     numVertices=size(fMI.xCoord,1);
+    numVerticesCell{fIdx}=numVertices;
     %Write end points to Amira Surf object
     headerString={};
     headerString=[headerString;{'# Amira 2.0 ASCII '}];
@@ -44,39 +48,99 @@ parfor fIdx=1:length(movieInfo)
     headerString=[headerString;' '];
     headerString=[headerString;'@3'];
     
+    detectionValues={};
     detectionString={};
     if(~isempty(fMI.xCoord))
-        %dlmwrite(frameFilename, repmat([(fMI.xCoord(1,1)-1)*p.scales(1) (fMI.yCoord(1,1)-1)*p.scales(2) (fMI.zCoord(1,1)-1)*p.scales(3)],2,1), '-append', 'delimiter',' ','precision', 16);
-        detectionString={strjoin(cellstr(num2str(repmat([(fMI.xCoord(1,1)-1)*p.scales(1) (fMI.yCoord(1,1)-1)*p.scales(2) (fMI.zCoord(1,1)-1)*p.scales(3)],2,1)))','\n')};
+        detectionValues={strjoin(cellstr(num2str(repmat([(fMI.xCoord(1,1)-1)*p.scales(1) (fMI.yCoord(1,1)-1)*p.scales(2) (fMI.zCoord(1,1)-1)*p.scales(3)],2,1)))','\n')};
     end
-%     fid = fopen(frameFilename, 'a');
-%     headerSpring=[headerSpring;'@4\n');
-%     fclose(fid);
-    detectionString=[detectionString; ' '; '@4'];
+    detectionString=[detectionValues; ' '; '@4'];
+
+    detectionValues={};
     if(~isempty(fMI.xCoord))
-       %dlmwrite(frameFilename, [(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)], '-append', 'delimiter',' ','precision', 16);
-       detectionString=[detectionString; strjoin(cellstr(num2str([(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)]))','\n')];
+       detectionValues=strjoin(cellstr(num2str([(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)]))','\n');
+       detectionString=[detectionString;detectionValues];
     end
+    cumulDetectionValues{fIdx}=detectionValues;
+
     propString={};
-    for propIdx=1:length(p.prop)
-%         fid = fopen(frameFilename, 'a');
-%         fprintf(fid,['\n VERTEX { float ' p.prop{propIdx}{1} ' } @' num2str(4+propIdx) '\n']);
-%         fprintf(fid,['@' num2str(4+propIdx) '\n']);
-%         fclose(fid);
-%         dlmwrite(frameFilename, p.prop{propIdx}{2}{fIdx}, '-append', 'delimiter',' ','precision', 16)
+    propValues={};
+    
+    propIdx=1;
+    propString=[propString; 'VERTEX {float vertexId} @5'];
+    propString=[propString; ['@5']];
+    propValues=strjoin(cellstr(num2str((1:numVertices)'))','\n');
+    propString=[propString;propValues];
+    cumulPropValues{1,fIdx}=propValues;
+    
+    for optPropIdx=1:length(p.prop)
+        propIdx=propIdx+1;
+        propString=[propString; 'VERTEX { float ' p.prop{optPropIdx}{1} ' } @' num2str(5+optPropIdx)'];
+        propString=[propString; ['@' num2str(5+optPropIdx) ]];
+        propValues=strjoin(cellstr(num2str([p.prop{optPropIdx}{2}{fIdx}]))','\n');
+        propString=[propString;propValues];
+        cumulPropValues{propIdx,fIdx}=propValues;
         
-        propString=[propString; '\n VERTEX { float ' p.prop{propIdx}{1} ' } @' num2str(4+propIdx) '\n'];
-        propString=[propString; ['@' num2str(4+propIdx) '\n']];
-        propString=[propString; strjoin(cellstr(num2str([(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)]))','\n')];
     end
+    
     frameFilename=[basename '_t_' num2str(fIdx,'%04.0f'),'.am'];
     fid = fopen(frameFilename, 'w');
     fprintf(fid,'%s\n', strjoin(headerString','\n'));
-    fprintf(fid,'%s\n', strjoin(detectionString','\n'));
-    fprintf(fid,'%s\n', strjoin(propString','\n'));
+    fprintf(fid,'%s\n', strjoin(detectionString','\n') );
+    fprintf(fid,'%s\n', strjoin(propString','\n') );
     fclose(fid);
 end 
+
+headerString={};
+headerString=[headerString;{'# Amira 2.0 ASCII '}];
+headerString=[headerString;{['define VERTEX ',num2str(sum([numVerticesCell{:}])),' ']}];
+headerString=[headerString;'define EDGE 1 '];
+headerString=[headerString;'define POINT 2 '];
+headerString=[headerString;' '];
+headerString=[headerString;'Parameters { ContentType "HxSpatialGraph"} '];
+headerString=[headerString;'EDGE { int[2] EdgeConnectivity } @1 '];
+headerString=[headerString;'EDGE { int NumEdgePoints } @2'];
+headerString=[headerString;'POINT { float[3] EdgePointCoordinates } @3'];
+headerString=[headerString;'VERTEX { float[3] VertexCoordinates } @4'];
+headerString=[headerString;' '];
+headerString=[headerString;'@1'];
+headerString=[headerString;'0 0'];
+headerString=[headerString;' '];
+headerString=[headerString;'@2'];
+headerString=[headerString;'2'];
+headerString=[headerString;' '];
+headerString=[headerString;'@3'];
+
+detectionValues={};
+detectionString={};
+if(~isempty(fMI.xCoord))
+    detectionValues={strjoin(cellstr(num2str(repmat([(movieInfo(1).xCoord(1,1)-1)*p.scales(1) (movieInfo(1).yCoord(1,1)-1)*p.scales(2) (movieInfo(1).zCoord(1,1)-1)*p.scales(3)],2,1)))','\n')};
+end
+detectionString=[detectionValues; ' '; '@4'];
+
+detectionValues={};
+if(~isempty(fMI.xCoord))
+    detectionValues=strjoin(cumulDetectionValues,'\n');
+    detectionString=[detectionString;detectionValues];
+end
+
+propString={};
+propValues={};
+for propIdx=1:length(p.prop)
     
+    propString=[propString; 'VERTEX { float ' p.prop{propIdx}{1} ' } @' num2str(4+propIdx)'];
+    propString=[propString; ['@' num2str(4+propIdx) ]];
+    %propValues=strjoin(cumulPropValues{propIdx,:},'\n');
+    propValues=[cumulPropValues{propIdx,:}];
+    propString=[propString;propValues];
+end
+
+frameFilename=[basename '_cumulative.am'];
+fid = fopen(frameFilename, 'w');
+fprintf(fid,'%s\n', strjoin(headerString','\n'));
+fprintf(fid,'%s\n', strjoin(detectionString','\n') );
+fprintf(fid,'%s\n', strjoin(propString','\n') );
+fclose(fid);
+
 % cumulFrameFilename=[basename '_cumulative.am'];
 % cfid = fopen(cumulFrameFilename, 'w');
 % fprintf(cfid,['# Amira 2.0 ASCII\n\n']);

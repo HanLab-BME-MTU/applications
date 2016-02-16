@@ -93,8 +93,8 @@ cumulInterpCrossingEB3.xCoord=vertcat(cell2mat([arrayfun(@(x) x.xCoord,interpCro
 cumulInterpCrossingEB3.yCoord=vertcat(cell2mat([arrayfun(@(x) x.yCoord,interpCrossingEB3,'unif',0)]));
 cumulInterpCrossingEB3.zCoord=vertcat(cell2mat([arrayfun(@(x) x.zCoord,interpCrossingEB3,'unif',0)]));
 
-amiraWriteTracks('amiraTracks/tracks.am',tracks,'scales',[100,100,235],'edgeProp',{{'crossing',crossingTracks}});
-amiraWriteMovieInfo('amiraCrossingDetect/detectBeforeAfter.am',crossingEB3,'scales',[100,100,235],'prop',{{'inOut',inOutProperties},{'ID',association}});
-amiraWriteMovieInfo('amiraCrossCoordinate/crossing.am',interpCrossingEB3,'scales',[100,100,235]);
-amiraWriteMovieInfo('amiraCumulCrossCoordinate/cumulCrossing.am',cumulInterpCrossingEB3,'scales',[100,100,235]);
+% amiraWriteTracks('amiraTracks/tracks.am',tracks,'scales',[100,100,235],'edgeProp',{{'crossing',crossingTracks}});
+% amiraWriteMovieInfo('amiraCrossingDetect/detectBeforeAfter.am',crossingEB3,'scales',[100,100,235],'prop',{{'inOut',inOutProperties},{'ID',association}});
+% amiraWriteMovieInfo('amiraCrossCoordinate/crossing.am',interpCrossingEB3,'scales',[100,100,235]);
+% amiraWriteMovieInfo('amiraCumulCrossCoordinate/cumulCrossing.am',cumulInterpCrossingEB3,'scales',[100,100,235]);
 
