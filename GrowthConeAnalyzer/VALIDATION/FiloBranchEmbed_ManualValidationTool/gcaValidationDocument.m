@@ -1,4 +1,4 @@
-function [ coordsFN ] = gcaValidationDocument(errorName,imSize,color)
+function [ coordsFN, number] = gcaValidationDocument(errorName,imSize,color)
 % GCAValidationFiloBranchNetworkDocumentErrorTool
 %
 
@@ -14,7 +14,7 @@ hText =  text(20,ny-20, ['N ' errorName ' = 0 ']);
 % while asking the user to click filo
 while clickFilo == 1
     
-    reply2 = questdlg(['Document ' errorName ' Filopodia?']);
+    reply2 = questdlg(['Document ' errorName ' Segment?']);
     % if yes ask the user to choose a point
     if strcmpi(reply2,'yes')
         %         imshow(img,[])
@@ -69,12 +69,12 @@ while clickFilo == 1
             clickFilo = 0;
             % if no reset the values
         elseif strcmpi(reply3,'no')
-            reply4 = questdlg('How Would You like to Fix It?','','Add a Filopodia','Remove a Filopodia','Start Over','Add a Filopodia');
+            reply4 = questdlg('How Would You like to Fix It?','','Add a Problem','Remove a Problem','Start Over','Add a Problem');
             switch reply4
-                case 'Add a Filopodia';
+                case 'Add a Problem';
                     
                     
-                case 'Remove a Filopodia'
+                case 'Remove a Problem'
                     listFilo = num2cell(1:filoCount-1);
                     idxRemove  = listSelectGUI(listFilo,[],'move');
                     
@@ -135,6 +135,11 @@ while clickFilo == 1
     end % strcmpi
     
 end % while clickFilo
+number = filoCount -1; 
+if number>0 
+      arrayfun(@(i) text(coordsFN(i,1)+2,coordsFN(i,2),[errorName ' ' num2str(i)],'FontSize',14),1:size(coordsFN(:,1)));
+      arrayfun(@(i) scatter(coordsFN(i,1),coordsFN(i,2),30,color,'filled'),1:size(coordsFN(:,1)));
+end 
 
 end
 
