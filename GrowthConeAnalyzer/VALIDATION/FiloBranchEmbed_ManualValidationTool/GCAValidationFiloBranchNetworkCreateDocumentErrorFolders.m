@@ -12,9 +12,10 @@ defaultType{1} = 'veilFilo';
 defaultType{2} = 'branch'; 
 defaultType{3} = 'embed'; 
 
+
 ip.addParameter('type',defaultType); % cell of types to run
 ip.addParameter('inputFolder',[]);  % input path for the filoBranch file assuming
-
+ip.addParameter('TSOverlays',true); 
 ip.parse(selectedProjects,outDir,varargin{:});
 
 typesToRun = ip.Results.type;
@@ -23,6 +24,7 @@ typesToRun = ip.Results.type;
 for iProj = 1:size(selectedProjects,1)
     
     currentProj = selectedProjects{iProj,1};
+    frame = selectedProjects{iProj,2};
     
     %get the ID  (find the function for this)
     %[group,numID,date] = helperGetIDInfo(currentProj);
@@ -52,10 +54,8 @@ for iProj = 1:size(selectedProjects,1)
         inDir = [MD.outputDirectory_ filesep 'SegmentationPackage/StepsToReconstructTestingGeometry20160205/VII_filopodiafits_geoThreshEmbed_0pt5/Channel_1'];
     end
     
-    % Move the fit files
-    
-    
-    source = [inDir filesep 'Linescans' filesep 'Frame ' num2str(selectedProjects{iProj,2},'%03d') ];
+    % Copy over the fit files so can look at them easily 
+    source = [inDir filesep 'Linescans' filesep 'Frame ' num2str(frame,'%03d') ];
     
     dest = [outProj filesep 'Fits'];
     if ~isdir(dest)
@@ -64,7 +64,7 @@ for iProj = 1:size(selectedProjects,1)
     %
     copyfile(source,dest);
     
-    frame = selectedProjects{iProj,2};
+    % load the image
     img = double(imread([MD.getChannelPaths{1} filesep MD.getImageFileNames{1}{frame}]));
     
     
@@ -73,14 +73,17 @@ for iProj = 1:size(selectedProjects,1)
     filoInfo = filoBranch(frame).filoInfo;
     filoBranchC = filoBranch(frame);
     
-    
-    
+    % load the veil info
     veilDir = [MD.outputDirectory_ filesep 'SegmentationPackage/StepsToReconstruct/IV_veilStem_length/Channel_1'];
     load([veilDir filesep 'veilStem.mat']);
     
     veilMask = veilStem(frame).finalMask;
-    
-    
+
+    if ip.Results.TSOverlays
+        GCATroubleshootMakeMovieOfReconstructMovie(MD,'InputDirectory',inDir,'OutputDirectory',outProj,... 
+            'frames',frame,'outDirType',[]); 
+    end 
+   
     for iType = 1:numel(typesToRun)
         type = typesToRun{iType};
         
