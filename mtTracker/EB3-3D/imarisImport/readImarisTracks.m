@@ -11,7 +11,7 @@ for t=1:max(Timing)
     featureIdx(Timing==t)=fIdx((Timing==t));
 end
 %%
-tracks(max(TrackId))=TracksHandle()
+tracks(max(TrackId))=TracksHandle();
 
 for tIdx=1:max(TrackId)
     tIdxMask=(TrackId==tIdx);
