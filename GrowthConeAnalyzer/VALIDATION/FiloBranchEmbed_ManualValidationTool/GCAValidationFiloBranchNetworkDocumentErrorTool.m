@@ -1,4 +1,4 @@
-function [ output_args ] = GCAValidationFiloBranchNetworkDocumentErrorToolFinal(reconstructDir,varargin)
+ function [ output_args ] = GCAValidationFiloBranchNetworkDocumentErrorTool(reconstructDir,varargin)
 % GCAValidationFiloBranchNetworkDocumentErrorTool
 %
 %% INPUTPARSER
@@ -7,11 +7,15 @@ ip = inputParser;
 
 ip.CaseSensitive = false;
 ip.addRequired('reconstructDir');
-ip.addParameter('type','filoBranch');
+defaultType{1} = 'VeilFilo';
+defaultType{2} = 'Branch';
+defaultType{3} = 'Embed';
+ip.addParameter('type',defaultType); % embed, veilFilo, branch
+
 
 ip.parse(reconstructDir,varargin{:});
-
-type = ip.Results.type;
+%%
+typesAll = ip.Results.type;
 
 x = dir(reconstructDir);
 x = x(3:end);
@@ -27,82 +31,67 @@ idxInclude  = listSelectGUI(list,[],'move');
 % listSelectGUI to select a file to work on
 toTest = list(idxInclude);
 
-for iProj = 1: numel(toTest)
-    % make documentation directory
-%     overlayDirC = [reconstructDir filesep toTest{iProj} filesep  'ValidationOverlays' filesep ];
-%     
-%     if ~isdir(overlayDirC)
-%         mkdir(overlayDirC)
-%     end
+     
+colors{1} = 'b';
+colors{2} = 'r';
+colors{3} = 'g';
+
+for iType = 1:numel(typesAll)
     
-    switch type
-        case 'filoBranch'
-            listOfImages =  searchFiles('.png',[],[reconstructDir filesep toTest{iProj} filesep ...
-                'OverlayFiloBranch' filesep 'Reconstruct_Movie'],0,'all',1);
-              
-            overlayDirC = [reconstructDir filesep toTest{iProj} filesep 'OverlayFiloBranch' filesep ... 
-                'ValidationOverlays' filesep ];
-            
-            
-            
-        case 'embed'
-            listOfImages = searchFiles('.png',[],[reconstructDir filesep toTest{iProj} filesep ...
-                'OverlayEmbed'],0,'all',1);
-              
-            overlayDirC = [reconstructDir filesep toTest{iProj} filesep 'OverlayEmbed' filesep ... 
-                'ValidationOverlays' filesep ];
-            
-       
-            
-            
-    end
-    
-    if ~isdir(overlayDirC)
-        mkdir(overlayDirC);
-    end
+    typeC = typesAll{iType};
     
     
-    imgRaw = imread(listOfImages{1});
-    imgOverlay = imread(listOfImages{end});
-    imgLarge = [imgOverlay imgRaw];
-    [nyLarge,nxLarge,~] = size(imgLarge);
     
-    % move to next non-documented frame?
     
-    % choose a file manually?
-    
-    %
-    % load the chosen project directory
-    
-    errorName{1} = 'False Pos'; 
-    errorName{2} = 'False Neg'; 
-    errorName{3} = 'Mis'; 
-    
-    colors{1} = 'b'; 
-    colors{2} = 'r'; 
-    colors{3} = 'g'; 
-    
-    for iError = 1:3
-        % The first and last frames in the Troubleshoot Reconstruction Directory
-        % will be what we load.
-        [ny,nx,~] = size(imgRaw);
+    for iProj = 1: numel(toTest)
+        
+        errorName{1} = ['False Pos ' typeC ];
+        errorName{2} = ['False Neg ' typeC ] ;
+        
+        if strcmpi(typeC, 'branch')
+            errorName{3} = ['Misconnection ' typeC];
+        end
         
         
-        setFigure(nxLarge,nyLarge,'on');
-        imshow(imgLarge,[]);
-        hold on
-        coords =  gcaValidationDocument(errorName{iError},[ny,nx],colors{iError});
-        name = strrep(errorName{iError},' ' ,'_'); 
-        save([overlayDirC filesep name '_Coords.mat'],'coords');
-        saveas(gcf, [overlayDirC filesep name '_Overlay.fig']);
-        saveas(gcf,[overlayDirC filesep name '_Overlay.png']); 
-        saveas(gcf,[overlayDirC filesep name '_Overlay.eps'],'psc2'); 
-        close gcf
-        clear coords
-    end
-  
+        listOfImages =  searchFiles('.png',[],[reconstructDir filesep toTest{iProj} filesep ...
+            'Overlay' typeC ],0,'all',1);
+        
+        overlayDirC = [reconstructDir filesep toTest{iProj} filesep 'Overlay' typeC filesep ...
+            'ValidationOverlays' filesep ];
+        
+        
+        if ~isdir(overlayDirC)
+            mkdir(overlayDirC);
+        end
+        
+        
+        imgRaw = imread(listOfImages{1});
+        imgOverlay = imread(listOfImages{end});
+        imgLarge = [imgOverlay imgRaw];
+        [nyLarge,nxLarge,~] = size(imgLarge);
+        
+          
+        for iError = 1:numel(errorName)
+            % The first and last frames in the Troubleshoot Reconstruction Directory
+            % will be what we load.
+            [ny,nx,~] = size(imgRaw);
+            
+            
+            setFigure(nxLarge,nyLarge,'on');
+            imshow(imgLarge,[]);
+            hold on
+            [coords,filoCount] =  gcaValidationDocument(errorName{iError},[ny,nx],colors{iError});
+            name = strrep(errorName{iError},' ' ,'_');
+            save([overlayDirC filesep name '_Coords.mat'],'coords','filoCount');
+            saveas(gcf, [overlayDirC filesep name '_Overlay.fig']);
+            saveas(gcf,[overlayDirC filesep name '_Overlay.png']);
+            saveas(gcf,[overlayDirC filesep name '_Overlay.eps'],'psc2');
+            close gcf
+            clear coords
+        end
+         clear errorName
+        
+    end % iProj
     
-end % iProj
-
-
+end % iType
 
