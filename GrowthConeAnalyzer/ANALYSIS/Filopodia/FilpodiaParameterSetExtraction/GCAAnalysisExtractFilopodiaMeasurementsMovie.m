@@ -292,7 +292,9 @@ for iAnalType = 1:length(analInput);
         if ip.Results.Rewrite == true
             display(['Overwriting ' newFiloDir]);
             rmdir(newFiloDir,'s')
-            mkdir(newFiloDir);
+            %mkdir(newFiloDir);
+            system(['mkdir -p '  newFiloDir]);
+            
             % get the filopodia filter for analInput
             [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,analInput(iAnalType).filterType); 
             %[filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbed(filoBranch,analInput(iAnalType).filterType);
@@ -305,7 +307,8 @@ for iAnalType = 1:length(analInput);
         end % ip.Results.Rewrite
         
     else % make the new directory and make the filter
-        mkdir(newFiloDir);
+        %mkdir(newFiloDir);
+        system(['mkdir -p '  newFiloDir]);
         [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,analInput(iAnalType).filterType); 
         %[filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbed(filoBranch,analInput(iAnalType).filterType);
         % save the filter set used
@@ -338,7 +341,8 @@ for iAnalType = 1:length(analInput);
             end
         else % need to make the directory
             if ~isdir(analOutputDir)
-                mkdir(analOutputDir)
+                %mkdir(analOutputDir)
+                system(['mkdir -p '  analOutputDir]);
             end
         end
         
