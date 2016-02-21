@@ -1,4 +1,4 @@
-function [filoLengthToVeil] = GCAAnalysisExtract_filoLength(analInfo,filoFilterSet,filoRegion,includeAllInt)
+function [out] = GCAAnalysisExtract_filoLength(analInfo,filoFilterSet,varargin)
 %% GCAAnalysisExtract_filoLengthToVeil
 % Collects Filopodia Lengths to the Veil for an entire movie for a
 % Filtered Set of Filopodia
@@ -22,7 +22,9 @@ function [filoLengthToVeil] = GCAAnalysisExtract_filoLength(analInfo,filoFilterS
 %
 %filoRegion     PARAM: filoRegion: character 'Int_', 'Ext_', or 'Tot'
 %                      specifying the part of the actin bundle "filopodia"
-%                      you want to extract (DEFAULT: 'Ext_')
+%                      you want to extract (DEFAULT: 'Ext_') - Added 20160215 can also
+%                      calculate percentage of bundle embedded by flagging
+%                      'EmbedPercent'
 %
 % OUTPUT:
 % filoLengthToVeil:  rx1 cell array where r (row) is the number of frames
@@ -31,12 +33,21 @@ function [filoLengthToVeil] = GCAAnalysisExtract_filoLength(analInfo,filoFilterS
 %
 %
 
+%% Check Parameters 
+
+ip = inputParser;
+ip.KeepUnmatched = true;
+
+ip.CaseSensitive = false;
+
+ip.addParameter('filoPart', 'Ext_'); 
+ip.addParameter('outPercent',false); % in the case of filoPart 
+% 'Tot' will output the percentage embedded for each filopodia 
+% instead of the total length of the actin bundle 
+ip.addParameter('umPerPixel',.216);
+
+ip.parse(varargin{:});
 %%
-
-if nargin<4 
-   includeAllInt = true;  
-end
-
 
 % 
 
@@ -45,7 +56,7 @@ if length(analInfo) == 1
 else 
     nFrames = length(analInfo)-1; 
 end 
-filoLengthToVeil = cell(nFrames,1);
+out = cell(nFrames,1);
 
 for iFrame = 1:nFrames
     
@@ -57,41 +68,50 @@ for iFrame = 1:nFrames
         % internal based on fitting criteria. 
         filterFrameAll= filoFilterSet{iFrame};
         
-        if strcmpi(filoRegion,'Int_'); 
+        if strcmpi(ip.Results.filoPart,'Int_'); 
             filterFrameC = (filterFrameAll(:,1) == 1 & filterFrameAll(:,2) == 1); 
         else 
             filterFrameC = filterFrameAll(:,1); 
-        end 
+       
+        end %
         
+
+     
         filoInfoFilt  = filoInfo(filterFrameC);
         
-        % collect lengths
-        if ~strcmpi(filoRegion,'Tot');
-            lengths =  vertcat(filoInfoFilt(:).([(filoRegion) 'length'])).*.216; % add as a parameter
-            if (strcmpi(filoRegion,'Int_') && includeAllInt);
-                lengths(isnan(lengths)) = 0 ;        
-                
-                
-            end 
+        % collect lengths: if just int or ext just use the respective filopodia
+        % filter... 
+        if ~strcmpi(ip.Results.filoPart,'Tot');
+            lengths =  vertcat(filoInfoFilt(:).([(ip.Results.filoPart) 'length'])).*ip.Results.umPerPixel; % add as a parameter
         else
             % for now filter out all the internal filo that do not pass the
-            % fitting criteria 
+            % fitting criteria ( ie want to keep all external filo that
+            % pass the criteria but not the embedded) 
+            % 
             
-             filterInt = (filterFrameAll(:,1) == 1 & filterFrameAll(:,2) ==0 ); 
-             filterInt = filterInt(filterFrameC);  
-             
-            lengthsInt =  vertcat(filoInfoFilt(:).Int_length).*.216;
-            lengthsExt = vertcat(filoInfoFilt(:).Ext_length).*.216;
+             filterInt = (filterFrameAll(:,1) == 1 & filterFrameAll(:,2) ==0 ); % get the ID of all non-fits internally this filter is the length of 
+%             % the original filoInfo detection 
+             filterInt = filterInt(filterFrameC); % filter the above logical filter to make it the same   
+            %filterInt = filterFrameC(:,2) ==0;  % get all the embedded that do not pass the filter criteria
+            
+            lengthsInt =  vertcat(filoInfoFilt(:).Int_length).*ip.Results.umPerPixel;
+            lengthsExt = vertcat(filoInfoFilt(:).Ext_length).*ip.Results.umPerPixel;
             % convert NaN lengths of internal to zero
             lengthsInt(isnan(lengthsInt))=0;
-            lengthsInt(filterInt) = 0; 
+            lengthsInt(filterInt) = 0;
             
             lengths = lengthsInt + lengthsExt;
+            if ip.Results.outPercent; % 
+                percent = lengthsInt./lengths; 
+            end 
         end
-        
-        filoLengthToVeil{iFrame} = lengths;
+        if ip.Results.outPercent; 
+            out{iFrame} = percent;
+        else
+            out{iFrame} = lengths;
+        end
     else
-        filoLengthToVeil{iFrame} = [];
+        out{iFrame} = [];
     end
     clear lengths
 end

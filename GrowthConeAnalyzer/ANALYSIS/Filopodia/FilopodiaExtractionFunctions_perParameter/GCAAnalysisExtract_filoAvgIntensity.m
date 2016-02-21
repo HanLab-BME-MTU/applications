@@ -23,17 +23,26 @@ frames = length(analInfo);
 
 filoAvgInt = cell(frames,1);
 
+
 for iFrame = 1:length(analInfo)-1
+    
     filoInfo = analInfo(iFrame).filoInfo;
-    filterFrameC= filoFilterSet{iFrame};
-    filoInfoFilt = filoInfo(filterFrameC) ;
-    
-    
-    normIntensity =  vertcat(filoInfoFilt(:).([(filoRegion) '_IntensityNormToVeil'])); % add as a parameter
-    
-    
-    
-    filoAvgInt{iFrame} = normIntensity;
+    if ~isempty(filoInfo)
+        filterFrameC= filoFilterSet{iFrame};
+        
+        if strcmpi(filoRegion,'Int')
+           filterFrameC = (filterFrameC(:,1)==1 & filterFrameC(:,2) ==1);
+        end
+        
+        filoInfoFilt = filoInfo(filterFrameC(:,1)) ;
+        
+        
+        normIntensity =  vertcat(filoInfoFilt(:).([(filoRegion) '_IntensityNormToVeil'])); % add as a parameter
+            
+        filoAvgInt{iFrame} = normIntensity;
+    else
+        filoAvgInt{iFrame} = [];
+    end
     clear normIntensity
 end
 

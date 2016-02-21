@@ -25,21 +25,27 @@ frames = length(analInfo);
 filoOrient = cell(frames,1);
 
 for iFrame = 1:length(analInfo)-1
+    
+    
     filoInfo = analInfo(iFrame).filoInfo;
-    
-    
-    
-    filterFrameC= filoFilterSet{iFrame};
-    filoInfoFilt = filoInfo(filterFrameC) ;
-    orient =  vertcat(filoInfoFilt.orientation);
-    filoOrient{iFrame} = orient;
-    
-    %toPlot(1:length(orient),iFrame)= orient;
-    
-    % filter out any that might have passed the exitflag criteria but NOT
-    % gave a number for the fit ==0  % maybe flag above later and any
-    % internal filopodia that do not exist (these will likewise be
-    % marked by an NaN in the datastructure)
+    if ~isempty(filoInfo)
+        
+        
+        
+        filterFrameC= filoFilterSet{iFrame};
+        filoInfoFilt = filoInfo(filterFrameC(:,1)) ;
+        orient =  vertcat(filoInfoFilt.orientation);
+        filoOrient{iFrame} = orient;
+        
+        %toPlot(1:length(orient),iFrame)= orient;
+        
+        % filter out any that might have passed the exitflag criteria but NOT
+        % gave a number for the fit ==0  % maybe flag above later and any
+        % internal filopodia that do not exist (these will likewise be
+        % marked by an NaN in the datastructure)
+    else
+        filoOrient{iFrame} = [];
+    end
     clear orient
     
 end

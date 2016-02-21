@@ -60,7 +60,8 @@ for iFrame = 1:length(analInfo) -1
     
     %% Get Filopodia Number 
     filterFrameC= filoFilterSet{iFrame};
-    numFilo = sum(filterFrameC);
+    if ~isempty(filterFrameC)
+    numFilo = sum(filterFrameC(:,1));
     
     
     
@@ -75,6 +76,8 @@ for iFrame = 1:length(analInfo) -1
     
     
     densitiesCell{iFrame,1} = numFilo/distBoundMicron*10;
+    else 
+        densitiesCell{iFrame,1} = []; 
     
 end
 
