@@ -50,18 +50,27 @@ for iFrame = 1:length(analInfo)-1
         [~,idxKeep] = arrayfun(@(x) intersect(filoInfoStem(x).conIdx,IDsCurrentSet),1:sum(idxStem),'uniformoutput',0);
         
         %     % remove empty
-        %     noIntersect = cellfun(@(x) isempty(x),idxKeep);
-        %     filoInfoStem(noIntersect) = [];
-        %     idxKeep(noIntersect) = [];
+            noIntersect = cellfun(@(x) isempty(x),idxKeep);
+            filoInfoStem(noIntersect) = [];
+            idxKeep(noIntersect) = [];
         %
-        distValues = arrayfun(@(x) filoInfoStem(x).conXYCoords(idxKeep{x},3),1:length(idxKeep),'uniformoutput',0);
-        IDs  = arrayfun(@(x) filoInfoStem(x).conIdx(idxKeep{x}),1:length(idxKeep),'uniformoutput',0);
-        IDs = vertcat(IDs{:}); % note the IDs get messed up so the distValues are not in the same order as the filoBranch
-        distValues = vertcat(distValues{:});
-        
-        
-        distToBranchCell{iFrame} = distValues.*0.216;
-        clear distValues
+        % get rid of empty cells 
+        %idxKeep = idxKeep(cellfun(@(x) ~isempty(x),idxKeep)); 
+        %if ~isempty(idxKeep)
+            
+            distValues = arrayfun(@(x) filoInfoStem(x).conXYCoords(idxKeep{x},3),1:length(idxKeep),'uniformoutput',0); % note if the length is zero 
+            % it will simply result in an empty double which is what you
+            % would like 
+            IDs  = arrayfun(@(x) filoInfoStem(x).conIdx(idxKeep{x}),1:length(idxKeep),'uniformoutput',0);
+            IDs = vertcat(IDs{:}); % note the IDs get messed up so the distValues are not in the same order as the filoBranch
+            distValues = vertcat(distValues{:});
+            
+            
+            distToBranchCell{iFrame} = distValues.*0.216;
+            clear distValues
+%         else
+%             distToBranchCell{iFrame} = [];
+%        % end
     else
         distToBranchCell{iFrame} = [];
     end
