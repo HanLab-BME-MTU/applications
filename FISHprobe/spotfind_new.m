@@ -126,11 +126,13 @@ for t=1:tsteps
     for i=1:size(LM)
         LM(i) = size(mnpSorted,1)-i+1;
     end
-    plot(mnpSorted,LM);
+    plot(mnpSorted,LM,'r+');
     
     
 %     mnpThreshold = input('Enter spottiness threshold > ');
-    mnpThreshold = 0.001;
+% Carefully choose and modify mnpThreshold 01/2016
+%     mnpThreshold = 0.001;
+    mnpThreshold = 1e5;
     
     for qualifiedNum = 1:size(mnpSorted,1)
         if mnpSorted(qualifiedNum) < mnpThreshold
