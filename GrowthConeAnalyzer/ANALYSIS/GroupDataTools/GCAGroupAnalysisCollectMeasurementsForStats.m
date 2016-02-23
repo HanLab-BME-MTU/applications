@@ -18,6 +18,7 @@ ip.addParameter('splitMovie',false);
 ip.addParameter('splitFrame', 62);  % last frame you want to include
 ip.addParameter('OutputDirectory',pwd);
 ip.addParameter('MeasurementFolder','MEASUREMENT_EXTRACTION'); 
+ip.addParameter('perFrame',false); % will collect the median value per frame 
  
 ip.parse(toPlot,varargin{:});
 %%
@@ -50,6 +51,8 @@ for iGroup = 1:nGroups
         g3 = repmat([1,2],1,nMovies)';
         grpVar3{iGroup} = g3 + 2*(iGroup-1);
         
+        
+        
     end % ip.Results.splitMovie
     
     % check for consistency among the parameters that were run.
@@ -69,9 +72,10 @@ for iGroup = 1:nGroups
         
         paramNamesC = cellfun(@(x) strrep(x,'meas_',''),localParamFiles(:,1),'uniformoutput',0);
         paramNamesC = cellfun(@(x) strrep(x,'.mat',''),paramNamesC,'uniformoutput',0);
-%         idxOut = cellfun(@(x) strcmpi(x,'maxACFLagSpatial'),paramNamesC);
-%         paramNamesC(idxOut) = [];
-    %    localParamFiles(idxOut,:) = [];
+        idxOut1 = cellfun(@(x) strcmpi(x,'maxACFLagSpatial'),paramNamesC);
+        idxOut2 = cellfun(@(x) strcmpi(x,'ExpressionNormalization'),paramNamesC); 
+        paramNamesC(idxOut1 |idxOut2) = [];
+        localParamFiles(idxOut1|idxOut2,:) = [];
         
         for iParam = 1:numel(paramNamesC)
             
@@ -88,6 +92,23 @@ for iGroup = 1:nGroups
             else
                 dataSetGroup.(paramNamesC{iParam}).valuesWholeMovie{iProj} = vertcat(measC{:});
             end
+            
+            %% add the per frame values 
+            if ip.Results.perFrame 
+                if ip.Results.splitMovie == true 
+                   dataSetGroup.(paramNamesC{iParam}).valuesPerFrame{2*(iProj-1)+1} = vertcat(measC{1:ip.Results.splitFrame});
+                   dataSetGroup.(paramNamesC{iParam}).valuesPerFrame{2*(iProj-1)+2} = vertcat(measC{ip.Results.splitFrame+1:end});  
+                else 
+                    % take out empty cells 
+                    measC = measC(cellfun(@(x) ~isempty(x), measC)); 
+                    valuesCell = cellfun(@(x) nanmedian(x), measC); % take the median per frame 
+                    
+                    dataSetGroup.(paramNamesC{iParam}).valuesPerFrame{iProj} = valuesCell; 
+                end 
+        
+            end 
+            
+            
         end
     end
     %     % collect params and reformat
@@ -95,10 +116,26 @@ for iGroup = 1:nGroups
     %
     reformat = arrayfun(@(i) reformatDataCell(dataSetGroup.(paramsAll{i}).valuesWholeMovie),1:numel(paramsAll),...
         'uniformoutput',0);
-    %
+    if ip.Results.perFrame
+        reformat2 = arrayfun(@(i) reformatDataCell(dataSetGroup.(paramsAll{i}).valuesPerFrame),1:numel(paramsAll),...
+            'uniformoutput',0);
+        %grpPerFrame = arrayfun(@(i) 
+        
+        
+    end
+    
     for iParam = 1:numel(paramsAll)
         toPlot.(paramsAll{iParam}).dataMat{iGroup} = reformat{iParam};
+        
+        if  ip.Results.perFrame
+            toPlot.(paramsAll{iParam}).dataMatPerFrame{iGroup} = reformat2{iParam};
+            
+        end
+        
     end
+    
+    
+    
     clear reformat paramsAll dataSetGroup
 end  % iGroup
 
@@ -109,9 +146,16 @@ else
     toPlot.info.groupingPoolWholeMovie = vertcat(grpVar{:});
     toPlot.info.groupingPerCell= vertcat(grpVar2{:});
     toPlot.info.groupingPoolBeginEndMovie = vertcat(grpVar3{:});
+    
 end
+
+%% save Data per frame 
+
+   
+  
 
 if ~isempty(ip.Results.OutputDirectory)
     save([ip.Results.OutputDirectory filesep 'toPlotGroupMeas.mat'],'toPlot');
+ 
 end
 end
