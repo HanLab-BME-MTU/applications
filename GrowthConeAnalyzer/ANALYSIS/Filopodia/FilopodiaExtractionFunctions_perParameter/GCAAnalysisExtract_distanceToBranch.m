@@ -82,6 +82,7 @@ for iFrame = 1:length(analInfo)-1
         else
             distToBranchCell{iFrame} = [];
         end
+    else 
         distToBranchCell{iFrame} = [];
     end
 end
