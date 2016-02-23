@@ -18,11 +18,20 @@ ip.addParameter('windowChoice', 'ConstantNumber'); % Current analysis folder
 % where the veil window analysis is kept ... currently have run through
 % with 'ConstantNumber' or 'ProtrusionBased' with a re-initiation at frame
 % 61 (5 minutes) mid movie 
+ip.addParameter('umPerMin',false); % default is nm per sec 
+
+ip.addParameter('subRoi',false)
 
 ip.parse(toPlot,varargin{:});
 
 %%
+if ~ip.Results.splitMovie 
+   % stupidly named these slightly different for the CK666... fix that here
+   % 
 windFold = ['protrusion_samples_' ip.Results.windowChoice '_windSize_5ReInit' num2str(ip.Results.splitFrame)];
+else 
+    windFold = ['protrusion_samples_' ip.Results.windowChoice '_windSize_5_ReInit' num2str(ip.Results.splitFrame)];
+end 
 
 if ip.Results.clearOldFields
     params = fieldnames(toPlot);
@@ -31,34 +40,61 @@ if ip.Results.clearOldFields
 end
 
 params{1} = 'mednVeloc';
-params{2} = 'persTime';
-params{3} = 'maxVeloc';
-params{4} = 'minVeloc' ;
-params{5} = 'Veloc';
+params{2} = 'maxVeloc';
+params{3} = 'minVeloc' ;
+params{4} = 'Veloc';
+
+params{5} = 'persTime';
+
 % params{6} = 'percentage';
 
 analType{1} = 'protrusionAnalysis';
 analType{2} = 'retractionAnalysis';
-
-ylabel{1,1} = {'Median Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
-ylabel{1,2} = {'Median Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
-ylabel{2,1} = {'Persistence' ; 'of Protrusion Event ' ; '(s)'};
-ylabel{2,2} = {'Persistence' ; 'of Retraction Event ' ; '(s)'};
-ylabel{3,1} = {'Max Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
-ylabel{3,2} = {'Max Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
-ylabel{4,1} = {'Min Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
-ylabel{4,2} = {'Min Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
-ylabel{5,1} = {'Mean Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
-ylabel{5,2} = {'Mean Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
-%     ylabel{6,1} = {'Percentage of Windows' ; 'Protruding'};
-%     ylabel{6,2} = {'Percentage of Windows' ; 'Retracting'};
-%
-ylim{1} = 100;
-ylim{2} = 60;
-ylim{3} = 100;
-ylim{4} = 100;
-ylim{5} = 100;
-ylim{6}= 1;
+if ~ip.Results.umPerMin
+    ylabel{1,1} = {'Median Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
+    ylabel{1,2} = {'Median Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
+   
+    ylabel{2,1} = {'Max Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
+    ylabel{2,2} = {'Max Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
+    ylabel{3,1} = {'Min Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
+    ylabel{3,2} = {'Min Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
+    ylabel{4,1} = {'Mean Velocity ' ; 'of Protrusion Event ' ; '(nm/sec)'};
+    ylabel{4,2} = {'Mean Velocity ' ; 'of Retraction Event ' ; '(nm/sec)'};
+    
+    ylabel{5,1} = {'Persistence' ; 'of Protrusion Event ' ; '(s)'};
+    ylabel{5,2} = {'Persistence' ; 'of Retraction Event ' ; '(s)'};
+    
+    %     ylabel{6,1} = {'Percentage of Windows' ; 'Protruding'};
+    %     ylabel{6,2} = {'Percentage of Windows' ; 'Retracting'};
+    %
+    ylim{1} = 100; % 100 nm/sec for velocity
+    ylim{2} = 100;
+    ylim{3} = 100;
+    ylim{4} = 100;
+    ylim{5} = 60;
+    ylim{6}= 1;
+else
+    ylabel{1,1} = {'Median Velocity ' ; 'of Protrusion Event ' ; '(um/min)'}; 
+    ylabel{1,2} = {'Median Velocity ' ; 'of Retraction Event ' ; '(um/min)'};
+  
+    ylabel{2,1} = {'Max Velocity ' ; 'of Protrusion Event ' ; '(um/min)'};
+    ylabel{2,2} = {'Max Velocity ' ; 'of Retraction Event ' ; '(um/min)'};
+    ylabel{3,1} = {'Min Velocity ' ; 'of Protrusion Event ' ; '(um/min)'};
+    ylabel{3,2} = {'Min Velocity ' ; 'of Retraction Event ' ; '(um/min)'};
+    ylabel{4,1} = {'Mean Velocity ' ; 'of Protrusion Event ' ; '(um/min)'};
+    ylabel{4,2} = {'Mean Velocity ' ; 'of Retraction Event ' ; '(um/min)'};
+    
+    
+    ylabel{5,1} = {'Persistence' ; 'of Protrusion Event ' ; '(sec)'};
+    ylabel{5,2} = {'Persistence' ; 'of Retraction Event ' ; '(sec)'};
+    
+    ylim{1} = 6;
+    ylim{2} = 60;
+    ylim{3} = 6;
+    ylim{4} = 6;
+    ylim{5} = 6;
+    ylim{6}= 1;
+end
 
 % Collect
 for iGroup = 1:numel(toPlot.info.names)
@@ -94,20 +130,21 @@ for iGroup = 1:numel(toPlot.info.names)
             count = 1;
             for iProj = 1:size(projListC,1)
                 folder = [projListC{iProj,1} filesep 'GrowthConeAnalyzer'];
-                
-                toLoad1 = [folder filesep windFold filesep ...
-                    'EdgeVelocityQuantification_CutMovie_1'  filesep ...
-                    'EdgeMotion.mat'  ];
-                toLoad2 = [folder filesep windFold filesep ...
-                    'EdgeVelocityQuantification_CutMovie_2' filesep 'EdgeMotion.mat'  ];
-                
-                
-                % toLoad1= [folder filesep 'SegmentationPackage/GCASubRegions/GC/subRegion_windows/ConstantNumber' ...
-                %    filesep  'EdgeVelocityQuantification_CutMovie_1' filesep 'EdgeMotion.mat'];
-                %
-                % toLoad2 = [folder filesep 'SegmentationPackage/GCASubRegions/GC/subRegion_windows/ConstantNumber' ...
-                %     filesep  'EdgeVelocityQuantification_CutMovie_2' filesep 'EdgeMotion.mat'];
-                
+                 
+                if ip.Results.subRoi
+                    toLoad1= [folder filesep 'SegmentationPackage/GCASubRegions/GC/subRegion_windows/' ip.Results.windowChoice ...
+                        filesep  'EdgeVelocityQuantification_CutMovie_1' filesep 'EdgeMotion.mat'];
+                    
+                    toLoad2 = [folder filesep 'SegmentationPackage/GCASubRegions/GC/subRegion_windows/' ip.Results.windowChoice ...
+                        filesep  'EdgeVelocityQuantification_CutMovie_2' filesep 'EdgeMotion.mat'];
+                else
+                    
+                    toLoad1 = [folder filesep windFold filesep ...
+                        'EdgeVelocityQuantification_CutMovie_1'  filesep ...
+                        'EdgeMotion.mat'  ];
+                    toLoad2 = [folder filesep windFold filesep ...
+                        'EdgeVelocityQuantification_CutMovie_2' filesep 'EdgeMotion.mat'  ];
+                end
                 
                 if exist(toLoad1,'file')~=0
                     first =  load(toLoad1);
@@ -147,14 +184,23 @@ for iGroup = 1:numel(toPlot.info.names)
             
             
             dataMat = reformatDataCell(data);
+            
+            if ip.Results.umPerMin && iParam~=5 
+                
+            dataMat = dataMat.*0.06; % convert to um/min
+            
+            end
+            
             if ip.Results.percentileThresh >0
                 add = ['greaterThan' num2str(ip.Results.percentileThresh) 'th_Perc'];
             else
                 add = [];
             end
+            
+            
             toPlot.([analType{iAnal} '_' params{iParam} '_' add]).dataMat{iGroup} = dataMat;
-            toPlot.([analType{iAnal} '_' params{iParam} '_' add ]).yLabel = ylabel{iParam,iAnal};
-            toPlot.([analType{iAnal} '_' params{iParam} '_' add ]).ylim = ylim{iParam};
+            toPlot.([analType{iAnal} '_' params{iParam} '_' add]).yLabel = ylabel{iParam,iAnal};
+            toPlot.([analType{iAnal} '_' params{iParam} '_' add]).ylim = ylim{iParam};
             
             %
             clear data dataMat
@@ -173,7 +219,28 @@ for iGroup = 1:numel(toPlot.info.names)
         toPlot.info.groupingPoolBeginEndMovie = vertcat(grpVar3{:});
     end
     
+    toPlot.info.collectVeilParams= ip.Results;
+    
     if ~isempty(ip.Results.OutputDirectory)
-        save([ip.Results.OutputDirectory filesep 'toPlotMeasWithVeil.mat'],'toPlot');
+        if ip.Results.subRoi
+            add = 'SubRoiGC'; 
+        else 
+            add = []; 
+        end 
+        
+        if ip.Results.umPerMin; 
+                add2 = 'umPerMin'; 
+            else 
+                add2 = []; 
+        end 
+            
+            
+        
+            save([ip.Results.OutputDirectory filesep 'toPlotMeasWithVeil' add '_' add2 '.mat'],'toPlot');
+        
     end
+    
+
 end % for iGroup
+
+ 
