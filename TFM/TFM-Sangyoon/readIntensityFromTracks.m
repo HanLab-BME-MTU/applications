@@ -7,8 +7,12 @@ function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, vararg
 % images. imgStack is also from SDC output.
 ip =inputParser;
 ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
+ip.addParamValue('reTrack',true,@islogical); % selcted track ids
+ip.addParamValue('trackOnlyDetected',false,@islogical); % selcted track ids
 ip.parse(varargin{:});
 extraLengthForced=ip.Results.extraLength;
+reTrack=ip.Results.reTrack;
+trackOnlyDetected =ip.Results.trackOnlyDetected;
 extraLength = 300;
 % get stack size
 numFrames = size(imgStack,3);
@@ -17,6 +21,10 @@ sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 % parfor_progress(numel(tracksNA));
 progressText(0,'Re-reading and tracking individual tracks:');
+searchRadius = 1;
+searchRadiusDetected = 2;
+halfWidth=2;
+halfHeight=2;
 
 % parfor k=1:numel(tracksNA)
 for k=1:numTracks
@@ -37,152 +45,188 @@ for k=1:numTracks
 %         end
 %     else
     if attribute==1
-        startFrame = max(1, tracksNA(k).startingFrame-extraLength);
-        endFrame = min(numFrames,tracksNA(k).endingFrame+extraLength);
-        curStartingFrame = tracksNA(k).startingFrame;
-        curEndingFrame = tracksNA(k).endingFrame;
-        % for the earlier time-points - going backward
-        ii=curStartingFrame;
-        x = tracksNA(k).xCoord(ii);
-        y = tracksNA(k).yCoord(ii);
-        A = tracksNA(k).amp(curStartingFrame);
-        c = tracksNA(k).bkgAmp(curStartingFrame); 
-        
-        for ii=curStartingFrame:-1:startFrame
-            curImg = imgStack(:,:,ii);
-            p=-1;
-%             curSigma = sigma;
-%             pitFound = false;
-            while p<=30
-                oldP = p;
-                p=p+1;
-                pmP =ceil(p/2)*(-1)^oldP;
-                curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
-                pitFound = false;
-                curAlpha = 0.05+p/100;
-                pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                searchRadius = 1;
-                if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
-                    x = pstruct.x;
-                    y = pstruct.y;
-                    A = pstruct.A;
-                    c = pstruct.c; 
-                    xi = round(x);
-                    yi = round(y);
-                    xRange = xi-1:xi+1;
-                    yRange = yi-1:yi+1;
-                    curAmpTotal = curImg(yRange,xRange);
-                    curAmpTotal = mean(curAmpTotal(:));
-                    tracksNA(k).startingFrameExtra = ii;
-                    tracksNA(k).xCoord(ii) = x;
-                    tracksNA(k).yCoord(ii) = y;
-                    tracksNA(k).amp(ii) = A;
-                    tracksNA(k).bkgAmp(ii) = c;
-                    tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                    tracksNA(k).presence(ii) =  1;
-                    pitFound = true;
-                    break
-                end
+        try
+            curStartingFrame = tracksNA(k).startingFrameExtra;
+            curEndingFrame = tracksNA(k).endingFrameExtra;
+            if isempty(curStartingFrame)
+                curStartingFrame = tracksNA(k).startingFrame;
             end
-            if ii~=curStartingFrame && ~pitFound
-                tracksNA(k).startingFrameExtra = ii+1;
-                break
-            elseif  ii==curStartingFrame && ~pitFound
-                tracksNA(k).startingFrameExtra = ii;
-                break
+            if isempty(curEndingFrame)
+                curEndingFrame = tracksNA(k).endingFrame;
             end
+        catch
+            curStartingFrame = tracksNA(k).startingFrame;
+            curEndingFrame = tracksNA(k).endingFrame;
         end
-        % for the present period
-        for ii=curStartingFrame+1:curEndingFrame;
+        if ~trackOnlyDetected
+            % for the earlier time-points - going backward
+            startFrame = max(1, tracksNA(k).startingFrame-extraLength);
+            endFrame = min(numFrames,tracksNA(k).endingFrame+extraLength);
+            ii=curStartingFrame;
             x = tracksNA(k).xCoord(ii);
             y = tracksNA(k).yCoord(ii);
             A = tracksNA(k).amp(curStartingFrame);
             c = tracksNA(k).bkgAmp(curStartingFrame); 
-            xi = round(x);
-            yi = round(y);
-            xRange = xi-1:xi+1;
-            yRange = yi-1:yi+1;
-            curAmpTotal = curImg(yRange,xRange);
-            curAmpTotal = mean(curAmpTotal(:));
-            tracksNA(k).ampTotal(ii) =  curAmpTotal;
-
-            curImg = imgStack(:,:,ii);
-            p=-1;
-            while p<=30
-                oldP = p;
-                p=p+1;
-                pmP =ceil(p/2)*(-1)^oldP;
-                curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
-%                 curSigma = sigma*(20-p)/20; % increasing sigma by 5 percent per each iteration
-                pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac');
-                if ~isnan(pstruct.x) && abs(pstruct.x-x)<2 && abs(pstruct.y-y)<2 && pstruct.A>0 && pstruct.A<2*A
-                    x = pstruct.x;
-                    y = pstruct.y;
-                    A = pstruct.A;
-                    c = pstruct.c; 
-                    xi = round(x);
-                    yi = round(y);
-                    xRange = xi-1:xi+1;
-                    yRange = yi-1:yi+1;
-                    curAmpTotal = curImg(yRange,xRange);
-                    curAmpTotal = mean(curAmpTotal(:));
-                    tracksNA(k).xCoord(ii) = x;
-                    tracksNA(k).yCoord(ii) = y;
-                    tracksNA(k).amp(ii) = A;
-                    tracksNA(k).bkgAmp(ii) = c;
-                    tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                    tracksNA(k).presence(ii) =  1;
-                    break
-                end
-            end
-        end
-        % for the later time-points - going forward, x and y are already
-        % set as a last point.
-        for ii=(curEndingFrame+1):endFrame
-            curImg = imgStack(:,:,ii);
-            pitFoundEnd = false;
-            p=-1;
-            while p<=30
-                oldP = p;
-                p=p+1;
-                pmP =ceil(p/2)*(-1)^oldP;
-                curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
-                curAlpha = 0.05+p/100;
-                pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                if ~isnan(pstruct.x) && abs(pstruct.x-x)<2 && abs(pstruct.y-y)<2 && pstruct.A>0 && pstruct.A<2*A
-                    x = pstruct.x;
-                    y = pstruct.y;
-                    A = pstruct.A;
-                    c = pstruct.c; 
-                    xi = round(x);
-                    yi = round(y);
-                    xRange = xi-1:xi+1;
-                    yRange = yi-1:yi+1;
-                    curAmpTotal = curImg(yRange,xRange);
-                    curAmpTotal = mean(curAmpTotal(:));
-                    tracksNA(k).endingFrameExtra = ii;
-                    tracksNA(k).xCoord(ii) = x;
-                    tracksNA(k).yCoord(ii) = y;
-                    tracksNA(k).amp(ii) = A;
-                    tracksNA(k).bkgAmp(ii) = c;
-                    tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                    tracksNA(k).presence(ii) =  1;
-                    pitFoundEnd = true;
-                    break
-                end
-            end
-            if ~pitFoundEnd
-                tracksNA(k).endingFrameExtra = ii-1;
-                break
-            end
-        end
-        if startFrame==curStartingFrame
             tracksNA(k).startingFrameExtra = curStartingFrame;
-        end
-        if endFrame==curEndingFrame
             tracksNA(k).endingFrameExtra = curEndingFrame;
+        end        
+        if reTrack
+            if ~trackOnlyDetected
+                for ii=curStartingFrame:-1:startFrame
+                    curImg = imgStack(:,:,ii);
+                    p=-1;
+        %             curSigma = sigma;
+        %             pitFound = false;
+                    while p<=30
+                        oldP = p;
+                        p=p+1;
+                        pmP =ceil(p/2)*(-1)^oldP;
+                        curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+                        pitFound = false;
+                        curAlpha = 0.05+p/100;
+                        pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
+                        if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
+                            x = pstruct.x;
+                            y = pstruct.y;
+                            A = pstruct.A;
+                            c = pstruct.c; 
+                            xi = round(x);
+                            yi = round(y);
+                            xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                            yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                            curAmpTotal = curImg(yRange,xRange);
+                            curAmpTotal = mean(curAmpTotal(:));
+                            tracksNA(k).startingFrameExtra = ii;
+                            tracksNA(k).xCoord(ii) = x;
+                            tracksNA(k).yCoord(ii) = y;
+                            tracksNA(k).amp(ii) = A;
+                            tracksNA(k).bkgAmp(ii) = c;
+                            tracksNA(k).ampTotal(ii) =  curAmpTotal;
+                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).sigma(ii) = curSigma;
+                            if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
+                                tracksNA(k).state{ii} = 'NA';
+                            end
+                            pitFound = true;
+                            break
+                        end
+                    end
+                    if ii~=curStartingFrame && ~pitFound
+                        tracksNA(k).startingFrameExtra = ii+1;
+                        break
+                    elseif  ii==curStartingFrame && ~pitFound
+                        tracksNA(k).startingFrameExtra = ii;
+                        break
+                    end
+                end
+            end
+            % for the present period - it is necessary for ampTotal
+            for ii=curStartingFrame+1:curEndingFrame;
+                curImg = imgStack(:,:,ii);
+                x = tracksNA(k).xCoord(ii-1);
+                y = tracksNA(k).yCoord(ii-1);
+                A = tracksNA(k).amp(ii-1);
+                c = tracksNA(k).bkgAmp(ii-1); 
+                xi = round(x);
+                yi = round(y);
+                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                curAmpTotal = curImg(yRange,xRange);
+                curAmpTotal = mean(curAmpTotal(:));
+                tracksNA(k).ampTotal(ii) =  curAmpTotal;
+
+                p=-1;
+                while p<=30
+                    oldP = p;
+                    p=p+1;
+                    pmP =ceil(p/2)*(-1)^oldP;
+                    curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+    %                 curSigma = sigma*(20-p)/20; % increasing sigma by 5 percent per each iteration
+                    pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac');
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
+                        x = pstruct.x;
+                        y = pstruct.y;
+                        A = pstruct.A;
+                        c = pstruct.c; 
+                        xi = round(x);
+                        yi = round(y);
+                        xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                        yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                        curAmpTotal = curImg(yRange,xRange);
+                        curAmpTotal = mean(curAmpTotal(:));
+                        tracksNA(k).xCoord(ii) = x;
+                        tracksNA(k).yCoord(ii) = y;
+                        tracksNA(k).amp(ii) = A;
+                        tracksNA(k).bkgAmp(ii) = c;
+                        tracksNA(k).ampTotal(ii) =  curAmpTotal;
+                        tracksNA(k).presence(ii) =  1;
+                        tracksNA(k).sigma(ii) = curSigma;
+                        if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
+                            tracksNA(k).state{ii} = 'NA';
+                        end
+                        break
+                    end
+                end
+            end
+            % for the later time-points - going forward, x and y are already
+            % set as a last point.
+            if ~trackOnlyDetected
+                x = tracksNA(k).xCoord(curEndingFrame);
+                y = tracksNA(k).yCoord(curEndingFrame);
+                A = tracksNA(k).amp(curEndingFrame);
+                c = tracksNA(k).bkgAmp(curEndingFrame);
+
+                for ii=(curEndingFrame+1):endFrame
+                    curImg = imgStack(:,:,ii);
+                    pitFoundEnd = false;
+                    p=-1;
+                    while p<=30
+                        oldP = p;
+                        p=p+1;
+                        pmP =ceil(p/2)*(-1)^oldP;
+                        curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+                        curAlpha = 0.05+p/100;
+                        pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
+                        if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
+                            x = pstruct.x;
+                            y = pstruct.y;
+                            A = pstruct.A;
+                            c = pstruct.c; 
+                            xi = round(x);
+                            yi = round(y);
+                            xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                            yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                            curAmpTotal = curImg(yRange,xRange);
+                            curAmpTotal = mean(curAmpTotal(:));
+                            tracksNA(k).endingFrameExtra = ii;
+                            tracksNA(k).xCoord(ii) = x;
+                            tracksNA(k).yCoord(ii) = y;
+                            tracksNA(k).amp(ii) = A;
+                            tracksNA(k).bkgAmp(ii) = c;
+                            tracksNA(k).ampTotal(ii) =  curAmpTotal;
+                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).sigma(ii) = curSigma;
+                            if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
+                                tracksNA(k).state{ii} = 'NA';
+                            end
+                            pitFoundEnd = true;
+                            break
+                        end
+                    end
+                    if ~pitFoundEnd
+                        tracksNA(k).endingFrameExtra = ii-1;
+                        break
+                    end
+                end
+                if startFrame==curStartingFrame
+                    tracksNA(k).startingFrameExtra = curStartingFrame;
+                end
+                if endFrame==curEndingFrame
+                    tracksNA(k).endingFrameExtra = curEndingFrame;
+                end
+            end
         end
-        if ~isempty(extraLengthForced)
+        if ~isempty(extraLengthForced) && abs(extraLengthForced)>0
             tracksNA(k).startingFrameExtraExtra = tracksNA(k).startingFrameExtra;
             tracksNA(k).endingFrameExtraExtra = tracksNA(k).endingFrameExtra;
             if tracksNA(k).startingFrameExtra>1
@@ -191,8 +235,8 @@ for k=1:numTracks
                 y = tracksNA(k).yCoord(tracksNA(k).startingFrameExtra);
                 xi = round(x);
                 yi = round(y);
-                xRange = xi-1:xi+1;
-                yRange = yi-1:yi+1;
+                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
                 for ii=tracksNA(k).startingFrameExtraExtra:tracksNA(k).startingFrameExtra
                     curImg = imgStack(:,:,ii);
                     curAmpTotal = curImg(yRange,xRange);
@@ -209,8 +253,8 @@ for k=1:numTracks
                 y = tracksNA(k).yCoord(tracksNA(k).endingFrameExtra);
                 xi = round(x);
                 yi = round(y);
-                xRange = xi-1:xi+1;
-                yRange = yi-1:yi+1;
+                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
                 for ii=tracksNA(k).endingFrameExtra:tracksNA(k).endingFrameExtraExtra
                     curImg = imgStack(:,:,ii);
                     curAmpTotal = curImg(yRange,xRange);
@@ -235,14 +279,19 @@ for k=1:numTracks
                 endFrame = min(numFrames,tracksNA(k).endingFrame+extraLengthForced);
             end
         end
-        for ii=startFrame:endFrame
+        if reTrack
+            frameRange = startFrame:endFrame;
+        else
+            frameRange = [tracksNA(k).startingFrameExtraExtra:tracksNA(k).startingFrameExtra tracksNA(k).endingFrameExtra:tracksNA(k).endingFrameExtraExtra];
+        end
+        for ii=frameRange
             curImg = imgStack(:,:,ii);
             x = tracksNA(k).xCoord(ii);
             y = tracksNA(k).yCoord(ii);
             xi = round(x);
             yi = round(y);
-            xRange = xi-1:xi+1;
-            yRange = yi-1:yi+1;
+            xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(curImg,2));
+            yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(curImg,1));
             curAmpTotal = curImg(yRange,xRange);
             tracksNA(k).forceMag(ii) = mean(curAmpTotal(:));
         end        

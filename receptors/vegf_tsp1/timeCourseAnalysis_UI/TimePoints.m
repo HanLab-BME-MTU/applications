@@ -22,6 +22,7 @@ classdef TimePoints < Process
             obj = obj@Process(owner, TimePoints.getName());
             obj.times_ = {};
             obj.eventList_ = {};
+            obj.funName_ = @(varargin) true;
         end
     end
     %% Get Set

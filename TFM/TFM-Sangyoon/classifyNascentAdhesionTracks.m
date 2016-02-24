@@ -231,9 +231,15 @@ if ~isempty(importSelectedGroups) && importSelectedGroups
         idGroup9Selected = idGroups.idGroup9Selected;
         idGroupSelected={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
                                     idGroup7Selected,idGroup8Selected,idGroup9Selected};
-        curImportFilePathTracks = fullfile(PathName,'tracksNA.mat');
-        curTracksNA = load(curImportFilePathTracks,'tracksNA');
-        curTracksNA = curTracksNA.tracksNA;
+        try
+            curImportFilePathTracks = fullfile(PathName,'idsClassified.mat');
+            curTracksNA = load(curImportFilePathTracks,'tracksNA');
+            curTracksNA = curTracksNA.tracksNA;
+        catch
+            curImportFilePathTracks = fullfile(PathName,'idsClassified_org.mat');
+            curTracksNA = load(curImportFilePathTracks,'tracksNA');
+            curTracksNA = curTracksNA.tracksNA;
+        end            
         T=[T; extractFeatureNA(curTracksNA,idGroupSelected)];
         doneLoadingTrainedData = input('Done with importing existing trained data (1/0)?: ');
     end
@@ -274,6 +280,11 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         fh2.Color=[0 0 0];
         hold on
         colors = distinguishable_colors(9,'k');
+        % switching colors between group 6 and 9
+        tempColor = colors(6,:);
+        colors(6,:) = colors(9,:);
+        colors(9,:) = tempColor;
+        
         for pp=1:9
             htrackG{pp}=plot(pp,1,'o','Color',colors(pp,:));
         end
@@ -329,51 +340,7 @@ end
 %% feature extraction
 %% visualize feature space and p-dist (similarity) matrix
 % features = meas;
-T = sortrows(T,12);
-features =table2array(T(:,1:end-1));
-species = table2array(T(:,end));
-nGroups = 9;
-% normalize features
-for i = 1 : size(features,2)
-    features(:,i) = (features(:,i) - min(features(:,i)))./(max(features(:,i)) - min(features(:,i)));
-end
-figure; imagesc(features');hold on
-c = colorbar;
-c.Label.String = 'feature value';
-
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'featureSpace.eps']);
-
-% find(strcmp(response,'Group1'))
-% find(strcmp(response,'Group2'))
-% find(strcmp(response,'Group3'))
-% find(strcmp(response,'Group4'))
-% find(strcmp(response,'Group5'))
-% find(strcmp(response,'Group6'))
-% find(strcmp(response,'Group7'))
-% find(strcmp(response,'Group8'))
-% find(strcmp(response,'Group9'))
-D = pdist(features);
-D1 =  squareform(D);
-figure; imagesc(D1);
-title('similarityAmongTrainedData')
-c = colorbar;
-c.Label.String = 'p-dist';
-for ii=1:nGroups
-    x0 = find(strcmp(species,['Group' num2str(ii)]),1);
-    w = sum(strcmp(species,['Group' num2str(ii)]));
-    rectangle('Position',[x0-0.5 x0-0.5 w+0.5 w+0.5],'EdgeColor','w','LineWidth',0.5)
-end
-
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
-
-Dfeats = pdist(features');
-Dfeats1 =  squareform(Dfeats);
-figure; imagesc(Dfeats1); title('similarityAmongFeatures')
-c = colorbar;
-c.Label.String = 'p-dist';
-
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.eps']);
-
+    
 %% classifier training or import
 useDefinedClassifier=input('Do you want to use already defined classifier? [y/(n)]: ','s');
 if isempty(useDefinedClassifier)
@@ -389,10 +356,78 @@ if strcmp(useDefinedClassifier,'n')
     for ii=1:size(C,1)
         C(ii,:) = C(ii,:)/sum(C(ii,:));
     end
-    figure; imagesc(C); title('Confusion Matrix')
+    response = T.Group;
+    % Get the unique resonses
+    totalGroups = unique(response);
+
+    figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
+    set(confAxis,'xticklabel',totalGroups')
+    set(confAxis,'yticklabel',totalGroups')
     c = colorbar;
     c.Label.String = 'normalized prediction';
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
+    while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
+        disp('Validation accuracy was low. Group reduction is needed.')
+        interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
+        % Re-formatting T with interestedGroups...
+        idGroupFiltered = idGroupSelected;
+        idGroupFiltered(setdiff(1:9,interestedGroups))={[]};
+        [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered);
+        [trainedClassifier, validationAccuracy, C, order] = trainClassifierNA(T);
+        disp(['New validation accuracy is ' num2str(validationAccuracy) '.'])
+        % normalize confusion matrix
+        for ii=1:size(C,1)
+            C(ii,:) = C(ii,:)/sum(C(ii,:));
+        end
+        response = T.Group;
+        % Get the unique resonses
+        totalGroups = unique(response);
+        
+        figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
+        set(confAxis,'xticklabel',totalGroups')
+        set(confAxis,'yticklabel',totalGroups')
+        c = colorbar;
+        c.Label.String = 'normalized prediction';
+        print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
+    end
+    
+    T = sortrows(T,12);
+    features =table2array(T(:,1:end-1));
+    species = table2array(T(:,end));
+    nGroups = length(totalGroups);
+    % normalize features
+    for i = 1 : size(features,2)
+        features(:,i) = (features(:,i) - min(features(:,i)))./(max(features(:,i)) - min(features(:,i)));
+    end
+    figure; imagesc(features');hold on
+    c = colorbar;
+    c.Label.String = 'feature value';
+    print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'featureSpace.eps']);
+
+    D = pdist(features);
+    D1 =  squareform(D);
+    figure; imagesc(D1);
+    title('similarityAmongTrainedData')
+    c = colorbar;
+    c.Label.String = 'p-dist';
+    for ii=1:nGroups
+%         x0 = find(strcmp(species,['Group' num2str(ii)]),1);
+%         w = sum(strcmp(species,['Group' num2str(ii)]));
+        x0 = find(strcmp(species,totalGroups{ii}),1);
+        w = sum(strcmp(species,totalGroups{ii}));
+        rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
+    end
+    print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
+
+    Dfeats = pdist(features');
+    Dfeats1 =  squareform(Dfeats);
+    figure; imagesc(Dfeats1); title('similarityAmongFeatures')
+    c = colorbar;
+    c.Label.String = 'p-dist';
+
+    print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.eps']);
+    
+    
     disp('The order is :')
     disp(order)
 elseif strcmp(useDefinedClassifier,'y')
@@ -413,6 +448,7 @@ elseif strcmp(useDefinedClassifier,'y')
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix_otherClassifier.eps']);
     disp('The order is :')
     disp(order)
+    [~,allData] = extractFeatureNA(tracksNA);
 end
 
 allDataClass = predict(trainedClassifier,allData);
@@ -439,23 +475,23 @@ htrackG4=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(4,:)),tracksNA(idGr
 arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(4,:)),tracksNA(idGroup4));
 htrackG5=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(5,:)),tracksNA(idGroup5),'UniformOutput',false);
 arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(5,:)),tracksNA(idGroup5));
-htrackG6=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(6,:)),tracksNA(idGroup6),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(6,:)),tracksNA(idGroup6));
+htrackG6=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(9,:)),tracksNA(idGroup6),'UniformOutput',false);
+arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(9,:)),tracksNA(idGroup6));
 htrackG7=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(7,:)),tracksNA(idGroup7),'UniformOutput',false);
 arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(7,:)),tracksNA(idGroup7));
 htrackG8=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(8,:)),tracksNA(idGroup8),'UniformOutput',false);
 arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(8,:)),tracksNA(idGroup8));
-htrackG9=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(9,:)),tracksNA(idGroup9),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(9,:)),tracksNA(idGroup9));
-legend([htrackG1{1} htrackG2{1} htrackG3{1} htrackG4{1} htrackG5{1} htrackG6{1} htrackG7{1} htrackG8{1} htrackG9{1}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
-    'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
-legend('boxoff')
+htrackG9=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(6,:)),tracksNA(idGroup9),'UniformOutput',false);
+arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(6,:)),tracksNA(idGroup9));
+% legend([htrackG1{1} htrackG2{1} htrackG3{1} htrackG4{1} htrackG5{1} htrackG6{1} htrackG7{1} htrackG8{1} htrackG9{1}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
+%     'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
+% legend('boxoff')
 if strcmp(useDefinedClassifier,'n')
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
-    save([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA')
+    save([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA','-v7.3')
 else
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.eps']);
-    save([pathForColocalization filesep 'data' filesep 'idsClassified_otherClassifier.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA')
+    save([pathForColocalization filesep 'data' filesep 'idsClassified_otherClassifier.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA','-v7.3')
 end
 end
 function  [validationAccuracy,C,order] = validateClassifier(trainedClassifier,datasetTable)

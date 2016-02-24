@@ -80,7 +80,7 @@ function movieData = transformMovie(movieData,paramsIn)
 
 %% ------ Parameters ----%%
 
-pString = 'xf_'; %The string to prepend before the transformed image directory & channel name
+pString = 'xf_image_'; %The string to prepend before the transformed image directory & channel name
 dName = 'transformed_images_for_channel_';%String for naming the directories for each corrected channel
 
 %% ------- Input ------- %%
@@ -88,6 +88,10 @@ dName = 'transformed_images_for_channel_';%String for naming the directories for
 %Check that input object is a valid moviedata
 if ~isa(movieData,'MovieData')
     error('The first input argument must be a valid MovieData object!')
+end
+
+if movieData.is3D
+    warning('transformMovie:threeDimensionalMovie','This function currently only supports 2D transforms, applying same transform to each z plane.');
 end
 
 if nargin < 2
@@ -109,14 +113,14 @@ p = parseProcessParams(transfProc,paramsIn);
 
 %Make sure the movie has been background-subtracted
 iBSProc = movieData.getProcessIndex('BackgroundSubtractionProcess', 1, false);
-if isempty(iBSProc)
-    error('The input movie has not been background subtracted! Please perform background subtraction prior to spatial transformation!')
-end
 
-%Check that all channels have been background subtracted
-hasBS = movieData.getProcess(iBSProc).checkChannelOutput();
-assert(all(hasBS(p.ChannelIndex)),...
-    'Every channel selected for transformation must have been background subtracted! Please perform background subtraction first, or check the ChannelIndex parameter!');
+if ~isempty(iBSProc)
+    %Check that all channels have been background subtracted
+    hasBS = movieData.getProcess(iBSProc).checkChannelOutput();
+    assert(all(hasBS(p.ChannelIndex)),...
+        'Every channel selected for transformation must have been background subtracted! Please perform background subtraction first, or check the ChannelIndex parameter!');
+    assert(~movieData.is3D,'Currently only transformation of raw images is supported for 3D movies!')
+end
 
 nChanCorr = length(p.ChannelIndex);
 
@@ -126,8 +130,14 @@ transfProc.setOutFilePaths(cell(1,numel(movieData.channels_)));
 
 %Set up the input /output directories for each channel
 for j = 1:nChanCorr
-    transfProc.setInImagePath(p.ChannelIndex(j),...
-        movieData.getProcess(iBSProc).outFilePaths_{1,p.ChannelIndex(j)});
+    
+    if ~isempty(iBSProc)
+        inDir = movieData.getProcess(iBSProc).outFilePaths_{1,p.ChannelIndex(j)};
+    else
+        inDir = movieData.channels_(p.ChannelIndex(j)).channelPath_;
+    end
+    transfProc.setInImagePath(p.ChannelIndex(j),inDir);
+       
     
     %The output is a sub-dir of the directory specified by OutputDirectory
     currDir = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))];
@@ -163,21 +173,24 @@ end
 
 %% ------- Init ------ %%
 
-
-
 disp('Loading transformation...')
-
-
 
 %Get the actual transformations for each channel
 xForms = transfProc.getTransformation(p.ChannelIndex);
-inNames = transfProc.getInImageFileNames(p.ChannelIndex);
+%inNames = transfProc.getInImageFileNames(p.ChannelIndex);
 
 %Get original image size. Image pixels that are transformed out of this
 %area will be omitted to preserve this size
 n = movieData.imSize_(1);
 m = movieData.imSize_(2);
+nFrames = movieData.nFrames_;
+nPlanes = movieData.zSize_;
+if isempty(nPlanes)
+    nPlanes = 1;
+end
+nImTot = nFrames * nChanCorr * nPlanes;
 
+fString = ['%0' num2str(ceil(log10(nFrames))+1) '.0f'];%Format string for zero-padding
 
 %% ------- Spatial Transformation ------ %%
 %Transform all images in requested channels and write them to a new
@@ -190,9 +203,6 @@ if ~p.BatchMode
     wtBar = waitbar(0,['Please wait, transforming correcting channel ' num2str(p.ChannelIndex(1)) ' ...']);
 end
 
-nImages = movieData.nFrames_;
-nImTot = nImages * nChanCorr;
-
 for iChan = 1:nChanCorr
     
     %Get directories for readability
@@ -204,24 +214,34 @@ for iChan = 1:nChanCorr
     disp(['Using transform file : ' p.TransformFilePaths{p.ChannelIndex(iChan)}]);
     
     if ~p.BatchMode
-        waitbar((iChan-1)*nImages / nImTot,wtBar,['Please wait, transforming channel ' num2str(p.ChannelIndex(iChan)) ' ...']);
-    end
+        waitbar((iChan-1)*nFrames / nImTot,wtBar,['Please wait, transforming channel ' num2str(p.ChannelIndex(iChan)) ' ...']);
+    end        
     
-    
-    
-    for iImage = 1:nImages
+    for iFrame = 1:nFrames
         
-        currIm = imread([inDir filesep inNames{iChan}{iImage}]);
+        for iPlane = 1:nPlanes
         
-        currIm = imtransform(currIm,xForms{iChan},'XData',[1 m],'YData',[1 n],'FillValues',0);
-        
-        imwrite(currIm,[outDir filesep pString inNames{iChan}{iImage}]);
-        
-        if ~p.BatchMode && mod(iImage,5)
-            %Update the waitbar occasionally to minimize slowdown
-            waitbar((iImage + (iChan-1)*nImages) / nImTot,wtBar)
+            if isempty(iBSProc)
+                currIm = movieData.channels_(p.ChannelIndex(iChan)).loadImage(iFrame,iPlane);
+            else                
+                currIm = movieData.processes_{iBSProc}.loadChannelOutput(p.ChannelIndex(iChan),iFrame);%TEMP - that this currently won't work with 3D movies! (error thrown above to cover this case)
+            end
+
+            currIm = imtransform(currIm,xForms{iChan},'XData',[1 m],'YData',[1 n],'FillValues',0);
+                        
+            imName = [outDir filesep pString num2str(iFrame,fString) '.tif'];
+            
+            if iPlane == 1
+                imwrite(currIm,imName);            
+            else
+                imwrite(currIm,imName,'WriteMode','append');
+            end
+            
+            if ~p.BatchMode && (mod(iFrame,5) || (nPlanes> 1 && mod(nPlanes,5)))
+                %Update the waitbar occasionally to minimize slowdown
+                waitbar( sub2ind([nPlanes,nFrames,nChanCorr],iPlane,iFrame,iChan) / nImTot,wtBar)
+            end
         end
-        
     end
 end
 
@@ -235,7 +255,7 @@ end
 
 if p.TransformMasks
     
-    %Get the indices of any previous mask intersection process
+    %Get the indices of any previous mask transformation processes
     iMaskTransfProc = movieData.getProcessIndex('MaskTransformationProcess',1,0);
     
     %If the process doesn't exist, create it

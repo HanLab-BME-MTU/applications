@@ -112,37 +112,42 @@ if exist(outputFile{1},'file')
     
     if ~all(frameForceField) && ~all(~frameForceField)
         % Look at the first non-analyzed frame
-        firstFrame = find(~frameForceField,1);
+        if p.lastToFirst 
+            firstFrame = find(frameForceField);
+            numFramesAnalyzed=length(firstFrame);
+            lastFrame = firstFrame(1)-1;
+        else
+            firstFrame = find(~frameForceField,1);
+            numFramesAnalyzed=firstFrame-1;
+        end
         % Ask the user if display mode is active
         if ishandle(wtBar)
             recoverRun = questdlg(...
                 ['A force field output has been dectected with ' ...
-                num2str(firstFrame-1) ' analyzed frames. Do you' ...
+                num2str(numFramesAnalyzed) ' analyzed frames. Do you' ...
                 ' want to use these results and continue the analysis'],...
                 'Recover previous run','Yes','No','Yes');
-            if ~strcmpi(recoverRun,'Yes'), firstFrame=1; end
+            if ~strcmpi(recoverRun,'Yes'), firstFrame=1; lastFrame=nFrames; end
         end
-        if ~usejava('desktop')
-            firstFrame=1;
-        end
+%         if ~usejava('desktop')
+%             firstFrame=1;
+%         end
     end
 end
 % asking if you want to reuse the fwdMap again (you have to make sure that
 % you are solving the same problem with only different reg. param.) -SH
-reuseFwdMap = 'No';
+reuseFwdMap = 'Yes';
 if strcmpi(p.method,'FastBEM') && exist(outputFile{3,1},'file') 
     if usejava('desktop')
         reuseFwdMap = questdlg(...
             ['BEM parameters were dectected. Do you' ...
             ' want to use these parameter and overwrite the results?'],...
             'Reuse Fwdmap','Yes','No','No');
-    else
-        reuseFwdMap = 'No';
     end
 end
 
 % Backup the original vectors to backup folder
-if firstFrame==1 && strcmpi(reuseFwdMap,'No')
+if firstFrame==1 && strcmpi(reuseFwdMap,'No') && exist(outputFile{3,1},'file')
     display('Backing up the original data')
     backupFolder = [p.OutputDirectory ' Backup']; % name]);
     if exist(p.OutputDirectory,'dir')
@@ -160,15 +165,17 @@ if firstFrame==1 && strcmpi(reuseFwdMap,'No')
     distBeadField(nFrames)=struct('pos','','vec','');
     mkClrDir(p.OutputDirectory);
     M = [];
-elseif strcmpi(reuseFwdMap,'Yes')
+elseif strcmpi(reuseFwdMap,'Yes') && strcmpi(p.method,'FastBEM') && exist(outputFile{3,1},'file')
     fwdMapFile = load(outputFile{3,1},'M');
     M = fwdMapFile.M;
-else
+elseif strcmpi(p.method,'FastBEM') && strcmpi(reuseFwdMap,'No')  && exist(outputFile{3,1},'file') 
     % Load old force field structure 
     forceField=s.forceField;
     M = [];
+else
+    mkClrDir(p.OutputDirectory);
+    M = [];
 end
-
 forceFieldProc.setOutFilePaths(outputFile);
 
 %% --------------- Force field calculation ---------------%%% 
@@ -236,7 +243,7 @@ timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
 if p.lastToFirst 
-    frameSequence = nFrames:-1:firstFrame;
+    frameSequence = lastFrame:-1:1;
 else
     frameSequence = firstFrame:nFrames;
 end
@@ -639,7 +646,7 @@ if strcmpi(p.method,'FastBEM')
         % Make it relative
         maxCfd = max(forceNodeMaxima);
         forceConfidence.vec = forceConfidence.vec/maxCfd;
-%         u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+        u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
 %         if p.divideConquer>1
 %             %reconstruct M from M_sub
 %             
@@ -653,7 +660,7 @@ if strcmpi(p.method,'FastBEM')
 %         displErrField(i).vec=u_diff_vec;
         % Distance to the closest bead from each force node
         % check if pos_u is already nan-clear in terms of u
-        if length(pos_u)==length(u)
+        if length(pos_u(:))==length(u)
             beadsWhole = pos_u;
         else
             idNanU = isnan(u_org);
@@ -661,9 +668,9 @@ if strcmpi(p.method,'FastBEM')
             beadsWhole = pos_u;
         end
         
-        parfor i=1:length(forceField(i).pos(:,1))
-            [~,distToBead(i)] = KDTreeClosestPoint(beadsWhole,forceField(i).pos(:,1));
-        end
+%         parfor i=1:length(forceField(i).pos(:,1))
+%             [~,distToBead(i)] = KDTreeClosestPoint(beadsWhole,forceField(i).pos(:,1));
+%         end
         
         %             display('The total time for calculating the FastBEM solution: ')
 
@@ -733,10 +740,15 @@ end
 %% For calculation of traction map and prediction error map
 % The drift-corrected frames should have independent channel
 % ->StageDriftCorrectionProcess
+disp('Creating traction map...')
+tic
 [tMapIn, tmax, tmin, cropInfo,tMapXin,tMapYin] = generateHeatmapShifted(forceField,displField,0);
 display(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
-[fCfdMapIn, fCmax, fCmin] = generateHeatmapShifted(forceConfidence,displField,0);
-fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
+toc
+if strcmpi(p.method,'FastBEM')
+    [fCfdMapIn, fCmax, fCmin] = generateHeatmapShifted(forceConfidence,displField,0);
+    fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
+end
 % display(['Displacement error minimum = ' num2str(dEmax) ' pixel.'])
 
 % for ii=frameSequence
@@ -746,7 +758,7 @@ fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
 % [distBeadMapIn, dBeadmax, dBeadmin] = generateHeatmapShifted(distBeadField,displField,0);
 
 % display(['Distance to closest bead maximum = ' num2str(tmax) ' Pa.'])
-% Insert traction map in forceField.pos 
+%% Insert traction map in forceField.pos 
 disp('Generating traction maps ...')
 tMap = cell(1,nFrames);
 tMapX = cell(1,nFrames);
@@ -766,14 +778,19 @@ for ii=frameSequence
     tMap{ii} = cur_tMap;
     tMapX{ii} = cur_tMapX;
     tMapY{ii} = cur_tMapY;
-    if ii==1
+    if ii==1 && strcmpi(p.method,'FastBEM')
         cur_fCfdMap = zeros(size(firstMask));
         cur_fCfdMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = fCfdMapIn{ii};
         fCfdMap = cur_fCfdMap;
     end     
 %     distBeadMap{ii} = cur_distBeadMap;
     % Shifted forceField vector field
-    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
+    curDispVec = displField(ii).vec;
+    curDispVec = curDispVec(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    curDispPos = displField(ii).pos;
+    curDispPos = curDispPos(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    [grid_mat,iu_mat, ~,~] = interp_vec2grid(curDispPos, curDispVec,[],reg_grid);
+%     [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
     displ_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
     
     [forceFieldShiftedpos,forceFieldShiftedvec, ~, ~] = interp_vec2grid(forceField(ii).pos+displ_vec, forceField(ii).vec,[],grid_mat); %1:cluster size
@@ -792,7 +809,11 @@ disp('Saving ...')
 % save(outputFile{1},'forceField','forceFieldShifted','displErrField');
 % save(outputFile{2},'tMap','tMapX','tMapY','dErrMap','distBeadMap'); % need to be updated for faster loading. SH 20141106
 save(outputFile{1},'forceField','forceFieldShifted');
-save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+if strcmpi(p.method,'FastBEM')
+    save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+else
+    save(outputFile{2},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
+end
 forceFieldProc.setTractionMapLimits([tmin tmax])
 % forceFieldProc.setDisplErrMapLimits([dEmin dEmax])
 % forceFieldProc.setDistBeadMapLimits([dBeadmin dBeadmax])

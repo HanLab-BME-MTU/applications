@@ -1001,14 +1001,14 @@ end
 for iChannel = channelIndex
     
 %     Make output directory for the steerable filtered images
-    FilamentSegmentationChannelOutputDir =  [FilamentSegmentationProcessOutputDir, '/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir =  [FilamentSegmentationProcessOutputDir, filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
        
-    F_classifer_train_output{iChannel} = [FilamentSegmentationChannelOutputDir,'/F_classifer_channel.mat'];
+    F_classifer_train_output{iChannel} = [FilamentSegmentationChannelOutputDir,filesep,'F_classifer_channel.mat'];
     
-    if(~exist([FilamentSegmentationChannelOutputDir,'/F_classifer_channel.mat'],'file'))
+    if(~exist([FilamentSegmentationChannelOutputDir,filesep,'F_classifer_channel.mat'],'file'))
        f = showinfowindow(['Please copy the trained classifier as F_classifer_channel.mat in ...\FilamentAnalysisPackage\FilamentSegmentation\Channel',...
         num2str(iChannel),' for the trained movie, and paste it at corresponding position for current movie.','  Currently cannot find the copied F\_classifer\_channel.mat for current movie, if you have not done so, please copy and double check.'], 'Warning');
     else

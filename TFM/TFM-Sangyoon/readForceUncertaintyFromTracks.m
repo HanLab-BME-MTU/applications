@@ -28,11 +28,16 @@ progressText(0,'Re-reading and tracking individual tracks:');
 % parfor k=1:numel(tracksNA)
 for k=1:numTracks
         try
-            startFrame = tracksNA(k).startingFrameExtra;
-            endFrame = tracksNA(k).endingFrameExtra;
+            startFrame = tracksNA(k).startingFrameExtraExtra;
+            endFrame = tracksNA(k).endingFrameExtraExtra;
         catch
-            startFrame = tracksNA(k).startingFrame;
-            endFrame = tracksNA(k).endingFrame;
+            try
+                startFrame = tracksNA(k).startingFrameExtra;
+                endFrame = tracksNA(k).endingFrameExtra;
+            catch
+                startFrame = tracksNA(k).startingFrame;
+                endFrame = tracksNA(k).endingFrame;
+            end
         end
 %         curRange = startFrame:endFrame;
 %         tracksNA(k).forceUncertainty(curRange) = arrayfun(@(x) imgStack(round(tracksNA(k).yCoord(x)),round(tracksNA(k).xCoord(x)),x),curRange);

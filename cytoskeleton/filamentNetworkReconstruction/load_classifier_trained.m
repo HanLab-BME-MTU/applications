@@ -125,7 +125,7 @@ for iChannel = selected_channels
         mkdir(FilamentSegmentationChannelOutputDir);
     end
     
-    load([FilamentSegmentationChannelOutputDir,'/F_classifer_channel.mat'],'F_classifer_train_this_channel');
+    load([FilamentSegmentationChannelOutputDir,filesep,'F_classifer_channel.mat'],'F_classifer_train_this_channel');
     F_classifer{iChannel} = F_classifer_train_this_channel;
 end
 

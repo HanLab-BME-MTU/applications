@@ -1,4 +1,4 @@
-function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd] = colocalMeasurePt2Cnt(radius,...
+function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd,clusterDensity,cellIntensity,backgroundStd] = colocalMeasurePt2Cnt(radius,...
     randomRuns,detectionData,imagePt,imageCnt,maskingFile)
 % COLOCALMEASUREPT2CNT measures colocalization for two channels where only one is punctate and the other is continuous
 %
@@ -57,10 +57,11 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd] =
 
 
 %% Analysis
-
+    maskingFile = logical(maskingFile);
     a =1; %Too lazy to change right now
     % Read in continuum image
-    ICnt = double(imageCnt); 
+    ICnt = double(imageCnt);
+    orgCnt = double(imageCnt); 
     IPt = double(imagePt); 
     
     %Index points from punctate image
@@ -87,11 +88,28 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd] =
     
         %% NEW Create masks to address non-uniform background and overgenerous
     %masking
+    %new background subtraction
+    corrValue = mean(ICnt(maskingFile==0));
+%     corrValue = 1000;
+    corrMask = corrValue*ones(size(ICnt,1),size(ICnt,2)); 
+    
     compValue = mean(ICnt(maskingFile~=0));
-    compMask = compValue*ones(256,256);
+    compMask = compValue*ones(size(ICnt,1),size(ICnt,2));%Should be ammenable to different sizes!
     nImage = filterGauss2D(ICnt,10);
     ICnt = ICnt-nImage;
     ICnt = ICnt+ compMask;
+%     ICnt = ICnt- corrMask;
+    
+    corrValue = mean(IPt(maskingFile==0));
+% %         corrValue = 1000;
+    corrMask = corrValue*ones(size(IPt,1),size(IPt,2)); 
+    compValue = mean(IPt(maskingFile~=0));
+    compMask = compValue*ones(size(IPt,1),size(IPt,2));%Should be ammenable to different sizes!
+    nImage = filterGauss2D(IPt,10);
+    IPt = IPt-nImage;
+    IPt = IPt+ compMask;
+%     IPt = IPt- corrMask;
+
 % %     meanMask = subImage>0;
 % %     meanMaskComb = meanMask.*maskingFile;
 % %     meanMaskErd = bwmorph(meanMaskComb,'clean');
@@ -101,28 +119,47 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd] =
 % Use for individual detections
     [localMaskInd,~] = bwlabel(localMask);
     cc = connectedComponents.label2conncomp(localMaskInd);
-    cc_dilated = connectedComponents.ccDilate(cc,strel('disk',2));
+    cc_dilated = connectedComponents.ccDilate(cc,strel('disk',2));%disk 2
 
     % Dilate to create local environment %---------------------------------
-    localMaskTest = bwdist(localMask)<=radius;
+%     localMaskTest = bwdist(localMask)<=radius;
+    se = strel('disk',radius);
+    localMaskTest = imdilate(localMask,se);
     localMaskTest = logical(localMaskTest.*correctOGMask);
     % Everything in cell not detected
     cellBgMask = immultiply(~localMaskTest,double(maskingFile));
     cellBgCnt = immultiply(cellBgMask,ICnt); %Intensity of rest of cell in continuum channel
     cellBgPt = immultiply(cellBgMask,IPt); %Intensity of rest of cell in punctate channel
-    
-    
+    backgroundStd = std(orgCnt(logical(cellBgMask)));
+    %% Get cluster density in cell
+    areaBG = find(maskingFile); %area of cell
+    areaLM = find(localMask); %number of clusters
+    density = length(areaLM)/length(areaBG);
+    clusterDensity= (density/(0.0081));
+    cellIntensityMask = orgCnt(maskingFile);
+    cellIntensity = mean(cellIntensityMask(:));
     %% Back to orginal
-    
+% %     r=0.78;
+% %     area = pi*r^2;
     %calculate average background intensity
     intensityBgAve = [mean(cellBgCnt(cellBgCnt~=0)) mean(cellBgPt(cellBgPt~=0))];
  
     %get the intensity around each detection
     tmp = regionprops(cc_dilated,ICnt,'MeanIntensity','Area');
     intensityLocalInd(:,1) = vertcat(tmp.MeanIntensity);
+% %      tmp = regionprops(cc_dilated,ICnt,'PixelValues');
+% %      mycell = struct2cell(tmp);
+% %     mycell = mycell';
+% %     myresult = cellfun(@(x) sum(x), mycell);
+% %     intensityLocalInd(:,1) = myresult./area;   
 % % %     areaInd = vertcat(tmp.Area);
     tmp = regionprops(cc_dilated,IPt,'MeanIntensity');
     intensityLocalInd(:,2) = vertcat(tmp.MeanIntensity);
+% %      tmp = regionprops(cc_dilated,IPt,'PixelValues');
+% %       mycell = struct2cell(tmp);
+% %     mycell = mycell';
+% %     myresult = cellfun(@(x) sum(x), mycell);
+% %     intensityLocalInd(:,2) = myresult./area;   
     
     %normalize local intensities with background intensity
     intensityRatioInd(:,1) = intensityLocalInd(:,1)/intensityBgAve(a,1);
@@ -149,10 +186,12 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd] =
             
             [bgMaskInd,~] = bwlabel(bgMask);
             cc = connectedComponents.label2conncomp(bgMaskInd);
-            cc_dilated = connectedComponents.ccDilate(cc,strel('disk',2));
+            cc_dilated = connectedComponents.ccDilate(cc,strel('disk',2));%disk
             
             %Determine avg intensity of random detection
-            bgMaskTest = bwdist(bgMask)<=radius;
+%             bgMaskTest = bwdist(bgMask)<=radius;
+            se = strel('disk',radius);
+            bgMaskTest = imdilate(bgMask,se);
             bgMaskTest = logical(bgMaskTest.*correctOGMask);
             bgCellArea = immultiply(~bgMaskTest,double(maskingFile));
             bgCellAreaCnt = immultiply(bgCellArea,ICnt); %Use this to get bgCnt
@@ -160,10 +199,19 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd] =
             randIntensityBgAve(a,:) = [mean(bgCellAreaCnt(bgCellAreaCnt~=0)) mean(bgCellAreaPt(bgCellAreaPt~=0))];
             
             tmp = regionprops(cc_dilated,ICnt,'MeanIntensity','Area'); %CT
+% %             tmp = regionprops(cc_dilated,ICnt,'PixelValues');
+% %             mycell = struct2cell(tmp);
+% %             mycell = mycell';
+% %             myresult = cellfun(@(x) sum(x), mycell); 
+% %             randIntensityInd(:,1) = myresult./area;
             randIntensityInd(:,1) = vertcat(tmp.MeanIntensity);
-
             
             tmp = regionprops(cc_dilated,IPt,'MeanIntensity','Area'); %PT
+% %             tmp = regionprops(cc_dilated,IPt,'PixelValues');
+% %             mycell = struct2cell(tmp);
+% %             mycell = mycell';
+% %             myresult = cellfun(@(x) sum(x), mycell); 
+% %             randIntensityInd(:,2) = myresult./area;
             randIntensityInd(:,2) = vertcat(tmp.MeanIntensity);
             
             randIntensityRatioInd(:,1) = randIntensityInd(:,1)/randIntensityBgAve(a,1);

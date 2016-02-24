@@ -1,4 +1,4 @@
-function plot_color_dot_from_matrix(inMatrix,inMarkersize, min_value,max_value)
+function plot_color_dot_from_matrix(inMatrix,inMarkersize, min_value,max_value,plate_tick_flag)
 % function to plot a matrix as a dot map with corresponding color, default
 % as 'jet'
 
@@ -24,6 +24,11 @@ if(nargin<4)
     max_value = min(max_value,mean_value+5*std_value);
 
 end
+
+if(nargin<5)
+   plate_tick_flag = 0;
+end
+
 
 % normalize matrix to 0~1
 inMatrix =  double(inMatrix-min_value)/(max_value-min_value);
@@ -79,9 +84,27 @@ box off;
 plot([0 size(inMatrix,2)],[size(inMatrix,1) size(inMatrix,1)]);
 plot([size(inMatrix,2) size(inMatrix,2)],[0 size(inMatrix,1)]);
 
+if(plate_tick_flag==1)
+    
+    set(gca,'XTick',0.5:24-0.5);
+   
+    for iW = 1 : 24
+        X_Tick_cell{iW} = num2str(iW);
+    end
+    set(gca,'XTickLabel',X_Tick_cell,'FontSize',10);
+    
+    set(gca,'YTick',0.5 :16-0.5);
+    
+    for iM = 1 :16
+        Y_Tick_cell{iM} = ['' char('A'+ 16 - iM)];
+    end
+    
+    set(gca,'YTickLabel',Y_Tick_cell,'FontSize',10);
+end
+
 %set colorbar
 hh=colorbar;
-set(hh,'YTick',(0:0.2:1)*64)
+set(hh,'YTick',(0:0.2:1))
 YTicker_cell =cell(1,6);
 for iT= 1 : 6
     if(max_value>1000)
@@ -91,4 +114,6 @@ YTicker_cell{iT} = num2str((max_value-min_value)/5*(iT-1)+min_value);
     end
 end
 set(hh,'YTickLabel',YTicker_cell);
+
+
 

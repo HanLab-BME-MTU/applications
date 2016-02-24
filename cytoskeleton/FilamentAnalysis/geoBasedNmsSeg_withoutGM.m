@@ -156,12 +156,12 @@ if(SaveFigures==1)
         %     obCentroid(1,iiii)
         text(obCentroid(1,iiii),obCentroid(2,iiii),num2str(iiii),'color','r');
     end
-    if(  ~exist([FilamentSegmentationChannelOutputDir,'/GEO'],'dir'))
-        mkdir([FilamentSegmentationChannelOutputDir,'/GEO']);
+    if(  ~exist([FilamentSegmentationChannelOutputDir,filesep,'GEO'],'dir'))
+        mkdir([FilamentSegmentationChannelOutputDir,filesep,'GEO']);
     end
     
-    saveas(h14,[FilamentSegmentationChannelOutputDir,'/GEO/numbers_filament_f',num2str(iFrame),'.fig']);
-    saveas(h14,[FilamentSegmentationChannelOutputDir,'/GEO/numbers_filament_f',num2str(iFrame),'.tif']);
+    saveas(h14,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'numbers_filament_f',num2str(iFrame),'.fig']);
+    saveas(h14,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'numbers_filament_f',num2str(iFrame),'.tif']);
     
 end
 
@@ -253,7 +253,7 @@ if(isempty(classifier_trained))
     %
     %     T_xie_length_train
     
-    F_classifer = @(nms,length,int,curv) (((T_xie_int_train + (T_xie_int_train/T_xie_length_train)*(-length) )<nms));
+    F_classifer = @(nms,length,int,curv) (((T_xie_int_train + (T_xie_int_train/T_xie_length_train)*(-length) )<nms)  & nms > T_xie_int_train/10);
     
 else
     % when there is an input classifer, use the input one
@@ -286,9 +286,20 @@ for i_E = 1 : length(Good_ind)
     end_points_this = bwmorph(current_good_bw,'endpoints');
     [y,x] = find(end_points_this);
     
+    try
+    if(isempty(x))
+        x = x_i(1);
+        y = y_i(1);
+    end
+    
     [line_i_x, line_i_y] = line_following_with_limit(current_good_bw, sum(sum(current_good_bw)), x(1),y(1));
-     line_i_x = line_i_x';
-     line_i_y = line_i_y';
+    
+    line_i_x = line_i_x';
+    line_i_y = line_i_y';
+    
+    catch
+        stophere=1;
+    end
     
     current_model{i_E} = [line_i_x line_i_y];
     model_ind{i_E} = Good_ind(i_E);

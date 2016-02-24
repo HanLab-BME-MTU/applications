@@ -35,14 +35,18 @@ function [] = getForceConfidence(pathForMovieData)
 % plot(displField(1).pos(:,1),displField(1).pos(:,2),'ko')
     disp('Loading existing tractionMaps.mat ...')
     tic
-    load([pathForMovieData '/TFMPackage/forceField/tractionMaps.mat'])
     p.OutputDirectory=[pathForMovieData '/TFMPackage/forceField'];
     outputFile{2,1} = [p.OutputDirectory filesep 'tractionMaps.mat'];
+    load(outputFile{2,1})
     toc
 %     fCfdMap = cell(1,1); %force confidence
     fCfdMap = cur_fCfdMap;
     disp('Saving fCfdMaps additionally in tractionMaps.mat ...')
     tic
-    save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+    try
+        save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+    catch
+        save(outputFile{2},'tMap','fCfdMap');
+    end
     toc
 end
