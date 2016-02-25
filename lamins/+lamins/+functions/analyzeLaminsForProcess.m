@@ -111,6 +111,7 @@ function [ out ] = analyzeLaminsForProcess( MD , varargin)
             S = cell(max(tz),1);
             S2 = cell(max(tz),1);
             S3 = cell(max(tz),1);
+            S4 = cell(max(tz),1);
             if(in.clearOutputDir)
                 mkClrDir(in.outFilePaths{c});
             else
@@ -121,10 +122,10 @@ function [ out ] = analyzeLaminsForProcess( MD , varargin)
             for tz_i = tz(:)'
                 try
                     I = images(c,tz_i);
-                    [S3{tz_i},S2{tz_i},S{tz_i}] = analyzeLaminsImage(I);
+                    [S4{tz_i},S3{tz_i},S2{tz_i},S{tz_i}] = analyzeLaminsImage(I);
                     if(in.plot)
                         plotFigures(I, ...
-                            S{tz_i},S2{tz_i},S3{tz_i},...
+                            S{tz_i},S2{tz_i},S3{tz_i},S4{tz_i},...
                             MD.movieDataFileName_, ...
                             MD.channels_(c).name_, ...
                             in.outFilePaths{c}, ...
@@ -148,10 +149,11 @@ function [ out ] = analyzeLaminsForProcess( MD , varargin)
                 data.S(tz) = S(tz);
                 data.S2(tz) = S2(tz);
                 data.S3(tz) = S3(tz);
+                data.S4(tz) = S4(tz);
                 data.tz = unique([data.tz(:) ; tz(:) ]);
                 save(file,'-struct','data')
             else
-                save(file,'S','S2','S3','tz');
+                save(file,'S','S2','S3','S4','tz');
             end
         end
     end
@@ -269,7 +271,7 @@ function [ out ] = analyzeLaminsForProcess( MD , varargin)
     end
 
 end
-function [S3,S2,S] = analyzeLaminsImage(laminsImage)
+function [S4,S3,S2,S] = analyzeLaminsImage(laminsImage)
 %     I = images(ii);
     I = laminsImage;
     % Initial skeleton with basic cleanup
@@ -286,13 +288,19 @@ function [S3,S2,S] = analyzeLaminsImage(laminsImage)
     % New on June 3rd, 2015
     % Audit using mask, proportion on flattened intensity, and
     % do another round of score optimization including zero
+    % This was the version published with the Dec 2015 MBoC Paper
     S3 = S2.copy;
     S3.auditEdgesByMask(I);
     S3.auditEdgesByThresholdedIntensity(I);
     score2 = lamins.functions.scoreEdges(S3,I.flattenIntensity);
     S3.deleteEdges(score2 <= 0);
+    
+    % New on February 1st, 2016
+    S4 = S3.copy;
+    % Some vertices were not deleted resulting in shorter edges
+    S4.mergeEdgesAtObsoleteVertices;
 end
-function plotFigures(laminsImage,S,S2,S3,fileName,channelName,outputDirectory,analysisDate,num)
+function plotFigures(laminsImage,S,S2,S3,S4,fileName,channelName,outputDirectory,analysisDate,num)
 
     if(isnumeric(num))
         num = num2str(num);
@@ -312,7 +320,7 @@ function plotFigures(laminsImage,S,S2,S3,fileName,channelName,outputDirectory,an
     imshow(im2uint8(I.adjusted));
     S.drawEdgesAsLines([],'r');
     S2.drawEdgesAsLines([],'g');
-    S3.drawEdgesAsLines([],'b');
+    S4.drawEdgesAsLines([],'b');
     title(fileName);
     text(50,50,[fileName ' analyzed on ' analysisDate],'Color','y','Interpreter','none')
     savefig(h,[outputDirectory filesep 'skeleton_' analysisDate '_' num '.fig']);
@@ -323,7 +331,7 @@ function plotFigures(laminsImage,S,S2,S3,fileName,channelName,outputDirectory,an
     % Figure 2: Show final skeleton on reverse complement
     h = figure;
     imshow(im2uint8(I.adjustedComplement));
-    S3.drawEdgesAsLines([],'m');
+    S4.drawEdgesAsLines([],'m');
     title(fileName);
     text(50,50,[fileName ' analyzed on ' analysisDate],'Color','b','Interpreter','none')
     savefig(h,[outputDirectory filesep 'one_skeleton_' analysisDate '_' num '.fig']);
@@ -342,7 +350,7 @@ function plotFigures(laminsImage,S,S2,S3,fileName,channelName,outputDirectory,an
     close(h);
 
     % collect properties of faces for Figures 4 and beyond
-    rp = regionprops(S3.faces,'Area','Eccentricity','Perimeter');
+    rp = regionprops(S4.faces,'Area','Eccentricity','Perimeter');
 
     % Figure 4: Histogram of face area
     h = figure;
