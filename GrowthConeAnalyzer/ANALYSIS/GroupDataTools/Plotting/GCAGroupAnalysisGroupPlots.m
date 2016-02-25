@@ -173,7 +173,7 @@ for iParam = 1:length(params)
             pairs = reshape(pairs,2,length(pairs)/2);
                
             for ipair = 1:size(pairs,2)
-                [hit(ipair),pValues(ipair)] = permTest(forN{pairs(1,ipair)},forN{pairs(2,ipair)},'CmpFunction',@nanmedian,'nrep',5000);
+                [hit(ipair),pValues(ipair)] = permTest(forN{pairs(1,ipair)},forN{pairs(2,ipair)},'CmpFunction',@nanmedian);
                 
                 % plot line
                 forLine = nanmedian(forN{pairs(1,ipair)});
@@ -244,8 +244,8 @@ for iParam = 1:length(params)
             end % for iGroup
             
             %     axis([0.5 length(toPlot.info.names) + 0.5 0 toPlot.(params{iParam}).ylim]);
-            %     ylabel(toPlot.(params{iParam}).yLabel);
-            
+                % ylabel(toPlot.(params{iParam}).yLabel);
+            ylabel(strrep(params{iParam},'_',' ')); 
             saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.fig']);
             saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.png']);
             saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.eps'],'psc2');
@@ -292,8 +292,9 @@ for iParam = 1:length(params)
                     end
                 end
             end
-            
-            % ylabel(toPlot.(params{iParam}).yLabel);
+            forLabel = strrep(params{iParam},'_',' '); 
+            ylabel(forLabel); 
+             %ylabel(toPlot.(params{iParam}).yLabel);
             set(gca,'XTick',1:numel(toPlot.info.names));
             set(gca,'XTickLabel',toPlot.info.names,'FontSize',10);
             
