@@ -44,6 +44,9 @@ end
             mask = [];
             cellArea = 512^2; %hard-code for now - look for better solution given the peculiarities of our simultaneous 2-color imaging
         end
+        iProcDet = MD.getProcessIndex('DetectionProcess',1,0); %detection - if code makes it to here, then detection has been done
+        detectionOutput = load(MD.processes_{iProcDet}.outFilePaths_{iC});
+        movieInfoFrame1 = detectionOutput.movieInfo(1);
 
         %limit analysis to tracks in mask if supplied
         if ~isempty(mask) && any(mask(:)==0)
@@ -109,34 +112,53 @@ end
         %amplitude statistics in first 20 frames
         ampVec = ampMat(:,1:min(20,numFrames));
         ampVec = ampVec(~isnan(ampVec));
-        [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,0,[],2,[],1,[],0);
+        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 16],2,[],1,[],0);
         numMode = size(modeParam,1);
         modeParamMean = modeParam(1,1);
         modeParamStd  = modeParam(1,2);
         ampMode1Mean = exp( modeParamMean + modeParamStd.^2/2 );
         ampMode1Std  = sqrt( exp( modeParamStd.^2 + 2*modeParamMean ) .* ( exp( modeParamStd.^2 )-1 ) );
-        ampMode1Frac = modeParam(1,4)/sum(modeParam(:,4));
-        ampStatsF20 = [mean(ampVec) ampMode1Mean ampMode1Std ampMode1Frac numMode];
+        ampModeFrac = modeParam(:,4)'/length(ampVec);
+        ampModeFrac = [ampModeFrac zeros(1,abs(2-numMode))]; %#ok<AGROW>
+        ampModeFrac = [ampModeFrac(1:2) 1-sum(ampModeFrac(1:2))];
+        ampStatsF20 = [mean(ampVec) ampMode1Mean ampMode1Std ampModeFrac numMode];
 
         %amplitude statistics in last 20 frames
         ampVec = ampMat(:,max(1,end-19):end);
         ampVec = ampVec(~isnan(ampVec));
-        [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,0,[],2,[],1,[],0);
+        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 16],2,[],1,[],0);
         numMode = size(modeParam,1);
         modeParamMean = modeParam(1,1);
         modeParamStd  = modeParam(1,2);
         ampMode1Mean = exp( modeParamMean + modeParamStd.^2/2 );
         ampMode1Std  = sqrt( exp( modeParamStd.^2 + 2*modeParamMean ) .* ( exp( modeParamStd.^2 )-1 ) );
-        ampMode1Frac = modeParam(1,4)/sum(modeParam(:,4));
-        ampStatsL20 = [mean(ampVec) ampMode1Mean ampMode1Std ampMode1Frac numMode];
+        ampModeFrac = modeParam(:,4)'/length(ampVec);
+        ampModeFrac = [ampModeFrac zeros(1,abs(2-numMode))]; %#ok<AGROW>
+        ampModeFrac = [ampModeFrac(1:2) 1-sum(ampModeFrac(1:2))];        
+        ampStatsL20 = [mean(ampVec) ampMode1Mean ampMode1Std ampModeFrac numMode];
 
+        %amplitude statistics in first frame directly from detection
+        ampVec = movieInfoFrame1.amp(:,1);
+        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 16],2,[],1,[],0);
+        numMode = size(modeParam,1);
+        modeParamMean = modeParam(1,1);
+        modeParamStd  = modeParam(1,2);
+        ampMode1Mean = exp( modeParamMean + modeParamStd.^2/2 );
+        ampMode1Std  = sqrt( exp( modeParamStd.^2 + 2*modeParamMean ) .* ( exp( modeParamStd.^2 )-1 ) );
+        ampModeFrac = modeParam(:,4)'/length(ampVec);
+        ampModeFrac = [ampModeFrac zeros(1,abs(2-numMode))]; %#ok<AGROW>
+        ampModeFrac = [ampModeFrac(1:2) 1-sum(ampModeFrac(1:2))];        
+        ampStatsF01 = [mean(ampVec) ampMode1Mean ampMode1Std ampModeFrac numMode];
+        
         %normalize mean amplitudes by first mode mean
         %for amp per class and first 20 frames, use mode of first 20 frames
         ampMeanPerClass = [ampMeanPerClass ampMeanPerClass/ampStatsF20(2)]; %#ok<AGROW>
         ampStatsF20 = [ampStatsF20 ampStatsF20(1)/ampStatsF20(2)]; %#ok<AGROW>
         %for last 20 frames, use mode of last 20 frames
         ampStatsL20 = [ampStatsL20 ampStatsL20(1)/ampStatsL20(2)]; %#ok<AGROW>
-
+        %for first frame from detection directly, use mode of first frame
+        ampStatsF01 = [ampStatsF01 ampStatsF01(1)/ampStatsF01(2)]; %#ok<AGROW>
+        
         %merge and split statistics
         statsMS = calcStatsMS_noMotionInfo(motionAnalysis.tracks,5,1,1);
         tmp = calcMergeSplitTimes(motionAnalysis.tracks,5,[],1);
@@ -151,6 +173,7 @@ end
         resSummary(1,iC).ampMeanPerClass = ampMeanPerClass;
         resSummary(1,iC).ampStatsF20 = ampStatsF20;
         resSummary(1,iC).ampStatsL20 = ampStatsL20;
+        resSummary(1,iC).ampStatsF01 = ampStatsF01;
         resSummary(1,iC).statsMS = statsMS;
         resSummary(1,iC).msTimeInfo = msTimeInfo;
         resSummary(1,iC).cellArea = cellArea;
