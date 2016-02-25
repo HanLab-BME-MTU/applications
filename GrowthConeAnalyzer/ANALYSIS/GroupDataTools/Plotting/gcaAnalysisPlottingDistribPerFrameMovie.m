@@ -252,7 +252,7 @@ for iFrame = 1:nFrames
        ylabel(selected{iSelect}); 
        
         if ip.Results.SplitMovie 
-            if ~isempty(yLims)
+            if ~(isempty(yLims))
             ymin = yLims(1); 
             ymax = yLims(2);
             else 
