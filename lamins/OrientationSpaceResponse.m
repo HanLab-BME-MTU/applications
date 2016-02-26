@@ -169,6 +169,26 @@ classdef OrientationSpaceResponse < handle
                 theta = outAnglesRidge(real(theta)) + 1j*outAnglesEdge(imag(theta));
             end
         end
+        function Response = getResponseAtOrder(obj,Kf_new)
+            assert(~mod(Kf_new,1), ...
+                'OrientationSpaceResponse:getResponseAtOrder', ...
+                'Kf_new must be an integer value');
+%             A = obj.getAngularGaussians;
+            % Calculate new number of angles at new order
+            n_new = 2*Kf_new+1;
+            scaleFactor = obj.n / n_new;
+            % Do we need to wraparound twice?
+            queryPts = wraparoundN((0:n_new-1)*scaleFactor,[-obj.n obj.n]/2);
+            tt = wraparoundN(bsxfun(@minus,queryPts,(0:obj.n-1)'),[-obj.n obj.n]/2);
+            T = exp(-tt.^2/2/(scaleFactor*scaleFactor));
+            % Calculate new angular response at Kf_new order
+            angularResponseSize = size(obj.angularResponse);
+            angularResponse_new = real(obj.getMatrix()) * T;
+            angularResponse_new = reshape(angularResponse_new,[angularResponseSize([1 2]) n_new]);
+            % Create objects and return
+            filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,Kf_new);
+            Response = OrientationSpaceResponse(filter_new,angularResponse_new);
+        end
         function varargout = subsref(obj,S)
             switch(S(1).type)
 %                 case '.'
