@@ -1,10 +1,14 @@
 function tracks=readImarisTracks(positionTextFile)
 trackCell=csv2cell(positionTextFile);
 %% Formating results
-XYZ=cell2mat(trackCell(4:end,1:3));
-TrackId=cell2mat(trackCell(4:end,8));
+TrackIdCell=trackCell(:,8);
+correctLine=cellfun(@(x) isnumeric(x),TrackIdCell);
+correctLine(1:4,:)=0;
+
+XYZ=cell2mat(trackCell(correctLine,1:3));
+TrackId=cell2mat(trackCell(correctLine,8));
 TrackId=TrackId-TrackId(1)+1;
-Timing=cell2mat(trackCell(4:end,7));
+Timing=cell2mat(trackCell(correctLine,7));
 featureIdx=zeros(size(Timing));
 for t=1:max(Timing)
     fIdx=cumsum(Timing==t);
