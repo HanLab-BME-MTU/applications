@@ -451,7 +451,9 @@ filoInfo = filoBranch(frame).filoInfo;
 % %          [saveDir filesep 'frame' num2str(imageNum) '.png'])
 % saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.png']);
 % close gcf
-
+turnOn = true; 
+if turnOn
+    
 %%   Filopodia By Branch Group
 
 hSet(countFig).h  = setFigure(nx,ny);
@@ -468,7 +470,7 @@ text(nx/10,10,'Color-Coded By Branch Group', fontText{:});
 countFig  = countFig+1; 
 
 
-%% Plot Individual
+%% Plot Individual: For Validation : Random Permutation of Colors
 hSet(countFig).h = setFigure(nx,ny);
 imshow(-img,[]);
 hold on
@@ -480,36 +482,76 @@ cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
 %GCAVisualsMakeOverlaysFilopodia(filoInfoBlack,[ny,nx],1,1,'k',0);
 %filoInfoBranch = filoInfo(type>1);
 
+% Note creates all the filopodia filter sets for the entire movie
+%[filoFilterSet,filoParams] = GCACreateFilopodiaFilterSetWithEmbed(filoBranch,'Validation'); % for now just get the entire filter set per movie 
+[filoFilterSet,filoParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,'Validation'); 
 
-[filoFilterSet,filoParams] = GCACreateFilopodiaFilterSet(filoBranch,'Validation'); % for now just get the entire filter set per movie  
 
-filoFilterSetC = filoFilterSet{frame}; 
-n = length(filoInfo);
+filoFilterSetC = filoFilterSet(frame);
+
+% Filter the filopodia  
+filoInfoG = filoInfo(filoFilterSetC{1}(:,1));  
+n = length(filoInfoG);
+
 %c = linspecer(n);
 c = brewermap(n,'spectral'); 
 
 idxRand = randperm(n);
 c = c(idxRand,:);
-filoInfoG = filoInfo(filoFilterSetC);
 
-
+% plot for each filo 
 for ifilo = 1:length(filoInfoG)
     filoInfoC = filoInfoG(ifilo);
     GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],0,1,c(ifilo,:),0);
     clear filoInfoC
 end
 
-
-filoInfoB = filoInfo(~filoFilterSetC); 
+% plot filo documented but did not pass the criteria in black 
+filoInfoB = filoInfo(~filoFilterSetC{1}(:,1)); 
 GCAVisualsMakeOverlaysFilopodia(filoInfoB,[ny,nx],0,1,'k',0,1); 
 
 
 
 text(nx/10,10,'Color-Coded Individual Segment', fontText{:});
+countFig = countFig+1; 
 
 
+%% ColorCode by Length Using either the brewermap or the jet map - 
+% these will go for now will go in a separate folderin the ReconstructMovie
+% save as an .eps (includes a scale bar etc) 
+
+cMap{1} = flip(brewermap(128,'spectral'),1); 
+
+cMap{2} = jet(128); 
+
+filoBranchC = filoBranch(frame); 
+
+filoLengths = GCAAnalysisExtract_filoLength(filoBranchC,filoFilterSetC); 
 
 
+plotValues = filoLengths{1};
+cMapLimits(1) = 0; 
+cMapLimits(2) = 10; 
+
+
+for iMap = 1:2
+
+hSet(countFig).h = setFigure(nx,ny);
+imshow(-img,[]);
+hold on
+cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
+
+
+imgSize = size(img);
+GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
+    'filoFilterSet',filoFilterSetC{1},'plotValues',plotValues,...
+    'justExt',1,'cMapLimits',cMapLimits,'ColorByValue',true, ...
+    'plotText',false,'colorMap',cMap{iMap},'ExtraColor',[])
+pixels = 10/pixSizeMic;
+plotScaleBar(pixels,pixels/10,'Color',textColor);
+countFig = countFig+1;
+
+end % iMap
 
 % execute = ['ffmpeg -r 1 -i ' saveDir filesep 'frame' '%02d.png' ...
 %     ' -crf 22 -pix_fmt yuv420p -b 20000k ' saveDir filesep 'ReconstructMovie.mp4'];
@@ -522,8 +564,10 @@ text(nx/10,10,'Color-Coded Individual Segment', fontText{:});
 % cd(saveDir)
 % execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
 % system(execute);
-
-
+else 
+    filoFilterSet = []; 
+    filoParams = []; 
+end
 
 
 
