@@ -22,7 +22,7 @@ else
     filoFilterSet = ip.Results.filoFilterSet;
 end
 
-filoInfo = filoInfo(filoFilterSet); 
+filoInfo = filoInfo(filoFilterSet(:,1)); 
 
 filoCurvsAll =   abs(vertcat(filoInfo(:).Ext_FiloCurvIndVals));
 xy = vertcat(filoInfo(:).Ext_coordsXY_SplineFit);
