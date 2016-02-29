@@ -50,6 +50,10 @@ ip.addParameter('LineWidth',1);
 ip.addParameter('MarkerSize',10); 
 ip.addParameter('LineStyle','-'); 
 
+
+% Options related to smoothing 
+ip.addParameter('UseSmoothedCoords',false); 
+
 ip.parse(filoInfo,imgSize,varargin{:});
 
 %%
@@ -166,19 +170,24 @@ for iType = typeStart:typeEnd
             
         end
         
-        
+        if ip.Results.UseSmoothedCoords 
+            fieldname = '_SplineFit';  
+        else 
+            fieldname = ''; 
+            
+        end 
         
         % [yEndFit,xEndFit] = ind2sub(imgSize,coordsEndFitPix);
         % % xycoordsEndFit = [xEndFit yEndFit];
         
         % make sure to take out any NaN 
-        toRemove1 = arrayfun(@(x) numel(x.([toAdd{iType} 'coordsXY'])),filoInfoFilt); 
-        toRemove2= arrayfun(@(x) isempty(x.([toAdd{iType} 'coordsXY'])),filoInfoFilt); 
+        toRemove1 = arrayfun(@(x) numel(x.([toAdd{iType} 'coordsXY' fieldname])),filoInfoFilt); 
+        toRemove2= arrayfun(@(x) isempty(x.([toAdd{iType} 'coordsXY' fieldname ])),filoInfoFilt); 
         toKeep = ~(toRemove1==1 | toRemove2 ==1 ); 
         
         
-        xCoordsBase= arrayfun(@(x) x.([toAdd{iType} 'coordsXY'])(1,1),filoInfoFilt(toKeep));
-        yCoordsBase = arrayfun(@(x) x.([toAdd{iType} 'coordsXY'])(1,2),filoInfoFilt(toKeep));
+        xCoordsBase= arrayfun(@(x) x.([toAdd{iType} 'coordsXY' fieldname])(1,1),filoInfoFilt(toKeep));
+        yCoordsBase = arrayfun(@(x) x.([toAdd{iType} 'coordsXY' fieldname])(1,2),filoInfoFilt(toKeep));
         xycoordsBase = [xCoordsBase' yCoordsBase'];
         xycoordsEndFit =  xycoordsEndFit(toKeep,:); 
         
@@ -202,10 +211,17 @@ for iType = typeStart:typeEnd
                 if ~isempty(filoToPlot)
                     for ifilo = 1:size(filoToPlot,1)
                         test = find(filoIDs == filoToPlot(ifilo));  
-                        pixIndices = filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'pixIndices']);
-                        idxEnd = find(pixIndices == filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'endpointCoordFitPix']));
-                        pixIndicesPlot = pixIndices(1:idxEnd);
-                        [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
+                        if ip.Results.UseSmoothedCoords
+                           xy=  filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'coordsXY' fieldname]);
+                           xC = xy(:,1); 
+                           yC = xy(:,2); 
+                           
+                        else
+                            pixIndices = filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'pixIndices']);
+                            idxEnd = find(pixIndices == filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'endpointCoordFitPix']));
+                            pixIndicesPlot = pixIndices(1:idxEnd);
+                            [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
+                        end
                         plot(xC,yC,'color',cMap(k,:),'Linewidth',ip.Results.LineWidth,'LineStyle',ip.Results.LineStyle);
                         
                            scatter(xycoordsEndFit(test,1),xycoordsEndFit(test,2),ip.Results.MarkerSize,cMap(k,:),'filled');
@@ -217,10 +233,17 @@ for iType = typeStart:typeEnd
             end % for k
         else
             for i = 1:numel(filoInfoFilt)
-                pixIndices = filoInfoFilt(i).([toAdd{iType} 'pixIndices']);
-                idxEnd = find(pixIndices == filoInfoFilt(i).([toAdd{iType} 'endpointCoordFitPix']));
-                pixIndicesPlot = pixIndices(1:idxEnd);
-                [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
+                if ip.Results.UseSmoothedCoords
+                    xy=  filoInfoFilt(filoToPlot(i)).([toAdd{iType} 'coordsXY' fieldname]);
+                    xC = xy(:,1);
+                    yC = xy(:,2);
+                    
+                else
+                    pixIndices = filoInfoFilt(i).([toAdd{iType} 'pixIndices']);
+                    idxEnd = find(pixIndices == filoInfoFilt(i).([toAdd{iType} 'endpointCoordFitPix']));
+                    pixIndicesPlot = pixIndices(1:idxEnd);
+                    [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
+                end
                 plot(xC,yC,'color',colorC,'Linewidth',ip.Results.LineWidth,'LineStyle',ip.Results.LineStyle);
             end
                    
