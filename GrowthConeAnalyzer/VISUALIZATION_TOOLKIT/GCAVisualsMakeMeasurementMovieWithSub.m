@@ -33,9 +33,9 @@ ip.addParameter('VeilDirectory',[]);
 ip.addParameter('plotText',false);
 
 
-ip.addParameter('cMapLimits',[]); 
+ip.addParameter('cMapLimits','defaults'); 
 ip.addParameter('colorByValue',true);
-ip.addParameter('extraColor',[1 1 1]); % adds an extra color to the color bar so that NaN values are white
+ip.addParameter('extraColor',[]); % adds an extra color to the color bar so that NaN values are white
 
 ip.addParameter('visible','off'); % if on show figure while plotting
 ip.addParameter('colorbarOverlay',true);
@@ -43,24 +43,30 @@ ip.addParameter('colorbarOverlay',true);
 ip.addParameter('otherFiles',true);
 ip.addParameter('SubRegionFlag',false,@(x) islogical(x))
 
+ip.addParameter('UseSmoothedCoords',true); 
+
 
 defaults{1,1} = 'filoDensityAlongVeil'; defaults{1,2} = [0,10];
-defaults{2,1} = 'filoOrient'; defaults{2,2} = [0,180];
+defaults{2,1} = 'filoOrientation'; defaults{2,2} = [0,180];
 defaults{3,1} = 'filoIntensityEmbedded';defaults{3,2} = [0.5,2];
 defaults{4,1} = 'filoIntensityToVeil'; defaults{4,2} = [0.5,2];
 defaults{5,1} = 'filoLengthEmbedded';defaults{5,2} = [0,10];
 defaults{6,1} = 'filoLengthFullActinBundle';defaults{6,2} = [0,10];
 defaults{7,1} = 'filoLengthToVeil'; defaults{7,2} = [0,10];
-defaults{8,1} = 'filoCurvature'; defaults{8,2} = [0,.5];
+defaults{8,1} = 'filoMaxCurvature'; defaults{8,2} = [0,.5];
 defaults{9,1} = 'branchLength_2ndOrder'; defaults{9,2} =[0,10];
 defaults{10,1} = 'branchOrientation_2ndOrder' ; defaults{10,2} = [0,180];
 defaults{11,1} = 'branchIntensity_2ndOrder' ; defaults{11,2} = [0 2];
 defaults{12,1} = 'validation' ; defaults{12,2} = [0,10];
+defaults{13,1} = 'percentEachActinBundleEmbed' ; defaults{13,2} = [0,1];
+defaults{14,1} = 'branchMaxCurvature_2ndOrder'; defaults{14,2} = [0,0.5]; 
 
 ip.addParameter('minMaxDefaults',defaults); % defaults for me are set below
 
 ip.parse(varargin{:});
 p = ip.Results;
+
+
 %% 
 if isempty(ip.Results.MeasurementDirectory)
     if ~ip.Results.SubRegionFlag
@@ -217,21 +223,20 @@ for iSelect = 1:numel(selected)
             
             plotValues = measC{frameC};
             if ~isempty(plotValues);
-                
-                if strcmpi(ip.Results.cMapLimits,'defaults')
-                    [cMapLimits] =  defaults{strcmpi(selected{iSelect},defaults(:,1)),2} ;
-                elseif isempty(ip.Results.cMapLimits)
-                    cMapLimits(1) = min(plotValues);
-                    cMapLimits(2) = max(plotValues);
+                if ip.Results.colorByValue
+                    if strcmpi(ip.Results.cMapLimits,'defaults')
+                        [cMapLimits] =  defaults{strcmpi(selected{iSelect},defaults(:,1)),2} ;
+                    elseif isempty(ip.Results.cMapLimits)
+                        cMapLimits(1) = min(plotValues);
+                        cMapLimits(2) = max(plotValues);
+                    end
+                else 
+                    cMapLimits(1) = min(plotValues); 
+                    cMapLimits(2) = max(plotValues); 
                 end
-                
-                
                 
                 filterSetC= filoFilterSet{frameC};
-                %
-                if ~isempty(regexpi(selected{iSelect},'Embedded'));
-                    filterSetC = (filterSetC(:,1)==1 & filterSetC(:,2) ==1);
-                end
+             
                 img = double(imread([MD.getChannelPaths{1} filesep MD.getImageFileNames{1}{frameC}]));
                 
                 
@@ -239,38 +244,107 @@ for iSelect = 1:numel(selected)
                 
                 imshow(-img,[]) ;
                 hold on
-                
-                %testForBranchMode = (~isempty(regexpi(selected{iSelect},'branchDistanceTo'))  || ~isempty(selected{iSelect}));
-                % testForBranchMode = (~isempty(regexpi(selected{iSelect},'branchDistanceTo'))  || ~isempty(selected{iSelect}));
-                testForBranchMode = false;
-                if testForBranchMode == 1
-                    branchMode = true;
-                else
-                    branchMode = false;
-                end
+%               
+%                 testForBranchMode = true;
+%                 if testForBranchMode == 1
+                      
+                branchMode = (~isempty(regexpi(selected{iSelect},'branchDistanceFrom'))  || ~isempty(regexpi(selected{iSelect},'branchDensity')));
+%                 testForBranchMode = (~isempty(regexpi(selected{iSelect},'branchDistanceTo'))  || ~isempty(selected{iSelect}));
+                plotTextAtBranches = (~isempty(regexpi(selected{iSelect},'branchDistanceFrom')));
+%                 else
+%                     branchMode = false;
+%                 end
                 
                 
                 
                 % Know this is a bit cumbersome but for now let's just have a flag to
                 % redirect if need to plot curvature
-                if ~strcmpi(selected{iSelect},'filoCurvature')
+                if strcmpi(selected{iSelect},'filoMaxCurvature') || strcmpi(selected{iSelect}, 'branchMaxCurvature_2ndOrder')
+                    GCAVisualsColorCodeByCurvature(filoInfo,'filoFilterSet',filterSetC,'cMapLimits',cMapLimits);
+                    
+                elseif strcmpi(selected{iSelect},'percentActinBundlesVeilEmbedded');
                     
                     
+                    plotText{1} = true;
+                    plotText{2} = false;
+                    filterSetForPlot{1}=  filterSetC(:,1)   ;  % both have to be significant  
+                    filterSetForPlot{2} = filterSetC(:,1) & filterSetC(:,2); 
+                    
+                  
+                    
+                    for iFilter = 1:2
+                        
+                        
+                        GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
+                            'filoFilterSet',filterSetForPlot{iFilter},'plotValues',plotValues,...
+                            'branchMode',branchMode,'colorByValue',false,'plotText',plotText{iFilter},'justExt',...
+                           iFilter,'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'UseSmoothedCoords',ip.Results.UseSmoothedCoords);
+                    end
+                    
+                    
+%                 elseif strcmpi(selected{iSelect},'   % full actin bundle you 
+%                 % plot the internal 
+%                 
+                elseif strcmpi(selected{iSelect},'filoLengthFullActinBundle') || strcmpi(selected{iSelect},'percentEachActinBundleEmbed')
+                    % plot each filopodia by the color of the full actin
+                    % bundle length : do not plot embedded bundles that do
+                    % not pass the criter
+                    
+                    
+                    plotText{1} = true;
+                    plotText{2} = false;
+                    %filterSetForPlot{1}=  filterSetC(:,1)   ;  % both have to be significant
+                    %filterSetForPlot{2} = filterSetC(:,1) & filterSetC(:,2);
+                     filterFrameC = filterSetC(:,1); 
+                    
+                     filterInt = (filterSetC(:,1) == 1 & filterSetC(:,2) ==0 ); % get the ID of all non-fits internally this filter is the length of
+                     %             % the original filoInfo detection
+                     filterInt = filterInt(filterFrameC); % keep only the
+                     filoInfoExtBund = filoInfo(filterFrameC);
+                     filoInfoIntBund = filoInfoExtBund(~filterInt);
+                     
+                     
+                     %                     %filterInt = (filterSetC(:,1) == 1 & filterSetC(:,2) ==0 ); % filter non-fits
+                     %                     filterExtOnly = filterSetC(filterSetC(:,1)==1,:); % get the external filo that are sig
+                     %                     %                     filterInt = filterSetC(:,1)==1 & filterSetC(:,2) == 0; % get the
+                     % %                     filterIntOfAbove = (:,filterExtOnly(:,2)~=0);
+                     filoInfoFilt{1} = filoInfoExtBund; % should be the same size as the numbers
+                     filoInfoFilt{2} = filoInfoIntBund;
+                     plotValuesSub{1} = plotValues;
+                     plotValuesSub{2} = plotValues(~filterInt);
+                     %
+                     for i = 1:2
+                         
+                         
+                         
+                         GCAVisualsFilopodiaMeasurementOverlays(filoInfoFilt{i},imgSize, ...
+                             'plotValues',plotValuesSub{i},'colorByValue',true,'plotText',plotText{i},'justExt',i,...
+                             'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'UseSmoothedCoords',ip.Results.UseSmoothedCoords);
+                         
+                     end
+                    
+                else  
+  
                     % Note: maybe try to fix this input before release - historical and a
                     % bit cumbersome.
                     if ~isempty(regexpi(selected{iSelect},'Embedded'));
                         filoPlotType  = 2;
-                    elseif ~isempty(regexpi(selected{iSelect},'FullActinBundle'));
-                        filoPlotType = 3;
+                        filterSetC = (filterSetC(:,1)==1 & filterSetC(:,2) ==1);
+                   
+                        
                     else
                         filoPlotType = 1;
+                        filterSetC = filterSetC(:,1) ==1; 
                     end
+                    
+                   
+                    
                     GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
                         'filoFilterSet',filterSetC,'plotValues',plotValues,...
                         'branchMode',branchMode,'colorByValue',ip.Results.colorByValue,'plotText',ip.Results.plotText,'justExt',...
-                        filoPlotType,'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits);
+                        filoPlotType,'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'plotTextAtBranches',plotTextAtBranches,'UseSmoothedCoords',ip.Results.UseSmoothedCoords);
                     
-                    if strcmpi(selected{iSelect},'filoOrient') ;
+                    if strcmpi(selected{iSelect},'filoOrientation') ;
                             overlay = zeros(imgSize);
                             backbone = veilStem(frameC).neuriteLongPathIndices;
                             overlay(backbone) = 1;
@@ -278,9 +352,9 @@ for iSelect = 1:numel(selected)
                     end
                     
                     
-                else
+               
                     
-                    GCAVisualsColorCodeByCurvature(filoInfo,'filoFilterSet',filterSetC,'cMapLimits',cMapLimits);
+                    
                     
                 end
                 
