@@ -34,42 +34,45 @@ for num = 1:numNuclei
     nucGreen = imageData{greenCha};
     nucRed = imageData{redCha};
     
-    lowerX = 1;
-    lowerY = 1;
-    lowerZ = 1;
+    xStart = 1;
+    yStart = 1;
+    zStart = 1;
     
     for i = 1:size(mask,1)
         if min(min(nucDapi(i,:,:)==0))==0
-            if lowerX == 1
-                lowerX = i;
+            if xStart == 1
+                xStart = i;
             end
-            higherX = i;
+            xEnd = i;
         end
     end
     
     for j = 1:size(mask,2)
         if min(min(nucDapi(:,j,:)==0))==0
-            if lowerY == 1
-                lowerY = j;
+            if yStart == 1
+                yStart = j;
             end
-            higherY = j;
+            yEnd = j;
         end
     end
 
     for k = 1:size(mask,3)
         if min(min(nucDapi(:,:,k)==0))==0
-            if lowerZ == 1
-                lowerZ = k;
+            if zStart == 1
+                zStart = k;
             end
-            higherZ = k;
+            zEnd = k;
         end
     end
     
     
     % How to predefine structure size???
-    nuclei(num).dapi = nucDapi(lowerX:higherX, lowerY:higherY, lowerZ:higherZ);
-    nuclei(num).green = nucGreen(lowerX:higherX, lowerY:higherY, lowerZ:higherZ);
-    nuclei(num).red = nucRed(lowerX:higherX, lowerY:higherY, lowerZ:higherZ);
+    nuclei(num).dapi = nucDapi(xStart:xEnd, yStart:yEnd, zStart:zEnd);
+    nuclei(num).green = nucGreen(xStart:xEnd, yStart:yEnd, zStart:zEnd);
+    nuclei(num).red = nucRed(xStart:xEnd, yStart:yEnd, zStart:zEnd);
+    nuclei(num).xRange = [xStart, xEnd];
+    nuclei(num).yRange = [yStart, yEnd];
+    nuclei(num).zRange = [zStart, zEnd];
 end
 
 
