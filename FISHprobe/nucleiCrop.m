@@ -1,5 +1,8 @@
 function nucleus = nucleiCrop(num,channel,imInput,imLabelCellSeg)
 
+
+% 01/2016 Ning
+
 nucMask=zeros(size(imInput));
 
 % Given the segmented nuclei number

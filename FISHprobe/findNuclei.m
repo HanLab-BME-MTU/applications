@@ -5,12 +5,16 @@ function nuclei = findNuclei(handles)
 % To be optimized
 % handles is a parameter from InvivoCytometer_2.0_source_code/code_package/CellSegmentationQualityAnnotator.m
 
+% 02/2016 Ning
+
 dapiCha = input('Enter the DAPI channel number > ');
 greenCha = input('Enter the Green channel number > ');
 redCha = input('Enter the Red channel number > ');
 
 mask = handles.data.imLabelCellSeg;
 numNuclei = max(mask(:));
+
+% Try to pre allocate the nuclei structure size
 
 for num = 1:numNuclei
     nucMask = zeros(size(mask));

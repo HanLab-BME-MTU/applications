@@ -1,5 +1,6 @@
 function [Ch1,Ch2,Ch3] = matrixExtract(movieName)
 
+% 01/2016 Ning
 
 Path = strcat('', movieName);
 MD = MovieData.load(Path);
