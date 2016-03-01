@@ -14,7 +14,7 @@ function spots = spotfind_new(fImg,dataProperties)
 %                   .mnint spottiness
 %                .COM center of mass of image
 
-% 04/16 Ning
+% 04/2015 Ning
 
 %CONST DEFINITIONS
 %global PATCHSIZE;

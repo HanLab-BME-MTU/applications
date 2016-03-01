@@ -74,6 +74,9 @@ fImg = filtermovie(zStack3D,gausspar,0);
 % calcFilterParms generates psf width, which is used as sigma for gaussian
 % filter
 % Refractive index: air 1; water 1.33 oil 1.51
+
+% Code borrowed from 
+% /home2/nzhang/matlab/applications/FISHprobe/Spots/detect/defaultDataProperties.m
 [FT_XY, FT_Z] = calcFilterParms(...
     dataProperties.WVL,dataProperties.NA,1,'gauss',...
     dataProperties.sigmaCorrection, ...

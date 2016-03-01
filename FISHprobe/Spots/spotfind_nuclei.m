@@ -6,7 +6,6 @@ function spots = spotfind_nuclei(fImg)
 % SYNOPSIS cord = spotfind(img)
 %
 % INPUT img   : stack time series
-%       dataProperties: structure with movie properties
 %
 % OUTPUT spots : nTimepoints-by-1 structure with fields
 %                .sp  structure with fields
@@ -14,7 +13,7 @@ function spots = spotfind_nuclei(fImg)
 %                   .mnint spottiness
 %                .COM center of mass of image
 
-% 04/16 Ning
+% 01/2016 Ning
 
 %CONST DEFINITIONS
 %global PATCHSIZE;
@@ -126,7 +125,7 @@ for t=1:tsteps
     for i=1:size(LM)
         LM(i) = size(mnpSorted,1)-i+1;
     end
-    plot(mnpSorted,LM);
+    plot(mnpSorted,LM,'r*');
     
     
 %     mnpThreshold = input('Enter spottiness threshold > ');

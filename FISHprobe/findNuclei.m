@@ -1,17 +1,18 @@
-function nuclei = findNuclei(handles)
+function nuclei = findNuclei(imageData, mask)
 %findNuclei Crop out all nuclei with three different channels
 %   Detailed explanation goes here
 
 % To be optimized
+% imageData = handles.data.imageData; (Multi-channel 3D stack)
+% mask = handles.data.imLabelCellSeg; (3D stack for Dapi channel)
 % handles is a parameter from InvivoCytometer_2.0_source_code/code_package/CellSegmentationQualityAnnotator.m
 
-% 02/2016 Ning
+% 03/2016 Ning
 
 dapiCha = input('Enter the DAPI channel number > ');
 greenCha = input('Enter the Green channel number > ');
 redCha = input('Enter the Red channel number > ');
 
-mask = handles.data.imLabelCellSeg;
 numNuclei = max(mask(:));
 
 % Try to pre allocate the nuclei structure size
@@ -27,11 +28,11 @@ for num = 1:numNuclei
     se = strel(sqrt(a.^2+b.^2+c.^2));
     nucMask2 = imdilate(nucMask,se);
 
-    nucDapi = handles.data.imageData{dapiCha};    
+    nucDapi = imageData{dapiCha};    
     nucDapi(nucMask2==0) = 0;
     
-    nucGreen = handles.data.imageData{greenCha};
-    nucRed = handles.data.imageData{redCha};
+    nucGreen = imageData{greenCha};
+    nucRed = imageData{redCha};
     
     lowerX = 1;
     lowerY = 1;
