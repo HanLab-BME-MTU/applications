@@ -77,6 +77,9 @@ fImg = filtermovie(zStack3D,gausspar,0);
 
 % Code borrowed from 
 % /home2/nzhang/matlab/applications/FISHprobe/Spots/detect/defaultDataProperties.m
+
+% /home2/nzhang/matlab/common/mathfun/psfModels/calcFilterParms.m cauculate
+% psf size as patchsize
 [FT_XY, FT_Z] = calcFilterParms(...
     dataProperties.WVL,dataProperties.NA,1,'gauss',...
     dataProperties.sigmaCorrection, ...

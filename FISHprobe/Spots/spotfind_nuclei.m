@@ -18,6 +18,8 @@ function spots = spotfind_nuclei(fImg)
 %CONST DEFINITIONS
 %global PATCHSIZE;
 %PATCHSIZE=dataProperties.PATCHSIZE;
+% /home2/nzhang/matlab/common/mathfun/psfModels/calcFilterParms.m cauculate
+% psf size as patchsize
 FILTERSIZE = [10 10 5];
 PATCHSIZE = FILTERSIZE;
 % DEBUG = 0;
