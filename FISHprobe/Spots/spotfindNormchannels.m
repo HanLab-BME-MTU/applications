@@ -15,7 +15,7 @@ function spots = spotfindNormchannels(movieName)
 %                   .mnint spottiness
 %                .COM center of mass of image
 
-% 07/14 Ning
+% 07/2014 Ning
 
 % Take movie data and process to get 3D matrix
 Path = strcat('/home2/nzhang/', movieName);

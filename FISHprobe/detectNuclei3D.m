@@ -1,5 +1,8 @@
 function [nuclei] = detectNuclei3D(movieName, Cha, cordVar)
 
+% Treat one nucleus as a single spot and find it
+% 2015 Ning
+
 % Take movie data and process to get 3D matrix
 Path = strcat('', movieName);
 MD = MovieData.load(Path);

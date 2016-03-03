@@ -16,7 +16,7 @@ startTime = clock;
 %                   .mnint spottiness
 %                .COM center of mass of image
 
-% 04/15 Ning
+% 04/2015 Ning
 % Take movie data and process to get 3D matrix
 Path = strcat('', movieName);
 MD = MovieData.load(Path);
@@ -83,7 +83,9 @@ fImg = filtermovie(zStack3D,gausspar,0);
 [FT_XY, FT_Z] = calcFilterParms(...
     dataProperties.WVL,dataProperties.NA,1,'gauss',...
     dataProperties.sigmaCorrection, ...
-    [dataProperties.PIXELSIZE_XY dataProperties.PIXELSIZE_Z]);
+    [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z]);
+
+% The following two lines could be bullshit!!!
 FT_XY = FT_XY + fSze_xy/4;
 FT_Z = FT_Z + fSze_z/4;
 
@@ -94,6 +96,5 @@ dataProperties.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
 
 
 spots = spotfind_new(fImg, dataProperties);
-spots.start = startTime;
-spots.end = clock;
+
 
