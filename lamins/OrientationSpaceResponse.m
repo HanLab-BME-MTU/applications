@@ -10,8 +10,8 @@ classdef OrientationSpaceResponse < handle
     end
     
     properties (Transient)
-        angularGaussians
         matrix
+        idx
     end
     
     properties (Transient, Access = protected)
@@ -30,6 +30,9 @@ classdef OrientationSpaceResponse < handle
     
     methods
         function obj = OrientationSpaceResponse(filter,angularResponse)
+            if(~nargin)
+                return;
+            end
             obj.filter = filter;
             obj.angularResponse = angularResponse;
             obj.n = size(angularResponse,3);
@@ -79,16 +82,15 @@ classdef OrientationSpaceResponse < handle
         function a = get.a(obj)
             a = obj.angularResponse;
         end
+        function idx = get.idx(obj)
+            if(isempty(obj.idx))
+                obj.idx = orientationSpace.OrientationSpaceResponseIndex(obj);
+            end
+            idx = obj.idx;
+        end
         
         function A = getAngularGaussians(obj)
-            if(isempty(obj.angularGaussians))
-                N = obj.n;
-                x = 0:N-1;
-                xx = bsxfun(@minus,x,x');
-                xx = wraparoundN(xx,-N/2,N/2);
-                obj.angularGaussians = exp(-xx.^2/2);
-            end
-            A = obj.angularGaussians;
+            A = obj.filter.getAngularGaussians;
         end
         function M = getMatrix(obj)
             if(isempty(obj.matrix))
@@ -103,7 +105,11 @@ classdef OrientationSpaceResponse < handle
                 samples = obj.n;
             end
             siz = size(obj.angularResponse);
-            linIdx = sub2ind(siz([1 2]),r,c);
+            if(nargin > 2)
+                linIdx = sub2ind(siz([1 2]),r,c);
+            else
+                linIdx = r;
+            end
             if(isscalar(samples) && samples == obj.n)
                 a = reshape(obj.angularResponse,[],obj.n);
                 response = squeeze(a(linIdx,:));
@@ -170,9 +176,9 @@ classdef OrientationSpaceResponse < handle
             end
         end
         function Response = getResponseAtOrder(obj,Kf_new)
-            assert(~mod(Kf_new,1), ...
+            assert(~mod(Kf_new*2,1), ...
                 'OrientationSpaceResponse:getResponseAtOrder', ...
-                'Kf_new must be an integer value');
+                'Kf_new*2 must be an integer value');
 %             A = obj.getAngularGaussians;
             % Calculate new number of angles at new order
             n_new = 2*Kf_new+1;
@@ -182,26 +188,34 @@ classdef OrientationSpaceResponse < handle
             tt = wraparoundN(bsxfun(@minus,queryPts,(0:obj.n-1)'),[-obj.n obj.n]/2);
             T = exp(-tt.^2/2/(scaleFactor*scaleFactor));
             % Calculate new angular response at Kf_new order
+            M = obj.getMatrix();
             angularResponseSize = size(obj.angularResponse);
-            angularResponse_new = real(obj.getMatrix()) * T;
+            angularResponse_new = real(M) * T;
             angularResponse_new = reshape(angularResponse_new,[angularResponseSize([1 2]) n_new]);
+            % Deal with edge response if it exists
+            if(~isreal(M))
+                imagM = imag(cat(3,obj.angularResponse,-obj.angularResponse));
+                imagResponse = OrientationSpaceResponse(obj.filter,imagM);
+                imagResponse = imagResponse.getResponseAtOrder(Kf_new*2+0.5);
+                angularResponse_new = angularResponse_new + 1j * imagResponse.angularResponse(:,:,1:end/2);
+            end
             % Create objects and return
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,Kf_new);
             Response = OrientationSpaceResponse(filter_new,angularResponse_new);
         end
-        function varargout = subsref(obj,S)
-            switch(S(1).type)
-%                 case '.'
-                case '()'
-                    varargout{1} = obj.getResponseAtPoint(S(1).subs{:});
-                case '{}'
-                    varargout{1} = obj.getResponseAtOrientation(S(1).subs{:});
-                otherwise
-                    [varargout{1:nargout}] = builtin('subsref',obj,S);
-            end
-        end
         function h = imshow(obj,varargin)
-            h = imshow(obj.getMaxResponse,varargin{:});
+            normalize = false;
+            if(~isempty(varargin) && isempty(varargin{1}) && numel(obj) > 1)
+                    normalize = true;
+            end
+            outI = cell(size(obj));
+            for o=1:numel(obj)
+                outI{o} = obj(o).getMaxResponse;
+                if(normalize)
+                    outI{o} = mat2gray(real(outI{o}));
+                end
+            end
+            h = imshow(cell2mat(outI),varargin{:});
         end
         function h = imshowpair(A,B)
             if(nargin > 1)
@@ -223,4 +237,3 @@ classdef OrientationSpaceResponse < handle
     end
     
 end
-

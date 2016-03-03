@@ -10,6 +10,15 @@ function [ response ] = rescaleAngles( orientationMatrix, scaleFactor )
 % y                 : YxXxTarget
     import orientationSpace.*;
     % 
+    
+    if(~isreal(orientationMatrix))
+        imagOrientationMatrix = imag(orientationMatrix);
+        imagOrientationMatrix = cat(3,imagOrientationMatrix,-imagOrientationMatrix);
+        imagResponse = rescaleAngles(imagOrientationMatrix,scaleFactor);
+        response = rescaleAngles(real(orientationMatrix),scaleFactor) + 1i*imagResponse(:,:,1:end/2);
+        return;
+    end
+    
     s = size(orientationMatrix);
     M = reshape(orientationMatrix,s(1)*s(2),s(3));
     % todo, deal with even case

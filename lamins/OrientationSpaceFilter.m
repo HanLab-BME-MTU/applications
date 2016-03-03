@@ -30,6 +30,8 @@ classdef OrientationSpaceFilter < handle
         size
         % Filter itself
         F
+        % Angular gaussians useful for manipulating response
+        angularGaussians
     end
     
     properties (Dependent = true)
@@ -39,6 +41,8 @@ classdef OrientationSpaceFilter < handle
         frequencyBandwidth
         % K
         order
+        % number of angular filter templates
+        n
     end
     
     methods
@@ -72,6 +76,9 @@ classdef OrientationSpaceFilter < handle
         function K = get.order(obj)
             K = obj.K;
         end
+        function n = get.n(obj)
+            n = obj.K*2+1;
+        end
         function R = mtimes(obj,I)
             % Convolution
             if(isa(obj,'OrientationSpaceFilter'))
@@ -86,7 +93,10 @@ classdef OrientationSpaceFilter < handle
             ridgeResponse = obj.applyRidgeFilter(If);
             edgeResponse = obj.applyEdgeFilter(If);
             angularResponse = ridgeResponse + edgeResponse;
-            R = OrientationSpaceResponse(obj,angularResponse);
+            R(numel(obj)) = OrientationSpaceResponse;
+            for o=1:numel(obj)
+                R(o) = OrientationSpaceResponse(obj(o),angularResponse(:,:,:,o));
+            end
         end
         function R = getRidgeResponse(obj,I)
             If = fft2(I);
@@ -97,6 +107,16 @@ classdef OrientationSpaceFilter < handle
             If = fft2(I);
             edgeResponse = obj.applyEdgeFilter(If);
             R = OrientationSpaceResponse(obj,edgeResponse);
+        end
+        function A = getAngularGaussians(obj)
+            if(isempty(obj.angularGaussians))
+                N = obj.n;
+                x = 0:N-1;
+                xx = bsxfun(@minus,x,x');
+                xx = wraparoundN(xx,-N/2,N/2);
+                obj.angularGaussians = exp(-xx.^2/2);
+            end
+            A = obj.angularGaussians;
         end
         function imshow(obj,n,varargin)
             if(nargin < 2 || isempty(n))
@@ -110,18 +130,20 @@ classdef OrientationSpaceFilter < handle
     end
     methods
         function setupFilter(obj,siz)
-            if( isempty(obj.size) || any(siz ~= obj.size) || isempty(obj.F))
-                obj.size = siz;
-                obj.F = orientationSpace.kernel(obj.f_c, obj.b_f, obj.K, obj.angles, obj.size);
+            for o=1:numel(obj)
+                if( isempty(obj(o).size) || any(siz ~= obj(o).size) || isempty(obj(o).F))
+                    obj(o).size = siz;
+                    obj(o).F = orientationSpace.kernel(obj(o).f_c, obj(o).b_f, obj(o).K, obj(o).angles, obj(o).size);
+                end
             end
         end
         function ridgeResponse = applyRidgeFilter(obj,If)
             obj.setupFilter(size(If)); %#ok<CPROP>
-            ridgeResponse = real(ifft2(bsxfun(@times,If,real(obj.F))));
+            ridgeResponse = real(ifft2(bsxfun(@times,If,real(cat(4,obj.F)))));
         end
         function edgeResponse = applyEdgeFilter(obj,If)
             obj.setupFilter(size(If)); %#ok<CPROP>
-            edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(obj.F))));
+            edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(cat(4,obj.F)))));
         end
     end
 end
