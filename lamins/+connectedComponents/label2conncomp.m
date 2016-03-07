@@ -16,7 +16,7 @@ out.NumObjects = double(max(lm(:)));
 % find nonzero values
 nzList = find(lm);
 % group label indices together
-out.PixelIdxList = accumarray(lm(nzList),nzList,[],@(x) {x});
+out.PixelIdxList = accumarray(lm(nzList),nzList,[],@(x) {x})';
 
 
 

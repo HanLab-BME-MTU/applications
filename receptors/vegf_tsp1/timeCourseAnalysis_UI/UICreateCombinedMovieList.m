@@ -26,14 +26,15 @@ while ~isnumeric(fileName)
     [fileName, filePath] = uigetfile('*.mat', 'Select MovieLists', 'MultiSelect', 'on');
 end
 %Parameter prompt
-align_StringList = {'start', 'VEGF_added'};
+align_StringList = {'start', 'compound_added', 'VEGF_added'};
 align_userChoice = listdlg('PromptString','Select the align event', 'SelectionMode','single', 'ListString', align_StringList);
-if align_userChoice == 1
-    CML_analysisPara.alignEvent = 'start';
-end
-if align_userChoice == 2
-    CML_analysisPara.alignEvent = 'VEGF_added';
-end
+CML_analysisPara.alignEvent = align_StringList{align_userChoice};
+% if align_userChoice == 1
+%     CML_analysisPara.alignEvent = 'start';
+% end
+% if align_userChoice == 2
+%     CML_analysisPara.alignEvent = 'compound_added';
+% end
 %% Input check
 
 %load MLs w/o sanity check or loading MDs
