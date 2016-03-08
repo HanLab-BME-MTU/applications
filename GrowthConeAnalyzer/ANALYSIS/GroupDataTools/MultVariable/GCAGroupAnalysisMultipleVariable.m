@@ -889,6 +889,7 @@ if ip.Results.DistMetrics
         
         scatterByClust =  arrayfun(@(x) [projListByClust{x} num2cell(scatterValues{x+1})],1:numClust,'uniformoutput',0); 
         save([distanceDir filesep 'scatterByClust.mat'],'scatterByClust'); 
+        title('Mean Of Scatter','FontSize',10); 
        
         test = reformatDataCell(scatterValues);
         h =  notBoxPlot(test);
@@ -902,24 +903,100 @@ if ip.Results.DistMetrics
         %             arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:numel(toPlot.info.names));
         %             arrayfun(@(i) set(h(i).mu,'color',toPlot.info.color{i}),1:numel(toPlot.info.names));
         ylabel('Euclidean Distance From Centroid');
+        
+        
+        names{1} = 'All'; 
+        names{2} = 'Low '  ;     
+        names{3} = 'Mid';
+        names{4} = 'High '; 
+        
+        set(gca,'XTick',1:numel(names));
+        set(gca,'XTickLabel',names,'FontSize',10);
+       
+        
+        saveas(gcf,[distanceDir filesep  'ScatterMetricByElongCluster.png'] ); 
+        saveas(gcf, [distanceDir filesep 'ScatterMetricByElongCluster.eps'],'psc2'); 
+        saveas(gcf, [distanceDir filesep 'ScatterMetricByElongCluster.fig']); 
+        
+        close gcf
+        
+        %% for now put median in a separate section : eventually consolidate 
+    
+        
+          setAxis('on'); 
+ 
+        
+        % get the confidence intervals of each cluster median scatter (output a
+        % cell with CIs cluster 1:nClust
+        CIs = cellfun(@(x) bootci(2000,@calcMedianDistToCent,x'),data,'uniformoutput',0);
+        hold on 
+        
+        
+        [medianValue, scatterValues] = cellfun(@(x) calcMedianDistToCent(x'),data,'uniformoutput',0);
+      
+       
+        test = reformatDataCell(scatterValues);
+        h =  notBoxPlot(test);
+        hold on
+%         cMap = [[0,0,0]; cMap];
+        arrayfun(@(x) scatter(x,medianValue{x},100,cMap(x,:),'x'),1:numel(CIs)); 
+        arrayfun(@(i) errorbar(i,medianValue{i},medianValue{i} - CIs{i}(1) , CIs{i}(2) - medianValue{i},'color',cMap(i,:)),1:numel(CIs)); 
+        arrayfun(@(i) set(h(i).semPtch,'faceColor','w'),1:numel(scatterValues));
+        arrayfun(@(i) set(h(i).sdPtch,'faceColor','w'),1:numel(scatterValues));
+        arrayfun(@(i) set(h(i).data,'markerFaceColor',cMap(i,:)),1:numel(scatterValues));
+        arrayfun(@(i) set(h(i).mu,'color','w'),1:numel(scatterValues));
+        %             arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:numel(toPlot.info.names));
+        %             arrayfun(@(i) set(h(i).mu,'color',toPlot.info.color{i}),1:numel(toPlot.info.names));
+        ylabel('Euclidean Distance From Centroid');
         names{1} = 'All'; 
         names{2} = 'Low '  ;     
         names{3} = 'Mid';
         names{4} = 'High '; 
         set(gca,'XTick',1:numel(names));
         set(gca,'XTickLabel',names,'FontSize',10);
+        title('Median Of Scatter','FontSize',10); 
+%         
+        saveas(gcf,[distanceDir filesep  'ScatterMetricMedianByElongCluster.png'] ); 
+        saveas(gcf, [distanceDir filesep 'ScatterMetricMedianByElongCluster.eps'],'psc2'); 
+        saveas(gcf, [distanceDir filesep 'ScatterMetricMedianByElongCluster.fig']);
         
-        saveas(gcf,[distanceDir filesep  'ScatterMetricByElongCluster.png'] ); 
-        saveas(gcf, [distanceDir filesep 'ScatterMetricByElongCluster.eps'],'psc2'); 
-        saveas(gcf, [distanceDir filesep 'ScatterMetricByElongCluster.fig']); 
+        close gcf
+        
+        
     end
          
     %% Discrimination Metrics
     nCond = numel(dataMatAllMeas);
     [DB,Dunn,SC,c1,c2] = arrayfun(@(x) whDiscriminationMeasures(dataMatAllMeas{x}',dataMatAllMeas{1}'),1:nCond);
     setAxis('on'); 
-    DBSort = sort(DB);
-    barh(DBSort); 
+    [DBSort,idxSort] = sort(DB);
+    
+    
+    colorsGroup = toPlot.info.color; 
+    colorsGroup = colorsGroup(idxSort); 
+    colorsGroup = colorsGroup(2:end); 
+    
+    
+    setAxis('on');
+    h = bar([DBSort(2:end); DBSort(2:end)]); % do two for now and crop one out
+    for x = 1:length(h)
+        h(x).FaceColor = colorsGroup{x};
+    end
+    
+    axis([1.5,2.5,0,max(DBSort(2:end))+0.2])
+    
+    namesGroup = toPlot.info.names; 
+    namesSort = namesGroup(idxSort);  
+        
+    ylabel({'Separation Statistic-'; 'Inverse Davies Bouldin Index'}); 
+    set(gca,'XTick',1:numel(namesSort)-1);
+    set(gca,'XTickLabel',' ');
+    
+    saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.png']); 
+    saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.eps'],'psc2');
+    saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.fig']);
+    close gcf
+    
     %% bootstrap c values (average dist to centroid) and  make plot with confidence intervals
 %     cis = cellfun(@(y) bootci(2000,@calcMeanDistToCent,y'),dataMatAllMeas,'uniformoutput',0);
  
@@ -988,7 +1065,7 @@ function [medianDistToCent,genesDist] = calcMedianDistToCent(featsVect)
  % get the mean for each feature over all observations 
   medianGene = nanmean(featsVect,2)'; % column is 
   genesDist = pdist2(featsVect',medianGene); % get the eucledian distance between each observation and the centroid 
-  medianDistToCent = nanmean(genesDist); 
+  medianDistToCent = nanmedian(genesDist); 
 end 
 
 
