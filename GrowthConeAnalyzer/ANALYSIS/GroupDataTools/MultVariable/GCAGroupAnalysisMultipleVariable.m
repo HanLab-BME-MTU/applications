@@ -44,11 +44,15 @@ ip.addParameter('plotByGroup',true); % will make 3-D scatter plots by group
 %ip.addParameter('perFrame',true); Not implemented here: see other versions
 
 % D Reduction Visualizations
-ip.addParameter('PCA',true);
+ip.addParameter('PCA',false);
 ip.addParameter('MDS',false);
 %ip.addParameter('CriterionMDS','stress'); % default is nonmetric
 
 ip.addParameter('cluster',true);
+ip.addParameter('clustNumResponse',3);
+ip.addParameter('testResponseClust',false); 
+
+ip.addParameter('DistMetrics',true); 
 
 ip.parse(toPlot,varargin{:});
 %% Set up
@@ -151,7 +155,7 @@ outgrowth = outgrowth./10;
     saveas(gcf,[dataDir filesep 'colorbar.fig']);
     saveas(gcf,[dataDir filesep 'colorbar.eps'],'psc2');
 
-
+    close gcf
 
 
 
@@ -161,20 +165,67 @@ if ip.Results.cluster
         mkdir(clusterDir);
     end
     
-    colorClust{1} = [0 0 1]; % low blue
-    colorClust{2} = [1 0 0]; % high red
-     
+    %% test response clusters
+    if ip.Results.testResponseClust
+        
+        for i = 1:5
+       
+        myfunc = @(X,K)(kmeans(X, K, 'replicates',50)); 
+            
+            
+        eval = evalclusters( plotValues, myfunc,'DaviesBouldin','klist',1:10);
+        evalControl = evalclusters(plotValues(grouping ==1),myfunc,'DaviesBouldin','klist',1:10);
+        
+        setAxis('on')
+        plot(1:10,evalControl.CriterionValues,'color','k');
+        
+        hold on
+        plot(1:10,eval.CriterionValues,'color','r');
+        xlabel('Cluster Number');
+        ylabel('DaviesBouldin Index');
+        nControl = length(plotValues(grouping==1));
+        nCells = length(plotValues);
+        legend({['Control N = ' num2str(nControl) ], ['All Conditions  N = ' num2str( nCells  )] }  );
+        legend('boxoff');
+        scatter(1:10,evalControl.CriterionValues,50,'k','filled');
+        scatter(1:10,eval.CriterionValues,50,'r','filled');
+        saveas(gcf,[clusterDir filesep 'DBIndices' num2str(i) '.fig']);
+        saveas(gcf,[clusterDir filesep 'DBIndices' num2str(i) '.png']);
+        close gcf
+        end 
+       
+    end % if testResponseClust
+   %scatter(eval
+%     colorClust{1} = [0 0 1]; % low blue
+%     colorClust{2} = [1 0 0]; % high red
+%     colorClust{3} = [0 1 0]; % mid
+%      
+     %cMap =  brewermap(ip.Results.ClustNumResponse,'set1'); 
+     cMap(:,1) = [0,0,1]; 
+     cMap(:,2) = [0,1,0]; 
+     cMap(:,3) = [1,0,0]; 
     % Perform k-means clustering (All Values)
-    [idx,cCenters]  = kmeans(plotValues,2,'replicates',20);
-    indexMin = find(cCenters == min(cCenters));
-    indexMax = find(cCenters == max(cCenters));
-    %  % make it such that 2 is always high and 1 is always the low cluster
-    sortedIdx = zeros(length(idx),1);
-    sortedIdx(idx==indexMin) = 1;
-    sortedIdx(idx==indexMax) = 2;
-    groupingCluster = sortedIdx;
+    [idx,cCenters]  = kmeans(plotValues,ip.Results.clustNumResponse,'replicates',50);
+    %     indexMin = find(cCenters == min(cCenters));
+    %     indexMax = find(cCenters == max(cCenters));
+    [values,indices] = sort(cCenters);
+   % indices
+   sortedIdx = zeros(length(idx),1);
+   for i = 1:length(indices)
+       
+       sortedIdx(idx==indices(i)) =i;
+   end
+   groupingCluster = sortedIdx;
     
-    %% add the plot values and the cluster to save 
+%     %  % make it such that 2 is always high and 1 is always the low cluster
+%     sortedIdx = zeros(length(idx),1);
+%     sortedIdx(idx==indexMin) = 1;
+%     sortedIdx(idx==indexMax) = 2;
+%     groupingCluster = sortedIdx;
+    
+
+
+%% add the plot values and the cluster to save 
 end
 
 %% Perform Stepwise linear regression
@@ -356,7 +407,7 @@ if ip.Results.MDS
         setAxis('on')
         hold on
         arrayfun(@(x) scatter(controlValues(groupingControl==x,1),...
-            controlValues(groupingControl==x,2),50, colorClust{x},'filled'),1:nClusts);
+            controlValues(groupingControl==x,2),50, cMap(x,:),'filled'),1:nClusts);
         obsNames =  cellfun(@(x) strrep(x,'_',' '),obsNames,'uniformoutput',0);
         %      obsNames(test) = [];
         arrayfun(@(x) text(controlValues(x,1),controlValues(x,2),obsNames{x}),1:size(controlValues(:,1)));
@@ -374,8 +425,9 @@ if ip.Results.MDS
         
         %% Show Pics of Structures: Cluster 1 and Cluster 2
         name{1} = 'Low';
-        name{2} = 'High';
-        for iClust = 1:2
+        name{2} = 'Middle';
+        name{3} = 'High'; 
+        for iClust = 1:nClusts
             setAxis('on')
             
             hold on
@@ -384,7 +436,7 @@ if ip.Results.MDS
             %            controlValues(groupingControl==iClust,2),50, colorClust{iClust},'filled');
             
             arrayfun(@(x) scatter(controlValues(groupingControl==x,1),...
-                controlValues(groupingControl==x,2),50, colorClust{x},'filled'),1:nClusts);
+                controlValues(groupingControl==x,2),50,cMap(x,:),'filled'),1:nClusts);
             obsNames =  cellfun(@(x) strrep(x,'_',' '),obsNames,'uniformoutput',0);
             
             projListC = projList(groupingControl==iClust,1);
@@ -412,7 +464,7 @@ if ip.Results.MDS
         setAxis('on')
         hold on
         arrayfun(@(x) scatter(y(groupingCluster==x,1),...
-            y(groupingCluster==x,2),50, colorClust{x},'filled'),1:nClusts);
+            y(groupingCluster==x,2),50,cMap(x,:),'filled'),1:nClusts);
         
         
         %arrayfun(@(x) text(y(x,1),y(x,2),obsNames{x}),1:size(y(:,1)))
@@ -803,20 +855,71 @@ if ip.Results.DistMetrics
         mkdir(distanceDir); 
     end 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    if ip.Results.cluster
+        setAxis('on'); 
+        % total scatter 
+
+        dataControl = dataFinal(grouping ==1,:); 
+      
+               
+        % Cluster By elongation a response variable. 
+        % Calculate the euclidean distance from each point in the
+        % descriptor space and the centroid of this cluster. 
+        
+        % get each cluster
+        numClust = length(unique(groupingCluster)); 
+        data{1} = dataControl; 
+        
+        dataByClust = arrayfun(@(x) dataFinal(groupingCluster==x & grouping ==1,:),1:numClust,'uniformoutput',0);
+        projListByClust = arrayfun(@(x) projList(groupingCluster==x & grouping ==1,:),1:numClust,'uniformoutput',0); 
+        save([distanceDir filesep 'projListByClust.mat'],'projListByClust');
+      
+        
+        data = [data,dataByClust];
+        %[meanValue,scatterValues] = arrayfun(@(x) calcMeanDistToCent(dataMatAllMeas(groupingCluster == x),:)',1:nClust,'uniformoutput',0) ;
+        
+        % get the confidence intervals of each cluster mean scatter (output a
+        % cell with CIs cluster 1:nClust
+        CIs = cellfun(@(x) bootci(2000,@calcMeanDistToCent,x'),data,'uniformoutput',0);
+        hold on 
+        
+        
+        [meanValue, scatterValues] = cellfun(@(x) calcMeanDistToCent(x'),data,'uniformoutput',0);
+        %save([distanceDir filesep 'scatterValues.mat'],'scatterValues'); 
+        
+        scatterByClust =  arrayfun(@(x) [projListByClust{x} num2cell(scatterValues{x+1})],1:numClust,'uniformoutput',0); 
+        save([distanceDir filesep 'scatterByClust.mat'],'scatterByClust'); 
+       
+        test = reformatDataCell(scatterValues);
+        h =  notBoxPlot(test);
+        hold on
+        cMap = [[0,0,0]; cMap];
+        arrayfun(@(i) errorbar(i,meanValue{i},meanValue{i} - CIs{i}(1) , CIs{i}(2) - meanValue{i},'color',cMap(i,:)),1:numel(CIs)); 
+        arrayfun(@(i) set(h(i).semPtch,'faceColor','w'),1:numel(scatterValues));
+        arrayfun(@(i) set(h(i).sdPtch,'faceColor','w'),1:numel(scatterValues));
+        arrayfun(@(i) set(h(i).data,'markerFaceColor',cMap(i,:)),1:numel(scatterValues));
+        arrayfun(@(i) set(h(i).mu,'color',cMap(i,:)),1:numel(scatterValues));
+        %             arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:numel(toPlot.info.names));
+        %             arrayfun(@(i) set(h(i).mu,'color',toPlot.info.color{i}),1:numel(toPlot.info.names));
+        ylabel('Euclidean Distance From Centroid');
+        names{1} = 'All'; 
+        names{2} = 'Low '  ;     
+        names{3} = 'Mid';
+        names{4} = 'High '; 
+        set(gca,'XTick',1:numel(names));
+        set(gca,'XTickLabel',names,'FontSize',10);
+        
+        saveas(gcf,[distanceDir filesep  'ScatterMetricByElongCluster.png'] ); 
+        saveas(gcf, [distanceDir filesep 'ScatterMetricByElongCluster.eps'],'psc2'); 
+        saveas(gcf, [distanceDir filesep 'ScatterMetricByElongCluster.fig']); 
+    end
+         
     %% Discrimination Metrics
     nCond = numel(dataMatAllMeas);
     [DB,Dunn,SC,c1,c2] = arrayfun(@(x) whDiscriminationMeasures(dataMatAllMeas{x}',dataMatAllMeas{1}'),1:nCond);
-    
-    
+    setAxis('on'); 
+    DBSort = sort(DB);
+    barh(DBSort); 
     %% bootstrap c values (average dist to centroid) and  make plot with confidence intervals
 %     cis = cellfun(@(y) bootci(2000,@calcMeanDistToCent,y'),dataMatAllMeas,'uniformoutput',0);
  
@@ -826,17 +929,17 @@ if ip.Results.DistMetrics
     
     %arrayfun(@(x) scatter(x,cs(x),50,toPlot.info.color{x},'filled'),1:length(cs));
 %     arrayfun(@(x) scatter(x,values,50,toPlot.info.color{x},'filled'),1:length(cs)); 
-    arrayfun(@(x) errorbar(x,cs(x),cis{x}(1),cis{x}(2),'color',toPlot.info.color{x}),1:length(cs));
-    ylabel('Mean Euclidean Distance to Centroid Per Group')
-    labels = toPlot.info.names;
+%     arrayfun(@(x) errorbar(x,cs(x),cis{x}(1),cis{x}(2),'color',toPlot.info.color{x}),1:length(cs));
+%     ylabel('Mean Euclidean Distance to Centroid Per Group')
+%     labels = toPlot.info.names;
     
-    set(gca,'XTick',1:length(cs));
-    set(gca,'XTickLabel',labels,'FontSize',10);
-    
-    %scatter(1:length(cs),cs);
-    % errorbar(cs,cis);
-    saveas(gcf,[ip.Results.OutputDirectory filesep 'DistanceToCentroidPerGroup.fig']);
-    saveas(gcf,[ip.Results.OutputDirectory filesep 'DistanceToCentroidPerGroup.png']);
+%     set(gca,'XTick',1:length(cs));
+%     set(gca,'XTickLabel',labels,'FontSize',10);
+%     
+%     %scatter(1:length(cs),cs);
+%     % errorbar(cs,cis);
+%     saveas(gcf,[ip.Results.OutputDirectory filesep 'DistanceToCentroidPerGroup.fig']);
+%     saveas(gcf,[ip.Results.OutputDirectory filesep 'DistanceToCentroidPerGroup.png']);
     
     %% Plot the distance to centroid control per group 
     
@@ -855,6 +958,8 @@ if ip.Results.DistMetrics
         
         scoresPC = arrayfun(@(x) scores(grouping==x,1:forLine),1:nGroups,'uniformoutput',0);
         [DBPCA,DunnPCA] = arrayfun(@(x) whDiscriminationMeasures(scoresPC{x}',scoresPC{1}'),1:nCond);
+        
+        
         forCellPCA  = num2cell([DBPCA' DunnPCA']);
         valuesPCA = [names forCellPCA];
         % cell2dataset(values);
@@ -875,5 +980,17 @@ function [meanDistToCent,genesDist] = calcMeanDistToCent(featsVect)
   genesDist = pdist2(featsVect',meanGene); % get the eucledian distance between each observation and the centroid 
   meanDistToCent = nanmean(genesDist); 
 end 
+
+function [medianDistToCent,genesDist] = calcMedianDistToCent(featsVect)
+%      featsVect = rxc double array 
+%      where r is the number of features and c is the number of
+%      observations (often cells/movies) of the perturbation condition
+ % get the mean for each feature over all observations 
+  medianGene = nanmean(featsVect,2)'; % column is 
+  genesDist = pdist2(featsVect',medianGene); % get the eucledian distance between each observation and the centroid 
+  medianDistToCent = nanmean(genesDist); 
+end 
+
+
 
 %% 
