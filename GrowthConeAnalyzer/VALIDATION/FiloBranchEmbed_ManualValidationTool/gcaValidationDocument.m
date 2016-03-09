@@ -111,8 +111,12 @@ while clickFilo == 1
                     
                     
                     delete(hText)
-                    delete(hfilo)
+                    if exist('hfilo','var');
+                        delete(hfilo)
+                    end
+                    if exist('hfiloT','var'); 
                     delete(hfiloT)
+                    end 
                     delete(h)
                     % initiate false false positive counter
                     hText =  text(20,ny-20, ['N ' errorName ' = 0']);
