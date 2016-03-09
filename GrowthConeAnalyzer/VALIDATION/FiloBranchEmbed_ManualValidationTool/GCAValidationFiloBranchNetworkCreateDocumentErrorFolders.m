@@ -19,12 +19,13 @@ ip.addParameter('TSOverlays',true);
 ip.parse(selectedProjects,outDir,varargin{:});
 
 typesToRun = ip.Results.type;
+inputFolder = ip.Results.inputFolder;
 % Two Options Embedded or Branched.
 
 for iProj = 1:size(selectedProjects,1)
     
     currentProj = selectedProjects{iProj,1};
-    frame = selectedProjects{iProj,2};
+    frame = selectedProjects{iProj,3};
     
     %get the ID  (find the function for this)
     %[group,numID,date] = helperGetIDInfo(currentProj);
@@ -90,6 +91,7 @@ for iProj = 1:size(selectedProjects,1)
         switch type
             case 'veilFilo'
                 outDirC = [outProj filesep 'OverlayVeilFilo'];
+                save([outProj filesep 'inFolder.mat'],'inputFolder');
                 
                 if ~isdir(outDirC)
                     mkdir(outDirC);
@@ -103,6 +105,7 @@ for iProj = 1:size(selectedProjects,1)
                 imshow(-img,[]);
                 
                 saveas(gcf,[outDirC filesep '001.png']);
+                saveas(gcf,[outDirC filesep '001.eps'],'psc2'); 
                 hold on
                 
                 
@@ -144,12 +147,13 @@ for iProj = 1:size(selectedProjects,1)
                     'colorByValue',true,'justExt',...
                     1,'colorFiloBranch','k','LineStyle','--');
                 saveas(gcf,[outDirC filesep '002.png']);
+                saveas(gcf,[outDirC filesep '002.eps'],'psc2'); 
                 close gcf
                 %%
                 
             case 'branch'
                 outDirC = [outProj filesep 'OverlayBranch'];
-                
+                save([outProj filesep 'inFolder.mat'],'inputFolder'); 
                 
                 if ~isdir(outDirC)
                     mkdir(outDirC);
@@ -162,6 +166,7 @@ for iProj = 1:size(selectedProjects,1)
                 imshow(-img,[]);
                 hold on
                 saveas(gcf,[outDirC filesep '001.png']);
+                saveas(gcf,[outDirC filesep '001.eps'],'psc2'); 
                 
                 roiYX = bwboundaries(veilMask);
                 cellfun(@(x) plot(x(:,2),x(:,1),'color','k'),roiYX);
@@ -213,12 +218,14 @@ for iProj = 1:size(selectedProjects,1)
                         1,'colorFiloBranch','k','LineStyle','--');
                 end
                 saveas(gcf,[outDirC filesep '002.png']);
+                saveas(gcf,[outDirC filesep '002.eps'],'psc2'); 
                 close gcf
                             
                 
             case 'embed'
                 outDirC = [outProj filesep 'OverlayEmbed'];
-                
+                save([outProj filesep 'inFolder.mat'],'inputFolder'); 
+               
                 if ~isdir(outDirC)
                     mkdir(outDirC)
                 end
@@ -226,6 +233,9 @@ for iProj = 1:size(selectedProjects,1)
                  imshow(-img,[]); 
                  hold on 
                   saveas(gcf,[outDirC filesep '001.png']);
+                  saveas(gcf,[outDirC filesep '001.eps'],'psc2'); 
+                roiYX = bwboundaries(veilMask);
+                cellfun(@(x) plot(x(:,2),x(:,1),'color','k'),roiYX);  
                 [filoFilterSet,filoParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranchC,'Validation');
                 filoFilterSetC = filoFilterSet{1};
                 
@@ -249,10 +259,12 @@ for iProj = 1:size(selectedProjects,1)
                 GCAVisualsFilopodiaMeasurementOverlays(filoInfoB,[ny,nx],'justExt',2,'colorEmbed','k','LineStyle','--')
                 
                 saveas(gcf,[outDirC filesep '002.png']);
+                saveas(gcf,[outDirC filesep '002.eps'],'psc2');
                 close gcf
         end
         
     end
+    
     clear filoBranchC filoInfo
 end
 
