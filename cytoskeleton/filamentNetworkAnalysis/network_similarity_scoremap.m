@@ -1,4 +1,5 @@
-function [similarity_scoremap, difference_map] = network_similarity_scoremap(VIF_current_model,MT_current_model,img_size, radius)
+function [similarity_scoremap, difference_map] = network_similarity_scoremap(VIF_current_model,MT_current_model,img_size, radius,...
+    longest_radius,sigma_d, sigma_theta,sigma_gaussian)
 % core unction for calculation the similarity of two networks
 % Liya Ding 06.2013.
 
@@ -70,11 +71,15 @@ O2 = MT_OO;
 
 % find in the pool of the points in the 2nd channel, the closest point of
 % the points in the 1st channel, so query is 1, pool is 2.
-[idx_cell, dist_cell] = KDTreeBallQuery([Y2 X2],[Y1 X1],radius);
+% [idx_cell, dist_cell] = KDTreeBallQuery([Y2 X2],[Y1 X1],radius);
+
+% matlab kdtree built in code
+[idx_cell, dist_cell] = rangesearch([Y2 X2],[Y1 X1],radius,'nsmethod','kdtree');
+
 
 for iQ = 1 : length(Y1)
-    idx_this = idx_cell{iQ};
-    dist_this = dist_cell{iQ};
+    idx_this = idx_cell{iQ}';
+    dist_this = dist_cell{iQ}';
     
     [sort_dist,sort_IX] = sort(dist_this);
     
@@ -180,7 +185,11 @@ end % end i
 %then the other way around 2->1
 
 
-[idx_cell, dist_cell] = KDTreeBallQuery([Y1 X1],[Y2 X2],radius);
+% [idx_cell, dist_cell] = KDTreeBallQuery([Y1 X1],[Y2 X2],radius);
+
+% matlab kdtree built in code
+[idx_cell, dist_cell] = rangesearch([Y1 X1],[Y2 X2],radius,'nsmethod','kdtree');
+
 
 for iQ = 1 : length(Y2)
     idx_this = idx_cell{iQ};
@@ -302,7 +311,7 @@ end % end i
 % imwrite(angle_map_2_1,[outdir,filesep,'Ang21_frame_',num2str(iFrame),'.tif']);  end;
 % imwrite(angle_map_1_2,[outdir,filesep,'Ang12_frame_',num2str(iFrame),'.tif']);  end;
 % 
-whole_ROI = imdilate(VIF_current_seg,ones(radius,radius)) + imdilate(MT_current_seg,ones(radius,radius))>0;
+whole_ROI = imdilate(VIF_current_seg,ones(longest_radius,longest_radius)) + imdilate(MT_current_seg,ones(longest_radius,longest_radius))>0;
 % 
 % % disgard the boundary ones
 % whole_ROI(1:radius+1,:)=0;
@@ -318,19 +327,19 @@ score_maps_distance_2_1 = nan(img_size);
 score_maps_angle_1_2 = nan(img_size);
 score_maps_angle_2_1 = nan(img_size);
 
-[cy,cx] = find(fspecial('disk',radius)>0);
+[cy,cx] = find(fspecial('disk',longest_radius)>0);
 
 
-distance_map_1_2_pad = nan(img_size+2*radius);
-distance_map_2_1_pad = nan(img_size+2*radius);
-angle_map_1_2_pad = nan(img_size+2*radius);
-angle_map_2_1_pad = nan(img_size+2*radius);
+distance_map_1_2_pad = nan(img_size+2*longest_radius);
+distance_map_2_1_pad = nan(img_size+2*longest_radius);
+angle_map_1_2_pad = nan(img_size+2*longest_radius);
+angle_map_2_1_pad = nan(img_size+2*longest_radius);
 
 
-distance_map_1_2_pad(radius+1:end-radius,radius+1:end-radius) = distance_map_1_2;
-distance_map_2_1_pad(radius+1:end-radius,radius+1:end-radius) = distance_map_2_1;
-angle_map_1_2_pad(radius+1:end-radius,radius+1:end-radius) = angle_map_1_2;
-angle_map_2_1_pad(radius+1:end-radius,radius+1:end-radius) = angle_map_2_1;
+distance_map_1_2_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = distance_map_1_2;
+distance_map_2_1_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = distance_map_2_1;
+angle_map_1_2_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = angle_map_1_2;
+angle_map_2_1_pad(longest_radius+1:end-longest_radius,longest_radius+1:end-longest_radius) = angle_map_2_1;
 
 % 
 % distance_map_1_2_pad_stack = nan(img_size(1)+2*radius,img_size(2)+2*radius,length(cx));
@@ -347,8 +356,8 @@ angle_map_2_1_pad(radius+1:end-radius,radius+1:end-radius) = angle_map_2_1;
 % end
 % 
 % 
-Weight_mask = fspecial('gaussian',2*radius+1,(radius*1.3)/(2)/2);
-Weight_mask = Weight_mask(sub2ind([2*radius+1,2*radius+1,],cy,cx));
+Weight_mask = fspecial('gaussian',2*longest_radius+1,sigma_gaussian);
+Weight_mask = Weight_mask(sub2ind([2*longest_radius+1,2*longest_radius+1,],cy,cx));
 
 % for all these points, get local support
 for j = 1 : length(Y)
@@ -356,11 +365,11 @@ for j = 1 : length(Y)
     x = X(j);
     y = Y(j);
         
-    dis_1 = distance_map_1_2_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1));
-    dis_2 = distance_map_2_1_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1));
+    dis_1 = distance_map_1_2_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1));
+    dis_2 = distance_map_2_1_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1));
 
-    ang_1 = abs(angle_map_1_2_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1)));
-    ang_2 = abs(angle_map_2_1_pad(sub2ind(img_size+2*radius,y+cy-1,x+cx-1)));
+    ang_1 = abs(angle_map_1_2_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1)));
+    ang_2 = abs(angle_map_2_1_pad(sub2ind(img_size+2*longest_radius,y+cy-1,x+cx-1)));
     
     if(~isempty(dis_1))
         score_maps_distance_1_2(y,x) = sum(dis_1(~isnan(dis_1)).*Weight_mask(~isnan(dis_1)))/sum(Weight_mask(~isnan(dis_1)));
@@ -373,36 +382,51 @@ for j = 1 : length(Y)
 end
 
 % fill the empty locations
-score_maps_distance_2_1(isnan(score_maps_distance_2_1))=radius;
-score_maps_distance_1_2(isnan(score_maps_distance_1_2))=radius;
-score_maps_angle_2_1(isnan(score_maps_angle_2_1))=pi/2;
-score_maps_angle_1_2(isnan(score_maps_angle_1_2))=pi/2;
-
-
+% score_maps_distance_2_1(isnan(score_maps_distance_2_1))=radius;
+% score_maps_distance_1_2(isnan(score_maps_distance_1_2))=radius;
+% score_maps_angle_2_1(isnan(score_maps_angle_2_1))=pi/2;
+% score_maps_angle_1_2(isnan(score_maps_angle_1_2))=pi/2;
 
 % calculation of similarity score.
-similarity_scoremap = exp(-(score_maps_distance_2_1+score_maps_distance_1_2).^2/(((radius*1.5)/2*sqrt(2))^2))...
-    .*exp(-(abs(score_maps_angle_2_1/2)+abs(score_maps_angle_1_2/2)).^2/(1.5*(pi/3)^2));
+
+% the two final combined features
+D = (score_maps_distance_2_1 +score_maps_distance_1_2)/2;
+
+A = abs(score_maps_angle_2_1/2)+abs(score_maps_angle_1_2)/2;
+
+% similarity scoremaps
+similarity_scoremap = exp(-(D.^2)./(2*(sigma_d^2)))...
+    .*exp(-(A.^2)./(2*(sigma_theta^2)));
 
 % calculation of similarity score only consider 1->2.
-similarity_scoremap_1to2 = exp(-(0+score_maps_distance_1_2*2).^2/(((radius*1.5)/2*sqrt(2))^2))...
-    .*exp(-(abs(0/2)+abs(score_maps_angle_1_2/2*2)).^2/(1.5*(pi/3)^2));
+
+similarity_scoremap_1to2 = exp(-(((score_maps_distance_1_2)/2).^2)./(2*(sigma_d^2)))...
+    .*exp(-((abs(score_maps_angle_1_2)).^2)./(2*(sigma_theta^2)));
 
 % calculation of similarity score only consider 2->1.
-similarity_scoremap_2to1 = exp(-(score_maps_distance_2_1*2+0).^2/(((radius*1.5)/2*sqrt(2))^2))...
-    .*exp(-(abs(score_maps_angle_2_1/2*2)+abs(0/2)).^2/(1.5*(pi/3)^2));
+similarity_scoremap_2to1 = exp(-(((score_maps_distance_2_1)/2).^2)./(2*(sigma_d^2)))...
+    .*exp(-((abs(score_maps_angle_2_1)).^2)./(2*(sigma_theta^2)));
 
+% decompose the two score maps: proximity and alignment
+difference_map.similarity_scoremap_proximity = exp(-(D.^2)./(2*(sigma_d^2)));
+
+difference_map.similarity_scoremap_alignment = exp(-(A.^2)./(2*(sigma_theta^2)));
+
+difference_map.similarity_scoremap_combined = similarity_scoremap;
 
 difference_map.similarity_scoremap_1to2 = similarity_scoremap_1to2;
 difference_map.similarity_scoremap_2to1 = similarity_scoremap_2to1;
+
 difference_map.distance_map_1_2 = distance_map_1_2;
 difference_map.distance_map_2_1 = distance_map_2_1;
 difference_map.angle_map_1_2 = angle_map_1_2;
 difference_map.angle_map_2_1 = angle_map_2_1;
 difference_map.orient_map_1_2 = orient_map_1_2;
 difference_map.orient_map_2_1 = orient_map_2_1;
+
 difference_map.score_maps_distance_1_2 = score_maps_distance_1_2;
 difference_map.score_maps_distance_2_1 = score_maps_distance_2_1;
 difference_map.score_maps_angle_1_2 = score_maps_angle_1_2;
 difference_map.score_maps_angle_2_1 = score_maps_angle_2_1;
 
+checkpoint = 1;

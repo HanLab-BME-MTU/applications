@@ -1,0 +1,29 @@
+function [] = UITimeCourseAnalysis(varargin)
+%TimeCourseAnalysis of user selected CombinedMovieList objects
+%In TimeCourseAnalysis, MLs in each CML are considered to be in similar
+%condition and grouped together for plotting.
+%
+%SYNOPSIS [] = UITimeCourseAnalysis()
+%
+%Tae H Kim, July 2015
+
+%% Initialize
+%Progresstext
+clear progressTextMultiple;
+
+p = TimeCourseAnalysisConfig(varargin{:});
+
+if(~isempty(p))
+    disp(p);
+    timeCourseAnalysis(p.CML_FullPath, p.outputDir, ...
+        'doNewAnalysis', p.doNewAnalysis, ...
+        'doPartition', p.partitioningAnalysis, ...
+        'start2zero', p.start2zero, ...
+        'shiftPlotPositive', p.shiftPlotPositive, ...
+        'channelNames', p.channelTable(:,2), ...
+        'channels',find([p.channelTable{:,1}]), ...
+        'nBootstrp',p.nBootstrp, ...
+        'detectOutliers_k_sigma',p.detectOutliers_k_sigma ...
+        );
+end
+

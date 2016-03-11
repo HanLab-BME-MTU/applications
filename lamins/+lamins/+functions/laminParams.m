@@ -6,6 +6,14 @@ function p = laminParams(MD)
             filename = 'ag_080712wt_Reconstructed 3.mat';
     end
     p.channels.labels = {'DAPI', 'Lamin A','Lamin B1','anti-Lamin B1, B2'};
+    p.channels.DAPI = 0;
+    p.channels.LaminA = 0;
+    p.channels.LaminB1 = 0;
+    p.channels.LaminB1B2 = 0;
+    p.goodZ = 1;
+    p.movieNum = -1;
+    p.steerable.sigma = 5;
+
     switch(filename)
         case 'ag_072612_wt_Reconstructed 2.mat'
             %p.channelOrder = [3 1 2 4];
@@ -41,6 +49,16 @@ function p = laminParams(MD)
             p.goodZ = 1;
             p.movieNum = 4;
             p.steerable.sigma = 2;
+        case 'MEFLB1M20-01constructed.mat'
+            p.movieNum = 5;
+        case 'MEFLB1M20-10constructed.mat'
+            p.movieNum = 6;
+        case 'MEFWTLA-05constructed.mat'
+            p.movieNum = 7;
+        case 'MEFWTLA-09constructed.mat'
+            p.movieNum = 8;
+        otherwise
+            disp(['Unknown movie parameters: ' filename]);
     end
     p.channels.order = [p.channels.DAPI p.channels.LaminA p.channels.LaminB1 p.channels.LaminB1B2];
 end

@@ -1,5 +1,7 @@
-function [cT, cNull, cCritical,estimatorM, estimatorC] = colocalMeasurePt2Pt(imageAInfo,imageBInfo, threshold)
+function [cT, cNull, cCritical,estimatorM, estimatorC] = colocalMeasurePt2Pt(detectionRef,detectionObs, threshold, maskingFile)
 %COLOCALMEASUREPT2PT measures fraction of coloclization between two punctate channels 
+% Measures the fraction of the detectionObs that colocalizes with
+% detectionRef.
 %Input:
 % imageInfoA: Detected positions of molecules in channel which will be assigned a nearest neighbor
 % 
@@ -8,6 +10,9 @@ function [cT, cNull, cCritical,estimatorM, estimatorC] = colocalMeasurePt2Pt(ima
 % 
 %
 % Threshold: distance threshold for possible interacting objects
+%
+% Masking File: This should either be a binary mask, or is no mask is given then the size of the image should be input
+%               to create a mask of all ones
 %
 %
 % Output:
@@ -20,7 +25,6 @@ function [cT, cNull, cCritical,estimatorM, estimatorC] = colocalMeasurePt2Pt(ima
 %
 % estimatorM (Calculated Potential): Calculated potential from c0 and c1
 
-[cT,cNull,cCritical,estimatorC,estimatorM]=deal(zeros(length(imageAInfo),1));
 
 % Populate query points and DT points with positions taken from images
 % xIndex: Information from detection program which reads x position and
@@ -28,32 +32,53 @@ function [cT, cNull, cCritical,estimatorM, estimatorC] = colocalMeasurePt2Pt(ima
 %
 % yIndex: Information from detection program which reads y position and
 % variance of objects in a single frame
-
- load(detectionFile)
- load(maskingFile)
-for a = 1:length(imageAInfo) %change length
+ a = 1;
       
     %Index points from both image
-    xIndex = movieInfo(a).xCoord(:,1);
-    yIndex = movieInfo(a).yCoord(:,1);
+    xIndex = detectionRef.xCoord(:,1);
+    yIndex = detectionRef.yCoord(:,1);
     QP = [yIndex xIndex];
     
     %Find detections in QP that lie inside maskList
-    lia1 = ismember(round(QP),maskList{a},'rows');
+    if ~ismatrix(maskingFile)
+        maskingFile= ones(maskingFile);
+    end
+    [row, col] = find(maskingFile); %Verify
+    maskList = [row, col];
+    lia1 = ismember(round(QP),maskList,'rows');
     
     %Multipling lia (binary vector) by QP will replace coord outside
     %boundary with zero, last line removes all zeros from vector
     QP(:,1) = lia1.*QP(:,1);
     QP(:,2) = lia1.*QP(:,2);
     QP( ~any(QP,2), : ) = [];
-
+    
+% Obs Channel
+    xIndex = detectionObs.xCoord(:,1);
+    yIndex = detectionObs.yCoord(:,1);
+    DT = [yIndex xIndex];
+    
+    %Find detections in QP that lie inside maskList
+    [row, col] = find(maskingFile); %Verify
+    maskList = [row, col];
+    lia1 = ismember(round(DT),maskList,'rows');
+    
+    %Multipling lia (binary vector) by QP will replace coord outside
+    %boundary with zero, last line removes all zeros from vector
+    DT(:,1) = lia1.*DT(:,1);
+    DT(:,2) = lia1.*DT(:,2);
+    DT( ~any(DT,2), : ) = [];
+    
+    [~, d]= knnsearch(QP,DT,'K',1);
+    
 % Other stuff to be changed------------------------------------------------
     % Test NN under threshold
     xi = min(d):0.01:max(d);
     [f] = ksdensity(d,xi);
     %Determine density of distances below threshold to find cNull
+
     test = find(xi<=threshold);
-    cT(a,1) = trapz(xi(1:max(test)),f(1:max(test))); 
+    cT = trapz(xi(1:max(test)),f(1:max(test))); 
     
 % %     figure; plot(xi,f);
 
@@ -61,21 +86,19 @@ for a = 1:length(imageAInfo) %change length
     %cT(a,1) = length(C)/length(d);
 
     %Create another channel to measure q(d)
-    [~, d1] = nearestNeighbor(DT, sDensity);
+%     [~, d1] = nearestNeighbor(DT, sDensity);
 %     A = [1:0.25:512];
 %     Y = repmat(A,1,length(A));
 %     X = repmat(A,length(A),1);
 %     X = X(1:end);
 %     X1(:,1) = X;
 %     X1(:,2) = Y;
-%    [~, d1] = nearestNeighbor(DT, X1);
+   [~, d1] = knnsearch(QP,maskList,'K',1);
  
     %Produce probablilty density of values
     xi = min(d1):0.01:max(d1);
     
     [f] = ksdensity(d1,xi);
-% %     hold on; plot(xi,f);
-% % hold off;
     %Determine density of distances below threshold to find cNull
     test = find(xi<=threshold);
     cNull(a,1) = trapz(xi(1:max(test)),f(1:max(test)));
@@ -89,14 +112,14 @@ for a = 1:length(imageAInfo) %change length
 
 
     %Calculate estimator
-    estimatorM(a,1) = log(cT(a,1)/(1-cT(a,1)))-log(cNull(a,1)/(1-cNull(a,1)));
+    estimatorM = log(cT(a,1)/(1-cT(a,1)))-log(cNull(a,1)/(1-cNull(a,1)));
 
 
     % Estimate critical parameters based on cNull and interaction size
-    cCritical(a,1) = (binoinv(0.95,length(d),cNull(a,1)))/length(d);
-    estimatorC(a,1) = log(cCritical(a,1)/(1-cCritical(a,1)))-log(cNull(a,1)/(1-cNull(a,1)));
+    cCritical = (binoinv(0.95,length(d),cNull(a,1)))/length(d);
+    estimatorC = log(cCritical(a,1)/(1-cCritical(a,1)))-log(cNull(a,1)/(1-cNull(a,1)));
      
-end
+
 
 
 
@@ -141,7 +164,7 @@ end
 %         MU4 = [40 50];  SIGMA4 = [3 0; 0 3];
 %         X1 = [mvnrnd(MU1,SIGMA1,20);mvnrnd(MU2,SIGMA2,20);mvnrnd(MU3,SIGMA3,20);
 %         mvnrnd(MU4,SIGMA4,20)];
-%         %scatter(X1(:,1),X1(:,2),'Marker','.');
+%         scatter(X1(:,1),X1(:,2),'Marker','.');
 % end
 % 
 % 

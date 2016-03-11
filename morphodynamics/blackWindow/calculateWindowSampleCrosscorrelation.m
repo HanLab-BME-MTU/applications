@@ -150,6 +150,7 @@ else
     nBandUse = numel(p.UseBands);
 end
 
+
 %% ----------------- Crosscorr Calc ------------------ %%
 
 for iChan = 1:nChan
@@ -249,19 +250,33 @@ for iChan = 1:nChan
     %Bootstrap the cross-correlation for the selected bands    
     
     %Extract and reshape the individual correlations to be combined
+    %First, see how many bands we actually had enough data for.    
+    nBandsHave = size(ccProtActPerWin,2);    
+    p.UseBands(p.UseBands>nBandsHave) = [];
+    nBandUse = numel(p.UseBands);
     allCC = reshape(ccProtActPerWin(:,p.UseBands,:,1),nStripMax*nBandUse,2*p.MaxLag+1)';    
     allCB = 1.96 ./ sqrt(reshape(nObsComb(:,p.UseBands),nStripMax*nBandUse,1)');
     hasCorr = sum(~isnan(allCC),1) > 0;
     allCC = allCC(:,hasCorr);
     allCB = allCB(hasCorr);
     
-    [combMeanCC,combBootCI] = correlationBootstrap(allCC,allCB);        
-
-    plot(tData,combMeanCC)
+    numCC = size(allCC,2);
+    
+    if numCC > 2
+        [combMeanCC,combBootCI] = correlationBootstrap(allCC,allCB);               
+    else
+        combMeanCC = nanmean(allCC,2);
+        combBootCI = [];
+    end
+    plot(tData,combMeanCC)    
     hold on    
-    plot(tData,combBootCI(1,:),'--')
-    legend('Mean Correlation','Bootstrapped 95% CI')
-    plot(tData,combBootCI(2,:),'--')
+    if numCC > 2
+        plot(tData,combBootCI(1,:),'--')
+        legend('Mean Correlation','Bootstrapped 95% CI')        
+        plot(tData,combBootCI(2,:),'--')
+    else
+        legend('Mean Correlation')
+    end
     plot([0 0],ylim,'--k')
     plot(xlim,[0 0],'--k')
     xlabel(tLabel); %TEMP - get time interval and scale if available!!!!
@@ -280,7 +295,9 @@ for iChan = 1:nChan
     else
         ccFigBand = figure;
         ccFigBandMean = figure;
-    end         
+    end     
+    bandMeanCC = nan(nBandUse,numel(tData));
+    bandBootCI = nan(nBandUse,2,numel(tData));
     for j = 1:nBandUse
         figure(ccFigBand)
         subplot(1,nBandUse,j);
@@ -294,26 +311,42 @@ for iChan = 1:nChan
         subplot(1,nBandUse,j);
         hold on;
         bandCC = squeeze(ccProtActPerWin(:,p.UseBands(j),:,1))';        
-        bandCB = 1.96 ./ sqrt(nObsComb(:,p.UseBands(j)))';
+        bandCB = 1.96 ./ sqrt(nObsComb(:,p.UseBands(j)))';        
         hasCorr = sum(~isnan(bandCC),1) > 0;
-        bandCC = bandCC(:,hasCorr);
-        bandCB = bandCB(hasCorr);
-        [bandMeanCC(j,:),bandBootCI(j,:,:)] = correlationBootstrap(bandCC,bandCB);                          
-        plot(tData,bandMeanCC(j,:))
-        plot(tData,squeeze(bandBootCI(j,1,:)),'--')
-        legend('Mean CrossCorr','Bootstrappedn 95% CI')
-        plot(tData,squeeze(bandBootCI(j,2,:)),'--')
-        plot([0 0 ],ylim,'--k');
-        plot(xlim,[ 0 0 ],'--k');
-        title(['All Strip mean correlation, band ' num2str(p.UseBands(j))])
-        xlabel(tLabel);
-        ylabel('Cross Correlation')
+        if any(hasCorr)
+            bandCC = bandCC(:,hasCorr);
+            bandCB = bandCB(hasCorr);
+            if nnz(hasCorr) > 2
+                [bandMeanCC(j,:),bandBootCI(j,:,:)] = correlationBootstrap(bandCC,bandCB);
+            else
+                bandMeanCC(j,:) = nanmean(bandCC,2);
+                bandBootCI(j,:,:) = nan(1,2,size(bandCC,1));
+            end
+            if nnz(hasCorr) > 2
+                plot(tData,bandMeanCC(j,:))
+                plot(tData,squeeze(bandBootCI(j,1,:)),'--')
+                legend('Mean CrossCorr','Bootstrappedn 95% CI')
+                plot(tData,squeeze(bandBootCI(j,2,:)),'--')
+            else
+                plot(tData,bandMeanCC(j,:))                
+                legend('Mean CrossCorr')
+            end
+            plot([0 0 ],ylim,'--k');
+            plot(xlim,[ 0 0 ],'--k');
+            title(['All Strip mean correlation, band ' num2str(p.UseBands(j))])
+            xlabel(tLabel);
+            ylabel('Cross Correlation')
+        else
+            bandMeanCC(j,:) = nan(1,numel(tData));
+            bandBootCI(j,:,:) = nan(1,2,numel(tData));
+            title('No Cross-correlation for this band')            
+        end
         
     end
     
     hgsave(ccFigBand,[p.OutputDirectory filesep 'per window temporal crosscorrelation between protrusion and activity channel ' num2str(p.ChannelIndex(iChan))]);            
     hgsave(ccFigBandMean,[p.OutputDirectory filesep 'per band mean temporal crosscorrelation between protrusion and activity channel ' num2str(p.ChannelIndex(iChan))]);                                
-    
+        
     save([p.OutputDirectory filesep 'temporal crosscorrelation channel ' num2str(p.ChannelIndex(iChan))],'ccProtActPerWin','nObsComb','nObsAct','nObsProt','combMeanCC','combBootCI','bandMeanCC','bandBootCI');        
             
 end

@@ -1,20 +1,20 @@
 classdef Skeleton < hgsetget &  matlab.mixin.Copyable
     % Class to contain vertices, edges, and faces of a skeleton meshwork
-    properties ( Transient )
+    properties
         edges
         vertices
         assumeOrdered = false;
         faces
-    end
-    properties
         bw
     end
     methods
         function obj = Skeleton(bw)
             if(nargin > 0)
-                if(isa(bw,'lamins.classes.LaminsImage'))
-                    obj.bw = bw.auditedSkel;
-%                     obj.bw = bw.extendedSkel;
+                if(isa(bw,'lamins.classes.LaminsImageMultiLength'))
+                    obj.bw = bw.orientationExtendedSkel;
+                elseif(isa(bw,'lamins.classes.LaminsImage'))
+%                     obj.bw = bw.auditedSkel;
+                    obj.bw = bw.extendedSkel;
                 else
                     obj.bw = bw;
                 end
@@ -31,38 +31,53 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
         function set.edges(obj,e)
             obj.edges = e;
             % create label matrix
-            obj.edges.lm = labelmatrix(e);
-            if(~obj.assumeOrdered)
-                edgesbw = obj.edges.lm > 0;
-                % sort PixelIdxList along the edges
-                endpts = find(bwmorph(edgesbw,'endpoints'));
-                edges_startpt = zeros(1,obj.edges.NumObjects);
-                edges_startpt(obj.edges.lm(endpts)) = endpts;
-                geo = bwdistgeodesic(edgesbw,edges_startpt(edges_startpt ~= 0));
-                I = obj.edges.PixelIdxList;
-                I = cellfun(@(x) sortrows([geo(x) x]),I,'UniformOutput',false);
-                I = cellfun(@(x) x(:,2),I,'UniformOutput',false);
-                obj.edges.PixelIdxList = I;
-                obj.edges.SortedPixels = true;
-                obj.assumeOrdered = true;
+            if(~isfield(obj.edges,'ordered')||~obj.edges.ordered)
+                try
+                    obj.edges = connectedComponents.orderPixelIdxList(obj.edges);
+                catch err
+                    disp(err);
+                    warning('Assuming Skeleton.edges are ordered');
+                end
+                obj.edges.ordered = true;
             end
+            obj.edges.lm = labelmatrix(e);
+%             if(~obj.assumeOrdered)
+%                 edgesbw = obj.edges.lm > 0;
+%                 % sort PixelIdxList along the edges
+%                 endpts = find(bwmorph(edgesbw,'endpoints'));
+%                 edges_startpt = zeros(1,obj.edges.NumObjects);
+%                 labels = obj.edges.lm(endpts);
+%                 labels = labels(labels ~= 0);
+%                 edges_startpt(labels) = endpts(labels ~= 0);
+%                 geo = bwdistgeodesic(edgesbw,edges_startpt(edges_startpt ~= 0));
+%                 I = obj.edges.PixelIdxList;
+%                 I = cellfun(@(x) sortrows([geo(x) x]),I,'UniformOutput',false);
+%                 I = cellfun(@(x) x(:,2),I,'UniformOutput',false);
+%                 obj.edges.PixelIdxList = I;
+%                 obj.edges.SortedPixels = true;
+%                 obj.assumeOrdered = true;
+%             end
         end
         function deleteEdges(obj,e)
             import connectedComponents.*;
-            bw = obj.bw;
-            for i = 1:length(e)
-                bw(obj.edges.PixelIdxList{e(i)}) = 0;
-            end
-            obj.bw = bw;
+            % this is buggy
+%             bw = obj.bw;
+%             for i = 1:length(e)
+%                 bw(obj.edges.PixelIdxList{e(i)}) = 0;
+%             end
+%             obj.bw = bw;
             
             filter = true(1,length(obj.edges.PixelIdxList));
             filter(e) = false;
             obj.edges = ccFilter(obj.edges,filter);
+            % recalculate bw and faces next time on demand
+            obj.bw = [];
+            obj.faces = [];
         end
         function deleteEdgeLoops(obj)
             % an edge loop is an edge that starts and ends at the same
             % place
-            edgeLoops = cellfun(@(x) x(1) == x(end),S.edges.PixelIdxList);
+            edgeLoops = cellfun(@(x) x(1) == x(end),obj.edges.PixelIdxList);
             obj.deleteEdges(edgeLoops);
         end
         function deleteFaces(obj,f)
@@ -158,16 +173,21 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             lm([obj.vertices.PixelIdxList{:}]) = 0;
             % identify edges indices which overlap the dilated face
             edgeIndices = cellfun(@(x) unique(nonzeros(lm(x))),dilatedFaces.PixelIdxList,'UniformOutput',false);
+            map = zeros(1,prod(obj.edges.ImageSize));
+            edges = obj.edges;
             
             % obtain the linear index of the endpoints of the overlapping edges
             for faceIdx = 1:dilatedFaces.NumObjects
-                edgeCandidates = ccFilter(obj.edges,edgeIndices{faceIdx});
+                edgeCandidates = ccFilter(edges,edgeIndices{faceIdx});
                 
                 endpts = getEdgeEndpoints(edgeCandidates);
                 
                 % each endpoint should be repeated exactly twice
                 [mult , uniq] = getMultiplicityInt(endpts);
-                map = sparse(1,double(uniq),mult);
+%                 map = sparse(1,double(uniq),mult);
+%                 map = zeros(1,max(uniq));
+                map(uniq) = mult;
+%                 map = accumarray(endpts(:),1)';
                 % remove hanging endpoints that do not intersect the other
                 % edges
                 goodEdges = ~any(map(endpts) == 1,2);
@@ -180,7 +200,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 goodEdges = ismember( midpoints,  dilatedFaces.PixelIdxList{faceIdx} );
                 
                 edgeIndices{faceIdx} = edgeIndices{faceIdx}(goodEdges,:);
-                endpts = endpts(goodEdges,:);
+%                 endpts = endpts(goodEdges,:);
             end
             if(nargout > 1)
                 % calculate a map from edges to faces
@@ -191,8 +211,30 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 runs = zeros(size(edgeIdx));
                 runs(u) = r;
                 faceIdx = cumsum(runs);
-                faceIndices = accumarray(edgeIdx,faceIdx,[],@(x) {x});
+                % in case the last face has no edges
+                faceIdx = faceIdx(1:length(edgeIdx));
+                if(~isempty(edgeIdx))
+                    faceIndices = accumarray(edgeIdx,faceIdx,[],@(x) {x});
+                else
+                    faceIndices = edgeIndices;
+                end
             end
+        end
+        function [repeats,uniqueVertices] = getEdgesPerVertex(obj)
+            % getEdgesPerVertex get the number of edges per vertex
+            % repeats - is the number of edges per vertex
+            % uniquevertices - are the spatial linear indices of vertices
+            %   that have connected edges. This may differ from the property 
+            %   vertices as vertices with no edges are not returned.
+            
+            % if the edges are ordered then the first and last indices are
+            % vertex positions
+            endpts = cellfun(@(edge) [edge(1),edge(end)],obj.edges.PixelIdxList,'Unif',false);
+            % there is no difference between the first and lsat
+            endpts = [endpts{:}];
+            % getMultiplicityInt filters out 0 reps anyways, so no point
+%             vertexList = double([obj.vertices.PixelIdxList{:}]);
+            [repeats, uniqueVertices] = getMultiplicityInt(endpts);
         end
         function A = getEdgeAdjacency(obj)
             % get edge adjacency matrix where adjacency occurs when edges
@@ -203,6 +245,12 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 A(FE{i},FE{i}) = 1;
             end
             A = A & ~eye(size(A));
+        end
+        function [repeats] = getEdgesPerFace(obj)
+            % obtains the number of edges per face
+            % the number of face should match obj.faces.NumObjects
+            FE = obj.faceEdges;
+            repeats = cellfun('length',FE);
         end
         function A = getFaceAdjacency(obj)
             % get face adjacency matrix where adjacency occurs when faces
@@ -261,6 +309,21 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             distanceWeightedIntensity = cellfun(@(x) sum(D(x).*I(x))./sum(D(x)), faces.PixelIdxList , 'UniformOutput', false);
             [rp.DistanceWeightedIntensity] = distanceWeightedIntensity{:};
         end
+        function rp = getDistanceWeightedIntensity(obj,I,f)
+            import connectedComponents.*;
+            if(nargin < 3)
+                f = 1:obj.faces.NumObjects;
+                faces = obj.faces;
+            else
+                faces = ccFilter(obj.faces, f);
+            end
+            I = double(I);
+            D = bwdist(obj.bw);
+%             disp(faces);
+            rp(faces.NumObjects) = struct('DistanceWeightedIntensity',[]);
+            distanceWeightedIntensity = cellfun(@(x) sum(D(x).*I(x))./sum(D(x)), faces.PixelIdxList , 'UniformOutput', false);
+            [rp.DistanceWeightedIntensity] = distanceWeightedIntensity{:};
+        end
         function plotFaceProperties(obj,I,fidx,varargin)
             % f should be scalar
             rp = getFaceProperties(obj,I,fidx);
@@ -270,6 +333,13 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 hold on;
             end
             hold off;
+        end
+        function h = drawFaces(obj,faceIdx)
+            % draw faces as patch objects
+            bb = bwboundaries(obj.faces.lm);
+            cm = parula(6);
+            h = cellfun(@(B) patch(B(:,2),B(:,1),cm(randi(6),:)),bb,'UniformOutput',false);
+            h = [h{:}];
         end
         function v = connectedVertices(obj,e)
             if(nargin < 2)
@@ -285,8 +355,9 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
 %             cc{1} = ccDilate(cc{1},se);
 %             cc{2} = ccDilate(cc{2},se);
             dilated = imdilate(obj.vertices.lm,se);
+            E = obj.edges;
             for i=1:length(e)
-                v(i,:) = dilated(obj.edges.PixelIdxList{e(i)}([1 end]));
+                v(i,:) = dilated(E.PixelIdxList{e(i)}([1 end]));
             end
         end
         function e = connectedEdges(obj,v)
@@ -363,10 +434,12 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             rgb = zeros([size(obj.bw) 3]);
             rgb(:,:,1) = obj.edges.lm > 0;
             rgb(:,:,2) = obj.vertices.lm > 0;
+            % encode edges as magenta
+            rgb(:,:,3) = rgb(:,:,2);
             if(nargin > 1)
                 I = double(I);
                 rgbI = rgb;
-                rgbI(:,:,3) = I .* ~any(rgb,3);
+                rgbI(:,:,3) = I .* ~rgb(:,:,3);
                 rgbI(:,:,1) = I .* ~rgb(:,:,2);
                 rgbI(:,:,2) = I .* ~rgb(:,:,1);
                 rgb = rgbI;
@@ -377,17 +450,20 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             rp = regionprops(obj.vertices,'Centroid');
             centroids = vertcat(rp.Centroid);
             centroids = round(centroids);
-            centroidIdx = sub2ind(obj.vertices.ImageSize,centroids(:,2),centroids(:,1));
             v = obj.connectedVertices;
             E = obj.edges;
             V = obj.vertices;
-            for i=1:obj.edges.NumObjects
+            if(isempty(centroids))
+                return;
+            end
+            centroidIdx = sub2ind(obj.vertices.ImageSize,centroids(:,2),centroids(:,1));
+            for i=1:E.NumObjects
                 if(all(v(i,:) ~= 0))
                     [r,c] = ind2sub([1024 1024],obj.edges.PixelIdxList{i}([1 end]));
                     pre  = bresenham( centroids(v(i,1), [2 1]) , [r(1) c(1)]);
                     post = bresenham([r(2) c(2)], centroids(v(i,2),[2 1]) );
-                    pre = sub2ind(obj.edges.ImageSize,pre(:,1),pre(:,2));
-                    post = sub2ind(obj.edges.ImageSize,post(:,1),post(:,2));
+                    pre = sub2ind(E.ImageSize,pre(:,1),pre(:,2));
+                    post = sub2ind(E.ImageSize,post(:,1),post(:,2));
                     E.PixelIdxList{i} = [ pre(1:end-1); obj.edges.PixelIdxList{i}; post(2:end) ];
                 end
             end
@@ -408,14 +484,19 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             end
             rp = regionprops(obj.vertices,'Centroid');
             v = obj.connectedVertices;
+            X = [];
+            Y = [];
             for i=e(:)'
                 [r,c] = ind2sub([1024 1024],obj.edges.PixelIdxList{i});
                 if(all(v(i,:) ~= 0))
                     r = [rp(v(i,1)).Centroid(2) ; r ;  rp(v(i,2)).Centroid(2)];
                     c = [rp(v(i,1)).Centroid(1) ; c ;  rp(v(i,2)).Centroid(1)];
                 end
-                line(c,r,'Color',edgeColor);
+%                 line(c,r,'Color',edgeColor);
+                X = [X; c ; NaN];
+                Y = [Y; r ; NaN];
             end
+            line(X,Y,'Color',edgeColor);
 %             [R,C] = obj.connectedEndPoints;
 %             for i=1:obj.vertices.NumObjects
 %                 for j = 1:length(R{i})
@@ -423,7 +504,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
 %                 end
 %             end
         end
-        function drawEdgesAsLines(obj,e,edgeColor)
+        function h = drawEdgesAsLines(obj,e,edgeColor)
             % Draw just the edges (not the vertices as above)
             if(nargin < 2 || isempty(e))
                 e = 1:obj.edges.NumObjects;
@@ -431,15 +512,23 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             if(nargin < 3 || isempty(edgeColor))
                 edgeColor = 'r';
             end
-            for i=e(:)'
-                [r,c] = ind2sub([1024 1024],obj.edges.PixelIdxList{i});
-                line(c,r,'Color',edgeColor);
+            E = obj.edges.PixelIdxList(e(:));
+            X = [];
+            Y = [];
+            for i=1:length(E);
+                [r,c] = ind2sub([1024 1024],E{i});
+                X = [X ; c ; NaN ];
+                Y = [Y ; r ; NaN ];
+%                 line(c,r,'Color',edgeColor);
             end
+            h = line(X,Y,'Color',edgeColor);
         end
         function imshow(obj)
             showGraph(obj);
         end
         function [e,f] = cleanup(obj)
+            obj.convertShortEdgesToVertices(2);
+            obj.reduceVerticesToPoints;
             % Cleans up the edges and faces of the skeleton
             % 1. Removes edges that have no faces
             % 2. Removes faces that have no edges
@@ -451,6 +540,106 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             FE = obj.faceEdges;
             f = find(cellfun(@length,FE) == 0);
             obj.deleteFaces(f);
+        end
+        function [h,hp] = colorEdgesByProperty(obj,property,binEdges,cm)
+            assert(length(property) == obj.edges.NumObjects);
+            if(nargin < 3)
+                [N,binEdges] = histcounts(property);
+            else
+                N = histcounts(property,binEdges);
+            end
+            if(nargin < 4)
+                cm = parula(length(N));
+            end
+            
+            ax(1) = subplot(1,2,1,gca);
+            h = cell(length(N)+2,1);
+            h{1} = obj.drawEdgesAsLines(property < binEdges(1),cm(1,:));
+            for i=1:length(N)
+                h{i+1} = obj.drawEdgesAsLines(binEdges(i) <= property & property < binEdges(i+1),cm(i,:));
+            end
+            h{length(N)+2} = obj.drawEdgesAsLines(binEdges(length(N)) < property,cm(length(N),:));
+            
+            ax(2) = subplot(1,2,2);
+%             figure;
+%             histogram(property,binEdges);
+%             hold on;
+            binCenters = (binEdges(1:end-1) + binEdges(2:end))/2;
+%             scatter(binCenters,N,[],cm,'filled');
+            hp(length(N)) = 0;
+            for i=1:length(N)
+                hp(i) = patch([binEdges(i) binEdges(i) binEdges(i+1) binEdges(i+1)],[0 N(i) N(i) 0],cm(i,:));
+            end
+            set(ax(1),'Position',[0 0 1 1]);
+            set(ax(2),'Color','None')
+            set(ax(2),'Position',[0.5 0.05 0.45 0.1]);
+        end
+        function h = varyEdgeWidthByProperty(obj,property,color,binEdges,widths)
+            assert(length(property) == obj.edges.NumObjects);
+            if(nargin < 3)
+                color = 'm';
+            end
+            if(nargin < 4)
+                [N,binEdges] = histcounts(property);
+            else
+                N = histcounts(property,binEdges);
+            end
+            if(nargin < 5)
+                widths = (1:length(N))*0.2;
+            end
+            
+            h = cell(length(N)+2,1);
+            h{1} = obj.drawEdgesAsLines(property < binEdges(1),color);
+            set(h{1},'LineWidth',widths(1));
+            for i=1:length(N)
+                h{i+1} = obj.drawEdgesAsLines(binEdges(i) <= property & property < binEdges(i+1),color);
+                set(h{i+1},'LineWidth',widths(i));
+            end
+            h{length(N)+2} = obj.drawEdgesAsLines(binEdges(length(N)) < property,color);
+            set(h{1},'LineWidth',widths(end));
+        end
+        function filter = auditEdges(obj,I,widthThresh,meanThresh,minThresh)
+            % from LaminsImage.auditSkelEdges
+%             edges_rp = regionprops(edges_cc,I,'MaxIntensity','MeanIntensity','MinIntensity');
+
+%             A.rp = edges_rp;
+%             A.cc = edges_cc;
+            rp = regionprops(obj.edges,I,'MaxIntensity','MeanIntensity','MinIntensity');
+            width = ([rp.MaxIntensity]-[rp.MinIntensity])./[rp.MeanIntensity];
+            if(nargin < 3 || isempty(widthThresh))
+                widthThresh = thresholdRosin(width);
+            end
+            if(nargin < 4)
+                meanThresh = 0.5;
+            end
+            if(nargin < 5)
+                minThresh = 0.2;
+            end
+            filter = (width < widthThresh | [rp.MeanIntensity] > meanThresh) & [rp.MinIntensity] > minThresh;
+            obj.deleteEdges(~filter);
+        end
+        S = auditEdgesByThresholdedIntensity(S,I);
+        function S = auditEdgesByMask(S,I)
+            if(isa(I,'lamins.classes.LaminsImage'))
+                mask = I.mask;
+            else
+                mask = I;
+            end
+            rp = regionprops(S.edges,mask,'MeanIntensity');
+            S.deleteEdges([rp.MeanIntensity] < 1);
+        end
+        function skeletonMask = getMask(obj)
+            skeletonMask = imfill(obj.bw,'holes');
+        end
+        function c = getNuclearCircularity(obj)
+            skeletonMask = getMask(obj);
+            rp = regionprops(skeletonMask,'Area','Perimeter');
+            [~,maxidx] = max([rp.Area]);
+            rp = rp(maxidx);
+            assert(isscalar(rp));
+            c = 4*pi*rp.Area / rp.Perimeter.^2;
+        end
+        function out = distanceDensityPlot(obj)
         end
         function score = getEdgeScore(obj,e)
         end

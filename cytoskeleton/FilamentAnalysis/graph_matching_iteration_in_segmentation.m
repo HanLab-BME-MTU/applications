@@ -39,10 +39,10 @@ plot(feature_Length(Good_ind),feature_MeanNMS(Good_ind),'b.');
 
 
 title(['Classifier Plane with matched data before round ',num2str(iIteration)]);
-if(SaveFigures==1)
-    saveas(h12,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_beforeround',num2str(iIteration),'_match_plane.tif']);
-    saveas(h12,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_beforeround',num2str(iIteration),'_match_plane.fig']);
-    saveas(h12,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_beforeround',num2str(iIteration),'_match_plane.eps']);
+if(SaveStepFigures==1)
+    saveas(h12,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_beforeround',num2str(iIteration),'_match_plane.tif']);
+    saveas(h12,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_beforeround',num2str(iIteration),'_match_plane.fig']);
+    saveas(h12,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_beforeround',num2str(iIteration),'_match_plane.eps']);
 end
 
 
@@ -53,8 +53,8 @@ for i_E = 1 : length(Good_ind)
     current_all_seg_bw = or(current_all_seg_bw, current_good_bw);
 end
 
-imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.tif']);
-imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.bmp']);
+imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.tif']);
+imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.bmp']);
 
 
 if(exist('h1','var'))
@@ -65,30 +65,30 @@ end
     = graph_matching_linking_once(current_model, current_all_seg_bw, confidency_interval,imageInt, ...
     Good_ind,ind_long, model_ind,feature_all,labelMask,master_flassier,iIteration,funParams,final_set_rescue, final_set_connection, connect_count,Original_set_Good_ind);
 
- imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
+ imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
   
-if(SaveFigures==1)
-    imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
-    imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
+if(SaveStepFigures==1)
+    imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
+    imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
      
     h1=figure(1);set(h1,'Visible',set_visible);
-    saveas(h1,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.tif']);
-    saveas(h1,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.fig']);
-    print(h1,'-depsc',[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.eps']);
+    saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.tif']);
+    saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.fig']);
+    print(h1,'-depsc',[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.eps']);
     h3=figure(3);set(h3,'Visible',set_visible);
-    saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_all_match_bw.tif']);
-    saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_all_match_bw.fig']);
-    print(h3,'-depsc',[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_all_match_bw.eps']);
+    saveas(h3,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_all_match_bw.tif']);
+    saveas(h3,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_all_match_bw.fig']);
+    print(h3,'-depsc',[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_all_match_bw.eps']);
     
     h11=figure(11);set(h11,'Visible',set_visible);
-    saveas(h11,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor.tif']);
-    saveas(h11,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor.fig']);
-    print(h11,'-depsc',[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor.eps']);
+    saveas(h11,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor.tif']);
+    saveas(h11,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor.fig']);
+    print(h11,'-depsc',[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor.eps']);
     
     h21=figure(21);set(h21,'Visible',set_visible);
-    saveas(h21,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor.tif']);
-    saveas(h21,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor.fig']);
-    print(h21,'-depsc',[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor.eps']);
+    saveas(h21,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor.tif']);
+    saveas(h21,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor.fig']);
+    print(h21,'-depsc',[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor.eps']);
     
 end
 
@@ -112,25 +112,25 @@ plot(feature_Length(setdiff(original_Matched_ind,Good_ind)),feature_MeanNMS(setd
 plot(feature_Length(Good_ind),feature_MeanNMS(Good_ind),'b.');
 
 title(['Classifier Plane with matched data after round ',num2str(iIteration)]);
-% saveas(h12,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_afterround',num2str(iIteration),'_match_plane.tif']);
+% saveas(h12,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_afterround',num2str(iIteration),'_match_plane.tif']);
 
-if(SaveFigures==1)
-    print(h12,'-depsc2',[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_afterround',num2str(iIteration),'_match_plane.eps']);
-    print(h12,'-dtiff',[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_afterround',num2str(iIteration),'_match_plane.tiff']);
+if(SaveStepFigures==1)
+    print(h12,'-depsc2',[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_afterround',num2str(iIteration),'_match_plane.eps']);
+    print(h12,'-dtiff',[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_afterround',num2str(iIteration),'_match_plane.tiff']);
     
     
     for iiii = setdiff(ind_long,UnMatched_ind_cell{iIteration+1})
         text(feature_Length(iiii),feature_MeanNMS(iiii),num2str(iiii));
     end
     
-    saveas(h12,[FilamentSegmentationChannelOutputDir,'/GEO/number_feature_',num2str(iFrame),num2str(iIteration),'.fig']);
+    saveas(h12,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'number_feature_',num2str(iFrame),num2str(iIteration),'.fig']);
     
     h13 = figure(13);set(h13,'Visible',set_visible);
     RGB_seg_orient_heat_map = heat_display_filament_from_model(imageInt, current_model);
     imshow(RGB_seg_orient_heat_map);
     title(['Heat display for Segmentation after round ',num2str(iIteration)]);
-    imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
-    imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
+    imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
+    imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
 end
 % new_curves = zeros(size(imageNMS));
 %

@@ -86,7 +86,13 @@ function clusterStats = calcClusterStatsFromCompTracks(compTracks,observeSideLen
     for simIndx=1:numSims
         %Pull out the current aggregState matrix, merged over all tracks.
         %When saving, it must be in full matrix form - histc below will
-        currAggregState = vertcat(compTracks{simIndx}.defaultFormatTracks.aggregState);
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %111814
+        %currAggregState = vertcat(compTracks{simIndx}.defaultFormatTracks.aggregState);
+
+        [~,~,~,~,currAggregState] =...
+         convStruct2MatIgnoreMS(compTracks{simIndx}.defaultFormatTracks,0);
         
         for iterIndx=1:numIters
             %Determine the largest cluster size for the current iteration

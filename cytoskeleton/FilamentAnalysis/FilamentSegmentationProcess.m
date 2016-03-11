@@ -174,23 +174,35 @@ classdef FilamentSegmentationProcess < ImageProcessingProcess
              
        
              % these loads are for old version of the naming system
+             try
+                 out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'filament_seg_',filename_short_strs{iFrame},'.mat'], ...
+                     'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+             catch
+                 
+                 try
+                     out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat'], ...
+                         'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                 catch
+                     try
+                         out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_',filename_shortshort_strs{iFrame},'.mat'], ...
+                             'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                     catch
+                         % when only on channel, one image, it will be last
+                         % character of the image, so 'f'
+                         try
+                            out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_','f','.mat'], ...
+                             'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                         catch
+                             out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_','F','.mat'], ...
+                             'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                         end
+                     end
+                 end
+             end
              
              try
-                out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/steerable_vote_',filename_short_strs{iFrame},'.mat'], ...
-                    'current_seg','current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
-            catch
-                try
-                    out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/steerable_vote_',filename_shortshort_strs{iFrame},'.mat'], ...
-                        'current_seg','current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
-                catch
-                    % when only on channel, one image, it will be last
-                    % character of the image, so 'f'
-                    out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/steerable_vote_','f','.mat'], ...
-                        'current_seg','current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
-             
-                end
-            end
-            
+             current_seg = ~isnan(current_seg_orientation);
+             end
             
             % if there is no output parameter
             if( isempty(ip.Results.output))
@@ -338,7 +350,7 @@ classdef FilamentSegmentationProcess < ImageProcessingProcess
             % as in MD_ROI.tif in movieData folder, if 3, a combined
             % version of two channel, if 4 a direction sum of the two
             % channels, if 5 no limit
-            funParams.Cell_Mask_ind = 1;
+            funParams.Cell_Mask_ind = 5;
             
             % whole movie constrain index, 1 for completely, 2 for
             % half-half, 3 for none
@@ -393,7 +405,9 @@ classdef FilamentSegmentationProcess < ImageProcessingProcess
             % No saving the step figures or debug ones; change to 1 if want to save these figures
             funParams.savestepfigures = 0;
             % No displaying detailed messages: change to 1 if want to see all debugging messages
-            funParams.showdetailmessages = 0;
+            funParams.showdetailmessages = 0;            
+            % No saving the non-imdispensible variable ; change to 1 if want to save all possible variables 
+            funParams.saveallresults = 0;
             
             % the flag for if a channel has been specifically signed
             % setting, without being the same with all other selected of channels

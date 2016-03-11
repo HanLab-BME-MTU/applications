@@ -1,0 +1,49 @@
+#!/bin/bash
+#SBATCH --partition=128GB
+#SBATCH --nodes=1
+#SBATCH --mail-user=Assaf.Zaritsky@utsouthwestern.edu
+#SBATCH --mail-type=all
+#SBATCH --output=auto_job_4.out
+#SBATCH --error=auto_job_4.err
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 1 1>task_5_1.std.out 2>task_5_1.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 2 1>task_5_2.std.out 2>task_5_2.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 3 1>task_5_3.std.out 2>task_5_3.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 4 1>task_5_4.std.out 2>task_5_4.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 5 1>task_5_5.std.out 2>task_5_5.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 6 1>task_5_6.std.out 2>task_5_6.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 7 1>task_5_7.std.out 2>task_5_7.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 8 1>task_5_8.std.out 2>task_5_8.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 9 1>task_5_9.std.out 2>task_5_9.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 10 1>task_5_10.std.out 2>task_5_10.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 11 1>task_5_11.std.out 2>task_5_11.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 12 1>task_5_12.std.out 2>task_5_12.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 13 1>task_5_13.std.out 2>task_5_13.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 14 1>task_5_14.std.out 2>task_5_14.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 15 1>task_5_15.std.out 2>task_5_15.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 16 1>task_5_16.std.out 2>task_5_16.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 17 1>task_5_17.std.out 2>task_5_17.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 18 1>task_5_18.std.out 2>task_5_18.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 19 1>task_5_19.std.out 2>task_5_19.stderr & 
+
+time /project/cellbiology/gdanuser/melanomaModel/Analysis/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work/job_wrapper.sh 5 20 1>task_5_20.std.out 2>task_5_20.stderr & 
+
+wait

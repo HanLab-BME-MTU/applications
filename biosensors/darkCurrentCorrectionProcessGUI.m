@@ -51,6 +51,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
 % Parameter setup
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 funParams = userData.crtProc.funParams_;
 
 % Set up dark current paths
@@ -100,7 +101,7 @@ delete(handles.figure1);
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-
+if isempty(userData), userData = struct(); end
 channelProps = get (handles.listbox_selectedChannels, {'Userdata','String'});
 channelIndex=channelProps{1};
 channelString=channelProps{2};
@@ -190,7 +191,7 @@ function pushbutton_addDarkCurrentChannel_Callback(hObject, eventdata, handles)
 % Call back of 'add' button
 % Directories can be the same, no need to check directory pool
 userData = get(handles.figure1, 'UserData');
-
+if isempty(userData), userData = struct(); end
 set(handles.listbox_darkCurrentChannels, 'Value',1)
 
 path = uigetdir(userData.userDir, 'Add Channels ...');
@@ -265,6 +266,7 @@ set(handles.listbox_darkCurrentChannels, 'value', id+1);
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 

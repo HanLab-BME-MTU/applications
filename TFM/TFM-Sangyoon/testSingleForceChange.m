@@ -33,7 +33,10 @@ params.YoungModulus = 8000;
 params.regParam = regParam;
 params.solMethodBEM = solMethodBEM;
 % params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
-params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
+params.useLcurve = false;
+% params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
+% params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
+params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
 MD.getPackage(iPack).getProcess(4).setPara(params);
 
 % backup analyzed forcefield to dataPath
@@ -164,7 +167,8 @@ if isempty(forceFieldMag)
 else
     peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
     forceFieldBgdMag = sort(forceFieldBgdMag,'descend');
-    forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+%     forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+    forceDetec = max(forceFieldMag)/max(forceFieldBgdMag(1:length(forceFieldMag)));
 end
 %% errors in force field
 forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);

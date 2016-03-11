@@ -24,7 +24,7 @@ end
 dmax = [20 20];
 subpix = 'none';
 d0=[0 0];
-mkdir([MD.outputDirectory_,'/CC_tracking/']); 
+mkdir([MD.outputDirectory_,filesep,'CC_tracking']); 
 img_width = size(currentImg,2);
 img_height = size(currentImg,1);
 pad_xy = [img_width/2 img_height/2];
@@ -90,7 +90,7 @@ for iFrame = 1 : MD.nFrames_;
         
     end
     title(['Tracking Frame ',num2str(iFrame)]);
-    saveas(h3,[MD.outputDirectory_,'/CC_tracking/tracking_',num2str(iFrame),'.tif']);
+    saveas(h3,[MD.outputDirectory_,filesep,'CC_tracking',filesep,'tracking_',num2str(iFrame),'.tif']);
 end
 
 save('position_array','position_array');
@@ -130,4 +130,4 @@ for iFrame = 1 : MD.nFrames_
 
 end
 
-saveas(h3,[MD.outputDirectory_,'/CC_tracking/whole_tracking.tif']);
+saveas(h3,[MD.outputDirectory_,filesep,'CC_tracking',filesep,'whole_tracking.tif']);

@@ -38,6 +38,19 @@ displFieldCorrProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldCorrProc,paramsIn);
 
+%% Backup the original vectors to backup folder
+if exist(p.OutputDirectory,'dir')
+    display('Backing up the original data')
+    ii = 1;
+    backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+    while exist(backupFolder,'dir')
+        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+        ii=ii+1;
+    end
+    mkdir(backupFolder);
+    copyfile(p.OutputDirectory, backupFolder,'f')
+end
+mkClrDir(p.OutputDirectory);
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldCorrProc.getName());
@@ -64,10 +77,26 @@ inFilePaths{1} = displFieldCalcProc.outFilePaths_{1};
 displFieldCorrProc.setInFilePaths(inFilePaths);
 
 % Set up the output directories
-outputFile = {[p.OutputDirectory filesep 'displField.mat']};
+outputFile{1,1} = [p.OutputDirectory filesep 'displField.mat'];
+outputFile{2,1} = [p.OutputDirectory filesep 'dispMaps.mat'];
 mkClrDir(p.OutputDirectory);
 displFieldCorrProc.setOutFilePaths(outputFile);
 
+% get firstMask
+iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+pDistProc = displFieldCalcProc.funParams_;
+if ~isempty(iSDCProc)
+    SDCProc=movieData.processes_{iSDCProc};
+    if ~SDCProc.checkChannelOutput(pDistProc.ChannelIndex)
+        error(['The channel must have been corrected ! ' ...
+            'Please apply stage drift correction to all needed channels before '...
+            'running displacement field calclation tracking!'])
+    end
+    refFrame = double(imread(SDCProc.outFilePaths_{2,pDistProc.ChannelIndex}));
+else
+    refFrame = double(imread(pDistProc.referenceFramePath));
+end
+firstMask=refFrame>0;
 %% --------------- Displacement field calculation ---------------%%% 
 
 disp('Starting correctiong displacement field...')
@@ -94,7 +123,7 @@ for j= 1:nFrames
     displField(j).vec=dispMat(:,3:4);
 
     if ~isempty(p.outlierThreshold)
-        outlierIndex = detectVectorFieldOutliers(dispMat,p.outlierThreshold,1);
+        outlierIndex = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
         %displField(j).pos(outlierIndex,:)=[];
         %displField(j).vec(outlierIndex,:)=[];
         dispMat(outlierIndex,3:4)=NaN;
@@ -176,9 +205,43 @@ end
 % Find rotational registration
 if p.doRotReg, displField=perfRotReg(displField); end %#ok<NASGU>
 
-save([p.OutputDirectory filesep 'displField.mat'],'displField');
+%% Displacement map creation - this is shifted version
+[dMapIn, dmax, dmin, cropInfo,dMapXin,dMapYin,reg_grid] = generateHeatmapShifted(displField,displField,0);
+% Insert traction map in forceField.pos 
+disp('Generating displacement maps ...')
+dMap = cell(1,nFrames);
+dMapX = cell(1,nFrames);
+dMapY = cell(1,nFrames);
+displFieldShifted(nFrames)=struct('pos','','vec','');
+for ii=1:nFrames
+    % starts with original size of beads
+    cur_dMap = zeros(size(firstMask));
+    cur_dMapX = zeros(size(firstMask));
+    cur_dMapY = zeros(size(firstMask));
+    cur_dMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{ii};
+    cur_dMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapXin{ii};
+    cur_dMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapYin{ii};
+    dMap{ii} = cur_dMap;
+    dMapX{ii} = cur_dMapX;
+    dMapY{ii} = cur_dMapY;
+    % Shifted displField vector field
+    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
+   
+    [displFieldShiftedpos,displFieldShiftedvec, ~, ~] = interp_vec2grid(grid_mat+iu_mat, iu_mat,[],grid_mat); %1:cluster size
+    pos = [reshape(displFieldShiftedpos(:,:,1),[],1) reshape(displFieldShiftedpos(:,:,2),[],1)]; %dense
+    disp_vec = [reshape(displFieldShiftedvec(:,:,1),[],1) reshape(displFieldShiftedvec(:,:,2),[],1)]; 
 
-% Close waitbar
+    displFieldShifted(ii).pos = pos;
+    displFieldShifted(ii).vec = disp_vec;
+end
+disp('Saving ...')
+save(outputFile{1},'displField','displFieldShifted');
+save(outputFile{2},'dMap','dMapX','dMapY'); % need to be updated for faster loading. SH 20141106
+displFieldCorrProc.setTractionMapLimits([dmin dmax])
+
+save([p.OutputDirectory filesep 'displField.mat'],'displField','displFieldShifted');
+
+%% Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
 
 disp('Finished correcting displacement field!')

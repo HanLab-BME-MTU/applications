@@ -4,6 +4,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
     % Sebastien Besson, Aug 2011
     properties (SetAccess = protected)  
         tMapLimits_
+        dELimits_
+        distBeadMapLimits_
     end
     
     methods
@@ -44,32 +46,33 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField','tMap'};
+            outputList = {'forceField','tMap','forceFieldShifted'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
-            ip.addOptional('iOut',@isnumeric);
+%             ip.addOptional('iOut',1,@isnumeric);
 %             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) ismember(x,1:obj.owner_.nFrames_));
 %             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
-            ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
+            ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
-            iOut = ip.Results.iOut;
+%             iOut = ip.Results.iOut;
             
             % Data loading
             output = ip.Results.output;
-            if ischar(output), output = {output}; end
-            s = load(obj.outFilePaths_{iOut},output{:});
-            
-            if numel(iFrame)>1,
-                for i=1:numel(output),
-                    varargout{i}=s.(output{i});
-                end
+            if strcmp(output,outputList{1}) || strcmp(output,outputList{3})
+                iOut=1;
             else
-                for i=1:numel(output),
-                    varargout{i}=s.(output{i})(iFrame);
-                end
+                iOut=2;
             end
+            if ischar(output), output = {output}; end
+            s = load(obj.outFilePaths_{iOut},output{1});
+            
+%             if numel(iFrame)>1,
+            varargout{1}=s.(output{1})(iFrame);
+%             else
+%                 varargout{1}=s.(output{1});
+%             end
         end
                 
         function h=draw(obj,varargin)
@@ -97,7 +100,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1:end})
                 iFrame=ip.Results.iFrame;
-                data=obj.loadChannelOutput(iFrame,2,'output',ip.Results.output);
+                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
                 if iscell(data), data = data{1}; end
             else % forcefield
                 % Input parser
@@ -110,7 +113,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.parse(obj,varargin{1},varargin{2:end})
                 iFrame=ip.Results.iFrame;
                 
-                data=obj.loadChannelOutput(iFrame,1,'output',ip.Results.output);
+                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
             end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
@@ -133,6 +136,12 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         function setTractionMapLimits(obj,tMapLimits)
             obj.tMapLimits_ = tMapLimits;
         end
+        function setDisplErrMapLimits(obj,dELimits)
+            obj.dELimits_ = dELimits;
+        end
+        function setDistBeadMapLimits(obj,distBeadMapLimits)
+            obj.distBeadMapLimits_ = distBeadMapLimits;
+        end
         
         function output = getDrawableOutput(obj)
             output(1).name='Force  field';
@@ -148,13 +157,34 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             output(2).type='image';
             output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
                 'Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
-            if ~strcmp(obj.funParams_.solMethodBEM,'QR')
-                output(3).name='Lcurve';
-                output(3).var='lcurve';
-                output(3).formatData=[];
-                output(3).type='movieGraph';
-                output(3).defaultDisplayMethod=@FigFileDisplay;
-            end
+
+            output(3).name='Force field shifted';
+            output(3).var='forceFieldShifted';
+            output(3).formatData=@(x) [x.pos x.vec(:,1)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
+            output(3).type='movieOverlay';
+            output(3).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[175/255 30/255 230/255]);
+
+            if ~strcmp(obj.funParams_.method,'FTTC')
+                output(4).name='Prediction Err map';
+                output(4).var='dErrMap';
+                output(4).formatData=[];
+                output(4).type='image';
+                output(4).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.dELimits_);
+
+                output(5).name='Map of distance to bead';
+                output(5).var='distBeadMap';
+                output(5).formatData=[];
+                output(5).type='image';
+                output(5).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.distBeadMapLimits_);
+
+                output(6).name='Lcurve';
+                output(6).var='lcurve';
+                output(6).formatData=[];
+                output(6).type='movieGraph';
+                output(6).defaultDisplayMethod=@FigFileDisplay;
+            end                
         end
         
         
@@ -186,6 +216,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.LcurveFactor=10;
             funParams.thickness=34000;
             funParams.useLcurve=true;
+            funParams.lastToFirst=false;
+            funParams.lcornerOptimal='optimal';
         end
         function units = getUnits(varargin)
             units = 'Traction (Pa)';

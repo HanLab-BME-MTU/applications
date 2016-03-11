@@ -24,7 +24,7 @@ classdef ImageFlattenProcess < ImageProcessingProcess
                 super_args{2} = ImageFlattenProcess.getName;
                 super_args{3} = @image_flatten;
                 if isempty(funParams)
-                    funParams = ImageFlattenProcess.getDefaultParams(owner,outputDir);
+                    funParams = ImageFlattenProcess.getDefaultParams(owner);
                 end
                 super_args{4} = funParams;
                 
@@ -151,6 +151,52 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             
             
         end
+        
+        
+        
+         function out_data = loadChannelOutput(obj,iChan,iFrame,varargin)
+            % Input check
+            ip =inputParser;
+            ip.addRequired('iChan',@obj.checkChanNum);
+            ip.addRequired('iFrame',@obj.checkFrameNum);
+            
+            outputList = {'flattened_image',''};
+            ip.addParamValue('output',{},@(x) all(ismember(x,outputList)));
+            
+            ip.parse(iChan,iFrame,varargin{:})
+            
+            ImageFlattenChannelOutputDir = obj.outFilePaths_{iChan};
+    
+            Channel_FilesNames = obj.getInImageFileNames(iChan);
+            filename_short_strs = uncommon_str_takeout(Channel_FilesNames{1});
+            
+            % this line in commandation for shortest version of filename
+            filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
+            
+            currentImg=[];
+            
+            try
+                currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_', ...
+                    filename_short_strs{iFrame},'.tif']);
+            catch
+                try
+                currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_', ...
+                    filename_shortshort_strs{iFrame},'.tif']);
+                catch
+                    if(iFrame==1)
+                        try
+                            currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_f.tif']);
+                        catch
+                            currentImg = imread([ImageFlattenChannelOutputDir,filesep,'flatten_F.tif']);
+                        end
+                    end
+                end
+            end
+            
+            out_data = currentImg;
+            
+         end         
+        
         function h = draw(obj,iChan,varargin)
             
             outputList = obj.getDrawableOutput();
@@ -220,15 +266,17 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
-            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+%             ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
             ip.parse(owner, varargin{:})
-            outputDir=ip.Results.outputDir;
+%             outputDir=ip.Results.outputDir;
             
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);
+%             funParams.outputDir = outputDir;
             funParams.method_ind = 3;
+            funParams.imageflattening_mode = 2;
             funParams.GaussFilterSigma = 0.2;                        
-            funParams.TimeFilterSigma = 1;    
+            funParams.TimeFilterSigma = 0;    
             
             funParams.stat.low_005_percentile = 0;
             funParams.stat.high_995_percentile = 2^16-1;

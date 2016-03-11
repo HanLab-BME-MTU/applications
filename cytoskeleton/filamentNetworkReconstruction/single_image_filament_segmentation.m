@@ -164,7 +164,7 @@ if(~isempty(Parameter_MD))
                         
                         STOutputDir = [this_MD.processes_{iPro}.outFilePaths_{pick_channel}];
                         
-                        load([STOutputDir,'/steerable_temp',num2str(pick_channel),'.tif.mat'],...
+                        load([STOutputDir,filesep,'steerable_temp',num2str(pick_channel),'.tif.mat'],...
                             'MAX_st_res','nms');
                         
                         
@@ -186,9 +186,9 @@ if(~isempty(Parameter_MD))
                                 this_MD = filament_segmentation(this_MD,given_Params);
                             end
                             
-                            DataOutputDir = [this_MD.processes_{iPro}.outFilePaths_{pick_channel},'/DataOutput'];
+                            DataOutputDir = [this_MD.processes_{iPro}.outFilePaths_{pick_channel},filesep,'DataOutput'];
                             
-                            load([DataOutputDir,'/steerable_vote_temp',num2str(pick_channel),'.tif.mat'],...
+                            load([DataOutputDir,filesep,'steerable_vote_temp',num2str(pick_channel),'.tif.mat'],...
                                 'RGB_seg_orient_heat_map', ...
                                 'current_seg', ...
                                 'current_model', 'current_seg_orientation');                            
@@ -228,7 +228,7 @@ else
     this_MD = steerable_filter_forprocess(this_MD);
     
     STOutputDir = [this_MD.processes_{4}.outFilePaths_{pick_channel}];
-    load([STOutputDir,'/steerable_temp',num2str(pick_channel),'.tif.mat'],...
+    load([STOutputDir,filesep,'steerable_temp',num2str(pick_channel),'.tif.mat'],...
         'MAX_st_res','nms');
     
     % 5 filament segmentation
@@ -240,9 +240,9 @@ else
             
     this_MD = filament_segmentation(this_MD, default_Params);
     
-    DataOutputDir = [this_MD.processes_{5}.outFilePaths_{pick_channel},'/DataOutput'];
+    DataOutputDir = [this_MD.processes_{5}.outFilePaths_{pick_channel},filesep,'DataOutput'];
     
-    load([DataOutputDir,'/steerable_vote_temp',num2str(pick_channel),'.tif.mat'],...
+    load([DataOutputDir,filesep,'steerable_vote_temp',num2str(pick_channel),'.tif.mat'],...
         'RGB_seg_orient_heat_map', ...
         'current_seg', ...
         'current_model', 'current_seg_orientation');

@@ -1,9 +1,10 @@
-function trk = imarisReadTrackCSV(positionFile,timeFile)
+function [trk,frameTimes] = imarisReadTrackCSV(positionFile,timeFile)
 %%IMARISREADTRACKCSV reads tracking data from CSV files exported from imaris
 %
 % tracks = imarisReadTrackCSV
-% tracks = imarisReadTrackCSV(positionFile)
-% tracks = imarisReadTrackCSV(positionFile,timeFile)
+% [tracks,frameTimes] = imarisReadTrackCSV
+% ... = imarisReadTrackCSV(positionFile)
+% ... = imarisReadTrackCSV(positionFile,timeFile)
 %
 %
 %Hunter Elliott
@@ -73,6 +74,7 @@ frameTimes = (0:dT:(dT*(maxFrame-1)))';
 
 %Get all track IDs
 allTrkID = unique(posTab.TrackID);
+allTrkID = allTrkID(~isnan(allTrkID));%Remove any spots without tracks
 nTrk = numel(allTrkID);
 
 if p.Verbose;disp(['Found ' num2str(nTrk) ' tracks, separating....']);end
@@ -84,16 +86,19 @@ for j = 1:nTrk
     
     currRows = posTab.TrackID == allTrkID(j);
     
-    %Copy position and frame info
-    for k = 1:nFieldCopy                
-        trk(j).(outName{k}) = posTab.(imsName{k})(currRows);                
-    end        
-    %Get actual time data    
-    trk(j).Time = frameTimes(trk(j).Frame);
-    %Specify units and ID    
-    trk(j).Time_Units = timeTab.Unit{1};
-    trk(j).Position_Units = posTab.Unit{1};
-    trk(j).TrackID = allTrkID(j);
+    if nnz(currRows) > 0
+    
+        %Copy position and frame info
+        for k = 1:nFieldCopy                
+            trk(j).(outName{k}) = posTab.(imsName{k})(currRows);                
+        end        
+        %Get actual time data    
+        trk(j).Time = frameTimes(trk(j).Frame);
+        %Specify units and ID    
+        trk(j).Time_Units = timeTab.Unit{1};
+        trk(j).Position_Units = posTab.Unit{1};
+        trk(j).TrackID = allTrkID(j);
+    end
     
     
 end

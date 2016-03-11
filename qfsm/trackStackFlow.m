@@ -133,9 +133,13 @@ backSpc =repmat('\b',1,L);
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-if isempty(gcp('nocreate'))
-    parpool open
-end
+% if isempty(gcp('nocreate'))
+%     try
+%         parpool local
+%     catch
+%         matlabpool
+%     end
+% end % we don't need this any more.
 
 parfor k = 1:nPoints
 % for k = 1:nPoints
@@ -178,8 +182,8 @@ parfor k = 1:nPoints
             
             %Get sampling speed. Make sure it will not shift the template (block) outside of
             % the image area. We also use bigger stepsize for large speed.
-            minSpdF = -min(floor(maxFlowSpd),max(0,xI-corL-1));
-            maxSpdF = min(floor(maxFlowSpd),imgL-min(xI+corL,imgL));
+            minSpdF = -min(floor(maxFlowSpd),max(0,xI-(corL+1)/2-1));
+            maxSpdF = min(floor(maxFlowSpd),imgL-min(xI+(corL+1)/2+1,imgL));
 %             dv = max(1,ceil(abs(minSpdF)/10));
 %             vF = minSpdF:dv:min(0,maxSpdF);
 %             if vF(end) ~= 0
@@ -188,8 +192,8 @@ parfor k = 1:nPoints
 %             dv = max(1,ceil(abs(maxSpdF)/10));
 %             vF = [vF vF(end)+dv:dv:maxSpdF];
 %             
-            minSpdP = -min(floor(maxPerpSpd),max(0,yI-corL-1));
-            maxSpdP = min(floor(maxPerpSpd),imgW-min(yI+corL,imgW));
+            minSpdP = -min(floor(maxPerpSpd),max(0,yI-(corL-1)/2)-1);
+            maxSpdP = min(floor(maxPerpSpd),imgW-min(yI+(corL-1)/2+1,imgW));
 %             dv = max(1,ceil(abs(minSpdP)/10));
 %             vP = minSpdP:dv:min(0,maxSpdP);
 %             if vP(end) ~= 0
@@ -203,10 +207,10 @@ parfor k = 1:nPoints
             vP = minSpdP:maxSpdP;
             %End of debugging
             
-            hCLL    = min(xI-1,corL)+max(-vF(1),0);
-            hCLR    = min(imgL-xI,corL)+max(vF(end),0);
-            hCWL    = min(yI-1,corL)+max(-vP(1),0);
-            hCWR    = min(imgW-yI,corL)+max(vP(end),0);
+            hCLL    = min(xI-1,(corL-1)/2)+max(-vF(1),0);
+            hCLR    = min(imgL-xI,(corL-1)/2)+max(vF(end),0);
+            hCWL    = min(yI-1,(corL-1)/2)+max(-vP(1),0);
+            hCWR    = min(imgW-yI,(corL-1)/2)+max(vP(end),0);
             cropL   = hCLL+hCLR+1;
             cropW   = hCWL+hCWR+1;
             kym     = zeros(cropW,cropL,numFrames);
@@ -238,7 +242,7 @@ parfor k = 1:nPoints
             else
                 %Test the quality of the score function and find the index of the
                 % maximum score.
-                [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize);
+                [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.59);
                 if pass == 0 || corL < maxCorL
                     %Increase the block length and width by a factor of 5/4 to see if
                     % the ambiguity can be resovled. Also by comparing the two
@@ -252,19 +256,22 @@ parfor k = 1:nPoints
                     for incFactor = incRange
                         % recalculating score, centerI, vP and vF
                         corLInc = ceil(corL*incFactor);
-                        minSpdF = -min(floor(maxFlowSpd),max(0,xI-corLInc-1));
-                        maxSpdF = min(floor(maxFlowSpd),imgL-min(xI+corLInc,imgL));
-                        minSpdP = -min(floor(maxPerpSpd),max(0,yI-corLInc-1));
-                        maxSpdP = min(floor(maxPerpSpd),imgW-min(yI+corLInc,imgW));
+                        %make corLInc to odd number
+                        corLInc = corLInc - mod(corLInc+1,2);
+                        minSpdF = -min(floor(maxFlowSpd),max(0,xI-(corLInc+1)/2-1));
+                        maxSpdF = min(floor(maxFlowSpd),imgL-min(xI+(corLInc+1)/2+1,imgL));
+                        minSpdP = -min(floor(maxPerpSpd),max(0,yI-(corLInc+1)/2-1));
+                        maxSpdP = min(floor(maxPerpSpd),imgW-min(yI+(corLInc+1)/2+1,imgW));
+
                         %Debugging
                         vF2 = minSpdF:maxSpdF;
                         vP2 = minSpdP:maxSpdP;
                         %End of debugging
-
-                        hCLL    = min(xI-1,corLInc)+max(-vF2(1),0);
-                        hCLR    = min(imgL-xI,corLInc)+max(vF2(end),0);
-                        hCWL    = min(yI-1,corLInc)+max(-vP2(1),0);
-                        hCWR    = min(imgW-yI,corLInc)+max(vP2(end),0);
+                        
+                        hCLL    = min(xI-1,(corLInc-1)/2)+max(-vF2(1),0);
+                        hCLR    = min(imgL-xI,(corLInc-1)/2)+max(vF2(end),0);
+                        hCWL    = min(yI-1,(corLInc-1)/2)+max(-vP2(1),0);
+                        hCWR    = min(imgW-yI,(corLInc-1)/2)+max(vP2(end),0);
                         cropL   = hCLL+hCLR+1;
                         cropW   = hCWL+hCWR+1;
                         kym     = zeros(cropW,cropL,numFrames);
@@ -322,6 +329,8 @@ parfor k = 1:nPoints
     %                         maxV = locMaxV(ind,:);
 
                             maxV2 = [vP2(maxI2(1)) vF2(maxI2(2))];
+                            [~,locMaxI] = findMaxScoreI(score,zeroI,minFeatureSize,0.3); %to find the most closest candidate. This needs to be tested.
+
                             locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
 
                             distToMaxV2 = sqrt(sum((locMaxV- ...
@@ -551,10 +560,55 @@ bI2e = round(centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end));
 %Find the part of the image block that is outside the cropped image and cut it off from the template.
 % vP([find(bI1e<1) find(bI1e>kymWidth)-corL+1])=[];
 % vF([find(bI2e<1) find(bI2e>kymLen)-corL+1])=[];
-bI1(bI1<1 | bI1>kymWidth) = [];
-bI2(bI2<1 | bI2>kymLen) = [];
-bI1e(bI1e<1 | bI1e>kymWidth) = [];
-bI2e(bI2e<1 | bI2e>kymLen) = [];
+
+% this part needs to be a bit smarter. If bI1 or bI2 are cut, it should not
+% affect vP or vF because only template size was changed. If bI1e or bI2e are cut, it should affect vP or vF.
+% bI1(bI1<1 | bI1>kymWidth) = [];
+% bI2(bI2<1 | bI2>kymLen) = [];
+% bI1e(bI1e<1 | bI1e>kymWidth) = [];
+% bI2e(bI2e<1 | bI2e>kymLen) = [];
+idxBI1cutFirst = find(bI1<1);
+idxBI1cutLast = find(bI1>kymWidth);
+idxBI2cutFirst = find(bI2<1);
+idxBI2cutLast = find(bI2>kymLen);
+if ~isempty(idxBI1cutFirst)
+    bI1(idxBI1cutFirst)=[];
+    bI1e(idxBI1cutFirst)=[];
+end
+if ~isempty(idxBI2cutFirst)
+    bI2(idxBI2cutFirst)=[];
+    bI2e(idxBI2cutFirst)=[];
+end
+if ~isempty(idxBI1cutLast)
+    bI1(idxBI1cutLast)=[];
+    bI1e(end-length(idxBI1cutLast)+1:end)=[];
+end
+if ~isempty(idxBI2cutLast)
+    bI2(idxBI2cutLast)=[];
+    bI2e(end-length(idxBI2cutLast)+1:end)=[];
+end
+
+% For bI1e or bI2e, vP and vF are affected
+idxBI1EcutFirst = find(bI1e<1);
+idxBI1EcutLast = find(bI1e>kymWidth);
+idxBI2EcutFirst = find(bI2e<1);
+idxBI2EcutLast = find(bI2e>kymLen);
+if ~isempty(idxBI1EcutLast)
+    bI1e(idxBI1EcutLast)=[];
+    vP(1:1+length(idxBI1EcutLast)-1)=[];
+end
+if ~isempty(idxBI2EcutLast)
+    bI2e(idxBI2EcutLast)=[];
+    vP(1:1+length(idxBI2EcutLast)-1)=[];
+end
+if ~isempty(idxBI1EcutFirst)
+    bI1e(idxBI1EcutFirst)=[];
+    vP(idxBI1EcutFirst)=[];
+end
+if ~isempty(idxBI2EcutFirst)
+    bI2e(idxBI2EcutFirst)=[];
+    vF(idxBI2EcutFirst)=[];
+end
 
 score = zeros(length(vP),length(vF));
 if strcmp(mode,'difference')
@@ -827,8 +881,12 @@ if ind1(end) < m
     if ind1(end) == m-1
         ind1(end) = m;
     else
-        ind1(end) = floor((ind1(end-1)+m)/2);
-        ind1(end+1) = m;
+        if length(ind1)>1
+            ind1(end) = floor((ind1(end-1)+m)/2);
+            ind1(end+1) = m;
+        else % length(ind1)==1
+            ind1(end+1) = m;
+        end
     end
 end
 ind2 = 1:5:n;
@@ -836,8 +894,12 @@ if ind2(end) < n
     if ind2(end) == n-1
         ind2(end) = n;
     else
-        ind2(end) = floor((ind2(end-1)+n)/2);
-        ind2(end+1) = n;
+        if length(ind2)>1
+            ind2(end) = floor((ind2(end-1)+n)/2);
+            ind2(end+1) = n;
+        else
+            ind2(end+1) = n;
+        end
     end
 end
 
@@ -1003,8 +1065,8 @@ elseif length(locMaxS) > 1
     return;
 end
 
-if maxI(1) < m/40 || maxI(1) > 39*m/40 || ...
-        maxI(2) < n/40 || maxI(2) > 39*n/40
+if maxI(1) < min(m/20,2*minFeatureRadius) || maxI(1) > max(19*m/20,m-2*minFeatureRadius) || ...
+        maxI(2) < min(n/20,2*minFeatureRadius) || maxI(2) > max(19*n/20, n-2*minFeatureRadius)
     pass = 0;
     return;
 end

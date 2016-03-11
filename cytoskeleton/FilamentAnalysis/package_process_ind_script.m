@@ -138,7 +138,7 @@ if indexCellSegProcess == 0
 end
 
 indexCellRefineProcess = 0;
-for i = 1 : nProcesses
+for i = nProcesses:(-1):1
     if(strcmp(MD.processes_{i}.getName,'Mask Refinement')==1)
         indexCellRefineProcess = i;
         break;
@@ -192,7 +192,7 @@ if indexFilamentPackage > 0 && indexFilamentSegmentationProcess > 0
     % Set the directories
     FilamentSegmentationProcessOutputDir  = [MD.packages_{indexFilamentPackage}.outputDirectory_, filesep 'FilamentSegmentation'];
     FilamentSegmentationChannelOutputDir =  MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{indexVIFChannel};
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
 end

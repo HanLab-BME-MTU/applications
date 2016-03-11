@@ -70,7 +70,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -118,7 +118,7 @@ for i = 1 : nProcesses
     end
 end
 
-if indexCellSegProcess == 0 && Cell_Mask_ind == 1
+if indexCellSegProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4)
     msgbox('Please run segmentation and refinement first.')
     return;
 end
@@ -167,26 +167,26 @@ for iChannel = selected_channels
         mkdir(FilamentSegmentationChannelOutputDir);
     end
     
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
     
     if (~exist(HeatOutputDir,'dir'))
         mkdir(HeatOutputDir);
     end
     
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
     
     if (~exist(HeatEnhOutputDir,'dir'))
         mkdir(HeatEnhOutputDir);
     end
     
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
     
     if (~exist(DataOutputDir,'dir'))
         mkdir(DataOutputDir);
     end
     
     
-    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,'/OrientImage'];
+    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'OrientImage'];
     
     if (~exist(OrientationOutputDir,'dir'))
         mkdir(OrientationOutputDir);
@@ -233,6 +233,13 @@ for iChannel = selected_channels
     Whole_movie_stat.mode_INT = mode_INT;
     Whole_movie_stat.otsu_INT = thresholdOtsu(INT_pool);
     Whole_movie_stat.otsu_mode_INT = thresholdOtsu(INT_pool(find(INT_pool>mode_INT)));
+    
+    
+    
+    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
+        num2str(iChannel),'.mat'],...
+        'INT_pool');
+    
     
     INT_pool = [];
     
@@ -283,6 +290,11 @@ for iChannel = selected_channels
     catch
         Whole_movie_stat.rosin_mode_ST = Whole_movie_stat.otsu_mode_ST;
     end
+    
+    
+    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
+        num2str(iChannel),'.mat'],...
+        'ST_pool','-append');
     
     
     ST_pool = [];
@@ -386,10 +398,15 @@ for iChannel = selected_channels
     Whole_movie_stat.rosin_Length = thresholdRosin(Length_pool);
     Whole_movie_stat.rosin_mode_Length = thresholdRosin(Length_pool(find(Length_pool>mode_Length)));
     
+    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
+        num2str(iChannel),'.mat'],...
+        'Length_pool','NMS_pool','-append');
     
     NMS_pool = [];
     
     Whole_movie_stat_cell{iChannel} = Whole_movie_stat;
     
+   
 end
 
+  

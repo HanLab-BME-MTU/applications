@@ -51,6 +51,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
     'initChannel',0);
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 funParams = userData.crtProc.funParams_;
 
 % Get list of samplable output
@@ -172,6 +173,7 @@ delete(handles.figure1);
 function figure1_DeleteFcn(hObject, ~, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 if ishandle(userData.helpFig), delete(userData.helpFig); end
 
@@ -198,6 +200,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 % Check user input
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 % Retrieve list of checked boxes
 h=findobj(handles.figure1,'Style','Checkbox','-and','Value',1,'-not',...

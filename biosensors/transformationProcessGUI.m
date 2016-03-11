@@ -50,6 +50,7 @@ function transformationProcessGUI_OpeningFcn(hObject, eventdata, handles, vararg
 processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 %  Parameter Setup
 funParams = userData.crtProc.funParams_;
@@ -89,6 +90,7 @@ delete(handles.figure1);
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 userData_main = get(userData.mainFig, 'UserData');
 
 % -------- Check user input --------
@@ -141,6 +143,7 @@ processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 function pushbutton_open_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 set(handles.listbox_transform, 'Value',1)
 
 [filename, pathname] = uigetfile('*.mat','Select Movie Data MAT-file');
@@ -174,6 +177,7 @@ set(handles.figure1, 'Userdata', userData)
 function figure1_DeleteFcn(hObject, eventdata, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 

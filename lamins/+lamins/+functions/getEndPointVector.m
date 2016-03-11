@@ -25,18 +25,22 @@ function vector = getEndPointVector(skel,method,varargin)
 
                 rpcentroid = regionprops(cc,'Centroid');
                 centroids = vertcat(rpcentroid.Centroid);
-                centroid_idx = sub2ind(size(skel),round(centroids(:,1)),round(centroids(:,2)));
-                centroid_matrix = propmatrix(cc,centroid_idx);
-                [centroid.c,centroid.r] = ind2sub(size(skel),centroid_matrix(find(endpts)));
-                % find and centroid coordinates are reversed
-                [endpt.r,endpt.c] = find(endpts);
-                local.u = endpt.c - centroid.c;
-                local.v = endpt.r - centroid.r;
-                local.n = sqrt(local.u.^2 +local.v.^2);
-                local.x = endpt.c;
-                local.y = endpt.r;
+                if(~isempty(centroids))
+                    centroid_idx = sub2ind(size(skel),round(centroids(:,1)),round(centroids(:,2)));
+                    centroid_matrix = propmatrix(cc,centroid_idx);
+                    [centroid.c,centroid.r] = ind2sub(size(skel),centroid_matrix(find(endpts)));
+                    % find and centroid coordinates are reversed
+                    [endpt.r,endpt.c] = find(endpts);
+                    local.u = endpt.c - centroid.c;
+                    local.v = endpt.r - centroid.r;
+                    local.n = sqrt(local.u.^2 +local.v.^2);
+                    local.x = endpt.c;
+                    local.y = endpt.r;
 
-                vector = [local.u local.v];
+                    vector = [local.u local.v];
+                else
+                    vector = [];
+                end
 
             case 'filter'
                 % need theta from steerable filter

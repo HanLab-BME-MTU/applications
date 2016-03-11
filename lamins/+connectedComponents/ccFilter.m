@@ -1,4 +1,4 @@
-function [ newcc, oldccidx ] = ccFilter( cc, filter )
+function [ cc, oldccidx ] = ccFilter( cc, filter )
 %ccFilter Filter a connected components structure
 %
 % cc is a connected components structure from bwconncomp
@@ -12,9 +12,9 @@ function [ newcc, oldccidx ] = ccFilter( cc, filter )
 %   oldccidx is a vector containing numeric indices of the original
 %     connected component struccture. Useful if logical indexing was used.
 
-newcc = cc;
-newcc.PixelIdxList = cc.PixelIdxList(filter);
-newcc.NumObjects = length(newcc.PixelIdxList);
+% newcc = cc;
+cc.PixelIdxList = cc.PixelIdxList(filter);
+cc.NumObjects = length(cc.PixelIdxList);
 if(nargout > 1)
     idx = 1:cc.NumObjects;
     oldccidx = idx(filter);

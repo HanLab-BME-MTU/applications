@@ -70,20 +70,20 @@ end
 
 
 for iChannel = selected_channels
-    ImageSteerableFilterChannelOutputDir = [ImageSteerableFilterProcessOutputDir,'/Channel',num2str(iChannel)];
+    ImageSteerableFilterChannelOutputDir = [ImageSteerableFilterProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(ImageSteerableFilterChannelOutputDir,'dir'))
         mkdir(ImageSteerableFilterChannelOutputDir);
     end
     
-    
     output_dir_content = dir(fullfile([ImageSteerableFilterChannelOutputDir,filesep,'*.*']));
     
+        
     %if there are files in this dir, clear them
     if(length(output_dir_content)>2)
-        delete([ImageSteerableFilterChannelOutputDir,filesep,'*.*']);
         if(exist([ImageSteerableFilterChannelOutputDir,filesep,'NMS'],'dir'))
             rmdir([ImageSteerableFilterChannelOutputDir,filesep,'NMS'], 's');
         end
+        delete([ImageSteerableFilterChannelOutputDir,filesep,'*.*']);        
     end
     
     movieData.processes_{indexSteerabeleProcess}.setOutImagePath(iChannel,ImageSteerableFilterChannelOutputDir);
@@ -141,7 +141,8 @@ for iChannel = selected_channels
     for iFrame_subsample = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_subsample);
         disp(['Frame: ',num2str(iFrame)]);
-        
+
+        TIC_IC_IF = tic;
         % Read in the intensity image.
         if indexFlattenProcess > 0
             currentImg = imread([movieData.processes_{indexFlattenProcess}.outFilePaths_{iChannel}, filesep, 'flatten_',filename_short_strs{iFrame},'.tif']);
@@ -161,15 +162,19 @@ for iChannel = selected_channels
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
                 imwrite((MAX_st_res)/(max(max(MAX_st_res))), ...
-                    [ImageSteerableFilterChannelOutputDir,'/MAX_st_res_', ...
+                    [ImageSteerableFilterChannelOutputDir,filesep,'MAX_st_res_', ...
                     filename_short_strs{iFrame + sub_i-1},'.tif']);
                imwrite((nms)/(max(max(nms))), ...
-                    [ImageSteerableFilterChannelOutputDir,'/NMS/NMS_', ...
+                    [ImageSteerableFilterChannelOutputDir,filesep,'NMS',filesep,'NMS_', ...
                     filename_short_strs{iFrame + sub_i-1},'.tif']);
             end
         end
         
-        save([ImageSteerableFilterChannelOutputDir,'/steerable_',filename_short_strs{iFrame},'.mat'],...
+        save([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'],...
             'orienation_map', 'MAX_st_res','nms','scaleMap');
+        
+        Time_cost = toc(TIC_IC_IF);
+        disp(['Frame ', num2str(iFrame), ' ST filter costed ',num2str(Time_cost,'%.2f'),'s.']);                        
+
     end
 end

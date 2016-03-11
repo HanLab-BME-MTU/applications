@@ -93,13 +93,15 @@ Rerun_WholeMovie =  funParams.Rerun_WholeMovie;
 
 SaveFigures_movie = funParams.savestepfigures;
 ShowDetailMessages_movie = funParams.savestepfigures;
+saveallresults_movie = funParams.savestepfigures;
 
 CoefAlpha_movie = funParams.CoefAlpha;
 LengthThreshold_movie = funParams.LengthThreshold;
 IternationNumber_movie = funParams.IternationNumber;
 CurvatureThreshold_movie = funParams.CurvatureThreshold;
 Cell_Mask_ind = Cell_Mask_ind_movie;
-
+Combine_Way = funParams.Combine_Way;
+   
 % if the package was run with old version with only one set of parameter
 % for all channels, make a copy of parameter to every channel
 if(length(funParams.StPace_Size)==1 && numel(movieData.channels_)>1)
@@ -151,7 +153,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -169,8 +171,8 @@ for i = 1 : nProcesses
     end
 end
 
-if indexSteerabeleProcess==0 && Combine_Way~=2
-    msgbox('Please run steerable filtering first.')
+if indexSteerabeleProcess==0 && ~strcmp(Combine_Way{1},'int_only')
+   msgbox('Please run steerable filtering first.')
     return;
 end
 
@@ -193,15 +195,30 @@ if indexFlattenProcess == 0 && ImageFlattenFlag==2
     return;
 end
 
-indexCellSegProcess = 0;
+
+indexCellSegSegProcess = 0;
 for i = 1 : nProcesses
-    if(strcmp(movieData.processes_{i}.getName,'Mask Refinement')==1)
-        indexCellSegProcess = i;
+    if(strcmp(movieData.processes_{i}.getName,'Thresholding')==1)
+        indexCellSegSegProcess = i;
         break;
     end
 end
 
-if indexCellSegProcess == 0 && Cell_Mask_ind == 1
+if indexCellSegSegProcess == 0
+         disp('Please run segmentation and refinement first.');  
+    %     return;
+end
+
+
+indexCellRefinementProcess = 0;
+for i =  nProcesses:(-1):1
+    if(strcmp(movieData.processes_{i}.getName,'Mask Refinement')==1)
+        indexCellRefinementProcess = i;
+        break;
+    end
+end
+
+if indexCellRefinementProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4 || Cell_Mask_ind(1) == 6)
     msgbox('Please run segmentation and refinement first.')
     return;
 end
@@ -211,6 +228,9 @@ if nargin >=3
     load(wholemovie_input_filename);
     funParams.Whole_movie_stat_cell = Whole_movie_stat_cell;
 else
+    
+    if ~strcmp(Combine_Way{1},'int_only')
+          
     % or, calculate it
     %% May 1st 2014, due to change in flattening precedure, this whole movie stat need rerun,
     % if there is already whole movie file and the user didn't ask for
@@ -218,13 +238,39 @@ else
     if(exist([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'file')>0 ...
             && Rerun_WholeMovie==0)
         load([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'Whole_movie_stat_cell');
+        
+        % check if the existing whole movie file include the currently
+        % selected channel
+        flag_complete = ones(numel(movieData.channels_),1);
+        for iChannel = selected_channels
+            if(numel(Whole_movie_stat_cell)<iChannel)
+                flag_complete(iChannel)=0;
+            else
+                if(isempty(Whole_movie_stat_cell{iChannel}))
+                    flag_complete(iChannel)=0;
+                end
+            end
+        end
+        
+        %if some channels are missing, rerun the whole_movie_stat
+        if(min(flag_complete)==0)        
+            % this version of "addon" whole_movie_stat_function
+            % accept what ever was in the mat file
+            % and do for the missing channel(this previous channels will be
+            % kept even if it is not selected in current setting
+            Whole_movie_stat_cell = whole_movie_stat_function_addon(movieData);
+            save([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'Whole_movie_stat_cell');
+        end
     else
+        % this version of whole_movie_stat_function calculate for
+        % currently selected channels, disregarding whether any thing
+        % already existed
         Whole_movie_stat_cell = whole_movie_stat_function(movieData);
         save([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'Whole_movie_stat_cell');
     end
     
     funParams.Whole_movie_stat_cell = Whole_movie_stat_cell;
-    
+    end
 end
 
 %%
@@ -234,6 +280,26 @@ nFrame = movieData.nFrames_;
 if(exist([movieData.outputDirectory_,filesep,'MD_ROI.tif'],'file'))
     user_input_mask = imread([movieData.outputDirectory_,filesep,'MD_ROI.tif']);
 end
+
+if(ismember(6,Cell_Mask_ind))
+   combineChannelCellMaskCell = combineChannelMarkedCellAreaMask(movieData);
+   totalEmpty = 1;
+   for iFrame = 1 : nFrame 
+       % if there is a cell mask, set the flag to 0
+        if (~isempty(combineChannelCellMaskCell{iFrame}))
+            totalEmpty = 0;
+        end
+   end
+   
+   %if there is no marked cell at all, don't do anything.   
+   if totalEmpty == 1       
+       display('User wants to use marked cell masks, but there is none. So no filament segmentation is done for this movie.');
+       return;
+   end
+else
+   combineChannelCellMaskCell=[];
+end
+
 
 %% cones related is not in use
 % %% Prepare the cone masks
@@ -302,32 +368,32 @@ for iChannel = selected_channels
         mkdir(FilamentSegmentationChannelOutputDir);
     end
     
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
     
     if (~exist(HeatOutputDir,'dir'))
         mkdir(HeatOutputDir);
     end
     
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
     
     if (~exist(HeatEnhOutputDir,'dir'))
         mkdir(HeatEnhOutputDir);
     end
     
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
     
     if (~exist(DataOutputDir,'dir'))
         mkdir(DataOutputDir);
     end
     
     
-    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,'/OrientImage'];
-    
-    if (~exist(OrientationOutputDir,'dir'))
-        mkdir(OrientationOutputDir);
+    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'OrientImage'];
+    if(SaveFigures_movie==1)
+        if (~exist(OrientationOutputDir,'dir'))
+            mkdir(OrientationOutputDir);
+        end
     end
-    
-    
+        
     % If steerable filter process is run
     if indexSteerabeleProcess>0
         SteerableChannelOutputDir = movieData.processes_{indexSteerabeleProcess}.outFilePaths_{iChannel};
@@ -351,8 +417,8 @@ for iChannel = selected_channels
     %     indexFlattenProcess=1;
     for iFrame_index = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_index);
-        
         disp(['Frame: ',num2str(iFrame)]);
+        TIC_IC_IF = tic;
         
         % Read in the intensity image.
         if indexFlattenProcess > 0 && ImageFlattenFlag==2
@@ -374,23 +440,30 @@ for iChannel = selected_channels
         % this line in commandation for shortest version of filename
         filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
         
-        try
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_short_strs{iFrame},'.mat']);
-        catch
-            % in the case of only having the short-old version
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_shortshort_strs{iFrame},'.mat']);
+        if ~strcmp(Combine_Way,'int_only')
+            
+            try
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_short_strs{iFrame},'.mat']);
+            catch
+                % in the case of only having the short-old version
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_shortshort_strs{iFrame},'.mat']);
+            end
         end
-        
         
         %%
         
         
         MaskCell = ones(size(currentImg));
         
+        Seg_Mask = zeros( size(currentImg));
+        try
+            Seg_Mask = movieData.processes_{indexCellSegSegProcess}.loadChannelOutput(iChannel,iFrame);
+        end
+        
         if Cell_Mask_ind == 1 % using cell segmentation from same channel
-            MaskCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(iChannel,iFrame);
+            MaskCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(iChannel,iFrame);
         else
             if Cell_Mask_ind == 2 % Using input static ROI tiff
                 MaskCell = user_input_mask>0;
@@ -398,33 +471,41 @@ for iChannel = selected_channels
                 if Cell_Mask_ind == 5 % No limit
                     MaskCell = ones(size(currentImg,1),size(currentImg,2));
                 else
-                    if Cell_Mask_ind == 4 % Combine from both channel directly
-                        MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                        MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
-                        MaskCell = MaskVIFCell | MaskMTCell;
+                    if Cell_Mask_ind == 6 % For marked cells
+                        MaskCell = combineChannelCellMaskCell{iFrame};
+                        
                         
                     else
-                        % Combine from both channel
-                        % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
-                        MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                        MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
-                        
-                        H_close_cell = fspecial('disk',5);
-                        H_close_cell = H_close_cell>0;
-                        
-                        MaskMTCell = imerode(MaskMTCell,H_close_cell);
-                        TightMask = MaskVIFCell.*MaskMTCell;
-                        
-                        % Make the mask bigger in order to include all
-                        MaskCell = imdilate(TightMask, ones(15,15),'same');
-                        
-                        clearvars MaskVIFCell MaskMTCell TightMask H_close_cell;
+                        if Cell_Mask_ind == 4 % Combine from both channel directly
+                            MaskVIFCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(1,iFrame);
+                            MaskCell = MaskVIFCell | MaskMTCell;
+                            
+                        else
+                            % Combine from both channel
+                            % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
+                            MaskVIFCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellRefinementProcess}.loadChannelOutput(1,iFrame);
+                            
+                            H_close_cell = fspecial('disk',5);
+                            H_close_cell = H_close_cell>0;
+                            
+                            MaskMTCell = imerode(MaskMTCell,H_close_cell);
+                            TightMask = MaskVIFCell.*MaskMTCell;
+                            
+                            % Make the mask bigger in order to include all
+                            MaskCell = imdilate(TightMask, ones(15,15),'same');
+                            
+                            clearvars MaskVIFCell MaskMTCell TightMask H_close_cell;
+                        end
                     end
                 end
             end
         end
         
-        
+        if(isempty(MaskCell))
+            continue;
+        end
         
         %%
         % Correcting the nms ending semicircle due to the aritifact of
@@ -433,13 +514,15 @@ for iChannel = selected_channels
         %
         %         median_nms = median(nms(:));
         %         quarter_nms = median(nms(find(nms>median_nms)));
-        
+         if ~strcmp(Combine_Way,'int_only')
+       
         open_nms = imopen(nms, ones(2,2));
         eroded_nms = nms-open_nms;
         
         %use the opened image;
         nms = eroded_nms;
-        
+         end
+         
         stophere=1;
         
         
@@ -469,6 +552,9 @@ for iChannel = selected_channels
                 
             case 'st_only'
                 %                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound,0,Whole_movie_stat_cell{iChannel}.otsu_ST);
+                cell_mask_dilate = imdilate(MaskCell,ones(3,3));
+                MAX_st_res(Seg_Mask>0 & cell_mask_dilate==0)=nan;
+                
                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound,'showPlots',0);
                 current_seg = SteerabelRes_Segment;
                 Intensity_Segment = current_seg;
@@ -517,7 +603,7 @@ for iChannel = selected_channels
                 % Liya: test for the running of the comparison
                 current_seg_canny_cell=cell(1,1);
                 display('Canny Test:');
-                tic
+                TIC_CannyTest = tic;                
                 %                 for PercentOfPixelsNotEdges = 0.8: 0.1: 0.95
                 %                     for ThresholdRatio = 0.8 : 0.1: 0.95
                 for iP = 1 : 5
@@ -535,7 +621,7 @@ for iChannel = selected_channels
                         
                     end
                 end
-                toc
+                toc(TIC_CannyTest);
                 
                 % Assume no training is done for the classifier, so use the
                 % linear plane classifier with the input parameters.
@@ -547,11 +633,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based GM Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_GM = tic;
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
+                Time_cost = toc(TIC_geoBased_GM);
+%                 disp(['Frame ', num2str(iFrame), ' geoBased_GM costed ',num2str(Time_cost,'%.2f'),'s.']);
                 
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
@@ -565,11 +652,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based NO-GM, Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_noGM = tic;
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withoutGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
+                Time_cost = toc(TIC_geoBased_noGM);
+%                 disp(['Frame: ', num2str(iFrame), ' geoBased_noGM costed ',num2str(Time_cost),'s.']);                        
                 
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
@@ -588,12 +676,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based GM Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_GM = tic;               
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
-                
+                Time_cost = toc(TIC_geoBased_GM);
+%                 disp(['Frame ', num2str(iFrame), ' geoBased_GM costed ',num2str(Time_cost,'%.2f'),'s.']);
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
                 SteerabelRes_Segment = current_seg;
@@ -636,10 +724,10 @@ for iChannel = selected_channels
                 HigherThresdhold = funParams.CannyHigherThreshold(iChannel)/100;
                 LowerThresdhold = funParams.CannyLowerThreshold(iChannel)/100;
                 
-                tic
+%                 tic
                 [lowThresh, highThresh, current_seg]...
                     = proximityBasedNmsSeg(MAX_st_res,orienation_map,funParams,HigherThresdhold,LowerThresdhold);
-                toc
+%                 toc
                 
                 level2 = highThresh;
                 Intensity_Segment = current_seg;
@@ -661,7 +749,8 @@ for iChannel = selected_channels
         MaskCell=MaskCell>0;
         current_seg = current_seg.*MaskCell;
         
-        
+         if ~strcmp(Combine_Way,'int_only')
+       
         %%
         % A smoothing done only at the steerable filtering results, if only intensity only, then the same
         orienation_map_filtered = OrientationSmooth(orienation_map, SteerabelRes_Segment);
@@ -678,7 +767,11 @@ for iChannel = selected_channels
         if (~isempty(max(max(intensity_addon))>0))
             orienation_map_filtered(find(intensity_addon>0)) = OrientationVoted(find(intensity_addon>0));
         end
-        
+         else
+             orienation_map_filtered = ones(size(current_seg));
+             nms = zeros(size(current_seg));
+         end
+         
         if(~strcmp(Combine_Way,'geo_based'))
             % if the segmentation is not done with geo_based method, do
             % some geometry based checking on the results
@@ -775,11 +868,13 @@ for iChannel = selected_channels
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
                 imwrite(current_seg, ...
-                    [FilamentSegmentationChannelOutputDir,'/segment_binary_',...
+                    [FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
-                imwrite(orienation_map_filtered.*double(current_seg), ...
-                    [OrientationOutputDir,'/segment_orientation_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                if(SaveFigures_movie==1)                    
+                    imwrite(orienation_map_filtered.*double(current_seg), ...
+                        [OrientationOutputDir,filesep,'segment_orientation_',...
+                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                end
             end
         end
         
@@ -830,7 +925,7 @@ for iChannel = selected_channels
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
                 imwrite(RGB_seg_orient_heat_map, ...
-                    [HeatEnhOutputDir,'/segment_heat_',...
+                    [HeatEnhOutputDir,filesep,'segment_heat_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
             end
         end
@@ -847,11 +942,13 @@ for iChannel = selected_channels
         RGB_seg_orient_heat_map(:,:,2 ) = enhanced_im_g;
         RGB_seg_orient_heat_map(:,:,3 ) = enhanced_im_b;
         
-        for sub_i = 1 : Sub_Sample_Num
-            if iFrame + sub_i-1 <= nFrame
-                imwrite(RGB_seg_orient_heat_map, ...
-                    [HeatEnhOutputDir,'/white_segment_heat_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);
+        if(SaveFigures_movie==1)
+            for sub_i = 1 : Sub_Sample_Num
+                if iFrame + sub_i-1 <= nFrame
+                    imwrite(RGB_seg_orient_heat_map, ...
+                        [HeatEnhOutputDir,filesep,'white_segment_heat_',...
+                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                end
             end
         end
         
@@ -872,14 +969,16 @@ for iChannel = selected_channels
             RGB_seg_orient_heat_map_nms(:,:,2 ) = enhanced_im_g;
             RGB_seg_orient_heat_map_nms(:,:,3 ) = enhanced_im_b;
             
-            
-            for sub_i = 1 : Sub_Sample_Num
-                if iFrame + sub_i-1 <= nFrame
-                    imwrite(RGB_seg_orient_heat_map_nms, ...
-                        [HeatEnhOutputDir,'/NMS_Segment_heat_',...
-                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+            if(SaveFigures_movie==1)
+                for sub_i = 1 : Sub_Sample_Num
+                    if iFrame + sub_i-1 <= nFrame
+                        imwrite(RGB_seg_orient_heat_map_nms, ...
+                            [HeatEnhOutputDir,filesep,'NMS_Segment_heat_',...
+                            filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                    end
                 end
-            end            
+            end
+
             RGB_seg_orient_heat_map = RGB_seg_orient_heat_map_nms;
         end
         
@@ -903,28 +1002,41 @@ for iChannel = selected_channels
         %% Save segmentation results
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
-                save([DataOutputDir,'/steerable_vote_', ...
+                % if user want it, save everything, if not, save only the
+                % loadable results
+                if(saveallresults_movie==1)
+                save([DataOutputDir,filesep,'filament_seg_', ...
                     filename_short_strs{iFrame+ sub_i-1},'.mat'],...
                     'currentImg','orienation_map_filtered','OrientationVoted','orienation_map','RGB_seg_orient_heat_map','RGB_seg_orient_heat_map_nms', ...
                     'MAX_st_res', 'current_seg','Intensity_Segment','SteerabelRes_Segment','NMS_Segment', ...
                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation','tip_orientation',...
                     'tip_int','tip_NMS',...
                     'current_seg_canny_cell');
+                else
+                    save([DataOutputDir,filesep,'filament_seg_', ...
+                    filename_short_strs{iFrame+ sub_i-1},'.mat'],...
+                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation',...
+                     'tip_orientation', 'tip_int','tip_NMS');
+                end
                 
             end
         end
-        
+
         
         %% %tif stack cost too much memory, comment these
         %         if( save_tif_flag==1)
-        % %             current_seg = (imread([FilamentSegmentationChannelOutputDir,'/segment_binary_',filename_short_strs{iFrame},'.tif']))>0;
-        % %             RGB_seg_orient_heat_map = imread([HeatEnhOutputDir,'/segment_heat_',filename_short_strs{iFrame},'.tif']);
+        % %             current_seg = (imread([FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',filename_short_strs{iFrame},'.tif']))>0;
+        % %             RGB_seg_orient_heat_map = imread([HeatEnhOutputDir,filesep,'segment_heat_',filename_short_strs{iFrame},'.tif']);
         % %
         %             tif_stack_binary_seg_image_data(:,:,iFrame_index) = uint8(current_seg*255);
         %             tif_stack_RGB_heat_image_data(:,:,:,iFrame_index) = uint8(RGB_seg_orient_heat_map);
         %
         %         end
         %%
+
+        Time_cost = toc(TIC_IC_IF);
+        disp(['Frame ', num2str(iFrame), ' filament seg costed ',num2str(Time_cost,'%.2f'),'s.']);
+
     end
     %% For Gelfand Lab, save results as tif stack file
     if( save_tif_flag==1)
@@ -935,9 +1047,9 @@ for iChannel = selected_channels
         
         % Save the multi-frame RGB color image
         options.color = true;
-        %         saveastiff(tif_stack_RGB_heat_image_data, [FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_seg_heat.tif'], options);
+        %         saveastiff(tif_stack_RGB_heat_image_data, [FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_seg_heat.tif'], options);
         options.color = false;
-        %         saveastiff(tif_stack_binary_seg_image_data, [FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_seg_binary.tif'], options);
+        %         saveastiff(tif_stack_binary_seg_image_data, [FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_seg_binary.tif'], options);
         
     end
     

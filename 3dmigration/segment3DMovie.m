@@ -320,8 +320,7 @@ for iImage = 1:nImages
     %Check for an ROI...
     if ~isempty(movieData.parent_)
         %Remove mask voxels outside of it the specified ROIO                                
-        currMask = currMask & roiMask;
-        
+        currMask = currMask & roiMask;        
     end
     
     

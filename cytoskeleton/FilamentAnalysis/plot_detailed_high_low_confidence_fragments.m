@@ -2,7 +2,7 @@ h22 =  figure(22);hold off;
 plot(feature_Length(Good_ind),feature_MeanNMS(Good_ind),'.','color',[100 100 255]/255); hold on;
 plot(feature_Length(Bad_ind),feature_MeanNMS(Bad_ind),'r.');
 plot(feature_Length(changed_ind_good_K),feature_MeanNMS(changed_ind_good_K),'c.');
-plot(feature_Length(changed_ind_good_I),feature_MeanNMS(changed_ind_good_I),'.','color',[255 128 0   ] / 255);
+plot(feature_Length(changed_ind_good_I),feature_MeanNMS(changed_ind_good_I),'.','color',[255 128 0] / 255);
 
 plot_length = -1:0.1:100;
 
@@ -12,9 +12,9 @@ hold on; plot(plot_length, plot_nms,'color',[170 170 170] / 255,'LineWidth',2);
 axis([0 60 0 10]);
 title('Classifier Plane with matched data round 0');
 title('');
-set(gca,'FontSize',13)
-saveas(h22,['./GEO_frame_',num2str(iFrame),'_round0_trained_plane.tif']);
-saveas(h22,['./GEO_frame_',num2str(iFrame),'_round0_trained_plane.fig']);
+set(gca,'FontSize',13);
+saveas(h22,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'GEO_frame_',num2str(iFrame),'_round0_trained_plane.tif']);
+saveas(h22,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'GEO_frame_',num2str(iFrame),'_round0_trained_plane.fig']);
 
  
 h23 = figure(23);hold off;
@@ -43,27 +43,20 @@ for i_area = setdiff(setdiff(intersect(Good_ind',ind_long'),changed_ind_good_K),
         [line_i_x, line_i_y] = line_following_with_limit(labelMask == i_area, 1000, x_i(1),y_i(1));
     end
     
-    
-    if(SaveFigures==1)
-        h23 = figure(23);hold on;
-        plot(line_i_x,line_i_y,'color',[100 100 255]/255);
-        
-          h26= figure(26);hold on;
+    h23 = figure(23);hold on;
     plot(line_i_x,line_i_y,'color',[100 100 255]/255);
-
-    end
     
-    
+    h26= figure(26);hold on;
+    plot(line_i_x,line_i_y,'color',[100 100 255]/255);
     
 end
 
-saveas(h23,[FilamentSegmentationChannelOutputDir,'/GEO/lightblue_all_', ...
+saveas(h23,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'lightblue_all_', ...
     num2str(iFrame),'.fig']);
 
 
 h24 = figure(24);hold off;
 imagesc(imageInt_nohole);hold on; colormap(gray); axis image; hold on;
-
 
 
 for i_area = changed_ind_good_I'
@@ -85,9 +78,7 @@ for i_area = changed_ind_good_I'
     
     h24 = figure(24);hold on;
     plot(line_i_x,line_i_y,'c','LineWidth',1.1);
-    
-    
-    
+   
 end
 
 
@@ -112,7 +103,7 @@ for i_area = changed_ind_good_K'
     plot(line_i_x,line_i_y,'color',[255 128 0   ] / 255,'LineWidth',1.1);
     
 end
-saveas(h24,[FilamentSegmentationChannelOutputDir,'/GEO/gm_all_', ...
+saveas(h24,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'gm_all_', ...
     num2str(iFrame),'.fig']);
 
 % get the mean intensity of the curves
@@ -136,12 +127,12 @@ for i_area = setdiff(setdiff(intersect(Bad_ind',ind_long'),changed_ind_good_K),c
     h24 = figure(24);hold on;
     plot(line_i_x,line_i_y,'r');
     
-        h26= figure(26);hold on;
+    h26= figure(26);hold on;
     plot(line_i_x,line_i_y,'r');
-
+    
 end
 axis off;
-saveas(h24,[FilamentSegmentationChannelOutputDir,'/GEO/red_all_', ...
+saveas(h24,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'red_all_', ...
     num2str(iFrame),'.fig']);
-saveas(h26,[FilamentSegmentationChannelOutputDir,'/GEO/light_bluered_all_', ...
+saveas(h26,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'light_bluered_all_', ...
     num2str(iFrame),'.fig']);

@@ -94,7 +94,7 @@ for i_ind = 1 : length(tomatch_ind)
 end
 
 %%
-% Use kdtree to limit pairs
+% this section is to use kdtree to limit pairs
 % tic
 % Input data
 end_points_all = bwmorph(nms_seg_no_brancing,'endpoints');
@@ -184,21 +184,9 @@ for ti = 1: size(model_ind_all,1)
 end
 
 model_ind_all = model_ind_all(:,1:20);
-%%
-
-% Build tree (Memory automatically freed)
-kd = KDTree(ordered_end_points);
-% toc
-
-if(ShowDetailMessages==1)
-    display('finish build kdtree and angle calculation');
-end
-
+%% KDTree Matlab built in code
 radii = 40;
-
-[idx, dist] = KDTreeBallQuery(ordered_end_points, ordered_end_points, radii);
-
-
+idx = rangesearch(ordered_end_points,ordered_end_points,radii,'nsmethod','kdtree');
 %%
 % Initialize the graph
 % tic
@@ -228,7 +216,7 @@ for i_end = 1 : size(idx,1)
         %   j end cannot be i it self and cannot be smaller, since it i big - j samll will
         %   be calculated on the other pair, which is i small- j big
         
-        for j_end =  setdiff(idx{i_end,1}',[1:2*round(i_end/2)])
+        for j_end =  setdiff(idx{i_end,1},[1:2*round(i_end/2)])
             %         try
             num_loop = num_loop+1;
             %             display(['loop num: ',num2str(num_loop)]);

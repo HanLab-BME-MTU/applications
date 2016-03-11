@@ -85,10 +85,10 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
-ip.addParamValue('nBoot',1e3,@isscalar);
-ip.addParamValue('alpha',.05,@isscalar);
-ip.addParamValue('cluster',false,@isscalar);
-ip.addParamValue('nCluster',2,@isscalar);
+ip.addParameter('nBoot',1e3,@isscalar);
+ip.addParameter('alpha',.05,@isscalar);
+ip.addParameter('cluster',false,@isscalar);
+ip.addParameter('nCluster',2,@isscalar);
 
 if isa(movieObj,'MovieData')
     
@@ -103,19 +103,21 @@ end
 nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
-ip.addParamValue('includeWin',cell(1,nCell),@iscell);
-ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
-ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
-ip.addParamValue('trendType',-ones(1,nCell),@isvector);
-ip.addParamValue('minLength', 10*ones(1,nCell),@isvector);
-ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
-ip.addParamValue('scale',     false,@islogical);
-ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
-ip.addParamValue('fileName','EdgeMotion',@isstr);
-ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
-ip.addParamValue('lwPerc',2.5,@isscalar);
-ip.addParamValue('upPerc',97.5,@isscalar);
-ip.addParamValue('selectMotion',{[]},@iscell);
+ip.addParameter('includeWin',cell(1,nCell),@iscell);
+ip.addParameter('winInterval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('outLevel',  zeros(1,nCell),@isvector);
+ip.addParameter('trendType',-ones(1,nCell),@isvector);
+ip.addParameter('minLength', 10*ones(1,nCell),@isvector);
+ip.addParameter('gapSize',   zeros(1,nCell),@isvector);
+ip.addParameter('scale',     false,@islogical);
+ip.addParameter('outputPath','EdgeVelocityQuantification',@isstr);
+ip.addParameter('fileName','EdgeMotion',@isstr);
+ip.addParameter('interval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('lwPerc',2.5,@isscalar);
+ip.addParameter('upPerc',97.5,@isscalar);
+ip.addParameter('selectMotion',{[]},@iscell);
+ip.addParameter('fixJump', false,@islogical);
+ip.addParameter('jumps',cell(1,nCell),@iscell);
 
 ip.parse(movieObj,varargin{:});
 nBoot       = ip.Results.nBoot;
@@ -136,15 +138,26 @@ winInterval = ip.Results.winInterval;
 upPerc      = ip.Results.upPerc;
 lwPerc      = ip.Results.lwPerc;
 selection   = ip.Results.selectMotion;
+fixJump     = ip.Results.fixJump;
+jumps       = ip.Results.jumps;
 
 if numel(interval) == 1
     interval = repmat(interval,1,nCell);
 end
 
-%% Formatting Time Series
-operations = {'interval',interval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName};
-cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
+if numel(includeWin) == 1
+    includeWin = repmat(includeWin,1,nCell);
+end
 
+if numel(winInterval) == 1
+    winInterval = repmat(winInterval,1,nCell);
+end
+
+
+%% Formatting Time Series
+operations = {'interval',interval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName,'fixJump',fixJump,'jumps',jumps};
+cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
+winFlag    = false;
 
 for iCell = 1:nCell
     
@@ -168,7 +181,7 @@ for iCell = 1:nCell
         winInterval{iCell} = num2cell(repmat(1:cellData{iCell}.data.nFrames,nWin,1),2);
         
     else
-        
+        winFlag            = true;
         if numel(winInterval{iCell}) == 1 %If it's just one cell, repeat for all windows
             
             winInterval{iCell} = repmat(winInterval{iCell},nWin,1);
@@ -244,18 +257,30 @@ commonGround    = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCl
 
 if sum(runEdgeAnalysis) ~= 0
     
-    %cellData(runEdgeAnalysis) = cellfun(@(x) rmfield(x,{'protrusionAnalysis','retractionAnalysis'}),cellData(runEdgeAnalysis),'Unif',0);
+    %For each window(y), call commonGround for the x interval
     firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z, {[]});
+    %For each interval(x), all windows(y) and with time Interval(z)
     secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
     
-    [protrusion,retraction] ...
-        = cellfun(@(x) secondLevel(x.data.interval,x.data.procExcEdgeMotion,x.data.timeInterval),cellData(runEdgeAnalysis),'Unif',0);
-
+    if winFlag
+        
+        [protrusion,retraction] = cellfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.timeInterval,x.data.winInterval),cellData(runEdgeAnalysis),'Unif',0);
+        %Creating interval layer
+        protrusion = cellfun(@(x) {{x}},protrusion);
+        retraction = cellfun(@(x) {{x}},retraction);
+    else
+        
+        [protrusion,retraction] ...
+            = cellfun(@(x) secondLevel(x.data.interval,x.data.procExcEdgeMotion,x.data.timeInterval),cellData(runEdgeAnalysis),'Unif',0);
+        
+    end
+    
     [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,runEdgeAnalysis,selection);    
     
     % Saving results
     savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
     savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
+    
 elseif ~isempty(selection{1})
     
     if isfield(cellData{iCell}.data,'selectionCriteria')
@@ -277,7 +302,8 @@ elseif ~isempty(selection{1})
     end
     
     cellData{iCell}.data.selectionCriteria = selection;
-        % Saving results
+    
+    % Saving results
     savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
     savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
 
@@ -373,11 +399,6 @@ if sum(rem(nInter,nInter(1))) == 0
             normalized.RetrMeanVeloc   = [normalized.RetrMeanVeloc;norRetrMeanVeloc];
             normalized.RetrMednVeloc   = [normalized.RetrMednVeloc;norRetrMednVeloc];
             
-%             total.RetrPersTime    = [total.RetrPersTime;cellData{iCell}.retractionAnalysis(iInt).total.persTime];
-%             total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData{iCell}.retractionAnalysis(iInt).total.maxVeloc];
-%             total.RetrMinVeloc    = [total.RetrMinVeloc;cellData{iCell}.retractionAnalysis(iInt).total.minVeloc];
-%             total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).total.Veloc];
-%             total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
 
             if ~isempty(selectMotion{1})
                 if strcmp(selectMotion{1}(1:10),'protrusion')

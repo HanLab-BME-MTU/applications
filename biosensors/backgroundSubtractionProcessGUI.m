@@ -51,6 +51,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
 % Parameter setup
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 funParams = userData.crtProc.funParams_;
 
 

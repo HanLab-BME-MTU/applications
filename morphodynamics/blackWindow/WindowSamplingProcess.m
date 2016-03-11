@@ -56,6 +56,8 @@ classdef WindowSamplingProcess < ImageSamplingProcess
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);%Default is to sample all channels
             funParams.ProcessIndex = [];%Default is to use raw images
+            funParams.SegProcessIndex = [];%Default is to use masks which were used in windowing.
+            funParams.MaskChannelIndex = [];%Default is to use channel which was used for windowing.
             funParams.OutputName = '';%Default is to use raw images
             funParams.OutputDirectory = [outputDir  filesep 'window_sampling'];
             funParams.BatchMode = false;

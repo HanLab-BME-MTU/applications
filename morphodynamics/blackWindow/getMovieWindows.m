@@ -388,7 +388,7 @@ end
 fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
 
 %Set up and store the output directories for the windows
-mkClrDir(p.OutputDirectory)
+mkClrDir(p.OutputDirectory)%TEMP for debug!!
 movieData.processes_{iProc}.setOutFilePath(p.OutputDirectory),
 
 %Load the protrusion vectors if necessary
@@ -423,8 +423,10 @@ for iFrame = 1:nFrames
 
                 startingPoint = windows{1}{1}{end}(:,1)';
             else
+                if p.StartPointPropag
+                    startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
+                end
                 
-                startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
                 windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
                                     p.ParaSize,'StartPoint',startingPoint,'StartContour',p.StartContour,'DoChecks',false);
             end
@@ -457,7 +459,7 @@ for iFrame = 1:nFrames
                 %first get them from getMaskWindows.m                         
                 startPts = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
                     p.ParaSize,'StartPoint',p.StartPoint,'DoChecks',false,...
-                    'StartPointsOnly',true);
+                    'StartPointsOnly',true,'StartContour',1);
               
             else
                 %Find the closest point on the edge to these start points              
@@ -469,8 +471,7 @@ for iFrame = 1:nFrames
             
             %Get the new windows with these start points.                
             windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                [],'StartPoint',startPts,'StartContour',2,'DoChecks',false);
-            
+                [],'StartPoint',startPts,'StartContour',1,'DoChecks',false);            
 
         case 'PDEBased'
             

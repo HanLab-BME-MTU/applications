@@ -10,16 +10,35 @@ classdef ColorStackMovieData < MovieData
             if(nargin < 1)
                 path ='/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/140723_ActinCD36Fyn/+PAO+TSP/imagesOriginal';
             end
-            for i=1:3;
+            R = ColorStackReader(path);
+            for i=1:R.getSizeC;
                 C(i) = Channel(path);
             end;
-            obj = obj@MovieData(C,path);
+            if(isdir(path))
+                outputDirectory = path;
+            else
+                outputDirectory = fileparts(path);
+            end
+            obj = obj@MovieData(C,outputDirectory);
         end
         function R = initReader(obj)
             R = ColorStackReader(obj.channels_(1).channelPath_);
         end
         function b = isBF(obj)
             b = true;
+        end
+    end
+    methods ( Static )
+        function ML = getMovieList(path)
+            D = dir([path filesep '*.tif']);
+            D2 = D(~[D.isdir]);
+            for i = 1:length(D2)
+                MD(i) = ColorStackMovieData([path filesep D2(i).name]);
+                MD(i).setPath(pwd);
+                MD(i).setFilename(['colorStackMovieData' num2str(i) '.mat']);
+                MD(i).save;
+            end
+            ML = MovieList(MD,path);
         end
     end
     

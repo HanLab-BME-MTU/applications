@@ -544,3 +544,143 @@ generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1forcemap at L
 %% fminIdx
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh, msparse(:,fminIdx),xgrid,ygrid,'new');
 generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1forcemap at fErr minimum'])
+
+%% Added on 11/14/14 for forceDetec for L2 FGmin
+nExp = 5;
+f=500;
+d=6;
+cL=15;
+fDetec_L2Lcorner = zeros(1,nExp);
+fDetec_L2optimal = zeros(1,nExp);
+fDetec_L1Lcorner = zeros(1,nExp);
+fDetec_L1optimal = zeros(1,nExp);
+beadsOnAdhnew = zeros(1,nExp);
+bead_xL2 = cell(1,nExp);
+bead_yL2 = cell(1,nExp);
+AvL2 = cell(1,nExp);
+for epm=1:nExp
+    dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f' num2str(f) 'd' num2str(d) filesep 'exp' num2str(epm) 'L2Lcorner'];
+    [~,~,~,~,~,~,fDetec_L2Lcorner(epm),beadsOnAdhnew(epm),bead_xL2{epm}, bead_yL2{epm}, AvL2{epm}] ...
+        = testSingleForce(f,d,cL,dataPath,[],[],[],'backslash','regParam',1e-5,'addNoise',true);
+    dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f' num2str(f) 'd' num2str(d) filesep 'exp' num2str(epm) 'L2optimal'];
+    [~,~,~,~,~,~,fDetec_L2optimal(epm),~]= ...
+        testSingleForce(f,d,cL,dataPath,bead_xL2{epm}, bead_yL2{epm}, AvL2{epm},'backslash','regParam',1.3e-6,'addNoise',true);
+    dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f' num2str(f) 'd' num2str(d) filesep 'exp' num2str(epm) 'L1Lcorner'];
+    [~,~,~,~,~,~,fDetec_L1Lcorner(epm),~]= ...
+        testSingleForce(f,d,cL,dataPath,bead_xL2{epm}, bead_yL2{epm}, AvL2{epm},'1NormReg','regParam',1.3e-4,'addNoise',true);
+    dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f' num2str(f) 'd' num2str(d) filesep 'exp' num2str(epm) 'L1optimal'];
+    [~,~,~,~,~,~,fDetec_L1optimal(epm),~]= ...
+        testSingleForce(f,d,cL,dataPath,bead_xL2{epm}, bead_yL2{epm}, AvL2{epm},'1NormReg','regParam',3.5e-4,'addNoise',true);
+end
+%% For L1 only
+for epm=1:nExp
+    dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f600d6/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L2Lcorner'];
+    [~,~,~,~,~,~,fDetec_L2Lcorner(epm),~] ...
+        = analyzeSingleForceData(f,d,cL,dataPath);
+    dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f600d6/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L2FGmin'];
+    [~,~,~,~,~,~,fDetec_L2optimal(epm),~]= ...
+        analyzeSingleForceData(f,d,cL,dataPath);
+    dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f600d6/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L1Lcorner'];
+    [~,~,~,~,~,~,fDetec_L1Lcorner(epm),~]= ...
+        analyzeSingleForceData(f,d,cL,dataPath);
+end
+meanFDetec = mean([fDetec_L2Lcorner',fDetec_L2optimal',fDetec_L1Lcorner',fDetec_L1optimal']);
+errFDetec = std([fDetec_L2Lcorner',fDetec_L2optimal',fDetec_L1Lcorner',fDetec_L1optimal'])/sqrt(nExp);
+%% save
+save('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/f600d6/data.mat','fDetec_L1Lcorner',...
+    'fDetec_L2FGmin','fDetec_L2Lcorner','f','d','cL','bead_xL2','bead_yL2','AvL2','meanFDetec','errFDetec');
+%% Simulations - initialization  for f and d
+nExp = 5;
+forceDetec_L1 = zeros(20,10,nExp);
+forceDetec_L2c = zeros(20,10,nExp);
+forceDetec_L2FGmin = zeros(20,10,nExp);
+pFR_L1 = zeros(20,10,nExp);
+pFR_L2c = zeros(20,10,nExp);
+pFR_L2FGmin = zeros(20,10,nExp);
+beadsOnAdhnew = zeros(nExp,1);
+cL = 15;%[9 15 21]
+bead_xL2 = cell(1,nExp);
+bead_yL2 = cell(1,nExp);
+AvL2 = cell(1,nExp);
+% kk=0;
+% simulation for f and d (L1 with 10% noise, old tracking)
+for epm=1:nExp
+    p=0;
+    ii=0;
+    for f=100:100:2000 %Pa
+        ii=ii+1;
+        jj=0;
+        for d=2:2:20
+            jj=jj+1;
+    %         kk=0;
+            p=p+1;
+%             kk=kk+1;
+            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L2Lcorner'];
+            if p==1 % you have to store beads information
+                [~,~,~,~,~,pFR_L2c(ii,jj,epm),forceDetec_L2c(ii,jj,epm),...
+                    beadsOnAdhnew(epm),bead_xL2{epm}, bead_yL2{epm}, AvL2{epm}]= ...
+                    testSingleForce(f,d,cL,dataPath,[],[],[],'backslash','regParam',1e-5,'addNoise',true);
+            else
+                [~,~,~,~,~,pFR_L2c(ii,jj,epm),forceDetec_L2c(ii,jj,epm),...
+                    beadsOnAdhnew(epm)]= ...
+                    testSingleForce(f,d,cL,dataPath,bead_xL2{epm}, bead_yL2{epm}, AvL2{epm},'backslash','regParam',1e-5,'addNoise',true);
+            end
+            storagePath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L2optimal'];
+            [~,~,~,~,~,pFR_L2FGmin(ii,jj,epm),forceDetec_L2FGmin(ii,jj,epm),...
+                ~]= testSingleForceChange(d,dataPath,storagePath,'backslash',1.3e-6);
+            storagePath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L1Lcorner'];
+            [~,~,~,~,~,pFR_L1(ii,jj,epm),forceDetec_L1(ii,jj,epm),...
+                ~]= testSingleForceChange(d,dataPath,storagePath,'1NormReg',1.3e-4);
+            storagePath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L1optimal'];
+            [~,~,~,~,~,pFR_L1(ii,jj,epm),forceDetec_L1(ii,jj,epm),...
+                ~]= testSingleForceChange(d,dataPath,storagePath,'1NormReg',3.5e-4);
+        end
+    save('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/newFD.mat')
+    end
+end
+save('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/newFD.mat')
+%% Simulations - only analysis
+nExp = 3;
+% forceDetec_L1 = zeros(20,10,nExp);
+forceDetec_L2c = zeros(20,10,nExp);
+% forceDetec_L2FGmin = zeros(20,10,nExp);
+% pFR_L1 = zeros(20,10,nExp);
+pFR_L2c = zeros(20,10,nExp);
+% pFR_L2FGmin = zeros(20,10,nExp);
+beadsOnAdhnew = zeros(nExp,1);
+% kk=0;
+% simulation for f and d (L1 with 10% noise, old tracking)
+for epm=1:nExp
+    p=0;
+    ii=0;
+    for f=100:100:2000 %Pa
+        ii=ii+1;
+        jj=0;
+        for d=2:2:20
+            jj=jj+1;
+    %         kk=0;
+            p=p+1;
+%             kk=kk+1;
+            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFD/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L2Lcorner'];
+            [~,~,~,~,~,pFR_L2c(ii,jj,epm),forceDetec_L2c(ii,jj,epm),...
+                beadsOnAdhnew(epm)]= ...
+                analyzeSingleForceData(d,dataPath,true);
+%             storagePath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFD/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L2FGmin'];
+%             [~,~,~,~,~,pFR_L2FGmin(ii,jj,epm),forceDetec_L2FGmin(ii,jj,epm),...
+%                 ~]= analyzeSingleForceDataChange(d,dataPath,storagePath);
+%             storagePath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFD/f' num2str(f) 'd' num2str(d) 'exp' num2str(epm) 'L1'];
+%             [~,~,~,~,~,pFR_L1(ii,jj,epm),forceDetec_L1(ii,jj,epm),...
+%                 ~]= analyzeSingleForceDataChange(d,dataPath,storagePath);
+        end
+    end
+end
+save('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFD/newFD.mat')
+%% plot
+f=100:100:2000;
+d=2:2:20;
+dataPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/forceDetecL2c';
+visualizeError(f,d,forceDetec_L2c,dataPath,'contourf_with_level1_2',3)
+dataPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/forceDetecL2FGmin';
+visualizeError(f,d,forceDetec_L2FGmin,dataPath,'contourf_with_level1_2',3)
+dataPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/singleForceTesting/newFDnoise/forceDetecL1c';
+visualizeError(f,d,forceDetec_L1,dataPath,'contourf_with_level1_2',3)

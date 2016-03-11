@@ -1,4 +1,4 @@
-function [tMap, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,band)
+function [tMap, tmax, tmin, cropInfo,tMapX,tMapY,reg_grid1] = generateHeatmapShifted(forceField,displField,band)
 %[tMap, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,band)
 % generates an image of traction in the place of deformed position defined
 % by displField. 
@@ -33,7 +33,7 @@ for ii=1:numel(forceField)
     tmin = min(tmin,min(fnorm_vec));
 end
 tmax = 0.8*tmax;
-display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
+% display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
 %% tMap creation    
 % account for if displField contains more than one frame
 imSizeX = reg_grid1(end,end,1)-reg_grid1(1,1,1)+1;
@@ -49,13 +49,22 @@ ymax = floor(centerY+h/2-band);
 cropInfo = [xmin,ymin,xmax,ymax];
 [reg_grid(:,:,1),reg_grid(:,:,2)] = meshgrid(xmin:xmax,ymin:ymax);
 tMap = cell(1,numel(forceField));
-for ii=1:numel(displField)
-    [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid1);
+tMapX = cell(1,numel(forceField));
+tMapY = cell(1,numel(forceField));
+for ii=1:numel(forceField)
+    curDispVec = displField(ii).vec;
+    curDispPos = displField(ii).pos;
+    curDispVec = curDispVec(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    curDispPos = curDispPos(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    [~,iu_mat,~,~] = interp_vec2grid(curDispPos, curDispVec,[],reg_grid1);
+%     [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid1);
     [~,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1);
     pos = [reshape(reg_grid1(:,:,1),[],1) reshape(reg_grid1(:,:,2),[],1)]; %dense
     disp_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
     force_vec = [reshape(if_mat(:,:,1),[],1) reshape(if_mat(:,:,2),[],1)]; 
     [~,tmat, ~, ~] = interp_vec2grid(pos+disp_vec, force_vec,[],reg_grid); %1:cluster size
     tMap{ii} = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
+    tMapX{ii} = tmat(:,:,1);
+    tMapY{ii} = tmat(:,:,2);
 end
 

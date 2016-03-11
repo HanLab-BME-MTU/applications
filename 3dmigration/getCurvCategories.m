@@ -26,7 +26,7 @@ names = {'k1 pos k2 pos',
          'k2 neg k1 neg',
          'k0 pos k2 0',
          'k1 pos k2 neg'};
-colors = [1 1 1 ;
+colors = [0 0 1 ;
           1 0 1 ;
           0 1 0 ;
           1 1 0 ];              
