@@ -40,15 +40,18 @@ defaultOut = pwd;
 ip.addParameter('OutputDirectory',defaultOut);
 
 % Plots Types
-ip.addParameter('plotByGroup',true); % will make 3-D scatter plots by group
+ip.addParameter('plotByGroupElongation',false); % will make 3-D scatter plots by group
 %ip.addParameter('perFrame',true); Not implemented here: see other versions
+ip.addParameter('plotByGroupColorID',false); 
+ip.addParameter('plotByGroupPic',false); 
+
 
 % D Reduction Visualizations
 ip.addParameter('PCA',false);
-ip.addParameter('MDS',false);
+ip.addParameter('MDS',true);
 %ip.addParameter('CriterionMDS','stress'); % default is nonmetric
 
-ip.addParameter('cluster',true);
+ip.addParameter('cluster',false);
 ip.addParameter('clustNumResponse',3);
 ip.addParameter('testResponseClust',false); 
 
@@ -333,9 +336,9 @@ if ip.Results.MDS
     % end  % test
     % for now do two criterion
     criterion{1} = 'stress';
-    criterion{2} = 'metricstress';
-    criterion{3} = 'sammon';
-    criterion{4} = 'strain';
+%     criterion{2} = 'metricstress';
+%     criterion{3} = 'sammon';
+%     criterion{4} = 'strain';
     
     for iCrit = 1:numel(criterion)
         
@@ -383,9 +386,11 @@ if ip.Results.MDS
         setAxis('on')
         
         arrayfun(@(x) scatter(y(grouping==x,1),...
-            y(grouping==x,2),50,toPlot.info.color{x},'filled'),1:nGroups);
+            y(grouping==x,2),100,toPlot.info.color{x},'filled','MarkerEdgeColor',toPlot.info.color{x}),1:nGroups);
         xlabel('MDS1');
         ylabel('MDS2');
+        axis(axisLims); 
+    
         saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.fig']);
         saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.eps'],'psc2');
         saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.png']);
@@ -393,7 +398,7 @@ if ip.Results.MDS
         close gcf
 
         %% plot control by cluster
-        
+        if ip.Results.cluster 
         cOutMDSClust = [cOutMDS filesep 'cluster'];
         if ~isdir(cOutMDSClust)
             mkdir(cOutMDSClust)
@@ -477,19 +482,63 @@ if ip.Results.MDS
         saveas(gcf,[cOutMDSClust filesep 'MDS_2DScatterByGroupClusterAll.eps'],'psc2');
         saveas(gcf,[cOutMDSClust filesep 'MDS_2DScatterByGroupClusterAll.png']);
         close gcf
+        end 
+        
+        
+        
+        
+        
         
         %% plot results by outgrowth scaleMap
-        if ip.Results.plotByGroup
+        if ip.Results.plotByGroupElongation
             %
             MDSGroupDir = [cOutMDS filesep 'MDSPerGroup'];
             if ~isdir(MDSGroupDir);
                 mkdir(MDSGroupDir);
             end
             
+            setAxis('on');
+             hold on
+              for iGroup = 1:nGroups
+                
+                
+              
+%                 if iGroup > 1
+%                     scatter(controlValues(:,1),controlValues(:,2),50,'k','filled');
+%                 end
+%                 
+                % get group values
+                yC = y(grouping ==iGroup,:);
+                
+                idxCMapC = idxCMap(grouping == iGroup,:);
+                
+                % Plot Current group in color
+                for iColor = 1:length(cmap)
+                    if ~isempty(idxCMapC(:,1)==iColor)
+                        scatter((yC(idxCMapC(:,1) == iColor,1)),...
+                            (yC(idxCMapC(:,1) == iColor,2)),100,cmap(iColor,:),'filled','MarkerEdgeColor',[0 0 0]);
+                    end
+                end
+                
+                
+                axis(axisLims);
+                %axis([-8,8,-8,8]);
+%                 title(['Group ' toPlot.info.names{iGroup}]);
+                xlabel('MDS1');
+                ylabel('MDS2');
+                saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowthAll.fig']);
+                saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowth.eps'],'psc2');
+                saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowthAll_.png']);        
+              
+              end 
+            
+            
             
             for iGroup = 1:nGroups
                 setAxis('on');
                 hold on
+                
+                
                 
                 
                 
@@ -524,7 +573,10 @@ if ip.Results.MDS
                 saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowthAll_' toPlot.info.names{iGroup} '.png']);
                 close gcf
             end % iGroup 
+        end % plot by group elongation 
                 %% plot results by group with picture 
+                
+        if ip.Results.plotByGroupPic
                 MDSGroupDir = [cOutMDS filesep 'MDSPerGroupPic'];
                 if ~isdir(MDSGroupDir); 
                     mkdir(MDSGroupDir)
@@ -589,10 +641,70 @@ if ip.Results.MDS
                     close gcf
                     
                 end % iGroup 
-                          
-            %% plot for each group
-        end % if ip.Results.plotByGroup
-    end % if iCrit
+        end % plotByGroupPic    
+              %% plot by group color 
+          if ip.Results.plotByGroupColorID    
+              MDSGroupDir = [cOutMDS filesep 'MDSPerGroupColorByGroup'];
+              if ~isdir(MDSGroupDir);
+                  mkdir(MDSGroupDir)
+              end
+              
+              for iGroup = 2:nGroups
+                  
+                  setAxis('on');
+                 
+                  
+                  
+                  % Plot the Control by in black first 
+                  yC = y(grouping ==1,:);
+                  
+                  scatter(yC(:,1),yC(:,2),50,'k','filled'); 
+                  hold on 
+                  
+                  %                     yC = y(grouping ==iGroup,:);
+                  %                     idxCMapC = idxCMap(grouping == iGroup,:);
+                  %                     for iColor = 1:length(cmap)
+                  %                         if ~isempty(idxCMapC(:,1)==iColor)
+                  %                             % get the coords
+                  %                             x = yC(idxCMap(:,1)==iColor);
+                  %                             y = yC(idxCMap(:,1)==iColor);
+                  %                             img = imread([projListC{iNeurite,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
+                  %                             filesep '001.png']);
+                  %                             image([x-0.4, x+0.4],[y-0.4,y+0.4],img);
+                  %                             scatter(
+                  % %                             scatter((yC(idxCMapC(:,1) == iColor,1)),...
+                  % %                                 (yC(idxCMapC(:,1) == iColor,2)),100,cmap(iColor,:),'filled','MarkerEdgeColor',[0 0 0]);
+                  %                         end
+                  %                     end
+                 
+                  
+                  valuesC = y(grouping==iGroup,:);
+                  scatter(valuesC(:,1),valuesC(:,2),100,toPlot.info.color{iGroup},'filled');
+                  %                     for iNeurite = 1:size(projListC,1)
+                  %                         img = imread([projListC{iNeurite,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
+                  %                             filesep '001.png']);
+                  %                         image([valuesC(iNeurite,1)-0.4, valuesC(iNeurite,1)+0.4],[valuesC(iNeurite,2)-0.4,valuesC(iNeurite,2)+0.4],img);
+                  %                         clear img
+                  %                     end
+                  %axis([min(y(:,1)),max(y(:,1)),min(y(:,2)),max(y(:,2))]);
+                  axis(axisLims);
+                  %axis([-8,8,-8,8]);
+                  title(['Group ' toPlot.info.names{iGroup}]);
+                  xlabel('MDS1');
+                  ylabel('MDS2');
+                 
+                  saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.fig']);
+                  saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.eps'],'psc2');
+                  saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.png']);
+                  
+                  close gcf
+                  
+              end % iGroup
+          end % ip.Results.plotByGroupColorID   
+              
+    end      %% for iCriterion 
+              %% plot for each group
+      
 end % ip.Results.MDS
 
 
