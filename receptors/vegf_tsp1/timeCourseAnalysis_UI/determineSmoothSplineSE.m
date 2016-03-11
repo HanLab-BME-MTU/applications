@@ -36,7 +36,7 @@ fitError = cellfun(@doAnalysis, data, time, timeLimit, inOutFlag, 'UniformOutput
         newDataIndx = sort(newDataIndx, 2);
         mask = true(1,nBoot);
         fitData = cell(1,nBoot);
-        parfor iBoot = 1:nBoot
+        for iBoot = 1:nBoot
             %Create new data set from the old by picking randomly
             newData = subData(newDataIndx(iBoot, :));
             newTime = subTime(newDataIndx(iBoot, :));

@@ -12,7 +12,7 @@ function [] = timeCourseAnalysis(CMLs, outputDir, varargin)
 %                 be stored
 %   varargin    : name_value pairs for analysis parameter
 %       'smoothingPara'         : parameter used for smoothing spline fit
-%       'channel'               : Channel of MD to be analyzed. Default = 1
+%       'channels'               : Channel of MD to be analyzed. Default = 1
 %       'doNewAnalysis'           : (logical) true: always do new analysis even if
 %                                 the analysis has already been done.
 %                                 false: avoid doing the analysis again if
@@ -81,6 +81,8 @@ for iCML = 1:nCML
 end
 
 %% Main Time Course Analysis (CML-level)
+% Analyze all MovieData in parallel first
+timeCourseAnalysis.analyzeMDsInParallel(CMLs,analysisPara.doNewAnalysis);
 %Progress Display
 progressTextMultiple('Time Course Analysis', nMLTot);
 %Using resultsIndTimeCourseMod.m to do basic analysis
@@ -147,10 +149,8 @@ if analysisPara.start2zero
 end
 
 %% Plot by Calling StandAlone Function
-timeCourseAnalysis_StandAlone(summary, outputDir, ...
-      ip.Unmatched ...
-    , 'shiftTime', shiftTime ...
-    );
+timeCourseAnalysis_StandAlone(summary, outputDir, ip.Unmatched, 'shiftTime', shiftTime);
+
 %% Save
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
 end

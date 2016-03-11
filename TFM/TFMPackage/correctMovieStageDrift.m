@@ -98,39 +98,61 @@ refFrame = double(imread(p.referenceFramePath));
 croppedRefFrame = imcrop(refFrame,p.cropROI);
 
 % Detect beads in reference frame
-disp('Determining PSF sigma from reference frame...')
+p.doSubPixReg = false;
 beadsChannel = movieData.channels_(p.ChannelIndex(1));
-% % psfSigma = beadsChannel.psfSigma_;
-% if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-%     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-% elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-%     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-% elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-%     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-% else
-%     error('image type should be chosen among Widefield, confocal and TIRF!');
-% end
+if p.doSubPixReg
+    disp('Determining PSF sigma from reference frame...')
+    % % psfSigma = beadsChannel.psfSigma_;
+    % if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+    %     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+    %     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+    %     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+    % else
+    %     error('image type should be chosen among Widefield, confocal and TIRF!');
+    % end
 
+<<<<<<< HEAD
+    % Adaptation of psfSigma from bead channel image data
+    psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+    disp(['Determined sigma: ' num2str(psfSigma)])
+=======
 % Adaptation of psfSigma from bead channel image data
 psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
-disp(['Determined sigma: ' num2str(psfSigma)])
+if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3  
+    if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+        psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+        psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+        psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+    else
+        error('image type should be chosen among Widefield, confocal and TIRF!');
+    end
+    disp(['PSF sigma could not be determined by data due to abnormal distribution. Determined sigma using microscope setting: ' num2str(psfSigma)])
+else
+    disp(['Determined sigma: ' num2str(psfSigma)])
+end
+>>>>>>> b80d9acc3a0e4756f3dd76fb6d5f3efff59b4252
 
-assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
-    'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
-    'as well as the pixel size and numerical aperture of the movie']);
+    assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
+        'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
+        'as well as the pixel size and numerical aperture of the movie']);
 
-disp('Detecting beads in the reference frame...')
-pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
-beads = [pstruct.x' pstruct.y'];
+    disp('Detecting beads in the reference frame...')
+    pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
+    beads = [pstruct.x' pstruct.y'];
 
-% Select only beads  which are minCorLength away from the border of the
-% cropped reference frame
-beadsMask = true(size(croppedRefFrame));
-erosionDist=ceil((p.minCorLength+1+floor(p.maxFlowSpeed))/2);
-beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
-beads(indx,:)=[];
-assert(size(beads,1)>=20, ['Insufficient number of detected beads (less than 20): current number: ' num2str(length(beads)) '.']);
+    % Select only beads  which are minCorLength away from the border of the
+    % cropped reference frame
+    beadsMask = true(size(croppedRefFrame));
+    erosionDist=ceil((p.minCorLength+1+floor(p.maxFlowSpeed))/2);
+    beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+    indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
+    beads(indx,:)=[];
+    assert(size(beads,1)>=20, ['Insufficient number of detected beads (less than 20): current number: ' num2str(length(beads)) '.']);
+end
 
 stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');
@@ -213,38 +235,39 @@ end
 % Initialize transformation array
 T=zeros(nFrames,2);
 
-disp('Calculating subpixel-wise registration...')
-logMsg = 'Please wait, performing sub-pixel registration';
-timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
-tic;
-
-% Perform sub-pixel registration
-if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
-flow=cell(nFrames,1);
-% cropROI = p.cropROI; % it should consider maxFlowSpeed)
-for j= 1:nFrames
-    % Stack reference frame and current frame and track beads displacement
-    corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
-    delta = trackStackFlow(corrStack,beads,...
-        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,'mode','accurate');
+if p.doSubPixReg
+    disp('Calculating subpixel-wise registration...')
+    logMsg = 'Please wait, performing sub-pixel registration';
+    timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
+    tic;
     
-    %The transformation has the same form as the registration method from
-    %Sylvain. Here we take simply the median of the determined flow
-    %vectors. We take the median since it is less distorted by outliers.
-    finiteFlow  = ~isinf(delta(:,1));
-    T(j,:)=-nanmedian(delta(finiteFlow,2:-1:1),1);
-    
-    % Remove infinite flow and save raw displacement under [pos1 pos2] format
-    % into image coordinate system
-    flow{j} = [beads(finiteFlow,2:-1:1) beads(finiteFlow,2:-1:1)+delta(finiteFlow,2:-1:1)];
-    
-    % Update the waitbar
-    if mod(j,5)==1 && ishandle(wtBar)
-        tj=toc;
-        waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+    % Perform sub-pixel registration
+    if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
+    flow=cell(nFrames,1);
+    % cropROI = p.cropROI; % it should consider maxFlowSpeed)
+    for j= 1:nFrames
+        % Stack reference frame and current frame and track beads displacement
+        corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
+        delta = trackStackFlow(corrStack,beads,...
+            p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,'mode','accurate');
+        
+        %The transformation has the same form as the registration method from
+        %Sylvain. Here we take simply the median of the determined flow
+        %vectors. We take the median since it is less distorted by outliers.
+        finiteFlow  = ~isinf(delta(:,1));
+        T(j,:)=-nanmedian(delta(finiteFlow,2:-1:1),1);
+        
+        % Remove infinite flow and save raw displacement under [pos1 pos2] format
+        % into image coordinate system
+        flow{j} = [beads(finiteFlow,2:-1:1) beads(finiteFlow,2:-1:1)+delta(finiteFlow,2:-1:1)];
+        
+        % Update the waitbar
+        if mod(j,5)==1 && ishandle(wtBar)
+            tj=toc;
+            waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+        end
     end
 end
-
 T=T+preT;
 disp('Applying stage drift correction...')
 logMsg = @(chan) ['Please wait, correcting stage drift for channel ' num2str(chan)];
@@ -288,7 +311,11 @@ for i = 1:numel(p.ChannelIndex)
 end
 
 imwrite(uint16(refFrame), outFilePaths{2,p.ChannelIndex(1)});
-save(outFilePaths{3,p.ChannelIndex(1)},'preT','T','flow');
+if p.doSubPixReg
+    save(outFilePaths{3,p.ChannelIndex(1)},'preT','T','flow');
+else
+    save(outFilePaths{3,p.ChannelIndex(1)},'preT','T');
+end
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 

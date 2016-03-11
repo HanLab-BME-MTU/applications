@@ -49,7 +49,7 @@ model_ind_cell =cell(1,10);
 
 
 % define a mask to reduce the number of curvelet to classify
-if(~isempty(MaskCell) || mean(double(MaskCell))==1)
+if(~isempty(MaskCell) || mean(single(MaskCell))==1)
     
     %     MaskCell =  imdilate(MaskCell,fspecial('disk', 3)>0);
 else
@@ -392,7 +392,7 @@ for i_E = 1 : length(Good_ind)
     current_all_seg_bw = or(current_all_seg_bw, current_good_bw);
     [y_i, x_i] = find(labelMask==Good_ind(i_E));
     
-    current_model{i_E} = [x_i y_i];
+    current_model{i_E} = single([x_i y_i]);
     model_ind{i_E} = Good_ind(i_E);
 end
 
@@ -461,18 +461,18 @@ if(graph_matching_flag==1)
      if(SaveStepFigures==1)
          
          if(isempty(bw_whitergb_three_color)==0)
-             imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
+             imwrite(single(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
          end
          
          if(isempty(current_all_seg_bw)==0)
-            imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.tif']);
+            imwrite(single(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.tif']);
         end
         
         if(isempty(current_matching_bw)==0)
-            imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
+            imwrite(single(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
         end
         if(isempty(bw_rgb_three_color)==0)
-            imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
+            imwrite(single(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
         end
         h1=figure(1);set(h1,'Visible',set_visible);
         saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.tif']);
@@ -553,11 +553,11 @@ if(graph_matching_flag==1)
         
         if(SaveStepFigures==1)
             if(isempty(current_all_seg_bw)==0)                
-                imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round2_begin.tif']);
+                imwrite(single(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round2_begin.tif']);
             end
             
             if(isempty(bw_rgb_three_color)==0)
-                imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
+                imwrite(single(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
             end
               
               h12 = figure(12);set(h12,'Visible',set_visible);hold off;
@@ -582,13 +582,13 @@ if(graph_matching_flag==1)
         % reconfirmed this, Liya 2014 12 18
         if(SaveStepFigures==1)
             if(isempty(current_matching_bw)==0)
-                imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
+                imwrite(single(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
             end
             if(isempty(bw_rgb_three_color)==0)
-                imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
+                imwrite(single(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
             end
             if(isempty(bw_whitergb_three_color)==0)
-                imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
+                imwrite(single(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
             end
             h1=figure(1);set(h1,'Visible',set_visible);
             saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.tif']);

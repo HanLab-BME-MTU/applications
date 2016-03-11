@@ -89,8 +89,10 @@ for iChannel = 1 : nChannel
                 
             else % no downsampling
                 % add to pool
+                if(~isempty(network_feature{iChannel,iFrame}))
                 filament_orientation_pool{iChannel}  = [filament_orientation_pool{iChannel}; ...
                     network_feature{iChannel,iFrame}.filament_orientation_STD(:)];
+                end
             end
         end
     end

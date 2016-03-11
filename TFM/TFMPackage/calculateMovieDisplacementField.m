@@ -138,19 +138,21 @@ firstMask = tempMask2 & firstMask;
 
 % if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
 if ~p.useGrid
-    % if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-    %     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-    %     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-    %     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-    % else
-    %     error('image type should be chosen among Widefield, confocal and TIRF!');
-    % end
     % Detect beads in reference frame
     disp('Determining PSF sigma from reference frame...')
     % Adaptation of psfSigma from bead channel image data
     psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
+    if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
+        if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+            psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+        elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+            psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+        elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+            psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+        else
+            error('image type should be chosen among Widefield, confocal and TIRF!');
+        end
+    end
     disp(['Determined sigma: ' num2str(psfSigma)])
 
     disp('Detecting beads in the reference frame...')
@@ -170,7 +172,7 @@ if ~p.useGrid
         end
     end
     idx = pstruct.c<edges(qq);
-    beads = [ceil(pstruct.x(idx)') ceil(pstruct.y(idx)')];
+    beads = [round(pstruct.x(idx)') round(pstruct.y(idx)')];
 %     beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
     % Subsample detected beads ensuring beads are separated by at least half of

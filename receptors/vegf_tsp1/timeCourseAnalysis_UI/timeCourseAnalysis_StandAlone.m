@@ -37,7 +37,8 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %                         frames.
 %                         Rows as above.
 %                         Columns = mean, first mode mean, first mode std,
-%                         first mode fraction, number of modes, normalized
+%                         first mode fraction, second mode fraction,
+%                         fraction of modes > 3, number of modes, normalized
 %                         mean.
 %       .ampStatsL20    : Amplitude statistics for particles in last 20
 %                         frames.
@@ -59,8 +60,8 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %   varargin        : name_value pair
 %
 %       showPartitionAnalysis   : logical determining if .partitionFrac will
-%                                be shown or not. Can be 0 or 1. If true,
-%                                must have data.partitionFrac
+%                                 be shown or not. Can be 0 or 1. If true,
+%                                 must have data.partitionFrac
 %       smoothingPara           : parameter used for smoothing spline fit
 %       nBootstrp               : number of bootstrap data sets to use for
 %                                 bootstrap analysis for standard error
@@ -163,6 +164,7 @@ ip.addParameter('compareCurves', true, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftTime', [], @(x) isnumeric(x));
 ip.addParameter('detectOutliers_k_sigma', [], @(x) isnumeric(x));
+ip.addParameter('showPlots',true,@(x) islogical(x)||isnumeric(x));
 ip.parse(varargin{:});
 params = ip.Results;
 params.showPartition = params.showPartitionAnalysis;
@@ -227,16 +229,19 @@ defCond = { ...
     , 'sub-diffusive' ... % 8
     };
 ampLabels = { ...
-    'Fluorescence Amplitude Overall (a.u.)' ... % 1
-    ,'First Mode Mean (a.u.)', 'First Mode Std (a.u.)' ... % 2
-    , 'First Mode Fraction' ... % 3
-    , 'Number of Modes' ... % 4
-    ,'Normalized Fluorescence Amplitude Overall (monomer units)' ... % 5
+    'Fluorescence Amplitude Overall (a.u.)', ... % 1
+    'First Mode Mean (a.u.)', 'First Mode Std (a.u.)', ... % 2, 3
+    'Fraction Mode 1', 'Fraction Mode 2', 'Fraction Modes > 2', ... % 4, 5, 6
+    'Number of Modes', ... % 7
+    'Normalized Fluorescence Amplitude Overall (monomer units)' ... % 8
     };
+
 commonInfo.defCond = defCond;
 commonInfo.ampLabels = ampLabels;
+
 %progressText
 fprintf('Plotting figures: scatter plots\n');
+
 %Each line calls the nested function plotData
 %the first input subData must be cellarray of arrays
 %So using cell fun convert data which is a cellarray of structure of arrays
@@ -253,20 +258,24 @@ calcFigure({data.densityNorm0Class}', 'Normalized Density of Class Types', ...
 calcFigure({data.probClass}', 'Probability of Class Types', ...
     defCond([1:4 6 8]), ...
     'Probability');
+
 calcFigure({data.diffCoefClass}', 'Diffusion Coefficient', ...
     defCond(1:4), 'Diffusion coefficient (pixels^2/frame)'); %no 5th
 calcFigure({data.confRadClass}', 'Confinement Radius', ... 
     defCond(1:2), 'Confinement radius (pixels)');%no 3 4 5th column
+
 calcFigure({data.ampClass}', 'Fluorescence Amplitude', ...
     defCond(1:5), 'Intensity (arbitrary units)');
 calcFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ... 
     defCond(1:5), 'Normalized intensity (monomer units)');
-calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ...
-    ampLabels, '');
-calcFigure({data.ampStatsL20}', 'Last 20 Frames - ', ...
-    ampLabels, '');
-calcFigure({data.rateMS}', 'Merging and Spliting', ...
-    {'merging', 'splitting'}, '(per frame per particle)');
+calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ampLabels, '');
+calcFigure({data.ampStatsL20}', 'Last 20 Frames - ' , ampLabels, '');
+calcFigure({data.ampStatsF01}', 'First Frame Detection - ', ampLabels, '');
+
+calcFigure({data.rateMS}', 'M & S Rate', {'merging', 'splitting'}, '(per frame per particle)');
+calcFigure({data.msTimeInfo}', 'M & S Time Information', ...
+    {'merge-to-split time', 'split-to-merge (self) time','split-to-merge (other) time','merge-to-end time','start-to-split time'}, '(frames)');
+
 %Do only if input specify that this plot be shown. Will cause error if
 %data.partitionFrac is not present
 if params.showPartition
@@ -279,17 +288,27 @@ if params.showPartition
     calcFigure({data.eqCond}', 'Equilibrium Condition', ...
         defCond(1:5), 'Proximity to equilibrium condition (arbitrary units)', false);
 end
-%get rid of figure data that was not plotted
+
+%get rid of figure data that was not calculated
 figureData = [figureData{:}];
-mask = arrayfun(@(x) ~isempty(x.fitData), figureData);
+mask = arrayfun(@(x) ~any(cellfun('isempty',x.fitData)), figureData);
 figureData = figureData(mask);
-timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig);
+
+%% Save
+save(commonInfo.fullPath, 'commonInfo', 'figureData');
+
+%% Plot
+if(~params.showPlots)
+    disp('Figures not shown, but saved in ');
+    disp(commonInfo.outputDirFig);
+end
+timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig,~params.showPlots);
 pause(1);
 %progressText
 fprintf('\b Complete\n');
 
 %% Nested function for plotting
-% Splits data structure elements by columns and sotre information for
+% Splits data structure elements by columns and sorts information for
 % plotting
 %In other words, converts subData which is cell array of arrays into cell
 %array of columns.
@@ -325,30 +344,43 @@ else
 
 [commonInfo.analysisTimes, timeLimit, commonInfo.timeLimitIndx] = timeCourseAnalysis.getAnalysisTimes(commonInfo.times,params.timeResolution);
     
-% Computer standard error
-determineSEInParallel = true;
+% Compute standard error
+% determineSEInParallel = true;
 nFig = numel(figureData);
-if(~determineSEInParallel)
-    %for progress display
-    
+% if(~determineSEInParallel)
+%     %for progress display
+%     
     progressTextMultiple('Determining confidence interval', nFig);
-else
-    warning('off','parallel:lang:spmd:RemoteTransfer');
-    disp('Determining confidence interval');
-    disp('Parallel progress not available');
-    dFigureData = distributed(figureData);
-end
+% else
+%     warning('off','parallel:lang:spmd:RemoteTransfer');
+%     disp('Determining confidence interval');
+%     disp('Parallel progress not available');
+%     dFigureData = distributed(figureData);
+%     parfor_progress(nFig);
+% end
 %call determineSE_Bootstrp.m
-fitError = arrayfun(@(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag), dFigureData, 'Uniformoutput', false, 'ErrorHandler', @determineSEEH);
-if(determineSEInParallel)
-    fitError = gather(fitError);
-end
+fitError = pararrayfun_progress( ...
+    @(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag) ...
+    , figureData ...
+    , 'Uniformoutput', false ...
+    , 'ErrorHandler',  @determineSEEH ...
+    , 'DisplayFunc',   'progressTextMultiple' ...
+    );
+% if(determineSEInParallel)
+%     fitError = gather(fitError);
+% end
 [figureData.fitError] = fitError{:};
 
 %% Add Standard Error to Figures
-timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2);
+disp('Plotting figures: standard error');
+if(~params.showPlots)
+    disp('Figures not shown, but saved in ');
+    disp(commonInfo.outputDirFig2);
+end
+timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2,~params.showPlots);
+fprintf('\b Complete\n');
 
-pause(1);
+drawnow;
 
 %% Compare Fitted Curves
 [fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
@@ -367,6 +399,8 @@ function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, 
     fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
     if(numlabs == 1)
         progressTextMultiple();
+    else
+        parfor_progress();
     end
 end
 %error handle for determineSE_Bootstrp.m

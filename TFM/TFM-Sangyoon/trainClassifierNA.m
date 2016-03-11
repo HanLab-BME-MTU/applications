@@ -4,9 +4,11 @@ predictorNames = {'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNA
 predictors = datasetTable(:,predictorNames);
 predictors = table2array(varfun(@double, predictors));
 response = datasetTable.Group;
+% Get the unique resonses
+totalGroups = unique(response);
 % Train a classifier
 template = templateSVM('KernelFunction', 'polynomial', 'PolynomialOrder', 2, 'KernelScale', 'auto', 'BoxConstraint', 1, 'Standardize', 1);
-trainedClassifier = fitcecoc(predictors, response,'FitPosterior',1, 'Learners', template, 'Coding', 'onevsone', 'PredictorNames', {'decayingIntensityNAs' 'edgeAdvanceSpeedNAs' 'advanceSpeedNAs' 'lifeTimeNAs' 'meanIntensityNAs' 'distToEdgeFirstNAs' 'startingIntensityNAs' 'distToEdgeChangeNAs' 'distToEdgeLastNAs' 'edgeAdvanceDistLastChangeNAs' 'maxEdgeAdvanceDistChangeNAs'}, 'ResponseName', 'Group', 'ClassNames', {'Group1' 'Group2' 'Group3' 'Group4' 'Group5' 'Group6' 'Group7' 'Group8' 'Group9'});
+trainedClassifier = fitcecoc(predictors, response,'FitPosterior',1, 'Learners', template, 'Coding', 'onevsone', 'PredictorNames', {'decayingIntensityNAs' 'edgeAdvanceSpeedNAs' 'advanceSpeedNAs' 'lifeTimeNAs' 'meanIntensityNAs' 'distToEdgeFirstNAs' 'startingIntensityNAs' 'distToEdgeChangeNAs' 'distToEdgeLastNAs' 'edgeAdvanceDistLastChangeNAs' 'maxEdgeAdvanceDistChangeNAs'}, 'ResponseName', 'Group', 'ClassNames', totalGroups');
 
 % Perform cross-validation
 partitionedModel = crossval(trainedClassifier, 'KFold', 5);

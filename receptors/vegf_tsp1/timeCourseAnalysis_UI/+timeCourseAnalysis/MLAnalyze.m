@@ -3,25 +3,29 @@ function [MLSummary, MLTime, MLExtra, startTime] = MLAnalyze(ML, alignEvent,anal
 %Basic Analysis-------------------------------
 %new analysis if doNewAnalysis is true or analysis has not been
 %done yet
+% ML.sanityCheck;
+if(~isfield(analysisPara,'redoPerMovieAnalysis'))
+    analysisPara.redoPerMovieAnalysis = false;
+end
 TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
 %progressText
-progressTextMultiple('part 1', 2);
+% progressTextMultiple('part 1', 2);
 %(I'm not exactly sure what resultsIndTimeCourseMod does)
 %It is used like blackbox that does the basic analysis
-if isempty(TCAPIndx) || isempty(ML.processes_{TCAPIndx}.summary_)
-    MLSummary = resultsIndTimeCourseMod(ML, false);
+if isempty(TCAPIndx) 
     ML.addProcess(TimeCourseAnalysisProcess(ML));
     TCAPIndx = ML.getProcessIndex('TimeCourseAnalysisProcess');
-    ML.processes_{TCAPIndx}.setSummary(MLSummary);
-    ML.save;
-elseif analysisPara.doNewAnalysis
-    MLSummary = resultsIndTimeCourseMod(ML, false,analysisPara.channels);
+end
+
+if analysisPara.doNewAnalysis || isempty(ML.processes_{TCAPIndx}.summary_)
+    MLSummary = resultsIndTimeCourseMod(ML, false, ...
+        analysisPara.channels, analysisPara.redoPerMovieAnalysis);
     ML.processes_{TCAPIndx}.setSummary(MLSummary);
     ML.save;
 else
     MLSummary = ML.processes_{TCAPIndx}.summary_;
 end
-progressTextMultiple('part 2');
+% progressTextMultiple('part 2');
 %Time Analysis---------------------------------
 timeProcIndx = ML.getProcessIndex('TimePoints');
 alignIndx = ML.processes_{timeProcIndx}.getIndex(alignEvent);
@@ -54,7 +58,7 @@ if analysisPara.doPartition
         end
     end
 end
-progressTextMultiple();
+% progressTextMultiple();
 %---------------------
 %progress text
 progressTextMultiple();

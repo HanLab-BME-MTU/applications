@@ -22,7 +22,7 @@ function varargout = TimeCourseAnalysisConfig(varargin)
 
 % Edit the above text to modify the response to help TimeCourseAnalysisConfig
 
-% Last Modified by GUIDE v2.5 27-Nov-2015 20:32:09
+% Last Modified by GUIDE v2.5 26-Jan-2016 11:42:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,16 +55,24 @@ function TimeCourseAnalysisConfig_OpeningFcn(hObject, eventdata, handles, vararg
 % Choose default command line output for TimeCourseAnalysisConfig
 handles.output = hObject;
 handles.p = struct();
+skipUI = false;
+nIn = nargin;
 
-if(nargin < 4 || isempty(varargin{1}))
+if(nIn < 4 || isempty(varargin{1}))
     %% Prompt user
     %prompt user to select a folder where all figures and data will be stored
     handles.p.outputDir = uigetdir('', 'Select output folder');
+elseif(isstruct(varargin{1}))
+    handles.p = varargin{1};
+    varargin{2} = handles.p.CML_FullPath;
+    varargin{3} = handles.p.channelTable;
+    nIn = 6;
+    skipUI = true;
 else
     handles.p.outputDir = varargin{1}{1};
 end
 
-if(nargin < 5 || isempty(varargin{2}))
+if(nIn < 5 || isempty(varargin{2}))
     %prompt user to select Combined Movie Data objects
     %until they press cancel.
     handles.p.CML_FullPath = {};
@@ -81,12 +89,11 @@ if(nargin < 5 || isempty(varargin{2}))
         [fileName, filePath] = uigetfile('*.mat', ...
             'Select CombinedMovieLists', 'MultiSelect', 'on');
     end
-    
 else
     handles.p.CML_FullPath = varargin{2};
 end
 
-if(nargin < 6 || isempty(varargin{3}))
+if(nIn < 6 || isempty(varargin{3}))
     % Try to get some basic channel data
     try
         S = load(handles.p.CML_FullPath{1});
@@ -102,19 +109,22 @@ if(nargin < 6 || isempty(varargin{3}))
         disp(getReport(err));
     end
 else
-    set(handles.channelTable,'data',varargin{6});
+    set(handles.channelTable,'data',varargin{3});
 end
 
-
-    
-
+% Retrieve list of available cluster profiles and append to menu
+profiles = parallel.clusterProfiles;
+set(handles.batchmenu,'String',...
+    [get(handles.batchmenu,'String') ; profiles']);
 
 % Update handles structure
 guidata(hObject, handles);
 
 
 % UIWAIT makes TimeCourseAnalysisConfig wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+if(~skipUI)
+    uiwait(handles.figure1);
+end
 
 
 % --- Outputs from this function are returned to the command line.
@@ -145,13 +155,13 @@ function start2zero_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of start2zero
 
 
-% --- Executes on button press in partitioningAnalysis.
-function partitioningAnalysis_Callback(hObject, eventdata, handles)
-% hObject    handle to partitioningAnalysis (see GCBO)
+% --- Executes on button press in doPartition.
+function doPartition_Callback(hObject, eventdata, handles)
+% hObject    handle to doPartition (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of partitioningAnalysis
+% Hint: get(hObject,'Value') returns toggle state of doPartition
 
 
 % --- Executes on button press in okButton.
@@ -162,22 +172,21 @@ function okButton_Callback(hObject, eventdata, handles)
 
 %closes the dialogue box
 handles.p.doNewAnalysis = get(handles.doNewAnalysis,'Value');
-handles.p.partitioningAnalysis = get(handles.partitioningAnalysis,'Value');
+handles.p.doPartition = get(handles.doPartition,'Value');
 handles.p.start2zero = get(handles.start2zero,'Value');
 handles.p.shiftPlotPositive = get(handles.shiftPlotPositive,'Value');
 handles.p.nBootstrp = get(handles.nBootstrp,'Value');
 handles.p.channelTable = get(handles.channelTable,'Data');
 handles.p.detectOutliers_k_sigma = get(handles.detectOutliers,'Value') ...
                                    .*str2double(get(handles.k_sigma,'String'));
+handles.p.channels = find([handles.p.channelTable{:,1}]);
+handles.p.channelNames = handles.p.channelTable(:,2);
+handles.p.showPlots = get(handles.showPlots,'Value');
+menuOptions = get(handles.batchmenu,'String');
+handles.p.batchClusterName = menuOptions{get(handles.batchmenu,'Value')};
 guidata(handles.figure1, handles);
 uiresume(handles.figure1);
-% close(handles.figure1);
-% 
-% close(handles.figure1);
-% clear progressTextMultiple;
-% pause(1);
-% %calls the function that does the timeCourseAnalysis
-% timeCourseAnalysis(CML_FullPath, outputDir, 'doNewAnalysis', p.doNewAnalysis, 'doPartitionAnalysis', p.partitioningAnalysis, 'start2zero', p.start2zero, 'channelNames', p.channelTable{:,1});
+% Go to TimeCourseAnalysisConfig_OutputFcn
 
 
 % --- Executes on button press in shiftPlotPositive.
@@ -227,6 +236,38 @@ function k_sigma_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in showPlots.
+function showPlots_Callback(hObject, eventdata, handles)
+% hObject    handle to showPlots (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of showPlots
+
+
+% --- Executes on selection change in batchmenu.
+function batchmenu_Callback(hObject, eventdata, handles)
+% hObject    handle to batchmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns batchmenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from batchmenu
+
+
+% --- Executes during object creation, after setting all properties.
+function batchmenu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to batchmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');

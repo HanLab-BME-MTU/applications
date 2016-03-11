@@ -15,8 +15,11 @@ iMask = MD.getProcessIndex('MaskRefinementProcess');
 if isempty(iMask)
     iMask = MD.getProcessIndex('ThresholdProcess');
 end
-maskProc = MD.getProcess(iMask);
-
+if ~isempty(iMask)
+    maskProc = MD.getProcess(iMask);
+else
+    error('You have to run ThresholdProcess or MaskRefinementProcess before running this code!')
+end
 % Load the forcefield
 iForceFieldProc = 4;
 forceFieldProc=TFMPackage.processes_{iForceFieldProc};
@@ -131,17 +134,21 @@ try
     fCfdMap = tMapAll.fCfdMap;
     buildForceConfidence=false;
 catch
-    M=load(forceFieldProc.outFilePaths_{3},'M');
-    M=M.M;
-    forceNodeMaxima = max(M);
-    forceConfidence.pos = forceMesh.p;
-    forceConfidence.vec = reshape(forceNodeMaxima,[],2);
-    %Make it relative
-    maxCfd = max(forceNodeMaxima);
-    forceConfidence.vec = forceConfidence.vec/maxCfd;
-    [fCfdMapIn] = generateHeatmapShifted(forceConfidence,displField,0);
-    fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
-    buildForceConfidence=true;
+    try
+        M=load(forceFieldProc.outFilePaths_{3},'M');
+        M=M.M;
+        forceNodeMaxima = max(M);
+        forceConfidence.pos = forceMesh.p;
+        forceConfidence.vec = reshape(forceNodeMaxima,[],2);
+        %Make it relative
+        maxCfd = max(forceNodeMaxima);
+        forceConfidence.vec = forceConfidence.vec/maxCfd;
+        [fCfdMapIn] = generateHeatmapShifted(forceConfidence,displField,0);
+        fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
+        buildForceConfidence=true;
+    catch
+        buildForceConfidence=false;
+    end
 end
 toc
 % distBeadMap = cell(1,nFrames);
