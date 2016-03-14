@@ -12,6 +12,7 @@ classdef OrientationSpaceResponse < handle
     properties (Transient)
         matrix
         idx
+        angularGaussians
     end
     
     properties (Transient, Access = protected)
@@ -90,7 +91,14 @@ classdef OrientationSpaceResponse < handle
         end
         
         function A = getAngularGaussians(obj)
-            A = obj.filter.getAngularGaussians;
+            if(isempty(obj.angularGaussians))
+                N = obj.n;
+                x = 0:N-1;
+                xx = bsxfun(@minus,x,x');
+                xx = wraparoundN(xx,-N/2,N/2);
+                obj.angularGaussians = exp(-xx.^2/2);
+            end
+            A = obj.angularGaussians;
         end
         function M = getMatrix(obj)
             if(isempty(obj.matrix))
@@ -113,6 +121,7 @@ classdef OrientationSpaceResponse < handle
             if(isscalar(samples) && samples == obj.n)
                 a = reshape(obj.angularResponse,[],obj.n);
                 response = squeeze(a(linIdx,:));
+                samples = (0:samples-1)'*obj.n/samples;
             else
                 if(isscalar(samples))
                     if(mod(samples,1) == 0)
@@ -179,6 +188,14 @@ classdef OrientationSpaceResponse < handle
             assert(~mod(Kf_new*2,1), ...
                 'OrientationSpaceResponse:getResponseAtOrder', ...
                 'Kf_new*2 must be an integer value');
+            if(~isscalar(obj))
+                Response(numel(obj)) = OrientationSpaceResponse;
+                for o=1:numel(obj)
+                    Response(o) = obj(o).getResponseAtOrder(Kf_new);
+                end
+                Response = reshape(Response,size(obj));
+                return;
+            end
 %             A = obj.getAngularGaussians;
             % Calculate new number of angles at new order
             n_new = 2*Kf_new+1;
@@ -233,6 +250,25 @@ classdef OrientationSpaceResponse < handle
         function h = plot(obj,angles,r,c,varargin)
             [Y,samples] = obj.getResponseAtPoint(r,c,angles);
             h = plot(samples/obj.n,Y,varargin{:});
+        end
+        function h = polar(obj,angles,r,c,varargin)
+            holdState = ishold;
+            [Y,samples] = obj.getResponseAtPoint(r,c,angles);
+            samples = [samples ; samples+obj.n];
+            Y = [ Y Y ];
+            h = polar(samples'/obj.n*pi,Y,varargin{:});
+            hold on;
+            select = Y < 0;
+            if(any(select))
+                addBreaks = diff(select) == 1;
+                select(addBreaks) = true;
+                Y(addBreaks) = NaN;
+                h(2) = polar(samples(select)'/obj.n*pi,Y(select),varargin{:});
+                set(h(2),'LineStyle','--','Color','w');
+                if(~holdState)
+                    hold off;
+                end
+            end
         end
     end
     

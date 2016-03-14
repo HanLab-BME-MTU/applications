@@ -127,6 +127,9 @@ classdef OrientationSpaceFilter < handle
             end
             imshow(fftshift(obj.F(:,:,n)),varargin{:});
         end
+        function suppress(obj,tol)
+            obj.F(abs(obj.F) < tol) = 0;
+        end
     end
     methods
         function setupFilter(obj,siz)
