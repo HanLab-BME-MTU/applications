@@ -57,8 +57,8 @@ if nargin<1 || isempty(projData)
     projData=load([pathName filesep fileName]);
     projData=projData.projData;
 end
-projData.anDir=formatPath(projData.anDir);
-projData.imDir=formatPath(projData.imDir);
+% projData.anDir=formatPath(projData.anDir);
+% projData.imDir=formatPath(projData.imDir);
 
 % get output directory from the user
 if ~isfield(projData,'saveDir')

@@ -249,8 +249,6 @@ oldIdx = firstAppearanceFlag==1; % these are not new features - apply min/max
 tooBigIdx = searchRadius>maxSearchRadius;
 tooSmallIdx = searchRadius<minSearchRadius;
 
-
-
 searchRadius(oldIdx & tooBigIdx)   = maxSearchRadius;
 searchRadius(oldIdx & tooSmallIdx) = minSearchRadius;
 
