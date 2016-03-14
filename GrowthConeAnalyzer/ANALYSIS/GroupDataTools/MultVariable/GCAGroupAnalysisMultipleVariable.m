@@ -41,7 +41,7 @@ ip.addParameter('OutputDirectory',defaultOut);
 
 % Plots Types
 ip.addParameter('plotByGroupElongation',false); % will make 3-D scatter plots by group
-%ip.addParameter('perFrame',true); Not implemented here: see other versions
+ip.addParameter('perFrame',true); 
 ip.addParameter('plotByGroupColorID',false); 
 ip.addParameter('plotByGroupPic',false); 
 
@@ -68,7 +68,27 @@ if size(projList,2)==2
     obsNames = projList(:,2);
 else
     obsNames = cellfun(@(x) helperGCACreateID(x),projList(:,1),'uniformoutput',0);
+    
 end
+
+% ip perframe for each of the observation names repeat by 120 
+if ip.Results.perFrame
+    % add number to obsNames per frame
+    for iMovie = 1:size(projList,1);
+        obsNamePerFrame = arrayfun(@(x) [obsNames{iMovie} '_' num2str(x,'%02d')],1:119,'uniformoutput',0);
+        obsNamePerFrameAll{iMovie} = obsNamePerFrame'; 
+    end
+    obsNamePerFrameAll = obsNamePerFrameAll'; 
+    obsNames = vertcat(obsNamePerFrameAll{:});
+end
+
+% if ip.Results.perFrame
+%     for i = 1:120 
+%     obsNamesGrp = arrayfun(@(x) [obsNames{x} num2str(x,'%02')]); 
+%     end
+%     
+% end
+
 
 
 nGroups = numel(toPlot.info.names);
@@ -82,14 +102,42 @@ end
 nVars = numel(varNames);
 varNamesString = strrep(varNames, '_' ,'');
 %% plot by frame : note this is going to need to be a different structure
-% because lose information regarding the average per frame from the origina
-%
-% data format you want is frameX,cellX.
-% if ip.Results.perFrame
-%     for iGroup = 1:numel(toPlot.info.names)
-%         dataMatC =  toPlot.(varNames{x}).dataMat{iGroup};
-%     end
-% else
+% for now just add a quick and dirty grouping variable for per Frame 
+% make a single vector labeling each trajectory for each group (just use
+% the first varName for now 
+if ip.Results.perFrame
+    % check if the size of all the parameters is the same (same number of
+    % frames)
+    for iGroup = 1:nGroups
+        
+        framesPerParam = arrayfun(@(x) size(toPlot.(varNames{x}).dataMatPerFrame{iGroup},1),1:nVars);
+        nFrames = length(unique(framesPerParam));
+        if nFrames~=1
+            msg = ['Number of Frames not Consistent for All Variables for Group ' toPlot.info.names{iGroup}];
+            error(msg);
+        else
+            nMovies = size(toPlot.info.projList{iGroup},1);
+            grpingPerFrame = arrayfun(@(x) repmat(x,framesPerParam(1),1),1:nMovies,'uniformoutput',0);
+         
+            
+            
+            grpingTrajIDsAllGroups{iGroup} = vertcat(grpingPerFrame{:});
+            
+            
+        end
+    end
+    grpIDs = arrayfun(@(x) repmat(x,framesPerParam(1).*size(toPlot.info.projList{x},1),1),1:nGroups,'uniformoutput',0);
+    grpingGroupIDsAllGroups = vertcat(grpIDs{:}); 
+    grpingTrajIDsAllGroups = vertcat(grpingTrajIDsAllGroups{:}); 
+end
+
+
+
+
+
+
+
+
 
 %% Collect and normalize the measurement data : Default is to take a median value for each cell
 
@@ -99,17 +147,33 @@ if ~isdir(dataDir)
 end
 
 for iGroup  = 1:numel(toPlot.info.names)
-    % transform data so that each row is a neurite and each column is a
-    % set of measurements- this will be a per cell variable.
-    perNeuriteStat = str2func(ip.Results.perNeuriteStatistic);
-    dataMatC = arrayfun(@(x) perNeuriteStat(toPlot.(varNames{x}).dataMat{iGroup},1)',1:nVars,'uniformoutput',0);
-    % put all the measurement values together (median measurement value for each neurite per column)
-    % r indicates the neurite number;
-    dataMatC = horzcat(dataMatC{:});
     
+    
+    if ip.Results.perFrame
+        % make sure all measurements have the same number of frames ...
+        
+        % cellfun(@(x) size(
+        
+        % combine all neurites for each measurement, data are now a rx1
+        dataInt = arrayfun(@(x) toPlot.(varNames{x}).dataMatPerFrame{iGroup}(:),1:nVars,'uniformoutput',0);
+        
+        dataMatC = horzcat(dataInt{:});
+        
+    else
+        
+        % transform data so that each row is a neurite and each column is a
+        % set of measurements- this will be a per cell variable.
+        perNeuriteStat = str2func(ip.Results.perNeuriteStatistic);
+        dataMatC = arrayfun(@(x) perNeuriteStat(toPlot.(varNames{x}).dataMat{iGroup},1)',1:nVars,'uniformoutput',0);
+    
+        % put all the measurement values together (median measurement value for each neurite per column)
+        % r indicates the neurite number;
+        dataMatC = horzcat(dataMatC{:});
+    end 
     % dataMatAllMeas is a rxc matrix where r is the number of neurites tested
     % and c is the number of measurements
     dataMatAllMeas{iGroup} = dataMatC ; % this will keep them in a cell by KD condition
+    
 end
 
 
@@ -124,7 +188,12 @@ dataFinal = zscoreForNaNs(dataMatAllGroupsMeas); % this should by default normal
 % Save the raw and normalized collected data in a csv.
 % NOTE: need to change to table eventually to make compatible with later
 % matlab versions!
+
+% if ip.Results.perFrame
+%     dataPreName = mat2dataset(dataMatAllGroupMeas,'varNames',varNames); 
+% else 
 dataPreNorm = mat2dataset(dataMatAllGroupsMeas,'ObsNames',obsNames,'varNames',varNames);
+% end 
 save([dataDir filesep 'OriginalValuesMedianPerNeuriteMovie'],'dataPreNorm');
 export(dataPreNorm,'file',[dataDir filesep 'OriginalValuesMedianPerNeuriteMovie.csv']);
 %writetable(tDataRaw,[ip.Results.OutputDirectory filesep 'OriginalValuesMedianPerNeuriteMovie.csv'],dataOriginal);
@@ -311,6 +380,8 @@ if ip.Results.MDS
     if ~isdir(outMDS);
         mkdir(outMDS);
     end
+    
+    
     % rows are observations, columns variables
     % compute pairwise distances
     dissimilarities = pdist(dataFinal);
@@ -353,50 +424,128 @@ if ip.Results.MDS
             mkdir(cOutMDSDia);
         end
         
-        % perform the nonclassical multi-dimensional scaling
-        [ y, stress, disparities] = mdscale(dissimilarities,2,'Criterion',criterion{iCrit});
-       % if strcmpi(criterion{iCrit},'stress');
-            save([cOutMDSDia filesep 'MDSResults' criterion{iCrit}],'y','stress','disparities');
-        %else
-         %   save([cOutMDSDia filesep 'MDSResults' criterion{iCrit}],'y','stress');
-        %end
-        axisLims = [floor(min(y(:,1))-1),ceil(max(y(:,1)))+1,floor(min(y(:,2))-1),ceil(max(y(:,2))+1)];
+        % check for .mat file
+        if exist([cOutMDSDia filesep 'MDSResults' criterion{iCrit} '.mat'],'file')==0;
+            
+            
+            % perform the nonclassical multi-dimensional scaling
+            [ y, stress, disparities] = mdscale(dissimilarities,2,'Criterion',criterion{iCrit},'start','random');
+            % if strcmpi(criterion{iCrit},'stress');
+            save([cOutMDSDia filesep 'MDSResults' criterion{iCrit}],'y','stress','disparities','dissimilarities');
+            %else
+            %   save([cOutMDSDia filesep 'MDSResults' criterion{iCrit}],'y','stress');
+            %end
+        else
+            display(['File for MDS ' criterion{iCrit} ' Found: Loading']);
+            load([cOutMDSDia filesep 'MDSResults' criterion{iCrit} '.mat']);
+        end
         
+            axisLims = [floor(min(y(:,1))-1),ceil(max(y(:,1)))+1,floor(min(y(:,2))-1),ceil(max(y(:,2))+1)];
+            
         %% Plot shepards plot
-        setAxis('on');
-        distances = pdist(y);
-        [dum,ord] = sortrows([disparities(:) dissimilarities(:)]);
-        plot(dissimilarities,distances,'bo', ...
-            dissimilarities(ord),disparities(ord),'r.-', ...
-            [0 25],[0 25],'k-')
-        %transformed values of the original dissimilarities
-        
-        xlabel('Dissimilarities')
-        ylabel('Distances/Disparities')
-        legend({'Distances' 'Disparities' '1:1 Line'},...
-            'Location','NorthWest');
-        saveas(gcf,[cOutMDSDia filesep 'shepardsPlot.fig']);
-        saveas(gcf,[cOutMDSDia filesep 'shepardsPlot.png']);
-        
-        close gcf
+%         setAxis('on');
+%         distances = pdist(y);
+%         [dum,ord] = sortrows([disparities(:) dissimilarities(:)]);
+%         plot(dissimilarities,distances,'bo', ...
+%             dissimilarities(ord),disparities(ord),'r.-', ...
+%             [0 25],[0 25],'k-')
+%         %transformed values of the original dissimilarities
+%         
+%         xlabel('Dissimilarities')
+%         ylabel('Distances/Disparities')
+%         legend({'Distances' 'Disparities' '1:1 Line'},...
+%             'Location','NorthWest');
+%         saveas(gcf,[cOutMDSDia filesep 'shepardsPlot.fig']);
+%         saveas(gcf,[cOutMDSDia filesep 'shepardsPlot.png']);
+%         
+%         close gcf
         
         
         %% Plot in MDS space By Group
         
+        % set up figure
         setAxis('on')
-        
-        arrayfun(@(x) scatter(y(grouping==x,1),...
-            y(grouping==x,2),100,toPlot.info.color{x},'filled','MarkerEdgeColor',toPlot.info.color{x}),1:nGroups);
-        xlabel('MDS1');
-        ylabel('MDS2');
-        axis(axisLims); 
-    
-        saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.fig']);
-        saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.eps'],'psc2');
-        saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.png']);
-        
+        if ip.Results.perFrame
+            
+            % make a folder
+            grpDir = [ip.Results.OutputDirectory filesep 'MDSTrajectoryPlotsPerGroup'];
+            if ~isdir(grpDir);
+                mkdir(grpDir);
+            end
+            
+            for iGroup = 1:nGroups
+                trajDir = [grpDir filesep toPlot.info.names{iGroup}];
+                if ~isdir(trajDir)
+                    mkdir(trajDir);
+                end
+                                   
+                nTrajs = size(toPlot.info.projList{iGroup},1);
+                cmapCurrent = repmat(toPlot.info.colorShades{iGroup},3,1);
+                for iTraj = 1:nTrajs
+                setAxis('on')
+                % plot all results in gray
+                scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
+                hold on
+                %for iTraj = 1:nTrajs
+                    currentTraj = find(grpingTrajIDsAllGroups==iTraj & grpingGroupIDsAllGroups ==iGroup);
+                  
+                    scatter(y(currentTraj,1),y(currentTraj,2),100,[0.5,0.5,0.5],'filled','MarkerEdgeColor','k'); 
+                    plot(y(currentTraj,1),y(currentTraj,2),'color',cmapCurrent(iTraj,:));
+                    name = obsNames{currentTraj(1)}; 
+                    name = strrep(name,'_','/');
+                    name = upDirectory(name,1); 
+                    title(['Trajectory ' name], 'FontSize',14); 
+                    
+                %end
+                xlabel('MDS1');
+                ylabel('MDS2');
+                axis([-10,10,-2,2])
+                saveas(gcf,[trajDir filesep toPlot.info.names{iGroup} 'Trajectory' num2str(iTraj,'%02d') '.png']);
+                close gcf
+                end 
+            end
+            %scatter(y(groupingTraj==i,1),y(:,2),50,'k','filled');
+            
+            % quick fix is htat all the trajectories should be 119
+            % frames
+            % overlay the trajectories colored by group (use the
+            % shade colors shades)
+            %% Optional- plot individual trajectories per group
+            % Q and D for now : just need grouping trajectory (a list
+            % of values marking the cell ID to which each frame belongs
+            % and for iGroup = 1:nGroups
+            %                   groupingCell = toPlot.info.perFrameGroupID; % rx1 vector of group IDs for each frame.
+            %                   groupingTraj = toPlot.info.perFrameCellID; % rx1 vector of cell IDs for each frame in the compiled group set.
+            %                   % where r is the total number of frames (observations)
+            %                   % fed into the MDS
+            %                   nTrajs = length(unique(groupingTraj(groupingCell==iGroup)));
+            %                   for iTraj = 1:nTrajs
+            %                       scatter(y(groupingTraj == iTraj  & groupingCell == iGroup,:), y(groupingTraj == iTraj & groupingCell == iGroup));
+            %                   end
+            
+            
+            %
+            
+            
+%             
+%             saveas(gcf,[ip.Results.OutputDirectory filesep 'MDS_PerFrame_2DScatter.fig']);
+%             saveas(gcf,[ip.Results.OutputDirectory filesep 'MDS_PerFrame_2DScatter.png']);
+%             saveas(gcf,[ip.Results.OutputDirectory filesep 'MDS_PerFrame_2DScatter.eps'],'psc2');
+            
+        else % plot by group
+            
+            arrayfun(@(x) scatter(y(grouping==x,1),...
+                y(grouping==x,2),100,toPlot.info.color{x},'filled','MarkerEdgeColor',toPlot.info.color{x}),1:nGroups);
+            xlabel('MDS1');
+            ylabel('MDS2');
+            axis(axisLims);
+            
+            saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.fig']);
+            saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.eps'],'psc2');
+            saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.png']);
+        end % ip.Results.perFrame
         close gcf
-
+              
         %% plot control by cluster
         if ip.Results.cluster 
         cOutMDSClust = [cOutMDS filesep 'cluster'];
