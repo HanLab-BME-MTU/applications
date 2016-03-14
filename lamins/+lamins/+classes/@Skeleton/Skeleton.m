@@ -19,7 +19,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 else
                     obj.bw = bw;
                 end
-                obj.imSize = size(bw);
+                obj.imSize = size(obj.bw);
             end
         end
         function e = get.edges(obj)
@@ -258,7 +258,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             
             
             lm = obj.edges.lm;
-            lm([obj.vertices.PixelIdxList{:}]) = 0;
+            lm(vertcat(obj.vertices.PixelIdxList{:})) = 0;
             % identify edges indices which overlap the dilated face
             edgeIndices = cellfun(@(x) unique(nonzeros(lm(x))),dilatedFaces.PixelIdxList,'UniformOutput',false);
             map = zeros(1,prod(obj.edges.ImageSize));
