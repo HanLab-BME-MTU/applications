@@ -13,7 +13,7 @@ ip = inputParser;
 
 ip.CaseSensitive = false;
 ip.addRequired('toPlot');
-
+ip.addParameter('clearOldFields',false);
 ip.addParameter('splitMovie',false);
 ip.addParameter('splitFrame', 62);  % last frame you want to include
 ip.addParameter('OutputDirectory',pwd);
@@ -23,6 +23,11 @@ ip.addParameter('perFrame',false); % will collect the median value per frame
 ip.parse(toPlot,varargin{:});
 %%
 nGroups = numel(toPlot.info.names);
+if ip.Results.clearOldFields
+    params = fieldnames(toPlot);
+    params = params(~strcmpi(params,'info')); % keep the info
+    toPlot = rmfield(toPlot,params);
+end
 
 
 for iGroup = 1:nGroups
@@ -100,9 +105,17 @@ for iGroup = 1:nGroups
                    dataSetGroup.(paramNamesC{iParam}).valuesPerFrame{2*(iProj-1)+2} = vertcat(measC{ip.Results.splitFrame+1:end});  
                 else 
                     % take out empty cells 
-                    measC = measC(cellfun(@(x) ~isempty(x), measC)); 
-                    valuesCell = cellfun(@(x) nanmedian(x), measC); % take the median per frame 
+                    %measC = measC(cellfun(@(x) ~isempty(x), measC)); 
+                    idx = find(cellfun(@(x) isempty(x),measC));
+                    % quick stupid fix for now
+                    for i = 1:length(idx)
+                        measC{idx(i)} = NaN;
+                    end
                     
+                    valuesCell = cellfun(@(x) nanmedian(x), measC,'uniformoutput',0); % take the median per frame 
+                    valuesCell = vertcat(valuesCell{:}); 
+                    % for now always truncate from 1:119 
+                    valuesCell = valuesCell(1:119); 
                     dataSetGroup.(paramNamesC{iParam}).valuesPerFrame{iProj} = valuesCell; 
                 end 
         
