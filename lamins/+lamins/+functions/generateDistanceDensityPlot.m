@@ -17,7 +17,7 @@ data = load([path filesep 'skeletons_' params.analysisDate '.mat']);
 I.lamins = reader{laminChannel,data.tz(1)};
 I.histones = reader{histoneChannel,data.tz(1)};
 
-outpath = [path filesep 'DistanceDensityPlots'];
+outpath = [path filesep 'DistanceDensityPlots_vs_ch' num2str(histoneChannel)];
 mkdir(outpath);
 
 name = strrep(MD.getFilename,'_','\_');

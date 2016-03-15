@@ -323,7 +323,7 @@ if exist([runInfo.anDir filesep 'masks'],'dir');
     % set the mask to the mask of image 1 (first mask in list)
     roiMask = double(logical(imread([projData.anDir filesep 'masks' filesep 'roiMask1.tif'])));      
 else % only one mask to load, load it here
-    roiMask = double(logical(imread([projData.anDir filesep 'roiMask.tif'])));
+    roiMask = [];
 end % if exist
 projData.roiArea = numel(roiMask);
 

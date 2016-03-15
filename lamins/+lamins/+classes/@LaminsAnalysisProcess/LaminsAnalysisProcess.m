@@ -138,9 +138,9 @@ classdef LaminsAnalysisProcess < DetectionProcess
             output(4).defaultDisplayMethod=@(x) LineDisplay('Marker','^',...
                 'LineStyle','none','Color',colors((x-1)*nOutput+4,:));
         end 
-        function status = checkChannelOutput(obj,varargin)
-            status = true;
-        end
+%         function status = checkChannelOutput(obj,varargin)
+%             status = true;
+%         end
     end
     methods (Static)
         function name = getName(varargin)
