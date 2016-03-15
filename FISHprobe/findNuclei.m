@@ -34,25 +34,27 @@ for num = 1:numNuclei
     nucGreen = imageData{greenCha};
     nucRed = imageData{redCha};
     
-    xStart = 1;
+    % Inverted x, y for matrix and coordinates
+    
     yStart = 1;
+    xStart = 1;
     zStart = 1;
     
     for i = 1:size(mask,1)
         if min(min(nucDapi(i,:,:)==0))==0
-            if xStart == 1
-                xStart = i;
+            if yStart == 1
+                yStart = i;
             end
-            xEnd = i;
+            yEnd = i;
         end
     end
     
     for j = 1:size(mask,2)
         if min(min(nucDapi(:,j,:)==0))==0
-            if yStart == 1
-                yStart = j;
+            if xStart == 1
+                xStart = j;
             end
-            yEnd = j;
+            xEnd = j;
         end
     end
 
@@ -67,9 +69,10 @@ for num = 1:numNuclei
     
     
     % How to predefine structure size???
-    nuclei(num).dapi = nucDapi(xStart:xEnd, yStart:yEnd, zStart:zEnd);
-    nuclei(num).green = nucGreen(xStart:xEnd, yStart:yEnd, zStart:zEnd);
-    nuclei(num).red = nucRed(xStart:xEnd, yStart:yEnd, zStart:zEnd);
+    nuclei(num).dapi = nucDapi(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+    nuclei(num).green = nucGreen(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+    nuclei(num).red = nucRed(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+    
     nuclei(num).xRange = [xStart, xEnd];
     nuclei(num).yRange = [yStart, yEnd];
     nuclei(num).zRange = [zStart, zEnd];

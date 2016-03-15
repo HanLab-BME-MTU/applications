@@ -1,4 +1,4 @@
-function spotsPlot(movieName,channelNum,cordVar)
+function spotsPlot1(movieName,channelNum,cordVar)
 
 %SPOTSPLOT plots detected spots with x,y coordinates on averaged z-stack layer
 %

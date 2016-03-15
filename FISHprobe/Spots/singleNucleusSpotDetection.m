@@ -1,4 +1,4 @@
-function [spots, dataProperties] = singleNucleusSpotDetection(metaData, nucleiStruc)
+function [nucleiStruc, dataProperties] = singleNucleusSpotDetection(metaData, nucleiStruc, varargin)
 %singleNucleusSpotDetection detects spots from each multi-channel 3D stack
 %of single nucleus
 %   Detailed explanation goes here
@@ -9,6 +9,10 @@ function [spots, dataProperties] = singleNucleusSpotDetection(metaData, nucleiSt
 
 % 03/2016 Ning
 
+p = inputParser;
+p.CaseSensitive = false;
+p.addRequired( 'imInput', @(x) ( ismember( ndims(x), [2,3] ) ) );
+p.parse( imInput );
 
 % Need to figure out how to read image file and extract property
 % information
@@ -36,17 +40,22 @@ dataProperties.PIXELSIZE_Z = metaData.pixelSize(3);
 %     dataProperties.WVL = nucleiStruc.channels_.emissionWavelength_/1000;
 % end
 
-dataProperties.NA = input('Enter Numerical Aperture > ');
-dataProperties.WVL = input('Enter Emission Wavelenth in um > ');
-lenseType = input('Enter lense type (air, water or oil) > ', 's');
-switch lenseType
-    case 'air'
-        dataProperties.refractiveIndex = 1;
-    case 'water'
-        dataProperties.refractiveIndex = 1.33;
-    case 'oil'
-        dataProperties.refractiveIndex = 1.51;
-end
+dataProperties.NA=1.4000;
+dataProperties.WVL=0.5250;
+dataProperties.refractiveIndex = 1.51;
+
+% Debug mode
+% dataProperties.NA = input('Enter Numerical Aperture > ');
+% dataProperties.WVL = input('Enter Emission Wavelenth in um > ');
+% lenseType = input('Enter lense type (air, water or oil) > ', 's');
+% switch lenseType
+%     case 'air'
+%         dataProperties.refractiveIndex = 1;
+%     case 'water'
+%         dataProperties.refractiveIndex = 1.33;
+%     case 'oil'
+%         dataProperties.refractiveIndex = 1.51;
+% end
 
 % sigmaCorrection defined by default
 dataProperties.sigmaCorrection=[1 1];
@@ -65,13 +74,13 @@ patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z], 'odd', 'inf');
 dataProperties.FILTERPRM = [FT_XY, FT_XY, FT_Z, patchXYZ];
 dataProperties.FT_SIGMA = [FT_XY, FT_XY, FT_Z];
 
+Cha = input('Enter the channel for spots detection (red or green) > ', 's');
 for nucNum = 1:size(nucleiStruc, 2)
     nuc.dapi = nucleiStruc(nucNum).dapi;
     nuc.red = nucleiStruc(nucNum).red;
     nuc.green = nucleiStruc(nucNum).green;
     
     % 3D image normalization for specific channels and gaussian filter, verbose=0, no waitbar  
-    Cha = input('Enter the channel for spots detection (red or green) > ', 's');
     switch Cha
         case 'red'
             nucStack = nuc.red;
@@ -81,6 +90,9 @@ for nucNum = 1:size(nucleiStruc, 2)
     nucStack = filtermovie(nucStack, dataProperties.FILTERPRM, 0);
 
     spots = spotFindSingleNuc(nucStack, dataProperties);
+    nucleiStruc(nucNum).spot = spots.sp;
+    
+%     spotsPlot3(nucleiStruc, singleChannel3D)
 end
 
 
@@ -209,19 +221,26 @@ for t = 1:tsteps
     % Need to optimize spots selection criteria!!!
     
 %     mnpThreshold = input('Enter spottiness threshold > ');
-    mnpThreshold = 0.001;
+    medianScore = median(mnpSorted);
+    distToMedian = mnpSorted-medianScore;
+    distThreshold = (mnpSorted(1)-medianScore)/5;
     
-    for qualifiedNum = 1:size(mnpSorted,1)
-        if mnpSorted(qualifiedNum) < mnpThreshold
-            qualifiedNum = qualifiedNum - 1;
-            break
-        else
-            qualifiedNum = qualifiedNum + 1;
-        end
-    end
-    numberOfSpots = qualifiedNum;
-    % cut at either MAXSPOTS+1 or how many we have if it's less
-    cps = sortIdx(1:min(numberOfSpots,length(sortIdx)));
+    cps = sortIdx(distToMedian-distThreshold>0);
+    
+    
+%     mnpThreshold = 0.001;
+%     
+%     for qualifiedNum = 1:size(mnpSorted,1)
+%         if mnpSorted(qualifiedNum) < mnpThreshold
+%             qualifiedNum = qualifiedNum - 1;
+%             break
+%         else
+%             qualifiedNum = qualifiedNum + 1;
+%         end
+%     end
+%     numberOfSpots = qualifiedNum;
+%     % cut at either MAXSPOTS+1 or how many we have if it's less
+%     cps = sortIdx(1:min(numberOfSpots,length(sortIdx)));
     
     
     if cps  ~=0
