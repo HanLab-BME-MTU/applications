@@ -130,6 +130,13 @@ classdef OrientationSpaceFilter < handle
         function suppress(obj,tol)
             obj.F(abs(obj.F) < tol) = 0;
         end
+        function E = getEnergy(obj)
+            requireSetup(obj);
+            s = size(obj.F);
+            F = reshape(obj.F,s(1)*s(2),s(3));
+            E = sqrt(sum(real(F).^2)) + 1j*sqrt(sum(imag(F).^2));
+            E = E ./ sqrt(s(1)*s(2));
+        end
     end
     methods
         function setupFilter(obj,siz)
@@ -148,6 +155,10 @@ classdef OrientationSpaceFilter < handle
             obj.setupFilter(size(If)); %#ok<CPROP>
             edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(cat(4,obj.F)))));
         end
+        function requireSetup(obj)
+            if(isempty(obj.F))
+                error('OrientationSpaceFilter:NotSetup','Filter must be setup in order for this operation to succeed.');
+            end
+        end
     end
 end
-

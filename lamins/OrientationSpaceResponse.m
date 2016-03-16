@@ -22,6 +22,7 @@ classdef OrientationSpaceResponse < handle
     properties (Dependent)
         res
         nms
+        nlms
         theta
         a
         NMS
@@ -65,6 +66,13 @@ classdef OrientationSpaceResponse < handle
             NMS = OrientationSpaceNMS(obj);
         end
         
+        function nlms = get.nlms(obj)
+            if(~isfield(obj.cache,'nlms') || isempty(obj.cache.nlms))
+                [obj.cache.nlms] = nonLocalMaximaSuppression(obj);
+            end
+            nlms = obj.cache.nlms;
+        end
+        
         % Orientation, defaults to best orientation from basis
         function set.theta(obj,theta)
             obj.cache.theta = theta;
@@ -88,6 +96,25 @@ classdef OrientationSpaceResponse < handle
                 obj.idx = orientationSpace.OrientationSpaceResponseIndex(obj);
             end
             idx = obj.idx;
+        end
+        
+        function nlms = nonLocalMaximaSuppression(obj, theta, suppressionValue)
+            A = real(obj.angularResponse);
+            if(nargin < 2)
+                theta = 0:obj.n-1;
+                theta = theta*pi/obj.n;
+            elseif(isscalar(theta))
+                if(~mod(theta,1))
+                    % integer value
+                    A = orientationSpace.upsample(A,pi/theta);
+                else
+                    A = orientationSpace.upsample(A,theta);
+                end
+            end
+            if(nargin < 3)
+                suppressionValue = 0;
+            end
+            nlms = nonLocalMaximaSuppression(A,theta, suppressionValue);
         end
         
         function A = getAngularGaussians(obj)
@@ -248,26 +275,35 @@ classdef OrientationSpaceResponse < handle
             h = imshowpair(A,B);
         end
         function h = plot(obj,angles,r,c,varargin)
-            [Y,samples] = obj.getResponseAtPoint(r,c,angles);
-            h = plot(samples/obj.n,Y,varargin{:});
+            holdState = ishold;
+            hold on;
+            for o=1:numel(obj)
+                [Y,samples] = obj(o).getResponseAtPoint(r,c,angles);
+                h = plot(samples/obj(o).n,Y,varargin{:});
+            end
+            if(~holdState)
+                hold off;
+            end
         end
         function h = polar(obj,angles,r,c,varargin)
             holdState = ishold;
-            [Y,samples] = obj.getResponseAtPoint(r,c,angles);
-            samples = [samples ; samples+obj.n];
-            Y = [ Y Y ];
-            h = polar(samples'/obj.n*pi,Y,varargin{:});
-            hold on;
-            select = Y < 0;
-            if(any(select))
-                addBreaks = diff(select) == 1;
-                select(addBreaks) = true;
-                Y(addBreaks) = NaN;
-                h(2) = polar(samples(select)'/obj.n*pi,Y(select),varargin{:});
-                set(h(2),'LineStyle','--','Color','w');
-                if(~holdState)
-                    hold off;
+            for o = 1:numel(obj)
+                [Y,samples] = obj(o).getResponseAtPoint(r,c,angles);
+                samples = [samples ; samples+obj(o).n];
+                Y = [ Y Y ];
+                h = polar(samples'/obj(o).n*pi,Y,varargin{:});
+                hold on;
+                select = Y < 0;
+                if(any(select))
+                    addBreaks = diff(select) == 1;
+                    select(addBreaks) = true;
+                    Y(addBreaks) = NaN;
+                    h(2) = polar(samples(select)'/obj(o).n*pi,Y(select),varargin{:});
+                    set(h(2),'LineStyle','--','Color','w');
                 end
+            end
+            if(~holdState)
+                hold off;
             end
         end
     end
