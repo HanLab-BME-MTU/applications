@@ -1,86 +1,47 @@
-function [nucleiStruc, dataProperties] = singleNucleusSpotDetection(metaData, nucleiStruc, varargin)
+function [nucleiStruc] = singleNucleusSpotDetection(nucleiStruc, dataProperties, varargin)
 %singleNucleusSpotDetection detects spots from each multi-channel 3D stack
 %of single nucleus
 %   Detailed explanation goes here
 
-% To be optimized
-% metaData = handles.data.metadata; (Multi-channel 3D stack information)
-% handles is a parameter from InvivoCytometer_2.0_source_code/code_package/CellSegmentationQualityAnnotator.m
-
 % 03/2016 Ning
 
-p = inputParser;
-p.CaseSensitive = false;
-p.addRequired( 'imInput', @(x) ( ismember( ndims(x), [2,3] ) ) );
-p.parse( imInput );
+% p = inputParser;
+% p.CaseSensitive = false;
+% p.addRequired( 'imInput', @(x) ( ismember( ndims(x), [2,3] ) ) );
+% p.parse();
+% parse the input dataProperties!!!
 
-% Need to figure out how to read image file and extract property
-% information
 
-% imPath = metaData.dataFilePath;
-
-dataProperties.PIXELSIZE_XY = metaData.pixelSize(1);
-if metaData.pixelSize(1) ~= metaData.pixelSize(2)
-    error('Pixel size on X and Y are not identical.')
-end
-dataProperties.PIXELSIZE_Z = metaData.pixelSize(3);
-
-% ============================================================
 % Define dataProperties parameters
 % Generate dataProperties.FILTERPRM
-% if isempty(nucleiStruc.numAperture_)
-%     dataProperties.NA = input('Enter Numerical Aperture > ');
-% else
-%     dataProperties.NA=nucleiStruc.numAperture_;
-% end
-% 
-% if isempty(nucleiStruc.channels_.emissionWavelength_)
-%     dataProperties.WVL = input('Enter Emission Wavelenth in um > ');
-% else
-%     dataProperties.WVL = nucleiStruc.channels_.emissionWavelength_/1000;
-% end
-
-dataProperties.NA=1.4000;
-dataProperties.WVL=0.5250;
-dataProperties.refractiveIndex = 1.51;
-
-% Debug mode
-% dataProperties.NA = input('Enter Numerical Aperture > ');
-% dataProperties.WVL = input('Enter Emission Wavelenth in um > ');
-% lenseType = input('Enter lense type (air, water or oil) > ', 's');
-% switch lenseType
-%     case 'air'
-%         dataProperties.refractiveIndex = 1;
-%     case 'water'
-%         dataProperties.refractiveIndex = 1.33;
-%     case 'oil'
-%         dataProperties.refractiveIndex = 1.51;
-% end
-
-% sigmaCorrection defined by default
-dataProperties.sigmaCorrection=[1 1];
-
 % calcFilterParms generates psf size, which is used to define patchsize and
 % involved in gaussian filter
 % Code borrowed and modified from 
 % /home2/nzhang/matlab/applications/FISHprobe/Spots/detect/defaultDataProperties.m
 
-[FT_XY, FT_Z] = calcFilterParms(dataProperties.WVL, ...
-    dataProperties.NA, dataProperties.refractiveIndex, 'gauss',...
-    dataProperties.sigmaCorrection, ...
+Cha = input('Enter the channel for spots detection (red or green) > ', 's');
+
+switch Cha
+    case 'red'
+        WVL = dataProperties.redWVL;
+    case 'green'
+        WVL = dataProperties.greenWVL;
+end    
+
+
+[FT_XY, FT_Z] = calcFilterParms(WVL, dataProperties.NA, ...
+    dataProperties.refractiveIndex, 'gauss', dataProperties.sigmaCorrection, ...
     [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z]);
 
 patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z], 'odd', 'inf');
 dataProperties.FILTERPRM = [FT_XY, FT_XY, FT_Z, patchXYZ];
 dataProperties.FT_SIGMA = [FT_XY, FT_XY, FT_Z];
 
-Cha = input('Enter the channel for spots detection (red or green) > ', 's');
 for nucNum = 1:size(nucleiStruc, 2)
     nuc.dapi = nucleiStruc(nucNum).dapi;
     nuc.red = nucleiStruc(nucNum).red;
     nuc.green = nucleiStruc(nucNum).green;
     
-    % 3D image normalization for specific channels and gaussian filter, verbose=0, no waitbar  
     switch Cha
         case 'red'
             nucStack = nuc.red;
@@ -197,26 +158,15 @@ for t = 1:tsteps
         end;
     end;
         
-    % Take MAXNUMSPOTS plus a few spots - we want to be sure that we don't
-    % accidentially throw out a good spot, and we need a few bad apples to
-    % make the amplitude cutoff work fine. We take between 2 and 10 more
-    % spots, depending on MAXNUMSPOTS
-    
-%     additionalSpots = dataProperties.MAXSPOTS * 0.3;
-%     additionalSpots = ceil(additionalSpots);
-%     additionalSpots = max(additionalSpots,3);
-%     additionalSpots = min(additionalSpots,10);
-%     numberOfSpots = dataProperties.MAXSPOTS + additionalSpots;
-
     % Choose qualified spots number based on mnp value
     [mnpSorted,sortIdx] = sort(mnp(1:ct-1,t),1,'descend');
     
     % Plot cumulative histogram for mnp
-    LM = zeros(size(mnpSorted,1),1);
-    for i = 1:size(LM)
-        LM(i) = size(mnpSorted,1)-i+1;
-    end
-    plot(mnpSorted,LM,'r*');
+%     LM = zeros(size(mnpSorted,1),1);
+%     for i = 1:size(LM)
+%         LM(i) = size(mnpSorted,1)-i+1;
+%     end
+%     plot(mnpSorted,LM,'r*');
     
     % Need to optimize spots selection criteria!!!
     
@@ -226,21 +176,6 @@ for t = 1:tsteps
     distThreshold = (mnpSorted(1)-medianScore)/5;
     
     cps = sortIdx(distToMedian-distThreshold>0);
-    
-    
-%     mnpThreshold = 0.001;
-%     
-%     for qualifiedNum = 1:size(mnpSorted,1)
-%         if mnpSorted(qualifiedNum) < mnpThreshold
-%             qualifiedNum = qualifiedNum - 1;
-%             break
-%         else
-%             qualifiedNum = qualifiedNum + 1;
-%         end
-%     end
-%     numberOfSpots = qualifiedNum;
-%     % cut at either MAXSPOTS+1 or how many we have if it's less
-%     cps = sortIdx(1:min(numberOfSpots,length(sortIdx)));
     
     
     if cps  ~=0
@@ -259,10 +194,8 @@ for t = 1:tsteps
             end
         end;
     end
-%     spots(t).mnint=mn(t);
-
         
-    % clean memory
+    % clear memory
     clear FXX FXY FXZ FYX FYY FYZ FZX FZY FZZ
     
 end;

@@ -1,19 +1,19 @@
-function nuclei = findNuclei(imageData, mask)
+function nucleiStruc = findNuclei(imageData, mask)
 %findNuclei Crop out all nuclei with three different channels
 %   Detailed explanation goes here
 
-% To be optimized
-% imageData = handles.data.imageData; (Multi-channel 3D stack)
-% mask = handles.data.imLabelCellSeg; (3D stack for Dapi channel)
-% handles is a parameter from InvivoCytometer_2.0_source_code/code_package/CellSegmentationQualityAnnotator.m
-
 % 03/2016 Ning
 
-dapiCha = input('Enter the DAPI channel number > ');
-greenCha = input('Enter the Green channel number > ');
-redCha = input('Enter the Red channel number > ');
-
 numNuclei = max(mask(:));
+
+% Preallocate nuclei structure
+nucleiStruc(numNuclei).dapi = [];
+nucleiStruc(numNuclei).green = [];
+nucleiStruc(numNuclei).red = [];
+nucleiStruc(numNuclei).xRange = [];
+nucleiStruc(numNuclei).yRange = [];
+nucleiStruc(numNuclei).zRange = [];
+
 
 % Try to pre allocate the nuclei structure size
 
@@ -24,15 +24,18 @@ for num = 1:numNuclei
     
     % Modify the dilation factors as is
     % se=strel('ball',10,3);
-    [a,b,c] = ndgrid(-10:10,-10:10,-3:3);
-    se = strel(sqrt(a.^2+b.^2+c.^2));
-    nucMask2 = imdilate(nucMask,se);
+%     [a,b,c] = ndgrid(-10:10,-10:10,-3:3);
+%     se = strel(sqrt(a.^2+b.^2+c.^2));
+%     nucMask2 = imdilate(nucMask,se);
+    % Make imdilate faster!!!
+    
+    nucMask2 = nucMask;
 
-    nucDapi = imageData{dapiCha};    
+    nucDapi = imageData.dapi;    
     nucDapi(nucMask2==0) = 0;
     
-    nucGreen = imageData{greenCha};
-    nucRed = imageData{redCha};
+    nucGreen = imageData.green;
+    nucRed = imageData.red;
     
     % Inverted x, y for matrix and coordinates
     
@@ -67,15 +70,12 @@ for num = 1:numNuclei
         end
     end
     
-    
-    % How to predefine structure size???
-    nuclei(num).dapi = nucDapi(yStart:yEnd, xStart:xEnd, zStart:zEnd);
-    nuclei(num).green = nucGreen(yStart:yEnd, xStart:xEnd, zStart:zEnd);
-    nuclei(num).red = nucRed(yStart:yEnd, xStart:xEnd, zStart:zEnd);
-    
-    nuclei(num).xRange = [xStart, xEnd];
-    nuclei(num).yRange = [yStart, yEnd];
-    nuclei(num).zRange = [zStart, zEnd];
+    nucleiStruc(num).dapi = nucDapi(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+    nucleiStruc(num).green = nucGreen(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+    nucleiStruc(num).red = nucRed(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+    nucleiStruc(num).xRange = [xStart, xEnd];
+    nucleiStruc(num).yRange = [yStart, yEnd];
+    nucleiStruc(num).zRange = [zStart, zEnd];
 end
 
 

@@ -1,4 +1,6 @@
 [fileName,pathName] = uigetfile('Select the file contaning the nuclear marker channel');
+
+[fileName,pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning the nuclear marker channel - histone-2B', handles.history.lastAnalyzedNucleusDir);
                                 
 dataFilePath = fullfile( pathName, fileName );
 
