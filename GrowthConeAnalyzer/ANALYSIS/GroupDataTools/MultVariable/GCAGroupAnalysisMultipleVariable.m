@@ -49,13 +49,17 @@ ip.addParameter('plotByGroupPic',false);
 % D Reduction Visualizations
 ip.addParameter('PCA',false);
 ip.addParameter('MDS',true);
+ip.addParameter('Run', true); % will search for a 
 %ip.addParameter('CriterionMDS','stress'); % default is nonmetric
 
 ip.addParameter('cluster',false);
 ip.addParameter('clustNumResponse',3);
 ip.addParameter('testResponseClust',false); 
 
-ip.addParameter('DistMetrics',true); 
+ip.addParameter('DistMetrics',false); 
+
+ip.addParameter('ColorTrajByTime',true); 
+ip.addParameter('MakeMovie',true); 
 
 ip.parse(toPlot,varargin{:});
 %% Set up
@@ -88,11 +92,11 @@ end
 %     end
 %     
 % end
-
-
-
 nGroups = numel(toPlot.info.names);
 grouping = toPlot.info.grouping;
+
+if ip.Results.Run 
+
 
 %% User can define which measurements(variables) to include if interactive turned on
 if ip.Results.interactive
@@ -145,6 +149,8 @@ dataDir = [ip.Results.OutputDirectory filesep 'DataFiles'];
 if ~isdir(dataDir)
     mkdir(dataDir);
 end
+
+save([dataDir filesep 'varNames'],'varNames'); 
 
 for iGroup  = 1:numel(toPlot.info.names)
     
@@ -201,7 +207,11 @@ export(dataPreNorm,'file',[dataDir filesep 'OriginalValuesMedianPerNeuriteMovie.
 dataZScores = mat2dataset(dataFinal,'ObsNames',obsNames,'varNames',varNames);
 export(dataZScores,'file',[dataDir filesep 'dataZScores.csv']);
 save([dataDir filesep 'dataZScores'],'dataZScores');
-
+else % load the data 
+     
+    
+    
+end 
 %% Collect the Outgrowth Data, Create Mapper, and Save Colorbar
 
 outgrowth = gcaCollectOutgrowthDeltasPerGroup(toPlot);
@@ -385,6 +395,69 @@ if ip.Results.MDS
     % rows are observations, columns variables
     % compute pairwise distances
     dissimilarities = pdist(dataFinal);
+    z = squareform(dissimilarities); 
+    
+        test = isnan(z(:,1)); 
+        
+        if ip.Results.perFrame
+            if sum(test)~=0
+                display('NaN values found: Check Measurements'); 
+                z(test,:) =[];
+                z(:,test) = [];
+                grpingGroupIDsAllGroups(test) =[]; 
+                grpingTrajIDsAllGroups(test) = []; 
+                removed = obsNames(test); 
+                %removed = [removed num2cell(dataFinal(test,:))]; 
+                valuesRemoved = dataFinal(test,:); 
+                dataRemoved = mat2dataset(valuesRemoved,'ObsNames',removed,'varNames',varNames);
+                export(dataRemoved,'file',[dataDir filesep 'dataRemove_NaN.csv']);
+                save([dataDir filesep 'dataRemoved'],'dataRemoved');
+                       
+                % Take out the rest  
+                obsNames(test) = [];
+                dataFinal(test,:) = []; 
+                
+                % save the new data structure 
+                dataClean = mat2dataset(dataFinal,'ObsNames',obsNames,'varNames',varNames); 
+                export(dataClean,'file',[dataDir filesep 'zScoredDataClean_NoNaN.csv']); 
+                
+                % redo the dissimilarity matrix 
+                dissimilarities = pdist(dataFinal);
+                squareFormDis = squareform(dissimilarities); % save the dissimilarities in square form 
+                save([dataDir filesep 'squareFromDis.mat'],'squareFormDis'); 
+                           
+            end
+            
+        else
+            
+            test = isnan(z(:,1));
+            if sum(test)~=0
+                z(test,:) =[];
+                z(:,test) = [];
+                
+                
+                
+                grouping(test) = [];
+                projListAll = vertcat(toPlot.info.projList{:});
+                removed = projListAll(test,2);
+                cellfun(@(x) display(['Removing cell' x 'due to NaN: Check Measurements']),removed);
+                
+                
+                
+                projListAll(test,:) = [];
+                idxCMap(test,:) = [];
+                plotValues(test) =[];
+                
+                
+            end
+        end  
+        
+     
+        
+        
+        
+        
+      
     %      z= squareform(dissimilarities);
     
     
@@ -429,7 +502,7 @@ if ip.Results.MDS
             
             
             % perform the nonclassical multi-dimensional scaling
-            [ y, stress, disparities] = mdscale(dissimilarities,2,'Criterion',criterion{iCrit},'start','random');
+            [ y, stress, disparities] = mdscale(dissimilarities,2,'Criterion',criterion{iCrit});
             % if strcmpi(criterion{iCrit},'stress');
             save([cOutMDSDia filesep 'MDSResults' criterion{iCrit}],'y','stress','disparities','dissimilarities');
             %else
@@ -440,7 +513,8 @@ if ip.Results.MDS
             load([cOutMDSDia filesep 'MDSResults' criterion{iCrit} '.mat']);
         end
         
-            axisLims = [floor(min(y(:,1))-1),ceil(max(y(:,1)))+1,floor(min(y(:,2))-1),ceil(max(y(:,2))+1)];
+            %axisLims = [floor(min(y(:,1))-1),ceil(max(y(:,1)))+1,floor(min(y(:,2))-1),ceil(max(y(:,2))+1)];
+            axisLims = [prctile(y(:,1),0.5),prctile(y(:,1),99.5),prctile(y(:,2),0.5),prctile(y(:,2),99.5)];  
             
         %% Plot shepards plot
 %         setAxis('on');
@@ -481,26 +555,156 @@ if ip.Results.MDS
                                    
                 nTrajs = size(toPlot.info.projList{iGroup},1);
                 cmapCurrent = repmat(toPlot.info.colorShades{iGroup},3,1);
+                
+                projListC = toPlot.info.projList{iGroup};
+                
                 for iTraj = 1:nTrajs
-                setAxis('on')
+                setAxis('off')
                 % plot all results in gray
                 scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
+                currentTraj = find(grpingTrajIDsAllGroups==iTraj & grpingGroupIDsAllGroups ==iGroup);
+%                 imgStart = imread([projListC{iTraj,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
+%                     filesep '001.png']);
+%                 imgEnd = imread([projListC{iTraj,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
+%                     filesep '118.png']);
+%                 image([y(currentTraj(1),1)-0.01, y(currentTraj(1),1)+0.01],[y(currentTraj(1),2)-0.01,y(currentTraj(1),2)+0.01],imgStart);
+%                 image([y(currentTraj(end),1)-0.01, y(iTraj,1)+0.01],[y(iTraj,2)-0.01,y(iTraj,2)+0.01],imgEnd);
+%                 
+                
+                
                 hold on
                 %for iTraj = 1:nTrajs
-                    currentTraj = find(grpingTrajIDsAllGroups==iTraj & grpingGroupIDsAllGroups ==iGroup);
-                  
-                    scatter(y(currentTraj,1),y(currentTraj,2),100,[0.5,0.5,0.5],'filled','MarkerEdgeColor','k'); 
-                    plot(y(currentTraj,1),y(currentTraj,2),'color',cmapCurrent(iTraj,:));
-                    name = obsNames{currentTraj(1)}; 
-                    name = strrep(name,'_','/');
-                    name = upDirectory(name,1); 
-                    title(['Trajectory ' name], 'FontSize',14); 
                     
-                %end
-                xlabel('MDS1');
-                ylabel('MDS2');
-                axis([-10,10,-2,2])
-                saveas(gcf,[trajDir filesep toPlot.info.names{iGroup} 'Trajectory' num2str(iTraj,'%02d') '.png']);
+                    if ip.Results.ColorTrajByTime
+                        % make individual file for each 
+                         
+                        cmapTime = jet(framesPerParam(1));
+                        %if ip.Results.ColorTrajByTimeMovie 
+                            
+                            name = obsNames{currentTraj(1)}; 
+                            name = strrep(name,'_','/');
+                            name = upDirectory(name,1); 
+                            name = strrep(name,'/',' '); 
+
+                            title(['Trajectory ' name], 'FontSize',14); 
+                            nameUnder =  strrep(name,' ' ,'_');
+                            
+                            
+                            
+                            perTrajDir = [trajDir filesep 'Traj_' nameUnder ];
+                            if ~isdir(perTrajDir)
+                                mkdir(perTrajDir)
+                            end
+                            
+                            
+                            if ip.Results.MakeMovie
+                                frames = length(currentTraj);
+                                for i = 1:length(currentTraj)
+                                    
+                                    arrayfun(@(i) plot(y(currentTraj(i):currentTraj(i+1),1),y(currentTraj(i):currentTraj(i+1),2),...
+                                        'color',cmapTime(i,:)),1:length(currentTraj)-1);
+                                    scatter(y(currentTraj(i),1),y(currentTraj(i),2),50,cmapTime(i,:),'filled')
+                                    axis(axisLims);
+                                    
+                                    xlabel('MDS1');
+                                    ylabel('MDS2');
+                                    
+                                    
+                                    
+                                    saveas(gcf,[perTrajDir filesep num2str(i,'%03d') '.png']);
+                                    
+                                    
+                                    close gcf
+                                    setAxis('off')
+                                    % plot all results in gray
+                                    scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
+                                    title(['Trajectory ' name 'Time ' num2str(i*5) 'sec'], 'FontSize',14);
+                                    hold on
+                                    
+                                end
+                                
+                                % setUpTheMontage
+                                inputFolders{1} = perTrajDir; 
+                                inputFolders{2} = [projListC{iTraj} filesep ... 
+                                    'GrowthConeAnalyzer/SegmentationPackage/StepsToReconstructTestingGeometry20160205/' ...
+                                    'GCAVisuals/Descriptor/Filopodia/Validation/filoLength/ForMainMovie_Measurement_Movie']; 
+                                
+                                outputFolder = [perTrajDir filesep 'Montages']; 
+                                if ~isdir(outputFolder)
+                                    mkdir(outputFolder);
+                                end 
+                                
+                              GCAVisualsMontagingMovieNoMD(frames,inputFolders,outputFolder); 
+                            end
+                            
+                            
+                            
+                            
+                            
+                            
+                            % Set up Montage
+                            imageFolder  = ['GrowthConeAnalyzer/SegmentationPackage/' ...
+                                'StepsToReconstructTestingGeometry20160205/' ...
+                                'GCAVisuals/Descriptor/Filopodia/Validation/' ...
+                                'filoLength/ForMainMovie_Measurement_Movie'];
+                            
+                            file{2} =  [' ' projListC{iTraj,1} filesep imageFolder filesep '001.png '];
+                            
+                            
+                            file{3} =  [' ' projListC{iTraj,1} filesep imageFolder filesep '061.png '];
+                            
+                            file{4} = [' ' projListC{iTraj,1} filesep imageFolder filesep '118.png '];
+                            
+                           
+                        
+                       % Make Overlay All 
+                        arrayfun(@(i) scatter(y(currentTraj(i),1),y(currentTraj(i),2),50,cmapTime(i,:),'filled'),1:length(currentTraj));
+                        arrayfun(@(i) plot(y(currentTraj(i):currentTraj(i+1),1),y(currentTraj(i):currentTraj(i+1),2),... 
+                            'color',cmapTime(i,:)),1:length(currentTraj)-1);
+                        % plot the start and end in bold 
+%                         scatter(y(currentTraj(1),1),y(currentTraj(1),2),100,cmapTime(1,:),filled,'MarkerEdgeColor','w'); 
+%                         
+%                         scatter(y(currentTraj(end),1),y(currentTraj(end),2),100,cmapTime(end,:),filled,'MarkerEdgeColor','w'); 
+                          %end
+                        xlabel('MDS1');
+                        ylabel('MDS2');
+                        axis(axisLims);
+                        
+                        file{1} = [' ' perTrajDir filesep  'All.png ']; 
+
+                        saveas(gcf,[perTrajDir filesep  'All.png']);
+                        saveas(gcf,[perTrajDir filesep 'All.fig']); 
+                        
+                        
+                        
+                        filenamesStr = horzcat(file{:}); 
+                        
+                        montageDir  = [trajDir filesep 'Montages' ]; 
+                        if ~isdir(montageDir) 
+                          mkdir(montageDir); 
+                        end 
+                        nameSave = strrep(name,' ' , '_'); 
+                        outC = [montageDir filesep 'Traj' nameSave '.png'];
+                        
+                        cmd = [' montage -tile ' 'x1' ' -geometry +5+5+0+0 -background "rgb(255,255,255)"' filenamesStr ...
+                        '  -compress lzw ' outC];
+                        system(cmd); 
+                        
+                    else % per group color 
+                        scatter(y(currentTraj,1),y(currentTraj,2),50,[0.5,0.5,0.5],'filled','MarkerEdgeColor','k');
+                        plot(y(currentTraj,1),y(currentTraj,2),'color',cmapCurrent(iTraj,:));
+                        
+                          %end
+                        xlabel('MDS1');
+                        ylabel('MDS2');
+                        axis(axisLims);
+
+                        
+                    end
+                    
+                   
+               
+                
                 close gcf
                 end 
             end
