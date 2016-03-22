@@ -41,8 +41,8 @@ ip.addParameter('OutputDirectory',defaultOut);
 
 % Plots Types
 ip.addParameter('plotByGroupElongation',false); % will make 3-D scatter plots by group
-ip.addParameter('perFrame',true); 
-ip.addParameter('plotByGroupColorID',false); 
+ip.addParameter('perFrame',false); 
+ip.addParameter('plotByGroupColorID',true); 
 ip.addParameter('plotByGroupPic',false); 
 
 
@@ -52,14 +52,14 @@ ip.addParameter('MDS',true);
 ip.addParameter('Run', true); % will search for a 
 %ip.addParameter('CriterionMDS','stress'); % default is nonmetric
 
-ip.addParameter('cluster',false);
+ip.addParameter('cluster',true);
 ip.addParameter('clustNumResponse',3);
 ip.addParameter('testResponseClust',false); 
 
 ip.addParameter('DistMetrics',false); 
 
 ip.addParameter('ColorTrajByTime',true); 
-ip.addParameter('MakeMovie',true); 
+ip.addParameter('MakeMovie',false); 
 
 ip.parse(toPlot,varargin{:});
 %% Set up
@@ -99,12 +99,15 @@ if ip.Results.Run
 
 
 %% User can define which measurements(variables) to include if interactive turned on
+
+
 if ip.Results.interactive
     paramSelect  = listSelectGUI(varNames,[],'move');
     varNames = varNames(paramSelect);
 end
 nVars = numel(varNames);
 varNamesString = strrep(varNames, '_' ,'');
+
 %% plot by frame : note this is going to need to be a different structure
 % for now just add a quick and dirty grouping variable for per Frame 
 % make a single vector labeling each trajectory for each group (just use
@@ -183,6 +186,8 @@ for iGroup  = 1:numel(toPlot.info.names)
 end
 
 
+
+
 % try once by normalizing each measurement distribution
 % using the pooled population regardless of condition (ie control + KD)
 % this would be mainly to make sure the measurements are on the same scale.
@@ -201,6 +206,7 @@ dataFinal = zscoreForNaNs(dataMatAllGroupsMeas); % this should by default normal
 dataPreNorm = mat2dataset(dataMatAllGroupsMeas,'ObsNames',obsNames,'varNames',varNames);
 % end 
 save([dataDir filesep 'OriginalValuesMedianPerNeuriteMovie'],'dataPreNorm');
+
 export(dataPreNorm,'file',[dataDir filesep 'OriginalValuesMedianPerNeuriteMovie.csv']);
 %writetable(tDataRaw,[ip.Results.OutputDirectory filesep 'OriginalValuesMedianPerNeuriteMovie.csv'],dataOriginal);
 
@@ -500,11 +506,12 @@ if ip.Results.MDS
         % check for .mat file
         if exist([cOutMDSDia filesep 'MDSResults' criterion{iCrit} '.mat'],'file')==0;
             
-            
+            display('Running MDS'); 
             % perform the nonclassical multi-dimensional scaling
             [ y, stress, disparities] = mdscale(dissimilarities,2,'Criterion',criterion{iCrit});
             % if strcmpi(criterion{iCrit},'stress');
             save([cOutMDSDia filesep 'MDSResults' criterion{iCrit}],'y','stress','disparities','dissimilarities');
+            display('Finished MDS'); 
             %else
             %   save([cOutMDSDia filesep 'MDSResults' criterion{iCrit}],'y','stress');
             %end
@@ -547,7 +554,7 @@ if ip.Results.MDS
                 mkdir(grpDir);
             end
             
-            for iGroup = 1:nGroups
+            for iGroup = nGroups-1:nGroups-1
                 trajDir = [grpDir filesep toPlot.info.names{iGroup}];
                 if ~isdir(trajDir)
                     mkdir(trajDir);
@@ -562,7 +569,11 @@ if ip.Results.MDS
                 setAxis('off')
                 % plot all results in gray
                 scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
+                hold on
+                
                 currentTraj = find(grpingTrajIDsAllGroups==iTraj & grpingGroupIDsAllGroups ==iGroup);
+                if ~isempty(currentTraj)
+                %if ~isempty(currentTraj)
 %                 imgStart = imread([projListC{iTraj,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
 %                     filesep '001.png']);
 %                 imgEnd = imread([projListC{iTraj,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
@@ -572,13 +583,20 @@ if ip.Results.MDS
 %                 
                 
                 
-                hold on
+               
                 %for iTraj = 1:nTrajs
                     
                     if ip.Results.ColorTrajByTime
                         % make individual file for each 
                          
-                        cmapTime = jet(framesPerParam(1));
+                        %cmapTime = jet(framesPerParam(1));
+                        cmapTimeBeforeDrug  = repmat(toPlot.info.colorShades{10}(end,:),[61,1]) ; ... 
+                            
+                        cmapTimeAfterDrug = repmat(toPlot.info.colorShades{10}(5,:),[61,1]); 
+                        
+                        cmapTime= [cmapTimeBeforeDrug ; cmapTimeAfterDrug];
+                        
+                        
                         %if ip.Results.ColorTrajByTimeMovie 
                             
                             name = obsNames{currentTraj(1)}; 
@@ -706,7 +724,11 @@ if ip.Results.MDS
                
                 
                 close gcf
+                else
+                    display(['The Entire Movie' projListC{iTraj} 'was removed: Check Measurements']); 
                 end 
+                end 
+               
             end
             %scatter(y(groupingTraj==i,1),y(:,2),50,'k','filled');
             
@@ -1004,9 +1026,7 @@ if ip.Results.MDS
               
               for iGroup = 2:nGroups
                   
-                  setAxis('on');
-                 
-                  
+                  setAxis('on');  
                   
                   % Plot the Control by in black first 
                   yC = y(grouping ==1,:);
@@ -1014,32 +1034,9 @@ if ip.Results.MDS
                   scatter(yC(:,1),yC(:,2),50,'k','filled'); 
                   hold on 
                   
-                  %                     yC = y(grouping ==iGroup,:);
-                  %                     idxCMapC = idxCMap(grouping == iGroup,:);
-                  %                     for iColor = 1:length(cmap)
-                  %                         if ~isempty(idxCMapC(:,1)==iColor)
-                  %                             % get the coords
-                  %                             x = yC(idxCMap(:,1)==iColor);
-                  %                             y = yC(idxCMap(:,1)==iColor);
-                  %                             img = imread([projListC{iNeurite,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
-                  %                             filesep '001.png']);
-                  %                             image([x-0.4, x+0.4],[y-0.4,y+0.4],img);
-                  %                             scatter(
-                  % %                             scatter((yC(idxCMapC(:,1) == iColor,1)),...
-                  % %                                 (yC(idxCMapC(:,1) == iColor,2)),100,cmap(iColor,:),'filled','MarkerEdgeColor',[0 0 0]);
-                  %                         end
-                  %                     end
-                 
-                  
                   valuesC = y(grouping==iGroup,:);
                   scatter(valuesC(:,1),valuesC(:,2),100,toPlot.info.color{iGroup},'filled');
-                  %                     for iNeurite = 1:size(projListC,1)
-                  %                         img = imread([projListC{iNeurite,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
-                  %                             filesep '001.png']);
-                  %                         image([valuesC(iNeurite,1)-0.4, valuesC(iNeurite,1)+0.4],[valuesC(iNeurite,2)-0.4,valuesC(iNeurite,2)+0.4],img);
-                  %                         clear img
-                  %                     end
-                  %axis([min(y(:,1)),max(y(:,1)),min(y(:,2)),max(y(:,2))]);
+                
                   axis(axisLims);
                   %axis([-8,8,-8,8]);
                   title(['Group ' toPlot.info.names{iGroup}]);
@@ -1053,6 +1050,100 @@ if ip.Results.MDS
                   close gcf
                   
               end % iGroup
+              
+              
+              
+              if ip.Results.cluster
+                  clustDirElongNorm = [ cOutMDS filesep 'cluster' filesep 'CompareKDToElongNorm'];
+                  if ~isdir(clustDirElongNorm)
+                      mkdir(clustDirElongNorm);
+                  end
+                  
+                  for iGroup = 2:nGroups
+                      setAxis('on');
+                      
+                      % Plot the Control by in black first
+                      yC = y(grouping ==1 & groupingCluster ==2 ,:);
+                      
+                      scatter(yC(:,1),yC(:,2),50,'k','filled');
+                      hold on
+                      
+                      valuesC = y(grouping==iGroup,:);
+                      scatter(valuesC(:,1),valuesC(:,2),100,toPlot.info.color{iGroup},'filled');
+                      
+                      axis(axisLims);
+                      %axis([-8,8,-8,8]);
+                      title(['Group ' toPlot.info.names{iGroup}]);
+                      xlabel('MDS1');
+                      ylabel('MDS2');
+                      
+                      saveas(gcf,[ clustDirElongNorm filesep 'CompareNormElongControl_vs_' toPlot.info.names{iGroup} '.fig']);
+                      saveas(gcf,[ clustDirElongNorm filesep 'CompareNormElongControl_vs_' toPlot.info.names{iGroup} '.eps'],'psc2');
+                      saveas(gcf,[ clustDirElongNorm filesep 'CompareNormElongControl_vs_' toPlot.info.names{iGroup} '.png']);
+                      
+                      close all
+                      
+                      %                   saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.fig']);
+                      %                   saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.eps'],'psc2');
+                      %                   saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.png']);
+                      
+                  end
+                  
+                  clustDirElongLow = [ cOutMDS filesep 'cluster' filesep 'CompareKDToElongLow'];
+                  if ~isdir(clustDirElongLow)
+                      mkdir(clustDirElongLow);
+                  end
+                  
+                  for iGroup = 2:nGroups
+                      setAxis('on');
+                      
+                      % Plot the Control by in black first
+                      yC = y(grouping ==1 & groupingCluster ==1,:);
+                      
+                      scatter(yC(:,1),yC(:,2),50,'k','filled');
+                      hold on
+                      
+                      valuesC = y(grouping==iGroup,:);
+                      scatter(valuesC(:,1),valuesC(:,2),100,toPlot.info.color{iGroup},'filled');
+                      
+                      axis(axisLims);
+                      %axis([-8,8,-8,8]);
+                      title(['Group ' toPlot.info.names{iGroup}]);
+                      xlabel('MDS1');
+                      ylabel('MDS2');
+                      
+                      saveas(gcf,[ clustDirElongLow filesep 'CompareLowElongControl_vs_' toPlot.info.names{iGroup} '.fig']);
+                      saveas(gcf,[ clustDirElongLow filesep 'CompareLowElongControl_vs_' toPlot.info.names{iGroup} '.eps'],'psc2');
+                      saveas(gcf,[ clustDirElongLow filesep 'CompareLowElongControl_vs_' toPlot.info.names{iGroup} '.png']);
+                      
+                      close all
+                      
+                      %                   saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.fig']);
+                      %                   saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.eps'],'psc2');
+                      %                   saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterImagePerGroup_' toPlot.info.names{iGroup} '.png']);
+                      
+                  end
+                  
+                  
+                  
+                  
+                  
+                  
+              end
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
           end % ip.Results.plotByGroupColorID   
               
     end      %% for iCriterion 
@@ -1432,20 +1523,34 @@ if ip.Results.DistMetrics
          
     %% Discrimination Metrics
     nCond = numel(dataMatAllMeas);
-    [DB,Dunn,SC,c1,c2] = arrayfun(@(x) whDiscriminationMeasures(dataMatAllMeas{x}',dataMatAllMeas{1}'),1:nCond);
+    %[DB,Dunn,SC,c1,c2] = arrayfun(@(x) whDiscriminationMeasures(dataMatAllMeas{x}',dataMatAllMeas{1}'),1:nCond);
+    
+    [DB,pValues] = arrayfun(@(x) bootDiscrimMetrics(dataMatAllMeas{x}',dataMatAllMeas{1}','nrep',5000),1:nCond,'uniformoutput',0); 
+    DB = vertcat(DB{:})'; 
+    pValues = vertcat(pValues{:}); 
+    
     setAxis('on'); 
     [DBSort,idxSort] = sort(DB);
+    DBSort = DBSort(2:end); 
+    pValues = pValues(idxSort,:); 
+    pValues = pValues(2:end,:); 
     
     
     colorsGroup = toPlot.info.color; 
     colorsGroup = colorsGroup(idxSort); 
     colorsGroup = colorsGroup(2:end); 
     
+%     arrayfun(@(x) scatter(x,DBSort(x),50,colorsGroup(x,:),'filled'),1:length(DBSort)); 
+%     errorbar(@(x) errorbar(x,DBSort(x),CIs(x,1),CIs(x,2),'color',colorsGroup(x,:)),1:length(DBSort)); 
+   % arrayfun(@(x) 
+    
     
     setAxis('on');
     h = bar([DBSort(2:end); DBSort(2:end)]); % do two for now and crop one out
+    hold on
     for x = 1:length(h)
         h(x).FaceColor = colorsGroup{x};
+        %errorbar(x,DB(x),CIs(x,1),CIs(x,2)); 
     end
     
     axis([1.5,2.5,0,max(DBSort(2:end))+0.2])
@@ -1460,7 +1565,25 @@ if ip.Results.DistMetrics
     saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.png']); 
     saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.eps'],'psc2');
     saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.fig']);
+    save([distanceDir filesep 'pValues'],'pValues'); 
     close gcf
+   
+    %% Test the separation stat of the normal outgrowth and each of the KDs 
+    controlDataNG = dataMatAllMeas{1}(groupingControl==2,:); 
+    
+    [DBNG,pValuesNG] = arrayfun(@(x) bootDiscrimMetrics(dataMatAllMeas{x}',controlDataNG','nrep',5000),2:nCond,'uniformoutput',0);
+    
+    
+    
+    
+    
+    % control DataNG 
+    %% Test the separation stat of the low outgrowth and each of the KDs 
+    
+    
+    %% 
+    
+    
     
     %% bootstrap c values (average dist to centroid) and  make plot with confidence intervals
 %     cis = cellfun(@(y) bootci(2000,@calcMeanDistToCent,y'),dataMatAllMeas,'uniformoutput',0);
