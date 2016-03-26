@@ -42,8 +42,11 @@ ip.addParameter('OutputDirectory',defaultOut);
 % Plots Types
 ip.addParameter('plotByGroupElongation',false); % will make 3-D scatter plots by group
 ip.addParameter('perFrame',false); 
-ip.addParameter('plotByGroupColorID',true); 
+ip.addParameter('plotByGroupColorID',false); 
 ip.addParameter('plotByGroupPic',false); 
+
+
+ip.addParameter('plotCentroids',true); 
 
 
 % D Reduction Visualizations
@@ -173,7 +176,7 @@ for iGroup  = 1:numel(toPlot.info.names)
         % transform data so that each row is a neurite and each column is a
         % set of measurements- this will be a per cell variable.
         perNeuriteStat = str2func(ip.Results.perNeuriteStatistic);
-        dataMatC = arrayfun(@(x) perNeuriteStat(toPlot.(varNames{x}).dataMat{iGroup},1)',1:nVars,'uniformoutput',0);
+        dataMatC = arrayfun(@(x) perNeuriteStat(real(toPlot.(varNames{x}).dataMat{iGroup}),1)',1:nVars,'uniformoutput',0);
     
         % put all the measurement values together (median measurement value for each neurite per column)
         % r indicates the neurite number;
@@ -185,9 +188,6 @@ for iGroup  = 1:numel(toPlot.info.names)
     
 end
 
-
-
-
 % try once by normalizing each measurement distribution
 % using the pooled population regardless of condition (ie control + KD)
 % this would be mainly to make sure the measurements are on the same scale.
@@ -195,6 +195,26 @@ dataMatAllGroupsMeas = vertcat(dataMatAllMeas{:});
 
 %dataFinal = dataMatAllGroupsMeas;
 dataFinal = zscoreForNaNs(dataMatAllGroupsMeas); % this should by default normalize along the column
+
+% put back into the full group into a cell 
+dataFinalAll = arrayfun(@(x) dataFinal(grouping == x,:),1:nGroups,'uniformoutput',0); 
+
+
+if ip.Results.plotCentroids
+    centroidsOfGroups = arrayfun(@(x) nanmean(dataFinal(grouping==x,:),1),1:nGroups,'uniformoutput',0); % find the centroid of the features 
+    centroidsOfGroups = vertcat(centroidsOfGroups{:}); 
+    dataFinal = [dataFinal;centroidsOfGroups];
+    % make the centroid points grouping == to zero 
+    groupingCent = zeros(nGroups,1); 
+    grouping = [grouping;groupingCent]; 
+    obsNamesCent = cellfun(@(x) ['Centroid ' x] , toPlot.info.names,'uniformoutput',0); 
+    obsNamesZ = [obsNames;obsNamesCent']; 
+   
+else 
+    obsNamesZ = obsNames; 
+end 
+
+
 
 % Save the raw and normalized collected data in a csv.
 % NOTE: need to change to table eventually to make compatible with later
@@ -205,12 +225,12 @@ dataFinal = zscoreForNaNs(dataMatAllGroupsMeas); % this should by default normal
 % else 
 dataPreNorm = mat2dataset(dataMatAllGroupsMeas,'ObsNames',obsNames,'varNames',varNames);
 % end 
-save([dataDir filesep 'OriginalValuesMedianPerNeuriteMovie'],'dataPreNorm');
+save([dataDir filesep ['OriginalValues' ip.Results.perNeuriteStatistic 'PerNeuriteMovie']],'dataPreNorm');
 
 export(dataPreNorm,'file',[dataDir filesep 'OriginalValuesMedianPerNeuriteMovie.csv']);
 %writetable(tDataRaw,[ip.Results.OutputDirectory filesep 'OriginalValuesMedianPerNeuriteMovie.csv'],dataOriginal);
 
-dataZScores = mat2dataset(dataFinal,'ObsNames',obsNames,'varNames',varNames);
+dataZScores = mat2dataset(dataFinal,'ObsNames',obsNamesZ,'varNames',varNames);
 export(dataZScores,'file',[dataDir filesep 'dataZScores.csv']);
 save([dataDir filesep 'dataZScores'],'dataZScores');
 else % load the data 
@@ -304,6 +324,11 @@ if ip.Results.cluster
        sortedIdx(idx==indices(i)) =i;
    end
    groupingCluster = sortedIdx;
+   if ip.Results.plotCentroids
+       pad = zeros(nGroups,1); 
+       groupingCluster = [groupingCluster;pad]; 
+       
+   end 
     
 %     %  % make it such that 2 is always high and 1 is always the low cluster
 %     sortedIdx = zeros(length(idx),1);
@@ -401,7 +426,28 @@ if ip.Results.MDS
     % rows are observations, columns variables
     % compute pairwise distances
     dissimilarities = pdist(dataFinal);
-    z = squareform(dissimilarities); 
+    z = squareform(dissimilarities);
+    
+    
+    if ip.Results.plotCentroids
+        % find the closest point to each centroid
+        % get all the rows that correspond to the centroids and all the
+        % columns that correspond to each group
+        nCells = size(vertcat(toPlot.info.projList{:}),1); 
+        idxClosest  =   arrayfun(@(x)  find(z(nCells+x,grouping==x)==min(z(nCells+x,grouping==x))),1:nGroups,'uniformoutput',0); % rows will be
+       
+        idxFurthest = arrayfun(@(x) find(z(nCells+x,grouping==x)== max(z(nCells+x,grouping ==x))),1:nGroups,'uniformoutput',0); 
+        IDsFurthest = arrayfun(@(x) toPlot.info.projList{x}(idxFurthest{x},:),1:nGroups,'uniformoutput',0);  
+        %arrayfun(@(x) find(distMatCents{x,:} == max(i,:)),
+        IDsFurthest = vertcat(IDsFurthest{:}); 
+        
+        [values,idxSort] = arrayfun(@(x) sort(z(nCells+x,grouping==x)),1:nGroups,'uniformoutput',0); 
+        IDsClosest = arrayfun(@(x) toPlot.info.projList{x}(idxClosest{x},:),1:nGroups,'uniformoutput',0);  
+        %arrayfun(@(x) find(distMatCents{x,:} == max(i,:)),
+        IDsClosest = vertcat(IDsClosest{:}); 
+        
+    end
+    
     
         test = isnan(z(:,1)); 
         
@@ -520,9 +566,12 @@ if ip.Results.MDS
             load([cOutMDSDia filesep 'MDSResults' criterion{iCrit} '.mat']);
         end
         
-            %axisLims = [floor(min(y(:,1))-1),ceil(max(y(:,1)))+1,floor(min(y(:,2))-1),ceil(max(y(:,2))+1)];
-            axisLims = [prctile(y(:,1),0.5),prctile(y(:,1),99.5),prctile(y(:,2),0.5),prctile(y(:,2),99.5)];  
-            
+           
+        if ip.Results.perFrame
+            axisLims = [prctile(y(:,1),0.5),prctile(y(:,1),99.5),prctile(y(:,2),0.5),prctile(y(:,2),99.5)];
+        else
+            axisLims = [floor(min(y(:,1))-1),ceil(max(y(:,1)))+1,floor(min(y(:,2))-1),ceil(max(y(:,2))+1)];
+        end
         %% Plot shepards plot
 %         setAxis('on');
 %         distances = pdist(y);
@@ -762,6 +811,15 @@ if ip.Results.MDS
             
             arrayfun(@(x) scatter(y(grouping==x,1),...
                 y(grouping==x,2),100,toPlot.info.color{x},'filled','MarkerEdgeColor',toPlot.info.color{x}),1:nGroups);
+            hold on
+            if ip.Results.plotCentroids
+             
+                %                       valuesCent = y(nCells + iGroup,:);
+                arrayfun(@(x) scatter(y(nCells+x,1),y(nCells+x,2),200,toPlot.info.color{x},'+'),1:nGroups);
+                hold on 
+                             
+            end 
+            
             xlabel('MDS1');
             ylabel('MDS2');
             axis(axisLims);
@@ -771,7 +829,43 @@ if ip.Results.MDS
             saveas(gcf,[cOutMDS filesep 'MDS_2DScatterByGroupColor.png']);
         end % ip.Results.perFrame
         close gcf
-              
+           
+        %% 
+        if ip.Results.plotCentroids
+            setAxis('on')
+                hold on 
+                
+                for iNeurite = 1:size(IDsClosest,1)
+                    img = imread([IDsClosest{iNeurite,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
+                        filesep '119.png']);
+                    valuesC = y(grouping == iNeurite,:);
+                    image([valuesC(idxClosest{iNeurite},1)-0.4, valuesC(idxClosest{iNeurite},1)+0.4],[valuesC(idxClosest{iNeurite},2)-0.4,valuesC(idxClosest{iNeurite},2)+0.4],img);
+                end
+                
+                
+                %                       valuesCent = y(nCells + iGroup,:);
+                arrayfun(@(x) scatter(y(nCells+x,1),y(nCells+x,2),200,toPlot.info.color{x},'+'),1:nGroups);
+                
+                
+                for iNeurite = 1:size(IDsClosest,1)
+                    img = imread([IDsFurthest{iNeurite,1} filesep 'GrowthConeAnalyzer' filesep 'VisualizationOverlays' filesep 'Raw'...
+                        filesep '119.png']);
+                    valuesC = y(grouping == iNeurite,:);
+                    image([valuesC(idxFurthest{iNeurite},1)-0.4, valuesC(idxFurthest{iNeurite},1)+0.4],[valuesC(idxFurthest{iNeurite},2)-0.4,valuesC(idxFurthest{iNeurite},2)+0.4],img);
+                end
+                
+                xlabel('MDS1');
+                ylabel('MDS2');
+                axis(axisLims);
+            
+            saveas(gcf,[cOutMDS filesep 'MDS_ViewLandscape.fig']);
+            saveas(gcf,[cOutMDS filesep 'MDS_ViewLandscape.eps'],'psc2');
+            saveas(gcf,[cOutMDS filesep 'MDS_ViewLandscape.png']);
+              close gcf  
+        end % plot Centroids
+        
+            
+           
         %% plot control by cluster
         if ip.Results.cluster 
         cOutMDSClust = [cOutMDS filesep 'cluster'];
@@ -783,7 +877,7 @@ if ip.Results.MDS
         %      groupingCluster = toPlot.info.groupingIdxClust;
         groupingControl = groupingCluster(grouping==1);
        
-        nClusts = length(unique(groupingCluster));
+        nClusts = length(unique(groupingCluster(groupingCluster~=0)));
         setAxis('on')
         hold on
         arrayfun(@(x) scatter(controlValues(groupingControl==x,1),...
@@ -844,7 +938,7 @@ if ip.Results.MDS
         setAxis('on')
         hold on
         arrayfun(@(x) scatter(y(groupingCluster==x,1),...
-            y(groupingCluster==x,2),50,cMap(x,:),'filled'),1:nClusts);
+            y(groupingCluster==x,2),100,cMap(x,:),'filled'),1:nClusts);
         
         
         %arrayfun(@(x) text(y(x,1),y(x,2),obsNames{x}),1:size(y(:,1)))
@@ -859,11 +953,7 @@ if ip.Results.MDS
         close gcf
         end 
         
-        
-        
-        
-        
-        
+         
         %% plot results by outgrowth scaleMap
         if ip.Results.plotByGroupElongation
             %
@@ -873,7 +963,7 @@ if ip.Results.MDS
             end
             
             setAxis('on');
-             hold on
+           
               for iGroup = 1:nGroups
                 
                 
@@ -892,6 +982,7 @@ if ip.Results.MDS
                     if ~isempty(idxCMapC(:,1)==iColor)
                         scatter((yC(idxCMapC(:,1) == iColor,1)),...
                             (yC(idxCMapC(:,1) == iColor,2)),100,cmap(iColor,:),'filled','MarkerEdgeColor',[0 0 0]);
+                        hold on
                     end
                 end
                 
@@ -902,8 +993,8 @@ if ip.Results.MDS
                 xlabel('MDS1');
                 ylabel('MDS2');
                 saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowthAll.fig']);
-                saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowth.eps'],'psc2');
-                saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowthAll_.png']);        
+                saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowthAll.eps'],'psc2');
+                saveas(gcf,[MDSGroupDir filesep 'MDS_2DScatterColorByOutgrowthAll.png']);        
               
               end 
             
@@ -1017,7 +1108,9 @@ if ip.Results.MDS
                     
                 end % iGroup 
         end % plotByGroupPic    
-              %% plot by group color 
+
+%         
+        %% plot by group color 
           if ip.Results.plotByGroupColorID    
               MDSGroupDir = [cOutMDS filesep 'MDSPerGroupColorByGroup'];
               if ~isdir(MDSGroupDir);
@@ -1026,16 +1119,34 @@ if ip.Results.MDS
               
               for iGroup = 2:nGroups
                   
-                  setAxis('on');  
+                  setAxis('on',0.75,24);  
                   
                   % Plot the Control by in black first 
                   yC = y(grouping ==1,:);
                   
-                  scatter(yC(:,1),yC(:,2),50,'k','filled'); 
+                  
+                  if ip.Results.plotCentroids
+                      valuesCent = y(nCells +1,:);
+                      scatter(valuesCent(:,1),valuesCent(:,2),200,'k','+'); 
+                      %% SECTION TITLE
+                      % DESCRIPTIVE TEXT
+                      
+                      
+                  end 
+                  
+                  scatter(yC(:,1),yC(:,2),100,'k','filled'); 
                   hold on 
                   
                   valuesC = y(grouping==iGroup,:);
-                  scatter(valuesC(:,1),valuesC(:,2),100,toPlot.info.color{iGroup},'filled');
+                  scatter(valuesC(:,1),valuesC(:,2),300,toPlot.info.color{iGroup},'filled');
+                  
+                  
+                  if ip.Results.plotCentroids
+                      valuesCent = y(nCells + iGroup,:);
+                      scatter(valuesCent(:,1),valuesCent(:,2),200,toPlot.info.color{iGroup},'+'); 
+                      
+                     
+                  end 
                 
                   axis(axisLims);
                   %axis([-8,8,-8,8]);
@@ -1125,10 +1236,7 @@ if ip.Results.MDS
                   end
                   
                   
-                  
-                  
-                  
-                  
+         
               end
               
               
@@ -1423,7 +1531,7 @@ if ip.Results.DistMetrics
         % descriptor space and the centroid of this cluster. 
         
         % get each cluster
-        numClust = length(unique(groupingCluster)); 
+        numClust = length(unique(groupingCluster(groupingCluster~=0))); 
         data{1} = dataControl; 
         
         dataByClust = arrayfun(@(x) dataFinal(groupingCluster==x & grouping ==1,:),1:numClust,'uniformoutput',0);
@@ -1520,67 +1628,75 @@ if ip.Results.DistMetrics
         
         
     end
-         
+       
+    
+    
+    
     %% Discrimination Metrics
     nCond = numel(dataMatAllMeas);
-    %[DB,Dunn,SC,c1,c2] = arrayfun(@(x) whDiscriminationMeasures(dataMatAllMeas{x}',dataMatAllMeas{1}'),1:nCond);
-    
-    [DB,pValues] = arrayfun(@(x) bootDiscrimMetrics(dataMatAllMeas{x}',dataMatAllMeas{1}','nrep',5000),1:nCond,'uniformoutput',0); 
-    DB = vertcat(DB{:})'; 
-    pValues = vertcat(pValues{:}); 
-    
-    setAxis('on'); 
-    [DBSort,idxSort] = sort(DB);
-    DBSort = DBSort(2:end); 
-    pValues = pValues(idxSort,:); 
-    pValues = pValues(2:end,:); 
-    
-    
-    colorsGroup = toPlot.info.color; 
-    colorsGroup = colorsGroup(idxSort); 
-    colorsGroup = colorsGroup(2:end); 
-    
-%     arrayfun(@(x) scatter(x,DBSort(x),50,colorsGroup(x,:),'filled'),1:length(DBSort)); 
-%     errorbar(@(x) errorbar(x,DBSort(x),CIs(x,1),CIs(x,2),'color',colorsGroup(x,:)),1:length(DBSort)); 
-   % arrayfun(@(x) 
-    
-    
-    setAxis('on');
-    h = bar([DBSort(2:end); DBSort(2:end)]); % do two for now and crop one out
-    hold on
-    for x = 1:length(h)
-        h(x).FaceColor = colorsGroup{x};
-        %errorbar(x,DB(x),CIs(x,1),CIs(x,2)); 
+    controlCompare{1} = dataFinalAll{1};
+    if ip.Results.cluster
+        groupingControl = groupingCluster(grouping==1);
+        controlCompare{2} = dataFinalAll{1}(groupingControl==1,:);
+        controlCompare{3} = dataFinalAll{1}(groupingControl==2,:);
+        add{2} = 'LowElongRate';
+        add{3} = 'HighElongRate';
     end
-    
-    axis([1.5,2.5,0,max(DBSort(2:end))+0.2])
-    
-    namesGroup = toPlot.info.names; 
-    namesSort = namesGroup(idxSort);  
-        
-    ylabel({'Separation Statistic-'; 'Inverse Davies Bouldin Index'}); 
-    set(gca,'XTick',1:numel(namesSort)-1);
-    set(gca,'XTickLabel',' ');
-    
-    saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.png']); 
-    saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.eps'],'psc2');
-    saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup.fig']);
-    save([distanceDir filesep 'pValues'],'pValues'); 
-    close gcf
    
-    %% Test the separation stat of the normal outgrowth and each of the KDs 
-    controlDataNG = dataMatAllMeas{1}(groupingControl==2,:); 
-    
-    [DBNG,pValuesNG] = arrayfun(@(x) bootDiscrimMetrics(dataMatAllMeas{x}',controlDataNG','nrep',5000),2:nCond,'uniformoutput',0);
     
     
+    add{1} = 'All'; 
+   
     
-    
-    
-    % control DataNG 
-    %% Test the separation stat of the low outgrowth and each of the KDs 
-    
-    
+    for iCompare = 1:numel(controlCompare)
+        
+        %[DB,Dunn,SC,c1,c2] = arrayfun(@(x) whDiscriminationMeasures(dataMatAllMeas{x}',dataMatAllMeas{1}'),1:nCond);
+        [DB,pValues] = arrayfun(@(x) bootDiscrimMetrics(dataFinalAll{x}',controlCompare{iCompare}','nrep',5000),1:nCond,'uniformoutput',0);
+        %[DB,pValues] = arrayfun(@(x) bootDiscrimMetrics(dataMatAllMeas{x}',dataMatAllMeas{1}','nrep',5000),1:nCond,'uniformoutput',0);
+        DB = vertcat(DB{:})';
+        pValues = vertcat(pValues{:});
+        
+        setAxis('on');
+        [DBSort,idxSort] = sort(DB);
+        DBSort = DBSort(2:end);
+        pValues = pValues(idxSort,:);
+        pValues = pValues(2:end,:);
+        
+        
+        colorsGroup = toPlot.info.color;
+        colorsGroup = colorsGroup(idxSort);
+        colorsGroup = colorsGroup(2:end);
+        
+        %     arrayfun(@(x) scatter(x,DBSort(x),50,colorsGroup(x,:),'filled'),1:length(DBSort));
+        %     errorbar(@(x) errorbar(x,DBSort(x),CIs(x,1),CIs(x,2),'color',colorsGroup(x,:)),1:length(DBSort));
+        % arrayfun(@(x)
+        
+        
+        setAxis('on');
+        h = bar([DBSort(1:end); DBSort(1:end)]); % do two for now and crop one out
+        hold on
+        for x = 1:length(h)
+            h(x).FaceColor = colorsGroup{x};
+            %errorbar(x,DB(x),CIs(x,1),CIs(x,2));
+        end
+        
+        axis([1.5,2.5,0,max(DBSort(2:end))+0.2])
+        
+        namesGroup = toPlot.info.names;
+        namesSort = namesGroup(idxSort);
+        
+        ylabel({'Separation Statistic-'; 'Inverse Davies Bouldin Index'});
+        set(gca,'XTick',1:numel(namesSort)-1);
+        set(gca,'XTickLabel',' ');
+        
+        saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup_' add{iCompare} '.png']);
+        saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup_' add{iCompare} '.eps'],'psc2');
+        saveas(gcf , [distanceDir filesep  'InverseDBIndexWithGroup_' add{iCompare} '.fig']);
+        save([distanceDir filesep 'pValues_' add{iCompare}],'pValues');
+        close gcf
+    end 
+
+   
     %% 
     
     
@@ -1610,12 +1726,12 @@ if ip.Results.DistMetrics
     
     
     %%
-    names = toPlot.info.names';
-    forCell  = num2cell([DB' Dunn' c1' c2']);
-    values = [names forCell];
-    % cell2dataset(values);
-    discrimValues =cell2table(values);
-    save([distanceDir filesep 'Table_Dunn_DB_C1_C2'],'discrimValues');
+%     names = toPlot.info.names';
+%     forCell  = num2cell([DB' Dunn' c1' c2']);
+%     values = [names forCell];
+%     % cell2dataset(values);
+%     discrimValues =cell2table(values);
+%     save([distanceDir filesep 'Table_Dunn_DB_C1_C2'],'discrimValues');
     
     if ip.Results.PCA
         
