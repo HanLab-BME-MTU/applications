@@ -143,8 +143,13 @@ if ip.Results.calcZ
             diffMetric = ip.Results.diffMetric;
             switch diffMetric
                 case 'perCellZ';
-                    mean = cellfun(@(x) nanmean(nanmean(x)),toPlot.(params{iParam}).dataMat);
-                    std = cellfun(@(x) nanstd(nanstd(x)),toPlot.(params{iParam}).dataMat);
+                   % mean = cellfun(@(x) nanmean(nanmean(x)),toPlot.(params{iParam}).dataMat);
+                   % Calculate the median of the value per movie 
+                   % Calculate the mean of the population 
+                   
+                    mean = cellfun(@(x) nanmean(nanmean(x)),toPlot.(params{iParam}).dataMat); 
+                   % Calculate the standard deviation in the values 
+                    std = cellfun(@(x) nanstd(nanmean(x)),toPlot.(params{iParam}).dataMat);
                     mean = real(mean);
                     std = real(std);
                     
@@ -177,15 +182,22 @@ if ip.Results.calcZ
         names = toPlot.info.names(2:end);
     end
     
-    colorMap = HeatMap(forHeatMap,'RowLabels',params,'ColumnLabels',names,...
-        'colormap','redbluecmap','ColumnLabelsRotate',45,'DisplayRange',70,'Symmetric',1);
-    save(['colorMap_' ip.Results.diffMetric],'colorMap');
+    %colorMap = HeatMap(forHeatMap,'RowLabels',params,'ColumnLabels',names,...
+      %  'colormap','redbluecmap','ColumnLabelsRotate',45,'DisplayRange',70,'Symmetric',1);
+   % save(['colorMap_' ip.Results.diffMetric],'colorMap');
     %   saveas(gcf,'SummaryFigure.png');
     %   saveas(gcf,'SummaryFigure.fig');
     %   saveas(gcf,'SummaryFigure.eps','psc2');
     
+    data = mat2dataset(forHeatMap,'ObsNames',params,'varNames',names); 
+    export(data,'file',[ip.Results.OutputDirectory filesep 'dataToCluster.csv']);
+    ClusterObj = clustergram(forHeatMap,'ColorMap','redbluecmap','RowLabels',params,'ColumnLabels',names,'Dendrogram',{'','default'});
+    save([ip.Results.OutputDirectory filesep 'ClusterObj.mat'],'ClusterObj');
+   
+    sortedLabels = get(ClusterObj,'ColumnLabels'); 
     
-    clustergram(forHeatMap,'ColorMap','redbluecmap','RowLabels',params,'ColumnLabels',names);
+    GCAGroupAnalysisGroupPlots(toPlot,'order', sortedLabels,'Interactive',false,'OutputDirectory',ip.Results.OutputDirectory)
+    
     
 end  % split movie
 end
