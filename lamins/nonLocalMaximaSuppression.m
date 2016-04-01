@@ -18,14 +18,14 @@ function [ nlms ] = nonLocalMaximaSuppression( rotationResponse, theta , suppres
 
 nO = size(rotationResponse,3);
 
-if(nargin < 2)
+if(nargin < 2 || isempty(theta))
     % default value is the rotation planes correspond to angles that
     % equally divide pi
     theta = 0:nO-1;
     theta = theta*pi/nO;
     %TODO: allow for theta of different sizes
 end
-if(nargin < 3)
+if(nargin < 3 || isempty(suppressionValue))
     suppressionValue = 0;
 end
 % if(nargin < 4)
