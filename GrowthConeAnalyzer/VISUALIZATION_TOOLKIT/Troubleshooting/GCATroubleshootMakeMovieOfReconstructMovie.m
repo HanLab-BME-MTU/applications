@@ -27,6 +27,8 @@ ip.addParameter('outDirType','perFrame');
 
 ip.addParameter('figFiles',true); 
 ip.addParameter('epsFiles',true); 
+
+ip.addParameter('makeMovies',true); 
 ip.parse(varargin{:});
 %% Initiate 
 
@@ -119,14 +121,15 @@ copyfile([ip.Results.InputDirectory filesep 'params.mat'],[saveDir filesep 'para
 load([ip.Results.InputDirectory filesep 'params.mat']); 
 copyfile([ip.Results.InputDirectory  filesep 'params.mat'],[saveDir filesep 'paramsRec.mat']); 
 
-
-execute = ['ffmpeg -r 1 -i ' saveDir filesep '%03d.png' ...
-    ' -b 2000k ' saveDir filesep 'ReconstructMovie' num2str(frames(iFrame),'%03d') '.wmv'];
-system(execute);
-
-execute = ['ffmpeg -r 1 -i ' saveDir filesep '%03d.png' ...
-    ' -b 2000k ' saveDir filesep 'ReconstructMovie' num2str(frames(iFrame),'%03d') '.mp4'];
-system(execute);
+if ip.Results.makeMovies
+    execute = ['ffmpeg -r 1 -i ' saveDir filesep '%03d.png' ...
+        ' -b 2000k ' saveDir filesep 'ReconstructMovie' num2str(frames(iFrame),'%03d') '.wmv'];
+    system(execute);
+    
+    execute = ['ffmpeg -r 1 -i ' saveDir filesep '%03d.png' ...
+        ' -b 2000k ' saveDir filesep 'ReconstructMovie' num2str(frames(iFrame),'%03d') '.mp4'];
+    system(execute);
+end
 end 
 
 
