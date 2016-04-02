@@ -17,8 +17,10 @@ ip.addParameter('clearOldFields',false);
 ip.addParameter('splitMovie',false);
 ip.addParameter('splitFrame', 62);  % last frame you want to include
 ip.addParameter('OutputDirectory',pwd);
-ip.addParameter('MeasurementFolder','MEASUREMENT_EXTRACTION'); 
+ip.addParameter('MeasurementFolder','SegmentationPackage/StepsToReconstructTestingGeometry20160205/GCAMeasurementExtraction_test20160221/WholeNeurite'); 
 ip.addParameter('perFrame',false); % will collect the median value per frame 
+
+ip.addParameter('filterOutlierBranchParameters',true); 
  
 ip.parse(toPlot,varargin{:});
 %%
@@ -87,6 +89,68 @@ for iGroup = 1:nGroups
             % collect the data for each parameter.
             load([localParamFiles{iParam,2} filesep localParamFiles{iParam,1}]);
             
+            if ip.Results.filterOutlierBranchParameters
+            
+            if strcmpi(paramNamesC{iParam},'branchOrientation_2ndOrder') 
+             %% Add a quick fix for some of the problems with Branch Orientation and 
+                    badMeas = cellfun(@(x) x > 165,measC,'uniformoutput',0); % for now assume that any measurement larger than
+                    % 165 is likely a bad orientation calculation due to
+                    % the backtracing bug
+                    badFrames = find(cellfun(@(x) sum(x~=0),badMeas));
+                    
+                    if  ~isempty(badFrames)
+                        save([localParamFiles{iParam,2} filesep 'bugBranchOrientGreaterThan165.mat'],'badFrames')
+                        display('badFrames found'); 
+                        % filter out the problems 
+                        measC =  cellfun(@(x,y) x(~y),measC,badMeas,'uniformoutput',0);
+                        
+                        inDir = [MD.outputDirectory_ filesep '/SegmentationPackage/StepsToReconstructTestingGeometry20160205/' ...
+                            'VII_filopodiafits_geoThreshEmbed_0pt5/Channel_1'];
+                        
+                        
+                        measToPlot{1} = 'branchOrientation_2ndOrder';
+                        GCAVisualsMakeMeasurementMovieWithSub(MD,'interactive',false, ...
+                            'measurements',measToPlot,...
+                            'MeasurementDir',parameterDir,...
+                            'InputDirectory',inDir,'frames',badFrames,'plotText',true);
+                      
+                         
+%                          GCATroubleshootMakeMovieOfReconstructMovie(MD,'InputDirectory',...
+%                                 inDir,'OutputDirectory',localParamFiles{iParam,2},'frames',badFrames);
+                        
+                        
+                    end % badFrames 
+                    
+            
+            end % strcmpi 'branchOrientation_2ndOrder' 
+            
+            if strcmpi(paramNamesC{iParam},'branchDensity_2ndOrder')
+                badMeas2 = cellfun(@(x) x > 100,measC,'uniformoutput',0);
+                badFrames2 = find(cellfun(@(x) sum(x~=0),badMeas2));
+                if ~isempty(badFrames2)
+                    save([localParamFiles{iParam,2} filesep 'bugBranchDensityGreaterThan100.mat'],'badFrames2')
+                    
+                    inDir = [MD.outputDirectory_ filesep '/SegmentationPackage/StepsToReconstructTestingGeometry20160205/' ...
+                        'VII_filopodiafits_geoThreshEmbed_0pt5/Channel_1'];
+                    
+                    % filter out the problems
+                    measC = cellfun(@(x,y) x(~y), measC,badMeas2,'uniformoutput',0);
+                    
+                    measToPlot{1} = 'branchDensity_2ndOrder';
+                    
+                    GCAVisualsMakeMeasurementMovieWithSub(MD,'interactive',false, ...
+                        'measurements',measToPlot,...
+                        'MeasurementDir',parameterDir,...
+                        'InputDirectory',inDir,'frames',badFrames2,'plotText',true,...
+                        'ColorByValue', false );
+%                     
+%                     GCATroubleshootMakeMovieOfReconstructMovie(MD,'InputDirectory',...
+%                         inDir,'OutputDirectory',localParamFiles{iParam,2},'frames',badFrames2);
+                    
+                end
+            end % branch Density 2nd order
+                
+            end  % filterOutlierBranchParameters
             if ip.Results.splitMovie == true
                 
                 % currently assumes only splitting movie in two pool these
@@ -112,6 +176,14 @@ for iGroup = 1:nGroups
                         measC{idx(i)} = NaN;
                     end
                     
+                    
+                   
+                    
+                    
+                    
+                    %% 
+                    
+                    
                     valuesCell = cellfun(@(x) nanmedian(x), measC,'uniformoutput',0); % take the median per frame 
                     valuesCell = vertcat(valuesCell{:}); 
                     % for now always truncate from 1:119 
@@ -123,6 +195,9 @@ for iGroup = 1:nGroups
             
             
         end
+        
+       
+        
     end
     %     % collect params and reformat
     paramsAll  = fieldnames(dataSetGroup);
