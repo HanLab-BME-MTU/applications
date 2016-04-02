@@ -59,6 +59,9 @@ ip.addParameter('ChannelIndex',1);
 ip.addParameter('ProcessIndex',0);
 ip.addParameter('Rewrite',false); 
 
+ip.addParameter('MainMovie',false); % flag to make the output for the 
+% primary visualizations (all ext filo color coded by length); 
+
 ip.parse(varargin{:});
 p = ip.Results;
 
@@ -133,6 +136,7 @@ for iCh = 1:nChan
 %% Start formatting analInput (SubRegional analInput first)
 
 if ip.Results.SubRegionFlag
+    
     analInput(1).filterType = 'ConnectToVeil_LengthInt'; 
     analInput(1).paramFunc{1} = 'filoLength'; 
     analInput(1).paramName{1} = 'filoLengthToVeil'; 
@@ -171,6 +175,17 @@ if ip.Results.SubRegionFlag
     
     
 else
+    
+    if ip.Results.MainMovie 
+        
+        analInput(1).filterType = 'Validation';
+        analInput(1).paramFunc{1} = 'filoLength'; 
+        analInput(1).paramName{1} = 'ForMainMovie'; 
+        x.filoPart = 'Ext_'; 
+        x.outPercent = false; 
+        analInput(1).paramInput{1} = x; 
+    else 
+    
     %% Whole Neurite Measurements
     %% Filter I 'ConnectToVeil_LengthInt' : Veil Measurements that require good fitting (Length and Intensity)  
     
@@ -277,7 +292,7 @@ else
        analInput(4).paramFunc{2} =  'filoDensityAlongBranch';
        analInput(4).paramName{2} = 'branchDensity_2ndOrder';
        analInput(4).paramInput{2} = [];
-   
+    end % ip.Results.MainMovie 
 end
 %% Wrap through for each analysis type
 for iAnalType = 1:length(analInput);
