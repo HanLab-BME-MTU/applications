@@ -12,10 +12,10 @@ function [imageData, dataProperties] = read3dFISH(varargin)
 % p.addOptional('history', '', @ischar);
 
 if nargin == 0
-    [fileName,pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack');
+    [fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack');
 else
     pathName = varargin{1};
-    [fileName,pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack', pathName);
+    [fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack', pathName);
 end
 
 % Try to store and retrieve path history in a better way
