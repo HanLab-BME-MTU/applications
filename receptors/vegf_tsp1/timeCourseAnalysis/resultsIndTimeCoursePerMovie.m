@@ -108,11 +108,13 @@ end
             diffCoefMeanPerClass(i) = mean(trajDiffCoef(indxClass));
         end
         ampMeanPerClass(5) = nanmean(ampMeanPerTraj(isnan(trajClass)));
+        
 
         %amplitude statistics in first 20 frames
         ampVec = ampMat(:,1:min(20,numFrames));
         ampVec = ampVec(~isnan(ampVec));
-        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 16],2,[],1,[],0);
+        maxGaussians = min(16,numel(ampVec)-3);
+        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 maxGaussians],2,[],1,[],0);
         numMode = size(modeParam,1);
         modeParamMean = modeParam(1,1);
         modeParamStd  = modeParam(1,2);
@@ -126,7 +128,8 @@ end
         %amplitude statistics in last 20 frames
         ampVec = ampMat(:,max(1,end-19):end);
         ampVec = ampVec(~isnan(ampVec));
-        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 16],2,[],1,[],0);
+        maxGaussians = min(16,numel(ampVec)-3);
+        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 maxGaussians],2,[],1,[],0);
         numMode = size(modeParam,1);
         modeParamMean = modeParam(1,1);
         modeParamStd  = modeParam(1,2);
@@ -139,7 +142,8 @@ end
 
         %amplitude statistics in first frame directly from detection
         ampVec = movieInfoFrame1.amp(:,1);
-        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 16],2,[],1,[],0);
+        maxGaussians = min(16,numel(ampVec)-3);
+        [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 maxGaussians],2,[],1,[],0);
         numMode = size(modeParam,1);
         modeParamMean = modeParam(1,1);
         modeParamStd  = modeParam(1,2);
