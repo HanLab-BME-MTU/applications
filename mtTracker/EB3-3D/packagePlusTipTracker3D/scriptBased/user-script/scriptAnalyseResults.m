@@ -174,13 +174,15 @@ for k=1:length(aMovieListArray)
         
         % speed
         st=MD.timeInterval_;
-        speed=arrayfun(@(t) mean(sum(( [sx*t.x(1:end-1),sx*t.y(1:end-1),sz*t.z(1:end-1)]- ... 
-                                 [sx*t.x(2:end),  sx*t.y(2:end),  sz*t.z(2:end)  ]).^2).^0.5/st) ,tracks);
+        speed=arrayfun(@(t) nanmedian(nansum(([sx*t.x(1:end-1);sx*t.y(1:end-1);sz*t.z(1:end-1)]-[sx*t.x(2:end);  sx*t.y(2:end);  sz*t.z(2:end)]).^2).^0.5),tracks);
+
+%         speed=arrayfun(@(t) mean(sum(( [sx*t.x(1:end-1),sx*t.y(1:end-1),sz*t.z(1:end-1)]- ... 
+%                                  [sx*t.x(2:end),  sx*t.y(2:end),  sz*t.z(2:end)  ]).^2).^0.5/st) ,tracks);
         meanSpeed(k,i)=nanmean(speed);       
     end
 end
 % meanSpeed(2,1)=NaN;
-'filled'
+% 'filled'
 % meanLength(2,1)=NaN;
 
 %% plot results
