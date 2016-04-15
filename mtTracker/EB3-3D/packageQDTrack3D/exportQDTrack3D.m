@@ -13,11 +13,13 @@ copyfile(tracksFolder,[versionPath filesep 'code' filesep '@Tracks']);
 tracksFolder=fileparts(which('kalmanInitLinearMotion'));
 copyfile(tracksFolder,[versionPath filesep 'code' filesep 'trackWithGapClosing']);
 tracksFolder=fileparts(which('asymDeterm2D3D'));
-copyfile(tracksFolder,[versionPath filesep 'code' filesep 'trackWithGapClosing']);
+copyfile(tracksFolder,[versionPath filesep 'code' filesep 'asymDeterm2D3D']);
 tracksFolder=fileparts(which('TracksHandle'));
 copyfile(tracksFolder,[versionPath filesep 'code' filesep '@TracksHandle']);
 tracksFolder=fileparts(which('TracksStruct'));
 copyfile(tracksFolder,[versionPath filesep 'code' filesep '@TracksStruct']);
+tracksFolder=fileparts(which('lap.m'));
+copyfile(tracksFolder,[versionPath filesep 'code' filesep 'linearAssignment']);
 
 copyfile(which('normalizeTracks'),[versionPath filesep 'code']);
 
