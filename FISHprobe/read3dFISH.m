@@ -11,6 +11,12 @@ function [imageData, dataProperties] = read3dFISH(varargin)
 % p = inputparser;
 % p.addOptional('history', '', @ischar);
 
+autoloadBioFormats = 1;
+% load the Bio-Formats library into the MATLAB environment
+status = bfCheckJavaPath(autoloadBioFormats);
+assert(status, ['Missing Bio-Formats library. Either add bioformats_package.jar '...
+    'to the static Java path or add it to the Matlab path.']);
+
 if nargin == 0
     [fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack');
 else
