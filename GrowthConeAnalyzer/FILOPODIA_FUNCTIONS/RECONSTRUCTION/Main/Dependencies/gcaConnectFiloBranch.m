@@ -878,7 +878,7 @@ if sum(testMatch) ~= 0 ;
                 
                 testMask(pixGoodConnect{idxEndOnAttach(iEndon)}) = 1; % get the links
                 testMask(filoInfo(labelsEndon(iEndon)).Ext_pixIndicesBack) =1;
-                % testMask(filoInfo(labelsEndon(iEndon)).Ext_pixIndicesFor(1,1)) =1; % 20141017 : MAINLY DUE TO THIS PIECE HERE I THINK
+                % testMask(filoInfo(labelsEndon(iEndon)).Ext_pixIndicesFor(1,1)) =1; % 20141017 : MAINLY DUE TO THIS PIECE HERE I K
                 % THIS WAS NOT THE ACTUAL PIX USED FOR THE ENDPOINT..just the
                 % pixIndicesBack should techically be sufficient.
                 % if this connection introduces points of intersection it is
@@ -1089,21 +1089,25 @@ if sum(testMatch) ~= 0 ;
                 
                 testMask(pixGoodConnect{idxFiloAttach(iFilo)})=1;
                 testMask = logical(testMask);
-                testMask = bwmorph(testMask,'thin','inf'); % thin to avoid junctions that might be made upon the linkage
+                % the quickest fix here would be to not thin if it removes
+                % all junctions all together 20160409 ... 
+                testMask2 = bwmorph(testMask,'thin','inf'); % thin to avoid junctions that might be made upon the linkage
                 
                 % attempt to fix  20141105 -test for more than one junction if more
                 % than one spur
-                nn = padarrayXT(double(testMask~=0), [1 1]);
+                nn = padarrayXT(double(testMask2~=0), [1 1]);
                 sumKernel = [1 1 1];
                 nn = conv2(sumKernel, sumKernel', nn, 'valid');
-                nn1 = (nn-1) .* (testMask~=0);
+                nn1 = (nn-1) .* (testMask2~=0);
                 junctTest = nn1>2;
                 CCJunct = bwconncomp(junctTest);
+                
                 if CCJunct.NumObjects >1
-                    testMask = bwmorph(testMask,'spur');
+                    testMask = bwmorph(testMask2,'spur');
                     % add back the end point
                     testMask(yEP,xEP) = 1;
-                    
+                elseif CCJunct.NumObjects == 1 
+                    testMask = testMask2; % else don't thin the test mask if it gets rid of all the junctions...                     
                 end
                 
                 % MARIA COME BACKE TO THIS! sometimes here still have small junctions that are
