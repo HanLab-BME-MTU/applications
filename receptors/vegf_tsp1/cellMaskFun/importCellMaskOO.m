@@ -40,7 +40,7 @@ maskProc.setOutFilePaths(outFilePaths);
 for i = p.ChannelIndex
     
     %Ask user where cell mask is currently stored
-    [fileName,filePath,filterIndx] = uigetfile('*.tif',['Cell mask file for Channel ' num2str(i) ' of Movie ' movieData.movieDataFileName_(1:end-4)]);
+    [fileName,filePath,filterIndx] = uigetfile('*.tif',['Cell mask file for Channel ' num2str(i) ' of Movie ' movieData.movieDataFileName_(1:end-4)],movieData.roiMaskPath_);
     
     %save cell mask file and its original location
     if filterIndx == 0
