@@ -53,11 +53,11 @@ for chaNum = 1:numel(dataProperties.channel)
                 [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z]);
             
             patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z], 'odd', 'inf');
-            dataProperties.FILTERPRM = [FT_XY, FT_XY, FT_Z, patchXYZ];
-            dataProperties.FT_SIGMA = [FT_XY, FT_XY, FT_Z];
+            dataProperties.channel(chaNum).FILTERPRM = [FT_XY, FT_XY, FT_Z, patchXYZ];
+            dataProperties.channel(chaNum).FT_SIGMA = [FT_XY, FT_XY, FT_Z];
             
             for nucNum = 1:numel(nucleiStruc)
-                nucStack = nucleiStruc(nucNum).green;
+                nucStack = nucleiStruc(nucNum).red;
                 nucStack = filtermovie(nucStack, dataProperties.channel(chaNum).FILTERPRM, 0);
                 
                 spots = spotFindSingleNuc(nucStack, dataProperties.channel(chaNum));
@@ -68,9 +68,11 @@ for chaNum = 1:numel(dataProperties.channel)
         otherwise
             error('Unknown channels detected')
     end
-    
-    spotsPlot3(nucleiStruc, imageData, dataProperties);
+   
+end
 
+    spotsPlot3(nucleiStruc, imageData, dataProperties);
+    
 end
 
 
@@ -215,3 +217,4 @@ for t = 1:tsteps
     clear FXX FXY FXZ FYX FYY FYZ FZX FZY FZZ
     
 end;
+end

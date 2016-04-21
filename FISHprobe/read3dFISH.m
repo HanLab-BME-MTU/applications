@@ -1,4 +1,4 @@
-function [imageData, dataProperties] = read3dFISH(varargin)
+function [imageData, dataProperties] = read3dFISH()
 %READ3DFISH Reads microscope images and give imagedata 3D stach with data
 %properties
 %   Input(optional): pathName
@@ -17,16 +17,24 @@ status = bfCheckJavaPath(autoloadBioFormats);
 assert(status, ['Missing Bio-Formats library. Either add bioformats_package.jar '...
     'to the static Java path or add it to the Matlab path.']);
 
-if nargin == 0
-    [fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack');
-else
-    pathName = varargin{1};
-    [fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack', pathName);
+
+% load history
+if ~isdeployed
+    historyFile = fullfile( fileparts(mfilename('fullpath')),'imagePathHistory.mat' );
+    if exist(historyFile, 'file')
+        history = load(historyFile);
+    end
 end
 
-% Try to store and retrieve path history in a better way
-save pathName pathName
+pathName = history.pathName;
+[fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack', pathName);
 
+% save history
+if ~isdeployed
+    historyFile = fullfile(fileparts( mfilename('fullpath') ), 'imagePathHistory.mat' );
+    save( historyFile, 'pathName' );
+end
+    
 dataFilePath = fullfile( pathName, fileName );
 MD = MovieData.load(dataFilePath);
 % reader = MD.getReader();

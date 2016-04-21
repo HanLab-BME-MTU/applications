@@ -20,6 +20,7 @@ for chaNum = 1:numel(dataProperties.channel)
                     plot(xCord, yCord,'r+');
                 end
             end
+            set(gcf,'Name','Green Channel Spots Detection');
             
         case 'red'
             figure,imshow(max(imageData.red,[],3),[])
@@ -31,6 +32,7 @@ for chaNum = 1:numel(dataProperties.channel)
                     plot(xCord, yCord,'r+');
                 end
             end
+            set(gcf,'Name','Red Channel Spots Detection');
             
         otherwise
             error('Unknown channels detected')
