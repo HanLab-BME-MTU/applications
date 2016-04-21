@@ -1,4 +1,4 @@
-function importCellMaskOO(movieData,varargin)
+function importCellMaskOO(processOrMovieData,varargin)
 %importCellMask imports a previously-defined cell mask to movieData
 %
 %Khuloud Jaqaman, March 2015
@@ -10,17 +10,12 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('movieData', @(x) isa(x,'MovieData'));
 ip.addOptional('paramsIn',[], @isstruct);
-ip.parse(movieData,varargin{:});
+ip.parse(processOrMovieData,varargin{:});
 paramsIn = ip.Results.paramsIn;
 
-%Get the indices of any previous cell mask import process                                                                        
-%If the process doesn't exist, create it
-iProc = movieData.getProcessIndex('ImportCellMaskProcess',1,0);
-if isempty(iProc)
-    iProc=numel(movieData.processes_)+1;
-    movieData.addProcess(ImportCellMaskProcess(movieData));
-end
-maskProc = movieData.processes_{iProc};
+% Use new API to allow the Process to be passed directly
+[movieData, maskProc] = getOwnerAndProcess(processOrMovieData,'ImportCellMaskProcess',true);
+
 
 %Parse input, store in parameter structure
 p = parseProcessParams(maskProc,paramsIn);
