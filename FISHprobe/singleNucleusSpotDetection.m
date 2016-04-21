@@ -1,15 +1,15 @@
-function [nucleiStruc] = singleNucleusSpotDetection(nucleiStruc, dataProperties, varargin)
+function [nucleiStruc, dataProperties] = singleNucleusSpotDetection(nucleiStruc, dataProperties, imageData, varargin)
 %singleNucleusSpotDetection detects spots from each multi-channel 3D stack
 %of single nucleus
 %   Detailed explanation goes here
 
-% 03/2016 Ning
+% 04/2016 Ning
 
 % p = inputParser;
 % p.CaseSensitive = false;
 % p.addRequired( 'imInput', @(x) ( ismember( ndims(x), [2,3] ) ) );
 % p.parse();
-% parse the input dataProperties!!!
+% parse the input dataProperties!!! (No empty input)
 
 
 % Define dataProperties parameters
@@ -19,43 +19,59 @@ function [nucleiStruc] = singleNucleusSpotDetection(nucleiStruc, dataProperties,
 % Code borrowed and modified from 
 % /home2/nzhang/matlab/applications/FISHprobe/Spots/detect/defaultDataProperties.m
 
-Cha = input('Enter the channel for spots detection (red or green) > ', 's');
-
-switch Cha
-    case 'red'
-        WVL = dataProperties.redWVL;
-    case 'green'
-        WVL = dataProperties.greenWVL;
-end    
-
-
-[FT_XY, FT_Z] = calcFilterParms(WVL, dataProperties.NA, ...
-    dataProperties.refractiveIndex, 'gauss', dataProperties.sigmaCorrection, ...
-    [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z]);
-
-patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z], 'odd', 'inf');
-dataProperties.FILTERPRM = [FT_XY, FT_XY, FT_Z, patchXYZ];
-dataProperties.FT_SIGMA = [FT_XY, FT_XY, FT_Z];
-
-for nucNum = 1:size(nucleiStruc, 2)
-    nuc.dapi = nucleiStruc(nucNum).dapi;
-    nuc.red = nucleiStruc(nucNum).red;
-    nuc.green = nucleiStruc(nucNum).green;
-    
-    switch Cha
+for chaNum = 1:numel(dataProperties.channel)
+    chaName = dataProperties.channel(chaNum).name;
+    switch chaName
+        case 'dapi'
+            continue;
+            
+        case 'green' 
+            greenWVL = dataProperties.channel(chaNum).emissionWavelength;
+            [FT_XY, FT_Z] = calcFilterParms(greenWVL, dataProperties.NA, ...
+                            dataProperties.refractiveIndex, 'gauss', ...
+                            dataProperties.sigmaCorrection, ...
+                            [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z]);
+            % FT_XY vs psfsigma value from bioformat reader??
+            patchXYZ = roundOddOrEven(4*[FT_XY FT_XY FT_Z], 'odd', 'inf');
+            dataProperties.channel(chaNum).FILTERPRM = [FT_XY, FT_XY, FT_Z, patchXYZ];
+            dataProperties.channel(chaNum).FT_SIGMA = [FT_XY, FT_XY, FT_Z];
+            
+            for nucNum = 1:numel(nucleiStruc)
+                nucStack = nucleiStruc(nucNum).green;
+                nucStack = filtermovie(nucStack, dataProperties.channel(chaNum).FILTERPRM, 0);
+                
+                spots = spotFindSingleNuc(nucStack, dataProperties.channel(chaNum));
+                nucleiStruc(nucNum).greenSpot = spots.sp;
+                
+            end
+            
         case 'red'
-            nucStack = nuc.red;
-        case 'green'
-            nucStack = nuc.green;
-    end    
-    nucStack = filtermovie(nucStack, dataProperties.FILTERPRM, 0);
-
-    spots = spotFindSingleNuc(nucStack, dataProperties);
-    nucleiStruc(nucNum).spot = spots.sp;
+            redWVL = dataProperties.channel(chaNum).emissionWavelength;
+            [FT_XY, FT_Z] = calcFilterParms(redWVL, dataProperties.NA, ...
+                dataProperties.refractiveIndex, 'gauss', ...
+                dataProperties.sigmaCorrection, ...
+                [dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z]);
+            
+            patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z], 'odd', 'inf');
+            dataProperties.FILTERPRM = [FT_XY, FT_XY, FT_Z, patchXYZ];
+            dataProperties.FT_SIGMA = [FT_XY, FT_XY, FT_Z];
+            
+            for nucNum = 1:numel(nucleiStruc)
+                nucStack = nucleiStruc(nucNum).green;
+                nucStack = filtermovie(nucStack, dataProperties.channel(chaNum).FILTERPRM, 0);
+                
+                spots = spotFindSingleNuc(nucStack, dataProperties.channel(chaNum));
+                nucleiStruc(nucNum).redSpot = spots.sp;
+                
+            end
+            
+        otherwise
+            error('Unknown channels detected')
+    end
     
-%     spotsPlot3(nucleiStruc, singleChannel3D)
-end
+    spotsPlot3(nucleiStruc, imageData, dataProperties);
 
+end
 
 
 function spots = spotFindSingleNuc(fImg, dataProperties)
@@ -161,7 +177,7 @@ for t = 1:tsteps
     % Choose qualified spots number based on mnp value
     [mnpSorted,sortIdx] = sort(mnp(1:ct-1,t),1,'descend');
     
-    % Plot cumulative histogram for mnp
+%     % Plot cumulative histogram for mnp
 %     LM = zeros(size(mnpSorted,1),1);
 %     for i = 1:size(LM)
 %         LM(i) = size(mnpSorted,1)-i+1;

@@ -52,37 +52,28 @@ end
 dataProperties.sigmaCorrection=[1 1];
 
 
+for i = 1:numel(MD.channels_)
+    prompt = sprintf('Enter the name (dapi, green or red) of channel %d > ', i);
+    dataProperties.channel(i).name = input(prompt,'s');
+    channel = MD.getChannel(i);
+    dataProperties.channel(i).emissionWavelength = channel.emissionWavelength_/1000;
+    dataProperties.channel(i).excitationWavelength = channel.excitationWavelength_/1000;
+    dataProperties.channel(i).psfSigma = channel.psfSigma_;
+    % Get frame size of a single channel then load 3D stack for all frames
+    nFrameCha = channel.getReader().getSizeT;
+    
+    % How to use input value as new variable name?
+    switch dataProperties.channel(i).name
+        case 'dapi'
+            imageData.dapi = channel.loadStack(nFrameCha);            
+        case 'green'
+            imageData.green = channel.loadStack(nFrameCha);            
+        case 'red'
+            imageData.red = channel.loadStack(nFrameCha);
+    end
+end
 
-dapiChaIndex = input('Enter the index number (1, 2, 3...) for dapi channel > ');
-dapi = MD.getChannel(dapiChaIndex);
-% Get frame size of a single channel then load 3D stack for all frames
-nFrameDapi = dapi.getReader().getSizeT;
-imageData.dapi = dapi.loadStack(nFrameDapi);
-
-% Figure out which wavelength (excitation or emission) is used for psf size
-% calculation.
-% PSF size is in um
-dataProperties.dapiWVL = dapi.emissionWavelength_/1000;
-
-
-greenChaIndex = input('Enter the index number (1, 2, 3...) for green channel > ');
-green = MD.getChannel(greenChaIndex);
-% Get frame size of a single channel then load 3D stack for all frames
-nFrameGreen = green.getReader().getSizeT;
-imageData.green = green.loadStack(nFrameGreen);
-
-dataProperties.greenWVL = green.emissionWavelength_/1000;
-
-
-redChaIndex = input('Enter the index number (1, 2, 3...) for red channel > ');
-red = MD.getChannel(redChaIndex);
-% Get frame size of a single channel then load 3D stack for all frames
-nFrameRed = red.getReader().getSizeT;
-imageData.red = red.loadStack(nFrameRed);
-
-dataProperties.redWVL = red.emissionWavelength_/1000;
-
-clear MD dapi green red
+% clear
 
 end
 

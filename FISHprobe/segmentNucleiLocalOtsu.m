@@ -175,11 +175,11 @@ threshL(ismember(threshL, CrossBoundaryIndex)) = 0;
 
 % Remove regions with unclosed holes in 3D that cannot be filled with
 % morphological processing
-xyMaxProj = max(threshL,[],3);
-xyMaxProjFilled = imfill(xyMaxProj);
-xyDiff = xyMaxProjFilled - xyMaxProj;
-% How to keep masks with only small holes at the boundary ???
-threshL(ismember(threshL, xyDiff)) = 0;
+% xyMaxProj = max(threshL,[],3);
+% xyMaxProjFilled = imfill(xyMaxProj);
+% xyDiff = xyMaxProjFilled - xyMaxProj;
+% % How to keep masks with only small holes at the boundary ???
+% threshL(ismember(threshL, xyDiff)) = 0;
 
 % yzMaxProj = max(threshL,[],1);
 % yzMaxProjFilled = imfill(yzMaxProj);
