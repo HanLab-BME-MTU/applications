@@ -25,7 +25,7 @@ if(nargin < 2 || isempty(theta))
     theta = theta*pi/nO;
     %TODO: allow for theta of different sizes
 end
-if(nargin < 3 || isempty(suppressionValue))
+if(nargin < 3)
     suppressionValue = 0;
 end
 % if(nargin < 4)

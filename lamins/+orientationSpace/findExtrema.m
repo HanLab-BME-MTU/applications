@@ -59,56 +59,56 @@ function [ out ] = findExtrema( orientationMatrix )
 %     Mcell = distributed(Mcell);
 %     xind = distributed(xind);
 
-    f = getFunction(x,n,options);
-    spmd
-%         cod = codistributor1d(1);
-%         M = codistributed(M,cod);
-%         xind = codistributed(xind,cod);
-% %         f = @(k) orientationDerivWrap(k,x,getLocalPart(M),n);
-% %         offset = getLocalPart(xind);
-% %         out = lsqnonlin(f,offset,offset-0.5,offset+0.5,options);
-% %         size(getLocalPart(M))
-% %         size(getLocalPart(xind))
-%         Ml = getLocalPart(M);
-%         xindl = getLocalPart(xind);
-%         nParts = floor(size(Ml,1)/1024);
-%         out = cell(nParts+1,1);
-%         for i=1:nParts
-%             idx = (1:1024)+(i-1)*1024;
-%             out{i} = f(Ml(idx,:),xindl(idx));
+%     f = getFunction(x,n,options);
+%     spmd
+% %         cod = codistributor1d(1);
+% %         M = codistributed(M,cod);
+% %         xind = codistributed(xind,cod);
+% % %         f = @(k) orientationDerivWrap(k,x,getLocalPart(M),n);
+% % %         offset = getLocalPart(xind);
+% % %         out = lsqnonlin(f,offset,offset-0.5,offset+0.5,options);
+% % %         size(getLocalPart(M))
+% % %         size(getLocalPart(xind))
+% %         Ml = getLocalPart(M);
+% %         xindl = getLocalPart(xind);
+% %         nParts = floor(size(Ml,1)/1024);
+% %         out = cell(nParts+1,1);
+% %         for i=1:nParts
+% %             idx = (1:1024)+(i-1)*1024;
+% %             out{i} = f(Ml(idx,:),xindl(idx));
+% %         end
+% %         out{end} = f(Ml((1+i*1024):end,:),xindl((1+i*1024):end,:));
+% 
+%         cod = codistributor1d(2);
+%         Mcell = codistributed(Mcell,cod);
+%         xindc = codistributed(xindc,cod);
+%         Ml = getLocalPart(Mcell);
+%         xl = getLocalPart(xindc);
+%         out = cell(size(Ml,2),1);
+%         for i=1:size(Ml,2)
+%             out{i} = f(Ml{i},xl{i});
 %         end
-%         out{end} = f(Ml((1+i*1024):end,:),xindl((1+i*1024):end,:));
-
-        cod = codistributor1d(2);
-        Mcell = codistributed(Mcell,cod);
-        xindc = codistributed(xindc,cod);
-        Ml = getLocalPart(Mcell);
-        xl = getLocalPart(xindc);
-        out = cell(size(Ml,2),1);
-        for i=1:size(Ml,2)
-            out{i} = f(Ml{i},xl{i});
-        end
-    end
-
-%     parfor i=1:nM/batchSize
-% %         disp(i);
-% %         offset = xind(i);
-%           offset = xindc{i};
-% %         xxx = wraparoundN(x-offset,-n,n);
-% %         f = @(o) -2*M(i,:)*exp(-(xxx-o).^2)';
-% %         out(i) = fminbnd(f,-0.5,0.5) + x(ind(i));
-% %         f = @(x) orientationDerivWrap(x,xxx,M(i,:));
-%           f = @(k) orientationDerivWrap(k,x,Mcell{i},n);
-% %         out(i) = fsolve(f,0,options)+offset;
-% %         out(i) = fzero(f,0) + offset;
-% %           out(i) = lsqnonlin(f,0,-0.5,0.5,options) + offset;
-%           out{i} = lsqnonlin(f,offset,offset-0.5,offset+0.5,options);
-% %         progressText(i/nM*1024);
 %     end
-%     doIt = getFunction(x,n,options);
-%     out = cellfun(doIt,Mcell,xind,'UniformOutput',false);
-%     out = gather(out);
-%     out = horzcat(out{:});
+
+    parfor i=1:nM/batchSize
+%         disp(i);
+%         offset = xind(i);
+          offset = xindc{i};
+%         xxx = wraparoundN(x-offset,-n,n);
+%         f = @(o) -2*M(i,:)*exp(-(xxx-o).^2)';
+%         out(i) = fminbnd(f,-0.5,0.5) + x(ind(i));
+%         f = @(x) orientationDerivWrap(x,xxx,M(i,:));
+          f = @(k) orientationDerivWrap(k,x,Mcell{i},n);
+%         out(i) = fsolve(f,0,options)+offset;
+%         out(i) = fzero(f,0) + offset;
+%           out(i) = lsqnonlin(f,0,-0.5,0.5,options) + offset;
+          out{i} = lsqnonlin(f,offset,offset-0.5,offset+0.5,options);
+%         progressText(i/nM*1024);
+    end
+    doIt = getFunction(x,n,options);
+    out = cellfun(doIt,Mcell,xind,'UniformOutput',false);
+    out = gather(out);
+    out = horzcat(out{:});
 
 %     function [F,J] = orientationDerivWrapM(k)
 %         [F,J] = orientationDerivWrap(k,x,M,n);
