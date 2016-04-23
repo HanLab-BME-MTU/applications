@@ -13,15 +13,16 @@ function [ M_h, m_h , alpha ] = multiplierFxn( omega, N )
     M_h = @M;
     m_h = @m;
     function v = m(p)
-        v = alpha(1)/sqrt(11)+sqrt(2/11)*alpha(2:end)*cos(2*pi*(1:4)'*p(1:end)/omega);
+        v = alpha(1)/sqrt(N)+sqrt(2/N)*alpha(2:end)*cos(2*pi*(1:4)'*p(1:end)/omega);
         v = reshape(v,size(p));
     end
     function v = M(p,n)
         if(nargin < 2)
             n = 0;
         end
-        v = m(log2(2^(omega*n/N)*p/pi/2));
-        v(p == 0) = 0;
+        n = shiftdim(n(:),-ndims(p));
+        v = m(log2(bsxfun(@times,2.^(omega*n/N),p/pi/2)));
+        v(repmat(p == 0,[1 1 numel(n)])) = 0;
     end
 
 end

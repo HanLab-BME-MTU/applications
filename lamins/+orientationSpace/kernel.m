@@ -14,7 +14,9 @@ function [ filterKernel, radialFilter, angularFilter ] = kernel( f_c, b_f, K, an
 % UT Southwestern
 
     import orientationSpace.*;
-
+if(nargin < 2 || isempty(b_f))
+    b_f = f_c*0.8;
+end
 if(nargin < 3)
     K = 36;
 end
@@ -59,7 +61,7 @@ theta = mod(theta+pi,2*pi)-pi;
 K_f = (f_c / b_f)^2;
 
 % scale frequency
-f_s = f / f_1*
+f_s = f / f_c;
 
 % Equation 3.11
 % Note -(f^2 - f_c^2)/(2*b_f^2) = (1 - (f/f_c)^2)/(2* b_f^2/f_c^2)
