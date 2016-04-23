@@ -61,19 +61,24 @@ ip.addParameter('overwrite',false);
 % Overlay Options 
 ip.addParameter('TSOverlays',true);
 ip.addParameter('ShowFig','off');  % flag to have figure pop up on screen
-
+ip.addParameter('CirclesBeginEnd',false);
+ip.addParameter('plotScaleBar',false)
 
 % Specific Movie Function 
 ip.addParameter('maskFromSmoothedEdge',true);
-ip.addParameter('distFromLeadProt',25); % Distance from leading edge protrusion (in um)
+ip.addParameter('distFromLeadProt',[]); % Distance from leading edge protrusion (in um)
+ip.addParameter('maxCMapValue',10); 
 
 % Specific : GCASubRegionalAutoGrowthConeExtraction
 ip.addParameter('GCFinder',true);
-ip.addParameter('GCFindNeckCutOff',2,@isscalar); % the thicknes cut-off for the veil stem. 
+ip.addParameter('GCFindNeckCutOff',1.5,@isscalar); % the thicknes cut-off for the veil stem. 
 ip.addParameter('GCFindMinLength',5,@isscalar); % the smallest allowed length of a growth cone
-ip.addParameter('GCFindThickPt',1.5,@isscalar); % assumes the local max is at least this thick
+ip.addParameter('GCFindThickPt',2.5,@isscalar); % assumes the local max is at least this thick
 
 ip.addParameter('angle',90); % in degrees- relative to the local direction of the skeleton at the idxPt.
+
+
+
 
 ip.parse(varargin{:});
 params = ip.Results;
@@ -86,7 +91,17 @@ channels = params.ChannelIndex;
 imSize = movieData.imSize_;
 ny = imSize(1);
 nx = imSize(2);
-
+% FIX 
+if strcmpi(ip.Results.StartFrame,'auto');
+    startFrame = 1;
+else
+    startFrame = ip.Results.StartFrame;
+end
+if strcmpi(ip.Results.EndFrame,'auto');
+    endFrame = nFrames;
+else
+    endFrame = ip.Results.EndFrame;
+end
 
 % load the veilStem structure : note this is a very large structure and
 % contains the data for the entire movies - can in the future potentially
@@ -125,7 +140,23 @@ load([ip.Results.InputDirectory filesep 'Channel_' num2str(channels(1)) filesep 
 subNames{1} = 'GC';
 subNames{2} = 'Stem';
 
-subRegDir = ip.Results.OutputDirectory;
+% Tentative portion for file names for testing - include if GC Finder on
+% and params 
+if ~ip.Results.GCFinder
+forName = ''; 
+else 
+
+  pn{1} = ['_NeckW_' num2str(ip.Results.GCFindNeckCutOff)]  ;   
+  pn{2} = ['_MinL_' num2str(ip.Results.GCFindMinLength) ] ; 
+  pn{3} = ['_ThickPt_' num2str(ip.Results.GCFindThickPt) ] ; 
+  
+  pn = cellfun(@(x)  strrep(x,'.','pt'),pn,'uniformoutput',0); 
+    
+forName = ['GCFinder' horzcat(pn{:}) ]; 
+end 
+
+subRegDir = [ip.Results.OutputDirectory forName];
+
 if ~isdir(subRegDir)
     run = 1 ;
 end
@@ -133,6 +164,8 @@ end
 if ip.Results.overwrite
     run = 1;
 end
+
+
 
 
 
@@ -157,7 +190,7 @@ if run == 1
      end
     
     %% Loop
-    for iFrame = 1:nFrames
+    for iFrame =startFrame:endFrame
         % load the longest path linear coordinates for the given frame
         nLPC = veilStem(iFrame).neuriteLongPathIndices;
         if ip.Results.maskFromSmoothedEdge == true
@@ -177,7 +210,7 @@ if run == 1
         else
             measIndices = nLPC;
         end
-        [ subRois,xVect,yVect,pixelInfoGC,defineGCPlot,idxCMap,cmap,distTransInMicGC ] =  GCASubRegionalAutoGrowthConeExtraction(measIndices,veilStemC,... 
+        [ subRois,xVect,yVect,pixelInfoGC,defineGCPlot,idxCMap,cmap,distTransInMicGC,GCDetect ] =  GCASubRegionalAutoGrowthConeExtraction(measIndices,veilStemC,... 
             'maxDistProfile', maxDistProfile, params);
         
         
@@ -244,7 +277,22 @@ if run == 1
                 idxMax = idxMax(1);
                 
                 gcaCircles(xMax,yMax,distAtMaxPix,'facecolor','none','edgeColor',cmap(idxCMap(idxMax,1),:));
+                
+                if ip.Results.CirclesBeginEnd
+                    dist1 = distTransInMicGC(1)./0.216;
+                    gcaCircles(plotX(1),plotY(1),dist1,'facecolor','none','edgeColor',cmap(idxCMap(1,1),:));
+                   
+                    distEnd = distTransInMicGC(end)./0.216;
+                    gcaCircles(plotX(end),plotY(end),distEnd,'facecolor','none','edgeColor',cmap(idxCMap(end,1),:));
+                end
+                
                 scatter(xMax,yMax,50,'k');
+                
+                if ip.Results.plotScaleBar 
+                      pixSizeMic = movieData.pixelSize_/1000; 
+                      width  = ip.Results.maxCMapValue./pixSizeMic; 
+                      plotScaleBar(width,2,'Location','SouthWest','Color',[0 0 0]);  
+                end 
                 
                 %     measIndicesMask = zeros(ny,nx);
                 %     measIndicesMask(measIndices) = 1;
@@ -261,7 +309,7 @@ if run == 1
         % add the timestamp and save the parameters 
         params.timeStamp = clock; 
         p(iFrame) = params; 
-        save([ip.Results.OutputDirectory filesep 'params.mat'],'p'); 
+        save([subRegDir filesep 'params.mat'],'p'); 
     end
     
     
