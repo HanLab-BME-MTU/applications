@@ -1,4 +1,4 @@
-function [ subRoisOut,xVect,yVect,pixelInfoGC,defineGCPlot,idxCMap,cmap,distTransInMicGC,params] = GCASubRegionalAutoGrowthConeExtraction(frontPixelInfo,roiMask,varargin)
+function [ subRoisOut,xVect,yVect,pixelInfoGC,defineGCPlot,idxCMap,cmap,distTransInMicGC,params,GCDetect] = GCASubRegionalAutoGrowthConeExtraction(frontPixelInfo,roiMask,varargin)
 %GCAgetGrowthConeSubRegions: This function makes a front subregion to the growth cone
 % finding the largest distance transform along a line of pixels from the
 % veil/stem estimated (calculated in previous step), finding the local
@@ -72,9 +72,12 @@ ip.addParameter('GCFindMinLength',5,@isscalar); % the smallest allowed length of
 ip.addParameter('GCFindThickPt',1.5,@isscalar); % assumes the local max is at least this thick
 
 ip.addParameter('vectLength',4,@isscalar);
-ip.addParameter('angle',45,@isscalar);
+ip.addParameter('angle',90,@isscalar);
 
 ip.addParameter('ShowFig','off'); 
+ip.addParameter('maxCMapValue',10); % in um
+
+
 ip.addParameter('maxDistProfile',10); 
  
 ip.parse(frontPixelInfo,roiMask,varargin{:});
@@ -95,6 +98,7 @@ end
 
 defineGCPlot = []; 
 idxCMap = []; 
+ 
 %% % useThickestPoint =1;
 % if useThickestPoint == 1;
 %     thickestPt = max(frontPixelInfo(:,2));
@@ -109,7 +113,7 @@ idxCMap = [];
 % FOR THE GC FINDER Fix Later 
 % 
 %% 
-if GCFinder;
+
    % Get the distance values along the pixels
 [~,~,distToPlot] = calculateDistance(frontPixelInfo(:,1),[ny,nx]); 
 % convert to xy coords 
@@ -120,94 +124,118 @@ distTransInMic = distTransInMic(frontPixelInfo(:,1));
 distTransInMic = distTransInMic(1:end-1)';
 distToPlotInMic = distToPlot.*0.216; % make a variable
 
-
-    paramNeckCutOff = ip.Results.GCFindNeckCutOff; % in um % MAKE INPUT
-    
-    paramMinGCLength = ip.Results.GCFindMinLength; 
-    
-    paramMinGCThickestPt  = ip.Results.GCFindThickPt; 
-     
-    % create spline
-    sd_spline= csaps(double(distToPlotInMic),double(distTransInMic));
-    
-    %Find the location of extrema
-    extrema = fnzeros(fnder(sd_spline));
-    
-    extrema = extrema(1,:); % remove the intervals
-    
-    extrema = extrema((extrema ~= ... %These will always be at first or last breaks in spline
-        sd_spline.breaks(1)) & (extrema ~= sd_spline.breaks(end)));
-    sd = ppval(sd_spline,distToPlotInMic);
-    sdExt=ppval(sd_spline,extrema);
-    
-    %  test = fnval(fnder(sd_spline,2),extrema);
-    %Determine whether each extrema is maximum or minimum
-    isMax = fnval(fnder(sd_spline,2),extrema) < 0;
-    % initiate GCLength 
-    %GCLength=0;
-    toPlotExt = [extrema(isMax)',sdExt(isMax)']; 
-    
-    
-    finalTest = isMax & sdExt>paramMinGCThickestPt ;
-    
-    GCLengthC =0;
-    % iterate until you find a GC length that meets the GC length
-    % requirement
-    while GCLengthC<paramMinGCLength
-        
-    %Find the first maximum that meets GC thickness requirement
-    iBackMax = find(finalTest,1,'first');
-   
-    distFirstMax = extrema(iBackMax) ;
-    
-    % find all lengths of GC that are greater than the first max meeting
-    % the paramGCThickestPt criteria and the paramNeckCutOff
-    % potentialGCLengths = distToPlotInMic(distTransInMic<paramNeckCutOff & distToPlotInMic>distFirstMax);
-    
-    idxNeck = find(distTransInMic<paramNeckCutOff & distToPlotInMic>distFirstMax,1,'first');
-    idxPt = idxNeck; % point for subRegions. 
-    % test to make sure meets the paramMinGCLength criteria
-     
-    % make sure the point found is long enough along the distance
-    GCLengthC = distToPlotInMic(idxNeck);
-    finalTest= finalTest(iBackMax+1:end); % take out the previous maximum
-    extrema = extrema(iBackMax+1:end);
-    end
-    
-      % initiate the colormap (% make default)
+  % initiate the colormap (% make default)
               cmap = jet(128);
               
               % get the average velocity values for all the windows in the current frame
               % and assign a color based on the the mapper.
               plotValues = double(distTransInMic)'; 
               
-              mapper=linspace(0,10,128)'; % 
+              mapper=linspace(0,ip.Results.maxCMapValue,128)'; % 
               D=createDistanceMatrix(plotValues,mapper);
               [sD,idxCMap]=sort(abs(D),2);
-    
- 
-    % find the first GC length > paramMinGCLength
-    % GCLength = potentialGCLengths(find(potentialGCLengths>paramMinGCLength,1,'first'));
-    %idxNeck = find(distToPlotInMic == GCLength);
-    %idxNeck =  find(distTransInMic<paramNeckCutOff & distToPlotInMic>distFirstMax,1,'first');
-    
-    
+
+
+              if GCFinder;
+                  
+                  paramNeckCutOff = ip.Results.GCFindNeckCutOff; % in um % MAKE INPUT
+                  
+                  paramMinGCLength = ip.Results.GCFindMinLength;
+                  
+                  paramMinGCThickestPt  = ip.Results.GCFindThickPt;
+                  
+                  % create spline
+                  sd_spline= csaps(double(distToPlotInMic),double(distTransInMic));
+                  
+                  %Find the location of extrema
+                  extrema = fnzeros(fnder(sd_spline));
+                  
+                  extrema = extrema(1,:); % remove the intervals
+                  
+                  extrema = extrema((extrema ~= ... %These will always be at first or last breaks in spline
+                      sd_spline.breaks(1)) & (extrema ~= sd_spline.breaks(end)));
+                  sd = ppval(sd_spline,distToPlotInMic);
+                  sdExt=ppval(sd_spline,extrema);
+                  
+                  %  test = fnval(fnder(sd_spline,2),extrema);
+                  %Determine whether each extrema is maximum or minimum
+                  isMax = fnval(fnder(sd_spline,2),extrema) < 0;
+                  % initiate GCLength
+                  %GCLength=0;
+                  toPlotExt = [extrema(isMax)',sdExt(isMax)'];
+                  
+                  
+                  finalTest = isMax & sdExt>paramMinGCThickestPt ;
+                 if sum(finalTest)~=0
+                      
+                      GCLengthC =0;
+                      % iterate until you find a GC length that meets the GC length
+                      % requirement
+                      while GCLengthC<paramMinGCLength
+                          
+                          %Find the first maximum that meets GC thickness requirement
+                          iBackMax = find(finalTest,1,'first');
+                          
+                          distFirstMax = extrema(iBackMax) ;
+                          
+                          % find all lengths of GC that are greater than the first max meeting
+                          % the paramGCThickestPt criteria and the paramNeckCutOff
+                          % potentialGCLengths = distToPlotInMic(distTransInMic<paramNeckCutOff & distToPlotInMic>distFirstMax);
+                          
+                          idxNeck = find(distTransInMic<paramNeckCutOff & distToPlotInMic>distFirstMax,1,'first');
+                          idxPt = idxNeck; % point for subRegions.
+                          % test to make sure meets the paramMinGCLength criteria
+                          
+                          % make sure the point found is long enough along the distance
+                          GCLengthC = distToPlotInMic(idxNeck);
+                          finalTest= finalTest(iBackMax+1:end); % take out the previous maximum
+                          extrema = extrema(iBackMax+1:end);
+                      end
+                      GCDetect =true; 
+                 else 
+                     display('No GC Found');
+                     GCDetect =false;
+                      
+                      % find the first GC length > paramMinGCLength
+                      % GCLength = potentialGCLengths(find(potentialGCLengths>paramMinGCLength,1,'first'));
+                      %idxNeck = find(distToPlotInMic == GCLength);
+                      %idxNeck =  find(distTransInMic<paramNeckCutOff & distToPlotInMic>distFirstMax,1,'first');
+                      
+                      %     idxPt =find(distTransInMic == thickestPt);
+                      idxPt = length(frontPixelInfo)-1; % use the end of the input data
+                      pixelInfoGC = frontPixelInfo;
+                      idxNeck = idxPt; 
+                      
+                      
+                 end 
+                  else % idxPt defaults to the thickest point
+                      
+                      
+                      %     thickestPt = max(distTransInMic);
+                      %     idxPt =find(distTransInMic == thickestPt);
+                      idxPt = length(frontPixelInfo)-1; % use the end of the input data
+                      pixelInfoGC = frontPixelInfo;
+                      idxNeck = idxPt;
+                
+                
+              end % if GCfinder
     %idxPt = find(GC == max(GC));
     %idxPt = idxNeck;
-      
+%% Make Plot      
     defineGCPlot = setAxis(ip.Results.ShowFig); 
     
     % plot the parmaters for the growth cone defition.
     hold on 
-    line([paramMinGCLength,paramMinGCLength], [0 10],'color','k','linewidth',2,'LineStyle','--'); 
-    text(paramMinGCLength+0.1,5,['GC Length Greater Than' num2str(paramMinGCLength)]);
-    hold on 
-    line([0,ip.Results.maxDistProfile], [paramNeckCutOff,paramNeckCutOff],'color','k','linewidth',2); 
-    
-    hold on 
-    line([0,ip.Results.maxDistProfile],[paramMinGCThickestPt,paramMinGCThickestPt],'color','k','linewidth',2,'LineStyle','--'); 
-     text(12.5,paramMinGCThickestPt+0.1,['Local Max : Greater than ' num2str(paramMinGCThickestPt)]); 
-    % Plot Events Selected 
+    if ip.Results.GCFinder && GCDetect 
+        line([paramMinGCLength,paramMinGCLength], [0 10],'color','k','linewidth',2,'LineStyle','--');
+        text(paramMinGCLength+0.1,5,['GC Length Greater Than' num2str(paramMinGCLength)]);
+        hold on
+        line([0,ip.Results.maxDistProfile], [paramNeckCutOff,paramNeckCutOff],'color','k','linewidth',2,'LineStyle',':');
+        line([0,ip.Results.maxDistProfile],[paramMinGCThickestPt,paramMinGCThickestPt],'color','k','linewidth',2,'LineStyle','-');
+        text(12.5,paramMinGCThickestPt+0.1,['Local Max : Greater than ' num2str(paramMinGCThickestPt)]);
+    end
+     
+     % Plot Events Selected 
               for iColor = 1:length(cmap)
                  if ~isempty(plotValues(idxCMap(:,1)==iColor));
                  scatter(distToPlotInMic(idxCMap(:,1)==iColor),distTransInMic(idxCMap(:,1)==iColor),50,cmap(iColor,:),'filled'); 
@@ -215,14 +243,27 @@ distToPlotInMic = distToPlot.*0.216; % make a variable
               end
 
      %sdExt=ppval(sd_spline,extrema);
-     scatter(toPlotExt(:,1),toPlotExt(:,2),50,'k','x'); 
+     % plot the local maximum found for troubleshooting
+     if ip.Results.GCFinder && GCDetect
+         scatter(toPlotExt(:,1),toPlotExt(:,2),50,'k','x');
+     end
+     
+     
+    scatter(distToPlotInMic(idxNeck),distTransInMic(idxNeck),100,'filled','k');
+    if ip.Results.GCFinder
+        plot(distToPlotInMic,sd,'k');
+    end
     
     
+    if     ip.Results.GCFinder
+        line([distToPlotInMic(idxNeck),distToPlotInMic(idxNeck)],[0,10],'color','k','Linewidth',4);
+    end
     
-    scatter(distToPlotInMic(idxNeck),distTransInMic(idxNeck),'k');
-    plot(distToPlotInMic,sd,'k');
-    line([distToPlotInMic(idxNeck),distToPlotInMic(idxNeck)],[0,10],'color','k','Linewidth',2);
+    scatter(distToPlotInMic(idxNeck),distTransInMic(idxNeck),100,'filled','k','MarkerEdgeColor','w');
     
+    if ~GCDetect
+      title('No GC Detected');  
+    end
     
     ylabel({'Shortest Distance' ; 'to Veil/ Stem Edge' ; '(um)'});
     xlabel({'Distance Along Neurite Length Path' ;' From Tip of Leading Protrusion ';'(um)'});
@@ -230,12 +271,7 @@ distToPlotInMic = distToPlot.*0.216; % make a variable
     angle = 90;
     pixelInfoGC = frontPixelInfo(1:idxNeck,:);
     distTransInMicGC = distTransInMic(:,1:idxNeck)'; 
-else % idxPt defaults to the thickest point
-%     thickestPt = max(distTransInMic);
-%     idxPt =find(distTransInMic == thickestPt);
-  idxPt = length(frontPixelInfo); % use the end of the input data 
-  pixelInfoGC = [];
-end   % if isemptyGC finder
+
 %% MAKE THE PRIMARY GROWTH CONE MASK
 
 % get the indices surrounding the vector: length of this is user defined
