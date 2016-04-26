@@ -1,4 +1,4 @@
-function [nucleiStruc, dataProperties] = spotsDetection3D()
+function [nucleiStruc, dataProperties, mask, imageData] = spotsDetection3D()
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
