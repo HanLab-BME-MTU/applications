@@ -23,16 +23,17 @@ if ~isdeployed
     historyFile = fullfile( fileparts(mfilename('fullpath')),'imagePathHistory.mat' );
     if exist(historyFile, 'file')
         history = load(historyFile);
+        pathName = history.pathName;
+        [fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack', pathName);
+    else
+        [fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack');
     end
-end
-
-pathName = history.pathName;
-[fileName, pathName] = uigetfile(bfGetFileExtensions, 'Select the file contaning multichannel 3D stack', pathName);
 
 % save history
-if ~isdeployed
-    historyFile = fullfile(fileparts( mfilename('fullpath') ), 'imagePathHistory.mat' );
-    save( historyFile, 'pathName' );
+    if ~isempty(pathName) && all(pathName ~= 0)
+        historyFile = fullfile(fileparts( mfilename('fullpath') ), 'imagePathHistory.mat' );
+        save( historyFile, 'pathName' );
+    end
 end
     
 dataFilePath = fullfile( pathName, fileName );

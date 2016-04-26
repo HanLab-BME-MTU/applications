@@ -14,6 +14,7 @@ p.addOptional('flagDebugMode', 1, @isnumeric);
 p.parse(imInput, dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z, ...
         dataProperties.imSize, dataProperties.nDepth, varargin{:})
 
+% Check dataProperties and make sure none of those parameters are zero
 imInput = p.Results.imInput;
 pixelSizeXY = p.Results.pixelSizeXY;
 pixelSizeZ = p.Results.pixelSizeZ;
