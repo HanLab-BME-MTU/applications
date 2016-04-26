@@ -23,6 +23,7 @@ classdef OrientationSpaceResponse < handle
         res
         nms
         nlms
+        nlms_mip
         theta
         a
         NMS
@@ -73,6 +74,10 @@ classdef OrientationSpaceResponse < handle
             nlms = obj.cache.nlms;
         end
         
+        function nlms_mip = get.nlms_mip(obj)
+            nlms_mip = max(real(obj.nlms),[],3) + 1j*max(abs(imag(obj.nlms)),[],3);
+        end
+        
         % Orientation, defaults to best orientation from basis
         function set.theta(obj,theta)
             obj.cache.theta = theta;
@@ -116,7 +121,7 @@ classdef OrientationSpaceResponse < handle
             end
             nlms = nonLocalMaximaSuppression(A,theta, suppressionValue);
         end
-        
+               
         function A = getAngularGaussians(obj)
             if(isempty(obj.angularGaussians))
                 N = obj.n;
@@ -305,6 +310,15 @@ classdef OrientationSpaceResponse < handle
             if(~holdState)
                 hold off;
             end
+        end
+        function A = getArraySpace(obj,varargin)
+            % Useful if using a multiscale filter array
+            % Concatenate along the next available dimension
+            d = ndims(obj(1).a)+1;
+            A = cat(d,obj.a);
+            sA = size(A);
+            A = reshape(A,[sA(1:d-1) size(obj)]);
+            A = A(varargin{:});
         end
     end
     

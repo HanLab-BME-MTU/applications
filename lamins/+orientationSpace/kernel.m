@@ -59,7 +59,7 @@ theta = mod(theta+pi,2*pi)-pi;
 K_f = (f_c / b_f)^2;
 
 % scale frequency
-f_s = f / f_c;
+f_s = f / f_1*
 
 % Equation 3.11
 % Note -(f^2 - f_c^2)/(2*b_f^2) = (1 - (f/f_c)^2)/(2* b_f^2/f_c^2)

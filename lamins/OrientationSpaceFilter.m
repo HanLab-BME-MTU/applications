@@ -47,6 +47,11 @@ classdef OrientationSpaceFilter < handle
     
     methods
         function obj = OrientationSpaceFilter(f_c,b_f,K)
+            if(isempty(b_f))
+                % Set the bandwidth to be 0.8 of the central frequency by
+                % default
+                b_f = 0.8 * f_c;
+            end
             obj.f_c = f_c;
             obj.b_f = b_f;
             obj.K = K;
@@ -131,6 +136,14 @@ classdef OrientationSpaceFilter < handle
             obj.F(abs(obj.F) < tol) = 0;
         end
         function E = getEnergy(obj)
+            if(~isscalar(obj))
+                E = complex(zeros(numel(obj),obj(1).n),0);
+                for o=1:numel(obj)
+                    E(o,:) = obj(o).getEnergy();
+                end
+                E = reshape(E,[size(obj) obj(1).n]);
+                return;
+            end
             requireSetup(obj);
             s = size(obj.F);
             F = reshape(obj.F,s(1)*s(2),s(3));

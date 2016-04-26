@@ -8,6 +8,8 @@ function [ response, theta, nms, angularResponse, angularLocalMaxima  ] = steera
 % f_c: maximum frequency for the radial filter
 % b_f: frequency bandwidth for the radial filter
 % K: number of rotation angles through 360 degrees
+% nn: number of rotation filter bank samples, default: n 
+% n: number of rotation points, usually 2K+1
 
 % Mark Kittisopikul, August 22nd, 2015
 % Jaqaman Lab

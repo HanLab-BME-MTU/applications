@@ -22,7 +22,7 @@ I = double(I);
 I = imfilter(I,fspecial('gaussian',10,2));
 I = imnoise(I,'gaussian',0,noise);
 
-[v.res, v.theta, v.nms, v.a] = steerableOrientationSpaceFilter(I,0.05,0.04,3,180);
+[v.res, v.theta, v.nms, v.a] = steerableOrientationSpaceFilter(I,0.08,[],5,180);
 % [v.res, v.theta, v.nms, v.a] = steerableDetector(I,4,5,256);
 nlms = nonLocalMaximaSuppression(real(v.a));
 T = thresholdOtsu(nlms(nlms > 0));
