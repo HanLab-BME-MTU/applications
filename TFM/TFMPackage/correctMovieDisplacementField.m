@@ -72,7 +72,7 @@ if ~displFieldCalcProc.checkChannelOutput
         'Please calculate displacement field to all needed channels before '...
         'running force field calculation!'])
 end
-
+displParams = displFieldCalcProc.funParams_;
 inFilePaths{1} = displFieldCalcProc.outFilePaths_{1};
 displFieldCorrProc.setInFilePaths(inFilePaths);
 
@@ -99,7 +99,7 @@ end
 firstMask=refFrame>0;
 %% --------------- Displacement field calculation ---------------%%% 
 
-disp('Starting correctiong displacement field...')
+disp('Starting correcting displacement field...')
 % Anonymous functions for reading input/output
 displField=displFieldCalcProc.loadChannelOutput;
 
@@ -123,11 +123,16 @@ for j= 1:nFrames
     displField(j).vec=dispMat(:,3:4);
 
     if ~isempty(p.outlierThreshold)
-        outlierIndex = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
-        %displField(j).pos(outlierIndex,:)=[];
-        %displField(j).vec(outlierIndex,:)=[];
-        dispMat(outlierIndex,3:4)=NaN;
-        
+        if displParams.useGrid
+            if j==1
+                disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
+            end
+        else
+            outlierIndex = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
+            %displField(j).pos(outlierIndex,:)=[];
+            %displField(j).vec(outlierIndex,:)=[];
+            dispMat(outlierIndex,3:4)=NaN;
+        end
         % I deleted this part for later gap-closing
         % Filter out NaN from the initial data (but keep the index for the
         % outliers)
@@ -158,7 +163,7 @@ end
 
 % Here, if nFrame>1, we do inter- and extrapolation of displacement vectors
 % to prevent sudden, wrong force field change.
-if nFrames>1
+if nFrames>1 && ~displParams.useGrid
     disp('Performing displacement vector gap closing ...')
     % Depending on stage drift correction, some beads can be missed in certain
     % frames. Now it's time to make the same positions for all frames
@@ -199,6 +204,10 @@ if nFrames>1
             tj=toc;
             waitbar(k/nPoints,wtBar,sprintf([logMsg timeMsg(tj*(nPoints-k)/k)]));
         end
+    end
+else
+    if displParams.useGrid
+        disp('In previous step, PIV was used, which does not require the current gap closing step. skipping...')
     end
 end
 

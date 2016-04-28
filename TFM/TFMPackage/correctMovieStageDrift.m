@@ -98,61 +98,8 @@ refFrame = double(imread(p.referenceFramePath));
 croppedRefFrame = imcrop(refFrame,p.cropROI);
 
 % Detect beads in reference frame
-p.doSubPixReg = false;
+p.doSubPixReg = true;
 beadsChannel = movieData.channels_(p.ChannelIndex(1));
-if p.doSubPixReg
-    disp('Determining PSF sigma from reference frame...')
-    % % psfSigma = beadsChannel.psfSigma_;
-    % if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-    %     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-    %     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-    %     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-    % else
-    %     error('image type should be chosen among Widefield, confocal and TIRF!');
-    % end
-
-<<<<<<< HEAD
-    % Adaptation of psfSigma from bead channel image data
-    psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
-    disp(['Determined sigma: ' num2str(psfSigma)])
-=======
-% Adaptation of psfSigma from bead channel image data
-psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
-if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3  
-    if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-        psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-        psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-        psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-    else
-        error('image type should be chosen among Widefield, confocal and TIRF!');
-    end
-    disp(['PSF sigma could not be determined by data due to abnormal distribution. Determined sigma using microscope setting: ' num2str(psfSigma)])
-else
-    disp(['Determined sigma: ' num2str(psfSigma)])
-end
->>>>>>> b80d9acc3a0e4756f3dd76fb6d5f3efff59b4252
-
-    assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
-        'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
-        'as well as the pixel size and numerical aperture of the movie']);
-
-    disp('Detecting beads in the reference frame...')
-    pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
-    beads = [pstruct.x' pstruct.y'];
-
-    % Select only beads  which are minCorLength away from the border of the
-    % cropped reference frame
-    beadsMask = true(size(croppedRefFrame));
-    erosionDist=ceil((p.minCorLength+1+floor(p.maxFlowSpeed))/2);
-    beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-    indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
-    beads(indx,:)=[];
-    assert(size(beads,1)>=20, ['Insufficient number of detected beads (less than 20): current number: ' num2str(length(beads)) '.']);
-end
 
 stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');
@@ -177,7 +124,7 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     
     selfCorr = normxcorr2(croppedRefFrame,refFrame);
 %     selfCorr = normxcorr2(preRegTemplate,croppedRefFrame);
-    [~ , imax] = max(abs(selfCorr(:)));
+    [maxAutoScore , imax] = max(abs(selfCorr(:)));
     [rowPosInRef, colPosInRef] = ind2sub(size(selfCorr),imax(1));
 
     if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
@@ -186,16 +133,20 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
         % the current image:
         xCorr  = normxcorr2(croppedRefFrame,stack(:,:,j));%imcrop(stack(:,:,j),p.cropROI));
 %         xCorr  = normxcorr2(preRegTemplate,imcrop(stack(:,:,j),p.cropROI));
-        [~ , imax] = max(abs(xCorr(:)));
-        [rowPosInCurr, colPosInCurr] = ind2sub(size(xCorr),imax(1));
-        
-        % The shift is thus:
-        rowShift = rowPosInCurr-rowPosInRef;
-        colShift = colPosInCurr-colPosInRef;
-        
-        % and the Transformation is:
-        preT(j,:)=-[rowShift colShift];
-        
+        [maxXScore , imax] = max(abs(xCorr(:)));
+        if maxXScore/maxAutoScore<0.3
+            % this means the position roi-ed is wrong. skipping ..
+            preT(j,:)=[0 0];
+        else
+            [rowPosInCurr, colPosInCurr] = ind2sub(size(xCorr),imax(1));
+
+            % The shift is thus:
+            rowShift = rowPosInCurr-rowPosInRef;
+            colShift = colPosInCurr-colPosInRef;
+
+            % and the Transformation is:
+            preT(j,:)=-[rowShift colShift];
+        end        
         % Update the waitbar
         if mod(j,5)==1 && ishandle(wtBar)
             tj=toc;
@@ -232,9 +183,57 @@ else
     preT=zeros(nFrames,2);
 end
 
+if p.doSubPixReg
+    disp('Determining PSF sigma from reference frame...')
+    % % psfSigma = beadsChannel.psfSigma_;
+    % if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+    %     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+    %     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+    % elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+    %     psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+    % else
+    %     error('image type should be chosen among Widefield, confocal and TIRF!');
+    % end
+
+    % Adaptation of psfSigma from bead channel image data
+    psfSigma = getGaussianPSFsigmaFromData(refFrame,'Display',false);
+    if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3  
+        if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+            psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+        elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+            psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+        elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+            psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+        else
+            error('image type should be chosen among Widefield, confocal and TIRF!');
+        end
+        disp(['PSF sigma could not be determined by data due to abnormal distribution. Determined sigma using microscope setting: ' num2str(psfSigma)])
+    else
+        disp(['Determined sigma: ' num2str(psfSigma)])
+    end
+
+    assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
+        'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
+        'as well as the pixel size and numerical aperture of the movie']);
+
+    disp('Detecting beads in the reference frame...')
+    pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
+    beads = [pstruct.x' pstruct.y'];
+
+    % Select only beads  which are minCorLength away from the border of the
+    % cropped reference frame
+    beadsMask = true(size(croppedRefFrame));
+    erosionDist=ceil((p.minCorLength+1+floor(p.maxFlowSpeed))/2);
+    beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+    indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
+    beads(indx,:)=[];
+    assert(size(beads,1)>=10, ['Insufficient number of detected beads (less than 10): current number: ' num2str(length(beads)) '.']);
+end
+
 % Initialize transformation array
 T=zeros(nFrames,2);
-
+minNumVectors = 10;
 if p.doSubPixReg
     disp('Calculating subpixel-wise registration...')
     logMsg = 'Please wait, performing sub-pixel registration';
@@ -255,8 +254,22 @@ if p.doSubPixReg
         %Sylvain. Here we take simply the median of the determined flow
         %vectors. We take the median since it is less distorted by outliers.
         finiteFlow  = ~isinf(delta(:,1));
-        T(j,:)=-nanmedian(delta(finiteFlow,2:-1:1),1);
-        
+        nonNanFlow = ~isnan(delta(:,1));
+        % If there is only few flow tracked and the distribution is
+        % non-normal, we have to discard this tracking
+        numTrackedVectors = sum(nonNanFlow);
+        numAllVectors = length(nonNanFlow);
+        if numTrackedVectors>minNumVectors && numTrackedVectors/numAllVectors>0.5 
+            hNormal= kstest(delta(nonNanFlow,2));
+            if hNormal
+                T(j,:)=-nanmedian(delta(finiteFlow,2:-1:1),1);
+            else            
+                disp(['The ' num2str(numTrackedVectors) ' tracked vectors are non-normal. Assigning zeros in ' num2str(j) 'th frame...'])
+            end
+        else            
+            disp(['There are only ' num2str(numTrackedVectors) ' tracked vectors among ' ...
+                num2str(numAllVectors) ' total vectors. Assigning zeros in ' num2str(j) 'th frame...'])
+        end
         % Remove infinite flow and save raw displacement under [pos1 pos2] format
         % into image coordinate system
         flow{j} = [beads(finiteFlow,2:-1:1) beads(finiteFlow,2:-1:1)+delta(finiteFlow,2:-1:1)];

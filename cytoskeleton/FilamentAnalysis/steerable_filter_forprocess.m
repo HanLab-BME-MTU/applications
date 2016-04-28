@@ -65,14 +65,22 @@ if (indexFilamentPackage>0)
 end
 
 if (~exist(ImageSteerableFilterProcessOutputDir,'dir'))
-    mkdir(ImageSteerableFilterProcessOutputDir);
+    try
+        mkdir(ImageSteerableFilterProcessOutputDir);
+    catch
+        system(['mkdir -p ' ImageSteerableFilterProcessOutputDir]);
+    end
 end
 
 
 for iChannel = selected_channels
     ImageSteerableFilterChannelOutputDir = [ImageSteerableFilterProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(ImageSteerableFilterChannelOutputDir,'dir'))
-        mkdir(ImageSteerableFilterChannelOutputDir);
+        try
+            mkdir(ImageSteerableFilterChannelOutputDir);
+        catch
+            system(['mkdir -p ' ImageSteerableFilterChannelOutputDir]);
+        end
     end
     
     output_dir_content = dir(fullfile([ImageSteerableFilterChannelOutputDir,filesep,'*.*']));
@@ -135,7 +143,11 @@ for iChannel = selected_channels
     display(['Start steerable filtering in Channel ',num2str(iChannel)]);
     
     if (~exist([ImageSteerableFilterChannelOutputDir,filesep,'NMS'],'dir'))
-        mkdir(ImageSteerableFilterChannelOutputDir,'NMS');
+        try
+            mkdir(ImageSteerableFilterChannelOutputDir,'NMS');
+        catch
+            system(['mkdir -p ' ImageSteerableFilterChannelOutputDir filesep 'NMS']);
+        end
     end
     
     for iFrame_subsample = 1 : length(Frames_to_Seg)

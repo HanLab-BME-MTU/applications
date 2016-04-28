@@ -36,6 +36,10 @@ if ~isempty(iSDCProc)
     T = s.T;
     maxX = ceil(max(abs(T(:, 2))));
     maxY = ceil(max(abs(T(:, 1))));
+else
+    T = zeros(nFrames,2);
+    maxX = ceil(max(abs(T(:, 2))));
+    maxY = ceil(max(abs(T(:, 1))));
 end
 % make stack of transforms
 % for k=1:nFrames
@@ -57,6 +61,7 @@ firstForceField = forceField(1).pos;
 numNodes =length(firstForceField);
 splineParam = 0.01;
 progressText(0,'Vector adjusting')
+filterWindow=3;
 tRange = 1:nFrames;
 for ii=1:numNodes
     % get the vector for entire time series
@@ -64,7 +69,6 @@ for ii=1:numNodes
     curVecY = arrayfun(@(x) x.vec(ii,2),forceField);
     % Smooth these out first
 
-    filterWindow=3;
     curVecX_med = medfilt1(curVecX,filterWindow);
     curVecY_med = medfilt1(curVecY,filterWindow);
     curVecX_spline= csaps(tRange,curVecX_med,splineParam);
@@ -111,6 +115,9 @@ save(forceFieldProc.outFilePaths_{1},'forceField');
 
 %% make traction map
 iDisplFieldProc =MD.getProcessIndex('DisplacementFieldCorrectionProcess',1,0);     
+if isempty(iDisplFieldProc)
+    iDisplFieldProc =MD.getProcessIndex('DisplacementFieldCalculationProcess',1,0);     
+end
 displFieldProc=MD.processes_{iDisplFieldProc};
 displField=displFieldProc.loadChannelOutput;
 display('Backing up existing traction map...')

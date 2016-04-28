@@ -60,7 +60,8 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
                     s=load(obj.outFilePaths_{3,1},'flow');
                     data=s.flow;
                 else
-                    data=imread(obj.funParams_.referenceFramePath);
+%                     data=imread(obj.funParams_.referenceFramePath);
+                    data=imread(obj.outFilePaths_{2,1});
                 end
                 
                 if ~isempty(outputList(iOutput).formatData),

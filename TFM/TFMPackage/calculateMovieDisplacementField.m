@@ -284,7 +284,7 @@ for j= firstFrame:nFrames
         % Erode the mask with the correlation length + half maxFlowSpeed
         % and filter beads to minimize error
         if p.noFlowOutwardOnBorder
-            erosionDist=(p.minCorLength+1)/2;
+            erosionDist=(p.minCorLength+1);
         else
             erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
         end            
