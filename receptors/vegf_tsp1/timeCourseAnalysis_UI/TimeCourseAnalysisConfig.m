@@ -22,7 +22,7 @@ function varargout = TimeCourseAnalysisConfig(varargin)
 
 % Edit the above text to modify the response to help TimeCourseAnalysisConfig
 
-% Last Modified by GUIDE v2.5 18-Dec-2015 19:17:19
+% Last Modified by GUIDE v2.5 26-Jan-2016 11:42:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -112,9 +112,10 @@ else
     set(handles.channelTable,'data',varargin{3});
 end
 
-
-    
-
+% Retrieve list of available cluster profiles and append to menu
+profiles = parallel.clusterProfiles;
+set(handles.batchmenu,'String',...
+    [get(handles.batchmenu,'String') ; profiles']);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -181,6 +182,8 @@ handles.p.detectOutliers_k_sigma = get(handles.detectOutliers,'Value') ...
 handles.p.channels = find([handles.p.channelTable{:,1}]);
 handles.p.channelNames = handles.p.channelTable(:,2);
 handles.p.showPlots = get(handles.showPlots,'Value');
+menuOptions = get(handles.batchmenu,'String');
+handles.p.batchClusterName = menuOptions{get(handles.batchmenu,'Value')};
 guidata(handles.figure1, handles);
 uiresume(handles.figure1);
 % Go to TimeCourseAnalysisConfig_OutputFcn
@@ -246,3 +249,26 @@ function showPlots_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of showPlots
+
+
+% --- Executes on selection change in batchmenu.
+function batchmenu_Callback(hObject, eventdata, handles)
+% hObject    handle to batchmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns batchmenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from batchmenu
+
+
+% --- Executes during object creation, after setting all properties.
+function batchmenu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to batchmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

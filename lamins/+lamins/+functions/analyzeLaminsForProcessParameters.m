@@ -13,6 +13,7 @@ function [ ip ] = analyzeLaminsForProcessParameters( ip )
         ip.addParameter('tz',[]);
         ip.addParameter('clearOutputDir',false,@islogical);
         ip.addParameter('plot',true,@islogical);
+        ip.addParameter('output',[]);
 
 end
 

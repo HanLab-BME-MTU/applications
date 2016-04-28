@@ -8,7 +8,7 @@ function [ignoreList] = exportCode(masterList, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('masterList');
-ip.addOptional('destPath', []);
+ip.addOptional('destPath', [],@ischar);
 ip.addParamValue('IncludeSources', false, @islogical);
 ip.addParamValue('AddList', []); % path to sources, header files etc.
 ip.addParamValue('IgnoreList', []);

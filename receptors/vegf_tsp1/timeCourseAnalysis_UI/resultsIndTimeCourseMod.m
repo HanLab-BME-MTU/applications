@@ -1,4 +1,4 @@
-function [caseResSummary] = resultsIndTimeCourseMod(ML, saveFile, channels)
+function [caseResSummary] = resultsIndTimeCourseMod(ML, saveFile, channels, redoPerMovieAnalysis)
 %RESULTSINDTIMECOURSEMOD compiles the results of a group of movies making one or multiple timecourse datasets and orders them based on time
 %
 %SYNOPSIS [caseResSummary] = resultsIndTimeCourseMod(ML,caseParam)
@@ -53,5 +53,9 @@ if nargin < 3
     channels = [];
 end
 
+if nargin < 4
+    redoPerMovieAnalysis = true;
+end
+
 % mkitti: merged into resultsIndTimeCourse
-[~,caseResSummary] = resultsIndTimeCourse(ML,[],saveFile,channels,true,'none');
+[~,caseResSummary] = resultsIndTimeCourse(ML,[],saveFile,channels,redoPerMovieAnalysis,'none');

@@ -37,7 +37,8 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %                         frames.
 %                         Rows as above.
 %                         Columns = mean, first mode mean, first mode std,
-%                         first mode fraction, number of modes, normalized
+%                         first mode fraction, second mode fraction,
+%                         fraction of modes > 3, number of modes, normalized
 %                         mean.
 %       .ampStatsL20    : Amplitude statistics for particles in last 20
 %                         frames.
@@ -59,8 +60,8 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %   varargin        : name_value pair
 %
 %       showPartitionAnalysis   : logical determining if .partitionFrac will
-%                                be shown or not. Can be 0 or 1. If true,
-%                                must have data.partitionFrac
+%                                 be shown or not. Can be 0 or 1. If true,
+%                                 must have data.partitionFrac
 %       smoothingPara           : parameter used for smoothing spline fit
 %       nBootstrp               : number of bootstrap data sets to use for
 %                                 bootstrap analysis for standard error
@@ -228,11 +229,11 @@ defCond = { ...
     , 'sub-diffusive' ... % 8
     };
 ampLabels = { ...
-    'Fluorescence Amplitude Overall (a.u.)' ... % 1
-    ,'First Mode Mean (a.u.)', 'First Mode Std (a.u.)' ... % 2
-    , 'First Mode Fraction' ... % 3
-    , 'Number of Modes' ... % 4
-    ,'Normalized Fluorescence Amplitude Overall (monomer units)' ... % 5
+    'Fluorescence Amplitude Overall (a.u.)', ... % 1
+    'First Mode Mean (a.u.)', 'First Mode Std (a.u.)', ... % 2, 3
+    'Fraction Mode 1', 'Fraction Mode 2', 'Fraction Modes > 2', ... % 4, 5, 6
+    'Number of Modes', ... % 7
+    'Normalized Fluorescence Amplitude Overall (monomer units)' ... % 8
     };
 
 commonInfo.defCond = defCond;
@@ -267,10 +268,9 @@ calcFigure({data.ampClass}', 'Fluorescence Amplitude', ...
     defCond(1:5), 'Intensity (arbitrary units)');
 calcFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ... 
     defCond(1:5), 'Normalized intensity (monomer units)');
-calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ...
-    ampLabels, '');
-calcFigure({data.ampStatsL20}', 'Last 20 Frames - ', ...
-    ampLabels, '');
+calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ampLabels, '');
+calcFigure({data.ampStatsL20}', 'Last 20 Frames - ' , ampLabels, '');
+calcFigure({data.ampStatsF01}', 'First Frame Detection - ', ampLabels, '');
 
 calcFigure({data.rateMS}', 'M & S Rate', {'merging', 'splitting'}, '(per frame per particle)');
 calcFigure({data.msTimeInfo}', 'M & S Time Information', ...
@@ -308,7 +308,7 @@ pause(1);
 fprintf('\b Complete\n');
 
 %% Nested function for plotting
-% Splits data structure elements by columns and sotre information for
+% Splits data structure elements by columns and sorts information for
 % plotting
 %In other words, converts subData which is cell array of arrays into cell
 %array of columns.
@@ -344,7 +344,7 @@ else
 
 [commonInfo.analysisTimes, timeLimit, commonInfo.timeLimitIndx] = timeCourseAnalysis.getAnalysisTimes(commonInfo.times,params.timeResolution);
     
-% Computer standard error
+% Compute standard error
 % determineSEInParallel = true;
 nFig = numel(figureData);
 % if(~determineSEInParallel)

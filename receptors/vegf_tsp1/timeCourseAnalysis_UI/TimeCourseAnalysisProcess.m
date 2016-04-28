@@ -51,6 +51,12 @@ classdef TimeCourseAnalysisProcess < Process
             obj.funName_ = obj.getFunction(owner);
         end
         function sanityCheck(obj)
+            try
+                % check if this works, otherwise clear it
+                test = nargin(obj.funName_);
+            catch
+                obj.funName_ = [];
+            end
             if(isempty(obj.funName_))
                 obj.funName_ = obj.getFunction(obj.owner_);
             else
@@ -85,8 +91,13 @@ classdef TimeCourseAnalysisProcess < Process
                 case 'MovieData'
                     fun = @proc.MD_fxn;
                 otherwise
-                    error('TimeCourseAnalysisProcess:incompatibleOwner', ...
-                        'Owner must be a CombinedMovieList, MovieList, or MovieData');
+                    if(isa(owner,'MovieData'))
+                        % Allow for subclasses
+                        fun = @proc.MD_fxn;
+                    else
+                        error('TimeCourseAnalysisProcess:incompatibleOwner', ...
+                            'Owner must be a CombinedMovieList, MovieList, or MovieData');
+                    end
             end
         end
         function CML_fxn(proc,CML,params,varargin)
