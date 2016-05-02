@@ -7,17 +7,18 @@ xpName='prometaphase'; % For convenience, Figure window will bear this name.
 
 %% LOADING MOVIES INFO
 % MovieList paths: 
-MLPath='/work/gdanuser/proudot/project/EB3-3D-track/data-analysis/four-phases/'
+
+%MLPath='/work/gdanuser/proudot/project/EB3-3D-track/data-analysis/four-phases/'
 %MLPath='/project/cellbiology/gdanuser/december/philippe/+tipTracking/chemical-inhibition/analysis/anaphase/control/';
 
 % MovieList FileName (the combination of condition you want to compare). 
 %movieListFileNames={'controlAnaphase.mat'};
-movieListFileNames={'prometaphaseCells.mat'};
+%movieListFileNames={'prometaphaseCells.mat'};
 %movieListFileNames={'controlMetaphase.mat','10nMMetaphase.mat'};
 %movieListFileNames={'controlMetaphase.mat','10nMMetaphase.mat','33nMMetaphase.mat','100nMMetaphase.mat'};
 %movieListFileNames={'controlInterphase.mat','10nMInterphase.mat','33nMInterphase.mat','100nMInterphase.mat',};
 %movieListFileNames={'controlAnaphase.mat','10nMAnaphase.mat','33nMAnaphase.mat'};
-MLPath='/project/cellbiology/gdanuser/december/philippe/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time';
+MLPath='/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time/';
 movieListFileNames={'movieList.mat'};
 % Name associated to each MovieList
 conditionName={'prometaphase'};
@@ -39,6 +40,7 @@ end;
 
 %% Input parameters
 sphericalProjectionRadius=5000;
+interpolarMTAngle=0.5;
 detectionMethodEB3='pointSourceAutoSigmaLM';
 detectionMethodKin='pointSourceAutoSigmaFit';  % Empty if no Kinetochore. 
 poleScale=3;
@@ -89,7 +91,7 @@ for k=1:length(aMovieListArray)
         MD=MovieData.loadMatFile(ML.movieDataFile_{i});
         
         % Load the tracking results 
-        outputDirTrack=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];     
+        outputDirTrack=[MD.outputDirectory_ filesep 'EB3' filesep 'trackSpindleRef' filesep ];     
         tmp=load([outputDirTrack filesep 'tracksStageRef.mat']);
         tracks=tmp.tracksStageRef;
         
@@ -101,7 +103,7 @@ for k=1:length(aMovieListArray)
         cumulPoleId{k,i}=sphericalProjection.poleId; 
         cumulTimePt{k,i}=sphericalProjection.time; 
 
-        % Load the spherical coordinate of Kinetochore and their associated
+        % Load the spherical coordinate of detected Kinetochore and their associated
         % track ID. 
         if(~isempty(detectionMethodKin))
             outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
@@ -110,29 +112,12 @@ for k=1:length(aMovieListArray)
             outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ]
             trackData=load([outputDirTrack  filesep 'tracksStageRef.mat']);
             
-            cumulAziKin{k,i}=vertcat(sphericalCoord.sphCoord.azimuth{:}); 
-            cumulElevKin{k,i}=vertcat(sphericalCoord.sphCoord.elevation{:});
-            cumulRhoKin{k,i}=vertcat(sphericalCoord.sphCoord.rho{:});
-            minKinRho=min(cumulRhoKin{k,i},[],2);
-            cumulAziKin{k,i}=cumulAziKin{k,i}(minKinRho>sphericalProjectionRadius,:);
-            cumulElevKin{k,i}=cumulElevKin{k,i}(minKinRho>sphericalProjectionRadius,:);
-            T=arrayfun(@(f) ones(length(sphericalCoord.sphCoord.azimuth{f}),1)*f*MD.timeInterval_,(1:length(sphericalCoord.sphCoord.azimuth)),'unif',0);
-            cumulTimePtKin{k,i}=vertcat(T{:});
-            cumulTimePtKin{k,i}=cumulTimePtKin{k,i}(minKinRho>sphericalProjectionRadius,:);
-            
-            trackIdCell=cellfun(@(x) ones(size(x)),sphericalCoord.sphCoord.azimuth,'unif',0);
-            for tIdx=1:length(trackData.tracksStageRef)
-                aTrack=trackData.tracksStageRef(tIdx);
-                notGapIdx=find(~aTrack.gapMask);
-                F=aTrack.startFrame:aTrack.endFrame;
-                for tpIdx=notGapIdx
-                    trackIdCell{F(tpIdx)}(aTrack.tracksFeatIndxCG(tpIdx))=tIdx;
-                end
-                
-            end
-            cumulTrackIdKin{k,i}=vertcat(trackIdCell{:});
-            cumulTrackIdKin{k,i}=cumulTrackIdKin{k,i}(minKinRho>sphericalProjectionRadius);
-
+              sphCoordCumulKin=sphericalRadiusBinning(sphericalCoord.sphCoord,[0,sphericalProjectionRadius,100000],trackData.tracksStageRef,MD.timeInterval_);
+              cumulAziKin{k,i}=sphCoordCumulKin{2}.azimuth;
+              cumulElevKin{k,i}=sphCoordCumulKin{2}.elevation;
+              cumulRhoKin{k,i}=sphCoordCumulKin{2}.rho;
+              cumulTimePtKin{k,i}=sphCoordCumulKin{2}.time;
+              cumulTrackIdKin{k,i}=sphCoordCumulKin{2}.trackId;
             %%
             
             for fIdx=2:(length(sphericalCoord.sphCoord.elevation)-1)
@@ -165,6 +150,11 @@ for k=1:length(aMovieListArray)
         % lifetime
         lifetimesHist{k,i}=hist([tracks.lifetime],lifetimeBins);
         meanLft(k,i)=nanmean([tracks.lifetime]);     
+        
+        % interpolar lifetime 
+        interpolarTrackId=sphericalProjection.trackId(sphericalProjection.sphericalElevation<interpolarMTAngle);
+        meanInterpolarLft(k,i)=nanmean([tracks(interpolarTrackId).lifetime]);     
+        
         
         % total displacement
         sx=MD.pixelSize_;sz=MD.pixelSizeZ_;
@@ -206,9 +196,11 @@ end
 legend(v,conditionName{:});
 hold off
 
+
 % mean Length
 boxplot(handles(1),meanLft',conditionName);
 ylabel(handles(1),'mean lifetime (s)');
+
 
 % mean Length
 boxplot(handles(2),meanLength',conditionName);
@@ -219,6 +211,15 @@ boxplot(handles(3),meanSpeed',conditionName);
 ylabel(handles(3),'growth (nm/s)');
 
 
+% mean Liftime interpolar
+boxplot(handles(1),meanLft',conditionName);
+ylabel(handles(1),'mean lifetime (s)');
+
+%% plot results intepolar only
+handles=setupFigure(3,1,3,'Name',xpName);
+% mean Length
+boxplot(handles(1),meanInterpolarLft',conditionName);
+ylabel(handles(1),'mean lifetime (s)');
 
 %% Elevation vs Azimuth
 EB3MarkerSize=10;
