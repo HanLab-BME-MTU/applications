@@ -42,6 +42,8 @@ MD = MovieData.load(dataFilePath);
 
 % Define dataProperties parameters
 % Pixelsize is in um
+dataProperties.filePath = pathName;
+dataProperties.fileName = fileName;
 dataProperties.PIXELSIZE_XY = MD.pixelSize_/1000;
 dataProperties.PIXELSIZE_Z = MD.pixelSizeZ_/1000;
 dataProperties.imSize = MD.imSize_;
