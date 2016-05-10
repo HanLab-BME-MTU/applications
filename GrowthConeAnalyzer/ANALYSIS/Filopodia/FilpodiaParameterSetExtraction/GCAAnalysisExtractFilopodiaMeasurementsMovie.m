@@ -62,6 +62,8 @@ ip.addParameter('Rewrite',false);
 ip.addParameter('MainMovie',false); % flag to make the output for the 
 % primary visualizations (all ext filo color coded by length); 
 
+ip.addParameter('filterOutlierBranchParameters',false); 
+
 ip.parse(varargin{:});
 p = ip.Results;
 
@@ -234,10 +236,22 @@ else
         x.filoPart = 'Tot';
         x.outPercent = true; 
         analInput(1).paramInput{7} = x;
+        
+        % Orientation of Filopodia 
+        analInput(1).paramFunc{8} = 'filoOrient';
+        analInput(1).paramName{8} = 'filoOrientation';
+        analInput(1).paramInput{8} = [];
+
+        % Curvature of Filopodia 
+        analInput(1).paramFunc{9} = 'filoCurvature';
+        analInput(1).paramName{9} = 'filoMaxCurvature';
+        analInput(1).paramInput{9} = [];
+        
+        
    
     %% Filter II: 'ConnectToVeil_DensityOrient':   Density Filo Veil: Measurements that do not require accurate fitting.
-        analInput(2).filterType = 'ConnectToVeil_DensityOrient';
-
+         analInput(2).filterType = 'ConnectToVeil_DensityOrient'; % note moved orient up so can potentially correlate info
+% 
         % Density of Filopodia 
         analInput(2).paramFunc{1} = 'filoDensityAlongVeil';
         analInput(2).paramName{1} = 'filoDensityAlongVeil';
@@ -247,23 +261,15 @@ else
             filesep 'veilStem.mat']);
         analInput(2).paramInput{1} = veilStem ;
 
-        % Orientation of Filopodia 
-        analInput(2).paramFunc{2} = 'filoOrient';
-        analInput(2).paramName{2} = 'filoOrientation';
-        analInput(2).paramInput{2} = [];
-
-        % Curvature of Filopodia 
-        analInput(2).paramFunc{3} = 'filoCurvature';
-        analInput(2).paramName{3} = 'filoMaxCurvature';
-        analInput(2).paramInput{3} = [];
+        
    %% Filter III: 'Branch2ndOrder_LengthInt'   
     
        % Length/Int 2nd Order Filo/Branches
        % Note my definitions are 0 filo attached to veil no branch
        % 1 filo attached to veil with a branch
        % 2 branch attached to filo type 1
-       analInput(3).filterType = 'Branch2ndOrder_LengthInt';
-
+        analInput(3).filterType = 'Branch2ndOrder_LengthInt';
+% 
        analInput(3).paramFunc{1} = 'filoOrient';
        analInput(3).paramName{1} = 'branchOrientation_2ndOrder';
        analInput(3).paramInput{1} = [];
@@ -292,6 +298,12 @@ else
        analInput(4).paramFunc{2} =  'filoDensityAlongBranch';
        analInput(4).paramName{2} = 'branchDensity_2ndOrder';
        analInput(4).paramInput{2} = [];
+       
+       %%  %% Filter V: 'Branch Complexity' 
+       analInput(5).filterType = 'Validation';
+       analInput(5).paramFunc{1} = 'filoBranchComplexity';
+       analInput(5).paramName{1} = 'filoBranchComplexity'; 
+       analInput(5).paramInput{1} = []; 
     end % ip.Results.MainMovie 
 end
 %% Wrap through for each analysis type
@@ -375,12 +387,67 @@ for iAnalType = 1:length(analInput);
             
             if ~isempty(inputC)
                 measC =  paramFuncC(filoBranch,filoFilterSet, inputC);
+                
+                
+                
             else
                 measC = paramFuncC(filoBranch,filoFilterSet);
             end
-                     
+               
+            measCPreFilt = measC; 
+            if ip.Results.filterOutlierBranchParameters
+                if strcmpi(analInput(iAnalType).paramName{iParamExtract},'branchOrientation_2ndOrder') ;
+                    badMeas = cellfun(@(x) x > 165,measC,'uniformoutput',0); % for now assume that any measurement larger than
+                    % 165 is likely a bad orientation calculation due to
+                    % the backtracing bug
+                    badFrames = find(cellfun(@(x) sum(x~=0),badMeas));
+                    
+                    if  ~isempty(badFrames)
+                        save([analOutputDir filesep 'bugBranchOrientGreaterThan165.mat'],'badFrames')
+                    end
+                    
+                    measC =  cellfun(@(x,y) x(~y),measC,badMeas,'uniformoutput',0);
+                end
+                
+                if strcmpi(analInput(iAnalType).paramName{iParamExtract},'branchDensity_2ndOrder');
+                    badMeas2 = cellfun(@(x) x > 100,measC,'uniformoutput',0);
+                    badFrames2 = find(cellfun(@(x) sum(x~=0),badMeas2));
+                    if ~isempty(badFrames2)
+                        save([analOutputDir filesep 'bugBranchDensityGreaterThan100.mat'],'badFrames2')
+                        for iFrame = 1:length(badFrames2)
+                            GCATroubleshootMakeMovieOfReconstructMovie(movieData,'InputDirectory',...
+                                inDir,'OutputDirectory',analOutputDir,'frames',badFrames2(iFrame),'makeMovies',false);
+                            display(['Branch Density Problems Detected Making a Troubleshoot Movie for' ...
+                                movieData.outputDirectory_ '_Frame' num2str(iFrame)]);
+                            
+                        end
+                        display('Troubleshooting Movies Finished'); 
+                       
+                    end
+                  
+                    % filter out the problems
+                    measC = cellfun(@(x,y) x(~y), measC,badMeas,'uniformoutput',0);                   
+                end
+            end
+            
+            
+            
+            
             timeStamp = clock;
-            save([analOutputDir filesep nameParam '.mat' ],'measC','timeStamp','inDir');
+            
+            
+            save([analOutputDir filesep nameParam '.mat' ],'measC','timeStamp','inDir','measCPreFilt');
+%             
+%             if ~isempty(badFrames2)
+%                 for iFrame = 1:length(badFrames2)
+%                     %measToView{1} = 
+%                 % make the GCAMeasurementMovie 
+%                 GCAVisualsMakeMeasurementMovieWithSub(MD,'interactive',false,'measurement','branchOrientation_2ndOrder', 'MeasurementDir',ip.Results.outputDirectory,... 
+%                     'InputDirectory',inDir,'plotText',true,'frames',badFrames2(iFrame)); 
+%                 end 
+%                 
+%             end 
+            
             
         end  % if run
     end % iParamExtract % iterate over all params using the same filter set
