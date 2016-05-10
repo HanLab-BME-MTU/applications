@@ -1,4 +1,4 @@
-function []=plotIntensityForce(tracksNA, fileStore,alignEvent,indivColor,varargin)
+function [longestCohorts]=plotIntensityForce(tracksNA, fileStore,alignEvent,indivColor,varargin)
 % plotIntensityForce(tracksNA) plots intensities and forces of tracks
 % w.r.t. time frames and store in designated folder
 % idGroup1f = find(idGroup1);
@@ -153,8 +153,9 @@ if alignEvent
 else  
     if ~plotCohorts
         for ii=1:nTracks
-            d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
+%             d = getfield(tracksNA(ii),{1},source{1},{find(tracksNA(ii).presence)});
             if indivColor
+                d=tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
                 if strcmp(source,'edgeAdvanceDist')
                     subplot(1,3,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
                     subplot(1,3,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
@@ -208,15 +209,17 @@ else
         p=0;
         for ii=1:nTracks
             p=p+1;
-            d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
+            d=getfield(tracksNA(ii),{1},source{1},{find(tracksNA(ii).presence)});
+%             d = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
             curAmp = d;
             fmax = min(nSampleFrames, length(curAmp));
             AmpArray(p,1:fmax) = curAmp(1:fmax);
-
-            curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
-            fmax = min(nSampleFrames, length(curForce));
-            forceArray(p,1:fmax) = curForce(1:fmax);
-
+            
+            if numel(source)>1
+                curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
+                fmax = min(nSampleFrames, length(curForce));
+                forceArray(p,1:fmax) = curForce(1:fmax);
+            end
             if strcmp(source,'edgeAdvanceDist')
                 curEdgeDist = tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence));
                 edgeDistArray(p,1:fmax) = curEdgeDist(1:fmax);
@@ -234,6 +237,9 @@ else
         elseif strcmp(source{1},'forceMag')
             ciColor = [255/255 153/255 153/255];
             meanColor = [153/255 0/255 0];
+        else
+            ciColor = [153/255 255/255 51/255];
+            meanColor = [0/255 102/255 0];
         end
 %         prevLT=0;
         for curPrcLT=20:stepPrc:80
@@ -248,34 +254,47 @@ else
             for kk=find(curTrackIDsWithCurLT)'
                 pp=pp+1;
                 x = tracksNA(kk);
-                sF = max(x.startingFrameExtra-prePostFramesUsed,x.startingFrameExtraExtra);
-                eF = min(x.endingFrameExtra+prePostFramesUsed,x.endingFrameExtraExtra);
-%                 interpStep = (curLT+2*prePostFramesUsed)/(eF-sF);
-                % We interpolate the series per predetection, detection,
-                % postdetection periods
-                % pre-detection period
-                if x.startingFrameExtra>sF+1
-                    interpStepPre = (prePostFramesUsed)/(x.startingFrameExtra-sF);
-                    curArray(pp,1:prePostFramesUsed+1)=interp1((1:interpStepPre:prePostFramesUsed+1),...
-                        getfield(x,{1},source{1},{sF:x.startingFrameExtra}),1:prePostFramesUsed+1);
-                end
-                % detection period
-%                 interpStep = (curLT+2*prePostFramesUsed)/(eF-sF);
-%                 curArray(pp,1:curLT+2*prePostFramesUsed+1)=interp1((1:interpStep:curLT+2*prePostFramesUsed+1),...
-%                     getfield(x,{1},source{1},{sF:eF}),1:curLT+2*prePostFramesUsed+1);
-                interpStep = (curLT)/(x.endingFrameExtra-x.startingFrameExtra);
-                curArray(pp,1+prePostFramesUsed:curLT+prePostFramesUsed+1)=...
-                    interp1((1+prePostFramesUsed:interpStep:curLT+prePostFramesUsed+1),...
-                    getfield(x,{1},source{1},{x.startingFrameExtra:x.endingFrameExtra}),1+prePostFramesUsed:curLT+prePostFramesUsed+1);
-                % post-detection period
-                if eF>x.endingFrameExtra+1
-                    interpStepPost = (prePostFramesUsed)/(eF-x.endingFrameExtra);
-                    curArray(pp,curLT+prePostFramesUsed+1:curLT+2*prePostFramesUsed+1)=...
-                        interp1((curLT+prePostFramesUsed+1:interpStepPost:curLT+2*prePostFramesUsed+1),...
-                        getfield(x,{1},source{1},{x.endingFrameExtra:eF}),curLT+prePostFramesUsed+1:curLT+2*prePostFramesUsed+1);
-                end
-%                     x.ampTotal(x.startingFrameExtra:x.endingFrameExtra),1:curLT+1);
-%                 curArray(pp,1:(x.endingFrameExtra-x.startingFrameExtra+1))=x.ampTotal(x.startingFrameExtra:x.endingFrameExtra);
+                try
+                    sF = max(x.startingFrameExtra-prePostFramesUsed,x.startingFrameExtraExtra);
+                    eF = min(x.endingFrameExtra+prePostFramesUsed,x.endingFrameExtraExtra);
+    %                 interpStep = (curLT+2*prePostFramesUsed)/(eF-sF);
+                    % We interpolate the series per predetection, detection,
+                    % postdetection periods
+                    % pre-detection period
+                    if x.startingFrameExtra>sF+1
+                        interpStepPre = (prePostFramesUsed)/(x.startingFrameExtra-sF);
+                        curArray(pp,1:prePostFramesUsed+1)=interp1((1:interpStepPre:prePostFramesUsed+1),...
+                            getfield(x,{1},source{1},{sF:x.startingFrameExtra}),1:prePostFramesUsed+1);
+                    end
+                    % detection period
+    %                 interpStep = (curLT+2*prePostFramesUsed)/(eF-sF);
+    %                 curArray(pp,1:curLT+2*prePostFramesUsed+1)=interp1((1:interpStep:curLT+2*prePostFramesUsed+1),...
+    %                     getfield(x,{1},source{1},{sF:eF}),1:curLT+2*prePostFramesUsed+1);
+                    interpStep = (curLT)/(x.endingFrameExtra-x.startingFrameExtra);
+                    curArray(pp,1+prePostFramesUsed:curLT+prePostFramesUsed+1)=...
+                        interp1((1+prePostFramesUsed:interpStep:curLT+prePostFramesUsed+1),...
+                        getfield(x,{1},source{1},{x.startingFrameExtra:x.endingFrameExtra}),1+prePostFramesUsed:curLT+prePostFramesUsed+1);
+                    % post-detection period
+                    if eF>x.endingFrameExtra+1
+                        interpStepPost = (prePostFramesUsed)/(eF-x.endingFrameExtra);
+                        curArray(pp,curLT+prePostFramesUsed+1:curLT+2*prePostFramesUsed+1)=...
+                            interp1((curLT+prePostFramesUsed+1:interpStepPost:curLT+2*prePostFramesUsed+1),...
+                            getfield(x,{1},source{1},{x.endingFrameExtra:eF}),curLT+prePostFramesUsed+1:curLT+2*prePostFramesUsed+1);
+                    end
+    %                     x.ampTotal(x.startingFrameExtra:x.endingFrameExtra),1:curLT+1);
+    %                 curArray(pp,1:(x.endingFrameExtra-x.startingFrameExtra+1))=x.ampTotal(x.startingFrameExtra:x.endingFrameExtra);
+                catch
+                    sF = x.startingFrame;
+                    eF = x.endingFrame;
+                    interpStep = (curLT)/(eF-sF);
+                    try
+                        curArray(pp,1+prePostFramesUsed:curLT+prePostFramesUsed+1)=...
+                            interp1((1+prePostFramesUsed:interpStep:curLT+prePostFramesUsed+1),...
+                            getfield(x,{1},source{1},{sF:eF}),1+prePostFramesUsed:curLT+prePostFramesUsed+1);
+                    catch
+                        disp(['No ' source{1} ' found in ' num2str(kk) 'th track. Skipping...'])
+                    end
+               end
             end
 %             if strcmp(source{1},'forceMag')
 %                 % In case of force, there can be some effect from large
@@ -333,7 +352,14 @@ else
             else
                 maxYamp = max([maxYamp curCI_upper]);
                 minYamp = min([minYamp curCI_lower]);
-            end                
+            end
+            if ~isempty(curArray)
+                longestCohorts.rawArray = curArray;
+                longestCohorts.curMeanSig = curMeanSig;
+                longestCohorts.curCI_upper = curCI_upper;
+                longestCohorts.curCI_lower = curCI_lower;
+                longestCohorts.curLT = curLT;
+            end
         end
         maxLifeTime = (curLT+prePostFramesUsed+1)*tInterval_used;
     end    

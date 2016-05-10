@@ -2,9 +2,13 @@ function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, vararg
 % tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute) records
 % pixel intensity from imgStack for entire track, even after ANA state in the last x,y
 % position, and store it to attribute in tracksNA (1 means ampTotal, 2
-% means forceMag
+% means forceMag, 3 for fret, 4 for flowSpeed)
 % assumes that tracks reflects coordinates from stage-drift-corrected
 % images. imgStack is also from SDC output.
+% Set 'reTrack' to be true if you didn't retrack using paxillin image
+% stack and want to read values from other stacks.
+% Sangyoon Han, Jan 2015
+% Last modified, Feb 2016
 ip =inputParser;
 ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
 ip.addParamValue('reTrack',true,@islogical); % selcted track ids
@@ -266,7 +270,7 @@ for k=1:numTracks
                 end
             end
         end
-    elseif attribute==2
+    elseif attribute==2 
         try
             startFrame = tracksNA(k).startingFrameExtraExtra;
             endFrame = tracksNA(k).endingFrameExtraExtra;
@@ -295,10 +299,38 @@ for k=1:numTracks
             curAmpTotal = curImg(yRange,xRange);
             tracksNA(k).forceMag(ii) = mean(curAmpTotal(:));
         end        
+    elseif attribute==3 || attribute==4 %This time it uses FA area
+        startFrame = tracksNA(k).startingFrame;
+        endFrame = tracksNA(k).endingFrame;
+        frameRange = startFrame:endFrame;
+        for ii=frameRange
+            curImg = imgStack(:,:,ii);
+            if attribute==3
+                curImg(curImg==0)=NaN; %assuming FA value
+            end
+            if strcmp(tracksNA(k).state(ii),'FA') || strcmp(tracksNA(k).state(ii),'FC') % this is FA
+                pixelList=tracksNA(k).FApixelList{ii};
+                pixelIdxList = sub2ind(size(curImg),pixelList(:,2),pixelList(:,1));
+                curAmpTotal = curImg(pixelIdxList);
+            else
+                x = tracksNA(k).xCoord(ii);
+                y = tracksNA(k).yCoord(ii);
+                xi = round(x);
+                yi = round(y);
+                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(curImg,2));
+                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(curImg,1));
+                curAmpTotal = curImg(yRange,xRange);
+            end
+            if attribute==3
+                tracksNA(k).fret(ii) = nanmean(curAmpTotal(:));
+            elseif attribute==4
+                tracksNA(k).flowSpeed(ii) = mean(curAmpTotal(:));
+            end
+        end        
     elseif extrapolState
         disp('Please choose 1 or 2 for attribute.')
     end
-    progressText(k/(numTracks-1),'Re-reading and tracking individual tracks:');
+    progressText(k/(numTracks),'Re-reading and tracking individual tracks:');
 %     parfor_progress;
 end
 end

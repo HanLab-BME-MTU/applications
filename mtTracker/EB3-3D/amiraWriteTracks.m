@@ -35,7 +35,8 @@ end
 
 if(~exist(fileparts(filename))) mkdir(fileparts(filename)); end;
 
-% GAP filling using the last known position
+% GAP filling using the last known position (gap are still mark by tracksFeatIndxCG
+% trackFeat
 if(p.fillGaps)
     se=[zeros(1,tracks.numTimePoints) 1 ones(1,tracks.numTimePoints)];
     for tIdx=1:length(tracks)
@@ -52,7 +53,7 @@ if(p.fillGaps)
 end
 
 % Frame 0 is the cumulative track distribution. Ugly ? I know, stfu.
-parfor fIdx=0:tracks.numTimePoints
+for fIdx=0:tracks.numTimePoints
     
     %% Indx of tracks on the current frame
     if(fIdx>0)
@@ -94,13 +95,16 @@ parfor fIdx=0:tracks.numTimePoints
     numPointsPerEdge=endRelIdx((tracksOn))';
     numPoints=sum(numPointsPerEdge);
     tracksPoints=zeros([numPoints,3]);
+    pointType=zeros(numPoints,1);
     count=1;
     for tIdx=find(tracksOn)
         tr=tracks(tIdx);
         endIdx=endRelIdx(tIdx);
+        gapM=tr.gapMask;
         tracksPoints(count:(count+endIdx-1),1)=(tr.x(1:endIdx)-1)*s(1);
         tracksPoints(count:(count+endIdx-1),2)=(tr.y(1:endIdx)-1)*s(2);
-        tracksPoints(count:(count+endIdx-1),3)=(tr.z(1:endIdx)-1)*s(3);        
+        tracksPoints(count:(count+endIdx-1),3)=(tr.z(1:endIdx)-1)*s(3);      
+        pointType(count:(count+endIdx-1))=gapM(1:endIdx)';
         count=count+endIdx;
     end
     
@@ -142,7 +146,8 @@ parfor fIdx=0:tracks.numTimePoints
     fprintf(fid,'EDGE { int lifetime } @7\n');    
     fprintf(fid,'EDGE { float medianSpeed} @8\n');  
     %fprintf(fid,'EDGE { float maxSpeed} @9\n');  
-    fprintf(fid,'EDGE { float diffCoeff} @9\n');  
+    fprintf(fid,'EDGE { float diffCoeff} @9\n');
+    fprintf(fid,'POINT { int pointType } @10\n');
     fclose(fid);
     if(nbTracsOn)
         paramCount=paramCount+1;
@@ -205,6 +210,12 @@ parfor fIdx=0:tracks.numTimePoints
         fclose(fid);
         dlmwrite(frameFilename, tracksDiffCoeff, '-append', 'delimiter',' ','precision', 16);
         
+        paramCount=paramCount+1;
+        fid = fopen(frameFilename, 'a');
+        fprintf(fid,'\n@10\n');
+        fclose(fid);
+        dlmwrite(frameFilename, pointType, '-append', 'delimiter',' ','precision', 16);
+                
         for propIdx=1:length(p.vertexProp)
             fid = fopen(frameFilename, 'a');
             paramCount=paramCount+1;
