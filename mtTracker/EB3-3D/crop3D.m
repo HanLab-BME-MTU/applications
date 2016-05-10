@@ -1,4 +1,13 @@
-function MDout=crop3D(MD,ROI)    
+function MDout=crop3D(MD,ROIorMask)    
+
+
+if(numel(ROIorMask)>6)
+    % find mask offset (WARNING works only for cubic mask)
+    [maskMinX,maskMinY,maskMinZ]=ind2sub(size(ROIorMask), find(ROIorMask,1));
+    [maskMaxX,maskMaxY,maskMaxZ]=ind2sub(size(ROIorMask), find(ROIorMask,1,'last'));
+    ROIorMask=[maskMinX,maskMinY,maskMinZ,maskMaxX,maskMaxY,maskMaxZ];
+end
+ROI=ROIorMask;
 
 outputDir=[MD.outputDirectory_ filesep 'cropped'];
 MD.addProcess(ExternalProcess(MD,'crop'))
