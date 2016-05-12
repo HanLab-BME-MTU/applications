@@ -42,7 +42,7 @@ end;
 sphericalProjectionRadius=5000;
 interpolarMTAngle=0.5;
 detectionMethodEB3='pointSourceAutoSigmaLM';
-detectionMethodKin='pointSourceAutoSigmaFit';  % Empty if no Kinetochore. 
+detectionMethodKin='pointSourceAutoSigmaFit';  
 poleScale=3;
 poleDetectionMethod=['simplex_scale_' num2str(poleScale,'%03d')];
 
@@ -105,14 +105,14 @@ for k=1:length(aMovieListArray)
 
         % Load the spherical coordinate of detected Kinetochore and their associated
         % track ID. 
-        if(~isempty(detectionMethodKin))
-            outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
+        outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
+        if(exist([outputDirDetect filesep 'sphericalCoordBothPoles.mat'], 'file') == 2)
             sphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
 
-            outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ]
+            outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
             trackData=load([outputDirTrack  filesep 'tracksStageRef.mat']);
             
-              sphCoordCumulKin=sphericalRadiusBinning(sphericalCoord.sphCoord,[0,sphericalProjectionRadius,100000],trackData.tracksStageRef,MD.timeInterval_);
+              sphCoordCumulKin=sphericalRadiusBinning(sphericalCoord.sphCoord,[0,sphericalProjectionRadius,100000],MD.timeInterval_,trackData.tracksStageRef,[]);
               cumulAziKin{k,i}=sphCoordCumulKin{2}.azimuth;
               cumulElevKin{k,i}=sphCoordCumulKin{2}.elevation;
               cumulRhoKin{k,i}=sphCoordCumulKin{2}.rho;
@@ -179,22 +179,22 @@ end
 handles=setupFigure(3,1,3,'Name',xpName);
 
 %lifetime
-colors={'r','b','g','k'};
-for i=1:size(lifetimesHist,1)
-    plot(handles(1),lifetimeBins,vertcat(lifetimesHist{i,:}),colors{i});
-    hold on;
-    xlim(handles(1),[min(lifetimeBins) max(lifetimeBins)]);
-end
-hold off
-xlabel(handles(1),'lifetime (frame)')
-ylabel(handles(1),'count')
-v=[];names=[];
-for i=1:size(lifetimesHist,1)
-    h = findobj('Color',colors{i});
-    v = [v h(1)];
-end
-legend(v,conditionName{:});
-hold off
+% colors={'r','b','g','k'};
+% for i=1:size(lifetimesHist,1)
+%     plot(handles(1),lifetimeBins,vertcat(lifetimesHist{i,:}),colors{i});
+%     hold on;
+%     xlim(handles(1),[min(lifetimeBins) max(lifetimeBins)]);
+% end
+% hold off
+% xlabel(handles(1),'lifetime (frame)')
+% ylabel(handles(1),'count')
+% v=[];names=[];
+% for i=1:size(lifetimesHist,1)
+%     h = findobj('Color',colors{i});
+%     v = [v h(1)];
+% end
+% legend(v,conditionName{:});
+% hold off
 
 
 % mean Length
@@ -240,7 +240,7 @@ for MLIdx=1:length(aMovieListArray)
         print([outpurDir filesep 'cumulative.eps'],'-depsc');
         mkdir([outpurDir filesep 'png']);
         mkdir([outpurDir filesep 'eps']);
-        for t=20:temporalWindow:60%(MD.nFrames_-temporalWindow)
+        for t=1:temporalWindow:(MD.nFrames_-temporalWindow)
             [handles,~,fhandle]=setupFigure(1,4,'Name',[ conditionName{MLIdx} ' Cell ' num2str(cIdx) ],'AxesWidth',4,'AxesHeight',4,'DisplayMode', 'print');
             set(fhandle,'Visible','off');
             plotSpindleSphericalProjection(handles,cumulAzi{MLIdx,cIdx},cumulElev{MLIdx,cIdx},cumulPoleId{MLIdx,cIdx},cumulTimePt{MLIdx,cIdx}, ... 
