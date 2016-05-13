@@ -171,7 +171,11 @@ end
 
 if(SaveStepFigures==1)    
     if(  ~exist([FilamentSegmentationChannelOutputDir,filesep,'GEO'],'dir'))
-        mkdir([FilamentSegmentationChannelOutputDir,filesep,'GEO']);
+        try
+            mkdir([FilamentSegmentationChannelOutputDir,filesep,'GEO']);
+        catch
+            system(['mkdir -p ' FilamentSegmentationChannelOutputDir,filesep,'GEO']);
+        end
     end
         
     saveas(h14,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'numbers_filament_f',num2str(iFrame),'.fig']);
@@ -432,7 +436,11 @@ if(graph_matching_flag==1)
     if(SaveStepFigures==1)
         
         if(~exist([FilamentSegmentationChannelOutputDir,filesep,'GEO'],'dir'))
-            mkdir(FilamentSegmentationChannelOutputDir,'GEO');
+            try
+                mkdir([FilamentSegmentationChannelOutputDir,filesep,'GEO']);
+            catch
+                system(['mkdir -p ' FilamentSegmentationChannelOutputDir,filesep,'GEO']);
+            end
         end
         
         saveas(h3,[FilamentSegmentationChannelOutputDir,filesep,'GEO',filesep,'frame_',num2str(iFrame),'_round0_all_match_bw.tif']);

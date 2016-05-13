@@ -56,7 +56,23 @@ for ii=1:numel(forceField)
     curDispPos = displField(ii).pos;
     curDispVec = curDispVec(~isnan(curDispVec(:,1)),:); % This will remove the warning 
     curDispPos = curDispPos(~isnan(curDispVec(:,1)),:); % This will remove the warning 
-    [~,iu_mat,~,~] = interp_vec2grid(curDispPos, curDispVec,[],reg_grid1);
+    try
+        [~,iu_mat,~,~] = interp_vec2grid(curDispPos, curDispVec,[],reg_grid1);
+    catch
+        if ii>1
+            disp(['Too many NaNs in the field in ' num2str(ii) 'th frame. Assigining values in the ' num2str(ii-1) 'th frame ...'])
+            tMap{ii} = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
+            tMapX{ii} = tmat(:,:,1);
+            tMapY{ii} = tmat(:,:,2);
+            continue
+        else
+            disp(['Too many NaNs in the field in ' num2str(ii) 'th frame. Assigining zeros ...'])
+            tMap{ii} = zeros(size(reg_grid(:,:,1)));
+            tMapX{ii} = zeros(size(reg_grid(:,:,1)));
+            tMapY{ii} = zeros(size(reg_grid(:,:,1)));
+            continue
+        end
+    end
 %     [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid1);
     [~,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1);
     pos = [reshape(reg_grid1(:,:,1),[],1) reshape(reg_grid1(:,:,2),[],1)]; %dense

@@ -105,6 +105,7 @@ end
 % Add a recovery mechanism if process has been stopped in the middle of the
 % computation to re-use previous results
 firstFrame =1; % Set the starting frame to 1 by default
+lastFrame=nFrames;
 if exist(outputFile{1},'file')
     % Check analyzed frames
     s=load(outputFile{1},'forceField');
@@ -209,8 +210,21 @@ if min(min(maskArray(:,:,1))) == 0
         displField = filterDisplacementField(displFieldOriginal,firstMask);
     end        
 else
-     displField=displFieldProc.loadChannelOutput;
-     firstMask = maskArray(:,:,1);
+    displField=displFieldProc.loadChannelOutput;
+    iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+    if ~isempty(iSDCProc)
+        SDCProc=movieData.processes_{iSDCProc};
+        if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
+            error(['The channel must have been corrected ! ' ...
+                'Please apply stage drift correction to all needed channels before '...
+                'running displacement field calclation tracking!'])
+        end
+        %Parse input, store in parameter structure
+        refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex}));
+        firstMask = false(size(refFrame));
+    else
+        firstMask = maskArray(:,:,1);
+    end
 end
    
 % % Prepare displacement field for BEM
@@ -312,9 +326,9 @@ if strcmpi(p.method,'FastBEM')
             end
         end
     else
-%         if ishandle(wtBar)
-%             waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
-%         end
+        if ishandle(wtBar)
+            waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
+        end
         if p.useLcurve
             if p.divideConquer>1 % divide and conquer
                 nOverlap = 10; % the number of grid points to be overlapped
@@ -819,7 +833,7 @@ forceFieldProc.setTractionMapLimits([tmin tmax])
 % forceFieldProc.setDistBeadMapLimits([dBeadmin dBeadmax])
 
 % Close waitbar
-% if feature('ShowFigureWindows'), close(wtBar); end
+if feature('ShowFigureWindows') || ishandle(wtBar), close(wtBar); end
 
 disp('Finished calculating force field!')
 end

@@ -154,13 +154,21 @@ if (indexFilamentPackage>0)
 end
 
 if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
-    mkdir(FilamentSegmentationProcessOutputDir);
+    try
+        mkdir(FilamentSegmentationProcessOutputDir);
+    catch
+        system(['mkdir -p ' FilamentSegmentationProcessOutputDir]);
+    end
 end
 
 for iChannel = selected_channels
     FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
-        mkdir(FilamentSegmentationChannelOutputDir);
+        try
+            mkdir(FilamentSegmentationChannelOutputDir);
+        catch
+            system(['mkdir -p ' FilamentSegmentationChannelOutputDir]);
+        end
     end
     
     movieData.processes_{indexFilamentSegmentationProcess}.setOutImagePath(iChannel,FilamentSegmentationChannelOutputDir);

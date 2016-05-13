@@ -146,7 +146,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         function output = getDrawableOutput(obj)
             output(1).name='Force  field';
             output(1).var='forceField';
-            output(1).formatData=@(x) [x.pos x.vec(:,1)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
+            output(1).formatData=@(x) [x.pos x.vec(:,1)/nanmean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/nanmean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
             output(1).type='movieOverlay';
 %             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[75/255 0/255 130/255]);

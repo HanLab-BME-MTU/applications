@@ -50,7 +50,7 @@ for iFila = 1 : model_length
             angle_pool = angles(j);
         end
     end
-     sort_ang = [sort_ang; mean(angle_pool)];
+    sort_ang = [sort_ang; mean(angle_pool)];
     digital_model{iFila} = [sort_x sort_y];
     orientation_model{iFila} = sort_ang;
     
