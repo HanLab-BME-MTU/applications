@@ -1,12 +1,10 @@
-function [ filterKernel, radialFilter, angularFilter ] = kernel( f_c, b_f, K, angle, N)
+function [ filterKernel ] = angularKernel( K, angle, N)
 %orientationSpace.kernel
 %
 % Based on the thesis by Michael van Ginkel. Chapter 3
 % "Image Analysis using Orientation Sapce based on Steerable Filters".
 % Delft University of Technology. October 7th, 2002.
 %
-% f_c: maximum frequency for the radial filter
-% b_f: frequency bandwidth for the radial filter
 % K: number of rotation angles through 360 degrees
 
 % Mark Kittisopikul, August 22nd, 2015
@@ -14,14 +12,19 @@ function [ filterKernel, radialFilter, angularFilter ] = kernel( f_c, b_f, K, an
 % UT Southwestern
 
     import orientationSpace.*;
-if(nargin < 2 || isempty(b_f))
-    b_f = f_c*0.8;
+
+if(nargin < 1)
+    K = 5;
 end
+
+n = 2*K+1;
+
+if(nargin < 2 || isempty(angle))
+    angle = (0:n-1)*(pi/n);
+end
+
 if(nargin < 3)
-    K = 36;
-end
-if(nargin < 4)
-    angle = 0;
+    N = 1024;
 end
 
 %% Moved to getFrequencySpaceCoordinates
@@ -62,15 +65,15 @@ coords.theta = mod(coords.theta+pi,2*pi)-pi;
 
 %% Radial part
 % compute radial order, f_c = sqrt(K_f * b_f^2)
-K_f = (f_c / b_f)^2;
+% K_f = (f_c / b_f)^2;
 
 % scale frequency
-f_s = coords.f / f_c;
+% f_s = coords.f / f_c;
 
 % Equation 3.11
 % Note -(f^2 - f_c^2)/(2*b_f^2) = (1 - (f/f_c)^2)/(2* b_f^2/f_c^2)
 %                               = (1 - (f/f_c)^2)/(2 / K_f)
-radialFilter = f_s.^K_f .* exp((1 - f_s.^2)*K_f/2);
+% radialFilter = f_s.^K_f .* exp((1 - f_s.^2)*K_f/2);
 % radialFilter2 = f_s^K_f .* exp(-(f.^2-f_c.^2)/2/b_f.^2);
 % assertEqual(radialFilter,radialFilter2);
 
@@ -86,7 +89,7 @@ angularFilter = 2*exp(-theta_s.^2/2);
 % angularFilter_shifted = 2*exp(-theta_shifed_s.^2/2);
 angularFilter_shifted = angularFilter([1 end:-1:2],[1 end:-1:2],:);
 
-filterKernel = bsxfun(@times,radialFilter .* 0.5,angularFilter + angularFilter_shifted);
+filterKernel = bsxfun(@times,0.5,angularFilter + angularFilter_shifted);
 
 % could we simplify this? neg/pos dividing line does not have to rotate
 posMask = abs(coords.theta) < pi/2;
