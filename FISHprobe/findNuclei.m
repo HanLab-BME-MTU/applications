@@ -2,7 +2,7 @@ function nucleiStruc = findNuclei(imageData, mask, dataProperties)
 %findNuclei Crop out all nuclei with three different channels
 %   Detailed explanation goes here
 
-% 04/2016 Ning
+% 04/2016 Ning Zhang
 
 numNuclei = max(mask(:));
 
@@ -84,10 +84,12 @@ for num = 1:numNuclei
                 nucGreen = imageData.green;
                 nucGreen(nucMask==0) = 0;
                 nucleiStruc(num).green = nucGreen(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+                clear nucGreen
             case 'red'
                 nucRed = imageData.red;
                 nucRed(nucMask==0) = 0;
                 nucleiStruc(num).red = nucRed(yStart:yEnd, xStart:xEnd, zStart:zEnd);
+                clear nucRed
             otherwise
                 error('Unknown channels detected')
         end
@@ -95,6 +97,8 @@ for num = 1:numNuclei
     nucleiStruc(num).xRange = [xStart, xEnd];
     nucleiStruc(num).yRange = [yStart, yEnd];
     nucleiStruc(num).zRange = [zStart, zEnd];
+    
+    clear nucMask nucDapi
 end
 
 end
