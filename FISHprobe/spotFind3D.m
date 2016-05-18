@@ -105,7 +105,7 @@ end;
 distThreshold = mnpSorted(1)/5;
 
 % Plot cumulative histogram for mnp
-figure
+figure,
 localMax = zeros(size(mnpSorted, 1), 1);
 for i = 1:size(localMax)
     localMax(i) = size(mnpSorted, 1)-i+1;
@@ -123,13 +123,12 @@ if mannualAdjMode
     xyThresh = ginput(1);
     distThreshold = xyThresh(1);
     plot(xyThresh(1)*ones(1,2), [yAxis(1), yAxis(2)], 'g-', 'LineWidth', 2.0)
+    hold off;
+else
+    close
 end
 
-hold off;
-% close
-
 cps = sortIdx(mnpSorted - distThreshold>0);
-
 
 if cps  ~=0
     lst = [lm(cps,2) lm(cps,1) lm(cps,3)]-ones(length(cps),1)*(d+1)+centp(cps,:);
