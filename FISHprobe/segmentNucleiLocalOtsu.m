@@ -1,7 +1,7 @@
 function mask = segmentNucleiLocalOtsu(imInput, dataProperties, varargin)
 % segmentNucleiLocalOtsu uses layer-by-layer local otsu thresholding to
 % segment nuclei in 3D
-% 
+%
 % INPUT
 %   imInput
 % OUTPUT
@@ -17,7 +17,7 @@ p.addRequired('imSize', @(x) (isnumeric(x) && numel(x) == 2));
 p.addRequired('nDepth', @(x) (isnumeric(x) && numel(x) == 1));
 p.addOptional('flagDebugMode', 1, @isnumeric);
 p.parse(imInput, dataProperties.PIXELSIZE_XY, dataProperties.PIXELSIZE_Z, ...
-        dataProperties.imSize, dataProperties.nDepth, varargin{:})
+    dataProperties.imSize, dataProperties.nDepth, varargin{:})
 
 % Check dataProperties and make sure none of those parameters are zero
 imInput = p.Results.imInput;
@@ -57,9 +57,9 @@ end
 for sliceId = 1:size(imInput, 3)
     imSlice = imInput(:,:,sliceId);
     [sliceGlobalThresh, imMask, imLocalThreshVal] = thresholdLocalSeg(imSlice, 'Otsu', ...
-                                                    localWindowRadius, localWindowPace, ...
-                                                    minSliceLocalGlobalThresholdRatio * 100);
-
+        localWindowRadius, localWindowPace, ...
+        minSliceLocalGlobalThresholdRatio * 100);
+    
     if sliceGlobalThresh < minSliceToStackThresholdRatio * globalStackThresh
         imMask = imSlice > minSliceToStackThresholdRatio * globalStackThresh;
     end
@@ -78,24 +78,24 @@ if flagDebugMode
 end
 
 % display stuff in debug mode
-if flagDebugMode        
-
+if flagDebugMode
+    
     if ndims(imInput) > 2
         sliceThreshVals = squeeze(imGlobalSliceThresholdVals(1,1,:));
         figure, plot(1:size(imInput,3), sliceThreshVals, 'b-', 'LineWidth', 2.0 );
         hold on;
-            plot(1:numel(sliceThreshVals), globalStackThresh * ones(1,numel(sliceThreshVals)), ...
-                         'g-', 'LineWidth', 2.0 );
-            plot(1:numel(sliceThreshVals), minSliceToStackThresholdRatio * globalStackThresh * ones(1,numel(sliceThreshVals)), ...
-                         'r-', 'LineWidth', 2.0 );
-
+        plot(1:numel(sliceThreshVals), globalStackThresh * ones(1,numel(sliceThreshVals)), ...
+            'g-', 'LineWidth', 2.0 );
+        plot(1:numel(sliceThreshVals), minSliceToStackThresholdRatio * globalStackThresh * ones(1,numel(sliceThreshVals)), ...
+            'r-', 'LineWidth', 2.0 );
+        
         hold off;
         xlabel( 'Z-slice' );
         ylabel( 'Otsu threshold' );
         title( 'Variation of otsu threshold from slice to slice' );
         legend( { 'slice threshold', 'global threshold', 'slice threshold lower-bnd' } );
     end
-
+    
     imseriesmaskshow(imInput, otsuMask);
     set(gcf, 'Name', sprintf('Otsu mask before post processing'));
     
@@ -110,7 +110,7 @@ otsuMask = imopen(otsuMask, streldisknd(diskRad));
 
 % post-processing from /home2/nzhang/matlab/applications/FISHprobe
 % /InvivoCytometer_2.0_source_code/code_package/segmentCellsInIntravitalData.m
-otsuMask = imfill( double(otsuMask) ); 
+otsuMask = imfill( double(otsuMask) );
 otsuMask = imclose(otsuMask, streldisknd(2*ones(1,ndims(imInput))));
 
 % Remove unqualified regions
@@ -143,8 +143,8 @@ for i = 1:numel(regionStats)
         flagCrossBoundary(i) = 1;
         
     else if ((regionStats(i).BoundingBox(1) + regionStats(i).BoundingBox(4)) >= imSize(2)) ...
-            || ((regionStats(i).BoundingBox(2) + regionStats(i).BoundingBox(5)) >= imSize(1))
-        
+                || ((regionStats(i).BoundingBox(2) + regionStats(i).BoundingBox(5)) >= imSize(1))
+            
             flagCrossBoundary(i) = 1;
             
         end
@@ -153,15 +153,15 @@ end
 
 % for i = 1:numel(regionStats)
 %     if any(regionStats(i).BoundingBox(1:(ndims(imInput))) <1)
-%         
+%
 %         flagCrossBoundary(i) = 1;
-%         
+%
 %     else if (any((regionStats(i).BoundingBox(1) + regionStats(i).BoundingBox(4)) >= imSize(1))) ...
 %             || (any((regionStats(i).BoundingBox(2) + regionStats(i).BoundingBox(5)) >= imSize(2))) ...
 %             || ((regionStats(i).BoundingBox(3) + regionStats(i).BoundingBox(6)) >= nDepth)
-%         
+%
 %             flagCrossBoundary(i) = 1;
-%             
+%
 %         end
 %     end
 % end
@@ -181,7 +181,7 @@ threshL(ismember(threshL, CrossBoundaryIndex)) = 0;
 % yzMaxProjFilled = imfill(yzMaxProj);
 % yzDiff = yzMaxProjFilled - yzMaxProj;
 % threshL(ismember(threshL, yzDiff)) = 0;
-% 
+%
 % xzMaxProj = max(threshL,[],2);
 % xzMaxProjFilled = imfill(xzMaxProj);
 % xzDiff = xzMaxProjFilled - xzMaxProj;

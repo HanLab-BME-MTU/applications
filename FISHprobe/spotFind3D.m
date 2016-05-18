@@ -1,4 +1,4 @@
-function spots = spotFind3D(fImg, chaParams, detectionMethod)
+function spots = spotFind3D(fImg, chaParams, detectionMethod, mannualAdjMode)
 %spotFindSingleNuc locates fluorescent tags in 3D data
 %
 % The creteria of spots selection is based on mnp thresholding
@@ -15,7 +15,6 @@ function spots = spotFind3D(fImg, chaParams, detectionMethod)
 % Refer to spotfind.m by dT
 
 patchSize = chaParams.filterParms(4:6);
-
 % init vars
 d = floor(patchSize/2);
 % inTestD = floor(FILTERSIZE/2); %number of pixels a spot has to be away from the border to be accepted
@@ -103,25 +102,33 @@ end;
 [mnpSorted,sortIdx] = sort(mnp(1:ct-1),1,'descend');
 
 % Need to optimize spots selection criteria!!!
-% mnpThreshold = input('Enter spottiness threshold > ');
-medianScore = median(mnpSorted);
-distToMedian = mnpSorted-medianScore;
-distThreshold = (mnpSorted(1)-medianScore)/5;
+distThreshold = mnpSorted(1)/5;
 
 % Plot cumulative histogram for mnp
 figure
-LM = zeros(size(mnpSorted,1),1);
-for i = 1:size(LM)
-    LM(i) = size(mnpSorted,1)-i+1;
+localMax = zeros(size(mnpSorted, 1), 1);
+for i = 1:size(localMax)
+    localMax(i) = size(mnpSorted, 1)-i+1;
 end
-plot(mnpSorted,LM,'r*');
-hold on
-x = [distThreshold, distThreshold];
-y = [min(LM), max(LM)];
-plot(x,y)
-close
+plot(mnpSorted, localMax, 'r*');
+hold on;
+yAxis = ylim;
+plot(distThreshold*ones(1,2), [yAxis(1), yAxis(2)], 'b-', 'LineWidth', 2.0)
+xlabel('Spottiness Score');
+ylabel('Number of Local Maxima');
+title('Cumulative Histongram of Spottiness');
 
-cps = sortIdx(distToMedian-distThreshold>0);
+if mannualAdjMode
+    disp('Please click to choose the spottiness threshold');
+    xyThresh = ginput(1);
+    distThreshold = xyThresh(1);
+    plot(xyThresh(1)*ones(1,2), [yAxis(1), yAxis(2)], 'g-', 'LineWidth', 2.0)
+end
+
+hold off;
+% close
+
+cps = sortIdx(mnpSorted - distThreshold>0);
 
 
 if cps  ~=0

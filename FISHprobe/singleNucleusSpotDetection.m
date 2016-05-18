@@ -10,6 +10,7 @@ p.addRequired('nucleiStruc', @(x) ~isempty(x));
 p.addRequired('channels', @(x) numel(x) > 1);
 p.addRequired('imageData', @(x) ~isempty(x));
 p.addParameter('detectionMethod', 'mnp', @isstr);
+p.addParameter('mannualAdjMode', 0, @isnumeric);
 
 p.parse(nucleiStruc, dataProperties.channel, imageData, varargin{:});
 
@@ -17,6 +18,7 @@ nucleiStruc = p.Results.nucleiStruc;
 chaParams = p.Results.channels;
 imageData = p.Results.imageData;
 detectionMethod = p.Results.detectionMethod;
+mannualAdjMode = p.Results.mannualAdjMode;
 
 for chaNum = 1:numel(chaParams)
     chaName = chaParams(chaNum).name;
@@ -27,7 +29,7 @@ for chaNum = 1:numel(chaParams)
         case 'green' 
             for nucNum = 1:numel(nucleiStruc)
                 nucStack = nucleiStruc(nucNum).green;
-                spots = spotFind3D(nucStack, chaParams(chaNum), detectionMethod);
+                spots = spotFind3D(nucStack, chaParams(chaNum), detectionMethod, mannualAdjMode);
                 nucleiStruc(nucNum).greenSpot = spots.sp;
                 clear nucStack
             end
@@ -35,7 +37,7 @@ for chaNum = 1:numel(chaParams)
         case 'red'
             for nucNum = 1:numel(nucleiStruc)
                 nucStack = nucleiStruc(nucNum).red;
-                spots = spotFind3D(nucStack, chaParams(chaNum), detectionMethod);
+                spots = spotFind3D(nucStack, chaParams(chaNum), detectionMethod, mannualAdjMode);
                 nucleiStruc(nucNum).redSpot = spots.sp;
                 clear nucStack
             end

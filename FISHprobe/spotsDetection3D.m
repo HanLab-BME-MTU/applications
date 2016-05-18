@@ -13,14 +13,17 @@ close all
 
 p = inputParser;
 p.addParameter('detectionMethod', 'mnp', @isstr);
+p.addParameter('mannualAdjMode', 0, @isnumeric);
 p.parse(varargin{:});
 detectionMethod = p.Results.detectionMethod;
+mannualAdjMode = p.Results.mannualAdjMode;
 
 [imageData, dataProperties] = read3dFISH();
 mask = segmentNucleiLocalOtsu(imageData.dapi, dataProperties);
 nucleiStruc = findNuclei(imageData, mask, dataProperties);
+pause(5);
 nucleiStruc = singleNucleusSpotDetection(nucleiStruc, dataProperties, ...
-    imageData, 'detectionMethod', detectionMethod);
+    imageData, 'detectionMethod', detectionMethod, 'mannualAdjMode', mannualAdjMode);
 
 end
 
