@@ -1,8 +1,13 @@
 function mask = segmentNucleiLocalOtsu(imInput, dataProperties, varargin)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+% segmentNucleiLocalOtsu uses layer-by-layer local otsu thresholding to
+% segment nuclei in 3D
 % 
-% 04/2016 Ning
+% INPUT
+%   imInput
+% OUTPUT
+%   mask:
+
+% 05/2016 Ning Zhang
 
 p = inputParser;
 p.addRequired('imInput', @(x) (isnumeric(x) && ~isempty(x)));
@@ -23,11 +28,11 @@ nDepth = p.Results.nDepth;
 flagDebugMode = p.Results.flagDebugMode;
 
 % Default parameters
-% localThresholdWindowRadius in um (see /matlab/applications/FISHprobe/
-% InvivoCytometer_2.0_source_code/code_package/thresholdLocalCalculate.m)
+% localThresholdWindowRadius in um (Refer to thresholdLocalCalculate.m by Liya Ding)
+% Carefully adjust parameters!!!
 localThresholdWindowRadius = 30;
 localWindowPaceFraction = 1/3;
-minSliceLocalGlobalThresholdRatio = 0.8;
+minSliceLocalGlobalThresholdRatio = 0.6;
 minSliceToStackThresholdRatio = 0.4;
 
 % Convert um to pixel and calculate pace
@@ -39,7 +44,7 @@ localWindowPace = round(localWindowRadius * localWindowPaceFraction);
 otsuMask = zeros(size(imInput));
 
 % Calculate the threshold for whole 3D stack
-globalStackThresh = thresholdOtsu( imInput );
+globalStackThresh = thresholdOtsu(imInput);
 
 % Debug module
 if flagDebugMode
@@ -56,7 +61,7 @@ for sliceId = 1:size(imInput, 3)
                                                     minSliceLocalGlobalThresholdRatio * 100);
 
     if sliceGlobalThresh < minSliceToStackThresholdRatio * globalStackThresh
-        imMask = imMask > globalStackThresh;
+        imMask = imSlice > minSliceToStackThresholdRatio * globalStackThresh;
     end
     otsuMask(:,:,sliceId) = imMask;
     
@@ -71,13 +76,6 @@ if flagDebugMode
     timeElapsed = toc(totalTimer);
     fprintf('took %f seconds\n', timeElapsed);
 end
-
-% post-processing from /home2/nzhang/matlab/applications/FISHprobe
-% /InvivoCytometer_2.0_source_code/code_package/segmentCellForegroundUsingLocalOtsu.m
-diskRad = ones(1,ndims(imInput));
-diskRad(1:2) = 3;
-otsuMask = imopen(otsuMask, streldisknd(diskRad));
-
 
 % display stuff in debug mode
 if flagDebugMode        
@@ -98,15 +96,17 @@ if flagDebugMode
         legend( { 'slice threshold', 'global threshold', 'slice threshold lower-bnd' } );
     end
 
-    imseriesmaskshow(imGlobalSliceThresholdVals, otsuMask, 'maskAlphas', 0.2);
-    set(gcf, 'Name', sprintf('Slice Threshold Map: WindowRadius - %d, minLocalThreshRatio - %.3f', ...
-                              localWindowRadius, minSliceLocalGlobalThresholdRatio));
-
-    imseriesmaskshow(imLocalThresholdVals, otsuMask, 'maskAlphas', 0.2);
-    set(gcf, 'Name', sprintf('Local Threshold Map: WindowRadius - %d, minLocalThreshRatio - %.3f', ...
-                                localWindowRadius, minSliceLocalGlobalThresholdRatio));
+    imseriesmaskshow(imInput, otsuMask);
+    set(gcf, 'Name', sprintf('Otsu mask before post processing'));
+    
 end
 
+
+% post-processing from /home2/nzhang/matlab/applications/FISHprobe
+% /InvivoCytometer_2.0_source_code/code_package/segmentCellForegroundUsingLocalOtsu.m
+diskRad = ones(1,ndims(imInput));
+diskRad(1:2) = 3;
+otsuMask = imopen(otsuMask, streldisknd(diskRad));
 
 % post-processing from /home2/nzhang/matlab/applications/FISHprobe
 % /InvivoCytometer_2.0_source_code/code_package/segmentCellsInIntravitalData.m
@@ -118,24 +118,19 @@ threshL = bwlabeln(otsuMask);
 regionStats = regionprops( threshL, {'Area', 'BoundingBox'} );
 
 % Remove regions with unreasonable small/large size
-accumX = 0;
-accumY = 0;
-accumZ = 0;
-for i = 1:numel(regionStats)
-    accumX = accumX + regionStats(i).BoundingBox(4);
-    accumY = accumY + regionStats(i).BoundingBox(5);
-    accumZ = accumZ + regionStats(i).BoundingBox(6);
-end
-avgBBoxSize = (accumX + accumY + accumZ)/3/numel(regionStats);
-fprintf('Suggested average cell diameter is %f um.\n', avgBBoxSize)
+% Find smarter methods for size selection!!!
+minVolIndex = 0.5;
+maxVolIndex = 0.8;
 
-minCellDiameter = input('Enter the minimum cell diameter in um for selection > ');
-maxCellDiameter = input('Enter the maximum cell diameter in um for selection > ');
-minCellVolume = (4/3) * pi * (0.5 * minCellDiameter)^3;
-maxCellVolume = (4/3) * pi * (0.5 * maxCellDiameter)^3;
 spacing = [pixelSizeXY, pixelSizeXY, pixelSizeZ];
-
 regArea = [regionStats.Area] * prod(spacing);
+medianArea = median(regArea);
+minCellVolume = medianArea * (1 - minVolIndex);
+maxCellVolume = medianArea * (1 + maxVolIndex);
+
+midianDiameter = (medianArea/pi/4*3)^(1/3)*2;
+fprintf('The diameter of median size nucleus is %.2f um.\n', midianDiameter)
+
 dumpRegionIndex = find(regArea < minCellVolume | regArea > maxCellVolume);
 threshL(ismember(threshL, dumpRegionIndex)) = 0;
 
@@ -192,9 +187,13 @@ threshL(ismember(threshL, CrossBoundaryIndex)) = 0;
 % xzDiff = xzMaxProjFilled - xzMaxProj;
 % threshL(ismember(threshL, xzDiff)) = 0;
 
-
-
 mask = bwlabeln(double(threshL > 0));
+
+maskZeroOne = mask > 0;
+if flagDebugMode
+    imseriesmaskshow(imInput, maskZeroOne);
+    set(gcf, 'Name', sprintf('Otsu mask after post processing'));
+end
 
 % cleanDiskRad = max( [round(0.25 * min(cellDiameterRange) ./ spacing); [2,2,1]] );
 % mask = imopen(mask, streldisknd(cleanDiskRad) ); % removes thin vessel like structures

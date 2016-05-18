@@ -18,7 +18,6 @@ detectionMethod = p.Results.detectionMethod;
 
 [imageData, dataProperties] = read3dFISH();
 mask = segmentNucleiLocalOtsu(imageData.dapi, dataProperties);
-imseriesmaskshow(imageData.dapi, mask);
 nucleiStruc = findNuclei(imageData, mask, dataProperties);
 nucleiStruc = singleNucleusSpotDetection(nucleiStruc, dataProperties, ...
     imageData, 'detectionMethod', detectionMethod);
