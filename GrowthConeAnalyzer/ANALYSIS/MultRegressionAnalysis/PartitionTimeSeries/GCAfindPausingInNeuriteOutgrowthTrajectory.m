@@ -93,7 +93,8 @@ a =diff(sv);
 sv = sv*60/secPerFrame; % convert to um per frame*60
 
 % calculate the transitions in the trajectory
-% find transitions
+% find transitions- 
+% pausing regions
 trans = diff(sv<threshPause & sv>-threshPause);
 trans = trans~=0 ;
 
@@ -110,8 +111,8 @@ maxVel = maxVel(maxVel>threshPause | maxVel<-threshPause);
 % find all locMinVel that are not within the pause region
 locMinVel = locMinVel(-minVel>threshPause);
 minVel = minVel(-minVel>threshPause);
-
 trans = find(trans);
+
 % add back just the growth trans %20151010
 transG = trans;
 
@@ -119,6 +120,11 @@ transG = trans;
 trans = [trans locMaxVel locMinVel];
 %trans = [trans locMaxVel];
 trans = sort(trans);
+
+% added 20160520- sometimes there is overlap in the local max and the
+% transition point out of pause for instance if have one point just above
+% the threshold. 
+trans = unique(trans); 
 
 grp1 = ones(trans(1)-1+1,1);
 trans = [ trans length(d)];
