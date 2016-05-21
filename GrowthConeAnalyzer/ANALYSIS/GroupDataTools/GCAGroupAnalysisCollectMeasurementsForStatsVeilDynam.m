@@ -278,7 +278,7 @@ for iGroup = 1:numel(toPlot.info.names)
             toPlot.([analType{iAnal} '_' params{iParam} '_' add]).ylim = ylim{iParam};
             
             %
-            clear data dataMat
+            clear data dataMat dataPerFrame
             
         end % iParam
         
