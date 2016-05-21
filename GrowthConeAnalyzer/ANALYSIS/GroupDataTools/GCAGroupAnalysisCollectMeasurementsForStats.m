@@ -20,7 +20,7 @@ ip.addParameter('OutputDirectory',pwd);
 ip.addParameter('MeasurementFolder','SegmentationPackage/StepsToReconstructTestingGeometry20160205/GCAMeasurementExtraction_test20160221/WholeNeurite'); 
 ip.addParameter('perFrame',false); % will collect the median value per frame 
 
-ip.addParameter('filterOutlierBranchParameters',true); 
+ip.addParameter('filterOutlierBranchParameters',false); 
  
 ip.parse(toPlot,varargin{:});
 %%
@@ -214,10 +214,16 @@ for iGroup = 1:nGroups
     
     for iParam = 1:numel(paramsAll)
         toPlot.(paramsAll{iParam}).dataMat{iGroup} = reformat{iParam};
-        
+        [~,hashTag] = gcaArchiveGetGitHashTag;
+        toPlot.(paramsAll{iParam}).hashTag = hashTag;
+        toPlot.(paramsAll{iParam}).timestamp = clock;
+        toPlot.(paramsAll{iParam}).measFolder = ip.Results.MeasurementFolder;
         if  ip.Results.perFrame
             toPlot.(paramsAll{iParam}).dataMatPerFrame{iGroup} = reformat2{iParam};
-            
+            [~,hashTag] = gcaArchiveGetGitHashTag;
+            toPlot.(paramsAll{iParam}).hashTagPerFrame = hashTag;
+            toPlot.(paramsAll{iParam}).timestampPerFrame = clock;
+            toPlot.(paramsAll{iParam}).measFolderPerFrame = ip.Results.MeasurementFolder;
         end
         
     end
