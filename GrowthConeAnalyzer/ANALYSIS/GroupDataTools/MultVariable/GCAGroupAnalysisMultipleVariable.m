@@ -32,7 +32,7 @@ ip.addParameter('SWMultReg',false); % flag to perform multiple variable regressi
 ip.addParameter('lasso',false);
 
 % Function for movie stat
-ip.addParameter('perNeuriteStatistic','nanmedian'); % default is to take the
+ip.addParameter('perNeuriteStatistic','nanmean'); % default is to take the
 % median value of the measurement calculated over the entire movie.
 
 % InputOutput
@@ -44,9 +44,10 @@ ip.addParameter('plotByGroupElongation',false); % will make 3-D scatter plots by
 ip.addParameter('perFrame',false); 
 ip.addParameter('plotByGroupColorID',false); 
 ip.addParameter('plotByGroupPic',false); 
+ip.addParameter('ColorByElongationState',true); 
 
 
-ip.addParameter('plotCentroids',true); 
+ip.addParameter('plotCentroids',false); 
 
 
 % D Reduction Visualizations
@@ -55,14 +56,14 @@ ip.addParameter('MDS',true);
 ip.addParameter('Run', true); % will search for a 
 %ip.addParameter('CriterionMDS','stress'); % default is nonmetric
 
-ip.addParameter('cluster',true);
+ip.addParameter('cluster',false);
 ip.addParameter('clustNumResponse',3);
 ip.addParameter('testResponseClust',false); 
 
 ip.addParameter('DistMetrics',false); 
 
-ip.addParameter('ColorTrajByTime',true); 
-ip.addParameter('MakeMovie',false); 
+ip.addParameter('ColorTrajByTime',false); 
+ip.addParameter('MakeMovie',true); 
 
 ip.parse(toPlot,varargin{:});
 %% Set up
@@ -140,14 +141,6 @@ if ip.Results.perFrame
     grpingGroupIDsAllGroups = vertcat(grpIDs{:}); 
     grpingTrajIDsAllGroups = vertcat(grpingTrajIDsAllGroups{:}); 
 end
-
-
-
-
-
-
-
-
 
 %% Collect and normalize the measurement data : Default is to take a median value for each cell
 
@@ -227,7 +220,7 @@ dataPreNorm = mat2dataset(dataMatAllGroupsMeas,'ObsNames',obsNames,'varNames',va
 % end 
 save([dataDir filesep ['OriginalValues' ip.Results.perNeuriteStatistic 'PerNeuriteMovie']],'dataPreNorm');
 
-export(dataPreNorm,'file',[dataDir filesep 'OriginalValuesMedianPerNeuriteMovie.csv']);
+export(dataPreNorm,'file',[dataDir filesep 'OriginalValues_' ip.Results.perNeuriteStatistic '_Movie.csv']);
 %writetable(tDataRaw,[ip.Results.OutputDirectory filesep 'OriginalValuesMedianPerNeuriteMovie.csv'],dataOriginal);
 
 dataZScores = mat2dataset(dataFinal,'ObsNames',obsNamesZ,'varNames',varNames);
@@ -371,8 +364,18 @@ if ip.Results.lasso
     if ~isdir(lassoDir)
         mkdir(lassoDir);
     end
+    % first just run lasso not the elastic net or ridge (alpha = 1) 
+    [coef,fitInfo] = lasso(dataMatAllGroupsMeas,outgrowth,'CV',10,'PredictorNames',varNames);
     
-    [coef,fitInfo] = lasso(dataMatAllGroupsMeas,outgrowth);
+    save([lassoDir filesep 'lassoAllData.mat'],'coef','fitInfo');
+    
+        
+    dataMatControl = dataMatAllGroupsMeas(1:size(toPlot.info.projList{1}),:);
+    outgrowthControl = outgrowth(1:size(toPlot.info.projList{1}));
+    
+    [coefCon,fitInfoCon] = lasso(dataMatControl,outgrowthControl,'CV',10,'PredictorNames',varNames); 
+    save([lassoDir filesep 'lassoAllControl.mat'],'coefCon','fitInfoCon');
+    
     %     %% there is also stepwiselm creates an object
     %
     %
@@ -603,7 +606,7 @@ if ip.Results.MDS
                 mkdir(grpDir);
             end
             
-            for iGroup = nGroups-1:nGroups-1
+            for iGroup = 1:nGroups
                 trajDir = [grpDir filesep toPlot.info.names{iGroup}];
                 if ~isdir(trajDir)
                     mkdir(trajDir);
@@ -638,12 +641,12 @@ if ip.Results.MDS
                     if ip.Results.ColorTrajByTime
                         % make individual file for each 
                          
-                        %cmapTime = jet(framesPerParam(1));
-                        cmapTimeBeforeDrug  = repmat(toPlot.info.colorShades{10}(end,:),[61,1]) ; ... 
-                            
-                        cmapTimeAfterDrug = repmat(toPlot.info.colorShades{10}(5,:),[61,1]); 
-                        
-                        cmapTime= [cmapTimeBeforeDrug ; cmapTimeAfterDrug];
+                        cmapTime = jet(framesPerParam(1));
+%                         cmapTimeBeforeDrug  = repmat(toPlot.info.colorShades{10}(end,:),[61,1]) ; ... 
+%                             
+%                         cmapTimeAfterDrug = repmat(toPlot.info.colorShades{10}(5,:),[61,1]); 
+%                         
+%                         cmapTime= [cmapTimeBeforeDrug ; cmapTimeAfterDrug];
                         
                         
                         %if ip.Results.ColorTrajByTimeMovie 
@@ -704,11 +707,6 @@ if ip.Results.MDS
                               GCAVisualsMontagingMovieNoMD(frames,inputFolders,outputFolder); 
                             end
                             
-                            
-                            
-                            
-                            
-                            
                             % Set up Montage
                             imageFolder  = ['GrowthConeAnalyzer/SegmentationPackage/' ...
                                 'StepsToReconstructTestingGeometry20160205/' ...
@@ -768,10 +766,7 @@ if ip.Results.MDS
 
                         
                     end
-                    
-                   
-               
-                
+                        
                 close gcf
                 else
                     display(['The Entire Movie' projListC{iTraj} 'was removed: Check Measurements']); 
@@ -797,16 +792,62 @@ if ip.Results.MDS
             %                   for iTraj = 1:nTrajs
             %                       scatter(y(groupingTraj == iTraj  & groupingCell == iGroup,:), y(groupingTraj == iTraj & groupingCell == iGroup));
             %                   end
+            %% add a flag to plot overlay of all y by the neurite elongation classification
+            % for now just do for control
+            if ip.Results.ColorByElongationState
+                
+                elongDir =   [ip.Results.OutputDirectory filesep 'MDSPerFrame_ColorByElongationState'];
+                if ~isdir(elongDir)
+                    mkdir(elongDir)
+                end 
+                
+                setAxis('on')
+                scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
+                c(1) = 'c';
+                c(2) = 'b';
+                c(3) = 'r';
+                c(4) = 'm';
+                hold on
+                removed2 = cellfun(@(x) strrep(x,'_','/'),removed,'uniformoutput',0);
+                % for now plot all control
+                for iProj = 1:size(toPlot.info.projList{1}(16,1),1)
+                    
+                    load([toPlot.info.projList{1}{16,1} filesep filesep 'GrowthConeAnalyzer/MEASUREMENT_EXTRACTION/Partition_Outgrowth_Trajectory_WithGrowthTimes_Spline0pt01'...
+                        filesep 'globalMeas.mat' ]);
+                    states = globalMeas.outgrowth.stateAllFrames;
+                    
+                    currentTraj = find(grpingTrajIDsAllGroups==16 & grpingGroupIDsAllGroups ==1);
+                    
+                    % just need to remove frame 9 19 72 from state space.
+                    
+                    [~,~,frames] = cellfun(@(x) upDirectory(x,1),removed2,'uniformoutput',0);
+                    names = frames(cellfun(@(x) ~isempty(regexp(x,toPlot.info.projList{1}{16,2})),removed));
+                    frames = cellfun(@(x) str2double(x),names);
+                    states(frames) = [];
+                    states(end-1:end) = [];
+                    
+                    for iState = 1:4
+                        
+                        scatter(y(currentTraj(states==iState),1),y(currentTraj(states==iState),2),50,c(iState),'filled');
+                        hold on
+                    end
+                    %             %
+                    clear states frames names
+                    
+                end
+                xlabel('MDS1');
+                ylabel('MDS2');
+                axis(axisLims);
+              
+                saveas(gcf,[elongDir filesep 'MDS_PerFrame_ColorByElongationState.fig']); 
+                saveas(gcf,[elongDir filesep 'MDS_PerFrame_ColorByElongationState.eps'],'psc2'); 
+                saveas(gcf,[elongDir filesep 'MDS_PerFrame_ColorByElongationState.png']); 
+            end % ip.Results.ColorByElongationRate
             
-            
-            %
-            
-            
-%             
 %             saveas(gcf,[ip.Results.OutputDirectory filesep 'MDS_PerFrame_2DScatter.fig']);
 %             saveas(gcf,[ip.Results.OutputDirectory filesep 'MDS_PerFrame_2DScatter.png']);
 %             saveas(gcf,[ip.Results.OutputDirectory filesep 'MDS_PerFrame_2DScatter.eps'],'psc2');
-            
+%             
         else % plot by group
             
             arrayfun(@(x) scatter(y(grouping==x,1),...
@@ -1003,12 +1044,7 @@ if ip.Results.MDS
             for iGroup = 1:nGroups
                 setAxis('on');
                 hold on
-                
-                
-                
-                
-                
-                
+                         
                 if iGroup > 1
                     scatter(controlValues(:,1),controlValues(:,2),50,'k','filled');
                 end
