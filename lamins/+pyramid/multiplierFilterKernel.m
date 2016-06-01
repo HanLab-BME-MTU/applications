@@ -11,7 +11,8 @@ if(nargin < 2)
     coords = orientationSpace.getFrequencySpaceCoordinates(imSize);
 end
 if(nargin < 3)
-    indices = -9:27;
+%     indices = -9:27;
+    indices = 0:15;
 end
 
 omega = 2;
