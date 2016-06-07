@@ -58,6 +58,8 @@ for ct = 1:360
     camorbit(1,0,'camera')
     light_handle = camlight(light_handle,'headlight'); lighting phong
     drawnow
+    
+    % Save files
     toName = sprintf('rotate%03d',ct);
     saveas(gcf,fullfile(rotSavePath,toName), 'tiffn');
 end
