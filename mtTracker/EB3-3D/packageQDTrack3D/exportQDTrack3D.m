@@ -28,3 +28,4 @@ userScriptDir=[versionPath filesep 'user-script' filesep];
 mkdir(userScriptDir);
 movefile([versionPath filesep 'code' filesep 'scriptQuantumDotsTracking.m'],userScriptDir);
 movefile([versionPath filesep 'code' filesep 'createQDMovieManagementFile.m'],userScriptDir);
+movefile([versionPath filesep 'code' filesep 'simulateAndTrack.m'],userScriptDir);
