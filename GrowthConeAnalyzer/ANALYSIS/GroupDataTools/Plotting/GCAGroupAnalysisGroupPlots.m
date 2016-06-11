@@ -23,22 +23,38 @@ function [ output_args ] = GCAGroupAnalysisGroupPlots(toPlot,varargin)
 ip = inputParser;
 
 ip.CaseSensitive = false;
-ip.addRequired('toPlot'); 
+ip.addRequired('toPlot');
+
 ip.addParameter('Interactive',true,@(x) islogical(x)); 
+ip.addParameter('Measurements',[]); % cell of measurements to be plotted  
 ip.addParameter('OutputDirectory',pwd,@(x) ischar(x));
 ip.addParameter('yLimOff',false,@(x) islogical(x)); 
-ip.addParameter('splitMovie',false); 
-
+ip.addParameter('splitMovie',false);
+ip.addParameter('order',[]); % order to plot data from the cluster object 
+ip.addParameter('plotType','perCell'); 
+ip.addParameter('perNeuriteStat','nanmean' ); 
 ip.parse(toPlot,varargin{:}); 
-%%
-params = fieldnames(toPlot);
-params = params(~strcmpi('info',params)) ;
-saveDir = ip.Results.OutputDirectory; 
-if ip.Results.Interactive 
- paramSelect  = listSelectGUI(params,[],'move'); 
-    params  = params(paramSelect);
-end 
 
+
+
+%%
+saveDir = ip.Results.OutputDirectory;
+
+if ~isempty(ip.Results.Measurements);
+    params = ip.Results.Measurements;
+else
+    params = fieldnames(toPlot);
+    params = params(~strcmpi('info',params)) ;
+    
+    if ip.Results.Interactive
+        paramSelect  = listSelectGUI(params,[],'move');
+        params  = params(paramSelect);
+    end
+end
+
+perNeuriteStat = str2func(ip.Results.perNeuriteStat); 
+toPlot = helperAddYLabels(toPlot); 
+%%
 for iParam = 1:length(params)
     
     % get the dataMat (all groups horizontally catenated)
@@ -203,128 +219,170 @@ for iParam = 1:length(params)
             
             %% Non-treatment
         case false
-            %% start pooled.
-            setAxis('off')
-            colors  = vertcat(toPlot.info.color{:});
-            grpNames = vertcat(toPlot.info.names(:));
-            
-            h1 =  boxplot(dataMatLargeC,toPlot.info.groupingPoolWholeMovie,...
-                'colors',colors,'notch','on','outlierSize',1,'symbol','+','Labels',grpNames,'labelorientation','inline');
-            
-            set(h1(:),'Linewidth',2);
-            
-            forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPoolWholeMovie==x),1:numel(grpNames),'uniformoutput',0);
-            forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
-            
-            cmpFunc = @nanmedian;
-            % for N median
-            percentChange = arrayfun(@(x) (cmpFunc(forN{x})-cmpFunc(forN{1}))./cmpFunc(forN{1}),2:numel(forN));
-            values = arrayfun(@(x) cmpFunc(forN{x}),1:numel(forN));
-            toPlot.(params{iParam}).percentChange= percentChange;
-            
-            %     forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
-            N = cellfun(@(x) length(x(~isnan(x))),forN);
-            Nstring = num2cell(N);
-            Nstring = cellfun(@(x) ['N = '  num2str(x) ] ,Nstring,'uniformoutput',0);
-            title(Nstring);
-            line([0.5,numel(grpNames)+0.5],[nanmedian(forN{1}),nanmedian(forN{1})],'color','k','linewidth',2);
-            
-            % Perform some simple stats against control
-            for i = 2:numel(grpNames)
-                [hit(i),pValue(i)] =   permTest(forN{1},forN{i},'CmpFunction',@median);
-                if hit(i) == 0
-                    text(i,nanmedian(forN{i}),'NS','color','k','FontSize',10);
-                else
-                    if pValue(i) == 0
-                        text( i,double(nanmedian(forN{i})),num2str(pValue(i),'%01d'),'color','k','FontSize',10);
+            switch ip.Results.plotType
+                case 'pooled'
+                    %             %% start pooled.
+                    setAxis('off')
+                    colors  = vertcat(toPlot.info.color{:});
+                    grpNames = vertcat(toPlot.info.names(:));
+                    
+                    h1 =  boxplot(dataMatLargeC,toPlot.info.groupingPoolWholeMovie,...
+                        'colors',colors,'notch','on','outlierSize',1,'symbol','+','Labels',grpNames,'labelorientation','inline');
+                    
+                    set(h1(:),'Linewidth',2);
+                    
+                    forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPoolWholeMovie==x),1:numel(grpNames),'uniformoutput',0);
+                    forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
+                    
+                    cmpFunc = @nanmedian;
+                    % for N median
+                    percentChange = arrayfun(@(x) (cmpFunc(forN{x})-cmpFunc(forN{1}))./cmpFunc(forN{1}),2:numel(forN));
+                    values = arrayfun(@(x) cmpFunc(forN{x}),1:numel(forN));
+                    toPlot.(params{iParam}).percentChange= percentChange;
+                    
+                    %     forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
+                    N = cellfun(@(x) length(x(~isnan(x))),forN);
+                    Nstring = num2cell(N);
+                    Nstring = cellfun(@(x) ['N = '  num2str(x) ] ,Nstring,'uniformoutput',0);
+                    title(Nstring);
+                    line([0.5,numel(grpNames)+0.5],[nanmedian(forN{1}),nanmedian(forN{1})],'color','k','linewidth',2);
+                    
+                    % Perform some simple stats against control
+                    for i = 2:numel(grpNames)
+                        [hit(i),pValue(i)] =   permTest(forN{1},forN{i},'CmpFunction',@median);
+                        if hit(i) == 0
+                            text(i,nanmedian(forN{i}),'NS','color','k','FontSize',10);
+                        else
+                            if pValue(i) == 0
+                                text( i,double(nanmedian(forN{i})),num2str(pValue(i),'%01d'),'color','k','FontSize',10);
+                            else
+                                text(i,double(nanmedian(forN{i})),num2str(pValue(i),'%04d'),'color','k','FontSize',10);
+                            end
+                        end % if hit
+                    end % for iGroup
+                    %
+                    %     axis([0.5 length(toPlot.info.names) + 0.5 0 toPlot.(params{iParam}).ylim]);
+                    % ylabel(toPlot.(params{iParam}).yLabel);
+                    ylabel(strrep(params{iParam},'_',' '));
+                    saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.fig']);
+                    saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.png']);
+                    saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.eps'],'psc2');
+                    
+                    %% plot per cell
+                case 'perCell'
+                    % create the group folder (Veil/Branch/Filo) 
+                    if isfield(toPlot.(params{iParam}),'yGroup');
+                        cDir = [saveDir filesep toPlot.(params{iParam}).yGroup];
+                        if ~isdir(cDir)
+                            mkdir(cDir);
+                        end
+                        
                     else
-                        text(i,double(nanmedian(forN{i})),num2str(pValue(i),'%04d'),'color','k','FontSize',10);
+                        cDir = saveDir;
                     end
-                end % if hit
-            end % for iGroup
-            
-            %     axis([0.5 length(toPlot.info.names) + 0.5 0 toPlot.(params{iParam}).ylim]);
-                % ylabel(toPlot.(params{iParam}).yLabel);
-            ylabel(strrep(params{iParam},'_',' ')); 
-            saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.fig']);
-            saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.png']);
-            saveas(gcf,[saveDir filesep 'pooled' params{iParam} '.eps'],'psc2');
-            
-            %% plot per cell
-            
-            setAxis('off');
-            nCells = length(unique(toPlot.info.groupingPerCell));
-            forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPerCell==x),1:nCells,'uniformoutput',0);
-            forN = cellfun(@(x) x(:),forN,'uniformoutput',0);
-            
-            % get the means of each neurite for the entire dataMat (condigion info
-            % lost unfortunately)
-            means = cellfun(@(x) nanmean(x), forN);
-            
-            % add back the condition grouping info
-            meansPerGp =  arrayfun(@(x) means(toPlot.info.grouping==x)',1:numel(toPlot.info.names),'uniformoutput',0);
-            
-            % reformat cell to double for notBoxplot
-            % each column should now be the means/medians for each  cells in a condition
-            % group
-            perCellDataMat = reformatDataCell(meansPerGp);
-            
-            h = notBoxPlot(perCellDataMat);
-            
-            %set the colors
-            arrayfun(@(i) set(h(i).data,'markerFaceColor', toPlot.info.color{i}),1:numel(toPlot.info.names));
-            arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:numel(toPlot.info.names));
-            arrayfun(@(i) set(h(i).mu,'color',toPlot.info.color{i}),1:numel(toPlot.info.names));
-            arrayfun(@(i) set(h(i).semPtch,'faceColor',toPlot.info.colorShades{i}(4,:)),1:numel(toPlot.info.names));
-            arrayfun(@(i) set(h(i).sdPtch,'faceColor',toPlot.info.colorShades{i}(1,:)),1:numel(toPlot.info.names));
-            
-            
-            % perform some quick stat tests
-            for i = 2:numel(toPlot.info.names)
-                [hit(i),pValues(i)] = permTest(meansPerGp{1},meansPerGp{i});
-                if hit(i) == 0
-                    text(i,double(mean(meansPerGp{i})),'NS');
-                else
-                    if pValues(i) == 0
-                        text(i,double(mean(meansPerGp{i})),num2str(pValues(i),1));
+                    setAxis('on',0.75,20);
+                    nCells = length(unique(toPlot.info.groupingPerCell));
+                    % collect the data forN (note 2016030 not sure why I
+                    % formated this way-  it it seems odd 
+                    % I compiled the groups only to again separate them...
+                    % might just be due to history... check the split movie
+                    % format) 
+                    
+                    % put into a 1xc cell where c is the total number of 
+                    % neurite movies sampled over all groups 
+                    % each cell contains N measurements compiled per movie
+                 
+                    forN  = arrayfun(@(x) dataMatLargeC(:,toPlot.info.groupingPerCell==x),1:nCells,'uniformoutput',0);
+                    forN = cellfun(@(x) x(:),forN,'uniformoutput',0); 
+                    
+                    
+                    
+                    
+                    % get the perNeurite stat of each neurite for the entire dataMat (condition info
+                    % lost unfortunately) 1xc double where c the total number
+                    % of neurite movies : the single row is distribution
+                    % stat per neurite movie 
+                    
+                    neuriteStatEachMovieCompile = cellfun(@(x) perNeuriteStat(x), forN);
+                    
+                    % add back the condition grouping info ( again I know a
+                    % bit circuitous) 1xc cell where c is the number of
+                    % perturbation groups, each cell is an rx1 double 
+                    % where r is the number of movies sampled per
+                    % perturbation- and each row is a distribution stat as 
+                    % calculated for the entire neurite movie 
+                    neuriteStatEachMovieGrouped =  arrayfun(@(x) neuriteStatEachMovieCompile(toPlot.info.grouping==x)',1:numel(toPlot.info.names),'uniformoutput',0);
+                    
+                    % reformat cell to a padded double for notBoxplot
+                    % rxc matrix where r is the single measurement per movie (defined by the perNeuriteStat)
+                    % and c is the perturbation group 
+                    perCellDataMat = reformatDataCell(neuriteStatEachMovieGrouped);
+                    
+                    % sort the order of the perturbation groups if required
+                    % (note this is helpful so that the order of groups reflects the 
+                    % clustergram output order for easy comparison) 
+                    if ~isempty(ip.Results.order)
+                        namesC = ip.Results.order;
+                        IDSort = cellfun(@(x) find(strcmpi(x,toPlot.info.names)),namesC);
+                        IDSort = [1, IDSort];
+                        perCellDataMat = perCellDataMat(:,IDSort);
+                        names = ['KD Rac1' ; namesC']; 
+                        %names = ['Control' ; namesC'];
+                        colors = toPlot.info.color(IDSort);
+                        colorShades = toPlot.info.colorShades(IDSort);
+                        neuriteStatEachMovieGrouped = neuriteStatEachMovieGrouped(IDSort);
                     else
-                        text(i,double(mean(meansPerGp{i})),num2str(pValues(i),4));
+                        colors = toPlot.info.color;
+                        names = toPlot.info.names;
+                        colorShades = toPlot.info.colorShades;
                     end
-                end
-            end
-            forLabel = strrep(params{iParam},'_',' '); 
-            ylabel(forLabel); 
-             %ylabel(toPlot.(params{iParam}).yLabel);
-            set(gca,'XTick',1:numel(toPlot.info.names));
-            set(gca,'XTickLabel',toPlot.info.names,'FontSize',10);
-            
-            %         axis([0.5 length(toPlot.info.names)+ 0.5 0 toPlot.(params{iParam}).ylim]);
-            %     ylabel(toPlot.(params{iParam}).yLabel);
-            
-            saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.fig']);
-            saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.png']);
-            saveas(gcf,[saveDir filesep 'perCell' params{iParam} '.eps'],'psc2');
-                      
-    end  
-    %save('compMat.mat','compMat');
-    % save('toPlotWithStats','toPlot');
-    % % collect data
-    %  forHeatMap = arrayfun(@(x) toPlot.(params{x}).percentChange,1:numel(params),'uniformoutput',0);
-    %  forHeatMap = vertcat(forHeatMap{:});
-    %  forHeatMap = forHeatMap.*100;
-    % close all
-    % acutePertPlots = false;
-    % if acutePertPlots == true
-    %     names = toPlot.info.names;
-    % else
-    %     names = toPlot.info.names(2:end);
-    % end
-    %
-    %  colorMap = HeatMap(forHeatMap,'RowLabels',params,'ColumnLabels',names,...
-    %     'colormap','redbluecmap','ColumnLabelsRotate',45,'DisplayRange',70,'Symmetric',1);
-    % save('colorMap','colorMap');
-    %   saveas(gcf,'SummaryFigure.png');
-    %   saveas(gcf,'SummaryFigure.fig');
-    %   saveas(gcf,'SummaryFigure.eps','psc2');
+                    
+                    
+                    h = notBoxPlot(perCellDataMat);
+                  
+                    %set the colors
+                    arrayfun(@(i) set(h(i).data,'markerFaceColor', colors{i}),1:numel(names));
+                    arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:numel(names));
+                    arrayfun(@(i) set(h(i).mu,'color',colors{i}),1:numel(names));
+                    arrayfun(@(i) set(h(i).semPtch,'faceColor',colorShades{i}(4,:)),1:numel(names));
+                    arrayfun(@(i) set(h(i).sdPtch,'faceColor',colorShades{i}(1,:)),1:numel(names));
+                    
+                    
+                    % perform some quick stat tests
+                    for i = 2:numel(toPlot.info.names)
+                        [hit(i),pValues(i)] = permTest(neuriteStatEachMovieGrouped{1},neuriteStatEachMovieGrouped{i});
+                        if hit(i) == 0
+                            text(i,double(mean(neuriteStatEachMovieGrouped{i})),'NS','FontSize',14);
+                        else
+                            if pValues(i) == 0
+                                text(i,double(mean(neuriteStatEachMovieGrouped{i})),num2str(pValues(i),1),'FontSize',14);
+                            else
+                                text(i,double(mean(neuriteStatEachMovieGrouped{i})),num2str(pValues(i),4),'FontSize',14);
+                            end
+                        end
+                    end
+                    forLabel = strrep(params{iParam},'_',' ');
+                    
+                    
+                    ylabel(forLabel);
+                    %ylabel(toPlot.(params{iParam}).yLabel);
+                    set(gca,'XTick',1:numel(names));
+                    set(gca,'XTickLabel',names,'FontSize',20);
+                    
+                    %axis([0.5 length(toPlot.info.names)+ 0.5 0 toPlot.(params{iParam}).ylim]);
+                    
+                    if isfield(toPlot.(params{iParam}),'yLabel');
+                        ylabel(toPlot.(params{iParam}).yLabel);
+                    end
+                    set(gca,'XTickLabelRotation',45);
+                    
+                    saveas(gcf,[cDir filesep 'perCell' params{iParam} '.fig']);
+                    saveas(gcf,[cDir filesep 'perCell' params{iParam} '.png']);
+                    saveas(gcf,[cDir filesep 'perCell' params{iParam} '.eps'],'psc2');
+                    close gcf 
+            end  % switch ip.Results.plotType
+        
+    end
 end
+end 
 
