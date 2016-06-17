@@ -43,16 +43,21 @@ period = nAngles*3;
 % (Revised), Dover, 2001. Toronto. ISBN 0-486-41183-4, page 198
 rotationResponse = interpft(rotationResponse,period,3);
 rotationResponse = padarrayXT(rotationResponse,[1 1 0] ,'symmetric');
+rotationResponse = padarrayXT(rotationResponse,[0 0 1] ,'circular');
 
 % Map angles in radians (0:2*pi) to angle index (1:nAngles)
 % angleIdx = theta/(2*pi)*(nAngles*3-1)+1;
 
-% Actually, map angles in radians (-pi/2:pi/2) to angle index (1:nAngles)
-angleIdx = theta/pi*(period-1)+1;
+% Map angles in from [-pi/2:pi/2) to (0:pi]
+angleIdx = theta;
+angleIdx(angleIdx < 0) = angleIdx(angleIdx < 0) + pi; % now (0:pi)
+% Map angles in radians (0:pi) to angle index (2:nAngles*3+1)
+angleIdx = angleIdx/pi*(period)+2;
 % Negative values should be advanced by one period
-angleIdx(angleIdx < 0) = angleIdx(angleIdx < 0)+period;
+% angleIdx(angleIdx < 0) = angleIdx(angleIdx < 0)+period;
 
-[x,y] = meshgrid(1:nx,1:ny);
+% Offset by 1 due to padding
+[x,y] = meshgrid(2:nx+1,2:ny+1);
 
 % TODO: optimize later
 for o = 1:nO
@@ -60,15 +65,17 @@ for o = 1:nO
 
 %     res = padarrayXT(rrotationResponse(:,:,o), [1 1 0], 'symmetric');
 
+    x_offset = cos(theta(:,:,o));
+    y_offset = sin(theta(:,:,o));
 
     % +1 interp
-    A1 = interp3(rotationResponse, x+1+cos(theta(:,:,o)), y+1+sin(theta(:,:,o)),angleIdx(:,:,o),'spline',0);
+    A1 = interp3(rotationResponse, x+x_offset, y+y_offset,angleIdx(:,:,o),'spline',0);
 
     % -1 interp
-    A2 = interp3(rotationResponse, x+1-cos(theta(:,:,o)), y+1-sin(theta(:,:,o)),angleIdx(:,:,o),'spline',0);
+    A2 = interp3(rotationResponse, x-x_offset, y-y_offset,angleIdx(:,:,o),'spline',0);
 
     % TODO: We only need to interpolate where not NaN
-    temp = interp3(rotationResponse, x+1, y+1, angleIdx(:,:,o),'spline',0);
+    temp = interp3(rotationResponse, x, y, angleIdx(:,:,o),'spline',0);
     temp(temp < A1 | temp < A2) = suppressionValue;
     nlms(:,:,o) = temp;
 
