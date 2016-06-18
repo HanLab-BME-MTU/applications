@@ -120,7 +120,8 @@ switch filterType
         filterParams.filterByFit = 1;
         filterParams.filterByBundleLength = [0.3,inf];
         
-        filterParams.saveFiloByLengthAndSig = [];
+       % filterParams.saveFiloByLengthAndSig = [];
+          filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
       
         filterParams.embedFitCriteria = 95 ; % change threshold to be a percentile of the residuals 
         filterParams.filoFitCriteria = 95; 
@@ -131,7 +132,20 @@ switch filterType
         % the level of the filoInfo fitting function (ie set these to NaNs)
         % maybe that is the better option just because this will save info
         % and if you do this here it will allow the user to make this more 
-        % permissive or less.        
+        % permissive or less.       
+    case 'curvVsLength'
+        filterParams.filoTypes = 0; % 0 order attached to veil (no Branch), 1st order attached to a veil with a branch
+        filterParams.filterByFit = 1;
+        filterParams.filterByBundleLength = [0.3,inf];
+        
+        % filterParams.saveFiloByLengthAndSig = [];
+        filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
+        
+        filterParams.embedFitCriteria = 95 ; % change threshold to be a percentile of the residuals
+        filterParams.filoFitCriteria = 95;
+        
+        
+        
 end
 
 %% START FILTERING
