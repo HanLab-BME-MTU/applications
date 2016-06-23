@@ -1,4 +1,4 @@
-function [ nlms ] = nonLocalMaximaSuppressionPrecise( rotationResponse, theta , suppressionValue)
+function [ nlms ] = nonLocalMaximaSuppressionPrecise( rotationResponse, theta , suppressionValue, interpMethod)
 %nonLocalMaximaSuppression Suppress pixels which are not local maxima in
 %both orientation and filter response
 %
@@ -25,8 +25,11 @@ if(nargin < 2 || isempty(theta))
     theta = theta*pi/nO;
     %TODO: allow for theta of different sizes
 end
-if(nargin < 3)
+if(nargin < 3 || isempty(suppressionValue))
     suppressionValue = 0;
+end
+if(nargin < 4 || isempty(interpMethod))
+    interpMethod = 'cubic';
 end
 % if(nargin < 4)
 %     distance = 1;
@@ -69,13 +72,13 @@ for o = 1:nO
     y_offset = sin(theta(:,:,o));
 
     % +1 interp
-    A1 = interp3(rotationResponse, x+x_offset, y+y_offset,angleIdx(:,:,o),'spline',0);
+    A1 = interp3(rotationResponse, x+x_offset, y+y_offset,angleIdx(:,:,o),interpMethod,0);
 
     % -1 interp
-    A2 = interp3(rotationResponse, x-x_offset, y-y_offset,angleIdx(:,:,o),'spline',0);
+    A2 = interp3(rotationResponse, x-x_offset, y-y_offset,angleIdx(:,:,o),interpMethod,0);
 
     % TODO: We only need to interpolate where not NaN
-    temp = interp3(rotationResponse, x, y, angleIdx(:,:,o),'spline',0);
+    temp = interp3(rotationResponse, x, y, angleIdx(:,:,o),interpMethod,0);
     temp(temp < A1 | temp < A2) = suppressionValue;
     nlms(:,:,o) = temp;
 
