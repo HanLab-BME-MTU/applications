@@ -244,8 +244,8 @@ for ii=1:nFrames
     displFieldShifted(ii).vec = disp_vec;
 end
 disp('Saving ...')
-save(outputFile{1},'displField','displFieldShifted');
-save(outputFile{2},'dMap','dMapX','dMapY'); % need to be updated for faster loading. SH 20141106
+save(outputFile{1},'displField','displFieldShifted','-v7.3');
+save(outputFile{2},'dMap','dMapX','dMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 displFieldCorrProc.setTractionMapLimits([dmin dmax])
 
 save([p.OutputDirectory filesep 'displField.mat'],'displField','displFieldShifted');

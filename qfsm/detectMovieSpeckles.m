@@ -163,7 +163,13 @@ for i = 1:numel(p.ChannelIndex)
     for j= 1:nFrames
         % Load the current image, scale it and apply Gaussian filter
         currImage = double(movieData.channels_(iChan).loadImage(j))/maxIntensity; 
-        currMask = maskProc.loadChannelOutput(iChan,j).*roiMask(:,:,j);
+        % Ifthe roi was defined considering Stage Drift Correction process,
+        % naive application of roiMask can be detrimental.  - Sangyoon
+        if ~isempty(movieData.getProcessIndex('StageDriftCorrectionProcess',1,1))
+            currMask = maskProc.loadChannelOutput(iChan,j);
+        else
+            currMask = maskProc.loadChannelOutput(iChan,j).*roiMask(:,:,j);
+        end
         if p.filterSigma(iChan)>0
             currImage = filterGauss2D(currImage,p.filterSigma(iChan));
         end

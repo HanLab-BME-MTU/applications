@@ -182,7 +182,11 @@ forceFieldProc.setOutFilePaths(outputFile);
 %% --------------- Force field calculation ---------------%%% 
 
 disp('Starting calculating force  field...')
-maskArray = movieData.getROIMask;
+if ~isempty(movieData.roiMaskPath_)
+    maskArray = imread(movieData.roiMaskPath_);
+else
+    maskArray = movieData.getROIMask;
+end
 if min(min(maskArray(:,:,1))) == 0
     iStep2Proc = movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
     step2Proc = movieData.processes_{iStep2Proc};
@@ -199,9 +203,21 @@ if min(min(maskArray(:,:,1))) == 0
         end
         %Parse input, store in parameter structure
         refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex}));
-        firstMask = false(size(refFrame));
+
+        % Use mask of first frame to filter bead detection
+        firstMask = refFrame>0; %false(size(refFrame));
         tempMask = maskArray(:,:,1);
-        firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+        % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+        tempMask2 = false(size(refFrame));
+        y_shift = find(any(firstMask,2),1);
+        x_shift = find(any(firstMask,1),1);
+
+        tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        firstMask = tempMask2 & firstMask;
+        
+%         firstMask = false(size(refFrame));
+%         tempMask = maskArray(:,:,1);
+%         firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask; % This was wrong
         displFieldOriginal=displFieldProc.loadChannelOutput;
         displField = filterDisplacementField(displFieldOriginal,firstMask);
     else
@@ -824,9 +840,9 @@ disp('Saving ...')
 % save(outputFile{2},'tMap','tMapX','tMapY','dErrMap','distBeadMap'); % need to be updated for faster loading. SH 20141106
 save(outputFile{1},'forceField','forceFieldShifted');
 if strcmpi(p.method,'FastBEM')
-    save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+    save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap','-v7.3'); % need to be updated for faster loading. SH 20141106
 else
-    save(outputFile{2},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
+    save(outputFile{2},'tMap','tMapX','tMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 end
 forceFieldProc.setTractionMapLimits([tmin tmax])
 % forceFieldProc.setDisplErrMapLimits([dEmin dEmax])
