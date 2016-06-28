@@ -21,7 +21,7 @@ function [ M_h, m_h , alpha ] = multiplierFxn( omega, N )
             n = 0;
         end
         n = shiftdim(n(:),-ndims(p));
-        v = m(log2(bsxfun(@times,2.^(omega*n/N),p/pi/2)));
+        v = m(log2(bsxfun(@times,2.^(omega*n/N),p)));
         v(repmat(p == 0,[1 1 numel(n)])) = 0;
     end
 

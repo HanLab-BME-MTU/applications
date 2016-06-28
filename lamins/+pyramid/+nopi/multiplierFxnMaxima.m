@@ -7,7 +7,7 @@ if(nargin < 3)
     octave = 0;
 end
 
-maxima = 4.^(-n/N-1+octave)*2*pi;
+maxima = 4.^(-n/N-1+octave);
 
 end
 

@@ -1,5 +1,5 @@
 classdef OrientationSpaceResponse < handle
-    %SteerableVanGinkelResponse Response object for SteerableVanGinkelFilter
+    %OrientationSpaceResponse Response object for OrientationSpaceFilter
     %
     %
     
@@ -121,6 +121,16 @@ classdef OrientationSpaceResponse < handle
             end
             nlms = nonLocalMaximaSuppression(A,theta, suppressionValue);
         end
+        
+        function nlms_precise = nonLocalMaximaSuppressionPrecise(obj, theta, suppressionValue)
+            if(nargin < 2 || isempty(theta))
+                theta = obj.getRidgeOrientationLocalMaxima;
+            end
+            if(nargin < 3 || isempty(suppressionValue))
+                suppressionValue = 0;
+            end
+            nlms_precise = nonLocalMaximaSuppressionPrecise(real(obj.a),theta,suppressionValue);
+        end
                
         function A = getAngularGaussians(obj)
             if(isempty(obj.angularGaussians))
@@ -216,21 +226,21 @@ classdef OrientationSpaceResponse < handle
                 theta = outAnglesRidge(real(theta)) + 1j*outAnglesEdge(imag(theta));
             end
         end
-        function Response = getResponseAtOrder(obj,Kf_new)
-            assert(~mod(Kf_new*2,1), ...
+        function Response = getResponseAtOrder(obj,K_new)
+            assert(~mod(K_new*2,1), ...
                 'OrientationSpaceResponse:getResponseAtOrder', ...
                 'Kf_new*2 must be an integer value');
             if(~isscalar(obj))
                 Response(numel(obj)) = OrientationSpaceResponse;
                 for o=1:numel(obj)
-                    Response(o) = obj(o).getResponseAtOrder(Kf_new);
+                    Response(o) = obj(o).getResponseAtOrder(K_new);
                 end
                 Response = reshape(Response,size(obj));
                 return;
             end
 %             A = obj.getAngularGaussians;
             % Calculate new number of angles at new order
-            n_new = 2*Kf_new+1;
+            n_new = 2*K_new+1;
             scaleFactor = obj.n / n_new;
             % Do we need to wraparound twice?
             queryPts = wraparoundN((0:n_new-1)*scaleFactor,[-obj.n obj.n]/2);
@@ -245,12 +255,86 @@ classdef OrientationSpaceResponse < handle
             if(~isreal(M))
                 imagM = imag(cat(3,obj.angularResponse,-obj.angularResponse));
                 imagResponse = OrientationSpaceResponse(obj.filter,imagM);
-                imagResponse = imagResponse.getResponseAtOrder(Kf_new*2+0.5);
+                imagResponse = imagResponse.getResponseAtOrder(K_new*2+0.5);
                 angularResponse_new = angularResponse_new + 1j * imagResponse.angularResponse(:,:,1:end/2);
             end
             % Create objects and return
-            filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,Kf_new);
+            filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             Response = OrientationSpaceResponse(filter_new,angularResponse_new);
+        end
+        function Response = getResponseAtOrderFT(obj,K_new)
+            if(~isscalar(obj))
+                Response(numel(obj)) = OrientationSpaceResponse;
+                for o=1:numel(obj)
+                    Response(o) = obj(o).getResponseAtOrderFT(K_new);
+                end
+                Response = reshape(Response,size(obj));
+                return;
+            end
+            n_new = 2*K_new+1;
+            s_inv = sqrt(obj.n^2*n_new^2/(obj.n.^2-n_new.^2));
+            s_hat = s_inv/(2*pi);
+            x = -K_new:K_new;
+            f_hat = exp(-0.5 * (x./s_hat).^2); % * obj.n/n_new;
+            f_hat = ifftshift(f_hat);
+            f_hat = shiftdim(f_hat,-1);
+            a_hat = fft(real(obj.a),[],3);
+            a_hat = a_hat(:,:,[1:K_new+1 end-K_new+1:end]);
+            a_hat = bsxfun(@times,a_hat,f_hat);
+            filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
+            Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
+        end
+        function varargout = getRidgeOrientationLocalMaxima(obj,sorted)
+            if(nargin < 2)
+                sorted = true;
+            end
+            % TODO: edge local maxima
+            [varargout{1:nargout}] = interpft_extrema(real(obj.a),3,sorted);
+            varargout{1} = varargout{1}/2;
+            if(nargout > 1)
+                varargout{2} = varargout{2}/2;
+            end
+            if(nargout > 4)
+                varargout{5} = varargout{5}/2;
+            end
+        end
+        function fineResponseGrid = getResponseForInterpolation(obj,scaleFactor)
+            %getResponseForInterpolation
+            % INPUT
+            % scaleFactor - multiplier for how grid to create
+            % OUTPUT
+            % fineResponseGrid - response interpolated using interpft at
+            % scaleFactor
+            if(nargin < 2)
+                scaleFactor = 3;
+            end
+            % Create fine grid at scaleFactor times canonical grid
+            % See Boyd, Chebyshev and Fourier Spectral Methods, Second Edition
+            % (Revised), Dover, 2001. Toronto. ISBN 0-486-41183-4, page 198
+            fineResponseGrid = interpft(real(obj.a),scaleFactor*obj.n,3);
+            % Append last and first since orientation is periodic
+            fineResponseGrid = fineResponseGrid(:,:,[end 1:end 1]);
+            % TODO: pad spatial dimensions like in N(L)MS
+        end
+        function asymSignal = evaluateAssymetricSignalAtPoint(obj,r,c,distance)
+            if(nargin < 4)
+                distance = 2/obj.filter.f_c/2/pi;
+            end
+            nSamples = obj.n*6;
+            % Angle in space from point
+            theta = (0:nSamples-1)*(2*pi/nSamples);
+            % Orientation angle index
+            orientation = [0:nSamples/2-1];
+            % Add 2 for wrapping elements
+            orientation = [orientation orientation]+2;
+            coords = [r-cos(theta')*distance c+sin(theta')*distance orientation'];
+            % TODO: pad spatial dimensions like in N(L)MS
+            A = obj.getResponseForInterpolation();
+            asymSignal = interp3(A,coords(:,2),coords(:,1),coords(:,3),'spline');
+            if(nargout == 0)
+                plot((0:nSamples-1)/nSamples*2,asymSignal);
+                xlabel('Orientation (\pi radians)');
+            end
         end
         function h = imshow(obj,varargin)
             normalize = false;
