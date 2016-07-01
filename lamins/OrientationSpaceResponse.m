@@ -330,7 +330,7 @@ classdef OrientationSpaceResponse < handle
             coords = [r-cos(theta')*distance c+sin(theta')*distance orientation'];
             % TODO: pad spatial dimensions like in N(L)MS
             A = obj.getResponseForInterpolation();
-            asymSignal = interp3(A,coords(:,2),coords(:,1),coords(:,3),'spline');
+            asymSignal = interp3(A,coords(:,2),coords(:,1),coords(:,3),'cubic');
             if(nargout == 0)
                 plot((0:nSamples-1)/nSamples*2,asymSignal);
                 xlabel('Orientation (\pi radians)');
