@@ -216,6 +216,12 @@ for iGroup = 1:length(btwGrpNames)
         xMatOutDiscard = xMatOut(dispIn<ip.Results.dispDiscard| isnan(dispIn),:);
         yMatOutDiscard = yMatOut(dispIn<ip.Results.dispDiscard| isnan(dispIn),:);
         
+        xMatOD = xMatIn(orient>ip.Results.orientDiscard,:); 
+        yMatOD = yMatIn(orient>ip.Results.orientDiscard,:);
+        framesOD = frameNum(orient>ip.Results.orientDiscard,:); 
+        xMatOutOD = xMatOut(orient > ip.Results.orientDiscard,:); 
+        yMatOutOD = yMatOut(orient>ip.Results.orientDiscard,:); 
+        
         % LOAD MASKS
         maskDir = [toLoad filesep 'masks'] ;
         listOfMasks = mitoticSearchFiles('tif',[],maskDir,0);
@@ -281,6 +287,17 @@ for iGroup = 1:length(btwGrpNames)
                         plot(xMatOutDiscard(idxDiscard(iTrack),:),yMatOutDiscard(idxDiscard(iTrack),:),'y');
                     end
                 end
+                
+                if sum(framesOD == frameC) ~=0
+                    numOD = sum(framesOD==frameC);
+                    idxOD = find(framesOD==frameC);
+                    for iTrack = 1:numOD
+                        plot(xMatOD(idxOD(iTrack),:),yMatOD(idxOD(iTrack),:),'w');
+                        plot(xMatOutOD(idxOD(iTrack),:),yMatOutOD(idxOD(iTrack),:),'y');
+                    end
+                end
+                
+                
                 outDirI = [projListC{iProj,2} filesep 'meta' filesep 'CorticalInfo' filesep 'TroubleshootClassifications' filesep 'ClassOverlays'... 
                     filesep fieldnameC]; 
                 % make a different output directory than this

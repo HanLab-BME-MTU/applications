@@ -51,13 +51,13 @@ function [ output_args ] = mitoticMeasureLateralClassRelatedStats(groupList,vara
 %                            Runs : mitoticAddPercentTransitionField
 %                                   Adds to corticalData.mat 
 %                                   field
-%                                   .params(minDispVect_orientCutOff_dispInRegion_dispDiscard)
+%                                   .params(minDispVect_orientCutOff_dispInRegion_dispDiscard_orientDiscard)
 %                                          .idxLatLogical 
 %                                                a rx1 logical where r is
 %                                                the number of MT tracks
 %                                                extracted from the
 %                                                subRegion AFTER filtering 
-%                                                by disDiscard. 
+%                                                by dispDiscard and discardOrient. 
 %                                                true indicates 
 %                                                the MT trajectory has been
 %                                                characterized by lateral 
@@ -79,7 +79,7 @@ function [ output_args ] = mitoticMeasureLateralClassRelatedStats(groupList,vara
 %                           Default : true 
 %                           Runs :  mitoticAddEndOnInfoWithClassifications
 %                                   Adds to corticalData.mat 
-%                                           .params(minDispVect_orientCutOff_dispInRegion_dispDiscard)
+%                                           .params(minDispVect_orientCutOff_dispInRegion_dispDiscard_dispOrient)
 %                                               .trackInfoEndOnST
 %                                                             .dwells 
 %                                                                   a rx1 vector where r is

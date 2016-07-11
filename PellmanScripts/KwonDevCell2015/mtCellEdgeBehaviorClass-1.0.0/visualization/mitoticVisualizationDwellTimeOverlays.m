@@ -23,6 +23,10 @@ function [ output_args ] = mitoticVisualizationDwellTimeOverlays(ML,varargin)
 %                  with the subRois mitoticCreateGroupListFromMovieLists
 %                  requires this information 
 %
+% clims (PARAM) :  double 
+%                  Default [0,4] (s) 
+%                  min, max value of the colormap : dwells are colored by 
+%                  dwell lifetime. 
 % 
 % % Parameters for classification cut-offs
 % minDispVect: (PARAM) : scalar
@@ -311,11 +315,11 @@ for iGroup = 1:length(btwGrpNames(:,1))
                 %% Now that collected all the data define the cMap
                 cMapLength=128; cMap=jet(cMapLength);
                 
-                %data = dwell(idxPer);
-                dataRange = 4;
-                data(data>dataRange)=dataRange;
-                mapper=linspace(0,dataRange,cMapLength)';
                 
+                data(data>ip.Results.clims(2))=ip.Results.clims(2);
+                %
+                data(data<ip.Results.clims(1)) = ip.Results.clims(1);
+                mapper=linspace(ip.Results.clims(1),ip.Results.clims(2),cMapLength)';
                 % get closest colormap index for each feature
                 D=createDistanceMatrix(data,mapper);
                 [sD,idxCMap]=sort(abs(D),2);

@@ -20,7 +20,7 @@ ip.addRequired('toPlot');
 %ip.addParameter('Interactive',true,@(x) islogical(x)); 
 ip.addParameter('Measurements',[]); % cell of measurements to be plotted  
 ip.addParameter('outputDirectory',pwd,@(x) ischar(x));
-ip.addParameter('plotType','pooled'); %'pooled' or 'perProject'
+ip.addParameter('plotType','perProject'); %'pooled' or 'perProject'
 ip.addParameter('perMovieStat','nanmean' ); 
 ip.addParameter('writeCSV',true,@(x) islogical(x)); 
 ip.parse(toPlot,varargin{:}); 
@@ -86,17 +86,19 @@ for iParam = 1:length(params)
                     line([0.5,numel(grpNames)+0.5],[nanmedian(forN{1}),nanmedian(forN{1})],'color','k','linewidth',2);
                     
                     % Perform some simple stats against control
-                    for i = 2:numel(grpNames)
-                        [hit(i),pValue(i)] =   permTest(forN{1},forN{i},'CmpFunction',@nanmedian);
-                        if hit(i) == 0
-                            text(i,nanmedian(forN{i}),'NS','color','k','FontSize',10);
-                        else
-                            if pValue(i) == 0
-                                text( i,double(nanmedian(forN{i})),num2str(pValue(i),'%01d'),'color','k','FontSize',10);
+                    for i = 1:numel(grpNames)
+                        [hit(i),pValues(i)] =   permTest(forN{1},forN{i},'CmpFunction',@nanmedian);
+                        if i>1
+                            if hit(i) == 0
+                                text(i,nanmedian(forN{i}),'NS','color','k','FontSize',10);
                             else
-                                text(i,double(nanmedian(forN{i})),num2str(pValue(i),'%04d'),'color','k','FontSize',10);
-                            end
-                        end % if hit
+                                if pValue(i) == 0
+                                    text( i,double(nanmedian(forN{i})),num2str(pValues(i),'%01d'),'color','k','FontSize',10);
+                                else
+                                    text(i,double(nanmedian(forN{i})),num2str(pValues(i),'%04d'),'color','k','FontSize',10);
+                                end
+                            end % if hit
+                        end
                     end % for iGroup
                     %
                     %     axis([0.5 length(toPlot.info.names) + 0.5 0 toPlot.(params{iParam}).ylim]);
@@ -150,17 +152,19 @@ for iParam = 1:length(params)
                     arrayfun(@(i) set(h(i).semPtch,'faceColor','none'),1:numel(names));
                     arrayfun(@(i) set(h(i).semPtch,'edgeColor','none'),1:numel(names));
                     arrayfun(@(i) set(h(i).sdPtch,'faceColor','none'),1:numel(names));
-                    
+                   
                     % perform some quick stat tests
-                    for i = 2:numel(toPlot.info.names)
+                    for i = 1:numel(toPlot.info.names)
                         [hit(i),pValues(i)] = permTest(perCellValues{1},perCellValues{i});
-                        if hit(i) == 0
-                            text(i,double(mean(perCellValues{i})),'NS','FontSize',14);
-                        else
-                            if pValues(i) == 0
-                                text(i,double(mean(perCellValues{i})),num2str(pValues(i),1),'FontSize',14);
+                        if i > 1
+                            if hit(i) == 0
+                                text(i,double(mean(perCellValues{i})),'NS','FontSize',14);
                             else
-                                text(i,double(mean(perCellValues{i})),num2str(pValues(i),4),'FontSize',14);
+                                if pValues(i) == 0
+                                    text(i,double(mean(perCellValues{i})),num2str(pValues(i),1),'FontSize',14);
+                                else
+                                    text(i,double(mean(perCellValues{i})),num2str(pValues(i),4),'FontSize',14);
+                                end
                             end
                         end
                     end
@@ -215,6 +219,6 @@ for iParam = 1:length(params)
         
   
 end
-save('pValues.mat','pValue') 
+save('pValues.mat','pValues') 
 end 
 
