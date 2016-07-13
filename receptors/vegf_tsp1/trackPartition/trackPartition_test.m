@@ -4,9 +4,11 @@ addpath(genpath(dataDir))
 load([dataDir,'/m-01/TrackingPackage/GaussianMixtureModels/detections_for_channel_2/Channel_2_detection_result.mat'])
 load([dataDir,'/m-01/TrackingPackage/tracks/Channel_1_tracking_result.mat'])
 load([dataDir,'/m-01/m-01.mat'])
-tic; mask = gaussianMaskingInner(movieInfo,MD,0,2); toc
-%% test on first 1000 compound tracks
-tic; tracksPart = trackPartition(tracksFinal(1:1000),mask,1,200,0); toc
+tic; mask = gaussianMaskingInner(movieInfo,MD,0,100,3); toc
+%%
+[mask,tracks] = trackPartitionInit(tracksFinal,movieInfo,MD,0,100,3);
+%% test
+tic; tracksPart = trackPartition(tracks,mask,1,200,3); toc
 %% longest inside track
 longest = 1;
 totalLength = 0;
