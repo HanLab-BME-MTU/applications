@@ -1,12 +1,10 @@
 dataDir = '/project/biophysics/jaqaman_lab/vegf_tsp1/knguyen/test-data/testIllustration';
-cd(dataDir)
 addpath(genpath(dataDir))
 load([dataDir,'/m-01/TrackingPackage/GaussianMixtureModels/detections_for_channel_2/Channel_2_detection_result.mat'])
 load([dataDir,'/m-01/TrackingPackage/tracks/Channel_1_tracking_result.mat'])
 load([dataDir,'/m-01/m-01.mat'])
-tic; mask = gaussianMaskingInner(movieInfo,MD,0,100,3); toc
 %%
-[mask,tracks] = trackPartitionInit(tracksFinal,movieInfo,MD,0,100,3);
+tic; [mask,tracks] = trackPartitionInit(tracksFinal,movieInfo,MD,0,100,3); toc
 %% test
 tic; tracksPart = trackPartition(tracks,mask,1,200,3); toc
 %% longest inside track
@@ -14,12 +12,14 @@ longest = 1;
 totalLength = 0;
 totalInsideTracks = 0;
 for iTrack = 1:size(tracksPart,1)
-    length = size(tracksPart(iTrack).tracksFeatIndxCG,2);
-    if (tracksPart(iTrack).isInside == 1) && (length > longest)
-        longest = length;
+    if tracksPart(iTrack).isInside == 1
+        length = size(tracksPart(iTrack).tracksFeatIndxCG,2);
+        if length > longest
+            longest = length;
+        end
+        totalLength = totalLength+length;
+        totalInsideTracks = totalInsideTracks+1;
     end
-    totalLength = totalLength+length;
-    totalInsideTracks = totalInsideTracks+1;
 end
 meanLength = totalLength/totalInsideTracks;
 %%

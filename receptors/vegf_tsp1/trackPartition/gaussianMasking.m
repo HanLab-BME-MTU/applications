@@ -1,7 +1,7 @@
-function mask = gaussianMaskingInner(movieInfo,MD,threshold,minSize,upscale)
-%GAUSSIANMASKINGINNER Creates an image mask based on Gaussian detection
+function mask = gaussianMasking(movieInfo,MD,threshold,minSize,upscale)
+%GAUSSIANMASKING Creates an image mask based on Gaussian detection
 %results
-%   mask = gaussianMaskingInner(movieInfo,MD,threshold,minSize)
+%   mask = gaussianMasking(movieInfo,MD,threshold,minSize)
 %   This function utilizes the Gaussian fitting information from the object
 %   detection step to create a binary mask marking the location of each
 %   object. A Gaussian is placed at each object location with the s.d.
@@ -13,7 +13,7 @@ function mask = gaussianMaskingInner(movieInfo,MD,threshold,minSize,upscale)
 %       threshold:      mask has value 'true' where the value of the
 %                       Gaussian exceeds the given threshold. Set to 0 to
 %                       use constant diameter masks only (specified by
-%                       minSize)
+%                       minSize) or use constantSizeMasking()
 %       minSize:        minimum mask diameter in nm (default 100 nm)
 %       upscale:        factor by which to upscale the mask from the
 %                       size and resolution of the movie. This allows a
@@ -62,7 +62,7 @@ mask = false(imSize(1),imSize(2),nFramesAll);
 % xGrid = xGrid(:);
 % yGrid = yGrid(:);
 
-for f = 1:nFramesDetected
+parfor f = 1:nFramesDetected
     xList = xData{f}*upscale;
     yList = yData{f}*upscale;
     nObjects = size(xList,1);

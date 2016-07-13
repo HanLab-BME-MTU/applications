@@ -17,9 +17,13 @@ for iCompoundTrack = 1:nCompoundTracks
     frameIntersection = frameIntersectionList{iCompoundTrack};   
     
     sumVector = sum(frameIntersection,1); % Sum down through each track
+    lengthCompoundTrack = numel(sumVector);
 
     segmentsLeft = true;
     segmentStart = find(sumVector,1,'first'); % first nonzero value
+    if isempty(segmentStart) || (segmentStart > lengthCompoundTrack)
+        segmentsLeft = false;
+    end
     while segmentsLeft
         startFrame = sumVector(segmentStart);
         % Remember that frameIntersection values can be 
@@ -33,13 +37,6 @@ for iCompoundTrack = 1:nCompoundTracks
         %   100*m+n m tracks are inside, n tracks are outside
         validTracks = find(frameIntersection(:,segmentStart))';
         nTracks = numel(validTracks);
-        segmentEnd = find(sumVector(segmentStart:end) ~= startFrame,1,'first')+segmentStart-2;
-        if isempty(segmentEnd)
-            segmentEnd = numel(sumVector);
-            segmentsLeft = false;
-        end
-        tracksIndNew = tracksIndOld(validTracks,segmentStart:segmentEnd);
-        tracksCoordNew = tracksCoordOld(validTracks,(segmentStart-1)*8+1:segmentEnd*8);
         
         % Create new sequence of events
         seqNew = [];
@@ -47,8 +44,19 @@ for iCompoundTrack = 1:nCompoundTracks
             % No tracks exist
             segmentsLeft = false;
         elseif startFrame < 100
-            % Track(s) exist, all outside        
-            for iTrack = 1:numel(validTracks)
+            % Track(s) exist, all outside (sumVector value is n < 100)
+            
+            % Find where sumVector value is no longer n < 100
+            segmentEnd = find(sumVector(segmentStart:end) >= 100,1,'first')+segmentStart-2;
+            if isempty(segmentEnd)
+                segmentEnd = lengthCompoundTrack;
+                segmentsLeft = false;
+            end
+            tracksIndNew = tracksIndOld(validTracks,segmentStart:segmentEnd);
+            tracksCoordNew = tracksCoordOld(validTracks,(segmentStart-1)*8+1:segmentEnd*8);
+            
+            
+            for iTrack = 1:nTracks
                 % Find existing events 
                 indStartEvent = (seqOld(:,1) == segmentStart)&(seqOld(:,3) == validTracks(iTrack));
                 indEndEvent = (seqOld(:,1) == segmentEnd)&(seqOld(:,3) == validTracks(iTrack));
@@ -80,8 +88,18 @@ for iCompoundTrack = 1:nCompoundTracks
 
             iRow = iRow+1;
         elseif mod(startFrame,100) == 0
-            % Track(s) exist, all inside
-            for iTrack = 1:numel(validTracks)
+            % Track(s) exist, all inside (sumVector value is 100*m)
+            
+            % Find where sumVector value is no longer 100*m
+            segmentEnd = find(mod(sumVector(segmentStart:end),100) ~= 0,1,'first')+segmentStart-2;
+            if isempty(segmentEnd)
+                segmentEnd = lengthCompoundTrack;
+                segmentsLeft = false;
+            end
+            tracksIndNew = tracksIndOld(validTracks,segmentStart:segmentEnd);
+            tracksCoordNew = tracksCoordOld(validTracks,(segmentStart-1)*8+1:segmentEnd*8);
+            
+            for iTrack = 1:nTracks
                 % Find existing events 
                 indStartEvent = (seqOld(:,1) == segmentStart)&(seqOld(:,3) == validTracks(iTrack));
                 indEndEvent = (seqOld(:,1) == segmentEnd)&(seqOld(:,3) == validTracks(iTrack));
@@ -113,9 +131,20 @@ for iCompoundTrack = 1:nCompoundTracks
 
             iRow = iRow+1;
         elseif mod(startFrame,100) > 0
-            % Track(s) exist, some inside and some outside
+            % Track(s) exist, some inside and some outside (sumVector value
+            % is 100*m+n)
+            
+            % Find where sumVector value changes (to any other value)
+            segmentEnd = find((sumVector(segmentStart:end) ~= startFrame),1,'first')+segmentStart-2;
+            if isempty(segmentEnd)
+                segmentEnd = lengthCompoundTrack;
+                segmentsLeft = false;
+            end
+            tracksIndNew = tracksIndOld(validTracks,segmentStart:segmentEnd);
+            tracksCoordNew = tracksCoordOld(validTracks,(segmentStart-1)*8+1:segmentEnd*8);
+            
             % First, deal with all the outside tracks
-            for iTrack = 1:numel(validTracks)
+            for iTrack = 1:nTracks
                 if frameIntersection(iTrack,segmentStart) == 1
                     % Find existing events 
                     indStartEvent = (seqOld(:,1) == segmentStart)&(seqOld(:,3) == validTracks(iTrack));
@@ -151,7 +180,7 @@ for iCompoundTrack = 1:nCompoundTracks
             
             % Now, deal with all the inside tracks
             seqNew = [];
-            for iTrack = 1:numel(validTracks)
+            for iTrack = 1:nTracks
                 if frameIntersection(iTrack,segmentStart) == 100
                     % Find existing events 
                     indStartEvent = (seqOld(:,1) == segmentStart)&(seqOld(:,3) == validTracks(iTrack));
