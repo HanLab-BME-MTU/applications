@@ -9,20 +9,27 @@ function mask = gaussianMasking(movieInfo,MD,threshold,minSize,upscale)
 %   minimum mask diameter in the fourth input argument (default 2 pixels).
 %   Inputs:
 %       movieInfo:      detection result from Gaussian fitting
+%
 %       MD:             Movie Data object 
+%
 %       threshold:      mask has value 'true' where the value of the
 %                       Gaussian exceeds the given threshold. Set to 0 to
 %                       use constant diameter masks only (specified by
 %                       minSize) or use constantSizeMasking()
+%
 %       minSize:        minimum mask diameter in nm (default 100 nm)
+%
 %       upscale:        factor by which to upscale the mask from the
 %                       size and resolution of the movie. This allows a
 %                       more circular mask when dealing with mask diameters
 %                       that are only a couple of pixels in the original
 %                       movie image size. (default 1)
+%
 %   Output:
 %       mask:           binary mask in a 3D matrix of the same size as the
 %                       movie
+%
+%Kevin Nguyen, July 2016
 
 % Default params
 if nargin < 5
@@ -66,7 +73,6 @@ parfor f = 1:nFramesDetected
     xList = xData{f}*upscale;
     yList = yData{f}*upscale;
     nObjects = size(xList,1);
-    assert(nObjects == size(yList,1),'xCoord and yCoord have different lengths in frame %g',f)
     
     for i = 1:nObjects
         if threshold ~= 0
@@ -79,12 +85,10 @@ parfor f = 1:nFramesDetected
         mask(:,:,f) = mask(:,:,f)|maskNew;
     end
 end
+
 end
 
 function gMask = placeGaussian(xGrid,xC,xS,yGrid,yC,yS,threshold)
-%     xMask = (xGrid > (xC-threshold*xS)).*(xGrid < (xC+threshold*xS));
-%     yMask = (yGrid > (yC-threshold*yS)).*(yGrid < (yC+threshold*yS));
-%     gMask = xMask.*yMask;
     gMask = (exp(-((xGrid-xC).^2)/(2*xS^2)-((yGrid-yC).^2)/(2*yS^2)))>threshold;
 end
 

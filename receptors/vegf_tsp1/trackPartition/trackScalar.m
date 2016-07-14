@@ -5,11 +5,14 @@ function tracksOut = trackScalar(tracks,scalar)
 %   Inputs:
 %       tracks:     A track structure containing the field
 %                   'tracksCoordAmpCG'
+%
 %       scalar:     A constant by which to multiply all values in
 %                   tracks.tracksCoordAmpCG
 %
 %   Output:
 %       tracksOut:  New track structure with scaled coordinates
+%
+%Kevin Nguyen, July 2016
 
 % Multiply scalar to every compound track 
 newCoord = arrayfun(@(x) x.tracksCoordAmpCG*scalar,tracks,'UniformOutput',false);

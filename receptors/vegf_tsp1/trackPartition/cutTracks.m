@@ -1,6 +1,6 @@
 function tracksPart = cutTracks(tracks,frameIntersectionList)
-%UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
+%CUTTRACKS Using the intersection information from trackPartitionInner, cut
+%up compound tracks each time they enter or exit colocalization
 
 nCompoundTracks = size(tracks,1);
 
@@ -159,7 +159,7 @@ for iCompoundTrack = 1:nCompoundTracks
                     end
                     if sum(indEndEvent(:)) > 0
                         % There is an existing end event
-                        endEvent = seqOld(indEndEvent,:);;
+                        endEvent = seqOld(indEndEvent,:);
                         endEvent(3) = iTrack;
                     else
                         % No end event, create a new one

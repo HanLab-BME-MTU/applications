@@ -1,26 +1,12 @@
 function plotTracksPart(tracks,diffAnalysisRes,timeRange,...
     newFigure,image,showConf,simplifyLin,offset,plotSubset)
-%PLOTTRACKSDIFFANALYSIS2D plots tracks in 2D highlighting the different diffusion types
+%PLOTTRACKSPART plots tracks in 2D highlighting the different diffusion
+%types and colocation of particles
 %
-%SYNOPSIS plotTracksDiffAnalysis2D(trackedFeatureInfo,diffAnalysisRes,timeRange,...
-%    newFigure,image,showConf,simplifyLin,offset)
+%SYNOPSIS plotTracksPart(trackedFeatureInfo,diffAnalysisRes,timeRange,...
+%    newFigure,image,showConf,simplifyLin,offset,plotSubset)
 %
-%INPUT  trackedFeatureInfo: -- EITHER -- 
-%                           Output of trackWithGapClosing:
-%                           Matrix indicating the positions and amplitudes 
-%                           of the tracked features to be plotted. Number 
-%                           of rows = number of tracks, while number of 
-%                           columns = 8*number of time points. Each row 
-%                           consists of 
-%                           [x1 y1 z1 a1 dx1 dy1 dz1 da1 x2 y2 z2 a2 dx2 dy2 dz2 da2 ...]
-%                           in image coordinate system (coordinates in
-%                           pixels). NaN is used to indicate time points 
-%                           where the track does not exist.
-%                           -- OR -- 
-%                           Output of trackCloseGapsKalman:
-%                           Structure array with number of entries equal to
-%                           the number of tracks (or compound tracks when
-%                           merging/splitting are considered). Contains the
+%INPUT  trackedFeatureInfo: Output of trackPartition with the following
 %                           fields:
 %           .tracksCoordAmpCG: The positions and amplitudes of the tracked
 %                              features, after gap closing. Number of rows
@@ -35,7 +21,10 @@ function plotTracksPart(tracks,diffAnalysisRes,timeRange,...
 %                              of events happening in a track and 4
 %                              columns:
 %                              1st: Frame where event happens;
-%                              2nd: 1 - start of track, 2 - end of track;
+%                              2nd: 1 - start of track, 2 - end of track,
+%                                   3 - track entering an 'inside' partition, 
+%                                   4 - track entering an 'outside'
+%                                   partition
 %                              3rd: Index of track segment that ends or starts;
 %                              4th: NaN - start is a birth and end is a death,
 %                                   number - start is due to a split, end
@@ -65,7 +54,9 @@ function plotTracksPart(tracks,diffAnalysisRes,timeRange,...
 %                           Optional. Default: 0.
 %       offset            : [dx,dy] that is to be added to the coordinates.
 %                           Optional. Default: [0,0]
-%
+%       plotSubset        : select a subset of partitioned tracks to plot:
+%                           'all', 'inside', or 'outside'. 
+%                           Optional. Default: 'all'
 %OUTPUT The plot.
 %       Color coding:
 %
@@ -100,7 +91,8 @@ function plotTracksPart(tracks,diffAnalysisRes,timeRange,...
 %       If there are more than 5 modes, for now the code will complain and
 %       exit
 %
-%Khuloud Jaqaman, March 2008
+%Original function: plotTracksDiffAnalysis2D by Khuloud Jaqaman, March 2008
+%Copied and superficially modified by Kevin Nguyen, July 2016
 
 %% Input
 

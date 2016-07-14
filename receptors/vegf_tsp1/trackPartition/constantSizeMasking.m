@@ -15,6 +15,8 @@ function mask = constantSizeMasking(movieInfo,MD,diameter,upscale)
 %   Output:
 %       mask:           binary mask in a 3D matrix of the same size as the
 %                       movie
+% 
+%Kevin Nguyen, July 2016
 
 % Default params
 if nargin < 4

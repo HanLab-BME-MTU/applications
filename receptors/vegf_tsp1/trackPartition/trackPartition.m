@@ -1,16 +1,62 @@
-function tracksPart = trackPartition(tracksInput,mask,imageFrameStart,imageFrameEnd,minTrackLength)
-%TRACKSPARTITION Finds and labels frames of tracks during which a particle
-%intersects (colocates) with a masked area 
+function tracksPart = trackPartition(tracksInput,mask,minTrackLength,frameStart,frameEnd)
+%TRACKSPARTITION Performs track partitioning, i.e. dividing particle tracks
+%into new segments based on when they colocalize with another particle's
+%location
+%
+%   tracksPart = trackPartition(tracksInput,mask,minTrackLength,imageFrameStart,imageFrameEnd)
+%
+%   Inputs:
+%       tracksInput:        track struct, such as one produced by
+%                           TrackingProcess. Should contain the fields:
+%                           .tracksFeatIndxCG
+%                           .tracksCoordAmpCG
+%                           .seqOfEvents
+%
+%       mask:               binary mask image from trackPartitionInit       
+%
+%       minTrackLength:     minimum number of frames particle must spend
+%                           outside or inside colocalization before its
+%                           track is cut into a new segment. Also, tracks
+%                           shorter than this length will be removed from
+%                           the output track struct. minTrackLength must be
+%                           an odd integer.
+%       
+%       frameStart:         movie frame at which to start analysis
+%
+%       frameEnd:           movie frame at which to stop analysis
+%
+%   Output:
+%       tracksPart:         new track struct in which the original compound
+%                           tracks have been cut (split) whenever the tracked
+%                           particle enters or exits colocalization. Struct
+%                           fields .tracksFeatIndxCG and .tracksCoordAmpCG
+%                           are of the same format as that of the input
+%                           tracks. The following fields are new/different:
+%                           .seqOfEvents:   has two new event types:
+%                                           3 - particle enters
+%                                           colocalization
+%                                           4 - particle exits
+%                                           colocalization
+%                           .isInside:      'true' if a track is "inside"
+%                                           colocalization and 'false' if 
+%                                           it is not
+%                           .originCompoundTrack:
+%                                           number of the original compound
+%                                           track in the input tracks from
+%                                           which this new compound track
+%                                           was cut
+%
+%Kevin Nguyen, July 2016
 
 % minTrackLength must be odd
 assert(mod(minTrackLength,2) == 1,'Minimum track length must be an odd integer')
 
 imSize = size(mask); % [rowSize,colSize,tSize]
-nFrames = imageFrameEnd-imageFrameStart+1;
+nFrames = frameEnd-frameStart+1;
 
 % Create a list of subscript indices for all masked areas in all frames
 maskSub = cell(nFrames,1);
-for f = imageFrameStart:imageFrameEnd
+for f = frameStart:frameEnd
     maskInd = find(mask(:,:,f));
     maskSubFrame = zeros(numel(maskInd),2);
     [maskSubFrame(:,2),maskSubFrame(:,1)] = ind2sub(imSize,maskInd);

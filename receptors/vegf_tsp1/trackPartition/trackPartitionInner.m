@@ -1,5 +1,40 @@
 function frameIntersection = trackPartitionInner(xCoord,yCoord,startFrame,...
     endFrame,segStartFrame,segEndFrame,maskSub,minTrackLength)
+%TRACKPARTITIONINNER Does the meat of the computation for trackPartition
+%
+%   frameIntersection = trackPartitionInner(xCoord,yCoord,startFrame,...
+%            endFrame,segStartFrame,segEndFrame,maskSub,minTrackLength)
+%
+%   Inputs:
+%       xCoord,yCoord:      nSegments x nFrames array of x and y coordinates 
+%                           from the compound track
+%
+%       startFrame:         frame at which the compound track starts
+%
+%       endFrame:           frame at which the compound track ends
+%
+%       segStartFrame:      vector of length nSegments containing the start
+%                           frame for each segment
+%
+%       segEndFrame:        vector of length nSegments containing the end
+%                           frame for each segment
+%
+%       maskSub:            3 column array of masked location subscript
+%                           indices, yielded by performing find(mask)
+%       
+%       minTrackLength:     minimum number of frames particle must spend
+%                           outside or inside colocalization before its
+%                           track is cut into a new segment. Must be an odd
+%                           integer.
+%
+%   Output:
+%       frameIntersection:  nSegments x nFrames array with the following
+%                           possible values:
+%                           0 - segment does not exist
+%                           1 - segment is "outside"
+%                           100 - segment is "inside"
+%
+%Kevin Nguyen, July 2016
 
 % Number of segments in this compound track
 nSegments = size(xCoord,1); 
@@ -16,23 +51,12 @@ frameIntersection = ones(nSegments,lengthTrack);
 % Iterate through the segments inside the compound track
 for j = 1:nSegments  
     intersectionTemp = frameIntersection(j,:);
-
-%     % Find track start and end time from seqOfEvents
-%     seqTrackStart = (seq(:,2) == 1)&(seq(:,3) == j);
-%     seqTrackEnd = (seq(:,2) == 2)&(seq(:,3) == j);
-%     trackStart = seq(seqTrackStart,1);
-%     trackEnd = seq(seqTrackEnd,1);
-%     indStart = find(times == trackStart);
-%     indStop = find(times == trackEnd);
     
     % Find the index in the compound track at which the current segment
     % starts
     segStartInd = find(times == segStartFrame(j));
     segEndInd = find(times == segEndFrame(j));
-% 
-%     % Get list of positions (in x and y coords) from the track info
-%     x = track(1:8:end)';
-%     y = track(2:8:end)';
+
     x = xCoord(j,:)';
     y = yCoord(j,:)';
 
@@ -51,10 +75,12 @@ for j = 1:nSegments
 
     % Find rows in this position list that also appear in the masked
     % coordinate list
+    
     % There may be some faster versions of this intersect function on
     % MATLAB File Exchange
     [~,iIntersect,~] = intersect(round(coordList),maskSub,'rows');
-    intersectionTemp(iIntersect) = 100;
+    intersectionTemp(iIntersect) = 100; % Mark intersections with value 100
+    
     % Pad the beginning and end with zeros where the track does not
     % exist
     if segStartInd ~= 1
