@@ -166,6 +166,13 @@ classdef OrientationSpaceFilter < handle
             E = sqrt(sum(real(F).^2)) + 1j*sqrt(sum(imag(F).^2));
             E = E ./ sqrt(s(1)*s(2));
         end
+        function clearTransients(obj)
+            for o=1:numel(obj)
+                obj(o).size = [];
+                obj(o).F = [];
+                obj(o).angularGaussians = [];
+            end
+        end
     end
     methods
         function setupFilter(obj,siz)
