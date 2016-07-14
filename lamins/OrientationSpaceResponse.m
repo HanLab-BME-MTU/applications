@@ -336,6 +336,12 @@ classdef OrientationSpaceResponse < handle
                 xlabel('Orientation (\pi radians)');
             end
         end
+        function R = real(obj)
+            R = OrientationSpaceResponse(real(obj.filter),real(obj.angularResponse));
+        end
+        function R = imag(obj)
+            R = OrientationSpaceResponse(imag(obj.filter),imag(obj.angularResponse));
+        end
         function h = imshow(obj,varargin)
             normalize = false;
             if(~isempty(varargin) && isempty(varargin{1}) && numel(obj) > 1)
