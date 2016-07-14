@@ -7,17 +7,5 @@ else
     mask = gaussianMasking(movieInfo,MD,threshold,minSize,upscale);
 end
 
-% Multiply upscale factor to every compound track 
-newCoord = arrayfun(@(x) x.tracksCoordAmpCG*upscale,tracksIn,'UniformOutput',false);
-% newCoordStruct = cell2struct(newCoord','tracksCoordAmpCG',1);
-
-tracksOut = tracksIn;
-[tracksOut.tracksCoordAmpCG] = newCoord{:};
-% tracksOut = setfield(tracksOut,{1:size(tracksOut,1)},'tracksCoordAmpCG',{1},newCoordStruct);
-
-% tracksOut(:).tracksFeatIndxCG = tracksIn.tracksFeatIndxCG;
-% tracksOut(:).seqOfEvents = tracksIn.seqOfEvents;
-
-% Make the output track struct have the same field name order as the input
-tracksOut = orderfields(tracksOut,tracksIn);
+tracksOut = trackScalar(tracksIn,upscale);
 end

@@ -1,12 +1,19 @@
-dataDir = '/project/biophysics/jaqaman_lab/vegf_tsp1/knguyen/test-data/testIllustration';
+dataDir = '/project/biophysics/jaqaman_lab/vegf_tsp1/knguyen/test-data/testIllustration/';
 addpath(genpath(dataDir))
-load([dataDir,'/m-01/TrackingPackage/GaussianMixtureModels/detections_for_channel_2/Channel_2_detection_result.mat'])
-load([dataDir,'/m-01/TrackingPackage/tracks/Channel_1_tracking_result.mat'])
-load([dataDir,'/m-01/m-01.mat'])
+movie = 'm-03';
+load([dataDir,movie,'/TrackingPackage/GaussianMixtureModels/detections_for_channel_2/Channel_2_detection_result.mat'])
+load([dataDir,movie,'/TrackingPackage/tracks/Channel_1_tracking_result.mat'])
+load([dataDir,movie,filesep,movie,'.mat'])
 %%
-tic; [mask,tracks] = trackPartitionInit(tracksFinal,movieInfo,MD,0,100,3); toc
+tic; [mask,tracks] = trackPartitionInit(tracksFinal,movieInfo,MD,0.001,100,3); toc
 %% test
-tic; tracksPart = trackPartition(tracks,mask,1,200,3); toc
+tic; tracksPartTemp = trackPartition(tracks,mask,1,200,3); toc
+%% Un-upscale tracks
+tracksPart = trackScalar(tracksPartTemp,1/3);
+if ~exist([dataDir,movie,'TrackPartition/'],'dir')
+    mkdir([dataDir,movie,'TrackPartition/'])
+end
+save([dataDir,movie,'TrackPartition/tracksPart.mat'],'tracksPart');
 %% longest inside track
 longest = 1;
 totalLength = 0;
@@ -24,8 +31,9 @@ end
 meanLength = totalLength/totalInsideTracks;
 %%
 tic; diffAnalysisRes = trackDiffusionAnalysis1(tracksPart); toc
+save([dataDir,movie,'TrackPartition/diffAnalysisRes.mat'],'diffAnalysisRes');
 %% read image
-m_01 = imread([dataDir,'/m-01.tif']);
+m_01 = imread([dataDir,filesep,movie,'.tif']);
 channel1 = m_01(:,1:512);
 channel2 = m_01(:,513:end);
 channel1 = mat2gray(channel1);
@@ -33,6 +41,6 @@ channel2 = mat2gray(channel2);
 I = zeros([size(channel1),3]);
 I(:,:,1) = channel1;
 I(:,:,2) = channel2;
-imtool(I)
+
 %%
-plotTracksPart(tracksPart,diffAnalysisRes,[],[],I,[],[],[]);
+plotTracksPart(tracksPart,diffAnalysisRes,[],[],I,[],[],[],'inside');
