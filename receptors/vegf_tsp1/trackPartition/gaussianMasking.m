@@ -94,5 +94,5 @@ end
 
 function cMask = placeConstantSize(xGrid,xC,yGrid,yC,diameter)
     r = round(diameter/2);
-    cMask = (abs(xGrid-xC) <= r).*(abs(yGrid-yC) <= r);
+    cMask = sqrt(((xGrid-xC).^2)+((yGrid-yC).^2)) <= r;
 end

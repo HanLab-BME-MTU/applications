@@ -1,5 +1,5 @@
 function plotTracksPart(tracks,diffAnalysisRes,timeRange,...
-    newFigure,image,showConf,simplifyLin,offset,plotSubset)
+    newFigure,image,showConf,simplifyLin,offset,plotSubset,showBoxes)
 %PLOTTRACKSPART plots tracks in 2D highlighting the different diffusion
 %types and colocation of particles
 %
@@ -57,6 +57,8 @@ function plotTracksPart(tracks,diffAnalysisRes,timeRange,...
 %       plotSubset        : select a subset of partitioned tracks to plot:
 %                           'all', 'inside', or 'outside'. 
 %                           Optional. Default: 'all'
+%       showBoxes         : show boxes around each inside track for convenience
+%                           Optional. Default: 0
 %OUTPUT The plot.
 %       Color coding:
 %
@@ -156,6 +158,10 @@ if nargin < 9 || isempty(plotSubset) || sum(validString(:)) ~= 1
     plotSubset = 'all';
 end
 
+if nargin < 10
+    showBoxes = 0;
+end
+
 %exit if there are problems in input variables
 if errFlag
     disp('--plotTracksDiffAnalysis2D: Please fix input data!');
@@ -176,10 +182,12 @@ if strcmp(plotSubset,'inside')
     subset = arrayfun(@(x) x.isInside,tracks);
     tracks = tracks(subset);
     numTracks = sum(subset);
+    diffAnalysisRes = diffAnalysisRes(subset);
 elseif strcmp(plotSubset,'outside')
     subset = arrayfun(@(x) ~x.isInside,tracks);
     tracks = tracks(subset);
     numTracks = sum(subset);
+    diffAnalysisRes = diffAnalysisRes(subset);
 end
 
 %get number of segments making each track
@@ -425,6 +433,17 @@ for i = 1 : numTrackSegments
         % Plot a thick line
         plot(tracksXP(missing,i),tracksYP(missing,i),'k:','LineWidth',4);
         plot(tracksXP(:,i),tracksYP(:,i),'Color',trackSegmentColor(i,:));
+        
+        if showBoxes == 1
+           % Put a box around the track
+            xBox = min(tracksXP(:,i));
+            yBox = min(tracksYP(:,i));
+            wBox = max(tracksXP(:,i))-xBox;
+            hBox = max(tracksYP(:,i))-yBox;
+            
+            rectangle('Position',[xBox-4,yBox-4,wBox+8,hBox+8],...
+                'EdgeColor',trackSegmentColor(i,:))
+        end
     else % If track is outside
         % Plot a thin line
         plot(tracksXP(missing,i),tracksYP(missing,i),'k:','LineWidth',2);

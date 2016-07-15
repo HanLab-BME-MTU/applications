@@ -70,5 +70,18 @@ end
 
 function cMask = placeConstantSize(xGrid,xC,yGrid,yC,diameter)
     r = round(diameter/2);
-    cMask = (abs(xGrid-xC) <= r).*(abs(yGrid-yC) <= r);
+    cMask = sqrt(((xGrid-xC).^2)+((yGrid-yC).^2)) <= r;
+end
+
+% Try FFT, multiply object locations with circle?
+function cMask = placeConstantSize2(xC,yC,diameter,imSize)
+objects = zeros(imSize);
+objects(round(yC),round(xC)) = 1;
+
+% FFT
+objectsFFT = fft2(objects);
+
+[kx,ky] = meshgrid(1:diametr
+kernel = zeros(diameter,diameter);
+
 end
