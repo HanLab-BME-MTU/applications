@@ -68,6 +68,7 @@ ip.addParameter('TSOverlays',true,@(x) islogical(x));
 
 ip.addParameter('InternalFiloOn',3,@(x) isscalar(x));
 ip.addParameter('NumPixForFitBack',10,@(x) isscalar(x));
+ip.addParameter('fitLengthInPix',10,@(x) isscalar(x)); 
 ip.addParameter('ValuesForFit','Intensity',@(x) ischar(x)); % maybe remove
 ip.addParameter('PSFSigma',0.43,@(x) isnumeric(x)) ; %% NOTE CHANGE THIS TO BE READ IN FROM MD.
 ip.addParameter('OutputDirectory',pwd,@ischar);
@@ -278,16 +279,16 @@ for iType = typeStart:typeEnd
                                                
                         %%  perform fitting around the first sigmoidal closest to the background
                         
-                        if length(yData)-slopeMaxNeg(end) <10 ;
+                        if length(yData)-slopeMaxNeg(end) <ip.Results.fitLengthInPix ;
                             endFit = length(yData);
                         else
-                            endFit  = slopeMaxNeg(end)+10;
+                            endFit  = slopeMaxNeg(end)+ip.Results.fitLengthInPix;
                         end
                         
-                        if slopeMaxNeg(end)<=10;
+                        if slopeMaxNeg(end)<=ip.Results.fitLengthInPix;
                             startFit = 1;
                         else
-                            startFit = slopeMaxNeg(end)-10;
+                            startFit = slopeMaxNeg(end)-ip.Results.fitLengthInPix;
                         end
                         
                         if length(slopeMaxNeg)>1
@@ -355,16 +356,16 @@ for iType = typeStart:typeEnd
                             slopeMaxNeg = length(filoInfo(idxCurrent).([toAdd 'pixIndicesBack']));
                         end
                         
-                        if length(yData)-slopeMaxNeg(end) <10 ;
+                        if length(yData)-slopeMaxNeg(end) <ip.Results.fitLengthInPix ;
                             endFit = length(yData);
                         else
-                            endFit  = slopeMaxNeg(end)+10;
+                            endFit  = slopeMaxNeg(end)+ip.Results.fitLengthInPix;
                         end
                         
-                        if slopeMaxNeg(end)<=10;
+                        if slopeMaxNeg(end)<=ip.Results.fitLengthInPix;
                             startFit = 1;
                         else
-                            startFit = slopeMaxNeg(end)-10;
+                            startFit = slopeMaxNeg(end)-ip.Results.fitLengthInPix;
                         end
                         
                         if length(slopeMaxNeg)>1
@@ -510,11 +511,11 @@ for iType = typeStart:typeEnd
                             idx = find(backMask); 
                             [y,x] = ind2sub(size(backMask),idx); 
                             hold on 
-                            scatter(x,y,10,'y','x'); 
+                            scatter(x,y,10, [0.5020, 0.4510, 0.6745],'x'); % color in purple for now 
 
                             ylabel('Filopodia Width (Pixels)'); 
                             axis([0.5,size(maskIndices,2),0.5,5.5])
-                            title(['Filopodia Detection ' num2str(idxCurrent) ' : Yellow Crosses Mark Local Background'],'FontSize',10,'FontName','Arial');  
+                            title(['Filopodia Detection ' num2str(idxCurrent) ' : Purple Crosses Mark Local Background'],'FontSize',10,'FontName','Arial');  
                         end
                         
                         %% Second Subplot: Intensity Values Along Automated Linescan Etc
@@ -531,12 +532,12 @@ for iType = typeStart:typeEnd
                         % plot the fit
                         hFit =  plot(distFilo,yFit,'r'); 
                         
-                        hMean = line([params(2),params(2)],[min(yData),max(yData)],'Color','c'); 
+                        hMean = line([params(2),params(2)],[min(yData),max(yData)],'Color','k','Linewidth',2); 
                         
                         % plot sites of potential decay and positive slopes
                         % for troubleshooting
-                        hDec = scatter(distFilo(slopeMaxNeg),yData(slopeMaxNeg),50,'r','filled'); 
-                        hInc = scatter(distFilo(slopeMaxPos),yData(slopeMaxPos),50,'g','filled');
+                        hDec = scatter(distFilo(slopeMaxNeg),yData(slopeMaxNeg),50,[ 0.0039  ,  0.4264 ,   0.3848],'filled'); % cyan 
+                        hInc = scatter(distFilo(slopeMaxPos),yData(slopeMaxPos),50,[ 0.6471 ,        0 ,   0.1490  ] ,'filled');
                         
                          legend([hData,hDataFit,hFit,hDec,hBack,hMean,hInc],'Raw Data', 'Data For Fit','Fit','Potential Signal Decay',... 
                              'Background Estimate','Tip Position','Potential Signal Rise', 'Location','Northeast','FontSize',6,'FontName','Arial'); 
@@ -561,11 +562,11 @@ for iType = typeStart:typeEnd
                         % pixelsB = zeros(size(img));
                         % pixelsB(filoInfoC.([toAdd 'pixIndicesBack']))=1;
                         [yb,xb] = ind2sub(size(img), filoInfoC.([toAdd 'pixIndicesBack'])); 
-                        scatter(xb,yb,10,'r','filled'); 
+                        scatter(xb,yb,10,[ 0.0039  ,  0.4264 ,   0.3848],'filled'); 
 %                         spy(pixelsF,'g',10);
 %                         spy(pixelsB,'r');
                         [yf,xf] = ind2sub(size(img),filoInfoC.([toAdd 'pixIndicesFor'])); 
-                        scatter(xf,yf,10,'y','filled');                      
+                        scatter(xf,yf,10,[0.5020, 0.4510, 0.6745],'filled');  % purple                     
                         %% 4th Subplot the residuals compared to the amplitude
                         subplot(3,2,6);
                         boxplot(resid);
@@ -587,9 +588,11 @@ for iType = typeStart:typeEnd
                                             
                         filename{1} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.fig' ];
                         filename{2} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.png'];
+                        
                         for i = 1:2
                             saveas(gcf, [ p.OutputDirectory filesep toAdd filesep filename{i}]);
                         end
+                        saveas(gcf,[p.OutputDirectory filesep toAdd filesep 'Filopodia_' num2str(idxCurrent,'%03d') toAdd '.eps'],'psc2'); 
                     end
                 else
                     filoInfo(idxCurrent).([toAdd 'params']) = NaN;
