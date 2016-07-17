@@ -67,7 +67,7 @@ ip.CaseSensitive = false;
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
 
 ip.addParameter('InternalFiloOn',3,@(x) isscalar(x));
-ip.addParameter('NumPixForFitBack',10,@(x) isscalar(x));
+%ip.addParameter('NumPixForFitBack',10,@(x) isscalar(x));
 ip.addParameter('fitLengthInPix',10,@(x) isscalar(x)); 
 ip.addParameter('ValuesForFit','Intensity',@(x) ischar(x)); % maybe remove
 ip.addParameter('PSFSigma',0.43,@(x) isnumeric(x)) ; %% NOTE CHANGE THIS TO BE READ IN FROM MD.
