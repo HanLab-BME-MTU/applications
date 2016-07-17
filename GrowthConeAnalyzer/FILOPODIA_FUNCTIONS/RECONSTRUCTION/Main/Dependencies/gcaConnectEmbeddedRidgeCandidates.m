@@ -98,7 +98,7 @@ countFigs = 1;
 % extract the corresponding vectors
 vectSeed = internalSeedEPs(:,3:4);
 vectCand = internalCandEPs(:,3:4);
-
+TSFigs = []; 
 %%
 % find all query points (internal filo EP coordinates) within a search radius surrounding the seed points (external filo EP coords)
 [idx,d] = KDTreeBallQuery(internalCandEPs(:,1:2), internalSeedEPs(:,1:2), ip.Results.maxRadiusLinkEmbedded);
@@ -220,48 +220,45 @@ if ~isempty(E) % continue
     costTotal = costGeo1 + costGeo2; % again this cost likely needs modification.
     
     %%
-    TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off');
-    TSFigs(countFigs).name = 'Before_Matching_with_Vectors';
-    TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
-    
-    if ~isempty(ip.Results.img);
-        imshow(-ip.Results.img,[]);
-        hold on
+    if ip.Results.TSOverlays == true;
         
-        scatter(internalCandEPs(:,1),internalCandEPs(:,2),20,'b','filled'); % the endpoint to connect
-        scatter(internalSeedEPs(:,1),internalSeedEPs(:,2),20,'r','filled');
-        spy(labelMatRidgeCandEmbed>0,'b');
-        spy(seedMask,'r')
-        text(5,10,'Seeds','FontSize',10,'color','r');
-        text(5,20,'Ridge Candidates Embedded','FontSize',10,'color','b');
-        text(5,30,'With Local Geometry Vectors','FontSize',10,'color','k');
-        text(5,40,'And Local Linkage Vectors','FontSize',10,'color','g');
+        TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off');
+        TSFigs(countFigs).name = 'Before_Matching_with_Vectors';
+        TSFigs(countFigs).group = 'Reconstruct_Embedded';
         
-        %
-        quiver(internalCandEPs(:,1),internalCandEPs(:,2),...
-            internalCandEPs(:,3),internalCandEPs(:,4),0.2,'color','b');
-        quiver(internalSeedEPs(:,1),internalSeedEPs(:,2),internalSeedEPs(:,3),internalSeedEPs(:,4),...
-            0.2,'color','r');
-        
-          arrayfun(@(x) plot([EPsCandPostKD(x,1),EPsSeedPostKD(x,1)],...
-                        [EPsCandPostKD(x,2),EPsSeedPostKD(x,2)],'color','g'),1:size(EPsCandPostKD,1));
-        % plot the small vectors
-        quiver(internalCandEPs(:,1),internalCandEPs(:,2),...
-            internalCandEPs(:,3),internalCandEPs(:,4),0.2,'color','b');
-        %
-        quiver(EPsCandPostKD(:,1),EPsCandPostKD(:,2),vectCand2SeedNorm(:,1), vectCand2SeedNorm(:,2),...
-            0.2,'color','g','linewidth',1);
-        %
-        quiver(EPsSeedPostKD(:,1),EPsSeedPostKD(:,2),vectSeedToCandNorm(:,1), vectSeedToCandNorm(:,2),...
-            0.2,'color','g','linewidth',1);
-        
-   
-        
-        countFigs = countFigs+1;
-    end 
-        
-        
-        
+        if ~isempty(ip.Results.img);
+            imshow(-ip.Results.img,[]);
+            hold on
+            
+            scatter(internalCandEPs(:,1),internalCandEPs(:,2),20,'b','filled'); % the endpoint to connect
+            scatter(internalSeedEPs(:,1),internalSeedEPs(:,2),20,'r','filled');
+            spy(labelMatRidgeCandEmbed>0,'b');
+            spy(seedMask,'r')
+            text(5,10,'Seeds','FontSize',10,'color','r');
+            text(5,20,'Ridge Candidates Embedded','FontSize',10,'color','b');
+            text(5,30,'With Local Geometry Vectors','FontSize',10,'color','k');
+            text(5,40,'And Local Linkage Vectors','FontSize',10,'color','g');
+            
+            %
+            quiver(internalCandEPs(:,1),internalCandEPs(:,2),...
+                internalCandEPs(:,3),internalCandEPs(:,4),0.2,'color','b');
+            quiver(internalSeedEPs(:,1),internalSeedEPs(:,2),internalSeedEPs(:,3),internalSeedEPs(:,4),...
+                0.2,'color','r');
+            
+            arrayfun(@(x) plot([EPsCandPostKD(x,1),EPsSeedPostKD(x,1)],...
+                [EPsCandPostKD(x,2),EPsSeedPostKD(x,2)],'color','g'),1:size(EPsCandPostKD,1));
+            % plot the small vectors
+            quiver(internalCandEPs(:,1),internalCandEPs(:,2),...
+                internalCandEPs(:,3),internalCandEPs(:,4),0.2,'color','b');
+            %
+            quiver(EPsCandPostKD(:,1),EPsCandPostKD(:,2),vectCand2SeedNorm(:,1), vectCand2SeedNorm(:,2),...
+                0.2,'color','g','linewidth',1);
+            %
+            quiver(EPsSeedPostKD(:,1),EPsSeedPostKD(:,2),vectSeedToCandNorm(:,1), vectSeedToCandNorm(:,2),...
+                0.2,'color','g','linewidth',1);
+            
+            countFigs = countFigs+1;
+        end
         
         %%
         
@@ -277,68 +274,65 @@ if ~isempty(E) % continue
         % ends.
         
         %% TSOverlays : Plot Linear Connections Color-Coded by Cost
-        if ip.Results.TSOverlays == true;
+        
+        TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
+        TSFigs(countFigs).name = 'KD_Results_By_Cost';
+        TSFigs(countFigs).group = 'Reconstruct_Embedded';
+        
+        if ~isempty(ip.Results.img)
             
-            
-            
-            TSFigs(countFigs).h  = setFigure(imSize(2),imSize(1),'off'); % reget the handle
-            TSFigs(countFigs).name = 'KD_Results_By_Cost';
-            TSFigs(countFigs).group = 'Reconstruct_Embedded'; 
-            
-            if ~isempty(ip.Results.img)
-                
-                imshow(-ip.Results.img,[]);
-                hold on
-            end
-            
-            if ~isempty(ip.Results.edgeMask);
-                
-                spy(ip.Results.edgeMask,'k');
-                hold on
-            end
-            %Plot the full Candidate Pieces
-            spy(labelMatRidgeCandEmbed,'k',5);
+            imshow(-ip.Results.img,[]);
             hold on
-            % Plot the full Seed Pieces
-            spy(seedMask,'k',5);
+        end
+        
+        if ~isempty(ip.Results.edgeMask);
             
-            
-            
-            
-            % Scatter the end points of the canidates considered (note only the
-            % closest point  to the veil/stem estimate is currently considered
-            
-            scatter(internalCandEPs(:,1),internalCandEPs(:,2),5,'b','filled');
-            scatter(internalSeedEPs(:,1),internalSeedEPs(:,2),5,'r','filled');
-            cMapLength=128; cMap=jet(cMapLength);
-            mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
-            
-            % get closest colormap index for each feature
-            D=createDistanceMatrix(costTotal,mapper);
-            [sD,idxCMap]=sort(abs(D),2);
-            
-            for k=1:cMapLength
-                idxCand = E(idxCMap(:,1) == k,2);
-                idxSeed = E(idxCMap(:,1)==k,1);
-                for iEdge = 1:length(idxCand) % some can have the same color
-                    plot([internalCandEPs(idxCand(iEdge),1),internalSeedEPs(idxSeed(iEdge),1)],...
-                        [internalCandEPs(idxCand(iEdge),2),internalSeedEPs(idxSeed(iEdge),2)],'color',cMap(k,:),'Linewidth',2);
-                end
+            spy(ip.Results.edgeMask,'k');
+            hold on
+        end
+        %Plot the full Candidate Pieces
+        spy(labelMatRidgeCandEmbed,'k',5);
+        hold on
+        % Plot the full Seed Pieces
+        spy(seedMask,'k',5);
+        
+        
+        
+        
+        % Scatter the end points of the canidates considered (note only the
+        % closest point  to the veil/stem estimate is currently considered
+        
+        scatter(internalCandEPs(:,1),internalCandEPs(:,2),5,'b','filled');
+        scatter(internalSeedEPs(:,1),internalSeedEPs(:,2),5,'r','filled');
+        cMapLength=128; cMap=jet(cMapLength);
+        mapper=linspace(min(costTotal),max(costTotal),cMapLength)';
+        
+        % get closest colormap index for each feature
+        D=createDistanceMatrix(costTotal,mapper);
+        [sD,idxCMap]=sort(abs(D),2);
+        
+        for k=1:cMapLength
+            idxCand = E(idxCMap(:,1) == k,2);
+            idxSeed = E(idxCMap(:,1)==k,1);
+            for iEdge = 1:length(idxCand) % some can have the same color
+                plot([internalCandEPs(idxCand(iEdge),1),internalSeedEPs(idxSeed(iEdge),1)],...
+                    [internalCandEPs(idxCand(iEdge),2),internalSeedEPs(idxSeed(iEdge),2)],'color',cMap(k,:),'Linewidth',2);
             end
-            text(5,5,'Color Paths By Cost ','FontSize',10,'Color','k');
-            text(5,15,'Red : High : Stong Path' ,'FontSize',10,'Color','r');
-            text(5,25,'Blue : Low : Weak Path', 'FontSize',10,'Color','b');
-            text(5,35,['MaxRadius = ' num2str(ip.Results.maxRadiusLinkEmbedded) ' Pixels']);
-            countFigs = countFigs+1;
-            % c = colormap(lines(size(E,1)));
-            % for i = 1:length(E(:,1))
-            %     idxCand = E(i,2);
-            %     idxSeed = E(i,1);
-            %     plot([internalCandEPs(idxCand,1),internalSeedEPs(idxSeed,1)],[internalCandEPs(idxCand,2),internalSeedEPs(idxSeed,2)],'color',c(i,:));
-            %     text(internalCandEPs(idxCand,1),internalCandEPs(idxCand,2),num2str(costCand1Path(idxCand),2),'color',c(i,:));
-            %
-            % end
-        end % end ip.Results.TSOverlays
+        end
+        text(5,5,'Color Paths By Cost ','FontSize',10,'Color','k');
+        text(5,15,'Red : High : Stong Path' ,'FontSize',10,'Color','r');
+        text(5,25,'Blue : Low : Weak Path', 'FontSize',10,'Color','b');
+        text(5,35,['MaxRadius = ' num2str(ip.Results.maxRadiusLinkEmbedded) ' Pixels']);
+        countFigs = countFigs+1;
+        % c = colormap(lines(size(E,1)));
+        % for i = 1:length(E(:,1))
+        %     idxCand = E(i,2);
+        %     idxSeed = E(i,1);
+        %     plot([internalCandEPs(idxCand,1),internalSeedEPs(idxSeed,1)],[internalCandEPs(idxCand,2),internalSeedEPs(idxSeed,2)],'color',c(i,:));
+        %     text(internalCandEPs(idxCand,1),internalCandEPs(idxCand,2),num2str(costCand1Path(idxCand),2),'color',c(i,:));
+        %
+        % end
+    end % end ip.Results.TSOverlays
         %% Filter Based on a Geometric Threshold
        
         idxGood = (costGeo1>ip.Results.geoThreshEmbedded & costGeo2>ip.Results.geoThreshEmbedded);
