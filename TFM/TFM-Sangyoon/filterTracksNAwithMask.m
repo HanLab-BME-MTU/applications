@@ -20,7 +20,14 @@ iChan = 0;
 
 outputFilePath = [pathForTheMovieDataFile filesep 'Colocalization' filesep outputPath];
 dataPath = [outputFilePath filesep 'data'];
-load([dataPath filesep 'cropInfo.mat'])
+try
+    load([dataPath filesep 'cropInfo.mat'])
+catch
+    TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
+    forceProc =TFMpackage.processes_{4};
+    forceField = forceProc.loadChannelOutput;
+    cropInfo = [ceil(min(forceField(1).pos(:,1))),ceil(min(forceField(1).pos(:,2))),floor(max(forceField(1).pos(:,1))),floor(max(forceField(1).pos(:,2)))];
+end
 % Finding which channel has a cell mask information
 maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
 for k=1:nChannels

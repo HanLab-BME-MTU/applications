@@ -1,4 +1,4 @@
-function [SE_FOV,SE_FAs,integratedForce,maxForceBlob,bioSensorAtBlob,maxForceDistFromEdge,pixelAreaForceBlob,indMaxBlob,isProtrusion]=quantifyMovieStrainEnergy(curMD,tMax,drawFig,normFactor,sRange)
+function [SE_FOV,SE_FAs,integratedForce,maxForceBlob,bioSensorAtBlob,maxForceDistFromEdge,pixelAreaForceBlob,indMaxBlob,blobStat,isProtrusion]=quantifyMovieStrainEnergy(curMD,tMax,drawFig,normFactor,sRange)
 %function [SE_FOV,SE_FAs,SE_CellSeg]=quantifyMovieStrainEnergy(curMD)
 %quantifies from traction map the strain energy for entire field of view
 %(FOV), segmented FAs, and cell segmentation when the cell segmentation
@@ -34,12 +34,18 @@ tifBSensorPath = [imgPath filesep 'tifBSensor'];
 epsPath = [imgPath filesep 'eps'];
 figPath = [imgPath filesep 'figs'];
 if ~exist(tifForcePath,'dir')
-    mkdir(imgPath);
-    mkdir(dataPath);
-    mkdir(epsPath);
-    mkdir(figPath);
-    mkdir(tifForcePath);
-    mkdir(tifBSensorPath);
+    system(['mkdir -p ' imgPath]);
+    system(['mkdir -p ' dataPath]);
+    system(['mkdir -p ' epsPath]);
+    system(['mkdir -p ' figPath]);
+    system(['mkdir -p ' tifForcePath]);
+    system(['mkdir -p ' tifBSensorPath]);
+%     mkdir(imgPath);
+%     mkdir(dataPath);
+%     mkdir(epsPath);
+%     mkdir(figPath);
+%     mkdir(tifForcePath);
+%     mkdir(tifBSensorPath);
 end
 
 tractionMaps=load(forceFieldProc.outFilePaths_{2});
@@ -87,15 +93,18 @@ end
 if ~isempty(normFactor)
     maskProc = curMD.getProcess(curMD.getProcessIndex('MaskIntersectionProcess'));
 else
-    maskProc = curMD.getProcess(curMD.getProcessIndex('MaskRefinementProcess'));
+    iMaskProcess=curMD.getProcessIndex('MaskRefinementProcess');
+    if ~isempty(iMaskProcess)
+        maskProc = curMD.getProcess(iMaskProcess);
+    end
 end
 %% Calculate strain energy for segmented FAs.
 tic
 minSize = 20; % in pixel
-minTraction = 10; % in Pa
-borderWidth=40;
+minTraction = 100; % in Pa
+borderWidth=80;
 nMaxForce = 0; % the number of maxForceBlobs
-nTopBlobs=20; % the number of top maxForceBlobs in single frames
+nTopBlobs=150; % the number of top maxForceBlobs in single frames
 
 for ii=1:nFrames
     % segment
@@ -112,7 +121,13 @@ for ii=1:nFrames
     croppedDMap = dMap{ii}(row1:row2, col1:col2);
 
     % Shift cell mask according to SDC
-    mask = maskProc.loadChannelOutput(2,ii);
+    maskShrunkenBorder = true(size(croppedTMap));
+    maskShrunkenBorder = bwmorph(maskShrunkenBorder,'erode',borderWidth);
+    if ~isempty(iMaskProcess)
+        mask = maskProc.loadChannelOutput(2,ii);
+    elseif ~isempty(iSDCProc)
+        mask = maskShrunkenBorder;
+    end
     if (size(mask,1)~=size(croppedTMap,1) || size(mask,2)~=size(croppedTMap,2)) && ~isempty(iSDCProc)
         maxX = ceil(max(abs(T(:, 2))));
         maxY = ceil(max(abs(T(:, 1))));
@@ -133,8 +148,6 @@ for ii=1:nFrames
         allBdPoints = [allBdPoints; boundary(:,2), boundary(:,1)];
     end
     
-    maskShrunkenBorder = true(size(croppedTMap));
-    maskShrunkenBorder = bwmorph(maskShrunkenBorder,'erode',borderWidth);
 
     maskAdhesion = blobSegmentThreshold(croppedTMap(borderWidth+1:end-borderWidth,borderWidth+1:end-borderWidth),minSize,0,mask(borderWidth+1:end-borderWidth,borderWidth+1:end-borderWidth));
     maskAdhesion = bwmorph(maskAdhesion,'dilate',2);
@@ -168,31 +181,33 @@ for ii=1:nFrames
     integratedForce.forceBlobPixelIdxList{ii}=arrayfun(@(x) x.PixelIdxList,stats,'UniformOutput',false);
     % find an adhesion that contains top three max traction
 %     [individualForceBlobMaxSorted, topIDs]=sort(individualForceBlobMax,'descend');
-%     nTopBlobs = min(nTopBlobs,length(individualForceBlobMax));
-%     iMaxForceBlobTop = topIDs(1:nTopBlobs);
+    [~, topIDs]=sort(individualForceBlobMax,'descend');
+    nTopBlobs = min(nTopBlobs,length(individualForceBlobMax));
+    iMaxForceBlobTop{ii} = topIDs(1:nTopBlobs);
 %     curMaxForceTop = individualForceBlobMaxSorted(1:nTopBlobs);
-    % Switching to area-based criteria
-    [individualForceBlobAreaSorted, topIDs]=sort(individualForceBlobAreas,'descend');
-    nTopBlobs = min(nTopBlobs,length(individualForceBlobAreas));
-    iMaxForceBlobTop = topIDs(1:nTopBlobs);
-    curMaxForceTop = individualForceBlobAreaSorted(1:nTopBlobs);
-    newPixels=integratedForce.forceBlobPixelIdxList{ii}(topIDs(1:nTopBlobs));
-    newMaskAdhesion = false(size(maskAdhesion));
-    for qq=1:numel(newPixels)
-        newMaskAdhesion(newPixels{qq})=true;
-    end
+%     % Switching to area-based criteria
+%     [individualForceBlobAreaSorted, topIDs]=sort(individualForceBlobAreas,'descend');
+%     nTopBlobs = min(nTopBlobs,length(individualForceBlobAreas));
+%     iMaxForceBlobTop = topIDs(1:nTopBlobs);
+%     curMaxForceTop = individualForceBlobAreaSorted(1:nTopBlobs);
+%     newPixels=integratedForce.forceBlobPixelIdxList{ii}(topIDs(1:nTopBlobs));
+%     newMaskAdhesion = false(size(maskAdhesion));
+%     for qq=1:numel(newPixels)
+%         newMaskAdhesion(newPixels{qq})=true;
+%     end
     
     % Create interior mask: 5 um smaller than cell mask
 %     interiorMask=bwmorph(mask,'erode',5/pixSize_mu);
     distMask = bwdist(~mask);
-    interiorMask = distMask>=5/pixSize_mu;
+    interiorMask = distMask>=7/pixSize_mu;
     
     peripheralMask=mask & ~interiorMask;
     nForceBlobInterior=0;
     nForceBlobPeriphery=0;
+    iIntBlobs{nFrames}=[]; iPeriBlobs{nFrames}=[];
 %     [curMaxForce,iMaxForceBlob]=max(individualForceBlobMax);
     for pp=1:nTopBlobs
-        iMaxForceBlob = iMaxForceBlobTop(pp);
+        iMaxForceBlob = iMaxForceBlobTop{ii}(pp);
 %         curMaxForce = curMaxForceTop(pp);
         curMaxForce = integratedForce.maxTraction{ii}(iMaxForceBlob);
         curMaxForceBlobPixelList = integratedForce.forceBlobPixelIdxList{ii}{iMaxForceBlob};
@@ -205,6 +220,7 @@ for ii=1:nFrames
     %         maxForceBlob{nMaxForce}(ii)=curMaxForce;
     % %         maxForceBlobPixelList{nMaxForce}{ii} = union(maxForceBlobPixelList{nMaxForce},integratedForce.forceBlobPixelIdxList{ii}{iMaxForceBlob});
     %         maxForceBlobPixelList{nMaxForce}{ii} = integratedForce.forceBlobPixelIdxList{ii}{iMaxForceBlob};
+            iActualIDList(:,nMaxForce)=[ii,pp];
         else %if nMaxForce>=nTopBlobs 
             iPrev=nMaxForce-1;
             matchedBlobFound=false;
@@ -227,20 +243,16 @@ for ii=1:nFrames
                 nMaxForce=nMaxForce+1;
                 maxForceBlob{nMaxForce}(ii)=curMaxForce;
                 maxForceBlobPixelList{nMaxForce} = integratedForce.forceBlobPixelIdxList{ii}{iMaxForceBlob};
+                iActualIDList(:,nMaxForce)=[ii,pp];
             end
         end
         % Separating interior force blobs and peripheral ones
         if sum(interiorMask(curMaxForceBlobPixelList))>sum(peripheralMask(curMaxForceBlobPixelList))
             nForceBlobInterior=nForceBlobInterior+1;
-            % For debug,
-            compImg(:,:,1)=interiorMask;
-            newMaskAdhesion = false(size(maskAdhesion));
-            newMaskAdhesion(curMaxForceBlobPixelList)=true;
-            compImg(:,:,2)=newMaskAdhesion;
-            compImg(:,:,3)=peripheralMask;
-            figure, imshow(double(compImg))
+            iIntBlobs{ii} = [iIntBlobs{ii} iMaxForceBlob];
         else
             nForceBlobPeriphery=nForceBlobPeriphery+1;
+            iPeriBlobs{ii} = [iPeriBlobs{ii} iMaxForceBlob];
         end
     end
     % See if there is overlap between interiorMask and maskAdhesion - for
@@ -256,6 +268,7 @@ for ii=1:nFrames
     SE_FAs.maxT(ii) = maxT;
     [SE_FAs.maxSEFA(ii),maxSE_FA]=max(SE_FAs.individualSE(ii).SE);
     [SE_FAs.maxSED_FA(ii),maxSED_FA]=max(SE_FAs.individualSE(ii).SED);
+    SE_FAs.avgTractionCell(ii) = mean(croppedTMap(mask));
     
 %     if nargin<2
 %         tMax = max(croppedTMap(:).*maskShrunkenBorder(:));
@@ -318,7 +331,10 @@ for ii=1:nFrames
     croppedTMap = tMap{ii}(row1:row2, col1:col2);
 
     % Shift cell mask according to SDC
-    mask = maskProc.loadChannelOutput(iChan,ii);
+    if ~isempty(iMaskProcess)
+        mask = maskProc.loadChannelOutput(iChan,ii);
+    end
+        
     if (size(mask,1)~=size(croppedTMap,1) || size(mask,2)~=size(croppedTMap,2)) && ~isempty(iSDCProc)
         maxX = ceil(max(abs(T(:, 2))));
         maxY = ceil(max(abs(T(:, 1))));
@@ -435,16 +451,24 @@ for ii=1:nFrames
                 colormap jet
                 colorbar                
             end
-            if jj==indMaxBlob(ii)
-                cellfun(@(x) plot(x(:,2),x(:,1), 'Color','m', 'LineWidth', 2),adhBound)
-            else
-                cellfun(@(x) plot(x(:,2),x(:,1), 'Color','m', 'LineWidth', 0.5),adhBound)
+%             if jj==indMaxBlob(ii)
+%                 cellfun(@(x) plot(x(:,2),x(:,1), 'Color','m', 'LineWidth', 2),adhBound)
+%             else
+%                 cellfun(@(x) plot(x(:,2),x(:,1), 'Color','m', 'LineWidth', 0.5),adhBound)
+%             end
+            iActualID=iMaxForceBlobTop{iActualIDList(1,jj)}(iActualIDList(2,jj));
+            
+            if ismember(iActualID,iIntBlobs{ii})
+                cellfun(@(x) plot(x(:,2),x(:,1), 'Color','y', 'LineWidth', 1),adhBound)
+            elseif ismember(iActualID,iPeriBlobs{ii})
+                cellfun(@(x) plot(x(:,2),x(:,1), 'Color','m', 'LineWidth', 1),adhBound)
             end
-            plot(centroidBlob{jj}{ii}(1),centroidBlob{jj}{ii}(2),'mo')
-            line([centroidBlob{jj}{ii}(1) closestBdPoint{jj}{ii}(1)],[centroidBlob{jj}{ii}(2) closestBdPoint{jj}{ii}(2)],'Color','y')
-            text(centroidBlob{jj}{ii}(1),centroidBlob{jj}{ii}(2)+30,['ID: ' num2str(jj)],'Color','w')
-            text((centroidBlob{jj}{ii}(1)+closestBdPoint{jj}{ii}(1))/2,(centroidBlob{jj}{ii}(2)+closestBdPoint{jj}{ii}(2))/2+12,...
-                ['D: ' num2str(maxForceDistFromEdge{jj}(ii))],'Color','w')
+            
+%             line([centroidBlob{jj}{ii}(1) closestBdPoint{jj}{ii}(1)],[centroidBlob{jj}{ii}(2) closestBdPoint{jj}{ii}(2)],'Color','y')
+%             text(centroidBlob{jj}{ii}(1),centroidBlob{jj}{ii}(2)+30,['ID: ' num2str(jj)],'Color','w')
+%             text((centroidBlob{jj}{ii}(1)+closestBdPoint{jj}{ii}(1))/2,(centroidBlob{jj}{ii}(2)+closestBdPoint{jj}{ii}(2))/2+12,...
+%                 ['D: ' num2str(maxForceDistFromEdge{jj}(ii))],'Color','w')
+            
             if ~isempty(normFactor)
                 figure(h2), hold on
                 if jj==indMaxBlob(ii)
@@ -462,11 +486,15 @@ for ii=1:nFrames
 %         hgexport(h1,strcat(epsPath,'/forceMapSeg',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','eps')
 %         print(h1, strcat(tifForcePath,'/forceMapSeg',num2str(ii,iiformat),'.tif'),'-dtiff', '-r150');
         figure(h1)
-        export_fig(strcat(epsPath,'/forceMapSeg',num2str(ii,iiformat),'.eps'));
-        export_fig(strcat(tifForcePath,'/forceMapSeg',num2str(ii,iiformat),'.tif'));
-%         hgsave(h1,strcat(figPath,'/forceMapSeg',num2str(ii,iiformat)),'-v7.3')
+        try
+            export_fig(strcat(epsPath,'/forceMapSeg',num2str(ii,iiformat),'.eps'));
+            export_fig(strcat(tifForcePath,'/forceMapSeg',num2str(ii,iiformat),'.tif'));
+        catch
+            hgsave(h1,strcat(figPath,'/forceMapSeg',num2str(ii,iiformat)),'-v7.3')
+            print('-depsc2', '-r150', h1, strcat(tifBSensorPath,'/forceMapSeg',num2str(ii,iiformat),'.eps'));
+        end
 %         hgexport(h2,strcat(epsPath,'/bSensorMapSeg',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','eps')
-%         print(h2, strcat(tifBSensorPath,'/bSensorMapSeg',num2str(ii,iiformat),'.tif'),'-dtiff', '-r150');
+%         print('-depsc2', '-r150', h2, strcat(tifBSensorPath,'/bSensorMapSeg',num2str(ii,iiformat),'.tif'),'-dtiff', '-r150');
 %         hgsave(h2,strcat(figPath,'/bSensorMapSeg',num2str(ii,iiformat)),'-v7.3')
         if ~isempty(normFactor)
             figure(h2)
@@ -476,11 +504,121 @@ for ii=1:nFrames
         hold off
     end
 end
-disp('Protrusion / retraction analysis...')
+%% plot only interior/exterior force blobs
+for ii=1:nFrames
+    % For debug,
+    newMaskAdhesionInt = false(size(maskAdhesion));
+    newMaskAdhesionPer = false(size(maskAdhesion));
+    for pp=iIntBlobs{ii}
+        interiorBlobAll=integratedForce.forceBlobPixelIdxList{ii}{pp};
+        newMaskAdhesionInt(interiorBlobAll)=true;
+    end
+    for qq=iPeriBlobs{ii}
+        exteriorBlobAll=integratedForce.forceBlobPixelIdxList{ii}{qq};
+        newMaskAdhesionPer(exteriorBlobAll)=true;
+    end
+
+    compImg(:,:,1)=0.5*double(interiorMask)+0.5*double(newMaskAdhesionPer)+0.5*double(newMaskAdhesionInt);
+    compImg(:,:,2)=newMaskAdhesionInt;
+    compImg(:,:,3)=0.5*double(peripheralMask)+0.5*double(newMaskAdhesionPer);
+    h5=figure; imshow(double(compImg))
+    try
+        export_fig(strcat(epsPath,'/forceMapInteriorExterior',num2str(ii,iiformat),'.eps'));
+        export_fig(strcat(tifForcePath,'/forceMapInteriorExterior',num2str(ii,iiformat),'.tif'));
+    catch
+        hgsave(h5,strcat(figPath,'/forceMapInteriorExterior',num2str(ii,iiformat)),'-v7.3')
+        print('-depsc2', '-r150', h5, strcat(tifBSensorPath,'/forceMapInteriorExterior',num2str(ii,iiformat),'.eps'));
+    end
+    
+    blobStat(ii).numIntBlobs = nForceBlobInterior;
+    blobStat(ii).numPeriBlobs = nForceBlobPeriphery;
+    blobStat(ii).ratioIntBlobs = nForceBlobInterior/(nForceBlobInterior+nForceBlobPeriphery);
+
+    blobStat(ii).forceInteriorRegion = mean(croppedTMap(interiorMask));
+    blobStat(ii).forcePeripheryRegion = mean(croppedTMap(peripheralMask));
+    blobStat(ii).forceIntBlobs = integratedForce.avgTraction{ii}(iIntBlobs{ii});
+    blobStat(ii).forcePeriBlobs = integratedForce.avgTraction{ii}(iPeriBlobs{ii});
+    blobStat(ii).forceAllRegion = mean(croppedTMap(mask));
+    blobStat(ii).forceAllBlobs =[blobStat(ii).forceIntBlobs; blobStat(ii).forcePeriBlobs];
+    
+    if numel(curMD.channels_)>2
+        % Local vim-force relation
+        if ~isempty(iSDCProc)
+            thirdImage=(SDCProc.loadChannelOutput(iChan+1,ii)); %movieData.channels_(2).loadImage(ii);
+        else
+            thirdImage=curMD.getChannel(iChan+1).loadImage(ii); 
+        end
+
+    %     % Plot first
+    %     figure, plot(thirdImage(interiorMask),croppedTMap(interiorMask),'.')
+    %     figure, plot(thirdImage(peripheralMask),croppedTMap(peripheralMask),'.')
+
+        %Showing them in 2D histogram)
+        minVim=max(min(thirdImage(peripheralMask)),190);
+        xBins = minVim:50:max(thirdImage(interiorMask));
+        if length(xBins)<50
+            xBins = minVim:10:max(thirdImage(interiorMask));
+            if length(xBins)<50
+                xBins = minVim:2:max(thirdImage(interiorMask));
+                if length(xBins)<50
+                    xBins = minVim:1:max(thirdImage(interiorMask));
+                end
+            end
+        end
+        yBins = min(croppedTMap(interiorMask)):25:max(croppedTMap(peripheralMask));
+        if length(yBins)<50
+            yBins = min(croppedTMap(interiorMask)):10:max(croppedTMap(peripheralMask));
+            if length(yBins)<50
+                yBins = min(croppedTMap(interiorMask)):5:max(croppedTMap(peripheralMask));
+                if length(yBins)<50
+                    yBins = min(croppedTMap(interiorMask)):2:max(croppedTMap(peripheralMask));
+                    if length(yBins)<50
+                        yBins = min(croppedTMap(interiorMask)):1:max(croppedTMap(peripheralMask));
+                    end
+                end
+            end
+        end
+        hHist2Dint = figure; hold on
+        densityplot(double(thirdImage(interiorMask)),croppedTMap(interiorMask), xBins, yBins,'DisplayFunction', @log);
+        cmap = jet(256);
+        cmap(1,:) = [0;0;0]; %black
+        colormap(cmap); %activate it.
+        h_cb=colorbar;
+        h_cb.Label.String = 'Occurence, 10 ^';
+        ylabel('Traction (Pa)')
+        xlabel('Vimentin Intensity (A.U.)')
+        title('Interior')
+        hgsave(hHist2Dint,strcat(figPath,'/histo2DInterior',num2str(ii,iiformat)),'-v7.3')
+        print('-depsc2', '-r150', hHist2Dint, strcat(tifBSensorPath,'/histo2DInterior',num2str(ii,iiformat),'.eps'));
+
+        hHist2Dperi = figure; hold on
+        densityplot(double(thirdImage(peripheralMask)),croppedTMap(peripheralMask), xBins, yBins,'DisplayFunction', @log);
+        cmap = jet(256);
+        cmap(1,:) = [0;0;0]; %black
+        colormap(cmap); %activate it.
+    %     colormap jet
+        h_cb=colorbar;
+        h_cb.Label.String = 'Occurence, 10 ^';
+        ylabel('Traction (Pa)')
+        xlabel('Vimentin Intensity (A.U.)')
+        title('Periphery')
+        hgsave(hHist2Dperi,strcat(figPath,'/histo2DPeriphery',num2str(ii,iiformat)),'-v7.3')
+        print('-depsc2', '-r150', hHist2Dperi, strcat(tifBSensorPath,'/histo2DPeriphery',num2str(ii,iiformat),'.eps'));
+        % Save these
+        blobStat(ii).vimForcePairInt = [double(thirdImage(interiorMask)),croppedTMap(interiorMask)];
+        blobStat(ii).vimForcePairPeri = [double(thirdImage(peripheralMask)),croppedTMap(peripheralMask)];
+        close(hHist2Dint);
+        close(hHist2Dperi)
+    end
+    close(h5)
+end
+
+%% Prot/ret analysis
 deltaT=curMD.timeInterval_;
 cropMaskStack = false(size(mask,1),size(mask,2),nFrames);
 %% Matching with segmented adhesions - do only when nFrames>2
 if nFrames>2
+    disp('Protrusion / retraction analysis...')
     for ii=1:nFrames
         % Cell Boundary Mask 
         cropMaskStack(:,:,ii) = maskProc.loadChannelOutput(iChan,ii);

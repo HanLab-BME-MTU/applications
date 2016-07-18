@@ -244,8 +244,8 @@ if isempty(tmax)
     tmax = tmaxAuto;
 end
 % Insert traction map in forceField.pos 
-disp('Stage drift application to traction maps and cropping...')
 if ~isempty(iSDCProc)
+    disp('Stage drift application to traction maps and cropping...')
     tracImage=(SDCProc.loadChannelOutput(iBeadChan,1)); %movieData.channels_(2).loadImage(ii);
 else
     tracImage=MD.getChannel(iBeadChan).loadImage(1); 
@@ -258,7 +258,7 @@ for ii=1:nFrames
     cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii}(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3));
     tMap(:,:,ii) = cur_tMap;
 end
-save([forcemapPath filesep 'tMap.mat'],'tMap');
+save([forcemapPath filesep 'tMap.mat'],'tMap','-v7.3');
 %% Filter out tracks that is out of traction field
 idxTracks = true(numel(tracksNA),1);
 disp('Filtering with TFM boundary...')
@@ -276,11 +276,14 @@ tic
 tracksNA = readIntensityFromTracks(tracksNA,tMap,2); % 2 means traction magnitude collection from traction stacks
 toc
 %% Read force uncertainty
-try
-    tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
-catch
-    getForceConfidence(pathForTheMovieDataFile)
-    tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
+forceParams=forceFieldProc.funParams_;
+if strcmp(forceParams.method, 'FastBEM')
+    try
+        tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
+    catch
+        getForceConfidence(pathForTheMovieDataFile)
+        tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
+    end
 end
 %% Save SDC-shifted paxillin image stack
 disp('Loading adhesion channel image stacks...')
@@ -294,7 +297,7 @@ for ii=1:nFrames
     end
     paxImgStack(:,:,ii) = paxImage;
 end
-save([paxPath filesep 'paxImgStack.mat'],'paxImgStack');
+save([paxPath filesep 'paxImgStack.mat'],'paxImgStack','-v7.3');
 toc
 % disp('loading segmented FAs...')
 FASegProc = FASegPackage.processes_{iFASeg};

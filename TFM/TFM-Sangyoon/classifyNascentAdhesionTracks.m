@@ -19,14 +19,43 @@ tracksNA=ip.Results.tracksNA;
 %% Load processed data
 disp('Loading raw files ...')
 tic
+coloPath = fileparts(pathForColocalization);
+MDPath = fileparts(coloPath);
+MDfilePath = [MDPath filesep 'movieData.mat'];
+MD = load(MDfilePath,'MD');
+MD = MD.MD;
+nFrames=MD.nFrames_;
+iChan=2;
+
 if isempty(tracksNA)
     tracksNA = load([pathForColocalization filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
     tracksNA = tracksNA.tracksNA;
 end
-imgMap = load([pathForColocalization filesep 'pax'  filesep 'paxImgStack.mat'],'paxImgStack');
-imgMap = imgMap.paxImgStack;
-tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
-tMap = tMap.tMap;
+try
+    imgMap = load([pathForColocalization filesep 'pax'  filesep 'paxImgStack.mat'],'paxImgStack');
+    imgMap = imgMap.paxImgStack;
+catch
+    % This case SDC was not used and first img frame was used.
+    paxImage=MD.getChannel(iChan).loadImage(1); 
+    [h,w] = size(paxImage);
+
+    paxImgStack = zeros(h,w,nFrames);
+    for ii=1:nFrames
+        paxImage=MD.getChannel(iChan).loadImage(ii); 
+        paxImgStack(:,:,ii) = paxImage;
+    end
+    imgMap = paxImgStack;
+end
+try
+    tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
+    tMap = tMap.tMap;
+catch
+    TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
+    forceProc =TFMpackage.processes_{4};
+%     forceField = forceProc.loadChannelOutput;
+    tMap = load(forceProc.outFilePaths_{2});
+    tMap = tMap.tMap;
+end
 outputPath = [pathForColocalization filesep 'trackAnalysis'];
 if ~exist(outputPath,'dir')
     mkdir(outputPath);
@@ -35,11 +64,6 @@ numFrames = size(imgMap,3);
 startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA)));
 endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA)));
 % movieData to find out pixel size
-coloPath = fileparts(pathForColocalization);
-MDPath = fileparts(coloPath);
-MDfilePath = [MDPath filesep 'movieData.mat'];
-MD = load(MDfilePath,'MD');
-MD = MD.MD;
 pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
@@ -318,7 +342,11 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
             sortIDTracks(idTracks,iGroup);
         idGroupSelected={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
                                     idGroup7Selected,idGroup8Selected,idGroup9Selected};
-        [T,allData]=extractFeatureNA(tracksNA,idGroupSelected);
+        bigEnoughGroups=cellfun(@length,idGroupSelected);
+        bigEnoughGroups=find(bigEnoughGroups>=5);
+        idGroupFiltered = idGroupSelected;
+        idGroupFiltered(setdiff(1:9,bigEnoughGroups))={[]};
+        [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered);
     end
     % figure, plot(asymTracks',MSDall','.')
     % hold on
@@ -348,8 +376,40 @@ if isempty(useDefinedClassifier)
 end
 
 if strcmp(useDefinedClassifier,'n')
-    [trainedClassifier, validationAccuracy, C, order] = trainClassifierNA(T);
+    if importSelectedGroups && strcmp(reuseSelectedGroups, 'u')
+        bigEnoughGroups=cellfun(@length,idGroupSelected);
+        bigEnoughGroups=find(bigEnoughGroups>=5);
+        idGroupFiltered = idGroupSelected;
+        idGroupFiltered(setdiff(1:9,bigEnoughGroups))={[]};
+        [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered);
+    end
+    [trainedClassifierSVM, validationAccuracySVM, CSVM, orderSVM] = trainClassifierNA(T);
+    [trainedClassifierKNN, validationAccuracyKNN, CKNN, orderKNN] = trainClassifierKNN(T);
+    % I will use SVM no matter what, because it will be compatible with
+    % multiple different data
+%     if validationAccuracySVM>validationAccuracyKNN
+    trainedClassifier=trainedClassifierSVM;
+    validationAccuracy=validationAccuracySVM;
+    C=CSVM;
+    order=orderSVM;
+    classifierInfo = fopen([pathForColocalization filesep 'data' filesep 'trainedClassifier is from SVM.txt'],'w');
+    fprintf(classifierInfo, 'This is from quadratic SVM. \n');
+    fprintf(classifierInfo, ['Validation accuracy is ' num2str(validationAccuracy) '. \n']);
+    fprintf(classifierInfo, ['The other (Weighted KNN) was ' num2str(validationAccuracyKNN) '. \n']);
+%     else
+%         trainedClassifier=trainedClassifierKNN;
+%         validationAccuracy=validationAccuracyKNN;
+%         C=CKNN;
+%         order=orderKNN;
+%         classifierInfo = fopen([pathForColocalization filesep 'data' filesep 'trainedClassifier is from KNN.txt'],'w');
+%         fprintf(classifierInfo, 'This is from Weighted KNN. \n');
+%         fprintf(classifierInfo, ['Validation accuracy is ' num2str(validationAccuracy) '. \n']);
+%         fprintf(classifierInfo, ['The other (SVM) was ' num2str(validationAccuracySVM) '. \n']);
+%     end
+%     [trainedClassifier, validationAccuracy, C, order,validationPredictions, validationScores] = trainClassifierNA(T);
+%     classificationLearner
     disp(['Validation accuracy is ' num2str(validationAccuracy) '.'])
+    fclose(classifierInfo);
     save([pathForColocalization filesep 'data' filesep 'trainedClassifier.mat'],'trainedClassifier')
 
     % normalize confusion matrix
@@ -366,6 +426,8 @@ if strcmp(useDefinedClassifier,'n')
     c = colorbar;
     c.Label.String = 'normalized prediction';
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
+    savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
     while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
         disp('Validation accuracy was low. Group reduction is needed.')
         interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
@@ -383,15 +445,17 @@ if strcmp(useDefinedClassifier,'n')
         % Get the unique resonses
         totalGroups = unique(response);
         
-        figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
+        figure; confAxis=axes; imagesc(C); title(['Confusion Matrix: Validation accuracy: ' num2str(validationAccuracy)])
         set(confAxis,'xticklabel',totalGroups')
         set(confAxis,'yticklabel',totalGroups')
         c = colorbar;
         c.Label.String = 'normalized prediction';
         print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
+        savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
+        print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
     end
     
-    T = sortrows(T,12);
+    T = sortrows(T,13);
     features =table2array(T(:,1:end-1));
     species = table2array(T(:,end));
     nGroups = length(totalGroups);
@@ -403,6 +467,8 @@ if strcmp(useDefinedClassifier,'n')
     c = colorbar;
     c.Label.String = 'feature value';
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'featureSpace.eps']);
+    savefig([pathForColocalization filesep 'figs' filesep 'featureSpace.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'featureSpace.tif'])
 
     D = pdist(features);
     D1 =  squareform(D);
@@ -418,6 +484,8 @@ if strcmp(useDefinedClassifier,'n')
         rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
     end
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
+    savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.tif'])
 
     Dfeats = pdist(features');
     Dfeats1 =  squareform(Dfeats);
@@ -426,7 +494,8 @@ if strcmp(useDefinedClassifier,'n')
     c.Label.String = 'p-dist';
 
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.eps']);
-    
+    savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongFeatures.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.tif'])
     
     disp('The order is :')
     disp(order)
@@ -435,6 +504,9 @@ elseif strcmp(useDefinedClassifier,'y')
     trainedClassifier=load(fullfile(pathDefinedClassifier,fileDefinedClassifier));
     trainedClassifier=trainedClassifier.trainedClassifier;
     disp(['Classifier at ' fullfile(pathDefinedClassifier,fileDefinedClassifier) ' is used for cross-validation.'])
+    % Check the Class names between classifier and T, and adjust T
+    idxTinClassifier=ismember(T.Group,trainedClassifier.ClassNames);
+    T= T(idxTinClassifier,:);
     [validationAccuracy, C, order] = validateClassifier(trainedClassifier,T);
     disp(['Cross-validation accuracy is ' num2str(validationAccuracy) '.'])
     
@@ -446,6 +518,8 @@ elseif strcmp(useDefinedClassifier,'y')
     c = colorbar;
     c.Label.String ='normalized prediction';
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix_otherClassifier.eps']);
+    savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix_otherClassifier.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix_otherClassifier.tif'])
     disp('The order is :')
     disp(order)
     [~,allData] = extractFeatureNA(tracksNA);
@@ -488,15 +562,19 @@ arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',c
 % legend('boxoff')
 if strcmp(useDefinedClassifier,'n')
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
+    savefig([pathForColocalization filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.tif'])
     save([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA','-v7.3')
 else
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.eps']);
+    savefig([pathForColocalization filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.tif'])
     save([pathForColocalization filesep 'data' filesep 'idsClassified_otherClassifier.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA','-v7.3')
 end
 end
 function  [validationAccuracy,C,order] = validateClassifier(trainedClassifier,datasetTable)
 % Extract predictors and response
-predictorNames = {'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNAs', 'lifeTimeNAs', 'meanIntensityNAs', 'distToEdgeFirstNAs', 'startingIntensityNAs', 'distToEdgeChangeNAs', 'distToEdgeLastNAs', 'edgeAdvanceDistLastChangeNAs', 'maxEdgeAdvanceDistChangeNAs'};
+predictorNames = {'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNAs', 'lifeTimeNAs', 'meanIntensityNAs', 'distToEdgeFirstNAs', 'startingIntensityNAs', 'distToEdgeChangeNAs', 'distToEdgeLastNAs', 'edgeAdvanceDistFirstChangeNAs', 'edgeAdvanceDistLastChangeNAs', 'maxEdgeAdvanceDistChangeNAs'};
 predictors = datasetTable(:,predictorNames);
 predictors = table2array(varfun(@double, predictors));
 response = datasetTable.Group;

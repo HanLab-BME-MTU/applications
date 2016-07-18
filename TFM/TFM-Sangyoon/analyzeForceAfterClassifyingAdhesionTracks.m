@@ -23,7 +23,13 @@ dataPath = [outputFilePath filesep 'data'];
 outputFile=strcat(dataPath,filesep,'tracksNA.mat');
 orgTrackFile=strcat(dataPath,filesep,'tracksNAOrg.mat');
 load([pathForTheMovieDataFile filesep 'movieData.mat'])
-load([pathForTheMovieDataFile filesep 'TFMPackage' filesep 'forceField' filesep 'forceField.mat'],'forceField')
+try
+    load([pathForTheMovieDataFile filesep 'TFMPackage' filesep 'forceField' filesep 'forceField.mat'],'forceField')
+catch
+    TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
+    forceProc =TFMpackage.processes_{4};
+    forceField = forceProc.loadChannelOutput;
+end
 forceSpacing = forceField(1).pos(2,2)-forceField(1).pos(1,2);
 band = 2*forceSpacing;
 idClassifiedFile=strcat(dataPath,filesep,'idsClassified.mat');
