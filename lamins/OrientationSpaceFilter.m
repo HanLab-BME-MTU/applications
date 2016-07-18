@@ -47,6 +47,21 @@ classdef OrientationSpaceFilter < handle
     
     methods
         function obj = OrientationSpaceFilter(f_c,b_f,K)
+            if(~isscalar(f_c) || ~isscalar(b_f) || ~isscalar(K))
+                s = [length(f_c) length(b_f) length(K)];
+                s(2) = max(1,s(2));
+                f_c = repmat(f_c(:),1,s(2),s(3));
+                if(isempty(b_f))
+                    b_f = 0.8 * f_c;
+                else
+                    b_f = repmat(b_f(:)',s(1),1,s(3));
+                end
+                K   = repmat(shiftdim(K(:),-2),s(1),s(2),1);
+                constructor = str2func(class(obj));
+                obj = arrayfun(constructor,f_c,b_f,K,'UniformOutput',false);
+                obj = reshape([obj{:}],size(obj));
+                return;
+            end
             if(isempty(b_f))
                 % Set the bandwidth to be 0.8 of the central frequency by
                 % default
@@ -102,6 +117,7 @@ classdef OrientationSpaceFilter < handle
             for o=1:numel(obj)
                 R(o) = OrientationSpaceResponse(obj(o),angularResponse(:,:,:,o));
             end
+            R = reshape(R,size(obj));
         end
         function R = getRidgeResponse(obj,I)
             If = fft2(I);
@@ -149,6 +165,13 @@ classdef OrientationSpaceFilter < handle
             F = reshape(obj.F,s(1)*s(2),s(3));
             E = sqrt(sum(real(F).^2)) + 1j*sqrt(sum(imag(F).^2));
             E = E ./ sqrt(s(1)*s(2));
+        end
+        function clearTransients(obj)
+            for o=1:numel(obj)
+                obj(o).size = [];
+                obj(o).F = [];
+                obj(o).angularGaussians = [];
+            end
         end
     end
     methods

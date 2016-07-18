@@ -7,7 +7,12 @@ function [ filterKernel, radialFilter, angularFilter ] = kernel( f_c, b_f, K, an
 %
 % f_c: maximum frequency for the radial filter
 % b_f: frequency bandwidth for the radial filter
-% K: number of rotation angles through 360 degrees
+% K: number of rotation angles through 2pi radians (360 degrees)
+% angle: row vector of angles in radians to obtain the kernel
+% N: dimensions of the filter, either scalar or 2-element vector
+%
+% See also orientationSpace.getFrequencySpaceCoordinates,
+% orientationSpace.angularKernel, orientationSpace.radialKernel
 
 % Mark Kittisopikul, August 22nd, 2015
 % Jaqaman Lab

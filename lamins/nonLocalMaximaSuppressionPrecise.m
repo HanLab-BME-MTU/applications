@@ -35,7 +35,7 @@ end
 %     distance = 1;
 % end
 
-nlms = theta;
+% nlms = theta;
 rotationResponseSize = size(rotationResponse);
 ny = rotationResponseSize(1);
 nx = rotationResponseSize(2);
@@ -62,28 +62,48 @@ angleIdx = angleIdx/pi*(period)+2;
 % Offset by 1 due to padding
 [x,y] = meshgrid(2:nx+1,2:ny+1);
 
+x_offset = cos(theta);
+y_offset = sin(theta);
+
+Xplus = bsxfun(@plus,x,x_offset);
+Yplus = bsxfun(@plus,y,y_offset);
+
+Xminus = bsxfun(@minus,x,x_offset);
+Yminus = bsxfun(@minus,y,y_offset);
+
+x = cat(4,Xminus,repmat(x,[1 1 nO]),Xplus);
+y = cat(4,Yminus,repmat(y,[1 1 nO]),Yplus);
+angleIdx = repmat(angleIdx,[1 1 1 3]);
+
+clear Xplus Yplus Xminus Yminus x_offset y_offset theta;
+
+A = interp3(rotationResponse,x,y,angleIdx,interpMethod,0);
+
+nlms = A(:,:,:,2);
+nlms(nlms < A(:,:,:,1) | nlms < A(:,:,:,3)) = suppressionValue;
+
 % TODO: optimize later
-for o = 1:nO
-%     nlms(:,:,o) = nonMaximumSuppression(rotationResponse(:,:,o),theta(o));
-
-%     res = padarrayXT(rrotationResponse(:,:,o), [1 1 0], 'symmetric');
-
-    x_offset = cos(theta(:,:,o));
-    y_offset = sin(theta(:,:,o));
-
-    % +1 interp
-    A1 = interp3(rotationResponse, x+x_offset, y+y_offset,angleIdx(:,:,o),interpMethod,0);
-
-    % -1 interp
-    A2 = interp3(rotationResponse, x-x_offset, y-y_offset,angleIdx(:,:,o),interpMethod,0);
-
-    % TODO: We only need to interpolate where not NaN
-    temp = interp3(rotationResponse, x, y, angleIdx(:,:,o),interpMethod,0);
-    temp(temp < A1 | temp < A2) = suppressionValue;
-    nlms(:,:,o) = temp;
-
-%     res(res<A1 | res<A2) = 0;
-end
+% for o = 1:nO
+% %     nlms(:,:,o) = nonMaximumSuppression(rotationResponse(:,:,o),theta(o));
+% 
+% %     res = padarrayXT(rrotationResponse(:,:,o), [1 1 0], 'symmetric');
+% 
+%     x_offset = cos(theta(:,:,o));
+%     y_offset = sin(theta(:,:,o));
+% 
+%     % +1 interp
+%     A1 = interp3(rotationResponse, x+x_offset, y+y_offset,angleIdx(:,:,o),interpMethod,0);
+% 
+%     % -1 interp
+%     A2 = interp3(rotationResponse, x-x_offset, y-y_offset,angleIdx(:,:,o),interpMethod,0);
+% 
+%     % TODO: We only need to interpolate where not NaN
+%     temp = interp3(rotationResponse, x, y, angleIdx(:,:,o),interpMethod,0);
+%     temp(temp < A1 | temp < A2) = suppressionValue;
+%     nlms(:,:,o) = temp;
+% 
+% %     res(res<A1 | res<A2) = 0;
+% end
 
 %% since the input theta already should represent the local maxima in
 %% in orientation, we no longer need to suppress in the orientation dimension

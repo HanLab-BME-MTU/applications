@@ -1,5 +1,5 @@
 function mask = maskFromSteerable(steerable)
-    if(~isstruct(steerable))
+    if(~isstruct(steerable) && ~isa(steerable,'OrientationSpaceResponse'))
         % if not a steerable output structure, assume an image was given
         % and run the steerable detector
         I = steerable;
