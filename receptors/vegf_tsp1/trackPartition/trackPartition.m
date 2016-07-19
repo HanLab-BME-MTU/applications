@@ -64,24 +64,8 @@ for f = frameStart:frameEnd
 end
 maskSub = cell2mat(maskSub);
 
-% % Convert input track struct into cell arrays
-% cellTemp = struct2cell(tracksInput);
-% tracksCoordCell = cellTemp(2,:)';
-% seqCell = cellTemp(3,:)';
-% 
-% fprintf('Partitioning tracks... \n')
-% frameIntersections = parcellfun_progress(@(x,y) trackPartitionInner(x,y,maskSub,minTrackLength),...
-%     tracksCoordCell,seqCell,'UniformOutput',false);
-
 % Create a TracksHandle object from the input track struct (thanks, Mark)
 tracksObj = TracksHandle(tracksInput);
-% Collect various properties into cell arrays
-% xCoords = tracksObj.x;
-% yCoords = tracksObj.y;
-% startFrames = tracksObj.startFrame;
-% endFrames = tracksObj.endFrame;
-% segStartFrames = tracksObj.segmentStartFrame;
-% segEndFrames = tracksObj.segmentEndFrame;
 [xCoords,yCoords,startFrames,endFrames,segStartFrames,segEndFrames] = ...
     parseTracksObj(tracksObj);
 

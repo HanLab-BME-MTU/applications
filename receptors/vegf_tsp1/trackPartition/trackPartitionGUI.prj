@@ -1,0 +1,67 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration file="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition/trackPartitionGUI.prj" location="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition" name="trackPartitionGUI" target="target.mlapps" target-name="Package App">
+    <param.appname>trackPartitionGUI</param.appname>
+    <param.authnamewatermark>Kevin Nguyen</param.authnamewatermark>
+    <param.email>kevin3.nguyen@utsouthwestern.edu</param.email>
+    <param.company>UT Southwestern</param.company>
+    <param.icon />
+    <param.icons />
+    <param.summary>Test build</param.summary>
+    <param.description />
+    <param.screenshot />
+    <param.version>1.0</param.version>
+    <param.products.name>
+      <item>MATLAB</item>
+      <item>Parallel Computing Toolbox</item>
+    </param.products.name>
+    <param.products.id>
+      <item>1</item>
+      <item>80</item>
+    </param.products.id>
+    <param.products.version>
+      <item>9.0</item>
+      <item>6.8</item>
+    </param.products.version>
+    <param.platforms />
+    <param.output>/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition</param.output>
+    <param.guid>651610ba-b949-4486-9c91-ced3b23c8bf6</param.guid>
+    <unset>
+      <param.icon />
+      <param.icons />
+      <param.description />
+      <param.screenshot />
+      <param.version />
+      <param.platforms />
+      <param.output />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}/trackPartitionGUI.mlapp</file>
+    </fileset.main>
+    <fileset.depfun />
+    <fileset.resources />
+    <fileset.package />
+    <build-deliverables>
+      <file location="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1" name="trackPartition" optional="false">/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>/project/apps_new/MATLAB/R2016a</root>
+      <toolboxes />
+    </matlab>
+    <platform>
+      <unix>true</unix>
+      <mac>false</mac>
+      <windows>false</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>true</linux>
+      <solaris>false</solaris>
+      <osver>2.6.32-642.el6.x86_64</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>glnxa64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>

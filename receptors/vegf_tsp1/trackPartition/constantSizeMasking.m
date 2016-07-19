@@ -62,6 +62,7 @@ parfor f = 1:nFramesDetected
     % Iterate through each object and create masks
     for i = 1:nObjects
         maskNew = placeConstantSize(xGrid,xList(i,1),yGrid,yList(i,1),diameterPx);
+%         maskNew = placeConstantSize2(xList(i,1),yList(i,1),diameterPx,imSize);
         mask(:,:,f) = mask(:,:,f)|maskNew;
     end
 end
@@ -73,15 +74,18 @@ function cMask = placeConstantSize(xGrid,xC,yGrid,yC,diameter)
     cMask = sqrt(((xGrid-xC).^2)+((yGrid-yC).^2)) <= r;
 end
 
-% Try FFT, multiply object locations with circle?
+% Use FFT for faster computation? Does not seem to improve much
 function cMask = placeConstantSize2(xC,yC,diameter,imSize)
 objects = zeros(imSize);
 objects(round(yC),round(xC)) = 1;
 
-% FFT
+
 objectsFFT = fft2(objects);
 
-[kx,ky] = meshgrid(1:diametr
-kernel = zeros(diameter,diameter);
-
+[kx,ky] = meshgrid(1:size(objects,2),1:size(objects,1));
+radius = round(diameter/2);
+center = round(size(objects)/2);
+kernel = sqrt((kx-center(2)).^2+(ky-center(1)).^2) <= radius;
+kernelFFT = fft2(kernel);
+cMask = ifftshift(ifft2(kernelFFT.*objectsFFT));
 end
