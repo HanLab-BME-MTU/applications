@@ -16,6 +16,11 @@ function [psfSigma, filterParms] = calPsfParms(chaNum, dataProperties)
 % Excitation or emission???
 wvl = dataProperties.channel(chaNum).emissionWavelength;
 
+if isempty(wvl)
+    wvl = input('Enter the emission wavelength in um > ');
+    wvl = wvl/1000;
+end
+
 p = inputParser;
 p.addRequired('wvl', @(x) (isnumeric(x) && ~isempty(x)));
 p.addRequired('NA', @(x) (isnumeric(x) && ~isempty(x)));

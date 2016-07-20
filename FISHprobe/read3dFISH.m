@@ -84,7 +84,7 @@ for i = 1:numel(MD.channels_)
     switch lower(dataProperties.channel(i).name)
         case 'dapi'
             imageData.dapiRaw = channel.loadStack(nFrameCha);
-            % Filter raw image (Deconvolution)
+            % Filter raw image
             [psfSigma, filterParms] = calPsfParms(i, dataProperties);
             imageData.dapi = filtermovie(imageData.dapiRaw, filterParms, 0);
             dataProperties.channel(i).psfSigma = psfSigma;
@@ -92,7 +92,7 @@ for i = 1:numel(MD.channels_)
             
         case 'green'
             imageData.greenRaw = channel.loadStack(nFrameCha);
-            % Filter raw image (Deconvolution)
+            % Filter raw image
             [psfSigma, filterParms] = calPsfParms(i, dataProperties);
             imageData.green = filtermovie(imageData.greenRaw, filterParms, 0);
             dataProperties.channel(i).psfSigma = psfSigma;
@@ -100,7 +100,7 @@ for i = 1:numel(MD.channels_)
             
         case 'red'
             imageData.redRaw = channel.loadStack(nFrameCha);
-            % Filter raw image (Deconvolution)
+            % Filter raw image
             [psfSigma, filterParms] = calPsfParms(i, dataProperties);
             imageData.red = filtermovie(imageData.redRaw, filterParms, 0);
             dataProperties.channel(i).psfSigma = psfSigma;

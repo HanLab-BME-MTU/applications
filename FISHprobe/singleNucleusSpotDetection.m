@@ -1,4 +1,4 @@
-function nucleiStruc = singleNucleusSpotDetection(nucleiStruc, dataProperties, imageData, varargin)
+function nucleiStruc = singleNucleusSpotDetection(nucleiStruc, dataProperties, varargin)
 % singleNucleusSpotDetection Detects spots from each multi-channel 3D stack
 % of single nucleus
 %   Detailed explanation goes here
@@ -8,15 +8,13 @@ function nucleiStruc = singleNucleusSpotDetection(nucleiStruc, dataProperties, i
 p = inputParser;
 p.addRequired('nucleiStruc', @(x) ~isempty(x));
 p.addRequired('channels', @(x) numel(x) > 1);
-p.addRequired('imageData', @(x) ~isempty(x));
 p.addParameter('detectionMethod', 'mnp', @isstr);
 p.addParameter('mannualAdjMode', 0, @isnumeric);
 
-p.parse(nucleiStruc, dataProperties.channel, imageData, varargin{:});
+p.parse(nucleiStruc, dataProperties.channel, varargin{:});
 
 nucleiStruc = p.Results.nucleiStruc;
 chaParams = p.Results.channels;
-imageData = p.Results.imageData;
 detectionMethod = p.Results.detectionMethod;
 mannualAdjMode = p.Results.mannualAdjMode;
 
@@ -47,5 +45,3 @@ for chaNum = 1:numel(chaParams)
     end
    
 end
-
-spotsPlot3(nucleiStruc, imageData, dataProperties);

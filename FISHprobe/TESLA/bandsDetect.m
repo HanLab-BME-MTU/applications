@@ -1,13 +1,13 @@
 function bandsDetect(varargin)
-%BANDSDETECT uses watershed segmentation to identify lanes and bands on 
-% Universal STELA gel with mannual adjustment. It can calculate and store 
+%BANDSDETECT uses watershed segmentation to identify lanes and bands on
+% Universal STELA gel with mannual adjustment. It can calculate and store
 % statistics of the bands in an efficient way.
 %
 %   bandsDetect(varargin)
 %
 %   Input(optional): pathName
-% 
-%   Output: 
+%
+%   Output:
 %       ratio: the ratio of the short telomeres to the rest of the telomeres in a sample
 %       short20Size: size of the shortest 20% telomeres in a sample (Kb)
 %       avgBandSize: average telomere length in Kb
@@ -15,16 +15,27 @@ function bandsDetect(varargin)
 %       imInput: input image (cropped) used for analysis
 %       Figure: Bands detection results and telomere size distribution
 %
-% Ning 04/2016
+% Ning 07/2016
 
-%% Image reading and preprocessing
+%% Image loading and preprocessing
 close all
 
-if nargin == 0
-    [fileName, pathName] = uigetfile('*.tif', 'Select the STELA image');
-else
-    pathName = varargin{1};
-    [fileName, pathName] = uigetfile('*.tif', 'Select the STELA image', pathName);
+% load history
+if ~isdeployed
+    historyFile = fullfile(fileparts(mfilename('fullpath')),'imagePathHistory.mat');
+    if exist(historyFile, 'file')
+        history = load(historyFile);
+        pathName = history.pathName;
+        [fileName, pathName] = uigetfile({'*.tif'; '*.jpg'}, 'Select the image for analysis', pathName);
+    else
+        [fileName, pathName] = uigetfile({'*.tif'; '*.jpg'}, 'Select the image for analysis');
+    end
+    
+    % save history
+    if ~isempty(pathName) && all(pathName ~= 0)
+        historyFile = fullfile(fileparts(mfilename('fullpath')), 'imagePathHistory.mat');
+        save(historyFile, 'pathName');
+    end
 end
 
 % Try to store and retrieve path history in a better way
@@ -59,7 +70,7 @@ fineIM = interp2(X,Y,adjIM,fineX,fineY);
 figure, imshow(imcomplement(fineIM),[]);
 title('Imput Image');
 
-% Anisogaussian filter is NOT applied!! 
+% Anisogaussian filter is NOT applied!!
 % Apply matched filter f, gaussian kernel defined as sigmax=13, sigmay=6
 % f=anisoGaussian2Dkernel(0,0,1,13,6,0,-39:39,-18:18);
 % fIM = imfilter(fineIM,f);
@@ -68,7 +79,7 @@ title('Imput Image');
 
 fIM = fineIM;
 
-%% Bands detection
+%% Lanes and bands detection
 
 bandMap = zeros(size(fIM));
 % Project all pixels intensity to x axis
@@ -104,7 +115,7 @@ for k = 1:length(laneCenterLoc)
     bandProfile = bandProfile/count;
     %figure,plot(laneCenter)
     %findpeaks(laneCenter)
-
+    
     % Needs smarter threshold to eliminate the noise without hurting peaks
     thres2 = 0.05*(max(bandProfile)-min(bandProfile));
     bandLoc = find(~watershed(imhmin(bandProfile,thres2)));
@@ -112,110 +123,86 @@ for k = 1:length(laneCenterLoc)
     for m = 1:length(bandLoc)
         bandMap(bandLoc(m),laneCenterLoc(k)) = 1;
     end
-
-% Count overlapping bands vertically
-%     bandsIntersity = laneCenter(bandLoc);
-%     avgIntensity = mean(laneCenter(bandLoc));
-%     for m = 1:length(bandLoc)
-%         % Mark double bands if the band intersity is higher than 1.5
-%         % average
-%         if bandsIntersity(m) > avgIntensity*1.5
-%             bandMap(bandLoc(m),laneCenterLoc(k)) = 2;
-%         else
-%             bandMap(bandLoc(m),laneCenterLoc(k)) = 1;
-%         end
-%     end
     
+    clear bandLoc
+
 end
 
-
 % Show preliminary detected result for manual modification
-figure,imshow(imcomplement(fineIM),[]),hold on
-% p goes row by row and q goes column by column
-for p = 1:size(fIM,1)
-    for q = 1:size(fIM,2)
-        if bandMap(p,q) == 1
-            plot(q,p,'r.'),hold on
-%         else if bandMap(p,q)==2
-%                 plot(q,p,'g.'),hold on
-%             end
-        end
+bandMapPlot(fIM, bandMap);
+
+impixelinfo;
+% Marker lane is required to be on the left
+disp('Click to define the boundary of marker lane.');
+[markerBoundary, limitXX] = ginput(1);
+hold on
+yAxis = ylim;
+plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+
+%% Manual adjustment of detected bands
+for bandsAddCound = 1:100
+    bandsAdd = input('Do you want to manually add a band (y/n) > ', 's');
+    if lower(bandsAdd) == 'y'
+        disp('Please click on the image to add a single band.');
+        [x,y] = ginput(1);
+        x = round(x,0);
+        y = round(y,0);
+        bandMap(y,x)=1;
+        bandMapPlot(fIM, bandMap);
+        hold on
+        plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+    else
+        break
     end
 end
 
-%% Manual adjustment of detected bands
-bandsAdd = input('Enter the band(s) number you want to add > ');
-for v=1:bandsAdd
-    [x,y] = ginput(1);
-    x = round(x,0);
-    y = round(y,0);
-    bandMap(y,x)=1;
-end
 
-bandsDel = input('Enter the band(s) number you want to delete > ');
-for w=1:bandsDel
-    [x,y] = ginput(1);
-    x = round(x,0);
-    y = round(y,0);
-    if bandMap(y,x) == 1
-        bandMap(y,x) = 0;
-    else
-        dist = 100;
-        rowUp = max(1,y-dist/2);
-        rowDown = min(size(fIM,1),y+dist/2);
-        colLeft = max(1,x-dist/2);
-        colRight = min(size(fIM,2),x+dist/2);
-        adjMat = bandMap(rowUp:rowDown,colLeft:colRight);
-        for r = 1:size(adjMat,1)
-            for s = 1:size(adjMat,2)
-                if adjMat(r,s) == 1;
-                    % Find the closest spot to the clicking point
-                    newDist = (((rowDown-rowUp)/2+1-r)^2+((colRight-colLeft)/2+1-s)^2)^0.5;
-                    if newDist < dist
-                        dist = newDist;
-                        % Need smarter index finding code!
-                        bandX = r-((rowDown-rowUp)/2+1);
-                        bandY = s-((colRight-colLeft)/2+1);
-                    end
+for bandsDelCound = 1:100
+    bandsDel = input('Do you want to manually delete bands (y/n) > ', 's');
+    if lower(bandsDel) == 'y'
+        disp('Please choose the region with bands you want to delete and then double click.');
+        [delRegion, boundaryInfo] = imcrop;
+        for xCord = max(1, floor(boundaryInfo(1))) : min(size(fIM, 2), ceil(boundaryInfo(1)+boundaryInfo(3)))
+            for yCord = max(1, floor(boundaryInfo(2))) : min(size(fIM, 1), ceil(boundaryInfo(2)+boundaryInfo(4)))
+                if bandMap(yCord, xCord) == 1
+                    bandMap(yCord, xCord) = 0;
                 end
             end
         end
-        bandMap(y+bandX,x+bandY) = 0;
+        bandMapPlot(fIM, bandMap);
+        hold on
+        plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+    else
+        break
     end
 end
 
 %% Band size annotation
 
-impixelinfo;
-% Marker lane is required to be on the left
-limitX = input('Enter the left boundary to eliminate marker lane > ');
-
-close all
-% Plot identification results
-figure;
-imshow(imcomplement(fineIM)),hold on
-for p=1:size(fIM,1)
-    for q=1:size(fIM,2)
-        if bandMap(p,q)==1 && q > limitX
-            plot(q,p,'r.'),hold on
-        end
-    end
-end
-
 % Enter threshold to calculate shortest telomere ratio
 % shortThresh = input('Enter the threshold marker size > ');
 shortThresh = 1.6;
-markerNum = input('Please enter the number of marker bands (7 or 8) > ');
-disp('Please click on position of each marker band')
-[markerSize, markerPos] = ginput(markerNum);
+markerNum = 0;
+for markerY = 1:size(fIM,1)
+    for markerX = 1:round(markerBoundary)
+        if bandMap(markerY, markerX) == 1
+            markerNum = markerNum + 1;
+            markerPos(markerNum) = markerY;
+        end
+    end
+end
+markerPos = markerPos';
+
 switch markerNum
     case 7
         markerSize = [9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
     case 8
         markerSize = [18.8, 9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
+    otherwise
+        error('Unusal number of marker bands detected.')
 end
 
-limitY = markerPos(markerSize==shortThresh);
+limitY = markerPos(markerSize == shortThresh);
 % Linear regression y=ax+b for any two adjacent marker pair (x:markerPos, y:markerSize)
 G(:,1) = markerPos;
 G(:,2) = ones(markerNum,1);
@@ -238,11 +225,11 @@ bandStat = struct('index', [], 'bandPos', [], 'bandSize', [], 'bandIntensity', [
 bandIndex = 0;
 for q=1:size(fIM,2)
     for p=1:size(fIM,1)
-        if bandMap(p,q)==1 && q > limitX
+        if bandMap(p,q)==1 && q > markerBoundary
             bandIndex = bandIndex + 1;
             bandStat(bandIndex).index = bandIndex;
             % Bands positions are recorded in cartesian coordinate
-            bandStat(bandIndex).bandPos = [q, p]; 
+            bandStat(bandIndex).bandPos = [q, p];
             bandStat(bandIndex).count = 1;
             
             if p <= markerPos(1)
@@ -278,19 +265,20 @@ for q=1:size(fIM,2)
     end
 end
 
-for trivialBand = 1:size(bandStat,2)
-    if bandStat(trivialBand).bandSize<0
-        bandStat(trivialBand).bandSize=0;
+for negativeBand = 1:size(bandStat,2)
+    if bandStat(negativeBand).bandSize<0
+        bandStat(negativeBand).bandSize=0;
     end
 end
 
+clear bandMap
 
 %% Overlapping bands detection and counting
 % Interval setup by percentile of bandsize
 minBandSize = min([bandStat(:).bandSize]);
-maxBandSize = max([bandStat(:).bandSize]) + 0.01;
-step = 10;
-interDistance = (maxBandSize - minBandSize) / step; 
+maxBandSize = max([bandStat(:).bandSize]) + 0.0001;
+step = 5;
+interDistance = (maxBandSize - minBandSize) / step;
 bottom = minBandSize;
 for i = 1:step
     top = bottom + interDistance;
@@ -300,13 +288,16 @@ for i = 1:step
     
     % Set threshold to select highly intensed bands within the top/bottom interval
     intensityThreshold = medIntensity*1.5;
-    overlappingBand = subBandStat([subBandStat(:).bandIntensity] > intensityThreshold);    
+    overlappingBand = subBandStat([subBandStat(:).bandIntensity] > intensityThreshold);
     for addCount = 1:numel(overlappingBand)
-        overlappingBand(addCount).count = 2;
-        bandStat([bandStat(:).index] == overlappingBand(addCount).index).count = 2;
-        bandIndex = bandIndex + 1;
-        bandStat(bandIndex) = bandStat([bandStat(:).index] == overlappingBand(addCount).index);
-        bandStat(bandIndex).count = 'Overlapping Band';
+        overlappingBand(addCount).count = round(overlappingBand(addCount).bandIntensity/medIntensity);
+        bandStat([bandStat(:).index] == overlappingBand(addCount).index).count = overlappingBand(addCount).count;
+        %         bandIndexOld = bandIndex;
+        %         bandIndex = bandIndex + overlappingBand(addCount).count - 1;
+        %         for indexAdd = 1:(bandIndex - bandIndexOld)
+        %             bandStat(indexAdd) = bandStat([bandStat(:).index] == overlappingBand(addCount).index);
+        %             bandStat(indexAdd).count = 'Overlapping Band';
+        %         end
     end
     
     bottom = top;
@@ -325,44 +316,55 @@ countTotal = 0;
 for i = 1:numel(bandStat)
     if bandStat(i).count == 1
         plot(bandStat(i).bandPos(1), bandStat(i).bandPos(2), 'r.')
-        countTotal = countTotal+1;        
-        if bandStat(i).bandPos(2) > limitY
-            countShort = countShort+1;
-        end        
     else if bandStat(i).count == 2
             plot(bandStat(i).bandPos(1), bandStat(i).bandPos(2), 'g.')
-            countTotal = countTotal+2;
-            if bandStat(i).bandPos(2) > limitY
-                countShort = countShort+2;
-            end 
+        else if bandStat(i).count > 2
+                plot(bandStat(i).bandPos(1), bandStat(i).bandPos(2), 'm.')
+            end
         end
     end
+    
+    countTotal = countTotal + bandStat(i).count;
+    if bandStat(i).bandPos(2) > limitY
+        countShort = countShort + bandStat(i).count;
+    end
 end
-
-avgBandSize = round(mean([bandStat(:).bandSize]),2);
-fprintf('The average telomere length is %.2f.\n', avgBandSize)
-
-% Calculate the ratio based on the input threshold
-ratio = round(countShort/countTotal*100,2);
-fprintf('The ratio of shortest telomere below %f is %.2f.\n',shortThresh, ratio)
-
-bandSorted = sort([bandStat(:).bandSize]);
-short20Size = round(bandSorted((round((0.2*size(bandSorted,2)),0))),2);
-fprintf('The shortest 20%% telomere threshold is %.2f.\n', short20Size)
-
-
 % Plot a threshold line
 plot(1:q,limitY*ones(1,q),'b')
-hold on
+
+fileName = input('Enter the file name to save statistics > ','s');
+
+avgBandSize = [bandStat(:).bandSize]*[bandStat(:).count]'/sum([bandStat(:).count]);
+fprintf('The average telomere length is %.2f.\n', avgBandSize)
+
+% Calculate shortest telomeres (below 1.6kb) ratio
+ratio = countShort/countTotal*100;
+fprintf('The ratio of shortest telomere below %.1fkb is %.2f%%.\n',shortThresh, ratio)
+
+% Calculate the shortest 20% band size threshold
+[sortBandSize, order] = sort([bandStat(:).bandSize]);
+sortCount = [bandStat(order).count];
+short20Point = sum(sortCount) * 0.2;
+cumulativeSumCount = cumsum(sortCount);
+boundaryPoint = find(cumulativeSumCount <= short20Point, 1, 'last');
+if cumulativeSumCount(boundaryPoint) == short20Point
+    short20Size = mean(sortBandSize([boundaryPoint, boundaryPoint+1]));
+else
+    short20Size = sortBandSize(boundaryPoint+1);
+end
+
+fprintf('The shortest 20%% telomere threshold is %.2f.\n', short20Size)
+
+save(fileName, 'ratio', 'avgBandSize', 'bandStat', 'imInput', 'short20Size', 'dataFilePath')
+
 % plot(1:q,short20Pos*ones(1,q),'m')
 % hold on
 % impixelinfo;
-fileName = input('Enter the file name to save statistics > ','s');
 title(fileName)
 g(1) = gcf;
 
 % Size distribution histogram
-figure, 
+figure,
 h = histogram([bandStat(:).bandSize],'BinWidth',1);
 % Normalization
 bar(h.BinEdges(2:size(h.BinEdges,2))-0.5,h.Values./sum(h.Values)*100,1)
@@ -371,5 +373,18 @@ ylabel('Percentage of detected bands (%)')
 title(fileName)
 g(2) = gcf;
 
-save(fileName,'ratio','avgBandSize','bandStat','imInput','short20Size')
 savefig(g,fileName)
+
+
+function bandMapPlot(image, bandMap)
+close all
+figure,imshow(imcomplement(image),[]),hold on
+% p goes row by row and q goes column by column
+for p = 1:size(image,1)
+    for q = 1:size(image,2)
+        if bandMap(p,q) == 1
+            plot(q, p, 'r.'),hold on
+        end
+    end
+end
+hold off

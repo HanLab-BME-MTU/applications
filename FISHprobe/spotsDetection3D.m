@@ -7,7 +7,7 @@ function [nucleiStruc, dataProperties, mask, imageData] = spotsDetection3D(varar
 %   mask:
 %   imageData:
 
-% 05/2016 Ning Zhang
+% 07/2016 Ning Zhang
 
 close all
 
@@ -23,7 +23,10 @@ mask = segmentNucleiLocalOtsu(imageData.dapi, dataProperties);
 nucleiStruc = findNuclei(imageData, mask, dataProperties);
 pause(5);
 nucleiStruc = singleNucleusSpotDetection(nucleiStruc, dataProperties, ...
-    imageData, 'detectionMethod', detectionMethod, 'mannualAdjMode', mannualAdjMode);
+    'detectionMethod', detectionMethod, 'mannualAdjMode', mannualAdjMode);
 
+nucleiStruc = spotsPair(nucleiStruc, dataProperties);
+spotsPlot3(nucleiStruc, imageData, dataProperties);
+spotsPlot3Paired(nucleiStruc, imageData, dataProperties);
 end
 
