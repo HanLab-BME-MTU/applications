@@ -12,7 +12,11 @@ classdef OrientationSpaceEdgeFilter < OrientationSpaceFilter
         function R = getResponse(obj,I)
             If = fft2(I);
             angularResponse = obj.applyEdgeFilter(If);
-            R = OrientationSpaceResponse(obj,angularResponse);
+            R(numel(obj)) = OrientationSpaceResponse;
+            for o=1:numel(obj)
+                R(o) = OrientationSpaceResponse(obj(o),angularResponse(:,:,:,o));
+            end
+            R = reshape(R,size(obj));
         end
     end
     

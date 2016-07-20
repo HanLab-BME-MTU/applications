@@ -1,4 +1,4 @@
-function [longestCohorts]=plotIntensityForce(tracksNA, fileStore,alignEvent,indivColor,varargin)
+function [longestCohorts,h]=plotIntensityForce(tracksNA, fileStore,alignEvent,indivColor,varargin)
 % plotIntensityForce(tracksNA) plots intensities and forces of tracks
 % w.r.t. time frames and store in designated folder
 % idGroup1f = find(idGroup1);
@@ -15,6 +15,7 @@ ip.addParamValue('tInterval',[],@isnumeric);
 ip.addParamValue('prePostFrames',[],@isnumeric);
 ip.addParamValue('yNormalization',false,@islogical);
 ip.addParamValue('onlyFirstMode',false,@islogical);
+ip.addParamValue('plotConfInt',false,@islogical);
 
 ip.parse(fileStore,alignEvent,indivColor,varargin{:});
 
@@ -27,6 +28,7 @@ tInterval = ip.Results.tInterval;
 prePostFrames = ip.Results.prePostFrames;
 yNormalization = ip.Results.yNormalization;
 onlyFirstMode = ip.Results.onlyFirstMode;
+plotConfInt= ip.Results.plotConfInt;
 
 if isempty(tInterval)
     tInterval_used = 1;
@@ -48,6 +50,8 @@ if nTracks<1
 end
 if ~useCurrentAxis
     h=figure; 
+else
+    h=[];
 end
 hold on
 % alignment might be necessary:
@@ -56,6 +60,8 @@ lifeTime = arrayfun(@(x) x.lifeTime,tracksNA);
 nSources=numel(source);
 
 frameMaxAmp = zeros(nTracks,1);
+longestCohorts=[];
+
 if alignEvent
     % Find the maxima using some of the core function in detectProtrusionEvents
     for ii=1:nTracks
@@ -103,9 +109,9 @@ if alignEvent
     end
     for ii=1:nTracks
         curAmp = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
-        curAmp = (curAmp-min(curAmp));%/(max(curAmp)-min(curAmp));
+        curAmp = (curAmp);%-min(curAmp));%/(max(curAmp)-min(curAmp));
         curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
-        curForce = (curForce-min(curForce));%/(max(curForce)-min(curForce));
+        curForce = (curForce);%-min(curForce));%/(max(curForce)-min(curForce));
         
         curFrameRange = tracksNA(ii).iFrame(logical(tracksNA(ii).presence));
         curFrameRangeShifted = curFrameRange - framesToShift(ii);
@@ -134,18 +140,25 @@ if alignEvent
         else
             if nSources>1
                 subplot(1,2,1)
-                plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
+                if plotConfInt
+                    plotTimeSeriesConfInt((1:nSampleFrames)*tInterval,AmpArray, 'Color',[0.5 0.5 0.5])
+                else
+                    plot((1:nSampleFrames)*tInterval,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
+                end
             end
-            if strcmp(source{1},'ampTotal')
+            if strcmp(source{1},'ampTotal') && ~plotConfInt
                 plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
             end
             if nSources>1
                 subplot(1,2,2), 
-                plot(1:nSampleFrames,forceArray, 'Color',[240/255 128/255 128/255]), hold on
+                if plotConfInt
+                    plotTimeSeriesConfInt((1:nSampleFrames)*tInterval,forceArray, 'Color', [240/255 128/255 128/255])
+                else
+                    plot((1:nSampleFrames)*tInterval,forceArray, 'Color',[240/255 128/255 128/255]), hold on
+                end
             end
-            if strcmp(source{1},'forceMag')
+            if strcmp(source{1},'forceMag') && ~plotConfInt
                 plot(1:nSampleFrames,forceArray, 'Color',[240/255 128/255 128/255]), hold on
-
             end
         end
     end        
@@ -364,7 +377,7 @@ else
         maxLifeTime = (curLT+prePostFramesUsed+1)*tInterval_used;
     end    
 end
-if ~plotCohorts
+if ~plotCohorts && ~plotConfInt
     if nTracks<5 %|| alignEvent
         AmpG1avg = nanmean(AmpArray,1)';
         % AmpG1std = nanstd(AmpArrayG1,1)';
@@ -382,9 +395,10 @@ if ~plotCohorts
             edgeDistAvg = nanmedian(edgeDistArray,1)';
         end
     end
-    maxYamp = quantile(nanmax(AmpArray),0.99);
-    minYamp = quantile(nanmin(AmpArray),0.01);
 end
+maxYamp = quantile(nanmax(AmpArray),0.99);
+minYamp = quantile(nanmin(AmpArray),0.01);
+
 if ~useCurrentAxis
     if strcmp(source,'edgeAdvanceDist')
         set(h,'Position',[200,300,600,200])%,title(['ID:' num2str(ii) ', CC-score:' num2str(tracksNA(ii).CCscore)])
@@ -394,14 +408,14 @@ if ~useCurrentAxis
         subplot(1,2,1) 
     end
 end
-if ~plotCohorts
+if ~plotCohorts && ~plotConfInt
     nEachFrame = sum(AmpArray>0,1);
     startAmpAvgFrame=find(nEachFrame>size(AmpArray,1)*0.02,1);
     if nTracks>1 && strcmp(source{1},'ampTotal')
         plot(startAmpAvgFrame:nSampleFrames,AmpG1avg(startAmpAvgFrame:nSampleFrames),'k','Linewidth',3)
     end
 end
-xlim([-1-prePostFramesUsed*tInterval_used maxLifeTime])
+xlim([-1-prePostFramesUsed maxLifeTime]*tInterval_used)
 ylim([minYamp maxYamp])
 % if strcmp(source{1},'forceMag')
 %     ylim([0 maxYamp])
@@ -425,15 +439,20 @@ if ~useCurrentAxis
         subplot(1,2,2) 
     end
 end
-if ~plotCohorts && nTracks>1 && (strcmp(source{1},'forceMag') || (length(source)>1 && strcmp(source{2},'forceMag')))
+if ~plotCohorts && ~plotConfInt && nTracks>1 && (strcmp(source{1},'forceMag') || (length(source)>1 && strcmp(source{2},'forceMag')))
     plot(1:nSampleFrames,forceG1avg,'r','Linewidth',3)
 end
 if ~useCurrentAxis
-    xlim([0 maxLifeTime])
+    xlim([-1-prePostFramesUsed maxLifeTime]*tInterval_used)
+%     xlim([0 maxLifeTime])
     maxYforce = quantile(nanmax(forceArray),0.95);
     minYforce = quantile(nanmin(forceArray),0.01);
     ylim([minYforce maxYforce])
-    xlabel('Time (frame)')
+    if isempty(tInterval)
+        xlabel('Time (frame)')
+    else
+        xlabel('Time (sec)')
+    end
     ylabel('Traction (Pa)')
     set(gca,'FontSize',7)
 end

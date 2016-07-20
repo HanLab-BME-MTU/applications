@@ -167,7 +167,7 @@ elseif isempty(kymMask)
     score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
     score = score_nxc2(K1:N1,K2:N2); % normalized
     
-elseif min(min(kymMask(:,:,1))) == 1
+elseif min(min(kymMask(:,:,1))) == 1 || min(min(kymMask(:,:,1))) == 0
     %Background intensities are set to be zero. So, if there is no zero intensities, there is no
     % background.
     kymP2 = kym.*kym;

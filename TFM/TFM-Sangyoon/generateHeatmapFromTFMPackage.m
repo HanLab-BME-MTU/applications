@@ -14,6 +14,7 @@ ip =inputParser;
 % ip.addOptional('tmax',[],@isscalar);
 ip.addParamValue('chanIntensity',[],@isnumeric); % channel to quantify intensity (2 or 3)
 ip.addParamValue('vectorScale',1,@isnumeric); % channel to quantify intensity (2 or 3)
+ip.addParamValue('tmin',[],@isnumeric); % channel to quantify intensity (2 or 3)
 % ip.parse('pathForTheMovieDataFile','band','tmax',varargin{:});
 ip.parse(varargin{:});
 % pathForTheMovieDataFile=ip.Results.pathForTheMovieDataFile;
@@ -21,6 +22,7 @@ ip.parse(varargin{:});
 % tmax = ip.Results.tmax;
 selectedChannel=ip.Results.chanIntensity;
 vectorScale=ip.Results.vectorScale;
+tmin=ip.Results.tmin;
 
 if nargin < 2
     band = 4;
@@ -49,15 +51,6 @@ displFieldProc=TFMPackage.processes_{iDispFieldProc};
 if isempty(displFieldProc)
     iDispFieldProc = 2;
     displFieldProc=TFMPackage.processes_{iDispFieldProc};
-end
-% Use mask of first frame to filter displacementfield
-if ~isempty(movieData.rois_)
-    maskArray = movieData.getROIMask;
-    firstMask = maskArray(:,:,1);
-    displFieldOriginal=displFieldProc.loadChannelOutput;
-    displField = filterDisplacementField(displFieldOriginal,firstMask);
-else
-    displField=displFieldProc.loadChannelOutput;
 end
 
 % Load the forcefield
@@ -101,62 +94,6 @@ if ~exist(tifPath,'dir') || ~exist(paxPath,'dir') || ~exist(epsPath,'dir') || ~e
     mkdir(forcemapPath);
     mkdir(epsPath);
 end
-
-%Find the maximum force.
-tmin = 100000000;
-[reg_grid1,~,~,~]=createRegGridFromDisplField(displField,1); %2=2 times fine interpolation
-
-% band width for cutting border
-%     band=4;
-if isempty(tmax)
-    display('Estimating maximum force magnitude ...')
-    tic
-    tmax = 0;
-    for ii = 1:nFrames
-       %Load the saved body force map.
-        [~,fmat, ~, ~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1); %1:cluster size
-        fnorm = (fmat(:,:,1).^2 + fmat(:,:,2).^2).^0.5;
-        % Boundary cutting - I'll take care of this boundary effect later
-        fnorm(end-round(band/2):end,:)=[];
-        fnorm(:,end-round(band/2):end)=[];
-        fnorm(1:1+round(band/2),:)=[];
-        fnorm(:,1:1+round(band/2))=[];
-        fnorm_vec = reshape(fnorm,[],1); 
-
-        tmax = max(tmax,max(fnorm_vec));
-        tmin = min(tmin,min(fnorm_vec));
-    end
-    tmax = 0.8*tmax;
-    display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
-    toc
-else
-    for ii = 1:nFrames
-       %Load the saved body force map.
-        [~,fmat, ~, ~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1); %1:cluster size
-        fnorm = (fmat(:,:,1).^2 + fmat(:,:,2).^2).^0.5;
-        % Boundary cutting - I'll take care of this boundary effect later
-        fnorm(end-round(band/2):end,:)=[];
-        fnorm(:,end-round(band/2):end)=[];
-        fnorm(1:1+round(band/2),:)=[];
-        fnorm(:,1:1+round(band/2))=[];
-        fnorm_vec = reshape(fnorm,[],1); 
-
-        tmin = min(tmin,min(fnorm_vec));
-    end
-end    
-%     tmax = 2590;
-%     tmin = tmin-0.1;
-%     tmax=tmax/5;
-%     LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
-%     RightLowerCorner(1:2) = [max(displField(1).pos(:,1)), max(displField(1).pos(:,2))];
-
-[reg_grid,~,~,spacing]=createRegGridFromDisplField(displField,4); %2=2 times fine interpolation
-
-hl = []; %handle for scale bar
-iiformat = ['%.' '3' 'd'];
-TSlevel = zeros(nFrames,1);
-%     paxLevel = zeros(nFrames,1);
-
 % See if there is stage drift correction
 iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
 if ~isempty(iSDCProc)
@@ -184,11 +121,104 @@ else
     iChan = 2;
 end
 
+iDisplFieldCalProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
+displFieldCalProc=movieData.processes_{iDisplFieldCalProc};
+pDisp = parseProcessParams(displFieldCalProc);
+
+% Use mask of first frame to filter displacementfield
+if ~isempty(movieData.rois_) || ~isempty(movieData.roiMaskPath_)
+%     maskArray = movieData.getROIMask;
+    maskArray = imread(movieData.roiMaskPath_);
+    if ~isempty(iSDCProc)
+
+        %Parse input, store in parameter structure
+        refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex}));
+
+        % Use mask of first frame to filter bead detection
+        firstMask = refFrame>0; %false(size(refFrame));
+        tempMask = maskArray(:,:,1);
+        % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+        tempMask2 = false(size(refFrame));
+        y_shift = find(any(firstMask,2),1);
+        x_shift = find(any(firstMask,1),1);
+        tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        firstMask = tempMask2 & firstMask;
+        displFieldOriginal=displFieldProc.loadChannelOutput;
+        displField = filterDisplacementField(displFieldOriginal,firstMask);
+    else        
+        firstMask = maskArray(:,:,1);
+        displFieldOriginal=displFieldProc.loadChannelOutput;
+        displField = filterDisplacementField(displFieldOriginal,firstMask);
+    end
+else
+    displField=displFieldProc.loadChannelOutput;
+end
+
+%Find the maximum force.
+[reg_grid1,~,~,~]=createRegGridFromDisplField(displField,1); %2=2 times fine interpolation
+
+% band width for cutting border
+%     band=4;
+if isempty(tmax)
+    display('Estimating maximum force magnitude ...')
+    tic
+    tmax = 0;
+    for ii = 1:nFrames
+       %Load the saved body force map.
+        [~,fmat, ~, ~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1); %1:cluster size
+        fnorm = (fmat(:,:,1).^2 + fmat(:,:,2).^2).^0.5;
+        % Boundary cutting - I'll take care of this boundary effect later
+        fnorm(end-round(band/2):end,:)=[];
+        fnorm(:,end-round(band/2):end)=[];
+        fnorm(1:1+round(band/2),:)=[];
+        fnorm(:,1:1+round(band/2))=[];
+        fnorm_vec = reshape(fnorm,[],1); 
+
+        tmax = max(tmax,max(fnorm_vec));
+        tmin = min(tmin,min(fnorm_vec));
+    end
+    tmax = 0.8*tmax;
+    display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
+    toc
+end
+if isempty(tmin)
+    tmin = 100000000;
+    display('Estimating minimum force magnitude ...')
+    tic
+    for ii = 1:nFrames
+       %Load the saved body force map.
+        [~,fmat, ~, ~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1); %1:cluster size
+        fnorm = (fmat(:,:,1).^2 + fmat(:,:,2).^2).^0.5;
+        % Boundary cutting - I'll take care of this boundary effect later
+        fnorm(end-round(band/2):end,:)=[];
+        fnorm(:,end-round(band/2):end)=[];
+        fnorm(1:1+round(band/2),:)=[];
+        fnorm(:,1:1+round(band/2))=[];
+        fnorm_vec = reshape(fnorm,[],1); 
+
+        tmin = min(tmin,min(fnorm_vec));
+    end
+    toc
+end    
+%     tmax = 2590;
+%     tmin = tmin-0.1;
+%     tmax=tmax/5;
+%     LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
+%     RightLowerCorner(1:2) = [max(displField(1).pos(:,1)), max(displField(1).pos(:,2))];
+
+[reg_grid,~,~,spacing]=createRegGridFromDisplField(displField,4); %2=2 times fine interpolation
+
+hl = []; %handle for scale bar
+iiformat = ['%.' '3' 'd'];
+TSlevel = zeros(nFrames,1);
+ii=1;
+%     paxLevel = zeros(nFrames,1);
+
 % Load Cell Segmentation
 iMask = movieData.getProcessIndex('MaskRefinementProcess');
 if ~isempty(iMask)
     maskProc = movieData.getProcess(iMask);
-    bwPI4 = maskProc.loadChannelOutput(iChan,ii);
+    bwPI4 = maskProc.loadChannelOutput(iChan,1);
     if ~isempty(iSDCProc)
         maxX = ceil(max(abs(T(:, 2))));
         maxY = ceil(max(abs(T(:, 1))));
@@ -563,7 +593,9 @@ for ii=1:nFrames
 %     
 end
 close(h1)
-close(h2)
+if nChannels>2
+    close(h2)
+end
 return;
 % to run the function:
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);

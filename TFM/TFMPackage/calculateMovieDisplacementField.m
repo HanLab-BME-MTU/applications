@@ -136,118 +136,8 @@ x_shift = find(any(firstMask,1),1);
 tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
 firstMask = tempMask2 & firstMask;
 
-% if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
-if ~p.useGrid
-    % Detect beads in reference frame
-    disp('Determining PSF sigma from reference frame...')
-    % Adaptation of psfSigma from bead channel image data
-    psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
-    if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
-        if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-            psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-        elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-            psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-        elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-            psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-        else
-            error('image type should be chosen among Widefield, confocal and TIRF!');
-        end
-    end
-    disp(['Determined sigma: ' num2str(psfSigma)])
-
-    disp('Detecting beads in the reference frame...')
-    pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
-    assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
-    % filtering out points in saturated image based on pstruct.c
-    [N,edges]= histcounts(pstruct.c);
-    % starting with median, find a edge disconnected with two consequtive
-    % zeros.
-    medC = median(pstruct.c);
-    idxAfterMedC=find(edges>medC);
-    qq=idxAfterMedC(1);
-    while N(qq)>0 || N(qq+1)>0
-        qq=qq+1;
-        if qq>=length(edges)-1
-            break
-        end
-    end
-    idx = pstruct.c<edges(qq);
-    beads = [round(pstruct.x(idx)') round(pstruct.y(idx)')];
-%     beads = [ceil(pstruct.x') ceil(pstruct.y')];
-
-    % Subsample detected beads ensuring beads are separated by at least half of
-    % the correlation length - commented out to get more beads
-    if ~p.highRes
-        disp('Subsampling detected beads (normal resolution)...')
-        max_beads_distance = floor(p.minCorLength/2);
-    else
-        % To get high-resolution information, subsample detected beads ensuring 
-        % beads are separated by 0.1 um the correlation length 
-        disp('Subsampling detected beads (high resolution)...')
-        max_beads_distance = (100/movieData.pixelSize_);
-    end
-
-    idx = KDTreeBallQuery(beads, beads, max_beads_distance);
-    valid = true(numel(idx),1);
-    for i = 1 : numel(idx)
-        if ~valid(i), continue; end
-        neighbors = idx{i}(idx{i} ~= i);
-        valid(neighbors) = false;
-    end
-    beads = beads(valid, :);
-    % It doesn't critically require local maximal pixel to start
-    % x-correlation-based tracking. Thus, to increase spatial resolution,
-    % we add additional points in the mid points of pstruct
-    % We first randomly distribute point, and if it is not too close to
-    % existing points and the intensity of the point is above a half of the
-    % existing points, include the point into the point set
-    if addNonLocMaxBeads
-        disp('Finding additional non-local-maximal points with high intensity ...')
-        distance=zeros(length(beads),1);
-        for i=1:length(beads)
-            neiBeads = beads;
-            neiBeads(i,:)=[];
-            [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
-        end
-        avg_beads_distance = quantile(distance,0.4);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
-        notSaturated = true;
-        xmin = min(pstruct.x);
-        xmax = max(pstruct.x);
-        ymin = min(pstruct.y);
-        ymax = max(pstruct.y);
-    %     avgAmp = mean(pstruct.A);
-    %     avgBgd = mean(pstruct.c);
-    %     thresInten = avgBgd+0.02*avgAmp;
-        thresInten = quantile(pstruct.c,0.1);
-        maxNumNotDetected = 100; % the number of maximum trial without detecting possible point
-        numNotDetected = 0;
-        numPrevBeads = size(beads,1);
-        while notSaturated
-            x_new = xmin + (xmax-xmin)*rand();
-            y_new = ymin + (ymax-ymin)*rand();
-            [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
-            inten_new = refFrame(round(y_new),round(x_new));
-            if distToPoints>avg_beads_distance && inten_new>thresInten
-                beads = [beads; x_new, y_new];
-                numNotDetected = 0;
-            else
-                numNotDetected=numNotDetected+1;
-            end
-            if numNotDetected>maxNumNotDetected
-                notSaturated = false; % this means now we have all points to start tracking from the image
-            end
-        end
-        disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking.'])
-    end
-%     % Select only beads which are min correlation length away from the border of the
-%     % reference frame 
-%     beadsMask = true(size(refFrame));
-%     erosionDist=p.minCorLength;
-%     % erosionDist=p.minCorLength+1;
-%     beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-%     indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
-%     beads(indx,:)=[];
-end
+    % if ~p.useGrid
+% end
 
 % if p.useGrid && p.highRes
 %     tempDisplField.pos = beads;
@@ -271,27 +161,139 @@ for j= firstFrame:nFrames
         currImage = double(movieData.channels_(p.ChannelIndex(1)).loadImage(j));
     end
     if ~p.useGrid
-        % Exclude all beads which are less  than half the correlation length 
-        % away from the padded border. By default, no centered template should 
-        % include any NaN's for correlation
-        % Create beads mask with zero intensity points as false
-        beadsMask = true(size(refFrame));
-        beadsMask(currImage==0)=false;
-        % Remove false regions non-adjacent to the image border
-        beadsMask = beadsMask | imclearborder(~beadsMask);
-%         % Erode the mask with half the correlation length and filter beads
-%         erosionDist=round((p.minCorLength+1)/2);
-        % Erode the mask with the correlation length + half maxFlowSpeed
-        % and filter beads to minimize error
-        if p.noFlowOutwardOnBorder
-            erosionDist=(p.minCorLength+1);
-        else
-            erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
-        end            
-        beadsMask=bwmorph(beadsMask,'erode',erosionDist);
-%         beadsMask=imerode(beadsMask,strel('square',erosionDist));
-        indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
-        localbeads = beads(indx,:);
+    % if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
+        % Detect beads in reference frame
+        if j==firstFrame
+            disp('Determining PSF sigma from reference frame...')
+            % Adaptation of psfSigma from bead channel image data
+            psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
+            if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
+                if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+                    psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+                elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+                    psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+                elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+                    psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+                else
+                    error('image type should be chosen among Widefield, confocal and TIRF!');
+                end
+            end
+            disp(['Determined sigma: ' num2str(psfSigma)])
+
+            disp('Detecting beads in the reference frame...')
+            pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
+            assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
+            % filtering out points in saturated image based on pstruct.c
+            [N,edges]= histcounts(pstruct.c);
+            % starting with median, find a edge disconnected with two consequtive
+            % zeros.
+            medC = median(pstruct.c);
+            idxAfterMedC=find(edges>medC);
+            qq=idxAfterMedC(1);
+            while N(qq)>0 || N(qq+1)>0
+                qq=qq+1;
+                if qq>=length(edges)-1
+                    break
+                end
+            end
+            idx = pstruct.c<edges(qq);
+            beads = [round(pstruct.x(idx)') round(pstruct.y(idx)')];
+            %     beads = [ceil(pstruct.x') ceil(pstruct.y')];
+
+            % Subsample detected beads ensuring beads are separated by at least half of
+            % the correlation length - commented out to get more beads
+            if ~p.highRes
+                disp('Subsampling detected beads (normal resolution)...')
+                max_beads_distance = floor(p.minCorLength/2);
+            else
+                % To get high-resolution information, subsample detected beads ensuring 
+                % beads are separated by 0.1 um the correlation length 
+                disp('Subsampling detected beads (high resolution)...')
+                max_beads_distance = (100/movieData.pixelSize_);
+            end
+
+            idx = KDTreeBallQuery(beads, beads, max_beads_distance);
+            valid = true(numel(idx),1);
+            for i = 1 : numel(idx)
+                if ~valid(i), continue; end
+                neighbors = idx{i}(idx{i} ~= i);
+                valid(neighbors) = false;
+            end
+            beads = beads(valid, :);
+            % It doesn't critically require local maximal pixel to start
+            % x-correlation-based tracking. Thus, to increase spatial resolution,
+            % we add additional points in the mid points of pstruct
+            % We first randomly distribute point, and if it is not too close to
+            % existing points and the intensity of the point is above a half of the
+            % existing points, include the point into the point set
+            if addNonLocMaxBeads
+                disp('Finding additional non-local-maximal points with high intensity ...')
+                distance=zeros(length(beads),1);
+                for i=1:length(beads)
+                    neiBeads = beads;
+                    neiBeads(i,:)=[];
+                    [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
+                end
+                avg_beads_distance = quantile(distance,0.4);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+                notSaturated = true;
+                xmin = min(pstruct.x);
+                xmax = max(pstruct.x);
+                ymin = min(pstruct.y);
+                ymax = max(pstruct.y);
+            %     avgAmp = mean(pstruct.A);
+            %     avgBgd = mean(pstruct.c);
+            %     thresInten = avgBgd+0.02*avgAmp;
+                thresInten = quantile(pstruct.c,0.1);
+                maxNumNotDetected = 100; % the number of maximum trial without detecting possible point
+                numNotDetected = 0;
+                numPrevBeads = size(beads,1);
+                while notSaturated
+                    x_new = xmin + (xmax-xmin)*rand();
+                    y_new = ymin + (ymax-ymin)*rand();
+                    [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
+                    inten_new = refFrame(round(y_new),round(x_new));
+                    if distToPoints>avg_beads_distance && inten_new>thresInten
+                        beads = [beads; x_new, y_new];
+                        numNotDetected = 0;
+                    else
+                        numNotDetected=numNotDetected+1;
+                    end
+                    if numNotDetected>maxNumNotDetected
+                        notSaturated = false; % this means now we have all points to start tracking from the image
+                    end
+                end
+                disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking. Total detected beads: ' num2str(length(beads))])
+            end
+            % Exclude all beads which are less  than half the correlation length 
+            % away from the padded border. By default, no centered template should 
+            % include any NaN's for correlation
+            % Create beads mask with zero intensity points as false
+            beadsMask = true(size(refFrame));
+            % beadsMask(currImage==0)=false;
+            % Remove false regions non-adjacent to the image border
+            beadsMask = beadsMask | imclearborder(~beadsMask);
+            %         % Erode the mask with half the correlation length and filter beads
+            %         erosionDist=round((p.minCorLength+1)/2);
+            % Erode the mask with the correlation length + half maxFlowSpeed
+            % and filter beads to minimize error
+            if p.noFlowOutwardOnBorder
+                erosionDist=(p.minCorLength+1);
+            else
+                erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
+            end            
+            beadsMask=bwmorph(beadsMask,'erode',erosionDist);
+            %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
+            indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
+            localbeads = beads(indx,:);
+        end
+        %     % Select only beads which are min correlation length away from the border of the
+        %     % reference frame 
+        %     beadsMask = true(size(refFrame));
+        %     erosionDist=p.minCorLength;
+        %     % erosionDist=p.minCorLength+1;
+        %     beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+        %     indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
+        %     beads(indx,:)=[];
 
         % Track beads displacement in the xy coordinate system
         v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
@@ -310,19 +312,38 @@ for j= firstFrame:nFrames
         [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
 %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
-        pivPar.iaSizeX = [64 32 16 8];     % size of interrogation area in X 
-        pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
-        pivPar.iaSizeY = [64 32 16 8];     % size of interrogation area in X 
-        pivPar.iaStepY = [32 16  8 4];     % grid spacing of velocity vectors in X
-%         pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
-%         pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
-%         pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
+        nextPow2=nextpow2(p.minCorLength);
+        BiggestSize=2^(nextPow2+1);
+        SecondSize=2^(nextPow2);
+        ThirdSize=2^(nextPow2-1);
+        FourthSize=2^(nextPow2-2);
+        pivPar.iaSizeX = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+        pivPar.iaStepX = [SecondSize SecondSize ThirdSize FourthSize];     % grid spacing of velocity vectors in X
+        pivPar.iaSizeY = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+        pivPar.iaStepY = [SecondSize SecondSize ThirdSize FourthSize];    % grid spacing of velocity vectors in X
+%         pivPar.iaSizeX = [64 32 16 8];     % size of interrogation area in X 
+%         pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
+%         pivPar.iaSizeY = [64 32 16 8];     % size of interrogation area in X 
+%         pivPar.iaStepY = [32 16  8 4];     % grid spacing of velocity vectors in X
+% %         pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
+% %         pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
+% %         pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
         pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
         pivPar.smMethod = 'none';
+        pivPar.iaMethod = 'defspline';
+        pivPar.iaImageInterpolationMethod = 'spline';
+        pivPar.imMask1=firstMask;
+        pivPar.imMask2=firstMask;
+%         pivData.X=localbeads(:,1);
+%         pivData.Y=localbeads(:,2);
+%         pivData.U=zeros(size(pivData.X));
+%         pivData.V=zeros(size(pivData.Y));
 
         [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
-        displField(j).pos=[pivData.X(:), pivData.Y(:)];
-        displField(j).vec=[pivData.U(:)+residualT(j,2), pivData.V(:)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        validV = ~isnan(pivData.V);
+        
+        displField(j).pos=[pivData.X(validV), pivData.Y(validV)];
+        displField(j).vec=[pivData.U(validV)+residualT(j,2), pivData.V(validV)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
 
 %         % testing additional pass of piv processing
 %         pivPar.iaSizeX=[ 8];
@@ -380,8 +401,8 @@ for ii=1:nFrames
     displFieldShifted(ii).vec = disp_vec;
 end
 disp('Saving ...')
-save(outputFile{1},'displField','displFieldShifted');
-save(outputFile{2},'dMap','dMapX','dMapY'); % need to be updated for faster loading. SH 20141106
+save(outputFile{1},'displField','displFieldShifted','-v7.3');
+save(outputFile{2},'dMap','dMapX','dMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 displFieldProc.setTractionMapLimits([dmin dmax])
 
 % Close waitbar

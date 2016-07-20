@@ -11,14 +11,20 @@ nFrames = MD.nFrames_;
 % Get TFM package
 TFMPackage = MD.getPackage(MD.getPackageIndex('TFMPackage'));
 % Load Cell Segmentation
-iMask = MD.getProcessIndex('MaskRefinementProcess');
-if isempty(iMask)
-    iMask = MD.getProcessIndex('ThresholdProcess');
-end
-if ~isempty(iMask)
-    maskProc = MD.getProcess(iMask);
+iSegPack=MD.getPackageIndex('SegmentationPackage');
+if ~isempty(iSegPack)
+    SegPackage = MD.getPackage(iSegPack);
+    maskProc = SegPackage.getProcess(2);
 else
-    error('You have to run ThresholdProcess or MaskRefinementProcess before running this code!')
+    iMask = MD.getProcessIndex('MaskRefinementProcess');
+    if isempty(iMask)
+        iMask = MD.getProcessIndex('ThresholdProcess');
+    end
+    if ~isempty(iMask)
+        maskProc = MD.getProcess(iMask);
+    else
+        error('You have to run ThresholdProcess or MaskRefinementProcess before running this code!')
+    end
 end
 % Load the forcefield
 iForceFieldProc = 4;
@@ -196,9 +202,9 @@ for ii=1:nFrames
 end
 save(forceFieldProc.outFilePaths_{1},'forceField','forceFieldShifted');
 try
-    save(forceFieldProc.outFilePaths_{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+    save(forceFieldProc.outFilePaths_{2},'tMap','tMapX','tMapY','fCfdMap','-v7.3'); % need to be updated for faster loading. SH 20141106
 catch
-    save(forceFieldProc.outFilePaths_{2},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
+    save(forceFieldProc.outFilePaths_{2},'tMap','tMapX','tMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 end
 forceFieldProc.setTractionMapLimits([tmin tmax])
 

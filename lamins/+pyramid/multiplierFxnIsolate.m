@@ -9,7 +9,7 @@ function [ M_isolated ] = multiplierFxnIsolate( omega, N )
     
     M = pyramid.multiplierFxn(omega, N);
     h = pyramid.meyerH;
-    M_isolated = @(p,n) M(p,n).*h(p.*2^(omega*n/N));
+    M_isolated = @(p,n) M(p,n).*h(bsxfun(@times,p,2.^(omega*shiftdim(n(:),-ndims(p))/N)));
 
 end
 

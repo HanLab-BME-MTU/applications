@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 04-Aug-2015 15:45:40
+% Last Modified by GUIDE v2.5 18-Jul-2016 17:16:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -316,3 +316,12 @@ function checkbox_lastToFirst_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_lastToFirst
+
+
+% --- Executes on button press in setROIfromForcemap.
+function setROIfromForcemap_Callback(hObject, eventdata, handles)
+% hObject    handle to setROIfromForcemap (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+MD=handles.figure1.UserData.MD;
+setROIfromForcemap(MD);

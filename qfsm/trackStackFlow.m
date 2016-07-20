@@ -404,7 +404,7 @@ parfor k = 1:nPoints
             if corL == maxCorL
                 corL = Inf;
             else
-                corL = min(maxCorL,floor(corL*3/2));
+                corL = min(maxCorL,odd(corL*3/2));%floor(corL*3/2));
             end
         end
     end

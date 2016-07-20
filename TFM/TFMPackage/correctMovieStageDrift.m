@@ -48,7 +48,11 @@ if exist(p.OutputDirectory,'dir')
         backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
         ii=ii+1;
     end
-    mkdir(backupFolder);
+    try
+        mkdir(backupFolder);
+    catch
+        system(['mkdir -p ' backupFolder]);
+    end
     copyfile(p.OutputDirectory, backupFolder,'f')
 end
 mkClrDir(p.OutputDirectory);
@@ -247,8 +251,38 @@ if p.doSubPixReg
     for j= 1:nFrames
         % Stack reference frame and current frame and track beads displacement
         corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
+
         delta = trackStackFlow(corrStack,beads,...
             p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,'mode','accurate');
+% %         pivPar = [];      % variable for settings
+% %         pivData = [];     % variable for storing results
+% % 
+% %         [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
+% %         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
+% % %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
+% %         nextPow2=nextpow2(p.minCorLength);
+% %         BiggestSize=2^(nextPow2+1);
+% %         SecondSize=2^(nextPow2);
+% %         ThirdSize=2^(nextPow2-1);
+% %         FourthSize=2^(nextPow2-2);
+% %         pivPar.iaSizeX = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+% %         pivPar.iaStepX = [BiggestSize SecondSize ThirdSize FourthSize];     % grid spacing of velocity vectors in X
+% %         pivPar.iaSizeY = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+% %         pivPar.iaStepY = [BiggestSize SecondSize ThirdSize FourthSize];    % grid spacing of velocity vectors in X
+% % %         pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
+% % %         pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
+% % %         pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
+% %         pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
+% %         pivPar.smMethod = 'none';
+% % %         pivData.X=beads(:,1);
+% % %         pivData.Y=beads(:,2);
+% % %         pivData.U=zeros(size(pivData.X));
+% % %         pivData.V=zeros(size(pivData.Y));
+% % 
+% %         [pivData] = pivAnalyzeImagePair(corrStack(:,:,1),corrStack(:,:,2),pivData,pivPar);
+% % %         validV = ~isnan(pivData.V);
+% %         beads = [pivData.X(:) pivData.Y(:)];
+% %         delta=[pivData.U(:) pivData.V(:)];
         
         %The transformation has the same form as the registration method from
         %Sylvain. Here we take simply the median of the determined flow
@@ -273,6 +307,12 @@ if p.doSubPixReg
         % Remove infinite flow and save raw displacement under [pos1 pos2] format
         % into image coordinate system
         flow{j} = [beads(finiteFlow,2:-1:1) beads(finiteFlow,2:-1:1)+delta(finiteFlow,2:-1:1)];
+        % compare with imregister ( this is for debugging purpose).
+%         [optimizer,metric]=imregconfig('multimodal');
+%         [newImg,regT_ref]=imregister(corrStack(:,:,2),corrStack(:,:,1),'translation',optimizer,metric);
+%         figure, imshowpair(corrStack(:,:,1),newImg,'falsecolor');
+%         figure, imshowpair(corrStack(:,:,1),corrStack(:,:,2),'falsecolor'); hold on
+%         quiver(beads(:,1),beads(:,2),delta(:,1),delta(:,2),0)
         
         % Update the waitbar
         if mod(j,5)==1 && ishandle(wtBar)
