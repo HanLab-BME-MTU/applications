@@ -1,3 +1,10 @@
+Start from the leftmost tab and work your way to the right:
+1. Load Files
+    Click 'Load MovieList' to open a prompt for selecting a Movie List (in a .mat file).
+    At the top of the window, load a Movie List containing Movie Datas (also in .mat files) with tracks to be partitioned. 
+    
+    
+
 Parameters:
 Minimum Track Length:
 lorem ipsum

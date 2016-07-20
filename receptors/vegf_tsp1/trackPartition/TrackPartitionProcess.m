@@ -2,8 +2,10 @@ classdef TrackPartitionProcess < DataProcessingProcess & NonSingularProcess
     %TRACKPARTITIONPROCESS Process for trackPartition
     properties
         trackChannel_ % Channel in owner MD with tracks to partition
-        maskMD_ % MD with particles used to mask image
         maskChannel_ % Channel of maskMD with particles to use for mask
+        % MD with particles used to mask image
+        maskMovieDataPath_
+        maskMovieDataFileName_
     end
     
     methods (Access = public)
@@ -17,21 +19,24 @@ classdef TrackPartitionProcess < DataProcessingProcess & NonSingularProcess
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
             % Movie containing structure/particle for masking image
             ip.addRequired('maskMD',@(x) isa(x,'MovieData'));
-            ip.addRequired('trackChannel',@(x) (sum(channels == x) == 1));
-            ip.addRequired('maskChannel',@(x) (sum(channels == x) == 1));
+            ip.addRequired('trackChannel',@(x) isa(x,'numeric'));
+            ip.addRequired('maskChannel',@(x) isa(x,'numeric'));
             ip.addOptional('funParams',[],@isstruct);
             ip.parse(owner,varargin{:});
             funParams = ip.Results.funParams;
             
             obj = obj@DataProcessingProcess(owner,'TrackPartitionProcess',@trackPartitionWrapper);
-            obj.maskMD_ = ip.Results.maskMD;
             obj.trackChannel_ = ip.Results.trackChannel;
             obj.maskChannel_ = ip.Results.maskChannel;
+            
+            maskMD = ip.Results.maskMD;
+            obj.maskMovieDataPath_ = maskMD.movieDataPath_;
+            obj.maskMovieDataFileName_ = maskMD.movieDataFileName_;
             
             outFileDir = [obj.owner_.outputDirectory_,...
                 filesep,'TrackPartition'];
             obj.outFilePaths_{obj.trackChannel_} = [outFileDir,filesep,...
-                filesep,'Channel-',num2str(obj.trackChannel_),...
+                'Channel-',num2str(obj.trackChannel_),...
                 '-partition-result.mat'];
             if ~exist(outFileDir,'dir')
                 mkdir(outFileDir)

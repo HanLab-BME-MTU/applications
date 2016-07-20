@@ -57,7 +57,8 @@ function plotTracksPart(tracks,diffAnalysisRes,timeRange,...
 %       plotSubset        : select a subset of partitioned tracks to plot:
 %                           'all', 'inside', or 'outside'. 
 %                           Optional. Default: 'all'
-%       showBoxes         : show boxes around each inside track for convenience
+%       showBoxes         : 1 to show boxes around each inside track for 
+%                           convenience.
 %                           Optional. Default: 0
 %OUTPUT The plot.
 %       Color coding:
@@ -182,12 +183,16 @@ if strcmp(plotSubset,'inside')
     subset = arrayfun(@(x) x.isInside,tracks);
     tracks = tracks(subset);
     numTracks = sum(subset);
+    % Quit if there are not inside tracks
+    assert(numTracks > 0,'No inside tracks')
     diffAnalysisRes = diffAnalysisRes(subset);
 elseif strcmp(plotSubset,'outside')
     subset = arrayfun(@(x) ~x.isInside,tracks);
     tracks = tracks(subset);
     numTracks = sum(subset);
     diffAnalysisRes = diffAnalysisRes(subset);
+else
+    numTracks = numel(tracks);
 end
 
 %get number of segments making each track

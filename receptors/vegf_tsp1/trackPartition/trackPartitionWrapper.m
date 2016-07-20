@@ -7,10 +7,15 @@ function trackPartitionWrapper(obj,varargin)
 
 % Get input from Process
 MD = obj.owner_;
-maskMD = obj.maskMD_;
+maskMDPath = obj.maskMovieDataPath_;
+maskMDFileName = obj.maskMovieDataFileName_;
 params = obj.funParams_;
 trackChannel = obj.trackChannel_;
 maskChannel = obj.maskChannel_;
+
+% Load mask MD
+maskMD = load([maskMDPath,filesep,maskMDFileName]);
+maskMD = maskMD.MD;
 
 % Get MovieInfo and tracks
 movieInfoFiles = maskMD.processes_{maskMD.getProcessIndex('SubResolutionProcess')}.outFilePaths_;
