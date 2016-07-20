@@ -156,8 +156,8 @@ for class=1:numClass
                     [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
                     
                     %interpolate the solution to the integer positions:
-                    ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix, 'direct');  %This is ux(:,j)
-                    uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix, 'direct');  %This is uy(:,j)
+                    ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix); %, 'direct'); There is no such thing as direct, but only 'linear'  %This is ux(:,j)
+                    uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix); %, 'direct');  %This is uy(:,j)
                 else
                     display('Have switched over to *cubic. But is this really necessary? It might well be that even if undersampled the upper search will produce the same result as an interpolation')
                     method='*cubic';
@@ -169,8 +169,8 @@ for class=1:numClass
                     [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
                     
                     %interpolate the solution to the integer positions:
-                    ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix, '*cubic');  %This is ux(:,j)
-                    uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix, '*cubic');  %This is uy(:,j)
+                    ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix, 'cubic');  %This is ux(:,j)
+                    uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix, 'cubic');  %This is uy(:,j)
                 end
             end
         end
