@@ -19,7 +19,7 @@
 %
 % The function will ask for acquisition parameters and subsequently for the data location. The following acquisition
 % parameters are required for the Gaussian point spread function (PSF) model used for CCP detection:
-% numerical aperture (NA) and magnification of the objective used, and the physical pixel size of the camera (in µm).
+% numerical aperture (NA) and magnification of the objective used, and the physical pixel size of the camera (in ï¿½m).
 %
 %
 % Notes:
@@ -70,6 +70,7 @@ ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
 ip.addParamValue('Parameters', [], @(x) numel(x)==3);
 ip.addParamValue('ControlData', [], @isstruct);
 ip.addParamValue('PlotAll', false, @islogical);
+ip.addParamValue('AlphaSlave', 0.05, @isnumeric);
 ip.addParamValue('ChannelNames', []);
 ip.addParamValue('FirstNFrames', [], @isposint);
 ip.addParamValue('MaxIntensityThreshold', [], @isscalar);
@@ -110,7 +111,7 @@ runDetection(data, 'SigmaSource', ip.Results.GaussianPSF,...
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, 'Overwrite', overwrite(3));
 
-runTrackProcessing(data, 'Overwrite', overwrite(4));
+runTrackProcessing(data, 'Overwrite', overwrite(4),'AlphaSlave',ip.Results.AlphaSlave);
 
 %-------------------------------------------------------------------------------
 % 3) Analysis
