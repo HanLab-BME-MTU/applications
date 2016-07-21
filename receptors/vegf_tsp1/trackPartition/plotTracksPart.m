@@ -181,11 +181,15 @@ end
 % select a subset of inside/outside tracks if necessary
 if strcmp(plotSubset,'inside')
     subset = arrayfun(@(x) x.isInside,tracks);
-    tracks = tracks(subset);
-    numTracks = sum(subset);
-    % Quit if there are not inside tracks
-    assert(numTracks > 0,'No inside tracks')
-    diffAnalysisRes = diffAnalysisRes(subset);
+    numTracks = sum(subset); 
+    % If there are no inside tracks, display a message
+    if numTracks == 0
+        msgbox('No inside tracks','','warn')
+        numTracks = size(tracks,1);
+    else
+        tracks = tracks(subset);
+        diffAnalysisRes = diffAnalysisRes(subset);
+    end
 elseif strcmp(plotSubset,'outside')
     subset = arrayfun(@(x) ~x.isInside,tracks);
     tracks = tracks(subset);

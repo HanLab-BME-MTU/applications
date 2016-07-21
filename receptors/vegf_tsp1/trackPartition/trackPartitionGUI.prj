@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="3222723322" file="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition/trackPartitionGUI.prj" location="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition" name="trackPartitionGUI" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="2252635920" file="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition/trackPartitionGUI.prj" location="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition" name="trackPartitionGUI" target="target.mlapps" target-name="Package App">
     <param.appname>trackPartitionGUI</param.appname>
     <param.authnamewatermark>Kevin Nguyen</param.authnamewatermark>
     <param.email>kevin3.nguyen@utsouthwestern.edu</param.email>
@@ -8,7 +8,7 @@
     <param.icons />
     <param.summary>Test build</param.summary>
     <param.description />
-    <param.screenshot />
+    <param.screenshot>/home2/s169685/Desktop/Screenshot.png</param.screenshot>
     <param.version>1.0</param.version>
     <param.products.name>
       <item>MATLAB</item>
@@ -29,7 +29,6 @@
       <param.icon />
       <param.icons />
       <param.description />
-      <param.screenshot />
       <param.version />
       <param.platforms />
       <param.output />
