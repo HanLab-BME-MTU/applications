@@ -117,6 +117,7 @@ for k = 1:length(laneCenterLoc)
     %findpeaks(laneCenter)
     
     % Needs smarter threshold to eliminate the noise without hurting peaks
+    % Determine the sensitivity of bands detection
     thres2 = 0.05*(max(bandProfile)-min(bandProfile));
     bandLoc = find(~watershed(imhmin(bandProfile,thres2)));
     
@@ -378,7 +379,14 @@ savefig(g,fileName)
 
 function bandMapPlot(image, bandMap)
 close all
-figure,imshow(imcomplement(image),[]),hold on
+figure,
+set(gcf,'position',get(0,'screensize'))
+subplot(1,2,1)
+imshow(imcomplement(image),[])
+title('Input image')
+subplot(1,2,2)
+imshow(imcomplement(image),[]),
+title('Detected bands'), hold on
 % p goes row by row and q goes column by column
 for p = 1:size(image,1)
     for q = 1:size(image,2)
