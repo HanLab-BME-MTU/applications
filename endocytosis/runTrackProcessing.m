@@ -823,7 +823,7 @@ end % postprocessing
 % Classify slave channel signals
 %===============================================================================
 if nCh>1
-    tracks = runSlaveChannelClassification(data, tracks,'Alpha',ip.Results.AlphaSlave);
+    tracks = runSlaveChannelClassification(data, tracks,'Alpha',opts.AlphaSlave);
     
     idx = [tracks.catIdx]==1 & [tracks.lifetime_s]>=data.framerate*opts.Cutoff_f;
     nPosM = sum([tracks(idx).significantMaster],2);
