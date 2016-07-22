@@ -9,13 +9,14 @@ tfmPackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
 forceProc = tfmPackage.getProcess(4);
 
 % Get force map
-tMap = load(forceProc.outFilePaths_{2});
 try
+    tMap = load(forceProc.outFilePaths_{2});
     tMap = tMap.tMap;
 catch
     % If there is nothing, run the package with FTTC setting
     funParams = forceProc.funParams_;
     funParams.method='FTTC';
+    funParams.useLcurve=false;
     forceProc.setPara(funParams);
     forceProc.run
     tMap = load(forceProc.outFilePaths_{2});
@@ -30,7 +31,10 @@ disp(['Draw rectangle for ROI for ' MD.movieDataPath_ '.'])
 if isempty(MD.roiMask)
     h=imrect;
 else
-    h=imrect(gca,MD.roiMask);
+    roiMask=MD.roiMask;
+    boundROI=bwboundaries(roiMask);
+    hold on, plot(boundROI{1}(:,2),boundROI{1}(:,1),'w')
+    h=imrect;
 end
 ROI_rect = wait(h);
 roiMask=createMask(h);

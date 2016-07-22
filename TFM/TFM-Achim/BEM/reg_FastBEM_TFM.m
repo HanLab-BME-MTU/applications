@@ -65,9 +65,9 @@ end
 
 display('1.) Creating mesh & basis [~5sec]:...');
 tic;
-keepBDPts=true; %this might lead to unmatching forward map that lead to
+% keepBDPts=true; %this might lead to unmatching forward map that lead to
 % diagonalized traction map
-% keepBDPts=false;
+keepBDPts=false; % change made SH 2016.07.19
 doPlot=0;
 % strictBEM = false;
 % if strcmp(solMethodBEM,'1NormReg') || strcmp(solMethodBEM,'1NormRegLaplacian')

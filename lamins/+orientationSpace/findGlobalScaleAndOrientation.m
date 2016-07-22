@@ -1,17 +1,27 @@
-function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrientation( I, angularOrder, scales, mask, tileSize, npts)
+function [ scale, orientation, scaleV, orientationV, orientationAtMaxScale ] = findGlobalScaleAndOrientation( I, varargin)
 %FINDGLOBALSCALEANDORIENTATION Finds the scales and orientation using OrientationSpace
 %filtering. Scans scale using Chebyshev polynomials
 %
 % INPUT
 % I - image as a double matrix
-% angularOrder - see OrientationSpaceFilter
-% scales - list of scales as a vector or length at least 2. Adjacent pairs
+%
+% PARAMETERS (inputParser)
+% AngularOrder - order to determine orientation resolution 
+%                default: 5
+%                See also OrientationSpaceFilter
+% Scales - list of scales as a vector or length at least 2. Adjacent pairs
 %          of scales will be used as intervals over which to analyze scale
-% mask - initial mask identifying the area of interest
-% tileSize - (optional) number of pixels to process at a time
+%          default: 1:4
+% Mask - initial mask identifying the area of interest
+% TileSize - number of pixels to process at a time
 %            default: 65536; if memory is not an issue, use numel(I)
-% npts - (optional) number of Chebyshev-Lobatto grid points to query within
+% NumPoints - number of Chebyshev-Lobatto grid points to query within
 %                   an interval
+%             default: 5
+% GlobalMaxScale - true to search for the global scale maximum
+%                  false to accept the first maximum found in the interval
+%                  default: true
+%                      
 %
 % OUTPUT
 % scale - Best scale within the range of scales given
@@ -25,21 +35,35 @@ function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrient
 
 % TODO: Review minandmax2 of chebfun2 (separableApprox.minandmax2)
 
-    if(nargin < 4 || isempty(mask))
-        mask = true(size(I));
-    elseif(isscalar(mask))
-        initScale = scales(mask);
-        F = OrientationSpaceFilter(1/2/pi/initScale,[],angularOrder);
-        R = F*I;
-        mask = lamins.functions.maskFromSteerable(R);
-        clear initScale F R
-    end
-    if(nargin < 5 || isempty(tileSize))
-        tileSize = 65536;
-    end
-    if(nargin < 6 || isempty(npts))
-        npts = 5;
-    end
+    ip = inputParser;
+    ip.addRequired('image',@(x) validateattributes(x,{'numeric'},{'2d'},'image'));
+    ip.addParameter('AngularOrder',5, ...
+        @(x) validateattributes(x,{'numeric'},{'scalar','integer'}, ...
+        'AngularOrder'));
+    ip.addParameter('Scales',1:4, ...
+        @(x) validateattributes(x,{'numeric'},{'positive','vector'}, ...
+        'Scales'));
+    ip.addParameter('Mask',true(size(I)), ...
+        @(x) validateattributes(x,{'numeric'},{'binary','2d'}, ...
+        'Mask'));
+    ip.addParameter('TileSize',65536, ...
+        @(x) validateattributes(x,{'numeric'},{'scalar','integer'}, ...
+        'TileSize'));
+    ip.addParameter('NumPoints',5, ...
+        @(x) validateattributes(x,{'numeric'},{'scalar','integer'}, ...
+        'TileSize'));
+    ip.addParameter('GlobalMaxScale',true, ...
+        @(x) validateattributes(x,{'numeric','logical'},{'scalar','binary'}, ...
+        'GlobalMaxScale'));
+    ip.parse(I, varargin{:});
+    angularOrder = ip.Results.AngularOrder;
+    scales = ip.Results.Scales;
+    mask = ip.Results.Mask;
+    tileSize = ip.Results.TileSize;
+    npts = ip.Results.NumPoints;
+    globalMaxScale = ip.Results.GlobalMaxScale;
+    ip.delete;
+
     nAngles = 2*angularOrder+1;
     
     % Initialize outputs
@@ -47,26 +71,42 @@ function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrient
     orientation = zeros(size(I));
     scaleV = zeros(size(I));
     orientationV = zeros(size(I));
+    orientationAtMaxScale = zeros([nAngles size(I)]);
     
     for s = 1:length(scales)-1
         % Scan scales along the Chebyshev-Lobatto grid between pairs of
         % scale values
         F = OrientationSpaceRidgeFilter(1./(2*pi)./chebpts(npts,scales([0 1]+s)),[],angularOrder);
-        % Number of mask pixels
-        nMaskPx = sum(mask(:));
-        % Initialize orientationScaleSpace
-        orientationScaleSpace = zeros(nAngles,npts,nMaskPx);
-        for f = 1:npts
-            R = F(f)*I;
-            A = permute(R.a,[3 4 1 2]);
-            % Collapse spatial dimensions using mask
-            orientationScaleSpace(:,f,:) = A(:,1,mask);
+        % Calculate once
+        % Or for each scale range if not looking for globalMaxScale
+        if(s == 1 || ~globalMaxScale)
+            % Number of mask pixels
+            nMaskPx = sum(mask(:));
+            % Tile to save memory
+            nTiles = ceil(nMaskPx/tileSize);
+            % Number the mask pixels
+            cmask = reshape(cumsum(mask(:)),size(mask));
         end
+        % Initialize orientationScaleSpace
+%         tic;
+%         orientationScaleSpace = zeros(nAngles,npts,nMaskPx);
+%         for f = 1:npts
+%             R = F(f)*I;
+%             A = permute(R.a,[3 4 1 2]);
+%             % Collapse spatial dimensions using mask
+%             orientationScaleSpace(:,f,:) = A(:,1,mask);
+%         end
+%         toc
+%         orientationScaleSpaceOld = orientationScaleSpace;
+
+        
+%         tic;
+        R = F*I;
+        orientationScaleSpace = permute(R.getArraySpace,[3 4 1 2]);
+        orientationScaleSpace = orientationScaleSpace(:,:,mask);
+%         toc
+%         assertEqual(orientationScaleSpaceOld,orientationScaleSpace);
         clear F R A
-        % Tile to save memory
-        nTiles = ceil(nMaskPx/tileSize);
-        % Number the mask pixels
-        cmask = reshape(cumsum(mask(:)),size(mask));
         for t=1:nTiles
 %             orientationScaleSubSpace = orientationScaleSpace(:,:,(1+(t-1)*tileSize):min(end,t*tileSize));
             tileMask = mask & cmask > (t-1)*tileSize & cmask <= t*tileSize;
@@ -86,8 +126,6 @@ function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrient
             % Leave option to save the local maxima?
             [orientationMaxValue,idx] = max(orientationMaxValue);
             orientationMax = orientationMax(sub2ind(size(orientationMax),idx,1:size(orientationMax,2)));
-            orientation(tileMask) = orientationMax;
-            orientationV(tileMask) = orientationMaxValue;
             
             % Previously, we rescanned the whole matrix to find the best
             % scale
@@ -101,15 +139,35 @@ function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrient
             % between scale pairs
             interval = scales(s+1) - scales(s);
             scaleMax = cos(scaleMax)/2*interval+(1/2*interval)+scales(s);
-            
-            % Save the best scale
-            scale(tileMask) = scaleMax;
-            scaleV(tileMask) = scaleMaxValue;
-            
-            % Mask the values that are at the best scale in the interval
-            mask(tileMask) = scaleMax == scales(s+1);
+                       
+            if(globalMaxScale)
+                isGreater = scaleMaxValue(:) > scaleV(tileMask);
+                tileMask(tileMask) = isGreater;
+                % Save the best orientation
+                orientation(tileMask) = orientationMax(isGreater);
+                orientationV(tileMask) = orientationMaxValue(isGreater);
+                % Save the best scale
+                scale(tileMask) = scaleMax(isGreater);
+                scaleV(tileMask) = scaleMaxValue(isGreater);
+                orientationAtMaxScale(:,tileMask) = interpolateScale(orientationScaleSpace(:,:,isGreater),scaleMax(isGreater));
+            else
+                % Save the best orientation
+                orientation(tileMask) = orientationMax;
+                orientationV(tileMask) = orientationMaxValue;
+                % Save the best scale
+                scale(tileMask) = scaleMax;
+                scaleV(tileMask) = scaleMaxValue;
+                orientationAtMaxScale(:,tileMask) = interpolateScale(orientationScaleSpace,scaleMax);
+                % Mask the values that are at the achieve local max in the interval
+                mask(tileMask) = scaleMax == scales(s+1);
+            end
         end
     end
+    orientationAtMaxScale = permute(orientationAtMaxScale,[2 3 1]);
 end
 
-
+function orientationAtMaxScale = interpolateScale(orientationScaleSpace,scaleMax)
+    parfor px = 1:length(scaleMax)
+        orientationAtMaxScale(:,px) = interpft1([0 2*pi],orientationScaleSpace(:,:,px)',scaleMax(px),'horner');
+    end
+end
