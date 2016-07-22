@@ -36,6 +36,7 @@ ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('DetectionFile', 'detection_v2.mat', @ischar);
 ip.addParamValue('Frames', arrayfun(@(x) 1:x.movieLength, data, 'unif', 0), @(x) numel(unique(diff(x)))==1); %check that frame rate is constant
 ip.addParamValue('Preprocess', true, @islogical);
+ip.addParamValue('AlphaSlave', 0.05, @isnumeric);
 ip.addParamValue('Postprocess', true, @islogical);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 125 150]); % used in post-proc
 ip.addParamValue('Cutoff_f', 5, @isscalar);
@@ -822,7 +823,7 @@ end % postprocessing
 % Classify slave channel signals
 %===============================================================================
 if nCh>1
-    tracks = runSlaveChannelClassification(data, tracks);
+    tracks = runSlaveChannelClassification(data, tracks,'Alpha',ip.Results.AlphaSlave);
     
     idx = [tracks.catIdx]==1 & [tracks.lifetime_s]>=data.framerate*opts.Cutoff_f;
     nPosM = sum([tracks(idx).significantMaster],2);
