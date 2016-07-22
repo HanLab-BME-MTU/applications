@@ -1,4 +1,4 @@
-function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrientation( I, varargin)
+function [ scale, orientation, scaleV, orientationV, orientationAtMaxScale ] = findGlobalScaleAndOrientation( I, varargin)
 %FINDGLOBALSCALEANDORIENTATION Finds the scales and orientation using OrientationSpace
 %filtering. Scans scale using Chebyshev polynomials
 %
@@ -71,6 +71,7 @@ function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrient
     orientation = zeros(size(I));
     scaleV = zeros(size(I));
     orientationV = zeros(size(I));
+    orientationAtMaxScale = zeros([nAngles size(I)]);
     
     for s = 1:length(scales)-1
         % Scan scales along the Chebyshev-Lobatto grid between pairs of
@@ -148,6 +149,7 @@ function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrient
                 % Save the best scale
                 scale(tileMask) = scaleMax(isGreater);
                 scaleV(tileMask) = scaleMaxValue(isGreater);
+                orientationAtMaxScale(:,tileMask) = interpolateScale(orientationScaleSpace(:,:,isGreater),scaleMax(isGreater));
             else
                 % Save the best orientation
                 orientation(tileMask) = orientationMax;
@@ -155,11 +157,17 @@ function [ scale, orientation, scaleV, orientationV ] = findGlobalScaleAndOrient
                 % Save the best scale
                 scale(tileMask) = scaleMax;
                 scaleV(tileMask) = scaleMaxValue;
+                orientationAtMaxScale(:,tileMask) = interpolateScale(orientationScaleSpace,scaleMax);
                 % Mask the values that are at the achieve local max in the interval
                 mask(tileMask) = scaleMax == scales(s+1);
             end
         end
     end
+    orientationAtMaxScale = permute(orientationAtMaxScale,[2 3 1]);
 end
 
-
+function orientationAtMaxScale = interpolateScale(orientationScaleSpace,scaleMax)
+    parfor px = 1:length(scaleMax)
+        orientationAtMaxScale(:,px) = interpft1([0 2*pi],orientationScaleSpace(:,:,px)',scaleMax(px),'horner');
+    end
+end

@@ -24,6 +24,10 @@ classdef OrientationSpaceResponse < handle
         nms
         nlms
         nlms_mip
+        nlms_count
+        nlms_sum
+        nlms_mean
+        nlms_std
         theta
         a
         NMS
@@ -76,6 +80,31 @@ classdef OrientationSpaceResponse < handle
         
         function nlms_mip = get.nlms_mip(obj)
             nlms_mip = max(real(obj.nlms),[],3) + 1j*max(abs(imag(obj.nlms)),[],3);
+        end
+        
+        function nlms_sum = get.nlms_sum(obj)
+            nlms_sum = sum(obj.nlms,3);
+        end
+               
+        function nlms_count = get.nlms_count(obj)
+            nlms_count = sum(real(obj.nlms) > 0,3) + 1j*sum(abs(imag(obj.nlms)) > 0,3);
+        end
+               
+        function nlms_mean = get.nlms_mean(obj)
+            sum = obj.nlms_sum;
+            count = obj.nlms_count;
+%             nlms_mean = real(sum)./real(count) + 1j*imag(sum)./imag(count);
+            nlms_mean = real(sum)./real(count);
+        end
+        
+        function nlms_std = get.nlms_std(obj)
+            m = obj.nlms_mean;
+            nlms = obj.nlms;
+            count = obj.nlms_count;
+            d = bsxfun(@minus,nlms,m);
+%             d = real(d).^2.*(real(nlms) > 0) + 1j*imag(d).^2.*(imag(nlms) > 0);
+            d = real(d).^2.*(real(nlms) > 0); % + 1j*imag(d).^2.*(imag(nlms) > 0);
+            nlms_std = sqrt(sum(d,3)./(count-1));
         end
         
         % Orientation, defaults to best orientation from basis
