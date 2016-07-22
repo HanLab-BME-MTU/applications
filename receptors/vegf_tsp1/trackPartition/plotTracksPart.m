@@ -449,9 +449,11 @@ for i = 1 : numTrackSegments
             yBox = min(tracksYP(:,i));
             wBox = max(tracksXP(:,i))-xBox;
             hBox = max(tracksYP(:,i))-yBox;
-            
-            rectangle('Position',[xBox-4,yBox-4,wBox+8,hBox+8],...
-                'EdgeColor',trackSegmentColor(i,:))
+            try 
+                rectangle('Position',[xBox-4,yBox-4,wBox+8,hBox+8],...
+                    'EdgeColor',trackSegmentColor(i,:))
+            catch % Sometimes get some weird all NaN tracks, haven't figured that out yet
+            end
         end
     else % If track is outside
         % Plot a thin line

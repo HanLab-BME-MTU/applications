@@ -9,7 +9,7 @@ function [mask,tracksOut] = trackPartitionInit(tracksIn,movieInfo,MD,threshold,m
 %
 %       movieInfo:      particle detection result
 %
-%       MD:             Movie Data
+%       MD:             Movie Data with particles to be masked
 %
 %       threshold:      threshold for producing masks from the Gaussian
 %                       detection information. Masks will have value 'true'

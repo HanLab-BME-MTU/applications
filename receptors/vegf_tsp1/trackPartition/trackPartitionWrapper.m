@@ -25,9 +25,29 @@ movieInfo = movieInfo.movieInfo;
 tracks = load(tracksFiles{trackChannel},'tracksFinal');
 tracks = tracks.tracksFinal;
 
-% Create mask and upscale tracks
-[mask,tracks] = trackPartitionInit(tracks,movieInfo,maskMD,...
-    params.gaussianThresh,params.minMaskDiam,params.upscale);
+% If using existing mask
+if params.useExistingMask
+    % Check if one exists
+    mask = MD.processes_{MD.getProcessIndex('TrackPartitionProcess')}.mask_;
+    if ~isempty(mask)
+        % Check the upscale factor
+        upscale = size(mask,1)/maskMD.imSize_(1);
+        assert(mod(upscale,1) == 0,'The mask is not the same size as or a multiple of the size of the image')
+        % Just upscale the tracks
+        tracks = trackScalar(tracks,upscale);
+    else
+        % If none exists, create a mask and upscale tracks as normal
+        [mask,tracks] = trackPartitionInit(tracks,movieInfo,maskMD,...
+                 params.gaussianThresh,params.minMaskDiam,params.upscale);
+    end
+else
+    % Create mask and upscale tracks
+    [mask,tracks] = trackPartitionInit(tracks,movieInfo,maskMD,...
+        params.gaussianThresh,params.minMaskDiam,params.upscale);
+end
+
+% Save mask
+obj.mask_ = mask;
 
 tracksPartTemp = trackPartition(tracks,mask,params.minTrackLength,...
     params.analysisStart,params.analysisEnd);

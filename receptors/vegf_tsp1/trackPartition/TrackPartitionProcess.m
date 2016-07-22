@@ -6,6 +6,7 @@ classdef TrackPartitionProcess < DataProcessingProcess & NonSingularProcess
         % MD with particles used to mask image
         maskMovieDataPath_
         maskMovieDataFileName_
+        mask_ 
     end
     
     methods (Access = public)
