@@ -1,6 +1,6 @@
 function out_img = keep_largest_area(in_img)
 
-labelMask = bwlabel(in_img);
+labelMask = bwlabeln(in_img);
 
 %Get their area
 obAreas = regionprops(labelMask,'Area');

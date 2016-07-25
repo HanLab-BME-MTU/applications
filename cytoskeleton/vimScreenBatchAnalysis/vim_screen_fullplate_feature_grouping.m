@@ -27,12 +27,12 @@ end
 % if no output saving folder is given, use the movieList folder under plate analysis folder
 
 if(nargin<10)
-    results_saving_folder = [plate_analysis_folder, filespe,'row_col_movieList'];
+    results_saving_folder = [plate_analysis_folder, filesep,'row_col_movieList'];
 end
 
 movieNumber = 384; % fixed
 
-ML_name = [plate_analysis_folder, filespe,'row_col_movieList',filesep,'movieList.mat'];
+ML_name = [plate_analysis_folder, filesep,'row_col_movieList',filesep,'movieList.mat'];
 
 % load directly, not movieList.load since the list of MD are broken.
 load(ML_name); % then we have ML
@@ -118,16 +118,16 @@ for iMD  = 1 : movieNumber
                 % the two possible mat file names due to code verions with
                 % new and old code discrepency
                 
-                if(exist([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),...
+                if(exist([MD_channel_analysis_folder,filesep,'network_analysis_feature_ch_',num2str(iChannel),...
                         '_frame_',num2str(iFrame),'.mat'],'file'))
-                    load([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),...
+                    load([MD_channel_analysis_folder,filesep,'network_analysis_feature_ch_',num2str(iChannel),...
                         '_frame_',num2str(iFrame),'.mat'],'output_feature');
                     load_ch_frame_flag=1;
                 end
                 
-                if(exist([outdir,filesep,'network_feature_ch_',num2str(iChannel),'_',...
+                if(exist([MD_channel_analysis_folder,filesep,'network_feature_ch_',num2str(iChannel),'_',...
                         filename_short_strs{iFrame},'.mat'],'file'))
-                    load([outdir,filesep,'network_feature_ch_',num2str(iChannel),'_',...
+                    load([MD_channel_analysis_folder,filesep,'network_feature_ch_',num2str(iChannel),'_',...
                         filename_short_strs{iFrame},'.mat'], 'output_feature');
                     load_ch_frame_flag = 1;
                 end
