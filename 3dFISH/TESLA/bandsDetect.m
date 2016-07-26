@@ -97,7 +97,7 @@ end
 
 % Lanes and bands detection.
 % Carefully adjust thresh1 and thresh2
-thres1 = 0.05*(max(intensityProfile)-min(intensityProfile));
+thres1 = 0.03*(max(intensityProfile)-min(intensityProfile));
 laneCenterLoc = find(~watershed(imhmin(intensityProfile,thres1)));
 disp(strcat(num2str(length(laneCenterLoc)), ' lane(s) detected'))
 
@@ -118,7 +118,7 @@ for k = 1:length(laneCenterLoc)
     
     % Needs smarter threshold to eliminate the noise without hurting peaks
     % Determine the sensitivity of bands detection
-    thres2 = 0.05*(max(bandProfile)-min(bandProfile));
+    thres2 = 0.03*(max(bandProfile)-min(bandProfile));
     bandLoc = find(~watershed(imhmin(bandProfile,thres2)));
     
     for m = 1:length(bandLoc)
@@ -152,8 +152,11 @@ for bandsAddCound = 1:100
         bandMapPlot(fIM, bandMap);
         hold on
         plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
-    else
-        break
+    else if lower(bandsAdd) == 'n'
+            break
+        else
+            continue
+        end
     end
 end
 
@@ -173,8 +176,55 @@ for bandsDelCound = 1:100
         bandMapPlot(fIM, bandMap);
         hold on
         plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
-    else
-        break
+    else if lower(bandsAdd) == 'n'
+            break
+        else
+            continue
+        end
+    end
+end
+
+% Simple repeat to make correction
+for bandsAddCound = 1:100
+    bandsAdd = input('Do you want to manually add a band (y/n) > ', 's');
+    if lower(bandsAdd) == 'y'
+        disp('Please click on the image to add a single band.');
+        [x,y] = ginput(1);
+        x = round(x,0);
+        y = round(y,0);
+        bandMap(y,x)=1;
+        bandMapPlot(fIM, bandMap);
+        hold on
+        plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+    else if lower(bandsAdd) == 'n'
+            break
+        else
+            continue
+        end
+    end
+end
+
+
+for bandsDelCound = 1:100
+    bandsDel = input('Do you want to manually delete bands (y/n) > ', 's');
+    if lower(bandsDel) == 'y'
+        disp('Please choose the region with bands you want to delete and then double click.');
+        [delRegion, boundaryInfo] = imcrop;
+        for xCord = max(1, floor(boundaryInfo(1))) : min(size(fIM, 2), ceil(boundaryInfo(1)+boundaryInfo(3)))
+            for yCord = max(1, floor(boundaryInfo(2))) : min(size(fIM, 1), ceil(boundaryInfo(2)+boundaryInfo(4)))
+                if bandMap(yCord, xCord) == 1
+                    bandMap(yCord, xCord) = 0;
+                end
+            end
+        end
+        bandMapPlot(fIM, bandMap);
+        hold on
+        plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+    else if lower(bandsAdd) == 'n'
+            break
+        else
+            continue
+        end
     end
 end
 
