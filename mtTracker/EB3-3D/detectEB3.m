@@ -17,7 +17,7 @@ ip.addParamValue('lowFreq',3, @isnumeric);
 ip.addParamValue('highFreq',1, @isnumeric);
 ip.addParamValue('scales',[], @isnumeric);
 ip.addParamValue('Alpha',0.05, @isnumeric);
-ip.addParamValue('mask',[], @isnumeric);
+ip.addParamValue('ROI',[], @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
 ip.addParamValue('printAll', false, @islogical);
 ip.addParamValue('subDirectory','EB3', @ischar);
@@ -59,8 +59,8 @@ mkdir(outputDirDetect);
 mkdir([outputDirDetect filesep 'mask']);
 
 % find mask offset (WARNING works only for cubic mask)
-[maskMinX,maskMinY,maskMinZ]=ind2sub(size(p.mask), find(p.mask,1));
-[maskMaxX,maskMaxY,maskMaxZ]=ind2sub(size(p.mask), find(p.mask,1,'last'));
+[maskMinX,maskMinY,maskMinZ]=ind2sub(size(p.ROI), find(p.ROI,1));
+[maskMaxX,maskMaxY,maskMaxZ]=ind2sub(size(p.ROI), find(p.ROI,1,'last'));
 
 parfor frameIdx=1:numel(processFrames)
     timePoint=processFrames(frameIdx);
@@ -68,9 +68,9 @@ parfor frameIdx=1:numel(processFrames)
     vol=double(MD.getChannel(p.channel).loadStack(timePoint));
     volSize=size(vol);
     lab=[];
-    if(~isempty(p.mask))
+    if(~isempty(p.ROI))
         tmp=nan(1+[maskMaxX,maskMaxY,maskMaxZ]-[maskMinX,maskMinY,maskMinZ]);
-        tmp(:)=vol(p.mask>0);
+        tmp(:)=vol(p.ROI>0);
         vol=tmp;
     end
     switch p.type
@@ -129,9 +129,9 @@ parfor frameIdx=1:numel(processFrames)
         disp('\twatershed');
     end
     
-    if(~isempty(p.mask))
+    if(~isempty(p.ROI))
         tmplab=zeros(volSize);
-        tmplab(p.mask>0)=lab;
+        tmplab(p.ROI>0)=lab;
         lab=tmplab; 
         movieInfo(frameIdx).xCoord(:,1)=movieInfo(frameIdx).xCoord(:,1)+maskMinY-1;
         movieInfo(frameIdx).yCoord(:,1)=movieInfo(frameIdx).yCoord(:,1)+maskMinX-1;
