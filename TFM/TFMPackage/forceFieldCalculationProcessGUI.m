@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 18-Jul-2016 17:16:44
+% Last Modified by GUIDE v2.5 22-Jul-2016 14:16:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;

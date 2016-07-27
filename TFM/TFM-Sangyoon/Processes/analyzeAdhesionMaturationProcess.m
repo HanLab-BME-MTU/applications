@@ -1,4 +1,4 @@
-function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,varargin)
+function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity] = analyzeAdhesionMaturationProcess(movieData,varargin)
 % [tracksNA,lifeTimeNA] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % filter out NA tracks, obtain life time of each NA tracks
 
@@ -30,17 +30,24 @@ function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturi
 
 %% Inputs
 ip =inputParser;
-ip.addRequired('pathForTheMovieDataFile',@(x)ischar(x)||isa(x,MovieData))
-ip.addParamValue('showAllTracks',false,@(x)islogical(x)||isempty(x))
-ip.addParamValue('plotEachTrack',false,@(x)islogical(x)||isempty(x))
-ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
-ip.addParamValue('outputPath','AdhesionTracking',@ischar)
-ip.addParamValue('saveAnalysis',true,@islogical)
-ip.addParamValue('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
-ip.addParamValue('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
+% ip.addRequired('pathForTheMovieDataFile',@(x)ischar(x)||isa(x,MovieData))
+% ip.addParamValue('showAllTracks',false,@(x)islogical(x)||isempty(x))
+% ip.addParamValue('plotEachTrack',false,@(x)islogical(x)||isempty(x))
+% ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
+% ip.addParamValue('outputPath','AdhesionTracking',@ischar)
+% ip.addParamValue('saveAnalysis',true,@islogical)
+% ip.addParamValue('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
+% ip.addParamValue('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('movieData', @(x) isa(x,'MovieData'));
+ip.addOptional('paramsIn',[], @isstruct);
+ip.parse(movieData,varargin{:});
+paramsIn=ip.Results.paramsIn;
 
 % ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
-ip.parse(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin{:});
+% ip.parse(movieData,showAllTracks,plotEachTrack,varargin{:});
 outputPath=ip.Results.outputPath;
 saveAnalysis=ip.Results.saveAnalysis;
 matchWithFA=ip.Results.matchWithFA;
@@ -52,7 +59,7 @@ onlyEdge=ip.Results.onlyEdge;
 
 %% Data Set up
 % Load the MovieData
-movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
+movieDataPath = [movieData '/movieData.mat'];
 MD = MovieData.load(movieDataPath);
 % Get whole frame number
 nFrames = MD.nFrames_;
@@ -71,7 +78,7 @@ end
 FASegPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionSegmentationPackage'));
 
 % Set up the output file path
-outputFilePath = [pathForTheMovieDataFile filesep outputPath];
+outputFilePath = [movieData filesep outputPath];
 dataPath = [outputFilePath filesep 'data'];
 paxPath = [outputFilePath filesep 'pax'];
 paxtifPath = [outputFilePath filesep 'paxtifs'];

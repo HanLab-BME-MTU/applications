@@ -789,11 +789,19 @@ end
 
 % display(['Distance to closest bead maximum = ' num2str(tmax) ' Pa.'])
 %% Insert traction map in forceField.pos 
-disp('Generating traction maps ...')
+disp('Writing traction maps ...')
 tMap = cell(1,nFrames);
 tMapX = cell(1,nFrames);
 tMapY = cell(1,nFrames);
 fCfdMap = cell(1,1); %force confidence
+
+% Set up the output directories
+outputDir = fullfile(p.OutputDirectory,'tractionMaps');
+mkClrDir(outputDir);
+fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+numStr = @(frame) num2str(frame,fString);
+outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+
 % distBeadMap = cell(1,nFrames);
 for ii=frameSequence
     % starts with original size of beads
@@ -829,6 +837,9 @@ for ii=frameSequence
 
     forceFieldShifted(ii).pos = pos;
     forceFieldShifted(ii).vec = force_vec;
+
+    save(outFileTMap(ii),'cur_tMap','-v7.3');
+
 end
 % Fill in the values to be stored:
 clear grid_mat;

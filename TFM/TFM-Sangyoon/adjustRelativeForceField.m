@@ -167,6 +167,8 @@ toc
 % distBeadMap = cell(1,nFrames);
 %% assigning to the file
 reg_grid=createRegGridFromDisplField(displField,1,0);
+% I have to get rid of boundary nodes because we now use fields without
+% boundary in force field calculation... Or I don't know!
 progressText(0,'Creating new traction map')
 for ii=1:nFrames
     % starts with original size of beads
@@ -184,6 +186,8 @@ for ii=1:nFrames
     curDispPos = displField(ii).pos;
     curDispVec = curDispVec(~isnan(curDispVec(:,1)),:); % This will remove the warning 
     curDispPos = curDispPos(~isnan(curDispVec(:,1)),:); % This will remove the warning 
+    curDispField.pos=curDispPos;
+    curDispField.vec=curDispVec;
     [grid_mat,iu_mat, ~,~] = interp_vec2grid(curDispPos, curDispVec,[],reg_grid);
     displ_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
     

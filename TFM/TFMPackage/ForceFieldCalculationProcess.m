@@ -46,7 +46,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField','tMap','forceFieldShifted'};
+            outputList = {'forceField','tMap','forceFieldShifted','forceFieldShiftedColor'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -60,13 +60,27 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             
             % Data loading
             output = ip.Results.output;
-            if strcmp(output,outputList{1}) || strcmp(output,outputList{3})
+            if ischar(output), output = {output}; end
+            if strcmp(output,outputList{1}) 
                 iOut=1;
-            else
+                s = load(obj.outFilePaths_{iOut},output{1});
+            elseif strcmp(output,outputList{2})
                 iOut=2;
+                s = load(obj.outFilePaths_{iOut},output{1});
+            elseif strcmp(output,outputList{3})
+                iOut=1;
+                s = load(obj.outFilePaths_{iOut},output{1});
+            elseif strcmp(output,outputList{4})
+                iOut=1;
+                output = outputList{3};
+                s = load(obj.outFilePaths_{iOut},outputList{3});
+%             elseif strcmp(output,outputList{5})
+%                 [OutputDirectory,tMapFolder] = fileparts(obj.outFilePaths_{2});
+%                 % Set up the output directories
+%                 outputDir = fullfile(OutputDirectory,tMapFolder);
+%                 outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
             end
             if ischar(output), output = {output}; end
-            s = load(obj.outFilePaths_{iOut},output{1});
             
 %             if numel(iFrame)>1,
             varargout{1}=s.(output{1})(iFrame);
@@ -164,26 +178,32 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             output(3).type='movieOverlay';
             output(3).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[175/255 30/255 230/255]);
 
+            output(4).name='Force field shifted (c)';
+            output(4).var='forceFieldShiftedColor';
+            output(4).formatData=@(x) [x.pos x.vec(:,1) x.vec(:,2)];
+            output(4).type='movieOverlay';
+            output(4).defaultDisplayMethod=@(x) VectorFieldDisplay('Colormap',jet,'Linewidth',1);
+            
             if ~strcmp(obj.funParams_.method,'FTTC')
-                output(4).name='Prediction Err map';
-                output(4).var='dErrMap';
-                output(4).formatData=[];
-                output(4).type='image';
-                output(4).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
-                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.dELimits_);
-
-                output(5).name='Map of distance to bead';
-                output(5).var='distBeadMap';
+                output(5).name='Prediction Err map';
+                output(5).var='dErrMap';
                 output(5).formatData=[];
                 output(5).type='image';
                 output(5).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.dELimits_);
+
+                output(6).name='Map of distance to bead';
+                output(6).var='distBeadMap';
+                output(6).formatData=[];
+                output(6).type='image';
+                output(6).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
                     'Colorbar','on','Units',obj.getUnits,'CLim',obj.distBeadMapLimits_);
 
-                output(6).name='Lcurve';
-                output(6).var='lcurve';
-                output(6).formatData=[];
-                output(6).type='movieGraph';
-                output(6).defaultDisplayMethod=@FigFileDisplay;
+                output(7).name='Lcurve';
+                output(7).var='lcurve';
+                output(7).formatData=[];
+                output(7).type='movieGraph';
+                output(7).defaultDisplayMethod=@FigFileDisplay;
             end                
         end
         

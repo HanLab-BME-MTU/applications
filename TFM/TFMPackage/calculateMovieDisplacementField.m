@@ -285,6 +285,9 @@ for j= firstFrame:nFrames
             %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
             indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
             localbeads = beads(indx,:);
+            currentBeads = localbeads; %This will keep updated
+            cumulativeV_forV=zeros(size(localbeads));
+            cumulativeV_forBeads=zeros(size(localbeads));
         end
         %     % Select only beads which are min correlation length away from the border of the
         %     % reference frame 
@@ -294,17 +297,43 @@ for j= firstFrame:nFrames
         %     beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
         %     indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
         %     beads(indx,:)=[];
-
-        % Track beads displacement in the xy coordinate system
-        v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
-            p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-            'mode',p.mode);
+        if ~p.trackSuccessively
+            scoreCalculation='xcorr';
+            % Track beads displacement in the xy coordinate system
+            v = trackStackFlow(cat(3,refFrame,currImage),currentBeads,...
+                p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
+                'mode',p.mode,'scoreCalculation',scoreCalculation);
+        else
+%             scoreCalculation='difference';
+            scoreCalculation='xcorr';
+            % Track beads displacement in the xy coordinate system
+            if j==firstFrame
+                prevImage=refFrame;
+            end
+            v = trackStackFlow(cat(3,prevImage,currImage),currentBeads,...
+                p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
+                'mode',p.mode,'scoreCalculation',scoreCalculation);
+            prevImage=currImage;
+        end
 
         % Extract finite displacement and prepare displField structure in the xy
         % coordinate system
-        validV = ~isinf(v(:,1));
-        displField(j).pos=localbeads(validV,:);
-        displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+%         if j==firstFrame
+        validV = ~isinf(v(:,1)) & ~isnan(v(:,1));
+%         end
+        
+        if ~p.trackSuccessively
+            displField(j).pos=localbeads(validV,:);
+            displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        else
+            v2 = v;
+            cumulativeV_forV = cumulativeV_forV+v2;
+            v2(~validV,1)=0; v2(~validV,2)=0;
+            cumulativeV_forBeads = cumulativeV_forBeads+v2;
+            currentBeads = localbeads + cumulativeV_forBeads;
+            displField(j).pos=localbeads(validV,:);
+            displField(j).vec=[cumulativeV_forV(validV,1)+residualT(j,2) cumulativeV_forV(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        end
     else
         pivPar = [];      % variable for settings
         pivData = [];     % variable for storing results
@@ -342,8 +371,23 @@ for j= firstFrame:nFrames
         [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
         validV = ~isnan(pivData.V);
         
-        displField(j).pos=[pivData.X(validV), pivData.Y(validV)];
-        displField(j).vec=[pivData.U(validV)+residualT(j,2), pivData.V(validV)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        if ~p.trackSuccessively
+            displField(j).pos=[pivData.X(validV), pivData.Y(validV)];
+            displField(j).vec=[pivData.U(validV)+residualT(j,2), pivData.V(validV)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        else
+            v2 = [pivData.U, pivData.V];
+            if j== firstFrame
+                cumulativeV_forV = zeros(size(pivData.U,1),2);
+                cumulativeV_forBeads = zeros(size(pivData.U,1),2);
+            else
+                cumulativeV_forV = cumulativeV_forV+v2;
+                v2(~validV,1)=0; v2(~validV,2)=0;
+                cumulativeV_forBeads = cumulativeV_forBeads+v2;
+            end
+            currentBeads = [pivData.X(validV), pivData.Y(validV)] + cumulativeV_forBeads;
+            displField(j).pos=[pivData.X(validV), pivData.Y(validV)];
+            displField(j).vec=[cumulativeV_forV(validV,1)+residualT(j,2) cumulativeV_forV(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        end
 
 %         % testing additional pass of piv processing
 %         pivPar.iaSizeX=[ 8];

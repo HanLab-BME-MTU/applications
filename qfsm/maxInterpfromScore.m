@@ -1,4 +1,4 @@
-function maxV2 = maxInterpfromScore(maxI2,score,vP,vF,mode)
+function maxV2 = maxInterpfromScore(maxI2,score,vP,vF,~)
 % Sangyoon: I made a change for this refining process to
 % use parabola approximation. Once parabola fit is
 % too much apart from integer maxV (maxVorg), I
@@ -88,11 +88,32 @@ if (~bPolyTracked || norm(maxVorg-maxV2,2)>1) %&& ~strcmp(mode,'CDWS') %checking
     sp   = csape({subvP,subvF},sub_score);
     dsp1 = fnder(sp,[1,0]);
     dsp2 = fnder(sp,[0,1]);
-    options = optimset('Algorithm','interior-point'); % this generates an warning
+%     options = optimset('Algorithm','interior-point'); % this generates an warning
+    options = optimset('fminbnd'); % not fully tested for robustness
+%     options = optimset(options, 'TolFun',1e-10);
+%     options = optimset(options, 'TolX',1e-5);
+    options = optimset(options, 'Display','off');
 %             options = optimset('Algorithm','sqp');% this too
 
     maxV2 = fmincon(@vFun,maxVorg,[],[],[],[], ...
         [max(subvP(1),maxVorg(1)-2) max(subvF(1),maxVorg(2)-2)], ...
         [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
         options,sp,dsp1,dsp2);            
+    
+%     [~, xmax] = calcInterpMaxima(sub_score, 0.0, 'Display', false);
+%     x1=1;
+%     x2=size(sub_score,2);
+%     y1=subvF(1);
+%     y2=subvF(end);
+%     a = (y2-y1)/(x2-x1);
+%     b = (x2*y1-x1*y2)/(x2-x1);
+%     maxV2(2)=a*xmax(1)+b;
+%     x1=1;
+%     x2=size(sub_score,1);
+%     y1=subvP(1);
+%     y2=subvP(end);
+%     a = (y2-y1)/(x2-x1);
+%     b = (x2*y1-x1*y2)/(x2-x1);
+%     maxV2(1)=a*xmax(2)+b;
+    % Tried this but it was less accurate than fmincon!!!
 end
