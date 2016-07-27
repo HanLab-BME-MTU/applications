@@ -64,6 +64,10 @@ ip.addParameter('MainMovie',false); % flag to make the output for the
 
 ip.addParameter('filterOutlierBranchParameters',false); 
 
+%ip.addParameter('analInput',[]); % analInput... eventially need to make
+%this so can in put but for now just make another default for curvVsLength 
+ip.addParameter('curvVsLength',false); 
+
 ip.parse(varargin{:});
 p = ip.Results;
 
@@ -139,44 +143,71 @@ for iCh = 1:nChan
 
 if ip.Results.SubRegionFlag
     
-    analInput(1).filterType = 'ConnectToVeil_LengthInt'; 
-    analInput(1).paramFunc{1} = 'filoLength'; 
-    analInput(1).paramName{1} = 'filoLengthToVeil'; 
-    analInput(1).paramInput{1} = 'Ext_'; 
     
-    analInput(1).paramFunc{2} = 'filoLength';
-    analInput(1).paramName{2} = 'filoLengthEmbedded';
-    analInput(1).paramInput{2} = 'Int_';
+        % Filopodia/Branch Length (0 and 1st Order) : Note should probably 
+        % separate to make Actin bundle lengths verus 1st order branches 
+        analInput(1).filterType =   'ConnectToVeil_LengthInt';
+        analInput(1).paramFunc{1} = 'filoLength'; % % function ID
+        analInput(1).paramName{1} = 'filoLengthToVeil'; % paramName-
+        x.filoPart = 'Ext_';
+        x.outPercent = false;
+
+        analInput(1).paramInput{1} = x; 
     
-     % Total Length Actin Bundle
-    analInput(1).paramFunc{3} = 'filoLength';
-    analInput(1).paramName{3} = 'filoLengthFullActinBundle';
-    analInput(1).paramInput{3} = 'Tot';
+          % Full Actin Bundle (Life-Act Only) : Length 
+        analInput(1).paramFunc{2} = 'filoLength';
+        analInput(1).paramName{2} = 'filoLengthFullActinBundle';
+        x.filoPart = 'Tot'; 
+        x.outPercent = false; 
+        analInput(1).paramInput{2} = x ;
+
     
-     % Intensity To Veil
-    analInput(1).paramFunc{4} = 'filoAvgIntensity'; % function ID
-    analInput(1).paramName{4} = 'filoIntensityToVeil'; % paramName for output
-    analInput(1).paramInput{4} = 'Ext'; % other information for function
-    
-    % Intensity Embed
-    analInput(1).paramFunc{5} = 'filoAvgIntensity';
-    analInput(1).paramName{5} = 'filoIntensityEmbedded';
-    analInput(1).paramInput{5}  = 'Int';
-    
-    analInput(2).filterType = 'ConnectToVeil_DensityOrient';
-    
-    % Orientation
-    analInput(2).paramFunc{1} = 'filoOrient';
-    analInput(2).paramName{1} = 'filoOrient';
-    analInput(2).paramInput{1} = [];
-    
-    % Curvature
-    analInput(2).paramFunc{2} = 'filoCurvature';
-    analInput(2).paramName{2} = 'filoCurvature';
-    analInput(2).paramInput{2} = [];
+     % Percentage of Each Actin Bundle Embedded
+        analInput(1).paramFunc{3} = 'filoLength';
+        analInput(1).paramName{3} = 'percentEachActinBundleEmbed';
+        x.filoPart = 'Tot';
+        x.outPercent = true; 
+        analInput(1).paramInput{3} = x;
     
     
-else
+%     analInput(1).filterType = 'ConnectToVeil_LengthInt'; 
+%     analInput(1).paramFunc{1} = 'filoLength'; 
+%     analInput(1).paramName{1} = 'filoLengthToVeil'; 
+%     analInput(1).paramInput{1} = 'Ext_'; 
+%     
+%     analInput(1).paramFunc{2} = 'filoLength';
+%     analInput(1).paramName{2} = 'filoLengthEmbedded';
+%     analInput(1).paramInput{2} = 'Int_';
+%     
+%      % Total Length Actin Bundle
+%     analInput(1).paramFunc{3} = 'filoLength';
+%     analInput(1).paramName{3} = 'filoLengthFullActinBundle';
+%     analInput(1).paramInput{3} = 'Tot';
+%     
+%      % Intensity To Veil
+%     analInput(1).paramFunc{4} = 'filoAvgIntensity'; % function ID
+%     analInput(1).paramName{4} = 'filoIntensityToVeil'; % paramName for output
+%     analInput(1).paramInput{4} = 'Ext'; % other information for function
+%     
+%     % Intensity Embed
+%     analInput(1).paramFunc{5} = 'filoAvgIntensity';
+%     analInput(1).paramName{5} = 'filoIntensityEmbedded';
+%     analInput(1).paramInput{5}  = 'Int';
+%     
+%     analInput(2).filterType = 'ConnectToVeil_DensityOrient';
+%     
+%     % Orientation
+%     analInput(2).paramFunc{1} = 'filoOrient';
+%     analInput(2).paramName{1} = 'filoOrient';
+%     analInput(2).paramInput{1} = [];
+%     
+%     % Curvature
+%     analInput(2).paramFunc{2} = 'filoCurvature';
+%     analInput(2).paramName{2} = 'filoCurvature';
+%     analInput(2).paramInput{2} = [];
+    
+    
+else % if not subregion flag 
     
     if ip.Results.MainMovie 
         
@@ -186,7 +217,68 @@ else
         x.filoPart = 'Ext_'; 
         x.outPercent = false; 
         analInput(1).paramInput{1} = x; 
-    else 
+        
+    elseif ip.Results.curvVsLength % quickFix to change filter to non-branch
+        
+        analInput(1).filterType = 'curvVsLength';
+        
+        
+        analInput(1).paramFunc{2} = 'filoCurvature';
+        analInput(1).paramName{2} = 'filoCurvature';
+        analInput(1).paramInput{2} = [];
+        
+        analInput(1).paramFunc{1} = 'filoLength';
+        analInput(1).paramName{1} = 'filoLengthToVeil';
+        x.filoPart = 'Ext_';
+        x.outPercent = false;
+        
+        analInput(1).paramInput{1} = x;
+        clear x
+        
+        % Actin Bundle to Veil : Intensity normToVeil
+        analInput(1).paramFunc{3} = 'filoAvgIntensity'; % function ID
+        analInput(1).paramName{3} = 'filoIntensityToVeil_Norm'; % paramName for output
+        x.filoPart = 'Ext_'; 
+        x.normToVeil = true; 
+        analInput(1).paramInput{3} = x; % other information for function
+        clear x 
+       
+        
+        
+        % Orientation of Filopodia
+        analInput(1).paramFunc{4} = 'filoOrient';
+        analInput(1).paramName{4} = 'filoOrientation';
+        analInput(1).paramInput{4} = [];
+        
+        % Intensity Embed
+        analInput(1).paramFunc{5} = 'filoAvgIntensity';
+        analInput(1).paramName{5} = 'filoIntensityEmbedded_Norm';
+        x.filoPart = 'Int_'; 
+        x.normToVeil = true; 
+        analInput(1).paramInput{5} = x; 
+        clear x
+        
+        
+        
+        % Percentage of Each Actin Bundle Embedded
+        analInput(1).paramFunc{6} = 'filoLength';
+        analInput(1).paramName{6} = 'percentEachActinBundleEmbed';
+        x.filoPart = 'Tot';
+        x.outPercent = true;
+        analInput(1).paramInput{6} = x;
+        clear x
+
+        % Actin Bundle to Veil : Intensity Abs
+        analInput(1).paramFunc{7} = 'filoAvgIntensity';
+        analInput(1).paramName{7} = 'filoIntensityToVeil';
+        x.filoPart = 'Ext_';
+        x.normToVeil = false;
+        analInput(1).paramInput{7} = x;
+        clear x
+    
+        
+    else % if not main movie 
+        
     
     %% Whole Neurite Measurements
     %% Filter I 'ConnectToVeil_LengthInt' : Veil Measurements that require good fitting (Length and Intensity)  
@@ -198,8 +290,8 @@ else
         analInput(1).paramName{1} = 'filoLengthToVeil'; % paramName-
         x.filoPart = 'Ext_';
         x.outPercent = false;
-
         analInput(1).paramInput{1} = x; 
+        clear x
 
         % Veil Embedded Actin Bundle (Life-Act Only) : Length 
         analInput(1).paramFunc{2} = 'filoLength';
@@ -207,6 +299,7 @@ else
         x.filoPart = 'Int_'; 
         x.outPercent = false; 
         analInput(1).paramInput{2} = x;
+        clear x
 
         % Full Actin Bundle (Life-Act Only) : Length 
         analInput(1).paramFunc{3} = 'filoLength';
@@ -214,16 +307,30 @@ else
         x.filoPart = 'Tot'; 
         x.outPercent = false; 
         analInput(1).paramInput{3} = x ;
+        clear x 
 
-        % Actin Bundle to Veil : Intensity 
+%         % Actin Bundle to Veil : Intensity 
+%         analInput(1).paramFunc{4} = 'filoAvgIntensity'; % function ID
+%         analInput(1).paramName{4} = 'filoIntensityToVeil'; % paramName for output
+%         analInput(1).paramInput{4} = 'Ext'; % other information for function
+
+        % Actin Bundle to Veil : Intensity normToVeil
         analInput(1).paramFunc{4} = 'filoAvgIntensity'; % function ID
-        analInput(1).paramName{4} = 'filoIntensityToVeil'; % paramName for output
-        analInput(1).paramInput{4} = 'Ext'; % other information for function
+        analInput(1).paramName{4} = 'filoIntensityToVeil_Norm'; % paramName for output
+        x.filoPart = 'Ext_'; 
+        x.normToVeil = true; 
+        analInput(1).paramInput{4} = x; % other information for function
+        clear x 
 
-        % Veil Embedded Actin Bundle 
+
+        % Veil Embedded Actin Bundle
         analInput(1).paramFunc{5} = 'filoAvgIntensity';
-        analInput(1).paramName{5} = 'filoIntensityEmbedded';
-        analInput(1).paramInput{5}  = 'Int';
+        analInput(1).paramName{5} = 'filoIntensityEmbedded_Norm';
+        x.filoPart = 'Int_';
+        x.normToVeil = true;
+        analInput(1).paramInput{4} = x;
+        clear x
+
 
         % Percentage of total Actin Bundles Embedded 
         analInput(1).paramFunc{6} = 'percentOfActinBundlesVeilEmbedded'; % % function ID
@@ -280,6 +387,7 @@ else
        x.outPercent = false; 
        analInput(3).paramInput{2} = x;
        %analInput(3).paramInput{2} = 'Ext_';
+       clear x 
 
        analInput(3).paramFunc{3} = 'filoCurvature';
        analInput(3).paramName{3} = 'branchMaxCurvature_2ndOrder';
@@ -287,8 +395,13 @@ else
 
        analInput(3).paramFunc{4} = 'filoAvgIntensity';
        analInput(3).paramName{4} = 'branchIntensity_2ndOrder';
-       analInput(3).paramInput{4} = 'Ext';
-   
+       %analInput(3).paramInput{4} = 'Ext';
+       x.filoPart = 'Ext_'; 
+       x.normToVeil = true; 
+       analInput(3).paramInput{4} = x; 
+       clear x 
+       
+       
    %%  Filter IV: 'Branch2ndOrder_Density_NoZero'
        analInput(4).filterType = 'Branch2ndOrder_Density_NoZero';
        analInput(4).paramFunc{1} = 'distanceToBranch';
@@ -394,7 +507,7 @@ for iAnalType = 1:length(analInput);
                 measC = paramFuncC(filoBranch,filoFilterSet);
             end
                
-            measCPreFilt = measC; 
+           
             if ip.Results.filterOutlierBranchParameters
                 if strcmpi(analInput(iAnalType).paramName{iParamExtract},'branchOrientation_2ndOrder') ;
                     badMeas = cellfun(@(x) x > 165,measC,'uniformoutput',0); % for now assume that any measurement larger than
@@ -436,7 +549,7 @@ for iAnalType = 1:length(analInput);
             timeStamp = clock;
             
             
-            save([analOutputDir filesep nameParam '.mat' ],'measC','timeStamp','inDir','measCPreFilt');
+            save([analOutputDir filesep nameParam '.mat' ],'measC','timeStamp','inDir');
 %             
 %             if ~isempty(badFrames2)
 %                 for iFrame = 1:length(badFrames2)
