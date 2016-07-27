@@ -1,7 +1,7 @@
-function [filoAvgInt] = GCAAnalysisExtract_filoAvgIntensity(analInfo,filoFilterSet,filoRegion)
+function [filoAvgInt] = GCAAnalysisExtract_filoAvgIntensity(analInfo,filoFilterSet,varargin)
 %% GCAAnalysisFilopodiaOrientInTime
 % Collects Filopodia Intensity Distributions for a
-% Filtered Set of Filopodia (Note Maria: Add Filter Sets)
+% Filtered Set of Filopodia 
 
 %INPUT:
 %
@@ -19,6 +19,24 @@ function [filoAvgInt] = GCAAnalysisExtract_filoAvgIntensity(analInfo,filoFilterS
 %saveEXCEL:  PARAM:
 
 %%
+ip = inputParser;
+ip.KeepUnmatched = true;
+
+ip.CaseSensitive = false;
+
+ip.addParameter('filoPart', 'Ext_'); 
+ip.addParameter('normToVeil',true); 
+
+ip.parse(varargin{:});
+
+%% START
+
+if ip.Results.normToVeil
+    field = 'IntensityNormToVeil'; 
+else 
+    field = 'Intensity'; 
+end 
+
 frames = length(analInfo);
 
 filoAvgInt = cell(frames,1);
@@ -30,20 +48,21 @@ for iFrame = 1:length(analInfo)-1
     if ~isempty(filoInfo)
         filterFrameC= filoFilterSet{iFrame};
         
-        if strcmpi(filoRegion,'Int')
+        if strcmpi(ip.Results.filoPart,'Int')
            filterFrameC = (filterFrameC(:,1)==1 & filterFrameC(:,2) ==1);
         end
         
         filoInfoFilt = filoInfo(filterFrameC(:,1)) ;
         
         
-        normIntensity =  vertcat(filoInfoFilt(:).([(filoRegion) '_IntensityNormToVeil'])); % add as a parameter
-            
-        filoAvgInt{iFrame} = normIntensity;
+        intensity =  vertcat(filoInfoFilt(:).([(ip.Results.filoPart) field])); % add as a parameter
+        
+        
+        filoAvgInt{iFrame} = intensity;
     else
         filoAvgInt{iFrame} = [];
     end
-    clear normIntensity
+    clear intensity
 end
 
 

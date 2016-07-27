@@ -44,6 +44,8 @@ ip.addParameter('filoPart', 'Ext_');
 ip.addParameter('outPercent',false); % in the case of filoPart 
 % 'Tot' will output the percentage embedded for each filopodia 
 % instead of the total length of the actin bundle 
+ip.addParameter('filterZeroPercent',true); 
+
 ip.addParameter('umPerPixel',.216);
 
 ip.parse(varargin{:});
@@ -103,6 +105,9 @@ for iFrame = 1:nFrames
             lengths = lengthsInt + lengthsExt;
             if ip.Results.outPercent; % 
                 percent = lengthsInt./lengths; 
+                if ip.Results.filterZeroPercent 
+                    percent = percent(percent~=0); 
+                end 
             end 
         end
         if ip.Results.outPercent; 
