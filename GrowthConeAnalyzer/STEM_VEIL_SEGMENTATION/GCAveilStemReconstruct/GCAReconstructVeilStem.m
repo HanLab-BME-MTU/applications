@@ -326,7 +326,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             % plot old body : old backbone/new backbone
             if ip.Results.TSOverlays == true
-                TSFigs1(figCount).h = setFigure(nx,ny,'on'); 
+                TSFigs1(figCount).h = setFigure(nx,ny,'off'); 
                 TSFigs1(figCount).name = 'Initial Scan For Truncations'; 
                 imshow(-img,[]); 
                 hold on 
@@ -407,7 +407,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             %% TSMovie : Exploring paths 
             if ip.Results.TSMovie == 1
-                TSFigs1(countFigs).h= setFigure(nx,ny,'on');
+                TSFigs1(countFigs).h= setFigure(nx,ny,'off');
                 TSFigs1(countFigs).name = 'Explore Paths'; 
                 [yBack,xBack]=  ind2sub([ny,nx],pixRidgeConn);
                 scatter(xBack,yBack,10,'r','filled') % 'color','r','linewidth',2);
@@ -561,7 +561,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                          veilStem(iFrame).bridged = true;
                         
                        if  ip.Results.TSOverlays == true
-                           TSFigs1(figCount).h = setFigure(nx,ny,'on');
+                           TSFigs1(figCount).h = setFigure(nx,ny,'off');
                            TSFigs1(figCount).name = 'Bridging'; 
                            imshow(backbone,[]);
                            hold on 
