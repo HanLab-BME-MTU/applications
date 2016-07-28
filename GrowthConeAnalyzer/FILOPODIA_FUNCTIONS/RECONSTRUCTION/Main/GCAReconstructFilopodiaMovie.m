@@ -55,10 +55,12 @@ defaultOutDir = [movieData.outputDirectory_ filesep...
     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction'];
 
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
-ip.addParameter('ChannelIndex',1);
+ip.addParameter('ChannelIndex',1); % need separate ChannelIndex for veil and filo 
+ip.addParameter('ChannelIndexVeil',1);  
 ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
+
 
 
 % Specific
@@ -147,7 +149,7 @@ for iCh = 1:nChan
     
     
     if strcmpi(params.EndFrame,'auto');
-        endFrame = nFrames-1;
+        endFrame = nFrames;
         display(['Auto End: Performing Filopodia Reconstructions From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     else
         endFrame = params.EndFrame;
@@ -157,7 +159,7 @@ for iCh = 1:nChan
     
     load([movieData.outputDirectory_ filesep 'SegmentationPackage' ...
         filesep 'StepsToReconstruct' filesep ...
-        'IV_veilStem_length' filesep 'Channel_' num2str(channels(iCh)) filesep 'veilStem.mat']);
+        'IV_veilStem_length' filesep 'Channel_' num2str(ip.Results.ChannelIndexVeil) filesep 'veilStem.mat']);
     
    % load( [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep ...
     %    'StepsToReconstruct' filesep 'III_veilStem_reconstruction' ...
