@@ -117,7 +117,7 @@ end
 % 
  pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStem','BBScales','paramsArchived'});
  %% 
-
+  
 %% Start Loop
 for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
      figCount = 1;
@@ -128,9 +128,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     %% Load information
     fileName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
     img = double(imread(fileName));
-    
-    
+   
     backbone = backboneInfo(iFrame).backboneSeedMask;
+    [ny,nx] = size(backboneInfo(1).backboneSeedMask); 
+    
     xyEnterNeurite = backboneInfo(iFrame).coordsEnterNeurite;
     idxEnterNeurite = sub2ind(size(img),xyEnterNeurite(:,2), xyEnterNeurite(:,1));
     cleanedRidge = backboneInfo(iFrame).linkedRidgesFinal;
@@ -891,9 +892,9 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     veilStemNodeMask = newBodyMask;
     backboneInfoC = backboneInfo(iFrame);
     [fullMask,cycleFlag,TSFigs2] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfoC,img,p);
-    TSFigs = [TSFigs1 TSFigs2];
-    if ~isempty(TSFigs)
-        
+    
+    if ip.Results.TSOverlays
+      TSFigs = [TSFigs1 TSFigs2];  
     % Save any trouble shoot figures associated with the cycle resolutions
      % make the directories for the figures if required. 
         for iFig = 1:length(TSFigs)
