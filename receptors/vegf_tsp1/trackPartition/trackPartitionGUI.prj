@@ -1,15 +1,19 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="2252635920" file="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition/trackPartitionGUI.prj" location="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition" name="trackPartitionGUI" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="343612140" file="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition/trackPartitionGUI.prj" location="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition" name="trackPartitionGUI" target="target.mlapps" target-name="Package App">
     <param.appname>trackPartitionGUI</param.appname>
     <param.authnamewatermark>Kevin Nguyen</param.authnamewatermark>
     <param.email>kevin3.nguyen@utsouthwestern.edu</param.email>
     <param.company>UT Southwestern</param.company>
-    <param.icon />
-    <param.icons />
-    <param.summary>Test build</param.summary>
+    <param.icon>${PROJECT_ROOT}/trackPartitionGUI_resources/icon_24.png</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}/trackPartitionGUI_resources/icon_48.png</file>
+      <file>${PROJECT_ROOT}/trackPartitionGUI_resources/icon_24.png</file>
+      <file>${PROJECT_ROOT}/trackPartitionGUI_resources/icon_16.png</file>
+    </param.icons>
+    <param.summary />
     <param.description />
     <param.screenshot>/home2/s169685/Desktop/Screenshot.png</param.screenshot>
-    <param.version>1.0</param.version>
+    <param.version>1.1</param.version>
     <param.products.name>
       <item>MATLAB</item>
       <item>Parallel Computing Toolbox</item>
@@ -26,10 +30,8 @@
     <param.output>/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition</param.output>
     <param.guid>651610ba-b949-4486-9c91-ced3b23c8bf6</param.guid>
     <unset>
-      <param.icon />
-      <param.icons />
+      <param.summary />
       <param.description />
-      <param.version />
       <param.platforms />
       <param.output />
     </unset>
@@ -37,14 +39,30 @@
       <file>${PROJECT_ROOT}/trackPartitionGUI.mlapp</file>
     </fileset.main>
     <fileset.depfun />
-    <fileset.resources />
+    <fileset.resources>
+      <file>${PROJECT_ROOT}/Contents.m</file>
+      <file>${PROJECT_ROOT}/TrackPartitionProcess.m</file>
+      <file>${PROJECT_ROOT}/constantSizeMasking.m</file>
+      <file>${PROJECT_ROOT}/cutTracks.m</file>
+      <file>${PROJECT_ROOT}/gapInterp.m</file>
+      <file>${PROJECT_ROOT}/gaussianMasking.m</file>
+      <file>${PROJECT_ROOT}/mergeShortTracks.m</file>
+      <file>${PROJECT_ROOT}/plotTracksPart.m</file>
+      <file>${PROJECT_ROOT}/plotTracksPartGUIWrapper.m</file>
+      <file>${PROJECT_ROOT}/trackPartition.m</file>
+      <file>${PROJECT_ROOT}/trackPartitionGUIHelp</file>
+      <file>${PROJECT_ROOT}/trackPartitionInit.m</file>
+      <file>${PROJECT_ROOT}/trackPartitionInner.m</file>
+      <file>${PROJECT_ROOT}/trackPartitionWrapper.m</file>
+      <file>${PROJECT_ROOT}/trackScalar.m</file>
+    </fileset.resources>
     <fileset.package />
     <build-deliverables>
       <file location="/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1" name="trackPartition" optional="false">/home2/s169685/Documents/MATLAB/applications/receptors/vegf_tsp1/trackPartition</file>
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>/project/apps_new/MATLAB/R2016a</root>
+      <root>/apps/MATLAB/R2016a</root>
       <toolboxes />
     </matlab>
     <platform>
@@ -56,7 +74,7 @@
       <vista>false</vista>
       <linux>true</linux>
       <solaris>false</solaris>
-      <osver>2.6.32-642.el6.x86_64</osver>
+      <osver>2.6.32-279.el6.x86_64</osver>
       <os32>false</os32>
       <os64>true</os64>
       <arch>glnxa64</arch>
