@@ -102,7 +102,16 @@ for j=1:movieData.nFrames_
     try
         maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
 %         mask = maskProc.loadChannelOutput(iPax,j);
-        mask = maskProc.loadChannelOutput(iPax,j); % 1 is CCP channel
+        % if there are masks for more than one channels, combine them.
+        
+        if length(maskProc.checkChannelOutput)>1
+            %Combine the the multiple masks to one
+            maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,j),find(maskProc.checkChannelOutput),'UniformOutput',false);
+            maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
+            mask = any(maskAll,3);
+        elseif length(iChans)==1
+            mask = maskProc.loadChannelOutput(iPax,j); % 1 is CCP channel
+        end
     catch
         mask = movieData.roiMask;
         noMask=true;
@@ -142,12 +151,13 @@ for j=1:movieData.nFrames_
         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
     end
     pstruct = pointSourceDetection(I, psfSigma,  ...
-        'Alpha',0.05,'Mask',ultimateMask);
+        'Alpha',0.00001,'Mask',ultimateMask);
         % filter out points where overall intensity is in the noise level
-    pixelIntenMargin = I(~mask);
-    maxIntBg=quantile(pixelIntenMargin,0.99);
-    psInt = pstruct.A+pstruct.c;
-    idxSigCCP = psInt>maxIntBg;
+%     pixelIntenMargin = I(~mask);
+%     maxIntBg=quantile(pixelIntenMargin,0.9999);
+%     psInt = pstruct.A+pstruct.c;
+%     idxSigCCP = psInt>maxIntBg;
+    idxSigCCP = pstruct.A>0;
 
     nascentAdhInfo(j).xCoord = [round(pstruct.x(idxSigCCP)'), round(pstruct.x_pstd(idxSigCCP)')];
     nascentAdhInfo(j).yCoord = [round(pstruct.y(idxSigCCP)'), round(pstruct.y_pstd(idxSigCCP)')];

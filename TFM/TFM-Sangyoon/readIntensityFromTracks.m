@@ -330,7 +330,7 @@ for k=1:numTracks
     elseif extrapolState
         disp('Please choose 1 or 2 for attribute.')
     end
-    progressText(k/(numTracks),'Re-reading and tracking individual tracks:');
+    progressText(k/(numTracks));
 %     parfor_progress;
 end
 end

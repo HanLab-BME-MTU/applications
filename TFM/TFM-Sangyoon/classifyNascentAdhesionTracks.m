@@ -12,20 +12,27 @@ function [idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup
 ip =inputParser;
 ip.addRequired('pathForColocalization',@ischar)
 ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
+ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
+ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
+ip.addParamValue('iChanSlave',[],@isscalar); % This is the master channle index.
 ip.parse(pathForColocalization,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
-
+MD=ip.Results.movieData;
+iChan=ip.Results.iChan;
+iChanSlave=ip.Results.iChanSlave;
 %% Load processed data
 disp('Loading raw files ...')
 tic
-coloPath = fileparts(pathForColocalization);
-MDPath = fileparts(coloPath);
-MDfilePath = [MDPath filesep 'movieData.mat'];
-MD = load(MDfilePath,'MD');
-MD = MD.MD;
+if isempty(MD)
+    coloPath = fileparts(pathForColocalization);
+    MDPath = fileparts(coloPath);
+    MDfilePath = [MDPath filesep 'movieData.mat'];
+    MD = load(MDfilePath,'MD');
+    MD = MD.MD;
+end
 nFrames=MD.nFrames_;
-iChan=2;
+
 
 if isempty(tracksNA)
     tracksNA = load([pathForColocalization filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
@@ -46,19 +53,23 @@ catch
     end
     imgMap = paxImgStack;
 end
-try
-    tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
-    tMap = tMap.tMap;
-catch
-    TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
-    forceProc =TFMpackage.processes_{4};
-%     forceField = forceProc.loadChannelOutput;
-    tMap = load(forceProc.outFilePaths_{2});
-    tMap = tMap.tMap;
-end
+% try
+%     tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
+%     tMap = tMap.tMap;
+% catch
+%     TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
+%     forceProc =TFMpackage.processes_{4};
+% %     forceField = forceProc.loadChannelOutput;
+%     tMap = load(forceProc.outFilePaths_{2});
+%     tMap = tMap.tMap;
+% end
 outputPath = [pathForColocalization filesep 'trackAnalysis'];
 if ~exist(outputPath,'dir')
     mkdir(outputPath);
+end
+dataPath = [pathForColocalization filesep 'data'];
+if ~exist(dataPath,'dir')
+    mkdir(dataPath);
 end
 numFrames = size(imgMap,3);
 startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA)));
@@ -322,7 +333,7 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         end
         fh2.CurrentAxes.Color=[0 0 0];
         fh2.CurrentAxes.Visible='off';
-        [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'trainedData',T);
+        [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'trainedData',T,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
 %         idTracks = [idTracks idTracksAdditional];
 %         iGroup = [iGroup iGroupAdditional];
         [idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,...
@@ -336,7 +347,7 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         display('Click tracks that belong to each group ...')
     %     newTracksNA=tracksNA(~idxMatureNAs);
     %     idNAs = find(~idxMatureNAs);
-        [idTracks, iGroup] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA);
+        [idTracks, iGroup] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
         [idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,...
             idGroup7Selected,idGroup8Selected,idGroup9Selected] = ...
             sortIDTracks(idTracks,iGroup);

@@ -671,7 +671,10 @@ if strcmpi(p.method,'FastBEM')
         % 09/08/2015
         % First, get the maxima for each force node from M
         forceNodeMaxima = max(M);
-        forceConfidence.pos = forceMesh.p;
+%             [neigh,bounds,bdPtsID]=findNeighAndBds(p,t);
+%         forceConfidence.pos = forceMesh.p;
+        cellPosition = arrayfun(@(x) x.node, forceMesh.basis,'UniformOutput',false);
+        forceConfidence.pos = cell2mat(cellPosition');
         forceConfidence.vec = reshape(forceNodeMaxima,[],2);
         % Make it relative
         maxCfd = max(forceNodeMaxima);
@@ -776,7 +779,7 @@ tic
 display(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
 toc
 if strcmpi(p.method,'FastBEM')
-    [fCfdMapIn, fCmax, fCmin] = generateHeatmapShifted(forceConfidence,displField,0);
+    [fCfdMapIn, fCmax, fCmin, cropInfoFC] = generateHeatmapShifted(forceConfidence,displField,0);
     fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
 end
 % display(['Displacement error minimum = ' num2str(dEmax) ' pixel.'])
@@ -818,7 +821,7 @@ for ii=frameSequence
     tMapY{ii} = cur_tMapY;
     if ii==1 && strcmpi(p.method,'FastBEM')
         cur_fCfdMap = zeros(size(firstMask));
-        cur_fCfdMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = fCfdMapIn{ii};
+        cur_fCfdMap(cropInfoFC(2):cropInfoFC(4),cropInfoFC(1):cropInfoFC(3)) = fCfdMapIn{ii};
         fCfdMap = cur_fCfdMap;
     end     
 %     distBeadMap{ii} = cur_distBeadMap;
