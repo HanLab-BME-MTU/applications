@@ -84,13 +84,13 @@ params = ip.Results;
 nFrames = movieData.nFrames_;
 nChan = numel(params.ChannelIndex);
 imSize = movieData.imSize_;
-
+channels = params.ChannelIndex; 
 
 %% Start Wrapper
-for iCh = 1:numel(params.ChannelIndex)
+for iCh = 1:nChan
     
     
-    display(['Fitting Filopodia for Channel ' num2str(iCh)]);
+    display(['Fitting Filopodia for Channel ' num2str(channels(iCh))]);
     
 
     
@@ -99,24 +99,23 @@ for iCh = 1:numel(params.ChannelIndex)
     
     
     % make final output dir where backboneInfo will be saved
-    outDirC =  [ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh)];
-    inDirC = [ip.Results.InputDirectory filesep 'Channel_' num2str(iCh)]; 
+    outDirC =  [ip.Results.OutputDirectory filesep 'Channel_' num2str(channels(iCh))];
+    inDirC = [ip.Results.InputDirectory filesep 'Channel_' num2str(channels(iCh))]; 
     
     if ~isdir(outDirC)
         mkdir(outDirC);
     end
     
-    if params.ProcessIndex == 0
-        imgDir =  movieData.channels_(params.ChannelIndex).channelPath_; % currently mainly needed if you do the local thresholding/ otherwise just overlay
-    else
-        imgDir = movieData.proccesses_(params.ProcessIndex).outFilePaths_{params.ChannelIndex};
-    end
+%     if params.ProcessIndex == 0
+%         imgDir =  movieData.channels_(channels(iCh)).channelPath_; % currently mainly needed if you do the local thresholding/ otherwise just overlay
+%     else
+%         imgDir = movieData.proccesses_(params.ProcessIndex).outFilePaths_{params.ChannelIndex};
+%     end
     
     % collect images and initiate
     %[listOfImages] = searchFiles('.tif',[],imgDir ,0);
     
-    
-    
+   
 %% Get Restart Information 
 % Check for a fit file and load if exists 
     fitFile = [outDirC filesep 'filoBranch.mat'];
@@ -168,7 +167,7 @@ for iCh = 1:numel(params.ChannelIndex)
     for iFrame = startFrame:endFrame
         % get the filoInfo for the current frame
         filoInfo = filoBranch(iFrame).filoInfo;
-        imgPath = [movieData.getChannelPaths{params.ChannelIndex(iCh)} filesep movieData.getImageFileNames{params.ChannelIndex(iCh)}{iFrame}];
+        imgPath = [movieData.getChannelPaths{(channels(iCh))} filesep movieData.getImageFileNames{(channels(iCh))}{iFrame}];
         img = double(imread(imgPath));
         % make a specific output directory for the plotting for each frame
 %         pSpecific = p;
@@ -193,10 +192,10 @@ for iCh = 1:numel(params.ChannelIndex)
         
         % rewrite the filoInfo with the extra filo Info fields.
         filoBranch(iFrame).filoInfo = filoInfo;
-        display(['Finished Fitting Filopodia for  Channel ' num2str(params.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]);
+        display(['Finished Fitting Filopodia for  Channel ' num2str((channels(iCh))) 'Frame ' num2str(iFrame)]);
         filoBranch(iFrame).reconstructInfo.createTimeFiloFit = clock;
-        hashTag = gcaArchiveGetGitHashTag;
-        filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
+        %hashTag = gcaArchiveGetGitHashTag;
+        %filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
         p(iFrame) = params; 
         save([outDirC filesep 'filoBranch.mat'],'filoBranch','-v7.3')
         save([outDirC filesep 'params.mat'],'p'); 
