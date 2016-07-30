@@ -84,10 +84,10 @@ for j = 1:nSegments
     % Pad the beginning and end with zeros where the track does not
     % exist
     if segStartInd ~= 1
-        intersectionTemp(1:segStartInd) = 0;
+        intersectionTemp(1:segStartInd-1) = 0;
     end
     if segEndInd ~= lengthTrack
-        intersectionTemp(segEndInd:end) = 0;
+        intersectionTemp(segEndInd+1:end) = 0;
     end
 
     % Merge short tracks

@@ -62,7 +62,7 @@ for f = frameStart:frameEnd
     [maskSubFrame(:,2),maskSubFrame(:,1)] = ind2sub(imSize,maskInd);
     maskSub{f} = [maskSubFrame,f*ones(numel(maskInd),1)]; % [x(:),y(:),t]
 end
-maskSub = cell2mat(maskSub);
+maskSub = int8(cell2mat(maskSub));
 
 % Create a TracksHandle object from the input track struct (thanks, Mark)
 tracksObj = TracksHandle(tracksInput);
@@ -76,14 +76,18 @@ frameIntersections = parcellfun_progress(@(xCoords,yCoords,startFrames,...
     segStartFrames,segEndFrames,maskSub,minTrackLength),...
     xCoords,yCoords,startFrames,endFrames,segStartFrames,segEndFrames,...
     'UniformOutput',false);
+% pool = gcp;
+% job = batch(@run.runFunction,1,{xCoords,yCoords,startFrames,endFrames,segStartFrames,segEndFrames,maskSub,minTrackLength});
+% wait(job,'finished');
+% frameIntersections = fetchOutputs(job);
+% delete(job);
+    
+
 
 % Cut up the compound tracks at each partition event, i.e. start a new
 % compound track whenever a particle enters or exits a masked area
 
 tracksPart = cutTracks(tracksInput,frameIntersections);
-% Transpose into an nx1 struct instead of 1xn (to match the dimensions of 
-% the input track struct)
-tracksPart = tracksPart';
 
 % Get rid of short compound tracks
 nCompoundTracks = numel(tracksPart);
@@ -94,6 +98,7 @@ for i = 1:nCompoundTracks
     end
 end
 tracksPart = tracksPart(tracksGood);
+tracksPart = tracksPart';
 end
 
 function [xCoords,yCoords,startFrames,endFrames,segStartFrames,...
@@ -107,8 +112,8 @@ segStartFrames = cell(nTracks,1);
 segEndFrames = cell(nTracks,1);
 
 for i = 1:nTracks
-    xCoords{i} = trackObj(i).x;
-    yCoords{i} = trackObj(i).y;
+    xCoords{i} = int8(trackObj(i).x);
+    yCoords{i} = int8(trackObj(i).y);
     startFrames{i} = trackObj(i).startFrame;
     endFrames{i} = trackObj(i).endFrame;
     segStartFrames{i} = trackObj(i).segmentStartFrame;
