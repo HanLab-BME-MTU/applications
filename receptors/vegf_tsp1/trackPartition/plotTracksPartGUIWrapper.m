@@ -7,16 +7,16 @@ maskChannel = process.maskChannel_;
 maskMDPath = process.maskMovieDataPath_;
 maskMDFileName = process.maskMovieDataFileName_;
 
-% Load mask MD
-maskMD = load([maskMDPath,filesep,maskMDFileName]);
-maskMD = maskMD.MD;
-
 % Get partitioned tracks
 output = load(process.outFilePaths_{trackChannel});
 tracks = output.tracksPart;
 diffAnalysisRes = output.diffAnalysisRes;
 
 if options.showImage
+    % Load mask MD
+    maskMD = load([maskMDPath,filesep,maskMDFileName]);
+    maskMD = maskMD.MD;
+
     % Load the image
     trackChannelInfo = trackMD.channels_(trackChannel);
     trackImage = imread(trackChannelInfo.channelPath_);
@@ -75,6 +75,20 @@ if options.showImage
     end
 else
     I = [];
+end
+
+if options.showMask
+    maskFile = process.mask_;
+    mask = load(maskFile);
+    mask = mask.mask(:,:,1);
+    % downscale mask to original image size
+    % Load mask MD
+    maskMD = load([maskMDPath,filesep,maskMDFileName]);
+    maskMD = maskMD.MD;
+    imSize = maskMD.imSize_;
+    maskSize = size(mask);
+    upscale = round(maskSize(1)/imSize(1));
+    I = imresize(mask,1/upscale);
 end
 
 timeRange = options.timeRange;

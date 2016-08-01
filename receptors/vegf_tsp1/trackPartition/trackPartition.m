@@ -62,7 +62,7 @@ for f = frameStart:frameEnd
     [maskSubFrame(:,2),maskSubFrame(:,1)] = ind2sub(imSize,maskInd);
     maskSub{f} = [maskSubFrame,f*ones(numel(maskInd),1)]; % [x(:),y(:),t]
 end
-maskSub = int8(cell2mat(maskSub));
+maskSub = int16(cell2mat(maskSub));
 
 % Create a TracksHandle object from the input track struct (thanks, Mark)
 tracksObj = TracksHandle(tracksInput);
@@ -98,7 +98,7 @@ for i = 1:nCompoundTracks
     end
 end
 tracksPart = tracksPart(tracksGood);
-tracksPart = tracksPart';
+tracksPart = trackPart(:); % make sure it's n x 1
 end
 
 function [xCoords,yCoords,startFrames,endFrames,segStartFrames,...
@@ -112,8 +112,8 @@ segStartFrames = cell(nTracks,1);
 segEndFrames = cell(nTracks,1);
 
 for i = 1:nTracks
-    xCoords{i} = int8(trackObj(i).x);
-    yCoords{i} = int8(trackObj(i).y);
+    xCoords{i} = int16(trackObj(i).x);
+    yCoords{i} = int16(trackObj(i).y);
     startFrames{i} = trackObj(i).startFrame;
     endFrames{i} = trackObj(i).endFrame;
     segStartFrames{i} = trackObj(i).segmentStartFrame;

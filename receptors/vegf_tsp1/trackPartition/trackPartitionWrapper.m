@@ -12,6 +12,7 @@ maskMDFileName = obj.maskMovieDataFileName_;
 params = obj.funParams_;
 trackChannel = obj.trackChannel_;
 maskChannel = obj.maskChannel_;
+outFilePath = obj.outFilePaths_;
 
 % Load mask MD
 maskMD = load([maskMDPath,filesep,maskMDFileName]);
@@ -28,8 +29,10 @@ tracks = tracks.tracksFinal;
 % If using existing mask
 if params.useExistingMask
     % Check if one exists
-    mask = MD.processes_{MD.getProcessIndex('TrackPartitionProcess')}.mask_;
-    if ~isempty(mask)
+    maskFile = MD.processes_{MD.getProcessIndex('TrackPartitionProcess')}.mask_;
+    if ~isempty(maskFile)
+        mask = load(maskFile);
+        mask = mask.mask;
         % Check the upscale factor
         upscale = size(mask,1)/maskMD.imSize_(1);
         assert(mod(upscale,1) == 0,'The mask is not the same size as or a multiple of the size of the image')
@@ -47,7 +50,10 @@ else
 end
 
 % Save mask
-obj.mask_ = mask;
+[maskPath,~,~] = fileparts(outFilePath{trackChannel});
+maskPath = [maskPath,filesep,'partitionMask.mat'];
+save(maskPath,'mask');
+obj.mask_ = maskPath;
 
 tracksPartTemp = trackPartition(tracks,mask,params.minTrackLength,...
     params.analysisStart,params.analysisEnd);
@@ -80,7 +86,6 @@ if params.runDiffAnalysis == true
 end
 
 % Save
-outFilePath = obj.outFilePaths_;
 if params.runDiffAnalysis == true
     save(outFilePath{trackChannel},'tracksPart','info','diffAnalysisRes');
 else

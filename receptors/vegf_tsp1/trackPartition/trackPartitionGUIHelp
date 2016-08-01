@@ -34,6 +34,7 @@ Colors are the same as in plotTracksDiffAnalysis2D (this is basically a ripoff o
 	*Simplify Linear Groups: Same as in plotTracksDiffAnalysis2D. "All" makes all linear groups red. "+Random & Superdiffusive" makes all linear groups and random & superdiffusive groups red.
 	*Plot Subset: Show "All" tracks or a subset of only "Inside" or "Outside" tracks. 
 
+To create box plots of aggregated diffusion analysis results, run partitionComparison.
 
 
 

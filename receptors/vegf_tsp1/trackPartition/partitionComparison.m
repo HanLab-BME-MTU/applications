@@ -1,42 +1,71 @@
 function out = partitionComparison(varargin)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+%PARTITIONCOMPARISON Aggregate diffusion analysis and merge/split
+%information from all partitioned tracks in a ML or CML and plot the
+%results. If run with no arguments, the function will prompt the user to
+%select ML/CMLs, input condition names, and select an output directory for
+%saving plots and aggregated data.
+%   
 % Inputs: string name of condition 1, path to CML1, string name of condition 2,
 % path to CML2, ...
+% User will be prompted to select an output directory.
 
 % Collect input MovieLists into one cell array
 % Each cell of this array contains a cell array of information from the
 % movies under each condition
-MDInfo = cell(1,nargin/2);
-conditions = cell(1,nargin/2);
+CML = {};
+conditions = {};
+if (nargin == 0) || (mod(nargin,2) ~= 0)
+    [file,path] = uigetfile('*.mat','Select a CML for condition 1');
+    if file == 0
+        error('No CML selected')
+    end
+    cond = inputdlg('Name condition 1:');
+    CML = [CML,{[path,file]}];
+    conditions = [conditions,cond];
+    while file ~= 0
+        condNum = numel(CML);
+        [file,path] = uigetfile('*.mat',sprintf('Select a CML for condition %g',condNum+1));
+        if file ~= 0
+            cond = inputdlg(sprintf('Name condition %g:',condNum+1));
+            CML = [CML,{[path,file]}];
+            conditions = [conditions,cond];
+        end
+    end     
+else
+    CML = varargin(2*(1:nargin/2));
+    conditions = varargin(2*(1:nargin/2)-1);
+end
 
 outDir = uigetdir('','Select directory for saving plots');
 
-for i = 1:nargin/2
-    conditions{i} = varargin{2*i-1};
-    file = load(varargin{2*i});
-    if isfield(file,'CML')
-        MDInfo{i} = loadCML(file.CML);
-    elseif isfield(file,'ML')
-        MDInfo{i} = loadML(file.ML);
-    else
-        error('Input %g is not a valid ML or CML path',i)
-    end
+MDInfo = cell(1,numel(CML));
+for i = 1:numel(CML)
+        file = load(CML{i});
+        if isfield(file,'CML')
+            MDInfo{i} = loadCML(file.CML);
+        elseif isfield(file,'ML')
+            MDInfo{i} = loadML(file.ML);
+        else
+            error('Input %g is not a valid ML or CML path',i)
+        end
 end
 
-out = cell(1,nargin/2);
-for i = 1:nargin/2
-    out{i} = parcellfun_progress(@getInfo,MDInfo{i}');
+out = cell(1,numel(CML));
+for i = 1:numel(CML)
+    [out{i},insidePrePost{i}] = parcellfun_progress(@getInfo,MDInfo{i}','UniformOutput',false);
+    out{i} = cell2mat(out{i});
 end
 
+save([outDir,filesep,'partitionComparison.mat'],'out','insidePrePost')
 plotComparisonInfo(out,conditions,outDir);
-
 end
 
 function MDInfo = loadML(ML)
+% Load track partition results from all MDs in a ML into a cell array
+
 nMD = numel(ML.movieDataFile_);
-MDInfo = cell(1,nMD);
-valid = ones(1,nMD);
+MDInfo = cell(nMD,1);
+valid = ones(nMD,1);
 for i = 1:nMD
     file = load(ML.movieDataFile_{i});
     if file.MD.getProcessIndex('TrackPartitionProcess') > 0
@@ -52,19 +81,24 @@ for i = 1:nMD
 end
 % Use only MDs with TrackPartitionProcess
 MDInfo = MDInfo(find(valid));
+% Make sure it's a column
+MDInfo = MDInfo(:);
 end
 
 function MDInfo = loadCML(CML)
+% Load track partition results from all MDs in a CML into a cell array
 nML = numel(CML.movieListDirectory_);
 MDInfo = {};
 for i = 1:nML
     file = load(CML.movieListDirectory_{i});
     trackInfoTemp = loadML(file.ML);
-    MDInfo = [MDInfo,trackInfoTemp];
+    MDInfo = [MDInfo;trackInfoTemp];
 end
 end
 
-function out = getInfo(MDInfo)
+function [out,insidePrePost] = getInfo(MDInfo)
+% Aggregate the diffusion analysis info from all the MDs
+
 isInside = arrayfun(@(x) x.isInside,MDInfo.tracks);
 isOutside = ~isInside;
 tracksInside = MDInfo.tracks(isInside);
@@ -73,29 +107,32 @@ diffInside = MDInfo.diffAnalysisRes(isInside);
 diffOutside = MDInfo.diffAnalysisRes(isOutside);
 
 seqInside = arrayfun(@(x) x.seqOfEvents,tracksInside,'UniformOutput',false);
-seqInsideMat = cell2mat(seqInside);
+seqInsideMat = cell2mat(seqInside(:));
 seqOutside = arrayfun(@(x) x.seqOfEvents,tracksOutside,'UniformOutput',false);
-seqOutsideMat = cell2mat(seqOutside);
+seqOutsideMat = cell2mat(seqOutside(:));
 
 % Count all tracks (including those inside compound tracks)
 nInside = size(seqInsideMat,1)/2;
 nOutside = size(seqOutsideMat,1)/2;
 nTracks = nInside+nOutside;
 
+% In case there are no inside tracks, create an empty seqOfEvents
 if isempty(seqInsideMat)
     seqInsideMat = [0 0 0 0];
     nInside = 0;
 end
 
-mergeInside = sum((seqInsideMat(:,2) == 1)&(~isnan(seqInsideMat(:,4)))); % need to stop trackPartition from get rid of short merge/splits 
-splitInside = sum((seqInsideMat(:,2) == 2)&(~isnan(seqInsideMat(:,4))));
-mergeOutside = sum((seqInsideMat(:,2) == 1)&(~isnan(seqInsideMat(:,4)))); 
-splitOutside = sum((seqInsideMat(:,2) == 2)&(~isnan(seqInsideMat(:,4))));
+% Count merges and splits
+mergeInside = sum((seqInsideMat(:,2) == 2)&(~isnan(seqInsideMat(:,4)))); 
+splitInside = sum((seqInsideMat(:,2) == 1)&(~isnan(seqInsideMat(:,4))));
+mergeOutside = sum((seqOutsideMat(:,2) == 2)&(~isnan(seqOutsideMat(:,4)))); 
+splitOutside = sum((seqOutsideMat(:,2) == 1)&(~isnan(seqOutsideMat(:,4))));
 fracMergeInside = mergeInside/nInside;
 fracSplitInside = splitInside/nInside;
 fracMergeOutside = mergeOutside/nOutside;
 fracSplitOutside = splitOutside/nOutside;
 
+% Find mean length of tracks
 lengthInside = zeros(nInside,1);
 for i = 1:numel(tracksInside)
     lengthInside(i) = numel(tracksInside(i).tracksFeatIndxCG);
@@ -112,6 +149,7 @@ totalLengthOutside = sum(lengthOutside);
 meanLengthOutside = mean(lengthOutside);
 longestOutside = max(lengthOutside);
 
+% Concatenate the diffusion analysis results into big matrices
 diffInsideCell = struct2cell(diffInside)';
 diffInsideMat = cell2mat(diffInsideCell(:,1));
 diffOutsideCell = struct2cell(diffOutside)';
@@ -124,8 +162,8 @@ if numel(diffOutsideMat) == 0
     diffOutsideMat = [0,0,0];
 end
 
-% take out nans first, then mean
-
+% Find the proportion of tracks in each classification, omitting tracks
+% with NaN values (unclassified)
 asymmetricInside = mean(nonan(diffInsideMat(:,1)) == 1);
 notAsymmetricInside = mean(nonan(diffInsideMat(:,1)) == 0);
 immobileFullInside = mean(nonan(diffInsideMat(:,2)) == 0);
@@ -136,6 +174,8 @@ immobileOneInside = mean(nonan(diffInsideMat(:,3)) == 0);
 confinedOneInside = mean(nonan(diffInsideMat(:,3)) == 1);
 brownianOneInside = mean(nonan(diffInsideMat(:,3)) == 2);
 directedOneInside = mean(nonan(diffInsideMat(:,3)) == 3);
+% Number of tracks that were actually able to be classified (don't have NaN
+% values)
 asymmetricInsideN = numel(nonan(diffInsideMat(:,1)) == 1);
 notAsymmetricInsideN = numel(nonan(diffInsideMat(:,1)));
 immobileFullInsideN = numel(nonan(diffInsideMat(:,2)));
@@ -158,6 +198,7 @@ confinedOneOutside = mean(nonan(diffOutsideMat(:,3)) == 1);
 brownianOneOutside = mean(nonan(diffOutsideMat(:,3)) == 2);
 directedOneOutside = mean(nonan(diffOutsideMat(:,3)) == 3);
 asymmetricOutsideN = numel(nonan(diffOutsideMat(:,1)) == 1);
+
 notAsymmetricOutsideN = numel(nonan(diffOutsideMat(:,1)));
 immobileFullOutsideN = numel(nonan(diffOutsideMat(:,2)));
 confinedFullOutsideN = numel(nonan(diffOutsideMat(:,2)));
@@ -168,6 +209,7 @@ confinedOneOutsideN = numel(nonan(diffOutsideMat(:,3)));
 brownianOneOutsideN = numel(nonan(diffOutsideMat(:,3)));
 directedOneOutsideN = numel(nonan(diffOutsideMat(:,3)));
 
+% Compute means of these MSS results, omitting NaN values
 mssSlopeFullInside = nanmean(cell2mat(arrayfun(@(x) x.fullDim.mssSlope,diffInside,'UniformOutput',false)));
 genDiffCoefFullInside = nanmean(cell2mat(arrayfun(@(x) x.fullDim.genDiffCoef,diffInside,'UniformOutput',false)));
 scalingPowerFullInside = nanmean(cell2mat(arrayfun(@(x) x.fullDim.scalingPower,diffInside,'UniformOutput',false)));
@@ -189,23 +231,39 @@ normDiffCoefOneOutside = nanmean(cell2mat(arrayfun(@(x) x.oneDim.normDiffCoef,di
 confRadiusOutside = nanmean(cell2mat(arrayfun(@(x) x.confRadInfo.confRadius,diffOutside,'UniformOutput',false)));
 
 % Get tracks that occur pre or post-inside tracks
+% First, get origin track numbers (the index of the original,
+% un-partitioned tracks within their track struct)
 trackOrigins = arrayfun(@(x) x.originCompoundTrack,MDInfo.tracks);
 insideInd = find(isInside);
 pre = [];
 post = [];
+% Save as output variable in this struct:
+insidePrePost = struct('insideTrack',[],'insideTrackDiff',[],'preTrack',[],...
+    'preTrackDiff',[],'postTrack',[],'postTrackDiff',[]);
 for i = 1:numel(insideInd)
     ind = insideInd(i); % index of this track within the entire track struct
     origin = MDInfo.tracks(ind).originCompoundTrack;
-    siblings = find(trackOrigins == origin); % find other tracks with same origin
+    siblings = find(trackOrigins == origin); % find indices of other tracks with same origin
     siblingsPre = siblings(siblings < ind); % find sibling tracks before this track
     siblingsPost = siblings(siblings > ind); % find sibling tracks after this track
     
     pre = [pre,siblingsPre(:)'];
     post = [post,siblingsPost(:)'];
+    
+    insidePrePost(i).insideTrack = MDInfo.tracks(ind);
+    insidePrePost(i).insideTrackDiff = MDInfo.diffAnalysisRes(ind);
+    insidePrePost(i).preTrack = MDInfo.tracks(siblingsPre);
+    insidePrePost(i).preTrackDiff = MDInfo.diffAnalysisRes(siblingsPre);
+    insidePrePost(i).postTrack = MDInfo.tracks(siblingsPost);
+    insidePrePost(i).postTrackDiff = MDInfo.diffAnalysisRes(siblingsPost);
+    
 end
 
-diffPre = MDInfo.diffAnalysisRes([pre]);
-diffPost = MDInfo.diffAnalysisRes([post]);
+% Make sure this is a column
+insidePrePost = insidePrePost(:);
+
+diffPre = MDInfo.diffAnalysisRes(pre);
+diffPost = MDInfo.diffAnalysisRes(post);
 
 if isempty(diffPre)
     diffPreMat = [NaN,NaN,NaN,NaN];
