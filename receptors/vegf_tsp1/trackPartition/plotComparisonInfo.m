@@ -62,6 +62,15 @@ if isempty(data)
 end
 figure;
 boxplot(data,group,'LabelOrientation','inline','Notch','on','Colors','mb')
+h = findobj(gca,'Tag','Box');
+for j=1:length(h)
+    if mod(j,2) == 0
+        color = 'm';
+    else
+        color = 'b';
+    end
+    patch(get(h(j),'XData'),get(h(j),'YData'),'y','FaceAlpha',.5,'FaceColor',color);
+end
 title(plotTitle)
 if showN
     for i = 1:numel(n)
