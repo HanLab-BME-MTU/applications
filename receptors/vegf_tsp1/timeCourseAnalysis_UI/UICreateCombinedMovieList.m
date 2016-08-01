@@ -23,7 +23,7 @@ while ~isnumeric(fileName)
     else
         ML_FullPath{end+1} = [filePath fileName];
     end
-    [fileName, filePath] = uigetfile('*.mat', 'Select MovieLists', 'MultiSelect', 'on');
+    [fileName, filePath] = uigetfile([filePath,'*.mat'], 'Select MovieLists', 'MultiSelect', 'on');
 end
 %Parameter prompt
 align_StringList = {'start', 'compound_added', 'VEGF_added'};
