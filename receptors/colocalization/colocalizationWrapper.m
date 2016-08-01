@@ -58,9 +58,18 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
     maskNames = cell(1,nChanThresh);
     
     %Define which process was masking process?
-    iM = movieData.getProcessIndex('MaskProcess',Inf,0);
-    inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
-    maskNames = movieData.processes_{iM}.getOutMaskFileNames(p.ChannelMask);
+    try
+        iM = movieData.getProcessIndex('MaskProcess',Inf,0); 
+        inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
+        maskNames = movieData.processes_{iM}.getOutMaskFileNames(p.ChannelMask);
+    catch
+        % Try to use imported cell mask if no MaskProcess, Kevin Nguyen 7/2016
+        iM = movieData.getProcessIndex('ImportCellMaskProcess',Inf,0); 
+        inMaskDir = movieData.processes_{iM}.outFilePaths_{p.ChannelMask}; 
+        inMaskDir = fileparts(inMaskDir);
+        inMaskDir = {inMaskDir}; % Below requires a cell
+        maskNames = {{['cellMask_channel_',num2str(p.ChannelMask),'.tif']}}; 
+    end
     
     if p.MethodIndx ~= 3
     %load ref detection data
