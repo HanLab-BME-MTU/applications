@@ -17,7 +17,8 @@ ip.addParameter('clearOldFields',false);
 ip.addParameter('splitMovie',false);
 ip.addParameter('splitFrame', 62);  % last frame you want to include
 ip.addParameter('OutputDirectory',pwd);
-ip.addParameter('MeasurementFolder','SegmentationPackage/StepsToReconstructTestingGeometry20160205/GCAMeasurementExtraction_test20160221/WholeNeurite'); 
+%ip.addParameter('MeasurementFolder','SegmentationPackage/StepsToReconstructTestingGeometry20160205/GCAMeasurementExtraction_test20160221/WholeNeurite'); 
+ip.addParameter('MeasurementFolder','SegmentationPackage/StepsToReconstructTestBugFix20160426/GCAMeasurementExtraction_test20160510/WholeNeurite'); 
 ip.addParameter('perFrame',false); % will collect the median value per frame 
 
 ip.addParameter('filterOutlierBranchParameters',false); 
@@ -75,15 +76,15 @@ for iGroup = 1:nGroups
         % read in each Descriptor directory to keep constant.
         
         % search all descriptor parameters.
-        localParamFiles = searchFiles('meas_',[],[parameterDir filesep 'Descriptor'],1);
-        
+        %localParamFiles = searchFiles('meas_',[],[parameterDir filesep 'Descriptor'],1);
+        localParamFiles = searchFiles('meas_',[],parameterDir,1);
         paramNamesC = cellfun(@(x) strrep(x,'meas_',''),localParamFiles(:,1),'uniformoutput',0);
         paramNamesC = cellfun(@(x) strrep(x,'.mat',''),paramNamesC,'uniformoutput',0);
-        idxOut1 = cellfun(@(x) strcmpi(x,'maxACFLagSpatial'),paramNamesC);
-        idxOut2 = cellfun(@(x) strcmpi(x,'ExpressionNormalization'),paramNamesC); 
-        paramNamesC(idxOut1 |idxOut2) = [];
-        localParamFiles(idxOut1|idxOut2,:) = [];
-        
+%         idxOut1 = cellfun(@(x) strcmpi(x,'maxACFLagSpatial'),paramNamesC);
+%         idxOut2 = cellfun(@(x) strcmpi(x,'ExpressionNormalization'),paramNamesC); 
+%         paramNamesC(idxOut1 |idxOut2) = [];
+%         localParamFiles(idxOut1|idxOut2,:) = [];
+%         
         for iParam = 1:numel(paramNamesC)
             
             % collect the data for each parameter.
