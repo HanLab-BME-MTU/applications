@@ -21,7 +21,7 @@ assert(length(f_c) == length(b_f),'orientationSpace.radialKernel:f_c and b_f mus
 f_c = shiftdim(f_c(:),-3);
 b_f = shiftdim(b_f(:),-3);
 
-coords = getFrequencySpaceCoordinates(N);
+coords = orientationSpace.getFrequencySpaceCoordinates(N);
 
 %% Radial part
 % compute radial order, f_c = sqrt(K_f * b_f^2)
