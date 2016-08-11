@@ -91,27 +91,11 @@ function [ scale, orientation, scaleV, orientationV, orientationAtMaxScale ] = f
             cmask = reshape(cumsum(mask(:)),size(mask));
         end
         % Initialize orientationScaleSpace
-%         tic;
-%         orientationScaleSpace = zeros(nAngles,npts,nMaskPx);
-%         for f = 1:npts
-%             R = F(f)*I;
-%             A = permute(R.a,[3 4 1 2]);
-%             % Collapse spatial dimensions using mask
-%             orientationScaleSpace(:,f,:) = A(:,1,mask);
-%         end
-%         toc
-%         orientationScaleSpaceOld = orientationScaleSpace;
-
-        
-%         tic;
         R = F*I;
         orientationScaleSpace = permute(R.getArraySpace,[3 4 1 2]);
         orientationScaleSpace = orientationScaleSpace(:,:,mask);
-%         toc
-%         assertEqual(orientationScaleSpaceOld,orientationScaleSpace);
         clear F R A
         for t=1:nTiles
-%             orientationScaleSubSpace = orientationScaleSpace(:,:,(1+(t-1)*tileSize):min(end,t*tileSize));
             tileMask = mask & cmask > (t-1)*tileSize & cmask <= t*tileSize;
             
             % Find the best orientation at each discrete scale
@@ -130,18 +114,10 @@ function [ scale, orientation, scaleV, orientationV, orientationAtMaxScale ] = f
             [orientationMaxValue,idx] = max(orientationMaxValue);
             orientationMax = orientationMax(sub2ind(size(orientationMax),idx,1:size(orientationMax,2)));
             
-            % Previously, we rescanned the whole matrix to find the best
-            % scale
-%             [scaleMax,~,scaleMaxValue] = interpft_extrema(orientationScaleSubSpace(:,[end:-1:1 2:end-1],:),2,true);
-%             scaleMax = squeeze(scaleMax(:,1,:));
-%             scaleMaxValue = squeeze(scaleMaxValue(:,1,:));
-%             [scaleMaxValue,idx] = max(scaleMaxValue);
-%             scaleMax = scaleMax(sub2ind(size(scaleMax),idx,1:size(scaleMax,2)));
-
             % Map scale from Chebyshev-Lobatto grid on [-1 1] to interval
             % between scale pairs
             interval = scales(s+1) - scales(s);
-            scaleMax = cos(scaleMax)/2*interval+(1/2*interval)+scales(s);
+%             scaleMax = cos(scaleMax)/2*interval+(1/2*interval)+scales(s);
                        
             if(globalMaxScale)
                 isGreater = scaleMaxValue(:) > scaleV(tileMask);
@@ -149,30 +125,26 @@ function [ scale, orientation, scaleV, orientationV, orientationAtMaxScale ] = f
                 % Save the best orientation
                 orientation(tileMask) = orientationMax(isGreater);
                 orientationV(tileMask) = orientationMaxValue(isGreater);
+                % Interpolate scale to get the orientation
+                orientationAtMaxScale(:,tileMask) = orientationSpace.interpolateScale(orientationScaleSpace(:,:,isGreater),scaleMax(isGreater));
                 % Save the best scale
+                scaleMax = cos(scaleMax)/2*interval+(1/2*interval)+scales(s);
                 scale(tileMask) = scaleMax(isGreater);
                 scaleV(tileMask) = scaleMaxValue(isGreater);
-                orientationAtMaxScale(:,tileMask) = interpolateScale(orientationScaleSpace(:,:,isGreater),scaleMax(isGreater));
             else
                 % Save the best orientation
                 orientation(tileMask) = orientationMax;
                 orientationV(tileMask) = orientationMaxValue;
+                % Interpolate scale to get the orientation
+                orientationAtMaxScale(:,tileMask) = orientationSpace.interpolateScale(orientationScaleSpace,scaleMax);
                 % Save the best scale
+                scaleMax = cos(scaleMax)/2*interval+(1/2*interval)+scales(s);
                 scale(tileMask) = scaleMax;
                 scaleV(tileMask) = scaleMaxValue;
-                orientationAtMaxScale(:,tileMask) = interpolateScale(orientationScaleSpace,scaleMax);
                 % Mask the values that are at the achieve local max in the interval
                 mask(tileMask) = scaleMax == scales(s+1);
             end
         end
     end
     orientationAtMaxScale = permute(orientationAtMaxScale,[2 3 1]);
-end
-
-function orientationAtMaxScale = interpolateScale(orientationScaleSpace,scaleMax)
-%     parfor (px = 1:length(scaleMax) , ~isempty(gcp('nocreate'))*realmax)
-%         orientationAtMaxScale(:,px) = interpft1([0 2*pi],orientationScaleSpace(:,:,px)',scaleMax(px),'mmt',NaN);
-%     end
-    orientationAtMaxScale = interpft1([0 2*pi],permute(orientationScaleSpace,[2 1 3]),shiftdim(repmat(scaleMax,[size(orientationScaleSpace,1) 1]),-1),'horner',NaN);
-    orientationAtMaxScale = squeeze(orientationAtMaxScale);
 end
