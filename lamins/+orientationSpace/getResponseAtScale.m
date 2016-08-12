@@ -25,9 +25,9 @@ function [ orientationAtScale ] = getResponseAtScale( I, scale, angularOrder , n
 
     for s = 1:length(scales)-1
         if(s == length(scales) - 1)
-            inRange = maskedScale >= scales(s) & maskedScale <= scales(s+1);
+            inRange = scale >= scales(s) & scale <= scales(s+1);
         else
-            inRange = maskedScale >= scales(s) & maskedScale < scales(s+1);
+            inRange = scale >= scales(s) & scale < scales(s+1);
         end
         if(sum(inRange(:)) == 0)
             continue;
@@ -37,20 +37,18 @@ function [ orientationAtScale ] = getResponseAtScale( I, scale, angularOrder , n
         F = OrientationSpaceRidgeFilter(1./(2*pi)./chebpts(npts,scales([0 1]+s)),[],angularOrder);
         R = F*I;
         orientationScaleSpace = permute(R.getArraySpace,[3 4 1 2]);
-        orientationScaleSpace = orientationScaleSpace(:,:,mask);
         orientationScaleSpace = orientationScaleSpace(:,:,inRange);
 
         clear F R A
         interval = scales(s+1) - scales(s);
         % map to be within range [-interval/2 interval/2]
-        mappedScales = maskedScale(inRange) - scales(s) - interval/2;
+        mappedScales = scale(inRange) - scales(s) - interval/2;
         % map to be within range [-1 1]
         mappedScales = mappedScales/interval*2;
         % map to be [0 pi]
         mappedScales = acos(mappedScales);
         orientationAtScale(:,inRange) = orientationSpace.interpolateScale(orientationScaleSpace,mappedScales');
     end
-    orientationAtScale(:,mask) = orientationAtScale(:,1:sum(mask(:)));
-    orientationAtScale(:,~mask) = 0;
+    
     orientationAtScale = permute(orientationAtScale,[2 3 1]);
 end
