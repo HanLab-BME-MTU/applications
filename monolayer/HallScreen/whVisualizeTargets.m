@@ -161,6 +161,10 @@ export_fig(controlGeneVarFname);
 hold off;
 
 %% Positive control plot
+
+nPosControl = length(posCntrl.targetInds);
+cmap = colormap(hsv(2+nPosControl));
+
 h = figure;
 xlabel('PC 1','FontSize',fontsize);
 ylabel(['PC ' num2str(PCn)],'FontSize',fontsize);
@@ -168,7 +172,7 @@ hold on;
 
 plot(scoreMeanGeneMeanControl(negCtrlInds,1),scoreMeanGeneMeanControl(negCtrlInds,PCn),'o','MarkerEdgeColor',cmap(1,:),'LineWidth',LineWidth,'MarkerSize',markerSize,'DisplayName','0% KD');   
 plot(scoreMeanGeneMeanControl(restInds,1),scoreMeanGeneMeanControl(restInds,PCn),'o','MarkerEdgeColor',cmap(2,:),'LineWidth',LineWidth,'MarkerSize',markerSize,'DisplayName','> 50% KD');   
-for t = 1 : 3
+for t = 1 : nPosControl
     plot(scoreMeanGeneMeanControl(posCntrl.targetInds{t},1),scoreMeanGeneMeanControl(posCntrl.targetInds{t},PCn),'o','MarkerEdgeColor',cmap(2+t,:),'LineWidth',LineWidth,'MarkerSize',markerSize,'DisplayName',posCntrl.targetStrs{t});                
 end
 

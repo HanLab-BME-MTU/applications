@@ -7,7 +7,7 @@ close all;
 generateSpeedKymograph(params,dirs);
 generateDirectionalMigrationKymograph(params,dirs);
 generateCoordinatedMigrationKymograph(params,dirs);
-generateStrainRateKymograph(params,dirs);
+% generateStrainRateKymograph(params,dirs);
 % generateAccelerationKymograph(params,dirs);
 
 close all;
@@ -54,7 +54,7 @@ speedKymograph = speedKymograph .* params.toMuPerHour;
 
 save(speedKymographFname,'speedKymograph','speedKymographX','speedKymographY');
 
-metaData.fname = [dirs.speedKymograph dirs.expname '_speedKymograph.bmp'];
+metaData.fname = [dirs.speedKymograph dirs.expname '_speedKymograph.eps'];
 metaData.fnameFig = [dirs.speedKymograph dirs.expname '_speedKymograph.fig'];
 metaData.caxis = [0 60];
 % metaData.caxis = [8 25]; % Zhuo
@@ -81,7 +81,7 @@ end
 
 save(directionalityKymographFname,'directionalityKymograph');
 
-metaData.fname = [dirs.directionalityKymograph dirs.expname '_directionalityKymograph.bmp'];
+metaData.fname = [dirs.directionalityKymograph dirs.expname '_directionalityKymograph.eps'];
 metaData.fnameFig = [dirs.directionalityKymograph dirs.expname '_directionalityKymograph.fig'];
 metaData.caxis = [0 8];
 % metaData.caxis = [0.9 1.4]; % Zhuo
@@ -119,7 +119,7 @@ end
 
 save(coordinationKymographFname,'coordinationKymograph');
 
-metaData.fname = [dirs.coordinationKymograph dirs.expname '_coordinationKymograph.bmp'];
+metaData.fname = [dirs.coordinationKymograph dirs.expname '_coordinationKymograph.eps'];
 metaData.fnameFig = [dirs.coordinationKymograph dirs.expname '_coordinationKymograph.fig'];
 metaData.caxis = [0 1];
 
@@ -229,7 +229,8 @@ set(haxes,'YTickLabel',yTickLabel);
 set(haxes,'FontSize',32);
 xlabel('Time (minutes)','FontSize',32); ylabel('Distance from edge (\mum)','FontSize',32);
 hold off;
-eval(sprintf('print -dbmp16m  %s', metaData.fname));
+export_fig_biohpc(metaData.fname);
+% eval(sprintf('print -dbmp16m  %s', metaData.fname));
 % savefig(h,metaData.fnameFig);
 fprintf('finish plot kymographs\n');
 end
