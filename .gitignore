@@ -1,6 +1,11 @@
 *~
 *.asv
+*.err
+*.out
+*.stderr
+*.auto
 .DS_Store
+.gitignore
 /GrowthConeAnalyzer/ANALYSIS/ScreenTools/heatmaps/html
 /GrowthConeAnalyzer/VISUALIZATION_TOOLKIT/*
 /GrowthConeAnalyzer/VALIDATION/EXTRA
