@@ -46,7 +46,11 @@ end
 % f = ifftshift(f);
 % % rho = ifftshift(rho);
 
-coords = getFrequencySpaceCoordinates(N);
+if(isstruct(N))
+    coords = N;
+else
+    coords = orientationSpace.getFrequencySpaceCoordinates(N);
+end
 
 
 % theta_shifted = acos(cos(theta - angle + pi));
@@ -95,10 +99,7 @@ filterKernel = bsxfun(@times,radialFilter .* 0.5,angularFilter + angularFilter_s
 
 % could we simplify this? neg/pos dividing line does not have to rotate
 posMask = abs(coords.theta) < pi/2;
-negMask = ~posMask;
-filterKernel(posMask) = filterKernel(posMask) + filterKernel(posMask)*1j;
-filterKernel(negMask) = filterKernel(negMask) - filterKernel(negMask)*1j;
-
+filterKernel = filterKernel.*(1 + 1j.*(posMask.*2-1));
 
 % shift = exp(1i*2*pi*(X/2+Y/2));
 % filterKernel = radialFilter .* angularFilter;
