@@ -6,8 +6,8 @@ classdef OrientationSpaceEdgeFilter < OrientationSpaceFilter
     end
     
     methods
-        function obj = OrientationSpaceEdgeFilter(f_c,b_f,K)
-            obj@OrientationSpaceFilter(f_c,b_f,K);
+        function obj = OrientationSpaceEdgeFilter(f_c,b_f,K,varargin)
+            obj@OrientationSpaceFilter(f_c,b_f,K,varargin{:});
         end
         function R = getResponse(obj,I)
             If = fft2(I);
