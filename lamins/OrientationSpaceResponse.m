@@ -23,14 +23,17 @@ classdef OrientationSpaceResponse < handle
         res
         nms
         nlms
+        theta
+        a
+        NMS
+    end
+    
+    properties (Dependent, Hidden)
         nlms_mip
         nlms_count
         nlms_sum
         nlms_mean
         nlms_std
-        theta
-        a
-        NMS
     end
     
     
