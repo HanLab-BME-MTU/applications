@@ -1,49 +1,39 @@
 #!/bin/bash
-#SBATCH --partition=128GB
+#SBATCH --partition=super
 #SBATCH --nodes=1
-#SBATCH --mail-user=assaf.zaritsky@utsouthwestern.edu
-#SBATCH --mail-type=all
 #SBATCH --output=./log/auto_job_1_%j.out
 #SBATCH --error=./log/auto_job_1_%j.err
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 21 1>./log/task_1_1_21.std.out 2>./log/task_1_1_21.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 17 1>./log/task_1_1_17.std.out 2>./log/task_1_1_17.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 22 1>./log/task_1_2_22.std.out 2>./log/task_1_2_22.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 18 1>./log/task_1_2_18.std.out 2>./log/task_1_2_18.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 23 1>./log/task_1_3_23.std.out 2>./log/task_1_3_23.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 19 1>./log/task_1_3_19.std.out 2>./log/task_1_3_19.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 24 1>./log/task_1_4_24.std.out 2>./log/task_1_4_24.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 20 1>./log/task_1_4_20.std.out 2>./log/task_1_4_20.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 25 1>./log/task_1_5_25.std.out 2>./log/task_1_5_25.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 21 1>./log/task_1_5_21.std.out 2>./log/task_1_5_21.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 26 1>./log/task_1_6_26.std.out 2>./log/task_1_6_26.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 22 1>./log/task_1_6_22.std.out 2>./log/task_1_6_22.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 27 1>./log/task_1_7_27.std.out 2>./log/task_1_7_27.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 23 1>./log/task_1_7_23.std.out 2>./log/task_1_7_23.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 28 1>./log/task_1_8_28.std.out 2>./log/task_1_8_28.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 24 1>./log/task_1_8_24.std.out 2>./log/task_1_8_24.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 29 1>./log/task_1_9_29.std.out 2>./log/task_1_9_29.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 25 1>./log/task_1_9_25.std.out 2>./log/task_1_9_25.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 30 1>./log/task_1_10_30.std.out 2>./log/task_1_10_30.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 26 1>./log/task_1_10_26.std.out 2>./log/task_1_10_26.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 31 1>./log/task_1_11_31.std.out 2>./log/task_1_11_31.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 27 1>./log/task_1_11_27.std.out 2>./log/task_1_11_27.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 32 1>./log/task_1_12_32.std.out 2>./log/task_1_12_32.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 28 1>./log/task_1_12_28.std.out 2>./log/task_1_12_28.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 33 1>./log/task_1_13_33.std.out 2>./log/task_1_13_33.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 29 1>./log/task_1_13_29.std.out 2>./log/task_1_13_29.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 34 1>./log/task_1_14_34.std.out 2>./log/task_1_14_34.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 30 1>./log/task_1_14_30.std.out 2>./log/task_1_14_30.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 35 1>./log/task_1_15_35.std.out 2>./log/task_1_15_35.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 31 1>./log/task_1_15_31.std.out 2>./log/task_1_15_31.stderr & 
 
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 36 1>./log/task_1_16_36.std.out 2>./log/task_1_16_36.stderr & 
-
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 37 1>./log/task_1_17_37.std.out 2>./log/task_1_17_37.stderr & 
-
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 38 1>./log/task_1_18_38.std.out 2>./log/task_1_18_38.stderr & 
-
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 39 1>./log/task_1_19_39.std.out 2>./log/task_1_19_39.stderr & 
-
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab runQLCHOneAtATimeMD 40 1>./log/task_1_20_40.std.out 2>./log/task_1_20_40.stderr & 
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab/job_wrapper.sh /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab runQLCHOneAtATimeMD 32 1>./log/task_1_16_32.std.out 2>./log/task_1_16_32.stderr & 
 
 wait

@@ -114,6 +114,8 @@ if strcmp(mode,'difference')
             score(j1,j2) = sum(corrM(:));
         end
     end
+    % Invert
+    score=ones(size(score))-score;
 elseif bCont && (numFrames==2)
     % normalized cross-correlation with continuous window shift (by
     % interpolation)

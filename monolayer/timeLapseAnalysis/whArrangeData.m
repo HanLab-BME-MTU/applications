@@ -22,6 +22,8 @@ nfiles = length(filenames);
 
 iexps = 1;
 
+nNew = 0;
+
 for i = 1 : nfiles
     filename = filenames(i).name;
     
@@ -40,6 +42,7 @@ for i = 1 : nfiles
         imagesdir = [dirname '/images/'];
         
         if ~exist(imagesdir,'dir') && ~exist([dirname '/MF/'],'dir')
+            nNew = nNew + 1;
             unix(sprintf('mkdir %s',imagesdir));
             if (strcmp(ext, '.tif'))
                 fname = [mainDirname name '.tif'];
@@ -86,5 +89,7 @@ for i = 1 : nfiles
         iexps = iexps + 1;
     end
 end
+
+fprintf(sprintf('\n\n new files = %d\n\n',nNew));
 
 end

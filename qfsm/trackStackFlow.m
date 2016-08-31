@@ -69,7 +69,8 @@ ip.addParamValue('maxSpd',40,@isscalar);
 ip.addParamValue('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
 ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
-ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'}));
+ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
+ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
 maxSpd=ip.Results.maxSpd;
@@ -77,7 +78,8 @@ minFeatureSize=ip.Results.minFeatureSize;
 bgMask=ip.Results.bgMask;
 bgAvgImg=ip.Results.bgAvgImg;
 mode=ip.Results.mode;
-contWind = true;
+scoreCalculation=ip.Results.scoreCalculation;
+% contWind = true;
 
 % SH: Poly-fit version
 
@@ -231,7 +233,7 @@ parfor k = 1:nPoints
                 [score,blockIsTooSmall] = calScore(kym,centerI,corL,vP,vF,'CDWS',true);
             else
                 [score,blockIsTooSmall] = calScore(kym,centerI,corL,vP,vF, ...
-                    'bAreaThreshold',bAreaThreshold,'kymMask',kymMask,'kymAvgImg',kymAvgImg);
+                    'bAreaThreshold',bAreaThreshold,'kymMask',kymMask,'kymAvgImg',kymAvgImg,'mode',scoreCalculation);
             end
             
             if blockIsTooSmall
@@ -290,7 +292,7 @@ parfor k = 1:nPoints
                         
                         [score2,~,vP2,vF2] = calScore(kym,centerI,corLInc,...
                             vP2,vF2,'bAreaThreshold',bAreaThreshold,...
-                            'kymMask',kymMask,'kymAvgImg',kymAvgImg);
+                            'kymMask',kymMask,'kymAvgImg',kymAvgImg,'mode',scoreCalculation);
 %                         if length(vP)~=length(vP2) || length(vF)~=length(vF2)
 %                             zeroI = [find(vP2==0) find(vF2==0)];
 %                         end
@@ -499,11 +501,36 @@ parfor k = 1:nPoints
 %         [score3,~,newvP,newvF] = calScore(fineKym,newcenterI,ceil(incFactor*corL)*refineFactor,newvP,newvF);
         fineKym1 = interp2(curXI,curYI,stack(curYL:curYR,curXL:curXR,1),fineXI,fineYI);
         fineKym2 = interp2(curXI2,curYI2,stack(curYL2:curYR2,curXL2:curXR2,2),fineXI2,fineYI2);
-        score_nxc2 = normxcorr2(fineKym1,fineKym2);
-        K1=size(fineKym1,1); N1=size(fineKym2,1);
-        K2=size(fineKym1,2); N2=size(fineKym2,2);
-        score3 = score_nxc2(K1:N1,K2:N2); % normalized
+        if strcmp(scoreCalculation,'xcorr')
+            score_nxc2 = normxcorr2(fineKym1,fineKym2);
+            K1=size(fineKym1,1); N1=size(fineKym2,1);
+            K2=size(fineKym1,2); N2=size(fineKym2,2);
+            score3 = score_nxc2(K1:N1,K2:N2); % normalized
+        else
+            newhCLL    = min(xI-1,halfCorL*refineFactor)-newvF(1);
+            newhCWL    = min(yI-1,halfCorL*refineFactor)-newvP(1);
+            %The index of the center of image block in the kymographed or cropped
+            % image.
+            newcenterI = [newhCWL+1,newhCLL+1];
+%             newcenterI = [(size(fineKym2,1)+1)/2; (size(fineKym2,1)+1)/2];
+            %-- absolute difference mode --
+%             score3 = calScore(fineKym,newcenterI,ceil(incFactor*corL)*refineFactor,newvP,newvF,'mode','difference');
+            bI1 = round(newcenterI(1)-(size(fineKym1,1)-1)/2:newcenterI(1)+(size(fineKym1,1)-1)/2);
+            bI2 = round(newcenterI(2)-(size(fineKym1,2)-1)/2:newcenterI(2)+(size(fineKym1,2)-1)/2);
+            
+            score3 = zeros(length(newvP),length(newvF));
+            for j1 = 1:length(newvP)
+                v1 = newvP(j1);
+                for j2 = 1:length(newvF)
+                    v2 = newvF(j2);
+                    corrM = abs(fineKym1- fineKym2(bI1+v1,bI2+v2));
 
+                    %Normalize the correlation coefficients.
+                    score3(j1,j2) = sum(corrM(:));
+                end
+            end
+            score3=ones(size(score3))-score3;
+        end
         [~,maxI3ind] = max(score3(:));
         [ind3x,ind3y] = ind2sub(size(score3),maxI3ind);
         maxI3 = [ind3x,ind3y];

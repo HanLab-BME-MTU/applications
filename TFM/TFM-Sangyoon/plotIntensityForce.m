@@ -89,7 +89,7 @@ if alignEvent
     meanFrame = floor(meanFrameDouble);
     % Shift each time series w.r.t. the mean time point(meanFrame)
     framesToShift = frameMaxAmp - meanFrame;
-    lifeAfterMaxAmp = lifeTime' - frameMaxAmp;
+    lifeAfterMaxAmp = lifeTime - frameMaxAmp;
     if length(lifeTime)>1000
         thresLifeAfterMaxAmp = floor(quantile(lifeAfterMaxAmp,0.99));
     elseif length(lifeTime)>100

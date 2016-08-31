@@ -1,6 +1,14 @@
 function plusTipCometTracker3DQD(projData,timeWindow,minTrackLen,minRadius, ... 
     maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange, ... 
-    diagnostics,breakNonLinearTracks,searchRadiusMult,searchRadiusFirstIteration)
+    diagnostics,breakNonLinearTracks,searchRadiusMult,searchRadiusFirstIteration,varargin)
+
+ip=inputParser();
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addParamValue('timeWindowNN',timeWindow, @isnumeric);
+ip.parse( varargin{:});
+p=ip.Results;
+
 % plusTipCometTracker is the main tracking function
 
 % get projData in correct format
@@ -46,7 +54,7 @@ parameters.maxSearchRadius = maxRadius;
 parameters.brownStdMult = searchRadiusMult; %multiplication factor to calculate search radius from standard deviation.
 parameters.linearMotion = 1; %use linear motion Kalman filter.
 parameters.useLocalDensity = 1; %1 if you want to expand the search radius of isolated features in the linking (initial tracking) step.
-parameters.nnWindow = timeWindow; %number of frames before the current one where you want to look to see a feature's nearest neighbor in order to decide how isolated it is (in the initial linking step).
+parameters.nnWindow = p.timeWindowNN; %number of frames before the current one where you want to look to see a feature's nearest neighbor in order to decide how isolated it is (in the initial linking step).
 
 parameters.kalmanInitParam.searchRadiusFirstIteration = searchRadiusFirstIteration; %Kalman filter initialization parameters.
 

@@ -431,7 +431,7 @@ for iChannel = selected_channels
         
         hold on; plot(RoiYX(:,2),RoiYX(:,1),'m');
         
-        saveas(h12,[HeatEnhOutputDir,'_bound'filesep,'Int_display_',num2str(iFrame),'.tif']);
+        saveas(h12,[HeatEnhOutputDir,'_bound',filesep,'Int_display_',num2str(iFrame),'.tif']);
         
         int_outside_current_intensity(iChannel, iFrame) = sum(sum(current_img_outside));
         ratio_int_outside_firstframeinside(iChannel, iFrame) = sum(sum(current_img_outside))/int_sum_inside_firstframe;

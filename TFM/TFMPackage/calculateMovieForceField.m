@@ -137,7 +137,7 @@ if exist(outputFile{1},'file')
 end
 % asking if you want to reuse the fwdMap again (you have to make sure that
 % you are solving the same problem with only different reg. param.) -SH
-reuseFwdMap = 'Yes';
+reuseFwdMap = 'No';
 if strcmpi(p.method,'FastBEM') && exist(outputFile{3,1},'file') 
     if usejava('desktop')
         reuseFwdMap = questdlg(...
@@ -148,7 +148,7 @@ if strcmpi(p.method,'FastBEM') && exist(outputFile{3,1},'file')
 end
 
 % Backup the original vectors to backup folder
-if firstFrame==1 && strcmpi(reuseFwdMap,'No') && exist(outputFile{3,1},'file')
+if firstFrame==1 && (strcmpi(reuseFwdMap,'No') || strcmpi(p.method,'FTTC')) && exist(outputFile{1,1},'file')
     display('Backing up the original data')
     backupFolder = [p.OutputDirectory ' Backup']; % name]);
     if exist(p.OutputDirectory,'dir')
@@ -671,7 +671,10 @@ if strcmpi(p.method,'FastBEM')
         % 09/08/2015
         % First, get the maxima for each force node from M
         forceNodeMaxima = max(M);
-        forceConfidence.pos = forceMesh.p;
+%             [neigh,bounds,bdPtsID]=findNeighAndBds(p,t);
+%         forceConfidence.pos = forceMesh.p;
+        cellPosition = arrayfun(@(x) x.node, forceMesh.basis,'UniformOutput',false);
+        forceConfidence.pos = cell2mat(cellPosition');
         forceConfidence.vec = reshape(forceNodeMaxima,[],2);
         % Make it relative
         maxCfd = max(forceNodeMaxima);
@@ -776,7 +779,7 @@ tic
 display(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
 toc
 if strcmpi(p.method,'FastBEM')
-    [fCfdMapIn, fCmax, fCmin] = generateHeatmapShifted(forceConfidence,displField,0);
+    [fCfdMapIn, fCmax, fCmin, cropInfoFC] = generateHeatmapShifted(forceConfidence,displField,0);
     fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
 end
 % display(['Displacement error minimum = ' num2str(dEmax) ' pixel.'])
@@ -789,11 +792,19 @@ end
 
 % display(['Distance to closest bead maximum = ' num2str(tmax) ' Pa.'])
 %% Insert traction map in forceField.pos 
-disp('Generating traction maps ...')
+disp('Writing traction maps ...')
 tMap = cell(1,nFrames);
 tMapX = cell(1,nFrames);
 tMapY = cell(1,nFrames);
 fCfdMap = cell(1,1); %force confidence
+
+% Set up the output directories
+outputDir = fullfile(p.OutputDirectory,'tractionMaps');
+mkClrDir(outputDir);
+fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+numStr = @(frame) num2str(frame,fString);
+outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+
 % distBeadMap = cell(1,nFrames);
 for ii=frameSequence
     % starts with original size of beads
@@ -810,7 +821,7 @@ for ii=frameSequence
     tMapY{ii} = cur_tMapY;
     if ii==1 && strcmpi(p.method,'FastBEM')
         cur_fCfdMap = zeros(size(firstMask));
-        cur_fCfdMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = fCfdMapIn{ii};
+        cur_fCfdMap(cropInfoFC(2):cropInfoFC(4),cropInfoFC(1):cropInfoFC(3)) = fCfdMapIn{ii};
         fCfdMap = cur_fCfdMap;
     end     
 %     distBeadMap{ii} = cur_distBeadMap;
@@ -829,6 +840,9 @@ for ii=frameSequence
 
     forceFieldShifted(ii).pos = pos;
     forceFieldShifted(ii).vec = force_vec;
+
+    save(outFileTMap(ii),'cur_tMap','-v7.3');
+
 end
 % Fill in the values to be stored:
 clear grid_mat;

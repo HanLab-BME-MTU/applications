@@ -1,4 +1,4 @@
-function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin)
+function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,varargin)
 % [tracksNA,lifeTimeNA] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % filter out NA tracks, obtain life time of each NA tracks
 
@@ -30,9 +30,9 @@ function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturi
 
 %% Inputs
 ip =inputParser;
-ip.addRequired('pathForTheMovieDataFile',@ischar)
-ip.addOptional('showAllTracks',false,@(x)islogical(x)||isempty(x))
-ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
+ip.addRequired('pathForTheMovieDataFile',@(x)ischar(x)||isa(x,MovieData))
+ip.addParamValue('showAllTracks',false,@(x)islogical(x)||isempty(x))
+ip.addParamValue('plotEachTrack',false,@(x)islogical(x)||isempty(x))
 ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
 ip.addParamValue('outputPath','AdhesionTracking',@ischar)
 ip.addParamValue('saveAnalysis',true,@islogical)

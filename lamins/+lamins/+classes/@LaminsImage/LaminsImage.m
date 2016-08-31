@@ -78,7 +78,11 @@ classdef LaminsImage < hgsetget
         end
         function steerable = get.steerable(obj)
             if(isempty(obj.steerable))
-                path = ['~/matlab/lamins/work/steerable_' num2str(obj.parent.params.movieNum)  '.mat'];
+                if(~isempty(obj.parent) && ~isempty(obj.parent.params))
+                    path = ['~/matlab/lamins/work/steerable_' num2str(obj.parent.params.movieNum)  '.mat'];
+                else
+                    obj.steerableFromFile = false;
+                end
                 if(obj.steerableFromFile && exist(path))
                     matobj = matfile(path);
                     obj.steerable = matobj.steerable(obj.coordinates{[1 3]});

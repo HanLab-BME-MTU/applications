@@ -16,14 +16,14 @@ lowpass = double(lowMask);
 lowpass(transitionMask) = -sin(pi/2 * logr);
 % lowpass(highMask) = 0;
 
-if(nargout > 0)
+if(nargout > 1)
     highpass = double(highMask);
 %     highpass(lowMask) = 0;
     highpass(transitionMask) = cos(pi/2 * logr);
 %     highpass(highmask) = 1;
 end
 
-if(nargout > 1)
+if(nargout > 2)
     bandpass = lowpass.*highpass;
 end
 

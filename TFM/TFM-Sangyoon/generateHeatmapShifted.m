@@ -51,6 +51,7 @@ cropInfo = [xmin,ymin,xmax,ymax];
 tMap = cell(1,numel(forceField));
 tMapX = cell(1,numel(forceField));
 tMapY = cell(1,numel(forceField));
+progressText(0,'Traction map creation:') % Create text
 for ii=1:numel(forceField)
     curDispVec = displField(ii).vec;
     curDispPos = displField(ii).pos;
@@ -82,5 +83,6 @@ for ii=1:numel(forceField)
     tMap{ii} = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
     tMapX{ii} = tmat(:,:,1);
     tMapY{ii} = tmat(:,:,2);
+    progressText(ii/numel(forceField))
 end
 

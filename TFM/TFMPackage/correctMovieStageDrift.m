@@ -48,7 +48,11 @@ if exist(p.OutputDirectory,'dir')
         backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
         ii=ii+1;
     end
-    mkdir(backupFolder);
+    try
+        mkdir(backupFolder);
+    catch
+        system(['mkdir -p ' backupFolder]);
+    end
     copyfile(p.OutputDirectory, backupFolder,'f')
 end
 mkClrDir(p.OutputDirectory);

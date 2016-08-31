@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 04-Aug-2015 15:34:16
+% Last Modified by GUIDE v2.5 22-Jul-2016 14:19:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,6 +66,7 @@ set(handles.checkbox_addNonLocMaxBeads, 'Value', funParams.addNonLocMaxBeads);
 set(handles.checkbox_lastToFirst, 'Value', funParams.lastToFirst);
 set(handles.checkbox_noOutwardDeform, 'Value', funParams.noFlowOutwardOnBorder);
 set(handles.checkbox_mode, 'Value', strcmp(funParams.mode, 'accurate'));
+set(handles.checkboxTrackSuccessive, 'Value', funParams.trackSuccessively);
 
 % Propagate stage drift correction parameters if no process and stage drift
 % correction parameters has been set up
@@ -178,6 +179,8 @@ funParams.useGrid = get(handles.checkbox_useGrid, 'Value');
 funParams.lastToFirst = get(handles.checkbox_lastToFirst, 'Value');
 funParams.noFlowOutwardOnBorder = get(handles.checkbox_noOutwardDeform, 'Value');
 funParams.addNonLocMaxBeads = get(handles.checkbox_addNonLocMaxBeads, 'Value');
+funParams.trackSuccessively = get(handles.checkboxTrackSuccessive, 'Value');
+
 if get(handles.checkbox_mode, 'Value'),
     funParams.mode = 'accurate';
 else
@@ -293,3 +296,12 @@ function checkbox_lastToFirst_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_lastToFirst
+
+
+% --- Executes on button press in checkboxTrackSuccessive.
+function checkboxTrackSuccessive_Callback(hObject, eventdata, handles)
+% hObject    handle to checkboxTrackSuccessive (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkboxTrackSuccessive

@@ -360,7 +360,7 @@ for iFrame = 1:nFrames-1
         % the start track
 
         [dPerpTemp,dParaTemp,evYcTemp,evXcTemp,evZcTemp]=pt2segDist...
-            ([py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)',pz(endsToConsider(iEnd),:)'],...
+            ([pz(endsToConsider(iEnd),:)',py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)'],...
             trackStartPxyzVxyz(endsToConsider(iEnd),:),[sZ, sY,sX],cutoffDistBwd,0);
 
         % dPerp is the component perpendicular to the end track
@@ -770,7 +770,7 @@ if doPlot==1
     figure
 end
 
-segYXZorig=segZYX;
+segZYXorig=segZYX;
 
 % find how many phantom pts are needed to extend bwd vector past max bwd cutoff
 % endTrackStartPxyVxy is not the whole matrix - only for this particular end
@@ -877,7 +877,7 @@ for i=1:size(ptZYX,1)
 
         % plot end track as a blue line
         plot(segZYX(:,2),segZYX(:,1))
-        plot(segYXZorig(:,2),segYXZorig(:,1),'LineWidth',2)
+        plot(segZYXorig(:,2),segZYXorig(:,1),'LineWidth',2)
         hold on;
         % add blue dots for detection events
         scatter(temp(:,2),temp(:,1),'b.')

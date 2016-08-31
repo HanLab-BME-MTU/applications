@@ -64,8 +64,8 @@ FPosition = [0 0 300 200];
 APosition = [0.2 0.2 0.75 0.75];
 %%  Visualize all controls + linear fit
 close all;
-[rho,pval] = corr(nMotionAllControl,nShearStrainAllControl);
-p = polyfit(nMotionAllControl,nShearStrainAllControl,1);
+[rho,pval] = corr(nMotionAllControl',nShearStrainAllControl');
+p = polyfit(nMotionAllControl(nMotionAllControl<3000),nShearStrainAllControl(nMotionAllControl<3000),1);
 
 h = figure;
 xlabel('Motion','FontSize',fontsize);
