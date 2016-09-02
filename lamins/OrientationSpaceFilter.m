@@ -176,6 +176,7 @@ classdef OrientationSpaceFilter < handle
             end
             requireSetup(obj);
             s = size(obj.F);
+            s(end+1:3) = 1;
             F = reshape(obj.F,s(1)*s(2),s(3));
             E = sqrt(sum(real(F).^2)) + 1j*sqrt(sum(imag(F).^2));
             E = E ./ sqrt(s(1)*s(2));
@@ -224,8 +225,14 @@ classdef OrientationSpaceFilter < handle
                         E = shiftdim(obj(o).getEnergy(),-1);
                         F = obj(o).F;
                         obj(o).F = bsxfun(@rdivide,real(F),real(E)) +1j*bsxfun(@rdivide,imag(F),imag(E));
+                    case 'peak'
+                        F = obj(o).F;
+                        sumF = sum(F(:))./numel(F);
+                        obj(o).F = real(F)./real(sumF) + 1j*imag(F)./imag(sumF);
                     case 'scale'
                         obj(o).F = obj(o).F ./ obj(o).f_c ./ sqrt(siz(1)*siz(2));
+                    case 'sqrtscale'
+                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2))
                     case 'none'
                     otherwise
                         error('OrientationSpaceFilter:setupFilterNormEnergy', ...
