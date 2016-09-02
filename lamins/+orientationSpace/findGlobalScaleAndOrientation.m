@@ -92,6 +92,7 @@ function [ scale, orientation, scaleV, orientationV, orientationAtMaxScale ] = f
         end
         % Initialize orientationScaleSpace
         R = F*I;
+        % Rearrange to orienation by scale by Y by X
         orientationScaleSpace = permute(R.getArraySpace,[3 4 1 2]);
         orientationScaleSpace = orientationScaleSpace(:,:,mask);
         clear F R A
