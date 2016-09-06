@@ -1,4 +1,4 @@
-s = chebpts(33,[1 4]);
+s = chebpts(33,[1 8]);
 
 %% 2D Gaussian Spot
 
@@ -27,13 +27,25 @@ lamins.functions.determineGaussian2DScale
 r = zeros(33);
 F2 = OrientationSpaceRidgeFilter(1./2/pi./s,[],0,'none');
 for i=1:33;
-    G = repmat(normpdf(-49:50,0,s(i)),100,1);
-%     G = bsxfun(@times,normpdf(-49:50,0,s(i)),normpdf(-49:50,0,s(i)*3)');  
-%     G((-5:5)+50,:) = repmat(normpdf(-49:50,0,s(i)),11,1);
+%     G = repmat(normpdf(-49:50,0,s(i)),100,1);
+%     G = bsxfun(@times,normpdf(-49:50,0,s(i)),normpdf(-49:50,0,s(i)*10)');  
+    G((-19:20)+50,:) = repmat(normpdf(-49:50,0,s(i)),40,1);
+%     G = zeros(100);
+%     G(30:70,50) = 1;
+%     G = imgaussfilt(G,s(i),'FilterSize',51);
     F2G = F2*G;
     F2Gas = F2G.getArraySpace();
     r(:,i) = squeeze(F2Gas(50,50,1,:))';
 end
+cfs = chebfun(r,[1 8]);
+[maxr,maxs] = max(cfs)
+plot(s,maxs)
+
+% rsqrts = bsxfun(@times,r,real(F2.getEnergy).^(0.9105));
+% cfs = chebfun(rsqrts,[1 4]);
+% [maxr,maxs] = max(cfs)
+% plot(s,maxs)
+
 
 imagesc(r)
 imagesc(bsxfun(@rdivide,r,max(r)))
