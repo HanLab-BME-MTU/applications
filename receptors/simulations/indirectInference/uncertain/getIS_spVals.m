@@ -28,9 +28,9 @@ function [sMatrix,pMatrix] = getIS_spVals(pathToTargetIS)
 %       Modified, 11/25/14 (probe rD2 and lR0.6)
 %
 
-    targetISroot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/11/112414/targetISanalysis_sT25_dT0p01/';
+    targetISroot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20160721_Analysis/target/';
     %Location of probe IS other than the two below
-    pathToProbeIS1 = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/10/101414/probeISanalysis_sT25_dT0p01/';
+    pathToProbeIS1 = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20160721_Analysis/probe/';
     %Location of probe lR = 0.6 for rD >= 4
     pathToProbeIS2 = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/10/103014/probeISanalysis_sT25_dT0p01/';
     %Location of probe rD >= 2
@@ -101,9 +101,9 @@ function [sMatrix,pMatrix] = getIS_spVals(pathToTargetIS)
         end % for each assocProb
         
         %Set up output files
-        isVals_mod_outFile = [pathToTargetIS,'/','isVals_mod_',rDDir{rDDirIndx},'.mat'];                
-        sMatrixOutFile = [pathToTargetIS,'sMatrix_',rDDir{rDDirIndx},'.mat'];
-        pMatrixOutFile = [pathToTargetIS,'pMatrix_',rDDir{rDDirIndx},'.mat'];
+        isVals_mod_outFile = [targetISroot,'/','isVals_mod_',rDDir{rDDirIndx},'.mat'];                
+        sMatrixOutFile = [targetISroot,'sMatrix_',rDDir{rDDirIndx},'.mat'];
+        pMatrixOutFile = [targetISroot,'pMatrix_',rDDir{rDDirIndx},'.mat'];
 
         %Write values to files
         save(isVals_mod_outFile,'isVals_mod');        

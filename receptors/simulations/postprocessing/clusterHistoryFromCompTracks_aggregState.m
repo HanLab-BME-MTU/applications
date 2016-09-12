@@ -318,7 +318,8 @@ for compTrackIter=1:numCompTracks
     %Remove those events that did not terminate by end of simulation/movie
     clustHistoryTemp(isnan(clustHistoryTemp(:,4)),:) = [];
     
-    %keep only clusters that start and end inside frame range of interest
+    %
+    
     if ~isempty(firstLastFrame)
         clustHistoryTemp = clustHistoryTemp(clustHistoryTemp(:,3)>=firstLastFrame(1) ...
             & clustHistoryTemp(:,4)<=firstLastFrame(2),:);

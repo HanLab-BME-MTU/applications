@@ -45,8 +45,8 @@ for rDDirIndx = 1 : length(rDDir)
                 
                 %copy rates and densities file to new directory
                 %append file name with number indicating movie #
-                copyfile(fullfile(currDir,'ratesAndDensity_dt0p01_T10.mat'),...
-                    fullfile(destDir,['ratesAndDensity_dt0p01_T10_' int2str(outDirNum(outDirIndx)) '.mat']));
+                copyfile(fullfile(currDir,'ratesAndDensity_dt0p1_T10.mat'),...
+                    fullfile(destDir,['ratesAndDensity_dt0p1_T10_' int2str(outDirNum(outDirIndx)) '.mat']));
                 
             end %for each labelRatio
             
