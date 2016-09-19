@@ -29,17 +29,20 @@ F2 = OrientationSpaceRidgeFilter(1./2/pi./s,[],0,'none');
 for i=1:33;
 %     G = repmat(normpdf(-49:50,0,s(i)),100,1);
 %     G = bsxfun(@times,normpdf(-49:50,0,s(i)),normpdf(-49:50,0,s(i)*10)');  
-    G((-19:20)+50,:) = repmat(normpdf(-49:50,0,s(i)),40,1);
-%     G = zeros(100);
-%     G(30:70,50) = 1;
-%     G = imgaussfilt(G,s(i),'FilterSize',51);
+%     G((-49:50)+50,:) = repmat(normpdf(-49:50,0,s(i)),100,1);
+    G = zeros(100);
+    G((-29:30)+50,50) = 1;
+    G = imgaussfilt(G,s(i),'FilterSize',51);
     F2G = F2*G;
     F2Gas = F2G.getArraySpace();
     r(:,i) = squeeze(F2Gas(50,50,1,:))';
 end
 cfs = chebfun(r,[1 8]);
 [maxr,maxs] = max(cfs)
-plot(s,maxs)
+plot(s,maxs,'o')
+maxcf = chebfun(maxs',[1 8]);
+hold on;
+plot(maxcf);
 
 % rsqrts = bsxfun(@times,r,real(F2.getEnergy).^(0.9105));
 % cfs = chebfun(rsqrts,[1 4]);
