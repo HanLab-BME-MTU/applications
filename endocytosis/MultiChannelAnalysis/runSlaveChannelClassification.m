@@ -135,7 +135,7 @@ for k = 1:nt
         scomb = sqrt((sigma_A.^2 + SE_sigma_r.^2)./npx);
         T = (A - sigma_r) ./ scomb;
         pval = tcdf(-T, df2);
-        hval = pval < 0.05;
+        hval = pval < ip.Results.Alpha;
         tracks(k).significantVsBackground(c,:) = hval;
         
         % The background cutoff was set at the 95th percentile, thus there is a
