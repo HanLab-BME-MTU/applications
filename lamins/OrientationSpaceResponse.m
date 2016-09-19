@@ -361,6 +361,11 @@ classdef OrientationSpaceResponse < handle
                 varargout{5} = varargout{5}/2;
             end
         end
+        function vq  = interpft1(obj,xq)
+            % interpft1 - Interpolate
+            vq = interpft1([0 pi],shiftdim(obj.a,2),shiftdim(xq,2),'horner');
+            vq = shiftdim(vq,1);
+        end
         function fineResponseGrid = getResponseForInterpolation(obj,scaleFactor)
             %getResponseForInterpolation
             % INPUT
