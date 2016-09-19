@@ -8,13 +8,15 @@ ip.parse(MD,varargin{:});
 p=ip.Results;
 
 outputFolder=[MD.outputDirectory_ filesep 'MT-GEF' filesep 'MTDepoly' filesep]; mkdir(outputFolder);
-outputDepolyCoordFile=[outputFolder filesep 'XYTCoordinate.mat'];
-outputTrackFile=[outputFolder filesep 'uninterruptedTracks.mat'];
+outputDepolyCoordFileAlltracks=[outputFolder filesep 'XYTCoordinateAllTracks.mat'];
+outputDepolyCoordFileUninteruptTracks=[outputFolder filesep 'XYTCoordinateUninterruptedTracks.mat'];
+
+outputUnintTrackFile=[outputFolder filesep 'uninterruptedTracks.mat'];
 outputTrackAmiraFiles=[outputFolder filesep 'uninterruptedTracksAmira' filesep 'uninterruptedTracks.am'];
 
 Pr=ExternalProcess(MD,'depolyCoordTime');
 Pr.setInFilePaths({});
-Pr.setOutFilePaths({outputDepolyCoordFile,outputTrackFile,outputTrackAmiraFiles});
+Pr.setOutFilePaths({outputDepolyCoordFileUninteruptTracks,outputDepolyCoordFileUninteruptTracks,outputUnintTrackFile,outputTrackAmiraFiles});
 pa = Pr.getParameters();
 pa.parameters = p;
 Pr.setParameters(pa);
@@ -42,16 +44,19 @@ beforeJumpFrame=find(imageDiff>jumpTresh);
 
 %%
 if(p.showAll)
-  %%
+    figure()
+    hold on
     plot(imageDiff)
-    vline(beforeJumpFrame,'r-');
+    if(~isempty(beforeJumpFrame))
+        vline(beforeJumpFrame,'r-');
+    end
+    hold off
 end
 %%
 endOnJumpIdx=ismember([tracks.endFrame],beforeJumpFrame);
 uninterruptedTracks=tracks(~endOnJumpIdx);
-save(outputTrackFile,'uninterruptedTracks');
+save(outputUnintTrackFile,'uninterruptedTracks');
 amiraWriteTracks(outputTrackAmiraFiles,uninterruptedTracks);
-
 
 XY=zeros(length(uninterruptedTracks),2);
 time=zeros(length(uninterruptedTracks),1);
@@ -60,4 +65,14 @@ for i=1:length(uninterruptedTracks)
     time(i)=tr.t(end);
     XY(i,:)=[tr.x(end) tr.y(end)];
 end
-save(outputDepolyCoordFile,'XY','time');
+save(outputDepolyCoordFileUninteruptTracks,'XY','time');
+
+
+XY=zeros(length(tracks),2);
+time=zeros(length(tracks),1);
+for i=1:length(tracks)
+    tr=tracks(i);
+    time(i)=tr.t(end);
+    XY(i,:)=[tr.x(end) tr.y(end)];
+end
+save(outputDepolyCoordFileAlltracks,'XY','time');
