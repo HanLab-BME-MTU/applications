@@ -117,24 +117,72 @@ for iTrack = 1 : numTracks
         segMS  = timeSegmentCommon(iMS,2);
         segMerge = seqOfEvents( (seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS & seqOfEvents(:,2)==2) , 3 );
         segSplit = seqOfEvents( (seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS & seqOfEvents(:,2)==1) , 3 );
+       
+        %%%%% MODIFICATION LUCIANA DE OLIVEIRA SEPTEMBER 2016 
+        %To deal with all the possible differences in the measures of
+        %segMerge and segSplit I add some if and for loops. Now it is
+        %working perfectly.
         
         %stitch them back together and cancel the merge and split
+        lengthSegMerge=length(segMerge);
+        lengthSegSplit=length(segSplit);
+    
+        if lengthSegMerge~=0&&lengthSegSplit~=0
+            
+        if lengthSegMerge>lengthSegSplit
+        for mergeIndex=1:lengthSegMerge
+        trackedFeatureIndx(segMerge(mergeIndex),timeMS:end) = trackedFeatureIndx(segSplit,timeMS:end);
+        trackedFeatureIndx(segSplit,:) = 0;
+        trackedFeatureInfo(segMerge(mergeIndex),8*(timeMS-1)+1:end) =  trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end);
+        trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end) = NaN;
+        seqOfEvents(seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS,3:4) = NaN;
+        
+        %update segment numbers in sequence of events
+        seqOfEvents(seqOfEvents(:,3)==segSplit,3) = segMerge(mergeIndex);
+       
+        seqOfEvents(seqOfEvents(:,4)==segSplit,4) = segMerge(mergeIndex);
+         
+        %add splitting segment to list of those not surviving
+        indxGone = [indxGone; segSplit]; %#ok<AGROW>
+        indxStay = setdiff(indxStay,segSplit);
+        end
+        else if lengthSegMerge<lengthSegSplit
+             for splitIndex=1:lengthSegSplit
+        trackedFeatureIndx(segMerge,timeMS:end) = trackedFeatureIndx(segSplit(splitIndex),timeMS:end);
+        trackedFeatureIndx(segSplit,:) = 0;
+        trackedFeatureInfo(segMerge,8*(timeMS-1)+1:end) =  trackedFeatureInfo(segSplit(splitIndex),8*(timeMS-1)+1:end);
+        trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end) = NaN;
+        seqOfEvents(seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS,3:4) = NaN;
+          
+        %update segment numbers in sequence of events
+        seqOfEvents(seqOfEvents(:,3)==segSplit(splitIndex),3) = segMerge;
+       
+        seqOfEvents(seqOfEvents(:,4)==segSplit(splitIndex),4) = segMerge;
+         
+        %add splitting segment to list of those not surviving
+        indxGone = [indxGone; segSplit]; %#ok<AGROW>
+        indxStay = setdiff(indxStay,segSplit);
+             end
+            
+            else
         trackedFeatureIndx(segMerge,timeMS:end) = trackedFeatureIndx(segSplit,timeMS:end);
         trackedFeatureIndx(segSplit,:) = 0;
-        trackedFeatureInfo(segMerge,8*(timeMS-1)+1:end) = trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end);
+        trackedFeatureInfo(segMerge,8*(timeMS-1)+1:end) =  trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end);
         trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end) = NaN;
         seqOfEvents(seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS,3:4) = NaN;
         
         %update segment numbers in sequence of events
         seqOfEvents(seqOfEvents(:,3)==segSplit,3) = segMerge;
+       
         seqOfEvents(seqOfEvents(:,4)==segSplit,4) = segMerge;
-        
+         
         %add splitting segment to list of those not surviving
         indxGone = [indxGone; segSplit]; %#ok<AGROW>
-        indxStay = setdiff(indxStay,segSplit);
-        
+        indxStay = setdiff(indxStay,segSplit);    
+            end
+        end
+        end
     end
-    
     %if a first segment merges with a second segment, which itself merges
     %with a third segment at the same time, replace the second segment with
     %the third

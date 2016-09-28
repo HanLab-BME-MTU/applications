@@ -74,8 +74,18 @@ for iTrack = 1 : numTracks
     %done two steps down
     for iSeg = 1 : numSeg
         rowsSeg = find(seqOfEvents(:,3)==iSeg);
+       
+        %%%%% Modified by Luciana de Oliveira September 2016
+        % There are some events that does not have the initial time, so for
+        % these cases the vector has only one value and Matlab point an
+        % error case, for solve that I changed and put an if condition. 
+        
+        if length(rowsSeg)>1
         seqOfEvents(rowsSeg(1),1) = segSEL(iSeg,1);
         seqOfEvents(rowsSeg(2),1) = segSEL(iSeg,2);
+        else        
+        seqOfEvents(rowsSeg(1),1) = segSEL(iSeg,1);   
+        end
     end
     
     %replace segments that did not survive the cropping with NaN in both
