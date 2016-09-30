@@ -31,6 +31,8 @@ nms_skel = bwmorph(nms > 0,'skel',Inf);
 nms_endpts.map = bwmorph(nms_skel,'endpoints');
 [nms_endpts.r,nms_endpts.c] = find(nms_endpts.map);
 
+nlms_skel = bwmorph(nlms_binary,'skel',Inf);
+
 % Endpoints may be also classified as junctions
 % Remove endpoints from the junction map
 jxnMap = jxnMap & ~nms_endpts.map;
