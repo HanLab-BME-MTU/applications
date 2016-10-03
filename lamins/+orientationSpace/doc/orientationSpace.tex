@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{amsmath}
+\title{Orientation Space}
+\author{Mark Kittisopikul}
+\begin{document}
+\maketitle
+\section{Orientation Space Filter in Reciprical Space}
+\subsection{Radial frequency component, Scale}
+The scale compontent of the filter defined in recipricol space is as follows:
+\begin{eqnarray}
+        \Phi_{[f]}(f;K_f,b_f) & = & \left[ \exp(\frac{K_f}{2}) \left( \frac{1}{\sqrt{K_fb_f^2}} \right)^{K_f} \right] f^{K_f} \exp(-\frac{f^2}{2b_f^2}) \\
+        f_c & = & \sqrt{K_fb_f^2} \\
+        K_f & = & \frac{f_c^2}{b_f^2} \\
+        \Phi_{[f]}(f;f_c,b_f) & = & \left( \frac{f}{f_c} \right)^{\frac{f_c^2}{b_f^2}} \exp(-\frac{f^2-f_c^2}{2 b_f^2}) \\
+        & = & \left( \frac{f}{f_c} \right)^{K_f} \exp(-\frac{1}{2}(\frac{f^2}{f_c^2}-1)K_f)
+\end{eqnarray}
+Since $ K_f $ is usually set such that $ b_f = 0.8 f_c $, it then takes on the following fixed value:
+\begin{eqnarray}
+      K_f   & = & \frac{1}{0.8^2} \\
+            & = & \frac{25}{16} \\
+            & = & 1.5625
+    \end{eqnarray}
+\subsection{Angular compontent, Orientation}
+    \begin{eqnarray}
+        \Phi_{[\theta:G]}(\theta;K)  & = &  2\exp(-\frac{1}{2}\frac{\theta^2}{s_a^2}) \\
+        \mbox{where } s_a & = & = \frac{\pi}{2K+1}
+    \end{eqnarray}
+\section{Comparison to Derivatives}
+\begin{eqnarray}
+        \mathcal{F}\left\{ \frac{\partial^KG(x,y; \sigma)}{\partial \vec{h}^K}\right\}(f,\theta) & = & (j2\pi f)^K \exp(-\frac{1}{2} \sigma^2 (2\pi f)^2) cos^K(\theta - \phi) \\
+        & = & (j2\pi f)^K \exp(-\frac{f^2}{2b_f^2}) cos^K(\theta - \phi) \\
+        b_f & = & = \frac{1}{2\pi\sigma} \\
+\end{eqnarray}
+\section{Steerability and Interpolation}
+Why is the orientation space filter steerable?
+\par
+The Whittaker-Shannon interpolation formula allows for a continuous waveform to be constructed from a sequence of real numbers given that the waveform is bandlimited. That is that the Fourier transform is zero above a certain frequency, $ B $, the band limit. The Nyquist-Shannon sampling theorem states that if the sampling frequency, $ f_s $, satisfies $ f_s/2 > B $ then a perfect reconstruction of the continuous waveform is possible. Specifially,
+\begin{eqnarray}
+        a(\theta) & = & \sum^\infty_{n=-\infty} a\left[n\right] \mbox{sinc}(\theta f_s - n) \\
+\end{eqnarray}
+\[
+        \mbox{where } \mbox{sinc}(\theta) =
+        \begin{cases}
+               \frac{ \sin(\pi \theta) }{\pi \theta} & \theta \neq 0 \\
+                                     1 &      \mbox{ otherwise}
+        \end{cases}
+\]
+\par
+A Gaussian filter is not bandlimited but is approximately bandlimited. So the above interpolation would only apply approximately.
+\section{Lower Order Information is Contained in Higher Order Orientation Space}
+\end{document}

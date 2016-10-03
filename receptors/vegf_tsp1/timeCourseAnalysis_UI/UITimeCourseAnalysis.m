@@ -1,65 +1,76 @@
-function [] = UITimeCourseAnalysis()
+function [p,job] = UITimeCourseAnalysis(varargin)
 %TimeCourseAnalysis of user selected CombinedMovieList objects
 %In TimeCourseAnalysis, MLs in each CML are considered to be in similar
 %condition and grouped together for plotting.
 %
-%SYNOPSIS [] = UITimeCourseAnalysis()
+%SYNOPSIS [p] = UITimeCourseAnalysis(outputFolder,combinedMovieLists,channelTableData)
+%
+% INPUT
+% outputFolder: absolute path to folder where to save data (optional)
+%               as a cell array containing a char
+%               default: prompt the user via UI
+%
+%               Alternatively, the output structure p described below.
+%               Other input parameters will be ignored.
+% combinedMovieLists: path to combined movie lists as a cell array
+%                     (optional)
+%                     default: prompt the user via UI
+% channelTableData: cell array to insert into the channel table UI
+%                   numChannel x 4 cell array
+%                   1st column: logical whether channel is selected or not
+%                   2nd column: Channel legend
+%                   3rd column: Channel name
+%                   4th column: Emission wavelength
+%                   default: Extract information from first movie list
+%
+% OUTPUT
+% p: parameter structure containing the following fields
+%  .outputDir: char. Path to output directory
+%  .CML_FullPath: char cell array with paths to combined movie lists
+%  .doNewAnalysis: logical. True if time course analysis should rerun
+%  .doPartition: logical. True if partitioning analysis should be done
+%  .start2zero: logical. True if time should start at zero, false will
+%                        align the start time time to zero and there will
+%                        be negative values
+%  .shiftPlotPositive: logical. True if all timepoints should be positive.
+%  .nBootstrp: numermic scalar. Number of permutations to do. default: 100
+%  .detectOutliers_k_sigma: numeric scalar. Number of sigma outside of
+%                           which that label an outlier
+%  .channelTable: cell array containing channel information as described in
+%                 channelTableData above
+%  .channelNames: Name of channels
+%  .channels: Channel numbers to use
 %
 %Tae H Kim, July 2015
+%Mark Kittisopikul, November 2015
 
 %% Initialize
 %Progresstext
 clear progressTextMultiple;
 
-%% Prompt user
-%prompt user to select a folder where all figures and data will be stored
-outputDir = uigetdir('', 'Select output folder');
-%prompt user to select Combined Movie Data objects
-%until they press cancel.
-CML_FullPath = {};
-[fileName, filePath] = uigetfile('*.mat', 'Select CombinedMovieLists', 'MultiSelect', 'on');
-while ~isnumeric(fileName)
-    if iscell(fileName)
-        CML_FullPath = [CML_FullPath cellfun(@(x) [filePath x], fileName, 'UniformOutput', false)]; %#ok<*AGROW>
-    else
-        CML_FullPath{end+1} = [filePath fileName];
-    end
-    [fileName, filePath] = uigetfile('*.mat', 'Select CombinedMovieLists', 'MultiSelect', 'on');
-end
-%prompts user if new timeCourse analysis should be done
-userChoiceNTCA = listdlg('PromptString','Select Movie:', 'SelectionMode','single', 'ListString', {'Use old timeCourseAnalysis if possible', 'Do new timeCourseAnalysis'}, 'ListSize', [300, 300]);
-if userChoiceNTCA == 1
-    doNewAnalysis = false;
-else
-    doNewAnalysis = true;
-end
-%prompts user for analysis parameters
-%the function will call actual timeCourseAnalysis
-parameterCheckGUI(outputDir, CML_FullPath, doNewAnalysis);
-end
-%% Parameter Checkbox GUI
-function parameterCheckGUI(outputDir, CML_FullPath, doNewAnalysis)
-% Create figure
-h.f = figure('units','pixels','position',[400,400,500,100],...
-             'toolbar','none','menu','none','name','Choose TimeCourseAnalysis to be done');
-% Create parameter checkboxes
-h.c(1) = uicontrol('style','checkbox','units','pixels',...
-                'position',[10,40,450,20],'string','Partitioning Analysis');
-h.c(2) = uicontrol('style','checkbox','units','pixels',...
-                'position',[10,70,450,20],'string','Set Average Start Time to Zero');    
-% Create OK pushbutton   
-h.p = uicontrol('style','pushbutton','units','pixels',...
-                'position',[40,5,70,20],'string','OK',...
-                'callback',@p_call);
-    % Pushbutton callback
-    function p_call(varargin)
-        parameter = get(h.c,'Value');
-        %closes the dialogue box
-        close(h.f);
-        clear progressTextMultiple;
-        pause(1);
-        %calls the function that does the timeCourseAnalysis
-        timeCourseAnalysis(CML_FullPath, outputDir, 'doNewAnalysis', doNewAnalysis, 'doPartitionAnalysis', parameter{1}, 'start2zero', parameter{2});
+p = TimeCourseAnalysisConfig(varargin{:});
+
+if(~isempty(p))
+    disp(p);
+    switch(p.batchClusterName)
+        case parallel.clusterProfiles
+            job = timeCourseAnalysis.run.batch(p);
+            disp(['Running time course analysis on ' p.batchClusterName ' cluster profile, Job ID ' num2str(job.ID)]);
+            disp(timeCourseAnalysis.link.info(p.batchClusterName,job.ID));
+            disp(timeCourseAnalysis.link.diary(p.batchClusterName,job.ID));
+            disp(' ');
+            disp(timeCourseAnalysis.link.delete(p.batchClusterName,job.ID));
+        otherwise
+            if(~strcmp(p.batchClusterName,'This Client'))
+                warning('Unrecognized cluster, running locally');
+            end
+            overallTime = tic;
+            timeCourseAnalysis(p.CML_FullPath, p.outputDir, ...
+                  p ...
+                  );
+            fprintf('Total UITimeCourseAnalysis Elapsed Time %s\n', ...
+                char(duration(0,0,toc(overallTime))));
+            job = [];
     end
 end
 

@@ -172,6 +172,8 @@ Sub_Sample_Num = gcd(Sub_Sample_Num_st,Sub_Sample_Num_filament);
 
 % Get frame number from the title of the image, this not neccesarily
 % the same as iFrame due to some shorting problem of the channel
+
+try
 if(isempty(MD.channels_(indexVIFChannel).getImageFileNames))
     tic
     for iFrame = 1 : nFrame
@@ -183,6 +185,9 @@ if(isempty(MD.channels_(indexVIFChannel).getImageFileNames))
 else
     filename_short_strs = uncommon_str_takeout(MD.channels_(indexVIFChannel).getImageFileNames);
 end
+catch
+    filename_short_strs=[];
+end
 
 Frames_to_Seg = 1 : Sub_Sample_Num_filament : nFrame;
 Frames_results_correspondence = im2col(repmat(Frames_to_Seg, [Sub_Sample_Num_filament,1]),[1 1]);
@@ -192,7 +197,7 @@ if indexFilamentPackage > 0 && indexFilamentSegmentationProcess > 0
     % Set the directories
     FilamentSegmentationProcessOutputDir  = [MD.packages_{indexFilamentPackage}.outputDirectory_, filesep 'FilamentSegmentation'];
     FilamentSegmentationChannelOutputDir =  MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{indexVIFChannel};
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
 end

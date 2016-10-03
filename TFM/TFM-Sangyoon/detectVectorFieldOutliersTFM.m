@@ -91,15 +91,19 @@ while ~strcmp(msgidlast,'stats:gmdistribution:FailedToConverge') && n<4 && ~fitE
         fitError=true;
     end
 end
-objDist = objDist(1:n-1);
-[~,idx] = min(cellfun(@(i) i.BIC, objDist));
-objDist = objDist{idx};
-[mu,idx] = sort(objDist.mu);
-svec = squeeze(objDist.Sigma(:,:,idx));
-if length(mu)>1
-    threshDist= max(mu(1)+4*svec(1),mu(2)+4*svec(2));
-else
-    threshDist= mu+4*svec;
+if n>1
+    objDist = objDist(1:n-1);
+    [~,idx] = min(cellfun(@(i) i.BIC, objDist));
+    objDist = objDist{idx};
+    [mu,idx] = sort(objDist.mu);
+    svec = squeeze(objDist.Sigma(:,:,idx));
+    if length(mu)>1
+        threshDist= max(mu(1)+4*svec(1),mu(2)+4*svec(2));
+    else
+        threshDist= mu+4*svec;
+    end
+elseif n==1 && fitError
+    threshDist = 2*mean(distance2);
 end
 idxCloseVectors = distance2<threshDist & ~isnan(distance2);
 dataFiltered = data(idxCloseVectors,:);

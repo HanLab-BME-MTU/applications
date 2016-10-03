@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 04-Aug-2015 15:45:40
+% Last Modified by GUIDE v2.5 22-Jul-2016 14:16:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -146,15 +146,17 @@ userData = get(handles.figure1, 'UserData');
 if isempty(userData), userData = struct(); end
 
 % Read numerical parameters
-for i=1:numel(userData.numParams)  
-    value = get(handles.(['edit_' userData.numParams{i}]),'String');
-    if isempty(value)
-        errordlg(['Please enter a valid value for '...
-            get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
-            'Setting Error','modal')
-        return;
+if isfield(userData,'numParams')
+    for i=1:numel(userData.numParams)  
+        value = get(handles.(['edit_' userData.numParams{i}]),'String');
+        if isempty(value)
+            errordlg(['Please enter a valid value for '...
+                get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
+                'Setting Error','modal')
+            return;
+        end
+        funParams.(userData.numParams{i})=str2double(value); 
     end
-    funParams.(userData.numParams{i})=str2double(value); 
 end
 
 if isempty(get(handles.edit_YoungModulus,'String'))
@@ -179,8 +181,11 @@ funParams.method=props{1}{props{2}};
 
 % Read BEM solution method
 props=get(handles.popupmenu_solMethodBEM,{'UserData','Value'});
-funParams.solMethodBEM=props{1}{props{2}};
-
+try
+    funParams.solMethodBEM=props{1}{props{2}};
+catch
+    funParams.solMethodBEM=props{1}{1};
+end
 funParams.useLcurve = get(handles.useLcurve, 'Value');
 funParams.lastToFirst = get(handles.checkbox_lastToFirst, 'Value');
 
@@ -235,7 +240,7 @@ end
 function popupmenu_solMethodBEM_Callback(hObject, eventdata, handles)
 
 props=get(handles.popupmenu_solMethodBEM,{'String','Value'});
-if any(strcmpi(props{1}{props{2}},{'svd','gsvd'}))
+if ~isempty(props{2}) && any(strcmpi(props{1}{props{2}},{'svd','gsvd'}))
     set(handles.edit_regParam,'Enable','off');
     set(handles.edit_LcurveFactor,'Enable','on');
 else
@@ -311,3 +316,12 @@ function checkbox_lastToFirst_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_lastToFirst
+
+
+% --- Executes on button press in setROIfromForcemap.
+function setROIfromForcemap_Callback(hObject, eventdata, handles)
+% hObject    handle to setROIfromForcemap (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+MD=handles.figure1.UserData.MD;
+setROIfromForcemap(MD);

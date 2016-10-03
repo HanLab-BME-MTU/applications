@@ -1,7 +1,17 @@
+
+function [dydx, dys, dxs, scores] = blockMatching(im1, im2, width, searchR, ROI, correctX, correctY)
+
+% Rosin thresholding of the cross-correlation-based matching scores for
+% finding regions for matching at a finer resolution to localize the hits.
+% Input:
 % im1, im2 - images
 % width - block's width
 % searchR - how far to look for a match
-function [dydx, dys, dxs, scores] = blockMatching(im1, im2, width, searchR, ROI, correctX, correctY)
+% ROI - region of interest binary mask, blocks out side the mask will not be considered (and corresponding dx,dy will be nan)
+% correctX, correctY - takes into account microscope drift
+
+
+% Assaf Zaritsky, June 2015
 
 if nargin < 5
     ROI = true(size(im1));

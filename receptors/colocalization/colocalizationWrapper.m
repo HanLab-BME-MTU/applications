@@ -58,9 +58,18 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
     maskNames = cell(1,nChanThresh);
     
     %Define which process was masking process?
-    iM = movieData.getProcessIndex('MaskProcess',Inf,0);
-    inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
-    maskNames = movieData.processes_{iM}.getOutMaskFileNames(p.ChannelMask);
+    try
+        iM = movieData.getProcessIndex('MaskProcess',Inf,0); 
+        inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
+        maskNames = movieData.processes_{iM}.getOutMaskFileNames(p.ChannelMask);
+    catch
+        % Try to use imported cell mask if no MaskProcess, Kevin Nguyen 7/2016
+        iM = movieData.getProcessIndex('ImportCellMaskProcess',Inf,0); 
+        inMaskDir = movieData.processes_{iM}.outFilePaths_{p.ChannelMask}; 
+        inMaskDir = fileparts(inMaskDir);
+        inMaskDir = {inMaskDir}; % Below requires a cell
+        maskNames = {{['cellMask_channel_',num2str(p.ChannelMask),'.tif']}}; 
+    end
     
     if p.MethodIndx ~= 3
     %load ref detection data
@@ -97,10 +106,10 @@ switch p.MethodIndx
 %         []=deal(zeros(length(imageAInfo),1));
         [ratioInd,localInd,randRatioInd]=deal(cell(nImages,1));
         for iImage = 1:nImages
-%     if ~isempty(find(iImage ==[13,21,28] ))
+    if ~isempty(find(iImage ==[28] ))
 % 
-%         continue
-%     end
+        continue
+    end
             %load image in reference channel
             imageRef = movieData.channels_(p.ChannelRef).loadImage(iImage);
             %load image in observed channel
@@ -114,12 +123,12 @@ switch p.MethodIndx
             %Run Function
 
             [ratioAve(iImage,:),localAve(iImage,:),bgAve(iImage,:),randRatioAve(iImage,:),...
-            ratioInd{iImage,:},localInd{iImage,:},randRatioInd{iImage,:}] = colocalMeasurePt2CntTest(p.SearchRadius,...
+            ratioInd{iImage,:},localInd{iImage,:},randRatioInd{iImage,:},clusterDensity(iImage),cellIntensity(iImage,1),backgroundStd(iImage,1)] = colocalMeasurePt2Cnt(p.SearchRadius,...
             p.RandomRuns,detectionData,imageRef,imageObs,currMask);
 %             colocalInfoAve(iImage) = colocalFeaturesAve;
 %             colocalInfoInd(iImage) = colocalFeaturesInd;
         end
-        save(p.OutputDirectory,'ratioAve','localAve','bgAve','randRatioAve','ratioInd','localInd','randRatioInd');
+        save(p.OutputDirectory,'ratioAve','localAve','bgAve','randRatioAve','ratioInd','localInd','randRatioInd','clusterDensity','cellIntensity','backgroundStd');
     case 3
         for iImage = 1:nImages
             %load image in reference channel

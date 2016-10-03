@@ -19,6 +19,8 @@ if(length(digital_x_section)>1)
         end
     end
     sort_ang = [sort_ang; mean(angle_pool)];
+else
+    sort_ang = NaN;
 end
 
 scrable_digital_model{iFila_section} = [sort_x sort_y];

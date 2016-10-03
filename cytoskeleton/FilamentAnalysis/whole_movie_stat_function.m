@@ -70,7 +70,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -164,32 +164,52 @@ for iChannel = selected_channels
     % Make output directory for the steerable filtered images
     FilamentSegmentationChannelOutputDir =  movieData.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel};
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
-        mkdir(FilamentSegmentationChannelOutputDir);
+        try
+            mkdir(FilamentSegmentationChannelOutputDir);
+        catch
+            system(['mkdir -p ' FilamentSegmentationChannelOutputDir]);
+        end
     end
     
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
     
     if (~exist(HeatOutputDir,'dir'))
-        mkdir(HeatOutputDir);
+        try
+            mkdir(HeatOutputDir);
+        catch
+            system(['mkdir -p ' HeatOutputDir]);
+        end
     end
     
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
     
     if (~exist(HeatEnhOutputDir,'dir'))
-        mkdir(HeatEnhOutputDir);
+        try
+            mkdir(HeatEnhOutputDir);
+        catch
+            system(['mkdir -p ' HeatEnhOutputDir]);
+        end
     end
     
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
     
     if (~exist(DataOutputDir,'dir'))
-        mkdir(DataOutputDir);
+        try
+            mkdir(DataOutputDir);
+        catch
+            system(['mkdir -p ' DataOutputDir]);
+        end
     end
     
     
-    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,'/OrientImage'];
+    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'OrientImage'];
     
     if (~exist(OrientationOutputDir,'dir'))
-        mkdir(OrientationOutputDir);
+        try
+            mkdir(OrientationOutputDir);
+        catch
+            system(['mkdir -p ' OrientationOutputDir]);
+        end
     end
     
     

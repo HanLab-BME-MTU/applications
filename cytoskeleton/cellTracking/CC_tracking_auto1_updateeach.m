@@ -16,8 +16,8 @@ nFrame = MD.nFrames_;
 
 color_array= [1 0 0; 0 1 0; 0 0 1; 1 1 0; 1 0 1;0 1 1 ;rand(150,3)];
 iFrame = 1;
-if(~exist([MD.outputDirectory_,'/CC_tracking/'],'dir'))
-    mkdir([MD.outputDirectory_,'/CC_tracking/']);
+if(~exist([MD.outputDirectory_,filesep,'CC_tracking'],'dir'))
+    mkdir([MD.outputDirectory_,filesep,'CC_tracking']);
 end
 
 intensity_pool = [];
@@ -173,7 +173,7 @@ mean_intensity_matrix = zeros(nFrame, nCell*2);
 VIF_intensity = zeros(nFrame, nCell*2);
 
 title( sprintf('Mean-shift clustering result - %d clusters were found', numel(clusterInfo)));
-saveas(h1,[MD.outputDirectory_,'/CC_tracking/mean_shift_clustering.tif']);
+saveas(h1,[MD.outputDirectory_,filesep,'CC_tracking/mean_shift_clustering.tif']);
 
 % mask_cells = zeros(size(currentImg,1),size(currentImg,2),nCell);
 
@@ -317,8 +317,8 @@ for iFrame = 1 : nFrame;
         
     end
     %     title(['Tracking Frame ',num2str(iFrame)]);
-    %     print(h3,'-dtiff',[MD.outputDirectory_,'/CC_tracking/tracking_',num2str(iFrame),'.tif']);
-    %    print(h13,'-dtiff',[MD.outputDirectory_,'/CC_tracking/VIF_',num2str(iFrame),'.tif']);
+    %     print(h3,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking/tracking_',num2str(iFrame),'.tif']);
+    %    print(h13,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking/VIF_',num2str(iFrame),'.tif']);
     
     
     
@@ -490,14 +490,14 @@ for iFrame = 1 : nFrame;
         hold on; plot(dots_XY(:,1),dots_XY(:,2),'.','color',color_array(iCell,:));
         
      end
-           print(h13,'-dtiff',[MD.outputDirectory_,'/CC_tracking/tracking_',num2str(iFrame),'.tif']);
-        print(h3,'-dtiff',[MD.outputDirectory_,'/CC_tracking/clustered_tracking_',num2str(iFrame),'.tif']);
+           print(h13,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking/tracking_',num2str(iFrame),'.tif']);
+        print(h3,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking/clustered_tracking_',num2str(iFrame),'.tif']);
 
 end
 
 
 
-save([MD.outputDirectory_,'/CC_tracking/cc_tracking_results.mat'], ...
+save([MD.outputDirectory_,filesep,'CC_tracking/cc_tracking_results.mat'], ...
     'position_array','present_cells','mean_intensity_matrix','VIF_intensity','for_display_XY','MD');
 
 currentImg = double(MD.channels_(1).loadImage(1));
@@ -557,8 +557,8 @@ for iFrame = 1 : 1: nFrame
         
 
         
-        print(h13,'-dtiff',[MD.outputDirectory_,'/CC_tracking/final_tracking_',num2str(iFrame),'.tif']);
-        print(h3,'-dtiff',[MD.outputDirectory_,'/CC_tracking/patch_clustered_tracking_',num2str(iFrame),'.tif']);
+        print(h13,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking/final_tracking_',num2str(iFrame),'.tif']);
+        print(h3,'-dtiff',[MD.outputDirectory_,filesep,'CC_tracking/patch_clustered_tracking_',num2str(iFrame),'.tif']);
         
         
         %         if iFrame >1

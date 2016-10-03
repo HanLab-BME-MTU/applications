@@ -76,8 +76,8 @@ nFrame = MD.nFrames_;
 
 % Make two directories for the segmentation and steerable filtering results
 % if there are not existing.
-SegmentOutputDir = [MD.outputDirectory_,'/VIF_segmentation'];
-SteerableOutputDir = [MD.outputDirectory_,'/VIF_SteerableDetector'];
+SegmentOutputDir = [MD.outputDirectory_,filesep,'VIF_segmentation'];
+SteerableOutputDir = [MD.outputDirectory_,filesep,'VIF_SteerableDetector'];
 
 if (~exist(SegmentOutputDir,'dir'))
     mkdir(SegmentOutputDir);
@@ -130,7 +130,7 @@ indexMTChannel = 1;
 for iFrame = 1 : nFrame
     disp(['Frame: ',num2str(iFrame)]);
     
-    if (~exist([SteerableOutputDir,'/steerable_segment_all_',num2str(nFrame),'.mat'],'file'))
+    if (~exist([SteerableOutputDir,filesep,'steerable_segment_all_',num2str(nFrame),'.mat'],'file'))
         % Read in the intensity image.
         currentImg = MD.channels_(indexVIFChannel).loadImage(iFrame);
           currentImg = double(currentImg);
@@ -182,7 +182,7 @@ for iFrame = 1 : nFrame
         patch_size = round(steerable_base*3)*2+1;       
         pace_size = round(steerable_base*1)*2+1;
         
-%         load([SteerableOutputDir,'/steerable_',num2str(iFrame),'.mat'],...
+%         load([SteerableOutputDir,filesep,'steerable_',num2str(iFrame),'.mat'],...
 %             'Intensity_Segment','SteerabelRes_Segment');
 %         current_seg = or(Intensity_Segment,SteerabelRes_Segment);
         
@@ -313,8 +313,8 @@ for iFrame = 1 : nFrame
             subplot(132);imagesc(MAX_st_res);colormap(gray); axis image; axis off;
             title('Maximum response of Steerable Filtering','Fontsize',18);
             
-              saveas(h1,[SteerableOutputDir,'/st_',num2str(iFrame),'.tif']);
-%              saveas(h1,[SteerableOutputDir,'/st_',num2str(iFrame),'.fig']);
+              saveas(h1,[SteerableOutputDir,filesep,'st_',num2str(iFrame),'.tif']);
+%              saveas(h1,[SteerableOutputDir,filesep,'st_',num2str(iFrame),'.fig']);
  
              
             % figure 2, for the segmentations
@@ -329,8 +329,8 @@ for iFrame = 1 : nFrame
             figure(2); subplot(222);
             title('Unioned Segmentations','Fontsize',18);
             imagesc(current_seg);colormap(gray); axis image; axis off;
-            saveas(h2,[SegmentOutputDir,'/seg_',num2str(iFrame),'.tif']);
-%             saveas(h2,[SegmentOutputDir,'/seg_',num2str(iFrame),'.fig']);
+            saveas(h2,[SegmentOutputDir,filesep,'seg_',num2str(iFrame),'.tif']);
+%             saveas(h2,[SegmentOutputDir,filesep,'seg_',num2str(iFrame),'.fig']);
 
 %             aa= [800 1070 420 620];
 %             subplot(221);axis(aa);
@@ -378,8 +378,8 @@ for iFrame = 1 : nFrame
                 8*B(1:quiver_grid:end,1:quiver_grid:end,1),8*A(1:quiver_grid:end,1:quiver_grid:end,1));
             
             title('Direction Map','Fontsize',18);
-            saveas(h3,[SteerableOutputDir,'/quiver_',num2str(iFrame),'.tif']);
-%              saveas(h3,[SteerableOutputDir,'/quiver_',num2str(iFrame),'.fig']);
+            saveas(h3,[SteerableOutputDir,filesep,'quiver_',num2str(iFrame),'.tif']);
+%              saveas(h3,[SteerableOutputDir,filesep,'quiver_',num2str(iFrame),'.fig']);
 %             
 %             aa= [800 1070 420 620];
 %             subplot(121);axis(aa);
@@ -400,7 +400,7 @@ for iFrame = 1 : nFrame
 %             
 %             
         end
-              imwrite(current_seg,[SegmentOutputDir,'/segment_',num2str(iFrame),'.tif']);
+              imwrite(current_seg,[SegmentOutputDir,filesep,'segment_',num2str(iFrame),'.tif']);
       
         % Save the results into mat file for each frame, including:
         %       currentImg:     intensity image
@@ -409,7 +409,7 @@ for iFrame = 1 : nFrame
         %       current_seg:    segmentation of VIF
         %       Intensity_Segment: segmentation of VIF only based on intensity
         %       SteerableRes_Segment: segmentation of VIF only based on steerable filtering response
-        save([SteerableOutputDir,'/steerable_',num2str(iFrame),'.mat'],...
+        save([SteerableOutputDir,filesep,'steerable_',num2str(iFrame),'.mat'],...
             'currentImg','orienation_map_filtered','OrientationVoted','orienation_map', ...
             'MAX_st_res', 'current_seg','Intensity_Segment','SteerabelRes_Segment');
         

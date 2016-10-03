@@ -2,6 +2,11 @@ function [] = whMotionShearStrainGeneDaySeq(metaData,mainDirname,pControl,x0Cont
 load([mainDirname '/plithotaxisOut/geneDaySpeed.mat']); % geneDayDiff
 
 
+outdir = [mainDirname '/plithotaxisOut/GeneDaySeq/'];
+if ~exist(outdir,'dir')
+    mkdir(outdir);
+end
+
 nDayGeneSeq = length(geneDayDiff);
 
 % params.timePerFrame = metaData.timePerFrame;
@@ -45,7 +50,7 @@ for iGeneDay = 1 : nDayGeneSeq
     set(haxes,'FontSize',fontsize);
     
     hold off;
-    outFname = [mainDirname '/plithotaxisOut/GeneDaySeq/motionShearStrain_' geneSeqDayStr '.eps'];
+    outFname = [outdir 'motionShearStrain_' geneSeqDayStr '.eps'];
     export_fig(outFname);
 end
 

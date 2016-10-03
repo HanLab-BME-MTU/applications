@@ -83,7 +83,7 @@ if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,'/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -219,26 +219,26 @@ for iChannel = selected_channels
         mkdir(FilamentSegmentationChannelOutputDir);
     end
     
-    HeatOutputDir = [FilamentSegmentationChannelOutputDir,'/HeatOutput'];
+    HeatOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'HeatOutput'];
     
     if (~exist(HeatOutputDir,'dir'))
         mkdir(HeatOutputDir);
     end
     
-    HeatEnhOutputDir = [HeatOutputDir,'/Enh'];
+    HeatEnhOutputDir = [HeatOutputDir,filesep,'Enh'];
     
     if (~exist(HeatEnhOutputDir,'dir'))
         mkdir(HeatEnhOutputDir);
     end
     
-    DataOutputDir = [FilamentSegmentationChannelOutputDir,'/DataOutput'];
+    DataOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'DataOutput'];
     
     if (~exist(DataOutputDir,'dir'))
         mkdir(DataOutputDir);
     end
     
     
-    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,'/OrientImage'];
+    OrientationOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'OrientImage'];
     
     if (~exist(OrientationOutputDir,'dir'))
         mkdir(OrientationOutputDir);
@@ -562,10 +562,10 @@ for iChannel = selected_channels
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
                 imwrite(current_seg, ...
-                    [FilamentSegmentationChannelOutputDir,'/segment_binary_',...
+                    [FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 imwrite(orienation_map_filtered.*double(current_seg), ...
-                    [OrientationOutputDir,'/segment_orientation_',...
+                    [OrientationOutputDir,filesep,'segment_orientation_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);                
             end
         end
@@ -617,7 +617,7 @@ for iChannel = selected_channels
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
                 imwrite(RGB_seg_orient_heat_map, ...
-                    [HeatEnhOutputDir,'/segment_heat_',...
+                    [HeatEnhOutputDir,filesep,'segment_heat_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
             end
         end
@@ -637,7 +637,7 @@ for iChannel = selected_channels
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
                 imwrite(RGB_seg_orient_heat_map, ...
-                    [HeatEnhOutputDir,'/white_segment_heat_',...
+                    [HeatEnhOutputDir,filesep,'white_segment_heat_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
             end
         end
@@ -663,7 +663,7 @@ for iChannel = selected_channels
             for sub_i = 1 : Sub_Sample_Num
                 if iFrame + sub_i-1 <= nFrame
                     imwrite(RGB_seg_orient_heat_map_nms, ...
-                        [HeatEnhOutputDir,'/NMS_Segment_heat_',...
+                        [HeatEnhOutputDir,filesep,'NMS_Segment_heat_',...
                         filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 end
             end
@@ -685,7 +685,7 @@ for iChannel = selected_channels
         %% Save segmentation results
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
-                save([DataOutputDir,'/steerable_vote_', ...
+                save([DataOutputDir,filesep,'steerable_vote_', ...
                     filename_short_strs{iFrame+ sub_i-1},'.mat'],...
                     'currentImg','orienation_map_filtered','OrientationVoted','orienation_map','RGB_seg_orient_heat_map','RGB_seg_orient_heat_map_nms', ...
                     'MAX_st_res', 'current_seg','Intensity_Segment','SteerabelRes_Segment','NMS_Segment', ...
@@ -698,8 +698,8 @@ for iChannel = selected_channels
         
          %% %tif stack cost too much memory, comment these
 %         if( save_tif_flag==1)
-% %             current_seg = (imread([FilamentSegmentationChannelOutputDir,'/segment_binary_',filename_short_strs{iFrame},'.tif']))>0;
-% %             RGB_seg_orient_heat_map = imread([HeatEnhOutputDir,'/segment_heat_',filename_short_strs{iFrame},'.tif']);
+% %             current_seg = (imread([FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',filename_short_strs{iFrame},'.tif']))>0;
+% %             RGB_seg_orient_heat_map = imread([HeatEnhOutputDir,filesep,'segment_heat_',filename_short_strs{iFrame},'.tif']);
 % %             
 %             tif_stack_binary_seg_image_data(:,:,iFrame_index) = uint8(current_seg*255);
 %             tif_stack_RGB_heat_image_data(:,:,:,iFrame_index) = uint8(RGB_seg_orient_heat_map);
@@ -716,9 +716,9 @@ for iChannel = selected_channels
         
         % Save the multi-frame RGB color image
         options.color = true;
-%         saveastiff(tif_stack_RGB_heat_image_data, [FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_seg_heat.tif'], options);
+%         saveastiff(tif_stack_RGB_heat_image_data, [FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_seg_heat.tif'], options);
         options.color = false;
-%         saveastiff(tif_stack_binary_seg_image_data, [FilamentSegmentationProcessOutputDir,'/channel_',num2str(iChannel),'_seg_binary.tif'], options);
+%         saveastiff(tif_stack_binary_seg_image_data, [FilamentSegmentationProcessOutputDir,filesep,'channel_',num2str(iChannel),'_seg_binary.tif'], options);
         
     end
     

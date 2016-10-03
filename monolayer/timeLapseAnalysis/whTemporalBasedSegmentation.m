@@ -10,6 +10,7 @@ for t = 1 : params.nTime - params.frameJump
         load(roiFname);
         prevRoi = ROI;
         clear ROI;
+        fprintf(sprintf('fetching segmentation frame %d\n',t));
         continue;
     end
     
@@ -17,6 +18,7 @@ for t = 1 : params.nTime - params.frameJump
         ROI = false(size(prevRoi));
         prevRoi = ROI;
         save(roiFname,'ROI');
+        fprintf(sprintf('segmentation frame - small ROI stay with previous one %d\n',t));
         continue;
     end
     
@@ -34,6 +36,9 @@ for t = 1 : params.nTime - params.frameJump
     percentile98 = prctile(scores2(:),98);
     %     centers = 0 : 0.00001 : 0.001;
     centers = percentile2:(percentile98-percentile2)/100:percentile98;
+    
+    assert(percentile98~=percentile2);
+    
     [nelements, centers] = hist(scores2,centers);
     [~,thMatching] =  cutFirstHistMode(nelements,centers,0); % rosin threshold
     scoresNoNans = inpaint_nans(scores,4);
@@ -61,15 +66,28 @@ for t = 1 : params.nTime - params.frameJump
     % First time go on the safe side and use two segmentations
     if ~exist('prevRoi','var')
         I = imread([dirs.images pad(t,3) '.tif']);
+        
+        % Assumeing 3 same channels
+        if size(I,3) > 1
+            tmp = I(:,:,1) - I(:,:,2);
+            assert(sum(tmp(:)) == 0);
+            I = I(:,:,1);            
+        end
+        
         [roiTexture,tmp] = segmentPhaseContrastLBPKmeans(I,params.patchSize,lbpMapping);
         
-        % UGLY PATCH - switching roiTexture if necessary. This should be
-        % solved in segmentPhaseContrastLBPKmeans!!
-        
-        roiCombined = imfill(roiMatching | roiTexture,'holes');        
-        roiCombined = morphClose(roiCombined,2*params.patchSize+1);
-        roiCombined = fillRoiHoles(roiCombined);        
-        curRoi = discardExcesses(roiCombined,params);
+        if sum(roiTexture(:)) < 1.2 * sum(roiMatching(:))
+            
+            % UGLY PATCH - switching roiTexture if necessary. This should be
+            % solved in segmentPhaseContrastLBPKmeans!!
+            
+            roiCombined = imfill(roiMatching | roiTexture,'holes');
+            roiCombined = morphClose(roiCombined,2*params.patchSize+1);
+            roiCombined = fillRoiHoles(roiCombined);
+            curRoi = discardExcesses(roiCombined,params);
+        else
+            curRoi = roiMatching;
+        end
     else
         curRoi = roiMatching;
     end

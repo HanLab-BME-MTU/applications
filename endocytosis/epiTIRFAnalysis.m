@@ -20,6 +20,7 @@ ip.addRequired('data', @iscell);
 ip.addRequired('labels', @iscell)
 ip.addRequired('MaxIntensityThreshold', @isscalar);
 ip.addParamValue('Display', false, @islogical);
+ip.addParamValue('CurvaRatioThresh', 1.5, @isnumeric);
 ip.parse(data, labels, MaxIntensityThreshold, varargin{:});
 
 fset = loadFigureSettings('print');
@@ -103,7 +104,7 @@ end
 %==================================================
 % Compare lifetimes for the first two conditions
 %==================================================
-rRange = 1.5;
+rRange = ip.Results.CurvaRatioThresh;
 % rRange = 1+max(ciC,ciD);
 for ri = 1:numel(rRange)
     rf = rRange(ri);
@@ -114,7 +115,7 @@ for ri = 1:numel(rRange)
     ratio2GT = cellfun(@(x,y) x>=rf & y>=T, res(2).iRatio, res(2).iMaxTIR, 'unif', 0);
     ratio2LT = cellfun(@(x,y) x<rf & y>=T, res(2).iRatio, res(2).iMaxTIR, 'unif', 0);
     opts = {'MaxIntensityThreshold', T, 'Display', 'off', 'Rescale', false,...
-        'ExcludeVisitors', true, 'RemoveOutliers', false, 'Overwrite', false};
+        'ExcludeVisitors', true, 'RemoveOutliers', false, 'Overwrite', false,'CorrectObservationBias',true};
     lftRes1GT = runLifetimeAnalysis(data{1}, opts{:}, 'SelectIndex', ratio1GT);
     lftRes1LT = runLifetimeAnalysis(data{1}, opts{:}, 'SelectIndex', ratio1LT);
     lftRes2GT = runLifetimeAnalysis(data{2}, opts{:}, 'SelectIndex', ratio2GT);

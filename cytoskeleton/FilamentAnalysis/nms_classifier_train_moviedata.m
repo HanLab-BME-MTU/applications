@@ -132,7 +132,7 @@ for iChannel = channelIndex
     filename_short_strs = uncommon_str_takeout(Channel_FilesNames);
     
     % Make output directory for the steerable filtered images
-    FilamentSegmentationChannelOutputDir =  [FilamentSegmentationProcessOutputDir, '/Channel',num2str(iChannel)];
+    FilamentSegmentationChannelOutputDir =  [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
         mkdir(FilamentSegmentationChannelOutputDir);
     end
@@ -302,7 +302,11 @@ for iChannel = channelIndex
     radius_for_kd = (S_mask.MajorAxisLength)/20;
     
     tic
-    [idx, dist] = KDTreeBallQuery([feature_MeanX feature_MeanY], [feature_MeanX feature_MeanY], radius_for_kd);
+    %[idx, dist] = KDTreeBallQuery([feature_MeanX feature_MeanY], [feature_MeanX feature_MeanY], radius_for_kd);
+    
+    idx = rangesearch([feature_MeanX feature_MeanY],[feature_MeanX feature_MeanY],...
+        radii,'nsmethod','kdtree');
+  
     display('Find Neighbor');
     toc
     
@@ -348,7 +352,7 @@ for iChannel = channelIndex
         [y,x] = find(labelMask==iLine);
         h1=figure(1);title(['Frame: ',num2str(i_mark)]);
         plot(x,y,'g.');
-        saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_g_',num2str(i_mark),'.jpg']);
+        saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_g_',num2str(i_mark),'.jpg']);
         
         AA = [max(1, round(mean(x))-50), min(size(imageNMS,2), round(mean(x))+50), ...
             max(1, round(mean(y))-50), min(size(imageNMS,1), round(mean(y))+50)];
@@ -371,7 +375,7 @@ for iChannel = channelIndex
                 plot(x,y,'b.');
                 i_ind = i_ind + 1;
             end
-            saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_rb_',num2str(i_mark),'.jpg']);
+            saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_rb_',num2str(i_mark),'.jpg']);
             
             
             if(ch==27 || i_ind > length(training_ind))
@@ -439,7 +443,7 @@ for iChannel = channelIndex
             [y,x] = find(labelMask==iLine);
             h1=figure(1);title(['Frame: ',num2str(i_mark)]);
             plot(x,y,'g.');
-            saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_g_',num2str(i_mark),'.jpg']);
+            saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_g_',num2str(i_mark),'.jpg']);
             
             AA = [max(1, round(mean(x))-50), min(size(imageNMS,2), round(mean(x))+50), ...
                 max(1, round(mean(y))-50), min(size(imageNMS,1), round(mean(y))+50)];
@@ -457,7 +461,7 @@ for iChannel = channelIndex
                     plot(x,y,'b.');
                     i_ind = i_ind + 1;
                 end
-                saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_rb_',num2str(i_mark),'.jpg']);
+                saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_rb_',num2str(i_mark),'.jpg']);
                 
                 if(ch==27 || i_ind > length(training_ind))
                     good_bad_label = good_bad_label(1:length(training_ind));
@@ -528,7 +532,7 @@ for iChannel = channelIndex
             h1=figure(1);
             plot(x,y,'g.');
             title(['Frame: ',num2str(i_mark)]);
-            saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_g_',num2str(i_mark),'.jpg']);
+            saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_g_',num2str(i_mark),'.jpg']);
             
             AA = [max(1, round(mean(x))-50), min(size(imageNMS,2), round(mean(x))+50), ...
                 max(1, round(mean(y))-50), min(size(imageNMS,1), round(mean(y))+50)];
@@ -545,7 +549,7 @@ for iChannel = channelIndex
                     good_bad_label(i_ind) = 2;
                     plot(x,y,'b.');
                 end
-                saveas(h1,[FilamentSegmentationChannelOutputDir,'/train_rb_',num2str(i_mark),'.jpg']);
+                saveas(h1,[FilamentSegmentationChannelOutputDir,filesep,'train_rb_',num2str(i_mark),'.jpg']);
                 
                 if(ch==27 || i_ind > length(training_ind))
                     i_ind = i_ind-1;
@@ -649,9 +653,9 @@ for iChannel = channelIndex
         
         F_classifer_train_this_channel =  @(nms,length,curvature,int) (libsvmpredict(ones(size(nms)), [nms length curvature int], model_polynomial)>0);
         
-        F_classifer_train_output{iChannel} = [FilamentSegmentationChannelOutputDir,'/F_classifer_channel.mat'];
+        F_classifer_train_output{iChannel} = [FilamentSegmentationChannelOutputDir,filesep,'F_classifer_channel.mat'];
         
-        save([FilamentSegmentationChannelOutputDir,'/F_classifer_channel.mat'],'F_classifer_train_this_channel','Classifier_Type_ind');
+        save([FilamentSegmentationChannelOutputDir,filesep,'F_classifer_channel.mat'],'F_classifer_train_this_channel','Classifier_Type_ind');
         
     end
     
@@ -706,11 +710,11 @@ for iChannel = channelIndex
         
     end
     
-    F_classifer_train_output{iChannel} = [FilamentSegmentationChannelOutputDir,'/F_classifer_channel.mat'];
+    F_classifer_train_output{iChannel} = [FilamentSegmentationChannelOutputDir,filesep,'F_classifer_channel.mat'];
     
-    save([FilamentSegmentationChannelOutputDir,'/F_classifer_channel.mat'],'F_classifer_train_this_channel','Classifier_Type_ind');
+    save([FilamentSegmentationChannelOutputDir,filesep,'F_classifer_channel.mat'],'F_classifer_train_this_channel','Classifier_Type_ind');
     
 end
 
-% save([FilamentSegmentationProcessOutputDir,'/F_classifer_process.mat'],'F_classifer_train_output');
+% save([FilamentSegmentationProcessOutputDir,filesep,'F_classifer_process.mat'],'F_classifer_train_output');
 

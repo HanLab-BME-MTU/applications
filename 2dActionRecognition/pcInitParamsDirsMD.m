@@ -1,8 +1,16 @@
-function [params,dirs] = pcInitParamsDirsMD(MD,params)
+function [params,dirs] = pcInitParamsDirsMD(MD,curFname,curTask,params)
 
 %% Parameters
 if ~isfield(params,'pixelSize') || ~isfield(params,'timePerFrame')
     error('pixelSize and timePerFrame are obligatory parameters');
+end
+
+if ~isfield(params,'curFname')
+    params.curFname = curFname;
+end
+
+if ~isfield(params,'curTask')
+    params.curTask = curTask;
 end
 
 if ~isfield(params,'frameJump')
@@ -10,7 +18,7 @@ if ~isfield(params,'frameJump')
 end
 
 if ~isfield(params,'maxSpeed')
-    params.maxSpeed = 60; % um / hr    
+    params.maxSpeed = 90; % um / hr    
 end
 
 params.searchRadiusInPixels = ...
@@ -21,7 +29,7 @@ params.toMuPerHour = params.pixelSize * 60/(params.timePerFrame*params.frameJump
 
 
 if ~isfield(params,'patchSize')
-    params.patchSize = ceil(15.0/params.pixelSize); % 15 um in pixels
+    params.patchSize = ceil(10.0/params.pixelSize); % 10 um in pixels
 end
 
 if ~isfield(params,'nTime')
@@ -32,13 +40,17 @@ if ~isfield(params,'always')
     params.always = false;
 end
 
+if ~isfield(params,'deepDebug')
+    params.always = false;
+end
+
 % Fine resolution
 if ~isfield(params,'fineResolution')
-    params.fineResolution = ceil(3/params.pixelSize); % 3um in pixels (10 pixels)
+    params.fineResolution = params.searchRadiusInPixels;%ceil(3/params.pixelSize); % 3um in pixels (10 pixels)
 end
 
 if ~isfield(params,'fineSearchRadius')
-    params.fineSearchRadius = ceil(3/params.pixelSize); % 3um in pixels (10 pixels)
+    params.fineSearchRadius = params.searchRadiusInPixels;%ceil(3/params.pixelSize); % 3um in pixels (10 pixels)
 end
 
 % Single cell parameters
@@ -52,6 +64,53 @@ if ~isfield(params,'singleCellBB4Vis')
     params.singleCellBB4Vis = round(100 ./ params.pixelSize);
 end
 
+% what percentile to use as "background" in cross correlation matching
+% score 
+if ~isfield(params,'detectionPPVicinityPrctile')
+    params.detectionPPVicinityPrctile = 10; % percentile
+end
+
+% how many farmes to look back and forth to filter out a detection because
+% the same hit was filtered earlier
+if ~isfield(params,'detectionPPFilterFPTime')
+    params.detectionPPFilterFPTime = 5; % # frames
+end
+
+% vicinity (in pixels) around a detection to calculate statistics at
+if ~isfield(params,'detectionPPVicinityPixels')
+    %     params.detectionPPVicinityPixels = 30 * params.pixelSize; % 30um in pixels
+    params.detectionPPVicinityPatch = ceil(80 ./ params.pixelSize / params.patchSize); % 80um in patches
+end
+
+if ~isfield(params,'diffDetectionBackgroundScoreTH')
+    params.diffDetectionBackgroundScoreTH = 0.1; % based on the data from Analysis/metaAnalysis
+end
+
+if ~isfield(params, 'minLengthTH')
+    params.minLengthTH = 45;
+end
+
+if ~isfield(params, 'minLengthTHLong')
+    params.minLengthTHLong = 180;
+end
+
+% Radius for a single cell for the LBP
+if ~isfield(params, 'FOVRadius')
+    params.FOVRadius = 35/params.pixelSize; % 35 um in pixels
+end
+
+% Radius for Otsu cell segmentaion
+if ~isfield(params, 'RoiRadius')
+    params.RoiRadius = round(120/params.pixelSize); % 120 um in pixels
+end
+
+if ~isfield(params, 'nScales')
+    params.nScales = 4; % 4 scales (1 to 1/8)
+end
+
+if ~isfield(params, 'scales')
+    params.scales = 1.0./2.^((1:params.nScales)-1);
+end
 
 %% Local Directories
 dirs.dirname = MD.outputDirectory_;
@@ -78,8 +137,21 @@ dirs.roiVis = [dirs.roi 'vis/'];
 dirs.detect = [dirs.dirname '/detectCells/'];
 dirs.detectData = [dirs.detect '/detections/'];
 dirs.detectVis = [dirs.detect '/detectionsVis/'];
-dirs.lbp = [dirs.detect '/lbp/'];
-dirs.localMorphDynam = [dirs.detect '/localMorphDynam/'];
+
+dirs.detectPPData = [dirs.detect '/detectionsPP/'];
+dirs.detectPPVis = [dirs.detect '/detectionsPPVis/'];
+
+dirs.tracking = [dirs.dirname '/tracking/'];
+
+if exist([dirs.detect '/lbp/'],'dir')
+   unix(sprintf('rm -rf %s',[dirs.detect '/lbp/']));
+end
+
+if exist([dirs.detect '/localMorphDynam/'],'dir')
+    unix(sprintf('rm -rf %s',[dirs.detect '/localMorphDynam/']));
+end
+
+dirs.lbp = [dirs.dirname '/lbp/'];
 
 %% Create local directories
 if ~exist(dirs.dirname,'dir')
@@ -138,18 +210,34 @@ if ~exist(dirs.detectVis,'dir')
     unix(sprintf('mkdir %s',dirs.detectVis));
 end
 
+if ~exist(dirs.detectPPData,'dir')
+    unix(sprintf('mkdir %s',dirs.detectPPData));
+end
+
+if ~exist(dirs.detectPPVis,'dir')
+    unix(sprintf('mkdir %s',dirs.detectPPVis));
+end
+
+if ~exist(dirs.tracking,'dir')
+    unix(sprintf('mkdir %s',dirs.tracking));
+end
+
 if ~exist(dirs.lbp,'dir')
     unix(sprintf('mkdir %s',dirs.lbp));
 end
 
-if ~exist(dirs.localMorphDynam,'dir')
-    unix(sprintf('mkdir %s',dirs.localMorphDynam));
-end
+% if ~exist(dirs.localMorphDynam,'dir')
+%     unix(sprintf('mkdir %s',dirs.localMorphDynam));
+% end
 
 
 %% Global Directories
-dirs.results = [dirs.dirname '/../results/'];
-if ~exist(dirs.results,'dir')
-    unix(sprintf('mkdir %s',dirs.results));
+dirs.trackingVis = [dirs.dirname '/../../../../Movies/trackingMovies/'];
+if ~exist(dirs.trackingVis,'dir')
+    unix(sprintf('mkdir %s',dirs.trackingVis));
 end
+
+%% Experiment name
+tmp = strsplit(dirs.dirname,filesep);
+dirs.expname = tmp{end};
 end

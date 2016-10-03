@@ -250,12 +250,14 @@ movieData.processes_{iProc}.setPara(p)
 
 %Set up input/output directories
 for j = 1:2
-    if hasXF(p.ChannelIndex(j))
-        %If available, use transformed images
+    if j==1 && hasBTC(p.ChannelIndex(j)) % I changed this to take care of the case where denominator channel (e.g. CFP) also has bleedthrough corrected (wrongly).
+        % in such a case, the denominator should be background subtracted
+        % one.
+        %If available, use bleedthrough corrected images
         movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
             movieData.processes_{iXFProc}.outFilePaths_{1,p.ChannelIndex(j)});
-    elseif hasBTC(p.ChannelIndex(j))
-        %... or bleedthrough corrected images
+    elseif hasXF(p.ChannelIndex(j))
+        %... or transformed images
         movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
             movieData.processes_{iBTCProc}.outFilePaths_{1,p.ChannelIndex(j)});
     else

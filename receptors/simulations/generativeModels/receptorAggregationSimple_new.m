@@ -51,6 +51,8 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag,assocStats,c
 %                                  cluster size) - by - (number of iterations)
 %                                  array storing the receptor membership to each
 %                                  cluster.
+%            .modelParam: the imput model parameters 
+%            .simParam: the imput simulation parameters
 %       receptorInfoLabeled : The same as receptorInfoAll, but for labaled
 %                             receptors only. It also has the additional
 %                             field:
@@ -83,7 +85,8 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag,assocStats,c
 %                       primaryNodeRadius - radius for primary node
 %                       partnerNodeRadii - set of radii for partner nodes
 %
-%
+%     
+%      
 %Khuloud Jaqaman, January 2009
 %
 %Modified June 2013 - December 2014, Robel Yirdaw
@@ -704,7 +707,7 @@ clust2receptAssign = clust2receptAssign(rowSum~=0,:,:);
 
 %put information in receptorInfoAll
 receptorInfoAll = struct('receptorTraj',receptorTraj,'recept2clustAssign',...
-    recept2clustAssign,'clust2receptAssign',clust2receptAssign);
+    recept2clustAssign,'clust2receptAssign',clust2receptAssign,'simParam',simParam,'modelParam',modelParam);
 
 %% Receptor labeling and sub-sampling
 

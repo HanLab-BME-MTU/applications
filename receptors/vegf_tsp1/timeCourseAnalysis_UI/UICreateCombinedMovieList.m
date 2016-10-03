@@ -23,17 +23,18 @@ while ~isnumeric(fileName)
     else
         ML_FullPath{end+1} = [filePath fileName];
     end
-    [fileName, filePath] = uigetfile('*.mat', 'Select MovieLists', 'MultiSelect', 'on');
+    [fileName, filePath] = uigetfile([filePath,'*.mat'], 'Select MovieLists', 'MultiSelect', 'on');
 end
 %Parameter prompt
-align_StringList = {'start', 'VEGF_added'};
+align_StringList = {'start', 'compound_added', 'VEGF_added'};
 align_userChoice = listdlg('PromptString','Select the align event', 'SelectionMode','single', 'ListString', align_StringList);
-if align_userChoice == 1
-    CML_analysisPara.alignEvent = 'start';
-end
-if align_userChoice == 2
-    CML_analysisPara.alignEvent = 'VEGF_added';
-end
+CML_analysisPara.alignEvent = align_StringList{align_userChoice};
+% if align_userChoice == 1
+%     CML_analysisPara.alignEvent = 'start';
+% end
+% if align_userChoice == 2
+%     CML_analysisPara.alignEvent = 'compound_added';
+% end
 %% Input check
 
 %load MLs w/o sanity check or loading MDs
@@ -52,7 +53,7 @@ end
 assert(~any(arrayfun(@(x) isempty(x.ML.getProcessIndex('TimePoints')), MLs)), 'Not all Movie Lists contain TimePoints process. Makes sure MovieLists have timePoints process.');
 
 %% Create CombinedMovieList object and save
-CML = CombinedMovieList(ML_FullPath, CML_FilePath(1:end-1), 'name', nameCML);
+CML = CombinedMovieList(ML_FullPath, CML_FilePath(1:end-1),'name',nameCML);
 CML.fileName_ = CML_FileName;
 CML.filePath_ = CML_FilePath;
 CML.analysisPara_ = CML_analysisPara;

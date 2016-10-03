@@ -1,27 +1,32 @@
 function movieData = filament_segmentation(movieData, paramsIn, wholemovie_input_filename, varargin)
 % Main function for the segmentation/reconstruction step in filament analysis
 
-% Input:     movieData:  movieData object, with the parameters
-%            funParams:  the parameters to use, if given, overlay
-%                    the funParams that comes with movieData. Here are the
-%                    fields:
-%                      funParams.ChannelIndex:         the channels to process
-%                      funParams.Pace_Size:            the parameter to set pace in local segmentation
-%                      funParams.Patch_Size:           the parameter to set patch size in local segmentation, for the estimation of local threshold
-%                      funParams.lowerbound_localthresholding: The percentage as the lower bound of local thresholding
-%                                    local threshold has to be larger or equal to this percentage of the global threshold
-%                      funParams.Combine_Way :         The way to combine segmentation results from steerable filtering responce
-%                                     and from intensity, default is : only use steerable filtering result
-%                      funParams.Cell_Mask_ind:        Flag to set if cell mask is used, if 1, use segmentation(refined) results,
-%                                     if 2, use the user define ROI as in MD_ROI.tif in movieData folder, if 3, no such limit
-%                      funParams.VIF_Outgrowth_Flag:   Flag to do VIF_outgrowth or not. This is an option made for Gelfand lab
-%            wholemovie_input_filename: the filename of mat file previously saved for the
-%                           whole movie statistics for this or some other
-%                           movie. If given, this will overwrite the
-%                           wholemovie statistics that comes with the
-%                           movieData
+% Input:    
+% movieData:  movieData object, with the parameters
+% paramsIn:   the parameters to use, if given, overlay
+%             the funParams that comes with movieData. 
+%             Here are the fields
+%             {
+%               .ChannelIndex:                  the channels to process
+%               .Pace_Size:                     the parameter to set pace in local segmentation
+%               .Patch_Size:                    the parameter to set patch size in local segmentation, for the estimation of local threshold
+%               .lowerbound_localthresholding:  The percentage as the lower bound of local thresholding
+%                                                   local threshold has to be larger or equal to this percentage of the global threshold
+%               .Combine_Way :                  The way to combine segmentation results from steerable filtering responce
+%                                                   and from intensity, default is : only use steerable filtering result
+%               .Cell_Mask_ind:                 Flag to set if cell mask is used, if 1, use segmentation(refined) results,
+%                                                   if 2, use the user define ROI as in MD_ROI.tif in movieData folder, if 3, no such limit
+%               .VIF_Outgrowth_Flag:   Flag to do VIF_outgrowth or not. This is an option made for Gelfand lab
+%             }
+%
+% wholemovie_input_filename: the filename of mat file previously saved for the
+%                            whole movie statistics for this or some other
+%                            movie. If given, this will overwrite the
+%                            wholemovie statistics that comes with the
+%                            movieData
 
-% Output:    movieData:   updated movieData object. With the segmentation
+%Output:    
+% movieData:   updated movieData object. With the segmentation
 %                   resulting images saved to the hard disk with corresponing locations.
 
 % Created 07 2012 by Liya Ding, Matlab R2011b
@@ -100,7 +105,8 @@ LengthThreshold_movie = funParams.LengthThreshold;
 IternationNumber_movie = funParams.IternationNumber;
 CurvatureThreshold_movie = funParams.CurvatureThreshold;
 Cell_Mask_ind = Cell_Mask_ind_movie;
-
+Combine_Way = funParams.Combine_Way;
+   
 % if the package was run with old version with only one set of parameter
 % for all channels, make a copy of parameter to every channel
 if(length(funParams.StPace_Size)==1 && numel(movieData.channels_)>1)
@@ -148,13 +154,21 @@ if (indexFilamentPackage>0)
 end
 
 if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
-    mkdir(FilamentSegmentationProcessOutputDir);
+    try
+        mkdir(FilamentSegmentationProcessOutputDir);
+    catch
+        system(['mkdir -p ' FilamentSegmentationProcessOutputDir]);
+    end
 end
 
 for iChannel = selected_channels
     FilamentSegmentationChannelOutputDir = [FilamentSegmentationProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(FilamentSegmentationChannelOutputDir,'dir'))
-        mkdir(FilamentSegmentationChannelOutputDir);
+        try
+            mkdir(FilamentSegmentationChannelOutputDir);
+        catch
+            system(['mkdir -p ' FilamentSegmentationChannelOutputDir]);
+        end
     end
     
     movieData.processes_{indexFilamentSegmentationProcess}.setOutImagePath(iChannel,FilamentSegmentationChannelOutputDir);
@@ -170,8 +184,8 @@ for i = 1 : nProcesses
     end
 end
 
-if indexSteerabeleProcess==0 && Combine_Way~=2
-    msgbox('Please run steerable filtering first.')
+if indexSteerabeleProcess==0 && ~strcmp(Combine_Way{1},'int_only')
+   msgbox('Please run steerable filtering first.')
     return;
 end
 
@@ -227,6 +241,9 @@ if nargin >=3
     load(wholemovie_input_filename);
     funParams.Whole_movie_stat_cell = Whole_movie_stat_cell;
 else
+    
+    if ~strcmp(Combine_Way{1},'int_only')
+          
     % or, calculate it
     %% May 1st 2014, due to change in flattening precedure, this whole movie stat need rerun,
     % if there is already whole movie file and the user didn't ask for
@@ -266,7 +283,7 @@ else
     end
     
     funParams.Whole_movie_stat_cell = Whole_movie_stat_cell;
-    
+    end
 end
 
 %%
@@ -422,7 +439,7 @@ for iChannel = selected_channels
         else
             currentImg = movieData.channels_(iChannel).loadImage(iFrame);
         end
-        currentImg = double(currentImg);
+        currentImg = single(currentImg);
         
         %% %tif stack cost too much memory, comment these
         %
@@ -436,15 +453,17 @@ for iChannel = selected_channels
         % this line in commandation for shortest version of filename
         filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
         
-        try
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_short_strs{iFrame},'.mat']);
-        catch
-            % in the case of only having the short-old version
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_shortshort_strs{iFrame},'.mat']);
+        if ~strcmp(Combine_Way,'int_only')
+            
+            try
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_short_strs{iFrame},'.mat']);
+            catch
+                % in the case of only having the short-old version
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_shortshort_strs{iFrame},'.mat']);
+            end
         end
-        
         
         %%
         
@@ -508,13 +527,15 @@ for iChannel = selected_channels
         %
         %         median_nms = median(nms(:));
         %         quarter_nms = median(nms(find(nms>median_nms)));
-        
+         if ~strcmp(Combine_Way,'int_only')
+       
         open_nms = imopen(nms, ones(2,2));
         eroded_nms = nms-open_nms;
         
         %use the opened image;
         nms = eroded_nms;
-        
+         end
+         
         stophere=1;
         
         
@@ -741,7 +762,8 @@ for iChannel = selected_channels
         MaskCell=MaskCell>0;
         current_seg = current_seg.*MaskCell;
         
-        
+         if ~strcmp(Combine_Way,'int_only')
+       
         %%
         % A smoothing done only at the steerable filtering results, if only intensity only, then the same
         orienation_map_filtered = OrientationSmooth(orienation_map, SteerabelRes_Segment);
@@ -758,7 +780,11 @@ for iChannel = selected_channels
         if (~isempty(max(max(intensity_addon))>0))
             orienation_map_filtered(find(intensity_addon>0)) = OrientationVoted(find(intensity_addon>0));
         end
-        
+         else
+             orienation_map_filtered = ones(size(current_seg));
+             nms = zeros(size(current_seg));
+         end
+         
         if(~strcmp(Combine_Way,'geo_based'))
             % if the segmentation is not done with geo_based method, do
             % some geometry based checking on the results
@@ -858,7 +884,7 @@ for iChannel = selected_channels
                     [FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 if(SaveFigures_movie==1)                    
-                    imwrite(orienation_map_filtered.*double(current_seg), ...
+                    imwrite(orienation_map_filtered.*single(current_seg), ...
                         [OrientationOutputDir,filesep,'segment_orientation_',...
                         filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 end
@@ -884,8 +910,6 @@ for iChannel = selected_channels
             orienation_map_filtered(sub2ind(size(currentImg), VIF_YY,VIF_XX))=OO_flip;
         end
         
-        currentImg = double(currentImg);
-        currentImg = (currentImg-min(min(currentImg)))/(max(max(currentImg))-min(min(currentImg)))*255;
         currentImg = uint8(currentImg/1);
         Hue = (-orienation_map_filtered(:)+pi/2)/(pi)-0.2;
         Hue(find(Hue>=1)) = Hue(find(Hue>=1)) -1;
@@ -919,8 +943,6 @@ for iChannel = selected_channels
             end
         end
         
-        RGB_seg_orient_heat_map_white = RGB_seg_orient_heat_map;
-        
         enhanced_im_r = 255-currentImg;
         enhanced_im_g = 255-currentImg;
         enhanced_im_b = 255-currentImg;
@@ -929,14 +951,14 @@ for iChannel = selected_channels
         enhanced_im_g(find(current_seg>0))=255*G_seg_orient_heat_map(find(current_seg>0));
         enhanced_im_b(find(current_seg>0))=255*B_seg_orient_heat_map(find(current_seg>0));
         
-        RGB_seg_orient_heat_map_white(:,:,1 ) = enhanced_im_r;
-        RGB_seg_orient_heat_map_white(:,:,2 ) = enhanced_im_g;
-        RGB_seg_orient_heat_map_white(:,:,3 ) = enhanced_im_b;
+        RGB_seg_orient_heat_map(:,:,1 ) = enhanced_im_r;
+        RGB_seg_orient_heat_map(:,:,2 ) = enhanced_im_g;
+        RGB_seg_orient_heat_map(:,:,3 ) = enhanced_im_b;
         
         if(SaveFigures_movie==1)
             for sub_i = 1 : Sub_Sample_Num
                 if iFrame + sub_i-1 <= nFrame
-                    imwrite(RGB_seg_orient_heat_map_white, ...
+                    imwrite(RGB_seg_orient_heat_map, ...
                         [HeatEnhOutputDir,filesep,'white_segment_heat_',...
                         filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 end
@@ -977,9 +999,9 @@ for iChannel = selected_channels
         current_seg_orientation(find(current_seg==0)) = nan;
         end_points_map = bwmorph(current_seg,'endpoints');
         
-        tip_orientation = double(end_points_map).*double(orienation_map_filtered);
-        tip_int = double(end_points_map).*double(currentImg);
-        tip_NMS = double(end_points_map).*double(nms);
+        tip_orientation = single(end_points_map).*single(orienation_map_filtered);
+        tip_int = single(end_points_map).*single(currentImg);
+        tip_NMS = single(end_points_map).*single(nms);
         tip_orientation(find(end_points_map==0)) = nan;
         tip_int(find(end_points_map==0)) = nan;
         tip_NMS(find(end_points_map==0)) = nan;
@@ -996,10 +1018,12 @@ for iChannel = selected_channels
                 % if user want it, save everything, if not, save only the
                 % loadable results
                 if(saveallresults_movie==1)
+                    
+                    
                 save([DataOutputDir,filesep,'filament_seg_', ...
                     filename_short_strs{iFrame+ sub_i-1},'.mat'],...
                     'currentImg','orienation_map_filtered','OrientationVoted','orienation_map','RGB_seg_orient_heat_map','RGB_seg_orient_heat_map_nms', ...
-                    'MAX_st_res', 'current_seg','Intensity_Segment','SteerabelRes_Segment','NMS_Segment', ...
+                    'current_seg','Intensity_Segment','SteerabelRes_Segment','NMS_Segment', ...
                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation','tip_orientation',...
                     'tip_int','tip_NMS',...
                     'current_seg_canny_cell');

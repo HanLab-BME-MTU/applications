@@ -1,0 +1,9 @@
+function fourScript()
+scriptDeskewLatticeData
+movieSelectorGUI
+createMovieManagementFile
+loadMoviesManagementFile
+scriptEB3DetectAndTracking
+scriptKinetochoreTracking
+scriptAnalyseResults
+scriptCroppingMovie

@@ -2,7 +2,9 @@
 %%
 % Crossing comparison
 
-[idx_cell, dist_cell] = KDTreeBallQuery([Y1 X1],[Y1 X1],0.1);
+% [idx_cell, dist_cell] = KDTreeBallQuery([Y1 X1],[Y1 X1],0.1);
+% matlab kdtree built in code
+idx_cell = rangesearch([Y1 X1],[Y1 X1],0.1,'nsmethod','kdtree');   
 
 crossing_flag_1 = zeros(1, length(X1));
 angle_crossing_1 = nan(1, length(X1));
@@ -40,7 +42,9 @@ angle_crossing_1(angle_crossing_1<-pi/2) = angle_crossing_1(angle_crossing_1<-pi
 
 
 
-[idx_cell, dist_cell] = KDTreeBallQuery([Y2 X2],[Y2 X2],0.2);
+% [idx_cell, dist_cell] = KDTreeBallQuery([Y2 X2],[Y2 X2],0.2);
+% matlab kdtree built in code
+idx_cell = rangesearch([Y2 X2],[Y2 X2],0.2,'nsmethod','kdtree');
 
 crossing_flag_2 = zeros(1, length(X2));
 angle_crossing_2 = nan(1, length(X2));
@@ -77,15 +81,25 @@ angle_crossing_2(angle_crossing_2<-pi/2) = angle_crossing_2(angle_crossing_2<-pi
 
 
 
-[idx, dist] = KDTreeClosestPoint([Y2(crossing_flag_2>0) X2(crossing_flag_2>0)],...
-    [Y1(crossing_flag_1>0) X1(crossing_flag_1>0) ]);
+% [idx, dist] = KDTreeClosestPoint([Y2(crossing_flag_2>0) X2(crossing_flag_2>0)],...
+%     [Y1(crossing_flag_1>0) X1(crossing_flag_1>0) ]);
+
+% matlab kdtree built in code
+ [idx, dist] = knnsearch([Y2(crossing_flag_2>0) X2(crossing_flag_2>0)],...
+    [Y1(crossing_flag_1>0) X1(crossing_flag_1>0) ],...
+    'nsmethod','kdtree','dist','euclidean','k',1);
 
 dist_pool_for_crossing = [dist_pool_for_crossing;dist];
 ang_pool_for_crossing = [ang_pool_for_crossing;(angle_crossing_1(crossing_flag_1>0))'];
 
 
-[idx, dist] = KDTreeClosestPoint([Y1(crossing_flag_1>0) X1(crossing_flag_1>0)],...
-[Y2(crossing_flag_2>0) X2(crossing_flag_2>0)]);
+% [idx, dist] = KDTreeClosestPoint([Y1(crossing_flag_1>0) X1(crossing_flag_1>0)],...
+% [Y2(crossing_flag_2>0) X2(crossing_flag_2>0)]);
+
+% matlab kdtree built in code
+ [idx, dist] = knnsearch([Y1(crossing_flag_1>0) X1(crossing_flag_1>0)],...
+[Y2(crossing_flag_2>0) X2(crossing_flag_2>0)],...
+    'nsmethod','kdtree','dist','euclidean','k',1);
 
 dist_pool_for_crossing = [dist_pool_for_crossing;dist];
 ang_pool_for_crossing = [ang_pool_for_crossing;(angle_crossing_2(crossing_flag_2>0))'];

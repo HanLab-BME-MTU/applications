@@ -65,14 +65,22 @@ if (indexFilamentPackage>0)
 end
 
 if (~exist(ImageSteerableFilterProcessOutputDir,'dir'))
-    mkdir(ImageSteerableFilterProcessOutputDir);
+    try
+        mkdir(ImageSteerableFilterProcessOutputDir);
+    catch
+        system(['mkdir -p ' ImageSteerableFilterProcessOutputDir]);
+    end
 end
 
 
 for iChannel = selected_channels
     ImageSteerableFilterChannelOutputDir = [ImageSteerableFilterProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(ImageSteerableFilterChannelOutputDir,'dir'))
-        mkdir(ImageSteerableFilterChannelOutputDir);
+        try
+            mkdir(ImageSteerableFilterChannelOutputDir);
+        catch
+            system(['mkdir -p ' ImageSteerableFilterChannelOutputDir]);
+        end
     end
     
     output_dir_content = dir(fullfile([ImageSteerableFilterChannelOutputDir,filesep,'*.*']));
@@ -135,7 +143,11 @@ for iChannel = selected_channels
     display(['Start steerable filtering in Channel ',num2str(iChannel)]);
     
     if (~exist([ImageSteerableFilterChannelOutputDir,filesep,'NMS'],'dir'))
-        mkdir(ImageSteerableFilterChannelOutputDir,'NMS');
+        try
+            mkdir(ImageSteerableFilterChannelOutputDir,'NMS');
+        catch
+            system(['mkdir -p ' ImageSteerableFilterChannelOutputDir filesep 'NMS']);
+        end
     end
     
     for iFrame_subsample = 1 : length(Frames_to_Seg)
@@ -169,6 +181,13 @@ for iChannel = selected_channels
                     filename_short_strs{iFrame + sub_i-1},'.tif']);
             end
         end
+        
+        % change these into single to save space in drug screen
+        % for most experiments, single precision is enough.
+        orienation_map = single(orienation_map);
+        MAX_st_res = single(MAX_st_res);
+        nms = single(nms);
+        scaleMap = single(scaleMap);
         
         save([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'],...
             'orienation_map', 'MAX_st_res','nms','scaleMap');

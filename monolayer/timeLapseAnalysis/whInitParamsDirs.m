@@ -92,6 +92,7 @@ dirs.mfData = [dirs.mf 'mf/'];
 dirs.mfDataOrig = [dirs.mf 'mfOrig/'];
 dirs.mfScores = [dirs.mf 'scoresVis/'];
 dirs.mfBilateral = [dirs.mf 'bilateral/'];
+dirs.mfVis = [dirs.mf 'mfVis/'];
 
 % ROI
 dirs.roi = [dirs.dirname '/ROI/'];
@@ -114,6 +115,11 @@ dirs.directionalityKymograph = [dirs.kymographs 'directionality/'];
 dirs.strainRateKymograph = [dirs.kymographs 'strainRate/'];
 dirs.accelerationKymograph = [dirs.kymographs 'acceleration/'];
 dirs.coordinationKymograph = [dirs.kymographs 'coordination/'];
+
+% kymographs std
+dirs.kymographsStd = [dirs.main 'kymographsStd/'];
+dirs.speedKymographStd = [dirs.kymographs 'speedStd/'];
+dirs.directionalityKymographStd = [dirs.kymographs 'directionalityStd/'];
 
 % trajectories
 dirs.trajectories = [dirs.main 'trajectories/'];
@@ -154,6 +160,10 @@ end
 
 if ~exist(dirs.mfBilateral,'dir')
     unix(sprintf('mkdir %s',dirs.mfBilateral));
+end
+
+if ~exist(dirs.mfVis,'dir')
+    unix(sprintf('mkdir %s',dirs.mfVis));
 end
 
 if ~exist(dirs.roi,'dir')
@@ -203,6 +213,19 @@ end
 
 if ~exist(dirs.coordinationKymograph,'dir')
     unix(sprintf('mkdir %s',dirs.coordinationKymograph));
+end
+
+% STD
+if ~exist(dirs.kymographsStd,'dir')
+    unix(sprintf('mkdir %s',dirs.kymographsStd));
+end
+
+if ~exist(dirs.speedKymographStd,'dir')
+    unix(sprintf('mkdir %s',dirs.speedKymographStd));
+end
+
+if ~exist(dirs.directionalityKymographStd,'dir')
+    unix(sprintf('mkdir %s',dirs.directionalityKymographStd));
 end
 
 if ~exist(dirs.trajectories,'dir')

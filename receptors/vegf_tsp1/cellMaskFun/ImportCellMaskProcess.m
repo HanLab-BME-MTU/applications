@@ -49,7 +49,10 @@ classdef ImportCellMaskProcess < DataProcessingProcess
             
             % Define default process parameters
             funParams.OutputDirectory = [outputDir  filesep 'ImportedCellMask'];
-            
+            funParams.fileName = cell(size(MD.channels_));
+            funParams.filePath = cell(size(MD.channels_));
+            funParams.ChannelIndex = 1;
+            funParams.askUser = true;
         end
         
     end
