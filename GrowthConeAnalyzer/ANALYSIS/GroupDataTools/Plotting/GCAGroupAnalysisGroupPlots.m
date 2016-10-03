@@ -33,6 +33,7 @@ ip.addParameter('splitMovie',false);
 ip.addParameter('order',[]); % order to plot data from the cluster object 
 ip.addParameter('plotType','perCell'); 
 ip.addParameter('perNeuriteStat','nanmean' ); 
+ip.addParameter('FontSize',20); 
 ip.parse(toPlot,varargin{:}); 
 
 
@@ -63,13 +64,17 @@ for iParam = 1:length(params)
     forDataMat = cellfun(@(x) [x ;nan(toPad-length(x(:,1)),length(x(1,:)))],toPlot.(params{iParam}).dataMat,'uniformoutput',0);
     
     dataMatLargeC = horzcat(forDataMat{:});
+    if strcmpi(params{iParam},'filoCurvature');
+        
+        dataMatLargeC = dataMatLargeC.*(1/0.216);
+    end
     
     switch ip.Results.splitMovie
         case true
             
             %% Make the boxplot of the individual cells
             % Start boxplots : if user desires plot begin and end of movie separately for each neurite
-            setAxis('off');
+            setAxis('on');
             projListAll = vertcat(toPlot.info.projList{:}) ;
             names = projListAll(:,2);
             names = strrep(names,'_',' ');
@@ -105,6 +110,22 @@ for iParam = 1:length(params)
             end
             
             
+            valuesM = nanmedian(dataMatLargeC,1);
+            
+            
+            % perform the individual stats
+            nums = [1,3,5];
+            [idxPerm(:,1),pValuesPerm(:,1)] = arrayfun(@(i) permTest(dataMatLargeC(:,i) , dataMatLargeC(:,i+1),'CmpFunc',@nanmedian,'nRep',10000),nums);
+            % lot the line median 
+            arrayfun(@(i) line([i,i+1], [valuesM(i),valuesM(i)],'Color',colorShades{1}(1,:)),nums,'uniformoutput',0); 
+            
+            nums2 = [7,9,11];
+            [idxPerm(:,2),pValuesPerm(:,2)] = arrayfun(@(i) permTest(dataMatLargeC(:,i) , dataMatLargeC(:,i+1),'CmpFun',@nanmedian,'nRep',10000),nums2);
+            % lot the line median 
+            arrayfun(@(i) line([i,i+1], [valuesM(i),valuesM(i)],'Color',colorShades{2}(1,:)),nums2,'uniformoutput',0);
+            
+            
+           
             % perform the individual stats
             %
             %     for i = 2:2:size(dataMatLargeC)
@@ -119,11 +140,94 @@ for iParam = 1:length(params)
             %
             % h1 = boxplot(dataMatLargeC,'colorGroup',toPlot.info.grouping,'notch','on','outlierSize',1,'colors',colors,'Labels',names,'labelorientation','inline');
             set(h1(:),'Linewidth',2);
+            Results.(params{iParam}).pValuesPerm = pValuesPerm; 
+            Results.(params{iParam}).idxPerm = idxPerm; 
+            save([saveDir filesep 'perCell_TimeSplitStats_Results.mat'],'Results'); 
             
             saveas(gcf,[saveDir filesep 'perCellBox_TimeSplit' params{iParam} '.fig']);
             saveas(gcf,[saveDir filesep 'perCellBox_TimeSplit' params{iParam} '.png']);
             saveas(gcf,[saveDir filesep 'perCellBox_TimeSplit' params{iParam} '.eps'],'psc2');
+            close gcf 
+            %% Percent Change 
+            setAxis('on',0.75,ip.Results.FontSize)
+            % get the median value of each group before and after
+                         values = nanmedian(dataMatLargeC,1);
+                         values = values';
+            ID =  toPlot.info.groupingPoolBeginEndMovie; 
+                         percentChange(:,1) = (values(ID==2) - values(ID==1))./values(ID == 1);
+                         percentChange(:,2) = (values(ID ==4) -values(ID==3))./values(ID ==3);
+        
             
+            h = notBoxPlot(percentChange);
+            
+            %set the colors
+            arrayfun(@(i) set(h(i).data,'markerFaceColor', colorShades{i}(1,:)),1:2);
+            arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:2);
+            arrayfun(@(i) set(h(i).mu,'color',colorShades{i}(1,:)),1:2);
+            arrayfun(@(i) set(h(i).semPtch,'faceColor',colorShades{i}(2,:)),1:2);
+            arrayfun(@(i) set(h(i).sdPtch,'faceColor',colorShades{i}(2,:)),1:2);
+            
+            forLabel = strrep(params{iParam},'_',' ');
+            
+            groupNames = toPlot.info.names;
+            
+            ylabel({forLabel ; 'Percent Change In Median'});
+            %ylabel(toPlot.(params{iParam}).yLabel);
+            set(gca,'XTick',1:numel(groupNames));
+            set(gca,'XTickLabel',groupNames,'FontSize',20);
+            
+            h1 = get(gcf,'CurrentAxes');
+            yLim = h1.YLim; % use whatever they used
+            axis([0.5 2.5 yLim(1) yLim(2)]);             
+                         
+            saveas(gcf,[saveDir filesep 'percentChange_TimeSplit' params{iParam} '.fig']);
+            saveas(gcf,[saveDir filesep 'percentChange_TimeSplit' params{iParam} '.png']);
+            saveas(gcf,[saveDir filesep 'percentChange_TimeSplit' params{iParam} '.eps'],'psc2');
+            
+            close gcf             
+            
+            
+            %% KSStat
+            [idx(:,1),pValues(:,1),ksStat(:,1)] = arrayfun(@(i) kstest2(dataMatLargeC(:,i) , dataMatLargeC(:,i+1)),nums);
+            nums2 = [7,9,11];
+            [idx(:,2),pValues(:,2),ksStat(:,2)] = arrayfun(@(i) kstest2(dataMatLargeC(:,i) , dataMatLargeC(:,i+1)),nums2);
+            
+            
+            
+            h = notBoxPlot(ksStat);
+            
+            %set the colors
+            arrayfun(@(i) set(h(i).data,'markerFaceColor', colorShades{i}(1,:)),1:2);
+            arrayfun(@(i) set(h(i).data,'markerEdgeColor','w'),1:2);
+            arrayfun(@(i) set(h(i).mu,'color',colorShades{i}(1,:)),1:2);
+            arrayfun(@(i) set(h(i).semPtch,'faceColor',colorShades{i}(2,:)),1:2);
+            arrayfun(@(i) set(h(i).sdPtch,'faceColor',colorShades{i}(2,:)),1:2);
+            forLabel = strrep(params{iParam},'_',' ');
+            
+            groupNames = toPlot.info.names;
+            
+            ylabel({forLabel ; 'KSStat'});
+            %ylabel(toPlot.(params{iParam}).yLabel);
+            set(gca,'XTick',1:numel(groupNames));
+            set(gca,'XTickLabel',groupNames,'FontSize',20);
+            
+            h1 = get(gcf,'CurrentAxes');
+            yLim = h1.YLim; % use whatever they used
+            axis([0.5 2.5 yLim(1) yLim(2)]);
+            
+           
+            %axis([0.5 length(toPlot.info.names)+ 0.5 0 toPlot.(params{iParam}).ylim]);
+            
+%             if isfield(toPlot.(params{iParam}),'yLabel');
+%                 forLabel = toPlot.(params{iParam}).yLabel;
+%                 ylabel({forLabel ; 'KSStat'});
+%             end
+            
+            saveas(gcf,[saveDir filesep 'perKSStat_TimeSplit' params{iParam} '.fig']);
+            saveas(gcf,[saveDir filesep 'perKSStat_TimeSplit' params{iParam} '.png']);
+            saveas(gcf,[saveDir filesep 'perKSStat_TimeSplit' params{iParam} '.eps'],'psc2');
+            
+            close gcf
             
             %% pooled boxplots
             setAxis('off')
@@ -280,7 +384,7 @@ for iParam = 1:length(params)
                     else
                         cDir = saveDir;
                     end
-                    setAxis('on',0.75,20);
+                    setAxis('on',0.95,20);
                     nCells = length(unique(toPlot.info.groupingPerCell));
                     % collect the data forN (note 2016030 not sure why I
                     % formated this way-  it it seems odd 
@@ -318,6 +422,7 @@ for iParam = 1:length(params)
                     % and c is the perturbation group 
                     perCellDataMat = reformatDataCell(neuriteStatEachMovieGrouped);
                     
+                   
                     % sort the order of the perturbation groups if required
                     % (note this is helpful so that the order of groups reflects the 
                     % clustergram output order for easy comparison) 
@@ -326,7 +431,7 @@ for iParam = 1:length(params)
                         IDSort = cellfun(@(x) find(strcmpi(x,toPlot.info.names)),namesC);
                         IDSort = [1, IDSort];
                         perCellDataMat = perCellDataMat(:,IDSort);
-                        names = ['KD Rac1' ; namesC']; 
+                        names = ['KD Control' ; namesC']; 
                         %names = ['Control' ; namesC'];
                         colors = toPlot.info.color(IDSort);
                         colorShades = toPlot.info.colorShades(IDSort);
@@ -346,7 +451,8 @@ for iParam = 1:length(params)
                     arrayfun(@(i) set(h(i).mu,'color',colors{i}),1:numel(names));
                     arrayfun(@(i) set(h(i).semPtch,'faceColor',colorShades{i}(4,:)),1:numel(names));
                     arrayfun(@(i) set(h(i).sdPtch,'faceColor',colorShades{i}(1,:)),1:numel(names));
-                    
+                    arrayfun(@(i) set(h(i).data,'markerSize',20),1:numel(names)); 
+                  
                     
                     % perform some quick stat tests
                     for i = 2:numel(toPlot.info.names)
@@ -367,7 +473,7 @@ for iParam = 1:length(params)
                     ylabel(forLabel);
                     %ylabel(toPlot.(params{iParam}).yLabel);
                     set(gca,'XTick',1:numel(names));
-                    set(gca,'XTickLabel',names,'FontSize',20);
+                    set(gca,'XTickLabel',names,'FontSize',ip.Results.FontSize); 
                     
                     %axis([0.5 length(toPlot.info.names)+ 0.5 0 toPlot.(params{iParam}).ylim]);
                     
@@ -376,13 +482,51 @@ for iParam = 1:length(params)
                     end
                     set(gca,'XTickLabelRotation',45);
                     
+                    h1 = get(gcf,'CurrentAxes');
+                    yLim = h1.YLim; % use whatever they used
+                    axis([0.5 length(toPlot.info.names)+ 0.5  yLim(1) yLim(2)]);
+                    
+                    
+                    
                     saveas(gcf,[cDir filesep 'perCell' params{iParam} '.fig']);
                     saveas(gcf,[cDir filesep 'perCell' params{iParam} '.png']);
                     saveas(gcf,[cDir filesep 'perCell' params{iParam} '.eps'],'psc2');
+                    close gcf 
+                    toPlot.(params{iParam}).pValues.perCell = pValues; 
+                case 'perCellDistrb'
+                    setAxis('on',0.95,20);
+                    movieIDs = vertcat(toPlot.info.projList{:}); 
+                    movieIDs = movieIDs(:,2); 
+                    movieIDs = cellfun(@(x) strrep(x,'_',' '),movieIDs,'uniformoutput',0); 
+                    forLabel = strrep(params{iParam},'_',' ');
+                    
+                    
+                    ylabel(forLabel);
+                    
+                    
+                    colors = vertcat(toPlot.info.color{:}); 
+                    boxplot(dataMatLargeC,'ColorGroup',toPlot.info.grouping, ...
+                        'colors',colors,'notch','on','outlierSize',1,'symbol','+');
+                    
+                        set(gca,'XTick',1:numel(movieIDs));
+                    set(gca,'XTickLabel',movieIDs,'FontSize',12);
+                    set(gca,'XTickLabelRotation',45);
+                    
+                    % get the axis limits 
+                    data = dataMatLargeC(:); 
+                    data = data(~isnan(data));
+                    maxY = prctile(data,99.5); 
+                    minY = prctile(data,0.05); 
+                    axis([0.5 size(dataMatLargeC,2) + 0.5, minY, maxY]); 
+                    
+                    saveas(gcf,[saveDir filesep 'perCellDistr' params{iParam} '.fig']);
+                    saveas(gcf,[saveDir filesep 'perCellDistr' params{iParam} '.png']);
+                    saveas(gcf,[saveDir filesep 'perCellDistr' params{iParam} '.eps'],'psc2');
                     close gcf 
             end  % switch ip.Results.plotType
         
     end
 end
+save('toPlotGroupMeas.mat','toPlot'); 
 end 
 

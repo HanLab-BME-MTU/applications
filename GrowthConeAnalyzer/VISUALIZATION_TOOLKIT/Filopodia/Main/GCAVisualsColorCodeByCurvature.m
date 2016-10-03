@@ -12,6 +12,7 @@ ip.CaseSensitive = false;
 ip.addRequired('filoInfo');
 ip.addParameter('cMapLimits',[]); 
 ip.addParameter('filoFilterSet',[]); 
+ip.addParameter('pix2Micron',[]); 
 
 ip.parse(filoInfo,varargin{:});
 %%
@@ -22,10 +23,15 @@ else
     filoFilterSet = ip.Results.filoFilterSet;
 end
 
+
 filoInfo = filoInfo(filoFilterSet(:,1)); 
 
 filoCurvsAll =   abs(vertcat(filoInfo(:).Ext_FiloCurvIndVals));
 xy = vertcat(filoInfo(:).Ext_coordsXY_SplineFit);
+
+if ~isempty(ip.Results.pix2Micron) 
+   filoCurvsAll = filoCurvsAll*(1/ip.Results.pix2Micron); % convert from 1/pixels to 1/um  
+end 
 
 
 if isempty(ip.Results.cMapLimits);
@@ -49,6 +55,7 @@ for k=1:cMapLength
     %                 idxCand = EPreFilt(idxCMap(:,1) == k,2);
     %                 idxSeed = EPreFilt(idxCMap(:,1)==k,1);
     %                 for iEdge = 1:length(idxCand) % some can have the same color
+    
     scatter(xy(idxCMap(:,1)==k,1),xy(idxCMap(:,1) == k,2),5,...
         cMap(k,:),'filled');
     %end

@@ -19,19 +19,28 @@ ip.CaseSensitive = false;
 defaultOutDir = pwd;
 
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
-ip.addParameter('CombineGroups',true); 
+ip.addParameter('Interactive',true); 
+ip.addParameter('perNeuriteStatistic','nanmean'); 
+ip.addParameter('matrixPlot',false); 
 
 ip.parse(varargin{:});
 figureDirectory = ip.Results.OutputDirectory; 
 %% 
-if ip.Results.CombineGroups
+
+if ip.Results.Interactive
+    groupNames = toPlotGroup.info.names;
+    idxCombine = listSelectGUI(groupNames,[],'move');
+else
     projListC = vertcat(toPlotGroup.info.projList{:});
-    projListC = projListC(:,1); 
+    idxCombine = 1:numel(toPlotGroup.info.names);
 end
+nGroups = length(idxCombine);
 %projListC = toPlotGroup.info.projList{1}(:,1);
 %% Get all parameters 
-for iGroup = 1:numel(toPlotGroup.info.names);
-    projListC = toPlotGroup.info.projList{iGroup};
+for iGroup = 1:nGroups;
+    
+    projListC = toPlotGroup.info.projList{idxCombine(iGroup)};
+    %toPlotGroup.info.projList = toPlotGroup.info.projList(idxCombine(iGroup)); 
     projListC = projListC(:,1); 
     neuriteLengthStruct = cellfun(@(x) load([x filesep 'GrowthConeAnalyzer' filesep 'MEASUREMENT_EXTRACTION' ...
         filesep 'GlobalFunctional' filesep 'neurite_outgrowth_measurements' ...
@@ -43,12 +52,20 @@ for iGroup = 1:numel(toPlotGroup.info.names);
 end
 deltas = vertcat(deltasPerGroup{:}); 
   deltasPerGroup = deltasPerGroup'; 
-  colors = toPlotGroup.info.color'; 
+  colors = toPlotGroup.info.color(idxCombine)'; 
+  % 
+  names = fieldnames(toPlotGroup);
+  names = cellfun(@(x) ~strcmpi(x,'info'),names,'uniformoutput',0); 
+  for i = 1:numel(names)
+   
+      
+  end 
 %% Screen for Correlations With Neurite Outgrowth (still a bit rough...)
-[results,dataSetArray] = GCAAnalysisScreenCorrelations(deltas,toPlotGroup);
+[results,dataSetArray] = GCAAnalysisScreenCorrelations(deltas,toPlotGroup,'perNeuriteStatistic',...
+    ip.Results.perNeuriteStatistic,'matrixPlot',ip.Results.matrixPlot);
 
 % save the dataSetarray 
-export(dataSetArray,'File',[figureDirectory filesep  'DataSetMeanWholeMovie.csv'],'Delimiter',',');
+export(dataSetArray,'File',[figureDirectory filesep  'DataSet' ip.Results.perNeuriteStatistic 'WholeMovie.csv'],'Delimiter',',');
 
 mdl = fitlm(dataSetArray); 
 save([figureDirectory filesep 'ModelObjectWholeMovie.mat'],'mdl'); 
@@ -173,6 +190,9 @@ cellfun(@(x,y,z) scatter(x',y./10,50,z,'filled'),resultsC.v,deltasPerGroup,color
    
 end
 
+if ip.Results.matrixPlot 
+    corrPlotMine(    ); 
+end 
 
 end
 

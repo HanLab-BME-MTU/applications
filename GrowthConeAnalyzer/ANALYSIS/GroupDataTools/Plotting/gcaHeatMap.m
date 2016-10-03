@@ -277,7 +277,7 @@ if ip.Results.calcZ
 
         GCAGroupAnalysisGroupPlots(toPlot,'order', sortedLabels,... 
             'Interactive',false,'OutputDirectory',plotDir,... 
-            'plotType','perCell','measurements',measToPlot,'perNeuriteStat',ip.Results.perNeuriteStat);
+            'plotType','pooled','measurements',measToPlot,'perNeuriteStat',ip.Results.perNeuriteStat,'FontSize',40);
         time = clock; 
         save([plotDir filesep 'timeStamp.mat'],'time');  
      end 

@@ -28,12 +28,12 @@ veilMaskMinusFilo = (veilMask-maskIntFilo);
 veilIntensityValues = imgFilt(logical(veilMaskMinusFilo));
 avgVeilIntensity = mean(veilIntensityValues(:)); % normalization factor 
 %%
-sanityCheck = 0; 
+sanityCheck = 1; 
 if sanityCheck == 1 
     setFigure(nx,ny,'on'); 
     imshow(imgFilt,[]); 
     hold on 
-    spy(~veilMaskMinusFilo,'b'); 
+    spy(~veilMaskMinusFilo,'g'); 
     text(5,5,['Mean Fluorescence Veil/Stem ' num2str(avgVeilIntensity,4) 'AU'],'color','y'); 
 end 
     
@@ -55,6 +55,7 @@ for iFilo = 1:length(filoInfo)
     avgFiloIntensityExt =  mean(imgFilt(pixIndicesExt));
     normIntensityExt = (avgFiloIntensityExt/avgVeilIntensity);
     filoInfo(iFilo).Ext_IntensityNormToVeil = normIntensityExt;
+    filoInfo(iFilo).Ext_Intensity = avgFiloIntensityExt; 
     
     % Intra-veil filo 
     pixIndices = filoInfo(iFilo).('Int_pixIndices'); 
@@ -65,12 +66,13 @@ for iFilo = 1:length(filoInfo)
     normIntensityInt = (avgFiloIntensityInt/avgVeilIntensity);
     
     filoInfo(iFilo).Int_IntensityNormToVeil = normIntensityInt;  
+    filoInfo(iFilo).Int_Intensity = avgFiloIntensityInt; 
   
     
     % Total Actin Bundle 
     avgFiloIntensityTot = mean(imgFilt([pixIndicesExt;pixIndicesInt])); 
     filoInfo(iFilo).Tot_IntensityNormToVeil = avgFiloIntensityTot/avgVeilIntensity; 
-    
+    filoInfo(iFilo).Tot_Intensity = avgFiloIntensityTot; 
 end
 
 

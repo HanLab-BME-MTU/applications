@@ -1,4 +1,4 @@
-function [ localParamsGrouped,predVarMat ] = GCAAnalysisPartitionVeilParamsByOutgrowth( analysisResults1,analysisResults2,globalParams,varargin)
+function [ localParamsGrouped,predVarMat,forMovie ] = GCAAnalysisPartitionVeilParamsByOutgrowth( analysisResults1,analysisResults2,globalParams,varargin)
 %GCAAnalysisPartitionVeilParamsByOutgrowth
 % a small function to reformat the analysisResults from Marcos veil
 % protrusion/retraction identifier and cluster by
@@ -23,6 +23,8 @@ ip = inputParser;
 ip.addRequired('analysisResults1',@(x) isstruct(x));
 ip.addRequired('analysisResults2',@(x) isstruct(x));
 ip.addRequired('globalParams',@(x) isstruct(x));
+ip.addParameter('makeMovie',true,@(x) islogical(x)); 
+
 
 % PARAMS
 ip.addParamValue('writePredMat',true,@(x) islogical(x));
@@ -48,6 +50,8 @@ params{2} = 'persTime';
 analysisC{1} = 'protrusionAnalysis';
 analysisC{2} = 'retractionAnalysis';
 
+forMovie = []; 
+
 if writePredMat == true;
     % initiate the predVarMat
     predVarMat = nan(nGroups,4);
@@ -62,10 +66,24 @@ for iAnal = 1:numel(analysisC)
         % initiate valuesClust to hold the veil measurements per outgrowth
         % group
         valuesClust = cell(numel(grpFrames),1);
+        windowsClust = cell(numel(grpFrames),1); 
+        framesOfVeilEventClust = cell(numel(grpFrames),1); 
+        
+        
         
         for iGroup = 1:numel(grpFrames);
             
             grpC= grpFrames{iGroup};
+            
+            % record which window it was from 
+            %analysisResults1.(analysisC{iAnal}).windows(:).blockOut); 
+            % for each blockOut mark the window 
+            windowIdx1 =  arrayfun(@(i) repmat(i,numel(analysisResults1.(analysisC{iAnal}).windows(i).blockOut),1),... 
+                1:length(analysisResults1.(analysisC{iAnal}).windows),'uniformoutput',0); 
+            
+              windowIdx2 =  arrayfun(@(i) repmat(i,numel(analysisResults2.(analysisC{iAnal}).windows(i).blockOut),1),... 
+                1:length(analysisResults2.(analysisC{iAnal}).windows),'uniformoutput',0);    
+              windowIdx = [vertcat(windowIdx1{:}) ; vertcat(windowIdx2{:})]; % attach a window to each protrusion event  
             
             % compile the time frames for all the protrusion or retraction events from all windows
             framesOfVeilEvent1 = horzcat(analysisResults1.(analysisC{iAnal}).windows(:).blockOut);
@@ -89,11 +107,21 @@ for iAnal = 1:numel(analysisC)
             % outgrowth event timescale.
             idxC  = cellfun(@(x) length(intersect(grpC,x)) == length(x),framesOfVeilEvent);
             valuesClust{iGroup} = valuesC(idxC);
-            
+            if ip.Results.makeMovie
+                windowsClust{iGroup} = windowIdx(idxC);
+                framesOfVeilEventClust{iGroup} = framesOfVeilEvent(idxC);
+            end
+          
         end % for iGroup
         
         % save the parameter
         localParamsGrouped.(paramName) = valuesClust;
+        
+        if ip.Results.makeMovie
+            forMovie.(paramName).windows = windowsClust;
+            forMovie.(paramName).frames = framesOfVeilEventClust;
+            forMovie.(paramName).values = valuesClust;
+        end
         
         if writePredMat == true; % if write the predictor
             % put into a matrix where r (row) is the number of observations -

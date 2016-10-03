@@ -30,7 +30,7 @@ ip.addParameter('justExt',1); % flag for internal filo versus ext filo plotting
 % FiloColor Options
 ip.addParameter('colorEmbed',[0 0 1]);
 ip.addParameter('colorFiloBranch',[0 0 0]);
-ip.addParameter('colorBranch',[0 1 0]); % only applicable in branch mode
+ip.addParameter('colorBranch',[0 0 0]); % only applicable in branch mode
 
 % cMap Parameters: Options related to color coding by value 
 ip.addParameter('colorByValue',false);
@@ -287,8 +287,8 @@ end    % iType
           [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
           plot(xC,yC,'color',ip.Results.colorBranch,'Linewidth',ip.Results.LineWidth);
       end
-      scatter(xycoordsEndFit(:,1),xycoordsEndFit(:,2),20,ip.Results.colorBranch,'filled');
-      scatter(xycoordsBase(:,1),xycoordsBase(:,2),20, ip.Results.colorBranch,'filled');
+      scatter(xycoordsEndFit(:,1),xycoordsEndFit(:,2),ip.Results.MarkerSize,ip.Results.colorBranch,'filled');
+      scatter(xycoordsBase(:,1),xycoordsBase(:,2),ip.Results.MarkerSize, ip.Results.colorBranch,'filled');
       clear  idxEnd pixIndicesPlot xycoordsEndFit
   end % branchMode
   

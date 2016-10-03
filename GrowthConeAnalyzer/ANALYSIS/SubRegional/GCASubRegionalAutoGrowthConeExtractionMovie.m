@@ -71,7 +71,7 @@ ip.addParameter('maxCMapValue',10);
 
 % Specific : GCASubRegionalAutoGrowthConeExtraction
 ip.addParameter('GCFinder',true);
-ip.addParameter('GCFindNeckCutOff',1.5,@isscalar); % the thicknes cut-off for the veil stem. 
+ip.addParameter('GCFindNeckCutOff',2,@isscalar); % the thicknes cut-off for the veil stem. 
 ip.addParameter('GCFindMinLength',5,@isscalar); % the smallest allowed length of a growth cone
 ip.addParameter('GCFindThickPt',2.5,@isscalar); % assumes the local max is at least this thick
 

@@ -41,10 +41,10 @@ ip.addParameter('OutputDirectory',defaultOut);
 
 % Plots Types
 ip.addParameter('plotByGroupElongation',false); % will make 3-D scatter plots by group
-ip.addParameter('perFrame',false); 
+
 ip.addParameter('plotByGroupColorID',false); 
 ip.addParameter('plotByGroupPic',false); 
-ip.addParameter('ColorByElongationState',true); 
+
 
 
 ip.addParameter('plotCentroids',false); 
@@ -53,7 +53,7 @@ ip.addParameter('plotCentroids',false);
 % D Reduction Visualizations
 ip.addParameter('PCA',false);
 ip.addParameter('MDS',true);
-ip.addParameter('Run', true); % will search for a 
+ip.addParameter('Run', false); % will search for a 
 %ip.addParameter('CriterionMDS','stress'); % default is nonmetric
 
 ip.addParameter('cluster',false);
@@ -62,8 +62,23 @@ ip.addParameter('testResponseClust',false);
 
 ip.addParameter('DistMetrics',false); 
 
-ip.addParameter('ColorTrajByTime',false); 
-ip.addParameter('MakeMovie',true); 
+% perFrame flag 
+ip.addParameter('perFrame',false); 
+
+% perFrame plotting options
+ip.addParameter('ColorByElongationState',false); 
+
+
+
+ip.addParameter('ColorTrajByTime',true); 
+ip.addParameter('MakeMovie',false); 
+ip.addParameter('FilterElongationState',false);
+ip.addParameter('limitsMaxVeloc',[0,inf]); 
+ip.addParameter('limitsLifetime',[10,inf]); 
+ip.addParameter('stateSelection', [3,4]); 
+ip.addParameter('PoolFramesPerGroup',true); 
+
+
 
 ip.parse(toPlot,varargin{:});
 %% Set up
@@ -112,35 +127,7 @@ end
 nVars = numel(varNames);
 varNamesString = strrep(varNames, '_' ,'');
 
-%% plot by frame : note this is going to need to be a different structure
-% for now just add a quick and dirty grouping variable for per Frame 
-% make a single vector labeling each trajectory for each group (just use
-% the first varName for now 
-if ip.Results.perFrame
-    % check if the size of all the parameters is the same (same number of
-    % frames)
-    for iGroup = 1:nGroups
-        
-        framesPerParam = arrayfun(@(x) size(toPlot.(varNames{x}).dataMatPerFrame{iGroup},1),1:nVars);
-        nFrames = length(unique(framesPerParam));
-        if nFrames~=1
-            msg = ['Number of Frames not Consistent for All Variables for Group ' toPlot.info.names{iGroup}];
-            error(msg);
-        else
-            nMovies = size(toPlot.info.projList{iGroup},1);
-            grpingPerFrame = arrayfun(@(x) repmat(x,framesPerParam(1),1),1:nMovies,'uniformoutput',0);
-         
-            
-            
-            grpingTrajIDsAllGroups{iGroup} = vertcat(grpingPerFrame{:});
-            
-            
-        end
-    end
-    grpIDs = arrayfun(@(x) repmat(x,framesPerParam(1).*size(toPlot.info.projList{x},1),1),1:nGroups,'uniformoutput',0);
-    grpingGroupIDsAllGroups = vertcat(grpIDs{:}); 
-    grpingTrajIDsAllGroups = vertcat(grpingTrajIDsAllGroups{:}); 
-end
+
 
 %% Collect and normalize the measurement data : Default is to take a median value for each cell
 
@@ -226,11 +213,9 @@ export(dataPreNorm,'file',[dataDir filesep 'OriginalValues_' ip.Results.perNeuri
 dataZScores = mat2dataset(dataFinal,'ObsNames',obsNamesZ,'varNames',varNames);
 export(dataZScores,'file',[dataDir filesep 'dataZScores.csv']);
 save([dataDir filesep 'dataZScores'],'dataZScores');
-else % load the data 
-     
-    
-    
-end 
+
+
+
 %% Collect the Outgrowth Data, Create Mapper, and Save Colorbar
 
 outgrowth = gcaCollectOutgrowthDeltasPerGroup(toPlot);
@@ -257,6 +242,67 @@ outgrowth = outgrowth./10;
     saveas(gcf,[dataDir filesep 'colorbar.eps'],'psc2');
 
     close gcf
+else
+% load( ip.Results.OutputDirectory filesep 'DataFiles'   
+    display('Loading Data Files');     
+        load([ip.Results.OutputDirectory filesep 'DataFiles' filesep 'dataZScores.mat']);
+    
+    dataFinal = dataset2cell(dataZScores); 
+    obsNames = dataFinal(:,1); 
+ 
+    dataFinal = cell2mat(dataFinal(2:end,2:end)); 
+    load([ip.Results.OutputDirectory filesep 'DataFiles' filesep 'varNames.mat']); 
+    nVars = numel(varNames); 
+    load([ip.Results.OutputDirectory filesep 'DataFiles' filesep 'dataRemoved.mat']); 
+    removed = dataset2cell(dataRemoved); 
+    removed = removed(:,1); 
+    obsNames = setdiff(obsNames,removed,'stable'); 
+end  
+
+
+
+%% plot by frame : note this is going to need to be a different structure
+% for now just add a quick and dirty grouping variable for per Frame
+% make a single vector labeling each trajectory for each group (just use
+% the first varName for now
+if ip.Results.perFrame
+    
+    if ip.Results.Run
+        % check if the size of all the parameters is the same (same number of
+        % frames)
+        for iGroup = 1:nGroups
+            
+            framesPerParam = arrayfun(@(x) size(toPlot.(varNames{x}).dataMatPerFrame{iGroup},1),1:nVars);
+            nFrames = length(unique(framesPerParam));
+            if nFrames~=1
+                msg = ['Number of Frames not Consistent for All Variables for Group ' toPlot.info.names{iGroup}];
+                error(msg);
+            else
+                nMovies = size(toPlot.info.projList{iGroup},1);
+                grpingPerFrame = arrayfun(@(x) repmat(x,framesPerParam(1),1),1:nMovies,'uniformoutput',0);
+                
+                
+                
+                grpingTrajIDsAllGroups{iGroup} = vertcat(grpingPerFrame{:});
+                
+                
+            end
+        end
+        grpIDs = arrayfun(@(x) repmat(x,framesPerParam(1).*size(toPlot.info.projList{x},1),1),1:nGroups,'uniformoutput',0);
+        grpingGroupIDsAllGroups = vertcat(grpIDs{:});
+        grpingTrajIDsAllGroups = vertcat(grpingTrajIDsAllGroups{:});
+        
+      
+    else % ip.Results.Run
+        load([ip.Results.OutputDirectory filesep 'DataFiles'  filesep 'grouping']);
+        
+    end % ip.Results.Run
+end % ip.Results.perFrame
+
+
+
+
+
 
 
 
@@ -419,13 +465,15 @@ end
 
 %% Perform the MDS multi dimensional scaling
 if ip.Results.MDS
+    
+    
     % make MDS file
     outMDS = [ip.Results.OutputDirectory filesep 'MDS'];
     if ~isdir(outMDS);
         mkdir(outMDS);
     end
     
-    
+   if ip.Results.Run 
     % rows are observations, columns variables
     % compute pairwise distances
     dissimilarities = pdist(dataFinal);
@@ -461,6 +509,10 @@ if ip.Results.MDS
                 z(:,test) = [];
                 grpingGroupIDsAllGroups(test) =[]; 
                 grpingTrajIDsAllGroups(test) = []; 
+                
+                if ip.Results.Run 
+                     save([dataDir filesep 'grouping'],'grpingGroupIDsAllGroups','grpingTrajIDsAllGroups');
+                end 
                 removed = obsNames(test); 
                 %removed = [removed num2cell(dataFinal(test,:))]; 
                 valuesRemoved = dataFinal(test,:); 
@@ -471,6 +523,8 @@ if ip.Results.MDS
                 % Take out the rest  
                 obsNames(test) = [];
                 dataFinal(test,:) = []; 
+                
+               
                 
                 % save the new data structure 
                 dataClean = mat2dataset(dataFinal,'ObsNames',obsNames,'varNames',varNames); 
@@ -507,7 +561,8 @@ if ip.Results.MDS
             end
         end  
         
-     
+   else 
+   end 
         
         
         
@@ -552,7 +607,7 @@ if ip.Results.MDS
             mkdir(cOutMDSDia);
         end
         
-        % check for .mat file
+        % check for MDS results file: if doesn't exist run the MDS 
         if exist([cOutMDSDia filesep 'MDSResults' criterion{iCrit} '.mat'],'file')==0;
             
             display('Running MDS'); 
@@ -597,7 +652,7 @@ if ip.Results.MDS
         %% Plot in MDS space By Group
         
         % set up figure
-        setAxis('on')
+     
         if ip.Results.perFrame
             
             % make a folder
@@ -606,7 +661,7 @@ if ip.Results.MDS
                 mkdir(grpDir);
             end
             
-            for iGroup = 1:nGroups
+            for iGroup = 3:3
                 trajDir = [grpDir filesep toPlot.info.names{iGroup}];
                 if ~isdir(trajDir)
                     mkdir(trajDir);
@@ -618,7 +673,7 @@ if ip.Results.MDS
                 projListC = toPlot.info.projList{iGroup};
                 
                 for iTraj = 1:nTrajs
-                setAxis('off')
+                setAxis('on')
                 % plot all results in gray
                 scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
                 hold on
@@ -641,13 +696,17 @@ if ip.Results.MDS
                     if ip.Results.ColorTrajByTime
                         % make individual file for each 
                          
-                        cmapTime = jet(framesPerParam(1));
-%                         cmapTimeBeforeDrug  = repmat(toPlot.info.colorShades{10}(end,:),[61,1]) ; ... 
+                       cmapTime = jet(119);
+                       %cmap =  brewermap(12,'paired'); 
+%                        cmapTimeBeforeDrug = repmat(cmap(9,:),[61,1]); 
+%                        cmapTimeAfterDrug = repmat(cmap(10,:),[61,1]); 
+%                        cmapTime = [cmapTimeBeforeDrug;cmapTimeAfterDrug]; 
+%                          cmapTimeBeforeDrug  = repmat(toPlot.info.colorShades{10}(end,:),[61,1]) ; ... 
 %                             
 %                         cmapTimeAfterDrug = repmat(toPlot.info.colorShades{10}(5,:),[61,1]); 
 %                         
 %                         cmapTime= [cmapTimeBeforeDrug ; cmapTimeAfterDrug];
-                        
+%                         
                         
                         %if ip.Results.ColorTrajByTimeMovie 
                             
@@ -739,7 +798,7 @@ if ip.Results.MDS
 
                         saveas(gcf,[perTrajDir filesep  'All.png']);
                         saveas(gcf,[perTrajDir filesep 'All.fig']); 
-                        
+                        saveas(gcf,[perTrajDir filesep 'All.eps'],'psc2'); 
                         
                         
                         filenamesStr = horzcat(file{:}); 
@@ -756,13 +815,13 @@ if ip.Results.MDS
                         system(cmd); 
                         
                     else % per group color 
-                        scatter(y(currentTraj,1),y(currentTraj,2),50,[0.5,0.5,0.5],'filled','MarkerEdgeColor','k');
-                        plot(y(currentTraj,1),y(currentTraj,2),'color',cmapCurrent(iTraj,:));
-                        
-                          %end
-                        xlabel('MDS1');
-                        ylabel('MDS2');
-                        axis(axisLims);
+%                         scatter(y(currentTraj,1),y(currentTraj,2),50,[0.5,0.5,0.5],'filled','MarkerEdgeColor','k');
+%                         plot(y(currentTraj,1),y(currentTraj,2),'color',cmapCurrent(iTraj,:));
+%                         
+%                           %end
+%                         xlabel('MDS1');
+%                         ylabel('MDS2');
+%                         axis(axisLims);
 
                         
                     end
@@ -796,52 +855,156 @@ if ip.Results.MDS
             % for now just do for control
             if ip.Results.ColorByElongationState
                 
-                elongDir =   [ip.Results.OutputDirectory filesep 'MDSPerFrame_ColorByElongationState'];
+              
+                
+                elongDir =   [ip.Results.OutputDirectory filesep 'MDSTrajectoryPlotsPerGroup_CByElong'];
                 if ~isdir(elongDir)
                     mkdir(elongDir)
-                end 
+                end
                 
-                setAxis('on')
-                scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
+                % 
+               
                 c(1) = 'c';
                 c(2) = 'b';
                 c(3) = 'r';
                 c(4) = 'm';
                 hold on
                 removed2 = cellfun(@(x) strrep(x,'_','/'),removed,'uniformoutput',0);
-                % for now plot all control
-                for iProj = 1:size(toPlot.info.projList{1}(16,1),1)
+                
+                for iGroup = 1:8
                     
-                    load([toPlot.info.projList{1}{16,1} filesep filesep 'GrowthConeAnalyzer/MEASUREMENT_EXTRACTION/Partition_Outgrowth_Trajectory_WithGrowthTimes_Spline0pt01'...
-                        filesep 'globalMeas.mat' ]);
-                    states = globalMeas.outgrowth.stateAllFrames;
+                    nTrajs = size(toPlot.info.projList{iGroup},1);
                     
-                    currentTraj = find(grpingTrajIDsAllGroups==16 & grpingGroupIDsAllGroups ==1);
-                    
-                    % just need to remove frame 9 19 72 from state space.
-                    
-                    [~,~,frames] = cellfun(@(x) upDirectory(x,1),removed2,'uniformoutput',0);
-                    names = frames(cellfun(@(x) ~isempty(regexp(x,toPlot.info.projList{1}{16,2})),removed));
-                    frames = cellfun(@(x) str2double(x),names);
-                    states(frames) = [];
-                    states(end-1:end) = [];
-                    
-                    for iState = 1:4
-                        
-                        scatter(y(currentTraj(states==iState),1),y(currentTraj(states==iState),2),50,c(iState),'filled');
-                        hold on
+                    trajDir = [elongDir filesep toPlot.info.names{iGroup}];
+                    if ~isdir(trajDir)
+                        mkdir(trajDir);
                     end
-                    %             %
-                    clear states frames names
                     
-                end
-                xlabel('MDS1');
-                ylabel('MDS2');
-                axis(axisLims);
-              
-                saveas(gcf,[elongDir filesep 'MDS_PerFrame_ColorByElongationState.fig']); 
-                saveas(gcf,[elongDir filesep 'MDS_PerFrame_ColorByElongationState.eps'],'psc2'); 
-                saveas(gcf,[elongDir filesep 'MDS_PerFrame_ColorByElongationState.png']); 
+                    
+                    % for now plot all control
+                    for iProj = 1:nTrajs
+                        
+                        
+                        load([toPlot.info.projList{iGroup}{iProj,1} filesep 'GrowthConeAnalyzer' filesep ... 
+                          'SegmentationPackage/StepsToReconstructTestBugFix20160426/GCAMeasurementExtraction_test20160510/WholeNeurite/' ... 
+                            'Partition_Outgrowth_Trajectory_WithGrowthTimes_Spline0pt01'  filesep 'globalMeas.mat' ]);
+                        states = globalMeas.outgrowth.stateAllFrames;
+                        
+                        if ip.Results.FilterElongationState
+                            load([toPlot.info.projList{iGroup}{iProj,1} filesep 'GrowthConeAnalyzer' filesep ...
+                                'SegmentationPackage/StepsToReconstructTestBugFix20160426/GCAMeasurementExtraction_test20160510/WholeNeurite/' ...
+                                'Partition_Outgrowth_Trajectory_WithGrowthTimes_Spline0pt01'  filesep 'ForMultRegression' filesep ...
+                                'forMultReg.mat']);
+                            
+                            % expand the filter information corresponding to each state per frame
+                            grps = globalMeas.outgrowth.groupedFrames;
+                            
+                            %                            filterInfoPerFrame  = arrayfun(@(i) [repmat(filterInfo(i,2),[length(grps{i}),1]),...
+                            %                                repmat(filterInfo(i,3),[length(grps{i}),1])],1:numel(grps),'uniformoutput',0);
+                            
+                            filterInfoPerFrame  = arrayfun(@(i) repmat(filterInfo(i,:),[length(grps{i}),1]),1:numel(grps),'uniformoutput',0);
+                            states = vertcat(filterInfoPerFrame{:});
+                           
+                        end % ip.Results.FilterElongationState
+                        
+                    
+                           
+                      
+                        
+                        currentTrajID = find(grpingTrajIDsAllGroups==iProj & grpingGroupIDsAllGroups ==iGroup);
+                        currentTraj = y(grpingTrajIDsAllGroups==iProj & grpingGroupIDsAllGroups ==iGroup,:);
+                        
+                        % HMM model 
+                        %traj = y(currentTraj,:)'; 
+%                         mcmc_params.parallel = 'off'; 
+%                         [PrM, ML_states, ML_params, full_results, full_fitting, logI] = hmm_process_cell_trajectory(traj,5,mcmc_params); 
+                        % 
+                        if ~ip.Results.PoolFramesPerGroup
+                            name = obsNames{currentTrajID(1)};
+                            name = strrep(name,'_','/');
+                            name = upDirectory(name,1);
+                            name = strrep(name,'/',' ');
+                        else 
+                            name = toPlot.info.names{iGroup};
+                        end
+                        
+                        nameUnder =  strrep(name,' ' ,'_');
+                        
+                        
+                        
+                        %                             perTrajDir = [trajDir filesep 'Traj_' nameUnder ];
+                        %                             if ~isdir(perTrajDir)
+                        %                                 mkdir(perTrajDir)
+                        %                             end
+                        
+                        
+                        
+                        % some of the frames may have been removed from the
+                        % analysis if they had a value of NaN. update the
+                        % states and other per frame vectors to reflect
+                        % this. 
+                        
+                        [~,~,frames] = cellfun(@(x) upDirectory(x,1),removed2,'uniformoutput',0);
+                        names = frames(cellfun(@(x) ~isempty(regexp(x,toPlot.info.projList{iGroup}{iProj,2})),removed));
+                        frames = cellfun(@(x) str2double(x),names);
+                        states(frames,:) = [];
+                        states(end-1:end,:) = [];
+                        
+                        
+                        if ip.Results.FilterElongationState
+                         % define the filter 
+                           filtIdx1 =  (states(:,2) > ip.Results.limitsMaxVeloc(1) &  states(:,2) < ip.Results.limitsMaxVeloc(2)); 
+                           
+                           filtIdx2 = (states(:,3) > ip.Results.limitsLifetime(1) & states(:,3) < ip.Results.limitsLifetime(2));   
+                           
+                           filtIdx3 = arrayfun(@(x) states(:,1) == ip.Results.stateSelection(x),1:length(ip.Results.stateSelection),'uniformoutput',0); % for now just assume we want to look at 1 state. 
+                           filtIdx3 = horzcat(filtIdx3{:});
+                           filtIdx3 = sum(filtIdx3,2); 
+                           filtIdx3 = filtIdx3~=0; 
+                           % combine the filters. 
+                           filtFinal = (filtIdx1 & filtIdx2 & filtIdx3);
+                           
+                           % truncate the elongation state vector 
+                           states = states(filtFinal,:) ; 
+                           % truncate the y coords 
+                           currentTraj = currentTraj(filtFinal,:); 
+
+                        end  
+                        
+                        if ~ip.Results.PoolFramesPerGroup || iProj == 1
+                            setAxis('on')
+                            scatter(y(:,1),y(:,2),50,[.5,.5,.5],'filled');
+                        end
+                         title(['Trajectory ' name], 'FontSize',14);
+                         hold on
+%                         if length(states,1) > length(currentTraj)
+%                             states = states(1:end-1,:); 
+%                         end 
+                        for iState = 1:4
+                            scatter(currentTraj(states(:,1)==iState,1),currentTraj(states(:,1)==iState,2),50,c(iState),'filled');
+                            hold on
+                        end
+                        %             %
+                        clear states frames names
+                        xlabel('MDS1');
+                        ylabel('MDS2');
+                        axis(axisLims);
+                        if ~ip.Results.PoolFramesPerGroup
+                            
+                            saveas(gcf,[trajDir filesep 'MDS_PerFrame_CByElongState' nameUnder '.fig']);
+                            saveas(gcf,[trajDir filesep 'MDS_PerFrame_CByElongState' nameUnder '.eps'],'psc2');
+                            saveas(gcf,[trajDir filesep 'MDS_PerFrame_CByElongState' nameUnder '.png']);
+                            
+                            close gcf
+                        end % ip.Results.Combine
+                    end % for iProj project 
+                    if ip.Results.PoolFramesPerGroup
+                        saveas(gcf,[trajDir filesep 'MDS_PerFrame_CByElongStateCombine' toPlot.info.names{iGroup}]); 
+                        saveas(gcf,[trajDir filesep 'MDS_PerFrame_CByElongStateCombine' toPlot.info.names{iGroup} '.eps'],'psc2'); 
+                        saveas(gcf,[trajDir filesep 'MDS_PerFrame_CByElongStateCombine' toPlot.info.names{iGroup} '.png']); 
+                    end 
+                end % for iGroup 
+                close gcf
             end % ip.Results.ColorByElongationRate
             
 %             saveas(gcf,[ip.Results.OutputDirectory filesep 'MDS_PerFrame_2DScatter.fig']);

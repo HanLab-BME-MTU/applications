@@ -187,7 +187,7 @@ for iCh = 1:numel(params.ChannelIndex)
         filoBranch(iFrame).filoInfo = filoInfo;
         display(['Finished Fitting Filopodia for  Channel ' num2str(params.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]);
         filoBranch(iFrame).reconstructInfo.createTimeFiloFit = clock;
-        hashTag = gcaArchiveGetGitHashTag;
+        [hashTag = gcaArchiveGetGitHashTag;
         filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
         p(iFrame) = params; 
         save([outDirC filesep 'filoBranch.mat'],'filoBranch','-v7.3')

@@ -18,32 +18,39 @@ ip = inputParser;
 ip.CaseSensitive = false;
 
 
-ip.addParameter('windMethod','ConstantNumber'); % what windowing method to use - currently assumes you will use one of the
-% windowing methods associated with the MD.
-ip.addParameter('ReInit',61);
+
 
 ip.addParameter('OutputDirectory_', []);
+ip.addParameter('OverlayType','ColorByVel'); 
+ip.addParameter('ScaleBar',false); 
+ip.addParameter('ShowWindowNum',true);
 
-ip.addParameter('EndFrame',movieData.nFrames_-1);
-ip.addParameter('StartFrame',1);
-
-ip.addParameter('OverlayType','WindTrack'); % or ColorByVel
-
-ip.addParameter('OutlierFilter',false); % will filter out significant detection outliers via rous...criteria 
-ip.addParameter('SignalType',[]) ; % cell array either can contain Prot, Ret,Quies
-
-ip.addParameter('MakeProtMap',false); 
-ip.addParameter('SmoothActivityMap',true); 
 % SubRoiOption
 ip.addParameter('subRoiMaskDirIn',[]); % where the subRoimasks are stored.
+ip.addParameter('OutlierFilter',false); 
+ip.addParameter('StartFrame',1); 
+ip.addParameter('EndFrame',120); 
 
+ip.addParameter('SignalType',[]); % {'P'},{'R'},{'Q'} if empty will plot all signals 
+
+% Protrusion Map Settings 
+ip.addParameter('MakeProtMap',true); 
+ip.addParameter('SmoothActivityMap',true); 
+
+ip.addParameter('windMethod','ConstantNumber'); 
+ip.addParameter('ReInit',61); 
 ip.parse(varargin{:});
 
 %% Initiate
 % find the correct window output file.
 idxWindProc =  cellfun (@(x) strcmpi(x.name_,'Windowing'),movieData.processes_);
 windProcesses =  movieData.processes_(idxWindProc);
-toLoad = cellfun(@(x) strcmpi(x.funParams_.MethodName, (ip.Results.windMethod)) & x.funParams_.ReInit==ip.Results.ReInit ,windProcesses);
+
+if ~isempty(ip.Results.ReInit)
+    toLoad = cellfun(@(x) strcmpi(x.funParams_.MethodName, (ip.Results.windMethod)) & x.funParams_.ReInit==ip.Results.ReInit ,windProcesses);
+else
+    toLoad = cellfun(@(x) strcmpi(x.funParams_.MethodName, (ip.Results.windMethod))  ,windProcesses);
+end
 windDir = windProcesses{toLoad}.outFilePaths_;
 
 %windDir = movieData.processes_{toLoad}.outFilePaths_;
@@ -84,7 +91,8 @@ if (ip.Results.OutlierFilter || ~isempty(ip.Results.SignalType))
 end  % if signal processing information required
 
 if ~isempty(ip.Results.subRoiMaskDirIn)
-    load([ip.Results.subRoiMaskDirIn  filesep 'subRegion_windows' filesep ip.Results.windMethod filesep 'idxWindFinal_1_120.mat']);  
+    load([ip.Results.subRoiMaskDirIn  filesep 'subRegion_windows' filesep ip.Results.windMethod filesep 'idxWindFinal_' ... 
+        num2str(ip.Results.StartFrame) '_' num2str(ip.Results.EndFrame) '.mat']);  
 end 
 
 %% Make output directory 
@@ -104,6 +112,7 @@ if ~isdir(outDir)
     mkdir(outDir)
 end
 
+if ~isempty(ip.Results.StartFrame)
 %% Start Overlay loop 
   for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
@@ -123,7 +132,7 @@ end
       
       nWinds = numel(windows);
       
-      setFigure(nx,ny,'on');
+      setFigure(nx,ny,'off');
       
       imshow(-img,[]) ;
       hold on
@@ -149,13 +158,14 @@ end
               % color by number
               cmap = lines(nWinds);
               
-              % plot with no color to get the window numbers
-              gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',1,'showNum',10);
-              
-              for iWind = 1:length(idxWindFinalC)
-                  gcaPlotWindows(windows(idxWindFinalC(iWind)),{cmap(iWind,:),'FaceAlpha',1},idxWindFinalC(iWind),'bandMax',1,'colorWind',cmap(iWind,:));
-              end
-                      
+              if ip.Results.ShowWindowNum
+                  % plot with no color to get the window numbers
+                  gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',2,'bandMax',2,'showNum',10);
+              end    
+                  for iWind = 1:length(idxWindFinalC)
+                      gcaPlotWindows(windows(idxWindFinalC(iWind)),{cmap(iWind,:),'FaceAlpha',1},idxWindFinalC(iWind),'bandMin',2,'bandMax',2,'colorWind',cmap(iWind,:));
+                  end
+             
           %% start ColorByVelocity 
           case 'ColorByVel'
                         
@@ -226,9 +236,29 @@ end
               
               %% Plot the windows
               
-              % plot with no color to get the window numbers
-              gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',1,'showNum',10);
               
+                %NOTE 20160607
+                % for movies you want this to be plotted first and the
+                % patches 2nd - this will look smooth
+                % 
+%               if ip.Results.ShowWindowNum
+%                   % plot with no color to get the window numbers
+%                   gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',1,'showNum',10);
+%               end
+%               
+%               
+          
+   % Note 20160607: note for vectorization (ie .eps files and figures) want this to be
+              % plotted second - somehow having the lines plotted second signals it to vectorize and not
+              % smooth
+              if ip.Results.ShowWindowNum
+                  % plot with no color to get the window numbers
+                  gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',1,'showNum',10);
+              end
+              
+
+
+
               % Plot Events Selected 
               for iColor = 1:length(cmap)
                   windToPlot = idxWindFinalC(idxCMap(:,1)==iColor);
@@ -240,6 +270,15 @@ end
                       end
                   end
               end
+            
+           
+              
+              
+              if ip.Results.ScaleBar == true
+                  pixSizeMic = MD.pixelSize_./1000;
+                  plotScaleBar(1/pixSizeMic,0.5,'Color',[0,0,0],'Location','SouthEast');
+              end
+              
               
               %% Black Out Outlier Windows if Neccessary 
               if  ip.Results.OutlierFilter;     % filter out the outliers based on the criteria
@@ -275,13 +314,13 @@ end
        %% save the results 
        saveas(gcf,[outDir filesep num2str(iFrame,'%03d') '.png']);
        saveas(gcf,[outDir filesep num2str(iFrame,'%03d') '.fig']);
-       %saveas(gcf,[outDirC filesep num2str(iFrame,'%03d'),'eps'],'psc2');
+       saveas(gcf,[outDir filesep num2str(iFrame,'%03d'),'.eps']);
        close gcf
            
   end % iframe  
-  
+end  
 if ip.Results.MakeProtMap
-    
+     cmap = brewermap(128,'RdBu');
     % make the directory for this.
     mapDir = [outDir filesep 'protrusionMap']; 
     if ~isdir(mapDir)
@@ -338,6 +377,11 @@ if (ip.Results.MakeProtMap && ip.Results.OutlierFilter)
     outlierOut(raw==-inf) = -inf;
     outlierOut(isnan(outlierOut)) = inf;
     
+    data = raw.*analysisResults.data.scaling; 
+    
+    if ip.Results.SmoothActivityMap
+        data = smoothActivityMap(data,'upSample',1,'SmoothParam',0.75);
+    end
     
     
     %        processed2 = analysis{2}.data.procTimeSeries;
@@ -349,7 +393,9 @@ if (ip.Results.MakeProtMap && ip.Results.OutlierFilter)
     %
     %       processed = [processed1 processed2];
     %
-    GCAVisualsProtrusionMap(raw.*analysisResults.data.scaling,'colorMap',cmapC,'CLim',[-100,100]);
+    %GCAVisualsProtrusionMap(raw.*analysisResults.data.scaling,'colorMap',cmapC,'CLim',[-100,100]);
+    GCAVisualsProtrusionMap(data,'colorMap',cmapC,'CLim',[-100,100],'ShowColorBar',false,'FontSize',50);
+    
     
     hold on 
     notANum = find(outlierOut==-Inf);
@@ -361,12 +407,13 @@ if (ip.Results.MakeProtMap && ip.Results.OutlierFilter)
     outliers = find(outlierOut == Inf);
     if ~isempty(outliers)
         [y,x] = ind2sub(size(outlierOut),outliers); 
-        scatter(x,y,'y','x'); 
+        scatter(x,y,'k','x'); 
     end 
     
     
     saveas(gcf,[mapDir filesep 'protrusionMapRemoveSignalDetectOutlier.tif']);
     saveas(gcf,[mapDir filesep 'protrusionMapRemoveSignalDetectOutlier.fig']);
+    saveas(gcf,[mapDir filesep 'protrusionMapRemoveSignalDetectOutlier.eps'],'psc2'); 
     % series for outliers or not.
     
     %processed2 = analysis{2}.data.procTimeSeries;

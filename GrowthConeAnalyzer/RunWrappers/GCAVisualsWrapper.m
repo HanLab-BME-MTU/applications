@@ -1,4 +1,4 @@
-function [ success ] = GCAVisualsWrapper(projList,visFuncH)
+function [ success ] = GCAVisualsWrapper(projList,visFuncH,varargin)
 %GCAVisualsWrapper: a wrapper function that takes in a list of projects and
 % a visualization function handle and makes these graphics
 %
@@ -15,16 +15,35 @@ function [ success ] = GCAVisualsWrapper(projList,visFuncH)
 %cellfun(@(x) display(['Project ' x ' Already Run: SKIPPING']),projListRun);
 %projListToRun = projList(idxToRun);
 %%
+ip = inputParser; 
+ip.CaseSensitive = false;
+ip.addParameter('ScaleBar',true); 
+ip.addParameter('Timer',true); 
+ip.addParameter('TreatmentFrame',[]); 
+ip.addParameter('TreatmentName','CK666'); 
+ip.addParameter('Overwrite',false); 
+ip.addParameter('NeuriteID',true); 
+
+
+ip.parse(varargin{:});
+p = ip.Results; 
+%%
+
 projListToRun = projList;
 
 if ~isempty(projListToRun)
-    for iProj = 1:numel(projListToRun)
+    for iProj = 1:size(projListToRun,1)
         display(['Making Visualization Overlays for ' projListToRun{iProj} 'using' visFuncH])  
-        load([projListToRun{iProj} filesep 'ANALYSIS' filesep 'movieData.mat']);
+        if ip.Results.NeuriteID 
+           nameID =  strrep(projList{iProj,2},'_',' '); 
+           nameID = strrep(nameID,'KDNo','Control'); 
+           p.NeuriteIDText = nameID; 
+        end 
+        load([projListToRun{iProj} filesep 'GrowthConeAnalyzer' filesep 'movieData.mat']);
         % check if run
         handleC= str2func(visFuncH);
         
-        success(iProj) = handleC(MD); % success will be 1 if the information is sufficient to run 
+        success(iProj) = handleC(MD,p); % success will be 1 if the information is sufficient to run 
         % the visualization and 0 if not 
     end
 else 

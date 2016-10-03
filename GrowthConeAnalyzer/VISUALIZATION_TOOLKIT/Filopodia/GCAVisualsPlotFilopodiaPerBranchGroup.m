@@ -28,13 +28,14 @@ ip = inputParser;
 
 ip.CaseSensitive = false;
 
+
 ip.addRequired('filoInfo'); 
 ip.addRequired('imgSize'); 
 
 ip.addParameter('groupLabels',[]);
 ip.addParameter('plotConnectPoint',false);
 
-ip.parse(varargin{:});
+ip.parse(filoInfo,imgSize,varargin{:});
 
 %% Initiate 
 if isempty(ip.Results.groupLabels); 
@@ -53,7 +54,7 @@ hold on
 % for each group plot the xy coords of all the filo in that group
 for iGroup = 1:length(groupLabels)
     groupLabelsAll = vertcat(filoInfo.groupCount);
-    clusterC =  filoInfo(groupLabelsAll == groupLabels(iGroup));
+     clusterC =  filoInfo(groupLabelsAll == groupLabels(iGroup));
     GCAVisualsMakeOverlaysFilopodia(clusterC,imgSize,1,1,c(iGroup,:),0);
       
     if ip.Results.plotConnectPoint 

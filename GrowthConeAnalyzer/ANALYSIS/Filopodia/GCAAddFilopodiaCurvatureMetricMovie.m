@@ -34,6 +34,11 @@ for iFrame = 1:length(filoBranch)-1
 filoInfo = filoBranch(iFrame).filoInfo;
 % add the metric to the filo info - NOTE in the future might want to just
 % calculate automaticaly at the time of fitting to be more efficient. 
+
+%   img =   imread([MD.channelPath_ filesep MD.getImageFileNames{1}{iFrame}]); 
+%   imshow(-img,[]); 
+%   arrayfun(@(x) 
+
 filoInfo = GCAAddFilopodiaCurvature(filoInfo); 
 filoBranch(iFrame).filoInfo = filoInfo; 
 

@@ -1,4 +1,4 @@
-function [ output_args ] = GCAAddSplineFitFilopodiaMovie(movieData,varargin)
+function [ output_args ] = GCAAddSplineFitFilopodiaDirectCurvMetricMovie(movieData,varargin)
 %GCAAddActinContentMetricMovie(movieData) 
 
 %% CheckInput

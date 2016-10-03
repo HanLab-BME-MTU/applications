@@ -557,13 +557,18 @@ end % iMap
 %     ' -crf 22 -pix_fmt yuv420p -b 20000k ' saveDir filesep 'ReconstructMovie.mp4'];
 % system(execute)
 
-
-
+% hSet(countFig).h = setFigure(nx,ny) ;
+%         imshow(-img,[])
+%         hold on
+% cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
+% GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,... 
+%     'plotValues','IDs','justExt',1,'plotText',true,'ColorByValue',true,'ExtraColor',[]); 
+%   
 
 
 % cd(saveDir)
-% execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
-% system(execute);
+execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
+system(execute);
 else 
     filoFilterSet = []; 
     filoParams = []; 

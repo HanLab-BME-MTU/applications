@@ -1,6 +1,26 @@
-function [output,dataSetFinal] = GCAAnalysisScreenCorrelations(outgrowthDeltas,toPlot)
+function [output,dataSetFinal,forDataSetArray,rAll,pAll] = GCAAnalysisScreenCorrelations(outgrowthDeltas,toPlot,varargin)
 %  currently only assumes 1 group in toPlot but will loop through all the
 %  params
+
+
+%% Check input 
+ip = inputParser;
+ip.CaseSensitive = false;
+% Check input
+ip.addRequired('toPlot');
+% Feature Selection Options
+ip.addRequired('outgrowthDeltas');
+
+% 
+% Function for movie stat
+ip.addParameter('perNeuriteStatistic','nanmean'); % default is to take the
+% median value of the measurement calculated over the entire movie.
+ip.addParameter('matrixPlot',true);
+ip.addParameter('type','Pearson'); 
+ip.parse(outgrowthDeltas,toPlot,varargin{:});
+
+%%
+perNeuriteStat = str2func(ip.Results.perNeuriteStatistic); 
 
 % Get all the parameters to correlate to global function
 paramsToCorrelate = fieldnames(toPlot);
@@ -32,7 +52,7 @@ for iGroup = 1:nGroups
     dataMat = real(dataMat);
    
     % to simplify take the median value of the parameter per movie.
-    valuesPerGroup{iGroup,1} = nanmedian(dataMat,1); % take the median over the rows- will get one value per movie
+    valuesPerGroup{iGroup,1} = perNeuriteStat(dataMat,1); % take the median over the rows- will get one value per movie
     % (column) in list.
 end % for iGroup 
     valuesC = horzcat(valuesPerGroup{:}); 
@@ -52,8 +72,8 @@ end % for iGroup
     end
     
     
-    [r,p] = corrcoef(output(iParam).values);
-    
+   % [r,p] = corrcoef(output(iParam).values);
+    [r,p] = corr(output(iParam).values,'type',ip.Results.type); 
     
     output(iParam).r = r;
     output(iParam).p = p;
@@ -62,16 +82,22 @@ end % for iGroup
     
 end
  
+
+
 dataSetFinal = num2cell(forDataSetArray);
+[rAll,pAll] = corr(forDataSetArray,'type',ip.Results.type); 
+
+
 ObsNames = vertcat(toPlot.info.projList{:})  ; 
 ObsNames = ObsNames(:,2); % get IDS
 dataSetFinal = [ObsNames dataSetFinal]; 
-params = ['NeuriteID' ; varName ;'Net Velocity'];
+params = ['NeuriteID' ; varName ;'Net Elongation Velocity'];
 dataSetFinal = [params' ;dataSetFinal];
 
+ %[rAll,pValuesAll] = corrplotMine(forDataSetArray,'testR','on','varNames',[varName ; 'Net Elongation Velocity']); 
 
 dataSetFinal = cell2dataset(dataSetFinal,'ReadObsNames',true);
 
-save('dataSet.mat','dataSetFinal'); 
+% save(['dataSet_' ip.Results.perNeuriteStatistic '.mat'],'dataSetFinal'); 
 
 

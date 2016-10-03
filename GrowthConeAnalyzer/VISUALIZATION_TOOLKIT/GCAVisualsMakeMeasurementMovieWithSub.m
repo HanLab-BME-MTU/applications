@@ -43,7 +43,9 @@ ip.addParameter('colorbarOverlay',true);
 ip.addParameter('otherFiles',true);
 ip.addParameter('SubRegionFlag',false,@(x) islogical(x))
 
-ip.addParameter('UseSmoothedCoords',true); 
+ip.addParameter('UseSmoothedCoords',false); 
+
+ip.addParameter('ChannelIndexOverlay',1); 
 
 
 defaults{1,1} = 'filoDensityAlongVeil'; defaults{1,2} = [0,10];
@@ -53,13 +55,15 @@ defaults{4,1} = 'filoIntensityToVeil'; defaults{4,2} = [0.5,2];
 defaults{5,1} = 'filoLengthEmbedded';defaults{5,2} = [0,10];
 defaults{6,1} = 'filoLengthFullActinBundle';defaults{6,2} = [0,10];
 defaults{7,1} = 'filoLengthToVeil'; defaults{7,2} = [0,10];
-defaults{8,1} = 'filoMaxCurvature'; defaults{8,2} = [0,.5];
+defaults{8,1} = 'filoMaxCurvature'; defaults{8,2} = [0,1.5]; % 
 defaults{9,1} = 'branchLength_2ndOrder'; defaults{9,2} =[0,10];
 defaults{10,1} = 'branchOrientation_2ndOrder' ; defaults{10,2} = [0,180];
 defaults{11,1} = 'branchIntensity_2ndOrder' ; defaults{11,2} = [0 2];
 defaults{12,1} = 'validation' ; defaults{12,2} = [0,10];
 defaults{13,1} = 'percentEachActinBundleEmbed' ; defaults{13,2} = [0,1];
 defaults{14,1} = 'branchMaxCurvature_2ndOrder'; defaults{14,2} = [0,0.5]; 
+defaults{15,1} = 'ForMainMovie'; defaults{15,2} = [0,10]; 
+defaults{16,1} = 'branchDensity_2ndOrder' ; defaults{16,2} = [0,10]; 
 
 ip.addParameter('minMaxDefaults',defaults); % defaults for me are set below
 
@@ -237,7 +241,7 @@ for iSelect = 1:numel(selected)
                 
                 filterSetC= filoFilterSet{frameC};
              
-                img = double(imread([MD.getChannelPaths{1} filesep MD.getImageFileNames{1}{frameC}]));
+                img = double(imread([MD.getChannelPaths{ip.Results.ChannelIndexOverlay} filesep MD.getImageFileNames{ip.Results.ChannelIndexOverlay}{frameC}]));
                 
                 
                 setFigure(imgSize(2),imgSize(1),ip.Results.visible);
@@ -260,7 +264,11 @@ for iSelect = 1:numel(selected)
                 % Know this is a bit cumbersome but for now let's just have a flag to
                 % redirect if need to plot curvature
                 if strcmpi(selected{iSelect},'filoMaxCurvature') || strcmpi(selected{iSelect}, 'branchMaxCurvature_2ndOrder')
-                    GCAVisualsColorCodeByCurvature(filoInfo,'filoFilterSet',filterSetC,'cMapLimits',cMapLimits);
+                    GCAVisualsColorCodeByCurvature(filoInfo,'filoFilterSet',filterSetC,'cMapLimits',cMapLimits,'pix2Micron',MD.pixelSize_/1000);
+                    
+                   
+                    
+                    
                     
                 elseif strcmpi(selected{iSelect},'percentActinBundlesVeilEmbedded');
                     
@@ -322,6 +330,29 @@ for iSelect = 1:numel(selected)
                              'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'UseSmoothedCoords',ip.Results.UseSmoothedCoords);
                          
                      end
+                    % add filoBranch complexity metric visualization
+                    % 20160616
+                elseif strcmpi(selected{iSelect},'filoBranchComplexity'); 
+                    
+                    % filter based only on external filoBranch network 
+                    filoInfoFilt= filoInfo(filterSetC(:,1)); 
+                                     
+                    % Plot the full network in black
+                    GCAVisualsFilopodiaMeasurementOverlays(filoInfoFilt,imgSize,...
+                        'plotValues',plotValues,  'UseSmoothedCoords',ip.Results.UseSmoothedCoords); 
+                    
+                    % plot the branches in red 
+                    types = vertcat(filoInfoFilt(:).type);
+                    filoInfoBranch = filoInfoFilt(types>1); 
+                    GCAVisualsFilopodiaMeasurementOverlays(filoInfoBranch,imgSize,... 
+                        'UseSmoothedCoords',ip.Results.UseSmoothedCoords,'colorFiloBranch',[1,0,0]) ; 
+                    
+                    NBranches = sum(types>1); % get the total number of branches
+
+                    lengths = vertcat(filoInfoFilt(:).Ext_length);
+                    totalLength = sum(lengths(~isnan(lengths)));
+
+                    totalLength = totalLength.*.216*10; 
                     
                 else  
   
@@ -375,7 +406,30 @@ for iSelect = 1:numel(selected)
                 roiYX = bwboundaries(veilStemMask);
                 cellfun(@(x) plot(x(:,2),x(:,1),'color','k'),roiYX);
                 
+                
+                  %% optional load ratio mask and overlay movie 
+%                 channelDir = upDirectory(MD.channels_(1).channelPath_,1);
+%              
+%                 thresh = logical(imread([channelDir filesep 'Ratio' filesep 'Ratio' num2str(iFrame,'%03d') '.tif']));   
+%                 
+%                 CC = bwconncomp(thresh);
+%                 csize = cellfun(@(x) length(x), CC.PixelIdxList); 
+%                 CC.PixelIdxList(csize<max(csize))=[]; 
+%                 CC.NumObjects  = CC.NumObjects -sum(csize<max(csize)); 
+%                 thresh = labelmatrix(CC); 
+%                 thresh(thresh>0) = 1; 
+%                 thresh = logical(thresh); 
+%                 
+%                 roiYX = bwboundaries(thresh); 
+%                 cellfun(@(x) plot(x(:,2),x(:,1),'color',[ 0.6471 , 0 , 0.1490]),roiYX); 
+%                 
+                
+                
+                
+                
                 saveas(gcf,[outDir filesep num2str(frameC,'%03d') '.png']);
+                
+              
                 
                 if ip.Results.otherFiles
                     saveas(gcf,[outDir filesep num2str(frameC,'%03d') '.eps'],'psc2');

@@ -215,6 +215,7 @@ else % if not subregion flag
         analInput(1).paramFunc{1} = 'filoLength'; 
         analInput(1).paramName{1} = 'ForMainMovie'; 
         x.filoPart = 'Ext_'; 
+%         x.filoPart = 'Tot';
         x.outPercent = false; 
         analInput(1).paramInput{1} = x; 
         

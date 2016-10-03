@@ -67,8 +67,8 @@ pixSize_um = movieData.pixelSize_/1000;
 %load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep 'Filopodia_Fits_Channel_1' filesep 'analInfoTestSave.mat'])
 [hSet filoFilterSet,filterParams] = GCATroubleShootMakeMovieOfReconstruct(filoBranch,veilStem,inputFrames,pixSize_um,imDir); 
 filoInfo = filoBranch(inputFrames).filoInfo; 
- filoFilterSetC = filoFilterSet{inputFrames}; 
- filoInfoG = filoInfo(filoFilterSetC(:,1)); 
+%  filoFilterSetC = filoFilterSet{inputFrames}; 
+%  filoInfoG = filoInfo(filoFilterSetC(:,1)); 
 
 
 
@@ -116,7 +116,7 @@ end
 imgSize = movieData.imSize_; 
 
 % save only the current filoInfo filterSet and filterParams 
-save([saveDir filesep 'filoInfo.mat' ],'filoFilterSetC','filterParams','filoInfoG','filoInfo','imgSize'); 
+% save([saveDir filesep 'filoInfo.mat' ],'filoFilterSetC','filterParams','filoInfoG','filoInfo','imgSize'); 
 copyfile([ip.Results.InputDirectory filesep 'params.mat'],[saveDir filesep 'paramsFit.mat']); 
 load([ip.Results.InputDirectory filesep 'params.mat']); 
 copyfile([ip.Results.InputDirectory  filesep 'params.mat'],[saveDir filesep 'paramsRec.mat']); 

@@ -1,4 +1,4 @@
-function [slopeMaxNeg,slopeMaxPos,valuesNeg,valuesPos] = gcaFindPotentialSigmoidals(yData,varargin)
+function [slopeMaxNeg,slopeMaxPos,valuesNeg,valuesPos,sd,sv] = gcaFindPotentialSigmoidals(yData,varargin)
 % gcaFindPotentialSigmoidals
 % Small helper function: fits a cubic spline to the yData 
 % calculates the smoothed gradient from this spline 
