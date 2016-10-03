@@ -217,7 +217,7 @@ if multMasks == 1
    % maskDir = [upThree filesep 'SegmentationPackage' filesep 'masks' filesep 'masks_for_channel_1']; 
 maskDir = [subRoiDir filesep 'masks']; 
 masks = searchFiles('.tif',[],maskDir,0);
-[upOne, ~, sub] = upDirectory(subRoiDir,1); 
+[upOne, ~, sub] = mitoticUpDirectory(subRoiDir,1); 
 % IF DELETE FROM OTHER SIDE : AS WAS USED IN THE ANAPHASE BIPOLAR ANALYSIS 
 forBipolar = 0; 
 if forBipolar == 1; 
@@ -420,7 +420,7 @@ end
     pixIdxLast=sub2ind([imL,imW],yLast,xLast);% pixel index of all last points
     % of track
     pixIdxFirst=sub2ind([imL,imW],yFirst,xFirst);
-    up2 = upDirectory(subRoiDir ,2);
+    up2 = mitoticUpDirectory(subRoiDir ,2);
     % get outside mask
             wholeMasks = searchFiles('.tif',[],[up2 filesep 'masks'], 0); 
     
