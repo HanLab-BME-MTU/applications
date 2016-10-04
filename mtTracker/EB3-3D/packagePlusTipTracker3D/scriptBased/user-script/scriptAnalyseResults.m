@@ -71,7 +71,7 @@ cumulElev=cell(length(aMovieListArray),maxCellNb);
 cumulPoleId=cell(length(aMovieListArray),maxCellNb); 
 cumulTimePt=cell(length(aMovieListArray),maxCellNb); 
 
-% Azimuth and elevation for EB3 that caught a Kinetochore. 
+% Index of  EB3 that caught a Kinetochore. 
 EB3CatchingId=cell(length(aMovieListArray),maxCellNb); 
 
 % Azimuth and elevation for Kin
