@@ -19,6 +19,8 @@ ip.addRequired('data', @isstruct);
 ip.addRequired('tracks', @isstruct);
 ip.addParamValue('Alpha', 0.05, @isscalar);
 ip.addParamValue('AlphaSensitivity', 0.05, @isscalar);
+ip.addParamValue('AlphaSigMaster', 0.05, @isscalar);
+ip.addParamValue('amplitudeRatio', 0, @isscalar);
 ip.parse(data, tracks, varargin{:});
 
 
@@ -122,7 +124,15 @@ for k = 1:nt
         % number of chance detections for a track of length L is given by the 
         % inverse binomial CDF:
         tracks(k).significantMaster(c) = nansum(tracks(k).hval_Ar(c,:)) > binoinv(0.95, L, pDetection(c));
-                
+
+        % 1bis) Add an optional step to strenghten the condition on the
+        % signal
+        %tracks(k).significantMaster(c) = nansum(tracks(k).pval_Ar(c,:)<ip.Results.AlphaSigMaster) > binoinv(0.95, L, pDetection(c));
+
+        % 1ter) Add a condition on the amplitude ratio
+        ampRatio=max(tracks(k).A(c,:))/max(tracks(k).A(1,:));
+        tracks(k).significantMaster(c)=tracks(k).significantMaster(c) & (ampRatio > ip.Results.amplitudeRatio);        
+        
         % 2) Test whether the number time points in the slave channel with a signal
         % above the 95th percentile of the background distribution is significant
         
