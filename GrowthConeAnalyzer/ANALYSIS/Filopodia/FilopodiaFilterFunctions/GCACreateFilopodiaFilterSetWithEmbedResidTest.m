@@ -126,6 +126,8 @@ switch filterType
         filterParams.embedFitCriteria = 95 ; % change threshold to be a percentile of the residuals 
         filterParams.filoFitCriteria = 95; 
         
+        
+        
         % current problem is that need an option to maintain the flag on
         % the external but kick out the internal if the fit doesn't work
         % one option would be to kick out that info entirely (ie filter at
