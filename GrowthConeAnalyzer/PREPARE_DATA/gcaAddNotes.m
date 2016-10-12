@@ -49,7 +49,9 @@ for i = 1:numel(toDocument)
        
        stepsFolder{3} =  [MD.outputDirectory_ filesep 'masks' filesep 'masks_for_channel_1' filesep 'Overlays'];
         
-       stepsFolder{4} =  [MD.outputDirectory_ filesep 'VisualizationOverlays/WholeNeurite/VeilWindows_SignalProcCheck/Channel_1']; 
+       %stepsFolder{4} =  [MD.outputDirectory_ filesep 'VisualizationOverlays/WholeNeurite/VeilWindows_SignalProcCheck/Channel_1']; 
+       stepsFolder{4} = [MD.outputDirectory_ filesep 'protrusion_samples_ProtrusionBased_windSize_5ReInit61' filesep 'EdgeVelocityQuantification' ... 
+           filesep 'VeilTrackCheck_ProtrusionBased_WindSize5' filesep 'Channel_1' ]; 
        
         
        % test if exist 
@@ -57,7 +59,7 @@ for i = 1:numel(toDocument)
        idxExist = idxExist>0;
        if idxExist(2) == 1 
            load([stepsFolder{2} filesep 'backboneInfoFix.mat']); 
-           if length(backboneInfo)<121
+           if length(backboneInfo)<MD.nFrames_-1
            idxExist(2) = 0 ;
            end 
            
@@ -148,8 +150,9 @@ for i = 1:numel(toDocument)
                     end  
                     
                 case 4     
-                 direct =  [MD.outputDirectory_ filesep ...
-                     'VisualizationOverlays' filesep 'WholeNeurite' filesep 'VeilWindows_SignalProcCheck' filesep 'Channel_1']; 
+%                  direct =  [MD.outputDirectory_ filesep ...
+%                      'VisualizationOverlays' filesep 'WholeNeurite' filesep 'VeilWindows_SignalProcCheck' filesep 'Channel_1']; 
+                  direct= stepsFolder{4};
                   if exist(direct)~=0
                         
                     

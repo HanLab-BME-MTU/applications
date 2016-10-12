@@ -4,7 +4,7 @@ function [ h ] = setFigure( nx,ny,visible )
 if nargin<3 
     visible = 'off';
 end 
-
+%h = figure('Visible',visible); 
 h = figure('Visible',visible,'Position',[50 50 nx ny]);
 iptsetpref('ImshowBorder','tight');
 
@@ -20,7 +20,8 @@ set(h, 'PaperPosition', [0 0 nx ny]); % very important
 %   set(h,'DefaultPatchLineSmoothing','on');
 
 % Configure axes 
-ha = axes('Position',[0 0 1 1]); 
+ha = axes('Position',[0 0 1 1],'Visible',visible); 
+
 
 end
 

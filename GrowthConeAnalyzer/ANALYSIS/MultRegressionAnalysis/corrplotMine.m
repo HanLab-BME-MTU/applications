@@ -174,53 +174,53 @@ X = double(X);
 ZLims = [min(Z(:)),max(Z(:))];
 
 % Basic plot:
-fsFigure(1); 
-%figure('Tag','corrPlotFigure')
-[H,Ax,bigAx] = gplotmatrix(X,[],[],[],'o',2,[],'hist',varNames,varNames);
+% fsFigure(1); 
+% %figure('Tag','corrPlotFigure')
+% [H,Ax,bigAx] = gplotmatrix(X,[],[],[],'o',2,[],'hist',varNames,varNames);
 
 % Format plot:
 
-set(H(logical(eye(numVars))),'EdgeColor','c')
-set(cell2mat(get(Ax,'XLabel')),'FontWeight','bold','Color',[0 0 0.6])
-set(cell2mat(get(Ax,'YLabel')),'FontWeight','bold','Color',[0 0 0.6])
-set(get(bigAx,'Title'),'String','{\bf Correlation Matrix}')
-
-for i = 1:numVars
-        
-    for j = 1:numVars
-        
-        set(get(bigAx,'Parent'),'CurrentAxes',Ax(i,j))
-        set(Ax(i,j),'XLim',Mu(j)+(1.1)*ZLims*Sigma(j),...
-                    'YLim',Mu(i)+(1.1)*ZLims*Sigma(i))
-        axis normal   
-            
-        if i ~= j
-            
-            hls = lsline;
-            set(hls,'Color','m','Tag','lsLines');
-            plotPos = get(Ax(i,j),'Position');
-            
-            if testRFlag && (PValue(i,j) < alpha)
-                
-                corrColor = 'r';
-                
-            else
-                
-                corrColor = 'k';
-                
-            end
-            
-            annotation('textbox',plotPos,...
-                       'String',num2str(R(i,j),'%3.2f'),...
-                       'FontWeight','Bold',...
-                       'Color',corrColor,...
-                       'EdgeColor','none','Tag','corrCoefs')
-            
-        end
-        
-    end
-    
-end
+% set(H(logical(eye(numVars))),'EdgeColor','c')
+% % set(cell2mat(get(Ax,'XLabel')),'FontWeight','bold','Color',[0 0 0.6])
+% % set(cell2mat(get(Ax,'YLabel')),'FontWeight','bold','Color',[0 0 0.6])
+% set(get(bigAx,'Title'),'String','{\bf Correlation Matrix}')
+% 
+% for i = 1:numVars
+%         
+%     for j = 1:numVars
+%         
+%         set(get(bigAx,'Parent'),'CurrentAxes',Ax(i,j))
+%         set(Ax(i,j),'XLim',Mu(j)+(1.1)*ZLims*Sigma(j),...
+%                     'YLim',Mu(i)+(1.1)*ZLims*Sigma(i))
+%         axis normal   
+%             
+%         if i ~= j
+%             
+%             hls = lsline;
+%             set(hls,'Color','m','Tag','lsLines');
+%             plotPos = get(Ax(i,j),'Position');
+%             
+%             if testRFlag && (PValue(i,j) < alpha)
+%                 
+%                 corrColor = 'r';
+%                 
+%             else
+%                 
+%                 corrColor = 'k';
+%                 
+%             end
+%             
+%             annotation('textbox',plotPos,...
+%                        'String',num2str(R(i,j),'%3.2f'),...
+%                        'FontWeight','Bold',...
+%                        'Color',corrColor,...
+%                        'EdgeColor','none','Tag','corrCoefs')
+%             
+%         end
+%         
+%     end
+%     
+% end
 
 nargoutchk(0,2);
 

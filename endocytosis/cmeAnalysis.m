@@ -70,7 +70,7 @@ ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
 ip.addParamValue('Parameters', [], @(x) numel(x)==3);
 ip.addParamValue('ControlData', [], @isstruct);
 ip.addParamValue('PlotAll', false, @islogical);
-ip.addParamValue('AlphaSlave', 0.05, @isnumeric);
+ip.addParamValue('SlaveAmplitudeRatio', 0, @isnumeric);
 ip.addParamValue('ChannelNames', []);
 ip.addParamValue('FirstNFrames', [], @isposint);
 ip.addParamValue('MaxIntensityThreshold', [], @isscalar);
@@ -111,7 +111,7 @@ runDetection(data, 'SigmaSource', ip.Results.GaussianPSF,...
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, 'Overwrite', overwrite(3));
 
-runTrackProcessing(data, 'Overwrite', overwrite(4),'AlphaSlave',ip.Results.AlphaSlave);
+runTrackProcessing(data, 'Overwrite', overwrite(4),'SlaveAmplitudeRatio',ip.Results.SlaveAmplitudeRatio);
 
 %-------------------------------------------------------------------------------
 % 3) Analysis

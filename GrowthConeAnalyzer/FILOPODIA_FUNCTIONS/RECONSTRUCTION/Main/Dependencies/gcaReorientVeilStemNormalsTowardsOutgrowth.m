@@ -34,6 +34,8 @@ distToSmoothEdgeNeuriteEnter = arrayfun(@(i) sqrt((xEnter-smoothedEdgeC(i,1))^2 
 % find the point on the smoothed edge that is closest to the lead
 % protrusion
 leadProtPtSmoothEdge= smoothedEdgeC(distToSmoothEdge == min(distToSmoothEdge),:);
+% added 20160718 make sure lead protrusion point is on the smoothedEdge 
+
 neuriteEnterSmoothedEdge = smoothedEdgeC(distToSmoothEdgeNeuriteEnter ==min(distToSmoothEdgeNeuriteEnter),:);
 %zeros(idxLead,)
 
@@ -47,8 +49,11 @@ borderMask = false(dims);
 borderMask(smoothedEdgeCIdxPix) = true;
 borderMaskAll = borderMask;
 
-borderMask(leadProtPtSmoothEdge(1,2),leadProtPtSmoothEdge(1,1)) = false;
+
+borderMask(round(leadProtPtSmoothEdge(:,2)),round(leadProtPtSmoothEdge(:,1))) = false;
+
 borderMask(neuriteEnterSmoothedEdge(1,2),neuriteEnterSmoothedEdge(1,1)) = false;
+
 %figure;
 
 % the distMat doesn't always work well if the two sides not assymetric
@@ -73,6 +78,7 @@ borderMask(neuriteEnterSmoothedEdge(1,2),neuriteEnterSmoothedEdge(1,1)) = false;
 CCs = bwconncomp(borderMask>0);
 
 
+
 if CCs.NumObjects == 1
     % try to take the backbone mask and find the problem point
     backboneMask = false(dims);
@@ -91,6 +97,9 @@ if CCs.NumObjects == 1
     
     borderMask(backboneMask==1) = 0;
     borderMaskAll(backboneMask==1) = 0; 
+    
+    
+    
     %distMat  = bwdistgeodesic(borderMask,round(leadProtPtSmoothEdge(1,1)),round(leadProtPtSmoothEdge(1,2)));
     %imagesc(distMat);
     %distMatBorder =  bwdist(borderMask);
@@ -119,35 +128,35 @@ distMat  = bwdistgeodesic(borderMaskAll,round(leadProtPtSmoothEdge(1,1)),round(l
 % mark the pixIdxs to be rotated counter
 
 [~,~,ib2]= intersect(CCs.PixelIdxList{2},smoothedEdgeCIdxPix,'stable');
-% figure
-% make first mask
-% mask1 = false(size(distMat));
-% mask1(CCs.PixelIdxList{1}) = true;
-% spy(mask1,'r');
-% mask2 = false(size(distMat));
-% hold on
-% mask2(CCs.PixelIdxList{2}) = true;
-% spy(mask2,'b')
-
-%figure;
-% figure out the directionality % if the normal should be rotatated + or  -
-% clockwise or counterclockwise.
-% if
-% plot before
-% quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g');
-%hold on
 
 % test CCs dir
 mask1 = false(dims);
 mask1(CCs.PixelIdxList{1})= true;
 CC1Dist= distMat.*mask1;
-[y1,x1] = find(CC1Dist == 1);
-%find(smoothedEdgeCIdxPix,1);
-idx1 = find(CC1Dist==1);
-toRot = [normalsC(smoothedEdgeCIdxPix==idx1,1),normalsC(smoothedEdgeCIdxPix==idx1,2)];
+% [y1,x1] = find(CC1Dist == 1);
+% changed 20160718 to fix make more flexibile in case happen to have an
+% slighly odd pixel configuration. (take min do no assume the distTrans
+% ==1) Just need these values to get the general directionality - might be
+% a more clever way to do this... 
+values1 = CC1Dist(CC1Dist~=0); 
+[y1,x1] = find(CC1Dist == min(values1)); 
+% just take the first sometimes have more than one value 
+x1 = x1(1); 
+y1= y1(1); 
 
-idx2 = find(CC1Dist==2);
-[y2,x2] = find(CC1Dist == 2);
+%find(smoothedEdgeCIdxPix,1);
+% idx1 = find(CC1Dist==1);
+idx1 = find(CC1Dist == min(values1)); 
+idx1 = idx1(1); 
+toRot = [normalsC(smoothedEdgeCIdxPix==idx1,1),normalsC(smoothedEdgeCIdxPix==idx1,2)];
+%make sure toRot is 
+toRot = toRot(1,:); 
+
+[y2,x2] = find(CC1Dist == min(values1)+1);
+% just take the first (sometimes have more than one value) 
+y2 = y2(1); 
+x2 = x2(1); 
+
 % scatter(x1,y1,'filled','r');
 % scatter(x2,y2,'filled','g');
 signs =[ -1,1,1,-1];
@@ -182,30 +191,7 @@ dirEdge2 = normalsC(ib2,:)*rotMatrix2;
 normalsCRotated(ib2,1:2) = normalsC(ib2,:)*rotMatrix2;
 normalsCRotated(ib2,3) = 2;
 
-% sanity check
-% side1 = find(normalsCRotated(:,3) == 1);
-% side2 = find(normalsCRotated(:,3) == 2) ;
-% quiver(smoothedEdgeC(side1,1),smoothedEdgeC(side1,2),normalsCRotated(side1,1),...
-%     normalsCRotated(side1,2),'b');
-% quiver(smoothedEdgeC(side2,1),smoothedEdgeC(side2,2),normalsCRotated(side2,1),...
-%     normalsCRotated(side2,2),'r');
-
-%quiver(smoothedEdgeC(ib(1),1),smoothedEdgeC(ib(1),2),vectTest1(1),vectTest1(2),'k');
-%quiver(smoothedEdgeC(ib,1),smoothedEdgeC(ib,2),dirEdge(:,1),dirEdge(:,2),'r');
-
-
-% hold on
-% quiver(smoothedEdgeC(ib2,1),smoothedEdgeC(ib2,2),dirEdge2(:,1),dirEdge2(:,2),'b');
-
-
-
-%idxStart = find(distMatInvert == max(distMatInvert(:))-1);
-%[y,x] = ind2sub(size(distMatInvert),idxStart);
-
-%[pts, values] = gradientDescent(distMatInvert,x(1),y(1));
-
-%pts = gradientDescent(distMatInvert,skelPoint(1,1),skelPoint(1,2));
 end
-%% % reorder the CCS 
+
 
          

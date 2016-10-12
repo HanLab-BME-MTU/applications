@@ -30,6 +30,9 @@ ip.addParamValue('Crop', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('BioSensors','off', @(x) ischar(x) || strcmpi(x,'off'));
 % ip.addParamValue('ChannelOrder', 'interleaved', @(x) any(strcmpi(x, {'interleaved', 'consecutive'})));
 
+
+
+
 % ip.addParamValue('ChannelNames', cell(1));
 ip.parse(varargin{:});
 stkpath = ip.Results.path;
@@ -284,7 +287,7 @@ for iMovie = 1:length(movieNames)
     end
     
    % finish making movieData object 
-      saveFolder = [ newDir  filesep 'ANALYSIS'];
+      saveFolder = [ newDir  filesep 'GrowthConeAnalyzer'];
       if ~isdir(saveFolder) 
           mkdir(saveFolder)           
       end 
@@ -303,7 +306,7 @@ for iMovie = 1:length(movieNames)
         % Set some additional movie properties
       %  MD.numAperture_=1.4;
         MD.pixelSize_=215;
-        MD.timeInterval_=5;
+        MD.timeInterval_=30;
         MD.camBitdepth_=16;
        % MD.binning = 2; 
        
@@ -314,11 +317,16 @@ for iMovie = 1:length(movieNames)
 
 clear MD
       
-      
-      
-      
-     
-    
+% move the original stack       
+newStackDir = [newDir filesep 'OriginalStack'];
+if ~isdir(newStackDir)
+    mkdir(newStackDir);
+end
+  
+old = cellfun(@(x) [stkpath filesep x ],cTifs,'uniformoutput',0); 
+new = cellfun(@(x) [newStackDir filesep x],cTifs,'uniformoutput',0); 
+arrayfun(@(x) movefile(old{x},new{x}),1:numel(new),'uniformoutput',0); 
+%     
 end % for iMovie
 
 

@@ -275,7 +275,7 @@ for iType = typeStart:typeEnd
                     
                     
                     [params, resnorm,~,exitFlag] = lsqcurvefit(@testfun,starts,distFiloFit,yDataFit,lwb,upb);
-                    
+            %%        
                     % test if u = min(distFiloFit)
                     if (abs(params(2)-distFiloFit(1))<1 && params(2)> 1)
                         distFiloFitOld = distFiloFit;
@@ -299,7 +299,7 @@ for iType = typeStart:typeEnd
                         
                         
                     end % abs params(2)
-                    
+             %%       
                     if p.TSOverlays
                         line([params(2),params(2)],[max(yData),min(yData)]);
                         %text(params(2),(max(yDataFit)-min(yDataFit)./2)+min(yDataFit),['mean = ' num2str(params(2),3)]);

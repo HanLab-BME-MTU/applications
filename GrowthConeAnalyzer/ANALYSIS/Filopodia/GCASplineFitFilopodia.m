@@ -45,7 +45,7 @@ ip.addRequired('filoInfo');
 
 %
 ip.addParameter('SplineTolerance',2); %
-
+ip.addParameter('TSOverlays',false); 
 ip.parse(filoInfo,varargin{:});
 
 %% START
@@ -59,12 +59,19 @@ for iFilo = 1:length(filoInfo)
     vertices = filoInfo(iFilo).('Ext_coordsXY');
     vertices = vertices(1:idxEnd,:);
     
+    if ip.Results.TSOverlays 
+       scatter(vertices(:,1),vertices(:,2),1,'r','filled'); 
+    end 
+    
     if size(vertices,1)>2 % will not fit is the length of the points is < 2
         
         [~,vertices]   = spaps( 1:size(vertices,1), vertices',ip.Results.SplineTolerance);
         vertices = vertices';
         filoInfo(iFilo).Ext_coordsXY_SplineFit = vertices;
-        
+        if ip.Results.TSOverlays 
+            scatter(vertices(:,1),vertices(:,2),1,'k'); 
+            %plot(vertices(:,1),vertices(:,2),'color','k'); 
+        end 
     else
         filoInfo(iFilo).Ext_coordsXY_SplineFit = [NaN NaN];
     end

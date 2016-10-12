@@ -1,4 +1,4 @@
-function [ costMat,nonlinkMarker,movieInfo] = costMatFilo( movieInfo,neuriteEdge,neuriteMaskTM1,costMatParams,iFrame,saveDir)
+function [ costMat,nonlinkMarker,movieInfo] = costMatFilo( movieInfo,costMatParams,iFrame,saveDir)
 
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
@@ -26,6 +26,10 @@ function [ costMat,nonlinkMarker,movieInfo] = costMatFilo( movieInfo,neuriteEdge
 
 %% CHECK INPUT
 
+% Think I am able to take these out 
+
+% 'neuriteEdge,neuriteMaskTM1' 20160923 as I will be now just reading in
+% the protrusion vectors 
 
 searchRadius = costMatParams.searchRadius;
 %% Calculate Linking Costs

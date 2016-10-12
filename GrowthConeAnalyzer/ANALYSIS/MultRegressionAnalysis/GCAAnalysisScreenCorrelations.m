@@ -1,6 +1,26 @@
-function [output,dataSetFinal] = GCAAnalysisScreenCorrelations(outgrowthDeltas,toPlot)
+function [output,dataSetFinal,forDataSetArray,rAll,pAll] = GCAAnalysisScreenCorrelations(outgrowthDeltas,toPlot,varargin)
 %  currently only assumes 1 group in toPlot but will loop through all the
 %  params
+
+
+%% Check input 
+ip = inputParser;
+ip.CaseSensitive = false;
+% Check input
+ip.addRequired('toPlot');
+% Feature Selection Options
+ip.addRequired('outgrowthDeltas');
+
+% 
+% Function for movie stat
+ip.addParameter('perNeuriteStatistic','nanmean'); % default is to take the
+% median value of the measurement calculated over the entire movie.
+ip.addParameter('matrixPlot',true);
+ip.addParameter('type','Pearson'); 
+ip.parse(outgrowthDeltas,toPlot,varargin{:});
+
+%%
+perNeuriteStat = str2func(ip.Results.perNeuriteStatistic); 
 
 % Get all the parameters to correlate to global function
 paramsToCorrelate = fieldnames(toPlot);
@@ -8,45 +28,34 @@ paramsToCorrelate = fieldnames(toPlot);
 paramsToCorrelate(cellfun(@(x) strcmpi(x,'info'),paramsToCorrelate)) = [];
 outgrowthDeltas = outgrowthDeltas./10; % convert to um/min 
 varName = paramsToCorrelate; 
-% varName = cellfun(@(x) strrep(x,'filo','F'),varName,'uniformoutput',0); 
-% varName = cellfun(@(x) strrep(x,'Length','L'),varName,'uniformoutput',0); 
-% varName = cellfun(@(x) strrep(x,'Intensity','I'),varName,'uniformoutput',0); 
-% varName = cellfun(@(x) strrep(x,'retractionAnalysis_perTime','RPers'),varName,'uniformoutput',0); 
-% varName = cellfun(@(x) strrep(x,'protrusionAnalysis_perTime','PPers'),varName,'uniformoutput',0); 
-% varName = cellfun(@(x) strrep(x,'protrusionAnalysis_mednVel','PVel'),varName,'uniformoutput',0); 
-% varName = cellfun(@(x) strrep(x,'retractionAnalysis_mednVel','RVel'),varName,'uniformoutput',0); 
 
 % initiate a predictor/response Mat r equals number of observations (ie
 % neurites in this case) and c is the number of variables - the last column
 % will be the response variable which is in this case the neurite
 % outgrowth.
 forDataSetArray = nan(length(outgrowthDeltas),numel(paramsToCorrelate)+1);
-forDataSetArray(:,end) = outgrowthDeltas;
+forDataSetArray(:,end) = outgrowthDeltas; 
+%%
+% *BOLD TEXT* tArray(:,end) = outgrowthDeltas;
 
-
+nGroups = numel(toPlot.info.names); 
 for iParam = 1:numel(paramsToCorrelate)
+     output(iParam).name = varName{iParam};
+for iGroup = 1:nGroups
+
     
-    output(iParam).name = varName{iParam};
+   
     % extract the current dataMat : it is format of rows = individual observations for
     % whole movie (if parameter has a calculation per frame (for example:
     % filopodia density) the rows will be equal to one.
-    dataMat = toPlot.(paramsToCorrelate{iParam}){1};
+    dataMat = toPlot.(paramsToCorrelate{iParam}).dataMat{iGroup};
     dataMat = real(dataMat);
-    if strcmpi(paramsToCorrelate{iParam},'retractionAnalysis_persTime') || strcmpi(paramsToCorrelate{iParam},'protrusionAnalysis_persTime')
-        nMovies = size(dataMat,2);
-        % get the 75th percentile of each movie for the persistence time
-        % /retraction time % set anything lower to this value to zero.
-        prctile75 = arrayfun(@(i) prctile(dataMat(:,i),75),1:nMovies);
-        toRemove = arrayfun(@(i) dataMat(:,i)<prctile75(i),1:nMovies,'uniformoutput',0);
-        toRemoveMat = horzcat(toRemove{:});
-        dataMat(toRemoveMat)=NaN; % set to NaN;
-        
-    end
-    
+   
     % to simplify take the median value of the parameter per movie.
-    valuesC = nanmedian(dataMat,1); % take the median over the rows- will get one value per movie
+    valuesPerGroup{iGroup,1} = perNeuriteStat(dataMat,1); % take the median over the rows- will get one value per movie
     % (column) in list.
-    
+end % for iGroup 
+    valuesC = horzcat(valuesPerGroup{:}); 
     forDataSetArray(:,iParam) = valuesC';
     
     if sum(isnan(valuesC))>0
@@ -63,35 +72,32 @@ for iParam = 1:numel(paramsToCorrelate)
     end
     
     
-    [r,p] = corrcoef(output(iParam).values);
-    
+   % [r,p] = corrcoef(output(iParam).values);
+    [r,p] = corr(output(iParam).values,'type',ip.Results.type); 
     
     output(iParam).r = r;
     output(iParam).p = p;
-    
+    output(iParam).v = valuesPerGroup; 
     
     
 end
+ 
+
 
 dataSetFinal = num2cell(forDataSetArray);
-ObsNames = toPlot.info.projList{1}(:,2); % get IDS
+[rAll,pAll] = corr(forDataSetArray,'type',ip.Results.type); 
+
+
+ObsNames = vertcat(toPlot.info.projList{:})  ; 
+ObsNames = ObsNames(:,2); % get IDS
 dataSetFinal = [ObsNames dataSetFinal]; 
-params = ['NeuriteID' ; varName ;'Net Velocity'];
+params = ['NeuriteID' ; varName ;'Net Elongation Velocity'];
 dataSetFinal = [params' ;dataSetFinal];
 
+ %[rAll,pValuesAll] = corrplotMine(forDataSetArray,'testR','on','varNames',[varName ; 'Net Elongation Velocity']); 
 
 dataSetFinal = cell2dataset(dataSetFinal,'ReadObsNames',true);
 
-save('dataSet.mat','dataSetFinal'); 
+% save(['dataSet_' ip.Results.perNeuriteStatistic '.mat'],'dataSetFinal'); 
 
 
-% collect p
-% pMat = cellfun(@(x) x(1,2),p);
-% %toTestC = toTest;
-% %paramHits = paramsToCorrelate(p<0.05);
-% outputHit = [paramsToCorrelate(pMat<0.05)  toTest(pMat<0.05)'  r(pMat<0.05)'   p(pMat<0.05)' ];
-% resultsCorrScreen.Hit = outputHit;
-%
-%
-% outputNonHit= [paramsToCorrelate(pMat>0.05)  toTest(pMat>0.05)' r(pMat>0.05)'  p(pMat>0.05)'];
-% resultsCorrScreen.nonHit = outputNonHit;

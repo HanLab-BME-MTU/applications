@@ -64,11 +64,12 @@ end
 
 
 
-p.plots = 1;
+p.plots = 0;
 if p.plots == 1
     imshow(subRoiMask,[]);
     hold on
-    arrayfun(@(x) plot(x.Ext_coordsXY(:,1),x.Ext_coordsXY(:,2),'color','r'),filoInfo);
+    %arrayfun(@(x) plot(x.Ext_coordsXY(:,1),x.Ext_coordsXY(:,2),'color','r'),filoInfo);
+    arrayfun(@(x) plot(x.Ext_coordsXY(:,1),x.Ext_coordsXY(:,2),'color','g'),filoInfoSub);
 end
 
 

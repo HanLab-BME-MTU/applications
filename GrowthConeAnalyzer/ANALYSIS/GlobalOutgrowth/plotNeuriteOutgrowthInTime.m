@@ -34,12 +34,12 @@ end
         scatter((0:length(neuriteIn)-1).*timeInterval,neuriteIn,20,color,'filled'); 
         hold on 
         end 
-       [outgrowthFilt , outlierIdx] = findOutliersFromMedFilt(neuriteIn,6,6);
+       [outgrowthFilt , outlierIdx] = gcaFindOutliersFromMedFilt(neuriteIn,3,3,false);
        if strcmpi(dataType,'dist');
            h=  plot((0:length(outgrowthFilt)-1).*timeInterval,outgrowthFilt,'color',color,'Linewidth',linewidth);
            % plot((0:length(neuriteIn)-1).*timeInterval, neuriteIn,'color',color,'Linewidth',2);
            xlabel('Time (s)','FontName','Arial','FontSize',fSizeLabels);
-           ylabel({'Neurite' ; 'Outgrowth (um)'} ,'FontName','Arial','FontSize',fSizeLabels);
+           ylabel({'Neurite' ; 'Length (um)'} ,'FontName','Arial','FontSize',fSizeLabels);
            set(gca,'FontName','Arial','FontSize',fSizeAxis);
            axis([0 (length(neuriteIn)-1)*timeInterval,-10,25]);
            if ~isempty(saveDir)
