@@ -196,7 +196,7 @@ for aPoleScale=poleScale
                 %% Set detection in the spindle referential
                 [dist,sphCoord,poleId,inliers,originProb,minProb,sphCoordBest,detectionsSpindleRef]=poleDist(poleMovieInfo,detectionsStageRef,'anisotropy',dataIsotropy,'angleRef','poles');
                 save([outputDirDetect filesep 'dist.mat'],'dist','minProb','poleId','inliers');
-                save([outputDirDetect filesep 'sphericalCoord.mat'],'sphCoordBest');
+                save([outputDirDetect filesep 'sphericalCoord.mat'],'sphCoordBest','sphCoord');
                 save([outputDirDetect filesep 'detectionSpindleRef.mat'],'detectionsSpindleRef');
                 
                 if(printAmiraFile)
