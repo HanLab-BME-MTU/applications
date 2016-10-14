@@ -131,7 +131,7 @@ filoInfo.localVectAttach = [];
 filoInfo.localVectFilo = [];
 %end
 filoInfo = orderfields(filoInfo);
-
+sanityCheck = 0; 
 %% Start recording information 
 for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
     % make the individual mask for each filopodia simplies the labeling and
@@ -303,7 +303,7 @@ for iFiloObj = 1:numel(CCFiloObjs.PixelIdxList)
                 % to favor the small vector...
                 avgNormLocal = mean(normalsC(idx,:));% might want to change to a majority? (i don't think these vectors are really normalized)
  %% SANITY CHECK 
-                sanityCheck =0; 
+                
                 if sanityCheck == 1
                 if iFiloObj == 1
                     

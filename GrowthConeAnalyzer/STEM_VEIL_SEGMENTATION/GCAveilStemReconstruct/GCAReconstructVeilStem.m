@@ -117,7 +117,7 @@ end
 % 
  pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStem','BBScales','paramsArchived'});
  %% 
-
+  
 %% Start Loop
 for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
      figCount = 1;
@@ -128,9 +128,10 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     %% Load information
     fileName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
     img = double(imread(fileName));
-    
-    
+   
     backbone = backboneInfo(iFrame).backboneSeedMask;
+    [ny,nx] = size(backboneInfo(1).backboneSeedMask); 
+    
     xyEnterNeurite = backboneInfo(iFrame).coordsEnterNeurite;
     idxEnterNeurite = sub2ind(size(img),xyEnterNeurite(:,2), xyEnterNeurite(:,1));
     cleanedRidge = backboneInfo(iFrame).linkedRidgesFinal;
@@ -326,7 +327,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             % plot old body : old backbone/new backbone
             if ip.Results.TSOverlays == true
-                TSFigs1(figCount).h = setFigure(nx,ny,'on'); 
+                TSFigs1(figCount).h = setFigure(nx,ny,'off'); 
                 TSFigs1(figCount).name = 'Initial Scan For Truncations'; 
                 imshow(-img,[]); 
                 hold on 
@@ -407,7 +408,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             
             %% TSMovie : Exploring paths 
             if ip.Results.TSMovie == 1
-                TSFigs1(countFigs).h= setFigure(nx,ny,'on');
+                TSFigs1(countFigs).h= setFigure(nx,ny,'off');
                 TSFigs1(countFigs).name = 'Explore Paths'; 
                 [yBack,xBack]=  ind2sub([ny,nx],pixRidgeConn);
                 scatter(xBack,yBack,10,'r','filled') % 'color','r','linewidth',2);
@@ -561,7 +562,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                          veilStem(iFrame).bridged = true;
                         
                        if  ip.Results.TSOverlays == true
-                           TSFigs1(figCount).h = setFigure(nx,ny,'on');
+                           TSFigs1(figCount).h = setFigure(nx,ny,'off');
                            TSFigs1(figCount).name = 'Bridging'; 
                            imshow(backbone,[]);
                            hold on 
@@ -891,9 +892,9 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     veilStemNodeMask = newBodyMask;
     backboneInfoC = backboneInfo(iFrame);
     [fullMask,cycleFlag,TSFigs2] = gcaResolveVeilStemCycles(backbone2Dil,veilStemNodeMask,backboneInfoC,img,p);
-    TSFigs = [TSFigs1 TSFigs2];
-    if ~isempty(TSFigs)
-        
+    
+    if ip.Results.TSOverlays
+      TSFigs = [TSFigs1 TSFigs2];  
     % Save any trouble shoot figures associated with the cycle resolutions
      % make the directories for the figures if required. 
         for iFig = 1:length(TSFigs)

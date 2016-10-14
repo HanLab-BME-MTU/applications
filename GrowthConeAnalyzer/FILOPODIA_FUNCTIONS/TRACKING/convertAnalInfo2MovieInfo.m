@@ -72,26 +72,40 @@ xyCoords= vertcat(filoInfoFilt(:).Ext_endpointCoordFitXY); % be careful do I eve
 % % information to be built into the cost function so not necessarily
 % % straight forward could maybe have that information here... 
 
-% added 20140928
-idxNaN = find(arrayfun(@(x) isempty(filoInfoFilt(x).windowIdx),1:length(filoInfoFilt)));
-if ~isempty(idxNaN)
-% for now fix empty with NaN
-for i=1:length(idxNaN); 
-    filoInfoFilt(idxNaN(i)).windowIdx = NaN; 
+% added 20140928 then deleted 201609
+% idxNaN = find(arrayfun(@(x) isempty(filoInfoFilt(x).windowIdx),1:length(filoInfoFilt)));
+% if ~isempty(idxNaN)
+% % for now fix empty with NaN
+% for i=1:length(idxNaN); 
+%     filoInfoFilt(idxNaN(i)).windowIdx = NaN; 
+% 
+% end 
+% end 
 
-end 
-end 
-windowNum =arrayfun(@(x) filoInfoFilt(x).windowIdx(1),1:length(filoInfoFilt)); 
-%localVeil = arrayfun(@(x) filoInfoFilt(x).localVeil,1:length(filoInfoFilt));  
-add = 0.5*ones(length(xyCoords),1); 
-movieInfo(iFrame).xCoord = [xyCoords(:,1) add]; 
-movieInfo(iFrame).yCoord = [xyCoords(:,2) add]; 
-%movieInfo(iFrame).amp = [lengths std]; % remind me why I need movieInfo format again... should try to eradicate 
-movieInfo(iFrame).amp = [windowNum' std];
-%movieInfo(iFrame).amp = [localVeil' std]; 
- analInfoFilt(iFrame).filoInfo = filoInfoFilt; 
+% Note 20160923 not sure why I was saving this information? maybe just to
+% be able to have later in tracks? Don't think I need it for normal
+% tracking certainly 
 
 
+%localVeil = arrayfun(@(x) filoInfoFilt(x).localVeil,1:length(filoInfoFilt));
+add = 0.5*ones(length(xyCoords),1);
+movieInfo(iFrame).xCoord = [xyCoords(:,1) add];
+movieInfo(iFrame).yCoord = [xyCoords(:,2) add];
+%movieInfo(iFrame).amp = [lengths std]; % remind me why I need movieInfo format again... should try to eradicate
+
+if isfield(filoInfoFilt,'windowIdx') %mod 20160923
+    
+    windowNum =arrayfun(@(x) filoInfoFilt(x).windowIdx(1),1:length(filoInfoFilt));
+    movieInfo(iFrame).amp = [windowNum' std];
+else
+    % just put a arbitrary holder here
+    movieInfo(iFrame).amp = [(1:size(xyCoords,1))' add];
+end
+
+
+
+%movieInfo(iFrame).amp = [localVeil' std];
+analInfoFilt(iFrame).filoInfo = filoInfoFilt;
 
 end
 

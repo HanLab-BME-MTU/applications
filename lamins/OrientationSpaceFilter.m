@@ -188,6 +188,28 @@ classdef OrientationSpaceFilter < handle
                 obj(o).angularGaussians = [];
             end
         end
+        function filter = getFilterAtIndex(obj,ind)
+            requireSetup(obj);
+            coeffs = diric(bsxfun(@minus,(1:obj.n).',ind)*pi/obj.n*2,obj.n);
+            filter = reshape(obj.F,prod(obj.size),obj.n)*coeffs;
+            filter = reshape(filter,[obj.size length(ind)]);
+        end
+        function filter = getFilterAtAngle(obj,theta)
+            requireSetup(obj);
+            % Force theta to be a row vector, 1xT
+            theta = theta(:).';
+            % Use periodic sinc function to interpolate values
+            coeffs = diric(bsxfun(@minus,(0:obj.n-1).'*pi/obj.n*2,theta*2),obj.n);
+            % Reshape YxXxN to PxN, then PxN x NxT = PxT
+            filter = reshape(obj.F,prod(obj.size),obj.n)*coeffs;
+
+            % If theta in [pi,2*pi), invert imaginary component
+            imag_sign = sign(sin(theta+eps*10));
+            filter = real(filter) + 1i*bsxfun(@times,imag_sign,imag(filter));
+
+            % Resize PxT to YxXxT
+            filter = reshape(filter,[obj.size length(theta)]);
+        end
     end
     methods
         function setupFilter(obj,siz)

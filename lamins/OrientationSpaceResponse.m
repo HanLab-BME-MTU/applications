@@ -326,7 +326,8 @@ classdef OrientationSpaceResponse < handle
             % response at pixel (r,c) at angular order K_new
 
             % New number of coefficients
-            n_new = 2*ceil(K_new)+1;
+%             n_new = 2*ceil(K_new)+1;
+            n_new = 2*K_new+1;
 
             % The convolution of two Gaussians results in a Gaussian
             % The multiplication of two Gaussians results in a Gaussian

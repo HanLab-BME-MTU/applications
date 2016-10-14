@@ -55,8 +55,12 @@ labels=cell(1,numel(processFrames));
 movieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 
 outputDirDetect=[MD.outputDirectory_ filesep p.subDirectory filesep p.type];
-mkdir(outputDirDetect);
-mkdir([outputDirDetect filesep 'mask']);
+
+if(p.printAll)
+    outputDirDetect=[MD.outputDirectory_ filesep p.subDirectory filesep p.type];
+    mkdir(outputDirDetect);
+    mkdir([outputDirDetect filesep 'mask']);
+end
 
 % find mask offset (WARNING works only for cubic mask)
 [maskMinX,maskMinY,maskMinZ]=ind2sub(size(p.ROI), find(p.ROI,1));

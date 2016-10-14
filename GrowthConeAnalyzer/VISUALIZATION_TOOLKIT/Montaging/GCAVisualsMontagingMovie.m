@@ -1,4 +1,4 @@
-function [ output_args ] = GCAVisualsMontagingMovie(movieData,inputFolders,outputFolder,movieName)
+function [ output_args ] = GCAVisualsMontagingMovie(movieData,inputFolders,outputFolder,varargin)
 %% GCAVisualsMontagingMovie: Generic file for montaging overlays 
 % movieData : the movieData file where the overlays have been run
 % previously
@@ -6,16 +6,24 @@ function [ output_args ] = GCAVisualsMontagingMovie(movieData,inputFolders,outpu
 % outputFolder : where the montage will be stored. 
 % nameOutputMovie : movieName
 % 
- if nargin<4 || isempty(movieName)
-        movieName = 'movie';
- end
+
+%%Input check
+ip = inputParser;
+
+ip.CaseSensitive = false;
+ip.addRequired('inputFolders'); 
+ip.addRequired('outputFolder'); 
+ip.addParameter('movieName','movie');
+ip.addParameter('makeMontage',true); 
+ip.addParameter('runffmpeg',true); 
+ip.addParameter('tiling', 'x1'); %  default single row, 2x2 for square tiling 'x1'
+
+ip.parse(inputFolders,outputFolder,varargin{:}); 
  
- 
- 
- 
- 
- 
-for fi = 1:movieData.nFrames_-1
+movieName = ip.Results.movieName; 
+
+if ip.Results.makeMontage
+for fi = 1:movieData.nFrames_
     
     fstr = num2str(fi, '%.3d');
     
@@ -29,9 +37,17 @@ for fi = 1:movieData.nFrames_-1
     
     
     %Command for ImageMagick
-    cmd = [' montage -tile x1 -geometry +5+5+0+0 -background "rgb(255,255,255)"' filenamesStr ...
-        '  -compress lzw ' outC];
+%    cmd = [' montage -tile x1 -geometry +5+5+0+0 -background "rgb(255,255,255)"' filenamesStr ...
+%     '  -compress lzw ' outC];
+
+ cmd = [' montage -tile ' ip.Results.tiling ' -geometry +5+5+0+0 -background "rgb(255,255,255)"' filenamesStr ...
+    '  -compress lzw ' outC];
+%       cmd = [' montage -tile 2x2 -geometry +5+5+0+0 -background "rgb(255,255,255)"' filenamesStr ...
+%     '  -compress lzw ' outC];
+    
+    
     system(cmd);
+end 
 end 
     %% TEST IF ON WINDOWS
     OSc = getenv('OS');
@@ -62,15 +78,26 @@ end
             'ffmpeg-20141210-git-ae81680-win64-static\ffmpeg-20141210-git-ae81680-win64-static\bin']);
     end
 
-
+if ip.Results.runffmpeg
 
 % name = projList{iProj,2};
 %ffmpeg -i pathToFrames/frame_%0Nd.tif -r 15 -b 20000k filename.mp4
 execute = ['ffmpeg -r 5 -i ' outputFolder filesep 'frame' '%03d.png' ...
-    ' -crf 22 -pix_fmt yuv420p -b 20000k ' outputFolder filesep movieName '.mp4'];
+    ' -crf 22 -pix_fmt yuv420p -b 20000k ' outputFolder filesep movieName '.mp4']; % note this codec I am having trouble with on my windows pc
 system(execute)
+
+execute = ['ffmpeg -r 5 -i ' outputFolder filesep 'frame' '%03d.png' ...
+    ' -b 2000k ' outputFolder filesep movieName  '.wmv'];
+system(execute);
+
+execute = ['ffmpeg -r 5 -i ' outputFolder filesep 'frame' '%03d.png' ...
+    ' -crf 22 -b 20000k' outputFolder filesep movieName '2.mp4'];
+system(execute);
+
+
 cd(outputFolder)
 
+end 
 
 
 

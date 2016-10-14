@@ -302,53 +302,15 @@ for iFrame = 1 : numFrames-1
            
             % extract info for the two frames to be linked 
             currentFrameInfo = analInfo(iFrame:iFrame+1); 
-            neuriteEdgeT = cell(2,1); 
-            count = 1;
-            while count < 3
-                
-            maskNeuriteEdge = analInfo(iFrame + count -1).masks.neuriteEdge;
-            % only get the coords for the largest region for now as I
-            % believe the edge propagation would probably be quite poor for
-            % little regions... hopefully in the end we will get this
-            % thresholding crap cleaned up so it is always a single
-            % component. 
-            % get the connected components
-            CCNE  = bwconncomp(maskNeuriteEdge); 
-            
-            % get the largest size
-            sizes = cellfun(@(x) length(x),CCNE.PixelIdxList); 
-           
-            pixels = CCNE.PixelIdxList(sizes==max(sizes)) ;
-            maskNeuriteEdgeBiggest = zeros(size(maskNeuriteEdge)); 
-            maskNeuriteEdgeBiggest(pixels{1}) = 1; 
-            neuriteBound = bwboundaries(maskNeuriteEdgeBiggest);
-           % 
-            neuriteEdgeT{count} = neuriteBound{1};
-            count = count+1; 
-            
-            end 
-            
-            
-            
-%             neuriteEdgeT{1} = neuriteEdge{iFrame}{1}; % FIX THIS INPUT !!!!
-%             neuriteEdgeT{2} = neuriteEdge{iFrame+1}{1}; 
-                   % for now just add an if troubleshoot option and include
-                   % hte frame number so can save the information 
+     
                    troubleshoot  = 0; 
              %[costMat,nonlinkMarker]
              %=costMatFilo(currentFrameInfo,neuriteEdgeT,costMatParams,troubleshoot,iFrame,saveDir);%
              %20140915 look up old costMat 
-             neuriteEdge1 = neuriteEdgeT{1}; 
-             neuriteEdge2 = neuriteEdgeT{2}; 
-             [costMat,nonlinkMarker] = costMatFilo(currentFrameInfo,neuriteEdge1,neuriteEdge2,costMatParams,iFrame,saveDir); 
+           
+             [costMat,nonlinkMarker] = costMatFilo(currentFrameInfo,costMatParams,iFrame,saveDir); 
              
-             
-             
-            clear neuriteEdgeT
-            
-            
-            
-            
+                 
 %             calculate cost matrix
 %             % -- USER DEFINED FUNCTION -- %
 %             eval(['[costMat,propagationScheme,kalmanFilterInfoTmp,nonlinkMarker]'...

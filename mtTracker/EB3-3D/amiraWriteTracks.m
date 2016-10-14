@@ -119,7 +119,7 @@ for fIdx=0:tracks.numTimePoints
                                                     [s(1)*t.x(2:end);  s(2)*t.y(2:end); s(3)*t.z(2:end)  ]).^2).^0.5/s(4)) ,tracks(tracksOn));
     %% Track Max Speed (edge property)
     tracksMaxSpeed= arrayfun(@(t)    nanmax(sum((   [s(1)*t.x(1:end-1);s(2)*t.y(1:end-1);s(3)*t.z(1:end-1)]- ... 
-                                                    [s(1)*t.x(2:end);  s(2)*t.y(2:end); s(3)*t.z(2:end)  ]).^2).^0.5/s(4)) ,tracks(tracksOn),'unif',0);
+                                                    [s(1)*t.x(2:end);  s(2)*t.y(2:end); s(3)*t.z(2:end)  ]).^2).^0.5/s(4)) ,tracks(tracksOn));
                                                 
     %% Track diffCoeff (edge property)
     tracksDiffCoeff=arrayfun(@(t) nanmean(sum([s(1)*t.x(1)-s(1)*t.x(2:end); s(2)*t.y(1)-s(2)*t.y(2:end); s(3)*t.z(1)-s(3)*t.z(2:end)].^2))/(6*t.lifetime*s(4)) ,tracks(tracksOn));

@@ -150,7 +150,7 @@ for iCh = 1:numel(params.ChannelIndex)
     
     
     if strcmpi(ip.Results.EndFrame,'auto');
-        endFrame = nFrames;
+        endFrame = nFrames-1;
         display(['Auto End: Fitting Filopodia/Branches From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     else
         endFrame = ip.Results.EndFrame;
@@ -159,7 +159,7 @@ for iCh = 1:numel(params.ChannelIndex)
    
     %% Start Loop Over Movie
     % GET FRAME INFORMATION - this function wraps per frame
-    for iFrame = startFrame:endFrame-1
+    for iFrame = startFrame:endFrame
         % get the filoInfo for the current frame
         filoInfo = filoBranch(iFrame).filoInfo;
         imgPath = [movieData.getChannelPaths{params.ChannelIndex(iCh)} filesep movieData.getImageFileNames{params.ChannelIndex(iCh)}{iFrame}];
@@ -187,7 +187,7 @@ for iCh = 1:numel(params.ChannelIndex)
         filoBranch(iFrame).filoInfo = filoInfo;
         display(['Finished Fitting Filopodia for  Channel ' num2str(params.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]);
         filoBranch(iFrame).reconstructInfo.createTimeFiloFit = clock;
-        hashTag = gcaArchiveGetGitHashTag;
+        [hashTag = gcaArchiveGetGitHashTag;
         filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
         p(iFrame) = params; 
         save([outDirC filesep 'filoBranch.mat'],'filoBranch','-v7.3')

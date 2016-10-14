@@ -1,8 +1,4 @@
 function [poleMovieInfo] = detectPoles(MD,varargin)
-% SUMMARY: Wrap multiple detection function with standardized input and output. Why not using Virtual class ? B/c:
-%  - basic and readable switching between multiple detector type in an anylisis process
-%  - help systematic comparison
-%  - easy detection function inventory
 % Philippe Roudot 2014  
 
 ip = inputParser;
@@ -11,13 +7,10 @@ ip.KeepUnmatched=true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParamValue('channel',1,@isnumeric);
 ip.addParamValue('processFrames',[], @isnumeric);
-ip.addParamValue('waterThresh', 120, @isnumeric);
-ip.addParamValue('waterStep',10, @isnumeric);
-ip.addParamValue('lowFreq',3, @isnumeric);
-ip.addParamValue('highFreq',1, @isnumeric);
 ip.addParamValue('scales',[10 10 10], @isnumeric);
 ip.addParamValue('Alpha',0.05, @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
+ip.addParamValue('printAll', false, @islogical);
 ip.addParamValue('type', 'simplex',  @ischar);
 ip.parse(MD, varargin{:});
 
@@ -57,20 +50,21 @@ parfor frameIdx=1:numel(processFrames)
 end  
 
 %% load track results and save them to Amira
+if(ip.Results.printAll)
 outputDirDetect=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' ... 
     num2str(scales(1),'%03d') filesep 'poleCandidates'];
 mkdir([outputDirDetect filesep 'AmiraPoles']);
 amiraWriteMovieInfo([outputDirDetect filesep filesep 'polesCandidates.am'],movieInfo,'scales',ip.Results.scales);
-
+end
 
 %% Track each candidate to filter theire intensit
 [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=candidatePolesTrackingParam();
 outputDirTrack=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' ... 
     num2str(scales(1),'%03d') filesep 'tracks'];
-mkdir(outputDirTrack);
+
 saveResults.dir =  outputDirTrack; %directory where to save input and output
 saveResults.filename = 'trackResults.mat'; %name of file where input and output are saved
-
+saveResults=[];
 [tracksFinal,kalmanInfoLink,errFlag] = ...
     trackCloseGapsKalmanSparse(movieInfo, ...
     costMatrices,gapCloseParam,kalmanFunctions,...
@@ -78,14 +72,20 @@ saveResults.filename = 'trackResults.mat'; %name of file where input and output 
 
 %% Convert tracks final in a user-friendlier format
 tracks=TracksHandle(tracksFinal);
-save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks')
+
+if(ip.Results.printAll)
+    mkdir(outputDirTrack);
+    save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks')
+end 
 
 %% Retrieve innovation matrix 
 trackNoiseVar=arrayfun(@(x) kalmanInfoLink(tracks(x).segmentEndFrame).noiseVar(1,1,tracks(x).tracksFeatIndxCG(end)),1:length(tracks))';
 
-%% load track results and save them to Amira
-mkdir([outputDirTrack filesep 'AmiraTrack']);
-amiraWriteTracks([outputDirTrack filesep 'AmiraTrack' filesep 'test.am'],tracks,'scales',[MD.pixelSize_ MD.pixelSize_ MD.pixelSizeZ_],'edgeProp',{{'noiseVar',trackNoiseVar}});
+%% Save track results to Amira
+if(ip.Results.printAll)
+    mkdir([outputDirTrack filesep 'AmiraTrack']);
+    amiraWriteTracks([outputDirTrack filesep 'AmiraTrack' filesep 'test.am'],tracks,'scales',[MD.pixelSize_ MD.pixelSize_ MD.pixelSizeZ_],'edgeProp',{{'noiseVar',trackNoiseVar}});
+end
 
 %% For each frame, select the higher responses,
 tracksScore=[tracks.lifetime].*arrayfun(@(x) median(x.A),tracks)';

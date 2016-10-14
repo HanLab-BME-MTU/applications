@@ -1,8 +1,8 @@
-function [ output_args ] = GCAGroupAnalysisTestForOutliers(toPlotGroup,varargin)
+function [ output_args ] = GCAGroupAnalysisPlottingDistributionInTime(toPlotGroup,varargin)
 %GCAGroupAnalysisTestForOutliers: view distributions per cell for different
 %parameters and screen 
 %% INPUT
-% toPlotGroup:
+% toPlotGroup: assumes data has been collected. 
 % interactive: true
 
 %% Check input
@@ -30,11 +30,12 @@ if ip.Results.interactive == true
     params = params(paramSelect);
 end
 
+
 names = toPlotGroup.info.projList{1}(:,2);
 measurementNames = cellfun(@(x) strrep(x,'_',' '),params,'uniformoutput',0);
 
 for iParam = 1:numel(params);
-    dataMat = toPlotGroup.(params{iParam}){1}; 
+    dataMat = toPlotGroup.(params{iParam}).dataMat{1}; 
     measurementNameC = measurementNames{iParam}; 
     gcaAnalysisMakeTestIndividualMovieDistributionPlot(dataMat,'sampleNames',names,'measurementName',measurementNameC);
     if ~isempty(ip.Results.outputDirectory)
