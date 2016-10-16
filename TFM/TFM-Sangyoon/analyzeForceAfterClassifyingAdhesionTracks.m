@@ -1,4 +1,4 @@
-function []=analyzeForceAfterClassifyingAdhesionTracks(pathForTheMovieDataFile,outputPath, uptoColo)
+function []=analyzeForceAfterClassifyingAdhesionTracks(pathForTheMovieDataFile,outputPath, uptoColo, varargin)
 %analyzeForceAfterClassifyingAdhesionTracks(pathForTheMovieDataFile,outputPath)
 %extracts an average behavior of traction forces from tracks after
 %supervised classification.
@@ -9,6 +9,14 @@ function []=analyzeForceAfterClassifyingAdhesionTracks(pathForTheMovieDataFile,o
 if nargin<3
     uptoColo = false;
 end
+ip =inputParser;
+ip.addRequired('pathForTheMovieDataFile',@ischar)
+ip.addRequired('outputPath',@ischar)
+ip.addOptional('uptoColo',false,@islogical)
+ip.addParamValue('labeledData',[],@iscell); % This is the master channle index.
+ip.parse(pathForTheMovieDataFile,outputPath, uptoColo, varargin{:});
+samFolders=ip.Results.labeledData;
+
 %% Run colocalizationAdhesionsWithTFM if it's not run
 % showAllTracks = false;
 % plotEachTrack = false;
@@ -92,12 +100,28 @@ if ~uptoColo
     else
         disp('Stage drift correction was already applied to tracksNA.')
     end
-    [~,idEmerging] = filterOutNonEmergingNA(tracksNA);
-    [~,idFiltered] = filterTracksNAwithMask(pathForTheMovieDataFile,outputPath,tracksNA,band);
-    tracksNA = recalculateLifeTimeTracks(tracksNA);
+    % try to pull idGroups - I've already done this before.
+%     if exist(strcat(dataPath,filesep,'idsClassified.mat'),'file')
+%         idStruct=load(strcat(dataPath,filesep,'idsClassified.mat'));
+%         idGroup1=idStruct.idGroup1;
+%         idGroup2=idStruct.idGroup2;
+%         idGroup3=idStruct.idGroup3;
+%         idGroup4=idStruct.idGroup4;
+%         idGroup5=idStruct.idGroup5;
+%         idGroup6=idStruct.idGroup6;
+%         idGroup7=idStruct.idGroup7;
+%         idGroup8=idStruct.idGroup8;
+%         idGroup9=idStruct.idGroup9;
+%         tracksNA=idStruct.tracksNA;
+%     else
+        [~,idEmerging] = filterOutNonEmergingNA(tracksNA);
+        [~,idFiltered] = filterTracksNAwithMask(pathForTheMovieDataFile,outputPath,tracksNA,band);
+        tracksNA = recalculateLifeTimeTracks(tracksNA);
+%     end
     %% Classify with ampTotal and distToEdge
     if ~exist('idGroup1','var')
-        [idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9]= classifyNascentAdhesionTracks(pathForColocalization,'tracksNA',tracksNA);
+        [idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9]= ...
+            classifyNascentAdhesionTracks(pathForColocalization,'tracksNA',tracksNA,'labeledData',samFolders);
     end
     %% filter with idFiltered
     idGroup1filtered = idGroup1 & idFiltered & idEmerging;
@@ -339,20 +363,20 @@ if ~uptoColo
         toc
     end
     %% read intensity again
-    tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'reTrack',false,'extraLength',30);
-    tracksNA = readIntensityFromTracks(tracksNA,tMap,2,'reTrack',true);
+%     tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'reTrack',false,'extraLength',30);
+%     tracksNA = readIntensityFromTracks(tracksNA,tMap,2,'reTrack',true);
     
 %     % look at 95 % confidence interval of before-detection
 %     meanIntenBeforeLevel = mean(curTrack.ampTotal(curTrack.startingFrameExtraExtra:curTrack.startingFrameExtra));
 %     stdIntenBeforeLevel = std(curTrack.ampTotal(curTrack.startingFrameExtraExtra:curTrack.startingFrameExtra));
     %% Force confiddence
     % First we need to filter out force-inconfident tracks
-    if ~isfield(tracksNA,'forceUncertainty')
-        tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
-    end
-    % Collect fCfd
-    fCfdG1 = (arrayfun(@(x) mean(x.forceUncertainty(x.startingFrame:x.endingFrame)),tracksNA(idGroup1f)));
-    figure, histogram(fCfdG1)
+%     if ~isfield(tracksNA,'forceUncertainty')
+%         tracksNA = readForceUncertaintyFromTracks(pathForTheMovieDataFile,'tracksNA',tracksNA);
+%     end
+%     % Collect fCfd
+%     fCfdG1 = (arrayfun(@(x) mean(x.forceUncertainty(x.startingFrame:x.endingFrame)),tracksNA(idGroup1f)));
+%     figure, histogram(fCfdG1)
     % Maybe I can throw away tracks with below 0.3 of force confidence.
     % Then jump directly to figure out whether each track increases its
     % force during its presence compared to the earlier time points
@@ -373,7 +397,7 @@ if ~uptoColo
 %     curIndices = find(idGroup1filtered)';
 % %     curIndices = idGroup1f';
 %     useSmoothing=true;
-    splineParamInit=0.3;
+    splineParamInit=0.99;
     tempTracks = calculateFirstIncreaseTimeTracks(tracksNA(curIndices),splineParamInit,preDetecFactor,tInterval);
     [tracksNA(curIndices).forceTransmitting] = tempTracks.forceTransmitting;
     [tracksNA(curIndices).firstIncreseTimeInt] = tempTracks.firstIncreseTimeInt;
@@ -456,12 +480,12 @@ if ~uptoColo
     numNonTransmitting = sum(~firstIncreseTimeIntAgainstForceAllIdx);
 %     figure, histogram(firstIncreseTimeIntAgainstForceAll,-50:2:50)
     figure, histogram(firstIncreseTimeIntAgainstForceAll)
-    median(firstIncreseTimeIntAgainstForceAll)
+    disp(['Median of firstIncreseTimeIntAgainstForceAll = ' num2str(median(firstIncreseTimeIntAgainstForceAll))])
 
     %% See ccLag
     close all
     figure, histogram(ccLagG1)
-    median(ccLagG1)
+    disp(['Median of ccLagG1 = ' num2str(median(ccLagG1))])
     %% Save output
     save([pathForColocalization filesep 'data' filesep 'timeInitLagsG1.mat'],'ccLagG1','firstIncreseTimeIntAgainstForceAll','numForceTransmitting','numNonTransmitting')
     %% Now it's time to quantify peak intensity vs. peak force in Group 1
@@ -551,7 +575,8 @@ if ~uptoColo
     figure, histogram(peakTimeIntAgainstForceAll)
 %     figure, histogram(peakForceAll)
 %     figure, histogram(peakForceRelAll)
-    median(peakTimeIntAgainstForceAll)
+    disp(['Median of peakTimeIntAgainstForceAll = ' num2str(median(peakTimeIntAgainstForceAll))])
+%     median(peakTimeIntAgainstForceAll)
     %% Save output
     save([pathForColocalization filesep 'data' filesep 'timePeaksG1.mat'],'peakTimeIntAgainstForceAll','peakForceAll','peakForceRelAll')
     
@@ -692,7 +717,7 @@ if ~uptoColo
     firstIncreseTimeIntAgainstForceAllG2 = arrayfun(@(x) x.firstIncreseTimeIntAgainstForce, tracksNA(curIndicesG2(firstIncreseTimeIntAgainstForceAllIdxG2)));
     figure, histogram(firstIncreseTimeIntAgainstForceAllG2)
     ratioForceTrasG2 = length(firstIncreseTimeIntAgainstForceAllG2)/length(curIndicesG2)
-    median(firstIncreseTimeIntAgainstForceAllG2)
+    disp(['Median of firstIncreseTimeIntAgainstForceAllG2 = ' num2str(median(firstIncreseTimeIntAgainstForceAllG2))])
     %% save
     save([pathForColocalization filesep 'data' filesep 't_initForMaturingAdhesion.mat'],'firstIncreseTimeIntAgainstForceAllG2','ratioForceTrasG2')
 
@@ -702,22 +727,26 @@ if ~uptoColo
     timeToPeakForceFT = peakTimeForceAll_both-firstIncreseTimeForce_both;
 %     figure, histogram(timeToPeakForceFT)
 %     figure, plot(firstIncreseTimeForce_both,peakTimeForceAll_both,'.')
-    median(timeToPeakForceFT)
+    disp(['Median of timeToPeakForceFT = ' num2str(median(timeToPeakForceFT))])
+%     median(timeToPeakForceFT)
 
     firstIncreseTimeInt_both = arrayfun(@(x) x.firstIncreseTimeInt, tracksNA(curIndices(bothTiTpIdx)));
     peakTimeIntAll_both = arrayfun(@(x) x.intenPeakFrame*tInterval, tracksNA(curIndices(bothTiTpIdx)));
     timeToPeakIntFT = peakTimeIntAll_both-firstIncreseTimeInt_both;
 %     figure, histogram(timeToPeakIntFT)
 %     figure, plot(firstIncreseTimeInt_both,peakTimeIntAll_both,'.')
-    median(timeToPeakIntFT)
+    disp(['Median of timeToPeakIntFT = ' num2str(median(timeToPeakIntFT))])
+%     median(timeToPeakIntFT)
 
     save([pathForColocalization filesep 'data' filesep 'timeToPeaks.mat'],'timeToPeakForceFT','timeToPeakIntFT')
     
     %% What is the initial time lags that have peaks? - just to check
     tLagInitial_both = arrayfun(@(x) x.firstIncreseTimeIntAgainstForce, tracksNA(curIndices(bothTiTpIdx)));
-    median(tLagInitial_both)
+    disp(['Median of tLagInitial_both = ' num2str(median(tLagInitial_both))])
+%     median(tLagInitial_both)
     tLagPeak_both = arrayfun(@(x) x.peakIntTimeIntAgainstForcePeak, tracksNA(curIndices(bothTiTpIdx)));
-    median(tLagPeak_both)
+    disp(['Median of tLagPeak_both = ' num2str(median(tLagPeak_both))])
+%     median(tLagPeak_both)
     % Save output
 %     save([pathForColocalization filesep 'data' filesep 'timeInitLagsG1.mat'],'ccLagG1','firstIncreseTimeIntAgainstForceAll','numForceTransmitting','numNonTransmitting')
 %% Plot edge protrusion distance
@@ -987,34 +1016,34 @@ if ~uptoColo
     
     %% non force transmitting adhesion statistics
     % average fluorescence intensity
-    avgFluoInten_nonTransmitting = arrayfun(@(x) mean(x.ampTotal(x.presence)),tracksNA(curIndices(nonTransmittingIdx)));
-    mean(avgFluoInten_nonTransmitting)
-    avgFluoInten_forceTransmitting = arrayfun(@(x) mean(x.ampTotal(x.presence)),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
-    mean(avgFluoInten_forceTransmitting)
+    avgFluoInten_nonTransmitting = arrayfun(@(x) nanmean(x.ampTotal(logical(x.presence))),tracksNA(curIndices(nonTransmittingIdx)));
+    nanmean(avgFluoInten_nonTransmitting)
+    avgFluoInten_forceTransmitting = arrayfun(@(x) nanmean(x.ampTotal(logical(x.presence))),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
+    nanmean(avgFluoInten_forceTransmitting)
     [hFI,pFI]=ttest2(avgFluoInten_nonTransmitting,avgFluoInten_forceTransmitting)
     % only for pre-detection period
-    avgPreDetecFluoInten_nonTransmitting = arrayfun(@(x) mean(x.ampTotal(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(nonTransmittingIdx)));
-    mean(avgPreDetecFluoInten_nonTransmitting)
-    avgPreDetecFluoInten_forceTransmitting = arrayfun(@(x) mean(x.ampTotal(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
-    mean(avgPreDetecFluoInten_forceTransmitting)
+    avgPreDetecFluoInten_nonTransmitting = arrayfun(@(x) nanmean(x.ampTotal(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(nonTransmittingIdx)));
+    nanmean(avgPreDetecFluoInten_nonTransmitting)
+    avgPreDetecFluoInten_forceTransmitting = arrayfun(@(x) nanmean(x.ampTotal(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
+    nanmean(avgPreDetecFluoInten_forceTransmitting)
     [hPreDetecFI,pPreDetecFI]=ttest2(avgPreDetecFluoInten_nonTransmitting,avgPreDetecFluoInten_forceTransmitting)
     % earlyAmpSlope
     avgEarlyAmpSlope_nonTransmitting = arrayfun(@(x) x.earlyAmpSlope,tracksNA(curIndices(nonTransmittingIdx)));
-    mean(avgEarlyAmpSlope_nonTransmitting)
+    nanmean(avgEarlyAmpSlope_nonTransmitting)
     avgEarlyAmpSlope_forceTransmitting = arrayfun(@(x) x.earlyAmpSlope,tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
-    mean(avgEarlyAmpSlope_forceTransmitting)
+    nanmean(avgEarlyAmpSlope_forceTransmitting)
     [hEarlyAmpSlope,pEarlyAmpSlope]=ttest2(avgEarlyAmpSlope_nonTransmitting,avgEarlyAmpSlope_forceTransmitting)
     % forceMag for pre-detection period
-    avgPreDetecForceMag_nonTransmitting = arrayfun(@(x) mean(x.forceMag(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(nonTransmittingIdx)));
-    mean(avgPreDetecForceMag_nonTransmitting)
-    avgPreDetecForceMag_forceTransmitting = arrayfun(@(x) mean(x.forceMag(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
-    mean(avgPreDetecForceMag_forceTransmitting)
+    avgPreDetecForceMag_nonTransmitting = arrayfun(@(x) nanmean(x.forceMag(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(nonTransmittingIdx)));
+    nanmean(avgPreDetecForceMag_nonTransmitting)
+    avgPreDetecForceMag_forceTransmitting = arrayfun(@(x) nanmean(x.forceMag(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
+    nanmean(avgPreDetecForceMag_forceTransmitting)
     [hPreDetecForce,pPreDetecForce]=ttest2(avgPreDetecForceMag_nonTransmitting,avgPreDetecForceMag_forceTransmitting)
     % forceSlope
     avgForceSlope_nonTransmitting = arrayfun(@(x) x.forceSlope,tracksNA(curIndices(nonTransmittingIdx)));
-    mean(avgForceSlope_nonTransmitting)
+    nanmean(avgForceSlope_nonTransmitting)
     avgForceSlope_forceTransmitting = arrayfun(@(x) x.forceSlope,tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
-    mean(avgForceSlope_forceTransmitting)
+    nanmean(avgForceSlope_forceTransmitting)
     [hForceSlope,pForceSlope]=ttest2(avgForceSlope_nonTransmitting,avgForceSlope_forceTransmitting)
     %% Save these parameters
     save([pathForColocalization filesep 'data' filesep 'nonTransmittingVsForceTransmitting.mat'],'avgFluoInten_nonTransmitting',...

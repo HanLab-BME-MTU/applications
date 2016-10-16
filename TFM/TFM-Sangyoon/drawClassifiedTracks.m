@@ -21,7 +21,7 @@ idGroup{6} = strcmp(allDataClass,'Group6') & idCurrent;
 idGroup{7} = strcmp(allDataClass,'Group7') & idCurrent;
 idGroup{8} = strcmp(allDataClass,'Group8') & idCurrent;
 idGroup{9} = strcmp(allDataClass,'Group9') & idCurrent;
-if nargin<4
+if nargin<4 || isempty(h)
     h=gca;
 end
 if showNoise

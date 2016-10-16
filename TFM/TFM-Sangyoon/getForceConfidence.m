@@ -5,7 +5,9 @@ function [] = getForceConfidence(pathForMovieData)
     tic
     load([pathForMovieData '/TFMPackage/forceField/BEMParams.mat']) % This will load M
     forceNodeMaxima = max(M);
-    forceConfidence.pos = forceMesh.p;
+%     forceConfidence.pos = forceMesh.p;
+    cellPosition = arrayfun(@(x) x.node, forceMesh.basis,'UniformOutput',false);
+    forceConfidence.pos = cell2mat(cellPosition');
     forceConfidence.vec = reshape(forceNodeMaxima,[],2);
     maxCfd = max(forceNodeMaxima);
     forceConfidence.vec = forceConfidence.vec/maxCfd;

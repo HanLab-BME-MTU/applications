@@ -13,10 +13,12 @@ ip =inputParser;
 ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
 ip.addParamValue('reTrack',true,@islogical); % selcted track ids
 ip.addParamValue('trackOnlyDetected',false,@islogical); % selcted track ids
+ip.addParamValue('movieData',[],@(x) isa(x,'MovieData') || isempty(x)); % moviedata for utrack
 ip.parse(varargin{:});
 extraLengthForced=ip.Results.extraLength;
 reTrack=ip.Results.reTrack;
 trackOnlyDetected =ip.Results.trackOnlyDetected;
+MD =ip.Results.movieData;
 extraLength = 300;
 % get stack size
 numFrames = size(imgStack,3);
@@ -25,8 +27,18 @@ sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 % parfor_progress(numel(tracksNA));
 progressText(0,'Re-reading and tracking individual tracks:');
-searchRadius = 1;
-searchRadiusDetected = 2;
+if isempty(MD)
+    searchRadius = 1;
+    searchRadiusDetected = 2;
+else
+    iTrackingProc =MD.getProcessIndex('TrackingProcess');
+    trackingProc = MD.getProcess(iTrackingProc);
+    trackingParams = trackingProc.funParams_;
+    minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
+    maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
+    searchRadius = (minR+maxR)/2;
+    searchRadiusDetected = maxR;
+end
 halfWidth=2;
 halfHeight=2;
 

@@ -10,7 +10,7 @@ ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
 ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
 ip.addParamValue('trainedData',[],@istable); % trained data
 ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
-ip.addParamValue('iChanSlave',[],@isscalar); % This is the master channle index.
+ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
 ip.parse(pathForColocalization,idList,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 idList=ip.Results.idList;
@@ -519,6 +519,27 @@ function txt=myupdateDC(~,event_obj)
     
     setappdata(hFig,'selPointID',selectedID); 
     try
+        splineParam=0.1;
+        d = tracksNA(selectedID).ampTotal;
+        d(d==0)=NaN;
+        nTime = length(d);
+        tRange = 1:nTime;
+        numNan = find(isnan(d),1,'last');
+        if isempty(numNan)
+            numNan=0;
+        end
+        tRange(isnan(d)) = [];
+        d(isnan(d)) = [];
+        sd_spline= csaps(tRange,d,splineParam);
+        sd=ppval(sd_spline,tRange);
+        %         tRange = [NaN(1,numNan) tRange];
+        sd = [NaN(1,numNan) sd];
+        %         sd(isnan(d)) = NaN;
+        % Find the maximum
+        [~,curFrameMaxAmp]=nanmax(sd);
+        timeToMaxInten = curFrameMaxAmp-tracksNA(selectedID).startingFrameExtraExtra;
+        
+        
         txt = {['ID: ', num2str(selectedID)],...
             ['decayingIntensity: ' num2str(nanmax(tracksNA(selectedID).ampTotal)-tracksNA(selectedID).ampTotal(tracksNA(selectedID).endingFrameExtra))],...
             ['edgeAdvance: ' num2str(tracksNA(selectedID).edgeAdvanceDist(tracksNA(selectedID).endingFrameExtra))],...
@@ -531,7 +552,10 @@ function txt=myupdateDC(~,event_obj)
             ['distToEdgeLastNAs: ' num2str(tracksNA(selectedID).distToEdge(tracksNA(selectedID).endingFrameExtra))]...
             ['edgeAdvanceDistFirstChange: ' num2str(tracksNA(selectedID).advanceDistChange2min(min(tracksNA(selectedID).startingFrameExtra+30,tracksNA(selectedID).endingFrameExtra)))],...
             ['edgeAdvanceDistLastChange: ' num2str(tracksNA(selectedID).advanceDistChange2min(tracksNA(selectedID).endingFrameExtra))],...
-            ['maxEdgeAdvanceDistChange: ' num2str(tracksNA(selectedID).maxEdgeAdvanceDistChange)]};
+            ['maxEdgeAdvanceDistChange: ' num2str(tracksNA(selectedID).maxEdgeAdvanceDistChange)],...
+            ['maxIntensity: ' num2str(nanmax(tracksNA(selectedID).ampTotal))],...
+            ['timeToMaxInten: ' num2str(timeToMaxInten)],...
+            ['edgeVariation: ' num2str(min(nanstd(tracksNA(selectedID).closestBdPoint(:,1)),nanstd(tracksNA(selectedID).closestBdPoint(:,2))))]};
     catch
         txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))]};
     end

@@ -39,15 +39,15 @@ movieFigForcePath = [moviePath filesep 'figForce'];
 movieRawFluoPath = [moviePath filesep 'rawFluo'];
 movieRawForcePath = [moviePath filesep 'rawForce'];
 if ~exist(moviePath,'dir') || ~exist(movieRawForcePath,'dir') 
-    mkdir(moviePath);
-    mkdir(movieEpsFluoPath);
-    mkdir(movieTifFluoPath);
-    mkdir(movieFigFluoPath);
-    mkdir(movieEpsForcePath);
-    mkdir(movieTifForcePath);
-    mkdir(movieFigForcePath);
-    mkdir(movieRawFluoPath);
-    mkdir(movieRawForcePath);
+    mkClrDir(moviePath);
+    mkClrDir(movieEpsFluoPath);
+    mkClrDir(movieTifFluoPath);
+    mkClrDir(movieFigFluoPath);
+    mkClrDir(movieEpsForcePath);
+    mkClrDir(movieTifForcePath);
+    mkClrDir(movieFigForcePath);
+    mkClrDir(movieRawFluoPath);
+    mkClrDir(movieRawForcePath);
 end
 iiformat = ['%.' '3' 'd'];
 if nargin<3 || isempty(tmax)

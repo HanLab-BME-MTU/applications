@@ -163,7 +163,7 @@ for j= firstFrame:nFrames
     if ~p.useGrid
     % if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
         % Detect beads in reference frame
-        if j==firstFrame
+        if j==firstFrame && firstFrame==1
             disp('Determining PSF sigma from reference frame...')
             % Adaptation of psfSigma from bead channel image data
             psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
@@ -288,6 +288,9 @@ for j= firstFrame:nFrames
             currentBeads = localbeads; %This will keep updated
             cumulativeV_forV=zeros(size(localbeads));
             cumulativeV_forBeads=zeros(size(localbeads));
+        elseif j==firstFrame && firstFrame>1
+            localbeads = displField(j-1).pos;
+            currentBeads = localbeads; %This will keep updated
         end
         %     % Select only beads which are min correlation length away from the border of the
         %     % reference frame 

@@ -239,6 +239,8 @@ else
             end
         end
         maxLifeTime = nSampleFrames;
+        maxYamp = quantile(nanmax(AmpArray),0.99);
+        minYamp = quantile(nanmin(AmpArray),0.01);
     else
         % plot cohorts
 %         [N,edges,bin]=histcounts(lifeTime);
@@ -396,8 +398,6 @@ if ~plotCohorts && ~plotConfInt
         end
     end
 end
-maxYamp = quantile(nanmax(AmpArray),0.99);
-minYamp = quantile(nanmin(AmpArray),0.01);
 
 if ~useCurrentAxis
     if strcmp(source,'edgeAdvanceDist')

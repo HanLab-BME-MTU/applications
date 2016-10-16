@@ -1,4 +1,4 @@
-function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,varargin)
+function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin)
 % [tracksNA,lifeTimeNA] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % filter out NA tracks, obtain life time of each NA tracks
 
@@ -31,8 +31,8 @@ function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturi
 %% Inputs
 ip =inputParser;
 ip.addRequired('pathForTheMovieDataFile',@(x)ischar(x)||isa(x,MovieData))
-ip.addParamValue('showAllTracks',false,@(x)islogical(x)||isempty(x))
-ip.addParamValue('plotEachTrack',false,@(x)islogical(x)||isempty(x))
+ip.addOptional('showAllTracks',false,@(x)islogical(x)||isempty(x))
+ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
 ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
 ip.addParamValue('outputPath','AdhesionTracking',@ischar)
 ip.addParamValue('saveAnalysis',true,@islogical)
@@ -204,7 +204,7 @@ end
 % get the intensity
 disp('Reading intensities with additional tracking...')
 tic
-tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',20); % 1 means intensity collection from pax image
+tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',30,'movieData',MD); % 1 means intensity collection from pax image
 toc
 firstMask=maskProc.loadChannelOutput(iChan,1);
 cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
