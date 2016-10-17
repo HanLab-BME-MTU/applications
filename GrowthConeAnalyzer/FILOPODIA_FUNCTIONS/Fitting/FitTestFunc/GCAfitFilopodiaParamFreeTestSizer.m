@@ -72,6 +72,8 @@ ip.addParameter('ValuesForFit','Intensity',@(x) ischar(x)); % maybe remove
 ip.addParameter('PSFSigma',0.43,@(x) isnumeric(x)) ; %% NOTE CHANGE THIS TO BE READ IN FROM MD.
 ip.addParameter('OutputDirectory',pwd,@ischar);
 ip.addParameter('filterByBackEst',true); 
+ip.addParameter('SizerMethod','spline'); % Currently supports spline or local linear regression 
+ip.addParameter('fitAllRight',false); 
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -133,11 +135,12 @@ H = fspecial('gaussian',3,p.PSFSigma);
 imgFilt = imfilter(img,H); % for weighted averaging
 
 %% Start
+%typeStart = 2; 
 for iType = typeStart:typeEnd
     
     toAdd = toAddCell{iType};
-    
     for ifilo = 1:numFilo2Fit
+    %for ifilo = 19:19
         
         idxCurrent = idx2fill(ifilo);
         
@@ -220,8 +223,7 @@ for iType = typeStart:typeEnd
                 % test sizer 
                
                 
-                [slopeMaxNeg,slopeMaxPos,valuesNeg,valuesPos] = gcaFindPotentialSigmoidals(yData,'makePlot',false,'outPath',[p.OutputDirectory filesep toAdd],...
-                    'forTitle', ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '_der'],'makePlot',true);
+                [slopeMaxNeg,slopeMaxPos,valuesNeg,valuesPos,matlabSmooth,matlabDeriv] = gcaFindPotentialSigmoidals(yData);
                 
                 %% Quick and Dirty : Estimate the mean intensity background
                 forSearch =filoInfo(idxCurrent).([toAdd 'pixIndicesFor']);
@@ -280,16 +282,18 @@ for iType = typeStart:typeEnd
                                                
                         %%  perform fitting around the first sigmoidal closest to the background
                         
-                        if length(yData)-slopeMaxNeg(end) <10 ;
+                        if (length(yData)-slopeMaxNeg(end) < ip.Results.NumPixForFitBack) || ip.Results.fitAllRight ;
                             endFit = length(yData);
                         else
-                            endFit  = slopeMaxNeg(end)+10;
+                           
+                            endFit  = slopeMaxNeg(end)+ ip.Results.NumPixForFitBack ;
+                           
                         end
                         
-                        if slopeMaxNeg(end)<=10;
+                        if slopeMaxNeg(end)<= ip.Results.NumPixForFitBack ;
                             startFit = 1;
                         else
-                            startFit = slopeMaxNeg(end)-10;
+                            startFit = slopeMaxNeg(end)- ip.Results.NumPixForFitBack;
                         end
                         
                         if length(slopeMaxNeg)>1
@@ -357,7 +361,7 @@ for iType = typeStart:typeEnd
                             slopeMaxNeg = length(filoInfo(idxCurrent).([toAdd 'pixIndicesBack']));
                         end
                         
-                        if length(yData)-slopeMaxNeg(end) <10 ;
+                        if length(yData)-slopeMaxNeg(end) < ip.Results.NumPixForFitBack ;
                             endFit = length(yData);
                         else
                             endFit  = slopeMaxNeg(end)+10;
@@ -366,7 +370,7 @@ for iType = typeStart:typeEnd
                         if slopeMaxNeg(end)<=10;
                             startFit = 1;
                         else
-                            startFit = slopeMaxNeg(end)-10;
+                            startFit = slopeMaxNeg(end)- ip.Results.NumPixForFitBack ;
                         end
                         
                         if length(slopeMaxNeg)>1
@@ -494,10 +498,75 @@ for iType = typeStart:typeEnd
                    %% Optional Overlays
                    
                     if p.TSOverlays 
+                        setAxis('off')
+                        xData = 1:length(yData);
+                        xData = xData';
+                        inputData = [xData yData];
+                         if strcmpi(ip.Results.SizerMethod,'spline'); % run sizer such that the 
+                            % underlying smoother is a cubic spline
+                            inputStructSS.iout = 2; % plot only the family overlay and sizer
+                            %                         inputStructSS.nsspar = 1;
+                            inputStructSS.imovie = 0;
+                            %                         inputStructSS.fsparmin = 3;
+                            %                         inputStructSS.fsparmax = 3;
+                            inputStructSS.ihhighlight = 0;
+                            
+                            
+                          [idxSig,ssparsTested,mfam,dfam,fxgrid,lowestScaleSig,sizermap] =  sizer2ssMine(inputData,inputStructSS); 
+                          % find the lowest scale smooth with the most
+                          % detail. 
+                          
+                          % get the coords of that smooth and the
+                          % derivative 
+                          
+                          dLowSizer = dfam(:,lowestScaleSig); 
+                          
+                          
+                          % find peaks at the lowest scale smoothing factor
+                          % maintaing a significance decision for all
+                          % values along the curve  
+                          if ~isempty(dLowSizer)
+                              [~,slopeMaxPosSizer] = findpeaks(dLowSizer);
+                              slopeMaxPosSizer = slopeMaxPosSizer(dLowSizer(slopeMaxPosSizer)>0); % find increasing portions of the curve
+                              
+                              [~,slopeMaxNegSizer] = findpeaks(-dLowSizer);
+                              slopeMaxNegSizer = slopeMaxNegSizer(dLowSizer(slopeMaxNegSizer)<0); % find decreasing portions of the curve
+                          else 
+                              slopeMaxPosSizer =[]; 
+                              slopeMaxNegSizer =[];
+                          end
+
+                          
+                        else % local linear regression : currently only saves the values 
+                        inputStruct.iout = 2;
+                        %                         inputStruct.icolor = 0;
+                        inputStruct.imovie = 0;
+                        inputStruct.hhighlight = 3; 
+                        inputStruct.fhmin = 1; 
+                        inputStruct.fhmax = 6;
+                        inputStruct.nfh = 6; 
+                        inputStruct.shmin = 1; 
+                        inputStruct.shmax = 6; 
                         
-                        % Initiate
+                        inputStruct.nsh =  6;    
+                                
+                        sizerSM(inputData,inputStruct); 
+                      
+                         end 
+                        filename{1} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.fig' ];
+                        filename{2} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.png'];
+                         
+                          filenameS = cellfun(@(x) strrep(x, '.','S.'),filename,'uniformoutput',0); 
+                        for i = 1:2
+                        saveas(gcf,[p.OutputDirectory filesep toAdd filesep filenameS{i} ]); 
+                        end 
+                     
+                        close gcf
+                        
+                        
+                                        
+                        %% Initiate Next Subplot Figures 
                         fsFigure(0.75,'visible','off'); 
-                        
                         %% First Subplot: View Local Detection of Ridge Signal 
                         if sum(isnan(maskIndices(:)))==0; % if no-mask NaNs (ie not at the border); 
                             subplot(3,2,(1:2));
@@ -521,28 +590,80 @@ for iType = typeStart:typeEnd
                         
                         %% Second Subplot: Intensity Values Along Automated Linescan Etc
                         subplot(3,2,(3:4)); 
-                        hData = scatter(distFilo,yData,50,'k');
-                        hold on 
+%                         hData = scatter(distFilo,yData,50,'k');
+%                         hold on 
                         
                         % mark the estimated local background value
                         hBack = line([0 distFilo(end)], [backEstMean,backEstMean],'color','k','Linestyle','--');
+                        hold on
                         
-                        % mark the data used for the fit 
-                        hDataFit =  scatter(distFiloFit,yDataFit,'k','filled'); % color in the data specifically used for the fitting.
                         
-                        % plot the fit
-                        hFit =  plot(distFilo,yFit,'r'); 
+                        % Plot information from Sizer 
+                         cocomap = [0,    0,   1; ...
+                              .35, .35, .35; ...
+                              .5,    0,  .5; ...
+                              1,    0,   0; ...
+                              1,   .5,   0; ...
+                              .35,  .35, .35; ...
+                              0,    1,   0; ...
+                              0,    1,   1] ;
+                          
                         
-                        hMean = line([params(2),params(2)],[min(yData),max(yData)],'Color','c'); 
+                        sizerID = sizermap(lowestScaleSig,:); 
+%                         idx = find(diff(colors)~=0); 
+%                         idx = [1 x length(colors)];  
+
+                        % show the scatter yData colored by the sizer
+                        % smooth values. 
+                        arrayfun(@(i) scatter(distFilo(sizerID==i),yData(sizerID==i),100,cocomap(i,:),'filled'),1:4); 
+                        
+                        if ~isempty(lowestScaleSig)
+                            % show the sizer smooth used to calculate values
+                            splineFit = mfam(:,lowestScaleSig);
+                            %                         idx = find(diff(colors)~=0);
+                            %                         idx = [1 x length(colors)];
+                      
+                        plot(distFilo,splineFit,'color','k'); 
+                        else 
+                            splineFit = []; 
+                        end
+                        
+                        % Mark the data used for the final sigmoidal fitting 
+                        hDataFit =  scatter(distFiloFit,yDataFit,30,'w','filled'); % color in the data specifically used for the fitting.
+                        
+                  
+                        % Fit Sigmoidal 
+                        hFit =  plot(distFilo,yFit,'k','Linewidth',2); 
+                        
+                        h1 = get(gcf,'CurrentAxes');
+                        yLim = h1.YLim; % use whatever they used
+%                         axis([0.5 2.5 yLim(1) yLim(2)])
+                        % Mean Value (used as end point) 
+                        hMean = line([params(2),params(2)],[yLim(1),yLim(2)],'Color','k','Linewidth',2); 
+                        
+                        % Plot the estimates of the local max in the slope
+                        % as measured from the lowest significant scale of 
+                        % sizer smoothing. 
+                        if ~isempty(slopeMaxNegSizer);
+                             scatter(distFilo(slopeMaxNegSizer),yData(slopeMaxNegSizer),120,'y'); 
+                              scatter(distFilo(slopeMaxNegSizer),yData(slopeMaxNegSizer),120,'y','x','Linewidth',2);
+                        end 
+                        
+                        if ~isempty(slopeMaxPosSizer);
+                            scatter(distFilo(slopeMaxPosSizer),yData(slopeMaxPosSizer),120,'c','x','Linewidth',2)
+                            scatter(distFilo(slopeMaxPosSizer),yData(slopeMaxPosSizer),120,'c');
+                        end
+                        
+                      
                         
                         % plot sites of potential decay and positive slopes
                         % for troubleshooting
-                        hDec = scatter(distFilo(slopeMaxNeg),yData(slopeMaxNeg),50,'r','filled'); 
-                        hInc = scatter(distFilo(slopeMaxPos),yData(slopeMaxPos),50,'g','filled');
+                        hDec = scatter(distFilo(slopeMaxNeg),yData(slopeMaxNeg),30,'y','filled'); 
+                         hInc = scatter(distFilo(slopeMaxPos),yData(slopeMaxPos),30,'c','filled');
                         
-                         legend([hData,hDataFit,hFit,hDec,hBack,hMean,hInc],'Raw Data', 'Data For Fit','Fit',['Potential Signal Decay' flag],... 
-                             'Background Estimate','Tip Position','Potential Signal Rise', 'Location','Northeast','FontSize',6,'FontName','Arial'); 
-                         legend('boxoff');
+%                          legend([hData,hDataFit,hFit,hDec,hBack,hMean,hInc],'Raw Data', 'Data For Fit','Fit',['Potential Signal Decay' flag],... 
+%                              'Background Estimate','Tip Position','Potential Signal Rise', 'Location','Northeast','FontSize',6,'FontName','Arial'); 
+%                          legend('boxoff');
                         xlabel('Distance Along Filopodia (Pixels)','FontSize',10,'FontName','Arial');
                         ylabel('Fluorescence Intensity (AU)','FontSize',10,'FontName','Arial'); 
                     if exitFlag>1 
@@ -608,33 +729,100 @@ for iType = typeStart:typeEnd
                         for i = 1:2
                             saveas(gcf, [ p.OutputDirectory filesep toAdd filesep filename{i}]);
                         end
-                        
                         close gcf 
-                        % save the sizer plots
-                        xData = 1:length(yData);
-                        xData = xData';
-                        inputData = [xData yData];
-                        inputStruct.iout = 2;
-                        %                         inputStruct.icolor = 0;
-                        inputStruct.imovie = 0;
-                        inputStruct.hhighlight = 3; 
-                        inputStruct.fhmin = 1; 
-                        inputStruct.fhmax = 6;
-                        inputStruct.nfh = 6; 
-                        inputStruct.shmin = 1; 
-                        inputStruct.shmax = 6; 
-                        
-                        inputStruct.nsh =  6; 
-                        
-                        setAxis('off') 
-                        sizerSM(inputData,inputStruct); 
-                        filenameS = cellfun(@(x) strrep(x, '.','S.'),filename,'uniformoutput',0); 
-                        
-                        for i = 1:2
-                        saveas(gcf,[p.OutputDirectory filesep toAdd filesep filenameS{i} ]); 
-                        end 
-                        saveas(gcf,[p.OutputDirectory filesep toAdd filesep filenameS{i} '.eps'],'psc2'); 
-                        close gcf
+                      %% sizer after   
+%                         close gcf 
+%                         % save the sizer plots
+%                         xData = 1:length(yData);
+%                         xData = xData';
+%                         inputData = [xData yData];
+%                         
+%                         
+%                         %setAxis('on') 
+%                         if strcmpi(ip.Results.SizerMethod,'spline'); % run sizer such that the 
+%                             % underlying smoother is a cubic spline
+%                             inputStructSS.iout = 2; % plot only the family overlay and sizer
+%                             %                         inputStructSS.nsspar = 1;
+%                             inputStructSS.imovie = 0;
+%                             %                         inputStructSS.fsparmin = 3;
+%                             %                         inputStructSS.fsparmax = 3;
+%                             inputStructSS.ihhighlight = 0;
+%                             
+%                             
+%                             sizer2ssMine(inputData,inputStructSS); 
+%                         else % local linear regression : currently only saves the values 
+%                         inputStruct.iout = 2;
+%                         %                         inputStruct.icolor = 0;
+%                         inputStruct.imovie = 0;
+%                         inputStruct.hhighlight = 3; 
+%                         inputStruct.fhmin = 1; 
+%                         inputStruct.fhmax = 6;
+%                         inputStruct.nfh = 6; 
+%                         inputStruct.shmin = 1; 
+%                         inputStruct.shmax = 6; 
+%                         
+%                         inputStruct.nsh =  6;    
+%                                 
+%                         sizerSM(inputData,inputStruct); 
+%                         filenameS = cellfun(@(x) strrep(x, '.','S.'),filename,'uniformoutput',0); 
+%                         end 
+%                         
+%                         for i = 1:2
+%                         saveas(gcf,[p.OutputDirectory filesep toAdd filesep filenameS{i} ]); 
+%                         end 
+%                         saveas(gcf,[p.OutputDirectory filesep toAdd filesep filenameS{i} '.eps'],'psc2'); 
+%                         close gcf
+%% test the spline fit from the sizer and the spline originally used with smoothing factor 0.1 to test for max in slope 
+        fsFigure(0.75,'visible','off');
+        subplot(2,2,1:2)
+        hData = scatter(distFilo,yData,50,'k','filled');
+        hold on
+        hOld = plot(distFilo,matlabSmooth,'color','k','Linestyle','--');
+        if ~isempty(splineFit)
+            hNew = plot(distFilo,splineFit,'color','k','Linewidth',2);
+        end
+        if ~isempty(slopeMaxNegSizer);
+            scatter(distFilo(slopeMaxNegSizer),yData(slopeMaxNegSizer),100,'r','filled');
+            legend([hData,hOld,hNew], 'Raw Data','Old SplineFit Matlab','New SplineFit Sizer');
+        else 
+             legend([hData,hOld], 'Raw Data','Old SplineFit Matlab');
+        end
+          legend('boxoff')     ;
+        
+
+        if ~isempty(slopeMaxPosSizer);
+            scatter(distFilo(slopeMaxPosSizer),yData(slopeMaxPosSizer),'b','filled');
+        end
+      
+        ylabel('Fluorescence Intensity (AU)','FontSize',12,'FontName','Arial');
+        subplot(2,2,3:4)
+        % hOld2 = plot(distFilo,matlabDeriv','color','k','Linestyle','--');
+        % hold on
+        if ~isempty(dLowSizer)
+            hNew2 = plot(distFilo,dLowSizer,'color','k','Linewidth',2);
+        end
+        hold on
+        if ~isempty(slopeMaxNegSizer);
+            scatter(distFilo(slopeMaxNegSizer),dLowSizer(slopeMaxNegSizer),120,'r','filled');
+
+        end
+
+        if ~isempty(slopeMaxPosSizer);
+            scatter(distFilo(slopeMaxPosSizer),dLowSizer(slopeMaxPosSizer),120,'b','filled')
+
+        end
+        if ~isempty(lowestScaleSig)
+            splineParam = ssparsTested(lowestScaleSig);
+            ylabel({'Smoothed Derivative' ; ['SplineParam= ' num2str(splineParam,3)]},'FontSize',12,'FontName','Arial');
+        end
+        filenameD = cellfun(@(x) strrep(x, '.','Der.'),filename,'uniformoutput',0);
+        %                         end
+        %
+        for i = 1:2
+            saveas(gcf,[p.OutputDirectory filesep toAdd filesep filenameD{i} ]);
+        end
+      
+        close gcf
                     end
                 else
                     filoInfo(idxCurrent).([toAdd 'params']) = NaN;
