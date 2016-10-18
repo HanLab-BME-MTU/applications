@@ -98,6 +98,9 @@ for ei = 1:nexp
 	formatTickLabels(gca);
 	xlabel('Lifetime (s)', fset.lfont{:});
 	ylabel('Epi:TIR ratio', fset.lfont{:});
+    
+    numFLatSL=sum((lftVec<20)&(ratioVec>0.5)&(ratioVec<1.5))/length(lftVec);
+    disp(['Flat (0.5 < Ratio < 1.5) and Short Lived CCPs (<20s) ' num2str(numFLatSL)]);
 end
 
 
