@@ -1,4 +1,4 @@
-function [mask ] = GCAVisualsFilopodiaMeasurementOverlaysMaskOutput(filoInfo,imgSize,varargin)
+function [mask ] = GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,varargin)
 %GCAVisualsFilopodiaOverlaysFromFilterSet
 % INPUT:
 % filoInfo
@@ -42,6 +42,7 @@ ip.addParameter('forceFiloText',0); % might be able to get rid of.
 % ip.addParameter('overlayName','filopodiaOverlay');
 ip.addParameter('branchMode',false); % branch mode will by default color code by type
 ip.addParameter('plotText',true,@(x) islogical(x)); 
+
 ip.addParameter('plotTextAtBranches',false,@(x) islogical(x)); % just make an explicit input for now instead of testing 
 
 
@@ -111,6 +112,7 @@ if ip.Results.colorByValue == true && ~isempty(plotValues)
         minValue = ip.Results.cMapLimits(1);
         maxValue = ip.Results.cMapLimits(2); 
     else
+       
         minValue = min(plotValues); 
         maxValue = max(plotValues); 
     end 
