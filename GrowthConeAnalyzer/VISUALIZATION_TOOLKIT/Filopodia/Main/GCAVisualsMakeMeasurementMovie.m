@@ -1,4 +1,4 @@
-function [ output_args ] = GCAVisualsMakeMeasurementMovieWithSubMaskOutput(MD,varargin)
+function [ output_args ] = GCAVisualsMakeMeasurementMovie(MD,varargin)
 % GCAVisualsMakeMeasurementMovie
 %
 %
@@ -34,7 +34,8 @@ ip.addParameter('TreatmentFrame',[]);
 ip.addParameter('TreatmentTitle','CK666 Added');
 
 ip.addParameter('VeilDirectory',[]);
-ip.addParameter('plotText',false);
+ip.addParameter('plotText',false); % this should really be specified as plot measurement values
+ip.addParameter('plotIDs',false)
 
 
 ip.addParameter('cMapLimits','defaults');
@@ -78,6 +79,8 @@ ip.addParameter('createMask',false);
 ip.addParameter('OutputDirectoryMask',[]);
 
 ip.addParameter('firstFrameLimits',false); 
+
+
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -221,6 +224,8 @@ nFrames = length(ip.Results.frames);
 frames = ip.Results.frames;
 % check to make sure the filter and the number of frames is equivalent
 
+
+
 %% Different File types might require different functions
 for iSelect = 1:numel(selected)
     if strcmpi(paramSelect,'IDs')
@@ -236,6 +241,16 @@ for iSelect = 1:numel(selected)
     else
         outDir = ip.Results.OutputDirectory;
     end
+    
+    if ip.Results.plotIDs
+        outDir  = [outDir 'PlotIDs'];
+        if ~isdir(outDir)
+            mkdir(outDir)
+        end
+    end 
+        
+        
+    
     if ~isdir(outDir)
         mkdir(outDir) ;
     end
@@ -260,7 +275,12 @@ for iSelect = 1:numel(selected)
         
         filoInfo = filoBranch(frameC).filoInfo;
         
-        plotValues = measC{frameC};
+        if ip.Results.plotIDs
+            plotValues = 'IDs';
+             
+        else
+            plotValues = measC{frameC};
+        end
         if ~isempty(plotValues);
             if ip.Results.colorByValue
                 if strcmpi(ip.Results.cMapLimits,'defaults')
@@ -363,8 +383,17 @@ for iSelect = 1:numel(selected)
                 % %                     filterIntOfAbove = (:,filterExtOnly(:,2)~=0);
                 filoInfoFilt{1} = filoInfoExtBund; % should be the same size as the numbers
                 filoInfoFilt{2} = filoInfoIntBund;
+                if strcmpi(plotValues,'IDs')
+                    plotValues = 1:length(filoInfo); 
+                    plotValues = plotValues'; 
+                    plotValuesSub{1} = plotValues(filterFrameC); 
+                    plotValuesSub{2} =[]; 
+                    cMapLimits = [min(plotValuesSub{1}),max(plotValuesSub{1})]; 
+                else 
+    
                 plotValuesSub{1} = plotValues;
                 plotValuesSub{2} = plotValues(~filterInt);
+                end 
                 %
                 for i = 1:2
                     
