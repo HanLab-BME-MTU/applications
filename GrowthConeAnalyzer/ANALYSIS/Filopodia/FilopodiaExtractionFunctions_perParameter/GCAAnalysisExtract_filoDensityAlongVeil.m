@@ -6,6 +6,8 @@ densitiesCell = cell(length(analInfo)-1,1);
 for iFrame = 1:length(analInfo) -1
     % get filopodia 
    
+    filterFrameC= filoFilterSet{iFrame};
+   
     
  
     
@@ -57,38 +59,40 @@ for iFrame = 1:length(analInfo) -1
     
     distBoundMicron =  calculateDistance(pixIdxBack,[ny,nx],0) ; % note currently calculate distance is
     
-    
+    if isnan(distBoundMicron) && iFrame ~=1
+       distBoundMicron  = distBoundMicronC{iFrame-1}; 
+    end 
     %% Get Filopodia Number 
-    filterFrameC= filoFilterSet{iFrame};
-    numFilo = sum(filterFrameC);
-    
+  
     
     
     
     %% Calculate Density 
     
-  
-    
-    % for now just convert
-    
-    
-    
-    
-    densitiesCell{iFrame,1} = numFilo/distBoundMicron*10;
-    
-end
-
-%  if mkPlot ==1
-%      scatter((1:length(densities))*5,densities,50,'k','filled');
-%      ylabel('Filopodia Density OverTime','FontName','Arial','FontSize',14);
-%      xlabel('Time (s)')
-%      saveas(gcf,[saveDir filesep '001.fig']);
-%
-%  end
-% if ~isempty(saveDir)
-%
-%  save([saveDir filesep 'filopodiaDensityCell'],'densitiesCell');
-%  save([saveDir filesep 'toPlotMovie'],'densities');
+    if ~isempty(filterFrameC)
+        numFilo = sum(filterFrameC(:,1));
+        
+        
+        
+        densitiesCell{iFrame,1} = numFilo/distBoundMicron*10;
+        %distBoundMicronC{iFrame,1} = distBoundMicron;
+    else
+        densitiesCell{iFrame,1} = []; %
+        %         distBoundMicron{iFrame,1} = [];
+        
+    end
+    distBoundMicronC{iFrame,1} = distBoundMicron;
+    %  if mkPlot ==1
+    %      scatter((1:length(densities))*5,densities,50,'k','filled');
+    %      ylabel('Filopodia Density OverTime','FontName','Arial','FontSize',14);
+    %      xlabel('Time (s)')
+    %      saveas(gcf,[saveDir filesep '001.fig']);
+    %
+    %  end
+    % if ~isempty(saveDir)
+    %
+    %  save([saveDir filesep 'filopodiaDensityCell'],'densitiesCell');
+    %  save([saveDir filesep 'toPlotMovie'],'densities');
 end
 
 

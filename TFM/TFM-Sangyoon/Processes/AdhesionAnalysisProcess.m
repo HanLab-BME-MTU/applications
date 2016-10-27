@@ -37,14 +37,15 @@ classdef AdhesionAnalysisProcess < Process
             ip.addOptional('showAllTracks',false,@(x)islogical(x)||isempty(x))
             ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
             ip.addOptional('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
-            ip.addOptional('outputPath','AdhesionAnalysis',@ischar)
+            ip.addOptional('outputPath','analysis1',@ischar)
             ip.addOptional('saveAnalysis',true,@islogical)
             ip.addOptional('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
             ip.addOptional('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
             ip.parse(owner)
             
             % Set default parameters
-            funParams.OutputDirectory = [ip.Results.outputDir  filesep 'AdhesionAnalysis'];
+            funParams.OutputDirectory = [ip.Results.outputDir filesep 'AdhesionAnalysis'];
+            funParams.outputPath = ip.Results.outputPath; %This is a specific folder
             funParams.iChan = ip.Results.iChan;
             funParams.showAllTracks = ip.Results.showAllTracks;
             funParams.plotEachTrack = ip.Results.plotEachTrack;

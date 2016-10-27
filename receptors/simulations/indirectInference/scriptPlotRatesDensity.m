@@ -4,12 +4,14 @@
 %
 %Khuloud Jaqaman, June 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150608_AnalysisLR1_dt0p01_T10/probeISruns';
+%Define strings for directory hierarchy as needed
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20160712_Analysis/probe';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD4','rD10','rD16'}; %,'rD12','rD14','rD16'};
-aPDir = {'aP0p5'}; %,'dC0p2'}; %,'dR5p0'}; %,'dR2p0','dR5p0'}; %,'aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
-lRDir = {'lR1p0'}; %,'lR0p3','lR0p5','lR0p6','lR1p0'}; %,'lR0p2','lR0p3','lR0p4','lR0p5','lR0p6','lR1p0'};
+rDDir = {'rD100'}; %,'rD40','rD60','rD80','rD100','rD120','rD140','rD160'};
+aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'}; %'dR0p5','dR2p0','dR5p0','aP0p2','aP0p5','aP0p8','dC0p05','dC0p2'};
+lRDir = {'lR0p01','lR0p02','lR0p03','lR0p04','lR0p05','lR0p06'};
+
 
 %The top level directory is that of receptor density
 for rDDirIndx = 1 : length(rDDir)

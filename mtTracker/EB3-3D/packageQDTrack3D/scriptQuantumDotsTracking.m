@@ -74,8 +74,7 @@ for k=1:length(aMovieListArray)
             
             saveResults.dir =  outputDir; %directory where to save input and output
             saveResults.filename = 'trackResults.mat'; %name of file where input and output are saved
-        
-            
+                    
             % Correct for zCoord scale while keeping pixel values (to be
             % reflected in later scale. 
             zRatio=MD.pixelSizeZ_/MD.pixelSize_;

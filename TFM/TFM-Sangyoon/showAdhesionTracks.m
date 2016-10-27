@@ -7,23 +7,30 @@ ip.addRequired('pathForColocalization',@ischar)
 ip.addOptional('idList','all',@(x)islogical(x)||ischar(x)||isempty(x)||isscalar(x)||isvector(x))
 ip.addParamValue('numChan',2,@isscalar); % selcted track ids
 ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
+ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
 ip.addParamValue('trainedData',[],@istable); % trained data
+ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
+ip.addParamValue('iChanSlave',[],@isscalar); % This is the master channle index.
 ip.parse(pathForColocalization,idList,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 idList=ip.Results.idList;
 tracksNA=ip.Results.tracksNA;
 numChan=ip.Results.numChan;
 T=ip.Results.trainedData;
-
+MD=ip.Results.movieData;
+iChan=ip.Results.iChan;
+iChanSlave=ip.Results.iChanSlave;
 %% Load processed data
 disp('Loading raw files ...')
 % movieData to find out pixel size
-coloPath = fileparts(pathForColocalization);
-MDPath = fileparts(coloPath);
-MDfilePath = [MDPath filesep 'movieData.mat'];
-MD = load(MDfilePath,'MD');
-MD = MD.MD;
-iChan=2;
+if isempty(MD)
+    coloPath = fileparts(pathForColocalization);
+    MDPath = fileparts(coloPath);
+    MDfilePath = [MDPath filesep 'movieData.mat'];
+    MD = load(MDfilePath,'MD');
+    MD = MD.MD;
+end
+% iChan=2;
 nFrames = MD.nFrames_;
 tic
 if isempty(tracksNA)
@@ -43,18 +50,27 @@ elseif numChan==2
         % This case SDC was not used and first img frame was used.
         paxImage=MD.getChannel(iChan).loadImage(1); 
         [hp,w] = size(paxImage);
-        TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
-        forceProc =TFMpackage.processes_{4};
-    %     forceField = forceProc.loadChannelOutput;
-        tMapCell = load(forceProc.outFilePaths_{2});
-        tMapCell = tMapCell.tMap;
-
+        if isempty(iChanSlave)
+            TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
+            forceProc =TFMpackage.processes_{4};
+        %     forceField = forceProc.loadChannelOutput;
+            tMapCell = load(forceProc.outFilePaths_{2});
+            tMapCell = tMapCell.tMap;
+            tMap = zeros(hp,w,nFrames);
+            for iii=1:nFrames
+                tMap(:,:,iii) = tMapCell{iii};
+            end
+        else
+            tMap = zeros(hp,w,nFrames);
+            for iii=1:nFrames
+                slaveImage=MD.getChannel(iChanSlave).loadImage(iii); 
+                tMap(:,:,iii) = slaveImage;
+            end
+        end
         imgMap = zeros(hp,w,nFrames);
-        tMap = zeros(hp,w,nFrames);
         for iii=1:nFrames
             paxImage=MD.getChannel(iChan).loadImage(iii); 
             imgMap(:,:,iii) = paxImage;
-            tMap(:,:,iii) = tMapCell{iii};
         end
     end
 end

@@ -1,6 +1,6 @@
 function [] = whHealingRate(params,dirs)
 
-healingRateFname = [dirs.roiVis dirs.expname '_healingRate.bmp'];
+healingRateFname = [dirs.roiVis dirs.expname '_healingRate.eps'];
 healingRateMetaFname = [dirs.healingRate dirs.expname '_healingRate.mat'];
 
 % if exist(healingRateFname,'file') && exist(healingRateMetaFname,'file') && ~params.always
@@ -16,6 +16,7 @@ averageHealingRate = nan(1,ntime);
 load([dirs.roiData pad(1,3) '_roi.mat']); % ROI
 sumInitROI = sum(ROI(:)); clear ROI;
 
+fprintf('calculating healing rate\n');
 
 for t = time
     load([dirs.roiData pad(t,3) '_roi.mat']); % ROI
@@ -52,7 +53,8 @@ set(haxes,'YTick',0:20:maxSpeed);
 set(haxes,'YTickLabel',0:20:maxSpeed);
 set(haxes,'FontSize',32);
 hold off;
-eval(sprintf('print -dbmp16m  %s', healingRateFname));
+% eval(sprintf('print -dbmp16m  %s', healingRateFname));
+export_fig_biohpc(healingRateFname);
 
 
 save(healingRateMetaFname,'averageHealingRate','healingRate');

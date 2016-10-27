@@ -39,13 +39,20 @@ EB3SphCoordEndCumul=sphericalRadiusBinning(EB3SphCoordEnd,radii,MD.timeInterval_
 
 %% display binning results
 %% cumulative
+
+EB3MarkerSize=10;
+KinMarkerSize=50;
+cmapKin=jet(600);
+cmapEB3=summer(150); %cmapEB3=cmapEB3(1:40,:);
+temporalWindow=1; %Number of Frames used for integration
+
 handles=setupFigure(length(radii)-1,4,4*(length(radii)-1),'Name','test binning','AxesWidth',4,'AxesHeight',4,'DisplayMode', 'print');
 for rIdx=1:(length(radii)-1)
     plotSpindleSphericalProjection(handles(((rIdx-1)*4+1):rIdx*4),EB3SphCoordEndCumul{rIdx}.azimuth,EB3SphCoordEndCumul{rIdx}.elevation,EB3SphCoordEndCumul{rIdx}.poleId,EB3SphCoordEndCumul{rIdx}.time, ...
         KinSphCoordCumulKin{rIdx}.azimuth,KinSphCoordCumulKin{rIdx}.elevation,KinSphCoordCumulKin{rIdx}.time,KinSphCoordCumulKin{rIdx}.trackId,[0 MD.nFrames_*MD.timeInterval_],EB3MarkerSize,KinMarkerSize,cmapEB3,cmapKin,[])
 end
 
-%% time split
+%% Time split
 temporalWindow=1;
 outputDir=[MD.outputDirectory_ filesep 'EB3' filesep 'sphericalProjection' filesep 'radii'  num2str(radii,'-%d') filesep num2str(temporalWindow) filesep];
 mkdir(outputDir)

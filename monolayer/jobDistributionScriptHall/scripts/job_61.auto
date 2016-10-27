@@ -1,49 +1,39 @@
 #!/bin/bash
 #SBATCH --partition=super
 #SBATCH --nodes=1
-#SBATCH --mail-user=assaf.zaritsky@utsouthwestern.edu
-#SBATCH --mail-type=all
 #SBATCH --output=./log/auto_job_61_%j.out
 #SBATCH --error=./log/auto_job_61_%j.err
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1221 1>./log/task_61_1_1221.std.out 2>./log/task_61_1_1221.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 977 1>./log/task_61_1_977.std.out 2>./log/task_61_1_977.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1222 1>./log/task_61_2_1222.std.out 2>./log/task_61_2_1222.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 978 1>./log/task_61_2_978.std.out 2>./log/task_61_2_978.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1223 1>./log/task_61_3_1223.std.out 2>./log/task_61_3_1223.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 979 1>./log/task_61_3_979.std.out 2>./log/task_61_3_979.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1224 1>./log/task_61_4_1224.std.out 2>./log/task_61_4_1224.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 980 1>./log/task_61_4_980.std.out 2>./log/task_61_4_980.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1225 1>./log/task_61_5_1225.std.out 2>./log/task_61_5_1225.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 981 1>./log/task_61_5_981.std.out 2>./log/task_61_5_981.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1226 1>./log/task_61_6_1226.std.out 2>./log/task_61_6_1226.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 982 1>./log/task_61_6_982.std.out 2>./log/task_61_6_982.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1227 1>./log/task_61_7_1227.std.out 2>./log/task_61_7_1227.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 983 1>./log/task_61_7_983.std.out 2>./log/task_61_7_983.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1228 1>./log/task_61_8_1228.std.out 2>./log/task_61_8_1228.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 984 1>./log/task_61_8_984.std.out 2>./log/task_61_8_984.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1229 1>./log/task_61_9_1229.std.out 2>./log/task_61_9_1229.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 985 1>./log/task_61_9_985.std.out 2>./log/task_61_9_985.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1230 1>./log/task_61_10_1230.std.out 2>./log/task_61_10_1230.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 986 1>./log/task_61_10_986.std.out 2>./log/task_61_10_986.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1231 1>./log/task_61_11_1231.std.out 2>./log/task_61_11_1231.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 987 1>./log/task_61_11_987.std.out 2>./log/task_61_11_987.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1232 1>./log/task_61_12_1232.std.out 2>./log/task_61_12_1232.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 988 1>./log/task_61_12_988.std.out 2>./log/task_61_12_988.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1233 1>./log/task_61_13_1233.std.out 2>./log/task_61_13_1233.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 989 1>./log/task_61_13_989.std.out 2>./log/task_61_13_989.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1234 1>./log/task_61_14_1234.std.out 2>./log/task_61_14_1234.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 990 1>./log/task_61_14_990.std.out 2>./log/task_61_14_990.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1235 1>./log/task_61_15_1235.std.out 2>./log/task_61_15_1235.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 991 1>./log/task_61_15_991.std.out 2>./log/task_61_15_991.stderr & 
 
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1236 1>./log/task_61_16_1236.std.out 2>./log/task_61_16_1236.stderr & 
-
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1237 1>./log/task_61_17_1237.std.out 2>./log/task_61_17_1237.stderr & 
-
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1238 1>./log/task_61_18_1238.std.out 2>./log/task_61_18_1238.stderr & 
-
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1239 1>./log/task_61_19_1239.std.out 2>./log/task_61_19_1239.stderr & 
-
-/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 1240 1>./log/task_61_20_1240.std.out 2>./log/task_61_20_1240.stderr & 
+/home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall/job_wrapper.sh /home2/azaritsky/code/applications/monolayer/jobDistributionScriptHall runHallOneAtATime 992 1>./log/task_61_16_992.std.out 2>./log/task_61_16_992.stderr & 
 
 wait

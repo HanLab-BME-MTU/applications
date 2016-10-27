@@ -1,42 +1,46 @@
-function [dataTable,allData,meas] = extractFeatureNA(tracksNA,idGroupSelected)
+function [dataTable,allData,meas] = extractFeatureNA(tracksNA,idGroupSelected, normalizationMethods)
+if nargin<3
+    normalizationMethods=1;
+end
+% normalizationMethods=1 means no-normalization
+% normalizationMethods=2 means normalization with maxIntensity 
+% normalizationMethods=3 means normalization with maxIntensity and
+% maxEdgeAdvance
+% normalizationMethods=4 means normalization with maxIntensity and
+% maxEdgeAdvance*pixSize
+% normalizationMethods=5 means normalization with maxIntensity and
+% maxEdgeAdvance*pixSize and lifeTime in frames.
+% normalizationMethods=6 means normalization with maxIntensity and
+% maxEdgeAdvance and lifeTime in sec (using tInterval).
+% normalizationMethods=7  means normalization per each feature min and max
+
 %#1
 maxIntensityNAs = arrayfun(@(x) nanmax(x.ampTotal),tracksNA); %this should be high for group 2
-% maxIntensity = max(maxIntensityNAs(:)); %Now I started to normalize these things SH 16/07/06
-% maxIntensityNAs = maxIntensityNAs/maxIntensity; 
 
 % startingIntensityNAs = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA); %this should be high for group 2 and low for both g1 and g2
 endingIntensityNAs = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA); %this should be high for group 2
-endingIntensityNAs = endingIntensityNAs; %/maxIntensity; % normalizing
 
 decayingIntensityNAs = maxIntensityNAs-endingIntensityNAs; % this will differentiate group 1 vs group 2.
-% decayingIntensityNAs = decayingIntensityNAs/maxIntensity;
 %#2
 edgeAdvanceDistNAs = arrayfun(@(x) x.edgeAdvanceDist(x.endingFrameExtra),tracksNA); %this should be also low for group 3
-% maxEdgeAdvance = max(edgeAdvanceDistNAs(:));
-% edgeAdvanceDistNAs = edgeAdvanceDistNAs/maxEdgeAdvance;
 %#3
 advanceDistNAs = arrayfun(@(x) x.advanceDist(x.endingFrameExtra),tracksNA); %this should be also low for group 3
-% advanceDistNAs = advanceDistNAs/maxEdgeAdvance;
 %#4
 lifeTimeNAs = arrayfun(@(x) x.lifeTime,tracksNA); %this should be low for group 6
 %#5
 meanIntensityNAs = arrayfun(@(x) nanmean(x.amp),tracksNA); %this should be high for group 2
-% meanIntensityNAs = meanIntensityNAs/maxIntensity;
 %#6
 distToEdgeFirstNAs = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA); %this should be low for group 3
 %#7
 startingIntensityNAs = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA); %this should be high for group 5 and low for both g1 and g2
-% startingIntensityNAs = startingIntensityNAs/maxIntensity;
 %#8
 distToEdgeChangeNAs = arrayfun(@(x) x.distToEdgeChange,tracksNA); %this should be low for group 3 and group 5
 %#9
 distToEdgeLastNAs = arrayfun(@(x) x.distToEdge(x.endingFrameExtra),tracksNA); %this should be low for group 3 and group 7
 %#10
 edgeAdvanceDistFirstChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(min(x.startingFrameExtra+30,x.endingFrameExtra)),tracksNA); %this should be negative for group 5 and for group 7
-% edgeAdvanceDistFirstChangeNAs = edgeAdvanceDistFirstChangeNAs/maxEdgeAdvance;
 %#11
 edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
-% edgeAdvanceDistLastChangeNAs = edgeAdvanceDistLastChangeNAs/maxEdgeAdvance;
 %#12
 maxEdgeAdvanceDistChangeNAs =  arrayfun(@(x) x.maxEdgeAdvanceDistChange,tracksNA); %This is to see if 
 % this adhesion once had fast protruding edge, thus crucial for
@@ -47,11 +51,35 @@ maxEdgeAdvanceDistChangeNAs =  arrayfun(@(x) x.maxEdgeAdvanceDistChange,tracksNA
 % asymTracks=arrayfun(@(x) asymDetermination([x.xCoord(logical(x.presence))', x.yCoord(logical(x.presence))']),tracksNA);
 % MSDall=arrayfun(@(x) sum((x.xCoord(logical(x.presence))'-mean(x.xCoord(logical(x.presence)))).^2+...
 %     (x.yCoord(logical(x.presence))'-mean(x.yCoord(logical(x.presence)))).^2),tracksNA());
+%% All the maxima
+% maxIntensity = max(maxIntensityNAs(:)); %Now I started to normalize these things SH 16/07/06
+% maxEdgeAdvance = max(edgeAdvanceDistNAs(:));
+% edgeAdvanceDistNAs = edgeAdvanceDistNAs/maxEdgeAdvance;
+% maxIntensityNAs = maxIntensityNAs/maxIntensity; 
+endingIntensityNAs = endingIntensityNAs; %/maxIntensity; % normalizing
 
 % MSDrate = MSDall./lifeTimeNAs;
 advanceSpeedNAs = advanceDistNAs./lifeTimeNAs; %this should be also low for group 3
 edgeAdvanceSpeedNAs = edgeAdvanceDistNAs./lifeTimeNAs; %this should be also low for group 3
 % relMovWRTEdge = distToEdgeChangeNAs./lifeTimeNAs;
+% decayingIntensityNAs = decayingIntensityNAs/maxIntensity;
+% advanceDistNAs = advanceDistNAs/maxEdgeAdvance;
+% meanIntensityNAs = meanIntensityNAs/maxIntensity;
+% startingIntensityNAs = startingIntensityNAs/maxIntensity;
+% edgeAdvanceDistFirstChangeNAs = edgeAdvanceDistFirstChangeNAs/maxEdgeAdvance;
+% edgeAdvanceDistLastChangeNAs = edgeAdvanceDistLastChangeNAs/maxEdgeAdvance;
+
+switch normalizationMethods
+    case 1
+        disp('Use unnormalized')
+    case 2 % normalizationMethods=2 means normalization with maxIntensity 
+    case 3 % normalizationMethods=2 means normalization with maxIntensity and maxEdgeAdvance
+    case 4 % normalizationMethods=2 means normalization with maxIntensity and maxEdgeAdvance*pixSize
+    case 5 % normalizationMethods=2 means normalization with maxIntensity and maxEdgeAdvance*pixSize
+    case 6 % normalizationMethods=2 means normalization with maxIntensity 
+    case 7 % normalizationMethods=2 means normalization with maxIntensity 
+       
+end
 %% Building classifier...
 if nargin>1
     nGroups = numel(idGroupSelected);

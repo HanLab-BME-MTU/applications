@@ -23,7 +23,7 @@ for rDDirIndx = 1 : length(rDDir)
     tic    
     %Iterate through association probability values per density
     for aPDirIndx = 1 : length(aPDir)
-        
+      
         fprintf('\nProcessing rD = %s, aP = %s ',rDDir{rDDirIndx},aPDir{aPDirIndx});
         
         compTracksVec = cell(numLabelRatio,1);

@@ -292,12 +292,33 @@ for i= 1:length(pixIdxFor)
     avgResFilo = [avgResBack;avgResFor] ;
     avgIntFilo = [avgIntBack;avgIntFor]; 
    %% Make sure to filter out pixels that extend beyond the body Mask (however need to make sure pixIdxFor is in same order 
-     if int ==1 % you need to filter to make sure the pixels don't excede the body estimation
-        pixelsForBody = find(bodyMask==1);
-         pixIdxFor = intersect(pixIdxFor,pixelsForBody,'stable'); 
-     
-     
-     end 
+   if int ==1 % you need to filter to make sure the pixels don't excede the body estimation
+       pixelsForBody = find(bodyMask==1);
+       pixIdxFor = intersect(pixIdxFor,pixelsForBody,'stable');
+       
+       % Addition Added 20151020 : small check to make sure your forward
+       % extension is not in the realm of the boundary pixels so you do not 
+       % get a false fit. 
+       
+       yxBound = bwboundaries(bodyMask);
+       
+       boundaryPixels = sub2ind([ny,nx],yxBound{1}(:,1),yxBound{1}(:,2));
+       
+       boundMask = zeros([ny,nx]);
+       boundMask(boundaryPixels) = 1;
+       boundDilate = imdilate(boundMask,strel('disk',4));
+       % create a logical index array such that any points within the
+       % final fit region are deleted.
+       pixDilate = find(boundDilate);
+       
+       toDelete = [length(pixIdxFor)-3: length(pixIdxFor)];
+       [~,idx] = intersect(pixIdxFor,pixDilate); % this will be all
+       
+       toDelete = intersect(idx,toDelete);
+       if ~isempty(toDelete)
+           pixIdxFor(toDelete)=[];
+       end
+   end
     pixIndices = [pixIdxBack; pixIdxFor];
     else % keepinfo about these nubs in the structure for now..may be useful later if they are sites of nascent filopodia
         avgResFilo = nan;

@@ -3,6 +3,8 @@
 % kdEfficiencyTH - minimum % if KD
 function [] = parseYunYuKDEfficiency(dbFname,kdEfficiencyTH)
 
+% dbFname = '/project/cellbiology/gdanuser/collab/hall/Data20150928/GEFsScreenMetaData20150925.xlsx';
+% dbFname = '/project/cellbiology/gdanuser/collab/hall/Data20150928/GEFsScreenMetaData20150925_new.xlsx';
 % dbFname = '/project/cellbiology/gdanuser/collab/hall/allData/GEFsScreenMetaData20150424.xlsx';
 % dbFname = '/project/cellbiology/gdanuser/collab/hall/allData/GEFsScreenMetaData20150424_Angeles_new.xlsx';
 % dbFname = '/project/cellbiology/gdanuser/collab/hall/Data20150424/GEFsScreenMetaData20150424_Angeles_new.xlsx';
@@ -11,10 +13,27 @@ function [] = parseYunYuKDEfficiency(dbFname,kdEfficiencyTH)
 % dbFname = 'C:\Users\CellBio1\Dropbox\ResearchInProgress\Hall\MetaData\GEFsScreenMetaData20140911_all.xlsx'
 % dbFname = 'C:\Users\CellBio1\Dropbox\ResearchInProgress\Hall\MetaData\GEFsScreenMetaData20141013.xlsx';
 % dbFname = 'C:\Users\CellBio1\Dropbox\ResearchInProgress\Hall\MetaData\GEFsScreenMetaData20141201_new.xlsx';
+% dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160201/YunYuValidationData20160202_AZ_0215.xlsx';
+% kdEfficiencyTH = 50;
+% dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20151111a/GEFsScreenMetaData20151111_new_noARHGEF40_exclusions_duplicateControlWells.xlsx';
 % kdEfficiencyTH = 50;
 
-if nargin < 2
-    kdEfficiencyTH = -inf;
+if nargin == 0
+    dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/GEFScreenFinal20160526_RHOA.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll20160523/GEFProjectAll20160523.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20160523/YunYuFollowup20160523_AZ.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200/GEFScreenFinal20160526.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160523/YunYuFollowup20160523_AZ.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll20160516/GEFProjectAll20160516.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd0time200/GEFScreenFinal20160513.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160314/YunYuValidationData20160314.xlsx';
+    
+    %     kdEfficiencyTH = 0;
+    kdEfficiencyTH = 50;
+else
+    if nargin < 2
+        kdEfficiencyTH = -inf;
+    end
 end
 
 [pathstr,name,ext] = fileparts(dbFname);
@@ -54,12 +73,12 @@ nUnknownKD = 0;
 n = 0;
 for line = firstRow : lastRow 
     i = line - firstRow + 1;
-    %     if isnan(numsAll(i,2)) && (length(rawAll{i,5}) == 3)
-    if isnan(numsAll(i,4)) && strcmp(rawAll{i,5},'N/A')
+    if isnan(numsAll(i,2)) && (length(rawAll{i,5}) == 3)
+        %     if isnan(numsAll(i,4)) && strcmp(rawAll{i,5},'N/A')
         KD = -1;
         nUnknownKD = nUnknownKD + 1;        
     else
-        KD = numsAll(i,4)*100;
+        KD = numsAll(i,2)*100;% numsAll(i,4)
     end
     
     if KD < kdEfficiencyTH && KD ~= 0 && KD ~= -1
@@ -78,10 +97,10 @@ for line = firstRow : lastRow
         end
     end
     exps.fnames{n} = txtAll{i,2};    
-    exps.pixelSize{n} = numsAll(i,3);%numsAll(i,1);    
+    exps.pixelSize{n} = numsAll(i,1); %numsAll(i,3);    
     exps.KD{n} = KD;    
-    exps.dates{n} = numsAll(i,5);%numsAll(i,3);
-    exps.actualDates{n} = rawAll{i,7}; % was numsAll(i,4)    
+    exps.dates{n} = numsAll(i,3); %numsAll(i,5);
+    exps.actualDates{n} = rawAll{i,7}; %numsAll(i,4); % 
 end
 exps.nExclude = nExclude;
 exps.nUnknownKD = nUnknownKD;

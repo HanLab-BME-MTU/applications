@@ -1,4 +1,4 @@
-classdef LaminsData < hgsetget
+classdef LaminsData < matlab.mixin.SetGet
     %LaminsData Represents a movieData containing information about Lamins
     %A, B1, and B2
     %   Detailed explanation goes here

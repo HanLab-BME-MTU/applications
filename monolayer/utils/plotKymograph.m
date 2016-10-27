@@ -9,6 +9,7 @@ yTick = 1:(50/params.patchSize):((180/(params.patchSize))+1);
 yTickLabel = 0:50:180;
 
 h = figure;
+colormap('jet');
 imagescnan(kymograph);
 hold on;
 caxis(params.caxis); colorbar;
@@ -20,7 +21,7 @@ set(haxes,'YTick',yTick);
 set(haxes,'YTickLabel',yTickLabel);
 set(haxes,'FontSize',32);
 xlabel('Time (minutes)','FontSize',32); ylabel('Distance from edge (\mum)','FontSize',32);
-set(h,'Color','none');
+set(h,'Color','w');
 hold off;
 export_fig(params.fname);
 end

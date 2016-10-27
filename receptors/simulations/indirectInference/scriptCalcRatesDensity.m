@@ -13,7 +13,7 @@ outDirNum = 1:10;
 lRDir = {'lR1p0'};
 
 %define space and time information
-infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.01,'firstLastTP',[0 10]);
+infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
 
 fprintf('\n===============================================================');
 

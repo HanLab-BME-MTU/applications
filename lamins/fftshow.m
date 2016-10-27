@@ -22,6 +22,7 @@ end
 
 magnitude = magnitude - min(magnitude(:));
 magnitude = magnitude / max(magnitude(:));
+magnitude = fftshift(magnitude);
 
 phase = angle(F) + pi;
 phase = round(phase / (2*pi) * (N_colors-1))+1;

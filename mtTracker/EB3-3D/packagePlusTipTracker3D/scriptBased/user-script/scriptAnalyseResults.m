@@ -71,7 +71,7 @@ cumulElev=cell(length(aMovieListArray),maxCellNb);
 cumulPoleId=cell(length(aMovieListArray),maxCellNb); 
 cumulTimePt=cell(length(aMovieListArray),maxCellNb); 
 
-% Azimuth and elevation for EB3 that caught a Kinetochore. 
+% Index of  EB3 that caught a Kinetochore. 
 EB3CatchingId=cell(length(aMovieListArray),maxCellNb); 
 
 % Azimuth and elevation for Kin
@@ -104,36 +104,44 @@ for k=1:length(aMovieListArray)
         cumulTimePt{k,i}=sphericalProjection.time; 
 
         % Load the spherical coordinate of detected Kinetochore and their associated
-        % track ID. 
+        % track ID. Identify EB3 that catches those Kinetochores
         outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
         if(exist([outputDirDetect filesep 'sphericalCoordBothPoles.mat'], 'file') == 2)
             sphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
 
             outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
             trackData=load([outputDirTrack  filesep 'tracksStageRef.mat']);
-            
+               
+              % concatenate Kinetochore data bin Kinetochore that are above
+              % the search radius
               sphCoordCumulKin=sphericalRadiusBinning(sphericalCoord.sphCoord,[0,sphericalProjectionRadius,100000],MD.timeInterval_,trackData.tracksStageRef,[]);
               cumulAziKin{k,i}=sphCoordCumulKin{2}.azimuth;
               cumulElevKin{k,i}=sphCoordCumulKin{2}.elevation;
               cumulRhoKin{k,i}=sphCoordCumulKin{2}.rho;
               cumulTimePtKin{k,i}=sphCoordCumulKin{2}.time;
               cumulTrackIdKin{k,i}=sphCoordCumulKin{2}.trackId;
-            %%
             
+              % For each EB3 crossing the sphere, collect timing and
+              % associtated Kin (using the crossing Azimuth and 
             for fIdx=2:(length(sphericalCoord.sphCoord.elevation)-1)
-                %%
+                % Get the EB3 crossing the sphere and their associated pole
+                % ID
                 crossingAtFrameIdx=ceil(sphericalProjection.time)==fIdx;
                 EB3Pos=[  sphericalProjection.sphericalAzimuth(crossingAtFrameIdx)' ...
                           sphericalProjection.sphericalElevation(crossingAtFrameIdx)'];
                 EB3PoleId=sphericalProjection.poleId(crossingAtFrameIdx);
                 EB3PosPole1=EB3Pos(EB3PoleId==1,:);
                 EB3PosPole2=EB3Pos(EB3PoleId==2,:);
+                
+                % Get the kinetochore above the search radius
                 FarKinIdx=(min(sphericalCoord.sphCoord.rho{fIdx},[],2)>sphericalProjectionRadius);
                 KinPosPole1=[sphericalCoord.sphCoord.azimuth{fIdx}(FarKinIdx,1) sphericalCoord.sphCoord.elevation{fIdx}(FarKinIdx,1)];
                 KinPosPole2=[sphericalCoord.sphCoord.azimuth{fIdx}(FarKinIdx,2) sphericalCoord.sphCoord.elevation{fIdx}(FarKinIdx,2)];
+                
+                % Get ID of the EB3 of which the intersection with the
+                % radius (!) are close enough to the Kin.
                 [catchingEB3Idx1,caughtKinIdx1]=colocalizationLAP(EB3PosPole1,KinPosPole1,0.2);
                 [catchingEB3Idx2,caughtKinIdx2]=colocalizationLAP(EB3PosPole2,KinPosPole2,0.2);
-                %%
                 EB3FrameIdxP1=find(EB3PoleId==1);EB3FrameIdxP1=EB3FrameIdxP1(catchingEB3Idx1);
                 EB3FrameIdxP2=find(EB3PoleId==2);EB3FrameIdxP2=EB3FrameIdxP2(catchingEB3Idx2);
                 EB3FrameIdx=[EB3FrameIdxP1 EB3FrameIdxP2];
@@ -253,4 +261,4 @@ for MLIdx=1:length(aMovieListArray)
         end 
     end
 end
-
+         

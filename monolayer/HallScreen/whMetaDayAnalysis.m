@@ -2,7 +2,10 @@ function [] = whMetaDayAnalysis(allFeatures,healingRate,strLabels,metaData,mainD
 warning('off','all');
 
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs/libsvm-3.18'),'-begin');
-addpath(genpath('/apps/MATLAB/R2013a/toolbox/stats/stats'));
+
+% CHANGED!!
+% addpath(genpath('/apps/MATLAB/R2013a/toolbox/stats/stats'));
+addpath(genpath('/apps/MATLAB/R2015a/toolbox/stats/stats'));
 
 % % targetGenesStr = {'TRIO','TUBA','FGD6','ARHGEF3','VAV1','SOS1','ARHGEF11'};
 % targetGenesSpeedStr = {'TRIO','SOS1','ARHGEF9','TUBA'};
@@ -15,9 +18,10 @@ targetGenesCoordinationStr = {'RHOA'};
 
 [speedDiffs,healingRateSpeed,geneDayDiffSpeed] = dayAnalysisProperty(allFeatures.speedFeats,targetGenesSpeedStr,healingRate,strLabels,metaData,mainDirname,'Speed');
 [directionalityDiffs,healingRateDirectionality,geneDayDiffDirectionality] = dayAnalysisProperty(allFeatures.directionalityFeats,targetGenesDirectionalityStr,healingRate,strLabels,metaData,mainDirname,'Directionality');
-% [directionalityStrainRate,healingRateStrainRate,geneDayDiffStrainRate] = dayAnalysisProperty(allFeatures.strainRateFeats.features,healingRate,strLabels,metaData,mainDirname,'StrainRate');
+% % [directionalityStrainRate,healingRateStrainRate,geneDayDiffStrainRate] = dayAnalysisProperty(allFeatures.strainRateFeats.features,healingRate,strLabels,metaData,mainDirname,'StrainRate');
 [coordinationDiffs,healingRateCoordination,geneDayDiffCoordination] = dayAnalysisProperty(allFeatures.coordinationFeats,targetGenesCoordinationStr,healingRate,strLabels,metaData,mainDirname,'Coordination');
 
+targetGenesStr = {'RHOA','TRIO','SOS1','ARHGEF11','TUBA','ARHGEF28'};
 % whAssociatePropertyDirection(geneDayDiffSpeed,healingRateSpeed,speedDiffs,directionalityDiffs,coordinationDiffs,targetGenesStr,mainDirname);
 
 close all;
@@ -41,13 +45,13 @@ end
 function [allDiffMeanGeneToMeanControl,healingRateOut,geneDayDiff] = dayAnalysisProperty(data,targetGenesStr,healingRate,strLabels,metaData,mainDirname,propertyStr)
 close all;
 
-flags.variance = 1;
+flags.variance = 0;
 flags.dayAnalysisPCA = 0;
-flags.dayClassification = 1;
-flags.dayClustering = 0;
-flags.dayVisKymographs = 0;
+flags.dayClassification = 0;
+flags.dayClustering = 0; % do not activate!
+flags.dayVisKymographs = 1;
 flags.dayVisTargets = 0;
-flags.controlInterdayAssessment = 1;
+flags.controlInterdayAssessment = 0;
 
 
 features = data.features;
@@ -61,7 +65,8 @@ n = length(strLabels);
 
 strPSup = 'pSuper';
 strNT = 'NT';
-indsPSup = strcmp(whToPrefix(strLabels),strPSup) | strcmp(whToPrefix(strLabels),strNT); % then filter by days for the gene
+strDMSO = 'DMSO';
+indsPSup = strcmp(whToPrefix(strLabels),strPSup) | strcmp(whToPrefix(strLabels),strNT) | strcmp(whToPrefix(strLabels),strDMSO); % then filter by days for the gene
 
 allDiffVectors = [];
 allDiffToMeanControl = [];
@@ -84,6 +89,7 @@ for day = 1 : N
     nControl = sum(indsPSup1);
     
     if nControl < 3
+        warning('%s: %d < 3 controls',dayStr,nControl);
         continue;
     end    
     
@@ -138,7 +144,7 @@ for day = 1 : N
             meanKControlKymograph = whGetMeanKymograph(kymographsControl);
             diffMeanKymograph = meanKDKymograph - meanKControlKymograph;
             
-            printKymographs = false;
+            printKymographs = true;
             if printKymographs
                 params.timePerFrame = metaData.timePerFrame;
                 params.patchSize = 15;
@@ -519,11 +525,11 @@ else if strcmp(propertyStr,'Directionality')
         set(haxes,'YTickLabel',-10:5:10);
     else if strcmp(propertyStr,'Coordination')
             assert(max(abs(score(:,1))) < 2);
-            assert(max(abs(score(:,2))) < 1);
+            assert(max(abs(score(:,2))) < 1.01);
             set(haxes,'XLim',[-2,2]);
             set(haxes,'XTick',-2:1:2);
             set(haxes,'XTickLabel',-2:1:2);
-            set(haxes,'YLim',[-1,1]);
+            set(haxes,'YLim',[-1,1.01]);
             set(haxes,'YTick',-1:0.5:1);
             set(haxes,'YTickLabel',-1:0.5:1);
         end
@@ -579,11 +585,11 @@ for iGeneDay = 1 : nGeneDay
             set(haxes,'YTickLabel',-10:5:10);
         else if strcmp(propertyStr,'Coordination')
                 assert(max(abs(score(:,1))) < 2);
-                assert(max(abs(score(:,2))) < 1);
+                assert(max(abs(score(:,2))) < 1.01);
                 set(haxes,'XLim',[-2,2]);
                 set(haxes,'XTick',-2:1:2);
                 set(haxes,'XTickLabel',-2:1:2);
-                set(haxes,'YLim',[-1,1]);
+                set(haxes,'YLim',[-1,1.01]);
                 set(haxes,'YTick',-1:0.5:1);
                 set(haxes,'YTickLabel',-1:0.5:1);
             end
@@ -636,11 +642,11 @@ else if strcmp(propertyStr,'Directionality')
         set(haxes,'YTickLabel',-10:5:10);
     else if strcmp(propertyStr,'Coordination')
             assert(max(abs(score(:,1))) < 2);
-            assert(max(abs(score(:,2))) < 1);
+            assert(max(abs(score(:,2))) < 1.01);
             set(haxes,'XLim',[-2,2]);
             set(haxes,'XTick',-2:1:2);
             set(haxes,'XTickLabel',-2:1:2);
-            set(haxes,'YLim',[-1,1]);
+            set(haxes,'YLim',[-1,1.01]);
             set(haxes,'YTick',-1:0.5:1);
             set(haxes,'YTickLabel',-1:0.5:1);
         end
@@ -705,11 +711,11 @@ else if strcmp(propertyStr,'Directionality')
         set(haxes,'YTickLabel',-10:5:10);
     else if strcmp(propertyStr,'Coordination')
             assert(max(abs(score(:,1))) < 2);
-            assert(max(abs(score(:,2))) < 1);
+            assert(max(abs(score(:,2))) < 1.01);
             set(haxes,'XLim',[-2,2]);
             set(haxes,'XTick',-2:1:2);
             set(haxes,'XTickLabel',-2:1:2);
-            set(haxes,'YLim',[-1,1]);
+            set(haxes,'YLim',[-1,1.01]);
             set(haxes,'YTick',-1:0.5:1);
             set(haxes,'YTickLabel',-1:0.5:1);
         end
@@ -768,11 +774,11 @@ else if strcmp(propertyStr,'Directionality')
         set(haxes,'YTickLabel',-10:5:10);
     else if strcmp(propertyStr,'Coordination')
             assert(max(abs(score(:,1))) < 2);
-            assert(max(abs(score(:,2))) < 1);
+            assert(max(abs(score(:,2))) < 1.01);
             set(haxes,'XLim',[-2,2]);
             set(haxes,'XTick',-2:1:2);
             set(haxes,'XTickLabel',-2:1:2);
-            set(haxes,'YLim',[-1,1]);
+            set(haxes,'YLim',[-1,1.01]);
             set(haxes,'YTick',-1:0.5:1);
             set(haxes,'YTickLabel',-1:0.5:1);
         end
@@ -1007,11 +1013,11 @@ figure; imagesc(DIST');
 %         set(haxes,'YTickLabel',-10:5:10);
 % %     else if strcmp(propertyStr,'Coordination')
 %             assert(max(abs(score(:,1))) < 2);
-%             assert(max(abs(score(:,2))) < 1);
+%             assert(max(abs(score(:,2))) < 1.01);
 %             set(haxes,'XLim',[-2,2]);
 %             set(haxes,'XTick',-2:1:2);
 %             set(haxes,'XTickLabel',-2:1:2);
-%             set(haxes,'YLim',[-1,1]);
+%             set(haxes,'YLim',[-1,1.01]);
 %             set(haxes,'YTick',-1:0.5:1);
 %             set(haxes,'YTickLabel',-1:0.5:1);
 %         end
@@ -1276,7 +1282,7 @@ for iGeneDay = 1 : nGeneDay
 
             kd0InterwellDist = [kd0InterwellDist geneDayDiff{iGeneDay}.pdist2MeanGeneToMeanControl];
         else if strcmp(geneDayDiff{iGeneDay}.geneStr,'RAC1') || strcmp(geneDayDiff{iGeneDay}.geneStr,'CDC42') || ...
-                    strcmp(geneDayDiff{iGeneDay}.geneStr,'beta-PIX') || strcmp(geneDayDiff{iGeneDay}.geneStr,'RHOA')
+                    strcmp(geneDayDiff{iGeneDay}.geneStr,'beta-PIX') %|| strcmp(geneDayDiff{iGeneDay}.geneStr,'RHOA')
                 icdc42rac1 = icdc42rac1 + 1;
                 strCdc42Rac1{icdc42rac1} = dayGenesSeqStr{curExp};
                 DaviesBouldinIndicesCdc42Rac1 = [DaviesBouldinIndicesCdc42Rac1 DaviesBouldinIndex];
@@ -1374,9 +1380,9 @@ end
 % nOffTargetControl = sum((abs(zScoreDaviesBouldinKD0) > zScoreTH & abs(zScoreDunnKD0) > zScoreTH & abs(zScoreSilhouetteKD0) > zScoreTH));
 % nHits = sum((abs(zScoreDaviesBouldinRest) > zScoreTH & abs(zScoreDunnRest) > zScoreTH & abs(zScoreSilhouetteRest) > zScoreTH));
 
-nPosControl = sum((zScoreDaviesBouldinCdc42Rac1 +  zScoreDunnCdc42Rac1 + zScoreSilhouetteCdc42Rac1) > zScoreSumTH);
-nOffTargetControl = sum((zScoreDaviesBouldinKD0 + zScoreDunnKD0 + zScoreSilhouetteKD0) > zScoreSumTH);
-nHits = sum((zScoreDaviesBouldinRest+ zScoreDunnRest+ zScoreSilhouetteRest) > zScoreSumTH);
+nPosControl = sum((zScoreDaviesBouldinCdc42Rac1 +  zScoreDunnCdc42Rac1 + zScoreSilhouetteCdc42Rac1) >= zScoreSumTH);
+nOffTargetControl = sum((zScoreDaviesBouldinKD0 + zScoreDunnKD0 + zScoreSilhouetteKD0) >= zScoreSumTH);
+nHits = sum((zScoreDaviesBouldinRest+ zScoreDunnRest+ zScoreSilhouetteRest) >= zScoreSumTH);
 
 fprintf(logger,sprintf('\n --------------------------------\n'));
 fprintf(logger,sprintf('\n ****** Targets %s ********\n',representativeStr));
@@ -1386,7 +1392,7 @@ fprintf(logger,sprintf('CDC42/RAC1/beta-PIX: %d/%d\n',nPosControl,nKnown));
 % fprintf(logger,sprintf('Threshholds: %.2f, %.2f, %.2f\n\n',zScoreTH,zScoreTH,zScoreTH));
 fprintf(logger,sprintf('Threshholds: sum of 3 z-scores > %.1f\n\n',zScoreSumTH));
 
-targetsInds = find((zScoreDaviesBouldinRest + zScoreDunnRest + zScoreSilhouetteRest) > zScoreSumTH);
+targetsInds = find((zScoreDaviesBouldinRest + zScoreDunnRest + zScoreSilhouetteRest) >= zScoreSumTH);
 nTargets = length(targetsInds);
 
 sumZScoreHits = sumZScoreRest(targetsInds);
@@ -1716,6 +1722,20 @@ export_fig(pcaFname);
 
 
 indHealingRate = abs(healingRate) > 20;
+
+
+h = figure;
+hold all;
+for t = 1 : nTargets
+    plot(t,t,'o','MarkerEdgeColor',cmap(t+2,:),'LineWidth',LineWidth,'MarkerSize',markerSize,'DisplayName',targetGenesStr{t});                    
+end
+legend('show');
+haxes = get(h,'CurrentAxes');
+set(haxes,'FontSize',22);
+set(h,'Color','none');
+hold off;
+pcaFname = [mainDirname 'combinedProperties/TargetsHealingRate_legend.eps'];
+export_fig(pcaFname);
 
 
 end

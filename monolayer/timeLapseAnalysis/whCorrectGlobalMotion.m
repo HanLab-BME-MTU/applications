@@ -7,7 +7,7 @@
 function [] = whCorrectGlobalMotion(params,dirs)
 
 % move back to original files
-if exist([dirs.mfDataOrig filesep '001_mf.mat'],'file')
+if exist([dirs.mfDataOrig filesep '001_mf.mat'],'file')    
     unix(sprintf('cp -R %s %s',[dirs.mfDataOrig '*.mat'],dirs.mfData));
 end
     
@@ -95,6 +95,14 @@ for t = 1 : params.nTime - params.frameJump
         imgFname1 = [dirs.images sprintf('%03d',t+params.frameJump) '.tif'];
         I0 = imread(imgFname0);    
         I1 = imread(imgFname1);
+        
+        if size(I0,3) > 1
+            tmp = I0(:,:,1) - I0(:,:,2);
+            assert(sum(tmp(:)) == 0);
+            I0 = I0(:,:,1);
+            I1 = I1(:,:,1);
+        end
+        
         [dydx, dys, dxs, scores] = blockMatching(I0, I1, params.patchSize,params.searchRadiusInPixels,true(size(I0)),round(correctDx),round(correctDy)); % block width, search radius,
     end
     

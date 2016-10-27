@@ -58,7 +58,15 @@ disp(outputFilePath);
 for j=1:movieData.nFrames_
     Iccp=double(movieData.channels_(iCCP).loadImage(j));
     maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
-    mask = maskProc.loadChannelOutput(iPax,j);
+    % if there are masks for more than one channels, combine them.
+    if length(maskProc.checkChannelOutput)>1
+        %Combine the the multiple masks to one
+        maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,j),find(maskProc.checkChannelOutput),'UniformOutput',false);
+        maskAll=reshape(cell2mat(maskEach),size(Iccp,1),size(Iccp,2),[]);
+        mask = any(maskAll,3);
+    elseif length(iChans)==1
+        mask = maskProc.loadChannelOutput(iPax,j); % 1 is CCP channel
+    end
     ultimateMask = roiMask(:,:,j) & mask;
     pstruct = pointSourceDetection(Iccp, psfSigma, 'Alpha',0.05,'Mask', ultimateMask);
     % filter out points where overall intensity is in the noise level

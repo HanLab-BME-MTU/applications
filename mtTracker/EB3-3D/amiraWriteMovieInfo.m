@@ -16,7 +16,14 @@ p=ip.Results;
 
 if(~exist(fileparts(filename))) mkdir(fileparts(filename)); end;
 
-
+if(~isfield(movieInfo,'zCoord'))
+    for fIdx=1:length(movieInfo)
+        movieInfo(fIdx).zCoord=movieInfo(fIdx).xCoord;
+        movieInfo(fIdx).zCoord(:)=0;
+    end
+end
+    
+    
 [pathstr,name,ext] = fileparts(filename); 
 basename=[pathstr filesep name];
 
