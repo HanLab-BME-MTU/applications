@@ -78,13 +78,8 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
 % After parameters are chosen, take appropriate channels from movieData
     nImages = movieData.nFrames_;
     
-<<<<<<< HEAD
+
     %Define which process was masking process
-    iM = movieData.getProcessIndex('MaskProcess',Inf,0);
-    inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
-    maskNames = movieData.processes_{iM}.getOutMaskFileNames(p.ChannelMask);
-=======
-    %Define which process was masking process?
     try
         iM = movieData.getProcessIndex('MaskProcess',Inf,0); 
         inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
@@ -97,7 +92,7 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
         inMaskDir = {inMaskDir}; % Below requires a cell
         maskNames = {{['cellMask_channel_',num2str(p.ChannelMask),'.tif']}}; 
     end
->>>>>>> 53dc38d2512bc3ffcfa458ea69334f46be0250cc
+
     
     if p.MethodIndx ~= 3
     %load ref detection data
