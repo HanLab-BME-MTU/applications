@@ -1,4 +1,4 @@
-classdef LaminsImage < hgsetget
+classdef LaminsImage < matlab.mixin.SetGet
     properties
         coordinates
         steerable
