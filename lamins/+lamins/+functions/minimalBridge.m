@@ -88,7 +88,7 @@ for f = 1:fragment_cc.NumObjects
         pair_bridge = pair_bridge(ind2p(min_span_tree > 0));
 %         pair_bridge = pair_bridge(ind2p(find(min_span_tree)));
         
-        bridges = bridges | any(cat(3,pair_bridge{:},zeros(201)),3);
+        bridges = bridges | any(cat(3,pair_bridge{:},zeros(size(I))),3);
     end
 end
 
