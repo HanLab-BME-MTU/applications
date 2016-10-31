@@ -306,12 +306,12 @@ classdef OrientationSpaceResponse < handle
             n_new = 2*K_new+1;
             s_inv = sqrt(obj.n^2*n_new^2/(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
-            x = -K_new:K_new;
+            x = -ceil(K_new):ceil(K_new);
             f_hat = exp(-0.5 * (x./s_hat).^2); % * obj.n/n_new;
             f_hat = ifftshift(f_hat);
             f_hat = shiftdim(f_hat,-1);
             a_hat = fft(real(obj.a),[],3);
-            a_hat = a_hat(:,:,[1:K_new+1 end-K_new+1:end]);
+            a_hat = a_hat(:,:,[1:ceil(K_new)+1 end-ceil(K_new)+1:end]);
             a_hat = bsxfun(@times,a_hat,f_hat);
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));

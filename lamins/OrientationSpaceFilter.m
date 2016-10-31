@@ -25,6 +25,8 @@ classdef OrientationSpaceFilter < handle
         angles
         % normilization setting
         normEnergy
+        % number of angular filter templates
+        n
     end
     
     properties (Transient)
@@ -43,8 +45,6 @@ classdef OrientationSpaceFilter < handle
         frequencyBandwidth
         % K
         order
-        % number of angular filter templates
-        n
     end
     
     methods
@@ -85,8 +85,8 @@ classdef OrientationSpaceFilter < handle
             obj.K = K;
             obj.normEnergy = normEnergy;
             
-            n = 2*K + 1;
-            obj.angles = 0:pi/n:pi-pi/n;
+            obj.n = 2*ceil(K) + 1;
+            obj.angles = 0:pi/obj.n:pi-pi/obj.n;
             
         end
         function ridgeFilter = real(obj)
@@ -111,7 +111,10 @@ classdef OrientationSpaceFilter < handle
             K = obj.K;
         end
         function n = get.n(obj)
-            n = obj.K*2+1;
+            if(isempty(obj.n))
+                obj.n = 2*ceil(K) + 1;
+            end
+            n = obj.n;
         end
         function R = mtimes(obj,I)
             % Convolution
@@ -127,9 +130,10 @@ classdef OrientationSpaceFilter < handle
             ridgeResponse = obj.applyRidgeFilter(If);
             edgeResponse = obj.applyEdgeFilter(If);
             angularResponse = ridgeResponse + edgeResponse;
+            ns = [0 cumsum([obj.n])];
             R(numel(obj)) = OrientationSpaceResponse;
             for o=1:numel(obj)
-                R(o) = OrientationSpaceResponse(obj(o),angularResponse(:,:,:,o));
+                R(o) = OrientationSpaceResponse(obj(o),angularResponse(:,:,ns(o)+1:ns(o+1)));
             end
             R = reshape(R,size(obj));
         end
@@ -264,11 +268,11 @@ classdef OrientationSpaceFilter < handle
         end
         function ridgeResponse = applyRidgeFilter(obj,If)
             obj.setupFilter(size(If)); %#ok<CPROP>
-            ridgeResponse = real(ifft2(bsxfun(@times,If,real(cat(4,obj.F)))));
+            ridgeResponse = real(ifft2(bsxfun(@times,If,real(cat(3,obj.F)))));
         end
         function edgeResponse = applyEdgeFilter(obj,If)
             obj.setupFilter(size(If)); %#ok<CPROP>
-            edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(cat(4,obj.F)))));
+            edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(cat(3,obj.F)))));
         end
         function requireSetup(obj)
             if(isempty(obj.F))
