@@ -54,7 +54,7 @@ classdef OrientationSpaceFilter < handle
                 s(2) = max(1,s(2));
                 f_c = repmat(f_c(:),1,s(2),s(3));
                 if(isempty(b_f))
-                    b_f = 0.8 * f_c;
+                    b_f = 1/sqrt(2) * f_c;
                 else
                     b_f = repmat(b_f(:)',s(1),1,s(3));
                 end
@@ -71,7 +71,7 @@ classdef OrientationSpaceFilter < handle
             if(isempty(b_f))
                 % Set the bandwidth to be 0.8 of the central frequency by
                 % default
-                b_f = 0.8 * f_c;
+                b_f = 1/sqrt(2) * f_c;
             end
             if(nargin < 4 || isempty(normEnergy))
                 normEnergy = 'none';
@@ -278,6 +278,50 @@ classdef OrientationSpaceFilter < handle
             if(isempty(obj.F))
                 error('OrientationSpaceFilter:NotSetup','Filter must be setup in order for this operation to succeed.');
             end
+        end
+    end
+    methods (Static)
+        function F = constructEqualLengthFilters(f_c, b_f, K, normEnergy, constructor)
+            if(nargin < 5)
+                constructor = @OrientationSpaceFilter;
+            end
+            %% Approximate cone by height of triangle
+            % Largest central frequency or smallest scale
+            f_c_max = max(f_c(:));
+%             height = sin(pi/(2*K+1))*f_c_max;
+            arcLength = pi/(2*K+1)*f_c_max;
+            
+            assert(isscalar(K));
+            
+            %% Normal constructor
+            s = [length(f_c) length(b_f) 1];
+            s(2) = max(1,s(2));
+            f_c = repmat(f_c(:),1,s(2),s(3));
+            if(isempty(b_f))
+                b_f = 1/sqrt(2) * f_c;
+            else
+                b_f = repmat(b_f(:)',s(1),1,s(3));
+            end
+            
+            if(nargin < 4)
+                    normEnergy = [];
+            end
+            normEnergy = repmat({normEnergy},size(f_c));
+            
+%             K = (pi./asin(height ./ f_c) - 1)./2;
+            K = (pi/arcLength*f_c-1)/2;
+            
+            F = arrayfun(constructor,f_c,b_f,K,normEnergy,'UniformOutput',false);
+            F = reshape([F{:}],size(F));
+
+        end
+        function F = constructByRadialOrder(f_c, K_f, K, normEnergy, constructor)
+            if(nargin < 5)
+                constructor = @OrientationSpaceFilter;
+            end
+            b_f = f_c ./ sqrt(K_f);
+            F = constructor(f_c, b_f, K, normEnergy);
+            F = F(logical(eye(length(f_c))));
         end
     end
 end
