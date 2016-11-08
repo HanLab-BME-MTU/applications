@@ -12,6 +12,7 @@ function [] = scriptGeneralColocalization()
         
         
     %% Detection Process
+    % The core function being used here is detectSubResFeatures2D_StandAlone
         p = MD.getProcess(1).getParameters();
         p.ChannelIndex = 1; %Channel in image to undergo detection process 
         p.detectionParam.psfSigma = 1; %Point spread function sigma of image (in pixels)
@@ -23,6 +24,7 @@ function [] = scriptGeneralColocalization()
         
 
     %% Masking Process
+    % The core function used for masking is calcCellBoundaryImage
         p = MD.getProcess(2).getParameters();
         p.ChannelIndex = 1;%Channel in image to undergo masking process, usually continuum channel
         p.GaussFilterSigma = 2;% Sigma of gaussian filter used to smooth image
@@ -31,6 +33,8 @@ function [] = scriptGeneralColocalization()
         MD.getProcess(2).run;
 
     %% Colocalization
+    % The core function used for colocalization analysis is
+    % colocalMeasurePt2Cnt
         p = MD.getProcess(3).getParameters();
         p.ChannelRef = 2; %Punctate channel which underwent detection process
         p.ChannelObs = 1; %Continuum channel
