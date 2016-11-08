@@ -1,5 +1,5 @@
 function movieData = colocalizationWrapper(movieData, paramsIn)
-%COLOCALIZATIONMOVIE applies a method of colocalization on two channels of an image set
+%COLOCALIZATIONWRAPPER applies a method of colocalization on two channels of an image set
 % 
 % movieData = colocalizationWrapper(movieData, paramsIn)
 %
