@@ -1,4 +1,5 @@
-function[ meanLinkStatsPerc,meanGapStatsPerc,meanMergeStats,meanSplitStats] = compareTracks(compTracks,tracksFinal,reformParam)
+function [ meanLinkStatsPerc,meanGapStatsPerc,meanMergeStats,meanSplitStats,mergeSplitStats] = compareTracks(compTracks,tracksFinal,reformParam)
+
 %COMPARETRACKS this function compare the tracks from simulated data and
 %uTrackPackageGUI.
 %
@@ -37,7 +38,16 @@ function[ meanLinkStatsPerc,meanGapStatsPerc,meanMergeStats,meanSplitStats] = co
 %                     are real but the connection is wrong;
 %                     2 - if one or both features just before and just
 %                     after the gap are detection artifacts.
-%       
+%       mergeSplitStats: 2-by-3 matrix where first row is for merges, 2nd
+%                        row is for splits.  1st column shows number of
+%                        merges/splits in ground truth, 2nd column shows
+%                        number of merges/splits in tracking results, and
+%                        3rd column shows number of correct merges/splits
+%                        in tracking results. Merge/split statistics
+%                        don't explicitly account for detection false
+%                        positives, i.e. they simply count toward wrong
+%                        merges/splits, just like real features if wrongly
+%                        assigned a merge/split.
 %
 % Luciana de Oliveira, September 2016.
 %% Input
@@ -64,13 +74,20 @@ for iTrack = 1 : length(tracksSim)
     tracksSim(iTrack).tracksCoordAmpCG(:,1:8:end) = tracksSim(iTrack).tracksCoordAmpCG(:,1:8:end)/pixelSize;
     tracksSim(iTrack).tracksCoordAmpCG(:,2:8:end) = tracksSim(iTrack).tracksCoordAmpCG(:,2:8:end)/pixelSize; 
 end
-
+%changing the coordinates of tracksSim
+for iTrack = 1 : length(tracksSim)
+    tmp = tracksSim(iTrack).tracksCoordAmpCG(:,1:8:end);
+    tracksSim(iTrack).tracksCoordAmpCG(:,1:8:end) = tracksSim(iTrack).tracksCoordAmpCG(:,2:8:end);
+    tracksSim(iTrack).tracksCoordAmpCG(:,2:8:end) = tmp;
+end
 % Alleviate boundary effects on detection
 for iTrack = 1 : length(tracksSim)
     tracksSim(iTrack).tracksCoordAmpCG(:,1:8:end) = tracksSim(iTrack).tracksCoordAmpCG(:,1:8:end)+10*psfSigma;
     tracksSim(iTrack).tracksCoordAmpCG(:,2:8:end) = tracksSim(iTrack).tracksCoordAmpCG(:,2:8:end)+10*psfSigma;
 end
 tracksNew = sepCompTracks(tracksSim);
+%% Reformat U-tracks for comparison
+
 %% Comparison 
 [linkStats,gapStats,mergeSplitStats] = scoreLinksGapsMS(tracksFinal,tracksNew);
 meanLinkStats=mean(linkStats(:,4));
@@ -80,6 +97,5 @@ meanGapStats=length(gapStats(:,2))-length(totalNumRigthGaps);
 meanGapStatsPerc=(100*meanGapStats)/length(gapStats(:,2));
 meanMergeStats=mergeSplitStats(1,3);
 meanSplitStats=mergeSplitStats(2,3);
-
 end %function
 

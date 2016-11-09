@@ -1,4 +1,4 @@
-function [clustHistoryAll] = ...
+function [clustHistoryAll,clustHistoryAllReal,clustHistoryMerged] = ...
     clusterHistoryFromCompTracks_aggregState_new(tracksAggregStateDef,infoTime)
 %CLUSTERHISTORYFROMCOMPTRACKS_AGGREGSTATE determines the size and lifetime of all clusters that formed during a simulation
 %
@@ -55,6 +55,8 @@ function [clustHistoryAll] = ...
 %                            and its partner are both listed and NaN
 %                            indicates only the current segment is listed,
 %                            i.e. the partner is not listed.
+%       clustHistoryAllReal: the same as clustHistoryAll but with real time
+%       unities
 %       clustHistoryMerged: Same information as in clustHistoryAll but with
 %                         all cells merged into one 2D array, i.e.
 %                         individual track information is lost.
@@ -64,7 +66,7 @@ function [clustHistoryAll] = ...
 %       modified, 04/08/14               
 %       modified, 11/18/14
 %       modified, May/June 2015 (Khuloud Jaqaman) 
-%       modified, September 2016 (Luciana de Oliveira)
+%       modified, September/October 2016 (Luciana de Oliveira)
 %
 % *** NOTE (KJ): 
 %       As a result of modifications, columns in output have been
@@ -82,15 +84,6 @@ else
     sampleStep = timeStep;
 end
 convStep = round(sampleStep/timeStep);
-if isfield(infoTime,'firstLastTP')
-    firstLastTP = infoTime.firstLastTP;
-    if length(firstLastTP)==1
-        firstLastTP = [0 firstLastTP];
-    end
-else
-    firstLastTP = [];
-end
-firstLastFrame = 1 + firstLastTP/timeStep;
 
 %% Cluster history collection
 
@@ -102,9 +95,12 @@ firstLastFrame = 1 + firstLastTP/timeStep;
 
 %Cluster history from all compTracks will be saved
 clustHistoryAll = cell(numCompTracks,1);
+clustHistoryAllReal = cell(numCompTracks,1);% 2016/10/02, LRO To have the 
+%clustHistory with real time unities, I added a new output.
+
 
 %For each compTrack
-for compTrackIter=1:numCompTracks
+ for compTrackIter=1:numCompTracks
     %seqOfEvents for current compTrack
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %040814 - now passing defaultFormatTracks directly for memory reasons.
@@ -122,6 +118,9 @@ for compTrackIter=1:numCompTracks
     %first frame # is the shift amount.
     frameShift = seqOfEvents(1,1);
     
+    
+    
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %091813
     %aggregState will be used to get cluster sizes
@@ -130,6 +129,56 @@ for compTrackIter=1:numCompTracks
     aggregState = tracksAggregStateDef(compTrackIter,1).aggregState;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Modification Luciana de Oliveira, 10/2016
+    
+    %If the seqOfEvents has only one track, I need to account this clust
+    %size in the clust history
+    
+    if size(seqOfEvents,1)==2
+        
+       %Initialize cluster history
+        clustHistoryTemp = NaN(1,9);
+        
+        % track number
+        clustHistoryTemp(1,1)=seqOfEvents(1,3);
+        
+       %cluster size
+        clustHistoryTemp(1,2)= aggregState(seqOfEvents(1,1),...
+                seqOfEvents(1,1) - frameShift + 1);
+             %start time
+                 clustHistoryTemp(1,3)=seqOfEvents(1,1);
+                  %end time  
+        clustHistoryTemp(1,4)=seqOfEvents(2,1);
+         %Cluster lifetime
+            clustHistoryTemp(1,5) = ...
+                clustHistoryTemp(1,4) - clustHistoryTemp(1,3);    
+             
+            
+            clustHistoryTemp = clustHistoryTemp(:,[1:5 9 6:8]); 
+       
+%Save current clustHistory in collection
+
+clustHistoryAll{compTrackIter,1} = clustHistoryTemp;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%2016/11/02,LRO: This last part is to have the clustHistory with sampled
+%and real time
+
+ %subsample time
+     clustHistoryTempReal=clustHistoryTemp;
+   clustHistoryTempReal(:,3:4) = ceil(clustHistoryTempReal(:,3:4)/convStep);
+    clustHistoryTempReal(:,5) = clustHistoryTempReal(:,4) - clustHistoryTempReal(:,3);
+
+%convert from iterations/frames to real time units
+    clustHistoryTempReal(:,3:5) = clustHistoryTempReal(:,3:5) * sampleStep;    
+    
+%Save current clustHistory in collection
+
+clustHistoryAllReal{compTrackIter,1} = clustHistoryTempReal;
+
+    else
     
     %Iteration points of first and last events
     firstEventIter = find(~isnan(seqOfEvents(:,4)),1,'first');
@@ -143,56 +192,63 @@ for compTrackIter=1:numCompTracks
     % Now the function has as output a cluster history with all segments
     % history, I need it for the calculations of bootstraping. In the
     % original function clustHistory have only the history for the clusters
-    % that are changing. Then I add two more parts in the function, one for
-    % the clusters that beginning in the very first frame and for that
-    % finishing in the very last frame. 
+    % that are changing. Now it considers also the segments history for the 
+    % segments that starts in the first frame and end in the last frame.
+    % The function also considers the segments that don't interact with
+    % others.
     
-    %Determine the rows of the tracks that are changing
-       changingTracks= find(~isnan(seqOfEvents(:,4)));
-    %Determine which are the tracks
-       indexchangingTracks=unique(seqOfEvents(changingTracks,3));
     %Determine which are the segments that begin in the first frame
-       trackIndexBegin=find(isnan(seqOfEvents(:,4)) & seqOfEvents(:,2)==1);
-    %Take the sequence of events that is changing
-       seqOfEventsTemp=seqOfEvents(changingTracks,:);
-       %Which are the segments that finish in the last frame
-     trackIndexEnd=find(isnan(seqOfEvents(:,4)) & seqOfEvents(:,2)==2);
-
+     trackIndexBegin=find(isnan(seqOfEvents(:,4)) & seqOfEvents(:,2)==1);
     
-       %Number of all events
-    totClustChngs = (lastEventIter-firstEventIter+1) + ...
-        sum(seqOfEvents(firstEventIter:lastEventIter,2)==1)+1+ ...
-    +(trackIndexBegin(end)-trackIndexBegin(1))+...
-            (trackIndexEnd(end)-trackIndexEnd(1));
+    %Determine which are the segments that are changing
+     TrackIndexChanging= find(~isnan(seqOfEvents(:,4)));
+       
+    %Determine which are the segments that finish in the last frame
+     trackIndexEnd=find(isnan(seqOfEvents(:,4)) & seqOfEvents(:,2)==2);   
+       
+
+      
+    %total number of segments in clustHistory
+    
+    totSegments = length(trackIndexBegin) + (lastEventIter-firstEventIter+1) + ...
+    sum(seqOfEvents(firstEventIter:lastEventIter,2)==1);
+
     %Initialize cluster history
     %021714 - added column #7 for size of resulting cluster
     %021814 - added column #8 for flag for association events
     %2 June 2015 (KJ) - added column #9 for event that started the cluster
-    clustHistoryTemp = NaN(totClustChngs,9);
+    clustHistoryTemp = NaN(totSegments,9);
     clustHistIndxbegin = 1;
-   % taking the cluster info for the segments that start in the first frame
+ 
+    %% cluster history for the segments that start in the first frame
 
 for trackIndexNew=trackIndexBegin(1):trackIndexBegin(end)
     % track number
     clustHistoryTemp(clustHistIndxbegin,1) = trackIndexNew;
     % where it starts
-     clustHistoryTemp(clustHistIndxbegin,3) = seqOfEvents(trackIndexNew,1);
+    clustHistoryTemp(clustHistIndxbegin,3) = seqOfEvents(trackIndexNew,1);
      
     %where it finishes  
-    if ismember(trackIndexNew,indexchangingTracks) 
-        tempfinish= seqOfEventsTemp(:,3)==trackIndexNew;
-        clustHistoryTemp(clustHistIndxbegin,4)=seqOfEventsTemp(tempfinish,1);
-    end
+    segmentFinish=find(seqOfEvents(trackIndexNew,3)==seqOfEvents(TrackIndexChanging,3)|seqOfEvents(TrackIndexChanging,4)&seqOfEvents(TrackIndexChanging,2)==2);
+   
+   if ~isempty(segmentFinish)
+   clustHistoryTemp(clustHistIndxbegin,4)=seqOfEvents(TrackIndexChanging(segmentFinish(1)),1)-1;
+   else
+     segmentFinishLast=find(seqOfEvents(trackIndexNew,3)==seqOfEvents(trackIndexEnd,3));   
+    clustHistoryTemp(clustHistIndxbegin,4)=seqOfEvents(TrackIndexChanging(segmentFinishLast(1)),1);
+   end
+   
+   %Getting cluster size from entries in aggregState
     
-    %Getting cluster size from entries in aggregState
-    
-    clustHistoryTemp(clustHistIndxbegin,2) = ...
-                aggregState(seqOfEvents(trackIndexNew,1),...
+               clustHistoryTemp(clustHistIndxbegin,2) = ...
+                aggregState(seqOfEvents(trackIndexNew,3),...
                 seqOfEvents(trackIndexNew,1) - frameShift + 1);
     
-     %increase in the clustHistIndx
+            
+   %increase in the clustHistIndx
        clustHistIndxbegin = clustHistIndxbegin + 1;
-end %for track index
+end  %for track index
+     
 
 
   %% % Initiate the cluster index for the clusters that are changing
@@ -243,12 +299,13 @@ end %for track index
             %simulation and its beginning time is unknown. Only the
             %cluster it is joining will be saved below as a new cluster.
             endingTrackIndx = find(clustHistoryTemp(:,1)==seqOfEvents(eventIndx,3),1,'last');
-            
+           
             if (~isempty(endingTrackIndx))
+               
                 
                 %Ending iteration point of this cluster
                 clustHistoryTemp(endingTrackIndx,4) = seqOfEvents(eventIndx,1);
-                
+                              
                 %Cluster lifetime
                 clustHistoryTemp(endingTrackIndx,5) = ...
                     clustHistoryTemp(endingTrackIndx,4) - clustHistoryTemp(endingTrackIndx,3);
@@ -277,12 +334,13 @@ end %for track index
         %Find the changing segment in clustHistory.  If it doesn't exist, then
         %this event is at the start of the simulation and its beginning
         %time is unkown.  The newly created cluster will be saved below.
-        changingTrackIndx = find(clustHistoryTemp(:,1)==seqOfEvents(eventIndx,4),1,'last');
+          changingTrackIndx = find(clustHistoryTemp(:,1)==seqOfEvents(eventIndx,4),1,'last');
         
         if (~isempty(changingTrackIndx))
             
             %Ending iteration point of this cluster
             clustHistoryTemp(changingTrackIndx,4) = seqOfEvents(eventIndx,1);
+            
             
             %Cluster lifetime
             clustHistoryTemp(changingTrackIndx,5) = ...
@@ -324,6 +382,8 @@ end %for track index
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             %} should really use one of the above blocks.
+        
+        
         end
         
         %A dissociation or association has occured involving the cluster
@@ -335,7 +395,7 @@ end %for track index
         %segments appearing or disappearing. The segment in column #4
         %is unknown if NaN. So in this case, a new cluster can not be
         %started.
-        if (~isnan(seqOfEvents(eventIndx,4)))
+     if (~isnan(seqOfEvents(eventIndx,4)))
             
             %The receptor's (cluster's) segment number
             clustHistoryTemp(clustHistIndx,1) = seqOfEvents(eventIndx,4);
@@ -353,60 +413,87 @@ end %for track index
             %Starting iteration point of this cluster
             clustHistoryTemp(clustHistIndx,3) = seqOfEvents(eventIndx,1);
             
+            
+                
+                            
             %Type of event starting cluster (1=dissoc., 2=assoc.)
             clustHistoryTemp(clustHistIndx,9) = seqOfEvents(eventIndx,2);
             
             %Increment saved event count
             clustHistIndx = clustHistIndx + 1;
-            
-        end
-        
+        %find if the segments ending in the last frame are also changing in the
+%middle of the comptrack
+ 
+     
         %Reset indx variables
         %changingTrackIndx = []; not needed since set on every iter.
         endingTrackIndx = [];
         
     end  %For each event in seqOfEvents
     
-%%%%%%%%
-%Modification Luciana de Oliveira
-% For question of flux, I add the modifications before and after the
-% changing clusters
 
+    end %track inde    
+        
+    
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Modification Luciana de Oliveira
 %% taking the cluster info for the segments that finish in the last frame
 
+%2016/11/01 LRO: I modificate the size of clustHistTemp and then now is
+%necessary to remove rows that are not fill with values
 
-clustHistIndxEnd=clustHistIndx;
+%remove rows with all NaNs
+iRowNaN= sum(isnan(clustHistoryTemp),2)==9;
+clustHistoryTemp(iRowNaN,:)=[];
+ 
+ % 2016/11/01 LRO: find the end of the segment if it is in the tracks
+                % that are in the end of the frames.
+                
+                segmentsNotEnd=find(isnan(clustHistoryTemp(:,4)));
+                
+                for segIndex=1:length(segmentsNotEnd)
+                    
+                segmentEnd=find(clustHistoryTemp(segmentsNotEnd(segIndex),1)==seqOfEvents(trackIndexEnd,3));
+                clustHistoryTemp(segmentsNotEnd(segIndex),4)=seqOfEvents(trackIndexEnd(segmentEnd(end)),1);
+                
+                 %Cluster lifetime
+            clustHistoryTemp(segIndex,5) = ...
+                clustHistoryTemp(segIndex,4) - clustHistoryTemp(segIndex,3);
+                end
 
-for trackIndexNew=trackIndexEnd(1):trackIndexEnd(end)
-    % track number
-    clustHistoryTemp(clustHistIndxEnd,1) = seqOfEvents(trackIndexNew,3);
-    % where it finishes
-     clustHistoryTemp(clustHistIndxEnd,4) = seqOfEvents(trackIndexNew,1);
-     
-    %where it starts
-    if ismember(seqOfEvents(trackIndexNew,3),indexchangingTracks) 
-        tempStart= seqOfEventsTemp(:,3)==seqOfEvents(trackIndexNew,3);
-        clustHistoryTemp(clustHistIndxEnd,3)=seqOfEventsTemp(tempStart,1);
+%reshuffle columns for more intuitive output
+
+ clustHistoryTemp = clustHistoryTemp(:,[1:5 9 6:8]); 
+       
+       
+%Save current clustHistory in collection
+
+clustHistoryAll{compTrackIter,1} = clustHistoryTemp;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%2016/11/02,LRO: This last part is to have the clustHistory with sampled
+%and real time
+
+ %subsample time
+    clustHistoryTempReal=clustHistoryTemp;
+    clustHistoryTempReal(:,3:4) = ceil(clustHistoryTempReal(:,3:4)/convStep);
+    clustHistoryTempReal(:,5) = clustHistoryTempReal(:,4) - clustHistoryTempReal(:,3);
+
+%convert from iterations/frames to real time units
+    clustHistoryTempReal(:,3:5) = clustHistoryTempReal(:,3:5) * sampleStep;    
+    
+%Save current clustHistory in collection
+
+clustHistoryAllReal{compTrackIter,1} = clustHistoryTempReal;
     end
-    
-    %Getting cluster size from entries in aggregState
-    
-     clustHistoryTemp(clustHistIndxEnd,2) = ...
-                 aggregState(seqOfEvents(trackIndexNew,3),...
-                 seqOfEvents(trackIndexNew,1) - frameShift + 1);
-     
-     %increase in the clustHistIndx
-       clustHistIndxEnd = clustHistIndxEnd + 1;
-        %convert from iterations/frames to real time units
-    clustHistoryTemp(:,3:5) = clustHistoryTemp(:,3:5) * sampleStep;
-    
-    %Save current clustHistory in collection
-    clustHistoryAll{compTrackIter,1} = clustHistoryTemp;
-    
-end 
 
-%%    %reshuffle columns for more intuitive output
-%     clustHistoryTemp = clustHistoryTemp(:,[1:5 9 6:8]);
-    
+end  % for each index
+ 
+%combine cluster histories for all tracks into one output variable
 
-end %Function
+ clustHistoryMerged = cat(1,clustHistoryAll{:,1});
+ end
+
+

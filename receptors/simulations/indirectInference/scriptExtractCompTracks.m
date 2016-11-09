@@ -4,13 +4,13 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/090514/probeISruns';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD4','rD10','rD16'};
+rDDir = {'rD20'};
 aPDir = {'aP0p5'};
-outDirNum = 1:5;
-lRDir = {'lR0p01','lR0p02','lR0p03','lR0p04','lR0p05','lR0p06'};
+outDirNum = 1:30;
+lRDir = {'lR0p02','lR0p04'};
 
 %Define number of label ratio
 numLabelRatio = length(lRDir);

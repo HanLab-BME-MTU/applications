@@ -5,23 +5,22 @@
 
 
 % directory with s matrix
-currDir = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20160817/results/S_PMatrix_sT25_dT0p1/target';% the name until target
+currDir = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target/results/S_PMatrix_dT0p1';% the name until target
 % title of the figure will consider the infos that are filled here for the
 % name of the target
-     rDtarget = {'rD4'};%;'rD6';'rD8';'rD10';'rD12';'rD14';'rD16'}; 
+    rDtarget = {'rD20'};%;'rD6';'rD8';'rD10';'rD12';'rD14';'rD16'}; 
     aPtarget = {'aP0p5'};
-    lRtarget = {'lR0p2'};
- 
+    lRtarget = {'lR0p02'};
     
    % values of rD, aP and lR of probe
-    rDvals = [4;6;8;10;12;14;16];
+    rDvals = [20;40;60;80;100;120;140;160];
     aPvals = [0.2;0.3;0.4;0.5;0.6;0.7;0.8];
     lRStr = {'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5'};
  
   %making figures for different lR
   for lRindx=1:length(lRStr)
 %load s matrix
-temp= load([currDir,rDtarget{1},aPtarget{1},lRtarget{1},filesep,'sMatrix.mat']);
+temp= load([currDir,filesep,rDtarget{1},aPtarget{1},lRtarget{1},filesep,'sMatrix.mat']);
 sMatrix=temp.sMatrix;
 sMatrixLog=log10(sMatrix);
 
@@ -63,7 +62,7 @@ limMinS=min(reshape(minSize,1,5));
 %Save figure
         figH = gcf;
         set(figH,'Name',lRStr{lRindx});
-        outFile = [currDir,rDtarget{1},aPtarget{1},lRtarget{1},filesep,'sMatrix_',lRStr{lRindx},'_plot'];
+        outFile = [currDir,filesep,rDtarget{1},aPtarget{1},lRtarget{1},filesep,'sMatrix_',lRStr{lRindx},'_plot'];
         saveas(figH,outFile,'png');
         saveas(figH,outFile,'fig');
         

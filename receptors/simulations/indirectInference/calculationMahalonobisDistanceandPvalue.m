@@ -1,4 +1,4 @@
-function [s,p]=comparisonTargetProbe(paramMatrixTarget,paramMatrixProbe)
+function [s,p]=calculationMahalonobisDistanceandPvalue(paramMatrixTarget,paramMatrixProbe)
 
 % This fuction calculates the Mahalanobis distance value using the target
 %and probe intermediate statistics given.
