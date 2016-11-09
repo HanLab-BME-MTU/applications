@@ -1,4 +1,46 @@
 function movieData = multiThreshMovie(movieData,paramsIn)
+%MULTITHRESHMOVIE applies multi-otsu thresholding to separate the foreground and background of an image
+%
+% movieData = multiThreshMovie(movieData,paramsIn)
+%
+% Input:
+% movieData - A MovieData object describing the movie to be processed
+%
+%   paramsIn- Structure with inputs for required and optional parameters.
+%   The parameters should be stored as fields in the structure, with the field
+%   names and possible values as described below.
+%       ChannelIndex - Number of the channel which will be used for masking
+%
+%       ThresholdValue - optional input for user chosen threshold value to
+%       mask image
+%
+%       MaxJump - If a threshold is not found for an image in a stack and
+%       MaxJump has a value greater than 0, the threshold used in the
+%       previous image will be used.
+%
+%       GaussFilterSigma- the sigma value of the gaussian smoothing filter
+%       to be used on the image. Default is no smoothing.
+%
+%       incThreshold - since the function separates an image into multiple
+%       tiers of intensity to find a threshold and the edge of the 
+%       foreground maybe poorly defined, it may occur that the
+%       threshold chosen is off by a tier. Enter the image number in the
+%       stack (or simply 1 if it's a single image) to increase the
+%       threshold by one tier.
+%
+%       decThreshold - similar to incThreshold, enter the image number (or
+%       simply 1 if it's a single image) to decrease the chosen threshold
+%       by one tier
+%
+% Output
+%       Mask - binary masks for all images are saved in a Mask folder in
+%       sub-folders dependant on the channel chosen for masking
+%
+%       Threshold values- values stored in an array indicating the
+%       thresholds used for each image
+%
+% Anthony Vega 09/2014   
+%   
 %% ----- Parameters ----- %%
 
 pString = 'mask_'; %Prefix for saving masks to file
@@ -89,7 +131,6 @@ nImTot = nImages * nChanThresh;
 maskDirs  = thresProc.outFilePaths_(p.ChannelIndex);
 imDirs  = movieData.getChannelPaths(p.ChannelIndex);
     
-% threshMethod = thresProc.getMethods(p.MethodIndx).func;
 %% ----- Thresholding ----- %%
 
 if ~p.BatchMode && feature('ShowFigureWindows')
@@ -123,7 +164,7 @@ for iChan = 1:nChanThresh
             currImage = movieData.processes_{p.ProcessIndex}.loadOutImage(p.ChannelIndex(iChan),iImage);
         end
 
-        %KJ: filter image before thesholding if requested
+        %Filter image before thresholding if requested
         if p.GaussFilterSigma > 0
             currImage = filterGauss2D(double(currImage),p.GaussFilterSigma);
         end

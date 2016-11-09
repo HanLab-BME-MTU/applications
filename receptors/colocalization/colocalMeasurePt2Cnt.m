@@ -80,9 +80,14 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd,cl
     localMask = zeros(size(ICnt));
     indexQP = sub2ind(size(localMask),roundedQP(:,1),roundedQP(:,2));
     localMask(indexQP) = 1;
+    
+    
     %% Image Processing
     % Background Subtraction and Uneven illumination correction
     corrValue = mean(ICnt(maskingFile==0));
+    if isnan(corrValue)
+        corrValue = 0;
+    end
     corrMask = corrValue*ones(size(ICnt,1),size(ICnt,2)); 
     
     compValue = mean(ICnt(maskingFile~=0));
@@ -93,6 +98,9 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd,cl
     ICnt = ICnt- corrMask;
     
     corrValue = mean(IPt(maskingFile==0));
+    if isnan(corrValue)
+        corrValue = 0;
+    end
     corrMask = corrValue*ones(size(IPt,1),size(IPt,2)); 
     compValue = mean(IPt(maskingFile~=0));
     compMask = compValue*ones(size(IPt,1),size(IPt,2));
