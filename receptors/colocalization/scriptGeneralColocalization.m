@@ -1,10 +1,10 @@
-function [] = scriptGeneralColocalization()
+function [] = scriptGeneralColocalization(test_img)
 
      %% Create Movie Data object
      % Make sure image file properties are properly set (correct number of
      % slices, channels and frames if applicable). Otherwise running
      % processes below may result in error
-        MD = MovieData('test_0001.tif'); %Indicate image file to be analyzed; all channels should be in single tiff file
+        MD = MovieData(test_img); %Indicate image file to be analyzed; all channels should be in single tiff file
      %% Initialize and add all processes
         process = SubResolutionProcess(MD); %Detection
         MD.addProcess(process);
