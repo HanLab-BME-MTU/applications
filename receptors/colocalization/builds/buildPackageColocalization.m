@@ -47,6 +47,9 @@ copyfile(test_img, out_dir);
 [a, b, c] = fileparts(test_img);
 test_img = [b c];
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Zip up package
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ---> Basically Zip up this directory now for the package.
 zip('../colocalization.zip', '../colocalization/');
 
