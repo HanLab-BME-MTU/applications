@@ -11,7 +11,10 @@ institution_name = 'UTSouthwestern';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 out_dir = fullfile(matlab_repo_root, ['builds' filesep 'colocalization'])
-
+if isdir(out_dir)
+    rmdir(out_dir, 's');
+end
+mkdir(out_dir);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Build the package
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -35,8 +38,9 @@ CopyingStatement = fullfile(matlab_repo_root,['documentation' filesep 'license' 
 GPL_license = fullfile(matlab_repo_root,['documentation' filesep 'license' filesep 'GPL-License.txt']);
 copyfile(addCopyingStatement, out_dir);
 copyfile(CopyingStatement, out_dir);
-system(['bash addCopyingStatement ' package_name ' ' institution_name]);
 copyfile(GPL_license, out_dir);
+system(['bash addCopyingStatement ' package_name ' ' institution_name]);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gather Test image
@@ -51,15 +55,27 @@ test_img = [b c];
 % Zip up package
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ---> Basically Zip up this directory now for the package.
-zip('../colocalization.zip', '../colocalization/');
+cd('../');
+zip('colocalization.zip', 'colocalization');
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Test the package build works!
+% Test the package build works in tmp dir!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+java_tmpdir = char(java.lang.System.getProperty('java.io.tmpdir'));
+uuid = java.util.UUID.randomUUID();
+uuid = char(uuid.toString());
+tmpdir = fullfile(java_tmpdir, uuid);
+mkdir(tmpdir);
+% Unzip test imagesa
+unzip('colocalization.zip', tmpdir);
+% Run
 restoredefaultpath;  % Clears out repo paths
-addpath(genpath(out_dir)); % add the build package path
+cd([tmpdir filesep 'colocalization']);
+addpath(genpath(tmpdir)); % add the build package path
 scriptGeneralColocalization(test_img);
-
+cd(out_dir);
+rmdir(tmpdir, 's');
 
 
 
