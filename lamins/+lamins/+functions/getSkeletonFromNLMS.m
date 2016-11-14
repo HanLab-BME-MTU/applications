@@ -14,8 +14,8 @@ nlms = R3.nonLocalMaximaSuppressionPrecise(original.maxima);
 nms = nlms(:,:,1);
 nlms_mip3 = nanmax(nlms,[],3);
 
-% T = thresholdOtsu(nlms_mip3);
-T = 0;
+T = thresholdOtsu(nlms_mip3);
+% T = 0;
 nlms_binary = nlms_mip3 > T;
 nms_binary = nms > T;
 % non_nms_binary = nlms_binary & ~nms_binary;
