@@ -3,7 +3,7 @@
 % Build on BioHPC - Linux
 % matlab_repo_root = '/home2/s170480/matlab/'
 % Build on Andrew's Windows 10 machine
-matlab_repo_root = 'C:\Users\Andrew\GIT\matlab\';
+matlab_repo_root = '/home2/avega/matlab';
 package_name = 'colocalization';
 institution_name = 'UTSouthwestern';
 
@@ -65,7 +65,7 @@ end
 % Gather Test image
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % move test image to build package dir.
-test_img = 'C:\Users\Andrew\Data\raw\Tony\Colocalization\test_0001.tif';
+test_img = '/home2/avega/Documents/test_0001.tif';
 copyfile(test_img, out_dir); 
 [a, b, c] = fileparts(test_img);
 test_img_name = [b c];

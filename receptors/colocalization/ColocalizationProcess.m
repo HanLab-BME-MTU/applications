@@ -39,14 +39,8 @@ classdef ColocalizationProcess < ImageAnalysisProcess
         end
 
         function methods = getMethods(varargin)
-            colocalizationMethods(1).name = 'Point2Point';
-            colocalizationMethods(1).func = @colocalMeasurePt2Pt;
-            colocalizationMethods(2).name = 'Point2Continuum';
-            colocalizationMethods(2).func = @colocalMeasurePt2Cnt;
-            colocalizationMethods(3).name = 'Continuum2Continuum';
-            colocalizationMethods(3).func = @colocalMeasureCnt2Cnt;
-            colocalizationMethods(4).name = 'Point2Object';
-            colocalizationMethods(4).func = @colocalMeasurePt2Obj;            
+            colocalizationMethods(1).name = 'Point2Continuum';
+            colocalizationMethods(1).func = @colocalMeasurePt2Cnt;            
             
             ip=inputParser;
             ip.addOptional('index',1:length(colocalizationMethods),@isvector);
@@ -71,7 +65,6 @@ classdef ColocalizationProcess < ImageAnalysisProcess
             funParams.RandomRuns =1;
             funParams.OutputDirectory = [outputDir  filesep];
             funParams.ProcessIndex = [];
-            funParams.MethodIndx = 2;
         end
     end
 end

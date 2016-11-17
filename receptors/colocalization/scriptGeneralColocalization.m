@@ -1,4 +1,4 @@
-function [] = scriptGeneralColocalization(test_img)
+function [MD] = scriptGeneralColocalization(test_img)
 
      %% Create Movie Data object
      % Make sure image file properties are properly set (correct number of
@@ -38,13 +38,17 @@ function [] = scriptGeneralColocalization(test_img)
     %% Colocalization
     % The core function used for colocalization analysis is
     % colocalMeasurePt2Cnt
+    % Note: Colocalization Reuks
         p = MD.getProcess(3).getParameters();
         p.ChannelRef = 2; %Punctate channel which underwent detection process
         p.ChannelObs = 3; %Continuum channel
-        p.ChannelMask = 2; %Channel that was masked
+        p.ChannelMask = 3; %Channel that was masked
         p.SearchRadius = 2; %Radius around detection used for analysis
         p.RandomRuns = 1;% Number of times randomized data is analyzed
         MD.getProcess(3).setParameters(p);
         MD.getProcess(3).run;
+        
+        
+        
 
 end
