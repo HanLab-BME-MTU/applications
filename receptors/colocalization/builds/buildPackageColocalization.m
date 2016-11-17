@@ -3,9 +3,11 @@
 % Build on BioHPC - Linux
 % matlab_repo_root = '/home2/s170480/matlab/'
 % Build on Andrew's Windows 10 machine
-matlab_repo_root = '/home2/avega/matlab';
-package_name = 'colocalization';
-institution_name = 'UTSouthwestern';
+
+matlab_repo_root = [getenv('HOME') filesep 'matlab'];
+package_name = 'ColocP2C';
+institution_name = 'Jaqaman & Danuser Labs - UTSouthwestern';
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Set output path for package build files
@@ -21,9 +23,11 @@ if exist(out_dir, 'dir') == 7
     choice = questdlg(['Remove old build dir?'],'Question..','Yes','No','Yes');
     if strcmp(choice, 'Yes')
     	rmdir(out_dir, 's');
+    	pause(.25);
+    	rehash(); % weird issue with matlab rmdir?
     end
 end
-
+rehash();
 mkdir(out_dir);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,11 +57,15 @@ copyfile(GPL_license, out_dir);
 
 if strcmp(computer('arch'),'win64')
     disp('Win64');
-    msgbox(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"'])
+    disp(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']);
+    uiwait(msgbox(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']));
     winopen(out_dir);
     system('C:\Program Files\Git\git-bash.exe');
 else
-	system(['bash addCopyingStatement ' package_name ' ' institution_name]);
+	disp(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']);
+	disp(['in this directory          : ' out_dir])
+	uiwait(msgbox(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']));
+	% system(['bash addCopyingStatement ' package_name ' ' institution_name]);
 end
 
 
@@ -101,7 +109,13 @@ if strcmp(choice, 'Yes')
 	scriptGeneralColocalization(test_img_name);
     cd(start_dir);
 	restoredefaultpath;
-	rmdir(tmpdir, 's');
+	try
+        rmdir(tmpdir, 's');
+    	pause(.25);
+    	rehash(); % weird issue with matlab rmdir?
+    catch ee
+         disp(['unable to delete tmp dir' tmpdir]);
+    end
 end
 
 addpath(start_paths);
