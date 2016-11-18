@@ -1,5 +1,3 @@
-function [] = scriptMultiChannelColocalization
-
 
 %% Colocalization
 % The core function used for colocalization analysis is colocalMeasurePt2Cnt
@@ -28,4 +26,3 @@ visual = 1; %Shows boxplot visual of continuum enrichment at punctate detections
 % Save results
 mkdir([p.OutputDirectory 'MultiChannelColocalization' ])
 save([p.OutputDirectory 'MultiChannelColocalization/mccResults' ],'occupHigh','lowColoc','highColoc')
-end
