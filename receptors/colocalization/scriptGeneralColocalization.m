@@ -1,4 +1,3 @@
-function [MD] = scriptGeneralColocalization%(test_img)
 
 %% Create Movie Data object
 MD = MovieData('/home2/avega/Documents/test_0001.tif'); %Indicate image file to be analyzed; all channels should be in single tiff file
@@ -48,4 +47,3 @@ MD.getProcess(3).run;
         
         
 
-end
