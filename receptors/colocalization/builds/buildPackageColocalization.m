@@ -41,8 +41,9 @@ for i = 1:length(repo_dirs)
     disp(['Adding ' cur_dir]);
     addir(cur_dir);
 end
-
-buildPackage('scriptGeneralColocalization.m', out_dir);
+cellScript{1} = 'scriptGeneralColocalization.m';
+cellScript{2} = 'scriptMultiChannelColocalization.m';
+buildPackage(cellScript, out_dir);
 cd(out_dir); % check results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Add license 
@@ -68,7 +69,7 @@ else
 	% system(['bash addCopyingStatement ' package_name ' ' institution_name]);
 end
 
-
+%{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gather Test image
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,7 +78,7 @@ test_img = '/home2/avega/Documents/test_0001.tif';
 copyfile(test_img, out_dir); 
 [a, b, c] = fileparts(test_img);
 test_img_name = [b c];
-
+%}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Zip up package
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -106,7 +107,8 @@ if strcmp(choice, 'Yes')
 	restoredefaultpath;  % Clears out repo paths
 	addpath(genpath(tmpdir)); % add the build package path
 	cd([tmpdir filesep package_name]);
-	scriptGeneralColocalization(test_img_name);
+	scriptGeneralColocalization
+    scriptMultiChannelColocalization
     cd(start_dir);
 	restoredefaultpath;
 	try
