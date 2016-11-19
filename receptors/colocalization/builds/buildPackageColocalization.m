@@ -69,16 +69,16 @@ else
 	% system(['bash addCopyingStatement ' package_name ' ' institution_name]);
 end
 
-%{
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Gather Test image
+% Add Test image
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % move test image to build package dir.
 test_img = '/home2/avega/Documents/test_0001.tif';
 copyfile(test_img, out_dir); 
 [a, b, c] = fileparts(test_img);
 test_img_name = [b c];
-%}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Zip up package
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
