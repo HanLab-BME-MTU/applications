@@ -19,6 +19,9 @@ analyzeBleaching(data);
 lftRes = runLifetimeAnalysis(data);
 track = loadTracks(data(1));
 
+
+here is my change
+
 plotLifetimes(lftRes);
 plotTrack(data(1), track(1));
 plotIntensityCohorts(data);
