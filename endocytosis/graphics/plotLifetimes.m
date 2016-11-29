@@ -12,7 +12,7 @@ function h = plotLifetimes(lftRes, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addParamValue('DisplayMode', '');
+ip.addParamValue('DisplayMode', 'screen');
 ip.addParamValue('ShowExpFits', false, @islogical);
 ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('ShowCargoDependent', true, @islogical);
