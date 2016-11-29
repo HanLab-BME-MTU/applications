@@ -13,7 +13,8 @@ epiTIRFData_dir = fullfile(data_root, ['epi_tirf' filesep 'Zuzana_arpe_clc_egfp_
 data = loadConditionData(cmeData_dir, {''}, {'EGFP'});
 cmeAnalysis(data);
 ccpSorter(data);
-cmeDataViewer(data);
+cmeDataViewer(data(1));
+cmeDataViewer(data(2));
 analyzeBleaching(data);
 lftRes = runLifetimeAnalysis(data);
 track = loadTracks(data(1));

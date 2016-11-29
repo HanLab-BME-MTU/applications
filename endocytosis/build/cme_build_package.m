@@ -1,8 +1,8 @@
 
 if strcmp(computer('arch'),'win64')
-	data_root_win10 = 'C:\Users\Andrew\Data\CME\xinxin\';
+	data_root = 'C:\Users\Andrew\Data\raw\CME\xinxin\auto_test\';
 else
-	data_root = '/work/bioinformatics/s170480/Data/CME/xinxin/';
+	data_root = '/work/bioinformatics/s170480/Data/CME/xinxin/auto_test/';
 end	
 
 cmeData_dir = fullfile(data_root, ['single_channel' filesep 'Zuzana_ARPE_CLC_egfp_07032014_control']);
