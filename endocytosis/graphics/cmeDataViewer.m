@@ -905,7 +905,7 @@ set(hz, 'ActionPostCallback', @czoom);
         if ~isempty(cellMask) && get(maskCheckbox, 'Value')
             B = bwboundaries(cellMask);
             for ci = 1:numel(handles.fPanels);
-                hms = [hms; cellfun(@(i) plot(handles.fAxes(ci,1), i(:,2), i(:,1), 'Color', 'r', 'LineWidth', 1), B)]; %#ok<AGROW>
+                hms = [hms; cellfun(@(i) plot(handles.fAxes(ci,1), i(:,2), i(:,1), 'Color', 'r', 'LineWidth', 1), B, 'UniformOutput', false)]; %#ok<AGROW>
             end
         end
         
@@ -1129,8 +1129,7 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function frameSlider_Callback(~, eventdata)
-        obj = get(eventdata, 'AffectedObject'); % this contains the current, continuous value
-        fidx = round(get(obj, 'Value'));
+        fidx = round(eventdata.AffectedObject.Value);
         updateSlice();
     end
 
@@ -1141,8 +1140,8 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function trackSlider_Callback(~, eventdata)
-        obj = get(eventdata, 'AffectedObject');
-        t0 = round(get(obj, 'Value')); % slider index
+%         obj = eventdata.AffectedObject;
+        t0 = round(eventdata.AffectedObject.Value); % slider index
         tmp = find(trackIndex.selected);
         trackIndex.current = tmp(t0);
         updateTrack();
@@ -1433,8 +1432,8 @@ set(hz, 'ActionPostCallback', @czoom);
         restoreFocus();
         
         function minSlider_Callback(~, eventdata)
-            obj = get(eventdata, 'AffectedObject');
-            minVal = round(get(obj, 'Value'));
+%             obj = get(eventdata, 'AffectedObject');
+            minVal = round(eventdata.AffectedObject.Value);
             if minVal >= maxVal
                 minVal = maxVal;
                 set(minLftSlider, 'Value', minVal);
@@ -1443,8 +1442,8 @@ set(hz, 'ActionPostCallback', @czoom);
         end
         
         function maxSlider_Callback(~, eventdata)
-            obj = get(eventdata, 'AffectedObject');
-            maxVal = round(get(obj, 'Value'));
+%             obj = get(eventdata, 'AffectedObject');
+            maxVal = round(eventdata.AffectedObject.Value);
             if maxVal <= minVal
                 maxVal = minVal;
                 set(maxLftSlider, 'Value', maxVal);
