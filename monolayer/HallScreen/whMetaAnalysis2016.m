@@ -10,8 +10,8 @@ addpath(genpath('/home2/azaritsky/code/applications/monolayer/HallScreen/'));
 
 if nargin == 0
     %% Screen    
-    mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/';
-    metaDataFname = 'GEFScreenFinal20160526_RHOA_kd50.mat';
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/';
+    %     metaDataFname = 'GEFScreenFinal20160526_RHOA_kd50.mat';
     
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200/';
     %     metaDataFname = 'GEFScreenFinal20160526_kd50.mat';
@@ -20,6 +20,9 @@ if nargin == 0
     %     metaDataFname = 'GEFScreenFinal20160513_kd0.mat';
     
     %% Followups, screen + followups    
+    mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll20161101/';
+    metaDataFname = 'GEFProjectAll20160523_kd0.mat'; % this is the real "age" of the data
+    
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll20160523/';
     %     metaDataFname = 'GEFProjectAll20160523_kd0.mat';
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20160523/';

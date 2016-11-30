@@ -37,4 +37,27 @@ set(axisHandle,'Position',APosition,'box','off','XMinorTick','off','TickDir','ou
 set(get(axisHandle,'XLabel'),'FontSize',fontsize); set(get(axisHandle,'YLabel'),'FontSize',fontsize);
 hold off;
 export_fig([figDname 'controlNormalizedFeatures.eps']);
+
+h = figure; 
+imagesc(outControls.speed.feats(:,randperm(n))); 
+hold on;
+colormap('jet'); 
+caxis([0,60]);
+colorbar; 
+xlabel('Experiments','FontSize',fontsize);
+ylabel('Features','FontSize',fontsize);
+haxes = get(h,'CurrentAxes');
+% set(haxes,'XLim',[1,25]);
+set(haxes,'XTick',100:100:300);
+set(haxes,'XTickLabel',100:100:300);
+% set(haxes,'YLim',[-0.07,0.83]);
+% set(haxes,'YTick',0:0.4:0.8);
+set(haxes,'YTickLabel',[]);
+set(h,'Color','w');
+set(h,'Position',FPosition,'PaperPositionMode','auto');
+axisHandle= findobj(h,'type','axes');
+set(axisHandle,'Position',APosition,'box','off','XMinorTick','off','TickDir','out','YMinorTick','off','FontSize',fontsize,'LineWidth',2);
+set(get(axisHandle,'XLabel'),'FontSize',fontsize); set(get(axisHandle,'YLabel'),'FontSize',fontsize);
+hold off;
+export_fig([figDname 'controlFeatures.eps']);
 end
