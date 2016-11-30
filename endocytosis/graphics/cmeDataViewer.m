@@ -18,11 +18,11 @@ function cmeDataViewer(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('LoadTracks', true, @islogical);
-ip.addParamValue('LoadFrames', true, @islogical);
-ip.addParamValue('LoadMask', true, @islogical);
-ip.addParamValue('RelativePath', 'Tracking', @ischar);
-ip.addParamValue('Cutoff_f', 3);
+ip.addParameter('LoadTracks', true, @islogical);
+ip.addParameter('LoadFrames', true, @islogical);
+ip.addParameter('LoadMask', true, @islogical);
+ip.addParameter('RelativePath', 'Tracking', @ischar);
+ip.addParameter('Cutoff_f', 3);
 ip.parse(data, varargin{:});
 
 % Handles/settings are stored in 'appdata' of the figure handle
@@ -1078,7 +1078,7 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function tplotOverlay_Callback(varargin)
-        if get(tplotOverlayCheckbox, 'Value');
+        if get(tplotOverlayCheckbox, 'Value')
             setupTrackAxes(1);
         else
             setupTrackAxes(nCh);

@@ -107,8 +107,8 @@ contour(p.x,p.y,p.cdf,20);
 %
 
 % Check input and output
-error(nargchk(1,2,nargin));
-error(nargoutchk(0,1,nargout));
+narginchk(1,2);
+nargoutchk(0,1);
 [nr, nc] = size(x);
 if nr ~= 2 && nc ~= 2
     error('Bivariate data required!');
