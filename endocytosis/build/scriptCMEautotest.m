@@ -10,15 +10,16 @@ epiTIRFData_dir = fullfile(data_root, ['epi_tirf' filesep 'Zuzana_arpe_clc_egfp_
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-data = loadConditionData(cmeData_dir, {''}, {'EGFP'});
-cmeAnalysis(data);  
-ccpSorter(data); % xinxin
-cmeDataViewer(data(1)); % xinxin
-cmeDataViewer(data(2));
-analyzeBleaching(data(1));
-[lftRes, res] = runLifetimeAnalysis(data);
+data = loadConditionData(cmeData_dir, {''}, {'EGFP'}); %[works]
+cmeAnalysis(data);  %[works] 
+ccpSorter(data); % xinxin [works]
+cmeDataViewer(data(1)); % xinxin [works]
+cmeDataViewer(data(2)); % xinxin [works]
+analyzeBleaching(data(1)); % one movie at a time.
+analyzeBleaching(data(2)); % one movie at a time.
+[lftRes, res] = runLifetimeAnalysis(data);  % works - error bar fixes
 
-plotLifetimes(lftRes);
+plotLifetimes(lftRes);  % works
 
 track_num = 1;
 movie_num = 1;

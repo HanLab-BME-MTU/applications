@@ -904,7 +904,7 @@ set(hz, 'ActionPostCallback', @czoom);
         hms = [];
         if ~isempty(cellMask) && get(maskCheckbox, 'Value')
             B = bwboundaries(cellMask);
-            for ci = 1:numel(handles.fPanels);
+            for ci = 1:numel(handles.fPanels)
                 hms = [hms; cellfun(@(i) plot(handles.fAxes(ci,1), i(:,2), i(:,1), 'Color', 'r', 'LineWidth', 1), B, 'UniformOutput', false)]; %#ok<AGROW>
             end
         end
@@ -932,6 +932,7 @@ set(hz, 'ActionPostCallback', @czoom);
         if ~isempty(tracks) && fidx~=1 && get(trackCheckbox, 'Value') && any(~isnan(X(fidx,:)) & trackIndex.selected(trackIndex.segmentIndex))
             vidx = ~isnan(X(fidx,:)) & trackIndex.selected(trackIndex.segmentIndex);
             delete(hpt);
+%             set(handles.fAxes(1,1), 'ColorOrder', trackColormap(trackIndex.segmentIndex(vidx),:));
             set(handles.fAxes(1,1), 'ColorOrder', trackColormap(trackIndex.segmentIndex(vidx),:));
             hpt = plot(handles.fAxes(1,1), X(1:fidx,vidx), Y(1:fidx,vidx), 'HitTest', 'off');
             if get(gapCheckbox, 'Value')
@@ -1752,6 +1753,9 @@ set(hz, 'ActionPostCallback', @czoom);
         f0 = figure(fopts{:});
         colormap(gray(256));
         ha = axes('Position', [0 0 1 1]);
+        if ~strcmp(computer('arch'),'win64')
+            movieFrames(1:nf) = getframe(f0); % Pre-allocate movie struct array
+        end
         for ci = 1:maxCh
             fprintf('Generating movie frames:     ');
             for fi = 1:nf
@@ -1819,8 +1823,15 @@ set(hz, 'ActionPostCallback', @czoom);
                 end
                 
                 axis(ha, 'off');
-                print(f0, '-dpng', '-loose', ['-r' num2str(1*72)], [fpath 'frame' num2str(fi, fmt) '_ch' num2str(ci) '.png']);
-                %print(h, '-djpeg100', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
+                
+                if ~strcmp(computer('arch'),'win64')
+
+                    print(f0, '-dpng', '-loose', ['-r' num2str(1*72)], [fpath 'frame' num2str(fi, fmt) '_ch' num2str(ci) '.png']);
+                    %print(h, '-djpeg100', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
+                else
+                    movieFrames(fi) = getframe(f0);
+                end
+                
                 cla(ha);
                 fprintf('\b\b\b\b%3d%%', round(100*fi/nf));
 
@@ -1830,19 +1841,20 @@ set(hz, 'ActionPostCallback', @czoom);
         fprintf(['Frames saved to ' getShortPath(data) 'Movies' filesep 'Frames.\n']);
         close(f0);
         
-        % side-by-side frame arrangement
-        for fi = 1:nf
-            % channel frames
-            cpath = arrayfun(@(ci) [fpath 'frame' num2str(fi, fmt) '_ch' num2str(ci) '.png '], 1:nCh, 'unif', 0);
-            fname = [fpath 'montage' num2str(fi, fmt) '.png'];
-            
-            cmd = ['export DYLD_LIBRARY_PATH=""; montage -geometry +3+3+0+0 -background "rgb(255,255,255)" '...
-                [cpath{:}] ' -compress lzw ' fname];
-            system(cmd);
-            cmd = ['export DYLD_LIBRARY_PATH=""; convert ' fname ' -shave 3x3 -depth 8 ' fname];
-            system(cmd);
-        end
-        
+        if isunix
+            % side-by-side frame arrangement
+            for fi = 1:nf
+                % channel frames
+                cpath = arrayfun(@(ci) [fpath 'frame' num2str(fi, fmt) '_ch' num2str(ci) '.png '], 1:nCh, 'unif', 0);
+                fname = [fpath 'montage' num2str(fi, fmt) '.png'];
+                
+                cmd = ['export DYLD_LIBRARY_PATH=""; montage -geometry +3+3+0+0 -background "rgb(255,255,255)" '...
+                    [cpath{:}] ' -compress lzw ' fname];
+                system(cmd);
+                cmd = ['export DYLD_LIBRARY_PATH=""; convert ' fname ' -shave 3x3 -depth 8 ' fname];
+                system(cmd);
+            end
+        end        
         % Generate movie, if on a unix system with ffmpeg
         if isunix && ~system('which ffmpeg >/dev/null 2>&1')
             fprintf('Generating movie ... ');
@@ -1857,7 +1869,12 @@ set(hz, 'ActionPostCallback', @czoom);
             
             fprintf(' done.\n');
         else
-            fprintf('A unix system with ffmpeg installed is required to generate movies automatically.\n');
+           fprintf('A unix system with ffmpeg installed is required to generate ffmeg movies automatically.\n');
+           disp('Creating AVI movie instead of ffmeg unix based movie!')
+           v = VideoWriter([fpath 'MovieCME.avi']);
+           open(v);
+           writeVideo(v, movieFrames);
+           close(v);         
         end
         restoreFocus();
     end
