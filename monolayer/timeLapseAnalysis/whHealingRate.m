@@ -55,8 +55,13 @@ set(haxes,'YTickLabel',0:20:maxSpeed);
 set(haxes,'FontSize',32);
 hold off;
 % eval(sprintf('print -dbmp16m  %s', healingRateFname));
-export_fig_biohpc(healingRateFname);
 
+% for building package
+% if isunix
+% export_fig_biohpc(healingRateFname); % change 
+% else
+print(healingRateFname, '-dpdf');
+% end
 
 save(healingRateMetaFname,'averageHealingRate','healingRate');
 end

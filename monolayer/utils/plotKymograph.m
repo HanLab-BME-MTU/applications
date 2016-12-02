@@ -43,5 +43,6 @@ set(haxes,'FontSize',params.fontsize);
 xlabel('Time (minutes)','FontSize',params.fontsize); ylabel('Distance from edge (\mum)','FontSize',params.fontsize);
 set(h,'Color','w');
 hold off;
-export_fig(params.fname); % _biohpc did not work (Nov. 2016)
+% export_fig(params.fname); % _biohpc did not work (Nov. 2016)
+print(params.fname, '-dpdf'); % use MATLAB figure image save for packaging purposes
 end

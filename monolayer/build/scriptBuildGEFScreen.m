@@ -44,7 +44,8 @@ for i = 1:length(repo_dirs)
     disp(['Adding ' cur_dir]);
     addir(cur_dir);
 end
-ScriptIn = 'testScript_assaf.m';
+ScriptIn(1) = {'testScript_assaf.m'};
+ScriptIn(2) = {'export_fig.m'};
 buildPackage(ScriptIn, out_dir);
 cd(out_dir); % check results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,7 +128,7 @@ if strcmp(choice, 'Yes')
 		copyfile(test_img, out_dir); 	
 	end
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	cd(out_dir);
+% 	cd(out_dir);
 	testScript_assaf(test_img_name);
 	uiwait(msgbox(['Please check the analysis output...:' out_dir]));
 	restoredefaultpath;	
