@@ -7,7 +7,8 @@ if strcmp(computer('arch'),'win64')
 else
 	matlab_repo_root = [getenv('HOME') filesep 'matlab'];
 end
-package_name = 'LCH';
+
+package_name = 'GEFScreen';
 institution_name = 'Danuser Lab - UTSouthwestern';
 start_paths = path;
 start_dir = pwd;

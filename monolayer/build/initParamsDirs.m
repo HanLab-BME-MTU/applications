@@ -125,7 +125,6 @@ dirs.correctMotion = [dirs.main 'correctMotion' filesep];
 
 %% Create local directories
 if ~exist(dirs.dirname,'dir')
-%     unix(sprintf('mkdir %s',dirs.dirname));
     mkdir(dirs.dirname);
 end
 
@@ -144,7 +143,6 @@ end
 if ~exist(dirs.mfDataOrig,'dir')
     mkdir(dirs.mfDataOrig);
 end
-
 
 if ~exist(dirs.mfScores,'dir')
     mkdir(dirs.mfScores);
