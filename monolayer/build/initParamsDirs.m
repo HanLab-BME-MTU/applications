@@ -125,81 +125,82 @@ dirs.correctMotion = [dirs.main 'correctMotion' filesep];
 
 %% Create local directories
 if ~exist(dirs.dirname,'dir')
-    unix(sprintf('mkdir %s',dirs.dirname));
+%     unix(sprintf('mkdir %s',dirs.dirname));
+    mkdir(dirs.dirname);
 end
 
 if ~exist(dirs.images,'dir')
-    unix(sprintf('mkdir %s',dirs.images));
+    mkdir(dirs.images);
 end
 
 if ~exist(dirs.mf,'dir')
-    unix(sprintf('mkdir %s',dirs.mf));
+    mkdir(dirs.mf);
 end
 
 if ~exist(dirs.mfData,'dir')
-    unix(sprintf('mkdir %s',dirs.mfData));
+    mkdir(dirs.mfData);
 end
 
 if ~exist(dirs.mfDataOrig,'dir')
-    unix(sprintf('mkdir %s',dirs.mfDataOrig));
+    mkdir(dirs.mfDataOrig);
 end
 
 
 if ~exist(dirs.mfScores,'dir')
-    unix(sprintf('mkdir %s',dirs.mfScores));
+    mkdir(dirs.mfScores);
 end
 
 if ~exist(dirs.mfBilateral,'dir')
-    unix(sprintf('mkdir %s',dirs.mfBilateral));
+    mkdir(dirs.mfBilateral);
 end
 
 if ~exist(dirs.mfVis,'dir')
-    unix(sprintf('mkdir %s',dirs.mfVis));
+    mkdir(dirs.mfVis);
 end
 
 if ~exist(dirs.roi,'dir')
-    unix(sprintf('mkdir %s',dirs.roi));
+    mkdir(dirs.roi);
 end
 
 if ~exist(dirs.roiData,'dir')
-    unix(sprintf('mkdir %s',dirs.roiData));
+    mkdir(dirs.roiData);
 end
 
 if ~exist(dirs.roiVis,'dir')
-    unix(sprintf('mkdir %s',dirs.roiVis));
+    mkdir(dirs.roiVis);
 end
 
 if ~exist(dirs.coordination,'dir')
-    unix(sprintf('mkdir %s',dirs.coordination));
+    mkdir(dirs.coordination);
 end
 
 %% Global directories
 if ~exist(dirs.kymographs,'dir')
-    unix(sprintf('mkdir %s',dirs.kymographs));
+    mkdir(dirs.kymographs);
 end
 
 if ~exist(dirs.speedKymograph,'dir')
-    unix(sprintf('mkdir %s',dirs.speedKymograph));
+    mkdir(dirs.speedKymograph);
 end
 
 if ~exist(dirs.directionalityKymograph,'dir')
-    unix(sprintf('mkdir %s',dirs.directionalityKymograph));
+    mkdir(dirs.directionalityKymograph);
 end
 
 if ~exist(dirs.coordinationKymograph,'dir')
-    unix(sprintf('mkdir %s',dirs.coordinationKymograph));
+    mkdir(dirs.coordinationKymograph);
 end
 
 if ~exist(dirs.healingRate,'dir')
-    unix(sprintf('mkdir %s',dirs.healingRate));
+    mkdir(dirs.healingRate);
 end
 
 if ~exist(dirs.segmentation,'dir')
-    unix(sprintf('mkdir %s',dirs.segmentation));
+    mkdir(dirs.segmentation);
 end
 
 if ~exist(dirs.correctMotion,'dir')
-    unix(sprintf('mkdir %s',dirs.correctMotion));
+    mkdir(dirs.correctMotion);
 end
 
 %% create images in directory

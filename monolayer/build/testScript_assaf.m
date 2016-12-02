@@ -1,6 +1,8 @@
-function [] = testScript(filename,params)
+function testScript_assaf(filename,params)
 
-
+p = inputParser;
+p.addRequired('filename', @(x)validateattributes(x,{'char'},{'nonempty'}));
+p.addOptional('params', @(x)validateattributes(x,{'struct'},{'nonempty'}));
 
 if nargin < 2
     params.timePerFrame = 5;
