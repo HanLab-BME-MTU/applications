@@ -55,14 +55,14 @@ for t = 1 : params.nTime - params.frameJump
     caxis([0.995,1]); colorbar;
     
     %     eval(sprintf('print -djpeg %s', outputFile));
-    if isunix
-        outputFile = [dirs.mfScores sprintf('%03d',t) '_score.eps'];
-        export_fig_biohpc(outputFile);
-    else
-        disp('Exporting figure via MATLAB print -dpdf on Win (instead of export_fig)');
+    % if isunix
+    %     outputFile = [dirs.mfScores sprintf('%03d',t) '_score.eps'];
+    %     export_fig_biohpc(outputFile);
+    % else
+        disp('Exporting figure via MATLAB print -dpdf (instead of export_fig)');
         outputFile = [dirs.mfScores sprintf('%03d',t) '_score'];
         print(outputFile, '-dpdf')
-    end
+    % end
     close all;
 end
 end
