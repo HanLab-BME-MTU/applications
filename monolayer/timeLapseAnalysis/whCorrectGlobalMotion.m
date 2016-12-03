@@ -9,11 +9,11 @@ function [] = whCorrectGlobalMotion(params,dirs)
 % move back to original files
 if exist([dirs.mfDataOrig filesep '001_mf.mat'],'file')    
     % unix(sprintf('cp -R %s %s',[dirs.mfDataOrig '*.mat'],dirs.mfData));
-    copyfile([dirs.mfDataOrig '*.mat'], dirs.mfData));
+    copyfile([dirs.mfDataOrig '*.mat'], dirs.mfData);
 end
     
 % unix(sprintf('cp -R %s %s',[dirs.mfData '*.mat'],dirs.mfDataOrig));
-copyfile([dirs.mfData '*.mat'], dirs.mfDataOrig));
+copyfile([dirs.mfData '*.mat'], dirs.mfDataOrig);
 
 
 correctionsDx = [];
