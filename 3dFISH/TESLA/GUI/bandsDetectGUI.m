@@ -99,12 +99,18 @@ else if size(image,3) == 3
     end
 end
 
-% handles.imInput = image;
 axes(handles.axes1);
 imshow(image,[]);
 title('Input Image');
 
+set(handles.note, 'String', '');
 set(handles.adjImage, 'Enable', 'on');
+set(handles.run, 'Enable', 'off');
+set(handles.addBands, 'Enable', 'off');
+set(handles.delBands, 'Enable', 'off');
+set(handles.setLadders, 'Enable', 'off');
+set(handles.calc, 'Enable', 'off');
+set(handles.savefig, 'Enable', 'off');
 guidata(hObject,handles);
 
 % --- Executes on button press in adjImage.
@@ -118,7 +124,7 @@ image = imread(imagePath);
 axes(cla(handles.axes2));
 imshow(image,[]);
 
-set(handles.note, 'String', 'Please crop the region of interest with ladders on the left side. Then double click to confirm', 'FontSize', 15);
+set(handles.note, 'String', 'Please crop the region of interest. Then double click on image to confirm', 'FontSize', 15);
 imInput=imcrop(handles.axes2);
 
 % Imcomplement the image if its background is white
@@ -128,10 +134,10 @@ if mean(IM(:)) > 0.5
     IM = imcomplement(mat2gray(IM));
 end
 
-adjIM = imadjust(IM,[min(IM(:)),max(IM(:))], [0,1]);
-[X,Y] = meshgrid(1:size(adjIM,2), 1:size(adjIM,1));
-[fineX,fineY] = meshgrid(1:.2:size(adjIM,2), 1:.2:size(adjIM,1));
-fineIM = interp2(X,Y,adjIM,fineX,fineY);
+adjIM = imadjust(IM,[min(IM(:)), max(IM(:))], [0,1]);
+[X, Y] = meshgrid(1:size(adjIM,2), 1:size(adjIM,1));
+[fineX, fineY] = meshgrid(1:.2:size(adjIM,2), 1:.2:size(adjIM,1));
+fineIM = interp2(X, Y, adjIM, fineX, fineY);
 
 axes(handles.axes2);
 imshow(imcomplement(fineIM),[]);
@@ -156,21 +162,29 @@ bandMap = handles.bandMap;
 % markerBoundary = handles.markerBoundary;
 set(handles.note, 'String', '');
 
+% Show preliminary detected result for manual modification
+bandMapPlot(fIM, bandMap, handles);
 % Marker lane is required to be on the left
 set(handles.note, 'String', 'Click to define the left boundary of ladders');
-[markerBoundaryLeft, limitXA] = ginput(1);
+[ladder.left, limitXA] = ginput(1);
+if ladder.left < 0 || ladder.left > size(fIM,2)
+    errordlg('Invalid input. Please try again', 'Error');
+    return
+end
 hold on
 yAxis = ylim;
-plot(markerBoundaryLeft * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+plot(ladder.left * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
 
 set(handles.note, 'String', 'Click to define the right boundary of ladders');
-[markerBoundaryRight, limitXB] = ginput(1);
+[ladder.right, limitXB] = ginput(1);
+if ladder.right < 0 || ladder.right > size(fIM,2)
+    errordlg('Invalid input. Please try again', 'Error');
+    return
+end
 hold on
 yAxis = ylim;
-plot(markerBoundaryRight * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
-
-handles.markerBoundaryRight = markerBoundaryRight;
-
+plot(ladder.right * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+hold off
 
 prompt = {'Enter the number of marker bands:', 'Enter the marker size (From top to bottom, separated by comma):'};
 dlg_title = 'Input';
@@ -202,7 +216,7 @@ markerSize = str2num(markerSet{2})';
 markerPos = zeros(markerNum, 1);
 markerCount = 0;
 for markerY = 1:size(fIM,1)
-    for markerX = 1:round(markerBoundary)
+    for markerX = round(ladder.left):round(ladder.right)
         if bandMap(markerY, markerX) == 1
             markerCount = markerCount + 1;
             markerPos(markerCount) = markerY;
@@ -227,6 +241,7 @@ end
 %         return
 % end
 
+handles.ladder = ladder;
 handles.shortThresh = str2num(shortThresh{:});
 handles.markerNum = markerNum;
 handles.markerPos = markerPos;
@@ -251,7 +266,7 @@ title('Cropped Image');
 
 % Lanes and bands detection
 bandMap = zeros(size(fIM));
-% Project all pixels intensity to x axis
+% Project all pixels intensity to the bottom
 intensityProfile = zeros(1,size(fIM,2));
 for j = 1:size(fIM,2)
     for i = 1:size(fIM,1)
@@ -260,11 +275,6 @@ for j = 1:size(fIM,2)
 end
 % figure, plot(intensityProfile),title('Intensity Profile of filtered image')
 
-% Should all range relavant calculations be normalized???
-% Instead of pointing out the center, can you watershed out a range that
-% indicates bands???
-
-% Lanes and bands detection.
 % Carefully adjust laneThresh and bandThresh
 laneThresh = 0.01*(max(intensityProfile)-min(intensityProfile));
 laneCenterLoc = find(~watershed(imhmin(intensityProfile,laneThresh)));
@@ -285,8 +295,8 @@ for k = 1:length(laneCenterLoc)
     %figure,plot(laneCenter)
     %findpeaks(laneCenter)
     
-    % Needs smarter threshold to eliminate the noise without hurting peaks
-    % Determine the sensitivity of bands detection
+    % Needs smarter threshold to eliminate the noise without missing peaks
+    % Determine the sensitivity score of bands detection
     bandThresh = 0.03*(max(bandProfile)-min(bandProfile));
     bandLoc = find(~watershed(imhmin(bandProfile,bandThresh)));
     
@@ -301,16 +311,8 @@ end
 % Show preliminary detected result for manual modification
 bandMapPlot(fIM, bandMap, handles);
 
-% Marker lane is required to be on the left
-set(handles.note, 'String', 'Click to define the boundary between ladders and telomere bands.');
-[markerBoundary, limitXX] = ginput(1);
-hold on
-yAxis = ylim;
-plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
-
-% Reset marker lane in case markers are not detected??
 handles.bandMap = bandMap;
-handles.markerBoundary = markerBoundary;
+handles.ladder = {};
 handles.halfBandRange = halfBandRange;
 set(handles.addBands, 'Enable', 'on');
 set(handles.delBands, 'Enable', 'on');
@@ -328,7 +330,7 @@ function addBands_Callback(hObject, eventdata, handles)
 set(handles.note, 'String', 'Click on image to add a band');
 fIM = handles.imageIn;
 bandMap = handles.bandMap;
-markerBoundary = handles.markerBoundary;
+ladder = handles.ladder;
 
 % Manual adjustment of detected bands
 [x,y] = ginput(1);
@@ -337,8 +339,12 @@ y = round(y,0);
 bandMap(y,x)=1;
 bandMapPlot(fIM, bandMap, handles);
 hold on
-yAxis = ylim;
-plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+if ~isempty(ladder)
+    yAxis = ylim;
+    plot(ladder.left * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+    plot(ladder.right * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+end
+hold off
 
 handles.bandMap = bandMap;
 set(handles.note, 'String', '');
@@ -354,7 +360,7 @@ function delBands_Callback(hObject, eventdata, handles)
 set(handles.note, 'String', 'Please choose the region with bands you want to delete and then double click');
 fIM = handles.imageIn;
 bandMap = handles.bandMap;
-markerBoundary = handles.markerBoundary;
+ladder = handles.ladder;
 
 % Manual adjustment of detected bands
 [delRegion, boundaryInfo] = imcrop(handles.axes2);
@@ -368,8 +374,12 @@ end
 
 bandMapPlot(fIM, bandMap, handles);
 hold on
-yAxis = ylim;
-plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+if ~isempty(ladder)
+    yAxis = ylim;
+    plot(ladder.left * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+    plot(ladder.right * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+end
+hold off
 
 handles.bandMap = bandMap;
 set(handles.note, 'String', '');
@@ -384,14 +394,12 @@ function calc_Callback(hObject, eventdata, handles)
 
 fIM = handles.imageIn;
 bandMap = handles.bandMap;
-markerBoundary = handles.markerBoundary;
+ladder = handles.ladder;
 halfBandRange = handles.halfBandRange;
 imagePath = handles.imagePath;
 set(handles.note, 'String', '');
 
 % Band size annotation
-% Enter threshold to calculate shortest telomere ratio
-% shortThresh = input('Enter the threshold marker size > ');
 shortThresh = handles.shortThresh;
 markerNum = handles.markerNum;
 markerPos = handles.markerPos;
@@ -420,7 +428,7 @@ bandStat = struct('index', [], 'bandPos', [], 'bandSize', [], 'bandIntensity', [
 bandIndex = 0;
 for q=1:size(fIM,2)
     for p=1:size(fIM,1)
-        if bandMap(p,q)==1 && q > markerBoundary
+        if bandMap(p,q) == 1 && (q < ladder.left || q > ladder.right)
             bandIndex = bandIndex + 1;
             bandStat(bandIndex).index = bandIndex;
             % Bands positions are recorded in cartesian coordinate
@@ -497,6 +505,7 @@ end
 % Plot a threshold line
 plot(1:q,limitY*ones(1,q),'b')
 title(fileName)
+hold off
 
 % Size distribution histogram
 axes(handles.axes1);
