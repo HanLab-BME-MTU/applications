@@ -169,7 +169,8 @@ function pushInspectAdhesion(~,~)
     reAssign=false;
     newlyAssign=true;
     if ismember(idxIDList(IDtoInspect),IDs)
-        reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==idxIDList(IDtoInspect))) '. Do you want to reassign the group for this adhesion?(0/1) ']);
+        reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==idxIDList(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
+        if isempty(reAssign); reAssign=0; end
         whereInIDs = find(IDs==idxIDList(IDtoInspect));
         newlyAssign = false;
     end
@@ -177,8 +178,8 @@ function pushInspectAdhesion(~,~)
         if newlyAssign
             IDs=[IDs idxIDList(IDtoInspect)];
         end
-        curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',20);
-        curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',20);
+        curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',30);
+        curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',30);
         % then use startingFrameExtra and endingFrameExtra to plot intensity
         % time series
         h=figure;
@@ -521,23 +522,16 @@ function txt=myupdateDC(~,event_obj)
     try
         splineParam=0.1;
         d = tracksNA(selectedID).ampTotal;
+        tRange = tracksNA(selectedID).iFrame;
         d(d==0)=NaN;
-        nTime = length(d);
-        tRange = 1:nTime;
-        numNan = find(isnan(d),1,'last');
-        if isempty(numNan)
-            numNan=0;
-        end
-        tRange(isnan(d)) = [];
-        d(isnan(d)) = [];
+        warning('off','SPLINES:CHCKXYWP:NaNs')
         sd_spline= csaps(tRange,d,splineParam);
         sd=ppval(sd_spline,tRange);
-        %         tRange = [NaN(1,numNan) tRange];
-        sd = [NaN(1,numNan) sd];
+        sd(isnan(d))=NaN;
         %         sd(isnan(d)) = NaN;
         % Find the maximum
         [~,curFrameMaxAmp]=nanmax(sd);
-        timeToMaxInten = curFrameMaxAmp-tracksNA(selectedID).startingFrameExtraExtra;
+        timeToMaxInten = curFrameMaxAmp-tracksNA(selectedID).startingFrameExtra;
         
         
         txt = {['ID: ', num2str(selectedID)],...

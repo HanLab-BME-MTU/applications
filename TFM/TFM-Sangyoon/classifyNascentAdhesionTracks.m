@@ -15,7 +15,7 @@ ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
 ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
 ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
 ip.addParamValue('iChanSlave',[],@isscalar); % This is the master channle index.
-ip.addParamValue('labeledData',[],@iscell); % This is the master channle index.
+ip.addParamValue('labeledData',[],@(x) iscell(x) | isempty(x)); % This is the master channle index.
 ip.parse(pathForColocalization,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
@@ -253,6 +253,7 @@ if isempty(sampleFolders)
     if ~isempty(importSelectedGroups) && importSelectedGroups
         doneLoadingTrainedData = false;
     %     T = table();
+        jj=0;
         while ~doneLoadingTrainedData
             jj=jj+1;
             % load an existing classifier

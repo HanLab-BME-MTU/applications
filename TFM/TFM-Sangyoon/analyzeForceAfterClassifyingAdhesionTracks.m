@@ -41,6 +41,7 @@ end
 forceSpacing = forceField(1).pos(2,2)-forceField(1).pos(1,2);
 band = 2*forceSpacing;
 idClassifiedFile=strcat(dataPath,filesep,'idsClassified.mat');
+timeInterval = MD.timeInterval_/60; % in min
 % See if you can use existing tracks
 if ~exist('tracksNA','var')
     if exist(outputFile,'file') && ~uptoColo  
@@ -71,9 +72,9 @@ if ~uptoColo
     % load([pathForColocalization filesep 'data'  filesep 'tracksNA.mat'])
 %     [tracksNA, ~]=separateMatureAdhesionTracks(tracksNA);
 %     tracksNA = filterOutNonEmergingNA(tracksNA);
-    if ~isfield(tracksNA,'SDC_applied')
+    iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+    if ~isfield(tracksNA,'SDC_applied') && ~isempty(iSDCProc)
         disp('Applying stage drift correction ...')
-        iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
         if ~isempty(iSDCProc)
             SDCProc=MD.processes_{iSDCProc};
             if ~SDCProc.checkChannelOutput(1)
@@ -114,25 +115,42 @@ if ~uptoColo
 %         idGroup9=idStruct.idGroup9;
 %         tracksNA=idStruct.tracksNA;
 %     else
-        [~,idEmerging] = filterOutNonEmergingNA(tracksNA);
+        [~,idEmerging,idFCstarting] = filterOutNonEmergingNA(tracksNA);
+        tracksNA=tracksNA(idEmerging | idFCstarting); % This is to exclude NAs that appear from the very first frame but not FC or FA that can be included in g5, g4, g8
         [~,idFiltered] = filterTracksNAwithMask(pathForTheMovieDataFile,outputPath,tracksNA,band);
         tracksNA = recalculateLifeTimeTracks(tracksNA);
 %     end
     %% Classify with ampTotal and distToEdge
-    if ~exist('idGroup1','var')
+%     if ~exist('idGroup1','var')
+    if ~exist(idClassifiedFile,'file') 
         [idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9]= ...
             classifyNascentAdhesionTracks(pathForColocalization,'tracksNA',tracksNA,'labeledData',samFolders);
     end
+%     end
     %% filter with idFiltered
-    idGroup1filtered = idGroup1 & idFiltered & idEmerging;
-    idGroup2filtered = idGroup2 & idFiltered;
-    idGroup3filtered = idGroup3 & idFiltered & idEmerging;
-    idGroup4filtered = idGroup4 & idFiltered;
-    idGroup5filtered = idGroup5 & idFiltered;
-    idGroup6filtered = idGroup6 & idFiltered;
-    idGroup7filtered = idGroup7 & idFiltered & idEmerging;
-    idGroup8filtered = idGroup8 & idFiltered;
-    idGroup9filtered = idGroup9 & idFiltered & idEmerging;
+    try
+        idGroup1filtered = idGroup1 & idFiltered; % & idEmerging;
+        idGroup2filtered = idGroup2 & idFiltered;
+        idGroup3filtered = idGroup3 & idFiltered; % & idEmerging;
+        idGroup4filtered = idGroup4 & idFiltered;
+        idGroup5filtered = idGroup5 & idFiltered;
+        idGroup6filtered = idGroup6 & idFiltered;
+        idGroup7filtered = idGroup7 & idFiltered; % & idEmerging;
+        idGroup8filtered = idGroup8 & idFiltered;
+        idGroup9filtered = idGroup9 & idFiltered; % & idEmerging;
+    catch
+        load(idClassifiedFile)
+        [~,idFiltered] = filterTracksNAwithMask(pathForTheMovieDataFile,outputPath,tracksNA,band);
+        idGroup1filtered = idGroup1 & idFiltered & idEmerging;
+        idGroup2filtered = idGroup2 & idFiltered;
+        idGroup3filtered = idGroup3 & idFiltered & idEmerging;
+        idGroup4filtered = idGroup4 & idFiltered;
+        idGroup5filtered = idGroup5 & idFiltered;
+        idGroup6filtered = idGroup6 & idFiltered;
+        idGroup7filtered = idGroup7 & idFiltered & idEmerging;
+        idGroup8filtered = idGroup8 & idFiltered;
+        idGroup9filtered = idGroup9 & idFiltered & idEmerging;
+    end
     %% turn all zeros to NaNs in ampTotal
     for ii=1:numel(tracksNA)
         tracksNA(ii).ampTotal(tracksNA(ii).ampTotal==0)=NaN;
@@ -154,7 +172,9 @@ if ~uptoColo
     idGroup1f = idGroup1nl(idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1);
 
     %% drawing group1
+    dataPath=[pathForColocalization filesep 'data'];
     epsPath=[pathForColocalization filesep 'eps'];
+    figPath=[pathForColocalization filesep 'figs'];
     fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
 %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
     plotIntensityForce(tracksNA(idGroup1),fileStore,false,false)
@@ -363,8 +383,8 @@ if ~uptoColo
         toc
     end
     %% read intensity again
-%     tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'reTrack',false,'extraLength',30);
-%     tracksNA = readIntensityFromTracks(tracksNA,tMap,2,'reTrack',true);
+    tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'reTrack',false,'extraLength',30);
+    tracksNA = readIntensityFromTracks(tracksNA,tMap,2,'reTrack',true);
     
 %     % look at 95 % confidence interval of before-detection
 %     meanIntenBeforeLevel = mean(curTrack.ampTotal(curTrack.startingFrameExtraExtra:curTrack.startingFrameExtra));
@@ -392,9 +412,9 @@ if ~uptoColo
 %     curIndices = find(idGroup1filtered | idGroup3filtered | idGroup7filtered | idGroup9filtered)';
 %     curIndices = find(idGroup1filtered | idGroup3filtered | idGroup7filtered)';
 %     curIndices = find((idGroup1filtered | idGroup3filtered | idGroup7filtered) & idGroupLongPreDetecPeriod)';
-    curIndices = find(idGroup1filtered | idGroup7filtered)';
+%     curIndices = find(idGroup1filtered | idGroup7filtered)';
 %     curIndices = find(idGroup7filtered)';
-%     curIndices = find(idGroup1filtered)';
+    curIndices = find(idGroup1filtered)';
 % %     curIndices = idGroup1f';
 %     useSmoothing=true;
     splineParamInit=0.99;
@@ -474,7 +494,7 @@ if ~uptoColo
 %         end
 %     end
     % statistics about firstIncreseTimeIntAgainstForce
-    firstIncreseTimeIntAgainstForceAllIdx = arrayfun(@(x) ~isempty(x.forceTransmitting) && x.forceTransmitting,tracksNA(curIndices));
+    firstIncreseTimeIntAgainstForceAllIdx = arrayfun(@(x) ~isempty(x.forceTransmitting) & x.forceTransmitting,tracksNA(curIndices));
     firstIncreseTimeIntAgainstForceAll = arrayfun(@(x) x.firstIncreseTimeIntAgainstForce, tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdx)));
     numForceTransmitting = length(firstIncreseTimeIntAgainstForceAll);
     numNonTransmitting = sum(~firstIncreseTimeIntAgainstForceAllIdx);
@@ -484,71 +504,101 @@ if ~uptoColo
 
     %% See ccLag
     close all
-    figure, histogram(ccLagG1)
-    disp(['Median of ccLagG1 = ' num2str(median(ccLagG1))])
+    figure, histogram(ccLagG1*tInterval)
+    disp(['Median of ccLagG1 = ' num2str(median(ccLagG1*tInterval))])
     %% Save output
     save([pathForColocalization filesep 'data' filesep 'timeInitLagsG1.mat'],'ccLagG1','firstIncreseTimeIntAgainstForceAll','numForceTransmitting','numNonTransmitting')
     %% Now it's time to quantify peak intensity vs. peak force in Group 1
     %   perform spline filter for ampTotal
-    splineParam=0.01;
+    splineParam=0.1;
 %     for ii=curIndices
     for ii=curIndices
         d = tracksNA(ii).ampTotal;
-        nTime = length(d);
-        tRange = 1:nTime;
-        numNan = find(isnan(d),1,'last');
-        if isempty(numNan)
-            numNan=0;
+        tRange = tracksNA(ii).iFrame;
+        warning('off','SPLINES:CHCKXYWP:NaNs')
+        d(d==0)=NaN;
+        try
+            sd_spline= csaps(tRange,d,splineParam);
+        catch
+            d = tracksNA(ii).amp;
+            d(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) = ...
+                tracksNA(ii).ampTotal(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra);
+            sd_spline= csaps(tRange,d,splineParamInit);
         end
-        tRange(isnan(d)) = [];
-        d(isnan(d)) = [];
-        framesBeforeFII = 0;
-        if ~isempty(tracksNA(ii).forceTransmitting) && tracksNA(ii).forceTransmitting
-            firstIncreseIntFrame = round(tracksNA(ii).firstIncreseTimeInt/tInterval);
-            if firstIncreseIntFrame>tRange(1)
-                framesBeforeFII = firstIncreseIntFrame-tRange(1);
-            end
+        sd=ppval(sd_spline,tRange);
+        sd(isnan(d))=NaN;
+        [~,curFrameMaxAmp]=nanmax(sd);
+%         timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
+
+%         d = tracksNA(ii).ampTotal;
+%         nTime = length(d);
+%         tRange = 1:nTime;
+%         numNan = find(isnan(d),1,'last');
+%         if isempty(numNan)
+%             numNan=0;
+%         end
+%         tRange(isnan(d)) = [];
+%         d(isnan(d)) = [];
+%         framesBeforeFII = 0;
+%         if ~isempty(tracksNA(ii).forceTransmitting) && tracksNA(ii).forceTransmitting
+%             firstIncreseIntFrame = round(tracksNA(ii).firstIncreseTimeInt/tInterval);
+%             if firstIncreseIntFrame>tRange(1)
+%                 framesBeforeFII = firstIncreseIntFrame-tRange(1);
+%             end
+%         end
+%         sd_spline= csaps(tRange,d,splineParam);
+%         sd=ppval(sd_spline,tRange(1+framesBeforeFII:end));
+%         d = [NaN(1,numNan) d];
+% %         tRange = [NaN(1,numNan) tRange];
+%         sd = [NaN(1,numNan+framesBeforeFII) sd];
+% %         sd(isnan(d)) = NaN;
+%         % Find the maximum
+%         [~,curFrameMaxAmp]=max(sd);
+        if tracksNA(ii).lifeTime>31
+            movingWindowSize=31;
+        else
+            movingWindowSize=5;
         end
-        sd_spline= csaps(tRange,d,splineParam);
-        sd=ppval(sd_spline,tRange(1+framesBeforeFII:end));
-        d = [NaN(1,numNan) d];
-%         tRange = [NaN(1,numNan) tRange];
-        sd = [NaN(1,numNan+framesBeforeFII) sd];
-%         sd(isnan(d)) = NaN;
-        % Find the maximum
-        [~,curFrameMaxAmp]=max(sd);
-        curFrameLocMaxes=locmax1d(sd,31);
+        
+        curFrameLocMaxes=locmax1d(sd,movingWindowSize);
         
         if ismember(curFrameMaxAmp,curFrameLocMaxes) && curFrameMaxAmp>tRange(1) && curFrameMaxAmp<tRange(end) && ~isempty(tracksNA(ii).forceTransmitting) && tracksNA(ii).forceTransmitting
             tracksNA(ii).intenPeakness = true;
             tracksNA(ii).intenPeakFrame = curFrameMaxAmp;
-            curForce = tracksNA(ii).forceMag;
-            curForce(isnan(curForce)) = [];
+
+            curForce=d;
+            curForce(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) = tracksNA(ii).forceMag(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra);
+            
+%             curForce = tracksNA(ii).forceMag;
+%             curForce(isnan(curForce)) = [];
             sCurForce_spline= csaps(tRange,curForce,splineParam);
+%             
+%             framesBeforeFTI = 0;
+%             if ~isempty(tracksNA(ii).forceTransmitting) && tracksNA(ii).forceTransmitting
+%                 firstIncreseTractionFrame = round(tracksNA(ii).firstIncreseTimeForce/tInterval);
+%                 if firstIncreseTractionFrame>tRange(1)
+%                     framesBeforeFTI = firstIncreseTractionFrame-tRange(1);
+%                 end
+%             end
+
+            sCurForce_sd=ppval(sCurForce_spline,tRange);
+            sCurForce_sd(isnan(curForce))=NaN;
             
-            framesBeforeFTI = 0;
-            if ~isempty(tracksNA(ii).forceTransmitting) && tracksNA(ii).forceTransmitting
-                firstIncreseTractionFrame = round(tracksNA(ii).firstIncreseTimeForce/tInterval);
-                if firstIncreseTractionFrame>tRange(1)
-                    framesBeforeFTI = firstIncreseTractionFrame-tRange(1);
-                end
-            end
-            
-            sCurForce=ppval(sCurForce_spline,tRange(1+framesBeforeFTI:end));
-            sCurForce = [NaN(1,numNan+framesBeforeFTI) sCurForce];
-            curForceLocMaxes=locmax1d(sCurForce,7);
+%             sCurForce=ppval(sCurForce_spline,tRange(1+framesBeforeFTI:end));
+%             sCurForce = [NaN(1,numNan+framesBeforeFTI) sCurForce];
+            curForceLocMaxes=locmax1d(sCurForce_sd,movingWindowSize);
             % delete the first and last frame from loc maxes
-            curForceLocMaxes = setdiff(curForceLocMaxes, [tRange(1) tRange(end)]);
+            curForceLocMaxes = setdiff(curForceLocMaxes, [tracksNA(ii).startingFrameExtra tracksNA(ii).endingFrameExtra]);
             if ~isempty(curForceLocMaxes)
 %                 [forceMacMax,indMaxForceAmongLMs] = max(sCurForce(curForceLocMaxes));
-                forceMagLMCand=sCurForce(curForceLocMaxes)';
-                weightForceMag = (forceMagLMCand - min(sCurForce))/(max(forceMagLMCand) - min(sCurForce));
-                [forceMacMax,indMaxForceAmongLMs] = min((abs(curForceLocMaxes-curFrameMaxAmp)).^0.5/length(tRange)./weightForceMag);
+                forceMagLMCand=sCurForce_sd(curForceLocMaxes)';
+                weightForceMag = (forceMagLMCand - min(sCurForce_sd))/(max(forceMagLMCand) - min(sCurForce_sd));
+                [forceMacMax,indMaxForceAmongLMs] = min((abs(curForceLocMaxes-curFrameMaxAmp)).^0.5/length(tracksNA(ii).lifeTime)./weightForceMag);
 %                 [forceMacMax,indMaxForceAmongLMs] = min(abs(curForceLocMaxes-curFrameMaxAmp)./weightForceMag);
                 tracksNA(ii).forcePeakness = true;
                 tracksNA(ii).forcePeakFrame = curForceLocMaxes(indMaxForceAmongLMs);
                 tracksNA(ii).forcePeakMag = forceMacMax; 
-                tracksNA(ii).forcePeakMagRel = forceMacMax - min(sCurForce); % this is a relative difference
+                tracksNA(ii).forcePeakMagRel = forceMacMax - min(sCurForce_sd); % this is a relative difference
                 tracksNA(ii).peakIntTimeIntAgainstForcePeak = -tracksNA(ii).forcePeakFrame*tInterval + tracksNA(ii).intenPeakFrame*tInterval; % - means intensity comes first; + means force peak comes first
             else
                 tracksNA(ii).forcePeakness = false;
@@ -633,7 +683,7 @@ if ~uptoColo
 %% For non-transmitting
     nonTransmittingIdx = ~firstIncreseTimeIntAgainstForceAllIdx;
     nonTransmittingIdx = find(nonTransmittingIdx);
-    curID = nonTransmittingIdx(16);
+    curID = nonTransmittingIdx(8);
     curTrack = tracksNA(curIndices(curID));%4210);
     plotIntensityForceSingle(curTrack,curIndices(curID));
     %% for transmitting
@@ -657,15 +707,28 @@ if ~uptoColo
     edgeMaxProtAll = arrayfun(@(x) x.maxEdgeAdvanceDistChange, tracksNA(curIndices));
     edgeMaxProtForceTrans = edgeMaxProtAll(firstIncreseTimeIntAgainstForceAllIdx);
     edgeMaxProtNonTrans = edgeMaxProtAll(~firstIncreseTimeIntAgainstForceAllIdx);
-    meanEdgeMaxProtForceTrans=mean(edgeMaxProtForceTrans)
-    meanEdgeMaxProtNonTrans = mean(edgeMaxProtNonTrans)
+    edgeMaxProtCell={edgeMaxProtForceTrans,edgeMaxProtNonTrans};
+    namesList={'Force-Transmitting','Non-transmitting'};
+    h1=figure;
+    barPlotCellArray(edgeMaxProtCell,namesList); title('Max Protrusion'); ylabel('Max protrusion (um)')
+    hgexport(h1,strcat(epsPath,'/MaxProtrusionForceTran'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/MaxProtrusionForceTran'),'-v7.3')
+    
+    meanEdgeMaxProtForceTrans=mean(edgeMaxProtForceTrans);
+    meanEdgeMaxProtNonTrans = mean(edgeMaxProtNonTrans);
     [hMaxP,pMaxP]=ttest2(edgeMaxProtForceTrans,edgeMaxProtNonTrans)
     edgeMeanProtAll = arrayfun(@(x) mean(x.edgeAdvanceDist), tracksNA(curIndices));
     edgeMeanProtForceTrans = edgeMeanProtAll(firstIncreseTimeIntAgainstForceAllIdx);
     edgeMeanProtNonTrans = edgeMeanProtAll(~firstIncreseTimeIntAgainstForceAllIdx);
-    meanEdgeMeanProtForceTrans=mean(edgeMeanProtForceTrans)
-    meanEdgeMeanProtNonTrans=mean(edgeMeanProtNonTrans)
-    [hMeanP,pMeanP]=ttest2(edgeMeanProtForceTrans,edgeMeanProtNonTrans)
+    meanEdgeMeanProtForceTrans=mean(edgeMeanProtForceTrans);
+    meanEdgeMeanProtNonTrans=mean(edgeMeanProtNonTrans);
+    [hMeanP,pMeanP]=ttest2(edgeMeanProtForceTrans,edgeMeanProtNonTrans);
+    edgeMaxProtCell={edgeMeanProtForceTrans,edgeMeanProtNonTrans};
+    namesList={'Force-Transmitting','Non-transmitting'};
+    h1=figure;
+    barPlotCellArray(edgeMaxProtCell,namesList); title('Mean Protrusion'); ylabel('Mean protrusion (um)')
+    hgexport(h1,strcat(epsPath,'/MeanProtrusionForceTran'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/MeanProtrusionForceTran'),'-v7.3')
     %% Save output
     save([pathForColocalization filesep 'data' filesep 'edgeProtrusion.mat'],'edgeMaxProtForceTrans','edgeMaxProtNonTrans','meanEdgeMaxProtForceTrans',...
         'meanEdgeMaxProtNonTrans','hMaxP','pMaxP',...
@@ -769,10 +832,13 @@ if ~uptoColo
 %     medFirstShift = medFirstShift;
 %     medFirstShift = medFirstShift-10*tInterval;
 %     medFirstShiftIDsAllIdx=(firstIncreseTimeIntAgainstForceAll>medFirstShift-tInterval) & (firstIncreseTimeIntAgainstForceAll < medFirstShift+tInterval);
+%     medInitAndPeakAllIdx=(firstIncreseTimeIntAgainstForce_both>medFirstShift-3*tInterval) & ...
+%         (firstIncreseTimeIntAgainstForce_both < medFirstShift+2*tInterval) & ...
+%         (peakTimeIntAgainstForceAll_both>medPeakShift-20*tInterval) & ...
+%         (peakTimeIntAgainstForceAll_both < medPeakShift+5*tInterval);
+%     iMedInitPeak = find(medInitAndPeakAllIdx);
     medInitAndPeakAllIdx=(firstIncreseTimeIntAgainstForce_both>medFirstShift-3*tInterval) & ...
-        (firstIncreseTimeIntAgainstForce_both < medFirstShift+2*tInterval) & ...
-        (peakTimeIntAgainstForceAll_both>medPeakShift-20*tInterval) & ...
-        (peakTimeIntAgainstForceAll_both < medPeakShift+5*tInterval);
+        (firstIncreseTimeIntAgainstForce_both < medFirstShift+2*tInterval);
     iMedInitPeak = find(medInitAndPeakAllIdx);
 %     medFirstShiftIDsAllIdx=(firstIncreseTimeIntAgainstForceAll==medFirstShift);
 %     lifeTimeMedFirstG1 = arrayfun(@(x) x.lifeTime,tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdx)));
@@ -818,6 +884,7 @@ if ~uptoColo
         save([gPath filesep 'track' num2str(curIndices(medID)) additionalName '.mat'],'curTrack','medID','curIndices','gPath','additionalName')
     end
     %% Look at feature difference per each group
+    pixSize=MD.pixelSize_/1000; % in um
     distToEdge{1} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup1filtered));
     distToEdge{2} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup2filtered));
     distToEdge{3} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup3filtered));
@@ -827,16 +894,18 @@ if ~uptoColo
     distToEdge{7} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup7filtered));
     distToEdge{8} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup8filtered));
     distToEdge{9} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup9filtered));
-    [lengthLongest]=max(cellfun(@(x) length(x),distToEdge));
-
-    matrixDistToEdge = NaN(lengthLongest,9);
-    for ii=1:9
-        matrixDistToEdge(1:length(distToEdge{ii}),ii) = distToEdge{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixDistToEdge,'orientation','vertical','whisker',0.5,'notch','on',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
+    groupNameList={'g1','g2','g3','g4','g5','g6','g7','g8','g9'};
+    figure;
+    boxPlotCellArray(distToEdge,groupNameList,pixSize)
+%     [lengthLongest]=max(cellfun(@(x) length(x),distToEdge));
+%     matrixDistToEdge = NaN(lengthLongest,9);
+%     for ii=1:9
+%         matrixDistToEdge(1:length(distToEdge{ii}),ii) = distToEdge{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixDistToEdge,'orientation','vertical','whisker',0.5,'notch','on',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
 %     boxplot(matrixDistToEdge,'orientation','vertical','whisker',0.5,'notch','on',...
 %         'labels',{['G1' '(N=' num2str(length(distToEdge{1})) ')'],['G2 (N=' num2str(length(distToEdge{2})) ')'],...
 %         ['G3 (N=' num2str(length(distToEdge{3})) ')'],['G4 (N=' num2str(length(distToEdge{4})) ')'],...
@@ -849,12 +918,14 @@ if ~uptoColo
 %         sprintf('G%d\n(N=%d)',5, length(distToEdge{5})),sprintf('G%d\n(N=%d)',6, length(distToEdge{6})),...
 %         sprintf('G%d\n(N=%d)',7, length(distToEdge{7})),sprintf('G%d\n(N=%d)',8, length(distToEdge{8})),...
 %         sprintf('G%d\n(N=%d)',9, length(distToEdge{9}))},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
-    ylim([-2 50])
-    title('distToEdge')
-    save([pathForColocalization filesep 'data' filesep 'distToEdge.mat'],'distToEdge','matrixDistToEdge','-v7.3')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
+%     ylim([-2 50])
+    title('Distance to edge')
+    ylabel('Distance to edge (um)')
+    save([pathForColocalization filesep 'data' filesep 'distToEdge.mat'],'distToEdge','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'distToEdgeForAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+    hgsave(strcat(figPath,'/distToEdgeForAllGroups'),'-v7.3')
     
     %% Look at feature difference per each group - advanceDist
     advanceDist{1} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup1filtered));
@@ -866,48 +937,59 @@ if ~uptoColo
     advanceDist{7} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup7filtered));
     advanceDist{8} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup8filtered));
     advanceDist{9} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup9filtered));
-    [lengthLongestAdvDist]=max(cellfun(@(x) length(x),advanceDist));
 
-    matrixAdvanceDist = NaN(lengthLongestAdvDist,9);
-    for ii=1:9
-        matrixAdvanceDist(1:length(advanceDist{ii}),ii) = advanceDist{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixAdvanceDist,'orientation','vertical','whisker',0.5,'notch','on',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
+    figure;
+    boxPlotCellArray(advanceDist,groupNameList)
+
+%     [lengthLongestAdvDist]=max(cellfun(@(x) length(x),advanceDist));
+% 
+%     matrixAdvanceDist = NaN(lengthLongestAdvDist,9);
+%     for ii=1:9
+%         matrixAdvanceDist(1:length(advanceDist{ii}),ii) = advanceDist{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixAdvanceDist,'orientation','vertical','whisker',0.5,'notch','on',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
 %     ylim([-2 50])
-    title('advanceDist')
-    save([pathForColocalization filesep 'data' filesep 'advanceDist.mat'],'advanceDist','matrixAdvanceDist','-v7.3')
+    title('Adhesion advancement forward')
+    ylabel('Adhesion advancement (um)')
+    save([pathForColocalization filesep 'data' filesep 'advanceDist.mat'],'advanceDist','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'advanceDistAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+    hgsave(strcat(figPath,'/advanceDistAllGroups'),'-v7.3')
     %% Look at feature difference per each group - ampTotal
-    ampTotal{1} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup1filtered));
-    ampTotal{2} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup2filtered));
-    ampTotal{3} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup3filtered));
-    ampTotal{4} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup4filtered));
-    ampTotal{5} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup5filtered));
-    ampTotal{6} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup6filtered));
-    ampTotal{7} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup7filtered));
-    ampTotal{8} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup8filtered));
-    ampTotal{9} =arrayfun(@(x) mean(x.ampTotal),tracksNA(idGroup9filtered));
-    [lengthLongestAmpTotal]=max(cellfun(@(x) length(x),ampTotal));
-
-    matrixAmpTotal = NaN(lengthLongestAmpTotal,9);
-    for ii=1:9
-        matrixAmpTotal(1:length(ampTotal{ii}),ii) = ampTotal{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixAmpTotal,'orientation','vertical','whisker',0.5,'notch','off',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
-%     ylim([-2 50])
+    ampTotal{1} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup1filtered));
+    ampTotal{2} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup2filtered));
+    ampTotal{3} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup3filtered));
+    ampTotal{4} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup4filtered));
+    ampTotal{5} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup5filtered));
+    ampTotal{6} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup6filtered));
+    ampTotal{7} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup7filtered));
+    ampTotal{8} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup8filtered));
+    ampTotal{9} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup9filtered));
+    figure;
+    boxPlotCellArray(ampTotal,groupNameList)
+    
+%     [lengthLongestAmpTotal]=max(cellfun(@(x) length(x),ampTotal));
+% 
+%     matrixAmpTotal = NaN(lengthLongestAmpTotal,9);
+%     for ii=1:9
+%         matrixAmpTotal(1:length(ampTotal{ii}),ii) = ampTotal{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixAmpTotal,'orientation','vertical','whisker',0.5,'notch','off',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
+% %     ylim([-2 50])
     title('ampTotal')
-    save([pathForColocalization filesep 'data' filesep 'ampTotal.mat'],'ampTotal','matrixAmpTotal','-v7.3')
+    ylabel('Fluorescence intensity (A.U.)')
+    save([pathForColocalization filesep 'data' filesep 'ampTotal.mat'],'ampTotal','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'ampTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+    hgsave(strcat(figPath,'/ampTotalAllGroups'),'-v7.3')
     %% Look at feature difference per each group - starting ampTotal
     startingAmpTotal{1} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup1filtered));
     startingAmpTotal{2} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup2filtered));
@@ -918,22 +1000,26 @@ if ~uptoColo
     startingAmpTotal{7} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup7filtered));
     startingAmpTotal{8} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup8filtered));
     startingAmpTotal{9} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup9filtered));
-    [lengthLongestStartingAmpTotal]=max(cellfun(@(x) length(x),startingAmpTotal));
-
-    matrixStartingAmpTotal = NaN(lengthLongestStartingAmpTotal,9);
-    for ii=1:9
-        matrixStartingAmpTotal(1:length(startingAmpTotal{ii}),ii) = startingAmpTotal{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixStartingAmpTotal,'orientation','vertical','whisker',0.5,'notch','off',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
-%     ylim([-2 50])
-    title('startingAmpTotal')
-    save([pathForColocalization filesep 'data' filesep 'startingAmpTotal.mat'],'startingAmpTotal','matrixStartingAmpTotal','-v7.3')
+    figure;
+    boxPlotCellArray(startingAmpTotal,groupNameList)
+%     [lengthLongestStartingAmpTotal]=max(cellfun(@(x) length(x),startingAmpTotal));
+% 
+%     matrixStartingAmpTotal = NaN(lengthLongestStartingAmpTotal,9);
+%     for ii=1:9
+%         matrixStartingAmpTotal(1:length(startingAmpTotal{ii}),ii) = startingAmpTotal{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixStartingAmpTotal,'orientation','vertical','whisker',0.5,'notch','off',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
+% %     ylim([-2 50])
+    title('Starting Amplitude')
+    ylabel('Fluorescence intensity (A.U.)')
+    save([pathForColocalization filesep 'data' filesep 'startingAmpTotal.mat'],'startingAmpTotal','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'startingAmpTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+    hgsave(strcat(figPath,'/startingAmpTotalAllGroups'),'-v7.3')
     %% Look at feature difference per each group - starting edgeAdvanceDistChange
     edgeAdvanceDistChange{1} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup1filtered));
     edgeAdvanceDistChange{2} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup2filtered));
@@ -944,22 +1030,26 @@ if ~uptoColo
     edgeAdvanceDistChange{7} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup7filtered));
     edgeAdvanceDistChange{8} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup8filtered));
     edgeAdvanceDistChange{9} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup9filtered));
-    [lengthLongestStartingAmpTotal]=max(cellfun(@(x) length(x),edgeAdvanceDistChange));
-
-    matrixEdgeAdvanceDistChange = NaN(lengthLongestStartingAmpTotal,9);
-    for ii=1:9
-        matrixEdgeAdvanceDistChange(1:length(edgeAdvanceDistChange{ii}),ii) = edgeAdvanceDistChange{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixEdgeAdvanceDistChange,'orientation','vertical','whisker',0.5,'notch','off',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
-%     ylim([-2 50])
-    title('edgeAdvanceDistChange')
-    save([pathForColocalization filesep 'data' filesep 'edgeAdvanceDistChange.mat'],'edgeAdvanceDistChange','matrixEdgeAdvanceDistChange','-v7.3')
+%     [lengthLongestStartingAmpTotal]=max(cellfun(@(x) length(x),edgeAdvanceDistChange));
+% 
+%     matrixEdgeAdvanceDistChange = NaN(lengthLongestStartingAmpTotal,9);
+%     for ii=1:9
+%         matrixEdgeAdvanceDistChange(1:length(edgeAdvanceDistChange{ii}),ii) = edgeAdvanceDistChange{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixEdgeAdvanceDistChange,'orientation','vertical','whisker',0.5,'notch','off',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
+% %     ylim([-2 50])
+    figure;
+    boxPlotCellArray(edgeAdvanceDistChange,groupNameList)
+    title('edgeAdvanceDistChange at the end of tracks (to see g7 has nearly zero edge advance)')
+    ylabel('edgeAdvanceDistChange (um)')
+    save([pathForColocalization filesep 'data' filesep 'edgeAdvanceDistChange.mat'],'edgeAdvanceDistChange','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'edgeAdvanceDistChangeAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+    hgsave(strcat(figPath,'/edgeAdvanceDistChangeAllGroups'),'-v7.3')
       %% Look at feature difference per each group - starting forceMag
     startingForceMag{1} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup1filtered));
     startingForceMag{2} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup2filtered));
@@ -970,22 +1060,26 @@ if ~uptoColo
     startingForceMag{7} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup7filtered));
     startingForceMag{8} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup8filtered));
     startingForceMag{9} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup9filtered));
-    [lengthLongestStartingForceMag]=max(cellfun(@(x) length(x),startingForceMag));
-
-    matrixStartingForceMag = NaN(lengthLongestStartingForceMag,9);
-    for ii=1:9
-        matrixStartingForceMag(1:length(startingForceMag{ii}),ii) = startingForceMag{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixStartingForceMag,'orientation','vertical','whisker',0.5,'notch','off',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
+%     [lengthLongestStartingForceMag]=max(cellfun(@(x) length(x),startingForceMag));
+% 
+%     matrixStartingForceMag = NaN(lengthLongestStartingForceMag,9);
+%     for ii=1:9
+%         matrixStartingForceMag(1:length(startingForceMag{ii}),ii) = startingForceMag{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixStartingForceMag,'orientation','vertical','whisker',0.5,'notch','off',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
 %     ylim([-2 50])
-    title('startingForceMag')
-    save([pathForColocalization filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','matrixStartingForceMag','-v7.3')
+    figure;
+    boxPlotCellArray(startingForceMag,groupNameList)
+    title('startingForceMag (to see g1,2,3,7 start nearly at similar force)')
+    ylabel('startingForceMag (Pa)')
+    save([pathForColocalization filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'startingForceMagAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+    hgsave(strcat(figPath,'/startingForceMagAllGroups'),'-v7.3')
     %% recalculate force slope 
     tracksNA = calculateTrackSlopes(tracksNA,tInterval);
     
@@ -1017,34 +1111,62 @@ if ~uptoColo
     %% non force transmitting adhesion statistics
     % average fluorescence intensity
     avgFluoInten_nonTransmitting = arrayfun(@(x) nanmean(x.ampTotal(logical(x.presence))),tracksNA(curIndices(nonTransmittingIdx)));
-    nanmean(avgFluoInten_nonTransmitting)
+    nanmean(avgFluoInten_nonTransmitting);
     avgFluoInten_forceTransmitting = arrayfun(@(x) nanmean(x.ampTotal(logical(x.presence))),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
-    nanmean(avgFluoInten_forceTransmitting)
-    [hFI,pFI]=ttest2(avgFluoInten_nonTransmitting,avgFluoInten_forceTransmitting)
+    nanmean(avgFluoInten_forceTransmitting);
+    [hFI,pFI]=ttest2(avgFluoInten_nonTransmitting,avgFluoInten_forceTransmitting);
+    avgFluoIntenCell={avgFluoInten_forceTransmitting,avgFluoInten_nonTransmitting};
+%     namesList={'Force-Transmitting','Non-transmitting'};
+    h1=figure;
+    barPlotCellArray(avgFluoIntenCell,namesList); title('avgFluoIntenCell'); ylabel('avgFluoIntenCell (a.u.)')
+    hgexport(h1,strcat(epsPath,'/avgFluoInten'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgFluoInten'),'-v7.3')
+   
     % only for pre-detection period
     avgPreDetecFluoInten_nonTransmitting = arrayfun(@(x) nanmean(x.ampTotal(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(nonTransmittingIdx)));
     nanmean(avgPreDetecFluoInten_nonTransmitting)
     avgPreDetecFluoInten_forceTransmitting = arrayfun(@(x) nanmean(x.ampTotal(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
     nanmean(avgPreDetecFluoInten_forceTransmitting)
-    [hPreDetecFI,pPreDetecFI]=ttest2(avgPreDetecFluoInten_nonTransmitting,avgPreDetecFluoInten_forceTransmitting)
+    [hPreDetecFI,pPreDetecFI]=ttest2(avgPreDetecFluoInten_forceTransmitting,avgPreDetecFluoInten_nonTransmitting);
+    
+    avgPreDetecFluoIntenCell={avgPreDetecFluoInten_forceTransmitting,avgPreDetecFluoInten_nonTransmitting};
+    h1=figure;
+    barPlotCellArray(avgPreDetecFluoIntenCell,namesList); title('avgPreDetecFluoIntenCell'); ylabel('avgPreDetecFluoIntenCell (a.u.)')
+    hgexport(h1,strcat(epsPath,'/avgPreDetecFluoInten'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgPreDetecFluoInten'),'-v7.3')
     % earlyAmpSlope
     avgEarlyAmpSlope_nonTransmitting = arrayfun(@(x) x.earlyAmpSlope,tracksNA(curIndices(nonTransmittingIdx)));
     nanmean(avgEarlyAmpSlope_nonTransmitting)
     avgEarlyAmpSlope_forceTransmitting = arrayfun(@(x) x.earlyAmpSlope,tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
     nanmean(avgEarlyAmpSlope_forceTransmitting)
     [hEarlyAmpSlope,pEarlyAmpSlope]=ttest2(avgEarlyAmpSlope_nonTransmitting,avgEarlyAmpSlope_forceTransmitting)
+    avgEarlyAmpSlopeCell={avgEarlyAmpSlope_forceTransmitting,avgEarlyAmpSlope_nonTransmitting};
+    h1=figure;
+    barPlotCellArray(avgEarlyAmpSlopeCell,namesList); title('avgEarlyAmpSlopeCell'); ylabel('avgEarlyAmpSlopeCell (a.u./min)')
+    hgexport(h1,strcat(epsPath,'/avgEarlyAmpSlope'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgEarlyAmpSlope'),'-v7.3')
     % forceMag for pre-detection period
     avgPreDetecForceMag_nonTransmitting = arrayfun(@(x) nanmean(x.forceMag(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(nonTransmittingIdx)));
     nanmean(avgPreDetecForceMag_nonTransmitting)
     avgPreDetecForceMag_forceTransmitting = arrayfun(@(x) nanmean(x.forceMag(x.startingFrameExtraExtra:x.startingFrameExtra)),tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
     nanmean(avgPreDetecForceMag_forceTransmitting)
     [hPreDetecForce,pPreDetecForce]=ttest2(avgPreDetecForceMag_nonTransmitting,avgPreDetecForceMag_forceTransmitting)
+    avgPreDetecForceMagCell={avgPreDetecForceMag_forceTransmitting,avgPreDetecForceMag_nonTransmitting};
+    h1=figure;
+    barPlotCellArray(avgPreDetecForceMagCell,namesList); title('avgPreDetecForceMagCell'); ylabel('avgPreDetecForceMagCell (Pa)')
+    hgexport(h1,strcat(epsPath,'/avgPreDetecForceMag'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgPreDetecForceMag'),'-v7.3')
     % forceSlope
     avgForceSlope_nonTransmitting = arrayfun(@(x) x.forceSlope,tracksNA(curIndices(nonTransmittingIdx)));
     nanmean(avgForceSlope_nonTransmitting)
     avgForceSlope_forceTransmitting = arrayfun(@(x) x.forceSlope,tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs)));
     nanmean(avgForceSlope_forceTransmitting)
     [hForceSlope,pForceSlope]=ttest2(avgForceSlope_nonTransmitting,avgForceSlope_forceTransmitting)
+    avgForceSlopeCell={avgForceSlope_forceTransmitting,avgForceSlope_nonTransmitting};
+    h1=figure;
+    boxPlotCellArray(avgForceSlopeCell,namesList); title('avgForceSlopeCell'); ylabel('avgForceSlopeCell (Pa/min)')
+    hgexport(h1,strcat(epsPath,'/avgForceSlope'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgForceSlope'),'-v7.3')
     %% Save these parameters
     save([pathForColocalization filesep 'data' filesep 'nonTransmittingVsForceTransmitting.mat'],'avgFluoInten_nonTransmitting',...
         'avgFluoInten_forceTransmitting','hFI','pFI','avgPreDetecFluoInten_nonTransmitting','avgPreDetecFluoInten_forceTransmitting',...
@@ -1061,21 +1183,25 @@ if ~uptoColo
     earlyAmpSlope{7} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup7filtered));
     earlyAmpSlope{8} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup8filtered));
     earlyAmpSlope{9} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup9filtered));
-    [lengthLongestSlope]=max(cellfun(@(x) length(x),earlyAmpSlope));
-
-    matrixEarlyAmpSlope = NaN(lengthLongestSlope,9);
-    for ii=1:9
-        matrixEarlyAmpSlope(1:length(earlyAmpSlope{ii}),ii) = earlyAmpSlope{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixEarlyAmpSlope,'orientation','vertical','whisker',0.5,'notch','on',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
-%     ylim([-2 50])
-    title('earlyAmpSlope')
-    save([pathForColocalization filesep 'data' filesep 'distToEdge.mat'],'earlyAmpSlope','matrixEarlyAmpSlope','-v7.3')
+%     [lengthLongestSlope]=max(cellfun(@(x) length(x),earlyAmpSlope));
+% 
+%     matrixEarlyAmpSlope = NaN(lengthLongestSlope,9);
+%     for ii=1:9
+%         matrixEarlyAmpSlope(1:length(earlyAmpSlope{ii}),ii) = earlyAmpSlope{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixEarlyAmpSlope,'orientation','vertical','whisker',0.5,'notch','on',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'jitter',1,'colors','k')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
+% %     ylim([-2 50])
+    figure;
+    boxPlotCellArray(earlyAmpSlope,groupNameList)
+    title('earlyAmpSlope (this shows that g7 has the same early slope as g3).')
+    ylabel('earlyAmpSlope (A.U./min)')
+    hgsave(strcat(figPath,'/earlyAmpSlopeAllGroups'),'-v7.3')
+    save([pathForColocalization filesep 'data' filesep 'earlyAmpSlopeAllGroups.mat'],'earlyAmpSlope','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'earlyAmpSlopeAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     %% Look at feature difference per each group - force slope
     forceSlope{1} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1filtered));
@@ -1087,21 +1213,25 @@ if ~uptoColo
     forceSlope{7} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup7filtered));
     forceSlope{8} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup8filtered));
     forceSlope{9} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup9filtered));
-    [lengthForceSlope]=max(cellfun(@(x) length(x),forceSlope));
-
-    matrixForceSlope = NaN(lengthForceSlope,9);
-    for ii=1:9
-        matrixForceSlope(1:length(forceSlope{ii}),ii) = forceSlope{ii};
-    end
-    boxWidth=0.5;
-    figure
-    boxplot(matrixForceSlope,'orientation','vertical','whisker',1,'notch','off',...
-        'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'colors','k')
-    set(findobj(gca,'LineStyle','--'),'LineStyle','-')
-    set(findobj(gca,'tag','Median'),'LineWidth',2)
-%     ylim([-2 50])
-    title('forceSlope')
-    save([pathForColocalization filesep 'data' filesep 'forceSlope.mat'],'forceSlope','matrixForceSlope','-v7.3')
+%     [lengthForceSlope]=max(cellfun(@(x) length(x),forceSlope));
+% 
+%     matrixForceSlope = NaN(lengthForceSlope,9);
+%     for ii=1:9
+%         matrixForceSlope(1:length(forceSlope{ii}),ii) = forceSlope{ii};
+%     end
+%     boxWidth=0.5;
+%     figure
+%     boxplot(matrixForceSlope,'orientation','vertical','whisker',1,'notch','off',...
+%         'labels',{'g1','g2','g3','g4','g5','g6','g7','g8','g9'},'symbol','','widths',boxWidth,'colors','k')
+%     set(findobj(gca,'LineStyle','--'),'LineStyle','-')
+%     set(findobj(gca,'tag','Median'),'LineWidth',2)
+% %     ylim([-2 50])
+    figure;
+    boxPlotCellArray(forceSlope,groupNameList)
+    title('forceSlope (all nascent adhesions (g1,2,3,7) show the same force slopes).')
+    ylabel('forceSlope (Pa/min)')
+    hgsave(strcat(figPath,'/forceSlopeAllGroups'),'-v7.3')
+    save([pathForColocalization filesep 'data' filesep 'forceSlopeAllGroups.mat'],'forceSlope','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'forceSlopeAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     %% export tracksG1, G2, G3 and G7 separately
     tracksG1 = tracksNA(idGroup1filtered);
@@ -1112,6 +1242,212 @@ if ~uptoColo
     save([pathForColocalization filesep 'data' filesep 'tracksG2.mat'],'tracksG2','-v7.3')
     save([pathForColocalization filesep 'data' filesep 'tracksG3.mat'],'tracksG3','-v7.3')
     save([pathForColocalization filesep 'data' filesep 'tracksG7.mat'],'tracksG7','-v7.3')
+    %% Filtering G7 for those that increase edge advance 
+    timeInterval = MD.timeInterval_/60; % in min
+    close all
+    numG7=numel(tracksG7);
+    risingAndStoppingG7=[];
+    edgeRisingStoppingG7{1}=[];
+    adhAdvanceRisingStoppingG7{1}=[];
+    divPointRS=[];
+    tractionRisingStoppingG7{1}=[];
+    risingSlopeG7=[];
+    forceIncrease1Half=[];
+    forceIncrease2Half=[];
+    p=0;
+    q=0;
+    for kk=1:numG7
+        curG7=tracksG7(kk);
+        tRange = 1:length(curG7.edgeAdvanceDist);
+        if curG7.startingFrameExtra>1
+            curG7.edgeAdvanceDist(1:curG7.startingFrameExtra-1)=NaN;
+            curG7.forceMag(1:curG7.startingFrameExtra-1)=NaN;
+            curG7.advanceDist(1:curG7.startingFrameExtra-1)=NaN;
+        end
+        % fit with partial sloped line + flat line in the later
+        x=(0:(sum(~isnan(curG7.edgeAdvanceDist))-1))*timeInterval;
+        y=curG7.edgeAdvanceDist(~isnan(curG7.edgeAdvanceDist));
+        fun=@(z) [(z(1)*x(x<=z(3))+z(2)) (z(1)*z(3)+z(2))*ones(1,sum(x>z(3)))]-y;
+        z0=[0.1,0,20*timeInterval];
+    %     [x0out,resnorm,residual,exitflag,output,lambda,jacobian]=lsqnonlin(fun,x0i);
+        z=lsqnonlin(fun,z0);
+        % Since the purpose is to separate out those that increase about a
+        % half and stay the rest of half, I'll filter out a<=0,
+        % xt/lifetime>0.6.
+        if z(1)>0.1 && z(3)/x(end)<0.9 && z(3)/x(end)>0.1
+            p=p+1;
+            q=q+1;
+            risingAndStoppingG7=[risingAndStoppingG7 kk];
+            curG7Advance=curG7.advanceDist(~isnan(curG7.advanceDist));
+            figure, subplot(2,1,1),plot(x,curG7Advance,'o--','Color',[1,140/255,0]), hold on,
+            plot(x,y,'ko--'), 
+            plot(x,[(z(1)*x(x<=z(3))+z(2)) (z(1)*z(3)+z(2))*ones(1,sum(x>z(3)))],'k-','Linewidth',2)
+            title(['Edge Protrusion, ID:' num2str(kk)]); ylabel('Protrusion distance (um)')
+            xt = round(z(3)/timeInterval);
+            edgeRisingStoppingG7{p}=y;
+            adhAdvanceRisingStoppingG7{p}=curG7Advance;
+            divPointRS=[divPointRS xt];
+            risingSlopeG7=[risingSlopeG7 z(1)];
+
+            try
+                sForce= csaps(tRange,curG7.forceMag,splineParam);
+            catch
+                curG7.forceMag(curG7.endingFrameExtra+1:end)=[];
+                sForce= csaps(tRange,curG7.forceMag,splineParam);
+            end
+            sdForce=ppval(sForce,tRange);
+            sdForce(isnan(curG7.forceMag))=NaN;
+            curG7Force = sdForce(~isnan(curG7.edgeAdvanceDist));
+            curG7ForceRaw = curG7.forceMag(~isnan(curG7.edgeAdvanceDist));
+            tractionRisingStoppingG7{p}=curG7ForceRaw;
+        %     [~,m_first]=regression(x(1:xt),y(1:xt))
+        %     [~,m_second]=regression(x(xt:end),y(xt:end))
+        %     [~,m_first]=regression(x(1:xt),curG7Force(1:xt))
+        %     [~,m_second]=regression(x(xt:end),curG7Force(xt:end))
+            forceIncrease1Half(p)=(max(curG7ForceRaw(xt-3:xt))-min(curG7ForceRaw(1:3)))/z(3);
+            forceIncrease2Half(q)=(max(curG7ForceRaw(end-5:end))-min(curG7ForceRaw(xt-1:xt+1)))/(x(end)-z(3));
+            subplot(2,1,2),plot(x,curG7ForceRaw,'ko-'),hold on,plot(x,curG7Force,'k-','LineWidth',2)
+            title('Traction'); ylabel('Traction Magnitude (Pa)'); xlabel('Time (min)');
+            hgsave(strcat(figPath,'/EdgeAndForceInG7',num2str(kk)),'-v7.3')
+            print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'EdgeAndForceInG7' num2str(kk) '.eps']);% histogramPeakLagVinVsTal -transparent
+        else
+            q=q+1;
+            curG7ForceRaw = curG7.forceMag(~isnan(curG7.edgeAdvanceDist));
+            forceIncrease2Half(q)=(max(curG7ForceRaw(end-5:end))-min(curG7ForceRaw(1:3)))/(x(end)-x(1));
+        end
+    end
+    save(strcat(dataPath,'/EdgeAndForceInG7selected.mat'),'risingAndStoppingG7','risingSlopeG7',...
+        'forceIncrease1Half','forceIncrease2Half','edgeRisingStoppingG7','adhAdvanceRisingStoppingG7','divPointRS','tractionRisingStoppingG7','-v7.3')
+    %% Filtering G3 for those that increase edge advance 
+    close all
+    numG3=numel(tracksG3);
+    risingAndStoppingG3=[];
+    edgeRisingStoppingG3{1}=[];
+    adhAdvanceRisingStoppingG3{1}=[];
+    forceIncreaseG3=[];
+    tractionRisingStoppingG3{1}=[];
+    risingSlopeG3=[];
+    p=0;
+    for kk=1:numG3
+        curG3=tracksG3(kk);
+        tRange = 1:length(curG3.edgeAdvanceDist);
+        if curG3.startingFrameExtra>1
+            curG3.edgeAdvanceDist(1:curG3.startingFrameExtra-1)=NaN;
+            curG3.forceMag(1:curG3.startingFrameExtra-1)=NaN;
+            curG3.advanceDist(1:curG3.startingFrameExtra-1)=NaN;
+        end
+        % fit with partial sloped line + flat line in the later
+        x=(0:(sum(~isnan(curG3.edgeAdvanceDist))-1))*timeInterval;
+        y=curG3.edgeAdvanceDist(~isnan(curG3.edgeAdvanceDist));
+        fun=@(z) (z(1)*x+z(2))-y;
+        z0=[0.1,0];
+    %     [x0out,resnorm,residual,exitflag,output,lambda,jacobian]=lsqnonlin(fun,x0i);
+        z=lsqnonlin(fun,z0);
+        % Since the purpose is to separate out those that increase about a
+        % half and stay the rest of half, I'll filter out a<=0,
+        % xt/lifetime>0.6.
+        if z(1)>0.1
+            p=p+1;
+            risingAndStoppingG3=[risingAndStoppingG3 kk];
+            curG3Advance=curG3.advanceDist(~isnan(curG3.advanceDist));
+            figure, subplot(2,1,1),plot(x,curG3Advance,'o--','Color',[1,140/255,0]), hold on,
+            plot(x,y,'ko--'), 
+            plot(x,(z(1)*x+z(2)),'k-','Linewidth',2)
+            title(['Edge Protrusion, ID:' num2str(kk)]); ylabel('Protrusion distance (um)')
+            edgeRisingStoppingG3{p}=y;
+            adhAdvanceRisingStoppingG3{p}=curG3Advance;
+            risingSlopeG3=[risingSlopeG3 z(1)];
+
+            try
+                sForce= csaps(tRange,curG3.forceMag,splineParam);
+            catch
+                curG3.forceMag(curG3.endingFrameExtra+1:end)=[];
+                sForce= csaps(tRange,curG3.forceMag,splineParam);
+            end
+            sdForce=ppval(sForce,tRange);
+            sdForce(isnan(curG3.forceMag))=NaN;
+            curG3Force = sdForce(~isnan(curG3.edgeAdvanceDist));
+            curG3ForceRaw = curG3.forceMag(~isnan(curG3.edgeAdvanceDist));
+            tractionRisingStoppingG3{p}=curG3ForceRaw;
+
+            forceIncreaseG3(p)=(max(curG3Force(end-2:end))-min(curG3Force(1:3)))/x(end);
+            subplot(2,1,2),plot(x,curG3ForceRaw,'ko-'),hold on,plot(x,curG3Force,'k-','LineWidth',2)
+            title('Traction'); ylabel('Traction Magnitude (Pa)'); xlabel('Time (min)');
+            hgsave(strcat(figPath,'/EdgeAndForceInG3',num2str(kk)),'-v7.3')
+            print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'EdgeAndForceInG3' num2str(kk) '.eps']);% histogramPeakLagVinVsTal -transparent
+        end
+    end
+    save(strcat(dataPath,'/EdgeAndForceInG3selected.mat'),'risingAndStoppingG3','edgeRisingStoppingG3',...
+        'adhAdvanceRisingStoppingG3','forceIncreaseG3','tractionRisingStoppingG3','-v7.3')
+    %% Last, compare force increase among forceIncreaseG3,forceIncrease1Half and forceIncrease2Half
+%     close all
+    forceIncreaseG3G7Cell={ forceIncreaseG3,forceIncrease1Half, forceIncrease2Half};
+    nameG3G7={'G3', 'G7-protruding phase', 'G7-stalling phase'};
+    figure;
+    barPlotCellArray(forceIncreaseG3G7Cell,nameG3G7)
+    title('Increase in force in G3 and two separate phases in G7')
+    ylabel('Change in force (Pa)')
+    hgsave(strcat(figPath,'/forceIncreaseG3G7'),'-v7.3')
+    save([pathForColocalization filesep 'data' filesep 'forceIncreaseG3G7.mat'],'forceIncreaseG3G7Cell','nameG3G7','-v7.3')
+    print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'forceIncreaseG3G7.eps']);% histogramPeakLagVinVsTal -transparent
+    
+    %% Look at G7 in detail and see force characteristics
+    % First let's look at edge advance
+%     curG7ID=0;
+    %% individual G7 cells: [5 10 13 21 24 28 71 91 113 118 145] 
+%     close
+%     curG7ID=curG7ID+1;
+%     curG7=tracksG7(curG7ID);
+%     if curG7.startingFrameExtra>1
+%         curG7.edgeAdvanceDist(1:curG7.startingFrameExtra-1)=NaN;
+%     end
+%     figure, plot(curG7.edgeAdvanceDist), title(num2str(curG7ID))
+    %% Look at force in selected G7
+%     idsG7=[5 10 13 21 24 28 71 91 113 118 145]; 
+%     curG7ID=0;
+    %% Actual looking
+%     curG7ID=curG7ID+1;
+%     curG7=tracksG7(idsG7(curG7ID));
+%     if curG7.startingFrameExtra>1
+%         curG7.edgeAdvanceDist(1:curG7.startingFrameExtra-1)=NaN;
+%         curG7.forceMag(1:curG7.startingFrameExtra-1)=NaN;
+%     end
+%     figure, subplot(2,1,1), plot(curG7.edgeAdvanceDist), title(num2str(curG7ID)), ylabel('Edge advance (um)')
+%     tRange = 1:length(curG7.edgeAdvanceDist);
+%     sEdgeAdv= csaps(tRange,curG7.edgeAdvanceDist,splineParam);
+%     sdEdgeAdv=ppval(sEdgeAdv,tRange);
+%     sdEdgeAdv(isnan(curG7.edgeAdvanceDist))=NaN;
+%     hold on, plot(sdEdgeAdv)
+%     
+%     subplot(2,1,2), plot(curG7.forceMag), ylabel('Force (Pa)')
+%     sForce= csaps(tRange,curG7.forceMag,splineParam);
+%     sdForce=ppval(sForce,tRange);
+%     sdForce(isnan(curG7.forceMag))=NaN;
+%     hold on, plot(sdForce)
+% 
+%     hgsave(strcat(figPath,'/EdgeAndForce',num2str(curG7ID)),'-v7.3')
+%     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'EdgeAndForce' num2str(curG7ID) '.eps']);% histogramPeakLagVinVsTal -transparent
+    %% Now I'll smartly separate G7 (G3) by least-square difference
+    % z=[a,b,xt]
+%     x=1:sum(~isnan(curG7.edgeAdvanceDist));
+%     y=curG7.edgeAdvanceDist(~isnan(curG7.edgeAdvanceDist));
+%     fun=@(z) [(z(1)*x(x<=z(3))+z(2)) (z(1)*z(3)+z(2))*ones(1,sum(x>z(3)))]-y;
+%     x0i=[0.1,0,20];
+% %     [x0out,resnorm,residual,exitflag,output,lambda,jacobian]=lsqnonlin(fun,x0i);
+%     x0out=lsqnonlin(fun,x0i);
+%     figure, plot(x,y,'ko',x,[(x0out(1)*x(x<=x0out(3))+x0out(2)) (x0out(1)*x0out(3)+x0out(2))*ones(1,sum(x>x0out(3)))],'b-')
+%     % Force increase during both periods
+%     %First phase
+%     xt=round(x0out(3));
+% %     curG7Force = curG7.forceMag(~isnan(curG7.forceMag));
+%     curG7Force = sdForce(~isnan(curG7.forceMag));
+%     
+% %     [~,m_first]=regression(x(1:xt),y(1:xt))
+% %     [~,m_second]=regression(x(xt:end),y(xt:end))
+% %     [~,m_first]=regression(x(1:xt),curG7Force(1:xt))
+% %     [~,m_second]=regression(x(xt:end),curG7Force(xt:end))
+%     forceIncrease1Half=max(curG7Force(xt-3:xt))-min(curG7Force(1:3));
+%     forceIncrease2Half=max(curG7Force(end-5:end))-min(curG7Force(xt-1:xt+1));
     %% Backup original tracksNA and save filtered one
     movefile([pathForColocalization filesep 'data' filesep 'tracksNA.mat'], [pathForColocalization filesep 'data' filesep 'tracksNA_org.mat'])
     save([pathForColocalization filesep 'data' filesep 'tracksNA.mat'],'tracksNA','-v7.3')
@@ -1129,8 +1465,16 @@ if ~uptoColo
 %     makeMoviesAdhesionTracks(tracksNA,pathForColocalization,200,100) % for 0724paxillin2
 %     makeMoviesAdhesionTracks(tracksNA,pathForColocalization,200,100) % for 0724talin
     tmaxG1 = max(avgPreDetecForceMag_forceTransmitting);
-    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16) % automatic
+    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16,10) % automatic
     %% Make movie - without classification
-    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16,true) % automatic
+    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16,0) % automatic
+    %% Make movie - only for class 1
+    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16,1) % automatic
+    %% Make movie - only for class 2
+    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16,2) % automatic
+    %% Make movie - only for class 3
+    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16,3) % automatic
+    %% Make movie - only for class 7
+    makeMoviesAdhesionTracks(tracksNA,pathForColocalization,tmaxG1,16,7) % automatic
 end
 end

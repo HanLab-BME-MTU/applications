@@ -132,6 +132,8 @@ if alignEvent
             subplot(1,2,1), plot(1:nSampleFrames,AmpArray), hold on%,'Color',[0.5 0.5 0.5]), hold on
             subplot(1,2,2), plot(1:nSampleFrames,forceArray), hold on%,'Color',[240/255 128/255 128/255]), hold on
         end
+        minYamp = nanmin(AmpArray(:));
+        maxYamp  = nanmax(AmpArray(:));      
     else
         if strcmp(source,'edgeAdvanceDist')
             subplot(1,3,1), plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on

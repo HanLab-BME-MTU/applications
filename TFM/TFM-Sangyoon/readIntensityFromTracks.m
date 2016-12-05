@@ -60,7 +60,9 @@ for k=1:numTracks
 %             tracksNA(k).forceMag(curRange) = arrayfun(@(x) imgStack(round(tracksNA(k).yCoord(x)),round(tracksNA(k).xCoord(x)),x),curRange);
 %         end
 %     else
+    % initialize amptotal to have it have the same dimension as .amp
     if attribute==1
+        tracksNA(k).ampTotal = tracksNA(k).amp;
         try
             curStartingFrame = tracksNA(k).startingFrameExtra;
             curEndingFrame = tracksNA(k).endingFrameExtra;
@@ -118,7 +120,7 @@ for k=1:numTracks
                             tracksNA(k).amp(ii) = A;
                             tracksNA(k).bkgAmp(ii) = c;
                             tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).presence(ii) =  true;
                             tracksNA(k).sigma(ii) = curSigma;
                             if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
                                 tracksNA(k).state{ii} = 'NA';
@@ -220,7 +222,7 @@ for k=1:numTracks
                             tracksNA(k).amp(ii) = A;
                             tracksNA(k).bkgAmp(ii) = c;
                             tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).presence(ii) =  true;
                             tracksNA(k).sigma(ii) = curSigma;
                             if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
                                 tracksNA(k).state{ii} = 'NA';

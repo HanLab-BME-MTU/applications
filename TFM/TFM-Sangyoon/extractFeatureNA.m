@@ -1,11 +1,11 @@
-function [dataTable,allData,meas] = extractFeatureNA(tracksNA,idGroupSelected, normalizationMethods, MD)
+function [dataTable,allData,meas] = extractFeatureNA(tracksNA,idGroupSelected, normalizationMethods, MD,useOldSet)
 if nargin<3
     normalizationMethods=2;
-    pixSize=72; %nm/pix
-    timeInterval = 1; %sec
+    MD=[];
+    useOldSet=false;
 elseif nargin<4
-    pixSize=72; %nm/pix
-    timeInterval = 1; %sec
+    MD=[];
+    useOldSet=false;
 else
     pixSize=MD.pixelSize_; %nm/pix
     timeInterval = MD.timeInterval_; %sec
@@ -53,24 +53,25 @@ splineParam=0.1;
 timeToMaxInten=zeros(numel(tracksNA),1);
 for ii=1:numel(tracksNA)
     d = tracksNA(ii).ampTotal;
+    tRange = tracksNA(ii).iFrame;
+    warning('off','SPLINES:CHCKXYWP:NaNs')
     d(d==0)=NaN;
-    nTime = length(d);
-    tRange = 1:nTime;
-    numNan = find(isnan(d),1,'last');
-    if isempty(numNan)
-        numNan=0;
+    try
+        sd_spline= csaps(tRange,d,splineParam);
+    catch
+        d = tracksNA(ii).amp;
+        d(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExt
+            tracksNA(ii).ampTotal(tracksNA(ii).startingFrameExtraExtra:tracksNA
+        sd_spline= csaps(tRange,d,splineParam);
     end
-    tRange(isnan(d)) = [];
-    d(isnan(d)) = [];
-    sd_spline= csaps(tRange,d,splineParam);
     sd=ppval(sd_spline,tRange);
-    d = [NaN(1,numNan) d];
     %         tRange = [NaN(1,numNan) tRange];
-    sd = [NaN(1,numNan) sd];
+%     sd = [NaN(1,numNan) sd];
+    sd(isnan(d))=NaN;
     %         sd(isnan(d)) = NaN;
     % Find the maximum
     [~,curFrameMaxAmp]=nanmax(sd);
-    timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtraExtra;
+    timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
 end
 % timeToMaxInten = arrayfun(@(x) find(x.ampTotal==nanmax(x.ampTotal),1),tracksNA); %in frame, this should be high for group 2 
 %#15
@@ -348,11 +349,19 @@ else
     dataTable = [];
     meas=[];
 end
-allData = [decayingIntensityNAs edgeAdvanceSpeedNAs advanceSpeedNAs ...
-     lifeTimeNAs meanIntensityNAs distToEdgeFirstNAs ...
-     startingIntensityNAs distToEdgeChangeNAs distToEdgeLastNAs ...
-     edgeAdvanceDistFirstChangeNAs edgeAdvanceDistLastChangeNAs maxEdgeAdvanceDistChangeNAs ...
-     maxIntensityNAs timeToMaxInten edgeVariation];
 
+if ~useOldSet
+    allData = [decayingIntensityNAs edgeAdvanceSpeedNAs advanceSpeedNAs ...
+         lifeTimeNAs meanIntensityNAs distToEdgeFirstNAs ...
+         startingIntensityNAs distToEdgeChangeNAs distToEdgeLastNAs ...
+        edgeAdvanceDistFirstChangeNAs edgeAdvanceDistLastChangeNAs maxEdgeAdva
+         maxIntensityNAs timeToMaxInten edgeVariation];
+else
+    allData = [decayingIntensityNAs edgeAdvanceSpeedNAs advanceSpeedNAs ...
+         lifeTimeNAs meanIntensityNAs distToEdgeFirstNAs ...
+         startingIntensityNAs distToEdgeChangeNAs distToEdgeLastNAs ...
+         edgeAdvanceDistLastChangeNAs maxEdgeAdvanceDistChangeNAs ...
+         ];
+end
 
     
