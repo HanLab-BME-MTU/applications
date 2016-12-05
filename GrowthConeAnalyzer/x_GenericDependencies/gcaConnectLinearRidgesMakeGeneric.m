@@ -127,6 +127,8 @@ countFigs = 1;
 EPsPostConnect = [];
 pixIdxPostConnect = []; 
 TSFigs = []; 
+linkMask = zeros([ny,nx]);
+status = 0; 
 %%
 endPoints = vertcat(EPCandidateSort{:}); % taking these out of a cell array so
 endPoints =  endPoints(:,1:2); % take first two columns as added vector 20140913
@@ -157,6 +159,9 @@ if sanityCheck == 1
     hold on
     scatter(endPoints(:,1),endPoints(:,2),'g','filled');
 end
+% Added 20150812 
+if ~isempty(endPoints); 
+    
 %% Find all enpoints within x radius of one another- note there will be some
 % redundancy that one has to filter and each query point will find itself.
 [idx,d] = KDTreeBallQuery(endPoints, endPoints, ip.Results.MaxRadiusLink); % originally 5
@@ -188,7 +193,7 @@ end
 
 % format edges: column 1 is indices of endpoint1 (Vertex1) and column 1 is
 % the indice of endpoint2
-E = arrayfun(@(i) [repmat(i, [numel(idx{i}) 1]) idx{i}], 1:length(endPoints), 'UniformOutput', false);
+E = arrayfun(@(i) [repmat(i, [numel(idx{i}) 1]) idx{i}], 1:size(endPoints,1), 'UniformOutput', false);
 E = vertcat(E{:});
 d = vertcat(d{:});
 EOrig = E;
@@ -632,7 +637,11 @@ if ~isempty(links) % nothing that falls under this criteria
 else
     candidateMaskNew = candidateMask;
     %labelMatPostConnect = labelMat;
-    status = 0; % no links
-
+    
 end
+else % added 20150812 .. see if can consolidate the if statmements quick fix for now.  
+    candidateMaskNew = candidateMask; % for now see we can just keep these candidates what happens - maybe in the future remove hte border cands completely 
+    %labelMatPostConnect = labelMat;
+    
+end 
 

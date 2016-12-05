@@ -23,22 +23,24 @@ p = ip.Results;
 %%
 names = ip.Results.sampleNames;
 orderForBoxplot = ip.Results.orderForBoxplot; 
+dataMat = double(dataMat);  % make sure double some of the measurements were of class single
 if ~isempty(orderForBoxplot); 
  % sort the data by array 
  dataMat = dataMat(:,orderForBoxPlot) ; 
+
  names = names(orderForBoxPlot); 
  end 
 %% Set Figure
 %fsFigure(0.75); 
-
+fsFigure(0.75); 
 %% Detect Outlier Distributions 
-subplot(2,2,1:2); 
-% Put data into cell format
- samplesCell = arrayfun(@(x) dataMat(:,x),1:size(dataMat,2),'uniformoutput',0); % each column is a sample from a specific cell. 
-% Take out NaNs
- samplesCell = cellfun(@(x) x(~isnan(x)),samplesCell,'uniformoutput',0); 
- 
-% Outlier Detect
+ subplot(2,2,1:2); 
+% % Put data into cell format
+  samplesCell = arrayfun(@(x) dataMat(:,x),1:size(dataMat,2),'uniformoutput',0); % each column is a sample from a specific cell. 
+% % Take out NaNs
+  samplesCell = cellfun(@(x) x(~isnan(x)),samplesCell,'uniformoutput',0); 
+%  
+% % Outlier Detect
  outlierIdx = detectEDFOutliers(samplesCell); 
  xlabel(p.measurementName);
 

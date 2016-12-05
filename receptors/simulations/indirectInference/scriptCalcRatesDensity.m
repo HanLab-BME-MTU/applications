@@ -4,16 +4,17 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150602_simsVaryOffRate/probeISruns';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD10'};
-aPDir = {'dR0p5','dR2p0','dR5p0','aP0p2','aP0p5','aP0p8','dC0p05','dC0p2'};
-outDirNum = 1:10;
-lRDir = {'lR1p0'};
+rDDir = {'rD20'};
+aPDir = {'aP0p5'};
+outDirNum = 1:30;
+lRDir = {'lR0p02','lR0p04'};
+
 
 %define space and time information
-infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.01,'firstLastTP',[0 10]);
+infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
 
 fprintf('\n===============================================================');
 
@@ -48,7 +49,7 @@ for rDDirIndx = 1 : length(rDDir)
                     clusterOnOffRatesAndDensity(compTracksAggregState,infoSpaceTime);
                 
                 %save results
-                save([currDir,'/ratesAndDensity_dt0p01_T10'],'rateOnPerClust',...
+                save([currDir,'/ratesAndDensity_dt0p1_T10'],'rateOnPerClust',...
                     'rateOffPerClust','densityPerClust','numClustForRateCalc',...
                     'clustHistory','clustStats','-v7.3');
                 

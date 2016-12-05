@@ -13,7 +13,8 @@ else
     cd(['/home2' filesep 'mbagonis' filesep 'matlab' filesep 'applications']);
     cmd = ['TERM=ansi git log --pretty=%H -2'];
     [success,hashTag] =  system(cmd);
-    cd(pwd);    
+    cd(cDir);
+    save([cDir filesep 'hashTag.mat'],'hashTag'); 
 end
 
 

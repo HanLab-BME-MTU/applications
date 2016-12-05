@@ -55,15 +55,17 @@ defaultOutDir = [movieData.outputDirectory_ filesep...
     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction'];
 
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
-ip.addParameter('ChannelIndex',1);
+ip.addParameter('ChannelIndex',1); % need separate ChannelIndex for veil and filo 
+ip.addParameter('ChannelIndexVeil',1);  
 ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
 
 
+
 % Specific
 % PARAMETERS
-ip.addParameter('TSOverlays',true); 
+ip.addParameter('TSOverlays',false); 
 
 % Steerable Filter 
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
@@ -74,17 +76,18 @@ ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
 
 % Linking Parameters Embedded 
-ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+%ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+ip.addParameter('geoThreshEmbedded',0.5,@(x) isscalar(x)); 
 %ip.addParameter('maxRadiusLinkOutsideVeil',10);
 ip.addParameter('maxRadiusLinkEmbedded',10);
 ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 
 % Linking Parameters Candidate Building
-ip.addParameter('maxRadiusLink',5); 
+ip.addParameter('maxRadiusLink',5); % 
 ip.addParameter('geoThresh',0.9, @(x) isscalar(x));  
 
 % Linking Parameters Traditional Filopodia/Branch Reconstruct
-ip.addParameter('maxRadiusConnectFiloBranch',5); 
+ip.addParameter('maxRadiusConnectFiloBranch',15); % change default to 15
 ip.addParameter('geoThreshFiloBranch',0.5); 
 
 
@@ -156,7 +159,7 @@ for iCh = 1:nChan
     
     load([movieData.outputDirectory_ filesep 'SegmentationPackage' ...
         filesep 'StepsToReconstruct' filesep ...
-        'IV_veilStem_length' filesep 'Channel_' num2str(channels(iCh)) filesep 'veilStem.mat']);
+        'IV_veilStem_length' filesep 'Channel_' num2str(ip.Results.ChannelIndexVeil) filesep 'veilStem.mat']);
     
    % load( [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep ...
     %    'StepsToReconstruct' filesep 'III_veilStem_reconstruction' ...
@@ -201,10 +204,13 @@ for iCh = 1:nChan
     end % ~isempty(idxProt)
     
     %% Start Movie Loop %%%%
-    for iFrame = startFrame:endFrame-1
+    for iFrame = startFrame:endFrame
         % Load image
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;
+        % you store all pieces make sure only considering the largest
+        % connected component 
+        veilStemMaskC = logical(getLargestCC(veilStemMaskC)); 
         
 %         if ~isempty(normals)
 %             protrusionC.normal = normals{iFrame};
@@ -272,7 +278,7 @@ close all
         
         
         % quick fix for the plots is to just make the frame number an input for not 20140812
-        hashTag =  gcaArchiveGetGitHashTag;
+         [~,hashTag] =  gcaArchiveGetGitHashTag;
         filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         filoBranchC.timeStamp = clock; 
         filoBranch(iFrame) = filoBranchC;

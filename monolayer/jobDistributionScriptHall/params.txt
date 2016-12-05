@@ -9,10 +9,10 @@
 runHallOneAtATime.m
 
 # 2. total number of tasks
-1650
+2700
 
 # 3. number of tasks per node
-20
+16
 
 # 4. partition to use
 super

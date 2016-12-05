@@ -1,48 +1,50 @@
 function [] = scriptGeneralColocalization()
-MD = ColorStackMovieData(pwd);
-MD.sanityCheck
-imageDir = '/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/CtxB-CD36-Actin/NoTSP';
-MD = MovieData.load([imageDir filesep 'colorStackMovieData.mat']);
-%MD.setReader(LinearReader);
-process = SubResolutionProcess(MD);
-MD.addProcess(process);
-process = MultiThreshProcess(MD);
-MD.addProcess(process);
-process = ColocalizationProcess(MD);
-MD.addProcess(process);
 
-for j =1:4
-    load(strcat(condition{j},'/colorStackMovieData.mat'));
-p = MD.getProcess(1).getParameters();
-p.ChannelIndex = [1];
-p.detectionParam.psfSigma = 0.65;
-p.detectionParam.calcMethod = 'g';
-p.detectionParam.testAlpha = struct('alphaR',0.1,'alphaA',0.1,'alphaD',0.1,'alphaF',0);
-p.detectionParam.alphaLocMax = 0.15;
- p.detectionParam.doMMF = 0;
-MD.getProcess(1).setParameters(p);
-MD.getProcess(1).run;
-MD.sanityCheck
-end
-% process = MultiThreshProcess(MD);
-% MD.addProcess(process);
-p = MD.getProcess(2).getParameters();
-p.ChannelIndex = 1;
-p.GaussFilterSigma = 3;
-p.MaxJump = 1;
-MD.getProcess(2).setParameters(p);
-MD.getProcess(2).run;
+     %% Create Movie Data object
+     % Make sure image file properties are properly set (correct number of
+     % slices, channels and frames if applicable). Otherwise running
+     % processes below may result in error
+        MD = MovieData('test_0001.tif'); %Indicate image file to be analyzed; all channels should be in single tiff file
+     %% Initialize and add all processes
+        process = SubResolutionProcess(MD); %Detection
+        MD.addProcess(process);
+        process = MultiThreshProcess(MD); %Masking
+        MD.addProcess(process);
+        process = ColocalizationProcess(MD); %Colocalization
+        MD.addProcess(process);
+        
+        
+    %% Detection Process
+    % The core function being used here is detectSubResFeatures2D_StandAlone
+        p = MD.getProcess(1).getParameters();
+        p.ChannelIndex = 2; %Channel in image to undergo detection process 
+        p.detectionParam.psfSigma = 1; %Point spread function sigma of image (in pixels)
+        p.detectionParam.testAlpha = struct('alphaR',0.1,'alphaA',0.1,'alphaD',0.1,'alphaF',0);%alpha-values for detection statistical tests
+        p.detectionParam.alphaLocMax = 0.05;%alpha-value for initial detection of local maxima
+         p.detectionParam.doMMF = 0;%1 if mixture-model fitting, 0 otherwise
+        MD.getProcess(1).setParameters(p); %Save parameters
+        MD.getProcess(1).run; %Run process
+        
 
-% process = ColocalizationProcess(MD);
-% MD.addProcess(process);
-for k = 1:8
-    load(strcat(condition{k},'/colorStackMovieData.mat'))
-    p = MD.getProcess(3).getParameters();
-    p.ChannelRef = 2;
-    p.ChannelObs = 3;
-    p.ChannelMask = 3;
-    p.SearchRadius = 2;
-    MD.getProcess(3).setParameters(p);
-    MD.getProcess(3).run;
-end
+    %% Masking Process
+    % The core function used for masking is calcCellBoundaryImage
+        p = MD.getProcess(2).getParameters();
+        p.ChannelIndex = 3;%Channel in image to undergo masking process, usually continuum channel
+        p.GaussFilterSigma = 2;% Sigma of gaussian filter used to smooth image
+        p.MaxJump = 1; %If function fails to find a threshold in a stack of images, any value > 1 indicates to use the previous threshold 
+        MD.getProcess(2).setParameters(p);
+        MD.getProcess(2).run;
+
+    %% Colocalization
+    % The core function used for colocalization analysis is
+    % colocalMeasurePt2Cnt
+        p = MD.getProcess(3).getParameters();
+        p.ChannelRef = 2; %Punctate channel which underwent detection process
+        p.ChannelObs = 3; %Continuum channel
+        p.ChannelMask = 2; %Channel that was masked
+        p.SearchRadius = 2; %Radius around detection used for analysis
+        p.RandomRuns = 1;% Number of times randomized data is analyzed
+        MD.getProcess(3).setParameters(p);
+        MD.getProcess(3).run;
+
 end

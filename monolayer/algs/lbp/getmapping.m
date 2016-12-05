@@ -73,7 +73,9 @@ end
 if strcmp(mappingtype,'riu2') %Uniform & Rotation invariant
     newMax = samples + 2;
     for i = 0:2^samples - 1
-        j = bitset(bitshift(i,1,samples),1,bitget(i,samples)); %rotate left
+        %         j = bitset(bitshift(i,1,samples),1,bitget(i,samples)); %rotate left
+        % Fix for Matlab 2015
+        j = bitset(bitshift(i,1,'uint8'),1,bitget(i,samples)); %rotate left
         numt = sum(bitget(bitxor(i,j),1:samples));
         if numt <= 2
             table(i+1) = sum(bitget(i,1:samples));

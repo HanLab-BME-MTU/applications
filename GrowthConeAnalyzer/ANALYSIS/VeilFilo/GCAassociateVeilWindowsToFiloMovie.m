@@ -1,4 +1,4 @@
-function [ output_args ] = GCAassociateVeilWindowsToFiloMovie(movieData)
+function [ output_args ] = GCAassociateVeilWindowsToFiloMovie(movieData,varargin)
 %DESCRIPTION: movieWrapper for marking 
 % 
 %  Input:
@@ -31,22 +31,46 @@ function [ output_args ] = GCAassociateVeilWindowsToFiloMovie(movieData)
 %       backbone information will be calculated from the channels (ie raw
 %       images)
 %
-%% CHECK Parameters 
+%%
+% for now check movieData separately.
 if nargin < 1 || ~isa(movieData,'MovieData')
     error('The first input must be a valid MovieData object!')
 end
+%%Input check
+ip = inputParser;
 
-if nargin < 2
-    % Generic
-    paramsIn.OutputDirectory = [movieData.outputDirectory_ filesep 'filopodia_fits'];
-    paramsIn.ChannelIndex = 1;
-    paramsIn.ProcessIndex = 0; % use raw images
-end 
-p = paramsIn;
+ip.CaseSensitive = false;
+
+ip.addParameter('ChannelIndex',1);  
+
+%ip.addParameter('TSOverlays',true);
+defaultInDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep 'StepsToReconstruct'... 
+    filesep 'VII_filopodiaBranch_fits_new' ];
+
+ip.addParameter('InputDirectory',defaultInDir); % 
+
+defaultOutDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep 'StepsToReconstruct' ... 
+    filesep 'VIII_filopodiaBranch_WithVeil'];
+
+ip.addParameter('OutputDirectory', defaultOutDir);
+
+ip.addParameter('windMethod','ConstantNumber');
+
+% ip.addParameter('OverlayColorByVel',true ); % this option will find the first and last window
+% ip.addParameter('OverlayWindTracker',true); 
+% ip.addParameter('OverlayOutlierFilter',true);  % outlier  
+% ip.addParameter('OverlaySignalDetectType',{'P','R'}); % will only plot protrusion or retraction or quiescent events 
+
+ip.addParameter('ReInit',61); 
+% number to be defined in the subregion throughout the whole movie to
+% define which windows are included. This allows for temporal gaps in the
+% windows (ie where a window disappears and reappears) to be included in
+% the subRoi.
+ip.parse(varargin{:});
 
 %% Init:
-nFrames = movieData.nFrames_;
-nChan = numel(p.ChannelIndex);
+% nFrames = movieData.nFrames_;
+nChan = numel(ip.Results.ChannelIndex);
 imSize = movieData.imSize_;
 ny = imSize(1); 
 nx = imSize(2); 
@@ -59,44 +83,45 @@ for iCh = 1:nChan
  % INSERT CHECKS TO MAKE SURE THE WINDOWING WAS RUN- Likely a nice way to
  % do this with  movieData to get all files associated with the windowing
  % step- for now
-  load([p.OutputDirectory filesep ... 
-      'Filopodia_Fits_Channel_' num2str(iCh) filesep 'analInfoTestSave.mat']); 
+  load([ ip.Results.InputDirectory filesep 'Channel_' num2str(iCh) filesep 'filoBranch.mat']); 
   
     display(['Assigning Veil Windows To Filopodia for Channel' num2str(iCh)]); 
  
-   
-    % make final output dir where Assignment Info will be saved 
-    saveDir =  [p.OutputDirectory  filesep ...
-        'Filopodia_Fits_Channel_'  num2str(iCh)]; % I think just save back 
-    % into the same directory for now. 
+    if ~isdir(ip.Results.OutputDirectory)
+        mkdir(ip.Results.OutputDirectory)
+    end 
+ 
     %mkClrDir(saveDir)
     
     % get the list of image filenames
-    if p.ProcessIndex == 0
+%     if p.ProcessIndex == 0
         imDir = movieData.channels_(iCh).channelPath_;
-    else
-        imDir = movieData.proceses_{p.ProcessIndex}.outfilePaths_;
-    end
+%     else
+%         imDir = movieData.proceses_{p.ProcessIndex}.outfilePaths_;
+%     end
     
     listOfImages = searchFiles('.tif',[],imDir,0);
     if isempty(listOfImages)
         error('No Images Found: Check Input Directory');  
     end
+    
+    
+    % load the windowing directory : for now assume only one in the MD
+    idxWind = cellfun(@(x) strcmpi(x.name_,'Windowing'),movieData.processes_);
+    windDir  = movieData.processes_{idxWind}.outFilePaths_;
+    windFiles = searchFiles('.mat',[],windDir,0,'all',1); 
+    
 %% %%%% Start Frame Loop %%%%
+nFrames = length(filoBranch)-1; 
     for iFrame = 1:nFrames
-       load([movieData.outputDirectory_ filesep 'windows' filesep  'windows_frame__frame_' num2str(iFrame,'%03d') '.mat'])  ;    
-       filoInfoC = analInfo(iFrame).filoInfo; 
+       load(windFiles{iFrame})  ;    
+       filoInfoC = filoBranch(iFrame).filoInfo; 
        filoInfo = GCAassociateVeilWindowsToFilo(filoInfoC,windows,0); 
-       analInfo(iFrame).filoInfo = filoInfo; % replace 
-         
-        
+       filoBranch(iFrame).filoInfo = filoInfo; % replace        
     end %frame loop 
 
 % 
-  save([saveDir filesep 'analInfoWithWindInfo.mat'],'analInfo') % change name
-
-
-
+  save([ip.Results.OutputDirectory filesep 'filoBranchWindInfo.mat'],'filoBranch') % change name
 
 end % channel loop 
 end 

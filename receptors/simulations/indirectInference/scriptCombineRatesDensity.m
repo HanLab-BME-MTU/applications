@@ -4,12 +4,12 @@
 %
 %Khuloud Jaqaman, June 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150608_AnalysisLR1_dt0p01_T10/probeISruns';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161004/analysis';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD4','rD16'}; %,'rD40','rD60','rD80','rD100','rD120','rD140','rD160'};
-aPDir = {'aP0p5'}; %'dR0p5','dR2p0','dR5p0','aP0p2','aP0p5','aP0p8','dC0p05','dC0p2'};
-lRDir = {'lR1p0'}; %,'lR0p02','lR0p03','lR0p04','lR0p05','lR0p06'};
+rDDir = {'rD20'};%,'rD60','rD80','rD120','rD140','rD160'}; aPDir = {'aP0p5'};
+lRDir = {'lR0p03'};
+ %,'lR0p02','lR0p03','lR0p04','lR0p05','lR0p06'};
 
 fprintf('\n===============================================================');
 
@@ -30,14 +30,14 @@ for rDDirIndx = 1 : length(rDDir)
                 aPDir{aPDirIndx},filesep,lRDir{lRDirIndx}];
             
             %read individual results
-            tmp = load(fullfile(currDir,'ratesAndDensityInd_dt0p01_T10.mat'));
+            tmp = load(fullfile(currDir,'ratesAndDensityInd_dt0p1_T10.mat'));
             
             %call function to combine results
             [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat] = ...
                 combineClusterRatesAndDensity(tmp.ratesDensityPerMovie);
             
             %save combined results
-            save([currDir,'/ratesAndDensityComb_dt0p01_T10'],'rateOnPerClust',...
+            save([currDir,'/ratesAndDensityComb_dt0p1_T10'],'rateOnPerClust',...
                 'rateOffPerClust','densityPerClust','paramVarCovMat','-v7.3');
             
         end %for each labelRatio

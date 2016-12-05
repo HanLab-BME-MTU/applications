@@ -1,4 +1,4 @@
-function [ medianFilt,outlierIdx,TSFig] = gcaFindOutliersFromMedFilt( dataIn,medFiltWindSize,k )
+function [ medianFilt,outlierIdx,TSFig] = gcaFindOutliersFromMedFilt( dataIn,medFiltWindSize,k,plotFig)
 % gcaFindOutliersFromMedFilt
 %
 % dataIn: the data to be filtered.
@@ -12,11 +12,17 @@ function [ medianFilt,outlierIdx,TSFig] = gcaFindOutliersFromMedFilt( dataIn,med
 % resOutliers: potentially to be fed into the cost function for linking a
 % body piece
 %k = 3;
+
+if nargin<4 
+    plotFig = true; 
+end 
+
 % run the typical 1 d median filter and get smoothed time series
 medianFilt = medfilt1(dataIn,medFiltWindSize);
 % find those points that have significant residuals from this smoothed
 % plot
 residuals = medianFilt-dataIn;
+if plotFig == true
 % figure;
 TSFig(1).h = setAxis('on');
 TSFig(1).name = 'NeuriteOutgrowth_MedFiltOutlierDetect';
@@ -24,6 +30,7 @@ TSFig(1).name = 'NeuriteOutgrowth_MedFiltOutlierDetect';
 scatter(1:length(dataIn),dataIn,'k','filled');
 hold on
 plot(medianFilt,'Color','k');
+end 
 % Now it is just determining the appropriate cut-offs for the residuals
 % to be considered "outliers"
 % can either make this a hard cut-off or use the framework of detectOuliers
@@ -49,6 +56,7 @@ outlierIdx = find(testValue > k^2);
 %differently with different input
 inlierIdx = inlierIdx(:)';
 outlierIdx = outlierIdx(:)';
+if plotFig == true
 hold on
 scatter(outlierIdx,dataIn(outlierIdx),'r','filled')
 xlabel('Frame Number','FontSize',12,'FontName','Arial');
@@ -60,8 +68,9 @@ legend('Raw Measurements',['Median Filter: (Window Size ' num2str(medFiltWindSiz
 
 title('Veil/Stem Outlier Detection' );
 axis([0 120 -25 25]);
-
-
+else 
+    TSFig = []; 
+end 
 
 end
 

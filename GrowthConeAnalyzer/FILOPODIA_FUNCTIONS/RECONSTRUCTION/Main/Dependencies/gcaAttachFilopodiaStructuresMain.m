@@ -101,7 +101,7 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 
 % TRADITIONAL FILOPODIA/BRANCH RECONSTRUCT           
 % Pass to: gcaConnectFiloBranch.m
-ip.addParameter('maxRadiusConnectFiloBranch',5); 
+ip.addParameter('maxRadiusConnectFiloBranch',15); 
 ip.addParameter('geoThreshFiloBranch',0.5);
 
 
@@ -113,7 +113,7 @@ ip.addParameter('minCCRidgeOutsideVeil',3);
 ip.addParameter('detectEmbedded',true); 
 % Pass To: gcaReconstructEmbedded
     ip.addParameter('maxRadiusLinkEmbedded',10); 
-    ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
+    ip.addParameter('geoThreshEmbedded',0.5,@(x) isscalar(x)); 
     ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x)); 
 
     % OVERLAYS 
@@ -502,7 +502,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         reconstruct.clusterlinks = linkMask;
         linksPre = linkMask;
         % add these points to the mask
-        
+     
         
     end % if reconIt ==1
     
@@ -559,6 +559,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     
     
     reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
+    
     display(num2str(reconIter))
 end % while numViaCand
 

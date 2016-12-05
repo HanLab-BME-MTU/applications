@@ -23,14 +23,17 @@ classdef OrientationSpaceResponse < handle
         res
         nms
         nlms
+        theta
+        a
+        NMS
+    end
+    
+    properties (Dependent, Hidden)
         nlms_mip
         nlms_count
         nlms_sum
         nlms_mean
         nlms_std
-        theta
-        a
-        NMS
     end
     
     
@@ -303,15 +306,47 @@ classdef OrientationSpaceResponse < handle
             n_new = 2*K_new+1;
             s_inv = sqrt(obj.n^2*n_new^2/(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
-            x = -K_new:K_new;
+            x = -ceil(K_new):ceil(K_new);
             f_hat = exp(-0.5 * (x./s_hat).^2); % * obj.n/n_new;
             f_hat = ifftshift(f_hat);
             f_hat = shiftdim(f_hat,-1);
             a_hat = fft(real(obj.a),[],3);
-            a_hat = a_hat(:,:,[1:K_new+1 end-K_new+1:end]);
+            a_hat = a_hat(:,:,[1:ceil(K_new)+1 end-ceil(K_new)+1:end]);
             a_hat = bsxfun(@times,a_hat,f_hat);
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
+        end
+        function response = getResponseAtOrderFTatPoint(obj,r,c,K_new)
+            % Get response at a lower order using Fourier Transform at a particular point
+            % INPUT
+            % r - row, scalar integer
+            % c - column, scalar integer
+            % K_new - new angular order
+            % OUTPUT
+            % response at pixel (r,c) at angular order K_new
+
+            % New number of coefficients
+%             n_new = 2*ceil(K_new)+1;
+            n_new = 2*K_new+1;
+
+            % The convolution of two Gaussians results in a Gaussian
+            % The multiplication of two Gaussians results in a Gaussian
+            % The signal has been convolved with a Gaussian with sigma = pi/obj.n
+            % Compute the signal convoled with a Gaussian with sigma = pi/n_new
+            % Note if n == n_new, we divide by 0. Then s_inv = Inf
+            s_inv = sqrt(obj.n^2.*n_new.^2./(obj.n.^2-n_new.^2));
+            s_hat = s_inv/(2*pi);
+            x = -ceil(obj.filter.K):ceil(obj.filter.K);
+            
+            % Each column represents a Gaussian with sigma set to s_hat(column)
+            f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2); % * obj.n/n_new;
+            f_hat = ifftshift(f_hat,1);
+            
+            % Angular response will be in a column
+            a_hat = fft(squeeze(real(obj.a(r,c,:))));
+            % Each column represents an angular response with order K_new(column)
+            a_hat = bsxfun(@times,a_hat,f_hat);
+            response = ifft(a_hat);
         end
         function varargout = getRidgeOrientationLocalMaxima(obj,sorted)
             if(nargin < 2)
@@ -326,6 +361,11 @@ classdef OrientationSpaceResponse < handle
             if(nargout > 4)
                 varargout{5} = varargout{5}/2;
             end
+        end
+        function vq  = interpft1(obj,xq)
+            % interpft1 - Interpolate
+            vq = interpft1([0 pi],shiftdim(obj.a,2),shiftdim(xq,2),'horner');
+            vq = shiftdim(vq,1);
         end
         function fineResponseGrid = getResponseForInterpolation(obj,scaleFactor)
             %getResponseForInterpolation
@@ -434,6 +474,7 @@ classdef OrientationSpaceResponse < handle
             % Useful if using a multiscale filter array
             % Concatenate along the next available dimension
             d = ndims(obj(1).a)+1;
+            d = max(d,4);
             A = cat(d,obj.a);
             sA = size(A);
             A = reshape(A,[sA(1:d-1) size(obj)]);

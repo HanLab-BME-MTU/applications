@@ -1,4 +1,4 @@
-function [ fig, reRunList,toPlotHi,toPlotLo ] = GCAAnalysisCompareNeuriteOutgrowthBetweenGroups(toPlot,saveDir,emphasize)
+function [ reRunList,toPlotHi,toPlotLo ] = GCAAnalysisCompareNeuriteOutgrowthBetweenGroups(toPlot,saveDir,emphasize)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 fsFigure(0.75);
@@ -7,7 +7,8 @@ nGroups = numel(toPlot.info.names);
 % check that files exist
 for iGroup = 1:nGroups
     projListC = toPlot.info.projList{iGroup}(:,1);
-    nofile = cellfun(@(x) exist([x filesep 'ANALYSIS' filesep 'PARAMETER_EXTRACTION\GlobalFunctional\neurite_outgrowth_measurements' ...
+    nofile = cellfun(@(x) exist([x filesep 'GrowthConeAnalyzer' filesep 'MEASUREMENT_EXTRACTION' filesep 'GlobalFunctional' ... 
+        filesep 'neurite_outgrowth_measurements' ...
         filesep 'neuriteLengthOutput.mat'])==0, projListC(:,1));
     idxNoFile = find(nofile);
     if ~isempty(nofile)
@@ -18,43 +19,57 @@ for iGroup = 1:nGroups
     end
 end
 
+
+
+
+
 if isempty(vertcat(reRunList{:}))
     
-    
+    setAxis('on')
     for iGroup = 1:nGroups
-        setAxis
+        
         %subplot(1,nGroups,iGroup)
         projListC = toPlot.info.projList{iGroup}(:,1);
         
-        neuriteLengthStruct = cellfun(@(x) load([x filesep 'ANALYSIS' filesep 'PARAMETER_EXTRACTION\GlobalFunctional\neurite_outgrowth_measurements' ...
+        neuriteLengthStruct = cellfun(@(x) load([x filesep 'GrowthConeAnalyzer' filesep 'MEASUREMENT_EXTRACTION' filesep 'GlobalFunctional'  ...
+            filesep 'neurite_outgrowth_measurements' ...
             filesep 'neuriteLengthOutput.mat']),projListC);
         neuriteLengths  = arrayfun(@(x) x.neuriteLength, neuriteLengthStruct,'uniformoutput',0);
         deltas = cellfun(@(x) (x(end)-x(1)),neuriteLengths);
         deltaPerGroup{iGroup} = deltas;
         neuriteLengthPerGroup{iGroup} = neuriteLengths;
-        colorCurrent = toPlot.info.colors{iGroup};
+        colorCurrent = toPlot.info.color{iGroup};
+         hold on
+        h = cellfun(@(x)  plotNeuriteOutgrowthInTime(x,colorCurrent,1,1,0,[],[],0),neuriteLengths,'uniformoutput',0);
+       
+        forLeg{iGroup} = h(1);
         
-        hold on
-        cellfun(@(x)  plotNeuriteOutgrowthInTime(x,colorCurrent,1,5,0,[],[],1),neuriteLengths);
-        
-        
+        % 
+     
         
         if ~isempty(emphasize)
-            if iGroup == emphasize(1);
-                plotNeuriteOutgrowthInTime(neuriteLengths{emphasize(2)},colorCurrent,1,5,0,[],[],1,5);
-            end
-        end
+               emphasizeC = emphasize{iGroup}; 
         
-        if ~isempty(saveDir) 
-            saveas(gcf,[saveDir filesep 'neuriteLengthCompare_' toPlot.info.names{iGroup}]); 
-            
-        end 
-        clear neuriteLengths
-        close gcf
+            %if iGroup == emphasize(1);
+                plotNeuriteOutgrowthInTime(neuriteLengths{emphasizeC},colorCurrent,1,60,0,[],[],1,5);
+            %end
+        end
+%         
+%         if ~isempty(saveDir) 
+%             saveas(gcf,[saveDir filesep 'neuriteLengthCompare_' toPlot.info.names{iGroup}]); 
+%             
+%         end 
+%         clear neuriteLengths
+%         close gcf
     end
-%     if ~isempty(saveDir)
-%         saveas(gcf,[saveDir filesep 'neuriteLengthCompare.fig']);
-%     end
+    %axis([0,900,-10,35]);
+    legend([forLeg{1}{1},forLeg{2}{1},forLeg{3}{1}],toPlot.info.names{1},toPlot.info.names{2},toPlot.info.names{3}, ...
+        'Location','BestOutside');
+    if ~isempty(saveDir)
+        saveas(gcf,[saveDir filesep 'neuriteLengthCompare.fig']);
+        saveas(gcf,[saveDir filesep 'neuriteLengthCompare.eps'],'psc2');
+        saveas(gcf,[saveDir filesep 'neuriteLengthCompare.tif']);
+    end
     
     
     % hAll = vertcat(h{iGroup});
@@ -112,7 +127,7 @@ if isempty(vertcat(reRunList{:}))
     toPlotClust.info.deltas = arrayfun(@(iClust) deltasCombine(sortedIdx==iClust)...
         , 1:2,'uniformoutput',0);
     
-    colors = toPlot.info.colors;
+    colors = toPlot.info.color;
     fsFigure(0.75)
     hold on
     for iClust = 1:2
@@ -121,7 +136,7 @@ if isempty(vertcat(reRunList{:}))
         deltasC = toPlotClust.info.deltas{iClust};
         listByGroup{iClust} = arrayfun(@(iGroup) listC(toPlotClust.info.grouping{iClust}==iGroup),1:nGroups,'uniformoutput',0);
         deltaByGroup{iClust} = arrayfun(@(iGroup) deltasC(toPlotClust.info.grouping{iClust}==iGroup),1:nGroups,'uniformoutput',0);
-        arrayfun(@(iGroup) scatter(iClust.*ones(size(listByGroup{iClust}{iGroup},1),1),deltaByGroup{iClust}{iGroup},50,toPlot.info.colors{iGroup},'filled')...
+        arrayfun(@(iGroup) scatter(iClust.*ones(size(listByGroup{iClust}{iGroup},1),1),deltaByGroup{iClust}{iGroup},50,toPlot.info.color{iGroup},'filled')...
             , 1:nGroups);
     end
     axis([0.5 2.5 -5 25]);
@@ -135,7 +150,7 @@ if isempty(vertcat(reRunList{:}))
     % for now keep toPlot Hi and toPlot Low separate. 
     
     toPlotLo.info.projList = listByGroup{1};
-    toPlotLo.info.colors = toPlot.info.colors; 
+    toPlotLo.info.colors = toPlot.info.color; 
    % toPlotHi.info.grouping = cellfun(@(i) ones(length().*iGroup 
     %toPlotHi.info.grouping = vertcat(cellfun(@(i) size(listByGroup,2),    
     
@@ -144,7 +159,7 @@ if isempty(vertcat(reRunList{:}))
     
    % for now just keep in separate groups 
    toPlotHi.info.projList = listByGroup{2}; 
-   toPlotHi.info.color = toPlot.info.colors; 
+   toPlotHi.info.color = toPlot.info.color; 
  grpVarHi = arrayfun(@(x) repmat(x,size(listByGroup{2}{x},1),1),1:numel(listByGroup{2}),'uniformoutput',0);
    toPlotHi.info.grouping = vertcat(grpVarHi{:}); 
    

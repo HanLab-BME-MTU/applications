@@ -96,7 +96,7 @@ for iSize = 2 : maxClusterSize
     %association or dissociation
     %only look at clusters with known start and end time
     indxClust = find(clustHistoryMerged(:,2)==iSize&~isnan(clustHistoryMerged(:,5)));
-    clustLft = clustHistoryMerged(indxClust,5);
+    clustLft = clustHistoryMerged(indxClust,5);%cluster life time
     clustEndType = clustHistoryMerged(indxClust,7);
     
     %calculate dissociation rate

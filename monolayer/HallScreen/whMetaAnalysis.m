@@ -4,22 +4,35 @@ function [] = whMetaAnalysis(mainDirname,metaDataFname,timePerFrame)
 
 % % mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20140829/';
 % % mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20141013/';
+% % mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20150504/';
+% % mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20151111a/';
 % % metaDataFname = 'GEFsScreenMetaData20140909_all.mat';
 % % metaDataFname = 'GEFsScreenMetaData20140911_all_kd50.mat';
 % % metaDataFname = 'GEFsScreenMetaData20140911_all_kd40.mat';
 % % metaDataFname = 'GEFsScreenMetaData20141013_kd50.mat';
+% % metaDataFname = 'GEFsScreenMetaData20150424_kd50.mat';
 
-% mainDirname = '/project/cellbiology/gdanuser/collab/hall/MetaAnalysis/20150504/';
-% metaDataFname = 'GEFsScreenMetaData20150424_kd50.mat';
-% timePerFrame = 5;
+warning on; %#ok<WNON>
 
+if nargin < 3    
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20160201_new/';
+    %     metaDataFname = 'YunYuValidationData20160202_AZ_0215_kd0.mat';
+    mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20160314/';
+    metaDataFname = 'YunYuValidationData20160314_kd0.mat';
+    timePerFrame = 5;
+end
+    
 tic;
 
 close all;
 
-addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils/export_fig'));
-addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils/notBoxPlot'));
-addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/Hall'));
+addpath(genpath('/home2/azaritsky/code/extern/export_fig'));
+% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils/notBoxPlot'));/project/bioinformatics/Danuser_lab/shared/assaf/oldUTSWCodeAndData/code/utils/notBoxPlot
+addpath(genpath('/home2/azaritsky/code/applications/monolayer'));
+
+% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils/export_fig'));
+% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils/notBoxPlot'));
+% addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/Hall'));
 
 load([mainDirname metaDataFname]); % metaData
 
@@ -193,7 +206,7 @@ end
 %       a. Spatiotemporal associations (time delay) between measures (commented out)
 %       b. PCA
 allFeatsFname = [mainDirname '/allFeatures.mat'];
-reuseFeats = true; 
+reuseFeats = false; 
 
 if exist(allFeatsFname,'file') && reuseFeats
     load(allFeatsFname);
@@ -263,8 +276,11 @@ end
 %       a. CDC42 vs. Control
 %       b. All experiments
 if flags.shearStrainAnalysis
-    [p,x0,x1] = whShearStrainCntrlCdc42(metaData,mainDirname); % motion-shear strain for all controls + CDC42
-    whMotionShearStrainGeneDaySeq(metaData,mainDirname,p,x0,x1);
+    try
+        [p,x0,x1] = whShearStrainCntrlCdc42(metaData,mainDirname); % motion-shear strain for all controls + CDC42
+        whMotionShearStrainGeneDaySeq(metaData,mainDirname,p,x0,x1);
+    catch exception
+    end
 end
 
 %%  9. RhoGTPAses analysis
@@ -343,6 +359,12 @@ for i = 1 : metaData.N
 end
 
 [minDistFromWound,allDistancesFromWound] = getDistanceFromWound(feats.kymographs);
+
+if minDistFromWound < 12 % 180 um 
+    warning('Too few cells in %d movies',sum(allDistancesFromWound<12));    
+end
+
+minDistFromWound = 12;
 
 [feats.features, feats.kymographs]= getFeatures(feats.kymographs,metaData,minDistFromWound);
 end
@@ -465,8 +487,10 @@ ylabel('2nd PC','FontSize',15);
 hold all;
 for i = 1 : nTreats
     inds = metaData.groupsByTreatments{i}.inds;
-    plot(data.score(inds,1)',data.score(inds,2)',sprintf('%s',markersPerm(mod(i,nColors) + 1)),'MarkerFaceColor',sprintf('%s',colorsPerm(mod(i,nColors)+1)),'MarkerSize',10,...
-        'DisplayName',metaData.groupsByTreatments{i}.treatment);    
+    plot(data.score(inds,1)',data.score(inds,2)',sprintf('%s',markersPerm(mod(i,nColors) + 1)),'MarkerFaceColor',sprintf('%s',colorsPerm(mod(i,nColors)+1)));
+    % ASSAF DEC 2015
+    %     plot(data.score(inds,1)',data.score(inds,2)',sprintf('%s',markersPerm(mod(i,nColors) + 1)),'MarkerFaceColor',sprintf('%s',colorsPerm(mod(i,nColors)+1)),'MarkerSize',10,...
+    %         'DisplayName',metaData.groupsByTreatments{i}.treatment);
 end
 legend show;
 haxes = get(h,'CurrentAxes');
@@ -905,7 +929,8 @@ N = length(uniqueGenes);
 
 strPSup = 'pSuper';
 strNT = 'NT';
-indsPSup = strcmp(whToPrefix(strLabels),strPSup) | strcmp(whToPrefix(strLabels),strNT); % then filter by days for the gene
+strDMSO = 'DMSO';
+indsPSup = strcmp(whToPrefix(strLabels),strPSup) | strcmp(whToPrefix(strLabels),strNT) | strcmp(whToPrefix(strLabels),strDMSO); % then filter by days for the gene
 
 markersPerm ='sdh';
 
@@ -998,7 +1023,7 @@ end
 function [] = dayAnalysisControl(out,strLabels,metaData,mainDirname)
 dayAnalysisControlProperty(out.speed,strLabels,metaData,mainDirname,'Speed',out.axesSpeed);
 dayAnalysisControlProperty(out.directional,strLabels,metaData,mainDirname,'Directionality',out.axesDirectionality);
-dayAnalysisControlProperty(out.strainRate,strLabels,metaData,mainDirname,'StrainRate',out.axesStrainRate);
+% dayAnalysisControlProperty(out.strainRate,strLabels,metaData,mainDirname,'StrainRate',out.axesStrainRate);
 dayAnalysisControlProperty(out.coordination,strLabels,metaData,mainDirname,'Coordination',out.axesCoordination);
 close all;
 end
@@ -1015,7 +1040,8 @@ n = length(strLabels);
 
 strPSup = 'pSuper';
 strNT = 'NT';
-indsPSup = strcmp(whToPrefix(strLabels),strPSup) | strcmp(whToPrefix(strLabels),strNT); % then filter by days for the gene
+strDMSO = 'DMSO';
+indsPSup = strcmp(whToPrefix(strLabels),strPSup) | strcmp(whToPrefix(strLabels),strNT) | strcmp(whToPrefix(strLabels),strDMSO); % then filter by days for the gene
 
 for day = 1 : N
     dayStr = metaData.groupsByDays{day}.dates;

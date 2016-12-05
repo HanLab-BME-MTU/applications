@@ -67,7 +67,8 @@ if isfield(infoSpaceTime,'firstLastTP')
 else
     firstLastTP = [];
 end
-firstLastFrame = 1 + round(firstLastTP/sampleStep);
+firstLastFrame =1+  round(firstLastTP/sampleStep);
+
 
 %Determine area
 numSideLenVals = length(areaSideLen);

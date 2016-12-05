@@ -30,21 +30,27 @@ function [filoCurvMax] = GCAAnalysisExtract_filoCurvature(analInfo,filoFilterSet
 %%
 frames = length(analInfo);
 
-filoCurvMax = cell(frames,1); 
+filoCurvMax = cell(frames,1);
 
 for iFrame = 1:length(analInfo)-1
+    
     filoInfo = analInfo(iFrame).filoInfo;
-    filterFrameC= filoFilterSet{iFrame};
-    filoInfoFilt  = filoInfo(filterFrameC);
     
-    
-    % get the mean and max of the curvature values 
-   % curvMeans = arrayfun(@(x) mean(abs(filoInfoFilt(x).Ext_FiloCurvIndVals)),1:length(filoInfoFilt));
-    curvMax = arrayfun(@(x) max(abs(filoInfoFilt(x).Ext_FiloCurvature)),1:length(filoInfoFilt)); 
-    
-    %filoCurvMean{iFrame} = curvMeans';
-    filoCurvMax{iFrame} =  curvMax'; 
-end 
+    if ~isempty(filoInfo)
+        filterFrameC= filoFilterSet{iFrame};
+        filoInfoFilt  = filoInfo(filterFrameC(:,1));
+        
+        
+        % get the mean and max of the curvature values
+        % curvMeans = arrayfun(@(x) mean(abs(filoInfoFilt(x).Ext_FiloCurvIndVals)),1:length(filoInfoFilt));
+        curvMax = arrayfun(@(x) max(abs(filoInfoFilt(x).Ext_FiloCurvIndVals)),1:length(filoInfoFilt));
+        
+        %filoCurvMean{iFrame} = curvMeans';
+        filoCurvMax{iFrame} =  curvMax';
+    else
+        filoCurvMax{iFrame} = [];
+    end
+end
 
     
     

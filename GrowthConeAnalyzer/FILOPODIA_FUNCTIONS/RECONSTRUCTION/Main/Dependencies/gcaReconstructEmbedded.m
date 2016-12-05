@@ -73,7 +73,7 @@ ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x));
 
 % Pass to: gcaConnectEmbeddedRidgeCandidates.m
 ip.addParameter('maxRadiusLinkEmbedded',10,@(x) isscalar(x));
-ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x));
+ip.addParameter('geoThreshEmbedded',0.5,@(x) isscalar(x));
 
 ip.addParameter('TSOverlays',true);
 ip.parse(img,maxTh,filoExtSeedForInt,embeddedRidgeCand,varargin{:});
@@ -388,6 +388,7 @@ distTrans = bwdist(edgeMask);
 [idxKeepInt] = cellfun(@(x) find(x==min(x)),distTransIntEPFromEdge,'uniformoutput',0);
 
 
+idxNonSpanningSeeds = cellfun(@(x) x(1)<=1 && x(2) <=1, distTransIntEPFromEdge); 
 %    Find those with distance transformation that are exactly the same-
 %    this is a quick indication that the ridge is running parallel to
 %    the veilStem mask. Filter these ridges out as they are typically the ridge
@@ -470,7 +471,7 @@ if ~isempty(idxKeepInt) % if no candidates
         if ip.Results.TSOverlays == true
             
             TSFigs(countFigs).h  = setFigure(nx,ny,'off');
-            TSFigs(countFigs).name = 'Before Matching';
+            TSFigs(countFigs).name = 'Before_Matching';
             TSFigs(countFigs).group = 'Reconstruct_Embedded';
             imshow(-img,[]);
             hold on
@@ -490,7 +491,7 @@ if ~isempty(idxKeepInt) % if no candidates
             % Next Figure
             
             TSFigs(countFigs).h  = setFigure(nx,ny,'off');
-            TSFigs(countFigs).name = 'Before Matching with Vectors';
+            TSFigs(countFigs).name = 'Before_Matching_with_Vectors';
             TSFigs(countFigs).group = 'Reconstruct_Embedded';
             
             imshow(-img,[]);

@@ -66,6 +66,7 @@ ip.addOptional('showNum',0,@isscalar)
 ip.addParamValue('bandMin',1,@isscalar);
 ip.addParamValue('bandMax',Inf,@isscalar);
 ip.addParamValue('colorWind','k'); 
+ip.addParamValue('colorText','k'); 
 ip.parse(varargin{:});
 
 stringIn = ip.Results.stringIn;
@@ -172,7 +173,8 @@ switch cellDepth
 %                         h(end+1)=patch(currWin(1,:),currWin(2,:),stringIn{:});
 %                         
                          if showNum && mod(j,showNum)==0 %&& mod(k,showNum) == 0
-                             h(end+1)=text(currWin(1,1),currWin(2,1),[num2str(j) ],'color','k','fontWeight','bold','FontSize',9);
+%                              h(end+1)=text(currWin(1,1),currWin(2,1),[num2str(j) ],'color','k','fontWeight','bold','FontSize',9);
+                            h(end+1)=text(currWin(1,1),currWin(2,1),[num2str(j) ],'color',ip.Results.colorText,'fontWeight','bold','FontSize',9);
                          end
                      end
                  end

@@ -4,13 +4,13 @@
 %
 %Khuloud Jaqaman, June 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150608_AnalysisLR1_dt0p01_T10/probeISruns';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target/analysis';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD10'}; %,'rD40','rD60','rD80','rD100','rD120','rD140','rD160'};
-aPDir = {'dR0p5','dR2p0','dR5p0','aP0p2','aP0p5','aP0p8','dC0p05','dC0p2'};
-outDirNum = 1:10;
-lRDir = {'lR1p0'}; %,'lR0p2','lR0p3','lR0p4','lR0p5','lR0p6','lR1p0'};
+rDDir = {'rD20'};
+aPDir = {'aP0p5'};
+outDirNum = 1:30;
+lRDir = {'lR0p02','lR0p04'};%','lR0p3','lR0p4','lR0p5','lR0p6','lR1p0'};
 
 fprintf('\n===============================================================');
 
@@ -37,7 +37,7 @@ for rDDirIndx = 1 : length(rDDir)
             for outDirIndx = 1 : length(outDirNum)
                 
                 %read results
-                tmp = load(fullfile(currDir,'ind',['ratesAndDensity_dt0p01_T10_' int2str(outDirNum(outDirIndx)) '.mat']));
+                tmp = load(fullfile(currDir,'ind',['ratesAndDensity_dt0p1_T10_' int2str(outDirNum(outDirIndx)) '.mat']));
                 
                 %store in cell array
                 ratesDensityPerMovie{outDirIndx} = tmp;
@@ -45,7 +45,7 @@ for rDDirIndx = 1 : length(rDDir)
             end %for each outDir
             
             %save cell array
-            save([currDir,'/ratesAndDensityInd_dt0p01_T10'],'ratesDensityPerMovie','-v7.3');
+            save([currDir,'/ratesAndDensityInd_dt0p1_T10'],'ratesDensityPerMovie','-v7.3');
             
         end %for each labelRatio
         

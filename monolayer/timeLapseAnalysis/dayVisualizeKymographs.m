@@ -4,6 +4,11 @@ nGeneDay = length(geneDayDiff);
 params.timePerFrame = metaData.timePerFrame;
 params.patchSize = 15;
 
+matDname = [mainDirname 'dayGeneControlKymograph/mat/'];
+if ~exist(matDname,'dir')
+    unix(sprintf('mkdir %s',matDname));
+end
+
 for iGeneDay = 1 : nGeneDay        
     params.pixelSize = geneDayDiff{iGeneDay}.pixelSize;
     dayGeneSeqStr = geneDayDiff{iGeneDay}.dayGeneSeqStr;
@@ -14,7 +19,7 @@ for iGeneDay = 1 : nGeneDay
     
     geneKymograph = geneDayDiff{iGeneDay}.meanKDKymograph;
     controlKymograph = geneDayDiff{iGeneDay}.meanKControlKymograph;
-    diffKymograph = geneDayDiff{iGeneDay}.diffKymograph;
+    %     diffKymograph = geneDayDiff{iGeneDay}.diffKymograph;
         
     if strcmp(propertyStr,'Speed')
         params.caxis = [0 60];
@@ -29,13 +34,15 @@ for iGeneDay = 1 : nGeneDay
     
     params.fname = [mainDirname 'dayGeneControlKymograph/' dayGeneSeqStr '_' propertyStr '_KD.eps'];
     plotKymograph(geneKymograph,params);
+    save([matDname dayGeneSeqStr '_' propertyStr '_KD.mat']);
     
     params.fname = [mainDirname 'dayGeneControlKymograph/' dayGeneSeqStr '_' propertyStr '_Ctrl.eps'];
     plotKymograph(controlKymograph,params);
+    save([matDname dayGeneSeqStr '_' propertyStr '_Ctrl.mat']);
     
-    params.fname = [mainDirname 'dayGeneControlKymograph/' dayGeneSeqStr '_' propertyStr '_Diff.eps'];
-    params.caxis = params.caxis - params.caxis(2)/2;
-    plotKymograph(diffKymograph,params);
+    %     params.fname = [mainDirname 'dayGeneControlKymograph/' dayGeneSeqStr '_' propertyStr '_Diff.eps'];
+    %     params.caxis = params.caxis - params.caxis(2)/2;
+    %     plotKymograph(diffKymograph,params);
     
     close all;
 end

@@ -47,9 +47,9 @@ allSeqKnockdownDistribution = nelements ./ sum(nelements);
 
 h = figure;
 hold on;
-bar(xcenters,allSeqKnockdownDistribution,'r');
+bar(xcenters,allSeqKnockdownDistribution,'k');
 xlabel('GEF KD efficiency (%)','FontSize',22);
-ylabel('Percent','FontSize',22);
+ylabel('Frequency','FontSize',22);
 haxes = get(h,'CurrentAxes');
 set(haxes,'XLim',[0,100]);
 set(haxes,'XTick',0:25:100);
@@ -62,6 +62,8 @@ set(h,'Color','none');
 hold off;
 outFname = [outDirname 'shSeqEfficiencyDistribution.eps'];
 export_fig(outFname);
+
+save([outDirname 'shSeqEfficiencyDistribution.mat'],'xcenters','allSeqKnockdownDistribution','allSeqKD');
 
 h = figure;
 hold on;
