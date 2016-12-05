@@ -13,10 +13,12 @@ ip =inputParser;
 ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
 ip.addParamValue('reTrack',true,@islogical); % selcted track ids
 ip.addParamValue('trackOnlyDetected',false,@islogical); % selcted track ids
+ip.addParamValue('movieData',[],@(x) isa(x,'MovieData') || isempty(x)); % moviedata for utrack
 ip.parse(varargin{:});
 extraLengthForced=ip.Results.extraLength;
 reTrack=ip.Results.reTrack;
 trackOnlyDetected =ip.Results.trackOnlyDetected;
+MD =ip.Results.movieData;
 extraLength = 300;
 % get stack size
 numFrames = size(imgStack,3);
@@ -25,8 +27,18 @@ sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 % parfor_progress(numel(tracksNA));
 progressText(0,'Re-reading and tracking individual tracks:');
-searchRadius = 1;
-searchRadiusDetected = 2;
+if isempty(MD)
+    searchRadius = 1;
+    searchRadiusDetected = 2;
+else
+    iTrackingProc =MD.getProcessIndex('TrackingProcess');
+    trackingProc = MD.getProcess(iTrackingProc);
+    trackingParams = trackingProc.funParams_;
+    minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
+    maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
+    searchRadius = (minR+maxR)/2;
+    searchRadiusDetected = maxR;
+end
 halfWidth=2;
 halfHeight=2;
 
@@ -48,7 +60,9 @@ for k=1:numTracks
 %             tracksNA(k).forceMag(curRange) = arrayfun(@(x) imgStack(round(tracksNA(k).yCoord(x)),round(tracksNA(k).xCoord(x)),x),curRange);
 %         end
 %     else
+    % initialize amptotal to have it have the same dimension as .amp
     if attribute==1
+        tracksNA(k).ampTotal = tracksNA(k).amp;
         try
             curStartingFrame = tracksNA(k).startingFrameExtra;
             curEndingFrame = tracksNA(k).endingFrameExtra;
@@ -106,7 +120,7 @@ for k=1:numTracks
                             tracksNA(k).amp(ii) = A;
                             tracksNA(k).bkgAmp(ii) = c;
                             tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).presence(ii) =  true;
                             tracksNA(k).sigma(ii) = curSigma;
                             if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
                                 tracksNA(k).state{ii} = 'NA';
@@ -208,7 +222,7 @@ for k=1:numTracks
                             tracksNA(k).amp(ii) = A;
                             tracksNA(k).bkgAmp(ii) = c;
                             tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).presence(ii) =  true;
                             tracksNA(k).sigma(ii) = curSigma;
                             if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
                                 tracksNA(k).state{ii} = 'NA';

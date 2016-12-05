@@ -42,7 +42,9 @@ function h = plotIntensityForceSingle(curTrack,curID,intenOrForce,splineParamPea
         sdinit=ppval(sd_splineInit,tRange);
         plot(tRange*tInterval,sdinit,'Color',[58/255 84/255 212/255],'Linewidth',1)
         %background level
-        line([0 (curEndFrameEE)*tInterval],[curTrack.bkgMaxInt curTrack.bkgMaxInt],'linestyle',':','Color','k')
+        if ~isempty(curTrack.bkgMaxInt)
+            line([0 (curEndFrameEE)*tInterval],[curTrack.bkgMaxInt curTrack.bkgMaxInt],'linestyle',':','Color','k');
+        end
         if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting
             plot((curTrack.firstIncreseTimeInt/tInterval)*tInterval,...
                 sdinit(round(curTrack.firstIncreseTimeInt/tInterval-curStartFrameEE+1)),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
@@ -117,6 +119,18 @@ function h = plotIntensityForceSingle(curTrack,curID,intenOrForce,splineParamPea
         xlabel('Time (s)'); ylabel('Adhesion advance (pixel)')
         set(gca,'FontSize',7)
         curEdge = curTrack.advanceDist(chosenStartFrame:chosenEndFrame);
+        tRange=chosenStartFrame:chosenEndFrame;
+        sCurEdge_spline= csaps(tRange,curEdge,splineParamPeak);
+        sCurEdge=ppval(sCurEdge_spline,tRange);
+        plot((tRange)*tInterval,sCurEdge,'Color',[229/255 84/255 0],'Linewidth',2)
+    end
+    if intenOrForce==5
+        % edge advance time series
+%         plot((curStartFrameEE:curEndFrameEE),curTrack.edgeAdvanceDist(curStartFrameEE:curEndFrameEE),'-k'), hold on
+        plot((chosenStartFrame:chosenEndFrame)*tInterval,curTrack.distToEdge(chosenStartFrame:chosenEndFrame),'-k'), hold on
+        xlabel('Time (s)'); ylabel('Distance to edge (pixel)')
+        set(gca,'FontSize',7)
+        curEdge = curTrack.distToEdge(chosenStartFrame:chosenEndFrame);
         tRange=chosenStartFrame:chosenEndFrame;
         sCurEdge_spline= csaps(tRange,curEdge,splineParamPeak);
         sCurEdge=ppval(sCurEdge_spline,tRange);
