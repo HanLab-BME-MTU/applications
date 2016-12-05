@@ -1,5 +1,4 @@
 %% 2016/10/26, telomere first
-% From Jungsik
 
 load U2OSlanesstatistics3.mat
 
@@ -19,11 +18,9 @@ summary(datamat(:))
 
 %%
 
-datamat(datamat > 10) = NaN;
+datamat(datamat > 3) = NaN;
 
 summary(datamat(:))
-
-
 
 %% histo at the resolution of 1kb
 %discretesupport = 0:0.1:17.6;

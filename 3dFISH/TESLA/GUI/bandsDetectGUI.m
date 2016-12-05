@@ -16,13 +16,13 @@ function varargout = bandsDetectGUI(varargin)
 %      stop.  All inputs are passed to bandsDetectGUI_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to markerSet (singleton)".
+%      instance to setLadders (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
 % Edit the above text to modify the response to help bandsDetectGUI
 
-% Last Modified by GUIDE v2.5 21-Oct-2016 12:12:06
+% Last Modified by GUIDE v2.5 05-Dec-2016 10:37:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,6 +55,9 @@ function bandsDetectGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for bandsDetectGUI
 handles.output = hObject;
 
+% Set up default button features
+
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -82,6 +85,10 @@ function loadImage_Callback(hObject, eventdata, handles)
 set(handles.note, 'String', '');
 
 handles.imagePath = loadImageFile();
+if isempty(handles.imagePath)
+    errordlg('Please load the image again!', 'Error');
+    return
+end 
 image = imread(handles.imagePath);
 
 % Convert input to single frame 2D gray scale image
@@ -98,7 +105,6 @@ imshow(image,[]);
 title('Input Image');
 
 set(handles.adjImage, 'Enable', 'on');
-set(handles.markerSet, 'Enable', 'on');
 guidata(hObject,handles);
 
 % --- Executes on button press in adjImage.
@@ -109,17 +115,17 @@ function adjImage_Callback(hObject, eventdata, handles)
 
 imagePath = handles.imagePath;
 image = imread(imagePath);
-axes(handles.axes2);
+axes(cla(handles.axes2));
 imshow(image,[]);
 
-set(handles.note, 'String', 'Please crop the region of interest');
+set(handles.note, 'String', 'Please crop the region of interest with ladders on the left side. Then double click to confirm', 'FontSize', 15);
 imInput=imcrop(handles.axes2);
 
 % Imcomplement the image if its background is white
 % IM, fineIM, fIM always has black background
 IM = mat2gray(imInput);
 if mean(IM(:)) > 0.5
-    IM=imcomplement(mat2gray(IM));
+    IM = imcomplement(mat2gray(IM));
 end
 
 adjIM = imadjust(IM,[min(IM(:)),max(IM(:))], [0,1]);
@@ -134,26 +140,65 @@ title('Cropped Image');
 handles.imageIn = fineIM;
 
 set(handles.run, 'Enable', 'on');
-set(handles.note, 'String', '');
+set(handles.note, 'String', 'Click Run');
 
 guidata(hObject,handles);
 
 
 
-% --- Executes on button press in markerSet.
-function markerSet_Callback(hObject, eventdata, handles)
-% hObject    handle to markerSet (see GCBO)
+% --- Executes on button press in setLadders.
+function setLadders_Callback(hObject, eventdata, handles)
+% hObject    handle to setLadders (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 fIM = handles.imageIn;
 bandMap = handles.bandMap;
-markerBoundary = handles.markerBoundary;
+% markerBoundary = handles.markerBoundary;
 set(handles.note, 'String', '');
 
+% Marker lane is required to be on the left
+set(handles.note, 'String', 'Click to define the left boundary of ladders');
+[markerBoundaryLeft, limitXA] = ginput(1);
+hold on
+yAxis = ylim;
+plot(markerBoundaryLeft * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+
+set(handles.note, 'String', 'Click to define the right boundary of ladders');
+[markerBoundaryRight, limitXB] = ginput(1);
+hold on
+yAxis = ylim;
+plot(markerBoundaryRight * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+
+handles.markerBoundaryRight = markerBoundaryRight;
+
+
 prompt = {'Enter the number of marker bands:', 'Enter the marker size (From top to bottom, separated by comma):'};
-markerSet = inputdlg(prompt, 'Input');
+dlg_title = 'Input';
+num_lines = 1;
+defaultMarker = {'8', '[18.8,9.4,6.1,5.4,4.4,3.3,1.6,0.8]'};
+
+markerSet = inputdlg(prompt, dlg_title, num_lines, defaultMarker);
+if isempty(markerSet)
+    errordlg('Please specify your marker set', 'Error');
+    return
+else if isempty(markerSet{1}) || isempty(markerSet{2})
+        errordlg('Please specify your marker set', 'Error');
+        return
+    end
+end
+
+shortThresh = inputdlg('Enter the short telomere threshold:', 'Input', 1, {'1.6'});
+if isempty(shortThresh)
+    errordlg('Please specify the short telomere threshold', 'Error');
+    return
+else if isempty(shortThresh{:})
+        errordlg('Please specify the short telomere threshold', 'Error');
+        return
+    end
+end
+
 markerNum = str2num(markerSet{1});
-markerSize = str2num(markerSet{2});
+markerSize = str2num(markerSet{2})';
 markerPos = zeros(markerNum, 1);
 markerCount = 0;
 for markerY = 1:size(fIM,1)
@@ -166,22 +211,22 @@ for markerY = 1:size(fIM,1)
 end
 
 if markerCount ~= markerNum
-    error('Incorrect marker bands number')
+    errordlg('Incorrect marker number detected. Please specify your marker set', 'Error');
+    return
 end
 
 % markerPos = markerPos';
 
-switch markerNum
-    case 7
-        markerSize = [9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
-    case 8
-        markerSize = [18.8, 9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
-    otherwise
-        set(handles.note, 'String', 'Unusal number of marker bands detected');
-        return
-end
+% switch markerNum
+%     case 7
+%         markerSize = [9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
+%     case 8
+%         markerSize = [18.8, 9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
+%     otherwise
+%         set(handles.note, 'String', 'Unusal number of marker bands detected');
+%         return
+% end
 
-shortThresh = inputdlg('Enter the short telomere threshold:', 'Input');
 handles.shortThresh = str2num(shortThresh{:});
 handles.markerNum = markerNum;
 handles.markerPos = markerPos;
@@ -199,8 +244,12 @@ function run_Callback(hObject, eventdata, handles)
 
 set(handles.note, 'String', '');
 fIM = handles.imageIn;
-% Lanes and bands detection
 
+axes(handles.axes1);
+imshow(imcomplement(fIM), []);
+title('Cropped Image');
+
+% Lanes and bands detection
 bandMap = zeros(size(fIM));
 % Project all pixels intensity to x axis
 intensityProfile = zeros(1,size(fIM,2));
@@ -252,9 +301,8 @@ end
 % Show preliminary detected result for manual modification
 bandMapPlot(fIM, bandMap, handles);
 
-impixelinfo;
 % Marker lane is required to be on the left
-set(handles.note, 'String', 'Click to define the boundary of marker lane.');
+set(handles.note, 'String', 'Click to define the boundary between ladders and telomere bands.');
 [markerBoundary, limitXX] = ginput(1);
 hold on
 yAxis = ylim;
@@ -267,6 +315,7 @@ handles.halfBandRange = halfBandRange;
 set(handles.addBands, 'Enable', 'on');
 set(handles.delBands, 'Enable', 'on');
 set(handles.note, 'String', '');
+set(handles.setLadders, 'Enable', 'on');
 guidata(hObject, handles);
 
 
@@ -340,36 +389,15 @@ halfBandRange = handles.halfBandRange;
 imagePath = handles.imagePath;
 set(handles.note, 'String', '');
 
-%% Band size annotation
+% Band size annotation
 % Enter threshold to calculate shortest telomere ratio
 % shortThresh = input('Enter the threshold marker size > ');
 shortThresh = handles.shortThresh;
 markerNum = handles.markerNum;
 markerPos = handles.markerPos;
 markerSize = handles.markerSize;
-
-% markerNum = 0;
-% for markerY = 1:size(fIM,1)
-%     for markerX = 1:round(markerBoundary)
-%         if bandMap(markerY, markerX) == 1
-%             markerNum = markerNum + 1;
-%             markerPos(markerNum) = markerY;
-%         end
-%     end
-% end
-% markerPos = markerPos';
-% 
-% switch markerNum
-%     case 7
-%         markerSize = [9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
-%     case 8
-%         markerSize = [18.8, 9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
-%     otherwise
-%         set(handles.note, 'String', 'Unusal number of marker bands detected');
-%         return
-% end
-
 limitY = markerPos(markerSize == shortThresh);
+
 % Linear regression y=ax+b for any two adjacent marker pair (x:markerPos, y:markerSize)
 G(:,1) = markerPos;
 G(:,2) = ones(markerNum,1);
@@ -440,45 +468,11 @@ end
 
 clear bandMap
 
-%% Overlapping bands detection and counting
-% Interval setup by percentile of bandsize
-minBandSize = min([bandStat(:).bandSize]);
-maxBandSize = max([bandStat(:).bandSize]) + 0.0001;
-step = 5;
-interDistance = (maxBandSize - minBandSize) / step;
-bottom = minBandSize;
-for i = 1:step
-    top = bottom + interDistance;
-    subBandStat = bandStat([bandStat(:).bandSize] >= bottom & [bandStat(:).bandSize] < top);
-    % Choice between median intensity and average intensity
-    medIntensity = median([subBandStat(:).bandIntensity]);
-    
-    % Set threshold to select highly intensed bands within the top/bottom interval
-    intensityThreshold = medIntensity*1.5;
-    overlappingBand = subBandStat([subBandStat(:).bandIntensity] > intensityThreshold);
-    for addCount = 1:numel(overlappingBand)
-        overlappingBand(addCount).count = round(overlappingBand(addCount).bandIntensity/medIntensity);
-        bandStat([bandStat(:).index] == overlappingBand(addCount).index).count = overlappingBand(addCount).count;
-        %         bandIndexOld = bandIndex;
-        %         bandIndex = bandIndex + overlappingBand(addCount).count - 1;
-        %         for indexAdd = 1:(bandIndex - bandIndexOld)
-        %             bandStat(indexAdd) = bandStat([bandStat(:).index] == overlappingBand(addCount).index);
-        %             bandStat(indexAdd).count = 'Overlapping Band';
-        %         end
-    end
-    
-    bottom = top;
-end
-
-%% Calculate bands statistics
+bandStat = multiBandCount(bandStat);
 
 % Plot identification results
-
 axes(handles.axes2);
-% close all
-% figure;
 imshow(imcomplement(fIM)), hold on
-% set(gcf,'position',get(0,'screensize'))
 
 countShort = 0;
 countTotal = 0;
@@ -499,11 +493,23 @@ for i = 1:numel(bandStat)
         countShort = countShort + bandStat(i).count;
     end
 end
-
 [pathName, fileName, ext] = fileparts(imagePath);
-
 % Plot a threshold line
 plot(1:q,limitY*ones(1,q),'b')
+title(fileName)
+
+% Size distribution histogram
+axes(handles.axes1);
+% figure,
+h = histogram([bandStat(:).bandSize], 'BinWidth', 1);
+% Normalization
+bar(h.BinEdges(2:size(h.BinEdges,2))-0.5, h.Values./sum(h.Values)*100, 1, 'b')
+xlabel('Telomere size (Kb)')
+ylabel('Percentage of detected bands (%)')
+title([fileName, ' Telomere Size Distribution'])
+figureHandle = gcf;
+
+% Save and Print
 s1 = sprintf('Input file name: %s%s\n', fileName, ext);
 
 avgBandSize = [bandStat(:).bandSize]*[bandStat(:).count]'/sum([bandStat(:).count]);
@@ -526,27 +532,35 @@ else
 end
 
 s4 = sprintf('The shortest 20%% telomere threshold is %.2f kb.\n', short20Size);
-
-%% fIM storage???????
-save([fullfile(pathName, fileName), '.mat'],'ratio', 'avgBandSize', 'bandStat', 'fIM', 'short20Size', 'imagePath')
-
-% plot(1:q,short20Pos*ones(1,q),'m')
-% hold on
-% impixelinfo;
-title(fileName)
-g(1) = gcf;
-
-% Size distribution histogram
-axes(handles.axes1);
-% figure,
-h = histogram([bandStat(:).bandSize], 'BinWidth', 1);
-% Normalization
-bar(h.BinEdges(2:size(h.BinEdges,2))-0.5, h.Values./sum(h.Values)*100, 1, 'b')
-xlabel('Telomere size (Kb)')
-ylabel('Percentage of detected bands (%)')
-title([fileName, ' Telomere Size Distribution'])
-g(2) = gcf;
-
 set(handles.note, 'String', {s1, s2, s3, s4}, 'FontSize', 10);
-% savefig(g,fullfile(pathName, fileName))
+
+mkdir(fullfile(pathName, fileName));
+newPathName = fullfile(pathName, fileName, '/');
+newFileName = strcat(fileName, ' Results.txt');
+fid = fopen(fullfile(newPathName, newFileName), 'w');
+fprintf(fid,'The average telomere length is %.2f kb.\n', avgBandSize);
+fprintf(fid,'The ratio of shortest telomere below %.1fkb is %.2f%%.\n',shortThresh, ratio);
+fprintf(fid,'The shortest 20%% telomere threshold is %.2f kb.\n', short20Size);
+fclose(fid);
+
+save([fullfile(newPathName, fileName), '.mat'],'ratio', 'avgBandSize', 'bandStat', 'fIM', 'short20Size', 'imagePath')
+
+handles.outputPath = newPathName;
+handles.figureHandle = figureHandle;
+handles.fileName = fileName;
+set(handles.savefig, 'Enable', 'on');
+guidata(hObject, handles);
+
+
+% --- Executes on button press in savefig.
+function savefig_Callback(hObject, eventdata, handles)
+% hObject    handle to savefig (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+newPathName = handles.outputPath;
+figureHandle = handles.figureHandle;
+fileName = handles.fileName;
+saveas(figureHandle, [fullfile(newPathName, fileName), '.jpg'])
+msgbox('Figure Saved', 'Success');
 guidata(hObject, handles);
