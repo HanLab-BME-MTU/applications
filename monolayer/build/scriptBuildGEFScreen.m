@@ -21,16 +21,6 @@ out_dir = fullfile(matlab_repo_root, ['builds' filesep package_name filesep t_st
 zip_file = fullfile(matlab_repo_root, ['builds' filesep package_name t_stamp '.zip']);
 start_paths = path;
 start_dir = pwd;
-
-% if exist(out_dir, 'dir') == 7
-%     choice = questdlg(['Remove old build dir?'],'Question..','Yes','No','Yes');
-%     if strcmp(choice, 'Yes')
-%     	rmdir(out_dir, 's');
-%     	pause(.25);
-%     	rehash(); % weird issue with matlab rmdir?
-%     end
-% end
-% rehash();
 mkdir(out_dir);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -48,41 +38,31 @@ ScriptIn(1) = {'testScript_assaf.m'};
 ScriptIn(2) = {'export_fig.m'};
 buildPackage(ScriptIn, out_dir);
 cd(out_dir); % check results
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Add license 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Be sure to modify the statement as needed.
-%{
-addCopyingStatement = fullfile(matlab_repo_root,['documentation' filesep 'license' filesep 'addCopyingStatement']);
-CopyingStatement = fullfile(matlab_repo_root,['documentation' filesep 'license' filesep 'CopyingStatement']);
-GPL_license = fullfile(matlab_repo_root,['documentation' filesep 'license' filesep 'GPL-License.txt']);
-copyfile(addCopyingStatement, out_dir);
-copyfile(CopyingStatement, out_dir);
-copyfile(GPL_license, out_dir);
-
-if strcmp(computer('arch'),'win64')
-    disp('Win64');
-    disp(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']);
-    winopen(out_dir);
-    uiwait(msgbox(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']));
-    system('C:\Program Files\Git\git-bash.exe');
-else
-	disp(['Run this code in the pop up: "bash addCopyingStatement ' package_name '  "' institution_name '"']);
-	disp(['in this directory          : ' out_dir])
-	uiwait(msgbox(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' "' institution_name '"']));
-	% system(['bash addCopyingStatement ' package_name ' ' institution_name]);
-end
-
-
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % Gather Test image
+% % Add license 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % move test image to build package dir.
-% test_img = '/home2/avega/Documents/test_0001.tif';
-% copyfile(test_img, out_dir); 
-% [a, b, c] = fileparts(test_img);
-% test_img_name = [b c];
-%}
+% % Be sure to modify the statement as needed.
+% %{
+% addCopyingStatement = fullfile(matlab_repo_root,['documentation' filesep 'license' filesep 'addCopyingStatement']);
+% CopyingStatement = fullfile(matlab_repo_root,['documentation' filesep 'license' filesep 'CopyingStatement']);
+% GPL_license = fullfile(matlab_repo_root,['documentation' filesep 'license' filesep 'GPL-License.txt']);
+% copyfile(addCopyingStatement, out_dir);
+% copyfile(CopyingStatement, out_dir);
+% copyfile(GPL_license, out_dir);
+
+% if strcmp(computer('arch'),'win64')
+%     disp('Win64');
+%     disp(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']);
+%     winopen(out_dir);
+%     uiwait(msgbox(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' ' institution_name '"']));
+%     system('C:\Program Files\Git\git-bash.exe');
+% else
+% 	disp(['Run this code in the pop up: "bash addCopyingStatement ' package_name '  "' institution_name '"']);
+% 	disp(['in this directory          : ' out_dir])
+% 	uiwait(msgbox(['Run this code in the pop up: "bash addCopyingStatement ' package_name ' "' institution_name '"']));
+% 	% system(['bash addCopyingStatement ' package_name ' ' institution_name]);
+% end
+% %}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Zip up package
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -118,7 +98,7 @@ if strcmp(choice, 'Yes')
 	if strcmp(computer('arch'),'win64')
 		test_img = 'C:\Users\Andrew\Data\raw\Assaf\Angeles_20150402_14hrs_5min_AA01_7.tif';
 	else
-		test_img = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/testSW/Angeles_20150402_14hrs_5min_AA01_7.tif';
+		test_img = '/work/bioinformatics/s170480/Data/Assaf/Angeles_20150402_14hrs_5min_AA01_7.tif';
 	end
 
 	[a, b, c] = fileparts(test_img);

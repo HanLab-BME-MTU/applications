@@ -37,7 +37,7 @@ end
 if strcmp(computer('arch'),'win64')
 	test_img = 'C:\Users\Andrew\Data\raw\Assaf\Angeles_20150402_14hrs_5min_AA01_7.tif';
 else
-	test_img = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/testSW/Angeles_20150402_14hrs_5min_AA01_7.tif';
+	test_img = '/work/bioinformatics/s170480/Data/Assaf/Angeles_20150402_14hrs_5min_AA01_7.tif';
 end
 
 [a, b, c] = fileparts(test_img);
