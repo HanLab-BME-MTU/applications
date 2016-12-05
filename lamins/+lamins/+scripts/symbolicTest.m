@@ -1,7 +1,8 @@
 %% Setup
 syms f fc t s
 Kf = 2;
-fc_test = 0.05;
+% fc_test = 0.05;
+fc_test = 1/2/pi/2;
 N = 201;
 K_test = 8;
 s_test = pi/(2*K_test+1);

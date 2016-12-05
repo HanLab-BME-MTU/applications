@@ -214,6 +214,10 @@ classdef OrientationSpaceFilter < handle
             % Resize PxT to YxXxT
             filter = reshape(filter,[obj.size length(theta)]);
         end
+        function h = objshow(obj,varargin)
+            requireSetup(obj);
+            h = imshow(fftshift(ifft2(real(obj.F(:,:,1)))),varargin{:});
+        end
     end
     methods
         function setupFilter(obj,siz)
