@@ -10,7 +10,7 @@ function [ radialFilter ] = radialKernel( f_c, b_f, N )
 % June 24th, 2016
 
 if(nargin < 2 || isempty(b_f))
-    b_f = f_c*0.8;
+    b_f = f_c/sqrt(2);
 end
 if(nargin < 3)
     N = 1024;
