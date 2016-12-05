@@ -171,11 +171,11 @@ classdef OrientationSpaceFilter < handle
         end
         function E = getEnergy(obj)
             if(~isscalar(obj))
-                E = complex(zeros(numel(obj),obj(1).n),0);
+                E = complex(zeros(numel(obj),max([obj.n])),0);
                 for o=1:numel(obj)
-                    E(o,:) = obj(o).getEnergy();
+                    E(o,1:obj(o).n) = obj(o).getEnergy();
                 end
-                E = reshape(E,[size(obj) obj(1).n]);
+                E = reshape(E,[size(obj) max([obj.n])]);
                 return;
             end
             requireSetup(obj);
