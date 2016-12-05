@@ -781,9 +781,23 @@ if ~uptoColo
     figure, histogram(firstIncreseTimeIntAgainstForceAllG2)
     ratioForceTrasG2 = length(firstIncreseTimeIntAgainstForceAllG2)/length(curIndicesG2)
     disp(['Median of firstIncreseTimeIntAgainstForceAllG2 = ' num2str(median(firstIncreseTimeIntAgainstForceAllG2))])
+    FTID2 = 1;
     %% save
     save([pathForColocalization filesep 'data' filesep 't_initForMaturingAdhesion.mat'],'firstIncreseTimeIntAgainstForceAllG2','ratioForceTrasG2')
-
+    %% Example for Group2
+%     curID2 = firstIncreseTimeIntAgainstForceAllIdxG2(FTID2);
+    curTrack2 = tracksNA(curIndicesG2(FTID2));%4210);
+%     curTrack = readIntensityFromTracks(curTrack,imgMap,1,'reTrack',true,'extraLength',30);
+%     curTrack = readIntensityFromTracks(curTrack,tMap,2,'reTrack',false);
+%     clear imgMap tMap
+%     showAdhesionTracks(pathForColocalization,'all','tracksNA',curTrack)
+%  showing
+%     plotIntensityForceSingle(curTrack,curIndices(curID));
+    close all
+    figure,set(gcf,'Position',[200,400,400,200]),plotIntensityForceSingle(curTrack2,curIndicesG2(FTID2),0,0.01,splineParamInit,tInterval)
+    % tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'trackOnlyDetected',true);
+    FTID2=FTID2+1;
+    
     %% average time from t_init to t_peak
     firstIncreseTimeForce_both = arrayfun(@(x) x.firstIncreseTimeForce, tracksNA(curIndices(bothTiTpIdx)));
     peakTimeForceAll_both = arrayfun(@(x) x.forcePeakFrame*tInterval, tracksNA(curIndices(bothTiTpIdx)));
@@ -1258,6 +1272,9 @@ if ~uptoColo
     q=0;
     for kk=1:numG7
         curG7=tracksG7(kk);
+        if curG7.lifeTime<5
+            continue
+        end
         tRange = 1:length(curG7.edgeAdvanceDist);
         if curG7.startingFrameExtra>1
             curG7.edgeAdvanceDist(1:curG7.startingFrameExtra-1)=NaN;

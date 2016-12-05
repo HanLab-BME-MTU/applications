@@ -6,10 +6,17 @@ if nargin<3
 elseif nargin<4
     MD=[];
     useOldSet=false;
+elseif nargin<5
+    useOldSet=false;
+end
+if isempty(MD)
+    pixSize=72; %nm/pix
+    timeInterval = 5; %sec
 else
     pixSize=MD.pixelSize_; %nm/pix
     timeInterval = MD.timeInterval_; %sec
 end
+    
 % normalizationMethods=1 means no-normalization
 % normalizationMethods=2 means normalization with maxIntensity and speed with computer units
 % normalizationMethods=3 means normalization with maxIntensity and speed with physical distance and time units
@@ -50,33 +57,34 @@ maxEdgeAdvanceDistChangeNAs =  arrayfun(@(x) x.maxEdgeAdvanceDistChange,tracksNA
 %#14 time to maximum: This should be long for maturing adhesion G2
 splineParam=0.1;
 % sd=ppval(csaps(x.iFrame,x.ampTotal,splineParam),x.iFrame);
-timeToMaxInten=zeros(numel(tracksNA),1);
-for ii=1:numel(tracksNA)
-    d = tracksNA(ii).ampTotal;
-    tRange = tracksNA(ii).iFrame;
-    warning('off','SPLINES:CHCKXYWP:NaNs')
-    d(d==0)=NaN;
-    try
-        sd_spline= csaps(tRange,d,splineParam);
-    catch
-        d = tracksNA(ii).amp;
-        d(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExt
-            tracksNA(ii).ampTotal(tracksNA(ii).startingFrameExtraExtra:tracksNA
-        sd_spline= csaps(tRange,d,splineParam);
+if ~useOldSet
+    timeToMaxInten=zeros(numel(tracksNA),1);
+    for ii=1:numel(tracksNA)
+        d = tracksNA(ii).ampTotal;
+        tRange = tracksNA(ii).iFrame;
+        warning('off','SPLINES:CHCKXYWP:NaNs')
+        d(d==0)=NaN;
+        try
+            sd_spline= csaps(tRange,d,splineParam);
+        catch
+            d = tracksNA(ii).amp;
+            d(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) = ...
+                tracksNA(ii).ampTotal(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra);
+            sd_spline= csaps(tRange,d,splineParam);
+        end
+        sd=ppval(sd_spline,tRange);
+        %         tRange = [NaN(1,numNan) tRange];
+    %     sd = [NaN(1,numNan) sd];
+        sd(isnan(d))=NaN;
+        %         sd(isnan(d)) = NaN;
+        % Find the maximum
+        [~,curFrameMaxAmp]=nanmax(sd);
+        timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
     end
-    sd=ppval(sd_spline,tRange);
-    %         tRange = [NaN(1,numNan) tRange];
-%     sd = [NaN(1,numNan) sd];
-    sd(isnan(d))=NaN;
-    %         sd(isnan(d)) = NaN;
-    % Find the maximum
-    [~,curFrameMaxAmp]=nanmax(sd);
-    timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
+    % timeToMaxInten = arrayfun(@(x) find(x.ampTotal==nanmax(x.ampTotal),1),tracksNA); %in frame, this should be high for group 2 
+    %#15
+    edgeVariation = arrayfun(@(x) min(nanstd(x.closestBdPoint(:,1)),nanstd(x.closestBdPoint(:,2))),tracksNA);
 end
-% timeToMaxInten = arrayfun(@(x) find(x.ampTotal==nanmax(x.ampTotal),1),tracksNA); %in frame, this should be high for group 2 
-%#15
-edgeVariation = arrayfun(@(x) min(nanstd(x.closestBdPoint(:,1)),nanstd(x.closestBdPoint(:,2))),tracksNA);
-
 % this adhesion once had fast protruding edge, thus crucial for
 % distinguishing group 3 vs 7. For example, group 7 will show low value for
 % this quantity because edge has been stalling for entire life time.
@@ -129,7 +137,9 @@ switch normalizationMethods
         distToEdgeLastNAs= distToEdgeLastNAs*pixSize;
         maxEdgeAdvanceDistChangeNAs= maxEdgeAdvanceDistChangeNAs*pixSize;
         maxIntensityNAs=maxIntensityNAs/maxIntensity; % This should be higher in g2 than g1
-        edgeVariation= edgeVariation*pixSize;
+        if ~useOldSet
+            edgeVariation= edgeVariation*pixSize;
+        end
     case 4 % normalizationMethods=4 means normalization with maxIntensity and maxEdgeAdvance*pixSize and lifeTime in sec (using tInterval).
         decayingIntensityNAs = decayingIntensityNAs/maxIntensity;      %#1
         meanIntensityNAs = meanIntensityNAs/maxIntensity;                %#5
@@ -153,10 +163,11 @@ switch normalizationMethods
         distToEdgeLastNAs= distToEdgeLastNAs*pixSize;
         maxEdgeAdvanceDistChangeNAs= maxEdgeAdvanceDistChangeNAs*pixSize;
         maxIntensityNAs=maxIntensityNAs/maxIntensity; % This should be higher in g2 than g1
-        edgeVariation= edgeVariation*pixSize;
-        
+        if ~useOldSet
+            edgeVariation= edgeVariation*pixSize;
+            timeToMaxInten = timeToMaxInten*timeInterval;
+        end    
         lifeTimeNAs = lifeTimeSec;
-        timeToMaxInten = timeToMaxInten*timeInterval;
     case 5 % normalizationMethods=4 means normalization with maxIntensity and maxEdgeAdvance*pixSize and lifeTime in sec 
         % (using tInterval) then normalization again with maximum only for
         % intensity
@@ -196,8 +207,10 @@ switch normalizationMethods
         maxEdgeAdvanceDistChangeNAs = maxEdgeAdvanceDistChangeNAs/maxEdgeAdvance;
         
         maxIntensityNAs=maxIntensityNAs/maxIntensity; % This should be higher in g2 than g1
-        edgeVariation= edgeVariation/max(edgeVariation);
-        timeToMaxInten = timeToMaxInten*timeInterval;
+        if ~useOldSet
+            edgeVariation= edgeVariation/max(edgeVariation);
+            timeToMaxInten = timeToMaxInten*timeInterval;
+        end
     case 6 % normalizationMethods=4 means normalization with maxIntensity and maxEdgeAdvance*pixSize and lifeTime in sec 
         % (using tInterval) then normalization again with maximum
         decayingIntensityNAs = decayingIntensityNAs/maxIntensity;      %#1
@@ -234,9 +247,11 @@ switch normalizationMethods
         edgeAdvanceDistFirstChangeNAs = (edgeAdvanceDistFirstChangeNAs-min(edgeAdvanceDistFirstChangeNAs))/max(minVal,(max(edgeAdvanceDistFirstChangeNAs)-min(edgeAdvanceDistFirstChangeNAs)));
         edgeAdvanceDistLastChangeNAs =  (edgeAdvanceDistLastChangeNAs-min(edgeAdvanceDistLastChangeNAs))/max(minVal,(max(edgeAdvanceDistLastChangeNAs)-min(edgeAdvanceDistLastChangeNAs)));
         maxEdgeAdvanceDistChangeNAs = (maxEdgeAdvanceDistChangeNAs-max(maxEdgeAdvanceDistChangeNAs))/max(minVal,(max(maxEdgeAdvanceDistChangeNAs)-max(maxEdgeAdvanceDistChangeNAs)));
-        edgeVariation = (edgeVariation-min(edgeVariation))/max(minVal,(max(edgeVariation)-min(edgeVariation)));
         maxIntensityNAs = (maxIntensityNAs-min(maxIntensityNAs))/max(minVal,(max(maxIntensityNAs)-min(maxIntensityNAs)));
-        timeToMaxInten = (timeToMaxInten-min(timeToMaxInten))/max(minVal,(max(timeToMaxInten)-min(timeToMaxInten)));
+        if ~useOldSet
+            edgeVariation = (edgeVariation-min(edgeVariation))/max(minVal,(max(edgeVariation)-min(edgeVariation)));
+            timeToMaxInten = (timeToMaxInten-min(timeToMaxInten))/max(minVal,(max(timeToMaxInten)-min(timeToMaxInten)));
+        end
     case 7 % normalizationMethods=5 means normalization per each feature min and max
         decayingIntensityNAs = decayingIntensityNAs/max(decayingIntensityNAs);
         edgeAdvanceDistNAs = edgeAdvanceDistNAs/max(edgeAdvanceDistNAs);
@@ -252,9 +267,11 @@ switch normalizationMethods
         edgeAdvanceDistFirstChangeNAs = edgeAdvanceDistFirstChangeNAs/max(edgeAdvanceDistFirstChangeNAs);
         edgeAdvanceDistLastChangeNAs =  edgeAdvanceDistLastChangeNAs/max(edgeAdvanceDistLastChangeNAs);
         maxEdgeAdvanceDistChangeNAs = maxEdgeAdvanceDistChangeNAs/max(maxEdgeAdvanceDistChangeNAs);
-        edgeVariation = (edgeVariation-min(edgeVariation))/max(minVal,(max(edgeVariation)));
         maxIntensityNAs = (maxIntensityNAs-min(maxIntensityNAs))/max(minVal,(max(maxIntensityNAs)));
-        timeToMaxInten = (timeToMaxInten-min(timeToMaxInten))/max(minVal,(max(timeToMaxInten)));
+        if ~useOldSet
+            edgeVariation = (edgeVariation-min(edgeVariation))/max(minVal,(max(edgeVariation)));
+            timeToMaxInten = (timeToMaxInten-min(timeToMaxInten))/max(minVal,(max(timeToMaxInten)));
+        end
 end
 %% Building classifier...
 if nargin>1 && ~isempty(idGroupSelected)
@@ -354,7 +371,7 @@ if ~useOldSet
     allData = [decayingIntensityNAs edgeAdvanceSpeedNAs advanceSpeedNAs ...
          lifeTimeNAs meanIntensityNAs distToEdgeFirstNAs ...
          startingIntensityNAs distToEdgeChangeNAs distToEdgeLastNAs ...
-        edgeAdvanceDistFirstChangeNAs edgeAdvanceDistLastChangeNAs maxEdgeAdva
+        edgeAdvanceDistFirstChangeNAs edgeAdvanceDistLastChangeNAs maxEdgeAdvanceDistChangeNAs ...
          maxIntensityNAs timeToMaxInten edgeVariation];
 else
     allData = [decayingIntensityNAs edgeAdvanceSpeedNAs advanceSpeedNAs ...

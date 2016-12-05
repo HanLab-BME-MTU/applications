@@ -17,18 +17,18 @@ cropInfo = cropInfo.cropInfo;
 numFrames = size(imgMap,3);
 width_b = (cropInfo(3)-cropInfo(1)-2*band+1); %width with bands cut
 height_b = cropInfo(4)-cropInfo(2)-2*band+1; %height with bands cut
-disp('Predicting with classifier ...')
-tic
-T =  load([pathForColocalization filesep 'data'  filesep 'trainedClassifier.mat'],'trainedClassifier');
-trainedClassifier = T.trainedClassifier;
-toc
+if drawWithoutClasses==10
+    disp('Loading classifier ...')
+    tic
+    T =  load([pathForColocalization filesep 'data'  filesep 'trainedClassifier.mat'],'trainedClassifier');
+    trainedClassifier = T.trainedClassifier;
+    toc
 % trainedClassifier = trainClassifierNA(T);
-try
+    disp('Predicting with classifier ...')
     [~,allData] = extractFeatureNA(tracksNA);
     allDataClass = predict(trainedClassifier,allData);
-catch
-    [~,allData] = extractFeatureNA(tracksNA,[],1,[],true);
-    allDataClass = predict(trainedClassifier,allData);
+elseif drawWithoutClasses<10 && drawWithoutClasses>0
+    allDataClass = cell(numel(tracksNA),1);
 end
 % if drawWithoutClasses
 %     moviePath = [pathForColocalization filesep 'movies_noClass'];
@@ -42,22 +42,103 @@ switch drawWithoutClasses
         moviePath = [pathForColocalization filesep 'movies'];
     case 1
         moviePath = [pathForColocalization filesep 'moviesForClass1'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1filtered');
+        curIdsClassified=curIdsClassified.idGroup1filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group1';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 2
         moviePath = [pathForColocalization filesep 'moviesForClass2'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup2filtered');
+        curIdsClassified=curIdsClassified.idGroup2filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group2';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 3
         moviePath = [pathForColocalization filesep 'moviesForClass3'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup3filtered');
+        curIdsClassified=curIdsClassified.idGroup3filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group3';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 4
         moviePath = [pathForColocalization filesep 'moviesForClass4'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup4filtered');
+        curIdsClassified=curIdsClassified.idGroup4filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group4';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 5
         moviePath = [pathForColocalization filesep 'moviesForClass5'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup5filtered');
+        curIdsClassified=curIdsClassified.idGroup5filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group5';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 6
         moviePath = [pathForColocalization filesep 'moviesForClass6'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup6filtered');
+        curIdsClassified=curIdsClassified.idGroup6filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group6';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 7
         moviePath = [pathForColocalization filesep 'moviesForClass7'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup7filtered');
+        curIdsClassified=curIdsClassified.idGroup7filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group7';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 8
         moviePath = [pathForColocalization filesep 'moviesForClass8'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup8filtered');
+        curIdsClassified=curIdsClassified.idGroup8filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group8';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
     case 9
         moviePath = [pathForColocalization filesep 'moviesForClass9'];
+        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup9filtered');
+        curIdsClassified=curIdsClassified.idGroup9filtered;
+        for p=1:numel(tracksNA)
+            if ismember(p,find(curIdsClassified)')
+                allDataClass{p}='Group9';
+            else
+                allDataClass{p}='Group10';
+            end
+        end
 end
 movieEpsFluoPath = [moviePath filesep 'epsFluo'];
 movieTifFluoPath = [moviePath filesep 'tifFluo'];
@@ -123,12 +204,15 @@ markerSize = 4;
 %     set(gca,'XLim',[cropInfo1+band cropInfo3-band],'YLim',[cropInfo2+band cropInfo4-band])
 % end
 %% Saving imgMap and tMap in its single frames for parallel processing
+disp('Saving raw mat file for parallel image overlay...')
+tic
 for ii=1:numFrames
     curImgFrame = imgMap(:,:,ii);
     save(strcat(movieRawFluoPath,'/flscRaw',num2str(ii,iiformat),'.mat'),'curImgFrame')
     curForceFrame = tMap(:,:,ii);
     save(strcat(movieRawForcePath,'/forceRaw',num2str(ii,iiformat),'.mat'),'curForceFrame')
 end
+toc
 %% Looping
 % for ii=1:numFrames
 % parpool(100)
@@ -160,6 +244,7 @@ cropInfo2=cropInfo(2);
 cropInfo3=cropInfo(3);
 cropInfo4=cropInfo(4);
 % for k=1:floor(numFrames)
+% parpool(nWorkers)
 parfor k=1:floor(numFrames)
     h1 = figure('color','w'); % for fluorescence
     set(h1, 'Position', [100 50 width_b height_b])
