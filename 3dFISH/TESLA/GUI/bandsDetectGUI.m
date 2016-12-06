@@ -201,16 +201,6 @@ else if isempty(markerSet{1}) || isempty(markerSet{2})
     end
 end
 
-shortThresh = inputdlg('Enter the short telomere threshold:', 'Input', 1, {'1.6'});
-if isempty(shortThresh)
-    errordlg('Please specify the short telomere threshold', 'Error');
-    return
-else if isempty(shortThresh{:})
-        errordlg('Please specify the short telomere threshold', 'Error');
-        return
-    end
-end
-
 markerNum = str2num(markerSet{1});
 markerSize = str2num(markerSet{2})';
 markerPos = zeros(markerNum, 1);
@@ -242,7 +232,6 @@ end
 % end
 
 handles.ladder = ladder;
-handles.shortThresh = str2num(shortThresh{:});
 handles.markerNum = markerNum;
 handles.markerPos = markerPos;
 handles.markerSize = markerSize;
@@ -392,90 +381,30 @@ function calc_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-fIM = handles.imageIn;
-bandMap = handles.bandMap;
-ladder = handles.ladder;
-halfBandRange = handles.halfBandRange;
-imagePath = handles.imagePath;
 set(handles.note, 'String', '');
+fIM = handles.imageIn;
+imagePath = handles.imagePath;
 
-% Band size annotation
-shortThresh = handles.shortThresh;
-markerNum = handles.markerNum;
-markerPos = handles.markerPos;
-markerSize = handles.markerSize;
-limitY = markerPos(markerSize == shortThresh);
-
-% Linear regression y=ax+b for any two adjacent marker pair (x:markerPos, y:markerSize)
-G(:,1) = markerPos;
-G(:,2) = ones(markerNum,1);
-para = struct('slope',[],'intercept',[]);
-for num = 1:markerNum-1
-    regPara = G(num:num+1,:)\markerSize(num:num+1);
-    para(num).slope = regPara(1);
-    para(num).intercept = regPara(2);
-end
-% para1 = G(1:2,:)\markerSize(1:2);
-% para2 = G(2:3,:)\markerSize(2:3);
-% para3 = G(3:4,:)\markerSize(3:4);
-% para4 = G(4:5,:)\markerSize(4:5);
-% para5 = G(5:6,:)\markerSize(5:6);
-% para6 = G(6:7,:)\markerSize(6:7);
-
-
-% Band size annotation
-bandStat = struct('index', [], 'bandPos', [], 'bandSize', [], 'bandIntensity', [], 'count', []);
-bandIndex = 0;
-for q=1:size(fIM,2)
-    for p=1:size(fIM,1)
-        if bandMap(p,q) == 1 && (q < ladder.left || q > ladder.right)
-            bandIndex = bandIndex + 1;
-            bandStat(bandIndex).index = bandIndex;
-            % Bands positions are recorded in cartesian coordinate
-            bandStat(bandIndex).bandPos = [q, p];
-            bandStat(bandIndex).count = 1;
-            
-            if p <= markerPos(1)
-                bandStat(bandIndex).bandSize = para(1).slope*p+para(1).intercept;
-            else if p > markerPos(markerNum)
-                    bandStat(bandIndex).bandSize = para(markerNum-1).slope*p+para(markerNum-1).intercept;
-                else
-                    for num = 1:markerNum-1
-                        if p > markerPos(num) && p <= markerPos(num+1)
-                            bandStat(bandIndex).bandSize = para(num).slope*p+para(num).intercept;
-                        end
-                    end
-                end
-            end
-            
-            % Take average intensity around a band seed
-            halfBandHeight = round(0.2*halfBandRange);
-            bandIntensity = 0;
-            bandLeftBoundary = max(0, q - halfBandRange);
-            bandRightBoundary = min(size(fIM,2), q + halfBandRange);
-            bandTopBoundary = max(0, p - halfBandHeight);
-            bandBotBoundary = min (size(fIM,1), p + halfBandHeight);
-            count = 0;
-            for horiRange = bandLeftBoundary:bandRightBoundary
-                for vertiRange = bandTopBoundary:bandBotBoundary
-                    bandIntensity = bandIntensity + fIM(vertiRange, horiRange);
-                    count = count + 1;
-                end
-            end
-            
-            bandStat(bandIndex).bandIntensity = bandIntensity/count;
-        end
+% Get short telomere threshold input
+shortThresh = inputdlg('Enter the short telomere threshold:', 'Input', 1, {'1.6'});
+if isempty(shortThresh)
+    errordlg('Please specify the short telomere threshold', 'Error');
+    return
+else if isempty(shortThresh{:})
+        errordlg('Please specify the short telomere threshold', 'Error');
+        return
     end
 end
+shortThresh = str2double(shortThresh{:});
 
-for negativeBand = 1:size(bandStat,2)
-    if bandStat(negativeBand).bandSize<0
-        bandStat(negativeBand).bandSize=0;
-    end
+default = 1;
+% Calculat bandStat structure, including band position, band size, band
+% intensity and band count
+if default == 1
+    [bandStat, shortThreshPos, marker] = bandStatCalcPWLn(handles, fIM, shortThresh);
+else
+    [bandStat, shortThreshPos, marker] = bandStatCalcPWL(handles, fIM, shortThresh);
 end
-
-clear bandMap
-
 bandStat = multiBandCount(bandStat);
 
 % Plot identification results
@@ -497,13 +426,13 @@ for i = 1:numel(bandStat)
     end
     
     countTotal = countTotal + bandStat(i).count;
-    if bandStat(i).bandPos(2) > limitY
+    if bandStat(i).bandPos(2) > shortThreshPos
         countShort = countShort + bandStat(i).count;
     end
 end
 [pathName, fileName, ext] = fileparts(imagePath);
 % Plot a threshold line
-plot(1:q,limitY*ones(1,q),'b')
+plot(1:size(fIM,2), shortThreshPos*ones(1,size(fIM,2)), 'b')
 title(fileName)
 hold off
 
@@ -552,8 +481,9 @@ fprintf(fid,'The ratio of shortest telomere below %.1fkb is %.2f%%.\n',shortThre
 fprintf(fid,'The shortest 20%% telomere threshold is %.2f kb.\n', short20Size);
 fclose(fid);
 
-save([fullfile(newPathName, fileName), '.mat'],'ratio', 'avgBandSize', 'bandStat', 'fIM', 'short20Size', 'imagePath')
+save([fullfile(newPathName, fileName), '.mat'],'ratio', 'avgBandSize', 'bandStat', 'short20Size', 'imagePath', 'marker')
 
+handles.shortThresh = shortThresh;
 handles.outputPath = newPathName;
 handles.figureHandle = figureHandle;
 handles.fileName = fileName;
@@ -570,6 +500,8 @@ function savefig_Callback(hObject, eventdata, handles)
 newPathName = handles.outputPath;
 figureHandle = handles.figureHandle;
 fileName = handles.fileName;
+imageInput = handles.imageIn;
+save([fullfile(newPathName, fileName), ' imageInput.mat'], 'imageInput')
 saveas(figureHandle, [fullfile(newPathName, fileName), '.jpg'])
 msgbox('Figure Saved', 'Success');
 guidata(hObject, handles);
