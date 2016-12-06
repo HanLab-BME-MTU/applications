@@ -42,8 +42,13 @@ switch drawWithoutClasses
         moviePath = [pathForColocalization filesep 'movies'];
     case 1
         moviePath = [pathForColocalization filesep 'moviesForClass1'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1filtered');
-        curIdsClassified=curIdsClassified.idGroup1filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1filtered');
+            curIdsClassified=curIdsClassified.idGroup1filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1');
+            curIdsClassified=curIdsClassified.idGroup1;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group1';
@@ -53,8 +58,13 @@ switch drawWithoutClasses
         end
     case 2
         moviePath = [pathForColocalization filesep 'moviesForClass2'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup2filtered');
-        curIdsClassified=curIdsClassified.idGroup2filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup2filtered');
+            curIdsClassified=curIdsClassified.idGroup2filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup2');
+            curIdsClassified=curIdsClassified.idGroup2;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group2';
@@ -64,8 +74,13 @@ switch drawWithoutClasses
         end
     case 3
         moviePath = [pathForColocalization filesep 'moviesForClass3'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup3filtered');
-        curIdsClassified=curIdsClassified.idGroup3filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup3filtered');
+            curIdsClassified=curIdsClassified.idGroup3filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup3');
+            curIdsClassified=curIdsClassified.idGroup3;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group3';
@@ -75,8 +90,13 @@ switch drawWithoutClasses
         end
     case 4
         moviePath = [pathForColocalization filesep 'moviesForClass4'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup4filtered');
-        curIdsClassified=curIdsClassified.idGroup4filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup4filtered');
+            curIdsClassified=curIdsClassified.idGroup4filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup4');
+            curIdsClassified=curIdsClassified.idGroup4;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group4';
@@ -86,8 +106,13 @@ switch drawWithoutClasses
         end
     case 5
         moviePath = [pathForColocalization filesep 'moviesForClass5'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup5filtered');
-        curIdsClassified=curIdsClassified.idGroup5filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup5filtered');
+            curIdsClassified=curIdsClassified.idGroup5filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup5');
+            curIdsClassified=curIdsClassified.idGroup5;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group5';
@@ -97,8 +122,13 @@ switch drawWithoutClasses
         end
     case 6
         moviePath = [pathForColocalization filesep 'moviesForClass6'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup6filtered');
-        curIdsClassified=curIdsClassified.idGroup6filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup6filtered');
+            curIdsClassified=curIdsClassified.idGroup6filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup6');
+            curIdsClassified=curIdsClassified.idGroup6;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group6';
@@ -108,8 +138,13 @@ switch drawWithoutClasses
         end
     case 7
         moviePath = [pathForColocalization filesep 'moviesForClass7'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup7filtered');
-        curIdsClassified=curIdsClassified.idGroup7filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup7filtered');
+            curIdsClassified=curIdsClassified.idGroup7filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup7');
+            curIdsClassified=curIdsClassified.idGroup7;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group7';
@@ -119,8 +154,13 @@ switch drawWithoutClasses
         end
     case 8
         moviePath = [pathForColocalization filesep 'moviesForClass8'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup8filtered');
-        curIdsClassified=curIdsClassified.idGroup8filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup8filtered');
+            curIdsClassified=curIdsClassified.idGroup8filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup8');
+            curIdsClassified=curIdsClassified.idGroup8;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group8';
@@ -130,8 +170,13 @@ switch drawWithoutClasses
         end
     case 9
         moviePath = [pathForColocalization filesep 'moviesForClass9'];
-        curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup9filtered');
-        curIdsClassified=curIdsClassified.idGroup9filtered;
+        try
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup9filtered');
+            curIdsClassified=curIdsClassified.idGroup9filtered;
+        catch
+            curIdsClassified=load([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup9');
+            curIdsClassified=curIdsClassified.idGroup9;
+        end            
         for p=1:numel(tracksNA)
             if ismember(p,find(curIdsClassified)')
                 allDataClass{p}='Group9';
