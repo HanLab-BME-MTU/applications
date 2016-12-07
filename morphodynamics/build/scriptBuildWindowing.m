@@ -98,6 +98,7 @@ if strcmp(choice, 'Yes')
 	zipPath = fullfile(tmpdir, 'mDiaActin_mini.zip');
 	urlwrite(url, zipPath);
 	unzip(zipPath, tmpdir);	
+    delete(zipPath);
 	cd(tmpdir);
 	
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
