@@ -35,7 +35,6 @@ for i = 1:length(repo_dirs)
     addir(cur_dir);
 end
 ScriptIn(1) = {'testScript_assaf.m'};
-ScriptIn(2) = {'export_fig.m'};
 buildPackage(ScriptIn, out_dir);
 cd(out_dir); % check results
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
