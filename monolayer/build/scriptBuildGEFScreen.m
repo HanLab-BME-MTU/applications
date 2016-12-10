@@ -10,7 +10,7 @@ end
 
 package_name = 'GEFScreen';
 institution_name = 'Danuser Lab - UTSouthwestern';
-t_stamp = datestr(now,'ddmmmyyyyHHMM');
+t_stamp = datestr(now,'ddmmmyyyyHHMMSS');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Set output path for package build files
