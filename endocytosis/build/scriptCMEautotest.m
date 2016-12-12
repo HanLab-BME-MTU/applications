@@ -6,7 +6,7 @@ else
 end	
 
 % Cell mask -- get GUI program 
-% cell mask draw override function 
+% cell mask draw override function (tweak)
 % cellViewer(data(1), 'mode', 'mask') -- 
 
 cmeData_dir = fullfile(data_root, ['single_channel' filesep 'Zuzana_ARPE_CLC_egfp_07032014_control']);
