@@ -472,7 +472,13 @@ end
 s4 = sprintf('The shortest 20%% telomere threshold is %.2f kb.\n', short20Size);
 set(handles.note, 'String', {s1, s2, s3, s4}, 'FontSize', 10);
 
+runCount = 1;
+while exist(fullfile(pathName, strcat(fileName, '_', num2str(runCount))), 'dir')
+    runCount = runCount + 1;
+end
+fileName = strcat(fileName, '_', num2str(runCount));
 mkdir(fullfile(pathName, fileName));
+    
 newPathName = fullfile(pathName, fileName, '/');
 newFileName = strcat(fileName, ' Results.txt');
 fid = fopen(fullfile(newPathName, newFileName), 'w');
