@@ -1,0 +1,176 @@
+Searching 3763 files for "unix" (regex)
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\build\initParamsDirs.m:
+  126  %% Create local directories
+  127  if ~exist(dirs.dirname,'dir')
+  128: %     unix(sprintf('mkdir %s',dirs.dirname));
+  129      mkdir(dirs.dirname);
+  130  end
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\HallScreen\testMicroscopyCorrectionControl.m:
+   26  function [] = correctGlobalMotion(params,dirs)
+   27  if exist([dirs.mfDataOrig filesep '001_mf.mat'],'file')
+   28:     unix(sprintf('cp -R %s %s',[dirs.mfDataOrig '*.mat'],dirs.mfData));
+   29  end
+   30: unix(sprintf('cp -R %s %s',[dirs.mfData '*.mat'],dirs.mfDataOrig));
+   31  
+   32  correctionsDx = [];
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\HallScreen\updateAllData2016.m:
+   13  for i = 1 : nDataDirs
+   14      curdir = dataDirs{i};
+   15:     unix(sprintf('cp -R %s/* %s/.',curdir,allDataDir)); 
+   16      fprintf(sprintf('copied:\n%s\nto\n%s\n\n',curdir,allDataDir));
+   17  end
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\HallScreen\whMetaAnalysis.m:
+  695      
+  696      if ~exist([mainDirname 'pcs/'],'dir')
+  697:         unix(sprintf('mkdir %s',[mainDirname 'pcs/']));
+  698      end
+  699      
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\HallScreen\whMetaAnalysis2016.m:
+  359  
+  360  if ~exist(outDname,'dir')
+  361:     unix(sprintf('mkdir %s',outDname));
+  362  end
+  363  
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\dayVisualizeKymographs.m:
+    7  matDname = [mainDirname 'dayGeneControlKymograph/mat/'];
+    8  if ~exist(matDname,'dir')
+    9:     unix(sprintf('mkdir %s',matDname));
+   10  end
+   11  
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\dayVisualizeKymographsStd.m:
+    7  matDname = [mainDirname 'dayGeneControlKymographStd/mat/'];
+    8  if ~exist(matDname,'dir')
+    9:     unix(sprintf('mkdir %s',matDname));
+   10  end
+   11  
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\whArrangeData.m:
+   37          
+   38          if ~exist(dirname,'dir')
+   39:             unix(sprintf('mkdir %s',dirname));
+   40          end
+   41          
+   ..
+   44          if ~exist(imagesdir,'dir') && ~exist([dirname '/MF/'],'dir')
+   45              nNew = nNew + 1;
+   46:             unix(sprintf('mkdir %s',imagesdir));
+   47              if (strcmp(ext, '.tif'))
+   48                  fname = [mainDirname name '.tif'];
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\whCorrectGlobalMotion.m:
+    9  % move back to original files
+   10  if exist([dirs.mfDataOrig filesep '001_mf.mat'],'file')    
+   11:     unix(sprintf('cp -R %s %s',[dirs.mfDataOrig '*.mat'],dirs.mfData));
+   12  end
+   13      
+   14: unix(sprintf('cp -R %s %s',[dirs.mfData '*.mat'],dirs.mfDataOrig));
+   15  
+   16  correctionsDx = [];
+
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\whLocalMotionEstimation.m:
+    2  
+    3  if exist([dirs.mfDataOrig filesep '001_mf.mat'],'file') && params.always   
+    4:     unix(sprintf('rm %s',[dirs.mfDataOrig '*.mat']));    
+    5  end
+    6  
+    7  if exist([dirs.mfData filesep '001_mf.mat'],'file') && params.always    
+    8:     unix(sprintf('rm %s',[dirs.mfData '*.mat']));    
+    9  end
+   10  
+   ..
+   23      
+   24      if ~exist(imgFname1,'file') % create from previous 
+   25:         unix(sprintf('cp %s %s',imgFname0,imgFname1));
+   26      end
+   27      
+   ..
+   56      outputFile = [dirs.mfScores sprintf('%03d',t) '_score.eps'];
+   57      %     eval(sprintf('print -djpeg %s', outputFile));
+   58:     if isunix
+   59          export_fig_biohpc(outputFile);
+   60      else
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\whLocalMotionEstimationMD.m:
+   10  
+   11  if params.always
+   12:     unix(sprintf('rm %s*_mf.mat',[dirs.mfData filesep]));
+   13:     unix(sprintf('rm %s*.jpg',[dirs.mfScores filesep]));
+   14:     unix(sprintf('rm %s*.eps',[dirs.mfScores filesep]));
+   15      fprintf('motion estimation (always): clean output directories\n'); 
+   16  end
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\whMoveRawData20160314.m:
+   29              imgdir = [curdir 'images' filesep];
+   30              if ~exist(curdir,'dir')
+   31:                 unix(sprintf('mkdir %s',curdir));
+   32:                 unix(sprintf('mkdir %s',imgdir));
+   33              else
+   34                  warning('folder %s exists!',curdir);
+   35              end
+   36:             unix(sprintf('cp %s*s%02d*.tif %s',curSourceDir,s,imgdir));
+   37              
+   38              imgnames = dir(imgdir);
+   ..
+   45                  [impathstr, imname, imext] = fileparts(imgname);
+   46                  if (strcmp(imext,'.tif'))
+   47:                     %                     unix(sprintf('mv %s %s',[imgdir imname imext],[imgdir imname(end-2:end) imext]));
+   48                      movefile([imname imext],[imname(end-2:end) imext]);
+   49                  end
+   ..
+   74  %         
+   75  %         if ~exist(dirname,'dir')
+   76: %             unix(sprintf('mkdir %s',dirname));
+   77  %         end
+   78  %         
+   ..
+   81  %         if ~exist(imagesdir,'dir') && ~exist([dirname '/MF/'],'dir')
+   82  %             nNew = nNew + 1;
+   83: %             unix(sprintf('mkdir %s',imagesdir));
+   84  %             if (strcmp(ext, '.tif'))
+   85  %                 fname = [mainDirname name '.tif'];
+
+C:\Users\Andrew\GIT\matlab\applications\monolayer\timeLapseAnalysis\whMoveRawData20160523.m:
+   34              % patch
+   35              if exist(imgdir,'dir') && ~exist([imgdir '001.tif'],'file')
+   36:                 unix(sprintf('rm -R %s',curdir));
+   37              end
+   38              
+   39              if ~exist(curdir,'dir')
+   40:                 unix(sprintf('mkdir %s',curdir));
+   41:                 unix(sprintf('mkdir %s',imgdir));
+   42              else
+   43                  assert(validateImages(imgdir));
+   ..
+   46                  continue;
+   47              end
+   48:             unix(sprintf('cp %s*s%02d*.tif %s',strrep(curSourceDir,' ','\ '),s,imgdir));
+   49              
+   50              imgnames = dir(imgdir);
+   ..
+   57                  [impathstr, imname, imext] = fileparts(imgname);
+   58                  if (strcmp(imext,'.tif'))
+   59:                     %                     unix(sprintf('mv %s %s',[imgdir imname imext],[imgdir imname(end-2:end) imext]));
+   60                      movefile([imname imext],[imname(end-2:end) imext]);
+   61                  end
+   ..
+   98  %         
+   99  %         if ~exist(dirname,'dir')
+  100: %             unix(sprintf('mkdir %s',dirname));
+  101  %         end
+  102  %         
+  ...
+  105  %         if ~exist(imagesdir,'dir') && ~exist([dirname '/MF/'],'dir')
+  106  %             nNew = nNew + 1;
+  107: %             unix(sprintf('mkdir %s',imagesdir));
+  108  %             if (strcmp(ext, '.tif'))
+  109  %                 fname = [mainDirname name '.tif'];
+
+60 matches across 14 files

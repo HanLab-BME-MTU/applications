@@ -1,4 +1,4 @@
-classdef Detections < hgsetget
+classdef Detections < matlab.mixin.SetGet
     % Data encapsulator for detections
     properties %(SetAccess = protected)
        xyz; dxyz;    % 3xN or 2xN coordinate

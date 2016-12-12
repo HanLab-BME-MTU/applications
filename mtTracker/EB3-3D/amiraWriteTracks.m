@@ -19,6 +19,7 @@ ip.addParamValue('MD',[],@(MD) isa(MD,'MovieData'));
 ip.addParamValue('vertexProp',{}, @iscell);
 ip.addParamValue('fillGaps',true, @islogical);
 ip.addParamValue('edgeProp',{}, @iscell);
+ip.addParamValue('cumulativeOnly',false, @islogical);
 ip.parse( varargin{:});
 p=ip.Results;
 
@@ -33,7 +34,7 @@ if ((all(s==[1 1 1 1]))&&(~isempty(p.MD)))
     s=[p.MD.pixelSize_ p.MD.pixelSize_ p.MD.pixelSizeZ_ p.MD.timeInterval_];
 end
 
-if(~exist(fileparts(filename))) mkdir(fileparts(filename)); end;
+if(~exist(fileparts(filename))) mkdir2016a(fileparts(filename)); end;
 
 % GAP filling using the last known position (gap are still mark by tracksFeatIndxCG
 % trackFeat
@@ -52,8 +53,13 @@ if(p.fillGaps)
     end
 end
 
+numTimePoints=tracks.numTimePoints;
+if(p.cumulativeOnly)
+    numTimePoints=0;
+end
+    
 % Frame 0 is the cumulative track distribution. Ugly ? I know, stfu.
-for fIdx=0:tracks.numTimePoints
+for fIdx=0:numTimePoints
     
     %% Indx of tracks on the current frame
     if(fIdx>0)
@@ -235,5 +241,9 @@ for fIdx=0:tracks.numTimePoints
         end
     end
 end
+
+function mkdir2016a(dir)
+system(['mkdir -p ' dir]);
+
     
     

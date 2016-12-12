@@ -1,10 +1,10 @@
 function [gapCloseParam,costMatrices, ...
     kalmanFunctions, ...
     probDim,verbose ...
-    ]=tracker_param()
+    ]=QDTrackerParam()
 
 %% general gap closing parameters
-gapCloseParam.timeWindow = 1; %maximum allowed time gap (in frames) %between a track segment end and a track segment start that allows linking them.
+gapCloseParam.timeWindow = 2; %maximum allowed time gap (in frames) %between a track segment end and a track segment start that allows linking them.
 gapCloseParam.mergeSplit = 0; %1 if merging and splitting are to be considered, 2 if only merging is to be considered, 3 if only splitting is to be considered, 0 if no merging or splitting are to be considered.
 gapCloseParam.minTrackLen = 3; %minimum length of track segments from linking to be used in gap closing.
 
@@ -58,7 +58,7 @@ parameters.ampRatioLimit = [0.7 4]; %for merging and splitting. Minimum and maxi
 
 parameters.lenForClassify = 5; %minimum track segment length to classify it as linear or random.
 
-parameters.useLocalDensity = 0; %1 if you want to expand the search radius of isolated features in the gap closing and merging/splitting step.
+parameters.useLocalDensity = 1; %1 if you want to expand the search radius of isolated features in the gap closing and merging/splitting step.
 parameters.nnWindow = gapCloseParam.timeWindow; %number of frames before/after the current one where you want to look for a track's nearest neighbor at its end/start (in the gap closing step).
 
 parameters.linStdMult = 1*ones(gapCloseParam.timeWindow,1); %multiplication factor to calculate linear search radius from standard deviation.

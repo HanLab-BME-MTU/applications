@@ -22,6 +22,9 @@ for ivalid = 1 : nValidateGenes
         mkdir(validGeneDir);
     end
     
+    seqStrs = {};
+    seqStrsRep = {};
+    
     controlMeanPC1 = [];
     controlMeanPC2 = [];
     controlMeanPC3 = [];
@@ -58,19 +61,23 @@ for ivalid = 1 : nValidateGenes
     
     % Gene vs. pSup
     for iGeneDay = 1 : nGeneDay
-        curGeneStr = dayGeneData{iGeneDay}.geneStr;        
+        curGeneStr = dayGeneData{iGeneDay}.geneStr;
         
         %         if (strcmp(curGeneStr,valGeneStr) && (dayGeneData{iGeneDay}.KD > 50 || dayGeneData{iGeneDay}.KD == -1 || isnan(dayGeneData{iGeneDay}.KD)) && ...
         %                 sum(isnan(dayGeneData{iGeneDay}.meanControl)) == 0 && ...
         %                 sum(isnan(dayGeneData{iGeneDay}.meanControl)) == 0)             %#ok<USENS>
-            
-            if (strcmp(curGeneStr,valGeneStr) && (dayGeneData{iGeneDay}.KD > 0 || dayGeneData{iGeneDay}.KD == -1 || isnan(dayGeneData{iGeneDay}.KD)) && ...
+        
+        if (strcmp(curGeneStr,valGeneStr) && (dayGeneData{iGeneDay}.KD > 0 || dayGeneData{iGeneDay}.KD == -1 || isnan(dayGeneData{iGeneDay}.KD)) && ...
                 sum(isnan(dayGeneData{iGeneDay}.meanControl)) == 0 && ...
-                sum(isnan(dayGeneData{iGeneDay}.meanControl)) == 0)             %#ok<USENS>                                                
+                sum(isnan(dayGeneData{iGeneDay}.meanControl)) == 0)             %#ok<USENS>
+            
+            curSeqStr = dayGeneData{iGeneDay}.SeqStr;
+            
+            seqStrs = [seqStrs,{curSeqStr}];            
             
             controlMeanPC1 = [controlMeanPC1 dayGeneData{iGeneDay}.meanControlPCA(1)];
             controlMeanPC2 = [controlMeanPC2 dayGeneData{iGeneDay}.meanControlPCA(2)];
-            controlMeanPC3 = [controlMeanPC3 dayGeneData{iGeneDay}.meanControlPCA(3)];            
+            controlMeanPC3 = [controlMeanPC3 dayGeneData{iGeneDay}.meanControlPCA(3)];
             
             geneMeanPC1 = [geneMeanPC1 dayGeneData{iGeneDay}.meanGenePCA(1)];
             geneMeanPC2 = [geneMeanPC2 dayGeneData{iGeneDay}.meanGenePCA(2)];
@@ -80,6 +87,8 @@ for ivalid = 1 : nValidateGenes
             geneHealingRate = [geneHealingRate dayGeneData{iGeneDay}.healingRateGene];
             
             nRep = size(dayGeneData{iGeneDay}.featsGenePCA,1);
+            
+            seqStrsRep = [seqStrsRep,repmat({curSeqStr},1,nRep)];
             
             controlRepPC1 = [controlRepPC1 ones(1,nRep)*dayGeneData{iGeneDay}.meanControlPCA(1)];
             controlRepPC2 = [controlRepPC2 ones(1,nRep)*dayGeneData{iGeneDay}.meanControlPCA(2)];
@@ -91,7 +100,7 @@ for ivalid = 1 : nValidateGenes
             
             controlRepHealingRate = [controlRepHealingRate ones(1,nRep)*mean(dayGeneData{iGeneDay}.controlHealingRates)];
             geneRepHealingRate = [geneRepHealingRate dayGeneData{iGeneDay}.geneHealingRates];
-        end                                            
+        end
     end
     
     %% Visualization + statistics
@@ -99,23 +108,23 @@ for ivalid = 1 : nValidateGenes
     pvalPC1 = signrank(controlMeanPC1,geneMeanPC1);
     pvalPC2 = signrank(controlMeanPC2,geneMeanPC2);
     pvalPC3 = signrank(controlMeanPC3,geneMeanPC3);
-    plotDayGenePC(controlMeanPC1,geneMeanPC1,valGeneStr,'PC1',[-pc1lim,pc1lim],pvalPC1,outFnamePC1);
-    plotDayGenePC(controlMeanPC2,geneMeanPC2,valGeneStr,'PC2',[-pc2lim,pc2lim],pvalPC2,outFnamePC2);
-    plotDayGenePC(controlMeanPC3,geneMeanPC3,valGeneStr,'PC3',[-pc3lim,pc3lim],pvalPC3,outFnamePC3);
+    plotDayGenePC(controlMeanPC1,geneMeanPC1,valGeneStr,seqStrs,'PC1',[-pc1lim,pc1lim],pvalPC1,outFnamePC1);
+    plotDayGenePC(controlMeanPC2,geneMeanPC2,valGeneStr,seqStrs,'PC2',[-pc2lim,pc2lim],pvalPC2,outFnamePC2);
+    plotDayGenePC(controlMeanPC3,geneMeanPC3,valGeneStr,seqStrs,'PC3',[-pc3lim,pc3lim],pvalPC3,outFnamePC3);
     
     assert(min([controlHealingRate,geneHealingRate]) > 3);
     pvalHealingRate = signrank(controlHealingRate,geneHealingRate);
-    plotDayGenePC(controlHealingRate,geneHealingRate,valGeneStr,'HealingRate',[3,healingRateLimit],pvalHealingRate,outFnameHealingRate);
+    plotDayGenePC(controlHealingRate,geneHealingRate,valGeneStr,seqStrs,'HealingRate',[3,healingRateLimit],pvalHealingRate,outFnameHealingRate);
              
     pvalRepPC1 = signrank(controlRepPC1,geneRepPC1);
     pvalRepPC2 = signrank(controlRepPC2,geneRepPC2);
     pvalRepPC3 = signrank(controlRepPC3,geneRepPC3);
-    plotDayGenePC(controlRepPC1,geneRepPC1,valGeneStr,'PC1',[-pc1lim,pc1lim],pvalRepPC1,outFnamePC1rep);
-    plotDayGenePC(controlRepPC2,geneRepPC2,valGeneStr,'PC2',[-pc2lim,pc2lim],pvalRepPC2,outFnamePC2rep);
-    plotDayGenePC(controlRepPC3,geneRepPC3,valGeneStr,'PC3',[-pc3lim,pc3lim],pvalRepPC3,outFnamePC3rep);
+    plotDayGenePC(controlRepPC1,geneRepPC1,valGeneStr,seqStrsRep,'PC1',[-pc1lim,pc1lim],pvalRepPC1,outFnamePC1rep);
+    plotDayGenePC(controlRepPC2,geneRepPC2,valGeneStr,seqStrsRep,'PC2',[-pc2lim,pc2lim],pvalRepPC2,outFnamePC2rep);
+    plotDayGenePC(controlRepPC3,geneRepPC3,valGeneStr,seqStrsRep,'PC3',[-pc3lim,pc3lim],pvalRepPC3,outFnamePC3rep);
     
     pvalRepHealingRate = signrank(controlRepHealingRate,geneRepHealingRate);
-    plotDayGenePC(controlRepHealingRate,geneRepHealingRate,valGeneStr,'HealingRate',[10,healingRateLimit],pvalRepHealingRate,outFnameHealingRateRep);
+    plotDayGenePC(controlRepHealingRate,geneRepHealingRate,valGeneStr,seqStrsRep,'HealingRate',[10,healingRateLimit],pvalRepHealingRate,outFnameHealingRateRep);
     
     %% log and save
     
@@ -180,7 +189,13 @@ healingRateLimit = max(healingRate);
 end
 
 %%
-function [] = plotDayGenePC(controlPCA,genePCA,geneStr,pcStr,pclim,pval,outFnamePC)    
+function [] = plotDayGenePC(controlPCA,genePCA,geneStr,seqStrs,pcStr,pclim,pval,outFnamePC)  
+
+uniqueSeq = unique(seqStrs);
+nSeq = length(uniqueSeq);
+
+Markers = {'o','+','*','s','v'};
+
 fontsize = 16;
 h = figure;
 xlabel('Control ','FontSize',fontsize);
@@ -188,7 +203,11 @@ ylabel('Condition','FontSize',fontsize);
 hold on;
         
 title(sprintf('%s (%s): p = %.4f',strrep([geneStr],'_','\_'),pcStr,pval),'FontSize',16);
-plot(controlPCA,genePCA,'o','MarkerEdgeColor',[255,165,0]./255,'LineWidth',2,'MarkerSize',8);
+for i = 1 : nSeq
+    inds = strcmp(seqStrs,uniqueSeq{i});
+    plot(controlPCA(inds),genePCA(inds),Markers{i},'MarkerEdgeColor',[255,165,0]./255,'LineWidth',2,'MarkerSize',8);
+end
+legend(uniqueSeq,'FontSize',fontsize);
 plot(pclim,pclim,'--k','LineWidth',2);
 xlim(pclim);
 ylim(pclim);

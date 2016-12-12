@@ -30,6 +30,7 @@ for t = time
         healingRate(t) = params.toMuPerHour * nDiffPixels / size(ROI0,1);
         averageHealingRate(t) = params.toMuPerHour * nDiffPixelsMeta / (size(ROI0,1) * t);
     else
+        warning('currently supporting only dx');
         healingRate(t) = params.toMuPerHour * nDiffPixels / size(ROI0,2);
         averageHealingRate(t) = params.toMuPerHour * nDiffPixelsMeta / (size(ROI0,2) * t);
     end
@@ -54,8 +55,13 @@ set(haxes,'YTickLabel',0:20:maxSpeed);
 set(haxes,'FontSize',32);
 hold off;
 % eval(sprintf('print -dbmp16m  %s', healingRateFname));
-export_fig_biohpc(healingRateFname);
 
+% for building package
+% if isunix
+% export_fig_biohpc(healingRateFname); % change 
+% else
+print(healingRateFname, '-dpdf');
+% end
 
 save(healingRateMetaFname,'averageHealingRate','healingRate');
 end
