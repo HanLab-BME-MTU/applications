@@ -7,13 +7,13 @@ function cellViewer(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('Frame', [], @isposint);
-ip.addParamValue('Channel', 1, @isscalar);
-ip.addParamValue('Scale', 5, @isscalar);
-ip.addParamValue('Units', 'µm', @ischar);
-ip.addParamValue('FontName', 'Helvetica', @ischar);
-ip.addParamValue('FontSize', 10, @isscalar);
-ip.addParamValue('Mode', 'raw', @(x) any(strcmpi(x, {'raw', 'mask'})));
+ip.addParameter('Frame', [], @isposint);
+ip.addParameter('Channel', 1, @isscalar);
+ip.addParameter('Scale', 5, @isscalar);
+ip.addParameter('Units', 'ï¿½m', @ischar);
+ip.addParameter('FontName', 'Helvetica', @ischar);
+ip.addParameter('FontSize', 10, @isscalar);
+ip.addParameter('Mode', 'raw', @(x) any(strcmpi(x, {'raw', 'mask'})));
 ip.parse(data, varargin{:});
 
 N = numel(data);
@@ -73,7 +73,7 @@ for k = 1:N
     end
     
     psize = data(k).pixelSize/data(k).M;
-    plotScaleBar(5e-6/psize, 'Label', '5 µm');
+    plotScaleBar(5e-6/psize, 'Label', '5 ï¿½m');
     
     axis image off;
     r = data(k).imagesize(2)/data(k).imagesize(1);
