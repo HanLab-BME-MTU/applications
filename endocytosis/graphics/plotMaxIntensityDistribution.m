@@ -12,9 +12,10 @@
 %                     of each trajectory. Default: 5.
 %   'ShowGaussians' : Plot Gaussian fits to the first mode of the distribution.
 %   'Cutoff_f'      : Minimum trajectory length, in frames. Default: 5.
-
+%
 % Francois Aguet, 2011
- 
+% Andrew R. Jamieson, 2016 - updated axes arrays to gobjects
+
 function plotMaxIntensityDistribution(data, varargin)
 
 ip = inputParser;

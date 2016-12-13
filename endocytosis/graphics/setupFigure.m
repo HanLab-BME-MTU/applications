@@ -13,8 +13,9 @@
 %
 % Example:
 % setupFigure(2,2,3) generates 3 panels in a 2x2 arrangement
-
+%
 % Francois Aguet, 2013
+% Andrew R. Jamieson, 2016 - updated axes arrays to gobjects
 
 function [ha, hi, hf] = setupFigure(varargin)
 
