@@ -117,8 +117,13 @@ sh = ah/3;
 
 ha = setupFigure(nc,1,'AxesHeight', 1.2, 'YSpace', [1.5 0.4 1], 'SameAxes', true);
 % duplicate axes (for grid)
-ha0 = arrayfun(@(i) axes('Position', get(i, 'Position'), 'Color', 'none'), ha);
+ha0 = gobjects(length(ha),1);
+for ii = 1:length(ha)
+    ha0(ii) = axes('Position', get(ha(ii), 'Position'), 'Color', 'none');
+end
 
+% ha0 = arrayfun(@(i) axes('Position', get(i, 'Position'), 'Color', 'none'), ha, 'Unif', false);
+% ha0 = [ha0{:}]';
 % place duplicates in background
 ch = get(gcf, 'Children');
 set(gcf, 'Children', [ch(nc+1:end) ch(1:nc)]);
