@@ -49,15 +49,13 @@ plotCellArea({results.lftRes}, {'ctrl'}); % (included in cmeAnalysis)
 plotInitiationDensity({results.lftRes, results2.lftRes}, {'ctrl', 'other'}) % error bar styling MATLAB version update
 
 plotIntensityDistributions(data(movie_num)); % works
-plotLifetimeComparison({lftRes, lftRes}); % wrap with cell % ask Marcel? (need at least two data)
-plotMaxIntensityDistribution(data);  % work, but old % MATLAB update fixes
+plotLifetimeComparison({lftRes, lftRes2}, {'con1','con2'}); % wrap with cell % ask Marcel? (need at least two data)
+plotMaxIntensityDistribution(data);  % works, but old % MATLAB update fixes
+
+
 % %%%
 % plotInitIntensityVsLifetime(data);  % ???? not used regularly ????
 % %%%
 
-% get two condition test and two movie
-
 data = loadConditionData(epiTIRFData_dir2, {'TIRF', 'EPI'}, {'EGFP', 'EGFP'});
-% master, slave analysis -- ask Marcel
-epiTIRFAnalysis({data, data},  {'EGFP', 'EGFP'}, 9.5); % not used by xinxin yet -- % Ask Marcel [need special dataset]
-% epiTIRFAnalysis({data, data},  {'EGFP', 'EGFP'}, 9.5); % not used by xinxin yet -- % Ask Marcel [need special dataset]
+epiTIRFAnalysis({data, data},  {'EGFP', 'EGFP'}, 9.5); % Still in development
