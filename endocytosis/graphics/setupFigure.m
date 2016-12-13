@@ -23,16 +23,16 @@ ip.CaseSensitive = false;
 ip.addOptional('nh', 1, @isposint);
 ip.addOptional('nw', 1, @isposint);
 ip.addOptional('na', [], @isposint);
-ip.addParamValue('SameAxes', false, @islogical);
-ip.addParamValue('AspectRatio', []);
-ip.addParamValue('AxesWidth', []);
-ip.addParamValue('AxesHeight', []);
-ip.addParamValue('XSpace', []);
-ip.addParamValue('YSpace', []);
-ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
-ip.addParamValue('InsetPosition', []);
-ip.addParamValue('Name', '');
-ip.addParamValue('Box', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
+ip.addParameter('SameAxes', false, @islogical);
+ip.addParameter('AspectRatio', []);
+ip.addParameter('AxesWidth', []);
+ip.addParameter('AxesHeight', []);
+ip.addParameter('XSpace', []);
+ip.addParameter('YSpace', []);
+ip.addParameter('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
+ip.addParameter('InsetPosition', []);
+ip.addParameter('Name', '');
+ip.addParameter('Box', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.parse(varargin{:});
 nh = ip.Results.nh;
 nw = ip.Results.nw;
@@ -89,7 +89,7 @@ end
 % default proportions: left/bottom: 1.5, width: 6, height: 3.5, top/right: 0.5
 aw = aw0/w0;
 xl = XSpace(1)/w0; % left spacing (relative to single axes)
-if ~ip.Results.SameAxes && isempty(ip.Results.XSpace);
+if ~ip.Results.SameAxes && isempty(ip.Results.XSpace)
     xc = xl;
 else
     xc = XSpace(2)/w0;  % spacing btw axes
@@ -135,10 +135,10 @@ fpos(2) = 5;
 hf = figure('PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off',...
     'Units', 'centimeters', 'Position', fpos, 'Units', 'pixels', 'Name', ip.Results.Name);
 
-ha = zeros(na,1);
+ha = gobjects(na,1);
 x0 = zeros(na,1);
 y0 = zeros(na,1);
-hi = zeros(na,1);
+hi = gobjects(na,1);
 ipos = ip.Results.InsetPosition;
 if numel(ipos)==2
     %ipos = [ipos 0.95-ipos(1) 0.95-ipos(2)];
@@ -151,7 +151,7 @@ for i = 1:na
     ha(i) = axes('Position', pos);
     hold(ha(i), 'on');
     
-    if ~isempty(ipos);
+    if ~isempty(ipos)
         hi(i) = axes('Position', [pos(1)+pos(3)*ipos(3) pos(2)+pos(4)*ipos(4)...
             ipos(1)*pos(3) ipos(2)*pos(4)]);
         hold(hi(i), 'on');
@@ -159,6 +159,8 @@ for i = 1:na
 end
 
 if ip.Results.SameAxes
+%     hayy = ha(y0>0);
+%     haxx = ha(y0>0);
     set(ha(y0>0), 'XTickLabel', []);
     set(ha(x0>0), 'YTickLabel', []);
 end
