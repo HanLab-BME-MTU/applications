@@ -10,43 +10,54 @@ end
 % cellViewer(data(1), 'mode', 'mask') -- 
 
 cmeData_dir = fullfile(data_root, ['single_channel' filesep 'Zuzana_ARPE_CLC_egfp_07032014_control']);
+cmeData_dir2 = fullfile(data_root, ['single_channel' filesep 'Zuzana_ARPE_CLC_egfp_07032014_mu_PIP2_mutant']);
+
 epiTIRFData_dir = fullfile(data_root, ['epi_tirf' filesep 'Zuzana_arpe_clc_egfp_14082015_control']);
+epiTIRFData_dir2 = fullfile(data_root, ['epi_tirf' filesep 'Zuzana_arpe_clc_egfp_14082015_mu_PIP2_mutant']);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % sortTiffStacks; % helper function for organizing data structure
 
-
 data = loadConditionData(cmeData_dir, {''}, {'EGFP'}); %[works]
-cmeAnalysis(data);  %[works] 
+results = cmeAnalysis(data);  %[works]
+
+data2 = loadConditionData(cmeData_dir2, {''}, {'EGFP'}); %[works]
+results2 = cmeAnalysis(data2);  %[works]
+
 %  cmeAnalysis(data, 'Overwrite', [true false false true]) -- manually go
 %  over tracks for semgnetation mask.
 ccpSorter(data); % xinxin [works]
+ccpSorter(data2); % xinxin [works]
 cmeDataViewer(data(1)); % xinxin [works]
 cmeDataViewer(data(2)); % xinxin [works]
 analyzeBleaching(data(1)); % one movie at a time.
 analyzeBleaching(data(2)); % one movie at a time.
 [lftRes, res] = runLifetimeAnalysis(data);  % works - error bar fixes
+[lftRes2, res2] = runLifetimeAnalysis(data2);  % works - error bar fixes
 
-plotLifetimes(lftRes);  % works
+plotLifetimes(lftRes);  % works (included in cmeAnalysis)
+plotLifetimes(lftRes2);  % works (included in cmeAnalysis)
 
 track_num = 1;
 movie_num = 1;
 
 track = loadTracks(data(movie_num)); % xinxin 
-plotTrack(data(movie_num), track(track_num));
-plotIntensityCohorts(data); % works (good)
-% plotInitiationDensity({da  lftRes(1),lftRes(2)}); % ask Marcel 
-plotInitiationDensity({results.lftRes}, {'ctrl'}) % error bar MATLAB version issue
-plotCellArea({results.lftRes}, {'ctrl'}); % ask Marcel (sub-output in CME)
-% plotInitIntensityVsLifetime(data);  % ???? not used regularly
+plotTrack(data(movie_num), track(track_num)); %  % (included in cmeAnalysis)
+plotIntensityCohorts(data); % (included in cmeAnalysis)
+plotCellArea({results.lftRes}, {'ctrl'}); % (included in cmeAnalysis)
+plotInitiationDensity({results.lftRes, results2.lftRes}, {'ctrl', 'other'}) % error bar styling MATLAB version update
+
 plotIntensityDistributions(data(movie_num)); % works
-plotLifetimeComparison({lftRes}); % wrap with cell % ask Marcel? (need at least two data)
+plotLifetimeComparison({lftRes, lftRes}); % wrap with cell % ask Marcel? (need at least two data)
 plotMaxIntensityDistribution(data);  % work, but old % MATLAB update fixes
+% %%%
+% plotInitIntensityVsLifetime(data);  % ???? not used regularly ????
+% %%%
 
 % get two condition test and two movie
 
-data = loadConditionData(epiTIRFData_dir, {'TIRF', 'EPI'}, {'EGFP', 'EGFP'});
+data = loadConditionData(epiTIRFData_dir2, {'TIRF', 'EPI'}, {'EGFP', 'EGFP'});
 % master, slave analysis -- ask Marcel
-% epiTIRFAnalysis(data); % not used by xinxin yet -- % Ask Marcel [need special dataset]
 epiTIRFAnalysis({data, data},  {'EGFP', 'EGFP'}, 9.5); % not used by xinxin yet -- % Ask Marcel [need special dataset]
-% ask about LabArchive -- documentation on CME analysis
+% epiTIRFAnalysis({data, data},  {'EGFP', 'EGFP'}, 9.5); % not used by xinxin yet -- % Ask Marcel [need special dataset]
