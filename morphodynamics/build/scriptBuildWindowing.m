@@ -80,13 +80,14 @@ choice = questdlg(['Run test on zip package?'],'Question..','Yes','No','Yes');
 
 if strcmp(choice, 'Yes')
 	restoredefaultpath;  % Clears out repo paths
-	tmpdir = fullfile(tempname, package_name);
-	out_dir = fullfile(tmpdir, 'analysis');
+    t_stamp = datestr(now,'ddmmmyyyyHHMMSS');
+    tmpdir = fullfile(tempdir, [package_name '_test_' t_stamp]);
 	mkdir(tmpdir);
 	disp(['Created tmpdir ' tmpdir]);
 	unzip(zip_file, tmpdir);
 	addpath(genpath(tmpdir)); % add the build package path
 	disp('Added tmpdir to path');
+	out_dir = fullfile(tmpdir, 'analysis');
 	mkdir(out_dir);
 	disp(['Created output dir ' out_dir]);
 

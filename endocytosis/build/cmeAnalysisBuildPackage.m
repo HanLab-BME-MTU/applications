@@ -38,7 +38,8 @@ for i = 1:length(repo_dirs)
     disp(['Adding ' cur_dir]);
     addir(cur_dir);
 end
-cellScript{1} = 'scriptCMEautotest.m';
+cellScript{1} = 'testCMEanalysis.m';
+cellScript{2} = 'sortTiffStacks.m'; % helper function
 buildPackage(cellScript, out_dir);
 cd(out_dir); % check results
 
@@ -80,43 +81,28 @@ zip(zip_file, out_dir);
 msgbox(['Package zipped here ' zip_file])
 
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Test the package build works in tmp dir!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 choice = questdlg(['Run test on zip package?'],'Question..','Yes','No','Yes');
 
 if strcmp(choice, 'Yes')
+    testScript_path = evalc('which testCMEanalysis')
     restoredefaultpath;  % Clears out repo paths
-    tmpdir = fullfile(tempname, package_name);
-    out_dir = fullfile(tmpdir, 'analysis');
+    t_stamp = datestr(now,'ddmmmyyyyHHMMSS');
+    tmpdir = fullfile(tempdir, [package_name '_test_' t_stamp]);
     mkdir(tmpdir);
+    copyfile(testScript_path, tmpdir);     
     disp(['Created tmpdir ' tmpdir]);
     unzip(zip_file, tmpdir);
     addpath(genpath(tmpdir)); % add the build package path
     disp('Added tmpdir to path');
+    out_dir = fullfile(tmpdir, 'analysis');
     mkdir(out_dir);
     disp(['Created output dir ' out_dir]);
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Gather Test image
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % move test image to test package dir.
-    if strcmp(computer('arch'),'win64')
-        test_img = 'C:\Users\Andrew\Data\raw\Assaf\Angeles_20150402_14hrs_5min_AA01_7.tif';
-    else
-        test_img = '/work/bioinformatics/s170480/Data/Assaf/Angeles_20150402_14hrs_5min_AA01_7.tif';
-    end
-
-    [a, b, c] = fileparts(test_img);
-    test_img_name = fullfile(out_dir, [b c]);
-
-    if ~strcmp(out_dir, a) 
-        copyfile(test_img, out_dir);    
-    end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   cd(out_dir);
-    testScript_assaf(test_img_name);
+    results = runtests('testCMEanalysis.m');
+    disp(results.table);
     uiwait(msgbox(['Please check the analysis output...:' out_dir]));
     restoredefaultpath; 
 end
