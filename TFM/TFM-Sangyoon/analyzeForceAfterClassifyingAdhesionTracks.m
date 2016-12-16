@@ -239,7 +239,7 @@ if ~uptoColo
     fileStoreG1_hiCC = [epsPath filesep 'ampForcePlotG1_hiCC.eps'];
     plotIntensityForce(tracksNA(idGroup1f(idxHighCCG1 & idxLongLTG1)),fileStoreG1_hiCC,false,true) %)),fileStoreG1_hiCC,false,true)% 
     ccLagG1Hi = arrayfun(@(x) x.CCmaxLag,tracksNA(idGroup1f(idxHighCCG1 & idxLongLTG1)));
-    mean(ccLagG1Hi)
+    nanmean(ccLagG1Hi)
     %% those with intermediate cc
     idxIntmedCCG1=ccG1>0.1 & ccG1<=0.5;
     % delete very short life time
@@ -407,8 +407,9 @@ if ~uptoColo
 %     preDetecFactor=3/5; %for paxillin because diffuse signal before point-source-like signal
 %     preDetecFactor=1/5; %for vinculin 
     preDetecFactor=1/10; %for talin
-    %% Initial force-increase time quantification!
+    %% Initial force-increase time quantification! - time
     tInterval = MD.timeInterval_;
+    %% Initial force-increase time quantification! - time
 %     curIndices = find(idGroup1filtered | idGroup3filtered | idGroup7filtered | idGroup9filtered)';
 %     curIndices = find(idGroup1filtered | idGroup3filtered | idGroup7filtered)';
 %     curIndices = find((idGroup1filtered | idGroup3filtered | idGroup7filtered) & idGroupLongPreDetecPeriod)';
@@ -735,8 +736,8 @@ if ~uptoColo
         'edgeMeanProtForceTrans','edgeMeanProtNonTrans','meanEdgeMeanProtForceTrans','meanEdgeMeanProtNonTrans','hMeanP','pMeanP')
 %     save([pathForColocalization filesep 'data' filesep 'tempAllData.mat'])
 %% Maturing adhesions' t_init quantification
-    curIndicesG2 = find(idGroup2filtered)';
-%     curIndicesG2 = idGroup1f';
+%     curIndicesG2 = find(idGroup2filtered)';
+    curIndicesG2 = idGroup2f;
     tempTracks2 = calculateFirstIncreaseTimeTracks(tracksNA(curIndicesG2),splineParamInit,preDetecFactor,tInterval);
     [tracksNA(curIndicesG2).forceTransmitting] = tempTracks2.forceTransmitting;
     [tracksNA(curIndicesG2).firstIncreseTimeInt] = tempTracks2.firstIncreseTimeInt;
@@ -778,7 +779,7 @@ if ~uptoColo
     % statistics about firstIncreseTimeIntAgainstForce
     firstIncreseTimeIntAgainstForceAllIdxG2 = arrayfun(@(x) ~isempty(x.forceTransmitting) && ~isempty(x.firstIncreseTimeInt) && x.forceTransmitting,tracksNA(curIndicesG2));
     firstIncreseTimeIntAgainstForceAllG2 = arrayfun(@(x) x.firstIncreseTimeIntAgainstForce, tracksNA(curIndicesG2(firstIncreseTimeIntAgainstForceAllIdxG2)));
-    figure, histogram(firstIncreseTimeIntAgainstForceAllG2)
+    figure, histogram(firstIncreseTimeIntAgainstForceAllG2,20)
     ratioForceTrasG2 = length(firstIncreseTimeIntAgainstForceAllG2)/length(curIndicesG2)
     disp(['Median of firstIncreseTimeIntAgainstForceAllG2 = ' num2str(median(firstIncreseTimeIntAgainstForceAllG2))])
     FTID2 = 1;
@@ -896,6 +897,34 @@ if ~uptoColo
     showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,curIndices(bothTiTpIdxIDs(medID)),gPath,additionalName);
     if ~isempty(additionalName)
         save([gPath filesep 'track' num2str(curIndices(medID)) additionalName '.mat'],'curTrack','medID','curIndices','gPath','additionalName')
+    end
+    %% actual showing for G2 -initialization
+    curID2=0;
+    %% actual showing for G2
+    close all
+    gPath = [pathForColocalization filesep 'eps'  filesep 'representativeMedian'];
+    if ~exist(gPath,'dir')
+        mkdir(gPath)
+    end
+%     medID = longMedFirstG1(51);
+%     medID = medID+1;
+    additionalName = '';
+%     additionalName = 'forcePeakAfterFluorLT';
+%     additionalName = 'forcePeakSame';
+%     additionalName = 'forcePeakLater';
+%     additionalName = 'forcePeakEarly';
+    if isempty(additionalName)
+        curID2 = curID2+1;
+    end
+    medID2 = curIndicesG2(curID2);
+%     curID = firstIncreseTimeIntAgainstForceAllIdxIDs(56);
+%     firstIncreseTimeIntAgainstForceAllIdxIDs=find(firstIncreseTimeIntAgainstForceAllIdx);
+%     curTrack = tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs(medID)));%4210);
+%     h=showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,curIndices(medID),gPath,additionalName);
+    curTrack2 = tracksNA(medID2);%4210);
+    showSingleAdhesionTrackSummary(MD,curTrack2,imgMap,tMap,medID2,gPath,additionalName);
+    if ~isempty(additionalName)
+        save([gPath filesep 'track' num2str(medID2) additionalName '.mat'],'curTrack2','medID2','curIndices2','gPath','additionalName')
     end
     %% Look at feature difference per each group
     pixSize=MD.pixelSize_/1000; % in um
@@ -1268,6 +1297,10 @@ if ~uptoColo
     risingSlopeG7=[];
     forceIncrease1Half=[];
     forceIncrease2Half=[];
+    edgeIncrease1Half=[];
+    edgeIncrease2Half=[];
+    adhIncrease1Half=[];
+    adhIncrease2Half=[];
     p=0;
     q=0;
     for kk=1:numG7
@@ -1291,7 +1324,7 @@ if ~uptoColo
         % Since the purpose is to separate out those that increase about a
         % half and stay the rest of half, I'll filter out a<=0,
         % xt/lifetime>0.6.
-        if z(1)>0.1 && z(3)/x(end)<0.9 && z(3)/x(end)>0.1
+        if z(1)>0.1 && z(3)/x(end)<0.8 && z(3)/x(end)>0.2
             p=p+1;
             q=q+1;
             risingAndStoppingG7=[risingAndStoppingG7 kk];
@@ -1323,6 +1356,10 @@ if ~uptoColo
         %     [~,m_second]=regression(x(xt:end),curG7Force(xt:end))
             forceIncrease1Half(p)=(max(curG7ForceRaw(xt-3:xt))-min(curG7ForceRaw(1:3)))/z(3);
             forceIncrease2Half(q)=(max(curG7ForceRaw(end-5:end))-min(curG7ForceRaw(xt-1:xt+1)))/(x(end)-z(3));
+            edgeIncrease1Half(p)=(max(y(xt-3:xt))-min(y(1:3)))/z(3);
+            edgeIncrease2Half(q)=(max(y(end-5:end))-min(y(xt-1:xt+1)))/(x(end)-z(3));
+            adhIncrease1Half(p)=(max(curG7Advance(xt-3:xt))-min(curG7Advance(1:3)))/z(3);
+            adhIncrease2Half(q)=(max(curG7Advance(end-5:end))-min(curG7Advance(xt-1:xt+1)))/(x(end)-z(3));
             subplot(2,1,2),plot(x,curG7ForceRaw,'ko-'),hold on,plot(x,curG7Force,'k-','LineWidth',2)
             title('Traction'); ylabel('Traction Magnitude (Pa)'); xlabel('Time (min)');
             hgsave(strcat(figPath,'/EdgeAndForceInG7',num2str(kk)),'-v7.3')
@@ -1334,7 +1371,8 @@ if ~uptoColo
         end
     end
     save(strcat(dataPath,'/EdgeAndForceInG7selected.mat'),'risingAndStoppingG7','risingSlopeG7',...
-        'forceIncrease1Half','forceIncrease2Half','edgeRisingStoppingG7','adhAdvanceRisingStoppingG7','divPointRS','tractionRisingStoppingG7','-v7.3')
+        'forceIncrease1Half','forceIncrease2Half','edgeIncrease1Half','edgeIncrease2Half','adhIncrease1Half','adhIncrease2Half',...
+        'edgeRisingStoppingG7','adhAdvanceRisingStoppingG7','divPointRS','tractionRisingStoppingG7','-v7.3')
     %% Filtering G3 for those that increase edge advance 
     close all
     numG3=numel(tracksG3);
@@ -1342,11 +1380,16 @@ if ~uptoColo
     edgeRisingStoppingG3{1}=[];
     adhAdvanceRisingStoppingG3{1}=[];
     forceIncreaseG3=[];
+    edgeIncreaseG3=[];
+    adhIncreaseG3=[];
     tractionRisingStoppingG3{1}=[];
     risingSlopeG3=[];
     p=0;
     for kk=1:numG3
         curG3=tracksG3(kk);
+        if curG3.lifeTime<5
+            continue
+        end
         tRange = 1:length(curG3.edgeAdvanceDist);
         if curG3.startingFrameExtra>1
             curG3.edgeAdvanceDist(1:curG3.startingFrameExtra-1)=NaN;
@@ -1388,6 +1431,8 @@ if ~uptoColo
             tractionRisingStoppingG3{p}=curG3ForceRaw;
 
             forceIncreaseG3(p)=(max(curG3Force(end-2:end))-min(curG3Force(1:3)))/x(end);
+            edgeIncreaseG3(p)=(max(y(end-2:end))-min(y(1:3)))/x(end);
+            adhIncreaseG3(p)=(max(curG3Advance(end-2:end))-min(curG3Advance(1:3)))/x(end);
             subplot(2,1,2),plot(x,curG3ForceRaw,'ko-'),hold on,plot(x,curG3Force,'k-','LineWidth',2)
             title('Traction'); ylabel('Traction Magnitude (Pa)'); xlabel('Time (min)');
             hgsave(strcat(figPath,'/EdgeAndForceInG3',num2str(kk)),'-v7.3')
@@ -1395,18 +1440,31 @@ if ~uptoColo
         end
     end
     save(strcat(dataPath,'/EdgeAndForceInG3selected.mat'),'risingAndStoppingG3','edgeRisingStoppingG3',...
-        'adhAdvanceRisingStoppingG3','forceIncreaseG3','tractionRisingStoppingG3','-v7.3')
+        'adhAdvanceRisingStoppingG3','forceIncreaseG3','edgeIncreaseG3','adhIncreaseG3','tractionRisingStoppingG3','-v7.3')
     %% Last, compare force increase among forceIncreaseG3,forceIncrease1Half and forceIncrease2Half
-%     close all
+    close all
     forceIncreaseG3G7Cell={ forceIncreaseG3,forceIncrease1Half, forceIncrease2Half};
     nameG3G7={'G3', 'G7-protruding phase', 'G7-stalling phase'};
     figure;
     barPlotCellArray(forceIncreaseG3G7Cell,nameG3G7)
     title('Increase in force in G3 and two separate phases in G7')
-    ylabel('Change in force (Pa)')
+    ylabel('Change in force (Pa/min)')
     hgsave(strcat(figPath,'/forceIncreaseG3G7'),'-v7.3')
     save([pathForColocalization filesep 'data' filesep 'forceIncreaseG3G7.mat'],'forceIncreaseG3G7Cell','nameG3G7','-v7.3')
     print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'forceIncreaseG3G7.eps']);% histogramPeakLagVinVsTal -transparent
+
+    edgeAdhIncreaseG3G7Cell={ edgeIncreaseG3,adhIncreaseG3,edgeIncrease1Half,adhIncrease1Half,...
+        edgeIncrease2Half,adhIncrease2Half};
+    nameG3G7edgeAdh={'G3-edge','Ge-adh', 'G7-edge-protruding phase','G7-adh-protruding phase',...
+        'G7-edge-stalling phase','G7-adh-stalling phase'};
+    figure;
+    barPlotCellArray(edgeAdhIncreaseG3G7Cell,nameG3G7edgeAdh,pixSize)
+    title('Advance in edge and adhesion in G3 and two separate phases in G7')
+    ylabel('Change in edge (um/min)')
+    hgsave(strcat(figPath,'/edgeAdhIncreaseG3G7'),'-v7.3')
+    save([pathForColocalization filesep 'data' filesep 'edgeAdhIncreaseG3G7.mat'],'edgeAdhIncreaseG3G7Cell','nameG3G7edgeAdh','-v7.3')
+    print('-depsc','-loose',[pathForColocalization filesep 'eps' filesep 'edgeAdhIncreaseG3G7.eps']);% histogramPeakLagVinVsTal -transparent
+
     
     %% Look at G7 in detail and see force characteristics
     % First let's look at edge advance

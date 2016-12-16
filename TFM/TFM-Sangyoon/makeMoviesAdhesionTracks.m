@@ -27,7 +27,7 @@ if drawWithoutClasses==10
     disp('Predicting with classifier ...')
     [~,allData] = extractFeatureNA(tracksNA);
     allDataClass = predict(trainedClassifier,allData);
-elseif drawWithoutClasses<10 && drawWithoutClasses>0
+elseif drawWithoutClasses<10 %&& drawWithoutClasses>0
     allDataClass = cell(numel(tracksNA),1);
 end
 % if drawWithoutClasses
@@ -267,13 +267,14 @@ toc
 if nargin<4
     nWorkers=100;
 end
-% if isempty(gcp('nocreate'))
-%     try
-%         parpool(nWorkers)
-%     catch
-%         p= gcp;
-%         nWorkers = p.NumWorkers;
-%     end
+if isempty(gcp('nocreate'))
+    try
+        parpool(nWorkers)
+    catch
+        p= gcp;
+        nWorkers = p.NumWorkers;
+    end
+end
 % else
 %     p= gcp;
 %     nWorkers = p.NumWorkers;

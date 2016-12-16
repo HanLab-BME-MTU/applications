@@ -213,6 +213,9 @@ if min(min(maskArray(:,:,1))) == 0
         x_shift = find(any(firstMask,1),1);
 
         tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        if (y_shift+size(tempMask,1))>size(firstMask,1) || x_shift+size(tempMask,2)>size(firstMask,2)
+            firstMask=padarray(firstMask,[y_shift-1 x_shift-1],'replicate','post');
+        end
         firstMask = tempMask2 & firstMask;
         
 %         firstMask = false(size(refFrame));

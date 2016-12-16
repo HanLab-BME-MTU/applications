@@ -10,7 +10,7 @@ function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, vararg
 % Sangyoon Han, Jan 2015
 % Last modified, Feb 2016
 ip =inputParser;
-ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
+ip.addParamValue('extraLength',300,@isscalar); % selcted track ids
 ip.addParamValue('reTrack',true,@islogical); % selcted track ids
 ip.addParamValue('trackOnlyDetected',false,@islogical); % selcted track ids
 ip.addParamValue('movieData',[],@(x) isa(x,'MovieData') || isempty(x)); % moviedata for utrack
@@ -19,7 +19,7 @@ extraLengthForced=ip.Results.extraLength;
 reTrack=ip.Results.reTrack;
 trackOnlyDetected =ip.Results.trackOnlyDetected;
 MD =ip.Results.movieData;
-extraLength = 300;
+extraLength = ip.Results.extraLength;
 % get stack size
 numFrames = size(imgStack,3);
 % w4 = 8;
@@ -242,6 +242,19 @@ for k=1:numTracks
                 if endFrame==curEndingFrame
                     tracksNA(k).endingFrameExtra = curEndingFrame;
                 end
+            end
+        else
+            for ii=curStartingFrame+1:curEndingFrame;
+                curImg = imgStack(:,:,ii);
+                x = tracksNA(k).xCoord(ii);
+                y = tracksNA(k).yCoord(ii);
+                xi = round(x);
+                yi = round(y);
+                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                curAmpTotal = curImg(yRange,xRange);
+                curAmpTotal = mean(curAmpTotal(:));
+                tracksNA(k).ampTotal(ii) =  curAmpTotal;
             end
         end
         if ~isempty(extraLengthForced) && abs(extraLengthForced)>0
