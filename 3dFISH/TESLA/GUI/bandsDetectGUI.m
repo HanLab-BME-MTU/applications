@@ -219,18 +219,6 @@ if markerCount ~= markerNum
     return
 end
 
-% markerPos = markerPos';
-
-% switch markerNum
-%     case 7
-%         markerSize = [9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
-%     case 8
-%         markerSize = [18.8, 9.4, 6.1, 5.4, 4.4, 3.3, 1.6, 0.8]';
-%     otherwise
-%         set(handles.note, 'String', 'Unusal number of marker bands detected');
-%         return
-% end
-
 handles.ladder = ladder;
 handles.markerNum = markerNum;
 handles.markerPos = markerPos;

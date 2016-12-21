@@ -1,16 +1,39 @@
-function bandSizeExtractor(bandStat, laneNum)
-%UNTITLED Summary of this function goes here
+function bandSizeExtractor()
+%BANDSIZEEXTRACTOR takes input TeSLA analysis folder and check for bandStat
+%to generate records of band size for each lane
 %   Detailed explanation goes here
 
-xPos = zeros(numel(bandStat), 2);
-size = zeros(numel(bandStat), 1);
+[fileName, filePath] = uigetfile('*.mat', 'Select mat file with bandStat', ...
+    'X:/3DTPE/analysis/TeSLA');
+[folderPath, folderName] = fileparts(fileparts(filePath));
+load(strcat(filePath, fileName));
+laneNum = 8;
+totalBands = 0;
 for i = 1:numel(bandStat)
-    xPos(i,1) = bandStat(i).bandPos(1);
-    size(i,1) = bandStat(i).bandSize;
+    totalBands = totalBands + bandStat(i).count;
+end
+    
+bandSizeInfo = zeros(totalBands, 3);
+multiCount = 0;
+for p = 1:numel(bandStat)
+    bandSizeInfo(p, 3) = bandStat(p).bandPos(1);
+    individualSize = bandStat(p).bandSize;
+    if individualSize == 0
+        individualSize = 0.00001;
+    end
+    bandSizeInfo(p, 2) = individualSize;
+    if bandStat(p).count > 1
+        for q = 2:bandStat(p).count
+            multiCount = multiCount + 1;
+            bandSizeInfo(numel(bandStat) + multiCount, 3) = bandStat(p).bandPos(1);            
+            bandSizeInfo(numel(bandStat) + multiCount, 2) = individualSize;
+        end
+    end
 end
 
-xPos(:,2) = kmeans(xPos(:, 1),laneNum);
-indexNum = xPos(:,2);
+bandSizeInfo(:, 1) = kmeans(bandSizeInfo(:, 3), laneNum);
+bandSizeInfo = sortrows(bandSizeInfo);
+indexNum = bandSizeInfo(:, 1);
 bandHist = hist(indexNum, unique(indexNum));
 bandSize = NaN(max(bandHist), laneNum);
 
@@ -19,10 +42,14 @@ for lane = 1:laneNum
     bandNum = bandHist(lane);
     for band = 1:bandNum
         count = count + 1;
-        bandSize(band, lane) = size(count);
+        bandSize(band, lane) = bandSizeInfo(count, 2);
     end
 end
-save('bandSize.mat', 'bandSize')
+
+if ~exist(strcat(folderPath, '/bandSizeStat'), 'dir')
+    mkdir(strcat(folderPath, '/bandSizeStat'));
+end
+save(strcat(folderPath, '/bandSizeStat/', folderName, ' bandSizeStat'), 'bandSize')
 
 end
 
