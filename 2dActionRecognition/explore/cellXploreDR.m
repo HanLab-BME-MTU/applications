@@ -90,7 +90,6 @@ handles.h10 = uipanel('Parent',handles.h1,'FontUnits','pixels','Units','pixels',
 'Title','Data Selection Criterion','Tag','uipanel_select',...
 'Position',[46 75 359 152],'FontSize',13,'FontSizeMode',...
 get(0,'defaultuipanelFontSizeMode'));
-DRtypes_
 
 DRType = uibuttongroup(...
 'Parent',handles.h10,...
@@ -149,6 +148,17 @@ handles.cellLabel = uicontrol(...
 'Callback',@updateLabel,...
 'Tag','popupmenu1');
 
+handles.filter = uicontrol(...
+'Parent',handles.h10,...
+'FontUnits',get(0,'defaultuicontrolFontUnits'),...
+'Units',get(0,'defaultuicontrolUnits'),...
+'String',{  'Malignant'; 'Benign'; 'All' },...
+'Style','popupmenu',...
+'Value',3,...
+'ValueMode',get(0,'defaultuicontrolValueMode'),...
+'Position',[129 102 89 22],...
+'Callback',@updateFilter,...
+'Tag','popupmenu2');
 
     function updateLabel(source, event)
        val = source.Value;
@@ -157,6 +167,15 @@ handles.cellLabel = uicontrol(...
        disp('------------------');
        updatePlots()
     end
+
+    function updateFilter(source, event)
+       val = source.Value;
+       maps = source.String;
+       disp(['Updating Labels to : ', maps{val}]);
+       disp('------------------');
+       updatePlots()
+    end
+
 
 %===============================================================================
 % Set up track display
@@ -175,28 +194,6 @@ opts = {'Parent', handles.h2_DR, 'Units', 'pixels', 'Position', [20 20 320 290]}
 axDR = axes(opts{:});
 % Defaults
 handles.gax = plotScatter;  datacursormode on;
-
-% [labels lnames] = grp2idx(data.meta.cellType);
-% PCA
-% colorset = {'brgykop'};
-% scatter(axDR, data.tSNE(:,1), data.tSNE(:,2), 14, data.meta.tumorType, 'fille');
-% title_ = title('tSNE');
-% set(axDR, 'Title', title_);
-% set(axDR, 'Visible', 'on')
-% datacursormode on;
-
-
-% gax = gscatter(data.PCA(:,1), data.PCA(:,2), data.meta.cellType);
-
-
-
-% 
-% % tSNE
-% title_tSNE = title('tSNE');
-% scatter(haxes, x(2,:), x(4,:), 14, x(3,:));
-% set(h3, 'Title', title_tSNE);
-
-
 
 
 function [gax] = plotScatter
@@ -221,28 +218,44 @@ function [gax] = plotScatter
     iDR = find([handles.DRType.Children.Value]);
     DR_ = {handles.DRType.Children.String};
     DRtype_sel = DR_{iDR};
+
     
+    maps = handles.filter.String;  
+    val = handles.filter.Value;  
+    
+    switch maps{val}
+        case 'Malignant'
+            ind_f = find(cellfun(@(x) strcmp(x,'malignant'), data.meta.tumorTypeName));
+        case 'Benign'
+            ind_f = find(cellfun(@(x) strcmp(x,'benign'), data.meta.tumorTypeName));
+        otherwise
+            disp('selecting all');
+            ind_f = 1:length(data.meta.mindex);
+    end
+            
+   
+        
     switch DRtype_sel
        case 'PCA'
            figure(handles.h1)
-           scatter(axDR, data.PCA(:,1), data.PCA(:,2), 14, clabels, 'fille');
+           scatter(axDR, data.PCA(ind_f,1), data.PCA(ind_f,2), 14, clabels(ind_f,:,:), 'fille');
            axDR.Title.String = 'PCA';           
            
            figure(findobj(0,'-regexp','Name', 'Movie'))
-           gax = gscatter(data.PCA(:,1), data.PCA(:,2), plabel, colorset{:}, '.', 18);           
+           gax = gscatter(data.PCA(ind_f,1), data.PCA(ind_f,2), plabel(ind_f), colorset{:}, '.', 18);           
            title('PCA');
        case 'tSNE'           
            figure(handles.h1)
-           scatter(axDR, data.tSNE(:,1), data.tSNE(:,2), 14, clabels, 'fille');
+           scatter(axDR, data.tSNE(ind_f,1), data.tSNE(ind_f,2), 14, clabels(ind_f,:,:), 'fille');
            axDR.Title.String = 'tSNE';
            
            figure(findobj(0,'-regexp','Name', 'Movie'))
-           gax = gscatter(data.tSNE(:, 1), data.tSNE(:, 2), plabel, colorset{:}, '.', 18);
+           gax = gscatter(data.tSNE(ind_f, 1), data.tSNE(ind_f, 2), plabel(ind_f), colorset{:}, '.', 18);
            title('tSNE');
        otherwise
             
            figure(findobj(0,'-regexp','Name', 'Movie'))
-           gax = gscatter(data.PCA(:,1), data.PCA(:,2), plabel, colorset{:}, '.', 18);           
+           gax = gscatter(data.PCA(ind_f,1), data.PCA(ind_f,2), plabel(ind_f), colorset{:}, '.', 18);           
            title('PCA');
     end
 end
