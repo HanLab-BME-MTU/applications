@@ -569,7 +569,7 @@ end
 if matchWithFA
     disp('Intermediate saving before post analysis...')
     save([dataPath filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
-    save([dataPath filesep 'intermediateWorkspace.mat'], '-v7.3')
+%     save([dataPath filesep 'intermediateWorkspace.mat'], '-v7.3')
 end
 %% protrusion/retraction information
 % time after protrusion onset (negative value if retraction, based
