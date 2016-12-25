@@ -1,4 +1,4 @@
-function [ S ] = getSkeletonFromNLMS( I )
+function [ S, T, nlms_mip3 ] = getSkeletonFromNLMS( I )
 %ANALYZENLMS Produce skeleton using NLMS
 
 gcp;
