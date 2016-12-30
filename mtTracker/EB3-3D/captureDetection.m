@@ -1,8 +1,10 @@
-function captureDetection(MD,varargin)
+function kinTracks=captureDetection(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
+ip.addParameter('kinTracks',[],@(x) isa(x,'Tracks'));
+ip.addParameter('kinSphericalCoord',[]);
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
 ip.parse(MD,varargin{:});
@@ -51,14 +53,24 @@ for tIdx=1:length(EB3tracks)
 end
 
 %% load Kinetochores spherical coordinate
-outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
-kinSphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
-kinSphericalCoord=kinSphericalCoord.sphCoord;
+ip.addParameter('kin',[]);
+ip.parse(MD,varargin{:});
+p=ip.Results;
 
-outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
-kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
-kinTracks=kinTrackData.tracksLabRef;
+%%
+if(isempty(p.kinTracks)||isempty(p.kinSphericalCoord))
+    outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
+    kinSphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
+    kinSphericalCoord=kinSphericalCoord.sphCoord;
+    
+    outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
+    kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
+    kinTracks=kinTrackData.tracksLabRef;
 
+else
+    kinTracks=p.kinTracks;
+    kinSphericalCoord=p.kinSphericalCoord;
+end
 
 % Augment the structures with spherical Coordinate. 
 for kIdx=1:length(kinTracks)
@@ -252,13 +264,13 @@ save([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks','EB3tracks')
 
 %% First test, display the +TIP coordinate on a lateral view of the poleKin axis. 
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep 'firstTest' filesep]
-system(['mkdir -p ' outputDirProj]);
+system(['mkdir ' outputDirProj]);
 
 if(p.printAll)
 %%
 for kIdx=1:length(kinTracks)
 %%
-    kinTrack=kinTracksBundle(kIdx);
+    kinTrack=kinTracks(kIdx);
 
     [handles,~,fhandle]=setupFigure(1,2,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
     hold(handles(1),'on');
