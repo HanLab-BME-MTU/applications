@@ -49,6 +49,9 @@ classdef OrientationSpaceFilter < handle
     
     methods
         function obj = OrientationSpaceFilter(f_c,b_f,K,normEnergy)
+            if(nargin == 0)
+                return;
+            end
             if(~isscalar(f_c) || ~isscalar(b_f) || ~isscalar(K))
                 s = [length(f_c) length(b_f) length(K)];
                 s(2) = max(1,s(2));
@@ -320,6 +323,9 @@ classdef OrientationSpaceFilter < handle
 
         end
         function F = constructByRadialOrder(f_c, K_f, K, normEnergy, constructor)
+            if(nargin < 4)
+                normEnergy = [];
+            end
             if(nargin < 5)
                 constructor = @OrientationSpaceFilter;
             end
