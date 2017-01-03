@@ -4,13 +4,13 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/10/102414/probeISruns';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD14','rD16'};
-aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
-outDirNum = 1:10;
-lRDir = {'lR0p6'};
+rDDir = {'rD20'};
+aPDir = {'aP0p5'};
+outDirNum = 1:30;
+lRDir = {'lR0p02','lR0p04'};
 
 %define intensity mean and stadnard deviation. Must match simulation input
 %or experimentally-derived values

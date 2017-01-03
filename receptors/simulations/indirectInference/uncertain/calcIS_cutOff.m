@@ -44,7 +44,7 @@ function [isVals] = calcIS_cutOff(rootDir,numSims,outStr)
     
     %If cluster statistics are located at a differet root, set the
     %following.
-    sourceRoot = '';
+     sourceRoot = '';
     
     %Echo location and input parameters
     fprintf('\n======================================================================');

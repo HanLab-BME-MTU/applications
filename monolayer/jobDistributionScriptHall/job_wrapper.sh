@@ -1,6 +1,6 @@
 #!/bin/bash
 
-module add matlab/2013b
+module add matlab/2015a
 
 #interpret the arguments according to the application interfaces
 directory=$1
@@ -21,6 +21,6 @@ do
 done
 echo
 
-echo matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind);"
+echo matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind), exit"
 echo
-matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind);"
+matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind), exit"

@@ -62,20 +62,20 @@ function [res, data] = cmeAnalysis(varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('data', [], @isstruct);
-ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('GaussianPSF', 'data', @(x) any(strcmpi(x, {'data', 'model'})));
-ip.addParamValue('Sigma', []);
-ip.addParamValue('TrackingRadius', [3 6], @(x) numel(x)==2);
-ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
-ip.addParamValue('Parameters', [], @(x) numel(x)==3);
-ip.addParamValue('ControlData', [], @isstruct);
-ip.addParamValue('PlotAll', false, @islogical);
-ip.addParamValue('AlphaSlave', 0.05, @isnumeric);
-ip.addParamValue('ChannelNames', []);
-ip.addParamValue('FirstNFrames', [], @isposint);
-ip.addParamValue('MaxIntensityThreshold', [], @isscalar);
-ip.addParamValue('CompareHighLowSNR', false, @islogical);
-ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
+ip.addParameter('Overwrite', false, @islogical);
+ip.addParameter('GaussianPSF', 'data', @(x) any(strcmpi(x, {'data', 'model'})));
+ip.addParameter('Sigma', []);
+ip.addParameter('TrackingRadius', [3 6], @(x) numel(x)==2);
+ip.addParameter('TrackingGapLength', 2, @(x) numel(x)==1);
+ip.addParameter('Parameters', [], @(x) numel(x)==3);
+ip.addParameter('ControlData', [], @isstruct);
+ip.addParameter('PlotAll', false, @islogical);
+ip.addParameter('SlaveAmplitudeRatio', 0, @isnumeric);
+ip.addParameter('ChannelNames', []);
+ip.addParameter('FirstNFrames', [], @isposint);
+ip.addParameter('MaxIntensityThreshold', [], @isscalar);
+ip.addParameter('CompareHighLowSNR', false, @islogical);
+ip.addParameter('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(varargin{:});
 data = ip.Results.data;
 
@@ -111,7 +111,7 @@ runDetection(data, 'SigmaSource', ip.Results.GaussianPSF,...
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, 'Overwrite', overwrite(3));
 
-runTrackProcessing(data, 'Overwrite', overwrite(4),'AlphaSlave',ip.Results.AlphaSlave);
+runTrackProcessing(data, 'Overwrite', overwrite(4),'SlaveAmplitudeRatio',ip.Results.SlaveAmplitudeRatio);
 
 %-------------------------------------------------------------------------------
 % 3) Analysis

@@ -46,7 +46,11 @@ end
 % f = ifftshift(f);
 % % rho = ifftshift(rho);
 
-coords = getFrequencySpaceCoordinates(N);
+if(isstruct(N))
+    coords = N;
+else
+    coords = orientationSpace.getFrequencySpaceCoordinates(N);
+end
 
 
 % theta_shifted = acos(cos(theta - angle + pi));
@@ -67,6 +71,7 @@ coords.theta = mod(coords.theta+pi,2*pi)-pi;
 
 %% Radial part
 % compute radial order, f_c = sqrt(K_f * b_f^2)
+if(f_c)
 K_f = (f_c / b_f)^2;
 
 % scale frequency
@@ -76,6 +81,9 @@ f_s = coords.f / f_c;
 % Note -(f^2 - f_c^2)/(2*b_f^2) = (1 - (f/f_c)^2)/(2* b_f^2/f_c^2)
 %                               = (1 - (f/f_c)^2)/(2 / K_f)
 radialFilter = f_s.^K_f .* exp((1 - f_s.^2)*K_f/2);
+else
+    radialFilter = exp(-coords.f.^2./2./b_f.^2);
+end
 % radialFilter2 = f_s^K_f .* exp(-(f.^2-f_c.^2)/2/b_f.^2);
 % assertEqual(radialFilter,radialFilter2);
 
@@ -95,10 +103,7 @@ filterKernel = bsxfun(@times,radialFilter .* 0.5,angularFilter + angularFilter_s
 
 % could we simplify this? neg/pos dividing line does not have to rotate
 posMask = abs(coords.theta) < pi/2;
-negMask = ~posMask;
-filterKernel(posMask) = filterKernel(posMask) + filterKernel(posMask)*1j;
-filterKernel(negMask) = filterKernel(negMask) - filterKernel(negMask)*1j;
-
+filterKernel = filterKernel.*(1 + 1j.*(posMask.*2-1));
 
 % shift = exp(1i*2*pi*(X/2+Y/2));
 % filterKernel = radialFilter .* angularFilter;

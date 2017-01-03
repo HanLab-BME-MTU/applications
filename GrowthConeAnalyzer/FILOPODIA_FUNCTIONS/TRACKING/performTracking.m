@@ -9,7 +9,7 @@ function [ ] = performTracking(analInfo,costMatParams,imDir,saveDir)
 
 [trackedFeatureIndx,trackedFeatureInfolink] = linkFeaturesMODFORFILO(movieInfo,costMatParams,analInfoFilt,[],2,[],[],[],saveDir);
 save([saveDir filesep 'tracking.mat'],'trackedFeatureIndx','trackedFeatureInfolink','costMatParams','analInfoFilt'); 
-makeTrackMovie(trackedFeatureInfolink,trackedFeatureIndx, analInfoFilt, imDir,saveDir,5,0.216); 
+makeTrackMovie(trackedFeatureInfolink,trackedFeatureIndx, analInfoFilt, imDir,saveDir,60,0.216); 
 % trackingOutput = plotHists(trackedFeatureInfo,saveDir); 
 end 
 

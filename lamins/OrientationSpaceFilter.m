@@ -23,6 +23,10 @@ classdef OrientationSpaceFilter < handle
         K
         % basis angles
         angles
+        % normilization setting
+        normEnergy
+        % number of angular filter templates
+        n
     end
     
     properties (Transient)
@@ -41,38 +45,51 @@ classdef OrientationSpaceFilter < handle
         frequencyBandwidth
         % K
         order
-        % number of angular filter templates
-        n
     end
     
     methods
-        function obj = OrientationSpaceFilter(f_c,b_f,K)
+        function obj = OrientationSpaceFilter(f_c,b_f,K,normEnergy)
+            if(nargin == 0)
+                return;
+            end
             if(~isscalar(f_c) || ~isscalar(b_f) || ~isscalar(K))
                 s = [length(f_c) length(b_f) length(K)];
                 s(2) = max(1,s(2));
                 f_c = repmat(f_c(:),1,s(2),s(3));
                 if(isempty(b_f))
-                    b_f = 0.8 * f_c;
+                    b_f = 1/sqrt(2) * f_c;
                 else
                     b_f = repmat(b_f(:)',s(1),1,s(3));
                 end
                 K   = repmat(shiftdim(K(:),-2),s(1),s(2),1);
+                if(nargin < 4)
+                        normEnergy = [];
+                end
+                normEnergy = repmat({normEnergy},size(K));
                 constructor = str2func(class(obj));
-                obj = arrayfun(constructor,f_c,b_f,K,'UniformOutput',false);
+                obj = arrayfun(constructor,f_c,b_f,K,normEnergy,'UniformOutput',false);
                 obj = reshape([obj{:}],size(obj));
                 return;
             end
             if(isempty(b_f))
                 % Set the bandwidth to be 0.8 of the central frequency by
                 % default
-                b_f = 0.8 * f_c;
+                b_f = 1/sqrt(2) * f_c;
+            end
+            if(nargin < 4 || isempty(normEnergy))
+                normEnergy = 'none';
+            else
+                if(iscell(normEnergy))
+                    normEnergy = normEnergy{1};
+                end
             end
             obj.f_c = f_c;
             obj.b_f = b_f;
             obj.K = K;
+            obj.normEnergy = normEnergy;
             
-            n = 2*K + 1;
-            obj.angles = 0:pi/n:pi-pi/n;
+            obj.n = 2*ceil(K) + 1;
+            obj.angles = 0:pi/obj.n:pi-pi/obj.n;
             
         end
         function ridgeFilter = real(obj)
@@ -97,7 +114,10 @@ classdef OrientationSpaceFilter < handle
             K = obj.K;
         end
         function n = get.n(obj)
-            n = obj.K*2+1;
+            if(isempty(obj.n))
+                obj.n = 2*ceil(K) + 1;
+            end
+            n = obj.n;
         end
         function R = mtimes(obj,I)
             % Convolution
@@ -113,9 +133,10 @@ classdef OrientationSpaceFilter < handle
             ridgeResponse = obj.applyRidgeFilter(If);
             edgeResponse = obj.applyEdgeFilter(If);
             angularResponse = ridgeResponse + edgeResponse;
+            ns = [0 cumsum([obj.n])];
             R(numel(obj)) = OrientationSpaceResponse;
             for o=1:numel(obj)
-                R(o) = OrientationSpaceResponse(obj(o),angularResponse(:,:,:,o));
+                R(o) = OrientationSpaceResponse(obj(o),angularResponse(:,:,ns(o)+1:ns(o+1)));
             end
             R = reshape(R,size(obj));
         end
@@ -153,15 +174,16 @@ classdef OrientationSpaceFilter < handle
         end
         function E = getEnergy(obj)
             if(~isscalar(obj))
-                E = complex(zeros(numel(obj),obj(1).n),0);
+                E = complex(zeros(numel(obj),max([obj.n])),0);
                 for o=1:numel(obj)
-                    E(o,:) = obj(o).getEnergy();
+                    E(o,1:obj(o).n) = obj(o).getEnergy();
                 end
-                E = reshape(E,[size(obj) obj(1).n]);
+                E = reshape(E,[size(obj) max([obj.n])]);
                 return;
             end
             requireSetup(obj);
             s = size(obj.F);
+            s(end+1:3) = 1;
             F = reshape(obj.F,s(1)*s(2),s(3));
             E = sqrt(sum(real(F).^2)) + 1j*sqrt(sum(imag(F).^2));
             E = E ./ sqrt(s(1)*s(2));
@@ -173,28 +195,143 @@ classdef OrientationSpaceFilter < handle
                 obj(o).angularGaussians = [];
             end
         end
+        function filter = getFilterAtIndex(obj,ind)
+            requireSetup(obj);
+            coeffs = diric(bsxfun(@minus,(1:obj.n).',ind)*pi/obj.n*2,obj.n);
+            filter = reshape(obj.F,prod(obj.size),obj.n)*coeffs;
+            filter = reshape(filter,[obj.size length(ind)]);
+        end
+        function filter = getFilterAtAngle(obj,theta)
+            requireSetup(obj);
+            % Force theta to be a row vector, 1xT
+            theta = theta(:).';
+            % Use periodic sinc function to interpolate values
+            coeffs = diric(bsxfun(@minus,(0:obj.n-1).'*pi/obj.n*2,theta*2),obj.n);
+            % Reshape YxXxN to PxN, then PxN x NxT = PxT
+            filter = reshape(obj.F,prod(obj.size),obj.n)*coeffs;
+
+            % If theta in [pi,2*pi), invert imaginary component
+            imag_sign = sign(sin(theta+eps*10));
+            filter = real(filter) + 1i*bsxfun(@times,imag_sign,imag(filter));
+
+            % Resize PxT to YxXxT
+            filter = reshape(filter,[obj.size length(theta)]);
+        end
+        function h = objshow(obj,varargin)
+            requireSetup(obj);
+            h = imshow(fftshift(ifft2(real(obj.F(:,:,1)))),varargin{:});
+        end
     end
     methods
         function setupFilter(obj,siz)
+            if(isscalar(siz))
+                siz = siz([1 1]);
+            end
+            coords = orientationSpace.getFrequencySpaceCoordinates(siz);
+            notSetup = ~cellfun(@(x) isequal(siz,x),{obj.size});
+            notSetup = notSetup | cellfun('isempty',{obj.F});
+            obj = obj(notSetup);
+            if(isempty(obj))
+                return;
+            end
+            [obj.size] = deal(siz);
+            if( all(obj(1).K == [obj.K]) )
+                % angular component is all the same
+                
+                A = orientationSpace.angularKernel(obj(1).K,obj(1).angles,coords);
+                R = orientationSpace.radialKernel([obj.f_c], [obj.b_f],coords);
+                for o=1:numel(obj)
+                    obj(o).F = bsxfun(@times,A, R(:,:,o));
+                end
+            else
+                for o=1:numel(obj)
+                    obj(o).F = orientationSpace.kernel(obj(o).f_c, obj(o).b_f, obj(o).K, obj(o).angles, coords);
+                end
+            end
             for o=1:numel(obj)
-                if( isempty(obj(o).size) || any(siz ~= obj(o).size) || isempty(obj(o).F))
-                    obj(o).size = siz;
-                    obj(o).F = orientationSpace.kernel(obj(o).f_c, obj(o).b_f, obj(o).K, obj(o).angles, obj(o).size);
+                if(isempty(obj(o).normEnergy))
+                    break;
+                end
+                switch(obj(o).normEnergy)
+                    case 'energy'
+                        % E is complex
+                        E = shiftdim(obj(o).getEnergy(),-1);
+                        F = obj(o).F;
+                        obj(o).F = bsxfun(@rdivide,real(F),real(E)) +1j*bsxfun(@rdivide,imag(F),imag(E));
+                    case 'peak'
+                        F = obj(o).F;
+                        sumF = sum(F(:))./numel(F);
+                        obj(o).F = real(F)./real(sumF) + 1j*imag(F)./imag(sumF);
+                    case 'scale'
+                        obj(o).F = obj(o).F ./ obj(o).f_c ./ sqrt(siz(1)*siz(2));
+                    case 'sqrtscale'
+                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2))
+                    case 'none'
+                    otherwise
+                        error('OrientationSpaceFilter:setupFilterNormEnergy', ...
+                            'Invalid normEnergy property');
                 end
             end
         end
         function ridgeResponse = applyRidgeFilter(obj,If)
             obj.setupFilter(size(If)); %#ok<CPROP>
-            ridgeResponse = real(ifft2(bsxfun(@times,If,real(cat(4,obj.F)))));
+            ridgeResponse = real(ifft2(bsxfun(@times,If,real(cat(3,obj.F)))));
         end
         function edgeResponse = applyEdgeFilter(obj,If)
             obj.setupFilter(size(If)); %#ok<CPROP>
-            edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(cat(4,obj.F)))));
+            edgeResponse = 1j*real(ifft2(bsxfun(@times,If.*-1j,imag(cat(3,obj.F)))));
         end
         function requireSetup(obj)
             if(isempty(obj.F))
                 error('OrientationSpaceFilter:NotSetup','Filter must be setup in order for this operation to succeed.');
             end
+        end
+    end
+    methods (Static)
+        function F = constructEqualLengthFilters(f_c, b_f, K, normEnergy, constructor)
+            if(nargin < 5)
+                constructor = @OrientationSpaceFilter;
+            end
+            %% Approximate cone by height of triangle
+            % Largest central frequency or smallest scale
+            f_c_max = max(f_c(:));
+%             height = sin(pi/(2*K+1))*f_c_max;
+            arcLength = pi/(2*K+1)*f_c_max;
+            
+            assert(isscalar(K));
+            
+            %% Normal constructor
+            s = [length(f_c) length(b_f) 1];
+            s(2) = max(1,s(2));
+            f_c = repmat(f_c(:),1,s(2),s(3));
+            if(isempty(b_f))
+                b_f = 1/sqrt(2) * f_c;
+            else
+                b_f = repmat(b_f(:)',s(1),1,s(3));
+            end
+            
+            if(nargin < 4)
+                    normEnergy = [];
+            end
+            normEnergy = repmat({normEnergy},size(f_c));
+            
+%             K = (pi./asin(height ./ f_c) - 1)./2;
+            K = (pi/arcLength*f_c-1)/2;
+            
+            F = arrayfun(constructor,f_c,b_f,K,normEnergy,'UniformOutput',false);
+            F = reshape([F{:}],size(F));
+
+        end
+        function F = constructByRadialOrder(f_c, K_f, K, normEnergy, constructor)
+            if(nargin < 4)
+                normEnergy = [];
+            end
+            if(nargin < 5)
+                constructor = @OrientationSpaceFilter;
+            end
+            b_f = f_c ./ sqrt(K_f);
+            F = constructor(f_c, b_f, K, normEnergy);
+            F = F(logical(eye(length(f_c))));
         end
     end
 end

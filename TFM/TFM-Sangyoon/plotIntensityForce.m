@@ -132,6 +132,8 @@ if alignEvent
             subplot(1,2,1), plot(1:nSampleFrames,AmpArray), hold on%,'Color',[0.5 0.5 0.5]), hold on
             subplot(1,2,2), plot(1:nSampleFrames,forceArray), hold on%,'Color',[240/255 128/255 128/255]), hold on
         end
+        minYamp = nanmin(AmpArray(:));
+        maxYamp  = nanmax(AmpArray(:));      
     else
         if strcmp(source,'edgeAdvanceDist')
             subplot(1,3,1), plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
@@ -239,6 +241,8 @@ else
             end
         end
         maxLifeTime = nSampleFrames;
+        maxYamp = quantile(nanmax(AmpArray),0.99);
+        minYamp = quantile(nanmin(AmpArray),0.01);
     else
         % plot cohorts
 %         [N,edges,bin]=histcounts(lifeTime);
@@ -396,8 +400,6 @@ if ~plotCohorts && ~plotConfInt
         end
     end
 end
-maxYamp = quantile(nanmax(AmpArray),0.99);
-minYamp = quantile(nanmin(AmpArray),0.01);
 
 if ~useCurrentAxis
     if strcmp(source,'edgeAdvanceDist')

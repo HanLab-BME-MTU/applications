@@ -37,7 +37,7 @@ for k=1:nChannels
 end
 % See if there is stage drift correction
 iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
-if ~isempty(iSDCProc)
+if ~isempty(iSDCProc) %&& ~isfield(tracksNA,'SDC_applied')
     SDCProc=MD.processes_{iSDCProc};
     if length(SDCProc.funParams_.ChannelIndex)>1
         iChan = 2;

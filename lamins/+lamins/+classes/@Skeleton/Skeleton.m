@@ -1,4 +1,4 @@
-classdef Skeleton < hgsetget &  matlab.mixin.Copyable
+classdef Skeleton < matlab.mixin.SetGet &  matlab.mixin.Copyable
     % Class to contain vertices, edges, and faces of a skeleton meshwork
     properties
         edges
@@ -673,7 +673,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             start = cellfun(@(idx) idx(1),obj.edges.PixelIdxList);
             finish = cellfun(@(idx) idx(end),obj.edges.PixelIdxList);
             idx = [start(:); finish(:)];
-            edgeMap =accumarray(idx,1,[1024*1024 1]);
+            edgeMap =accumarray(idx,1,[prod(obj.imSize) 1]);
             edgeMap = reshape(edgeMap,obj.imSize);
         end
         function imshow(obj)

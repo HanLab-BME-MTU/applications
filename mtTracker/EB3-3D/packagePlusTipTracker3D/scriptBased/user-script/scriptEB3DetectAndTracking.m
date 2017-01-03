@@ -14,8 +14,8 @@
 % movieListFileNames:
 % An other example of usage with movieList in different folder
 %MLPath='/work/gdanuser/proudot/project/EB3-3D-track/packaging/alpha/plusTipTracker3D-alpha-1/data/A1_HeLa_Cells_EB1/'
-MLPath='/project/bioinformatics/Danuser_lab/externBetzig/packaging/alpha/plusTipTracker3D-alpha-1/data/A1_HeLa_Cells_EB1/';
-movieListFileNames={'prometaphase/analysis/movieList.mat'};
+MLPath='/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/smallData/prometaphase/analysis/';
+movieListFileNames={'Cell2.mat'};
 % Build the array of MovieList (automatic)
 aMovieListArray=cellfun(@(x) MovieList.loadMatFile([MLPath filesep x]), movieListFileNames,'unif',0);
 aMovieListArray=aMovieListArray{:};
@@ -26,15 +26,17 @@ aMovieListArray=aMovieListArray{:};
 %% PROCESS MANAGEMENT 
 %  - 1 to (re-)run the algorithm
 %  - 0 to load previously computed results (if any)
-runEB3Detection=1;  % Detect EB3 "comets"   
-runPoleDetection=1; % Detec spindle Poles
+runEB3Detection=0;  % Detect EB3 "comets"   
+runPoleDetection=0; % Detec spindle Poles
 runRegistration=0;  % Register sudden stage shift during acquisition.
-runEB3Tracking=1; runAmiraWrite=1;      
+runEB3Tracking=1; 
 runPostProcessing=0;      
-% 
 % Frame to be processed ([] for whole movie)
 processFrame=[];
 
+%% Optional output
+printAmiraFile=1;      
+printDetectionMask=0;
 
 %% ALGORITHM PARAMETERS
 
@@ -96,7 +98,7 @@ breakNonLinearTracks=false;
 sphericalProjectionRadius=5000;
 
 %% DEBUGGING PARAMETER (Could void your warranty)
-trackAfterRegistration=1;
+trackAfterRegistration=0;
 % MDIndex=[1:length()];
 
 
@@ -122,10 +124,16 @@ for aPoleScale=poleScale
                 end
 
                 save([outputDirDetect filesep 'detectionLabRef.mat'],'detectionsLabRef');
-                amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexLabRef' filesep  'detectionLabRef.am'], detectionsLabRef,'scales',dataIsotropy);
-                mkdir([outputDirDetect filesep 'detectionMaskLabRef']);
-                for tidx=1:length(detectionsLabRef)
-                    stackWrite(lab{tidx},[outputDirDetect filesep 'detectionMaskLabRef' filesep 'detect_T_' num2str(tidx,'%05d') '.tif']);
+                
+                if(printAmiraFile)
+                    amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexLabRef' filesep  'detectionLabRef.am'], detectionsLabRef,'scales',dataIsotropy);
+                end
+                
+                if(printDetectionMask)
+                    mkdir([outputDirDetect filesep 'detectionMaskLabRef']);
+                    for tidx=1:length(detectionsLabRef)
+                        stackWrite(lab{tidx},[outputDirDetect filesep 'detectionMaskLabRef' filesep 'detect_T_' num2str(tidx,'%05d') '.tif']);
+                    end
                 end
             else
                 if (exist([outputDirDetect filesep 'detectionLabRef.mat'], 'file') == 2)
@@ -157,7 +165,9 @@ for aPoleScale=poleScale
                     end
                 end
                 save([outputDirDetect filesep 'detectionStageRef.mat'],'detectionsStageRef');
-                amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexStageRef' filesep 'detectionsStageRef.am'], detectionsStageRef,'scales',dataIsotropy);
+                if(printAmiraFile)
+                    amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexStageRef' filesep 'detectionsStageRef.am'], detectionsStageRef,'scales',dataIsotropy);
+                end
                 tmp=load([outputDirDetect filesep 'detectionStageRef.mat']);
                 detectionsStageRef=tmp.detectionsStageRef;
             else
@@ -178,23 +188,26 @@ for aPoleScale=poleScale
                     poleMovieInfo(fIdx).zCoord(:,1)=poleMovieInfo(fIdx).zCoord(:,1)*MD.pixelSizeZ_/MD.pixelSize_;
                 end
                 save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo');
-                amiraWriteMovieInfo([outputDirPoleDetect filesep 'amiraVertex' filesep poleDetectionMethod '.am'],poleMovieInfo,'scales',dataIsotropy);
-                
+                if(printAmiraFile)
+                    amiraWriteMovieInfo([outputDirPoleDetect filesep 'amiraVertex' filesep poleDetectionMethod '.am'],poleMovieInfo,'scales',dataIsotropy);
+                end
                 
                 
                 %% Set detection in the spindle referential
                 [dist,sphCoord,poleId,inliers,originProb,minProb,sphCoordBest,detectionsSpindleRef]=poleDist(poleMovieInfo,detectionsStageRef,'anisotropy',dataIsotropy,'angleRef','poles');
                 save([outputDirDetect filesep 'dist.mat'],'dist','minProb','poleId','inliers');
-                save([outputDirDetect filesep 'sphericalCoord.mat'],'sphCoordBest');
+                save([outputDirDetect filesep 'sphericalCoord.mat'],'sphCoordBest','sphCoord');
                 save([outputDirDetect filesep 'detectionSpindleRef.mat'],'detectionsSpindleRef');
- 
-                amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexLabRef' filesep 'detectionLabRef.am'],detectionsLabRef, ...
-                    'scales',dataIsotropy,'prop',{{'minProb',minProb},{'azimuth',sphCoordBest.azimuth},{'elevation',sphCoordBest.elevation},{'poleId',cellfun(@(x,y) x.*y,inliers,poleId,'unif',0)}});
-                amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexSpindleRef' filesep 'detectionSpindleRef.am'],detectionsSpindleRef, ...
-                    'scales',dataIsotropy,'prop',{{'minProb',minProb},{'azimuth',sphCoordBest.azimuth},{'elevation',sphCoordBest.elevation},{'poleId',cellfun(@(x,y) x.*y,inliers,poleId,'unif',0)}});                
-                if (exist([outputDirDetect filesep 'detectionStageRef.mat'], 'file') == 2)
-                    amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep  'amiraVertexStageRef' filesep 'detectionStageRef.am'],detectionsStageRef, ...
+                
+                if(printAmiraFile)
+                    amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexLabRef' filesep 'detectionLabRef.am'],detectionsLabRef, ...
                         'scales',dataIsotropy,'prop',{{'minProb',minProb},{'azimuth',sphCoordBest.azimuth},{'elevation',sphCoordBest.elevation},{'poleId',cellfun(@(x,y) x.*y,inliers,poleId,'unif',0)}});
+                    amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep 'amiraVertexSpindleRef' filesep 'detectionSpindleRef.am'],detectionsSpindleRef, ...
+                        'scales',dataIsotropy,'prop',{{'minProb',minProb},{'azimuth',sphCoordBest.azimuth},{'elevation',sphCoordBest.elevation},{'poleId',cellfun(@(x,y) x.*y,inliers,poleId,'unif',0)}});
+                    if (exist([outputDirDetect filesep 'detectionStageRef.mat'], 'file') == 2)
+                        amiraWriteMovieInfo([outputDirDetect filesep 'Amira' filesep  'amiraVertexStageRef' filesep 'detectionStageRef.am'],detectionsStageRef, ...
+                            'scales',dataIsotropy,'prop',{{'minProb',minProb},{'azimuth',sphCoordBest.azimuth},{'elevation',sphCoordBest.elevation},{'poleId',cellfun(@(x,y) x.*y,inliers,poleId,'unif',0)}});
+                    end
                 end
             else
                 if (exist([outputDirDetect filesep 'detectionSpindleRef.mat'], 'file') == 2)
@@ -269,7 +282,7 @@ for aPoleScale=poleScale
             end
             
             
-            if(runAmiraWrite)
+            if(printAmiraFile)
                 
                 %% Tracks in the lab FoR.
                 amiraWriteTracks([outputDirTrack filesep 'Amira' filesep 'AmiraTrackLabRef' filesep 'tracksLabRef.am'],tracksLabRef,'scales',dataIsotropy);

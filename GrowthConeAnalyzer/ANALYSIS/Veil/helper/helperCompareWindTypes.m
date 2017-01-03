@@ -39,8 +39,9 @@ function [ output_args ] = helperCompareWindTypes( projList, outDir)
                         windSize = windProc.funParams_.ParaSize; 
                        
                         windType = windProc.funParams_.MethodName; 
+                        reInit = windProc.funParams_.ReInit; 
                         
-                        forLabels{count} = ['WindSize ' num2str(windSize) 'Method' windType]; 
+                        forLabels{count} = ['WindSize ' num2str(windSize) 'Method ' windType 'ReInit' num2str(reInit)]; 
                           count = 1+count; % put them all on the same plot for now
                     end
                     grouping{iProj} = repmat(iProj,length(idxProt)-1,1); % get the grouping idx for each project (each project will be a different color) 
@@ -70,9 +71,14 @@ function [ output_args ] = helperCompareWindTypes( projList, outDir)
             colors = linspecer(N,'sequential'); 
             h1 =  boxplot(forBox,'colorGroup',groupingAll,'notch','on',...
                 'outlierSize',1,'colors',colors,'Labels',forLabels,'labelorientation','inline','symbol','+');
+            % find the max and min 
+            test = arrayfun(@(i) prctile(forBox(:,i),95),1:length(forBox(1,:)));
+            xLim = length(forBox(1,:)) +0.5; 
+            axis([0.5,xLim,0,max(test)]); 
             set(h1(:),'Linewidth',1.5);
             ylabel({analType{iAnal} ; params{iParam}}); 
             saveas(gcf,[outDir filesep analType{iAnal} '_' params{iParam}]); 
+            saveas(gcf,[outDir filesep analType{iAnal} '_' params{iParam} '.tif']); 
             
             
         end

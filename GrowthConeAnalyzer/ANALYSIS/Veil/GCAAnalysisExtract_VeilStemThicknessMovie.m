@@ -53,12 +53,14 @@ if ~isempty(outDir)
     mkdir(outDir)
 end
 
+% check if all the neurite lengths greater than the cutoff dist
 idx  = neuriteLength > ip.Results.distCutOffForThickness;
+
 if (sum(idx) == length(neuriteLength));
      
 else
-    newVal = max(neuriteLength); 
-   pToSave.distCutOffForThickness  = max(neuriteLength);
+    newVal = min(neuriteLength); 
+   pToSave.distCutOffForThickness  = min(neuriteLength);
     errorMessage =[ 'Max Neurite Length Sampled Less than Value for distCutOffForThickness: Resetting Value to ' num2str(newVal)] ;
     display(errorMessage);
     save([outDir filesep 'ErrorReport.mat'],'errorMessage');
@@ -75,18 +77,22 @@ end
 for iFrame = 1:(nFrames-1)
     longPathLinIndC=  veilStem(iFrame).neuriteLongPathIndices;
     veilStemMaskC = veilStem(iFrame).finalMask;
-    % get the thickness metric
-    [thicknessValues,TSFig]=   GCAAnalysisExtract_VeilStemThickness(longPathLinIndC,veilStemMaskC,pToSave);
-    % put into format
-    measC{iFrame,1} = thicknessValues;
-    if ip.Results.visual == true
-        
-        saveas(TSFig.h,[measDirVis filesep num2str(iFrame,'%03d') '.png' ]);
-        saveas(TSFig.h,[measDirVis filesep num2str(iFrame,'%03d') '.fig']); 
-         
+    if ~isempty(longPathLinIndC)
+        % get the thickness metric
+        [thicknessValues,TSFig]=   GCAAnalysisExtract_VeilStemThickness(longPathLinIndC,veilStemMaskC,pToSave);
+        % put into format
+        measC{iFrame,1} = thicknessValues;
+        if ip.Results.visual == true
+            
+            saveas(TSFig.h,[measDirVis filesep num2str(iFrame,'%03d') '.png' ]);
+            saveas(TSFig.h,[measDirVis filesep num2str(iFrame,'%03d') '.fig']);
+            
+        end
+        clear TSFig
+        close gcf
+    else
+        display(['No Longest Path Data Found for Frame ' num2str(iFrame) ]);
     end
-    clear TSFig 
-    close gcf
 end
 
 save([outDir filesep 'meas_VeilStemThickness.mat'],'measC');

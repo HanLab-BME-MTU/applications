@@ -2,12 +2,17 @@ function [] = whKymographs(params,dirs)
 
 params.always = true;
 
+params.xStepMinutes = 60;%240;
+params.yStepUm = 50;
+params.yMaxUm = params.kymoResolution.maxDistMu;%200;
+params.fontsize = 24;
+
 fprintf('start kymographs\n');
 close all;
 generateSpeedKymograph(params,dirs);
 generateDirectionalMigrationKymograph(params,dirs);
 generateCoordinatedMigrationKymograph(params,dirs);
-generateStrainRateKymograph(params,dirs);
+% generateStrainRateKymograph(params,dirs);
 % generateAccelerationKymograph(params,dirs);
 
 close all;
@@ -54,12 +59,16 @@ speedKymograph = speedKymograph .* params.toMuPerHour;
 
 save(speedKymographFname,'speedKymograph','speedKymographX','speedKymographY');
 
-metaData.fname = [dirs.speedKymograph dirs.expname '_speedKymograph.bmp'];
+metaData.fname = [dirs.speedKymograph dirs.expname '_speedKymograph.eps'];
 metaData.fnameFig = [dirs.speedKymograph dirs.expname '_speedKymograph.fig'];
 metaData.caxis = [0 60];
 % metaData.caxis = [8 25]; % Zhuo
 
-plotKymograph(speedKymograph,metaData,params);
+% plotKymograph(speedKymograph,metaData,params);
+params.caxis = metaData.caxis;
+params.fname = metaData.fname;
+
+plotKymograph(speedKymograph,params);
 
 end
 
@@ -81,13 +90,18 @@ end
 
 save(directionalityKymographFname,'directionalityKymograph');
 
-metaData.fname = [dirs.directionalityKymograph dirs.expname '_directionalityKymograph.bmp'];
+metaData.fname = [dirs.directionalityKymograph dirs.expname '_directionalityKymograph.eps'];
 metaData.fnameFig = [dirs.directionalityKymograph dirs.expname '_directionalityKymograph.fig'];
 metaData.caxis = [0 8];
 % metaData.caxis = [0.9 1.4]; % Zhuo
+metaData.caxis = [0 10]; % Georgio
 
-plotKymograph(directionalityKymograph,metaData,params);
+% plotKymograph(directionalityKymograph,metaData,params);
 
+params.caxis = metaData.caxis;
+params.fname = metaData.fname;
+
+plotKymograph(directionalityKymograph,params);
 end
 
 
@@ -119,11 +133,16 @@ end
 
 save(coordinationKymographFname,'coordinationKymograph');
 
-metaData.fname = [dirs.coordinationKymograph dirs.expname '_coordinationKymograph.bmp'];
+metaData.fname = [dirs.coordinationKymograph dirs.expname '_coordinationKymograph.eps'];
 metaData.fnameFig = [dirs.coordinationKymograph dirs.expname '_coordinationKymograph.fig'];
 metaData.caxis = [0 1];
 
-plotKymograph(coordinationKymograph,metaData,params);
+% plotKymograph(coordinationKymograph,metaData,params);
+
+params.caxis = metaData.caxis;
+params.fname = metaData.fname;
+
+plotKymograph(coordinationKymograph,params);
 end
 
 %%
@@ -162,8 +181,12 @@ metaData.fname = [dirs.strainRateKymograph dirs.expname '_strainRateKymograph.bm
 metaData.fnameFig = [dirs.strainRateKymograph dirs.expname '_strainRateKymograph.fig'];
 metaData.caxis = [-0.2 0.2];
 
-plotKymograph(strainRateKymograph,metaData,params);
+% plotKymograph(strainRateKymograph,metaData,params);
 
+params.caxis = metaData.caxis;
+params.fname = metaData.fname;
+
+plotKymograph(strainRateKymograph,params);
 end
 
 function [] = generateAccelerationKymograph(params,dirs)
@@ -201,10 +224,15 @@ metaData.fname = [dirs.accelerationKymograph dirs.expname '_accelerationKymograp
 metaData.fnameFig = [dirs.accelerationKymograph dirs.expname '_accelerationKymograph.fig'];
 metaData.caxis = [-4 8];
 
-plotKymograph(accelerationKymograph,metaData,params);
+% plotKymograph(accelerationKymograph,metaData,params);
+
+params.caxis = metaData.caxis;
+params.fname = metaData.fname;
+
+plotKymograph(accelerationKymograph,params);
 end
 
-function [] = plotKymograph(kymograph,metaData,params)
+function [] = plotKymographBackup(kymograph,metaData,params)
 fprintf('start plot kymographs\n');
 ntime = params.nTime - params.frameJump;
 maxTime = ntime * params.timePerFrame;
@@ -229,7 +257,8 @@ set(haxes,'YTickLabel',yTickLabel);
 set(haxes,'FontSize',32);
 xlabel('Time (minutes)','FontSize',32); ylabel('Distance from edge (\mum)','FontSize',32);
 hold off;
-eval(sprintf('print -dbmp16m  %s', metaData.fname));
+export_fig_biohpc(metaData.fname);
+% eval(sprintf('print -dbmp16m  %s', metaData.fname));
 % savefig(h,metaData.fnameFig);
 fprintf('finish plot kymographs\n');
 end
