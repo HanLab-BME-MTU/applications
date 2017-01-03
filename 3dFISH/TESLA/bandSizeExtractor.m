@@ -4,7 +4,7 @@ function bandSizeExtractor()
 %   Detailed explanation goes here
 
 [fileName, filePath] = uigetfile('*.mat', 'Select mat file with bandStat', ...
-    'X:/3DTPE/analysis/TeSLA');
+    'X:/3DTPE/analysis/TeSLA/TA 1000 unit samples');
 [folderPath, folderName] = fileparts(fileparts(filePath));
 load(strcat(filePath, fileName));
 laneNum = 8;
