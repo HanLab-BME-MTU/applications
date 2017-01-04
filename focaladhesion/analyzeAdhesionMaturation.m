@@ -40,6 +40,7 @@ ip.addParamValue('matchWithFA',true,@islogical) %For cells with only NAs, we tur
 ip.addParamValue('getEdgeRelatedFeatures',true,@islogical) %For cells with only NAs, we turn this off.
 ip.addParamValue('reTrack',true,@islogical) % This is for 
 ip.addParamValue('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
+ip.addParamValue('iChan',0,@isscalar) %For cells with only NAs, we turn this off.
 
 % ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
 ip.parse(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin{:});
@@ -52,6 +53,7 @@ minLifetime=ip.Results.minLifetime;
 onlyEdge=ip.Results.onlyEdge;
 reTrack=ip.Results.reTrack;
 getEdgeRelatedFeatures=ip.Results.getEdgeRelatedFeatures;
+iChan=ip.Results.iChan;
 % Load the Paxillin channel
 
 %% Data Set up
@@ -134,11 +136,25 @@ if isa(pathForTheMovieDataFile,'MovieData')
     pathForTheMovieDataFile=pathForTheMovieDataFile.getPath;
 end
 outputFilePath = [pathForTheMovieDataFile filesep outputPath];
-dataPath = [outputFilePath filesep 'data'];
-paxPath = [outputFilePath filesep 'pax'];
-paxtifPath = [outputFilePath filesep 'paxtifs'];
-epsPath = [outputFilePath filesep 'eps'];
-figPath = [outputFilePath filesep 'figs'];
+
+if exist(outputFilePath,'dir')
+    ii = 1;
+    newOutputFilePath = [outputFilePath num2str(ii)]; % name]);
+    while exist(newOutputFilePath,'dir')
+        ii=ii+1;
+        newOutputFilePath = [outputFilePath num2str(ii)];
+    end
+    mkClrDir(newOutputFilePath);
+    display(['Creating a folder ' newOutputFilePath ' for storing data and figures...'])
+else
+    newOutputFilePath=outputFilePath;
+end
+
+dataPath = [newOutputFilePath filesep 'data'];
+paxPath = [newOutputFilePath filesep 'pax'];
+paxtifPath = [newOutputFilePath filesep 'paxtifs'];
+epsPath = [newOutputFilePath filesep 'eps'];
+figPath = [newOutputFilePath filesep 'figs'];
 if ~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') || ~exist(epsPath,'dir') || ~exist(dataPath,'dir') 
     mkdir(paxPath);
     mkdir(paxtifPath);
@@ -178,14 +194,16 @@ NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.
 FADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
 numFAs = zeros(nFrames,1);
 nChannels = numel(MD.channels_);
-iChan = 0;
 minEcc = 0.7;
 
 % Finding which channel has a cell mask information
 maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
-for k=1:nChannels
-    if maskProc.checkChannelOutput(k)
-        iChan = k;
+
+if iChan == 0
+    for k=1:nChannels
+        if maskProc.checkChannelOutput(k)
+            iChan = k;
+        end
     end
 end
 % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
@@ -339,9 +357,16 @@ focalAdhInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
     ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],'cellArea',[],'ecc',[]);
 
 %% Matching with segmented adhesions
+prevMask=[];
 for ii=1:nFrames
     % Cell Boundary Mask 
     mask = maskProc.loadChannelOutput(iChan,ii);
+    if ii>1 && max(mask(:))==0
+        mask=prevMask;
+        disp('Previous mask is used for cell edge because the current mask is empty.')
+    else
+        prevMask=mask;
+    end
     % Cell Boundary
     [B,~,nBD]  = bwboundaries(mask,'noholes');
     cropMaskStack(:,:,ii) = maskProc.loadChannelOutput(iChan,ii);
@@ -569,6 +594,7 @@ end
 if matchWithFA
     disp('Intermediate saving before post analysis...')
     save([dataPath filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
+    save([dataPath filesep 'focalAdhInfo.mat'], 'focalAdhInfo','-v7.3')
 %     save([dataPath filesep 'intermediateWorkspace.mat'], '-v7.3')
 end
 %% protrusion/retraction information
@@ -903,7 +929,7 @@ if saveAnalysis
         maturingRatio = p/(p+q);
         tracksNAmaturing = trNAonly(indMature);
         tracksNAfailing = trNAonly(indFail);
-        save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
+        save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','-v7.3')
     else
         trNAonly = tracksNA;
         indMature = [];

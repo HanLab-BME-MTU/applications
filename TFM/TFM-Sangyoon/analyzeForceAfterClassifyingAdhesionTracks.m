@@ -383,8 +383,8 @@ if ~uptoColo
         toc
     end
     %% read intensity again
-    tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'reTrack',false,'extraLength',30);
-    tracksNA = readIntensityFromTracks(tracksNA,tMap,2,'reTrack',true);
+%     tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'reTrack',false,'extraLength',30);
+%     tracksNA = readIntensityFromTracks(tracksNA,tMap,2,'reTrack',true);
     
 %     % look at 95 % confidence interval of before-detection
 %     meanIntenBeforeLevel = mean(curTrack.ampTotal(curTrack.startingFrameExtraExtra:curTrack.startingFrameExtra));
@@ -787,18 +787,21 @@ if ~uptoColo
     save([pathForColocalization filesep 'data' filesep 't_initForMaturingAdhesion.mat'],'firstIncreseTimeIntAgainstForceAllG2','ratioForceTrasG2')
     %% Example for Group2
 %     curID2 = firstIncreseTimeIntAgainstForceAllIdxG2(FTID2);
-    curTrack2 = tracksNA(curIndicesG2(FTID2));%4210);
-%     curTrack = readIntensityFromTracks(curTrack,imgMap,1,'reTrack',true,'extraLength',30);
-%     curTrack = readIntensityFromTracks(curTrack,tMap,2,'reTrack',false);
-%     clear imgMap tMap
-%     showAdhesionTracks(pathForColocalization,'all','tracksNA',curTrack)
-%  showing
-%     plotIntensityForceSingle(curTrack,curIndices(curID));
-    close all
-    figure,set(gcf,'Position',[200,400,400,200]),plotIntensityForceSingle(curTrack2,curIndicesG2(FTID2),0,0.01,splineParamInit,tInterval)
-    % tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'trackOnlyDetected',true);
-    FTID2=FTID2+1;
-    
+    try
+        curTrack2 = tracksNA(curIndicesG2(FTID2));%4210);
+    %     curTrack = readIntensityFromTracks(curTrack,imgMap,1,'reTrack',true,'extraLength',30);
+    %     curTrack = readIntensityFromTracks(curTrack,tMap,2,'reTrack',false);
+    %     clear imgMap tMap
+    %     showAdhesionTracks(pathForColocalization,'all','tracksNA',curTrack)
+    %  showing
+    %     plotIntensityForceSingle(curTrack,curIndices(curID));
+        close all
+        figure,set(gcf,'Position',[200,400,400,200]),plotIntensityForceSingle(curTrack2,curIndicesG2(FTID2),0,0.01,splineParamInit,tInterval)
+        % tracksNA = readIntensityFromTracks(tracksNA,imgMap,1,'trackOnlyDetected',true);
+        FTID2=FTID2+1;
+    catch
+        disp(['No adhesion in G2 in ' num2str(FTID2) 'th. Skipping...'])
+    end
     %% average time from t_init to t_peak
     firstIncreseTimeForce_both = arrayfun(@(x) x.firstIncreseTimeForce, tracksNA(curIndices(bothTiTpIdx)));
     peakTimeForceAll_both = arrayfun(@(x) x.forcePeakFrame*tInterval, tracksNA(curIndices(bothTiTpIdx)));
@@ -916,15 +919,19 @@ if ~uptoColo
     if isempty(additionalName)
         curID2 = curID2+1;
     end
-    medID2 = curIndicesG2(curID2);
+    try
+        medID2 = curIndicesG2(curID2);
 %     curID = firstIncreseTimeIntAgainstForceAllIdxIDs(56);
 %     firstIncreseTimeIntAgainstForceAllIdxIDs=find(firstIncreseTimeIntAgainstForceAllIdx);
 %     curTrack = tracksNA(curIndices(firstIncreseTimeIntAgainstForceAllIdxIDs(medID)));%4210);
 %     h=showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,curIndices(medID),gPath,additionalName);
-    curTrack2 = tracksNA(medID2);%4210);
-    showSingleAdhesionTrackSummary(MD,curTrack2,imgMap,tMap,medID2,gPath,additionalName);
-    if ~isempty(additionalName)
-        save([gPath filesep 'track' num2str(medID2) additionalName '.mat'],'curTrack2','medID2','curIndices2','gPath','additionalName')
+        curTrack2 = tracksNA(medID2);%4210);
+        showSingleAdhesionTrackSummary(MD,curTrack2,imgMap,tMap,medID2,gPath,additionalName);
+        if ~isempty(additionalName)
+            save([gPath filesep 'track' num2str(medID2) additionalName '.mat'],'curTrack2','medID2','curIndices2','gPath','additionalName')
+        end
+    catch
+        disp('no G2 example...')
     end
     %% Look at feature difference per each group
     pixSize=MD.pixelSize_/1000; % in um
