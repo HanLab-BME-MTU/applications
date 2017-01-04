@@ -5,18 +5,24 @@ ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
+ip.addParameter('kinBundle',[]);
 ip.parse(MD,varargin{:});
+p=ip.Results;
 
 %%
-outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
-tmp=load([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
-kinTracks=tmp.kinTracks;
+if(isempty(p.kinBundle))
+    outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
+    tmp=load([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
+    kinTracks=tmp.kinTracks;
+else
+    kinTracks=kinBundle;
+end
 
 %testKinIdx=p.testKinIdx;
 
 
 outputDirPlot=[outputDirBundle filesep 'plot' filesep];
-system(['mkdir -p ' outputDirPlot]);
+system(['mkdir ' outputDirPlot]);
 
 %%  Kinetochore fiber evolution with time
 % Function if Kin average temporal location

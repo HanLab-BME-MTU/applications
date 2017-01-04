@@ -231,6 +231,23 @@ classdef OrientationSpaceResponse < handle
                 response = real(response) - 1j*imag(response);
             end
         end
+        function response = rotateResponse(obj,angle)
+            if(isscalar(obj))
+                % TODO: Edge response
+                a_hat = fft(real(obj.angularResponse),[],3);
+                nn = [0:obj.n/2 -fliplr(1:obj.n/2)];
+                nn = shiftdim(nn(:),-2);
+                a_hat = bsxfun(@times,a_hat,exp(-1i.*nn*angle*2));
+                a = ifft(a_hat,[],3);
+                response = OrientationSpaceResponse(obj.filter,a);
+            else
+                response(numel(obj)) = OrientationSpaceResponse;
+                for ii = 1:numel(obj)
+                    response(ii) = obj(ii).rotateResponse(angle);
+                end
+                response = reshape(response,size(obj));
+            end
+        end
         function [response,theta] = getMaxResponse(obj,nn)
             if(nargin < 2)
                 nn = obj.n;

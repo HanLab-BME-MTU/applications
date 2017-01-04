@@ -1,19 +1,24 @@
-function detectMTAlignment(MD,varargin)
+function kinTracks=detectMTAlignment(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('printAll',false, @islogical);
-ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
+ip.addParameter('testKinIdx',[19 46 63 156],@isnumeric);
+ip.addParameter('kinCapture',[]);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 testKinIdx=p.testKinIdx;
 printAll=p.printAll;
-%%
-outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT'];
-tmp=load([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks');
-kinTracks=tmp.kinTracks;
 
+%%
+if(isempty(p.kinCapture))
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT'];
+    tmp=load([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks');
+    kinTracks=tmp.kinTracks;
+else
+    kinTracks=p.kinCapture;
+end
 % printAll=false;
 
 %%  For each Kinetochore, indentify the connecting microtuble that bundle
@@ -69,11 +74,11 @@ end
 
 % First test, highlight bundle display the +TIP coordinate on a lateral view of the poleKin axis. 
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep 'testBundleRadius' filesep]
-system(['mkdir -p ' outputDirProj]);
+system(['mkdir ' outputDirProj]);
 
 if(printAll)    
     for kIdx=testKinIdx
-        kinTrack=kinTracksBundle(kIdx);
+        kinTrack=kinTracks(kIdx);
         
         [handles,~,fhandle]=setupFigure(1,2,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
         hold(handles(1),'on');
@@ -111,50 +116,12 @@ end
 
 %%
 outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
-system(['mkdir -p ' outputDirBundle]);
+system(['mkdir ' outputDirBundle]);
 save([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
-disp('test')
-
-%% For each captured kinetchore plot the avera direction of the plot.  
-%% Timing of each microtubule
-diffTimingCell=cell(1,length(kinTracks));
-endTimingCell=cell(1,length(kinTracks));
-
-for k=1:length(kinTracks)
-    bundledMTs=kinTracks(k).catchingMT(kinTracks(k).fiber>0);
-    diffTiming=zeros(1,length(bundledMTs)-2);
-    endTiming=zeros(1,length(bundledMTs)-2);
-    for mtIdx=2:(length(bundledMTs)-1)
-        diffTiming(mtIdx)= bundledMTs(mtIdx+1).t(end) - bundledMTs(mtIdx).t(end);
-        endTiming(mtIdx)= bundledMTs(mtIdx).t(end) - bundledMTs(1).t(end);      
-    end
-    numTimePoint(diffTiming+kinTracks.numTimePoints)=numTimePoint(diffTiming+kinTracks.numTimePoints)+1;
-    diffTimingCell{k}=diffTiming;
-    endTimingCell{k}=endTiming;
-end
-%%
-h=setupFigure(1,2,2);
-diffTiming=cell2mat(diffTimingCell);
-endTiming=cell2mat(endTimingCell);
-scatter(h(1),endTiming,diffTiming);
-H=h(1);
-xlim(H,[-5 20])
-xlabel(H,'Frame count after first bundled MT');
-ylabel(H,'Frame count until next bundled MT');
-
-H=h(2);
-plot(H,linspace(-kinTracks.numTimePoints*MD.timeInterval_,kinTracks.numTimePoints*MD.timeInterval_,2*kinTracks.numTimePoints), numTimePoint);
-xlim(H,[-5 20])
-xlabel(H,'Relative Frame count');
-ylabel(H,'frequency');
-print([outputDirPlot 'timing.png'],'-dpng');
-print([outputDirPlot 'timing.eps'],'-depsc');
-
-
 
 %% For test kinetochore, save and plot an Amira file with attached mt
 outputDirAmira=[outputDirBundle filesep 'testKin' filesep 'Amira'];
-system(['mkdir -p ' outputDirBundle  filesep 'testKin']);
+system(['mkdir ' outputDirBundle  filesep 'testKin']);
 %%
 if(p.printAll)
     disp('test')
