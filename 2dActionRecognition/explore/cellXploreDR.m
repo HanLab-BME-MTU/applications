@@ -309,9 +309,15 @@ handles.axDR = axDR;
 
 % grid off;
 % Defaults
-
+handles.selPtIdx = 1;
+dcm_obj = datacursormode(handles.h1);
+set(dcm_obj,'DisplayStyle','datatip',...
+'SnapToDataVertex','off','Enable','on');
+set(dcm_obj,'UpdateFcn',@myupdatefcn)
+% c_info = getCursorInfo(dcm_obj);
+    
 handles.gax = plotScatter;  
-datacursormode on;
+% datacursormode on;
 
 
 %===============================================================================
@@ -338,7 +344,6 @@ function [gax] = plotScatter
             plabel = data.meta.tumorTypeName;
     end
     
-    handles.selPtIdx = 11;
     ji = handles.selPtIdx;
     
     % Generate Manual Legend
@@ -376,30 +381,18 @@ function [gax] = plotScatter
     switch DRtype_sel
        case 'PCA'
            figure(handles.h1);
-           scatter(axDR, data.PCA(idx_f,1), data.PCA(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:),'filled');
+           scatter(axDR, data.PCA(idx_f,1), data.PCA(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:),'filled');%,'ButtonDownFcn', @axDRCallback);
            set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
            axDR.Title.String = 'PCA';           
-           axDR.XColor = 'w';
-           axDR.YColor = 'w';;
-%            figure(findobj(0,'-regexp','Name', 'Movie'))
-%            gax = gscatter(data.PCA(idx_f,1), data.PCA(idx_f,2), plabel(idx_f), colorset{:}, '.', sizeL(idx_f));           
-%            title('PCA');
        case 'tSNE'           
            figure(handles.h1);
-           scatter(axDR, data.tSNE(idx_f,1), data.tSNE(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:), 'filled');
+           scatter(axDR, data.tSNE(idx_f,1), data.tSNE(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:), 'filled');%, 'ButtonDownFcn', @axDRCallback);
            axDR.Title.String = 'tSNE';
-           axDR.XColor = 'w';
-           axDR.YColor = 'w';
-           set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
-%            figure(findobj(0,'-regexp','Name', 'Movie'))
-%            gax = gscatter(data.tSNE(idx_f, 1), data.tSNE(idx_f, 2), plabel(idx_f), colorset{:}, '.', sizeL(idx_f));
-%            title('tSNE');
         otherwise
-%            figure(findobj(0,'-regexp','Name', 'Movie'));
-%            gax = gscatter(data.PCA(idx_f,1), data.PCA(idx_f,2), plabel(idx_f), colorset{:}, '.', sizeL(idx_f));           
-%            title('PCA');
     end
-
+    axDR.XColor = 'w';
+    axDR.YColor = 'w';
+    set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
 end
 
 
@@ -409,58 +402,85 @@ end
 % Helper functions
 %===============================================================================   
 %  
-function [idx_out] = applyFilters(hinff)
-    
-    fc = fieldnames(hinff);
-    idx_out = 1:length(data.meta.mindex);
-    idx_out = idx_out';
-    
-    for i = 1:length(fc)
-   
-        th = hinff.(fc{i});
-        maps = th.String;  
-        val = th.Value;  
-   
-        if strcmp(maps{val}, 'All')
-           disp('selecting -- all');
-           idx_t = 1:length(data.meta.mindex);
-           idx_t = idx_t';
-        else
-           idx_t = find(cellfun(@(x) strcmp(x, maps{val}), data.meta.(fc{i}))); 
-           disp(['sub-selecting ' maps{val}]);
-        end
-        idx_out = intersect(idx_out, idx_t);
+
+    function txt = myupdatefcn(empt, event_obj)
+        % Customizes text of data tips
+        handles.selPtIdx = empt.Cursor.DataIndex;
+        pos = get(event_obj,'Position');
+        txt = {['Time: ',num2str(pos(1))],...
+                  ['Amplitude: ',num2str(pos(2))]};
+      plotScatter;
     end
-end
-    
 
-function [RGBmat] = getColors(clabels)
-   col = colorset{:}; 
-   RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
-end
+    function axDRCallback(varargin)
+        a = get(gca, 'CurrentPoint');
+        x0 = a(1,1);
+        y0 = a(1,2);
+        x0
+        y0
+      iDR = find([handles.DRType.Children.Value]);
+      DR_ = {handles.DRType.Children.String};
+      DRtype_sel = DR_{iDR};
+      switch DRtype_sel
+       case 'PCA'
+       case 'tSNE'           
+       otherwise
+      end
+        
+    end
 
-function [rgbvec] = let2RGB(ltr)
-    switch(lower(ltr))
-        case 'r'
-            rgbvec = [1 0 0];
-        case 'g'
-            rgbvec = [0 1 0];
-        case 'b'
-            rgbvec = [0 0 1];
-        case 'c'
-            rgbvec = [0 1 1];
-        case 'm'
-            rgbvec = [1 0 1];
-        case 'y'
-            rgbvec = [1 1 0];
-        case 'w'
-            rgbvec = [1 1 1];
-        case 'k'
-            rgbvec = [0 0 0];
-        otherwise
-            disp('Warning;!--colors mismatch');
-    end    
-end
+    function [idx_out] = applyFilters(hinff)
+
+        fc = fieldnames(hinff);
+        idx_out = 1:length(data.meta.mindex);
+        idx_out = idx_out';
+
+        for i = 1:length(fc)
+
+            th = hinff.(fc{i});
+            maps = th.String;  
+            val = th.Value;  
+
+            if strcmp(maps{val}, 'All')
+               disp('selecting -- all');
+               idx_t = 1:length(data.meta.mindex);
+               idx_t = idx_t';
+            else
+               idx_t = find(cellfun(@(x) strcmp(x, maps{val}), data.meta.(fc{i}))); 
+               disp(['sub-selecting ' maps{val}]);
+            end
+            idx_out = intersect(idx_out, idx_t);
+        end
+    end
+
+
+    function [RGBmat] = getColors(clabels)
+       col = colorset{:}; 
+       RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
+    end
+
+    function [rgbvec] = let2RGB(ltr)
+        switch(lower(ltr))
+            case 'r'
+                rgbvec = [1 0 0];
+            case 'g'
+                rgbvec = [0 1 0];
+            case 'b'
+                rgbvec = [0 0 1];
+            case 'c'
+                rgbvec = [0 1 1];
+            case 'm'
+                rgbvec = [1 0 1];
+            case 'y'
+                rgbvec = [1 1 0];
+            case 'w'
+                rgbvec = [1 1 1];
+            case 'k'
+                rgbvec = [0 0 0];
+            otherwise
+                disp('Warning;!--colors mismatch');
+        end    
+    end
 end
 
 
