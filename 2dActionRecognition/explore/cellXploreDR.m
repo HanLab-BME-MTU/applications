@@ -19,29 +19,31 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.parse(data, varargin{:});
 handles.data = data;
+
+% Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
-Celllabeltypes = { 'TumorType'; 'CellType' };
-[G G2] = grp2idx(data.meta.cellType);
-% G2{end+1} ='All'
-cellTypes = [ { 'All' }, G2' ]; 
+labelTypes = { 'TumorType'; 'CellType' };
+% TumorTypeLabels = {'Malignant'; 'Benign'; 'All'};
+[G, G2] = grp2idx(data.meta.cellType);
+[Gi, G2i] = grp2idx(data.meta.tumorTypeName);
+cellTypes = [{ 'All' }, G2']; 
+TumorTypeLabels = [{ 'All' }, G2i']; 
 DRtypes_ = {'PCA';'tSNE'};
+
+handles.info.DRtypes_ = DRtypes_;
+handles.info.cellTypes = cellTypes;
+handles.info.TumorTypeLabels = TumorTypeLabels;
+
 %===============================================================================
 % Setup main GUI window/figure
 %===============================================================================
 
-% bgColor = get(0,'defaultUicontrolBackgroundColor');
-% hfig = figure('Units', 'normalized', 'Position', [0.05 0.5 0.5 0.5],...
-%     'PaperPositionMode', 'auto', 'Toolbar', 'figure',...
-%     'Color', bgColor,...
-%     'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels', 'Name', ... 
-%     'DRworld');
-% 
-% pos = get(hfig, 'Position'); % [pixels];
+% Separate gscatter plot for cursor
+% handles.fig11 = figure(11);
+% handles.fig11.NumberTitle = 'off';
+% handles.fig11.Name = 'Cell Movie Selector';
 
-handles.fig11 = figure(11);
-handles.fig11.NumberTitle = 'off';
-handles.fig11.Name = 'Cell Movie Selector';
-% close(findobj(1,'-regexp','Name', 'cellX'))
+% Create main figure
 handles.h1 = figure(...
 'Units','pixels', 'Position',[10 10 735 672],...
 'Visible',get(0,'defaultfigureVisible'),...
@@ -57,7 +59,7 @@ handles.h1 = figure(...
 'ScreenPixelsPerInchMode','manual',...
 'HandleVisibility','callback');
 
-
+% Main Title
 handles.h12 = uicontrol(...
 'Parent',handles.h1,...
 'FontUnits','pixels',...
@@ -103,25 +105,25 @@ DRType = uibuttongroup(...
 'Position',[240.6 60.4 113.2 78],...
 'SelectionChangedFcn',@(DRType, event) DRselection(DRType, event));
 
-    function DRselection(bg, event)
-       disp(['Previous: ', event.OldValue.String]);
-       disp(['Current: ', event.NewValue.String]);
-       disp('------------------');
-       updatePlots()
+function DRselection(bg, event)
+   disp(['Previous: ', event.OldValue.String]);
+   disp(['Current: ', event.NewValue.String]);
+   disp('------------------');
+   updatePlots()
 %        setappdata
-    end
+end
 
-    function updatePlots
+function updatePlots
+    plotScatter;
+end
     
-    
-        plotScatter;
-    
-    end
-
+%-------------------------------------------------------------------------------
+% DR Type 
+%-------------------------------------------------------------------------------
 handles.DRType = DRType;
 
 handles.h13 = uicontrol(...
-'Parent',handles.DRType,...
+'Parent',handles.DRType,...cellLabel
 'FontUnits',get(0,'defaultuicontrolFontUnits'),...
 'Units','pixels',...
 'String',DRtypes_{2},...
@@ -139,30 +141,46 @@ handles.h14 = uicontrol(...
 'Position',[12 10 80 17],...
 'Tag','radiobutton2');
 
+%-------------------------------------------------------------------------------
+% Cell Label Menus 
+%-------------------------------------------------------------------------------
+
 handles.cellLabel = uicontrol(...
 'Parent',handles.LabelA,...
 'FontUnits',get(0,'defaultuicontrolFontUnits'),...
 'Units',get(0,'defaultuicontrolUnits'),...
-'String',Celllabeltypes,...
+'String',labelTypes,...
 'Style','popupmenu',...
 'Value',1,...
 'ValueMode',get(0,'defaultuicontrolValueMode'),...
-'Position',[17 243 89 22],...
+'Position',[10 257 89 22],...
 'Callback',@updateLabel,...
-'Tag','popupmenu1');
+'Tag','cellLabelTypeselect');
 
-    function updateLabel(source, event)
-       val = source.Value;
-       maps = source.String;
-       disp(['Updating Labels to : ', maps{val}]);
-       disp('------------------');
-       updatePlots()
-    end
+function updateLabel(source, event)
+   val = source.Value;
+   maps = source.String;
+   disp(['Updating Labels to : ', maps{val}]);
+   disp('------------------');
+   updatePlots()
+end
 
 
+% Manual Label Legend
+opts = {'Parent', handles.LabelA, 'Units', 'pixels', 'Position', [11 161 33 83],...
+        'Box' 'off','Color',[1 1 1],'XTick',[],'YTick',[]};
+axLegend = axes(opts{:});
+handles.axLegend = axLegend;
+axLegend.XColor = 'w';
+axLegend.YColor = 'w';
+% set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+%     'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
+set(handles.axLegend, 'Visible', 'off');
+%===============================================================================
+% % ----- FIlter population 
+%===============================================================================
 
-% ----- FIlter population 
-
+% Main Sub-menu title
 handles.filterText = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
@@ -174,6 +192,7 @@ handles.filterText = uicontrol(...
 'Tag','text3',...
 'FontSize',13);
 
+% Filter type
 handles.filterTextT = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
@@ -187,9 +206,9 @@ handles.filterT = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits',get(0,'defaultuicontrolFontUnits'),...
 'Units',get(0,'defaultuicontrolUnits'),...
-'String',{  'Malignant'; 'Benign'; 'All' },...
+'String',TumorTypeLabels,...
 'Style','popupmenu',...
-'Value',3,...
+'Value',1, ...
 'ValueMode',get(0,'defaultuicontrolValueMode'),...
 'Position',[10.6 96.6 89.2 22],...
 'Callback',@updateFilter,...
@@ -203,6 +222,8 @@ handles.filterT = uicontrol(...
        updatePlots()
     end
 
+
+% CellType Filter
 
 handles.filterTextC = uicontrol(...
 'Parent',handles.DataSel,...
@@ -220,19 +241,22 @@ handles.filterC = uicontrol(...
 'Units','pixels',...
 'String',cellTypes,...
 'Style','popupmenu',...
-'Value',1,...
+'Value',1, ...
 'Position',[10.6 75.8 89.2 22],...
 'Callback',@updateFilterC,...
 'Tag','popupmenu2');
 
+function updateFilterC(source, event)
+   val = source.Value;
+   maps = source.String;
+   disp(['Updating Labels to : ', maps{val}]);
+   disp('------------------');
+   updatePlots()
+end
 
-    function updateFilterC(source, event)
-       val = source.Value;
-       maps = source.String;
-       disp(['Updating Labels to : ', maps{val}]);
-       disp('------------------');
-       updatePlots()
-    end
+% ----------------
+% CellType Filter
+% ----------------
 
 h21 = uicontrol(...
 'Parent',handles.DataSel,...
@@ -242,7 +266,7 @@ h21 = uicontrol(...
 'String','Select Cell Index',...
 'Style','text',...
 'Position',[10.6 30.2 107.2 13.2],...
-'Tag','text6',...
+'Tag','textManualIndexCellSelect',...
 'FontSize',10.6);
 
 h22 = uicontrol(...
@@ -253,7 +277,7 @@ h22 = uicontrol(...
 'Style','popupmenu',...
 'Value',1,...
 'Position',[10.6 10.6 78 15.6],...
-'Tag','popupmenu4dd',...
+'Tag','ManualIndexCellSelect',...
 'FontSize',10.667);
 
 
@@ -282,17 +306,27 @@ opts = {'Parent', handles.h2_DR, 'Units', 'pixels', 'Position',[20 40.2 323.2 30
     'XTick',[],'YTick',[]};
 axDR = axes(opts{:});
 handles.axDR = axDR;
+
 % grid off;
 % Defaults
-handles.gax = plotScatter;  datacursormode on;
 
+handles.gax = plotScatter;  
+datacursormode on;
+
+
+%===============================================================================
+% Generate Scatter Plot
+%===============================================================================
 
 function [gax] = plotScatter
    
     ilabeltype = handles.cellLabel.Value;    
     ltyps = handles.cellLabel.String;
     labeltype = ltyps{ilabeltype};
-    
+    gax = []
+    % -----------------
+    % Select Lableling
+    % -----------------
     switch labeltype
         case 'CellType'
             plabel = data.meta.cellType;
@@ -301,91 +335,139 @@ function [gax] = plotScatter
         otherwise
             plabel = data.meta.tumorTypeName;
     end
+    
+    
+    handles.selPtIdx = 11;
+    ji = handles.selPtIdx;
+    
+    % Generate Manual Legend
+    [GG GN  GL]= grp2idx(plabel);
+    lcmap = cell2mat(getColors(unique(GG)));
+    xlabels = GN;
+    imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
+    set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+    'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
+    set(handles.axLegend, 'Visible', 'on');
 
+    % get labels for plot
     clabels = grp2idx(plabel);
     clabels = cell2mat(getColors(clabels));
-
+    clabels(ji,:) = [0 1 1];%[1 0 .5];
     
-    iDR = find([handles.DRType.Children.Value]);
-    DR_ = {handles.DRType.Children.String};
-    DRtype_sel = DR_{iDR};
-
+        
+    sizeL= repmat(12,length(plabel),1);
+    sizeL(ji,1) = 100;
     
+    % ------------------------
+    % Filter SubSet Data
+    % ------------------------
+
     maps = handles.filterT.String;  
     val = handles.filterT.Value;  
     
     switch maps{val}
-        case 'Malignant'
-            ind_f = find(cellfun(@(x) strcmp(x,'malignant'), data.meta.tumorTypeName));
-        case 'Benign'
-            ind_f = find(cellfun(@(x) strcmp(x,'benign'), data.meta.tumorTypeName));
+        case 'malignant'
+            idx_f = find(cellfun(@(x) strcmp(x,'malignant'), data.meta.tumorTypeName));
+        case 'benign'
+            idx_f = find(cellfun(@(x) strcmp(x,'benign'), data.meta.tumorTypeName));
         otherwise
             disp('selecting all');
-            ind_f = 1:length(data.meta.mindex);
+            idx_f = 1:length(data.meta.mindex);
     end
-            
-   
-        
+    
+    
+%     maps = handles.filterC.String;  
+%     val = handles.filterC.Value;  
+%     
+%     switch maps{val}
+%         case 'Malignant'
+%             idx_f = find(cellfun(@(x) strcmp(x,'malignant'), data.meta.tumorTypeName));
+%         case 'Benign'
+%             idx_f = find(cellfun(@(x) strcmp(x,'benign'), data.meta.tumorTypeName));
+%         otherwise
+%             disp('selecting all');
+%             idx_f = 1:length(data.meta.mindex);
+%     end
+    
+    
+    
+%     idx_F = idx_f .* idx_c
+    % ------------------------
+    % Select DR Visualization
+    % ------------------------
+    
+    iDR = find([handles.DRType.Children.Value]);
+    DR_ = {handles.DRType.Children.String};
+    DRtype_sel = DR_{iDR};
+    
     switch DRtype_sel
        case 'PCA'
-           figure(handles.h1)
-           scatter(axDR, data.PCA(ind_f,1), data.PCA(ind_f,2), 14, clabels(ind_f,:,:), 'filled');
+           figure(handles.h1);
+           scatter(axDR, data.PCA(idx_f,1), data.PCA(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:),'filled');
            set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
            axDR.Title.String = 'PCA';           
            axDR.XColor = 'w';
-           axDR.YColor = 'w';
-           figure(findobj(0,'-regexp','Name', 'Movie'))
-           gax = gscatter(data.PCA(ind_f,1), data.PCA(ind_f,2), plabel(ind_f), colorset{:}, '.', 18);           
-           title('PCA');
+           axDR.YColor = 'w';;
+%            figure(findobj(0,'-regexp','Name', 'Movie'))
+%            gax = gscatter(data.PCA(idx_f,1), data.PCA(idx_f,2), plabel(idx_f), colorset{:}, '.', sizeL(idx_f));           
+%            title('PCA');
        case 'tSNE'           
-           figure(handles.h1)
-           scatter(axDR, data.tSNE(ind_f,1), data.tSNE(ind_f,2), 14, clabels(ind_f,:,:), 'filled');
+           figure(handles.h1);
+           scatter(axDR, data.tSNE(idx_f,1), data.tSNE(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:), 'filled');
            axDR.Title.String = 'tSNE';
            axDR.XColor = 'w';
            axDR.YColor = 'w';
            set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
-           figure(findobj(0,'-regexp','Name', 'Movie'))
-           gax = gscatter(data.tSNE(ind_f, 1), data.tSNE(ind_f, 2), plabel(ind_f), colorset{:}, '.', 18);
-           title('tSNE');
-       otherwise
-            
-           figure(findobj(0,'-regexp','Name', 'Movie'))
-           gax = gscatter(data.PCA(ind_f,1), data.PCA(ind_f,2), plabel(ind_f), colorset{:}, '.', 18);           
-           title('PCA');
+%            figure(findobj(0,'-regexp','Name', 'Movie'))
+%            gax = gscatter(data.tSNE(idx_f, 1), data.tSNE(idx_f, 2), plabel(idx_f), colorset{:}, '.', sizeL(idx_f));
+%            title('tSNE');
+        otherwise
+%            figure(findobj(0,'-regexp','Name', 'Movie'));
+%            gax = gscatter(data.PCA(idx_f,1), data.PCA(idx_f,2), plabel(idx_f), colorset{:}, '.', sizeL(idx_f));           
+%            title('PCA');
     end
+
 end
-    datacursormode on;
 
 
-    function [RGBmat] = getColors(clabels)
+    
+    
+%===============================================================================
+% Helper functions
+%===============================================================================   
+ 
 
-        function [rgbvec] = let2RGB(ltr)
-            switch(lower(ltr))
-                case 'r'
-                    rgbvec = [1 0 0];
-                case 'g'
-                    rgbvec = [0 1 0];
-                case 'b'
-                    rgbvec = [0 0 1];
-                case 'c'
-                    rgbvec = [0 1 1];
-                case 'm'
-                    rgbvec = [1 0 1];
-                case 'y'
-                    rgbvec = [1 1 0];
-                case 'w'
-                    rgbvec = [1 1 1];
-                case 'k'
-                    rgbvec = [0 0 0];
-                otherwise
-                    disp('Warning;!--colors mismatch');
-            end
 
-        end
-       col = colorset{:}; 
-       RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
-    end
 
+    
+
+function [RGBmat] = getColors(clabels)
+   col = colorset{:}; 
+   RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
+end
+
+function [rgbvec] = let2RGB(ltr)
+    switch(lower(ltr))
+        case 'r'
+            rgbvec = [1 0 0];
+        case 'g'
+            rgbvec = [0 1 0];
+        case 'b'
+            rgbvec = [0 0 1];
+        case 'c'
+            rgbvec = [0 1 1];
+        case 'm'
+            rgbvec = [1 0 1];
+        case 'y'
+            rgbvec = [1 1 0];
+        case 'w'
+            rgbvec = [1 1 1];
+        case 'k'
+            rgbvec = [0 0 0];
+        otherwise
+            disp('Warning;!--colors mismatch');
+    end    
+end
 end
 
 
