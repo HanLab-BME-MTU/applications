@@ -10,7 +10,7 @@
 % Andrew R. Jamieson, Dec. 2016
 
 
-function [h1] = cellXploreDR(data, varargin)
+function [handles] = cellXploreDR(data, varargin)
 
 
 ip = inputParser;
@@ -202,7 +202,7 @@ handles.filterTextT = uicontrol(...
 'Tag','text4',...
 'FontSize',10.66);
 
-handles.filterT = uicontrol(...
+handles.filters.tumorTypeName = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits',get(0,'defaultuicontrolFontUnits'),...
 'Units',get(0,'defaultuicontrolUnits'),...
@@ -225,7 +225,7 @@ handles.filterT = uicontrol(...
 
 % CellType Filter
 
-handles.filterTextC = uicontrol(...
+handles.filtersTextC = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
 'Units','pixels',...
@@ -235,7 +235,7 @@ handles.filterTextC = uicontrol(...
 'Tag','CellTypeText',...
 'FontSize',10.66);
 
-handles.filterC = uicontrol(...
+handles.filters.cellType = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
 'Units','pixels',...
@@ -323,10 +323,12 @@ function [gax] = plotScatter
     ilabeltype = handles.cellLabel.Value;    
     ltyps = handles.cellLabel.String;
     labeltype = ltyps{ilabeltype};
-    gax = []
+    gax = [];
+
     % -----------------
     % Select Lableling
     % -----------------
+
     switch labeltype
         case 'CellType'
             plabel = data.meta.cellType;
@@ -335,7 +337,6 @@ function [gax] = plotScatter
         otherwise
             plabel = data.meta.tumorTypeName;
     end
-    
     
     handles.selPtIdx = 11;
     ji = handles.selPtIdx;
@@ -362,36 +363,8 @@ function [gax] = plotScatter
     % Filter SubSet Data
     % ------------------------
 
-    maps = handles.filterT.String;  
-    val = handles.filterT.Value;  
+    idx_f = applyFilters(handles.filters);
     
-    switch maps{val}
-        case 'malignant'
-            idx_f = find(cellfun(@(x) strcmp(x,'malignant'), data.meta.tumorTypeName));
-        case 'benign'
-            idx_f = find(cellfun(@(x) strcmp(x,'benign'), data.meta.tumorTypeName));
-        otherwise
-            disp('selecting all');
-            idx_f = 1:length(data.meta.mindex);
-    end
-    
-    
-%     maps = handles.filterC.String;  
-%     val = handles.filterC.Value;  
-%     
-%     switch maps{val}
-%         case 'Malignant'
-%             idx_f = find(cellfun(@(x) strcmp(x,'malignant'), data.meta.tumorTypeName));
-%         case 'Benign'
-%             idx_f = find(cellfun(@(x) strcmp(x,'benign'), data.meta.tumorTypeName));
-%         otherwise
-%             disp('selecting all');
-%             idx_f = 1:length(data.meta.mindex);
-%     end
-    
-    
-    
-%     idx_F = idx_f .* idx_c
     % ------------------------
     % Select DR Visualization
     % ------------------------
@@ -435,10 +408,30 @@ end
 %===============================================================================
 % Helper functions
 %===============================================================================   
- 
-
-
-
+%  
+function [idx_out] = applyFilters(hinff)
+    
+    fc = fieldnames(hinff);
+    idx_out = 1:length(data.meta.mindex);
+    idx_out = idx_out';
+    
+    for i = 1:length(fc)
+   
+        th = hinff.(fc{i});
+        maps = th.String;  
+        val = th.Value;  
+   
+        if strcmp(maps{val}, 'All')
+           disp('selecting -- all');
+           idx_t = 1:length(data.meta.mindex);
+           idx_t = idx_t';
+        else
+           idx_t = find(cellfun(@(x) strcmp(x, maps{val}), data.meta.(fc{i}))); 
+           disp(['sub-selecting ' maps{val}]);
+        end
+        idx_out = intersect(idx_out, idx_t);
+    end
+end
     
 
 function [RGBmat] = getColors(clabels)
