@@ -182,11 +182,18 @@ iChan = 0;
 minEcc = 0.7;
 
 % Finding which channel has a cell mask information
-maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
-for k=1:nChannels
-    if maskProc.checkChannelOutput(k)
-        iChan = k;
+existSegmentation=true;
+try
+    maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
+    for k=1:nChannels
+        if maskProc.checkChannelOutput(k)
+            iChan = k;
+        end
     end
+catch
+    disp('You do not have segmentation package run. Using entire field ...')
+    existSegmentation= false;
+    iChan = iPaxChannel;
 end
 % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
 if onlyEdge
@@ -217,12 +224,20 @@ if onlyEdge
 else
     disp('Entire adhesion tracks are considered.')
     trackIdx = true(numel(tracksNA),1);
-    mask = maskProc.loadChannelOutput(iChan,1);
+    if existSegmentation
+        mask = maskProc.loadChannelOutput(iChan,1);
+    else
+        mask = true(MD.imSize_);
+    end
 %     bandwidthNA = 5; %um 
 %     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
     for ii=1:nFrames
         % Cell Boundary Mask 
-        mask = maskProc.loadChannelOutput(iChan,ii);
+        if existSegmentation
+            mask = maskProc.loadChannelOutput(iChan,ii);
+        else
+            mask = true(MD.imSize_);
+        end
         % mask for band from edge
         maskOnlyBand = mask;
         bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
@@ -302,7 +317,11 @@ else
 %     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
     for ii=1:nFrames
         % Cell Boundary Mask 
-        mask = maskProc.loadChannelOutput(iChan,ii);
+        if existSegmentation
+            mask = maskProc.loadChannelOutput(iChan,ii);
+        else
+            mask = true(MD.imSize_);
+        end
         % mask for band from edge
         maskOnlyBand = mask;
         bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
@@ -330,7 +349,12 @@ toc
 % get rid of tracks that have out of bands...
 tracksNA = tracksNA(trackIdx);
 %% Matching with adhesion setup
-firstMask=maskProc.loadChannelOutput(iChan,1);
+if existSegmentation
+    firstMask=maskProc.loadChannelOutput(iChan,1);
+else
+    firstMask=true(MD.imSize_);
+end
+
 cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
 numTracks=numel(tracksNA);
 progressText(0,'Matching with segmented adhesions:');
@@ -341,10 +365,14 @@ focalAdhInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
 %% Matching with segmented adhesions
 for ii=1:nFrames
     % Cell Boundary Mask 
-    mask = maskProc.loadChannelOutput(iChan,ii);
+    if existSegmentation
+        mask = maskProc.loadChannelOutput(iChan,ii);
+    else
+        mask=true(MD.imSize_);
+    end
     % Cell Boundary
     [B,~,nBD]  = bwboundaries(mask,'noholes');
-    cropMaskStack(:,:,ii) = maskProc.loadChannelOutput(iChan,ii);
+    cropMaskStack(:,:,ii) = mask;
     % Get the mask for FAs
     maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
     maskAdhesion = maskFAs>0 & mask;
@@ -837,6 +865,8 @@ for k=1:numTracks
 end
 %% saving
 save([dataPath filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
+save([dataPath filesep 'focalAdhInfo.mat'], 'focalAdhInfo','-v7.3')
+
 %% saving
 if saveAnalysis
     % saving
