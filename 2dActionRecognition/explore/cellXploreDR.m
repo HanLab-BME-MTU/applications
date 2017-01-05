@@ -110,7 +110,7 @@ function DRselection(bg, event)
    disp(['Previous: ', event.OldValue.String]);
    disp(['Current: ', event.NewValue.String]);
    disp('------------------');
-   updatePlots()
+   updatePlots();
 %        setappdata
 end
 
@@ -164,7 +164,7 @@ function updateLabel(source, event)
    maps = source.String;
    disp(['Updating Labels to : ', maps{val}]);
    disp('------------------');
-   updatePlots()
+   updatePlots();
 end
 
 
@@ -201,7 +201,7 @@ handles.dtOnOff = uicontrol(...
           set(dcm_obj,'DisplayStyle','window',...
           'SnapToDataVertex','off','Enable','on');    
        end
-        updatePlots()
+        updatePlots();
     end
 
 
@@ -248,7 +248,7 @@ handles.filters.tumorTypeName = uicontrol(...
        maps = source.String;
        disp(['Updating Labels to : ', maps{val}]);
        disp('------------------');
-       updatePlots()
+       updatePlots();
     end
 
 
@@ -280,7 +280,7 @@ function updateFilterC(source, event)
    maps = source.String;
    disp(['Updating Labels to : ', maps{val}]);
    disp('------------------');
-   updatePlots()
+   updatePlots();
 end
 
 % ----------------
@@ -322,11 +322,11 @@ function updateManSel(source, event)
 end
 
 function updateMovie()
-
-    imagesc(data.movies{handles.selPtIdx}(:,:,handles.movies.fidx), 'Parent', handles.axMovie, 'HitTest', 'off');
-    set(handles.axMovie, 'XTick', [])
-    set(handles.axMovie, 'YTick', [])    
-    
+    imagesc(data.movies{handles.selPtIdx}(:,:,handles.movies.fidx),...
+            'Parent', handles.axMovie, 'HitTest', 'off');
+    set(handles.axMovie, 'XTick', []);
+    set(handles.axMovie, 'YTick', []);
+    colormap(handles.axMovie, gray);
 end
 
 %===============================================================================
@@ -343,15 +343,15 @@ axMovie.XColor = 'w';
 axMovie.YColor = 'w';
 handles.axMovie = axMovie;
 handles.movies.fidx = 1; % frame index
-fidx = 1
 
 %-------------------------------------------------------------------------------
 % Movie Display 
 %-------------------------------------------------------------------------------
 % initialize Movie
-imagesc(data.movies{1}(:,:,fidx), 'Parent', handles.axMovie, 'HitTest', 'off');
-set(handles.axMovie, 'XTick', [])
-set(handles.axMovie, 'YTick', [])
+imagesc(data.movies{1}(:,:,1), 'Parent', handles.axMovie, 'HitTest', 'off');
+set(handles.axMovie, 'XTick', []);
+set(handles.axMovie, 'YTick', []);
+colormap(handles.axMovie, gray);
 
 
 % Track slider
@@ -367,12 +367,19 @@ handles.frameSlider = uicontrol(handles.h_movie, 'Style', 'slider', 'Units', 'pi
         'Position',[8.2 11 289.6 14],'Callback', @frameSliderRelease_Callback);   
 axMovie.Color = [1 1 1];
 
+addlistener(handles.frameSlider, 'Value', 'PostSet', @frameSlider_Callback);
+
     function frameSliderRelease_Callback(source, event)
         val = source.Value;
-        handles.movies.fidx = val;
+        handles.movies.fidx = round(val);
         updateMovie();
     end
 
+    function frameSlider_Callback(~, eventdata)
+        fidx_ = round(eventdata.AffectedObject.Value);
+        handles.movies.fidx = round(fidx_);
+        updateMovie();
+    end
 
 %===============================================================================
 % Set up DR viz axes
@@ -391,7 +398,7 @@ dcm_obj = datacursormode(handles.h1);
 handles.dcm_obj = dcm_obj;
 set(dcm_obj,'DisplayStyle','window',...
 'SnapToDataVertex','off','Enable','on');
-set(dcm_obj,'UpdateFcn',@myupdatefcn)
+set(dcm_obj,'UpdateFcn',@myupdatefcn);
 
 % plot everything
 plotScatter;
