@@ -22,7 +22,7 @@ function varargout = cellXplore(varargin)
 
 % Edit the above text to modify the response to help cellXplore
 
-% Last Modified by GUIDE v2.5 22-Dec-2016 13:17:53
+% Last Modified by GUIDE v2.5 05-Jan-2017 11:38:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -201,3 +201,12 @@ function popupmenu4_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in checkbox1.
+function checkbox1_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox1

@@ -176,6 +176,33 @@ axLegend.YColor = 'w';
 % set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
 %     'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
 set(handles.axLegend, 'Visible', 'off');
+
+handles.dtOnOff = uicontrol(...
+'Parent',handles.LabelA,...
+'FontUnits','pixels',...
+'Units', 'pixels', ...
+'String','Show DataTips',...
+'Style','checkbox',...
+'Position',[14 137 133 17],...
+'Callback',@updateDT,...
+'Tag','checkbox1',...
+'FontSize',12, ...
+'Value', 1);
+
+    function updateDT(source, event)
+       val = source.Value;
+       disp(['Updating DataTips on/off: ', {val}]);
+       disp('------------------');
+       if val == 0
+          set(handles.dcm_obj,'Enable','off');
+       else
+          set(dcm_obj,'DisplayStyle','window',...
+          'SnapToDataVertex','off','Enable','on');    
+       end
+        updatePlots()
+    end
+
+
 %===============================================================================
 % % ----- FIlter population 
 %===============================================================================
@@ -310,14 +337,15 @@ handles.axDR = axDR;
 % grid off;
 % Defaults
 handles.selPtIdx = 1;
+
 dcm_obj = datacursormode(handles.h1);
-set(dcm_obj,'DisplayStyle','datatip',...
+handles.dcm_obj = dcm_obj;
+set(dcm_obj,'DisplayStyle','window',...
 'SnapToDataVertex','off','Enable','on');
 set(dcm_obj,'UpdateFcn',@myupdatefcn)
-% c_info = getCursorInfo(dcm_obj);
-    
-handles.gax = plotScatter;  
-% datacursormode on;
+
+% plot everything
+plotScatter;
 
 
 %===============================================================================
@@ -344,7 +372,7 @@ function [gax] = plotScatter
             plabel = data.meta.tumorTypeName;
     end
     
-    ji = handles.selPtIdx;
+    
     
     % Generate Manual Legend
     [GG GN  GL]= grp2idx(plabel);
@@ -358,17 +386,21 @@ function [gax] = plotScatter
     % get labels for plot
     clabels = grp2idx(plabel);
     clabels = cell2mat(getColors(clabels));
-    clabels(ji,:) = [0 1 1];%[1 0 .5];
-    
         
     sizeL= repmat(12,length(plabel),1);
-    sizeL(ji,1) = 100;
+
+    ji = handles.selPtIdx;
+    if handles.dtOnOff.Value == 0
+        clabels(ji,:) = [0 1 1]; %[1 0 .5];
+        sizeL(ji,1) = 100;
+    end
     
     % ------------------------
     % Filter SubSet Data
     % ------------------------
 
     idx_f = applyFilters(handles.filters);
+    
     
     % ------------------------
     % Select DR Visualization
@@ -378,18 +410,25 @@ function [gax] = plotScatter
     DR_ = {handles.DRType.Children.String};
     DRtype_sel = DR_{iDR};
     
+    handles.dataI = data.meta.mindex(idx_f);
+    
     switch DRtype_sel
        case 'PCA'
+           handles.dataX = data.PCA(idx_f,1);
+           handles.dataY = data.PCA(idx_f,2);
            figure(handles.h1);
-           scatter(axDR, data.PCA(idx_f,1), data.PCA(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:),'filled');%,'ButtonDownFcn', @axDRCallback);
+           scatter(axDR, data.PCA(idx_f,1), data.PCA(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:),'filled','ButtonDownFcn', @axDRCallback);
            set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
            axDR.Title.String = 'PCA';           
        case 'tSNE'           
+           handles.dataX = data.tSNE(idx_f,1);
+           handles.dataY = data.tSNE(idx_f,2);
            figure(handles.h1);
-           scatter(axDR, data.tSNE(idx_f,1), data.tSNE(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:), 'filled');%, 'ButtonDownFcn', @axDRCallback);
+           scatter(axDR, data.tSNE(idx_f,1), data.tSNE(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:), 'filled', 'ButtonDownFcn', @axDRCallback);
            axDR.Title.String = 'tSNE';
         otherwise
     end
+    
     axDR.XColor = 'w';
     axDR.YColor = 'w';
     set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
@@ -401,23 +440,44 @@ end
 %===============================================================================
 % Helper functions
 %===============================================================================   
-%  
-
     function txt = myupdatefcn(empt, event_obj)
         % Customizes text of data tips
-        handles.selPtIdx = empt.Cursor.DataIndex;
+        idx = empt.Cursor.DataIndex;
+        handles.selPtIdx = handles.dataI(idx);
         pos = get(event_obj,'Position');
-        txt = {['Time: ',num2str(pos(1))],...
-                  ['Amplitude: ',num2str(pos(2))]};
-      plotScatter;
+        xi = pos(1);
+        yi = pos(2);
+        
+        txt = {['Index: ',num2str(handles.selPtIdx)],...
+               ['CellType: ',data.meta.cellType{handles.selPtIdx}],...
+               ['TumorType: ',data.meta.tumorTypeName{handles.selPtIdx}], ...
+               ['ExprDate :', '01-17-2017']};
+        
+        hold on;
+        plot(xi, yi, 'xb');
+        alldatacursors = findall(handles.h1,'type','hggroup');
+        set(alldatacursors,'FontSize', 8);
+        set(alldatacursors,'FontName','Times');
+        
+        % plotScatter;
     end
 
     function axDRCallback(varargin)
-        a = get(gca, 'CurrentPoint');
-        x0 = a(1,1);
-        y0 = a(1,2);
-        x0
-        y0
+%         a = get(gca, 'CurrentPoint');
+        ipt = varargin{2}.IntersectionPoint;
+        x0 = ipt(1,1);
+        y0 = ipt(1,2);
+        fx = find(round(varargin{1}.XData, 5) == round(x0,5));
+        fy = find(round(varargin{1}.YData, 5) == round(y0,5));
+        idx = intersect(fx,fy);
+        handles.selPtIdx = handles.dataI(idx);
+        if length(handles.selPtIdx) > 1
+            handles.selPtIdx = handles.selPtIdx(1);
+        end
+        disp(handles.selPtIdx)
+        
+        
+      
       iDR = find([handles.DRType.Children.Value]);
       DR_ = {handles.DRType.Children.String};
       DRtype_sel = DR_{iDR};
@@ -426,7 +486,7 @@ end
        case 'tSNE'           
        otherwise
       end
-        
+      plotScatter; 
     end
 
     function [idx_out] = applyFilters(hinff)
