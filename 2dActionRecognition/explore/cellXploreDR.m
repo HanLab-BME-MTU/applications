@@ -17,8 +17,9 @@ ip = inputParser;
 ip.KeepUnmatched = true;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
+ip.addParameter('movies', [], @iscell);
 ip.parse(data, varargin{:});
-handles.data = data;
+data.movies = ip.Results.movies;
 
 % Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
@@ -116,7 +117,8 @@ end
 function updatePlots
     plotScatter;
 end
-    
+
+
 %-------------------------------------------------------------------------------
 % DR Type 
 %-------------------------------------------------------------------------------
@@ -285,7 +287,7 @@ end
 % CellType Filter
 % ----------------
 
-h21 = uicontrol(...
+handles.manualSelText = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
 'Units','pixels',...
@@ -296,33 +298,80 @@ h21 = uicontrol(...
 'Tag','textManualIndexCellSelect',...
 'FontSize',10.6);
 
-h22 = uicontrol(...
+handles.manualSel = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
 'Units','pixels',...
-'String',{  '1','2','3' },...
+'String',arrayfun(@(x) num2str(x), [1:length(data.meta.mindex)], 'UniformOutput',false), ...
 'Style','popupmenu',...
 'Value',1,...
+'Callback',@updateManSel,...
 'Position',[10.6 10.6 78 15.6],...
 'Tag','ManualIndexCellSelect',...
 'FontSize',10.667);
 
+function updateManSel(source, event)
+   val = source.Value;
+   maps = source.String;
+   disp(['Updating manSelect to : ', maps{val}]);
+   disp(['Updating manSelect to : ', num2str(val)]);
+   disp('------------------');
+   handles.selPtIdx = val;
+   updateMovie();
+   updatePlots();
+end
+
+function updateMovie()
+
+    imagesc(data.movies{handles.selPtIdx}(:,:,handles.movies.fidx), 'Parent', handles.axMovie, 'HitTest', 'off');
+    set(handles.axMovie, 'XTick', [])
+    set(handles.axMovie, 'YTick', [])    
+    
+end
 
 %===============================================================================
 % Set up movie display
 %===============================================================================
+
+%-------------------------------------------------------------------------------
+% Movie Panel 
+%-------------------------------------------------------------------------------
 opts = {'Parent', handles.h_movie, 'Units', 'pixels', 'Position',[18.2 36.6 275.6 206.8],...
     'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
 axMovie = axes(opts{:});
 axMovie.XColor = 'w';
 axMovie.YColor = 'w';
+handles.axMovie = axMovie;
+handles.movies.fidx = 1; % frame index
+fidx = 1
+
+%-------------------------------------------------------------------------------
+% Movie Display 
+%-------------------------------------------------------------------------------
+% initialize Movie
+imagesc(data.movies{1}(:,:,fidx), 'Parent', handles.axMovie, 'HitTest', 'off');
+set(handles.axMovie, 'XTick', [])
+set(handles.axMovie, 'YTick', [])
+
+
 % Track slider
-nf = 10; % number of frames
+if ~isempty(data.movies)
+    nf = size(data.movies{1},3);
+else
+    nf = 10; % number of frames    
+end
+
 fidx = 1; % current frame
 handles.frameSlider = uicontrol(handles.h_movie, 'Style', 'slider', 'Units', 'pixels',...
         'Value', fidx, 'Min', 1, 'Max', nf,'SliderStep', [1/(nf-1) 0.5], ...
-        'Position',[8.2 11 289.6 14]);%,'Callback', @frameSliderRelease_Callback);   
+        'Position',[8.2 11 289.6 14],'Callback', @frameSliderRelease_Callback);   
 axMovie.Color = [1 1 1];
+
+    function frameSliderRelease_Callback(source, event)
+        val = source.Value;
+        handles.movies.fidx = val;
+        updateMovie();
+    end
 
 
 %===============================================================================
@@ -390,6 +439,7 @@ function [gax] = plotScatter
     sizeL= repmat(12,length(plabel),1);
 
     ji = handles.selPtIdx;
+    handles.manualSel.Value = ji;  
     if handles.dtOnOff.Value == 0
         clabels(ji,:) = [0 1 1]; %[1 0 .5];
         sizeL(ji,1) = 100;
@@ -432,6 +482,7 @@ function [gax] = plotScatter
     axDR.XColor = 'w';
     axDR.YColor = 'w';
     set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
+    refresh(handles.h1);
 end
 
 
@@ -458,7 +509,8 @@ end
         alldatacursors = findall(handles.h1,'type','hggroup');
         set(alldatacursors,'FontSize', 8);
         set(alldatacursors,'FontName','Times');
-        
+        set(handles.manualSel, 'Value', handles.selPtIdx);
+        updateMovie();
         % plotScatter;
     end
 
@@ -475,7 +527,7 @@ end
             handles.selPtIdx = handles.selPtIdx(1);
         end
         disp(handles.selPtIdx)
-        
+        updateMovie();
         
       
       iDR = find([handles.DRType.Children.Value]);
