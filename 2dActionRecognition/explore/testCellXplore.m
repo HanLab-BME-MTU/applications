@@ -1,13 +1,11 @@
-% script to test cellXploreDR
+% script/steps to test/run cellXploreDR
 
 
 load('mockData.mat');
 genFakeMovies;
-data.movies = movies;
 
 % playMovie(movies{1})
-cellXploreDR('data', data, []);
-
+cellXploreDR(data, 'extra', [], 'movies', movies);
 
 %% how to close out figures -- 
 ff = findall(0,'Type', 'Figure');
