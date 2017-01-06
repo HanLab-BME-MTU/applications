@@ -25,8 +25,8 @@ data.movies = ip.Results.movies;
 colorset = {'brgykop'};
 labelTypes = { 'TumorType'; 'CellType' };
 % TumorTypeLabels = {'Malignant'; 'Benign'; 'All'};
-[G, G2] = grp2idx(data.meta.cellType);
-[Gi, G2i] = grp2idx(data.meta.tumorTypeName);
+[~, G2] = grp2idx(data.meta.cellType);
+[~, G2i] = grp2idx(data.meta.tumorTypeName);
 cellTypes = [{ 'All' }, G2']; 
 TumorTypeLabels = [{ 'All' }, G2i']; 
 DRtypes_ = {'PCA';'tSNE'};
@@ -34,6 +34,7 @@ DRtypes_ = {'PCA';'tSNE'};
 handles.info.DRtypes_ = DRtypes_;
 handles.info.cellTypes = cellTypes;
 handles.info.TumorTypeLabels = TumorTypeLabels;
+handles.info.Annotations = repmat({'Annotation notes here ...'},length(data.meta.mindex),1);
 
 %===============================================================================
 % Setup main GUI window/figure
@@ -97,7 +98,43 @@ handles.DataSel = uipanel('Parent',handles.h1,'FontUnits','pixels','Units','pixe
 'Position',[15.4 77.4 365.2 159.2],'FontSize',13,'FontSizeMode',...
 get(0,'defaultuipanelFontSizeMode'));
 
-DRType = uibuttongroup(...
+% annotations & save button
+handles.annotate = uicontrol(...
+'Parent',handles.LabelA,...
+'FontUnits','pixels',...
+'String','Annotation notes here ...',...
+'Style','edit',...
+'HorizontalAlignment','left',...
+'Position',[6 11 296 22],...
+'Tag','AnnotationNotes',...
+'FontSize',13);
+
+handles.SaveNotesButton = uicontrol(...
+'Parent',handles.LabelA,...
+'FontUnits','pixels',...
+'Units','pixels',...
+'String','Save Notes',...
+'Position',[229 37 67 21],...
+'Callback',@SaveNotes_Callback,...
+'Tag','SaveNotes',...
+'FontSize',10);
+
+function SaveNotes_Callback(varargin)
+    Anotes = get(handles.annotate, 'String');
+    handles.info.Annotations{handles.selPtIdx} = Anotes;
+end
+
+    function updateAnnotations()
+    
+        set(handles.annotate, 'String', handles.info.Annotations{handles.selPtIdx});
+        
+    end
+
+%-------------------------------------------------------------------------------
+% DR Type 
+%-------------------------------------------------------------------------------
+
+handles.DRType = uibuttongroup(...
 'Parent',handles.DataSel,...
 'FontUnits','points',...
 'Units','pixels',...
@@ -106,42 +143,29 @@ DRType = uibuttongroup(...
 'Position',[240.6 60.4 113.2 78],...
 'SelectionChangedFcn',@(DRType, event) DRselection(DRType, event));
 
-function DRselection(bg, event)
+function DRselection(~, event)
    disp(['Previous: ', event.OldValue.String]);
    disp(['Current: ', event.NewValue.String]);
    disp('------------------');
    updatePlots();
-%        setappdata
 end
-
-function updatePlots
-    plotScatter;
-end
-
-
-%-------------------------------------------------------------------------------
-% DR Type 
-%-------------------------------------------------------------------------------
-handles.DRType = DRType;
 
 handles.h13 = uicontrol(...
-'Parent',handles.DRType,...cellLabel
-'FontUnits',get(0,'defaultuicontrolFontUnits'),...
+'Parent',handles.DRType,...
 'Units','pixels',...
 'String',DRtypes_{2},...
 'Style','radiobutton',...
 'Value',1,...
 'Position',[11 35 80 17],...
-'Tag','radiobutton1');
+'Tag','tSNE_button');
 
 handles.h14 = uicontrol(...
 'Parent',handles.DRType,...
-'FontUnits',get(0,'defaultuicontrolFontUnits'),...
 'Units','pixels',...
 'String',DRtypes_{1},...
 'Style','radiobutton',...
 'Position',[12 10 80 17],...
-'Tag','radiobutton2');
+'Tag','PCA_button');
 
 %-------------------------------------------------------------------------------
 % Cell Label Menus 
@@ -149,17 +173,14 @@ handles.h14 = uicontrol(...
 
 handles.cellLabel = uicontrol(...
 'Parent',handles.LabelA,...
-'FontUnits',get(0,'defaultuicontrolFontUnits'),...
-'Units',get(0,'defaultuicontrolUnits'),...
 'String',labelTypes,...
 'Style','popupmenu',...
 'Value',1,...
-'ValueMode',get(0,'defaultuicontrolValueMode'),...
 'Position',[10 257 89 22],...
 'Callback',@updateLabel,...
 'Tag','cellLabelTypeselect');
 
-function updateLabel(source, event)
+function updateLabel(source, ~)
    val = source.Value;
    maps = source.String;
    disp(['Updating Labels to : ', maps{val}]);
@@ -191,7 +212,7 @@ handles.dtOnOff = uicontrol(...
 'FontSize',12, ...
 'Value', 1);
 
-    function updateDT(source, event)
+    function updateDT(source, ~)
        val = source.Value;
        disp(['Updating DataTips on/off: ', {val}]);
        disp('------------------');
@@ -227,7 +248,7 @@ handles.filterTextT = uicontrol(...
 'FontUnits','pixels',...
 'String','TumorType',...
 'Style','text',...
-'Position',[99.8 101 60.8 13.2],...
+'Position',[99.8 101 65.8 13.2],...
 'Tag','text4',...
 'FontSize',10.66);
 
@@ -243,7 +264,7 @@ handles.filters.tumorTypeName = uicontrol(...
 'Callback',@updateFilter,...
 'Tag','popupmenu2');
 
-    function updateFilter(source, event)
+    function updateFilter(source, ~)
        val = source.Value;
        maps = source.String;
        disp(['Updating Labels to : ', maps{val}]);
@@ -260,7 +281,7 @@ handles.filtersTextC = uicontrol(...
 'Units','pixels',...
 'String','CellType',...
 'Style','text',...
-'Position',[100 80.6 53.6 13.2],...
+'Position',[99.8 80.6 53.6 13.2],...
 'Tag','CellTypeText',...
 'FontSize',10.66);
 
@@ -275,7 +296,7 @@ handles.filters.cellType = uicontrol(...
 'Callback',@updateFilterC,...
 'Tag','popupmenu2');
 
-function updateFilterC(source, event)
+function updateFilterC(source, ~)
    val = source.Value;
    maps = source.String;
    disp(['Updating Labels to : ', maps{val}]);
@@ -302,7 +323,7 @@ handles.manualSel = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
 'Units','pixels',...
-'String',arrayfun(@(x) num2str(x), [1:length(data.meta.mindex)], 'UniformOutput',false), ...
+'String',arrayfun(@(x) num2str(x), 1:length(data.meta.mindex), 'UniformOutput',false), ...
 'Style','popupmenu',...
 'Value',1,...
 'Callback',@updateManSel,...
@@ -310,23 +331,25 @@ handles.manualSel = uicontrol(...
 'Tag','ManualIndexCellSelect',...
 'FontSize',10.667);
 
-function updateManSel(source, event)
+function updateManSel(source, ~)
    val = source.Value;
    maps = source.String;
    disp(['Updating manSelect to : ', maps{val}]);
    disp(['Updating manSelect to : ', num2str(val)]);
    disp('------------------');
    handles.selPtIdx = val;
-   updateMovie();
    updatePlots();
+   playMovie();
 end
 
 function updateMovie()
-    imagesc(data.movies{handles.selPtIdx}(:,:,handles.movies.fidx),...
-            'Parent', handles.axMovie, 'HitTest', 'off');
-    set(handles.axMovie, 'XTick', []);
-    set(handles.axMovie, 'YTick', []);
-    colormap(handles.axMovie, gray);
+    if ~isempty(data.movies)
+        imagesc(data.movies{handles.selPtIdx}(:,:,handles.movies.fidx),...
+                'Parent', handles.axMovie, 'HitTest', 'off');
+        set(handles.axMovie, 'XTick', []);
+        set(handles.axMovie, 'YTick', []);
+        colormap(handles.axMovie, gray);
+    end
 end
 
 %===============================================================================
@@ -358,8 +381,11 @@ colormap(handles.axMovie, gray);
 if ~isempty(data.movies)
     nf = size(data.movies{1},3);
 else
-    nf = 10; % number of frames    
+    warning('No moview provided');
+    nf = 10; % number of frames
 end
+
+handles.movies.nf = nf;
 
 fidx = 1; % current frame
 handles.frameSlider = uicontrol(handles.h_movie, 'Style', 'slider', 'Units', 'pixels',...
@@ -369,7 +395,7 @@ axMovie.Color = [1 1 1];
 
 addlistener(handles.frameSlider, 'Value', 'PostSet', @frameSlider_Callback);
 
-    function frameSliderRelease_Callback(source, event)
+    function frameSliderRelease_Callback(source, ~)
         val = source.Value;
         handles.movies.fidx = round(val);
         updateMovie();
@@ -380,6 +406,16 @@ addlistener(handles.frameSlider, 'Value', 'PostSet', @frameSlider_Callback);
         handles.movies.fidx = round(fidx_);
         updateMovie();
     end
+
+    function playMovie()
+        nf = handles.movies.nf;
+        for i=1:nf
+            handles.movies.fidx = i;
+            updateMovie();
+            pause(.05);
+        end
+    end
+
 
 %===============================================================================
 % Set up DR viz axes
@@ -408,30 +444,29 @@ plotScatter;
 % Generate Scatter Plot
 %===============================================================================
 
-function [gax] = plotScatter
+function plotScatter
    
-    ilabeltype = handles.cellLabel.Value;    
-    ltyps = handles.cellLabel.String;
-    labeltype = ltyps{ilabeltype};
-    gax = [];
-
     % -----------------
     % Select Lableling
     % -----------------
+    
+    ilabeltype = handles.cellLabel.Value;    
+    ltyps = handles.cellLabel.String;
+    labeltype = ltyps{ilabeltype};
 
     switch labeltype
         case 'CellType'
             plabel = data.meta.cellType;
         case 'TumorType'
             plabel = data.meta.tumorTypeName;
+        case 'ManualType'
+            plabel = getAnnotatedCells();
         otherwise
             plabel = data.meta.tumorTypeName;
     end
     
-    
-    
     % Generate Manual Legend
-    [GG GN  GL]= grp2idx(plabel);
+    [GG, GN, ~]= grp2idx(plabel);
     lcmap = cell2mat(getColors(unique(GG)));
     xlabels = GN;
     imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
@@ -442,7 +477,6 @@ function [gax] = plotScatter
     % get labels for plot
     clabels = grp2idx(plabel);
     clabels = cell2mat(getColors(clabels));
-        
     sizeL= repmat(12,length(plabel),1);
 
     ji = handles.selPtIdx;
@@ -463,9 +497,8 @@ function [gax] = plotScatter
     % Select DR Visualization
     % ------------------------
     
-    iDR = find([handles.DRType.Children.Value]);
     DR_ = {handles.DRType.Children.String};
-    DRtype_sel = DR_{iDR};
+    DRtype_sel = DR_{logical([handles.DRType.Children.Value])};
     
     handles.dataI = data.meta.mindex(idx_f);
     
@@ -489,7 +522,6 @@ function [gax] = plotScatter
     axDR.XColor = 'w';
     axDR.YColor = 'w';
     set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
-    refresh(handles.h1);
 end
 
 
@@ -498,27 +530,34 @@ end
 %===============================================================================
 % Helper functions
 %===============================================================================   
-    function txt = myupdatefcn(empt, event_obj)
+
+    function [plabel] = getAnnotatedCells()
+    
+        data
+        
+    end
+    
+    function updatePlots
+        updateAnnotations();
+        plotScatter;
+    end
+    
+   
+    function txt = myupdatefcn(empt, ~)
         % Customizes text of data tips
         idx = empt.Cursor.DataIndex;
         handles.selPtIdx = handles.dataI(idx);
-        pos = get(event_obj,'Position');
-        xi = pos(1);
-        yi = pos(2);
-        
         txt = {['Index: ',num2str(handles.selPtIdx)],...
                ['CellType: ',data.meta.cellType{handles.selPtIdx}],...
                ['TumorType: ',data.meta.tumorTypeName{handles.selPtIdx}], ...
                ['ExprDate :', '01-17-2017']};
         
-        hold on;
-        plot(xi, yi, 'xb');
         alldatacursors = findall(handles.h1,'type','hggroup');
         set(alldatacursors,'FontSize', 8);
         set(alldatacursors,'FontName','Times');
         set(handles.manualSel, 'Value', handles.selPtIdx);
-        updateMovie();
-        % plotScatter;
+        updateAnnotations;
+        playMovie();
     end
 
     function axDRCallback(varargin)
@@ -533,19 +572,11 @@ end
         if length(handles.selPtIdx) > 1
             handles.selPtIdx = handles.selPtIdx(1);
         end
-        disp(handles.selPtIdx)
-        updateMovie();
-        
-      
-      iDR = find([handles.DRType.Children.Value]);
-      DR_ = {handles.DRType.Children.String};
-      DRtype_sel = DR_{iDR};
-      switch DRtype_sel
-       case 'PCA'
-       case 'tSNE'           
-       otherwise
-      end
-      plotScatter; 
+     
+        plotScatter; 
+        updateAnnotations;
+        playMovie;        
+
     end
 
     function [idx_out] = applyFilters(hinff)
