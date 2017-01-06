@@ -23,7 +23,7 @@ data.movies = ip.Results.movies;
 
 % Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
-labelTypes = { 'TumorType'; 'CellType' };
+labelTypes = { 'TumorType'; 'CellType'; 'Custom'};
 % TumorTypeLabels = {'Malignant'; 'Benign'; 'All'};
 [~, G2] = grp2idx(data.meta.cellType);
 [~, G2i] = grp2idx(data.meta.tumorTypeName);
@@ -35,15 +35,13 @@ handles.info.DRtypes_ = DRtypes_;
 handles.info.cellTypes = cellTypes;
 handles.info.TumorTypeLabels = TumorTypeLabels;
 handles.info.Annotations = repmat({'Annotation notes here ...'},length(data.meta.mindex),1);
+handles.info.CustomLabels = {'none'}; %repmat({'null'}, length(data.meta.mindex),1);
 
+% initialize the custom data labels to 'none'
+data.meta.CustomType = repmat({'none'}, length(data.meta.mindex),1);
 %===============================================================================
 % Setup main GUI window/figure
 %===============================================================================
-
-% Separate gscatter plot for cursor
-% handles.fig11 = figure(11);
-% handles.fig11.NumberTitle = 'off';
-% handles.fig11.Name = 'Cell Movie Selector';
 
 % Create main figure
 handles.h1 = figure(...
@@ -124,21 +122,6 @@ function SaveNotes_Callback(varargin)
     handles.info.Annotations{handles.selPtIdx} = Anotes;
 end
 
-    function updateAnnotations()
-    
-        set(handles.annotate, 'String', handles.info.Annotations{handles.selPtIdx});
-
-        % ------------
-        % update Cell Info Panel
-        handles.info.cIndex.String = num2str(handles.selPtIdx);
-        handles.info.TumorTypeLabel_.String = data.meta.tumorTypeName{handles.selPtIdx};
-        handles.info.CellTypeLabel_.String = data.meta.cellType{handles.selPtIdx}; 
-        handles.info.ExpDateLabel_.String = '11-11-2017';
-        handles.info.customLabel_.String = 'cust.';
-        
-        % ------------        
-    end
-
 %-------------------------------------------------------------------------------
 % DR Type 
 %-------------------------------------------------------------------------------
@@ -189,11 +172,27 @@ handles.cellLabel = uicontrol(...
 'Callback',@updateLabel,...
 'Tag','cellLabelTypeselect');
 
+handles.custClass = uicontrol(...
+'Parent',handles.LabelA,...
+'String',handles.info.CustomLabels, ...
+'Style','popupmenu', ...
+'Value',1,...
+'Position',[103 257 89 22],...
+'Callback',@updateLabel,...
+'Visible', 'off', ...
+'Tag','cellLabelTypeselect');
+
+
 function updateLabel(source, ~)
    val = source.Value;
    maps = source.String;
    disp(['Updating Labels to : ', maps{val}]);
    disp('------------------');
+   if strcmp(maps{val}, 'Custom')
+       set(handles.custClass, 'Visible', 'on');
+   else
+       set(handles.custClass, 'Visible', 'off');
+   end
    updatePlots();
 end
 
@@ -608,8 +607,8 @@ function plotScatter
             plabel = data.meta.cellType;
         case 'TumorType'
             plabel = data.meta.tumorTypeName;
-        case 'ManualType'
-            plabel = getAnnotatedCells();
+        case 'Custom'
+            plabel = data.meta.CustomType;
         otherwise
             plabel = data.meta.tumorTypeName;
     end
@@ -680,9 +679,28 @@ end
 % Helper functions
 %===============================================================================   
 
-    function [plabel] = getAnnotatedCells()
+    function updateAnnotations()
     
-        data
+        set(handles.annotate, 'String', handles.info.Annotations{handles.selPtIdx});
+
+        % ------------
+        % update Cell Info Panel
+        handles.info.cIndex.String = num2str(handles.selPtIdx);
+        handles.info.TumorTypeLabel_.String = data.meta.tumorTypeName{handles.selPtIdx};
+        handles.info.CellTypeLabel_.String = data.meta.cellType{handles.selPtIdx}; 
+        handles.info.ExpDateLabel_.String = '11-11-2017';
+        handles.info.customLabel_.String = 'cust.';
+        
+        % ------------        
+
+        % Update Custom Label Panel
+        updateCustomPanel
+    
+    end
+    
+
+    function updateCustomPanel()
+    
         
     end
     
