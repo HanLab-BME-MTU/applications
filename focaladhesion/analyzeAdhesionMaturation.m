@@ -382,6 +382,7 @@ focalAdhInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
 
 %% Matching with segmented adhesions
 prevMask=[];
+neighPix = 2;
 for ii=1:nFrames
     % Cell Boundary Mask 
     if existSegmentation
@@ -399,34 +400,38 @@ for ii=1:nFrames
     [B,~,nBD]  = bwboundaries(mask,'noholes');
     cropMaskStack(:,:,ii) = mask;
     % Get the mask for FAs
+    I=MD.channels_(iPaxChannel).loadImage(ii); 
     maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
     maskAdhesion = maskFAs>0 & mask;
+    % FA Segmentation usually over-segments things. Need to chop them off
+    % to smaller ones or filter insignificant segmentation out.
+    xNA=arrayfun(@(x) x.xCoord(ii),tracksNA);
+    yNA=arrayfun(@(x) x.yCoord(ii),tracksNA);
+    maskAdhesion = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA,mask);
     % close once and dilate once
-    maskAdhesion = bwmorph(maskAdhesion,'close');
+    % maskAdhesion = bwmorph(maskAdhesion,'close');
 %         maskAdhesion = bwmorph(maskAdhesion,'thin',1);
 %         Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList','PixelList' );
     % Save focal adhesion information
-    Adhs = regionprops(maskAdhesion,'Centroid','Area','Eccentricity','PixelList','PixelIdxList','MajorAxisLength');
+    Adhs = regionprops(bwconncomp(maskAdhesion,4),'Centroid','Area','Eccentricity','PixelList','PixelIdxList','MajorAxisLength');
     numFAs(ii) = numel(Adhs);
 %         minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1um*1um
 %         minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=0.6um*0.4um
-    minFALength = round((2200/MD.pixelSize_)); %adhesion limit=2um
-    minFCLength = round((1200/MD.pixelSize_)); %adhesion limit=1um
+    minFALength = round((2000/MD.pixelSize_)); %adhesion limit=2um
+    minFCLength = round((600/MD.pixelSize_)); %adhesion limit=0.6um
 
 %         fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
     fcIdx = arrayfun(@(x) x.MajorAxisLength<minFALength & x.MajorAxisLength>minFCLength, Adhs);
     FCIdx = find(fcIdx);
-    adhBound = bwboundaries(maskAdhesion,'noholes');    
+    adhBound = bwboundaries(maskAdhesion,4,'noholes');    
 
     % for larger adhesions
 %         faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
     faIdx = arrayfun(@(x) x.MajorAxisLength>=minFALength, Adhs);
     FAIdx =  find(faIdx);
-    neighPix = 2;
 
     FAs = Adhs(fcIdx | faIdx);
     numAdhs = length(FAs);
-    I=MD.channels_(iPaxChannel).loadImage(ii); 
     for k=1:numAdhs
         focalAdhInfo(ii).xCoord(k) = round(FAs(k).Centroid(1));
         focalAdhInfo(ii).yCoord(k) = round(FAs(k).Centroid(2));
@@ -442,6 +447,9 @@ for ii=1:nFrames
     focalAdhInfo(ii).medianLength = median(focalAdhInfo(ii).length);
     focalAdhInfo(ii).cellArea = sum(mask(:))*(MD.pixelSize_/1000)^2; % in um^2
     focalAdhInfo(ii).FAdensity = numAdhs/focalAdhInfo(ii).cellArea; % number per um2
+    focalAdhInfo(ii).numberFC = sum(fcIdx);
+    focalAdhInfo(ii).FAtoFCratio = sum(faIdx)/sum(fcIdx);
+    focalAdhInfo(ii).numberPureFA = sum(faIdx);
 
     if matchWithFA
         % filter tracks with naMasks
