@@ -7,6 +7,7 @@ ip.addParameter('kinTracks',[],@(x) isa(x,'Tracks'));
 ip.addParameter('kinSphericalCoord',[]);
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
+ip.addParameter('distanceCutOff',0.1,@isnumeric);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
@@ -103,7 +104,7 @@ end
 % track
 
 testKinIdx=p.testKinIdx;
-distanceCutOff=0.1;
+distanceCutOff=p.distanceCutOff;
 
 EB3TermFrames=[EB3tracks.endFrame];
 EB3BegPoleId=arrayfun(@(t) t.poleId(1),EB3tracks);

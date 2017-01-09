@@ -123,18 +123,20 @@ save([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
 outputDirAmira=[outputDirBundle filesep 'testKin' filesep 'Amira'];
 system(['mkdir ' outputDirBundle  filesep 'testKin']);
 %%
+
+for kIdx=testKinIdx
+    kinTrack=kinTracks(kIdx);
+    trackSet=[kinTrack; kinTrack.catchingMT];
+    trackType=[1; zeros(length(kinTrack.catchingMT),1)];
+    bundleInfo=[0 kinTrack.fiber+1];
+    dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
+    amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',false,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
+end
+
+
 if(p.printAll)
-    disp('test')
     %%
-    for kIdx=testKinIdx
-        kinTrack=kinTracks(kIdx);
-        trackSet=[kinTrack; kinTrack.catchingMT];
-        trackType=[1; zeros(length(kinTrack.catchingMT),1)];
-        bundleInfo=[0 kinTrack.fiber+1];
-        dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
-        amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',false,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
-    end
-    
+
     %% For each kinetochore, plot an Amira file with attached mt
     outputDirAmira=[outputDirBundle filesep 'Amira' filesep];
     parfor kIdx=1:length(kinTracks)

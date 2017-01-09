@@ -10,15 +10,15 @@ p=ip.Results;
 
 randomDist=10;
 % Estimate bundle in KinPole axis
-captureDetection(MD)
-detectMTAlignment(MD)
-bundleStatistics(MD)
+captureDetection(MD);
+detectMTAlignment(MD);
+bundleStatistics(MD);
 
 % Randomize Kinetochore and create the associted sphercial coordinates.
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
 kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
 kinTracks=kinTrackData.tracksLabRef;
-[randKinTracks]=randomizeKinetochore(kinTracks,randomDist)
+[randKinTracks]=randomizeKinetochore(kinTracks,randomDist);
 
 % Translate these changes in the detection structure
 outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep]
