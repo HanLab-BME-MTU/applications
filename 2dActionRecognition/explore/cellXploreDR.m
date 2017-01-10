@@ -25,27 +25,70 @@ data.movies = ip.Results.movies;
 colorset = {'brgykop'};
 
 % Initialize Label Dictionary
-initLabelDict();
+initializeDataStruct();
 
 
-    function initLabelDict()
+    function initializeDataStruct()
         % Place commands here for standard setup based on Assaf's input
         % Standard 
-        dictLabels = containers.Map({'TumorType','CellType'},...
-                              {data.meta.tumorTypeName,data.meta.cellType});
-        dictCust = containers.Map({'Custom'},...
-                              {repmat({'none'}, length(data.meta.mindex),1)});
-        data.meta.dictLabels = dictLabels;
-        data.meta.dictCust = dictCust;
-        updateLabelDict();
+        
+        % data structure ---
+        % all are indexed by mindex (respected order)
+        % [DR] data.DR.{DRtype} == store 2D x,y coordinates (use fieldname)
+        % [classLabels] data.meta.class.{classType} ==  store cell array of
+        %   name labels for each data point
+        % [custom-classLabels] data.meta.class.custom.{custClasstype} ==  store cell array of
+        %   name custom labels for each data point (initialize as one class '-' for all)
+        % [notes] data.meta.notes == cell array of notes for each data
+        %   point
+        % [annotations - types] data.meta.anno.set == cell array of annotation
+        %   labels available
+        % [annotations - tags] data.meta.anno.tags == array of cells contatining annotation
+        %   tags (in order of mindex)
+        % [annotation hash map] data.meta.anno.map == dict mapping each
+        %   annotation tag as a key and storing an array of the mindex set , 
+        %   used for rapid recovery of indicies and plotting. updated as
+        %   new annotations are conducted.
+        % 
+        
+        % using containers.Map
+%         dictLabels = containers.Map({'TumorType','CellType'},...
+%                               {data.meta.tumorTypeName,data.meta.cellType});
+%         dictCust = containers.Map({'Custom'},...
+%                               {repmat({'none'}, length(data.meta.mindex),1)});
+%         data.meta.dictLabels = dictLabels;
+%         data.meta.dictCust = dictCust;
+        
+        % [class labels] using struct.
+        data.meta.class.tumorTypeName = data.meta.tumorTypeName;
+        data.meta.class.cellType = data.meta.cellType;
+        data.meta.class.custom.all = repmat({'-'}, length(data.meta.mindex),1);
+ 
+        % [DR types]
+        data.DR.tSNE = data.tSNE;
+        data.DR.PCA = data.PCA;
+        
+        % [notes]
+        data.meta.notes = repmat({''}, length(data.meta.mindex),1);
+        
+        % [Annotations]
+        data.meta.anno.set = {'Ø'};
+        data.meta.anno.tags = repmat({'Ø'}, length(data.meta.mindex),1);
+        
+        updateInfo();
     end
 
-    function updateLabelDict()
-%         labelTypes = { 'TumorType'; 'CellType'; 'Custom'};
-%         handles.info.labels = labelTypes;
-        labelsL = data.meta.dictLabels.keys;
-        labelsC = data.meta.dictCust.keys;
-        handles.info.labelTypes = [labelsL , labelsC];
+    function updateInfo()
+        
+        % using structs
+        handles.info.labelTypes = fieldnames(data.meta.class);
+        handles.info.CustomTypes = fieldnames(data.meta.class.custom);
+
+        % [DR types]
+        handles.info.DRTypes_ = fieldnames(data.DR);
+        % [notes]
+        
+        % [Annotations]
     end
 
 %     function createNewLabel(labelTypeName, classes)
@@ -61,16 +104,13 @@ initLabelDict();
 [~, G2i] = grp2idx(data.meta.tumorTypeName);
 cellTypes = [{ 'All' }, G2']; 
 TumorTypeLabels = [{ 'All' }, G2i']; 
-DRtypes_ = {'PCA'; 'tSNE'};
-
-handles.info.DRtypes_ = DRtypes_;
-handles.info.cellTypes = cellTypes;
-handles.info.TumorTypeLabels = TumorTypeLabels;
-handles.info.Annotations = repmat({'Annotation notes here ...'}, length(data.meta.mindex),1);
-handles.info.CustomLabels = {'none'}; %repmat({'null'}, length(data.meta.mindex),1);
+% DRtypes_ = {'PCA'; 'tSNE'};
+% 
+% handles.info.DRtypes_ = DRtypes_;
+handles.info.Annotations = repmat({'Notes here ...'}, length(data.meta.mindex),1);
 
 % initialize the custom data labels to 'none'
-data.meta.CustomType = repmat({'none'}, length(data.meta.mindex),1);
+% data.meta.CustomType = repmat({'none'}, length(data.meta.mindex),1);
 %===============================================================================
 % Setup main GUI window/figure
 %===============================================================================
@@ -162,7 +202,7 @@ handles.h_movie = uipanel(...
 handles.annotate = uicontrol(...
 'Parent',handles.LabelA,...
 'FontUnits','pixels',...
-'String','Annotation notes here ...',...
+'String','Notes here ...',...
 'Style','edit',...
 'HorizontalAlignment','left',...
 'Position',[5 5 296 22],...
@@ -194,7 +234,7 @@ handles.DRType = uibuttongroup(...
 'Units','pixels',...
 'Title','DR Type',...
 'Tag','uibuttongroup1',...
-'Position',[handles.DataSel.Position(3)-80 handles.DataSel.Position(4)-90 75 75],...
+'Position',[handles.DataSel.Position(3)-68, handles.DataSel.Position(4)-(numel(handles.info.DRTypes_)*25+25), 60, numel(handles.info.DRTypes_)*25+10],...
 'SelectionChangedFcn',@(DRType, event) DRselection(DRType, event));
 
 function DRselection(~, event)
@@ -204,22 +244,21 @@ function DRselection(~, event)
    updatePlots();
 end
 
-handles.h13 = uicontrol(...
-'Parent',handles.DRType,...
-'Units','pixels',...
-'String',DRtypes_{2},...
-'Style','radiobutton',...
-'Value',1,...
-'Position',[11 35 80 17],...
-'Tag','tSNE_button');
+handles.DRradio = gobjects(numel(handles.info.DRTypes_));
+xRB = 5;
+yRB = 8;
+for iDR=1:numel(handles.info.DRTypes_)
+    handles.DRradio(iDR) = uicontrol(...
+        'Parent',handles.DRType,...
+        'Units','pixels',...
+        'String',handles.info.DRTypes_{iDR},...
+        'Style','radiobutton',...
+        'Position',[xRB yRB 55 15],...
+        'Tag',[handles.info.DRTypes_{iDR} '_rbutton']);
+        yRB = yRB + 17;
+end
 
-handles.h14 = uicontrol(...
-'Parent',handles.DRType,...
-'Units','pixels',...
-'String',DRtypes_{1},...
-'Style','radiobutton',...
-'Position',[12 10 80 17],...
-'Tag','PCA_button');
+set(handles.DRradio(1), 'Value', 1);
 
 %-------------------------------------------------------------------------------
 % Cell Label Menus 
@@ -236,9 +275,9 @@ handles.cellLabel = uicontrol(...
 
 handles.custClass = uicontrol(...
 'Parent',handles.LabelA,...
-'String',handles.info.CustomLabels, ...
+'String',handles.info.CustomTypes, ...
 'Style','popupmenu', ...
-'Value',1,...
+'Value',1 ,...
 'Position',[103 257 89 22],...
 'Callback',@updateLabel,...
 'Visible', 'off', ...
@@ -250,7 +289,7 @@ function updateLabel(source, ~)
    maps = source.String;
    disp(['Updating Labels to : ', maps{val}]);
    disp('------------------');
-   if strcmp(maps{val}, 'Custom')
+   if strcmp(maps{val}, 'custom')
        set(handles.custClass, 'Visible', 'on');
    else
        set(handles.custClass, 'Visible', 'off');
@@ -451,47 +490,43 @@ h64 = uicontrol(...
 
 
 % Filter type
+% [Standard Filters]
+handles.filters.tumorTypeName = uicontrol(...
+'Parent',handles.DataSel,...
+'FontUnits','pixels',...
+'Units','pixels',...
+'String',TumorTypeLabels,...
+'Style','popupmenu',...
+'Value',1, ...
+'Position',[10 handles.DataSel.Position(4)-45 85 22],...
+'Callback',@updateFilter,...
+'Tag','popupmenu2');
+
 handles.filterTextT = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
 'String','TumorType',...
+'HorizontalAlignment','left',...
 'Style','text',...
-'Position',[5 handles.DataSel.Position(4)-15 65 13],...
+'Position',[handles.filters.tumorTypeName.Position(1)+handles.filters.tumorTypeName.Position(3)+2, handles.filters.tumorTypeName.Position(2)+7, 65, 13],...
 'Tag','text4',...
-'FontSize',10.66);
+'FontSize', 11);
 
-handles.filters.tumorTypeName = uicontrol(...
-'Parent',handles.DataSel,...
-'FontUnits',get(0,'defaultuicontrolFontUnits'),...
-'Units',get(0,'defaultuicontrolUnits'),...
-'String',TumorTypeLabels,...
-'Style','popupmenu',...
-'Value',1, ...
-'ValueMode',get(0,'defaultuicontrolValueMode'),...
-'Position',[10.6 96.6 85 22],...
-'Callback',@updateFilter,...
-'Tag','popupmenu2');
-
-    function updateFilter(source, ~)
-       val = source.Value;
-       maps = source.String;
-       disp(['Updating Labels to : ', maps{val}]);
-       disp('------------------');
-       updatePlots();
-    end
-
+[x, y, w, h] = getPosH(handles.filterTextT);
 
 % CellType Filter
-
 handles.filtersTextC = uicontrol(...
 'Parent',handles.DataSel,...
 'FontUnits','pixels',...
 'Units','pixels',...
 'String','CellType',...
+'HorizontalAlignment','left',...
 'Style','text',...
-'Position',[99.8 80.6 53.6 13],...
+'Position',[x y-20 65 13],...
 'Tag','CellTypeText',...
-'FontSize',10.66);
+'FontSize',11);
+
+[x, y, w, h] = getPosH(handles.filterTextT);
 
 handles.filters.cellType = uicontrol(...
 'Parent',handles.DataSel,...
@@ -500,11 +535,11 @@ handles.filters.cellType = uicontrol(...
 'String',cellTypes,...
 'Style','popupmenu',...
 'Value',1, ...
-'Position',[10.6 75.8 85 22],...
-'Callback',@updateFilterC,...
+'Position',[x 75.8 85 22],...
+'Callback',@updateFilter,...
 'Tag','popupmenu2');
 
-function updateFilterC(source, ~)
+function updateFilter(source, ~)
    val = source.Value;
    maps = source.String;
    disp(['Updating Labels to : ', maps{val}]);
@@ -513,7 +548,7 @@ function updateFilterC(source, ~)
 end
 
 % ----------------
-% CellType Filter
+% Manual Select Filter
 % ----------------
 
 handles.manualSelText = uicontrol(...
@@ -661,19 +696,16 @@ function plotScatter
     % Select Lableling
     % -----------------
     
-    ilabeltype = handles.cellLabel.Value;    
-    ltyps = handles.cellLabel.String;
-    labeltype = ltyps{ilabeltype};
+    labeltype = handles.cellLabel.String{handles.cellLabel.Value};
 
-    switch labeltype
-        case 'CellType'
-            plabel = data.meta.cellType;
-        case 'TumorType'
-            plabel = data.meta.tumorTypeName;
-        case 'Custom'
-            plabel = data.meta.CustomType;
-        otherwise
-            plabel = data.meta.tumorTypeName;
+    if strcmp(labeltype, 'custom') 
+        custClass_ = handles.custClass.String{handles.custClass.Value};
+        plabel = data.meta.class.custom.(custClass_);
+    elseif ismember(labeltype, fieldnames(data.meta.class))
+        classType_ = handles.cellLabel.String{handles.cellLabel.Value};
+        plabel = data.meta.class.(classType_);
+    else
+        error('Class label not found');
     end
     
     % Generate Manual Legend
@@ -702,7 +734,7 @@ function plotScatter
     % ------------------------
 
     idx_f = applyFilters(handles.filters);
-    
+    handles.dataI = data.meta.mindex(idx_f);
     
     % ------------------------
     % Select DR Visualization
@@ -711,24 +743,35 @@ function plotScatter
     DR_ = {handles.DRType.Children.String};
     DRtype_sel = DR_{logical([handles.DRType.Children.Value])};
     
-    handles.dataI = data.meta.mindex(idx_f);
+    xyDR = data.DR.(DRtype_sel);
+    X = xyDR(:,1);
+    Y = xyDR(:,2);
     
-    switch DRtype_sel
-       case 'PCA'
-           handles.dataX = data.PCA(idx_f,1);
-           handles.dataY = data.PCA(idx_f,2);
-           figure(handles.h1);
-           scatter(axDR, data.PCA(idx_f,1), data.PCA(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:),'filled','ButtonDownFcn', @axDRCallback);
-           set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
-           axDR.Title.String = 'PCA';           
-       case 'tSNE'           
-           handles.dataX = data.tSNE(idx_f,1);
-           handles.dataY = data.tSNE(idx_f,2);
-           figure(handles.h1);
-           scatter(axDR, data.tSNE(idx_f,1), data.tSNE(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:), 'filled', 'ButtonDownFcn', @axDRCallback);
-           axDR.Title.String = 'tSNE';
-        otherwise
-    end
+    handles.dataX = X(idx_f);
+    handles.dataY = Y(idx_f);
+    figure(handles.h1);
+    scatter(axDR, X(idx_f), Y(idx_f), sizeL(idx_f), clabels(idx_f,:,:),'filled',...
+        'ButtonDownFcn', @axDRCallback);
+    set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
+    axDR.Title.String = DRtype_sel;
+           
+%            
+%     switch DRtype_sel
+%        case 'PCA'
+%            handles.dataX = data.PCA(idx_f,1);
+%            handles.dataY = data.PCA(idx_f,2);
+%            figure(handles.h1);
+%            scatter(axDR, data.PCA(idx_f,1), data.PCA(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:),'filled','ButtonDownFcn', @axDRCallback);
+%            set(axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
+%            axDR.Title.String = 'PCA';           
+%        case 'tSNE'           
+%            handles.dataX = data.tSNE(idx_f,1);
+%            handles.dataY = data.tSNE(idx_f,2);
+%            figure(handles.h1);
+%            scatter(axDR, data.tSNE(idx_f,1), data.tSNE(idx_f,2), sizeL(idx_f), clabels(idx_f,:,:), 'filled', 'ButtonDownFcn', @axDRCallback);
+%            axDR.Title.String = 'tSNE';
+%         otherwise
+%     end
     
     axDR.XColor = 'w';
     axDR.YColor = 'w';
@@ -867,7 +910,11 @@ end
     end
 end
 
-
-
+    function [x, y, w, h]=getPosH(Hin)
+       x = Hin.Position(1);
+       y = Hin.Position(2);
+       w = Hin.Position(3); 
+       h = Hin.Position(3); 
+    end
 
 
