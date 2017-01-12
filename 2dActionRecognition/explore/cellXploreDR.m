@@ -22,6 +22,7 @@ data.movies = ip.Results.movies;
 colorset = {'brgykop'};
 handles.cache.plabel = {};
 handles.info.zoom = false;
+handles.info.GAM.state = false; 
 % Initialize Label Dictionary
 initializeDataStruct();
 
@@ -254,9 +255,8 @@ initializeDataStruct();
     'Callback',@SaveNotes_Callback,...
     'Tag','SaveNotes',...
     'FontSize',10);
-
     set(handles.SaveNotesNotice, 'Visible', 'off');
-
+   
     function SaveNotes_Callback(varargin)
         notes = get(handles.notes, 'String');
         data.meta.notes{handles.selPtIdx} = notes;
@@ -264,6 +264,81 @@ initializeDataStruct();
         pause(.5);
         set(handles.SaveNotesNotice, 'Visible', 'off');
     end
+    
+%-------------------------------------------------------------------------------
+% Movie Group Analysis
+%-------------------------------------------------------------------------------
+    
+    handles.analyzeImages = uicontrol(...
+    'Parent',handles.DataSel,...
+    'Style', 'pushbutton',...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'String','Analyze Cells',...
+    'Position',[handles.DataSel.Position(3)-250 3 125 20],...
+    'Callback',@analyzeGroup_Callback,...
+    'Tag','SaveNotes',...
+    'FontSize',12);  
+
+    function analyzeGroup_Callback(varargin)
+        % Take filter selected cells and generate new window to play
+        % movies.
+        h_ = findobj('-regexp','Tag', 'subgroupA');
+        if isempty(h_)
+            createAnalyzeGroupFig;
+            updateAnalyzeGroupFig;
+        else
+            updateAnalyzeGroupFig;
+        end
+    end
+    
+        function createAnalyzeGroupFig()
+             xsizeF = 600;
+             ysizeF = 700;
+            posMP = get(handles.h1, 'Position');
+            % Create movieGroup
+                handles.groupA = figure(...
+                'Units','pixels',...
+                'Position',[posMP(1)+posMP(3)+10 100 xsizeF ysizeF],...
+                'CurrentAxesMode','manual',...
+                'IntegerHandle','on',...
+                'MenuBar','none',...
+                'Name','Cell Sub-Group Analysis',...
+                'NumberTitle','off',...
+                'Tag','subgroupA',...
+                'Resize','off');
+            handles.info.GAM.state = true;
+        end
+    
+        function updateAnalyzeGroupFig()
+            disp('Fig already made');
+            idx_f = applyFilters(handles.filters);
+            handles.info.GAM.idx_f = idx_f;
+            figure(handles.groupA);
+            numM = length(idx_f);
+            if numM > 20
+                msgbox('Too Many Cells selected (must be <20)');
+            else
+                handles.GAMs = gobjects([1 numM]);
+                for i=1:numM
+                    sp = subplot(numM,2,i);
+                    sp.XTick = [];
+                    sp.YTick = [];
+                    sp.Box = 'off';
+                    sp.XColor = 'w';
+                    sp.YColor = 'w';
+                    sp.Color = [1 1 1];
+                    sp.Units = 'Pixels';
+                    handles.GAMs(i) = sp;
+
+                    imagesc(data.movies{idx_f(i)}(:,:,1), 'Parent', handles.GAMs(i), 'HitTest', 'off');
+                    set(handles.GAMs(i), 'XTick', []);
+                    set(handles.GAMs(i), 'YTick', []);
+                    colormap(handles.GAMs(i), gray);                     
+                end
+            end
+            % (add legend for cells)
+        end
 end
 
 initMainGUI();
@@ -997,6 +1072,7 @@ initMovieDisplay();
             val = source.Value;
             handles.movies.fidx = round(val);
             updateMovie();
+            updateMovieGAM([]);
         end
 
     
@@ -1014,10 +1090,24 @@ initMovieDisplay();
         while (i <= nf) && (handles.selPtIdx == tidx)
             handles.movies.fidx = i;
             updateMovie();
+            updateMovieGAM(i);
             pause(.05);
             i=i+1;
         end
     end
+
+    function updateMovieGAM(Fnum)
+        if ~isempty(data.movies) && handles.info.GAM.state
+            idx_f = handles.info.GAM.idx_f;
+            for i=1:length(idx_f)
+                imagesc(data.movies{idx_f(i)}(:,:,handles.movies.fidx),...
+                        'Parent', handles.GAMs(i), 'HitTest', 'off');
+                set(handles.GAMs(i), 'XTick', []);
+                set(handles.GAMs(i), 'YTick', []);
+                colormap(handles.GAMs(i), gray);    
+            end
+        end
+    end        
 
     function updateMovie()
         if ~isempty(data.movies)
