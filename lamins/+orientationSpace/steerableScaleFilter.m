@@ -19,7 +19,7 @@ end
 
 angularOrder = 8;
 nAngles = angularOrder*2+1;
-angles = 0:nAngles-1;
+angles = 0:angularOrder;
 angles = angles/nAngles*pi;
 %angles = (0:1/nAngles/2:(1/2-1/nAngles/2))*pi;
 % angles = 0:1/nAngles/2*pi:acos(scale);
@@ -31,8 +31,9 @@ disp(1/2/pi/max(scales));
 % nAngles= length(angles);
 
 F = OrientationSpaceFilter(scales,scales,angularOrder,'none');
-F = F(logical(eye(nAngles)));
+F = F(logical(eye(length(F))));
 F.setupFilter(sz);
+F(angularOrder+2:nAngles) = F(end:-1:2);
 
 scaleFilter = zeros(size(F(1).F));
 
