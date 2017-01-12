@@ -24,6 +24,7 @@ data.movies = ip.Results.movies;
 % Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
 handles.cache.plabel = {};
+handles.cache.highAnno = {};
 % Initialize Label Dictionary
 initializeDataStruct();
 
@@ -86,8 +87,10 @@ initializeDataStruct();
         data.meta.notes = repmat({''}, length(data.meta.mindex),1);
         
         % [Annotations]
-        data.meta.anno.set = {'�'};
-        data.meta.anno.tags = repmat({'�'}, length(data.meta.mindex),1);
+        data.meta.anno.set = {};
+        data.meta.anno.tags = repmat({}, length(data.meta.mindex),1);
+%         data.meta.anno.tagMap = containers.Map({'-'},{{0}}, 'UniformValues', false);
+        data.meta.anno.tagMap = containers.Map('KeyType','char','ValueType', 'any');
         
         updateInfo();
     end
@@ -202,7 +205,7 @@ handles.h2_DR = uipanel('Parent',handles.mainP, 'FontUnits','pixels', 'Units','p
 handles.LabelA = uipanel('Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
 'Title','Cell Labeling',...
 'Tag','uipanel_annotate',...
-'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.DataSel.Position(2), xSizeLabelPanel 300],...
+'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.DataSel.Position(2), xSizeLabelPanel 330],...
 'FontSize',13);
 
 handles.h_movie = uipanel(...
@@ -250,6 +253,7 @@ handles.SaveNotesButton = uicontrol(...
 'Callback',@SaveNotes_Callback,...
 'Tag','SaveNotes',...
 'FontSize',10);
+
 
 handles.SaveNotesNotice = uicontrol(...
 'Parent',handles.LabelA,...
@@ -319,7 +323,7 @@ set(handles.DRradio(1), 'Value', 1);
     'FontUnits','pixels',...
     'Units', 'pixels', ...
     'Value',1, ...
-    'Position', [10 275 80 0],...
+    'Position', [10 handles.LabelA.Position(4)-25 80 0],...
     'Callback',@updateLabel,...
     'Tag','cellLabelTypeselect',...
     'FontSize',11);
@@ -354,7 +358,7 @@ set(handles.DRradio(1), 'Value', 1);
 
 
     % Manual Label Legend
-    opts = {'Parent', handles.LabelA, 'Units', 'pixels', 'Position', [11 161 33 83],...
+    opts = {'Parent', handles.LabelA, 'Units', 'pixels', 'Position', [11 handles.LabelA.Position(4)-150 33 83],...
             'Box' 'off','Color',[1 1 1],'XTick',[],'YTick',[]};
     axLegend = axes(opts{:});
     handles.axLegend = axLegend;
@@ -397,7 +401,7 @@ updateAnnotationPanel()
         
         [x, y, w, h] = getPosH(handles.LabelA);
             
-            if strcmp(handles.cellLabel.String{handles.cellLabel.Value}, 'Annotate') 
+%             if strcmp(handles.cellLabel.String{handles.cellLabel.Value}, 'Annotate') 
                 
                 if ~isempty(handles.annoPanel)
                     delete(handles.annoPanel);
@@ -409,50 +413,101 @@ updateAnnotationPanel()
                 'FontUnits','pixels',...
                 'Units','pixels',...
                 'Title','Annotations',...
+                'TitlePosition', 'centertop',...
                 'Tag','annoPanel',...
-                'Position', [w-110, 30, 100, 45+numA*25], ...
+                'Position', [w-110, 30, 100, 55+(numA)*15], ...
                 'FontSize', 12);
                 
                 xA=5; yA=5;
                 
                 handles.anno = gobjects(numA);
+                handles.delAnno = gobjects(numA);
+                handles.highAnno = gobjects(numA);
+
+                % Add button for adding new annotation types
+               handles.addAnno = uicontrol(...
+                'Parent',handles.annoPanel,...
+                'Units','pixels',...
+                'FontUnits','pixels',...
+                'String', 'Add New',...
+                'Style', 'pushbutton',...
+                'Position',[xA+15 yA 55 15],...
+                'Tag','addAnnoTag',...
+                'FontSize', 11,...
+                'HorizontalAlignment', 'center',...
+                'Callback',@addAnnotation_callback);  
+                
+                yA = yA + 20;
                 
                 for ii=1:numA
-                   handles.anno(ii) = uicontrol(...
-                    'Parent',handles.annoPanel,...
-                    'Units','pixels',...
-                    'String', data.meta.anno.set{ii},...
-                    'Style','checkbox',...,
-                    'Value', 0,...
-                    'Position',[xA yA 75 15],...
-                    'Tag',[data.meta.anno.set{ii} 'checkbox'],...
-                    'FontUnits','pixels',...
-                    'FontSize', 10,...
-                    'HorizontalAlignment', 'right');
-                    yA = yA + 15;
+                   
+                        % check tagMap
+                        key = data.meta.anno.set{ii};
+                        val = data.meta.anno.tagMap(key);
+                        if ismember(handles.selPtIdx,val)
+                           fontstyle = 'bold';
+                        else
+                           fontstyle = 'normal';
+                        end
+                        
+                        handles.anno(ii) = uicontrol(...
+                        'Parent',handles.annoPanel,...
+                        'Units','pixels',...
+                        'String', data.meta.anno.set{ii},...
+                        'Style','checkbox',...,
+                        'Value', ismember(handles.selPtIdx,val), ...
+                        'Position',[xA+10 yA 75 15],...
+                        'Tag',[data.meta.anno.set{ii} 'checkbox'],...
+                        'FontUnits','pixels',...
+                        'FontSize', 10,...
+                        'FontWeight', fontstyle,...
+                        'HorizontalAlignment', 'right',...
+                        'Callback', @tagDataPoint);
+
+                       % Add Delete button
+                       handles.delAnno(ii) = uicontrol(...
+                        'Parent',handles.annoPanel,...
+                        'Units','pixels',...
+                        'FontUnits','pixels',...
+                        'String', 'X',...
+                        'Style', 'pushbutton',...
+                        'Position',[xA+75 yA 15 15],...
+                        'Tag',[data.meta.anno.set{ii} 'delete'],...
+                        'FontSize', 11,...
+                        'HorizontalAlignment', 'center',...
+                        'Callback',@delAnnotation_callback);                    
+
+                        UserData = {handles.anno(ii)};
+                        set(handles.delAnno(ii), 'UserData', UserData);
+                       
+                        
+                       % Add highlight toggle
+                       % check previous state (use containers.Map)
+                       preVal = 0;
+                       handles.highAnno(ii) = uicontrol(...
+                        'Parent',handles.annoPanel,...
+                        'Units','pixels',...
+                        'FontUnits','pixels',...
+                        'String', '',...
+                        'Style', 'radiobutton',...
+                        'Value', preVal,...
+                        'Position',[xA-5 yA 15 15],...
+                        'Tag',[data.meta.anno.set{ii} 'delete'],...
+                        'FontSize', 11,...
+                        'HorizontalAlignment', 'center',...
+                        'Callback',@togAnnotation_callback);                    
+
+                        UserData = {handles.anno(ii)};
+                        set(handles.highAnno(ii), 'UserData', UserData);
+                        
+                        
+                        yA = yA + 15;
+                        
                 end
                 
-                % Add button for adding new annotation types
-                   handles.addAnno = uicontrol(...
-                    'Parent',handles.annoPanel,...
-                    'Units','pixels',...
-                    'FontUnits','pixels',...
-                    'String', 'Add New',...
-                    'Style', 'pushbutton',...
-                    'Position',[xA+15 yA+15 55 15],...
-                    'Tag',[data.meta.anno.set{ii} 'checkbox'],...
-                    'FontSize', 11,...
-                    'HorizontalAlignment', 'center',...
-                    'Callback',@addAnnotation_callback);         
-                
-            else
-                set(handles.annoPanel, 'Visible', 'off');
-                set(handles.annoPanel.Children, 'Visible', 'off');
-            end
     end
 
     function addAnnotation_callback(varargin)
- 
         prompt={'Enter new Annotation Tag'};
         name = 'Add Annotation';
         default_text = {''};
@@ -460,31 +515,57 @@ updateAnnotationPanel()
         if ~isempty(newAnnotationString)
             % Add new tag to set
             addAnnotation(newAnnotationString);
-
         end
     end
 
     function addAnnotation(newStr)
-
-        % Check if already exists
         if (ismember(newStr, data.meta.anno.set))
             disp('Tag already exists');
         else
             data.meta.anno.set = {data.meta.anno.set{:}, newStr{:}};
-            disp(['Added annotation tag' newStr]);
+            data.meta.anno.tagMap(newStr{:}) = 0;
+            disp(['Added annotation tag' newStr{:}]);
             updateAnnotationPanel();
         end
-
     end
 
-    function deleteAnnotation_callback()
-    
-        
-        
-        
-    
+    function togAnnotation_callback(src, ~)
+%         annoH = src.UserData{:};
+%         delStr = annoH.String;
+%         deleteAnnotation(delStr);
+          
+          updateFilter(handles.filterAnnoMenu, []);
     end
 
+
+    function delAnnotation_callback(src, ~)
+        annoH = src.UserData{:};
+        delStr = annoH.String;
+        deleteAnnotation(delStr);
+    end
+
+    function deleteAnnotation(tagName)
+        assert(ismember(tagName, data.meta.anno.set));
+        setOld = data.meta.anno.set;
+        newSet = setxor(setOld,tagName);
+        data.meta.anno.set = newSet;
+        remove(data.meta.anno.tagMap, {tagName});
+        updateAnnotationPanel();
+    end
+
+
+    function tagDataPoint(src, ~)
+        key = src.String;
+        if src.Value == src.Max
+            data.meta.anno.tagMap(key) = unique([data.meta.anno.tagMap(key), handles.selPtIdx]);
+            set(src, 'FontWeight', 'Bold');
+        else
+            oldSet = data.meta.anno.tagMap(key);
+            newSet = setxor(oldSet, handles.selPtIdx);
+            data.meta.anno.tagMap(key) = newSet;    
+            set(src, 'FontWeight', 'Normal');
+        end       
+    end
 
 %===============================================================================
 % Data Label Tips / Custom Info
@@ -657,6 +738,35 @@ for iF=1:numel(handles.info.filterTypes)
         
 end
 
+% [Filter by Annotations]
+handles.filterAnnotPanel = uipanel('Parent',handles.DataSel,...
+'FontUnits','pixels','Units','pixels',...
+'Title','Filter by Annotation',...
+'Tag','uipanel_select',...
+'TitlePosition', 'lefttop',...
+'Position',[7 handles.DataSel.Position(4)-35-20-yFT 110 35],...
+'FontSize', 10);    
+
+handles.filterAnnoMenu = uicontrol(...
+'Parent',handles.filterAnnotPanel,...
+'Units','pixels',...
+'String',{'No','Yes'},...
+'Style','popupmenu',...
+'Position',[5 7 100 15],...
+'Callback',@updateFilterAnno,...
+'Tag','anno_menuFilter',...
+'FontWeight','bold');
+
+
+function updateFilterAnno(source, ~)
+   val = source.Value;
+   maps = source.String;
+   disp(['Updating Labels to : ', maps{val}]);
+   disp('------------------');
+   handles.cache.highAnno = handles.highAnno;
+   updatePlots();
+end
+
 updateCustomPanels();
 
 % [Custom Filters]
@@ -742,6 +852,7 @@ function updateManSel(source, ~)
    disp(['Updating manSelect to : ', num2str(val)]);
    disp('------------------');
    handles.selPtIdx = val;
+   updateAnnotationPanel();
    updatePlots();
    playMovie();
 end
@@ -891,11 +1002,6 @@ function plotScatter
         set(handles.axLegend, 'Visible', 'on');
     end
     
-%     if ~strcmp(labeltype, 'Annotate')
-%         set(handles.axLegend, 'Visible', 'on');
-%     else
-%         set(handles.axLegend, 'Visible', 'off');
-%     end
 
     % get labels for plot
     clabels = grp2idx(plabel);
@@ -908,6 +1014,9 @@ function plotScatter
         clabels(ji,:) = [0 1 1]; %[1 0 .5];
         sizeL(ji,1) = 100;
     end
+
+    
+    
     
     % ------------------------
     % Filter SubSet Data
@@ -945,7 +1054,7 @@ end
 % Helper functions
 %===============================================================================   
 
-    function updateAnnotations()
+    function updateCellInfo()
     
         set(handles.notes, 'String', data.meta.notes{handles.selPtIdx});
 
@@ -966,13 +1075,13 @@ end
     
 
     function updateCustomPanel()    
-        updateAnnotationPanel()
+%         updateAnnotationPanel()
     end
     
     function updatePlots
         refresh(handles.h1);
-        updateAnnotations();
-        updateAnnotationPanel();
+        updateCellInfo();
+%         updateAnnotationPanel();
         plotScatter;
     end
     
@@ -989,7 +1098,8 @@ end
                ['yDR: ' num2str(objs.Position(2))]};
 
         set(handles.manualSel, 'Value', handles.selPtIdx);
-        updateAnnotations;
+        updateAnnotationPanel;
+        updateCellInfo;
         playMovie();
 %         alldatacursors = findall(handles.h1,'type','hggroup');
 %         set(alldatacursors,'FontSize', 4);
@@ -1010,7 +1120,8 @@ end
         end
      
         plotScatter; 
-        updateAnnotations;
+        updateCellInfo;
+        updateAnnotationPanel
         playMovie;        
 
     end
@@ -1043,7 +1154,24 @@ end
         
         % then filter custom classes
         
-        
+        % then filter annotations
+        % check which annotation RadioButtons are selected
+        numA = numel(data.meta.anno.set);
+        if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes') && (numA >= 1)
+            disp('Filtering by selected annotations');
+            setInx = [];
+            for i=1:numA
+                h_ = handles.highAnno(i);
+                if (h_.Value == 1)
+                    annoh = h_.UserData{:};
+                    if annoh.Value == 1
+                        setInx = [data.meta.anno.tagMap(annoh.String), setInx]; 
+                    end
+                end
+            end
+            idx_f = unique(setInx);
+            idx_out = intersect(idx_f, idx_out);
+        end
         
         
     end
