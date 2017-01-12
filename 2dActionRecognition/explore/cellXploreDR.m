@@ -630,6 +630,7 @@ createAnnotationPanel()
         remove(data.meta.anno.tagMap, {tagName});
         remove(handles.info.anno.RB, {tagName});
         createAnnotationPanel();
+        updatePlots();
     end
 
     function tagDataPoint(src, ~)
