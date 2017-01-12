@@ -432,7 +432,7 @@ createAnnotationPanel()
         'FontSize', 11,...
         'HorizontalAlignment', 'center',...
         'Callback',@addAnnotation_callback);  
-        yA = yA + 25;
+        yA = yA + 15;
 
         for ii=1:numA
             % check tagMap
@@ -458,7 +458,7 @@ createAnnotationPanel()
             'HorizontalAlignment', 'right',...
             'Callback', @tagDataPoint);
             if ismember(handles.selPtIdx,val)
-               set(handles.anno(ii), 'BackgroundColor',[1 .75 .25]); 
+               set(handles.anno(ii), 'BackgroundColor',[0 1 1]); 
             end
 
            % Add Delete button
@@ -499,19 +499,13 @@ createAnnotationPanel()
             'HorizontalAlignment', 'center',...
             'Callback',@togAnnotation_callback);                    
             
-%             set(handles.highAnno(ii), 'BackgroundColor',[.94 .94 .94]);
-
             if preVal == 1
                 if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes')
                     set(handles.highAnno(ii), 'BackgroundColor',[0 1 0]);
-%                 else
-%                     set(handles.highAnno(ii), 'BackgroundColor',[.94 .94 .94]);
                 end
             else
                 if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes')
                     set(handles.highAnno(ii), 'BackgroundColor',[1 0 0]);
-%                 else
-%                     set(handles.highAnno(ii), 'BackgroundColor',[.94 .94 .94]);
                 end                
             end
 
@@ -527,7 +521,7 @@ createAnnotationPanel()
                 'FontUnits','pixels',...
                 'String', 'Tag Cell',...
                 'Style', 'text',...
-                'Position',[handles.annoPanel.Position(3)/2-55/2-10 20 35 10],...
+                'Position',[handles.annoPanel.Position(3)/2-55/2-10 yA 35 10],...
                 'FontSize', 8,...
                 'HorizontalAlignment', 'left');               
                 textAnno = uicontrol(...
@@ -536,7 +530,7 @@ createAnnotationPanel()
                 'FontUnits','pixels',...
                 'String', 'Delete',...
                 'Style', 'text',...
-                'Position',[handles.annoPanel.Position(3)-35 20 35 10],...
+                'Position',[handles.annoPanel.Position(3)-35 10 35 10],...
                 'FontSize', 8); 
             
                 textAnno = uicontrol(...
@@ -545,7 +539,7 @@ createAnnotationPanel()
                 'FontUnits','pixels',...
                 'String', 'FilterBy',...
                 'Style', 'text',...
-                'Position',[1 20 35 10],...
+                'Position',[1 yA 35 10],...
                 'FontSize', 8,...
                 'HorizontalAlignment', 'left');   
             end
@@ -560,7 +554,7 @@ createAnnotationPanel()
             val = data.meta.anno.tagMap(key);
             if ismember(handles.selPtIdx, val)
                fontstyle = 'bold';
-               set(hanno, 'BackgroundColor',[1 .75 .25]);    
+               set(hanno, 'BackgroundColor',[0 1 1]);    
             else
                fontstyle = 'normal';
                set(hanno, 'BackgroundColor',[.94 .94 .94]);
@@ -600,7 +594,6 @@ createAnnotationPanel()
           updateFilter(handles.filterAnnoMenu, []);
     end
 
-
     function checkRB_on(src)
       annoH = src.UserData{:};
       key = annoH.String;
@@ -622,8 +615,6 @@ createAnnotationPanel()
 
       end
     end
-
-
 
     function delAnnotation_callback(src, ~)
         annoH = src.UserData{:};
@@ -857,6 +848,7 @@ function updateFilterAnno(source, ~)
    maps = source.String;
    disp(['Updating Filter by Anno to : ', maps{val}]);
    disp('------------------');
+   updateAnnotationPanel();
    updatePlots();
 end
 
