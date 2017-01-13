@@ -23,6 +23,7 @@ colorset = {'brgykop'};
 handles.cache.plabel = {};
 handles.info.zoom = false;
 handles.info.GAM.state = false; 
+handles.GAMfig = {};
 % Initialize Label Dictionary
 initializeDataStruct();
 
@@ -283,8 +284,9 @@ initializeDataStruct();
     function analyzeGroup_Callback(varargin)
         % Take filter selected cells and generate new window to play
         % movies.
-        h_ = findobj('-regexp','Tag', 'subgroupA');
-        if isempty(h_)
+%         h_ = findobj('-regexp','Tag', 'subgroupA');
+%         handles.info.GAM.fig = {}
+        if isempty(handles.GAMfig)
             createAnalyzeGroupFig;
             updateAnalyzeGroupFig;
         else
@@ -293,11 +295,11 @@ initializeDataStruct();
     end
     
         function createAnalyzeGroupFig()
-             xsizeF = 600;
-             ysizeF = 700;
+             xsizeF = 650;
+             ysizeF = 900;
             posMP = get(handles.h1, 'Position');
             % Create movieGroup
-                handles.groupA = figure(...
+                handles.GAMfig = figure(...
                 'Units','pixels',...
                 'Position',[posMP(1)+posMP(3)+10 100 xsizeF ysizeF],...
                 'CurrentAxesMode','manual',...
@@ -306,22 +308,34 @@ initializeDataStruct();
                 'Name','Cell Sub-Group Analysis',...
                 'NumberTitle','off',...
                 'Tag','subgroupA',...
-                'Resize','off');
-            handles.info.GAM.state = true;
+                'Resize','off',...
+                'CloseRequestFcn',@closeGAMfig);
         end
     
+        function closeGAMfig(varargin)
+            handles.GAMfig = {};
+            delete(varargin{1});
+        end
+        
         function updateAnalyzeGroupFig()
             disp('Fig already made');
             idx_f = applyFilters(handles.filters);
             handles.info.GAM.idx_f = idx_f;
-            figure(handles.groupA);
             numM = length(idx_f);
             if numM > 20
                 msgbox('Too Many Cells selected (must be <20)');
+                close(handles.GAMfig)
+                handles.GAMfig = {};
             else
+                figure(handles.GAMfig);
+                handles.info.GAM.state = true;
                 handles.GAMs = gobjects([1 numM]);
                 for i=1:numM
-                    sp = subplot(numM,2,i);
+                    if numM < 10
+                        sp = subplot(numM,1,i);
+                    else
+                        sp = subplot(ceil(numM/2),2,i);
+                    end
                     sp.XTick = [];
                     sp.YTick = [];
                     sp.Box = 'off';
@@ -1080,6 +1094,7 @@ initMovieDisplay();
             fidx_ = round(eventdata.AffectedObject.Value);
             handles.movies.fidx = round(fidx_);
             updateMovie();
+            updateMovieGAM([]);
         end
     end
 
