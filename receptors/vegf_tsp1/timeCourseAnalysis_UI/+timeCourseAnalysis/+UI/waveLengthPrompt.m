@@ -11,7 +11,7 @@ function [ emissionWL, emissionStr, canceled ] = waveLengthPrompt( )
     emissionWL = -1;
     emissionStr = [];
     
-    emissionStr = inputdlg('Enter wavelength:','Enter wavelength:');
+    emissionStr = inputdlg('Enter emission wavelength:','Enter emission wavelength:');
     if(isempty(emissionStr))
         canceled = true;
     else
