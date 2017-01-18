@@ -4,8 +4,8 @@ function [] = parseThirdGenXls(experimentsFname,cellTypeFname)
 addpath(genpath('/home2/azaritsky/code/applications/2dActionRecognition/xlsReaders'));
 
 if nargin < 2
-    experimentsFname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/MetaData/ThirdGen20170107.xlsx';
-    cellTypeFname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/MetaData/CellType20160111.xlsx';
+    experimentsFname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/MetaData/ThirdGen20170118_noControl.xlsx';
+    cellTypeFname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/MetaData/CellTypeThirdGen20170118.xlsx';
 end
 
 [pathstr,name,ext] = fileparts(experimentsFname);
