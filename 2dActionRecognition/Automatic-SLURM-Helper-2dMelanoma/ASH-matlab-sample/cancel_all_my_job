@@ -1,1 +1,0 @@
-squeue | grep swan | awk '{print $1}' | xargs scancel
