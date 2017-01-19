@@ -295,8 +295,8 @@ initializeDataStruct();
     end
     
         function createAnalyzeGroupFig()
-             xsizeF = 600;
-             ysizeF = 800;
+             xsizeF = 300;
+             ysizeF = 500;
             posMP = get(handles.h1, 'Position');
             % Create movieGroup
                 handles.GAMfig = figure(...
