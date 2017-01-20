@@ -9,14 +9,14 @@ function [mask, proj] = getCellMask(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('Channel', 1, @isposint);
-ip.addParamValue('Connect', true, @islogical);
-ip.addParamValue('Display', false, @islogical);
-ip.addParamValue('ShowHistogram', false, @islogical);
-ip.addParamValue('ModeRatio', 0.8, @isscalar);
-ip.addParamValue('Mode', 'maxproj', @(x) any(strcmpi(x, {'maxproj', 'bgproj', 'density'})));
-ip.addParamValue('Validate', false, @islogical);
+ip.addParameter('Overwrite', false, @islogical);
+ip.addParameter('Channel', 1, @isposint);
+ip.addParameter('Connect', true, @islogical);
+ip.addParameter('Display', false, @islogical);
+ip.addParameter('ShowHistogram', false, @islogical);
+ip.addParameter('ModeRatio', 0.8, @isscalar);
+ip.addParameter('Mode', 'maxproj', @(x) any(strcmpi(x, {'maxproj', 'bgproj', 'density'})));
+ip.addParameter('Validate', false, @islogical);
 ip.parse(data, varargin{:});
 
 nd = numel(data);

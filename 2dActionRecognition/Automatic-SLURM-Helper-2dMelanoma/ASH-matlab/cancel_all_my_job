@@ -1,1 +1,0 @@
-squeue | grep azaritsk | awk '{print $1}' | xargs scancel

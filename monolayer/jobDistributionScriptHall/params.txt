@@ -9,7 +9,7 @@
 runHallOneAtATime.m
 
 # 2. total number of tasks
-2700
+103
 
 # 3. number of tasks per node
 16

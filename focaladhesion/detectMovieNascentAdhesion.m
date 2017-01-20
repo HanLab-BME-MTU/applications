@@ -68,10 +68,10 @@ tifPath = [imgPath filesep 'tifs'];
 figPath = [imgPath filesep 'figs'];
 
 if ~exist(figPath,'dir')
-    mkdir(imgPath);
-    mkdir(dataPath);
-    mkdir(tifPath);
-    mkdir(figPath);
+    mkClrDir(imgPath);
+    mkClrDir(dataPath);
+    mkClrDir(tifPath);
+    mkClrDir(figPath);
 end
 
 %% --------------- Sub-resolution object detection ---------------%%% 
@@ -91,6 +91,7 @@ jformat = ['%.' '3' 'd'];
 pixSize = movieData.pixelSize_;
 minSize = round((500/pixSize)*(500/pixSize)); %adhesion limit=0.25 um2
 minEcc = 0.7;
+psAlpha = 0.0001;%This will ensure 
 
 disp(['Paxillin channel was assumed to be in channel ' num2str(iPax) '.'])
 disp('Results will be saved under:')
@@ -125,15 +126,18 @@ for j=1:movieData.nFrames_
     maskAdhesion = blobSegmentThreshold(I,minSize,0,mask);
     maskAdhesionFine = blobSegmentThreshold(I,0); % mask for all adhesions without minSize
 
-    labelAdhesion = bwlabel(maskAdhesion);
+%     labelAdhesion = bwlabel(maskAdhesion);
     Adhs = regionprops(maskAdhesion,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength');
 %         minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
 
-    adhIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
-    Adhs = Adhs(adhIdx);
-    labelAdhesion = false(size(maskAdhesion));
+    adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
+    FAlengthAll = arrayfun(@(x) x.MajorAxisLength, Adhs);
+    maxLength=mean(FAlengthAll)+5*std(FAlengthAll);
+    adhLengthIdx = FAlengthAll<maxLength;
+    Adhs = Adhs(adhEccIdx & adhLengthIdx);
+    labelAdhesion = zeros(size(maskAdhesion));
     for kk=1:numel(Adhs)
-        labelAdhesion(Adhs(kk).PixelIdxList)=true;
+        labelAdhesion(Adhs(kk).PixelIdxList)=kk;
     end
     maskAdhesion = logical(labelAdhesion);
     maskAdhesionC = imcomplement(maskAdhesion);
@@ -151,28 +155,35 @@ for j=1:movieData.nFrames_
         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
     end
     pstruct = pointSourceDetection(I, psfSigma,  ...
-        'Alpha',0.00001,'Mask',ultimateMask);
+        'Alpha',psAlpha,'Mask',ultimateMask);
         % filter out points where overall intensity is in the noise level
 %     pixelIntenMargin = I(~mask);
 %     maxIntBg=quantile(pixelIntenMargin,0.9999);
 %     psInt = pstruct.A+pstruct.c;
 %     idxSigCCP = psInt>maxIntBg;
-    idxSigCCP = pstruct.A>0;
+    if ~isempty(pstruct)
+        idxSigCCP = pstruct.A>0;
 
-    nascentAdhInfo(j).xCoord = [round(pstruct.x(idxSigCCP)'), round(pstruct.x_pstd(idxSigCCP)')];
-    nascentAdhInfo(j).yCoord = [round(pstruct.y(idxSigCCP)'), round(pstruct.y_pstd(idxSigCCP)')];
-    nascentAdhInfo(j).amp = [pstruct.A(idxSigCCP)', pstruct.A_pstd(idxSigCCP)'];
-    if ~isempty(bandwidth)
-        nascentAdhInfo(j).bandMask = bandMask;
-    end
-    nascentAdhInfo(j).numberNA = length(pstruct.x(idxSigCCP));
-    if ~isempty(bandwidth)
-        nascentAdhInfo(j).bandArea = sum(sum(bandMask))*(pixSize/1000)^2; % in um^2
+        nascentAdhInfo(j).xCoord = [round(pstruct.x(idxSigCCP)'), round(pstruct.x_pstd(idxSigCCP)')];
+        nascentAdhInfo(j).yCoord = [round(pstruct.y(idxSigCCP)'), round(pstruct.y_pstd(idxSigCCP)')];
+        nascentAdhInfo(j).amp = [pstruct.A(idxSigCCP)', pstruct.A_pstd(idxSigCCP)'];
+        if ~isempty(bandwidth)
+            nascentAdhInfo(j).bandMask = bandMask;
+        end
+        nascentAdhInfo(j).numberNA = length(pstruct.x(idxSigCCP));
+        if ~isempty(bandwidth)
+            nascentAdhInfo(j).bandArea = sum(sum(bandMask))*(pixSize/1000)^2; % in um^2
+        else
+            nascentAdhInfo(j).bandArea = sum(ultimateMask(:))*(pixSize/1000)^2; % in um^2
+        end
+        nascentAdhInfo(j).NAdensity = nascentAdhInfo(j).numberNA/nascentAdhInfo(j).bandArea; % number per um2
     else
-        nascentAdhInfo(j).bandArea = sum(ultimateMask(:))*(pixSize/1000)^2; % in um^2
+        nascentAdhInfo(j).xCoord = [];
+        nascentAdhInfo(j).yCoord = [];
+        nascentAdhInfo(j).amp = [];
+        nascentAdhInfo(j).numberNA =0;
+        nascentAdhInfo(j).NAdensity = NaN; % number per um2
     end
-    nascentAdhInfo(j).NAdensity = nascentAdhInfo(j).numberNA/nascentAdhInfo(j).bandArea; % number per um2
-
     % FA info
     % focal contact (FC) analysis
 %         FCIdx = find(adhIdx);
@@ -195,6 +206,7 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).cellArea = sum(mask(:))*(pixSize/1000)^2; % in um^2
     focalAdhInfo(j).FAdensity = numAdhs/focalAdhInfo(j).cellArea; % number per um2
     focalAdhInfo(j).maskFA = maskAdhesion;
+    focalAdhInfo(j).labelFA = labelAdhesion;
 
     % plotting detected adhesions
     if plotGraph
@@ -203,13 +215,19 @@ for j=1:movieData.nFrames_
         combI(:,:,2) = dI+double(maskAdhesion)*.5;
         combI(:,:,3) = dI;%+double(ultimateMask)*.5;
         imshow(combI,[]); hold on
-        plot(pstruct.x,pstruct.y,'ro')
+        if ~isempty(pstruct)
+            plot(pstruct.x,pstruct.y,'ro')
+        end
         hgexport(h1,strcat(tifPath,'/imgNAFA',num2str(j,jformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')
         hold off
         close(h1)
     end
-    disp(['detected ' num2str(length(pstruct.x)) ' nascent adhesions and ' num2str(numAdhs) ' focal adhesions for ' num2str(j) 'th frame.'])
+    if ~isempty(pstruct)
+        disp(['detected ' num2str(numel(pstruct.x)) ' nascent adhesions and ' num2str(numAdhs) ' focal adhesions for ' num2str(j) 'th frame.'])
+    else
+        disp(['detected zero nascent adhesion and ' num2str(numAdhs) ' focal adhesions for ' num2str(j) 'th frame.'])
+    end
 end
 save([dataPath filesep 'AdhInfo.mat'],'nascentAdhInfo','focalAdhInfo','-v7.3');
 

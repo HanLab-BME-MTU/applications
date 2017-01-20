@@ -231,6 +231,23 @@ classdef OrientationSpaceResponse < handle
                 response = real(response) - 1j*imag(response);
             end
         end
+        function response = rotateResponse(obj,angle)
+            if(isscalar(obj))
+                % TODO: Edge response
+                a_hat = fft(real(obj.angularResponse),[],3);
+                nn = [0:obj.n/2 -fliplr(1:obj.n/2)];
+                nn = shiftdim(nn(:),-2);
+                a_hat = bsxfun(@times,a_hat,exp(-1i.*nn*angle*2));
+                a = ifft(a_hat,[],3);
+                response = OrientationSpaceResponse(obj.filter,a);
+            else
+                response(numel(obj)) = OrientationSpaceResponse;
+                for ii = 1:numel(obj)
+                    response(ii) = obj(ii).rotateResponse(angle);
+                end
+                response = reshape(response,size(obj));
+            end
+        end
         function [response,theta] = getMaxResponse(obj,nn)
             if(nargin < 2)
                 nn = obj.n;
@@ -475,10 +492,20 @@ classdef OrientationSpaceResponse < handle
             % Concatenate along the next available dimension
             d = ndims(obj(1).a)+1;
             d = max(d,4);
-            A = cat(d,obj.a);
-            sA = size(A);
-            A = reshape(A,[sA(1:d-1) size(obj)]);
-            A = A(varargin{:});
+            if(nargin < 2)
+                A = cat(d,obj.a);
+                sA = size(A);
+                A = reshape(A,[sA(1:d-1) size(obj)]);
+                A = A(varargin{:});
+            else
+                varargin(nargin:4) = {':'};
+                A = arrayfun(@(R) R.a(varargin{1:3}),obj,'UniformOutput',false);
+                A = cat(d,A{varargin{4}});
+                sA = size(A);
+                if(varargin{4}(1) == ':')
+                    A = reshape(A,[sA(1:d-1) size(obj)]);
+                end
+            end
         end
     end
     

@@ -109,11 +109,11 @@ classdef CombinedMovieList < MovieObject
             suppressPrinting = ip.Results.suppressPrinting;
             %gets rid of suppressPrinting from the varargin. So it can be
             %passed into super.sanityCheck
-            inputIndx = find(cellfun(@(x) strcmpi(x, 'supressPrinting'), varargin));
+            inputIndx = find(cellfun(@(x) strcmpi(x, 'suppressPrinting'), varargin));
             mask = true(1,numel(varargin));
             if ~isempty(inputIndx)
                 mask([inputIndx, inputIndx+1]) = [false false];
-                varargin = {varargin(mask)};
+                varargin = varargin(mask);
             end
             % Call the superclass sanityCheck
             sanityCheck@MovieObject(obj, varargin{:});

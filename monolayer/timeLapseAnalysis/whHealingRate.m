@@ -30,6 +30,7 @@ for t = time
         healingRate(t) = params.toMuPerHour * nDiffPixels / size(ROI0,1);
         averageHealingRate(t) = params.toMuPerHour * nDiffPixelsMeta / (size(ROI0,1) * t);
     else
+        warning('currently supporting only dx');
         healingRate(t) = params.toMuPerHour * nDiffPixels / size(ROI0,2);
         averageHealingRate(t) = params.toMuPerHour * nDiffPixelsMeta / (size(ROI0,2) * t);
     end

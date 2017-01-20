@@ -194,6 +194,8 @@ if min(min(maskArray(:,:,1))) == 0
 
     % Use mask of first frame to filter displacementfield
     iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+    displFieldOriginal=displFieldProc.loadChannelOutput;
+    
     if ~isempty(iSDCProc)
         SDCProc=movieData.processes_{iSDCProc};
         if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
@@ -210,19 +212,32 @@ if min(min(maskArray(:,:,1))) == 0
         % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
         tempMask2 = false(size(refFrame));
         y_shift = find(any(firstMask,2),1);
+        y_lastNonZero = find(any(firstMask,2),1,'last');
         x_shift = find(any(firstMask,1),1);
-
-        tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        x_lastNonZero = find(any(firstMask,1),1,'last');
+        % It is possible that I created roiMask based on tMap which is
+        % based on reg_grid. In that case, I'll have to re-size firstMask accordingly
+        % check if maskArray is made based on channel
+        if (y_lastNonZero-y_shift+1)==size(tempMask,1) ...
+                && (x_lastNonZero-x_shift+1)==size(tempMask,2)
+            tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+            if (y_shift+size(tempMask,1))>size(firstMask,1) || x_shift+size(tempMask,2)>size(firstMask,2)
+                firstMask=padarray(firstMask,[y_shift-1 x_shift-1],'replicate','post');
+            end
+        elseif size(firstMask,1)==size(tempMask,1) ... 
+                && size(firstMask,2)==size(tempMask,2) % In this case, maskArray (or roiMask) is based on reg_grid
+            disp('Found that maskArray (or roiMask) is based on reg_grid')
+            tempMask2 = tempMask;
+        else
+            error('Something is wrong! Please check your roiMask!')
+        end
         firstMask = tempMask2 & firstMask;
-        
 %         firstMask = false(size(refFrame));
 %         tempMask = maskArray(:,:,1);
 %         firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask; % This was wrong
-        displFieldOriginal=displFieldProc.loadChannelOutput;
         displField = filterDisplacementField(displFieldOriginal,firstMask);
     else
         firstMask = maskArray(:,:,1);
-        displFieldOriginal=displFieldProc.loadChannelOutput;
         displField = filterDisplacementField(displFieldOriginal,firstMask);
     end        
 else

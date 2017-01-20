@@ -32,9 +32,13 @@ params.searchRadiusInPixels = ...
 
 params.toMuPerHour = params.pixelSize * 60/(params.timePerFrame*params.frameJump);
 
+if ~isfield(params,'patchSizeUm')
+    params.patchSizeUm = 15.0; % 15 um
+end
+
 
 if ~isfield(params,'patchSize')
-    params.patchSize = ceil(15.0/params.pixelSize); % 15 um in pixels
+    params.patchSize = ceil(params.patchSizeUm/params.pixelSize); % patch size in pixels
 end
 
 if ~isfield(params,'trajLength')
@@ -57,9 +61,11 @@ end
 if ~isfield(params,'kymoResolution') % jumps of patchSize
     params.kymoResolution.maxDistMu = 500;
     params.kymoResolution.min = params.patchSize;
-    params.kymoResolution.stripSize = params.patchSize;
-    params.kymoResolution.max = ceil(params.kymoResolution.maxDistMu/params.pixelSize); % 500 um in pixels    
+    params.kymoResolution.stripSize = params.patchSize;    
 end
+
+params.kymoResolution.nPatches = floor(params.kymoResolution.maxDistMu / params.patchSizeUm);
+params.kymoResolution.max = params.kymoResolution.nPatches * params.patchSize;%ceil(params.kymoResolution.maxDistMu/params.pixelSize); % 500 um in pixels
 
 params.strips =  params.kymoResolution.min : params.kymoResolution.stripSize : params.kymoResolution.max;
 params.nstrips = length(params.strips);

@@ -1,6 +1,6 @@
-function [htrackLine, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrame,h,showNoise)
+function [htrackLine, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrame,h,showAll)
 if nargin <5
-    showNoise = false;
+    showAll = 0;%false;
 end
 markerSize = 4;
 numGroups = 9;
@@ -21,14 +21,23 @@ idGroup{6} = strcmp(allDataClass,'Group6') & idCurrent;
 idGroup{7} = strcmp(allDataClass,'Group7') & idCurrent;
 idGroup{8} = strcmp(allDataClass,'Group8') & idCurrent;
 idGroup{9} = strcmp(allDataClass,'Group9') & idCurrent;
-if nargin<4
+
+if nargin<4 || isempty(h)
     h=gca;
 end
-if showNoise
-    iGroups = 1:numGroups;
-else
-    iGroups = setdiff(1:numGroups,6);
+switch showAll
+    case 10
+        iGroups = 1:numGroups;
+    case 0
+        iGroups = setdiff(1:numGroups,6);
+    otherwise
+        iGroups = showAll;
 end
+% if showNoise
+%     iGroups = 1:numGroups;
+% else
+%     iGroups = setdiff(1:numGroups,6);
+% end
 for ii=iGroups
     if nargin>2
         htrackLine{ii} = arrayfun(@(x) plot(h, x.xCoord(1:iFrame),x.yCoord(1:iFrame),'Color',colors(ii,:)),tracksNA(idGroup{ii}),'UniformOutput',false);
