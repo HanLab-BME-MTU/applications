@@ -4,14 +4,13 @@
 %
 %Khuloud Jaqaman, June 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target/analysis';
 
+sourceRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170112/diffLabelRatio/analysis/probe';
 %Define strings for directory hierarchy as needed
-rDDir = {'rD20'};
-aPDir = {'aP0p5'};
-outDirNum = 1:30;
-lRDir = {'lR0p02','lR0p04'};%','lR0p3','lR0p4','lR0p5','lR0p6','lR1p0'};
-
+rDDir = {'rD120'};%,'rD8','rD10','rD12','rD14','rD16'};
+aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
+outDirNum =1:30;
+lRDir = {'lR0p14';'lR0p16';'lR0p18';'lR0p20';'lR0p22';'lR0p24'};
 fprintf('\n===============================================================');
 
 %The top level directory is that of receptor density

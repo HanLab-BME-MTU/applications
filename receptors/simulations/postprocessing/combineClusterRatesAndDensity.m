@@ -21,8 +21,13 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMat
 %       paramVarCovMat     : Full parameter variance-covariance matrix
 %                            where parameter order is on rate, off rate,
 %                            then density.
-%
+%       paramMatrix        : intermediate statistics array, where the rows 
+%                            follow the sequence: on rate, off rate and density
+%                            for clusters of size 1, 2, 3, .... and the columns
+%                            are the # of movie (simulation).
+%                                 
 %   Khuloud Jaqaman, June 2015
+%   Luciana de Oliveira, August 2016
 
 %% Input
 
@@ -44,9 +49,15 @@ MIN_CLUST = 10;
 
 %% Calculation
 
+%Modification Luciana de Oliveira, August 2016
+% To have paramMatrix with size multiple of 3, now the calculations follow
+% the density size instead on/off sizes. When the sizes are different it fills 
+% NaNs in the empty rows.
+
+
 %reserve memory
-paramMatrix = [NaN(maxSizeRatesAll,numMovies); ... %on rate (NaN if cluster not observed)
-    NaN(maxSizeRatesAll,numMovies); ... %off rate (NaN if cluster not observed)
+paramMatrix = [NaN(maxSizeDensityAll,numMovies); ... %on rate (NaN if cluster not observed)
+    NaN(maxSizeDensityAll ,numMovies); ... %off rate (NaN if cluster not observed)
     zeros(maxSizeDensityAll,numMovies)]; %density (0 if cluster not observed)
 
 %collect values for each movie
@@ -64,13 +75,14 @@ for iMovie = 1 : numMovies
     tmp(indxBad) = NaN;
     paramMatrix(1:maxSizeRates(iMovie),iMovie) = tmp;
     
+    
     %off rates
     tmp = ratesDensityPerMovie{iMovie}.rateOffPerClust;
     tmp(indxBad) = NaN;
-    paramMatrix(maxSizeRatesAll+1:maxSizeRatesAll+maxSizeRates(iMovie),iMovie) = tmp;
+    paramMatrix(maxSizeDensityAll+1:maxSizeDensityAll+maxSizeRates(iMovie),iMovie) = tmp;
     
     %densities
-    paramMatrix(2*maxSizeRatesAll+1:2*maxSizeRatesAll+maxSizeDensity(iMovie),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust;
+    paramMatrix(2*maxSizeDensityAll+1:2*maxSizeDensityAll+maxSizeDensity(iMovie),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust;
     
 end
 
@@ -86,10 +98,15 @@ paramVarCovMat(iRowNaN,:) = NaN;
 paramVarCovMat(:,iRowNaN) = NaN;
 paramStd = sqrt(diag(paramVarCovMat));
 
+
 %% Output
 paramCombined = [paramMean paramStd paramNumMov];
-rateOnPerClust = paramCombined(1:maxSizeRatesAll,:);
-rateOffPerClust = paramCombined(maxSizeRatesAll+1:2*maxSizeRatesAll,:);
-densityPerClust = paramCombined(2*maxSizeRatesAll+1:end,:);
+rateOnPerClust = paramCombined(1:maxSizeDensityAll,:);
+rateOffPerClust = paramCombined(maxSizeDensityAll+1:2*maxSizeRatesAll,:);
+densityPerClust = paramCombined(2*maxSizeDensityAll+1:end,:);
+
+
+
+
 
 %% ~~~ the end ~~~

@@ -4,13 +4,13 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170112/diffLabelRatio/probe';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD20'};
-aPDir = {'aP0p5'};
-outDirNum = 1:30;
-lRDir = {'lR0p02','lR0p04'};
+rDDir = {'rD140'};%{'rD20','rD40','rD60','rD80','rD100','rD120','rD140','rD160'}
+aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
+outDirNum = 1:25;
+lRDir = {'lR0p14';'lR0p16';'lR0p18';'lR0p20';'lR0p22';'lR0p24'};
 
 %define intensity mean and stadnard deviation. Must match simulation input
 %or experimentally-derived values
