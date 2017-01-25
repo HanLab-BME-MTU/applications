@@ -8,7 +8,7 @@ ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('kinTracks',[],@(x) isa(x,'Tracks'));
 ip.addParameter('EB3tracks',[],@(x) isa(x,'Tracks'));
-
+ip.addParamValue('name','',@ischar);
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
 ip.addParameter('distanceCutOff',0.1,@isnumeric);
@@ -82,7 +82,7 @@ for kIdx=1:length(kinTracks)
 end
 
 %% For test kinetochore, plot an Amira file with attached mt
-outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep 'Test' filesep 'Amira'];
+outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name filesep 'Test' filesep 'Amira'];
 for kIdx=min(length(testKinIdx),testKinIdx)
     kinTrack=kinTracks(kIdx);
     trackSet=[kinTrack; kinTrack.catchingMT];
@@ -92,7 +92,7 @@ end
 %%
 if(p.printAll)
     %% For each kinetochore, plot an Amira file with attached mt
-    outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep 'Amira' filesep];
+    outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name filesep  'Amira' filesep];
     for kIdx=1:length(kinTracks)
         kinTrack=kinTracks(kIdx);
         trackSet=[kinTrack; kinTrack.catchingMT];
@@ -193,11 +193,11 @@ for kIdx=1:length(kinTracks)
 end
 
 %%
-outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT'];
+outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name];
 save([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks','EB3tracks')
 
 %% First test, display the +TIP coordinate on a lateral view of the poleKin axis. 
-outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep 'firstTest' filesep]
+outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep  'firstTest' filesep]
 system(['mkdir ' outputDirProj]);
 
 if(p.printAll)

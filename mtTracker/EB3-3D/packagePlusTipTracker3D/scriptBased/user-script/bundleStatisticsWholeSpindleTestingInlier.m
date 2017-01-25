@@ -14,14 +14,16 @@ outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
 [kinTracksPlus,EB3tracksPlus]=addSpindleRef(MD);
 
 %% Estimate bundle in KinPole axis
-captureDetection(MD);
-allFiber=detectMTAlignment(MD);
+captureDetection(MD,'name','allTracks');
+allFiber=detectMTAlignment(MD,'name','allTracks');
 
 EB3tracksInliers=EB3tracksPlus(logical(arrayfun(@(eb) eb.inliers(1),EB3tracksPlus)));
-kinTracksInliers=kinTracksPlus(logical(arrayfun(@(k) k.inliers(1),kinTracksPlus)));
+inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracksPlus));
+kinTracksInliers=kinTracksPlus(inliersKin);
 
-captureDetection(MD,'kinTracks',kinTracksInliers,'EB3tracks',EB3tracksInliers);
-allFiberInlier=detectMTAlignment(MD);
+captureDetection(MD,'kinTracks',kinTracksInliers,'EB3tracks',EB3tracksInliers,'name','inliers');
+allFiberInlier=detectMTAlignment(MD,'name','inliers');
+
 %% For each kinetochore, plot an Amira file with attached mt
 outputDirAmira=[outputDirBundle filesep 'Amira_normal' filesep];
 parfor kIdx=1:length(allFiberInlier)
@@ -73,12 +75,12 @@ if(p.printAll)
 end
 
 % % Estimate bundle outside the Kin-Plan refencial
-captureDetection(MD,'kinTracks',randKinTracksPlus,'EB3tracks',EB3tracksPlus);
-allFiberRandom=detectMTAlignment(MD);
+captureDetection(MD,'kinTracks',randKinTracksPlus,'EB3tracks',EB3tracksPlus,'name','allTracksRandom');
+allFiberRandom=detectMTAlignment(MD,'name','allTracksRandom');
 
-randKinTracksInlier=randKinTracks(logical(arrayfun(@(k) k.inliers(1),randKinTracksPlus)));
-captureDetection(MD,'kinTracks',randKinTracksInlier,'EB3tracks',EB3tracksInliers);
-allFiberRandomInlier=detectMTAlignment(MD);
+randKinTracksInlier=randKinTracks(inliersKin);
+captureDetection(MD,'kinTracks',randKinTracksInlier,'EB3tracks',EB3tracksInliers,'name','inliersRandom');
+allFiberRandomInlier=detectMTAlignment(MD,'name','inliersRandom');
 %% For each kinetochore, plot an Amira file with attached mt
 outputDirAmira=[outputDirBundle filesep 'Amira_random' filesep];
 parfor kIdx=1:length(allFiberRandomInlier)

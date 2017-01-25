@@ -6,6 +6,7 @@ ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 63 156],@isnumeric);
 ip.addParameter('kinCapture',[]);
+ip.addParamValue('name','',@ischar);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 testKinIdx=p.testKinIdx;
@@ -13,7 +14,7 @@ printAll=p.printAll;
 
 %%
 if(isempty(p.kinCapture))
-    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT'];
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name];
     tmp=load([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks');
     kinTracks=tmp.kinTracks;
 else
@@ -73,7 +74,7 @@ for kIdx=1:length(kinTracks)
 end
 
 % First test, highlight bundle display the +TIP coordinate on a lateral view of the poleKin axis. 
-outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep 'testBundleRadius' filesep]
+outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep 'testBundleRadius' filesep]
 system(['mkdir ' outputDirProj]);
 
 if(printAll)    
@@ -115,7 +116,7 @@ if(printAll)
 end
 
 %%
-outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
+outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep p.name];
 system(['mkdir ' outputDirBundle]);
 save([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
 

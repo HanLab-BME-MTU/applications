@@ -10,9 +10,6 @@ p=ip.Results;
 
 randomDist=10;
 
-
-
-
 % Estimate bundle in KinPole axis
 captureDetection(MD);
 detectMTAlignment(MD);
@@ -35,7 +32,7 @@ kinTracks=kinTrackData.tracksLabRef;
 [randKinTracks]=randomizeKinetochore(kinTracks,randomDist);
 
 % Translate these changes in the detection structure
-outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep]
+outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
 tmp=load([outputDirDetect 'detectionLabRef.mat']);
 detectionsLabRef=tmp.detectionsLabRef;
 for kIdx=1:length(randKinTracks)
