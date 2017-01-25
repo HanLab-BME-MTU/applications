@@ -8,6 +8,7 @@ ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
 ip.addParameter('kinBundle',[]);
 ip.addParameter('kinBundleName',[]);
+ip.addParameter('bundleMTRange',[0 35]);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
@@ -21,8 +22,7 @@ else
 end
 
 %testKinIdx=p.testKinIdx;
-figure()
-
+handles=setupFigure(1,2,2,'AspectRatio',1,'AxesWidth',4);
 
 outputDirPlot=[outputDirBundle filesep 'plot' filesep];
 system(['mkdir ' outputDirPlot]);
@@ -52,22 +52,18 @@ for i=1:length(kinTracksCell)
         kinetochoreCount(i,kinTracks(k).f)=kinetochoreCount(i,kinTracks(k).f)+1;
     end
 end
-subplot(1,2,1);
-plot(linspace(0,kinTracksCell{1}.numTimePoints*MD.timeInterval_,kinTracksCell{1}.numTimePoints), fiberCount./kinetochoreCount);
-xlabel('Frame count');
-ylabel('avg MT per bundle');
-legend(p.kinBundleName);
-print([outputDirPlot 'avgMTPerPlot.png'],'-dpng');
-print([outputDirPlot 'avgMTPerPlot.eps'],'-depsc');
+plot(handles(1),linspace(0,kinTracksCell{1}.numTimePoints*MD.timeInterval_,kinTracksCell{1}.numTimePoints), fiberCount./kinetochoreCount);
+xlabel(handles(1),'Frame count');
+ylabel(handles(1),'avg MT per bundle');
+legend(handles(1),p.kinBundleName);
+
 
 %%
-subplot(1,2,2);
-plot(linspace(0,kinTracks.numTimePoints*MD.timeInterval_,kinTracks.numTimePoints), kinetochoreCount);
-xlabel('Frame count');
-ylabel('kinetochore Count');
-print([outputDirPlot 'kinCount.png'],'-dpng');
-print([outputDirPlot 'kinCount.eps'],'-depsc');
-
+plot(handles(2),linspace(0,kinTracks.numTimePoints*MD.timeInterval_,kinTracks.numTimePoints), kinetochoreCount);
+xlabel(handles(2),'Frame count');
+ylabel(handles(2),'kinetochore Count');
+print([outputDirPlot 'avgMTPerKin-kinCount.png'],'-dpng');
+print([outputDirPlot 'avgMTPerKin-kinCount.eps'],'-depsc');
 %% Timing of each microtubule
 kinTracks=kinTracksCell{1};
 numTimePoint=zeros(1,2*kinTracks.numTimePoints);
