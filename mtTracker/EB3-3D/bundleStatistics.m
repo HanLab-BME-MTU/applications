@@ -1,4 +1,4 @@
-function bundleStatistics(MD,varargin)
+function [handles,hFig]= bundleStatistics(MD,varargin)
 %Plot and compare building 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -22,7 +22,7 @@ else
 end
 
 %testKinIdx=p.testKinIdx;
-handles=setupFigure(1,2,2,'AspectRatio',1,'AxesWidth',4);
+[handles,~,hFig]=setupFigure(1,2,2,'AspectRatio',1,'AxesWidth',4);
 
 outputDirPlot=[outputDirBundle filesep 'plot' filesep];
 system(['mkdir ' outputDirPlot]);
