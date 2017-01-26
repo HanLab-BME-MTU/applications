@@ -8,7 +8,7 @@ ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
 ip.addParameter('kinBundle',[]);
 ip.addParameter('kinBundleName',[]);
-ip.addParameter('bundleMTRange',[0 35]);
+ip.addParameter('bundleMTRange',[10 35]);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
@@ -55,6 +55,7 @@ end
 plot(handles(1),linspace(0,kinTracksCell{1}.numTimePoints*MD.timeInterval_,kinTracksCell{1}.numTimePoints), fiberCount./kinetochoreCount);
 xlabel(handles(1),'Frame count');
 ylabel(handles(1),'avg MT per bundle');
+ylim(handles(1),p.bundleMTRange);
 legend(handles(1),p.kinBundleName);
 
 
