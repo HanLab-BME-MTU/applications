@@ -1,19 +1,68 @@
-% saveFolder : where to save movieData file
-% imgFolder : where your original image data is stored
+% MATLAB-based testing/performance suite for BioSensors Package
+% Andrew R. Jamieson 2017
+% Test BioSensors
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Set Data Path
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% if strcmp(computer('arch'),'win64')
+%     data_root = 'C:\Users\Andrew\Data\raw\BioSensors\RAC1\';
+% else
+%     % data_root = '/work/bioinformatics/s170480/Data/Demo/Biosensor/RAC1/';
+%     data_root = '/work/bioinformatics/s170480/Data/BioSensors/FromMaria/ExampleFRET/Channels/';
+% end 
+
+
+
+% preconditions
+disp(['PWD:', pwd]);
+% Dump path for debugging
+s_path = strsplit(path,':');
+s_match = (cellfun(@(x) regexp(x,'toolbox'), s_path, 'UniformOutput', false))';
+matlab_paths = s_path(cellfun(@isempty, s_match))';
+disp('    [MATLAB] current top-level paths....');
+% disp(matlab_paths);
+
+disp(['Java heap max: ' num2str(java.lang.Runtime.getRuntime.maxMemory/1e9) 'GB'])
+disp('Starting biosensor script');
+
+%----Initialization of temp dir
+package_name = 'BioSensor';
+t_stamp = datestr(now,'ddmmmyyyyHHMMSS');
+tmpdir = fullfile(tempdir, [package_name '_test_' t_stamp]);
+mkdir(tmpdir);
+
+
+% Download test data for BioSensor (Use BioHPC internal cloud account danuserweb)
+url = 'https://lamella.biohpc.swmed.edu/index.php/s/HOq0LUsukadEx1l/download';
+zipPath = fullfile(tmpdir, 'Neurite.zip');
+urlwrite(url, zipPath);
+unzip(zipPath, tmpdir);
+
+
+saveFolder = [tmpdir filesep 'Neurite' filesep 'Analysis'];
+imgFolder = [tmpdir filesep 'Neurite' filesep 'Channels'];
 
 %% Channel creation : you first always need to create the channels
 % typically the biosensor data has at least two channels.
 % a FRET channel (Acceptor) and a Donor channel
 % the mCherry here is a third channel on which I can generally get better
 % signal to noise and typically perform the segmentation.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Construct Channels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 channels = {'C1_mCherry','C2_Donor','C3_FRET'};
 for iCh = 1:3
     % Create a channels object
     imgFolderC = [imgFolder filesep channels{iCh}];
     channel(iCh) = Channel(imgFolderC);
 end
+
 % Constructor needs an array of channels and an output directory (for analysis)
-MD = MovieData(channel,saveFolder);
+MD = MovieData(channel, saveFolder);
 
 
 % Set the path where to store the MovieData object.
@@ -196,5 +245,4 @@ MD.save
 %% Note you should now be able to load this into the movieSelectorGUI
 % It will show you some exclamation point flags for steps 3 to end : as it
 % is worried that
-end
 

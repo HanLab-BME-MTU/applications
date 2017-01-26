@@ -6,9 +6,10 @@ else
     matlab_repo_root = [getenv('HOME') filesep 'matlab'];
 end
 
-package_name = 'TFM_Package';
+package_name = 'BiosensorsPackage';
 institution_name = 'Danuser Lab - UTSouthwestern';
 t_stamp = datestr(now,'ddmmmyyyyHHMM');
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Set output path for package build files
@@ -25,14 +26,14 @@ mkdir(out_dir);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 restoredefaultpath;  % Clears out repo paths
 % Add necesary repos for building 
-repo_dirs = fullfile(matlab_repo_root, {'extern'; 'applications'; 'common'});
+repo_dirs = fullfile(matlab_repo_root, {'extern'; 'applications/biosensors'; 'common'});
 for i = 1:length(repo_dirs)
     cur_dir = repo_dirs{i};
     disp(['Adding ' cur_dir]);
     addir(cur_dir);
 end
-cellScript{1} = 'tfmPackageGUI.m';
-cellScript{2} = 'scriptRunTFM.m'; 
+cellScript{1} = 'BiosensorsPackage.m';
+% cellScript{2} = 'testBioSensor.m'; 
 buildPackage(cellScript, out_dir);
 cd(out_dir); % check results
 
@@ -79,7 +80,7 @@ msgbox(['Package zipped here ' zip_file])
 choice = questdlg(['Run test on zip package?'],'Question..','Yes','No','Yes');
 
 if strcmp(choice, 'Yes')
-    testScript_path = evalc('which scriptRunTFM')
+    testScript_path = evalc('which testBioSensor_ordered')
     restoredefaultpath;  % Clears out repo paths
     t_stamp = datestr(now,'ddmmmyyyyHHMMSS');
     tmpdir = fullfile(tempdir, [package_name '_test_' t_stamp]);
@@ -95,7 +96,7 @@ if strcmp(choice, 'Yes')
     mkdir(out_dir);
     disp(['Created output dir ' out_dir]);
 %   cd(out_dir);
-    results = runtests('scriptRunTFM.m');
+    results = runtests(testScript_path);
     disp(results.table);
     uiwait(msgbox(['Please check the analysis output...:' out_dir]));
     restoredefaultpath; 
