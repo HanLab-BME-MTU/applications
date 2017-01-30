@@ -1,6 +1,6 @@
-function T=tracks2table(tracks)
+function T=featureTracks2table(tracks)
 % P. Roudot 2016
-varName={'trackId','t','X','Y','Z','A','dX','dY','dZ','dA'};
+varName={'trackId','t','f','featureId'};
 trackStartIdx=[1,cumsum([tracks.lifetime])+1];
 preAllocArray=zeros(trackStartIdx(end)-1,length(varName));
 for tIdx=1:length(tracks)
@@ -11,6 +11,6 @@ for tIdx=1:length(tracks)
         Z=zeros(size((tracks(tIdx).z)));
         dZ=Z;
     end
-    preAllocArray(trackStartIdx(tIdx):(trackStartIdx(tIdx+1)-1),:)=[tIdx*ones(size(Z')), tracks(tIdx).t', tracks(tIdx).x', tracks(tIdx).y',Z',tracks(tIdx).A',tracks(tIdx).dx', tracks(tIdx).dy',dZ',tracks(tIdx).dA'];
+    preAllocArray(trackStartIdx(tIdx):(trackStartIdx(tIdx+1)-1),:)=[tIdx*ones(size(Z')), tracks(tIdx).t', tracks(tIdx).f', tracks(tIdx).tracksFeatIndxCG'];
 end
 T=array2table(preAllocArray,'variableNames',varName);
