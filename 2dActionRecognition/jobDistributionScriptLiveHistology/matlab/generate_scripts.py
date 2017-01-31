@@ -1,7 +1,7 @@
 #!/bin/python
 #Name: generate_scripts.py
 #Author: Assaf Zaritsky (originally by Shenghua Wan)
-#Date: 2015-04-22
+#Date: 2015-04-22 (Revised 2017-01-17)
 #Description: 
 #	this program reads file "params.txt" and
 #generates SLURM job scripts for each node
@@ -35,7 +35,11 @@ email = paramsList[6]
 
 # parse user program
 prog = userProg.split(".")[0]
-ext = userProg.split(".")[1]
+
+if len(userProg.split(".")) > 1:
+    ext = userProg.split(".")[1]
+else:
+    ext = '';
 
 jobWrapperStr = path + '/job_wrapper.sh'
 # progStr = path + '/' + userProg
@@ -47,10 +51,10 @@ else: # not debugged!
 
 #generate SLURM headers
 slurmHeader = '#!/bin/bash\n' \
-			+ '#SBATCH --partition=128GB\n' \
+			+ '#SBATCH --partition=' + partition + '\n' \
 			+ '#SBATCH --nodes=1\n' \
-            + '#SBATCH --mail-user=' + email + '\n' \
-            + '#SBATCH --mail-type=all\n' #\
+            # + '#SBATCH --mail-user=' + email + '\n' \
+            # + '#SBATCH --mail-type=all\n' #\
 #			+ '#SBATCH --ntasks-per-node=' +  str(n_prog_per_node) + '\n'
 			
 			
@@ -65,14 +69,14 @@ for i in range(0, nWholeScripts):
 	print script_name
 	with open(script_name, 'w') as f:
 		sbatchHeader = slurmHeader + \
-						'#SBATCH --output=./log/auto_job_' + str(i) + '_%j.out\n' + \
-						'#SBATCH --error=./log/auto_job_' + str(i) + '_%j.err\n' \
+						'#SBATCH --output=/home2/azaritsky/logsBioHPC/LCH/log/auto_job_' + str(i) + '_%j.out\n' + \
+						'#SBATCH --error=/home2/azaritsky/logsBioHPC/LCH/log/auto_job_' + str(i) + '_%j.err\n' \
 						+ '\n'
 		f.write(sbatchHeader)
 		for j in range(0, tasksPerNode):
 			comb_index = i * tasksPerNode + j
 			print comb_index
-			log_name = './log/task_' + str(i) + '_' + str(j+1) + '_' + str(comb_index+1)
+			log_name = '/home2/azaritsky/logsBioHPC/LCH/log/task_' + str(i) + '_' + str(j+1) + '_' + str(comb_index+1)
 			script =  s1 + str(comb_index+1) + ' 1>' + log_name + '.std.out' + ' 2>' + log_name + '.stderr'  + ' & \n\n'
 			f.write(script)
 		f.write('wait')
@@ -86,14 +90,14 @@ if(nTasksLastScript != 0):
 	print script_name 
 	with open(script_name, 'w') as f:
 		sbatchHeader = slurmHeader + \
-						'#SBATCH --output=./log/auto_job_' + str(nWholeScripts) + '_%j.out\n' + \
-						'#SBATCH --error=./log/auto_job_' + str(nWholeScripts) + '_%j.err\n' \
+						'#SBATCH --output=/home2/azaritsky/logsBioHPC/LCH/log/auto_job_' + str(nWholeScripts) + '_%j.out\n' + \
+						'#SBATCH --error=/home2/azaritsky/logsBioHPC/LCH/log/auto_job_' + str(nWholeScripts) + '_%j.err\n' \
 						+ '\n'
 		f.write(sbatchHeader)
 		for j in range(0, nTasksLastScript):
 			comb_index = nWholeScripts * tasksPerNode + j
 			print comb_index
-			log_name = './log/task_' + str(i+1) + '_' + str(j+1) + '_' + str(comb_index+1)
+			log_name = '/home2/azaritsky/logsBioHPC/LCH/log/task_' + str(i+1) + '_' + str(j+1) + '_' + str(comb_index+1)
 			script =  s1 + str(comb_index+1) + ' 1>' + log_name + '.std.out' + ' 2>' + log_name + '.stderr'  + ' & \n\n'
 			f.write(script)
 		f.write('wait')

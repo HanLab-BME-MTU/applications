@@ -69,7 +69,7 @@ for ivalid = 1 : nValidateGenes
         
         if (strcmp(curGeneStr,valGeneStr) && (dayGeneData{iGeneDay}.KD > 0 || dayGeneData{iGeneDay}.KD == -1 || isnan(dayGeneData{iGeneDay}.KD)) && ...
                 sum(isnan(dayGeneData{iGeneDay}.meanControl)) == 0 && ...
-                sum(isnan(dayGeneData{iGeneDay}.meanControl)) == 0)             %#ok<USENS>
+                sum(isnan(dayGeneData{iGeneDay}.meoutFnamePC1anControl)) == 0)             %#ok<USENS>
             
             curSeqStr = dayGeneData{iGeneDay}.SeqStr;
             
@@ -83,7 +83,7 @@ for ivalid = 1 : nValidateGenes
             geneMeanPC2 = [geneMeanPC2 dayGeneData{iGeneDay}.meanGenePCA(2)];
             geneMeanPC3 = [geneMeanPC3 dayGeneData{iGeneDay}.meanGenePCA(3)];
             
-            controlHealingRate = [controlHealingRate dayGeneData{iGeneDay}.healingRateControl];
+            controlHealingRate = [controlHealingRaoutFnamePC1te dayGeneData{iGeneDay}.healingRateControl];
             geneHealingRate = [geneHealingRate dayGeneData{iGeneDay}.healingRateGene];
             
             nRep = size(dayGeneData{iGeneDay}.featsGenePCA,1);
@@ -196,7 +196,7 @@ nSeq = length(uniqueSeq);
 
 Markers = {'o','+','*','s','v'};
 
-fontsize = 16;
+fontsize = 16;outFnamePC1
 h = figure;
 xlabel('Control ','FontSize',fontsize);
 ylabel('Condition','FontSize',fontsize);

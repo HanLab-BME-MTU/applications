@@ -6,6 +6,7 @@ ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 63 156],@isnumeric);
 ip.addParameter('kinCapture',[]);
+ip.addParamValue('name','',@ischar);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 testKinIdx=p.testKinIdx;
@@ -13,7 +14,7 @@ printAll=p.printAll;
 
 %%
 if(isempty(p.kinCapture))
-    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT'];
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name];
     tmp=load([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks');
     kinTracks=tmp.kinTracks;
 else
@@ -73,11 +74,11 @@ for kIdx=1:length(kinTracks)
 end
 
 % First test, highlight bundle display the +TIP coordinate on a lateral view of the poleKin axis. 
-outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep 'testBundleRadius' filesep]
+outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep 'testBundleRadius' filesep]
 system(['mkdir ' outputDirProj]);
 
 if(printAll)    
-    for kIdx=testKinIdx
+    for kIdx=min(length(testKinIdx),testKinIdx)
         kinTrack=kinTracks(kIdx);
         
         [handles,~,fhandle]=setupFigure(1,2,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
@@ -115,7 +116,7 @@ if(printAll)
 end
 
 %%
-outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
+outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep p.name];
 system(['mkdir ' outputDirBundle]);
 save([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
 
@@ -123,26 +124,26 @@ save([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
 outputDirAmira=[outputDirBundle filesep 'testKin' filesep 'Amira'];
 system(['mkdir ' outputDirBundle  filesep 'testKin']);
 %%
+
+for kIdx=min(length(testKinIdx),testKinIdx)
+    kinTrack=kinTracks(kIdx);
+    trackSet=[kinTrack; kinTrack.catchingMT];
+    trackType=[1; zeros(length(kinTrack.catchingMT),1)];
+    bundleInfo=[0 kinTrack.fiber+1];
+    amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',false,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
+end
+
+
 if(p.printAll)
-    disp('test')
     %%
-    for kIdx=testKinIdx
-        kinTrack=kinTracks(kIdx);
-        trackSet=[kinTrack; kinTrack.catchingMT];
-        trackType=[1; zeros(length(kinTrack.catchingMT),1)];
-        bundleInfo=[0 kinTrack.fiber+1];
-        dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
-        amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',false,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
-    end
-    
+
     %% For each kinetochore, plot an Amira file with attached mt
-    outputDirAmira=[outputDirBundle filesep 'Amira' filesep];
+    outputDirAmira=[outputDirBundle filesep 'Amira_' filesep];
     parfor kIdx=1:length(kinTracks)
         kinTrack=kinTracks(kIdx);
         trackSet=[kinTrack; kinTrack.catchingMT];
         trackType=[1; zeros(length(kinTrack.catchingMT),1)];
         bundleInfo=[0 kinTrack.fiber+1];
-        dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
         amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
     end
 end

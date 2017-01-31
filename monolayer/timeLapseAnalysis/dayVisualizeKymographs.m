@@ -2,7 +2,7 @@ function [] = dayVisualizeKymographs(geneDayDiff,mainDirname,propertyStr,metaDat
 nGeneDay = length(geneDayDiff);
 
 params.timePerFrame = metaData.timePerFrame;
-params.patchSize = 15;
+params.patchSizeUm = 15.0;
 
 matDname = [mainDirname 'dayGeneControlKymograph/mat/'];
 if ~exist(matDname,'dir')

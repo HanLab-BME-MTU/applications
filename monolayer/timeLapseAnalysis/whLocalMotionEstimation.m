@@ -1,13 +1,11 @@
 function [] = whLocalMotionEstimation(params,dirs)
 
 if exist([dirs.mfDataOrig filesep '001_mf.mat'],'file') && params.always   
-    % unix(sprintf('rm %s',[dirs.mfDataOrig '*.mat']));
-    delete([dirs.mfDataOrig '*.mat']);    
+    unix(sprintf('rm %s',[dirs.mfDataOrig '*.mat']));    
 end
 
 if exist([dirs.mfData filesep '001_mf.mat'],'file') && params.always    
-    % unix(sprintf('rm %s',[dirs.mfData '*.mat']));    
-    delete([dirs.mfData '*.mat']);
+    unix(sprintf('rm %s',[dirs.mfData '*.mat']));    
 end
 
 for t = 1 : params.nTime - params.frameJump
@@ -24,8 +22,7 @@ for t = 1 : params.nTime - params.frameJump
     I0 = imread(imgFname0);
     
     if ~exist(imgFname1,'file') % create from previous 
-        % unix(sprintf('cp %s %s',imgFname0,imgFname1));
-        copyfile(imgFname0, imgFname1);
+        unix(sprintf('cp %s %s',imgFname0,imgFname1));
     end
     
     I1 = imread(imgFname1);
@@ -56,16 +53,9 @@ for t = 1 : params.nTime - params.frameJump
     figure;
     imagesc(scores); title(sprintf('frame %d match score',t));
     caxis([0.995,1]); colorbar;
-    
+    outputFile = [dirs.mfScores sprintf('%03d',t) '_score.eps'];
     %     eval(sprintf('print -djpeg %s', outputFile));
-    % if isunix
-    %     outputFile = [dirs.mfScores sprintf('%03d',t) '_score.eps'];
-    %     export_fig_biohpc(outputFile);
-    % else
-        disp('Exporting figure via MATLAB print -dpdf (instead of export_fig)');
-        outputFile = [dirs.mfScores sprintf('%03d',t) '_score'];
-        print(outputFile, '-dpdf')
-    % end
+    export_fig_biohpc(outputFile);
     close all;
 end
 end

@@ -21,12 +21,14 @@ classdef OrientationSpaceFilter < handle
         b_f
         % angular order
         K
-        % basis angles
-        angles
         % normilization setting
         normEnergy
         % number of angular filter templates
         n
+    end
+    properties (SetAccess = protected)
+        % basis angles
+        angles
     end
     
     properties (Transient)
@@ -221,6 +223,14 @@ classdef OrientationSpaceFilter < handle
             requireSetup(obj);
             h = imshow(fftshift(ifft2(real(obj.F(:,:,1)))),varargin{:});
         end
+        function circshiftAngles(obj,Kshift)
+            for ii=1:numel(obj)
+                obj(ii).angles = circshift(obj(ii).angles,Kshift,2);
+                if(~isempty(obj(ii).F))
+                    obj(ii).F = circshift(obj(ii).F,Kshift,3);
+                end
+            end
+        end
     end
     methods
         function setupFilter(obj,siz)
@@ -265,7 +275,7 @@ classdef OrientationSpaceFilter < handle
                     case 'scale'
                         obj(o).F = obj(o).F ./ obj(o).f_c ./ sqrt(siz(1)*siz(2));
                     case 'sqrtscale'
-                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2))
+                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2));
                     case 'none'
                     otherwise
                         error('OrientationSpaceFilter:setupFilterNormEnergy', ...

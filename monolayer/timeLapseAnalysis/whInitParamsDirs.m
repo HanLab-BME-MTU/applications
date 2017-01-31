@@ -32,9 +32,13 @@ params.searchRadiusInPixels = ...
 
 params.toMuPerHour = params.pixelSize * 60/(params.timePerFrame*params.frameJump);
 
+if ~isfield(params,'patchSizeUm')
+    params.patchSizeUm = 15.0; % 15 um
+end
+
 
 if ~isfield(params,'patchSize')
-    params.patchSize = ceil(15.0/params.pixelSize); % 15 um in pixels
+    params.patchSize = ceil(params.patchSizeUm/params.pixelSize); % patch size in pixels
 end
 
 if ~isfield(params,'trajLength')
@@ -57,9 +61,11 @@ end
 if ~isfield(params,'kymoResolution') % jumps of patchSize
     params.kymoResolution.maxDistMu = 500;
     params.kymoResolution.min = params.patchSize;
-    params.kymoResolution.stripSize = params.patchSize;
-    params.kymoResolution.max = ceil(params.kymoResolution.maxDistMu/params.pixelSize); % 500 um in pixels    
+    params.kymoResolution.stripSize = params.patchSize;    
 end
+
+params.kymoResolution.nPatches = floor(params.kymoResolution.maxDistMu / params.patchSizeUm);
+params.kymoResolution.max = params.kymoResolution.nPatches * params.patchSize;%ceil(params.kymoResolution.maxDistMu/params.pixelSize); % 500 um in pixels
 
 params.strips =  params.kymoResolution.min : params.kymoResolution.stripSize : params.kymoResolution.max;
 params.nstrips = length(params.strips);
@@ -134,118 +140,118 @@ dirs.correctMotion = [dirs.main 'correctMotion/'];
 
 %% Create local directories
 if ~exist(dirs.dirname,'dir')
-    mkdir(dirs.dirname);
+    unix(sprintf('mkdir %s',dirs.dirname));
 end
 
 if ~exist(dirs.images,'dir')
-    mkdir(dirs.images);
+    unix(sprintf('mkdir %s',dirs.images));
 end
 
 if ~exist(dirs.mf,'dir')
-    mkdir(dirs.mf);
+    unix(sprintf('mkdir %s',dirs.mf));
 end
 
 if ~exist(dirs.mfData,'dir')
-    mkdir(dirs.mfData);
+    unix(sprintf('mkdir %s',dirs.mfData));
 end
 
 if ~exist(dirs.mfDataOrig,'dir')
-    mkdir(dirs.mfDataOrig);
+    unix(sprintf('mkdir %s',dirs.mfDataOrig));
 end
 
 
 if ~exist(dirs.mfScores,'dir')
-    mkdir(dirs.mfScores);
+    unix(sprintf('mkdir %s',dirs.mfScores));
 end
 
 if ~exist(dirs.mfBilateral,'dir')
-    mkdir(dirs.mfBilateral);
+    unix(sprintf('mkdir %s',dirs.mfBilateral));
 end
 
 if ~exist(dirs.mfVis,'dir')
-    mkdir(dirs.mfVis);
+    unix(sprintf('mkdir %s',dirs.mfVis));
 end
 
 if ~exist(dirs.roi,'dir')
-    mkdir(dirs.roi);
+    unix(sprintf('mkdir %s',dirs.roi));
 end
 
 if ~exist(dirs.roiData,'dir')
-    mkdir(dirs.roiData);
+    unix(sprintf('mkdir %s',dirs.roiData));
 end
 
 if ~exist(dirs.roiVis,'dir')
-    mkdir(dirs.roiVis);
+    unix(sprintf('mkdir %s',dirs.roiVis));
 end
 
 if ~exist(dirs.strainRate,'dir')
-    mkdir(dirs.strainRate);
+    unix(sprintf('mkdir %s',dirs.strainRate));
 end
 
 if ~exist(dirs.acceleration,'dir')
-    mkdir(dirs.acceleration);
+    unix(sprintf('mkdir %s',dirs.acceleration));
 end
 
 if ~exist(dirs.coordination,'dir')
-    mkdir(dirs.coordination);
+    unix(sprintf('mkdir %s',dirs.coordination));
 end
 
 %% Global directories
 if ~exist(dirs.kymographs,'dir')
-    mkdir(dirs.kymographs);
+    unix(sprintf('mkdir %s',dirs.kymographs));
 end
 
 if ~exist(dirs.speedKymograph,'dir')
-    mkdir(dirs.speedKymograph);
+    unix(sprintf('mkdir %s',dirs.speedKymograph));
 end
 
 if ~exist(dirs.directionalityKymograph,'dir')
-    mkdir(dirs.directionalityKymograph);
+    unix(sprintf('mkdir %s',dirs.directionalityKymograph));
 end
 
 if ~exist(dirs.strainRateKymograph,'dir')
-    mkdir(dirs.strainRateKymograph);
+    unix(sprintf('mkdir %s',dirs.strainRateKymograph));
 end
 
 if ~exist(dirs.accelerationKymograph,'dir')
-    mkdir(dirs.accelerationKymograph);
+    unix(sprintf('mkdir %s',dirs.accelerationKymograph));
 end
 
 if ~exist(dirs.coordinationKymograph,'dir')
-    mkdir(dirs.coordinationKymograph);
+    unix(sprintf('mkdir %s',dirs.coordinationKymograph));
 end
 
 % STD
 if ~exist(dirs.kymographsStd,'dir')
-    mkdir(dirs.kymographsStd);
+    unix(sprintf('mkdir %s',dirs.kymographsStd));
 end
 
 if ~exist(dirs.speedKymographStd,'dir')
-    mkdir(dirs.speedKymographStd);
+    unix(sprintf('mkdir %s',dirs.speedKymographStd));
 end
 
 if ~exist(dirs.directionalityKymographStd,'dir')
-    mkdir(dirs.directionalityKymographStd);
+    unix(sprintf('mkdir %s',dirs.directionalityKymographStd));
 end
 
 if ~exist(dirs.trajectories,'dir')
-    mkdir(dirs.trajectories);
+    unix(sprintf('mkdir %s',dirs.trajectories));
 end
 
 if ~exist(dirs.healingRate,'dir')
-    mkdir(dirs.healingRate);
+    unix(sprintf('mkdir %s',dirs.healingRate));
 end
 
 if ~exist(dirs.segmentation,'dir')
-    mkdir(dirs.segmentation);
+    unix(sprintf('mkdir %s',dirs.segmentation));
 end
 
 if ~exist(dirs.plithotaxis,'dir')
-    mkdir(dirs.plithotaxis);
+    unix(sprintf('mkdir %s',dirs.plithotaxis));
 end
 
 if ~exist(dirs.correctMotion,'dir')
-    mkdir(dirs.correctMotion);
+    unix(sprintf('mkdir %s',dirs.correctMotion));
 end
 
 end

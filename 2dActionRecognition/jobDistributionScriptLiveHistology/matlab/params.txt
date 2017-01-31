@@ -3,16 +3,16 @@
 ## Please keep the order of parameters
 
 # 0. full path
-/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLivehistology/matlab
+/home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab
 
 # 1. user program
-runQLCHOneAtATimeMD.m
+runQLCHOneAtATimeThirdGenMD.m
 
 # 2. total number of tasks
-40
+160
 
 # 3. number of tasks per node
-20
+16
 
 # 4. partition to use
 super

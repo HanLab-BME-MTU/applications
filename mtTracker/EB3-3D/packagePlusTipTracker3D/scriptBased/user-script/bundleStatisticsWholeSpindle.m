@@ -9,19 +9,30 @@ ip.parse(MD,varargin{:});
 p=ip.Results;
 
 randomDist=10;
+
 % Estimate bundle in KinPole axis
-captureDetection(MD)
-detectMTAlignment(MD)
-bundleStatistics(MD)
+captureDetection(MD);
+detectMTAlignment(MD);
+bundleStatistics(MD);
+
+% Keep inliers only
+outputDirDetect=[MD.outputDirectory_ filesep 'EB3' filesep 'detection' filesep];
+tmp=load([outputDirDetect filesep 'sphericalCoord.mat']);
+EB3SphCoord=tmp.sphCoord;
+EB3PoleDist=load([outputDirDetect filesep 'dist.mat']);
+
+outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
+tmp=load([outputDirProj filesep 'tracksLabRef.mat']);
+EB3tracks=tmp.tracksLabRef;
 
 % Randomize Kinetochore and create the associted sphercial coordinates.
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
 kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
 kinTracks=kinTrackData.tracksLabRef;
-[randKinTracks]=randomizeKinetochore(kinTracks,randomDist)
+[randKinTracks]=randomizeKinetochore(kinTracks,randomDist);
 
 % Translate these changes in the detection structure
-outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep]
+outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
 tmp=load([outputDirDetect 'detectionLabRef.mat']);
 detectionsLabRef=tmp.detectionsLabRef;
 for kIdx=1:length(randKinTracks)

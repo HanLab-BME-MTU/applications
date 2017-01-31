@@ -1,101 +1,35 @@
 function kinTracks=captureDetection(MD,varargin)
+% EB3 and Kin tracks need to be augmented with spherical coordinate and set
+% in nanometers (function addSpindleRef.m)
+
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('kinTracks',[],@(x) isa(x,'Tracks'));
-ip.addParameter('kinSphericalCoord',[]);
+ip.addParameter('EB3tracks',[],@(x) isa(x,'Tracks'));
+ip.addParamValue('name','',@ischar);
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
+ip.addParameter('distanceCutOff',0.1,@isnumeric);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
 %% Load EB3 tracks add azimuth info, change coordinate to real space measurement. 
-outputDirDetect=[MD.outputDirectory_ filesep 'EB3' filesep 'detection' filesep];
-tmp=load([outputDirDetect filesep 'sphericalCoord.mat']);
-EB3SphCoord=tmp.sphCoord;
-EB3PoleId=load([outputDirDetect filesep 'dist.mat']);
-
-outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
-tmp=load([outputDirProj filesep 'tracksLabRef.mat']);
-EB3tracks=tmp.tracksLabRef;
-
-% Augment the structures with spherical Coordinate. 
-
-% For MT
-for tIdx=1:length(EB3tracks)
-    progressText(tIdx/length(EB3tracks),'Loading EB3 spherical coordinates.');
-
-    tr=EB3tracks(tIdx);
-    try
-        tr.addprop('poleId');
-        tr.addprop('azimuth');
-        tr.addprop('elevation');
-        tr.addprop('rho');
-    catch
-    end;
-    tr.x=(tr.x-1)*MD.pixelSize_+1;
-    tr.y=(tr.y-1)*MD.pixelSize_+1;
-    tr.z=(tr.z-1)*MD.pixelSize_+1;
-    
-    nonGap=~tr.gapMask();
-    tr.azimuth=nan(2,length(tr.f));
-    tr.elevation=nan(2,length(tr.f));
-    tr.rho=nan(2,length(tr.f));
-
-     for poleID=1:2;
-        tr.azimuth(poleID,nonGap)=arrayfun(@(i,f) EB3SphCoord.azimuth{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-        tr.elevation(poleID,nonGap)=arrayfun(@(i,f) EB3SphCoord.elevation{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-        tr.rho(poleID,nonGap)=arrayfun(@(i,f) EB3SphCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-    end
-    tr.poleId=nan(size(tr.f));
-    tr.poleId(nonGap)=arrayfun(@(i,f) EB3PoleId.poleId{f}(i), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-end
-
-%% load Kinetochores spherical coordinate
-ip.addParameter('kin',[]);
-ip.parse(MD,varargin{:});
-p=ip.Results;
-
 %%
-if(isempty(p.kinTracks)||isempty(p.kinSphericalCoord))
-    outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
-    kinSphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
-    kinSphericalCoord=kinSphericalCoord.sphCoord;
-    
-    outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
-    kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
-    kinTracks=kinTrackData.tracksLabRef;
 
+if(isempty(p.kinTracks)||isempty(p.EB3tracks))
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'track'];
+    tmp=load([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'kinTracks');
+    kinTracks=tmp.kinTracks;
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'track'];
+    tmp=load([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3tracks');
+    EB3tracks=tmp.EB3tracks;
 else
     kinTracks=p.kinTracks;
-    kinSphericalCoord=p.kinSphericalCoord;
+    EB3tracks=p.EB3tracks;
 end
 
-% Augment the structures with spherical Coordinate. 
-for kIdx=1:length(kinTracks)
-    progressText(kIdx/length(kinTracks),'Loading kin spherical coordinates.');
-    tr=kinTracks(kIdx);
-    try
-        tr.addprop('azimuth');
-        tr.addprop('elevation');
-        tr.addprop('rho');
-    catch
-    end;
-    tr.x=(tr.x-1)*MD.pixelSize_+1;
-    tr.y=(tr.y-1)*MD.pixelSize_+1;
-    tr.z=(tr.z-1)*MD.pixelSize_+1;
-    
-    nonGap=~tr.gapMask();
-    tr.azimuth=nan(2,length(tr.f));
-    tr.elevation=nan(2,length(tr.f));
-    tr.rho=nan(2,length(tr.f));
-    for poleID=1:2
-        tr.azimuth(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.azimuth{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-        tr.elevation(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.elevation{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-        tr.rho(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-    end
-end
 
 
 %%  For each Kinetochore, indentify the +TIP that disappear close to the Pole-Kin axis.
@@ -103,7 +37,7 @@ end
 % track
 
 testKinIdx=p.testKinIdx;
-distanceCutOff=0.1;
+distanceCutOff=p.distanceCutOff;
 
 EB3TermFrames=[EB3tracks.endFrame];
 EB3BegPoleId=arrayfun(@(t) t.poleId(1),EB3tracks);
@@ -148,8 +82,8 @@ for kIdx=1:length(kinTracks)
 end
 
 %% For test kinetochore, plot an Amira file with attached mt
-outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep 'Test' filesep 'Amira'];
-for kIdx=testKinIdx
+outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name filesep 'Test' filesep 'Amira'];
+for kIdx=min(length(testKinIdx),testKinIdx)
     kinTrack=kinTracks(kIdx);
     trackSet=[kinTrack; kinTrack.catchingMT];
     trackType=[1; zeros(length(kinTrack.catchingMT),1)];
@@ -158,7 +92,7 @@ end
 %%
 if(p.printAll)
     %% For each kinetochore, plot an Amira file with attached mt
-    outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep 'Amira' filesep];
+    outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name filesep  'Amira' filesep];
     for kIdx=1:length(kinTracks)
         kinTrack=kinTracks(kIdx);
         trackSet=[kinTrack; kinTrack.catchingMT];
@@ -259,11 +193,11 @@ for kIdx=1:length(kinTracks)
 end
 
 %%
-outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT'];
+outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name];
 save([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks','EB3tracks')
 
 %% First test, display the +TIP coordinate on a lateral view of the poleKin axis. 
-outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep 'firstTest' filesep]
+outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep  'firstTest' filesep]
 system(['mkdir ' outputDirProj]);
 
 if(p.printAll)
