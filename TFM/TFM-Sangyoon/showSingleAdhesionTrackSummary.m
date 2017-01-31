@@ -311,7 +311,17 @@ plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTr
 if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting
     plot((frameFTI-curStartFrameEE)*tInterval,curTrack.forceMag(frameFTI),'o','MarkerFaceColor','r','MarkerEdgeColor','w')
 end
-line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxForce curTrack.bkgMaxForce],'LineStyle',':','Color','k')
+try
+    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxForce curTrack.bkgMaxForce],'LineStyle',':','Color','k')
+catch
+    curTrack = calculateFirstIncreaseTimeTracks(curTrack,0.5,0.05,tInterval);
+    try
+        line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxForce curTrack.bkgMaxForce],...
+            'LineStyle',':','Color','k')
+    catch
+        disp(' ')
+    end
+end
 xlabel('Time (s)'); ylabel('Traction (Pa)')
 set(ax9,'FontUnits',genFontUnit,'FontSize',genFontSize)
 

@@ -1,5 +1,8 @@
-function tracksNA = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
-%  tracksNA = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit) 
+function [tracksNA,firstIncreseTimeIntAgainstForceAll] = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
+% [tracksNA,firstIncreseTimeIntAgainstForceAll] =
+%  calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
+%  calculates 
+ 
     if nargin<4
         tInterval=1; %for vinculin 
     end
@@ -14,6 +17,7 @@ function tracksNA = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,pr
         useSmoothing=true;
     end
 %     for ii=curIndices
+    firstIncreseTimeIntAgainstForceAll=NaN(numel(tracksNA),1);
     for ii=1:numel(tracksNA)
         curTrack = tracksNA(ii);
         sFEE = curTrack.startingFrameExtraExtra;
@@ -21,9 +25,9 @@ function tracksNA = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,pr
         % See how many frames you have before the startingFrameExtra
         numFramesBefore = curTrack.startingFrameExtra - curTrack.startingFrameExtraExtra;
         numPreFrames = max(1,floor(preDetecFactor*numFramesBefore));
-        numPreSigStart = min(20,numFramesBefore);
+        numPreSigStart = min([20,numFramesBefore 3*numPreFrames]);
         sF5before = max(curTrack.startingFrameExtra-numPreSigStart,curTrack.startingFrameExtra-numPreFrames);
-        sF10before = max(sFEE,curTrack.startingFrameExtra-5*numPreFrames);
+        sF10before = max(sFEE,curTrack.startingFrameExtra-3*numPreFrames);
         d = tracksNA(ii).ampTotal;
         nTime = length(d);
         if useSmoothing
@@ -82,13 +86,15 @@ function tracksNA = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,pr
                 tracksNA(ii).firstIncreseTimeIntAgainstForce = []; 
                 tracksNA(ii).bkgMaxInt = bkgMaxInt;
                 tracksNA(ii).bkgMaxForce = bkgMaxForce;
-            else
+                firstIncreseTimeIntAgainstForceAll(ii)=NaN;
+           else
                 tracksNA(ii).forceTransmitting = true;
                 tracksNA(ii).firstIncreseTimeInt = firstIncreseTimeInt*tInterval; % in sec
                 tracksNA(ii).firstIncreseTimeForce = firstIncreseTimeForce*tInterval;
                 tracksNA(ii).firstIncreseTimeIntAgainstForce = firstIncreseTimeInt*tInterval - firstIncreseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
                 tracksNA(ii).bkgMaxInt = bkgMaxInt;
                 tracksNA(ii).bkgMaxForce = bkgMaxForce;
+                firstIncreseTimeIntAgainstForceAll(ii)=tracksNA(ii).firstIncreseTimeIntAgainstForce;
             end
         else
             tracksNA(ii).forceTransmitting = false;
@@ -97,5 +103,6 @@ function tracksNA = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,pr
             tracksNA(ii).firstIncreseTimeIntAgainstForce = []; 
             tracksNA(ii).bkgMaxInt = bkgMaxInt;
             tracksNA(ii).bkgMaxForce = [];
+            firstIncreseTimeIntAgainstForceAll(ii)=NaN;
         end
     end

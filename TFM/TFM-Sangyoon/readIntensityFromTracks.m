@@ -185,6 +185,16 @@ for k=1:numTracks
                         break
                     end
                 end
+                % It is a rare case, but it is possible that at some point
+                % there is no significant point source detected during this
+                % re-tracking. In this case, we change the curEndingFrame
+                % to be the previous time point
+                if isnan(pstruct.x) && ii==curEndingFrame
+                    curEndingFrame=ii-1;
+                    tracksNA(k).endingFrame = curEndingFrame;
+                    tracksNA(k).endingFrameExtra = curEndingFrame;
+                    break
+                end
             end
             % for the later time-points - going forward, x and y are already
             % set as a last point.
