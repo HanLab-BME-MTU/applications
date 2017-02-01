@@ -126,6 +126,33 @@ for j=1:movieData.nFrames_
     maskAdhesion = blobSegmentThreshold(I,minSize,0,mask);
     maskAdhesionFine = blobSegmentThreshold(I,0); % mask for all adhesions without minSize
 
+%     maskAdhesionC = imcomplement(maskAdhesion);
+    % mask for band from edge
+    if noMask
+        ultimateMask = roiMask(:,:,j) & mask & maskAdhesionFine;
+%         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask & maskAdhesionFine;
+    elseif ~isempty(bandwidth)
+        iMask = imcomplement(mask);
+        distFromEdge = bwdist(iMask);
+        bandwidth_pix = round(bandwidth*1000/pixSize);
+        bandMask = distFromEdge <= bandwidth_pix;
+
+%         ultimateMask = bandMask & roiMask(:,:,j) & maskAdhesionC & mask & maskAdhesionFine;
+        ultimateMask = bandMask & roiMask(:,:,j) & mask & maskAdhesionFine;
+    else
+%         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
+        ultimateMask = roiMask(:,:,j) & mask; % & maskAdhesionFine;
+    end
+    pstruct = pointSourceDetection(I, psfSigma,  ...
+        'Alpha',psAlpha,'Mask',ultimateMask);
+        % filter out points where overall intensity is in the noise level
+%     pixelIntenMargin = I(~mask);
+%     maxIntBg=quantile(pixelIntenMargin,0.9999);
+%     psInt = pstruct.A+pstruct.c;
+%     idxSigCCP = psInt>maxIntBg;
+    xNA=pstruct.x;
+    yNA=pstruct.y;
+    maskAdhesion = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA,mask);
 %     labelAdhesion = bwlabel(maskAdhesion);
     Adhs = regionprops(maskAdhesion,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength');
 %         minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
@@ -140,27 +167,6 @@ for j=1:movieData.nFrames_
         labelAdhesion(Adhs(kk).PixelIdxList)=kk;
     end
     maskAdhesion = logical(labelAdhesion);
-    maskAdhesionC = imcomplement(maskAdhesion);
-    % mask for band from edge
-    if noMask
-        ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask & maskAdhesionFine;
-    elseif ~isempty(bandwidth)
-        iMask = imcomplement(mask);
-        distFromEdge = bwdist(iMask);
-        bandwidth_pix = round(bandwidth*1000/pixSize);
-        bandMask = distFromEdge <= bandwidth_pix;
-
-        ultimateMask = bandMask & roiMask(:,:,j) & maskAdhesionC & mask & maskAdhesionFine;
-    else
-        ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
-    end
-    pstruct = pointSourceDetection(I, psfSigma,  ...
-        'Alpha',psAlpha,'Mask',ultimateMask);
-        % filter out points where overall intensity is in the noise level
-%     pixelIntenMargin = I(~mask);
-%     maxIntBg=quantile(pixelIntenMargin,0.9999);
-%     psInt = pstruct.A+pstruct.c;
-%     idxSigCCP = psInt>maxIntBg;
     if ~isempty(pstruct)
         idxSigCCP = pstruct.A>0;
 
