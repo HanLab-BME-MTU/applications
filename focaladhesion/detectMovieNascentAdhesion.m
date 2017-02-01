@@ -171,7 +171,7 @@ for j=1:movieData.nFrames_
     indInside=maskVectors(xNA,yNA,maskAdhesion2);
     indTrueNAs=~indInside;
     if ~isempty(pstruct)
-        idxSigCCP = pstruct.A>0 & indTrueNAs;
+        idxSigCCP = pstruct.A>0 & indTrueNAs';
 
         nascentAdhInfo(j).xCoord = [round(pstruct.x(idxSigCCP)'), round(pstruct.x_pstd(idxSigCCP)')];
         nascentAdhInfo(j).yCoord = [round(pstruct.y(idxSigCCP)'), round(pstruct.y_pstd(idxSigCCP)')];
