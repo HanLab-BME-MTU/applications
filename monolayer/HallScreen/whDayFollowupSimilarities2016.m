@@ -1,4 +1,4 @@
-function [] = whDayFollowupSimilarities2016(followupDname,validateGenes,figDname,outputPrefix)
+function [] = whDayFollowupSimilarities2016(followupDname,validateGenes,figDname,outputPrefix,caxisGenes)
 
 addpath(genpath('/home2/azaritsky/code/applications/monolayer/'));
 addpath(genpath('/home2/azaritsky/code/extern/export_fig'));
@@ -23,6 +23,9 @@ properties = {'Speed','Directionality','Coordination'};
 % nFeats = 10; % monolayer migration rate + 9 PCs
 nFeats = 9; % 9 PCs
 nGenes = length(validateGenes);
+
+
+
 
 %% Control statistics
 allFeatsControl = cell(1,nFeats);
@@ -71,6 +74,7 @@ end
 cumsumNs = [0 cumsum(ns)];
 
 meanControl = nan(1,nFeats);
+
 stdControl = nan(1,nFeats);
 for i = 1 : nFeats 
     meanControl(i) = mean(allFeatsControl{i});
@@ -91,21 +95,21 @@ for igene = 1 : nGenes
     featsGene(:,igene) = mean(curGeneFeats,1)';
 end
     
-
-
-
-
 %% Similarity between genes
 
 fontsize = 10;
 
 [geneZscoreFeats,geneSimilarityMat] = getSimilarityMat(featsGene); % similarity between genes (cols)
 
+if nargin < 5
+    caxisGenes = [prctile(geneSimilarityMat(~(geneSimilarityMat==0)),10),prctile(geneSimilarityMat(~(geneSimilarityMat==0)),90)];
+end
+
 figure; 
 imagesc(geneSimilarityMat); 
 colormap 'jet';
 % caxis([prctile(geneSimilarityMat(~(geneSimilarityMat==0)),5),prctile(geneSimilarityMat(~(geneSimilarityMat==0)),95)]);
-caxis([prctile(geneSimilarityMat(~(geneSimilarityMat==0)),10),prctile(geneSimilarityMat(~(geneSimilarityMat==0)),90)]);
+caxis(caxisGenes);
 export_fig([followupDname filesep outputPrefix 'Similarity_genes.eps']);
 export_fig([figDname filesep outputPrefix 'Similarity_genes.eps']);
 

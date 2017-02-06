@@ -12,14 +12,15 @@ function iceConn = imarisShowUTrack3D(MD)
 
 iceConn = movieViewerImaris(MD,'UseImarisFileReader',true);
 
-detections = load([MD.outputDirectory_ filesep 'detection' filesep 'pointSourceAutoSigmaFit' filesep 'detection.mat']);
+outputDir = MD.notes_;%Workaround for using kludgy script...
+detections = load([outputDir filesep 'detection.mat']);
 detections = detections.movieInfo;
 
 imarisShowDetections(detections,iceConn);
 
 %Just hard-coding this because hopefully it will eventually have process
 %classes...
-tracks = load([MD.outputDirectory_ filesep 'detection' filesep 'pointSourceAutoSigmaFit' filesep 'tracks' filesep 'tracksHandle.mat']);
+tracks = load([outputDir filesep 'tracks' filesep 'tracksHandle.mat']);
 tracks = tracks.tracks;
 
 imarisShowTracks(tracks,iceConn);

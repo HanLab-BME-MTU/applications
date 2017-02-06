@@ -11,20 +11,71 @@ delta(101,101) = 1;
 Dg = imgaussfilt(delta,3,'FilterSize',25);
 
 testScales = 1/2/pi./chebpts(17,[1 4]);
+
+FF = OrientationSpaceRidgeFilter(testScales,testScales,8);
+FF = FF(logical(eye(length(FF))));
+
 F = orientationSpace.steerableScaleFilter(testScales,201);
-R = F*(Lg+Lg.');
-A = squeeze(R.getArraySpace);
-B = squeeze(real(A(101,90,:,:)));
-C = interpft(B,360);
-cf = chebfun(C.',[1 4]);
-[~,maxi] = max(cf);
+% R = F*(Lg+Lg.');
+% A = squeeze(R.getArraySpace);
+% B = squeeze(real(A(101,90,:,:)));
+% C = interpft(B,360);
+% cf = chebfun(C.',[1 4]);
+% [~,maxi] = max(cf);
+
+%% Normal Filter
+
+queryScales = 1:0.1:4;
+queryOutput = zeros(size(queryScales));
+parfor ii=1:length(queryScales)
+    Lg = imgaussfilt(L,queryScales(ii),'FilterSize',25);
+    R = FF*Lg;
+    A = squeeze(R.getArraySpace);
+    B = squeeze(real(A(101,101,:,:)));
+    cf = chebfun(B(1,:).',[1 4]);
+    [~,queryOutput(ii)] = max(cf);
+end
+
+figure; 
+plot(queryScales,queryOutput);
+title('Orientation Space Filter');
+
+
+queryScales = 1:0.1:4;
+queryOutput = zeros(size(queryScales));
+parfor ii=1:length(queryScales)
+    Lg_box = imgaussfilt(L.*box,queryScales(ii),'FilterSize',25);
+    R = FF*Lg_box;
+    A = squeeze(R.getArraySpace);
+    B = squeeze(real(A(101,101,:,:)));
+    cf = chebfun(B(1,:).',[1 4]);
+    [~,queryOutput(ii)] = max(cf);
+end
+
+hold on;
+plot(queryScales,queryOutput);
+
+
+queryScales = 1:0.1:4;
+queryOutput = zeros(size(queryScales));
+parfor ii=1:length(queryScales)
+    Dg = imgaussfilt(delta,queryScales(ii),'FilterSize',25);
+    R = FF*Dg;
+    A = squeeze(R.getArraySpace);
+    B = squeeze(real(A(101,101,:,:)));
+    cf = chebfun(B(1,:).',[1 4]);
+    [~,queryOutput(ii)] = max(cf);
+end
+
+hold on;
+plot(queryScales,queryOutput);
 
 
 %% Steerable scale filter
 
 queryScales = 1:0.1:4;
 queryOutput = zeros(size(queryScales));
-parfor ii=1:length(queryScales)
+for ii=1:length(queryScales)
     Lg = imgaussfilt(L,queryScales(ii),'FilterSize',25);
     R = F*Lg;
     A = squeeze(R.getArraySpace);
@@ -33,10 +84,13 @@ parfor ii=1:length(queryScales)
     [~,queryOutput(ii)] = max(cf);
 end
 
+figure; 
+plot(queryScales,queryOutput);
+title('Steerable Scale Filter');
 
 queryScales = 1:0.1:4;
 queryOutput = zeros(size(queryScales));
-parfor ii=1:length(queryScales)
+for ii=1:length(queryScales)
     Lg_box = imgaussfilt(L.*box,queryScales(ii),'FilterSize',25);
     R = F*Lg_box;
     A = squeeze(R.getArraySpace);
@@ -45,9 +99,12 @@ parfor ii=1:length(queryScales)
     [~,queryOutput(ii)] = max(cf);
 end
 
+hold on;; 
+plot(queryScales,queryOutput);
+
 queryScales = 1:0.1:4;
 queryOutput = zeros(size(queryScales));
-parfor ii=1:length(queryScales)
+for ii=1:length(queryScales)
     Dg = imgaussfilt(delta,queryScales(ii),'FilterSize',25);
     R = F*Dg;
     A = squeeze(R.getArraySpace);
@@ -55,6 +112,9 @@ parfor ii=1:length(queryScales)
     cf = chebfun(B(1,:).',[1 4]);
     [~,queryOutput(ii)] = max(cf);
 end
+
+hold on; 
+plot(queryScales,queryOutput);
 
 %% Ideal scale filter
 
@@ -70,6 +130,23 @@ for ii=1:length(queryScales)
     [~,queryOutput(ii)] = max(cf);
 end
 
+figure;
+plot(queryScales,queryOutput);
+title('Ideal Scale Filter');
+
+queryScales = 1:0.1:4;
+queryOutput = zeros(size(queryScales));
+for ii=1:length(queryScales)
+    Lg_box = imgaussfilt(L.*box,queryScales(ii),'FilterSize',25);
+    out = ifft2(bsxfun(@times,fft2(Lg_box),real(sF)));
+    B = squeeze(real(out(101,101,:)));
+    cf = chebfun(B,[1 4]);
+    [~,queryOutput(ii)] = max(cf);
+end
+
+hold on;; 
+plot(queryScales,queryOutput);
+
 
 queryScales = 1:0.1:4;
 queryOutput = zeros(size(queryScales));
@@ -80,3 +157,6 @@ for ii=1:length(queryScales)
     cf = chebfun(B,[1 4]);
     [~,queryOutput(ii)] = max(cf);
 end
+
+hold on;
+plot(queryScales,queryOutput);

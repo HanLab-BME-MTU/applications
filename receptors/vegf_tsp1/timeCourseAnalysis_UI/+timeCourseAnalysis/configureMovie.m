@@ -23,7 +23,12 @@ function [ MD, movieFileName ] = configureMovie( fileName, filePath, param )
             MD.numAperture_ = param.numAperature_;
             MD.sanityCheck;
             for c = 1:length(MD.channels_)
-                MD.channels_(c).emissionWavelength_ = param.emissionWavelength_(min(c,end));
+                try
+                    MD.channels_(c).emissionWavelength_ = param.emissionWavelength_(min(c,end));
+                catch err
+                    warning(['Could not set emissionWavelength_ property to ' num2str(param.emissionWavelength_) ...
+                        'It is already set to ' MD.channels_(c).emissionWavelength_]);
+                end
                 MD.channels_(c).exposureTime_ = param.exposureTime_(min(c,end));
                 MD.channels_(c).imageType_ = param.imageType_{min(c,end)};
                 MD.channels_(c).sanityCheck;

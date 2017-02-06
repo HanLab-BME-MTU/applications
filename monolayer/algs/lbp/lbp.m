@@ -33,7 +33,7 @@
 
 function result = lbp(varargin) % image,radius,neighbors,mapping,mode)
 % Version 0.3.2
-% Authors: Marko Heikkilï¿½ and Timo Ahonen
+% Authors: Marko Heikkilä and Timo Ahonen
 
 % Changelog
 % Version 0.3.2: A bug fix to enable using mappings together with a
@@ -44,7 +44,7 @@ function result = lbp(varargin) % image,radius,neighbors,mapping,mode)
 
 
 % Check number of input arguments.
-narginchk(1,5);
+error(nargchk(1,5,nargin));
 
 image=varargin{1};
 d_image=double(image);
@@ -111,7 +111,7 @@ if (nargin > 1) && (length(varargin{2}) > 1)
 end
 
 % Determine the dimensions of the input image.
-[ysize, xsize] = size(image);
+[ysize xsize] = size(image);
 
 
 

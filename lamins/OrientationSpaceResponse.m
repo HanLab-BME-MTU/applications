@@ -492,10 +492,20 @@ classdef OrientationSpaceResponse < handle
             % Concatenate along the next available dimension
             d = ndims(obj(1).a)+1;
             d = max(d,4);
-            A = cat(d,obj.a);
-            sA = size(A);
-            A = reshape(A,[sA(1:d-1) size(obj)]);
-            A = A(varargin{:});
+            if(nargin < 2)
+                A = cat(d,obj.a);
+                sA = size(A);
+                A = reshape(A,[sA(1:d-1) size(obj)]);
+                A = A(varargin{:});
+            else
+                varargin(nargin:4) = {':'};
+                A = arrayfun(@(R) R.a(varargin{1:3}),obj,'UniformOutput',false);
+                A = cat(d,A{varargin{4}});
+                sA = size(A);
+                if(varargin{4}(1) == ':')
+                    A = reshape(A,[sA(1:d-1) size(obj)]);
+                end
+            end
         end
     end
     

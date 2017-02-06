@@ -525,7 +525,14 @@ function txt=myupdateDC(~,event_obj)
         tRange = tracksNA(selectedID).iFrame;
         d(d==0)=NaN;
         warning('off','SPLINES:CHCKXYWP:NaNs')
-        sd_spline= csaps(tRange,d,splineParam);
+        try
+            sd_spline= csaps(tRange,d,splineParam);
+        catch
+            d = tracksNA(selectedID).amp;
+            d(tracksNA(selectedID).startingFrameExtraExtra:tracksNA(selectedID).endingFrameExtraExtra) = ...
+                tracksNA(selectedID).ampTotal(tracksNA(selectedID).startingFrameExtraExtra:tracksNA(selectedID).endingFrameExtraExtra);
+            sd_spline= csaps(tRange,d,splineParam);
+        end
         sd=ppval(sd_spline,tRange);
         sd(isnan(d))=NaN;
         %         sd(isnan(d)) = NaN;
