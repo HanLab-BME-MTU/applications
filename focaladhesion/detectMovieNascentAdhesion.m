@@ -83,9 +83,6 @@ nascentAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
 focalAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
     'amp',[],'area',[],'length',[],'meanFAarea',[],'medianFAarea',[]...
     ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],'cellArea',[],'maskFA',[],'boundFA',[],'ecc',[]);
-if plotGraph
-    h1=figure;
-end
 jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
@@ -117,6 +114,7 @@ for j=1:movieData.nFrames_
     catch
         mask = movieData.roiMask;
         noMask=true;
+        mask=mask(:,:,j);
     end
     if ~isempty(indMask)
         maskComp = maskProc.loadChannelOutput(indMask,j); % 1 is CCP channel
@@ -219,6 +217,7 @@ for j=1:movieData.nFrames_
 
     % plotting detected adhesions
     if plotGraph
+        h1=figure;
         dI = double(I)/max(max(I));
         combI(:,:,1) = dI;
         combI(:,:,2) = dI+double(maskAdhesion2)*.5;
