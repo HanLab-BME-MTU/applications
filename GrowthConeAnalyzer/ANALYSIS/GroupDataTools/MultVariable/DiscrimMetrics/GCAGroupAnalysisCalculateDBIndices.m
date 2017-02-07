@@ -46,7 +46,7 @@ outDir = pwd;
         hold on 
         
         namesGroup = toPlot.info.names;
-        namesSort = namesGroup(idxSort);
+        namesSort = namesGroup(idxSort(2:end));
         
         ylabel({'Separation Statistic-'; 'Inverse Davies Bouldin Index'});
         set(gca,'XTick',1:numel(namesSort)-1);
