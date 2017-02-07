@@ -40,10 +40,10 @@ testKinIdx=p.testKinIdx;
 distanceCutOff=p.distanceCutOff;
 
 EB3TermFrames=[EB3tracks.endFrame];
-EB3BegPoleId=arrayfun(@(t) t.poleId(1),EB3tracks);
-EB3TermAzi=arrayfun(@(t,p) t.azimuth(p,end),EB3tracks,EB3BegPoleId);
-EB3TermRho=arrayfun(@(t,p) t.rho(p,end),EB3tracks,EB3BegPoleId);
-EB3TermElev=arrayfun(@(t,p) t.elevation(p,end),EB3tracks,EB3BegPoleId);
+EB3TermPoleId=arrayfun(@(t) t.poleId(end),EB3tracks);
+EB3TermAzi=arrayfun(@(t,p) t.azimuth(p,end),EB3tracks,EB3TermPoleId);
+EB3TermRho=arrayfun(@(t,p) t.rho(p,end),EB3tracks,EB3TermPoleId);
+EB3TermElev=arrayfun(@(t,p) t.elevation(p,end),EB3tracks,EB3TermPoleId);
 for kIdx=1:length(kinTracks)
     progressText(kIdx/length(kinTracks),'Catching MT.');
     kinTrack=kinTracks(kIdx);
@@ -56,7 +56,7 @@ for kIdx=1:length(kinTracks)
         fIdx=kinTrack.f(pIdx);  
         coexistingEB3=(EB3TermFrames==fIdx); % Co existence is characterized if EB3 disappear when Kin is still alive.
         if(any(coexistingEB3))
-            MTPoles=EB3BegPoleId(coexistingEB3);
+            MTPoles=EB3TermPoleId(coexistingEB3);
             aziDiff=abs(kinTrack.azimuth(MTPoles,pIdx) - EB3TermAzi(coexistingEB3));
             elevDiff=(abs(kinTrack.elevation(MTPoles,pIdx)- EB3TermElev(coexistingEB3)));
 %             kinEB3DistP1=sqrt(sum(([min(aziDiff,2*pi-aziDiff) ...
