@@ -1,4 +1,4 @@
-function [kinTracks,EB3Tracks,EB3TracksP,kinTracksP]=addSpindleRef(MD,varargin)
+function [kinTracks,EB3Tracks]=addSpindleRef(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
@@ -105,17 +105,13 @@ for tIdx=1:length(EB3Tracks)
     % END DEPRECATED
 end
 
-%addReferential(EB3Tracks,poleRefs,'poleRef');
-
-EB3TracksP1= poleRefs(1).applyBaseToTrack(EB3Tracks);
-EB3TracksP2= poleRefs(2).applyBaseToTrack(EB3Tracks);
-EB3TracksP={EB3TracksP1, EB3TracksP2};
+addReferential(EB3Tracks,poleRefs,'poleRef');
 
 for tIdx=1:length(EB3Tracks)
 %     trackPoleRefs=[];
     for poleID=1:length(poleRefs);
         % Copying EB3 track
-        tr=EB3TracksP{poleID}(tIdx);
+        tr=EB3Tracks(tIdx).poleRef{poleID};
         % Adding correponding spherical coordinate
         try
             tr.addprop('azimuth');
@@ -135,10 +131,6 @@ for tIdx=1:length(EB3Tracks)
     end
 end
 toc
-%% load Kinetochores spherical coordinate
-ip.addParameter('kin',[]);
-ip.parse(MD,varargin{:});
-p=ip.Results;
 
 %%
 if(isempty(p.kinTracks)||isempty(p.kinSphericalCoord))
@@ -186,16 +178,14 @@ for kIdx=1:length(kinTracks)
         tr.rho(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
     end 
 end
-
-kinTracksP1= poleRefs(1).applyBaseToTrack(kinTracks);
-kinTracksP2= poleRefs(2).applyBaseToTrack(kinTracks);
-kinTracksP={kinTracksP1, kinTracksP2};
+%%
+addReferential(kinTracks,poleRefs,'poleRef');
 
 for tIdx=1:length(kinTracks)
 %     trackPoleRefs=[];
     for poleID=1:length(poleRefs);
         % Copying EB3 track
-        tr=kinTracksP{poleID}(tIdx);
+        tr=kinTracks(tIdx).poleRef{poleID};
         % Adding correponding spherical coordinate
         try
             tr.addprop('azimuth');
@@ -214,8 +204,9 @@ for tIdx=1:length(kinTracks)
         tr.rho(nonGap)=arrayfun(@(i,f) kinSphericalCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
     end
 end
-
 toc
+
+%%
 outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'track'];
 save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'kinTracks')
 outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'track'];
