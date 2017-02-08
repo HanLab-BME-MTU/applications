@@ -104,14 +104,17 @@ for tIdx=1:length(EB3Tracks)
     end 
     % END DEPRECATED
 end
+%%
+refP1.applyBaseToTrack(EB3Tracks,'pole1');
+refP2.applyBaseToTrack(EB3Tracks,'pole2');
+%%
 
-addReferential(EB3Tracks,poleRefs,'poleRef');
-
+refName={'pole1','pole2'};
 for tIdx=1:length(EB3Tracks)
 %     trackPoleRefs=[];
     for poleID=1:length(poleRefs);
         % Copying EB3 track
-        tr=EB3Tracks(tIdx).poleRef{poleID};
+        tr=getfield(EB3Tracks(tIdx),refName{poleID});
         % Adding correponding spherical coordinate
         try
             tr.addprop('azimuth');
@@ -179,13 +182,14 @@ for kIdx=1:length(kinTracks)
     end 
 end
 %%
-addReferential(kinTracks,poleRefs,'poleRef');
+refP1.applyBaseToTrack(kinTracks,'pole1');
+refP2.applyBaseToTrack(kinTracks,'pole2');
 
 for tIdx=1:length(kinTracks)
 %     trackPoleRefs=[];
     for poleID=1:length(poleRefs);
         % Copying EB3 track
-        tr=kinTracks(tIdx).poleRef{poleID};
+        tr=getfield(kinTracks(tIdx),refName{poleID});
         % Adding correponding spherical coordinate
         try
             tr.addprop('azimuth');
