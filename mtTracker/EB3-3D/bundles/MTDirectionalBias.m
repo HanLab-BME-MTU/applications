@@ -12,28 +12,44 @@ p=ip.Results;
 
 printAll=p.printAll;
 %%
-[kinTracksPlus,EB3TracksPlus,EB3TracksP,kinTracksP]=addSpindleRef(MD);
+[kinTracks,EB3Tracks]=addSpindleRef(MD);
 
 % inlier index
-inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3TracksPlus)));
-inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracksPlus));
+inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
+inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
 
+outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep  'Amira' filesep];
 
 %%
-angleCutoff=0.1;
+angleCutoff=0.2;
 
-[kinTracksP1,kinTracksP2]=mapMTApparitionToKin(kinTracksP{1}(inliersKin),kinTracksP{2}(inliersKin),EB3TracksP{1}(inliersEB3),EB3TracksP{2}(inliersEB3),angleCutoff);
+[kinTracks]=mapMTApparitionToKin(kinTracks(inliersKin),EB3Tracks(inliersEB3),angleCutoff);
 if(printAll)
     %% For each kinetochore, plot an Amira file with attached mt
-    outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep  'Amira' filesep];
-    for kIdx=1:length(kinTracksP2)
-        kinTrack=kinTracksP2(kIdx);
-        trackSet=[kinTrack; kinTrack.appearingMT];
-        trackType=[1; zeros(length(kinTrack.appearingMT),1)];
+    for kIdx=1:length(kinTracks)
+        trackSet=[kinTracks(kIdx); kinTracks(kIdx).appearingMTP1];
+        trackType=[1; zeros(length(kinTracks(kIdx).appearingMTP1),1)];
         amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
     end
 end
-       
+%%
+appearingMTBias(kinTracks);
+% For each kinetochore, plot an Amira file with attached mt
+for kIdx=1:length(kinTracks)
+    trackSet=[kinTracks(kIdx); kinTracks(kIdx).appearingMTP1; kinTracks(kIdx).appearingMTP2];
+    trackType=[4; kinTracks(kIdx).MTP1Angle; kinTracks(kIdx).MTP2Angle];
+    amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
+end
+
+%% For each kinetochore, plot an Amira file with attached mt in the spindle
+% ref
+for kIdx=1:length(kinTracks)
+    trackSet=[kinTracks(kIdx).poleRef{1}; (arrayfun(@(m) m.poleRef{1}, kinTracks(kIdx).appearingMTP1,'unif',0))];
+    trackType=[4; kinTracks(kIdx).MTP1Angle; kinTracks(kIdx).MTP2Angle];
+    amiraWriteTracks([outputDirAmira filesep 'spindleRefP1' filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
+end
+
+end
 %% Estimate bundle in KinPole axis
 
 % Randomize pixel domain Kinetochore and create the associted sphercial coordinates.

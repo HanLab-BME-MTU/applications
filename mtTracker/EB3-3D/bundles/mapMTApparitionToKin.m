@@ -3,17 +3,20 @@ function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
     EB3StartFrames=[EB3Tracks.startFrame]';
     EB3RhoP1=arrayfun(@(t) t.poleRef{1}.rho(1),EB3Tracks);
     EB3RhoP2=arrayfun(@(t) t.poleRef{2}.rho(1),EB3Tracks);
+    EB3ClosestPoleStart=arrayfun(@(t) t.poleId(1),EB3Tracks);
 
     for kinIdx=1:length(kinTracks)
         kinTrack=kinTracks(kinIdx);
         progressText(kinIdx/length(kinTracks),'mapMTApparitionToKin.');
         try
-            kinTrack.addprop('appearingMT');
+            kinTrack.addprop('appearingMTP1');
+            kinTrack.addprop('appearingMTP2');
+
         catch
         end;
 %        kinTrack.appearingMT=cell(1,length(kinTrack.poleRef));
-        kinTrack.appearingMT=[];
-
+        kinTrack.appearingMTP1=[];
+        kinTrack.appearingMTP2=[];
         for pIdx=1:length(kinTrack.f)
             fIdx=kinTrack.f(pIdx);
             coexistingEB3=(EB3StartFrames==fIdx); % EB3 and Kin Co-exist if EB3 appear when Kin is alive.
@@ -28,8 +31,8 @@ function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
 
                 % Associate MT appearance to kinPole refererial using
                 % Distance to pole
-                P1KinAssociatedMT=(EB3RhoP1<kinRhoP1)&coexistingEB3;
-                P2KinAssociatedMT=(EB3RhoP2<kinRhoP2)&coexistingEB3;
+                P1KinAssociatedMT=(EB3RhoP1<kinRhoP1)&coexistingEB3&(EB3ClosestPoleStart==1);
+                P2KinAssociatedMT=(EB3RhoP2<kinRhoP2)&coexistingEB3&(EB3ClosestPoleStart==2);
                 P1KinAssociatedMTIndex=find(P1KinAssociatedMT);
                 P2KinAssociatedMTIndex=find(P2KinAssociatedMT);
                 
@@ -48,10 +51,10 @@ function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
                 appearingMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex(abs(MTAnglesP2Kin)<angleCutoff));
                               
                 if(~isempty(appearingMTP1Kin))
-                    kinTrack.appearingMT=[kinTrack.appearingMT; appearingMTP1Kin] ;
+                    kinTrack.appearingMTP1=[kinTrack.appearingMTP1; appearingMTP1Kin] ;
                 end
                 if(~isempty(appearingMTP2Kin))
-                    kinTrack.appearingMT=[kinTrack.appearingMT; appearingMTP2Kin] ;
+                    kinTrack.appearingMTP2=[kinTrack.appearingMTP2; appearingMTP2Kin] ;
                 end                
             end
         end
