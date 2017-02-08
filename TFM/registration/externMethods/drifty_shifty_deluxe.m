@@ -52,7 +52,8 @@ if inmovie;
 [moviefilename,inputpath]=uigetfile('*.*','Choose a movie file to drift correct (cancel skips to next step)');
 
 else % image sequence
-inputpath=uigetdir('*.*','Choose a folder containing the image sequence (cancel skips to next step)');
+% inputpath=uigetdir('*.*','Choose a folder containing the image sequence (cancel skips to next step)');
+inputpath = '/work/bioinformatics/s170480/Data/FA/Cambridge/beads_20/';
 olddir=pwd;
 cd(inputpath);
 wildcard=strcat('*.',filetype);
@@ -150,7 +151,7 @@ end % if didn't cancel drift correct
 
 %% Step 2: apply shift to movie frames
 
-clear all
+% clear all
 % Get parameters and input file from user
 
 shiftmode = questdlg('Pad frame with empty space, or wrap within same bounds?','Pad or Wrap','Pad','Wrap','Wrap');
@@ -159,13 +160,14 @@ avgframes = str2num(questdlg('Average together how many frames?','Averaging','5'
 
 bigIter = str2num(questdlg('Max number of input frames per output file','Output file size','15000','5000','2000','2000'));
 
-[shiftfilename,shiftpathname]=uigetfile('*.mat','Please locate the drift data for the movie to correct...');
-
+% [shiftfilename,shiftpathname]=uigetfile('*.mat','Please locate the drift data for the movie to correct...');
+shiftfilename = shiftdatafilename;
 if shiftfilename~=0; % skip to end if canceled
 
  tic % start stopwatch
 
- shiftfile=fullfile(shiftpathname,shiftfilename);
+%  shiftfile=fullfile(shiftpathname,shiftfilename);
+ shiftfile=shiftfilename;
  load(shiftfile);
  inmovie = 0;
  if strncmp(filetype,'Mov',3);
@@ -184,7 +186,7 @@ if shiftfilename~=0; % skip to end if canceled
  else % image sequence
   files=dir(fullfile(inputpath,strcat('*.',filetype)));
   nFrames = length(files);
-  framerate = 29.97;
+  framerate = 60;
 
   % get height and width from first image
   frameref=imread(fullfile(inputpath,files(1).name),filetype);
@@ -268,7 +270,12 @@ if shiftfilename~=0; % skip to end if canceled
  else % image sequence
   filewritename=strcat(fullfile(inputpath,moviefilename),'corrected_',num2str(j),'.avi');
  end % inmovie
- movie2avi(mov_shift,filewritename,'fps',framerate,'compression','None')
+ % movie2avi(mov_shift,filewritename,'fps',framerate,'compression','None')
+
+  v = VideoWriter(filewritename);
+  open(v);
+  writeVideo(v, mov_shift);
+  close(v);
 
  end % j loop (bigIter blocks) 
 

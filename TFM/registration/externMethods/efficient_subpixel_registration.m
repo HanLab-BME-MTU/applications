@@ -127,7 +127,7 @@ display(output),
 % 19 Gbytes of RAM and a very comfortable chair.
 %
 % The following plot shows the reference image and the registered image.
-figure(1);
+figure(2);
 subplot(1,2,1);
 imshow(abs(f));
 title('Reference image, f(x,y)')
