@@ -343,14 +343,19 @@ for i = 1:numel(p.ChannelIndex)
     for j= 1:nFrames
          if i==1
              %  Apply pixel-wise registration to the reference channel
-             Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(round(T(j, :))) 1]);
+%              Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(round(T(j, :))) 1]);
+             Tr = affine2d([1 0 0; 0 1 0; fliplr(T(j, :)) 1]);
          else
              % Apply subpixel-wise registration to other channels
-             Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(j, :)) 1]);
+%              Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(j, :)) 1]);
+             Tr = affine2d([1 0 0; 0 1 0; fliplr(T(j, :)) 1]);
          end
+                  
+         
         I = padarray(double(movieData.channels_(iChan).loadImage(j)), [maxY, maxX]);
-        I2 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
-          
+% %         I2 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+        I2 = imwarp(I, Tr);
+        
         % Statistically test the local maxima to extract (significant) speckles
         imwrite(uint16(I2), outFile(iChan,j));
         
