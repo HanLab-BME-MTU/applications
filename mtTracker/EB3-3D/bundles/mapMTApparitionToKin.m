@@ -1,8 +1,8 @@
 function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
   
     EB3StartFrames=[EB3Tracks.startFrame]';
-    EB3RhoP1=arrayfun(@(t) t.poleRef{1}.rho(1),EB3Tracks);
-    EB3RhoP2=arrayfun(@(t) t.poleRef{2}.rho(1),EB3Tracks);
+    EB3RhoP1=arrayfun(@(t) t.pole1.rho(1),EB3Tracks);
+    EB3RhoP2=arrayfun(@(t) t.pole2.rho(1),EB3Tracks);
     EB3ClosestPoleStart=arrayfun(@(t) t.poleId(1),EB3Tracks);
 
     for kinIdx=1:length(kinTracks)
@@ -26,8 +26,8 @@ function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
                 % threshold manually
                 
                 % Kinetochore distance from each pole at frame <fIdx>
-                kinRhoP1=kinTrack.poleRef{1}.rho(pIdx);
-                kinRhoP2=kinTrack.poleRef{2}.rho(pIdx);
+                kinRhoP1=kinTrack.pole1.rho(pIdx);
+                kinRhoP2=kinTrack.pole2.rho(pIdx);
 
                 % Associate MT appearance to kinPole refererial using
                 % Distance to pole
@@ -37,11 +37,11 @@ function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
                 P2KinAssociatedMTIndex=find(P2KinAssociatedMT);
                 
                 %% Angle to kinPole axis          
-                MTVectorP1KinRef=cell2mat(arrayfun(@(t) [t.poleRef{1}.x(1);t.poleRef{1}.y(1);t.poleRef{1}.z(1)],EB3Tracks(P1KinAssociatedMT),'unif',0)');
-                MTVectorP2KinRef=cell2mat(arrayfun(@(t) [t.poleRef{2}.x(1);t.poleRef{2}.y(1);t.poleRef{2}.z(1)],EB3Tracks(P2KinAssociatedMT),'unif',0)');
+                MTVectorP1KinRef=cell2mat(arrayfun(@(t) [t.pole1.x(1);t.pole1.y(1);t.pole1.z(1)],EB3Tracks(P1KinAssociatedMT),'unif',0)');
+                MTVectorP2KinRef=cell2mat(arrayfun(@(t) [t.pole2.x(1);t.pole2.y(1);t.pole2.z(1)],EB3Tracks(P2KinAssociatedMT),'unif',0)');
 
-                kinVectorP1KinRef=[kinTrack.poleRef{1}.x(pIdx); kinTrack.poleRef{1}.y(pIdx); kinTrack.poleRef{1}.z(pIdx) ];
-                kinVectorP2KinRef=[kinTrack.poleRef{2}.x(pIdx); kinTrack.poleRef{2}.y(pIdx); kinTrack.poleRef{2}.z(pIdx) ];
+                kinVectorP1KinRef=[kinTrack.pole1.x(pIdx); kinTrack.pole1.y(pIdx); kinTrack.pole1.z(pIdx) ];
+                kinVectorP2KinRef=[kinTrack.pole2.x(pIdx); kinTrack.pole2.y(pIdx); kinTrack.pole2.z(pIdx) ];
                 
                 %%                
                 MTAnglesP1Kin= vectorAngleND(MTVectorP1KinRef,kinVectorP1KinRef);

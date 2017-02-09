@@ -104,7 +104,9 @@ for tIdx=1:length(EB3Tracks)
     end 
     % END DEPRECATED
 end
+toc;
 %%
+tic;
 refP1.applyBaseToTrack(EB3Tracks,'pole1');
 refP2.applyBaseToTrack(EB3Tracks,'pole2');
 %%
@@ -182,6 +184,8 @@ for kIdx=1:length(kinTracks)
     end 
 end
 %%
+toc;
+tic;
 refP1.applyBaseToTrack(kinTracks,'pole1');
 refP2.applyBaseToTrack(kinTracks,'pole2');
 

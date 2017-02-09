@@ -36,7 +36,6 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
               % Register in original tr
               try
                   trBase.addprop('originalRef');
-                  tr.addprop(name);
               catch
               end;
               setfield(tr,name,trBase);

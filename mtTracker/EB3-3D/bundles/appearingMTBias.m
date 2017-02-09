@@ -16,8 +16,8 @@ for kinIdx=1:length(kinTracks)
             pIdx=length(kinTrack.f);
         end
         %% Angle to kinPole axis
-        mtVectorP1KinRef=[mt.poleRef{1}.x(end); mt.poleRef{1}.y(end); mt.poleRef{1}.z(end) ];
-        kinVectorP1KinRef=[kinTrack.poleRef{1}.x(pIdx); kinTrack.poleRef{1}.y(pIdx); kinTrack.poleRef{1}.z(pIdx)];
+        mtVectorP1KinRef=[mt.pole1.x(end); mt.pole1.y(end); mt.pole1.z(end) ];
+        kinVectorP1KinRef=[kinTrack.pole1.x(pIdx); kinTrack.pole1.y(pIdx); kinTrack.pole1.z(pIdx)];
         MTAnglesP1Kin=vectorAngleND(mtVectorP1KinRef,kinVectorP1KinRef);
         kinTrack.MTP1Angle=[kinTrack.MTP1Angle; MTAnglesP1Kin] ;
     end
@@ -29,8 +29,8 @@ for kinIdx=1:length(kinTracks)
             pIdx=length(kinTrack.f);
         end
         %% Angle to kinPole axis
-        mtVectorP2KinRef=[mt.poleRef{2}.x(end); mt.poleRef{2}.y(end); mt.poleRef{2}.z(end) ];
-        kinVectorP2KinRef=[kinTrack.poleRef{2}.x(pIdx); kinTrack.poleRef{2}.y(pIdx); kinTrack.poleRef{2}.z(pIdx)];
+        mtVectorP2KinRef=[mt.pole2.x(end); mt.pole2.y(end); mt.pole2.z(end) ];
+        kinVectorP2KinRef=[kinTrack.pole2.x(pIdx); kinTrack.pole2.y(pIdx); kinTrack.pole2.z(pIdx)];
         MTAnglesP2Kin=vectorAngleND(mtVectorP2KinRef,kinVectorP2KinRef);
         kinTrack.MTP2Angle=[kinTrack.MTP2Angle; MTAnglesP2Kin] ;
     end    

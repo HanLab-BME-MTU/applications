@@ -39,7 +39,7 @@ if(~exist(fileparts(filename))) mkdir2016a(fileparts(filename)); end;
 % GAP filling using the last known position (gap are still mark by tracksFeatIndxCG
 % trackFeat
 if(p.fillGaps)
-    se=[zeros(1,tracks.numTimePoints) 1 ones(1,tracks.numTimePoints)];
+    se=[zeros(1,tracks.numTimePoints()) 1 ones(1,tracks.numTimePoints())];
     for tIdx=1:length(tracks)
         gi=tracks(tIdx).gapMask;
         if(any(gi))
@@ -53,7 +53,7 @@ if(p.fillGaps)
     end
 end
 
-numTimePoints=tracks.numTimePoints;
+numTimePoints=tracks.numTimePoints();
 if(p.cumulativeOnly)
     numTimePoints=0;
 end
