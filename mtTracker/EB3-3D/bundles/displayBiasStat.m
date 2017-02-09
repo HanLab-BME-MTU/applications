@@ -49,8 +49,8 @@ for ktIdx=1:length(kinTracksOrCell)
     timeCell{ktIdx}=1:kinTracks.numTimePoints();
 end
 %%
-groupID=arrayfun(@(i) i*ones(size(mtDisappTime{i})),1:length(mtDisappTime),'unif',0);
-gscatter([mtDisappTime{:}], [mtDisappBias{:}],[groupID{:}]);
+% groupID=arrayfun(@(i) i*ones(size(mtDisappTime{i})),1:length(mtDisappTime),'unif',0);
+% gscatter([mtDisappTime{:}], [mtDisappBias{:}],[groupID{:}]);
 %%
 plot(H(1),vertcat(timeCell{:})',vertcat(biasAvgCell{:})');
 legend(H(1),nameOrCell);
