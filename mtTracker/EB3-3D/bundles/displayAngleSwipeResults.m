@@ -1,5 +1,5 @@
 function displayAngleSwipeResults(fiberCell,randFiberCell)
-    plotRange=[0,8];
+    plotRange=[0,35];
     numAngle=length(fiberCell);
     [H]=setupFigure(2,ceil((numAngle+1)/2),numAngle+1,'AspectRatio',1,'AxesWidth',4);
     for i=1:numAngle
