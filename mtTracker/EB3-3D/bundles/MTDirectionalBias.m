@@ -23,46 +23,7 @@ inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
 
 outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep  'Amira' filesep];
 
-%%
-angleCutoff=0.1;
-
-[kinTracks]=mapMTApparitionToKin(kinTracks(inliersKin),EB3Tracks(inliersEB3),angleCutoff);
-if(printAll)
-    %% For each kinetochore, plot an Amira file with attached mt
-    for kIdx=1:length(kinTracks)
-        trackSet=[kinTracks(kIdx); kinTracks(kIdx).appearingMTP1];
-        trackType=[1; zeros(length(kinTracks(kIdx).appearingMTP1),1)];
-        amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
-    end
-end
-%%
-appearingMTBias(kinTracks);
-% For each kinetochore, plot an Amira file with attached mt
-for kIdx=1:length(kinTracks)
-    trackSet=[kinTracks(kIdx); kinTracks(kIdx).appearingMTP1; kinTracks(kIdx).appearingMTP2];
-    trackType=[4; kinTracks(kIdx).MTP1Angle; kinTracks(kIdx).MTP2Angle];
-    amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
-end
-
-%% For each kinetochore, plot an Amira file with attached mt in the spindle
-% ref
-for kIdx=1:length(kinTracks)
-    appearingMT=[kinTracks(kIdx).appearingMTP1];
-    if (~isempty(appearingMT))
-        trackSet=[kinTracks(kIdx).pole1,[appearingMT.pole1]];
-    else
-        trackSet=kinTracks(kIdx).pole1;
-    end
-    trackType=[4; kinTracks(kIdx).MTP1Angle];
-    amiraWriteTracks([outputDirAmira filesep 'spindleRefP1' filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
-end
-
-displayBiasStat(kinTracks)
-
-
-%% Estimate bias outside KinPole axis
-
-%Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
+% Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
 randomDist=10; % in pixel
 
 outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
@@ -91,10 +52,46 @@ poleMovieInfo=poleData.poleMovieInfo;
 % Estimate bundle outside the Kin-Plan refencial
 randKinTracksInlier=randKinTracksPlus(inliersKin);
 
-[randKinTracksInlier]=mapMTApparitionToKin(randKinTracksInlier,EB3Tracks(inliersEB3),angleCutoff);
-appearingMTBias(randKinTracksInlier);
 
-displayBiasStat(randKinTracksInlier,'plotHandleArray',p.plotHandle);
-
+%%
+angleCutoffs=p.AngleCutoff;
+numAngle=length(angleCutoffs);
+[Hs]=setupFigure(1,(numAngle),numAngle,'AspectRatio',1,'AxesWidth',4);
+for aIdx=1:numAngle
+    angleCutoff=angleCutoffs(aIdx);
+    [kinTracks]=mapMTApparitionToKin(kinTracks(inliersKin),EB3Tracks(inliersEB3),angleCutoff);
+    appearingMTBias(kinTracks);
+    % For each kinetochore, plot an Amira file with attached mt
+    if(printAll)
+        %% For each kinetochore, plot an Amira file with attached mt
+        for kIdx=1:length(kinTracks)
+            trackSet=[kinTracks(kIdx); kinTracks(kIdx).appearingMTP1];
+            trackType=[1; zeros(length(kinTracks(kIdx).appearingMTP1),1)];
+            amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
+        end
+        for kIdx=1:length(kinTracks)
+            trackSet=[kinTracks(kIdx); kinTracks(kIdx).appearingMTP1; kinTracks(kIdx).appearingMTP2];
+            trackType=[4; kinTracks(kIdx).MTP1Angle; kinTracks(kIdx).MTP2Angle];
+            amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
+        end
+        %% For each kinetochore, plot an Amira file with attached mt in the spindle
+        % ref
+        for kIdx=1:length(kinTracks)
+            appearingMT=[kinTracks(kIdx).appearingMTP1];
+            if (~isempty(appearingMT))
+                trackSet=[kinTracks(kIdx).pole1,[appearingMT.pole1]];
+            else
+                trackSet=kinTracks(kIdx).pole1;
+            end
+            trackType=[4; kinTracks(kIdx).MTP1Angle];
+            amiraWriteTracks([outputDirAmira filesep 'spindleRefP1' filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
+        end
+    end
+    
+    %% Estimate bias outside KinPole axis
+    [randKinTracksInlier]=mapMTApparitionToKin(randKinTracksInlier,EB3Tracks(inliersEB3),angleCutoff);
+    appearingMTBias(randKinTracksInlier);
+    displayBiasStat(kinTracks,randKinTracksInlier,'plotHandleArray',Hs(aIdx));
+end
 
 %displayAngleSwipeResults(fiberCell,randFiberCell)
