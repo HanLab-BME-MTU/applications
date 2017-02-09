@@ -37,19 +37,20 @@ for ktIdx=1:length(kinTracksOrCell)
         mtDisappTime{ktIdx}=[mtDisappTime{ktIdx} mtDisappEnd'];
         
     end
-    biasAvg=zeros(1,max(mtDisappTime{ktIdx}));
-    biasStd=zeros(1,max(mtDisappTime{ktIdx}));
-    for t=1:max(mtDisappTime{ktIdx})
-        biasAtTime=(mtDisappBias{ktIdx}(mtDisappTime{ktIdx}==t))
+    biasAvg=zeros(1,kinTracks.numTimePoints());
+    biasStd=zeros(1,kinTracks.numTimePoints());
+    for t=1:kinTracks.numTimePoints()
+        biasAtTime=(mtDisappBias{ktIdx}(mtDisappTime{ktIdx}==t));
         biasAvg(t)=mean(biasAtTime);
         biasStd(t)=std(biasAtTime);
     end
     biasAvgCell{ktIdx}=biasAvg;
     biasStdCell{ktIdx}=biasStd;
-    timeCell{ktIdx}=1:max(mtDisappTime{ktIdx});
+    timeCell{ktIdx}=1:kinTracks.numTimePoints();
 end
-% groupID=arrayfun(@(i) i*ones(size(mtDisappTime{i})),1:length(mtDisappTime),'unif',0);
-% gscatter([mtDisappTime{:}], [mtDisappBias{:}],[groupID{:}]);
+%%
+groupID=arrayfun(@(i) i*ones(size(mtDisappTime{i})),1:length(mtDisappTime),'unif',0);
+gscatter([mtDisappTime{:}], [mtDisappBias{:}],[groupID{:}]);
 %%
 plot(H(1),vertcat(timeCell{:})',vertcat(biasAvgCell{:})');
 legend(H(1),nameOrCell);

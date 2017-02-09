@@ -1,4 +1,4 @@
-function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
+function mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
   
     EB3StartFrames=[EB3Tracks.startFrame]';
     EB3RhoP1=arrayfun(@(t) t.pole1.rho(1),EB3Tracks);
@@ -11,7 +11,6 @@ function [kinTracks]=mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
         try
             kinTrack.addprop('appearingMTP1');
             kinTrack.addprop('appearingMTP2');
-
         catch
         end;
 %        kinTrack.appearingMT=cell(1,length(kinTrack.poleRef));
