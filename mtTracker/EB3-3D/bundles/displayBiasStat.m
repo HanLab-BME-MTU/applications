@@ -8,7 +8,9 @@ ip.addParameter('placeHolder',[10 35]);
 ip.parse(varargin{:});
 p=ip.Results;
 H=p.plotHandleArray;
-if
+if(isempty(H))
+    H=setupFigure(1,1,1,'AspectRatio',1,'AxesWidth',4);
+end
 % bias should be counted at the moment the MT disappear
 if(~iscell(kinTracksOrCell))
     kinTracksOrCell={kinTracksOrCell};
@@ -50,7 +52,7 @@ end
 % gscatter([mtDisappTime{:}], [mtDisappBias{:}],[groupID{:}]);
 %%
 plot(H(1),vertcat(timeCell{:})',vertcat(biasAvgCell{:})');
-legend(nameOrCell);
+legend(H(1),nameOrCell);
 
 end
 

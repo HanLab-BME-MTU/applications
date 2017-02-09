@@ -91,7 +91,7 @@ for aIdx=1:numAngle
     %% Estimate bias outside KinPole axis
     [randKinTracksInlier]=mapMTApparitionToKin(randKinTracksInlier,EB3Tracks(inliersEB3),angleCutoff);
     appearingMTBias(randKinTracksInlier);
-    displayBiasStat({kinTracks,randKinTracksInlier},'plotHandleArray',Hs(aIdx));
+    displayBiasStat({kinTracks,randKinTracksInlier},{'kin','rand'},'plotHandleArray',Hs(aIdx));
 end
 
 %displayAngleSwipeResults(fiberCell,randFiberCell)
