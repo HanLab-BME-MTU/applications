@@ -507,6 +507,7 @@ classdef OrientationSpaceResponse < handle
                 end
             end
         end
+        [] = animateAngularOrder(R, r, c, Rd);
     end
     
 end
