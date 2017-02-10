@@ -1,10 +1,14 @@
-function [ I ] = drawRadialLines( angles )
+function [ I ] = drawRadialLines( angles , sz)
 %drawTwoLines draw lines at the angles going symmetrically through the
 %center
 
-I = zeros(100);
+if(nargin < 2)
+    sz = 101;
+end
+
+I = zeros(sz);
 I_size = size(I);
-radius = I_size(1)/2 -1;
+radius = floor(I_size(1)/2);
 center = I_size / 2;
 % I(center(1),1:center) = 1;
 for angle = angles
