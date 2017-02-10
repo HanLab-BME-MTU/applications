@@ -31,6 +31,7 @@ NAsInAdhs=zeros(1,numAdhs);
 %% Divide the big segmentation if it contains more than one NAs
 tic
 bwInteriorBDAll=false(size(maskAdhesion));
+progressText(0,'watershedding adhesion mask:')
 for ii=1:numAdhs
     curAdh = Adhs(ii);
     % Check if curAdh contains only one NA
@@ -115,6 +116,7 @@ for ii=1:numAdhs
             end
         end
     end
+    progressText(ii/numAdhs)
 end
 toc
 %% Go over each interior boundary and delete some of them if their intensity is significantly higher than background level

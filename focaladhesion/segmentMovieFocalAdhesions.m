@@ -96,7 +96,15 @@ maskDirs  = adSegProc.outFilePaths_(p.ChannelIndex);
 masks = false([imSize, nImages nChanSeg]);
 
 %Get the ROI mask (if not an ROI, this will be all true)
-roiMask = movieData.getROIMask;
+try
+    roiMask = movieData.getROIMask;
+catch
+    roiMask = imread(movieData.roiMaskPath_);
+    roiSize = size(roiMask);
+    if roiSize(1) ~= imSize(1) || roiSize(2) ~=imSize(2)
+        roiMask = true(imSize(1),imSize(2),nImages);
+    end
+end
 
 %% ------------ Segmentation -------------- %%
 
@@ -238,9 +246,14 @@ end
 %uniquely between the channels (by specifying a 3D connectivity, objects in
 %diff channels are not considered adjacent)
 cc = bwconncomp(masks,connNum);
-masks = labelmatrix(cc);
-
-
+masks2 = labelmatrix(cc);
+% If mask2 has more than 16 bit depth, we make de-label them to save the
+% memory - SH 2017 Jan
+if max(masks2,1)<2^16
+    masks=masks2;
+else
+    clear masks2
+end
 
 %% ------------- Output ----------------- %%
 %Writes the final masks to disk

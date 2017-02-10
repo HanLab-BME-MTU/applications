@@ -6,7 +6,7 @@ ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 63 156],@isnumeric);
 ip.addParameter('kinCapture',[]);
-ip.addParamValue('name','',@ischar);
+ip.addParameter('name','',@ischar);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 testKinIdx=p.testKinIdx;
