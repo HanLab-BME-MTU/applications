@@ -12,6 +12,9 @@ h_width_fig = figure;
 
 h_quiver = [];
 
+scaleWidthRange = 1/2/pi./[Rscale(1).filter.f_c Rscale(end).filter.f_c];
+assertEqual(scaleWidthRange,1/2/pi./[Rwidth(1).filter.f_c Rwidth(end).filter.f_c]);
+
 while(true)
     h_scale_width_pts = drawScaleWidth();
     addNewPositionCallback(h_scale_width_pts(1),@drawQuiver);
@@ -21,24 +24,24 @@ end
     function [h_scale_width_pts] =  drawScaleWidth(~,~)
         h_img_pt_pos = round(getPosition(h_img_pt));
         
-        B_scale = OrientationScaleMatrix(real(squeeze(Rscale.getArraySpace(h_img_pt_pos(2),h_img_pt_pos(1)))),[1 4],[0 180]);
-        B_width = OrientationScaleMatrix(real(squeeze(Rwidth.getArraySpace(h_img_pt_pos(2),h_img_pt_pos(1)))),[1 4],[0 180]);
+        B_scale = OrientationScaleMatrix(real(squeeze(Rscale.getArraySpace(h_img_pt_pos(2),h_img_pt_pos(1)))),scaleWidthRange,[0 180]);
+        B_width = OrientationScaleMatrix(real(squeeze(Rwidth.getArraySpace(h_img_pt_pos(2),h_img_pt_pos(1)))),scaleWidthRange,[0 180]);
         B_scale_roots = roots(diff(B_scale{:,1:0.1:4}));
         B_width_roots = roots(diff(B_width{0:179,:}));
         
         figure(h_scale_fig);
         h_scale = imagesc(B_scale);
         hold on;
-        plot(1:0.1:4,B_scale_roots,'k--')
-        plot(B_width_roots,0:179,'r--')
+        plot(1:0.1:4,B_scale_roots,'k.')
+        plot(B_width_roots,0:179,'r.')
         hold off;
         
         figure(h_width_fig);
         h_width = imagesc(B_width);
         hold on;
         xlabel('Width');
-        plot(1:0.1:4,B_scale_roots,'k--')
-        plot(B_width_roots,0:179,'r--')
+        plot(1:0.1:4,B_scale_roots,'k.')
+        plot(B_width_roots,0:179,'r.')
         
         hold off;
 
