@@ -1,4 +1,11 @@
 \documentclass{article}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{color}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
 \begin{document}
 
 \section{Filter Design}
@@ -10,7 +17,7 @@ The Orientation Space filter is chosen such that it is polar separable in the fr
     & \mbox{and} & \nonumber \\
     \Phi_\theta(\theta; K) & = & \exp \left(\frac{-\theta^2}{2} \frac{(2K+1)^2}{\pi^2} \right)
 \end{eqnarray}
-For ridges and edges the angular component is duplicated at $ \theta = \pi $ but with different signs:
+For ridges and edges the angular component is duplicated at $ \theta + \pi $ but with different signs:
 \begin{eqnarray}
     \Phi_{\theta,\mbox{ridge}}(\theta) & = & \Phi_{\theta}(\theta) + \Phi_{\theta}(\theta+\pi) \\
     \Phi_{\theta,\mbox{edge}}(\theta) & = & \Phi_{\theta}(\theta) - \Phi_{\theta}(\theta+\pi)
@@ -21,7 +28,10 @@ For this report a radial component parameter $ K_f = (\frac{f_c}{b_f})^2 $ was s
 The parameter $ K $ controls the angular order of the filter and sets the standard deviation of the Gaussian to be $ \frac{\pi}{2K+1} $. This bandlimits the angular response signal since
 
 \begin{eqnarray}
-    \widehat{\Phi_{\theta}}(n ; K) & = & \exp\left(-\frac{n^2}{2} \frac{4}{(2K+1)^2}\right)\\
+	\widehat{\Phi_{\theta}}(\omega ; K) & = & \sqrt{2\pi}\exp\left(-\frac{\omega^2}{2} \left(\frac{2\pi}{2K+1}\right)^2\right)\\
+	\lim_{K\to\infty} \widehat{\Phi_{\theta}}(K+1 ; K) & = & \sqrt{2\pi} \exp\left(-\frac{\pi^2}{2}\right) \\
+	& = & 7.2 \times 10^{-3} \sqrt{2\pi} \\
+	& \approx & 0
 \end{eqnarray}
 
 \section{Filter Response}
@@ -43,8 +53,20 @@ The rest of this report will focus on a single pixel $ (x_0,y_0) $.
 Note that because of this construction we can think of $ p(\theta,K) $ as a convolution of the an unbandlimited ($K = \infty $) angular response signal and the angular component of the filter.
 
 \begin{eqnarray}
-    p(\theta_0,K) & = & p(\theta_0,+\infty) \ast_\theta \Phi_\theta(\theta,K) \\
-    \mbox{where } \Phi_\theta(\theta,+\infty) & = & \delta({\theta})
+    p(\theta,K) & = & p(\theta,+\infty) \ast_\theta \Phi_\theta(\theta,K) \\
+    \mbox{where } \Phi_\theta(\theta,+\infty) & = & \delta({\theta}) 
+\end{eqnarray}
+By this formulation, we then calculate the angular response for any $ K_2 $ from an angular response $ K_1 $ provided that $ K_2 < K_1 $:
+\begin{eqnarray}
+    \mathcal{F}_\theta\{ p \}(\omega,K) & = & \mathcal{F}_\theta(\omega,+\infty) \circ_\omega \widehat{\Phi_\theta}(\omega,K) \\
+    \mathcal{F}_\theta\{ p \}(\omega,K_2) & = & \mathcal{F}_\theta(\omega,+\infty) \circ_\omega \widehat{\Phi_\theta}(\omega,K_1) \circ_\omega \frac{ \widehat{\Phi_\theta}(\omega,K_2) }{ \widehat{\Phi_\theta}(\omega,K_1)  } \\
+    & = &  \mathcal{F}_\theta\{ p \}(\omega,K_1) \circ_\omega \frac{ \widehat{\Phi_\theta}(\omega,K_2) }{ \widehat{\Phi_\theta}(\omega,K_1)  } \\
+    & = & \mathcal{F}_\theta\{ p \}(\omega,K_1) \nonumber\\ 
+    & \circ_\omega & \exp\left(- \frac{(2\pi\omega)^2}{2}  \left[ \left(\frac{1}{2K_2+1}\right)^2 - \left(\frac{1}{2K_1+1}\right)^2 \right] \right) \label{eqn:phi_k2_k1} \\
+    & = & \mathcal{F}_\theta\{ p \}(\omega,K_1)
+    \circ_\omega   \exp\left(- \frac{(2\pi\omega)^2}{2}  \left[ \frac{N_1^2 - N_2^2}{N_1^2 N_2^2} \right] \right) \\
+    N_1 & = & 2K_1 + 1 \\
+    N_2 & = & 2K_2 + 1 
 \end{eqnarray}
 
 
@@ -53,10 +75,118 @@ Note that because of this construction we can think of $ p(\theta,K) $ as a conv
 Because of the bandlimited design of the angular component of the Orientation Space filter, the $\pi$-periodic ridge orientation response can be well described by a finite Fourier Series, which can also be expressed in polynomial form.
 \begin{eqnarray}
     p(\theta,K) & = & \sum_{n=-K}^{n=K} C_{n,K} \exp(2 i n \theta) \\
-    & = & \sum_{n=-K}^{n=K} C_{n,K} z(\theta)^n \quad \mbox{where } z(\theta) = \exp(2 i \theta)
+    & = & \sum_{n=-K}^{n=K} C_{n,K} \left[z(\theta)\right]^n \quad \mbox{where } z(\theta) = \exp(2 i \theta)
 \end{eqnarray}
-The coefficients $ C_n,K $ can be obtained by applying a Fourier Transform to a $ 2K+1 $ sampling of the response signal.
+The coefficients $ C_{n,K} $ can be obtained by applying a Fourier Transform to a $ 2K+1 $ sampling of the response signal.
 \begin{eqnarray}
-    C_{n,K} & = & \sum_{q=-K}^{q=K} p(\theta_q,K) \exp(-2 i n \theta_q) \quad \mbox{where } \theta_q = \frac{q \pi}{2K+1}  
+    C_{n,K} & = & \sum_{q=-K}^{q=K} p(\theta_q,K) \exp(-2 i n \theta_q) \quad \mbox{where } \theta_q = \frac{q \pi}{2K+1} \\ 
+    & = & \mathcal{F}_\theta \{ p \}( n, K)
 \end{eqnarray}
+
+From the prior section, it should be clear we can obtain $ C_{n,K_2} $ from $ C_{n,K_1} $ when $ K_2 < K_1 $. 
+
+\section{Finding Orientation Local Maxima in Response}
+
+We would like to find the local maxima as a function orientation because these orientations correspond to the direction of lines in the image. From basic calculus, the orientation local maxima in the response occurs when
+\begin{eqnarray}
+	\frac{\partial p(\theta,K)}{\partial \theta} & = & 0 \\
+	\mbox{and } \frac{\partial^2 p(\theta,K)}{\partial \theta^2} & < & 0
+\end{eqnarray}
+
+Since we can express $ p(\theta,K) $ as a Fourier series, we can write an expression for it's derivatives:
+
+\begin{eqnarray}
+	\frac{\partial p(\theta,K)}{\partial \theta} & = & \sum_{n=-K}^{n=K} 2 n i C_{n,K} z^n \\
+	\frac{\partial^2 p(\theta,K)}{\partial \theta^2} & = & \sum_{n=-K}^{n=K} - 4 n^2 C_{n,K} z^n \\
+	\frac{\partial^3 p(\theta,K)}{\partial \theta^3} & = & \sum_{n=-K}^{n=K} - 8 n^3 i C_{n,K} z^n \\
+	\frac{\partial^d p(\theta,K)}{\partial \theta^d} & = & \sum_{n=-K}^{n=K} (2ni)^d C_{n,K} z^n \\
+	\mbox{where } z & = & \exp(2i\theta)
+\end{eqnarray}
+
+{\color{red} Here I used $ z = \exp(2i\theta) $ which causes the 2 to propagate through the derivatives. It might be easier to use another variable that is $ 2 \pi $ periodic and then transofrm back to $ \pi $ periodicity later, which is fhow I actually do the computation.}
+
+For polynomials of degree less than five, explicit formula exist. For polynomials of degree five or higher, the Abel-Ruffini theorem states there is no general algebraic solution for an arbitrary set of algebraic coefficients.
+To find the zeros of the first derivative, a general companion matrix approach can be used. The idea is to form a companion matrix as follows
+\[
+	M = \begin{bmatrix}
+		\frac{K-1}{K} C_{K-1,K}/C_{K,K}  & \frac{K-2}{K} C_{K-2,K}/C_{K,K} & \frac{K-3}{K} C_{K-3,K}/C_{K,K} & \dots & -C_{-K,K}/C_{K,K} \\
+		1                  & 0                 & 0                 & \dots & 0 \\
+		0                  & 1                 & \ddots            & \ddots & 0 \\
+		0                  & 0                 & \ddots            & \ddots & 0 \\
+		\vdots             & \ddots            & \ddots            & \ddots& \vdots \\
+		0                  & \dots                 & 0                 & 1     & 0 
+	\end{bmatrix}
+\]
+
+Note that the characteristic polynomial of M is equal to the first derivative of the response:
+\[ \det(\lambda I - M ) = \frac{\partial p}{\partial \theta} z^{K} \]
+Thus the eigenvalues of M are the roots of the first derivative:
+\begin{eqnarray}
+	M \lambda & = & M v \\
+	\frac{\partial p(\lambda,K)}{\partial \theta} & = & =0
+\end{eqnarray}
+We are only interested in $ \lambda = \exp(2i\theta) $ such that $ \theta $ is real. This occurs when $ \lambda $ lies on unit circle in the complex plane. This can be determined by ensuring that $ \abs{ \log \norm{\lambda} } $ is sufficiently close to zero.
+
+
+
+\section{Diffusion of Orientation Space}
+
+In order to understand the effect of the parameter $ K $ it is useful to make an analogy to physical transport phenonmenon of diffusion..
+
+Equation \ref{eqn:phi_k2_k1} shows that if we have the Fourier series for $ p(\theta,K_1) $ then we obtain the Fourier series $ p(\theta,K_2) $ through convolution with a Gaussian. This is reminscent of the heat equation and linear scale space. We can then make an analogy between time, $ t $, in diffusion and the angular order, $ K $.
+\begin{eqnarray} 
+	\mbox{Let } t & = & \frac{1}{(2K+1)^2} \\
+	\mbox{then } \frac{dt}{dK} & = & \frac{-4}{(2K+1)^3} 
+\end{eqnarray}
+We can rewrite equation \ref{eqn:phi_k2_k1} as follows:
+\begin{eqnarray}
+	\mathcal{F}_\theta \{ p \} (\omega,t_2) & = & \mathcal{F}_\theta \{ p \} (\omega,t_1)  \circ_\omega \exp\left(- \frac{(2\pi\omega)^2}{2}  \left[ t_2 - t_1 \right] \right) \\
+	p(\theta,t_2) & = & \sum_{n=-K}^{n=K} C_{n,t_1} \exp(-2\pi^2 n^2 \left[t_2-t_1\right]) \left[ z(\theta) \right]^n  \\
+	\frac{\partial p(\theta,t_2)}{\partial t_2} & = & -2 \pi^2 \sum_{n=-K}^{n=K} n^2 C_{n,t_1} \exp(-2\pi^2 n^2 \left[t_2-t_1\right]) \left[ z(\theta) \right]^n  \\
+	\frac{\partial p(\theta,t_2)}{\partial t_2} & = & \frac{\pi^2}{2} \frac{\partial^2 p(\theta, t_2)}{\partial \theta^2} \label{eqn:heateqn} \\
+	\frac{\partial p(\theta,t_2)}{\partial K_2} & = & \frac{\partial p(\theta,t_2)}{\partial t_2} \frac{dt_2}{dK_2}  \\
+	& = &  \frac{\partial p(\theta,t_2)}{\partial t_2} \frac{-4}{(2K_2+1)^2} \\
+	& = &  \frac{-2 \pi^2 }{(2K_2+1)^2} \frac{\partial^2 p(\theta, t_2)}{\partial \theta^2} 
+\end{eqnarray}
+
+Essentially, the angular order is analogous to time moving backwards. In this analogy then, the orientation response responds to decreasing angular order in a fashion similar to diffusion with periodic boundary conditions.
+
+\subsection{Causality}
+One important property that is inherited from this analogy with diffusion is causality of local extrema. From diffusion, it is known that local extrema are not enhanced over time and that new local extrema do not arise as time progresses. Here this means as the angular order is reduced no new local maxima in orientation will occur.
+
+\subsection{Tracing Orientation Local Maxima}
+Due to causality, this means that if we know the location of local maxima at $ t = t_1 $ or $ K = K_1 $ then we may be able to obtain the location of the local maxima at $ t = t_2 $ or $ K = K_2 $ without having to solve another eigen problem. A key insight here is to recognize that all partial derivatives of $ p(\theta,t) $ obey the heat equation (Equation \ref{eqn:heateqn}).
+
+Suppose we have a local maxima at $ \theta_m $. Then
+\begin{eqnarray}
+	\frac{\partial p(\theta_m(t),t)}{\partial \theta} & = & 0 \\
+	\frac{\partial^2 p(\theta_m(t),t)}{\partial \theta^2} & < & 0 
+\end{eqnarray}
+From the heat equation, we know that evolution in time of the first derivative with respect to $ \theta $ will be driven by the third derivative with respect to $ \theta $. Similarly with the second derivative evolves in time according to the fourth derivative with respect to theta.
+\begin{eqnarray}
+	\frac{\partial^2 p(\theta_m(t),t)}{\partial t \, \partial \theta} & = & \frac{\pi^2}{2} \frac{\partial^3 p(\theta_m(t),t)}{\partial \theta^3} \\
+	\frac{\partial p(\theta_m(t),t+dt)}{\partial \theta} - \frac{\partial p(\theta_m(t),t)}{\partial \theta} & = & \frac{\pi^2}{2} \frac{\partial^3 p(\theta_m(t),t)}{\partial \theta^3} dt \\
+	\frac{\partial p(\theta_m(t),t+dt)}{\partial \theta} & = & \frac{\pi^2}{2} \frac{\partial^3 p(\theta_m(t),t)}{\partial \theta^3} dt \\
+	\frac{\partial^3 p(\theta_m(t),t)}{\partial t \, \partial \theta^2} & = & \frac{\pi^2}{2} \frac{\partial^4 p(\theta_m(t),t)}{\partial \theta^4}  \\
+	\frac{\partial^2 p(\theta_m(t),t+dt)}{\partial \theta^2} - \frac{\partial^2 p(\theta_m(t),t)}{\partial \theta^2} & = & \frac{\pi^2}{2} \frac{\partial^4 p(\theta_m(t),t)}{\partial \theta^4} dt \\
+	\frac{\partial^2 p(\theta_m(t),t+dt)}{\partial \theta^2} =  \frac{\partial^2 p(\theta_m(t),t)}{\partial \theta^2} & + & \frac{\pi^2}{2} \frac{\partial^4 p(\theta_m(t),t)}{\partial \theta^4} dt
+\end{eqnarray}
+Having the first and second derivatives at $ \theta_m(t) $ with repect $ \theta $ allows to make a first order approximation for $ \theta_m(t+dt) $ by drawing a line through $ ( \theta_m(t) , \frac{\pi^2}{2} \frac{\partial^3 p(\theta_m(t),t)}{\partial \theta^3} dt ) $ with slope $ \frac{\partial^2 p(\theta_m(t),t+dt)}{\partial \theta^2} $. Locating $ \theta_mt(t+dt) $ is then just a matter of finding the new $\theta$-intercept.
+\begin{eqnarray}
+	\frac{\partial p(\theta_m(t+dt),t+dt)}{\partial \theta} & = & 0 \\
+	\frac{\partial^2 p(\theta_m(t+dt),t+dt)}{\partial \theta^2} & < & 0  \\
+	\frac{\partial^2 p(\theta_m(t),t+dt)}{\partial \theta^2} \left[ \theta_m(t+dt) - \theta_m(dt) \right] & = & - \frac{\partial p(\theta_m(t),t+dt)}{\partial \theta} \\
+	\frac{ \theta_m(t+dt) - \theta_m(dt) }{dt} & = & - \frac{ \frac{\partial p(\theta_m(t),t+dt)}{\partial \theta}  }{ \frac{\partial^2 p(\theta_m(t),t+dt)}{\partial \theta^2}  } \frac{1}{dt} \\
+	\lim_{dt \to 0 } \frac{ \theta_m(t+dt) - \theta_m(dt) }{dt} & = & \nonumber \\
+	\lim_{dt \to 0 } - \frac{ \displaystyle \frac{\pi^2}{2} \frac{\partial^3 p(\theta_m(t),t)}{\partial \theta^3}  }{ \displaystyle \frac{\partial^2 p(\theta_m(t),t)}{\partial \theta^2} \nonumber
+	                                                                       + \frac{\pi^2}{2} \frac{\partial^4 p(\theta_m(t),t)}{\partial \theta^4} dt  } \\
+\end{eqnarray}
+\begin{eqnarray}
+									       \frac{d \theta_m(t)}{dt} & = & 
+									       - \frac{ \displaystyle \frac{\pi^2}{2} \frac{\partial^3 p(\theta_m(t),t)}{\partial \theta^3}  }{ \displaystyle \frac{\partial^2 p(\theta_m(t),t)}{\partial \theta^2} }  \\
+									       \frac{d \theta_m(K)}{dK} & = & 
+									       \frac{2 \pi^2}{(2K+1)^3}
+									       \frac{ \displaystyle \frac{\partial^3 p(\theta_m(K),K)}{\partial \theta^3}  }{ \displaystyle \frac{\partial^2 p(\theta_m(K),K)}{\partial \theta^2} } 
+\end{eqnarray}
+
 \end{document}
