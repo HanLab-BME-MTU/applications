@@ -1,0 +1,62 @@
+\documentclass{article}
+\begin{document}
+
+\section{Filter Design}
+The Orientation Space filter is chosen such that it is polar separable in the frequency domain:
+\begin{eqnarray}
+    \Phi(f,\theta) & = & \Phi_f(f) \Phi_\theta(\theta) \\
+    & \mbox{where} & \nonumber \\
+    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{f_c^2}+1) \exp(\frac{1}{2}) \\
+    & \mbox{and} & \nonumber \\
+    \Phi_\theta(\theta; K) & = & \exp \left(\frac{-\theta^2}{2} \frac{(2K+1)^2}{\pi^2} \right)
+\end{eqnarray}
+For ridges and edges the angular component is duplicated at $ \theta = \pi $ but with different signs:
+\begin{eqnarray}
+    \Phi_{\theta,\mbox{ridge}}(\theta) & = & \Phi_{\theta}(\theta) + \Phi_{\theta}(\theta+\pi) \\
+    \Phi_{\theta,\mbox{edge}}(\theta) & = & \Phi_{\theta}(\theta) - \Phi_{\theta}(\theta+\pi)
+\end{eqnarray}
+
+For this report a radial component parameter $ K_f = (\frac{f_c}{b_f})^2 $ was set to unity for simplicity. The scale parameter $ f_c $ which sets the central frequency will not be referred to further in this report.
+
+The parameter $ K $ controls the angular order of the filter and sets the standard deviation of the Gaussian to be $ \frac{\pi}{2K+1} $. This bandlimits the angular response signal since
+
+\begin{eqnarray}
+    \widehat{\Phi_{\theta}}(n ; K) & = & \exp\left(-\frac{n^2}{2} \frac{4}{(2K+1)^2}\right)\\
+\end{eqnarray}
+
+\section{Filter Response}
+
+The filter response is obtained by doing a 2D convolution with the image in Cartesian coordinates. By the convolution theorem, this 2D convolution can be conducted by an element-wise product of the 2D xy Fourier transforms of the image and filter.
+
+\begin{eqnarray}
+    R_{\theta_0,K}(x,y) & = & I(x,y) \ast \hat{\Phi}(x,y; K) \\
+    \widehat{R_{\theta_0,K}}(f_x,f_y) & = & \hat{I}(f_x,f_y) \circ \Phi(x,y; K) \\
+    \widehat{R_{\theta_0,K}}(f_x,f_y) & = & \hat{I}(f_x,f_y) \circ_{f_x,f_y} \Phi(f,\theta-\theta_0; K)
+\end{eqnarray}
+
+The rest of this report will focus on a single pixel $ (x_0,y_0) $.
+
+\begin{eqnarray}
+    p(\theta_0,K) & = & R_{\theta_0,K}(x_0,y_0)
+\end{eqnarray}
+
+Note that because of this construction we can think of $ p(\theta,K) $ as a convolution of the an unbandlimited ($K = \infty $) angular response signal and the angular component of the filter.
+
+\begin{eqnarray}
+    p(\theta_0,K) & = & p(\theta_0,+\infty) \ast_\theta \Phi_\theta(\theta,K) \\
+    \mbox{where } \Phi_\theta(\theta,+\infty) & = & \delta({\theta})
+\end{eqnarray}
+
+
+
+\section{Fourier Series Expansion of Response}
+Because of the bandlimited design of the angular component of the Orientation Space filter, the $\pi$-periodic ridge orientation response can be well described by a finite Fourier Series, which can also be expressed in polynomial form.
+\begin{eqnarray}
+    p(\theta,K) & = & \sum_{n=-K}^{n=K} C_{n,K} \exp(2 i n \theta) \\
+    & = & \sum_{n=-K}^{n=K} C_{n,K} z(\theta)^n \quad \mbox{where } z(\theta) = \exp(2 i \theta)
+\end{eqnarray}
+The coefficients $ C_n,K $ can be obtained by applying a Fourier Transform to a $ 2K+1 $ sampling of the response signal.
+\begin{eqnarray}
+    C_{n,K} & = & \sum_{q=-K}^{q=K} p(\theta_q,K) \exp(-2 i n \theta_q) \quad \mbox{where } \theta_q = \frac{q \pi}{2K+1}  
+\end{eqnarray}
+\end{document}
