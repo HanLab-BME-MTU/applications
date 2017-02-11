@@ -1,4 +1,4 @@
-function [  ] = animateAngularOrder( R, r, c, Rd )
+function [  ] = animateAngularOrder( R, r, c, num_derivatives )
 %animateAngularOrder Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -9,9 +9,12 @@ if(nargin < 3)
     c = 126;
 end
 if(nargin < 4)
+    num_derivatives = 2;
+end
+% if(nargin < 4)
     da = ifft(bsxfun(@times,fft(R.a,[],3),shiftdim([0:8 -8:-1],-1))*1i,[],3);
     Rd = OrientationSpaceResponse(R.filter,da);
-end
+% end
 
 pauseTime = 0.1;
 deltaK = 0.1;
@@ -33,6 +36,12 @@ xl = xlim;
 ht = text(xl(2)-30,yl(2)-10,['K = ' num2str(R.filter.K)]);
 ylim('manual');
 
+for nd = 2:num_derivatives
+    hd(nd-1) = plot(0:0.5:179.5,zeros(1,360),'--');
+%     hd(nd-1).XData = 0:0.5:179.5;
+%     hd(nd-1).YData = zeros(1,360);
+end
+
 
 while all(isvalid(h))
     h(3).XData = [];
@@ -47,6 +56,10 @@ while all(isvalid(h))
         h(3).YData = [h(3).YData maxima_value.'];
         h(4).XData = maxima.'/2/pi*180;
         h(4).YData = maxima_value.';
+        for nd = 2:num_derivatives
+            da = ifft(bsxfun(@times,fft(temp),(shiftdim([0:8 -8:-1]*1i,1)).^nd));
+            hd(nd-1).YData = interpft(da,360);
+        end
         pause(pauseTime);
     end
 end
