@@ -102,4 +102,6 @@ for aIdx=1:numAngle
 %     displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'},'plotHandleArray',Hs(aIdx));
     displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'});
 end
+
+save([MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep 'kinAndRand.mat'],'kinTracksInliers','randKinTracksInlier');
 disp('end');
