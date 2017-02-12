@@ -1,11 +1,12 @@
-function MTDirectionalBias(MD,varargin)
+function [kinTracksInliers,randKinTracksInlier]=MTDirectionalBias(MD,varargin)
 % Swipe different angle used to consider capute Detection, output the
 % bundle, save them if a process is input. 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
-ip.addParameter('kinBundle',[]);
+ip.addParameter('kinTracksWithSpindle',[]);
+ip.addParameter('EB3TracksWithSpindle',[]);
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('angleCutoff',0.1, @isnumeric);
 ip.addParameter('plotHandle',[]);
@@ -98,7 +99,7 @@ for aIdx=1:numAngle
     %% Estimate bias outside KinPole axis
     mapMTApparitionToKin(randKinTracksInlier,EB3TracksInliers,angleCutoff);
     appearingMTBias(randKinTracksInlier);
-    displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'},'plotHandleArray',Hs(aIdx));
+%     displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'},'plotHandleArray',Hs(aIdx));
+    displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'});
 end
 disp('end');
-%displayAngleSwipeResults(fiberCell,randFiberCell)
