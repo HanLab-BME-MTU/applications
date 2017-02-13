@@ -508,6 +508,8 @@ classdef OrientationSpaceResponse < handle
             end
         end
         [] = animateAngularOrder(R, r, c, Rd);
+        [ localMaxima, localMaximaValue, K ] = traceLocalMaxima( obj, r, c, K, polish );
+        [ localMaxima, localMaximaValue, K ] = traceLocalMaximaHouseholder( obj, r, c, K )
     end
     
 end
