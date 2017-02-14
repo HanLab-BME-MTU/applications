@@ -1,5 +1,5 @@
 function [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMatrix] = ...
-    combineClusterRatesAndDensity(ratesDensityPerMovie)
+    combineClusterRatesAndDensityStaticDynamic(ratesDensityPerMovie,systemState)
 %COMBINECLUSTERRATESANDDENSITY combines cluster on and off rates and densities for a group of equivalent movies
 %
 %   SYNOPSIS:
@@ -27,22 +27,27 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMat
 %                            are the # of movie (simulation).
 %                                 
 %   Khuloud Jaqaman, June 2015
-%   Luciana de Oliveira, August 2016
+%   Luciana de Oliveira, August 2016, February 2017.
 
 %% Input
 
 %get number of movies in group
 numMovies = length(ratesDensityPerMovie);
+maxSizeDensity = zeros(numMovies,1);
+
+%test if it is static or dynamic data
+
+if systemState==1
+%% Dynamic Calculation
 
 %get maximum cluster size in group of movies
 maxSizeRates = zeros(numMovies,1);
-maxSizeDensity = zeros(numMovies,1);
 for iMovie = 1 : numMovies
     maxSizeRates(iMovie) = length(ratesDensityPerMovie{iMovie}.rateOnPerClust);
     maxSizeDensity(iMovie) = length(ratesDensityPerMovie{iMovie}.densityPerClust);
 end
 maxSizeRatesAll = max(maxSizeRates);
-maxSizeDensityAll = max(maxSizeDensity);
+maxSizeDensity = max(maxSizeDensity);
 
 %Only use values coming from at least 5 datapoints
 MIN_CLUST = 5;
@@ -56,9 +61,9 @@ MIN_CLUST = 5;
 
 
 %reserve memory
-paramMatrix = [NaN(maxSizeDensityAll,numMovies); ... %on rate (NaN if cluster not observed)
-    NaN(maxSizeDensityAll ,numMovies); ... %off rate (NaN if cluster not observed)
-    zeros(maxSizeDensityAll,numMovies)]; %density (0 if cluster not observed)
+paramMatrix = [NaN(maxSizeDensity,numMovies); ... %on rate (NaN if cluster not observed)
+    NaN(maxSizeDensity ,numMovies); ... %off rate (NaN if cluster not observed)
+    zeros(maxSizeDensity,numMovies)]; %density (0 if cluster not observed)
 
 %collect values for each movie
 for iMovie = 1 : numMovies
@@ -79,10 +84,10 @@ for iMovie = 1 : numMovies
     %off rates
     tmp = ratesDensityPerMovie{iMovie}.rateOffPerClust;
     tmp(indxBad) = NaN;
-    paramMatrix(maxSizeDensityAll+1:maxSizeDensityAll+maxSizeRates(iMovie),iMovie) = tmp;
+    paramMatrix(maxSizeDensity+1:maxSizeDensity+maxSizeRates(iMovie),iMovie) = tmp;
     
     %densities
-    paramMatrix(2*maxSizeDensityAll+1:2*maxSizeDensityAll+maxSizeDensity(iMovie),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust;
+    paramMatrix(2*maxSizeDensity+1:2*maxSizeDensity+maxSizeDensity(iMovie),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust;
     
 end
 
@@ -101,10 +106,32 @@ paramStd = sqrt(diag(paramVarCovMat));
 
 %% Output
 paramCombined = [paramMean paramStd paramNumMov];
-rateOnPerClust = paramCombined(1:maxSizeDensityAll,:);
-rateOffPerClust = paramCombined(maxSizeDensityAll+1:2*maxSizeRatesAll,:);
-densityPerClust = paramCombined(2*maxSizeDensityAll+1:end,:);
+rateOnPerClust = paramCombined(1:maxSizeDensity,:);
+rateOffPerClust = paramCombined(maxSizeDensity+1:2*maxSizeRatesAll,:);
+densityPerClust = paramCombined(2*maxSizeDensity+1:end,:);
 
+elseif systemState==0
+%% static calculations
 
+for iMovie = 1 : numMovies
+    maxSizeDensity(iMovie) = length(ratesDensityPerMovie{iMovie}.densityPerClust);
+end
+maxSizeDensity = max(maxSizeDensity);
+       
+% Allocate space for the matrix with the densities for all 
+       
+       matrixDensity=zeros(maxSizeDensity,numMovies);
+       
+       % replace values for each movie
+       
+        for iMovie = 1 : numMovies     
+  matrixDensity(1:length(ratesDensityPerMovie{iMovie}.densityPerClust),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust;
+        end
+paramMatrix=matrixDensity;   
+rateOnPerClust=[];
+rateOffPerClust=[];
+densityPerClust=[];
+paramVarCovMat=[];
 
+end
 %% ~~~ the end ~~~

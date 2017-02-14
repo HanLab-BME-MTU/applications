@@ -4,21 +4,15 @@
 %
 %Khuloud Jaqaman, June 2015
 
-sourceRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/probe/analysis';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161201/analysis/targetIS_sT10_dT0p1';
 
 %Define strings for directory hierarchy as needed
- rDDir = {'rD60'};%,'rD20','rD40','rD80','rD100','rD120','rD140','rD160'
- aPDir = {'aP0p5'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-outDirNum =1:30;
-lRDir = {'lR0p26'};%,'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5';
+rDDir = {'rD20','rD40','rD60','rD80','rD100','rD120','rD140','rD160'};
+aPDir = {'aP0p5'};
+outDirNum = 1:10;
+lRDir = {'lR0p03'};
 fprintf('\n===============================================================');
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%
-% here is the definition if it is static (0) or dynamic (1) data
-systemState=0;
-%%%%%%%%%%%%%%%%%%%%%%%%%%
 %The top level directory is that of receptor density
 for rDDirIndx = 1 : length(rDDir)
     
@@ -40,7 +34,7 @@ for rDDirIndx = 1 : length(rDDir)
             
            %call function to combine results
             [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMatrix] = ...
-                combineClusterRatesAndDensity(tmp.ratesDensityPerMovie);
+                combineClusterRatesAndDensityNew(tmp.ratesDensityPerMovie);
             
             %save combined results
             save([currDir,'/ratesAndDensityComb_dt0p1_T10'],'rateOnPerClust',...

@@ -1,5 +1,5 @@
 function [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMatrix] = ...
-    combineClusterRatesAndDensity(ratesDensityPerMovie)
+    combineClusterRatesAndDensityNew(ratesDensityPerMovie)
 %COMBINECLUSTERRATESANDDENSITY combines cluster on and off rates and densities for a group of equivalent movies
 %
 %   SYNOPSIS:
@@ -44,8 +44,8 @@ end
 maxSizeRatesAll = max(maxSizeRates);
 maxSizeDensityAll = max(maxSizeDensity);
 
-%Only use values coming from at least 5 datapoints
-MIN_CLUST = 5;
+%Only use values coming from at least 10 datapoints
+MIN_CLUST = 10;
 
 %% Calculation
 
@@ -104,6 +104,8 @@ paramCombined = [paramMean paramStd paramNumMov];
 rateOnPerClust = paramCombined(1:maxSizeDensityAll,:);
 rateOffPerClust = paramCombined(maxSizeDensityAll+1:2*maxSizeRatesAll,:);
 densityPerClust = paramCombined(2*maxSizeDensityAll+1:end,:);
+
+
 
 
 

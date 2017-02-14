@@ -4,21 +4,17 @@
 %
 %Khuloud Jaqaman, June 2015
 
-sourceRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/probe/analysis';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161117/analysis';
 
 %Define strings for directory hierarchy as needed
- rDDir = {'rD60'};%,'rD20','rD40','rD80','rD100','rD120','rD140','rD160'
- aPDir = {'aP0p5'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-outDirNum =1:30;
-lRDir = {'lR0p26'};%,'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5';
+rDDir = {'rD4'};%,'rD8','rD10','rD12','rD14','rD16'};
+aPDir = {'aP0p5'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
+outDirNum = 1:10;
+lRDir ={'lR0p2','lR0p4'};%,'lR0p3','lR0p4','lR0p5'};
+BootNumber=1:100;
+%','lR0p3','lR0p4','lR0p5','lR0p6','lR1p0'};
 fprintf('\n===============================================================');
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%
-% here is the definition if it is static (0) or dynamic (1) data
-systemState=0;
-%%%%%%%%%%%%%%%%%%%%%%%%%%
 %The top level directory is that of receptor density
 for rDDirIndx = 1 : length(rDDir)
     
@@ -31,24 +27,29 @@ for rDDirIndx = 1 : length(rDDir)
         %iterate through the different labeling ratios
         for lRDirIndx = 1 : length(lRDir)
             
+           for  bootIndx=1:length(BootNumber)
             %name of current directory
             currDir = [sourceRoot,filesep,rDDir{rDDirIndx},filesep,...
-                aPDir{aPDirIndx},filesep,lRDir{lRDirIndx}];
-            
+                aPDir{aPDirIndx},filesep,lRDir{lRDirIndx},filesep,'ind',filesep,'bootstrapping',int2str(BootNumber(bootIndx))];
             %read individual results
             tmp = load(fullfile(currDir,'ratesAndDensityInd_dt0p1_T10.mat'));
             
-           %call function to combine results
+            %call function to combine results
             [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMatrix] = ...
-                combineClusterRatesAndDensity(tmp.ratesDensityPerMovie);
+                combineClusterRatesAndDensityNew(tmp.ratesDensityPerMovie);
             
+            %make a Directory
+            combDirBoot=[sourceRoot,filesep,rDDir{rDDirIndx},filesep,...
+                aPDir{aPDirIndx},filesep,lRDir{lRDirIndx},filesep,'bootstrapping',int2str(BootNumber(bootIndx))];
+            mkdir(combDirBoot)
             %save combined results
-            save([currDir,'/ratesAndDensityComb_dt0p1_T10'],'rateOnPerClust',...
+            
+          
+            save([combDirBoot,'/ratesAndDensityComb_dt0p1_T10'],'rateOnPerClust',...
                 'rateOffPerClust','densityPerClust','paramVarCovMat','paramMatrix','-v7.3');
             
-            
-        end %for each labelRatio
-        
+           end %for each labelRatio
+        end %for each bootstrapping number
     end %for each aP
     
     elapsedTime = toc;

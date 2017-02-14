@@ -4,16 +4,17 @@
 % saves them in the current file.
 
 
-currDir ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170110/crossAnalysis/results';
+currDir ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170126/target/results';
+
 % the name until target
 % title of the figure will consider the infos that are filled here for the
 % name of the target
- rDtarget = {'rD100'};%,,'rD40','rD60','rD80','rD100','rD120','rD140','rD160'};
+ rDtarget = {'rD10'};%,,'rD40','rD60','rD80','rD100','rD120','rD140','rD160'};
  aPtarget = {'aP0p5'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
- lRtarget ={'lR0p08'};%,'lR0p3','lR0p4','lR0p5'};
+ lRtarget ={'lR0p1'};%,'lR0p3','lR0p4','lR0p5'};
 
    % values of rD, aP and lR of probe
-    rDvals = [4;6;8;10;12;14];%20;40;60;80;100;140;160];
+    rDvals = [4;6;8;10;12;14;16];%20;40;60;80;100;140;160];
     aPvals = [0.2;0.3;0.4;0.5;0.6;0.7;0.8];
     lRStr = {'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5';'lR0p6'};%'lR0p01lR0p02';'lR0p02lR0p04';'lR0p03lR0p06'
     
@@ -67,7 +68,7 @@ limMinS=min(reshape(minSize,1,length(maxSize)));
         xlabel(axH,'Association probability','FontSize',12);        
         ylabel(axH,'Receptor Density','FontSize',12);
        h = colorbar;
-       caxis([limMinS limMaxS]) %limits for the colorbar
+      caxis([limMinS limMaxS]) %limits for the colorbar
        ylabel(h, 'log10(Mahalanobis distance)') 
 %title        
         title(axH,['target:',rDtarget{1},filesep,aPtarget{1},filesep,lRtarget{1} ' and Probe:',lRStr{lRindx}],'FontSize',12);
