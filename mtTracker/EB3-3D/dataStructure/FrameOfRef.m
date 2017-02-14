@@ -23,7 +23,9 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
       function tracksBase=applyBaseToTrack(obj,tracks,name)
           tracksBase=tracks.copy();
           try
-              tracks.addprop(name);
+              if(~(isempty(name)))
+                  tracks.addprop(name);
+              end
           catch
           end;
           for trIdx=1:length(tracks)
@@ -38,7 +40,9 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
                   trBase.addprop('originalRef');
               catch
               end;
-              setfield(tr,name,trBase);
+              if(~(isempty(name)))
+                  setfield(tr,name,trBase);
+              end;
               trBase.originalRef=tr;
               for pIdx=1:length(tr.f)
                   f=min(tr.f(pIdx),length(obj.X));
