@@ -71,6 +71,7 @@ coords.theta = mod(coords.theta+pi,2*pi)-pi;
 
 %% Radial part
 % compute radial order, f_c = sqrt(K_f * b_f^2)
+if(f_c)
 K_f = (f_c / b_f)^2;
 
 % scale frequency
@@ -80,6 +81,9 @@ f_s = coords.f / f_c;
 % Note -(f^2 - f_c^2)/(2*b_f^2) = (1 - (f/f_c)^2)/(2* b_f^2/f_c^2)
 %                               = (1 - (f/f_c)^2)/(2 / K_f)
 radialFilter = f_s.^K_f .* exp((1 - f_s.^2)*K_f/2);
+else
+    radialFilter = exp(-coords.f.^2./2./b_f.^2);
+end
 % radialFilter2 = f_s^K_f .* exp(-(f.^2-f_c.^2)/2/b_f.^2);
 % assertEqual(radialFilter,radialFilter2);
 

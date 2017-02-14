@@ -12,9 +12,13 @@ addpath(genpath('/apps/MATLAB/R2015a/toolbox/stats/stats'));
 % targetGenesDirectionalityStr = {'TRIO','SOS1','ARHGEF28','ARHGEF11'};
 % targetGenesCoordinationStr = {'TRIO','SOS1','ARHGEF9','ARHGEF28','TUBA','ARHGEF12','ARHGEF1','SWAP-70'};
 
-targetGenesSpeedStr = {'RHOA'};
-targetGenesDirectionalityStr = {'RHOA'};
-targetGenesCoordinationStr = {'RHOA'};
+% targetGenesSpeedStr = {'RHOA','RHOC'};
+% targetGenesDirectionalityStr = {'RHOA','RHOC'};
+% targetGenesCoordinationStr = {'RHOA','RHOC'};
+
+targetGenesSpeedStr = {'RHOA','RHOC'};
+targetGenesDirectionalityStr = {'RHOA','RHOC'};
+targetGenesCoordinationStr = {'RHOA','RHOC'};
 
 [speedDiffs,healingRateSpeed,geneDayDiffSpeed] = dayAnalysisProperty(allFeatures.speedFeats,targetGenesSpeedStr,healingRate,strLabels,metaData,mainDirname,'Speed');
 [directionalityDiffs,healingRateDirectionality,geneDayDiffDirectionality] = dayAnalysisProperty(allFeatures.directionalityFeats,targetGenesDirectionalityStr,healingRate,strLabels,metaData,mainDirname,'Directionality');
@@ -49,8 +53,8 @@ flags.variance = 0;
 flags.dayAnalysisPCA = 0;
 flags.dayClassification = 0;
 flags.dayClustering = 0; % do not activate!
-flags.dayVisKymographs = 1;
-flags.dayVisTargets = 0;
+flags.dayVisKymographs = 0;
+flags.dayVisTargets = 1;
 flags.controlInterdayAssessment = 0;
 
 

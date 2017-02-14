@@ -14,8 +14,8 @@
 % movieListFileNames:
 % An other example of usage with movieList in different folder
 %MLPath='/work/gdanuser/proudot/project/EB3-3D-track/packaging/alpha/plusTipTracker3D-alpha-1/data/A1_HeLa_Cells_EB1/'
-MLPath='/project/bioinformatics/Danuser_lab/externBetzig/packaging/alpha/plusTipTracker3D-alpha-1/data/A1_HeLa_Cells_EB1/';
-movieListFileNames={'prometaphase/analysis/movieList.mat'};
+MLPath='/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/smallData/prometaphase/analysis/';
+movieListFileNames={'Cell2.mat'};
 % Build the array of MovieList (automatic)
 aMovieListArray=cellfun(@(x) MovieList.loadMatFile([MLPath filesep x]), movieListFileNames,'unif',0);
 aMovieListArray=aMovieListArray{:};
@@ -29,13 +29,13 @@ aMovieListArray=aMovieListArray{:};
 runEB3Detection=0;  % Detect EB3 "comets"   
 runPoleDetection=0; % Detec spindle Poles
 runRegistration=0;  % Register sudden stage shift during acquisition.
-runEB3Tracking=0; 
-runPostProcessing=1;      
+runEB3Tracking=1; 
+runPostProcessing=0;      
 % Frame to be processed ([] for whole movie)
 processFrame=[];
 
 %% Optional output
-printAmiraFile=0;      
+printAmiraFile=1;      
 printDetectionMask=0;
 
 %% ALGORITHM PARAMETERS
@@ -98,7 +98,7 @@ breakNonLinearTracks=false;
 sphericalProjectionRadius=5000;
 
 %% DEBUGGING PARAMETER (Could void your warranty)
-trackAfterRegistration=1;
+trackAfterRegistration=0;
 % MDIndex=[1:length()];
 
 

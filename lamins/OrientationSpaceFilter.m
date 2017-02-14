@@ -21,12 +21,14 @@ classdef OrientationSpaceFilter < handle
         b_f
         % angular order
         K
-        % basis angles
-        angles
         % normilization setting
         normEnergy
         % number of angular filter templates
         n
+    end
+    properties (SetAccess = protected)
+        % basis angles
+        angles
     end
     
     properties (Transient)
@@ -49,6 +51,9 @@ classdef OrientationSpaceFilter < handle
     
     methods
         function obj = OrientationSpaceFilter(f_c,b_f,K,normEnergy)
+            if(nargin == 0)
+                return;
+            end
             if(~isscalar(f_c) || ~isscalar(b_f) || ~isscalar(K))
                 s = [length(f_c) length(b_f) length(K)];
                 s(2) = max(1,s(2));
@@ -171,11 +176,11 @@ classdef OrientationSpaceFilter < handle
         end
         function E = getEnergy(obj)
             if(~isscalar(obj))
-                E = complex(zeros(numel(obj),obj(1).n),0);
+                E = complex(zeros(numel(obj),max([obj.n])),0);
                 for o=1:numel(obj)
-                    E(o,:) = obj(o).getEnergy();
+                    E(o,1:obj(o).n) = obj(o).getEnergy();
                 end
-                E = reshape(E,[size(obj) obj(1).n]);
+                E = reshape(E,[size(obj) max([obj.n])]);
                 return;
             end
             requireSetup(obj);
@@ -213,6 +218,18 @@ classdef OrientationSpaceFilter < handle
 
             % Resize PxT to YxXxT
             filter = reshape(filter,[obj.size length(theta)]);
+        end
+        function h = objshow(obj,varargin)
+            requireSetup(obj);
+            h = imshow(fftshift(ifft2(real(obj.F(:,:,1)))),varargin{:});
+        end
+        function circshiftAngles(obj,Kshift)
+            for ii=1:numel(obj)
+                obj(ii).angles = circshift(obj(ii).angles,Kshift,2);
+                if(~isempty(obj(ii).F))
+                    obj(ii).F = circshift(obj(ii).F,Kshift,3);
+                end
+            end
         end
     end
     methods
@@ -258,7 +275,7 @@ classdef OrientationSpaceFilter < handle
                     case 'scale'
                         obj(o).F = obj(o).F ./ obj(o).f_c ./ sqrt(siz(1)*siz(2));
                     case 'sqrtscale'
-                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2))
+                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2));
                     case 'none'
                     otherwise
                         error('OrientationSpaceFilter:setupFilterNormEnergy', ...
@@ -316,6 +333,9 @@ classdef OrientationSpaceFilter < handle
 
         end
         function F = constructByRadialOrder(f_c, K_f, K, normEnergy, constructor)
+            if(nargin < 4)
+                normEnergy = [];
+            end
             if(nargin < 5)
                 constructor = @OrientationSpaceFilter;
             end

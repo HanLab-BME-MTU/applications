@@ -37,11 +37,11 @@ ip.addOptional('condDir', [], @(x) ischar(x) && ~any(strcmpi(x,...
     {'Parameters', 'MovieSelector', 'IgnoreEmptyFolders', 'FrameRate'})));
 ip.addOptional('chNames', [], @iscell);
 ip.addOptional('markers', [], @iscell);
-ip.addParamValue('Parameters', [1.49 108 6.5e-6], @(x) numel(x)==3);
-ip.addParamValue('MovieSelector', 'cell', @ischar);
-ip.addParamValue('StrictSelector', false, @islogical);
-ip.addParamValue('IgnoreEmptyFolders', false, @islogical);
-ip.addParamValue('FrameRate', [], @isscalar);
+ip.addParameter('Parameters', [1.49 108 6.5e-6], @(x) numel(x)==3);
+ip.addParameter('MovieSelector', 'cell', @ischar);
+ip.addParameter('StrictSelector', false, @islogical);
+ip.addParameter('IgnoreEmptyFolders', false, @islogical);
+ip.addParameter('FrameRate', [], @isscalar);
 ip.parse(varargin{:});
 
 condDir = ip.Results.condDir;
@@ -132,7 +132,7 @@ s = {s.name};
 for c = 1:nCh
     if isnumeric(markers{c}) && markers{c}>=350 && markers{c}<=750
         markers{c} = 1e-9*markers{c};
-    elseif ~any(strcmpi(markers{c}, s));
+    elseif ~any(strcmpi(markers{c}, s))
         markers{c} = 1e-9*input(['Marker ''' markers{c} ''' not recognized, enter max. emission wavelength in [nm]: ']);
     end
 end

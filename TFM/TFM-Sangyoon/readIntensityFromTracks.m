@@ -10,14 +10,16 @@ function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, vararg
 % Sangyoon Han, Jan 2015
 % Last modified, Feb 2016
 ip =inputParser;
-ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
+ip.addParamValue('extraLength',300,@isscalar); % selcted track ids
 ip.addParamValue('reTrack',true,@islogical); % selcted track ids
 ip.addParamValue('trackOnlyDetected',false,@islogical); % selcted track ids
+ip.addParamValue('movieData',[],@(x) isa(x,'MovieData') || isempty(x)); % moviedata for utrack
 ip.parse(varargin{:});
 extraLengthForced=ip.Results.extraLength;
 reTrack=ip.Results.reTrack;
 trackOnlyDetected =ip.Results.trackOnlyDetected;
-extraLength = 300;
+MD =ip.Results.movieData;
+extraLength = ip.Results.extraLength;
 % get stack size
 numFrames = size(imgStack,3);
 % w4 = 8;
@@ -25,8 +27,18 @@ sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 % parfor_progress(numel(tracksNA));
 progressText(0,'Re-reading and tracking individual tracks:');
-searchRadius = 1;
-searchRadiusDetected = 2;
+if isempty(MD)
+    searchRadius = 1;
+    searchRadiusDetected = 2;
+else
+    iTrackingProc =MD.getProcessIndex('TrackingProcess');
+    trackingProc = MD.getProcess(iTrackingProc);
+    trackingParams = trackingProc.funParams_;
+    minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
+    maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
+    searchRadius = (minR+maxR)/2;
+    searchRadiusDetected = maxR;
+end
 halfWidth=2;
 halfHeight=2;
 
@@ -48,7 +60,9 @@ for k=1:numTracks
 %             tracksNA(k).forceMag(curRange) = arrayfun(@(x) imgStack(round(tracksNA(k).yCoord(x)),round(tracksNA(k).xCoord(x)),x),curRange);
 %         end
 %     else
+    % initialize amptotal to have it have the same dimension as .amp
     if attribute==1
+        tracksNA(k).ampTotal = tracksNA(k).amp;
         try
             curStartingFrame = tracksNA(k).startingFrameExtra;
             curEndingFrame = tracksNA(k).endingFrameExtra;
@@ -106,7 +120,7 @@ for k=1:numTracks
                             tracksNA(k).amp(ii) = A;
                             tracksNA(k).bkgAmp(ii) = c;
                             tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).presence(ii) =  true;
                             tracksNA(k).sigma(ii) = curSigma;
                             if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
                                 tracksNA(k).state{ii} = 'NA';
@@ -171,6 +185,16 @@ for k=1:numTracks
                         break
                     end
                 end
+                % It is a rare case, but it is possible that at some point
+                % there is no significant point source detected during this
+                % re-tracking. In this case, we change the curEndingFrame
+                % to be the previous time point
+                if isnan(pstruct.x) && ii==curEndingFrame
+                    curEndingFrame=ii-1;
+                    tracksNA(k).endingFrame = curEndingFrame;
+                    tracksNA(k).endingFrameExtra = curEndingFrame;
+                    break
+                end
             end
             % for the later time-points - going forward, x and y are already
             % set as a last point.
@@ -208,7 +232,7 @@ for k=1:numTracks
                             tracksNA(k).amp(ii) = A;
                             tracksNA(k).bkgAmp(ii) = c;
                             tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
+                            tracksNA(k).presence(ii) =  true;
                             tracksNA(k).sigma(ii) = curSigma;
                             if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
                                 tracksNA(k).state{ii} = 'NA';
@@ -228,6 +252,19 @@ for k=1:numTracks
                 if endFrame==curEndingFrame
                     tracksNA(k).endingFrameExtra = curEndingFrame;
                 end
+            end
+        else
+            for ii=curStartingFrame+1:curEndingFrame;
+                curImg = imgStack(:,:,ii);
+                x = tracksNA(k).xCoord(ii);
+                y = tracksNA(k).yCoord(ii);
+                xi = round(x);
+                yi = round(y);
+                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                curAmpTotal = curImg(yRange,xRange);
+                curAmpTotal = mean(curAmpTotal(:));
+                tracksNA(k).ampTotal(ii) =  curAmpTotal;
             end
         end
         if ~isempty(extraLengthForced) && abs(extraLengthForced)>0

@@ -28,6 +28,7 @@ function figureData = calcFigureData(commonInfo, subData, title_Base, title_Vari
     nColumns = numel(title_Variable);
     %determine maximum y value to determine y axis limit
     finiteData = cellfun(@(x) x(isfinite(x(:))),subData,'UniformOutput',false);
+    finiteData = cellfun(@(x) x(:),finiteData,'UniformOutput',false);
     finiteData = vertcat(finiteData{:});
     maxValue = max(finiteData);
     if ~isempty(maxValue)

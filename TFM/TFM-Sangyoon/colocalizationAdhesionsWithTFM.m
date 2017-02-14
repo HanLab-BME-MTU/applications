@@ -79,26 +79,27 @@ MD = MovieData.load(movieDataPath);
 nFrames = MD.nFrames_;
 % Get TFM package
 TFMPackage = MD.getPackage(MD.getPackageIndex('TFMPackage'));
-% Get FA segmentation package 
-iFASegPackage = MD.getPackageIndex('FocalAdhesionSegmentationPackage');
-% If not run, run the package
-iFASeg = 6;
-if isempty(iFASegPackage)
-    MD.addPackage(FocalAdhesionSegmentationPackage(MD));
-    iPack =  MD.getPackageIndex('FocalAdhesionSegmentationPackage');
-    MD.getPackage(iPack).createDefaultProcess(iFASeg)
-    params = MD.getPackage(iPack).getProcess(iFASeg).funParams_;
-    params.ChannelIndex = 2; %paxillin
-    params.SteerableFilterSigma = 72; % in nm
-    params.OpeningRadiusXY = 0; % in nm
-    params.MinVolTime = 1; %um2*s
-    params.OpeningHeightT = 10; % sec
-    MD.getPackage(iPack).getProcess(iFASeg).setPara(params);
-    MD.getPackage(iPack).getProcess(iFASeg).run();
-    MD.save;
-    iFASegPackage = iPack;
-end
-FASegPackage=MD.getPackage(iFASegPackage);
+% Get FA segmentation package - this is done in analyzeAdhesionMaturation
+% function
+% iFASegPackage = MD.getPackageIndex('FocalAdhesionSegmentationPackage');
+% % If not run, run the package
+% iFASeg = 6;
+% if isempty(iFASegPackage)
+%     MD.addPackage(FocalAdhesionSegmentationPackage(MD));
+%     iPack =  MD.getPackageIndex('FocalAdhesionSegmentationPackage');
+%     MD.getPackage(iPack).createDefaultProcess(iFASeg)
+%     params = MD.getPackage(iPack).getProcess(iFASeg).funParams_;
+%     params.ChannelIndex = 2; %paxillin
+%     params.SteerableFilterSigma = 72; % in nm
+%     params.OpeningRadiusXY = 0; % in nm
+%     params.MinVolTime = 1; %um2*s
+%     params.OpeningHeightT = 10; % sec
+%     MD.getPackage(iPack).getProcess(iFASeg).setPara(params);
+%     MD.getPackage(iPack).getProcess(iFASeg).run();
+%     MD.save;
+%     iFASegPackage = iPack;
+% end
+% FASegPackage=MD.getPackage(iFASegPackage);
 % Load tracks
 % iUTrack = MD.getPackageIndex('UTrackPackage');
 iTrackProc = MD.getProcessIndex('TrackingProcess');%MD.getPackageIndex('UTrackPackage');
@@ -114,7 +115,11 @@ forceBG(nFrames,1) = struct('mean',[],'err',[]);
 % Load the displField
 iDispFieldProc = 3;
 displFieldProc=TFMPackage.processes_{iDispFieldProc};
-maskArray = MD.getROIMask;
+try
+    maskArray = MD.getROIMask;
+catch
+    maskArray = imread(MD.roiMaskPath_);
+end
 % Use mask of first frame to filter displacementfield
 firstMask = maskArray(:,:,1);
 displFieldOriginal=displFieldProc.loadChannelOutput;
@@ -300,7 +305,7 @@ end
 save([paxPath filesep 'paxImgStack.mat'],'paxImgStack','-v7.3');
 toc
 % disp('loading segmented FAs...')
-FASegProc = FASegPackage.processes_{iFASeg};
+% FASegProc = FASegPackage.processes_{iFASeg};
 %% showing force map in only traction region
 if showAllTracks
     h1 = figure('color','w');
@@ -320,12 +325,12 @@ for ii=1:nFrames
     bwPI4 = maskProc.loadChannelOutput(iChan,ii);
     
     % Get the mask for FAs
-    if FASegProc.checkChannelOutput(1) && FASegProc.checkChannelOutput(2)
-        iPaxChannel_adh=2;
-    else 
-        iPaxChannel_adh=iPaxChannel;
-    end
-    maskFAs = FASegProc.loadChannelOutput(iPaxChannel_adh,ii);
+%     if FASegProc.checkChannelOutput(1) && FASegProc.checkChannelOutput(2)
+%         iPaxChannel_adh=2;
+%     else 
+%         iPaxChannel_adh=iPaxChannel;
+%     end
+%     maskFAs = FASegProc.loadChannelOutput(iPaxChannel_adh,ii);
     % Apply stage drift correction to the cell segmentation
     % Get limits of transformation array
     if ~isempty(iSDCProc)
@@ -333,10 +338,10 @@ for ii=1:nFrames
         maxY = ceil(max(abs(T(:, 1))));
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
         % Apply subpixel-wise registration to original masks
-        I = padarray(maskFAs, [maxY, maxX]);
-        maskFAs = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+%         I = padarray(maskFAs, [maxY, maxX]);
+%         maskFAs = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
         Ibw = padarray(bwPI4, [maxY, maxX]);
-        bwPI4 = imtransform(Ibw, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+        bwPI4 = imtransform(Ibw, Tr, 'XData',[1 size(Ibw, 2)],'YData', [1 size(Ibw, 1)]);
     end
     cropMask = bwPI4(cropInfo(2)+band:cropInfo(4)-band,cropInfo(1)+band:cropInfo(3)-band);
 %     cropMaskStack(:,:,ii) = cropMask;

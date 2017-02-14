@@ -1,5 +1,5 @@
 function [dist,sphCoord,poleId,inliers,originProb,minProb,bestSphCoord,movieInfoSpindle] = poleDist(poleMovieInfo,pMovieInfo,varargin)
-% The angle is defined centered on the closest pole. The base is either the
+% For each EB3, define the closest pole and set the coordinate in the associated to referential. The base is either the
 % 'absolute' referential of build around the axis between the closest pole and the second closest pole.
 % WARNING:  designed and implemented for 2 poles, extensible to 3 poles.
 % WARNING:  3D only

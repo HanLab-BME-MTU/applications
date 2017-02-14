@@ -16,6 +16,7 @@ ip.addParamValue('prePostFrames',[],@isnumeric);
 ip.addParamValue('yNormalization',false,@islogical);
 ip.addParamValue('onlyFirstMode',false,@islogical);
 ip.addParamValue('plotConfInt',false,@islogical);
+ip.addParamValue('numCohorts',2,@isnumeric);
 
 ip.parse(fileStore,alignEvent,indivColor,varargin{:});
 
@@ -29,6 +30,7 @@ prePostFrames = ip.Results.prePostFrames;
 yNormalization = ip.Results.yNormalization;
 onlyFirstMode = ip.Results.onlyFirstMode;
 plotConfInt= ip.Results.plotConfInt;
+numCohorts= ip.Results.numCohorts;
 
 if isempty(tInterval)
     tInterval_used = 1;
@@ -132,6 +134,8 @@ if alignEvent
             subplot(1,2,1), plot(1:nSampleFrames,AmpArray), hold on%,'Color',[0.5 0.5 0.5]), hold on
             subplot(1,2,2), plot(1:nSampleFrames,forceArray), hold on%,'Color',[240/255 128/255 128/255]), hold on
         end
+        minYamp = nanmin(AmpArray(:));
+        maxYamp  = nanmax(AmpArray(:));      
     else
         if strcmp(source,'edgeAdvanceDist')
             subplot(1,3,1), plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
@@ -148,6 +152,8 @@ if alignEvent
             end
             if strcmp(source{1},'ampTotal') && ~plotConfInt
                 plot(1:nSampleFrames,AmpArray, 'Color',[0.5 0.5 0.5]), hold on
+                minYamp=nanmin(AmpArray(:));
+                maxYamp=nanmax(AmpArray(:));
             end
             if nSources>1
                 subplot(1,2,2), 
@@ -159,10 +165,13 @@ if alignEvent
             end
             if strcmp(source{1},'forceMag') && ~plotConfInt
                 plot(1:nSampleFrames,forceArray, 'Color',[240/255 128/255 128/255]), hold on
+                minYamp=nanmin(forceArray(:));
+                maxYamp=nanmax(forceArray(:));
             end
         end
     end        
     maxLifeTime = nSampleFrames;
+    
 else  
     if ~plotCohorts
         for ii=1:nTracks
@@ -239,11 +248,16 @@ else
             end
         end
         maxLifeTime = nSampleFrames;
+        maxYamp = quantile(nanmax(AmpArray),0.99);
+        minYamp = quantile(nanmin(AmpArray),0.01);
     else
         % plot cohorts
 %         [N,edges,bin]=histcounts(lifeTime);
         % distribution was not normal. Binning depeding on quantile..
-        stepPrc=20; %step percentile increase
+%         numCohorts = 2;
+        stepPrc=100/(numCohorts); %step percentile increase
+        startPrc=0+stepPrc/2;
+        endPrc=100-stepPrc/2;
         if strcmp(source{1},'ampTotal')
             ciColor = [153/255 255/255 51/255];
             meanColor = [0/255 102/255 0];
@@ -255,7 +269,7 @@ else
             meanColor = [0/255 102/255 0];
         end
 %         prevLT=0;
-        for curPrcLT=20:stepPrc:80
+        for curPrcLT=startPrc:stepPrc:endPrc
             curLT = floor(prctile(lifeTime,curPrcLT));
             upperLT = prctile(lifeTime,curPrcLT+stepPrc/2);
             lowerLT = prctile(lifeTime,curPrcLT-stepPrc/2);
@@ -326,7 +340,8 @@ else
             meanRangeSig = prctile(prctile(curArray,99,2),90)-prctile(prctile(curArray,1,2),10);
             if yNormalization
                 for jj=1:size(curArray,1)
-                    curArray(jj,:) = meanRangeSig*(curArray(jj,:)-nanmin(curArray(jj,:)))/(nanmax(curArray(jj,:))-nanmin(curArray(jj,:)))+medianStartingSig;
+                    curArray(jj,:) = curArray(jj,:)-nanmin(curArray(jj,:))+medianStartingSig;
+%                     curArray(jj,:) = meanRangeSig*(curArray(jj,:)-nanmin(curArray(jj,:)))/(nanmax(curArray(jj,:))-nanmin(curArray(jj,:)))+medianStartingSig;
                 end
             end
 %             end
@@ -340,8 +355,8 @@ else
 %                 co = get(gca,'ColorOrder');
                 set(gca, 'ColorOrder', allColors,'NextPlot','replacechildren')
                 idForceTrans=nanmax(curArray(:,1:prePostFrames),[],2)<nanmax(curArray(:,prePostFrames+1:prePostFrames+1+curLT),[],2);
-                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray(~idForceTrans,:),'Linewidth',0.5,'Color',[0.5 0.5 0.5]), hold on
-                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray(idForceTrans,:),'Linewidth',0.5)
+%                 plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray(~idForceTrans,:),'Linewidth',0.5,'Color',[0.5 0.5 0.5]), hold on
+                plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray(idForceTrans,:),'Linewidth',0.5), hold on
 %                 plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curArray,'Linewidth',0.5), hold on
                 plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curMeanSig,'Linewidth',3,'Color','w')     
                 plot((-prePostFramesUsed:curLT+prePostFramesUsed)*tInterval_used,curMeanSig,'Linewidth',1,'Color',meanColor)     
@@ -353,14 +368,19 @@ else
                 line([curLT*tInterval_used curLT*tInterval_used],[0 curMeanSig(curLT+prePostFramesUsed+1)],'linestyle',':','Color','k')
             end
 %             prevLT = curLT;
-            if curPrcLT==20
+            if exist('curPrcLT','var')
                 if onlyFirstMode
                     maxYamp = max(curArray(:));
                     minYamp = min(curArray(:));
                     break
                 else
-                    maxYamp = max(curCI_upper);
-                    minYamp = min(curCI_lower);
+                    if curPrcLT==startPrc
+                        maxYamp = max(curCI_upper);
+                        minYamp = min(curCI_lower);
+                    else
+                        maxYamp = max(maxYamp,max(curCI_upper));
+                        minYamp = min(minYamp,min(curCI_lower));
+                    end
                 end
             else
                 maxYamp = max([maxYamp curCI_upper]);
@@ -396,8 +416,6 @@ if ~plotCohorts && ~plotConfInt
         end
     end
 end
-maxYamp = quantile(nanmax(AmpArray),0.99);
-minYamp = quantile(nanmin(AmpArray),0.01);
 
 if ~useCurrentAxis
     if strcmp(source,'edgeAdvanceDist')

@@ -26,10 +26,13 @@ if ~isdeployed
     if exist(historyFile, 'file')
         history = load(historyFile);
         pathName = history.pathName;
-        [fileName, pathName] = uigetfile({'*.tif'; '*.jpg'}, 'Select the image for analysis', pathName);
+        [fullFileName, pathName] = uigetfile({'*.tif'; '*.jpg'}, 'Select the image for analysis', pathName);
     else
-        [fileName, pathName] = uigetfile({'*.tif'; '*.jpg'}, 'Select the image for analysis');
+        [fullFileName, pathName] = uigetfile({'*.tif'; '*.jpg'}, 'Select the image for analysis');
     end
+    
+    dataFilePath = fullfile(pathName, fullFileName);
+    [pathName, fileName, ext] = fileparts(dataFilePath);
     
     % save history
     if ~isempty(pathName) && all(pathName ~= 0)
@@ -41,7 +44,6 @@ end
 % Try to store and retrieve path history in a better way
 % save pathName pathName
 
-dataFilePath = fullfile(pathName, fileName);
 image = imread(dataFilePath);
 
 % Convert input to single frame 2D gray scale image
@@ -68,7 +70,7 @@ adjIM = imadjust(IM,[min(IM(:)),max(IM(:))], [0,1]);
 fineIM = interp2(X,Y,adjIM,fineX,fineY);
 
 figure, imshow(imcomplement(fineIM),[]);
-title('Imput Image');
+title('Input Image');
 
 % Anisogaussian filter is NOT applied!!
 % Apply matched filter f, gaussian kernel defined as sigmax=13, sigmay=6
@@ -96,9 +98,9 @@ end
 % indicates bands???
 
 % Lanes and bands detection.
-% Carefully adjust thresh1 and thresh2
-thres1 = 0.03*(max(intensityProfile)-min(intensityProfile));
-laneCenterLoc = find(~watershed(imhmin(intensityProfile,thres1)));
+% Carefully adjust laneThresh and bandThresh
+laneThresh = 0.01*(max(intensityProfile)-min(intensityProfile));
+laneCenterLoc = find(~watershed(imhmin(intensityProfile,laneThresh)));
 disp(strcat(num2str(length(laneCenterLoc)), ' lane(s) detected'))
 
 halfBandRange = max(1, round(0.3*(median(diff(laneCenterLoc))/2)));
@@ -118,8 +120,8 @@ for k = 1:length(laneCenterLoc)
     
     % Needs smarter threshold to eliminate the noise without hurting peaks
     % Determine the sensitivity of bands detection
-    thres2 = 0.03*(max(bandProfile)-min(bandProfile));
-    bandLoc = find(~watershed(imhmin(bandProfile,thres2)));
+    bandThresh = 0.03*(max(bandProfile)-min(bandProfile));
+    bandLoc = find(~watershed(imhmin(bandProfile,bandThresh)));
     
     for m = 1:length(bandLoc)
         bandMap(bandLoc(m),laneCenterLoc(k)) = 1;
@@ -139,6 +141,9 @@ disp('Click to define the boundary of marker lane.');
 hold on
 yAxis = ylim;
 plot(markerBoundary * ones(1,2), [yAxis(1), yAxis(2)], 'b-')
+
+% Reset marker lane in case markers are not detected??
+
 
 %% Manual adjustment of detected bands
 for bandsAddCound = 1:100
@@ -382,11 +387,9 @@ for i = 1:numel(bandStat)
 end
 % Plot a threshold line
 plot(1:q,limitY*ones(1,q),'b')
-
-fileName = input('Enter the file name to save statistics > ','s');
-
+fprintf('Input file name: %s%s\n', fileName, ext)
 avgBandSize = [bandStat(:).bandSize]*[bandStat(:).count]'/sum([bandStat(:).count]);
-fprintf('The average telomere length is %.2f.\n', avgBandSize)
+fprintf('The average telomere length is %.2f kb.\n', avgBandSize)
 
 % Calculate shortest telomeres (below 1.6kb) ratio
 ratio = countShort/countTotal*100;
@@ -404,9 +407,9 @@ else
     short20Size = sortBandSize(boundaryPoint+1);
 end
 
-fprintf('The shortest 20%% telomere threshold is %.2f.\n', short20Size)
+fprintf('The shortest 20%% telomere threshold is %.2f kb.\n', short20Size)
 
-save(fileName, 'ratio', 'avgBandSize', 'bandStat', 'imInput', 'short20Size', 'dataFilePath')
+save([fullfile(pathName, fileName), '.mat'],'ratio', 'avgBandSize', 'bandStat', 'imInput', 'short20Size', 'dataFilePath')
 
 % plot(1:q,short20Pos*ones(1,q),'m')
 % hold on
@@ -424,7 +427,7 @@ ylabel('Percentage of detected bands (%)')
 title(fileName)
 g(2) = gcf;
 
-savefig(g,fileName)
+savefig(g,fullfile(pathName, fileName))
 
 
 function bandMapPlot(image, bandMap)

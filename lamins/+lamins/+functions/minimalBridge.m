@@ -29,7 +29,7 @@ fragment_label = labelmatrix(fragment_cc);
 bridges = false(fragment_cc.ImageSize);
 
 % Loop over each fragment
-for f = 1:fragment_cc.NumObjects
+parfor f = 1:fragment_cc.NumObjects
     % L is true when the pixels are in fragment f
     L = fragment_label == f;
     % Obtain the list of segments adjacent to fragment f
