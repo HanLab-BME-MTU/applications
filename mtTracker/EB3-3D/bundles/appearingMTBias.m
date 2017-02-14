@@ -26,7 +26,7 @@ for kinIdx=1:length(kinTracks)
         mtVectorP1KinRef=[mt.pole1.x(end); mt.pole1.y(end); mt.pole1.z(end) ];
         kinVectorP1KinRef=[kinTrack.pole1.x(pIdx); kinTrack.pole1.y(pIdx); kinTrack.pole1.z(pIdx)];
         MTAnglesP1Kin=vectorAngleND(mtVectorP1KinRef,kinVectorP1KinRef);
-        distP1=sin(MTAnglesP1Kin)*mt.rho(end);
+        distP1=sin(MTAnglesP1Kin)*mt.pole1.rho(end);
         kinTrack.MTP1Angle=[kinTrack.MTP1Angle; MTAnglesP1Kin] ;
         kinTrack.distP1=[kinTrack.distP1; distP1] ;
     end
@@ -42,7 +42,7 @@ for kinIdx=1:length(kinTracks)
         kinVectorP2KinRef=[kinTrack.pole2.x(pIdx); kinTrack.pole2.y(pIdx); kinTrack.pole2.z(pIdx)];
         MTAnglesP2Kin=vectorAngleND(mtVectorP2KinRef,kinVectorP2KinRef);
         kinTrack.MTP2Angle=[kinTrack.MTP2Angle; MTAnglesP2Kin] ;
-        distP2=sin(MTAnglesP2Kin)*mt.rho(end);
+        distP2=sin(MTAnglesP2Kin)*mt.pole2.rho(end);
         kinTrack.distP2=[kinTrack.distP2; distP2] ;        
     end    
 end
