@@ -24,8 +24,11 @@ biasStdCell=cell(1,length(kinTracksOrCell));
 distAvgCell=cell(1,length(kinTracksOrCell));
 distMedCell=cell(1,length(kinTracksOrCell));
 distStdCell=cell(1,length(kinTracksOrCell));
+distCountCell=cell(1,length(kinTracksOrCell));
+
 kinCount=cell(1,length(kinTracksOrCell));
 biasAvgPerKinCell=cell(1,length(kinTracksOrCell));
+cutoffDist=400;
 
 timeCell=cell(1,length(kinTracksOrCell));
 
@@ -59,7 +62,8 @@ for ktIdx=1:length(kinTracksOrCell)
     end
     [biasAvgCell{ktIdx},biasMedCell{ktIdx},biasStdCell{ktIdx},timeCell{ktIdx}]=statPerIndx(mtDisappBias{ktIdx},mtDisappTime{ktIdx});
     [distAvgCell{ktIdx},distMedCell{ktIdx},distStdCell{ktIdx},timeCell{ktIdx}]=statPerIndx(mtDisappDistBias{ktIdx},mtDisappTime{ktIdx});
-    
+    [~,~,~,~,distCountCell{ktIdx}]=statPerIndx(mtDisappDistBias{ktIdx}(mtDisappDistBias{ktIdx}<cutoffDist),mtDisappTime{ktIdx}(mtDisappDistBias{ktIdx}<cutoffDist));
+
     biasAvgPerKinCell{ktIdx}=biasAvgPerKinCell{ktIdx}./kinCount{ktIdx};
 end
 %%
@@ -77,20 +81,24 @@ legend(H(3),nameOrCell);
 
 plot(H(4),vertcat(timeCell{:})',vertcat(distAvgCell{:})');
 plot(H(5),vertcat(timeCell{:})',vertcat(distMedCell{:})');
+plot(H(6),vertcat(timeCell{:})',vertcat(distCountCell{:})');
 
 
 end
 
-function [means,meds,stds,orderedIndex] = statPerIndx(values,index)
+function [means,meds,stds,orderedIndex,counts] = statPerIndx(values,index)
 means=zeros(1,max(index));
 meds=zeros(1,max(index));
 stds=zeros(1,max(index));
+counts=zeros(1,max(index));
+
 orderedIndex=1:max(index);
 for t=1:max(index)
     biasAtTime=(values(index==t));
     means(t)=mean(biasAtTime);
     meds(t)=median(biasAtTime);
     stds(t)=std(biasAtTime);
+    counts(t)=sum(index==t);
 end
 end
 
