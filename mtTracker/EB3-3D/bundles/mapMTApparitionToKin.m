@@ -1,5 +1,12 @@
-function mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
-  
+function mapMTApparitionToKin(kinTracks,EB3Tracks,cutoff,varargin)
+%Plot and compare building 
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addParameter('distType','angle');
+ip.parse(varargin{:});
+p=ip.Results;
+ 
     EB3StartFrames=[EB3Tracks.startFrame]';
     EB3RhoP1=arrayfun(@(t) t.pole1.rho(1),EB3Tracks);
     EB3RhoP2=arrayfun(@(t) t.pole2.rho(1),EB3Tracks);
@@ -45,10 +52,17 @@ function mapMTApparitionToKin(kinTracks,EB3Tracks,angleCutoff)
                 %%                
                 MTAnglesP1Kin= vectorAngleND(MTVectorP1KinRef,kinVectorP1KinRef);
                 MTAnglesP2Kin= vectorAngleND(MTVectorP2KinRef,kinVectorP2KinRef);
-                %%
-                appearingMTP1Kin=EB3Tracks(P1KinAssociatedMTIndex(abs(MTAnglesP1Kin)<angleCutoff));
-                appearingMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex(abs(MTAnglesP2Kin)<angleCutoff));
-                              
+                
+                if(strcmp(p.distType,'normalDist'))
+                    distP1=sin(MTAnglesP1Kin).*EB3RhoP1(P1KinAssociatedMT)';
+                    appearingMTP1Kin=EB3Tracks(P1KinAssociatedMTIndex(distP1<cutoff));
+                    distP2=sin(MTAnglesP2Kin).*EB3RhoP2(P2KinAssociatedMT)';
+                    appearingMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex(distP2<cutoff));
+                else
+                    appearingMTP1Kin=EB3Tracks(P1KinAssociatedMTIndex(abs(MTAnglesP1Kin)<cutoff));
+                    appearingMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex(abs(MTAnglesP2Kin)<cutoff))    ;              
+                end
+         
                 if(~isempty(appearingMTP1Kin))
                     kinTrack.appearingMTP1=[kinTrack.appearingMTP1; appearingMTP1Kin] ;
                 end

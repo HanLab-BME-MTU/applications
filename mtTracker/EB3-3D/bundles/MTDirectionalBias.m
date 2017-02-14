@@ -6,9 +6,11 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('kinTracksWithSpindle',[]);
+ip.addParameter('randKinTracksWithSpindle',[]);
 ip.addParameter('EB3TracksWithSpindle',[]);
 ip.addParameter('printAll',false, @islogical);
-ip.addParameter('angleCutoff',0.1, @isnumeric);
+ip.addParameter('cutoffs',0.1, @isnumeric);
+ip.addParameter('distType','angle');
 ip.addParameter('plotHandle',[]);
 ip.addParameter('process',[]);
 ip.parse(MD,varargin{:});
@@ -16,7 +18,13 @@ p=ip.Results;
 
 printAll=p.printAll;
 %%
-[kinTracks,EB3Tracks]=addSpindleRef(MD);
+
+if(isempty(p.kinTracksWithSpindle)||isempty(p.EB3TracksWithSpindle))
+    [kinTracks,EB3Tracks]=addSpindleRef(MD);
+else
+    EB3Tracks=p.EB3TracksWithSpindle;
+    kinTracks=p.kinTracksWithSpindle;
+end
 
 % inlier index
 inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
@@ -27,6 +35,7 @@ EB3TracksInliers=EB3Tracks(inliersEB3);
 %%
 outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep  'Amira' filesep];
 
+if(isempty(p.randKinTracksWithSpindle))
 % Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
 randomDist=10; % in pixel
 
@@ -55,18 +64,19 @@ poleMovieInfo=poleData.poleMovieInfo;
 
 % Estimate bundle outside the Kin-Plan refencial
 randKinTracksInlier=randKinTracksPlus(inliersKin);
-
+else
+    randKinTracksInlier=p.randKinTracksWithSpindle;
+end
+%%
+cutoffs=p.cutoffs;
 
 %%
-angleCutoffs=p.angleCutoff;
-
-%%
-numAngle=length(angleCutoffs);
+numAngle=length(cutoffs);
 [Hs]=setupFigure(1,(numAngle),numAngle,'AspectRatio',1,'AxesWidth',4);
 
 for aIdx=1:numAngle
-    angleCutoff=angleCutoffs(aIdx);
-    mapMTApparitionToKin(kinTracksInliers,EB3TracksInliers,angleCutoff);
+    cutoff=cutoffs(aIdx);
+    mapMTApparitionToKin(kinTracksInliers,EB3TracksInliers,cutoff,'distType',p.distType);
     appearingMTBias(kinTracksInliers);
   
     % For each kinetochore, plot an Amira file with attached mt
@@ -97,11 +107,12 @@ for aIdx=1:numAngle
     end
     
     %% Estimate bias outside KinPole axis
-    mapMTApparitionToKin(randKinTracksInlier,EB3TracksInliers,angleCutoff);
+    mapMTApparitionToKin(randKinTracksInlier,EB3TracksInliers,cutoff,'distType',p.distType);
     appearingMTBias(randKinTracksInlier);
 %     displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'},'plotHandleArray',Hs(aIdx));
+    save([MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep 'kinAndRand.mat'],'kinTracksInliers','randKinTracksInlier');
     displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'});
 end
 
-save([MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep 'kinAndRand.mat'],'kinTracksInliers','randKinTracksInlier');
+
 disp('end');
