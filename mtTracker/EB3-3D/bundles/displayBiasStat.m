@@ -9,7 +9,7 @@ ip.parse(varargin{:});
 p=ip.Results;
 H=p.plotHandleArray;
 if(isempty(H))
-    H=setupFigure(2,3,3,'AspectRatio',1,'AxesWidth',4);
+    H=setupFigure(2,3,6,'AspectRatio',1,'AxesWidth',4);
 end
 % bias should be counted at the moment the MT disappear
 if(~iscell(kinTracksOrCell))
