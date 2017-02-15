@@ -207,7 +207,7 @@ status = 1;
             version = 1e6 * major + 1e4 * minor + 1e2 * patch;
             
             % Is it the newest yet?
-            if version > newestVersion
+            if i == 1;%version > newestVersion %TEMP - problems w/ imaris 8 on IDAC SVR1 
                 newestVersionDir = allDirs(i).name;
                 newestVersion = version;
             end

@@ -287,7 +287,11 @@ if nargin>1 && ~isempty(idGroupSelected)
                  edgeAdvanceDistFirstChangeNAs(idGroupSelected{ii}) edgeAdvanceDistLastChangeNAs(idGroupSelected{ii}) ...
                  maxEdgeAdvanceDistChangeNAs(idGroupSelected{ii}) maxIntensityNAs(idGroupSelected{ii}) ...
                  timeToMaxInten(idGroupSelected{ii}) edgeVariation(idGroupSelected{ii})];
-            nCurG=length(idGroupSelected{ii}); %sum(idGroupSelected{ii}); %
+            if length(idGroupSelected{1})==length(idGroupSelected{2}) || isempty(idGroupSelected{ii}) || numel(idGroupSelected{ii})==1
+                nCurG=sum(idGroupSelected{ii}>0); %
+            else
+                nCurG=length(idGroupSelected{ii}); %sum(idGroupSelected{ii}); %
+            end
             nG(ii)=nCurG;
             nTotalG = nTotalG+nCurG;
 %         else
