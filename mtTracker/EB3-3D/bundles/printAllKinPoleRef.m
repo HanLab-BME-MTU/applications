@@ -11,8 +11,8 @@ function printAllKinPoleRef(MD, kinTracks)
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'appearingMT' filesep 'projection'];
 outputDirProjP1=[outputDirProj filesep 'P1' filesep];
 outputDirProjP2=[outputDirProj filesep 'projection' filesep 'P2' filesep];
-mkdir(outputDirProjP1);
-mkdir(outputDirProjP2);
+mkdir2016a(outputDirProjP1);
+mkdir2016a(outputDirProjP2);
 for kinIdx=1:length(kinTracks)
     kinTrack=kinTracks(kinIdx);
     progressText(kinIdx/length(kinTracks),'Print KinPole ref.');
@@ -26,4 +26,7 @@ for kinIdx=1:length(kinTracks)
     hold(handles(1),'off');
     close(fhandle);
 end
+
+function mkdir2016a(dir)
+system(['mkdir -p ' dir]);
 
