@@ -466,7 +466,7 @@ initCellLabels();
         'Value', 0, ...
         'Visible', 'on');
 
-        handles.dtOnOff.Value = 0;
+%         handles.dtOnOff.Value = 0;
 
             function updateDT(source, ~)
                val = source.Value;
@@ -479,6 +479,8 @@ initCellLabels();
                    handles.dcm_obj = dcm_obj;
                    set(handles.dcm_obj,'DisplayStyle','window',...
                   'SnapToDataVertex','off','Enable','on');    
+                          handles.dcm_obj = dcm_obj;
+                   set(dcm_obj,'UpdateFcn',@myupdatefcn);
                end
                 updatePlots();
             end
@@ -1266,7 +1268,13 @@ function plotScatter
         handles.scat2.CData(ji,:) = clabels(ji,:,:);
         handles.scat2.SizeData(idx_f) = 35;
         handles.scat2.SizeData(ji) = 200;
-        handles.scat1.PickableParts = 'none';
+        try 
+            handles.scat1.PickableParts = 'none';
+            handles.scat1.HitTest = 'off';
+        catch
+            warning('error scat1');
+        end
+        
        hold off;
 %         end
         set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
@@ -1313,17 +1321,21 @@ end
     end
     
     function txt = myupdatefcn(empt, objs)
+        % handles.scat1.SizeData(handles.selPtIdx) = 10;
         idx = empt.Cursor.DataIndex;
         
         %% TODO - Check if filter is activated. 
 %         if handles.info.zoom == false
-%         handles.selPtIdx = idx;
+        handles.selPtIdx = idx;
+        % handles.scat1.SizeData(handles.selPtIdx) = 200;
 %         else
-        if ismember(idx, handles.dataI)
-            handles.selPtIdx = handles.dataI(idx);
-        else
-            handles.selPtIdx = handles.dataI_ns(idx);
-        end
+%         if ismember(idx, handles.dataI)
+% %             handles.selPtIdx = handles.dataI(idx);
+%               handles.scat1.SizeData(idx) = 200;
+%               handles.scat1.SizeData(idx) = 200;
+%         else
+% %             handles.selPtIdx = handles.dataI_ns(idx);
+%         end
         
         %         txt = {['Index: ',num2str(handles.selPtIdx)],...
 %                ['CellType: ',data.meta.cellType{handles.selPtIdx}],...
@@ -1337,6 +1349,7 @@ end
         updateAnnotationPanel;
         updateCellInfo;
         playMovie_GUI();
+        
     end
 
     function axDRCallback(varargin)
