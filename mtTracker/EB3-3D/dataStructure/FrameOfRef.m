@@ -49,7 +49,7 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
                   B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
                   recentered=[(tr.x(pIdx)-obj.origin(f,1)) (tr.y(pIdx)-obj.origin(f,2)) (tr.z(pIdx)-obj.origin(f,3))];
                   v=recentered*B;
-                  trBase.x(pIdx)=v(1); trBase.y(pIdx)=v(2); trBase.z(pIdx)= v(3);
+                  trBase.x(pIdx)=v(2); trBase.y(pIdx)=v(1); trBase.z(pIdx)= v(3);
               end;    
           end
       end

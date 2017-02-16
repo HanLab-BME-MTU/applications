@@ -52,12 +52,12 @@ p=ip.Results;
                 %%                
                 MTAnglesP1Kin= vectorAngleND(MTVectorP1KinRef,kinVectorP1KinRef);
                 MTAnglesP2Kin= vectorAngleND(MTVectorP2KinRef,kinVectorP2KinRef);
-                
+                angleCutoff=0.2;
                 if(strcmp(p.distType,'normalDist'))
                     distP1=sin(MTAnglesP1Kin).*EB3RhoP1(P1KinAssociatedMT)';
-                    appearingMTP1Kin=EB3Tracks(P1KinAssociatedMTIndex(distP1<cutoff));
+                    appearingMTP1Kin=EB3Tracks(P1KinAssociatedMTIndex((distP1<cutoff)&(abs(MTAnglesP1Kin)<angleCutoff)));
                     distP2=sin(MTAnglesP2Kin).*EB3RhoP2(P2KinAssociatedMT)';
-                    appearingMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex(distP2<cutoff));
+                    appearingMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex((distP2<cutoff)&(abs(MTAnglesP2Kin)<angleCutoff)));
                 else
                     appearingMTP1Kin=EB3Tracks(P1KinAssociatedMTIndex(abs(MTAnglesP1Kin)<cutoff));
                     appearingMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex(abs(MTAnglesP2Kin)<cutoff))    ;              
