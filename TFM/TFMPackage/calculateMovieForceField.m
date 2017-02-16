@@ -15,6 +15,7 @@ function calculateMovieForceField(movieData,varargin)
 
 % Sebastien Besson, Sep 2011
 % Last updated by Sangyoon Han, Oct 2014
+% Updates by Andrew R. Jamieson, Feb 2017
 
 %% Input
 %Check input
@@ -301,16 +302,31 @@ if strcmpi(p.method,'FastBEM')
     [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
     % basis function table name adjustment
-    expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix'];
-    % match basisClassTblPath name to include gridSpacing
+    expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix.mat'];
+    
+    % Check if path exists
+    if isempty(p.basisClassTblPath)
+        disp(['Note, no path given for basis tables, outputing to movieData.mat path: ' ...
+            movieData.movieDataPath_]);
+        p.basisClassTblPath = fullfile(movieData.movieDataPath_, expectedName);
+    else
+        assert(exist(p.basisClassTblPath,'file')==2, 'basisFunctionFolderPath not valid!');
+        assert(numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) == 1, ['basisFunction.mat not valid!' p.basisClassTblPath]);
+    end
+
+    % Sanity check the paths.
     basisFunctionFolderPath = fileparts(p.basisClassTblPath);
-    expectedPath = [basisFunctionFolderPath filesep expectedName '.mat'];
-    if ~strcmp(expectedPath,p.basisClassTblPath)
+    assert(exist(basisFunctionFolderPath, 'dir')==7, 'basisFunctionFolderPath not valid!');
+
+    % Check if basis file name is correctly formatted.
+    expectedPath = fullfile(basisFunctionFolderPath, expectedName);
+    if ~strcmp(expectedPath, p.basisClassTblPath)
         p.basisClassTblPath = expectedPath;
         disp(['basisClassTblPath has different name for estimated mesh grid spacing (' num2str(gridSpacing) '). ']);
         disp('Now the path is automatically changed to :')
-        disp([expectedPath '.'])
+        disp([expectedPath '.']);
     end
+        
     % If grid_mat=[], then an optimal hexagonal force mesh is created
     % given the bead locations defined in displField:
     if p.usePaxImg && length(movieData.channels_)>1

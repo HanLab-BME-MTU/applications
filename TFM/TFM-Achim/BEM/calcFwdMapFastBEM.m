@@ -8,12 +8,12 @@ ip.addRequired('forceMesh',@isstruct);
 ip.addRequired('E',@isscalar);
 ip.addOptional('meshPtsFwdSol',[],@isscalar);
 ip.addOptional('doPlot',0,@isscalar);
-ip.addParamValue('basisClassTblPath','basisClassTbl.mat',@ischar);
-ip.addParamValue('wtBar',-1,@isscalar);
-ip.addParamValue('imgRows',1024,@isscalar);
-ip.addParamValue('imgCols',1334,@isscalar);
-ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
-ip.addParamValue('PoissonRatio',0.5,@isscalar); 
+ip.addParameter('basisClassTblPath','basisClassTbl.mat',@ischar);
+ip.addParameter('wtBar',-1,@isscalar);
+ip.addParameter('imgRows',1024,@isscalar);
+ip.addParameter('imgCols',1334,@isscalar);
+ip.addParameter('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
+ip.addParameter('PoissonRatio',0.5,@isscalar); 
 ip.parse(x_vec_u, y_vec_u, forceMesh, E,varargin{:})
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 doPlot=ip.Results.doPlot;
@@ -52,13 +52,13 @@ y_vec_u=y_vec_u(:);
 
 % test if displacement vectors have been measured only at integer
 % positions:
-diff_x_u=abs(x_vec_u-round(x_vec_u));
-diff_y_u=abs(y_vec_u-round(y_vec_u));
+diff_x_u = abs(x_vec_u-round(x_vec_u));
+diff_y_u = abs(y_vec_u-round(y_vec_u));
 
 % test if the basis function for the force are located only at integer
 % positions:
-allNodes=vertcat(forceMesh.basis(:).node);
-diff_xy_f=abs(allNodes-round(allNodes));
+allNodes = vertcat(forceMesh.basis(:).node);
+diff_xy_f = abs(allNodes-round(allNodes));
 
 if sum(diff_x_u(:))+sum(diff_y_u(:))<10^(-3) && sum(diff_xy_f(:))<10^(-3)
     method='direct';
