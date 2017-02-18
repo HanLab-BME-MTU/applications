@@ -1,32 +1,47 @@
-function [handles,fhandle]=printKinPoleRef(kinTrack,EB3Tracks)
-% $$$ ip = inputParser;
-% $$$ ip.CaseSensitive = false;
-% $$$ ip.KeepUnmatched = true;
-% $$$ ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
-% $$$ ip.addParameter('kinTracks',[],@(x) isa(x,'Tracks'));
-% $$$ ip.addParameter('printAll',false, @islogical);
-% $$$ ip.parse(kinTrack,EB3Tracks,varargin{:});
-% $$$ p=ip.Results;
+function [handles,fhandle]=printKinPoleRef(kinTrack,EB3Tracks,varargin)
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addParameter('EB3ColorAfter',ones(1,length(EB3Tracks)));
+ip.addParameter('valueRange',[]);
+ip.addParameter('colormap',[], @islogical);
+ip.parse(varargin{:});
+p=ip.Results;
+
+minColoredValue=min(p.EB3ColorAfter);
+maxColoredValue=max(p.EB3ColorAfter);
+
+valueRange=p.valueRange;
+if(isempty(p.valueRange))
+    valueRange=floor(minColoredValue):ceil(maxColoredValue);
+else
+    valueRange=valueRange(1):valueRange(2);
+end
+[EB3ColorIdx] = discretize(p.EB3ColorAfter,[min(minColoredValue,min(valueRange)) valueRange  max(maxColoredValue,max(valueRange))+1]);
+
+localCM=p.colormap;
+if(isempty(p.colormap))
+  localCM=jet(max(EB3ColorIdx));
+end
 
 
 [handles,~,fhandle]=setupFigure(1,1,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
 hold(handles(1),'on');
 
-for poleId=1:2
-    scatter(handles,kinTrack.z,kinTrack.x,'r');
-    scatter(handles,0,0,'g');
-end
+scatter(handles,kinTrack.z,kinTrack.x,'r');
+scatter(handles,0,0,'g');
 
 for mIdx=1:length(EB3Tracks)
     mt=EB3Tracks(mIdx);
-    
+
     %Project on the plan defined by the poleKin axis and the interpolar
     %axis.
-    plot(handles,mt.z,mt.x,'b-');
-    ylim(handles,[-2000 2000])
-    xlabel(handles,'Pole-Kinetochore axis (nm)')
-    ylabel(handles,'Normal plane (nm)')
+    plot(handles,mt.z,mt.x,'Color',localCM(EB3ColorIdx(mIdx),:));
+    ylim(handles,[-2000 2000]);
+    xlabel(handles,'Pole-Kinetochore axis (nm)');
+    ylabel(handles,'Normal plane (nm)');
 end
+    colorbar(handles,'ticks',linspace(0,1,5),'tickLabels',valueRange(round(linspace(1,end,5))));
 
 % print([outputDirProj 'kin' num2str(kIdx,'%03d') '.png'],'-dpng');
 
