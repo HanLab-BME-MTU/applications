@@ -258,6 +258,12 @@ classdef OrientationSpaceResponse < handle
                 [theta,response] = orientationSpace.maxima(obj.angularResponse);
             end
         end
+        function [response,maxima] = getMaxResponseFT(obj,maxima)
+            if(nargin < 2)
+                maxima = obj.getRidgeOrientationLocalMaxima;
+            end
+            response = interpft1(obj,maxima(:,:,1));
+        end
         function [response,theta] = getMaxFiniteResponse(obj,nn)
             a = obj.angularResponse;
             if(obj.n ~= nn)
@@ -381,7 +387,13 @@ classdef OrientationSpaceResponse < handle
         end
         function vq  = interpft1(obj,xq)
             % interpft1 - Interpolate
-            vq = interpft1([0 pi],shiftdim(obj.a,2),shiftdim(xq,2),'horner');
+            if(ndims(xq) == 3)
+                xq = shiftdim(xq,2);
+            else
+                xq = shiftdim(xq,-1);
+            end
+            vq = interpft1([0 pi],shiftdim(real(obj.a),2),xq,'horner');
+            vq = interpft1([0 2*pi],shiftdim(imag(obj.a),2),imag(xq),'horner')*1i + vq;
             vq = shiftdim(vq,1);
         end
         function fineResponseGrid = getResponseForInterpolation(obj,scaleFactor)
