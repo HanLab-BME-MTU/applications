@@ -26,13 +26,13 @@ end
         
         B_scale = OrientationScaleMatrix(real(squeeze(Rscale.getArraySpace(h_img_pt_pos(2),h_img_pt_pos(1)))),scaleWidthRange,[0 180]);
         B_width = OrientationScaleMatrix(real(squeeze(Rwidth.getArraySpace(h_img_pt_pos(2),h_img_pt_pos(1)))),scaleWidthRange,[0 180]);
-        B_scale_roots = roots(diff(B_scale{:,1:0.1:4}));
+        B_scale_roots = roots(diff(B_scale{:,scaleWidthRange(1):0.1:scaleWidthRange(2)}));
         B_width_roots = roots(diff(B_width{0:179,:}));
         
         figure(h_scale_fig);
         h_scale = imagesc(B_scale);
         hold on;
-        plot(1:0.1:4,B_scale_roots,'k.')
+        plot(scaleWidthRange(1):0.1:scaleWidthRange(2),B_scale_roots,'k.')
         plot(B_width_roots,0:179,'r.')
         hold off;
         
@@ -40,7 +40,7 @@ end
         h_width = imagesc(B_width);
         hold on;
         xlabel('Width');
-        plot(1:0.1:4,B_scale_roots,'k.')
+        plot(scaleWidthRange(1):0.1:scaleWidthRange(2),B_scale_roots,'k.')
         plot(B_width_roots,0:179,'r.')
         
         hold off;
