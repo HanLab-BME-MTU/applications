@@ -61,8 +61,14 @@ p.MaskChannelIndex = specDetProc.funParams_.MaskChannelIndex;
 if length(p.MaskChannelIndex) >1
     %Get the indices of any previous mask intersection process
     iMaskProc = movieData.getProcessIndex('MaskIntersectionProcess',1,0);
+    maskProc = movieData.processes_{iMaskProc};
+    if ~any(maskProc.checkChannelOutput(p.MaskChannelIndex))
+        iMaskProc =movieData.getProcessIndex('MaskRefinementProcess',1,1);
+        maskProc = movieData.processes_{iMaskProc};
+    end
 else  
     iMaskProc =movieData.getProcessIndex('MaskRefinementProcess',1,1);
+    maskProc = movieData.processes_{iMaskProc};
 end
 
 if isempty(iMaskProc)
@@ -70,7 +76,6 @@ if isempty(iMaskProc)
         'on this movie! Please run first!!']);
 end
 %Check that there is a valid output
-maskProc = movieData.processes_{iMaskProc};
 % if ~maskProc.checkChannelOutput(p.ChannelIndex)
 %     error(['Each channel must have masks !' ...
 %         'Please apply mask refinement to all needed channels before'...
@@ -150,7 +155,7 @@ for i=1:numel(p.ChannelIndex)
 
     % Interpolate field
     if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
-    [Md,~,~,~,~] =  analyzeFlow(flow,p.timeWindow+1,p.maxCorLength,...
+    [Md,~,~,~,~] =  analyzeFlow(flow,2*floor(p.timeWindow/2)+1,p.maxCorLength,...
         'noise',1,'error',1);
     
    %% Mesh generation (decsg and initmesh)

@@ -83,6 +83,9 @@ nascentAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
 focalAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
     'amp',[],'area',[],'length',[],'meanFAarea',[],'medianFAarea',[]...
     ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],'cellArea',[],'maskFA',[],'boundFA',[],'ecc',[]);
+if plotGraph
+    h1=figure;
+end
 jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
@@ -114,7 +117,6 @@ for j=1:movieData.nFrames_
     catch
         mask = movieData.roiMask;
         noMask=true;
-        mask=mask(:,:,j);
     end
     if ~isempty(indMask)
         maskComp = maskProc.loadChannelOutput(indMask,j); % 1 is CCP channel
@@ -153,7 +155,7 @@ for j=1:movieData.nFrames_
     yNA=pstruct.y;
     maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA,mask);
 %     labelAdhesion = bwlabel(maskAdhesion);
-    Adhs = regionprops(maskAdhesion2,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength');
+    Adhs = regionprops(maskAdhesion2,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength','MinorAxisLength');
 %         minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
 
     adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
@@ -201,6 +203,7 @@ for j=1:movieData.nFrames_
         focalAdhInfo(j).yCoord(k) = round(Adhs(k).Centroid(2));
         focalAdhInfo(j).area(k) = Adhs(k).Area;
         focalAdhInfo(j).length(k) = Adhs(k).MajorAxisLength;
+        focalAdhInfo(j).width(k) = Adhs(k).MinorAxisLength;
         focalAdhInfo(j).amp(k) = mean(I(Adhs(k).PixelIdxList));
         focalAdhInfo(j).ecc(k) = Adhs(k).Eccentricity;
     end
@@ -217,7 +220,6 @@ for j=1:movieData.nFrames_
 
     % plotting detected adhesions
     if plotGraph
-        h1=figure;
         dI = double(I)/max(max(I));
         combI(:,:,1) = dI;
         combI(:,:,2) = dI+double(maskAdhesion2)*.5;

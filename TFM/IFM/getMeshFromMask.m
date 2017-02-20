@@ -202,6 +202,56 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind,hFig] = getM
             end
             curveIdx{iCurFreeEdge} = curveIdx{iCurFreeEdge}(curIdx);
         end
+    else % when there is no straight edge
+        % get free curve indices
+        straightEdgeIdx = 0; %curveIdx{iStrEdge};
+        freeIdx = ~(xminIdx | yminIdx | xmaxIdx | ymaxIdx);% index for free edge
+        % get index for free curved edges
+        nFreeIdx = sum(freeIdx);
+        % assign evenly divided freeIdx to each curveIdx
+        iPrevIdx = 1;
+        for k=1:numFreeEdges
+            iCurFreeEdge = mod(straightEdgeIdx+k,4); % we starts to fill indices for edge after straightEdgeIdx
+            if iCurFreeEdge==0
+                iCurFreeEdge = 4;
+            end
+            % accounting for continuity from end to the first index
+            if (iPrevIdx+round(nFreeIdx/numFreeEdges))>length(freeIdx)
+                curveIdx{iCurFreeEdge} = [iPrevIdx:length(freeIdx) 1:mod(iPrevIdx+round(nFreeIdx/3)-1,length(freeIdx))];
+            elseif k==numFreeEdges
+                iPrevFreeEdge = mod(iStrEdge+k-1,4); % we starts to fill indices for edge after iStrEdge
+                if iPrevFreeEdge==0
+                    iPrevFreeEdge = 4;
+                end
+                if curveIdx{iPrevFreeEdge}(end)<straightEdgeIdx(1)
+                    curveIdx{iCurFreeEdge} = curveIdx{iPrevFreeEdge}(end):straightEdgeIdx(1);
+                else
+                    curveIdx{iCurFreeEdge} = [curveIdx{iPrevFreeEdge}(end):length(freeIdx) 1:straightEdgeIdx(1)];
+                end
+            else
+                curveIdx{iCurFreeEdge} = iPrevIdx:iPrevIdx+round(nFreeIdx/numFreeEdges);
+            end
+            iPrevIdx =  curveIdx{iCurFreeEdge}(end);
+            % look at speckle density near each curve
+            [idxCurveSeg, distCurveSeg]=KDTreeBallQuery(curFlow(:,2:-1:1),B{1}(curveIdx{iCurFreeEdge},2:-1:1),distSpecDensity);
+            numCurveSeg=cellfun(@length,idxCurveSeg);
+%                 minDistToClosestSpeck=cellfun(@min,distCurveSeg);
+            sortDistToClosestSpeck=cellfun(@sort,distCurveSeg,'UniformOutput',false);
+            meanMinDistToClosestSpeck=cellfun(@(x) mean(x(2:min(length(x),5))),sortDistToClosestSpeck);
+            speckDen = mean(numCurveSeg);
+            meanMinDist = mean(meanMinDistToClosestSpeck);
+            % determine total mesh segment in the curve
+%                 numMeshSegCurve = round(length(curveIdx{iCurFreeEdge})/meanMinDist+1);
+            % place knots depending on minDist
+            curIdx=1;
+            while curIdx(end) < length(curveIdx{iCurFreeEdge})
+                curIdx = [curIdx curIdx(end)+max(8,round(meanMinDistToClosestSpeck(curIdx(end))))];
+                if curIdx(end) > length(curveIdx{iCurFreeEdge})
+                    curIdx(end) = length(curveIdx{iCurFreeEdge});
+                end
+            end
+            curveIdx{iCurFreeEdge} = curveIdx{iCurFreeEdge}(curIdx);
+        end
     end
     np = length(curveIdx{1})+length(curveIdx{2})+length(curveIdx{3})+length(curveIdx{4})-4; % the number of polygon segments
     gd = zeros(2+2*np,1); % initialization of geometry description matrix
