@@ -1,9 +1,9 @@
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161024';
-saveDirImput='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161024';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161109';
+saveDirImput='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161109';
 %Define strings for directory hierarchy as needed
- rDDir = {'rD1'};
- aPDir = {'aP0p5'};
-outDirNum = 2:5;
+ rDDir = {'rD4'};
+ aPDir = {'aP0p0'};
+outDirNum = 1:5;
 lRDir = {'lR0p2'};%'lR0p1','lR0p2',
 
 %Define number of label ratio

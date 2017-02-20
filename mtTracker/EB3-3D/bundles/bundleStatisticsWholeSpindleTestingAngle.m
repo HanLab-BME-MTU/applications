@@ -14,20 +14,7 @@ p=ip.Results;
 % inlier index
 EB3tracksInliers=EB3tracksPlus(logical(arrayfun(@(eb) eb.inliers(1),EB3tracksPlus)));
 inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracksPlus));
-
-fiberCell={};
-randFiberCell={};
-
-for angleDist=0.02:0.01:0.1
-       
-%% Estimate bundle in KinPole axis
-
 kinTracksInliers=kinTracksPlus(inliersKin);
-
-captureDetection(MD,'kinTracks',kinTracksInliers,'EB3tracks',EB3tracksInliers,'name',['inlier_angle_' num2str(angleDist)],'distanceCutOff',angleDist);
-fiber=detectMTAlignment(MD,'name',['inlier_angle_' num2str(angleDist)]);
-fiberCell=[fiberCell {fiber}];
-
 
 % Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
 randomDist=10; % in pixel
@@ -54,12 +41,26 @@ poleMovieInfo=poleData.poleMovieInfo;
 
 % Rebuild the augmented kin
 [randKinTracksPlus]=addSpindleRef(MD,'kinTracks',randKinTracks,'kinSphericalCoord',kinSphericalCoord,'kinInliers',inliers);
-
-% Estimate bundle outside the Kin-Plan refencial
 randKinTracksInlier=randKinTracksPlus(inliersKin);
-captureDetection(MD,'kinTracks',randKinTracksInlier,'EB3tracks',EB3tracksInliers,'name',['randInlier_angle_' num2str(angleDist)],'distanceCutOff',angleDist);
-randomFiber=detectMTAlignment(MD,'name',['randInlier_angle_' num2str(angleDist)]);
-randFiberCell=[randFiberCell {randomFiber}];
+
+angleRange=0.02:0.01:0.1;
+
+fiberCell=cell(1,length(angleRange));
+randFiberCell=cell(1,length(angleRange));
+
+parfor angleDistIdx=1:length(angleRange)
+    
+    angleDist=angleRange(angleDistIdx);
+    
+    %% Estimate bundle in KinPole axis
+    captureDetection(MD,'kinTracks',kinTracksInliers,'EB3tracks',EB3tracksInliers,'name',['inlier_angle_' num2str(angleDist)],'distanceCutOff',angleDist);
+    fiber=detectMTAlignment(MD,'name',['inlier_angle_' num2str(angleDist)]);
+    fiberCell{angleDistIdx}=fiber;
+    
+    % Estimate bundle outside the Kin-Plan refencial
+    captureDetection(MD,'kinTracks',randKinTracksInlier,'EB3tracks',EB3tracksInliers,'name',['randInlier_angle_' num2str(angleDist)],'distanceCutOff',angleDist);
+    randomFiber=detectMTAlignment(MD,'name',['randInlier_angle_' num2str(angleDist)]);
+    randFiberCell{angleDistIdx}=randomFiber;
 end
 
 displayAngleSwipeResults(fiberCell,randFiberCell)

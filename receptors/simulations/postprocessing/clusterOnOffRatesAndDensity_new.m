@@ -1,6 +1,8 @@
 function [rateOnPerClust,rateOffPerClust,densityPerClust,...
-    numClustForRateCalc,clustHistoryAll,clustHistoryAllReal,clustStats] = ...
+    numClustForRateCalc,clustHistoryAll,clustStats] = ...
     clusterOnOffRatesAndDensity_new(compTracksAggregState,infoSpaceTime)
+
+
 %CLUSTERONOFFRATESANDDENSITY calculates cluster on and off rates and densities
 %
 %   SYNPOSIS: [rateOnPerClust,rateOffPerClust,densityPerClust,...
@@ -58,11 +60,31 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,...
 %       clustStats        :  Output of clusterNumbersFromCompTracks.
 %
 %   Khuloud Jaqaman, May 2015
+%
+%   Modified by Luciana de Oliveira, Oct 2016. To calculate the clustStats
+%   directly from clustHistory.
 
 %% Input
 
-%Nothing to do
+%% Input
 
+%get sampling information
+timeStep = infoSpaceTime.timeStep;
+if isfield(infoSpaceTime,'sampleStep')
+    sampleStep = infoSpaceTime.sampleStep;
+else
+    sampleStep = timeStep;
+end
+convStep = round(sampleStep/timeStep);
+if isfield(infoSpaceTime,'firstLastTP')
+    firstLastTP = infoSpaceTime.firstLastTP;
+    if length(firstLastTP)==1
+        firstLastTP = [0 firstLastTP];
+    end
+else
+    firstLastTP = [];
+end
+firstLastFrame = 1 + firstLastTP/timeStep;
 %% Calculation
 
 %get cluster history
@@ -75,16 +97,52 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,...
 
 % *** 2nd line (used for now) gets cluster history only for clusters that start
 %AND end in middle of time lapse; this suffices for current analysis
-[clustHistoryAll,clustHistoryAllReal,clustHistoryMerged] = ...
-    clusterHistoryFromCompTracks_aggregState_new(compTracksAggregState.defaultFormatTracks,infoSpaceTime);
+ [clustHistoryAll,clustHistoryMerged] = ...
+    clusterHistoryFromCompTracks_aggregState_new(compTracksAggregState.defaultFormatTracks);
 
 %get cluster densities
 clustStats = clusterNumbersFromCompTracksNew(clustHistoryMerged,infoSpaceTime);
 densityPerClust = mean(clustStats.clusterDensity,2);
 clustCount = mean(clustStats.clusterCount,2);
 
+
+%% RATES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Modification 2016/11/17(LRO): To calculate the rates it is needed to do the 
+% following steps in clustHistoryMerged.
+
+%Remove those events that are not changing
+
+clustHistoryMergedChange=clustHistoryMerged;
+
+ clustHistoryMergedChange(clustHistoryMergedChange(:,4)==max(clustHistoryMergedChange(:,4)),:) = [];
+ clustHistoryMergedChange(clustHistoryMergedChange(:,3)==min(clustHistoryMergedChange(:,3)),:) = [];
+    
+
+ if ~isempty(firstLastFrame)
+    clustHistoryMergedChange = clustHistoryMergedChange(clustHistoryMergedChange(:,3)>=firstLastFrame(1) ...
+    & clustHistoryMergedChange(:,4)<=firstLastFrame(2),:);
+ end
+    
+      
+%remove clusters which start and end at exactly the same time point -
+%these would be not detectable with the sub-sampling time step
+    clustHistoryMergedChange = clustHistoryMergedChange(clustHistoryMergedChange(:,5)>0,:);
+   
+ %subsample time
+    
+   clustHistoryMergedChange(:,3:4) = ceil(clustHistoryMergedChange(:,3:4)/convStep);
+    clustHistoryMergedChange(:,5) = clustHistoryMergedChange(:,4) - clustHistoryMergedChange(:,3);
+
+%convert from iterations/frames to real time units
+    clustHistoryMergedChange(:,3:5) = clustHistoryMergedChange(:,3:5) * sampleStep;    
+    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 %get maximum cluster size
-maxClusterSize = min([max(clustHistoryMerged(:,2)) length(densityPerClust)]);
+maxClusterSize = min([max(clustHistoryMergedChange(:,2)) length(densityPerClust)]);
 rateOffPerClust = NaN(maxClusterSize,1);
 rateOnPerClust = NaN(maxClusterSize,1);
 numClustForRateCalc = [NaN(maxClusterSize,1) clustCount(1:maxClusterSize)];
@@ -95,9 +153,9 @@ for iSize = 2 : maxClusterSize
     %get lifetimes of clusters of current size, and whether they ended by
     %association or dissociation
     %only look at clusters with known start and end time
-    indxClust = find(clustHistoryMerged(:,2)==iSize&~isnan(clustHistoryMerged(:,5)));
-    clustLft = clustHistoryMerged(indxClust,5);%cluster life time
-    clustEndType = clustHistoryMerged(indxClust,7);
+    indxClust = find(clustHistoryMergedChange(:,2)==iSize&~isnan(clustHistoryMergedChange(:,5)));
+    clustLft = clustHistoryMergedChange(indxClust,5);%cluster life time
+    clustEndType = clustHistoryMergedChange(indxClust,7);
     
     %calculate dissociation rate
     numClusters = length(clustEndType);
