@@ -237,17 +237,17 @@ classdef BiosensorsPackage < Package
         
         function m = getDependencyMatrix(i,j)
             
-            m = [0 0 0 0 0 0 0 0 0 0 0; %1 DarkCurrentCorrectionProcess
-                2 0 0 0 0 0 0 0 0 0 0;  %2 ShadeCorrectionProcess
-                0 1 0 0 0 0 0 0 0 0 0;  %3 SegmentationProcess
-                0 0 1 0 0 0 0 0 0 0 0;  %4 BackgroundMasksProcess
-                0 0 1 0 0 0 0 0 0 0 0;  %5 MaskRefinementProcess
-                0 1 0 1 0 0 0 0 0 0 0;  %6 BackgroundSubtractionProcess
-                0 0 1 0 2 1 0 0 0 0 0;  %7 TransformationProcess
-                0 0 0 0 0 1 2 0 0 0 0;  %8 BleedthroughCorrectionProcessj
-                0 0 1 0 2 1 2 2 0 0 0;  %9 RatioProcess
-                0 0 0 0 0 0 0 0 1 0 0;  %10PhotobleachCorrectionProcess
-                0 0 0 0 0 0 0 0 1 2 0]; %11OutputRatioProcess
+            m = [0 0 0 0 0 0 0 0 0 0 0;  %1  DarkCurrentCorrectionProcess
+                 2 0 0 0 0 0 0 0 0 0 0;  %2  ShadeCorrectionProcess
+                 0 1 0 0 0 0 0 0 0 0 0;  %3  SegmentationProcess
+                 0 0 1 0 0 0 0 0 0 0 0;  %4  BackgroundMasksProcess
+                 0 0 1 0 0 0 0 0 0 0 0;  %5  MaskRefinementProcess
+                 0 1 0 1 0 0 0 0 0 0 0;  %6  BackgroundSubtractionProcess
+                 0 0 1 0 2 1 0 0 0 0 0;  %7  TransformationProcess
+                 0 0 0 0 0 1 2 0 0 0 0;  %8  BleedthroughCorrectionProcessj
+                 0 0 1 0 2 1 2 2 0 0 0;  %9  RatioProcess
+                 0 0 0 0 0 0 0 0 1 0 0;  %10 PhotobleachCorrectionProcess
+                 0 0 0 0 0 0 0 0 1 2 0]; %11 OutputRatioProcess
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
             m=m(i,j);

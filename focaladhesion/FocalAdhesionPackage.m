@@ -12,11 +12,11 @@ classdef FocalAdhesionPackage < Package
     %   misses very small/dim nascent adhesions) see
     %   FocalAdhesionSegmentationPackage 
     %               - Hunter
-    
     % Sebastien Besson, May 2011
+    % Updated by Andrew R. Jamieson Feb 2017 
     
     methods
-        function obj = FocalAdhesionPackage(owner,varargin)
+        function obj = FocalAdhesionPackage(owner, varargin)
             % Constructor of class FocalAdhesionPackage
             
             if nargin == 0
@@ -24,9 +24,9 @@ classdef FocalAdhesionPackage < Package
             else
                 % Check input
                 ip =inputParser;
-                ip.addRequired('owner',@(x) isa(x,'MovieData'));
-                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
-                ip.parse(owner,varargin{:});
+                ip.addRequired('owner', @(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir', owner.outputDirectory_, @ischar);
+                ip.parse(owner, varargin{:});
                 outputDir = ip.Results.outputDir;
 
                 % Owner: MovieData object
@@ -38,68 +38,70 @@ classdef FocalAdhesionPackage < Package
             obj = obj@Package(super_args{:});
         end
         
-        function [status processExceptions] = sanityCheck(obj,varargin) % throws Exception Cell Array
-            nProcesses = length(obj.getProcessClassNames);
+        function [status processExceptions] = sanityCheck(obj, varargin) % throws Exception Cell Array
+        %     nProcesses = length(obj.getProcessClassNames);
             
-            ip = inputParser;
-            ip.CaseSensitive = false;
-            ip.addRequired('obj');
-            ip.addOptional('full',true, @(x) islogical(x));
-            ip.addOptional('procID',1:nProcesses,@(x) (isvector(x) && ~any(x>nProcesses)) || strcmp(x,'all'));
-            ip.parse(obj,varargin{:});
-            full = ip.Results.full;
-            procID = ip.Results.procID;
-            if strcmp(procID,'all'), procID = 1:nProcesses;end
+        %     ip = inputParser;
+        %     ip.CaseSensitive = false;
+        %     ip.addRequired('obj');
+        %     ip.addOptional('full',true, @(x) islogical(x));
+        %     ip.addOptional('procID',1:nProcesses,@(x) (isvector(x) && ~any(x>nProcesses)) || strcmp(x,'all'));
+        %     ip.parse(obj,varargin{:});
+        %     full = ip.Results.full;
+        %     procID = ip.Results.procID;
+        %     if strcmp(procID,'all'), procID = 1:nProcesses;end
             
-            [status, processExceptions] = sanityCheck@Package(obj,full,procID);
+            %% TODO - Add Additional appropriate checks
+            [status, processExceptions] = sanityCheck@Package(obj, varargin{:});
             
-            if ~full, return; end
+        %     if ~full, return; end
             
-            validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
-            maskProc = obj.processes_{2};
-            detProc = obj.processes_{3};
-            trackProc = obj.processes_{4};
-            groupProc = obj.processes_{5};
+        %     validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
+        %     maskProc = obj.processes_{2};
+        %     detProc = obj.processes_{3};
+        %     trackProc = obj.processes_{4};
+        %     groupProc = obj.processes_{5};
             
-            % Set the MaskProcessIndex of the detection
-            if all(ismember([2 3], validProc))
-                maskProcIndex = maskProc.getIndex();
-                funParams.MaskProcessIndex = maskProcIndex;
-                funParams.MaskChannelIndex = maskProc.funParams_.ChannelIndex;
-                parseProcessParams(detProc, funParams);
-            end
+        %     % Set the MaskProcessIndex of the detection
+        %     if all(ismember([2 3], validProc))
+        %         maskProcIndex = maskProc.getIndex();
+        %         funParams.MaskProcessIndex = maskProcIndex;
+        %         funParams.MaskChannelIndex = maskProc.funParams_.ChannelIndex;
+        %         parseProcessParams(detProc, funParams);
+        %     end
             
-            % Set detection process index for tracking and track grouping
-            if ~isempty(detProc),
-                detProcIndex = detProc.getIndex();
-                funParams.DetProcessIndex = detProcIndex;
-                if ismember(4,validProc)
-                    parseProcessParams(trackProc, funParams);
-                end  
-                if ismember(5,validProc)
-                    parseProcessParams(groupProc, funParams);
-                end  
-            end
+        %     % Set detection process index for tracking and track grouping
+        %     if ~isempty(detProc),
+        %         detProcIndex = detProc.getIndex();
+        %         funParams.DetProcessIndex = detProcIndex;
+        %         if ismember(4,validProc)
+        %             parseProcessParams(trackProc, funParams);
+        %         end  
+        %         if ismember(5,validProc)
+        %             parseProcessParams(groupProc, funParams);
+        %         end  
+        %     end
             
-            % Set the tracking process index of the track grouping
-            if all(ismember([4 5], validProc))
-                trackProcIndex = trackProc.getIndex();
-                funParams.TrackProcessIndex = trackProcIndex;
-                parseProcessParams(groupProc, funParams);
-            end
-        end
+        %     % Set the tracking process index of the track grouping
+        %     if all(ismember([4 5], validProc))
+        %         trackProcIndex = trackProc.getIndex();
+        %         funParams.TrackProcessIndex = trackProcIndex;
+        %         parseProcessParams(groupProc, funParams);
+        %     end
+        % end
         
     end
     
     methods (Static)
         
         function m = getDependencyMatrix(i,j)
-            
-            m = [0 0 0 0 0;  %1 SignalPreprocessingProcess
-                1 0 0 0 0;
-                0 1 0 0 0;
-                0 0 1 0 0;
-                0 0 0 1 0;]; %2 SignalProcessingProcess
+            %    1 2 3 4 5 6          
+            m = [0 0 0 0 0 0;  %1 Thresholding [optional]
+                 2 0 0 0 0 0;  %2 Mask Refinement [optional]
+                 0 2 0 0 0 0;  %3 PointSourceProcess
+                 0 0 1 0 0 0;  %4 TrackingProcess
+                 0 0 1 1 0 0;  %5 FocalAdhesionSegmentationProcess
+                 0 0 0 1 1 0;];%6 AnalyzeAdhesionMaturationProcess
 
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
@@ -107,7 +109,7 @@ classdef FocalAdhesionPackage < Package
         end
         
         function name = getName()
-            name='Focal Adhesion';
+            name='New Focal Adhesion';
         end
         function varargout = GUI(varargin)
             % Start the package GUI
@@ -119,20 +121,22 @@ classdef FocalAdhesionPackage < Package
                 @MaskRefinementProcess,...                
                 @AnisoGaussianDetectionProcess,...
                 @(x,y)TrackingProcess(x,y,FocalAdhesionPackage.getDefaultTrackingParams(x,y)),...
+                @FocalAdhesionSegmentationProcess, ...
                 @TrackGroupingProcess};
             
             if nargin==0, index=1:numel(integratorProcConstr); end
             procConstr=integratorProcConstr(index);
         end
         function classes = getProcessClassNames(index)
-            integratorClasses = {
+            procContrs = {
                 'ThresholdProcess',...
                 'MaskRefinementProcess',...
-                'AnisoGaussianDetectionProcess',...
+                'AnisoGaussianDetectionProcess',... % Make a generic detectionprocess?
                 'TrackingProcess',...
-                'TrackGroupingProcess'};
-            if nargin==0, index=1:numel(integratorClasses); end
-            classes=integratorClasses(index);
+                'FocalAdhesionSegmentationProcess'
+                'AdhesionAnalysisProcess'};
+            if nargin==0, index=1:numel(procContrs); end
+            classes=procContrs(index);
         end
         function funParams = getDefaultTrackingParams(owner,outputDir)
             funParams = TrackingProcess.getDefaultParams(owner,outputDir);
