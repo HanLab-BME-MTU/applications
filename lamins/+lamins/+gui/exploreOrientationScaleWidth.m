@@ -43,7 +43,7 @@ fparams.color = [1 0 1];
 % Threshold for complete transparency
 fparams.thresh = 0.1;
 % Max alpha value. 1.0 = Opaque, 0.0 = Transparent
-fparams.alpha = 0.9;
+fparams.alpha = 0.5;
 
 % filtim = real(fftshift(fft2(real(orientationSpace.kernel(1/2/pi/2,1/2/pi/2,fparams.K,0,fparams.sz)))));
 % filtmask = mat2gray(abs(filtim));
