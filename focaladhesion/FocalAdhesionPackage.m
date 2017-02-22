@@ -133,13 +133,13 @@ classdef FocalAdhesionPackage < Package
         end        
 
         function m = getDependencyMatrix(i,j)
-            %    1 2 3 4 5 6          
+            %    1 2 3 4 5 6      {Processes}    
             m = [0 0 0 0 0 0;  %1 Thresholding [optional]
-                 2 0 0 0 0 0;  %2 Mask Refinement [optional]
+                 1 0 0 0 0 0;  %2 Mask Refinement [optional]
                  0 2 0 0 0 0;  %3 DetectionProcess
                  0 0 1 0 0 0;  %4 TrackingProcess
                  0 0 1 1 0 0;  %5 FocalAdhesionSegmentationProcess
-                 0 0 1 1 1 0;];%6 AnalyzeAdhesionMaturationProcess
+                 0 2 1 1 1 0;];%6 AnalyzeAdhesionMaturationProcess
 
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
@@ -160,7 +160,7 @@ classdef FocalAdhesionPackage < Package
         end
 
         function funParams = getDefaultDetectionParams(owner, outputDir)
-            % Input check
+
             funParams = PointSourceDetectionProcess.getDefaultParams(owner, outputDir);
             
             %% TODO - Verify ideal default settings here.
@@ -194,6 +194,7 @@ classdef FocalAdhesionPackage < Package
         end
 
         function funParams = getDefaultTrackingParams(owner,outputDir)
+
             funParams = TrackingProcess.getDefaultParams(owner,outputDir);
             
             % Set default gap closing parameters
@@ -219,26 +220,62 @@ classdef FocalAdhesionPackage < Package
         end
 
         function funParams = getDefaultFASegParams(owner, outputDir)
+
             funParams = FocalAdhesionSegmentationProcess.getDefaultParams(owner,outputDir);
+
             trackNAProc = owner.getProcess(owner.getProcessIndex('TrackingProcess'));
             detectedNAProc = owner.getProcess(owner.getProcessIndex('DetectionProcess'));
             
             %%TODO - Move to sanity check section
             assert(detectedNAProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');
             
+            %%TODO - Sangyoon suggests an automated selection of parameters
             funParams.ChannelIndex = trackNAProc.funParams_.ChannelIndex;
-            funParams.SteerableFilterSigma = 72; % in nm
-            funParams.OpeningRadiusXY = 0; % in nm
-            funParams.MinVolTime = 1; %um2*s
-            funParams.OpeningHeightT = 10; % sec
+            funParams.SteerableFilterSigma = 72; % %Sigma in nm of steerable filter to use in splitting adjacent adhesions
+            funParams.OpeningRadiusXY = 0; % %Spatial radius in nm of structuring element used in opening.
+            funParams.MinVolTime = 1; %um2*s Minimum spatiotemporal "Volume" in micron^2 * seconds of segmented adhesions to retain.
+            funParams.OpeningHeightT = 10; % Temporal "height" in seconds of structuring element used in opening            
         end
     
         function funParams = getDefaultAnalysisParams(owner, outputDir)
+
             funParams = AdhesionAnalysisProcess.getDefaultParams(owner, outputDir);
             
-            % Specify Channels where adhesions are segmented
-            FASegProc = owner.getProcess(owner.getProcessIndex('FocalAdhesionSegmentationProcess'));
-            funParams.iChan = FASegProc.funParams_.ChannelIndex;
+            iProcDetect = owner.getProcessIndex('DetectionProcess');
+            iProcTrack = owner.getProcessIndex('TrackingProcess');
+            trackNAProc = owner.getProcess(iProcTrack);
+            iProcFASeg = owner.getProcessIndex('FocalAdhesionSegmentationProcess');
+            FASegProc = owner.getProcess(iProcFASeg);
+            
+            % Specify Channels where adhesions are segmented (% Assume Pax Channel?_)
+            %%TODO - Move to sanity check section
+            assert(FASegProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');
+            funParams.ChannelIndex = FASegProc.funParams_.ChannelIndex;
+            
+            funParams.detectedNAProc = iProcDetect;
+            funParams.trackFAProc = iProcTrack;
+            funParams.FAsegProc = iProcFASeg;
+            
+            % Check if segmentation occured.
+            %% TODO -- Update 
+            iProc = owner.getProcessIndex('MaskRefinementProcess', 'askUser', false);
+            if isempty(iProc)
+                disp('Note: No Cell Segmentation Mask found');
+                funParams.ApplyCellSegMask = false;
+            else
+                funParams.SegCellMaskProc = iProc; % Specify Process Index with cell mask output
+            end
+            
+            funParams.showAllTracks = false;
+            funParams.plotEachTrack = false;
+            funParams.onlyEdge = false; 
+            funParams.saveAnalysis = true;
+            funParams.matchWithFA = true; 
+            funParams.minLifetime = 5; 
+            funParams.reTrack = true;
+            funParams.skipOnlyReading = false;
+            funParams.getEdgeRelatedFeatures = true;
+            
         end
 
     end

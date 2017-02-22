@@ -1,15 +1,24 @@
-function analyzeAdhesionMaturation(movieData)
+function analyzeAdhesionMaturation(MD)
 % function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity,focalAdhInfo] = analyzeAdhesionMaturation(pathForTheMovieDataFile, varargin)
 % [tracksNA,lifeTimeNA] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % filter out NA tracks, obtain life time of each NA tracks
 
-% input:    pathForTheMovieDataFile:    path to the movieData file (FA
-%                   segmentation and NA tracking package should be run beforehand)
-%           outputPath                  outputPath
-%           showAllTracks             true if you want to show all tracks
-%                                               for whole cell
-%           plotEachTrack              true if you want to plot each individual track
-%                                               with small roi
+% input:    pathForTheMovieDataFile:       path to the movieData file (FA
+%                   segmentation and NA    tracking package should be run beforehand)
+%           outputPath                      outputPath
+%           showAllTracks [fasle]          true if you want to show all tracks
+%                                          for whole cell
+%           plotEachTrack [fasle]          true if you want to plot each individual track
+%                                            with small roi 
+%           'onlyEdge' [false]              collect NA tracks that ever close to cell edge
+%           'saveAnalysis' [true] 
+%           'matchWithFA' [true]            For cells with only NAs, we turn this off.
+%           'getEdgeRelatedFeatures'[true]  For cells with only NAs, we turn this off.
+%           'reTrack' [true]     This is for 
+%           'minLifetime' [5]               For cells with only NAs, we turn this off.
+%           'iChan' [1]                        Channel with FA marker
+%            skipOnlyReading' [false]       For cells with only NAs, we turn this off.
+
 % output:   images will be stored in pathForTheMovieDataFile/trackFrames
 %           tracksNAfailing,          tracks of failing NAs that go on to turn-over
 %           tracksNAmaturing,          tracks of failing NAs that matures to FAs
@@ -28,25 +37,40 @@ function analyzeAdhesionMaturation(movieData)
 %           Out_of_Band,            Out of band from the cell edge
 
 % Sangyoon Han April 2014
-% Andrew R. Jamieson Feb. 2017 - Updating to incorporate into MovieData Process GUI
+% Andrew R. Jamieson Feb. 2017 - Updating to incorporate into MovieData Process GUI (Focal Adhesion Package)
 
 %% ------------------ Input ---------------- %%
 
 ip = inputParser;
-ip.addRequired('movieData', @(x)(isa(x,'MovieData')));
-ip.parse(movieData);
+ip.addRequired('MD', @(x)(isa(x,'MovieData')));
+ip.parse(MD);
 
 %Get the indices of any previous processe
-iProc = movieData.getProcessIndex('AdhesionAnalysisProcess', 1, 0);
+iProc = MD.getProcessIndex('AdhesionAnalysisProcess', 1, 0);
 
 %If the process doesn't exist, create it
 if isempty(iProc)
     error('No AdhesionAnalysisProcess in input movieData! please create the process and use the process.run method to run this function!')
 end
 
-adAnalProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
+adAnalProc = MD.processes_{iProc};
 p = parseProcessParams(adAnalProc);
+
+%% --------------- Parameters ---------- %%
+
+outputPath = p.outputPath;
+saveAnalysis = p.saveAnalysis;
+matchWithFA = p.matchWithFA;
+minLifetime = p.minLifetime;
+showAllTracks = p.showAllTracks;
+plotEachTrack = p.plotEachTrack;
+onlyEdge = p.onlyEdge;
+reTrack = p.reTrack;
+skipOnlyReading = p.skipOnlyReading;
+getEdgeRelatedFeatures = p.getEdgeRelatedFeatures;
+iChan = p.iChan;
+ApplyCellSegMask = p.ApplyCellSegMask;
 
 %% ------------------ Config Output  ---------------- %%
 % % Set up the input file (should be from segAdProc)
@@ -67,110 +91,16 @@ p = parseProcessParams(adAnalProc);
 
 
 
-%% ------------------ Input ---------------- %%
-
-%% Inputs
-% ip =inputParser;
-% ip.addRequired('pathForTheMovieDataFile',@(x)ischar(x)||isa(x,'MovieData'))
-% ip.addOptional('showAllTracks',false,@(x)islogical(x)||isempty(x))
-% ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
-% ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
-% ip.addParamValue('outputPath','AdhesionTracking',@ischar)
-% ip.addParamValue('saveAnalysis',true,@islogical)
-% ip.addParamValue('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
-% ip.addParamValue('getEdgeRelatedFeatures',true,@islogical) %For cells with only NAs, we turn this off.
-% ip.addParamValue('reTrack',true,@islogical) % This is for 
-% ip.addParamValue('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
-% ip.addParamValue('iChan',0,@isscalar) %For cells with only NAs, we turn this off.
-% ip.addParamValue('skipOnlyReading',false,@islogical) %For cells with only NAs, we turn this off.
-
-
-
-
-outputPath = ip.Results.outputPath;
-saveAnalysis = ip.Results.saveAnalysis;
-matchWithFA = ip.Results.matchWithFA;
-minLifetime = ip.Results.minLifetime;
-% showAllTracks=ip.Results.showAllTracks;
-% plotEachTrack=ip.Results.plotEachTrack;
-
-onlyEdge = ip.Results.onlyEdge;
-reTrack = ip.Results.reTrack;
-skipOnlyReading = ip.Results.skipOnlyReading;
-getEdgeRelatedFeatures = ip.Results.getEdgeRelatedFeatures;
-iChan = ip.Results.iChan;
-% Load the Paxillin channel
-
-%% Data Set up
-% Load the MovieData
-% Load the MovieData
-if isa(pathForTheMovieDataFile, 'MovieData')
-    MD = pathForTheMovieDataFile;
-else
-    movieDataPath = [pathForTheMovieDataFile filesep 'movieData.mat'];
-%     movieData = MovieData.load(movieDataPath,false);
-    try
-        MD = MovieData.load(movieDataPath);
-    catch
-        [~,lastFolder]=fileparts(pathForTheMovieDataFile);
-        movieDataPath = [pathForTheMovieDataFile filesep lastFolder '.mat'];
-        MD = MovieData.load(movieDataPath);
-    end
-end
-% movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
 % Get whole frame number
 nFrames = MD.nFrames_;
 
 maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
-trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
 detectedNAProc = MD.getProcess(MD.getProcessIndex('DetectionProcess'));
-
-
-% Get adhesion channel
-% iPaxChannel = 1; % this should be intentionally done in the analysis level
-% if ~trackNAProc.checkChannelOutput(iPaxChannel)
-%     iPaxChannel = 2;
-% end
-
-iPaxChannel = p.ChannelIndex;
-
-% Get FA segmentation package
+trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
 FASegProc = MD.getProcess(MD.getProcessIndex('FocalAdhesionSegmentationProcess'));
 
-% ?catch
-    % MD.addPackage(FocalAdhesionSegmentationPackage(MD));
-    % iPack =  MD.getPackageIndex('FocalAdhesionSegmentationPackage');
-    % FASegPackage = MD.getPackage(iPack);
-    % FASegPackage.createDefaultProcess(iFASeg)
-    % FASegProc = FASegPackage.processes_{iFASeg};
-    % params = FASegProc.funParams_;
-    % params.ChannelIndex = iPaxChannel; %paxillin
-    % params.SteerableFilterSigma = 72; % in nm
-    % params.OpeningRadiusXY = 0; % in nm
-    % params.MinVolTime = 1; %um2*s
-    % params.OpeningHeightT = 10; % sec
-    % FASegProc.setPara(params);
-    % FASegProc.run();
-    % MD.save;
-%     iFASegPackage = iPack;
-% end
-% if isempty(FASegProc)
-%     FASegPackage.createDefaultProcess(iFASeg)
-%     FASegProc = FASegPackage.processes_{iFASeg};
-% end
-
-% if ~FASegProc.success_
-%     params = FASegProc.funParams_;
-%     params.ChannelIndex = iPaxChannel; %paxillin
-%     params.SteerableFilterSigma = 72; % in nm
-%     params.OpeningRadiusXY = 0; % in nm
-%     params.MinVolTime = 1; %um2*s
-%     params.OpeningHeightT = 10; % sec
-%     FASegProc.setPara(params);
-%     FASegProc.run();
-%     MD.save;
-% end
-
+%% TODO - Check with Sanity
+iPaxChannel = p.ChannelIndex;
 
 
 % Set up the output file path
@@ -197,7 +127,6 @@ else
         newOutputFilePath=outputFilePath;
     end
 end
-
 
 
 
@@ -250,10 +179,7 @@ if ~foundTracks
 
     % Finding which channel has a cell mask information
 
-    
 
-    existSegmentation=true;
-    %% TODO - move to sanity check in Process.
     try
         maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
         if iChan == 0 %This means the channel with existing mask will be automatically selected
@@ -265,7 +191,7 @@ if ~foundTracks
         end
     catch
         disp('You do not have segmentation package run. Using entire field ...')
-        existSegmentation= false;
+        ApplyCellSegMask= false;
         iChan = iPaxChannel;
     end
     
@@ -298,7 +224,7 @@ if ~foundTracks
     else
         disp('Entire adhesion tracks are considered.')
         trackIdx = true(numel(tracksNA),1);
-        if existSegmentation
+        if ApplyCellSegMask
             mask = maskProc.loadChannelOutput(iChan,1);
         else
             mask = true(MD.imSize_);
@@ -307,7 +233,7 @@ if ~foundTracks
     %     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            if existSegmentation
+            if ApplyCellSegMask
                 mask = maskProc.loadChannelOutput(iChan,ii);
             else
                 mask = true(MD.imSize_);
@@ -396,7 +322,7 @@ if ~foundTracks
     %     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            if existSegmentation
+            if ApplyCellSegMask
                 mask = maskProc.loadChannelOutput(iChan,ii);
             else
                 mask = true(MD.imSize_);
@@ -437,7 +363,7 @@ else
     focalAdhInfo = focalAdhInfo.focalAdhInfo;
     toc
     disp('Reading masks ...'); tic
-    existSegmentation=true;
+    ApplyCellSegMask=true;
     try
         maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
         if iChan == 0 %This means the channel with existing mask will be automatically selected
@@ -449,10 +375,10 @@ else
         end
     catch
         disp('You do not have segmentation package run. Using entire field ...')
-        existSegmentation= false;
+        ApplyCellSegMask= false;
         iChan = iPaxChannel;
     end
-    if existSegmentation
+    if ApplyCellSegMask
         firstMask=maskProc.loadChannelOutput(iChan,1);
     else
         firstMask=true(MD.imSize_);
@@ -464,7 +390,7 @@ else
     neighPix = 2;
     for ii=1:nFrames
         % Cell Boundary Mask 
-        if existSegmentation
+        if ApplyCellSegMask
             mask = maskProc.loadChannelOutput(iChan,ii);
             if ii>1 && max(mask(:))==0
                 mask=prevMask;
@@ -482,7 +408,7 @@ else
 end    
 %% Matching with adhesion setup
 if ~foundTracks || skipOnlyReading
-    if existSegmentation
+    if ApplyCellSegMask
         firstMask=maskProc.loadChannelOutput(iChan,1);
     else
         firstMask=true(MD.imSize_);
@@ -502,7 +428,7 @@ if ~foundTracks || skipOnlyReading
     neighPix = 2;
     for ii=1:nFrames
         % Cell Boundary Mask 
-        if existSegmentation
+        if ApplyCellSegMask
             mask = maskProc.loadChannelOutput(iChan,ii);
             if ii>1 && max(mask(:))==0
                 mask=prevMask;
@@ -976,51 +902,6 @@ for k=1:numTracks
         % Get the maximum of them. 
         tracksNA(k).maxAdvanceDistChange = max(tracksNA(k).advanceDistChange2min(sF:eF-1));
         tracksNA(k).maxEdgeAdvanceDistChange = max(tracksNA(k).edgeAdvanceDistChange2min(sF:eF-1));
-    %     lastBdPoint = [tracksNA(k).closestBdPoint(eF,1) tracksNA(k).closestBdPoint(eF,2)];
-    %     lastBdPointProjected = projPointOnLine(lastBdPoint, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
-    %     
-    %     fromFirstBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-firstBdPointProjected(1), tracksNA(k).yCoord(sF)-firstBdPointProjected(2)]; % a vector from the first edge point to the first track point
-    %     fromFirstBdPointToLastAdh = [tracksNA(k).xCoord(eF)-firstBdPointProjected(1), tracksNA(k).yCoord(eF)-firstBdPointProjected(2)]; % a vector from the first edge point to the last track point
-    %     fromLastBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-lastBdPointProjected(1), tracksNA(k).yCoord(sF)-lastBdPointProjected(2)]; % a vector from the last edge point to the first track point
-    %     fromLastBdPointToLastAdh = [tracksNA(k).xCoord(eF)-lastBdPointProjected(1), tracksNA(k).yCoord(eF)-lastBdPointProjected(2)]; % a vector from the last edge point to the last track point
-    %     firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
-    %     lastBDproduct=fromLastBdPointToFirstAdh*fromLastBdPointToLastAdh';
-    %     if firstBDproduct>0 && firstBDproduct>lastBDproduct% both adhesion points are in the same side
-    %         tracksNA(k).advanceDist = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
-    %                                                         (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-    %         tracksNA(k).edgeAdvanceDist = (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5 - ...
-    %                                                         (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-    %     else
-    %         if lastBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
-    %             tracksNA(k).advanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
-    %                                                             (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5; % in pixel
-    %             tracksNA(k).edgeAdvanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
-    %                                                             (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
-    %             % this code is nice to check:
-    % %             figure, imshow(paxImgStack(:,:,tracksNA(k).endingFrame),[]), hold on, plot(tracksNA(k).xCoord,tracksNA(k).yCoord,'w'), plot(tracksNA(k).closestBdPoint(:,1),tracksNA(k).closestBdPoint(:,2),'r')
-    % %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
-    % %             plot(tracksNA(k).xCoord(tracksNA(k).startingFrame),tracksNA(k).yCoord(tracksNA(k).startingFrame),'yo'),plot(tracksNA(k).xCoord(tracksNA(k).endingFrame),tracksNA(k).yCoord(tracksNA(k).endingFrame),'mo')
-    %         else
-    % %             disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
-    %             fromFirstBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(sF,2)];
-    %             fromFirstBdPointToLastAdh = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(sF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(sF,2)];
-    %             fromLastBdPointToFirstAdh = [tracksNA(k).xCoord(sF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(sF)-tracksNA(k).closestBdPoint(eF,2)];
-    %             fromLastBdPointToLastAdh = [tracksNA(k).xCoord(eF)-tracksNA(k).closestBdPoint(eF,1), tracksNA(k).yCoord(eF)-tracksNA(k).closestBdPoint(eF,2)];
-    %             firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
-    %             lastBDproduct=fromLastBdPointToFirstAdh*fromLastBdPointToLastAdh';
-    %             if firstBDproduct>lastBDproduct
-    %                 tracksNA(k).advanceDist = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
-    %                                                                 (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-    %                 tracksNA(k).edgeAdvanceDist = (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5 - ...
-    %                                                                 (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-    %             else
-    %                 tracksNA(k).advanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
-    %                                                                 (fromLastBdPointToLastAdh(1)^2 + fromLastBdPointToLastAdh(2)^2)^0.5; % in pixel
-    %                 tracksNA(k).edgeAdvanceDist = (fromLastBdPointToFirstAdh(1)^2 + fromLastBdPointToFirstAdh(2)^2)^0.5 - ...
-    %                                                                 (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
-    %             end
-    %         end
-    %     end
     end
     %Mean Squared Displacement
     meanX = mean(tracksNA(k).xCoord(logical(tracksNA(k).presence)));
@@ -1352,6 +1233,7 @@ if plotEachTrack
 end
 
 end
+
 function newTracks = formatTracks(tracks,detectedNAs,nFrames)
 % Format tracks structure into tracks with every frame
 
@@ -1420,8 +1302,6 @@ for i = 1:numel(tracks)
 %                              (either because those frames are before the
 %                              segment starts or after it ends, or because
 %                              of losing parts of a segment.
-%                 newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-%                 newTracks(i).sigma(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).sigmaX(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
                 newTracks(i).bkgAmp(jj) = detectedNAs(jj).bkg(tracks(i).tracksFeatIndxCG(jj-tracks(i).seqOfEvents(1,1)+1));
                 newTracks(i).sigma(jj) = detectedNAs(jj).sigmaX(tracks(i).tracksFeatIndxCG(jj-tracks(i).seqOfEvents(1,1)+1));
             end
@@ -1465,157 +1345,9 @@ for i = 1:numel(tracks)
             jj=jj+gap;
         end
     end
-%     end
-%         if j<nFrames-9 && sum(newTracks(i).presence(j:j+9))==10 ...
-%                 && sum(isnan(newTracks(i).xCoord(j:j+9)))==10 
-%             gap = 10;
-%             for kk=1:gap
-%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
-%             end
-%         elseif j<nFrames-8 && sum(newTracks(i).presence(j:j+8))==9 ...
-%                 && sum(isnan(newTracks(i).xCoord(j:j+8)))==9 
-%             gap = 9;
-%             for kk=1:gap
-%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
-%             end
-%         elseif j<nFrames-7 && sum(newTracks(i).presence(j:j+7))==8 ...
-%                 && sum(isnan(newTracks(i).xCoord(j:j+7)))==8 
-%             gap = 8;
-%             for kk=1:gap
-%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
-%            end
-%         elseif j<nFrames-6 && sum(newTracks(i).presence(j:j+6))==7 ...
-%                 && sum(isnan(newTracks(i).xCoord(j:j+6)))==7 
-%             gap = 7;
-%             for kk=1:gap
-%                 newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
-%                 newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
-%                 newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
-%                 newTracks(i).bkgAmp(j+kk-1) = ((gap+1-kk)*newTracks(i).bkgAmp(j-1)+kk*newTracks(i).bkgAmp(j+gap))/(gap+1);
-%             end
-%         elseif j<nFrames-5 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-%                && newTracks(i).presence(j+4) && newTracks(i).presence(j+5) && isnan(newTracks(i).xCoord(j)) ...
-%                && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))...
-%                && isnan(newTracks(i).xCoord(j+4)) && isnan(newTracks(i).xCoord(j+5))
-%             newTracks(i).xCoord(j) = (6*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+6))/7;
-%             newTracks(i).yCoord(j) = (6*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+6))/7;
-%             newTracks(i).amp(j) = (6*newTracks(i).amp(j-1)+newTracks(i).amp(j+6))/7;
-%             newTracks(i).bkgAmp(j) = (6*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+6))/7;
-%             newTracks(i).xCoord(j+1) = (5*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+6))/7;
-%             newTracks(i).yCoord(j+1) = (5*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+6))/7;
-%             newTracks(i).amp(j+1) = (5*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+6))/7;
-%             newTracks(i).bkgAmp(j+1) = (5*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+6))/7;
-%             newTracks(i).xCoord(j+2) = (4*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+6))/7;
-%             newTracks(i).yCoord(j+2) = (4*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+6))/7;
-%             newTracks(i).amp(j+2) = (4*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+6))/7;
-%             newTracks(i).bkgAmp(j+2) = (4*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+6))/7;
-%             newTracks(i).xCoord(j+3) = (3*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+6))/7;
-%             newTracks(i).yCoord(j+3) = (3*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+6))/7;
-%             newTracks(i).amp(j+3) = (3*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+6))/7;
-%             newTracks(i).bkgAmp(j+3) = (3*newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+6))/7;
-%             newTracks(i).xCoord(j+4) = (2*newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+6))/7;
-%             newTracks(i).yCoord(j+4) = (2*newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+6))/7;
-%             newTracks(i).amp(j+4) = (2*newTracks(i).amp(j-1)+5*newTracks(i).amp(j+6))/7;
-%             newTracks(i).bkgAmp(j+4) = (2*newTracks(i).bkgAmp(j-1)+5*newTracks(i).bkgAmp(j+6))/7;
-%             newTracks(i).xCoord(j+5) = (newTracks(i).xCoord(j-1)+6*newTracks(i).xCoord(j+6))/7;
-%             newTracks(i).yCoord(j+5) = (newTracks(i).yCoord(j-1)+6*newTracks(i).yCoord(j+6))/7;
-%             newTracks(i).amp(j+5) = (newTracks(i).amp(j-1)+6*newTracks(i).amp(j+6))/7;
-%             newTracks(i).bkgAmp(j+5) = (newTracks(i).bkgAmp(j-1)+6*newTracks(i).bkgAmp(j+6))/7;
-%         elseif j<nFrames-4 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-%                 && newTracks(i).presence(j+4) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) ...
-%                 && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3)) && isnan(newTracks(i).xCoord(j+4))
-%             newTracks(i).xCoord(j) = (5*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+5))/6;
-%             newTracks(i).yCoord(j) = (5*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+5))/6;
-%             newTracks(i).amp(j) = (5*newTracks(i).amp(j-1)+newTracks(i).amp(j+5))/6;
-%             newTracks(i).bkgAmp(j) = (5*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+5))/6;
-%             newTracks(i).xCoord(j+1) = (4*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+5))/6;
-%             newTracks(i).yCoord(j+1) = (4*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+5))/6;
-%             newTracks(i).amp(j+1) = (4*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+5))/6;
-%             newTracks(i).bkgAmp(j+1) = (4*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+5))/6;
-%             newTracks(i).xCoord(j+2) = (3*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+5))/6;
-%             newTracks(i).yCoord(j+2) = (3*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+5))/6;
-%             newTracks(i).amp(j+2) = (3*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+5))/6;
-%             newTracks(i).bkgAmp(j+2) = (3*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+5))/6;
-%             newTracks(i).xCoord(j+3) = (2*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+5))/6;
-%             newTracks(i).yCoord(j+3) = (2*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+5))/6;
-%             newTracks(i).amp(j+3) = (2*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+5))/6;
-%             newTracks(i).bkgAmp(j+3) = (2*newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+5))/6;
-%             newTracks(i).xCoord(j+4) = (newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+5))/6;
-%             newTracks(i).yCoord(j+4) = (newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+5))/6;
-%             newTracks(i).amp(j+4) = (newTracks(i).amp(j-1)+5*newTracks(i).amp(j+5))/6;
-%             newTracks(i).bkgAmp(j+4) = (newTracks(i).bkgAmp(j-1)+5*newTracks(i).bkgAmp(j+5))/6;
-%         elseif j<nFrames-3 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
-%                 && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))
-%             newTracks(i).xCoord(j) = (4*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+4))/5;
-%             newTracks(i).yCoord(j) = (4*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+4))/5;
-%             newTracks(i).amp(j) = (4*newTracks(i).amp(j-1)+newTracks(i).amp(j+4))/5;
-%             newTracks(i).bkgAmp(j) = (4*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+4))/5;
-%             newTracks(i).xCoord(j+1) = (3*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+4))/5;
-%             newTracks(i).yCoord(j+1) = (3*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+4))/5;
-%             newTracks(i).amp(j+1) = (3*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+4))/5;
-%             newTracks(i).bkgAmp(j+1) = (3*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+4))/5;
-%             newTracks(i).xCoord(j+2) = (2*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+4))/5;
-%             newTracks(i).yCoord(j+2) = (2*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+4))/5;
-%             newTracks(i).amp(j+2) = (2*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+4))/5;
-%             newTracks(i).bkgAmp(j+2) = (2*newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+4))/5;
-%             newTracks(i).xCoord(j+3) = (newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+4))/5;
-%             newTracks(i).yCoord(j+3) = (newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+4))/5;
-%             newTracks(i).amp(j+3) = (newTracks(i).amp(j-1)+4*newTracks(i).amp(j+4))/5;
-%             newTracks(i).bkgAmp(j+3) = (newTracks(i).bkgAmp(j-1)+4*newTracks(i).bkgAmp(j+4))/5;
-%         elseif j<nFrames-2 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) ...
-%                 && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2))
-%             newTracks(i).xCoord(j) = (3*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+3))/4;
-%             newTracks(i).yCoord(j) = (3*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+3))/4;
-%             newTracks(i).amp(j) = (3*newTracks(i).amp(j-1)+newTracks(i).amp(j+3))/4;
-%             newTracks(i).bkgAmp(j) = (3*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+3))/4;
-%             newTracks(i).xCoord(j+1) = (2*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+3))/4;
-%             newTracks(i).yCoord(j+1) = (2*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+3))/4;
-%             newTracks(i).amp(j+1) = (2*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+3))/4;
-%             newTracks(i).bkgAmp(j+1) = (2*newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+3))/4;
-%             newTracks(i).xCoord(j+2) = (newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+3))/4;
-%             newTracks(i).yCoord(j+2) = (newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+3))/4;
-%             newTracks(i).amp(j+2) = (newTracks(i).amp(j-1)+3*newTracks(i).amp(j+3))/4;
-%             newTracks(i).bkgAmp(j+2) = (newTracks(i).bkgAmp(j-1)+3*newTracks(i).bkgAmp(j+3))/4;
-%         elseif j<nFrames-1 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1))
-%             newTracks(i).xCoord(j) = (2*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+2))/3;
-%             newTracks(i).yCoord(j) = (2*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+2))/3;
-%             newTracks(i).amp(j) = (2*newTracks(i).amp(j-1)+newTracks(i).amp(j+2))/3;
-%             newTracks(i).bkgAmp(j) = (2*newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+2))/3;
-%             newTracks(i).xCoord(j+1) = (newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+2))/3;
-%             newTracks(i).yCoord(j+1) = (newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+2))/3;
-%             newTracks(i).amp(j+1) = (newTracks(i).amp(j-1)+2*newTracks(i).amp(j+2))/3;
-%             newTracks(i).bkgAmp(j+1) = (newTracks(i).bkgAmp(j-1)+2*newTracks(i).bkgAmp(j+2))/3;
-%         elseif newTracks(i).presence(j) && isnan(newTracks(i).xCoord(j))
-%             newTracks(i).xCoord(j) = (newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+1))/2;
-%             newTracks(i).yCoord(j) = (newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+1))/2;
-%             newTracks(i).amp(j) = (newTracks(i).amp(j-1)+newTracks(i).amp(j+1))/2;
-%             newTracks(i).bkgAmp(j) = (newTracks(i).bkgAmp(j-1)+newTracks(i).bkgAmp(j+1))/2;
-%         end
-%     end
+
     if isempty(newTracks(i).startingFrame)
         warning(['startingFrame is empty for track #' num2str(i)])
     end
 end
 end
-
-% function pstruct_NAwithForce = findMagCurvature(tsMap,pstruct_NA,neighD)
-%     nPoints = length(pstruct_NA.x);
-%     pstruct_NAwithForce = pstruct_NA;
-%     laplacian = [.5 1 .5; 1 -6 1; .5 1 .5];
-%     for jj=1:nPoints
-%         rowRange = round(pstruct_NA.y(jj))-neighD:round(pstruct_NA.y(jj))+neighD;
-%         colRange = round(pstruct_NA.x(jj))-neighD:round(pstruct_NA.x(jj))+neighD;
-%         pstruct_NAwithForce.fmag(jj) = max(max(tsMap(rowRange,colRange))); %force magnitude
-%         pstruct_NAwithForce.fcurvature(jj) = sum(sum(tsMap(round(pstruct_NA.y(jj))-1:round(pstruct_NA.y(jj))+1,round(pstruct_NA.x(jj))-1:round(pstruct_NA.x(jj))+1)...
-%                                                                             .* laplacian)); %force curvature
-%     end
-% end
