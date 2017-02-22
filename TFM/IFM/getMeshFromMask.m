@@ -265,7 +265,11 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind,hFig] = getM
     %% mesh
     [msh.p,msh.e,msh.t]=initmesh(dl,'hmax',1.4*meanMinDist,'Hgrad',1.5); 
     if showFig
-        iActinChannel = 3;
+        flowProc = movieData.processes_{movieData.getProcessIndex('FlowTrackingProcess')};
+        iActinChannel = find(flowProc.checkChannelOutput);
+        if length(iActinChannel)>1
+            iActinChannel = iActinChannel(1);
+        end
         curActin = movieData.getChannel(iActinChannel).loadImage(jj);
         hFig = figure; imshow(curActin,[])
         hold on
