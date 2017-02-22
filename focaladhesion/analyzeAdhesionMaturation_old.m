@@ -1,5 +1,4 @@
-function analyzeAdhesionMaturation(movieData)
-% function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity,focalAdhInfo] = analyzeAdhesionMaturation(pathForTheMovieDataFile, varargin)
+function [trNAonly,indFail,indMature,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity,focalAdhInfo] = analyzeAdhesionMaturation(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin)
 % [tracksNA,lifeTimeNA] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % filter out NA tracks, obtain life time of each NA tracks
 
@@ -28,77 +27,35 @@ function analyzeAdhesionMaturation(movieData)
 %           Out_of_Band,            Out of band from the cell edge
 
 % Sangyoon Han April 2014
-% Andrew R. Jamieson Feb. 2017 - Updating to incorporate into MovieData Process GUI
-
-%% ------------------ Input ---------------- %%
-
-ip = inputParser;
-ip.addRequired('movieData', @(x)(isa(x,'MovieData')));
-ip.parse(movieData);
-
-%Get the indices of any previous processe
-iProc = movieData.getProcessIndex('AdhesionAnalysisProcess', 1, 0);
-
-%If the process doesn't exist, create it
-if isempty(iProc)
-    error('No AdhesionAnalysisProcess in input movieData! please create the process and use the process.run method to run this function!')
-end
-
-adAnalProc = movieData.processes_{iProc};
-%Parse input, store in parameter structure
-p = parseProcessParams(adAnalProc);
-
-%% ------------------ Config Output  ---------------- %%
-% % Set up the input file (should be from segAdProc)
-% inFilePaths{1} = displFieldProc.outFilePaths_{1};
-% forceFieldProc.setInFilePaths(inFilePaths);
-
-% % Set up the output file
-% outFilePaths = cell(2, numel(movieData.channels_));
-% for i = p.ChannelIndex
-%     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
-%     outFilePaths{2,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.txt'];
-%     outFilePaths{3,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_stats.txt'];
-%     outFilePaths{4,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_histograms'];
-% end
-% if isdir(p.OutputDirectory), rmdir(p.OutputDirectory, 's'); end
-% mkdir(p.OutputDirectory);
-% postProc.setOutFilePaths(outFilePaths);
-
-
-
-%% ------------------ Input ---------------- %%
 
 %% Inputs
-% ip =inputParser;
-% ip.addRequired('pathForTheMovieDataFile',@(x)ischar(x)||isa(x,'MovieData'))
-% ip.addOptional('showAllTracks',false,@(x)islogical(x)||isempty(x))
-% ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
-% ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
-% ip.addParamValue('outputPath','AdhesionTracking',@ischar)
-% ip.addParamValue('saveAnalysis',true,@islogical)
-% ip.addParamValue('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
-% ip.addParamValue('getEdgeRelatedFeatures',true,@islogical) %For cells with only NAs, we turn this off.
-% ip.addParamValue('reTrack',true,@islogical) % This is for 
-% ip.addParamValue('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
-% ip.addParamValue('iChan',0,@isscalar) %For cells with only NAs, we turn this off.
-% ip.addParamValue('skipOnlyReading',false,@islogical) %For cells with only NAs, we turn this off.
+ip =inputParser;
+ip.addRequired('pathForTheMovieDataFile',@(x)ischar(x)||isa(x,'MovieData'))
+ip.addOptional('showAllTracks',false,@(x)islogical(x)||isempty(x))
+ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
+ip.addParamValue('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
+ip.addParamValue('outputPath','AdhesionTracking',@ischar)
+ip.addParamValue('saveAnalysis',true,@islogical)
+ip.addParamValue('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
+ip.addParamValue('getEdgeRelatedFeatures',true,@islogical) %For cells with only NAs, we turn this off.
+ip.addParamValue('reTrack',true,@islogical) % This is for 
+ip.addParamValue('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
+ip.addParamValue('iChan',0,@isscalar) %For cells with only NAs, we turn this off.
+ip.addParamValue('skipOnlyReading',false,@islogical) %For cells with only NAs, we turn this off.
 
-
-
-
-outputPath = ip.Results.outputPath;
-saveAnalysis = ip.Results.saveAnalysis;
-matchWithFA = ip.Results.matchWithFA;
-minLifetime = ip.Results.minLifetime;
+% ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
+ip.parse(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin{:});
+outputPath=ip.Results.outputPath;
+saveAnalysis=ip.Results.saveAnalysis;
+matchWithFA=ip.Results.matchWithFA;
+minLifetime=ip.Results.minLifetime;
 % showAllTracks=ip.Results.showAllTracks;
 % plotEachTrack=ip.Results.plotEachTrack;
-
-onlyEdge = ip.Results.onlyEdge;
-reTrack = ip.Results.reTrack;
-skipOnlyReading = ip.Results.skipOnlyReading;
-getEdgeRelatedFeatures = ip.Results.getEdgeRelatedFeatures;
-iChan = ip.Results.iChan;
+onlyEdge=ip.Results.onlyEdge;
+reTrack=ip.Results.reTrack;
+skipOnlyReading=ip.Results.skipOnlyReading;
+getEdgeRelatedFeatures=ip.Results.getEdgeRelatedFeatures;
+iChan=ip.Results.iChan;
 % Load the Paxillin channel
 
 %% Data Set up
@@ -120,58 +77,61 @@ end
 % movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
 % Get whole frame number
 nFrames = MD.nFrames_;
-
-maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
-trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
-detectedNAProc = MD.getProcess(MD.getProcessIndex('DetectionProcess'));
-
-
+% Get U-Track package (actually NA package)
+try
+    NAPackage = MD.getPackage(MD.getPackageIndex('UTrackPackage'));
+    % Load tracks
+    iTracking = 2;
+    trackNAProc = NAPackage.processes_{iTracking};
+    detectedNAProc = NAPackage.processes_{1};
+catch % this is to account for the analysis that is done in the old version of colocalizationAdhesionWithTFM
+    trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
+    detectedNAProc = MD.getProcess(MD.getProcessIndex('DetectionProcess'));
+end
 % Get adhesion channel
-% iPaxChannel = 1; % this should be intentionally done in the analysis level
-% if ~trackNAProc.checkChannelOutput(iPaxChannel)
-%     iPaxChannel = 2;
-% end
-
-iPaxChannel = p.ChannelIndex;
+iPaxChannel = 1; % this should be intentionally done in the analysis level
+if ~trackNAProc.checkChannelOutput(iPaxChannel)
+    iPaxChannel = 2;
+end
 
 % Get FA segmentation package
-FASegProc = MD.getProcess(MD.getProcessIndex('FocalAdhesionSegmentationProcess'));
-
-% ?catch
-    % MD.addPackage(FocalAdhesionSegmentationPackage(MD));
-    % iPack =  MD.getPackageIndex('FocalAdhesionSegmentationPackage');
-    % FASegPackage = MD.getPackage(iPack);
-    % FASegPackage.createDefaultProcess(iFASeg)
-    % FASegProc = FASegPackage.processes_{iFASeg};
-    % params = FASegProc.funParams_;
-    % params.ChannelIndex = iPaxChannel; %paxillin
-    % params.SteerableFilterSigma = 72; % in nm
-    % params.OpeningRadiusXY = 0; % in nm
-    % params.MinVolTime = 1; %um2*s
-    % params.OpeningHeightT = 10; % sec
-    % FASegProc.setPara(params);
-    % FASegProc.run();
-    % MD.save;
+iFASeg = 6;
+try
+    FASegPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionSegmentationPackage'));
+    FASegProc = FASegPackage.processes_{iFASeg};
+catch
+    MD.addPackage(FocalAdhesionSegmentationPackage(MD));
+    iPack =  MD.getPackageIndex('FocalAdhesionSegmentationPackage');
+    FASegPackage = MD.getPackage(iPack);
+    FASegPackage.createDefaultProcess(iFASeg)
+    FASegProc = FASegPackage.processes_{iFASeg};
+    params = FASegProc.funParams_;
+    params.ChannelIndex = iPaxChannel; %paxillin
+    params.SteerableFilterSigma = 72; % in nm
+    params.OpeningRadiusXY = 0; % in nm
+    params.MinVolTime = 1; %um2*s
+    params.OpeningHeightT = 10; % sec
+    FASegProc.setPara(params);
+    FASegProc.run();
+    MD.save;
 %     iFASegPackage = iPack;
-% end
-% if isempty(FASegProc)
-%     FASegPackage.createDefaultProcess(iFASeg)
-%     FASegProc = FASegPackage.processes_{iFASeg};
-% end
+end
+if isempty(FASegProc)
+    FASegPackage.createDefaultProcess(iFASeg)
+    FASegProc = FASegPackage.processes_{iFASeg};
+end
 
-% if ~FASegProc.success_
-%     params = FASegProc.funParams_;
-%     params.ChannelIndex = iPaxChannel; %paxillin
-%     params.SteerableFilterSigma = 72; % in nm
-%     params.OpeningRadiusXY = 0; % in nm
-%     params.MinVolTime = 1; %um2*s
-%     params.OpeningHeightT = 10; % sec
-%     FASegProc.setPara(params);
-%     FASegProc.run();
-%     MD.save;
-% end
-
-
+if ~FASegProc.success_
+    params = FASegProc.funParams_;
+    params.ChannelIndex = iPaxChannel; %paxillin
+    params.SteerableFilterSigma = 72; % in nm
+    params.OpeningRadiusXY = 0; % in nm
+    params.MinVolTime = 1; %um2*s
+    params.OpeningHeightT = 10; % sec
+    FASegProc.setPara(params);
+    FASegProc.run();
+    MD.save;
+end
 
 % Set up the output file path
 if isa(pathForTheMovieDataFile,'MovieData')
@@ -197,10 +157,6 @@ else
         newOutputFilePath=outputFilePath;
     end
 end
-
-
-
-
 dataPath = [newOutputFilePath filesep 'data'];
 paxPath = [newOutputFilePath filesep 'pax'];
 paxtifPath = [newOutputFilePath filesep 'paxtifs'];
@@ -250,10 +206,7 @@ if ~foundTracks
 
     % Finding which channel has a cell mask information
 
-    
-
     existSegmentation=true;
-    %% TODO - move to sanity check in Process.
     try
         maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
         if iChan == 0 %This means the channel with existing mask will be automatically selected
@@ -268,7 +221,6 @@ if ~foundTracks
         existSegmentation= false;
         iChan = iPaxChannel;
     end
-    
     % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
     if onlyEdge
         disp(['Filtering adhesion tracks based on cell mask. Only adhesions appearing at the edge are considered'])

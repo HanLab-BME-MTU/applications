@@ -1,12 +1,36 @@
-classdef AdhesionAnalysisProcess < Process
+classdef AdhesionAnalysisProcess < ImageAnalysisProcess
+    
     methods (Access = public)
-        function obj = AdhesionAnalysisProcess(owner)
-            obj = obj@Process(owner, AdhesionAnalysisProcess.getName);
-            obj.funName_ = @analyzeAdhesionMaturationProcess;
-            obj.funParams_ = AdhesionAnalysisProcess.getDefaultParams(owner);
-        end
-        
-        
+    
+        function obj = AdhesionAnalysisProcess(owner, varargin)
+    
+            if nargin == 0
+                super_args = {};
+            else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
+                super_args{1} = owner;
+                super_args{2} = AdhesionAnalysisProcess.getName;
+                super_args{3} = @analyzeAdhesionMaturation;
+                if isempty(funParams)
+                    funParams = AdhesionAnalysisProcess.getDefaultParams(owner,outputDir);
+                end
+                super_args{4} = funParams;
+            end
+            
+            obj = obj@ImageAnalysisProcess(super_args{:});
+            
+            
+        end          
+            
         function output = loadChannelOutput(obj, iChan, varargin)
             outputList = {};
             nOutput = length(outputList);
@@ -24,35 +48,39 @@ classdef AdhesionAnalysisProcess < Process
     end
     methods (Static)
         function name = getName()
-            name = 'AdhesionAnalysis';
+            name = 'Focal Adhesion Analysis';
+        end
+
+        function h = GUI()
+            h = @AdhesionAnalysisProcessGUI;
         end
         
-        function funParams = getDefaultParams(owner)
+        function funParams = getDefaultParams(owner, varargin)
+
             % Input check
             ip=inputParser;
-            ip.addRequired('owner', @(x) isa(x, 'MovieObject'));
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
             ip.addOptional('outputDir', owner.outputDirectory_, @ischar);
-            ip.addOptional('iChan',1:numel(owner.channels_),...
-               @(x) all(owner.checkChanNum(x)));
-            ip.addOptional('showAllTracks',false,@(x)islogical(x)||isempty(x))
-            ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
-            ip.addOptional('onlyEdge',false,@islogical); % collect NA tracks that ever close to cell edge
-            ip.addOptional('outputPath','analysis1',@ischar)
-            ip.addOptional('saveAnalysis',true,@islogical)
-            ip.addOptional('matchWithFA',true,@islogical) %For cells with only NAs, we turn this off.
-            ip.addOptional('minLifetime',5,@isscalar) %For cells with only NAs, we turn this off.
-            ip.parse(owner)
+%             ip.addOptional('iChan', 1:numel(owner.channels_),...
+%                @(x) all(owner.checkChanNum(x)));
+            ip.parse(owner, varargin{:});
             
             % Set default parameters
             funParams.OutputDirectory = [ip.Results.outputDir filesep 'AdhesionAnalysis'];
-            funParams.outputPath = ip.Results.outputPath; %This is a specific folder
-            funParams.iChan = ip.Results.iChan;
-            funParams.showAllTracks = ip.Results.showAllTracks;
-            funParams.plotEachTrack = ip.Results.plotEachTrack;
-            funParams.onlyEdge = ip.Results.onlyEdge;
-            funParams.saveAnalysis = ip.Results.saveAnalysis;
-            funParams.matchWithFA = ip.Results.matchWithFA;
-            funParams.minLifetime = ip.Results.minLifetime;
+
+            funParams.showAllTracks = false;
+            funParams.plotEachTrack = false;
+            funParams.onlyEdge = false; 
+            funParams.saveAnalysis = true;
+            funParams.matchWithFA = true; 
+            funParams.minLifetime = 5; 
+            funParams.reTrack = true;
+            funParams.skipOnlyReading = false;
+            funParams.getEdgeRelatedFeatures = true;
+
+            % Make option for using segmentations?
+            % --> see field  "existSegmentation= false;""
+            
         end
     end
 end
