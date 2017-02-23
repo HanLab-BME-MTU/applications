@@ -275,6 +275,7 @@ classdef FocalAdhesionPackage < Package
             funParams.reTrack = true;
             funParams.skipOnlyReading = false;
             funParams.getEdgeRelatedFeatures = true;
+            funParams.bandwidthNA = 7;
             
         end
 

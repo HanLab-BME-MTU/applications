@@ -40,26 +40,20 @@ function analyzeAdhesionMaturation(MD)
 % Andrew R. Jamieson Feb. 2017 - Updating to incorporate into MovieData Process GUI (Focal Adhesion Package)
 
 %% ------------------ Input ---------------- %%
-
 ip = inputParser;
 ip.addRequired('MD', @(x)(isa(x,'MovieData')));
 ip.parse(MD);
-
-%Get the indices of any previous processe
-iProc = MD.getProcessIndex('AdhesionAnalysisProcess', 1, 0);
-
-%If the process doesn't exist, create it
+%Get the indices of any previous processes
+iProc = MD.getProcessIndex('AdhesionAnalysisProcess', 'nDesired', 1, 'askUser', false);
+%Check if process exists
 if isempty(iProc)
     error('No AdhesionAnalysisProcess in input movieData! please create the process and use the process.run method to run this function!')
 end
-
 %Parse input, store in parameter structure
-adAnalProc = MD.processes_{iProc};
-p = parseProcessParams(adAnalProc);
+thisProc = MD.processes_{iProc};
+p = parseProcessParams(thisProc);
 
 %% --------------- Parameters ---------- %%
-
-outputPath = p.outputPath;
 saveAnalysis = p.saveAnalysis;
 matchWithFA = p.matchWithFA;
 minLifetime = p.minLifetime;
@@ -69,67 +63,63 @@ onlyEdge = p.onlyEdge;
 reTrack = p.reTrack;
 skipOnlyReading = p.skipOnlyReading;
 getEdgeRelatedFeatures = p.getEdgeRelatedFeatures;
-iChan = p.iChan;
+iChan = p.ChannelIndex;
+bandwidthNA = p.bandwidthNA;
+
 ApplyCellSegMask = p.ApplyCellSegMask;
 
+% Load Respective Process objects
+if ApplyCellSegMask
+    maskProc = MD.getProcess(p.SegCellMaskProc);
+end
+detectedNAProc = MD.getProcess(p.detectedNAProc);
+trackNAProc = MD.getProcess(p.trackFAProc);
+FASegProc = MD.getProcess(p.FAsegProc);
+
 %% ------------------ Config Output  ---------------- %%
+
+%% TODO -- What is the "canonical" way to define this for multi-input situations?
 % % Set up the input file (should be from segAdProc)
 % inFilePaths{1} = displFieldProc.outFilePaths_{1};
-% forceFieldProc.setInFilePaths(inFilePaths);
+% thisProc.setInFilePaths(inFilePaths);
 
-% % Set up the output file
-% outFilePaths = cell(2, numel(movieData.channels_));
+% Set up the output file
+%% Backup previous Analysis output
+if exist(p.OutputDirectory,'dir')
+    if p.backupOldResults
+        disp('Backing up the original data')
+        ii = 1;
+        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+        while exist(backupFolder,'dir')
+            backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+            ii=ii+1;
+        end
+        try
+            mkdir(backupFolder);
+        catch
+            system(['mkdir -p ' backupFolder]);
+        end
+        copyfile(p.OutputDirectory, backupFolder,'f')
+    end
+end
+
+% if isdir(p.OutputDirectory), rmdir(p.OutputDirectory, 's'); end
+% mkdir(p.OutputDirectory);
+% thisProc.setOutFilePaths(outFilePaths);
+
+%Check/set up output directory
+% mkClrDir(p.OutputDirectory);
+% outFilePaths = cell(4, numel(movieData.channels_));
 % for i = p.ChannelIndex
 %     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
 %     outFilePaths{2,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.txt'];
 %     outFilePaths{3,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_stats.txt'];
 %     outFilePaths{4,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_histograms'];
 % end
-% if isdir(p.OutputDirectory), rmdir(p.OutputDirectory, 's'); end
-% mkdir(p.OutputDirectory);
-% postProc.setOutFilePaths(outFilePaths);
 
 
-
-% Get whole frame number
-nFrames = MD.nFrames_;
-
-maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
-detectedNAProc = MD.getProcess(MD.getProcessIndex('DetectionProcess'));
-trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
-FASegProc = MD.getProcess(MD.getProcessIndex('FocalAdhesionSegmentationProcess'));
-
-%% TODO - Check with Sanity
-iPaxChannel = p.ChannelIndex;
-
-
-% Set up the output file path
-if isa(pathForTheMovieDataFile,'MovieData')
-    pathForTheMovieDataFile=pathForTheMovieDataFile.getPath;
-end
-outputFilePath = [pathForTheMovieDataFile filesep outputPath];
+newOutputFilePath = p.OutputDirectory;
 foundTracks=false;
-if ~strcmp(outputPath,'AdhesionTracking') && exist(outputFilePath,'dir')
-    newOutputFilePath=outputFilePath;
-    disp([newOutputFilePath ' will be used for additional analysis.'])
-    foundTracks=true;
-else
-    if exist(outputFilePath,'dir')
-        ii = 1;
-        newOutputFilePath = [outputFilePath num2str(ii)]; % name]);
-        while exist(newOutputFilePath,'dir')
-            ii=ii+1;
-            newOutputFilePath = [outputFilePath num2str(ii)];
-        end
-        mkClrDir(newOutputFilePath);
-        display(['Creating a folder ' newOutputFilePath ' for storing data and figures...'])
-    else
-        newOutputFilePath=outputFilePath;
-    end
-end
-
-
-
 dataPath = [newOutputFilePath filesep 'data'];
 paxPath = [newOutputFilePath filesep 'pax'];
 paxtifPath = [newOutputFilePath filesep 'paxtifs'];
@@ -142,12 +132,20 @@ if ~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') ||
     mkdir(epsPath);
     mkdir(dataPath);
 end
+
+
+% Get whole frame number
+nFrames = MD.nFrames_;
+%% TODO - Check with Sanity
+iPaxChannel = iChan;
+
+
 iiformat = ['%.' '3' 'd'];
-%     paxLevel = zeros(nFrames,1);
-% SegmentationPackage = MD.getPackage(MD.getPackageIndex('SegmentationPackage'));
 % minSize = round((500/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.5um*.5um
+
 minLifetime = min(nFrames,minLifetime);
 markerSize = 2;
+
 % tracks
 % filter out tracks that have lifetime less than 2 frames
 if ~foundTracks
@@ -166,44 +164,29 @@ if ~foundTracks
     % re-express tracksNA so that each track has information for every frame
     disp('reformating NA tracks...')
     tic
-    tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames); 
+    tracksNA = formatTracks(tracksNAorg, detectedNAs, nFrames); 
     toc
 
-    % disp('loading segmented FAs...')
     bandArea = zeros(nFrames,1);
     NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
     FADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
     numFCs = zeros(nFrames,1);
     nChannels = numel(MD.channels_);
-    minEcc = 0.7;
+    % minEcc = 0.7;
 
-    % Finding which channel has a cell mask information
-
-
-    try
-        maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
-        if iChan == 0 %This means the channel with existing mask will be automatically selected
-            for k=1:nChannels
-                if maskProc.checkChannelOutput(k)
-                    iChan = k;
-                end
-            end
-        end
-    catch
-        disp('You do not have segmentation package run. Using entire field ...')
-        ApplyCellSegMask= false;
-        iChan = iPaxChannel;
-    end
     
     % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
     if onlyEdge
         disp(['Filtering adhesion tracks based on cell mask. Only adhesions appearing at the edge are considered'])
         trackIdx = false(numel(tracksNA),1);
-        bandwidthNA = 7; %um 
         bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            mask = maskProc.loadChannelOutput(iChan,ii);
+            if ApplyCellSegMask
+                mask = maskProc.loadChannelOutput(iChan,ii);
+            else
+                mask = true(MD.imSize_);
+            end
             % mask for band from edge
             iMask = imcomplement(mask);
             distFromEdge = bwdist(iMask);
@@ -229,8 +212,6 @@ if ~foundTracks
         else
             mask = true(MD.imSize_);
         end
-    %     bandwidthNA = 5; %um 
-    %     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
             if ApplyCellSegMask
@@ -267,7 +248,7 @@ end
 %% add intensity of tracks including before and after NA status
 % get the movie stack
 disp('Loading image stacks ...'); tic;
-h=MD.imSize_(1); w=MD.imSize_(2);
+h = MD.imSize_(1); w=MD.imSize_(2);
 imgStack = zeros(h,w,nFrames);
 for ii=1:nFrames
     imgStack(:,:,ii)=MD.channels_(iPaxChannel).loadImage(ii); 
@@ -286,11 +267,14 @@ if ~foundTracks
     tic
     if onlyEdge
         trackIdx = true(numel(tracksNA),1);
-        bandwidthNA = 7; %um 
         bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            mask = maskProc.loadChannelOutput(iChan,ii);
+            if ApplyCellSegMask
+                mask = maskProc.loadChannelOutput(iChan,ii);
+            else
+                mask = true(MD.imSize_);
+            end
             % mask for band from edge
             iMask = imcomplement(mask);
             distFromEdge = bwdist(iMask);
@@ -317,9 +301,6 @@ if ~foundTracks
     else
         disp('Entire adhesion tracks are considered.')
         trackIdx = true(numel(tracksNA),1);
-    %     mask = maskProc.loadChannelOutput(iChan,1);
-    %     bandwidthNA = 5; %um 
-    %     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
             if ApplyCellSegMask
@@ -923,9 +904,6 @@ if saveAnalysis
     numNAs = zeros(nFrames,1);
     numNAsInBand = zeros(nFrames,1);
     trackIdx = true(numel(tracksNA),1);
-%     trackIdxFC = true(numel(focalAdhInfo),1);
-%     trackIdxFA = true(numel(FAInfo),1);
-    bandwidthNA = 7; %um 
     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
     for ii=1:nFrames
         mask = maskProc.loadChannelOutput(iChan,ii);

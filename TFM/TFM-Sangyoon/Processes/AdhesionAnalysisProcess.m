@@ -10,7 +10,7 @@ classdef AdhesionAnalysisProcess < ImageAnalysisProcess
                 % Input check
                 ip = inputParser;
                 ip.addRequired('owner',@(x) isa(x,'MovieData'));
-                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('outputDir', owner.outputDirectory_,@ischar);
                 ip.addOptional('funParams',[],@isstruct);
                 ip.parse(owner,varargin{:});
                 outputDir = ip.Results.outputDir;
@@ -143,10 +143,13 @@ classdef AdhesionAnalysisProcess < ImageAnalysisProcess
             funParams.onlyEdge = false; 
             funParams.saveAnalysis = true;
             funParams.matchWithFA = true; 
-            funParams.minLifetime = 5; 
+            funParams.minLifetime = 5;  % For tracks
             funParams.reTrack = true;
             funParams.skipOnlyReading = false;
-            funParams.getEdgeRelatedFeatures = true;            
+            funParams.getEdgeRelatedFeatures = true;
+            funParams.bandwidthNA = 7;
+            %% TODO - likely will remove this.
+            funParams.backupOldResults = true;           
         end
     end
 end
