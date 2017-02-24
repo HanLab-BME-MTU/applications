@@ -136,7 +136,7 @@ classdef FocalAdhesionPackage < Package
             %    1 2 3 4 5 6      {Processes}    
             m = [0 0 0 0 0 0;  %1 Thresholding [optional]
                  1 0 0 0 0 0;  %2 Mask Refinement [optional]
-                 0 2 0 0 0 0;  %3 DetectionProcess
+                 2 2 0 0 0 0;  %3 DetectionProcess
                  0 0 1 0 0 0;  %4 TrackingProcess
                  0 0 1 1 0 0;  %5 FocalAdhesionSegmentationProcess
                  0 2 1 1 1 0;];%6 AnalyzeAdhesionMaturationProcess
