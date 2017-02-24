@@ -78,10 +78,7 @@ FASegProc = MD.getProcess(p.FAsegProc);
 
 %% ------------------ Config Output  ---------------- %%
 
-%% TODO -- What is the "canonical" way to define this for multi-input situations?
-% % Set up the input file (should be from segAdProc)
-% inFilePaths{1} = displFieldProc.outFilePaths_{1};
-% thisProc.setInFilePaths(inFilePaths);
+
 
 % Set up the output file
 %% Backup previous Analysis output
@@ -103,7 +100,9 @@ if exist(p.OutputDirectory,'dir')
     end
 end
 
+mkClrDir(p.OutputDirectory);
 
+%% TODO -- What is the "canonical" way to define this for multi-input situations?
 % Set up the input directories (input images)
 inFilePaths = cell(4,numel(MD.channels_));
 for i = p.ChannelIndex
@@ -115,60 +114,64 @@ end
 thisProc.setInFilePaths(inFilePaths);
     
 % Set up the output files
-outFilePaths = cell(7,numel(MD.channels_));
+outFilePaths = cell(8, numel(MD.channels_));
 for i = p.ChannelIndex
-    [~ chanDirName ~]=fileparts(MD.getChannelPaths(i))
-    outFilename = [chanDirName 'Chan(' num2str(i) ')_tracksNA'];
+    [abpath chanDirName ~] = fileparts(MD.getChannelPaths{i});
+    outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
     outFilePaths{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
     dataPath_tracksNA = outFilePaths{1,i};
 
-    outFilename = [chanDirName 'Chan(' num2str(i) ')_focalAdhInfo'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_focalAdhInfo'];
     outFilePaths{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
     dataPath_focalAdhInfo = outFilePaths{2,i};
 
-    outFilename = [chanDirName 'Chan(' num2str(i) ')_NAFADensity'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_NAFADensity'];
     outFilePaths{3,i} = [p.OutputDirectory filesep outFilename '.mat'];
     dataPath_NAFADensity = outFilePaths{3,i};
 
+    outFilename = [chanDirName '_Chan' num2str(i) '_allAnalysisFA'];
+    outFilePaths{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
+    dataPath_analysisAll = outFilePaths{4,i};
+    
     % if option to save figs is true
     if p.showAllTracks || p.plotEachTrack
-        outFilename = [chanDirName 'Chan(' num2str(i) ')_pax'];
-        outFilePaths{4,i} = [p.OutputDirectory filesep outFilename];
-        paxPath = outFilePaths{4,i} ;
-
-        outFilename = [chanDirName 'Chan(' num2str(i) ')_paxtif'];
+        outFilename = [chanDirName 'Chan' num2str(i) '_pax'];
         outFilePaths{5,i} = [p.OutputDirectory filesep outFilename];
-        paxtifPath = outFilePaths{5,i} ;
+        paxPath = outFilePaths{5,i};
 
-        outFilename = [chanDirName 'Chan(' num2str(i) ')_eps'];
-        outFilePaths{6,i} = [p.OutputDirectory filesep outFilename];       
-        epsPath = outFilePaths{6,i}
+        outFilename = [chanDirName '_Chan' num2str(i) '_paxtif'];
+        outFilePaths{6,i} = [p.OutputDirectory filesep outFilename];
+        paxtifPath = outFilePaths{6,i};
 
-        outFilename = [chanDirName 'Chan(' num2str(i) ')_figs'];
+        outFilename = [chanDirName '_Chan' num2str(i) '_eps'];
         outFilePaths{7,i} = [p.OutputDirectory filesep outFilename];       
-        figPath = outFilePaths{7,i}
+        epsPath = outFilePaths{7,i};
+
+        outFilename = [chanDirName '_Chan' num2str(i) '_figs'];
+        outFilePaths{8,i} = [p.OutputDirectory filesep outFilename];       
+        figPath = outFilePaths{8,i};
+
+        if (~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') || ~exist(epsPath,'dir')) 
+            system(['mkdir -p ' paxPath]);
+            system(['mkdir -p ' paxtifPath]);
+            system(['mkdir -p ' figPath]);
+            system(['mkdir -p ' epsPath]);
+        end
     end
 end
 
-mkClrDir(p.OutputDirectory);
+
 thisProc.setOutFilePaths(outFilePaths);
 
-% save([dataPath filesep 'tracksNA.mat'], 'tracksNA')
-% save([dataPath filesep 'focalAdhInfo.mat'], 'focalAdhInfo',)
-% save([dataPath filesep 'NAFADensity.mat'], 'NADensity','FADensity','bandwidthNA','numNAsInBand')
-
 foundTracks=false;
-
 
 % Get whole frame number
 nFrames = MD.nFrames_;
 %% TODO - Check with Sanity
 iPaxChannel = iChan;
-
-
 iiformat = ['%.' '3' 'd'];
+%% TODO - Check with Sangyoon on pixel size/minsize
 % minSize = round((500/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.5um*.5um
-
 minLifetime = min(nFrames,minLifetime);
 markerSize = 2;
 
@@ -361,57 +364,57 @@ if ~foundTracks
     % get rid of tracks that have out of bands...
     tracksNA = tracksNA(trackIdx);
 else
-    disp('loading tracksNA ...'); tic
-    tracksNA = load([dataPath filesep 'tracksNA.mat'],'tracksNA');
-    tracksNA = tracksNA.tracksNA;
-    toc
-    disp('loading focalAdhesionInfo ...'); tic
-    focalAdhInfo = load([dataPath filesep 'focalAdhInfo.mat'],'focalAdhInfo');
-    focalAdhInfo = focalAdhInfo.focalAdhInfo;
-    toc
-    disp('Reading masks ...'); tic
-    ApplyCellSegMask=true;
-    try
-        maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
-        if iChan == 0 %This means the channel with existing mask will be automatically selected
-            for k=1:nChannels
-                if maskProc.checkChannelOutput(k)
-                    iChan = k;
-                end
-            end
-        end
-    catch
-        disp('You do not have segmentation package run. Using entire field ...')
-        ApplyCellSegMask= false;
-        iChan = iPaxChannel;
-    end
-    if ApplyCellSegMask
-        firstMask=maskProc.loadChannelOutput(iChan,1);
-    else
-        firstMask=true(MD.imSize_);
-    end
-    
-    numTracks=numel(tracksNA);
-    cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
-    prevMask=[];
-    neighPix = 2;
-    for ii=1:nFrames
-        % Cell Boundary Mask 
-        if ApplyCellSegMask
-            mask = maskProc.loadChannelOutput(iChan,ii);
-            if ii>1 && max(mask(:))==0
-                mask=prevMask;
-                disp('Previous mask is used for cell edge because the current mask is empty.')
-            else
-                prevMask=mask;
-            end
-        else
-            mask=true(MD.imSize_);
-        end
-        % Cell Boundary
-        cropMaskStack(:,:,ii) = mask;
-    end    
-    toc
+%     disp('loading tracksNA ...'); tic
+%     tracksNA = load([dataPath_tracksNA filesep 'tracksNA.mat'],'tracksNA');
+%     tracksNA = tracksNA.tracksNA;
+%     toc
+%     disp('loading focalAdhesionInfo ...'); tic
+%     focalAdhInfo = load([dataPath_focalAdhInfo filesep 'focalAdhInfo.mat'],'focalAdhInfo');
+%     focalAdhInfo = focalAdhInfo.focalAdhInfo;
+%     toc
+%     disp('Reading masks ...'); tic
+%     ApplyCellSegMask=true;
+%     try
+%         maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
+%         if iChan == 0 %This means the channel with existing mask will be automatically selected
+%             for k=1:nChannels
+%                 if maskProc.checkChannelOutput(k)
+%                     iChan = k;
+%                 end
+%             end
+%         end
+%     catch
+%         disp('You do not have segmentation package run. Using entire field ...')
+%         ApplyCellSegMask= false;
+%         iChan = iPaxChannel;
+%     end
+%     if ApplyCellSegMask
+%         firstMask=maskProc.loadChannelOutput(iChan,1);
+%     else
+%         firstMask=true(MD.imSize_);
+%     end
+%     
+%     numTracks=numel(tracksNA);
+%     cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
+%     prevMask=[];
+%     neighPix = 2;
+%     for ii=1:nFrames
+%         % Cell Boundary Mask 
+%         if ApplyCellSegMask
+%             mask = maskProc.loadChannelOutput(iChan,ii);
+%             if ii>1 && max(mask(:))==0
+%                 mask=prevMask;
+%                 disp('Previous mask is used for cell edge because the current mask is empty.')
+%             else
+%                 prevMask=mask;
+%             end
+%         else
+%             mask=true(MD.imSize_);
+%         end
+%         % Cell Boundary
+%         cropMaskStack(:,:,ii) = mask;
+%     end    
+%     toc
 end    
 %% Matching with adhesion setup
 if ~foundTracks || skipOnlyReading
@@ -578,7 +581,7 @@ if ~foundTracks || skipOnlyReading
                         % find the closest segment
                         [~,subMaskFAsIdx] = min(minDist);
                         subAdhBound = bwboundaries(subMaskFAs,'noholes');    
-                        [~,closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame))).^2 +...
+                        [~, closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame))).^2 +...
                             (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame))).^2));
 
                         tracksNA(k).state{ii} = 'FC';
@@ -664,7 +667,7 @@ if ~foundTracks || skipOnlyReading
                     end
                 end
             end
-
+            imwrite(paxImageCropped,strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
             print(h2, '-depsc2', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
             print(h2, '-dtiff', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
         %     hgexport(h2,strcat(paxtifPath,'/paxWithForcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
@@ -672,19 +675,19 @@ if ~foundTracks || skipOnlyReading
             close(h2)
             clear h2
         end
-        if saveAnalysis
-            imwrite(paxImageCropped,strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
-        end
+%         if saveAnalysis
+%             imwrite(paxImageCropped,strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
+%         end
         progressText(ii/(nFrames-1),'Matching with segmented adhesions:');
     end
 end
-%% disp('Intermediate saving before post analysis...')
-if matchWithFA && (~foundTracks || skipOnlyReading)
-    disp('Intermediate saving before post analysis...')
-    save([dataPath filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
-    save([dataPath filesep 'focalAdhInfo.mat'], 'focalAdhInfo','-v7.3')
-%     save([dataPath filesep 'intermediateWorkspace.mat'], '-v7.3')
-end
+% %% disp('Intermediate saving before post analysis...')
+% if matchWithFA && (~foundTracks || skipOnlyReading)
+%     disp('Intermediate saving before post analysis...')
+%     save([dataPath_tracksNA filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
+%     save([dataPath_focalAdhInfo filesep 'focalAdhInfo.mat'], 'focalAdhInfo','-v7.3')
+% end
+
 %% protrusion/retraction information
 % time after protrusion onset (negative value if retraction, based
 % on the next protrusion onset) in frame, based on tracksNA.distToEdge
@@ -909,10 +912,9 @@ for k=1:numTracks
     progressText(k/(numTracks-1),'Post-analysis:');
 end
 %% saving
-save([dataPath filesep 'tracksNA.mat'], 'tracksNA','-v7.3')
-if ~foundTracks
-    save([dataPath filesep 'focalAdhInfo.mat'], 'focalAdhInfo','-v7.3')
-end
+save(dataPath_tracksNA, 'tracksNA')
+save(dataPath_focalAdhInfo, 'focalAdhInfo')
+
 %% saving
 if saveAnalysis
     % saving
@@ -961,7 +963,7 @@ if saveAnalysis
         NADensity(ii) = numNAsInBand(ii)/(bandArea(ii)*MD.pixelSize_^2*1e-6);  % unit: number/um2 
         FADensity(ii) = numNAsInBand(ii)/(bandArea(ii)*MD.pixelSize_^2*1e-6);  % unit: number/um2 
     end
-    save([dataPath filesep 'NAFADensity.mat'], 'NADensity','FADensity','bandwidthNA','numNAsInBand')
+    save(dataPath_NAFADensity, 'NADensity','FADensity','bandwidthNA','numNAsInBand')
 
     %% Lifetime analysis
     p=0;
@@ -1017,7 +1019,7 @@ if saveAnalysis
         maturingRatio = p/(p+q);
         tracksNAmaturing = trNAonly(indMature);
         tracksNAfailing = trNAonly(indFail);
-        save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','-v7.3')
+        save(dataPath_analysisAll, 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
     else
         trNAonly = tracksNA;
         indMature = [];
@@ -1337,7 +1339,7 @@ for i = 1:numel(tracks)
             end
         end
             
-        if isfield(tracks, 'label'),
+        if isfield(tracks, 'label')
             newTracks(iTrack).label = tracks(i).label;
         end
     end

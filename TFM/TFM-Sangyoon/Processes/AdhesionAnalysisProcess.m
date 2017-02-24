@@ -120,6 +120,9 @@ classdef AdhesionAnalysisProcess < ImageAnalysisProcess
         
         function funParams = getDefaultParams(owner, varargin)
 
+
+            % MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage')).outputDirectory_
+
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
