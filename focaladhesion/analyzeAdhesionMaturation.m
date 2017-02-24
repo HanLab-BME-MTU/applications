@@ -103,35 +103,61 @@ if exist(p.OutputDirectory,'dir')
     end
 end
 
-% if isdir(p.OutputDirectory), rmdir(p.OutputDirectory, 's'); end
-% mkdir(p.OutputDirectory);
-% thisProc.setOutFilePaths(outFilePaths);
 
-%Check/set up output directory
-% mkClrDir(p.OutputDirectory);
-% outFilePaths = cell(4, numel(movieData.channels_));
-% for i = p.ChannelIndex
-%     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
-%     outFilePaths{2,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.txt'];
-%     outFilePaths{3,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_stats.txt'];
-%     outFilePaths{4,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_histograms'];
-% end
-
-
-newOutputFilePath = p.OutputDirectory;
-foundTracks=false;
-dataPath = [newOutputFilePath filesep 'data'];
-paxPath = [newOutputFilePath filesep 'pax'];
-paxtifPath = [newOutputFilePath filesep 'paxtifs'];
-epsPath = [newOutputFilePath filesep 'eps'];
-figPath = [newOutputFilePath filesep 'figs'];
-if ~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') || ~exist(epsPath,'dir') || ~exist(dataPath,'dir') 
-    mkdir(paxPath);
-    mkdir(paxtifPath);
-    mkdir(figPath);
-    mkdir(epsPath);
-    mkdir(dataPath);
+% Set up the input directories (input images)
+inFilePaths = cell(4,numel(MD.channels_));
+for i = p.ChannelIndex
+    inFilePaths{1,i} = MD.getChannelPaths(i);
+    inFilePaths{2,i} = detectedNAProc.outFilePaths_{1,i};
+    inFilePaths{3,i} = trackNAProc.outFilePaths_{1,i};
+    inFilePaths{4,i} = FASegProc.outFilePaths_{1,i};
 end
+thisProc.setInFilePaths(inFilePaths);
+    
+% Set up the output files
+outFilePaths = cell(7,numel(MD.channels_));
+for i = p.ChannelIndex
+    [~ chanDirName ~]=fileparts(MD.getChannelPaths(i))
+    outFilename = [chanDirName 'Chan(' num2str(i) ')_tracksNA'];
+    outFilePaths{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
+    dataPath_tracksNA = outFilePaths{1,i};
+
+    outFilename = [chanDirName 'Chan(' num2str(i) ')_focalAdhInfo'];
+    outFilePaths{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
+    dataPath_focalAdhInfo = outFilePaths{2,i};
+
+    outFilename = [chanDirName 'Chan(' num2str(i) ')_NAFADensity'];
+    outFilePaths{3,i} = [p.OutputDirectory filesep outFilename '.mat'];
+    dataPath_NAFADensity = outFilePaths{3,i};
+
+    % if option to save figs is true
+    if p.showAllTracks || p.plotEachTrack
+        outFilename = [chanDirName 'Chan(' num2str(i) ')_pax'];
+        outFilePaths{4,i} = [p.OutputDirectory filesep outFilename];
+        paxPath = outFilePaths{4,i} ;
+
+        outFilename = [chanDirName 'Chan(' num2str(i) ')_paxtif'];
+        outFilePaths{5,i} = [p.OutputDirectory filesep outFilename];
+        paxtifPath = outFilePaths{5,i} ;
+
+        outFilename = [chanDirName 'Chan(' num2str(i) ')_eps'];
+        outFilePaths{6,i} = [p.OutputDirectory filesep outFilename];       
+        epsPath = outFilePaths{6,i}
+
+        outFilename = [chanDirName 'Chan(' num2str(i) ')_figs'];
+        outFilePaths{7,i} = [p.OutputDirectory filesep outFilename];       
+        figPath = outFilePaths{7,i}
+    end
+end
+
+mkClrDir(p.OutputDirectory);
+thisProc.setOutFilePaths(outFilePaths);
+
+% save([dataPath filesep 'tracksNA.mat'], 'tracksNA')
+% save([dataPath filesep 'focalAdhInfo.mat'], 'focalAdhInfo',)
+% save([dataPath filesep 'NAFADensity.mat'], 'NADensity','FADensity','bandwidthNA','numNAsInBand')
+
+foundTracks=false;
 
 
 % Get whole frame number
@@ -250,8 +276,8 @@ end
 disp('Loading image stacks ...'); tic;
 h = MD.imSize_(1); w=MD.imSize_(2);
 imgStack = zeros(h,w,nFrames);
-for ii=1:nFrames
-    imgStack(:,:,ii)=MD.channels_(iPaxChannel).loadImage(ii); 
+for ii = 1:nFrames
+    imgStack(:,:,ii) = MD.channels_(iPaxChannel).loadImage(ii); 
 end
 toc;
 
@@ -260,7 +286,7 @@ if ~foundTracks
     disp('Reading intensities with additional tracking...')
     tic
     % reTrack=false;
-    tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
+    tracksNA = readIntensityFromTracks(tracksNA, imgStack, 1, 'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
     toc
     %% Filtering again after re-reading
     disp('Filtering again after re-reading with cell mask ...')
@@ -590,9 +616,9 @@ if ~foundTracks || skipOnlyReading
             end
         end
 
-        paxImageCropped=MD.channels_(iPaxChannel).loadImage(ii); 
+        paxImageCropped = MD.channels_(iPaxChannel).loadImage(ii); 
         if showAllTracks
-            h2=figure;
+            h2 = figure;
             %Scale bar 2 um
         %     paxImageCropped(15:16,10:10+round(2000/MD.pixelSize_))=max(max(paxImageCropped));
             % size of the region of interest
@@ -604,16 +630,6 @@ if ~foundTracks || skipOnlyReading
             minPax = min(paxImageCroppedInverted(:));
             maxPax = max(paxImageCroppedInverted(:));
 
-    %         if ii==1
-    %             minPax1 = 1*minPax;
-    %             minPax2 = uint16(double(minPax)+double(0.25*(maxPax-minPax)));
-    %             hPaxTemp = figure;
-    %             subplot(1,2,1),imshow(paxImageCroppedInverted,[minPax1 maxPax]),title(['minPax1 = ' num2str(minPax1) ]);
-    %             subplot(1,2,2),imshow(paxImageCroppedInverted,[minPax2 maxPax]),title(['minPax2 = ' num2str(minPax2) ]);
-    %             minPax = input('type desired minPax for maximum of the image: ');
-    %             close(hPaxTemp);
-    %         end        
-    %         imshow(paxImageCroppedInverted,[minPax maxPax]), hold on
             imshow(paxImageCroppedInverted,[minPax+0.4*(maxPax-minPax) maxPax]), hold on
             line([10 10+round(2000/MD.pixelSize_)],[15 15],'LineWidth',2,'Color',[0,0,0])
 
@@ -1218,20 +1234,51 @@ function newTracks = formatTracks(tracks,detectedNAs,nFrames)
 newTracks(numel(tracks),1) = struct('xCoord', [], 'yCoord', [],'state',[],'iFrame',[],'presence',[],'amp',[],'bkgAmp',[]);
 % BA: before adhesion, NA: nascent adh, FC: focal complex, FA: focal adh,
 % ANA: after NA (failed to be matured.
+%OUTPUT tracksFinal   : Structure array where each element corresponds to a 
+%                       compound track. Each element contains the following 
+%                       fields:
+%           .tracksFeatIndxCG: Connectivity matrix of features between
+%                              frames, after gap closing. Number of rows
+%                              = number of track segments in compound
+%                              track. Number of columns = number of frames
+%                              the compound track spans. Zeros indicate
+%                              frames where track segments do not exist
+%                              (either because those frames are before the
+%                              segment starts or after it ends, or because
+%                              of losing parts of a segment.
+%           .tracksCoordAmpCG: The positions and amplitudes of the tracked
+%                              features, after gap closing. Number of rows
+%                              = number of track segments in compound
+%                              track. Number of columns = 8 * number of
+%                              frames the compound track spans. Each row
+%                              consists of
+%                              [x1 y1 z1 a1 dx1 dy1 dz1 da1 x2 y2 z2 a2 dx2 dy2 dz2 da2 ...]
+%                              NaN indicates frames where track segments do
+%                              not exist, like the zeros above.
+%           .seqOfEvents     : Matrix with number of rows equal to number
+%                              of events happening in a compound track and 4
+%                              columns:
+%                              1st: Frame where event happens;
+%                              2nd: 1 = start of track segment, 2 = end of track segment;
+%                              3rd: Index of track segment that ends or starts;
+%                              4th: NaN = start is a birth and end is a death,
+%                                   number = start is due to a split, end
+%                                   is due to a merge, number is the index
+%                                   of track segment for the merge/split.
 for i = 1:numel(tracks)
     % Get the x and y coordinate of all compound tracks
     startNA = true;
     endNA = true;
     for  jj = 1 : nFrames
         newTracks(i).iFrame(jj) = jj;
-        if jj<tracks(i).seqOfEvents(1,1)
+        if jj<tracks(i).seqOfEvents(1,1)     % before Adhesion
             newTracks(i).state{jj} = 'BA';
             newTracks(i).xCoord(jj) = NaN;
             newTracks(i).yCoord(jj) = NaN;
             newTracks(i).presence(jj) = false;
             newTracks(i).amp(jj) = NaN;
             newTracks(i).bkgAmp(jj) = NaN;
-        elseif jj>tracks(i).seqOfEvents(end,1)
+        elseif jj>tracks(i).seqOfEvents(end,1) % Adhesion gone!
             newTracks(i).state{jj} = 'ANA';
             newTracks(i).xCoord(jj) = NaN;
             newTracks(i).yCoord(jj) = NaN;
@@ -1239,10 +1286,10 @@ for i = 1:numel(tracks)
             newTracks(i).bkgAmp(jj) = NaN;
             newTracks(i).presence(jj) = false;
             if endNA
-                newTracks(i).endingFrame = jj-1;
+                newTracks(i).endingFrame = jj-1; % mark end of frame
                 endNA = false;
             end
-        elseif jj==tracks(i).seqOfEvents(2,1)
+        elseif jj==tracks(i).seqOfEvents(2,1) % Adhesion occuring
             newTracks(i).state{jj} = 'NA';
             newTracks(i).xCoord(jj) = tracks(i).tracksCoordAmpCG(1,1+8*(jj-tracks(i).seqOfEvents(1,1)));
             newTracks(i).yCoord(jj) = tracks(i).tracksCoordAmpCG(1,2+8*(jj-tracks(i).seqOfEvents(1,1)));
@@ -1256,11 +1303,11 @@ for i = 1:numel(tracks)
             end
             newTracks(i).presence(jj) = true;
             if startNA
-                newTracks(i).startingFrame = jj;
+                newTracks(i).startingFrame = jj; % Frame when adhesion starts
                 startNA = false;
             end
             if endNA
-                newTracks(i).endingFrame = jj;
+                newTracks(i).endingFrame = jj; % Frame when adhesion ends
                 endNA = false;
             end
         else

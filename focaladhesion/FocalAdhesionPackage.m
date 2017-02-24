@@ -268,14 +268,17 @@ classdef FocalAdhesionPackage < Package
             
             funParams.showAllTracks = false;
             funParams.plotEachTrack = false;
-            funParams.onlyEdge = false; 
+            
             funParams.saveAnalysis = true;
-            funParams.matchWithFA = true; 
-            funParams.minLifetime = 5; 
+            
             funParams.reTrack = true;
             funParams.skipOnlyReading = false;
+            
+            funParams.onlyEdge = false; 
+            funParams.matchWithFA = true;  
             funParams.getEdgeRelatedFeatures = true;
             funParams.bandwidthNA = 7;
+            funParams.minLifetime = 5;
             
         end
 
