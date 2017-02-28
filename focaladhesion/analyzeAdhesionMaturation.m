@@ -182,7 +182,7 @@ markerSize = 2;
 
 
 foundTracks=false;
-loadSaved_state = true;
+loadSaved_state = false;
 if loadSaved_state
     [abpath outFilename ext] = fileparts(dataPath_tracksNA);
     load([backupFolder filesep outFilename ext]);
