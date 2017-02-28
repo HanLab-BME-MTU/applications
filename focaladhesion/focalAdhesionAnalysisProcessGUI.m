@@ -22,7 +22,7 @@ function varargout = focalAdhesionAnalysisProcessGUI(varargin)
 
 % Edit the above text to modify the response to help focalAdhesionAnalysisProcessGUI
 
-% Last Modified by GUIDE v2.5 27-Feb-2017 17:57:49
+% Last Modified by GUIDE v2.5 27-Feb-2017 23:12:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,11 +54,19 @@ userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 % Set-up parameters
-userData.numParams = {'SteerableFilterSigma', 'OpeningRadiusXY', ...
-                      'OpeningHeightT', 'MinVolTime'};
-for i =1 : numel(userData.numParams)
-    paramName = userData.numParams{i};
-    set(handles.(['edit_' paramName]), 'String', funParams.(paramName));
+userData.numParams = {'bandwidthNA', 'minLifetime'};
+userData.checkBoxes = {'showAllTracks','plotEachTrack',...
+                       'reTrack','onlyEdge','matchWithFA',...
+                       'getEdgeRelatedFeatures'};
+                        
+% Set edit strings/numbers
+for paramName = userData.numParams
+    set(handles.(['edit_' paramName{1}]), 'String', funParams.(paramName{1}));
+end
+
+% Set edit strings/numbers
+for paramName = userData.checkBoxes
+    set(handles.(['checkbox_' paramName{1}]), 'Value', funParams.(paramName{1}));
 end
 
 % Update GUI user data
@@ -119,182 +127,21 @@ funParams.ChannelIndex = get(handles.listbox_selectedChannels, 'Userdata');
 % Get numerical parameters
 userData = get(handles.figure1, 'UserData');
 
-nParam = numel(userData.numParams);
-
-for i = 1:nParam    
-    paramName = userData.numParams{i};
-    value = str2double(get(handles.(['edit_' paramName]),{'String'}));
+% Get number params
+for paramName = userData.numParams    
+    value = str2double(get(handles.(['edit_' paramName{1}]),{'String'}));
     if isnan(value) || value < 0
         errordlg(['Please enter a valid value for '...
-            get(handles.(['text_' paramName]),'String') '.'],...
+            get(handles.(['text_' paramName{1}]),'String') '.'],...
             'Setting Error','modal')
         return;
     end
-    funParams.(paramName)=value; 
+    funParams.(paramName{1})=value; 
 end
 
-
-
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
-
-
-
-function edit_bandwidthNA_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_bandwidthNA (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_bandwidthNA as text
-%        str2double(get(hObject,'String')) returns contents of edit_bandwidthNA as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_bandwidthNA_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_bandwidthNA (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+% Get checkbox params
+for paramName = userData.checkBoxes
+    funParams.(paramName{1}) = logical(get(handles.(['checkbox_' paramName{1}]),'Value')); 
 end
 
-
-
-function edit_minLifetime_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_minLifetime (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_minLifetime as text
-%        str2double(get(hObject,'String')) returns contents of edit_minLifetime as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_minLifetime_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_minLifetime (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-function edit_OpeningHeightT_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_OpeningHeightT (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_OpeningHeightT as text
-%        str2double(get(hObject,'String')) returns contents of edit_OpeningHeightT as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_OpeningHeightT_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_OpeningHeightT (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-function edit_OpeningRadiusXY_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_OpeningRadiusXY (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_OpeningRadiusXY as text
-%        str2double(get(hObject,'String')) returns contents of edit_OpeningRadiusXY as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_OpeningRadiusXY_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_OpeningRadiusXY (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in checkbox_getEdgeRelatedFeatures.
-function checkbox_getEdgeRelatedFeatures_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_getEdgeRelatedFeatures (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_getEdgeRelatedFeatures
-
-
-% --- Executes on button press in checkbox_matchWidthNA.
-function checkbox_matchWidthNA_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_matchWidthNA (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_matchWidthNA
-
-
-% --- Executes on button press in checkbox_onlyEdge.
-function checkbox_onlyEdge_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_onlyEdge (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_onlyEdge
-
-
-% --- Executes on button press in checkbox_reTrack.
-function checkbox_reTrack_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_reTrack (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_reTrack
-
-
-% --- Executes on button press in checkbox_plotEachTrack.
-function checkbox_plotEachTrack_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_plotEachTrack (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_plotEachTrack
-
-
-% --- Executes on button press in checkbox_showAllTracks.
-function checkbox_showAllTracks_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_showAllTracks (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_showAllTracks
-
-
-% --- Executes on button press in checkbox16.
-function checkbox16_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox16 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox16
-
-
-% --- Executes on button press in checkbox17.
-function checkbox17_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox17 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox17
+processGUI_ApplyFcn(hObject, eventdata, handles, funParams);

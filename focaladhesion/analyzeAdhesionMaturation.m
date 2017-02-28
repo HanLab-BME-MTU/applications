@@ -83,15 +83,18 @@ if exist(p.OutputDirectory,'dir')
             backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
             ii=ii+1;
         end
-        try
-            system(['mkdir -p ' backupFolder]);
-        catch
+        if strcmp(computer('arch'), 'win64')
             mkdir(backupFolder);
+        else
+            try
+                system(['mkdir -p ' backupFolder]);
+            catch
+                mkdir(backupFolder);
+            end            
         end
         copyfile(p.OutputDirectory, backupFolder,'f')
     end
 end
-
 mkClrDir(p.OutputDirectory);
 
 %% TODO -- What is the "canonical" way to define this for multi-input situations?
@@ -144,23 +147,28 @@ for i = p.ChannelIndex
         figPath = outFilePaths{8,i};
 
         if (~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') || ~exist(epsPath,'dir')) 
-            try 
-                system(['mkdir -p ' paxPath]);
-                system(['mkdir -p ' paxtifPath]);
-                system(['mkdir -p ' figPath]);
-                system(['mkdir -p ' epsPath]);
-            catch
+            if strcmp(computer('arch'), 'win64')
                 mkdir(paxPath);
                 mkdir(paxtifPath);
                 mkdir(figPath);
                 mkdir(epsPath);
+            else
+                try 
+                    system(['mkdir -p ' paxPath]);
+                    system(['mkdir -p ' paxtifPath]);
+                    system(['mkdir -p ' figPath]);
+                    system(['mkdir -p ' epsPath]);
+                catch
+                    mkdir(paxPath);
+                    mkdir(paxtifPath);
+                    mkdir(figPath);
+                    mkdir(epsPath);
+                end
             end
-            
         end
     end
 end
 thisProc.setOutFilePaths(outFilePaths);
-
 
 % Get whole frame number
 nFrames = MD.nFrames_;
@@ -174,8 +182,7 @@ markerSize = 2;
 
 
 foundTracks=false;
-
-loadSaved_state = true;
+loadSaved_state = false;
 if loadSaved_state
     [abpath outFilename ext] = fileparts(dataPath_tracksNA);
     load([backupFolder filesep outFilename ext]);
