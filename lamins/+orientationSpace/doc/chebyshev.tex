@@ -96,7 +96,7 @@ Here the parameter $ f_c $ controls scale while maintaining the aspect ratio suc
 \section{Application to Width}
 To evaluate width, we modify the scaling component of the filter $ \Phi_f(f; f_c) $ such that it applies over a single direction rather than being isotropic.
 \begin{eqnarray}
-    \Phi_{f_x}(f_x; f_c) & = & \frac{f_x}{f_c} \exp(-\frac{f_x^2}{f_c^2}+1) \exp(\frac{1}{2})
+    \Phi_{f_x}(f_x; f_c) & = & \frac{f_x}{f_c} \exp(-\frac{f_x^2}{2f_c^2}+\frac{1}{2})
 \end{eqnarray}
 We can generalize for other directions other than $ f_x $ by applying a rotation matrix to $ (f_x,f_y) $ in order obtain $ f_\theta $:
 \begin{eqnarray}
@@ -107,6 +107,16 @@ We can generalize for other directions other than $ f_x $ by applying a rotation
     \end{bmatrix} \\
    \left[f_{\theta},f_{\theta'}\right]^T  & = & \mathrm{R}_\theta [f_x,f_y]^T \\
     & = & [ f_x\cos(\theta)  -f_y \sin(\theta) , f_x \sin(\theta) + f_y \cos(\theta) ]^T  \\
-    \Phi_{f_\theta}(f_\theta; f_c) & = & \frac{f_\theta}{f_c} \exp(-\frac{f_\theta^2}{f_c^2}+1) \exp(\frac{1}{2})
+    \Phi_{f_\theta}(f_\theta; f_c) & = & \frac{f_\theta}{f_c} \exp(-\frac{f_\theta^2}{2f_c^2}+\frac{1}{2}) 
 \end{eqnarray}
+\subsection{Application to Point Source}
+Suppose that we have a delta function distribution in the image domain centered at $ (0,0) $ and convolved it with a 2D Gaussian distribution with mean equal to zero and standard deviation $ \sigma $. In the Fourier domain, this results in a 2D Gaussian with a mean at zero frequency and standard deviation of $ \hat{\sigma} = 1/(2\pi\sigma) $:
+\begin{eqnarray}
+    G(x,y) & = & \frac{1}{2\pi\sigma^2} \exp(-\frac{x^2}{2\sigma^2})  \exp(-\frac{y^2}{2\sigma^2}) \\
+    \widehat{G}(f_x,f_y) & = & \exp(-\frac{f_x^2}{2}(2\pi\sigma)^2)  \exp(-\frac{f_y^2}{2}(2\pi\sigma)^2)\\
+    & = & \exp(-\frac{f_x^2}{2\hat{\sigma}^2})  \exp(-\frac{f_y^2}{2\hat{\sigma}^2}) \\
+    R(0,0) & = & \int_{-\infty}^{+\infty} \int_{-\infty}^{+\infty} \widehat{G}(f_x,f_y) \Phi_{f_x}(f_x; f_c) df_x df_y \\
+    & = & \frac{1}{\hat{\sigma}\sqrt{2\pi}} \int_{-\infty}^{+\infty} \exp(-\frac{f_x^2}{2\hat{\sigma}^2})  \frac{f_x}{f_c} \exp(-\frac{f_x^2}{2f_c^2}+\frac{1}{2}) df_x 
+\end{eqnarray}
+\subsection{Application to Infinite Line}
 \end{document}

@@ -7,7 +7,12 @@
 \DeclarePairedDelimiter\abs{\lvert}{\rvert}%
 \DeclarePairedDelimiter\norm{\lVert}{\rVert}%
 
+\title{Analyzing Orientation Using Spectral Methods}
+\author{Mark Kittisopikul}
+
 \begin{document}
+
+\maketitle
 
 \section{Notation}
 \subsection{Fourier Transforms}
@@ -24,7 +29,7 @@ The Orientation Space filter is chosen such that it is polar separable in the fr
 \begin{eqnarray}
     \Phi(f,\theta; f_c, K, \theta_0) & = & \Phi_f(f; f_c) \Phi_\theta(\theta; K, \theta_0) \\
     & \mbox{where} & \nonumber \\
-    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{f_c^2}+1) \exp(\frac{1}{2}) \\
+    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{2f_c^2}+\frac{1}{2})  \\
     & \mbox{and} & \nonumber \\
     \Phi_\theta(\theta; K, \theta_0) & = & \exp \left(\frac{-(\theta-\theta_0)^2}{2} \frac{(2K+1)^2}{\pi^2} \right)
 \end{eqnarray}
