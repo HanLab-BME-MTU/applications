@@ -22,7 +22,7 @@ function varargout = focalAdhesionAnalysisProcessGUI(varargin)
 
 % Edit the above text to modify the response to help focalAdhesionAnalysisProcessGUI
 
-% Last Modified by GUIDE v2.5 27-Feb-2017 23:12:01
+% Last Modified by GUIDE v2.5 28-Feb-2017 08:41:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -145,3 +145,59 @@ for paramName = userData.checkBoxes
 end
 
 processGUI_ApplyFcn(hObject, eventdata, handles, funParams);
+
+
+
+% --- Executes on button press in checkbox_reTrack.
+function checkbox_reTrack_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_reTrack (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_reTrack
+
+
+
+% --- Executes on button press in checkbox_onlyEdge.
+function checkbox_onlyEdge_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_onlyEdge (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_onlyEdge
+
+
+% --- Executes on button press in checkbox_getEdgeRelatedFeatures.
+function checkbox_getEdgeRelatedFeatures_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_getEdgeRelatedFeatures (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_getEdgeRelatedFeatures
+
+
+% --- Executes on button press in checkbox_matchWithFA.
+function checkbox_matchWithFA_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_matchWithFA (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_matchWithFA
+
+
+% --- Executes on button press in checkbox_showAllTracks.
+function checkbox_showAllTracks_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_showAllTracks (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_showAllTracks
+
+
+% --- Executes on button press in checkbox_plotEachTrack.
+function checkbox_plotEachTrack_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_plotEachTrack (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_plotEachTrack
