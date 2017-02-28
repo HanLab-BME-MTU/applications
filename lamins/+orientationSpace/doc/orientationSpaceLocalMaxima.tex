@@ -7,11 +7,16 @@
 \DeclarePairedDelimiter\abs{\lvert}{\rvert}%
 \DeclarePairedDelimiter\norm{\lVert}{\rVert}%
 
+\title{Analyzing Orientation Using Spectral Methods}
+\author{Mark Kittisopikul}
+
 \begin{document}
+
+\maketitle
 
 \section{Notation}
 \subsection{Fourier Transforms}
-For a function, $f(x)$, the Fourier transform with respect to $ x $ as a function of the frequency, $ \omega $, is $ \mathcal{F}_x\{f\}(\omega) $. This can also be written in hat notation as $ \hat{f}(\omega) $ where the original domain over $ x $ is assumed based on the function definition. For example, for a function $ I(x,y) $, the 2D Fourier transform over $ x $ and $ y $ can be written as follows $ \mathcal{F}_{xy}\{I\}(f_x,f_y) = \mathcal{F}\{I\}(f_x,f_y) = \widehat{I}(f_x,f_y) $ where $ f_x $ and $ f_y $ are the x and y component of the frequency in reciprical space. The subscript of $ \mathcal{F} $ explicitly denotes the variables over which .
+For a function, $f(x)$, the Fourier transform with respect to $ x $ as a function of the frequency, $ \omega $, is $ \mathcal{F}_x\{f\}(\omega) $. This can also be written in hat notation as $ \hat{f}(\omega) $ where the original domain over $ x $ is assumed based on the function definition. For example, for a function $ I(x,y) $, the 2D Fourier transform over $ x $ and $ y $ can be written as follows $ \mathcal{F}_{xy}\{I\}(f_x,f_y) = \mathcal{F}\{I\}(f_x,f_y) = \widehat{I}(f_x,f_y) $ where $ f_x $ and $ f_y $ are the x and y component of the frequency in reciprocal space. The subscript of $ \mathcal{F} $ explicitly denotes the variables over which .
 
 \subsection{Polar Coordinates}
 A function of Cartesian coordinates, $ \Phi(x,y) $, may be defined in polar coordinates $ \Phi(r,\theta) $. In this case, take $ \Phi(r,\theta) $ to mean $\Phi(x = r cos(\theta),y = r sin(\theta) ) $ and $ \Phi(x,y) = \Phi(r = \sqrt{x^2+y^2},\theta = tan^{-1}(y/x)) $. Unless explicitly stated otherwise, $ \widehat{\Phi} $ indicates the Fourier Transform in Cartesian coordinates as opposed to polar coordinates. That is $ \widehat{\Phi} = \mathcal{F}_{xy}\{\Phi(x,y)\} $.
@@ -24,7 +29,7 @@ The Orientation Space filter is chosen such that it is polar separable in the fr
 \begin{eqnarray}
     \Phi(f,\theta; f_c, K, \theta_0) & = & \Phi_f(f; f_c) \Phi_\theta(\theta; K, \theta_0) \\
     & \mbox{where} & \nonumber \\
-    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{f_c^2}+1) \exp(\frac{1}{2}) \\
+    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{2f_c^2}+\frac{1}{2})  \\
     & \mbox{and} & \nonumber \\
     \Phi_\theta(\theta; K, \theta_0) & = & \exp \left(\frac{-(\theta-\theta_0)^2}{2} \frac{(2K+1)^2}{\pi^2} \right)
 \end{eqnarray}
@@ -60,7 +65,7 @@ and then $K_{bandlimit} = \max\{\lceil K \rceil,1\} $
 
 \subsection{Alternatives for Angular Component}
 
-It would be useful if rather than being approximately zero that $ \widehat{\Phi}_{\theta}(\omega,K) $ was exactly zero for $ K > K_{bandlimit} $. Such a angular component can derived from the family of directional derivatives as follows:
+It would be useful if rather than being approximately zero that $ \widehat{\Phi}_{\theta}(\omega,K) $ was exactly zero for $ \omega > K_{bandlimit} $. Such a angular component can derived from the family of directional derivatives as follows:
 
 \begin{eqnarray}
     \Phi_{\theta,\mbox{wavelet}}(\theta; K) & = & \cos^K(\theta) \\
@@ -74,9 +79,38 @@ It would be useful if rather than being approximately zero that $ \widehat{\Phi}
     \end{cases}
 \end{eqnarray}
 
+This form of an angular component arises naturally out of directional derivatives as well as the Gabor filters.
+
 where $ {K \choose n} = \frac{K!}{(K-n)!n!} $. Here, however, $ K \in \mathbb{Z} $. Also even $ K $ correspond to ridge filters and odd $ K $ correspond to edge filters, meaning that the bandwidth cannot be matched for edges and ridges. The Fourier transform of this angular component follows a binomial distribution with either the odd or even coefficients being zero depending on if K is even or odd, respectively.
 
 More generally, $ \Phi_{\theta,\mbox{general}} $ could be any function expressible as a finite Fourier series. The goal, however, in this case is to obtain a function that as orientation-selective as possible within a certain bandlimit, thus providing the best orientation resolution. The Gaussian, while only approximately bandlimited, uniquely optimizes the orientation-bandwidth and frequency-bandwidth simultaneously.
+
+\subsection{Riesz transform: circular harmonics as a common basis}
+
+Above we have defined an orientation selective filter, $ \Phi_\theta(\omega; K) $ that applies to the spatial frequency domain after a 2D Fourier transform over the x and y coordinates. We then performed a 1D Fourier Transform over $ \theta $ to obtain $ \widehat{\Phi_\theta(\omega; K)} $. We saw that $ \Phi_\theta $ has Gaussian form in both the original spatial-frequency domain over $ (f,\theta) $ as well as in the orientation-frequency $ \omega $ domain.
+
+We also discussed an alternative angular component $ \Phi_{\theta,\mbox{wavelet}}(\theta; K) $ whose 1D Fourier transform over has the form of a binomial distribution in the orientation-frequency, $ \omega $, domain. The binomial distribution is not very different than the Gaussian distribution suggesting that a common basis for these two approaches may exist in the orientation-frequency domain.
+
+Unser and Chenouard discussed a ``A Unifying Parametric Framework for 2D Steerable Wavelet Transforms'' which generalizes these two approaches. Namely they introduce a complex 2D Riesz transform that formalizes the serial 2D Fourier transform in space followed by the 1D Fourier transform in orientation.
+
+In order to understand this framework and how the current work fits into it, we must first build up to the Riesz transform, which is an N-dimensional transform. The 1D version goes commonly by a different name called the Hilbert transform. This Hilbert transform, $ \mathcal{H} $ of a 1D function $ g(x) $ is defined as follows:
+\begin{eqnarray}
+    \mathcal{F}\{ \mathcal{H}\{g\}(x) \}(\nu) & = & (-i \frac{\nu}{\left| \nu \right|}) \mathcal{F}\{g(x)\}(\nu)
+\end{eqnarray}
+That is the Hilbert transform is just a multiplier in the frequency domain. The Riesz transform, $ \mathcal{R} $  generalizes this to N-dimensions for a function $ G(\vec{x}) \equiv G(x_1,x_2, \hdots, x_N) $
+\begin{eqnarray}
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\nu) & = & (-i \frac{\vec{\nu}}{\left\| \nu \right\|}) \mathcal{F}\{G(\vec{x})\}(\vec{\nu})
+\end{eqnarray}
+The complex 2D Riesz transform just encodes the vector, $ \nu $,  as a complex number:
+\begin{eqnarray}
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\nu) & = & (\frac{\nu_x +i \nu_y}{\left\| \nu \right\|}) \mathcal{F}\{G(\vec{x})\}(\nu) \\
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\|\nu\|,\angle \nu) & = & \exp(i \angle \nu) \mathcal{F}\{G(\vec{x})\}(\|\nu\|,\angle \nu) \\
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\|\nu\|,\theta) & = & \exp(i \theta) \mathcal{F}\{G(\vec{x})\}(\|\nu\|,\theta) \\
+    \mathcal{F}\{ \mathcal{R}^n\{G\}(\vec{x}) \}(\|\nu\|,\theta) & = & \exp(i n\theta) \mathcal{F}\{G(\vec{x})\}(\|\nu\|,\theta) \\
+\end{eqnarray}
+
+
+
 
 \section{Filter Response}
 

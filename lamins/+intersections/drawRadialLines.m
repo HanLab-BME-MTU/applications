@@ -1,9 +1,24 @@
-function [ I ] = drawRadialLines( angles , sz)
+function [ I ] = drawRadialLines( angles , sz, mode)
 %drawTwoLines draw lines at the angles going symmetrically through the
 %center
 
 if(nargin < 2)
     sz = 101;
+end
+if(nargin < 3)
+    mode = 1;
+else
+    switch(mode)
+        case 'or'
+            mode = 1;
+        case 'add'
+            mode = 2;
+        otherwise
+            if(~isnumeric(mode))
+                warning('intersections.drawRadialLines:Did not understand mode parmeter');
+                mode = 1;
+            end
+    end
 end
 
 I = zeros(sz);
@@ -15,7 +30,12 @@ for angle = angles
     projection = [cos(angle) sin(angle)]*radius;
     p = bresenham(round(center + projection), round(center),8);
     idx = sub2ind(I_size, p(:,2), p(:,1));
-    I(idx) = 1;
+    switch(mode)
+        case 1 % OR
+            I(idx) = 1;
+        case 2
+            I(idx) = I(idx) +1;
+    end
 end
 
 
