@@ -22,7 +22,7 @@ function varargout = focalAdhesionAnalysisProcessGUI(varargin)
 
 % Edit the above text to modify the response to help focalAdhesionAnalysisProcessGUI
 
-% Last Modified by GUIDE v2.5 28-Feb-2017 08:41:29
+% Last Modified by GUIDE v2.5 28-Feb-2017 13:41:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,8 +55,7 @@ funParams = userData.crtProc.funParams_;
 
 % Set-up parameters
 userData.numParams = {'bandwidthNA', 'minLifetime'};
-userData.checkBoxes = {'showAllTracks','plotEachTrack',...
-                       'reTrack','onlyEdge','matchWithFA',...
+userData.checkBoxes = {'reTrack','onlyEdge','matchWithFA',...
                        'getEdgeRelatedFeatures'};
                         
 % Set edit strings/numbers
@@ -183,21 +182,3 @@ function checkbox_matchWithFA_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_matchWithFA
-
-
-% --- Executes on button press in checkbox_showAllTracks.
-function checkbox_showAllTracks_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_showAllTracks (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_showAllTracks
-
-
-% --- Executes on button press in checkbox_plotEachTrack.
-function checkbox_plotEachTrack_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_plotEachTrack (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_plotEachTrack
