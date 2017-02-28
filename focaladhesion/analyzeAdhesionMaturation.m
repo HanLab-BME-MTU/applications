@@ -16,7 +16,6 @@ function analyzeAdhesionMaturation(MD)
 %           'reTrack' [true]     This is for 
 %           'minLifetime' [5]               For cells with only NAs, we turn this off.
 %           'iChan' [1]                        Channel with FA marker
-%            skipOnlyReading' [false]       For cells with only NAs, we turn this off.
 % output:   images will be stored in pathForTheMovieDataFile/trackFrames
 %           tracksNAfailing,          tracks of failing NAs that go on to turn-over
 %           tracksNAmaturing,          tracks of failing NAs that matures to FAs
@@ -57,7 +56,6 @@ showAllTracks = p.showAllTracks;
 plotEachTrack = p.plotEachTrack;
 onlyEdge = p.onlyEdge;
 reTrack = p.reTrack;
-skipOnlyReading = p.skipOnlyReading;
 getEdgeRelatedFeatures = p.getEdgeRelatedFeatures;
 iChan = p.ChannelIndex;
 bandwidthNA = p.bandwidthNA;
@@ -384,7 +382,6 @@ if ~foundTracks
     tracksNA = tracksNA(trackIdx);
 end
 %% Matching with adhesion setup
-% if ~foundTracks || skipOnlyReading
 if ApplyCellSegMask
     firstMask=maskProc.loadChannelOutput(iChan,1);
 else
@@ -854,9 +851,7 @@ end
 save(dataPath_tracksNA, 'tracksNA')
 save(dataPath_focalAdhInfo, 'focalAdhInfo')
 
-%% saving
-if saveAnalysis
-    % saving
+
     %% NA FA Density analysis
     numNAs = zeros(nFrames,1);
     numNAsInBand = zeros(nFrames,1);
@@ -967,14 +962,6 @@ if saveAnalysis
         lifeTimeNAmaturing =[];
         maturingRatio = [];
     end
-else
-    trNAonly = tracksNA;
-    indMature = [];
-    indFail = [];
-    lifeTimeNAfailing=[];
-    lifeTimeNAmaturing =[];
-    maturingRatio = [];
-end
 
 %% Run this separately with loading allData.mat if something failed 
 if plotEachTrack

@@ -268,11 +268,8 @@ classdef FocalAdhesionPackage < Package
             
             funParams.showAllTracks = false;
             funParams.plotEachTrack = false;
-            
-            funParams.saveAnalysis = true;
-            
-            funParams.reTrack = true;
-            funParams.skipOnlyReading = false;
+                        
+            funParams.reTrack = true;  %%TODO - Check with sangyoon
             
             funParams.onlyEdge = false; 
             funParams.matchWithFA = true;  
