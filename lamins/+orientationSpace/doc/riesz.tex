@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{color}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+\title{Generalizing the Results to a Framework based upon the Riesz Transform}
+\author{Mark Kittisopikul}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Previously we have defined an orientation selective filter, $ \Phi_\theta(\omega; K) $ that applies to the spatial frequency domain after a 2D Fourier transform over the x and y coordinates. We then performed a 1D Fourier Transform over $ \theta $ to obtain $ \widehat{\Phi_\theta(\omega; K)} $. We saw that $ \Phi_\theta $ has Gaussian form in both the original spatial-frequency domain over $ (f,\theta) $ as well as in the orientation-frequency $ \omega $ domain.
+
+We also discussed an alternative angular component $ \Phi_{\theta,\mbox{wavelet}}(\theta; K) $ whose 1D Fourier transform over has the form of a binomial distribution in the orientation-frequency, $ \omega $, domain. The binomial distribution is not very different than the Gaussian distribution suggesting that a common basis for these two approaches may exist in the orientation-frequency domain.
+
+\section{Riesz transform: circular harmonics as a common basis}
+
+Unser and Chenouard discussed a ``A Unifying Parametric Framework for 2D Steerable Wavelet Transforms'' which generalizes these two approaches. Namely they introduce a complex 2D Riesz transform that formalizes the serial 2D Fourier transform in space followed by the 1D Fourier transform in orientation.
+
+In order to understand this framework and how the current work fits into it, we must first build up to the Riesz transform, which is an N-dimensional transform. The 1D version goes commonly by a different name called the Hilbert transform. This Hilbert transform, $ \mathcal{H} $ of a 1D function $ g(x) $ is defined as follows:
+\begin{eqnarray}
+    \mathcal{F}\{ \mathcal{H}\{g\}(x) \}(\nu) & = & (-i \frac{\nu}{\left| \nu \right|}) \mathcal{F}\{g(x)\}(\nu)
+\end{eqnarray}
+That is the Hilbert transform is just a multiplier in the frequency domain. The Riesz transform, $ \mathcal{R} $  generalizes this to N-dimensions for a function $ G(\vec{x}) \equiv G(x_1,x_2, \hdots, x_N) $
+\begin{eqnarray}
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\nu) & = & (-i \frac{\vec{\nu}}{\left\| \nu \right\|}) \mathcal{F}\{G(\vec{x})\}(\vec{\nu})
+\end{eqnarray}
+The complex 2D Riesz transform just encodes the vector, $ \nu $,  as a complex number that is naturally written in polar coordinates:
+\begin{eqnarray}
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\nu) & = & (\frac{\nu_x +i \nu_y}{\left\| \nu \right\|}) \mathcal{F}\{G(\vec{x})\}(\nu) \\
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\|\nu\|,\angle \nu) & = & \exp(i \angle \nu) \mathcal{F}\{G(\vec{x})\}(\|\nu\|,\angle \nu) \\
+    \mathcal{F}\{ \mathcal{R}\{G\}(\vec{x}) \}(\|\nu\|,\theta) & = & \exp(i \theta) \mathcal{F}\{G(\vec{x})\}(\|\nu\|,\theta) \\
+    \mathcal{F}\{ \mathcal{R}^n\{G\}(\vec{x}) \}(\|\nu\|,\theta) & = & \exp(i n\theta) \mathcal{F}\{G(\vec{x})\}(\|\nu\|,\theta) \\
+\end{eqnarray}
+The complex Riesz transform is a multiplier in the Fourier domain that only depends on the orientation angle. The last equation above also shows that n-iterates of complex Riesz transform just modifies the multiplier.
+
+
+
+
+
+\end{document}
