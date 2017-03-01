@@ -1,0 +1,149 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{color}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+\title{Chebyshev Polynomials to Analyze Scale and Width}
+\author{Mark Kittisopikul}
+
+\begin{document}
+\maketitle
+
+\section{Motivation}
+For orientation, we have used Fourier series to interpolate periodic signals and find their critical points. This was done by recognizing a Fourier series as a trigonometric polynomial, converting it to a regular polynomial, and then using a companion matrix based technique to discover all of the roots of the derivative(s). Scale and width properties, however, are not periodic, but we would like to accomplish similar goals. In particular, we would like to be able to locate the absolute and local maxima of bounded signals globally as points of interest for further analysis.
+
+\section{Chebyshev Polynomials and Form}
+Chebyshev polynomials can be used to describe functions on the domain interval $ x \in [-1,1] $. While this may initially seem restrictive, any interval $ t \in [a,b] $ can be linearly mapped into this domain:
+\begin{eqnarray}
+    x(t) & = & 2(\frac{t - a}{b-a}) - 1 \\
+    & = & \frac{2t - a - b}{b-a} \\
+    x(a) & = & -1 \\
+    x(b) & = & +1
+\end{eqnarray}
+\par
+Let $ p(x) $ be an arbitrary polynomial of degree $ N $ written in the normal fashion and then in Chebyshev form in terms of Chebyshev polynomials, $ T_n(x) $:
+\begin{eqnarray}
+    p(x) & = & \sum_{n=0}^N a_n x^n \\
+         & = & \sum_{n=0}^N b_n T_n(x)
+\end{eqnarray}
+The Chebyshev polynomials themselves are actually just regular polynomials with a particular property:
+\begin{eqnarray}
+    T_0( \cos \theta ) & = & \cos(0) = 1 \\
+    T_1( \cos \theta ) & = & \cos(\theta) \\
+    T_2( \cos \theta ) & = & \cos(2\theta) \\
+    T_3( \cos \theta ) & = & \cos(3\theta) \\
+    \hdots & = &\hdots \\
+    T_n( \cos \theta ) & = & \cos(n \theta)
+\end{eqnarray}
+Before stating the Chebyshev polynomials as a regular polynomials, it is useful to recall a couple trigonometric formulas:
+\begin{eqnarray}
+\cos( \alpha - \beta ) & = & \cos(\alpha) \cos(\beta) + \sin(\alpha)\sin(\beta) \\
+\cos( \alpha - \beta ) - \cos(\alpha) \cos(\beta) & = &  \sin(\alpha)\sin(\beta) \\
+\cos( \alpha + \beta ) & = &  \cos(\alpha) \cos(\beta) - \sin(\alpha)\sin(\beta) \\ 
+                       & = & 2 \cos(\alpha) \cos(\beta) - \cos( \alpha - \beta ) \\
+\cos(n \theta) = \cos( (n-1)\theta + \theta) & = & 2 \cos\left( (n-1)\theta \right)\cos(\theta) - \cos( (n-2) \theta ) \\
+T_n(\cos\theta) & = & 2 T_{n-1}(\cos\theta) \cos\theta - T_{n-2}(\cos\theta)
+\end{eqnarray}
+This thus gives us an important recurrence relation allowing us to explicitly define the Chebyshev polynomials:
+\begin{eqnarray}
+    T_n(x) & = & 2 x T_{n-1}(x) - T_{n-2}(x) \\
+    T_0(x) & = & 1 \\
+    T_1(x) & = & x \\
+    T_2(x) & = & 2xT_1(x) - T_0(x) \\
+           & = & 2x^2 - 1 \\
+    T_3(x) & = & 2xT_2(x) - T_1(x) \\
+           & = & 4x^3-2x \\
+    T_4(x) & = & 2xT_3(x) - T_2(x) \\
+           & = & 8x^4-8x^2-1 \\
+    T_5(x) & = & 2xT_4(x) - T_3(x) \\
+           & = & 16x^5 -20x^3 -4x
+\end{eqnarray}
+Returning to the original normal polynomial, $ p(x) $, we can exploit the properties of Chebyshev polynomials to express $ p(x) $ in Chebyshev form
+\begin{eqnarray}
+    p(x) & = & \sum_{n=0}^N a_n x^n \\
+         & = & \sum_{n=0}^N b_n T_n(x) \\
+    p(\cos\theta) & = & \sum_{n=0}^N b_n T_n(\cos \theta) \\
+                  & = & \sum_{n=0}^N b_n \cos(n\theta) \\
+                  & = & \sum_{n=0}^N \frac{b_n}{2} \left( \exp(in\theta) + \exp(-in\theta) \right) \\
+                  & = & \frac{b_0}{2} + \frac{1}{2} \sum_{n=-N}^N b_{\abs n} \exp(in\theta) \\
+                  & = & \sum_{n=-N}^N c_n \exp(in\theta) \mbox{ where} \\
+           c_n    & = &      
+           \begin{cases}
+               b_0  & \mbox{if } n = 0 \\
+               \frac{1}{2} b_{\abs n}  & \mbox{otherwise}
+           \end{cases} \\
+%    p(\cos\theta) & = & \sum_{n=0}^N a_n \cos^n\theta \\
+%    & = & \sum_{n=0}^N a_n \left( \frac{\exp(i\theta) + \exp(-i\theta)}{2}\right)^n
+           \mathcal{F}\{p(cos\theta))\}(n) & = & c_n
+\end{eqnarray}
+The above shows that we can find the Chebyshev form coefficients doing a Fourier transform of $ p(\cos(\theta)) $. What we have actually performed here is also called the Type-I Discrete Cosine Transform, which can be mapped to the Discrete Fourier Transform as shown above. Thus to express $ p(x) $ in Chebyshev form, we need to take $ 2N+1 $ samples of $ p(\cos(\theta)) $ on the interval $ \theta \in [0,2\pi] $. However, since $ p(\cos(\theta)) = p(\cos(-\theta)) $ we only need to take $ N+1 $ samples on the interval $ \theta \in [0,\pi] $. In terms of $ x \in [-1,1] $ this means sampling at the points
+\[ x = \{ x_n | x_n = \cos(\frac{n\pi}{N}) \mbox{ for } n \in [0,N], n \in \mathbb{Z} \} \].
+In the MATLAB toolbox chebfun, these points are calculated using the function $ chebpts $. The points are referred to as the Chebyshev-Lobatto grid. To trick MATLAB's fft function to perform a discrete cosine transform, we then just need to mirror the points to obtain a set of $ 2N $ abscissa for $ p(x) $:
+\[ \{x_0, x_1, x_2, \hdots, x_{N-1}, x_N, x_{N-1}, x_{N-2}, \hdots, x_1\} \]
+We can apply this any function $ f(x) $ with $ x \in [-1,1] $ or linearly scaled as necessary by sampling as above. This produces a polynomial, $ p(x) $ in Chebyshev form that we can analyze using all the spectral methods that can be used with periodic signals.
+\section{Application to Scale}
+Recall that the filter applied to the image's Fourier space has the following form:
+\begin{eqnarray}
+    \Phi(f,\theta; f_c, K, \theta_0) & = & \Phi_f(f; f_c) \Phi_\theta(\theta; K, \theta_0) \\
+    & \mbox{where} & \nonumber \\
+    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{f_c^2}+1) \exp(\frac{1}{2}) \\
+\end{eqnarray}
+Here the parameter $ f_c $ controls scale while maintaining the aspect ratio such that $ f_c = \frac{1}{2\pi \sigma} $ with $ \sigma $ scaling both the width and length in image space. To evaluate scale, we can either sample $ f_c $ or $ \sigma $ at the Chebyshev points in the interval of interest in order to obtain a polynomial in Chebyshev form that approximates the scale response.
+\section{Application to Width}
+To evaluate width, we modify the scaling component of the filter $ \Phi_f(f; f_c) $ such that it applies over a single direction rather than being isotropic.
+\begin{eqnarray}
+	\Phi_{f_x}(f_x; f_c) & = & \frac{\abs {f_x}}{f_c} \exp(-\frac{f_x^2}{2f_c^2}+\frac{1}{2})
+\end{eqnarray}
+We can generalize for other directions other than $ f_x $ by applying a rotation matrix to $ (f_x,f_y) $ in order obtain $ f_\theta $:
+\begin{eqnarray}
+    \mathrm{R}_\theta & = &
+    \begin{bmatrix}
+        \cos(\theta) & -\sin(\theta) \\
+        \sin(\theta) & \cos(\theta)
+    \end{bmatrix} \\
+   \left[f_{\theta},f_{\theta'}\right]^T  & = & \mathrm{R}_\theta [f_x,f_y]^T \\
+    & = & [ f_x\cos(\theta)  -f_y \sin(\theta) , f_x \sin(\theta) + f_y \cos(\theta) ]^T  \\
+    \Phi_{f_\theta}(f_\theta; f_c) & = & \frac{\abs {f_\theta}}{f_c} \exp(-\frac{f_\theta^2}{2f_c^2}+\frac{1}{2}) 
+\end{eqnarray}
+\subsection{Application to Point Source}
+Suppose that we have a 2D delta function, $ \delta(x,y) $, in the image domain at $ (0,0) $ and convolved it with a 2D Gaussian distribution with mean equal to zero and standard deviation $ \sigma $. In the Fourier domain, this results in a 2D Gaussian with a mean at zero frequency and standard deviation of $ \hat{\sigma} = 1/(2\pi\sigma) $:
+\begin{eqnarray}
+    G(x,y) & = & \frac{1}{2\pi\sigma^2} \exp(-\frac{x^2}{2\sigma^2})  \exp(-\frac{y^2}{2\sigma^2}) \\
+    \widehat{G}(f_x,f_y) & = & \exp(-\frac{f_x^2}{2}(2\pi\sigma)^2)  \exp(-\frac{f_y^2}{2}(2\pi\sigma)^2)\\
+    & = & \exp(-\frac{f_x^2}{2\hat{\sigma}^2})  \exp(-\frac{f_y^2}{2\hat{\sigma}^2}) \\
+    R(0,0; f_c) & = & \int_{-\infty}^{+\infty} \int_{-\infty}^{+\infty} \widehat{G}(f_x,f_y) \Phi_{f_x}(f_x; f_c) df_x df_y \\
+    & = & \frac{1}{\hat{\sigma}\sqrt{2\pi}} \int_{-\infty}^{+\infty} \exp(-\frac{f_x^2}{2\hat{\sigma}^2})  \frac{\abs {f_x}}{f_c} \exp(-\frac{f_x^2}{2f_c^2}+\frac{1}{2}) df_x  \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \int_{0}^{+\infty} \exp(-\frac{f_x^2}{2\hat{\sigma}^2})  \frac{f_x}{f_c} \exp(-\frac{f_x^2}{2f_c^2}+\frac{1}{2}) df_x  \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \int_{0}^{+\infty} \exp\left(-\frac{f_x^2}{2} \left(\frac{1}{\hat{\sigma}^2} +\frac{1}{f_c^2}\right)+\frac{1}{2}\right) \frac{f_x}{f_c} df_x \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \int_{0}^{+\infty} \exp\left(-\frac{f_x^2}{2} \left( \frac{f_c^2+\hat{\sigma}^2}{\hat{\sigma}^2f_c^2} \right) +\frac{1}{2}\right) \frac{f_x}{f_c} df_x \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \frac{1}{f_c} \left( \frac{\hat{\sigma}^2f_c^2}{f_c^2+\hat{\sigma}^2} \right) 
+    \left[ -\exp\left(-\frac{f_x^2}{2} \left( \frac{f_c^2+\hat{\sigma}^2}{\hat{\sigma}^2f_c^2} \right) + \frac{1}{2} \right)  \right]_0^{+\infty} \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \left( \frac{\hat{\sigma}^2f_c}{f_c^2+\hat{\sigma}^2} \right) 
+    \left[ 0 - -\exp(\frac{1}{2}) \right] \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \left( \frac{\hat{\sigma}^2f_c}{f_c^2+\hat{\sigma}^2} \right) \exp(\frac{1}{2})  \\
+    \frac{dR(0,0 ; f_c)}{df_c} & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \exp(\frac{1}{2}) \left[ \frac{\hat{\sigma}^2}{f_c^2+\hat{\sigma}^2} - \frac{2\hat{\sigma}^2f_c^2}{(f_c^2+\hat{\sigma}^2)^2}\right] \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \exp(\frac{1}{2}) \hat{\sigma}^2 \left[ \frac{ f_c^2+\hat{\sigma}^2  }{(f_c^2+\hat{\sigma}^2)^2} - \frac{2f_c^2}{(f_c^2+\hat{\sigma}^2)^2}\right] \\
+    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \exp(\frac{1}{2}) \hat{\sigma}^2 \left[ \frac{ \hat{\sigma}^2 - f_c^2  }{(f_c^2 + \hat{\sigma}^2)^2} \right] \\
+    \frac{dR(0,0 ; f_c = \hat{\sigma})}{df_c} & = &  0 \\
+    \frac{d^2R(0,0 ; f_c)}{df_c^2} & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \exp(\frac{1}{2}) \hat{\sigma}^2 \left[ \frac{ -2 f_c  }{ (f_c^2+\hat{\sigma}^2)^2 } 
+	    -4 f_c \frac{ \hat{\sigma}^2 - f_c^2  }{ (f_c^2+\hat{\sigma}^2)^3 } \right]  \\
+	    & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \exp(\frac{1}{2}) \hat{\sigma}^2  f_c \left[ \frac{ 2 f_c^2 -6 \hat{\sigma}^2  }{ (f_c^2+\hat{\sigma}^2)^3 } \right] \\
+	    \frac{d^2R(0,0 ; f_c = \hat{\sigma} )}{df_c^2} & = & \frac{2}{\hat{\sigma}\sqrt{2\pi}} \exp(\frac{1}{2}) \hat{\sigma}^3   \left[ \frac{ -4 \hat{\sigma}^2  }{ (f_c^2+\hat{\sigma}^2)^3 } \right] < 0
+\end{eqnarray}
+Since $ f_c > 0 $, the derivative of the response $ R(0,0) $ has one zero at $ f_c = \hat{\sigma} $. At $ f_c = \hat{\sigma} $ the second derivative is negative. Together this means that the response has a single absolute maximum when $ f_c = \hat{\sigma} $. Thus to detect the width $ \sigma $ we just need to find the $ f_c $ which maximizes the response. Then $ \sigma = \frac{1}{2\pi f_c} $. This is done by sampling the width on the Chebyshev-Lobatto grid, approximating the signal with a polynomial in Chebyshev form, and then finding the root of the derivative using a companion matrix approach as with the Fourier series.
+\subsection{Application to Infinite Line}
+Next suppose that we have 1D delta function in the image, $ \delta(y) $. And also convolve this with a Gaussian.
+\begin{eqnarray}
+	G(x,y) & = & \frac{1}{\sigma \sqrt{2 \pi}} \exp(-\frac{y^2}{2\sigma^2}) \\
+	\widehat{G}(f_x,f_y) & = & \exp(-\frac{f_x^2}{2 \hat{\sigma}^2}) \\
+	R(0,0; f_c) & = & \int_{-\pi}^{+\pi} \int_{-\infty}^{+\infty} \widehat{G}(f_x,f_y) \Phi_{f_x}(f_x; f_c) df_x df_y \\
+    & = & 2 \pi \int_{-\infty}^{+\infty} \exp(-\frac{f_x^2}{2\hat{\sigma}^2})  \frac{\abs {f_x}}{f_c} \exp(-\frac{f_x^2}{2f_c^2}+\frac{1}{2}) df_x  \\
+\end{eqnarray}
+Here we switch the limits of integration to $ (-\pi,\pi) $ otherwise the integral would evaluate to infinity. Technically this is the true limit for the point source case and then we should use the error function to evaluate the integral, but we assume that $ f_c \ll \pi $. Note that the 2D Fourier transform rotates the line by 90 degrees.
+\par
+The evaluation of the integral would then proceed in a similar fashion for the point source but with a different constant multiplier before the integral. Thus the width filter works on both a long line and a point source.
+\end{document}

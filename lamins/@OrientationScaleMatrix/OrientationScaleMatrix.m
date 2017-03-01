@@ -140,7 +140,7 @@ classdef OrientationScaleMatrix < double
                     if(S(1).subs{1} == ':')
                         B = double(A);
                     else
-                        B = interpft1(A.orientationRange,double(A),S(1).subs{1}(:));
+                        B = interpft1(A.orientationRange,double(A),S(1).subs{1}(:),'horner');
                         recast = false;
                     end
                     if(S(1).subs{2} == ':')
