@@ -157,12 +157,12 @@ for frame_num = 1:nFrames
    end
 % Update the waitbar
 %      if mod(frame_num, 5)==1 && ishandle(wtBar)
-     tj = toc;
-%      nj = (i-1)*nFrames+ frame_num;
-     nj = frame_num;
-     waitbar(nj/nFrames, wtBar, sprintf([logMsg(frame_num) timeMsg(tj*nTot/nj-tj)]));
-%      end         
-
+     if ishandle(wtBar)
+         tj = toc;
+    %      nj = (i-1)*nFrames+ frame_num;
+         nj = frame_num;
+         waitbar(nj/nFrames, wtBar, sprintf([logMsg(frame_num) timeMsg(tj*nTot/nj-tj)]));
+     end
 end
 
 imwrite(uint16(refFrame), outFilePaths{2, p.ChannelIndex(1)});

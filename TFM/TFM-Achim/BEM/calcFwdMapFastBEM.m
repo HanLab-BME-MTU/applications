@@ -26,7 +26,8 @@ v = ip.Results.PoissonRatio;
 
 % try to load the lookup table:
 try
-    load(basisClassTblPath);
+    basisClassTblData=load(basisClassTblPath);
+    basisClassTbl=basisClassTblData.basisClassTbl;
     addAtLeastOneToTbl=0;
 catch ME
     basisClassTbl=struct([]) ;

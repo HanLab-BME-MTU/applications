@@ -293,25 +293,34 @@ if p.lastToFirst
 else
     frameSequence = firstFrame:nFrames;
 end
-jj = 0;
+
 if strcmpi(p.method,'FastBEM')
     % if FastBEM, we calculate forward map and mesh only in the first frame
     % and then use parfor for the rest of the frames to calculate forces -
     % SH
     i=frameSequence(1); % For the first frame
-    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
+    [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
     % basis function table name adjustment
     expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix.mat'];
     
-    % Check if path exists
+    % Check if path exists - this step might not be needed because
+    % sometimes we need to build a new table with a new name.
     if isempty(p.basisClassTblPath)
         disp(['Note, no path given for basis tables, outputing to movieData.mat path: ' ...
             movieData.movieDataPath_]);
         p.basisClassTblPath = fullfile(movieData.movieDataPath_, expectedName);
     else
-        assert(exist(p.basisClassTblPath,'file')==2, 'basisFunctionFolderPath not valid!');
-        assert(numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) == 1, ['basisFunction.mat not valid!' p.basisClassTblPath]);
+        if exist(p.basisClassTblPath,'file')==2 
+            disp('BasisFunctionFolderPath is valid.');
+            if numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) ~= 1
+                disp(['basisFunction.mat not valid!' p.basisClassTblPath '. Will build a new basisFunction to this name.']);
+            end
+        else
+            disp('New basisFunctionFolderPath is entered. Will build a new table and save in this path.');
+        end
+%         assert(exist(p.basisClassTblPath,'file')==2, 'basisFunctionFolderPath not valid!');
+%         assert(numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) == 1, ['basisFunction.mat not valid!' p.basisClassTblPath]);
     end
 
     % Sanity check the paths.

@@ -71,6 +71,7 @@ ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
 ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
 ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
+ip.addParamValue('usePIVSuite',false,@islogical);
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
 maxSpd=ip.Results.maxSpd;
@@ -79,6 +80,7 @@ bgMask=ip.Results.bgMask;
 bgAvgImg=ip.Results.bgAvgImg;
 mode=ip.Results.mode;
 scoreCalculation=ip.Results.scoreCalculation;
+usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
 
 % SH: Poly-fit version
@@ -130,18 +132,58 @@ L=length(num2str(nPoints));
 strg=sprintf('%%.%dd',L);
 backSpc =repmat('\b',1,L);
 
+if usePIVSuite
+    disp('Performing PIV as a prestep...'); tic;
+    pivPar = [];      % variable for settings
+    pivData = [];     % variable for storing results
+
+    [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
+    % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
+    nextPow2=nextpow2(minCorL);
+    BiggestSize=2^(nextPow2+1);
+    SecondSize=2^(nextPow2);
+    ThirdSize=2^(nextPow2-1);
+    FourthSize=2^(nextPow2-2);
+    pivPar.iaSizeX = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+    pivPar.iaStepX = [SecondSize SecondSize ThirdSize FourthSize];     % grid spacing of velocity vectors in X
+    pivPar.iaSizeY = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+    pivPar.iaStepY = [SecondSize SecondSize ThirdSize FourthSize];    % grid spacing of velocity vectors in X
+
+    pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
+    pivPar.smMethod = 'none';
+    pivPar.iaMethod = 'defspline';
+    pivPar.iaImageInterpolationMethod = 'spline';
+    pivPar.imMask1=bgMask(:,:,1);
+    pivPar.imMask2=bgMask(:,:,2);
+
+    [pivData] = pivAnalyzeImagePair(stack(:,:,1),stack(:,:,2),pivData,pivPar);
+    validV = ~isnan(pivData.V);
+
+    pivPos=[pivData.X(validV), pivData.Y(validV)];
+    pivVec=[pivData.V(validV), pivData.U(validV)];
+    toc
+else
+    pivPos=[]; pivVec=[];
+end
+
 %Calculate the correlation coefficient for each sampling velocity at
 % each point.
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-% if isempty(gcp('nocreate'))
-%     try
-%         parpool local
-%     catch
-%         matlabpool
-%     end
-% end % we don't need this any more.
+poolobj = gcp('nocreate'); % If no pool, do not create new one.
+if isempty(poolobj)
+    poolsize = feature('numCores');
+else
+    poolsize = poolobj.NumWorkers;
+end
+if isempty(gcp('nocreate'))
+    try
+        parpool('local',poolsize)
+    catch
+        disp('Please use matlab version 2015a or higher to use parallel computing') %matlabpool
+    end
+end % we don't need this any more.
 
 parfor k = 1:nPoints
 % for k = 1:nPoints
@@ -245,6 +287,27 @@ parfor k = 1:nPoints
                 %Test the quality of the score function and find the index of the
                 % maximum score.
                 [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.59);
+                if usePIVSuite && length(locMaxI(:,1))>1
+                    % Here I use PIV result to find the best candidate
+                    % regardless of whether score passed or not from findMaxScoreI
+                    % Get the candidate vectors
+                    locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+                    % What's the piv result in location closest to [xI, yI]
+                    [idxPosClosePIV] = KDTreeClosestPoint(pivPos,[xI,yI]);
+%                     if distClose<minCorL/2
+                        candidateVec = pivVec(idxPosClosePIV,:);
+                        distToMaxV2 = sqrt(sum((locMaxV- ...
+                                ones(size(locMaxV,1),1)*candidateVec).^2,2));
+                        [~,indDist]=sort(distToMaxV2);
+                        % minD = distSorted(1);
+                        ind = indDist(1);
+                        maxI = locMaxI(ind,:);
+                        maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+                        pass = 2;
+%                     else
+%                         pass = 0;
+%                     end
+                end
                 if pass == 0 || corL < maxCorL
                     %Increase the block length and width by a factor of 5/4 to see if
                     % the ambiguity can be resovled. Also by comparing the two
@@ -269,7 +332,7 @@ parfor k = 1:nPoints
                         vF2 = minSpdF:maxSpdF;
                         vP2 = minSpdP:maxSpdP;
                         %End of debugging
-                        
+
                         hCLL    = min(xI-1,(corLInc-1)/2)+max(-vF2(1),0);
                         hCLR    = min(imgL-xI,(corLInc-1)/2)+max(vF2(end),0);
                         hCWL    = min(yI-1,(corLInc-1)/2)+max(-vP2(1),0);
@@ -289,7 +352,7 @@ parfor k = 1:nPoints
                         %The index of the center of image block in the kymographed or cropped
                         % image.
                         centerI = [hCWL+1,hCLL+1];
-                        
+
                         [score2,~,vP2,vF2] = calScore(kym,centerI,corLInc,...
                             vP2,vF2,'bAreaThreshold',bAreaThreshold,...
                             'kymMask',kymMask,'kymAvgImg',kymAvgImg,'mode',scoreCalculation);
@@ -337,7 +400,7 @@ parfor k = 1:nPoints
 
                             distToMaxV2 = sqrt(sum((locMaxV- ...
                                 ones(size(locMaxV,1),1)*maxV2).^2,2));
-                            
+
 %                             [minD,ind] = min(distToMaxV2);
                             %added by SH
                             % pick 3 smallest distances, and among them,
@@ -362,7 +425,7 @@ parfor k = 1:nPoints
 %                                 ind = indDistCand(indA);
 %                                 minD = distSorted(ind);
 %                             end
-                            
+
                             minD = distSorted(1);
                             ind = indDist(1);
 
@@ -396,7 +459,7 @@ parfor k = 1:nPoints
                             pass = 0;
                         end
                     end
-                else
+                elseif pass==1
                     maxI = locMaxI;
                 end
             end
@@ -600,7 +663,7 @@ end
 [m,n] = size(score);
 numSamples = m*n;
 
-avg = sum(score(:))/numSamples;
+% avg = sum(score(:))/numSamples;
 % dev = sum(abs(score(:)-avg))/numSamples;
 
 %Some threshold used for quality test.
