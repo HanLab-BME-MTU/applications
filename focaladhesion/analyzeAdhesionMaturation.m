@@ -101,7 +101,7 @@ end
 thisProc.setInFilePaths(inFilePaths);
     
 % Set up the output files
-outFilePaths = cell(8, numel(MD.channels_));
+outFilePaths = cell(4, numel(MD.channels_));
 for i = p.ChannelIndex
     [abpath chanDirName ~] = fileparts(MD.getChannelPaths{i});
     outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];

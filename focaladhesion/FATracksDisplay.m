@@ -1,13 +1,14 @@
-classdef MTTracksDisplay < MovieDataDisplay
-    %Conrete class for displaying flow
+classdef FATracksDisplay < MovieDataDisplay
+    %Conrete class for displaying FA tracks
+    
     properties
-        Events={'Growth','Pause','Shrinkage','Unclassified',...
-            'Growth reclass','Pause reclass'};
-        LineStyle='-:::-:';
-        LineWidth=1.5;
-        Color='rcymgb';  
-        dragtailLength=Inf;
+        Events = {'BA','NA','FC','FA'};
+        LineStyle = '------';
+        LineWidth = 0.5;
+        Color = 'grob';  
+        dragtailLength = Inf;
     end
+    
     methods
         function obj=TracksDisplay(varargin)
             nVarargin = numel(varargin);
