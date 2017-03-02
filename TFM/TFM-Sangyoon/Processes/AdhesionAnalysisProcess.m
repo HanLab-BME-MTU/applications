@@ -1,4 +1,4 @@
-classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
+classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProcess
     
     methods (Access = public)
     
@@ -28,13 +28,13 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
                 super_args{4} = funParams;
             end
             
-            obj = obj@DetectionProcess(super_args{:});
+            obj = obj@DataProcessingProcess(super_args{:});
                         
         end
 
         function sanityCheck(obj)
             
-            sanityCheck@ImageAnalysisProcess(obj);
+            sanityCheck@DataProcessingProcess(obj);
             
             % Cell Segmentation Check
             if obj.funParams_.ApplyCellSegMask                
@@ -101,8 +101,8 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             ip.addRequired('obj');
             ip.addRequired('iChan', @(x) obj.checkChanNum(x));
             ip.addOptional('iFrame', [] ,@(x) obj.checkFrameNum(x));
-            ip.addParamValue('useCache',false,@islogical);
-            ip.addParamValue('output', outputList{1}, @(x) all(ismember(x,outputList)));
+            ip.addParameter('useCache',false,@islogical);
+            ip.addParameter('output', outputList{1}, @(x) all(ismember(x,outputList)));
             ip.parse(obj,iChan,varargin{:})
             output = ip.Results.output;
             iFrame = ip.Results.iFrame;
@@ -111,7 +111,12 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             % Data loading
             % load outFilePaths_{1,iChan} (should contain tracksNA)
             s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
-            s = s.tableTracksNA;
+            if isstruct(s)
+                s = s.tableTracksNA;
+            else
+                disp('loaded as table');
+            end
+            %% Check struct vs table loading
             xCoord = s.xCoord(:,iFrame);
             yCoord = s.yCoord(:,iFrame);
             pres = s.presence(:,iFrame);
@@ -122,9 +127,7 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             for output_sel = output
                 switch output_sel{1}
                     case 'detectedFA'  
-                        varargout{1} = t;
-                        % for a given iFrame
-                        % we need xCord, yCord, state prescense
+                        output = t;
                     case 'adhboundary'
                     case 'tracks'
                     case 'staticTracks'
@@ -133,44 +136,32 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
                 end
                     
             end
-
-            % varargout = cell(numel(output), 1);
-            % for i = 1:numel(output)
-            %     % switch output{i}
-            %     %     case {'tracksFinal', 'staticTracks'}
-            %     %         varargout{i} = s.tracksFinal;
-            %     %     case 'gapInfo'
-            %     %         varargout{i} = findTrackGaps(s.tracksFinal);
-            %     % end
-            %     if strcmp(output{i}, 'tracksFinal') && ~isempty(iFrame),
-            %         % Filter tracks existing in input frame
-            %         trackSEL=getTrackSEL(s.tracksFinal);
-            %         validTracks = (iFrame>=trackSEL(:,1) &iFrame<=trackSEL(:,2));
-            %         [varargout{i}(~validTracks).tracksCoordAmpCG]=deal([]);
-                    
-            %         nFrames = iFrame-trackSEL(validTracks,1)+1;
-            %         nCoords = nFrames*8;
-            %         validOut = varargout{i}(validTracks);
-            %         for j=1:length(validOut)
-            %             validOut(j).tracksCoordAmpCG = validOut(j).tracksCoordAmpCG(:,1:nCoords(j));
-            %         end
-            %         varargout{i}(validTracks) = validOut;
-            %     end
-            % end
         end
 
-         function output = getDrawableOutput(obj)
-            output = getDrawableOutput@DetectionProcess(obj);
+    end
+
+
+    methods (Static)
+        function name = getName()
+            name = 'Focal Adhesion Analysis';
+        end
+
+        function h = GUI()
+            h = @focalAdhesionAnalysisProcessGUI;
+        end
+        
+        
+        function output = getDrawableOutput()
             output(1).name = 'Adhesion Detections';
             keySet = {'BA','NA','FC','FA'};
-            valueSet = {'g','r', 'o', 'b'};
+            valueSet = {'g','r', 'y', 'b'};
             ColorsDict = containers.Map(keySet,valueSet);
             % Detection Points
             % Colors = 'grob'; % optional
             output(1).var = 'detectedFA';
             output(1).formatData = [];%obj.formatSpotOutput;
             output(1).type = 'overlay';
-            output(1).defaultDisplayMethod = @(x)FASpotDisplay('ColorDict', ColorsDict);
+            output(1).defaultDisplayMethod=@(x) FASpotDisplay('ColorDict', ColorsDict);
             
             % % Adhesion Boundaries
             % colorsAdhBound = hsv(numel(obj.owner_.channels_));
@@ -201,18 +192,6 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
 
         end       
 
-    end
-
-
-    methods (Static)
-        function name = getName()
-            name = 'Focal Adhesion Analysis';
-        end
-
-        function h = GUI()
-            h = @focalAdhesionAnalysisProcessGUI;
-        end
-        
         function funParams = getDefaultParams(owner, varargin)
 
             % MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage')).outputDirectory_
@@ -245,15 +224,15 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             funParams.backupOldResults = true;           
         end
 
-        function y = formatSpotOutput(x)
-            % Format output in xy coordinate system
-%             if isempty(x.xCoord)
-%                 y = NaN(1,2);
-%             else
-%                 y = horzcat(x.xCoord(:,1), x.yCoord(:,1), x.state(:,1));
-%             end
-                y = x;
-        end
+%         function y = formatSpotOutput(x)
+%             % Format output in xy coordinate system
+% %             if isempty(x.xCoord)
+% %                 y = NaN(1,2);
+% %             else
+% %                 y = horzcat(x.xCoord(:,1), x.yCoord(:,1), x.state(:,1));
+% %             end
+%                 y = x;
+%         end
 
         function displayTracks = formatTracks(tracks)
             % Format tracks structure into compound tracks for display
@@ -436,7 +415,6 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
                 end
             end
         end      
-
 
     end
 end

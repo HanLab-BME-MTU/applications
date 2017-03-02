@@ -4,7 +4,7 @@ classdef FASpotDisplay < MovieDataDisplay
 
     properties
         % FA_types = {'BA','NA','FC','FA'};
-        ColorDict = containers.Map({'BA','NA','FC','FA'}, {'g','r', 'o', 'b'})
+        ColorDict = containers.Map({'BA','NA','FC','FA'}, {'g','r', 'y', 'b'})
         Marker = 'o';
         MarkerSize = 6; 
         LineStyle = '-';
@@ -17,31 +17,39 @@ classdef FASpotDisplay < MovieDataDisplay
     end
     methods
                         
-        function obj=LineDisplay(varargin)
-            nVarargin = numel(varargin);
-            if nVarargin > 1 && mod(nVarargin,2)==0
-                for i=1 : 2 : nVarargin-1
-                    obj.(varargin{i}) = varargin{i+1};
-                end
-            end
+        function obj=FASpotDisplay(varargin)
+            obj = obj@MovieDataDisplay(varargin{:});
+%             nVarargin = numel(varargin);
+%             if nVarargin > 1 && mod(nVarargin,2)==0
+%                 for i=1 : 2 : nVarargin-1
+%                     obj.(varargin{i}) = varargin{i+1};
+%                 end
+%             end
         end
         function h=initDraw(obj,data,tag,varargin)
 
-            if isempty(data.x), h=[]; return; end            
-            h = gobjects(size(data.x,1),1);
+            if isempty(data.xCoord), h=[]; return; end            
+            h = gobjects(size(data.xCoord,1),1);
                         
+            index = 1;
             for FAtype = obj.ColorDict.keys  
-                rows = data.state == 'FC';
+                rows = data.state == FAtype{1} & data.pres == true;
                 vars = {'xCoord','yCoord'};
-                h(index) = initDraw@LineDisplay(obj, data{rows,vars}, tag, 'Color', obj.ColorDict(FAtype), varargin{:});
+                d = data{rows,vars};
+                if ~isempty(d)
+%                     FAtype
+%                     obj.ColorDict(FAtype{1})
+                    h(index) = plot(d(:,1) ,d(:,2), 'Color', obj.ColorDict(FAtype{1}), varargin{:});
+                    set(h(index),'Tag',tag);                    
+                    index = 1+index;
+                end
             end
 
-            set(h,'Tag',tag);
         end
         
         function updateDraw(obj,h,data)
             % Update handle xData and yData
-            set(h,'XData',data(:,1),'YData',data(:,2));
+            set(h,'XData',data{:,1},'YData', data{:,2});
             obj.setLineProperties(h);
             obj.setAxesProperties();
         end
@@ -61,6 +69,40 @@ classdef FASpotDisplay < MovieDataDisplay
         end
     end    
     
+        % function h=draw(obj,data,tag,varargin)
+        %     % Template method to draw a movie data component
+            
+        %     % Check input
+            
+        %     ip =inputParser;
+        %     ip.addRequired('obj',@(x) isa(x,'MovieDataDisplay'));
+        %     ip.addRequired('data',obj.getDataValidator());
+        %     ip.addRequired('tag',@ischar);
+        %     ip.addParamValue('hAxes',gca,@ishandle);
+        %     params = obj.getParamValidators;
+        %     for i=1:numel(params)
+        %         ip.addParamValue(params(i).name,obj.(params(i).name),params(i).validator);
+        %     end
+        %     ip.KeepUnmatched = true; % Allow unmatched arguments
+        %     ip.parse(obj,data,tag,varargin{:});
+        %     for i=1:numel(params)
+        %         obj.(params(i).name)=ip.Results.(params(i).name);
+        %     end
+            
+        %     % Retrieve the axes handle and call the create figure method 
+        %     hAxes = ip.Results.hAxes;
+        %     set(hAxes,'NextPlot','add');
+            
+        %     % Get the component handle and call the adapted draw function
+        %     h = findobj(hAxes,'-regexp','Tag',['^' tag '$']);
+        %     if ~isempty(h) && any(ishandle(h))
+        %         obj.updateDraw(h,data);
+        %     else
+        %         h=obj.initDraw(data,tag,'Parent',hAxes);
+        %     end
+        % end
+
+
     methods (Static)
         function params=getParamValidators()
             params(1).name='ColorDict';
@@ -85,7 +127,7 @@ classdef FASpotDisplay < MovieDataDisplay
             params(10).validator=@(x) isempty(x) || isa(x, 'function_handle');
         end
         function f=getDataValidator()
-            f=@isnumeric;
+            f=@istable;
         end
     end    
 end
