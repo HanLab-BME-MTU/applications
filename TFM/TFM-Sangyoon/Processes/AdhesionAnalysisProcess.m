@@ -92,7 +92,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                 obj.funParams_.FAsegProc = iProc;
             end
         end
-            
+        
         function output = loadChannelOutput(obj, iChan, varargin)
             % Input check
             outputList = {'detectedFA','adhboundary','tracks','staticTracks'};
@@ -138,6 +138,8 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             end
         end
 
+        
+        
     end
 
 

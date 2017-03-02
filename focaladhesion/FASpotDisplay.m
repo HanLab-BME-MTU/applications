@@ -18,6 +18,16 @@ classdef FASpotDisplay < MovieDataDisplay
     methods
                         
         function obj=FASpotDisplay(varargin)
+            
+%             ip =inputParser;
+%             ip.addRequired('obj');
+%             ip.addParameter('ColorDict',ColorDict,@islogical);
+%             ip.addParameter('output', outputList{1}, @(x) all(ismember(x,outputList)));
+%             ip.parse(obj,iChan,varargin{:})
+%             output = ip.Results.output;
+%             iFrame = ip.Results.iFrame;
+            
+            
             obj = obj@MovieDataDisplay(varargin{:});
 %             nVarargin = numel(varargin);
 %             if nVarargin > 1 && mod(nVarargin,2)==0
@@ -29,7 +39,7 @@ classdef FASpotDisplay < MovieDataDisplay
         function h=initDraw(obj,data,tag,varargin)
 
             if isempty(data.xCoord), h=[]; return; end            
-            h = gobjects(size(data.xCoord,1),1);
+            h = gobjects(numel(obj.ColorDict.keys),1);
                         
             index = 1;
             for FAtype = obj.ColorDict.keys  
