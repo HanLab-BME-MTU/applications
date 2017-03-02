@@ -48,7 +48,7 @@ for k = FCIdx'
 %     plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
     if ~isempty(adhBoundary{frameNum})
         adhBoundary = adhBoundary{frameNum};
-        plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+        plot(adhBoundary(:,2), adhBoundary(:,1), 'c', 'LineWidth', 0.5) %adhesion boundary
     end
 end
 % for larger adhesions
@@ -56,7 +56,7 @@ for k = FAIdx'
     adhBoundary = adhBound{k};
     if ~isempty(adhBoundary{frameNum})
         adhBoundary = adhBoundary{frameNum};
-        plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+        plot(adhBoundary(:,2), adhBoundary(:,1), 'c', 'LineWidth', 0.5) %adhesion boundary
     end
 end
 

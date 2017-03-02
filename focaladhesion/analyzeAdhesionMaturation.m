@@ -751,7 +751,8 @@ for k=1:numTracks
 end
 end
 %% saving
-save(dataPath_tracksNA, 'tracksNA')
+tableTracksNA = struct2table(tracksNA);
+save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA');
 save(dataPath_focalAdhInfo, 'focalAdhInfo')
 
 %% NA FA Density analysis

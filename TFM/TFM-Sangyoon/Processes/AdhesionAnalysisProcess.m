@@ -28,7 +28,7 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
                 super_args{4} = funParams;
             end
             
-            obj = obj@ImageAnalysisProcess(super_args{:});
+            obj = obj@DetectionProcess(super_args{:});
                         
         end
 
@@ -95,7 +95,8 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             
         function output = loadChannelOutput(obj, iChan, varargin)
             % Input check
-            outputList = {'tracksFinal', 'staticTracks'};
+            outputList = {'detectedFA','adhboundary','tracks','staticTracks'};
+
             ip =inputParser;
             ip.addRequired('obj');
             ip.addRequired('iChan', @(x) obj.checkChanNum(x));
@@ -108,48 +109,96 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             if ischar(output),output={output}; end
             
             % Data loading
-            % load outFilePaths_{1,iChan}
-            s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tracksFinal');
+            % load outFilePaths_{1,iChan} (should contain tracksNA)
+            s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
+            s = s.tableTracksNA;
+            xCoord = s.xCoord(:,iFrame);
+            yCoord = s.yCoord(:,iFrame);
+            pres = s.presence(:,iFrame);
+            state = categorical(s.state(:,iFrame));
 
-            varargout = cell(numel(output), 1);
-            for i = 1:numel(output)
-                % switch output{i}
-                %     case {'tracksFinal', 'staticTracks'}
-                %         varargout{i} = s.tracksFinal;
-                %     case 'gapInfo'
-                %         varargout{i} = findTrackGaps(s.tracksFinal);
-                % end
-                if strcmp(output{i}, 'tracksFinal') && ~isempty(iFrame),
-                    % Filter tracks existing in input frame
-                    trackSEL=getTrackSEL(s.tracksFinal);
-                    validTracks = (iFrame>=trackSEL(:,1) &iFrame<=trackSEL(:,2));
-                    [varargout{i}(~validTracks).tracksCoordAmpCG]=deal([]);
-                    
-                    nFrames = iFrame-trackSEL(validTracks,1)+1;
-                    nCoords = nFrames*8;
-                    validOut = varargout{i}(validTracks);
-                    for j=1:length(validOut)
-                        validOut(j).tracksCoordAmpCG = validOut(j).tracksCoordAmpCG(:,1:nCoords(j));
-                    end
-                    varargout{i}(validTracks) = validOut;
+            t = table(xCoord, yCoord, state, pres);
+
+            for output_sel = output
+                switch output_sel{1}
+                    case 'detectedFA'  
+                        varargout{1} = t;
+                        % for a given iFrame
+                        % we need xCord, yCord, state prescense
+                    case 'adhboundary'
+                    case 'tracks'
+                    case 'staticTracks'
+                    otherwise
+                        error('Incorrect Output Var type');
                 end
+                    
             end
+
+            % varargout = cell(numel(output), 1);
+            % for i = 1:numel(output)
+            %     % switch output{i}
+            %     %     case {'tracksFinal', 'staticTracks'}
+            %     %         varargout{i} = s.tracksFinal;
+            %     %     case 'gapInfo'
+            %     %         varargout{i} = findTrackGaps(s.tracksFinal);
+            %     % end
+            %     if strcmp(output{i}, 'tracksFinal') && ~isempty(iFrame),
+            %         % Filter tracks existing in input frame
+            %         trackSEL=getTrackSEL(s.tracksFinal);
+            %         validTracks = (iFrame>=trackSEL(:,1) &iFrame<=trackSEL(:,2));
+            %         [varargout{i}(~validTracks).tracksCoordAmpCG]=deal([]);
+                    
+            %         nFrames = iFrame-trackSEL(validTracks,1)+1;
+            %         nCoords = nFrames*8;
+            %         validOut = varargout{i}(validTracks);
+            %         for j=1:length(validOut)
+            %             validOut(j).tracksCoordAmpCG = validOut(j).tracksCoordAmpCG(:,1:nCoords(j));
+            %         end
+            %         varargout{i}(validTracks) = validOut;
+            %     end
+            % end
         end
 
          function output = getDrawableOutput(obj)
-            colors = hsv(numel(obj.owner_.channels_));
-            output(1).name='Tracks';
-            output(1).var='tracksFinal';
-            output(1).formatData=@TrackingProcess.formatTracks;
-            output(1).type='overlay';
-            output(1).defaultDisplayMethod = @(x)FATracksDisplay(...
-                'Color',colors(x,:));
-            output(2).name='Static tracks';
-            output(2).var='staticTracks';
-            output(2).formatData=@TrackingProcess.formatTracks;
-            output(2).type='overlay';
-            output(2).defaultDisplayMethod = @(x)FATracksDisplay(...
-                'Color',colors(x,:), 'useDragtail', false);
+            output = getDrawableOutput@DetectionProcess(obj);
+            output(1).name = 'Adhesion Detections';
+            keySet = {'BA','NA','FC','FA'};
+            valueSet = {'g','r', 'o', 'b'};
+            ColorsDict = containers.Map(keySet,valueSet);
+            % Detection Points
+            % Colors = 'grob'; % optional
+            output(1).var = 'detectedFA';
+            output(1).formatData = [];%obj.formatSpotOutput;
+            output(1).type = 'overlay';
+            output(1).defaultDisplayMethod = @(x)FASpotDisplay('ColorDict', ColorsDict);
+            
+            % % Adhesion Boundaries
+            % colorsAdhBound = hsv(numel(obj.owner_.channels_));
+            % output(2).name='Adh. Boundaries';
+            % output(2).var='adhboundary';
+            % output(2).formatData=@DetectionProcess.formatOutput;
+            % output(2).type='overlay';
+            % output(2).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+            %     'LineStyle','none','Color', colorsAdhBound(x,:));
+            
+            % % Tracks
+            % colors = hsv(numel(obj.owner_.channels_));
+            % output(3).name='FA Tracks';
+            % output(3).var='tracks';
+            % output(3).formatData=@TrackingProcess.formatTracks;
+            % output(3).type='overlay';
+            % output(3).defaultDisplayMethod = @(x)FATracksDisplay(...
+            %     'Color',colors(x,:));
+            
+            % output(4).name='Static FA tracks';
+            % output(4).var='staticTracks';
+            % output(4).formatData=@TrackingProcess.formatTracks;
+            % output(4).type='overlay';
+            % output(4).defaultDisplayMethod = @(x)FATracksDisplay(...
+            %     'Color',colors(x,:), 'useDragtail', false);
+
+
+
         end       
 
     end
@@ -194,6 +243,16 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             
             %% TODO - likely will remove this.
             funParams.backupOldResults = true;           
+        end
+
+        function y = formatSpotOutput(x)
+            % Format output in xy coordinate system
+%             if isempty(x.xCoord)
+%                 y = NaN(1,2);
+%             else
+%                 y = horzcat(x.xCoord(:,1), x.yCoord(:,1), x.state(:,1));
+%             end
+                y = x;
         end
 
         function displayTracks = formatTracks(tracks)
