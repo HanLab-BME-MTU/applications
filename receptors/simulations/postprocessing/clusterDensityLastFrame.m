@@ -1,20 +1,16 @@
-function clusterStatsLastFrame = clusterDensityLastFrame(compTracksAggregState,infoSpaceTime)
+function clusterStatsLastFrame = clusterDensityLastFrame(clusterCount,infoSpaceTime)
 %CLUSTERDENSITYLASTFRAME calculates cluster densities in the last frame
 %
 %   SYNPOSIS: clusterStatsLastFrame = clusterDensityLastFrame(movieInfoLastFrame,infoIntensitySpace)
 %
 %   INPUT:   
 %
-%       compTracksAggregState: in the static case is a list of detected 
+%       detectionAggregState: in the static case is a list of detected 
 %                              features in the last frame, as output by 
 %                              genMovieInfoFromTracksTracksSparse
 %
 %
-%       infoSpaceTime: Structure with fields:
-%                   
-%                   .intensityInfo: Row vector with unit intensity mean 
-%                    and standard deviation (e.g. the intensity of a single
-%                    fluorophore labeling a single receptor).
+%       infoSpaceTime: Structure with fields:                
 %                  
 %                    .probDim        : Problem dimensionality.
 %
@@ -43,47 +39,9 @@ function clusterStatsLastFrame = clusterDensityLastFrame(compTracksAggregState,i
 %% Input
 
 %get intensity and space information
-intensityInfo = infoSpaceTime.intensityInfo(1);
 probDim = infoSpaceTime.probDim;
 areaSideLen = infoSpaceTime.areaSideLen;
 
-
-%% Calculate the density
-
-% load the intensity information for all segments present in the last frame
-
-intensityVector=compTracksAggregState.amp(:,1);
-
-
-%divide intensity by unit intensity to get cluster size
-clustSizeVec = round(intensityVector/intensityInfo);
-clustSizeVec(clustSizeVec==0) = 1;
-
-
-% calculate the maximum cluster size
-
-maxClustSize=max(clustSizeVec);
-
-%use hist function to count number of clusters of different sizes
-clusterCount = hist(clustSizeVec,1:maxClustSize);
-
-% %reserve memory, the number of row is equivalent to cluster size and for
-% %each cluster size the number of elements in that
-% 
-% clusterCount = zeros(maxClustSize,1);
-% 
-% %For each segment in movieInfoLastFrame calculate the cluster size
-% 
-% for segIndex=1:length(intensityVector)
-% % calculate the round value of intensity, 1 cluster size 1, 2 cluster size
-% % 2 and so on
-% 
-% intensityValue=round(intensityVector(segIndex)/intensityInfo);
-% if intensityValue~=0
-% clusterCount(intensityValue) = ...
-% clusterCount(intensityValue) + 1;
-% end
-% end
 
 
 % to have the same outputs as in the function clusterNumbersFromCompTracks
