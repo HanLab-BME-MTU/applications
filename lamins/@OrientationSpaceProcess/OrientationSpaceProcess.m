@@ -8,6 +8,10 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
     methods
         
         function obj = OrientationSpaceProcess(owner,varargin)
+%             if(nargin < 1)
+%                 % Allow empty creation
+%                 return;
+%             end
             ip = inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
             ip.addOptional('funParams', ...
@@ -115,7 +119,7 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 otherwise
                     varargout{1}=s.(output{1});
             end
-            if(strcmp(output{1},'maxima') && strcmp(output{2},'nlms'))
+            if(length(output) > 1 && strcmp(output{1},'maxima') && strcmp(output{2},'nlms'))
                 varargout{1} = {s.maxima,s.nlms};
             end
         end
@@ -306,7 +310,7 @@ function saveOrientationSpaceResponse(process)
         template = [process.outFilePaths_{c} filesep 'nlms_c%02d_t%03d_z%03d.mat'];
         for t = params.t
             for z = params.z
-                progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                 out.ctz = [c t z];
                 out.maxima = cell(1,length(out.uMaximaOrder));
                 out.nlms = cell(1,length(params.responseAngularOrder));
@@ -317,7 +321,7 @@ function saveOrientationSpaceResponse(process)
                     tempResponse = response.getResponseAtOrderFT(out.uMaximaOrder(u));
                     out.maxima{u} = tempResponse.getRidgeOrientationLocalMaxima;
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                 end
                 lastOrder = out.uMaximaOrder(u);
                 for m = 1:length(params.responseAngularOrder)
@@ -328,15 +332,15 @@ function saveOrientationSpaceResponse(process)
                     
                     out.nlms{m} = tempResponse.nonLocalMaximaSuppressionPrecise(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                     
                     out.maxRes{m} = tempResponse.getMaxResponseFT(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                     
                     out.maxima_value{m} = tempResponse.interpft1(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                     
                 end
                                
