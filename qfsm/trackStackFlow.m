@@ -185,7 +185,9 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
-parfor k = 1:nPoints
+inqryPoint=2000;
+for k = inqryPoint
+% parfor k = 1:nPoints
 % for k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
@@ -213,8 +215,13 @@ parfor k = 1:nPoints
         end
         %Always get back the initial max speed for new 'corL'.
         % We devide the max speed by 2 due the use of the while loop below.
-        maxFlowSpd = initMaxFlowSpd/2;
-        maxPerpSpd = initMaxPerpSpd/2;
+%         if usePIVSuite % In this case we don't need incremental assessment -SH20170301
+%             maxFlowSpd = maxSpdLimit/2;
+%             maxPerpSpd = maxSpdLimit/2;
+%         else
+            maxFlowSpd = initMaxFlowSpd/2;
+            maxPerpSpd = initMaxPerpSpd/2;
+%         end
         
         %Flag that indicates the quality of the score.
         pass = 0;
@@ -287,27 +294,31 @@ parfor k = 1:nPoints
                 %Test the quality of the score function and find the index of the
                 % maximum score.
                 [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.59);
-                if usePIVSuite && length(locMaxI(:,1))>1
-                    % Here I use PIV result to find the best candidate
-                    % regardless of whether score passed or not from findMaxScoreI
-                    % Get the candidate vectors
-                    locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
-                    % What's the piv result in location closest to [xI, yI]
-                    [idxPosClosePIV] = KDTreeClosestPoint(pivPos,[xI,yI]);
+%                 if usePIVSuite && length(locMaxI(:,1))>1
+%                     % Here I use PIV result to find the best candidate
+%                     % regardless of whether score passed or not from findMaxScoreI
+%                     % Get the candidate vectors
+%                     locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+%                     % What's the piv result in location closest to [xI, yI]
+%                     [idxPosClosePIV,distClose] = KDTreeClosestPoint(pivPos,[xI,yI]);
 %                     if distClose<minCorL/2
-                        candidateVec = pivVec(idxPosClosePIV,:);
-                        distToMaxV2 = sqrt(sum((locMaxV- ...
-                                ones(size(locMaxV,1),1)*candidateVec).^2,2));
-                        [~,indDist]=sort(distToMaxV2);
-                        % minD = distSorted(1);
-                        ind = indDist(1);
-                        maxI = locMaxI(ind,:);
-                        maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
-                        pass = 2;
+%                         candidateVec = pivVec(idxPosClosePIV,:);
+%                         distToMaxV2 = sqrt(sum((locMaxV- ...
+%                                 ones(size(locMaxV,1),1)*candidateVec).^2,2));
+%                         [distSorted,indDist]=sort(distToMaxV2);
+%                         minD = distSorted(1);
+%                         ind = indDist(1);
+%                         if minD < 0.1*candidateVec
+%                             maxI = locMaxI(ind,:);
+%                             maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+%                             pass = 2;
+%                         else
+%                             pass = 0;
+%                         end
 %                     else
 %                         pass = 0;
 %                     end
-                end
+%                 end
                 if pass == 0 || corL < maxCorL
                     %Increase the block length and width by a factor of 5/4 to see if
                     % the ambiguity can be resovled. Also by comparing the two
@@ -392,8 +403,30 @@ parfor k = 1:nPoints
     %                         
     %                         [minD,ind] = min(distToMaxV2);
     %                         maxV = locMaxV(ind,:);
-
                             maxV2 = [vP2(maxI2(1)) vF2(maxI2(2))];
+                            maxVNorm = max(norm(maxV2));%,norm(maxV)); % For efficiency, I moved maxInterpfromScore into if statement
+                            if usePIVSuite && length(locMaxI(:,1))>1
+                                % Here I use PIV result to find the best candidate
+                                % regardless of whether score passed or not from findMaxScoreI
+                                % Get the candidate vectors
+                                locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+                                % What's the piv result in location closest to [xI, yI]
+                                [idxPosClosePIV,distClose] = KDTreeClosestPoint(pivPos,[xI,yI]);
+                                if distClose<0.1*minCorL
+                                    candidateVec = pivVec(idxPosClosePIV,:);
+                                    distToMaxV2 = sqrt(sum((locMaxV- ...
+                                            ones(size(locMaxV,1),1)*candidateVec).^2,2));
+                                    [distSorted,indDist]=sort(distToMaxV2);
+                                    minD = distSorted(1);
+                                    ind = indDist(1);
+                                    if minD<0.1*norm(candidateVec)
+                                        maxI = locMaxI(ind,:);
+                                        maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+                                        pass = 2;
+                                        break
+                                    end
+                                end
+                            end
                             [~,locMaxI] = findMaxScoreI(score,zeroI,minFeatureSize,0.3); %to find the most closest candidate. This needs to be tested.
 
                             locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
@@ -429,7 +462,6 @@ parfor k = 1:nPoints
                             minD = distSorted(1);
                             ind = indDist(1);
 
-                            maxVNorm = max(norm(maxV2));%,norm(maxV)); % For efficiency, I moved maxInterpfromScore into if statement
                             if maxVNorm == 0 || ...
                                     (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
                                     (pass == 1 && maxVNorm < 0.5) || ...
