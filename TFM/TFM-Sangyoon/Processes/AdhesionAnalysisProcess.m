@@ -95,7 +95,8 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         
         function output = loadChannelOutput(obj, iChan, varargin)
             % Input check
-            outputList = {'detBA','detectedFA','adhboundary','tracks','staticTracks'};
+            outputList = {'detBA','detectedFA','detFA','detFC','detNA',...
+                          'adhboundary','tracks','staticTracks'};
 
             ip =inputParser;
             ip.addRequired('obj');
@@ -128,8 +129,20 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                 switch output_sel{1}
                     case 'detectedFA'  
                         output = t;
-                    case 'detBA'
+                    case 'detBA' 
                         rows = t.state == 'BA';
+                        vars = {'xCoord','yCoord'};
+                        output = t{rows,vars};                 
+                    case 'detNA'
+                        rows = t.state == 'NA';
+                        vars = {'xCoord','yCoord'};
+                        output = t{rows,vars};                 
+                    case 'detFC'
+                        rows = t.state == 'FC';
+                        vars = {'xCoord','yCoord'};
+                        output = t{rows,vars};                 
+                    case 'detFA'
+                        rows = t.state == 'FA';
                         vars = {'xCoord','yCoord'};
                         output = t{rows,vars};                 
                     case 'adhboundary'
@@ -180,17 +193,42 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             % output(1).type = 'overlay';
             % output(1).defaultDisplayMethod=@(x)FASpotDisplay('ColorDict', ColorsDict);
             
-            % BA Detection
+            % BA Detection (Before Adhesion)
             % colors = 'g';
-            output(1).name='BA Detection';
-            output(1).var='detBA';
+            i = 1;
+            output(i).name='Before Adhesion Detection'; 
+            output(i).var='detBA';
             output(1).formatData=[];
             output(1).type='overlay';
-            output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+            output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','d',...
                 'LineStyle','none', 'Color', 'g');            
-            % NA Detection
-            % FC Detection
-            % FA Detection
+            
+            % NA Detection Nascent Adhesion
+            i = 2;
+            output(i).name='Nascent Adhesion Detection'; 
+            output(i).var='detNA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none', 'LineWidth', .7, 'Color', 'r'); 
+            
+            % FC Detection Focal Contact
+            i = 3;
+            output(i).name='Focal Contact Detection'; 
+            output(i).var='detFC';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none', 'LineWidth', .75, 'Color', [255/255 153/255 51/255]); 
+
+            % FA Detection Focal Adhesion
+            i = 4;
+            output(i).name='Focal Adhesion Detection'; 
+            output(i).var='detFA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none', 'LineWidth', .75, 'Color', 'b'); 
 
             % BA Track
             % NA Track
