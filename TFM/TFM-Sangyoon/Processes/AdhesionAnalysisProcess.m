@@ -95,13 +95,13 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         
         function output = loadChannelOutput(obj, iChan, varargin)
             % Input check
-            outputList = {'detectedFA','adhboundary','tracks','staticTracks'};
+            outputList = {'detBA','detectedFA','adhboundary','tracks','staticTracks'};
 
             ip =inputParser;
             ip.addRequired('obj');
             ip.addRequired('iChan', @(x) obj.checkChanNum(x));
             ip.addOptional('iFrame', [] ,@(x) obj.checkFrameNum(x));
-            ip.addParameter('useCache',false,@islogical);
+            ip.addParameter('useCache',true,@islogical);
             ip.addParameter('output', outputList{1}, @(x) all(ismember(x,outputList)));
             ip.parse(obj,iChan,varargin{:})
             output = ip.Results.output;
@@ -128,20 +128,36 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                 switch output_sel{1}
                     case 'detectedFA'  
                         output = t;
+                    case 'detBA'
+                        rows = t.state == 'BA';
+                        vars = {'xCoord','yCoord'};
+                        output = t{rows,vars};                 
                     case 'adhboundary'
                     case 'tracks'
                     case 'staticTracks'
                     otherwise
                         error('Incorrect Output Var type');
-                end
-                    
+                end   
             end
-        end
-
-        
-        
+        end      
     end
 
+% t = tableTracksNA;
+% for i = 1:50
+%     xCoord = t.xCoord(:,i);
+%     yCoord = t.yCoord(:,i);
+%     pres = t.presence(:,i);
+%     state = categorical(t.state(:,i));
+%     iFrame = repmat(i,[length(xCoord),1]);
+%     ti = table(xCoord, yCoord, state, pres, iFrame);
+%     if i == 1
+%         tb = ti;
+%     else
+%         tb = vertcat(tb,ti);
+%     end
+  
+% end
+% -------------> need stack!
 
     methods (Static)
         function name = getName()
@@ -152,19 +168,36 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             h = @focalAdhesionAnalysisProcessGUI;
         end
         
-        
         function output = getDrawableOutput()
-            output(1).name = 'Adhesion Detections';
-            keySet = {'BA','NA','FC','FA'};
-            valueSet = {'g','r', 'y', 'b'};
-            ColorsDict = containers.Map(keySet,valueSet);
-            % Detection Points
-            % Colors = 'grob'; % optional
-            output(1).var = 'detectedFA';
-            output(1).formatData = [];%obj.formatSpotOutput;
-            output(1).type = 'overlay';
-            output(1).defaultDisplayMethod=@(x) FASpotDisplay('ColorDict', ColorsDict);
+            % output(1).name = 'Adhesion Detections';
+            % keySet = {'BA','NA','FC','FA'};
+            % valueSet = {'g','r', 'y', 'b'};
+            % ColorsDict = containers.Map(keySet,valueSet);
+            % % Detection Points
+            % % Colors = 'grob'; % optional
+            % output(1).var = 'detectedFA';
+            % output(1).formatData = [];%obj.formatSpotOutput;
+            % output(1).type = 'overlay';
+            % output(1).defaultDisplayMethod=@(x)FASpotDisplay('ColorDict', ColorsDict);
             
+            % BA Detection
+            % colors = 'g';
+            output(1).name='BA Detection';
+            output(1).var='detBA';
+            output(1).formatData=[];
+            output(1).type='overlay';
+            output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none', 'Color', 'g');            
+            % NA Detection
+            % FC Detection
+            % FA Detection
+
+            % BA Track
+            % NA Track
+            % FC Track
+            % FA Track
+
+
             % % Adhesion Boundaries
             % colorsAdhBound = hsv(numel(obj.owner_.channels_));
             % output(2).name='Adh. Boundaries';
@@ -225,16 +258,6 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             %% TODO - likely will remove this.
             funParams.backupOldResults = true;           
         end
-
-%         function y = formatSpotOutput(x)
-%             % Format output in xy coordinate system
-% %             if isempty(x.xCoord)
-% %                 y = NaN(1,2);
-% %             else
-% %                 y = horzcat(x.xCoord(:,1), x.yCoord(:,1), x.state(:,1));
-% %             end
-%                 y = x;
-%         end
 
         function displayTracks = formatTracks(tracks)
             % Format tracks structure into compound tracks for display

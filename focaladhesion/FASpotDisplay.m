@@ -6,9 +6,9 @@ classdef FASpotDisplay < MovieDataDisplay
         % FA_types = {'BA','NA','FC','FA'};
         ColorDict = containers.Map({'BA','NA','FC','FA'}, {'g','r', 'y', 'b'})
         Marker = 'o';
-        MarkerSize = 6; 
-        LineStyle = '-';
-        LineWidth = 1;
+        MarkerSize = 5; 
+        LineStyle = 'none';
+        LineWidth = .5;
         XLabel='';
         YLabel='';
         sfont = {'FontName', 'Helvetica', 'FontSize', 18};
@@ -43,33 +43,54 @@ classdef FASpotDisplay < MovieDataDisplay
                         
             index = 1;
             for FAtype = obj.ColorDict.keys  
-                rows = data.state == FAtype{1} & data.pres == true;
+                rows = data.state == FAtype{1};
                 vars = {'xCoord','yCoord'};
                 d = data{rows,vars};
                 if ~isempty(d)
-%                     FAtype
-%                     obj.ColorDict(FAtype{1})
-                    h(index) = plot(d(:,1) ,d(:,2), 'Color', obj.ColorDict(FAtype{1}), varargin{:});
+                    h(index) = plot(d(:,1) ,d(:,2), 'Color',...
+                        obj.ColorDict(FAtype{1}), varargin{:},...
+                        'Linestyle', obj.LineStyle, 'LineWidth', obj.LineWidth,...
+                        'MarkerSize', obj.MarkerSize, 'Marker',obj.Marker);
                     set(h(index),'Tag',tag);                    
                     index = 1+index;
                 end
             end
+            
+            % Necessary?
+            obj.setAxesProperties();
 
         end
         
         function updateDraw(obj,h,data)
-            % Update handle xData and yData
-            set(h,'XData',data{:,1},'YData', data{:,2});
-            obj.setLineProperties(h);
+            tag=get(h(1),'Tag');
+            
+            delete(h(:));
+            
+            index = 1;
+            for FAtype = obj.ColorDict.keys  
+                
+                rows = data.state == FAtype{1};
+                vars = {'xCoord','yCoord'};
+                d = data{rows,vars};
+                if ~isempty(d)
+                    h(index) = plot(d(:,1) ,d(:,2), 'Color',...
+                        obj.ColorDict(FAtype{1}),... 
+                        'Linestyle', obj.LineStyle, 'LineWidth', obj.LineWidth,...
+                        'MarkerSize', obj.MarkerSize, 'Marker',obj.Marker);
+                    set(h(index),'Tag',tag);                    
+                    index = 1+index;
+                end
+            end            
+%             obj.setLineProperties(h);
             obj.setAxesProperties();
         end
-        
-        function setLineProperties(obj, h)
-            set(h, 'MarkerSize', obj.MarkerSize,...
-                'Color', obj.Color, 'Marker',obj.Marker,...
-                'Linestyle', obj.LineStyle, 'LineWidth', obj.LineWidth,...
-                'ButtonDownFcn', obj.ButtonDownFcn);
-        end
+%         
+%         function setLineProperties(obj, h)
+%             set(h, 'MarkerSize', obj.MarkerSize,...
+%                 'Color', obj.Color, 'Marker',obj.Marker,...
+%                 'Linestyle', obj.LineStyle, 'LineWidth', obj.LineWidth,...
+%                 'ButtonDownFcn', obj.ButtonDownFcn);
+%         end
         
         function setAxesProperties(obj)
             % Set labels and fonts
@@ -79,39 +100,6 @@ classdef FASpotDisplay < MovieDataDisplay
         end
     end    
     
-        % function h=draw(obj,data,tag,varargin)
-        %     % Template method to draw a movie data component
-            
-        %     % Check input
-            
-        %     ip =inputParser;
-        %     ip.addRequired('obj',@(x) isa(x,'MovieDataDisplay'));
-        %     ip.addRequired('data',obj.getDataValidator());
-        %     ip.addRequired('tag',@ischar);
-        %     ip.addParamValue('hAxes',gca,@ishandle);
-        %     params = obj.getParamValidators;
-        %     for i=1:numel(params)
-        %         ip.addParamValue(params(i).name,obj.(params(i).name),params(i).validator);
-        %     end
-        %     ip.KeepUnmatched = true; % Allow unmatched arguments
-        %     ip.parse(obj,data,tag,varargin{:});
-        %     for i=1:numel(params)
-        %         obj.(params(i).name)=ip.Results.(params(i).name);
-        %     end
-            
-        %     % Retrieve the axes handle and call the create figure method 
-        %     hAxes = ip.Results.hAxes;
-        %     set(hAxes,'NextPlot','add');
-            
-        %     % Get the component handle and call the adapted draw function
-        %     h = findobj(hAxes,'-regexp','Tag',['^' tag '$']);
-        %     if ~isempty(h) && any(ishandle(h))
-        %         obj.updateDraw(h,data);
-        %     else
-        %         h=obj.initDraw(data,tag,'Parent',hAxes);
-        %     end
-        % end
-
 
     methods (Static)
         function params=getParamValidators()
