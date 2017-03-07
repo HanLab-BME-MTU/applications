@@ -23,8 +23,10 @@ printAll=p.printAll;
 %%
 EB3Tracks=p.EB3TracksWithSpindle;
 kinTracks=p.kinTracksWithSpindle;
+%%
 poleRefProcessIdx=(cellfun(@(p) strcmp(p.name_,'poleRef'),MD.processes_));
 if(any(poleRefProcessIdx))
+    disp('reading process');
     poleRefProcess=MD.getProcess(find(poleRefProcessIdx,1,'last'));
     EB3Tracks=load(poleRefProcess.outFilePaths_{1}); EB3Tracks=EB3Tracks.EB3Tracks;
     kinTracks=load(poleRefProcess.outFilePaths_{2}); kinTracks=kinTracks.kinTracks;
@@ -102,7 +104,7 @@ printAllMTTipsKinPoleRef(randKinTracksInlier,'name','randTrackBased','process',d
 
 MTTipsBiasProcess=p.process;
 %%
-procFolder=[MD.outputDirectory_ 'Kin' filesep 'MTTipsBias'];
+procFolder=[MD.outputDirectory_  filesep 'Kin' filesep 'MTTipsBias' filesep];
 mkdir(procFolder);
 if(~isempty(MTTipsBiasProcess))
     save([procFolder 'MTTipsBiasForKinAndRand.mat'],'kinTracksInliers','randKinTracksInlier')
