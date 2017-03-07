@@ -93,25 +93,27 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             end
         end
         
-        function output = loadChannelOutput(obj, iChan, varargin)
+        function varargout = loadChannelOutput(obj, iChan, varargin)
             % Input check
             outputList = {'detBA','detectedFA','detFA','detFC','detNA',...
-                          'adhboundary','tracks','staticTracks'};
+                          'adhboundary','trackFA','staticTracks'};
 
             ip =inputParser;
             ip.addRequired('obj');
             ip.addRequired('iChan', @(x) obj.checkChanNum(x));
             ip.addOptional('iFrame', [] ,@(x) obj.checkFrameNum(x));
             ip.addParameter('useCache',true,@islogical);
-            ip.addParameter('output', outputList{1}, @(x) all(ismember(x,outputList)));
+            ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
             ip.parse(obj,iChan,varargin{:})
             output = ip.Results.output;
+            varargout = cell(numel(output), 1);
             iFrame = ip.Results.iFrame;
             if ischar(output),output={output}; end
             
             % Data loading
-            % load outFilePaths_{1,iChan} (should contain tracksNA)
             s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
+%             st = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tracksNA');
+            
             if isstruct(s)
                 s = s.tableTracksNA;
             else
@@ -121,33 +123,43 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             xCoord = s.xCoord(:,iFrame);
             yCoord = s.yCoord(:,iFrame);
             pres = s.presence(:,iFrame);
+            nTracks = length(xCoord);
+            number = [1:length(xCoord)]';
             state = categorical(s.state(:,iFrame));
 
-            t = table(xCoord, yCoord, state, pres);
+            t = table(xCoord, yCoord, state, pres, number);
+            
 
             for output_sel = output
                 switch output_sel{1}
                     case 'detectedFA'  
-                        output = t;
+                        varargout{1} = t;
                     case 'detBA' 
                         rows = t.state == 'BA';
                         vars = {'xCoord','yCoord'};
-                        output = t{rows,vars};                 
+                        varargout{1} = t{rows,vars};                 
                     case 'detNA'
                         rows = t.state == 'NA';
                         vars = {'xCoord','yCoord'};
-                        output = t{rows,vars};                 
+                        varargout{1} = t{rows,vars};                 
                     case 'detFC'
                         rows = t.state == 'FC';
                         vars = {'xCoord','yCoord'};
-                        output = t{rows,vars};                 
+                        varargout{1} = t{rows,vars};                 
                     case 'detFA'
                         rows = t.state == 'FA';
                         vars = {'xCoord','yCoord'};
-                        output = t{rows,vars};                 
+                        varargout{1} = t{rows,vars};                 
                     case 'adhboundary'
-                    case 'tracks'
+                    
+                    case 'trackFA'
+                        rows = t.state == 'FA';
+                        vars = {'xCoord','yCoord','number'};
+                        s = horzcat(s(:,{'xCoord','yCoord'}), table(number));
+                        varargout{1}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
+                        varargout{1}(rows, :) = table2struct(s(rows, vars));
                     case 'staticTracks'
+                    
                     otherwise
                         error('Incorrect Output Var type');
                 end   
@@ -192,35 +204,28 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             % output(1).formatData = [];%obj.formatSpotOutput;
             % output(1).type = 'overlay';
             % output(1).defaultDisplayMethod=@(x)FASpotDisplay('ColorDict', ColorsDict);
-            
-            % BA Detection (Before Adhesion)
             % colors = 'g';
-            i = 1;
+            i = 1;          
             output(i).name='Before Adhesion Detection'; 
             output(i).var='detBA';
             output(1).formatData=[];
             output(1).type='overlay';
             output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','d',...
                 'LineStyle','none', 'Color', 'g');            
-            
-            % NA Detection Nascent Adhesion
-            i = 2;
+            i = 2; % NA Detection Nascent Adhesion
             output(i).name='Nascent Adhesion Detection'; 
             output(i).var='detNA';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
                 'LineStyle','none', 'LineWidth', .7, 'Color', 'r'); 
-            
-            % FC Detection Focal Contact
-            i = 3;
+            i = 3; % FC Detection Focal Contact
             output(i).name='Focal Contact Detection'; 
             output(i).var='detFC';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
                 'LineStyle','none', 'LineWidth', .75, 'Color', [255/255 153/255 51/255]); 
-
             % FA Detection Focal Adhesion
             i = 4;
             output(i).name='Focal Adhesion Detection'; 
@@ -229,8 +234,25 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
                 'LineStyle','none', 'LineWidth', .75, 'Color', 'b'); 
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Tracks Display
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            i=5; output(i).name='Nascent Adhesion Tracks'; 
+            output(i).var='trackNA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 3, 'Color', 'r'); 
+            i=6; output(i).name='Focal Contact Tracks'; 
+            output(i).var='trackFC';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 3, 'Color', [255/255 153/255 51/255]); 
+            i=7; output(i).name='Focal Adhesion Tracks'; 
+            output(i).var='trackFA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 3, 'Color', 'b'); 
 
-            % BA Track
             % NA Track
             % FC Track
             % FA Track
