@@ -20,6 +20,14 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
           obj.Y=cross(obj.X,obj.Z);
       end
       
+      function newBaseObject=applyBase(obj,tracksOrDetections,name)
+        if(isa(tracksOrDetections,'Tracks'))
+            newBaseObject=applyBaseToTrack(obj,tracksOrDetections,name);
+        else
+            newBaseObject=applyBaseToDetection(obj,tracksOrDetections,name);
+        end  
+      end
+      
       function tracksBase=applyBaseToTrack(obj,tracks,name)
           tracksBase=tracks.copy();
           try
@@ -49,8 +57,35 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
                   B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
                   recentered=[(tr.x(pIdx)-obj.origin(f,1)) (tr.y(pIdx)-obj.origin(f,2)) (tr.z(pIdx)-obj.origin(f,3))];
                   v=recentered*B;
-                  trBase.x(pIdx)=v(2); trBase.y(pIdx)=v(1); trBase.z(pIdx)= v(3);
+                  trBase.x(pIdx)=v(1); trBase.y(pIdx)=v(2); trBase.z(pIdx)= v(3);
               end;    
+          end
+      end
+      
+      function detectionsBase=applyBaseToDetection(obj,detections,name)
+          detectionsBase=detections.copy();
+          try
+              if(~(isempty(name)))
+                  detections.addprop(name);
+              end
+          catch
+          end;
+          for fIdx=1:length(detections)
+              detect=detections(fIdx);
+              detectBase=detectionsBase(fIdx);
+              % Copying EB3 track
+              detectBase.ref=obj;
+              f=min(fIdx,length(obj.X));
+              B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
+              % easily optimized as implementend in poleDist 
+              for pIdx=1:size(detectBase.xCoord,1)
+                  recentered=[(detect.xCoord(pIdx,1)-obj.origin(f,1)) (detect.yCoord(pIdx,1)-obj.origin(f,2)) (detect.zCoord(pIdx,1)-obj.origin(f,3))];
+                  v=recentered*B;
+                  detectBase.xCoord(pIdx,1)=v(1); detectBase.yCoord(pIdx,1)=v(2); detectBase.zCoord(pIdx,1)= v(3);
+              end;    
+              if(~(isempty(name)))
+                  setfield(detect,name,detectBase);
+              end;
           end
       end
     end

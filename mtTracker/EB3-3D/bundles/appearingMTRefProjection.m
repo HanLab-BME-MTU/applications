@@ -1,16 +1,19 @@
-function appearingMTRefProjection(kinTracks)
+function appearingMTRefProjection(kinTracks,MTFieldNameP1,MTFieldNameP2)
 
 
 for kinIdx=1:length(kinTracks)
     kinTrack=kinTracks(kinIdx);
     progressText(kinIdx/length(kinTracks),'appearingMTBias.');
+    newRefFieldP1=[MTFieldNameP1 'KinRef'];
+    newRefFieldP2=[MTFieldNameP2 'KinRef'];
+
     try
-        kinTrack.addprop('appearingMTKinP1Ref');
-        kinTrack.addprop('appearingMTKinP2Ref');
+        kinTrack.addprop(newRefFieldP1);
+        kinTrack.addprop(newRefFieldP2);
     catch
     end;
-    kinTrack.appearingMTKinP1Ref=[] ;
-    kinTrack.appearingMTKinP2Ref=[] ;
+    setfield(kinTrack,newRefFieldP1,[]);
+    setfield(kinTrack,newRefFieldP2,[]);
     refP1=FrameOfRef();
     refP1.origin=(kinTrack.pole1.ref.origin(kinTrack.f,:));
     refP1.setZFromTrack(kinTrack);
@@ -22,15 +25,23 @@ for kinIdx=1:length(kinTracks)
     refP2.setZFromTrack(kinTrack);
     refP2.genBaseFromZ();
     refP2.applyBaseToTrack(kinTrack,'KP2');
+    
+    P1AssoMT=getfield(kinTrack,MTFieldNameP1);
+    appearingMTKinP1Ref=[];
+    for mtIdx=1:length(P1AssoMT)
+        mt=P1AssoMT(mtIdx);
+        appearingMTKinP1Ref=[appearingMTKinP1Ref; refP1.applyBase(mt,'')];
+    end
+    setfield(kinTrack,newRefFieldP1,appearingMTKinP1Ref);
+    
+    P2AssoMT=getfield(kinTrack,MTFieldNameP2);
+    appearingMTKinP2Ref=[];
+    for mtIdx=1:length(P2AssoMT)
+        mt=P2AssoMT(mtIdx);
+        appearingMTKinP2Ref=[appearingMTKinP2Ref; refP2.applyBase(mt,'')];
+    end
+    setfield(kinTrack,newRefFieldP2,appearingMTKinP2Ref);
 
-    for mtIdx=1:length(kinTrack.appearingMTP1)
-        mt=kinTrack.appearingMTP1(mtIdx);
-        kinTrack.appearingMTKinP1Ref=[kinTrack.appearingMTKinP1Ref; refP1.applyBaseToTrack(mt,'')];
-    end
-    for mtIdx=1:length(kinTrack.appearingMTP2)
-        mt=kinTrack.appearingMTP2(mtIdx);
-        kinTrack.appearingMTKinP2Ref=[kinTrack.appearingMTKinP2Ref; refP2.applyBaseToTrack(mt,'')];
-    end
 end
 end
 

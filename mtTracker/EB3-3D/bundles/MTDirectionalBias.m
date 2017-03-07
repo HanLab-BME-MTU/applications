@@ -18,7 +18,6 @@ p=ip.Results;
 
 printAll=p.printAll;
 %%
-
 if(isempty(p.kinTracksWithSpindle)||isempty(p.EB3TracksWithSpindle))
     [kinTracks,EB3Tracks]=addSpindleRef(MD);
 else
@@ -26,16 +25,17 @@ else
     kinTracks=p.kinTracksWithSpindle;
 end
 
-% inlier index
+%% inlier index
 inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
 inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
-%%
+%
 kinTracksInliers=kinTracks(inliersKin);
 EB3TracksInliers=EB3Tracks(inliersEB3);
 %%
 outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep  'Amira' filesep];
 
 if(isempty(p.randKinTracksWithSpindle))
+ %%
 % Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
 randomDist=10; % in pixel
 
@@ -64,6 +64,7 @@ poleMovieInfo=poleData.poleMovieInfo;
 
 % Estimate bundle outside the Kin-Plan refencial
 randKinTracksInlier=randKinTracksPlus(inliersKin);
+%%
 else
     randKinTracksInlier=p.randKinTracksWithSpindle;
 end
@@ -90,7 +91,7 @@ for aIdx=1:numAngle
         for kIdx=1:length(kinTracksInliers)
             trackSet=[kinTracksInliers(kIdx); kinTracksInliers(kIdx).appearingMTP1; kinTracksInliers(kIdx).appearingMTP2];
             trackType=[4; kinTracksInliers(kIdx).MTP1Angle; kinTracksInliers(kIdx).MTP2Angle];
-            amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType}})
+            amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'angle',trackType}})
         end
         %% For each kinetochore, plot an Amira file with attached mt in the spindle
         % ref
