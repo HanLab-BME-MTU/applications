@@ -34,6 +34,7 @@ if(any(poleRefProcessIdx))
 end
 %%
 
+
 % TODO:  functionalize and processize
 randKinProcIdx=cellfun(@(p) strcmp(p.name_,'randKin'),MD.processes_);
 if(any(randKinProcIdx)&&~(p.rerandomize))
@@ -71,6 +72,7 @@ else
         [randKinTracksPlus]=addSpindleRef(MD,'kinTracks',randKinTracks,'kinSphericalCoord',kinSphericalCoord,'kinInliers',inliers);
         
         % Estimate bundle outside the Kin-Plan refencial
+        inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
         randKinTracksInlier=randKinTracksPlus(inliersKin);
         %%
     else
