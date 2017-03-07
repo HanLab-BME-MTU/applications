@@ -8,6 +8,15 @@ ip.addParameter('colormap',[], @islogical);
 ip.parse(varargin{:});
 p=ip.Results;
 
+
+
+[handles,~,fhandle]=setupFigure(1,1,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
+hold(handles(1),'on');
+
+scatter(handles,kinTrack.z,kinTrack.x,'r');
+scatter(handles,0,0,'g');
+
+if(~isempty(EB3Tracks))
 minColoredValue=min(p.EB3ColorAfter);
 maxColoredValue=max(p.EB3ColorAfter);
 
@@ -25,11 +34,6 @@ if(isempty(p.colormap))
 end
 
 
-[handles,~,fhandle]=setupFigure(1,1,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
-hold(handles(1),'on');
-
-scatter(handles,kinTrack.z,kinTrack.x,'r');
-scatter(handles,0,0,'g');
 
 for mIdx=1:length(EB3Tracks)
     mt=EB3Tracks(mIdx);
@@ -42,7 +46,7 @@ for mIdx=1:length(EB3Tracks)
     ylabel(handles,'Normal plane (nm)');
 end
     colorbar(handles,'ticks',linspace(0,1,5),'tickLabels',valueRange(round(linspace(1,end,5))));
-
+end
 % print([outputDirProj 'kin' num2str(kIdx,'%03d') '.png'],'-dpng');
 
 % hold(handles(1),'off');
