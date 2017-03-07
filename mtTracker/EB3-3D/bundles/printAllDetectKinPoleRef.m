@@ -40,5 +40,5 @@ for kinIdx=1:length(kinTracks)
 end
 
 function mkdir2016a(dir)
-system(['mkdir -p ' dir]);
+system(['mkdir ' dir]);
 

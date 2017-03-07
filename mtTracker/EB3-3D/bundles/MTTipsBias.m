@@ -18,6 +18,8 @@ ip.addParameter('process',[]);
 ip.addParameter('rerandomize',false);
 ip.parse(MD,varargin{:});
 p=ip.Results;
+cutoff=p.cutoffs;
+kinRange=p.kinRange;
 
 printAll=p.printAll;
 %%
@@ -35,7 +37,9 @@ if(any(poleRefProcessIdx))
     detLabRef=load(poleRefProcess.outFilePaths_{5}); detLabRef=detLabRef.detLabRef;
 end
 %%
-
+if(isempty(kinRange))
+    kinRange=1:length(kinTracksInliers)
+end
 
 % TODO:  functionalize and processize
 randKinProcIdx=cellfun(@(p) strcmp(p.name_,'randKin'),MD.processes_);
@@ -82,25 +86,24 @@ else
     end
 end
 
-cutoff=p.cutoffs;
 dummyProc=ExternalProcess(MD);
 % Bias with detection
-mapDetectionsToKin(kinTracksInliers,detLabRef,cutoff)
-appearingMTRefProjection(kinTracksInliers,'associatedDetectP1','associatedDetectP2');
-printAllDetectKinPoleRef(kinTracksInliers,'name','detectBased','process',dummyProc)
+mapDetectionsToKin(kinTracksInliers(kinRange),detLabRef,cutoff)
+appearingMTRefProjection(kinTracksInliers(kinRange),'associatedDetectP1','associatedDetectP2');
+printAllDetectKinPoleRef(kinTracksInliers(kinRange),'name','detectBased','process',dummyProc)
 
-mapDetectionsToKin(randKinTracksInlier,detLabRef,cutoff)
-appearingMTRefProjection(randKinTracksInlier,'associatedDetectP1','associatedDetectP2');
-printAllDetectKinPoleRef(randKinTracksInlier,'name','detectBased','process',dummyProc)
+mapDetectionsToKin(randKinTracksInlier(kinRange),detLabRef,cutoff)
+appearingMTRefProjection(randKinTracksInlier(kinRange),'associatedDetectP1','associatedDetectP2');
+printAllDetectKinPoleRef(randKinTracksInlier(kinRange),'name','randDetectBased','process',dummyProc)
 
 % Bias with tracked detection
-mapMTTipsToKin(kinTracksInliers,EB3TracksInliers,cutoff)
-appearingMTRefProjection(kinTracksInliers,'associatedTipsP1','associatedTipsP2');
-printAllMTTipsKinPoleRef(kinTracksInliers,'name','trackBased','process',dummyProc)
+mapMTTipsToKin(kinTracksInliers(kinRange),EB3TracksInliers,cutoff)
+appearingMTRefProjection(kinTracksInliers(kinRange),'associatedTipsP1','associatedTipsP2');
+printAllMTTipsKinPoleRef(kinTracksInliers(kinRange),'name','trackBased','process',dummyProc)
 
-mapMTTipsToKin(randKinTracksInlier,EB3TracksInliers,cutoff)
-appearingMTRefProjection(randKinTracksInlier,'associatedTipsP1','associatedTipsP2');
-printAllMTTipsKinPoleRef(randKinTracksInlier,'name','randTrackBased','process',dummyProc)
+mapMTTipsToKin(randKinTracksInlier(kinRange),EB3TracksInliers,cutoff)
+appearingMTRefProjection(randKinTracksInlier(kinRange),'associatedTipsP1','associatedTipsP2');
+printAllMTTipsKinPoleRef(randKinTracksInlier(kinRange),'name','randTrackBased','process',dummyProc)
 
 MTTipsBiasProcess=p.process;
 %%
@@ -118,6 +121,6 @@ printMTTipsPoleRef(ktInlier.KP1,ktInlier.associatedTipsP2KinRef,ktInlier.associa
 printMTTipsPoleRef(rktInlier.KP1,rktInlier.associatedTipsP2KinRef,rktInlier.associatedTipsP2Idx,'handle',Hs(2))
 
 %%
-displayTipsBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'});
+displayTipsBiasStat({kinTracksInliers(kinRange),randKinTracksInlier(kinRange)},{'kin','rand'});
 
 disp('end');
