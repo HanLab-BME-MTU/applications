@@ -97,7 +97,7 @@ else
     refFrame = double(imread(pDistProc.referenceFramePath));
 end
 firstMask=refFrame>0;
-%% --------------- Displacement field calculation ---------------%%% 
+%% --------------- Displacement field correction ---------------%%% 
 
 disp('Starting correcting displacement field...')
 % Anonymous functions for reading input/output
@@ -108,13 +108,16 @@ disp('Detecting and filtering vector field outliers...')
 logMsg = 'Please wait, detecting and filtering vector field outliers';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
+useGrid=displParams.useGrid;
 
 % %Parse input, store in parameter structure
 % pd = parseProcessParams(displFieldCalcProc,paramsIn);
 
 % Perform vector field outlier detection
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
-for j= 1:nFrames
+parfor_progress(nFrames);
+
+parfor j= 1:nFrames
     % Outlier detection
     dispMat = [displField(j).pos displField(j).vec];
     % Take out duplicate points (Sangyoon)
@@ -123,12 +126,12 @@ for j= 1:nFrames
     displField(j).vec=dispMat(:,3:4);
 
     if ~isempty(p.outlierThreshold)
-        if displParams.useGrid
+        if useGrid
             if j==1
                 disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
             end
         else
-            outlierIndex = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
+            [outlierIndex,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
             %displField(j).pos(outlierIndex,:)=[];
             %displField(j).vec(outlierIndex,:)=[];
             dispMat(outlierIndex,3:4)=NaN;
@@ -154,6 +157,54 @@ for j= 1:nFrames
 %         displField(j).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
     end
     
+    % Update the waitbar
+%     if mod(j,5)==1 && feature('ShowFigureWindows')
+%         tj=toc;
+%         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+%     end
+    parfor_progress;
+end
+parfor_progress(0);
+
+% Now this is the real cool step, to run trackStackFlow with known
+% information of existing displacement in neighbors
+% Check optional process Flow Tracking
+pStep2 = displParams;
+if ~isempty(iSDCProc)
+    s = load(SDCProc.outFilePaths_{3,pStep2.ChannelIndex},'T');
+    residualT = s.T-round(s.T);
+    refFrame = double(imread(SDCProc.outFilePaths_{2,pStep2.ChannelIndex}));
+else
+    refFrame = double(imread(pStep2.referenceFramePath));
+    residualT = zeros(nFrames,2);
+end
+logMsg = 'Please wait, retracking untracked points ...';
+timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
+tic
+for j= 1:nFrames
+    % Read image and perform correlation
+    if ~isempty(iSDCProc)
+        currImage = double(SDCProc.loadChannelOutput(pStep2.ChannelIndex(1),j));
+    else
+        currImage = double(movieData.channels_(pStep2.ChannelIndex(1)).loadImage(j));
+    end
+    % only un-tracked vectors
+    unTrackedBeads=isnan(displField(j).vec(:,1));
+    currentBeads = displField(j).pos(unTrackedBeads,:);
+    neighborBeads = displField(j).pos(~unTrackedBeads,:);
+    neighborVecs = displField(j).vec(~unTrackedBeads,:);
+    % Get neighboring vectors from these vectors (meanNeiVecs)
+    [idx] = KDTreeBallQuery(neighborBeads, currentBeads, neighborhood_distance(j));
+    closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
+%     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
+
+    v = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads,...
+        pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
+        'mode',pStep2.mode,'hardCandidates',closeNeiVecs);%,'usePIVSuite', pStep2.usePIVSuite);
+    
+%     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
+    displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+    disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
     % Update the waitbar
     if mod(j,5)==1 && feature('ShowFigureWindows')
         tj=toc;

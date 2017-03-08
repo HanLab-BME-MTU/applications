@@ -53,10 +53,10 @@ classdef FocalAdhesionPackage < Package
             
             %% TODO - Add Additional appropriate checks
             % Check that the time interval is correctly setup
-            % Check that the channels have a value for the spsf sigma
+            % Check if there is at least one channel have a value for the psf sigma
             
-            psfSigmaCheck =arrayfun(@(x) isempty(x.psfSigma_),obj.owner_.channels_);
-            assert(~any(psfSigmaCheck),...
+            psfSigmaCheck =arrayfun(@(x) ~isempty(x.psfSigma_),obj.owner_.channels_);
+            assert(any(psfSigmaCheck),...
                 ['Missing standard deviation of the theoretical point-spread function! '...
                 'Please fill the numerical aperture, pixel size and'...
                 ' emission wavelengths of all channels!']);

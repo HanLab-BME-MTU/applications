@@ -1,4 +1,4 @@
-function [outlierIndex, r] = detectVectorFieldOutliersTFM(data,varargin)
+function [outlierIndex, r,neighborhood_distance] = detectVectorFieldOutliersTFM(data,varargin)
 % detectVectorFieldOutliersTFM detect and return the outliers in a vector field
 %
 % Synopsis:        outlierIdx = detectVectorFieldOutliersTFM(data)
@@ -59,57 +59,69 @@ data=data(ind,:);
 % calculate maximum closest distance
 distance=zeros(length(data),1);
 % distanceAll=cell(length(data),1); % the second closest distance
-distance2=zeros(length(data),1); % the second closest distance
+distance2=NaN(length(data),1); % the second closest distance
 neiBeadsWhole = data(:,1:2);
-parfor i=1:length(data)
-    neiBeads = neiBeadsWhole;
-    neiBeads(i,:)=[];
-    [~,distance(i)] = KDTreeClosestPoint(neiBeads,data(i,1:2));
-    [~,curDistanceAll] = KDTreeBallQuery(neiBeads,data(i,1:2),5*distance(i));
-    if length(curDistanceAll{1})>1
-        distance2(i) = curDistanceAll{1}(2);
-    else
-        distance2(i) = NaN;
+% parfor i=1:length(data) % for each vector, we calculate closest distance and neighboring vectors in 5 times bigger distance vicinity, get the second closest distance
+%     neiBeads = neiBeadsWhole;
+%     % neiBeads(i,:)=[];
+%     [~,distance(i)] = KDTreeClosestPoint(neiBeads,data(i,1:2));
+%     [~,curDistanceAll] = KDTreeBallQuery(neiBeads,data(i,1:2),5*distance(i));
+%     if length(curDistanceAll{1})>1
+%         distance2(i) = curDistanceAll{1}(2);
+%     else
+%         distance2(i) = NaN;
+%     end
+% end
+for scanDist=1:20 % Get the distance until each point has at least 2 neighbors
+    [~,distance] = KDTreeBallQuery(neiBeadsWhole,data(:,1:2),scanDist);
+    idxBeadsEnoughNeis = cellfun(@length,distance);
+    if quantile(idxBeadsEnoughNeis,0.01)>=3
+        break
     end
 end
+% Get the 2nd closest distance
+distance2(idxBeadsEnoughNeis>1)=cellfun(@(x) x(2),distance(idxBeadsEnoughNeis>1));
 
 % Discard vectors that are in sparse location
-opts = statset('maxIter', 200);
-objDist = cell(3,1);
-n = 0;
-lastwarn('');
-[~, msgidlast] = lastwarn;
-warning('off','stats:gmdistribution:FailedToConverge')
-warning('off','stats:gmdistribution:MissingData')
-fitError = false;
-while ~strcmp(msgidlast,'stats:gmdistribution:FailedToConverge') && n<4 && ~fitError
-    n = n+1;
-    try
-        objDist{n} = gmdistribution.fit(distance2, n, 'Options', opts);
-        [~, msgidlast] = lastwarn;
-    catch
-        fitError=true;
-    end
-end
-if n>1
-    objDist = objDist(1:n-1);
-    [~,idx] = min(cellfun(@(i) i.BIC, objDist));
-    objDist = objDist{idx};
-    [mu,idx] = sort(objDist.mu);
-    svec = squeeze(objDist.Sigma(:,:,idx));
-    if length(mu)>1
-        threshDist= max(mu(1)+4*svec(1),mu(2)+4*svec(2));
-    else
-        threshDist= mu+4*svec;
-    end
-elseif n==1 && fitError
-    threshDist = 2*mean(distance2);
-end
+% This takes too much time, and distance2 is not gaussian-mixture
+% opts = statset('maxIter', 200);
+% objDist = cell(3,1);
+% n = 0;
+% lastwarn('');
+% [~, msgidlast] = lastwarn;
+% warning('off','stats:gmdistribution:FailedToConverge')
+% warning('off','stats:gmdistribution:MissingData')
+% fitError = false;
+% model-like. Coverting to use median
+% while ~strcmp(msgidlast,'stats:gmdistribution:FailedToConverge') && n<4 && ~fitError
+%     n = n+1;
+%     try
+%         objDist{n} = gmdistribution.fit(distance2, n, 'Options', opts);
+%         [~, msgidlast] = lastwarn;
+%     catch
+%         fitError=true;
+%     end
+% end
+% if n>1
+%     objDist = objDist(1:n-1);
+%     [~,idx] = min(cellfun(@(i) i.BIC, objDist));
+%     objDist = objDist{idx};
+%     [mu,idx] = sort(objDist.mu);
+%     svec = squeeze(objDist.Sigma(:,:,idx));
+%     if length(mu)>1
+%         threshDist= max(mu(1)+4*svec(1),mu(2)+4*svec(2));
+%     else
+%         threshDist= mu+4*svec;
+%     end
+% elseif n==1 && fitError
+%     threshDist = 2*mean(distance2);
+% end
+threshDist = nanmean(distance2)+2*nanstd(distance2);
 idxCloseVectors = distance2<threshDist & ~isnan(distance2);
 dataFiltered = data(idxCloseVectors,:);
 idCloseVectors = find(idxCloseVectors);
-idAwayVectors = find(~idxCloseVectors);
-neighborhood_distance = 5*max(distance(idxCloseVectors));%quantile(distance,0.95);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+neighborhood_distance = 5*max(distance2(idxCloseVectors));%quantile(distance,0.95);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+idAwayVectors = find(distance2>neighborhood_distance | isnan(distance2));
 
 % Find neighbors and distances
 % [idx,neiDist] = KDTreeBallQuery(data(:,1:2), data(:,1:2), neighborhood_distance);
@@ -139,8 +151,10 @@ N = idx;
 options = {1:size(dataFiltered,1),'Unif',false};
 % d =arrayfun(@(x)D(E{x}),options{:});
 d = neiDist;
-localVel=arrayfun(@(x)dataFiltered(x,3:4)/(median(d{x})+epsilon),options{:});
-neighVel=arrayfun(@(x)dataFiltered(N{x},3:4)./repmat(d{x}+epsilon,1,2),options{:});
+localVel=arrayfun(@(x)dataFiltered(x,3:4)/(median(d{x})+epsilon),options{:}); % Velocity (or displacement) vector 
+% of individual points normalized by median distance to the points.
+neighVel=arrayfun(@(x)dataFiltered(N{x},3:4)./repmat(d{x}+epsilon,1,2),options{:}); % Velocities (or displacements)
+% of all the neighboring vectors
 
 % Get median weighted neighborhood velocity
 medianVel=cellfun(@median,neighVel,'Unif',false);
@@ -150,5 +164,10 @@ medianRes=arrayfun(@(x) median(abs(neighVel{x}-repmat(medianVel{x},size(neighVel
 normFluct = arrayfun(@(x) abs(localVel{x}-medianVel{x})./(medianRes{x}+epsilon),options{:});
 r=cellfun(@norm, normFluct);
 
+% Get median weighted magnited and orientation separately -added by SH
+% 170307
+critAng=pi/4;
+rOri = cellfun(@(x) atan2(x(2),x(1)),normFluct);
+
 % Filter outliers using threshold
-outlierIndex = ind(idata([idCloseVectors(r>threshold); idAwayVectors]));
+outlierIndex = ind(idata([idCloseVectors(r.^(1/3).*(rOri/critAng).^2>threshold); idAwayVectors]));
