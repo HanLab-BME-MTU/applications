@@ -95,8 +95,9 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         
         function varargout = loadChannelOutput(obj, iChan, varargin)
             % Input check
-            outputList = {'detBA','detectedFA','detFA','detFC','detNA',...
-                          'adhboundary','trackFC','trackNA','trackFA','staticTracks'};
+            outputList = {'trackFC','trackNA','trackFA','detBA',...
+                          'detectedFA','detFA','detFC','detNA',...
+                          'adhboundary_FA', 'adhboundary_FC'};
 
             ip =inputParser;
             ip.addRequired('obj');
@@ -113,7 +114,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             % Data loading
             s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
 %             st = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tracksNA');
-            
+            % Note, could do a stack.
             if isstruct(s)
                 s = s.tableTracksNA;
             else
@@ -122,38 +123,43 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             %% Check struct vs table loading
             xCoord = s.xCoord(:,iFrame);
             yCoord = s.yCoord(:,iFrame);
-            pres = s.presence(:,iFrame);
+%             pres = s.presence(:,iFrame);
+            
             nTracks = length(xCoord);
             number = [1:length(xCoord)]';
             state = categorical(s.state(:,iFrame));
-            t = table(xCoord, yCoord, state, pres, number);
+            % t = table(xCoord, yCoord, state, pres, number);
             
-
             for iout = 1:numel(output)
                 switch output{iout}
                     case 'detectedFA'  
                         varargout{1} = t;
                     case 'detBA' 
-                        rows = t.state == 'BA';
-                    case {'detNA','trackNA'}
-                        rows = t.state == 'NA';
-                    case {'detFC','trackFC'}
-                        rows = t.state == 'FC';
-                    case {'detFA', 'trackFA'}
-                        rows = t.state == 'FA';
-                    case 'adhboundary'
+                        rows = state == 'BA';
+                    case {'detNA', 'trackNA'}
+                        rows = state == 'NA';
+                    case {'detFC', 'trackFC', 'adhboundary_FC'}
+                        rows = state == 'FC';
+                    case {'detFA', 'trackFA', 'adhboundary_FA'}
+                        rows = state == 'FA';
                     case 'staticTracks'
                     otherwise
                         error('Incorrect Output Var type');
                 end   
                 if ~isempty(strfind(output{iout}, 'det'))
-                    vars = {'xCoord','yCoord'};
-                    varargout{iout} = t{rows,vars};                                 
+                    t = table(xCoord, yCoord);
+                    % vars = {'xCoord','yCoord'};
+                    varargout{iout} = t{rows,:};                                 
                 elseif ~isempty(strfind(output{iout},'track'))
                     vars = {'xCoord','yCoord','number'};
                     s = horzcat(s(:,{'xCoord','yCoord'}), table(number));
                     varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
                     varargout{iout}(rows, :) = table2struct(s(rows, vars));
+                elseif ~isempty(strfind(output{iout},'adhboundary'))
+                    
+                    % filter adhboundary by iFrame
+                    adhBoundary = cellfun(@(x) x{iFrame}, s{rows,'adhBoundary'}, 'UniformOutput', false);                         
+                    varargout{iout} = table2struct(table(adhBoundary, number(rows),'VariableNames',{'adhBoundary','number'}));                                 
                 else
                     varargout{iout} = [];
                 end
@@ -172,17 +178,6 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         end
         
         function output = getDrawableOutput()
-            % output(1).name = 'Adhesion Detections';
-            % keySet = {'BA','NA','FC','FA'};
-            % valueSet = {'g','r', 'y', 'b'};
-            % ColorsDict = containers.Map(keySet,valueSet);
-            % % Detection Points
-            % % Colors = 'grob'; % optional
-            % output(1).var = 'detectedFA';
-            % output(1).formatData = [];%obj.formatSpotOutput;
-            % output(1).type = 'overlay';
-            % output(1).defaultDisplayMethod=@(x)FASpotDisplay('ColorDict', ColorsDict);
-            % colors = 'g';
             i = 1;          
             output(i).name='Before Adhesion Detection'; 
             output(i).var='detBA';
@@ -230,38 +225,16 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 2, 'Color', 'b'); 
-
-            % NA Track
-            % FC Track
-            % FA Track
-
-
-            % % Adhesion Boundaries
-            % colorsAdhBound = hsv(numel(obj.owner_.channels_));
-            % output(2).name='Adh. Boundaries';
-            % output(2).var='adhboundary';
-            % output(2).formatData=@DetectionProcess.formatOutput;
-            % output(2).type='overlay';
-            % output(2).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-            %     'LineStyle','none','Color', colorsAdhBound(x,:));
-            
-            % % Tracks
-            % colors = hsv(numel(obj.owner_.channels_));
-            % output(3).name='FA Tracks';
-            % output(3).var='tracks';
-            % output(3).formatData=@TrackingProcess.formatTracks;
-            % output(3).type='overlay';
-            % output(3).defaultDisplayMethod = @(x)FATracksDisplay(...
-            %     'Color',colors(x,:));
-            
-            % output(4).name='Static FA tracks';
-            % output(4).var='staticTracks';
-            % output(4).formatData=@TrackingProcess.formatTracks;
-            % output(4).type='overlay';
-            % output(4).defaultDisplayMethod = @(x)FATracksDisplay(...
-            %     'Color',colors(x,:), 'useDragtail', false);
-
-
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Adhesion Boundaries
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
+            i = 8; % Adhesion Boundaries
+            output(i).name='Focal Adhesion Boundary';
+            output(i).var='adhboundary_FA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', 'b');
+           
 
         end       
 
