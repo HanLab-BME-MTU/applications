@@ -115,51 +115,47 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
 %             st = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tracksNA');
             % Note, could do a stack.
+            
+            %% Check struct vs table loading           
             if isstruct(s)
                 s = s.tableTracksNA;
             else
                 disp('loaded as table');
             end
-            %% Check struct vs table loading
-            xCoord = s.xCoord(:,iFrame);
-            yCoord = s.yCoord(:,iFrame);
-%             pres = s.presence(:,iFrame);
-            
-            nTracks = length(xCoord);
-            number = [1:length(xCoord)]';
+
+            nTracks = length(s.xCoord(:,iFrame));
+            number = [1:length(s.xCoord(:,iFrame))]';
             state = categorical(s.state(:,iFrame));
-            % t = table(xCoord, yCoord, state, pres, number);
             
             for iout = 1:numel(output)
                 switch output{iout}
                     case 'detectedFA'  
                         varargout{1} = t;
                     case 'detBA' 
-                        rows = state == 'BA';
+                        validState = state == 'BA';
                     case {'detNA', 'trackNA'}
-                        rows = state == 'NA';
+                        validState = state == 'NA';
                     case {'detFC', 'trackFC', 'adhboundary_FC'}
-                        rows = state == 'FC';
+                        validState = state == 'FC';
                     case {'detFA', 'trackFA', 'adhboundary_FA'}
-                        rows = state == 'FA';
+                        validState = state == 'FA';
                     case 'staticTracks'
                     otherwise
                         error('Incorrect Output Var type');
                 end   
                 if ~isempty(strfind(output{iout}, 'det'))
-                    t = table(xCoord, yCoord);
-                    % vars = {'xCoord','yCoord'};
-                    varargout{iout} = t{rows,:};                                 
+                    t = table(s.xCoord(:,iFrame), s.yCoord(:,iFrame));
+                    varargout{iout} = t{validState,:};                                 
                 elseif ~isempty(strfind(output{iout},'track'))
                     vars = {'xCoord','yCoord','number'};
+                    validTracks = validState & s.startingFrame <= iFrame & s.endingFrame >= iFrame;
                     s = horzcat(s(:,{'xCoord','yCoord'}), table(number));
                     varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
-                    varargout{iout}(rows, :) = table2struct(s(rows, vars));
-                elseif ~isempty(strfind(output{iout},'adhboundary'))
-                    
+                    varargout{iout}(validTracks, :) = table2struct(s(validTracks, vars));
+                elseif ~isempty(strfind(output{iout},'adhboundary'))                    
                     % filter adhboundary by iFrame
-                    adhBoundary = cellfun(@(x) x{iFrame}, s{rows,'adhBoundary'}, 'UniformOutput', false);                         
-                    varargout{iout} = table2struct(table(adhBoundary, number(rows),'VariableNames',{'adhBoundary','number'}));                                 
+                    adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
+                    varargout{iout} = table2struct(table(adhBoundary, number(validState),'VariableNames',{'adhBoundary','number'}));                                 
                 else
                     varargout{iout} = [];
                 end

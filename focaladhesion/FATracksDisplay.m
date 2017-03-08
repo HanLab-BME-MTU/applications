@@ -1,7 +1,7 @@
 classdef FATracksDisplay < MovieDataDisplay
     %Conrete class for displaying Focal Adhesions
     % Andrew R. Jamieson, Feb. 2017
-    properties (Access = public)
+    properties
         Linestyle='-';
         Linewidth = 2.5;
         GapLinestyle='--';

@@ -37,6 +37,7 @@ classdef CometPostTrackingProcess < PostTrackingProcess
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
+            ip.addParameter('useCache',true,@islogical);
             ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
             ip.parse(iChan,varargin{:})
             iFrame = ip.Results.iFrame;
@@ -44,7 +45,7 @@ classdef CometPostTrackingProcess < PostTrackingProcess
             if ischar(output),output={output}; end
             
             % Data loading
-            s = load(obj.outFilePaths_{1,iChan},'projData');
+            s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache,'projData');
             for j=1:numel(output)
                 if isequal(output{j},'projData')
                     varargout{1}=s.(output{j});
