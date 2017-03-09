@@ -3,7 +3,7 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
     properties
         LineStyle = '-';
         LineWidth = 0.5;
-        Color = 'k';  
+        Color = 'm';  
     end
     methods
         function obj=AdhBoundaryDisplay(varargin)

@@ -229,7 +229,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             output(i).var='adhboundary_FA';
             output(i).formatData=[];
             output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', 'b');
+            output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', 'm');
            
 
         end       
