@@ -175,9 +175,13 @@ for j= firstFrame:nFrames
             end
             if isempty(gcp('nocreate'))
                 try
-                    parpool('local',poolsize)
+                    parpool('local', poolsize)
                 catch
-                    matlabpool
+                    try 
+                        matlabpool
+                    catch 
+                        warning('matlabpool has been removed, and parpool is not working in this instance');
+                    end
                 end
             end % we don't need this any more.
             psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
