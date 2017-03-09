@@ -181,45 +181,46 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         end
         
         function output = getDrawableOutput()
-            i = 1; output(i).name='Before Adhesion Detection'; 
+            ii = 9;
+            i = ii-1; output(i).name='Before Adhesion Detection'; 
             output(i).var='detBA';
-            output(1).formatData=[];
-            output(1).type='overlay';
-            output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','s',...
-                'LineStyle', 'none', 'LineWidth', .5, 'Color', 'g',...
-                'MarkerSize', 4);            
-            i = 2; output(i).name='Nascent Adhesion Detection'; 
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','.',...
+                'LineStyle', 'none', 'LineWidth', .6, 'Color', 'g',...
+                'MarkerSize', 5);            
+            i = ii-2; output(i).name='Nascent Adhesion Detection'; 
             output(i).var='detNA';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', 1, 'Color', 'r'); 
-            i = 3; output(i).name='Focal Contact Detection'; 
+                'LineStyle','none', 'LineWidth', .8, 'Color', 'r'); 
+            i = ii-3; output(i).name='Focal Contact Detection'; 
             output(i).var='detFC';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', 1, 'Color', [255/255 153/255 51/255]); 
-            i = 4; output(i).name='Focal Adhesion Detection'; 
+                'LineStyle','none', 'LineWidth', .8, 'Color', [255/255 153/255 51/255]); 
+            i = ii-4; output(i).name='Focal Adhesion Detection'; 
             output(i).var='detFA';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', 1, 'Color', 'b'); 
+                'LineStyle','none', 'LineWidth', .8, 'Color', 'b'); 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Tracks Display
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            i=5; output(i).name='Nascent Adhesion Tracks'; 
+            i = ii-5; output(i).name='Nascent Adhesion Tracks'; 
             output(i).var='trackNA';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', 'r'); 
-            i=6; output(i).name='Focal Contact Tracks'; 
+            i = ii-6; output(i).name='Focal Contact Tracks'; 
             output(i).var='trackFC';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', [255/255 153/255 51/255]); 
-            i=7; output(i).name='Focal Adhesion Tracks'; 
+            i = ii-7; output(i).name='Focal Adhesion Tracks'; 
             output(i).var='trackFA';
             output(i).formatData=[];
             output(i).type='overlay';
@@ -227,7 +228,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Adhesion Boundaries
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
-            i = 8; output(i).name='Focal Adhesion Boundary';
+            i = ii-8; output(i).name='Focal Adhesion Boundary';
             output(i).var='adhboundary_FA';
             output(i).formatData=[];
             output(i).type='overlay';
