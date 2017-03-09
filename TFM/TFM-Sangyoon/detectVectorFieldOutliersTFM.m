@@ -1,4 +1,4 @@
-function [outlierIndex, r,neighborhood_distance] = detectVectorFieldOutliersTFM(data,varargin)
+function [outlierIndex, sparseIndex, r,neighborhood_distance] = detectVectorFieldOutliersTFM(data,varargin)
 % detectVectorFieldOutliersTFM detect and return the outliers in a vector field
 %
 % Synopsis:        outlierIdx = detectVectorFieldOutliersTFM(data)
@@ -51,16 +51,16 @@ epsilon=ip.Results.epsilon;
 % Filter out NaN from the initial data (but keep the index for the
 % outliers)
 ind=find(~isnan(data(:,3)));
-data=data(ind,:);
+dataNoNan=data(ind,:);
     
 % Take out duplicate points (Sangyoon)
-[data,idata,~] = unique(data,'rows'); %data2 = data(idata,:),data = data2(iudata,:)
+[dataU,idata,~] = unique(dataNoNan,'rows'); %data2 = data(idata,:),data = data2(iudata,:)
     
 % calculate maximum closest distance
-distance=zeros(length(data),1);
+distance=zeros(length(dataU),1);
 % distanceAll=cell(length(data),1); % the second closest distance
-distance2=NaN(length(data),1); % the second closest distance
-neiBeadsWhole = data(:,1:2);
+distance2=NaN(length(dataU),1); % the second closest distance
+neiBeadsWhole = dataU(:,1:2);
 % parfor i=1:length(data) % for each vector, we calculate closest distance and neighboring vectors in 5 times bigger distance vicinity, get the second closest distance
 %     neiBeads = neiBeadsWhole;
 %     % neiBeads(i,:)=[];
@@ -73,7 +73,7 @@ neiBeadsWhole = data(:,1:2);
 %     end
 % end
 for scanDist=1:20 % Get the distance until each point has at least 2 neighbors
-    [~,distance] = KDTreeBallQuery(neiBeadsWhole,data(:,1:2),scanDist);
+    [~,distance] = KDTreeBallQuery(neiBeadsWhole,dataU(:,1:2),scanDist);
     idxBeadsEnoughNeis = cellfun(@length,distance);
     if quantile(idxBeadsEnoughNeis,0.01)>=3
         break
@@ -118,14 +118,31 @@ distance2(idxBeadsEnoughNeis>1)=cellfun(@(x) x(2),distance(idxBeadsEnoughNeis>1)
 % end
 threshDist = nanmean(distance2)+2*nanstd(distance2);
 idxCloseVectors = distance2<threshDist & ~isnan(distance2);
-dataFiltered = data(idxCloseVectors,:);
-idCloseVectors = find(idxCloseVectors);
 neighborhood_distance = 5*max(distance2(idxCloseVectors));%quantile(distance,0.95);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
-idAwayVectors = find(distance2>neighborhood_distance | isnan(distance2));
+idAwayVectors = distance2>neighborhood_distance | isnan(distance2);
+idxCloseEnoughVectors = distance2<neighborhood_distance & ~isnan(distance2);
+dataFiltered = dataU(idxCloseEnoughVectors,:);
+idCloseEnoughVectors = find(idxCloseEnoughVectors);
 
 % Find neighbors and distances
 % [idx,neiDist] = KDTreeBallQuery(data(:,1:2), data(:,1:2), neighborhood_distance);
 [idx,neiDist] = KDTreeBallQuery(dataFiltered(:,1:2), dataFiltered(:,1:2), neighborhood_distance);
+
+% For those who have too few neighbors, increase distance to include more
+% neighbors - SH 170308
+numNeis = cellfun(@numel,idx);
+try
+    warning('off','stats:gmdistribution:FailedToConverge')
+    opts = statset('maxIter', 20);
+    objDist = gmdistribution.fit(numNeis, 3, 'Options', opts);
+    thresNumNeis = min(objDist.mu);
+catch
+    thresNumNeis = quantile(numNeis,0.1);
+end
+idxTooFewNeis = numNeis<thresNumNeis;
+[idx(idxTooFewNeis),neiDist(idxTooFewNeis)] = KDTreeBallQuery(dataFiltered(:,1:2), dataFiltered(idxTooFewNeis,1:2), 2*neighborhood_distance);
+
+% objDist.Sigma
 
 % Get the triangulation edges and calculate all distances
 % edges= tri.edges;
@@ -166,8 +183,10 @@ r=cellfun(@norm, normFluct);
 
 % Get median weighted magnited and orientation separately -added by SH
 % 170307
-critAng=pi/4;
-rOri = cellfun(@(x) atan2(x(2),x(1)),normFluct);
+critAng=pi/8;
+rOri = cellfun(@(x,y) acos(x*y'/(norm(x)*norm(y))),medianVel,localVel);
 
 % Filter outliers using threshold
-outlierIndex = ind(idata([idCloseVectors(r.^(1/3).*(rOri/critAng).^2>threshold); idAwayVectors]));
+% outlierIndex = ind(idata([idCloseVectors(r.^(1/2).*(rOri/critAng).^1.5>threshold)]));
+outlierIndex = ind(idata(idCloseEnoughVectors(r>threshold)));
+sparseIndex = ind(idata(idAwayVectors));

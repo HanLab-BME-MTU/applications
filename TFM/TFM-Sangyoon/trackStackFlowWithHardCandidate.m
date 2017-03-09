@@ -1,4 +1,4 @@
-function [v,corLength,sigtValues] = trackStackFlowWithHardCandidate(stack,points,minCorL,varargin)
+function [v,numTrackedPoints,corLength,sigtValues] = trackStackFlowWithHardCandidate(stack,points,minCorL,varargin)
 %trackStackFlowWithHardCandidate: Calculate the flow velocity from a stack
 %of movie images with hard candidate. It is used for displacement
 %correction process in TFM package to fill the untracked bead positions.
@@ -89,10 +89,12 @@ mode=ip.Results.mode;
 scoreCalculation=ip.Results.scoreCalculation;
 closeNeiVecs = ip.Results.hardCandidates;
 
-meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
-stdNeiVecs = cellfun(@std,closeNeiVecs,'Unif',false);
+meanNeiVecs = cellfun(@(x) mean(x,1),closeNeiVecs,'Unif',false);
+stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
 anglesBetweenVecs = cell(numel(closeNeiVecs),1);
-for k=1:numel(closeNeiVecs) %for angles between vectors
+disp('Calculating angles between neighboring vectors...')
+parfor_progress(numel(closeNeiVecs));
+parfor k=1:numel(closeNeiVecs) %for angles between vectors
     curNei = closeNeiVecs{k};
     numCurNei = size(curNei,1);
     for p=1:numCurNei-1
@@ -103,7 +105,9 @@ for k=1:numel(closeNeiVecs) %for angles between vectors
             anglesBetweenVecs{k}=[anglesBetweenVecs{k} curAngle];
         end
     end
+    parfor_progress;
 end
+parfor_progress(0);
 stdAngleAll = cellfun(@std,anglesBetweenVecs);
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
@@ -176,9 +180,9 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
-% inqryPoint=2000;
-% for k = inqryPoint
 parfor_progress(nPoints);
+% inqryPoint=200;
+% for k = inqryPoint
 parfor k = 1:nPoints
 % for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
@@ -283,7 +287,7 @@ parfor k = 1:nPoints
                 ind = indDist(1);
                 minAngle = orienDiff(ind);
                 minDistDiff = magDiff(ind);
-                if minDistDiff < mean(curCandVecStd) && abs(minAngle) < curStdAngle
+                if minDistDiff < 2*mean(curCandVecStd) && abs(minAngle) < 2*curStdAngle
                     maxI = locMaxI(ind,:);
                     maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
                     pass = 2;
@@ -437,8 +441,9 @@ endTime = cputime;
 fprintf(1,[strg '.\n'],nPoints);
 fprintf(1,'   Tracking is done in %f sec (%f sec per point).\n', ...
     endTime-startTime,(endTime-startTime)/nPoints);
+numTrackedPoints = nPoints-length(nanInd);
 fprintf(1,'   Total tracked points: %d (out of %d).\n', ...
-    nPoints-length(nanInd),nPoints);
+    numTrackedPoints,nPoints);
 
 function [maxV] = contWindShift(maxV,kym,centerI,corL,refineFactor,refineRange)
 newvP = round(maxV(1)*refineFactor)/refineFactor - refineRange:1/refineFactor:round(maxV(1)*refineFactor)/refineFactor + refineRange;

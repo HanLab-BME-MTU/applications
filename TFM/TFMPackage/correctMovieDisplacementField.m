@@ -118,6 +118,7 @@ if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 parfor_progress(nFrames);
 
 parfor j= 1:nFrames
+% for j= 1:nFrames
     % Outlier detection
     dispMat = [displField(j).pos displField(j).vec];
     % Take out duplicate points (Sangyoon)
@@ -131,10 +132,11 @@ parfor j= 1:nFrames
                 disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
             end
         else
-            [outlierIndex,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
+            [outlierIndex,sparselyLocatedIdx,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
             %displField(j).pos(outlierIndex,:)=[];
             %displField(j).vec(outlierIndex,:)=[];
             dispMat(outlierIndex,3:4)=NaN;
+            dispMat(sparselyLocatedIdx,3:4)=NaN;
         end
         % I deleted this part for later gap-closing
         % Filter out NaN from the initial data (but keep the index for the
@@ -181,6 +183,7 @@ end
 logMsg = 'Please wait, retracking untracked points ...';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic
+nFillingTries=50;
 for j= 1:nFrames
     % Read image and perform correlation
     if ~isempty(iSDCProc)
@@ -188,22 +191,29 @@ for j= 1:nFrames
     else
         currImage = double(movieData.channels_(pStep2.ChannelIndex(1)).loadImage(j));
     end
-    % only un-tracked vectors
-    unTrackedBeads=isnan(displField(j).vec(:,1));
-    currentBeads = displField(j).pos(unTrackedBeads,:);
-    neighborBeads = displField(j).pos(~unTrackedBeads,:);
-    neighborVecs = displField(j).vec(~unTrackedBeads,:);
-    % Get neighboring vectors from these vectors (meanNeiVecs)
-    [idx] = KDTreeBallQuery(neighborBeads, currentBeads, neighborhood_distance(j));
-    closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
-%     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
+    nTracked=1000;
+    for k=1:nFillingTries
+        % only un-tracked vectors
+        unTrackedBeads=isnan(displField(j).vec(:,1));
+        ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
+        if ratioUntracked<0.005 || nTracked==0
+            break
+        end
+        currentBeads = displField(j).pos(unTrackedBeads,:);
+        neighborBeads = displField(j).pos(~unTrackedBeads,:);
+        neighborVecs = displField(j).vec(~unTrackedBeads,:);
+        % Get neighboring vectors from these vectors (meanNeiVecs)
+        [idx] = KDTreeBallQuery(neighborBeads, currentBeads, 2*(1-k/(1.5*nFillingTries))*neighborhood_distance(j));
+        closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
+    %     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
 
-    v = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads,...
-        pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
-        'mode',pStep2.mode,'hardCandidates',closeNeiVecs);%,'usePIVSuite', pStep2.usePIVSuite);
-    
-%     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
-    displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        [v,nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads,...
+            pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
+            'mode',pStep2.mode,'hardCandidates',closeNeiVecs);%,'usePIVSuite', pStep2.usePIVSuite);
+
+    %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
+        displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+    end
     disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
     % Update the waitbar
     if mod(j,5)==1 && feature('ShowFigureWindows')
