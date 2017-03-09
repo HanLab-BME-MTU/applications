@@ -144,18 +144,25 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                         error('Incorrect Output Var type');
                 end   
                 if ~isempty(strfind(output{iout}, 'det'))
+                
                     t = table(s.xCoord(:,iFrame), s.yCoord(:,iFrame));
                     varargout{iout} = t{validState,:};                                 
+                
                 elseif ~isempty(strfind(output{iout},'track'))
-                    vars = {'xCoord','yCoord','number'};
+                    
+                    vars = {'xCoord', 'yCoord', 'number'};
                     validTracks = validState & s.startingFrameExtra <= iFrame & s.endingFrameExtra >= iFrame;                    
-                    st = table(s.xCoord(:,1:iFrame), s.yCoord(:,1:iFrame), number, 'VariableNames',{'xCoord','yCoord','number'});                    
+                    st = table(s.xCoord(:,1:iFrame), s.yCoord(:,1:iFrame), number, ...
+                               'VariableNames', {'xCoord', 'yCoord', 'number'});                    
+                    
                     varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
                     varargout{iout}(validTracks, :) = table2struct(st(validTracks, vars));
+                
                 elseif ~isempty(strfind(output{iout},'adhboundary'))                    
-                    % filter adhboundary by iFrame
+                
                     adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
-                    varargout{iout} = table2struct(table(adhBoundary, number(validState),'VariableNames',{'adhBoundary','number'}));                                 
+                    varargout{iout} = table2struct(table(adhBoundary, number(validState), ...
+                                                         'VariableNames',{'adhBoundary', 'number'}));                                 
                 else
                     varargout{iout} = [];
                 end
@@ -174,35 +181,31 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         end
         
         function output = getDrawableOutput()
-            i = 1;          
-            output(i).name='Before Adhesion Detection'; 
+            i = 1; output(i).name='Before Adhesion Detection'; 
             output(i).var='detBA';
             output(1).formatData=[];
             output(1).type='overlay';
-            output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','d',...
-                'LineStyle','none', 'Color', 'g');            
-            i = 2; % NA Detection Nascent Adhesion
-            output(i).name='Nascent Adhesion Detection'; 
+            output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','s',...
+                'LineStyle', 'none', 'LineWidth', .5, 'Color', 'g',...
+                'MarkerSize', 4);            
+            i = 2; output(i).name='Nascent Adhesion Detection'; 
             output(i).var='detNA';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', .7, 'Color', 'r'); 
-            i = 3; % FC Detection Focal Contact
-            output(i).name='Focal Contact Detection'; 
+                'LineStyle','none', 'LineWidth', 1, 'Color', 'r'); 
+            i = 3; output(i).name='Focal Contact Detection'; 
             output(i).var='detFC';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', .75, 'Color', [255/255 153/255 51/255]); 
-            % FA Detection Focal Adhesion
-            i = 4;
-            output(i).name='Focal Adhesion Detection'; 
+                'LineStyle','none', 'LineWidth', 1, 'Color', [255/255 153/255 51/255]); 
+            i = 4; output(i).name='Focal Adhesion Detection'; 
             output(i).var='detFA';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', .75, 'Color', 'b'); 
+                'LineStyle','none', 'LineWidth', 1, 'Color', 'b'); 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Tracks Display
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -210,22 +213,21 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             output(i).var='trackNA';
             output(i).formatData=[];
             output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 2, 'Color', 'r'); 
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', 'r'); 
             i=6; output(i).name='Focal Contact Tracks'; 
             output(i).var='trackFC';
             output(i).formatData=[];
             output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 2, 'Color', [255/255 153/255 51/255]); 
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', [255/255 153/255 51/255]); 
             i=7; output(i).name='Focal Adhesion Tracks'; 
             output(i).var='trackFA';
             output(i).formatData=[];
             output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 2, 'Color', 'b'); 
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', 'b'); 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Adhesion Boundaries
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
-            i = 8; % Adhesion Boundaries
-            output(i).name='Focal Adhesion Boundary';
+            i = 8; output(i).name='Focal Adhesion Boundary';
             output(i).var='adhboundary_FA';
             output(i).formatData=[];
             output(i).type='overlay';
