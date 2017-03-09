@@ -148,10 +148,10 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     varargout{iout} = t{validState,:};                                 
                 elseif ~isempty(strfind(output{iout},'track'))
                     vars = {'xCoord','yCoord','number'};
-                    validTracks = validState & s.startingFrame <= iFrame & s.endingFrame >= iFrame;
-                    s = horzcat(s(:,{'xCoord','yCoord'}), table(number));
+                    validTracks = validState & s.startingFrameExtra <= iFrame & s.endingFrameExtra >= iFrame;                    
+                    st = table(s.xCoord(:,1:iFrame), s.yCoord(:,1:iFrame), number, 'VariableNames',{'xCoord','yCoord','number'});                    
                     varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
-                    varargout{iout}(validTracks, :) = table2struct(s(validTracks, vars));
+                    varargout{iout}(validTracks, :) = table2struct(st(validTracks, vars));
                 elseif ~isempty(strfind(output{iout},'adhboundary'))                    
                     % filter adhboundary by iFrame
                     adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
