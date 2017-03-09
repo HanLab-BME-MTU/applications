@@ -77,15 +77,15 @@ classdef QFSMPackage < Package
         
         function m = getDependencyMatrix(i,j)
             
-            %    1 2 3 4 5 6 7 8 9
-            m = [0 0 0 0 0 0 0 0;  %1 NoiseEstimationProcess
-                0 0 0 0 0 0 0 0;   %2 ThresholdProcess
-                0 1 0 0 0 0 0 0;   %3 MaskRefinementProcess
-                2 0 1 0 0 0 0 0;   %4 SpeckleDetectionProcess
-                0 0 1 1 0 0 0 0;   %5 FlowTrackingProcess
-                0 0 0 1 2 0 0 0;   %6 SpeckleTrackingProcess
-                2 0 1 1 0 1 0 0;   %7 KineticAnalysisProcess
-                0 0 1 1 2 2 0 0;]; %8 FlowAnalysisProcess
+            %    1 2 3 4 5 6 7 8 
+            m = [0 0 0 0 0 0 0 0;   %1 NoiseEstimationProcess
+                 0 0 0 0 0 0 0 0;   %2 ThresholdProcess
+                 0 1 0 0 0 0 0 0;   %3 MaskRefinementProcess
+                 2 0 1 0 0 0 0 0;   %4 SpeckleDetectionProcess
+                 0 0 1 1 0 0 0 0;   %5 FlowTrackingProcess
+                 0 0 0 1 2 0 0 0;   %6 SpeckleTrackingProcess
+                 2 0 1 1 0 1 0 0;   %7 KineticAnalysisProcess
+                 0 0 1 1 2 2 0 0;]; %8 FlowAnalysisProcess
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
             m=m(i,j);
