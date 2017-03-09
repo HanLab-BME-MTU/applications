@@ -5,6 +5,7 @@ classdef FATracksDisplay < MovieDataDisplay
         Linestyle='-';
         Linewidth = 2.5;
         GapLinestyle='--';
+        GapColor='c';
         Color = 'r';
         MergeColor = 'y';
         MergeMarker = 's';
@@ -230,8 +231,8 @@ classdef FATracksDisplay < MovieDataDisplay
                 end
                 h(1) = plotFast(h(1),xData, yData, 'Linestyle', obj.Linestyle,...
                     'Linewidth', obj.Linewidth, 'Color',obj.Color, 'Marker', 'none', varargin{:});
-                    h(2) = plotFast(h(2),xGapData, yGapData, 'Linestyle', obj.GapLinestyle',...
-                        'Linewidth', obj.Linewidth, 'Color','c', 'Marker', 'none', varargin{:}); 
+                h(2) = plotFast(h(2),xGapData, yGapData, 'Linestyle', obj.GapLinestyle,...
+                        'Linewidth', obj.Linewidth, 'Color', obj.GapColor, 'Marker', 'none', varargin{:}); 
                 if(~isempty(hasMergeEventsIdx)||(~isempty(hasSplitEventsIdx)))
                
                     h(3) = plotFast(h(3),xSplitData, ySplitData, 'Linestyle', obj.Linestyle,...
