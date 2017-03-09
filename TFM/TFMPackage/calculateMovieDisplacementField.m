@@ -322,7 +322,7 @@ for j= firstFrame:nFrames
             % Track beads displacement in the xy coordinate system
             v = trackStackFlow(cat(3,refFrame,currImage),currentBeads,...
                 p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-                'mode',p.mode,'scoreCalculation',scoreCalculation,'usePIVSuite', p.usePIVSuite);
+                'mode',p.mode,'scoreCalculation',scoreCalculation);%,'usePIVSuite', p.usePIVSuite);
         else
 %             scoreCalculation='difference';
             scoreCalculation='xcorr';
@@ -343,8 +343,10 @@ for j= firstFrame:nFrames
 %         end
         
         if ~p.trackSuccessively
-            displField(j).pos=localbeads(validV,:);
-            displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+%             displField(j).pos=localbeads(validV,:);
+%             displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+            displField(j).pos=localbeads; % validV is removed to include NaN location - SH 030417
+            displField(j).vec=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
         else
             v2 = v;
             cumulativeV_forV = cumulativeV_forV+v2;
