@@ -16,55 +16,46 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
         end
         function h=initDraw(obj, data, tag, varargin)
             
-            
-            if isempty(data.number), h=[]; return; end            
-            h = gobjects(size(data.number,1),1);
-            
-            for i=1:numel(data.number), 
-                adhBoundary = data.adhBoundary{i};
-                h(i) = plot(adhBoundary(:,2), adhBoundary(:,1), varargin{:});
+            if isempty(data), h=[]; return; end            
+            h = gobjects(size(data,1),1);
+            for i=1:numel(data) 
+                adhBoundary = data(i).adhBoundary;
+                try
+                    h(i) = plot(adhBoundary(:,2), adhBoundary(:,1),...
+                                'Color',obj.Color,'LineStyle',obj.LineStyle,...
+                                varargin{:});
+                catch
+                    disp('error');
+                end
             end
             set(h,'Tag',tag);
         end
 
-
-        function updateDraw(obj, h, data)
-            tag=get(h(1),'Tag');
-            obj.initDraw(data,tag,h);
-            return;
-
+        function updateDraw(obj, h, data, varargin)
+            tag = get(h(1),'Tag');
+            nTracks = size(data,1);
             
-        % function updateDraw(obj,h,data)
-        %     tag=get(h(1),'Tag');
-        %     nTracks = size(data.x,1);
+            % Delete tracks
+            delete(h(nTracks+1:end));
+            h(nTracks+1:end) = [];
+            if nTracks==0, return; end
             
-        %     % Delete tracks
-        %     delete(h(nTracks+1:end));
-        %     h(nTracks+1:end)=[];
-        %     if nTracks==0, return; end
+            existingTracks = false(nTracks,1);
+            existingTracks(1:min(numel(h),nTracks)) = true;
             
-        %     %
-        %     existingTracks=false(nTracks,1);
-        %     existingTracks(1:min(numel(h),nTracks))=true;
-        %     uniqueTypes=unique(data.trackType);
-        %     for i=1:numel(uniqueTypes), 
-        %         index=data.trackType==uniqueTypes(i);
-        %         index1=index & existingTracks;
-        %         for j=find(index1)'
-                    
-        %             set(h(j),'XData',data.x(j,max(1,end-obj.dragtailLength):end),...
-        %                 'YData',data.y(j,max(1,end-obj.dragtailLength):end)',...
-        %                 'Color',obj.Color(uniqueTypes(i)),'LineStyle',obj.LineStyle(uniqueTypes(i)));
-        %         end
-                
-        %         index2= index & ~existingTracks;
-        %         h(index2) = plot(data.x(index2,max(1,end-obj.dragtailLength):end)',...
-        %             data.y(index2,max(1,end-obj.dragtailLength):end)',...
-        %             'Color',obj.Color(uniqueTypes(i)),'LineStyle',obj.LineStyle(uniqueTypes(i)),'LineWidth',obj.LineWidth);
-        %     end
-            
-        %     % Set tag
-        %     set(h,'Tag',tag);          
+            for j = 1:nTracks
+                adhBoundary = data(j).adhBoundary;
+                if existingTracks
+                    adhBoundary = data(j).adhBoundary;    
+                    set(h(j),'XData',adhBoundary(:,2), 'YData', adhBoundary(:,1),...
+                             'Color',obj.Color,'LineStyle',obj.LineStyle,varargin{:});
+                else
+                    h(j) = plot(adhBoundary(:,2), adhBoundary(:,1),...
+                                'Color',obj.Color,'LineStyle',obj.LineStyle,...
+                                varargin{:});               
+                end
+            end
+            set(h,'Tag',tag);          
         end
     end    
     
