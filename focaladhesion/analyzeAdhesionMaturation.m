@@ -43,6 +43,14 @@ end
 thisProc = MD.processes_{iProc};
 p = parseProcessParams(thisProc);
 
+
+%% --------------- Initialization ---------------%%
+if feature('ShowFigureWindows')
+    wtBar = waitbar(0,'Initializing...','Name',thisProc.getName());
+else
+    wtBar = -1;
+end
+
 %% --------------- Parameters ---------- %%
 matchWithFA = p.matchWithFA;
 minLifetime = p.minLifetime;
@@ -167,9 +175,18 @@ detectedNAs = detectedNAProc.loadChannelOutput(iPaxChannel);
 
 % re-express tracksNA so that each track has information for every frame
 disp('reformating NA tracks...')
+% logMsg = @(chan) ['Please wait, reformating NA tracks ' num2str(chan)];
+timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
+logMsg = ['Please wait, reformating NA tracks'];
+if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg));  end
+
 tic
 tracksNA = formatTracks(tracksNAorg, detectedNAs, nFrames); 
 toc
+
+if ishandle(wtBar), waitbar(1, wtBar,sprintf(logMsg));  end
+close(wtBar);
+
 
 bandArea = zeros(nFrames,1);
 NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
@@ -178,7 +195,7 @@ numFCs = zeros(nFrames,1);
 nChannels = numel(MD.channels_);
 % minEcc = 0.7;
 
-
+wtBar = waitbar(0,'Please wait, while loading adhesion tracks. ','Name', thisProc.getName());
 % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
 if onlyEdge
     disp(['Filtering adhesion tracks based on cell mask. Only adhesions appearing at the edge are considered'])
@@ -259,12 +276,22 @@ for ii = 1:nFrames
     imgStack(:,:,ii) = MD.channels_(iPaxChannel).loadImage(ii); 
 end
 toc;
+waitbar(1,wtBar,'completed load');
+close(wtBar);
 
 % get the intensity
 disp('Reading intensities with additional tracking...')
 tic
+
+timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
+wtBar = waitbar(0,'Please wait, reading Intensities from tracks... ','Name', thisProc.getName())
+% if ishandle(wtBar), waitbar(0, wtBar,sprintf(logMsg));  end
 % reTrack=false;
 tracksNA = readIntensityFromTracks(tracksNA, imgStack, 1, 'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
+if ishandle(wtBar), waitbar(100, wtBar,sprintf(logMsg));  
+close(wtBar);
+end
+
 toc
 %% Filtering again after re-reading
 disp('Filtering again after re-reading with cell mask ...')
@@ -350,6 +377,7 @@ end
 cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
 numTracks=numel(tracksNA);
 progressText(0,'Matching with segmented adhesions:');
+progressbar;
 focalAdhInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
     'amp',[],'area',[],'length',[],'meanFAarea',[],'medianFAarea',[]...
     ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],'cellArea',[],'ecc',[]);
@@ -359,6 +387,11 @@ FAInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
 %% Matching with segmented adhesions
 prevMask=[];
 neighPix = 2;
+
+logMsg = ['Please wait, Matching with segmented adhesions'];
+wtBar = waitbar(0, logMsg, 'Name', thisProc.getName())
+% if ishandle(wtBar), waitbar(0, wtBar, sprintf(logMsg));  end
+tic;
 for ii=1:nFrames
     % Cell Boundary Mask 
     if ApplyCellSegMask
@@ -523,7 +556,16 @@ for ii=1:nFrames
         end
     end
     progressText(ii/(nFrames-1),'Matching with segmented adhesions:');
+    progressbar(ii/(nFrames-1), 0, 'Matching with segmented adhesions:');
+%%%
+    if mod(ii, 5) == 1 && ishandle(wtBar)
+        tj = toc;
+        waitbar(ii/(nFrames), wtBar, sprintf([logMsg]));
+    end
+%%%%
 end
+
+if ishandle(wtBar), close(wtBar), end;
 
 %% protrusion/retraction information
 % time after protrusion onset (negative value if retraction, based
@@ -537,13 +579,24 @@ if getEdgeRelatedFeatures
         tracksNA(ii).closestBdPoint(idxZeros)=NaN;
     end
 end
+
+
 disp('Post-analysis on adhesion movement...')
 deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
 tIntervalMin = deltaT/60; % in min
 periodMin = 1;
 periodFrames = floor(periodMin/tIntervalMin); % early period in frames
 frames2min = floor(2/tIntervalMin); % early period in frames
+logMsg = ['Please wait, Post-analysis on adhesion movement...'];
+
+% if ishandle(wtBar), 
+wtBar = waitbar(0,logMsg,'Name', thisProc.getName())
+% end
 progressText(0,'Post-analysis:');
+progressbar;
+
+
+
 for k=1:numTracks
     % cross-correlation scores
 %     presIdx = logical(tracksNA(k).presence);
@@ -748,6 +801,8 @@ for k=1:numTracks
         (tracksNA(k).yCoord(logical(tracksNA(k).presence))'-meanY).^2);
     tracksNA(k).MSDrate = tracksNA(k).MSD/tracksNA(k).lifeTime;
     progressText(k/(numTracks-1),'Post-analysis:');
+    progressbar(k/(numTracks-1), 'Post-analysis:');
+    waitbar(k/(numTracks), wtBar, sprintf(logMsg));
 end
 end
 %% saving
@@ -866,7 +921,13 @@ else
     lifeTimeNAmaturing =[];
     maturingRatio = [];
 end
+
+if ishandle(wtBar)
+    close(wtBar);
 end
+
+end
+
 
 function newTracks = formatTracks(tracks,detectedNAs,nFrames)
 % Format tracks structure into tracks with every frame
@@ -905,6 +966,7 @@ newTracks(numel(tracks),1) = struct('xCoord', [], 'yCoord', [],'state',[],'iFram
 %                                   number = start is due to a split, end
 %                                   is due to a merge, number is the index
 %                                   of track segment for the merge/split.
+progressbar;
 for i = 1:numel(tracks)
     % Get the x and y coordinate of all compound tracks
     startNA = true;
@@ -1015,5 +1077,6 @@ for i = 1:numel(tracks)
     if isempty(newTracks(i).startingFrame)
         warning(['startingFrame is empty for track #' num2str(i)])
     end
+progressbar(i/numel(tracks));
 end
 end
