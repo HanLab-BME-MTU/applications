@@ -71,17 +71,25 @@ end
 % gscatter([mtDisappTime{:}], [mtDisappBias{:}],[groupID{:}]);
 %%
 plot(H(1),vertcat(timeCell{:})',vertcat(biasAvgCell{:})');
+title(H(1),'Average angular bias');
 legend(H(1),nameOrCell);
 
 plot(H(2),vertcat(timeCell{:})',vertcat(biasMedCell{:})');
+title(H(2),'Median angular bias');
 legend(H(2),nameOrCell);
 %%
-plot(H(3),vertcat(timeCell{:})',vertcat(biasAvgPerKinCell{:})');
-legend(H(3),nameOrCell);
-
+% plot(H(3),vertcat(timeCell{:})',vertcat(biasAvgPerKinCell{:})');
+% title(H(1),'Kinetochore-averaged ');
+% legend(H(3),nameOrCell);
 plot(H(4),vertcat(timeCell{:})',vertcat(distAvgCell{:})');
+title(H(4),'Average distance bias');
+
 plot(H(5),vertcat(timeCell{:})',vertcat(distMedCell{:})');
+title(H(5),'Median distance bias');
+
 plot(H(6),vertcat(timeCell{:})',vertcat(distCountCell{:})');
+ylabel(H(6),'Count');
+title(H(6),'Disappearance under 400 nm');
 
 
 end

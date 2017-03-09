@@ -75,7 +75,7 @@ end
 
 % First test, highlight bundle display the +TIP coordinate on a lateral view of the poleKin axis. 
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep 'testBundleRadius' filesep]
-system(['mkdir ' outputDirProj]);
+system(['mkdir -p ' outputDirProj]);
 
 if(printAll)    
     for kIdx=min(length(testKinIdx),testKinIdx)

@@ -236,6 +236,7 @@ if(~isempty(p.process))
     save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3Tracks');
     outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'detection'];
     save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'detLabRef');
+    
     %% inlier index
     inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
     inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));

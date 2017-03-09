@@ -27,10 +27,9 @@ end
 
 %% inlier index
 inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
-inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
-%
-kinTracksInliers=kinTracks(inliersKin);
 EB3TracksInliers=EB3Tracks(inliersEB3);
+inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
+kinTracksInliers=kinTracks(inliersKin);
 %%
 outputDirAmira=[MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep  'Amira' filesep];
 
@@ -111,7 +110,14 @@ for aIdx=1:numAngle
     mapMTApparitionToKin(randKinTracksInlier,EB3TracksInliers,cutoff,'distType',p.distType);
     appearingMTBias(randKinTracksInlier);
 %     displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'},'plotHandleArray',Hs(aIdx));
-    save([MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep 'kinAndRand.mat'],'kinTracksInliers','randKinTracksInlier');
+    process=p.process;
+    procFolder=[MD.outputDirectory_ filesep 'Kin' filesep 'directionalBias' filesep p.distType filesep];
+    system(['mkdir ' procFolder]);
+    if(~isempty(process))
+        save([procFolder 'kinAndRand.mat'],'kinTracksInliers','randKinTracksInlier');
+        process.setOutFilePaths({[procFolder 'kinAndRand.mat']})
+    end;
+    
     displayBiasStat({kinTracksInliers,randKinTracksInlier},{'kin','rand'});
 end
 

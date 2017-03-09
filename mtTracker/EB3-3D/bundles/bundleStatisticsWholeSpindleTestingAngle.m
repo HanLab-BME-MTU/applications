@@ -7,6 +7,7 @@ ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('printAll',false, @islogical);
 ip.addParameter('process',[]);
+ip.addParameter('kinRange',[]);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
