@@ -1,0 +1,231 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{color}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+\title{Gaussian Integrals}
+\author{Mark Kittisopikul}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Throughout the analysis of scale space we encounter integrals of the form
+\begin{equation}
+	Q(n) = \int_0^{+\infty} f^n \exp(-f^2) \, df \quad, n \in \mathbb{N}_0
+\end{equation}
+
+where $ \mathbb{N}_0 $ are the natural numbers including zero or equivalently the nonnegative integers, $ \mathbb{Z}_{\geq 0} $. The exponent $ n $ changes depending on the order of the filter that is being used, such as the order of the derivative, or the dimensionality of the problem. To understand scale across filter order and regardless of dimension we would like to under how to compute this integral for any $ n \in \mathbb{N}_0 $.
+
+Here we take the integral over half of the real line. If we integrated over the whole real line, then the integral would be zero for odd $ n $.
+
+In many cases the alternate form with $ \sigma $ indicating the standard deviation of a Gaussian is more directly applicable. This is a substitution away from the form above.
+
+\begin{eqnarray}
+	f & = &  \frac{x}{\sigma \sqrt{2}} \\
+	df & = & \frac{dx}{\sigma \sqrt{2}} \\
+	(\sigma \sqrt{2})^{n+1}
+	Q\left( n \right) 
+	& = & 
+	 \int_0^{+\infty} x^n
+	  \exp\left(
+		  -\frac{x^2}{2\sigma^2}
+	  \right) dx \quad, n \in \mathbb{N}_0
+\end{eqnarray}
+This alternative form only requires an additional multiplier.
+
+\subsection{Outline}
+We begin by exploring $ Q(n) $ for low values of $ n $ where $ n = 1 $ corresponds to an exponential integral and $ n = 0$ corresponds to the classic Gaussian integral. For higher n, we derive a recursive formula. Motivated by the recursive formula, we then show the connection to the gamma function and list several values. Finally, we discuss the application of this formula to width and scale, and the form of the orientation space filter.
+
+\section{Exponential Integral}
+The easiest integral to do is $ Q(1) $ since this can be solved by substitution.
+\begin{eqnarray}
+	\mbox{Let } s & = & -f^2 \\
+	ds & = & -2f df \\
+	Q(1) & = & \int_0^{+\infty} f \exp(-f^2) \, df \\
+	& = & -\frac{1}{2} \int_0^{+\infty} -2f \exp(-f^2) \, df \\
+	& = & -\frac{1}{2} \int_0^{-\infty} \exp(s) ds \\
+	& = & -\frac{1}{2} \left[ \exp(s) \right]_0^{-\infty} = -\frac{1}{2} \left[ 0 - 1 \right] \\
+	& = & \frac{1}{2}
+\end{eqnarray}
+\section{The Gaussian Integral}
+
+The classic Gaussian integral, $ 2 Q(0) $, is as follows and is solved by squaring the integral and converting into polar coordinates.
+\begin{eqnarray}
+Q(0) & = & \int_0^{+\infty} \exp(-f^2) df \\
+2Q(0) & = & \int_{-\infty}^{+\infty} \exp(-f^2) df \\
+\left[  2 Q(0) \right]^2 & = &  4 Q(0) Q(0) \\
+                      & = & \int_{-\infty}^{+\infty} \exp(-x^2) dx  \int_{-\infty}^{+\infty} \exp(- y^2) dy \\
+          & = & \int_{-\infty}^{+\infty} \int_{-\infty}^{+\infty} \exp(-(x^2+y^2)) \,  dx \, dy \\
+          & = & \int_0^{2 \pi} \int_0^{+\infty} \exp(-r^2) \,  rdr \, d\theta \\
+          & = & 2 \pi \int_0^{+\infty} \exp(-r^2) \,  rdr \\
+          & = & 2 \pi \, Q(1) = \pi \\
+  2Q(0)   & = & \sqrt{\pi} \\
+   Q(0)   & = & \frac{\sqrt{\pi}}{2}
+\end{eqnarray}
+
+\section{Recursion for $ n \ge 2 $}
+To obtain $ Q(n) $ for $ n \ge 2 $ we can use recursion via integration by parts.
+\begin{eqnarray}
+Q(n) & = &  \int_0^{+\infty} f^{n-1} \exp(-f^2) f \, df \quad \\ 
+& = & -\frac{1}{2} \left[ f^{n-1} \exp(-f^2) \right]_0^{+\infty} +
+      \frac{1}{2} \int_0^{+\infty} (n-1) f^{n-2} \exp(-f^2) df \\
+    & = & \frac{n-1}{2} Q(n-2)
+\end{eqnarray}
+
+\subsection{Even $ n $}
+For even $ n $ the recursion continues until $ Q(0) $.
+\begin{eqnarray}
+Q(n) & = & \frac{n-1}{2} Q(n-2) \\
+     & = & \left(\frac{n-1}{2}\right)\left( \frac{n-3}{2}\right) Q(n-4) \\
+     & = & \left(\frac{(n-1)!!}{2^{n/2}}\right) \, Q(0) \quad \mbox{for } n \mbox{ even} \\
+     & = &    \left(\frac{(n-1)!!}{2^{n/2}}\right) \frac{\sqrt{\pi}}{2} 
+\end{eqnarray}
+where $ !! $ is the double factorial where $ n !! $ is the product of the nonzero even natural numbers equal to or less than $ n $, or the odd numbers equal to or less than $ n $, depending on if $ n $ is even or odd, respectively.
+\subsection{Odd $ n $}
+For odd $ n $ the recursion continues until $ Q(1) $.
+\begin{eqnarray}
+Q(n) & = & \left(\frac{n-1}{2}\right)! \, Q(1) \quad \mbox{for } n \mbox{ odd} \\
+     & = &    \left(\frac{n-1}{2}\right)! \frac{1}{2} 
+\end{eqnarray}
+
+\section{The Gamma Function}
+The split between even and odd cases above motivates the introduction of the gamma function. The gamam function allows us to provide a single solution without the need for cases.
+\begin{eqnarray}
+\Gamma(z) & = & \int_0^{+\infty} t^{z-1} \exp(-t) dt \\
+\mbox{Let } t & = & f^2 \\
+dt & = & 2f df \\
+\Gamma(z) & = & 2 \int_0^{+\infty} f^{2z-1} \exp(-f^2) df \\
+& = & 2 Q(2z-2) \\
+Q(n) & = & \frac{1}{2} \, \Gamma\left(\frac{n+1}{2}\right) 
+\end{eqnarray}
+\section{Table of Values}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{l|l||c}
+\hline
+$ n $ & $ z = (n+1)/2 $ & $ Q(n) = \frac{1}{2} \Gamma(z) $ \\ \hline \hline
+0 & 0.5 & $ \frac{1}{2} \sqrt{\pi} $ \\
+1 & 1 & $ \frac{1}{2} $ \\ %\hline
+2 & 1.5 & $ \frac{1}{4} \sqrt{\pi} $ \\ % \hline
+3 & 2 & $ \frac{1}{2} $ \\ %\hline
+4 & 2.5 & $ \frac{3}{8} \sqrt{\pi} $  \\ %\hline
+5 & 3 & $ 1 $   \\ %\hline
+6 & 3.5 & $ \frac{15}{16} \sqrt{\pi} $ \\ %\hline
+7 & 4 & $ 3 $ \\ %\hline
+8 & 4.5 & $ \frac{105}{32} \sqrt{\pi} $ \\ %\hline
+\end{tabular}
+
+\section{Applications}
+\subsection{Orientation Space Filter}
+The radial component of the Orientation Space filter has a form that resembles $ Q(n) $. Here  we reintroduce the parameter $ K_f $ that describes the radial order of the filter. This should not be confused with the angular order of the filter $ K $. In our application we use $ K_f = 1 $ for reasons we will now discuss.
+\begin{eqnarray}
+K_f & = & \left(\frac{f_c}{b_f} \right)^2 \\
+\Phi_f(f; K_f, f_c) & = & \left(\frac{f}{f_c}\right)^{K_f}
+       \exp\left(-\frac{f^2}{2b_f^2}+\frac{K_f}{2}\right) \\
+ & = & \left(\frac{f}{f_c}\right)^{K_f}
+       \exp\left(-\frac{f^2}{2b_f^2}\right)
+       \exp\left(\frac{K_f}{2}\right) \\ 
+\Phi_f(f; K_f = 1, f_c) & = & \frac{f}{f_c}
+    \exp\left(-\frac{f^2}{2f_c^2}+\frac{1}{2}\right) \\
+    & = &
+    \frac{f}{f_c}
+    \exp\left(-\frac{f^2}{2f_c^2}\right)
+    \sqrt{e}
+ \end{eqnarray}
+\subsubsection{Normalization of Orientation Space Filter for Width}
+In order to normalize the Orientation Space filter, we want the integral to be equal to be one. The integral for width is one dimensional since we integrate normal to the orientation.
+\begin{eqnarray}
+\int_0^{+\infty} \Phi_f(f; K_f, f_c) \, df 
+       &  \\ 
+      = & \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{1}{f_c} \right)^{K_f}
+            \int_0^{+\infty} f^{K_f} \exp\left(-\frac{f^2}{2b_f^2}\right) df \\
+      = &  \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{1}{f_c} \right)^{K_f}
+            \left( b_f \sqrt{2} \right)^{K_f+1}
+            Q(K_f) \\
+      = & \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{b_f}{f_c} \right)^{K_f}
+            b_f \left( \sqrt{2} \right)^{K_f+1}
+            Q(K_f) \\
+      = & \exp \left(\frac{K_f}{2} \right)
+            \left( K_f \right)^{-K_f/2}
+            b_f \left( \sqrt{2} \right)^{K_f+1}
+            Q(K_f) \\
+      = & N(K_f) b_f \\
+\int_0^{+\infty} \Phi_f(f; 1, f_c) \, df 
+       = & 2 \exp \left(\frac{1}{2} \right)
+            b_f 
+            Q(1) \\ 
+       = & 2 b_f \sqrt{e} \\
+       = & 2 f_c \sqrt{e}
+\end{eqnarray}
+In relating the filter to $ Q(n) $ we see that we can only easily calculate this integral when $ K_f $ is an integer. Non-integer values can only be expressed in terms of the gamma function. When $ K_f  = 1 $, then $ b_f = f_c $.
+\subsubsection{Application of Width Filter to a 1D Gaussian}
+Applying the filter against a 1D Gaussian modifies the bandwidth factor:
+\begin{eqnarray}
+\mbox{Let } \frac{1}{s^2}  =  \frac{1}{b_f^2} + \frac{1}{\sigma^2} \\
+s  =  \frac{b_f \sigma}{\sqrt{b_f^2 + \sigma^2}} \\
+\int_0^{+\infty} \Phi_f(f; K_f, f_c) \exp(-\frac{f^2}{2 \sigma^2}) \, df & & \\
+= \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{1}{f_c} \right)^{K_f}
+            \left( s \sqrt{2} \right)^{K_f+1}
+            Q(K_f) \\
+= \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{1}{f_c} \right)^{K_f}
+            \left( b_f \sqrt{2} \right)^{K_f+1}
+            \left(\frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+1}
+            Q(K_f) \\
+= N(K_f) b_f \left(\frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+1} \\
+= N(K_f) R(b_f, \sigma, K_f) \\
+\end{eqnarray}
+We have thus separated the integral into the normalization factor, $ N(K_f) $, that is only dependent on $ K_f $ and a response portion, $ R(b_f, \sigma, K_f) $, that is dependent on the bandwidth of the filter, $ b_f $, the standard deviation of the Gaussian to which it is being applied, $ \sigma $, and the radial order factor, $  K_f $. We want to find at what $ b_f $ in terms of $ \sigma $ and $ K_f $ does the absolute maximum of $R(b_f, \sigma, K_f) $ occur. We therefore calculate the the partial derivative of the response with respect to $ b_f $ and find the root.
+\begin{eqnarray}
+\frac{\partial R}{\partial b_f} & = & \left(\frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+1}
+  \\ & & -b_f^2 (K_f + 1) \left(\frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+1}
+   \left( \frac{1}{b_f^2+\sigma^2}  \right) \\
+  & = & \left(\frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+1}
+        \left[ 1  - \frac{b_f^2 (K_f+1)}{b_f^2 + \sigma^2} \right] \\
+  & = & \left(\frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+1}
+        \left[ \frac{b_f^2 + \sigma^2 - b_f^2 (K_f+1)}{b_f^2 + \sigma^2} \right] \\
+  & = & \left(\frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+1}
+        \left[ \frac{\sigma^2 - b_f^2 K_f}{b_f^2 + \sigma^2} \right] \\
+\frac{\partial R}{\partial b_f} & = & 0 \implies \\
+\sigma^2 - b_f^2 K_f & = & 0 \\
+b_f & = & \frac{\sigma}{\sqrt{K_f}}
+\end{eqnarray}
+We thus find that in order to detect a width $ \sigma $ we need to adjust our bandwidth by the square root of $ K_f $. If we want $ b_f = \sigma $ then we should choose $ K_f = 1 $. This is the primary reason that we choose $ K_f = 1 $ in practice.
+
+We also note that at $ K_f = 0 $ no maximum is obtained. That case would be equivalent to using a 1D Gaussian filter to detect the width of a 1D Gaussian object.
+\subsubsection{Normalization of the Orientation Space Filter, 2D Polar Integral}
+\begin{eqnarray}
+\int_0^{2 \pi} \int_0^{+\infty} \Phi_f(f; K_f, f_c) \Phi_\theta(\theta; K, \theta_0) f df \, d\theta \\
+ = \int_0^{2 \pi} \Phi_\theta(\theta; K, \theta_0) d\theta
+ \int_0^{+\infty} \Phi_f(f; K_f, f_c)  f df \\
+ \approx \frac{\pi \sqrt{2}}{2K+1}  Q(0) \\
+ \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{1}{f_c} \right)^{K_f}
+            \left( b_f \sqrt{2} \right)^{K_f+2}
+            Q(K_f + 1) \\
+             = \frac{\pi \sqrt{2}}{2K+1}  Q(0) \\
+ \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{b_f}{f_c} \right)^{K_f}
+            b_f^2
+            \left( \sqrt{2} \right)^{K_f+2}
+            Q(K_f + 1) \\            
+             = \frac{\pi \sqrt{2}}{2K+1}  Q(0) \\
+ \exp \left(\frac{K_f}{2} \right)
+            \left( K_f \right)^{-K_f/2}
+            b_f^2
+            \left( \sqrt{2} \right)^{K_f+2}
+            Q(K_f + 1) \\      
+\end{eqnarray}
+The approximation occurs because of the periodic nature of the angular component of the filter. For small angular order, $ K $, the error function is needed since the limits of integration become relevant. The function $ \Phi_\theta $ no longer is sufficiently close to zero at the limits of integration for them to be approximated as infinity.
+
+The integral for the radial component of the filter differs from the width filter calculation due to the additional $ f $ from the polar coordinate Jacobian. Thus we now need $ Q(K_f+1) $ rather than $ Q(K_f) $ as for a width calculation. Additionally, the dependence of the integral is now $ b_f^2 $ rather than $ b_f $ in the width case.
+\end{document}
