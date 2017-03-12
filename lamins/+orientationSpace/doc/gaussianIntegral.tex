@@ -224,8 +224,41 @@ We also note that at $ K_f = 0 $ no maximum is obtained. That case would be equi
             b_f^2
             \left( \sqrt{2} \right)^{K_f+2}
             Q(K_f + 1) \\      
+= 	    A(K) \, N(K_f) b_f^2
 \end{eqnarray}
 The approximation occurs because of the periodic nature of the angular component of the filter. For small angular order, $ K $, the error function is needed since the limits of integration become relevant. The function $ \Phi_\theta $ no longer is sufficiently close to zero at the limits of integration for them to be approximated as infinity.
 
 The integral for the radial component of the filter differs from the width filter calculation due to the additional $ f $ from the polar coordinate Jacobian. Thus we now need $ Q(K_f+1) $ rather than $ Q(K_f) $ as for a width calculation. Additionally, the dependence of the integral is now $ b_f^2 $ rather than $ b_f $ in the width case.
+\subsection{Application of Orientation Space Filter to a 2D Gaussian}
+Similar to the application of the width filter to the 1D Gaussian we proceed with the application of the orientation space filter to an isotropic 2D Gaussian.
+\begin{align}
+\mbox{Let } \frac{1}{s^2}  &=  \frac{1}{b_f^2} + \frac{1}{\sigma^2} \\
+s  &=  \frac{b_f \sigma}{\sqrt{b_f^2 + \sigma^2}} \\
+&	\int_0^{2 \pi} \int_0^{+\infty} \Phi_f(f; K_f, f_c) \Phi_\theta(\theta; K, \theta_0) \exp\left(-\frac{f^2}{2\sigma^2}\right)f df \, d\theta \\
+& = \int_0^{2 \pi} \Phi_\theta(\theta; K, \theta_0) d\theta
+ \int_0^{+\infty} \Phi_f(f; K_f, f_c) \exp\left(-\frac{f^2}{2\sigma^2}\right)  f df \\
+& \approx \frac{\pi \sqrt{2}}{2K+1}  Q(0)
+ \exp \left(\frac{K_f}{2} \right)
+            \left( \frac{1}{f_c} \right)^{K_f}
+            \left( s \sqrt{2} \right)^{K_f+2}
+            Q(K_f + 1) \\
+&	    =   A(K) N(K_f) b_f^2 \left( \frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+2} \\
+&	    =   A(K) N(K_f) R(b_f, \sigma, K_f)
+\end{align}
+Similar to the width filter and the 1D Gaussian, we want to find $ b_f $ in terms of $ \sigma $ and $ K_f $ such that the response is the absolute maximum.
+\begin{align}
+	\frac{\partial R}{\partial b_f} &= 2 b_f \left( \frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+2} \\
+	&- b_f^3 (K_f+2)  \left( \frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+2} \left( \frac{1}{b_f^2 + \sigma^2} \right) \\
+	&= \left( \frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+2} b_f \left[ 2 - \frac{b_f^2 (K_f+2)}{b_f^2 + \sigma^2} \right] \\
+	&= \left( \frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+2} b_f \left[ \frac{2b_f^2 + 2\sigma^2 - b_f^2 (K_f+2)}{b_f^2 + \sigma^2} \right] \\
+	&= \left( \frac{ \sigma}{\sqrt{b_f^2 + \sigma^2}} \right)^{K_f+2} b_f \left[ \frac{2\sigma^2 -b_f^2 K_f }{b_f^2 + \sigma^2 } \right] \\
+\frac{\partial R}{\partial b_f} &= 0 \implies \\
+2\sigma^2 - b_f^2 K_f &= 0 \\
+b_f &= \sigma \sqrt{ \frac{2}{K_f} }
+\end{align}
+The above indicates that the optimal radial filter bandwidth for detecting a 2D Gaussian is a factor of $ \sqrt{\frac{2}{K_f}} $ from that of the 2D Gaussian's bandwidth in the the Fourier domain. In the object domain this indicates an optimal width of $ \sqrt{\frac{K_f}{2}} $ versus the Gaussian. A filter with a width of $ \sqrt{2} $ pixels in the object domain would be optimal to select a Gaussian with standard deviation of 2 pixels with $ K_f = 1 $. With $ K_f = 2 $ the filter width the and object width are optimal when they match. In 2D, $ K_f = 2 $ corresponds to the Laplacian of Gaussian filter.
+
+Also note that when $ K_f = 0 $, corresponding to a pure Gaussian filter, no local maximum occurs as a function of $ b_f $, the bandwidth of the filter. The DC component, the ``0th frequency'', is one, so the the filter is already normalized in the object domain. For a local maximum to occur as a function of $ b_f $ the response must be divided by $ b_f $ which is equivalent to multiplying by the standard deviation in the object domain. The result would then look similar to the application of the width filter to the 1D Gaussian.
+
+To summarize, this provides us with two mechanisms for detecting the scale of a Gaussian through the radial component of the Orientation Space filter. The first is by using the Laplacian of the Gaussian with $ K_f = 2 $. The second is by scaling the pure Gaussian filter, $ K_f = 0 $. The response of the Orientation Space filter to an isotropic 2D Gaussian does not depend on the angular component.
 \end{document}
