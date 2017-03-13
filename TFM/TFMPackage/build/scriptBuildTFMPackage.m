@@ -31,9 +31,11 @@ for i = 1:length(repo_dirs)
     disp(['Adding ' cur_dir]);
     addir(cur_dir);
 end
-cellScript{1} = 'tfmPackageGUI.m';
-cellScript{2} = 'scriptRunTFM.m'; 
-buildPackage(cellScript, out_dir);
+cellScript = 'TFMPackage.m';
+% cellScript{2} = 'scriptRunTFM.m'; 
+% cellScript{3} = 'pivParams.m'; 
+% cellScript{3} = 'pivParams.m'; 
+buildPackage(cellScript, out_dir, 'exclude',{[]});
 cd(out_dir); % check results
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

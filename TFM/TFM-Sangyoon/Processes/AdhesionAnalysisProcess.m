@@ -1,4 +1,4 @@
-classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
+classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProcess
     
     methods (Access = public)
     
@@ -28,13 +28,13 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
                 super_args{4} = funParams;
             end
             
-            obj = obj@ImageAnalysisProcess(super_args{:});
+            obj = obj@DataProcessingProcess(super_args{:});
                         
         end
 
         function sanityCheck(obj)
             
-            sanityCheck@ImageAnalysisProcess(obj);
+            sanityCheck@DataProcessingProcess(obj);
             
             % Cell Segmentation Check
             if obj.funParams_.ApplyCellSegMask                
@@ -92,66 +92,82 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
                 obj.funParams_.FAsegProc = iProc;
             end
         end
-            
-        function output = loadChannelOutput(obj, iChan, varargin)
+        
+        function varargout = loadChannelOutput(obj, iChan, varargin)
             % Input check
-            outputList = {'tracksFinal', 'staticTracks'};
+            outputList = {'trackFC','trackNA','trackFA','detBA',...
+                          'detectedFA','detFA','detFC','detNA',...
+                          'adhboundary_FA', 'adhboundary_FC'};
+
             ip =inputParser;
             ip.addRequired('obj');
             ip.addRequired('iChan', @(x) obj.checkChanNum(x));
             ip.addOptional('iFrame', [] ,@(x) obj.checkFrameNum(x));
-            ip.addParamValue('useCache',false,@islogical);
-            ip.addParamValue('output', outputList{1}, @(x) all(ismember(x,outputList)));
+            ip.addParameter('useCache',true,@islogical);
+            ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
             ip.parse(obj,iChan,varargin{:})
             output = ip.Results.output;
+            varargout = cell(numel(output), 1);
             iFrame = ip.Results.iFrame;
             if ischar(output),output={output}; end
             
             % Data loading
-            % load outFilePaths_{1,iChan}
-            s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tracksFinal');
+            s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
+%             st = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tracksNA');
+            % Note, could do a stack.
+            
+            %% Check struct vs table loading           
+            if isstruct(s)
+                s = s.tableTracksNA;
+            else
+                disp('loaded as table');
+            end
 
-            varargout = cell(numel(output), 1);
-            for i = 1:numel(output)
-                % switch output{i}
-                %     case {'tracksFinal', 'staticTracks'}
-                %         varargout{i} = s.tracksFinal;
-                %     case 'gapInfo'
-                %         varargout{i} = findTrackGaps(s.tracksFinal);
-                % end
-                if strcmp(output{i}, 'tracksFinal') && ~isempty(iFrame),
-                    % Filter tracks existing in input frame
-                    trackSEL=getTrackSEL(s.tracksFinal);
-                    validTracks = (iFrame>=trackSEL(:,1) &iFrame<=trackSEL(:,2));
-                    [varargout{i}(~validTracks).tracksCoordAmpCG]=deal([]);
+            nTracks = length(s.xCoord(:,iFrame));
+            number = [1:length(s.xCoord(:,iFrame))]';
+            state = categorical(s.state(:,iFrame));
+            
+            for iout = 1:numel(output)
+                switch output{iout}
+                    case 'detectedFA'  
+                        varargout{1} = t;
+                    case 'detBA' 
+                        validState = state == 'BA';
+                    case {'detNA', 'trackNA'}
+                        validState = state == 'NA';
+                    case {'detFC', 'trackFC', 'adhboundary_FC'}
+                        validState = state == 'FC';
+                    case {'detFA', 'trackFA', 'adhboundary_FA'}
+                        validState = state == 'FA';
+                    case 'staticTracks'
+                    otherwise
+                        error('Incorrect Output Var type');
+                end   
+                if ~isempty(strfind(output{iout}, 'det'))
+                
+                    t = table(s.xCoord(:,iFrame), s.yCoord(:,iFrame));
+                    varargout{iout} = t{validState,:};                                 
+                
+                elseif ~isempty(strfind(output{iout},'track'))
                     
-                    nFrames = iFrame-trackSEL(validTracks,1)+1;
-                    nCoords = nFrames*8;
-                    validOut = varargout{i}(validTracks);
-                    for j=1:length(validOut)
-                        validOut(j).tracksCoordAmpCG = validOut(j).tracksCoordAmpCG(:,1:nCoords(j));
-                    end
-                    varargout{i}(validTracks) = validOut;
+                    vars = {'xCoord', 'yCoord', 'number'};
+                    validTracks = validState & s.startingFrameExtra <= iFrame & s.endingFrameExtra >= iFrame;                    
+                    st = table(s.xCoord(:,1:iFrame), s.yCoord(:,1:iFrame), number, ...
+                               'VariableNames', {'xCoord', 'yCoord', 'number'});                    
+                    
+                    varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
+                    varargout{iout}(validTracks, :) = table2struct(st(validTracks, vars));
+                
+                elseif ~isempty(strfind(output{iout},'adhboundary'))                    
+                
+                    adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
+                    varargout{iout} = table2struct(table(adhBoundary, number(validState), ...
+                                                         'VariableNames',{'adhBoundary', 'number'}));                                 
+                else
+                    varargout{iout} = [];
                 end
             end
-        end
-
-         function output = getDrawableOutput(obj)
-            colors = hsv(numel(obj.owner_.channels_));
-            output(1).name='Tracks';
-            output(1).var='tracksFinal';
-            output(1).formatData=@TrackingProcess.formatTracks;
-            output(1).type='overlay';
-            output(1).defaultDisplayMethod = @(x)FATracksDisplay(...
-                'Color',colors(x,:));
-            output(2).name='Static tracks';
-            output(2).var='staticTracks';
-            output(2).formatData=@TrackingProcess.formatTracks;
-            output(2).type='overlay';
-            output(2).defaultDisplayMethod = @(x)FATracksDisplay(...
-                'Color',colors(x,:), 'useDragtail', false);
-        end       
-
+        end      
     end
 
 
@@ -164,6 +180,63 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             h = @focalAdhesionAnalysisProcessGUI;
         end
         
+        function output = getDrawableOutput()
+            ii = 9;
+            i = ii-1; output(i).name='Before Adhesion Detection'; 
+            output(i).var='detBA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','.',...
+                'LineStyle', 'none', 'LineWidth', .6, 'Color', 'g',...
+                'MarkerSize', 5);            
+            i = ii-2; output(i).name='Nascent Adhesion Detection'; 
+            output(i).var='detNA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none', 'LineWidth', .8, 'Color', 'r'); 
+            i = ii-3; output(i).name='Focal Contact Detection'; 
+            output(i).var='detFC';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none', 'LineWidth', .8, 'Color', [255/255 153/255 51/255]); 
+            i = ii-4; output(i).name='Focal Adhesion Detection'; 
+            output(i).var='detFA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none', 'LineWidth', .8, 'Color', 'b'); 
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Tracks Display
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            i = ii-5; output(i).name='Nascent Adhesion Tracks'; 
+            output(i).var='trackNA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', 'r'); 
+            i = ii-6; output(i).name='Focal Contact Tracks'; 
+            output(i).var='trackFC';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', [255/255 153/255 51/255]); 
+            i = ii-7; output(i).name='Focal Adhesion Tracks'; 
+            output(i).var='trackFA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) FATracksDisplay('Linewidth', 1, 'Color', 'b'); 
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Adhesion Boundaries
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
+            i = ii-8; output(i).name='Focal Adhesion Boundary';
+            output(i).var='adhboundary_FA';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', 'm');
+           
+
+        end       
+
         function funParams = getDefaultParams(owner, varargin)
 
             % MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage')).outputDirectory_
@@ -195,189 +268,6 @@ classdef AdhesionAnalysisProcess < DetectionProcess %& DataProcessingProcess
             %% TODO - likely will remove this.
             funParams.backupOldResults = true;           
         end
-
-        function displayTracks = formatTracks(tracks)
-            % Format tracks structure into compound tracks for display
-            % purposes
-            
-            % Determine the number of compound tracks
-            nCompoundTracks = cellfun('size',{tracks.tracksCoordAmpCG},1)';
-            trackIdx = 1:length(tracks);
-            
-            % Filter by the tracks that are nonzero
-            filter = nCompoundTracks > 0;
-            tracks = tracks(filter);
-            trackIdx = trackIdx(filter);
-            nCompoundTracks = nCompoundTracks(filter);
-            
-            % Get the track lengths (nFrames x 8)
-            trackLengths = cellfun('size',{tracks.tracksCoordAmpCG},2)';
-            % Unique track lengths for batch processing later
-            uTrackLengths = unique(trackLengths);
-            % Running total of displayTracks for indexing
-            nTracksTot = [0 cumsum(nCompoundTracks(:))'];
-            % Total number of tracks
-            nTracks = nTracksTot(end);
-            
-            % Fail fast if no track
-            if nTracks == 0
-                displayTracks = struct.empty(1,0);
-                return
-            end
-            
-            % Number of events in each seqOfEvents for indexing
-            % Each will normally have 2 events, beginning and end
-            nEvents = cellfun('size',{tracks.seqOfEvents},1);
-
-            % Initialize displayTracks structure
-            % xCoord: x-coordinate of simple track
-            % yCoord: y-coordinate of simple track
-            % events (deprecated): split or merge
-            % number: number corresponding to the original input compound
-            % track number
-            % splitEvents: times when splits occur
-            % mergeEvents: times when merges occur
-            displayTracks(nTracks,1) = struct('xCoord', [], 'yCoord', [], 'number', [], 'splitEvents', [], 'mergeEvents', []);
-            
-            hasSeqOfEvents = isfield(tracks,'seqOfEvents');
-            hasLabels = isfield(tracks, 'label');
-            
-            if(hasLabels)
-                labels = vertcat(tracks.label);
-                if(size(labels,1) == nTracks)
-                    hasPerSegmentLabels = true;
-                end
-            end
-
-            % Batch by unique trackLengths
-            for trackLength = uTrackLengths'
-                %% Select original track numbers
-                selection = trackLengths == trackLength;
-                sTracks = tracks(selection);
-                sTrackCoordAmpCG = vertcat(sTracks.tracksCoordAmpCG);
-                % track number relative to input struct array
-                sTrackIdx = trackIdx(selection);
-                % index of selected tracks
-                siTracks = nTracksTot(selection);
-                
-                % runs in current selection
-                snCompoundTracks = nCompoundTracks(selection);
-                snTracksTot = [0 ; cumsum(snCompoundTracks)];
-                
-                % decode run lengths
-                snTracks = snTracksTot(end);
-                idx = zeros(snTracks,1);
-                idx(snTracksTot(1:end-1) + 1) = ones(size(snCompoundTracks));
-                idx = cumsum(idx);
-
-                % absolute index of tracks
-                iTracks = ones(snTracks,1);
-                iTracks(snTracksTot(1:end-1) + 1) = [siTracks(1); diff(siTracks)'] - [0 ; snCompoundTracks(1:end-1)-1];
-                iTracks = cumsum(iTracks) + 1;
-                
-                % grab x and y coordinate matrices
-                xCoords = sTrackCoordAmpCG(:,1:8:end);
-                yCoords = sTrackCoordAmpCG(:,2:8:end);
-                
-                %% Process sequence of events
-                if(hasSeqOfEvents)
-                    % make sequence of events matrix
-                    seqOfEvents = vertcat(sTracks.seqOfEvents);
-                    nSelectedEvents = nEvents(selection);
-                    iStartEvents = [1 cumsum(nSelectedEvents(1:end-1))+1];
-
-                    % The fifth column is the start frame for each track
-                    seqOfEvents(iStartEvents,5) = [seqOfEvents(1) ; diff(seqOfEvents(iStartEvents,1))];
-                    seqOfEvents(:,5) = cumsum(seqOfEvents(:,5));
-
-                    % The sixth column is the offset for the current selected
-                    % tracks
-                    seqOfEvents(iStartEvents,6) = [0; snCompoundTracks(1:end-1)];
-                    seqOfEvents(:,6) = cumsum(seqOfEvents(:,6));
-
-                    % Isolate merges and splits
-                    seqOfEvents = seqOfEvents(~isnan(seqOfEvents(:,4)),:);
-
-                    % Apply offset 
-                    seqOfEvents(:,3) = seqOfEvents(:,3) + seqOfEvents(:,6);
-                    seqOfEvents(:,4) = seqOfEvents(:,4) + seqOfEvents(:,6);
-
-                    % Number of Frames
-                    nFrames = trackLength/8;
-
-                    %% Splits
-                    % The 2nd column indicates split (1) or merge(2)
-                    splitEvents = seqOfEvents(seqOfEvents(:,2) == 1,:);
-                    % Evaluate time relative to start of track
-                    splitEventTimes = splitEvents(:,1) - splitEvents(:,5);
-                    % Time should not exceed the number of coordinates we have
-                    splitEvents = splitEvents(splitEventTimes < nFrames,:);
-                    splitEventTimes = splitEventTimes(splitEventTimes < nFrames,:);
-                    iTrack1 = splitEvents(:,3);
-                    iTrack2 = splitEvents(:,4);
-
-                    % Use accumarray to gather the splitEventTimes into cell
-                    % arrays
-                    if(~isempty(splitEventTimes))
-                        splitEventTimeCell = accumarray([iTrack1 ; iTrack2], [splitEventTimes ; splitEventTimes ],[size(xCoords,1) 1],@(x) {x'},{});
-                    else
-                        splitEventTimeCell = cell(size(xCoords,1),1);
-                    end
-
-                    leftIdx = (splitEventTimes-1)*size(xCoords,1) + iTrack1;
-                    rightIdx = (splitEventTimes-1)*size(xCoords,1) + iTrack2;
-                    xCoords(leftIdx) = xCoords(rightIdx);
-                    yCoords(leftIdx) = yCoords(rightIdx);
-
-                    %% Merges
-                    % The 2nd column indicates split (1) or merge(2)
-                    mergeEvents = seqOfEvents(seqOfEvents(:,2) == 2,:);
-                    mergeEventTimes = mergeEvents(:,1) - mergeEvents(:,5);
-                    mergeEvents = mergeEvents(mergeEventTimes < nFrames,:);
-                    mergeEventTimes = mergeEventTimes(mergeEventTimes < nFrames,:);
-                    mergeEventTimes = mergeEventTimes + 1;
-                    iTrack1 = mergeEvents(:,3);
-                    iTrack2 = mergeEvents(:,4);
-
-                    if(~isempty(mergeEventTimes))
-                        mergeEventTimeCell = accumarray([iTrack1 ; iTrack2], [mergeEventTimes ; mergeEventTimes ],[size(xCoords,1) 1],@(x) {x'},{});
-                    else
-                        mergeEventTimeCell = cell(size(xCoords,1),1);
-                    end
-
-
-                    leftIdx = (mergeEventTimes-1)*size(xCoords,1) + iTrack1;
-                    rightIdx = (mergeEventTimes-1)*size(xCoords,1) + iTrack2;
-                    xCoords(leftIdx) = xCoords(rightIdx);
-                    yCoords(leftIdx) = yCoords(rightIdx);
-                end
-                          
-                %% Load cells into struct fields
-                for i=1:length(iTracks)
-                    iTrack = iTracks(i);
-                    displayTracks(iTrack).xCoord = xCoords(i,:);
-                    displayTracks(iTrack).yCoord = yCoords(i,:);
-                    displayTracks(iTrack).number = sTrackIdx(idx(i));
-                end            
-                
-                if(hasSeqOfEvents)
-                    [displayTracks(iTracks).splitEvents] = splitEventTimeCell{:};
-                    [displayTracks(iTracks).mergeEvents] = mergeEventTimeCell{:};
-                end
-                
-                if hasLabels
-                    if hasPerSegmentLabels
-                        for i=1:length(iTracks)
-                            iTrack = iTracks(i);
-                            displayTracks(iTrack).label = labels(iTrack);
-                        end    
-                    else
-                        [displayTracks(iTracks).label] = sTracks(idx).label;
-                    end
-                end
-            end
-        end      
-
 
     end
 end

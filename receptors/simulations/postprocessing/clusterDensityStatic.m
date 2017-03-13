@@ -1,4 +1,4 @@
-function clusterStatsLastFrame = clusterDensityLastFrame(clusterCount,infoSpaceTime)
+function clusterStatsLastFrame = clusterDensityStatic(detectionAggregState,infoSpaceTime)
 %CLUSTERDENSITYLASTFRAME calculates cluster densities in the last frame
 %
 %   SYNPOSIS: clusterStatsLastFrame = clusterDensityLastFrame(movieInfoLastFrame,infoIntensitySpace)
@@ -42,7 +42,7 @@ function clusterStatsLastFrame = clusterDensityLastFrame(clusterCount,infoSpaceT
 probDim = infoSpaceTime.probDim;
 areaSideLen = infoSpaceTime.areaSideLen;
 
-
+clusterCount=detectionAggregState;
 
 % to have the same outputs as in the function clusterNumbersFromCompTracks
 
@@ -53,6 +53,8 @@ if (numSideLenVals == 1)
 else
     simArea = prod(areaSideLen);
 end
+
+maxClustSize=length(clusterCount);
 
 %calculate cluster fractions 
 clusterFrac = clusterCount ./ sum(clusterCount);

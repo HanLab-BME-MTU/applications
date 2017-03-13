@@ -138,7 +138,7 @@ classdef FocalAdhesionPackage < Package
                  1 0 0 0 0 0;  %2 Mask Refinement [optional]
                  2 2 0 0 0 0;  %3 DetectionProcess
                  0 0 1 0 0 0;  %4 TrackingProcess
-                 0 0 1 1 0 0;  %5 FocalAdhesionSegmentationProcess
+                 0 0 0 0 0 0;  %5 FocalAdhesionSegmentationProcess
                  0 2 1 1 1 0;];%6 AnalyzeAdhesionMaturationProcess
 
             if nargin<2, j=1:size(m,2); end

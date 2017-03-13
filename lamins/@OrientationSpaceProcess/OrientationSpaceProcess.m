@@ -8,6 +8,10 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
     methods
         
         function obj = OrientationSpaceProcess(owner,varargin)
+%             if(nargin < 1)
+%                 % Allow empty creation
+%                 return;
+%             end
             ip = inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
             ip.addOptional('funParams', ...
@@ -42,12 +46,32 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             iFrame = ip.Results.iFrame;
             iZ = ip.Results.iZ;
             output = ip.Results.output;
+            if(isempty(output))
+                params = obj.getParameters();
+                if(isfield(params,'defaultOutput'))
+                    output = params.defaultOutput;
+                else
+                    output = 'nlms_mip_sc1';
+                end
+            end
             if ischar(output),output={output}; end
             
 %             switch(output{1})
 %                 case 'nlms_overlay'
 %                     output{1} = 'nlms';
 %             end
+            selectCell = [];
+            [splits,matches] = regexp(output{1},'_sc[0-9]$','split','match');
+            if(~isempty(matches))
+                output{1} = splits{1};
+                selectCell = str2double(matches{1}(end));
+            end
+
+            doMip = false;
+            if(~isempty(regexp(output{1},'_mip$','once')))
+                doMip = true;
+            end
+
             if(~isempty(regexp(output{1},'^nlms', 'once')))
                 output{1} = 'nlms';
             elseif(~isempty(regexp(output{1},'^maxima_f', 'once')))
@@ -87,13 +111,13 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 return;
             end
             
-            if(isempty(ip.Results.output))
-                if(isfield(params,'output'))
-                    output = params.output;
-                else
-                    output = outputList{1};
-                end
-            end
+%             if(isempty(ip.Results.output))
+%                 if(isfield(params,'output'))
+%                     output = params.output;
+%                 else
+%                     output = outputList{1};
+%                 end
+%             end
             switch(output{1})
 %                 case 'vertexMovieInfo'
 %                     [X,Y] = cellfun(@getVertexXY,data,'UniformOutput',false);
@@ -115,8 +139,13 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 otherwise
                     varargout{1}=s.(output{1});
             end
-            if(strcmp(output{1},'maxima') && strcmp(output{2},'nlms'))
+            if(length(output) > 1 && strcmp(output{1},'maxima') && strcmp(output{2},'nlms'))
                 varargout{1} = {s.maxima,s.nlms};
+            elseif(doMip)
+                varargout{1} = cellfun(@(out) nanmax(out,[],3),varargout{1},'UniformOutput',false);
+            end
+            if(~isempty(selectCell))
+                varargout{1} = varargout{1}{selectCell};
             end
         end
         function output = getDrawableOutput(obj)
@@ -250,6 +279,9 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
         end
     end
     methods (Static)
+        function out = GUI()
+            out = @cliGUI;
+        end
         function funParams = getDefaultParams(owner,varargin)
             % Input check
             ip=inputParser;
@@ -270,6 +302,7 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             funParams.t = 1:owner.nFrames_;
             funParams.c = 1:length(owner.channels_);
             funParams.z = 1:owner.zSize_;
+            funParams.defaultOutput = 'nlms_mip_sc1';
 %             funParams.ChannelIndex = 1:numel(owner.channels_);
 %             funParams.Levelsofsteerablefilters = 2;
 %             funParams.BaseSteerableFilterSigma = 1;
@@ -306,7 +339,7 @@ function saveOrientationSpaceResponse(process)
         template = [process.outFilePaths_{c} filesep 'nlms_c%02d_t%03d_z%03d.mat'];
         for t = params.t
             for z = params.z
-                progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                 out.ctz = [c t z];
                 out.maxima = cell(1,length(out.uMaximaOrder));
                 out.nlms = cell(1,length(params.responseAngularOrder));
@@ -317,7 +350,7 @@ function saveOrientationSpaceResponse(process)
                     tempResponse = response.getResponseAtOrderFT(out.uMaximaOrder(u));
                     out.maxima{u} = tempResponse.getRidgeOrientationLocalMaxima;
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                 end
                 lastOrder = out.uMaximaOrder(u);
                 for m = 1:length(params.responseAngularOrder)
@@ -328,15 +361,15 @@ function saveOrientationSpaceResponse(process)
                     
                     out.nlms{m} = tempResponse.nonLocalMaximaSuppressionPrecise(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                     
                     out.maxRes{m} = tempResponse.getMaxResponseFT(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                     
                     out.maxima_value{m} = tempResponse.interpft1(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
                     
                 end
                                
@@ -351,6 +384,7 @@ function overlayData = formatNLMSForOverlay(nlms,color)
     nlms_mip = nanmax(nlms,[],3);
     overlayData(:,:,1:3) = bsxfun(@times,mat2gray(nlms_mip),shiftdim(color,-1));
     overlayData(:,:,4) = mat2gray(nlms_mip);
+%     overlayData(:,:,4) = nlms_mip > 125;
 end
 function data = maximaToOrientationField(maxima,nlms)
     [X,Y] = meshgrid(1:size(maxima,1),1:size(maxima,2),1:size(maxima,3));

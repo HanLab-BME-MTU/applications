@@ -11,7 +11,9 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,...
 %       compTracksAggregState: Compound tracks as output by
 %                              aggregStateFromCompTracks_new. Contains
 %                              tracks in both default and alternative
-%                              formats, including aggregation state.
+%                              formats, including aggregation state for the
+%                              dynamic state and output of aggregStateFromDetection
+%                              for the static.  
 %                            
 %       infoSpaceTime: Structure with fields:
 %           .probDim        : Problem dimensionality.
@@ -42,10 +44,7 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,...
 %                              1-dynamic;
 %                              0-static;
 %
-%            .intensityInfo: Row vector with unit intensity mean 
-%                    and standard deviation (e.g. the intensity of a single
-%                    fluorophore labeling a single receptor).
-%
+%          
 %   OUTPUT:
 %       rateOnPerClust    :  A 1D array of calculated on rates for clusters
 %                            of size 1, 2, 3, etc. Cluster of size 1 gets
@@ -137,7 +136,7 @@ rateOnPerClust=[];
 rateOffPerClust=[];
 numClustForRateCalc=[];
 clustHistory=[];
-clustStats = clusterDensityLastFrame(compTracksAggregState,infoSpaceTime);
+clustStats = clusterDensityStatic(compTracksAggregState,infoSpaceTime);
 densityPerClust=clustStats.clusterDensity;
 end
 
