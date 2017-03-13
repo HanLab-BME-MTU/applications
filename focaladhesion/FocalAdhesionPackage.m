@@ -166,8 +166,19 @@ classdef FocalAdhesionPackage < Package
             %% TODO - Verify ideal default settings here.
             % Set default parameters
             funParams.ChannelIndex = 1;
-            funParams.MaskChannelIndex = []; %1:numel(owner.channels_);
-            funParams.MaskProcessIndex = [];            
+
+            % Check if segmentation occured.
+            %% TODO -- Update 
+            iProc = owner.getProcessIndex('MaskRefinementProcess', 'askUser', false);
+            if isempty(iProc)
+                disp('Note: No Cell Segmentation Mask found');
+                funParams.MaskChannelIndex = []; %1:numel(owner.channels_);
+                funParams.MaskProcessIndex = [];            
+            else
+                funParams.MaskProcessIndex = iProc; % Specify Process Index with cell mask output
+                funParams.MaskChannelIndex = 1:numel(owner.channels_);
+            end
+
             funParams.OutputDirectory = [outputDir  filesep 'point_sources'];
             funParams.alpha=.05;
             funParams.maskRadius=40;
@@ -182,10 +193,10 @@ classdef FocalAdhesionPackage < Package
             funParams.PerChannelParams = {'alpha','Mode','FitMixtures','MaxMixtures','RedundancyRadius','filterSigma','PreFilter','ConfRadius','WindowSize'};
             
             nChan = numel(owner.channels_);
-            funParams.filterSigma = 1.2*ones(1,nChan);%Minimum numerically stable sigma is ~1.2 pixels.
+            funParams.filterSigma = 1.2*ones(1,nChan); %Minimum numerically stable sigma is ~1.2 pixels.
             hasPSFSigma = arrayfun(@(x) ~isempty(x.psfSigma_), owner.channels_);
             funParams.filterSigma(hasPSFSigma) = [owner.channels_(hasPSFSigma).psfSigma_];            
-            funParams.filterSigma(funParams.filterSigma<1.2) = 1.2;%Make sure default isn't set to too small.
+            funParams.filterSigma(funParams.filterSigma<1.2) = 1.2; %Make sure default isn't set to too small.
             
             funParams.ConfRadius = arrayfun(@(x)(2*x),funParams.filterSigma);
             funParams.WindowSize = arrayfun(@(x)(ceil(4*x)),funParams.filterSigma);
