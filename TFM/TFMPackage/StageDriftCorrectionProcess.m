@@ -138,8 +138,9 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
         end
         function procClasses = getConcreteClasses()
             procClasses = ...
-                {@BeadTrackingCorrectionProcess;
-                @EfficientSubpixelRegistrationProcess;
+                {...
+                 @BeadTrackingCorrectionProcess;
+                 @EfficientSubpixelRegistrationProcess;
                 };
             procClasses = cellfun(@func2str, procClasses, 'Unif', 0);
         end
