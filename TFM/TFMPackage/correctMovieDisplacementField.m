@@ -115,8 +115,9 @@ useGrid=displParams.useGrid;
 
 % Perform vector field outlier detection
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
-parfor_progress(nFrames);
+if feature('ShowFigureWindows'),parfor_progress(nFrames); end
 
+outlierThreshold=p.outlierThreshold;
 parfor j= 1:nFrames
 % for j= 1:nFrames
     % Outlier detection
@@ -126,13 +127,13 @@ parfor j= 1:nFrames
     displField(j).pos=dispMat(:,1:2);
     displField(j).vec=dispMat(:,3:4);
 
-    if ~isempty(p.outlierThreshold)
+    if ~isempty(outlierThreshold)
         if useGrid
             if j==1
                 disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
             end
         else
-            [outlierIndex,sparselyLocatedIdx,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
+            [outlierIndex,sparselyLocatedIdx,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold,1);
             %displField(j).pos(outlierIndex,:)=[];
             %displField(j).vec(outlierIndex,:)=[];
             dispMat(outlierIndex,3:4)=NaN;
@@ -164,64 +165,96 @@ parfor j= 1:nFrames
 %         tj=toc;
 %         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
 %     end
-    parfor_progress;
+    if feature('ShowFigureWindows'), parfor_progress; end
 end
-parfor_progress(0);
+if feature('ShowFigureWindows'), parfor_progress(0); end
 
-% Now this is the real cool step, to run trackStackFlow with known
-% information of existing displacement in neighbors
-% Check optional process Flow Tracking
-pStep2 = displParams;
-if ~isempty(iSDCProc)
-    s = load(SDCProc.outFilePaths_{3,pStep2.ChannelIndex},'T');
-    residualT = s.T-round(s.T);
-    refFrame = double(imread(SDCProc.outFilePaths_{2,pStep2.ChannelIndex}));
-else
-    refFrame = double(imread(pStep2.referenceFramePath));
-    residualT = zeros(nFrames,2);
-end
-logMsg = 'Please wait, retracking untracked points ...';
-timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
-tic
-nFillingTries=50;
-for j= 1:nFrames
-    % Read image and perform correlation
+if p.fillVectors
+    % Now this is the real cool step, to run trackStackFlow with known
+    % information of existing displacement in neighbors
+    % Check optional process Flow Tracking
+    pStep2 = displParams;
     if ~isempty(iSDCProc)
-        currImage = double(SDCProc.loadChannelOutput(pStep2.ChannelIndex(1),j));
+        s = load(SDCProc.outFilePaths_{3,pStep2.ChannelIndex},'T');
+        residualT = s.T-round(s.T);
+        refFrame = double(imread(SDCProc.outFilePaths_{2,pStep2.ChannelIndex}));
     else
-        currImage = double(movieData.channels_(pStep2.ChannelIndex(1)).loadImage(j));
+        refFrame = double(imread(pStep2.referenceFramePath));
+        residualT = zeros(nFrames,2);
     end
-    nTracked=1000;
-    for k=1:nFillingTries
-        % only un-tracked vectors
-        unTrackedBeads=isnan(displField(j).vec(:,1));
-        ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
-        if ratioUntracked<0.005 || nTracked==0
-            break
+    logMsg = 'Please wait, retracking untracked points ...';
+    timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
+    tic
+    nFillingTries=300;
+    for j= 1:nFrames
+        % Read image and perform correlation
+        if ~isempty(iSDCProc)
+            currImage = double(SDCProc.loadChannelOutput(pStep2.ChannelIndex(1),j));
+        else
+            currImage = double(movieData.channels_(pStep2.ChannelIndex(1)).loadImage(j));
         end
-        currentBeads = displField(j).pos(unTrackedBeads,:);
-        neighborBeads = displField(j).pos(~unTrackedBeads,:);
-        neighborVecs = displField(j).vec(~unTrackedBeads,:);
-        % Get neighboring vectors from these vectors (meanNeiVecs)
-        [idx] = KDTreeBallQuery(neighborBeads, currentBeads, 2*(1-k/(1.5*nFillingTries))*neighborhood_distance(j));
-        closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
-    %     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
+        nTracked=1000;
+        nFailed=0;
+        for k=1:nFillingTries
+            % only un-tracked vectors
+            unTrackedBeads=isnan(displField(j).vec(:,1));
+            ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
+            if ratioUntracked<0.0001 || (nTracked==0 && nFailed>30)
+                break
+            end
+            currentBeads = displField(j).pos(unTrackedBeads,:);
+            neighborBeads = displField(j).pos(~unTrackedBeads,:);
+            neighborVecs = displField(j).vec(~unTrackedBeads,:);
+            % Get neighboring vectors from these vectors (meanNeiVecs)
+            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1+5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
+%             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (2-1.5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
+            % Subsample idx to reduce computing time
+            % Calculate the subsampling rate
+            leap = cellfun(@(x) max(1,round(length(x)/100)),idx,'Unif',false);
+            idx = cellfun(@(x,y) x(1:y:end,1),idx,leap,'Unif',false);
+            closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
+        %     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
 
-        [v,nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads,...
-            pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
-            'mode',pStep2.mode,'hardCandidates',closeNeiVecs);%,'usePIVSuite', pStep2.usePIVSuite);
+            [v,nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads,...
+                pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
+                'mode',pStep2.mode,'hardCandidates',closeNeiVecs);%,'usePIVSuite', pStep2.usePIVSuite);
+            if nTracked==0
+                nFailed=nFailed+1;
+            else
+                nFailed=0;
+            end
 
-    %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
-        displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
+            displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        end
+        disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
+        % Update the waitbar
+        if feature('ShowFigureWindows')
+            tj=toc;
+            waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+        end
     end
-    disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
-    % Update the waitbar
-    if mod(j,5)==1 && feature('ShowFigureWindows')
-        tj=toc;
-        waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+    %Filtering again
+    parfor j= 1:nFrames
+        % Outlier detection
+        dispMat = [displField(j).pos displField(j).vec];
+        % Take out duplicate points (Sangyoon)
+        [dispMat,~,~] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
+        displField(j).pos=dispMat(:,1:2);
+        displField(j).vec=dispMat(:,3:4);
+
+        [outlierIndex,sparselyLocatedIdx] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold*3,1);
+        %displField(j).pos(outlierIndex,:)=[];
+        %displField(j).vec(outlierIndex,:)=[];
+        dispMat(outlierIndex,3:4)=NaN;
+        dispMat(sparselyLocatedIdx,3:4)=NaN;
+
+        displField(j).pos=dispMat(:,1:2);
+        displField(j).vec=dispMat(:,3:4);
+        if feature('ShowFigureWindows'), parfor_progress; end
     end
+    if feature('ShowFigureWindows'), parfor_progress(0); end
 end
-
 % Here, if nFrame>1, we do inter- and extrapolation of displacement vectors
 % to prevent sudden, wrong force field change.
 if nFrames>1 && ~displParams.useGrid
@@ -273,7 +306,7 @@ else
 end
 
 % Find rotational registration
-if p.doRotReg, displField=perfRotReg(displField); end %#ok<NASGU>
+if p.doRotReg, displField=perfRotReg(displField); end 
 
 %% Displacement map creation - this is shifted version
 [dMapIn, dmax, dmin, cropInfo,dMapXin,dMapYin,reg_grid] = generateHeatmapShifted(displField,displField,0);
