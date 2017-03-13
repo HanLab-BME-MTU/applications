@@ -79,7 +79,7 @@ for iexp = 1 : metaData.experiments.N
     
     for iCellType = 1 : nExpCellTypes
         
-        curCellType = uniqueExpCellTypes(iCellType);
+        curCellType = uniqueExpCellTypes{iCellType};
         tasksItr = find(strcmp(curCellType,expCellTypes));
         
         %% count the next open spot for each condition

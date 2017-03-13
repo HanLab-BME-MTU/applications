@@ -39,7 +39,7 @@ h(5).MarkerSize = 1;
 h(5).Color = 'r';
 
 h(6) = line;
-h(6).Marker = 'o';
+h(6).Marker = 's';
 h(6).LineStyle = 'none';
 h(6).Color = 'r';
 
@@ -60,6 +60,8 @@ end
 while all(isvalid(h))
     h(3).XData = [];
     h(3).YData = [];
+%     frame(length(R.filter.K:-deltaK:-0.5+deltaK)) = struct();
+%     counter = 1;
     for K=R.filter.K:-deltaK:-0.5+deltaK
         temp = R.getResponseAtOrderFTatPoint(r,c,K);
         h(1).YData = interpft(temp,360);
@@ -79,6 +81,8 @@ while all(isvalid(h))
             da = ifft(bsxfun(@times,fft(temp),(shiftdim([0:R.filter.order -R.filter.order:-1]*1i,1)).^nd));
             hd(nd-1).YData = interpft(da,360);
         end
+%         frame(counter) = getframe(gcf);
+%         counter = counter+1;
         pause(pauseTime);
     end
 end
