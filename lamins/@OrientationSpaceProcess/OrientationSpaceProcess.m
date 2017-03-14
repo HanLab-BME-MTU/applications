@@ -29,7 +29,7 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
         end
         function varargout = loadChannelOutput(obj,iChan,varargin)
             % Input check
-            outputList = {'maxima','nlms','uMaximaOrder','uMaximaOrderMap','nlms_overlay'};
+            outputList = {'maxima','nlms','uMaximaOrder','uMaximaOrderMap','nlms_overlay','meanResponse'};
             ip =inputParser;
             ip.StructExpand = true;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
@@ -213,6 +213,14 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 output(m+mm).type='overlay';
                 output(m+mm).defaultDisplayMethod=@(varargin) VectorFieldDisplay('Color',cm(m,:));
             end
+            
+            mm = mm+m;
+            m = 1;
+                output(m+mm).name=sprintf('Mean Response');
+                output(m+mm).var=sprintf('meanResponse');
+                output(m+mm).formatData=@(x) mat2gray(real(x));
+                output(m+mm).type='image';
+                output(m+mm).defaultDisplayMethod=@ImageDisplay;
 
             
 %             colors = parula(numel(obj.owner_.channels_)*nOutput);
