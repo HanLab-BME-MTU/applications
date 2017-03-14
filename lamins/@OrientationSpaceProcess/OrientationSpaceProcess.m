@@ -286,7 +286,7 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
-            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.addOptional('outputDir',[owner.outputDirectory_,filesep,'OrientationSpaceProcess'],@ischar);
             ip.parse(owner, varargin{:})
 %             outputDir=ip.Results.outputDir;
             
@@ -294,8 +294,8 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             
             funParams.filter = OrientationSpaceFilter(1/2/pi/2,1/2/pi/2,8);
             chanNumStr = cellfun(@num2str,num2cell(1:length(owner.channels_)),'UniformOutput',false);
+            funParams.OutputDirectory = ip.Results.outputDir;
             funParams.outFilePaths = strcat(ip.Results.outputDir, ...
-                filesep,'OrientationSpaceProcess', ...
                 filesep,'Channel_',chanNumStr);
             funParams.responseAngularOrder = [8 3 5];
             funParams.maximaAngularOrder = [8 8 5];
@@ -346,6 +346,7 @@ function saveOrientationSpaceResponse(process)
                 
                 I = double(MD.channels_(c).loadImage(t,z));
                 response = filter * I;
+                out.meanResponse = mean(response.a,3);
                 for u = 1:length(out.uMaximaOrder)
                     tempResponse = response.getResponseAtOrderFT(out.uMaximaOrder(u));
                     out.maxima{u} = tempResponse.getRidgeOrientationLocalMaxima;
