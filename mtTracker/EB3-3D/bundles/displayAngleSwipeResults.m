@@ -6,8 +6,8 @@ function displayAngleSwipeResults(fiberCell,randFiberCell)
         %H=handles((2*i-1):2*i);
         handles=H(i);
         kinTracksCell={fiberCell{i},randFiberCell{i}};
-        fiberCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints);
-        kinetochoreCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints);
+        fiberCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+        kinetochoreCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
         
         for i=1:length(kinTracksCell)
             kinTracks=kinTracksCell{i};

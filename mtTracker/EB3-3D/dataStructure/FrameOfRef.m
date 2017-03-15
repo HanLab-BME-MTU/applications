@@ -20,10 +20,20 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
           obj.Y=cross(obj.X,obj.Z);
       end
       
-      function tracksBase=applyBaseToTrack(obj,tracks)
+      function newBaseObject=applyBase(obj,tracksOrDetections,name)
+        if(isa(tracksOrDetections,'Tracks'))
+            newBaseObject=applyBaseToTrack(obj,tracksOrDetections,name);
+        else
+            newBaseObject=applyBaseToDetection(obj,tracksOrDetections,name);
+        end  
+      end
+      
+      function tracksBase=applyBaseToTrack(obj,tracks,name)
           tracksBase=tracks.copy();
           try
-              tracks.addprop('altRef');
+              if(~(isempty(name)))
+                  tracks.addprop(name);
+              end
           catch
           end;
           for trIdx=1:length(tracks)
@@ -35,12 +45,13 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
               
               % Register in original tr
               try
-                  trBase.addprop('altRef');
-                  tr.addprop('altRef');
+                  trBase.addprop('originalRef');
               catch
               end;
-              tr.altRef=[tr.altRef trBase];
-              trBase.altRef=[trBase.altRef tr];
+              if(~(isempty(name)))
+                  setfield(tr,name,trBase);
+              end;
+              trBase.originalRef=tr;
               for pIdx=1:length(tr.f)
                   f=min(tr.f(pIdx),length(obj.X));
                   B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
@@ -48,6 +59,33 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
                   v=recentered*B;
                   trBase.x(pIdx)=v(1); trBase.y(pIdx)=v(2); trBase.z(pIdx)= v(3);
               end;    
+          end
+      end
+      
+      function detectionsBase=applyBaseToDetection(obj,detections,name)
+          detectionsBase=detections.copy();
+          try
+              if(~(isempty(name)))
+                  detections.addprop(name);
+              end
+          catch
+          end;
+          for fIdx=1:length(detections)
+              detect=detections(fIdx);
+              detectBase=detectionsBase(fIdx);
+              % Copying EB3 track
+              detectBase.ref=obj;
+              f=min(fIdx,length(obj.X));
+              B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
+              % easily optimized as implementend in poleDist 
+              for pIdx=1:size(detectBase.xCoord,1)
+                  recentered=[(detect.xCoord(pIdx,1)-obj.origin(f,1)) (detect.yCoord(pIdx,1)-obj.origin(f,2)) (detect.zCoord(pIdx,1)-obj.origin(f,3))];
+                  v=recentered*B;
+                  detectBase.xCoord(pIdx,1)=v(1); detectBase.yCoord(pIdx,1)=v(2); detectBase.zCoord(pIdx,1)= v(3);
+              end;    
+              if(~(isempty(name)))
+                  setfield(detect,name,detectBase);
+              end;
           end
       end
     end

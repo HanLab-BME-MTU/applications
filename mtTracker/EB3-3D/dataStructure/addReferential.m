@@ -1,4 +1,4 @@
-function addReferential(tracks,refArray,name)
+function tracksNewRef=addReferential(tracks,refArray,name)
 % This function create duplicate of the master tracks in different
 % referential and index them on the  master file.
 

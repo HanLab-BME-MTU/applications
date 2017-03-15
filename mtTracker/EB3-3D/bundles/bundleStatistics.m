@@ -6,7 +6,7 @@ ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('kinBundle',[]);
 ip.addParameter('kinBundleName',[]);
-ip.addParameter('bundleMTRange',[10 35]);
+ip.addParameter('bundleMTRange',[]);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
@@ -19,7 +19,7 @@ else
     kinTracksCell=p.kinBundle;
 end
 
-[handles,~,hFig]=setupFigure(1,2,2,'AspectRatio',1,'AxesWidth',4);
+%[handles,~,hFig]=setupFigure(1,2,2,'AspectRatio',1,'AxesWidth',4);
 
 outputDirPlot=[outputDirBundle filesep 'plot' filesep];
 system(['mkdir ' outputDirPlot]);
