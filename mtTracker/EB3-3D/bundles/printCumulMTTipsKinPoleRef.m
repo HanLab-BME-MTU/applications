@@ -23,13 +23,13 @@ for kinIdx=1:length(kinTracks)
     if(~isempty(p.colorPropP1))
         %[handles,fhandle]=printKinPoleRef(kinTrack.KP1,kinTrack.appearingMTKinP1Ref,'EB3ColorAfter',getfield(kinTrack,p.colorPropP1),'valueRange',p.colorPropRange);
     else
-        printMTTipsPoleRef(kinTrack.KP1,kinTrack.associatedTipsP1KinRef,kinTrack.associatedTipsP1Idx,'handle',handles(1))
+        printMTTipsPoleRef(kinTrack.KP1,kinTrack.associatedTipsP1KinRef,kinTrack.associatedTipsP1Idx,'handle',handles(1),'normAxis',1)
     end
 
     if(~isempty(p.colorPropP2))
         %[handles,fhandle]=printKinPoleRef(kinTrack.KP2,kinTrack.appearingMTKinP2Ref,'EB3ColorAfter',getfield(kinTrack,p.colorPropP2),'valueRange',p.colorPropRange);
     else
-        printMTTipsPoleRef(kinTrack.KP2,kinTrack.associatedTipsP2KinRef,kinTrack.associatedTipsP2Idx,'handle',handles(2))
+        printMTTipsPoleRef(kinTrack.KP2,kinTrack.associatedTipsP2KinRef,kinTrack.associatedTipsP2Idx,'handle',handles(2),'normAxis',1)
     end
 
 end

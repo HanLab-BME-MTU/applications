@@ -40,7 +40,7 @@ hold(handles(1),'on');
 if(~p.normAxis)
 scatter(handles,kinTrack.z,kinTrack.x,'r');
 else
-    scatter(handles,1,kinTrack.x,'r');
+    scatter(handles,ones(size(kinTrack.z)),kinTrack.x,'r');
 end
 scatter(handles,0,0,'g');
 
@@ -58,7 +58,11 @@ for mIdx=1:length(EB3Tracks)
     %axis.
 end
 
+
 scatter(handles,X,Y,10,localCM(EB3ColorIdx,:));
+if(p.normAxis)
+    xlim(handles,[0 1.2]);
+end
 ylim(handles,[-2000 2000]);
 xlabel(handles,'Pole-Kinetochore axis (nm)');
 ylabel(handles,'Normal plane (nm)');

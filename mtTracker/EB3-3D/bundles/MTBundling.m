@@ -41,7 +41,7 @@ end
 
 %% Loading rand kin 
 if(isempty(kinRange))
-    kinRange=1:length(kinTracksInliers)
+    kinRange=1:length(kinTracksInliers);
 end
 
 %% Functionalize and processize
@@ -57,41 +57,42 @@ end
 %%
 inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
 randKinTracksInliers=randKinTracks(inliersKin);
+%%  Plot randomize
+if(p.printAll)
+    amiraWriteTracks([MD.outputDirectory_ filesep 'Kin' filesep 'randomizedAugmented' filesep 'random.am'], randKinTracksInliers)
+end
+
 %%
 outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
 
 %% Estimate bundle in KinPole axis
 captureDetection(MD,'kinTracks',kinTracksInliers(kinRange),'EB3tracks',EB3TracksInliers,'name','inliers');
-allFiberInlier=detectMTAlignment(MD,'kinCapture',kinTracksInliers(kinRange),'testKinIdx',[1],'name','inliers','printAll',true);
+Inlier=detectMTAlignment(MD,'kinCapture',kinTracksInliers(kinRange),'testKinIdx',[],'name','inliers','printAll',false);
 
 %% For each kinetochore, plot an Amira file with attached mt
 outputDirAmira=[outputDirBundle filesep 'Amira_normal' filesep];
-parfor kIdx=1:length(allFiberInlier)
-    kinTrack=allFiberInlier(kIdx);
+parfor kIdx=1:length(Inlier)
+    kinTrack=Inlier(kIdx);
     trackSet=[kinTrack; kinTrack.catchingMT];
     trackType=[1; zeros(length(kinTrack.catchingMT),1)];
     bundleInfo=[0 kinTrack.fiber+1];
     amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
 end
 
-%%  Plot randomize
-if(p.printAll)
-    amiraWriteTracks([MD.outputDirectory_ filesep 'Kin' filesep 'randomizedAugmented' filesep 'random.am'], randKinTracksInliers)
-end
 %%
 captureDetection(MD,'kinTracks',randKinTracksInliers(kinRange),'EB3tracks',EB3TracksInliers,'name','inliersRandom');
-allFiberRandomInlier=detectMTAlignment(MD,'kinCapture',randKinTracksInliers(kinRange),'testKinIdx',[1],'name','inliersRandom','printAll',true);
+RandomInlier=detectMTAlignment(MD,'kinCapture',randKinTracksInliers(kinRange),'testKinIdx',[],'name','inliersRandom','printAll',false);
 
 %% For each kinetochore, plot an Amira file with attached mt
 outputDirAmira=[outputDirBundle filesep 'Amira_random' filesep];
-parfor kIdx=1:length(allFiberRandomInlier)
-    kinTrack=allFiberRandomInlier(kIdx);
+parfor kIdx=1:length(RandomInlier)
+    kinTrack=RandomInlier(kIdx);
     trackSet=[kinTrack; kinTrack.catchingMT];
     trackType=[1; zeros(length(kinTrack.catchingMT),1)];
     bundleInfo=[0 kinTrack.fiber+1];
     amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
 end
-bundleStatistics(MD,'kinBundle',{allFiberInlier,allFiberRandomInlier},'kinBundleName',{'allFiberInlier','allFiberRandomInlier'});
+bundleStatistics(MD,'kinBundle',{Inlier,RandomInlier},'kinBundleName',{'Inlier','RandomInlier'});
 
 
 
