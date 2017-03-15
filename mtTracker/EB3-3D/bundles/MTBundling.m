@@ -75,8 +75,9 @@ parfor kIdx=1:length(Inlier)
     kinTrack=Inlier(kIdx);
     trackSet=[kinTrack; kinTrack.catchingMT];
     trackType=[1; zeros(length(kinTrack.catchingMT),1)];
-    bundleInfo=[0 kinTrack.fiber+1];
-    amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
+    bundleInfo=[0 kinTrack.fiber];
+    bundlingMTKinInfo=[2 (kinTrack.fiber>0)];
+    amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType},{'bundleSize',bundleInfo},{'bundlingMTKin',bundlingMTKinInfo}})
 end
 
 %%
