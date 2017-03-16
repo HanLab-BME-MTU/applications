@@ -1,3 +1,4 @@
+
 function kinTracks=captureDetection(MD,varargin)
 % EB3 and Kin tracks need to be augmented with spherical coordinate and set
 % in nanometers (function addSpindleRef.m)
@@ -16,7 +17,7 @@ ip.addParameter('distanceCutOff',0.1,@isnumeric);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
-%% Load EB3 tracks add azimuth info, change coordinate to real space measurement. 
+%% Load EB3 tracks add azimuth info, change coordinate to real space measurement.
 %%
 
 if(isempty(p.kinTracks)||isempty(p.EB3tracks))
@@ -54,7 +55,7 @@ for kIdx=1:length(kinTracks)
     end;
     kinTrack.catchingMT=[];
     for pIdx=1:length(kinTrack.f)
-        fIdx=kinTrack.f(pIdx);  
+        fIdx=kinTrack.f(pIdx);
         coexistingEB3=(EB3TermFrames==fIdx); % Co existence is characterized if EB3 disappear when Kin is still alive.
         if(any(coexistingEB3))
             MTPoles=EB3TermPoleId(coexistingEB3);
@@ -64,7 +65,8 @@ for kIdx=1:length(kinTracks)
 %                                         (kinTrack.elevation(MTPoles,pIdx)- EB3TermElev(coexistingEB3))]).^2,2));
 %             caughtMTIndex=find(coexistingEB3);
 %             caughtMTIndex=caughtMTIndex(kinEB3DistP1<distanceCutOff);
-            kinEB3DistP1=(min(aziDiff,2*pi-aziDiff)<distanceCutOff) & (min(elevDiff,pi-elevDiff)<distanceCutOff);
+            kinEB3DistP1=(min(aziDiff,2*pi-aziDiff)<distanceCutOff) & (min(elevDiff,pi-elevDiff)<distanceCutOff) ...
+                          & (EB3TermRho(coexistingEB3)<kinTrack.rho(MTPoles,pIdx)*1.02); % Rho is below kin row with a 2% margin. 
             caughtMTIndex=find(coexistingEB3);
             caughtMTIndex=caughtMTIndex(kinEB3DistP1);
             if(~isempty(caughtMTIndex))
@@ -75,9 +77,9 @@ for kIdx=1:length(kinTracks)
                     catch
                     end;
                     EB3tracks(mtIdx).caughtKin=[EB3tracks(mtIdx).caughtKin kinTrack];
-                end;           
+                end;
             end
-            
+
         end
     end
 end
@@ -126,13 +128,13 @@ poleStructs=[P1 P2];
 
 %% For each MT captured by a kinetochore, create a MT in the referential defined by kin Pole referential.
 % the z axis is the kinetochore-pole axis
-% the x axis is  
+% the x axis is
 for kIdx=1:length(kinTracks)
     progressText(kIdx/length(kinTracks),'2D projection.');
     %%
     kinTrack=kinTracks(kIdx);
-    % Vector basis w.r.t each poles and kinetochore 
-    
+    % Vector basis w.r.t each poles and kinetochore
+
     KP1=struct();
     KP1.x=kinTrack.x-P1.x(kinTrack.f);
     KP1.y=kinTrack.y-P1.y(kinTrack.f);
@@ -140,7 +142,7 @@ for kIdx=1:length(kinTracks)
     KP1.vZ=[KP1.x; KP1.y; KP1.z];
     KP1.vZ=KP1.vZ./repmat(sum(KP1.vZ.^2,1).^0.5,3,1);
     KP1.vX=[0*KP1.vZ(1,:);KP1.vZ(3,:);-KP1.vZ(2,:)];
-    KP1.vY=cross(KP1.vX,KP1.vZ,1);      
+    KP1.vY=cross(KP1.vX,KP1.vZ,1);
 
     KP2=struct();
     KP2.x=kinTrack.x-P2.x(kinTrack.f);
@@ -154,7 +156,7 @@ for kIdx=1:length(kinTracks)
     kinAxis=[KP1 KP2];
 
     % For each kinetochore, it would be elegant to create two version on the kinetochore-pole
-    % However is the info is yield by the rho. 
+    % However is the info is yield by the rho.
 
     % Register in original MT
     try
@@ -166,19 +168,19 @@ for kIdx=1:length(kinTracks)
         mt=kinTrack.catchingMT(mIdx);
         basis=kinAxis(mt.poleId(1));
 
-        % Copying EB3 track        
+        % Copying EB3 track
         mtKinRef=mt.copy();
-        mtKinRef.addprop('refname'); 
+        mtKinRef.addprop('refname');
         mtKinRef.refname='Kin';
-        mtKinRef.addprop('basis'); 
+        mtKinRef.addprop('basis');
         mtKinRef.basis=basis;
-        
+
         % Register in original MT
         try
             mt.addprop('altRef');
             kinTrack.addprop('kin');
         catch
-        end;          
+        end;
         mt.altRef=[mt.altRef mtKinRef];
         kinTrack.catchingMTKinRef(mIdx)=mtKinRef;
         for pIdx=1:length(mt.f)
@@ -189,7 +191,7 @@ for kIdx=1:length(kinTracks)
             v=recentered*B;
             mtKinRef.x(pIdx)=v(1); mtKinRef.y(pIdx)=v(2); mtKinRef.z(pIdx)= v(3);
         end;
-   
+
     end
 end
 
@@ -197,7 +199,7 @@ end
 outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name];
 save([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks','EB3tracks')
 
-%% First test, display the +TIP coordinate on a lateral view of the poleKin axis. 
+%% First test, display the +TIP coordinate on a lateral view of the poleKin axis.
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep  'firstTest' filesep]
 system(['mkdir ' outputDirProj]);
 
@@ -210,16 +212,16 @@ for kIdx=1:length(kinTracks)
     [handles,~,fhandle]=setupFigure(1,2,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
     hold(handles(1),'on');
     hold(handles(2),'on');
-    
+
     for poleId=1:2
         scatter(handles(poleId),kinTrack.rho(poleId,:),zeros(size(kinTrack.rho(poleId,:))),'r');
         scatter(handles(poleId),0,0,'g');
     end
-    
+
     for mIdx=1:length(kinTrack.catchingMT)
         mt=kinTrack.catchingMT(mIdx);
-        mtKinRef=kinTrack.catchingMTKinRef(mIdx);   
-        
+        mtKinRef=kinTrack.catchingMTKinRef(mIdx);
+
         %Project on the plan defined by the poleKin axis and the interpolar
         %axis.
         plot(handles(mt.poleId(1)),mtKinRef.z,mtKinRef.x,'b-');
@@ -228,7 +230,7 @@ for kIdx=1:length(kinTracks)
         ylabel(handles(mt.poleId(1)),'Normal plane (nm)')
     end
 %%
-   
+
 
     print([outputDirProj 'kin' num2str(kIdx,'%03d') '.png'],'-dpng');
 
