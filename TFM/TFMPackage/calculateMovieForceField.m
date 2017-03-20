@@ -276,7 +276,7 @@ end
 % that the edges have been eroded to a certain extend. This is performed by
 % the following function.
 if ~p.highRes
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,0.5,0); % we have to lower grid spacing because there are some redundant or aggregated displ vectors when additional non-loc-max beads were used for tracking SH170311
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,0.8,0); % we have to lower grid spacing because there are some redundant or aggregated displ vectors when additional non-loc-max beads were used for tracking SH170311
 else
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.0,0); %no dense mesh in any case. It causes aliasing issue!
 end

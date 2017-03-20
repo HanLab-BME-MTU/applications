@@ -208,6 +208,15 @@ if p.fillVectors
             % Get neighboring vectors from these vectors (meanNeiVecs)
             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1+5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
 %             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (2-1.5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
+            % In case of empty idx, search with larger radius.
+            emptyCases = cellfun(@isempty,idx);
+            mulFactor=1;
+            while any(emptyCases)
+                mulFactor=mulFactor+0.5;
+                idxEmpty = KDTreeBallQuery(neighborBeads, currentBeads(emptyCases,:), mulFactor*(1+5*k/nFillingTries)*neighborhood_distance(j));
+                idx(emptyCases)=idxEmpty;
+                emptyCases = cellfun(@isempty,idx);
+            end
             % Subsample idx to reduce computing time
             % Calculate the subsampling rate
             leap = cellfun(@(x) max(1,round(length(x)/100)),idx,'Unif',false);
