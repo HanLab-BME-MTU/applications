@@ -2,21 +2,36 @@ function printAllMTTipsKinPoleRef(kinTracks,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
-ip.addRequired('kinTracks',@(x) isa(x,'Tracks'));
+ip.addOptional('kinTracks',@(x) isa(x,'Tracks'));
+ip.addOptional('processMTTipsBias',[],@(MD) isa(MD,'Process'));
 ip.addOptional('process',[],@(MD) isa(MD,'Process'));
 ip.addOptional('name',[]);
 ip.addOptional('colorPropP1',[]);
 ip.addOptional('colorPropP2',[]);
 ip.addOptional('colorPropRange',[]);
+ip.addParameter('kinRange',[],@isnumeric);
 ip.parse(kinTracks,varargin{:});
 p=ip.Results;
+
+if(~isempty(p.processMTTipsBias))
+    tmp=load(p.processMTTipsBias.outFilePaths_{1});
+    kinTracks=tmp.kinTracks;
+else
+    kinTracks=p.kinTracks;
+end
+
+kinRange=p.kinRange;
+if(isempty(kinRange))
+    kinRange=1:length(kinTracks);
+end
+
 
 if(~isempty(p.process))
     outputDirProj=[p.process.getOwner.outputDirectory_ filesep 'Kin' filesep 'MTTipsBias' filesep p.name filesep 'projection'];
     mkdir2016a(outputDirProj);
 end
 
-for kinIdx=1:length(kinTracks)
+for kinIdx=kinRange
     kinTrack=kinTracks(kinIdx);
     progressText(kinIdx/length(kinTracks),'Print KinPole ref.');
     [handles,~,fhandle]=setupFigure(1,2,2,'AxesWidth',8,'AxesHeight',4);
