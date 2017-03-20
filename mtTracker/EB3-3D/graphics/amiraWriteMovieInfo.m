@@ -64,7 +64,7 @@ for fIdx=1:length(movieInfo)
 
     detectionValues={};
     if(~isempty(fMI.xCoord))
-       detectionValues=strjoin(cellstr(num2str([(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)]))','\n');
+        detectionValues=strjoin(cellstr(num2str([(fMI.xCoord(:,1)-1)*p.scales(1) (fMI.yCoord(:,1)-1)*p.scales(2) (fMI.zCoord(:,1)-1)*p.scales(3)]))','\n');
        detectionString=[detectionString;detectionValues];
     end
     cumulDetectionValues{fIdx}=detectionValues;

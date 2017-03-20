@@ -278,7 +278,7 @@ classdef WidthSpaceProcess < ImageProcessingProcess & NonSingularProcess
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
-            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.addOptional('outputDir',[owner.outputDirectory_,filesep,'WidthSpaceProcess'],@ischar);
             ip.parse(owner, varargin{:})
 %             outputDir=ip.Results.outputDir;
             
@@ -286,8 +286,8 @@ classdef WidthSpaceProcess < ImageProcessingProcess & NonSingularProcess
             
             funParams.filter = OrientationScaleSpaceFilter.constructByRadialOrder(1/2/pi./chebpts(9,[1 8]),1,8);
             chanNumStr = cellfun(@num2str,num2cell(1:length(owner.channels_)),'UniformOutput',false);
+            funParams.OutputDirectory = ip.Results.outputDir;
             funParams.outFilePaths = strcat(ip.Results.outputDir, ...
-                filesep,'WidthSpaceProcess', ...
                 filesep,'Channel_',chanNumStr);
 %             funParams.responseAngularOrder = [8 3 5];
 %             funParams.maximaAngularOrder = [8 8 5];

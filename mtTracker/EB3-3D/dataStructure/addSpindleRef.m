@@ -1,9 +1,10 @@
-function [kinTracks,EB3Tracks,EB3TracksP,kinTracksP]=addSpindleRef(MD,varargin)
+function [kinTracks,EB3Tracks,detLabRef]=addSpindleRef(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
-ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
+ip.addOptional('MD',[],@(MD) isa(MD,'MovieData'));
 ip.addParameter('kinTracks',[],@(x) isa(x,'Tracks'));
+ip.addParameter('processDetectPoles',[]);
 ip.addParameter('EB3tracks',[],@(x) isa(x,'Tracks'));
 ip.addParameter('kinSphericalCoord',[]);
 ip.addParameter('EB3SphCoord',[]);
@@ -13,36 +14,44 @@ ip.addParameter('kinInliers',[]);
 ip.addParameter('kinPoleId',[]);
 ip.addParameter('kinPoleDist',[]);
 ip.addParameter('printAll',false, @islogical);
+ip.addParameter('process',[]);
+ip.addParameter('processInput',[]);
 ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
 ip.addParameter('distanceCutOff',0.1,@isnumeric);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
+% Augment the structures with spherical Coordinate. 
+%% Load the pole info
+MD=p.MD;
+if(~isempty(p.processDetectPoles))
+    tmp=load(p.processDetectPoles.outFilePaths_{1});
+    poleMovieInfo=tmp.poleMovieInfo;
+    MD=p.processDetectPoles.getOwner();
+end
+
 %% Load EB3 tracks add azimuth info, change coordinate to real space measurement. 
-%%
 if(isempty(p.EB3tracks)||isempty(p.EB3SphCoord))
     outputDirDetect=[MD.outputDirectory_ filesep 'EB3' filesep 'detection' filesep];
     tmp=load([outputDirDetect filesep 'sphericalCoord.mat']);
     EB3SphCoord=tmp.sphCoord;
+    tmp=load([outputDirDetect filesep 'detectionLabRef.mat']);
+    EB3LabRef=tmp.detectionsLabRef;
     EB3PoleDist=load([outputDirDetect filesep 'dist.mat']);
     EB3PoleId=EB3PoleDist.poleId;
     EB3Inliers=EB3PoleDist.inliers;
     outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
     tmp=load([outputDirProj filesep 'tracksLabRef.mat']);
     EB3Tracks=tmp.tracksLabRef;
+
+    dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
+    [~,EB3SphCoord,EB3PoleId,EB3Inliers,~,~]=poleDist(poleMovieInfo,EB3LabRef,'anisotropy',dataIsotropy,'angleRef','poles');
 else
     EB3Tracks=p.EB3tracks;
     EB3SphCoord=p.EB3SphCoord;
     EB3Inliers=p.EB3Inliers;
     EB3PoleId=p.EB3PoleId;
 end
-
-% Augment the structures with spherical Coordinate. 
-%% Load the pole info
-poleDetectionMethod=['simplex_scale_' num2str(3,'%03d')];
-outputDirPoleDetect=[MD.outputDirectory_ filesep 'EB3' filesep 'poles' filesep poleDetectionMethod filesep];
-tmp=load([outputDirPoleDetect filesep 'poleDetection.mat']);
-poleMovieInfo=tmp.poleMovieInfo;
 
 % WARNING: this is not a trajectory, merely a collection of poles to ease
 % implementation.
@@ -68,8 +77,17 @@ refP2.genBaseFromZ();
 
 poleRefs=[refP1 refP2];
 
+% For MT detection
+tic;
+detLabRef=Detections(EB3LabRef);
+detLabRef.scale(MD);
+dp1=refP1.applyBaseToDetection(detLabRef,'pole1');
+dp2=refP2.applyBaseToDetection(detLabRef,'pole2');
+dp1.addSphericalCoord();
+dp2.addSphericalCoord();
+toc
 
-% For MT
+%% For MT tracks
 tic;
 for tIdx=1:length(EB3Tracks)
     %progressText(tIdx/length(EB3tracks),'Loading EB3 spherical coordinates.');
@@ -80,7 +98,7 @@ for tIdx=1:length(EB3Tracks)
         tr.addprop('poleId');
         tr.addprop('azimuth');      % DEPRECATED
         tr.addprop('elevation');    % DEPRECATED
-        tr.addprop('rho');          % DEPRECATED
+        tr.addprop('rho');          % DEPRECATED      
     catch
     end;
     tr.x=(tr.x-1)*MD.pixelSize_+1;
@@ -104,18 +122,19 @@ for tIdx=1:length(EB3Tracks)
     end 
     % END DEPRECATED
 end
-
-%addReferential(EB3Tracks,poleRefs,'poleRef');
-
-EB3TracksP1= poleRefs(1).applyBaseToTrack(EB3Tracks);
-EB3TracksP2= poleRefs(2).applyBaseToTrack(EB3Tracks);
-EB3TracksP={EB3TracksP1, EB3TracksP2};
-
+toc;
+%%
+tic;
+refP1.applyBaseToTrack(EB3Tracks,'pole1');
+refP2.applyBaseToTrack(EB3Tracks,'pole2');
+%%
+% augment pole ref projected data with spherical coordinate
+refName={'pole1','pole2'};
 for tIdx=1:length(EB3Tracks)
 %     trackPoleRefs=[];
     for poleID=1:length(poleRefs);
         % Copying EB3 track
-        tr=EB3TracksP{poleID}(tIdx);
+        tr=getfield(EB3Tracks(tIdx),refName{poleID});
         % Adding correponding spherical coordinate
         try
             tr.addprop('azimuth');
@@ -135,10 +154,6 @@ for tIdx=1:length(EB3Tracks)
     end
 end
 toc
-%% load Kinetochores spherical coordinate
-ip.addParameter('kin',[]);
-ip.parse(MD,varargin{:});
-p=ip.Results;
 
 %%
 if(isempty(p.kinTracks)||isempty(p.kinSphericalCoord))
@@ -146,12 +161,17 @@ if(isempty(p.kinTracks)||isempty(p.kinSphericalCoord))
     kinSphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
     kinSphericalCoord=kinSphericalCoord.sphCoord;
     kinPoleDist=load([outputDirDetect filesep 'dist.mat']);       
-    kinPoleId=kinPoleDist.poleId;
     kinInliers=kinPoleDist.inliers;
     outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
     kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
     kinTracks=kinTrackData.tracksLabRef;
+    
+    outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];mkdir(outputDirDetect);
+    detectionsLabRef=load([outputDirDetect filesep 'detectionLabRef.mat']);
+    detectionsLabRef=detectionsLabRef.detectionsLabRef;
 
+    dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
+    [~,kinSphericalCoord,~,kinInliers,~,~]=poleDist(poleMovieInfo,detectionsLabRef,'anisotropy',dataIsotropy,'angleRef','poles');
 else
     kinTracks=p.kinTracks;
     kinSphericalCoord=p.kinSphericalCoord;
@@ -186,16 +206,17 @@ for kIdx=1:length(kinTracks)
         tr.rho(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
     end 
 end
-
-kinTracksP1= poleRefs(1).applyBaseToTrack(kinTracks);
-kinTracksP2= poleRefs(2).applyBaseToTrack(kinTracks);
-kinTracksP={kinTracksP1, kinTracksP2};
+%%
+toc;
+tic;
+refP1.applyBaseToTrack(kinTracks,'pole1');
+refP2.applyBaseToTrack(kinTracks,'pole2');
 
 for tIdx=1:length(kinTracks)
 %     trackPoleRefs=[];
     for poleID=1:length(poleRefs);
         % Copying EB3 track
-        tr=kinTracksP{poleID}(tIdx);
+        tr=getfield(kinTracks(tIdx),refName{poleID});
         % Adding correponding spherical coordinate
         try
             tr.addprop('azimuth');
@@ -214,9 +235,41 @@ for tIdx=1:length(kinTracks)
         tr.rho(nonGap)=arrayfun(@(i,f) kinSphericalCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
     end
 end
-
 toc
-outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'track'];
-save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'kinTracks')
-outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'track'];
-save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3Tracks')
+
+% If there is a process object, write data directly in appropriate folder
+if(~isempty(p.process))
+
+    poleRefProcess=p.process;
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'track'];
+    save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'kinTracks');
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'track'];
+    save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3Tracks');
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'detection'];
+    save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'detLabRef');
+    
+    %% inlier index
+    inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
+    inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
+    kinTracksInliers=kinTracks(inliersKin);
+    EB3TracksInliers=EB3Tracks(inliersEB3);
+    
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'track'];
+    save([outputDirCatchingMT filesep 'augmentedSpindleRefInliers.mat'],'kinTracksInliers');
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'track'];
+    save([outputDirCatchingMT filesep 'augmentedSpindleRefInliers.mat'],'EB3TracksInliers');
+    %%
+    poleRefProcess.setOutFilePaths({ [MD.outputDirectory_ '' filesep 'EB3' filesep 'track' filesep 'augmentedSpindleRef.mat'], ...
+        [MD.outputDirectory_ '' filesep 'Kin' filesep 'track' filesep 'augmentedSpindleRef.mat'], ...
+        [MD.outputDirectory_ '' filesep 'EB3' filesep 'track' filesep 'augmentedSpindleRefInliers.mat'], ...
+        [MD.outputDirectory_ '' filesep 'Kin' filesep 'track' filesep 'augmentedSpindleRefInliers.mat'],  ...
+        [MD.outputDirectory_ '' filesep 'EB3' filesep 'detection' filesep 'augmentedSpindleRef.mat'] ...
+        });
+    pa = poleRefProcess.getParameters();
+    pa.parameters = ip.Results;
+    poleRefProcess.setParameters(pa);
+    poleRefProcess.setDateTime();
+
+end
+%%
+

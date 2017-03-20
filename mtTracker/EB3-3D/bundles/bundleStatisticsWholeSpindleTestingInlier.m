@@ -33,7 +33,8 @@ parfor kIdx=1:length(allFiberInlier)
     bundleInfo=[0 kinTrack.fiber+1];
     amiraWriteTracks([outputDirAmira filesep 'kin_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
 end
-%%
+
+%%Randomization 
 randomDist=10; % in pixel
 
 % Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
