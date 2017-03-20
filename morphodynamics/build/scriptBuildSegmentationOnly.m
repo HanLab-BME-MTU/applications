@@ -146,38 +146,6 @@ if strcmp(choice, 'Yes')
     MD.packages_{1}.setProcess(2,MaskRefinementProcess(MD));   
     MD.processes_{2}.run()
     
-    %% Run the protrusion vectors
-	MD.addProcess(ProtrusionProcess(MD));
-	% Get the Protrusion Parameters so you can modify them
-	protParams = MD.processes_{end}.funParams_;
-	% Set the Protrusion Parameters
-	protParams.ChannelIndex = 1; % 
-	protParams.SegProcessIndex = 2; % (refined mask)
-	% Resave the parameters (if reconfigured)
-	parseProcessParams(MD.processes_{end},protParams);
-	% Run the process
-	MD.processes_{end}.run();
-	MD.save
-	
-    %% Run the Windowing
-	MD.addProcess(WindowingProcess(MD));
-	% Get the Windowing Parameters so you can modify them
-	windParams = MD.processes_{end}.funParams_;
-	parseProcessParams(MD.processes_{end},windParams);
-	% Run
-	MD.processes_{end}.run();
-	MD.save;
-
-	%% Run protrusion sampling process
-	MD.addProcess(ProtrusionSamplingProcess(MD));
-	% Get the Windowing Parameters so you can modify them
-    protParams = MD.processes_{end}.funParams_;
-% 	protParams.OutputDirectory = [MD.outputDirectory_ filesep 'protrusion_samples_' outName];
-	parseProcessParams(MD.processes_{end},protParams);
-	MD.processes_{end}.run();
-
-	MD.save;
-
 	disp('Finish Windowing test run script successfully');
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
