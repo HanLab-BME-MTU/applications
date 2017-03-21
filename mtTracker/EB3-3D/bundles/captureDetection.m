@@ -11,6 +11,7 @@ ip.addParameter('kinTracks',[],@(x) isa(x,'Tracks'));
 ip.addParameter('EB3tracks',[],@(x) isa(x,'Tracks'));
 ip.addParamValue('name','',@ischar);
 ip.addParameter('printAll',false, @islogical);
+ip.addParameter('process',[]);
 ip.addParameter('testKinIdx',[1],@isnumeric);
 %ip.addParameter('testKinIdx',[19 46 156],@isnumeric);
 ip.addParameter('distanceCutOff',0.1,@isnumeric);
@@ -25,8 +26,8 @@ if(isempty(p.kinTracks)||isempty(p.EB3tracks))
     tmp=load([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'kinTracks');
     kinTracks=tmp.kinTracks;
     outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'track'];
-    tmp=load([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3tracks');
-    EB3tracks=tmp.EB3tracks;
+    tmp=load([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3Tracks');
+    EB3tracks=tmp.EB3Tracks;
 else
     kinTracks=p.kinTracks;
     EB3tracks=p.EB3tracks;
@@ -196,46 +197,21 @@ for kIdx=1:length(kinTracks)
 end
 
 %%
-outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name];
-save([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks','EB3tracks')
+
+process=ip.Results.process;
+if(~isempty(process))
+    outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'catchingMT' filesep p.name];
+    mkdir(outputDirCatchingMT);
+    save([outputDirCatchingMT filesep 'catchingMT.mat'],'kinTracks','EB3tracks')
+    process.setOutFilePaths({[outputDirCatchingMT filesep 'catchingMT.mat']})    
+    pa = process.getParameters();
+    pa.parameters = p;
+    process.setParameters(pa);
+    process.setDateTime();
+end 
 
 %% First test, display the +TIP coordinate on a lateral view of the poleKin axis.
-outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep  'firstTest' filesep]
-system(['mkdir ' outputDirProj]);
 
 if(p.printAll)
-%%
-for kIdx=1:length(kinTracks)
-%%
-    kinTrack=kinTracks(kIdx);
 
-    [handles,~,fhandle]=setupFigure(1,2,'AxesWidth',8,'AxesHeight',4,'DisplayMode', 'print');
-    hold(handles(1),'on');
-    hold(handles(2),'on');
-
-    for poleId=1:2
-        scatter(handles(poleId),kinTrack.rho(poleId,:),zeros(size(kinTrack.rho(poleId,:))),'r');
-        scatter(handles(poleId),0,0,'g');
-    end
-
-    for mIdx=1:length(kinTrack.catchingMT)
-        mt=kinTrack.catchingMT(mIdx);
-        mtKinRef=kinTrack.catchingMTKinRef(mIdx);
-
-        %Project on the plan defined by the poleKin axis and the interpolar
-        %axis.
-        plot(handles(mt.poleId(1)),mtKinRef.z,mtKinRef.x,'b-');
-        ylim(handles(mt.poleId(1)),[-2000 2000])
-        xlabel(handles(mt.poleId(1)),'Pole-Kinetochore axis (nm)')
-        ylabel(handles(mt.poleId(1)),'Normal plane (nm)')
-    end
-%%
-
-
-    print([outputDirProj 'kin' num2str(kIdx,'%03d') '.png'],'-dpng');
-
-    hold(handles(1),'off');
-    hold(handles(2),'off');
-    close(fhandle);
-end
 end
