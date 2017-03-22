@@ -1,5 +1,5 @@
-function projImages=project1D(MD,frameOfRef,dynPoligon,tracks,tracksColors)
-% FrameOfRef is the frameOfRef in which resides the tracks that are to be projected in the manifold
+function projImages=project1D(MD,dynPoligon,tracks)
+% tracks are in original FoF and projected  in the manifold
 % described by polygon.
 % Poligon described the projected space (without dilated boundaries), It is composed of Tracks.
 % in 1D, it is only composed of two tracks.
@@ -15,7 +15,7 @@ showDebugGraphics=0;
 cubeHalfWidth=20;
 
 system(['mkdir -p ' outputDirSlices1]);
-outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' filesep 'kin_' num2str(kIdx,'%04d') '_P' num2str(poleIdx)];
+outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' ];
 for fIdx=1:MD.nFrames_
   vol=MD.getChannel(1).loadStack(fIdx);
   kinvol=MD.getChannel(2).loadStack(fIdx);
@@ -41,7 +41,6 @@ for fIdx=1:MD.nFrames_
 
     maskedKin=kinvol;
     maskedKin(~mask)=0;
-    stackWrite(uint16(maskedKin),[outputDirDemoKin filesep 'volDemoKin'  num2str(fIdx,'%04d') '.tif']) % Names the file stitched001..., in /stitched/
 
     % Cropping mask to area of interest
     maskcrop=maskedVol;

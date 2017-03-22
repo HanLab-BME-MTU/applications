@@ -21,7 +21,7 @@ ip.addParameter('distanceCutOff',0.1,@isnumeric);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
-% Augment the structures with spherical Coordinate. 
+% Augment the structures with spherical Coordinate.
 %% Load the pole info
 MD=p.MD;
 if(~isempty(p.processDetectPoles))
@@ -30,7 +30,7 @@ if(~isempty(p.processDetectPoles))
     MD=p.processDetectPoles.getOwner();
 end
 
-%% Load EB3 tracks add azimuth info, change coordinate to real space measurement. 
+%% Load EB3 tracks add azimuth info, change coordinate to real space measurement.
 if(isempty(p.EB3tracks)||isempty(p.EB3SphCoord))
     outputDirDetect=[MD.outputDirectory_ filesep 'EB3' filesep 'detection' filesep];
     tmp=load([outputDirDetect filesep 'sphericalCoord.mat']);
@@ -98,7 +98,7 @@ for tIdx=1:length(EB3Tracks)
         tr.addprop('poleId');
         tr.addprop('azimuth');      % DEPRECATED
         tr.addprop('elevation');    % DEPRECATED
-        tr.addprop('rho');          % DEPRECATED      
+        tr.addprop('rho');          % DEPRECATED
     catch
     end;
     tr.x=(tr.x-1)*MD.pixelSize_+1;
@@ -109,8 +109,8 @@ for tIdx=1:length(EB3Tracks)
     tr.poleId=nan(size(tr.f));
     tr.poleId(nonGap)=arrayfun(@(i,f) EB3PoleId{f}(i), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
     tr.inliers=nan(size(tr.f));
-    tr.inliers(nonGap)=arrayfun(@(i,f) EB3Inliers{f}(i), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));    
-    
+    tr.inliers(nonGap)=arrayfun(@(i,f) EB3Inliers{f}(i), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
+
     % DEPRECATED
     tr.azimuth=nan(2,length(tr.f));
     tr.elevation=nan(2,length(tr.f));
@@ -119,7 +119,7 @@ for tIdx=1:length(EB3Tracks)
         tr.azimuth(poleID,nonGap)=arrayfun(@(i,f) EB3SphCoord.azimuth{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.elevation(poleID,nonGap)=arrayfun(@(i,f) EB3SphCoord.elevation{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.rho(poleID,nonGap)=arrayfun(@(i,f) EB3SphCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-    end 
+    end
     % END DEPRECATED
 end
 toc;
@@ -142,12 +142,12 @@ for tIdx=1:length(EB3Tracks)
             tr.addprop('rho');
         catch
         end;
-               
+
         nonGap=~tr.gapMask();
         tr.azimuth=nan(1,length(tr.f));
         tr.elevation=nan(1,length(tr.f));
-        tr.rho=nan(1,length(tr.f));       
-         
+        tr.rho=nan(1,length(tr.f));
+
         tr.azimuth(nonGap)=arrayfun(@(i,f) EB3SphCoord.azimuth{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.elevation(nonGap)=arrayfun(@(i,f) EB3SphCoord.elevation{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.rho(nonGap)=arrayfun(@(i,f) EB3SphCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
@@ -160,12 +160,12 @@ if(isempty(p.kinTracks)||isempty(p.kinSphericalCoord))
     outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
     kinSphericalCoord=load([outputDirDetect filesep 'sphericalCoordBothPoles.mat']);
     kinSphericalCoord=kinSphericalCoord.sphCoord;
-    kinPoleDist=load([outputDirDetect filesep 'dist.mat']);       
+    kinPoleDist=load([outputDirDetect filesep 'dist.mat']);
     kinInliers=kinPoleDist.inliers;
     outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
     kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
     kinTracks=kinTrackData.tracksLabRef;
-    
+
     outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];mkdir(outputDirDetect);
     detectionsLabRef=load([outputDirDetect filesep 'detectionLabRef.mat']);
     detectionsLabRef=detectionsLabRef.detectionsLabRef;
@@ -179,7 +179,7 @@ else
 end
 
 tic;
-% Augment the structures with spherical Coordinate. 
+% Augment the structures with spherical Coordinate.
 for kIdx=1:length(kinTracks)
     %progressText(kIdx/length(kinTracks),'Loading kin spherical coordinates.');
     tr=kinTracks(kIdx);
@@ -193,7 +193,7 @@ for kIdx=1:length(kinTracks)
     tr.x=(tr.x-1)*MD.pixelSize_+1;
     tr.y=(tr.y-1)*MD.pixelSize_+1;
     tr.z=(tr.z-1)*MD.pixelSize_+1;
-    
+
     nonGap=~tr.gapMask();
     tr.azimuth=nan(2,length(tr.f));
     tr.elevation=nan(2,length(tr.f));
@@ -204,7 +204,7 @@ for kIdx=1:length(kinTracks)
         tr.azimuth(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.azimuth{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.elevation(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.elevation{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.rho(poleID,nonGap)=arrayfun(@(i,f) kinSphericalCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
-    end 
+    end
 end
 %%
 toc;
@@ -224,12 +224,12 @@ for tIdx=1:length(kinTracks)
             tr.addprop('rho');
         catch
         end;
-               
+
         nonGap=~tr.gapMask();
         tr.azimuth=nan(1,length(tr.f));
         tr.elevation=nan(1,length(tr.f));
-        tr.rho=nan(1,length(tr.f));       
-         
+        tr.rho=nan(1,length(tr.f));
+
         tr.azimuth(nonGap)=arrayfun(@(i,f) kinSphericalCoord.azimuth{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.elevation(nonGap)=arrayfun(@(i,f) kinSphericalCoord.elevation{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
         tr.rho(nonGap)=arrayfun(@(i,f) kinSphericalCoord.rho{f}(i,poleID), tr.tracksFeatIndxCG(nonGap),tr.f(nonGap));
@@ -247,13 +247,13 @@ if(~isempty(p.process))
     save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3Tracks');
     outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'detection'];
     save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'detLabRef');
-    
+
     %% inlier index
     inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
     inliersKin=logical(arrayfun(@(k) k.inliers(1),kinTracks));
     kinTracksInliers=kinTracks(inliersKin);
     EB3TracksInliers=EB3Tracks(inliersEB3);
-    
+
     outputDirCatchingMT=[MD.outputDirectory_ filesep 'Kin' filesep 'track'];
     save([outputDirCatchingMT filesep 'augmentedSpindleRefInliers.mat'],'kinTracksInliers');
     outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'track'];
@@ -272,4 +272,3 @@ if(~isempty(p.process))
 
 end
 %%
-
