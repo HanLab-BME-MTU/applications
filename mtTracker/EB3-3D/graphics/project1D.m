@@ -22,8 +22,29 @@ tracks=p.tracks;
 showDebugGraphics=0;
 cubeHalfWidth=20;
 
+
+%% Cube that contain the moving polygon
+minX=MD.getDimensions('X')+1;
+minY=MD.getDimensions('Y')+1;
+minZ=MD.getDimensions('Z')+1;
+maxX=0;
+maxY=0;
+maxZ=0;
+for iP=1:length(dynPoligon)
+    minX=floor(min(min(dynPoligon(iP).x),minX));
+    minY=floor(min(min(dynPoligon(iP).y),minY));
+    minZ=floor(min(min(dynPoligon(iP).z),minZ));
+    maxX=ceil(max(max(dynPoligon(iP).x),maxX));
+    maxY=ceil(max(max(dynPoligon(iP).y),maxY));
+    maxZ=ceil(max(max(dynPoligon(iP).z),maxZ));    
+end
+%%
+
 outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' ];
+outputDirDemo=[MD.outputDirectory_ filesep '1DProjection' filesep 'volDemo' ];
+
 system(['mkdir  ' outputDirSlices1]);
+system(['mkdir  ' outputDirDemo]);
 for fIdx=1:MD.nFrames_
     vol=MD.getChannel(1).loadStack(fIdx);
     kinvol=MD.getChannel(2).loadStack(fIdx);
@@ -53,11 +74,57 @@ for fIdx=1:MD.nFrames_
 
     maskedVol=vol;
     maskedVol(~mask)=0;
-    %stackWrite(uint16(maskedVol),[outputDirDemo filesep 'volDemo'  num2str(fIdx,'%04d') '.tif']) % Names the file stitched001..., in /stitched/
+    outputDir=[outputDirDemo filesep  'mask'];mkdir(outputDir);
+    imwrite(uint8(255*mat2gray(max(maskedVol,[],3))),[outputDir filesep  'mask_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
 
     maskedKin=kinvol;
     maskedKin(~mask)=0;
+    outputDir=[outputDirDemo filesep  'maskKin_'];mkdir(outputDir);
+    imwrite(uint8(255*mat2gray(max(maskedKin,[],3))),[outputDir filesep  'maskKin_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
 
+
+    % If needed the map must rotated before cropped (efficiency)
+    % Rotation depends on the FrameOfRef associated to the tracks the compose the dynanimc polygon
+    % Cropping area according to the polygon OVER TIME plus added vizualiation margin 
+    % Rotation will use imwarp
+    % Can we use imwar for cropping too ? 
+    
+    %% testing imwarp to crop the image
+    % cropping zine
+    maxXBorder=min(maxX+cubeHalfWidth,MD.getDimensions('X'));
+    maxYBorder=min(maxY+cubeHalfWidth,MD.getDimensions('Y'));
+    maxZBorder=min(maxZ+cubeHalfWidth,MD.getDimensions('Z'));
+    minXBorder=max(minX-cubeHalfWidth,1);
+    minYBorder=max(minY-cubeHalfWidth,1);
+    minZBorder=max(minZ-cubeHalfWidth,1);    
+
+    tform=affine3d();
+    
+    minZ=minZ*MD.pixelSize_/MD.pixelSizeZ_;
+    maxZ=maxZ*MD.pixelSize_/MD.pixelSizeZ_;
+
+    outputRef=imref3d([maxXBorder-minXBorder maxYBorder-minYBorder MD.getDimensions('Z')], [minXBorder maxXBorder],[minYBorder maxYBorder],[1 MD.getDimensions('Z')]);
+    warpedVol=imwarp(vol,tform,'OutputView',outputRef);
+    warpedMaskedVol=imwarp(maskedVol,tform,'OutputView',outputRef);
+    warpedKinVol=imwarp(kinvol,tform,'OutputView',outputRef);
+    warpedMaskedKinVol=imwarp(maskedKin,tform,'OutputView',outputRef);
+
+
+%     figure
+%     subplot(1,3,1);
+%     imshow(mat2gray(max(vol,[],3)));
+%     subplot(1,3,2);
+%     imshow(mat2gray(max(warpedVol,[],3)));
+%     subplot(1,3,3);
+%     imshow(mat2gray(max(maskedVol,[],3)));
+    imwrite(uint8(255*mat2gray(max(vol,[],3))),[outputDirDemo filesep  'vol_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
+    imwrite(uint8(255*mat2gray(max(warpedVol,[],3))),[outputDirDemo filesep  'warpedVol_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
+    imwrite(uint8(255*mat2gray(max(warpedMaskedVol,[],3))),[outputDirDemo filesep  'warpedMaskedVol_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
+    imwrite(uint8(255*mat2gray(max(warpedKinVol,[],3))),[outputDirDemo filesep  'warpedKinVol_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
+    imwrite(uint8(255*mat2gray(max(warpedMaskedKinVol,[],3))),[outputDirDemo filesep  'warpedKinMaskedVol_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
+
+%     
+    %%
     % Cropping mask to area of interest
     maskcrop=maskedVol;
     nullMaskXY=(squeeze(any(maskcrop,3)));
@@ -85,21 +152,22 @@ for fIdx=1:MD.nFrames_
         imshow(nullMaskXY)
     end
 
-
     capturedEB3OrigRef=tracks;
 
     [maxXY,maxZY,maxZX,~]=computeMIPs(maskcrop,216/MD.pixelSize_,3*min(vol(:)),0.9*max(maskedVol(:)));
     [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(maskedKin,216/MD.pixelSize_,0.6*max(maskedKin(:)),max(maskedKin(:)));
 
-% Relative scaling
+    
+    
+    
+    %
+    % Relative scaling
 
     maxMIPSize=400;
+    [sX,sY,sZ]=size(maskcrop);
+    sZ=sZ*MD.pixelSizeZ_/MD.pixelSize_;
+    resizeScale=maxMIPSize/max([sX,sY,sZ]);
 
-    if (size(maxXY,1)>size(maxXY,2))
-        resizeScale=maxMIPSize/size(maxXY,1);
-    else
-        resizeScale=maxMIPSize/size(maxXY,2);
-    end
 
     rMaxXY=imresize(maxXY,resizeScale);
     rmaxXYKin=imresize(maxXYKin,resizeScale);
@@ -123,14 +191,14 @@ for fIdx=1:MD.nFrames_
       tracksXY=RGBThree;
     end
 
-    if (size(maxXY,2)<maxMIPSize)
+    if (size(tracksXY,2)<maxMIPSize)
         tracksXY=padarray(tracksXY,[0 maxMIPSize-size(tracksXY,2)],'post');
     end
-    if (size(maxXY,1)<maxMIPSize)
+    if (size(tracksXY,1)<maxMIPSize)
         tracksXY=padarray(tracksXY,[maxMIPSize-size(tracksXY,1) 0],'post');
     end
 
-    
+
     rMax=imresize(maxZY,resizeScale);
     rmaxKin=imresize(maxZYKin,resizeScale);
 
@@ -146,7 +214,7 @@ for fIdx=1:MD.nFrames_
       tracksZY=trackBinaryOverlay(RGBThree,[find(~ZNull,1) find(~ZNull,1,'last')],[find(~YNull,1) find(~YNull,1,'last')],capturedEB3ZY,fIdx,ones(1,length(capturedEB3OrigRef)),tracksColors);
     else
       tracksZY=RGBThree;
-    end;
+    end;    
 
     if (size(tracksZY,2)<maxMIPSize)
       tracksZY=padarray(tracksZY,[0 maxMIPSize-size(tracksZY,2)],'post');
@@ -176,7 +244,7 @@ for fIdx=1:MD.nFrames_
     else
       tracksZX=RGBThree;
     end;
-    
+
     if (size(tracksZX,2)<maxMIPSize)
       tracksZX=padarray(tracksZX,[0 maxMIPSize-size(tracksZX,2)],'post');
     end;
@@ -199,7 +267,6 @@ video.Quality = 100;    % Default 75
 open(video)
 for frameIdx=1:MD.nFrames_
     % save the maximum intensity projections
-    three=[];
 %     for poleIdx=poleIndices
 %         outputDirSlices1=[MD.outputDirectory_ filesep 'maskSliceTracksSpinleRef' filesep 'kin_' num2str(kIdx,'%04d') '_P' num2str(poleIdx)];
         three=[imread([outputDirSlices1 filesep 'frame_nb' num2str(frameIdx,'%04d') '.png'])];

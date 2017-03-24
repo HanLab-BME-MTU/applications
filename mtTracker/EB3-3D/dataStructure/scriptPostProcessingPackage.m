@@ -1,6 +1,6 @@
 % External process bears the following features
 % - Store process output files and setup figures with minimal coding
-% - Store parameter without copying paramater. 
+% - Store parameter without copying paramater.
 % - Easy transition from function to process sequence
 % - Rerun function (experimental)
 
@@ -11,7 +11,7 @@ detectPoles(MD,'process',processDetectPoles);
 
 processSpindleRef=ExternalProcess(MD,'addSpindleRef');
 addSpindleRef('processDetectPoles',processDetectPoles,'process',processSpindleRef)
- 
+
 processTipsBias=ExternalProcess(MD,'MTTipsBias');
 MTTipsBias('processSpindleRef',processSpindleRef,'process',processTipsBias,'kinRange',1:5);
 
