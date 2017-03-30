@@ -232,7 +232,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             output(i).var='adhboundary_FA';
             output(i).formatData=[];
             output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', 'm');
+            output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', 'b');
             
             i = ii-8; output(i).name='Focal Contact Boundary';
             output(i).var='adhboundary_FC';
