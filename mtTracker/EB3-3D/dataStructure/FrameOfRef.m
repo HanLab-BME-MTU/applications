@@ -20,6 +20,12 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
           obj.Y=cross(obj.X,obj.Z);
       end
       
+      function genCanonicalBase(obj)
+          obj.X=repmat([1 0 0],[size(obj.origin,1) 1]);
+          obj.Y=repmat([0 1 0],[size(obj.origin,1) 1]);
+          obj.Z=repmat([0 0 1],[size(obj.origin,1) 1]);
+      end
+      
       function newBaseObject=applyBase(obj,tracksOrDetections,name)
         if(isa(tracksOrDetections,'Tracks'))
             newBaseObject=applyBaseToTrack(obj,tracksOrDetections,name);
@@ -54,14 +60,16 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
               trBase.originalRef=tr;
               for pIdx=1:length(tr.f)
                   f=min(tr.f(pIdx),length(obj.X));
-                  B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
+                  B=obj.getBase(f);
                   recentered=[(tr.x(pIdx)-obj.origin(f,1)) (tr.y(pIdx)-obj.origin(f,2)) (tr.z(pIdx)-obj.origin(f,3))];
                   v=recentered*B;
                   trBase.x(pIdx)=v(1); trBase.y(pIdx)=v(2); trBase.z(pIdx)= v(3);
               end;    
           end
       end
-      
+      function B= getBase(obj,f)
+             B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
+      end
       function detectionsBase=applyBaseToDetection(obj,detections,name)
           detectionsBase=detections.copy();
           try
@@ -76,7 +84,7 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
               % Copying EB3 track
               detectBase.ref=obj;
               f=min(fIdx,length(obj.X));
-              B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
+              B=obj.getBase(f);
               % easily optimized as implementend in poleDist 
               for pIdx=1:size(detectBase.xCoord,1)
                   recentered=[(detect.xCoord(pIdx,1)-obj.origin(f,1)) (detect.yCoord(pIdx,1)-obj.origin(f,2)) (detect.zCoord(pIdx,1)-obj.origin(f,3))];
