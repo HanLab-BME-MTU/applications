@@ -181,7 +181,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         end
         
         function output = getDrawableOutput()
-            ii = 9;
+            ii = 10;
             i = ii-1; output(i).name='Before Adhesion Detection'; 
             output(i).var='detBA';
             output(i).formatData=[];
@@ -228,12 +228,17 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Adhesion Boundaries
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
-            i = ii-8; output(i).name='Focal Adhesion Boundary';
+            i = ii-9; output(i).name='Focal Adhesion Boundary';
             output(i).var='adhboundary_FA';
             output(i).formatData=[];
             output(i).type='overlay';
             output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', 'm');
-           
+            
+            i = ii-8; output(i).name='Focal Contact Boundary';
+            output(i).var='adhboundary_FC';
+            output(i).formatData=[];
+            output(i).type='overlay';
+            output(i).defaultDisplayMethod=@(x) AdhBoundaryDisplay('Color', [255/255 153/255 51/255]);
 
         end       
 
