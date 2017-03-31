@@ -314,6 +314,7 @@ initializeDataStruct();
     
         function closeGAMfig(varargin)
             handles.GAMfig = {};
+            handles.info.GAM.state = false;
             delete(varargin{1});
         end
         
@@ -462,7 +463,10 @@ initCellLabels();
         'Callback',@updateDT,...
         'Tag','checkbox1',...
         'FontSize',12, ...
-        'Value', 1);
+        'Value', 0, ...
+        'Visible', 'on');
+
+%         handles.dtOnOff.Value = 0;
 
             function updateDT(source, ~)
                val = source.Value;
@@ -471,10 +475,12 @@ initCellLabels();
                if val == 0
                   set(handles.dcm_obj,'Enable','off');
                else
-%                    dcm_obj = datacursormode(handles.h1);
-%                    handles.dcm_obj = dcm_obj;
+                   dcm_obj = datacursormode(handles.h1);
+                   handles.dcm_obj = dcm_obj;
                    set(handles.dcm_obj,'DisplayStyle','window',...
                   'SnapToDataVertex','off','Enable','on');    
+                          handles.dcm_obj = dcm_obj;
+                   set(dcm_obj,'UpdateFcn',@myupdatefcn);
                end
                 updatePlots();
             end
@@ -1112,7 +1118,7 @@ initMovieDisplay();
     end
 
     function updateMovieGAM(Fnum)
-        if ~isempty(data.movies) && handles.info.GAM.state
+        if ~isempty(data.movies) && handles.info.GAM.state && ~isempty(handles.GAMfig)
             idx_f = handles.info.GAM.idx_f;
             for i=1:length(idx_f)
                 imagesc(data.movies{idx_f(i)}(:,:,handles.movies.fidx),...
@@ -1150,11 +1156,13 @@ initDRAxes();
         % Defaults
         handles.selPtIdx = 1;
 
-        dcm_obj = datacursormode(handles.h1);
-        handles.dcm_obj = dcm_obj;
-        set(dcm_obj,'DisplayStyle','window',...
-        'SnapToDataVertex','off','Enable','on');
-        set(dcm_obj,'UpdateFcn',@myupdatefcn);
+        if handles.dtOnOff.Value == 1
+            dcm_obj = datacursormode(handles.h1);
+            handles.dcm_obj = dcm_obj;
+            set(dcm_obj,'DisplayStyle','window',...
+            'SnapToDataVertex','off','Enable','on');
+            set(dcm_obj,'UpdateFcn',@myupdatefcn);
+        end
     end
 
 % plot everything
@@ -1205,27 +1213,29 @@ function plotScatter
     % get labels for plot
     clabels = grp2idx(plabel);
     clabels = cell2mat(getColors(clabels));
-    sizeL= repmat(12,length(plabel),1);
+    sizeL= repmat(10,length(plabel),1);
 
     ji = handles.selPtIdx;
     handles.manualSel.Value = ji;  
     if handles.dtOnOff.Value == 0
         clabels(ji,:) = [0 1 1]; %[1 0 .5];
-        sizeL(ji,1) = 200;
+        sizeL(ji,1) = 250;
     end
 
+    
     % ------------------------
     % Filter SubSet Data
     % ------------------------
 
     idx_f = applyFilters(handles.filters);
+    idx_all = 1:length(data.meta.mindex);
+    idx_notSel = setxor(idx_all, idx_f);
     handles.dataI = data.meta.mindex(idx_f);
+    handles.dataI_ns = data.meta.mindex(idx_notSel);
     
-%     % Color non-selected points white
-%     idx_all = 1:length(data.meta.mindex);
-%     idx_notSel = setxor(idx_all, idx_f);
-%     if ~isempty(idx_notSel)
-%         clabels(idx_notSel, :) = repmat([1 1 1], [length(idx_notSel) 1]);
+    clabelsTemp = clabels;      
+    clabelsTemp(idx_notSel, :) = repmat([1 1 1], [length(idx_notSel) 1]);
+    wclabels = repmat([1 1 1], [length(idx_all) 1]);
 %     end
     
     % ------------------------
@@ -1244,16 +1254,29 @@ function plotScatter
         handles.dataX = X;
         handles.dataY = Y;
         figure(handles.h1);
-        s = scatter(handles.axDR, X, Y, sizeL, clabels(:,:,:),'filled',...
+        handles.scat1 = scatter(handles.axDR, X, Y, sizeL-2, clabels(:,:,:),...% 'MarkerEdgeColor',clabels(:,:,:),...
             'ButtonDownFcn', @axDRCallback);
-        if length(idx_f) ~= length(data.meta.mindex) 
-            alpha(s, .15);
-            hold on;
-            axis manual;
-            handles.scat = scatter(handles.axDR, X(idx_f), Y(idx_f), 35, clabels(idx_f,:,:),'filled',...
-                'ButtonDownFcn', @axDRCallback);
-            hold off;
+        alpha(handles.scat1, .9);
+        hold on;    
+        handles.scat1.SizeData(ji) = 200;
+        handles.scat1.CData(ji,:) = clabels(ji,:,:);
+        axis manual;
+            
+        handles.scat2 = scatter(handles.axDR, X, Y, sizeL-3, wclabels, 'filled',...
+            'ButtonDownFcn', @axDRCallback);  
+        handles.scat2.CData(idx_f,:) = clabels(idx_f,:,:);
+        handles.scat2.CData(ji,:) = clabels(ji,:,:);
+        handles.scat2.SizeData(idx_f) = 35;
+        handles.scat2.SizeData(ji) = 200;
+        try 
+            handles.scat1.PickableParts = 'none';
+            handles.scat1.HitTest = 'off';
+        catch
+            warning('error scat1');
         end
+        
+       hold off;
+%         end
         set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
         handles.axDR.Title.String = DRtype_sel;    
         handles.axDR.XColor = 'w';
@@ -1298,13 +1321,23 @@ end
     end
     
     function txt = myupdatefcn(empt, objs)
+        % handles.scat1.SizeData(handles.selPtIdx) = 10;
         idx = empt.Cursor.DataIndex;
-        if handles.info.zoom == false
-            handles.selPtIdx = idx;
-        else
-            handles.selPtIdx = handles.dataI(idx);
-        end
-%         txt = {['Index: ',num2str(handles.selPtIdx)],...
+        
+        %% TODO - Check if filter is activated. 
+%         if handles.info.zoom == false
+        handles.selPtIdx = idx;
+        % handles.scat1.SizeData(handles.selPtIdx) = 200;
+%         else
+%         if ismember(idx, handles.dataI)
+% %             handles.selPtIdx = handles.dataI(idx);
+%               handles.scat1.SizeData(idx) = 200;
+%               handles.scat1.SizeData(idx) = 200;
+%         else
+% %             handles.selPtIdx = handles.dataI_ns(idx);
+%         end
+        
+        %         txt = {['Index: ',num2str(handles.selPtIdx)],...
 %                ['CellType: ',data.meta.cellType{handles.selPtIdx}],...
 %                ['TumorType: ',data.meta.tumorTypeName{handles.selPtIdx}], ...
 %                ['ExprDate :', '01-17-2017']};
@@ -1313,10 +1346,10 @@ end
                ['yDR: ' num2str(objs.Position(2))]};
 
         set(handles.manualSel, 'Value', handles.selPtIdx);
-%         empt.DataSource.SizeData(handles.selPtIdx) = 50;
         updateAnnotationPanel;
         updateCellInfo;
         playMovie_GUI();
+        
     end
 
     function axDRCallback(varargin)
@@ -1326,21 +1359,24 @@ end
         y0 = ipt(1,2);
         fx = find(round(varargin{1}.XData, 5) == round(x0,5));
         fy = find(round(varargin{1}.YData, 5) == round(y0,5));
-        idx = intersect(fx,fy);
-        if handles.info.zoom == false
-            handles.selPtIdx = idx;
-        else
-            handles.selPtIdx = handles.dataI(idx);
+        idx = intersect(fx,fy)
+        if length(idx)>1
+        %% TODO - Check if bug when inadvertently selecting multiple points.
+            idx
+            idx = idx(1)
         end
-        if length(handles.selPtIdx) > 1
-            handles.selPtIdx = handles.selPtIdx(1);
-        end
-     
-        plotScatter; 
+%         if any(ismember(idx, handles.dataI(:)))
+%             disp('Filtered');
+%             handles.selPtIdx = handles.dataI(idx);
+%         else
+%             disp('Not Filtered');
+%             handles.selPtIdx = handles.dataI_ns(idx);
+%         end
+        handles.selPtIdx = idx
         updateCellInfo;
         updateAnnotationPanel;
+        plotScatter; 
         playMovie_GUI;        
-
     end
 
     function [idx_out] = applyFilters(hinff)
