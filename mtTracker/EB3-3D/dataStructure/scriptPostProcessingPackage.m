@@ -5,6 +5,7 @@
 % - Rerun function (experimental)
 
 MD=MovieData.loadMatFile('C:\Users\Philippe\project-local\externBetzig\analysis\adavid\smallSample\prometaphase\earlyCell1_12\movieData.mat');
+MD=MovieData.loadMatFile('C:\Users\Philippe\project-local\externBetzig\analysis\adavid\smallSample\prometaphase\laterCell1_12\movieData.mat');
 
 processDetectPoles=ExternalProcess(MD,'detectPoles');
 detectPoles(MD,'process',processDetectPoles);
@@ -31,6 +32,9 @@ package.showGUI();
 
 %%
 MD=MovieData.loadMatFile('C:\Users\Philippe\project-local\externBetzig\analysis\adavid\smallSample\prometaphase\earlyCell1_12\movieData.mat');
+
+MD=MovieData.loadMatFile('C:\Users\Philippe\project-local\externBetzig\analysis\adavid\smallSample\prometaphase\laterCell1_12\movieData.mat');
+
 processDetectPoles=ExternalProcess(MD,'detectPoles',@(p) detectPoles(p.getOwner(),'process',p));
 processSpindleRef=ExternalProcess(MD,'addSpindleRef',@(p) addSpindleRef(p.getOwner(),'processDetectPoles',processDetectPoles,'process',p));
 processTipsBias=ExternalProcess(MD,'MTTipsBias',@(p) MTTipsBias('processSpindleRef',processSpindleRef,'process',p,'kinRange',1:5));
