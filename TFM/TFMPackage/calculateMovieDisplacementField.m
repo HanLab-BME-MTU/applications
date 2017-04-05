@@ -38,6 +38,7 @@ displFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldProc,paramsIn);
 addNonLocMaxBeads = p.addNonLocMaxBeads;
+p.usePIVSuite=true;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
@@ -166,6 +167,23 @@ for j= firstFrame:nFrames
         if j==firstFrame && firstFrame==1
             disp('Determining PSF sigma from reference frame...')
             % Adaptation of psfSigma from bead channel image data
+            poolobj = gcp('nocreate'); % If no pool, do not create new one.
+            if isempty(poolobj)
+                poolsize = feature('numCores');
+            else
+                poolsize = poolobj.NumWorkers;
+            end
+            if isempty(gcp('nocreate'))
+                try
+                    parpool('local', poolsize)
+                catch
+                    try 
+                        matlabpool
+                    catch 
+                        warning('matlabpool has been removed, and parpool is not working in this instance');
+                    end
+                end
+            end % we don't need this any more.
             psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
             if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
                 if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
@@ -234,7 +252,7 @@ for j= firstFrame:nFrames
                     neiBeads(i,:)=[];
                     [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
                 end
-                avg_beads_distance = quantile(distance,0.4);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+                avg_beads_distance = quantile(distance,0.4)/2;%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
                 notSaturated = true;
                 xmin = min(pstruct.x);
                 xmax = max(pstruct.x);
@@ -243,17 +261,19 @@ for j= firstFrame:nFrames
             %     avgAmp = mean(pstruct.A);
             %     avgBgd = mean(pstruct.c);
             %     thresInten = avgBgd+0.02*avgAmp;
-                thresInten = quantile(pstruct.c,0.1);
-                maxNumNotDetected = 100; % the number of maximum trial without detecting possible point
+                thresInten = quantile(pstruct.c,0.25);
+                maxNumNotDetected = 20; % the number of maximum trial without detecting possible point
                 numNotDetected = 0;
                 numPrevBeads = size(beads,1);
+                tic
                 while notSaturated
-                    x_new = xmin + (xmax-xmin)*rand();
-                    y_new = ymin + (ymax-ymin)*rand();
+                    x_new = xmin + (xmax-xmin)*rand(10000,1);
+                    y_new = ymin + (ymax-ymin)*rand(10000,1);
                     [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
-                    inten_new = refFrame(round(y_new),round(x_new));
-                    if distToPoints>avg_beads_distance && inten_new>thresInten
-                        beads = [beads; x_new, y_new];
+                    inten_new = arrayfun(@(x,y) refFrame(round(y),round(x)),x_new,y_new);
+                    idWorthAdding = distToPoints>avg_beads_distance & inten_new>thresInten;
+                    if sum(idWorthAdding)>1
+                        beads = [beads; [x_new(idWorthAdding), y_new(idWorthAdding)]];
                         numNotDetected = 0;
                     else
                         numNotDetected=numNotDetected+1;
@@ -262,6 +282,7 @@ for j= firstFrame:nFrames
                         notSaturated = false; % this means now we have all points to start tracking from the image
                     end
                 end
+                toc
                 disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking. Total detected beads: ' num2str(length(beads))])
             end
             % Exclude all beads which are less  than half the correlation length 
@@ -305,7 +326,7 @@ for j= firstFrame:nFrames
             % Track beads displacement in the xy coordinate system
             v = trackStackFlow(cat(3,refFrame,currImage),currentBeads,...
                 p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-                'mode',p.mode,'scoreCalculation',scoreCalculation);
+                'mode',p.mode,'scoreCalculation',scoreCalculation);%,'usePIVSuite', p.usePIVSuite);
         else
 %             scoreCalculation='difference';
             scoreCalculation='xcorr';
@@ -326,8 +347,10 @@ for j= firstFrame:nFrames
 %         end
         
         if ~p.trackSuccessively
-            displField(j).pos=localbeads(validV,:);
-            displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+%             displField(j).pos=localbeads(validV,:);
+%             displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+            displField(j).pos=localbeads; % validV is removed to include NaN location - SH 030417
+            displField(j).vec=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
         else
             v2 = v;
             cumulativeV_forV = cumulativeV_forV+v2;
@@ -344,15 +367,16 @@ for j= firstFrame:nFrames
         [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
 %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
-        nextPow2=nextpow2(p.minCorLength);
-        BiggestSize=2^(nextPow2+1);
-        SecondSize=2^(nextPow2);
-        ThirdSize=2^(nextPow2-1);
-        FourthSize=2^(nextPow2-2);
-        pivPar.iaSizeX = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
-        pivPar.iaStepX = [SecondSize SecondSize ThirdSize FourthSize];     % grid spacing of velocity vectors in X
-        pivPar.iaSizeY = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
-        pivPar.iaStepY = [SecondSize SecondSize ThirdSize FourthSize];    % grid spacing of velocity vectors in X
+        nextPow2max=nextpow2(p.maxFlowSpeed);
+        nextPow2min=nextpow2(p.minCorLength)-2;
+        
+        sizeArray=2.^([nextPow2max:-1:nextPow2min+1 nextPow2min+1]);
+        stepArray=2.^(nextPow2max:-1:nextPow2min);
+        pivPar.anNpasses = length(stepArray);
+        pivPar.iaSizeX = sizeArray;     % size of interrogation area in X 
+        pivPar.iaStepX = stepArray;     % grid spacing of velocity vectors in X
+        pivPar.iaSizeY = sizeArray;     % size of interrogation area in X 
+        pivPar.iaStepY = stepArray;    % grid spacing of velocity vectors in X
 %         pivPar.iaSizeX = [64 32 16 8];     % size of interrogation area in X 
 %         pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
 %         pivPar.iaSizeY = [64 32 16 8];     % size of interrogation area in X 
@@ -360,6 +384,7 @@ for j= firstFrame:nFrames
 % %         pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
 % %         pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
 % %         pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
+        pivPar.ccMaxDisplacement = p.maxFlowSpeed/sizeArray(end);   % This filter is relatively narrow and will 
         pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
         pivPar.smMethod = 'none';
         pivPar.iaMethod = 'defspline';

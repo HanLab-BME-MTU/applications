@@ -68,12 +68,16 @@ set(handles.checkbox_noOutwardDeform, 'Value', funParams.noFlowOutwardOnBorder);
 set(handles.checkbox_mode, 'Value', strcmp(funParams.mode, 'accurate'));
 set(handles.checkboxTrackSuccessive, 'Value', funParams.trackSuccessively);
 
-% Propagate stage drift correction parameters if no process and stage drift
+% Propagate stage drift correction parameters if no process AND stage drift
 % correction parameters has been set up
 stageDriftCorrProc = userData.crtPackage.processes_{1};
-if ~isempty(stageDriftCorrProc)
+
+if ~isempty(stageDriftCorrProc) 
     set(handles.edit_referenceFramePath,'Enable','off');
     set(handles.pushbutton_selectReferenceFrame,'Enable','off');
+end
+    
+if strcmp(stageDriftCorrProc.name_, 'Bead Tracking Drift Correction')
     if isempty(userData.crtPackage.processes_{userData.procID}) 
         set(handles.edit_alpha,'String', stageDriftCorrProc.funParams_.alpha);
     end

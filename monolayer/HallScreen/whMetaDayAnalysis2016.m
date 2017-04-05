@@ -41,7 +41,7 @@ close all;
 % flags.variance = 0;
 % flags.dayAnalysisPCA = 0;
 flags.dayScreen = 0;
-flags.dayVisKymographs = 0;
+flags.dayVisKymographs = 1;
 flags.dayVisKymographsStd = 0;
 % flags.dayVisTargets = 0;
 % flags.controlInterdayAssessment = 0;
@@ -107,7 +107,7 @@ end
 
 %% Followup hits
 if flags.dayFollowupHits 
-    validateGenes = {'RHOA','RHOC'};
+    validateGenes = {'RHOC'};
     %      validateGenes = {'RHOA','RHOC'};
     %     validateGenes = {'Lcf'};
     

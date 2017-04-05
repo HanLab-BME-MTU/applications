@@ -20,7 +20,7 @@ ip.addParamValue('Alpha',0.05, @isnumeric);
 ip.addParamValue('ROI',[], @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
 ip.addParamValue('printAll', false, @islogical);
-ip.addParamValue('subDirectory','EB3', @ischar);
+ip.addParamValue('subDirectory','detections', @ischar);
 ip.addParamValue('type', 'watershedApplegate',  @ischar);
 ip.parse(MD, varargin{:});
 
@@ -191,6 +191,8 @@ function movieInfo= pointCloudToMovieInfo(imgLM,vol)
     movieInfo.amp=amp;
     movieInfo.int=amp;
 
+function mkdir(path)
+system(['mkdir -p ' path]);
 
 
 function movieInfo= pstructToMovieInfo(pstruct)

@@ -3,6 +3,7 @@
 function [] = whMetaAnalysis2016(mainDirname,metaDataFname,timePerFrame)
 
 addpath(genpath('/home2/azaritsky/code/applications/monolayer/HallScreen/'));
+addpath(genpath('/home2/azaritsky/code/applications/monolayer/utils/'));
 
 % mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/';
 % metaDataFname = 'GEFScreenFinal_kd0.mat';
@@ -35,7 +36,10 @@ if nargin == 0
     %% Revision
     % RhoA day 3
     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
-    metaDataFname = 'ShefaliRevision201612_RhoA_Day3_kd0.mat'; % this is the real "age" of the data
+    metaDataFname = 'ShefaliRevision201612_RhoC_kd0.mat'; % this is the real "age" of the data
+    % RhoA day 3
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
+    %     metaDataFname = 'ShefaliRevision201612_RhoA_Day3_kd0.mat'; % this is the real "age" of the data
     % RhoC hairpin #3
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612_RhoC3/';
     %     metaDataFname = 'ShefaliRevision201612_RhoC_Hairpin3_kd0.mat';

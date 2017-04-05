@@ -42,29 +42,20 @@ kinTrackData=load([outputDirTrack  filesep 'tracksLabRef.mat']);
 kinTracks=kinTrackData.tracksLabRef;
 [randKinTracks]=randomizeKinetochore(kinTracks,randomDist);
 
-% Translate these changes in the detection structure
+% Translate these changes in the detection structure and associated polar
+% coordiante
+% Load associated data
 outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep]
 tmp=load([outputDirDetect 'detectionLabRef.mat']);
 detectionsLabRef=tmp.detectionsLabRef;
-for kIdx=1:length(randKinTracks)
-    tr=randKinTracks(kIdx);
-    for tIdx=1:tr.lifetime
-        f=tr.f(tIdx);
-        if(tr.tracksFeatIndxCG(tIdx)>0)
-            detectionsLabRef(f).xCoord(tr.tracksFeatIndxCG(tIdx),1)=tr.x(tIdx);
-            detectionsLabRef(f).yCoord(tr.tracksFeatIndxCG(tIdx),1)=tr.y(tIdx);
-            detectionsLabRef(f).zCoord(tr.tracksFeatIndxCG(tIdx),1)=tr.z(tIdx);
-        end
-   end
-end
 
-% Build the associated polar coordinate
 dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
 EB3poleDetectionMethod=['simplex_scale_003'];
 outputDirPoleDetect=[MD.outputDirectory_ filesep 'EB3' filesep 'poles' filesep EB3poleDetectionMethod filesep];
 poleData=load([outputDirPoleDetect filesep 'poleDetection.mat']);
 poleMovieInfo=poleData.poleMovieInfo;
-[~,kinSphericalCoord,~,inliers]=poleDist(poleMovieInfo,detectionsLabRef,'anisotropy',dataIsotropy,'angleRef','poles');
+
+[~,kinSphericalCoord,inliers]=tracks2detections(randKinTracks,detectionsLabRef,poleMovieInfo,dataIsotropy)
 
 % Rebuild the augmented kin
 [randKinTracksPlus]=addSpindleRef(MD,'kinTracks',randKinTracks,'kinSphericalCoord',kinSphericalCoord,'kinInliers',inliers);

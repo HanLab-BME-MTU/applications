@@ -19,7 +19,7 @@ function [] = parseYunYuKDEfficiency(dbFname,kdEfficiencyTH)
 % kdEfficiencyTH = 50;
 
 if nargin == 0
-    dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/ShefaliRevision201612_RhoA_Day3.xlsx';
+    dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/ShefaliRevision201612_RhoC.xlsx';
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612_RhoC3/ShefaliRevision201612_RhoC_Hairpin3.xlsx';
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data201612_shefali/ShefaliRevision201612All.xlsx';
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20161215_shefali/ShefaliRevision20161215.xlsx';
