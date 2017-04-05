@@ -42,10 +42,11 @@ InterpolarRefISO.applyBaseToTrack(P2TrackISO,'P1P2');
 InterpolarRefISO.applyBaseToTrack(inlierKinTracks,'P1P2');
 
 for kinIdx=1:length(inlierKinTracks)
-InterpolarRefISO.applyBaseToTrack(inlierKinTracks(kinIdx),'P1P2');
-project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1P2,inlierKinTracks(kinIdx).P1P2],'FoF',InterpolarRefISO,'crop','manifold','name',[relativeOutput filesep 'P1-kin-interpolar-kin-' num2str(kinIdx)],'channelRender','grayRed')
-project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P2TrackISO.P1P2,inlierKinTracks(kinIdx).P1P2],'FoF',InterpolarRefISO,'crop','manifold','name',[relativeOutput filesep 'P2-kin-interpolar-kin-' num2str(kinIdx)],'channelRender','grayRed')
+% InterpolarRefISO.applyBaseToTrack(inlierKinTracks(kinIdx),'P1P2');
+% project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1P2,inlierKinTracks(kinIdx).P1P2],'FoF',InterpolarRefISO,'crop','manifold','name',[relativeOutput filesep 'P1-kin-interpolar-kin-' num2str(kinIdx)],'channelRender','grayRed')
+% project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P2TrackISO.P1P2,inlierKinTracks(kinIdx).P1P2],'FoF',InterpolarRefISO,'crop','manifold','name',[relativeOutput filesep 'P2-kin-interpolar-kin-' num2str(kinIdx)],'channelRender','grayRed')
 
+PoleKinRefISO=FrameOfRef();
 PoleKinRefISO.setOriginFromTrack(P1TrackISO);
 PoleKinRefISO.setZFromTrack(inlierKinTracks(kinIdx));
 PoleKinRefISO.genBaseFromZ();
@@ -53,10 +54,11 @@ PoleKinRefISO.applyBaseToTrack(P1TrackISO,'P1K');
 PoleKinRefISO.applyBaseToTrack(inlierKinTracks(kinIdx),'P1K');
 project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1K,inlierKinTracks(kinIdx).P1K],'FoF',PoleKinRefISO,'name',[relativeOutput filesep 'P1-kin-static-kin-' num2str(kinIdx)],'channelRender','grayRed')
 
+PoleKinRefISO=FrameOfRef();
 PoleKinRefISO.setOriginFromTrack(P2TrackISO);
 PoleKinRefISO.setZFromTrack(inlierKinTracks(kinIdx));
 PoleKinRefISO.genBaseFromZ();
-PoleKinRefISO.applyBaseToTrack(P1TrackISO,'P2K');
+PoleKinRefISO.applyBaseToTrack(P2TrackISO,'P2K');
 PoleKinRefISO.applyBaseToTrack(inlierKinTracks(kinIdx),'P2K');
-project1D(MD,[P2TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P2K,inlierKinTracks(kinIdx).P2K],'FoF',PoleKinRefISO,'name',[relativeOutput filesep 'P2-kin-static-kin' num2str(kinIdx)],'channelRender','grayRed')
+project1D(MD,[P2TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P2TrackISO.P2K,inlierKinTracks(kinIdx).P2K],'FoF',PoleKinRefISO,'name',[relativeOutput filesep 'P2-kin-static-kin' num2str(kinIdx)],'channelRender','grayRed')
 end
