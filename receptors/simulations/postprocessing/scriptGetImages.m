@@ -1,10 +1,10 @@
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161109';
-saveDirImput='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161109';
+sourceRoot = 'C:\Users\s169185\Documents\DATA';
+saveDirImput='C:\Users\s169185\Documents\DATA';
 %Define strings for directory hierarchy as needed
  rDDir = {'rD4'};
  aPDir = {'aP0p0'};
-outDirNum = 1:5;
-lRDir = {'lR0p2'};%'lR0p1','lR0p2',
+outDirNum = 1;
+lRDir = {'lR0p4'};%'lR0p1','lR0p2',
 
 %Define number of label ratio
 numLabelRatio = length(lRDir);
