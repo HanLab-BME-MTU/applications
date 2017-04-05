@@ -4,13 +4,13 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target';
+sourceRoot = 'C:\Users\s169185\Documents\DATA';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD20'};
-aPDir = {'aP0p5'};
-outDirNum = 1:30;
-lRDir = {'lR0p02','lR0p04'};
+rDDir = {'rD4'};
+aPDir = {'aP0p0'};
+outDirNum = 1;
+lRDir = {'lR0p4'};
 
 %Define number of label ratio
 numLabelRatio = length(lRDir);
