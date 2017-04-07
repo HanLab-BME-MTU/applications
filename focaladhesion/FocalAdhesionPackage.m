@@ -117,7 +117,7 @@ classdef FocalAdhesionPackage < Package
 
         function varargout = GUI(varargin)
             %% TODO - Update GUI
-            varargout{1} = focalAdhesionPackageGUI(varargin{:});
+            varargout{1} = FocalAdhesionPackageGUI(varargin{:});
         end        
 
         function classes = getProcessClassNames(index)
