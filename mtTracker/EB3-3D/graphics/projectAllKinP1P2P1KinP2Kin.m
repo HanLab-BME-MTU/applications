@@ -18,14 +18,14 @@ inlierKinTracks=kinTracksRawData.tracksLabRef(inliersKin);
 % Load pole detection and build the associated tracks
 load(MD.getPackage(1).getProcess(1).outFilePaths_{1});
 P1TrackISO=TracksHandle();
-P1TrackISO.endFrame=20;
+P1TrackISO.endFrame=kinTracksRawData.tracksLabRef.numTimePoints;
 P1TrackISO.startFrame=1;
 P1TrackISO.x=arrayfun(@(d) d.xCoord(1,1),poleMovieInfo)';
 P1TrackISO.y=arrayfun(@(d) d.yCoord(1,1),poleMovieInfo)';
 P1TrackISO.z=arrayfun(@(d) d.zCoord(1,1)*MD.pixelSizeZ_/MD.pixelSize_,poleMovieInfo)'
 
 P2TrackISO=TracksHandle();
-P2TrackISO.endFrame=20;
+P2TrackISO.endFrame=kinTracksRawData.tracksLabRef.numTimePoints;;
 P2TrackISO.startFrame=1;
 P2TrackISO.x=arrayfun(@(d) d.xCoord(2,1),poleMovieInfo)';
 P2TrackISO.y=arrayfun(@(d) d.yCoord(2,1),poleMovieInfo)';

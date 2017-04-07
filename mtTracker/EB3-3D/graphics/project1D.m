@@ -27,7 +27,7 @@ tracks=p.tracks;
 %%
 
 showDebugGraphics=0;
-cubeHalfWidth=16;
+cubeHalfWidth=20;
 inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
     [1 MD.getDimensions('X')],[1 MD.getDimensions('Y')],[1 MD.getDimensions('Z')*MD.pixelSizeZ_/MD.pixelSize_]);
 
@@ -94,8 +94,8 @@ end
 outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
 outputDirDemo=[MD.outputDirectory_ filesep '1DProjection' filesep p.name filesep 'volDemo' ];
 
-system(['mkdir  ' outputDirSlices1]);
-system(['mkdir  ' outputDirDemo]);
+system(['mkdir  -p ' outputDirSlices1]);
+system(['mkdir  -p ' outputDirDemo]);
 for fIdx=1:MD.nFrames_
     vol=MD.getChannel(1).loadStack(fIdx);
     kinvol=MD.getChannel(2).loadStack(fIdx);
