@@ -93,19 +93,19 @@ project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1
 project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1P2,inlierKinTracks(kinIdx).P1P2],'FoF',InterpolarRefISO,'crop','manifold','name',['onePassTesting\fullInterpolarFrameOfRefAffineOnePass-kin' num2str(kinIdx)],'channelRender','grayRed','transType','affineOnePass')
 
 
-%% estimate
+%% Manifold referential 
 PoleKinRefISO=FrameOfRef();
 PoleKinRefISO.setOriginFromTrack(P1TrackISO);
 PoleKinRefISO.setZFromTrack(inlierKinTracks(kinIdx));
 PoleKinRefISO.genBaseFromZ();
 PoleKinRefISO.applyBaseToTrack(P1TrackISO,'P1K');
 PoleKinRefISO.applyBaseToTrack(inlierKinTracks(kinIdx),'P1K');
-
-project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1K,inlierKinTracks(kinIdx).P1K],'FoF',PoleKinRefISO,'name',['onePassTesting\croppedPKinFrameOfRef-kin' num2str(kinIdx)],'crop','manifold','transType','affineOnePass','channelRender','grayRed');
+%%
+project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1K,inlierKinTracks(kinIdx).P1K],'FoF',PoleKinRefISO,'name',['onePassTesting\croppedPKinFrameOfRef-kin' num2str(kinIdx)],'crop','manifold','tracks',PoleKinRefISO.applyBase(EBTracksRawData.tracksLabRef,'P1KIn'),'transType','affineOnePass','channelRender','grayRed');
 
 
 %%
-kinIdx=36
+%kinIdx=36
 kinIdx=32;
 for kinIdx=2:2:40
 PoleKinRefISO=FrameOfRef();

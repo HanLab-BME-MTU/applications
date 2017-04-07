@@ -12,7 +12,7 @@ if(~isempty(tracks))
     for trIdx=1:length(tracks)
         
         t=tracks(trIdx);
-        tIdx=find(t.f==(frameIdx));
+        tIdx=find(t.f==(frameIdx),1);
         if(~isempty(tIdx))
  %%
             RGB=tracksColors(colorIndex(trIdx),:);

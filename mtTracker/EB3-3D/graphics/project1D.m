@@ -88,7 +88,6 @@ if(~isempty(p.FoF))
 end
 
 
-
 %% testing imwarp to crop the image
 
 outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
@@ -443,11 +442,29 @@ for fIdx=1:MD.nFrames_
 
     RGBThree=renderChannel(rMax,rmaxKin,p.channelRender);
 
+    
+    %% select tracks that starts or end in the manifold
+    inMaskTrack=ones(1,length(tracks));
+    for tIdx=1:length(tracks)
+        t=tracks(tIdx);
+        pIdx=find(t.f==fIdx,1);
+        if(~isempty(pIdx))
+            Vq = interp3(   linspace(minXBorder,maxXBorder,size(warpedMaskedVol,1)), ...
+                linspace(minYBorder,maxYBorder,size(warpedMaskedVol,2)), ...
+                linspace(minZBorder,maxZBorder,size(warpedMaskedVol,3)), ...
+                warpedMaskedVol,t.x(pIdx), t.y(pIdx), t.z(pIdx));
+            inMaskTrack(tIdx)=Vq>0;
+        end
+    end
+    %%
+    tracksInMask=tracks(logical(inMaskTrack));
+    
+    %%
     myColormap=[[0 0 255]; [0 255 00]];
     tracksColors=uint8(myColormap);
 
-    if(~isempty(tracks))
-      tracksXY=trackBinaryOverlay(RGBThree,[find(~XNull,1) find(~XNull,1,'last')],[find(~YNull,1) find(~YNull,1,'last')],tracks,fIdx,ones(1,length(tracks)),tracksColors);
+    if(~isempty(tracksInMask))
+      tracksXY=trackBinaryOverlay(RGBThree,[minXBorder maxXBorder],[minYBorder maxYBorder],tracksInMask,fIdx,ones(1,length(tracksInMask)),tracksColors);
     else
       tracksXY=RGBThree;
     end
@@ -457,13 +474,13 @@ for fIdx=1:MD.nFrames_
 
     RGBThree=renderChannel(rMax,rmaxKin,p.channelRender);
 
-    if(~isempty(tracks))
-      capturedEB3ZY=tracks.copy();
+    if(~isempty(tracksInMask))
+      capturedEB3ZY=tracksInMask.copy();
       for ebIdx=1:length(capturedEB3ZY)
-        capturedEB3ZY(ebIdx).x=tracks(ebIdx).z*MD.pixelSize_/MD.pixelSizeZ_;
+        capturedEB3ZY(ebIdx).x=tracksInMask(ebIdx).z ;%*MD.pixelSize_/MD.pixelSizeZ_;
       end
       tracksColors=uint8(myColormap);
-      tracksZY=trackBinaryOverlay(RGBThree,[find(~ZNull,1) find(~ZNull,1,'last')],[find(~YNull,1) find(~YNull,1,'last')],capturedEB3ZY,fIdx,ones(1,length(tracks)),tracksColors);
+      tracksZY=trackBinaryOverlay(RGBThree,[minZBorder maxZBorder],[minYBorder maxYBorder],capturedEB3ZY,fIdx,ones(1,length(tracksInMask)),tracksColors);
     else
       tracksZY=RGBThree;
     end;
@@ -481,10 +498,10 @@ for fIdx=1:MD.nFrames_
     if(~isempty(tracks))
       capturedEB3ZX=capturedEB3ZY.copy();
       for ebIdx=1:length(capturedEB3ZX)
-        capturedEB3ZX(ebIdx).y=tracks(ebIdx).x;
+        capturedEB3ZX(ebIdx).y=tracksInMask(ebIdx).x;
       end
       tracksColors=uint8(myColormap);
-      tracksZX=trackBinaryOverlay(RGBThree,[find(~ZNull,1) find(~ZNull,1,'last')],[find(~XNull,1) find(~XNull,1,'last')],capturedEB3ZX,fIdx,ones(1,length(tracks)),tracksColors);
+      tracksZX=trackBinaryOverlay(RGBThree,[minZBorder maxZBorder],[minXBorder maxXBorder],capturedEB3ZX,fIdx,ones(1,length(tracksInMask)),tracksColors);
     else
       tracksZX=RGBThree;
     end;

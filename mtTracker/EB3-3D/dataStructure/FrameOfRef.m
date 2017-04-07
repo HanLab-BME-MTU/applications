@@ -4,13 +4,20 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
       X;
       Y;
       Z;
+      frame;
    end
    methods
       function obj=setOriginFromTrack(obj,tr)
          obj.origin=[tr.x' tr.y' tr.z'];
+         obj.frame=tr.f;
+
       end
       function obj=setZFromTrack(obj,tr)
-         obj.Z=[tr.x' tr.y' tr.z']-obj.origin;
+         % Only the overlapping frame can be kept
+         [F,idxTr,idxObj] = intersect(tr.f,obj.frame);
+         obj.frame=F;
+         obj.origin=obj.origin(idxObj,:);
+         obj.Z=[tr.x(idxTr)' tr.y(idxTr)' tr.z(idxTr)']-obj.origin;
          obj.Z=obj.Z./repmat(sum(obj.Z.^2,2).^0.5,1,3);
       end
 
