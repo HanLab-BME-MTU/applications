@@ -47,7 +47,6 @@ if(strcmp(p.crop,'manifold'))
     maxY=0;
     maxZ=0;
     for iP=1:length(dynPoligonREF)
-        OrigSubFrame=orig(dynPoligonREF(iP).f,:);
         minX=floor(min(min(dynPoligonREF(iP).x),minX));
         minY=floor(min(min(dynPoligonREF(iP).y),minY));
         minZ=floor(min(min(dynPoligonREF(iP).z),minZ));
@@ -102,12 +101,14 @@ for fIdx=1:MD.nFrames_
     pIndices=nan(1,length(dynPoligonISO));
     for polIdx=1:length(dynPoligonISO)
         F=dynPoligonISO(polIdx).f;
-        pIdx=find(F==fIdx);
+        pIdx=find(F==fIdx,1);
         if isempty(pIdx)
-            if(fIdx>max(F))   pIdx=max(F);  else   pIdx=min(F); end;
+            if(fIdx>max(F))   pIdx=length(F);  else   pIdx=1; end;
         end
         pIndices(polIdx)=pIdx;
     end;
+    
+    %% Building mask in the 1D case
     PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
     KCurrent=[dynPoligonISO(2).x(pIndices(2)) dynPoligonISO(2).y(pIndices(2)) dynPoligonISO(2).z(pIndices(2))];
 
@@ -141,18 +142,18 @@ for fIdx=1:MD.nFrames_
     % Can we use imwar for cropping too ?
 
     tform=affine3d();
-
+    
     if(~isempty(p.FoF))
         B=p.FoF.getBase(fIdx);
-        tform.T(4,[1 2 3])=(-p.FoF.origin(fIdx,:)+p.FoF.origin(1,:))*B;
+        tform.T(4,[1 2 3])=(-p.FoF.getOrigAtFrame(fIdx)+p.FoF.origin(1,:))*B;
         tform.T(1:3,1:3)=B;
         %
         tformTransOnly=affine3d();
-        tformTransOnly.T(4,[1 2 3])=(-p.FoF.origin(fIdx,:));
+        tformTransOnly.T(4,[1 2 3])=(-p.FoF.getOrigAtFrame(fIdx));
 
                 %
         tformRelTransOnly=affine3d();
-        tformRelTransOnly.T(4,[1 2 3])=(-p.FoF.origin(1,:)+p.FoF.origin(fIdx,:));
+        tformRelTransOnly.T(4,[1 2 3])=(-p.FoF.origin(1,:)+p.FoF.getOrigAtFrame(fIdx));
 
         tformRotOnly=affine3d();
         B=p.FoF.getBase(fIdx);
@@ -162,6 +163,7 @@ for fIdx=1:MD.nFrames_
         B=p.FoF.getBase(1);
         tformRotOnlyInit.T(1:3,1:3)=B;
     end
+            orig=p.FoF.getOrigAtFrame(fIdx);
 
     switch p.transType
         case 'affine'
@@ -173,9 +175,9 @@ for fIdx=1:MD.nFrames_
             minZBorderFull=1;
 
             border=300;
-            minXBorderCurr=minXBorderFull - p.FoF.origin(fIdx,1)-border; maxXBorderCurr=maxXBorderFull - p.FoF.origin(fIdx,1)+border;
-            minYBorderCurr=minYBorderFull - p.FoF.origin(fIdx,2)-border; maxYBorderCurr=maxYBorderFull - p.FoF.origin(fIdx,2)+border;
-            minZBorderCurr=minZBorderFull - p.FoF.origin(fIdx,3)-border; maxZBorderCurr=maxZBorderFull - p.FoF.origin(fIdx,3)+border;
+            minXBorderCurr=minXBorderFull - orig(1)-border; maxXBorderCurr=maxXBorderFull - orig(1)+border;
+            minYBorderCurr=minYBorderFull - orig(2)-border; maxYBorderCurr=maxYBorderFull - orig(2)+border;
+            minZBorderCurr=minZBorderFull - orig(3)-border; maxZBorderCurr=maxZBorderFull - orig(3)+border;
 
             outputRef=imref3d([ ceil(maxYBorderFull-minYBorderFull) ...
                                 ceil(maxXBorderFull-minXBorderFull) ...
@@ -191,12 +193,12 @@ for fIdx=1:MD.nFrames_
             transMaskedKinVol=imwarp(maskedKin,inputRef,tformTransOnly,'OutputView',outputRef);
 
             disp(num2str(fIdx))
-            minXBorderCurr=minXBorder ;%+ p.FoF.origin(fIdx,1) - p.FoF.origin(1,1);
-            maxXBorderCurr=maxXBorder ;%+ p.FoF.origin(fIdx,1) - p.FoF.origin(1,1);
-            minYBorderCurr=minYBorder ;%+ p.FoF.origin(fIdx,2) - p.FoF.origin(1,2);
-            maxYBorderCurr=maxYBorder ;%+ p.FoF.origin(fIdx,2) - p.FoF.origin(1,2);
-            minZBorderCurr=minZBorder ;%+ p.FoF.origin(fIdx,3) - p.FoF.origin(1,3);
-            maxZBorderCurr=maxZBorder ;%+ p.FoF.origin(fIdx,3) - p.FoF.origin(1,3);
+            minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+            maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+            minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+            maxYBorderCurr=maxYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+            minZBorderCurr=minZBorder ;%+ orig(3) - p.FoF.origin(1,3);
+            maxZBorderCurr=maxZBorder ;%+ orig(3) - p.FoF.origin(1,3);
 
 %             [xLimitsOut,yLimitsOut,zLimitsOut] = outputLimits(tformRotOnlyInit,[minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
 %             minXBorderCurr=xLimitsOut(1); maxXBorderCurr=xLimitsOut(2);
@@ -222,28 +224,28 @@ for fIdx=1:MD.nFrames_
             minYBorderFull=1;
             minZBorderFull=1;
 
-            minXBorderCurr=minXBorderFull - p.FoF.origin(fIdx,1); maxXBorderCurr=maxXBorderFull -  p.FoF.origin(fIdx,1);
-            minYBorderCurr=minYBorderFull - p.FoF.origin(fIdx,2); maxYBorderCurr=maxYBorderFull  - p.FoF.origin(fIdx,2);
-            minZBorderCurr=minZBorderFull - p.FoF.origin(fIdx,3); maxZBorderCurr=maxZBorderFull -  p.FoF.origin(fIdx,3);
+            minXBorderCurr=minXBorderFull - orig(1); maxXBorderCurr=maxXBorderFull -  orig(1);
+            minYBorderCurr=minYBorderFull - orig(2); maxYBorderCurr=maxYBorderFull  - orig(2);
+            minZBorderCurr=minZBorderFull - orig(3); maxZBorderCurr=maxZBorderFull -  orig(3);
 
             inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
             [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
 
             disp(num2str(fIdx))
-            minXBorderCurr=minXBorder ;%+ p.FoF.origin(fIdx,1) - p.FoF.origin(1,1);
-            maxXBorderCurr=maxXBorder ;%+ p.FoF.origin(fIdx,1) - p.FoF.origin(1,1);
-            minYBorderCurr=minYBorder ;%+ p.FoF.origin(fIdx,2) - p.FoF.origin(1,2);
-            maxYBorderCurr=maxYBorder ;%+ p.FoF.origin(fIdx,2) - p.FoF.origin(1,2);
-            minZBorderCurr=minZBorder ;%+ p.FoF.origin(fIdx,3) - p.FoF.origin(1,3);
-            maxZBorderCurr=maxZBorder ;%+ p.FoF.origin(fIdx,3) - p.FoF.origin(1,3);
+            minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+            maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+            minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+            maxYBorderCurr=maxYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+            minZBorderCurr=minZBorder ;%+ orig(3) - p.FoF.origin(1,3);
+            maxZBorderCurr=maxZBorder ;%+ orig(3) - p.FoF.origin(1,3);
 
             % border=0;
-            % minXBorderCurr=minXBorder + p.FoF.origin(fIdx,1) - p.FoF.origin(1,1)-border;
-            % maxXBorderCurr=maxXBorder + p.FoF.origin(fIdx,1) -  p.FoF.origin(1,1)-border;
-            % minYBorderCurr=minYBorder + p.FoF.origin(fIdx,2) - p.FoF.origin(1,2)-border;
-            % maxYBorderCurr=maxYBorder + p.FoF.origin(fIdx,2) - p.FoF.origin(1,2)-border;
-            % minZBorderCurr=minZBorder + p.FoF.origin(fIdx,3) - p.FoF.origin(1,3)-border;
-            % maxZBorderCurr=maxZBorder + p.FoF.origin(fIdx,3) -  p.FoF.origin(1,3)-border;
+            % minXBorderCurr=minXBorder + orig(1) - p.FoF.origin(1,1)-border;
+            % maxXBorderCurr=maxXBorder + orig(1) -  p.FoF.origin(1,1)-border;
+            % minYBorderCurr=minYBorder + orig(2) - p.FoF.origin(1,2)-border;
+            % maxYBorderCurr=maxYBorder + orig(2) - p.FoF.origin(1,2)-border;
+            % minZBorderCurr=minZBorder + orig(3) - p.FoF.origin(1,3)-border;
+            % maxZBorderCurr=maxZBorder + orig(3) -  p.FoF.origin(1,3)-border;
 
             %% if full
             % [xLimitsOut,yLimitsOut,zLimitsOut] = outputLimits(tformRotOnlyInit,[minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
@@ -264,12 +266,12 @@ for fIdx=1:MD.nFrames_
             warpedMaskedKinVol=imwarp(maskedKin,inputRef,tformRotOnly,'OutputView',rotOutputRef);
         case 'translation'
             disp(num2str(fIdx))
-            minXBorderCurr=minXBorder ;%+ p.FoF.origin(fIdx,1) - p.FoF.origin(1,1);
-            maxXBorderCurr=maxXBorder ;%+ p.FoF.origin(fIdx,1) - p.FoF.origin(1,1);
-            minYBorderCurr=minYBorder ;%+ p.FoF.origin(fIdx,2) - p.FoF.origin(1,2);
-            maxYBorderCurr=maxYBorder ;%+ p.FoF.origin(fIdx,2) - p.FoF.origin(1,2);
-            minZBorderCurr=minZBorder ;%+ p.FoF.origin(fIdx,3) - p.FoF.origin(1,3);
-            maxZBorderCurr=maxZBorder ;%+ p.FoF.origin(fIdx,3) - p.FoF.origin(1,3);
+            minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+            maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+            minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+            maxYBorderCurr=maxYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+            minZBorderCurr=minZBorder ;%+ orig(3) - p.FoF.origin(1,3);
+            maxZBorderCurr=maxZBorder ;%+ orig(3) - p.FoF.origin(1,3);
 
 %             [xLimitsOut,yLimitsOut,zLimitsOut] = outputLimits(tformTransOnly,[minXBorder maxXBorder], [minYBorder maxYBorder], [minZBorder maxZBorder]);
 %             minXBorderCurr=xLimitsOut(1); maxXBorderCurr=xLimitsOut(2);
@@ -293,19 +295,19 @@ for fIdx=1:MD.nFrames_
             XNull=~(squeeze(any(any(mask,3),1)));
             ZNull=~(squeeze(any(any(mask,1),2)));
 
-            minYBorderCurr=minYBorder + p.FoF.origin(fIdx,2); % canonical ref projection
+            minYBorderCurr=minYBorder + orig(2); % canonical ref projection
             YNull= zeros(1,size(maskcrop,1));
             YNull(1:minYBorderCurr)=1;
             YNull(minYBorderCurr:end)=1;
             YNull=logical(YNull);
 
-            minXBorderCurr=minXBorder + p.FoF.origin(fIdx,1); % canonical ref projection
+            minXBorderCurr=minXBorder + orig(1); % canonical ref projection
             XNull= zeros(1,size(maskcrop,2));
             XNull(1:minXBorderCurr)=1;
             XNull(minXBorderCurr:end)=1;
             XNull=logical(XNull);
 
-            minZBorderCurr=minZBorder + p.FoF.origin(fIdx,3); % canonical ref projection
+            minZBorderCurr=minZBorder + orig(3); % canonical ref projection
             ZNull= zeros(1,size(maskcrop,3));
             ZNull(1:ceil(minZBorderCurr*MD.pixelSize_/MD.pixelSizeZ_))=1;
             ZNull(ceil(minZBorderCurr*MD.pixelSize_/MD.pixelSizeZ_):end)=1;

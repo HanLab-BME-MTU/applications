@@ -70,17 +70,30 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
               end;
               trBase.originalRef=tr;
               for pIdx=1:length(tr.f)
-                  f=min(tr.f(pIdx),length(obj.X));
+                  f=tr.f(pIdx);
+                  if(isempty(find(f==obj.frame,1)))
+                      M=max(obj.frame);
+                      if (f > M); f=M; else f=min(obj.frame); end;
+                  end
                   B=obj.getBase(f);
-                  recentered=[(tr.x(pIdx)-obj.origin(f,1)) (tr.y(pIdx)-obj.origin(f,2)) (tr.z(pIdx)-obj.origin(f,3))];
+                  orig=obj.getOrigAtFrame(f);
+                  recentered=[(tr.x(pIdx)-orig(1)) (tr.y(pIdx)-orig(2)) (tr.z(pIdx)-orig(3))];
                   v=recentered*B;
                   trBase.x(pIdx)=v(1); trBase.y(pIdx)=v(2); trBase.z(pIdx)= v(3);
               end;
           end
       end
       function B= getBase(obj,f)
-             B=[obj.X(f,:)' obj.Y(f,:)' obj.Z(f,:)'];
+             pIdx=find(obj.frame==f,1);
+             if(isempty(pIdx)) pIdx=1; end;
+             B=[obj.X(pIdx,:)' obj.Y(pIdx,:)' obj.Z(pIdx,:)'];
       end
+      function orig= getOrigAtFrame(obj,f)
+          pIdx=find(obj.frame==f,1);
+          if(isempty(pIdx)); if(f<obj.frame); pIdx=1; else pIdx=length(obj.frame); end; end;
+          orig=obj.origin(pIdx,:);
+      end
+      
       function detectionsBase=applyBaseToDetection(obj,detections,name)
           detectionsBase=detections.copy();
           try
