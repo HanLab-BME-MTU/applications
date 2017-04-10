@@ -1,7 +1,7 @@
 function projectAllKinP1P2P1KinP2Kin(MD)
-
-relativeOutput='AllKinPrint';
 %%
+relativeOutput='AllKinPrint';
+
 % loading isotropized trackes in the volume ref.
 outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
 tmp=load([outputDirProj filesep 'tracksLabRef.mat']);
@@ -31,7 +31,7 @@ P2TrackISO.x=arrayfun(@(d) d.xCoord(2,1),poleMovieInfo)';
 P2TrackISO.y=arrayfun(@(d) d.yCoord(2,1),poleMovieInfo)';
 P2TrackISO.z=arrayfun(@(d) d.zCoord(2,1)*MD.pixelSizeZ_/MD.pixelSize_,poleMovieInfo)'
 
-%% Build the InterpolarRef
+% Build the InterpolarRef
 InterpolarRefISO=FrameOfRef();
 InterpolarRefISO.setOriginFromTrack(P1TrackISO);
 InterpolarRefISO.setZFromTrack(P2TrackISO);
@@ -40,11 +40,12 @@ InterpolarRefISO.genBaseFromZ();
 InterpolarRefISO.applyBaseToTrack(P1TrackISO,'P1P2');
 InterpolarRefISO.applyBaseToTrack(P2TrackISO,'P1P2');
 InterpolarRefISO.applyBaseToTrack(inlierKinTracks,'P1P2');
-
+%%
 for kinIdx=1:length(inlierKinTracks)
 % InterpolarRefISO.applyBaseToTrack(inlierKinTracks(kinIdx),'P1P2');
 % project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P1TrackISO.P1P2,inlierKinTracks(kinIdx).P1P2],'FoF',InterpolarRefISO,'crop','manifold','name',[relativeOutput filesep 'P1-kin-interpolar-kin-' num2str(kinIdx)],'channelRender','grayRed')
 % project1D(MD,[P1TrackISO,inlierKinTracks(kinIdx)],'dynPoligonREF',[P2TrackISO.P1P2,inlierKinTracks(kinIdx).P1P2],'FoF',InterpolarRefISO,'crop','manifold','name',[relativeOutput filesep 'P2-kin-interpolar-kin-' num2str(kinIdx)],'channelRender','grayRed')
+%%
 
 PoleKinRefISO=FrameOfRef();
 PoleKinRefISO.setOriginFromTrack(P1TrackISO);
