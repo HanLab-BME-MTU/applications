@@ -149,7 +149,9 @@ classdef WidthSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 output(m).var=sprintf('width_m%d',m);
                 output(m).formatData=@(x) x{m}(:,:,1);
                 output(m).type='image';
-                output(m).defaultDisplayMethod=@ImageDisplay;
+                output(m).defaultDisplayMethod= ...
+                    @(varargin) ImageDisplay('CLim', ...
+                    1/2/pi./[obj.funParams_.filter([1 end]).f_c]);
             end
                 
             
@@ -307,6 +309,9 @@ classdef WidthSpaceProcess < ImageProcessingProcess & NonSingularProcess
         function name = getName()
             name = 'WidthSpaceProcess';
         end
+        function func = GUI(varargin)
+            func = @cliGUI;
+        end
     end
     
 end
@@ -362,7 +367,7 @@ function saveWidthSpaceResponse(process)
                     widthMaxima = (cos(widthMaxima)+1)/2*diff(1/2/pi./[filter([1 end]).f_c])+1/2/pi./[filter(1).f_c];
                     out.width{u} = widthMaxima;
                     counter = counter+1;
-                    progressText(counter/numImages,sprintf('Analyzing c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing width c=%02d, t=%03d, z=%03d',c,t,z));
                 end
                 
 %                 out.width = 
