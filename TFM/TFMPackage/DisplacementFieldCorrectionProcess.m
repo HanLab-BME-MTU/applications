@@ -153,6 +153,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             funParams.OutputDirectory = [outputDir  filesep 'correctedDisplacementField'];
             funParams.doRotReg=0;
             funParams.outlierThreshold = 2;
+            funParams.fillVectors=0;
         end
         function units = getUnits(varargin)
             units = 'Displacement (Pix)';

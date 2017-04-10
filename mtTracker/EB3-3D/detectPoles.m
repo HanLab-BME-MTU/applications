@@ -6,12 +6,13 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched=true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParamValue('channel',1,@isnumeric);
-ip.addParamValue('processFrames',[], @isnumeric);
-ip.addParamValue('scales',[10 10 10], @isnumeric);
+ip.addParamValue('scales',3, @isnumeric);
 ip.addParamValue('Alpha',0.05, @isnumeric);
+ip.addParamValue('processFrames',[], @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
 ip.addParamValue('printAll', false, @islogical);
 ip.addParamValue('type', 'simplex',  @ischar);
+ip.addParamValue('process', []);
 ip.parse(MD, varargin{:});
 
 processFrames=[];
@@ -22,6 +23,11 @@ else
 end
 
 scales=ip.Results.scales;
+if(isscalar(scales))
+    dataAnisotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSizeZ_];
+    scales=(scales*(dataAnisotropy/dataAnisotropy(1)).^(-1));
+end
+
 poleMovieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 movieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 parfor frameIdx=1:numel(processFrames)
@@ -50,9 +56,10 @@ parfor frameIdx=1:numel(processFrames)
 end  
 
 %% load track results and save them to Amira
+
 if(ip.Results.printAll)
-outputDirDetect=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' ... 
-    num2str(scales(1),'%03d') filesep 'poleCandidates'];
+outputDirDetect=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d') filesep 'poleCandidates'];
+
 mkdir([outputDirDetect filesep 'AmiraPoles']);
 amiraWriteMovieInfo([outputDirDetect filesep filesep 'polesCandidates.am'],movieInfo,'scales',ip.Results.scales);
 end
@@ -72,11 +79,6 @@ saveResults=[];
 
 %% Convert tracks final in a user-friendlier format
 tracks=TracksHandle(tracksFinal);
-
-if(ip.Results.printAll)
-    mkdir(outputDirTrack);
-    save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks')
-end 
 
 %% Retrieve innovation matrix 
 trackNoiseVar=arrayfun(@(x) kalmanInfoLink(tracks(x).segmentEndFrame).noiseVar(1,1,tracks(x).tracksFeatIndxCG(end)),1:length(tracks))';
@@ -116,6 +118,19 @@ for fIdx=1:numel(processFrames)
     fn=fieldnames(MI);
     for i=1:length(fn) poleMovieInfo(fIdx).(fn{i})=MI.(fn{i})(selectedIdx,:); end;
 end  
+
+process=ip.Results.process;
+if(~isempty(process))
+    mkdir(outputDirTrack);
+    save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks');
+    outputDirPoleDetect=[process.getOwner().outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d')];
+    save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo');
+    process.setOutFilePaths({[outputDirPoleDetect filesep 'poleDetection.mat'],[outputDirTrack filesep 'trackNewFormat.mat']})    
+    pa = process.getParameters();
+    pa.parameters = ip.Results;
+    process.setParameters(pa);
+    process.setDateTime();
+end 
 
 
 function movieInfo= labelToMovieInfo(label,vol)

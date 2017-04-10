@@ -93,7 +93,7 @@ meanNeiVecs = cellfun(@(x) mean(x,1),closeNeiVecs,'Unif',false);
 stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
 anglesBetweenVecs = cell(numel(closeNeiVecs),1);
 disp('Calculating angles between neighboring vectors...')
-parfor_progress(numel(closeNeiVecs));
+if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
 parfor k=1:numel(closeNeiVecs) %for angles between vectors
     curNei = closeNeiVecs{k};
     numCurNei = size(curNei,1);
@@ -105,9 +105,9 @@ parfor k=1:numel(closeNeiVecs) %for angles between vectors
             anglesBetweenVecs{k}=[anglesBetweenVecs{k} curAngle];
         end
     end
-    parfor_progress;
+    if feature('ShowFigureWindows'), parfor_progress; end
 end
-parfor_progress(0);
+if feature('ShowFigureWindows'), parfor_progress(0); end
 stdAngleAll = cellfun(@std,anglesBetweenVecs);
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
@@ -180,7 +180,7 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
-parfor_progress(nPoints);
+if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % inqryPoint=200;
 % for k = inqryPoint
 parfor k = 1:nPoints
@@ -212,15 +212,11 @@ parfor k = 1:nPoints
         end
         %Always get back the initial max speed for new 'corL'.
         % We devide the max speed by 2 due the use of the while loop below.
-        maxFlowSpd = initMaxFlowSpd/2;
-        maxPerpSpd = initMaxPerpSpd/2;
         
-        %Flag that indicates the quality of the score.
-        pass = 0;
         %If the quality of the score function is not good enough (pass == 0),
         % we increase the max sampling speed until the limit is reached.
-        maxFlowSpd = max(5,round(abs(curCandVec(1))))*2;
-        maxPerpSpd = max(5,round(abs(curCandVec(2))))*2;
+        maxFlowSpd = max(10,round(abs(curCandVec(1)))*4);
+        maxPerpSpd = max(10,round(abs(curCandVec(2)))*4);
 
         %Get sampling speed. Make sure it will not shift the template (block) outside of
         % the image area. We also use bigger stepsize for large speed.
@@ -269,8 +265,8 @@ parfor k = 1:nPoints
         else
             %Test the quality of the score function and find the index of the
             % maximum score.
-            [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.3);
-            if ~isempty(meanNeiVecs)
+            [~,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.1);
+            if ~isempty(curCandVec)
                 % Here I use PIV result to find the best candidate
                 % regardless of whether score passed or not from findMaxScoreI
                 % Get the candidate vectors
@@ -278,8 +274,10 @@ parfor k = 1:nPoints
                 % What's the piv result in location closest to [xI, yI]
                 options = {1:size(locMaxI,1),'Unif',false};
 
-                vecDiff = arrayfun(@(x) locMaxV(x,:)-curCandVec,options{:});
-                orienDiff = arrayfun(@(x) acos(locMaxV(x,:)*curCandVec'/(norm(locMaxV(x,:))*norm(curCandVec))),options{1});
+                curCandVecRot= curCandVec*[perpDir;bandDir]; %Rotated version we should use
+
+                vecDiff = arrayfun(@(x) locMaxV(x,:)-curCandVecRot,options{:});
+                orienDiff = arrayfun(@(x) acos(locMaxV(x,:)*curCandVecRot'/(norm(locMaxV(x,:))*norm(curCandVecRot))),options{1});
 %                 distToMaxV2 = sqrt(sum((locMaxV-ones(size(locMaxV,1),1)*curCandVec).^2,2));
                 magDiff = cellfun(@norm,vecDiff);
                 
@@ -287,7 +285,7 @@ parfor k = 1:nPoints
                 ind = indDist(1);
                 minAngle = orienDiff(ind);
                 minDistDiff = magDiff(ind);
-                if minDistDiff < 2*mean(curCandVecStd) && abs(minAngle) < 2*curStdAngle
+                if minDistDiff < 2*norm(curCandVecStd) && abs(minAngle) < curStdAngle % || (ind<=3 && sigtVal(ind)>0.8)
                     maxI = locMaxI(ind,:);
                     maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
                     pass = 2;
@@ -432,9 +430,9 @@ parfor k = 1:nPoints
     sigtValues(k,:) = sigtVal;
     
 %     fprintf(1,[backSpc '\b\b\b\b']);
-    parfor_progress;
+    if feature('ShowFigureWindows'), parfor_progress; end
 end
-parfor_progress(0);
+if feature('ShowFigureWindows'), parfor_progress(0); end
 
 nanInd = find(isnan(v(:,1)));
 endTime = cputime;

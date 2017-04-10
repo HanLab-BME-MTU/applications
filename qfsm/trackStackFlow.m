@@ -187,9 +187,10 @@ end % we don't need this any more.
 
 % inqryPoint=2000;
 % for k = inqryPoint
+if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 parfor k = 1:nPoints
 % for k = 1:nPoints
-    fprintf(1,[strg ' ...'],k);
+%     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
     
@@ -658,8 +659,10 @@ parfor k = 1:nPoints
     corLength(k) = corL;
     sigtValues(k,:) = sigtVal;
     
-    fprintf(1,[backSpc '\b\b\b\b']);
+%     fprintf(1,[backSpc '\b\b\b\b']);
+    if feature('ShowFigureWindows'), parfor_progress; end
 end
+if feature('ShowFigureWindows'), parfor_progress(0); end
 nanInd = find(isnan(v(:,1)));
 endTime = cputime;
 fprintf(1,[strg '.\n'],nPoints);

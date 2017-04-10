@@ -26,7 +26,7 @@ numFrames = size(imgStack,3);
 sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 % parfor_progress(numel(tracksNA));
-progressText(0,'Re-reading and tracking individual tracks', 'Adhesion Analysis');
+progressText(0,'Re-reading and tracking individual tracks'); %, 'Adhesion Analysis');
 % progressbar
 if isempty(MD)
     searchRadius = 1;

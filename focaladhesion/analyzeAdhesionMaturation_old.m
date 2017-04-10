@@ -138,13 +138,16 @@ if isa(pathForTheMovieDataFile,'MovieData')
     pathForTheMovieDataFile=pathForTheMovieDataFile.getPath;
 end
 outputFilePath = [pathForTheMovieDataFile filesep outputPath];
+dataPath = [outputFilePath filesep 'data'];
+
+tracksNApath=[dataPath filesep 'tracksNA.mat'];
 foundTracks=false;
-if ~strcmp(outputPath,'AdhesionTracking') && exist(outputFilePath,'dir')
+if ~strcmp(outputPath,'AdhesionTracking') && exist(tracksNApath,'file')
     newOutputFilePath=outputFilePath;
     disp([newOutputFilePath ' will be used for additional analysis.'])
     foundTracks=true;
 else
-    if exist(outputFilePath,'dir')
+    if exist(tracksNApath,'file')
         ii = 1;
         newOutputFilePath = [outputFilePath num2str(ii)]; % name]);
         while exist(newOutputFilePath,'dir')
@@ -157,6 +160,7 @@ else
         newOutputFilePath=outputFilePath;
     end
 end
+
 dataPath = [newOutputFilePath filesep 'data'];
 paxPath = [newOutputFilePath filesep 'pax'];
 paxtifPath = [newOutputFilePath filesep 'paxtifs'];
@@ -169,6 +173,7 @@ if ~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') ||
     mkdir(epsPath);
     mkdir(dataPath);
 end
+
 iiformat = ['%.' '3' 'd'];
 %     paxLevel = zeros(nFrames,1);
 % SegmentationPackage = MD.getPackage(MD.getPackageIndex('SegmentationPackage'));
