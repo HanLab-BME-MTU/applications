@@ -22,30 +22,31 @@ end
 %% Counting events at each frame
 %% Here we refer to pseudo-capture as capture.
 
+maxTimePoints=max([kinTracksCell{1}.endFrame]);
 % Stats on living Kin, over the kin lifetime.
-bundledMTCountOverKinLft=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-bundledPerCaptureRatioOverKinLft=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-capturedMTCountOverKinLft=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-capturedKinOverKinLft=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-bundledKinOverKinLft=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+bundledMTCountOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
+bundledPerCaptureRatioOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
+capturedMTCountOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
+capturedKinOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
+bundledKinOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
 
 % Stats on living Kin, measured cumulatively.
-%cumulBundledPerCaptureRatioPerKLivingKin=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-cumulCapturedMTCountOverKinLft=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-cumulBundledMTCountPerLivingKin=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+%cumulBundledPerCaptureRatioPerKLivingKin=zeros(length(kinTracksCell),maxTimePoints);
+cumulCapturedMTCountOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
+cumulBundledMTCountPerLivingKin=zeros(length(kinTracksCell),maxTimePoints);
 
 % Here we assume that after detection of a pseudo-capturing MT or a bundling MT microtubule
 % the Kin is considered captured/bunlded
-capturedKin=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-bundledKin=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+capturedKin=zeros(length(kinTracksCell),maxTimePoints);
+bundledKin=zeros(length(kinTracksCell),maxTimePoints);
 
 % Stats on Living MT
-livingCapturedMTCountPerKin=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+livingCapturedMTCountPerKin=zeros(length(kinTracksCell),maxTimePoints);
 
-livingBundledMTCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
-%livingBundledMTlivingBundledMTRatioCountPerKin=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+livingBundledMTCount=zeros(length(kinTracksCell),maxTimePoints);
+%livingBundledMTlivingBundledMTRatioCountPerKin=zeros(length(kinTracksCell),maxTimePoints);
 
-kinetochoreCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+kinetochoreCount=zeros(length(kinTracksCell),maxTimePoints);
 
 for i=1:length(kinTracksCell)
     kinTracks=kinTracksCell{i};
@@ -85,49 +86,49 @@ for i=1:length(kinTracksCell)
 
     end
 end
-
+%%
 % Kinetochore counts
 H=handles(1);
-plot((H),linspace(0,kinTracks.numTimePoints(),kinTracks.numTimePoints()), kinetochoreCount);
+plot((H),linspace(0,maxTimePoints,maxTimePoints), kinetochoreCount);
 xlabel((H),'Frame count');
 ylabel((H),'kinetochore Count');
 legend(H,p.kinBundleName);
 
 H=handles(2);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), capturedKinOverKinLft);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), capturedKinOverKinLft);
 xlabel(H,'Frame count');
 ylabel(H,{'Living kin with captured MT'});
 
 H=handles(3);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), bundledKinOverKinLft);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), bundledKinOverKinLft);
 xlabel(H,'Frame count');
 ylabel(H,{'Living Kin with','bundled MT'});
 
 H=handles(4);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), capturedKin);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), capturedKin);
 xlabel(H,'Frame count');
 ylabel(H,{'Captured kin count'});
 
 H=handles(5);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), bundledKin);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), bundledKin);
 xlabel(H,'Frame count');
 ylabel(H,{'Bundled kin count'});
 
 % pseudo-capture MT
 offset=5;
 H=handles(offset+1)
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), capturedMTCountOverKinLft./kinetochoreCount);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), capturedMTCountOverKinLft./kinetochoreCount);
 xlabel(H,'Frame count');
 ylabel(H,{'Captured MT count', 'over kin lifetime.'});
 
 H=handles(offset+2);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), cumulCapturedMTCountOverKinLft./kinetochoreCount);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), cumulCapturedMTCountOverKinLft./kinetochoreCount);
 xlabel(H,'Frame count');
 ylabel(H,{'Cumulated captured MT', 'count over kin lifetime.'});
 
 
 H=handles(offset+3)
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), livingCapturedMTCountPerKin./kinetochoreCount);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), livingCapturedMTCountPerKin./kinetochoreCount);
 xlabel(H,'Frame count');
 ylabel(H,{'Living captured MT', 'per kin'});
 
@@ -135,27 +136,27 @@ ylabel(H,{'Living captured MT', 'per kin'});
 % Bundled MT counts
 offset=10;
 H=handles(offset+1);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), bundledMTCountOverKinLft./kinetochoreCount);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), bundledMTCountOverKinLft./kinetochoreCount);
 xlabel(H,'Frame count');
 ylabel(H,{'Bundle MT count', 'over kin lifetime.'});
 
 H=handles(offset+2);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), cumulBundledMTCountPerLivingKin./kinetochoreCount);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), cumulBundledMTCountPerLivingKin./kinetochoreCount);
 xlabel(H,'Frame count');
 ylabel(H,{'cumulative Bundle MT', 'count over kin lifetime.'});
 
 H=handles(offset+3);
-plot(H,linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), livingBundledMTCount./kinetochoreCount);
+plot(H,linspace(0,maxTimePoints,maxTimePoints), livingBundledMTCount./kinetochoreCount);
 xlabel(H,'Frame count');
 ylabel(H,{'Living bundled MT count', 'per kin'});
 
 % Bundle to MT Ratio (TODO)
 
-% plot(handles(8),linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), livingBundledMTlivingBundledMTRatioCountPerKin./kinetochoreCount);
+% plot(handles(8),linspace(0,maxTimePoints,maxTimePoints), livingBundledMTlivingBundledMTRatioCountPerKin./kinetochoreCount);
 % xlabel(handles(8),'Frame count');
 % ylabel(handles(8),{'Living bundled to captured MT ratio', 'per kin'});
 
-% plot(handles(6),linspace(0,kinTracksCell{1}.numTimePoints(),kinTracksCell{1}.numTimePoints()), bundledPerCaptureRatioOverKinLft./kinetochoreCount);
+% plot(handles(6),linspace(0,maxTimePoints,maxTimePoints), bundledPerCaptureRatioOverKinLft./kinetochoreCount);
 % xlabel(handles(6),'Frame count');
 % ylabel(handles(6),{'Bundled to captured ratio', 'over kin lifetime'});
 
@@ -180,7 +181,7 @@ ylabel(H,{'Living bundled MT count', 'per kin'});
 
 %% Timing of each microtubule
 % kinTracks=kinTracksCell{1};
-% numTimePoint=zeros(1,2*kinTracks.numTimePoints());
+% numTimePoint=zeros(1,2*maxTimePoints);
 % diffTimingCell=cell(1,length(kinTracks));
 % endTimingCell=cell(1,length(kinTracks));
 %
@@ -192,7 +193,7 @@ ylabel(H,{'Living bundled MT count', 'per kin'});
 %         diffTiming(mtIdx)= bundledMTs(mtIdx+1).t(end) - bundledMTs(mtIdx).t(end);
 %         endTiming(mtIdx)= bundledMTs(mtIdx).t(end) - bundledMTs(1).t(end);
 %     end
-%     numTimePoint(diffTiming+kinTracks.numTimePoints())=numTimePoint(diffTiming+kinTracks.numTimePoints())+1;
+%     numTimePoint(diffTiming+maxTimePoints)=numTimePoint(diffTiming+maxTimePoints)+1;
 %     diffTimingCell{k}=diffTiming;
 %     endTimingCell{k}=endTiming;
 % end
@@ -207,7 +208,7 @@ ylabel(H,{'Living bundled MT count', 'per kin'});
 % ylabel(H,'Frame count until next bundled MT');
 %
 % H=h(2);
-% plot(H,linspace(-kinTracks.numTimePoints()*MD.timeInterval_,kinTracks.numTimePoints()*MD.timeInterval_,2*kinTracks.numTimePoints()), numTimePoint);
+% plot(H,linspace(-maxTimePoints*MD.timeInterval_,maxTimePoints*MD.timeInterval_,2*maxTimePoints), numTimePoint);
 % xlim(H,[-5 20])
 % xlabel(H,'Relative Frame count');
 % ylabel(H,'frequency');
