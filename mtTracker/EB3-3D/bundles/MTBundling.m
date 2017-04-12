@@ -14,6 +14,7 @@ ip.addParameter('kinRange',[],@isnumeric);
 ip.addParameter('cutoffs',250, @isnumeric);
 ip.addParameter('plotHandle',[]);
 ip.addParameter('process',[]);
+ip.addParameter('name',[]);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
@@ -117,5 +118,5 @@ if(~isempty(randKinTracks))
     amiraWriteTracks([outputDirAmira filesep 'ki/n_' num2str(kIdx) '.am'],trackSet,'cumulativeOnly',true,'edgeProp',{{'kinEB3',trackType},{'bundle',bundleInfo}})
   end
   end
-  bundleStatistics(MD,'kinBundle',{Inlier,RandomInlier},'kinBundleName',{'Inlier','RandomInlier'});
+  bundleStatistics(MD,'kinBundle',{Inlier,RandomInlier},'kinBundleName',{'Inlier','RandomInlier'},'plotName',p.name);
 end

@@ -3,9 +3,13 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
+ip.addRequired('randomDist');
 ip.addParameter('process',[]);
-ip.parse(MD,varargin{:});
+ip.addParameter('processDetectPoles',[]);
+
+ip.parse(MD,randomDist,varargin{:});
 p=ip.Results;
+
 % Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
 outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
 kinTrackData=load([outputDirTrack  filesep 'tracksLabRef.mat']);
@@ -14,28 +18,29 @@ kinTracksOrig=kinTrackData.tracksLabRef;
 
 % Translate these changes in the detection structure and associated polar
 % coordiante
-% Load associated data
 outputDirDetect=[MD.outputDirectory_ filesep 'Kin'  filesep 'detection' filesep];
 tmp=load([outputDirDetect 'detectionLabRef.mat']);
 detectionsLabRef=tmp.detectionsLabRef;
 
-dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
-EB3poleDetectionMethod=['simplex_scale_003'];
-outputDirPoleDetect=[MD.outputDirectory_ filesep 'EB3' filesep 'poles' filesep EB3poleDetectionMethod filesep];
-poleData=load([outputDirPoleDetect filesep 'poleDetection.mat']);
-poleMovieInfo=poleData.poleMovieInfo;
 
+% Load associated data
+if(~isempty(p.processDetectPoles))
+    tmp=load(p.processDetectPoles.outFilePaths_{1});
+    poleMovieInfo=tmp.poleMovieInfo;
+end
+
+dataIsotropy=[MD.pixelSize_ MD.pixelSize_ MD.pixelSize_];
 [~,kinSphericalCoord,inliers]=tracks2detections(randKinTracks,detectionsLabRef,poleMovieInfo,dataIsotropy);
 
 % Rebuild the augmented kin
-[randKinTracks]=addSpindleRef(MD,'kinTracks',randKinTracks,'kinSphericalCoord',kinSphericalCoord,'kinInliers',inliers);
+randKinTracks=addSpindleRefKin(MD,poleMovieInfo,randKinTracks,kinSphericalCoord,inliers);
 
 process=p.process;
 if(~isempty(process))
     %%
     procFolder=[MD.outputDirectory_  filesep 'Kin' filesep 'randomized' filesep];
     mkdir(procFolder);
-    save([procFolder 'randKinTracks.mat'],'randKinTracks')
+    save([procFolder 'randKinTracks.mat'],'randKinTracks');
     process.setOutFilePaths({[procFolder 'randKinTracks.mat']})
 end;
 
