@@ -1,6 +1,8 @@
 function [poleMovieInfo] = detectPoles(MD,varargin)
 % Philippe Roudot 2014  
-
+% Detecting higher scale fidiciaries in 3D
+% OUTPUT:
+% - poleMovieInfo: isotropized location in the pixel referential. 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched=true;
@@ -11,6 +13,7 @@ ip.addParamValue('Alpha',0.05, @isnumeric);
 ip.addParamValue('processFrames',[], @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
 ip.addParamValue('printAll', false, @islogical);
+ip.addParamValue('isoOutput', false, @islogical);
 ip.addParamValue('type', 'simplex',  @ischar);
 ip.addParamValue('process', []);
 ip.parse(MD, varargin{:});
@@ -118,6 +121,12 @@ for fIdx=1:numel(processFrames)
     fn=fieldnames(MI);
     for i=1:length(fn) poleMovieInfo(fIdx).(fn{i})=MI.(fn{i})(selectedIdx,:); end;
 end  
+
+if(p.isoOutput)
+    for fIdx=1:length(poleMovieInfo)
+        poleMovieInfo(fIdx).zCoord(:,1)=poleMovieInfo(fIdx).zCoord(:,1)*MD.pixelSizeZ_/MD.pixelSize_;
+    end
+end
 
 process=ip.Results.process;
 if(~isempty(process))
