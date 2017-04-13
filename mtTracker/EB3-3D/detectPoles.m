@@ -1,8 +1,8 @@
 function [poleMovieInfo] = detectPoles(MD,varargin)
-% Philippe Roudot 2014  
+% Philippe Roudot 2014
 % Detecting higher scale fidiciaries in 3D
 % OUTPUT:
-% - poleMovieInfo: isotropized location in the pixel referential. 
+% - poleMovieInfo: anistropized(default) or isotropized location in the pixel referential.
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched=true;
@@ -42,7 +42,7 @@ parfor frameIdx=1:numel(processFrames)
     gx = exp(-(0:ws(1)).^2/(2*scales(1)^2));
     gz = exp(-(0:ws(3)).^2/(2*scales(3)^2));
     fg = conv3fast(vol, gx, gx, gz);
-    
+
     lm=locmaxnd(fg,ceil(scales));
 %     lm(1:ws(1),:,:)=0;
 %     lm(:,1:ws(2),:)=0;
@@ -56,7 +56,7 @@ parfor frameIdx=1:numel(processFrames)
     end
     lm(lm<percentile)=0;
     movieInfo(frameIdx)=pointCloudToMovieInfo(lm,vol);
-end  
+end
 
 %% load track results and save them to Amira
 
@@ -69,7 +69,7 @@ end
 
 %% Track each candidate to filter theire intensit
 [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=candidatePolesTrackingParam();
-outputDirTrack=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' ... 
+outputDirTrack=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' ...
     num2str(scales(1),'%03d') filesep 'tracks'];
 
 saveResults.dir =  outputDirTrack; %directory where to save input and output
@@ -83,7 +83,7 @@ saveResults=[];
 %% Convert tracks final in a user-friendlier format
 tracks=TracksHandle(tracksFinal);
 
-%% Retrieve innovation matrix 
+%% Retrieve innovation matrix
 trackNoiseVar=arrayfun(@(x) kalmanInfoLink(tracks(x).segmentEndFrame).noiseVar(1,1,tracks(x).tracksFeatIndxCG(end)),1:length(tracks))';
 
 %% Save track results to Amira
@@ -95,7 +95,7 @@ end
 %% For each frame, select the higher responses,
 tracksScore=[tracks.lifetime].*arrayfun(@(x) median(x.A),tracks)';
 
-%% Compute the distance between each candidate (looking for stationary distance maybe ?) 
+%% Compute the distance between each candidate (looking for stationary distance maybe ?)
 % tracksMeanPos=[arrayfun(@(x) median(x.x),tracks) arrayfun(@(x) median(x.y),tracks) arrayfun(@(x) median(x.z),tracks)]
 % distMatrix=createSparseDistanceMatrix(tracksMeanPos,tracksMeanPos,1000000);
 % trackMaxDist=full(max(distMatrix));
@@ -106,7 +106,7 @@ for fIdx=1:numel(processFrames)
     timePoint=processFrames(fIdx);
     tracksOn=([tracks.endFrame]>=timePoint)&(timePoint>=[tracks.startFrame]);
     tracksLocal=tracks(tracksOn);
-    relIdx=timePoint-[tracksLocal.startFrame]+1; 
+    relIdx=timePoint-[tracksLocal.startFrame]+1;
     [~,idx]=sort(tracksScore(tracksOn));
     selectedIdx=[];
     if(sum(tracksOn)>0)
@@ -120,7 +120,7 @@ for fIdx=1:numel(processFrames)
     MI=movieInfo(timePoint);
     fn=fieldnames(MI);
     for i=1:length(fn) poleMovieInfo(fIdx).(fn{i})=MI.(fn{i})(selectedIdx,:); end;
-end  
+end
 
 if(p.isoOutput)
     for fIdx=1:length(poleMovieInfo)
@@ -134,12 +134,12 @@ if(~isempty(process))
     save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks');
     outputDirPoleDetect=[process.getOwner().outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d')];
     save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo');
-    process.setOutFilePaths({[outputDirPoleDetect filesep 'poleDetection.mat'],[outputDirTrack filesep 'trackNewFormat.mat']})    
+    process.setOutFilePaths({[outputDirPoleDetect filesep 'poleDetection.mat'],[outputDirTrack filesep 'trackNewFormat.mat']})
     pa = process.getParameters();
     pa.parameters = ip.Results;
     process.setParameters(pa);
     process.setDateTime();
-end 
+end
 
 
 function movieInfo= labelToMovieInfo(label,vol)
@@ -190,4 +190,4 @@ function threshNoise= QDApplegateThesh(filterDiff,show)
 
         if(show)
             figure();hist(thFilterDiff,100),vline([threshNoise, threshold],['-b','-r']);
-        end 
+        end
