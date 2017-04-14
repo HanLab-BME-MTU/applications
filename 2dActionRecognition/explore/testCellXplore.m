@@ -141,6 +141,7 @@ save(['/work/bioinformatics/s170480/Data/LCH//DevOps/testMoviesRand_' num2str(ra
 cellDataSet = cell2mat(singleExprMD);
 % cellXploreDR(cellDataSet, cellMovies);
 cellXploreDR(cellDataSet, cellMovies, 'annotations', cellDataSet(1).annotations)
+cellXploreDR(cellDataSet, cellMovies, 'annotations', cellDataSet{1}.annotations);
 
 % %% how to close out figures -- 
 % disp('Run the following to close all figures')

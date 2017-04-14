@@ -155,6 +155,7 @@ function initializeDataStruct_Assaf() %(MODEL)
 
     % [XY coord at first time point as a reference]
     data.DR.XY = [cellfun(@(x) x(1), {cellDataSet.xs}); cellfun(@(x) x(1), {cellDataSet.ys})]';
+    data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
 
     initInfo();
 end
@@ -256,7 +257,7 @@ function initMainGUI()
     % Data Selection Panel
     xSizeSelectPanel = 450;
     % ---> insert dynamic size info here
-    ySizeSelectPanel = 200 + 15*numel(handles.info.labelTypes); 
+    ySizeSelectPanel = 175 + 15*numel(handles.info.labelTypes); 
 
     % DR Panel
     xPosDR = gapSize;
@@ -281,7 +282,7 @@ function initMainGUI()
     handles.LabelA = uipanel('Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
     'Title','Cell Labeling',...
     'Tag','uipanel_annotate',...
-    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.DataSel.Position(2), xSizeLabelPanel 400],...
+    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.DataSel.Position(2), xSizeLabelPanel 375],...
     'FontSize',13);
 
     handles.h_movie = uipanel(...
@@ -572,7 +573,7 @@ function initCellLabels()
     'Style','popupmenu',...
     'FontUnits','pixels',...
     'Units', 'pixels', ...
-    'Value',1, ...
+    'Value',2, ...
     'Position', [10 handles.LabelA.Position(4)-25 80 0],...
     'Callback',@updateLabel,...
     'Tag','cellLabelTypeselect',...
@@ -1372,7 +1373,7 @@ function initMovieDisplay()
     'FontSize',12, ...
     'Callback', @playMovieViewerCell);
     
-    opts = {'Parent', handles.h_movie, 'Units', 'pixels', 'Position',[14 36.6 handles.h_movie.Position(3)-30 306.8],...
+    opts = {'Parent', handles.h_movie, 'Units', 'pixels', 'Position',[14 36.6 handles.h_movie.Position(3)-30 handles.h_movie.Position(3)-30],...
     'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
     axMovie = axes(opts{:});
     axMovie.XColor = 'w';
@@ -1445,7 +1446,14 @@ end
 
 function playMovieViewerAll(varargin)
     handles.thisMD = load(cellDataSet(handles.selPtIdx).MD);
-    movieViewer(handles.thisMD.MD);    
+    ff = findall(0,'Name', 'Viewer'); close(ff);
+    movieViewer(handles.thisMD.MD);
+    sF = findobj(0,'tag', 'slider_frame');
+    sF.Value = data.extra.time(handles.selPtIdx);
+    sF.Callback(sF);
+    ff = findall(0,'Tag', 'viewerFig'); 
+    figure(ff); 
+    plot(data.DR.XY(handles.selPtIdx,1),data.DR.XY(handles.selPtIdx,2), 'or', 'markersize', 50, 'Linewidth', .25);    
 end
 
 function updateMovieGAM(Fnum)
