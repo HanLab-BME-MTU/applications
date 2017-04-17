@@ -302,22 +302,24 @@ function initMainGUI()
     'Title','Filter Operation',...
     'Tag','ToggleFilter_ANDOR',...
     'Position',[325 1 100 30],...
-    'FontSize', 8);    
+    'FontSize', 8,...
+    'SelectionChangedFcn', @updateGeneral);    
 
-handles.and1 = uicontrol(handles.BG_AO,'Style','radiobutton',...
-                  'FontUnits','pixels','Units','pixels',...
-                  'String','AND',...
-                  'Position',[10 1 45 20],...
-                  'HandleVisibility','off',...
-                  'FontSize', 8);
-              
-handles.or1 = uicontrol(handles.BG_AO,'Style','radiobutton',...
-                  'FontUnits','pixels','Units','pixels',...
-                  'String','OR',...
-                  'Position',[50 1 30 20],...
-                  'HandleVisibility','off','FontSize', 8);
+    handles.and1 = uicontrol(handles.BG_AO,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','AND',...
+                      'Position',[10 1 45 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
 
+    handles.or1 = uicontrol(handles.BG_AO,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','OR',...
+                      'Position',[50 1 30 20],...
+                      'HandleVisibility','off','FontSize', 8);
 
+    % Default to the OR switch    
+    handles.BG_AO.SelectedObject = handles.or1;
 
 
 
@@ -809,7 +811,7 @@ function createAnnotationPanel()
             'Position',[handles.annoPanel.Position(3)/2-55/2-25 yA 55 10],...
             'FontSize', 8,...
             'HorizontalAlignment', 'left');               
-            textAnno = uicontrol(...
+         textAnno = uicontrol(...
             'Parent',handles.annoPanel,...
             'Units','pixels',...
             'FontUnits','pixels',...
@@ -903,7 +905,17 @@ function checkRB_on(src)
   if src.Value == src.Max
     handles.info.anno.RB(key) = 1;
     if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes')
-        set(src, 'BackgroundColor',[0 1 0]);
+        if strcmp(handles.BG_AO.SelectedObject.String, 'AND')
+            % set as yellow (AND)
+            set(src, 'BackgroundColor',[1 1 0]);    
+            handles.and1.BackgroundColor = [1 1 0];
+            handles.or1.BackgroundColor = [.94 .94 .94];
+        else
+            % set as green (OR)
+            set(src, 'BackgroundColor',[0 1 0]);
+            handles.BG_AO.SelectedObject.BackgroundColor = [0 1 0];
+            handles.and1.BackgroundColor = [.94 .94 .94];
+        end
     else
         set(src, 'BackgroundColor',[.94 .94 .94]);
     end            
@@ -1270,7 +1282,7 @@ function updateCustomPanels()
              'Title',filterName_,...
              'Tag','uipanel_select',...
              'TitlePosition', 'lefttop',...
-             'Position',[110+12 handles.DataSel.Position(4)-35-20-yFT 110 35],...
+             'Position',[110+35 handles.DataSel.Position(4)-35-20-yFT 110 35],...
              'FontSize',10);    
 
             handles.custFilters.(filterName_) = uicontrol(...
@@ -1416,6 +1428,14 @@ function updateManSel(source, ~)
    updateAnnotationPanel();
    updatePlots();
    playMovie_GUI();
+end
+
+
+function updateGeneral(varargin)
+   disp('Updating ...');
+   disp('------------------');
+   updateAnnotationPanel();
+   updatePlots();
 end
 
 %===============================================================================
@@ -1631,10 +1651,18 @@ function plotScatter
             [GG, GN, ~]= grp2idx(cell2mat(plabel));
         end
         lcmap = cell2mat(getColors(unique(GG)));
-        xlabels = GN;
+
+        xlabels = cell(length(GN), 1);
+        for i = 1:length(GN)
+            numL = sum(ismember(GG,i));
+            perctL = round(numL/length(GG),2)*100;
+            xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+        end
+        
+%         xlabels = GN;
         imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
         set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-        'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
+        'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
         set(handles.axLegend, 'Visible', 'on');
     end
     
@@ -1831,27 +1859,35 @@ function [idx_out] = applyFilters(hinff)
         end
         idx_out = intersect(idx_out, idx_t);
     end
-
     % [then filter custom classes]
-
     % [then filter annotations]
     % check which annotation RadioButtons are selected
     numA = numel(data.meta.anno.set);
     if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes') && (numA >= 1)
         disp('Filtering by selected annotations');
-        setInx = 1:length(data.meta.mindex);
+        if strcmp(handles.BG_AO.SelectedObject.String, 'AND')
+            % AND filter 
+            setInx = 1:length(data.meta.mindex);
+        elseif strcmp(handles.BG_AO.SelectedObject.String, 'OR')
+            % OR filter 
+            setInx = [];
+        end
         for i=1:numA
             h_ = handles.highAnno(i);
             if (h_.Value == 1)
                 annoh = h_.UserData{:};
-                setInx = intersect(setInx, data.meta.anno.tagMap(annoh.String));
-%                     setInx = [data.meta.anno.tagMap(annoh.String), setInx]; 
+                if strcmp(handles.BG_AO.SelectedObject.String, 'AND')
+                    % AND filter 
+                    setInx = intersect(setInx, data.meta.anno.tagMap(annoh.String));
+                elseif strcmp(handles.BG_AO.SelectedObject.String, 'OR')
+                    % OR filter
+                    setInx = union(setInx, data.meta.anno.tagMap(annoh.String));
+                end
             end
         end
         idx_f = unique(setInx);
         idx_out = intersect(idx_f, idx_out);
     end
-
 end
 
 function [RGBmat] = getColors(clabels)
