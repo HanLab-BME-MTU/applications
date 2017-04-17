@@ -772,17 +772,24 @@ function createAnnotationPanel()
        else
            handles.info.anno.RB(data.meta.anno.set{ii}) = 0;
        end
-
+       
+       % Radio Button
+       % pre-calculate the number of cells with annotation
+       tagName = data.meta.anno.set{ii};
+       numCellAnno = num2str(length(data.meta.anno.tagMapKey(tagName))-1);
+       if strcmp(numCellAnno,'0')
+        numCellAnno = '';
+       end
        handles.highAnno(ii) = uicontrol(...
         'Parent',handles.annoPanel,...
         'Units','pixels',...
         'FontUnits','pixels',...
-        'String', '',...
+        'String', numCellAnno,...
         'Style', 'radiobutton',...
         'Value', preVal,...
-        'Position',[5 yA 15 15],...
-        'Tag',[data.meta.anno.set{ii} 'delete'],...
-        'FontSize', 11,...
+        'Position',[5 yA 35 15],...
+        'Tag',[data.meta.anno.set{ii} 'RB'],...
+        'FontSize', 8,...
         'HorizontalAlignment', 'center',...
         'Callback',@togAnnotation_callback);                    
 
@@ -927,8 +934,18 @@ function checkRB_on(src)
     else
         set(src, 'BackgroundColor',[.94 .94 .94]);
     end
-
   end
+  
+  
+  tagName = key;
+  numCellAnno = num2str(length(data.meta.anno.tagMapKey(tagName))-1);
+
+  if strcmp(numCellAnno,'0')
+    numCellAnno = '';
+  end
+  src.String = numCellAnno;
+  
+  
 end
 
 function delAnnotation_callback(src, ~)
@@ -939,17 +956,19 @@ end
 
 function deleteAnnotation(tagName)
     assert(ismember(tagName, data.meta.anno.set));
-
     % Remove tag from cells (use KeyMap)
     rt_cells = data.meta.anno.tagMapKey(tagName);
+    cellKey = data.meta.key{handles.selPtIdx};
     if length(rt_cells) > 1
-    elseif length(rt_cells) == 1
+        disp('not removing....');
         for ci = rt_cells
             % RevTagMap
             oldTags = data.meta.anno.RevTagMap(cellKey);
             newTagSet = setxor(oldTags, {tag});
             data.meta.anno.RevTagMap(cellKey) = newTagSet;
+            
         end
+    elseif length(rt_cells) == 1
         assert(strcmp(rt_cells{1}, 'null'));
     else
         error('?');
