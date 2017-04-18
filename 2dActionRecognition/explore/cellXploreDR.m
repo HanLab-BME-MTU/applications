@@ -25,7 +25,7 @@ ip.parse(cellDataSet, varargin{:});
 data.movies = ip.Results.movies;
 data.annotationSetIn = ip.Results.annotationSet;
 data.DR = ip.Results.DR; % struct {DR.PCA or DR.tSNE contains [nx2] coords} 
-
+data.moviesPath = 'none provided...';
 
 % Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
@@ -520,7 +520,7 @@ function initMainGUI()
         notes = get(handles.notes, 'String');
         data.meta.notes{handles.selPtIdx} = notes;
         set(handles.SaveNotesNotice, 'Visible', 'on');
-        pause(.5);
+        pause(.25);
         set(handles.SaveNotesNotice, 'Visible', 'off');
 
         % Append info to UserData
@@ -1080,6 +1080,7 @@ function addAnnotation_callback(varargin)
     if ~isempty(newAnnotationString)
         addAnnotation(newAnnotationString);
     end
+    
 end
 
 function addAnnotation(newStr)
@@ -1196,6 +1197,26 @@ function deleteAnnotation(tagName)
     updatePlots();
 end
 
+    function backupSave(varargin)
+        % SaveNotes_Callback(varargin{:});
+
+        set(handles.SaveNotesNotice, 'Visible', 'on');
+        
+        timeStamp = char(datetime('now','Format','ddMMMyyyy_hh'));
+        exportVarName = ['DOPE_AnnotationBackup' timeStamp];
+        
+        backupInfo.tagMapKey = data.meta.anno.tagMapKey;
+        backupInfo.RevTagMap = data.meta.anno.RevTagMap;
+        backupInfo.cellMoviesPath = data.moviesPath;
+        backupInfo.exportVarName = exportVarName;
+        
+        save([exportVarName '.mat'],'backupInfo','-v7.3');
+        assignin('base', ['backupInfo_' timeStamp], backupInfo);
+
+        set(handles.SaveNotesNotice, 'Visible', 'off');
+
+    end
+
 function tagDataPoint(src, ~)
     key = src.String;
     tag = key;
@@ -1234,6 +1255,7 @@ function tagDataPoint(src, ~)
         updatePlots();
     end
     updateCellInfo();
+    backupSave();
 end
 
 function tagDataPointNoGUI(tags, selPtIdx, cellKey, Value)
