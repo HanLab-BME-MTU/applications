@@ -690,7 +690,9 @@ handles.ptSzCtrl = uicontrol(...
        else
            set(handles.custClass, 'Visible', 'off');
        end
+       handles.forceUpdate = true;
        updatePlots();
+       handles.forceUpdate = false;
     end
 
 
@@ -725,7 +727,9 @@ handles.ptSzCtrlF = uicontrol(...
        else
            set(handles.custClass, 'Visible', 'off');
        end
+       handles.forceUpdate = true
        updatePlots();
+       handles.forceUpdate = false
     end
 
 
@@ -1951,7 +1955,9 @@ function plotScatter
     
     if handles.info.zoom == false
 
-        if isfield(handles, 'caches') && length(setxor(handles.caches.idx_f,idx_f))<1 && ~handles.forceUpdate 
+        if isfield(handles, 'caches') && ... 
+            length(setxor(handles.caches.idx_f,idx_f))<1 && ...
+             ~handles.forceUpdate && (strcmp(handles.caches.DRtype_sel,DRtype_sel))
 
             % just update selected point           
 %             linkdata off
@@ -2029,6 +2035,7 @@ function plotScatter
    handles.caches.ji = ji;
    handles.caches.scat2.CDataji = cachclabels;
    handles.caches.scat2.SizeDataji = cachesizeL;
+   handles.caches.DRtype_sel = DRtype_sel;
 %    selectdata('Axes', handles.axDR);
 end
 
