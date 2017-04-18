@@ -40,17 +40,27 @@ disp('% Get Assaf''s Data');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
 allCellsFileName = '28-Mar-2017_LBP_dLBP_1.mat';
+allCellsFileNameMovies = '28-Mar-2017_LBP_dLBP_1_movies.mat';
 InFilePath =  '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/CellExplorerData';
 loadMatPath = fullfile(InFilePath,allCellsFileName);
+cellXploreDR('/work/bioinformatics/shared/dope/data/28-Mar-2017_LBP_dLBP_1.mat')
+
 
 % My output path
 % devOpsDir = '/work/bioinformatics/s170480/Data/LCH/DevOps';
+dopeDir = '/work/bioinformatics/shared/dope/data/'
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Load Assaf''s Data');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
 load(loadMatPath, 'allCellsMovieData'); 
+cellMoviesPath = loadMatPath;
+annotationSet = allCellsMovieData{1}.annotations;
+cellDataSet = allCellsMovieData;
+
+save(fullfile(dopeDir, allCellsFileName),'annotationSet','cellMoviesPath','cellDataSet','-v7.3');
+
 % extractMoviesToCellExplorer
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');

@@ -17,7 +17,7 @@ ff = findall(0,'Tag','cellXplore');delete(ff)
 ip = inputParser;
 ip.KeepUnmatched = true;
 ip.CaseSensitive = false;
-ip.addRequired('cellDataSet', @(x) isstruct(x) || iscell(x));
+ip.addRequired('cellDataSet', @(x) isstruct(x) || iscell(x) || exist(x, 'file')==2);
 ip.addOptional('movies', cell([1,length(cellDataSet)]), @iscell);
 ip.addParameter('annotationSet', {}, @(x) isa(x,'containers.Map'));
 ip.addParameter('DR', {}, @isstruct);
@@ -26,19 +26,70 @@ data.movies = ip.Results.movies;
 data.annotationSetIn = ip.Results.annotationSet;
 data.DR = ip.Results.DR; % struct {DR.PCA or DR.tSNE contains [nx2] coords} 
 
+
 % Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
 handles.cache.plabel = {};
 handles.info.zoom = false;
 handles.info.GAM.state = false; 
 handles.GAMfig = {};
+handles.pointSize = 5;
+handles.pointSizeFilter = 20;
+handles.zoomDR = 'off';
+handles.shadowPoints = false;
+handles.forceUpdate = false;
 
 % Initialize Label Dictionary
+if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2) 
+
+    inM = load(cellDataSet); 
+    
+    % Capture original file path
+    data.info.loadCellDataFile = cellDataSet;
+    % Grab metadata
+    if isfield(inM, 'cellDataSet')    
+        cellDataSet = inM.cellDataSet;
+    elseif isfield(inM, 'allCellsMovieData')    
+        cellDataSet = inM.allCellsMovieData;
+    end
+    cellDataSet = inM.cellDataSet;
+
+    % Load movies... (assumed ot be in same order as meta data)
+    data.moviesPath = inM.cellMoviesPath;
+    choice = questdlg(['Load movies from ' data.moviesPath '?'], ...
+                      'Load Movies into Memory?', ...
+                      'Yes', ...
+                      'No','No');
+
+    if string(choice) == 'Yes'
+        hwarn = warndlg(['Please wait...loading ' num2str(length(cellDataSet)) ' movies into memory...']);
+        %% TODO detect if MovieList -- if so, OME-TIFF expected... on the fly...
+        %% else, give warning that it may take a while to load.
+        S = load(data.moviesPath, 'cellMovies');
+        if isfield(S, 'cellMovies')    
+            data.movies = S.cellMovies;
+        elseif isfield(S, 'allCellMovies')    
+            data.movies = S.allCellMovies;
+        end
+        if ishandle(hwarn), close(hwarn), end;
+        disp(['Done loading movies.. from ' data.moviesPath]);
+    else
+        disp('Not loading any images...')
+        data.movies = cell(1,length(cellDataSet));
+    end
+
+    % pre-defined annotation set (container.Map)
+    if isfield(inM, 'annotationSet')
+        data.annotationSetIn = inM.annotationSet;
+    end
+end
+
 % check if cell array
 if iscell(cellDataSet)
     disp('converning to struct array from cell array');
     cellDataSet = cell2mat(cellDataSet);
 end
+
 
 initializeDataStruct_Assaf();
 if ~isempty(data.annotationSetIn)
@@ -362,8 +413,8 @@ function initMainGUI()
     'String','Export CellData',...
     'Position',[posE(1)+posE(3)+gapSize, posE(2), 120 25],...
     'Callback',@Export_Callback,...
-    'Tag','Export CX Data',...
-    'FontSize',10);
+    'Tag','ExportCXDatarAW ',...
+    'FontSize',10, 'Visible', 'off');
     
     function Export_Callback(varargin)
         % First save state (collect info / assign handles)
@@ -381,6 +432,8 @@ function initMainGUI()
         
     end
     
+    
+    
     % Export annotations to workspace
     posE = handles.exportData.Position;
     handles.exportDataAnno = uicontrol(...
@@ -391,7 +444,7 @@ function initMainGUI()
     'String','Export CellData with Annotations',...
     'Position',[posE(1)+posE(3)+gapSize, posE(2), 120 25],...
     'Callback',@ExportAnno_Callback,...
-    'Tag','Export CX Data',...
+    'Tag','ExportMat',...
     'FontSize',10);
 
     function ExportAnno_Callback(varargin)
@@ -420,6 +473,18 @@ function initMainGUI()
         
         assignin('base', varname{1}, cc);
         assignin('base', ['hashMap_' varname{1}] , data.meta.anno.tagMapKey);
+        
+        
+
+        cellMoviesPath = data.moviesPath;
+        cellDataSet = cc;
+        annotationSet = data.meta.anno.tagMapKey;
+        dataOut.meta = data.meta;
+        dataOut.DR = data.DR;
+        dataOut.info = handles.info;
+      
+        save([exportVarName '.mat'],'annotationSet','cellMoviesPath','cellDataSet','dataOut','-v7.3');
+
         
     end
     
@@ -591,6 +656,149 @@ function initDRPanel()
 
     set(handles.DRradio(1), 'Value', 1);
 end
+
+
+%% point appearance
+
+handles.ptSzP = uipanel('Parent',handles.DataSel,...
+ 'FontUnits','pixels','Units','pixels',...
+ 'Title','PointSize',...
+ 'Tag','uipanel_selectPointSize',...
+ 'TitlePosition', 'lefttop',...
+ 'Position',[handles.DRType.Position(1), handles.DRType.Position(2)-35, 50, 30],...
+ 'FontSize',8); 
+
+handles.ptSzCtrl = uicontrol(...
+    'Parent',handles.ptSzP,...
+    'FontUnits','points',...
+    'FontSize',8,...
+    'String', string(3:50),...
+    'Style','popupmenu',...
+    'Value', find(ismember(string(3:50), string(handles.pointSize))),...
+    'Units','pixels',...
+    'Tag','pointSize',...
+    'Position',[1 1 50 20],...
+    'Callback',@updatePointSize);
+
+    function updatePointSize(source, ~)
+       val = source.Value;
+       maps = source.String;
+       handles.pointSize = str2double(maps{val});
+       disp(['Updating point sizes to : ', str2double(maps{val})]);
+       if strcmp(maps{val}, 'custom')
+           set(handles.custClass, 'Visible', 'on');
+       else
+           set(handles.custClass, 'Visible', 'off');
+       end
+       updatePlots();
+    end
+
+
+
+handles.ptSzPF = uipanel('Parent',handles.DataSel,...
+ 'FontUnits','pixels','Units','pixels',...
+ 'Title','PntSizeFilter',...
+ 'Tag','uipanel_selectPointSizeFilter',...
+ 'TitlePosition', 'lefttop',...
+ 'Position',[handles.DRType.Position(1), handles.DRType.Position(2)-70, 50, 30],...
+ 'FontSize',8); 
+
+handles.ptSzCtrlF = uicontrol(...
+    'Parent',handles.ptSzPF,...
+    'FontUnits','points',...
+    'FontSize',8,...
+    'String', string(3:50),...
+    'Style','popupmenu',...
+    'Value', find(ismember( string(3:50), string(handles.pointSizeFilter))),...
+    'Units','pixels',...
+    'Tag','pointSize',...
+    'Position',[1 1 50 20],...
+    'Callback',@updatePointSizeF);
+
+    function updatePointSizeF(source, ~)
+       val = source.Value;
+       maps = source.String;
+       handles.pointSizeFilter = str2double(maps{val});
+       disp(['Updating point sizes to : ', str2double(maps{val})]);
+       if strcmp(maps{val}, 'custom')
+           set(handles.custClass, 'Visible', 'on');
+       else
+           set(handles.custClass, 'Visible', 'off');
+       end
+       updatePlots();
+    end
+
+
+    % Toggle switch for AND/OR annotation filtering
+
+
+    handles.zoomRB = uibuttongroup('Parent',handles.DataSel,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Zoom DR Plot',...
+    'Tag','ToggleZoom',...
+    'Position',[handles.DRType.Position(1)-80, handles.DRType.Position(2)-70, 75, 35],...
+    'FontSize', 8,...
+    'SelectionChangedFcn', @zoomCallback);    
+
+    handles.zoom1 = uicontrol(handles.zoomRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','on',...
+                      'Position',[1 1 35 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
+
+    handles.zoom0 = uicontrol(handles.zoomRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','off',...
+                      'Position',[40 1 35 20],...
+                      'HandleVisibility','off','FontSize', 8);
+
+    % Default to the OR switch    
+    handles.zoomRB.SelectedObject = handles.zoom0;
+    
+    function zoomCallback(varargin)
+        handles.zoomDR = handles.zoomRB.SelectedObject.String;
+%         updatePlots
+        zoom(handles.axDR, handles.zoomRB.SelectedObject.String)
+    end
+
+    handles.shadowRB = uibuttongroup('Parent',handles.DataSel,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Shadow Points',...
+    'Tag','ToggleZoom',...
+    'Position',[handles.DRType.Position(1)-80, handles.DRType.Position(2)-35, 75, 35],...
+    'FontSize', 8,...
+    'SelectionChangedFcn', @shadowCallback);    
+
+
+    handles.shadowRB1 = uicontrol(handles.shadowRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','on',...
+                      'Position',[1 1 35 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
+
+    handles.shadowRB0 = uicontrol(handles.shadowRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','off',...
+                      'Position',[40 1 35 20],...
+                      'HandleVisibility','off','FontSize', 8);
+
+    % Default to the OR switch    
+    handles.shadowRB.SelectedObject = handles.shadowRB1;
+
+   
+    function shadowCallback(varargin)
+        if strcmp(handles.shadowRB.SelectedObject.String,'on')
+            handles.shadowPoints = true;
+        else
+            handles.shadowPoints = false;
+        end
+        handles.forceUpdate = true;
+        updatePlots
+        handles.forceUpdate = false;
+    end
+
 
 %-------------------------------------------------------------------------------
 % Cell Label Menus 
@@ -1412,7 +1620,9 @@ function GoToNextCell(varargin)
     end
     updateAnnotationPanel();
     updatePlots();
-    playMovie_GUI(); 
+    if ~isempty(data.movies{1})
+        playMovie_GUI(); 
+    end
 end
 
 function GoToPrevCell(varargin)
@@ -1423,7 +1633,10 @@ function GoToPrevCell(varargin)
     end
     updateAnnotationPanel();
     updatePlots();
-    playMovie_GUI();
+    
+    if ~isempty(data.movies{1})
+      playMovie_GUI(); 
+   end
 end
 
              
@@ -1614,7 +1827,7 @@ end
 function initDRAxes()
     opts = {'Parent', handles.h2_DR, 'Units', 'pixels',...
         'Position',[15 15 handles.h2_DR.Position(3)-30 handles.h2_DR.Position(4)-65],'Color',[1 1 1],...
-        'XTick',[],'YTick',[]};
+        'XTick',[],'YTick',[],  'Tag', 'plotMain'};
     axDR = axes(opts{:});
     handles.axDR = axDR;
 
@@ -1695,11 +1908,14 @@ function plotScatter
     end
     
     clabels = cell2mat(getColors(clabels));
-    sizeL= repmat(10,length(plabel),1);
+    sizeL= repmat(handles.pointSize,length(plabel),1);
 
     ji = handles.selPtIdx;
     handles.manualSel.Value = ji;  
     if handles.dtOnOff.Value == 0
+        cachclabels = clabels(ji,:);
+        cachesizeL = sizeL(ji,1);
+ 
         clabels(ji,:) = [0 1 1]; %[1 0 .5];
         sizeL(ji,1) = 250;
     end
@@ -1714,6 +1930,8 @@ function plotScatter
     idx_notSel = setxor(idx_all, idx_f);
     handles.dataI = data.meta.mindex(idx_f);
     handles.dataI_ns = data.meta.mindex(idx_notSel);
+
+
     
     clabelsTemp = clabels;      
     clabelsTemp(idx_notSel, :) = repmat([1 1 1], [length(idx_notSel) 1]);
@@ -1733,40 +1951,67 @@ function plotScatter
     
     if handles.info.zoom == false
 
-        handles.dataX = X;
-        handles.dataY = Y;
-        figure(handles.h1);
-        handles.scat1 = scatter(handles.axDR, X, Y, sizeL-2, clabels(:,:,:),...% 'MarkerEdgeColor',clabels(:,:,:),...
-            'ButtonDownFcn', @axDRCallback);
-        alpha(handles.scat1, .9);
-        hold on;    
-        handles.scat1.SizeData(ji) = 200;
-        handles.scat1.CData(ji,:) = clabels(ji,:,:);
-        axis manual;
+        if isfield(handles, 'caches') && length(setxor(handles.caches.idx_f,idx_f))<1 && ~handles.forceUpdate 
 
-        handles.scat2 = scatter(handles.axDR, X, Y, sizeL-3, wclabels, 'filled',...
-            'ButtonDownFcn', @axDRCallback);  
-        handles.scat2.CData(idx_f,:) = clabels(idx_f,:,:);
-        handles.scat2.CData(ji,:) = clabels(ji,:,:);
-        handles.scat2.SizeData(idx_f) = 35;
-        handles.scat2.SizeData(ji) = 200;
-        try 
-            handles.scat1.PickableParts = 'none';
-            handles.scat1.HitTest = 'off';
-        catch
-            warning('error scat1');
+            % just update selected point           
+%             linkdata off
+            handles.scat2.CData(ji,:) = clabels(ji,:,:);
+            handles.scat2.SizeData(ji) = 200;
+            handles.scat2.CData(handles.caches.ji, :,:) = handles.caches.scat2.CDataji;
+            if ismember(handles.caches.ji, idx_f)
+                handles.scat2.SizeData(handles.caches.ji) = handles.pointSizeFilter;
+            else
+                handles.scat2.SizeData(handles.caches.ji) = handles.pointSize;
+            end
+%             refreshdata
+%             drawnow
+
+        else % re-draw plot
+
+            if handles.shadowPoints 
+                handles.dataX = X;
+                handles.dataY = Y;
+                figure(handles.h1);
+                handles.scat1 = scatter(handles.axDR, X, Y, sizeL-2, clabels(:,:,:),...
+                    'ButtonDownFcn', @axDRCallback);
+                alpha(handles.scat1, .9);
+                hold on;    
+                handles.scat1.SizeData(ji) = 200;
+                handles.scat1.CData(ji,:) = clabels(ji,:,:);
+                axis manual;
+
+            end
+           
+            handles.scat2 = scatter(handles.axDR, X, Y, sizeL-3, wclabels, 'filled',...
+                'ButtonDownFcn', @axDRCallback);  
+            handles.scat2.CData(idx_f,:) = clabels(idx_f,:,:);
+            handles.scat2.CData(ji,:) = clabels(ji,:,:);
+%             handles.caches.scat2.CDataji = handles.scat2.CData(ji,:);
+%             handles.caches.scat2.SizeDataji = handles.scat2.SizeData(ji);
+            handles.scat2.SizeData(idx_f) = handles.pointSizeFilter;
+            handles.scat2.SizeData(ji) = 200;
+            try 
+                handles.scat1.PickableParts = 'none';
+                handles.scat1.HitTest = 'off';
+            catch
+%                 warning('error scat1');
+            end
+                
+           hold off;
+
+
+            set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
+            handles.axDR.Title.String = DRtype_sel;    
+            handles.axDR.XColor = 'w';
+            handles.axDR.YColor = 'w';
+            set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);    
+            if strcmp(handles.zoomDR, 'on')        
+                zoom(handles.axDR, 'on')
+            else
+                zoom(handles.axDR, 'off')
+            end
         end
         
-       hold off;
-
-%        close(figure(2));    
-%         end
-        set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
-        handles.axDR.Title.String = DRtype_sel;    
-        handles.axDR.XColor = 'w';
-        handles.axDR.YColor = 'w';
-        set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);    
-
     else 
         handles.dataX = X(idx_f);
         handles.dataY = Y(idx_f);
@@ -1780,6 +2025,10 @@ function plotScatter
         set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
     end
    ff = findall(0,'NumberTitle','on');delete(ff)
+   handles.caches.idx_f = idx_f;
+   handles.caches.ji = ji;
+   handles.caches.scat2.CDataji = cachclabels;
+   handles.caches.scat2.SizeDataji = cachesizeL;
 %    selectdata('Axes', handles.axDR);
 end
 
@@ -1852,7 +2101,9 @@ function axDRCallback(varargin)
     updateCellInfo;
     updateAnnotationPanel;
     plotScatter; 
-    playMovie_GUI;        
+    if ~isempty(data.movies{handles.selPtIdx}) 
+        playMovie_GUI;      
+    end
 end
 
 function [idx_out] = applyFilters(hinff)
