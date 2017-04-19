@@ -38,8 +38,8 @@ handles.pointSizeFilter = 20;
 handles.zoomDR = 'off';
 handles.shadowPoints = false;
 handles.forceUpdate = false;
-% handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationLog.txt'
-handles.logfile = 'AnnotationLog.txt'
+handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationsLog.txt';
+% handles.logfile = 'AnnotationLog.txt'
 handles.timeStampStart = char(datetime('now','Format','ddMMMyyyy_hhmm'));
 handles.uName = char(java.lang.System.getProperty('user.name'));
 handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
@@ -219,9 +219,9 @@ function initializeDataStruct_Assaf() %(MODEL)
     initInfo();
 
     % Initialize backup info....
-    backupInfo.cellMoviesPath = data.moviesPath;
-    backupInfo.keys = data.meta.key;
-    backupInfo.expr = data.meta.class.expr;
+    handles.backupInfo.cellMoviesPath = data.moviesPath;
+    handles.backupInfo.keys = data.meta.key;
+    handles.backupInfo.expr = data.meta.class.expr;
 
 end
 
@@ -310,6 +310,22 @@ function initMainGUI()
     'Position',[5 5 xsizeF-10 ysizeF-15],...
     'FontSize',16,...
     'FontWeight','bold');
+
+
+
+    handles.ActionNotice = uicontrol(...
+    'Parent',handles.mainP,...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'Style','text',...
+    'String','Please wait updating Plots...',...
+    'Position',[handles.mainP.Position(3)-250 100 250 35],...
+    'Tag','SaveNotes',...
+    'FontSize',15,...
+    'BackgroundColor',[.75 .5 1]);
+    set(handles.ActionNotice, 'Visible', 'off');
+
+
     %-------------------------------------------------------------------------------
     % Control/Movie panels of GUI
     %-------------------------------------------------------------------------------
@@ -862,7 +878,9 @@ function initCellLabels()
        else
            set(handles.custClass, 'Visible', 'off');
        end
+       handles.forceUpdate = true;
        updatePlots();
+       handles.forceUpdate = false;
     end
 
     % Manual Label Legend
@@ -1196,7 +1214,7 @@ function deleteAnnotation(tagName)
         for ci = rt_cells
             % RevTagMap
             oldTags = data.meta.anno.RevTagMap(cellKey);
-            newTagSet = setxor(oldTags, {tag});
+            newTagSet = setxor(oldTags, {tagName});
             data.meta.anno.RevTagMap(cellKey) = newTagSet;
             
         end
@@ -1225,6 +1243,7 @@ end
         timeStamp = char(datetime('now','Format','ddMMMyyyy_hh'));
         exportVarName = ['DOPE_AnnotationBackup' timeStamp];
         
+        backupInfo = handles.backupInfo;
         backupInfo.tagMapKey = data.meta.anno.tagMapKey;
         backupInfo.RevTagMap = data.meta.anno.RevTagMap;
         backupInfo.exportVarName = exportVarName;
@@ -1258,8 +1277,8 @@ function writeLog(action, tag, key, expr)
     fprintf(fileID,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
     fclose(fileID);
 
-    disp(['wrote to file ' handles.logfile]);
-    fprintf(1,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
+    % disp(['wrote to file ' handles.logfile]);
+    % fprintf(1,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
 
 end
 
@@ -1749,8 +1768,10 @@ end
 function updateGeneral(varargin)
    disp('Updating ...');
    disp('------------------');
+   handles.forceUpdate = true;
    updateAnnotationPanel();
    updatePlots();
+   handles.forceUpdate = false;
 end
 
 %===============================================================================
@@ -1936,7 +1957,9 @@ function plotScatter
     % -----------------
     % Select Lableling
     % -----------------
-        
+    set(handles.ActionNotice, 'Visible', 'on');
+    drawnow
+
     labeltype = handles.cellLabel.String{handles.cellLabel.Value};
     
     if strcmp(labeltype, 'custom') 
@@ -2116,6 +2139,7 @@ function plotScatter
    handles.caches.scat2.SizeDataji = cachesizeL;
    handles.caches.DRtype_sel = DRtype_sel;
 %    selectdata('Axes', handles.axDR);
+    set(handles.ActionNotice, 'Visible', 'off');
 end
 
 %===============================================================================
@@ -2123,8 +2147,10 @@ end
 %===============================================================================   
 
 function updatePlots
+    set(handles.ActionNotice, 'Visible', 'on');
     updateCellInfo();
     plotScatter;
+    set(handles.ActionNotice, 'Visible', 'off');
 %     cxFig = findall(0,'Tag', 'cellXplore');
 %     cxFig.UserData.handles = handles;
 %     cxFig.UserData.data = data;
