@@ -38,6 +38,12 @@ handles.pointSizeFilter = 20;
 handles.zoomDR = 'off';
 handles.shadowPoints = false;
 handles.forceUpdate = false;
+% handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationLog.txt'
+handles.logfile = 'AnnotationLog.txt'
+handles.timeStampStart = char(datetime('now','Format','ddMMMyyyy_hhmm'));
+handles.uName = getenv('username');
+handles.compName = getenv('computername');
+handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 
 % Initialize Label Dictionary
 if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2) 
@@ -82,6 +88,8 @@ if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2)
     if isfield(inM, 'annotationSet')
         data.annotationSetIn = inM.annotationSet;
     end
+
+    handles.sessionID = [handles.sessionID '_' data.info.loadCellDataFile];
 end
 
 % check if cell array
@@ -209,6 +217,12 @@ function initializeDataStruct_Assaf() %(MODEL)
     data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
 
     initInfo();
+
+    % Initialize backup info....
+    backupInfo.cellMoviesPath = data.moviesPath;
+    backupInfo.keys = data.meta.key;
+    backupInfo.expr = data.meta.class.expr;
+
 end
 
 function initInfo() % (VIEW)
@@ -485,7 +499,7 @@ function initMainGUI()
       
         save([exportVarName '.mat'],'annotationSet','cellMoviesPath','cellDataSet','dataOut','-v7.3');
 
-        
+        writeLog('export', [exportVarName '.mat'], 'none', 'none');
     end
     
     
@@ -519,6 +533,8 @@ function initMainGUI()
     function SaveNotes_Callback(varargin)
         notes = get(handles.notes, 'String');
         data.meta.notes{handles.selPtIdx} = notes;
+        cellKey = data.meta.key{handles.selPtIdx};
+        expr = data.meta.expStr{handles.selPtIdx};
         set(handles.SaveNotesNotice, 'Visible', 'on');
         pause(.25);
         set(handles.SaveNotesNotice, 'Visible', 'off');
@@ -526,7 +542,8 @@ function initMainGUI()
         % Append info to UserData
         cxFig = findall(0,'Tag', 'cellXplore');
         cxFig.UserData.handles = handles;
-        cxFig.UserData.data = data;    
+        cxFig.UserData.data = data;   
+        writeLog('saveNotes', notes, cellKey, expr);
     end
 
     %-------------------------------------------------------------------------------
@@ -1092,6 +1109,7 @@ function addAnnotation(newStr)
         data.meta.anno.tagMapKey(newStr{:}) = {'null'};
         disp(['Added annotation tag' newStr{:}]);
         createAnnotationPanel();
+        writeLog('create-tag', newStr, 'none', 'none');
     end
 end
 
@@ -1107,6 +1125,7 @@ function addAnnotationNoGUI(newStrs)
             data.meta.anno.tagMap(newStr{:}) = NaN;
             data.meta.anno.tagMapKey(newStr{:}) = {'null'};
             disp(['Added annotation tag [ ' newStr{:} ' ]']);
+            writeLog('create-tag', newStr, 'none', 'none');
         end
     end
 end
@@ -1195,6 +1214,7 @@ function deleteAnnotation(tagName)
     remove(handles.info.anno.RB, {tagName});
     createAnnotationPanel();
     updatePlots();
+    writeLog('delete-tag', tagName, 'none', 'none');
 end
 
     function backupSave(varargin)
@@ -1207,20 +1227,49 @@ end
         
         backupInfo.tagMapKey = data.meta.anno.tagMapKey;
         backupInfo.RevTagMap = data.meta.anno.RevTagMap;
-        backupInfo.cellMoviesPath = data.moviesPath;
         backupInfo.exportVarName = exportVarName;
+        % backupInfo. = exportVarName;
         
         save([exportVarName '.mat'],'backupInfo','-v7.3');
         assignin('base', ['backupInfo_' timeStamp], backupInfo);
-
         set(handles.SaveNotesNotice, 'Visible', 'off');
 
     end
+
+function writeLog(action, tag, key, expr)
+
+    fileID = fopen(handles.logfile,'a');
+    
+    if iscell(tag)
+        tag = tag{1};
+    end
+    
+    % handles.sessionID;
+    timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
+    % action 
+    % tag
+    % key
+    % expr    
+
+    formatSpec = '[%s] sessionID[%s] : {%s} \t "%s" \t <%s> \t %s\n';
+
+    % [time] [session ID == input .mat file+timestart]. [remove] [key] [expr] [tag]
+    
+    fprintf(fileID,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
+    fclose(fileID);
+
+    disp(['wrote to file ' handles.logfile]);
+    fprintf(1,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
+
+end
+
+
 
 function tagDataPoint(src, ~)
     key = src.String;
     tag = key;
     cellKey = data.meta.key{handles.selPtIdx};
+    cellexpr = data.meta.expStr{handles.selPtIdx};
     if src.Value == src.Max % box checked
         % anno to cells
         data.meta.anno.tagMap(tag) = unique([data.meta.anno.tagMap(tag), handles.selPtIdx]);
@@ -1233,6 +1282,9 @@ function tagDataPoint(src, ~)
             data.meta.anno.RevTagMap(cellKey) = {tag};
         end
         data.meta.anno.byCell{handles.selPtIdx} = data.meta.anno.RevTagMap(cellKey);
+
+        % Log to file 
+        writeLog('add', tag, cellKey, cellexpr);
         
     else % box unchecked
         oldCellSet = data.meta.anno.tagMap(tag);
@@ -1248,6 +1300,11 @@ function tagDataPoint(src, ~)
         newTagSet = setxor(oldTags, {tag});
         data.meta.anno.RevTagMap(cellKey) = newTagSet;
         data.meta.anno.byCell{handles.selPtIdx} = data.meta.anno.RevTagMap(cellKey);
+
+        % Log to file
+        % [time] [session ID == input .mat file+timestart]. [remove] [key] [expr] [tag]
+        writeLog('remove', tag, cellkey, cellexpr);
+
 
     end
     updateAnnotationPanel();
