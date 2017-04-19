@@ -41,8 +41,8 @@ handles.forceUpdate = false;
 % handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationLog.txt'
 handles.logfile = 'AnnotationLog.txt'
 handles.timeStampStart = char(datetime('now','Format','ddMMMyyyy_hhmm'));
-handles.uName = getenv('username');
-handles.compName = getenv('computername');
+handles.uName = char(java.lang.System.getProperty('user.name'));
+handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
 handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 
 % Initialize Label Dictionary
