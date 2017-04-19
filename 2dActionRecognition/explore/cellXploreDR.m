@@ -1302,12 +1302,16 @@ end
 
 function writeLog(action, tag, key, expr)
 
-    fileID = fopen(handles.logfile,'a');
+    if exist(handles.logfile, 'file')==2
+        fileID = fopen(handles.logfile,'a');
+    else
+        fileID = fopen('.AnnotationsLogLocal.txt','a');
+    end
     
     if iscell(tag)
         tag = tag{1};
     end
-
+    
     p = mfilename('fullpath')
     [status md5sumout] = system(['md5sum "' p '.m"']);
     % handles.sessionID;
