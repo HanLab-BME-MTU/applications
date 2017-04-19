@@ -26,6 +26,7 @@ data.movies = ip.Results.movies;
 data.annotationSetIn = ip.Results.annotationSet;
 data.DR = ip.Results.DR; % struct {DR.PCA or DR.tSNE contains [nx2] coords} 
 data.moviesPath = 'none provided...';
+handles.FastPlotMode = false;
 
 % Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
@@ -837,6 +838,50 @@ handles.ptSzCtrlF = uicontrol(...
     end
 
 
+
+    handles.FastModeRB = uibuttongroup('Parent',handles.DataSel,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Rapid Plot Mode',...
+    'Tag','ToggleRapid',...
+    'Position',[handles.DRType.Position(1)-80, handles.DRType.Position(2), 75, 35],...
+    'FontSize', 8,...
+    'SelectionChangedFcn', @FastModeCallback);    
+
+
+    handles.FastRB1 = uicontrol(handles.FastModeRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','on',...
+                      'Position',[1 1 35 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
+
+    handles.FastRB0 = uicontrol(handles.FastModeRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','off',...
+                      'Position',[40 1 35 20],...
+                      'HandleVisibility','off','FontSize', 8);
+
+    % Default to the OR switch    
+    handles.FastModeRB.SelectedObject = handles.FastRB0;
+    handles.FastPlotMode = false;
+
+    function FastModeCallback(varargin)
+        if strcmp(handles.FastModeRB.SelectedObject.String,'on')
+            handles.FastPlotMode = true;
+            handles.shadowRB.SelectedObject = handles.shadowRB0;
+            handles.shadowPoints = false;
+            updatePlots
+        else
+            handles.FastPlotMode = false;
+            handles.forceUpdate = true;
+            updatePlots
+            handles.forceUpdate = false;
+
+        end
+
+    end
+
+
 %-------------------------------------------------------------------------------
 % Cell Label Menus 
 %-------------------------------------------------------------------------------
@@ -1262,7 +1307,9 @@ function writeLog(action, tag, key, expr)
     if iscell(tag)
         tag = tag{1};
     end
-    
+
+    p = mfilename('fullpath')
+    [status md5sumout] = system(['md5sum "' p '.m"']);
     % handles.sessionID;
     timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
     % action 
@@ -1270,11 +1317,12 @@ function writeLog(action, tag, key, expr)
     % key
     % expr    
 
-    formatSpec = '[%s] sessionID[%s] : {%s} \t "%s" \t <%s> \t %s\n';
+    formatSpec = '[%s] sessionID[%s] : {%s} \t "%s" \t <%s> \t %s \t %s\n';
 
-    % [time] [session ID == input .mat file+timestart]. [remove] [key] [expr] [tag]
+    % [time] [session ID == input .mat file+timestart]. [remove] [key]
+    % [expr] [tag] [md5]
     
-    fprintf(fileID,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
+    fprintf(fileID,formatSpec, timeS, handles.sessionID, action, tag, key, expr, md5sumout);
     fclose(fileID);
 
     % disp(['wrote to file ' handles.logfile]);
@@ -1722,6 +1770,7 @@ function GoToNextCell(varargin)
     end
     updateAnnotationPanel();
     updatePlots();
+    handles.manualSel.Value = handles.selPtIdx;
     if ~isempty(data.movies{1})
         playMovie_GUI(); 
     end
@@ -1735,7 +1784,7 @@ function GoToPrevCell(varargin)
     end
     updateAnnotationPanel();
     updatePlots();
-    
+    handles.manualSel.Value = handles.selPtIdx;
     if ~isempty(data.movies{1})
       playMovie_GUI(); 
    end
@@ -1981,51 +2030,53 @@ function plotScatter
     
     handles.cache.plabel = plabel;
 
-    % Generate Manual Legend
-    if ~strcmp(labeltype, 'Annotate')
+    if ~handles.FastPlotMode
+        % Generate Manual Legend
+        if ~strcmp(labeltype, 'Annotate')
+            try 
+                [GG, GN, ~]= grp2idx(plabel);
+            catch
+                [GG, GN, ~]= grp2idx(cell2mat(plabel));
+            end
+
+
+            lcmap = cell2mat(getColors(unique(GG)));
+
+            xlabels = cell(length(GN), 1);
+            for i = 1:length(GN)
+                numL = sum(ismember(GG,i));
+                perctL = round(numL/length(GG),2)*100;
+                xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+            end
+
+    %         xlabels = GN;
+            imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
+            set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+            'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
+            set(handles.axLegend, 'Visible', 'on');
+        end
+    
+    
         try 
-            [GG, GN, ~]= grp2idx(plabel);
+            clabels = grp2idx(plabel);
         catch
-            [GG, GN, ~]= grp2idx(cell2mat(plabel));
+            clabels = grp2idx(cell2mat(plabel));
         end
-        lcmap = cell2mat(getColors(unique(GG)));
 
-        xlabels = cell(length(GN), 1);
-        for i = 1:length(GN)
-            numL = sum(ismember(GG,i));
-            perctL = round(numL/length(GG),2)*100;
-            xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+    %     fast_clabels = clabels;
+        clabels = cell2mat(getColors(clabels));
+        sizeL= repmat(handles.pointSize,length(plabel),1);
+
+        ji = handles.selPtIdx;
+        handles.manualSel.Value = ji;  
+        if handles.dtOnOff.Value == 0
+            cachclabels = clabels(ji,:);
+            cachesizeL = sizeL(ji,1);
+
+            clabels(ji,:) = [0 1 1]; %[1 0 .5];
+            sizeL(ji,1) = 250;
         end
-        
-%         xlabels = GN;
-        imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
-        set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-        'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
-        set(handles.axLegend, 'Visible', 'on');
     end
-    
-    % get labels for plot
-%     clabels = grp2idx(plabel);
-    
-    try 
-        clabels = grp2idx(plabel);
-    catch
-        clabels = grp2idx(cell2mat(plabel));
-    end
-    
-    clabels = cell2mat(getColors(clabels));
-    sizeL= repmat(handles.pointSize,length(plabel),1);
-
-    ji = handles.selPtIdx;
-    handles.manualSel.Value = ji;  
-    if handles.dtOnOff.Value == 0
-        cachclabels = clabels(ji,:);
-        cachesizeL = sizeL(ji,1);
- 
-        clabels(ji,:) = [0 1 1]; %[1 0 .5];
-        sizeL(ji,1) = 250;
-    end
-
     
     % ------------------------
     % Filter SubSet Data
@@ -2037,11 +2088,9 @@ function plotScatter
     handles.dataI = data.meta.mindex(idx_f);
     handles.dataI_ns = data.meta.mindex(idx_notSel);
 
-
+%     fast_clabels = fast_clabels(idx_f, :, :);
     
-    clabelsTemp = clabels;      
-    clabelsTemp(idx_notSel, :) = repmat([1 1 1], [length(idx_notSel) 1]);
-    wclabels = repmat([1 1 1], [length(idx_all) 1]);
+
 %     end
     
     % ------------------------
@@ -2057,7 +2106,37 @@ function plotScatter
     
     if handles.info.zoom == false
 
-        if isfield(handles, 'caches') && ... 
+        if handles.FastPlotMode
+
+            try 
+                [GG, GN, ~]= grp2idx(plabel(idx_f));
+            catch
+                [GG, GN, ~]= grp2idx(cell2mat(plabel(idx_f)));
+            end
+            
+            lcmap = cell2mat(getColors(unique(GG),'jet'));
+            drawnow;
+
+            marker = '.';
+%             C = fast_clabels;
+            h = mesh(handles.axDR, [X(idx_f) X(idx_f)]', [Y(idx_f) Y(idx_f)]', zeros(2,numel(X(idx_f))),'mesh','column','marker',marker,'cdata',[GG, GG]');
+%             h = mesh(handles.axDR, [X(idx_f) X(idx_f)]', [Y(idx_f) Y(idx_f)]', zeros(2,numel(X(idx_f))),'mesh','column','marker',marker,'cdata',[C(idx_f), C(idx_f)]');
+            view(handles.axDR,2);
+            colormap(handles.axDR, lcmap);
+            
+            xlabels = cell(length(GN), 1);
+            for i = 1:length(GN)
+                numL = sum(ismember(GG,i));
+                perctL = round(numL/length(GG),2)*100;
+                xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+            end
+
+            k = imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
+            set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+            'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
+            set(handles.axLegend, 'Visible', 'on');
+            
+        elseif isfield(handles, 'caches') && ... 
             length(setxor(handles.caches.idx_f,idx_f))<1 && ...
              ~handles.forceUpdate && (strcmp(handles.caches.DRtype_sel,DRtype_sel))
 
@@ -2076,6 +2155,10 @@ function plotScatter
 
         else % re-draw plot
 
+            clabelsTemp = clabels;      
+            clabelsTemp(idx_notSel, :) = repmat([1 1 1], [length(idx_notSel) 1]);
+            wclabels = repmat([1 1 1], [length(idx_all) 1]);
+            
             if handles.shadowPoints 
                 handles.dataX = X;
                 handles.dataY = Y;
@@ -2107,17 +2190,6 @@ function plotScatter
                 
            hold off;
 
-
-            set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
-            handles.axDR.Title.String = DRtype_sel;    
-            handles.axDR.XColor = 'w';
-            handles.axDR.YColor = 'w';
-            set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);    
-            if strcmp(handles.zoomDR, 'on')        
-                zoom(handles.axDR, 'on')
-            else
-                zoom(handles.axDR, 'off')
-            end
         end
         
     else 
@@ -2132,13 +2204,26 @@ function plotScatter
         handles.axDR.YColor = 'w';
         set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
     end
+    set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
+    handles.axDR.Title.String = DRtype_sel;    
+    handles.axDR.XColor = 'w';
+    handles.axDR.YColor = 'w';
+    set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);    
+    if strcmp(handles.zoomDR, 'on')        
+        zoom(handles.axDR, 'on')
+    else
+        zoom(handles.axDR, 'off')
+    end
    ff = findall(0,'NumberTitle','on');delete(ff)
-   handles.caches.idx_f = idx_f;
-   handles.caches.ji = ji;
-   handles.caches.scat2.CDataji = cachclabels;
-   handles.caches.scat2.SizeDataji = cachesizeL;
+
+   if ~handles.FastPlotMode
+       handles.caches.idx_f = idx_f;
+       handles.caches.ji = ji;
+       handles.caches.scat2.CDataji = cachclabels;
+       handles.caches.scat2.SizeDataji = cachesizeL;
+    %    selectdata('Axes', handles.axDR);
+   end
    handles.caches.DRtype_sel = DRtype_sel;
-%    selectdata('Axes', handles.axDR);
     set(handles.ActionNotice, 'Visible', 'off');
 end
 
@@ -2272,10 +2357,20 @@ function [idx_out] = applyFilters(hinff)
     end
 end
 
-function [RGBmat] = getColors(clabels)
-   if length(unique(clabels)) <= 7
+function [RGBmat] = getColors(clabels, colormapIn)
+   
+   if length(unique(clabels)) <= 7 && nargin < 2
        col = colorset{:};
        RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
+   elseif nargin < 2
+       cmap = hsv(length(clabels));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false); 
+   elseif strcmp(colormapIn, 'hsv')
+       cmap = hsv(length(clabels));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);        
+   elseif strcmp(colormapIn, 'jet')
+       cmap = jet(length(clabels));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);               
    else
        cmap = hsv(length(clabels));
        RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);
