@@ -139,8 +139,8 @@ end
 % Retrieve reference frame path
 funParams.referenceFramePath=get(handles.edit_referenceFramePath,'String');
 if isempty(funParams.referenceFramePath)
-    errordlg('Please select a reference frame.','Setting Error','modal')
-    return;
+    warndlg('No reference frame selected, defaulting to first frame')
+    % return;
 end
 
 % Read numeric information
