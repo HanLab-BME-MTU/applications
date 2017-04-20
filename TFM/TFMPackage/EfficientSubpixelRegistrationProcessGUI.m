@@ -22,7 +22,7 @@ function varargout = EfficientSubpixelRegistrationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help EfficientSubpixelRegistrationProcessGUI
 
-% Last Modified by GUIDE v2.5 09-Feb-2017 17:08:49
+% Last Modified by GUIDE v2.5 20-Apr-2017 09:30:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,6 +55,13 @@ userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 set(handles.edit_referenceFramePath,'String',funParams.referenceFramePath);
+
+nframes = userData.MD.nFrames_;
+frameSelStr = arrayfun(@(x) ['Frame #: ' num2str(x)], 1:nframes, 'UniformOutput',false);
+frameSelStr = ['Image Path', frameSelStr];
+set(handles.referenceFrame_popupmenu,'String',frameSelStr);
+
+% set(handles.referenceFrame_popupmenu,'Callback',@frameSelStr);
 
 userData.numParams = {'usfac'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),userData.numParams);
@@ -136,11 +143,19 @@ else
     funParams.ChannelIndex = channelIndex;
 end
 
-% Retrieve reference frame path
-funParams.referenceFramePath=get(handles.edit_referenceFramePath,'String');
-if isempty(funParams.referenceFramePath)
-    warndlg('No reference frame selected, defaulting to first frame')
-    % return;
+if handles.referenceFrame_popupmenu.Value == 1 %,== 'Select Image Path')
+    % Retrieve reference frame path
+    funParams.referenceFramePath=get(handles.edit_referenceFramePath,'String');    
+    funParams.referenceFrameNum = 0;
+else
+    funParams.referenceFramePath='';
+    funParams.referenceFrameNum = handles.referenceFrame_popupmenu.Value + 1; % Assumes first one is path selection
+    
+end
+
+if handles.referenceFrame_popupmenu.Value == 1 && isempty(funParams.referenceFramePath)
+    errordlg('No reference frame selected, please select path or choose frame #.')
+    return;
 end
 
 % Read numeric information
@@ -176,8 +191,8 @@ processGUI_ApplyFcn(hObject, eventdata, handles, funParams);
 function pushbutton_selectReferenceFrame_Callback(hObject, eventdata, handles)
 
 userData=get(handles.figure1,'UserData');
-[file path]=uigetfile({'*.tif;*.TIF;*.stk;*.STK;*.bmp;*.BMP;*.jpg;*.JPG',...
-    'Image files (*.tif,*.stk,*.bmp,*.jpg)'},...
+[file path]=uigetfile({'*.tif;*.tiff;*.ome.tiff;*.TIF;*.stk;*.STK;*.bmp;*.BMP;*.jpg;*.JPG',...
+    'Image files (*.tif,*.tiff,*.stk,*.bmp,*.jpg,*.ome.tiff)'},...
     'Select the reference frame',userData.MD.outputDirectory_);
 if ~isequal(file,0) && ~isequal(path,0)
     set(handles.edit_referenceFramePath,'String',[path file]);
@@ -217,3 +232,35 @@ function uipanel_1_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to uipanel_1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on selection change in referenceFrame_popupmenu.
+function referenceFrame_popupmenu_Callback(hObject, eventdata, handles)
+% hObject    handle to referenceFrame_popupmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns referenceFrame_popupmenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from referenceFrame_popupmenu
+
+if hObject.Value == 1
+    set(handles.edit_referenceFramePath, 'Enable', 'on');
+    set(handles.pushbutton_selectReferenceFrame, 'Enable', 'on');
+elseif hObject.Value >= 2
+    set(handles.edit_referenceFramePath, 'Enable', 'off');    
+    set(handles.pushbutton_selectReferenceFrame, 'Enable', 'off'); 
+%     set(handles.text39, 'ForegroundColor', [0 0 0]); 
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function referenceFrame_popupmenu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to referenceFrame_popupmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

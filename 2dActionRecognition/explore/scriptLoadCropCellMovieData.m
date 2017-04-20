@@ -100,8 +100,6 @@ ML.sanityCheck();
 ML.save();
 
 
-
-
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Examples to acccess metadata via MovieData/MovieList');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');

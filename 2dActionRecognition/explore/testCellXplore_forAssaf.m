@@ -19,6 +19,12 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 % MD.processes_{1}.run()
 % movieViewer(MD)
 
+% Via the GUI
+% MD.addProcess(EfficientSubpixelRegistrationProcess(MD))
+% MD.addPackage(GenericPackage(MD))
+% MD
+% h = MD.packages_{1}.GUI(MD);
+
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Get Assaf''s Data');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
