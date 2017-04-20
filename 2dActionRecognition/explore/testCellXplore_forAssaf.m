@@ -13,6 +13,11 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 % MD.processes_{1}.run()
 % movieViewer(MD)
 
+% MD=MovieData.load('/work/bioinformatics/s170480/Data/LCH/DevOps/160808_m498_m634_m610_m481/28-Mar-2017_m481_s17_t95_x1344_y985_CellX.mat')
+% movieViewer(MD)
+% MD.addProcess(EfficientSubpixelRegistrationProcess(MD))
+% MD.processes_{1}.run()
+% movieViewer(MD)
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Get Assaf''s Data');
