@@ -81,6 +81,7 @@ parfor i = 1:length(singleExprMD)
         movie(:,:,itime) = curI(round((ys(itime)-FOVRadius)):(round(ys(itime)+FOVRadius)),round((xs(itime)-FOVRadius)):round((xs(itime)+FOVRadius)));
     end
     
+    % Save as OME-TIFF 
     bfsave(movie, movieFileOut, 'metadata', metadata);
     
     % MovieData Validation
@@ -90,6 +91,23 @@ parfor i = 1:length(singleExprMD)
     MList{i} = MD; 
 end
 
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+disp('% Create MovieList');
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+
 ML = MovieList([MList{:}], masterMovieDir, 'movieListFileName_', 'movieListCells.mat');
 ML.sanityCheck();
 ML.save();
+
+
+
+
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+disp('% Examples to acccess metadata via MovieData/MovieList');
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+% Access metadata info in the following fashion...
+ML.movies_{3}.reader.formatReader.getMetadataStore().getDatasetID(0)
+ML.movies_{3}.reader.formatReader.getMetadataStore().getDatasetName(0) 
+ML.movies_{3}.reader.formatReader.getMetadataStore().getImageDescription(0) 
+ML.movies_{3}.reader.formatReader.getMetadataStore().getExperimenterGroupDescription(0)
+ML.movies_{3}.reader.formatReader.getMetadataStore().getsetDatasetDescription(0)
