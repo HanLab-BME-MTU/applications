@@ -4,6 +4,17 @@ disp('% ====== Test cellXplorer =============');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+disp('% Run stage drift correction example');
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+
+% first create the movie data...
+% MD = MovieData.load('/work/bioinformatics/s170480/Data/LCH/DevOps/160808_m498_m634_m610_m481/28-Mar-2017_m610_s13_t95_x1162_y1122_CellX.mat')
+% MD.addProcess(EfficientSubpixelRegistrationProcess(MD))
+% MD.processes_{1}.run()
+% movieViewer(MD)
+
+
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Get Assaf''s Data');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
