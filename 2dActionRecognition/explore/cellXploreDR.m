@@ -17,7 +17,7 @@ ff = findall(0,'Tag','cellXplore');delete(ff)
 ip = inputParser;
 ip.KeepUnmatched = true;
 ip.CaseSensitive = false;
-ip.addRequired('cellDataSet', @(x) isstruct(x) || iscell(x) || exist(x, 'file')==2);
+ip.addRequired('cellDataSet', @(x) isstruct(x) || iscell(x) || exist(x, 'file')==2 || @(x) isa(x, 'MovieList'));
 ip.addOptional('movies', cell([1,length(cellDataSet)]), @iscell);
 ip.addParameter('annotationSet', {}, @(x) isa(x,'containers.Map'));
 ip.addParameter('DR', {}, @isstruct);
@@ -39,6 +39,7 @@ handles.pointSizeFilter = 20;
 handles.zoomDR = 'off';
 handles.shadowPoints = false;
 handles.forceUpdate = false;
+handles.flyLoad = false; % load MovieDatas on the fly
 handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationsLog.txt';
 % handles.logfile = 'AnnotationLog.txt'
 handles.timeStampStart = char(datetime('now','Format','ddMMMyyyy_hhmm'));
@@ -62,11 +63,24 @@ if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2)
     cellDataSet = inM.cellDataSet;
 
     % Load movies... (assumed ot be in same order as meta data)
-    data.moviesPath = inM.cellMoviesPath;
-    choice = questdlg(['Load movies from ' data.moviesPath '?'], ...
-                      'Load Movies into Memory?', ...
-                      'Yes', ...
-                      'No','No');
+    if isfield(inM, 'cellMoviesPath')
+        data.moviesPath = inM.cellMoviesPath;
+        choice = questdlg(['Load movies from ' data.moviesPath '?'], ...
+                          'Load Movies into Memory?', ...
+                          'Yes', ...
+                          'No','No');
+
+    else
+        choice = 'No';
+        if isfield('cellMD', cellDataSet{1}) 
+            disp('Checking movieData of individual cells...')
+            MD = MovieData.load(cellDataSet{1}.cellMD);
+            MD.sanityCheck();
+            MD
+            handles.flyLoad = true;
+        end 
+    end
+
 
     if string(choice) == 'Yes'
         hwarn = warndlg(['Please wait...loading ' num2str(length(cellDataSet)) ' movies into memory...']);
@@ -1968,13 +1982,15 @@ function updateMovieGAM(Fnum)
 end        
 
 function updateMovie()
-    if ~isempty(data.movies{handles.selPtIdx})
+    if ~handles.flyLoad && ~isempty(data.movies{handles.selPtIdx}) 
         handles.movies.nf = size(data.movies{handles.selPtIdx},3);
         imagesc(data.movies{handles.selPtIdx}(:,:,handles.movies.fidx),...
                 'Parent', handles.axMovie, 'HitTest', 'off');
         set(handles.axMovie, 'XTick', []);
         set(handles.axMovie, 'YTick', []);
         colormap(handles.axMovie, gray);
+    elseif handles.flyLoad
+        disp('load MD!')
     end
 end        
 %===============================================================================
