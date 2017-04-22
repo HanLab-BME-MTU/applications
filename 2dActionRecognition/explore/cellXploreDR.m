@@ -1195,6 +1195,9 @@ function updateAnnotationPanel()
         else
            fontstyle = 'normal';
            set(hanno, 'BackgroundColor',[.94 .94 .94]);
+           % Cbg = get(handles.BG_AO,'children');
+            % set(Cbg, 'BackgroundColor',[.94 .94 .94]);
+            % handles.BG_AO.SelectedObject.BackgroundColor = [.94 .94 .94];
         end
         set(hanno, 'Value', ismember(handles.selPtIdx, val))
         set(hanno, 'FontWeight', fontstyle);
@@ -1279,6 +1282,10 @@ function checkRB_on(src)
         set(src, 'BackgroundColor',[1 0 0]);
     else
         set(src, 'BackgroundColor',[.94 .94 .94]);
+%         Cbg = get(handles.BG_AO,'children');
+%         set(Cbg, 'BackgroundColor',[.94 .94 .94]);
+%         % handles.BG_AO.BackgroundColor = [.94 .94 .94];
+        handles.BG_AO.SelectedObject.BackgroundColor = [.94 .94 .94];
     end
   end
   
