@@ -39,6 +39,7 @@ handles.pointSizeFilter = 20;
 handles.zoomDR = 'off';
 handles.shadowPoints = false;
 handles.forceUpdate = false;
+handles.choiceLoadMD = 'no';
 handles.flyLoad = false; % load MovieDatas on the fly
 handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationsLog.txt';
 % handles.logfile = 'AnnotationLog.txt'
@@ -64,22 +65,28 @@ if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2)
 
     % Load movies... (assumed ot be in same order as meta data)
     if isfield(inM, 'cellMoviesPath')
+
         data.moviesPath = inM.cellMoviesPath;
         choice = questdlg(['Load movies from ' data.moviesPath '?'], ...
                           'Load Movies into Memory?', ...
                           'Yes', ...
                           'No','No');
-
     else
         choice = 'No';
-        if isfield('cellMD', cellDataSet{1}) 
+        
+        if isfield(cellDataSet{1},'cellMD') 
             disp('Checking movieData of individual cells...')
             MD = MovieData.load(cellDataSet{1}.cellMD);
-            MD.sanityCheck();
-            MD
+            assert(isa(MD, 'MovieData'))
             handles.flyLoad = true;
-        end 
-    end
+        end
+
+        % handles.choiceLoadMD = questdlg(['pre-Load movieData for each cell?'], ...
+        %                   'Load MovieData into Memory?', ...
+        %                   'Yes', ...
+        %                   'No','No');    
+               
+    end 
 
 
     if string(choice) == 'Yes'
@@ -94,6 +101,7 @@ if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2)
         end
         if ishandle(hwarn), close(hwarn), end;
         disp(['Done loading movies.. from ' data.moviesPath]);
+
     else
         disp('Not loading any images...')
         data.movies = cell(1,length(cellDataSet));
@@ -135,7 +143,8 @@ initDRAxes();
 % plot everything
 plotScatter;
 updateCellInfo();
-
+handles.manualSel.Value = handles.selPtIdx;
+% updateManSel(handles.manualSel);
 % Append info to UserData
 cxFig = findall(0,'Tag', 'cellXplore');
 cxFig.UserData.handles = handles;
@@ -199,6 +208,7 @@ function initializeDataStruct_Assaf() %(MODEL)
        end
     end
 
+
     % [DR types] % Ask for DR viz selection 
     feaTypes = cellDataSet(1).featureMap.keys;
     [selFeats, v] = ...
@@ -238,6 +248,21 @@ function initializeDataStruct_Assaf() %(MODEL)
     handles.backupInfo.keys = data.meta.key;
     handles.backupInfo.expr = data.meta.class.expr;
 
+
+    % [MovieData-OMETIFF]
+    if handles.flyLoad 
+        data.MD = {cellDataSet.cellMD};
+        handles.MDcache = cell(1, length(data.meta.mindex));
+    end
+    
+    if string(handles.choiceLoadMD) == 'Yes'
+        for i = 1:length(handles.MDcache)
+            handles.MDcache{i} = MovieData.load(data.MD{1});
+        end
+    else
+        disp('Not pre-loading any MovieDatas...')
+    end 
+    
 end
 
 function initInfo() % (VIEW)
@@ -385,8 +410,10 @@ function initMainGUI()
     'Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
     'Title','Cell Movie',...
     'Tag','uipanel_video',...
-    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.LabelA.Position(2)+handles.LabelA.Position(4)+gapSize, handles.LabelA.Position(3),...
-    handles.mainP.Position(4)-handles.LabelA.Position(4)-35],...
+    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize,...
+                handles.LabelA.Position(2)+handles.LabelA.Position(4)+gapSize,...
+                handles.LabelA.Position(3),...
+                handles.mainP.Position(4)-handles.LabelA.Position(4)-30],...
     'FontSize',13);
 
 
@@ -1789,9 +1816,9 @@ function GoToNextCell(varargin)
     updateAnnotationPanel();
     updatePlots();
     handles.manualSel.Value = handles.selPtIdx;
-    if ~isempty(data.movies{1})
-        playMovie_GUI(); 
-    end
+%     if ~isempty(data.movies{1})
+    playMovie_GUI(); 
+%     end
 end
 
 function GoToPrevCell(varargin)
@@ -1803,9 +1830,9 @@ function GoToPrevCell(varargin)
     updateAnnotationPanel();
     updatePlots();
     handles.manualSel.Value = handles.selPtIdx;
-    if ~isempty(data.movies{1})
+%     if ~isempty(data.movies{1})
       playMovie_GUI(); 
-   end
+%    end
 end
 
              
@@ -1883,7 +1910,8 @@ function initMovieDisplay()
     'FontSize',12, ...
     'Callback', @playMovieViewerCell);
     
-    opts = {'Parent', handles.h_movie, 'Units', 'pixels', 'Position',[14 36.6 handles.h_movie.Position(3)-30 handles.h_movie.Position(3)-30],...
+    opts = {'Parent', handles.h_movie, 'Units', 'pixels',...
+           'Position',[14 35 handles.h_movie.Position(3)-30 handles.h_movie.Position(3)-30],...
     'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
     axMovie = axes(opts{:});
     axMovie.XColor = 'w';
@@ -1901,19 +1929,30 @@ end
 
 function updateSliderNF()
     % Track slider
-    if ~isempty(data.movies{handles.selPtIdx})
-        %  nf = size(data.movies{handles.selPtIdx},3);
-        handles.movies.nf = size(data.movies{handles.selPtIdx},3);
-    else
-        warning('No moview provided');
-        %  nf = 10; % number of frames
-        handles.movies.nf = 10;
+
+
+    if ~handles.flyLoad
+        if ~isempty(data.movies{handles.selPtIdx})
+            handles.movies.nf = size(data.movies{handles.selPtIdx},3);
+        else
+            warning('No moview provided');
+            handles.movies.nf = 10;
+        end    
+    elseif handles.flyLoad
+        if isempty(handles.MDcache{handles.selPtIdx})
+            MD = MovieData.load(data.MD{handles.selPtIdx});
+            handles.MDcache{handles.selPtIdx} = MD;
+        else
+            MD = handles.MDcache{handles.selPtIdx};
+        end
+        handles.movies.nf = MD.nFrames_;
     end
+
     nf = handles.movies.nf;
     fidx = 1; % current frame
     handles.frameSlider = uicontrol(handles.h_movie, 'Style', 'slider', 'Units', 'pixels',...
             'Value', fidx, 'Min', 1, 'Max', nf,'SliderStep', [1/(nf-1) 0.5], ...
-            'Position',[8.2 11 289.6 14],'Callback', @frameSliderRelease_Callback);   
+            'Position',[3 5 390 14],'Callback', @frameSliderRelease_Callback);   
     axMovie.Color = [1 1 1];
 
     addlistener(handles.frameSlider, 'Value', 'PostSet', @frameSlider_Callback);
@@ -1938,20 +1977,57 @@ end
 
 function playMovie_GUI(varargin)
     updateSliderNF();
-    handles.movies.nf = size(data.movies{handles.selPtIdx},3);
-    nf = handles.movies.nf;
-    tidx = handles.selPtIdx;
-    i = 1;
-    while (i <= nf) && (handles.selPtIdx == tidx)
-        handles.movies.fidx = i;
-        updateMovie();
-        updateMovieGAM(i);
-        pause(.05);
-        i=i+1;
+    dont_run = false;
+    if ~handles.flyLoad && ~isempty(data.movies{handles.selPtIdx})
+        handles.movies.nf = size(data.movies{handles.selPtIdx},3);
+    elseif handles.flyLoad
+        if isempty(handles.MDcache{handles.selPtIdx})
+            MD = MovieData.load(data.MD{handles.selPtIdx});
+            handles.movies.nf = MD.nFrames_;
+            handles.MDcache{handles.selPtIdx} = MD;
+        else
+            MD = handles.MDcache{handles.selPtIdx};
+        end
+        handles.movies.nf = MD.nFrames_;
+    else
+        dont_run = true;
+    end
+    if ~dont_run
+        nf = handles.movies.nf;
+        tidx = handles.selPtIdx;
+        i = 1;
+        while (i <= nf) && (handles.selPtIdx == tidx)
+            handles.movies.fidx = i;
+            updateMovie();
+            updateMovieGAM(i);
+            pause(.05);
+            i=i+1;
+        end
+    else
+        return
     end
 end
 
 function playMovieViewerCell(varargin)
+
+    if ~handles.flyLoad && ~isempty(data.movies{handles.selPtIdx}) 
+        handles.movies.nf = size(data.movies{handles.selPtIdx},3);
+        movieFrame = data.movies{handles.selPtIdx}(:,:,handles.movies.fidx); 
+    elseif handles.flyLoad
+        MD = handles.MDcache{handles.selPtIdx};
+        movieViewer(MD);
+        sF = findobj(0,'tag', 'slider_frame');
+        % if 
+        sF.Value = data.extra.time(handles.selPtIdx);
+        sF.Callback(sF);
+        % MDl =memoize(@MD.channels_.loadImage)
+        % movieFrame = MD.channels_.loadImage(handles.movies.fidx);
+    else
+        return
+    end
+    % handles.thisMD = load(cellDataSet(handles.selPtIdx).MD);
+    % % ff = findall(0,'Name', 'Viewer'); close(ff);
+    % movieViewer(handles.thisMD.MD);
 end
 
 function playMovieViewerAll(varargin)
@@ -1984,14 +2060,20 @@ end
 function updateMovie()
     if ~handles.flyLoad && ~isempty(data.movies{handles.selPtIdx}) 
         handles.movies.nf = size(data.movies{handles.selPtIdx},3);
-        imagesc(data.movies{handles.selPtIdx}(:,:,handles.movies.fidx),...
-                'Parent', handles.axMovie, 'HitTest', 'off');
-        set(handles.axMovie, 'XTick', []);
-        set(handles.axMovie, 'YTick', []);
-        colormap(handles.axMovie, gray);
+        movieFrame = data.movies{handles.selPtIdx}(:,:,handles.movies.fidx); 
     elseif handles.flyLoad
-        disp('load MD!')
+        % disp('load MD!');
+        MD = handles.MDcache{handles.selPtIdx};
+        % MDl =memoize(@MD.channels_.loadImage)
+        movieFrame = MD.channels_.loadImage(handles.movies.fidx);
     end
+    imagesc(movieFrame,'Parent', handles.axMovie, 'HitTest', 'off');
+    set(handles.axMovie, 'XTick', []);
+    set(handles.axMovie, 'YTick', []);
+%     set(handles.axMovie,'XLim',[0 size(movieFrame,2)],'YLim',[0 size(movieFrame,1)]);
+set(handles.axMovie, 'Position', [5 8 size(movieFrame,1)*1.5 size(movieFrame,2)*1.5])    
+% set(handles.axMovie, 'Position', [8 21 330 330])
+    colormap(handles.axMovie, gray);
 end        
 %===============================================================================
 % Set up DR viz axes
@@ -2156,7 +2238,7 @@ function plotScatter
             'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
             set(handles.axLegend, 'Visible', 'on');
             
-        elseif isfield(handles, 'caches') && ... 
+        elseif isfield(handles, 'caches') && isfield(handles.caches, 'idx_f') && ... 
             length(setxor(handles.caches.idx_f,idx_f))<1 && ...
              ~handles.forceUpdate && (strcmp(handles.caches.DRtype_sel,DRtype_sel))
 
@@ -2230,9 +2312,9 @@ function plotScatter
     handles.axDR.YColor = 'w';
     set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);    
     if strcmp(handles.zoomDR, 'on')        
-        zoom(handles.axDR, 'on')
+        zoom(handles.axDR, 'on');
     else
-        zoom(handles.axDR, 'off')
+        zoom(handles.axDR, 'off');
     end
    ff = findall(0,'NumberTitle','on');delete(ff)
 
@@ -2318,7 +2400,7 @@ function axDRCallback(varargin)
     updateCellInfo;
     updateAnnotationPanel;
     plotScatter; 
-    if ~isempty(data.movies{handles.selPtIdx}) 
+    if ~isempty(data.movies{handles.selPtIdx}) || handles.flyLoad
         playMovie_GUI;      
     end
 end
