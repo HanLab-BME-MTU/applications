@@ -34,10 +34,10 @@ handles.cache.plabel = {};
 handles.info.zoom = false;
 handles.info.GAM.state = false; 
 handles.GAMfig = {};
-handles.pointSize = 5;
+handles.pointSize = 4;
 handles.pointSizeFilter = 20;
 handles.zoomDR = 'off';
-handles.shadowPoints = false;
+handles.shadowPoints = true;
 handles.forceUpdate = false;
 handles.choiceLoadMD = 'no';
 handles.flyLoad = false; % load MovieDatas on the fly
@@ -143,8 +143,8 @@ initDRAxes();
 % plot everything
 plotScatter;
 updateCellInfo();
-handles.manualSel.Value = handles.selPtIdx;
-% updateManSel(handles.manualSel);
+% handles.manualSel.Value = handles.selPtIdx;
+updateManSel(handles.manualSel);
 % Append info to UserData
 cxFig = findall(0,'Tag', 'cellXplore');
 cxFig.UserData.handles = handles;
@@ -403,19 +403,44 @@ function initMainGUI()
     handles.LabelA = uipanel('Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
     'Title','Cell Labeling',...
     'Tag','uipanel_annotate',...
-    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.DataSel.Position(2), xSizeLabelPanel 375],...
+    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize,...
+                handles.DataSel.Position(2),...
+                xSizeLabelPanel 475],...
     'FontSize',13);
 
-    handles.h_movie = uipanel(...
-    'Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
-    'Title','Cell Movie',...
-    'Tag','uipanel_video',...
+
+    widthCellInfo = 330;
+    handles.widthCellInfo = widthCellInfo;
+
+    xposLabels = widthCellInfo/2;
+    LabelH = 13;
+    gapL = 3;
+    widthString = 55;
+    handles.cellInfo = uipanel(...
+    'Parent',handles.mainP,...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'Title','Cell Info',...
+    'Tag','CellInfopanel',...
     'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize,...
                 handles.LabelA.Position(2)+handles.LabelA.Position(4)+gapSize,...
                 handles.LabelA.Position(3),...
                 handles.mainP.Position(4)-handles.LabelA.Position(4)-30],...
     'FontSize',13);
 
+
+    handles.h_movie = uipanel(...
+    'Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
+    'Title','Cell Movie',...
+    'Tag','uipanel_video',...
+    'Position',[handles.cellInfo.Position(3)+handles.cellInfo.Position(1)+gapSize,...
+                handles.LabelA.Position(2) + 250,...
+                400 400],...
+    'FontSize',13);
+%     'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize,...
+%                 handles.LabelA.Position(2)+handles.LabelA.Position(4)+gapSize,...
+%                 handles.LabelA.Position(3),...
+%                 handles.mainP.Position(4)-handles.LabelA.Position(4)-30],...
 
     % Toggle switch for AND/OR annotation filtering
 
@@ -446,22 +471,7 @@ function initMainGUI()
 
 
 
-    widthCellInfo = 330;
-    handles.widthCellInfo = widthCellInfo;
 
-    xposLabels = widthCellInfo/2;
-    LabelH = 13;
-    gapL = 3;
-    widthString = 55;
-    handles.cellInfo = uipanel(...
-    'Parent',handles.mainP,...
-    'FontUnits','pixels',...
-    'Units','pixels',...
-    'Title','Cell Info',...
-    'Tag','CellInfopanel',...
-    'Position',[handles.h_movie.Position(3)+handles.h_movie.Position(1)+gapSize, handles.h_movie.Position(2),...
-    widthCellInfo, numel(handles.info.labelTypes)*25+50],...
-    'FontSize',13);
 
     % annotations & save button
     handles.notes = uicontrol(...
@@ -2009,34 +2019,41 @@ function playMovie_GUI(varargin)
 end
 
 function playMovieViewerCell(varargin)
-
+    ff = findall(0,'Name', 'Viewer'); close(ff);
     if ~handles.flyLoad && ~isempty(data.movies{handles.selPtIdx}) 
         handles.movies.nf = size(data.movies{handles.selPtIdx},3);
         movieFrame = data.movies{handles.selPtIdx}(:,:,handles.movies.fidx); 
     elseif handles.flyLoad
         MD = handles.MDcache{handles.selPtIdx};
         movieViewer(MD);
-        sF = findobj(0,'tag', 'slider_frame');
-        % if 
-        sF.Value = data.extra.time(handles.selPtIdx);
-        sF.Callback(sF);
         % MDl =memoize(@MD.channels_.loadImage)
         % movieFrame = MD.channels_.loadImage(handles.movies.fidx);
     else
         return
     end
-    % handles.thisMD = load(cellDataSet(handles.selPtIdx).MD);
-    % % ff = findall(0,'Name', 'Viewer'); close(ff);
-    % movieViewer(handles.thisMD.MD);
 end
 
 function playMovieViewerAll(varargin)
     handles.thisMD = load(cellDataSet(handles.selPtIdx).MD);
     ff = findall(0,'Name', 'Viewer'); close(ff);
     movieViewer(handles.thisMD.MD);
-    sF = findobj(0,'tag', 'slider_frame');
-    sF.Value = data.extra.time(handles.selPtIdx);
-    sF.Callback(sF);
+    sFs = findobj(0,'tag', 'slider_frame');
+    if length(sFs) > 1
+        maxF = sFs(1).Parent.Parent.UserData.MO.nFrames_;
+        maxi = 1;
+        for i = 1:length(sFs)
+            if sFs(i).Parent.Parent.UserData.MO.nFrames_ > maxF
+                maxi = i;
+                maxF = sFs(i).Parent.Parent.UserData.MO.nFrames_;
+            end
+        end
+        i = maxi;
+        sFs(i).Value = data.extra.time(handles.selPtIdx);
+        sFs(i).Callback(sFs(i));
+    else
+        sFs.Value = data.extra.time(handles.selPtIdx);
+        sFs.Callback(sFs);
+    end
     ff = findall(0,'Tag', 'viewerFig'); 
     figure(ff); 
     plot(data.DR.XY(handles.selPtIdx,1),data.DR.XY(handles.selPtIdx,2), 'or', 'markersize', 50, 'Linewidth', .25);    
@@ -2071,7 +2088,7 @@ function updateMovie()
     set(handles.axMovie, 'XTick', []);
     set(handles.axMovie, 'YTick', []);
 %     set(handles.axMovie,'XLim',[0 size(movieFrame,2)],'YLim',[0 size(movieFrame,1)]);
-set(handles.axMovie, 'Position', [5 8 size(movieFrame,1)*1.5 size(movieFrame,2)*1.5])    
+set(handles.axMovie, 'Position', [5 8 size(movieFrame,1)*1.75 size(movieFrame,2)*1.75])    
 % set(handles.axMovie, 'Position', [8 21 330 330])
     colormap(handles.axMovie, gray);
 end        
