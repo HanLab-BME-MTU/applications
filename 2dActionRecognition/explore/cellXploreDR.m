@@ -1370,7 +1370,7 @@ function writeLog(action, tag, key, expr)
         tag = tag{1};
     end
     
-    p = mfilename('fullpath')
+    p = mfilename('fullpath');
     [status md5sumout] = system(['md5sum "' p '.m"']);
     % handles.sessionID;
     timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
