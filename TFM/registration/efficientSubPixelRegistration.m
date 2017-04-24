@@ -88,16 +88,21 @@ for i = p.ChannelIndex;
     mkClrDir(outFilePaths{1,i});
 end
 
-iTFM = movieData.getPackageIndex('TFMPackage');
-TFMpackage = movieData.getPackage(iTFM);
-SDCProcess = TFMpackage.getProcess(1);
-[~,refName,refExt] = fileparts(SDCProcess.funParams_.referenceFramePath);
+
+% Loading reference channel images and bead image stack
+if ~isempty(p.referenceFramePath) 
+  [~,refName,refExt] = fileparts(thisProcess.funParams_.referenceFramePath);
+else
+  refName = ['refernceFrame' num2str(p.referenceFrameNum)];
+  refExt  ='.tiff';
+  % [~,refName,refExt] = fileparts(thisProcess.funParams_.referenceFramePath);
+  % refFrame = double(imread(p.referenceFramePath));
+end
 
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
 outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationParameters.mat'];
 
 thisProcess.setOutFilePaths(outFilePaths);
-
 
 
 %% --------------- Stage drift correction ---------------%%% 
@@ -107,11 +112,20 @@ disp('Starting correcting stage drift [EfficientSubpixelRegistrationbyCrossCorre
 % Anonymous functions for reading input/output
 outFile=@(chan,frame) [outFilePaths{1,chan} filesep imageFileNames{chan}{frame}];
 
-% Loading reference channel images and bead image stack
-refFrame = double(imread(p.referenceFramePath));
+
 ImStack = zeros([movieData.imSize_ nFrames]);
 beadsChannel = movieData.channels_(p.ChannelIndex(1));
 for j = 1:nFrames, ImStack(:,:,j) = double(beadsChannel.loadImage(j)); end
+
+
+% Loading reference channel images and bead image stack
+if ~isempty(p.referenceFramePath) 
+  refFrame = double(imread(p.referenceFramePath));
+else
+  disp(['Using frame ' num2str(p.referenceFrameNum) ' as reference']);
+  refFrame = ImStack(:,:,p.referenceFrameNum);
+  % refFrame = double(imread(p.referenceFramePath));
+end
 
 
 disp('Calculating subpixel-wise registration...')
@@ -165,7 +179,18 @@ for frame_num = 1:nFrames
      end
 end
 
+
+% Loading reference channel images and bead image stack
+if ~isempty(p.referenceFramePath) 
+  refFrame = double(imread(p.referenceFramePath));
+else
+  disp(['Using frame ' num2str(p.referenceFrameNum) ' as reference']);
+  refFrame = ImStack(:,:,p.referenceFrameNum);
+  % refFrame = double(imread(p.referenceFramePath));
+end
+
 imwrite(uint16(refFrame), outFilePaths{2, p.ChannelIndex(1)});
+
 T = [DFTout.row_shift; DFTout.col_shift]';
 save(outFilePaths{3, p.ChannelIndex(1)},'DFTout', 'T');
 % Close waitbar

@@ -58,6 +58,7 @@ classdef  EfficientSubpixelRegistrationProcess < StageDriftCorrectionProcess
             funParams.ChannelIndex = 1 : numel(owner.channels_);
             funParams.OutputDirectory = [outputDir  filesep 'stageDriftCorrection_Efficientsubpixel'];
             funParams.referenceFramePath = '';
+            funParams.referenceFrameNum = 1;
             funParams.usfac = 20;
         end
     end

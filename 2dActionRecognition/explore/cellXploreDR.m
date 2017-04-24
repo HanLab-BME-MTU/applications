@@ -17,7 +17,7 @@ ff = findall(0,'Tag','cellXplore');delete(ff)
 ip = inputParser;
 ip.KeepUnmatched = true;
 ip.CaseSensitive = false;
-ip.addRequired('cellDataSet', @(x) isstruct(x) || iscell(x));
+ip.addRequired('cellDataSet', @(x) isstruct(x) || iscell(x) || exist(x, 'file')==2);
 ip.addOptional('movies', cell([1,length(cellDataSet)]), @iscell);
 ip.addParameter('annotationSet', {}, @(x) isa(x,'containers.Map'));
 ip.addParameter('DR', {}, @isstruct);
@@ -25,6 +25,8 @@ ip.parse(cellDataSet, varargin{:});
 data.movies = ip.Results.movies;
 data.annotationSetIn = ip.Results.annotationSet;
 data.DR = ip.Results.DR; % struct {DR.PCA or DR.tSNE contains [nx2] coords} 
+data.moviesPath = 'none provided...';
+handles.FastPlotMode = false;
 
 % Set Filter, Label, and DR Types (+ colors)
 colorset = {'brgykop'};
@@ -32,13 +34,71 @@ handles.cache.plabel = {};
 handles.info.zoom = false;
 handles.info.GAM.state = false; 
 handles.GAMfig = {};
+handles.pointSize = 5;
+handles.pointSizeFilter = 20;
+handles.zoomDR = 'off';
+handles.shadowPoints = false;
+handles.forceUpdate = false;
+handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationsLog.txt';
+% handles.logfile = 'AnnotationLog.txt'
+handles.timeStampStart = char(datetime('now','Format','ddMMMyyyy_hhmm'));
+handles.uName = char(java.lang.System.getProperty('user.name'));
+handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
+handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 
 % Initialize Label Dictionary
+if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2) 
+
+    inM = load(cellDataSet); 
+    
+    % Capture original file path
+    data.info.loadCellDataFile = cellDataSet;
+    % Grab metadata
+    if isfield(inM, 'cellDataSet')    
+        cellDataSet = inM.cellDataSet;
+    elseif isfield(inM, 'allCellsMovieData')    
+        cellDataSet = inM.allCellsMovieData;
+    end
+    cellDataSet = inM.cellDataSet;
+
+    % Load movies... (assumed ot be in same order as meta data)
+    data.moviesPath = inM.cellMoviesPath;
+    choice = questdlg(['Load movies from ' data.moviesPath '?'], ...
+                      'Load Movies into Memory?', ...
+                      'Yes', ...
+                      'No','No');
+
+    if string(choice) == 'Yes'
+        hwarn = warndlg(['Please wait...loading ' num2str(length(cellDataSet)) ' movies into memory...']);
+        %% TODO detect if MovieList -- if so, OME-TIFF expected... on the fly...
+        %% else, give warning that it may take a while to load.
+        S = load(data.moviesPath, 'cellMovies');
+        if isfield(S, 'cellMovies')    
+            data.movies = S.cellMovies;
+        elseif isfield(S, 'allCellMovies')    
+            data.movies = S.allCellMovies;
+        end
+        if ishandle(hwarn), close(hwarn), end;
+        disp(['Done loading movies.. from ' data.moviesPath]);
+    else
+        disp('Not loading any images...')
+        data.movies = cell(1,length(cellDataSet));
+    end
+
+    % pre-defined annotation set (container.Map)
+    if isfield(inM, 'annotationSet')
+        data.annotationSetIn = inM.annotationSet;
+    end
+
+    handles.sessionID = [handles.sessionID '_' data.info.loadCellDataFile];
+end
+
 % check if cell array
 if iscell(cellDataSet)
     disp('converning to struct array from cell array');
     cellDataSet = cell2mat(cellDataSet);
 end
+
 
 initializeDataStruct_Assaf();
 if ~isempty(data.annotationSetIn)
@@ -155,8 +215,15 @@ function initializeDataStruct_Assaf() %(MODEL)
 
     % [XY coord at first time point as a reference]
     data.DR.XY = [cellfun(@(x) x(1), {cellDataSet.xs}); cellfun(@(x) x(1), {cellDataSet.ys})]';
+    data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
 
     initInfo();
+
+    % Initialize backup info....
+    handles.backupInfo.cellMoviesPath = data.moviesPath;
+    handles.backupInfo.keys = data.meta.key;
+    handles.backupInfo.expr = data.meta.class.expr;
+
 end
 
 function initInfo() % (VIEW)
@@ -244,6 +311,22 @@ function initMainGUI()
     'Position',[5 5 xsizeF-10 ysizeF-15],...
     'FontSize',16,...
     'FontWeight','bold');
+
+
+
+    handles.ActionNotice = uicontrol(...
+    'Parent',handles.mainP,...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'Style','text',...
+    'String','Please wait updating Plots...',...
+    'Position',[handles.mainP.Position(3)-250 100 250 35],...
+    'Tag','SaveNotes',...
+    'FontSize',15,...
+    'BackgroundColor',[.75 .5 1]);
+    set(handles.ActionNotice, 'Visible', 'off');
+
+
     %-------------------------------------------------------------------------------
     % Control/Movie panels of GUI
     %-------------------------------------------------------------------------------
@@ -256,7 +339,7 @@ function initMainGUI()
     % Data Selection Panel
     xSizeSelectPanel = 450;
     % ---> insert dynamic size info here
-    ySizeSelectPanel = 200 + 15*numel(handles.info.labelTypes); 
+    ySizeSelectPanel = 175 + 15*numel(handles.info.labelTypes); 
 
     % DR Panel
     xPosDR = gapSize;
@@ -281,7 +364,7 @@ function initMainGUI()
     handles.LabelA = uipanel('Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
     'Title','Cell Labeling',...
     'Tag','uipanel_annotate',...
-    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.DataSel.Position(2), xSizeLabelPanel 400],...
+    'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.DataSel.Position(2), xSizeLabelPanel 375],...
     'FontSize',13);
 
     handles.h_movie = uipanel(...
@@ -291,6 +374,36 @@ function initMainGUI()
     'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize, handles.LabelA.Position(2)+handles.LabelA.Position(4)+gapSize, handles.LabelA.Position(3),...
     handles.mainP.Position(4)-handles.LabelA.Position(4)-35],...
     'FontSize',13);
+
+
+    % Toggle switch for AND/OR annotation filtering
+
+
+    handles.BG_AO = uibuttongroup('Parent',handles.LabelA,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Filter Operation',...
+    'Tag','ToggleFilter_ANDOR',...
+    'Position',[325 1 100 30],...
+    'FontSize', 8,...
+    'SelectionChangedFcn', @updateGeneral);    
+
+    handles.and1 = uicontrol(handles.BG_AO,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','AND',...
+                      'Position',[10 1 45 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
+
+    handles.or1 = uicontrol(handles.BG_AO,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','OR',...
+                      'Position',[50 1 30 20],...
+                      'HandleVisibility','off','FontSize', 8);
+
+    % Default to the OR switch    
+    handles.BG_AO.SelectedObject = handles.or1;
+
+
 
     widthCellInfo = 330;
     handles.widthCellInfo = widthCellInfo;
@@ -331,8 +444,8 @@ function initMainGUI()
     'String','Export CellData',...
     'Position',[posE(1)+posE(3)+gapSize, posE(2), 120 25],...
     'Callback',@Export_Callback,...
-    'Tag','Export CX Data',...
-    'FontSize',10);
+    'Tag','ExportCXDatarAW ',...
+    'FontSize',10, 'Visible', 'off');
     
     function Export_Callback(varargin)
         % First save state (collect info / assign handles)
@@ -350,6 +463,8 @@ function initMainGUI()
         
     end
     
+    
+    
     % Export annotations to workspace
     posE = handles.exportData.Position;
     handles.exportDataAnno = uicontrol(...
@@ -360,7 +475,7 @@ function initMainGUI()
     'String','Export CellData with Annotations',...
     'Position',[posE(1)+posE(3)+gapSize, posE(2), 120 25],...
     'Callback',@ExportAnno_Callback,...
-    'Tag','Export CX Data',...
+    'Tag','ExportMat',...
     'FontSize',10);
 
     function ExportAnno_Callback(varargin)
@@ -390,6 +505,18 @@ function initMainGUI()
         assignin('base', varname{1}, cc);
         assignin('base', ['hashMap_' varname{1}] , data.meta.anno.tagMapKey);
         
+        
+
+        cellMoviesPath = data.moviesPath;
+        cellDataSet = cc;
+        annotationSet = data.meta.anno.tagMapKey;
+        dataOut.meta = data.meta;
+        dataOut.DR = data.DR;
+        dataOut.info = handles.info;
+      
+        save([exportVarName '.mat'],'annotationSet','cellMoviesPath','cellDataSet','dataOut','-v7.3');
+
+        writeLog('export', [exportVarName '.mat'], 'none', 'none');
     end
     
     
@@ -423,14 +550,17 @@ function initMainGUI()
     function SaveNotes_Callback(varargin)
         notes = get(handles.notes, 'String');
         data.meta.notes{handles.selPtIdx} = notes;
+        cellKey = data.meta.key{handles.selPtIdx};
+        expr = data.meta.expStr{handles.selPtIdx};
         set(handles.SaveNotesNotice, 'Visible', 'on');
-        pause(.5);
+        pause(.25);
         set(handles.SaveNotesNotice, 'Visible', 'off');
 
         % Append info to UserData
         cxFig = findall(0,'Tag', 'cellXplore');
         cxFig.UserData.handles = handles;
-        cxFig.UserData.data = data;    
+        cxFig.UserData.data = data;   
+        writeLog('saveNotes', notes, cellKey, expr);
     end
 
     %-------------------------------------------------------------------------------
@@ -561,6 +691,197 @@ function initDRPanel()
     set(handles.DRradio(1), 'Value', 1);
 end
 
+
+%% point appearance
+
+handles.ptSzP = uipanel('Parent',handles.DataSel,...
+ 'FontUnits','pixels','Units','pixels',...
+ 'Title','PointSize',...
+ 'Tag','uipanel_selectPointSize',...
+ 'TitlePosition', 'lefttop',...
+ 'Position',[handles.DRType.Position(1), handles.DRType.Position(2)-35, 50, 30],...
+ 'FontSize',8); 
+
+handles.ptSzCtrl = uicontrol(...
+    'Parent',handles.ptSzP,...
+    'FontUnits','points',...
+    'FontSize',8,...
+    'String', string(3:50),...
+    'Style','popupmenu',...
+    'Value', find(ismember(string(3:50), string(handles.pointSize))),...
+    'Units','pixels',...
+    'Tag','pointSize',...
+    'Position',[1 1 50 20],...
+    'Callback',@updatePointSize);
+
+    function updatePointSize(source, ~)
+       val = source.Value;
+       maps = source.String;
+       handles.pointSize = str2double(maps{val});
+       disp(['Updating point sizes to : ', str2double(maps{val})]);
+       if strcmp(maps{val}, 'custom')
+           set(handles.custClass, 'Visible', 'on');
+       else
+           set(handles.custClass, 'Visible', 'off');
+       end
+       handles.forceUpdate = true;
+       updatePlots();
+       handles.forceUpdate = false;
+    end
+
+
+
+handles.ptSzPF = uipanel('Parent',handles.DataSel,...
+ 'FontUnits','pixels','Units','pixels',...
+ 'Title','PntSizeFilter',...
+ 'Tag','uipanel_selectPointSizeFilter',...
+ 'TitlePosition', 'lefttop',...
+ 'Position',[handles.DRType.Position(1), handles.DRType.Position(2)-70, 50, 30],...
+ 'FontSize',8); 
+
+handles.ptSzCtrlF = uicontrol(...
+    'Parent',handles.ptSzPF,...
+    'FontUnits','points',...
+    'FontSize',8,...
+    'String', string(3:50),...
+    'Style','popupmenu',...
+    'Value', find(ismember( string(3:50), string(handles.pointSizeFilter))),...
+    'Units','pixels',...
+    'Tag','pointSize',...
+    'Position',[1 1 50 20],...
+    'Callback',@updatePointSizeF);
+
+    function updatePointSizeF(source, ~)
+       val = source.Value;
+       maps = source.String;
+       handles.pointSizeFilter = str2double(maps{val});
+       disp(['Updating point sizes to : ', str2double(maps{val})]);
+       if strcmp(maps{val}, 'custom')
+           set(handles.custClass, 'Visible', 'on');
+       else
+           set(handles.custClass, 'Visible', 'off');
+       end
+       handles.forceUpdate = true
+       updatePlots();
+       handles.forceUpdate = false
+    end
+
+
+    % Toggle switch for AND/OR annotation filtering
+
+
+    handles.zoomRB = uibuttongroup('Parent',handles.DataSel,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Zoom DR Plot',...
+    'Tag','ToggleZoom',...
+    'Position',[handles.DRType.Position(1)-80, handles.DRType.Position(2)-70, 75, 35],...
+    'FontSize', 8,...
+    'SelectionChangedFcn', @zoomCallback);    
+
+    handles.zoom1 = uicontrol(handles.zoomRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','on',...
+                      'Position',[1 1 35 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
+
+    handles.zoom0 = uicontrol(handles.zoomRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','off',...
+                      'Position',[40 1 35 20],...
+                      'HandleVisibility','off','FontSize', 8);
+
+    % Default to the OR switch    
+    handles.zoomRB.SelectedObject = handles.zoom0;
+    
+    function zoomCallback(varargin)
+        handles.zoomDR = handles.zoomRB.SelectedObject.String;
+%         updatePlots
+        zoom(handles.axDR, handles.zoomRB.SelectedObject.String)
+    end
+
+    handles.shadowRB = uibuttongroup('Parent',handles.DataSel,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Shadow Points',...
+    'Tag','ToggleZoom',...
+    'Position',[handles.DRType.Position(1)-80, handles.DRType.Position(2)-35, 75, 35],...
+    'FontSize', 8,...
+    'SelectionChangedFcn', @shadowCallback);    
+
+
+    handles.shadowRB1 = uicontrol(handles.shadowRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','on',...
+                      'Position',[1 1 35 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
+
+    handles.shadowRB0 = uicontrol(handles.shadowRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','off',...
+                      'Position',[40 1 35 20],...
+                      'HandleVisibility','off','FontSize', 8);
+
+    % Default to the OR switch    
+    handles.shadowRB.SelectedObject = handles.shadowRB1;
+
+   
+    function shadowCallback(varargin)
+        if strcmp(handles.shadowRB.SelectedObject.String,'on')
+            handles.shadowPoints = true;
+        else
+            handles.shadowPoints = false;
+        end
+        handles.forceUpdate = true;
+        updatePlots
+        handles.forceUpdate = false;
+    end
+
+
+
+    handles.FastModeRB = uibuttongroup('Parent',handles.DataSel,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Rapid Plot Mode',...
+    'Tag','ToggleRapid',...
+    'Position',[handles.DRType.Position(1)-80, handles.DRType.Position(2), 75, 35],...
+    'FontSize', 8,...
+    'SelectionChangedFcn', @FastModeCallback);    
+
+
+    handles.FastRB1 = uicontrol(handles.FastModeRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','on',...
+                      'Position',[1 1 35 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 8);
+
+    handles.FastRB0 = uicontrol(handles.FastModeRB,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','off',...
+                      'Position',[40 1 35 20],...
+                      'HandleVisibility','off','FontSize', 8);
+
+    % Default to the OR switch    
+    handles.FastModeRB.SelectedObject = handles.FastRB0;
+    handles.FastPlotMode = false;
+
+    function FastModeCallback(varargin)
+        if strcmp(handles.FastModeRB.SelectedObject.String,'on')
+            handles.FastPlotMode = true;
+            handles.shadowRB.SelectedObject = handles.shadowRB0;
+            handles.shadowPoints = false;
+            updatePlots
+        else
+            handles.FastPlotMode = false;
+            handles.forceUpdate = true;
+            updatePlots
+            handles.forceUpdate = false;
+
+        end
+
+    end
+
+
 %-------------------------------------------------------------------------------
 % Cell Label Menus 
 %-------------------------------------------------------------------------------
@@ -572,7 +893,7 @@ function initCellLabels()
     'Style','popupmenu',...
     'FontUnits','pixels',...
     'Units', 'pixels', ...
-    'Value',1, ...
+    'Value',2, ...
     'Position', [10 handles.LabelA.Position(4)-25 80 0],...
     'Callback',@updateLabel,...
     'Tag','cellLabelTypeselect',...
@@ -602,7 +923,9 @@ function initCellLabels()
        else
            set(handles.custClass, 'Visible', 'off');
        end
+       handles.forceUpdate = true;
        updatePlots();
+       handles.forceUpdate = false;
     end
 
     % Manual Label Legend
@@ -741,17 +1064,24 @@ function createAnnotationPanel()
        else
            handles.info.anno.RB(data.meta.anno.set{ii}) = 0;
        end
-
+       
+       % Radio Button
+       % pre-calculate the number of cells with annotation
+       tagName = data.meta.anno.set{ii};
+       numCellAnno = num2str(length(data.meta.anno.tagMapKey(tagName))-1);
+       if strcmp(numCellAnno,'0')
+        numCellAnno = '';
+       end
        handles.highAnno(ii) = uicontrol(...
         'Parent',handles.annoPanel,...
         'Units','pixels',...
         'FontUnits','pixels',...
-        'String', '',...
+        'String', numCellAnno,...
         'Style', 'radiobutton',...
         'Value', preVal,...
-        'Position',[5 yA 15 15],...
-        'Tag',[data.meta.anno.set{ii} 'delete'],...
-        'FontSize', 11,...
+        'Position',[5 yA 35 15],...
+        'Tag',[data.meta.anno.set{ii} 'RB'],...
+        'FontSize', 8,...
         'HorizontalAlignment', 'center',...
         'Callback',@togAnnotation_callback);                    
 
@@ -780,7 +1110,7 @@ function createAnnotationPanel()
             'Position',[handles.annoPanel.Position(3)/2-55/2-25 yA 55 10],...
             'FontSize', 8,...
             'HorizontalAlignment', 'left');               
-            textAnno = uicontrol(...
+         textAnno = uicontrol(...
             'Parent',handles.annoPanel,...
             'Units','pixels',...
             'FontUnits','pixels',...
@@ -830,6 +1160,7 @@ function addAnnotation_callback(varargin)
     if ~isempty(newAnnotationString)
         addAnnotation(newAnnotationString);
     end
+    
 end
 
 function addAnnotation(newStr)
@@ -841,6 +1172,7 @@ function addAnnotation(newStr)
         data.meta.anno.tagMapKey(newStr{:}) = {'null'};
         disp(['Added annotation tag' newStr{:}]);
         createAnnotationPanel();
+        writeLog('create-tag', newStr, 'none', 'none');
     end
 end
 
@@ -856,6 +1188,7 @@ function addAnnotationNoGUI(newStrs)
             data.meta.anno.tagMap(newStr{:}) = NaN;
             data.meta.anno.tagMapKey(newStr{:}) = {'null'};
             disp(['Added annotation tag [ ' newStr{:} ' ]']);
+            writeLog('create-tag', newStr, 'none', 'none');
         end
     end
 end
@@ -874,7 +1207,17 @@ function checkRB_on(src)
   if src.Value == src.Max
     handles.info.anno.RB(key) = 1;
     if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes')
-        set(src, 'BackgroundColor',[0 1 0]);
+        if strcmp(handles.BG_AO.SelectedObject.String, 'AND')
+            % set as yellow (AND)
+            set(src, 'BackgroundColor',[1 1 0]);    
+            handles.and1.BackgroundColor = [1 1 0];
+            handles.or1.BackgroundColor = [.94 .94 .94];
+        else
+            % set as green (OR)
+            set(src, 'BackgroundColor',[0 1 0]);
+            handles.BG_AO.SelectedObject.BackgroundColor = [0 1 0];
+            handles.and1.BackgroundColor = [.94 .94 .94];
+        end
     else
         set(src, 'BackgroundColor',[.94 .94 .94]);
     end            
@@ -886,8 +1229,18 @@ function checkRB_on(src)
     else
         set(src, 'BackgroundColor',[.94 .94 .94]);
     end
-
   end
+  
+  
+  tagName = key;
+  numCellAnno = num2str(length(data.meta.anno.tagMapKey(tagName))-1);
+
+  if strcmp(numCellAnno,'0')
+    numCellAnno = '';
+  end
+  src.String = numCellAnno;
+  
+  
 end
 
 function delAnnotation_callback(src, ~)
@@ -898,17 +1251,19 @@ end
 
 function deleteAnnotation(tagName)
     assert(ismember(tagName, data.meta.anno.set));
-
     % Remove tag from cells (use KeyMap)
     rt_cells = data.meta.anno.tagMapKey(tagName);
+    cellKey = data.meta.key{handles.selPtIdx};
     if length(rt_cells) > 1
-    elseif length(rt_cells) == 1
+        disp('not removing....');
         for ci = rt_cells
             % RevTagMap
             oldTags = data.meta.anno.RevTagMap(cellKey);
-            newTagSet = setxor(oldTags, {tag});
+            newTagSet = setxor(oldTags, {tagName});
             data.meta.anno.RevTagMap(cellKey) = newTagSet;
+            
         end
+    elseif length(rt_cells) == 1
         assert(strcmp(rt_cells{1}, 'null'));
     else
         error('?');
@@ -922,12 +1277,70 @@ function deleteAnnotation(tagName)
     remove(handles.info.anno.RB, {tagName});
     createAnnotationPanel();
     updatePlots();
+    writeLog('delete-tag', tagName, 'none', 'none');
 end
+
+    function backupSave(varargin)
+        % SaveNotes_Callback(varargin{:});
+
+        set(handles.SaveNotesNotice, 'Visible', 'on');
+        
+        timeStamp = char(datetime('now','Format','ddMMMyyyy_hh'));
+        exportVarName = ['DOPE_AnnotationBackup' timeStamp];
+        
+        backupInfo = handles.backupInfo;
+        backupInfo.tagMapKey = data.meta.anno.tagMapKey;
+        backupInfo.RevTagMap = data.meta.anno.RevTagMap;
+        backupInfo.exportVarName = exportVarName;
+        % backupInfo. = exportVarName;
+        
+        save([exportVarName '.mat'],'backupInfo','-v7.3');
+        assignin('base', ['backupInfo_' timeStamp], backupInfo);
+        set(handles.SaveNotesNotice, 'Visible', 'off');
+
+    end
+
+function writeLog(action, tag, key, expr)
+
+    if exist(handles.logfile, 'file')==2
+        fileID = fopen(handles.logfile,'a');
+    else
+        fileID = fopen('.AnnotationsLogLocal.txt','a');
+    end
+    
+    if iscell(tag)
+        tag = tag{1};
+    end
+    
+    p = mfilename('fullpath')
+    [status md5sumout] = system(['md5sum "' p '.m"']);
+    % handles.sessionID;
+    timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
+    % action 
+    % tag
+    % key
+    % expr    
+
+    formatSpec = '[%s] sessionID[%s] : {%s} \t "%s" \t <%s> \t %s \t %s\n';
+
+    % [time] [session ID == input .mat file+timestart]. [remove] [key]
+    % [expr] [tag] [md5]
+    
+    fprintf(fileID,formatSpec, timeS, handles.sessionID, action, tag, key, expr, md5sumout);
+    fclose(fileID);
+
+    % disp(['wrote to file ' handles.logfile]);
+    % fprintf(1,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
+
+end
+
+
 
 function tagDataPoint(src, ~)
     key = src.String;
     tag = key;
     cellKey = data.meta.key{handles.selPtIdx};
+    cellexpr = data.meta.expStr{handles.selPtIdx};
     if src.Value == src.Max % box checked
         % anno to cells
         data.meta.anno.tagMap(tag) = unique([data.meta.anno.tagMap(tag), handles.selPtIdx]);
@@ -940,6 +1353,9 @@ function tagDataPoint(src, ~)
             data.meta.anno.RevTagMap(cellKey) = {tag};
         end
         data.meta.anno.byCell{handles.selPtIdx} = data.meta.anno.RevTagMap(cellKey);
+
+        % Log to file 
+        writeLog('add', tag, cellKey, cellexpr);
         
     else % box unchecked
         oldCellSet = data.meta.anno.tagMap(tag);
@@ -956,12 +1372,18 @@ function tagDataPoint(src, ~)
         data.meta.anno.RevTagMap(cellKey) = newTagSet;
         data.meta.anno.byCell{handles.selPtIdx} = data.meta.anno.RevTagMap(cellKey);
 
+        % Log to file
+        % [time] [session ID == input .mat file+timestart]. [remove] [key] [expr] [tag]
+        writeLog('remove', tag, cellkey, cellexpr);
+
+
     end
     updateAnnotationPanel();
     if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes')
         updatePlots();
     end
     updateCellInfo();
+    backupSave();
 end
 
 function tagDataPointNoGUI(tags, selPtIdx, cellKey, Value)
@@ -1210,6 +1632,8 @@ function initFilters()
     'Callback',@updateFilterAnno,...
     'Tag','anno_menuFilter',...
     'FontWeight','bold');
+
+
 end
 
 function updateFilterAnno(source, ~)
@@ -1239,7 +1663,7 @@ function updateCustomPanels()
              'Title',filterName_,...
              'Tag','uipanel_select',...
              'TitlePosition', 'lefttop',...
-             'Position',[110+12 handles.DataSel.Position(4)-35-20-yFT 110 35],...
+             'Position',[110+35 handles.DataSel.Position(4)-35-20-yFT 110 35],...
              'FontSize',10);    
 
             handles.custFilters.(filterName_) = uicontrol(...
@@ -1295,6 +1719,30 @@ function initCellSelect()
     'Tag','ManualIndexCellSelect',...
     'FontSize',10.667);
 
+    handle.NextButton = uicontrol(...
+    'Parent',handles.DataSel,...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'HorizontalAlignment','left',...
+    'String','[ Next ]',...
+    'Style', 'pushbutton',...
+    'Position',[handles.DataSel.Position(3)-87, 65, 40, 23],...
+    'Tag','drawSelectButton',...
+    'Callback',@GoToNextCell,...
+    'FontSize',10);
+
+    handle.PrevButton = uicontrol(...
+    'Parent',handles.DataSel,...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'BackgroundColor',[.7 .7 .7], ...
+    'HorizontalAlignment','left',...
+    'String','[ Prev ]',...
+    'Style', 'pushbutton',...
+    'Position',[handles.DataSel.Position(3)-45, 65, 40, 23],...
+    'Tag','drawSelectButton',...
+    'Callback',@GoToPrevCell,...
+    'FontSize',10);
 
     handle.lassoData = uicontrol(...
     'Parent',handles.DataSel,...
@@ -1313,9 +1761,48 @@ function initCellSelect()
          disp(selPts)
          % add capability to batch annotate
          % add capability to batch label?
-
     end
 
+end
+
+
+function GoToNextCell(varargin)
+    if handles.selPtIdx == max(data.meta.mindex)
+        handles.selPtIdx = 1;
+    else 
+        handles.selPtIdx = 1 + handles.selPtIdx;
+    end
+    updateAnnotationPanel();
+    updatePlots();
+    handles.manualSel.Value = handles.selPtIdx;
+    if ~isempty(data.movies{1})
+        playMovie_GUI(); 
+    end
+end
+
+function GoToPrevCell(varargin)
+    if handles.selPtIdx == 1
+        handles.selPtIdx = max(data.meta.mindex);
+    else
+        handles.selPtIdx = -1 + handles.selPtIdx;
+    end
+    updateAnnotationPanel();
+    updatePlots();
+    handles.manualSel.Value = handles.selPtIdx;
+    if ~isempty(data.movies{1})
+      playMovie_GUI(); 
+   end
+end
+
+             
+set(handles.h1, 'KeyPressFcn', {@pb_fig, handles.h1});
+
+function pb_fig(varargin)
+    if varargin{1,2}.Character == 'n'
+        GoToNextCell()
+    elseif varargin{1,2}.Character == 'p'
+        GoToPrevCell()
+    end
 end
 
 function updateManSel(source, ~)
@@ -1328,6 +1815,16 @@ function updateManSel(source, ~)
    updateAnnotationPanel();
    updatePlots();
    playMovie_GUI();
+end
+
+
+function updateGeneral(varargin)
+   disp('Updating ...');
+   disp('------------------');
+   handles.forceUpdate = true;
+   updateAnnotationPanel();
+   updatePlots();
+   handles.forceUpdate = false;
 end
 
 %===============================================================================
@@ -1372,7 +1869,7 @@ function initMovieDisplay()
     'FontSize',12, ...
     'Callback', @playMovieViewerCell);
     
-    opts = {'Parent', handles.h_movie, 'Units', 'pixels', 'Position',[14 36.6 handles.h_movie.Position(3)-30 306.8],...
+    opts = {'Parent', handles.h_movie, 'Units', 'pixels', 'Position',[14 36.6 handles.h_movie.Position(3)-30 handles.h_movie.Position(3)-30],...
     'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
     axMovie = axes(opts{:});
     axMovie.XColor = 'w';
@@ -1445,7 +1942,14 @@ end
 
 function playMovieViewerAll(varargin)
     handles.thisMD = load(cellDataSet(handles.selPtIdx).MD);
-    movieViewer(handles.thisMD.MD);    
+    ff = findall(0,'Name', 'Viewer'); close(ff);
+    movieViewer(handles.thisMD.MD);
+    sF = findobj(0,'tag', 'slider_frame');
+    sF.Value = data.extra.time(handles.selPtIdx);
+    sF.Callback(sF);
+    ff = findall(0,'Tag', 'viewerFig'); 
+    figure(ff); 
+    plot(data.DR.XY(handles.selPtIdx,1),data.DR.XY(handles.selPtIdx,2), 'or', 'markersize', 50, 'Linewidth', .25);    
 end
 
 function updateMovieGAM(Fnum)
@@ -1480,7 +1984,7 @@ end
 function initDRAxes()
     opts = {'Parent', handles.h2_DR, 'Units', 'pixels',...
         'Position',[15 15 handles.h2_DR.Position(3)-30 handles.h2_DR.Position(4)-65],'Color',[1 1 1],...
-        'XTick',[],'YTick',[]};
+        'XTick',[],'YTick',[],  'Tag', 'plotMain'};
     axDR = axes(opts{:});
     handles.axDR = axDR;
 
@@ -1506,7 +2010,9 @@ function plotScatter
     % -----------------
     % Select Lableling
     % -----------------
-        
+    set(handles.ActionNotice, 'Visible', 'on');
+    drawnow
+
     labeltype = handles.cellLabel.String{handles.cellLabel.Value};
     
     if strcmp(labeltype, 'custom') 
@@ -1528,40 +2034,53 @@ function plotScatter
     
     handles.cache.plabel = plabel;
 
-    % Generate Manual Legend
-    if ~strcmp(labeltype, 'Annotate')
-        try 
-            [GG, GN, ~]= grp2idx(plabel);
-        catch
-            [GG, GN, ~]= grp2idx(cell2mat(plabel));
+    if ~handles.FastPlotMode
+        % Generate Manual Legend
+        if ~strcmp(labeltype, 'Annotate')
+            try 
+                [GG, GN, ~]= grp2idx(plabel);
+            catch
+                [GG, GN, ~]= grp2idx(cell2mat(plabel));
+            end
+
+
+            lcmap = cell2mat(getColors(unique(GG)));
+
+            xlabels = cell(length(GN), 1);
+            for i = 1:length(GN)
+                numL = sum(ismember(GG,i));
+                perctL = round(numL/length(GG),2)*100;
+                xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+            end
+
+    %         xlabels = GN;
+            imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
+            set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+            'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
+            set(handles.axLegend, 'Visible', 'on');
         end
-        lcmap = cell2mat(getColors(unique(GG)));
-        xlabels = GN;
-        imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
-        set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-        'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
-        set(handles.axLegend, 'Visible', 'on');
-    end
     
-    % get labels for plot
-%     clabels = grp2idx(plabel);
     
-    try 
-        clabels = grp2idx(plabel);
-    catch
-        clabels = grp2idx(cell2mat(plabel));
-    end
-    
-    clabels = cell2mat(getColors(clabels));
-    sizeL= repmat(10,length(plabel),1);
+        try 
+            clabels = grp2idx(plabel);
+        catch
+            clabels = grp2idx(cell2mat(plabel));
+        end
 
-    ji = handles.selPtIdx;
-    handles.manualSel.Value = ji;  
-    if handles.dtOnOff.Value == 0
-        clabels(ji,:) = [0 1 1]; %[1 0 .5];
-        sizeL(ji,1) = 250;
-    end
+    %     fast_clabels = clabels;
+        clabels = cell2mat(getColors(clabels));
+        sizeL= repmat(handles.pointSize,length(plabel),1);
 
+        ji = handles.selPtIdx;
+        handles.manualSel.Value = ji;  
+        if handles.dtOnOff.Value == 0
+            cachclabels = clabels(ji,:);
+            cachesizeL = sizeL(ji,1);
+
+            clabels(ji,:) = [0 1 1]; %[1 0 .5];
+            sizeL(ji,1) = 250;
+        end
+    end
     
     % ------------------------
     % Filter SubSet Data
@@ -1572,10 +2091,10 @@ function plotScatter
     idx_notSel = setxor(idx_all, idx_f);
     handles.dataI = data.meta.mindex(idx_f);
     handles.dataI_ns = data.meta.mindex(idx_notSel);
+
+%     fast_clabels = fast_clabels(idx_f, :, :);
     
-    clabelsTemp = clabels;      
-    clabelsTemp(idx_notSel, :) = repmat([1 1 1], [length(idx_notSel) 1]);
-    wclabels = repmat([1 1 1], [length(idx_all) 1]);
+
 %     end
     
     % ------------------------
@@ -1591,40 +2110,92 @@ function plotScatter
     
     if handles.info.zoom == false
 
-        handles.dataX = X;
-        handles.dataY = Y;
-        figure(handles.h1);
-        handles.scat1 = scatter(handles.axDR, X, Y, sizeL-2, clabels(:,:,:),...% 'MarkerEdgeColor',clabels(:,:,:),...
-            'ButtonDownFcn', @axDRCallback);
-        alpha(handles.scat1, .9);
-        hold on;    
-        handles.scat1.SizeData(ji) = 200;
-        handles.scat1.CData(ji,:) = clabels(ji,:,:);
-        axis manual;
+        if handles.FastPlotMode
 
-        handles.scat2 = scatter(handles.axDR, X, Y, sizeL-3, wclabels, 'filled',...
-            'ButtonDownFcn', @axDRCallback);  
-        handles.scat2.CData(idx_f,:) = clabels(idx_f,:,:);
-        handles.scat2.CData(ji,:) = clabels(ji,:,:);
-        handles.scat2.SizeData(idx_f) = 35;
-        handles.scat2.SizeData(ji) = 200;
-        try 
-            handles.scat1.PickableParts = 'none';
-            handles.scat1.HitTest = 'off';
-        catch
-            warning('error scat1');
+            try 
+                [GG, GN, ~]= grp2idx(plabel(idx_f));
+            catch
+                [GG, GN, ~]= grp2idx(cell2mat(plabel(idx_f)));
+            end
+            
+            lcmap = cell2mat(getColors(unique(GG),'jet'));
+            drawnow;
+
+            marker = '.';
+%             C = fast_clabels;
+            h = mesh(handles.axDR, [X(idx_f) X(idx_f)]', [Y(idx_f) Y(idx_f)]', zeros(2,numel(X(idx_f))),'mesh','column','marker',marker,'cdata',[GG, GG]');
+%             h = mesh(handles.axDR, [X(idx_f) X(idx_f)]', [Y(idx_f) Y(idx_f)]', zeros(2,numel(X(idx_f))),'mesh','column','marker',marker,'cdata',[C(idx_f), C(idx_f)]');
+            view(handles.axDR,2);
+            colormap(handles.axDR, lcmap);
+            
+            xlabels = cell(length(GN), 1);
+            for i = 1:length(GN)
+                numL = sum(ismember(GG,i));
+                perctL = round(numL/length(GG),2)*100;
+                xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+            end
+
+            k = imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
+            set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+            'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
+            set(handles.axLegend, 'Visible', 'on');
+            
+        elseif isfield(handles, 'caches') && ... 
+            length(setxor(handles.caches.idx_f,idx_f))<1 && ...
+             ~handles.forceUpdate && (strcmp(handles.caches.DRtype_sel,DRtype_sel))
+
+            % just update selected point           
+%             linkdata off
+            handles.scat2.CData(ji,:) = clabels(ji,:,:);
+            handles.scat2.SizeData(ji) = 200;
+            handles.scat2.CData(handles.caches.ji, :,:) = handles.caches.scat2.CDataji;
+            if ismember(handles.caches.ji, idx_f)
+                handles.scat2.SizeData(handles.caches.ji) = handles.pointSizeFilter;
+            else
+                handles.scat2.SizeData(handles.caches.ji) = handles.pointSize;
+            end
+%             refreshdata
+%             drawnow
+
+        else % re-draw plot
+
+            clabelsTemp = clabels;      
+            clabelsTemp(idx_notSel, :) = repmat([1 1 1], [length(idx_notSel) 1]);
+            wclabels = repmat([1 1 1], [length(idx_all) 1]);
+            
+            if handles.shadowPoints 
+                handles.dataX = X;
+                handles.dataY = Y;
+                figure(handles.h1);
+                handles.scat1 = scatter(handles.axDR, X, Y, sizeL-2, clabels(:,:,:),...
+                    'ButtonDownFcn', @axDRCallback);
+                alpha(handles.scat1, .9);
+                hold on;    
+                handles.scat1.SizeData(ji) = 200;
+                handles.scat1.CData(ji,:) = clabels(ji,:,:);
+                axis manual;
+
+            end
+           
+            handles.scat2 = scatter(handles.axDR, X, Y, sizeL-3, wclabels, 'filled',...
+                'ButtonDownFcn', @axDRCallback);  
+            handles.scat2.CData(idx_f,:) = clabels(idx_f,:,:);
+            handles.scat2.CData(ji,:) = clabels(ji,:,:);
+%             handles.caches.scat2.CDataji = handles.scat2.CData(ji,:);
+%             handles.caches.scat2.SizeDataji = handles.scat2.SizeData(ji);
+            handles.scat2.SizeData(idx_f) = handles.pointSizeFilter;
+            handles.scat2.SizeData(ji) = 200;
+            try 
+                handles.scat1.PickableParts = 'none';
+                handles.scat1.HitTest = 'off';
+            catch
+%                 warning('error scat1');
+            end
+                
+           hold off;
+
         end
         
-       hold off;
-
-%        close(figure(2));    
-%         end
-        set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
-        handles.axDR.Title.String = DRtype_sel;    
-        handles.axDR.XColor = 'w';
-        handles.axDR.YColor = 'w';
-        set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);    
-
     else 
         handles.dataX = X(idx_f);
         handles.dataY = Y(idx_f);
@@ -1637,8 +2208,27 @@ function plotScatter
         handles.axDR.YColor = 'w';
         set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
     end
+    set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);
+    handles.axDR.Title.String = DRtype_sel;    
+    handles.axDR.XColor = 'w';
+    handles.axDR.YColor = 'w';
+    set(handles.axDR,'Color',[1 1 1],'Box', 'off', 'XTick',[],'YTick',[]);    
+    if strcmp(handles.zoomDR, 'on')        
+        zoom(handles.axDR, 'on')
+    else
+        zoom(handles.axDR, 'off')
+    end
    ff = findall(0,'NumberTitle','on');delete(ff)
-%    selectdata('Axes', handles.axDR);
+
+   if ~handles.FastPlotMode
+       handles.caches.idx_f = idx_f;
+       handles.caches.ji = ji;
+       handles.caches.scat2.CDataji = cachclabels;
+       handles.caches.scat2.SizeDataji = cachesizeL;
+    %    selectdata('Axes', handles.axDR);
+   end
+   handles.caches.DRtype_sel = DRtype_sel;
+    set(handles.ActionNotice, 'Visible', 'off');
 end
 
 %===============================================================================
@@ -1646,8 +2236,10 @@ end
 %===============================================================================   
 
 function updatePlots
+    set(handles.ActionNotice, 'Visible', 'on');
     updateCellInfo();
     plotScatter;
+    set(handles.ActionNotice, 'Visible', 'off');
 %     cxFig = findall(0,'Tag', 'cellXplore');
 %     cxFig.UserData.handles = handles;
 %     cxFig.UserData.data = data;
@@ -1710,7 +2302,9 @@ function axDRCallback(varargin)
     updateCellInfo;
     updateAnnotationPanel;
     plotScatter; 
-    playMovie_GUI;        
+    if ~isempty(data.movies{handles.selPtIdx}) 
+        playMovie_GUI;      
+    end
 end
 
 function [idx_out] = applyFilters(hinff)
@@ -1727,7 +2321,7 @@ function [idx_out] = applyFilters(hinff)
         val = th.Value;  
 
         if strcmp(maps{val}, 'All')
-           disp('selecting -- all');
+%            disp('selecting -- all');
            idx_t = 1:length(data.meta.mindex);
            idx_t = idx_t';
         else
@@ -1736,33 +2330,51 @@ function [idx_out] = applyFilters(hinff)
         end
         idx_out = intersect(idx_out, idx_t);
     end
-
     % [then filter custom classes]
-
     % [then filter annotations]
     % check which annotation RadioButtons are selected
     numA = numel(data.meta.anno.set);
     if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes') && (numA >= 1)
         disp('Filtering by selected annotations');
-        setInx = 1:length(data.meta.mindex);
+        if strcmp(handles.BG_AO.SelectedObject.String, 'AND')
+            % AND filter 
+            setInx = 1:length(data.meta.mindex);
+        elseif strcmp(handles.BG_AO.SelectedObject.String, 'OR')
+            % OR filter 
+            setInx = [];
+        end
         for i=1:numA
             h_ = handles.highAnno(i);
             if (h_.Value == 1)
                 annoh = h_.UserData{:};
-                setInx = intersect(setInx, data.meta.anno.tagMap(annoh.String));
-%                     setInx = [data.meta.anno.tagMap(annoh.String), setInx]; 
+                if strcmp(handles.BG_AO.SelectedObject.String, 'AND')
+                    % AND filter 
+                    setInx = intersect(setInx, data.meta.anno.tagMap(annoh.String));
+                elseif strcmp(handles.BG_AO.SelectedObject.String, 'OR')
+                    % OR filter
+                    setInx = union(setInx, data.meta.anno.tagMap(annoh.String));
+                end
             end
         end
         idx_f = unique(setInx);
         idx_out = intersect(idx_f, idx_out);
     end
-
 end
 
-function [RGBmat] = getColors(clabels)
-   if length(unique(clabels)) <= 7
+function [RGBmat] = getColors(clabels, colormapIn)
+   
+   if length(unique(clabels)) <= 7 && nargin < 2
        col = colorset{:};
        RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
+   elseif nargin < 2
+       cmap = hsv(length(clabels));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false); 
+   elseif strcmp(colormapIn, 'hsv')
+       cmap = hsv(length(clabels));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);        
+   elseif strcmp(colormapIn, 'jet')
+       cmap = jet(length(clabels));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);               
    else
        cmap = hsv(length(clabels));
        RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);
