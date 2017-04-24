@@ -6,7 +6,9 @@ MD=MovieData.loadMatFile('/project/bioinformatics/Danuser_lab/externBetzig/analy
 
 processDetectPoles=ExternalProcess(MD,'detectPoles',@(p) detectPoles(p.getOwner(),'process',p,'isoOutput',true));
 processSpindleRef=ExternalProcess(MD,'addSpindleRef',@(p) addSpindleRef(p.getOwner(),'processDetectPoles',processDetectPoles,'process',p));
-processRandomKinRef=ExternalProcess(MD,'randomizeKinSpindleRef',@(p) randomizeKinSpindleRef(p.getOwner(),'processDetectPoles',processDetectPoles,'process',p));
+%%
+randomDist=10;
+processRandomKinRef=ExternalProcess(MD,'randomizeKinSpindleRef',@(p) randomizeKinSpindleRef(p.getOwner(),randomDist,'processDetectPoles',processDetectPoles,'process',p));
 
 package=GenericPackage({processDetectPoles processSpindleRef processRandomKinRef});
 

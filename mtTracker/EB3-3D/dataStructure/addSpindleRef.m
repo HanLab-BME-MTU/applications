@@ -27,6 +27,7 @@ if(~isempty(p.processDetectPoles))
 end
 
 
+poleRefs=buildPoleRef(poleMovieInfo,MD.pixelSize_);
 
 %% Load EB3 tracks add azimuth info, change coordinate to real space measurement.
 if(isempty(p.EB3tracks)||isempty(p.EB3SphCoord))
@@ -51,10 +52,7 @@ else
     EB3PoleId=p.EB3PoleId;
 end
 
-
-EB3Tracks=addSpindleRefEB3(MD,poleMovieInfo,EB3Tracks,EB3SphCoord,EB3Inliers,EB3PoleId);
-
-
+EB3Tracks=addSpindleRefEB3(MD,poleRefs,EB3Tracks,EB3SphCoord,EB3Inliers,EB3PoleId);
 
 %%
 if(isempty(p.kinTracks)||isempty(p.kinSphericalCoord))
@@ -79,7 +77,7 @@ else
     kinInliers=p.kinInliers;
 end
 
-kinTracks=addSpindleRefKin(MD,poleMovieInfo,kinTracks,kinSphericalCoord,kinInliers);
+kinTracks=addSpindleRefKin(MD,poleRefs,kinTracks,kinSphericalCoord,kinInliers);
 % If there is a process object, write data directly in appropriate folder
 if(~isempty(p.process))
 
@@ -90,6 +88,8 @@ if(~isempty(p.process))
     save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3Tracks');
 %     outputDirCatchingMT=[MD.outputDirectory_ filesep 'EB3' filesep 'detection'];
 %     save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'detLabRef');
+    save([outputDirCatchingMT filesep 'augmentedSpindleRef.mat'],'EB3Tracks');
+
 
     %% inlier index
     inliersEB3=(logical(arrayfun(@(eb) eb.inliers(1),EB3Tracks)));
@@ -106,6 +106,7 @@ if(~isempty(p.process))
         [MD.outputDirectory_ '' filesep 'Kin' filesep 'track' filesep 'augmentedSpindleRef.mat'], ...
         [MD.outputDirectory_ '' filesep 'EB3' filesep 'track' filesep 'augmentedSpindleRefInliers.mat'], ...
         [MD.outputDirectory_ '' filesep 'Kin' filesep 'track' filesep 'augmentedSpindleRefInliers.mat'],  ...
+
 %         [MD.outputDirectory_ '' filesep 'EB3' filesep 'detection' filesep 'augmentedSpindleRef.mat'] ...
         });
     pa = poleRefProcess.getParameters();

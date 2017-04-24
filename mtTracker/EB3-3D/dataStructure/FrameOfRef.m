@@ -82,18 +82,20 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
                   trBase.x(pIdx)=v(1); trBase.y(pIdx)=v(2); trBase.z(pIdx)= v(3);
               end;
           end
-      end
-      function B= getBase(obj,f)
-             pIdx=find(obj.frame==f,1);
-             if(isempty(pIdx)) pIdx=1; end;
-             B=[obj.X(pIdx,:)' obj.Y(pIdx,:)' obj.Z(pIdx,:)'];
-      end
+        end
+        function B= getBase(obj,f)
+          pIdx=find(obj.frame==f,1);
+          if(isempty(pIdx))
+              if(f>max(obj.frame))   pIdx=length(obj.frame);  else   pIdx=1; end;
+          end
+          B=[obj.X(pIdx,:)' obj.Y(pIdx,:)' obj.Z(pIdx,:)'];
+        end
       function orig= getOrigAtFrame(obj,f)
           pIdx=find(obj.frame==f,1);
           if(isempty(pIdx)); if(f<obj.frame); pIdx=1; else pIdx=length(obj.frame); end; end;
           orig=obj.origin(pIdx,:);
       end
-      
+
       function detectionsBase=applyBaseToDetection(obj,detections,name)
           detectionsBase=detections.copy();
           try

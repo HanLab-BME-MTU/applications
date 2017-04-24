@@ -1,31 +1,4 @@
-function [EB3Tracks]=addSpindleRefEB3(MD,poleMovieInfo,EB3Tracks,EB3SphCoord,EB3Inliers,EB3PoleId)
-
- % WARNING: this is not a trajectory, merely a collection of poles to ease
-% implementation.
-P1=struct();
-P1.x=arrayfun(@(d) MD.pixelSize_*(d.xCoord(1,1)-1)+1,poleMovieInfo)';
-P1.y=arrayfun(@(d) MD.pixelSize_*(d.yCoord(1,1)-1)+1,poleMovieInfo)';
-P1.z=arrayfun(@(d) MD.pixelSize_*(d.zCoord(1,1)-1)+1,poleMovieInfo)';
-P1.f=1:length(poleMovieInfo);
-
-P2=struct();
-P2.x=arrayfun(@(d) MD.pixelSize_*(d.xCoord(2,1)-1)+1,poleMovieInfo)';
-P2.y=arrayfun(@(d) MD.pixelSize_*(d.yCoord(2,1)-1)+1,poleMovieInfo)';
-P2.z=arrayfun(@(d) MD.pixelSize_*(d.zCoord(2,1)-1)+1,poleMovieInfo)';
-P2.f=1:length(poleMovieInfo);
-
-
-refP1=FrameOfRef();
-refP1.setOriginFromTrack(P1);
-refP1.setZFromTrack(P2);
-refP1.genBaseFromZ();
-
-refP2=FrameOfRef();
-refP2.setOriginFromTrack(P2);
-refP2.setZFromTrack(P1);
-refP2.genBaseFromZ();
-
-poleRefs=[refP1 refP2];
+function [EB3Tracks]=addSpindleRefEB3(MD,poleRefs,EB3Tracks,EB3SphCoord,EB3Inliers,EB3PoleId)
 
 % For MT detection
 % tic;
@@ -36,6 +9,8 @@ poleRefs=[refP1 refP2];
 % dp1.addSphericalCoord();
 % dp2.addSphericalCoord();
 % toc
+refP1=poleRefs(1);
+refP2=poleRefs(2);
 
 %% For MT tracks
 tic;

@@ -17,6 +17,7 @@ ip.addParamValue('isoOutput', false, @islogical);
 ip.addParamValue('type', 'simplex',  @ischar);
 ip.addParamValue('process', []);
 ip.parse(MD, varargin{:});
+p=ip.Results;
 
 processFrames=[];
 if isempty(ip.Results.processFrames)

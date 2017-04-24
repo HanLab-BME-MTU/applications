@@ -3,34 +3,28 @@ function projImages=project1D(MD,dynPoligonISO,varargin)
 % described by polygon.
 % Poligon described the projected space (without dilated boundaries), It is composed of Tracks.
 % in 1D, it is only composed of two tracks.
-
+% dynPoligonISO define the ROI in the original, pixel ref and is only used for pixel masking (1D only).
+% dynPoligonREF define the ROI in the final ref and is used for the actual displayed ROI location.
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addOptional('dynPoligonREF',dynPoligonISO);
 ip.addOptional('tracks',[]);
+ip.addOptional('colormap',[]);
+ip.addOptional('colorIndx',[]);
 ip.addOptional('crop','manifold');
 ip.addOptional('transType','affineOnePass');
 ip.addOptional('FoF',[]);
 ip.addOptional('channelRender','greenRed');
 ip.addOptional('name',[]);
+ip.addOptional('processSingleProj',[]);
 ip.parse(varargin{:});
 p=ip.Results;
 
 tracks=p.tracks;
 
-%% Test on a single kinetochore bundle
-
-% outputDirBundle=[MD.outputDirectory_ filesep 'Kin' filesep 'bundles'];
-% tmp=load([outputDirBundle filesep 'kin-MT-bundle.mat'],'kinTracks');
-% kinTracksBundle=tmp.kinTracks;
-%%
-
 showDebugGraphics=0;
 cubeHalfWidth=20;
-inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
-    [1 MD.getDimensions('X')],[1 MD.getDimensions('Y')],[1 MD.getDimensions('Z')*MD.pixelSizeZ_/MD.pixelSize_]);
-
 
 %% Define the static Rectangular cuboid that contains the pixel to be projected in the frame of reference.
 %% Accordinly,  the coordinate of this cube are specified such as the origin of the frame of reference is the zero.
@@ -56,13 +50,13 @@ if(strcmp(p.crop,'manifold'))
     end
     % minZ=floor(minZ*MD.pixelSize_/MD.pixelSizeZ_);
     % maxZ=ceil(maxZ*MD.pixelSize_/MD.pixelSizeZ_);
-
-    maxXBorder=min(maxX+cubeHalfWidth,MD.getDimensions('X'));
-    maxYBorder=min(maxY+cubeHalfWidth,MD.getDimensions('Y'));
-    maxZBorder=min(maxZ+cubeHalfWidth,(MD.pixelSizeZ_/MD.pixelSize_)*MD.getDimensions('Z'));
-    minXBorder=max(minX-cubeHalfWidth,1);
-    minYBorder=max(minY-cubeHalfWidth,1);
-    minZBorder=max(minZ-cubeHalfWidth,1);
+%
+%     maxXBorder=min(maxX+cubeHalfWidth,MD.getDimensions('X'));
+%     maxYBorder=min(maxY+cubeHalfWidth,MD.getDimensions('Y'));
+%     maxZBorder=min(maxZ+cubeHalfWidth,(MD.pixelSizeZ_/MD.pixelSize_)*MD.getDimensions('Z'));
+%     minXBorder=max(minX-cubeHalfWidth,1);
+%     minYBorder=max(minY-cubeHalfWidth,1);
+%     minZBorder=max(minZ-cubeHalfWidth,1);
 
     maxXBorder=(maxX+cubeHalfWidth);
     maxYBorder=(maxY+cubeHalfWidth);
@@ -88,13 +82,26 @@ end
 
 
 %% testing imwarp to crop the image
-
 outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
+outputDirSingleProj=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
+if(~isempty(p.processSingleProj))
+    system(['mkdir  -p ' outputDirSingleProj filesep 'XY']);
+    system(['mkdir  -p ' outputDirSingleProj filesep 'XZ']);
+    system(['mkdir  -p ' outputDirSingleProj filesep 'YZ']);
+    p.processSingleProj.setOutFilePaths({[outputDirSingleProj filesep 'XY' filesep 'frame_nb%04d.png'], ...
+        [outputDirSingleProj filesep 'YZ' filesep 'frame_nb%04d.png'], ...
+        [outputDirSingleProj filesep 'XZ' filesep 'frame_nb%04d.png'], ...
+        [outputDirSingleProj filesep 'limits.mat']});
+    frameNb=MD.nFrames_;
+    save([outputDirSingleProj filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+end
 outputDirDemo=[MD.outputDirectory_ filesep '1DProjection' filesep p.name filesep 'volDemo' ];
 
 system(['mkdir  -p ' outputDirSlices1]);
 system(['mkdir  -p ' outputDirDemo]);
-for fIdx=1:MD.nFrames_
+parfor fIdx=1:MD.nFrames_
+    disp(num2str(fIdx))
+
     vol=MD.getChannel(1).loadStack(fIdx);
     kinvol=MD.getChannel(2).loadStack(fIdx);
     % Collect relative frameIdx
@@ -107,7 +114,7 @@ for fIdx=1:MD.nFrames_
         end
         pIndices(polIdx)=pIdx;
     end;
-    
+
     %% Building mask in the 1D case
     PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
     KCurrent=[dynPoligonISO(2).x(pIndices(2)) dynPoligonISO(2).y(pIndices(2)) dynPoligonISO(2).z(pIndices(2))];
@@ -142,7 +149,7 @@ for fIdx=1:MD.nFrames_
     % Can we use imwar for cropping too ?
 
     tform=affine3d();
-    
+
     if(~isempty(p.FoF))
         B=p.FoF.getBase(fIdx);
         tform.T(4,[1 2 3])=(-p.FoF.getOrigAtFrame(fIdx)+p.FoF.origin(1,:))*B;
@@ -163,7 +170,11 @@ for fIdx=1:MD.nFrames_
         B=p.FoF.getBase(1);
         tformRotOnlyInit.T(1:3,1:3)=B;
     end
-            orig=p.FoF.getOrigAtFrame(fIdx);
+    orig=p.FoF.getOrigAtFrame(fIdx);
+
+    inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
+        [1 MD.getDimensions('X')],[1 MD.getDimensions('Y')],[1 MD.getDimensions('Z')*MD.pixelSizeZ_/MD.pixelSize_]);
+
 
     switch p.transType
         case 'affine'
@@ -231,7 +242,6 @@ for fIdx=1:MD.nFrames_
             inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
             [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
 
-            disp(num2str(fIdx))
             minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
             maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
             minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
@@ -409,15 +419,14 @@ for fIdx=1:MD.nFrames_
             ZRatio=1;
     end;
 
-    % normalize intensities
-
-
+    % Create MIP of ROI and context
     [fullmaxXY,fullmaxZY,fullmaxZX,~]=computeMIPs(warpedVol,ZRatio,prctile(warpedVol(:),1),prctile(warpedVol(:),100));
     [fullmaxXYKin,fullmaxZYKin,fullmaxZXKin,~]=computeMIPs(warpedKinVol,ZRatio,prctile(warpedKinVol(:),99.9),prctile(warpedKinVol(:),100));
 
     [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio,prctile(warpedMaskedVol(:),1),prctile(warpedMaskedVol(:),100));
     [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(warpedMaskedKinVol,ZRatio,prctile(warpedMaskedKinVol(:),99.9),prctile(warpedMaskedKinVol(:),100));
 
+    % Fuse ROI and context
     maxXY(maxXY==0)=fullmaxXY(maxXY==0);
     maxZY(maxZY==0)=fullmaxZY(maxZY==0);
     maxZX(maxZX==0)=fullmaxZX(maxZX==0);
@@ -425,8 +434,7 @@ for fIdx=1:MD.nFrames_
     maxZYKin(maxZYKin==0)=fullmaxZYKin(maxZYKin==0);
     maxZXKin(maxZXKin==0)=fullmaxZXKin(maxZXKin==0);
 
-
-    %% Fuse channel MIPS add track and build mosaic.
+    %% Resize and fuse channel MIPS
     maxMIPSize=400;
     [sX,sY,sZ]=size(warpedMaskedVol);
     if(strcmp(p.transType,'none'))
@@ -434,19 +442,21 @@ for fIdx=1:MD.nFrames_
     end
     resizeScale=maxMIPSize/max([sX,sY,sZ]);
 
-
     rMax=imresize(maxXY,resizeScale);
     rmaxKin=imresize(maxXYKin,resizeScale);
-    mipSize=size(rMax);
-%     mipSize=[400 400];
-%     rMaxXY=imresize(maxXY,mipSize);
-%     rmaxXYKin=imresize(maxXYKin,mipSize);
+%    mipSize=size(rMax);
+    XYProj=renderChannel(rMax,rmaxKin,p.channelRender);
 
-    RGBThree=renderChannel(rMax,rmaxKin,p.channelRender);
+    rMax=imresize(maxZY,resizeScale);
+    rmaxKin=imresize(maxZYKin,resizeScale);
+    ZYProj=renderChannel(rMax,rmaxKin,p.channelRender);
 
-    
+    rMax=imresize(maxZX,resizeScale);
+    rmaxKin=imresize(maxZXKin,resizeScale);
+    ZXProj=renderChannel(rMax,rmaxKin,p.channelRender);
+
     %% select tracks that starts or end in the manifold
-    inMaskTrack=ones(1,length(tracks));
+    inMaskTrack=zeros(1,length(tracks));
     for tIdx=1:length(tracks)
         t=tracks(tIdx);
         pIdx=find(t.f==fIdx,1);
@@ -458,61 +468,23 @@ for fIdx=1:MD.nFrames_
             inMaskTrack(tIdx)=Vq>0;
         end
     end
-    %%
     tracksInMask=tracks(logical(inMaskTrack));
-    
-    %%
-    myColormap=[[0 0 255]; [0 255 00]];
-    tracksColors=uint8(myColormap);
 
-    if(~isempty(tracksInMask))
-      tracksXY=trackBinaryOverlay(RGBThree,[minXBorder maxXBorder],[minYBorder maxYBorder],tracksInMask,fIdx,ones(1,length(tracksInMask)),tracksColors);
-    else
-      tracksXY=RGBThree;
+    [tracksXY,tracksZY,tracksZX]=overlayProjTracks(XYProj,ZYProj,ZXProj, ...
+      [minXBorder maxXBorder],[minYBorder maxYBorder],[minZBorder maxZBorder], ...
+      fIdx,tracksInMask,p.colormap,p.colorIndx(logical(inMaskTrack)));
+
+    %% write images
+    if(~isempty(p.processSingleProj))
+      imwrite(tracksXY,[outputDirSingleProj filesep 'XY' filesep  'frame_nb' num2str(fIdx,'%04d') '.png']);
+      imwrite(tracksZY,[outputDirSingleProj filesep 'YZ' filesep  'frame_nb' num2str(fIdx,'%04d') '.png']);
+      imwrite(tracksZX,[outputDirSingleProj filesep 'XZ' filesep  'frame_nb' num2str(fIdx,'%04d') '.png']);
     end
 
-    rMax=imresize(maxZY,resizeScale);
-    rmaxKin=imresize(maxZYKin,resizeScale);
-
-    RGBThree=renderChannel(rMax,rmaxKin,p.channelRender);
-
-    if(~isempty(tracksInMask))
-      capturedEB3ZY=tracksInMask.copy();
-      for ebIdx=1:length(capturedEB3ZY)
-        capturedEB3ZY(ebIdx).x=tracksInMask(ebIdx).z ;%*MD.pixelSize_/MD.pixelSizeZ_;
-      end
-      tracksColors=uint8(myColormap);
-      tracksZY=trackBinaryOverlay(RGBThree,[minZBorder maxZBorder],[minYBorder maxYBorder],capturedEB3ZY,fIdx,ones(1,length(tracksInMask)),tracksColors);
-    else
-      tracksZY=RGBThree;
-    end;
-
+    %% Use Z to index image line (going up)
     tracksZY=permute(tracksZY,[2 1 3]);
-    stripeSize=4;
-    threeTop = [tracksXY, zeros(size(tracksXY,1), stripeSize,3), zeros(size(tracksXY,1), size(tracksZY,2),3)];
-
-
-    rMax=imresize(maxZX,resizeScale);
-    rmaxKin=imresize(maxZXKin,resizeScale);
-
-    RGBThree=renderChannel(rMax,rmaxKin,p.channelRender);
-
-    if(~isempty(tracks))
-      capturedEB3ZX=capturedEB3ZY.copy();
-      for ebIdx=1:length(capturedEB3ZX)
-        capturedEB3ZX(ebIdx).y=tracksInMask(ebIdx).x;
-      end
-      tracksColors=uint8(myColormap);
-      tracksZX=trackBinaryOverlay(RGBThree,[minZBorder maxZBorder],[minXBorder maxXBorder],capturedEB3ZX,fIdx,ones(1,length(tracksInMask)),tracksColors);
-    else
-      tracksZX=RGBThree;
-    end;
-
-
     tracksZX=permute(tracksZX,[2 1 3]);
-    threeBottom = [tracksZX, 0*ones(size(tracksZX,1),+stripeSize,3),tracksZY];
-    three = [threeTop; ones(stripeSize, size(tracksXY,2)+size(tracksZY,2)+stripeSize,3); threeBottom];
-    %%
+    three=projMontage(tracksXY,tracksZX,tracksZY);
     imwrite(three,[outputDirSlices1 filesep 'frame_nb' num2str(fIdx,'%04d') '.png']);
 end
 
@@ -531,6 +503,7 @@ for frameIdx=1:MD.nFrames_
     %     fprintf('\b|\n');
 end
 close(video)
+
 
 function RGBVol=renderChannel(ch1,ch2,type)
     switch(type)

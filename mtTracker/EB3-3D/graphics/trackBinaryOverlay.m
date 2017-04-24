@@ -16,7 +16,7 @@ if(~isempty(tracks))
         if(~isempty(tIdx))
  %%
             RGB=tracksColors(colorIndex(trIdx),:);
-            X=t.x(1:tIdx); Y=t.y(1:tIdx); Z=t.z(1:tIdx);
+            X=t.x(1:tIdx); Y=t.y(1:tIdx);% Z=t.z(1:tIdx);
                        
             X=X-XLimit(1);
             Y=Y-YLimit(1);          

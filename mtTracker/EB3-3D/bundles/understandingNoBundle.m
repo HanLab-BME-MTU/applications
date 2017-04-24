@@ -1,16 +1,17 @@
 load('/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time/movieData.mat')
-
-
-
 %% load spindle ref data 
-processSpindleRef=MD.getProcess(1);
-processRandKin=MD.getProcess(2);
+processSpindleRef=MD.getPackage(1).getProcess(2);
 
 kinTracks=load(processSpindleRef.outFilePaths_{2}); kinTracks=kinTracks.kinTracks;
 EB3TracksInliers=load(processSpindleRef.outFilePaths_{3}); EB3TracksInliers=EB3TracksInliers.EB3TracksInliers;
 kinTracksInliers=load(processSpindleRef.outFilePaths_{4}); kinTracksInliers=kinTracksInliers.kinTracksInliers;
 save('~/kinTracks.mat','kinTracks');
 save('~/kinTracksInliers.mat','kinTracksInliers');
+
+%% load randomization data
+processRandKin=MD.getPackage(1).getProcess(3);
+randKinTracks=load(processRandKin.outFilePaths_{1}); randKinTracks=randKinTracks.randKinTracks;
+randKinTracksInliers=randKinTracks(logical(arrayfun(@(t) t.inliers(1),kinTracks)));
 
 
 %%
