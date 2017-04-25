@@ -100,7 +100,7 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Save cell array with cell MD info');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
-save([omeTiffDir filesep 'allCellDataML.mat'], 'ML', 'allCellsSet');
+save([omeTiffDir filesep 'allCellDataML.mat'], 'allCellsSet');
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% [optional & slow..] Create MovieList');
