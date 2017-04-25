@@ -4,8 +4,8 @@
 
 %load('/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time/movieData.mat')
 load('C:\Users\Philippe\project-local\externBetzig\analysis\adavid\smallSample\prometaphase\earlyCell1_12\movieData.mat')
-
-
+kinTest=[1 19 44];
+kinIdx=1;
 
 %% load spindle ref data
 processDetectPoles=MD.getPackage(1).getProcess(1);
@@ -20,9 +20,6 @@ kinTracksInliers=load(processAddSpindleRef.outFilePaths_{4}); kinTracksInliers=k
 randKinTracks=load(processRandKin.outFilePaths_{1}); randKinTracks=randKinTracks.randKinTracks;
 randKinTracksInliers=randKinTracks(logical(arrayfun(@(t) t.inliers(1),kinTracks)));
 
-
-
-
 %% load process indenpendant data 
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep  ];
 kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
@@ -33,22 +30,9 @@ outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
 tmp=load([outputDirProj filesep 'tracksLabRef.mat']);
 EB3TracksISO=tmp.tracksLabRef;
 
-%%
-processSpindleRef=ExternalProcess(MD,'buildSpindleRef',@(p) buildSpindleRef('processDetectPoles',processDetectPoles,'process',p));
-processSpindleRef.run();
 
-%% Compute or load randomization (sanity check)
-randomDist=20;
-processRandKinAndISO=ExternalProcess(MD,'rawProj');
-[randKinTracks,randKinTracksISO]=randomizeKinSpindleRef(MD,randomDist,'processDetectPoles',MD.getPackage(1).getProcess(1),'process',processRandKinAndISO);
-randKinTracksInliers=randKinTracks(logical(arrayfun(@(t) t.inliers(1),kinTracks)));
-randKinTracksISOInliers=randKinTracksISO(logical(arrayfun(@(t) t.inliers(1),kinTracks)));
 
-%% Start with a single kinetochore, obserbe random kin and capture  behavior compared with normal kinetochore 
-kinIdx=32;
-MTBundling(MD,kinTracksInliers,EB3TracksInliers,randKinTracksInliers,'kinRange',kinIdx);
-
-%% Collect capture and bundling results and project in ad-hoc ref.
+%% example kinIdx 
 zTrack=kinTracksISOInliers(kinIdx);
 randZTrack=randKinTracksISOInliers(kinIdx);
 
@@ -57,18 +41,7 @@ poleMovieInfo=load(processDetectPoles.outFilePaths_{1}); poleMovieInfo=poleMovie
 refs=buildRefsFromTracks(P1,zTrack);
 refsRand=buildRefsFromTracks(P1,randZTrack);
 
-%EB3TracksISOREF=refs(1).applyBase(EB3TracksISO,'P1K')
-catchingMTNMREF=kinTracksInliers(kinIdx).catchingMTKinRef;
-capturedIndx=[catchingMTNMREF.index];
-capturedTrackISOREF=refs(1).applyBase(EB3TracksISO(capturedIndx),'P1K');
-
-% this is going to be represented in kinPole ref, hence muse be projected in adequate environment.
-catchingRandMTNMREF=randKinTracksInliers(kinIdx).catchingMTKinRef;
-capturedRandIndx=[catchingRandMTNMREF.index];
-capturedRandTrackISOREF=refs(1).applyBase(EB3TracksISO(capturedRandIndx),'P1K');
-
-
-%% CreateFullMIP in spindle ref
+%% FullMIP in spindle ref
 % still observing kin-random but also localizing the random positions. 
 tic;
 origTracks=TracksHandle();

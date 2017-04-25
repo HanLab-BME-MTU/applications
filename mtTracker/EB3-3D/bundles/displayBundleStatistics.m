@@ -5,7 +5,7 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addParameter('kinBundle',[]);
 ip.addParameter('kinBundleName',[]);
-ip.addParameter('mappedMTField','capturedMT');
+ip.addParameter('mappedMTField','catchingMT');
 ip.addParameter('bundledMTField','fiber');
 ip.addParameter('plotHandleArray',[]);
 ip.addParameter('bundleMTRange',[]);

@@ -21,9 +21,9 @@ savePath=[fileparts(processSingleProj.outFilePaths_{4}) filesep p.name filesep '
 system(['mkdir -p ' fileparts(savePath)]);
 frameNb=projData.frameNb;
 for fIdx=1:frameNb
-    XYProj=imread(sprintf(XYProjTemplate,fIdx));
-    ZYProj=imread(sprintf(ZYProjTemplate,fIdx));
-    ZXProj=imread(sprintf(ZXProjTemplate,fIdx));
+    XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
+    ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
+    ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
     [tracksXY,tracksZY,tracksZX]=overlayProjTracks(XYProj,ZYProj,ZXProj, ...
       [projData.minXBorder projData.maxXBorder],[projData.minYBorder projData.maxYBorder],[projData.minZBorder projData.maxZBorder], ...
       fIdx,tracks,p.colormap,p.colorIndx);
@@ -33,16 +33,23 @@ for fIdx=1:frameNb
     tracksZY=permute(tracksZY,[2 1 3]);
     tracksZX=permute(tracksZX,[2 1 3]);
     three=projMontage(tracksXY,tracksZX,tracksZY);
-    imwrite(three,sprintf(savePath,fIdx));
+    imwrite(three,sprintfPath(savePath,fIdx));
 end
 
-% save as video 
-video = VideoWriter([fileparts(processSingleProj.outFilePaths_{4})  filesep  p.name '.avi']);
+% save as video
+video = VideoWriter([fileparts(processSingleProj.outFilePaths_{4})  '-'  p.name '.avi']);
 video.FrameRate = 5;  % Default 30
 video.Quality = 100;    % Default 75
 open(video)
 for fIdx=1:frameNb
-  three=[imread(sprintf(savePath,fIdx))];
+  three=[imread(sprintfPath(savePath,fIdx))];
     writeVideo(video,three);
 end
 close(video)
+
+function path=sprintfPath(XYProjTemplate,fIdx)
+% making sprintf windows-path-proof
+% sprintf applied on the filename only
+[folder,file,ext]=fileparts(XYProjTemplate);
+filename=sprintf(file,fIdx);
+path=fullfile(folder,[filename ext]);

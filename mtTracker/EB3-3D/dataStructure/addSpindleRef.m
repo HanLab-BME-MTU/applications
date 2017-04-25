@@ -27,7 +27,7 @@ if(~isempty(p.processDetectPoles))
 end
 
 
-poleRefs=buildPoleRef(poleMovieInfo,MD.pixelSize_);
+poleRefs=buildSpindleRef(poleMovieInfo,MD.pixelSize_);
 
 %% Load EB3 tracks add azimuth info, change coordinate to real space measurement.
 if(isempty(p.EB3tracks)||isempty(p.EB3SphCoord))
