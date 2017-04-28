@@ -1436,7 +1436,7 @@ function writeLog(action, tag, key, expr)
     % disp(['wrote to file ' handles.logfile]);
     % fprintf(1,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
     handles.autoSaveCount =  handles.autoSaveCount + 1;
-    if (mod(handles.autoSaveCount, 15) == 0)
+    if (mod(handles.autoSaveCount, 25) == 0)
         exportDataState;
     end
 
