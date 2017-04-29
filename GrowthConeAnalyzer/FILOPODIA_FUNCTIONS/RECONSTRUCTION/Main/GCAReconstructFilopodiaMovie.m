@@ -184,12 +184,12 @@ for iCh = 1:nChan
     %% Test if the protrusion process was run
     idxProt = find(cellfun(@(x) sum(strcmpi(x.name_,'Protrusion')),movieData.processes_));
     if ~isempty(idxProt)
-        % load the three protrusion process associated cell structures,
-        % 'normals','protrusion','smoothedEdge'
+%         load the three protrusion process associated cell structures,
+%         'normals','protrusion','smoothedEdge'
         load(movieData.processes_{idxProt(end)}.outFilePaths_);
-        % If for some reason there is more than one protrusion process
-        % associated with the data, tell the user that your are using the
-        % most recently run
+%         If for some reason there is more than one protrusion process
+%         associated with the data, tell the user that your are using the
+%         most recently run
         if length(idxProt) >1
             display(['There was more than one veil protrusion process associated with ' ...
                 'this movie: local filopodia to veil calculations will be '...
@@ -202,7 +202,9 @@ for iCh = 1:nChan
         normals = [];
         smoothedEdge = [];
     end % ~isempty(idxProt)
-    
+%    
+%load([movieData.outputDirectory_ filesep 'protrusion' filesep 'protrusion_vectors.mat'] );
+
     %% Start Movie Loop %%%%
     for iFrame = startFrame:endFrame
         % Load image
@@ -240,6 +242,7 @@ if ip.Results.TSOverlays == 1
             type{1} = '.fig'; 
             type{2} = '.tif'; 
             
+            
         if ~isempty(TSFigs)
             for iType = 1:numel(type)
             arrayfun(@(x) saveas(TSFigs(x).h,...
@@ -259,12 +262,20 @@ if ip.Results.TSOverlays == 1
     type{1} = '.fig';
     type{2} = '.tif';
     
+   
     if ~isempty(TSFigsRecon)
         for iType = 1:numel(type)
+            
             arrayfun(@(x) saveas(TSFigsRecon(x).h,...
                 [outDir filesep TSFigsRecon(x).group  filesep 'ReconIter' num2str(TSFigsRecon(x).ReconIt,'%02d') ...
                 filesep TSFigsRecon(x).name filesep num2str(iFrame,'%03d') type{iType}]),1:length(TSFigsRecon));
+           
+                
+           
         end
+        arrayfun(@(x) saveas(TSFigsRecon(x).h,...
+                [outDir filesep TSFigsRecon(x).group  filesep 'ReconIter' num2str(TSFigsRecon(x).ReconIt,'%02d') ...
+                filesep TSFigsRecon(x).name filesep num2str(iFrame,'%03d') '.eps'],'psc2'),1:length(TSFigsRecon));
     end
     
     %if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(TSFigs(iFig).iter),
