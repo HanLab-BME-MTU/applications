@@ -90,7 +90,9 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 ip.addParameter('maxRadiusConnectFiloBranch',15); % change default to 15
 ip.addParameter('geoThreshFiloBranch',0.5); 
 
-
+% Option to detect Embedded actin bundles (for LifeAct and actin staining
+% only)
+ip.addParameter('detectEmbedded',true)
 
 
 ip.parse(varargin{:});
