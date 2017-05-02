@@ -404,7 +404,23 @@ function initMainGUI()
     'Resize','off',...
     'PaperPosition', get(0,'defaultfigurePaperPosition'),...
     'ScreenPixelsPerInchMode','manual',...
-    'HandleVisibility','callback');
+    'HandleVisibility','callback',...
+    'CloseRequestFcn', @my_closereq);
+
+
+    function my_closereq(src, callbackdata)
+    % Close request function 
+    % to display a question dialog box 
+       selection = questdlg({'Close CellXplorer? ','(!) Please verify desired info saved first (!)'},...
+          'Close CellXplorer?',...
+          'EXIT','RETURN','EXIT'); 
+       switch selection, 
+          case 'EXIT',
+             delete(gcf)
+          case 'RETURN'
+          return 
+       end
+    end
 
     handles.mainP = uipanel(...
     'Parent',handles.h1,...
@@ -1436,7 +1452,7 @@ function writeLog(action, tag, key, expr)
     % disp(['wrote to file ' handles.logfile]);
     % fprintf(1,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
     handles.autoSaveCount =  handles.autoSaveCount + 1;
-    if (mod(handles.autoSaveCount, 15) == 0)
+    if (mod(handles.autoSaveCount, 25) == 0)
         exportDataState;
     end
 

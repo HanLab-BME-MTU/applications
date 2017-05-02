@@ -1,6 +1,6 @@
 function trackMovieSpeckles(movieData,varargin)
 % trackMovieSpeckles tracks the speckles of a movie
-
+%
 %
 % SYNOPSIS detectMovieSpeckles(movieData,paramsIn)
 %
@@ -12,7 +12,7 @@ function trackMovieSpeckles(movieData,varargin)
 %   names and possible values as described below
 %
 % OUTPUT   
-
+%
 % Sebastien Besson, May 2011 (last modified Sep 2011)
 
 %% ----------- Input ----------- %%
@@ -40,11 +40,14 @@ specTrackProc = movieData.processes_{iProc};
 p = parseProcessParams(specTrackProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
+disp('feature(''ShowFigureWindows'')')
+feature('ShowFigureWindows')
 if feature('ShowFigureWindows'),
     wtBar = waitbar(0,'Initializing...','Name',specTrackProc.getName());
     wtBarArgs={'waitbar',wtBar};
 else
     wtBarArgs={};
+    wtBar = NaN;
 end
 
 % Reading various constants
