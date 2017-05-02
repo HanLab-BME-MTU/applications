@@ -1,15 +1,13 @@
 function overlayProjTracksList(MD,processProjList,kinTracksInliers,kinTracksISO,randKinTracksInliers,randKinTracksISO,PoleTrack)
-%%
-
 %% loading process results (Cell ref and ISO ref)
 outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
 tmp=load([outputDirProj filesep 'tracksLabRef.mat']);
 EB3TracksISO=tmp.tracksLabRef;
 
-myColormap=uint8( ... 
+myColormap=uint8( ...
     [[0 0 255]; ... % blue "all" tracks
     [0 255 0]; ... % green mapped tracks
-    [255 0 0]; ... % kinetochore tracks   
+    [255 0 0]; ... % kinetochore tracks
     ]);
 % Load addPoleRef to weed out inliers kin
 for projIdx=1:length(processProjList)
@@ -18,7 +16,7 @@ for projIdx=1:length(processProjList)
   randKinTrack=randKinTracksISO(projIdx);
   refKP1=buildRefsFromTracks(PoleTrack,kinTrack);
 
-  mappedMT=kinTracksInliers(projIdx).associatedMTP1; 
+  mappedMT=kinTracksInliers(projIdx).associatedMTP1;
   mappedRef=refKP1.applyBase(EB3TracksISO([mappedMT.index]),[]);
 %  mappedSpindleRef=poleRefsISO(1).applyBase(EB3TracksISO([mappedMT.index]),[]);
 

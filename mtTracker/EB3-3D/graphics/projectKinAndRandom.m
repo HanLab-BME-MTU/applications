@@ -5,6 +5,7 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addOptional('name','bundle');
 ip.addOptional('processSingleProj',[]);
+ip.addOptional('showRand',false);
 ip.parse(varargin{:});
 p=ip.Results;
 
@@ -34,13 +35,32 @@ poleMovieInfo=load(processDetectPoles.outFilePaths_{1}); poleMovieInfo=poleMovie
 [poleRefsISO,P1,P2]=buildSpindleRef(poleMovieInfo,1);
 
 %%
+%randomMax=processRandom.getParameters().randomDist;
+randomMax=20;
 processList=[];
 for kinIdx=kinRange
   kinTrack=kinTracksISOInliers(kinIdx);
   randKinTrack=randKinTracksISOInliers(kinIdx);
   refKP1=buildRefsFromTracks(P1,kinTrack);
   processProj=ExternalProcess(MD,'rawProj');
-  project1D(MD,[P1,kinTrack],'dynPoligonREF',[refKP1(1).applyBase(P1,[]) refKP1(1).applyBase(kinTrack,[]) refKP1(1).applyBase(randKinTrack,[])],'FoF',refKP1(1), ...
-      'name',[p.name '-P1-kin-' num2str(kinIdx) '-R'],'channelRender','grayRed','saveSingleProj',true,'processSingleProj',processProj);
+
+  %% build the ROI inset
+  insetROI=[P1,kinTrack];
+  if p.showRand
+      insetROI=[P1,randKinTrack];
+  end
+
+  %% Describe the Dynamical ROI ( A pyramid that descibe the maximum distance for randomization)
+  baseX=refKP1.getTracksFromBaseVector('X').getMultCoord(randomMax);
+  baseY=refKP1.getTracksFromBaseVector('Y').getMultCoord(randomMax);
+  % build pyramid
+  dynROI=[P1  ...
+      kinTrack.getAddCoord(baseX) kinTrack.getAddCoord(baseY) ...
+      kinTrack.getAddCoord(baseX.getMultCoord(-1))  kinTrack.getAddCoord(baseY.getMultCoord(-1))];
+  arrayfun(@(t) refKP1.applyBase(t,'P1K'),dynROI,'unif',0);
+
+  % Project around the pyramid and show inset.
+  project1D(MD,insetROI,'dynPoligonREF',[dynROI.P1K],'FoF',refKP1, ...
+    'name',[p.name '-P1-kin-' num2str(kinIdx) '-R'],'channelRender','grayRed','processSingleProj',processProj,'intMinPrctil',[1 50]);
   processList=[processList processProj];
 end

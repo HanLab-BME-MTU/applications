@@ -18,7 +18,7 @@ ZYProjTemplate=processSingleProj.outFilePaths_{2};
 ZXProjTemplate=processSingleProj.outFilePaths_{3};
 projData=load(processSingleProj.outFilePaths_{4},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
 savePath=[fileparts(processSingleProj.outFilePaths_{4}) filesep p.name filesep 'frame_nb%04d.png'];
-system(['mkdir -p ' fileparts(savePath)]);
+mkdirRobust([ fileparts(savePath)]);
 frameNb=projData.frameNb;
 for fIdx=1:frameNb
     XYProj=imread(sprintfPath(XYProjTemplate,fIdx));

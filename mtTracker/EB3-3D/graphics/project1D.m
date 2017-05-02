@@ -16,6 +16,8 @@ ip.addOptional('crop','manifold');
 ip.addOptional('transType','affineOnePass');
 ip.addOptional('FoF',[]);
 ip.addOptional('channelRender','greenRed');
+ip.addOptional('intMinPrctil',[1 99.9]);
+ip.addOptional('intMaxPrctil',[100 100]);
 ip.addOptional('name',[]);
 ip.addOptional('processSingleProj',[]);
 ip.parse(varargin{:});
@@ -85,9 +87,9 @@ end
 outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
 outputDirSingleProj=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
 if(~isempty(p.processSingleProj))
-    system(['mkdir  -p ' outputDirSingleProj filesep 'XY']);
-    system(['mkdir  -p ' outputDirSingleProj filesep 'XZ']);
-    system(['mkdir  -p ' outputDirSingleProj filesep 'YZ']);
+    mkdirRobust([outputDirSingleProj filesep 'XY'])
+    mkdirRobust([outputDirSingleProj filesep 'XZ'])
+    mkdirRobust([outputDirSingleProj filesep 'YZ'])
     p.processSingleProj.setOutFilePaths({[outputDirSingleProj filesep 'XY' filesep 'frame_nb%04d.png'], ...
         [outputDirSingleProj filesep 'YZ' filesep 'frame_nb%04d.png'], ...
         [outputDirSingleProj filesep 'XZ' filesep 'frame_nb%04d.png'], ...
@@ -97,8 +99,8 @@ if(~isempty(p.processSingleProj))
 end
 outputDirDemo=[MD.outputDirectory_ filesep '1DProjection' filesep p.name filesep 'volDemo' ];
 
-system(['mkdir  -p ' outputDirSlices1]);
-system(['mkdir  -p ' outputDirDemo]);
+mkdirRobust(outputDirSlices1);
+mkdirRobust(outputDirDemo);
 parfor fIdx=1:MD.nFrames_
     disp(num2str(fIdx))
 
@@ -420,11 +422,15 @@ parfor fIdx=1:MD.nFrames_
     end;
 
     % Create MIP of ROI and context
-    [fullmaxXY,fullmaxZY,fullmaxZX,~]=computeMIPs(warpedVol,ZRatio,prctile(warpedVol(:),1),prctile(warpedVol(:),100));
-    [fullmaxXYKin,fullmaxZYKin,fullmaxZXKin,~]=computeMIPs(warpedKinVol,ZRatio,prctile(warpedKinVol(:),99.9),prctile(warpedKinVol(:),100));
+    [fullmaxXY,fullmaxZY,fullmaxZX,~]=computeMIPs(warpedVol,ZRatio, ...
+        prctile(warpedVol(:),p.intMinPrctil(1)),prctile(warpedVol(:),p.intMaxPrctil(1)));
+    [fullmaxXYKin,fullmaxZYKin,fullmaxZXKin,~]=computeMIPs(warpedKinVol,ZRatio, ...
+        prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
 
-    [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio,prctile(warpedMaskedVol(:),1),prctile(warpedMaskedVol(:),100));
-    [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(warpedMaskedKinVol,ZRatio,prctile(warpedMaskedKinVol(:),99.9),prctile(warpedMaskedKinVol(:),100));
+    [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio, ...
+        prctile(warpedMaskedVol(:),p.intMinPrctil(1)),prctile(warpedMaskedVol(:),p.intMaxPrctil(1)));
+    [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(warpedMaskedKinVol,ZRatio, ...
+        prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
 
     % Fuse ROI and context
     maxXY(maxXY==0)=fullmaxXY(maxXY==0);

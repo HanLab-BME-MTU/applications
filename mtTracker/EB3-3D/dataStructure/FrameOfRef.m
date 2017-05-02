@@ -36,7 +36,25 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
           obj.origin=zeros(frameNb,3);
           obj.genCanonicalBase();
       end
-
+      function tracks=getTracksFromBaseVector(obj,direction)
+        vector=[]
+        switch direction
+        case 'X'
+          vector=obj.X;
+        case 'Y'
+          vector=obj.Y;
+        case 'Z'
+          vector=obj.Z;
+        otherwise
+          error('Direction must be X,Y or Z')
+        end
+        tracks=TracksHandle();
+        tracks.x=vector(:,1)';
+        tracks.y=vector(:,2)';
+        tracks.z=vector(:,3)';
+        tracks.startFrame=obj.frame(1);
+        tracks.endFrame=obj.frame(end);
+      end
       function newBaseObject=applyBase(obj,tracksOrDetections,name)
         if(isa(tracksOrDetections,'Tracks'))
             newBaseObject=applyBaseToTrack(obj,tracksOrDetections,name);

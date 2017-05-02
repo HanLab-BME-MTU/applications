@@ -40,11 +40,11 @@ for kinIdx=1:length(kinTracks)
             % associate EB3 to kin
             % Compute angle
             % threshold manually
-            
+
             % Kinetochore distance from each pole at frame <fIdx>
             kinRhoP1=kinTrack.pole1.rho(pIdx);
             kinRhoP2=kinTrack.pole2.rho(pIdx);
-            
+
             % Associate MT appearance to kinPole refererial using
             % Distance to pole
             P1KinAssociatedMT=(EB3RhoP1<kinRhoP1)&coexistingEB3&(EB3ClosestPoleStart==1);
@@ -52,10 +52,10 @@ for kinIdx=1:length(kinTracks)
             if(~isempty(p.kinDistCutoff))
                 P1KinAssociatedMT=P1KinAssociatedMT&(EB3RhoP1<(p.kinDistCutoff(2)+kinRhoP1))&(EB3RhoP1>(p.kinDistCutoff(1)+kinRhoP1));
                 P2KinAssociatedMT=P2KinAssociatedMT&(EB3RhoP2<(p.kinDistCutoff(2)+kinRhoP2))&(EB3RhoP2>(p.kinDistCutoff(1)+kinRhoP2));
-            end            
+            end
             P1KinAssociatedMTIndex=find(P1KinAssociatedMT);
             P2KinAssociatedMTIndex=find(P2KinAssociatedMT);
-            
+
             %% Angle to kinPole axis
             if(strcmp(p.position,'start'))
                 MTVectorP1KinRef=cell2mat(arrayfun(@(t) [t.pole1.x(1);t.pole1.y(1);t.pole1.z(1)],EB3Tracks(P1KinAssociatedMT),'unif',0)');
@@ -64,10 +64,10 @@ for kinIdx=1:length(kinTracks)
                 MTVectorP1KinRef=cell2mat(arrayfun(@(t) [t.pole1.x(end);t.pole1.y(end);t.pole1.z(end)],EB3Tracks(P1KinAssociatedMT),'unif',0)');
                 MTVectorP2KinRef=cell2mat(arrayfun(@(t) [t.pole2.x(end);t.pole2.y(end);t.pole2.z(end)],EB3Tracks(P2KinAssociatedMT),'unif',0)');
             end
-            
+
             kinVectorP1KinRef=[kinTrack.pole1.x(pIdx); kinTrack.pole1.y(pIdx); kinTrack.pole1.z(pIdx) ];
             kinVectorP2KinRef=[kinTrack.pole2.x(pIdx); kinTrack.pole2.y(pIdx); kinTrack.pole2.z(pIdx) ];
-            
+
             %%
             MTAnglesP1Kin= vectorAngleND(MTVectorP1KinRef,kinVectorP1KinRef);
             MTAnglesP2Kin= vectorAngleND(MTVectorP2KinRef,kinVectorP2KinRef);
@@ -87,7 +87,7 @@ for kinIdx=1:length(kinTracks)
                     assocMTP1Kin=EB3Tracks(P1KinAssociatedMTIndex(abs(MTAnglesP1Kin)<cutoff));
                     assocMTP2Kin=EB3Tracks(P2KinAssociatedMTIndex(abs(MTAnglesP2Kin)<cutoff));
             end
-            
+
             kinTrack.associatedMTP1=[kinTrack.associatedMTP1; assocMTP1Kin] ;
             kinTrack.associatedMTP2=[kinTrack.associatedMTP2; assocMTP2Kin] ;
         end

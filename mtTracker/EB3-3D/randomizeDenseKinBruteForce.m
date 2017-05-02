@@ -1,21 +1,23 @@
-function [randKinTracks,randKinTracksISO]=randomizeKinSpindleRef(MD,randomDist,varargin)
+function [randKinTracks,randKinTracksISO]=randomizeDenseTrackBruteForce(track,manifolds,maxRandomDist,varargin)
+% randomize a track so that no tracks map in the manifolds
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
-ip.addRequired('randomDist');
+ip.addRequired('maxRandomDist');
+ip.addRequired('mappingMetric');
 ip.addParameter('process',[]);
 ip.addParameter('processDetectPoles',[]);
-ip.parse(MD,randomDist,varargin{:});
+ip.parse(MD,maxRandomDist,varargin{:});
 p=ip.Results;
 
 % Randomize pixel domain Kinetochore and create the associted sphercial coordinates.
 outputDirTrack=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep ];
 kinTrackData=load([outputDirTrack  filesep 'tracksLabRef.mat']);
 kinTracksOrig=kinTrackData.tracksLabRef;
-[randKinTracksISO]=randomizeKinetochore(kinTracksOrig,randomDist);
+[randKinTracksISO]=randomizeKinetochore(kinTracksOrig,maxRandomDist);
 
-% saturating randomization
+% saturating randomization with the volume limits
 for tIdx=1:length(randKinTracksISO)
   randKin=randKinTracksISO(tIdx)
   randKin.x=min(randKin.x,MD.imSize_(1));
