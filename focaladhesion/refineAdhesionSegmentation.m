@@ -129,12 +129,29 @@ bgInten = I(inCelloutAdhMask);
 % second mode should be really distribution of cell inside. We need
 % to isolate this distribution.
 opts = statset('Display','final','MaxIter',200);
-objBgInten = gmdistribution.fit(double(bgInten), 2, 'Options', opts);
-% Get the second distribution
-[~,largerMu]=max(objBgInten.mu);
-muCytoInten = objBgInten.mu(largerMu);
-stdCytoInten = sqrt(objBgInten.Sigma(:,:,largerMu));
-thresInten = muCytoInten+4*stdCytoInten;
+try
+    objBgInten = gmdistribution.fit(double(bgInten), 2, 'Options', opts);
+    % Get the second distribution
+    [~,largerMu]=max(objBgInten.mu);
+    muCytoInten = objBgInten.mu(largerMu);
+    stdCytoInten = sqrt(objBgInten.Sigma(:,:,largerMu));
+    thresInten = muCytoInten+4*stdCytoInten;
+catch
+    try
+        thresInten = graythresh(bgInten)*max(bgInten);
+        muCytoInten = mean(bgInten);
+        stdCytoInten = std(bgInten);
+    catch
+        try
+            [~, thresInten] = cutFirstHistMode(bgInten,0); %Rosin
+        catch
+            thresInten = quantile(bgInten,0.95); %Rosin
+            disp('95% Quantile of the background is used for interior boundary threshold.');
+        end
+        muCytoInten = mean(bgInten);
+        stdCytoInten = std(bgInten); %sqrt(objBgInten.Sigma(:,:,largerMu));
+    end
+end
 %         posteriorBG=objBgInten.posterior(bgInten);
 %         maskDouble=double(mask);
 %         maskDouble(find(inCelloutAdhMask(:)))=posteriorBG(:,1);
