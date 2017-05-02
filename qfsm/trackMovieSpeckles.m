@@ -40,11 +40,14 @@ specTrackProc = movieData.processes_{iProc};
 p = parseProcessParams(specTrackProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
+disp('feature(''ShowFigureWindows'')')
+feature('ShowFigureWindows')
 if feature('ShowFigureWindows'),
     wtBar = waitbar(0,'Initializing...','Name',specTrackProc.getName());
     wtBarArgs={'waitbar',wtBar};
 else
     wtBarArgs={};
+    wtBar = {};
 end
 
 % Reading various constants
