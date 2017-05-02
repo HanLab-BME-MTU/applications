@@ -1,6 +1,6 @@
 function trackMovieSpeckles(movieData,varargin)
 % trackMovieSpeckles tracks the speckles of a movie
-
+%
 %
 % SYNOPSIS detectMovieSpeckles(movieData,paramsIn)
 %
@@ -12,7 +12,7 @@ function trackMovieSpeckles(movieData,varargin)
 %   names and possible values as described below
 %
 % OUTPUT   
-
+%
 % Sebastien Besson, May 2011 (last modified Sep 2011)
 
 %% ----------- Input ----------- %%
@@ -47,7 +47,7 @@ if feature('ShowFigureWindows'),
     wtBarArgs={'waitbar',wtBar};
 else
     wtBarArgs={};
-    wtBar = {};
+    wtBar = NaN;
 end
 
 % Reading various constants
