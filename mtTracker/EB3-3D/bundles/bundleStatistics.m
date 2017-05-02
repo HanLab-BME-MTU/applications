@@ -7,6 +7,9 @@ ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addParameter('kinBundle',[]);
 ip.addParameter('kinBundleName',[]);
 ip.addParameter('bundleMTRange',[]);
+ip.addParameter('mappedMTField','capturedMT');
+ip.addParameter('bundledMTField','fiber');
+ip.addParameter('plotName',[]);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
@@ -24,10 +27,10 @@ end
 outputDirPlot=[outputDirBundle filesep 'plot' filesep];
 system(['mkdir ' outputDirPlot]);
 
-[handles,hFig]= displayBundleStatistics('kinBundle',kinTracksCell,'kinBundleName',p.kinBundleName,'bundleMTRange',p.bundleMTRange);
+[handles,hFig]= displayBundleStatistics('kinBundle',kinTracksCell,varargin{:});
 
-print([outputDirPlot 'avgMTPerKin-kinCount.png'],'-dpng');
-print([outputDirPlot 'avgMTPerKin-kinCount.eps'],'-depsc');
+print([outputDirPlot p.plotName '_bundleStat.png'],'-dpng');
+print([outputDirPlot p.plotName '_bundleStat.eps'],'-depsc');
 
 
 

@@ -80,11 +80,13 @@ classdef LaminsNLMSAnalysisProcess < DetectionProcess
             end
             
             tz = sub2ind([obj.owner_.nFrames_ obj.owner_.zSize_],iFrame,iZ);
-            if(isempty(ip.Results.output) && isfield(params,'output'))
-                output = params.output;
-            else
-                varargout{1}=s.(output{1}){tz};
-                return;
+            if(isempty(ip.Results.output))
+                if(isfield(params,'output'))
+                    output = params.output;
+                else
+                    varargout{1}=s.(output{1}){tz};
+                    return;
+                end
             end
             data = s.S4;
             switch(output)

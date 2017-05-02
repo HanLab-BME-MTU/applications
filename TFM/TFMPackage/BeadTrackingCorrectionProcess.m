@@ -32,7 +32,15 @@ classdef BeadTrackingCorrectionProcess < StageDriftCorrectionProcess
             obj = obj@StageDriftCorrectionProcess(super_args{:});
         end
         
-        
+        function sanityCheck(obj)
+            sanityCheck@ImageProcessingProcess(obj);
+            channelIndex = obj.funParams_.ChannelIndex;
+            psfSigma = obj.owner_.channels_(channelIndex(1)).psfSigma_;
+            assert(~isempty(psfSigma), 'MovieData:Process:sanityCheck',...
+                ['The beads channel does not have a valid '...
+                'standard deviation of the Gaussian point-spread function.']);
+        end
+
         function h=draw(obj,varargin)
             % Function to draw process output
             

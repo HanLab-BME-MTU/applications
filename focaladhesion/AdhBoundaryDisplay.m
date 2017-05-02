@@ -6,13 +6,8 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
         Color = 'm';  
     end
     methods
-        function obj=AdhBoundaryDisplay(varargin)
-            nVarargin = numel(varargin);
-            if nVarargin > 1 && mod(nVarargin,2)==0
-                for i=1 : 2 : nVarargin-1
-                    obj.(varargin{i}) = varargin{i+1};
-                end
-            end
+        function obj=AdhBoundaryDisplay(varargin)            
+            obj = obj@MovieDataDisplay(varargin{:});
         end
         function h=initDraw(obj, data, tag, varargin)
             

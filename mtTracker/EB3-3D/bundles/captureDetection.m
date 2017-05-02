@@ -66,8 +66,8 @@ for kIdx=1:length(kinTracks)
 %                                         (kinTrack.elevation(MTPoles,pIdx)- EB3TermElev(coexistingEB3))]).^2,2));
 %             caughtMTIndex=find(coexistingEB3);
 %             caughtMTIndex=caughtMTIndex(kinEB3DistP1<distanceCutOff);
-            kinEB3DistP1=(min(aziDiff,2*pi-aziDiff)<distanceCutOff) & (min(elevDiff,pi-elevDiff)<distanceCutOff) ...
-                          & (EB3TermRho(coexistingEB3)<kinTrack.rho(MTPoles,pIdx)*1.02); % Rho is below kin row with a 2% margin. 
+            kinEB3DistP1=(min(aziDiff,2*pi-aziDiff)<distanceCutOff) & (min(elevDiff,pi-elevDiff)<distanceCutOff);% ...
+                          %& (EB3TermRho(coexistingEB3)<kinTrack.rho(MTPoles,pIdx)*1.02); % Rho is below kin row with a 2% margin. 
             caughtMTIndex=find(coexistingEB3);
             caughtMTIndex=caughtMTIndex(kinEB3DistP1);
             if(~isempty(caughtMTIndex))

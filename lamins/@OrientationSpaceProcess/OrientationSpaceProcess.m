@@ -29,7 +29,7 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
         end
         function varargout = loadChannelOutput(obj,iChan,varargin)
             % Input check
-            outputList = {'maxima','nlms','uMaximaOrder','uMaximaOrderMap','nlms_overlay','meanResponse'};
+            outputList = {'maxima','nlms','uMaximaOrder','uMaximaOrderMap','nlms_overlay','meanResponse','angularRidgeEnergy'};
             ip =inputParser;
             ip.StructExpand = true;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
@@ -40,7 +40,8 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 @(x) all(ismember(x,outputList)) || ...
                 ~isempty(regexp(x,'^maxima', 'once')) || ...
                 ~isempty(regexp(x,'^nlms', 'once')) || ...
-                ~isempty(regexp(x,'^maxRes', 'once')) ...
+                ~isempty(regexp(x,'^maxRes', 'once')) ||...
+                ~isempty(regexp(x,'^angularRidgeEnergy', 'once')) ...
                 );
             ip.parse(iChan,varargin{:})
             iFrame = ip.Results.iFrame;
@@ -60,16 +61,18 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
 %                 case 'nlms_overlay'
 %                     output{1} = 'nlms';
 %             end
-            selectCell = [];
-            [splits,matches] = regexp(output{1},'_sc[0-9]$','split','match');
-            if(~isempty(matches))
-                output{1} = splits{1};
-                selectCell = str2double(matches{1}(end));
-            end
-
-            doMip = false;
-            if(~isempty(regexp(output{1},'_mip$','once')))
-                doMip = true;
+            selectCell = cell(1,length(output));
+            doMip = false(1,length(output));
+            for o=1:length(output)
+                [splits,tokens] = regexp(output{o},'{([0-9]+)}$|_sc([0-9]+)$','split','tokens');
+                if(~isempty(tokens))
+                    output{o} = splits{1};
+                    selectCell{o} = str2double(tokens{1});
+                end
+                
+                if(~isempty(regexp(output{o},'_mip$','once')))
+                    doMip(o) = true;
+                end
             end
 
             if(~isempty(regexp(output{1},'^nlms', 'once')))
@@ -77,11 +80,19 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             elseif(~isempty(regexp(output{1},'^maxima_f', 'once')))
                 output{1} = 'maxima';
                 output{end+1} = 'nlms';
+                selectCell{end+1} = selectCell{1};
+                doMip(end+1) = doMip(1);
+            elseif(~isempty(regexp(output{1},'^maxima_value', 'once')))
+                output{1} = 'maxima_value';
             elseif(~isempty(regexp(output{1},'^maxima', 'once')))
                 output{1} = 'maxima';
             elseif(~isempty(regexp(output{1},'^maxRes', 'once')))
                 output{1} = 'maxRes';
+            elseif(~isempty(regexp(output{1},'^angularRidgeEnergy', 'once')))
+                output{1} = 'angularRidgeEnergy';
             end
+            
+            varargout = cell(1,length(output));
             
             
             % Data loading
@@ -141,11 +152,14 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             end
             if(length(output) > 1 && strcmp(output{1},'maxima') && strcmp(output{2},'nlms'))
                 varargout{1} = {s.maxima,s.nlms};
-            elseif(doMip)
-                varargout{1} = cellfun(@(out) nanmax(out,[],3),varargout{1},'UniformOutput',false);
             end
-            if(~isempty(selectCell))
-                varargout{1} = varargout{1}{selectCell};
+            for o = 1:length(output)
+                if(doMip(o))
+                    varargout{o} = cellfun(@(out) nanmax(out,[],3),varargout{1},'UniformOutput',false);
+                end
+                if(~isempty(selectCell{o}))
+                    varargout{o} = varargout{o}{selectCell{o}};
+                end
             end
         end
         function output = getDrawableOutput(obj)
@@ -166,9 +180,10 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             for m = 1:length(params.responseAngularOrder)
                 output(m).name=sprintf('NLMS Image K=%d, m=%d',params.responseAngularOrder(m),params.maximaAngularOrder(m));
                 output(m).var=sprintf('nlms_m%d',m);
-                output(m).formatData=@(x) mat2gray(nanmax(x{m},[],3));
+%                 output(m).formatData=@(x) mat2gray(nanmax(x{m},[],3));
+                output(m).formatData=@(x) formatNLMSForImage(x{m});
                 output(m).type='image';
-                output(m).defaultDisplayMethod=@ImageDisplay;
+                output(m).defaultDisplayMethod=@(varargin) ImageDisplay('Colormap','Parula');
             end
             
             mm = length(params.responseAngularOrder);
@@ -200,6 +215,16 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 output(m+mm).var=sprintf('maxima_m%d',m);
                 output(m+mm).formatData=@(x) x{m}(:,:,1)/pi;
                 output(m+mm).type='image';
+                output(m+mm).defaultDisplayMethod=@(varargin) ImageDisplay('Colormap','hsv');
+            end
+            
+            mm = mm + length(uMaximaAngularOrder);
+            
+            for m = 1:length(uMaximaAngularOrder)
+                output(m+mm).name=sprintf('Angular Energy sqrt m=%d',uMaximaAngularOrder(m));
+                output(m+mm).var=sprintf('angularRidgeEnergy%d',m);
+                output(m+mm).formatData=@(x) mat2gray(sqrt(x{m}));
+                output(m+mm).type='image';
                 output(m+mm).defaultDisplayMethod=@ImageDisplay;
             end
             
@@ -221,6 +246,8 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 output(m+mm).formatData=@(x) mat2gray(real(x));
                 output(m+mm).type='image';
                 output(m+mm).defaultDisplayMethod=@ImageDisplay;
+                
+            output = flip(output);
 
             
 %             colors = parula(numel(obj.owner_.channels_)*nOutput);
@@ -358,8 +385,9 @@ function saveOrientationSpaceResponse(process)
                 for u = 1:length(out.uMaximaOrder)
                     tempResponse = response.getResponseAtOrderFT(out.uMaximaOrder(u));
                     out.maxima{u} = tempResponse.getRidgeOrientationLocalMaxima;
+                    out.angularRidgeEnergy{u} = tempResponse.getRidgeAngularEnergy;
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d, u=%02d',c,t,z,u));
                 end
                 lastOrder = out.uMaximaOrder(u);
                 for m = 1:length(params.responseAngularOrder)
@@ -370,15 +398,15 @@ function saveOrientationSpaceResponse(process)
                     
                     out.nlms{m} = tempResponse.nonLocalMaximaSuppressionPrecise(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d, m=%02d A',c,t,z,m));
                     
                     out.maxRes{m} = tempResponse.getMaxResponseFT(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d, m=%02d B',c,t,z,m));
                     
                     out.maxima_value{m} = tempResponse.interpft1(out.maxima{out.uMaximaOrderMap(m)});
                     counter = counter + 1;
-                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d',c,t,z));
+                    progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d, m=%02d C',c,t,z,m));
                     
                 end
                                
@@ -386,6 +414,11 @@ function saveOrientationSpaceResponse(process)
             end;
         end;
     end;
+end
+function imageData = formatNLMSForImage(nlms)
+    nlms_mip = nanmax(real(nlms),[],3);
+    imageData = mat2gray(nlms_mip);
+    imageData(nlms_mip == 0) = NaN;
 end
 function overlayData = formatNLMSForOverlay(nlms,color)
     overlayData = zeros(size(nlms,1),size(nlms,2),4);

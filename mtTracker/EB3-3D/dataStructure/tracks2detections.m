@@ -1,5 +1,5 @@
-function [detections,sphericalCoord,inliers]=tracks2detections(tracks,detections,poleDetection,scales)
-
+function [detections]=tracks2detections(tracks,detectionsAlloc)
+detections=detectionsAlloc;
 % Translate these changes in the detection structure
 for kIdx=1:length(tracks)
     tr=tracks(kIdx);
@@ -12,6 +12,3 @@ for kIdx=1:length(tracks)
         end
    end
 end
-
-% Build the associated polar coordinate
-[~,sphericalCoord,~,inliers]=poleDist(poleDetection,detections,'anisotropy',scales,'angleRef','poles');
