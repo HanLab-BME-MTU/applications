@@ -55,6 +55,7 @@ handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
 handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 handles.autoSaveCount = 0;
 handles.frameUpdatePause = 0.05;
+handles.movieLoopLimit = 5;
 handles.selPtIdx = 1;
 
 % Initialize Label Dictionary
@@ -381,7 +382,7 @@ function playMovie(varargin)
     nf = handles.movies.nf;
     cell_idx = handles.selPtIdx;
     i = 1;
-    while (i <= nf) && (handles.selPtIdx == cell_idx) %% ADD SELECTION too...
+    while (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit)%% ADD SELECTION too...
         handles.movies.fidx = i;
         updateMovie();
         pause(handles.frameUpdatePause);
@@ -389,20 +390,32 @@ function playMovie(varargin)
     end
 end
 
-
-
 function playMovieLoop(varargin)
-    tic
-    ttoc = 0;
-    while ttoc < 5 %% (ADD SELECTION CHECK TOO)
+    tic;
+    handles.ttoc = 0;
+    while handles.ttoc < handles.movieLoopLimit %% (ADD SELECTION CHECK TOO)
         playMovie;
-        ttoc = toc;
+        handles.ttoc = toc;
     end
     
 end
 
-playMovieLoop()
-% handles.selPtIdx = 
+
+
+playMovieLoop;
+presentCells;
+
+
+%===============================================================================
+% Cell Array Management
+%===============================================================================
+
+    function presentCells(varargin)
+        for i = 1:length(data.meta.mindex)
+            handles.selPtIdx = i;
+            playMovieLoop;
+        end
+    end
 
 %===============================================================================
 % Annotation Panel Buttons
