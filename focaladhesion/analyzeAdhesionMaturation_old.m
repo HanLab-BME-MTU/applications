@@ -812,6 +812,9 @@ if saveAnalysis
         FADensity(ii) = numNAsInBand(ii)/(bandArea(ii)*MD.pixelSize_^2*1e-6);  % unit: number/um2 
     end
     save([dataPath filesep 'NAFADensity.mat'], 'NADensity','FADensity','bandwidthNA','numNAsInBand')
+    lifeNames = {'NADensity','FADensity','bandwidthNA','numNAsInBand'};
+    A= table(NADensity,FADensity,bandwidthNA,numNAsInBand','VariableNames',lifeNames);
+    writetable(A,[dataPath filesep 'NAFADensity.csv'])
 
     %% Lifetime analysis
     p=0;
@@ -864,10 +867,14 @@ if saveAnalysis
                 end
             end
         end
+        lifeTimeAll = [lifeTimeNAmaturing lifeTimeNAfailing];
         maturingRatio = p/(p+q);
         tracksNAmaturing = trNAonly(indMature);
         tracksNAfailing = trNAonly(indFail);
-        save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','-v7.3')
+        save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll','-v7.3')
+        lifeNames = {'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll'};
+        A= table(maturingRatio',lifeTimeNAfailing,lifeTimeNAmaturing,lifeTimeAll,'VariableNames',lifeNames);
+        writetable(A,[dataPath filesep 'lifeTimes.csv'])
     else
         trNAonly = tracksNA;
         indMature = [];
@@ -902,8 +909,21 @@ if saveAnalysis
     disassemblingNARatio = disassemblingNANumber/focalAdhInfo(1).cellArea;
     %% save
     save([dataPath filesep 'assembly_disassembly_rates.mat'], 'assemRateCell', 'disassemRateCell','nucleationRatio','maturingRatio','disassemblingNARatio','-v7.3')
-    A= table(assemRateCell,disassemRateCell,nucleationRatio,disassemblingNARatio);
+    
+    assemRateCell = assemRateCell(~isnan(assemRateCell));
+    disassemRateCell = disassemRateCell(~isnan(disassemRateCell));
+    
+    % I need to work to make the same number of the raws for these
+    % variables.
+    assemNames = {'assemRateCell', 'disassemRateCell','nucleationRatio','disassemblingNARatio'};
+    A= table(assemRateCell',disassemRateCell',nucleationRatio,disassemblingNARatio,'VariableNames',assemNames);
     writetable(A,[dataPath filesep 'assembly_disassembly_rates.csv'])
+%     warning('off','MATLAB:xlswrite:AddSheet')
+%     warning('off','MATLAB:xlswrite:NoCOMServer')
+%     xlswrite([dataPath filesep 'assembly_disassembly_rates.csv'],assemRateCell,'A1')
+%     xlswrite([dataPath filesep 'assembly_disassembly_rates.csv'],disassemRateCell,'B1')
+%     xlswrite([dataPath filesep 'assembly_disassembly_rates.csv'],nucleationRatio,'C1')
+%     xlswrite([dataPath filesep 'assembly_disassembly_rates.csv'],disassemblingNARatio,'D1')
 else
     trNAonly = tracksNA;
     indMature = [];
