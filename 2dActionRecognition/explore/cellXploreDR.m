@@ -1499,7 +1499,7 @@ function tagDataPoint(src, ~)
 
         % Log to file
         % [time] [session ID == input .mat file+timestart]. [remove] [key] [expr] [tag]
-        writeLog('remove', tag, cellkey, cellexpr);
+        writeLog('remove', tag, cellKey, cellexpr);
 
 
     end
