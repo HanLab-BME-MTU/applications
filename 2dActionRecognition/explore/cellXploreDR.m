@@ -99,7 +99,7 @@ if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2)
         
         if isfield(cellDataSet{1},'cellMD') 
             disp('Checking movieData of individual cells...')
-            MD = MovieData.load(cellDataSet{1}.cellMD);
+            MD = MovieData.loadMatFile(cellDataSet{1}.cellMD);
             assert(isa(MD, 'MovieData'))
             handles.flyLoad = true;
         end
@@ -275,7 +275,7 @@ function initializeDataStruct_Assaf() %(MODEL)
     
     if string(handles.choiceLoadMD) == 'Yes'
         for i = 1:length(handles.MDcache)
-            handles.MDcache{i} = MovieData.load(data.MD{1});
+            handles.MDcache{i} = MovieData.loadMatFile(data.MD{1});
         end
     else
         disp('Not pre-loading any MovieDatas...')
@@ -2045,7 +2045,7 @@ function updateSliderNF()
         end    
     elseif handles.flyLoad
         if isempty(handles.MDcache{handles.selPtIdx})
-            MD = MovieData.load(data.MD{handles.selPtIdx});
+            MD = MovieData.loadMatFile(data.MD{handles.selPtIdx});
             handles.MDcache{handles.selPtIdx} = MD;
         else
             MD = handles.MDcache{handles.selPtIdx};
@@ -2087,7 +2087,7 @@ function playMovie_GUI(varargin)
         handles.movies.nf = size(data.movies{handles.selPtIdx},3);
     elseif handles.flyLoad
         if isempty(handles.MDcache{handles.selPtIdx})
-            MD = MovieData.load(data.MD{handles.selPtIdx});
+            MD = MovieData.loadMatFile(data.MD{handles.selPtIdx});
             handles.movies.nf = MD.nFrames_;
             handles.MDcache{handles.selPtIdx} = MD;
         else
