@@ -58,6 +58,7 @@ handles.uName = char(java.lang.System.getProperty('user.name'));
 handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
 handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 handles.autoSaveCount = 0;
+handles.loopMovie = true;
 
 
 % Initialize Label Dictionary
@@ -2107,6 +2108,9 @@ function playMovie_GUI(varargin)
             updateMovieGAM(i);
             pause(.05);
             i=i+1;
+            if handles.loopMovie && (i == nf)
+                i = 1;
+            end
         end
     else
         return
