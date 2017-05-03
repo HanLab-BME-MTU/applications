@@ -219,9 +219,6 @@ if ~foundTracks
     toc
 
     % disp('loading segmented FAs...')
-    bandArea = zeros(nFrames,1);
-    NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
-    FADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
 
     % Finding which channel has a cell mask information
 
@@ -764,8 +761,11 @@ end
 if saveAnalysis
     % saving
     %% NA FA Density analysis
-    numNAs = zeros(nFrames,1);
-    numNAsInBand = zeros(nFrames,1);
+    bandArea = zeros(1,nFrames);
+    NADensity = zeros(1,nFrames); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
+    FADensity = zeros(1,nFrames); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
+    numNAs = zeros(1,nFrames);
+    numNAsInBand = zeros(1,nFrames);
     trackIdx = true(numel(tracksNA),1);
 %     trackIdxFC = true(numel(focalAdhInfo),1);
 %     trackIdxFA = true(numel(FAInfo),1);
@@ -813,7 +813,7 @@ if saveAnalysis
     end
     save([dataPath filesep 'NAFADensity.mat'], 'NADensity','FADensity','bandwidthNA','numNAsInBand')
     lifeNames = {'NADensity','FADensity','bandwidthNA','numNAsInBand'};
-    A= table(NADensity,FADensity,bandwidthNA,numNAsInBand','VariableNames',lifeNames);
+    A= table({NADensity; FADensity; bandwidthNA; numNAsInBand'},'RowNames',lifeNames);
     writetable(A,[dataPath filesep 'NAFADensity.csv'])
 
     %% Lifetime analysis
@@ -873,8 +873,8 @@ if saveAnalysis
         tracksNAfailing = trNAonly(indFail);
         save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll','-v7.3')
         lifeNames = {'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll'};
-        A= table(maturingRatio',lifeTimeNAfailing,lifeTimeNAmaturing,lifeTimeAll,'VariableNames',lifeNames);
-        writetable(A,[dataPath filesep 'lifeTimes.csv'])
+        B= table({maturingRatio';lifeTimeNAfailing;lifeTimeNAmaturing;lifeTimeAll},'RowNames',lifeNames);
+        writetable(B,[dataPath filesep 'lifeTimes.csv'])
     else
         trNAonly = tracksNA;
         indMature = [];
@@ -916,8 +916,8 @@ if saveAnalysis
     % I need to work to make the same number of the raws for these
     % variables.
     assemNames = {'assemRateCell', 'disassemRateCell','nucleationRatio','disassemblingNARatio'};
-    A= table(assemRateCell',disassemRateCell',nucleationRatio,disassemblingNARatio,'VariableNames',assemNames);
-    writetable(A,[dataPath filesep 'assembly_disassembly_rates.csv'])
+    C= table({assemRateCell'; disassemRateCell'; nucleationRatio; disassemblingNARatio},'RowNames',assemNames);
+    writetable(C,[dataPath filesep 'assembly_disassembly_rates.csv'])
 %     warning('off','MATLAB:xlswrite:AddSheet')
 %     warning('off','MATLAB:xlswrite:NoCOMServer')
 %     xlswrite([dataPath filesep 'assembly_disassembly_rates.csv'],assemRateCell,'A1')
