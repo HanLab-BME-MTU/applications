@@ -54,7 +54,8 @@ handles.uName = char(java.lang.System.getProperty('user.name'));
 handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
 handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 handles.autoSaveCount = 0;
-
+handles.frameUpdatePause = 0.05;
+handles.selPtIdx = 1;
 
 % Initialize Label Dictionary
 if nargin < 1
@@ -322,6 +323,7 @@ function initMainGUI()
     handles.movie.TitlePosition='righttop';
     
                           
+%     [x, y, w, h] = getPosH(handles.mainP);
     hAnnoP = 600;
     wAnnoP = w/2;
     
@@ -337,7 +339,75 @@ function initMainGUI()
     
 end
 
- 
+
+%===============================================================================
+% Movie display
+%===============================================================================
+
+opts = {'Parent', handles.movie, 'Units', 'pixels',...
+             'Position',[2 2 handles.movie.Position(3)-2 handles.movie.Position(3)-1],...
+             'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
+
+axMovie = axes(opts{:});
+axMovie.XColor = 'w';
+axMovie.YColor = 'w';
+handles.axMovie = axMovie;
+set(handles.axMovie, 'XTick', []);
+set(handles.axMovie, 'YTick', []);
+colormap(handles.axMovie, gray);
+
+
+function updateMovie()
+    MD = handles.MDcache{handles.selPtIdx};
+    movieFrame = MD.channels_.loadImage(handles.movies.fidx);
+
+    imagesc(movieFrame,'Parent', handles.axMovie, 'HitTest', 'off');
+    set(handles.axMovie, 'XTick', []);
+    set(handles.axMovie, 'YTick', []);
+    set(handles.axMovie, 'Position', [5 8 size(movieFrame,1)*1.75 size(movieFrame,2)*1.75])    
+    colormap(handles.axMovie, gray);
+end 
+
+
+function playMovie(varargin)
+    if isempty(handles.MDcache{handles.selPtIdx})
+        MD = MovieData.load(data.MD{handles.selPtIdx});
+        handles.movies.nf = MD.nFrames_;
+        handles.MDcache{handles.selPtIdx} = MD;
+    else
+        MD = handles.MDcache{handles.selPtIdx};
+    end
+    handles.movies.nf = MD.nFrames_;
+    nf = handles.movies.nf;
+    cell_idx = handles.selPtIdx;
+    i = 1;
+    while (i <= nf) && (handles.selPtIdx == cell_idx) %% ADD SELECTION too...
+        handles.movies.fidx = i;
+        updateMovie();
+        pause(handles.frameUpdatePause);
+        i = i+1;
+    end
+end
+
+
+
+function playMovieLoop(varargin)
+    tic
+    ttoc = 0;
+    while ttoc < 5 %% (ADD SELECTION CHECK TOO)
+        playMovie;
+        ttoc = toc;
+    end
+    
+end
+
+playMovieLoop()
+% handles.selPtIdx = 
+
+%===============================================================================
+% Annotation Panel Buttons
+%===============================================================================
+
 % 
 %     %-------------------------------------------------------------------------------
 %     % Control/Movie panels of GUI
