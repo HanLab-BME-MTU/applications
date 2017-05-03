@@ -57,6 +57,7 @@ handles.autoSaveCount = 0;
 handles.frameUpdatePause = 0.05;
 handles.movieLoopLimit = 5;
 handles.selPtIdx = 1;
+handles.stageDriftCorrection = true;
 
 % Initialize Label Dictionary
 if nargin < 1
@@ -359,8 +360,15 @@ colormap(handles.axMovie, gray);
 
 
 function updateMovie()
+
     MD = handles.MDcache{handles.selPtIdx};
-    movieFrame = MD.channels_.loadImage(handles.movies.fidx);
+    if handles.stageDriftCorrection 
+        SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
+        movieFrame = MD.processes_{SDCindx}.loadOutImage(1, handles.movies.fidx);
+        disp('TODO: add warning about SDC vs normal?');
+    else
+        movieFrame = MD.channels_.loadImage(handles.movies.fidx);
+    end
 
     imagesc(movieFrame,'Parent', handles.axMovie, 'HitTest', 'off');
     set(handles.axMovie, 'XTick', []);
@@ -382,7 +390,7 @@ function playMovie(varargin)
     nf = handles.movies.nf;
     cell_idx = handles.selPtIdx;
     i = 1;
-    while (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit)%% ADD SELECTION too...
+    while (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit) %% ADD SELECTION too...
         handles.movies.fidx = i;
         updateMovie();
         pause(handles.frameUpdatePause);
@@ -401,8 +409,6 @@ function playMovieLoop(varargin)
 end
 
 
-
-playMovieLoop;
 presentCells;
 
 
@@ -410,12 +416,12 @@ presentCells;
 % Cell Array Management
 %===============================================================================
 
-    function presentCells(varargin)
-        for i = 1:length(data.meta.mindex)
-            handles.selPtIdx = i;
-            playMovieLoop;
-        end
+function presentCells(varargin)
+    for i = 1:length(data.meta.mindex)
+        handles.selPtIdx = i;
+        playMovieLoop;
     end
+end
 
 %===============================================================================
 % Annotation Panel Buttons

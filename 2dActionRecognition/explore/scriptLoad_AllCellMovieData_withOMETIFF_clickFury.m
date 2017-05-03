@@ -12,7 +12,7 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
 load(loadMatPath);%, 'allCellsMovieData'); 
 
-randset = 100;
+randset = 10;
 
 if isempty(randset)
     allCellsSet = allCellsMovieData;
@@ -21,7 +21,7 @@ else
     allCellsSet = allCellsMovieData(1,randsample(length(allCellsMovieData),randset,false));
 end
 
-masterMovieDir = [omeTiffDir filesep 'all'];
+masterMovieDir = [omeTiffDir filesep 'sdcTest'];
 if ~exist(masterMovieDir, 'dir')
     mkdir(masterMovieDir);
 end
@@ -42,7 +42,7 @@ parfor i = 1:length(allCellsSet)
 
     iCell = allCellsSet{i};
     disp(['Creating movieData for cell ID key: ' iCell.key]);
-    movieFileOut = [masterMovieDir filesep iCell.key '_CellX.ome.tiff'];
+    movieFileOut = [masterMovieDir filesep iCell.key filesep iCell.key '_CellX.ome.tiff'];
     disp(['Making OME-TIFF : ' movieFileOut]);
 
     disp(iCell.key);
@@ -54,9 +54,9 @@ parfor i = 1:length(allCellsSet)
     
     startTime = ts;
     ntime = length(ts);
-    endTime = ts + ntime;
+    endTime = ts(1) + ntime;
 
-    iCell.key = [iCell.key '_t' endTime]
+    iCell.key = [iCell.key '_t' num2str(endTime)]
     
     MD = load(iCell.MD, 'MD');
     MD = MD.MD;
@@ -86,6 +86,7 @@ parfor i = 1:length(allCellsSet)
     end
     
     % Save as OME-TIFF 
+    mkdir(fileparts(movieFileOut));
     bfsave(movieM, movieFileOut, 'metadata', metadata);
     
     
@@ -98,7 +99,11 @@ parfor i = 1:length(allCellsSet)
     extProc = ExternalProcess(MD, 'LBPfeatures');
     MD.addProcess(extProc);
     MD.processes_{1}.setParameters(iCell);
-    
+
+    MD.addProcess(EfficientSubpixelRegistrationProcess(MD));
+    SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
+    MD.processes_{SDCindx}.run()
+
     % MDpath = MD.getFullPath();
     % Save individual cell movieData
     allCellsSet{i}.cellMD = MD.getFullPath();
@@ -111,6 +116,20 @@ disp('% Save cell array with cell MD info');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
 save([omeTiffDir filesep 'clickFuryCellData.mat'], 'allCellsSet');
+
+annotationSet = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells (by local master index)
+annotationSet('bleb')=[NaN]
+annotationSet('protrusion')=[NaN]
+annotationSet('small')=[NaN]
+annotationSet('big')=[NaN]
+annotationSet('active')=[NaN]
+annotationSet('inactive')=[NaN]
+annotationSet('weird')=[NaN]
+annotationSet('neat')=[NaN]
+annotationSet.keys
+cellDataSet = allCellsSet;
+
+save([omeTiffDir filesep 'clickFuryCellData_R' num2str(randset) '.mat'], 'cellDataSet', 'annotationSet');
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% [optional & slow..] Create MovieList');
@@ -130,3 +149,17 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 % ML.movies_{3}.reader.formatReader.getMetadataStore().getImageDescription(0) 
 % ML.movies_{3}.reader.formatReader.getMetadataStore().getExperimenterGroupDescription(0)
 % ML.movies_{3}.reader.formatReader.getMetadataStore().getsetDatasetDescription(0)
+
+
+% annotationSet = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells (by local master index)
+% annotationSet('bleb')=[NaN]
+% annotationSet('protrusion')=[NaN]
+% annotationSet('small')=[NaN]
+% annotationSet('big')=[NaN]
+% annotationSet('active')=[NaN]
+% annotationSet('inactive')=[NaN]
+% annotationSet('weird')=[NaN]
+% annotationSet('neat')=[NaN]
+% annotationSet.keys
+% cellDataSet = allCellsSet;
+
