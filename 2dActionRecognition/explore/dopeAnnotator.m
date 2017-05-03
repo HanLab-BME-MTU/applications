@@ -58,6 +58,10 @@ handles.frameUpdatePause = 0.05;
 handles.movieLoopLimit = 5;
 handles.selPtIdx = 1;
 handles.stageDriftCorrection = true;
+handles.maxPerRow = 4;
+handles.numRows = 2;
+handles.buttonSizeH = 150;
+handles.buttonSizeW = 150;
 
 % Initialize Label Dictionary
 if nargin < 1
@@ -149,6 +153,7 @@ end
 
 % Build out GUI/labels
 initMainGUI();
+presentCells;
 
 % Append info to UserData
 % cxFig = findall(0,'Tag', 'dopeAnnotator');
@@ -193,25 +198,6 @@ function initializeDataStruct_Assaf() %(MODEL)
     data.meta.anno.RevTagMap = containers.Map('KeyType','char','ValueType', 'any'); % cell to tags
     % Set specific to each cell in array
     data.meta.anno.byCell = cell(1,length(data.meta.key)); % will be generated at export or save 
-
-    % if annotations are already present for data
-    if isfield(cellDataSet, 'annotations') && ...
-            iscell(cellDataSet(1).annotations) && ...
-            sum(cellfun(@(x) x, cellfun(@(x) ~isempty(x), {cellDataSet.annotations},'Unif',false))) >= 1
-        
-       % check set of annotations and update dictionaryMaps
-       indx_cell = cellfun(@(x) x, cellfun(@(x) ~isempty(x), {cellDataSet.annotations},'Unif',false));
-       newTags = {cellDataSet(indx_cell).annotations};
-       newKeys = {cellDataSet(indx_cell).key};
-%        p= containers.Map(newKeys,newTags)
-       for i = 1:length(cellDataSet)
-           tags = cellDataSet(i).annotations;
-           key = cellDataSet(i).key;
-           if ~isempty(tags)
-               tagDataPointNoGUI(tags, i, key, 1);
-           end
-       end
-    end
 
     data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
 
@@ -265,7 +251,6 @@ function writeLog(action, tag, key, expr)
         exportDataState;
     end
 end
-
 %===============================================================================
 % Setup main GUI window/figure
 %===============================================================================
@@ -338,78 +323,58 @@ function initMainGUI()
                             'FontSize', 8);
 %     handles.annoP.Title='';
 %     handles.annoP.BorderType='none';
+
+
+    %===============================================================================
+    % Annotation Panel Buttons
+    %===============================================================================
+
+    % -------------------------------------------------------------------------------
     
-end
-
-
-%===============================================================================
-% Movie display
-%===============================================================================
-
-opts = {'Parent', handles.movie, 'Units', 'pixels',...
-             'Position',[2 2 handles.movie.Position(3)-2 handles.movie.Position(3)-1],...
-             'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
-
-axMovie = axes(opts{:});
-axMovie.XColor = 'w';
-axMovie.YColor = 'w';
-handles.axMovie = axMovie;
-set(handles.axMovie, 'XTick', []);
-set(handles.axMovie, 'YTick', []);
-colormap(handles.axMovie, gray);
-
-
-function updateMovie()
-
-    MD = handles.MDcache{handles.selPtIdx};
-    if handles.stageDriftCorrection 
-        SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
-        movieFrame = MD.processes_{SDCindx}.loadOutImage(1, handles.movies.fidx);
-        disp('TODO: add warning about SDC vs normal?');
-    else
-        movieFrame = MD.channels_.loadImage(handles.movies.fidx);
-    end
-
-    imagesc(movieFrame,'Parent', handles.axMovie, 'HitTest', 'off');
-    set(handles.axMovie, 'XTick', []);
-    set(handles.axMovie, 'YTick', []);
-    set(handles.axMovie, 'Position', [5 8 size(movieFrame,1)*1.75 size(movieFrame,2)*1.75])    
-    colormap(handles.axMovie, gray);
-end 
-
-
-function playMovie(varargin)
-    if isempty(handles.MDcache{handles.selPtIdx})
-        MD = MovieData.load(data.MD{handles.selPtIdx});
-        handles.movies.nf = MD.nFrames_;
-        handles.MDcache{handles.selPtIdx} = MD;
-    else
-        MD = handles.MDcache{handles.selPtIdx};
-    end
-    handles.movies.nf = MD.nFrames_;
-    nf = handles.movies.nf;
-    cell_idx = handles.selPtIdx;
-    i = 1;
-    while (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit) %% ADD SELECTION too...
-        handles.movies.fidx = i;
-        updateMovie();
-        pause(handles.frameUpdatePause);
-        i = i+1;
-    end
-end
-
-function playMovieLoop(varargin)
-    tic;
-    handles.ttoc = 0;
-    while handles.ttoc < handles.movieLoopLimit %% (ADD SELECTION CHECK TOO)
-        playMovie;
-        handles.ttoc = toc;
-    end
+    % Create Standard Buttons (always present)
     
+    bH = wAnnoP/4-1;%handles.buttonSizeH;
+    bW = wAnnoP/4-1;% handles.buttonSizeW;
+    yPos = 25;
+    buttonOpts = {'Parent', handles.annoP,...
+                  'FontUnits','pixels',...
+                  'Units','pixels',...
+                  'HorizontalAlignment','center',...
+                  'FontSize',22,'Style','pushbutton'};
+
+    handles.bJunk = uicontrol(buttonOpts{:},...
+                                  'String','JUNK',...
+                                  'Position',[1+bW*0 yPos bW bH],...
+                                  'Tag','junkButton',...
+                                  'Callback',@buttonSelected);
+    
+    handles.bUD = uicontrol(buttonOpts{:},...
+                                'String','UNDEFINED',...
+                                'Position',[1+bW*1+1 yPos bW bH],...
+                                'Tag','undefinedButton',...
+                                'Callback',@buttonSelected);
+
+    handles.bFocus = uicontrol(buttonOpts{:},...
+                                'Position',[1+bW*2+1 yPos bW bH],...
+                                'Tag','focusButton',...
+                                'Callback',@buttonSelected);
+    set(handles.bFocus,'String','<html>OUT<br>OF<br>FOCUS');
+    
+    handles.bMulti = uicontrol(buttonOpts{:},...
+                              'String',{'Out\n of Focus'},...
+                              'Position',[1+bW*3+1 yPos bW bH],...
+                              'Tag','multiCellButton',...
+                              'Callback',@buttonSelected);    
+   set(handles.bMulti,'String','<html>MULTIPLE<br>CELLS');
+
+   
+   function buttonSelected
+   
+      disp('hello');
+   end
+   
+   
 end
-
-
-presentCells;
 
 
 %===============================================================================
@@ -423,9 +388,7 @@ function presentCells(varargin)
     end
 end
 
-%===============================================================================
-% Annotation Panel Buttons
-%===============================================================================
+
 
 % 
 %     %-------------------------------------------------------------------------------
@@ -536,6 +499,72 @@ function addAnnotationNoGUI(newStrs)
         end
     end
 end
+
+%===============================================================================
+% Movie display
+%===============================================================================
+
+opts = {'Parent', handles.movie, 'Units', 'pixels',...
+             'Position',[2 2 handles.movie.Position(3)-2 handles.movie.Position(3)-1],...
+             'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
+
+axMovie = axes(opts{:});
+axMovie.XColor = 'w';
+axMovie.YColor = 'w';
+handles.axMovie = axMovie;
+set(handles.axMovie, 'XTick', []);
+set(handles.axMovie, 'YTick', []);
+colormap(handles.axMovie, gray);
+
+
+function updateMovie()
+
+    MD = handles.MDcache{handles.selPtIdx};
+    if handles.stageDriftCorrection 
+        SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
+        movieFrame = MD.processes_{SDCindx}.loadOutImage(1, handles.movies.fidx);
+    else
+        movieFrame = MD.channels_.loadImage(handles.movies.fidx);
+    end
+
+    imagesc(movieFrame,'Parent', handles.axMovie, 'HitTest', 'off');
+    set(handles.axMovie, 'XTick', []);
+    set(handles.axMovie, 'YTick', []);
+    set(handles.axMovie, 'Position', [5 8 size(movieFrame,1)*1.75 size(movieFrame,2)*1.75])    
+    colormap(handles.axMovie, gray);
+end 
+
+
+function playMovie(varargin)
+    if isempty(handles.MDcache{handles.selPtIdx})
+        MD = MovieData.loadMatFile(data.MD{handles.selPtIdx});
+        handles.movies.nf = MD.nFrames_;
+        handles.MDcache{handles.selPtIdx} = MD;
+    else
+        MD = handles.MDcache{handles.selPtIdx};
+    end
+    handles.movies.nf = MD.nFrames_;
+    nf = handles.movies.nf;
+    cell_idx = handles.selPtIdx;
+    i = 1;
+    while (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit) %% ADD SELECTION too...
+        handles.movies.fidx = i;
+        updateMovie();
+        pause(handles.frameUpdatePause);
+        i = i+1;
+    end
+end
+
+function playMovieLoop(varargin)
+    tic;
+    handles.ttoc = 0;
+    while handles.ttoc < handles.movieLoopLimit %% (ADD SELECTION CHECK TOO)
+        playMovie;
+        handles.ttoc = toc;
+    end
+    
+end
+
 
 % % %===============================================================================
 % % % Helper functions
