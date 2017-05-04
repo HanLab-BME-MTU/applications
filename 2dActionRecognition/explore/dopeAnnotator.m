@@ -63,6 +63,8 @@ handles.numRows = 2;
 handles.buttonSizeH = 150;
 handles.buttonSizeW = 150;
 handles.repeatsAllowed = true;
+handles.pauseProgress = false;
+
 
 % Initialize Label Dictionary
 if nargin < 1
@@ -509,6 +511,7 @@ end
             
         end
         handles.ActionNotice.String = 'All DONE!';
+        handles.ActionNotice.BackgroundColor = [0 1 0];
         set(handles.ActionNotice, 'Visible', 'on');
         
         % SAVE 
@@ -765,6 +768,44 @@ function movieInit(varargin)
        handles.frameUpdatePause = str2double(maps{val});
        disp(['Updating frame pause to : ', (maps{val})]);
     end
+
+    handles.controlFrameRate.Visible = 'off';
+    handles.frText.Visible = 'off';
+
+    
+    loopTime = string([1 2 3 4 5 6 7 10 Inf]);
+    handles.controlLoopTime = uicontrol(...
+                                        'Parent',handles.mainP,...
+                                        'FontUnits','points',...
+                                        'FontSize',8,...
+                                        'String', loopTime, ...
+                                        'Style','popupmenu',...
+                                        'Value', find(ismember(loopTime, string(handles.movieLoopLimit))),...
+                                        'Units','pixels',...
+                                        'Tag','pointSize',...
+                                        'Position',[(w-w/2)+370 h-103 50 25],...
+                                        'Callback',@updateLoopLimit);
+
+    handles.loopTimeText = uicontrol('Parent',handles.mainP,...
+                       'FontUnits','points',...
+                       'FontSize',8,...
+                       'String', 'Loop time limit', ...
+                       'Style','text',...
+                       'Position',[(w-w/2)+275 h-100 95 20]);
+
+
+    function updateLoopLimit(source, ~)
+       val = source.Value;
+       maps = source.String;
+       handles.movieLoopLimit = str2double(maps{val});
+       disp(['Updating loop limit to : ', (maps{val})]);
+    end
+    
+    
+    
+    handles.controlLoopTime.Visible = 'off';
+    handles.loopTimeText.Visible = 'off';
+    
     
     set(handles.h1, 'KeyPressFcn', {@pb_fig, handles.h1});
 
@@ -773,19 +814,33 @@ function movieInit(varargin)
             if strcmp(handles.toggleSDC.Visible,'off')
                 handles.toggleSDC.Visible = 'on';
             else
-                strcmp(handles.toggleSDC.Visible,'on')
                 handles.toggleSDC.Visible = 'off';
             end
         elseif varargin{1,2}.Character == 'p'
-            % pause
+            if handles.pauseProgress
+                handles.pauseProgress = false;
+                set(handles.ActionNotice, 'Visible', 'off');
+            else
+                handles.pauseProgress = true;
+                set(handles.ActionNotice, 'String', '[!] PAUSED [!]');
+                handles.ActionNotice.BackgroundColor = [1 0 0];
+                set(handles.ActionNotice, 'Visible', 'on');
+            end
+        elseif varargin{1,2}.Character == 't'
+            if strcmp(handles.controlLoopTime.Visible,'off')
+                handles.controlLoopTime.Visible = 'on';
+                handles.loopTimeText.Visible = 'on';
+            else
+                handles.controlLoopTime.Visible = 'off';
+                handles.loopTimeText.Visible = 'off';
+            end
         elseif varargin{1,2}.Character == 'f'
             if strcmp(handles.controlFrameRate.Visible,'off')
                 handles.controlFrameRate.Visible = 'on';
-                handles.frText.Visible = 'on'
+                handles.frText.Visible = 'on';
             else
-                strcmp(handles.controlFrameRate.Visible,'on')
                 handles.controlFrameRate.Visible = 'off';
-                handles.frText.Visible = 'off'
+                handles.frText.Visible = 'off';
             end
         end
     end
@@ -825,7 +880,11 @@ function playMovie(varargin)
         handles.movies.fidx = i;
         updateMovie();
         pause(handles.frameUpdatePause);
-        i = i+1;
+        if handles.pauseProgress
+            pause(.5);
+        else
+            i = i + 1; 
+        end
     end
 end
 
