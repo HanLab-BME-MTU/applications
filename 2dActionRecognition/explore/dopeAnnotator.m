@@ -55,13 +55,14 @@ handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
 handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 handles.autoSaveCount = 0;
 handles.frameUpdatePause = 0.05;
-handles.movieLoopLimit = 5;
+handles.movieLoopLimit = 2;
 handles.selPtIdx = 1;
 handles.stageDriftCorrection = true;
 handles.maxPerRow = 4;
 handles.numRows = 2;
 handles.buttonSizeH = 150;
 handles.buttonSizeW = 150;
+handles.repeatsAllowed = true;
 
 % Initialize Label Dictionary
 if nargin < 1
@@ -143,85 +144,113 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Ask User for annotation configs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% prompt for # of cells to annotation (out of total)
+% prompt for % of repeats to annotate.
+    function promptAnnoConfig(varargin)
+        defaultans = {num2str(length(cellDataSet)),'10'};
+        goodAns = false;
+        while ~goodAns
+            ans = inputdlg({['How many annoations to conduct? (out of ' num2str(length(cellDataSet)) ...
+                ' Total Cells)'], 'probability of repeats? enter [0-100]'},...
+                          'Configure Annotatotion Sequence', [1 50; 1 50], defaultans);
+            if (str2num(ans{2}) <= 100) && (str2num(ans{2}) >= 0) && (str2num(ans{1}) > 0) &&  (str2num(ans{1}) <= length(cellDataSet))
+                goodAns = true;
+            end
+            handles.prctRepeats = str2num(ans{2}); 
+            handles.numCellsToAnnotate = str2num(ans{1});    
+        end
+    end
+    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BoilerPlate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+promptAnnoConfig()
 initializeDataStruct_Assaf();
+configAnnoSequence();
+
 if ~isempty(data.annotationSetIn)
     addAnnotationNoGUI(data.annotationSetIn.keys);
 end
 
 % Build out GUI/labels
+
 initMainGUI();
+movieInit();
 presentCells;
 
-% Append info to UserData
-% cxFig = findall(0,'Tag', 'dopeAnnotator');
-% cxFig.UserData.handles = handles;
-% cxFig.UserData.data = data;
-% disp('To update the UserData after events in the GUI, click the "save Notes"');
+% SAVE
+% CLOSE ?
    
-function initializeDataStruct_Assaf() %(MODEL)
+    function initializeDataStruct_Assaf() %(MODEL)
 
-    %     (if still a cell array use cell2mat
-    [C, ia] = unique({cellDataSet.key});
-    if length(C) ~= numel(cellDataSet)
-        cellDataSet = cellDataSet(ia);
-    end
-    % master index 
-    data.meta.mindex = 1:numel(cellDataSet);
-
-    % expr date
-    data.meta.expStr = {cellDataSet.expStr};
-    data.meta.key = {cellDataSet.key};
-
-    % [class labels] using struct.
-    data.meta.cellType = {cellDataSet.cellType};
-    data.meta.class.cellType = {cellDataSet.cellType};
-    data.meta.class.metEff = {cellDataSet.metEff};
-    data.meta.class.custom.all = repmat({'%+%'}, length(data.meta.mindex),1);
-
-    % Label by experiment
-    data.meta.class.MD = {cellDataSet.MD};
-    data.meta.class.expr = {cellDataSet.expStr};
-    
-    % [notes]
-    data.meta.notes = repmat({''}, length({cellDataSet.key}), 1);
-
-    % [Annotations]
-    % total set of annotation types across entire dataset.
-    data.meta.anno.set = {}; 
-    data.meta.anno.tags = repmat({}, length(data.meta.mindex),1);
-    % Global mapping dictionaries for entire dataset
-    data.meta.anno.tagMap = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells (by local master index)
-    data.meta.anno.tagMapKey = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells(by unique Key)
-    data.meta.anno.RevTagMap = containers.Map('KeyType','char','ValueType', 'any'); % cell to tags
-    % Set specific to each cell in array
-    data.meta.anno.byCell = cell(1,length(data.meta.key)); % will be generated at export or save 
-
-    data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
-
-    % Initialize backup info....
-    handles.backupInfo.cellMoviesPath = data.moviesPath;
-    handles.backupInfo.keys = data.meta.key;
-    handles.backupInfo.expr = data.meta.class.expr;
-
-    % [MovieData-OMETIFF]
-    if handles.flyLoad 
-        data.MD = {cellDataSet.cellMD};
-        handles.MDcache = cell(1, length(data.meta.mindex));
-    end
-    
-    if string(handles.choiceLoadMD) == 'Yes'
-        for i = 1:length(handles.MDcache)
-            handles.MDcache{i} = MovieData.load(data.MD{1});
+        %     (if still a cell array use cell2mat
+        [C, ia] = unique({cellDataSet.key});
+        if length(C) ~= numel(cellDataSet)
+            cellDataSet = cellDataSet(ia);
         end
-    else
-        disp('Not pre-loading any MovieDatas...')
-    end 
-    
-end
+        % master index 
+        data.meta.mindex = 1:numel(cellDataSet);
 
+        % expr date
+        data.meta.expStr = {cellDataSet.expStr};
+        data.meta.key = {cellDataSet.key};
+
+        % [class labels] using struct.
+        data.meta.cellType = {cellDataSet.cellType};
+        data.meta.class.cellType = {cellDataSet.cellType};
+        data.meta.class.metEff = {cellDataSet.metEff};
+        data.meta.class.custom.all = repmat({'%+%'}, length(data.meta.mindex),1);
+
+        % Label by experiment
+        data.meta.class.MD = {cellDataSet.MD};
+        data.meta.class.expr = {cellDataSet.expStr};
+
+        % [notes]
+        data.meta.notes = repmat({''}, length({cellDataSet.key}), 1);
+
+        % [Annotations]
+        % total set of annotation types across entire dataset.
+        data.meta.anno.set = {}; 
+        data.meta.anno.tags = repmat({}, length(data.meta.mindex),1);
+        % Global mapping dictionaries for entire dataset
+        % These will model behaviior of original CellX unique for each cell
+        % 
+        % Note this is different than the simple sequence of annotations 
+        % where repeats can occur and different mappings.
+        data.meta.anno.tagMap = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells (by local master index)
+        data.meta.anno.tagMapKey = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells(by unique Key)
+        data.meta.anno.RevTagMap = containers.Map('KeyType','char','ValueType', 'any'); % cell to tags
+        % Set specific to each cell in array
+        data.meta.anno.byCell = cell(1,length(data.meta.key)); % will be generated at export or save 
+
+        data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
+
+        % Initialize backup info....
+        handles.backupInfo.cellMoviesPath = data.moviesPath;
+        handles.backupInfo.keys = data.meta.key;
+        handles.backupInfo.expr = data.meta.class.expr;
+
+        % [MovieData-OMETIFF]
+        if handles.flyLoad 
+            data.MD = {cellDataSet.cellMD};
+            handles.MDcache = cell(1, length(data.meta.mindex));
+        end
+
+        if string(handles.choiceLoadMD) == 'Yes'
+            for i = 1:length(handles.MDcache)
+                handles.MDcache{i} = MovieData.load(data.MD{1});
+            end
+        else
+            disp('Not pre-loading any MovieDatas...')
+        end 
+
+    end
 %===============================================================================
 % Save and Export Functions
 %===============================================================================
@@ -330,9 +359,34 @@ function initMainGUI()
     %===============================================================================
 
     % -------------------------------------------------------------------------------
+
+%     function checkClick(src)
+%     
+%         switch 
+%     '
+%     end
     
+    function buttonSelected(src, ~)        
+        if src.Value == 1
+            src.BackgroundColor = [1 0 0];
+%             src.ForegroundColor = [1 1 0];
+            src.ForegroundColor = [0 1 1];
+%             src.ForegroundColor = [0 0 0];
+        elseif src.Value == 0
+            src.ForegroundColor = [0 0 0];
+            src.BackgroundColor = [.87 .84 .84];
+        end
+        
+        cellKey = data.meta.key{handles.selPtIdx};
+%         tagDataPointNoGUI(src.String, handles.selPtIdx, cellKey, src.Value);
+        updateStatus
+        handles.firstSelectionMade = 1;
+    end
+    
+   
+    % -------------------------------------------------------------------------------
     % Create Standard Buttons (always present)
-    
+    % -------------------------------------------------------------------------------
     bH = wAnnoP/4-1;%handles.buttonSizeH;
     bW = wAnnoP/4-1;% handles.buttonSizeW;
     yPos = 25;
@@ -340,40 +394,83 @@ function initMainGUI()
                   'FontUnits','pixels',...
                   'Units','pixels',...
                   'HorizontalAlignment','center',...
-                  'FontSize',22,'Style','pushbutton'};
+                  'FontSize',22,'Style','togglebutton',...
+                  'BackgroundColor', [.87 .84 .84],...
+                  'Value', 0,...
+                  'Callback',@buttonSelected};
 
     handles.bJunk = uicontrol(buttonOpts{:},...
                                   'String','JUNK',...
                                   'Position',[1+bW*0 yPos bW bH],...
-                                  'Tag','junkButton',...
-                                  'Callback',@buttonSelected);
-    
+                                  'Tag','junkButtonDefault');
+
     handles.bUD = uicontrol(buttonOpts{:},...
                                 'String','UNDEFINED',...
                                 'Position',[1+bW*1+1 yPos bW bH],...
-                                'Tag','undefinedButton',...
-                                'Callback',@buttonSelected);
+                                'Tag','undefinedButtonDefault');
 
     handles.bFocus = uicontrol(buttonOpts{:},...
                                 'Position',[1+bW*2+1 yPos bW bH],...
-                                'Tag','focusButton',...
-                                'Callback',@buttonSelected);
+                                'Tag','focusButtonDefault');
     set(handles.bFocus,'String','<html>OUT<br>OF<br>FOCUS');
-    
-    handles.bMulti = uicontrol(buttonOpts{:},...
-                              'String',{'Out\n of Focus'},...
-                              'Position',[1+bW*3+1 yPos bW bH],...
-                              'Tag','multiCellButton',...
-                              'Callback',@buttonSelected);    
-   set(handles.bMulti,'String','<html>MULTIPLE<br>CELLS');
 
+    handles.bMulti = uicontrol(buttonOpts{:},...
+                              'Position',[1+bW*3+1 yPos bW bH],...
+                              'Tag','multiCellButtonDefault');    
+    set(handles.bMulti,'String','<html>MULTIPLE<br>CELLS');
+
+    % -------------------------------------------------------------------------------
+    % Create dynamic Annotation labels
+    % -------------------------------------------------------------------------------   
+    buttonOpts2 = {'Parent', handles.annoP,...
+                  'FontUnits','pixels',...
+                  'Units','pixels',...
+                  'HorizontalAlignment','center',...
+                  'FontSize',22,'Style','togglebutton',...
+                  'BackgroundColor', [.92 .92 .92], ...
+                  'Value', 0,...
+                  'Callback',@buttonSelected};    
    
-   function buttonSelected
+    numA = numel(data.meta.anno.set);
+    handles.annoB = gobjects([numA, 1]);
+    
+    yPos = yPos + bH + 15;
+    xPos = 0;
+    iA = 1;
+    while iA <= numA
+        
+        handles.annoB(iA) = uicontrol(buttonOpts2{:},...
+                                      'String', data.meta.anno.set{iA},...
+                                      'Position',[xPos+1 yPos bW bH],...
+                                      'Tag',[data.meta.anno.set{iA} 'DynamicTag']);
+                
+      xPos = xPos + bW;
+      if mod(iA,4) == 0
+            yPos = yPos + bH;
+            xPos = 0;
+      end
+      iA = iA + 1;
+    end
+ 
+%     %-------------------------------------------------------------------------------
+%     % Control/Movie panels of GUI
+%     %-------------------------------------------------------------------------------
+% 
+    [x, y, w, h] = getPosH(handles.mainP);
+    handles.ActionNotice = uicontrol(...
+                                    'Parent',handles.mainP,...
+                                    'FontUnits','pixels',...
+                                    'Units','pixels',...
+                                    'Style','text',...
+                                    'String','All done!...',...
+                                    'Position',[w/2+100 60 250 55],...
+                                    'Tag','NoticeWarnText',...
+                                    'FontSize',50,...
+                                    'BackgroundColor',[.75 .5 1]);
+    set(handles.ActionNotice, 'Visible', 'off');
    
-      disp('hello');
-   end
-   
-   
+    handles.annoBDefaults = findall(0,'-regexp','Tag', 'ButtonDefault');
+    handles.annoBDynam    = findall(0,'-regexp','Tag', 'Dynamic');
 end
 
 
@@ -381,107 +478,127 @@ end
 % Cell Array Management
 %===============================================================================
 
-function presentCells(varargin)
-    for i = 1:length(data.meta.mindex)
-        handles.selPtIdx = i;
-        playMovieLoop;
+    function presentCells(varargin)
+
+        numAnnotated = 0;
+        iOrigSeq = 1;
+
+        while numAnnotated < handles.numCellsToAnnotate
+
+            if handles.repeatsAllowed && ~isempty(data.cellsAnnotatedList) && rand <= handles.prctRepeats/100
+                newCell = randsample(data.cellsAnnotatedList, 1, false);
+                handles.repeatFlag = 1;
+            else
+                newCell = data.seedCellSeq(iOrigSeq);
+                iOrigSeq = iOrigSeq + 1;
+            end
+
+            handles.selPtIdx = newCell;
+    
+            resetAnnotations();
+            
+            playMovieLoop;
+
+            if handles.firstSelectionMade == 0
+                handles.timeOutFlag = 1;
+            end
+            
+            data.cellsAnnotatedList = [data.cellsAnnotatedList newCell];
+            numAnnotated = numAnnotated + 1;
+            collectAnnotations(newCell);
+            
+        end
+        handles.ActionNotice.String = 'All DONE!';
+        set(handles.ActionNotice, 'Visible', 'on');
+        
+        % SAVE 
+        % CLOSE!
     end
-end
 
+    function configAnnoSequence(varargin)
 
+        handles.prctRepeats;
+        handles.numCellsToAnnotate;
+        % generate random list of size handles.numCellsToAnnotate; (no
+        % repeats)
+        data.seedCellSeq = randsample(length(data.meta.mindex),length(data.meta.mindex),false);
+%         data.seedCellSeq_byKey = [];
+%         for i = 1:length(data.seedCellSeq)
+%             i_ = data.seedCellSeq(i);
+%             data.seedCellSeq_byKey = [data.seedCellSeq_byKey data.meta.key{i_}];
+%         end
+        
+        
+        % actual cell sequence (grows as user annotatates)
+        data.cellsAnnotatedList = [];
 
-% 
-%     %-------------------------------------------------------------------------------
-%     % Control/Movie panels of GUI
-%     %-------------------------------------------------------------------------------
-% 
-%     % Start from bottom left
-%     % Left to right will be fixed.  
-%     % Dynamically expand vertically.
-%     % Standard Distance of 5 pixel between panel
-%     gapSize = 5;
-%     % Data Selection Panel
-%     xSizeSelectPanel = 450;
-%     % ---> insert dynamic size info here
-%     ySizeSelectPanel = 175 + 15*numel(handles.info.labelTypes); 
-% 
-%     % DR Panel
-%     xPosDR = gapSize;
-%     yPosDR = ySizeSelectPanel + gapSize*2;
-%     xSizeDRPanel= xSizeSelectPanel;
-%     ySizeDRPanel = 450;
-% 
-%     % Movie Panel
-%     xSizeLabelPanel = 450;
-% 
-%     handles.DataSel = uipanel('Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
-%     'Title','Data Selection/View Criterion','Tag','uipanel_select',...
-%     'Position',[gapSize gapSize xSizeSelectPanel ySizeSelectPanel],...
-%     'FontSize',13);
-% 
-%     handles.h2_DR = uipanel('Parent',handles.mainP, 'FontUnits','pixels', 'Units','pixels',...
-%     'Title','2D Visualization - Dimension Reduction',...
-%     'Tag','uipanel_axes',...
-%     'Position',[handles.DataSel.Position(1), handles.DataSel.Position(4)+handles.DataSel.Position(2)+gapSize, xSizeDRPanel, ySizeDRPanel],...
-%     'FontSize',13);
-% 
-%     handles.LabelA = uipanel('Parent',handles.mainP,'FontUnits','pixels','Units','pixels',...
-%     'Title','Cell Labeling',...
-%     'Tag','uipanel_annotate',...
-%     'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize,...
-%                 handles.DataSel.Position(2),...
-%                 xSizeLabelPanel 475],...
-%     'FontSize',13);
-% 
-% 
-%     widthCellInfo = 330;
-%     handles.widthCellInfo = widthCellInfo;
-% 
-%     xposLabels = widthCellInfo/2;
-%     LabelH = 13;
-%     gapL = 3;
-%     widthString = 55;
-%     handles.cellInfo = uipanel(...
-%     'Parent',handles.mainP,...
-%     'FontUnits','pixels',...
-%     'Units','pixels',...
-%     'Title','Cell Info',...
-%     'Tag','CellInfopanel',...
-%     'Position',[handles.h2_DR.Position(3)+handles.h2_DR.Position(1)+gapSize,...
-%                 handles.LabelA.Position(2)+handles.LabelA.Position(4)+gapSize,...
-%                 handles.LabelA.Position(3),...
-%                 handles.mainP.Position(4)-handles.LabelA.Position(4)-30],...
-%     'FontSize',13);
-% 
-% 
+        % This will store the annotations with a struct containing:
+        data.cellAnnotationsData = [];
+    end 
 
-% 
-% 
- 
-%     
-%     
-%     % reconstitute original cell array with annotations
-% %     function re
-%     
-%     
-% %-------------------------------------------
-% % 
-% % 
-%     handles.ActionNotice = uicontrol(...
-%     'Parent',handles.mainP,...
-%     'FontUnits','pixels',...
-%     'Units','pixels',...
-%     'Style','text',...
-%     'String','Please wait updating Plots...',...
-%     'Position',[handles.mainP.Position(3)-250 100 250 35],...
-%     'Tag','SaveNotes',...
-%     'FontSize',15,...
-%     'BackgroundColor',[.75 .5 1]);
-%     set(handles.ActionNotice, 'Visible', 'off');
+    function addCellAnnotation(cell_index, annotations)
+        cellKey = data.meta.key{cell_index};
+%         assert(strcmp(cellKey,data.seedCellSeq_byKey(cell_index)))
+        newCell = struct();
+        newCell.key = cellKey;
+        newCell.repeatFlag = handles.repeatFlag;
+        newCell.junkFlag = handles.junkFlag;
+        newCell.timeOutFlag = handles.timeOutFlag;
+        newCell.annotations = annotations;
+        if  length(data.meta.anno.RevTagMap.keys) > 0
+            newCell.annotationSet = data.meta.anno.RevTagMap(cellKey);
+        else
+            newCell.annotationSet = {};
+        end
+        
+        data.cellAnnotationsData = [data.cellAnnotationsData newCell];
+    end
 
 %===============================================================================
 % Annotation Management functions
 %===============================================================================   
+
+    function resetAnnotations(varargin)
+                      
+        for i = 1:length(handles.annoBDefaults)
+            handles.annoBDefaults(i).Value = 0;
+            handles.annoBDefaults(i).ForegroundColor = [0 0 0];
+            handles.annoBDefaults(i).BackgroundColor = [.87 .84 .84];    
+        end
+        
+        for i = 1:length(handles.annoBDynam)
+            handles.annoBDynam(i).Value = 0;
+            handles.annoBDynam(i).ForegroundColor = [0 0 0];
+            handles.annoBDynam(i).BackgroundColor = [.92 .92 .92];
+        end
+        handles.repeatFlag = 0;
+        handles.junkFlag = 0;
+        handles.timeOutFlag = 0;
+        handles.firstSelectionMade = 0;
+    end
+
+    function collectAnnotations(cell_index)
+            
+        annotations = {};
+ 
+        for i = 1:length(handles.annoBDefaults)
+            tbut = handles.annoBDefaults(i);
+            if tbut.Value
+                annotations = {annotations tbut.String};
+                handles.junkFlag = 1;
+            end
+        end
+        
+        for i = 1:length(handles.annoBDynam)
+            tbut = handles.annoBDynam(i);
+            if tbut.Value
+                annotations = {annotations tbut.String};
+            end
+        end      
+        
+        addCellAnnotation(cell_index, annotations)
+    end
+
 
 function addAnnotationNoGUI(newStrs)
     if ~iscell(newStrs)
@@ -500,22 +617,180 @@ function addAnnotationNoGUI(newStrs)
     end
 end
 
+
+% function updateAnnotationPanel(varargin)
+%     numA = numel(handles.annoB);
+%     for ih=1:numA
+%         hanno = handles.annoB(ih);
+%         key = hanno.String;
+%         val = data.meta.anno.tagMap(key);
+%         if ismember(handles.selPtIdx, val)
+%            fontstyle = 'bold';
+%            set(hanno, 'BackgroundColor',[0 1 1]);    
+%         else
+%            fontstyle = 'normal';
+%            set(hanno, 'BackgroundColor',[.94 .94 .94]);
+%         end
+%         set(hanno, 'Value', ismember(handles.selPtIdx, val))
+%         set(hanno, 'FontWeight', fontstyle); 
+%     end
+%     
+% end
+
+
+
+function tagDataPointNoGUI(tags, selPtIdx, cellKey, Value)
+    if ~iscell(tags) 
+        tags = {tags};
+    end
+    for tag = tags
+        tag = tag{:};
+        addAnnotationNoGUI(tag); 
+        if Value % box checked
+            % anno to cells
+            data.meta.anno.tagMap(tag) = unique([data.meta.anno.tagMap(tag), selPtIdx]);
+            data.meta.anno.tagMapKey(tag) = unique([data.meta.anno.tagMapKey(tag), {cellKey}]);
+
+            % cell to annos
+            if isKey(data.meta.anno.RevTagMap, cellKey)
+                data.meta.anno.RevTagMap(cellKey) = unique([data.meta.anno.RevTagMap(cellKey), {tag}]);
+            else
+                data.meta.anno.RevTagMap(cellKey) = {tag};
+            end
+            data.meta.anno.byCell{selPtIdx} = data.meta.anno.RevTagMap(cellKey);
+
+        else % box unchecked
+            oldCellSet = data.meta.anno.tagMap(tag);
+            newCellSet = setxor(oldCellSet, selPtIdx);
+            data.meta.anno.tagMap(tag) = newCellSet; 
+
+            oldCellSetKey = data.meta.anno.tagMapKey(tag);
+            newCellSetKey = setxor(oldCellSetKey, {cellKey});
+            data.meta.anno.tagMapKey(tag) = newCellSetKey; 
+
+            % RevTagMap
+            oldTags = data.meta.anno.RevTagMap(cellKey);
+            newTagSet = setxor(oldTags, {tag});
+            data.meta.anno.RevTagMap(cellKey) = newTagSet;
+            data.meta.anno.byCell{selPtIdx} = data.meta.anno.RevTagMap(cellKey);
+
+        end
+    end
+end
+
+
+% function collectSelections(varargin)
+% 
+% end
+
 %===============================================================================
 % Movie display
 %===============================================================================
 
-opts = {'Parent', handles.movie, 'Units', 'pixels',...
-             'Position',[2 2 handles.movie.Position(3)-2 handles.movie.Position(3)-1],...
-             'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
+function movieInit(varargin)
+    opts = {'Parent', handles.movie, 'Units', 'pixels',...
+                 'Position',[2 2 handles.movie.Position(3)-2 handles.movie.Position(3)-1],...
+                 'Color',[1 1 1],'Box' 'off', 'XTick',[],'YTick',[]};
 
-axMovie = axes(opts{:});
-axMovie.XColor = 'w';
-axMovie.YColor = 'w';
-handles.axMovie = axMovie;
-set(handles.axMovie, 'XTick', []);
-set(handles.axMovie, 'YTick', []);
-colormap(handles.axMovie, gray);
+    axMovie = axes(opts{:});
+    axMovie.XColor = 'w';
+    axMovie.YColor = 'w';
+    handles.axMovie = axMovie;
+    set(handles.axMovie, 'XTick', []);
+    set(handles.axMovie, 'YTick', []);
+    colormap(handles.axMovie, gray);
 
+
+    [x, y, w, h] = getPosH(handles.mainP);
+    
+
+    handles.toggleSDC = uibuttongroup('Parent',handles.mainP,...
+    'FontUnits','pixels','Units','pixels',...
+    'Title','Stage Drift Correction',...
+    'Tag','toggleSDC',...
+    'Position',[w-w/2.5-10 h/5 150 35], ...
+    'FontSize', 12,...
+    'SelectionChangedFcn', @sdcCallback);    
+
+    handles.SDC1 = uicontrol(handles.toggleSDC,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','on',...
+                      'Position',[15 1 35 20],...
+                      'HandleVisibility','off',...
+                      'FontSize', 12);
+
+    handles.SDC0 = uicontrol(handles.toggleSDC,'Style','radiobutton',...
+                      'FontUnits','pixels','Units','pixels',...
+                      'String','off',...
+                      'Position',[50 1 35 20],...
+                      'HandleVisibility','off','FontSize', 12);
+
+    % Default to the OR switch    
+    handles.toggleSDC.SelectedObject = handles.SDC1;
+
+    function sdcCallback(varargin)
+        if strcmp(handles.toggleSDC.SelectedObject.String,'on')
+            handles.stageDriftCorrection = true; 
+        else
+            handles.stageDriftCorrection = false;
+        end
+
+    end
+    handles.toggleSDC.Visible = 'off';
+
+    rates = string([1 .5 .25 .1 .05 .025 .01 .005]);
+    handles.controlFrameRate = uicontrol(...
+                                        'Parent',handles.mainP,...
+                                        'FontUnits','points',...
+                                        'FontSize',8,...
+                                        'String', rates, ...
+                                        'Style','popupmenu',...
+                                        'Value', find(ismember(rates, string(handles.frameUpdatePause))),...
+                                        'Units','pixels',...
+                                        'Tag','pointSize',...
+                                        'Position',[(w-w/2)+370 h/5+5 50 25],...
+                                        'Callback',@updateFrameRate);
+
+    handles.frText = uicontrol('Parent',handles.mainP,...
+                       'FontUnits','points',...
+                       'FontSize',8,...
+                       'String', 'Frame Rate Pause', ...
+                       'Style','text',...
+                       'Position',[(w-w/2)+260 h/5 110 25]);
+
+
+    function updateFrameRate(source, ~)
+       val = source.Value;
+       maps = source.String;
+       handles.frameUpdatePause = str2double(maps{val});
+       disp(['Updating frame pause to : ', (maps{val})]);
+    end
+    
+    set(handles.h1, 'KeyPressFcn', {@pb_fig, handles.h1});
+
+    function pb_fig(varargin)
+        if varargin{1,2}.Character == 's'
+            if strcmp(handles.toggleSDC.Visible,'off')
+                handles.toggleSDC.Visible = 'on';
+            else
+                strcmp(handles.toggleSDC.Visible,'on')
+                handles.toggleSDC.Visible = 'off';
+            end
+        elseif varargin{1,2}.Character == 'p'
+            % pause
+        elseif varargin{1,2}.Character == 'f'
+            if strcmp(handles.controlFrameRate.Visible,'off')
+                handles.controlFrameRate.Visible = 'on';
+                handles.frText.Visible = 'on'
+            else
+                strcmp(handles.controlFrameRate.Visible,'on')
+                handles.controlFrameRate.Visible = 'off';
+                handles.frText.Visible = 'off'
+            end
+        end
+    end
+    
+end
 
 function updateMovie()
 
@@ -533,7 +808,6 @@ function updateMovie()
     set(handles.axMovie, 'Position', [5 8 size(movieFrame,1)*1.75 size(movieFrame,2)*1.75])    
     colormap(handles.axMovie, gray);
 end 
-
 
 function playMovie(varargin)
     if isempty(handles.MDcache{handles.selPtIdx})
@@ -558,23 +832,33 @@ end
 function playMovieLoop(varargin)
     tic;
     handles.ttoc = 0;
-    while handles.ttoc < handles.movieLoopLimit %% (ADD SELECTION CHECK TOO)
+    cell_idx = handles.selPtIdx;
+    while (handles.ttoc < handles.movieLoopLimit) && (handles.selPtIdx == cell_idx) 
         playMovie;
         handles.ttoc = toc;
     end
-    
 end
+
 
 
 % % %===============================================================================
 % % % Helper functions
 % % %===============================================================================   
 
-function [x, y, w, h]=getPosH(Hin)
-   x = Hin.Position(1);
-   y = Hin.Position(2);
-   w = Hin.Position(3); 
-   h = Hin.Position(4); 
-end
+    function [x, y, w, h]=getPosH(Hin)
+       x = Hin.Position(1);
+       y = Hin.Position(2);
+       w = Hin.Position(3); 
+       h = Hin.Position(4); 
+    end
+
+
+    function updateStatus(varargin)
+        % Append info to UserData
+        cxFig = findall(0,'Tag', 'dopeAnnotator');
+        cxFig.UserData.handles = handles;
+        cxFig.UserData.data = data;
+%         disp('To update the UserData after events in the GUI, click the "save Notes"');
+    end
 
 end
