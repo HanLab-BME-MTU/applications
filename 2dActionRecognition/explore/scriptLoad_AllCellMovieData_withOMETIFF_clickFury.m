@@ -12,7 +12,7 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
 load(loadMatPath);%, 'allCellsMovieData'); 
 
-randset = 10;
+randset = 25;
 
 if isempty(randset)
     allCellsSet = allCellsMovieData;
@@ -107,7 +107,7 @@ parfor i = 1:length(allCellsSet)
     % MDpath = MD.getFullPath();
     % Save individual cell movieData
     allCellsSet{i}.cellMD = MD.getFullPath();
-    allCellsSet{i}.iCell = iCell;
+    allCellsSet{i}.key = iCell.key;
     MList{i} = MD; 
 end
 
