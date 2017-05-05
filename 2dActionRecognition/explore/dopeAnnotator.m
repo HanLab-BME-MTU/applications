@@ -46,16 +46,18 @@ handles.shadowPoints = true;
 handles.forceUpdate = false;
 handles.choiceLoadMD = 'no';
 handles.flyLoad = false; % load MovieDatas on the fly
-handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationsLog.txt';
 handles.backupDir = '/work/bioinformatics/shared/dope/export/';
 % handles.logfile = 'AnnotationLog.txt'
 handles.timeStampStart = char(datetime('now','Format','ddMMMyyyy_hhmm'));
 handles.uName = char(java.lang.System.getProperty('user.name'));
 handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
-handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
+handles.sessionID = [handles.timeStampStart '-' handles.uName '-' handles.compName '_'];
+handles.sessionID2 = [handles.timeStampStart '-' handles.uName];
+handles.Masterlogfile = ['/work/bioinformatics/shared/dope/export/MasterAnnotationsLogClickFury_' handles.sessionID2 '.txt'];
+handles.matlabSaveFile = ['/work/bioinformatics/shared/dope/export/backup_dopeAnnotator_output_' handles.sessionID2 '.mat'];
 handles.autoSaveCount = 0;
 handles.frameUpdatePause = 0.05;
-handles.movieLoopLimit = 2;
+handles.movieLoopLimit = 5;
 handles.selPtIdx = 1;
 handles.stageDriftCorrection = true;
 handles.maxPerRow = 4;
@@ -64,6 +66,8 @@ handles.buttonSizeH = 150;
 handles.buttonSizeW = 150;
 handles.repeatsAllowed = true;
 handles.pauseProgress = false;
+
+
 
 
 % Initialize Label Dictionary
@@ -170,7 +174,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BoilerPlate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+handles.repeatFlag = 0;
+handles.junkFlag = 0;
+handles.timeOutFlag = 0;
+handles.firstSelectionMade = 0;
+handles.NextCell = 0;
 
 promptAnnoConfig()
 initializeDataStruct_Assaf();
@@ -256,7 +264,7 @@ presentCells;
 %===============================================================================
 % Save and Export Functions
 %===============================================================================
-function writeLog(action, tag, key, expr)
+function writeSimpleLog(action, tag, key, expr)
 
     if exist(handles.logfile, 'file')==2
         fileID = fopen(handles.logfile,'a');
@@ -272,21 +280,76 @@ function writeLog(action, tag, key, expr)
     [status md5sumout] = system(['md5sum "' p '.m"']);
     timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
 
-    formatSpec = '[%s] sessionID[%s] : {%s} \t "%s" \t <%s> \t %s \t %s\n';
+    formatSpec = '[%s] \t [sessionID][%s] \t {%s} \t "%s" \t <%s> \t %s \t %s\n';
    
-    fprintf(fileID,formatSpec, timeS, handles.sessionID, action, tag, key, expr, md5sumout);
+    fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tag, key, expr, md5sumout);
     fclose(fileID);
 
     handles.autoSaveCount =  handles.autoSaveCount + 1;
     if (mod(handles.autoSaveCount, 25) == 0)
-        exportDataState;
+        saveMatFile;
     end
 end
+
+
+function saveMatFile(varargin)
+    cellAnnotations = data.cellAnnotationsData;
+    save(['dopeAnnotator_output_' handles.sessionID2 '.mat'], 'cellAnnotations');
+    save(handles.matlabSaveFile, 'cellAnnotations');
+end
+
+
+
+function writeMasterLog(action, tag, key, expr)
+
+    % if exist(handles.logfile, 'file')==2
+    fileID = fopen(handles.Masterlogfile,'a');
+    % else
+    fileID2 = fopen(['MasterAnnotationsLogClickFury_' handles.timeStampStart '.txt'],'a');
+    % end
+    loopTags = false;
+    skipCellstr = num2str(0);
+    if iscell(tag) && length(tag) == 1
+        tag = tag{1};
+    elseif iscell(tag) && length(tag) > 1
+        loopTags = true;
+        tags = tag;
+    elseif isempty(tag) && iscell(tag)
+        tag = 'NONE';
+        if handles.NextCell == 1
+            skipCellstr = num2str(handles.NextCell);
+        else
+            skipCellstr = num2str(0);
+        end
+    end
+    
+    p = mfilename('fullpath');
+    [status md5sumout] = system(['md5sum "' p '.m"']);
+    timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
+   
+    formatSpec = '[%s]\t[sessionID][%s]\t{%s} \t"%s"\tskipCell:%s\ttimeoutFlag:%s\tjunkFlag:%s\trepeatFlag:%s\t<%s>\t%s\t%s\n';
+   
+    if loopTags
+        for iT = 1:length(tags)
+            fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
+            fprintf(fileID2, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
+        end
+    else
+        fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
+        fprintf(fileID2, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
+    end
+    
+    fclose(fileID);
+    fclose(fileID2);
+end
+
 %===============================================================================
 % Setup main GUI window/figure
 %===============================================================================
 
 function initMainGUI()
+
+  
     
     xsizeF = 1080;
     ysizeF = 720;
@@ -352,21 +415,34 @@ function initMainGUI()
                             'Tag','uipanel_anno',...
                             'Position',[30 (h-hAnnoP)/2-10 wAnnoP hAnnoP],...
                             'FontSize', 8);
-%     handles.annoP.Title='';
-%     handles.annoP.BorderType='none';
-
+    handles.annoP.Title='';
+    handles.annoP.BorderType='none';
 
     %===============================================================================
     % Annotation Panel Buttons
     %===============================================================================
+    % -------------------------------------------------------------------------------    
 
-    % -------------------------------------------------------------------------------
+    bH = wAnnoP/4-1;%handles.buttonSizeH;
+    bW = wAnnoP/4-1;% handles.buttonSizeW;
+    
+    function NextButton(varargin)
+        handles.NextCell = 1;
+    end
 
-%     function checkClick(src)
-%     
-%         switch 
-%     '
-%     end
+    buttonOptsNext = {'Parent', handles.mainP,...
+                  'FontUnits','pixels',...
+                  'Units','pixels',...
+                  'HorizontalAlignment','center',...
+                  'FontSize',22,...
+                  'Style','pushbutton',...
+                  'BackgroundColor', [.91 .93 .93],...
+                  'Callback',@NextButton};              
+              
+    handles.nextButton = uicontrol(buttonOptsNext{:},...
+                                  'String','NEXT CELL',...
+                                  'Position',[w/2+30 30 bW bH],...
+                                  'Tag','nextButtonTag');
     
     function buttonSelected(src, ~)        
         if src.Value == 1
@@ -379,18 +455,23 @@ function initMainGUI()
             src.BackgroundColor = [.87 .84 .84];
         end
         
-        cellKey = data.meta.key{handles.selPtIdx};
+%         cellKey = data.meta.key{handles.selPtIdx};
 %         tagDataPointNoGUI(src.String, handles.selPtIdx, cellKey, src.Value);
-        updateStatus
+        
         handles.firstSelectionMade = 1;
+        if strcmp(src.String, handles.bFocus) || ...
+                strcmp(src.String, handles.bJunk.String) || ...
+                strcmp(src.String,  handles.bUD.String) || ...
+                strcmp(src.String, handles.bMulti.String)
+            handles.junkFlag = 1;
+        end
+        updateStatus;
     end
     
-   
     % -------------------------------------------------------------------------------
     % Create Standard Buttons (always present)
     % -------------------------------------------------------------------------------
-    bH = wAnnoP/4-1;%handles.buttonSizeH;
-    bW = wAnnoP/4-1;% handles.buttonSizeW;
+
     yPos = 25;
     buttonOpts = {'Parent', handles.annoP,...
                   'FontUnits','pixels',...
@@ -401,6 +482,8 @@ function initMainGUI()
                   'Value', 0,...
                   'Callback',@buttonSelected};
 
+              
+              
     handles.bJunk = uicontrol(buttonOpts{:},...
                                   'String','JUNK',...
                                   'Position',[1+bW*0 yPos bW bH],...
@@ -465,7 +548,7 @@ function initMainGUI()
                                     'Units','pixels',...
                                     'Style','text',...
                                     'String','All done!...',...
-                                    'Position',[w/2+100 60 250 55],...
+                                    'Position',[w/2+250 60 250 55],...
                                     'Tag','NoticeWarnText',...
                                     'FontSize',50,...
                                     'BackgroundColor',[.75 .5 1]);
@@ -475,18 +558,15 @@ function initMainGUI()
     handles.annoBDynam    = findall(0,'-regexp','Tag', 'Dynamic');
 end
 
-
 %===============================================================================
 % Cell Array Management
 %===============================================================================
 
     function presentCells(varargin)
-
         numAnnotated = 0;
         iOrigSeq = 1;
-
         while numAnnotated < handles.numCellsToAnnotate
-
+            resetAnnotations();
             if handles.repeatsAllowed && ~isempty(data.cellsAnnotatedList) && rand <= handles.prctRepeats/100
                 newCell = randsample(data.cellsAnnotatedList, 1, false);
                 handles.repeatFlag = 1;
@@ -496,19 +576,25 @@ end
             end
 
             handles.selPtIdx = newCell;
-    
-            resetAnnotations();
-            
             playMovieLoop;
-
-            if handles.firstSelectionMade == 0
+            if (handles.firstSelectionMade == 0) && (handles.NextCell == 0)
                 handles.timeOutFlag = 1;
             end
-            
             data.cellsAnnotatedList = [data.cellsAnnotatedList newCell];
             numAnnotated = numAnnotated + 1;
             collectAnnotations(newCell);
+
+            handles.autoSaveCount =  handles.autoSaveCount + 1;
+            if (mod(handles.autoSaveCount, 5) == 0)
+                handles.ActionNotice.String = '{SAVING}';
+                handles.ActionNotice.BackgroundColor = [0 0 1];
+                set(handles.ActionNotice, 'Visible', 'on');
+                saveMatFile;
+                set(handles.ActionNotice, 'Visible', 'off');
+            end            
             
+            % write log
+            % save file 
         end
         handles.ActionNotice.String = 'All DONE!';
         handles.ActionNotice.BackgroundColor = [0 1 0];
@@ -522,16 +608,8 @@ end
 
         handles.prctRepeats;
         handles.numCellsToAnnotate;
-        % generate random list of size handles.numCellsToAnnotate; (no
-        % repeats)
         data.seedCellSeq = randsample(length(data.meta.mindex),length(data.meta.mindex),false);
-%         data.seedCellSeq_byKey = [];
-%         for i = 1:length(data.seedCellSeq)
-%             i_ = data.seedCellSeq(i);
-%             data.seedCellSeq_byKey = [data.seedCellSeq_byKey data.meta.key{i_}];
-%         end
-        
-        
+             
         % actual cell sequence (grows as user annotatates)
         data.cellsAnnotatedList = [];
 
@@ -541,13 +619,19 @@ end
 
     function addCellAnnotation(cell_index, annotations)
         cellKey = data.meta.key{cell_index};
+        cellexpr = data.meta.expStr{cell_index};
 %         assert(strcmp(cellKey,data.seedCellSeq_byKey(cell_index)))
         newCell = struct();
         newCell.key = cellKey;
         newCell.repeatFlag = handles.repeatFlag;
         newCell.junkFlag = handles.junkFlag;
         newCell.timeOutFlag = handles.timeOutFlag;
+        newCell.NextCellFlad = handles.NextCell;
         newCell.annotations = annotations;
+        newCell.cellexpr = cellexpr;
+        newCell.MD = data.meta.class.MD{cell_index};
+        newCell.cellMD = data.MD{cell_index};
+        newCell.sessionID = handles.sessionID;
         if  length(data.meta.anno.RevTagMap.keys) > 0
             newCell.annotationSet = data.meta.anno.RevTagMap(cellKey);
         else
@@ -555,6 +639,7 @@ end
         end
         
         data.cellAnnotationsData = [data.cellAnnotationsData newCell];
+        writeMasterLog('add', annotations, cellKey, cellexpr);
     end
 
 %===============================================================================
@@ -578,16 +663,15 @@ end
         handles.junkFlag = 0;
         handles.timeOutFlag = 0;
         handles.firstSelectionMade = 0;
+        handles.NextCell = 0;
     end
 
     function collectAnnotations(cell_index)
-            
         annotations = {};
- 
         for i = 1:length(handles.annoBDefaults)
             tbut = handles.annoBDefaults(i);
             if tbut.Value
-                annotations = {annotations tbut.String};
+                annotations = [annotations {tbut.String}];
                 handles.junkFlag = 1;
             end
         end
@@ -595,13 +679,11 @@ end
         for i = 1:length(handles.annoBDynam)
             tbut = handles.annoBDynam(i);
             if tbut.Value
-                annotations = {annotations tbut.String};
+                annotations = [annotations {tbut.String}];
             end
-        end      
-        
+        end
         addCellAnnotation(cell_index, annotations)
     end
-
 
 function addAnnotationNoGUI(newStrs)
     if ~iscell(newStrs)
@@ -615,76 +697,10 @@ function addAnnotationNoGUI(newStrs)
             data.meta.anno.tagMap(newStr{:}) = NaN;
             data.meta.anno.tagMapKey(newStr{:}) = {'null'};
             disp(['Added annotation tag [ ' newStr{:} ' ]']);
-            writeLog('create-tag', newStr, 'none', 'none');
+            writeMasterLog('create-tag', newStr, 'none', 'none');
         end
     end
 end
-
-
-% function updateAnnotationPanel(varargin)
-%     numA = numel(handles.annoB);
-%     for ih=1:numA
-%         hanno = handles.annoB(ih);
-%         key = hanno.String;
-%         val = data.meta.anno.tagMap(key);
-%         if ismember(handles.selPtIdx, val)
-%            fontstyle = 'bold';
-%            set(hanno, 'BackgroundColor',[0 1 1]);    
-%         else
-%            fontstyle = 'normal';
-%            set(hanno, 'BackgroundColor',[.94 .94 .94]);
-%         end
-%         set(hanno, 'Value', ismember(handles.selPtIdx, val))
-%         set(hanno, 'FontWeight', fontstyle); 
-%     end
-%     
-% end
-
-
-
-function tagDataPointNoGUI(tags, selPtIdx, cellKey, Value)
-    if ~iscell(tags) 
-        tags = {tags};
-    end
-    for tag = tags
-        tag = tag{:};
-        addAnnotationNoGUI(tag); 
-        if Value % box checked
-            % anno to cells
-            data.meta.anno.tagMap(tag) = unique([data.meta.anno.tagMap(tag), selPtIdx]);
-            data.meta.anno.tagMapKey(tag) = unique([data.meta.anno.tagMapKey(tag), {cellKey}]);
-
-            % cell to annos
-            if isKey(data.meta.anno.RevTagMap, cellKey)
-                data.meta.anno.RevTagMap(cellKey) = unique([data.meta.anno.RevTagMap(cellKey), {tag}]);
-            else
-                data.meta.anno.RevTagMap(cellKey) = {tag};
-            end
-            data.meta.anno.byCell{selPtIdx} = data.meta.anno.RevTagMap(cellKey);
-
-        else % box unchecked
-            oldCellSet = data.meta.anno.tagMap(tag);
-            newCellSet = setxor(oldCellSet, selPtIdx);
-            data.meta.anno.tagMap(tag) = newCellSet; 
-
-            oldCellSetKey = data.meta.anno.tagMapKey(tag);
-            newCellSetKey = setxor(oldCellSetKey, {cellKey});
-            data.meta.anno.tagMapKey(tag) = newCellSetKey; 
-
-            % RevTagMap
-            oldTags = data.meta.anno.RevTagMap(cellKey);
-            newTagSet = setxor(oldTags, {tag});
-            data.meta.anno.RevTagMap(cellKey) = newTagSet;
-            data.meta.anno.byCell{selPtIdx} = data.meta.anno.RevTagMap(cellKey);
-
-        end
-    end
-end
-
-
-% function collectSelections(varargin)
-% 
-% end
 
 %===============================================================================
 % Movie display
@@ -802,46 +818,54 @@ function movieInit(varargin)
     end
     
     
-    
     handles.controlLoopTime.Visible = 'off';
     handles.loopTimeText.Visible = 'off';
     
-    
     set(handles.h1, 'KeyPressFcn', {@pb_fig, handles.h1});
+    set(handles.annoP.Children, 'KeyPressFcn', {@pb_fig, handles.h1});
 
     function pb_fig(varargin)
-        if varargin{1,2}.Character == 's'
-            if strcmp(handles.toggleSDC.Visible,'off')
-                handles.toggleSDC.Visible = 'on';
-            else
-                handles.toggleSDC.Visible = 'off';
-            end
-        elseif varargin{1,2}.Character == 'p'
-            if handles.pauseProgress
-                handles.pauseProgress = false;
-                set(handles.ActionNotice, 'Visible', 'off');
-            else
-                handles.pauseProgress = true;
-                set(handles.ActionNotice, 'String', '[!] PAUSED [!]');
-                handles.ActionNotice.BackgroundColor = [1 0 0];
-                set(handles.ActionNotice, 'Visible', 'on');
-            end
-        elseif varargin{1,2}.Character == 't'
-            if strcmp(handles.controlLoopTime.Visible,'off')
-                handles.controlLoopTime.Visible = 'on';
-                handles.loopTimeText.Visible = 'on';
-            else
-                handles.controlLoopTime.Visible = 'off';
-                handles.loopTimeText.Visible = 'off';
-            end
-        elseif varargin{1,2}.Character == 'f'
-            if strcmp(handles.controlFrameRate.Visible,'off')
-                handles.controlFrameRate.Visible = 'on';
-                handles.frText.Visible = 'on';
-            else
-                handles.controlFrameRate.Visible = 'off';
-                handles.frText.Visible = 'off';
-            end
+        switch varargin{1,2}.Character
+            case 's'
+                if strcmp(handles.toggleSDC.Visible,'off')
+                    handles.toggleSDC.Visible = 'on';
+                else
+                    handles.toggleSDC.Visible = 'off';
+                end
+            case  'p'
+                if handles.pauseProgress
+                    handles.pauseProgress = false;
+                    set(handles.ActionNotice, 'Visible', 'off');
+                else
+                    handles.pauseProgress = true;
+                    set(handles.ActionNotice, 'String', '[!] PAUSED [!]');
+                    handles.ActionNotice.BackgroundColor = [1 0 0];
+                    set(handles.ActionNotice, 'Visible', 'on');
+                end
+            case 't'
+                if strcmp(handles.controlLoopTime.Visible,'off')
+                    handles.controlLoopTime.Visible = 'on';
+                    handles.loopTimeText.Visible = 'on';
+                else
+                    handles.controlLoopTime.Visible = 'off';
+                    handles.loopTimeText.Visible = 'off';
+                end
+            case 'f'
+                if strcmp(handles.controlFrameRate.Visible,'off')
+                    handles.controlFrameRate.Visible = 'on';
+                    handles.frText.Visible = 'on';
+                else
+                    handles.controlFrameRate.Visible = 'off';
+                    handles.frText.Visible = 'off';
+                end
+            case 'n'
+                handles.NextCell = 1;
+            case 'e'
+                assignin('base', 'handlesCX', handles);
+                assignin('base', 'dataCX', data);
+                saveMatFile;
+            otherwise
+                disp('button pressed but not utilized')
         end
     end
     
@@ -876,7 +900,8 @@ function playMovie(varargin)
     nf = handles.movies.nf;
     cell_idx = handles.selPtIdx;
     i = 1;
-    while (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit) %% ADD SELECTION too...
+    while (handles.junkFlag == 0) && (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit) && ...
+        (handles.NextCell == 0)
         handles.movies.fidx = i;
         updateMovie();
         pause(handles.frameUpdatePause);
@@ -892,13 +917,12 @@ function playMovieLoop(varargin)
     tic;
     handles.ttoc = 0;
     cell_idx = handles.selPtIdx;
-    while (handles.ttoc < handles.movieLoopLimit) && (handles.selPtIdx == cell_idx) 
+    while (handles.ttoc < handles.movieLoopLimit) && (handles.selPtIdx == cell_idx) && (handles.junkFlag == 0) ...
+            && (handles.NextCell == 0)
         playMovie;
         handles.ttoc = toc;
     end
 end
-
-
 
 % % %===============================================================================
 % % % Helper functions
@@ -911,13 +935,10 @@ end
        h = Hin.Position(4); 
     end
 
-
     function updateStatus(varargin)
         % Append info to UserData
         cxFig = findall(0,'Tag', 'dopeAnnotator');
         cxFig.UserData.handles = handles;
         cxFig.UserData.data = data;
-%         disp('To update the UserData after events in the GUI, click the "save Notes"');
     end
-
 end
