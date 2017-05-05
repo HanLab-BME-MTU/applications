@@ -418,7 +418,8 @@ function initMainGUI()
           'EXIT','RETURN','EXIT'); 
        switch selection, 
           case 'EXIT',
-             delete(gcf)
+              exportDataState;
+              delete(gcf);
           case 'RETURN'
           return 
        end
@@ -1378,11 +1379,31 @@ function writeLog(action, tag, key, expr)
 
 end
 
+function updateCellMD(cell_index)
+    cellKey = data.meta.key{handles.selPtIdx};
+    MD = MovieData.loadMatFile(data.MD{cell_index});
+    extProcName = ['DopeAnnotations_' handles.timeStampStart];
+
+    extProcParams.cellKey = cellKey;
+    extProcParams.annotations = data.meta.anno.RevTagMap(cellKey);
+    extProcParams.sessionID = handles.sessionID;
+    extProcParams.timeStampStart = handles.timeStampStart;
+    
+    if isempty(MD.getProcessIndex(extProcName))
+        extProc = ExternalProcess(MD, extProcName);
+        extProc.setParameters(extProcParams);
+        MD.addProcess(extProc);
+    else
+        extProcindx = MD.getProcessIndex(extProcName);
+        MD.processes_{extProcindx}.setParameters(extProcParams);
+    end
+end
 
 
 function tagDataPoint(src, ~)
     key = src.String;
     tag = key;
+    cell_index = handles.selPtIdx;
     cellKey = data.meta.key{handles.selPtIdx};
     cellexpr = data.meta.expStr{handles.selPtIdx};
     if src.Value == src.Max % box checked
@@ -1426,8 +1447,10 @@ function tagDataPoint(src, ~)
     if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes')
         updatePlots();
     end
+    updateCellMD(cell_index);
     updateCellInfo();
     backupSave();
+
 end
 
 function tagDataPointNoGUI(tags, selPtIdx, cellKey, Value)
