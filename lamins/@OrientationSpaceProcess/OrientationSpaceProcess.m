@@ -52,7 +52,7 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
                 if(isfield(params,'defaultOutput'))
                     output = params.defaultOutput;
                 else
-                    output = 'nlms_mip_sc1';
+                    output = 'nlms_mip{1}';
                 end
             end
             if ischar(output),output={output}; end
@@ -243,9 +243,9 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             m = 1;
                 output(m+mm).name=sprintf('Mean Response');
                 output(m+mm).var=sprintf('meanResponse');
-                output(m+mm).formatData=@(x) mat2gray(real(x));
+                output(m+mm).formatData=@(x) real(x)./max(abs(x(:)));
                 output(m+mm).type='image';
-                output(m+mm).defaultDisplayMethod=@ImageDisplay;
+                output(m+mm).defaultDisplayMethod=@(x) ImageDisplay('CLim',[-1 1],'Colormap','cool','resetXYLimOnInit',false);
                 
             output = flip(output);
 
@@ -337,7 +337,8 @@ classdef OrientationSpaceProcess < ImageProcessingProcess & NonSingularProcess
             funParams.t = 1:owner.nFrames_;
             funParams.c = 1:length(owner.channels_);
             funParams.z = 1:owner.zSize_;
-            funParams.defaultOutput = 'nlms_mip_sc1';
+            funParams.defaultOutput = 'nlms_mip{1}';
+            funParams.thresholdMaxima = -0.5;
 %             funParams.ChannelIndex = 1:numel(owner.channels_);
 %             funParams.Levelsofsteerablefilters = 2;
 %             funParams.BaseSteerableFilterSigma = 1;
@@ -370,6 +371,11 @@ function saveOrientationSpaceResponse(process)
     numImages = length(params.c)*length(params.t)*length(params.z)*(length(out.uMaximaOrder)+length(params.responseAngularOrder)*3);
     counter = 0;
     
+    if(~isfield(params,'thresholdMaxima'))
+        params.thresholdMaxima = -0.5;
+    end
+
+    
     for c = params.c
         template = [process.outFilePaths_{c} filesep 'nlms_c%02d_t%03d_z%03d.mat'];
         for t = params.t
@@ -382,17 +388,34 @@ function saveOrientationSpaceResponse(process)
                 I = double(MD.channels_(c).loadImage(t,z));
                 response = filter * I;
                 out.meanResponse = mean(response.a,3);
+                if(params.thresholdMaxima > -0.5)
+                    thresholdResponse = response.getResponseAtOrderFT(params.thresholdMaxima,true);
+                end
                 for u = 1:length(out.uMaximaOrder)
                     tempResponse = response.getResponseAtOrderFT(out.uMaximaOrder(u));
                     out.maxima{u} = tempResponse.getRidgeOrientationLocalMaxima;
                     out.angularRidgeEnergy{u} = tempResponse.getRidgeAngularEnergy;
+                    % Suppress maxima if they are below the response at a
+                    % certain angular order
+                    if(params.thresholdMaxima == -0.5)
+                        % K = -0.5 corresponds to the mean response across
+                        % orientations, where there is a singular value
+                        belowMean = bsxfun(@lt,response.interpft1(out.maxima{u}),out.meanResponse);
+                        out.maxima{u}(belowMean) = NaN;
+                    elseif(params.thresholdMaxima > -0.5)
+                        % Otherwise, interpolate at the thresholdResponse
+                        % and compare
+                        belowThreshold = response.interpft1(out.maxima{u}) < thresholdResponse.interpft1(out.maxima{u});
+                        out.maxima{u}(belowThreshold) = NaN;
+                    end
                     counter = counter + 1;
                     progressText(counter/numImages,sprintf('Analyzing Orientation c=%02d, t=%03d, z=%03d, u=%02d',c,t,z,u));
                 end
+                clear thresholdResponse;
                 lastOrder = out.uMaximaOrder(u);
                 for m = 1:length(params.responseAngularOrder)
                     if(params.responseAngularOrder(m) ~= lastOrder)
-                        tempResponse = response.getResponseAtOrderFT(params.responseAngularOrder(m));
+                        tempResponse = response.getResponseAtOrderFT(params.responseAngularOrder(m),true);
                         lastOrder = params.responseAngularOrder(m);
                     end
                     
