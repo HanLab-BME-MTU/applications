@@ -47,7 +47,7 @@ handles.forceUpdate = false;
 handles.choiceLoadMD = 'no';
 handles.flyLoad = false; % load MovieDatas on the fly
 handles.backupDir = '/work/bioinformatics/shared/dope/export/';
-% handles.logfile = 'AnnotationLog.txt'
+handles.logfile = '/work/bioinformatics/shared/dope/export/.AnnotationsLog.txt';
 handles.timeStampStart = char(datetime('now','Format','ddMMMyyyy_hhmm'));
 handles.uName = char(java.lang.System.getProperty('user.name'));
 handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
@@ -303,9 +303,9 @@ end
 function writeMasterLog(action, tag, key, expr)
 
     % if exist(handles.logfile, 'file')==2
-    fileID = fopen(handles.Masterlogfile,'a');
-    % else
+%     fileID = fopen(handles.Masterlogfile,'a');
     fileID2 = fopen(['MasterAnnotationsLogClickFury_' handles.timeStampStart '.txt'],'a');
+    fileID3 = fopen(handles.logfile,'a');
     % end
     loopTags = false;
     skipCellstr = num2str(0);
@@ -327,20 +327,23 @@ function writeMasterLog(action, tag, key, expr)
     [status md5sumout] = system(['md5sum "' p '.m"']);
     timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
    
-    formatSpec = '[%s]\t[sessionID][%s]\t{%s} \t"%s"\tskipCell:%s\ttimeoutFlag:%s\tjunkFlag:%s\trepeatFlag:%s\t<%s>\t%s\t%s\n';
+    formatSpec = 'dope[%s]\t[sessionID][%s]\t{%s} \t"%s"\tskipCell:%s\ttimeoutFlag:%s\tjunkFlag:%s\trepeatFlag:%s\t<%s>\t%s\t%s\n';
    
     if loopTags
         for iT = 1:length(tags)
-            fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
+%             fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
             fprintf(fileID2, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
+            fprintf(fileID3, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
         end
     else
-        fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
+%         fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
         fprintf(fileID2, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
+        fprintf(fileID3, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
     end
     
-    fclose(fileID);
+%     fclose(fileID);
     fclose(fileID2);
+    fclose(fileID3);
 end
 
 %===============================================================================
@@ -349,8 +352,6 @@ end
 
 function initMainGUI()
 
-  
-    
     xsizeF = 1080;
     ysizeF = 720;
       
@@ -374,12 +375,12 @@ function initMainGUI()
        selection = questdlg({'Close CellXplorer? ','(!) Please verify desired info saved first (!)'},...
           'Close CellXplorer?',...
           'EXIT','RETURN','EXIT'); 
-       switch selection
+      saveMatFile; 
+        switch selection
           case 'EXIT'
-            warning('add auto save here!')
             delete(gcf)
           case 'RETURN'
-          return 
+            return 
        end
     end
     
@@ -629,7 +630,7 @@ end
         newCell.NextCellFlad = handles.NextCell;
         newCell.annotations = annotations;
         newCell.cellexpr = cellexpr;
-        newCell.MD = data.meta.class.MD{cell_index};
+%         newCell.MD = data.meta.class.MD{cell_index};
         newCell.cellMD = data.MD{cell_index};
         newCell.sessionID = handles.sessionID;
         if  length(data.meta.anno.RevTagMap.keys) > 0
@@ -640,6 +641,26 @@ end
         
         data.cellAnnotationsData = [data.cellAnnotationsData newCell];
         writeMasterLog('add', annotations, cellKey, cellexpr);
+    end
+
+    function updateCellMD(cell_index, annotations)
+        cellKey = data.meta.key{handles.selPtIdx};
+        MD = MovieData.loadMatFile(data.MD{cell_index});
+        extProcName = ['DopeAnnotations_' handles.timeStampStart];
+
+        extProcParams.cellKey = cellKey;
+        extProcParams.annotations = annotations;
+        extProcParams.sessionID = handles.sessionID;
+        extProcParams.timeStampStart = handles.timeStampStart;
+        
+        if isempty(MD.getProcessIndex(extProcName))
+            extProc = ExternalProcess(MD, extProcName);
+            extProc.setParameters(extProcParams);
+            MD.addProcess(extProc);
+        else
+            extProcindx = MD.getProcessIndex(extProcName);
+            MD.processes_{extProcindx}.setParameters(extProcParams);
+        end
     end
 
 %===============================================================================
@@ -683,6 +704,7 @@ end
             end
         end
         addCellAnnotation(cell_index, annotations)
+        updateCellMD(cell_index, annotations)
     end
 
 function addAnnotationNoGUI(newStrs)
