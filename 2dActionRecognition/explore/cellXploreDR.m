@@ -182,6 +182,7 @@ function initializeDataStruct_Assaf() %(MODEL)
     end
     % master index 
     data.meta.mindex = 1:numel(cellDataSet);
+    handles.cache.idx_f = data.meta.mindex;
 
     % expr date
     data.meta.expStr = {cellDataSet.expStr};
@@ -1861,11 +1862,16 @@ function initCellSelect()
 end
 
 
-function GoToNextCell(varargin)
-    if handles.selPtIdx == max(data.meta.mindex)
-        handles.selPtIdx = 1;
+function GoToNextCell(varargin) 
+    if handles.selPtIdx == max(handles.cache.idx_f) || ~ismember(handles.selPtIdx, handles.cache.idx_f)
+        handles.selPtIdx = min(handles.cache.idx_f);
     else 
-        handles.selPtIdx = 1 + handles.selPtIdx;
+        curInd = find(handles.cache.idx_f == handles.selPtIdx);
+        if curInd < length(handles.cache.idx_f)
+            handles.selPtIdx = handles.cache.idx_f(1 + curInd);
+        else
+            handles.selPtIdx = min(handles.cache.idx_f);    
+        end 
     end
     updateAnnotationPanel();
     updatePlots();
@@ -1876,7 +1882,8 @@ end
 
 function GoToRandCell(varargin)
 
-    handles.selPtIdx = randi([1 max(data.meta.mindex)], 1);
+    randPtIdx = randi([1 length(handles.cache.idx_f)], 1);
+    handles.selPtIdx = handles.cache.idx_f(randPtIdx);
     updateAnnotationPanel();
     updatePlots();
     handles.manualSel.Value = handles.selPtIdx;
@@ -1884,11 +1891,16 @@ function GoToRandCell(varargin)
 end
 
 
-function GoToPrevCell(varargin)
-    if handles.selPtIdx == 1
-        handles.selPtIdx = max(data.meta.mindex);
+function GoToPrevCell(varargin)    
+    if handles.selPtIdx == min(handles.cache.idx_f) || ~ismember(handles.selPtIdx, handles.cache.idx_f)
+        handles.selPtIdx = max(handles.cache.idx_f);
     else
-        handles.selPtIdx = -1 + handles.selPtIdx;
+        curInd = find(handles.cache.idx_f == handles.selPtIdx);
+        if curInd > 1 %length(handles.cache.idx_f)
+            handles.selPtIdx = handles.cache.idx_f(-1 + curInd);
+        else
+            handles.selPtIdx = max(handles.cache.idx_f);    
+        end 
     end
     updateAnnotationPanel();
     updatePlots();
@@ -1900,10 +1912,15 @@ end
 set(handles.h1, 'KeyPressFcn', {@pb_fig, handles.h1});
 
 function pb_fig(varargin)
-    if varargin{1,2}.Character == 'n'
+    switch varargin{1,2}.Character
+    case 'n'
         GoToNextCell()
-    elseif varargin{1,2}.Character == 'p'
+    case 'p'
         GoToPrevCell()
+    case 'e'
+        assignin('base', 'handlesCX', handles);
+        assignin('base', 'dataCX', data);   
+        disp('exporting handles to workspace')
     end
 end
 
@@ -2448,13 +2465,13 @@ function plotScatter
     % ------------------------
     % Filter SubSet Data
     % ------------------------
-
+    tic;
     idx_f = applyFilters(handles.filters);
     idx_all = 1:length(data.meta.mindex);
     idx_notSel = setxor(idx_all, idx_f);
     handles.dataI = data.meta.mindex(idx_f);
     handles.dataI_ns = data.meta.mindex(idx_notSel);
-
+    toc
 %     fast_clabels = fast_clabels(idx_f, :, :);
     
 
@@ -2470,7 +2487,7 @@ function plotScatter
     xyDR = data.DR.(DRtype_sel);
     X = xyDR(:,1);
     Y = xyDR(:,2);
-    
+    tic
     if handles.info.zoom == false
 
         if handles.FastPlotMode
@@ -2590,6 +2607,7 @@ function plotScatter
        handles.caches.scat2.SizeDataji = cachesizeL;
     %    selectdata('Axes', handles.axDR);
    end
+   toc
    handles.caches.DRtype_sel = DRtype_sel;
     set(handles.ActionNotice, 'Visible', 'off');
 end
@@ -2722,6 +2740,7 @@ function [idx_out] = applyFilters(hinff)
         idx_f = unique(setInx);
         idx_out = intersect(idx_f, idx_out);
     end
+    handles.cache.idx_f = idx_out;
 end
 
 function [RGBmat] = getColors(clabels, colormapIn)
