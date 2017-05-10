@@ -26,7 +26,7 @@ for fIdx=1:frameNb
     ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
     [tracksXY,tracksZY,tracksZX]=overlayProjTracks(XYProj,ZYProj,ZXProj, ...
       [projData.minXBorder projData.maxXBorder],[projData.minYBorder projData.maxYBorder],[projData.minZBorder projData.maxZBorder], ...
-      fIdx,tracks,p.colormap,p.colorIndx);
+      fIdx,tracks,p.colormap,p.colorIndx,varargin{:});
 
     %% Use Z to index image line (going up)
 %     tracksXY=permute(tracksXY,[2 1 3]);
