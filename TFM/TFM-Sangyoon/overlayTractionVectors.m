@@ -9,6 +9,7 @@ function [] = overlayTractionVectors( forceField, displField,vectorScale,vectorS
 %                                       of force sources. 
 %           vectorScale:                vector display scale (default=1)
 %           vectorSparsity:             Gap between the vectors (default=2)
+%           varargin:                   vector color (defalut=purple)
 % output:   
 %           quiver plot on existing, or newly generated figure
 % 
@@ -25,11 +26,19 @@ if nargin<3
     vectorSparsity=2;
     vectorScale = 1;
 end
-if isempty(varargin)
-    vecColor=[75/255 0/255 130/255];
-else
-    vecColor=varargin{2};
-end
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addParamValue('Color',[75/255 0/255 130/255]);
+ip.addParamValue('ShiftField',true,@islogical);
+ip.parse(varargin{:});
+vecColor=ip.Results.Color;
+shiftField=ip.Results.ShiftField;
+
+% if isempty(varargin)
+%     vecColor=[75/255 0/255 130/255];
+% else
+%     vecColor=varargin{2};
+% end
 reg_grid =createRegGridFromDisplField(displField,4); %2=2 times fine interpolation
 
 % Make the detailed map of force and displacement
@@ -51,6 +60,10 @@ pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
 % forceScale=0.1*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
 % quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx./forceScale,...
 %     vectorScale*tmat_vecy./forceScale,0,'Color',vecColor);
+if ~shiftField
+    grid_mat(1,1,1)=0;
+    grid_mat(1,1,2)=0;
+end
 quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx,...
     vectorScale*tmat_vecy,0,'Color',vecColor);
 %hq = % hq.ShowArrowHead = 'off';

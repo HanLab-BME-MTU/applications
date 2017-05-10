@@ -97,7 +97,12 @@ if ~uptoColo
             s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
             T = s.T;
         end
-        tracksNA = applyDriftToTracks(tracksNA, T); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+            tracksNA = applyDriftToTracks(tracksNA, T, 1); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+        else
+            tracksNA = applyDriftToTracks(tracksNA, T, 0);
+        end
+%         tracksNA = applyDriftToTracks(tracksNA, T); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
     else
         disp('Stage drift correction was already applied to tracksNA.')
     end

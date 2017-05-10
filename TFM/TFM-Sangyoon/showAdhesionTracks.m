@@ -497,11 +497,11 @@ function pushInspectAdhesion(~,~)
             tracksNA(IDtoInspect).endingFrameExtraExtra = [];
             tracksNA(IDtoInspect) = curTrack;
         end
-        if trainerInitially
-            print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
-            savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
-        end
-        save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
+%         if trainerInitially
+%             print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
+%             savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+%         end
+%         save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
         setappdata(hFig,'IDs',IDs);
         setappdata(hFig,'iGroups',iGroups);
         close(h2)

@@ -63,8 +63,13 @@ for ii=1:nFrames
     mask = maskProc.loadChannelOutput(iChan,ii);
     % Apply SDC
     if ~isempty(iSDCProc)
-        maxX = ceil(max(abs(T(:, 2))));
-        maxY = ceil(max(abs(T(:, 1))));
+        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+            maxX = 0;
+            maxY = 0;
+        else        
+            maxX = ceil(max(abs(T(:, 2))));
+            maxY = ceil(max(abs(T(:, 1))));
+        end
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
         % Apply subpixel-wise registration to original masks
         I = padarray(mask, [maxY, maxX]);

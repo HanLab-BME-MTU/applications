@@ -317,7 +317,7 @@ classdef OrientationSpaceResponse < handle
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             Response = OrientationSpaceResponse(filter_new,angularResponse_new);
         end
-        function Response = getResponseAtOrderFT(obj,K_new)
+        function Response = getResponseAtOrderFT(obj,K_new,normalize)
             if(~isscalar(obj))
                 Response(numel(obj)) = OrientationSpaceResponse;
                 for o=1:numel(obj)
@@ -345,7 +345,11 @@ classdef OrientationSpaceResponse < handle
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             % Consider using fft rather than ifft so that the mean is
             % consistent
-            Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
+            if(nargin > 2 && normalize)
+                Response = OrientationSpaceResponse(filter_new,ifft(a_hat*size(a_hat,3)/size(obj.a,3),[],3));
+            else
+                Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
+            end
         end
         function response = getResponseAtOrderFTatPoint(obj,r,c,K_new)
             % Get response at a lower order using Fourier Transform at a particular point
@@ -422,11 +426,16 @@ classdef OrientationSpaceResponse < handle
             fineResponseGrid = fineResponseGrid(:,:,[end 1:end 1]);
             % TODO: pad spatial dimensions like in N(L)MS
         end
-        function asymSignal = evaluateAssymetricSignalAtPoint(obj,r,c,distance)
+        function asymSignal = evaluateAssymetricSignalAtPoint(obj,r,c,distance,nSamples)
             if(nargin < 4)
                 distance = 2/obj.filter.f_c/2/pi;
             end
-            nSamples = obj.n*6;
+            if(nargin < 5)
+                nSamples = obj.n*6;
+                scaleFactor = 3;
+            else
+                scaleFactor = nSamples/obj.n/2;
+            end
             % Angle in space from point
             theta = (0:nSamples-1)*(2*pi/nSamples);
             % Orientation angle index
@@ -435,7 +444,7 @@ classdef OrientationSpaceResponse < handle
             orientation = [orientation orientation]+2;
             coords = [r-cos(theta')*distance c+sin(theta')*distance orientation'];
             % TODO: pad spatial dimensions like in N(L)MS
-            A = obj.getResponseForInterpolation();
+            A = obj.getResponseForInterpolation(scaleFactor);
             asymSignal = interp3(A,coords(:,2),coords(:,1),coords(:,3),'cubic');
             if(nargout == 0)
                 plot((0:nSamples-1)/nSamples*2,asymSignal);
