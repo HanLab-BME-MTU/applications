@@ -58,7 +58,7 @@ handles.uName = char(java.lang.System.getProperty('user.name'));
 handles.compName = char(java.net.InetAddress.getLocalHost.getHostName);
 handles.sessionID = [handles.timeStampStart '+' handles.uName '+' handles.compName '_'];
 handles.autoSaveCount = 0;
-handles.loopMovie = true;
+handles.loopMovie = false;
 handles.stageDriftCorrection = true;
 handles.frameUpdatePause = 0.05;
 handles.startUpMode = true;
@@ -165,8 +165,8 @@ initDRAxes();
 % plot everything
 plotScatter;
 updateCellInfo();
-% handles.manualSel.Value = handles.selPtIdx;
 updateManSel(handles.manualSel);
+
 % Append info to UserData
 cxFig = findall(0,'Tag', 'cellXplore');
 cxFig.UserData.handles = handles;
@@ -597,7 +597,7 @@ function initMainGUI()
         if isempty(varname), return; end
 
         cxFig = findall(0,'Tag', 'cellXplore');
-        assignin('base', varname{1}, cxFig.UserData.data);
+        assignin('base', varname{1}, cxFig);
         
     end
     
@@ -662,7 +662,7 @@ function initMainGUI()
                       'HandleVisibility','off','FontSize', 12);
 
     % Default to the OR switch    
-    handles.toggleLoop.SelectedObject = handles.loop1;
+    handles.toggleLoop.SelectedObject = handles.loop0;
 
     
     function loopCallback(varargin)
@@ -784,7 +784,8 @@ function initMainGUI()
         % Append info to UserData
         cxFig = findall(0,'Tag', 'cellXplore');
         cxFig.UserData.handles = handles;
-        cxFig.UserData.data = data;   
+        cxFig.UserData.data = data;
+        assignin('base', 'cxFig', cxFig);
         writeLog('saveNotes', notes, cellKey, expr);
     end
 
@@ -1200,7 +1201,8 @@ function updateAnnotationPanel()
         set(hanno, 'FontWeight', fontstyle);
         checkRB_on(handles.highAnno(ih)); 
     end
-    
+    numCellAnno = num2str(length(data.meta.anno.RevTagMap.keys));
+    handles.totalAnnoText.String = ['Tagged Cells: ' numCellAnno];
 end
 
 function addAnnotation_callback(varargin)
@@ -2342,9 +2344,16 @@ function updateMovie()
         movieFrame = data.movies{handles.selPtIdx}(:,:,handles.movies.fidx); 
     elseif handles.flyLoad
         MD = handles.MDcache{handles.selPtIdx};
-        if handles.stageDriftCorrection && ~isempty(MD.getProcessIndex('EfficientSubpixelRegistrationProcess'))
+        if handles.stageDriftCorrection
             SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
-            movieFrame = MD.processes_{SDCindx}.loadOutImage(1, handles.movies.fidx);
+            if ~isempty(SDCindx)
+                movieFrame = MD.processes_{SDCindx}.loadOutImage(1, handles.movies.fidx);
+            else
+                handles.toggleSDC.SelectedObject = handles.SDC0;
+                handles.stageDriftCorrection = false;
+                warning('no Stage Drift Correction Process found: disabling');                
+                movieFrame = MD.channels_.loadImage(handles.movies.fidx);
+            end
         else
             movieFrame = MD.channels_.loadImage(handles.movies.fidx);
         end
@@ -2621,32 +2630,11 @@ function updatePlots
     updateCellInfo();
     plotScatter;
     set(handles.ActionNotice, 'Visible', 'off');
-%     cxFig = findall(0,'Tag', 'cellXplore');
-%     cxFig.UserData.handles = handles;
-%     cxFig.UserData.data = data;
 end
 
 function txt = myupdatefcn(empt, objs)
-    % handles.scat1.SizeData(handles.selPtIdx) = 10;
     idx = empt.Cursor.DataIndex;
-
-    %% TODO - Check if filter is activated. 
-%         if handles.info.zoom == false
     handles.selPtIdx = idx;
-    % handles.scat1.SizeData(handles.selPtIdx) = 200;
-%         else
-%         if ismember(idx, handles.dataI)
-% %             handles.selPtIdx = handles.dataI(idx);
-%               handles.scat1.SizeData(idx) = 200;
-%               handles.scat1.SizeData(idx) = 200;
-%         else
-% %             handles.selPtIdx = handles.dataI_ns(idx);
-%         end
-
-    %         txt = {['Index: ',num2str(handles.selPtIdx)],...
-%                ['CellType: ',data.meta.cellType{handles.selPtIdx}],...
-%                ['TumorType: ',data.meta.tumorTypeName{handles.selPtIdx}], ...
-%                ['ExprDate :', '01-17-2017']};
     txt = {['Index: ',num2str(idx)],...
            ['xDR: ' num2str(objs.Position(1))],...
            ['yDR: ' num2str(objs.Position(2))]};

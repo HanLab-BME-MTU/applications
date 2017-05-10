@@ -1,13 +1,18 @@
+% /project/bioinformatics/Danuser_lab/liveCellHistology/analysis/All
 
+% Input Path
 allCellsFileName = '28-Mar-2017_LBP_dLBP_1.mat';
 InFilePath =  '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/CellExplorerData';
 loadMatPath = fullfile(InFilePath, allCellsFileName)
 
-% My output path
-omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/clickFuryTest';
+% Output path
+omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/test4Assaf/';
+if ~exist(omeTiffDir, 'dir')
+    mkdir(omeTiffDir);
+end
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
-disp('% Crop Assaf''s MDs');
+disp('% Chop up Assaf''s MDs');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
 load(loadMatPath);%, 'allCellsMovieData'); 
@@ -19,11 +24,6 @@ if isempty(randset)
 else
 %     cellDataSet = cell2mat(allCellsMovieData(1,randsample(length(allCellsMovieData),randset,false)));
     allCellsSet = allCellsMovieData(1,randsample(length(allCellsMovieData),randset,false));
-end
-
-masterMovieDir = [omeTiffDir filesep 'sdcTest'];
-if ~exist(masterMovieDir, 'dir')
-    mkdir(masterMovieDir);
 end
 
 javaaddpath('/home2/s170480/matlab/extern/bioformats/bioformats_package.jar','-end')
@@ -42,7 +42,7 @@ parfor i = 1:length(allCellsSet)
 
     iCell = allCellsSet{i};
     disp(['Creating movieData for cell ID key: ' iCell.key]);
-    movieFileOut = [masterMovieDir filesep iCell.key filesep iCell.key '_CellX.ome.tiff'];
+    movieFileOut = [omeTiffDir filesep iCell.key filesep iCell.key '_CellX.ome.tiff'];
     disp(['Making OME-TIFF : ' movieFileOut]);
 
     disp(iCell.key);
@@ -143,39 +143,52 @@ annotationSet.keys
 % Multiple cells
 % undefined
 
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+disp('% Save .mat file with expected data structures and names (cell array and dictionary)');
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+
 cellDataSet = allCellsSet;
+matFileName = [omeTiffDir filesep 'clickFuryCellData_R' num2str(randset) '.mat'];
+save(matFileName, 'cellDataSet', 'annotationSet');
 
-save([omeTiffDir filesep 'clickFuryCellData_R' num2str(randset) '.mat'], 'cellDataSet', 'annotationSet');
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
-disp('% [optional & slow..] Create MovieList');
+disp('% Examples to acccess metadata via MovieData/MovieList');
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+uiwait
+
+MList{3}.getReader.formatReader.getMetadataStore.getDatasetID(0)
+MList{3}.getReader.formatReader.getMetadataStore.getDatasetName(0) 
+MList{3}.getReader.formatReader.getMetadataStore.getImageDescription(0) 
+MList{3}.getReader.formatReader.getMetadataStore.getExperimenterGroupDescription(0)
+MList{3}.getReader.formatReader.getMetadataStore.getDatasetDescription(0)
+
+disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
+disp('% How to run cellXplorerDR and dopeAnnotator');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
-% ML = MovieList([MList{:}], masterMovieDir, 'movieListFileName_', 'movieListCells.mat');
-% ML.sanityCheck();
-% ML.save();
+disp('Opt 1: load aboved saved .mat file by providing the file when the program is called');
+cellXplorerDR(matFileName);
 
+uiwait
+% ff = findall(0,'Tag','cellXplore'); delete(ff);
+disp('Opt 2: call function immediately and be prompted (via UI) to manually select file to load');
+cellXplorerDR
+
+uiwait
+
+disp('Same applies for dopeAnnotator')
+dopeAnnotator(matFileName);
+uiwait
+dopeAnnotator
 
 % disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
-% disp('% Examples to acccess metadata via MovieData/MovieList');
+% disp('% [optional & slow..] Create MovieList');
 % disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
-% Access metadata info in the following fashion...
-% ML.movies_{3}.reader.formatReader.getMetadataStore().getDatasetID(0)
-% ML.movies_{3}.reader.formatReader.getMetadataStore().getDatasetName(0) 
-% ML.movies_{3}.reader.formatReader.getMetadataStore().getImageDescription(0) 
-% ML.movies_{3}.reader.formatReader.getMetadataStore().getExperimenterGroupDescription(0)
-% ML.movies_{3}.reader.formatReader.getMetadataStore().getsetDatasetDescription(0)
+
+% % ML = MovieList([MList{:}], omeTiffDir, 'movieListFileName_', 'movieListCells.mat');
+% % ML.sanityCheck();
+% % ML.save();
 
 
-% annotationSet = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells (by local master index)
-% annotationSet('bleb')=[NaN]
-% annotationSet('protrusion')=[NaN]
-% annotationSet('small')=[NaN]
-% annotationSet('big')=[NaN]
-% annotationSet('active')=[NaN]
-% annotationSet('inactive')=[NaN]
-% annotationSet('weird')=[NaN]
-% annotationSet('neat')=[NaN]
-% annotationSet.keys
-% cellDataSet = allCellsSet;
 
