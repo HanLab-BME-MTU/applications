@@ -898,7 +898,14 @@ function updateMovie()
     MD = handles.MDcache{handles.selPtIdx};
     if handles.stageDriftCorrection 
         SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
-        movieFrame = MD.processes_{SDCindx}.loadOutImage(1, handles.movies.fidx);
+        if ~isempty(SDCindx)
+            movieFrame = MD.processes_{SDCindx}.loadOutImage(1, handles.movies.fidx);
+        else
+            movieFrame = MD.channels_.loadImage(handles.movies.fidx);
+            handles.toggleSDC.SelectedObject = handles.SDC0;
+            handles.stageDriftCorrection = false;
+            warning('no Stage Drift Correction Process found: disabling');
+        end
     else
         movieFrame = MD.channels_.loadImage(handles.movies.fidx);
     end
