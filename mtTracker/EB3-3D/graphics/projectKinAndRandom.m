@@ -25,7 +25,7 @@ else
 end
 
 if(isa(procRandomOrTracks,'Process'))
-  tmp=load(processRandom.outFilePaths_{1});
+  tmp=load(procRandomOrTracks.outFilePaths_{1});
   randKinTracksISO=tmp.randKinTracks;
   randKinTracksISOInliers=randKinTracksISO(logical(arrayfun(@(t) t.inliers(1),kinTracks)));
 else

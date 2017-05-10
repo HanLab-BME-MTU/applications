@@ -70,6 +70,7 @@ overlayProjTracksMovie(processSingleProj,'tracks',[mappedRef; mappedTracksP1Ref;
 tic;
 buildFiberManifoldAndMapMT(P1,track,EB3TracksISO,10)
 toc;
+%%
 mappedTracksP1=track.associatedMT;
 mappedTracksP1Ref=refs(1).applyBase(EB3TracksISO([mappedTracksP1.index]),[]);
 overlayProjTracksMovie(processSingleProj,'tracks',[ mappedRef; mappedTracksP1Ref; mappedTracksLessP1Ref  ],'colorIndx',[ 3*ones(1,length(mappedRef)) 1*ones(1,length(mappedTracksP1Ref)) 2*ones(1,length(mappedTracksLessP1Ref)) ],'colormap',myColormap,'name','newmap');
