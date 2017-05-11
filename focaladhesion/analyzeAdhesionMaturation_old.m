@@ -900,13 +900,28 @@ if saveAnalysis
     disassemRateCellAll = arrayfun(@(y) y.disassemRate, trNAonly);
     % filtering in only actually disassembling NAs and make it positive
     disassemRateCell = disassemRateCellAll(disassemblingNAIdx);
-    %% NA nucleation ratio: How many of NAs were newly assembled
-    nucleationNumber = sum(arrayfun(@(y) y.startingFrame>1, trNAonly));
-    nucleationRatio = nucleationNumber/focalAdhInfo(1).cellArea;
+    %% NA nucleation ratio: How many of NAs were newly assembled - I changed this.
+    curNewNAs = arrayfun(@(y) sum(arrayfun(@(x) x.startingFrameExtra==y,trNAonly)),(1:nFrames)');
+    curDeadNAs = arrayfun(@(y) sum(arrayfun(@(x) x.endingFrameExtra==y,trNAonly)),(1:nFrames)');
+    curExistingNAs = arrayfun(@(y) sum(arrayfun(@(x) x.presence(y),trNAonly)),(1:nFrames)');
+    curNewNARatio = curNewNAs./curExistingNAs;
+    curDeadNARatio = curDeadNAs./curExistingNAs;
+
+%     curNumStableNAs = sum(arrayfun(@(x) x.lifeTime>0.8*curNFrames,trNAonly));
+    % I have to ignore the very first frame and the last four frames.
+    numStableNAs = curNewNAs(1);
+    curNewNAs2 = curNewNAs(2:end-5);
+    curNewNARatio2 = curNewNARatio(2:end-5);
+    stableNARatio = curNewNARatio(1);
+    curDeadNAs2 = curDeadNAs(5:end-1);
+    curDeadNARatio2 = curDeadNARatio(5:end-1);
+
+    nucleationNumber = curNewNAs2; %sum(arrayfun(@(y) y.startingFrame>1, trNAonly));
+    nucleationRatio = curNewNARatio2; %nucleationNumber/focalAdhInfo(1).cellArea;
 
     %% NA disassembly ratio
-    disassemblingNANumber = sum(arrayfun(@(y) y.endingFrameExtra+1, trNAonly)<max(arrayfun(@(y) y.endingFrameExtra, trNAonly)));
-    disassemblingNARatio = disassemblingNANumber/focalAdhInfo(1).cellArea;
+    disassemblingNANumber = curDeadNAs2; %sum(arrayfun(@(y) y.endingFrameExtra+1, trNAonly)<max(arrayfun(@(y) y.endingFrameExtra, trNAonly)));
+    disassemblingNARatio = curDeadNARatio2; %disassemblingNANumber/focalAdhInfo(1).cellArea;
     %% save
     save([dataPath filesep 'assembly_disassembly_rates.mat'], 'assemRateCell', 'disassemRateCell','nucleationRatio','maturingRatio','disassemblingNARatio','-v7.3')
     
@@ -915,8 +930,8 @@ if saveAnalysis
     
     % I need to work to make the same number of the raws for these
     % variables.
-    assemNames = {'assemRateCell', 'disassemRateCell','nucleationRatio','disassemblingNARatio'};
-    C= table({assemRateCell'; disassemRateCell'; nucleationRatio; disassemblingNARatio},'RowNames',assemNames);
+    assemNames = {'assemRateCell', 'disassemRateCell','nucleationNumber','nucleationRatio','numStableNAs', 'stableNARatio','disassemblingNANumber','disassemblingNARatio'};
+    C= table({assemRateCell; disassemRateCell; nucleationNumber; nucleationRatio; numStableNAs; stableNARatio; disassemblingNANumber; disassemblingNARatio},'RowNames',assemNames);
     writetable(C,[dataPath filesep 'assembly_disassembly_rates.csv'])
 %     warning('off','MATLAB:xlswrite:AddSheet')
 %     warning('off','MATLAB:xlswrite:NoCOMServer')
