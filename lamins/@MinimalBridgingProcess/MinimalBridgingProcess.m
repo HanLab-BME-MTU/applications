@@ -241,6 +241,7 @@ classdef MinimalBridgingProcess < ImageProcessingProcess & NonSingularProcess
             warning off lccb:process
             funParams.orientationSpaceProcessIndex = owner.getProcessIndex(OrientationSpaceProcess.empty,1,false);
             funParams.thresholdProcessIndex = owner.getProcessIndex(ThresholdProcess.empty,1,false);
+            funParams.maskProcessIndices = [];
             warning on lccb:process
 %             funParams.ChannelIndex = 1:numel(owner.channels_);
 %             funParams.Levelsofsteerablefilters = 2;
@@ -279,9 +280,18 @@ function doMinimalBriding(process)
 
     MD = process.getOwner();
     params = process.getParameters();
+    defaultParams = process.getDefaultParams(MD);
+    defaultFields = fields(defaultParams);
+    for f = 1:length(defaultFields)
+        if(~isfield(params,defaultFields{f}))
+            params.(defaultFields{f}) = defaultParams.(defaultFields{f});
+        end
+    end
     out.params = params;
+    
     orientationSpaceProcess = MD.processes_{params.orientationSpaceProcessIndex};
     thresholdProcess = MD.processes_{params.thresholdProcessIndex};
+    maskProcesses = MD.processes_(params.maskProcessIndices);
     
     responseAngularOrder = orientationSpaceProcess.funParams_.responseAngularOrder;
 
@@ -302,6 +312,12 @@ function doMinimalBriding(process)
 
                 nlms_by_order = orientationSpaceProcess.loadChannelOutput(c,t,'iZ',z,'output','nlms');
                 
+                sz = size(nlms_by_order{1});
+                mask = true(sz([1 2]));
+                for m = 1:length(maskProcesses)
+                    mask = mask & maskProcesses{m}.loadChannelOutput(c,t);
+                end
+                
                 for k = 1:length(responseAngularOrder)
     
                     nlms = nlms_by_order{k};
@@ -311,8 +327,8 @@ function doMinimalBriding(process)
 
                 %     T = thresholdOtsu(nlms_mip3);
                     % T = 0;
-                    nlms_binary = nlms_mip3 > T;
-                    nms_binary = nms > T;
+                    nlms_binary = (nlms_mip3 > T) & mask;
+                    nms_binary = (nms > T) & mask;
                     % non_nms_binary = nlms_binary & ~nms_binary;
 
 

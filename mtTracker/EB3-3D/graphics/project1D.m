@@ -15,7 +15,7 @@ ip.addOptional('colorIndx',[]);
 ip.addOptional('crop','manifold');
 ip.addOptional('transType','affineOnePass');
 ip.addOptional('FoF',[]);
-ip.addOptional('channelRender','greenRed');
+ip.addOptional('channelRender','grayRed');
 ip.addOptional('intMinPrctil',[1 99.9]);
 ip.addOptional('intMaxPrctil',[100 100]);
 ip.addOptional('name',[]);
