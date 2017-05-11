@@ -40,6 +40,7 @@ specTrackProc = movieData.processes_{iProc};
 p = parseProcessParams(specTrackProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
+wtBar=-1;
 disp('feature(''ShowFigureWindows'')')
 feature('ShowFigureWindows')
 if feature('ShowFigureWindows'),

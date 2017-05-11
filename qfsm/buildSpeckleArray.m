@@ -29,13 +29,14 @@ nFrames=size(cM,2)/2; % Number of time points
 nTemplates=size(cM,3);   % Number of subwindows
 
 % Initialize waitbar 
+wtBar = -1;
 if ~isempty(ip.Results.waitbar)
     wtBar = ip.Results.waitbar;
     waitbar(0,wtBar,'Indexing speckles...');
 elseif feature('ShowFigureWindows')
     wtBar = waitbar(0,'Indexing speckles...');
 else
-    wtBar = {};
+    wtBar = -1;
 end
 
 % Index speckles and non-speckles

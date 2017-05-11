@@ -39,6 +39,7 @@ kinProc = movieData.processes_{iProc};
 p = parseProcessParams(kinProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
+wtBar = -1;
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',kinProc.getName());
     wtBarArgs = {'waitbar',wtBar};
