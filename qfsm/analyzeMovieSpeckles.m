@@ -41,10 +41,10 @@ p = parseProcessParams(kinProc,paramsIn);
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',kinProc.getName());
-    wtBarArgs={'waitbar',wtBar};
+    wtBarArgs = {'waitbar',wtBar};
 else
-    wtBar=-1;
-    wtBarArgs={};
+    wtBar = -1;
+    wtBarArgs = {};
 end
 
 % Reading various constants

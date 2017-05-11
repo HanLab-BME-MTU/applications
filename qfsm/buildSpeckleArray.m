@@ -30,10 +30,12 @@ nTemplates=size(cM,3);   % Number of subwindows
 
 % Initialize waitbar 
 if ~isempty(ip.Results.waitbar)
-    wtBar=ip.Results.waitbar;
+    wtBar = ip.Results.waitbar;
     waitbar(0,wtBar,'Indexing speckles...');
 elseif feature('ShowFigureWindows')
-    wtBar=waitbar(0,'Indexing speckles...');
+    wtBar = waitbar(0,'Indexing speckles...');
+else
+    wtBar = {};
 end
 
 % Index speckles and non-speckles
