@@ -7,15 +7,15 @@ ip.addParameter('distType','angle');
 ip.addParameter('position','start')
 ip.addParameter('manifoldEntry',true)
 ip.addParameter('kinDistCutoff',[])
+ip.addParameter('mappedTracksField','associatedMT')
 ip.parse(varargin{:});
 p=ip.Results;
 
 manifoldCell=cell(length(poles),length(kinTracks));
 subManifoldCell=cell(length(poles),length(kinTracks));
-
-for kinIdx=1:length(kinTracks)
+mappedTrackCell=cell(1,length(kinTracks));
+parfor kinIdx=1:length(kinTracks)
   kinTrack=kinTracks(kinIdx);
-  progressText(kinIdx/length(kinTracks),'Mapping to manifold');
   allMappedTracks=[];
   for poIdx=1:length(poles)
     P=poles(poIdx);
@@ -54,13 +54,17 @@ for kinIdx=1:length(kinTracks)
         mappedTracks=mappedTracks(manifoldEntry);
     end
     allMappedTracks=[allMappedTracks mappedTracks];
-    manifoldCell{poIdx,kinIdx}=manifold;
-    subManifoldCell{poIdx,kinIdx}=subManifold;
+%     manifoldCell{poIdx,kinIdx}=manifold;
+%     subManifoldCell{poIdx,kinIdx}=subManifold;
   end
+  mappedTrackCell{kinIdx}=allMappedTracks;
+end
+for kinIdx=1:length(kinTracks)
+    kinTrack=kinTracks(kinIdx);
 
   try
-    kinTrack.addprop('associatedMT');
+    kinTrack.addprop(p.mappedTracksField);
   catch
   end;
-  kinTrack.associatedMT=allMappedTracks;
+  setfield(kinTrack,p.mappedTracksField,mappedTrackCell{kinIdx});
 end

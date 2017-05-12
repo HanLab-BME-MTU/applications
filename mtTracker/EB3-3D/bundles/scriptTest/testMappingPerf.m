@@ -104,3 +104,21 @@ toc;
 mappedTracksP1OrigRef=refs(1).applyBase(EB3TracksISO([mappedTracksP1Orig.index]),[]);
 mappedTracksP1TestRef=refs(1).applyBase(EB3TracksISO([mappedTracksP1Test.index]),[]);
 overlayProjTracksMovie(processSingleProj,'tracks',[mappedTracksP1Ref; mappedTracksP1OrigRef; mappedTracksP1TestRef],'colorIndx',[  2*ones(1,length(mappedTracksP1Ref))  1*ones(1,length(mappedTracksP1OrigRef)) 3*ones(1,length(mappedTracksP1TestRef)) ],'colormap',myColormap,'name','testNewApproach');
+
+
+%% Test different distance values
+kinTest=[2 5 10];
+
+procProjectSelectKin=projectKinAndRandom(MD,processAddSpindleRef, ...
+    processDetectPoles,processUniformRandom,kinTest,'name','kinTest-distMeasured','showRand',false);
+%%
+
+for dist=[8]
+buildFiberManifoldAndMapMT(P1,kinTracksISOInliers(kinTest),EB3TracksISOInliers,dist,'kinDistCutoff',[-20,20]);
+bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(kinTest)}, ... 
+                'kinBundleName',{'Inlier','RandomInlier'}, ... 
+                'plotName','mappedEnd','mappedMTField','associatedMT');
+            
+overlayProjTracksList(MD,procProjectSelectKin,kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),P1,'mappedTrackField','associatedMT','name',['dist-' num2str(dist)]);
+end 
+% overlayProjTracksList(MD,[procProjectSelectKin(1) procProjectSelectKin(1)],kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),randKinTracksISOInliers(kinTest),randKinTracksISOInliers(kinTest),P1,'mappedTrackField','associatedMT','name','10')

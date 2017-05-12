@@ -65,8 +65,13 @@ for kinIdx=kinRange
       kinTrack.getAddCoord(baseX.getMultCoord(-1))  kinTrack.getAddCoord(baseY.getMultCoord(-1))];
   arrayfun(@(t) refKP1.applyBase(t,'P1K'),dynROI,'unif',0);
 
+  if(p.showRand)
+      name=[p.name '-P1-kin-' num2str(kinTrack.index) '-R'];
+  else
+      name=[p.name '-P1-kin-' num2str(kinTrack.index)];
+  end
   % Project around the pyramid and show inset.
   project1D(MD,insetROI,'dynPoligonREF',[dynROI.P1K],'FoF',refKP1, ...
-    'name',[p.name '-P1-kin-' num2str(kinTrack.index) '-R'],'channelRender','grayRed','processSingleProj',processProj,'intMinPrctil',[1 50]);
+    'name',name,'channelRender','grayRed','processSingleProj',processProj,'intMinPrctil',[1 50]);
   processList=[processList processProj];
 end

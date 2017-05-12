@@ -1,4 +1,4 @@
-function [randKinTracks]=randomizeTracks(MD,randomDist,varargin)
+function [randKinTracks]=randomizeTracksMC(MD,randomDist,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
