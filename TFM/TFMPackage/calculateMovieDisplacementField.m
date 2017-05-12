@@ -61,6 +61,7 @@ if ~isempty(iSDCProc)
     imDirs{1} = SDCProc.outFilePaths_{1,p.ChannelIndex};
     s = load(SDCProc.outFilePaths_{3,p.ChannelIndex},'T');
     residualT = s.T-round(s.T);
+    T = s.T;
     refFrame = double(imread(SDCProc.outFilePaths_{2,p.ChannelIndex}));
 else
     imDirs  = movieData.getChannelPaths(p.ChannelIndex);
@@ -79,8 +80,8 @@ outputFile{2,1} = [p.OutputDirectory filesep 'dispMaps.mat'];
 firstFrame =1; % Set the strating fram eto 1 by default
 if exist(outputFile{1},'file');
     % Check analyzed frames
-    s=load(outputFile{1},'displField');
-    frameDisplField=~arrayfun(@(x)isempty(x.pos),s.displField);
+    sDisp=load(outputFile{1},'displField');
+    frameDisplField=~arrayfun(@(x)isempty(x.pos),sDisp.displField);
     
     if ~all(frameDisplField) && ~all(~frameDisplField) && usejava('desktop')
         % Look at the first non-analyzed frame
@@ -131,12 +132,17 @@ firstMask = refFrame>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
 % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 tempMask2 = false(size(refFrame));
-y_shift = find(any(firstMask,2),1);
-x_shift = find(any(firstMask,1),1);
+if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+    meanYShift = round(T(1,1));
+    meanXShift = round(T(1,2));
+    firstMask = circshift(tempMask,[meanYShift meanXShift]);
+else
+    y_shift = find(any(firstMask,2),1);
+    x_shift = find(any(firstMask,1),1);
 
-tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
-firstMask = tempMask2 & firstMask;
-
+    tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+    firstMask = tempMask2 & firstMask;
+end
     % if ~p.useGrid
 % end
 
@@ -252,7 +258,7 @@ for j= firstFrame:nFrames
                     neiBeads(i,:)=[];
                     [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
                 end
-                avg_beads_distance = quantile(distance,0.4)/2;%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+                avg_beads_distance = quantile(distance,0.4)*2/3;%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
                 notSaturated = true;
                 xmin = min(pstruct.x);
                 xmax = max(pstruct.x);
@@ -262,7 +268,7 @@ for j= firstFrame:nFrames
             %     avgBgd = mean(pstruct.c);
             %     thresInten = avgBgd+0.02*avgAmp;
 %                 thresInten = quantile(pstruct.c,0.25);
-                thresInten = quantile(pstruct.c,0.5);
+                thresInten = quantile(pstruct.c,0.7);
                 maxNumNotDetected = 20; % the number of maximum trial without detecting possible point
                 numNotDetected = 0;
                 numPrevBeads = size(beads,1);
