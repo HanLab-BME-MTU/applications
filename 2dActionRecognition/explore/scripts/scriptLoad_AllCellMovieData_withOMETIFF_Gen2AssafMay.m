@@ -6,7 +6,7 @@ InFilePath =  '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/Ce
 loadMatPath = fullfile(InFilePath, allCellsFileName)
 
 % Output path
-omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/test4Assaf/';
+omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/test4Assaf';
 if ~exist(omeTiffDir, 'dir')
     mkdir(omeTiffDir);
 end

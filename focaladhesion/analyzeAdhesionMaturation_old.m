@@ -43,6 +43,7 @@ ip.addParamValue('reTrack',true,@islogical) % This is for
 ip.addParamValue('minLifetime',3,@isscalar) %For cells with only NAs, we turn this off.
 ip.addParamValue('iChan',0,@isscalar) %For cells with only NAs, we turn this off.
 ip.addParamValue('skipOnlyReading',false,@islogical) %For cells with only NAs, we turn this off.
+ip.addParamValue('reuseExistingTrack',false,@islogical) %For cells with only NAs, we turn this off.
 
 % ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
 ip.parse(pathForTheMovieDataFile,showAllTracks,plotEachTrack,varargin{:});
@@ -57,6 +58,7 @@ reTrack=ip.Results.reTrack;
 skipOnlyReading=ip.Results.skipOnlyReading;
 getEdgeRelatedFeatures=ip.Results.getEdgeRelatedFeatures;
 iChan=ip.Results.iChan;
+reuseExistingTrack=ip.Results.reuseExistingTrack;
 % Load the Paxillin channel
 
 %% Data Set up
@@ -148,7 +150,9 @@ dataPath = [outputFilePath filesep 'data'];
 
 tracksNApath=[dataPath filesep 'tracksNA.mat'];
 foundTracks=false;
-if ~strcmp(outputPath,'AdhesionTracking') && exist(tracksNApath,'file')
+if (~strcmp(outputPath,'AdhesionTracking') || reuseExistingTrack) ...
+        && exist(tracksNApath,'file')
+        
     try
         newOutputFilePath=outputFilePath;
         disp([newOutputFilePath ' will be used for additional analysis.'])
@@ -245,7 +249,11 @@ if ~foundTracks
         bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            mask = maskProc.loadChannelOutput(iChan,ii);
+            if existSegmentation
+                mask = maskProc.loadChannelOutput(iChan,ii);
+            else
+                mask = true(MD.imSize_);
+            end
             % mask for band from edge
             iMask = imcomplement(mask);
             distFromEdge = bwdist(iMask);
@@ -266,11 +274,6 @@ if ~foundTracks
     else
         disp('Entire adhesion tracks are considered.')
         trackIdx = true(numel(tracksNA),1);
-        if existSegmentation
-            mask = maskProc.loadChannelOutput(iChan,1);
-        else
-            mask = true(MD.imSize_);
-        end
     %     bandwidthNA = 5; %um 
     %     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
@@ -332,7 +335,11 @@ if ~foundTracks
         bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            mask = maskProc.loadChannelOutput(iChan,ii);
+            if existSegmentation
+                mask = maskProc.loadChannelOutput(iChan,ii);
+            else
+                mask = true(MD.imSize_);
+            end
             % mask for band from edge
             iMask = imcomplement(mask);
             distFromEdge = bwdist(iMask);
@@ -396,10 +403,6 @@ if ~foundTracks
     % get rid of tracks that have out of bands...
     tracksNA = tracksNA(trackIdx);
 else
-    disp('loading focalAdhesionInfo ...'); tic
-    focalAdhInfo = load([dataPath filesep 'focalAdhInfo.mat'],'focalAdhInfo');
-    focalAdhInfo = focalAdhInfo.focalAdhInfo;
-    toc
     disp('Reading masks ...'); tic
     existSegmentation=true;
     try
@@ -422,7 +425,7 @@ else
         firstMask=true(MD.imSize_);
     end
     
-    numTracks=numel(tracksNA);
+%     numTracks=numel(tracksNA);
     cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
     prevMask=[];
     neighPix = 2;
@@ -448,6 +451,11 @@ end
 lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
 tracksNA = tracksNA(lifeTime>minLifetime);
 numTracks = numel(tracksNA);
+%     disp('loading focalAdhesionInfo ...'); tic
+%     focalAdhInfo = load([dataPath filesep 'focalAdhInfo.mat'],'focalAdhInfo');
+%     focalAdhInfo = focalAdhInfo.focalAdhInfo;
+%     toc
+
 %% Matching with adhesion setup
 if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat'],'file')
     if existSegmentation
@@ -772,7 +780,11 @@ if saveAnalysis
     bandwidthNA = 7; %um 
     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
     for ii=1:nFrames
-        mask = maskProc.loadChannelOutput(iChan,ii);
+        if existSegmentation
+            mask = maskProc.loadChannelOutput(iChan,ii);
+        else
+            mask = true(MD.imSize_);
+        end
         % mask for band from edge
         iMask = imcomplement(mask);
         distFromEdge = bwdist(iMask);
@@ -900,13 +912,28 @@ if saveAnalysis
     disassemRateCellAll = arrayfun(@(y) y.disassemRate, trNAonly);
     % filtering in only actually disassembling NAs and make it positive
     disassemRateCell = disassemRateCellAll(disassemblingNAIdx);
-    %% NA nucleation ratio: How many of NAs were newly assembled
-    nucleationNumber = sum(arrayfun(@(y) y.startingFrame>1, trNAonly));
-    nucleationRatio = nucleationNumber/focalAdhInfo(1).cellArea;
+    %% NA nucleation ratio: How many of NAs were newly assembled - I changed this.
+    curNewNAs = arrayfun(@(y) sum(arrayfun(@(x) x.startingFrameExtra==y,trNAonly)),(1:nFrames)');
+    curDeadNAs = arrayfun(@(y) sum(arrayfun(@(x) x.endingFrameExtra==y,trNAonly)),(1:nFrames)');
+    curExistingNAs = arrayfun(@(y) sum(arrayfun(@(x) x.presence(y),trNAonly)),(1:nFrames)');
+    curNewNARatio = curNewNAs./curExistingNAs;
+    curDeadNARatio = curDeadNAs./curExistingNAs;
+
+%     curNumStableNAs = sum(arrayfun(@(x) x.lifeTime>0.8*curNFrames,trNAonly));
+    % I have to ignore the very first frame and the last four frames.
+    numStableNAs = curNewNAs(1);
+    curNewNAs2 = curNewNAs(2:end-5);
+    curNewNARatio2 = curNewNARatio(2:end-5);
+    stableNARatio = curNewNARatio(1);
+    curDeadNAs2 = curDeadNAs(5:end-1);
+    curDeadNARatio2 = curDeadNARatio(5:end-1);
+
+    nucleationNumber = curNewNAs2; %sum(arrayfun(@(y) y.startingFrame>1, trNAonly));
+    nucleationRatio = curNewNARatio2; %nucleationNumber/focalAdhInfo(1).cellArea;
 
     %% NA disassembly ratio
-    disassemblingNANumber = sum(arrayfun(@(y) y.endingFrameExtra+1, trNAonly)<max(arrayfun(@(y) y.endingFrameExtra, trNAonly)));
-    disassemblingNARatio = disassemblingNANumber/focalAdhInfo(1).cellArea;
+    disassemblingNANumber = curDeadNAs2; %sum(arrayfun(@(y) y.endingFrameExtra+1, trNAonly)<max(arrayfun(@(y) y.endingFrameExtra, trNAonly)));
+    disassemblingNARatio = curDeadNARatio2; %disassemblingNANumber/focalAdhInfo(1).cellArea;
     %% save
     save([dataPath filesep 'assembly_disassembly_rates.mat'], 'assemRateCell', 'disassemRateCell','nucleationRatio','maturingRatio','disassemblingNARatio','-v7.3')
     
@@ -915,8 +942,8 @@ if saveAnalysis
     
     % I need to work to make the same number of the raws for these
     % variables.
-    assemNames = {'assemRateCell', 'disassemRateCell','nucleationRatio','disassemblingNARatio'};
-    C= table({assemRateCell'; disassemRateCell'; nucleationRatio; disassemblingNARatio},'RowNames',assemNames);
+    assemNames = {'assemRateCell', 'disassemRateCell','nucleationNumber','nucleationRatio','numStableNAs', 'stableNARatio','disassemblingNANumber','disassemblingNARatio'};
+    C= table({assemRateCell; disassemRateCell; nucleationNumber; nucleationRatio; numStableNAs; stableNARatio; disassemblingNANumber; disassemblingNARatio},'RowNames',assemNames);
     writetable(C,[dataPath filesep 'assembly_disassembly_rates.csv'])
 %     warning('off','MATLAB:xlswrite:AddSheet')
 %     warning('off','MATLAB:xlswrite:NoCOMServer')
