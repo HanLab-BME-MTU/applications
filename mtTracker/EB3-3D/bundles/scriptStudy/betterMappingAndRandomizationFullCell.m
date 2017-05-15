@@ -138,3 +138,16 @@ mapppingDist=10;
 randAntiSpaceKinTracks=randomizeTracks(MD,maxRandomDist,'tracks',kinTracksISOInliers(1:100),'mappingDist',mappingDist,'dynManifoldsCell',[subManifoldsAllKinP1],'process',procSupervisedRandom);
 buildFiberManifoldAndMapMT(P1,randAntiSpaceKinTracks(1:100),EB3TracksISOInliers,5,'kinDistCutoff',[-20,20]);
 bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(1:100),randAntiSpaceKinTracks(1:100)},'kinBundleName',{'Inlier','RandomInlier'},'plotName','randomAntispaceHundredFirst','mappedMTField','associatedMT');
+
+
+%% MC
+maxRandomDist=20;
+processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
+[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISO,'process',processUniformRandomMC,'simuNumber',1000);
+
+%%
+parfor sIdx=1:length(randTracksCell)
+    buildFiberManifoldAndMapMT(P1,randTracksCell{sIdx}(1:100),EB3TracksISOInliers,5,'kinDistCutoff',[-20,20]);
+end
+
+
