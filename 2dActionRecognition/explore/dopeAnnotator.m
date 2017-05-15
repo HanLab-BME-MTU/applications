@@ -392,6 +392,31 @@ function initMainGUI()
                             'Position',[5 5 xsizeF-10 ysizeF-15],...
                             'FontSize',12, ...
                             'FontWeight','bold');
+
+    handles.cellMDtext = uicontrol(...
+    'Parent',handles.mainP,...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'HorizontalAlignment','right',...
+    'String', ['Cell MovieData :' data.MD{handles.selPtIdx}], ...
+    'Style','text',...
+    'Position',[handles.mainP.Position(3)-1000 handles.mainP.Position(4)-35, 950, 15],...
+    'Tag','cellMDtext',...
+    'FontSize',8);
+    set(handles.cellMDtext, 'Visible', 'off');
+
+    handles.masterMDtext = uicontrol(...
+    'Parent', handles.mainP,...
+    'FontUnits','pixels',...
+    'Units','pixels',...
+    'HorizontalAlignment','right',...
+    'String', ['Master MovieData :' data.meta.class.MD{handles.selPtIdx}], ...
+    'Style','text',...
+    'Position',[handles.mainP.Position(3)-1000 handles.mainP.Position(4)-45, 950, 15],...
+    'Tag','masterMDtext',...
+    'FontSize',8);
+    set(handles.masterMDtext, 'Visible', 'off');
+
     
     [x, y, w, h] = getPosH(handles.mainP);
     
@@ -577,6 +602,9 @@ end
             end
 
             handles.selPtIdx = newCell;
+            handles.cellMDtext.String = ['Cell MovieData :' data.MD{handles.selPtIdx}];
+            handles.masterMDtext.String = ['Master MovieData :' data.meta.class.MD{handles.selPtIdx}];
+            
             playMovieLoop;
             if (handles.firstSelectionMade == 0) && (handles.NextCell == 0)
                 handles.timeOutFlag = 1;
@@ -657,9 +685,11 @@ end
             extProc = ExternalProcess(MD, extProcName);
             extProc.setParameters(extProcParams);
             MD.addProcess(extProc);
+            MD.save();
         else
             extProcindx = MD.getProcessIndex(extProcName);
             MD.processes_{extProcindx}.setParameters(extProcParams);
+            MD.save();
         end
     end
 
@@ -882,6 +912,14 @@ function movieInit(varargin)
                 end
             case 'n'
                 handles.NextCell = 1;
+            case 'l'
+                if strcmp(handles.cellMDtext.Visible, 'off')
+                    handles.cellMDtext.Visible = 'on';
+                    handles.masterMDtext.Visible = 'on';
+                else
+                    handles.cellMDtext.Visible = 'off';
+                    handles.masterMDtext.Visible = 'off';
+                end                
             case 'e'
                 assignin('base', 'handlesCX', handles);
                 assignin('base', 'dataCX', data);

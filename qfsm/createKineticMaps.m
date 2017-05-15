@@ -32,7 +32,7 @@ ip.addOptional('sigma',5,@isscalar);
 ip.addParamValue('waitbar',[],@ishandle)
 ip.parse(kinScore,n,imSize,varargin{:});
 sigma = ip.Results.sigma;
-
+wtBar=-1;
 if ~isempty(ip.Results.waitbar)
     wtBar=ip.Results.waitbar;
     waitbar(0,wtBar,'Creating kinetic maps');

@@ -185,7 +185,7 @@ if p.fillVectors
     logMsg = 'Please wait, retracking untracked points ...';
     timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
     tic
-    nFillingTries=300;
+    nFillingTries=5;
     for j= 1:nFrames
         % Read image and perform correlation
         if ~isempty(iSDCProc)

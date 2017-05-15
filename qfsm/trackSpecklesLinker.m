@@ -25,7 +25,7 @@ ip = inputParser;
 ip.addRequired('M',@(x) size(x,3)>1);
 ip.addOptional('waitbar',-1,@ishandle);
 ip.parse(M,varargin{:});
-wtBar= ip.Results.waitbar;
+wtBar = ip.Results.waitbar;
 
 % Initialize waitbar
 if ishandle(ip.Results.waitbar)

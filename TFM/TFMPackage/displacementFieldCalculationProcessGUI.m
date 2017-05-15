@@ -77,7 +77,7 @@ if ~isempty(stageDriftCorrProc)
     set(handles.pushbutton_selectReferenceFrame,'Enable','off');
 end
     
-if strcmp(stageDriftCorrProc.name_, 'Bead Tracking Drift Correction')
+if ~isempty(stageDriftCorrProc) && strcmp(stageDriftCorrProc.name_, 'Bead Tracking Drift Correction')
     if isempty(userData.crtPackage.processes_{userData.procID}) 
         set(handles.edit_alpha,'String', stageDriftCorrProc.funParams_.alpha);
     end

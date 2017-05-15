@@ -98,7 +98,7 @@ process=p.process;
 if(~isempty(process))
     %%
     procFolder=[process.getOwner().outputDirectory_  filesep 'Kin' filesep 'randomized' filesep];
-    mkdir(procFolder);
+    mkdirRobust(procFolder);
     save([procFolder p.randomType '-randKinTracks.mat'],'randKinTracks');
     process.setOutFilePaths({[procFolder p.randomType '-randKinTracks.mat']})
     pa = process.getParameters();

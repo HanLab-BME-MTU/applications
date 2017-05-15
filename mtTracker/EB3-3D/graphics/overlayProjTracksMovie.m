@@ -20,7 +20,7 @@ projData=load(processSingleProj.outFilePaths_{4},'minXBorder', 'maxXBorder','min
 savePath=[fileparts(processSingleProj.outFilePaths_{4}) filesep p.name filesep 'frame_nb%04d.png'];
 mkdirRobust([ fileparts(savePath)]);
 frameNb=projData.frameNb;
-for fIdx=1:frameNb
+parfor fIdx=1:frameNb
     XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
     ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
     ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
