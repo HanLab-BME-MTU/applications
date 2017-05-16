@@ -572,7 +572,7 @@ end
         while numAnnotated < handles.numCellsToAnnotate
             resetAnnotations();
             if handles.repeatsAllowed && ~isempty(data.cellsAnnotatedList) && rand <= handles.prctRepeats/100
-                newCell = randsample(data.cellsAnnotatedList, 1, false);
+                newCell = randsample(unique(data.cellsAnnotatedList), 1, false);
                 handles.repeatFlag = 1;
             else
                 newCell = data.seedCellSeq(iOrigSeq);
