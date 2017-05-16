@@ -1,0 +1,6 @@
+% Instructions to run CellX or Dope
+
+
+
+cellXploreDR('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat')
+dopeAnnotator('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat')
