@@ -264,44 +264,22 @@ presentCells;
 %===============================================================================
 % Save and Export Functions
 %===============================================================================
-function writeSimpleLog(action, tag, key, expr)
-
-    if exist(handles.logfile, 'file')==2
-        fileID = fopen(handles.logfile,'a');
-    else
-        fileID = fopen('.AnnotationsLogLocalClickFury.txt','a');
-    end
-    
-    if iscell(tag)
-        tag = tag{1};
-    end
-    
-    p = mfilename('fullpath');
-    [status md5sumout] = system(['md5sum "' p '.m"']);
-    timeS = char(datetime('now','Format','ddMMMyyyy hh:mm:ss'));
-
-    formatSpec = '[%s] \t [sessionID][%s] \t {%s} \t "%s" \t <%s> \t %s \t %s\n';
-   
-    fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tag, key, expr, md5sumout);
-    fclose(fileID);
-
-    handles.autoSaveCount =  handles.autoSaveCount + 1;
-    if (mod(handles.autoSaveCount, 25) == 0)
-        saveMatFile;
-    end
-end
-
-
 function saveMatFile(varargin)
     cellAnnotations = data.cellAnnotationsData;
     save(['dopeAnnotator_output_' handles.sessionID2 '.mat'], 'cellAnnotations');
     save(handles.matlabSaveFile, 'cellAnnotations');
+    if (mod(handles.autoSaveCount, 99) == 0)
+        handles.ActionNotice.String = '{SAVING}';
+        handles.ActionNotice.BackgroundColor = [0 0 1];
+        set(handles.ActionNotice, 'Visible', 'on');
+        cellAnnotations2 = data.cellAnnotationsDataDetail;
+        save(['Detail_dopeAnnotator_output_' handles.sessionID2 '.mat'], 'cellAnnotations2');
+        save(handles.matlabSaveFile, 'cellAnnotations');
+        set(handles.ActionNotice, 'Visible', 'off');
+    end      
 end
 
-
-
 function writeMasterLog(action, tag, key, expr)
-
     % if exist(handles.logfile, 'file')==2
 %     fileID = fopen(handles.Masterlogfile,'a');
     fileID2 = fopen(['MasterAnnotationsLogClickFury_' handles.timeStampStart '.txt'],'a');
@@ -614,7 +592,7 @@ end
             collectAnnotations(newCell);
 
             handles.autoSaveCount =  handles.autoSaveCount + 1;
-            if (mod(handles.autoSaveCount, 5) == 0)
+            if (mod(handles.autoSaveCount, 10) == 0)
                 handles.ActionNotice.String = '{SAVING}';
                 handles.ActionNotice.BackgroundColor = [0 0 1];
                 set(handles.ActionNotice, 'Visible', 'on');
@@ -643,7 +621,10 @@ end
         data.cellsAnnotatedList = [];
 
         % This will store the annotations with a struct containing:
-        data.cellAnnotationsData = [];
+        data.cellAnnotationsData.cellData = [];
+        data.cellAnnotationsDataDetail = [];
+        data.cellAnnotationsData.sessionID = handles.sessionID;
+        % newCell.sessionID = handles.sessionID;
     end 
 
     function addCellAnnotation(cell_index, annotations)
@@ -651,6 +632,7 @@ end
         cellexpr = data.meta.expStr{cell_index};
 %         assert(strcmp(cellKey,data.seedCellSeq_byKey(cell_index)))
         newCell = struct();
+        
         newCell.key = cellKey;
         newCell.repeatFlag = handles.repeatFlag;
         newCell.junkFlag = handles.junkFlag;
@@ -658,16 +640,18 @@ end
         newCell.NextCellFlad = handles.NextCell;
         newCell.annotations = annotations;
         newCell.cellexpr = cellexpr;
-%         newCell.MD = data.meta.class.MD{cell_index};
-        newCell.cellMD = data.MD{cell_index};
-        newCell.sessionID = handles.sessionID;
+
         if  length(data.meta.anno.RevTagMap.keys) > 0
             newCell.annotationSet = data.meta.anno.RevTagMap(cellKey);
         else
             newCell.annotationSet = {};
         end
-        
-        data.cellAnnotationsData = [data.cellAnnotationsData newCell];
+        newCell2 = newCell;
+        newCell2.cellMD = data.MD{cell_index};
+        newCell2.sessionID = handles.sessionID;
+
+        data.cellAnnotationsDataDetail = [data.cellAnnotationsDataDetail newCell2];
+        data.cellAnnotationsData.cellData = [data.cellAnnotationsData.cellData newCell];
         writeMasterLog('add', annotations, cellKey, cellexpr);
     end
 
