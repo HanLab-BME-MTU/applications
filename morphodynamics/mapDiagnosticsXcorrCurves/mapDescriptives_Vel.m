@@ -21,6 +21,9 @@ function mapDescriptives_Vel(MD, figuresDir, varargin)
 %                   is 'shuffle'. If it is a specific number, the permutation will give
 %                   the same result.
 %       numPerm     - number of permutation. Default is 1000.
+%       omittedWindows  
+%                   - window index in which activities will be replaced by
+%                   NaN. Default is null.
 %
 % Jungsik Noh, 2016/10/04
 
@@ -32,6 +35,9 @@ ip.addParameter('impute', true);
 ip.addParameter('parpoolNum', 4);
 ip.addParameter('rseed', 'shuffle');
 ip.addParameter('numPerm', 1000);
+ip.addParameter('omittedWindows', []);
+ip.addParameter('Folding', false);
+
 ip.parse(varargin{:});
 p = ip.Results;
 
@@ -55,16 +61,26 @@ maxLayer = 1;
 
 
 [~, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
-        = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute); 
-disp(['== MDpixelSize_: ', num2str(MDpixelSize_), ' =='])
-disp(['== MDtimeInterval_: ', num2str(MDtimeInterval_), ' =='])
+        = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, ...
+            'omittedWindows', p.omittedWindows, 'Folding', p.Folding); 
 % ..st layer
 
-velmap = rawActmap{1};
-velmap_outl = actmap_outl{1};
-imvelocitymap = imActmap{1}(:, 2:tmax);     %  Imputation (used as an input of computations)
-                                                % Note 2:tmax
+    velmap = rawActmap{1};
+    velmap_outl = actmap_outl{1};
+    imvelocitymap = imActmap{1}(:, 2:tmax);     %  Imputation (used as an input of computations)
+                                                    % Note 2:tmax    
 
+if isempty(MDpixelSize_); error('MD.pixelSize_ is required.'); end
+if isempty(MDtimeInterval_); error('MD.timeInterval_ is required.'); end
+                                                    
+
+disp(['== MDpixelSize_: ', num2str(MDpixelSize_), ' =='])
+disp(['== MDtimeInterval_: ', num2str(MDtimeInterval_), ' =='])
+
+%%  .txt (export comma delimited files)
+
+dlmwrite(fullfile(figuresDir, 'velmap_outl.txt'), velmap_outl, 'precision', 8)
+dlmwrite(fullfile(figuresDir, 'imvelocitymap.txt'), imvelocitymap, 'precision', 8)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -88,8 +104,8 @@ axis xy;xlabel('Time (s)');ylabel('Window')
 ax = gca;
 curTick = ax.XTick;
 ax.XTickMode = 'manual';
-ax.XTick = curTick;
-ax.XTickLabel = (curTick-1)*MDtimeInterval_;
+ax.XTick = curTick+1;
+ax.XTickLabel = (curTick)*MDtimeInterval_;
 
 %%
 saveas(fvelraw, fullfile(figuresDir, '/rawChan0Map.png'), 'png')
@@ -183,8 +199,8 @@ axis xy;xlabel('Time (s)');ylabel('Window')
 ax = gca;
 curTick = ax.XTick;
 ax.XTickMode = 'manual';
-ax.XTick = curTick;
-ax.XTickLabel = (curTick-1)*MDtimeInterval_;
+ax.XTick = curTick+1;
+ax.XTickLabel = (curTick)*MDtimeInterval_;
 
 
 %% 
@@ -226,6 +242,34 @@ saveas(meansTime, fullfile(figuresDir, '/meansTimeChan0.png'), 'png')
 saveas(meansWin, fullfile(figuresDir, '/meansWinChan0.png'), 'png')
 
 
+%%  TS plots for sampled 6 windows
+
+inputmap = velmap_outl;
+indNotAllNaN = find(~all(isnan(inputmap), 2));
+ind0 = round(linspace(1, numel(indNotAllNaN), 6));
+winInd = indNotAllNaN(ind0);
+
+legend1 = {['win', num2str(winInd(1))], ['win', num2str(winInd(2))], ['win', num2str(winInd(3))]};
+
+tsplots1 = figure('Visible', figFlag);
+plot(timeAxis, inputmap(winInd(1:3), :))
+xlabel('Time (s)'); ylabel(chan0Name)
+title([chan0Title, ' example1'])
+legend(legend1, 'Location','northoutside','Orientation','horizontal')
+
+legend2 = {['win', num2str(winInd(4))], ['win', num2str(winInd(5))], ['win', num2str(winInd(6))]};
+
+tsplots2 = figure('Visible', figFlag);
+plot(timeAxis, inputmap(winInd(4:6), :))
+xlabel('Time (s)'); ylabel(chan0Name)
+title([chan0Title, ' example2'])
+legend(legend2, 'Location','northoutside','Orientation','horizontal')
+
+%% 
+saveas(tsplots1, fullfile(figuresDir, '/tsplots1Chan0.png'), 'png')
+saveas(tsplots2, fullfile(figuresDir, '/tsplots2Chan0.png'), 'png')
+
+
 %%  spatial/temporal AutoCorr 1
 % Select a map & change the figure name below
 %map = imchan1map(40:126, 30:200);
@@ -246,12 +290,13 @@ saveas(meanAutocorr, fullfile(figuresDir, '/meanAutocorrChan0.png'), 'png')
 %parpoolNum = 6;
 %rseed = 'shuffle';
 
-acCurve = autoCorrCurvePermTest(imvelocitymap, chan0Name, MDtimeInterval_, ...
+[acCurve, Avg_autocor] = autoCorrCurvePermTest(imvelocitymap, chan0Name, MDtimeInterval_, ...
                 p.numPerm, p.parpoolNum, p.rseed);
 
 %%
 saveas(acCurve, fullfile(figuresDir, 'acCurveChan0.png'), 'png')
-
+%%  03/23/2017
+save(fullfile(figuresDir, 'Avg_autocor_Vel.mat'), 'Avg_autocor')
 
 %%  adftest map
 

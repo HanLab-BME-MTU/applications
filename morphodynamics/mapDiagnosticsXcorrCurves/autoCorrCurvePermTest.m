@@ -1,9 +1,11 @@
-function acCurve = autoCorrCurvePermTest(map, mapName, MDtimeInterval_, ...
+function [acCurve, Avg_autocor] = autoCorrCurvePermTest(map, mapName, MDtimeInterval_, ...
                     numPerm, parpoolNum, rseed, varargin)
 % autoCorrCurvePermTest Draw a curve of the temporal auto correlation means 
 % together with its confidence bound under the null.
 % Jungsik Noh, 2016/10/19
 
+% Updated 2017/03/31: 
+%           Instead of mean(), it uses smoothingSpline.
 
 ip = inputParser;
 ip.addParameter('figFlag', 'off');
@@ -30,8 +32,11 @@ map = map - mean(map, 2, 'omitnan')*ones(1, size(map,2));
 
 acmap = autoCorrMap(map, 'maxLag', xx1(end));  
  
-%
-Avg_autocor = mean(acmap, 1, 'omitnan');
+% if using mean:
+% Avg_autocor = mean(acmap, 1, 'omitnan');
+% if using smoothingspline
+Avg_autocor = smoothingSplineCorMap(acmap);
+
 
 
 %% time-wise permutated corr means
@@ -56,6 +61,7 @@ parfor i = 1:numPerm;
         acmap_i(w, :) = xcr;
     end
     
+    % autocor mean curve per permutation
     acmean_i = mean(acmap_i, 1, 'omitnan');
     
     permAcorrMeans(i, :) = acmean_i;
