@@ -55,7 +55,7 @@ minLifetime=ip.Results.minLifetime;
 % plotEachTrack=ip.Results.plotEachTrack;
 onlyEdge=ip.Results.onlyEdge;
 reTrack=ip.Results.reTrack;
-skipOnlyReading=ip.Results.skipOnlyReading;
+skipOnlyReading=ip.Results.skipOnlyReading; %When this is on, program skips only 'reading' part (it reduce time for re-reading)
 getEdgeRelatedFeatures=ip.Results.getEdgeRelatedFeatures;
 iChan=ip.Results.iChan;
 reuseExistingTrack=ip.Results.reuseExistingTrack;
@@ -319,7 +319,7 @@ for ii=1:nFrames
 end
 toc;
 
-if ~foundTracks
+if ~foundTracks && ~skipOnlyReading
     % get the intensity
     disp('Reading intensities with additional tracking...')
     tic
@@ -451,10 +451,6 @@ end
 lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
 tracksNA = tracksNA(lifeTime>minLifetime);
 numTracks = numel(tracksNA);
-%     disp('loading focalAdhesionInfo ...'); tic
-%     focalAdhInfo = load([dataPath filesep 'focalAdhInfo.mat'],'focalAdhInfo');
-%     focalAdhInfo = focalAdhInfo.focalAdhInfo;
-%     toc
 
 %% Matching with adhesion setup
 if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat'],'file')
@@ -734,6 +730,13 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
         end
         progressText(ii/(nFrames-1),'Matching with segmented adhesions:');
     end
+elseif exist([dataPath filesep 'focalAdhInfo.mat'],'file')   
+    disp('loading focalAdhesionInfo ...'); tic
+    focalAdhInfo = load([dataPath filesep 'focalAdhInfo.mat'],'focalAdhInfo');
+    focalAdhInfo = focalAdhInfo.focalAdhInfo;
+    toc
+else
+    focalAdhInfo=[];
 end
 %% disp('Intermediate saving before post analysis...')
 if matchWithFA && (~foundTracks || skipOnlyReading)
@@ -915,7 +918,7 @@ if saveAnalysis
     %% NA nucleation ratio: How many of NAs were newly assembled - I changed this.
     curNewNAs = arrayfun(@(y) sum(arrayfun(@(x) x.startingFrameExtra==y,trNAonly)),(1:nFrames)');
     curDeadNAs = arrayfun(@(y) sum(arrayfun(@(x) x.endingFrameExtra==y,trNAonly)),(1:nFrames)');
-    curExistingNAs = arrayfun(@(y) sum(arrayfun(@(x) x.presence(y),trNAonly)),(1:nFrames)');
+    curExistingNAs = arrayfun(@(y) sum(arrayfun(@(x) double(x.presence(y)),trNAonly)),(1:nFrames)');
     curNewNARatio = curNewNAs./curExistingNAs;
     curDeadNARatio = curDeadNAs./curExistingNAs;
 
