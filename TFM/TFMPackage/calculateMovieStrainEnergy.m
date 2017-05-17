@@ -98,7 +98,6 @@ forceFieldProc=TFMPackage.processes_{iForceFieldProc};
 outputFile{1,1} = [p.OutputDirectory filesep 'strainEnergyInFOV.mat'];
 outputFile{1,2} = [p.OutputDirectory filesep 'strainEnergyInCell.mat'];
 outputFile{1,3} = [p.OutputDirectory filesep 'forceBlobs.mat'];
-strainEnergyCalcProc.setOutFilePaths(outputFile);
 if p.exportCSV
     outputFile{1,4} = [p.OutputDirectory filesep 'strainEnergyInFOV.csv'];
     outputFile{1,5} = [p.OutputDirectory filesep 'totalForceInFOV.csv'];
@@ -107,6 +106,8 @@ if p.exportCSV
     outputFile{1,8} = [p.OutputDirectory filesep 'strainEnergyInForceBlobs.csv'];
     outputFile{1,9} = [p.OutputDirectory filesep 'indivForceInForceBlobs.csv'];
 end    
+outputFile{1,10} = [p.OutputDirectory filesep 'MovieStrainEnergyData_all.mat'];
+strainEnergyCalcProc.setOutFilePaths(outputFile);
 
 logMsg='Loading traction map...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
@@ -338,7 +339,7 @@ if p.performForceBlobAnalysis
         writetable(tableForceBlobs,outputFile{9})
     end
 end
-
+save(outputFile{1,10},'SE_Blobs','totalForceBlobs', 'SE_Cell','totalForceCell','SE_FOV','totalForceFOV','-v7.3')
 %% Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
 

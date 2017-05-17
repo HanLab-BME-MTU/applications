@@ -1,7 +1,7 @@
 classdef StrainEnergyCalculationProcess < DataProcessingProcess
     % Concrete process for calculating a force field
     %
-    % Sebastien Besson, Aug 2011
+    % Sangyoon Han & Andrew Jamieson, May 2017
     properties (SetAccess = protected)  
         tMapLimits_
         dELimits_
@@ -32,9 +32,62 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
                 end
                 super_args{4} = funParams;
             end
-            
-            
             obj = obj@DataProcessingProcess(super_args{:});
+        end
+        
+        function varargout = loadChannelOutput(obj, iFrame, varargin)
+            % Input check
+            outputList = {'SEblob','SEFOV','SEcell'};
+            ip = inputParser;
+            ip.addRequired('obj');
+            ip.addRequired('iFrame', @(x) obj.checkFrameNum(x));
+            ip.addParameter('useCache',true, @islogical);
+            ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
+            ip.parse(obj,iChan,varargin{:})
+            output = ip.Results.output;
+            varargout = cell(numel(output), 1);
+            iFrame = ip.Results.iFrame;
+            if ischar(output),output={output}; end
+
+            % Load all the output data
+            s = cached.load(obj.outputFile{1,10}, '-useCache', ip.Results.useCache);
+            
+            text_out
+            for iout = 1:numel(output)
+                switch output{iout} 
+                    case 'SEFOV' 
+                        
+                        = load(obj.outputFile{1,1});
+                    case 'SEcell'
+
+                    case 'SEblob' 
+
+                    otherwise
+                        error('Incorrect Output Var type');
+                end
+
+                varargout{iout} = obj.
+            end 
+        outputFile{1,1} = [p.OutputDirectory filesep 'strainEnergyInFOV.mat'];
+        outputFile{1,2} = [p.OutputDirectory filesep 'strainEnergyInCell.mat'];
+        outputFile{1,3} = [p.OutputDirectory filesep 'forceBlobs.mat'];
+
+        @(proc,iChan,iFrame,varargin) proc.getParameters().text;
+
+        end
+
+        function output = getDrawableOutput(obj)
+            output(1).name = 'SE FOV';
+            output(1).var = 'SEFOV';
+            output(1).formatData = @(txt) struct('String',{{txt}},'Color',[1 0 0],'Position',[10 10]);
+            output(1).type = 'overlay';
+            output(1).defaultDisplayMethod = @TextDisplay;
+            
+            output(1).name = 'SE Cell';
+            output(1).var = 'SEcell';
+            output(1).formatData = @(txt) struct('String',{{txt}},'Color',[0 0 1],'Position',[10 20]);
+            output(1).type = 'overlay';
+            output(1).defaultDisplayMethod = @TextDisplay;            
             
         end
     end
@@ -43,7 +96,6 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
 %             status = logical(exist(obj.outFilePaths_{1},'file'));
 %             
 %         end
-        
     methods (Static)
         function name =getName()
             name = 'Strain Energy Calculation';
