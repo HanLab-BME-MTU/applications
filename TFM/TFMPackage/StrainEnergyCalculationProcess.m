@@ -37,7 +37,8 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj, iFrame, varargin)
             % Input check
-            outputList = {'SE_Blobs','SE_FOV','SE_Cell'};
+            outputList = {'SE_Blobs','SE_FOV','SE_Cell','totalForceBlobs',...
+                'totalForceCell','totalForceFOV'};
             ip = inputParser;
             ip.addRequired('obj');
             ip.addRequired('iFrame', @(x) obj.checkFrameNum(x));
@@ -53,7 +54,6 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
             s = cached.load(obj.outFilePaths_{1,10}, '-useCache', ip.Results.useCache);
             
             for iout = 1:numel(output)
-                
                 switch output{iout} 
                     case 'SE_FOV' 
                         val = s.(output{iout}).SE(iFrame);                   
@@ -61,14 +61,17 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
                         val = s.(output{iout}).SE(iFrame);
                     case 'SE_Blobs'
                         val = s.(output{iout}).SE(iFrame);
+                    case 'totalForceBlobs' 
+                        val = s.(output{iout}).force(iFrame);                   
+                    case 'totalForceCell'
+                        val = s.(output{iout})(iFrame);
+                    case 'totalForceFOV'
+                        val = s.(output{iout})(iFrame);
                     otherwise
                         error('Incorrect Output Var type');
                 end
                 varargout{iout} = val;
             end 
-        % outputFile{1,1} = [p.OutputDirectory filesep 'strainEnergyInFOV.mat'];
-        % outputFile{1,2} = [p.OutputDirectory filesep 'strainEnergyInCell.mat'];
-        % outputFile{1,3} = [p.OutputDirectory filesep 'forceBlobs.mat'];
 
         % @(proc,iChan,iFrame,varargin) proc.getParameters().text;
         % frame = arrayfun(@(x) ['Frame ' num2str(x)], 1:3, 'Uniform' ,0)';
@@ -79,7 +82,7 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
 
         function output = getDrawableOutput(obj)
             i = 1;
-            yDist = 15;
+            yDist = 20;
             disOpts = {'Color', [1 0 0],...
                        'Position',[10 10],...
                        'FontSize', 14};
@@ -90,7 +93,7 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
             output(i).type = 'movieOverlay';
             output(i).defaultDisplayMethod = @TextDisplay;
             
-            i = 2;
+            i = i+1;
             disOpts{4} = [10 10+(i-1)*yDist];
             output(i).name = 'SE Cell';
             output(i).var = 'SE_Cell';
@@ -98,13 +101,37 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
             output(i).type = 'movieOverlay';
             output(i).defaultDisplayMethod = @TextDisplay;            
 
-            i = 3;
+            i = i+1;
             disOpts{4} = [10 10+(i-1)*yDist];
             output(i).name = 'SE Blobs';
             output(i).var = 'SE_Blobs';
             output(i).formatData = @(val) struct('String', {{['SE Blobs: ' num2str(val)]}}, disOpts{:});
             output(i).type = 'movieOverlay';
             output(i).defaultDisplayMethod = @TextDisplay;
+
+            i = i+1;
+            disOpts{4} = [10 10+(i-1)*yDist];
+            output(i).name = 'Total Force FOV';
+            output(i).var = 'totalForceFOV';
+            output(i).formatData = @(val) struct('String',{{['Total Force FOV: ' num2str(val)]}}, disOpts{:});
+            output(i).type = 'movieOverlay';
+            output(i).defaultDisplayMethod = @TextDisplay;
+            
+            i = i+1;
+            disOpts{4} = [10 10+(i-1)*yDist];
+            output(i).name = 'Total Force Cell';
+            output(i).var = 'totalForceCell';
+            output(i).formatData = @(val) struct('String', {{['Total Force Cell: ' num2str(val)]}}, disOpts{:});
+            output(i).type = 'movieOverlay';
+            output(i).defaultDisplayMethod = @TextDisplay;            
+
+            i = i+1;
+            disOpts{4} = [10 10+(i-1)*yDist];
+            output(i).name = 'Total Force Blobs';
+            output(i).var = 'totalForceBlobs';
+            output(i).formatData = @(val) struct('String', {{['Total Force Blobs: ' num2str(val)]}}, disOpts{:});
+            output(i).type = 'movieOverlay';
+            output(i).defaultDisplayMethod = @TextDisplay;            
             
         end
     end
