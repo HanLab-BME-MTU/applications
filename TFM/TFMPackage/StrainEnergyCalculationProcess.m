@@ -79,23 +79,30 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
 
         function output = getDrawableOutput(obj)
             i = 1;
+            yDist = 15;
+            disOpts = {'Color', [1 0 0],...
+                       'Position',[10 10],...
+                       'FontSize', 14};
+            
             output(i).name = 'SE FOV';
             output(i).var = 'SE_FOV';
-            output(i).formatData = @(val) struct('String',{{['SE FOV: ' num2str(val)]}},'Color',[1 0 0],'Position',[10 10]);
+            output(i).formatData = @(val) struct('String',{{['SE FOV: ' num2str(val)]}}, disOpts{:});
             output(i).type = 'movieOverlay';
             output(i).defaultDisplayMethod = @TextDisplay;
             
             i = 2;
+            disOpts{4} = [10 10+(i-1)*yDist];
             output(i).name = 'SE Cell';
             output(i).var = 'SE_Cell';
-            output(i).formatData = @(val) struct('String', {{['SE Cell: ' num2str(val)]}},'Color',[0 0 1],'Position',[10 20]);
+            output(i).formatData = @(val) struct('String', {{['SE Cell: ' num2str(val)]}}, disOpts{:});
             output(i).type = 'movieOverlay';
             output(i).defaultDisplayMethod = @TextDisplay;            
-            
+
             i = 3;
-            output(i).name = 'SE Cell';
+            disOpts{4} = [10 10+(i-1)*yDist];
+            output(i).name = 'SE Blobs';
             output(i).var = 'SE_Blobs';
-            output(i).formatData = @(val) struct('String', {{['SE Blobs: ' num2str(val)]}},'Color',[0 0 1],'Position',[10 20]);
+            output(i).formatData = @(val) struct('String', {{['SE Blobs: ' num2str(val)]}}, disOpts{:});
             output(i).type = 'movieOverlay';
             output(i).defaultDisplayMethod = @TextDisplay;
             
