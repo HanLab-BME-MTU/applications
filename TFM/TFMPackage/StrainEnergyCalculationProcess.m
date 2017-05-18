@@ -37,57 +37,67 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj, iFrame, varargin)
             % Input check
-            outputList = {'SEblob','SEFOV','SEcell'};
+            outputList = {'SE_Blobs','SE_FOV','SE_Cell'};
             ip = inputParser;
             ip.addRequired('obj');
             ip.addRequired('iFrame', @(x) obj.checkFrameNum(x));
             ip.addParameter('useCache',true, @islogical);
             ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
-            ip.parse(obj,iChan,varargin{:})
+            ip.parse(obj,iFrame, varargin{:})
             output = ip.Results.output;
             varargout = cell(numel(output), 1);
             iFrame = ip.Results.iFrame;
             if ischar(output),output={output}; end
 
             % Load all the output data
-            s = cached.load(obj.outputFile{1,10}, '-useCache', ip.Results.useCache);
+            s = cached.load(obj.outFilePaths_{1,10}, '-useCache', ip.Results.useCache);
             
-            text_out
             for iout = 1:numel(output)
+                
                 switch output{iout} 
-                    case 'SEFOV' 
-                        
-                        = load(obj.outputFile{1,1});
-                    case 'SEcell'
-
-                    case 'SEblob' 
-
+                    case 'SE_FOV' 
+                        val = s.(output{iout}).SE(iFrame);                   
+                    case 'SE_Cell'
+                        val = s.(output{iout}).SE(iFrame);
+                    case 'SE_Blobs'
+                        val = s.(output{iout}).SE(iFrame);
                     otherwise
                         error('Incorrect Output Var type');
                 end
-
-                varargout{iout} = obj.
+                varargout{iout} = val;
             end 
-        outputFile{1,1} = [p.OutputDirectory filesep 'strainEnergyInFOV.mat'];
-        outputFile{1,2} = [p.OutputDirectory filesep 'strainEnergyInCell.mat'];
-        outputFile{1,3} = [p.OutputDirectory filesep 'forceBlobs.mat'];
+        % outputFile{1,1} = [p.OutputDirectory filesep 'strainEnergyInFOV.mat'];
+        % outputFile{1,2} = [p.OutputDirectory filesep 'strainEnergyInCell.mat'];
+        % outputFile{1,3} = [p.OutputDirectory filesep 'forceBlobs.mat'];
 
-        @(proc,iChan,iFrame,varargin) proc.getParameters().text;
-
+        % @(proc,iChan,iFrame,varargin) proc.getParameters().text;
+        % frame = arrayfun(@(x) ['Frame ' num2str(x)], 1:3, 'Uniform' ,0)';
+        % t = struct2table(SE_Blobs);
+        % t.Properties.RowNames = t.Frame
+        % t.Frame = []
         end
 
         function output = getDrawableOutput(obj)
-            output(1).name = 'SE FOV';
-            output(1).var = 'SEFOV';
-            output(1).formatData = @(txt) struct('String',{{txt}},'Color',[1 0 0],'Position',[10 10]);
-            output(1).type = 'overlay';
-            output(1).defaultDisplayMethod = @TextDisplay;
+            i = 1;
+            output(i).name = 'SE FOV';
+            output(i).var = 'SE_FOV';
+            output(i).formatData = @(val) struct('String',{{['SE FOV: ' num2str(val)]}},'Color',[1 0 0],'Position',[10 10]);
+            output(i).type = 'movieOverlay';
+            output(i).defaultDisplayMethod = @TextDisplay;
             
-            output(1).name = 'SE Cell';
-            output(1).var = 'SEcell';
-            output(1).formatData = @(txt) struct('String',{{txt}},'Color',[0 0 1],'Position',[10 20]);
-            output(1).type = 'overlay';
-            output(1).defaultDisplayMethod = @TextDisplay;            
+            i = 2;
+            output(i).name = 'SE Cell';
+            output(i).var = 'SE_Cell';
+            output(i).formatData = @(val) struct('String', {{['SE Cell: ' num2str(val)]}},'Color',[0 0 1],'Position',[10 20]);
+            output(i).type = 'movieOverlay';
+            output(i).defaultDisplayMethod = @TextDisplay;            
+            
+            i = 3;
+            output(i).name = 'SE Cell';
+            output(i).var = 'SE_Blobs';
+            output(i).formatData = @(val) struct('String', {{['SE Blobs: ' num2str(val)]}},'Color',[0 0 1],'Position',[10 20]);
+            output(i).type = 'movieOverlay';
+            output(i).defaultDisplayMethod = @TextDisplay;
             
         end
     end
