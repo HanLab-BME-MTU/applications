@@ -9,6 +9,9 @@ function xcorrMat = xcorrCurvePermutationTest(ch1Actmap, ch2Actmap, ch1ActmapNam
 %
 % Jungsik Noh, 2016/10/21
 
+% Updated 2017/03/31: 
+%           Instead of mean(), it uses smoothingSpline.
+
 
 %%  initialization
 
@@ -106,7 +109,10 @@ colOrd1 = colOrd(1:5, :);                   % Revise later together with legend.
  
 xcorrMean = nan(p.lagMax*2+1, layerMax);
 for indL = 1:layerMax
-    xcorrMean(:, indL) = nanmean(xcorrMat{indL}, 1);
+    % if using mean
+    % xcorrMean(:, indL) = nanmean(xcorrMat{indL}, 1);
+    % if using smoothingspline
+    xcorrMean(:, indL) = smoothingSplineCorMap(xcorrMat{indL});
 
 end
 
