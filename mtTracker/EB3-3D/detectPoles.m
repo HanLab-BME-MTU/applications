@@ -1,4 +1,4 @@
-function [poleMovieInfo] = detectPoles(MD,varargin)
+function [poleMovieInfo,fiducialTracks] = detectPoles(MD,varargin)
 % Philippe Roudot 2014
 % Detecting higher scale fidiciaries in 3D
 % OUTPUT:
@@ -59,16 +59,14 @@ parfor frameIdx=1:numel(processFrames)
     movieInfo(frameIdx)=pointCloudToMovieInfo(lm,vol);
 end
 
-%% load track results and save them to Amira
-
+%% load detection results and save them to Amira
 if(ip.Results.printAll)
 outputDirDetect=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d') filesep 'poleCandidates'];
-
 mkdir([outputDirDetect filesep 'AmiraPoles']);
 amiraWriteMovieInfo([outputDirDetect filesep filesep 'polesCandidates.am'],movieInfo,'scales',ip.Results.scales);
 end
 
-%% Track each candidate to filter theire intensit
+%% Track each candidate to filter theire intensity and lifetime 
 [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=candidatePolesTrackingParam();
 outputDirTrack=[MD.outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' ...
     num2str(scales(1),'%03d') filesep 'tracks'];
@@ -93,7 +91,7 @@ if(ip.Results.printAll)
     amiraWriteTracks([outputDirTrack filesep 'AmiraTrack' filesep 'test.am'],tracks,'scales',[MD.pixelSize_ MD.pixelSize_ MD.pixelSizeZ_],'edgeProp',{{'noiseVar',trackNoiseVar}});
 end
 
-%% For each frame, select the higher responses,
+%% For each frame, select the tracks that get the best score over its lifetime
 tracksScore=[tracks.lifetime].*arrayfun(@(x) median(x.A),tracks)';
 
 %% Compute the distance between each candidate (looking for stationary distance maybe ?)
@@ -129,12 +127,28 @@ if(p.isoOutput)
     end
 end
 
+%% create associated fiducial tracks 
+P1=TracksHandle();
+P1.x=arrayfun(@(d) pixelSize*(d.xCoord(1,1)-1)+1,poleMovieInfo)';
+P1.y=arrayfun(@(d) pixelSize*(d.yCoord(1,1)-1)+1,poleMovieInfo)';
+P1.z=arrayfun(@(d) pixelSize*(d.zCoord(1,1)-1)+1,poleMovieInfo)';
+P1.endFrame=length(poleMovieInfo);
+P1.startFrame=1;
+
+P2=TracksHandle();
+P2.x=arrayfun(@(d) pixelSize*(d.xCoord(2,1)-1)+1,poleMovieInfo)';
+P2.y=arrayfun(@(d) pixelSize*(d.yCoord(2,1)-1)+1,poleMovieInfo)';
+P2.z=arrayfun(@(d) pixelSize*(d.zCoord(2,1)-1)+1,poleMovieInfo)';
+P2.endFrame=length(poleMovieInfo);
+P2.startFrame=1;
+fiducialTracks=[P1 P2];
+
 process=ip.Results.process;
 if(~isempty(process))
     mkdir(outputDirTrack);
     save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks');
     outputDirPoleDetect=[process.getOwner().outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d')];
-    save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo');
+    save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo','fiducialTracks');
     process.setOutFilePaths({[outputDirPoleDetect filesep 'poleDetection.mat'],[outputDirTrack filesep 'trackNewFormat.mat']})
     pa = process.getParameters();
     pa.parameters = ip.Results;
