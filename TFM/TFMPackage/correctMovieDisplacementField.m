@@ -14,7 +14,7 @@ function correctMovieDisplacementField(movieData,varargin)
 %
 
 % Sebastien Besson, Sep 2011
-
+% Sangyoon Han, from Oct 2014
 %% ----------- Input ----------- %%
 
 %Check input
@@ -350,8 +350,6 @@ disp('Saving ...')
 save(outputFile{1},'displField','displFieldShifted','-v7.3');
 save(outputFile{2},'dMap','dMapX','dMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 displFieldCorrProc.setTractionMapLimits([dmin dmax])
-
-save([p.OutputDirectory filesep 'displField.mat'],'displField','displFieldShifted');
 
 %% Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
