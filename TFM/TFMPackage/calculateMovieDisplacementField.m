@@ -14,6 +14,7 @@ function calculateMovieDisplacementField(movieData,varargin)
 %
 
 % Sebastien Besson, Sep 2011
+% Sangyoon Han, From Oct 2012. Last updated: May 2017
 
 %% ----------- Input ----------- %%
 
@@ -258,7 +259,7 @@ for j= firstFrame:nFrames
                     neiBeads(i,:)=[];
                     [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
                 end
-                avg_beads_distance = quantile(distance,0.4)*2/3;%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+                avg_beads_distance = quantile(distance,0.5);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
                 notSaturated = true;
                 xmin = min(pstruct.x);
                 xmax = max(pstruct.x);
@@ -268,7 +269,7 @@ for j= firstFrame:nFrames
             %     avgBgd = mean(pstruct.c);
             %     thresInten = avgBgd+0.02*avgAmp;
 %                 thresInten = quantile(pstruct.c,0.25);
-                thresInten = quantile(pstruct.c,0.7);
+                thresInten = quantile(pstruct.c,0.7); % try to pick up bright-enough spots
                 maxNumNotDetected = 20; % the number of maximum trial without detecting possible point
                 numNotDetected = 0;
                 numPrevBeads = size(beads,1);

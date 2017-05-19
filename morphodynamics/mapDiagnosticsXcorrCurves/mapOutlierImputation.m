@@ -1,4 +1,4 @@
-function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
+function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap, actmap_outlSc] ...
             = mapOutlierImputation(MD, iChan, maxLayer, varargin) 
 % mapOutlierImputation Get the input of MD, iChan and maxLayer and Give the
 % corresponding 3-dim (window, layer, time frame) activity array in raw,
@@ -34,6 +34,9 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 %       WithN       - if true, it uses an alternative windowSampling result
 %                   which is obtained by sampleMovieWindowsWithN.m and includes number
 %                   of pixels for each windows. Default is false.
+%       omittedWindows  
+%                   - window index in which activities will be replaced by
+%                   NaN. Default is null.
 %
 % Jungsik Noh, 2016/10/24
 
@@ -41,6 +44,9 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 ip = inputParser;
 ip.addParameter('impute', true);
 ip.addParameter('WithN', false);
+ip.addParameter('omittedWindows', []);
+ip.addParameter('Folding', false);
+
 parse(ip, varargin{:});
 p = ip.Results;
 
@@ -118,7 +124,41 @@ else
 end
 
 
-%%  Activity Map Outlier
+%% if Folding
+
+if p.Folding == 1
+
+    if mod(tmax, 2) == 1
+        tmax = tmax + 1;
+        [a, b, ~] = size(actmap);
+        actmap = cat(3, actmap, nan(a, b));
+    end
+    foldedMap = nan(wmax, maxLayer, tmax/2);
+
+    for w = 1:wmax
+    for l = 1:maxLayer
+        for t = 1:(tmax/2)
+            foldedMap(w, l, t) = mean([actmap(w, l, 2*t-1), actmap(w, l, 2*t)], 'omitnan');
+        end
+    end
+    end
+    actmap = foldedMap;
+    tmax = size(foldedMap, 3);
+    MDtimeInterval_ = MDtimeInterval_ * 2;
+
+end
+
+
+
+%% Omit windows
+
+if numel(p.omittedWindows) > 0
+    actmap(p.omittedWindows, :,:) = NaN;
+end
+
+
+%%  Activity Map Outlier & remove windows
+
 
 rawActmap = cell(1, maxLayer);
 actmap_outl = cell(1, maxLayer);
@@ -151,6 +191,23 @@ for indL = 1:maxLayer
     disp( sum(sum(abs(inputmap-m0)/std0 > 5)) )
 
 end
+
+
+
+%%  scaling the activity map
+
+actmap_outlSc = cell(1, maxLayer);
+for indL = 1:maxLayer
+    
+    actmap_outlCell = num2cell(actmap_outl{indL}, 2);
+    actmap_outlZ = cellfun(@(x) nanZscore(x), actmap_outlCell, 'UniformOutput', false);
+    actmap_outlSc{indL} = cell2mat(actmap_outlZ);
+    
+    % CentMap ...
+    %actmap_outlSc{indL} = detrend(actmap_outl{indL}', 'constant')';
+end
+
+
 
 
 %%  Imputation (used as an input of computations), later maybe restricted

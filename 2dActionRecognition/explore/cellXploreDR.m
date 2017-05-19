@@ -191,7 +191,16 @@ function initializeDataStruct_Assaf() %(MODEL)
     % [class labels] using struct.
     data.meta.cellType = {cellDataSet.cellType};
     data.meta.class.cellType = {cellDataSet.cellType};
-    data.meta.class.metEff = {cellDataSet.metEff};
+%     data.meta.class.metEff = {cellDataSet.metEff};
+    
+    dd = cell2mat({cellDataSet.metEff});
+    dd(find(isnan(dd))) = -1;
+    data.meta.class.metEff=arrayfun(@(x) {x}, dd);
+    
+    data.meta.class.custom.all = repmat({'%+%'}, length(data.meta.mindex),1);
+    if isfield(cellDataSet,'key_noTime')
+        data.meta.class.keyCell = {cellDataSet.key_noTime};
+    end
     data.meta.class.custom.all = repmat({'%+%'}, length(data.meta.mindex),1);
 
     % Label by experiment
@@ -257,7 +266,11 @@ function initializeDataStruct_Assaf() %(MODEL)
     end
 
     for dr_ = DRtypes(selDR)
-        data.DR.(dr_{1}) = compute_mapping(A, dr_{1}, 2);%, 15, 30);
+        if strcmp(dr_, 'tSNE') %;%selDR == 1
+            data.DR.(dr_{1}) = fast_tsne(A, 2, size(A,2));           
+        else
+            data.DR.(dr_{1}) = compute_mapping(A, dr_{1}, 2);%, 15, 30);
+        end
     end
 
     % [XY coord at first time point as a reference]
@@ -421,7 +434,12 @@ function initMainGUI()
           'EXIT','RETURN','EXIT'); 
        switch selection, 
           case 'EXIT',
-              exportDataState;
+              selection2 = questdlg({'save backup CellXplorer? ','(!) Please verify desired info saved first (!)'},...
+              'Backup annotations for CellXplorer?',...
+              'YES','NO','YES');
+              if strcmp(selection2,'YES')
+                exportDataState;
+              end
               delete(gcf);
           case 'RETURN'
           return 
@@ -908,11 +926,12 @@ end
 function initDRPanel()
     handles.DRType = uibuttongroup(...
     'Parent',handles.DataSel,...
-    'FontUnits','points',...
+    'FontUnits','pixels',...
+    'FontSize',10,...
     'Units','pixels',...
     'Title','DR View',...
     'Tag','uibuttongroup1',...
-    'Position',[handles.DataSel.Position(3)-73, handles.DataSel.Position(4)-(numel(handles.info.DRTypes_)*25+25), 65, numel(handles.info.DRTypes_)*25+10],...
+    'Position',[handles.DataSel.Position(3)-79, handles.DataSel.Position(4)-(numel(handles.info.DRTypes_)*18+40), 75, numel(handles.info.DRTypes_)*18+15],...
     'SelectionChangedFcn',@(DRType, event) DRselection(DRType, event));
 
     function DRselection(~, event)
@@ -924,16 +943,18 @@ function initDRPanel()
 
     handles.DRradio = gobjects(numel(handles.info.DRTypes_));
     xRB = 5;
-    yRB = 8;
+    yRB = 5;
     for iDR=1:numel(handles.info.DRTypes_)
         handles.DRradio(iDR) = uicontrol(...
             'Parent',handles.DRType,...
+            'FontUnits','pixels',...
+            'FontSize',9,...
             'Units','pixels',...
             'String',handles.info.DRTypes_{iDR},...
             'Style','radiobutton',...
             'Position',[xRB yRB 55 15],...
             'Tag',[handles.info.DRTypes_{iDR} '_rbutton']);
-            yRB = yRB + 17;
+            yRB = yRB + 15;
     end
 
     set(handles.DRradio(1), 'Value', 1);
@@ -989,7 +1010,7 @@ function initCellLabels()
     end
 
     % Manual Label Legend
-    opts = {'Parent', handles.LabelA, 'Units', 'pixels', 'Position', [11 handles.LabelA.Position(4)-150 33 83],...
+    opts = {'Parent', handles.LabelA, 'Units', 'pixels', 'Position', [11 handles.LabelA.Position(4)-350 33 300],...
             'Box' 'off','Color',[1 1 1],'XTick',[],'YTick',[]};
     axLegend = axes(opts{:});
     handles.axLegend = axLegend;
@@ -1359,25 +1380,25 @@ function deleteAnnotation(tagName)
     writeLog('delete-tag', tagName, 'none', 'none');
 end
 
-    function backupSave(varargin)
-        % SaveNotes_Callback(varargin{:});
+function backupSave(varargin)
+    % SaveNotes_Callback(varargin{:});
 
-        set(handles.SaveNotesNotice, 'Visible', 'on');
-        
-        timeStamp = char(datetime('now','Format','ddMMMyyyy_hh'));
-        exportVarName = ['DOPE_AnnotationBackup' timeStamp];
-        
-        backupInfo = handles.backupInfo;
-        backupInfo.tagMapKey = data.meta.anno.tagMapKey;
-        backupInfo.RevTagMap = data.meta.anno.RevTagMap;
-        backupInfo.exportVarName = exportVarName;
-        % backupInfo. = exportVarName;
-        
-        save([exportVarName '.mat'],'backupInfo','-v7.3');
-        assignin('base', ['backupInfo_' timeStamp], backupInfo);
-        set(handles.SaveNotesNotice, 'Visible', 'off');
+    set(handles.SaveNotesNotice, 'Visible', 'on');
+    drawnow;
+    timeStamp = char(datetime('now','Format','ddMMMyyyy_hh'));
+    exportVarName = ['DOPE_AnnotationBackup' timeStamp];
+    
+    backupInfo = handles.backupInfo;
+    backupInfo.tagMapKey = data.meta.anno.tagMapKey;
+    backupInfo.RevTagMap = data.meta.anno.RevTagMap;
+    backupInfo.exportVarName = exportVarName;
+    % backupInfo. = exportVarName;
+    
+    save([exportVarName '.mat'],'backupInfo','-v7.3');
+    assignin('base', ['backupInfo_' timeStamp], backupInfo);
+    set(handles.SaveNotesNotice, 'Visible', 'off');
 
-    end
+end
 
 function writeLog(action, tag, key, expr)
 
@@ -1408,10 +1429,7 @@ function writeLog(action, tag, key, expr)
     fprintf(fileID,formatSpec, timeS, handles.sessionID, action, tag, key, expr, md5sumout);
     fclose(fileID);
 
-    % disp(['wrote to file ' handles.logfile]);
-    % fprintf(1,formatSpec, timeS, handles.sessionID, action, tag, key, expr);
-    handles.autoSaveCount =  handles.autoSaveCount + 1;
-    if (mod(handles.autoSaveCount, 25) == 0) && ~handles.startUpMode
+    if (mod(handles.autoSaveCount, 50) == 0) && ~handles.startUpMode
         exportDataState;
     end
 
@@ -1441,6 +1459,7 @@ end
 
 
 function tagDataPoint(src, ~)
+    tic
     key = src.String;
     tag = key;
     cell_index = handles.selPtIdx;
@@ -1483,14 +1502,22 @@ function tagDataPoint(src, ~)
 
 
     end
+    toc
     updateAnnotationPanel();
     if strcmp(handles.filterAnnoMenu.String{handles.filterAnnoMenu.Value}, 'Yes')
         updatePlots();
     end
     updateCellMD(cell_index);
     updateCellInfo();
-    backupSave();
 
+    handles.autoSaveCount =  handles.autoSaveCount + 1;
+    if (mod(handles.autoSaveCount, 50) == 0) && ~handles.startUpMode
+        disp('backing up...')
+        tic
+        backupSave();
+        toc
+        disp('done backing up...')
+    end    
 end
 
 function tagDataPointNoGUI(tags, selPtIdx, cellKey, Value)
@@ -2462,30 +2489,34 @@ function plotScatter
 
 
             lcmap = cell2mat(getColors(unique(GG)));
-
+%             [junk_ lcmap] = getColors2(unique(GG));
+%             lmap = cell2mat(junk_);
+            drawnow
             xlabels = cell(length(GN), 1);
             for i = 1:length(GN)
                 numL = sum(ismember(GG,i));
                 perctL = round(numL/length(GG),2)*100;
-                xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+                xlabels{i} = [GN{i} '  (' num2str(numL) ') ' num2str(perctL) '%'];
             end
 
     %         xlabels = GN;
+            colormap(handles.axDR, lcmap);
             imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
             set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-            'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
+            'YTick', 1:size(lcmap,1), 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
             set(handles.axLegend, 'Visible', 'on');
         end
     
     
         try 
-            clabels = grp2idx(plabel);
+            [GG, GN, ~] = grp2idx(plabel);
         catch
-            clabels = grp2idx(cell2mat(plabel));
+            [GG, GN, ~] = grp2idx(cell2mat(plabel));
         end
 
     %     fast_clabels = clabels;
-        clabels = cell2mat(getColors(clabels));
+        clabels = cell2mat(getColors2(GG));
+        
         sizeL= repmat(handles.pointSize,length(plabel),1);
 
         ji = handles.selPtIdx;
@@ -2508,12 +2539,7 @@ function plotScatter
     idx_notSel = setxor(idx_all, idx_f);
     handles.dataI = data.meta.mindex(idx_f);
     handles.dataI_ns = data.meta.mindex(idx_notSel);
-    toc
-%     fast_clabels = fast_clabels(idx_f, :, :);
-    
-
-%     end
-    
+    toc    
     % ------------------------
     % Select DR Visualization
     % ------------------------
@@ -2549,12 +2575,12 @@ function plotScatter
             for i = 1:length(GN)
                 numL = sum(ismember(GG,i));
                 perctL = round(numL/length(GG),2)*100;
-                xlabels{i} = [GN{i} '  (n=' num2str(numL) ') ' num2str(perctL) '%'];
+                xlabels{i} = [GN{i} '  (' num2str(numL) ') ' num2str(perctL) '%'];
             end
 
             k = imagesc(reshape(lcmap, [size(lcmap,1) 1 3]), 'Parent', handles.axLegend);
             set(handles.axLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-            'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
+            'YTick', 1:size(lcmap,1), 'YTickLabel', xlabels, 'TickLength', [0 0], 'FontSize', 7);
             set(handles.axLegend, 'Visible', 'on');
             
         elseif isfield(handles, 'caches') && isfield(handles.caches, 'idx_f') && ... 
@@ -2759,13 +2785,13 @@ function [idx_out] = applyFilters(hinff)
     handles.cache.idx_f = idx_out;
 end
 
-function [RGBmat] = getColors(clabels, colormapIn)
+function [RGBmat cmap] = getColors(clabels, colormapIn)
    
    if length(unique(clabels)) <= 7 && nargin < 2
        col = colorset{:};
        RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
    elseif nargin < 2
-       cmap = hsv(length(clabels));
+       cmap = jet(length(clabels));
        RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false); 
    elseif strcmp(colormapIn, 'hsv')
        cmap = hsv(length(clabels));
@@ -2775,6 +2801,26 @@ function [RGBmat] = getColors(clabels, colormapIn)
        RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);               
    else
        cmap = hsv(length(clabels));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);
+   end
+end
+
+function [RGBmat cmap] = getColors2(clabels, colormapIn)
+   
+   if length(unique(clabels)) <= 7 && nargin < 2
+       col = colorset{:};
+       RGBmat = arrayfun(@(x) let2RGB(col(x)), clabels, 'Uniform', false);
+   elseif nargin < 2
+       cmap = jet(length(unique(clabels)));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false); 
+   elseif strcmp(colormapIn, 'hsv')
+       cmap = hsv(length(unique(clabels)));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);        
+   elseif strcmp(colormapIn, 'jet')
+       cmap = jet(length(unique(clabels)));
+       RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);               
+   else
+       cmap = hsv(length(unique(clabels)));
        RGBmat = arrayfun(@(x) cmap(x,:), clabels, 'Uniform', false);
    end
 end
