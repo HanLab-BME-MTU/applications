@@ -6,7 +6,17 @@
 %%
 processDetectPoles=ExternalProcess(MD,'detectPoles',@(p) detectPoles(p.getOwner(),'process',p,'isoOutput',true));
 processDetectPoles.run();
-%% 
+%%
+processBuildRef=ExternalProcess(MD,'buildRefs',@(p) buildRefsFromTracks(processDetectPoles,processDetectPoles,'process',p));
+processBuildRef.run();
+%%
+% Simulating FoF selection in the GUI
+tmp=load(processBuildRef.outFilePaths_{1});
+ref=tmp.refs(1,2); %(Pole1-Pole2)
+% Launching projection
+processProj=ExternalProcess(MD,'projection',@(p) projectFrameOfRef(MD,ref,'process',p));
+processProj.run();
+
 package=GenericPackage({processDetectPoles processBuildRef });
 MD.deletePackage(1)
 MD.addPackage(package)
