@@ -128,6 +128,7 @@ if(p.isoOutput)
 end
 
 %% create associated fiducial tracks 
+pixelSize=1;
 P1=TracksHandle();
 P1.x=arrayfun(@(d) pixelSize*(d.xCoord(1,1)-1)+1,poleMovieInfo)';
 P1.y=arrayfun(@(d) pixelSize*(d.yCoord(1,1)-1)+1,poleMovieInfo)';
@@ -141,14 +142,14 @@ P2.y=arrayfun(@(d) pixelSize*(d.yCoord(2,1)-1)+1,poleMovieInfo)';
 P2.z=arrayfun(@(d) pixelSize*(d.zCoord(2,1)-1)+1,poleMovieInfo)';
 P2.endFrame=length(poleMovieInfo);
 P2.startFrame=1;
-fiducialTracks=[P1 P2];
+tracks=[P1 P2];
 
 process=ip.Results.process;
 if(~isempty(process))
     mkdir(outputDirTrack);
     save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks');
     outputDirPoleDetect=[process.getOwner().outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d')];
-    save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo','fiducialTracks');
+    save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo','tracks');
     process.setOutFilePaths({[outputDirPoleDetect filesep 'poleDetection.mat'],[outputDirTrack filesep 'trackNewFormat.mat']})
     pa = process.getParameters();
     pa.parameters = ip.Results;

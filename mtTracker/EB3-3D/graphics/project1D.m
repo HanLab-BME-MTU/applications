@@ -106,43 +106,44 @@ parfor fIdx=1:MD.nFrames_
 
     vol=MD.getChannel(1).loadStack(fIdx);
     kinvol=MD.getChannel(2).loadStack(fIdx);
-    % Collect relative frameIdx
-    pIndices=nan(1,length(dynPoligonISO));
-    for polIdx=1:length(dynPoligonISO)
-        F=dynPoligonISO(polIdx).f;
-        pIdx=find(F==fIdx,1);
-        if isempty(pIdx)
-            if(fIdx>max(F))   pIdx=length(F);  else   pIdx=1; end;
-        end
-        pIndices(polIdx)=pIdx;
-    end;
+    if(~isempty(dynPoligonISO))
+         % Collect relative frameIdx
+        pIndices=nan(1,length(dynPoligonISO));
+        for polIdx=1:length(dynPoligonISO)
+            F=dynPoligonISO(polIdx).f;
+            pIdx=find(F==fIdx,1);
+            if isempty(pIdx)
+                if(fIdx>max(F))   pIdx=length(F);  else   pIdx=1; end;
+            end
+            pIndices(polIdx)=pIdx;
+        end;
 
-    %% Building mask in the 1D case
-    PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
-    KCurrent=[dynPoligonISO(2).x(pIndices(2)) dynPoligonISO(2).y(pIndices(2)) dynPoligonISO(2).z(pIndices(2))];
+        %% Building mask in the 1D case
+        PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
+        KCurrent=[dynPoligonISO(2).x(pIndices(2)) dynPoligonISO(2).y(pIndices(2)) dynPoligonISO(2).z(pIndices(2))];
 
-    % Building mask for both channel on the whole volume
-    % NOTE: Could masking use imwarp for speed ?
-    mask=zeros(size(vol));
-    sampling=100;
-    xSeg=round(linspace(PCurrent(1),KCurrent(1),sampling));
-    ySeg=round(linspace(PCurrent(2),KCurrent(2),sampling));
-    zSeg=round(linspace(PCurrent(3)*MD.pixelSize_/MD.pixelSizeZ_,KCurrent(3)*MD.pixelSize_/MD.pixelSizeZ_,sampling));
-    indx=sub2ind(size(mask),ySeg,xSeg,zSeg);
+        % Building mask for both channel on the whole volume
+        % NOTE: Could masking use imwarp for speed ?
+        mask=zeros(size(vol));
+        sampling=100;
+        xSeg=round(linspace(PCurrent(1),KCurrent(1),sampling));
+        ySeg=round(linspace(PCurrent(2),KCurrent(2),sampling));
+        zSeg=round(linspace(PCurrent(3)*MD.pixelSize_/MD.pixelSizeZ_,KCurrent(3)*MD.pixelSize_/MD.pixelSizeZ_,sampling));
+        indx=sub2ind(size(mask),ySeg,xSeg,zSeg);
 
-    mask(indx)=1;
-    mask=imdilate(mask,ones(cubeHalfWidth,cubeHalfWidth,round(cubeHalfWidth*MD.pixelSize_/MD.pixelSizeZ_)));
+        mask(indx)=1;
+        mask=imdilate(mask,ones(cubeHalfWidth,cubeHalfWidth,round(cubeHalfWidth*MD.pixelSize_/MD.pixelSizeZ_)));
 
-    maskedVol=vol;
-    maskedVol(~mask)=0;
-%     outputDir=[outputDirDemo filesep  'mask'];mkdir(outputDir);
-%     imwrite(uint8(255*mat2gray(max(maskedVol,[],3))),[outputDir filesep  'mask_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
+        maskedVol=vol;
+        maskedVol(~mask)=0;
+        %     outputDir=[outputDirDemo filesep  'mask'];mkdir(outputDir);
+        %     imwrite(uint8(255*mat2gray(max(maskedVol,[],3))),[outputDir filesep  'mask_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
 
-    maskedKin=kinvol;
-    maskedKin(~mask)=0;
-%     outputDir=[outputDirDemo filesep  'maskKin_'];mkdir(outputDir);
-%     imwrite(uint8(255*mat2gray(max(maskedKin,[],3))),[outputDir filesep  'maskKin_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
-
+        maskedKin=kinvol;
+        maskedKin(~mask)=0;
+        %     outputDir=[outputDirDemo filesep  'maskKin_'];mkdir(outputDir);
+        %     imwrite(uint8(255*mat2gray(max(maskedKin,[],3))),[outputDir filesep  'maskKin_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
+    end
 
     % If needed the map must rotated before cropped (efficiency)
     % Rotation depends on the FrameOfRef associated to the tracks the compose the dynanimc polygon
@@ -272,10 +273,16 @@ parfor fIdx=1:MD.nFrames_
 
 
             warpedVol=imwarp(vol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-            warpedMaskedVol=imwarp(maskedVol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-
             warpedKinVol=imwarp(kinvol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-            warpedMaskedKinVol=imwarp(maskedKin,inputRef,tformRotOnly,'OutputView',rotOutputRef);
+
+            if(~isempty(dynPoligonISO))
+                warpedMaskedVol=imwarp(maskedVol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
+                warpedMaskedKinVol=imwarp(maskedKin,inputRef,tformRotOnly,'OutputView',rotOutputRef);
+            else
+                warpedMaskedVol=zeros(size(warpedVol));
+                warpedMaskedKinVol=zeros(size(warpedKinVol));
+            end    
+
         case 'translation'
             disp(num2str(fIdx))
             minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
@@ -298,8 +305,9 @@ parfor fIdx=1:MD.nFrames_
             warpedVol=imwarp(vol,inputRef,tformTransOnly,'OutputView',outputRef);
             warpedMaskedVol=imwarp(maskedVol,inputRef,tformTransOnly,'OutputView',outputRef);
 
-            warpedKinVol=imwarp(kinvol,inputRef,tformTransOnly,'OutputView',outputRef);
-            warpedMaskedKinVol=imwarp(maskedKin,inputRef,tformTransOnly,'OutputView',outputRef);
+                warpedKinVol=imwarp(kinvol,inputRef,tformTransOnly,'OutputView',outputRef);
+                warpedMaskedKinVol=imwarp(maskedKin,inputRef,tformTransOnly,'OutputView',outputRef);
+
         case 'none'
             maskcrop=maskedVol;
             nullMaskXY=(squeeze(any(maskcrop,3)));
