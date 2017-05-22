@@ -6,10 +6,10 @@
 %%%%%%% First toy Cell
 MD=MovieData.loadMatFile('/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time/movieData.mat');
 
-%% load spindle ref data and uniform Randomization 
+% load spindle ref data and uniform Randomization 
 processDetectPoles=MD.getPackage(1).getProcess(1);
 processAddSpindleRef=MD.getPackage(1).getProcess(2);
-processRandKinAndISO=MD.getPackage(1).getProcess(3);
+processUniformRandom=MD.getPackage(1).getProcess(3);
 
 poleMovieInfo=load(processDetectPoles.outFilePaths_{1}); poleMovieInfo=poleMovieInfo.poleMovieInfo;
 [poleRefsISO,P1,P2]=buildSpindleRef(poleMovieInfo,1);
@@ -19,7 +19,7 @@ kinTracks=load(processAddSpindleRef.outFilePaths_{2}); kinTracks=kinTracks.kinTr
 EB3TracksInliers=load(processAddSpindleRef.outFilePaths_{3}); EB3TracksInliers=EB3TracksInliers.EB3TracksInliers;
 kinTracksInliers=load(processAddSpindleRef.outFilePaths_{4}); kinTracksInliers=kinTracksInliers.kinTracksInliers;
 
-%% load process indenpendant data
+% load process indenpendant data
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep  ];
 kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
 kinTracksISO=kinTrackData.tracksLabRef;
@@ -103,10 +103,7 @@ kinTest=[2];
 tic;
 procProjectSelectKin=projectKinAndRandom(MD,processAddSpindleRef, ...
     processDetectPoles,processUniformRandom,kinTest,'name','capturingKin','showRand',false);
-procProjectSelectKinRand=projectKinAndRandom(MD,processAddSpindleRef, ...
-    processDetectPoles,processUniformRandom,kinTest,'name','capturingKin','showRand',true);
-overlayProjTracksList(MD,procProjectSelectKin,kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),randKinTracksISOInliers(kinTest),randKinTracksISOInliers(kinTest),P1,'mappedTrackField','associatedMT','name','mapped-randunif')
-overlayProjTracksList(MD,procProjectSelectKinRand,kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),randKinTracksISOInliers(kinTest),randKinTracksISOInliers(kinTest),P1,'mappedTrackField','associatedMT','name','mapped-randunif-non-rand')
+overlayProjTracksList(MD,procProjectSelectKin,kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),kinTracksISOInliers(kinTest),P1,'mappedTrackField','associatedMT','name','mapped-randunif')
 toc;
 
 %% Test new randomization on targeted kin and then full cell
@@ -141,30 +138,38 @@ bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(1:100),randAntiSpaceKinTrac
 
 
 %% MC
-maxRandomDist=20;
-processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
-[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISO,'process',processUniformRandomMC,'simuNumber',1000);
+
 %%
 load('/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time/Kin/randomized/MC-1000-unif-randKinTracks-mapped.mat')
 
 %%
+kinTest=2;
+maxRandomDist=20;
+processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
 tic;
-for sIdx=1:length(randTracksCell(1:2))
-    buildFiberManifoldAndMapMT(P1,randTracksCell{sIdx}(1:100),EB3TracksISOInliers,5,'kinDistCutoff',[-20,20]);
- end
+[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',20);
 toc;
+
+tic;
+% for sIdx=1:length(randTracksCell)
+ buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(kinTest) randTracksCell{:}],EB3TracksISOInliers,5,'kinDistCutoff',[-20,20]);
+% end
+toc;
+
 % tic;
 %     procFolder=[processUniformRandomMC.getOwner().outputDirectory_  filesep 'Kin' filesep 'randomized' filesep];
 %     mkdirRobust(procFolder);
 %     save([procFolder 'MC-' '-' 'unif' '-2-randKinTracks-mapped.mat'],'randTracksCell', '-v7.3');
 % toc;
-
+% 
+% 
+% tic;
+% randTracksCellTruncate=cell(1,length(randTracksCell));
+% for sIdx=1:length(randTracksCell)
+%     randTracksCellTruncate{sIdx}=randTracksCell{sIdx};
+% end
 %%
-tic;
-randTracksCellTruncate=cell(1,length(randTracksCell));
-for sIdx=1:length(randTracksCell(1:2))
-    randTracksCellTruncate{sIdx}=randTracksCell{sIdx}(1:100);
-end
-
-bundleStatistics(MD,'kinBundle',randTracksCellTruncate,'plotName','unifMC','mappedMTField','associatedMT');
+tic
+bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} ],'plotName','unifMC','mappedMTField','associatedMT');
+bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} randTracksCell],'plotName','unifMC','mappedMTField','associatedMT');
 toc;

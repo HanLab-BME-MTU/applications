@@ -9,6 +9,7 @@ ip.addParameter('mappedMTField','catchingMT');
 ip.addParameter('bundledMTField','fiber');
 ip.addParameter('plotHandleArray',[]);
 ip.addParameter('bundleMTRange',[]);
+ip.addParameter('tracksColors',[]);
 ip.parse(varargin{:});
 p=ip.Results;
 
