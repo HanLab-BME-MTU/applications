@@ -138,3 +138,33 @@ mapppingDist=10;
 randAntiSpaceKinTracks=randomizeTracks(MD,maxRandomDist,'tracks',kinTracksISOInliers(1:100),'mappingDist',mappingDist,'dynManifoldsCell',[subManifoldsAllKinP1],'process',procSupervisedRandom);
 buildFiberManifoldAndMapMT(P1,randAntiSpaceKinTracks(1:100),EB3TracksISOInliers,5,'kinDistCutoff',[-20,20]);
 bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(1:100),randAntiSpaceKinTracks(1:100)},'kinBundleName',{'Inlier','RandomInlier'},'plotName','randomAntispaceHundredFirst','mappedMTField','associatedMT');
+
+
+%% MC
+maxRandomDist=20;
+processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
+[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISO,'process',processUniformRandomMC,'simuNumber',1000);
+%%
+load('/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time/Kin/randomized/MC-1000-unif-randKinTracks-mapped.mat')
+
+%%
+tic;
+for sIdx=1:length(randTracksCell(1:2))
+    buildFiberManifoldAndMapMT(P1,randTracksCell{sIdx}(1:100),EB3TracksISOInliers,5,'kinDistCutoff',[-20,20]);
+ end
+toc;
+% tic;
+%     procFolder=[processUniformRandomMC.getOwner().outputDirectory_  filesep 'Kin' filesep 'randomized' filesep];
+%     mkdirRobust(procFolder);
+%     save([procFolder 'MC-' '-' 'unif' '-2-randKinTracks-mapped.mat'],'randTracksCell', '-v7.3');
+% toc;
+
+%%
+tic;
+randTracksCellTruncate=cell(1,length(randTracksCell));
+for sIdx=1:length(randTracksCell(1:2))
+    randTracksCellTruncate{sIdx}=randTracksCell{sIdx}(1:100);
+end
+
+bundleStatistics(MD,'kinBundle',randTracksCellTruncate,'plotName','unifMC','mappedMTField','associatedMT');
+toc;

@@ -13,18 +13,23 @@ ip.addParameter('process',[]);
 ip.parse(MD,randomDist,varargin{:});
 p=ip.Results;
 
+%%
+randTracksCell=cell(1,p.simuNumber);
 
-randTracksCell=cell(1,p.simuNumber)
-
-for sIdx=1:p.simuNumber
-    randTracksCell{sIdx}=randomizeTracksMC(MD,randomDist,varargin{:});
+processArgIndx=find(cellfun(@(s) strcmp(s,'process'),varargin));
+if(~isempty(processArgIndx))
+    varargin(processArgIndx:(processArgIndx+1))=[];
+end
+%%
+parfor sIdx=1:p.simuNumber
+    randTracksCell{sIdx}=randomizeTracks(MD,randomDist,varargin{:});
 end
 process=p.process;
 if(~isempty(process))
     %%
     procFolder=[process.getOwner().outputDirectory_  filesep 'Kin' filesep 'randomized' filesep];
     mkdirRobust(procFolder);
-    save([procFolder 'MC-' num2str(p.simuNumber) p.randomType '-randKinTracks.mat'],'randTracksCell');
+    save([procFolder 'MC-' num2str(p.simuNumber) '-' p.randomType '-randKinTracks.mat'],'randTracksCell', '-v7.3');
     process.setOutFilePaths({[procFolder p.randomType '-randKinTracks.mat']})
     pa = process.getParameters();
     pa = ip.Results;

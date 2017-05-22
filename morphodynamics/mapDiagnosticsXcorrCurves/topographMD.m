@@ -41,8 +41,13 @@ maxval = max(topoMap(:));
         for l = 1:nBandCur
 
             if ~isnan(topoMap(w,l))
-                iCol = round(interp1(linspace(minval,maxval,1024),1:nColor,topoMap(w,l)));%This is probably slow - do it manually?                    
-                plotString = {winColors(iCol,:)};
+                if (maxval > minval)
+                    iCol = round(interp1(linspace(minval,maxval,1024),1:nColor,topoMap(w,l)));%This is probably slow - do it manually?                    
+                    plotString = {winColors(iCol,:)};
+                else
+                    iCol = 1;
+                    plotString = {winColors(iCol,:)};
+                end
             else
                 plotString = {'k','FaceAlpha',0};
             end
@@ -53,16 +58,22 @@ maxval = max(topoMap(:));
     end
     
     axis off
-    caxis([minval maxval])
+    if (maxval > minval)
+        caxis([minval, maxval])
+    end
     colorbar
     title(title0)
 
 refWin = 1:30:nStrip;
 for k = 1:numel(refWin)
-    refwindows = windows{refWin(k)}{1};
-    xx = refwindows{1}(1, 1);
-    yy = refwindows{1}(2, 1);
-    text(xx, yy, ['w', num2str(refWin(k))])
+    if ~isempty(windows{refWin(k)}) 
+    if ~isempty(windows{refWin(k)}{1}) 
+        refwindows = windows{refWin(k)}{1};
+        xx = refwindows{1}(1, 1);
+        yy = refwindows{1}(2, 1);
+        text(xx, yy, ['w', num2str(refWin(k))])
+    end
+    end
 end
     
 end
