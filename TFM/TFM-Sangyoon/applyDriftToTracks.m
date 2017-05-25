@@ -24,8 +24,10 @@ for i = 1:numel(tracksNA)
         tracksNA(i).closestBdPoint(:,2) = tracksNA(i).closestBdPoint(:,2)+T(j,1)+maxY;
         try
             tracksNA(i).adhBoundary{j} = [tracksNA(i).adhBoundary{j}(:,2)+T(j,2)+maxX tracksNA(i).adhBoundary{j}(:,1)+T(j,1)+maxY];
+            tracksNA(i).FApixelList{j} = [tracksNA(i).FApixelList{j}(:,2)+T(j,2)+maxX tracksNA(i).FApixelList{j}(:,1)+T(j,1)+maxY];
         catch
             tracksNA(i).adhBoundary{j} = [];
+            tracksNA(i).FApixelList{j} = [];
         end
     end
     tracksNA(i).SDC_applied = true;

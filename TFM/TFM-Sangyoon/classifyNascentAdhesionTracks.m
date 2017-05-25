@@ -393,10 +393,141 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         end
         fh2.CurrentAxes.Color=[0 0 0];
         fh2.CurrentAxes.Visible='off';
+        
+        % Here is automatically pre-selected samples for G1 (5/18/17)
+        % 1. Edge criterion
+        % 1-1. Adhesions with zero edge movement should be G6 (not
+        % interested) - by looking at edge velocity and edge MSD
+        edgeVelAll=arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        edgeStdAll=arrayfun(@(x) std(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+        distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+        
+        % 
+        % 1. edge should protrude - should see overall positive edge
+        % G1 should have decently high edge vel.
+        thresEdgeVelG1 = mean(edgeVelAll); %+std(edgeVelAll);
+        indEdgeVelG1 = edgeVelAll>thresEdgeVelG1;
+                
+        % 2. Relative distance from edge should increase significantly.
+        distToEdgeVelAll=arrayfun(@(x) regress(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        thresRelEdgeVel = quantile(distToEdgeVelAll,0.5);
+        indRelEdgeVelG1 = distToEdgeVelAll>thresRelEdgeVel;
+        
+        % 3. Should start from relatively close to an edge
+        distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
+        thresStartingDistG1G2 = quantile(distToEdgeFirstAll,0.25);
+        indCloseStartingEdgeG1G2 = distToEdgeFirstAll < thresStartingDistG1G2;
+
+        % 5. Clean rising phase
+        assemRateAll = arrayfun(@(y) y.assemRate, tracksNA);
+        thresAssemRateG1G2 = quantile(assemRateAll,0.25);
+        indCleanRisingG1G2 = assemRateAll>thresAssemRateG1G2;        
+        
+        % 6. Clean decaying phase
+        disassemRateAll = arrayfun(@(y) y.lateAmpSlope, tracksNA);
+        thresDisassemRateG1 = min(-0.5, nanmean(disassemRateAll));
+        indCleanDecayingG1 = disassemRateAll<thresDisassemRateG1;  
+%         disassemRateAll = arrayfun(@(y) y.disassemRate, tracksNA);
+%         thresDisassemRateG1 = quantile(disassemRateAll,0.01);
+%         indCleanDecayingG1 = disassemRateAll>thresDisassemRateG1;  
+        
+        % 7. maximum point location compared to the life time (G2 has
+        % maximum point at the later phase).
+        timeToMaxInten=zeros(numel(tracksNA),1);
+        splineParam=0.01;
+        for ii=1:numel(tracksNA)
+            curFrameRange = tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra;
+            d = tracksNA(ii).ampTotal(curFrameRange);
+            tRange = tracksNA(ii).iFrame(curFrameRange);
+            warning('off','SPLINES:CHCKXYWP:NaNs')
+            d(d==0)=NaN;
+            try
+                sd_spline= csaps(tRange,d,splineParam);
+            catch
+                d = tracksNA(ii).amp;
+                d(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) = ...
+                    tracksNA(ii).ampTotal(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra);
+                sd_spline= csaps(tRange,d,splineParam);
+            end
+            sd=ppval(sd_spline,tRange);
+            %         tRange = [NaN(1,numNan) tRange];
+        %     sd = [NaN(1,numNan) sd];
+            sd(isnan(d))=NaN;
+            %         sd(isnan(d)) = NaN;
+            % Find the maximum
+            [~,curFrameMaxAmp]=nanmax(sd);
+            curFrameMaxAmp = curFrameRange(curFrameMaxAmp);
+            timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
+        end
+        lifeTimesAll = arrayfun(@(y) y.endingFrameExtra-y.startingFrameExtra, tracksNA);
+        relMaxPoints = timeToMaxInten./lifeTimesAll;
+        thresRelMax = min(0.8,mean(relMaxPoints));
+        indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
+        % 8. life time
+        
+        % Summing all those for G1
+        indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
+            indCleanRisingG1G2 & indCleanDecayingG1 & indEarlyMaxPointG1;
+        
+        indexG1 = find(indAbsoluteG1); 
+        % Inspect each (temporary)
+%         figure; hold on
+%         for mm=indexG1'
+%             plot(tracksNA(mm).ampTotal)
+% %             plot(tracksNA(mm).forceMag)
+%         end
+% %         nn=nn+1;
+%         showSingleAdhesionTrackSummary(MD,tracksNA(indexG1(end-3)),imgMap,tMap,indexG1(end-3));
+
+        % G2
+        
+        % 4. FA segmentation overlapping (for G2)
+        faAssocAll = arrayfun(@(x) any(strcmp(x.state,'FA') | strcmp(x.state,'FC')),tracksNA);
+        % Have to think about having to start with NA state, and FC vs. FA
+        
+        indNonDecayingG2 = disassemRateAll>thresDisassemRateG1 | isnan(disassemRateAll);
+%         indNonDecayingG2 = disassemRateAll<thresDisassemRateG1 | isnan(disassemRateAll);
+        indLateMaxPointG2 = relMaxPoints>thresRelMax;
+        
+        indAbsoluteG2 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
+            indCleanRisingG1G2 & indNonDecayingG2 & faAssocAll & indLateMaxPointG2;
+        
+        % Inspect each (temporary)
+        indexG2 = find(indAbsoluteG2); 
+%         figure; hold on
+%         for mm=indexG2'
+% %             plot(tracksNA(mm).ampTotal)
+%             plot(tracksNA(mm).forceMag)
+%         end
+        
+%         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
+        % G3
+        thresEdgeVelG3 = quantile(edgeVelAll,0.85);
+        indEdgeVelG3 = edgeVelAll>thresEdgeVelG3;
+        indRelEdgeVelG3 = distToEdgeVelAll<1/2*thresRelEdgeVel;
+        indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2;
+        indexG3 = find(indAbsoluteG3); 
+        
+        % G4 - retracting, strong FAs
+        thresEdgeVelG4 = quantile(edgeVelAll(edgeVelAll<0),0.3);
+        indEdgeVelG4 = edgeVelAll<thresEdgeVelG4;
+        indAbsoluteG4 = indEdgeVelG4 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2 & faAssocAll;
+        indexG4 = find(indAbsoluteG4); 
+        
+        % G5 - 
+        idTracksAdditionalAuto = [indexG1' indexG2' indexG3' indexG4'];
+        iGroupAdditionalAuto = [1*ones(size(indexG1')) 2*ones(size(indexG2')) 3*ones(size(indexG3')) ...
+            4*ones(size(indexG4'))]; % On top of this, we can definitely add other group samples
+        
 %         [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'trainedData',T,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
-        [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
+        [idTracksAdditionalManual, iGroupAdditionalManual] = showAdhesionTracks(pathForColocalization,'all',...
+            'tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD, 'autoIndex', [idTracksAdditionalAuto; iGroupAdditionalAuto]);
 %         idTracks = [idTracks idTracksAdditional];
 %         iGroup = [iGroup iGroupAdditional];
+
+        idTracksAdditional = [idTracksAdditionalAuto idTracksAdditionalManual];
+        iGroupAdditional = [iGroupAdditionalAuto iGroupAdditionalManual];
+
         [idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,...
             idGroup7Selected,idGroup8Selected,idGroup9Selected] = ...
             sortIDTracks(idTracksAdditional,iGroupAdditional);
