@@ -95,7 +95,8 @@ for k=1:numTracks
     
 %     [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),tracksNA(k).ampTotal(tracksNA(k).startingFrameExtra:maxAmpFrame));
     nSampleStart=min(9,floor((maxSdInd)/2));
-    if nSampleStart>4 && ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
+    if nSampleStart>4 && ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd)) && ...
+            mean(curAmpTotal(1:nSampleStart))<mean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
         [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
             log(tracksNA(k).ampTotal(tracksNA(k).startingFrameExtra:maxAmpFrame)/...
             tracksNA(k).ampTotal(tracksNA(k).startingFrameExtra)));
@@ -110,8 +111,9 @@ for k=1:numTracks
     % hanging, i.e., ending amplitude is still high enough compared to
     % starting point, or the last 10 points are not different from 10
     % poihnts near the maximum
-    nSampleEnd=min(9,floor((length(curAmpTotal)-maxSdInd)/2));
-    if nSampleEnd>4 && ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd))
+    nSampleEnd=min(9,floor((length(tRange)-maxSdInd)*2/3));
+    if nSampleEnd>4 && ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd)) && ...
+            mean(curAmpTotal(end-nSampleEnd:end))<mean(curAmpTotal(maxSdInd:maxSdInd+nSampleEnd))
         [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),...
             log(curAmpTotal(maxSdInd) ./curAmpTotal(maxSdInd:end)));
     else
@@ -119,10 +121,19 @@ for k=1:numTracks
     end
     tracksNA(k).disassemRate = disassemRate; % in 1/min
 
-    curStartFrame = max(tracksNA(k).startingFrame,tracksNA(k).endingFrameExtra-periodFrames+1);
-    curLatePeriod = tracksNA(k).endingFrameExtra - curStartFrame+1;
-    [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),tracksNA(k).ampTotal(curStartFrame:tracksNA(k).endingFrameExtra));
+    nSampleEndLate=min(9,floor((tracksNA(k).endingFrameExtraExtra-maxAmpFrame)*2/3));
+    curStartFrame = max(tracksNA(k).startingFrame,tracksNA(k).endingFrameExtraExtra-periodFrames+1);
+    curLatePeriod = tracksNA(k).endingFrameExtraExtra - curStartFrame+1;
+    if nSampleEndLate>4 && ttest2(tracksNA(k).ampTotal(tracksNA(k).endingFrameExtraExtra-nSampleEndLate:tracksNA(k).endingFrameExtraExtra),...
+            tracksNA(k).ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate)) && ...
+            mean(tracksNA(k).ampTotal(tracksNA(k).endingFrameExtraExtra-nSampleEndLate:tracksNA(k).endingFrameExtraExtra))...
+            <mean(tracksNA(k).ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate))
+        [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),tracksNA(k).ampTotal(curStartFrame:tracksNA(k).endingFrameExtraExtra));
+    else
+        curMlate = NaN;
+    end
     tracksNA(k).lateAmpSlope = curMlate; % in a.u./min
+    
 
     curEndFrame = min(sF+periodFrames-1,eF);
     curEarlyPeriod = curEndFrame - sF+1;
@@ -275,5 +286,5 @@ for k=1:numTracks
     tracksNA(k).MSD=sum((tracksNA(k).xCoord(logical(tracksNA(k).presence))'-meanX).^2+...
         (tracksNA(k).yCoord(logical(tracksNA(k).presence))'-meanY).^2);
     tracksNA(k).MSDrate = tracksNA(k).MSD/tracksNA(k).lifeTime;
-    progressText(k/(numTracks-1),'Post-analysis:');
+    progressText(k/(numTracks-1));
 end
