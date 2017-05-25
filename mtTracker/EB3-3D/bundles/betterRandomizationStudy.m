@@ -1,4 +1,4 @@
-    % Understanding why our basic MT Bundling does not show differences in the
+% Understanding why our basic MT Bundling does not show differences in the
 % between random and kin using local visualization.
 % Possible: better mapping or randomization.
 % 1 - recompute the best/worst kin
@@ -12,10 +12,9 @@ MD=MovieData.loadMatFile('C:\Users\Philippe\project-local\externBetzig\analysis\
 MDDecon=MovieData.loadMatFile('C:\Users\Philippe\project-local\externBetzig\analysis\adavid\smallSample\prometaphase\earlyCell1_12\deconv\analysis\movieData.mat');
 MDZ=MovieData.loadMatFile('C:\Users\Philippe\project-local\externBetzig\analysis\adavid\smallSample\prometaphase\earlyCell1_12\movieDataPixelSize.mat');
 
-%% load spindle ref data
+% load spindle ref data
 processDetectPoles=MD.getPackage(1).getProcess(1);
 processAddSpindleRef=MD.getPackage(1).getProcess(2);
-processRandKinAndISO=MD.getPackage(1).getProcess(3);
 
 poleMovieInfo=load(processDetectPoles.outFilePaths_{1}); poleMovieInfo=poleMovieInfo.poleMovieInfo;
 [poleRefsISO,P1,P2]=buildSpindleRef(poleMovieInfo,1);
@@ -25,7 +24,7 @@ kinTracks=load(processAddSpindleRef.outFilePaths_{2}); kinTracks=kinTracks.kinTr
 EB3TracksInliers=load(processAddSpindleRef.outFilePaths_{3}); EB3TracksInliers=EB3TracksInliers.EB3TracksInliers;
 kinTracksInliers=load(processAddSpindleRef.outFilePaths_{4}); kinTracksInliers=kinTracksInliers.kinTracksInliers;
 
-%% load process indenpendant data
+% load process indenpendant data
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep  ];
 kinTrackData=load([outputDirProj  filesep 'tracksLabRef.mat']);
 kinTracksISO=kinTrackData.tracksLabRef;
@@ -293,3 +292,38 @@ procSupervisedRandom=ExternalProcess(MD,'randomizeTracks');
 randAntiSpaceKinTracks=randomizeTracks(MD,maxRandomDist,'tracks',kinTracksISOInliers(1:100),'mappingDist',mappingDist,'dynManifoldsCell',[subManifoldsAllKinP1],'process',procSupervisedRandom);
 buildFiberManifoldAndMapMT(P1,randAntiSpaceKinTracks(1:100),EB3TracksISOInliers,10,'kinDistCutoff',[-20,20]);
 bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(1:100),randAntiSpaceKinTracks(1:100)},'kinBundleName',{'Inlier','RandomInlier'},'plotName','randomAntispaceHundredFirst','mappedMTField','associatedMT');
+
+
+%% MC test
+maxRandomDist=20;
+
+kinTest=32;
+
+% DIsplay randomization zone 
+track=kinTracksISOInliers(kinTest);
+refKP1=buildRefsFromTracks(P1,track);
+ROI=[P1 track];
+project1D(MD,track,'dynPoligonREF',refKP1.applyBase(ROI,''),'FoF',refKP1, ...
+    'name','randomArea','channelRender','grayRed','intMinPrctil',[50 50],'intMaxPrctil',[100 100],'insetSize',2*maxRandomDist);
+tic;
+%% test different value of MC simulations
+processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
+
+MCSize=[1 10  200  600 800 1000];
+
+randTracksCellMC=cell(1,length(MCSize));
+for i=1:length(MCSize)
+[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',10);
+
+tic
+buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(kinTest) randTracksCell{:}],EB3TracksISOInliers,10,'kinDistCutoff',[-20,20]);
+toc;
+
+randTracksCellMC{i}=[randTracksCell{:}];
+end
+tic
+bundleStatistics(MD,'kinBundle',[ {kinTracksISOInliers(kinTest)} randTracksCellMC],'kinBundleName',[{'real-track'} arrayfun(@(n) ['MC-' num2str(n)],MCSize,'unif',0)],'plotName','unifMC','mappedMTField','associatedMT');
+toc;
+
+
+

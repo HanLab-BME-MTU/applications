@@ -23,8 +23,10 @@ else
 end
 
 switch(p.randomType)
-    case 'uniform'
+    case 'fixed'
         [randKinTracks]=randomizeKinetochore(kinTracks,randomDist);
+    case 'uniform'
+        [randKinTracks]=randomizeTracksUniform(kinTracks,randomDist);        
     case 'manifoldAntispace'
         randKinTracks(length(kinTracks))=TracksHandle();
         for i=1:length(randKinTracks)

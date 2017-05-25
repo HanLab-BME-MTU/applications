@@ -20,14 +20,16 @@ ip.addOptional('intMinPrctil',[1 99.9]);
 ip.addOptional('intMaxPrctil',[100 100]);
 ip.addOptional('name',[]);
 ip.addOptional('processSingleProj',[]);
+ip.addOptional('insetWidth',20);
 ip.parse(varargin{:});
 p=ip.Results;
 
 tracks=p.tracks;
 
 showDebugGraphics=0;
-cubeHalfWidth=20;
+insetWidth=p.insetWidth;
 
+IMSphere=strel3DEllipsoid(insetWidth,ceil(insetWidth*MD.pixelSize_/MD.pixelSizeZ_));
 %% Define the static Rectangular cuboid that contains the pixel to be projected in the frame of reference.
 %% Accordinly,  the coordinate of this cube are specified such as the origin of the frame of reference is the zero.
 
@@ -60,12 +62,12 @@ if(strcmp(p.crop,'manifold'))
 %     minYBorder=max(minY-cubeHalfWidth,1);
 %     minZBorder=max(minZ-cubeHalfWidth,1);
 
-    maxXBorder=(maxX+cubeHalfWidth);
-    maxYBorder=(maxY+cubeHalfWidth);
-    maxZBorder=(maxZ+cubeHalfWidth);
-    minXBorder=(minX-cubeHalfWidth);
-    minYBorder=(minY-cubeHalfWidth);
-    minZBorder=(minZ-cubeHalfWidth);
+    maxXBorder=(maxX+insetWidth);
+    maxYBorder=(maxY+insetWidth);
+    maxZBorder=(maxZ+insetWidth);
+    minXBorder=(minX-insetWidth);
+    minYBorder=(minY-insetWidth);
+    minZBorder=(minZ-insetWidth);
 else
     maxXBorder=MD.getDimensions('X')-p.FoF.origin(1,1);
     maxYBorder=MD.getDimensions('Y')-p.FoF.origin(1,2);
@@ -119,8 +121,9 @@ parfor fIdx=1:MD.nFrames_
         end;
 
         %% Building mask in the 1D case
+        nextPoint=length(dynPoligonISO);
         PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
-        KCurrent=[dynPoligonISO(2).x(pIndices(2)) dynPoligonISO(2).y(pIndices(2)) dynPoligonISO(2).z(pIndices(2))];
+        KCurrent=[dynPoligonISO(nextPoint).x(pIndices(nextPoint)) dynPoligonISO(nextPoint).y(pIndices(nextPoint)) dynPoligonISO(nextPoint).z(pIndices(nextPoint))];
 
         % Building mask for both channel on the whole volume
         % NOTE: Could masking use imwarp for speed ?
@@ -132,7 +135,7 @@ parfor fIdx=1:MD.nFrames_
         indx=sub2ind(size(mask),ySeg,xSeg,zSeg);
 
         mask(indx)=1;
-        mask=imdilate(mask,ones(cubeHalfWidth,cubeHalfWidth,round(cubeHalfWidth*MD.pixelSize_/MD.pixelSizeZ_)));
+        mask=imdilate(mask,IMSphere);  %ones(cubeHalfWidth,cubeHalfWidth,round(cubeHalfWidth*MD.pixelSize_/MD.pixelSizeZ_)));
 
         maskedVol=vol;
         maskedVol(~mask)=0;
@@ -436,7 +439,7 @@ parfor fIdx=1:MD.nFrames_
         prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
 
     [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio, ...
-        prctile(warpedMaskedVol(:),p.intMinPrctil(1)),prctile(warpedMaskedVol(:),p.intMaxPrctil(1)));
+        prctile(warpedVol(:),p.intMinPrctil(1)),prctile(warpedVol(:),p.intMaxPrctil(1)));
     [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(warpedMaskedKinVol,ZRatio, ...
         prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
 
@@ -537,7 +540,9 @@ function RGBVol=greenRedRender(greenCh,redCh)
     RGBVol(:,:,3)=0;
 
 
-
 function RGBVol=grayRedRender(grayCh,redCh)
     RGBVol=repmat(grayCh,1,1,3);
     RGBVol(:,:,1)=max(grayCh,redCh);
+    
+    
+

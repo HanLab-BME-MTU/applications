@@ -26,6 +26,7 @@ end
 %% Here we refer to pseudo-capture as capture.
 
 maxTimePoints=max([kinTracksCell{1}.endFrame]);
+maxKin=max(cellfun(@(k) length(k),kinTracksCell));
 % Stats on living Kin, over the kin lifetime.
 bundledMTCountOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
 bundledPerCaptureRatioOverKinLft=zeros(length(kinTracksCell),maxTimePoints);
@@ -149,7 +150,7 @@ xlabel(H,'Frame count');
 ylabel(H,{'Living captured MT', 'per kin'});
 
 H=handles(offset+4)
-plot(H,1:length(kinTracksCell{1}), mappedCountVsKin);
+plot(H,1:maxKin, mappedCountVsKin);
 xlabel(H,'kinIndx');
 ylabel(H,{'Capture count'});
 
