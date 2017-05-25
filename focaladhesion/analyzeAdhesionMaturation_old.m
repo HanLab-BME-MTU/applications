@@ -601,30 +601,39 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
                             tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
                         end
                     end
-                elseif ii>tracksNA(k).endingFrame && (strcmp(tracksNA(k).state{tracksNA(k).endingFrame},'FA')...
-                        || strcmp(tracksNA(k).state{tracksNA(k).endingFrame},'FC'))
+                elseif ii>tracksNA(k).endingFrameExtra && ...
+                        (strcmp(tracksNA(k).state{tracksNA(k).endingFrameExtra},'FA')...
+                        || strcmp(tracksNA(k).state{tracksNA(k).endingFrameExtra},'FC'))
                     % starting from indexed maskFAs, find out segmentation that is
                     % closest to the last track point.
-                    subMaskFAs = maskFAs==tracksNA(k).faID(tracksNA(k).endingFrame);
+                    subMaskFAs = maskFAs==tracksNA(k).faID(tracksNA(k).endingFrameExtra);
                     if max(subMaskFAs(:))==0
                         tracksNA(k).state{ii} = 'ANA';
                         tracksNA(k).FApixelList{ii} = NaN;
                         tracksNA(k).adhBoundary{ii} = NaN;
                         continue
                     else
-                        propSubMaskFAs = regionprops(subMaskFAs,'PixelList');
+                        propSubMaskFAs = regionprops(subMaskFAs,'PixelList','MajorAxisLength');
                         minDist = zeros(length(propSubMaskFAs),1);
                         for q=1:length(propSubMaskFAs)
-                            minDist(q) = min(sqrt((propSubMaskFAs(q).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame))).^2 +...
-                                (propSubMaskFAs(q).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame))).^2));
+                            minDist(q) = min(sqrt((propSubMaskFAs(q).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrameExtra))).^2 +...
+                                (propSubMaskFAs(q).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrameExtra))).^2));
                         end
                         % find the closest segment
                         [~,subMaskFAsIdx] = min(minDist);
                         subAdhBound = bwboundaries(subMaskFAs,'noholes');    
-                        [~,closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrame))).^2 +...
-                            (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrame))).^2));
-
-                        tracksNA(k).state{ii} = 'FC';
+%                         [~,closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrameExtra))).^2 +...
+%                             (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrameExtra))).^2));
+                        if propSubMaskFAs(subMaskFAsIdx).MajorAxisLength>minFCLength && ...
+                                propSubMaskFAs(subMaskFAsIdx).MajorAxisLength<minFALength
+                            tracksNA(k).state{ii} = 'FC';
+                        elseif propSubMaskFAs(subMaskFAsIdx).MajorAxisLength >= minFALength
+                            tracksNA(k).state{ii} = 'FA';
+                        else
+                            tracksNA(k).state{ii} = 'NA';
+                        end
+                        tracksNA(k).presence(ii)=true;
+                        tracksNA(k).endingFrameExtra = ii; % This is update I did on 5/24/17.
     %                     tracksNA(k).xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
     %                     tracksNA(k).yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
                         tracksNA(k).FApixelList{ii} = propSubMaskFAs(subMaskFAsIdx).PixelList;
@@ -899,12 +908,12 @@ if saveAnalysis
         maturingRatio = [];
     end
     %% Assembly rate
-    % We decided to look at only actually disassebling NAs
+    % We decided to look at only actually assebling NAs
     % Getting indices of them:
     assemblingNAIdx = arrayfun(@(y) y.startingFrame>1,trNAonly);
 
     assemRateCellAll = arrayfun(@(y) y.assemRate, trNAonly);
-    % filtering in only actually disassembling NAs and make it positive
+    % filtering in only actually assembling NAs and make it positive
     assemRateCell = assemRateCellAll(assemblingNAIdx);
     
     %% Disassembly rate
