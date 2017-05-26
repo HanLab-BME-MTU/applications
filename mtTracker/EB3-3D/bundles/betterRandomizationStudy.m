@@ -295,7 +295,7 @@ bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(1:100),randAntiSpaceKinTrac
 
 
 %% MC test
-maxRandomDist=20;
+maxRandomDist=25;
 
 kinTest=32;
 
@@ -304,16 +304,17 @@ track=kinTracksISOInliers(kinTest);
 refKP1=buildRefsFromTracks(P1,track);
 ROI=[P1 track];
 project1D(MD,track,'dynPoligonREF',refKP1.applyBase(ROI,''),'FoF',refKP1, ...
-    'name','randomArea','channelRender','grayRed','intMinPrctil',[50 50],'intMaxPrctil',[100 100],'insetSize',2*maxRandomDist);
+    'name','randomArea','channelRender','grayRed','intMinPrctil',[50 50],'intMaxPrctil',[100 100],'fringeWidth',maxRandomDist);
 tic;
 %% test different value of MC simulations
 processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
 
 MCSize=[1 10  200  600 800 1000];
+MCSize=[200];
 
 randTracksCellMC=cell(1,length(MCSize));
 for i=1:length(MCSize)
-[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',10);
+[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',MCSize(i));
 
 tic
 buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(kinTest) randTracksCell{:}],EB3TracksISOInliers,10,'kinDistCutoff',[-20,20]);
@@ -321,6 +322,7 @@ toc;
 
 randTracksCellMC{i}=[randTracksCell{:}];
 end
+%%
 tic
 bundleStatistics(MD,'kinBundle',[ {kinTracksISOInliers(kinTest)} randTracksCellMC],'kinBundleName',[{'real-track'} arrayfun(@(n) ['MC-' num2str(n)],MCSize,'unif',0)],'plotName','unifMC','mappedMTField','associatedMT');
 toc;
