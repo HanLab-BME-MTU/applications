@@ -210,21 +210,25 @@ else
 end
 outputFile=strcat(dataPath,filesep,'tracksNA.mat');
 % See if you can use existing tracks
-if exist(outputFile,'file')
-    disp('tracksNA file is found. Using it ... If you do not want to reuse this, please backup the file and rename it to other name than tracksNA.mat.')
-    tracksNAFile = load(outputFile,'tracksNA');
-    tracksNA = tracksNAFile.tracksNA;
-else
+% if exist(outputFile,'file')
+%     disp('tracksNA file is found. Using it ... If you do not want to reuse this, please backup the file and rename it to other name than tracksNA.mat.')
+%     tracksNAFile = load(outputFile,'tracksNA');
+%     tracksNA = tracksNAFile.tracksNA;
+% else
     % run analyzeAdhesionMaturation for obtaining tracks from paxillin channel
-    tracksNA = analyzeAdhesionMaturation(pathForTheMovieDataFile,false,false,...
+    tracksNA = analyzeAdhesionMaturation_old(pathForTheMovieDataFile,false,false,...
         'onlyEdge',onlyEdge,'saveAnalysis',false,'matchWithFA',matchWithFA,...
         'minLifetime',minLifetime,'outputPath',['Colocalization' filesep outputPath]);
-end
+% end
 % re-express tracksNA so that each track has information for every frame
 if ~isempty(iSDCProc)
     if ~isfield(tracksNA,'SDC_applied')
         disp('Applying stage drift correction ...')
-        tracksNA = applyDriftToTracks(tracksNA, T); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+            tracksNA = applyDriftToTracks(tracksNA, T, 1); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+        else
+            tracksNA = applyDriftToTracks(tracksNA, T, 0);
+        end
     else
         disp('Stage drift correction was already applied to tracksNA.')
     end
@@ -242,6 +246,11 @@ try
     tmin = min(tMapIn{1}(:));
     cropInfo = [ceil(min(forceField(1).pos(:,1))),ceil(min(forceField(1).pos(:,2))),floor(max(forceField(1).pos(:,1))),floor(max(forceField(1).pos(:,2)))];
     tMapFromOutput = true;
+    if isempty(tmaxAuto)
+        tMapFromOutput = false;
+        disp('Somehow tMap has emptiness in it. Recreating tMap ...')
+        error('Somehow tMap has emptiness in it. Recreating tMap ...')
+    end
 catch
     [tMapIn, tmaxAuto, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,0);
 end
@@ -260,7 +269,11 @@ tMap = zeros(h,w,nFrames);
 for ii=1:nFrames
     cur_tMap = zeros(size(tracImage));
     % starts with original size of beads
-    cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii}(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3));
+    if tMapFromOutput
+        cur_tMap = tMapIn{ii};
+    else
+        cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii};
+    end
     tMap(:,:,ii) = cur_tMap;
 end
 save([forcemapPath filesep 'tMap.mat'],'tMap','-v7.3');
@@ -334,8 +347,14 @@ for ii=1:nFrames
     % Apply stage drift correction to the cell segmentation
     % Get limits of transformation array
     if ~isempty(iSDCProc)
-        maxX = ceil(max(abs(T(:, 2))));
-        maxY = ceil(max(abs(T(:, 1))));
+        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+            maxX = 0;
+            maxY = 0;
+        else
+            maxX = ceil(max(abs(T(:, 2))));
+            maxY = ceil(max(abs(T(:, 1))));
+        end
+
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
         % Apply subpixel-wise registration to original masks
 %         I = padarray(maskFAs, [maxY, maxX]);

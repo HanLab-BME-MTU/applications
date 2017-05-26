@@ -90,7 +90,7 @@ Recall that the filter applied to the image's Fourier space has the following fo
 \begin{eqnarray}
     \Phi(f,\theta; f_c, K, \theta_0) & = & \Phi_f(f; f_c) \Phi_\theta(\theta; K, \theta_0) \\
     & \mbox{where} & \nonumber \\
-    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{f_c^2}+1) \exp(\frac{1}{2}) \\
+    \Phi_f(f; f_c) & = & \frac{f}{f_c} \exp(-\frac{f^2}{2f_c^2}+\frac{1}{2}) \\
 \end{eqnarray}
 Here the parameter $ f_c $ controls scale while maintaining the aspect ratio such that $ f_c = \frac{1}{2\pi \sigma} $ with $ \sigma $ scaling both the width and length in image space. To evaluate scale, we can either sample $ f_c $ or $ \sigma $ at the Chebyshev points in the interval of interest in order to obtain a polynomial in Chebyshev form that approximates the scale response.
 \section{Application to Width}

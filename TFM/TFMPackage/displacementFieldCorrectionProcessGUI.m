@@ -22,7 +22,7 @@ function varargout = displacementFieldCorrectionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCorrectionProcessGUI
 
-% Last Modified by GUIDE v2.5 16-Sep-2011 09:30:45
+% Last Modified by GUIDE v2.5 10-Mar-2017 13:02:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,6 +60,7 @@ else
     set(handles.checkbox_filterOutliers,'Value',0);
 end
 set(handles.checkbox_doRotReg,'Value',funParams.doRotReg);
+set(handles.checkbox_fill,'Value',funParams.fillVectors);
 
 % Choose default command line output for displacementFieldCorrectionProcessGUI
 handles.output = hObject;
@@ -129,6 +130,7 @@ else
 end
 
 funParams.doRotReg=get(handles.checkbox_doRotReg,'Value');
+funParams.fillVectors=get(handles.checkbox_fill,'Value');
 
 % Process Sanity check ( only check underlying data )
 try
@@ -152,3 +154,12 @@ if get(hObject,'Value')
 else
     enableState=set(handles.edit_outlierThreshold,'Enable','off');    
 end
+
+
+% --- Executes on button press in checkbox_fill.
+function checkbox_fill_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_fill (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_fill

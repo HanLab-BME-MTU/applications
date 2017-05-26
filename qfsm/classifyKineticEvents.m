@@ -39,6 +39,7 @@ numberOfInsignificantEvents=0;
 numberOfBleachEvents=0;
 
 % Initializing progress bar
+wtBar=-1;
 if ~isempty(ip.Results.waitbar)
     wtBar=ip.Results.waitbar;
     waitbar(0,wtBar,'Classifying speckles');

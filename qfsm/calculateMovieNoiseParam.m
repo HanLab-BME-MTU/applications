@@ -57,6 +57,7 @@ noiseProc = movieData.processes_{iProc};
 p = parseProcessParams(noiseProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
+wtBar=-1;
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',noiseProc.getName());
 else

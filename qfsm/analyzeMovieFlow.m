@@ -39,6 +39,7 @@ flowAnProc = movieData.processes_{iProc};
 p = parseProcessParams(flowAnProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
+wtBar = -1;
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',flowAnProc.getName());
 end

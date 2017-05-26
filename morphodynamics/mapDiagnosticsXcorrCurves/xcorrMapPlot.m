@@ -64,7 +64,12 @@ for indL = 1:layerMax
 
     thrh0 = 2/sqrt(size(chan1map, 2));
     % smoothing
-    filteredmap = smoothActivityMap(xcorrMat{indL}, 'SmoothParam', p.smParam, 'UpSample', 1);
+    if all(isnan(xcorrMat{indL})) 
+        filteredmap = nan(size(xcorrMat{indL}));
+    else
+        filteredmap = smoothActivityMap(xcorrMat{indL}, 'SmoothParam', p.smParam, 'UpSample', 1);
+    end
+    
     % figure
     title0 = ['xcorr(', ch1ActmapName, '_{t+Lag}, ', ch2ActmapName, '_t)  ', '(', char(177), sprintf('%0.2f', thrh0), ') - ', num2str(indL), 'L'];
 

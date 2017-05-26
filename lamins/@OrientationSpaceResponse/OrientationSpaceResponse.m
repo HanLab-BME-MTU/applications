@@ -317,7 +317,7 @@ classdef OrientationSpaceResponse < handle
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             Response = OrientationSpaceResponse(filter_new,angularResponse_new);
         end
-        function Response = getResponseAtOrderFT(obj,K_new)
+        function Response = getResponseAtOrderFT(obj,K_new,normalize)
             if(~isscalar(obj))
                 Response(numel(obj)) = OrientationSpaceResponse;
                 for o=1:numel(obj)
@@ -330,14 +330,26 @@ classdef OrientationSpaceResponse < handle
             s_inv = sqrt(obj.n^2*n_new^2/(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
             x = -ceil(K_new):ceil(K_new);
-            f_hat = exp(-0.5 * (x./s_hat).^2); % * obj.n/n_new;
-            f_hat = ifftshift(f_hat);
+            if(s_hat ~= 0)
+                f_hat = exp(-0.5 * (x./s_hat).^2); % * obj.n/n_new;
+                f_hat = ifftshift(f_hat);
+            else
+                f_hat = 1;
+            end
             f_hat = shiftdim(f_hat,-1);
             a_hat = fft(real(obj.a),[],3);
+            % This reduces the number of coefficients in the Fourier domain
+            % Beware of the normalization factor, 1/n, done by ifft
             a_hat = a_hat(:,:,[1:ceil(K_new)+1 end-ceil(K_new)+1:end]);
             a_hat = bsxfun(@times,a_hat,f_hat);
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
-            Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
+            % Consider using fft rather than ifft so that the mean is
+            % consistent
+            if(nargin > 2 && normalize)
+                Response = OrientationSpaceResponse(filter_new,ifft(a_hat*size(a_hat,3)/size(obj.a,3),[],3));
+            else
+                Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
+            end
         end
         function response = getResponseAtOrderFTatPoint(obj,r,c,K_new)
             % Get response at a lower order using Fourier Transform at a particular point
@@ -414,11 +426,16 @@ classdef OrientationSpaceResponse < handle
             fineResponseGrid = fineResponseGrid(:,:,[end 1:end 1]);
             % TODO: pad spatial dimensions like in N(L)MS
         end
-        function asymSignal = evaluateAssymetricSignalAtPoint(obj,r,c,distance)
+        function asymSignal = evaluateAssymetricSignalAtPoint(obj,r,c,distance,nSamples)
             if(nargin < 4)
                 distance = 2/obj.filter.f_c/2/pi;
             end
-            nSamples = obj.n*6;
+            if(nargin < 5)
+                nSamples = obj.n*6;
+                scaleFactor = 3;
+            else
+                scaleFactor = nSamples/obj.n/2;
+            end
             % Angle in space from point
             theta = (0:nSamples-1)*(2*pi/nSamples);
             % Orientation angle index
@@ -427,7 +444,7 @@ classdef OrientationSpaceResponse < handle
             orientation = [orientation orientation]+2;
             coords = [r-cos(theta')*distance c+sin(theta')*distance orientation'];
             % TODO: pad spatial dimensions like in N(L)MS
-            A = obj.getResponseForInterpolation();
+            A = obj.getResponseForInterpolation(scaleFactor);
             asymSignal = interp3(A,coords(:,2),coords(:,1),coords(:,3),'cubic');
             if(nargout == 0)
                 plot((0:nSamples-1)/nSamples*2,asymSignal);
@@ -518,6 +535,10 @@ classdef OrientationSpaceResponse < handle
                     A = reshape(A,[sA(1:d-1) size(obj)]);
                 end
             end
+        end
+        function E = getRidgeAngularEnergy(obj)
+            a_hat = fft(real(obj.a),[],3);
+            E = sum(abs(a_hat(:,:,2:end)).^2,3)./(obj.n.^2);
         end
         [] = animateAngularOrder(R, r, c, Rd);
         [ localMaxima, localMaximaValue, K ] = traceLocalMaxima( obj, r, c, K, polish );

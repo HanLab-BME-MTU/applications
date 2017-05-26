@@ -26,7 +26,8 @@ numFrames = size(imgStack,3);
 sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 % parfor_progress(numel(tracksNA));
-progressText(0,'Re-reading and tracking individual tracks:');
+progressText(0,'Re-reading and tracking individual tracks'); %, 'Adhesion Analysis');
+% progressbar
 if isempty(MD)
     searchRadius = 1;
     searchRadiusDetected = 2;
@@ -42,6 +43,11 @@ end
 halfWidth=2;
 halfHeight=2;
 
+%%%%%%%%%%%%%%%%%%%%%%%%5
+
+tic
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % parfor k=1:numel(tracksNA)
 for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
@@ -95,10 +101,10 @@ for k=1:numTracks
                     p=-1;
         %             curSigma = sigma;
         %             pitFound = false;
-                    while p<=30
-                        oldP = p;
+                    while p<=15 %30
+                        %oldP = p;
                         p=p+1;
-                        pmP =ceil(p/2)*(-1)^oldP;
+                        pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
                         curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
                         pitFound = false;
                         curAlpha = 0.05+p/100;
@@ -368,6 +374,10 @@ for k=1:numTracks
         disp('Please choose 1 or 2 for attribute.')
     end
     progressText(k/(numTracks));
+    % progressbar(k/(numTracks), 0, 're-reading and tracking individual tracks');
+    % progressbar(ii/(nFrames-1), 0, 'Matching with segmented adhesions:')
+    % tk = toc;
+    % waitbar(k/(numTracks), wtBar, sprintf([logMsg(0) timeMsg(tk*(numTracks/k)-tk)]));
 %     parfor_progress;
 end
 end

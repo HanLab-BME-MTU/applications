@@ -93,6 +93,18 @@ fStr = ['%0' num2str(floor(log10(nImages))) + 1 '.0f'];%Format string for zero-p
 maskDirs  = adSegProc.outFilePaths_(p.ChannelIndex);
 
 %TEMP - check for and load thresholding/mask refinement 
+% existSegmentation=false;
+try
+    try
+        maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
+        existSegmentation=true;
+    catch
+        maskProc = movieData.getProcess(movieData.getProcessIndex('ThresholdingProcess'));
+        existSegmentation=true;
+    end
+catch
+    existSegmentation=false;
+end
 masks = false([imSize, nImages nChanSeg]);
 
 %Get the ROI mask (if not an ROI, this will be all true)
@@ -131,9 +143,16 @@ for iChan = 1:nChanSeg
         %Load the current image        
         currImage = movieData.channels_(p.ChannelIndex(iChan)).loadImage(iImage);
         
+        %Load cell mask here
+        if existSegmentation
+            cellMask = maskProc.loadChannelOutput(p.ChannelIndex(iChan),iImage);
+        else
+            cellMask = [];
+        end
+        
         %Run the blob segmentation to get approx outline. This removes
         %background well but tends to merge close adhesions        
-        currMask = blobSegmentThreshold(currImage,0);                
+        currMask = blobSegmentThreshold(currImage,0,0,cellMask);                
 
         
         % --------- Splitting of Adjacent Adhesions --------- %

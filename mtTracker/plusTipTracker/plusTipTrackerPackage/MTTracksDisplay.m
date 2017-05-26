@@ -29,60 +29,6 @@ classdef MTTracksDisplay < MovieDataDisplay
                     'Color',obj.Color(uniqueTypes(i)),'LineStyle',obj.LineStyle(uniqueTypes(i)),...
                     'LineWidth',obj.LineWidth);
             end
-%             for i=1:size(data.x,1), set(h(data.trackType==i),...
-%                     
-%                 set(h(data.trackType==i),...
-% %                     'Color',obj.Color(i),'LineStyle',obj.LineStyle(i));
-%
-%             h = plot(data.x(:,max(1,end-obj.dragtailLength):end)',...
-%                     data.y(:,max(1,end-obj.dragtailLength):end)','LineWidth',1.5);
-%             for i=1:numel(obj.Events), set(h(data.trackType==i),...
-%                     'Color',obj.Color(i),'LineStyle',obj.LineStyle(i));
-%             for iColor=1:8
-%                 switch iColor
-%                     case 1 % growth
-%                         c1='r';
-%                         c2='r';
-%                     case 2 % forward gaps - pause
-%                         c1='c:';
-%                         c2='c';
-%                     case 3 % backward gaps - shrinkage
-%                         c1='y:';
-%                         c2='y';
-%                     case 4 % unclassified gaps
-%                         c1='m:';
-%                         c2='m';
-%                     case 5 % forward gaps - reclassified as growth
-%                         c1='g';
-%                         c2='g';
-%                     case 6 % backward gaps - slow
-%                         c1='b:';
-%                         c2='b';
-%                     case 7 % backward gaps - very fast
-%                         c1 = 'g.-';
-%                         c2 = 'g';
-%                     case 8
-%                         c1 = 'b.-';
-%                         c2 = 'b';
-%                         
-%                 end
-%                 
-%                 h{iColor} = plot(data.x(data.trackType==iColor,max(1,end-obj.dragtailLength):end)',...
-%                     data.y(data.trackType==iColor,max(1,end-obj.dragtailLength):end)',c1,'LineWidth',1.5);
-%                 
-                %movieROI/movieData.mat plot big circle around transition events (red circle when start of
-                % growth, yellow circle when start of shrinkage, etc.)
-%                 if plotCurrentOnly~=0
-%                     cTTIdx=find(trackType==iColor); % current track type indices
-%                     currenStartingSubtrackIdx=cTTIdx(sF(cTTIdx)==plotCurrentOnly);
-%                     if ~isempty(currenStartingSubtrackIdx)
-%                         coordIdx=sub2ind(size(xMat),currenStartingSubtrackIdx,plotCurrentOnly*ones(length(currenStartingSubtrackIdx),1));
-%                         scatter(xMat(coordIdx),yMat(coordIdx),'MarkerEdgeColor',c2,'SizeData',(72/3)^2)
-%                     end
-%                 end
-                
-                
-%             end
             set(h,'Tag',tag);
         end
 

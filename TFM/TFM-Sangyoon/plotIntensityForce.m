@@ -178,13 +178,14 @@ else
 %             d = getfield(tracksNA(ii),{1},source{1},{find(tracksNA(ii).presence)});
             if indivColor
                 d=tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
+                shiftedTime = 1:sum(tracksNA(ii).presence);
                 if strcmp(source,'edgeAdvanceDist')
-                    subplot(1,3,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                    subplot(1,3,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
-                    subplot(1,3,3), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                    subplot(1,3,1), plot(shiftedTime,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                    subplot(1,3,2), plot(shiftedTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                    subplot(1,3,3), plot(shiftedTime,tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
                 else
-                    subplot(1,2,1), plot(1:tracksNA(ii).lifeTime+1,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
-                    subplot(1,2,2), plot(1:tracksNA(ii).lifeTime+1,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
+                    subplot(1,2,1), plot(shiftedTime,d), hold on%,'Color',[0.5 0.5 0.5]), hold on
+                    subplot(1,2,2), plot(shiftedTime,tracksNA(ii).forceMag(logical(tracksNA(ii).presence))), hold on%,'Color',[240/255 128/255 128/255]), hold on
                 end
             else
                 for kk=1:nSources
@@ -194,7 +195,7 @@ else
                             hold on
                         end
                     end
-                    plot(1:tracksNA(ii).lifeTime+1,getfield(tracksNA(ii),{1},source{kk},{find(tracksNA(ii).presence)}),'Color',[0.5 0.5 0.5])
+                    plot(1:tracksNA(ii).lifeTime+1,getfield(tracksNA(ii),{1},source{kk},{tracksNA(ii).startingFrameExtra:tracksNA(ii).endingFrameExtra}),'Color',[0.5 0.5 0.5])
                 end
     %             if strcmp(source,'edgeAdvanceDist')
     %                 subplot(1,3,1), plot(1:tracksNA(ii).lifeTime,d,'Color',[0.5 0.5 0.5]), hold on

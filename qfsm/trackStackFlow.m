@@ -71,7 +71,7 @@ ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
 ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
 ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
-ip.addParamValue('usePIVSuite',false,@islogical);
+% ip.addParamValue('usePIVSuite',false,@islogical);
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
 maxSpd=ip.Results.maxSpd;
@@ -80,7 +80,7 @@ bgMask=ip.Results.bgMask;
 bgAvgImg=ip.Results.bgAvgImg;
 mode=ip.Results.mode;
 scoreCalculation=ip.Results.scoreCalculation;
-usePIVSuite = ip.Results.usePIVSuite;
+% usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
 
 % SH: Poly-fit version
@@ -132,39 +132,39 @@ L=length(num2str(nPoints));
 strg=sprintf('%%.%dd',L);
 backSpc =repmat('\b',1,L);
 
-if usePIVSuite
-    disp('Performing PIV as a prestep...'); tic;
-    pivPar = [];      % variable for settings
-    pivData = [];     % variable for storing results
-
-    [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
-    % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
-    nextPow2=nextpow2(minCorL);
-    BiggestSize=2^(nextPow2+1);
-    SecondSize=2^(nextPow2);
-    ThirdSize=2^(nextPow2-1);
-    FourthSize=2^(nextPow2-2);
-    pivPar.iaSizeX = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
-    pivPar.iaStepX = [SecondSize SecondSize ThirdSize FourthSize];     % grid spacing of velocity vectors in X
-    pivPar.iaSizeY = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
-    pivPar.iaStepY = [SecondSize SecondSize ThirdSize FourthSize];    % grid spacing of velocity vectors in X
-
-    pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
-    pivPar.smMethod = 'none';
-    pivPar.iaMethod = 'defspline';
-    pivPar.iaImageInterpolationMethod = 'spline';
-    pivPar.imMask1=bgMask(:,:,1);
-    pivPar.imMask2=bgMask(:,:,2);
-
-    [pivData] = pivAnalyzeImagePair(stack(:,:,1),stack(:,:,2),pivData,pivPar);
-    validV = ~isnan(pivData.V);
-
-    pivPos=[pivData.X(validV), pivData.Y(validV)];
-    pivVec=[pivData.V(validV), pivData.U(validV)];
-    toc
-else
-    pivPos=[]; pivVec=[];
-end
+% if usePIVSuite
+%     disp('Performing PIV as a prestep...'); tic;
+%     pivPar = [];      % variable for settings
+%     pivData = [];     % variable for storing results
+% 
+%     [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
+%     % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
+%     nextPow2=nextpow2(minCorL);
+%     BiggestSize=2^(nextPow2+1);
+%     SecondSize=2^(nextPow2);
+%     ThirdSize=2^(nextPow2-1);
+%     FourthSize=2^(nextPow2-2);
+%     pivPar.iaSizeX = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+%     pivPar.iaStepX = [SecondSize SecondSize ThirdSize FourthSize];     % grid spacing of velocity vectors in X
+%     pivPar.iaSizeY = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
+%     pivPar.iaStepY = [SecondSize SecondSize ThirdSize FourthSize];    % grid spacing of velocity vectors in X
+% 
+%     pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
+%     pivPar.smMethod = 'none';
+%     pivPar.iaMethod = 'defspline';
+%     pivPar.iaImageInterpolationMethod = 'spline';
+%     pivPar.imMask1=bgMask(:,:,1);
+%     pivPar.imMask2=bgMask(:,:,2);
+% 
+%     [pivData] = pivAnalyzeImagePair(stack(:,:,1),stack(:,:,2),pivData,pivPar);
+%     validV = ~isnan(pivData.V);
+% 
+%     pivPos=[pivData.X(validV), pivData.Y(validV)];
+%     pivVec=[pivData.U(validV), pivData.V(validV)];
+%     toc
+% else
+%     pivPos=[]; pivVec=[];
+% end
 
 %Calculate the correlation coefficient for each sampling velocity at
 % each point.
@@ -185,9 +185,12 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
+% inqryPoint=2000;
+% for k = inqryPoint
+if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 parfor k = 1:nPoints
 % for k = 1:nPoints
-    fprintf(1,[strg ' ...'],k);
+%     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
     
@@ -213,8 +216,13 @@ parfor k = 1:nPoints
         end
         %Always get back the initial max speed for new 'corL'.
         % We devide the max speed by 2 due the use of the while loop below.
-        maxFlowSpd = initMaxFlowSpd/2;
-        maxPerpSpd = initMaxPerpSpd/2;
+%         if usePIVSuite % In this case we don't need incremental assessment -SH20170301
+%             maxFlowSpd = maxSpdLimit/2;
+%             maxPerpSpd = maxSpdLimit/2;
+%         else
+            maxFlowSpd = initMaxFlowSpd/2;
+            maxPerpSpd = initMaxPerpSpd/2;
+%         end
         
         %Flag that indicates the quality of the score.
         pass = 0;
@@ -287,27 +295,31 @@ parfor k = 1:nPoints
                 %Test the quality of the score function and find the index of the
                 % maximum score.
                 [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.59);
-                if usePIVSuite && length(locMaxI(:,1))>1
-                    % Here I use PIV result to find the best candidate
-                    % regardless of whether score passed or not from findMaxScoreI
-                    % Get the candidate vectors
-                    locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
-                    % What's the piv result in location closest to [xI, yI]
-                    [idxPosClosePIV] = KDTreeClosestPoint(pivPos,[xI,yI]);
+%                 if usePIVSuite && length(locMaxI(:,1))>1
+%                     % Here I use PIV result to find the best candidate
+%                     % regardless of whether score passed or not from findMaxScoreI
+%                     % Get the candidate vectors
+%                     locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+%                     % What's the piv result in location closest to [xI, yI]
+%                     [idxPosClosePIV,distClose] = KDTreeClosestPoint(pivPos,[xI,yI]);
 %                     if distClose<minCorL/2
-                        candidateVec = pivVec(idxPosClosePIV,:);
-                        distToMaxV2 = sqrt(sum((locMaxV- ...
-                                ones(size(locMaxV,1),1)*candidateVec).^2,2));
-                        [~,indDist]=sort(distToMaxV2);
-                        % minD = distSorted(1);
-                        ind = indDist(1);
-                        maxI = locMaxI(ind,:);
-                        maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
-                        pass = 2;
+%                         candidateVec = pivVec(idxPosClosePIV,:);
+%                         distToMaxV2 = sqrt(sum((locMaxV- ...
+%                                 ones(size(locMaxV,1),1)*candidateVec).^2,2));
+%                         [distSorted,indDist]=sort(distToMaxV2);
+%                         minD = distSorted(1);
+%                         ind = indDist(1);
+%                         if minD < 0.1*candidateVec
+%                             maxI = locMaxI(ind,:);
+%                             maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+%                             pass = 2;
+%                         else
+%                             pass = 0;
+%                         end
 %                     else
 %                         pass = 0;
 %                     end
-                end
+%                 end
                 if pass == 0 || corL < maxCorL
                     %Increase the block length and width by a factor of 5/4 to see if
                     % the ambiguity can be resovled. Also by comparing the two
@@ -392,8 +404,30 @@ parfor k = 1:nPoints
     %                         
     %                         [minD,ind] = min(distToMaxV2);
     %                         maxV = locMaxV(ind,:);
-
                             maxV2 = [vP2(maxI2(1)) vF2(maxI2(2))];
+                            maxVNorm = max(norm(maxV2));%,norm(maxV)); % For efficiency, I moved maxInterpfromScore into if statement
+%                             if usePIVSuite && length(locMaxI(:,1))>1
+%                                 % Here I use PIV result to find the best candidate
+%                                 % regardless of whether score passed or not from findMaxScoreI
+%                                 % Get the candidate vectors
+%                                 locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+%                                 % What's the piv result in location closest to [xI, yI]
+%                                 [idxPosClosePIV,distClose] = KDTreeClosestPoint(pivPos,[xI,yI]);
+%                                 if distClose<0.3*minCorL
+%                                     candidateVec = pivVec(idxPosClosePIV,:);
+%                                     distToMaxV2 = sqrt(sum((locMaxV- ...
+%                                             ones(size(locMaxV,1),1)*candidateVec).^2,2));
+%                                     [distSorted,indDist]=sort(distToMaxV2);
+%                                     minD = distSorted(1);
+%                                     ind = indDist(1);
+%                                     if minD<0.1*norm(candidateVec)
+%                                         maxI = locMaxI(ind,:);
+%                                         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+%                                         pass = 2;
+%                                         break
+%                                     end
+%                                 end
+%                             end
                             [~,locMaxI] = findMaxScoreI(score,zeroI,minFeatureSize,0.3); %to find the most closest candidate. This needs to be tested.
 
                             locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
@@ -429,7 +463,6 @@ parfor k = 1:nPoints
                             minD = distSorted(1);
                             ind = indDist(1);
 
-                            maxVNorm = max(norm(maxV2));%,norm(maxV)); % For efficiency, I moved maxInterpfromScore into if statement
                             if maxVNorm == 0 || ...
                                     (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
                                     (pass == 1 && maxVNorm < 0.5) || ...
@@ -626,8 +659,10 @@ parfor k = 1:nPoints
     corLength(k) = corL;
     sigtValues(k,:) = sigtVal;
     
-    fprintf(1,[backSpc '\b\b\b\b']);
+%     fprintf(1,[backSpc '\b\b\b\b']);
+    if feature('ShowFigureWindows'), parfor_progress; end
 end
+if feature('ShowFigureWindows'), parfor_progress(0); end
 nanInd = find(isnan(v(:,1)));
 endTime = cputime;
 fprintf(1,[strg '.\n'],nPoints);
