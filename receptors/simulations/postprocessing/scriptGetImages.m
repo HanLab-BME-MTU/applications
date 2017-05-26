@@ -1,10 +1,10 @@
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161109';
-saveDirImput='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161109';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/090514/targetISruns';
+saveDirImput='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170222/imagesStaticAnalysis/target';
 %Define strings for directory hierarchy as needed
- rDDir = {'rD4'};
- aPDir = {'aP0p0'};
-outDirNum = 1:5;
-lRDir = {'lR0p2'};%'lR0p1','lR0p2',
+ rDDir = {'rD10'};
+ aPDir = {'aP0p5'};
+outDirNum = 1;
+lRDir = {'lR0p3'};%'lR0p1','lR0p2',
 
 %Define number of label ratio
 numLabelRatio = length(lRDir);
@@ -12,6 +12,10 @@ numLabelRatio = length(lRDir);
 % define parameters structures:
 timeInfo = struct('simTimeStep',0.01,'sampleStep',0.1,'cutOffTime',80);
 intensityInfo = struct('bgav',5000,'bgnoise',50,'scaleFactor',1000);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%low density: imsize=25; high density: imsize=12
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 spaceInfo = struct('pixelSize',0.09,'psfSigma',1,'imsize',25);
 
 
@@ -42,6 +46,7 @@ for rDDirIndx = 1 : length(rDDir)
                 saveDir=[saveDirImput,filesep,rDDir{rDDirIndx},filesep,...
                 aPDir{aPDirIndx},filesep,'out',int2str(outDirNum(outDirIndx)),...
                 filesep,lRDir{lRDirIndx},filesep,'images'];
+            mkdir( saveDir)
                 saveInfo = struct('saveVar',1,'saveDir',saveDir);
                 
                 fprintf('\n   Out = %d, lR = %s ',outDirIndx,lRDir{lRDirIndx});

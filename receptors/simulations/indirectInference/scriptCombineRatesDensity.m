@@ -3,22 +3,18 @@
 %array of individual movie results
 %
 %Khuloud Jaqaman, June 2015
-
-sourceRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/probe/analysis';
+sourceRoot='/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150601_Analysis/probeISruns';
+saveRoot='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170413/probeLr1p0';
 
 %Define strings for directory hierarchy as needed
- rDDir = {'rD60'};%,'rD20','rD40','rD80','rD100','rD120','rD140','rD160'
- aPDir = {'aP0p5'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-outDirNum =1:30;
-lRDir = {'lR0p26'};%,'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5';
+rDDir ={'rD4'};%,'rD20','rD40','rD60','rD80','rD100','rD120','rD140''rD8',
+aPDir = {'aP0p5'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'}
+outDirNum =1:10;
+lRDir = {'lR1p0'};%,'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5';
+
+% caseNum=1;
 fprintf('\n===============================================================');
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%
-% here is the definition if it is static (0) or dynamic (1) data
-systemState=0;
-%%%%%%%%%%%%%%%%%%%%%%%%%%
 %The top level directory is that of receptor density
 for rDDirIndx = 1 : length(rDDir)
     
@@ -36,14 +32,20 @@ for rDDirIndx = 1 : length(rDDir)
                 aPDir{aPDirIndx},filesep,lRDir{lRDirIndx}];
             
             %read individual results
-            tmp = load(fullfile(currDir,'ratesAndDensityInd_dt0p1_T10.mat'));
-            
+%             tmp = load(fullfile(currDir,['/ratesAndDensityInd_dt0p1_T10_' int2str(caseNum) '.mat']));
+            tmp = load(fullfile(currDir,'/ratesAndDensityInd_dt0p1_T10.mat'));
            %call function to combine results
             [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMatrix] = ...
                 combineClusterRatesAndDensity(tmp.ratesDensityPerMovie);
             
             %save combined results
-            save([currDir,'/ratesAndDensityComb_dt0p1_T10'],'rateOnPerClust',...
+%             save([currDir,'/ratesAndDensityComb_dt0p1_T10_' int2str(caseNum) '.mat'],'rateOnPerClust',...
+%                 'rateOffPerClust','densityPerClust','paramVarCovMat','paramMatrix','-v7.3');
+%            
+outDirr=[saveRoot,filesep,rDDir{rDDirIndx},filesep,...
+                aPDir{aPDirIndx},filesep,lRDir{lRDirIndx}];
+            
+            save([saveRoot,'/ratesAndDensityComb_dt0p1_T10.mat'],'rateOnPerClust',...
                 'rateOffPerClust','densityPerClust','paramVarCovMat','paramMatrix','-v7.3');
             
             

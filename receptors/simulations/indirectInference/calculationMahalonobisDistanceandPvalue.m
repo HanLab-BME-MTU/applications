@@ -29,7 +29,7 @@ function [s,p]=calculationMahalonobisDistanceandPvalue(paramMatrixTarget,paramMa
 
 % s: Mahalanobis distance
 
-s = transpose(thetaProbe-thetaTarget)*(inv(vProbe+vTarget))*(thetaProbe-thetaTarget);
+ s = transpose(thetaProbe-thetaTarget)*(pinv(vProbe+vTarget))*(thetaProbe-thetaTarget);
 
 %p Value   
 
