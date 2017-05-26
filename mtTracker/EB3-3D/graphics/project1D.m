@@ -20,16 +20,15 @@ ip.addOptional('intMinPrctil',[1 99.9]);
 ip.addOptional('intMaxPrctil',[100 100]);
 ip.addOptional('name',[]);
 ip.addOptional('processSingleProj',[]);
-ip.addOptional('insetWidth',20);
+ip.addOptional('fringeWidth',20);
 ip.parse(varargin{:});
 p=ip.Results;
 
 tracks=p.tracks;
 
 showDebugGraphics=0;
-insetWidth=p.insetWidth;
+fringeWidth=p.fringeWidth;
 
-IMSphere=strel3DEllipsoid(insetWidth,ceil(insetWidth*MD.pixelSize_/MD.pixelSizeZ_));
 %% Define the static Rectangular cuboid that contains the pixel to be projected in the frame of reference.
 %% Accordinly,  the coordinate of this cube are specified such as the origin of the frame of reference is the zero.
 
@@ -62,12 +61,12 @@ if(strcmp(p.crop,'manifold'))
 %     minYBorder=max(minY-cubeHalfWidth,1);
 %     minZBorder=max(minZ-cubeHalfWidth,1);
 
-    maxXBorder=(maxX+insetWidth);
-    maxYBorder=(maxY+insetWidth);
-    maxZBorder=(maxZ+insetWidth);
-    minXBorder=(minX-insetWidth);
-    minYBorder=(minY-insetWidth);
-    minZBorder=(minZ-insetWidth);
+    maxXBorder=(maxX+fringeWidth);
+    maxYBorder=(maxY+fringeWidth);
+    maxZBorder=(maxZ+fringeWidth);
+    minXBorder=(minX-fringeWidth);
+    minYBorder=(minY-fringeWidth);
+    minZBorder=(minZ-fringeWidth);
 else
     maxXBorder=MD.getDimensions('X')-p.FoF.origin(1,1);
     maxYBorder=MD.getDimensions('Y')-p.FoF.origin(1,2);
@@ -127,16 +126,25 @@ parfor fIdx=1:MD.nFrames_
 
         % Building mask for both channel on the whole volume
         % NOTE: Could masking use imwarp for speed ?
-        mask=zeros(size(vol));
+        mask=zeros(size(vol,1),size(vol,2),ceil(size(vol,3)*MD.pixelSizeZ_/MD.pixelSize_));
         sampling=100;
         xSeg=round(linspace(PCurrent(1),KCurrent(1),sampling));
         ySeg=round(linspace(PCurrent(2),KCurrent(2),sampling));
-        zSeg=round(linspace(PCurrent(3)*MD.pixelSize_/MD.pixelSizeZ_,KCurrent(3)*MD.pixelSize_/MD.pixelSizeZ_,sampling));
+        zSeg=round(linspace(PCurrent(3),KCurrent(3),sampling));
         indx=sub2ind(size(mask),ySeg,xSeg,zSeg);
-
+        
         mask(indx)=1;
-        mask=imdilate(mask,IMSphere);  %ones(cubeHalfWidth,cubeHalfWidth,round(cubeHalfWidth*MD.pixelSize_/MD.pixelSizeZ_)));
-
+        %mask=imdilate(mask,IMSphere);  %ones(cubeHalfWidth,cubeHalfWidth,round(cubeHalfWidth*MD.pixelSize_/MD.pixelSizeZ_)));
+        distMap=mask;
+%         mask=resize(distMap,[1 1 MD.pixelSizeZ_/MD.pixelSize_]);
+        distMap=bwdist(distMap);
+%         distMap=resize(distMap,[1 1 MD.pixelSize_/MD.pixelSizeZ_]);
+        mask(distMap<fringeWidth)=1;
+        [y x z]=...
+            ndgrid( linspace(1,size(mask,1),size(vol,1)),...
+                    linspace(1,size(mask,2),size(vol,2)),...
+                    linspace(1,size(mask,3),size(vol,3)));
+        mask=interp3(mask,x,y,z);
         maskedVol=vol;
         maskedVol(~mask)=0;
         %     outputDir=[outputDirDemo filesep  'mask'];mkdir(outputDir);
@@ -439,9 +447,9 @@ parfor fIdx=1:MD.nFrames_
         prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
 
     [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio, ...
-        prctile(warpedVol(:),p.intMinPrctil(1)),prctile(warpedVol(:),p.intMaxPrctil(1)));
+        prctile(warpedMaskedVol(:),p.intMinPrctil(1)),prctile(warpedMaskedVol(:),p.intMaxPrctil(1)));
     [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(warpedMaskedKinVol,ZRatio, ...
-        prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
+        prctile(warpedMaskedKinVol(:),p.intMinPrctil(2)),prctile(warpedMaskedKinVol(:),p.intMaxPrctil(2)));
 
     % Fuse ROI and context
     maxXY(maxXY==0)=fullmaxXY(maxXY==0);
