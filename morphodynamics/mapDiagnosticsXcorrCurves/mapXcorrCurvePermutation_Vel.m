@@ -38,8 +38,10 @@ function mapXcorrCurvePermutation_Vel(MD, iChan1, chan1Name, layerMax, figuresDi
 %       omittedWindows  
 %                   - window index in which activities will be replaced by
 %                   NaN. Default is null.
-%   
+%       subFrames
+%                   - specified frames will be only used.        
 %
+% Updated: Jungsik Noh, 2017/05/23  
 % Jungsik Noh, 2016/10/22
 
 tmax = MD.nFrames_;
@@ -57,6 +59,7 @@ ip.addParameter('omittedWindows', []);
 ip.addParameter('h0', []);
 ip.addParameter('mvFrSize', 0);
 ip.addParameter('Folding', false);
+ip.addParameter('subFrames', []);
 
 parse(ip, varargin{:})
 p = ip.Results;
@@ -66,14 +69,19 @@ p = ip.Results;
 %%  figuresDir setup
 if ~isdir(figuresDir); mkdir(figuresDir); end
 
+tmptext = ['mapXcorrCurvePermutation_Vel_', 'inputParser.mat'];
+save(fullfile(figuresDir, tmptext), 'p')
+
+
 %%  getting Maps from channel & vel (ch0)
 
 [~, ~,MDtimeInterval_, wmax, tmax, ~, ~, imActmap1] ...
             = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, 'WithN', p.WithN, ...
-                'omittedWindows', p.omittedWindows, 'Folding', p.Folding); 
+                'omittedWindows', p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames); 
 
 [~, ~, ~, ~, ~, ~, ~, imVelmap] ...
-            = mapOutlierImputation(MD, 0, 1, 'impute', p.impute, 'omittedWindows', p.omittedWindows, 'Folding', p.Folding); 
+            = mapOutlierImputation(MD, 0, 1, 'impute', p.impute, 'omittedWindows', ...
+            p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames);  
 
 %end
 %if p.Folding == 1

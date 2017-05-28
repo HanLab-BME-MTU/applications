@@ -38,7 +38,13 @@ function mapXcorrCurvePermutation(MD, iChan1, iChan2, chan1Name, chan2Name, laye
 %       WithN       - if true, it uses an alternative windowSampling result
 %                   which is obtained by sampleMovieWindowsWithN.m and includes number
 %                   of pixels for each windows. Default is false.
-%   
+%       omittedWindows  
+%                   - window index in which activities will be replaced by
+%                   NaN. Default is null.
+%       subFrames
+%                   - specified frames will be only used.        
+%
+% Updated: Jungsik Noh, 2017/05/23     
 % Jungsik Noh, 2016/10/22
 
 
@@ -54,6 +60,8 @@ ip.addParameter('rseed', 'shuffle');
 ip.addParameter('numPerm', 1000);
 ip.addParameter('impute', true);
 ip.addParameter('WithN', false);
+ip.addParameter('subFrames', []);
+ip.addParameter('omittedWindows', []);
 
 parse(ip, varargin{:})
 p = ip.Results;
@@ -63,13 +71,19 @@ p = ip.Results;
 %%  figuresDir setup
 if ~isdir(figuresDir); mkdir(figuresDir); end
 
+tmptext = ['mapXcorrCurvePermutation_', 'inputParser.mat'];
+save(fullfile(figuresDir, tmptext), 'p')
+
+
 %%  getting Maps from channels 1, 2
 
 [~, ~,MDtimeInterval_, wmax, tmax, ~, ~, imActmap1] ...
-            = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, 'WithN', p.WithN); 
+            = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, ...
+            'omittedWindows', p.omittedWindows, 'WithN', p.WithN, 'subFrames', p.subFrames);  
 
 [~, ~, ~, ~, ~, ~, ~, imActmap2] ...
-            = mapOutlierImputation(MD, iChan2, layerMax, 'impute', p.impute, 'WithN', p.WithN); 
+            = mapOutlierImputation(MD, iChan2, layerMax, 'impute', p.impute, ...
+            'omittedWindows', p.omittedWindows, 'WithN', p.WithN, 'subFrames', p.subFrames);  
 
 
 %% variable set up
