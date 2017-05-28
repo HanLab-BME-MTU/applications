@@ -35,7 +35,10 @@ function mapDescriptives_OneChan(MD, iChan, maxLayer, chanName, chanTitle, figur
 %       omittedWindows  
 %                   - window index in which activities will be replaced by
 %                   NaN. Default is null.
+%       subFrames
+%                   - specified frames will be only used.        
 %
+% Updated: Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/18
 
 
@@ -49,6 +52,7 @@ ip.addParameter('rseed', 'shuffle');
 ip.addParameter('numPerm', 1000);
 ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
+ip.addParameter('subFrames', []);
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -60,6 +64,8 @@ figFlag = p.figFlag;
 % figuresDir = fullfile(outDir, figDirName)           %% input
 if ~isdir(figuresDir); mkdir(figuresDir); end
 
+tmptext = ['mapDescriptives_OneChan_', 'inputParser.mat'];
+save(fullfile(figuresDir, tmptext), 'p')
 
 %%  getting Maps from channels
 
@@ -69,7 +75,7 @@ disp(chanTitle)
 
 [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
         = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, ...
-            'WithN', p.WithN, 'omittedWindows', p.omittedWindows, 'Folding', p.Folding); 
+            'WithN', p.WithN, 'omittedWindows', p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames); 
         
 
         
