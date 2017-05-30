@@ -132,9 +132,9 @@ opts = statset('Display','final','MaxIter',200);
 try
     objBgInten = gmdistribution.fit(double(bgInten), 2, 'Options', opts);
     % Get the second distribution
-    [~,largerMu]=max(objBgInten.mu);
-    muCytoInten = objBgInten.mu(largerMu);
-    stdCytoInten = sqrt(objBgInten.Sigma(:,:,largerMu));
+    [~,smallerMu]=min(objBgInten.mu);
+    muCytoInten = objBgInten.mu(smallerMu);
+    stdCytoInten = sqrt(objBgInten.Sigma(:,:,smallerMu));
     thresInten = muCytoInten+4*stdCytoInten;
 catch
     try

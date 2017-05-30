@@ -210,16 +210,20 @@ else
 end
 outputFile=strcat(dataPath,filesep,'tracksNA.mat');
 % See if you can use existing tracks
-% if exist(outputFile,'file')
-%     disp('tracksNA file is found. Using it ... If you do not want to reuse this, please backup the file and rename it to other name than tracksNA.mat.')
-%     tracksNAFile = load(outputFile,'tracksNA');
-%     tracksNA = tracksNAFile.tracksNA;
-% else
+if exist(outputFile,'file')
+    disp('tracksNA file is found. Using it ... If you do not want to reuse this, please backup the file and rename it to other name than tracksNA.mat.')
+    tracksNAFile = load(outputFile,'tracksNA');
+    tracksNA = tracksNAFile.tracksNA;
+else
     % run analyzeAdhesionMaturation for obtaining tracks from paxillin channel
     tracksNA = analyzeAdhesionMaturation_old(pathForTheMovieDataFile,false,false,...
         'onlyEdge',onlyEdge,'saveAnalysis',false,'matchWithFA',matchWithFA,...
         'minLifetime',minLifetime,'outputPath',['Colocalization' filesep outputPath]);
-% end
+end
+% Get edge related features if not done yet
+if ~isfield(tracksNA,'edgeVel') || ~isfield(tracksNA,'closestBdPoint')
+    error('Please rerun analyzeAdhesionMaturation_old with getEdgeRelatedFeatures on')
+end
 % re-express tracksNA so that each track has information for every frame
 if ~isempty(iSDCProc)
     if ~isfield(tracksNA,'SDC_applied')

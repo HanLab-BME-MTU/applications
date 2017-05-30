@@ -575,31 +575,38 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
                 % Deciding each adhesion maturation status
             for k=1:numel(tracksNA)
                 if tracksNA(k).presence(ii)
-                    if ~strcmp(tracksNA(k).state{ii} , 'NA') && ii>1
-                        tracksNA(k).state{ii} = tracksNA(k).state{ii-1};
-                    end
+%                     if ~strcmp(tracksNA(k).state{ii} , 'NA') && ii>1
+%                         tracksNA(k).state{ii} = tracksNA(k).state{ii-1};
+%                     end
                     % decide if each track is associated with FC or FA
-                    p = 0;
-                    for jj=FCIdx'
-                        p=p+1;
-                        if any(round(tracksNA(k).xCoord(ii))==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))==Adhs(jj).PixelList(:,2))
+                    labelAdhesion = bwlabel(maskAdhesion,4);
+                    if maskAdhesion(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)))>0
+                        iAdh = labelAdhesion(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
+                        if ismember(iAdh,FCIdx)
                             tracksNA(k).state{ii} = 'FC';
-                            tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
-                            tracksNA(k).FApixelList{ii} = Adhs(jj).PixelList;
-                            tracksNA(k).adhBoundary{ii} = adhBound{jj};
+                            tracksNA(k).area(ii) = Adhs(iAdh).Area;% in pixel
+                            tracksNA(k).FApixelList{ii} = Adhs(iAdh).PixelList;
+                            tracksNA(k).adhBoundary{ii} = adhBound{iAdh};
                             tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
-                        end
-                    end
-                    p = 0;
-                    for jj=FAIdx'
-                        p=p+1;
-                        if any(round(tracksNA(k).xCoord(ii))==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))==Adhs(jj).PixelList(:,2))
+                        elseif ismember(iAdh,FAIdx)
                             tracksNA(k).state{ii} = 'FA';
-                            tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
-                            tracksNA(k).FApixelList{ii} = Adhs(jj).PixelList;
-                            tracksNA(k).adhBoundary{ii} = adhBound{jj};
+                            tracksNA(k).area(ii) = Adhs(iAdh).Area;% in pixel
+                            tracksNA(k).FApixelList{ii} = Adhs(iAdh).PixelList;
+                            tracksNA(k).adhBoundary{ii} = adhBound{iAdh};
+                            tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
+                        else 
+                            tracksNA(k).state{ii} = 'NA';
+                            tracksNA(k).area(ii) = Adhs(iAdh).Area;% in pixel
+                            tracksNA(k).FApixelList{ii} = Adhs(iAdh).PixelList;
+                            tracksNA(k).adhBoundary{ii} = adhBound{iAdh};
                             tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
                         end
+                    else
+                        tracksNA(k).state{ii} = 'NA';
+                        tracksNA(k).area(ii) = NaN;% in pixel
+                        tracksNA(k).FApixelList{ii} = [];
+                        tracksNA(k).adhBoundary{ii} = [];
+                        tracksNA(k).faID(ii) = NaN;
                     end
                 elseif ii>tracksNA(k).endingFrameExtra && ...
                         (strcmp(tracksNA(k).state{tracksNA(k).endingFrameExtra},'FA')...
@@ -613,7 +620,7 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
                         tracksNA(k).adhBoundary{ii} = NaN;
                         continue
                     else
-                        propSubMaskFAs = regionprops(subMaskFAs,'PixelList','MajorAxisLength');
+                        propSubMaskFAs = regionprops(subMaskFAs,'PixelList','MajorAxisLength','Area');
                         minDist = zeros(length(propSubMaskFAs),1);
                         for q=1:length(propSubMaskFAs)
                             minDist(q) = min(sqrt((propSubMaskFAs(q).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrameExtra))).^2 +...
@@ -634,10 +641,17 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
                         end
                         tracksNA(k).presence(ii)=true;
                         tracksNA(k).endingFrameExtra = ii; % This is update I did on 5/24/17.
+                        tracksNA(k).lifeTime = ii-tracksNA(k).startingFrameExtra; % This is update I did on 5/24/17.
     %                     tracksNA(k).xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
     %                     tracksNA(k).yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
                         tracksNA(k).FApixelList{ii} = propSubMaskFAs(subMaskFAsIdx).PixelList;
                         tracksNA(k).adhBoundary{ii} = subAdhBound{subMaskFAsIdx};
+                        tracksNA(k).faID(ii) = maskFAs(tracksNA(k).FApixelList{ii}(1,1),...
+                                                        tracksNA(k).FApixelList{ii}(1,2));
+                        tracksNA(k).area(ii) = propSubMaskFAs(subMaskFAsIdx).Area;% in pixel
+                        if tracksNA(k).endingFrameExtraExtra<tracksNA(k).endingFrameExtra 
+                            tracksNA(k).endingFrameExtraExtra=tracksNA(k).endingFrameExtra;
+                        end
                     end
                 end
             end
