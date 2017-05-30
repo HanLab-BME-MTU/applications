@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 22-Jul-2016 14:16:04
+% Last Modified by GUIDE v2.5 14-Feb-2017 16:17:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -252,12 +252,12 @@ end
 % --- Executes on button press in pushbutton_basisClassTblPath.
 function pushbutton_basisClassTblPath_Callback(hObject, eventdata, handles)
 
-[file path]=uigetfile({'*.mat;*.MAT',...
+[file, path] = uigetfile({'*.mat;*.MAT',...
     'Mat files (*.mat)'},...
     'Select the file containing the basis class lookup table');
-if ~isequal(file,0) && ~isequal(path,0)
-    vars=whos('basisClassTbl','-file',[path file]);
-    if numel(vars)~=1,
+if ~isequal(file, 0) && ~isequal(path, 0)
+    vars = whos('basisClassTbl','-file',[path file]);
+    if numel(vars) ~= 1
         errordlg('Please select a file containing a valid basis class lookup table');
         return 
     end
@@ -325,3 +325,11 @@ function setROIfromForcemap_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 MD=handles.figure1.UserData.MD;
 setROIfromForcemap(MD);
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over pushbutton_basisClassTblPath.
+function pushbutton_basisClassTblPath_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to pushbutton_basisClassTblPath (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

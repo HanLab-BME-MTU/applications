@@ -13,12 +13,13 @@ function [] = pcAccumulateFeatsGenericThirdGen(params)
 addpath(genpath('/home2/azaritsky/code/applications/2dActionRecognition/metaAnalysis/'));
 
 close all;
-always = false;
+always = true;%false;
 
 featsInDname = params.featsInDname;
 featsOutDname = params.featsOutDname;
 featsStrIn = params.featsStrIn; % prefix for the input of the features
 featsStrOut = params.featsStrOut; % prefix for output of the features
+featsStrID = params.featsStrID; % prefix for feature ID  (used in cell explorer)
 metaDataFname = params.metaDataFname; % meta data (from excel DB)
 fGetFeats = params.fGetFeats;
 
@@ -31,7 +32,7 @@ end
 
 load(metaDataFname);%metaData
 
-for iScale = 1 : nScales
+for iScale = 1 : nScales        
     
     % features
     accFeatsFnameAllFov = [featsOutDname filesep featsStrOut '_' num2str(iScale) '_fov_all.mat'];
@@ -39,7 +40,7 @@ for iScale = 1 : nScales
     %% Accumulate
     if ~exist(accFeatsFnameAllFov,'file') || always
         tic;
-        out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,iScale,fGetFeats);
+        out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,featsStrID,iScale,fGetFeats);
         allCellsFov = out.allCells.fov;
         allInfo = out.allCells;
         clear out;
@@ -53,7 +54,7 @@ end
 end
 
 %% Here we do the accumulation for every well!
-function out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,iScale,fGetFeats)
+function out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,featsStrID,iScale,fGetFeats)
 
 %% init
 out.allCells.fov.accFeats = {};
@@ -67,6 +68,9 @@ out.allCells.cellType = {};
 out.allCells.source = {};
 out.allCells.metEff = {};
 
+out.allCells.expStr = {};
+out.allCells.featsStrID = [featsStrID '_' num2str(iScale)];
+
 %% Accumulation
 for iexp = 1 : metaData.experiments.N
     expFname = metaData.experiments.fnames{iexp};
@@ -79,7 +83,7 @@ for iexp = 1 : metaData.experiments.N
     
     for iCellType = 1 : nExpCellTypes
         
-        curCellType = uniqueExpCellTypes(iCellType);
+        curCellType = uniqueExpCellTypes{iCellType};
         tasksItr = find(strcmp(curCellType,expCellTypes));
         
         %% count the next open spot for each condition
@@ -88,7 +92,7 @@ for iexp = 1 : metaData.experiments.N
         for itask = tasksItr
             
             % in exclude list
-            if ismember(itask,metaData.experiments.exclude{iexp});
+            if ismember(itask,metaData.experiments.exclude{iexp})
                 continue;
             end
                         
@@ -102,7 +106,7 @@ for iexp = 1 : metaData.experiments.N
             end
             
             cellData = getCellData(featsInFname);
-            [curFeats,curIDs] = getLchFeats(fGetFeats,cellData);
+            [curFeats,curIDs,curTXY] = getLchFeats(fGetFeats,cellData);
             nCurCells = size(curFeats,2);
             
             
@@ -114,14 +118,16 @@ for iexp = 1 : metaData.experiments.N
                 out.allCells.fov.accCellID{nextPosition} = [];
                 
                 % loaction
-                out.allCells.fov.locations{nextPosition}.locationDeltaLbp = {};
+                out.allCells.fov.locations{nextPosition}.locationFeats = {};
                 out.allCells.fov.locations{nextPosition}.locationStr = {};
+                out.allCells.fov.locations{nextPosition}.locationTXY = {};
             end
             
             % loaction
-            iLocation = length(out.allCells.fov.locations{nextPosition}.locationDeltaLbp) + 1;
-            out.allCells.fov.locations{nextPosition}.locationDeltaLbp{iLocation} = curFeats;
+            iLocation = length(out.allCells.fov.locations{nextPosition}.locationFeats) + 1;
+            out.allCells.fov.locations{nextPosition}.locationFeats{iLocation} = curFeats;
             out.allCells.fov.locations{nextPosition}.locationStr{iLocation} = sprintf('%02d',itask);
+            out.allCells.fov.locations{nextPosition}.locationTXY{iLocation} = curTXY;
             
             % accumulation
             out.allCells.fov.accFeats{nextPosition} = [out.allCells.fov.accFeats{nextPosition},curFeats];
@@ -135,6 +141,8 @@ for iexp = 1 : metaData.experiments.N
             assert(strcmp(curCellType,metaData.cellTypes.ids{cellTypeInd}));
             out.allCells.source{nextPosition} = curSource;
             out.allCells.metEff{nextPosition} = curMetEff;
+            
+            out.allCells.expStr{nextPosition} = expFname;
         end % task
     end % cell type within experiment
 end % number of experiments

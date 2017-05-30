@@ -38,6 +38,7 @@ flowTrackProc = movieData.processes_{iProc};
 p = parseProcessParams(flowTrackProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
+wtBar=-1;
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...');
 else

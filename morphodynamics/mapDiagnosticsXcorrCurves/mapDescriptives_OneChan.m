@@ -32,7 +32,13 @@ function mapDescriptives_OneChan(MD, iChan, maxLayer, chanName, chanTitle, figur
 %       WithN       - if true, it uses an alternative windowSampling result
 %                   which is obtained by sampleMovieWindowsWithN.m and includes number
 %                   of pixels for each windows. Default is false.
+%       omittedWindows  
+%                   - window index in which activities will be replaced by
+%                   NaN. Default is null.
+%       subFrames
+%                   - specified frames will be only used.        
 %
+% Updated: Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/18
 
 
@@ -44,6 +50,9 @@ ip.addParameter('WithN', false);
 ip.addParameter('parpoolNum', 4);
 ip.addParameter('rseed', 'shuffle');
 ip.addParameter('numPerm', 1000);
+ip.addParameter('omittedWindows', []);
+ip.addParameter('Folding', false);
+ip.addParameter('subFrames', []);
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -55,6 +64,8 @@ figFlag = p.figFlag;
 % figuresDir = fullfile(outDir, figDirName)           %% input
 if ~isdir(figuresDir); mkdir(figuresDir); end
 
+tmptext = ['mapDescriptives_OneChan_', 'inputParser.mat'];
+save(fullfile(figuresDir, tmptext), 'p')
 
 %%  getting Maps from channels
 
@@ -63,9 +74,24 @@ disp(chanTitle)
 
 
 [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
-        = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, 'WithN', p.WithN); 
+        = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, ...
+            'WithN', p.WithN, 'omittedWindows', p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames); 
+        
+
+        
 disp(['== MDpixelSize_: ', num2str(MDpixelSize_), ' =='])
 disp(['== MDtimeInterval_: ', num2str(MDtimeInterval_), ' =='])
+
+
+%%  .txt (export comma delimited files)
+
+for indL = 1:maxLayer
+    dlmwrite(fullfile(figuresDir, [fname0, '_', num2str(indL), 'L_actmap_outl.txt']), ...
+                    actmap_outl{indL}, 'precision', 8)
+    dlmwrite(fullfile(figuresDir, [fname0, '_', num2str(indL), 'L_imActmap.txt']), ...
+                    imActmap{indL}, 'precision', 8)
+end
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,8 +117,8 @@ for indL = 1:maxLayer
     ax = gca;
     curTick = ax.XTick;
     ax.XTickMode = 'manual';
-    ax.XTick = curTick;
-    ax.XTickLabel = (curTick-1)*MDtimeInterval_;
+    ax.XTick = curTick+1;
+    ax.XTickLabel = (curTick)*MDtimeInterval_;
 
 end
 
@@ -220,8 +246,8 @@ for indL = 1:maxLayer
     ax = gca;
     curTick = ax.XTick;
     ax.XTickMode = 'manual';
-    ax.XTick = curTick;
-    ax.XTickLabel = (curTick-1)*MDtimeInterval_;
+    ax.XTick = curTick+1;
+    ax.XTickLabel = (curTick)*MDtimeInterval_;
 
 end
 
@@ -282,6 +308,46 @@ end
 %% 
 saveas(meansTime, fullfile(figuresDir, ['/meansTime', fname0, '.png']), 'png')
 saveas(meansWin, fullfile(figuresDir, ['/meansWin', fname0, '.png']), 'png')
+
+
+%%  TS plots for sampled 6 windows
+
+inputmap = actmap_outl{1};
+indNotAllNaN = find(~all(isnan(inputmap), 2));
+ind0 = round(linspace(1, numel(indNotAllNaN), 6));
+winInd = indNotAllNaN(ind0);
+
+tsplots1 = cell(1, maxLayer);
+tsplots2 = cell(1, maxLayer);
+
+for indL = 1:maxLayer
+    
+    inputmap = actmap_outl{indL};
+
+    legend1 = {['win', num2str(winInd(1))], ['win', num2str(winInd(2))], ['win', num2str(winInd(3))]};
+
+    tsplots1{indL} = figure('Visible', figFlag);
+    plot(timeAxis, inputmap(winInd(1:3), :))
+    xlabel('Time (s)'); ylabel(chanName)
+    title([chanTitle, ' example1 - ', num2str(indL), 'L'])
+    legend(legend1, 'Location','northoutside','Orientation','horizontal')
+
+    legend2 = {['win', num2str(winInd(4))], ['win', num2str(winInd(5))], ['win', num2str(winInd(6))]};
+
+    tsplots2{indL} = figure('Visible', figFlag);
+    plot(timeAxis, inputmap(winInd(4:6), :))
+    xlabel('Time (s)'); ylabel(chanName)
+    title([chanTitle, ' example2 - ', num2str(indL), 'L'])
+    legend(legend2, 'Location','northoutside','Orientation','horizontal')
+end
+
+
+%% 
+for indL = 1:maxLayer
+    saveas(tsplots1{indL}, fullfile(figuresDir, ['/tsplots1_', fname0, num2str(indL), 'L.png']), 'png')
+    saveas(tsplots2{indL}, fullfile(figuresDir, ['/tsplots2_', fname0, num2str(indL), 'L.png']), 'png')
+end
+
 
 
 %%  spatial/temporal AutoCorr 1

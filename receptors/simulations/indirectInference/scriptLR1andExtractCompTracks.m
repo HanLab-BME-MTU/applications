@@ -1,12 +1,12 @@
 
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/090514/probeISruns';
-
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/091814/probeISruns';
+saveSource='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170411/probe';
 %Define strings for directory hierarchy as needed
-rDDir = {'rD10','rD16'};
-aPDir = {'aP0p5'};
-outDirNum = 1:5;
+rDDir = {'rD4'};%,'rD10','rD16'
+aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
+outDirNum = 6:10;
 lRDir = {'lR1p0'};
 
 %Define number of label ratio
@@ -41,8 +41,13 @@ for rDDirIndx = 1 : length(rDDir)
             
             %generate receptorInfoLabeled for lR = 1
             receptorInfoLabeled = genReceptorInfoLabeled(tempRecepInfo.receptorInfoAll,1,[1 0.3]);
-            save([currDir,['/receptorInfoLabeledExtra' int2str(outDirNum(outDirIndx))]],'receptorInfoLabeled','-v7.3');
             
+            %save
+            currDir1 = [saveSource,filesep,rDDir{rDDirIndx},filesep,...
+                aPDir{aPDirIndx},filesep,'out',int2str(outDirNum(outDirIndx))];
+            save([currDir1,['/receptorInfoLabeledExtra' int2str(outDirNum(outDirIndx))]],'receptorInfoLabeled','-v7.3');
+             mkdir(curDir1)
+             
             %Pull out compTracks
             [compTracksVec{:}] = receptorInfoLabeled(1:numLabelRatio).compTracks;
 
@@ -52,7 +57,7 @@ for rDDirIndx = 1 : length(rDDir)
                 
                 fprintf('\n   Out = %d, lR = %s ',outDirIndx,lRDir{lRDirIndx});
                 
-                currOutDir = [currDir,filesep,lRDir{lRDirIndx}];
+                currOutDir = [currDir1,filesep,lRDir{lRDirIndx}];
                 
                 %Create the direcotry
                 mkdir(currOutDir)

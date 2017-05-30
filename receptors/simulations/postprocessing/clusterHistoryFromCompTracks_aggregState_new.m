@@ -1,5 +1,5 @@
-function [clustHistoryAll,clustHistoryAllReal,clustHistoryMerged] = ...
-    clusterHistoryFromCompTracks_aggregState_new(tracksAggregStateDef,infoTime)
+function [clustHistoryAll,clustHistoryMerged] = ...
+    clusterHistoryFromCompTracks_aggregState_new(tracksAggregStateDef)
 %CLUSTERHISTORYFROMCOMPTRACKS_AGGREGSTATE determines the size and lifetime of all clusters that formed during a simulation
 %
 %   The function uses the information contained in seqOfEvents and
@@ -55,8 +55,7 @@ function [clustHistoryAll,clustHistoryAllReal,clustHistoryMerged] = ...
 %                            and its partner are both listed and NaN
 %                            indicates only the current segment is listed,
 %                            i.e. the partner is not listed.
-%       clustHistoryAllReal: the same as clustHistoryAll but with real time
-%       unities
+%       
 %       clustHistoryMerged: Same information as in clustHistoryAll but with
 %                         all cells merged into one 2D array, i.e.
 %                         individual track information is lost.
@@ -76,14 +75,7 @@ function [clustHistoryAll,clustHistoryAllReal,clustHistoryMerged] = ...
 
 %% Input
 
-%get sampling information
-timeStep = infoTime.timeStep;
-if isfield(infoTime,'sampleStep')
-    sampleStep = infoTime.sampleStep;
-else
-    sampleStep = timeStep;
-end
-convStep = round(sampleStep/timeStep);
+%Nothing to do
 
 %% Cluster history collection
 
@@ -95,8 +87,6 @@ convStep = round(sampleStep/timeStep);
 
 %Cluster history from all compTracks will be saved
 clustHistoryAll = cell(numCompTracks,1);
-clustHistoryAllReal = cell(numCompTracks,1);% 2016/10/02, LRO To have the 
-%clustHistory with real time unities, I added a new output.
 
 
 %For each compTrack
@@ -161,22 +151,6 @@ clustHistoryAllReal = cell(numCompTracks,1);% 2016/10/02, LRO To have the
 %Save current clustHistory in collection
 
 clustHistoryAll{compTrackIter,1} = clustHistoryTemp;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-%2016/11/02,LRO: This last part is to have the clustHistory with sampled
-%and real time
-
- %subsample time
-     clustHistoryTempReal=clustHistoryTemp;
-   clustHistoryTempReal(:,3:4) = ceil(clustHistoryTempReal(:,3:4)/convStep);
-    clustHistoryTempReal(:,5) = clustHistoryTempReal(:,4) - clustHistoryTempReal(:,3);
-
-%convert from iterations/frames to real time units
-    clustHistoryTempReal(:,3:5) = clustHistoryTempReal(:,3:5) * sampleStep;    
-    
-%Save current clustHistory in collection
-
-clustHistoryAllReal{compTrackIter,1} = clustHistoryTempReal;
 
     else
     
@@ -412,9 +386,7 @@ end  %for track index
             
             %Starting iteration point of this cluster
             clustHistoryTemp(clustHistIndx,3) = seqOfEvents(eventIndx,1);
-            
-            
-                
+                       
                             
             %Type of event starting cluster (1=dissoc., 2=assoc.)
             clustHistoryTemp(clustHistIndx,9) = seqOfEvents(eventIndx,2);
@@ -424,9 +396,9 @@ end  %for track index
         %find if the segments ending in the last frame are also changing in the
 %middle of the comptrack
  
-     
-        %Reset indx variables
-        %changingTrackIndx = []; not needed since set on every iter.
+ 
+
+       %changingTrackIndx = []; not needed since set on every iter.
         endingTrackIndx = [];
         
     end  %For each event in seqOfEvents
@@ -472,21 +444,7 @@ clustHistoryTemp(iRowNaN,:)=[];
 clustHistoryAll{compTrackIter,1} = clustHistoryTemp;
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-%2016/11/02,LRO: This last part is to have the clustHistory with sampled
-%and real time
 
- %subsample time
-    clustHistoryTempReal=clustHistoryTemp;
-    clustHistoryTempReal(:,3:4) = ceil(clustHistoryTempReal(:,3:4)/convStep);
-    clustHistoryTempReal(:,5) = clustHistoryTempReal(:,4) - clustHistoryTempReal(:,3);
-
-%convert from iterations/frames to real time units
-    clustHistoryTempReal(:,3:5) = clustHistoryTempReal(:,3:5) * sampleStep;    
-    
-%Save current clustHistory in collection
-
-clustHistoryAllReal{compTrackIter,1} = clustHistoryTempReal;
     end
 
 end  % for each index

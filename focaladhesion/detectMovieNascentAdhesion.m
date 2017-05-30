@@ -155,7 +155,7 @@ for j=1:movieData.nFrames_
     yNA=pstruct.y;
     maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA,mask);
 %     labelAdhesion = bwlabel(maskAdhesion);
-    Adhs = regionprops(maskAdhesion2,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength');
+    Adhs = regionprops(maskAdhesion2,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength','MinorAxisLength');
 %         minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
 
     adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
@@ -203,6 +203,7 @@ for j=1:movieData.nFrames_
         focalAdhInfo(j).yCoord(k) = round(Adhs(k).Centroid(2));
         focalAdhInfo(j).area(k) = Adhs(k).Area;
         focalAdhInfo(j).length(k) = Adhs(k).MajorAxisLength;
+        focalAdhInfo(j).width(k) = Adhs(k).MinorAxisLength;
         focalAdhInfo(j).amp(k) = mean(I(Adhs(k).PixelIdxList));
         focalAdhInfo(j).ecc(k) = Adhs(k).Eccentricity;
     end

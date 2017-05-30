@@ -7,6 +7,7 @@ ip.addParameter('printAll',false, @islogical);
 ip.addParameter('testKinIdx',[19 46 63 156],@isnumeric);
 ip.addParameter('kinCapture',[]);
 ip.addParameter('name','',@ischar);
+ip.addParameter('bundlierPole',false);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 testKinIdx=p.testKinIdx;
@@ -68,14 +69,23 @@ for kIdx=1:length(kinTracks)
      
      bundledIdx=sum((DStart>0)&(DEnd>0)&(DStartEnd>0),1);
      kinTrack.fiber=full(bundledIdx);
-      
+     
+     if(p.bundlierPole)
+         mtPoleId=arrayfun(@(mt) mt.poleId(1), kinTrack.catchingMT);
+         if(any((kinTrack.fiber>0)))
+         [~,bundlierPoleId]=max(accumarray(mtPoleId(kinTrack.fiber>0),1));
+         kinTrack.fiber=kinTrack.fiber(mtPoleId==bundlierPoleId);
+         kinTrack.catchingMT=kinTrack.catchingMT(mtPoleId==bundlierPoleId);
+         kinTrack.catchingMTKinRef=kinTrack.catchingMTKinRef(mtPoleId==bundlierPoleId);
+         end
+     end
 %      bundledMatrix=((DStart>0)&(DEnd>0)&(DStartEnd>0));
 %      kinTrack.bundledMatrix=bundledMatrix;
 end
 
 % First test, highlight bundle display the +TIP coordinate on a lateral view of the poleKin axis. 
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'projections' filesep p.name filesep 'testBundleRadius' filesep]
-system(['mkdir ' outputDirProj]);
+system(['mkdir -p ' outputDirProj]);
 
 if(printAll)    
     for kIdx=min(length(testKinIdx),testKinIdx)

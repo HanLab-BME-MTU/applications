@@ -15,6 +15,7 @@ function calculateMovieForceField(movieData,varargin)
 
 % Sebastien Besson, Sep 2011
 % Last updated by Sangyoon Han, Oct 2014
+% Updates by Andrew R. Jamieson, Feb 2017
 
 %% Input
 %Check input
@@ -83,7 +84,7 @@ try
 catch
     pDisp.useGrid = false;
 end
-if pDisp.useGrid
+if pDisp.useGrid || pDisp.addNonLocMaxBeads
     p.highRes = false;
 else
     p.highRes = true;
@@ -275,7 +276,7 @@ end
 % that the edges have been eroded to a certain extend. This is performed by
 % the following function.
 if ~p.highRes
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1,0);
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,0.9,0); % we have to lower grid spacing because there are some redundant or aggregated displ vectors when additional non-loc-max beads were used for tracking SH170311
 else
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.0,0); %no dense mesh in any case. It causes aliasing issue!
 end
@@ -292,25 +293,49 @@ if p.lastToFirst
 else
     frameSequence = firstFrame:nFrames;
 end
-jj = 0;
+
 if strcmpi(p.method,'FastBEM')
     % if FastBEM, we calculate forward map and mesh only in the first frame
     % and then use parfor for the rest of the frames to calculate forces -
     % SH
     i=frameSequence(1); % For the first frame
-    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
+    [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
     % basis function table name adjustment
-    expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix'];
-    % match basisClassTblPath name to include gridSpacing
+    expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix.mat'];
+    
+    % Check if path exists - this step might not be needed because
+    % sometimes we need to build a new table with a new name.
+    if isempty(p.basisClassTblPath)
+        disp(['Note, no path given for basis tables, outputing to movieData.mat path: ' ...
+            movieData.movieDataPath_]);
+        p.basisClassTblPath = fullfile(movieData.movieDataPath_, expectedName);
+    else
+        if exist(p.basisClassTblPath,'file')==2 
+            disp('BasisFunctionFolderPath is valid.');
+            if numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) ~= 1
+                disp(['basisFunction.mat not valid!' p.basisClassTblPath '. Will build a new basisFunction to this name.']);
+            end
+        else
+            disp('New basisFunctionFolderPath is entered. Will build a new table and save in this path.');
+        end
+%         assert(exist(p.basisClassTblPath,'file')==2, 'basisFunctionFolderPath not valid!');
+%         assert(numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) == 1, ['basisFunction.mat not valid!' p.basisClassTblPath]);
+    end
+
+    % Sanity check the paths.
     basisFunctionFolderPath = fileparts(p.basisClassTblPath);
-    expectedPath = [basisFunctionFolderPath filesep expectedName '.mat'];
-    if ~strcmp(expectedPath,p.basisClassTblPath)
+    assert(exist(basisFunctionFolderPath, 'dir')==7, 'basisFunctionFolderPath not valid!');
+
+    % Check if basis file name is correctly formatted.
+    expectedPath = fullfile(basisFunctionFolderPath, expectedName);
+    if ~strcmp(expectedPath, p.basisClassTblPath)
         p.basisClassTblPath = expectedPath;
         disp(['basisClassTblPath has different name for estimated mesh grid spacing (' num2str(gridSpacing) '). ']);
         disp('Now the path is automatically changed to :')
-        disp([expectedPath '.'])
+        disp([expectedPath '.']);
     end
+        
     % If grid_mat=[], then an optimal hexagonal force mesh is created
     % given the bead locations defined in displField:
     if p.usePaxImg && length(movieData.channels_)>1

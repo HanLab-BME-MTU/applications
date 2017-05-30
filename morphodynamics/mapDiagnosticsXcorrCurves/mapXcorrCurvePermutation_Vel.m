@@ -35,8 +35,13 @@ function mapXcorrCurvePermutation_Vel(MD, iChan1, chan1Name, layerMax, figuresDi
 %       WithN       - if true, it uses an alternative windowSampling result
 %                   which is obtained by sampleMovieWindowsWithN.m and includes number
 %                   of pixels for each windows. Default is false.
-%   
+%       omittedWindows  
+%                   - window index in which activities will be replaced by
+%                   NaN. Default is null.
+%       subFrames
+%                   - specified frames will be only used.        
 %
+% Updated: Jungsik Noh, 2017/05/23  
 % Jungsik Noh, 2016/10/22
 
 tmax = MD.nFrames_;
@@ -50,6 +55,11 @@ ip.addParameter('rseed', 'shuffle');
 ip.addParameter('numPerm', 1000);
 ip.addParameter('impute', true);
 ip.addParameter('WithN', false);
+ip.addParameter('omittedWindows', []);
+ip.addParameter('h0', []);
+ip.addParameter('mvFrSize', 0);
+ip.addParameter('Folding', false);
+ip.addParameter('subFrames', []);
 
 parse(ip, varargin{:})
 p = ip.Results;
@@ -59,14 +69,27 @@ p = ip.Results;
 %%  figuresDir setup
 if ~isdir(figuresDir); mkdir(figuresDir); end
 
+tmptext = ['mapXcorrCurvePermutation_Vel_', 'inputParser.mat'];
+save(fullfile(figuresDir, tmptext), 'p')
+
+
 %%  getting Maps from channel & vel (ch0)
 
 [~, ~,MDtimeInterval_, wmax, tmax, ~, ~, imActmap1] ...
-            = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, 'WithN', p.WithN); 
+            = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, 'WithN', p.WithN, ...
+                'omittedWindows', p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames); 
 
 [~, ~, ~, ~, ~, ~, ~, imVelmap] ...
-            = mapOutlierImputation(MD, 0, 1, 'impute', p.impute); 
+            = mapOutlierImputation(MD, 0, 1, 'impute', p.impute, 'omittedWindows', ...
+            p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames);  
 
+%end
+%if p.Folding == 1
+%    p.lagMax = round(p.lagMax/2);
+%end
+
+        
+        
 %%  adjust actmap according to velmap. Match layers
 
 for indL = 1:layerMax
@@ -116,7 +139,6 @@ topoFig_xcorrChan1Chan2 = topographMD(MD, tmax, 1, topoMap, title0, p.figFlag);
 
 %%
 saveas(topoFig_xcorrChan1Chan2, fullfile(figuresDir, ['/topoFig_xcorr_', fsaveName0, '.png']), 'png')  
-
 
 %%
 disp('====End of mapXcorrCurvePermutation_Vel====')

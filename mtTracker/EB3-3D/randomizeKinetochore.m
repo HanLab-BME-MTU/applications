@@ -13,8 +13,10 @@ p=ip.Results;
 randTracks=tracks.copy();
 for kIdx=1:length(tracks)
    track=randTracks(kIdx);
-   track.x=track.x + sign((rand(1)-0.5))*fixedDistance;
-   track.y=track.y + sign((rand(1)-0.5))*fixedDistance;
-   track.z=track.z + sign((rand(1)-0.5))*fixedDistance;
+   randDir=rand(1,3)-0.5;
+   randDir=fixedDistance*randDir/norm(randDir);
+   track.x=track.x + randDir(1);
+   track.y=track.y + randDir(2);
+   track.z=track.z + randDir(3);
 end
 

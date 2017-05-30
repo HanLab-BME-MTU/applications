@@ -37,6 +37,9 @@ end
 
 % nlms = theta;
 rotationResponseSize = size(rotationResponse);
+if(ndims(rotationResponse) < 3)
+    rotationResponseSize(3) = 1;
+end
 ny = rotationResponseSize(1);
 nx = rotationResponseSize(2);
 nAngles = rotationResponseSize(3);

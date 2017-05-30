@@ -53,7 +53,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
 %             ip.addOptional('iOut',1,@isnumeric);
 %             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) ismember(x,1:obj.owner_.nFrames_));
 %             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
-            ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addParameter('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
 %             iOut = ip.Results.iOut;
@@ -94,11 +94,12 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             
             outputList = obj.getDrawableOutput();
             drawLcurve = any(strcmpi('lcurve',varargin));
-            rendertMap = any(strcmpi('tMap',varargin));
+            rendertMap = any(strcmpi('tMap',varargin) | ...
+                strcmpi('dErrMap',varargin) | strcmpi('distBeadMap',varargin) );
             if drawLcurve %Lcurve
                 ip = inputParser;
                 ip.addRequired('obj',@(x) isa(x,'Process'));
-                ip.addParamValue('output',outputList(1).var,...
+                ip.addParameter('output',outputList(1).var,...
                     @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{:})
@@ -109,7 +110,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.addRequired('obj',@(x) isa(x,'Process'));
                 ip.addRequired('iChan',@isnumeric);
                 ip.addRequired('iFrame',@isnumeric);
-                ip.addParamValue('output',outputList(2).var,...
+                ip.addParameter('output',outputList(2).var,...
                     @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1:end})
@@ -121,7 +122,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip = inputParser;
                 ip.addRequired('obj',@(x) isa(x,'Process'));
                 ip.addRequired('iFrame',@isnumeric);
-                ip.addParamValue('output',outputList(1).var,...
+                ip.addParameter('output',outputList(1).var,...
                     @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1},varargin{2:end})
@@ -130,7 +131,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
             end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
-            if ~isempty(outputList(iOutput).formatData),
+            if ~isempty(outputList(iOutput).formatData)
                 data=outputList(iOutput).formatData(data);
             end
             try
@@ -185,25 +186,30 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             output(4).defaultDisplayMethod=@(x) VectorFieldDisplay('Colormap',jet,'Linewidth',1);
             
             if ~strcmp(obj.funParams_.method,'FTTC')
-                output(5).name='Prediction Err map';
-                output(5).var='dErrMap';
+
+                output(5).name='Lcurve';
+                output(5).var='lcurve';
                 output(5).formatData=[];
-                output(5).type='image';
-                output(5).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
-                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.dELimits_);
+                output(5).type='movieGraph';
+                output(5).defaultDisplayMethod=@FigFileDisplay;
 
-                output(6).name='Map of distance to bead';
-                output(6).var='distBeadMap';
-                output(6).formatData=[];
-                output(6).type='image';
-                output(6).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
-                    'Colorbar','on','Units',obj.getUnits,'CLim',obj.distBeadMapLimits_);
 
-                output(7).name='Lcurve';
-                output(7).var='lcurve';
-                output(7).formatData=[];
-                output(7).type='movieGraph';
-                output(7).defaultDisplayMethod=@FigFileDisplay;
+                %% TODO -- Ensure outputs are generated and available for display
+                % output(6).name='Prediction Err map';
+                % output(6).var='dErrMap';
+                % output(6).formatData=[];
+                % output(6).type='image';
+                % output(6).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                %     'Colorbar','on','Units',obj.getUnits,'CLim',obj.dELimits_);
+
+                % output(7).name='Map of distance to bead';
+                % output(7).var='distBeadMap';
+                % output(7).formatData=[];
+                % output(7).type='image';
+                % output(7).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                %     'Colorbar','on','Units',obj.getUnits,'CLim',obj.distBeadMapLimits_);
+
+
             end                
         end
         

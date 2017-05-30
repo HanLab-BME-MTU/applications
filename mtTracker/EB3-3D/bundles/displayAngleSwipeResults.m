@@ -1,13 +1,13 @@
 function displayAngleSwipeResults(fiberCell,randFiberCell)
-    plotRange=[0,8];
+    plotRange=[0,35];
     numAngle=length(fiberCell);
     [H]=setupFigure(2,ceil((numAngle+1)/2),numAngle+1,'AspectRatio',1,'AxesWidth',4);
     for i=1:numAngle
         %H=handles((2*i-1):2*i);
         handles=H(i);
         kinTracksCell={fiberCell{i},randFiberCell{i}};
-        fiberCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints);
-        kinetochoreCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints);
+        fiberCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
+        kinetochoreCount=zeros(length(kinTracksCell),kinTracksCell{1}.numTimePoints());
         
         for i=1:length(kinTracksCell)
             kinTracks=kinTracksCell{i};

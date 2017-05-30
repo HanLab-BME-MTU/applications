@@ -546,14 +546,25 @@ classdef Skeleton < matlab.mixin.SetGet &  matlab.mixin.Copyable
             end
             centroidIdx = sub2ind(obj.vertices.ImageSize,centroids(:,2),centroids(:,1));
             for i=1:E.NumObjects
-                if(all(v(i,:) ~= 0))
-                    [r,c] = ind2sub(obj.imSize,obj.edges.PixelIdxList{i}([1 end]));
+                [r,c] = ind2sub(obj.imSize,obj.edges.PixelIdxList{i}([1 end]));
+                if(v(i,1))
                     pre  = bresenham( centroids(v(i,1), [2 1]) , [r(1) c(1)]);
-                    post = bresenham([r(2) c(2)], centroids(v(i,2),[2 1]) );
                     pre = sub2ind(E.ImageSize,pre(:,1),pre(:,2));
-                    post = sub2ind(E.ImageSize,post(:,1),post(:,2));
-                    E.PixelIdxList{i} = [ pre(1:end-1); obj.edges.PixelIdxList{i}; post(2:end) ];
+                    E.PixelIdxList{i} = [ pre(1:end-1); E.PixelIdxList{i}];
                 end
+                if(v(i,2))
+                    post = bresenham([r(2) c(2)], centroids(v(i,2),[2 1]) );
+                    post = sub2ind(E.ImageSize,post(:,1),post(:,2));
+                    E.PixelIdxList{i} = [E.PixelIdxList{i}; post(2:end) ];
+                end
+%                 if(all(v(i,:) ~= 0))
+%                     [r,c] = ind2sub(obj.imSize,obj.edges.PixelIdxList{i}([1 end]));
+%                     pre  = bresenham( centroids(v(i,1), [2 1]) , [r(1) c(1)]);
+%                     post = bresenham([r(2) c(2)], centroids(v(i,2),[2 1]) );
+%                     pre = sub2ind(E.ImageSize,pre(:,1),pre(:,2));
+%                     post = sub2ind(E.ImageSize,post(:,1),post(:,2));
+%                     E.PixelIdxList{i} = [ pre(1:end-1); obj.edges.PixelIdxList{i}; post(2:end) ];
+%                 end
             end
             V.PixelIdxList = mat2cell(centroidIdx(:),ones(obj.vertices.NumObjects,1));
             obj.assumeOrdered = true;

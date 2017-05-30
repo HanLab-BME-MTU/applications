@@ -19,7 +19,14 @@ scaleBar = 1; %micron
 
 % curFrameRangeEE= curStartFrameEE:curEndFrameEE;
 chosenFRange = curFrameRange;
-[~,peakFrame] = max(curTrack.ampTotal(chosenFRange));
+
+splineParam = 0.01;
+d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
+tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
+sd_spline= csaps(tRange,d,splineParam);
+sd=ppval(sd_spline,tRange);
+
+[~,peakFrame] = max(sd); %max(curTrack.ampTotal(chosenFRange));
 peakFrame = chosenFRange(peakFrame);
 if ~isempty(curTrack.intenPeakness) && curTrack.intenPeakness
     peakFrame = curTrack.intenPeakFrame;
@@ -66,7 +73,7 @@ mgScale = 8;
 % ax1: initial point
 % it would be better to show frame that actually shows adhesion, so we
 % will use frame that is mid-point between initial and peak
-midStartFrame = ceil((chosenStartFrame+peakFrame)/2);
+midStartFrame = chosenStartFrame; %ceil((chosenStartFrame+peakFrame)/2);
 ax1=axes('Position',[marginX, 490/figHeight, 175/figWidth,175/figHeight]);
 %get the dynamic range
 cropImg = imgMap(bBottom:bTop,bLeft:bRight,chosenStartFrame:chosenEndFrame);
@@ -101,7 +108,7 @@ set(findobj(ax2,'Type','text'),'FontUnits',genFontUnit,'FontSize',genFontSize)
 % ax3: end point
 % it would be better to show frame that actually shows adhesion, so we
 % will use frame that is mid-point between initial and peak
-midEndFrame = ceil((chosenEndFrame+peakFrame)/2);
+midEndFrame = chosenEndFrame; %ceil((chosenEndFrame+peakFrame)/2);
 ax3=subplot('Position',[3*marginX+2*175/figWidth, 490/figHeight, 175/figWidth, 175/figHeight]);
 imshow(imgMap(:,:,midEndFrame),[minInt maxInt]), hold on
 rectangle('Position',[bLeft,bBottom,(bRight-bLeft+1),(bTop-bBottom+1)],'EdgeColor','y'); hold off
@@ -232,18 +239,22 @@ for ii= indiceRange
 %     plot(curTrack.xCoord(sF:eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(sF:eF)-bBottom+q*monImgH+1,'r', 'LineWidth', 0.5)
     % Show first increase point if it exists
     if eF>=curStartFrame && eF<curStartFrame+montInterval
-        markerType = 'yo';
+        markerType = 'yo'; bdType='y';
     elseif eF==peakFrame
-        markerType = 'wo';
+        markerType = 'wo'; bdType='w';
     elseif eF>=curEndFrame && eF<curEndFrame+montInterval
-        markerType = 'bo';
+        markerType = 'bo'; bdType='b';
     else
-        markerType = 'ro';
+        markerType = 'ro'; bdType='r';
     end
     if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
-        markerType = 'go';
+        markerType = 'go'; bdType='g';
     end
     plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
+    if ~isempty(curTrack.adhBoundary{eF})
+        plot(curTrack.adhBoundary{eF}(:,1)-bLeft+(iCol)*monImgW+1,...
+            curTrack.adhBoundary{eF}(:,2)-bBottom+(q)*monImgH+1,bdType);
+    end
 %         plot(curTrack.xCoord(chosenStartFrame:(chosenStartFrame+ii-1))-bLeft+(iCol)*monImgW+1,curTrack.yCoord(chosenStartFrame:(chosenStartFrame+ii-1))-bBottom+q*monImgH+1,'r', 'LineWidth', 0.5)
 %         plot(curTrack.xCoord(chosenStartFrame+ii-1)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(chosenStartFrame+ii-1)-bBottom+q*monImgH+1,'ro','MarkerSize',8, 'LineWidth', 0.5)
 end
@@ -284,6 +295,10 @@ for ii= indiceRange
     end
 %     plot(curTrack.xCoord(sF:eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(sF:eF)-bBottom+q*monImgH+1,'w', 'LineWidth', 0.5)
     plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
+    if ~isempty(curTrack.adhBoundary{eF})
+        plot(curTrack.adhBoundary{eF}(:,1)-bLeft+(iCol)*monImgW+1,...
+            curTrack.adhBoundary{eF}(:,2)-bBottom+(q)*monImgH+1,bdType);
+    end
 end
 colormap(ax4,'jet')
 colormap(ax5,'jet')
@@ -301,7 +316,10 @@ if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting
     plot((frameFII-curStartFrameEE)*tInterval,curTrack.ampTotal(frameFII),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
 end
 %background level
-line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxInt curTrack.bkgMaxInt],'linestyle',':','Color','k')
+if isfield(curTrack,'bkgMaxInt') && ~isempty(curTrack.bkgMaxInt)
+    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxInt curTrack.bkgMaxInt],'linestyle',':','Color','k')
+end
+    
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
 set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 % force time series
@@ -326,15 +344,10 @@ xlabel('Time (s)'); ylabel('Traction (Pa)')
 set(ax9,'FontUnits',genFontUnit,'FontSize',genFontSize)
 
 % Smoothed line and maximum
-splineParam = 0.01;
-d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
-tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 %     numNan = find(isnan(d),1,'last');
 %     tRange(isnan(d)) = [];
 %     d(isnan(d)) = [];
 axes(ax8)
-sd_spline= csaps(tRange,d,splineParam);
-sd=ppval(sd_spline,tRange);
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,sd,'Color',[0/255 0/255 0/255],'Linewidth',2)
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,...
     sd(curStartFrame-curStartFrameEE+1:curEndFrame-curStartFrameEE+1),'Color',[84/255 84/255 255/255],'Linewidth',2)
