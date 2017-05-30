@@ -37,7 +37,10 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 %       omittedWindows  
 %                   - window index in which activities will be replaced by
 %                   NaN. Default is null.
+%       subFrames
+%                   - specified frames will be only used.        
 %
+% Updated: Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/24
 
 
@@ -46,6 +49,7 @@ ip.addParameter('impute', true);
 ip.addParameter('WithN', false);
 ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
+ip.addParameter('subFrames', []);
 
 parse(ip, varargin{:});
 p = ip.Results;
@@ -124,6 +128,22 @@ else
 end
 
 
+
+%% Omit windows
+
+if numel(p.omittedWindows) > 0
+    actmap(p.omittedWindows, :,:) = NaN;
+end
+
+
+%% Omit time frames
+
+if numel(p.subFrames) > 0
+    actmap = actmap(:,:, p.subFrames);
+    tmax = size(actmap, 3);             %%% update tmax
+end
+
+
 %% if Folding
 
 if p.Folding == 1
@@ -149,12 +169,6 @@ if p.Folding == 1
 end
 
 
-
-%% Omit windows
-
-if numel(p.omittedWindows) > 0
-    actmap(p.omittedWindows, :,:) = NaN;
-end
 
 
 %%  Activity Map Outlier & remove windows

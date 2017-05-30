@@ -4,18 +4,17 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161213/target';
-saveRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161201/target/target_sT25_dT0p1';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/090514/probeISruns';
 %Define strings for directory hierarchy as needed
 rDDir = {'rD10'};
-aPDir = {'aP0p5'};
-outDirNum = 1:10;
-lRDir = {'lR0p4'};
+aPDir =  {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'}
+outDirNum =1:5;
+lRDir = {'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5'};
 
 
 
 %define space and time information
-infoSpaceTime = struct('probDim',2,'areaSideLen',12,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
+infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
 
 fprintf('\n===============================================================');
 
@@ -53,7 +52,7 @@ for rDDirIndx = 1 : length(rDDir)
                 
               %save results
               
-              saveDir=[saveRoot,filesep,rDDir{rDDirIndx},filesep,...
+              saveDir=[sourceRoot,filesep,rDDir{rDDirIndx},filesep,...
                     aPDir{aPDirIndx},filesep,'out',int2str(outDirNum(outDirIndx)),...
                     filesep,lRDir{lRDirIndx}];
                     mkdir(saveDir)

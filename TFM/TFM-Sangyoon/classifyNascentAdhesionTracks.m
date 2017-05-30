@@ -249,7 +249,7 @@ periodFrames = floor(periodMin/tIntervalMin); % early period in frames
 %% Integration of existing classifier(s)
 reuseSelectedGroups = 'n';
 if isempty(sampleFolders)
-    importSelectedGroups=input('Do you want to import existing trained data (1/0)?: ');
+    importSelectedGroups=1; %input('Do you want to import existing trained data (1/0)?: ');
     if ~isempty(importSelectedGroups) && importSelectedGroups
         doneLoadingTrainedData = false;
     %     T = table();
@@ -365,7 +365,9 @@ end
 %     end
 % end
 % if ~exist(outputFile,'file') || strcmp(reuseSelectedGroups, 'n') || isempty(reuseSelectedGroups) || strcmp(reuseSelectedGroups, 'a')
-reuseSelectedGroups=input('Do you want to add some more on top of it (a), discard imported data (d) or solely use this data for classifier training(u)?: ','s');
+
+% reuseSelectedGroups=input('Do you want to add some more on top of it (a), discard imported data (d) or solely use this data for classifier training(u)?: ','s');
+reuseSelectedGroups = 'a';
 if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelectedGroups, 'a') || isempty(reuseSelectedGroups) || strcmp(reuseSelectedGroups, 'd')
     if strcmp(reuseSelectedGroups, 'a')
         display('Click additional tracks that belong to each group ...')
@@ -400,7 +402,6 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         % interested) - by looking at edge velocity and edge MSD
         edgeVelAll=arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
         edgeStdAll=arrayfun(@(x) std(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
-        distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
         
         % 
         % 1. edge should protrude - should see overall positive edge
@@ -514,17 +515,83 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         indAbsoluteG4 = indEdgeVelG4 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2 & faAssocAll;
         indexG4 = find(indAbsoluteG4); 
         
-        % G5 - 
-        idTracksAdditionalAuto = [indexG1' indexG2' indexG3' indexG4'];
-        iGroupAdditionalAuto = [1*ones(size(indexG1')) 2*ones(size(indexG2')) 3*ones(size(indexG3')) ...
-            4*ones(size(indexG4'))]; % On top of this, we can definitely add other group samples
+        % G5 - stable at the edge
+        % edge doesn't move much
+        posEdgeVel = edgeVelAll(edgeVelAll>=0);
+        negEdgeVel = edgeVelAll(edgeVelAll<=0);
+        lowPosEVel = quantile(posEdgeVel,0.1);
+        lowNegEVel = -quantile(negEdgeVel,0.8);
+        thresEdgeVelG5 = (lowPosEVel+lowNegEVel)/2;
+        indEdgeVelG5 = abs(edgeVelAll)<thresEdgeVelG5;
         
-%         [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'trainedData',T,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
-        [idTracksAdditionalManual, iGroupAdditionalManual] = showAdhesionTracks(pathForColocalization,'all',...
-            'tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD, 'autoIndex', [idTracksAdditionalAuto; iGroupAdditionalAuto]);
-%         idTracks = [idTracks idTracksAdditional];
-%         iGroup = [iGroup iGroupAdditional];
+        thresEdgeStdG5 = quantile(edgeStdAll,0.1);
+        indEdgeStdG5 = edgeStdAll<thresEdgeStdG5;
+        % long life time
+        thresLifetimeG5 = quantile(lifeTimesAll,0.75);
+        indLifetimeG5 = lifeTimesAll>thresLifetimeG5;
+        % high-enough intensity
+        meanAmpAll = arrayfun(@(y) nanmean(y.ampTotal), tracksNA);
+        maxMeanAmp = max(meanAmpAll);
+        meanAmpNorm = meanAmpAll/maxMeanAmp;
+        try
+            thresMeanAmpNorm = graythresh(meanAmpNorm);
+            thresMeanAmp = thresMeanAmpNorm*maxMeanAmp;
+        catch
+            thresMeanAmp = mean(meanAmpAll)+0.5*std(meanAmpAll);
+        end
+        indHighAmpG5 = meanAmpAll>thresMeanAmp;
+        indAbsoluteG5 = indEdgeVelG5 & indEdgeStdG5 & indLifetimeG5 & indHighAmpG5;
+        indexG5 = find(indAbsoluteG5); 
+        
+        % G6 : noise. There are several types of noises, or uninterested
+        % tracks
+        % G6-1. too short tracks or tracks that are unfinished
+        thresShortLifeG6 = min(7, quantile(lifeTimesAll,0.1));
+        indShortLifeG6 = lifeTimesAll<=thresShortLifeG6;
+        % G6-2. amplitude too small
+        lowAmpPopul = meanAmpAll(meanAmpAll<thresMeanAmp);
+        thresLowAmpG6 = mean(lowAmpPopul)-0.3*std(lowAmpPopul);
+        indLowAmpG6 = meanAmpAll<thresLowAmpG6;
+        % G6-3. OR, tracks near the image borders (zero edge movement or std
+        % I am not sure if assigning two differently positioned labels work
+        % for classification - so I'll do this later after classification
+        indAbsoluteG6 = indShortLifeG6 & indLowAmpG6;
+        indexG6 = find(indAbsoluteG6); 
+        
+        % G7 NAs at stalling edge: big difference from G5 is that it has
+        % some early history of edge protrusion & relative weak signal
+        % (ampTotal)
+        edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
+        indLastAdvanceG7 = edgeAdvanceDistLastChangeNAs<max(0.01, mean(edgeAdvanceDistLastChangeNAs));
+        thresEdgeVelG7 = quantile(edgeVelAll(edgeVelAll>0),0.1);
+        indEdgeVelG7 = edgeVelAll > thresEdgeVelG7;
+        indLowAmpG7 = meanAmpAll < thresMeanAmp;
+        
+        indAbsoluteG7 = indLastAdvanceG7 & indEdgeVelG7 & indRelEdgeVelG3 & indLowAmpG7;
+        indexG7 = find(indAbsoluteG7); 
+        
+        % G8 strong inside FAs
+        distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+        indInsideG8G9 = distToEdgeAll > thresStartingDistG1G2;        
+        indAbsoluteG8 = indHighAmpG5 & indInsideG8G9 & indLifetimeG5;
+        indexG8 = find(indAbsoluteG8); 
+        
+        % G9 weak inside NAs
+        indMinLifeG9 = lifeTimesAll>2*thresShortLifeG6;
+        indAbsoluteG9 = indLowAmpG7 & indInsideG8G9 & indMinLifeG9;
+        indexG9 = find(indAbsoluteG9); 
 
+        % Putting together integrated labels
+        idTracksAdditionalAuto = [indexG1' indexG2' indexG3' indexG4' indexG5' indexG6' indexG7' indexG8' indexG9'];
+        iGroupAdditionalAuto = [1*ones(size(indexG1')) 2*ones(size(indexG2')) 3*ones(size(indexG3')) ...
+            4*ones(size(indexG4')) 5*ones(size(indexG5')) 6*ones(size(indexG6')) ...
+            7*ones(size(indexG7')) 8*ones(size(indexG8')) 9*ones(size(indexG9'))]; % On top of this, we can definitely add other group samples
+        
+        idTracksAdditionalManual=[]; iGroupAdditionalManual=[]; % I decided to remove this manual selection because it takes forever - 052517
+%         [idTracksAdditionalManual, iGroupAdditionalManual] = showAdhesionTracks(pathForColocalization,'all',...
+%             'tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD, 'autoIndex', [idTracksAdditionalAuto; iGroupAdditionalAuto]);
+
+%         [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'trainedData',T,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
         idTracksAdditional = [idTracksAdditionalAuto idTracksAdditionalManual];
         iGroupAdditional = [iGroupAdditionalAuto iGroupAdditionalManual];
 
@@ -581,7 +648,7 @@ end
 % features = meas;
     
 %% classifier training or import
-useDefinedClassifier=input('Do you want to use already defined classifier? [y/(n)]: ','s');
+useDefinedClassifier='n'; %input('Do you want to use already defined classifier? [y/(n)]: ','s');
 if isempty(useDefinedClassifier)
     useDefinedClassifier='n';
 end
@@ -654,32 +721,32 @@ if strcmp(useDefinedClassifier,'n')
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
     savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
     print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
-    while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
-        disp('Validation accuracy was low. Group reduction is needed.')
-        interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
-        % Re-formatting T with interestedGroups...
-        idGroupFiltered = idGroupSelected;
-        idGroupFiltered(setdiff(1:9,interestedGroups))={[]};
-        [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered,2,MD);
-        [trainedClassifier, validationAccuracy, C, order] = trainClassifierNA(T);
-        disp(['New validation accuracy is ' num2str(validationAccuracy) '.'])
-        % normalize confusion matrix
-        for ii=1:size(C,1)
-            C(ii,:) = C(ii,:)/sum(C(ii,:));
-        end
-        response = T.Group;
-        % Get the unique resonses
-        totalGroups = unique(response);
-        
-        figure; confAxis=axes; imagesc(C); title(['Confusion Matrix: Validation accuracy: ' num2str(validationAccuracy)])
-        set(confAxis,'xticklabel',totalGroups')
-        set(confAxis,'yticklabel',totalGroups')
-        c = colorbar;
-        c.Label.String = 'normalized prediction';
-        print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
-        savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
-        print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
-    end
+%     while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
+%         disp('Validation accuracy was low. Group reduction is needed.')
+%         interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
+%         % Re-formatting T with interestedGroups...
+%         idGroupFiltered = idGroupSelected;
+%         idGroupFiltered(setdiff(1:9,interestedGroups))={[]};
+%         [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered,2,MD);
+%         [trainedClassifier, validationAccuracy, C, order] = trainClassifierNA(T);
+%         disp(['New validation accuracy is ' num2str(validationAccuracy) '.'])
+%         % normalize confusion matrix
+%         for ii=1:size(C,1)
+%             C(ii,:) = C(ii,:)/sum(C(ii,:));
+%         end
+%         response = T.Group;
+%         % Get the unique resonses
+%         totalGroups = unique(response);
+%         
+%         figure; confAxis=axes; imagesc(C); title(['Confusion Matrix: Validation accuracy: ' num2str(validationAccuracy)])
+%         set(confAxis,'xticklabel',totalGroups')
+%         set(confAxis,'yticklabel',totalGroups')
+%         c = colorbar;
+%         c.Label.String = 'normalized prediction';
+%         print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
+%         savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
+%         print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
+%     end
     
     T = sortrows(T,size(T,2));
     features =table2array(T(:,1:end-1));

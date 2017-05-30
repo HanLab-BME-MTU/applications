@@ -4,23 +4,27 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170220/probe';
+sourceRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170407/superRes/varyDissRate/target/targetIS_sT10_dT0p1';
+% saveRoot='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170403/superRes/target';
+
 
 %Define strings for directory hierarchy as needed
-rDDir ={'rD20','rD40','rD60','rD80','rD100','rD120','rD140'};%,'rD20','rD40','rD60','rD80','rD100','rD120','rD140'
-aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
+rDDir ={'rD20','rD40','rD60','rD80','rD100','rD120','rD140','rD160'};%,'rD20','rD40','rD60','rD80','rD100','rD120','rD140''rD8',
+aPDir = {'aP0p5'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'}
 outDirNum =1:30;
-lRDir = {'lR0p01';'lR0p02';'lR0p03';'lR0p04';'lR0p05';'lR0p06';'lR0p08';'lR0p09';'lR0p1';'lR0p12';'lR0p13';'lR0p14';'lR0p16';'lR0p18';'lR0p20';'lR0p22';'lR0p24';'lR0p26'};
+dRdir={'dR1'};
+lRDir = {'lR1'};%{'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5';'lR0p6'};
 %define space and time information
-
+%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % WARNING: pay attention for the 'areaSideLen','timeStep',and 'sampleStep'
-%values. For the low density simulation 'areaSideLen=25' and for high densities
-%it is 12.
+%values. For the 
+%LOW DENSITY simulation 'areaSideLen=25' and 
+%for HIGH DENSITY it is 12.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-% modification: Now infoSpaceTime has two new variables: systemState and
+%% modification: Now infoSpaceTime has two new variables: systemState and
 % 'intensityInfo'. systemState represents dynamic or static states. 
 % The values should be 1 for dynamic and 0 for static. Luciana de Oliveira, February 2017.
 

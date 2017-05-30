@@ -79,7 +79,7 @@ outputFile{2,1} = [p.OutputDirectory filesep 'dispMaps.mat'];
 % Add a recovery mechanism if process has been stopped in the middle of the
 % computation to re-use previous results
 firstFrame =1; % Set the strating fram eto 1 by default
-if exist(outputFile{1},'file');
+if exist(outputFile{1},'file')
     % Check analyzed frames
     sDisp=load(outputFile{1},'displField');
     frameDisplField=~arrayfun(@(x)isempty(x.pos),sDisp.displField);
@@ -101,7 +101,7 @@ end
 
 if firstFrame == 1, 
     % Backup the original vectors to backup folder
-    display('Backing up the original data')
+    disp('Backing up the original data')
     backupFolder = [p.OutputDirectory ' Backup']; % name]);
     if exist(p.OutputDirectory,'dir')
         ii = 1;
@@ -133,16 +133,18 @@ firstMask = refFrame>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
 % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 tempMask2 = false(size(refFrame));
-if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
-    meanYShift = round(T(1,1));
-    meanXShift = round(T(1,2));
-    firstMask = circshift(tempMask,[meanYShift meanXShift]);
-else
-    y_shift = find(any(firstMask,2),1);
-    x_shift = find(any(firstMask,1),1);
+if ~isempty(iSDCProc)
+    if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+        meanYShift = round(T(1,1));
+        meanXShift = round(T(1,2));
+        firstMask = circshift(tempMask,[meanYShift meanXShift]);
+    else
+        y_shift = find(any(firstMask,2),1);
+        x_shift = find(any(firstMask,1),1);
 
-    tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
-    firstMask = tempMask2 & firstMask;
+        tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        firstMask = tempMask2 & firstMask;
+    end
 end
     % if ~p.useGrid
 % end
