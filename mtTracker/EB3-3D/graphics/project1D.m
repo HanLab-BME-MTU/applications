@@ -20,15 +20,21 @@ ip.addOptional('intMinPrctil',[1 99.9]);
 ip.addOptional('intMaxPrctil',[100 100]);
 ip.addOptional('name',[]);
 ip.addOptional('processSingleProj',[]);
-ip.addOptional('fringeWidth',20);
+ip.addOptional('fringeWidth',[]);
+ip.addOptional('insetFringeWidth',20);
 ip.parse(varargin{:});
 p=ip.Results;
 
 tracks=p.tracks;
 
 showDebugGraphics=0;
-fringeWidth=p.fringeWidth;
-
+insetFringeWidth=p.insetFringeWidth;
+if(isempty(p.fringeWidth))
+    fringeWidth=insetFringeWidth;
+else
+    fringeWidth=p.fringeWidth;
+end
+    
 %% Define the static Rectangular cuboid that contains the pixel to be projected in the frame of reference.
 %% Accordinly,  the coordinate of this cube are specified such as the origin of the frame of reference is the zero.
 
@@ -139,7 +145,7 @@ parfor fIdx=1:MD.nFrames_
 %         mask=resize(distMap,[1 1 MD.pixelSizeZ_/MD.pixelSize_]);
         distMap=bwdist(distMap);
 %         distMap=resize(distMap,[1 1 MD.pixelSize_/MD.pixelSizeZ_]);
-        mask(distMap<fringeWidth)=1;
+        mask(distMap<insetFringeWidth)=1;
         [y x z]=...
             ndgrid( linspace(1,size(mask,1),size(vol,1)),...
                     linspace(1,size(mask,2),size(vol,2)),...
@@ -447,9 +453,9 @@ parfor fIdx=1:MD.nFrames_
         prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
 
     [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio, ...
-        prctile(warpedMaskedVol(:),p.intMinPrctil(1)),prctile(warpedMaskedVol(:),p.intMaxPrctil(1)));
+        prctile(warpedVol(:),p.intMinPrctil(1)),prctile(warpedVol(:),p.intMaxPrctil(1)));
     [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(warpedMaskedKinVol,ZRatio, ...
-        prctile(warpedMaskedKinVol(:),p.intMinPrctil(2)),prctile(warpedMaskedKinVol(:),p.intMaxPrctil(2)));
+        prctile(warpedKinVol(:),p.intMinPrctil(2)),prctile(warpedKinVol(:),p.intMaxPrctil(2)));
 
     % Fuse ROI and context
     maxXY(maxXY==0)=fullmaxXY(maxXY==0);

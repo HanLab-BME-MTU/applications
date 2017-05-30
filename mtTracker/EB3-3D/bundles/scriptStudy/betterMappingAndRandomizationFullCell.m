@@ -143,16 +143,48 @@ bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(1:100),randAntiSpaceKinTrac
 load('/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/cell1_12_half_volume_double_time/Kin/randomized/MC-1000-unif-randKinTracks-mapped.mat')
 
 %%
-kinTest=2;
+
+%%
+tic
+for kinTest=1:150
+    
+    mappingDist=10;
+    track=kinTracksISOInliers(kinTest);
+    refKP1=buildRefsFromTracks(P1,track);
+    refP1P2=buildRefsFromTracks(P1,P2);
+
+    ROI=[P1 track];
+    processProj=ExternalProcess(MD,'proj');
+    myColormap=uint8( ...
+        [[0 0 255]; ... % blue "all" tracks
+        [0 255 0]; ... % green mapped tracks
+        [255 0 100]; ... % kinetochore tracks
+        [255 0 200]; ... % kinetochore tracks
+        ]);
+%     project1D(MD,ROI,'dynPoligonREF',refKP1.applyBase([ROI],''),'FoF',refKP1, ...
+%         'name',['rand-' num2str(kinTest)],'channelRender','grayRed','processSingleProj',processProj,'intMinPrctil',[1 95],'intMaxPrctil',[100 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
+   project1D(MD,ROI,'dynPoligonREF',refP1P2.applyBase([P2 ROI],''),'FoF',refP1P2, ...
+        'name',['rand-' num2str(kinTest)],'channelRender','grayRed','processSingleProj',processProj,'intMinPrctil',[20 99],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
+%     [randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','manifoldAntispace','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',200);
+%     
+%     buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(kinTest)' [randTracksCell{:}]],EB3TracksISOInliers,10,'kinDistCutoff',[-20,20]);
+%     overlayProjTracksMovie(processProj,'tracks',[refKP1.applyBase(track.associatedMT,[])] ,'colorIndx',[ones(size(track.associatedMT))],'colormap',myColormap,'name','test');
+% 
+%     bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} {[randTracksCell{:}]}],'plotName',['manifMC-kin-' num2str(kinTest)],'mappedMTField','associatedMT');
+end
+
+toc;
+%%
+kinTest=1:100;
 maxRandomDist=20;
 processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
 tic;
-[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',200);
+[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','manifoldAntispace','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',200);
 toc;
 
 tic;
 % for sIdx=1:length(randTracksCell)
- buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(kinTest) randTracksCell{:}],EB3TracksISOInliers,5,'kinDistCutoff',[-20,20]);
+ buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(kinTest)' [randTracksCell{:}]],EB3TracksISOInliers,10,'kinDistCutoff',[-20,20]);
 % end
 toc;
 
@@ -168,7 +200,7 @@ toc;
 % for sIdx=1:length(randTracksCell)
 %     randTracksCellTruncate{sIdx}=randTracksCell{sIdx};
 % end
-%%
+%
 tic
-bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} [randTracksCell{:}],'plotName','unifMC','mappedMTField','associatedMT');
+bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} {[randTracksCell{:}]}],'plotName','manifMC-100b','mappedMTField','associatedMT');
 toc;

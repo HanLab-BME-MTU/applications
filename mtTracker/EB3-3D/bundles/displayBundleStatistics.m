@@ -152,12 +152,13 @@ x=linspace(0,maxTimePoints,maxTimePoints);
 %y=cumulCapturedMTCountOverKinLftTotal./kinetochoreCount;
 %plot(H,linspace(0,maxTimePoints,maxTimePoints), cumulCapturedMTCountOverKinLftTotal./kinetochoreCount);
 %%
+c={'b','r','g'};
 hold on;
 axes(H); 
 for i=1:length(cumulCapturedMTCountOverKinLft)
     if(size(cumulCapturedMTCountOverKinLft{i},1)>1)
         y=cumulCapturedMTCountOverKinLft{i};
-        shadedErrorBar(x,mean(y),std(y),'r',1);       
+        shadedErrorBar(x,mean(y),std(y),c{i},1);       
     else
         plot(H,x,cumulCapturedMTCountOverKinLft{i});
     end
@@ -172,7 +173,7 @@ axes(H);
 for i=1:length(livingCapturedMTCountPerKin)
     if(size(livingCapturedMTCountPerKin{i},1)>1)
         y=livingCapturedMTCountPerKin{i};
-        shadedErrorBar(x,mean(y),std(y),'r',1);       
+        shadedErrorBar(x,mean(y),std(y),c{i},1);       
     else
         plot(H,x,livingCapturedMTCountPerKin{i});
     end
