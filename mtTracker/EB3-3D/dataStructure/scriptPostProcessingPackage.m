@@ -16,5 +16,6 @@ for pIdx=1:length(package.processes_)
 end
 MD.deletePackage(1)
 MD.addPackage(package)
+MD.save();
 %%
 package.showGUI()

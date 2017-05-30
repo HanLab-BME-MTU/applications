@@ -147,7 +147,7 @@ kinTest=2;
 maxRandomDist=20;
 processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
 tic;
-[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',20);
+[randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','uniform','tracks',kinTracksISOInliers(kinTest),'process',processUniformRandomMC,'simuNumber',200);
 toc;
 
 tic;
@@ -170,6 +170,5 @@ toc;
 % end
 %%
 tic
-bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} ],'plotName','unifMC','mappedMTField','associatedMT');
-bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} randTracksCell],'plotName','unifMC','mappedMTField','associatedMT');
+bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(kinTest)} [randTracksCell{:}],'plotName','unifMC','mappedMTField','associatedMT');
 toc;

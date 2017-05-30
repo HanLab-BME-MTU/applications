@@ -46,13 +46,13 @@ randomMax=20;
 processList=[];
 for kinIdx=kinRange
   kinTrack=kinTracksISOInliers(kinIdx);
-  randKinTrack=randKinTracksISOInliers(kinIdx);
   refKP1=buildRefsFromTracks(P1,kinTrack);
   processProj=ExternalProcess(MD,'rawProj');
 
   %% build the ROI inset
   insetROI=[P1,kinTrack];
   if p.showRand
+      randKinTrack=randKinTracksISOInliers(kinIdx);
       insetROI=[P1,randKinTrack];
   end
 
@@ -63,7 +63,7 @@ for kinIdx=kinRange
   dynROI=[P1  ...
       kinTrack.getAddCoord(baseX) kinTrack.getAddCoord(baseY) ...
       kinTrack.getAddCoord(baseX.getMultCoord(-1))  kinTrack.getAddCoord(baseY.getMultCoord(-1))];
-  arrayfun(@(t) refKP1.applyBase(t,'P1K'),dynROI,'unif',0);
+  dynROIManifRef=arrayfun(@(t) refKP1.applyBase(t,'P1K'),dynROI,'unif',0);
 
   if(p.showRand)
       name=[p.name '-P1-kin-' num2str(kinTrack.index) '-R'];
@@ -71,7 +71,7 @@ for kinIdx=kinRange
       name=[p.name '-P1-kin-' num2str(kinTrack.index)];
   end
   % Project around the pyramid and show inset.
-  project1D(MD,insetROI,'dynPoligonREF',[dynROI.P1K],'FoF',refKP1, ...
+  project1D(MD,insetROI,'dynPoligonREF',[dynROIManifRef{:}],'FoF',refKP1, ...
     'name',name,'channelRender','grayRed','processSingleProj',processProj,'intMinPrctil',[1 50]);
   processList=[processList processProj];
 end

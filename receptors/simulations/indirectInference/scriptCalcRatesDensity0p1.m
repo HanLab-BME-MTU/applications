@@ -4,13 +4,13 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/target/diffLabelRatio';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170403/target';
 
 %Define strings for directory hierarchy as needed
- rDDir = {'rD100'};%,'rD60','rD80','rD120','rD140','rD160'};
- aPDir = {'aP0p5'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-outDirNum =1:30;
-lRDir = {'lR0p26'};%,'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5';
+rDDir = {'rD14'};%{'rD20','rD40','rD60','rD80','rD100','rD120','rD140','rD160'}
+aPDir = {'aP0p7'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
+outDirNum = 1:10;
+lRDir = {'lR0p4'};%,'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5';
 
 %define space and time information
 
@@ -20,7 +20,7 @@ lRDir = {'lR0p26'};%,'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5';
 %it is 12.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-infoSpaceTime = struct('probDim',2,'areaSideLen',12,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
+infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
 
 fprintf('\n===============================================================');
 

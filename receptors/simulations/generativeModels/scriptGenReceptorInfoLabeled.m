@@ -2,14 +2,14 @@
 
 %Luciana de Oliveira, December 2016.
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2016/20161201/target/targetIS_sT10_dT0p1';
-saveRoot= '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170112/diffLabelRatio';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/092914/targetISruns/';
+saveRoot= '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/092914/targetISruns/';
 
 %Define strings for directory hierarchy as needed
- rDDir = {'rD100'};%,'rD60','rD80','rD120','rD140','rD160'};
- aPDir = {'aP0p5'};%,,'aP0p7'
-outDirNum =1:30;
-labelRatio = 0.14:0.02:0.24;
+rDDir = {'rD12'};%,'rD60','rD80','rD120','rD140','rD160'};
+aPDir = {'aP0p6'};%,,'aP0p7'
+outDirNum =1:10;
+labelRatio = 0.2;
 intensityQuantum=[1 0.3];
 
 %Define number of label ratio

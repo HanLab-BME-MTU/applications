@@ -1,16 +1,15 @@
-%Script to calculate aggregation state from compound tracks. Compound
-%tracks with appended aggregation state (in default and alternative formats)
-%will be saved in same directory as original compound tracks.
+%Script to calculate aggregation state from detection info, for the static
+%data
 %
-%Khuloud Jaqaman, May 2015
+%Luciana de Oliveira, February 2017
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170220/probe';
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170313/staticData/probe';
 
 %Define strings for directory hierarchy as needed
-rDDir ={'rD20','rD40','rD60','rD80','rD100','rD120','rD140'};%,'rD20','rD40','rD60','rD80','rD100','rD120','rD140'
-aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-outDirNum =1:30;
-lRDir = {'lR0p01';'lR0p02';'lR0p03';'lR0p04';'lR0p05';'lR0p06';'lR0p08';'lR0p09';'lR0p1';'lR0p12';'lR0p13';'lR0p14';'lR0p16';'lR0p18';'lR0p20';'lR0p22';'lR0p24';'lR0p26'};%{'lR0p14';'lR0p16';'lR0p18';'lR0p20';'lR0p22';'lR0p24'};
+rDDir  = {'rD10'};%,'rD4','rD6','rD8','rD10','rD12','rD14','rD16'
+aPDir = {'aP0p3'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
+outDirNum =6;
+lRDir = {'lR0p4'};%{'lR0p14';''lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5';'lR0p6'
 %define intensity mean and stadnard deviation. Must match simulation input
 %or experimentally-derived values
 intensityQuantum = [1 0.3];

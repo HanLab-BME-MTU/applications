@@ -1,5 +1,5 @@
 function [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMatrix] = ...
-    combineClusterRatesAndDensityStaticDynamic(ratesDensityPerMovie,systemState)
+    combineClusterRatesAndDensityStaticDynamic(ratesDensityPerMovie,systemState,iboot)
 %COMBINECLUSTERRATESANDDENSITY combines cluster on and off rates and densities for a group of equivalent movies
 %
 %   SYNOPSIS:
@@ -26,14 +26,20 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,paramVarCovMat,paramMat
 %                            for clusters of size 1, 2, 3, .... and the columns
 %                            are the # of movie (simulation).
 %                                 
-%   Khuloud Jaqaman, June 2015
-%   Luciana de Oliveira, August 2016, February 2017.
+%   
+%   Luciana de Oliveira, May 2017.
+% Modification to have bootstrapping May, 26 2017
+%
 
 %% Input
 
 %get number of movies in group
 numMovies = length(ratesDensityPerMovie);
 maxSizeDensity = zeros(numMovies,1);
+
+%Only use values coming from at least 5 datapoints
+MIN_CLUST = 5;
+
 
 %test if it is static or dynamic data
 
@@ -49,8 +55,6 @@ end
 maxSizeRatesAll = max(maxSizeRates);
 maxSizeDensity = max(maxSizeDensity);
 
-%Only use values coming from at least 5 datapoints
-MIN_CLUST = 5;
 
 %% Calculation
 
@@ -114,7 +118,7 @@ elseif systemState==0
 %% static calculations
 
 for iMovie = 1 : numMovies
-    maxSizeDensity(iMovie) = length(ratesDensityPerMovie{iMovie}.densityPerClust);
+    maxSizeDensity(iMovie) = length(ratesDensityPerMovie{iMovie}.densityPerClust{iboot});
 end
 maxSizeDensity = max(maxSizeDensity);
        
@@ -125,8 +129,12 @@ maxSizeDensity = max(maxSizeDensity);
        % replace values for each movie
        
         for iMovie = 1 : numMovies     
-  matrixDensity(1:length(ratesDensityPerMovie{iMovie}.densityPerClust),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust;
+  matrixDensity(1:length(ratesDensityPerMovie{iMovie}.densityPerClust{iboot}),iMovie) = ratesDensityPerMovie{iMovie}.densityPerClust{iboot};
         end
+% for calculations proposes, take off the rows with all zeros
+numZeros=sum(matrixDensity == 0,2);
+badIndex=numZeros>MIN_CLUST;
+matrixDensity(badIndex,:)=[];        
 paramMatrix=matrixDensity;   
 rateOnPerClust=[];
 rateOffPerClust=[];

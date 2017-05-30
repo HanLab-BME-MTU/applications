@@ -89,8 +89,6 @@ function [rateOnPerClust,rateOffPerClust,densityPerClust,...
 
 %% Input
 
-%% Input
-
 %get sampling information
 timeStep = infoSpaceTime.timeStep;
 if isfield(infoSpaceTime,'sampleStep')
@@ -121,7 +119,7 @@ clustHistoryMerged=clustHistoryMerged(numberOfRows,:);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Densities
 %get cluster densities
-clustStats = clusterNumbersFromCompTracksNew(clustHistoryMerged,infoSpaceTime);
+clustStats = clusterNumbersFromCompTracksNew(clustHistoryMerged,infoSpaceTime);%%%%%%%%%%%%% change the name
 
 densityPerClust = mean(clustStats.clusterDensity,2);
 clustCount = mean(clustStats.clusterCount,2);
