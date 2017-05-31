@@ -1,4 +1,4 @@
-function [poleMovieInfo,fiducialTracks] = detectPoles(MD,varargin)
+function [poleMovieInfo,tracks] = detectPoles(MD,varargin)
 % Philippe Roudot 2014
 % Detecting higher scale fidiciaries in 3D
 % OUTPUT:
