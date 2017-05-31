@@ -1,4 +1,4 @@
-function [ emissionWL, emissionStr, canceled ] = waveLengthPrompt( )
+function [ emissionWL, emissionStr, canceled ] = waveLengthPrompt(cIndx)
 %waveLengthPrompt prompt for wavelength selection
 %
 % OUTPUT
@@ -11,7 +11,7 @@ function [ emissionWL, emissionStr, canceled ] = waveLengthPrompt( )
     emissionWL = -1;
     emissionStr = [];
     
-    emissionStr = inputdlg('Enter emission wavelength:','Enter emission wavelength:');
+    emissionStr = inputdlg(['Enter emission wavelength for Channel ' num2str(cIndx)],'Emission wavelength');
     if(isempty(emissionStr))
         canceled = true;
     else
