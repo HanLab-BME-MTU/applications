@@ -49,8 +49,8 @@ K = 8:-0.1:1;
 % %     out(:,i) = interpft_extrema(R.getResponseAtOrderFTatPoint(628,323,K(i)));
 %       rho(:,i) = R.getResponseAtOrderFTatPoint(628,323,K(i));
 % end
-% rho = R.getResponseAtOrderFTatPoint(623,383,K);
-rho = R.getResponseAtOrderFTatPoint(628,323,K);
+rho = R.getResponseAtOrderFTatPoint(623,383,K);
+% rho = R.getResponseAtOrderFTatPoint(628,323,K);
 % rho = R.getResponseAtOrderFTatPoint(622,363,K);
 out = interpft_extrema(rho);
 out = orientationSpace.diffusion.alignExtrema(out);
@@ -103,12 +103,16 @@ for trackNum = 1:size(out,1)
         y = joinColumns([track; dm_dK(trackNum,idx_select)]);
         sp = spapi(augknt(K(idx_select),4,2),x.',y.');
 
+        x2 = joinColumns(repmat(K(idx_select),3,1));
+        y2 = joinColumns([track; dm_dK(trackNum,idx_select); d2m_dK2(trackNum,idx_select)]);
+        sp2 = spapi(optknt(x2.',5),x2.',y2.');
 
 
         xq = K(idx_select(1)):0.01:K(idx_select(end));
                 hold on;
         plot(xq,spval(sp,xq))
         plot(xq,spval(spgrad,xq))
+        plot(xq,spval(sp2,xq),'--')
         plot(K,out(trackNum,:),'o');
         plot(K(idx_select),out(trackNum,idx_select),'o','MarkerFaceColor','k');
     catch err
