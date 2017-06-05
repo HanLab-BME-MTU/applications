@@ -6,39 +6,54 @@
 %   interpft_extrema(r);
 %   hold off;
 
-r_hat = fft(r);
-half_length = floor(length(r)/2);
-f = [0:floor(half_length) -floor(half_length):-1].';
+% r_hat = fft(r);
+% half_length = floor(length(r)/2);
+% f = [0:floor(half_length) -floor(half_length):-1].';
+% 
+% n_hat = r_hat;
+% h = plot(r);
+% ylim(ylim);
+% for i=1:101
+%     n = ifft([n_hat(1:half_length+1); zeros(354,1); n_hat(half_length+2:end)]);
+%     h.YData = real(n(:).')*361/2/pi;
+% %     plot(n);
+%     n_hat = n_hat.*exp(-f.^2/2/half_length.^2);
+%     pause(0.1);
+%     hold on;
+% end
 
-n_hat = r_hat;
-h = plot(r);
-ylim(ylim);
-for i=1:101
-    n = ifft([n_hat(1:half_length+1); zeros(354,1); n_hat(half_length+2:end)]);
-    h.YData = real(n(:).')*361/2/pi;
-%     plot(n);
-    n_hat = n_hat.*exp(-f.^2/2/half_length.^2);
-    pause(0.1);
-    hold on;
+if(~exist('I','var'))
+    [~,hostname] = system('hostname');
+    hostname = strtrim(hostname);
+
+    switch(hostname)
+        case 'FSM2UA220003Q'
+            % HP Z820 Goldman workstation
+            cd 'Z:\Takeshi\N-SIM\040715';
+            MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.nd2');
+            I = MD.channels_(1).loadImage(1,11);
+        otherwise
+            % BioHPC
+            cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
+            I = imread('example.tif');
+    end
 end
-
-cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
-I = imread('example.tif');
+% I = imread('example.tif');
 F = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,8,'none');
 R = F*I;
-% K = 8:-0.1:1;
-t = linspace(1/(2*8+1).^2,1/(2+1).^2,100);
-K = 1/2./sqrt(t)-1/2;
+K = 8:-0.1:1;
+% t = linspace(1/(2*8+1).^2,1/(2+1).^2,100);
+% K = 1/2./sqrt(t)-1/2;
 % rho = zeros(17,length(K));
 % for i=1:length(K)
 % %     out(:,i) = interpft_extrema(R.getResponseAtOrderFTatPoint(628,323,K(i)));
 %       rho(:,i) = R.getResponseAtOrderFTatPoint(628,323,K(i));
 % end
-% rho = R.getResponseAtOrderFTatPoint(623,383,K);
-rho = R.getResponseAtOrderFTatPoint(628,323,K);
+rho = R.getResponseAtOrderFTatPoint(623,383,K);
+% rho = R.getResponseAtOrderFTatPoint(628,323,K);
 % rho = R.getResponseAtOrderFTatPoint(622,363,K);
 out = interpft_extrema(rho);
-out = alignExtrema(out);
+out = orientationSpace.diffusion.alignExtrema(out);
 
 
 outg = gradient(out)/0.1;
@@ -85,15 +100,19 @@ for trackNum = 1:size(out,1)
         ygrad = joinColumns([track; -outg(trackNum,idx_select)]);
         spgrad = spapi(augknt(K(idx_select),4,2),x.',ygrad.');
 
-        y = joinColumns([track; -dm_dK(trackNum,idx_select)]);
+        y = joinColumns([track; dm_dK(trackNum,idx_select)]);
         sp = spapi(augknt(K(idx_select),4,2),x.',y.');
 
+        x2 = joinColumns(repmat(K(idx_select),3,1));
+        y2 = joinColumns([track; dm_dK(trackNum,idx_select); d2m_dK2(trackNum,idx_select)]);
+        sp2 = spapi(optknt(x2.',5),x2.',y2.');
 
 
         xq = K(idx_select(1)):0.01:K(idx_select(end));
                 hold on;
         plot(xq,spval(sp,xq))
         plot(xq,spval(spgrad,xq))
+        plot(xq,spval(sp2,xq),'--')
         plot(K,out(trackNum,:),'o');
         plot(K(idx_select),out(trackNum,idx_select),'o','MarkerFaceColor','k');
     catch err
@@ -103,19 +122,21 @@ end
 figure;
 title('First Derivatives');
 hold on;
-plot(K,outg)
+plot(K,-outg)
 hold on;
-plot(K,firstDeriv,'o')
+plot(K,dm_dK,'o')
 grid on
 
 figure;
 title('Absolute Value First Derivatives');
 % plot(K,abs(outg))
 hold on;
-plot(K,abs(firstDeriv))
+plot(K,abs(dm_dK))
 grid on
 
 figure;
 plot(K,d2m_dK2)
 title('Second Derivative');
 grid on
+hold on;
+plot(K,gradient(dm_dK,-0.1),'o')
