@@ -38,7 +38,7 @@ function mappedTracks=mapTracksTo1DManifold(manifold,tracks,cutoff,varargin)
       for tIdxIdx=1:length(manifoldPreAssociatonIndx)
         if(strcmp(p.position,'start'))
             tr=tracks(manifoldPreAssociatonIndx(tIdxIdx));
-          trackPoint(:,tIdxIdx)=[tr.x(1);tr.y(1);tr.z(1)];
+            trackPoint(:,tIdxIdx)=[tr.x(1);tr.y(1);tr.z(1)];
         else
             if(strcmp(p.position,'end'))
                 tr=tracks(manifoldPreAssociatonIndx(tIdxIdx));

@@ -146,7 +146,7 @@ tracks=[P1 P2];
 
 process=ip.Results.process;
 if(~isempty(process))
-    mkdir(outputDirTrack);
+    mkdirRobust(outputDirTrack);
     save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks');
     outputDirPoleDetect=[process.getOwner().outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d')];
     save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo','tracks');
