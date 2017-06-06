@@ -445,7 +445,7 @@ function initMainGUI()
               
     handles.nextButton = uicontrol(buttonOptsNext{:},...
                                   'String','NEXT CELL',...
-                                  'Position',[w/2+30 30 bW bH],...
+                                  'Position',[w/2+100 2 bW bH],...
                                   'Tag','nextButtonTag');
     
     function buttonSelected(src, ~)        
@@ -463,12 +463,16 @@ function initMainGUI()
 %         tagDataPointNoGUI(src.String, handles.selPtIdx, cellKey, src.Value);
         
         handles.firstSelectionMade = 1;
-        if strcmp(src.String, handles.bFocus) || ...
+        
+        if strcmp(src.String, handles.bFocus.String) || ...
                 strcmp(src.String, handles.bJunk.String) || ...
                 strcmp(src.String,  handles.bUD.String) || ...
                 strcmp(src.String, handles.bMulti.String)
+        
             handles.junkFlag = 1;
+        
         end
+        
         updateStatus;
     end
     
