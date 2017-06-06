@@ -175,7 +175,7 @@ end
 
 toc;
 %%
-kinTest=1:100;
+kinTest=2;
 maxRandomDist=20;
 processUniformRandomMC=ExternalProcess(MD,'randomizeTracks');
 tic;
