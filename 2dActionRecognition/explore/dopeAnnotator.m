@@ -1,33 +1,30 @@
 function [cxFig handles] = dopeAnnotator(cellDataSet, varargin)
-%DOPEANNOTATOR Interactive display of movies associated with point on a 2D scatter plot.
+%DOPEANNOTATOR rapid GUI annotation labeling tool for 2D cell movies
 %
 % Inputs:
-% 		   data:	cell array containing the cell DR coordinates, labels, 
-%          'movies': cell array containing movie data strack x by y by nFrames. 
+% 		   cellDataSet:	struct or .mat file containing struct with cellMovie metadata 
 %
-%          Example data set here: 
-%          load('/work/bioinformatics/s170480/Data/LCH/DevOps/testMovies.mat');
-% Outputs:  Can manually save snapshots of plots/annotations
-%
-%
-% Andrew R. Jamieson, Dec. 2016 updated APR 2017
+% Andrew R. Jamieson, Dec. 2016 updated JUNE 2017
 %
 ff = findall(0,'Tag','dopeAnnotator');delete(ff)
-data.movies = {};
 data.annotationSetIn = {};
+
+% actual cell sequence (grows as user annotatates) (for this session)
+data.cellsAnnotatedList = [];
 
 if nargin >= 1
     ip = inputParser;
     ip.KeepUnmatched = true;
     ip.CaseSensitive = false;
     ip.addRequired('cellDataSet', @(x) isstruct(x) || iscell(x) || exist(x, 'file')==2 || @(x) isa(x, 'MovieList'));
-    ip.addParameter('movies', cell([1,length(cellDataSet)]), @iscell);
+    ip.addOptional('cellAnnotations', {}, @(x) isstruct(x) || exist(x, 'file')==2);
+    
     ip.addParameter('annotationSet', {}, @(x) isa(x,'containers.Map'));
-    ip.addParameter('DR', {}, @isstruct);
+    
     ip.parse(cellDataSet, varargin{:});
-    data.movies = ip.Results.movies;
+    data.cellAnnotationsPrev = ip.Results.cellAnnotations;
     data.annotationSetIn = ip.Results.annotationSet;
-    data.DR = ip.Results.DR; % struct {DR.PCA or DR.tSNE contains [nx2] coords} 
+   
 else
     cellDataSet = {};
 end
@@ -57,7 +54,7 @@ handles.Masterlogfile = ['/work/bioinformatics/shared/dope/export/MasterAnnotati
 handles.matlabSaveFile = ['/work/bioinformatics/shared/dope/export/backup_dopeAnnotator_output_' handles.sessionID2 '.mat'];
 handles.autoSaveCount = 0;
 handles.frameUpdatePause = 0.075;
-handles.movieLoopLimit = 5;
+handles.movieLoopLimit = Inf;
 handles.selPtIdx = 1;
 handles.stageDriftCorrection = true;
 handles.maxPerRow = 4;
@@ -68,71 +65,29 @@ handles.repeatsAllowed = true;
 handles.pauseProgress = false;
 
 
-
-
 % Initialize Label Dictionary
 if nargin < 1
-%     [FileName,PathName,FilterIndex] = uigetfile(FilterSpec,DialogTitle);
     [filename, pathname] = ...
      uigetfile({'*.mat'},'.MAT CellDataSet File Selector');
-
     cellDataSet = [pathname filesep filename];
 end
 
 if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2) 
 
     inM = load(cellDataSet); 
-    
     % Capture original file path
     data.info.loadCellDataFile = cellDataSet;
     data.info.sessionID = handles.sessionID;
 
-    % Grab metadata
-    if isfield(inM, 'cellDataSet')    
-        cellDataSet = inM.cellDataSet;
-    elseif isfield(inM, 'allCellsMovieData')    
-        cellDataSet = inM.allCellsMovieData;
-    end
+    % Grab main metadata
     cellDataSet = inM.cellDataSet;
-
-    % Load movies... (assumed ot be in same order as meta data)
-    if isfield(inM, 'cellMoviesPath') && (exist(inM.cellMoviesPath, 'file') == 2) 
-
-        data.moviesPath = inM.cellMoviesPath;
-        choice = questdlg(['Load movies from ' data.moviesPath '?'], ...
-                          'Load Movies into Memory?', ...
-                          'Yes', ...
-                          'No','No');
-    else
-        choice = 'No';
-        
-        if isfield(cellDataSet{1},'cellMD') 
-            disp('Checking movieData of individual cells...')
-            MD = MovieData.load(cellDataSet{1}.cellMD);
-            assert(isa(MD, 'MovieData'))
-            handles.flyLoad = true;
-        end
-               
-    end 
-
-
-    if string(choice) == 'Yes'
-        hwarn = warndlg(['Please wait...loading ' num2str(length(cellDataSet)) ' movies into memory...']);
-        %% TODO detect if MovieList -- if so, OME-TIFF expected... on the fly...
-        %% else, give warning that it may take a while to load.
-        S = load(data.moviesPath, 'cellMovies');
-        if isfield(S, 'cellMovies')    
-            data.movies = S.cellMovies;
-        elseif isfield(S, 'allCellMovies')    
-            data.movies = S.allCellMovies;
-        end
-        if ishandle(hwarn), close(hwarn), end;
-        disp(['Done loading movies.. from ' data.moviesPath]);
-
-    else
-        disp('Not loading any images...')
-        data.movies = cell(1,length(cellDataSet));
-    end
+    
+    if isfield(cellDataSet{1},'cellMD') 
+        disp('Checking movieData of individual cells...')
+        MD = MovieData.load(cellDataSet{1}.cellMD);
+        assert(isa(MD, 'MovieData'))
+        handles.flyLoad = true;
+    end               
 
     % pre-defined annotation set (container.Map)
     if isfield(inM, 'annotationSet')
@@ -140,6 +95,8 @@ if ischar(cellDataSet) && (exist(cellDataSet, 'file') == 2)
     end
 
     handles.sessionID = [handles.sessionID '_' data.info.loadCellDataFile];
+else
+    disp('Using variable passed cellDataSet to dopeAnnotator');
 end
 
 % check if cell array
@@ -148,28 +105,85 @@ if iscell(cellDataSet)
     cellDataSet = cell2mat(cellDataSet);
 end
 
+% check if previous annotations
+if isempty(data.cellAnnotationsPrev)
+    choice = questdlg(['Load previous annotation set?'],...
+                       'Load previous annotation set?',...
+                       'Yes','No','No');
+    if string(choice) == 'Yes'
+        [filename, pathname] = ...
+         uigetfile({'*.mat'},'.MAT cellAnnotations File Selector');
+        data.cellAnnotationsPrev = [pathname filesep filename];
+    end
+end
+
+data.remainingKeys = [];
+if ~isempty(data.cellAnnotationsPrev)
+    if ischar(data.cellAnnotationsPrev) && (exist(data.cellAnnotationsPrev, 'file') == 2) 
+        inA = load(data.cellAnnotationsPrev);
+        if isfield(inA, 'cellAnnotations')    
+            data.cellAnnotationsPrev = inA.cellAnnotations;
+            if ~isfield(data.cellAnnotationsPrev, 'sessionIDList')
+                data.cellAnnotationsPrev.sessionIDList = {'-undefined-'};
+                warning('No previous sessionIDList found...adding empty {-undefined-}');
+            end
+        else
+            error('Expected structure not found: cellAnnotations');
+        end    
+    end
+        
+    disp('Truncating cellDataSet based on previous...annotations');
+    doneAnnotations = data.cellAnnotationsPrev;
+    tempDoneKeys = {doneAnnotations.cellData.key};
+    % check for empty annotations (i.e, "timeouts") to exclude
+    indx_tO = [doneAnnotations.cellData.timeOutFlag] == 1;
+    doneKeys = tempDoneKeys(~indx_tO);
+    disp(['# of previously COMPLETED keys : ' num2str(length(doneKeys))]);
+    
+    % find remaining keys
+    allCellKeys = {cellDataSet.key}; % from total dataset
+    disp(['# of ORIGINAL data set keys: ' num2str(length(unique(allCellKeys)))]);
+    remainingKeys = setxor(allCellKeys, doneKeys);
+    disp(['# of REMAINING keys : ' num2str(length(remainingKeys))]);
+    data.remainingKeys = remainingKeys;
+    subSetData = cell(1, length(remainingKeys));
+
+    % create SubSet
+    j = 1;
+    for i = 1:length(cellDataSet)
+        if ismember({cellDataSet(i).key}, remainingKeys)
+            subSetData{j} = cellDataSet(i);
+            j = j + 1;
+        else
+            data.cellsAnnotatedList = [data.cellsAnnotatedList i];
+        end
+    end
+
+    % cellDataSet = subSetData;
+
+    handles.info.flagPrevAnnotations = true;
+    handles.info.prevAnnotationSessionIDs = true;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Ask User for annotation configs
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % prompt for # of cells to annotation (out of total)
 % prompt for % of repeats to annotate.
-    function promptAnnoConfig(varargin)
-        defaultans = {num2str(length(cellDataSet)),'10'};
-        goodAns = false;
-        while ~goodAns
-            ans = inputdlg({['How many annoations to conduct? (out of ' num2str(length(cellDataSet)) ...
-                ' Total Cells)'], 'probability of repeats? enter [0-100]'},...
-                          'Configure Annotatotion Sequence', [1 50; 1 50], defaultans);
-            if (str2num(ans{2}) <= 100) && (str2num(ans{2}) >= 0) && (str2num(ans{1}) > 0) &&  (str2num(ans{1}) <= length(cellDataSet))
-                goodAns = true;
-            end
-            handles.prctRepeats = str2num(ans{2}); 
-            handles.numCellsToAnnotate = str2num(ans{1});    
+function promptAnnoConfig(varargin)
+    defaultans = {num2str(length(cellDataSet)),'10'};
+    goodAns = false;
+    while ~goodAns
+        ans = inputdlg({['How many annoations to conduct? (out of ' num2str(length(cellDataSet)) ...
+            ' Total Cells)'], 'probability of repeats? enter [0-100]'},...
+                      'Configure Annotatotion Sequence', [1 50; 1 50], defaultans);
+        if (str2num(ans{2}) <= 100) && (str2num(ans{2}) >= 0) && (str2num(ans{1}) > 0) &&  (str2num(ans{1}) <= length(cellDataSet))
+            goodAns = true;
         end
+        handles.prctRepeats = str2num(ans{2}); 
+        handles.numCellsToAnnotate = str2num(ans{1});    
     end
-    
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BoilerPlate
@@ -180,16 +194,13 @@ handles.timeOutFlag = 0;
 handles.firstSelectionMade = 0;
 handles.NextCell = 0;
 
-promptAnnoConfig()
 initializeDataStruct_Assaf();
+promptAnnoConfig()
 configAnnoSequence();
-
 if ~isempty(data.annotationSetIn)
     addAnnotationNoGUI(data.annotationSetIn.keys);
 end
-
 % Build out GUI/labels
-
 initMainGUI();
 movieInit();
 presentCells;
@@ -197,76 +208,97 @@ presentCells;
 % SAVE
 % CLOSE ?
    
-    function initializeDataStruct_Assaf() %(MODEL)
+function initializeDataStruct_Assaf() %(MODEL)
 
-        %     (if still a cell array use cell2mat
-        [C, ia] = unique({cellDataSet.key});
-        if length(C) ~= numel(cellDataSet)
-            cellDataSet = cellDataSet(ia);
-        end
-        % master index 
-        data.meta.mindex = 1:numel(cellDataSet);
-
-        % expr date
-        data.meta.expStr = {cellDataSet.expStr};
-        data.meta.key = {cellDataSet.key};
-
-        % [class labels] using struct.
-        data.meta.cellType = {cellDataSet.cellType};
-        data.meta.class.cellType = {cellDataSet.cellType};
-        data.meta.class.metEff = {cellDataSet.metEff};
-        data.meta.class.custom.all = repmat({'%+%'}, length(data.meta.mindex),1);
-
-        % Label by experiment
-        data.meta.class.MD = {cellDataSet.MD};
-        data.meta.class.expr = {cellDataSet.expStr};
-
-        % [notes]
-        data.meta.notes = repmat({''}, length({cellDataSet.key}), 1);
-
-        % [Annotations]
-        % total set of annotation types across entire dataset.
-        data.meta.anno.set = {}; 
-        data.meta.anno.tags = repmat({}, length(data.meta.mindex),1);
-        % Global mapping dictionaries for entire dataset
-        % These will model behaviior of original CellX unique for each cell
-        % 
-        % Note this is different than the simple sequence of annotations 
-        % where repeats can occur and different mappings.
-        data.meta.anno.tagMap = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells (by local master index)
-        data.meta.anno.tagMapKey = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells(by unique Key)
-        data.meta.anno.RevTagMap = containers.Map('KeyType','char','ValueType', 'any'); % cell to tags
-        % Set specific to each cell in array
-        data.meta.anno.byCell = cell(1,length(data.meta.key)); % will be generated at export or save 
-
-        data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
-
-        % Initialize backup info....
-        handles.backupInfo.cellMoviesPath = data.moviesPath;
-        handles.backupInfo.keys = data.meta.key;
-        handles.backupInfo.expr = data.meta.class.expr;
-
-        % [MovieData-OMETIFF]
-        if handles.flyLoad 
-            data.MD = {cellDataSet.cellMD};
-            handles.MDcache = cell(1, length(data.meta.mindex));
-        end
-
-        if string(handles.choiceLoadMD) == 'Yes'
-            for i = 1:length(handles.MDcache)
-                handles.MDcache{i} = MovieData.load(data.MD{1});
-            end
-        else
-            disp('Not pre-loading any MovieDatas...')
-        end 
-
+    %     (if still a cell array use cell2mat
+    [C, ia] = unique({cellDataSet.key});
+    if length(C) ~= numel(cellDataSet)
+        cellDataSet = cellDataSet(ia);
     end
+    % master index 
+    data.meta.mindex = 1:numel(cellDataSet);
+
+    % expr date
+    data.meta.expStr = {cellDataSet.expStr};
+    data.meta.key = {cellDataSet.key};
+
+    % [class labels] using struct.
+    data.meta.cellType = {cellDataSet.cellType};
+    data.meta.class.cellType = {cellDataSet.cellType};
+    data.meta.class.metEff = {cellDataSet.metEff};
+    data.meta.class.custom.all = repmat({'%+%'}, length(data.meta.mindex),1);
+
+    % Label by experiment
+    data.meta.class.MD = {cellDataSet.MD};
+    data.meta.class.expr = {cellDataSet.expStr};
+
+    % [notes]
+    data.meta.notes = repmat({''}, length({cellDataSet.key}), 1);
+
+    % [Annotations]
+    % total set of annotation types across entire dataset.
+    data.meta.anno.set = {}; 
+    data.meta.anno.tags = repmat({}, length(data.meta.mindex),1);
+    % Global mapping dictionaries for entire dataset
+    % These will model behaviior of original CellX unique for each cell
+    % 
+    % Note this is different than the simple sequence of annotations 
+    % where repeats can occur and different mappings.
+    data.meta.anno.tagMap = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells (by local master index)
+    data.meta.anno.tagMapKey = containers.Map('KeyType','char','ValueType', 'any'); % tags to cells(by unique Key)
+    data.meta.anno.RevTagMap = containers.Map('KeyType','char','ValueType', 'any'); % cell to tags
+    % Set specific to each cell in array
+    data.meta.anno.byCell = cell(1,length(data.meta.key)); % will be generated at export or save 
+
+    data.extra.time = [cellfun(@(t) t(1), {cellDataSet.ts})]';
+
+    % Initialize backup info....
+    handles.backupInfo.cellMoviesPath = data.moviesPath;
+    handles.backupInfo.keys = data.meta.key;
+    handles.backupInfo.expr = data.meta.class.expr;
+
+    % [MovieData-OMETIFF]
+    if handles.flyLoad 
+        data.MD = {cellDataSet.cellMD};
+        handles.MDcache = cell(1, length(data.meta.mindex));
+    end
+
+    if string(handles.choiceLoadMD) == 'Yes'
+        for i = 1:length(handles.MDcache)
+            handles.MDcache{i} = MovieData.load(data.MD{1});
+        end
+    else
+        disp('Not pre-loading any MovieDatas...')
+    end 
+end
+
+function configAnnoSequence(varargin)
+
+    handles.prctRepeats;
+    handles.numCellsToAnnotate;
+    data.seedCellSeq = randsample(length(data.meta.mindex), length(data.meta.mindex), false);
+         
+    % This will store the annotations with a struct containing:    
+    data.cellAnnotationsData.cellData = [];
+    data.cellAnnotationsDataDetail = [];
+    data.cellAnnotationsData.sessionIDList = {handles.sessionID};
+    data.cellAnnotationsData.Start_cellsAnnotatedList = data.cellsAnnotatedList;
+
+    if ~isempty(data.cellsAnnotatedList)
+        data.cellAnnotationsData.cellData = [data.cellAnnotationsPrev.cellData];
+        data.cellAnnotationsData.sessionIDList = {data.cellAnnotationsPrev.sessionIDList{:} handles.sessionID};
+    end
+
+end 
+
 %===============================================================================
 % Save and Export Functions
 %===============================================================================
 function saveMatFile(varargin)
     cellAnnotations = data.cellAnnotationsData;
-    save(['dopeAnnotator_output_' handles.sessionID2 '.mat'], 'cellAnnotations');
+    cellAnnotations.End_cellsAnnotatedList = data.cellsAnnotatedList;
+    file1_name = ['dopeAnnotator_output_' handles.sessionID2 '.mat'];
+    save(file1_name, 'cellAnnotations');
     save(handles.matlabSaveFile, 'cellAnnotations');
     if (mod(handles.autoSaveCount, 99) == 0)
         handles.ActionNotice.String = '{SAVING}';
@@ -277,11 +309,12 @@ function saveMatFile(varargin)
         save(handles.matlabSaveFile, 'cellAnnotations');
         set(handles.ActionNotice, 'Visible', 'off');
     end      
+    disp(['done ...saving...' handles.matlabSaveFile]);
 end
 
 function writeMasterLog(action, tag, key, expr)
     % if exist(handles.logfile, 'file')==2
-%     fileID = fopen(handles.Masterlogfile,'a');
+    %     fileID = fopen(handles.Masterlogfile,'a');
     fileID2 = fopen(['MasterAnnotationsLogClickFury_' handles.timeStampStart '.txt'],'a');
     fileID3 = fopen(handles.logfile,'a');
     % end
@@ -309,17 +342,17 @@ function writeMasterLog(action, tag, key, expr)
    
     if loopTags
         for iT = 1:length(tags)
-%             fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
+    %             fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
             fprintf(fileID2, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
             fprintf(fileID3, formatSpec, timeS, handles.sessionID, action, tags{iT},skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),num2str(handles.repeatFlag), key, expr, md5sumout);
         end
     else
-%         fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
+    %         fprintf(fileID, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
         fprintf(fileID2, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
         fprintf(fileID3, formatSpec, timeS, handles.sessionID, action, tag, skipCellstr, num2str(handles.timeOutFlag),num2str(handles.junkFlag),  num2str(handles.repeatFlag), key, expr, md5sumout);
     end
     
-%     fclose(fileID);
+    %     fclose(fileID);
     fclose(fileID2);
     fclose(fileID3);
 end
@@ -615,22 +648,6 @@ end
         % CLOSE!
     end
 
-    function configAnnoSequence(varargin)
-
-        handles.prctRepeats;
-        handles.numCellsToAnnotate;
-        data.seedCellSeq = randsample(length(data.meta.mindex),length(data.meta.mindex),false);
-             
-        % actual cell sequence (grows as user annotatates)
-        data.cellsAnnotatedList = [];
-
-        % This will store the annotations with a struct containing:
-        data.cellAnnotationsData.cellData = [];
-        data.cellAnnotationsDataDetail = [];
-        data.cellAnnotationsData.sessionID = handles.sessionID;
-        % newCell.sessionID = handles.sessionID;
-    end 
-
     function addCellAnnotation(cell_index, annotations)
         cellKey = data.meta.key{cell_index};
         cellexpr = data.meta.expStr{cell_index};
@@ -909,11 +926,12 @@ function movieInit(varargin)
                     handles.masterMDtext.Visible = 'off';
                 end                
             case 'e'
+                disp('Saving...');
                 assignin('base', 'handlesCX', handles);
                 assignin('base', 'dataCX', data);
                 saveMatFile;
             otherwise
-                disp('button pressed but not utilized')
+                disp('button pressed but not utilized');
         end
     end
     
@@ -935,7 +953,10 @@ function updateMovie()
     else
         movieFrame = MD.channels_.loadImage(handles.movies.fidx);
     end
-
+    % if mod(handles.selPtIdx, 2)
+    %     assert(false)
+    % end
+    
     imagesc(movieFrame,'Parent', handles.axMovie, 'HitTest', 'off');
     set(handles.axMovie, 'XTick', []);
     set(handles.axMovie, 'YTick', []);
@@ -958,10 +979,25 @@ function playMovie(varargin)
     while (handles.junkFlag == 0) && (i <= nf) && (handles.selPtIdx == cell_idx) && (handles.ttoc < handles.movieLoopLimit) && ...
         (handles.NextCell == 0)
         handles.movies.fidx = i;
-        updateMovie();
+        try 
+            updateMovie();
+        catch
+            warning('MD failure!');
+            MD
+            cell_idx
+            handles.movies.fidx
+            warning('Movie fail to load properly!');
+            handles.pauseProgress = true;
+            set(handles.ActionNotice, 'String', '[!] PAUSED [!]');
+            handles.ActionNotice.BackgroundColor = [1 0 0];
+            set(handles.ActionNotice, 'Visible', 'on');
+            uiwait(msgbox({['[ERROR with this movie]: ' MD.movieDataPath_] ' ' 'record MD info & tell ARJ' ' ' 'click NEXT CELL then close this message when ready to proceed' 'close  mmesage'}));
+        end
+
         pause(handles.frameUpdatePause);
         if handles.pauseProgress
-            pause(.5);
+            pause(.25);
+            uiwait(msgbox({'program paused - ' 'click on red [!] and then keypress p to resume'  '(and then close this box)'}));
         else
             i = i + 1; 
         end
