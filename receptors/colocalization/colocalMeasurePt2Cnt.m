@@ -1,4 +1,4 @@
-function [enrichAve,localAve,bgAve,randEnrichAve,enrichInd,localInd,randEnrichInd,clusterDensity,cellIntensity] = colocalMeasurePt2Cnt(radius,...
+function [enrichAve,localAve,bgAve,randEnrichAve,enrichInd,localInd,randEnrichInd,clusterDensity,cellIntensity,normDist] = colocalMeasurePt2Cnt(radius,...
     randomRuns,detectionData,imagePt,imageCnt,maskingFile)
 % COLOCALMEASUREPT2CNT measures colocalization for two channels where only one is punctate and the other is continuous
 %
@@ -76,8 +76,18 @@ function [enrichAve,localAve,bgAve,randEnrichAve,enrichInd,localInd,randEnrichIn
     localMask = zeros(size(ICnt));
     indexQP = sub2ind(size(localMask),roundedQP(:,1),roundedQP(:,2));
     localMask(indexQP) = 1;
-    
-    
+    erMask = bwmorph(maskingFile,'erode');
+    borderMask = maskingFile - erMask;
+    D = bwdist(borderMask);
+    distFromEdge = D(indexQP);
+    stats = regionprops(maskingFile,'Centroid');
+    centImg = zeros(size(ICnt));
+    centImg(round(stats.Centroid(2)),round(stats.Centroid(1))) = 1;
+    D2 = bwdist(centImg);
+    distFromCent = D2(indexQP);
+    normDist = distFromCent./(distFromEdge+distFromCent);
+%     distFromCent= pdist2(roundedQP,[85,83]);
+
     %% Image Processing
     % Background Subtraction and Uneven illumination correction
     corrValue = mean(ICnt(maskingFile==0));

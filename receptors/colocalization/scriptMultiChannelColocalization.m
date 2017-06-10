@@ -3,8 +3,8 @@
 % The core function used for colocalization analysis is colocalMeasurePt2Cnt
 MD = MovieData.load('/home2/avega/Documents/test_0001/test_0001.mat');%Indicate location of MD object file from scriptGeneralColocalization analysis
 p = MD.getProcess(3).getParameters();
-orgChannel = 3; %Original continuum channel used in scriptGeneralColocalization
-p.ChannelObs = 1; %New context channel
+orgChannel = 2; %Original continuum channel used in scriptGeneralColocalization
+p.ChannelObs = 3; %New context channel
 p.SearchRadius = 2; %Radius around detection to use to read out intensity 
 p.RandomRuns = 1;% Number of times randomized data is analyzed
 MD.getProcess(3).setParameters(p);

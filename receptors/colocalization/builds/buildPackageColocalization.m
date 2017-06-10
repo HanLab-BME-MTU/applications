@@ -41,8 +41,7 @@ for i = 1:length(repo_dirs)
     disp(['Adding ' cur_dir]);
     addir(cur_dir);
 end
-cellScript{1} = 'scriptGeneralColocalization.m';
-cellScript{2} = 'scriptMultiChannelColocalization.m';
+cellScript{1} = 'basicTransientDiffusionAnalysis1.m';
 buildPackage(cellScript, out_dir);
 cd(out_dir); % check results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

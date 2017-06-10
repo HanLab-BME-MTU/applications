@@ -78,9 +78,11 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
 
     %Define which process was masking process
     try
-        iM = movieData.getProcessIndex('MaskProcess',Inf,0); 
+        warning('off', 'lccb:process')
+        iM = movieData.getProcessIndex('MaskProcess',1,0); 
         inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
         maskNames = movieData.processes_{iM}.getOutMaskFileNames(p.ChannelMask);
+        warning('on', 'lccb:process')
     catch
         % Try to use imported cell mask if no MaskProcess, Kevin Nguyen 7/2016
         iM = movieData.getProcessIndex('ImportCellMaskProcess',Inf,0); 
@@ -103,7 +105,7 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
 
 %% Run Colocalization Analysis
 
-        [enrichInd,localInd,randEnrichInd]=deal(cell(nImages,1));
+        [enrichInd,localInd,randEnrichInd,normDist]=deal(cell(nImages,1));
         start  = movieData.processes_{iD}.funParams_.firstImageNum;
         finish = movieData.processes_{iD}.funParams_.lastImageNum;
         for iImage = start:finish
@@ -121,7 +123,7 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
             %Run Function
 
             [enrichAve(iImage,:),localAve(iImage,:),bgAve(iImage,:),randEnrichAve(iImage,:),...
-            enrichInd{iImage,:},localInd{iImage,:},randEnrichInd{iImage,:},clusterDensity(iImage),cellIntensity(iImage,1)] = colocalMeasurePt2Cnt(p.SearchRadius,...
+            enrichInd{iImage,:},localInd{iImage,:},randEnrichInd{iImage,:},clusterDensity(iImage),cellIntensity(iImage,1),normDist{iImage,:}] = colocalMeasurePt2Cnt(p.SearchRadius,...
             p.RandomRuns,detectionData,imageRef,imageObs,currMask);
 
         end

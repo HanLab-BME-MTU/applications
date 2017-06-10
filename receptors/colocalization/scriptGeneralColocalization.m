@@ -1,6 +1,6 @@
 
 %% Create Movie Data object
-MD = MovieData('/home2/avega/Documents/test_0001.tif'); %Indicate image file to be analyzed; all channels should be in single tiff file
+MD = MovieData('J1-2 1 proper correction.tif'); %Indicate image file to be analyzed; all channels should be in single tiff file
 
 %% Initialize and add all processes
 process = SubResolutionProcess(MD); %Detection
@@ -37,8 +37,8 @@ MD.getProcess(2).run;
 % The core function used for colocalization analysis is colocalMeasurePt2Cnt
 p = MD.getProcess(3).getParameters();
 p.ChannelRef = 2; %Punctate channel which underwent detection process
-p.ChannelObs = 3; %Continuum channel
-p.ChannelMask = 3; %Channel that was masked
+p.ChannelObs = 1; %Continuum channel
+p.ChannelMask = 2; %Channel that was masked
 p.SearchRadius = 2; %Radius around detection to use to read out intensity
 p.RandomRuns = 1;% Number of times randomized data is analyzed
 MD.getProcess(3).setParameters(p);
