@@ -1,11 +1,11 @@
 function movieData = colocalizationWrapper(movieData, paramsIn)
-%COLOCALIZATIONWRAPPER applies a method of colocalization on two channels of an image set
+%COLOCALIZATIONWRAPPER applies colocalization method described in colocalMeasurePt2Cnt to a single image or an image set
 % 
 % movieData = colocalizationWrapper(movieData, paramsIn)
 %
-% Applies a method of colocalization (dependant on how objects are detected
-% ) to two channels of an image set and outputs average and sometimes 
-% individual colocalization measures
+% Applies colocalization method described in colocalMeasurePt2Cnt to two 
+% channels (punctate and continuum) of an image set and outputs average and
+% sometimes individual colocalization measures
 %
 % Input:
 %   movieData- A MovieData object describing the movie to be processed
@@ -28,14 +28,11 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
 %
 %       RandomRuns - number of times positions
 %
-%       MethodIdx - indicate here which method is to be used. Numbering is
-%       as follows: 1-point2point, 2-point2continuum, 3-continuum2continuum
-%       4- point2object
 %   
-% Output: Various colocalization measures dependant on colocalization
-% method used for single or stack of images. See specific method function
-% for respective outputs. Outputs are saved in unique folder based on
-% method (Ex. ColocalizationPt2Cnt/colocalInfo.mat)
+% Output: See core function, colocalMeasurePt2Cnt
+% for specific outputs. Outputs are saved in unique folder 
+% ColocalizationPt2Cnt/colocalInfoMN.mat where M = punctate channel and N=
+% continuum channel number used in analysis.
 %
 %   
 % Anthony Vega 09/2014
@@ -81,9 +78,11 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
 
     %Define which process was masking process
     try
-        iM = movieData.getProcessIndex('MaskProcess',Inf,0); 
+        warning('off', 'lccb:process')
+        iM = movieData.getProcessIndex('MaskProcess',1,0); 
         inMaskDir = movieData.processes_{iM}.outFilePaths_(p.ChannelMask); 
         maskNames = movieData.processes_{iM}.getOutMaskFileNames(p.ChannelMask);
+        warning('on', 'lccb:process')
     catch
         % Try to use imported cell mask if no MaskProcess, Kevin Nguyen 7/2016
         iM = movieData.getProcessIndex('ImportCellMaskProcess',Inf,0); 
@@ -93,47 +92,20 @@ function movieData = colocalizationWrapper(movieData, paramsIn)
         maskNames = {{['cellMask_channel_',num2str(p.ChannelMask),'.tif']}}; 
     end
 
-    
-    if p.MethodIndx ~= 3
     %load ref detection data
         try
-            iD = movieData.getProcessIndex('ThreshLocMaxProcess',Inf,0);
-            inDetectDir = movieData.processes_{iD}.outFilePaths_(p.ChannelRef); 
-        catch 
-
             iD = movieData.getProcessIndex('SubResolutionProcess',Inf,0);
             inDetectDir = movieData.processes_{iD}.outFilePaths_(p.ChannelRef); 
+        catch 
+            %Insert some error about no detection file
+    
         end
 
         load(inDetectDir{1});
-    end
-    
-    if p.MethodIndx == 1 || p.MethodIndx == 4
-        movieInfoRef = movieInfo;
-        inDetectDir = movieData.processes_{iD}.outFilePaths_(p.ChannelObs);
-        load(inDetectDir{1});
-        movieInfoObs = movieInfo;
-        pixelIndxObs = pixelIndx;
-    end
-    
 
 %% Run Colocalization Analysis
-switch p.MethodIndx
-    case 1 %Point2Point
 
-        [cT,cNull,cCritical,estimatorC,estimatorM]=deal(zeros(length(movieInfoRef),1));
-        for iImage = 1:nImages
-            detectionRef = movieInfoRef(iImage); 
-            detectionObs = movieInfoObs(iImage); 
-            currMask = imread([inMaskDir{1} filesep maskNames{1}{iImage}]);
-            [cT(iImage,:), cNull(iImage,:), cCritical(iImage,:),estimatorM(iImage,:),...
-                estimatorC(iImage,:)] = colocalMeasurePt2Pt(detectionRef,detectionObs, p.SearchRadius,currMask);
-        end
-        mkdir([p.OutputDirectory 'ColocalizationPt2Pt' ])
-        save([p.OutputDirectory 'ColocalizationPt2Pt/colocalInfo.mat'],'cT','cNull','cCritical','estimatorC','estimatorM');
-    case 2 %Point2Continuum
-
-        [ratioInd,localInd,randRatioInd]=deal(cell(nImages,1));
+        [enrichInd,localInd,randEnrichInd,normDist]=deal(cell(nImages,1));
         start  = movieData.processes_{iD}.funParams_.firstImageNum;
         finish = movieData.processes_{iD}.funParams_.lastImageNum;
         for iImage = start:finish
@@ -150,50 +122,15 @@ switch p.MethodIndx
         
             %Run Function
 
-            [ratioAve(iImage,:),localAve(iImage,:),bgAve(iImage,:),randRatioAve(iImage,:),...
-            ratioInd{iImage,:},localInd{iImage,:},randRatioInd{iImage,:},clusterDensity(iImage),cellIntensity(iImage,1)] = colocalMeasurePt2Cnt(p.SearchRadius,...
+            [enrichAve(iImage,:),localAve(iImage,:),bgAve(iImage,:),randEnrichAve(iImage,:),...
+            enrichInd{iImage,:},localInd{iImage,:},randEnrichInd{iImage,:},clusterDensity(iImage),cellIntensity(iImage,1),normDist{iImage,:}] = colocalMeasurePt2Cnt(p.SearchRadius,...
             p.RandomRuns,detectionData,imageRef,imageObs,currMask);
 
         end
         mkdir([p.OutputDirectory 'ColocalizationPt2Cnt' ])
-        save([p.OutputDirectory 'ColocalizationPt2Cnt/colocalInfo.mat'],'ratioAve','localAve','bgAve','randRatioAve','ratioInd','localInd','randRatioInd','clusterDensity','cellIntensity');
-    case 3 %Continuum2Continuum
-        for iImage = 1:nImages
-            %load image in reference channel
-            imageRef = movieData.channels_(p.ChannelRef).loadImage(iImage);
-            %load image in observed channel
-            imageObs = movieData.channels_(p.ChannelObs).loadImage(iImage);
-            %Load the mask for this frame/channel
-            currMask = imread([inMaskDir{1} filesep maskNames{1}{iImage}]);
-            [R(iImage,:),randR(iImage,:)] = colocalMeasureCnt2Cnt(imageRef,imageObs,currMask);
-        end
-        mkdir([p.OutputDirectory 'ColocalizationCnt2Cnt' ])
-        save([p.OutputDirectory 'ColocalizationCnt2Cnt/colocalInfo.mat'], 'R', 'randR');
-    case 4 %ColocPt2Obj
-        start  = movieData.processes_{iD}.funParams_.firstImageNum;
-        finish = movieData.processes_{iD}.funParams_.lastImageNum;
-        for iImage = start:finish
-            % Load object image
-                imageObj = movieData.channels_(p.ChannelObs).loadImage(iImage);        
-            %Load detection data
-                detectionData = movieInfoRef(iImage); 
-            %Load segmentation data
-                maskBlobs = zeros(size(imageObj,1),size(imageObj,2));
-                for m =1:length(pixelIndxObs{1})
-                maskBlobs(pixelIndxObs{1}{m}) = 1;
-                end
-                bw = bwmorph(maskBlobs,'close');
-            %Load the mask for this frame/channel
-                currMask = imread([inMaskDir{1} filesep maskNames{1}{iImage}]);
+        save([p.OutputDirectory 'ColocalizationPt2Cnt/colocalInfo' num2str(p.ChannelRef) num2str(p.ChannelObs) '.mat'],'enrichAve','localAve','bgAve','randEnrichAve','enrichInd','localInd','randEnrichInd','clusterDensity','cellIntensity');
 
-        % Run analysis        
-        [colocFract(iImage,:),colocFractRand(iImage,:),colocS{iImage},colocRand{iImage},segProps{iImage}] = colocalMeasurePt2Obj(detectionData,bw,currMask,imageObj);
-        end
-        mkdir([p.OutputDirectory 'ColocalizationPt2Obj' ])
-        save([p.OutputDirectory 'ColocalizationPt2Obj/colocalInfo.mat'],'colocFract','colocFractRand','colocS','colocRand','segProps');
-    otherwise
-        error('Invalid Method Index!');
-end
+
 %% Save Results
 movieData.processes_{iProc}.setDateTime;
 movieData.save; %Save the new movieData to disk

@@ -1,4 +1,4 @@
-function [scaled_velocities] = scriptSTICS(imageStack)
+function [scaled_velocities] = scriptSTICS(imageStack,numFrame)
 %SCRIPTSTICS uses STICS analysis to output flow vectors between two images
 % Short script to use STICS ImageJplug-in to determine flow between to images
 % in a time lapse ideally
@@ -31,16 +31,16 @@ import ij.text.*;
 
 %Set parameters
 imp = WindowManager.getCurrentImage();
-MIJ.run('Properties...','slices=1 frames=10'); %Make sure image is read properly
+MIJ.run('Properties...',strcat('slices=1 frames=',num2str(numFrame))); %Make sure image is read properly
 MIJ.run('32-bit'); %Seriously, program ONLY runs this format
-map = STICS_map(32,32);
+map = STICS_map(16,8); %%this might be wrong
 stack=imp.getStack();
-width=imp.getWidth();
+width= imp.getWidth();
 height = imp.getHeight();
 roi=Roi(0,0,width,height);
 
-shift = 1;
-frames = 10;
+shift = 3;
+frames = numFrame;
 slices = 1;
 channels = 1;
 scaling = 1;
@@ -48,8 +48,8 @@ ftime = 1;
 centered = true;
 norm = true;
 multiplier = 1;
-magthresh = 2;
-stepsize = 4;
+magthresh = 0;
+stepsize = 8;
 
 
 %Update map with parameters and and run STICS analysis
