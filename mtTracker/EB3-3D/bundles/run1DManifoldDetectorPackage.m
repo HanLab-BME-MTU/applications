@@ -10,7 +10,7 @@ processTrackEB3.setOutFilePaths({[outputDirProj filesep 'tracksLabRef.mat']});
 processTrackKin=ExternalProcess(MD,'Tracking');
 outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep  ];
 processTrackKin.setOutFilePaths({[outputDirProj  filesep 'tracksLabRef.mat']})
-
+    
 processDetectPoles=ExternalProcess(MD,'detectPoles',@(p) detectPoles(p.getOwner(),'process',p,'isoOutput',true));
 processDetectPoles.run();
 

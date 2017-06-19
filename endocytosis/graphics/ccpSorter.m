@@ -131,7 +131,7 @@ end
 lRange = [0 prctile(lftV, 99.9, 1)];
 
 % 1) Scatter plot(s)
-ha(1) = axes('Position', [0.12/width*height 0.35 0.6/width*height 0.6]);
+ha(1) = axes('Position', [0.12/width*height 0.35 0.6/width*height 0.6],'FontSize', 8);
 hp1 = zeros(2,1);
 hp1(1) = plot(ha(1), lftV(~selCh1), maxA(~selCh1,1), 'o', 'Color', 0.6*[1 1 1], 'HitTest', 'off');
 hold(ha(1), 'on');
@@ -157,7 +157,7 @@ t = ((cutoff_f+(bf-1)/2):bf:N)*framerate;
 w = N./(N-cutoff_f+1:-1:1);
 
 if nCh>1
-    ha(2) = axes('Position', [0.8/width*height 0.35 0.6/width*height 0.6]);
+    ha(2) = axes('Position', [0.8/width*height 0.35 0.6/width*height 0.6],'FontSize', 8);
     hp2 = zeros(3,1);
     hp2(1) = plot(ha(2), lftV(~selCh2 & selCh1), maxA(~selCh2 & selCh1,2), 'o', 'Color', selColor1, 'HitTest', 'off');
     hold(ha(2), 'on');
@@ -174,7 +174,7 @@ if nCh>1
     scattercontour(lftV, maxA(:,2), 'Parent', ha(2));
 else
     % Plot lifetime distribution
-    ha(2) = axes('Position', [0.8/width*height 0.6 0.6/width*height 0.35]);
+    ha(2) = axes('Position', [0.8/width*height 0.6 0.6/width*height 0.35],'FontSize', 8);
     
     histCCPs = hist(lftV(maxA(:,1)>=at0(1)), t).*w;
     histCCPs = histCCPs / sum(histCCPs) / framerate / bf;
@@ -247,7 +247,7 @@ XTick = [XTick 2*XTick(end)-XTick(end-1)];
 
 updateCohorts();
 
-set(ha([1 2]), 'XTick', 0:20:200);
+set(ha([1 2]), 'XTick', 0:40:250);
         
 
     function updateCohorts()

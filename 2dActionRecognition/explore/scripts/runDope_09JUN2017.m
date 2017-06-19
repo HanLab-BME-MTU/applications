@@ -38,6 +38,6 @@ cellXploreDR('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May16_metEffO
 dopeAnnotator('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May16_metEffOnly.mat')
 
 
-
+%% load with previous annotations
 dopeAnnotator('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat',...
 	'/work/bioinformatics/shared/dope/data/OMETIFF/dopeCheckPoint_Anno09Jun2017_1037.mat')

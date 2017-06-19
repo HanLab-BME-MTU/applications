@@ -12,11 +12,12 @@ period = 2*pi;
 
 for e = events
     cost = abs(bsxfun(@minus,aligned(:,e).',aligned(:,e+1)));
-    wrap = cost > period;
-    cost(wrap) = mod(cost(wrap),period);
+%     wrap = cost > period;
+%     cost(wrap) = mod(cost(wrap),period);
+    cost = min(period-cost,cost);
     cost(isnan(cost)) = max(cost(:));
     [link12,link21] = lap(cost);
-    aligned(:,e+1:end) = aligned(link12,e+1:end);
+    aligned(:,e+1:end) = aligned(link21,e+1:end);
 end
 
 end
