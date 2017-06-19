@@ -1,4 +1,4 @@
-function add1DManifoldDetectorPackage(MD)
+function package=run1DManifoldDetectorPackage(MD)
 %% Ideally will built a Package to be run later.
 %% In practice, for now, we run the whole script through to estimate scores.
 
@@ -89,4 +89,5 @@ for scoreIdx=[1:5 (length(sorterScore)-N):length(sorterScore)]
     end
 end
 
+package=GenericPackage({processTrackEB3 processTrackKin processDetectPoles processBuildRef });
 

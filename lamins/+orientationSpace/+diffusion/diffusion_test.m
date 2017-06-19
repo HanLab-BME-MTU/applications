@@ -32,26 +32,35 @@ if(~exist('I','var'))
             cd 'Z:\Takeshi\N-SIM\040715';
             MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.nd2');
             I = MD.channels_(1).loadImage(1,11);
+        case 'mkitti-jaqaman'
+            % Laptop T440s
+            load('C:\Users\Mark Kittisopikul\Documents\Data\Lamins\MEFLB1-LACLB12-006_Reconstructed_study\MEFLB1-LACLB12-006_Reconstructed\MEFLB1-LACLB12-006_Reconstructed.mat');
+            MD.sanityCheck;
+            I = MD.channels_(1).loadImage(1,10);
         otherwise
             % BioHPC
             cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
-            I = imread('example.tif');
+            MD = MovieData.load('example.tif');
+            
     end
 end
 % I = imread('example.tif');
 F = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,8,'none');
 R = F*I;
 K = 8:-0.1:1;
-% t = linspace(1/(2*8+1).^2,1/(2+1).^2,100);
+% t = linspace(1/(2*8+1).^2,1/(2+1).^2,1000);
 % K = 1/2./sqrt(t)-1/2;
 % rho = zeros(17,length(K));
 % for i=1:length(K)
 % %     out(:,i) = interpft_extrema(R.getResponseAtOrderFTatPoint(628,323,K(i)));
 %       rho(:,i) = R.getResponseAtOrderFTatPoint(628,323,K(i));
 % end
-rho = R.getResponseAtOrderFTatPoint(623,383,K);
+% rho = R.getResponseAtOrderFTatPoint(623,383,K);
 % rho = R.getResponseAtOrderFTatPoint(628,323,K);
 % rho = R.getResponseAtOrderFTatPoint(622,363,K);
+r = 622;
+c = 364;
+rho = R.getResponseAtOrderFTatPoint(r,c,K);
 out = interpft_extrema(rho);
 out = orientationSpace.diffusion.alignExtrema(out);
 
@@ -66,17 +75,20 @@ d2t_dK2 = 24./(2*K+1).^4;
 dm_dt = -D*vderivs(:,:,3)./vderivs(:,:,2);
 d2m_dt2 = -vderivs(:,:,3).*dm_dt.^2 - 2*D*vderivs(:,:,4).*dm_dt - D.^2.*vderivs(:,:,5);
 d2m_dt2 = d2m_dt2 ./ vderivs(:,:,2);
-d2m_dK2 = d2m_dt2.*(dt_dK).^2 + dm_dt.*d2t_dK2;
-dm_dK = dt_dK.*dm_dt;
+% d2m_dK2 = d2m_dt2.*(dt_dK).^2 + dm_dt.*d2t_dK2;
+d2m_dK2 = bsxfun(@times,d2m_dt2,dt_dK.^2) + bsxfun(@times,dm_dt,d2t_dK2);
+% dm_dK = dt_dK.*dm_dt;
+dm_dK = bsxfun(@times,dt_dK,dm_dt);
 
 
 figure;
 hold on;
-plot(out.',interpft1([0 2*pi],rho,out).')
+plot(out.'/2/pi*180,interpft1([0 2*pi],rho,out).')
 for i=0:7
-    hold on; plot((0:359)/360*2*pi,interpft(rho(:,1+10*i),360),'Color',ones(3,1)*0.125*i)
+    hold on; plot((0:359)/360*180,interpft(rho(:,1+10*i),360),'Color',ones(3,1)*0.125*i)
 end
-xlim([0 2*pi]);
+% xlim([0 2*pi]);
+xlim([0 180]);
 legend([strcat({'LM Track '},num2cell(num2str((1:size(out,1)).'))); strcat({'K = '},num2cell(num2str((8:-1:1).')))]);
 grid on;
 
