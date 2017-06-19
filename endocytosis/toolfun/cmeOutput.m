@@ -1,13 +1,26 @@
+% This function provides the ouput of the 'result' of cmeAnalysis as an
+% excel file in the directory chosen by the user. 
+% 1. Load 'result' or run 'cmeAnalysis'
+% 2. Call the function: xxx = cmeOutput(result), xxx is the output name
+% 3. Choose preferred output folder
+% 4. If the output file already exists, select replace or not
+%=============================================================
+% Required Matlab version: 2017
+%=============================================================
+% Optionally, the name of the excel file can be manually changed
+%=============================================================
+% Author: Xinxin Wang, Danuser Lab
+
 function pwd_file = cmeOutput(res, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('res', @(x) isstruct(x));
-ip.addOptional('outputFilename', 'res.xlsx', @ischar);
+ip.addOptional('outputFilename', 'res', @ischar);
 ip.addOptional('resultDir', [], @(x) ischar(x));
 ip.parse(res, varargin{:});
 
-filename = ip.Results.outputFilename;
+filename = [ip.Results.outputFilename '.xlsx'];
 resDir = ip.Results.resultDir;
 
 if isempty(resDir)
@@ -46,7 +59,6 @@ else
   disp(filename);
 end
 
-
 meanLftHistCCP = res.lftRes.meanLftHistCCP';
 
 Lft = 5:size(res.lftRes.meanLftHistCCP,2)+4;
@@ -74,17 +86,14 @@ LT_50_mean = mean(LT_50);
 LT_50_std = std(LT_50);
 T = table(LT_50_mean,LT_50_std);
 
-
 writetable(T,filename,'Sheet',1, 'Range','E1');
-
-
 
 cellNum = 1:size(res.lftRes.cellArea,1);
 cellNum = cellNum';
 cellArea = res.lftRes.cellArea;
-pctCCP = res.lftRes.pctCCP;
-pctCS = res.lftRes.pctCS;
-pctVisit = res.lftRes.pctVisit;
+%pctCCP = res.lftRes.pctCCP;
+%pctCS = res.lftRes.pctCS;
+%pctVisit = res.lftRes.pctVisit;
 initDensityCCP = res.lftRes.initDensityCCP(:,1);
 initDensityCCP_all = res.lftRes.initDensityIa(:,1);
 initDensityCLS = initDensityCCP_all-initDensityCCP;
@@ -93,6 +102,4 @@ LT_50 = LT_50';
 T = table(cellNum,cellArea,initDensityCCP,initDensityCLS,persistentDensity,LT_50);
 
 writetable(T,filename,'Sheet',1, 'Range','H1');
-
-%writetable(T,filename,'Sheet',2,'Range','A1:C6');
 
