@@ -40,10 +40,10 @@ parfor kinIdx=1:length(kinTracks)
         for tIdx=1:length(mappedTracksRef)
             % remap each timepoint to manifold
             mt=mappedTracksRef(tIdx);
-            [~,manifSubIndx]=intersect(subManifoldREf(1).f,mt.f);
-            nonMappedPoint=((((mt.x.^2+mt.y.^2).^(0.5))>distCutoff)| ...
-                            (mt.z<subManifoldREf(1).z(manifSubIndx))| ...
-                            (mt.z>subManifoldREf(2).z(manifSubIndx)));
+            [~,manifSubIndx,mtSubIdx]=intersect(subManifoldREf(1).f,mt.f);
+            nonMappedPoint=((((mt.x(mtSubIdx).^2+mt.y(mtSubIdx).^2).^(0.5))>distCutoff)| ...
+                            (mt.z(mtSubIdx)<subManifoldREf(1).z(manifSubIndx))| ...
+                            (mt.z(mtSubIdx)>subManifoldREf(2).z(manifSubIndx)));
             lastNonMapped=find(nonMappedPoint,1,'last');
             if(isempty(lastNonMapped))
               manifoldEntry(tIdx)=true;

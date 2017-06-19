@@ -17,13 +17,13 @@ processDetectPoles.run();
 processBuildRef=ExternalProcess(MD,'buildRefsAndROI',@(p) buildRefsFromTracks(processDetectPoles,processDetectPoles,'buildROI',true,'process',p));
 processBuildRef.run();
 
-kinTracksISO=load(processTrackKin.outFilePaths_{1}); kinTracksISO=kinTracksISO.tracksLabRef;
+%% Selecting inliers
 ROIs=load(processBuildRef.outFilePaths_{2}); ROIs=ROIs.ROI;
+kinTracksISO=load(processTrackKin.outFilePaths_{1}); kinTracksISO=kinTracksISO.tracksLabRef;
 kinTracksISOInliers=mapTracksTo1DManifold(ROIs{1,2},kinTracksISO,0,'position','start','distType','vertexDistOtsu');
-
-
 tmp=load(processTrackEB3.outFilePaths_{1}); EB3TracksISO=tmp.tracksLabRef;
 EB3TracksInliers=mapTracksTo1DManifold(ROIs{1,2},EB3TracksISO,0,'position','start','distType','vertexDistOtsu');
+
 %% Compute scores
 kinTest=1:100;
 maxRandomDist=20;
@@ -43,10 +43,12 @@ for testIdx=1:length(kinTest)
     [~,hFigMapped,zScores(2,testIdx)]=bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(tIdx)} {[randTracksCell{:}]}],'plotName',['manifMC-P2-' num2str(testIdx)],'mappedMTField','associatedMTP2');
     close(hFigMapped);
 end
-
+%%
+processScoring=ExternalProcess(MD,'manifoldScoring');
 [sorterScore,indx]=sort(zScores(:));
 [poleIdx,kinIdx]=ind2sub(size(zScores),indx);
-save([MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat'],'zScores')
+save([MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat'],'zScores','kinTracksISOInliers')
+processScoring.setOutFilePaths({[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat']});
 
 %% Display the N best and worst scores
 N=10;
@@ -84,10 +86,10 @@ for scoreIdx=[1:5 (length(sorterScore)-N):length(sorterScore)]
        refKP=buildRefsFromTracks(P2,track);
         project1D(MD,ROI,'dynPoligonREF',refKP.applyBase([P2 ROI],''),'FoF',refKP, ...
             'name',['PK-rand-P2-' num2str(tIdx) '-S-' num2str(sorterScore(scoreIdx))],'channelRender','grayRed','processSingleProj',processProj,'intMinPrctil',[20 98],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
-        overlayProjTracksMovie(processProj,'tracks',[refKP.applyBase(track.associatedMTP1,[])] ,'colorIndx',[ones(size(track.associatedMTP1))],'colormap',myColormap,'name','test');
+        overlayProjTracksMovie(processProj,'tracks',[refKP.applyBase(track.associatedMTP2,[])] ,'colorIndx',[ones(size(track.associatedMTP2))],'colormap',myColormap,'name','test');
     
     end
 end
 
-package=GenericPackage({processTrackEB3 processTrackKin processDetectPoles processBuildRef });
+package=GenericPackage({processTrackEB3 processTrackKin processDetectPoles processBuildRef processScoring });
 
