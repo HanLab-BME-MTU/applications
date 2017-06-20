@@ -8,8 +8,11 @@ end
 
 %%
 ML4min=MovieList.load('/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/sphericalProjection/prometaphase/analysis/ML4min.mat');
-for i=1:ML4min.getSize()
-    pack=run1DManifoldDetectorPackage(ML4min.getMovie(i));
+%%
+for i=1:1%ML4min.getSize()
+    MD=ML4min.getMovie(i);
+    pack=run1DManifoldDetectorPackage(MD,'package',MD.getPackage(333));
+    %pack=run1DManifoldDetectorPackage(MD);
     MD.setPackage(333,pack)
     MD.save();
 end
