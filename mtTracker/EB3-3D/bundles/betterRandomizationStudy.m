@@ -238,8 +238,8 @@ overlayProjTracksList(MD,processProjPyramid,kinTracksISOInliers(kinTest),kinTrac
 
 
 %% new randomization, single tracks
-[manifoldsAllKinP1,subManifoldsAllKinP1]=buildFiberManifold(P1,kinTracksISOInliers,EB3TracksISOInliers,10,'kinDistCutoff',[-20,20]);
-[manifoldsAllKinP2,subManifoldsAllKinP2]=buildFiberManifold(P2,kinTracksISOInliers,EB3TracksISOInliers,10,'kinDistCutoff',[-20,20]);
+[manifoldsAllKinP1,subManifoldsAllKinP1]=buildFiberManifold(P1,kinTracksISOInliers,'kinDistCutoff',[-20,20]);
+[manifoldsAllKinP2,subManifoldsAllKinP2]=buildFiberManifold(P2,kinTracksISOInliers,'kinDistCutoff',[-20,20]);
 
 %%
 kinIdx=66;
