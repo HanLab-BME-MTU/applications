@@ -13,12 +13,14 @@ clear
 %TEMP!
 %dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Control_Halo_TMR_12262011/Cropped/Halo_PBS_90x_cropped_3';
 %dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3';
-dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/Arp3_HaloTMR_07042011_1_driftCorrected_cropped_timeCropped';
+%dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/Arp3_HaloTMR_07042011_1_driftCorrected_cropped_timeCropped';
 %dataFolder = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco';
+%dataFolder = '/home/he19/Desktop/TEMP/Morpho_data_for_local_processing/rac1_cell_actuallyMoves_from_marco';
+dataFolder = '/run/user/1690408239/gvfs/smb-share:server=nucleus,share=idac/Hunter/gtpases_Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco/'
 
 doProc = true;%If true, windowing, sampling, etc will be run.
 doPost = false; %If true, sample analysis will be run.
-doMovies = false;%If true, movies will be made of each window type
+doMovies = true;%If true, movies will be made of each window type
 
 MA = setupMovieArray(dataFolder,1);
 
@@ -41,14 +43,25 @@ nMov = numel(MA);
 %                   'ProtrusionBased'};
 
                
-windowTypes = {'protrusion_based'};                    
-winTypeStrings = {'ProtrusionBased'};
+%windowTypes = {'protrusion_based'};                    
+%winTypeStrings = {'ProtrusionBased'};
 % windowTypes = {'constant_number'};
 % winTypeStrings = {'ConstantNumber'};
-                            
+
+windowTypes = {'pde_reInit15_viscoElastic',...
+               'pde_reInit15_viscous',...
+               'pde_reInit15_viscousConvective'};
+
+% windowTypes = {'pde_viscoElastic',...
+%                'pde_viscous',...
+%                'pde_viscousConvective'};                     
+           
+winTypeStrings = {'PDEBased','PDEBased','PDEBased'};
+pdePars = {'Viscous','ViscoElastic','ViscousConvective'};
 
 %winSizes = 250 * (2 .^ (6:-1:0));%Window sizes in nm                                
-winSizes = 1e3; 
+%winSizes = 1e3; 
+winSizes = 1.6e3;%For propagation comparison figure
 %winSizes = 250;
 %winSizes = [8e3 16e3];
 %winSizes = [500 250];
@@ -65,11 +78,15 @@ nWinType = numel(windowTypes);
 wp.BatchMode = true;
 wp.ChannelIndex = 1;
 wp.SegProcessIndex = 2;
-if strcmp(dataFolder,'/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco')
+
+wp.ReInit = 15;%FOR REINIT TESTING
+
+if ~isempty(strfind(dataFolder,'rac1_cell_actuallyMoves_from_marco'))
     %We set a start-point for this movie
     wp.StartPoint = [132 193];    
 end
-%wp.StartContour = 2; %We want 1 for prot, 2 for others so use default.
+%wp.StartContour = 2; %For real data we want 1 for prot, 2 for others so use default.
+wp.StartContour = 1; %For direct comparison to protrusion-based we want 2.
 
 %Common window sampling parameters
 sp.BatchMode = true;
@@ -145,8 +162,12 @@ for iWinType = 1:nWinType
 
             wp(j).OutputDirectory = [MA(j).outputDirectory_ filesep winString '_' windowTypes{iWinType}];
             wp(j).MethodName = winTypeStrings{iWinType};
-            %wp(j).PDEPar = pdePars{iWinType};
-            %wp(j).MeshQuality = meshQuals{iWinType};            
+            if strcmp(wp(j).MethodName,'PDEBased')
+                wp(j).PDEPar = pdePars{iWinType};
+                wp(j).MeshQuality = 5;                
+            end
+            %
+            %
             wp(j).ParaSize = round(ParaSize / MA(j).pixelSize_);
             wp(j).PerpSize = round(PerpSize / MA(j).pixelSize_);
 
