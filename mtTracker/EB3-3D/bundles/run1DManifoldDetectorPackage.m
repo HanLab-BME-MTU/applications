@@ -39,34 +39,51 @@ kinTracksISOInliers=mapTracksTo1DManifold(ROIs{1,2},kinTracksISO,0,'position','s
 tmp=load(processTrackEB3.outFilePaths_{1}); EB3TracksISO=tmp.tracksLabRef;
 EB3TracksInliers=mapTracksTo1DManifold(ROIs{1,2},EB3TracksISO,0,'position','start','distType','vertexDistOtsu');
 
-%% Compute scores
-kinTest=1:200;
-maxRandomDist=20;
-mappingDist=10;
-processManifoldAntispace=ExternalProcess(MD,'randomizeTracks');
-zScores=zeros(2,length(kinTest));
 tmp=load(processDetectPoles.outFilePaths_{1});
 P1=tmp.tracks(1);
 P2=tmp.tracks(2);
-for testIdx=1:length(kinTest)
-    tIdx=kinTest(testIdx);
-    [randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','manifoldAntispace','tracks',kinTracksISOInliers(tIdx),'process',processManifoldAntispace,'simuNumber',200);
-    buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(tIdx) randTracksCell{:}],EB3TracksInliers,mappingDist,'kinDistCutoff',[-20,20],'mappedTracksField','associatedMTP1');
-    buildFiberManifoldAndMapMT(P2,[kinTracksISOInliers(tIdx) randTracksCell{:}],EB3TracksInliers,mappingDist,'kinDistCutoff',[-20,20],'mappedTracksField','associatedMTP2');
-    [~,hFigMapped,zScores(1,testIdx)]=bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(tIdx)} {[randTracksCell{:}]}],'plotName',['manifMC-P1-' num2str(testIdx)],'mappedMTField','associatedMTP1');
-    close(hFigMapped);
-    [~,hFigMapped,zScores(2,testIdx)]=bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(tIdx)} {[randTracksCell{:}]}],'plotName',['manifMC-P2-' num2str(testIdx)],'mappedMTField','associatedMTP2');
-    close(hFigMapped);
+%% Compute scores
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(4))))
+    processScoring=p.package.getProcess(5);
+else
+    lftThreshold=20;
+    kinTest=find([kinTracksISOInliers.lifetime]>lftThreshold);
+    maxRandomDist=20;
+    mappingDist=10;
+    processManifoldAntispace=ExternalProcess(MD,'randomizeTracks');
+    zScores=nan(2,length(kinTracksISOInliers));
+
+    for testIdx=1:length(kinTest)
+        tIdx=kinTest(testIdx);
+        [randTracksCell]=randomizeTracksMC(MD,maxRandomDist,'randomType','manifoldAntispace','tracks',kinTracksISOInliers(tIdx),'process',processManifoldAntispace,'simuNumber',200);
+        buildFiberManifoldAndMapMT(P1,[kinTracksISOInliers(tIdx) randTracksCell{:}],EB3TracksInliers,mappingDist,'kinDistCutoff',[-20,20],'mappedTracksField','associatedMTP1');
+        buildFiberManifoldAndMapMT(P2,[kinTracksISOInliers(tIdx) randTracksCell{:}],EB3TracksInliers,mappingDist,'kinDistCutoff',[-20,20],'mappedTracksField','associatedMTP2');
+        [~,hFigMapped,zScores(1,tIdx)]=bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(tIdx)} {[randTracksCell{:}]}],'plotName',['manifMC-P1-tr' num2str(tIdx)],'mappedMTField','associatedMTP1');
+        close(hFigMapped);
+        [~,hFigMapped,zScores(2,tIdx)]=bundleStatistics(MD,'kinBundle',[{kinTracksISOInliers(tIdx)} {[randTracksCell{:}]}],'plotName',['manifMC-P2-tr' num2str(tIdx)],'mappedMTField','associatedMTP2');
+        close(hFigMapped);
+    end
+    %%
+    processScoring=ExternalProcess(MD,'manifoldScoring');
+    save([MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat'],'zScores','mappingDist','kinTracksISOInliers')
+    processScoring.setOutFilePaths({[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat']});
 end
-%%
-processScoring=ExternalProcess(MD,'manifoldScoring');
-[sorterScore,indx]=sort(zScores(:));
-[poleIdx,kinIdx]=ind2sub(size(zScores),indx);
-save([MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat'],'zScores','kinTracksISOInliers')
-processScoring.setOutFilePaths({[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat']});
 
 %% Display the N best and worst scores
-N=2;
+tmp=load(processScoring.outFilePaths_{1});
+zScores=tmp.zScores;
+mappingDist=tmp.mappingDist;  
+
+kinTracksISOInliers=tmp.kinTracksISOInliers;
+%%
+[sortedScore,indx]=sort(zScores(:));
+
+% suppressing the unprocessed manifold
+indx(isnan(sortedScore(:)))=[];
+sortedScore(isnan(sortedScore(:)))=[];
+[poleIdx,kinIdx]=ind2sub(size(zScores),indx);
+%%
+N=10;
 tic
 myColormap=uint8( ...
     [[0 255 255]; ... % blue "all" tracks
@@ -74,7 +91,8 @@ myColormap=uint8( ...
     [255 0 100]; ... % kinetochore tracks
     [255 0 200]; ... % kinetochore tracks
     ]);
-for scoreIdx=[1:N (length(sorterScore)-N):length(sorterScore)]
+
+for scoreIdx=[1:N (length(sortedScore)-N):length(sortedScore)]
     tIdx=kinIdx(scoreIdx);
     track=kinTracksISOInliers(tIdx);
     refP1P2=buildRefsFromTracks(P1,P2);
@@ -82,7 +100,7 @@ for scoreIdx=[1:N (length(sorterScore)-N):length(sorterScore)]
         ROI=[P1 track];
         processProj=ExternalProcess(MD,'projP1');
         project1D(MD,ROI,'dynPoligonREF',refP1P2.applyBase([P2 ROI],''),'FoF',refP1P2, ...
-            'name',['rand-P1-' num2str(tIdx) '-S-' num2str(sorterScore(scoreIdx))], ...
+            'name',['SP-P1-' num2str(tIdx) '-S-' num2str(sortedScore(scoreIdx))], ...
             'channelRender','grayRed','processSingleProj',processProj, ... 
             'intMinPrctil',[20 98],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
         overlayProjTracksMovie(processProj,'tracks',[refP1P2.applyBase([track.associatedMTP1; track],[]) ] , ... 
@@ -90,18 +108,18 @@ for scoreIdx=[1:N (length(sorterScore)-N):length(sorterScore)]
         
         refKP=buildRefsFromTracks(P1,track);
         project1D(MD,ROI,'dynPoligonREF',refKP.applyBase([ROI],''),'FoF',refKP, ...
-            'name',['PK-rand-P1-' num2str(tIdx) '-S-' num2str(sorterScore(scoreIdx))], ... 
+            'name',['PK-P1-' num2str(tIdx) '-S-' num2str(sortedScore(scoreIdx))], ... 
             'channelRender','grayRed','processSingleProj',processProj, ... 
             'intMinPrctil',[20 98],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
         overlayProjTracksMovie(processProj,'tracks',refKP.applyBase([track.associatedMTP1; track],[]), ... 
-            'colorIndx',[ones(size(track.associatedMTP1)); 3],'colormap',myColormap,'name','test');
+            'colorIndx',[ones(size(track.associatedMTP1)); 3],'colormap',myColormap,'name','tracks');
     end
     
     if(poleIdx(scoreIdx)==2)
         ROI=[P2 track];
         processProj=ExternalProcess(MD,'projP2');
         project1D(MD,ROI,'dynPoligonREF',refP1P2.applyBase([P1 ROI],''),'FoF',refP1P2, ...
-            'name',['rand-P2-' num2str(tIdx) '-S-' num2str(sorterScore(scoreIdx))], ...
+            'name',['SP-P2-' num2str(tIdx) '-S-' num2str(sortedScore(scoreIdx))], ...
             'channelRender','grayRed','processSingleProj',processProj, ...
             'intMinPrctil',[20 98],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
         overlayProjTracksMovie(processProj,'tracks',refP1P2.applyBase([track.associatedMTP2; track],[]), ...
@@ -109,11 +127,11 @@ for scoreIdx=[1:N (length(sorterScore)-N):length(sorterScore)]
 
        refKP=buildRefsFromTracks(P2,track);
         project1D(MD,ROI,'dynPoligonREF',refKP.applyBase([ROI],''),'FoF',refKP, ...
-            'name',['PK-rand-P2-' num2str(tIdx) '-S-' num2str(sorterScore(scoreIdx))], ...
+            'name',['PK-P2-' num2str(tIdx) '-S-' num2str(sortedScore(scoreIdx))], ...
             'channelRender','grayRed','processSingleProj',processProj, ...
             'intMinPrctil',[20 98],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
         overlayProjTracksMovie(processProj,'tracks',refKP.applyBase([track.associatedMTP2; track],[]) , ... 
-            'colorIndx',[ones(size(track.associatedMTP2)); 3],'colormap',myColormap,'name','test');
+            'colorIndx',[ones(size(track.associatedMTP2)); 3],'colormap',myColormap,'name','tracks');
     
     end
 end
