@@ -27,6 +27,12 @@ for cIdx=1:length(scoringProcessCell)
 		counts=histcounts(scoreCell{cIdx}{pIdx},scoresBin);
 		histCell{cIdx}=[histCell{cIdx}; counts];
 	end
-	plot(scoresBin(1:end-1),histCell{cIdx},[c{cIdx} '-']);
+	
+	if(size(histCell{cIdx},1)>1)
+        y=histCell{cIdx};
+        shadedErrorBar(scoresBin(1:end-1),mean(y),std(y),c{cIdx},1);       
+    else
+	    plot(scoresBin(1:end-1),histCell{cIdx},[c{cIdx} '-']);
+    end
 end
 hold off;
