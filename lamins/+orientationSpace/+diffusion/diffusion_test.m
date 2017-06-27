@@ -40,8 +40,8 @@ if(~exist('I','var'))
         otherwise
             % BioHPC
             cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
-            MD = MovieData.load('example.tif');
-            
+            MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.mat');
+            I = MD.channels_(1).loadImage(1,10);
     end
 end
 % I = imread('example.tif');
@@ -101,7 +101,7 @@ for trackNum = 1:size(out,1)
     try
         figure;
         title(['Track ' num2str(trackNum)]);
-        idx_select = length(K):-10:1;
+        idx_select = length(K):-35:1;
         track = out(trackNum,idx_select);
         idx_select = idx_select(~isnan(track));
         track = track(~isnan(track));
@@ -118,9 +118,11 @@ for trackNum = 1:size(out,1)
         x2 = joinColumns(repmat(K(idx_select),3,1));
         y2 = joinColumns([track; dm_dK(trackNum,idx_select); d2m_dK2(trackNum,idx_select)]);
         sp2 = spapi(optknt(x2.',5),x2.',y2.');
+        sp2c{trackNum} = sp2;
 
 
         xq = K(idx_select(1)):0.01:K(idx_select(end));
+        xqc{trackNum} = xq;
                 hold on;
         plot(xq,spval(sp,xq))
         plot(xq,spval(spgrad,xq))
