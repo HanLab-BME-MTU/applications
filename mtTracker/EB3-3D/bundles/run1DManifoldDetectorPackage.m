@@ -14,7 +14,7 @@ p=ip.Results;
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(1))))
    processDetectEB3=p.package.getProcess(1);
 else
-    processDetectEB3=PointSourceDetectionProcess3D(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultDetectionParams(MD, MD.outputDirectory_));
+    processDetectEB3=PointSourceDetectionProcess3D(MD, [MD.outputDirectory_ filesep 'EB3'],UTrackPackage3D.getDefaultDetectionParams(MD,[MD.outputDirectory_ filesep 'EB3']));
     MD.addProcess(processDetectEB3);
     funParams = processDetectEB3.funParams_;
     funParams.showAll=true;
@@ -32,7 +32,7 @@ end
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(2))))
     processTrackEB3=p.package.getProcess(2);
 else
-    processTrackEB3=TrackingProcess(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultTrackingParams(MD, MD.outputDirectory_));
+    processTrackEB3=TrackingProcess(MD, [MD.outputDirectory_ filesep 'EB3'],UTrackPackage3D.getDefaultTrackingParams(MD, [MD.outputDirectory_ filesep 'EB3']));
     MD.addProcess(processTrackEB3);    
     funParams = processTrackEB3.funParams_;
     [costMatrices,gapCloseParam,kalmanFunctions,probDim]=plusTipCometTracker3DParam(MD);
@@ -42,7 +42,7 @@ else
     funParams.probDim=probDim;
     processTrackEB3.setPara(funParams);
     paramsIn.ChannelIndex=1;
-    paramsIn.DetProcessIndex=1;
+    paramsIn.DetProcessIndex=processDetectEB3.getIndex();
     processTrackEB3.run(paramsIn);
 end
 
@@ -50,7 +50,7 @@ end
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(3))))
    processDetectKT=p.package.getProcess(3);
 else
-    processDetectKT=PointSourceDetectionProcess3D(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultDetectionParams(MD, MD.outputDirectory_));
+    processDetectKT=PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'KT'],UTrackPackage3D.getDefaultDetectionParams(MD, [MD.outputDirectory_ filesep 'KT']));
     MD.addProcess(processDetectKT);
     funParams = processDetectKT.funParams_;
     funParams.showAll=true;
@@ -68,7 +68,7 @@ end
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(4))))
     processTrackKT=p.package.getProcess(4);
 else
-    processTrackKT=TrackingProcess(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultTrackingParams(MD, MD.outputDirectory_));
+    processTrackKT=TrackingProcess(MD, [MD.outputDirectory_ filesep 'KT'],UTrackPackage3D.getDefaultTrackingParams(MD,[MD.outputDirectory_ filesep 'KT']));
     MD.addProcess(processTrackKT);    
     funParams = processTrackKT.funParams_;
     [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=kinTrackingParam();
@@ -78,7 +78,7 @@ else
     funParams.probDim=probDim;
     processTrackKT.setPara(funParams);
     paramsIn.ChannelIndex=2;
-    paramsIn.DetProcessIndex=3;
+    paramsIn.DetProcessIndex=processDetectKT.getIndex();
     processTrackKT.run(paramsIn);
 end
 
@@ -142,6 +142,7 @@ else
     end
     %%
     processScoring=ExternalProcess(MD,'manifoldScoring');
+    mkdirRobust([MD.outputDirectory_ filesep 'Kin' filesep 'bundles' ]);
     save([MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat'],'zScores','mappingDist','kinTracksISOInliers')
     processScoring.setOutFilePaths({[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat']});
 end
