@@ -7,44 +7,121 @@ ip.parse(varargin{:});
 p=ip.Results;
 
 %% Ideally will built a Package to be run later.
+%% However, external process does not have a simple way yet to edit the parameter of its associated funtion. 
 %% In practice, for now, we run the whole script through to estimate scores.
 
-% Build a Fake externalProcess for tracking process
-processTrackEB3=ExternalProcess(MD,'Tracking');
-outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
-processTrackEB3.setOutFilePaths({[outputDirProj filesep 'tracksLabRef.mat']});
 
-processTrackKin=ExternalProcess(MD,'Tracking');
-outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep  ];
-processTrackKin.setOutFilePaths({[outputDirProj  filesep 'tracksLabRef.mat']})
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(1))))
+   processDetectEB3=p.package.getProcess(1);
+else
+    processDetectEB3=PointSourceDetectionProcess3D(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultDetectionParams(MD, MD.outputDirectory_));
+    MD.addProcess(processDetectEB3);
+    funParams = processDetectEB3.funParams_;
+    funParams.showAll=true;
+    funParams.alpha=0.05;
+    funParams.filterSigma=[1.4396 1.4396;1.2913 1.2913  ];
+    funParams.WindowSize={[],[]};
+    funParams.algorithmType= {'pointSourceLM'  'pointSourceLM'}
+    funParams.ConfRadius={[],[]};       
+    processDetectEB3.setPara(funParams);
+    paramsIn.ChannelIndex=1;
+    paramsIn.isoCoord=true;
+    processDetectEB3.run(paramsIn);
+end
+
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(2))))
+    processTrackEB3=p.package.getProcess(2);
+else
+    processTrackEB3=TrackingProcess(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultTrackingParams(MD, MD.outputDirectory_));
+    MD.addProcess(processTrackEB3);    
+    funParams = processTrackEB3.funParams_;
+    [costMatrices,gapCloseParam,kalmanFunctions,probDim]=plusTipCometTracker3DParam(MD);
+    funParams.gapCloseParam=gapCloseParam;
+    funParams.costMatrices=costMatrices;
+    funParams.kalmanFunctions=kalmanFunctions;
+    funParams.probDim=probDim;
+    processTrackEB3.setPara(funParams);
+    paramsIn.ChannelIndex=1;
+    paramsIn.DetProcessIndex=1;
+    processTrackEB3.run(paramsIn);
+end
+
 
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(3))))
-    processDetectPoles=p.package.getProcess(3);
+   processDetectKT=p.package.getProcess(3);
+else
+    processDetectKT=PointSourceDetectionProcess3D(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultDetectionParams(MD, MD.outputDirectory_));
+    MD.addProcess(processDetectKT);
+    funParams = processDetectKT.funParams_;
+    funParams.showAll=true;
+    funParams.alpha=0.05;
+    funParams.filterSigma=[1.6 1.6;1.5 1.5  ];
+    funParams.WindowSize={[],[]};
+    funParams.algorithmType= {'pointSourceFit'  'pointSourceFit'}
+    funParams.ConfRadius={[],[]};       
+    processDetectKT.setPara(funParams);
+    paramsIn.ChannelIndex=2;
+    paramsIn.isoCoord=true;
+    processDetectKT.run(paramsIn);    
+end
+
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(4))))
+    processTrackKT=p.package.getProcess(4);
+else
+    processTrackKT=TrackingProcess(MD, MD.outputDirectory_,UTrackPackage3D.getDefaultTrackingParams(MD, MD.outputDirectory_));
+    MD.addProcess(processTrackKT);    
+    funParams = processTrackKT.funParams_;
+    [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=kinTrackingParam();
+    funParams.gapCloseParam=gapCloseParam;
+    funParams.costMatrices=costMatrices;
+    funParams.kalmanFunctions=kalmanFunctions;
+    funParams.probDim=probDim;
+    processTrackKT.setPara(funParams);
+    paramsIn.ChannelIndex=2;
+    paramsIn.DetProcessIndex=3;
+    processTrackKT.run(paramsIn);
+end
+
+
+% Build a Fake externalProcess for tracking process
+% processTrackEB3=ExternalProcess(MD,'Tracking');
+% outputDirProj=[MD.outputDirectory_ filesep 'EB3' filesep 'track' filesep  ];
+% processTrackEB3.setOutFilePaths({[outputDirProj filesep 'tracksLabRef.mat']});
+% 
+% processTrackKT=ExternalProcess(MD,'Tracking');
+% outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep  ];
+% processTrackKT.setOutFilePaths({[outputDirProj  filesep 'tracksLabRef.mat']})
+
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(5))))
+    processDetectPoles=p.package.getProcess(5);
 else
     processDetectPoles=ExternalProcess(MD,'detectPoles',@(p) detectPoles(p.getOwner(),'process',p,'isoOutput',true));
     processDetectPoles.run();
 end
 
-if(~isempty(p.package)&&(~isempty(p.package.getProcess(4))))
-    processBuildRef=p.package.getProcess(4);
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(6))))
+    processBuildRef=p.package.getProcess(6);
 else
     processBuildRef=ExternalProcess(MD,'buildRefsAndROI',@(p) buildRefsFromTracks(processDetectPoles,processDetectPoles,'buildROI',true,'process',p));
     processBuildRef.run();
 end
 
-%% Selecting inliers
+%% Load tracks, convert and select inliers
 ROIs=load(processBuildRef.outFilePaths_{2}); ROIs=ROIs.ROI;
-kinTracksISO=load(processTrackKin.outFilePaths_{1}); kinTracksISO=kinTracksISO.tracksLabRef;
+tmp=load(processTrackKT.outFilePaths_{2}); kinTracksISO=TracksHandle(tmp.tracksFinal);
 kinTracksISOInliers=mapTracksTo1DManifold(ROIs{1,2},kinTracksISO,0,'position','start','distType','vertexDistOtsu');
-tmp=load(processTrackEB3.outFilePaths_{1}); EB3TracksISO=tmp.tracksLabRef;
+
+tmp=load(processTrackEB3.outFilePaths_{1}); EB3TracksISO=TracksHandle(tmp.tracksFinal);
 EB3TracksInliers=mapTracksTo1DManifold(ROIs{1,2},EB3TracksISO,0,'position','start','distType','vertexDistOtsu');
+
+clear tmp;
 
 tmp=load(processDetectPoles.outFilePaths_{1});
 P1=tmp.tracks(1);
 P2=tmp.tracks(2);
 %% Compute scores
-if(~isempty(p.package)&&(~isempty(p.package.getProcess(4))))
-    processScoring=p.package.getProcess(5);
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(7))))
+    processScoring=p.package.getProcess(7);
 else
     lftThreshold=20;
     kinTest=find([kinTracksISOInliers.lifetime]>lftThreshold);
@@ -136,5 +213,6 @@ for scoreIdx=[1:N (length(sortedScore)-N):length(sortedScore)]
     end
 end
 
-package=GenericPackage({processTrackEB3 processTrackKin processDetectPoles processBuildRef processScoring });
+package=GenericPackage({processDetectEB3    processTrackEB3     processDetectKT processTrackKT ... 
+                        processDetectPoles  processBuildRef     processScoring  });
 
