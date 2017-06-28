@@ -10,6 +10,17 @@ p=ip.Results;
 %% However, external process does not have a simple way yet to edit the parameter of its associated funtion. 
 %% In practice, for now, we run the whole script through to estimate scores.
 
+% Process type placeholdes
+MD.setPackage(333,GenericPackage({ ... 
+    PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'EB3']),...
+    TrackingProcess(MD,[MD.outputDirectory_ filesep 'EB3']),...
+    PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'KT']),...
+    TrackingProcess(MD,[MD.outputDirectory_ filesep 'KT']),...  
+    ExternalProcess(MD,'detectPoles'),...
+    ExternalProcess(MD,'buildRefsAndROI'),...
+    ExternalProcess(MD,'manifoldScoring')...
+  }));
+
 
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(1))))
    processDetectEB3=p.package.getProcess(1);
@@ -29,6 +40,8 @@ else
     processDetectEB3.run(paramsIn);
 end
 
+MD.getPackage(333).setProcess(1,processDetectEB3);
+
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(2))))
     processTrackEB3=p.package.getProcess(2);
 else
@@ -46,6 +59,7 @@ else
     processTrackEB3.run(paramsIn);
 end
 
+MD.getPackage(333).setProcess(2,processTrackEB3);
 
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(3))))
    processDetectKT=p.package.getProcess(3);
@@ -65,6 +79,8 @@ else
     processDetectKT.run(paramsIn);    
 end
 
+MD.getPackage(333).setProcess(3,processDetectKT);
+                    
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(4))))
     processTrackKT=p.package.getProcess(4);
 else
@@ -81,6 +97,8 @@ else
     paramsIn.DetProcessIndex=processDetectKT.getIndex();
     processTrackKT.run(paramsIn);
 end
+
+MD.getPackage(333).setProcess(4,processTrackKT);
 
 
 % Build a Fake externalProcess for tracking process
@@ -99,12 +117,18 @@ else
     processDetectPoles.run();
 end
 
+MD.getPackage(333).setProcess(5,processDetectPoles);
+
+
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(6))))
     processBuildRef=p.package.getProcess(6);
 else
     processBuildRef=ExternalProcess(MD,'buildRefsAndROI',@(p) buildRefsFromTracks(processDetectPoles,processDetectPoles,'buildROI',true,'process',p));
     processBuildRef.run();
 end
+
+MD.getPackage(333).setProcess(6,processBuildRef);
+
 
 %% Load tracks, convert and select inliers
 ROIs=load(processBuildRef.outFilePaths_{2}); ROIs=ROIs.ROI;
@@ -125,6 +149,7 @@ if(~isempty(p.package)&&(~isempty(p.package.getProcess(7))))
 else
     lftThreshold=20;
     kinTest=find([kinTracksISOInliers.lifetime]>lftThreshold);
+    kinTest=[1 100];
     maxRandomDist=20;
     mappingDist=10;
     processManifoldAntispace=ExternalProcess(MD,'randomizeTracks');
@@ -147,6 +172,9 @@ else
     processScoring.setOutFilePaths({[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat']});
 end
 
+MD.getPackage(333).setProcess(7,processScoring);
+
+
 %% Display the N best and worst scores
 tmp=load(processScoring.outFilePaths_{1});
 zScores=tmp.zScores;
@@ -161,7 +189,7 @@ indx(isnan(sortedScore(:)))=[];
 sortedScore(isnan(sortedScore(:)))=[];
 [poleIdx,kinIdx]=ind2sub(size(zScores),indx);
 %%
-N=10;
+N=1;
 tic
 myColormap=uint8( ...
     [[0 255 255]; ... % blue "all" tracks
