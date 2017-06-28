@@ -79,5 +79,5 @@ for sIdx=2:(length(scales)-1)
 end
 LoGmask=LoGLocaLMax;
 LM(LoGmask==0)=0;
-clear LoGs LoGPrevMax LoGLocaLMax scaleVol sIdx maxInd LoGPrevMax lmaxInd LoGmask scales
+clear LoGs LoGPrevMax LoGLocaLMax sIdx maxInd LoGPrevMax lmaxInd LoGmask scales
 
