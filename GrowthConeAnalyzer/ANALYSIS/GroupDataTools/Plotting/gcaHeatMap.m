@@ -48,6 +48,8 @@ ip.addParameter('plotCutOff',1); % value for making plots  (Currently assumes on
 ip.addParameter('cutOffPValue',[]); % filter z-score by permTest p-value before clustering. 
 % default don't filter 
 
+ip.addParameter('filterNonSigFeatures',false); 
+
 ip.addParameter('plotImagesc',true);% 
 
 ip.parse(toPlot,varargin{:});
@@ -262,10 +264,20 @@ if ip.Results.calcZ
         pValues = vertcat(pValuesCell{:});
         pValues = pValues(:,2:end);  % dont' include control 
         filterMat = pValues < ip.Results.cutOffPValue;  
+        if ip.Results.filterNonSigFeatures
+            test = sum(filterMat,2); 
+            filterMat(test==0,:) = []; % filter if all perturbations insignificant. 
+            forHeatMap(test==0,:)= []; 
+            params(test==0) =[];
+        end 
         forHeatMap = forHeatMap.*filterMat; 
     end 
      
-     
+    % if filter out non-sig rows for clustering.
+    
+    
+   
+    
     
     ClusterObj = clustergram(forHeatMap,'ColorMap','redbluecmap','RowLabels',params,'ColumnLabels',names,'Dendrogram',{'default','default'});
     sortedLabels = get(ClusterObj,'ColumnLabels');
