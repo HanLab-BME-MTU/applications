@@ -327,7 +327,7 @@ classdef OrientationSpaceResponse < handle
                 return;
             end
             n_new = 2*K_new+1;
-            s_inv = sqrt(obj.n^2*n_new^2/(obj.n.^2-n_new.^2));
+            s_inv = sqrt(obj.n^2*n_new.^2/(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
             x = -ceil(K_new):ceil(K_new);
             if(s_hat ~= 0)
