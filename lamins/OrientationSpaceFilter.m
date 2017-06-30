@@ -231,6 +231,36 @@ classdef OrientationSpaceFilter < handle & matlab.mixin.Heterogeneous
                 end
             end
         end
+        function flhm = getFullLengthatHalfMaximum(obj,percent)
+            if(nargin < 2)
+                percent = 0.5;
+            end
+            if(~isscalar(obj))
+                flhm = arrayfun(@(o) getFullLengthatHalfMaximum(o,percent),obj);
+                return;
+            end
+            requireSetup(obj);
+            flhm = real(ifft(sum(real(obj.F(:,:,1)),2)));
+            flhm = flhm./flhm(1);
+            guess = find(flhm < percent,1,'first');
+            % Multiply by 2 to get full length
+            flhm = interp1(flhm(1:guess),(1:guess)-1,percent,'pchip')*2;
+        end
+        function fwhm = getFullWidthatHalfMaximum(obj,percent)
+            if(nargin < 2)
+                percent = 0.5;
+            end
+            if(~isscalar(obj))
+                fwhm = arrayfun(@(o) getFullWidthatHalfMaximum(o,percent),obj);
+                return;
+            end
+            requireSetup(obj);
+            fwhm = real(ifft(sum(real(obj.F(:,:,1)),1)));
+            fwhm = fwhm./fwhm(1);
+            guess = find(fwhm < percent,1,'first');
+            % Multiply by 2 to get full width
+            fwhm = interp1(fwhm(1:guess),(1:guess)-1,percent,'pchip')*2;
+        end
     end
     methods
         function setupFilter(obj,siz)
