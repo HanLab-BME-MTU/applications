@@ -1,7 +1,25 @@
-function [ maxima_splines, minima_splines, response ] = splinesForExtremaFT( response, K, freq )
+function [ maxima_splines, minima_splines, response ] = splinesForExtremaFT( response, K, nDerivs, freq )
 %splinesForExtremaFT Obtain spline fits for the local maxima through K
+%
+% INPUT
+% response - a column vector of equispaced samples on the periodic domain
+%          - Alternatively, a ND array with each column corresponding to K
+% K - a row vector. K(1) indicates the K for the response. K(2:end)
+%     indicates responses to calculate, or alternatively that correspond to
+%     response
+% nDerivs - How many derivatives to use to calculate the spline
+% freq - if response has already been Fourier transformed
+%        NOT IMPLEMENTED
+%
+% OUTPUT
+% maxima_splines - splines for orientation local maxima
+% minima_splines - splines for orientation local minima
+% response - expanded response according to K
 
 if(nargin < 3)
+    nDerivs = 3;
+end
+if(nargin < 4)
     freq = false;
 end
 
@@ -14,9 +32,9 @@ end
 
 [maxima,minima] = interpft_extrema(response);
 
-maxima_splines = getSplineFromExtrema(maxima,response,K);
+maxima_splines = orientationSpace.diffusion.getSplineFromExtrema(maxima,response,K,nDerivs);
 if(nargout > 1)
-    minima_splines = getSplineFromExtrema(minima,response,K);
+    minima_splines = orientationSpace.diffusion.getSplineFromExtrema(minima,response,K,nDerivs);
 end
 
 end
@@ -57,26 +75,4 @@ function response = getResponseAtOrderFTatPoint(r,K_old,K_new,freq)
     % Each column represents an angular response with order K_new(column)
     a_hat = bsxfun(@times,a_hat,f_hat);
     response = ifft(a_hat);
-end
-
-function sp = getSplineFromExtrema(extrema,response,K)
-    nDerivs = 5;
-    extrema = orientationSpace.diffusion.alignExtrema(extrema);
-    extrema = fliplr(extrema);
-    K = fliplr(K);
-    response = fliplr(response);
-    validTracks = sum(~isnan(extrema),2) > 1;
-    extrema = extrema(validTracks,:);
-    derivs = orientationSpace.diffusion.orientationMaximaDerivatives(response,K,nDerivs,extrema);
-    
-    
-
-    
-    x = joinColumns(repmat(K,nDerivs+1,1));
-    for trackNum = 1:size(extrema,1)
-        y = joinColumns([extrema(trackNum,:); permute(derivs(trackNum,:,:),[3 2 1])]);
-        valid = ~isnan(y);
-        knots = optknt(x(valid).',nDerivs+3);
-        sp(trackNum) = spapi(knots,x(valid).',y(valid).');
-    end
 end
