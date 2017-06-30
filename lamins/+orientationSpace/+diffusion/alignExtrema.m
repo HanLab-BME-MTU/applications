@@ -1,4 +1,4 @@
-function [ aligned ] = alignExtrema( extrema , period)
+function [ aligned, events ] = alignExtrema( extrema , period)
 %alignExtrema Align extrema tracks as K decreases (time increases)
 
 if(nargin < 2)
@@ -10,7 +10,10 @@ nExtrema = sum(~isnan(aligned));
 totalExtrema = max(nExtrema);
 aligned = aligned(1:totalExtrema,:);
 
-events = find(diff(nExtrema) ~= 0);
+currentCost = nansum(abs(diff(aligned,1,2)));
+
+% Detect change in number of extrema and crossings of the periodic boundary
+events = find(diff(nExtrema) ~= 0 | currentCost > period - currentCost);
 % TODO: trigger alignment event if total difference is large due to extrema
 % heading over periodic boundary
 % events = 1:length(nExtrema)-1;
