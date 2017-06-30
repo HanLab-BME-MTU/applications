@@ -1,9 +1,11 @@
-function conditionBundleStatistics(scoringProcessCell)
+function conditionBundleStatistics(scoringProcessCell,names,outputDirPlot)
 % load scoring data associated to cells. A Cell of process list describes the conditions
 
 if(~iscell(scoringProcessCell))
     scoringProcessCell={scoringProcessCell};
 end
+
+mkdirRobust(outputDirPlot);
 
 % load score set in cells of cells
 scoreCell=cell(1,length(scoringProcessCell));
@@ -35,4 +37,33 @@ for cIdx=1:length(scoringProcessCell)
 	    plot(scoresBin(1:end-1),histCell{cIdx},[c{cIdx} '-']);
     end
 end
+legend(names)
 hold off;
+print([outputDirPlot  'scoreDist.png'],'-dpng');
+print([outputDirPlot  'scoreDist.eps'],'-depsc');
+
+
+% Plot fibered KT count (zscore>2)
+fiberCount=[];
+fiberGroup=[];
+thresh=0.5;
+figure
+hold on;
+for cIdx=1:length(scoringProcessCell)
+	for pIdx=1:length(scoringProcessCell{cIdx})
+        scores=scoreCell{cIdx}{pIdx};
+		counts=sum(scores(~isnan(scores)>thresh));
+		fiberCount=[fiberCount counts];
+        fiberGroup=[fiberGroup cIdx];
+    end	
+end
+boxplot(fiberCount,fiberGroup,'labels',names)
+
+legend(names)
+hold off;
+
+print([outputDirPlot  'fiberCount.png'],'-dpng');
+print([outputDirPlot  'fiberCount.eps'],'-depsc');
+
+
+
