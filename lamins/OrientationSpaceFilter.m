@@ -25,8 +25,10 @@ classdef OrientationSpaceFilter < handle & matlab.mixin.Heterogeneous
         normEnergy
         % number of angular filter templates
         n
+        % Sample factor, multiplier to calculate n from K
+        sampleFactor = 1
     end
-    properties (SetAccess = protected)
+    properties (SetAccess = protected, Dependent)
         % basis angles
         angles
     end
@@ -90,8 +92,10 @@ classdef OrientationSpaceFilter < handle & matlab.mixin.Heterogeneous
             obj.K = K;
             obj.normEnergy = normEnergy;
             
-            obj.n = 2*ceil(K) + 1;
-            obj.angles = 0:pi/obj.n:pi-pi/obj.n;
+%             obj.n = 2*ceil(K) + 1;
+            obj.n = 2*obj.sampleFactor*ceil(K) + 1;
+%             obj.angles = (0:obj.n-1)/obj.n*pi;
+%             obj.angles = 0:pi/obj.n:pi-pi/obj.n;
             
         end
         function ridgeFilter = real(obj)
@@ -106,6 +110,9 @@ classdef OrientationSpaceFilter < handle & matlab.mixin.Heterogeneous
             edgeFilter.F = obj.F;
             edgeFilter.size = obj.size;
         end
+        function angles = get.angles(obj)
+            angles = (0:obj.n-1)/obj.n*pi;
+        end
         function f_c = get.centralFrequency(obj)
             f_c = obj.f_c;
         end
@@ -117,7 +124,7 @@ classdef OrientationSpaceFilter < handle & matlab.mixin.Heterogeneous
         end
         function n = get.n(obj)
             if(isempty(obj.n))
-                obj.n = 2*ceil(K) + 1;
+                obj.n = 2*obj.sampleFactor*ceil(obj.K) + 1;
             end
             n = obj.n;
         end

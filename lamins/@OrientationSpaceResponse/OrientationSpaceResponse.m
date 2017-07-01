@@ -318,6 +318,9 @@ classdef OrientationSpaceResponse < handle
             Response = OrientationSpaceResponse(filter_new,angularResponse_new);
         end
         function Response = getResponseAtOrderFT(obj,K_new,normalize)
+            if(nargin < 3)
+                normalize = 0;
+            end
             if(~isscalar(obj))
                 Response(numel(obj)) = OrientationSpaceResponse;
                 for o=1:numel(obj)
@@ -326,14 +329,14 @@ classdef OrientationSpaceResponse < handle
                 Response = reshape(Response,size(obj));
                 return;
             end
-            n_new = 2*K_new+1;
+            n_new = 2*obj.filter.sampleFactor*K_new+1;
             s_inv = sqrt(obj.n^2*n_new.^2/(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
 %             
             if(normalize == 2)
-                x = -ceil(obj.filter.K):ceil(obj.filter.K);
+                x = -obj.filter.sampleFactor*ceil(obj.filter.K):ceil(obj.filter.K)*obj.filter.sampleFactor;
             else
-                x = -ceil(K_new):ceil(K_new);
+                x = -obj.filter.sampleFactor*ceil(K_new):ceil(K_new)*obj.filter.sampleFactor;
             end
             if(s_hat ~= 0)
                 f_hat = exp(-0.5 * (x./s_hat).^2); % * obj.n/n_new;
@@ -345,14 +348,14 @@ classdef OrientationSpaceResponse < handle
             a_hat = fft(real(obj.a),[],3);
             % This reduces the number of coefficients in the Fourier domain
             % Beware of the normalization factor, 1/n, done by ifft
-            if(normalize ~= 2)
-                a_hat = a_hat(:,:,[1:ceil(K_new)+1 end-ceil(K_new)+1:end]);
+            if(normalize < 2)
+                a_hat = a_hat(:,:,[1:ceil(K_new)*obj.filter.sampleFactor+1 end-ceil(K_new)*obj.filter.sampleFactor+1:end]);
             end
             a_hat = bsxfun(@times,a_hat,f_hat);
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             % Consider using fft rather than ifft so that the mean is
             % consistent
-            if(nargin > 2 && normalize == 1)
+            if(normalize == 1)
                 Response = OrientationSpaceResponse(filter_new,ifft(a_hat*size(a_hat,3)/size(obj.a,3),[],3));
             else
                 Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
@@ -369,7 +372,7 @@ classdef OrientationSpaceResponse < handle
 
             % New number of coefficients
 %             n_new = 2*ceil(K_new)+1;
-            n_new = 2*K_new+1;
+            n_new = 2*obj.filter.sampleFactor*K_new+1;
 
             % The convolution of two Gaussians results in a Gaussian
             % The multiplication of two Gaussians results in a Gaussian
@@ -378,7 +381,7 @@ classdef OrientationSpaceResponse < handle
             % Note if n == n_new, we divide by 0. Then s_inv = Inf
             s_inv = sqrt(obj.n^2.*n_new.^2./(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
-            x = -ceil(obj.filter.K):ceil(obj.filter.K);
+            x = -ceil(obj.filter.K)*obj.filter.sampleFactor:ceil(obj.filter.K)*obj.filter.sampleFactor;
             
             % Each column represents a Gaussian with sigma set to s_hat(column)
             f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2); % * obj.n/n_new;
