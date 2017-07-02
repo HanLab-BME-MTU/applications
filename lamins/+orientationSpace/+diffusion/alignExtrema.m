@@ -1,8 +1,11 @@
-function [ aligned, events ] = alignExtrema( extrema , period)
+function [ aligned, events ] = alignExtrema( extrema , period, unwrap)
 %alignExtrema Align extrema tracks as K decreases (time increases)
 
-if(nargin < 2)
+if(nargin < 2 || isempty(period))
     period = 2*pi;
+end
+if(nargin < 3)
+    unwrap = false;
 end
 
 aligned = sort(extrema);
@@ -26,6 +29,10 @@ for e = events
     cost(isnan(cost)) = max(cost(:))+1;
     [link12,link21] = lap(cost);
     aligned(:,e+1:end) = aligned(link21,e+1:end);
+end
+
+if(unwrap)
+    aligned = orientationSpace.diffusion.unwrapExtrema(extrema, events, period);
 end
 
 end
