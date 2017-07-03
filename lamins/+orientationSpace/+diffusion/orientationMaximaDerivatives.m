@@ -11,8 +11,11 @@ function [ dnm_dKn ] = orientationMaximaDerivatives( rho, lm, K, derivOrder )
 %
 % OUTPUT
 % derivatives
-
+    
+    % For period of 2*pi
     D = 2*pi^2;
+    % For period of pi
+    % D = pi^2/2;
 
 %% Calculate derivative in terms of t
 %t = 1./(2*K+1).^2;
@@ -129,4 +132,114 @@ function dqm_dKq = translate_from_t_to_K(q,dqm_dtq_v,K)
     dqm_dKq = bsxfun(@times,dnt_dKn_pow,shiftdim(faa_di_bruno,-1));
     dqm_dKq = bsxfun(@times,dqm_dKq,dqm_dtq_v(:,:,derivOrder));
     dqm_dKq = sum(dqm_dKq,3);
+end
+
+function dqm_dKq = translate_from_t_to_K_hard(q,dqm_dtq_v,K)
+% Translate derivatives with respect to t to derivatives with respect to K
+% Hardcoded version for efficiency
+% q - scalar, order of the derivative with respect to K
+% dqm_dtq - derivatives with respect to t
+% K - 
+    if(q < 7)
+        % dtn_dkn = @(n) factorial(n+1) .* (-2).^(n );
+        dnt_dKn = [-4,24,-192,1920,-23040,322560];
+        qv = 1:q;
+        dnt_dKn = dnt_dKn(qv).*(2*K+1).^(qv);
+    else
+        dqm_dKq = translate_from_t_to_K(q,dqm_dtq_v,K);
+        return;
+    end
+    
+    switch(q)
+        case 1
+            % partitions(1)
+            % 
+            % ans =
+            % 
+            %      1
+            dqm_dKq = dqm_dtq_v(:,:,1) .* dnt_dKn(1);
+        case 2
+            % partitions(2)
+            % 
+            % ans =
+            % 
+            %      2     0
+            %      0     1
+            dqm_dKq = dqm_dtq_v(:,:,2).* dnt_dKn(1).^2 ... 
+                    + dqm_dtq_v(:,:,1).* dnt_dKn(2);
+        case 3
+            % partitions(3)
+            % 
+            % ans =
+            % 
+            %      3     0     0
+            %      1     1     0
+            %      0     0     1
+            dqm_dKq =   dqm_dtq_v(:,:,3) .* dnt_dKn(1).^3 ...
+                    + 3*dqm_dtq_v(:,:,2) .* dnt_dKn(1)     .* dnt_dKn(2) ...
+                    +   dqm_dtq_v(:,:,1) .* dnt_dKn(3);
+        case 4
+            % partitions(4)
+            % 
+            % ans =
+            % 
+            %      4     0     0     0
+            %      2     1     0     0
+            %      0     2     0     0
+            %      1     0     1     0
+            %      0     0     0     1
+            dqm_dKq =   dqm_dtq_v(:,:,4) .* dnt_dKn(1).^4 ...
+                    + 6*dqm_dtq_v(:,:,3) .* dnt_dKn(1).^2 .* dnt_dKn(2) ...
+                    + 3*dqm_dtq_v(:,:,2) .* dnt_dKn(2).^2 ...
+                    + 4*dqm_dtq_v(:,:,2) .* dnt_dKn(1)    .* dnt_dKn(3) ...
+                    +   dqm_dtq_v(:,:,1) .* dnt_dKn(4);
+        case 5
+            % partitions(5)
+            % 
+            % ans =
+            % 
+            %      5     0     0     0     0
+            %      3     1     0     0     0
+            %      1     2     0     0     0
+            %      2     0     1     0     0
+            %      0     1     1     0     0
+            %      1     0     0     1     0
+            %      0     0     0     0     1
+            dqm_dKq =   dqm_dtq_v(:,:,5) .* dnt_dKn(1).^5 ...
+                    +10*dqm_dtq_v(:,:,4) .* dnt_dKn(1).^3 .* dnt_dKn(2) ...
+                    +15*dqm_dtq_v(:,:,3) .* dnt_dKn(1)    .* dnt_dKn(2).^2 ...
+                    +10*dqm_dtq_v(:,:,3) .* dnt_dKn(1).^2 .* dnt_dKn(3) ...
+                    +10*dqm_dtq_v(:,:,2) .* dnt_dKn(2)    .* dnt_dKn(3) ...
+                    + 5*dqm_dtq_v(:,:,2) .* dnt_dKn(1)    .* dnt_dKn(4) ...
+                    +   dqm_dtq_v(:,:,1) .* dnt_dKn(5);
+        case 6
+            % partitions(6)
+            % 
+            % ans =
+            % 
+            %      6     0     0     0     0     0
+            %      4     1     0     0     0     0
+            %      2     2     0     0     0     0
+            %      0     3     0     0     0     0
+            %      3     0     1     0     0     0
+            %      1     1     1     0     0     0
+            %      0     0     2     0     0     0
+            %      2     0     0     1     0     0
+            %      0     1     0     1     0     0
+            %      1     0     0     0     1     0
+            %      0     0     0     0     0     1
+            dqm_dKq =   dqm_dtq_v(:,:,6) .* dnt_dKn(1).^6 ...
+                    +15*dqm_dtq_v(:,:,5) .* dnt_dKn(1).^4 .* dnt_dKn(2) ...
+                    +45*dqm_dtq_v(:,:,4) .* dnt_dKn(1).^2 .* dnt_dKn(2).^2 ...
+                    +15*dqm_dtq_v(:,:,3) .* dnt_dKn(2).^3  ...
+                    +20*dqm_dtq_v(:,:,4) .* dnt_dKn(1).^3 .* dnt_dKn(3) ...
+                    +60*dqm_dtq_v(:,:,3) .* prod(dnt_dKn(1:3)) ...
+                    +10*dqm_dtq_v(:,:,2) .* dnt_dKn(3).^2 ...
+                    +15*dqm_dtq_v(:,:,3) .* dnt_dKn(1).^2 .* dnt_dKn(4) ...
+                    +15*dqm_dtq_v(:,:,2) .* dnt_dKn(2) .* dnt_dKn(4) ...
+                    + 6*dqm_dtq_v(:,:,2) .* dnt_dKn(1) .* dnt_dKn(5) ...
+                    +   dqm_dtq_v(:,:,1) .* dnt_dKn(6);
+        otherwise
+            error('Should not have gotten here');
+    end
 end
