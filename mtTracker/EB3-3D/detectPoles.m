@@ -50,6 +50,7 @@ parfor frameIdx=1:numel(processFrames)
 %     lm(:,:,1:ws(3))=0;
     perc=100;
     notEnoughPoles=true;
+    percentile=100;
     while( notEnoughPoles)
         perc=perc-5;
         percentile=prctile(lm(lm>0),perc);

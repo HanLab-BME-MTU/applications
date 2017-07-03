@@ -1,4 +1,4 @@
-function [ dnm_dKn ] = orientationMaximaDerivatives( rho, lm, K, derivOrder )
+function [ dnm_dKn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm )
 %ORIENTATIONMAXIMADERIVATIVES Find the K derivatives of local maxima
 %
 % INPUT
@@ -23,6 +23,11 @@ function [ dnm_dKn ] = orientationMaximaDerivatives( rho, lm, K, derivOrder )
 % n = derivOrder
 % m = theta_{m} (local maxima location)
 
+if(nargin < 4)
+    lm = interpft_extrema(rho);
+    lm = orientationSpace.diffusion.alignExtrema(lm);
+end
+
 rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1);
 
 [dnm_dtn,maximaDerivatives] = dqm_dtq(derivOrder,D,rho_derivs);
@@ -35,10 +40,10 @@ rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1);
 
 %% Calculate derivatives of t by K
 
-n = shiftdim(1:derivOrder,-1);
-dnt_dKn = factorial(n+1) .* (-2).^(n );
-dnt_dKn = bsxfun(@times,dnt_dKn, ...
-    bsxfun(@power,1./(2*K+1),n+2));
+% n = shiftdim(1:derivOrder,-1);
+% dnt_dKn = factorial(n+1) .* (-2).^(n );
+% dnt_dKn = bsxfun(@times,dnt_dKn, ...
+%     bsxfun(@power,1./(2*K+1),n+2));
 % keyboard
 
 %% Translate derivative with respect to t to with respect to K
@@ -50,7 +55,9 @@ dnt_dKn = bsxfun(@times,dnt_dKn, ...
 %     dnm_dKn = dnm_dtn;
 % end
 
-dnm_dKn = translate_from_t_to_K(derivOrder,cat(3,maximaDerivatives{:}),K);
+for d = 1:derivOrder
+    dnm_dKn(:,:,d) = translate_from_t_to_K(d,cat(3,maximaDerivatives{:}),K);
+end
 
 
 end
@@ -128,8 +135,9 @@ function dqm_dKq = translate_from_t_to_K(q,dqm_dtq_v,K)
     dnt_dKn = bsxfun(@times,dnt_dKn, ...
         bsxfun(@power,1./(2*K+1),n+2));
     dnt_dKn_pow = bsxfun(@power,dnt_dKn,shiftdim(part.',-2));
-    dnt_dKn_pow = prod(dnt_dKn_pow,4);
-    dqm_dKq = bsxfun(@times,dnt_dKn_pow,shiftdim(faa_di_bruno,-1));
+    dnt_dKn_pow = prod(dnt_dKn_pow,3);
+    dqm_dKq = bsxfun(@times,dnt_dKn_pow,shiftdim(faa_di_bruno,-2));
+    dqm_dKq = reshape(dqm_dKq,[1 size(dqm_dKq,2) size(dqm_dKq,4)]);
     dqm_dKq = bsxfun(@times,dqm_dKq,dqm_dtq_v(:,:,derivOrder));
     dqm_dKq = sum(dqm_dKq,3);
 end

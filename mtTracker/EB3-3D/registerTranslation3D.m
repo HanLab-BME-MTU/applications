@@ -127,7 +127,7 @@ end
  
  
 function mkdir(path)
-system(['mkdir ' path]);
+system(['mkdir -p ' path]);
 
 
 
