@@ -231,7 +231,7 @@ xcmapXtick = [1, 1+lagMax-lagGrid, 1+lagMax, 1+lagMax+lagGrid, 1+2*lagMax];
 xcmapXticklabel = round( (xcmapXtick-1-lagMax)*MDtimeIntvl, 2);
 
 %colOrd = get(gca,'ColorOrder');
-%colOrd1 = colOrd(1:5, :);                   % Revise later together with legend.
+%colOrd1 = colOrd(1:7, :);                   % Revise later together with legend.
 
 f1 = cell(maxLayer,1);
 
