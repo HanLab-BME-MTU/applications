@@ -65,7 +65,7 @@ classdef PlusTipTrackerPackage3D < TrackingPackage
             funParams.OutputDirectory = [outputDir  filesep 'detectPlusTip_3D'];
             
             % types = PointSourceDetectionProcess3D.getDetectionTypeOptions;
-            %% EB3 Detection parameters
+            %% EB3 Detection parameters (from Philippe)
             % The detection method must be chosen depending on the data at hand
             % - 'pointSourceAutoSigmaLM' is parameter-free and suitable for raw 
             %   (but deskewed) data
