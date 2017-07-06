@@ -22,6 +22,8 @@
 %     hold on;
 % end
 
+%% Load image
+
 if(~exist('I','var'))
     [~,hostname] = system('hostname');
     hostname = strtrim(hostname);
@@ -37,6 +39,10 @@ if(~exist('I','var'))
             load('C:\Users\Mark Kittisopikul\Documents\Data\Lamins\MEFLB1-LACLB12-006_Reconstructed_study\MEFLB1-LACLB12-006_Reconstructed\MEFLB1-LACLB12-006_Reconstructed.mat');
             MD.sanityCheck;
             I = MD.channels_(1).loadImage(1,10);
+        case 'FSMPC0KTM9U'
+            cd 'P:\Basic_Sciences\CMB\GoldmanLab\Takeshi\N-SIM\040715';
+            MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.nd2');
+            I = MD.channels_(1).loadImage(1,11);
         otherwise
             % BioHPC
             cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
@@ -44,6 +50,9 @@ if(~exist('I','var'))
             I = MD.channels_(1).loadImage(1,10);
     end
 end
+
+%% Setup filter
+
 % I = imread('example.tif');
 F = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,8,'none');
 R = F*I;

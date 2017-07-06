@@ -20,12 +20,14 @@ MD.getProcess(1).setParameters(p);
 channelList=[];
 for cIdx=1:length(MD.channels_)
     channelList=[channelList Channel([outputDir filesep 'ch' num2str(cIdx) filesep])];
-    mkdir([MD.getProcess(1).outFilePaths_{1} filesep 'ch' num2str(cIdx)]);
+    mkdirRobust([MD.getProcess(1).outFilePaths_{1} filesep 'ch' num2str(cIdx)]);
     parfor t=1:MD.nFrames_
         vol=MD.getChannel(cIdx).loadStack(t);
         stackWrite(vol(ROI(1):ROI(4),ROI(2):ROI(5),ROI(3):ROI(6)) ,[outputDir filesep 'ch' num2str(cIdx) filesep 'time-' num2str(t,'%04d') '.tif']);
     end 
 end 
+
+%% Make Movie Data
 MDout=MovieData();
 tiffReader=TiffSeriesReader({channelList.channelPath_},'force3D',true);
 MDout=MovieData(channelList,[outputDir filesep 'analysis'],'movieDataFileName_','movieData.mat','movieDataPath_',[outputDir filesep 'analysis'], ...

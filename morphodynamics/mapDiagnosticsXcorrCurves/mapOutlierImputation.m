@@ -92,8 +92,15 @@ elseif p.WithN == true
 
     % load all channels.mat for allSamplesWithN
     iWinPackInd = MD.getPackageIndex('WindowingPackage');
-    tmp = MD.packages_{iWinPackInd}.outputDirectory_;
-    samplingWithNDirectory_ = fullfile(tmp, 'window_sampling_WithN');
+    if ~isempty(iWinPackInd)
+        tmp = MD.packages_{iWinPackInd}.outputDirectory_;
+        samplingWithNDirectory_ = fullfile(tmp, 'window_sampling_WithN');
+        if ~isdir(samplingWithNDirectory_)
+            tmp = MD.outputDirectory_;
+            samplingWithNDirectory_ = fullfile(tmp, 'window_sampling_WithN');
+        end
+    end
+        
     fname = 'all channels.mat';
     inFilePaths = fullfile(samplingWithNDirectory_, fname);
     load(inFilePaths, 'allSamplesWithN');
