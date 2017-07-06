@@ -35,7 +35,11 @@ acmap = autoCorrMap(map, 'maxLag', xx1(end));
 % if using mean:
 % Avg_autocor = mean(acmap, 1, 'omitnan');
 % if using smoothingspline
-Avg_autocor = smoothingSplineCorMap(acmap);
+if all(isnan(acmap(:)))
+    Avg_autocor = nan(1, size(acmap, 2));
+else
+    Avg_autocor = smoothingSplineCorMap(acmap);
+end
 
 
 

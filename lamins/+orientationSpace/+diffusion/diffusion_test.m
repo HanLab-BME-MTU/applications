@@ -22,6 +22,8 @@
 %     hold on;
 % end
 
+%% Load image
+
 if(~exist('I','var'))
     [~,hostname] = system('hostname');
     hostname = strtrim(hostname);
@@ -37,13 +39,20 @@ if(~exist('I','var'))
             load('C:\Users\Mark Kittisopikul\Documents\Data\Lamins\MEFLB1-LACLB12-006_Reconstructed_study\MEFLB1-LACLB12-006_Reconstructed\MEFLB1-LACLB12-006_Reconstructed.mat');
             MD.sanityCheck;
             I = MD.channels_(1).loadImage(1,10);
+        case 'FSMPC0KTM9U'
+            cd 'P:\Basic_Sciences\CMB\GoldmanLab\Takeshi\N-SIM\040715';
+            MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.nd2');
+            I = MD.channels_(1).loadImage(1,11);
         otherwise
             % BioHPC
             cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
-            MD = MovieData.load('example.tif');
-            
+            MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.mat');
+            I = MD.channels_(1).loadImage(1,10);
     end
 end
+
+%% Setup filter
+
 % I = imread('example.tif');
 F = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,8,'none');
 R = F*I;
@@ -101,7 +110,7 @@ for trackNum = 1:size(out,1)
     try
         figure;
         title(['Track ' num2str(trackNum)]);
-        idx_select = length(K):-10:1;
+        idx_select = length(K):-35:1;
         track = out(trackNum,idx_select);
         idx_select = idx_select(~isnan(track));
         track = track(~isnan(track));
@@ -118,9 +127,11 @@ for trackNum = 1:size(out,1)
         x2 = joinColumns(repmat(K(idx_select),3,1));
         y2 = joinColumns([track; dm_dK(trackNum,idx_select); d2m_dK2(trackNum,idx_select)]);
         sp2 = spapi(optknt(x2.',5),x2.',y2.');
+        sp2c{trackNum} = sp2;
 
 
         xq = K(idx_select(1)):0.01:K(idx_select(end));
+        xqc{trackNum} = xq;
                 hold on;
         plot(xq,spval(sp,xq))
         plot(xq,spval(spgrad,xq))

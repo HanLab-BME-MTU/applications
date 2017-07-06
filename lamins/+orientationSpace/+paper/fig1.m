@@ -12,12 +12,12 @@ if(~exist('I','var'))
             % Laptop T440s
             load('C:\Users\Mark Kittisopikul\Documents\Data\Lamins\MEFLB1-LACLB12-006_Reconstructed_study\MEFLB1-LACLB12-006_Reconstructed\MEFLB1-LACLB12-006_Reconstructed.mat');
             MD.sanityCheck;
-            I = MD.channels_(1).loadImage(1,10);
+            I = MD.channels_(1).loadImage(1,11);
         otherwise
             % BioHPC
             cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
-            MD = MovieData.load('example.tif');
-            
+            MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.mat');
+            I = MD.channels_(1).loadImage(1,11);
     end
 end
 % I = imread('example.tif');
@@ -120,7 +120,9 @@ ylabel('Time (s)');
 
 %% Sum absolute error
 startNumSampleError = 6;
-sumAbsError = cellfun(@(x) sum(abs(x(:,1)-calcMaxima)),allSampledMaximaCell(startNumSampleError:numSamples));
+absError = cellfun(@(x) abs(diff(orientationSpace.diffusion.alignExtrema([x(:,1) calcMaxima],180),1,2)),allSampledMaximaCell(startNumSampleError:numSamples),'UniformOutput',false);
+absError = cellfun(@(x) min(180-x,x),absError,'UniformOutput',false);
+sumAbsError = cellfun(@(x) sum(x),absError);
 figure;
 plot(startNumSampleError:numSamples,sumAbsError);
 xlabel('Number of Samples');

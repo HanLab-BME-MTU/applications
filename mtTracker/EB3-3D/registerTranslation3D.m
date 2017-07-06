@@ -15,6 +15,7 @@ function [Pr,jumpIdx,displacements]=registerTranslation3D(MD,varargin)
 % ======
 % P. Roudot 2015
 
+%% Parse Input Arguments
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched=true;
@@ -29,7 +30,9 @@ ip.addParamValue('show', false, @islogical);
 ip.addParamValue('warpMode','nearest', @ischar);
 ip.parse(MD, varargin{:});
 p=ip.Results;
-outputDir=[MD.outputDirectory_ filesep 'regFile'];mkdir(outputDir);
+
+outputDir=[MD.outputDirectory_ filesep 'regFile'];
+mkdirRobust(outputDir);
 
 Pr=ExternalProcess(MD)
 Pr.setInFilePaths({})
@@ -50,7 +53,7 @@ channelIdx=ip.Results.channel;
 frameNb=MD.nFrames_;
 dist=NaN(1,frameNb);
 jumpIdx=ip.Results.jumpIdx;
-if( (isempty(jumpIdx))||(ip.Results.computeImageDistance))
+if((isempty(jumpIdx))||(ip.Results.computeImageDistance))
     parfor i=1:(frameNb-1)
         disp(['Processing frame ' int2str(i)]);
         voli=MD.getChannel(channelIdx).loadStack(i);
@@ -105,7 +108,8 @@ end
      load([outputDir filesep 'driftParameter.mat']);
      channelList=[];     
      for ch=1:length(MD.channels_)
-         fileDir=[outputDir filesep 'registeredVol' filesep ip.Results.warpMode filesep 'ch' num2str(ch)];mkdir(fileDir);
+         fileDir=[outputDir filesep 'registeredVol' filesep ip.Results.warpMode filesep 'ch' num2str(ch)];
+         mkdirRobust(fileDir);
          parfor i=1:MD.nFrames_
              jIdx=find((jumpIdx<i));
              vol=MD.getChannel(ch).loadStack(i);
@@ -118,16 +122,17 @@ end
                  vol=imwarp(vol,displacements{j},ip.Results.warpMode,'OutputView',imref3d(size(vol)));
              end
              stackWrite(vol,[fileDir filesep 'registered-frame-'  num2str(i,'%04d') '.tif'])
-             channelList=[channelList Channel([fileDir filesep])];              
          end
+         channelList=[channelList Channel([fileDir filesep])];
      end
-     MD1=MovieData(channelList,[outputDir filesep 'analysis/'],'movieDataPath_' , outputDir, 'movieDataFileName_', 'movieData.mat');
+     MD1=MovieData(channelList,[outputDir filesep 'analysis/'],'movieDataPath_' , outputDir, 'movieDataFileName_', 'movieData.mat',...
+         'pixelSize_',MD.pixelSize_,'pixelSizeZ_',MD.pixelSizeZ_);
      MD1.sanityCheck();
  end
  
  
 function mkdir(path)
-system(['mkdir ' path]);
+system(['mkdir -p ' path]);
 
 
 
