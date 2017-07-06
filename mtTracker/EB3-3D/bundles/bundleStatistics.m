@@ -27,8 +27,7 @@ end
 
 handlesNull(7:8)=handlesMapped;
 outputDirPlot=[outputDirBundle filesep 'plot' filesep];
-system(['mkdir ' outputDirPlot]);
-
+mkdirRobust(outputDirPlot);
 [handles,hFig,zscore]= displayBundleStatistics('kinBundle',kinTracksCell,'plotHandleArray',handlesNull,varargin{:});
 print([outputDirPlot p.plotName '_bundleStat.png'],'-dpng');
 print([outputDirPlot p.plotName '_bundleStat.eps'],'-depsc');

@@ -149,7 +149,6 @@ if(~isempty(p.package)&&(~isempty(p.package.getProcess(7))))
 else
     lftThreshold=20;
     kinTest=find([kinTracksISOInliers.lifetime]>lftThreshold);
-    kinTest=[1 100];
     maxRandomDist=20;
     mappingDist=10;
     processManifoldAntispace=ExternalProcess(MD,'randomizeTracks');
@@ -189,7 +188,7 @@ indx(isnan(sortedScore(:)))=[];
 sortedScore(isnan(sortedScore(:)))=[];
 [poleIdx,kinIdx]=ind2sub(size(zScores),indx);
 %%
-N=1;
+N=5;
 tic
 myColormap=uint8( ...
     [[0 255 255]; ... % blue "all" tracks

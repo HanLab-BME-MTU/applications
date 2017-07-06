@@ -46,24 +46,49 @@ print([outputDirPlot  'scoreDist.eps'],'-depsc');
 % Plot fibered KT count (zscore>2)
 fiberCount=[];
 fiberGroup=[];
-thresh=0.5;
+thresh=2
 figure
 hold on;
 for cIdx=1:length(scoringProcessCell)
 	for pIdx=1:length(scoringProcessCell{cIdx})
         scores=scoreCell{cIdx}{pIdx};
-		counts=sum(scores(~isnan(scores)>thresh));
+		counts=sum(scores(~isnan(scores))>thresh);
 		fiberCount=[fiberCount counts];
         fiberGroup=[fiberGroup cIdx];
     end	
 end
 boxplot(fiberCount,fiberGroup,'labels',names)
-
-legend(names)
+ylabel('Est. Bundled Kinetochore count (Z-score > 2)');
 hold off;
 
 print([outputDirPlot  'fiberCount.png'],'-dpng');
 print([outputDirPlot  'fiberCount.eps'],'-depsc');
+
+% Plot fibered KT count (zscore>2)
+percentagePosScore=zeros(1,length(scoringProcessCell));
+percentageNegScore=zeros(1,length(scoringProcessCell));
+figure
+hold on;
+for cIdx=1:length(scoringProcessCell)
+    countPos=zeros(1,length(scoringProcessCell{cIdx}));
+    countNeg=zeros(1,length(scoringProcessCell{cIdx}));
+	for pIdx=1:length(scoringProcessCell{cIdx})
+        scores=scoreCell{cIdx}{pIdx};
+		countPos(pIdx)=sum(scores(~isnan(scores))>0);
+        countNeg(pIdx)=sum(scores(~isnan(scores))<0);
+    end	
+    percentagePosScore(cIdx)=mean(100*countPos./(countPos+countNeg));
+    percentageNegScore(cIdx)=mean(100*countNeg./(countPos+countNeg));
+    
+end
+plot([1 4 8 16],percentagePosScore)
+plot([1 4 8 16],percentageNegScore)
+
+legend({'Pos. Score','Neg. Score'})
+hold off;
+
+print([outputDirPlot  'perc.png'],'-dpng');
+print([outputDirPlot  'perc.eps'],'-depsc');
 
 
 
