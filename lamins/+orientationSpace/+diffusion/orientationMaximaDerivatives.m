@@ -68,8 +68,8 @@ end
 end
 
 function deriv = total_dq_dtq_partial_dnrho_dmn(q,n,D,rho_derivs,maximaDerivatives)
-    assert(q >= 0);
-    assert(n > 0);
+%     assert(q >= 0);
+%     assert(n > 0);
     if(n == 1)
         % Total derivative of 1st partial derivative with respect to
         % orientation. Always zero by definition of orientation local
@@ -89,13 +89,21 @@ function deriv = total_dq_dtq_partial_dnrho_dmn(q,n,D,rho_derivs,maximaDerivativ
     end
 %     fprintf('START total q=%d, n=%d\n',q,n);
 
-    deriv = 0;
-    for l = 1:q
-        binom = nchoosek(q-1,l-1);
-%         deriv = deriv + binom.*total_dq_dtq_partial_dnrho_dmn(q-l,n+1,D,rho_derivs).*dqm_dtq(l,D,rho_derivs);
-        deriv = deriv + binom.*total_dq_dtq_partial_dnrho_dmn(q-l,n+1,D,rho_derivs,maximaDerivatives).*maximaDerivatives{l};
+    % Then q > 0
+
+    deriv = D * total_dq_dtq_partial_dnrho_dmn(q-1,n+2,D,rho_derivs,maximaDerivatives);
+    deriv = deriv + total_dq_dtq_partial_dnrho_dmn(q-1,n+1,D,rho_derivs,maximaDerivatives).*maximaDerivatives{1};
+    if(q == 1)
+        return;
     end
-    deriv = deriv +  D * total_dq_dtq_partial_dnrho_dmn(q-1,n+2,D,rho_derivs,maximaDerivatives);
+    binom = nchoose_allk(q-1);
+    
+    for l = 2:q
+%         binom = nchoosek(q-1,l-1);
+%         deriv = deriv + binom.*total_dq_dtq_partial_dnrho_dmn(q-l,n+1,D,rho_derivs).*dqm_dtq(l,D,rho_derivs);
+        deriv = deriv + binom(l).*total_dq_dtq_partial_dnrho_dmn(q-l,n+1,D,rho_derivs,maximaDerivatives).*maximaDerivatives{l};
+    end
+%     deriv = deriv +  D * total_dq_dtq_partial_dnrho_dmn(q-1,n+2,D,rho_derivs,maximaDerivatives);
 %     fprintf('END   total q=%d, n=%d\n',q,n);
 end
 
@@ -105,18 +113,26 @@ function [deriv,maximaDerivatives] = dqm_dtq(q,D,rho_derivs,maximaDerivatives)
 %     fprintf('START dqm_dtq q=%d\n',q);
     assert(q > 0);
     n = 1;
-    deriv = 0;
+%     deriv = 0;
     if(nargin < 4)
         maximaDerivatives = cell(1,q);
         for l=1:q-1
             maximaDerivatives{l} = dqm_dtq(l,D,rho_derivs,maximaDerivatives);
         end
     end
-    for l=1:q-1
-        binom = nchoosek(q-1,l-1);
-        deriv = deriv + binom.*total_dq_dtq_partial_dnrho_dmn(q-l,n+1,D,rho_derivs,maximaDerivatives).*maximaDerivatives{l};
+    deriv = D * total_dq_dtq_partial_dnrho_dmn(q-1,n+2,D,rho_derivs,maximaDerivatives);
+    if(q > 1)
+        % binom(1) = 1
+        deriv = deriv + total_dq_dtq_partial_dnrho_dmn(q-1,n+1,D,rho_derivs,maximaDerivatives).*maximaDerivatives{1};
+        if(q > 2)
+            binom = nchoose_allk(q-1);
+            for l=2:q-1
+        %         binom = nchoosek(q-1,l-1);
+                deriv = deriv + binom(l).*total_dq_dtq_partial_dnrho_dmn(q-l,n+1,D,rho_derivs,maximaDerivatives).*maximaDerivatives{l};
+            end
+        end
     end
-    deriv = deriv + D * total_dq_dtq_partial_dnrho_dmn(q-1,n+2,D,rho_derivs,maximaDerivatives);
+%     deriv = deriv + D * total_dq_dtq_partial_dnrho_dmn(q-1,n+2,D,rho_derivs,maximaDerivatives);
     % Divide by second partial derivative with respect to orientation
     deriv = -deriv./rho_derivs(:,:,1);
     maximaDerivatives{q} = deriv;
@@ -258,4 +274,41 @@ function dqm_dKq = translate_from_t_to_K_hard(q,dqm_dtq_v,K,dnt_dKn)
         otherwise
             error('Should not have gotten here');
     end
+end
+
+function out = nchoose_allk(n)
+    switch(n)
+        case 1
+            out = [1 1];
+            return;
+        case 2
+            out = [1 2 1];
+            return;
+        case 3
+            out = [1 3 3 1];
+            return;
+        case 4
+            out = [1 4 6 4 1];
+            return;
+        case 5
+            out = [1 5 10 10 5 1];
+            return;
+        case 6
+            out = [1 6 15 20 15 6 1];
+            return;
+        case 0
+            out = 1;
+            return;
+        otherwise
+    end
+    out = zeros(1,n+1);
+    for i=0:n
+        out(i+1) = nchoosek(n,i);
+    end
+%     if(mod(n,2))
+%         % odd
+%         h = ceil(n/2)+1;
+%     else
+%         % even
+%     end
 end
