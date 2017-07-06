@@ -18,7 +18,7 @@ function [roiIdx,mask] = createROI(MD,varargin)
 
 ip = inputParser; ip.CaseSensitive = false;  ip.KeepUnmatched=true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
-ip.addParameter('channel', 1, @isnumeric);
+ip.addParameter('channel', 2, @isnumeric);
 ip.addParameter('timeIdx', 1, @isnumeric);
 ip.parse(MD, varargin{:});
 p=ip.Results;

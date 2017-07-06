@@ -4,7 +4,9 @@ featsProp = regionprops(feats,vol,'Area','WeightedCentroid','MeanIntensity','Max
 
 % centroid coordinates with 0.5 uncertainties
 tmp = vertcat(featsProp.WeightedCentroid)-1;
-xCoord = [tmp(:,1) 0.5*ones(nFeats,1)]; yCoord = [tmp(:,2) 0.5*ones(nFeats,1)]; zCoord = [tmp(:,3) 0.5*ones(nFeats,1)];
+xCoord = [tmp(:,1) 0.5*ones(nFeats,1)]; 
+yCoord = [tmp(:,2) 0.5*ones(nFeats,1)]; 
+zCoord = [tmp(:,3) 0.5*ones(nFeats,1)];
 amp=[vertcat(featsProp.MaxIntensity) 0.5*ones(nFeats,1)];
 
 % u-track formating
