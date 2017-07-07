@@ -73,6 +73,7 @@ rho = R.getResponseAtOrderFTatPoint(r,c,K);
 out = interpft_extrema(rho);
 out = orientationSpace.diffusion.alignExtrema(out);
 
+%% Gradient
 
 outg = gradient(out)/0.1;
 vderivs = interpft1_derivatives(rho,out,[1 2 3 4 5]);
