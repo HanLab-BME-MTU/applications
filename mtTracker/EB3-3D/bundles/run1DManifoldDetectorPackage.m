@@ -143,6 +143,25 @@ clear tmp;
 tmp=load(processDetectPoles.outFilePaths_{1});
 P1=tmp.tracks(1);
 P2=tmp.tracks(2);
+
+%% Project all inliers tracks on the data
+myColormap=uint8( ...
+    [[0 255 255]; ... % blue "all" tracks
+    [0 255 0]; ... % green mapped tracks
+    [255 0 100]; ... % kinetochore tracks
+    [255 0 200]; ... % kinetochore tracks
+    ]);
+
+processProj=ExternalProcess(MD,'rawProj');
+project1D(  MD, ...
+            'name','fullMIPLabFrame','channelRender','grayRed','saveSingleProj',true, 'insetFringeWidth',20,'fringeWidth',60, ...
+            'processSingleProj',processProj, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);        
+        
+overlayProjTracksMovie(processProj,'tracks',[P1 ;P2 ;kinTracksISOInliers;], ... 
+            'colorIndx',[1 ;1; 2*ones(size(kinTracksISOInliers))],'colormap',myColormap,'name','KT-inliers');
+toc;
+
+
 %% Compute scores
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(7))))
     processScoring=p.package.getProcess(7);
@@ -190,12 +209,6 @@ sortedScore(isnan(sortedScore(:)))=[];
 %%
 N=5;
 tic
-myColormap=uint8( ...
-    [[0 255 255]; ... % blue "all" tracks
-    [0 255 0]; ... % green mapped tracks
-    [255 0 100]; ... % kinetochore tracks
-    [255 0 200]; ... % kinetochore tracks
-    ]);
 
 for scoreIdx=[1:N (length(sortedScore)-N):length(sortedScore)]
     tIdx=kinIdx(scoreIdx);

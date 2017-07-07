@@ -28,9 +28,6 @@ overlayProjTracksMovie(processProj,'tracks',[P1 P2], ...
             'colorIndx',[1 2],'colormap',myColormap,'name','tracks');
 toc;
 
-
-
-
 %%
 labFoF=FrameOfRef().setOriginFromTrack(origTracks).genCanonicalBase();
 tic;
