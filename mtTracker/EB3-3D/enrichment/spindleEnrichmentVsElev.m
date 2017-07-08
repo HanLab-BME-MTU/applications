@@ -105,6 +105,10 @@ xlim(minmax(scoresBin));
 ylim([0,8]);
 
 ylabel('Comet density (1/\mu m^3)')
+outputDirPlot=[MD.outputDirectory_ filesep 'density' filesep 'plot' filesep];
+mkdirRobust(outputDirPlot);
+print([outputDirPlot  'ElevationDens.png'],'-dpng');
+print([outputDirPlot  'ElevationDens.eps'],'-depsc');
 
 function [means,meds,stds,orderedIndex,counts] = statPerIndx(values,index)
 means=zeros(1,max(index));
