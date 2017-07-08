@@ -81,8 +81,9 @@ for cIdx=1:length(scoringProcessCell)
     percentageNegScore(cIdx)=mean(100*countNeg./(countPos+countNeg));
     
 end
-plot([1 4 8 16],percentagePosScore)
-plot([1 4 8 16],percentageNegScore)
+minutes=[1 4 8 16];
+plot(minutes(1:length(scoringProcessCell)),percentagePosScore)
+plot(minutes(1:length(scoringProcessCell)),percentageNegScore)
 
 legend({'Pos. Score','Neg. Score'})
 hold off;

@@ -3,6 +3,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addParameter('package',[]);
+ip.addParameter('printManifCount',5);
 ip.parse(varargin{:});
 p=ip.Results;
 
@@ -151,7 +152,7 @@ myColormap=uint8( ...
     [255 0 100]; ... % kinetochore tracks
     [255 0 200]; ... % kinetochore tracks
     ]);
-
+tic;
 processProj=ExternalProcess(MD,'rawProj');
 project1D(  MD, ...
             'name','fullMIPLabFrame','channelRender','grayRed','saveSingleProj',true, 'insetFringeWidth',20,'fringeWidth',60, ...
@@ -207,10 +208,10 @@ indx(isnan(sortedScore(:)))=[];
 sortedScore(isnan(sortedScore(:)))=[];
 [poleIdx,kinIdx]=ind2sub(size(zScores),indx);
 %%
-N=5;
+N=p.printManifCount;
 tic
 
-for scoreIdx=[1:N (length(sortedScore)-N):length(sortedScore)]
+for scoreIdx=[1:N (length(sortedScore)-N+1):length(sortedScore)]
     tIdx=kinIdx(scoreIdx);
     track=kinTracksISOInliers(tIdx);
     refP1P2=buildRefsFromTracks(P1,P2);
@@ -253,7 +254,7 @@ for scoreIdx=[1:N (length(sortedScore)-N):length(sortedScore)]
     
     end
 end
-
+toc
 package=GenericPackage({processDetectEB3    processTrackEB3     processDetectKT processTrackKT ... 
                         processDetectPoles  processBuildRef     processScoring  });
 
