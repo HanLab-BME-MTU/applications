@@ -4,16 +4,23 @@ function [ dnm_dKn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm )
 % INPUT
 % rho - regularly spaced samples of orientation response at K,
 %       nSamples x numel(K)
+% K - angular order, vector of K values correpsond to rho and lm
+%     If scalar, then K is expanded to match size(rho,2)
+% derivOrder - highest derivative desired
 % lm  - orientation local maxima of rho, via interpft_extrema
 %       maxNLocalMaxima x numel(K)
-% K - angular order, vector of K values correpsond to rho and lm
-% derivOrder - highest derivative desired
 %
 % OUTPUT
-% derivatives
+% full derivatives of the orientation local maxima with respect to K
+
+% Mark Kittisopikul, June 2017
+
+    period = 2*pi;
+    
+    D = period.^2/2;
     
     % For period of 2*pi
-    D = 2*pi^2;
+%     D = 2*pi^2;
     % For period of pi
     % D = pi^2/2;
 
@@ -56,7 +63,11 @@ rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1);
 % end
 
 dnt_dKn = get_t_derivatives_with_respect_to_K(derivOrder,K);
-dnt_dKn = repmat(dnt_dKn,[size(lm,1) 1 1]);
+K_expansion_factor = 1;
+if(isscalar(K))
+    K_expansion_factor = size(rho,2);
+end
+dnt_dKn = repmat(dnt_dKn,[size(lm,1) K_expansion_factor 1]);
 
 dnm_dKn = zeros([size(lm),derivOrder]);
 for d = 1:derivOrder

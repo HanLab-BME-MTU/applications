@@ -337,7 +337,13 @@ classdef OrientationSpaceResponse < handle
                 Response = reshape(Response,size(obj));
                 return;
             end
+            if(K_new == obj.filter.K)
+                % copy the response object
+                Response = OrientationSpaceResponse(obj.filter,obj.angularResponse);
+                return;
+            end
             n_new = 2*obj.filter.sampleFactor*K_new+1;
+            % Shouldn't be based off K and not n
             s_inv = sqrt(obj.n^2*n_new.^2/(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
 %             
@@ -370,10 +376,14 @@ classdef OrientationSpaceResponse < handle
             end
         end
         function Response = getDerivativeResponse(obj,deriv,order,normalize)
-            nFreq = (obj.n-1)/2;
-            freq = [0:nFreq -nFreq:-1];
-            dda = ifft(bsxfun(@times,fft(real(obj.a),[],3),(shiftdim(freq,-1)*1i).^deriv),[],3);
-            Response = OrientationSpaceResponse(obj.filter,dda);
+            if(deriv)
+                nFreq = (obj.n-1)/2;
+                freq = [0:nFreq -nFreq:-1];
+                dda = ifft(bsxfun(@times,fft(real(obj.a),[],3),(shiftdim(freq,-1)*1i).^deriv),[],3);
+                Response = OrientationSpaceResponse(obj.filter,dda);
+            else
+                Response = OrientationSpaceResponse(obj.filter,obj.a);
+            end
             if(nargin > 2)
                 Response = Response.getResponseAtOrderFT(order,normalize);
             end
