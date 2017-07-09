@@ -1,4 +1,4 @@
-function [ dnm_dKn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm )
+function [ dnm_dKn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm , period)
 %ORIENTATIONMAXIMADERIVATIVES Find the K derivatives of local maxima
 %
 % INPUT
@@ -15,7 +15,9 @@ function [ dnm_dKn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm )
 
 % Mark Kittisopikul, June 2017
 
-    period = 2*pi;
+    if(nargin < 5)
+        period = 2*pi;
+    end
     
     D = period.^2/2;
     
@@ -30,12 +32,12 @@ function [ dnm_dKn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm )
 % n = derivOrder
 % m = theta_{m} (local maxima location)
 
-if(nargin < 4)
+if(nargin < 4 || isempty(lm))
     lm = interpft_extrema(rho);
-    lm = orientationSpace.diffusion.alignExtrema(lm);
+    lm = orientationSpace.diffusion.alignExtrema(lm,period);
 end
 
-rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1);
+rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1,period);
 
 [dnm_dtn,maximaDerivatives] = dqm_dtq(derivOrder,D,rho_derivs);
     
