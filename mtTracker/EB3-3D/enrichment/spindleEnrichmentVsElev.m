@@ -114,7 +114,7 @@ print([outputDirPlot  'ElevationDens.eps'],'-depsc');
 lpid=5;
 processEnrichVsElev=ExternalProcess(MD,'spindleEnrichmentVsElev');
 save([MD.outputDirectory_ filesep 'density' filesep 'elevation-density.mat'],'elevations','densities','Handle')
-processEnrichVsElev.setOutFilePaths({[outputDirPlot  'ElevationDens.png'],[MD.outputDirectory_ filesep 'density' filesep 'elevation-density.mat']});
+processEnrichVsElev.setOutFilePaths({[MD.outputDirectory_ filesep 'density' filesep 'elevation-density.mat'],[outputDirPlot  'ElevationDens.png']});
 MD.getPackage(packPID).setProcess(lpid,processEnrichVsElev);
 
 function [means,meds,stds,orderedIndex,counts] = statPerIndx(values,index)
