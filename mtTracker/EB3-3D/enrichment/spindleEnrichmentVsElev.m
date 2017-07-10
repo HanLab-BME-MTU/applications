@@ -12,7 +12,8 @@ MD.setPackage(packPID,GenericPackage({ ...
     PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'EB3']),...
     ExternalProcess(MD,'detectPoles'),...
     ExternalProcess(MD,'spindleEnrichmentVsElev'), ...
-    ExternalProcess(MD,'project1D')    
+    ExternalProcess(MD,'project1D'),...
+    ExternalProcess(MD,'spindleEnrichmentVsElev')
   }));
 
 lpid=1;
@@ -90,7 +91,7 @@ overlayProjDetectionMovie(processProj,'detections',oDetections, ...
 allElevs=vertcat(elevations{:});
 allDens=vertcat(densities{:});
 %%
-scoresBin=-1.5:0.05:1.5;
+scoresBin=-pi/2:0.05:pi/2;
 [counts,edges,binIdx]=histcounts(allElevs,scoresBin);
 [means,meds,stds,orderedIndex,counts] = statPerIndx(allDens,binIdx+1);
 % [H,~,F]=setupFigure(1,2,2);
@@ -98,7 +99,7 @@ scoresBin=-1.5:0.05:1.5;
 % axes(H(2));
 % shadedErrorBar(scoresBin,means,stds,'r',1);       
 
-[H,~,F]=setupFigure(1,1,1);
+[Handle,~,F]=setupFigure(1,1,1);
 shadedErrorBar(scoresBin,means,stds,'r',1);       
 xlabel('Elevation (rad)');
 xlim(minmax(scoresBin));
@@ -109,6 +110,12 @@ outputDirPlot=[MD.outputDirectory_ filesep 'density' filesep 'plot' filesep];
 mkdirRobust(outputDirPlot);
 print([outputDirPlot  'ElevationDens.png'],'-dpng');
 print([outputDirPlot  'ElevationDens.eps'],'-depsc');
+
+lpid=5;
+processEnrichVsElev=ExternalProcess(MD,'spindleEnrichmentVsElev');
+save([MD.outputDirectory_ filesep 'density' filesep 'elevation-density.mat'],'elevations','densities','Handle')
+processEnrichVsElev.setOutFilePaths({[outputDirPlot  'ElevationDens.png'],[MD.outputDirectory_ filesep 'density' filesep 'elevation-density.mat']});
+MD.getPackage(packPID).setProcess(lpid,processEnrichVsElev);
 
 function [means,meds,stds,orderedIndex,counts] = statPerIndx(values,index)
 means=zeros(1,max(index));

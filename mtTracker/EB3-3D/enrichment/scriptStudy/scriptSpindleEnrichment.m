@@ -7,7 +7,7 @@ processPole=MD.getPackage(333).getProcess(5);
 processROI=MD.getPackage(333).getProcess(6);
 
 pack=GenericPackage({processEB3 processPole processROI});
-%spindleEnrichmentVsElev(MD,'package',pack);
+spindleEnrichmentVsElev(MD,'package',pack);
 
 %% After first computation one can compute on same package
 spindleEnrichmentVsElev(MD,'package',MD.getPackage(400));
