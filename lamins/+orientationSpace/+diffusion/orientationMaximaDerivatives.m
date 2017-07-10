@@ -37,6 +37,15 @@ if(nargin < 4 || isempty(lm))
     lm = orientationSpace.diffusion.alignExtrema(lm,period);
 end
 
+if(~ismatrix(rho))
+%     rho_sz = size(rho);
+    rho = rho(:,:);
+end
+if(~ismatrix(lm))
+    lm_sz = size(lm);
+    lm = lm(:,:);
+end
+
 rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1,period);
 
 [dnm_dtn,maximaDerivatives] = dqm_dtq(derivOrder,D,rho_derivs);
@@ -77,6 +86,9 @@ for d = 1:derivOrder
 %     dnm_dKn(:,:,d) = translate_from_t_to_K(d,cat(3,maximaDerivatives{:}),K);
 end
 
+if(exist('lm_sz','var'))
+    dnm_dKn = reshape(dnm_dKn,[lm_sz derivOrder]);
+end
 
 end
 
