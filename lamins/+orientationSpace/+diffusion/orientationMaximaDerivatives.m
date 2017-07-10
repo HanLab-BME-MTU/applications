@@ -207,6 +207,8 @@ function dqm_dKq = translate_from_t_to_K_hard(q,dqm_dtq_v,K,dnt_dKn)
         return;
     end
     
+    dnt_dKn = repmat(dnt_dKn,[1 size(dqm_dtq_v,2) 1]);
+    
     switch(q)
         case 1
             % partitions(1)
@@ -214,7 +216,7 @@ function dqm_dKq = translate_from_t_to_K_hard(q,dqm_dtq_v,K,dnt_dKn)
             % ans =
             % 
             %      1
-            dqm_dKq = dqm_dtq_v(:,:,1) .* dnt_dKn(:,:,1);
+            dqm_dKq = bsxfun(@times,dqm_dtq_v(:,:,1),dnt_dKn(:,:,1));
         case 2
             % partitions(2)
             % 
