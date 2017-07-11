@@ -1,4 +1,4 @@
-function spindleEnrichmentVsElev(MD,varargin)
+function sanityCheckTracks(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
@@ -7,7 +7,7 @@ ip.parse(varargin{:});
 p=ip.Results;
 
 % Process type placeholdes
-packPID=400;
+packPID=100;
 % We save the temp processes at packID+1, that way if process get killed
 % halfway through, or other issues, the previous logs are not overidden but
 % the last computation location are still available.

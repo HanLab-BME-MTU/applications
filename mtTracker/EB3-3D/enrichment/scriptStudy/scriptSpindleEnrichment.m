@@ -13,13 +13,3 @@ spindleEnrichmentVsElev(MD,'package',pack);
 spindleEnrichmentVsElev(MD,'package',MD.getPackage(400));
 
 %%
-processCell=cell(1,length(MLs));
-
-for mIdx=1:length(MLs)
-    for i=2%MLs(mIdx).getSize()
-        MD=MLs(mIdx).getMovie(i);
-        processCell{mIdx}=[processCell{mIdx} MD.getPackage(400).getProcess(5)];
-    end
-end
-conditionEnrichmentStatistics(processCell,{'1min','4min','8min','16min'},'/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/phaseProgression/analysis/plot/')
-
