@@ -7,6 +7,7 @@ periodFrames = floor(periodMin/tIntervalMin); % early period in frames
 frames2min = floor(2/tIntervalMin); % early period in frames
 numTracks = numel(tracksNA);
 progressText(0,'Post-analysis:');
+%% run again
 for k=1:numTracks
     % cross-correlation scores
 %     presIdx = logical(tracksNA(k).presence);
@@ -24,24 +25,30 @@ for k=1:numTracks
                 tracksNA(k).closestBdPoint(real_kk,:)).^2,2));
             lastPointIntX = round(tracksNA(k).closestBdPoint(real_kk+1,1));
             lastPointIntY = round(tracksNA(k).closestBdPoint(real_kk+1,2));
-            if cropMaskStack(lastPointIntY,lastPointIntX,real_kk) %if the last point is in the first mask, it is inward
-                distTrajec(kk) = -distTrajec(kk);
+            if ~isnan(lastPointIntX) 
+                if cropMaskStack(lastPointIntY,lastPointIntX,real_kk) %if the last point is in the first mask, it is inward
+                    distTrajec(kk) = -distTrajec(kk);
+                end
             end
         end
         if any(distTrajec~=0)
-            [Protrusion,Retraction] = getPersistenceTime(distTrajec,deltaT);%,'plotYes',true)
-            if any(isnan(Retraction.persTime)) || sum(Protrusion.persTime) - sum(Retraction.persTime)>0 % this is protrusion for this track
-                tracksNA(k).isProtrusion = true;
-            else
-                tracksNA(k).isProtrusion = false;
-            end
-            % average velocity (positive for protrusion)
-            curProtVel = (Protrusion.Veloc); curProtVel(isnan(curProtVel))=0;
-            curProtPersTime = (Protrusion.persTime); curProtPersTime(isnan(curProtPersTime))=0;
-            curRetVel = (Retraction.Veloc); curRetVel(isnan(curRetVel))=0;
-            curRetPersTime = (Retraction.persTime); curRetPersTime(isnan(curRetPersTime))=0;
+            try
+                [Protrusion,Retraction] = getPersistenceTime(distTrajec,deltaT);%,'plotYes',true)
+                if any(isnan(Retraction.persTime)) || sum(Protrusion.persTime) - sum(Retraction.persTime)>0 % this is protrusion for this track
+                    tracksNA(k).isProtrusion = true;
+                else
+                    tracksNA(k).isProtrusion = false;
+                end
+                % average velocity (positive for protrusion)
+                curProtVel = (Protrusion.Veloc); curProtVel(isnan(curProtVel))=0;
+                curProtPersTime = (Protrusion.persTime); curProtPersTime(isnan(curProtPersTime))=0;
+                curRetVel = (Retraction.Veloc); curRetVel(isnan(curRetVel))=0;
+                curRetPersTime = (Retraction.persTime); curRetPersTime(isnan(curRetPersTime))=0;
 
-            tracksNA(k).edgeVel = (mean(curProtVel.*curProtPersTime)-mean(curRetVel.*curRetPersTime))/mean([curProtPersTime;curRetPersTime]);
+                tracksNA(k).edgeVel = (mean(curProtVel.*curProtPersTime)-mean(curRetVel.*curRetPersTime))/mean([curProtPersTime;curRetPersTime]);
+            catch
+                tracksNA(k).edgeVel = 0;
+            end
         else
             tracksNA(k).edgeVel = 0;
         end

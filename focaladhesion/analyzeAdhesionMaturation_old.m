@@ -182,11 +182,14 @@ end
 dataPath = [newOutputFilePath filesep 'data'];
 paxPath = [newOutputFilePath filesep 'pax'];
 paxtifPath = [newOutputFilePath filesep 'paxtifs'];
+labelTifPath = [newOutputFilePath filesep 'labelTifs'];
 epsPath = [newOutputFilePath filesep 'eps'];
 figPath = [newOutputFilePath filesep 'figs'];
-if ~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') || ~exist(epsPath,'dir') || ~exist(dataPath,'dir') 
+if ~exist(paxtifPath,'dir') || ~exist(paxPath,'dir') || ~exist(figPath,'dir') ||...
+        ~exist(epsPath,'dir') || ~exist(dataPath,'dir') || ~exist(labelTifPath,'dir') 
     mkdir(paxPath);
     mkdir(paxtifPath);
+    mkdir(labelTifPath);
     mkdir(figPath);
     mkdir(epsPath);
     mkdir(dataPath);
@@ -221,7 +224,7 @@ if ~foundTracks
     tic
     tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames); 
     toc
-
+    clear tracksNAorg
     % disp('loading segmented FAs...')
 
     % Finding which channel has a cell mask information
@@ -310,22 +313,23 @@ if ~foundTracks
     tracksNA = tracksNA(trackIdx);
 end
 %% add intensity of tracks including before and after NA status
-% get the movie stack
-disp('Loading image stacks ...'); tic;
-h=MD.imSize_(1); w=MD.imSize_(2);
-imgStack = zeros(h,w,nFrames);
-for ii=1:nFrames
-    imgStack(:,:,ii)=MD.channels_(iPaxChannel).loadImage(ii); 
-end
-toc;
 
 if ~foundTracks && ~skipOnlyReading
+    % get the movie stack
+    disp('Loading image stacks ...'); tic;
+    h=MD.imSize_(1); w=MD.imSize_(2);
+    imgStack = zeros(h,w,nFrames);
+    for ii=1:nFrames
+        imgStack(:,:,ii)=MD.channels_(iPaxChannel).loadImage(ii); 
+    end
+    toc;
     % get the intensity
     disp('Reading intensities with additional tracking...')
     tic
     % reTrack=false;
     tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
     toc
+    clear imgStack
     %% Filtering again after re-reading
     disp('Filtering again after re-reading with cell mask ...')
     tic
@@ -470,17 +474,16 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
         'amp',[],'area',[],'length',[]);
 
     %% Matching with segmented adhesions
-    prevMask=[];
     neighPix = 2;
     for ii=1:nFrames
         % Cell Boundary Mask 
         if existSegmentation
-            mask = maskProc.loadChannelOutput(iChan,ii);
+            mask = maskProc.loadChannelOutput(iChan,ii); 
             if ii>1 && max(mask(:))==0
-                mask=prevMask;
+                mask=maskProc.loadChannelOutput(iChan,ii-1); 
                 disp('Previous mask is used for cell edge because the current mask is empty.')
-            else
-                prevMask=mask;
+            elseif isempty(mask)
+                mask=true(MD.imSize_); 
             end
         else
             mask=true(MD.imSize_);
@@ -490,14 +493,14 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
         cropMaskStack(:,:,ii) = mask;
         % Get the mask for FAs
         I=MD.channels_(iPaxChannel).loadImage(ii); 
-        maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
+        maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii); 
         maskAdhesion = maskFAs>0 & mask;
         % FA Segmentation usually over-segments things. Need to chop them off
         % to smaller ones or filter insignificant segmentation out.
         xNA=arrayfun(@(x) x.xCoord(ii),tracksNA);
         yNA=arrayfun(@(x) x.yCoord(ii),tracksNA);
         try
-            maskAdhesion = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA,mask);
+            maskAdhesion = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA);%,mask);
         catch
             disp('Refine adhesion mask is failed, Proceeding with the next step ...')
         end
@@ -507,7 +510,7 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
     %         Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList','PixelList' );
         % Save focal adhesion information
         Adhs = regionprops(bwconncomp(maskAdhesion,4),'Centroid','Area','Eccentricity','PixelList','PixelIdxList','MajorAxisLength');
-        numAdhs(ii) = numel(Adhs);
+%         numAdhs(ii) = numel(Adhs);
     %         minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1um*1um
     %         minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=0.6um*0.4um
         minFALength = round((2000/MD.pixelSize_)); %adhesion limit=2um
@@ -572,94 +575,135 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
     %         end
     %         maskAdhesion = logical(labelAdhesion);
             %     propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
-                % Deciding each adhesion maturation status
-            for k=1:numel(tracksNA)
-                if tracksNA(k).presence(ii)
-%                     if ~strcmp(tracksNA(k).state{ii} , 'NA') && ii>1
-%                         tracksNA(k).state{ii} = tracksNA(k).state{ii-1};
+            %% Field creation before running parfor
+            if ~isfield(tracksNA,'refineFAID')
+                tracksNA(end).refineFAID=[];
+            end
+            if ~isfield(tracksNA,'faID')
+                tracksNA(end).faID=[];
+            end
+            if ~isfield(tracksNA,'area')
+                tracksNA(end).area=[];
+            end
+            %% Deciding each adhesion maturation status
+            % Save the labels
+            labelAdhesion = bwlabel(maskAdhesion,4);
+            imwrite(labelAdhesion, strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
+            parfor k=1:numel(tracksNA)
+                curTrack=tracksNA(k);
+                if curTrack.presence(ii)
+%                     if ~strcmp(curTrack.state{ii} , 'NA') && ii>1
+%                         curTrack.state{ii} = curTrack.state{ii-1};
 %                     end
                     % decide if each track is associated with FC or FA
-                    labelAdhesion = bwlabel(maskAdhesion,4);
-                    if maskAdhesion(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)))>0
-                        iAdh = labelAdhesion(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
+                    if maskAdhesion(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii)))>0 %#ok<PFBNS>
+                        iAdh = labelAdhesion(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii))); %#ok<PFBNS>
                         if ismember(iAdh,FCIdx)
-                            tracksNA(k).state{ii} = 'FC';
-                            tracksNA(k).area(ii) = Adhs(iAdh).Area;% in pixel
-                            tracksNA(k).FApixelList{ii} = Adhs(iAdh).PixelList;
-                            tracksNA(k).adhBoundary{ii} = adhBound{iAdh};
-                            tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
+                            curTrack.state{ii} = 'FC';
+                            curTrack.area(ii) = Adhs(iAdh).Area;%#ok<PFBNS> % in pixel
+%                             curTrack.FApixelList{ii} = Adhs(iAdh).PixelList;
+%                             curTrack.adhBoundary{ii} = adhBound{iAdh};
+                            curTrack.refineFAID(ii) = iAdh;
+                            curTrack.faID(ii) = maskFAs(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii))); %#ok<PFBNS>
                         elseif ismember(iAdh,FAIdx)
-                            tracksNA(k).state{ii} = 'FA';
-                            tracksNA(k).area(ii) = Adhs(iAdh).Area;% in pixel
-                            tracksNA(k).FApixelList{ii} = Adhs(iAdh).PixelList;
-                            tracksNA(k).adhBoundary{ii} = adhBound{iAdh};
-                            tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
+                            curTrack.state{ii} = 'FA';
+                            curTrack.area(ii) = Adhs(iAdh).Area;% in pixel
+%                             curTrack.FApixelList{ii} = Adhs(iAdh).PixelList;
+%                             curTrack.adhBoundary{ii} = adhBound{iAdh};
+                            curTrack.refineFAID(ii) = iAdh;
+                            curTrack.faID(ii) = maskFAs(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii)));
                         else 
-                            tracksNA(k).state{ii} = 'NA';
-                            tracksNA(k).area(ii) = Adhs(iAdh).Area;% in pixel
-                            tracksNA(k).FApixelList{ii} = Adhs(iAdh).PixelList;
-                            tracksNA(k).adhBoundary{ii} = adhBound{iAdh};
-                            tracksNA(k).faID(ii) = maskFAs(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)));
+                            curTrack.state{ii} = 'NA';
+                            curTrack.area(ii) = Adhs(iAdh).Area;% in pixel
+%                             curTrack.FApixelList{ii} = Adhs(iAdh).PixelList;
+%                             curTrack.adhBoundary{ii} = adhBound{iAdh};
+                            curTrack.refineFAID(ii) = iAdh;
+                            curTrack.faID(ii) = maskFAs(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii)));
                         end
                     else
-                        tracksNA(k).state{ii} = 'NA';
-                        tracksNA(k).area(ii) = NaN;% in pixel
-                        tracksNA(k).FApixelList{ii} = [];
-                        tracksNA(k).adhBoundary{ii} = [];
-                        tracksNA(k).faID(ii) = NaN;
+                        curTrack.state{ii} = 'NA';
+                        curTrack.area(ii) = NaN;% in pixel
+%                         curTrack.FApixelList{ii} = [];
+%                         curTrack.adhBoundary{ii} = [];
+                        curTrack.refineFAID(ii) = NaN;
+                        curTrack.faID(ii) = NaN;
                     end
-                elseif ii>tracksNA(k).endingFrameExtra && ...
-                        (strcmp(tracksNA(k).state{tracksNA(k).endingFrameExtra},'FA')...
-                        || strcmp(tracksNA(k).state{tracksNA(k).endingFrameExtra},'FC'))
+                elseif ii>curTrack.endingFrameExtra && ...
+                        (strcmp(curTrack.state{curTrack.endingFrameExtra},'FA')...
+                        || strcmp(curTrack.state{curTrack.endingFrameExtra},'FC')) && ...
+                        sum(cellfun(@(x) strcmp(x,'ANA'),curTrack.state(curTrack.endingFrame:ii)))<3
                     % starting from indexed maskFAs, find out segmentation that is
                     % closest to the last track point.
-                    subMaskFAs = maskFAs==tracksNA(k).faID(tracksNA(k).endingFrameExtra);
+                    curTrack.xCoord(ii) = curTrack.xCoord(curTrack.endingFrameExtra);
+                    curTrack.yCoord(ii) = curTrack.yCoord(curTrack.endingFrameExtra);
+                    xi = round(curTrack.xCoord(ii));
+                    yi = round(curTrack.yCoord(ii));
+                    xRange = max(1,xi-neighPix):min(xi+neighPix,w);
+                    yRange = max(1,yi-neighPix):min(yi+neighPix,h);
+                    curAmpTotal = I(yRange,xRange); %#ok<PFBNS>
+                    curAmpTotal = mean(curAmpTotal(:));
+                    curTrack.ampTotal(ii) =  curAmpTotal;
+                    
+                    currentFAID = curTrack.faID(curTrack.endingFrameExtra);
+                    subMaskFAs = maskFAs==currentFAID;
                     if max(subMaskFAs(:))==0
-                        tracksNA(k).state{ii} = 'ANA';
-                        tracksNA(k).FApixelList{ii} = NaN;
-                        tracksNA(k).adhBoundary{ii} = NaN;
+                        curTrack.state{ii} = 'ANA';
+%                         curTrack.FApixelList{ii} = NaN;
+%                         curTrack.adhBoundary{ii} = NaN;
                         continue
-                    else
-                        propSubMaskFAs = regionprops(subMaskFAs,'PixelList','MajorAxisLength','Area');
-                        minDist = zeros(length(propSubMaskFAs),1);
-                        for q=1:length(propSubMaskFAs)
-                            minDist(q) = min(sqrt((propSubMaskFAs(q).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrameExtra))).^2 +...
-                                (propSubMaskFAs(q).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrameExtra))).^2));
+                    elseif maskAdhesion(round(curTrack.yCoord(curTrack.endingFrameExtra)),...
+                            round(curTrack.xCoord(curTrack.endingFrameExtra)))>0
+%                         curTrack.xCoord(ii) = curTrack.xCoord(curTrack.endingFrameExtra);
+%                         curTrack.yCoord(ii) = curTrack.yCoord(curTrack.endingFrameExtra);
+                        iAdh = labelAdhesion(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii)));
+%                         propSubMaskFAs = regionprops(subMaskFAs,'PixelList','MajorAxisLength','Area');
+%                         minDist = zeros(length(propSubMaskFAs),1);
+%                         for q=1:length(propSubMaskFAs)
+%                             minDist(q) = min(sqrt((propSubMaskFAs(q).PixelList(:,1)-(curTrack.xCoord(curTrack.endingFrameExtra))).^2 +...
+%                                 (propSubMaskFAs(q).PixelList(:,2)-(curTrack.yCoord(curTrack.endingFrameExtra))).^2));
+%                         end
+%                         % find the closest segment
+%                         [~,subMaskFAsIdx] = min(minDist);
+%                         subAdhBound = bwboundaries(subMaskFAs,'noholes');    
+% %                         [~,closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(curTrack.xCoord(curTrack.endingFrameExtra))).^2 +...
+% %                             (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(curTrack.yCoord(curTrack.endingFrameExtra))).^2));
+%                         if propSubMaskFAs(subMaskFAsIdx).MajorAxisLength>minFCLength && ...
+%                                 propSubMaskFAs(subMaskFAsIdx).MajorAxisLength<minFALength
+%                             curTrack.state{ii} = 'FC';
+%                         elseif propSubMaskFAs(subMaskFAsIdx).MajorAxisLength >= minFALength
+%                             curTrack.state{ii} = 'FA';
+%                         else
+%                             curTrack.state{ii} = 'NA';
+%                         end
+                        if ismember(iAdh,FCIdx)
+                            curTrack.state{ii} = 'FC';
+                        elseif ismember(iAdh,FAIdx)
+                            curTrack.state{ii} = 'FA';
+                        else 
+                            curTrack.state{ii} = 'NA';
                         end
-                        % find the closest segment
-                        [~,subMaskFAsIdx] = min(minDist);
-                        subAdhBound = bwboundaries(subMaskFAs,'noholes');    
-%                         [~,closestPixelID] = min(sqrt((propSubMaskFAs(subMaskFAsIdx).PixelList(:,1)-(tracksNA(k).xCoord(tracksNA(k).endingFrameExtra))).^2 +...
-%                             (propSubMaskFAs(subMaskFAsIdx).PixelList(:,2)-(tracksNA(k).yCoord(tracksNA(k).endingFrameExtra))).^2));
-                        if propSubMaskFAs(subMaskFAsIdx).MajorAxisLength>minFCLength && ...
-                                propSubMaskFAs(subMaskFAsIdx).MajorAxisLength<minFALength
-                            tracksNA(k).state{ii} = 'FC';
-                        elseif propSubMaskFAs(subMaskFAsIdx).MajorAxisLength >= minFALength
-                            tracksNA(k).state{ii} = 'FA';
-                        else
-                            tracksNA(k).state{ii} = 'NA';
-                        end
-                        tracksNA(k).presence(ii)=true;
-                        tracksNA(k).endingFrameExtra = ii; % This is update I did on 5/24/17.
-                        tracksNA(k).lifeTime = ii-tracksNA(k).startingFrameExtra; % This is update I did on 5/24/17.
-    %                     tracksNA(k).xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
-    %                     tracksNA(k).yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
-                        tracksNA(k).FApixelList{ii} = propSubMaskFAs(subMaskFAsIdx).PixelList;
-                        tracksNA(k).adhBoundary{ii} = subAdhBound{subMaskFAsIdx};
-                        tracksNA(k).faID(ii) = maskFAs(tracksNA(k).FApixelList{ii}(1,1),...
-                                                        tracksNA(k).FApixelList{ii}(1,2));
-                        tracksNA(k).area(ii) = propSubMaskFAs(subMaskFAsIdx).Area;% in pixel
-                        if tracksNA(k).endingFrameExtraExtra<tracksNA(k).endingFrameExtra 
-                            tracksNA(k).endingFrameExtraExtra=tracksNA(k).endingFrameExtra;
+                        curTrack.presence(ii)=true;
+                        curTrack.endingFrameExtra = ii; % This is update I did on 5/24/17.
+%                         curTrack.lifeTime = ii-curTrack.startingFrameExtra; % This is update I did on 5/24/17.
+    %                     curTrack.xCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,1);
+    %                     curTrack.yCoord(ii) = propSubMaskFAs(subMaskFAsIdx).PixelList(closestPixelID,2);
+%                         curTrack.FApixelList{ii} = propSubMaskFAs(subMaskFAsIdx).PixelList;
+%                         curTrack.adhBoundary{ii} = subAdhBound{subMaskFAsIdx};
+                        curTrack.faID(ii) = currentFAID;
+                        curTrack.refineFAID(ii) = iAdh;
+                        curTrack.area(ii) = Adhs(iAdh).Area; %propSubMaskFAs(subMaskFAsIdx).Area;% in pixel
+                        if curTrack.endingFrameExtraExtra<curTrack.endingFrameExtra 
+                            curTrack.endingFrameExtraExtra=curTrack.endingFrameExtra;
                         end
                     end
                 end
+                tracksNA(k)=curTrack;
             end
         else
             FCIdx = [];
             FAIdx = [];
         end
-        % recording features
+        %% recording features
         % get the point on the boundary closest to the adhesion
         if getEdgeRelatedFeatures
             allBdPoints = [];
@@ -678,10 +722,13 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
                     [minDistToBd,indMinBdPoint] = min(distToAdh);
                     tracksNA(k).distToEdge(ii) = minDistToBd;
                     tracksNA(k).closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                    if allBdPoints(indMinBdPoint,1)==0 || isnan(allBdPoints(indMinBdPoint,1))
+                        error(['Error occurred at ii=' num2str(ii) ' and indMinBDPoint=' num2str(indMinBdPoint) ' and k=' num2str(k) ', allBdPoints(indMinBdPoint,1)=' num2str(allBdPoints(indMinBdPoint,1))]);
+                    end
                 end
             end
         end
-
+        %% Showing
         paxImageCropped=MD.channels_(iPaxChannel).loadImage(ii); 
         if showAllTracks
             h2=figure;
@@ -774,15 +821,16 @@ end
 % First I have to quantify when the protrusion and retraction onset take
 % place.
 if getEdgeRelatedFeatures
-    for ii=1:numTracks
-        idxZeros = tracksNA(ii).closestBdPoint(:)==0;
-        tracksNA(ii).closestBdPoint(idxZeros)=NaN;
+    for k=1:numTracks
+        idxZeros = tracksNA(k).closestBdPoint(:,1)==0 & tracksNA(k).closestBdPoint(:,2)==0;
+        tracksNA(k).closestBdPoint(idxZeros,:)=NaN(sum(idxZeros),2);
     end
 end
 
 deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
 if ~isfield(tracksNA,'edgeVel')
     tracksNA = getFeaturesFromTracksNA(tracksNA, deltaT, getEdgeRelatedFeatures,cropMaskStack);%,...);
+    clear cropMaskStack
     % This will add features like: advanceDist, edgeAdvanceDist, MSD,
     % MSDrate, assemRate, disassemRate, earlyAmpSlope,lateAmpSlope
     %% saving
