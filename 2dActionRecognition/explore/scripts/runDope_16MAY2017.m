@@ -39,3 +39,5 @@ dopeAnnotator('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May16_metEff
 
 
 
+dopeAnnotator('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat',...
+	'/work/bioinformatics/shared/dope/data/OMETIFF/dopeCheckPoint_Anno09Jun2017_1037.mat')

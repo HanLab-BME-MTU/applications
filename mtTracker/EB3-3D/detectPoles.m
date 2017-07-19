@@ -1,4 +1,4 @@
-function [poleMovieInfo,fiducialTracks] = detectPoles(MD,varargin)
+function [poleMovieInfo,tracks] = detectPoles(MD,varargin)
 % Philippe Roudot 2014
 % Detecting higher scale fidiciaries in 3D
 % OUTPUT:
@@ -50,6 +50,7 @@ parfor frameIdx=1:numel(processFrames)
 %     lm(:,:,1:ws(3))=0;
     perc=100;
     notEnoughPoles=true;
+    percentile=100;
     while( notEnoughPoles)
         perc=perc-5;
         percentile=prctile(lm(lm>0),perc);
@@ -146,7 +147,7 @@ tracks=[P1 P2];
 
 process=ip.Results.process;
 if(~isempty(process))
-    mkdir(outputDirTrack);
+    mkdirRobust(outputDirTrack);
     save([outputDirTrack filesep 'trackNewFormat.mat'],'tracks');
     outputDirPoleDetect=[process.getOwner().outputDirectory_ filesep 'poles' filesep ip.Results.type '_scale_' num2str(scales(1),'%03d')];
     save([outputDirPoleDetect filesep 'poleDetection.mat'],'poleMovieInfo','tracks');

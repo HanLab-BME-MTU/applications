@@ -19,7 +19,7 @@ classdef OrientationSpaceResponse < handle
         cache
     end
     
-    properties (Dependent)
+    properties (Dependent, Hidden)
         res
         nms
         nlms
@@ -186,31 +186,39 @@ classdef OrientationSpaceResponse < handle
             if(nargin < 4)
                 samples = obj.n;
             end
-            siz = size(obj.angularResponse);
-            if(nargin > 2)
-                linIdx = sub2ind(siz([1 2]),r,c);
-            else
-                linIdx = r;
-            end
-            if(isscalar(samples) && samples == obj.n)
-                a = reshape(obj.angularResponse,[],obj.n);
-                response = squeeze(a(linIdx,:));
-                samples = (0:samples-1)'*obj.n/samples;
-            else
-                if(isscalar(samples))
-                    if(mod(samples,1) == 0)
-                        samples = (0:samples-1)'*obj.n/samples;
-                    else
-                        samples = pi/samples;
-                        samples = (0:samples-1)'*obj.n/samples;
-                    end
+            if(isscalar(samples))
+                response = interpft(squeeze(real(obj.angularResponse(r,c,:))),samples).';
+                if(nargout > 1)
+                    samples = (0:samples-1).'.*obj.n/samples;
                 end
-                M = obj.getMatrix;
-                sampling = bsxfun(@minus,0:obj.n-1,samples);
-                sampling = wraparoundN(sampling,-obj.n/2,obj.n/2)';
-                sampling = exp(-sampling.^2/2);
-                response = M(linIdx,:)*sampling;
+            else
+                response = interpft1(squeeze(real(obj.angularResponse(r,c,:))),samples);
             end
+%             siz = size(obj.angularResponse);
+%             if(nargin > 2)
+%                 linIdx = sub2ind(siz([1 2]),r,c);
+%             else
+%                 linIdx = r;
+%             end
+%             if(isscalar(samples) && samples == obj.n)
+%                 a = reshape(obj.angularResponse,[],obj.n);
+%                 response = squeeze(a(linIdx,:));
+%                 samples = (0:samples-1)'*obj.n/samples;
+%             else
+%                 if(isscalar(samples))
+%                     if(mod(samples,1) == 0)
+%                         samples = (0:samples-1)'*obj.n/samples;
+%                     else
+%                         samples = pi/samples;
+%                         samples = (0:samples-1)'*obj.n/samples;
+%                     end
+%                 end
+%                 M = obj.getMatrix;
+%                 sampling = bsxfun(@minus,0:obj.n-1,samples);
+%                 sampling = wraparoundN(sampling,-obj.n/2,obj.n/2)';
+%                 sampling = exp(-sampling.^2/2);
+%                 response = M(linIdx,:)*sampling;
+%             end
         end
         function response = getResponseAtOrientation(obj,angle)
         %getResponseAtOrientation(orientationAngle)
@@ -318,6 +326,9 @@ classdef OrientationSpaceResponse < handle
             Response = OrientationSpaceResponse(filter_new,angularResponse_new);
         end
         function Response = getResponseAtOrderFT(obj,K_new,normalize)
+            if(nargin < 3)
+                normalize = 0;
+            end
             if(~isscalar(obj))
                 Response(numel(obj)) = OrientationSpaceResponse;
                 for o=1:numel(obj)
@@ -326,10 +337,21 @@ classdef OrientationSpaceResponse < handle
                 Response = reshape(Response,size(obj));
                 return;
             end
-            n_new = 2*K_new+1;
-            s_inv = sqrt(obj.n^2*n_new^2/(obj.n.^2-n_new.^2));
+            if(K_new == obj.filter.K)
+                % copy the response object
+                Response = OrientationSpaceResponse(obj.filter,obj.angularResponse);
+                return;
+            end
+            n_new = 2*obj.filter.sampleFactor*K_new+1;
+            % Shouldn't be based off K and not n
+            s_inv = sqrt(obj.n^2*n_new.^2/(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
-            x = -ceil(K_new):ceil(K_new);
+%             
+            if(normalize == 2)
+                x = -obj.filter.sampleFactor*ceil(obj.filter.K):ceil(obj.filter.K)*obj.filter.sampleFactor;
+            else
+                x = -obj.filter.sampleFactor*ceil(K_new):ceil(K_new)*obj.filter.sampleFactor;
+            end
             if(s_hat ~= 0)
                 f_hat = exp(-0.5 * (x./s_hat).^2); % * obj.n/n_new;
                 f_hat = ifftshift(f_hat);
@@ -340,15 +362,30 @@ classdef OrientationSpaceResponse < handle
             a_hat = fft(real(obj.a),[],3);
             % This reduces the number of coefficients in the Fourier domain
             % Beware of the normalization factor, 1/n, done by ifft
-            a_hat = a_hat(:,:,[1:ceil(K_new)+1 end-ceil(K_new)+1:end]);
+            if(normalize < 2)
+                a_hat = a_hat(:,:,[1:ceil(K_new)*obj.filter.sampleFactor+1 end-ceil(K_new)*obj.filter.sampleFactor+1:end]);
+            end
             a_hat = bsxfun(@times,a_hat,f_hat);
             filter_new = OrientationSpaceFilter(obj.filter.f_c,obj.filter.b_f,K_new);
             % Consider using fft rather than ifft so that the mean is
             % consistent
-            if(nargin > 2 && normalize)
+            if(normalize == 1)
                 Response = OrientationSpaceResponse(filter_new,ifft(a_hat*size(a_hat,3)/size(obj.a,3),[],3));
             else
                 Response = OrientationSpaceResponse(filter_new,ifft(a_hat,[],3));
+            end
+        end
+        function Response = getDerivativeResponse(obj,deriv,order,normalize)
+            if(deriv)
+                nFreq = (obj.n-1)/2;
+                freq = [0:nFreq -nFreq:-1];
+                dda = ifft(bsxfun(@times,fft(real(obj.a),[],3),(shiftdim(freq,-1)*1i).^deriv),[],3);
+                Response = OrientationSpaceResponse(obj.filter,dda);
+            else
+                Response = OrientationSpaceResponse(obj.filter,obj.a);
+            end
+            if(nargin > 2)
+                Response = Response.getResponseAtOrderFT(order,normalize);
             end
         end
         function response = getResponseAtOrderFTatPoint(obj,r,c,K_new)
@@ -362,7 +399,7 @@ classdef OrientationSpaceResponse < handle
 
             % New number of coefficients
 %             n_new = 2*ceil(K_new)+1;
-            n_new = 2*K_new+1;
+            n_new = 2*obj.filter.sampleFactor*K_new+1;
 
             % The convolution of two Gaussians results in a Gaussian
             % The multiplication of two Gaussians results in a Gaussian
@@ -371,7 +408,7 @@ classdef OrientationSpaceResponse < handle
             % Note if n == n_new, we divide by 0. Then s_inv = Inf
             s_inv = sqrt(obj.n^2.*n_new.^2./(obj.n.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
-            x = -ceil(obj.filter.K):ceil(obj.filter.K);
+            x = -ceil(obj.filter.K)*obj.filter.sampleFactor:ceil(obj.filter.K)*obj.filter.sampleFactor;
             
             % Each column represents a Gaussian with sigma set to s_hat(column)
             f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2); % * obj.n/n_new;

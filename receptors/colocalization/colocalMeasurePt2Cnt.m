@@ -1,10 +1,9 @@
-function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd,clusterDensity,cellIntensity] = colocalMeasurePt2Cnt(radius,...
+function [enrichAve,localAve,bgAve,randEnrichAve,enrichInd,localInd,randEnrichInd,clusterDensity,cellIntensity,normDist] = colocalMeasurePt2Cnt(radius,...
     randomRuns,detectionData,imagePt,imageCnt,maskingFile)
 % COLOCALMEASUREPT2CNT measures colocalization for two channels where only one is punctate and the other is continuous
 %
-% Synopsis: [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
-%    intensityLocalInd,intensityRatioInd] = colocalMeasurePt2Cnt(radius,percent,...
-%    randomRuns,detectionFile,firstImageFileCnt,firstImageFilePt,channelCnt,channelPt)
+% Synopsis: [enrichAve,localAve,bgAve,randEnrichAve,enrichInd,localInd,randEnrichInd,clusterDensity,cellIntensity] = ...
+% colocalMeasurePt2Cnt(radius,randomRuns,detectionData,imagePt,imageCnt,maskingFile)
 %
 %Input:
 %
@@ -24,24 +23,21 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd,cl
 %
 %
 % Output:
-%   ratioAve: vector of the ratio of intensityLocalAve to intensityBgAve values for each image
+%   enrichAve: vector of the average enrichment percentage of continuum intensity at puncate detections for each image
 %
 %   localAve: vector of the average intensity of local area surrounding detections for each image
 %
 %   bgAve: vector of the average intensity of everything within cell not including
 %   detections for each image
 %
-%   randRatioAve: vector of ratio of average intensity of random detections
-%   within cell to background intensity for each image
+%   randEnrichAve: vector of the average enrichment percentage of continuum intensity at randomized puncate detections for each image
 %
-%   ratioInd:cell array containing intensity ratios of each
-%   individual local environment to corresponding background (first column: Continuum channel, second column: Punctate Channel)
+%   enrichInd:cell array containing enrichment percentage of continuum intensity at randomized puncate detections (first column: Continuum channel, second column: Punctate Channel)
 %
 %   localInd: cell array containing intensity values of each
 %   individual local environment (first column: Continuum channel, second column: Punctate Channel)
 %
-%   randRatioInd:cell array containing randomized intensity ratios of each
-%   individual local environment to corresponding background (first column: Continuum channel, second column: Punctate Channel)
+%   randEnrichInd:cell array containing enrichment percentage of continuum intensity at randomized puncate detections (first column: Continuum channel, second column: Punctate Channel)
 %
 %   clusterDensity: density of punctate objects in cell
 %
@@ -80,8 +76,18 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd,cl
     localMask = zeros(size(ICnt));
     indexQP = sub2ind(size(localMask),roundedQP(:,1),roundedQP(:,2));
     localMask(indexQP) = 1;
-    
-    
+    erMask = bwmorph(maskingFile,'erode');
+    borderMask = maskingFile - erMask;
+    D = bwdist(borderMask);
+    distFromEdge = D(indexQP);
+    stats = regionprops(maskingFile,'Centroid');
+    centImg = zeros(size(ICnt));
+    centImg(round(stats.Centroid(2)),round(stats.Centroid(1))) = 1;
+    D2 = bwdist(centImg);
+    distFromCent = D2(indexQP);
+    normDist = distFromCent./(distFromEdge+distFromCent);
+%     distFromCent= pdist2(roundedQP,[85,83]);
+
     %% Image Processing
     % Background Subtraction and Uneven illumination correction
     corrValue = mean(ICnt(maskingFile==0));
@@ -187,17 +193,16 @@ function [ratioAve,localAve,bgAve,randRatioAve,ratioInd,localInd,randRatioInd,cl
 
         randIntensityRatioInd = [randIntensityRatioInd;randIntensityInd];
         clear randIntensityInd
-%         randIntensityRatioInd(:,2) = [;randIntensityInd(:,2)/randIntensityBgAve(1,2)];
 
     end
  %% Store Results
-randRatioAve = mean(randIntensityRatioInd);
-ratioAve= intensityRatioAve;
+randEnrichAve = (mean(randIntensityRatioInd)-1).*100;
+enrichAve= (intensityRatioAve-1).*100;
 localAve= intensityLocalAve; 
 bgAve= intensityBgAve; 
-ratioInd= intensityRatioInd;
+enrichInd= (intensityRatioInd-1).*100;
 localInd=intensityLocalInd ; 
-randRatioInd= randIntensityRatioInd;        
+randEnrichInd= (randIntensityRatioInd-1).*100;        
         
 end
 

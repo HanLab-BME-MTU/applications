@@ -1,4 +1,4 @@
-function [handles,hFig]= displayBundleStatistics(varargin)
+function [handles,hFig,zScoreFirstTrack]= displayBundleStatistics(varargin)
 %Plot and compare building
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -20,6 +20,7 @@ if(isempty(p.plotHandleArray))
     [handles,~,hFig]=setupFigure(3,5,15,'AspectRatio',1,'AxesWidth',5,'XSPace',[2 2.5 1.5]);
 else
     handles=p.plotHandleArray;
+    hFig=[];
 end
 
 %% Counting events at each frame
@@ -149,15 +150,13 @@ ylabel(H,{'Captured MT count', 'over kin lifetime.'});
 
 H=handles(offset+2);
 x=linspace(0,maxTimePoints,maxTimePoints);
-%y=cumulCapturedMTCountOverKinLftTotal./kinetochoreCount;
-%plot(H,linspace(0,maxTimePoints,maxTimePoints), cumulCapturedMTCountOverKinLftTotal./kinetochoreCount);
-%%
+c={'b','r','g'};
 hold on;
 axes(H); 
 for i=1:length(cumulCapturedMTCountOverKinLft)
     if(size(cumulCapturedMTCountOverKinLft{i},1)>1)
         y=cumulCapturedMTCountOverKinLft{i};
-        shadedErrorBar(x,mean(y),std(y),'r',1);       
+        shadedErrorBar(x,mean(y),std(y),c{i},1);       
     else
         plot(H,x,cumulCapturedMTCountOverKinLft{i});
     end
@@ -165,6 +164,8 @@ end
 hold off;
 xlabel(H,'Frame count');
 ylabel(H,{'Cumulated captured MT', 'count over kin lifetime.'});
+
+zScoreFirstTrack=(cumulCapturedMTCountOverKinLft{1}-mean(cumulCapturedMTCountOverKinLft{2}))/(std(cumulCapturedMTCountOverKinLft{2}));
 %%
 H=handles(offset+3);
 hold on;
@@ -172,7 +173,7 @@ axes(H);
 for i=1:length(livingCapturedMTCountPerKin)
     if(size(livingCapturedMTCountPerKin{i},1)>1)
         y=livingCapturedMTCountPerKin{i};
-        shadedErrorBar(x,mean(y),std(y),'r',1);       
+        shadedErrorBar(x,mean(y),std(y),c{i},1);       
     else
         plot(H,x,livingCapturedMTCountPerKin{i});
     end

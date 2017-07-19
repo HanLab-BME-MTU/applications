@@ -26,7 +26,7 @@ gapCloseParam.diagnostics = 0; % 1 to plot a histogram of gap lengths in the end
 
 
 % cost matrix for frame-to-frame linking
-costMatrices(1).funcName = 'costMatLinearMotionLink2';
+costMatrices(1).funcName = func2str(@costMatLinearMotionLink2);
 costMatrices(1).parameters.linearMotion = 0;     % use linear motion Kalman filter.
 costMatrices(1).parameters.minSearchRadius = linkRadius(1); % minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
 costMatrices(1).parameters.maxSearchRadius = linkRadius(2); % maximum allowed search radius. Again, if a feature's calculated search radius is larger than this maximum, it will be reduced to this maximum.
@@ -39,7 +39,7 @@ costMatrices(1).parameters.diagnostics = [];     % plot the histogram of linking
 
 
 % cost matrix for gap closing
-costMatrices(2).funcName = 'costMatLinearMotionCloseGaps2';
+costMatrices(2).funcName = func2str(@costMatLinearMotionCloseGaps2);
 costMatrices(2).parameters.linearMotion = 0; % 1: linear motion Kalman filter.
 costMatrices(2).parameters.minSearchRadius = gapRadius(1); % minimum allowed search radius.
 costMatrices(2).parameters.maxSearchRadius = gapRadius(2); % maximum allowed search radius.
@@ -66,10 +66,10 @@ costMatrices(2).parameters.resLimit = []; %resolution limit, which is generally 
 
 
 % Kalman filter function names
-kalmanFunctions.reserveMem  = 'kalmanResMemLM';
-kalmanFunctions.initialize  = 'kalmanInitLinearMotion';
-kalmanFunctions.calcGain    = 'kalmanGainLinearMotion';
-kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
+kalmanFunctions.reserveMem  = func2str(@kalmanResMemLM);
+kalmanFunctions.initialize  = func2str(@kalmanInitLinearMotion);
+kalmanFunctions.calcGain    = func2str(@kalmanGainLinearMotion);
+kalmanFunctions.timeReverse = func2str(@kalmanReverseLinearMotion);
 
 
 trackSettings.costMatrices = costMatrices;

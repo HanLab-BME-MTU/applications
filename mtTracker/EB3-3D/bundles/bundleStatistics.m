@@ -1,4 +1,4 @@
-function [handles,hFig]= bundleStatistics(MD,varargin)
+function [handles,hFigMapped,zscore]= bundleStatistics(MD,varargin)
 %Plot and compare building 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -22,15 +22,15 @@ else
     kinTracksCell=p.kinBundle;
 end
 
-%[handles,~,hFig]=setupFigure(1,2,2,'AspectRatio',1,'AxesWidth',4);
+[handlesMapped,~,hFigMapped]=setupFigure(1,2,2,'AspectRatio',1,'AxesWidth',5,'XSPace',[2 2.5 1.5]);
+[handlesNull,~,hFigNull]=setupFigure(3,5,15,'AspectRatio',1,'AxesWidth',5,'XSPace',[2 2.5 1.5]);
 
+handlesNull(7:8)=handlesMapped;
 outputDirPlot=[outputDirBundle filesep 'plot' filesep];
-system(['mkdir ' outputDirPlot]);
-
-[handles,hFig]= displayBundleStatistics('kinBundle',kinTracksCell,varargin{:});
-
+mkdirRobust(outputDirPlot);
+[handles,hFig,zscore]= displayBundleStatistics('kinBundle',kinTracksCell,'plotHandleArray',handlesNull,varargin{:});
 print([outputDirPlot p.plotName '_bundleStat.png'],'-dpng');
 print([outputDirPlot p.plotName '_bundleStat.eps'],'-depsc');
-
+close(hFigNull);
 
 
