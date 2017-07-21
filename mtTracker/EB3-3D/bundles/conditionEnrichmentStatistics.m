@@ -71,6 +71,29 @@ for cIdx=1:length(enrichmentProcesses)
         plotImg=imresize(plotImg,rsize);
         cellPlate{ceil(pIdx/2),2-mod(pIdx,2)}=[plotImg img];
     end
-    cellPlate{cellfun(@(c) isempty(c),cellPlate)}=uint8(zeros(rsize(1),2*rsize(2),3));
+    emptyMovie=cellfun(@(c) isempty(c),cellPlate);
+    if(any(emptyMovie(:)))
+        cellPlate{emptyMovie}=uint8(zeros(rsize(1),2*rsize(2),3));
+    end
     imwrite(horzcat(vertcat(cellPlate{:,1}),vertcat(cellPlate{:,2})),[outputDirPlot 'plate_' num2str(cIdx) '.png']);
 end
+
+
+%% For each conditon, display a total count and cell image
+for cIdx=1:length(enrichmentProcesses)
+    rsize=[200 400];
+    cellPlate=cell(ceil(length(enrichmentProcesses{cIdx})/2),2);
+	for pIdx=1:length(enrichmentProcesses{cIdx})
+        img=imread(sprintfPath(projProcesses{cIdx}(pIdx).outFilePaths_{1},projProcesses{cIdx}(pIdx).getOwner().nFrames_));
+        plotImg=imread(enrichmentProcesses{cIdx}(pIdx).outFilePaths_{3});
+        img=imresize(img,rsize);
+        plotImg=imresize(plotImg,rsize);
+        cellPlate{ceil(pIdx/2),2-mod(pIdx,2)}=[plotImg img];
+    end
+    emptyMovie=cellfun(@(c) isempty(c),cellPlate);
+    if(any(emptyMovie(:)))    
+        cellPlate{emptyMovie}=uint8(zeros(rsize(1),2*rsize(2),3));
+    end
+    imwrite(horzcat(vertcat(cellPlate{:,1}),vertcat(cellPlate{:,2})),[outputDirPlot 'plate_totalCount_' num2str(cIdx) '.png']);
+end
+

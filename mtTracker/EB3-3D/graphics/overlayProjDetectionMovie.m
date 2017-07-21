@@ -5,6 +5,7 @@ ip.KeepUnmatched = true;
 ip.addRequired('processSingleProj');
 ip.addOptional('detections',[]);
 ip.addOptional('colormap',[]);
+ip.addOptional('process',[]);
 ip.addOptional('colorIndx',[]);
 ip.addOptional('name','detections');
 ip.parse(varargin{:});
@@ -20,6 +21,17 @@ projData=load(processSingleProj.outFilePaths_{4},'minXBorder', 'maxXBorder','min
 savePath=[fileparts(processSingleProj.outFilePaths_{4}) filesep p.name filesep 'frame_nb%04d.png'];
 mkdirRobust([ fileparts(savePath)]);
 frameNb=projData.frameNb;
+
+%% create projection process saving independant projection location
+
+if(~isempty(p.process)) 
+    p.process.setOutFilePaths({savePath});
+    p.process.pa;
+
+end
+
+
+
 
 for fIdx=1:frameNb
     XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
@@ -37,6 +49,7 @@ for fIdx=1:frameNb
     three=projMontage(tracksXY,tracksZX,tracksZY);
     imwrite(three,sprintfPath(savePath,fIdx));
 end
+
 
 % save as video
 video = VideoWriter([fileparts(processSingleProj.outFilePaths_{4})  '-'  p.name '.avi']);

@@ -15,9 +15,10 @@ packPID=400;
 packPIDTMP=packPID+1; MD.setPackage(packPIDTMP,GenericPackage({ ... 
     PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'EB3']),...
     ExternalProcess(MD,'detectPoles'),...
-    ExternalProcess(MD,'spindleEnrichmentVsElev'), ...
+    ExternalProcess(MD,'buildRefsAndROI'), ...
     ExternalProcess(MD,'project1D'),...
-    ExternalProcess(MD,'spindleEnrichmentVsElev')
+    ExternalProcess(MD,'project1D'),...    
+    ExternalProcess(MD,'spindleEnrichment')
   }));
 
 lpid=1;
@@ -58,6 +59,10 @@ else
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,processBuildRef);
 
+tmp=load(processDetectPoles.outFilePaths_{1});
+P1=tmp.tracks(1);
+P2=tmp.tracks(2);
+
 refs=load(processBuildRef.outFilePaths_{1}); refs=refs.refs;
 ROIs=load(processBuildRef.outFilePaths_{2}); ROIs=ROIs.ROI;
 
@@ -81,20 +86,35 @@ else
 processProj=ExternalProcess(MD,'rawProj');
 project1D(  MD, ...
             'name','fullMIPLabFrame','channelRender','grayRed','saveSingleProj',true, 'insetFringeWidth',20,'fringeWidth',60, ...
-            'processSingleProj',processProj, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);        
+            'processSingleProj',processProj, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);              
 end    
 MD.getPackage(packPIDTMP).setProcess(lpid,processProj);
 
+
+lpid=lpid+1;
+if(~isempty(p.package)&&(length(p.package.processes_)>=lpid)&&(~isempty(p.package.getProcess(lpid))))
+    processProjSpindleRef=p.package.getProcess(lpid);
+else
+    processProjSpindleRef=ExternalProcess(MD,'rawProj');
+    project1D(  MD,[P1,P2],'FoF',refs(1,2),'dynPoligonREF',refs(1,2).applyBase([P1,P2],''), ...
+        'name','CroppedSpindleRef','channelRender','grayRed','saveSingleProj',true, 'insetFringeWidth',80, ...
+        'processSingleProj',processProjSpindleRef, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);
+end
+MD.getPackage(packPIDTMP).setProcess(lpid,processProjSpindleRef);
+
+%% Elevation and densities
 myColormap=255*jet(256);
-overlayProjDetectionMovie(processProj,'detections',oDetections, ... 
-            'colorIndx',cellfun(@(e) 1+ceil(mat2gray(e)*255), elevations,'unif',0),'colormap',myColormap)
 densities=estimateDensity(oDetections,30);
-overlayProjDetectionMovie(processProj,'detections',oDetections, ... 
-            'colorIndx',cellfun(@(e) 1+ceil(mat2gray(e)*255), densities,'unif',0),'colormap',myColormap,'name','densities')
+
+% overlayProjDetectionMovie(processProj,'detections',oDetections, ... 
+%             'colorIndx',cellfun(@(e) 1+ceil(mat2gray(e)*255), elevations,'unif',0),'colormap',myColormap,'name','elevations')
+% 
+% overlayProjDetectionMovie(processProj,'detections',oDetections, ... 
+%             'colorIndx',cellfun(@(e) 1+ceil(mat2gray(e)*255), densities,'unif',0),'colormap',myColormap,'name','densities')
 
 allElevs=vertcat(elevations{:});
 allDens=vertcat(densities{:});
-%%
+%
 scoresBin=-pi/2:0.05:pi/2;
 [counts,edges,binIdx]=histcounts(allElevs,scoresBin);
 [means,meds,stds,orderedIndex,counts] = statPerIndx(allDens,binIdx+1);
@@ -110,15 +130,43 @@ xlim(minmax(scoresBin));
 ylim([0,8]);
 
 ylabel('Comet density (1/\mu m^3)')
-outputDirPlot=[MD.outputDirectory_ filesep 'density' filesep 'plot' filesep];
+outputDirPlot=[MD.outputDirectory_ filesep 'enrichment' filesep 'plot' filesep];
 mkdirRobust(outputDirPlot);
 print([outputDirPlot  'ElevationDens.png'],'-dpng');
 print([outputDirPlot  'ElevationDens.eps'],'-depsc');
 
-lpid=5;
-processEnrichVsElev=ExternalProcess(MD,'spindleEnrichmentVsElev');
-save([MD.outputDirectory_ filesep 'density' filesep 'elevation-density.mat'],'elevations','densities','Handle')
-processEnrichVsElev.setOutFilePaths({[outputDirPlot  'ElevationDens.png'],[MD.outputDirectory_ filesep 'density' filesep 'elevation-density.mat']});
+%% total count and pole distance/elevation
+
+poleDistances=arrayfun(@(d,D) min(d.rho,D.rho),oDetectionsP1P2,oDetectionsP2P1,'unif',0);
+allDist=vertcat(poleDistances{:});
+%%
+% myColormap=255*jet(256);
+% overlayProjDetectionMovie(processProj,'detections',oDetections, ... 
+%             'colorIndx',cellfun(@(p,e) 1+ceil((e<pi/6).*mat2gray(p)*255), poleDistances,elevations,'unif',0),'colormap',myColormap,'name','AstralPoleDistances')
+% overlayProjDetectionMovie(processProj,'detections',oDetections, ... 
+%             'colorIndx',cellfun(@(p,e) 1+ceil((e>pi/6).*mat2gray(p)*255), poleDistances,elevations,'unif',0),'colormap',myColormap,'name','polarPoleDistances')        
+%%
+[polarCounts,polarEdges,binIdx]=histcounts(allDist(allElevs>pi/6),100);
+[astralCounts,astralEdges,binIdx]=histcounts(allDist(allElevs<pi/6),100);
+   
+
+[Handle,~,F]=setupFigure(1,2,2);
+plot(Handle(1),astralEdges(1:end-1)*0.1,astralCounts);
+plot(Handle(2),polarEdges(1:end-1)*0.1,polarCounts);
+xlabel(Handle(1),'Pole distance (\mum)');
+xlabel(Handle(2),'Pole distance (\mum)');
+
+ylabel(Handle(1),'Astral Comet count')
+ylabel(Handle(2),'Polar Comet count')
+mkdirRobust(outputDirPlot);
+print([outputDirPlot  'poleDist.png'],'-dpng');
+print([outputDirPlot  'poleDist.eps'],'-depsc');
+
+lpid=lpid+1;
+processEnrichVsElev=ExternalProcess(MD,'spindleEnrichment');
+outputFileName=[MD.outputDirectory_ filesep 'enrichment' filesep 'elevation-density-poleDistance.mat'];
+save(outputFileName,'elevations','densities','poleDistances','Handle')
+processEnrichVsElev.setOutFilePaths({[outputDirPlot  'ElevationDens.png'],outputFileName,[outputDirPlot  'poleDist.png']});
 MD.getPackage(packPIDTMP).setProcess(lpid,processEnrichVsElev);
 
 MD.setPackage(packPID,MD.getPackage(packPIDTMP));
