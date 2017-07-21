@@ -47,10 +47,8 @@ halfHeight=2;
 %     parpool(myCluster.NumWorkers);
 % end
     
-% myCluster.NumWorkers = myCluster.NumWorkers*2; % poolobj.NumWorkers;
-
 % parfor_progress(numTracks);
-progressText(0,'Re-reading and tracking individual tracks'); %, 'Adhesion Analysis');
+% progressText(0,'Re-reading and tracking individual tracks'); %, 'Adhesion Analysis');
 % progressbar
 
 %% Field creation before running parfor
@@ -410,7 +408,7 @@ parfor k=1:numTracks
     % tk = toc;
     % waitbar(k/(numTracks), wtBar, sprintf([logMsg(0) timeMsg(tk*(numTracks/k)-tk)]));
 %     parfor_progress;
-    progressText(k/(numTracks));
+%     progressText(k/(numTracks));
 end
 end
 %         for ii=startFrame:endFrame

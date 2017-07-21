@@ -411,7 +411,7 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
                 
         % 2. Relative distance from edge should increase significantly.
         distToEdgeVelAll=arrayfun(@(x) regress(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
-        thresRelEdgeVel = quantile(distToEdgeVelAll,0.5);
+        thresRelEdgeVel = quantile(distToEdgeVelAll,0.05);
         indRelEdgeVelG1 = distToEdgeVelAll>thresRelEdgeVel;
         
         % 3. Should start from relatively close to an edge
@@ -421,20 +421,24 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
 
         % 5. Clean rising phase
         assemRateAll = arrayfun(@(y) y.assemRate, tracksNA);
-        thresAssemRateG1G2 = quantile(assemRateAll,0.25);
-        indCleanRisingG1G2 = assemRateAll>thresAssemRateG1G2;        
+%         thresAssemRateG1G2 = quantile(assemRateAll,0.25);
+        indCleanRisingG1G2 = ~isnan(assemRateAll); %assemRateAll>thresAssemRateG1G2;        
         
         % 6. Clean decaying phase
         disassemRateAll = arrayfun(@(y) y.lateAmpSlope, tracksNA);
-        thresDisassemRateG1 = min(-0.5, nanmean(disassemRateAll));
-        indCleanDecayingG1 = disassemRateAll<thresDisassemRateG1;  
-%         disassemRateAll = arrayfun(@(y) y.disassemRate, tracksNA);
-%         thresDisassemRateG1 = quantile(disassemRateAll,0.01);
-%         indCleanDecayingG1 = disassemRateAll>thresDisassemRateG1;  
+        thresDisassemRateG1 = nanmean(disassemRateAll);
+        if thresDisassemRateG1<-0.5 || thresDisassemRateG1>0
+            thresDisassemRateG1=-0.5;
+        end
+%         indCleanDecayingG1 = disassemRateAll<thresDisassemRateG1;  
+% %         disassemRateAll = arrayfun(@(y) y.disassemRate, tracksNA);
+% %         thresDisassemRateG1 = quantile(disassemRateAll,0.01);
+% %         indCleanDecayingG1 = disassemRateAll>thresDisassemRateG1;  
         
         % 7. maximum point location compared to the life time (G2 has
         % maximum point at the later phase).
         timeToMaxInten=zeros(numel(tracksNA),1);
+        maxIntenAll=zeros(numel(tracksNA),1);
         splineParam=0.01;
         for ii=1:numel(tracksNA)
             curFrameRange = tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra;
@@ -456,7 +460,7 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
             sd(isnan(d))=NaN;
             %         sd(isnan(d)) = NaN;
             % Find the maximum
-            [~,curFrameMaxAmp]=nanmax(sd);
+            [maxIntenAll(ii),curFrameMaxAmp]=nanmax(sd);
             curFrameMaxAmp = curFrameRange(curFrameMaxAmp);
             timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
         end
@@ -468,7 +472,7 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         
         % Summing all those for G1
         indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
-            indCleanRisingG1G2 & indCleanDecayingG1 & indEarlyMaxPointG1;
+            indCleanRisingG1G2 & indEarlyMaxPointG1; %& indCleanDecayingG1;
         
         indexG1 = find(indAbsoluteG1); 
         % Inspect each (temporary)
@@ -490,11 +494,25 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
 %         indNonDecayingG2 = disassemRateAll<thresDisassemRateG1 | isnan(disassemRateAll);
         indLateMaxPointG2 = relMaxPoints>thresRelMax;
         
-        indAbsoluteG2 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
-            indCleanRisingG1G2 & indNonDecayingG2 & faAssocAll & indLateMaxPointG2;
+        % Also, G2's max point should be higher than that of G1
+        meanIntenG1 = mean(maxIntenAll(indAbsoluteG1));
+        stdIntenG1 = std(maxIntenAll(indAbsoluteG1));
+        indHighEnoughMaxAmp = maxIntenAll>(meanIntenG1+0.2*stdIntenG1);
+        
+        % At the same time, G2 should start from a decently low amplitude
+        % as in G1
+        initIntenAll = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA);
+        initIntenG1 = initIntenAll(indAbsoluteG1);
+        indInitIntenG2 = initIntenAll<(mean(initIntenG1)+0.5*std(initIntenG1));
+        
+        indAbsoluteG2G1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
+            indCleanRisingG1G2 & indNonDecayingG2 & faAssocAll & indLateMaxPointG2 & indInitIntenG2;
+        additionalG1 = indAbsoluteG2G1 & ~indHighEnoughMaxAmp;
+        indAbsoluteG2 = indAbsoluteG2G1 & indHighEnoughMaxAmp;
         
         % Inspect each (temporary)
         indexG2 = find(indAbsoluteG2); 
+        indexG1 = [indexG1; find(additionalG1)];
 %         figure; hold on
 %         for mm=indexG2'
 % %             plot(tracksNA(mm).ampTotal)
@@ -503,10 +521,17 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         
 %         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
         % G3
-        thresEdgeVelG3 = quantile(edgeVelAll,0.85);
+        thresEdgeVelG3 = quantile(edgeVelAll,0.75);
         indEdgeVelG3 = edgeVelAll>thresEdgeVelG3;
-        indRelEdgeVelG3 = distToEdgeVelAll<1/2*thresRelEdgeVel;
-        indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2;
+        indRelEdgeVelG3 = distToEdgeVelAll<2*thresRelEdgeVel;
+        earlyEdgeVelAll = arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))',(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))'), tracksNA);
+        indEarlyEdgeVelG3 = earlyEdgeVelAll>0.3*thresEdgeVelG3;
+        
+        adhVelAll=arrayfun(@(x) regress(x.advanceDist(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        thresAdhVelG3 = max(0.001,mean(adhVelAll)+0*std(adhVelAll));
+        indForwardVelG3 = adhVelAll>thresAdhVelG3;
+        
+        indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2 & indForwardVelG3 & indEarlyEdgeVelG3;
         indexG3 = find(indAbsoluteG3); 
         
         % G4 - retracting, strong FAs
@@ -561,10 +586,11 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         % G7 NAs at stalling edge: big difference from G5 is that it has
         % some early history of edge protrusion & relative weak signal
         % (ampTotal)
-        edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
+        edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.edgeAdvanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
         indLastAdvanceG7 = edgeAdvanceDistLastChangeNAs<max(0.01, mean(edgeAdvanceDistLastChangeNAs));
+
         thresEdgeVelG7 = quantile(edgeVelAll(edgeVelAll>0),0.1);
-        indEdgeVelG7 = edgeVelAll > thresEdgeVelG7;
+        indEdgeVelG7 = earlyEdgeVelAll > thresEdgeVelG7;
         indLowAmpG7 = meanAmpAll < thresMeanAmp;
         
         indAbsoluteG7 = indLastAdvanceG7 & indEdgeVelG7 & indRelEdgeVelG3 & indLowAmpG7;
@@ -607,7 +633,7 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
 %         [curT,allData,meas] = extractFeatureNA(tracksNA,idGroupSelected,2,MD);
 %         T=[T; curT];
     else
-        display('Click tracks that belong to each group ...')
+        disp('Click tracks that belong to each group ...')
     %     newTracksNA=tracksNA(~idxMatureNAs);
     %     idNAs = find(~idxMatureNAs);
         [idTracks, iGroup] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
@@ -777,7 +803,7 @@ if strcmp(useDefinedClassifier,'n')
         rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
     end
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
-    savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
+%     savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
     print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.tif'])
 
     Dfeats = pdist(features');
@@ -787,7 +813,7 @@ if strcmp(useDefinedClassifier,'n')
     c.Label.String = 'p-dist';
 
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.eps']);
-    savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongFeatures.fig'])
+%     savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongFeatures.fig'])
     print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.tif'])
     [~,allData] = extractFeatureNA(tracksNA,[],2,MD);
     
