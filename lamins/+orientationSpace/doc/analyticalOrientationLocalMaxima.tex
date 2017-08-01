@@ -288,6 +288,34 @@ With this formula in hand, we can then calculate $ \dv*[q]{\theta_m}{t} $ by sta
 \end{eqnarray}
 To increment q, another two orders of derivatives of $ \rho $ are required. For the derivative $ \dv*[q]{\theta_m} $ the highest order $ \rho $ derivative with respect to $ \theta $  will be $ 2q+1 $ which will result from the evaluation of the term on the right side. 
 
+\subsubsection{Calculating $ \dv*[q]{t}{\theta_m} $}
+
+Near bifurcation points discussed in the next section, it may also be advantageous to calculate the derivative of the inverse function of the local maxima. Near such bifurcation points, $ \pdv[2]{\rho}{\theta} $ approaches zero causing $ \dv[q]{\theta_m}{t} $ to approach infinity. The inverse function $ \theta_m^{-1} $ is defined as follows:
+\begin{eqnarray}
+	\theta_m^{-1}(\theta_m(t)) & \equiv & t \\
+	\theta_m(\theta_m^{-1}(\theta)) & = & \theta_m(t(\theta)) \\
+	& = & \theta \\
+\end{eqnarray}
+From this definition we obtain an identity that can be used to find $ \dv{t}{\theta} $ via the Inverse Function Theorem.
+\begin{eqnarray}
+	\dv{\theta_m^{-1}}{\theta} \dv{\theta}{t} & = & \dv{t}{\theta} \dv{\theta}{t} = 1 \\
+	\dv{t}{\theta} & = & \left( \dv{\theta}{t} \right)^{-1}
+\end{eqnarray}
+The higher derivatives can also be found by taking derivatives of the identity and using Faa di Bruno's formula.
+\begin{eqnarray}
+	\dv[n]{}{t} \theta_m^{-1}(\theta_m(t)) & = & \dv[n]{t}{t} \\
+	& = & 0 \mbox{ for } n \ge 2 \\
+	\dv[2]{t}{\theta_m} \left(\dv{\theta_m}{t}\right)^2 + \dv{t}{\theta_m}\dv[2]{\theta_m}{t} & = & 0 \\
+	\dv[2]{t}{\theta_m} & = & -\dv[2]{\theta_m}{t} \dv{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^{-2} \\
+	& = & -\dv[2]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-3} = -\dv[2]{\theta_m}{t} \left( \dv{t}{\theta_m} \right)^{3} \\
+\end{eqnarray}
+\begin{eqnarray}
+	0 & = & \dv[3]{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^3 + 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t}  \\
+	\dv[3]{t}{\theta_m} & = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t} \right) \\
+	& = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( -3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-2}  + \left( \dv{\theta_m}{t} \right)^{-1} \dv[3]{\theta_m}{t} \right) \\
+	& = & 3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-5}  - \dv[3]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-4} 
+\end{eqnarray}
+
 \subsection{Bifurcation Points}
 
 The orientation local maxima disappear with decreasing $ K $ or increasing $ t $. From the last section we see that we can calculate a derivative for $ \theta_m $ except when $ \pdv[2]{\rho}{\theta}  = 0 $. At this point, when $ \pdv{\rho}{\theta} = 0 $, however, the critical point is no longer a local orientation maximum since the second derivative test is no longer met. Rather with decreasing $ K $, a local orientation maximum and a local orientation minimum meet each other and anihilate. The meeting of the local orientation maximum and minimum is called a bifurcation point.
