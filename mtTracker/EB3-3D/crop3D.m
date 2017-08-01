@@ -28,6 +28,7 @@ for cIdx=1:length(MD.channels_)
 end 
 
 %% Make Movie Data
+mkdirRobust([outputDir filesep 'analysis']);
 MDout=MovieData();
 tiffReader=TiffSeriesReader({channelList.channelPath_},'force3D',true);
 MDout=MovieData(channelList,[outputDir filesep 'analysis'],'movieDataFileName_','movieData.mat','movieDataPath_',[outputDir filesep 'analysis'], ...

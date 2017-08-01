@@ -9,7 +9,7 @@ if(nargin < 3)
     c = 126;
 end
 if(nargin < 4)
-    num_derivatives = 2;
+    num_derivatives = 3;
 end
 % if(nargin < 4)
     da = ifft(bsxfun(@times,fft(R.a,[],3),shiftdim([0:8 -8:-1],-1))*1i,[],3);

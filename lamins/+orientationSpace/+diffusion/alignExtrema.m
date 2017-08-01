@@ -1,4 +1,4 @@
-function [ aligned, events ] = alignExtrema( extrema , period, unwrap)
+function [ aligned, events ] = alignExtrema( extrema , period, unwrap, truncate)
 %alignExtrema Align extrema tracks as K decreases (time increases)
 
 if(nargin < 2 || isempty(period))
@@ -6,6 +6,9 @@ if(nargin < 2 || isempty(period))
 end
 if(nargin < 3)
     unwrap = false;
+end
+if(nargin < 4)
+    truncate = true;
 end
 
 aligned = sort(extrema);
@@ -25,14 +28,23 @@ for e = events
     cost = abs(bsxfun(@minus,aligned(:,e).',aligned(:,e+1)));
 %     wrap = cost > period;
 %     cost(wrap) = mod(cost(wrap),period);
-    cost = min(period-cost,cost);
-    cost(isnan(cost)) = max(cost(:))+1;
-    [link12,link21] = lap(cost);
-    aligned(:,e+1:end) = aligned(link21,e+1:end);
+    cost = min(abs(period-cost),cost);
+    max_cost = max(cost(:));
+    if(isnan(max_cost))
+        % Cost matrix is all NaN
+    else
+        cost(isnan(cost)) = max(cost(:))+1;
+        [link12,link21] = lap(cost);       
+        aligned(:,e+1:end) = aligned(link21,e+1:end);
+    end
 end
 
 if(unwrap)
-    aligned = orientationSpace.diffusion.unwrapExtrema(extrema, events, period);
+    aligned = orientationSpace.diffusion.unwrapExtrema(aligned, events, period);
+end
+if(~truncate)
+    extrema(1:totalExtrema,:) = aligned;
+    aligned = extrema;
 end
 
 end
