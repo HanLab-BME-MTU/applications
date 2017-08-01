@@ -120,7 +120,7 @@ classdef PlusTipTrackerPackage3D < TrackingPackage
             funParams.costMatrices(1).parameters.linearMotion = 1; %use linear motion Kalman filter.
             funParams.costMatrices(1).parameters.minSearchRadius = 2; 
             funParams.costMatrices(1).parameters.maxSearchRadius = 8; 
-            funParams.costMatrices(1).parameters.brownStdMult = 6;  %searchRadiusMult
+            funParams.costMatrices(1).parameters.brownStdMult = 3;  %searchRadiusMult
             funParams.costMatrices(1).parameters.useLocalDensity = 1; 
             funParams.costMatrices(1).parameters.kalmanInitParam.initVelocity = []; %Kalman filter initialization parameters.
             funParams.costMatrices(1).parameters.kalmanInitParam.convergePoint = []; %Kalman filter initialization parameters.
