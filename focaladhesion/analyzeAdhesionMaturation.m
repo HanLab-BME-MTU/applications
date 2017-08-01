@@ -393,7 +393,7 @@ for ii=1:nFrames
     % to smaller ones or filter insignificant segmentation out.
     xNA=arrayfun(@(x) x.xCoord(ii),tracksNA);
     yNA=arrayfun(@(x) x.yCoord(ii),tracksNA);
-    maskAdhesion = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA,mask);
+    maskAdhesion = refineAdhesionSegmentation(maskAdhesion, I, xNA, yNA);
     % close once and dilate once
     % maskAdhesion = bwmorph(maskAdhesion,'close');
 %         maskAdhesion = bwmorph(maskAdhesion,'thin',1);
