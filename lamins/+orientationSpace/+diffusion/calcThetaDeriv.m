@@ -83,7 +83,7 @@ end
 function s = sdiff(s)
     % find non-zero t derivatives with respect to theta
     nztd = s.timed ~= 0;
-    if(all(s.timed == 0)) % no t derivatives with respect to theta
+    if(~any(nztd)) % no t derivatives with respect to theta
         % partial deriv with respect to theta
         s(1).rhod = [0 s(1).rhod];
         % partial deriv with respect to time
