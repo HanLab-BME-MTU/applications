@@ -70,6 +70,7 @@ else
 end
     
 %% Simplify and sort
+s = normalize(s);
 s = simplify(s);
 try
     s = sortTerms(s);
@@ -82,45 +83,49 @@ end
 function s = sdiff(s)
     % find non-zero t derivatives with respect to theta
     nztd = s.timed ~= 0;
-    if(isscalar(s.timed) || isscalar(s.timed(nztd)))
-        if(all(s.timed == 0)) % no t derivatives with respect to theta
-            % partial deriv with respect to theta
-            s(1).rhod = [0 s(1).rhod];
-            % partial deriv with respect to time
-            s(2) = s(1);
-            s(2).rhod = [0 s(2).rhod];
-            s(2).D = s(2).D + 1;
-            s(2).timed(:,1) = s(2).timed(:,1)+1;
-        else % one t derivative with respect to theta
-            ss = s(1);
-            % differentiate the rho derivative portion first
-            timed = ss.timed;
-            ss.timed = 0;
-            ss = sdiff(ss);
-            % multiply by the t derivative portion
-            for i=1:length(ss)
-                ss(i).timed = ss(i).timed+timed;
-            end
-            % differentiate the t derivative portion
-            sss = s(1);
-            if(sss.timed(nztd) == 1)
-                % no exponent, just bump up the derivative
-                sss.timed = [0 sss.timed];
-            else
-                % exponent
-                ex = sss.timed(nztd);
-                % multiply by exponent
-                sss.coeff = sss.coeff * ex;
-                % decrease exponent by one
-                sss.timed(nztd) = sss.timed(nztd)-1;
-                % multiply by next derivative
-                sss.timed([false nztd]) = 1;
-            end
-            s = [ss sss];
-        end
+    if(all(s.timed == 0)) % no t derivatives with respect to theta
+        % partial deriv with respect to theta
+        s(1).rhod = [0 s(1).rhod];
+        % partial deriv with respect to time
+        s(2) = s(1);
+        s(2).rhod = [0 s(2).rhod];
+        s(2).D = s(2).D + 1;
+        s(2).timed = 1;
     else
-        % TODO: compound time derivative
-        keyboard;
+        ss = s(1);
+        % differentiate the rho derivative portion first
+        timed = ss.timed;
+        ss.timed = 0;
+        ss = sdiff(ss);
+        % multiply by the t derivative portion
+        for i=1:length(ss)
+            l = max(length(ss(i).timed),length(timed));
+            ss(i).timed(end+1:l) = 0;
+            timed(end+1:l) = 0;
+            ss(i).timed = ss(i).timed+timed;
+        end
+        % differentiate the t derivative portion
+        td_idx = find(nztd);
+        sss(length(td_idx)) = s(1);
+        s(1).timed(end+1) = 0;
+        template = zeros(1,length(s(1).timed));
+        for i=1:length(td_idx)
+            sss(i) = s(1);
+            ex = s(1).timed(td_idx(i));
+            sss(i).timed = template;
+            sss(i).coeff = sss(i).coeff * ex;
+            sss(i).timed(td_idx(i)) = -1;
+            sss(i).timed(td_idx(i)+1) = 1;
+            sss(i).timed = sss(i).timed + s(1).timed;
+        end
+        s = [ss sss];
+    end
+end
+
+function s = normalize(s)
+    max_td_length = max(arrayfun(@(s) length(s.timed),s));
+    for i=1:length(s)
+        s(i).timed(end+1:max_td_length) = 0;
     end
 end
 
