@@ -1,4 +1,4 @@
-function [ dtn_dnm, maximaDerivatives, dnK_dmn ] = orientationMaximaTimeDerivatives( rho, K, derivOrder, lm , period)
+function [ dtn_dnm, maximaDerivatives, dnK_dmn ] = orientationMaximaTimeDerivatives( rho, K, derivOrder, lm , period, freq)
 %orientationMaximaTimeDerivatives Find the derivative of time/K with
 %respect to orientation of local orientaiton maxima
 %
@@ -16,8 +16,11 @@ function [ dtn_dnm, maximaDerivatives, dnK_dmn ] = orientationMaximaTimeDerivati
 
 % Mark Kittisopikul, August 2017
 
-    if(nargin < 5)
+    if(nargin < 5 || isempty(period))
         period = 2*pi;
+    end
+    if(nargin < 6 || isempty(freq))
+        freq = false;
     end
     
     D = period.^2/2;
@@ -38,16 +41,28 @@ if(nargin < 4 || isempty(lm))
     lm = orientationSpace.diffusion.alignExtrema(lm,period);
 end
 
-if(~ismatrix(rho))
-%     rho_sz = size(rho);
-    rho = rho(:,:);
-end
-if(~ismatrix(lm))
-    lm_sz = size(lm);
-    lm = lm(:,:);
-end
+derivOrders = 2:derivOrder*2+1;
 
-rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1,period);
+if(size(rho,3) == length(derivOrders))
+    % rho includes derivative information
+    method = 'horner';
+    if(freq)
+        method = 'horner_freq';
+    end
+    rho_derivs = interpft1([0 period],rho,lm,method,10,false);
+else
+    if(~ismatrix(rho))
+    %     rho_sz = size(rho);
+        rho = rho(:,:);
+    end
+    if(~ismatrix(lm))
+        lm_sz = size(lm);
+        lm = lm(:,:);
+    end
+
+    rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1,period);
+    
+end
 
 [maximaDerivatives] = dqt_dtm(derivOrder,D,rho_derivs);
 
