@@ -26,8 +26,6 @@ frameNb=projData.frameNb;
 
 if(~isempty(p.process)) 
     p.process.setOutFilePaths({savePath});
-    p.process.pa;
-
 end
 
 
