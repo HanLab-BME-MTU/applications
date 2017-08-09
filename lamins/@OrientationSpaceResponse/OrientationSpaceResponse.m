@@ -342,13 +342,19 @@ classdef OrientationSpaceResponse < handle
                 Response = OrientationSpaceResponse(obj.filter,obj.angularResponse);
                 return;
             end
-            n_new = 2*obj.filter.sampleFactor*K_new+1;
+%             n_new = 2*obj.filter.sampleFactor*K_new+1;
+
+            % Just for Gaussian calculation;
+            n_new = 2*K_new+1;
+            n_old = 2*obj.filter.K+1;
+
             % Shouldn't be based off K and not n
-            s_inv = sqrt(obj.n^2*n_new.^2/(obj.n.^2-n_new.^2));
+            s_inv = sqrt(n_old^2*n_new.^2/(n_old.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
 %             
             if(normalize == 2)
-                x = -obj.filter.sampleFactor*ceil(obj.filter.K):ceil(obj.filter.K)*obj.filter.sampleFactor;
+%                 x = -obj.filter.sampleFactor*ceil(obj.filter.K):ceil(obj.filter.K)*obj.filter.sampleFactor;
+                x = (1:obj.n)-floor(obj.n/2+1);
             else
                 x = -obj.filter.sampleFactor*ceil(K_new):ceil(K_new)*obj.filter.sampleFactor;
             end
@@ -399,16 +405,19 @@ classdef OrientationSpaceResponse < handle
 
             % New number of coefficients
 %             n_new = 2*ceil(K_new)+1;
-            n_new = 2*obj.filter.sampleFactor*K_new+1;
+            n_new = 2*K_new+1;
+            n_old = 2*obj.filter.K+1;
 
             % The convolution of two Gaussians results in a Gaussian
             % The multiplication of two Gaussians results in a Gaussian
             % The signal has been convolved with a Gaussian with sigma = pi/obj.n
             % Compute the signal convoled with a Gaussian with sigma = pi/n_new
             % Note if n == n_new, we divide by 0. Then s_inv = Inf
-            s_inv = sqrt(obj.n^2.*n_new.^2./(obj.n.^2-n_new.^2));
+            
+            s_inv = sqrt(n_old^2.*n_new.^2./(n_old.^2-n_new.^2));
             s_hat = s_inv/(2*pi);
-            x = -ceil(obj.filter.K)*obj.filter.sampleFactor:ceil(obj.filter.K)*obj.filter.sampleFactor;
+%             x = -ceil(obj.filter.K)*obj.filter.sampleFactor:ceil(obj.filter.K)*obj.filter.sampleFactor;
+            x = (1:obj.n)-floor(obj.n/2+1);
             
             % Each column represents a Gaussian with sigma set to s_hat(column)
             f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2); % * obj.n/n_new;
