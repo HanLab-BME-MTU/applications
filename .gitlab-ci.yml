@@ -131,31 +131,31 @@ build:utrack:R2017a:
     expire_in: 2 weeks
   # when: manual   
 
-build:utrack:R2014a:
-  stage: build
-  variables:
-    MATLAB_VERSION: "2014a"
-    PACKAGE_NAME:  "u-track"
-    PACKAGE_CLASS: "TrackingPackage"
-    BUILD_NAME: $PACKAGE_NAME
-    RELEASE: "2.2.0"
-    # DOCUMENTATION_DIR: "${CLEAN_REPO_PATH}/documentation"
-    TARGET_FOLDER: "${MATLAB_VERSION}/${PACKAGE_NAME}"
-    CI_SCRIPT_PATH: "${CLEAN_REPO_PATH}/ci-scripts/"
-  script:
-    - module unload matlab
-    - module load matlab/$MATLAB_VERSION
-    - module load texlive/2014
-    - echo "-Xmx1024m" > java.opts
-    - $CI_SCRIPT_PATH/build/u-track/runCIbuild_utrack_Package_m.sh
-  artifacts:
-    name: "${BUILD_NAME}-b${CI_BUILD_ID}"
-    paths:
-      - $TARGET_FOLDER
-    when: on_success
-    expire_in: 2 weeks
-  allow_failure: true
-  # when: manual
+# build:utrack:R2014a:
+#   stage: build
+#   variables:
+#     MATLAB_VERSION: "2014a"
+#     PACKAGE_NAME:  "u-track"
+#     PACKAGE_CLASS: "TrackingPackage"
+#     BUILD_NAME: $PACKAGE_NAME
+#     RELEASE: "2.2.0"
+#     # DOCUMENTATION_DIR: "${CLEAN_REPO_PATH}/documentation"
+#     TARGET_FOLDER: "${MATLAB_VERSION}/${PACKAGE_NAME}"
+#     CI_SCRIPT_PATH: "${CLEAN_REPO_PATH}/ci-scripts/"
+#   script:
+#     - module unload matlab
+#     - module load matlab/$MATLAB_VERSION
+#     - module load texlive/2014
+#     - echo "-Xmx1024m" > java.opts
+#     - $CI_SCRIPT_PATH/build/u-track/runCIbuild_utrack_Package_m.sh
+#   artifacts:
+#     name: "${BUILD_NAME}-b${CI_BUILD_ID}"
+#     paths:
+#       - $TARGET_FOLDER
+#     when: on_success
+#     expire_in: 2 weeks
+#   allow_failure: true
+#   # when: manual
 
 # ===========[CME]===================
 
@@ -510,7 +510,7 @@ test:utrack3D:R2016a:
   dependencies:
     - build:utrack:R2017a
   allow_failure: true
-
+  when: manual
 
 test:utrack3D:R2015a:
   stage: test
@@ -533,6 +533,7 @@ test:utrack3D:R2015a:
   dependencies:
     - build:utrack:R2017a
   allow_failure: true
+  when: manual
 
 test:utrack3D:R2014b:
   stage: test
@@ -578,7 +579,7 @@ test:utrack3D:R2014a:
   dependencies:
     - build:utrack:R2017a
   allow_failure: true
-  # when: manual
+  when: manual
 
 test:utrack:R2017a:
   stage: test
@@ -648,7 +649,7 @@ test:utrack:R2014a-B2014a:
     when: always
     expire_in: 2 weeks
   allow_failure: true
-  # when: manual
+  when: manual
 
 # ===========[CME]===================
 # Run the newest and oldest 
