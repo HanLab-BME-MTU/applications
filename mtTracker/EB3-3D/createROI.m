@@ -18,7 +18,7 @@ function [roiIdx,mask] = createROI(MD,varargin)
 
 ip = inputParser; ip.CaseSensitive = false;  ip.KeepUnmatched=true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
-ip.addParameter('channel', 2, @isnumeric);
+ip.addParameter('channel', 1, @isnumeric);
 ip.addParameter('timeIdx', 1, @isnumeric);
 ip.parse(MD, varargin{:});
 p=ip.Results;
@@ -31,11 +31,11 @@ maxYZ = squeeze(max(vol2,[],1)); imshow(maxYZ,[],'Border','tight'); zIndices = c
 
 roiIdx = nan(6,1);
 roiIdx(1) = xyIndices(1);
-roiIdx(2) = xyIndices(1)+xyIndices(3);
+roiIdx(2) = xyIndices(1)+xyIndices(3)-1;
 roiIdx(3) = xyIndices(2);
-roiIdx(4) = xyIndices(2)+xyIndices(4);
+roiIdx(4) = xyIndices(2)+xyIndices(4)-1;
 roiIdx(5) = zIndices(1);
-roiIdx(6) = zIndices(1)+zIndices(3);
+roiIdx(6) = zIndices(1)+zIndices(3)-1;
 
 mask = zeros(size(vol,1),size(vol,2),size(vol,3));
 mask(roiIdx(3):roiIdx(4),roiIdx(1):roiIdx(2),roiIdx(5):roiIdx(6)) = 1;
