@@ -24,6 +24,7 @@ ip.addOptional('name',[]);
 ip.addOptional('processSingleProj',[]);
 ip.addOptional('fringeWidth',[]);
 ip.addOptional('insetFringeWidth',20);
+ip.addOptional('maxMIPSize',max([400,MD.imSize_,ceil(MD.zSize_*MD.pixelSizeZ_/MD.pixelSize_)]));
 ip.parse(varargin{:});
 p=ip.Results;
 dynPoligonISO=p.dynPoligonISO;
@@ -116,7 +117,7 @@ if(~isempty(p.processSingleProj))
         [outputDirSingleProj filesep 'YZ' filesep 'frame_nb%04d.png'], ...
         [outputDirSingleProj filesep 'XZ' filesep 'frame_nb%04d.png'], ...
         [outputDirSingleProj filesep 'limits.mat']});
-    frameNb=MD.nFrames_;
+    frameNb=length(p.processFrame);
     save([outputDirSingleProj filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
 end
 outputDirDemo=[MD.outputDirectory_ filesep '1DProjection' filesep p.name filesep 'volDemo' ];
@@ -378,16 +379,16 @@ parfor fIdx=processFrame
         
         
         %% Resize and fuse channel MIPS
-        maxMIPSize=400;
+        maxMIPSize=p.maxMIPSize;
         [sX,sY,sZ]=size(warpedMaskedVol);
         if(strcmp(p.transType,'none'))
             sZ=sZ*MD.pixelSizeZ_/MD.pixelSize_;
         end
         resizeScale=maxMIPSize/max([sX,sY,sZ]);
         
-        XYMax=imresize(maxXY,resizeScale);
-        ZYMax=imresize(maxZY,resizeScale);
-        ZXMax=imresize(maxZX,resizeScale);
+        XYMax=imresize(maxXY,resizeScale,'nearest');
+        ZYMax=imresize(maxZY,resizeScale,'nearest');
+        ZXMax=imresize(maxZX,resizeScale,'nearest');
         mips{1,chIdx}=XYMax;
         mips{2,chIdx}=ZYMax;
         mips{3,chIdx}=ZXMax;
