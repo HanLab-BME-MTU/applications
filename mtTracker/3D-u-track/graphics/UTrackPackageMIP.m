@@ -15,13 +15,17 @@ myColormap=uint8( ...
     [255 0 200]; ... % kinetochore tracks
     ]);
 
+tic
+disp('MIP')
 project1D(  MD, ...
             'name','fullMIPNoManifold','channelRender','grayRed', ...
             'processSingleProj',processProj, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);   
         
 tracksFinal=UTrackPackage.getProcess(2).loadChannelOutput(1);
 tracks=TracksHandle(tracksFinal);
-
+toc;
+tic;
+disp('Overlay')
 overlayProjTracksMovie(processProj,'tracks',tracks, ... 
             'colorIndx',ones(size(tracks)),'colormap',myColormap,'name','tracks');
 toc;
