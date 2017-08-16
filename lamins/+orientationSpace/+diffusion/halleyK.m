@@ -16,7 +16,10 @@ D = 2*pi^2;
 % x = 0:0.01:2*pi;
 K = repmat(K,1,length(x));
 K_out = K;
-for i=1:10
+% for i=1:10
+vk{1} = 1;
+last = Inf;
+while(abs(vk{1}) > 1e-12)
     rhorho = R.getResponseAtOrderFTatPoint(r,c,K_out);
     vt = cell(1,5);
     vk = cell(1,5);
@@ -25,12 +28,17 @@ for i=1:10
         n = (j-1)/2;
         vt{j} = interpft1([0 2*pi],rhorhod_hat,x,'horner_freq').*D.^n;
     end;
-    dtdK = -4./(2*K+1).^3;
-    d2tdK2 = 24./(2*K+1).^4;
+    dtdK = -4./(2*K_out+1).^3;
+    d2tdK2 = 24./(2*K_out+1).^4;
     vk{1} = vt{1};
-    vk{3} = -vt{3}.*dtdK;
+    vk{3} =  vt{3}.*dtdK;
     vk{5} =  vt{5}.*(dtdK).^2+vt{3}.*d2tdK2;
-    K_out = K_out + 2*vk{1}.*vk{3}./(2*vk{3}.^2-vk{1}.*vk{5});
+    if(abs(vk{1}) < abs(last))
+        K_out = K_out - 2*vk{1}.*vk{3}./(2*vk{3}.^2-vk{1}.*vk{5});
+        last = vk{1};
+    else
+        break;
+    end
 %     hold on; plot(K_out,x,'.')
 end
 
