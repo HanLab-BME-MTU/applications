@@ -24,6 +24,7 @@ ip.addOptional('name',[]);
 ip.addOptional('processSingleProj',[]);
 ip.addOptional('fringeWidth',[]);
 ip.addOptional('insetFringeWidth',20);
+ip.addOptional('maxMIPSize',max([400,MD.imSize_,ceil(MD.zSize_*MD.pixelSizeZ_/MD.pixelSize_)]));
 ip.parse(varargin{:});
 p=ip.Results;
 dynPoligonISO=p.dynPoligonISO;
@@ -116,7 +117,7 @@ if(~isempty(p.processSingleProj))
         [outputDirSingleProj filesep 'YZ' filesep 'frame_nb%04d.png'], ...
         [outputDirSingleProj filesep 'XZ' filesep 'frame_nb%04d.png'], ...
         [outputDirSingleProj filesep 'limits.mat']});
-    frameNb=MD.nFrames_;
+    frameNb=length(p.processFrame);
     save([outputDirSingleProj filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
 end
 outputDirDemo=[MD.outputDirectory_ filesep '1DProjection' filesep p.name filesep 'volDemo' ];
@@ -128,9 +129,6 @@ mkdirRobust(outputDirDemo);
 % warp, crop, fuse and save each time point
 parfor fIdx=processFrame
     disp(num2str(fIdx))
-
-    vol=MD.getChannel(1).loadStack(fIdx);
-    kinvol=MD.getChannel(2).loadStack(fIdx);
     
     % produce a ROI mask using the 1D polygon (segment defined by the extremities of the dynPoligonISO).
     % todo: N Channel (now 2).
@@ -165,34 +163,7 @@ parfor fIdx=processFrame
         
         %mask=imdilate(mask,IMSphere);  %ones(cubeHalfWidth,cubeHalfWidth,round(cubeHalfWidth*MD.pixelSize_/MD.pixelSizeZ_)));
         %% If no transform are needed, now to save on bwdist.
-        if(isempty(p.FoF))&&(strcmp(p.crop,'manifold'))
-            aminXBorder=max(1,minXBorder);
-            aminYBorder=max(1,minYBorder);
-            aminZBorder=max(1,minZBorder);
-            amaxXBorder=min(size(mask,2),maxXBorder);
-            amaxYBorder=min(size(mask,1),maxYBorder);
-            amaxZBorder=min(size(mask,3),maxZBorder);
-            
-           XCropMask=false(1,size(mask,2)); 
-           XCropMask(aminXBorder:amaxXBorder)=true;
-           YCropMask=false(1,size(mask,1)); 
-           YCropMask(aminYBorder:amaxYBorder)=true;
-           ZCropMask=false(1,size(mask,3)); 
-           ZCropMask(ceil(aminZBorder:amaxZBorder))=true;
-           ZCropVol=false(1,size(vol,3)); 
-           ZCropVol(ceil((aminZBorder:amaxZBorder)*MD.pixelSize_/MD.pixelSizeZ_))=true;           
-           mask(:,:,~ZCropMask)=[];
-           mask(~YCropMask,:,:)=[];
-           mask(:,~XCropMask,:)=[];
-           
-           vol(:,:,~ZCropVol)=[];
-           vol(~YCropMask,:,:)=[];
-           vol(:,~XCropMask,:)=[];
-           
-           kinvol(:,:,~ZCropVol)=[];
-           kinvol(~YCropMask,:,:)=[];
-           kinvol(:,~XCropMask,:)=[];
-        end
+
         distMap=mask;
 
 %         mask=resize(distMap,[1 1 MD.pixelSizeZ_/MD.pixelSize_]);
@@ -204,237 +175,236 @@ parfor fIdx=processFrame
                     linspace(1,size(mask,2),size(vol,2)),...
                     linspace(1,size(mask,3),size(vol,3)));
         mask=interp3(mask,x,y,z);
-        maskedVol=vol;
-        maskedVol(~mask)=0;
-        %     outputDir=[outputDirDemo filesep  'mask'];mkdir(outputDir);
-        %     imwrite(uint8(255*mat2gray(max(maskedVol,[],3))),[outputDir filesep  'mask_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
-
-        maskedKin=kinvol;
-        maskedKin(~mask)=0;
-        %     outputDir=[outputDirDemo filesep  'maskKin_'];mkdir(outputDir);
-        %     imwrite(uint8(255*mat2gray(max(maskedKin,[],3))),[outputDir filesep  'maskKin_' num2str(fIdx,'%04d') '.png']) % Names the file stitched001..., in /stitched/
     end
-
-    % If needed the map must rotated before cropped (efficiency)
-    % Rotation depends on the FrameOfRef associated to the tracks the compose the dynanimc polygon
-    % Cropping area according to the polygon OVER TIME plus added vizualiation margin
-    % Rotation will use imwarp
-    % Can we use imwar for cropping too ?
-
-    %% if a FoF is specified, warp and crop data according to the 
-    tform=affine3d();
-    warpedVol=vol;
-    warpedKinVol=kinvol;
-    if(~isempty(dynPoligonISO))
-        warpedMaskedVol=maskedVol;
-        warpedMaskedKinVol=maskedKin;
-    else
-        warpedMaskedVol=zeros(size(warpedVol));
-        warpedMaskedKinVol=zeros(size(warpedKinVol));
-    end
-    if(~isempty(p.FoF))
-        B=p.FoF.getBase(fIdx);
-        tform.T(4,[1 2 3])=(-p.FoF.getOrigAtFrame(fIdx)+p.FoF.origin(1,:))*B;
-        tform.T(1:3,1:3)=B;
-        %
-        tformTransOnly=affine3d();
-        tformTransOnly.T(4,[1 2 3])=(-p.FoF.getOrigAtFrame(fIdx));
-        
-        %
-        tformRelTransOnly=affine3d();
-        tformRelTransOnly.T(4,[1 2 3])=(-p.FoF.origin(1,:)+p.FoF.getOrigAtFrame(fIdx));
-        
-        tformRotOnly=affine3d();
-        B=p.FoF.getBase(fIdx);
-        tformRotOnly.T(1:3,1:3)=B;
-        
-        tformRotOnlyInit=affine3d();
-        B=p.FoF.getBase(1);
-        tformRotOnlyInit.T(1:3,1:3)=B;
-        
-        orig=p.FoF.getOrigAtFrame(fIdx);
-        
-        inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
-            [1 MD.getDimensions('X')],[1 MD.getDimensions('Y')],[1 MD.getDimensions('Z')*MD.pixelSizeZ_/MD.pixelSize_]);
-        
-        
-        switch p.transType    
-            case 'affineOnePass'
-                maxXBorderFull=MD.getDimensions('X');
-                maxYBorderFull=MD.getDimensions('Y');
-                maxZBorderFull=MD.getDimensions('Z')*(MD.pixelSizeZ_/MD.pixelSize_);
-                minXBorderFull=1;
-                minYBorderFull=1;
-                minZBorderFull=1;
+    mips=cell(3,length(MD.channels_));
+   
+    for chIdx=1:length(MD.channels_)
+        vol=MD.getChannel(chIdx).loadStack(fIdx);
+        if(~isempty(dynPoligonISO))
+            if(isempty(p.FoF))&&(strcmp(p.crop,'manifold'))
+                aminXBorder=max(1,minXBorder);
+                aminYBorder=max(1,minYBorder);
+                aminZBorder=max(1,minZBorder);
+                amaxXBorder=min(size(mask,2),maxXBorder);
+                amaxYBorder=min(size(mask,1),maxYBorder);
+                amaxZBorder=min(size(mask,3),maxZBorder);
                 
-                minXBorderCurr=minXBorderFull - orig(1); maxXBorderCurr=maxXBorderFull -  orig(1);
-                minYBorderCurr=minYBorderFull - orig(2); maxYBorderCurr=maxYBorderFull  - orig(2);
-                minZBorderCurr=minZBorderFull - orig(3); maxZBorderCurr=maxZBorderFull -  orig(3);
+                XCropMask=false(1,size(mask,2));
+                XCropMask(aminXBorder:amaxXBorder)=true;
+                YCropMask=false(1,size(mask,1));
+                YCropMask(aminYBorder:amaxYBorder)=true;
+                ZCropMask=false(1,size(mask,3));
+                ZCropMask(ceil(aminZBorder:amaxZBorder))=true;
+                ZCropVol=false(1,size(vol,3));
+                ZCropVol(ceil((aminZBorder:amaxZBorder)*MD.pixelSize_/MD.pixelSizeZ_))=true;
+                mask(:,:,~ZCropMask)=[];
+                mask(~YCropMask,:,:)=[];
+                mask(:,~XCropMask,:)=[];
                 
-                inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
-                    [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
+                vol(:,:,~ZCropVol)=[];
+                vol(~YCropMask,:,:)=[];
+                vol(:,~XCropMask,:)=[];
                 
-                minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
-                maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
-                minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
-                maxYBorderCurr=maxYBorder ;%+ orig(2) - p.FoF.origin(1,2);
-                minZBorderCurr=minZBorder ;%+ orig(3) - p.FoF.origin(1,3);
-                maxZBorderCurr=maxZBorder ;%+ orig(3) - p.FoF.origin(1,3);
-
-                rotOutputRef=imref3d([    ceil(maxYBorderCurr-minYBorderCurr) ...
-                    ceil(maxXBorderCurr-minXBorderCurr) ...
-                    ceil(maxZBorderCurr-minZBorderCurr) ], ...
-                    [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
-                
-                
-                warpedVol=imwarp(vol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-                warpedKinVol=imwarp(kinvol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-                
-                if(~isempty(dynPoligonISO))
-                    warpedMaskedVol=imwarp(maskedVol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-                    warpedMaskedKinVol=imwarp(maskedKin,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-                else
-                    warpedMaskedVol=zeros(size(warpedVol));
-                    warpedMaskedKinVol=zeros(size(warpedKinVol));
-                end
-                
-            case 'translation'
-                disp(num2str(fIdx))
-                minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
-                maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
-                minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
-                maxYBorderCurr=maxYBorder ;%+ orig(2) - p.FoF.origin(1,2);
-                minZBorderCurr=minZBorder ;%+ orig(3) - p.FoF.origin(1,3);
-                maxZBorderCurr=maxZBorder ;%+ orig(3) - p.FoF.origin(1,3);
-                
-                %             [xLimitsOut,yLimitsOut,zLimitsOut] = outputLimits(tformTransOnly,[minXBorder maxXBorder], [minYBorder maxYBorder], [minZBorder maxZBorder]);
-                %             minXBorderCurr=xLimitsOut(1); maxXBorderCurr=xLimitsOut(2);
-                %             minYBorderCurr=yLimitsOut(1); maxYBorderCurr=yLimitsOut(2);
-                %             minZBorderCurr=zLimitsOut(1); maxZBorderCurr=zLimitsOut(2);
-                %
-                outputRef=imref3d([ ceil(maxYBorderCurr-minYBorderCurr) ...
-                    ceil(maxXBorderCurr-minXBorderCurr) ...
-                    ceil(maxZBorderCurr-minZBorderCurr) ], ...
-                    [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
-                
-                warpedVol=imwarp(vol,inputRef,tformTransOnly,'OutputView',outputRef);
-                warpedMaskedVol=imwarp(maskedVol,inputRef,tformTransOnly,'OutputView',outputRef);
-                
-                warpedKinVol=imwarp(kinvol,inputRef,tformTransOnly,'OutputView',outputRef);
-                warpedMaskedKinVol=imwarp(maskedKin,inputRef,tformTransOnly,'OutputView',outputRef);
-            case 'transCrop'
-            %% to be updated
-            [xLimitsOut,yLimitsOut,zLimitsOut] = outputLimits(tformRelTransOnly,[minXBorder maxXBorder], [minYBorder maxYBorder], [minZBorder maxZBorder]);
-            minXBorderCurr=xLimitsOut(1); maxXBorderCurr=xLimitsOut(2);
-            minYBorderCurr=yLimitsOut(1); maxYBorderCurr=yLimitsOut(2);
-            minZBorderCurr=zLimitsOut(1); maxZBorderCurr=zLimitsOut(2);
-
-            maskcrop=maskedVol;
-            nullMaskXY=(squeeze(any(maskcrop,3)));
-            YNull=~(squeeze(any(any(mask,3),2)));
-            XNull=~(squeeze(any(any(mask,3),1)));
-            ZNull=~(squeeze(any(any(mask,1),2)));
-
-            YNull= zeros(1,size(maskcrop,1));
-            YNull(1:minYBorderCurr)=1;
-            YNull(maxYBorderCurr:end)=1;
-            YNull=logical(YNull);
-
-            XNull= zeros(1,size(maskcrop,2));
-            XNull(1:minXBorderCurr)=1;
-            XNull(maxXBorderCurr:end)=1;
-            XNull=logical(XNull);
-
-            ZNull= zeros(1,size(maskcrop,3));
-            ZNull(1:ceil(minZBorderCurr*MD.pixelSize_/MD.pixelSizeZ_))=1;
-            ZNull(ceil(maxZBorderCurr*MD.pixelSize_/MD.pixelSizeZ_):end)=1;
-            ZNull=logical(ZNull);
-
-            maskcrop(:,:,ZNull)=[];
-            maskcrop(YNull,:,:)=[];
-            maskcrop(:,XNull,:)=[];
-            maskedKin(:,:,ZNull)=[];
-            maskedKin(YNull,:,:)=[];
-            maskedKin(:,XNull,:)=[];
-
-            warpedMaskedVol=maskcrop;
-            warpedMaskedKinVol=maskedKin;
-
-            warpedVol=vol;
-            warpedKinVol=kinvol;
-            warpedVol(:,:,ZNull)=[];
-            warpedVol(YNull,:,:)=[];
-            warpedVol(:,XNull,:)=[];
-            warpedKinVol(:,:,ZNull)=[];
-            warpedKinVol(YNull,:,:)=[];
-            warpedKinVol(:,XNull,:)=[];
-            otherwise
-                error('unknown trans type');
+            end
+            
+            maskedVol=vol;
+            maskedVol(~mask)=0;
         end
-    end
-
-
-    %         case 'full'
-    %
-    %             warpedVol=imwarp(vol,inputRef,tform);
-    %             warpedMaskedVol=imwarp(maskedVol,inputRef,tform);
-    %
-    %             warpedKinVol=imwarp(kinvol,inputRef,tform);
-    %             warpedMaskedKinVol=imwarp(maskedKin,inputRef,tform);
-    %     end
-
-
-    %% Create MIPS for each channel, fuse mask and full volume
-    switch p.transType
-        case 'none'
-        case 'transCrop'
+        
+        % If needed the map must rotated before cropped (efficiency)
+        % Rotation depends on the FrameOfRef associated to the tracks the compose the dynanimc polygon
+        % Cropping area according to the polygon OVER TIME plus added vizualiation margin
+        % Rotation will use imwarp
+        % Can we use imwar for cropping too ?
+        
+        %% if a FoF is specified, warp and crop data according to the
+        tform=affine3d();
+        warpedVol=vol;
+        if(~isempty(dynPoligonISO))
+            warpedMaskedVol=maskedVol;
+        else
+            warpedMaskedVol=zeros(size(warpedVol));
+        end
+        if(~isempty(p.FoF))
+            B=p.FoF.getBase(fIdx);
+            tform.T(4,[1 2 3])=(-p.FoF.getOrigAtFrame(fIdx)+p.FoF.origin(1,:))*B;
+            tform.T(1:3,1:3)=B;
+            %
+            tformTransOnly=affine3d();
+            tformTransOnly.T(4,[1 2 3])=(-p.FoF.getOrigAtFrame(fIdx));
+            
+            %
+            tformRelTransOnly=affine3d();
+            tformRelTransOnly.T(4,[1 2 3])=(-p.FoF.origin(1,:)+p.FoF.getOrigAtFrame(fIdx));
+            
+            tformRotOnly=affine3d();
+            B=p.FoF.getBase(fIdx);
+            tformRotOnly.T(1:3,1:3)=B;
+            
+            tformRotOnlyInit=affine3d();
+            B=p.FoF.getBase(1);
+            tformRotOnlyInit.T(1:3,1:3)=B;
+            
+            orig=p.FoF.getOrigAtFrame(fIdx);
+            
+            inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
+                [1 MD.getDimensions('X')],[1 MD.getDimensions('Y')],[1 MD.getDimensions('Z')*MD.pixelSizeZ_/MD.pixelSize_]);
+            
+            
+            switch p.transType
+                case 'affineOnePass'
+                    maxXBorderFull=MD.getDimensions('X');
+                    maxYBorderFull=MD.getDimensions('Y');
+                    maxZBorderFull=MD.getDimensions('Z')*(MD.pixelSizeZ_/MD.pixelSize_);
+                    minXBorderFull=1;
+                    minYBorderFull=1;
+                    minZBorderFull=1;
+                    
+                    minXBorderCurr=minXBorderFull - orig(1); maxXBorderCurr=maxXBorderFull -  orig(1);
+                    minYBorderCurr=minYBorderFull - orig(2); maxYBorderCurr=maxYBorderFull  - orig(2);
+                    minZBorderCurr=minZBorderFull - orig(3); maxZBorderCurr=maxZBorderFull -  orig(3);
+                    
+                    inputRef=imref3d([ MD.getDimensions('Y') MD.getDimensions('X') MD.getDimensions('Z')], ...
+                        [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
+                    
+                    minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+                    maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+                    minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+                    maxYBorderCurr=maxYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+                    minZBorderCurr=minZBorder ;%+ orig(3) - p.FoF.origin(1,3);
+                    maxZBorderCurr=maxZBorder ;%+ orig(3) - p.FoF.origin(1,3);
+                    
+                    rotOutputRef=imref3d([    ceil(maxYBorderCurr-minYBorderCurr) ...
+                        ceil(maxXBorderCurr-minXBorderCurr) ...
+                        ceil(maxZBorderCurr-minZBorderCurr) ], ...
+                        [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
+                    
+                    
+                    warpedVol=imwarp(vol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
+                    
+                    if(~isempty(dynPoligonISO))
+                        warpedMaskedVol=imwarp(maskedVol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
+                    else
+                        warpedMaskedVol=zeros(size(warpedVol));
+                    end
+                    
+                case 'translation'
+                    disp(num2str(fIdx))
+                    minXBorderCurr=minXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+                    maxXBorderCurr=maxXBorder ;%+ orig(1) - p.FoF.origin(1,1);
+                    minYBorderCurr=minYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+                    maxYBorderCurr=maxYBorder ;%+ orig(2) - p.FoF.origin(1,2);
+                    minZBorderCurr=minZBorder ;%+ orig(3) - p.FoF.origin(1,3);
+                    maxZBorderCurr=maxZBorder ;%+ orig(3) - p.FoF.origin(1,3);
+                    
+                    %             [xLimitsOut,yLimitsOut,zLimitsOut] = outputLimits(tformTransOnly,[minXBorder maxXBorder], [minYBorder maxYBorder], [minZBorder maxZBorder]);
+                    %             minXBorderCurr=xLimitsOut(1); maxXBorderCurr=xLimitsOut(2);
+                    %             minYBorderCurr=yLimitsOut(1); maxYBorderCurr=yLimitsOut(2);
+                    %             minZBorderCurr=zLimitsOut(1); maxZBorderCurr=zLimitsOut(2);
+                    %
+                    outputRef=imref3d([ ceil(maxYBorderCurr-minYBorderCurr) ...
+                        ceil(maxXBorderCurr-minXBorderCurr) ...
+                        ceil(maxZBorderCurr-minZBorderCurr) ], ...
+                        [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
+                    
+                    warpedVol=imwarp(vol,inputRef,tformTransOnly,'OutputView',outputRef);
+                    warpedMaskedVol=imwarp(maskedVol,inputRef,tformTransOnly,'OutputView',outputRef);
+                    
+                case 'transCrop'
+                    %% to be updated
+                    [xLimitsOut,yLimitsOut,zLimitsOut] = outputLimits(tformRelTransOnly,[minXBorder maxXBorder], [minYBorder maxYBorder], [minZBorder maxZBorder]);
+                    minXBorderCurr=xLimitsOut(1); maxXBorderCurr=xLimitsOut(2);
+                    minYBorderCurr=yLimitsOut(1); maxYBorderCurr=yLimitsOut(2);
+                    minZBorderCurr=zLimitsOut(1); maxZBorderCurr=zLimitsOut(2);
+                    
+                    maskcrop=maskedVol;
+                    nullMaskXY=(squeeze(any(maskcrop,3)));
+                    YNull=~(squeeze(any(any(mask,3),2)));
+                    XNull=~(squeeze(any(any(mask,3),1)));
+                    ZNull=~(squeeze(any(any(mask,1),2)));
+                    
+                    YNull= zeros(1,size(maskcrop,1));
+                    YNull(1:minYBorderCurr)=1;
+                    YNull(maxYBorderCurr:end)=1;
+                    YNull=logical(YNull);
+                    
+                    XNull= zeros(1,size(maskcrop,2));
+                    XNull(1:minXBorderCurr)=1;
+                    XNull(maxXBorderCurr:end)=1;
+                    XNull=logical(XNull);
+                    
+                    ZNull= zeros(1,size(maskcrop,3));
+                    ZNull(1:ceil(minZBorderCurr*MD.pixelSize_/MD.pixelSizeZ_))=1;
+                    ZNull(ceil(maxZBorderCurr*MD.pixelSize_/MD.pixelSizeZ_):end)=1;
+                    ZNull=logical(ZNull);
+                    
+                    maskcrop(:,:,ZNull)=[];
+                    maskcrop(YNull,:,:)=[];
+                    maskcrop(:,XNull,:)=[];
+                    
+                    warpedMaskedVol=maskcrop;
+                    
+                    warpedVol=vol;
+                    warpedVol(:,:,ZNull)=[];
+                    warpedVol(YNull,:,:)=[];
+                    warpedVol(:,XNull,:)=[];
+                    
+                otherwise
+                    error('unknown trans type');
+            end
+        end
+        
+        
+        %% Create MIPS for each channel, fuse mask and full volume
+        switch p.transType
+            case 'none'
+            case 'transCrop'
+                ZRatio=MD.pixelSizeZ_/MD.pixelSize_;
+            otherwise
+                ZRatio=1;
+        end;
+        if(isempty(p.FoF))
             ZRatio=MD.pixelSizeZ_/MD.pixelSize_;
-        otherwise
-            ZRatio=1;
-    end;
-    if(isempty(p.FoF))
-        ZRatio=MD.pixelSizeZ_/MD.pixelSize_;
+        end
+        % Create MIP of ROI and context
+        [fullmaxXY,fullmaxZY,fullmaxZX,~]=computeMIPs(warpedVol,ZRatio, ...
+            minIntensityNorm(chIdx),maxIntensityNorm(chIdx));
+        [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio, ...
+            minIntensityNorm(chIdx),maxIntensityNorm(chIdx));
+        
+        % Fuse ROI and context
+        maxXY(maxXY==0)=fullmaxXY(maxXY==0);
+        maxZY(maxZY==0)=fullmaxZY(maxZY==0);
+        maxZX(maxZX==0)=fullmaxZX(maxZX==0);
+        
+        
+        %% Resize and fuse channel MIPS
+        maxMIPSize=p.maxMIPSize;
+        [sX,sY,sZ]=size(warpedMaskedVol);
+        if(strcmp(p.transType,'none'))
+            sZ=sZ*MD.pixelSizeZ_/MD.pixelSize_;
+        end
+        resizeScale=maxMIPSize/max([sX,sY,sZ]);
+        
+        XYMax=imresize(maxXY,resizeScale,'nearest');
+        ZYMax=imresize(maxZY,resizeScale,'nearest');
+        ZXMax=imresize(maxZX,resizeScale,'nearest');
+        mips{1,chIdx}=XYMax;
+        mips{2,chIdx}=ZYMax;
+        mips{3,chIdx}=ZXMax;
     end
-    % Create MIP of ROI and context
-    [fullmaxXY,fullmaxZY,fullmaxZX,~]=computeMIPs(warpedVol,ZRatio, ...
-        minIntensityNorm(1),maxIntensityNorm(1));
-    [fullmaxXYKin,fullmaxZYKin,fullmaxZXKin,~]=computeMIPs(warpedKinVol,ZRatio, ...
-        minIntensityNorm(2),maxIntensityNorm(2));
-
-    [maxXY,maxZY,maxZX,~]=computeMIPs(warpedMaskedVol,ZRatio, ...
-        minIntensityNorm(1),maxIntensityNorm(1));
-    [maxXYKin,maxZYKin,maxZXKin,~]=computeMIPs(warpedMaskedKinVol,ZRatio, ...
-        minIntensityNorm(2),maxIntensityNorm(2));
-
-    % Fuse ROI and context
-    maxXY(maxXY==0)=fullmaxXY(maxXY==0);
-    maxZY(maxZY==0)=fullmaxZY(maxZY==0);
-    maxZX(maxZX==0)=fullmaxZX(maxZX==0);
-    maxXYKin(maxXYKin==0)=fullmaxXYKin(maxXYKin==0);
-    maxZYKin(maxZYKin==0)=fullmaxZYKin(maxZYKin==0);
-    maxZXKin(maxZXKin==0)=fullmaxZXKin(maxZXKin==0);
-
-    %% Resize and fuse channel MIPS
-    maxMIPSize=400;
-    [sX,sY,sZ]=size(warpedMaskedVol);
-    if(strcmp(p.transType,'none'))
-        sZ=sZ*MD.pixelSizeZ_/MD.pixelSize_;
+    
+    % fuse volume if 2 channels
+    if(length(MD.channels_)==2)
+        XYProj=renderChannel(mips{1,1},mips{1,2},p.channelRender);
+        ZYProj=renderChannel(mips{2,1},mips{2,2},p.channelRender);
+        ZXProj=renderChannel(mips{3,1},mips{3,2},p.channelRender);
+    else
+        XYProj=repmat(mips{1,1},1,1,3);
+        ZYProj=repmat(mips{2,1},1,1,3);
+        ZXProj=repmat(mips{3,1},1,1,3); 
     end
-    resizeScale=maxMIPSize/max([sX,sY,sZ]);
-
-    rMax=imresize(maxXY,resizeScale);
-    rmaxKin=imresize(maxXYKin,resizeScale);
-%    mipSize=size(rMax);
-    XYProj=renderChannel(rMax,rmaxKin,p.channelRender);
-
-    rMax=imresize(maxZY,resizeScale);
-    rmaxKin=imresize(maxZYKin,resizeScale);
-    ZYProj=renderChannel(rMax,rmaxKin,p.channelRender);
-
-    rMax=imresize(maxZX,resizeScale);
-    rmaxKin=imresize(maxZXKin,resizeScale);
-    ZXProj=renderChannel(rMax,rmaxKin,p.channelRender);
-
+    
     %% select tracks that starts or end in the manifold
     inMaskTrack=zeros(1,length(tracks));
     for tIdx=1:length(tracks)

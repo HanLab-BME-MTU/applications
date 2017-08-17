@@ -207,7 +207,7 @@ function dqm_dKq = translate_from_t_to_K_hard(q,dqm_dtq_v,K,dnt_dKn)
         return;
     end
     
-    dnt_dKn = repmat(dnt_dKn,[1 size(dqm_dtq_v,2) 1]);
+    dnt_dKn = repmat(dnt_dKn,[1 size(dqm_dtq_v,2)./size(dnt_dKn,2) 1]);
     
     switch(q)
         case 1

@@ -316,6 +316,20 @@ The higher derivatives can also be found by taking derivatives of the identity a
 	& = & 3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-5}  - \dv[3]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-4} 
 \end{eqnarray}
 
+\subsubsection{$ \dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} $}
+
+\begin{eqnarray}
+	0 & = & \pdv[2]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv{t}{\theta} \\
+	0 & = & \pdv[3]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta}  + 2 D \pdv[4]{\rho}{\theta} \dv{t}{\theta}  + D^2 \pdv[5]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \\
+	0 & = & D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta}  + \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D \pdv[5]{\rho}{\theta} \dv{t}{\theta}  \\
+	& + & 3 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[6]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2  + D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3 \\
+	0 & = & D \pdv[3]{\rho}{\theta} \dv[4]{t}{\theta}  + 4 D \pdv[4]{\rho}{\theta} \dv[3]{t}{\theta}  + 4 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[3]{t}{\theta}  \\
+	& + & \pdv[5]{\rho}{\theta}  + 6 D \pdv[5]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[5]{\rho}{\theta} \left(\dv[2]{t}{\theta}\right)^2  \\ 
+	& + & 4 D \pdv[6]{\rho}{\theta} \dv{t}{\theta}  + 12 D^2 \pdv[6]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 6 D^2 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2\\
+	& + & 6 D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \dv[2]{t}{\theta}  + 4 D^3 \pdv[8]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3  \\
+	& + & D^4 \pdv[9]{\rho}{\theta} \left(\dv{t}{\theta}\right)^4 
+\end{eqnarray}
+
 \subsection{Bifurcation Points}
 
 The orientation local maxima disappear with decreasing $ K $ or increasing $ t $. From the last section we see that we can calculate a derivative for $ \theta_m $ except when $ \pdv[2]{\rho}{\theta}  = 0 $. At this point, when $ \pdv{\rho}{\theta} = 0 $, however, the critical point is no longer a local orientation maximum since the second derivative test is no longer met. Rather with decreasing $ K $, a local orientation maximum and a local orientation minimum meet each other and anihilate. The meeting of the local orientation maximum and minimum is called a bifurcation point.
