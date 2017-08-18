@@ -4,8 +4,8 @@ function [ K_out ] = halleyK( x, K, R, r, c)
 % INPUT
 % x - theta coordinate
 % K - initial K guess, scalar
-% R - OrientationSpaceResponse object
-% r - row of point of interest
+% R - OrientationSpaceResponse object / N x X matrix
+% r - row of point of interest / K_org
 % c - column of point of interest
 %
 % OUTPUT
@@ -13,38 +13,100 @@ function [ K_out ] = halleyK( x, K, R, r, c)
 
 D = 2*pi^2;
 
-% x = 0:0.01:2*pi;
-K = repmat(K,1,length(x));
-K_out = K;
-% for i=1:10
-vk{1} = 1;
-last = Inf;
-while(abs(vk{1}) > 1e-12)
-    rhorho = R.getResponseAtOrderFTatPoint(r,c,K_out);
-    vt = cell(1,5);
-    vk = cell(1,5);
-    for j=[1 3 5];
-        rhorhod_hat = bsxfun(@times,fft(rhorho),(ifftshift(-8:8)*1i).'.^j);
-        n = (j-1)/2;
-        vt{j} = interpft1([0 2*pi],rhorhod_hat,x,'horner_freq').*D.^n;
-    end;
-    dtdK = -4./(2*K_out+1).^3;
-    d2tdK2 = 24./(2*K_out+1).^4;
-    vk{1} = vt{1};
-    vk{3} =  vt{3}.*dtdK;
-    vk{5} =  vt{5}.*(dtdK).^2+vt{3}.*d2tdK2;
-    if(abs(vk{1}) < abs(last))
-        K_out = K_out - 2*vk{1}.*vk{3}./(2*vk{3}.^2-vk{1}.*vk{5});
-        last = vk{1};
+if(isscalar(K))
+    K_out = repmat(K,size(x));
+else
+    K_out = K;
+end
+x_sz = size(x);
+
+if(nargin > 4 && isa(R,'OrientationSpaceResponse'))
+    response = squeeze(real(R.a(r,c,:)));
+    response_sz = size(response);
+    response_hat = fft(response);
+    K_org = R.filter.K;
+else
+    K_org = r;
+    response_sz = size(R);
+    response = real(R(:,:));
+    response_hat = fft(response);
+end
+
+if(isscalar(x))
+    x_sz = [1 prod(response_sz(2:end))];
+    x = repmat(x,[1 response_sz(2:end)]);
+end
+
+x = repmat(x,[1 1 3]);
+
+
+freqM = [0:floor(response_sz(1)/2) -floor(response_sz(1)/2):-1];
+freqM = shiftdim(freqM,1)*1i;
+freqM = freqM.^shiftdim([1 3 5],-1);
+freqM(:,:,2) = freqM(:,:,2)*D;
+freqM(:,:,3) = freqM(:,:,3)*D^2;
+response_hat = bsxfun(@times,response_hat,freqM);
+
+last = Inf(x_sz);
+TOL = 1e-12;
+notDone = ':';
+
+K_out_notDone = K_out;
+last_notDone = last;
+new_notDone = true;
+
+
+while(any(new_notDone))
+    response_hat_at_K_out = getResponseAtOrderFT(response_hat(:,notDone,:),K_org,K_out_notDone);
+    vt = interpft1([0 2*pi],response_hat_at_K_out,x(1,notDone,:),'horner_freq');
+
+    dtdK = -4./(2*K_out_notDone+1).^3;
+    d2tdK2 = 24./(2*K_out_notDone+1).^4;
+    
+    vk = vt;
+  % vk(:,:,1) = vt(:,:,1);
+    vk(:,:,2) =  vt(:,:,2).*dtdK;
+    vk(:,:,3) =  vt(:,:,3).*(dtdK).^2+vt(:,:,2).*d2tdK2;
+    is_better = abs(vk(:,:,1)) < last_notDone;
+    K_out_notDone(is_better) = K_out_notDone(is_better) - 2*vk(:,:,1).*vk(:,:,2)./(2*vk(:,:,2).^2-vk(:,:,1).*vk(:,:,3));
+    last_notDone(is_better) = abs(vk(:,:,1));
+    
+    K_out(1,notDone) = K_out_notDone;
+    last(1,notDone) = last_notDone;
+    new_notDone = is_better & abs(vk(:,:,1)) > TOL;
+    if(ischar(notDone))
+        notDone = new_notDone;
     else
-        break;
+        notDone(notDone) = new_notDone;
     end
-%     hold on; plot(K_out,x,'.')
+    
+    K_out_notDone = K_out_notDone(new_notDone);
+    last_notDone  = last_notDone(new_notDone);
+    
 end
 
 if(nargout < 1)
-    hold on; plot(K_out,x,'g.')
+    hold on; plot(K_out,x(:,:,1),'g.')
 end
 
+K_out = reshape(K_out,x_sz);
+
+end
+
+function responseAtOrder = getResponseAtOrderFT(response_hat,Korg,Kg)
+    if(isempty(Kg))
+        responseAtOrder = NaN(size(response_hat));
+        return;
+    end
+%     x = [0:ceil(R.filter.K)*R.filter.sampleFactor -ceil(R.filter.K)*R.filter.sampleFactor:-1];
+%     x = [0:8 -8:-1];
+    x = [0:floor(size(response_hat,1)/2) -floor(size(response_hat,1)/2):-1];
+    n_org = 2*Korg+1;
+
+    n_new = 2*Kg+1;
+    s_inv = sqrt(n_org^2.*n_new.^2./(n_org.^2-n_new.^2));
+    s_hat = s_inv/(2*pi);
+    f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2);
+    responseAtOrder = bsxfun(@times,response_hat,f_hat);
 end
 

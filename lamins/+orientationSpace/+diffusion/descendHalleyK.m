@@ -1,5 +1,4 @@
 function [ maxima, coords, response, xgd ] = descendHalleyK( maxima, coords, response )
-
 %descendHalleyK Summary of this function goes here
 %   Detailed explanation goes here
 
