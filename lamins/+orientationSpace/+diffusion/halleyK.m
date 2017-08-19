@@ -13,6 +13,11 @@ function [ K_out ] = halleyK( x, K, R, r, c)
 
 D = 2*pi^2;
 
+if(isempty(x))
+    K_out = zeros(size(x));
+    return;
+end
+
 if(isscalar(K))
     K_out = repmat(K,size(x));
 else
@@ -68,12 +73,14 @@ while(any(new_notDone))
     vk(:,:,2) =  vt(:,:,2).*dtdK;
     vk(:,:,3) =  vt(:,:,3).*(dtdK).^2+vt(:,:,2).*d2tdK2;
     is_better = abs(vk(:,:,1)) < last_notDone;
+    new_notDone = is_better & abs(vk(:,:,1)) > TOL;
+    vk = vk(:,is_better,:);
     K_out_notDone(is_better) = K_out_notDone(is_better) - 2*vk(:,:,1).*vk(:,:,2)./(2*vk(:,:,2).^2-vk(:,:,1).*vk(:,:,3));
     last_notDone(is_better) = abs(vk(:,:,1));
     
     K_out(1,notDone) = K_out_notDone;
     last(1,notDone) = last_notDone;
-    new_notDone = is_better & abs(vk(:,:,1)) > TOL;
+%     new_notDone = is_better & abs(vk(:,:,1)) > TOL;
     if(ischar(notDone))
         notDone = new_notDone;
     else
@@ -104,7 +111,7 @@ function responseAtOrder = getResponseAtOrderFT(response_hat,Korg,Kg)
     n_org = 2*Korg+1;
 
     n_new = 2*Kg+1;
-    s_inv = sqrt(n_org^2.*n_new.^2./(n_org.^2-n_new.^2));
+    s_inv = sqrt(n_org.^2.*n_new.^2./(n_org.^2-n_new.^2));
     s_hat = s_inv/(2*pi);
     f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2);
     responseAtOrder = bsxfun(@times,response_hat,f_hat);

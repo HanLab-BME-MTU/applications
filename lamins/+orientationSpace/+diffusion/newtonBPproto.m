@@ -49,7 +49,7 @@ if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0)
         plot([Kold Kold],[xold xg],'r--');
     end
 %      2*v.*vd./(2*vd.^2-v.*vdd);
-    Kgpd = (xg-xold)*dnK_dmn(:,:,1)+(xg-xold).^2*dnK_dmn(:,:,2)/2+(xg-xold).^3*dnK_dmn(:,:,3)/6;
+    Kgpd = (xg-xold).*dnK_dmn(:,:,1)+(xg-xold).^2.*dnK_dmn(:,:,2)/2+(xg-xold).^3.*dnK_dmn(:,:,3)/6;
     Kg = NaN;
     if(Kgpd < 0 && abs(Kgpd) < 1)
         test = linspace(xold,xg,100);

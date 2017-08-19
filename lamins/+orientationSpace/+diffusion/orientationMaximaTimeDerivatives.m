@@ -60,7 +60,7 @@ else
         lm = lm(:,:);
     end
 
-    rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1,period);
+    rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1,period,freq);
     
 end
 
