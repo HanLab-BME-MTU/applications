@@ -1,9 +1,18 @@
-function [ maxima, coords, response, xgd ] = descendHalleyK( maxima, coords, response )
+function [ maxima, coords, response, xgd ] = descendHalleyK( maxima, coords, response, n )
 %descendHalleyK Summary of this function goes here
 %   Detailed explanation goes here
 
+if(nargin > 3)
+    maxima = maxima(:,n);
+    coords.K = coords.K(n);
+    coords.r = coords.r(n);
+    coords.c = coords.c(n);
+    coords.m = coords.m(n);
+    response = response(:,n);
+end
+
 D = 2*pi.^2;
-K_jump_threshold = 0.5;
+K_jump_threshold = 0.1;
 xg_change_threshold = pi/6;
 maxKdelta = 4;
 Korg = coords.K(1);
@@ -80,13 +89,15 @@ end
 end
 
 function [K_jump_estimate_above_threshold,maxima,K,K_jump_estimate,maxKdelta] = doJumpIteration(response_hat, maxima, K, K_jump_estimate, maxKdelta, Korg, K_jump_threshold, xg_change_threshold, D)
-    Kg = K - min(K_jump_estimate,maxKdelta);
+    K_jump = max(min(K_jump_estimate,maxKdelta),min(K_jump_threshold,abs(K)));
+    Kg = K - K_jump;
     Kg = max(Kg,0);
+%     K_jump = K - Kg;
     responseAtKg = getResponseAtOrderFT(response_hat,Korg,Kg);
     [xg, xgd] = halleyft( responseAtKg, maxima,true,1);
     xg(xgd(:,:,2) > 0) = NaN;
     xg_change = abs(xg - maxima);
-    failed = isnan(xg) | min(xg_change,2*pi-xg_change) > xg_change_threshold;
+    failed = isnan(xg); % | min(xg_change,2*pi-xg_change) > xg_change_threshold;
     succeeded = ~failed;
     maxKdelta(failed) = maxKdelta(failed)/2;
     K(succeeded) = Kg(succeeded);
@@ -101,7 +112,8 @@ function [K_jump_estimate_above_threshold,maxima,K,K_jump_estimate,maxKdelta] = 
     K_jump_estimate(succeeded) = xgd(:,succeeded,2) ./ d_p2rho_pm2_K(succeeded) ;
     invalid_K_jump_estimate = K_jump_estimate < 0;
     K_jump_estimate(invalid_K_jump_estimate) = maxKdelta(invalid_K_jump_estimate);
-    K_jump_estimate_above_threshold = K_jump_estimate(:) > K_jump_threshold;
+%     K_jump_estimate_above_threshold = K_jump_estimate(:) > K_jump_threshold;
+    K_jump_estimate_above_threshold = (K_jump > K_jump_threshold | succeeded) & K > 0;
 end
 
 function responseAtOrder = getResponseAtOrderFT(response_hat,Korg,Kg)

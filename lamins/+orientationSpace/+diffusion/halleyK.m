@@ -1,4 +1,4 @@
-function [ K_out ] = halleyK( x, K, R, r, c)
+function [ K_out , vd2] = halleyK( x, K, R, r, c)
 %NEWTONK Use Newton's method to find K where root exists
 %
 % INPUT
@@ -15,6 +15,7 @@ D = 2*pi^2;
 
 if(isempty(x))
     K_out = zeros(size(x));
+    vd2 = zeros(size(x));
     return;
 end
 
@@ -32,9 +33,18 @@ if(nargin > 4 && isa(R,'OrientationSpaceResponse'))
     K_org = R.filter.K;
 else
     K_org = r;
+    if(nargin > 4)
+        freq = c;
+    else
+        freq = false;
+    end
     response_sz = size(R);
-    response = real(R(:,:));
-    response_hat = fft(response);
+    if(freq)
+        response_hat = R;
+    else
+        response = real(R(:,:));
+        response_hat = fft(response);
+    end
 end
 
 if(isscalar(x))
@@ -47,10 +57,12 @@ x = repmat(x,[1 1 3]);
 
 freqM = [0:floor(response_sz(1)/2) -floor(response_sz(1)/2):-1];
 freqM = shiftdim(freqM,1)*1i;
-freqM = freqM.^shiftdim([1 3 5],-1);
+freqM = freqM.^shiftdim([1 3 5 2],-1);
 freqM(:,:,2) = freqM(:,:,2)*D;
 freqM(:,:,3) = freqM(:,:,3)*D^2;
 response_hat = bsxfun(@times,response_hat,freqM);
+response_hat_d2 = response_hat(:,:,4);
+response_hat = response_hat(:,:,1:3);
 
 last = Inf(x_sz);
 TOL = 1e-12;
@@ -92,8 +104,15 @@ while(any(new_notDone))
     
 end
 
+K_out(last > TOL) = NaN;
+
 if(nargout < 1)
     hold on; plot(K_out,x(:,:,1),'g.')
+end
+
+if(nargout > 1)
+    vd2 = interpft1([0 2*pi],getResponseAtOrderFT(response_hat_d2,K_org,K_out),x(:,:,1),'horner_freq');
+    vd2 = reshape(vd2,x_sz);
 end
 
 K_out = reshape(K_out,x_sz);
