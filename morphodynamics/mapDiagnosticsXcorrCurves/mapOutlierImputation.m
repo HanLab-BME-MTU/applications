@@ -99,6 +99,8 @@ elseif p.WithN == true
             tmp = MD.outputDirectory_;
             samplingWithNDirectory_ = fullfile(tmp, 'window_sampling_WithN');
         end
+    else
+        samplingWithNDirectory_ = fullfile(MD.outputDirectory_, 'window_sampling_WithN');
     end
         
     fname = 'all channels.mat';
