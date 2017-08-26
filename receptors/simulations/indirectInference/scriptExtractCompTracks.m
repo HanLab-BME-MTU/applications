@@ -4,13 +4,23 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20161028/target';
+<<<<<<< HEAD
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/target/diffLabelRatio';
 
 %Define strings for directory hierarchy as needed
-rDDir = {'rD20'};
-aPDir = {'aP0p5'};
+rDDir = {'rD100'};%{'rD20','rD40','rD60','rD80','rD100','rD120','rD140','rD160'}
+aPDir = {'aP0p5'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
 outDirNum = 1:30;
-lRDir = {'lR0p02','lR0p04'};
+lRDir = {'lR0p26'};%{'lR0p14';'lR0p16';'lR0p18';'lR0p20';'lR0p22';'lR0p24'};
+=======
+sourceRoot = 'C:\Users\s169185\Documents\DATA';
+
+%Define strings for directory hierarchy as needed
+rDDir = {'rD4'};
+aPDir = {'aP0p0'};
+outDirNum = 1;
+lRDir = {'lR0p4'};
+>>>>>>> 15278edb60cc9400c56bafdc1b6a86d2e572685b
 
 %Define number of label ratio
 numLabelRatio = length(lRDir);

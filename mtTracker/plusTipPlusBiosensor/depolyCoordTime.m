@@ -4,10 +4,11 @@ ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addOptional('tracks',[],@(x) (isstruct(x)));
 ip.addParamValue('showAll',false,@islogical);
 ip.addParamValue('chIdx',1,@isnumeric);
+ip.addParamValue('name','',@ischar);
 ip.parse(MD,varargin{:});
 p=ip.Results;
 
-outputFolder=[MD.outputDirectory_ filesep 'MT-GEF' filesep 'MTDepoly' filesep]; mkdir(outputFolder);
+outputFolder=[MD.outputDirectory_ filesep 'MT-GEF' filesep 'MTDepoly' filesep p.name filesep]; mkdir(outputFolder);
 outputDepolyCoordFileAlltracks=[outputFolder filesep 'XYTCoordinateAllTracks.mat'];
 outputDepolyCoordFileUninteruptTracks=[outputFolder filesep 'XYTCoordinateUninterruptedTracks.mat'];
 

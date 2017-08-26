@@ -6,7 +6,7 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag,assocStats,c
 %    = receptorAggregationSimple(modelParam,simParam)
 %
 %INPUT  modelParam: Structure with the fields:
-%           diffCoef        : Diffusion coefficient (microns^2/
+%           diffCoef        : Diffusion coefficient (microns^2/s)
 %           receptorDensity : Receptor density (#/microns^probDim).
 %           aggregationProb : Probability of aggregation if a receptor
 %                             bumps into another receptor or receptor
@@ -442,7 +442,7 @@ collProbStatStruct = struct('collisionProb',NaN,'pwDist',NaN,...
 collProbStats(numIterations,1) = collProbStatStruct;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-progressText(0,'Simulation');
+ progressText(0,'Simulation');
 
 %iterate in time
 for iIter = 2 : numIterations
@@ -682,7 +682,7 @@ for iIter = 2 : numIterations
     recept2clustAssign(:,iIter) = receptor2cluster;
     clust2receptAssign(1:numClusters,1:maxClustSize,iIter) = cluster2receptor;
 
-    progressText((iIter-1)/(numIterations-1),'Simulation');
+     progressText((iIter-1)/(numIterations-1),'Simulation');
         
 end %(for iIter = 2 : numIterations)
 

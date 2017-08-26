@@ -1,4 +1,5 @@
-function [ meanLinkStatsPerc,meanGapStatsPerc,meanMergeStats,meanSplitStats,mergeSplitStats] = compareTracks(compTracks,tracksFinal,reformParam)
+% function [ meanLinkStatsPerc,meanGapStatsPerc,meanMergeStats,meanSplitStats,mergeSplitStats] = compareTracks(compTracks,tracksFinal,reformParam)
+function [linkStats,gapStats,meanLinkStatsPerc,meanGapStatsPerc] = compareTracks(compTracks,tracksFinal,reformParam)
 
 %COMPARETRACKS this function compare the tracks from simulated data and
 %uTrackPackageGUI.
@@ -89,13 +90,12 @@ tracksNew = sepCompTracks(tracksSim);
 %% Reformat U-tracks for comparison
 
 %% Comparison 
-[linkStats,gapStats,mergeSplitStats] = scoreLinksGapsMS(tracksFinal,tracksNew);
-meanLinkStats=mean(linkStats(:,4));
-meanLinkStatsPerc=(100*meanLinkStats)/length(linkStats(:,4));
+[linkStats,gapStats] = scoreLinksGapsMS(tracksFinal,tracksNew);
+meanLinkStats=mean(linkStats(:,3));
+meanLinkStatsPerc=(100*meanLinkStats)/mean(linkStats(:,2));
 totalNumRigthGaps=gapStats(gapStats(:,2)==0);
-meanGapStats=length(gapStats(:,2))-length(totalNumRigthGaps);
-meanGapStatsPerc=(100*meanGapStats)/length(gapStats(:,2));
-meanMergeStats=mergeSplitStats(1,3);
-meanSplitStats=mergeSplitStats(2,3);
+meanGapStatsPerc=(100*length(totalNumRigthGaps))/length(gapStats(:,2));
+% meanMergeStats=mergeSplitStats(1,3);
+% meanSplitStats=mergeSplitStats(2,3);
 end %function
 

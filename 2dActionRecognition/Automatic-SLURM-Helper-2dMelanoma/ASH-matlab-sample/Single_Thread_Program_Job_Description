@@ -1,7 +1,0 @@
-##Description
-##		Use this file if your program is using single thread, i.e. each process contains only one thread.
-##
-
-#0. how many cores on a single node do you want to run programs? (default is 30)
-20
-

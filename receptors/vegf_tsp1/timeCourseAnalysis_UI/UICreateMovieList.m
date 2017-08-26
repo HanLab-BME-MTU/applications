@@ -11,13 +11,16 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.StructExpand = true;
+
+% KJ: Parameters with default value - user has chance to change
 ip.addParameter('pixelSize_', 90, @isnumeric);
 ip.addParameter('timeInterval_', 0.1, @isnumeric);
-ip.addParameter('numAperature_', 1.49, @isnumeric);
-ip.addParameter('emissionWavelength_', [], @isnumeric);%590nm for Rhod Red X, 525nm for GFP
-ip.addParameter('exposureTime_', 20, @isnumeric);
+ip.addParameter('numAperture_', 1.49, @isnumeric);
+ip.addParameter('exposureTime_', 0.1, @isnumeric);
 ip.addParameter('imageType_', {'TIRF'}, @(x) ischar(x) || iscellstr(x));
+
 % Parameters obtained by user input
+ip.addParameter('emissionWavelength_', [], @isnumeric);
 ip.addParameter('fileNameML',[],@ischar);
 ip.addParameter('filePathML',[],@ischar);
 ip.addParameter('fileName',[],@iscellstr);
@@ -37,19 +40,48 @@ if(~iscellstr(param.imageType_))
     param.imageType_ = {param.imageType_};
 end
 
-%% Ask for emission wavelength
-if isempty(param.emissionWavelength_)
-    canceled = false;
-    while(~canceled)
-        [param.emissionWavelength_(end+1),emissionStr,canceled] = timeCourseAnalysis.UI.waveLengthPrompt;
-        if(~canceled && isempty(param.emissionWavelength_(end)))
-            param.imageType_{length(param.emissionWavelength_)} = '';
-        end
-        if(canceled)
-            param.emissionWavelength_ = param.emissionWavelength_(1:end-1);
-        else
-            disp([ emissionStr ' selected. Select another wavelength for multichannel movies or cancel to continue.']);
-        end
+%% Ask for movie parameters
+
+%this eliminates the behind-the-scenes assignment of various movie
+%parameters
+
+inputStr = inputdlg('Enter pixel size (nm)','Pixel size',1,{num2str(param.pixelSize_)});
+if(~isempty(inputStr))
+    param.pixelSize_  = str2double(inputStr);
+end
+
+inputStr = inputdlg('Enter numerical aperture','Numerical aperture',1,{num2str(param.numAperture_)});
+if(~isempty(inputStr))
+    param.numAperture_  = str2double(inputStr);
+end
+
+inputStr = inputdlg('Enter time interval between frames (seconds)','Time interval',1,{num2str(param.timeInterval_)});
+if(~isempty(inputStr))
+    param.timeInterval_  = str2double(inputStr);
+end
+
+inputStr = inputdlg('Enter exposure time (seconds)','Exposure time',1,{num2str(param.exposureTime_)});
+if(~isempty(inputStr))
+    param.exposureTime_  = str2double(inputStr);
+end
+
+inputStr = inputdlg('Enter imaging modality','Imaging modality',1,param.imageType_);
+if(~isempty(inputStr))
+    param.imageType_  = cell(inputStr);
+end
+
+canceled = false;
+cIndx = 0;
+while(~canceled)
+    cIndx = cIndx + 1;
+    [param.emissionWavelength_(end+1),emissionStr,canceled] = timeCourseAnalysis.UI.waveLengthPrompt(cIndx);
+    if(~canceled && isempty(param.emissionWavelength_(end)))
+        param.imageType_{length(param.emissionWavelength_)} = '';
+    end
+    if(canceled)
+        param.emissionWavelength_ = param.emissionWavelength_(1:end-1);
+    else
+        disp([ emissionStr ' selected. Select another wavelength for multichannel movies or cancel to continue.']);
     end
 end
 

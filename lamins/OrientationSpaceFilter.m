@@ -1,4 +1,4 @@
-classdef OrientationSpaceFilter < handle
+classdef OrientationSpaceFilter < handle & matlab.mixin.Heterogeneous
     %SteerableVanGinkelFilter is a class object that represents a polar
     %seperable frequency domain filter
     %
@@ -21,12 +21,16 @@ classdef OrientationSpaceFilter < handle
         b_f
         % angular order
         K
-        % basis angles
-        angles
         % normilization setting
         normEnergy
         % number of angular filter templates
         n
+        % Sample factor, multiplier to calculate n from K
+        sampleFactor = 1
+    end
+    properties (SetAccess = protected, Dependent)
+        % basis angles
+        angles
     end
     
     properties (Transient)
@@ -49,6 +53,9 @@ classdef OrientationSpaceFilter < handle
     
     methods
         function obj = OrientationSpaceFilter(f_c,b_f,K,normEnergy)
+            if(nargin == 0)
+                return;
+            end
             if(~isscalar(f_c) || ~isscalar(b_f) || ~isscalar(K))
                 s = [length(f_c) length(b_f) length(K)];
                 s(2) = max(1,s(2));
@@ -85,8 +92,10 @@ classdef OrientationSpaceFilter < handle
             obj.K = K;
             obj.normEnergy = normEnergy;
             
-            obj.n = 2*ceil(K) + 1;
-            obj.angles = 0:pi/obj.n:pi-pi/obj.n;
+%             obj.n = 2*ceil(K) + 1;
+            obj.n = 2*obj.sampleFactor*ceil(K) + 1;
+%             obj.angles = (0:obj.n-1)/obj.n*pi;
+%             obj.angles = 0:pi/obj.n:pi-pi/obj.n;
             
         end
         function ridgeFilter = real(obj)
@@ -101,6 +110,9 @@ classdef OrientationSpaceFilter < handle
             edgeFilter.F = obj.F;
             edgeFilter.size = obj.size;
         end
+        function angles = get.angles(obj)
+            angles = (0:obj.n-1)/obj.n*pi;
+        end
         function f_c = get.centralFrequency(obj)
             f_c = obj.f_c;
         end
@@ -112,7 +124,7 @@ classdef OrientationSpaceFilter < handle
         end
         function n = get.n(obj)
             if(isempty(obj.n))
-                obj.n = 2*ceil(K) + 1;
+                obj.n = 2*obj.sampleFactor*ceil(obj.K) + 1;
             end
             n = obj.n;
         end
@@ -218,6 +230,44 @@ classdef OrientationSpaceFilter < handle
             requireSetup(obj);
             h = imshow(fftshift(ifft2(real(obj.F(:,:,1)))),varargin{:});
         end
+        function circshiftAngles(obj,Kshift)
+            for ii=1:numel(obj)
+                obj(ii).angles = circshift(obj(ii).angles,Kshift,2);
+                if(~isempty(obj(ii).F))
+                    obj(ii).F = circshift(obj(ii).F,Kshift,3);
+                end
+            end
+        end
+        function flhm = getFullLengthatHalfMaximum(obj,percent)
+            if(nargin < 2)
+                percent = 0.5;
+            end
+            if(~isscalar(obj))
+                flhm = arrayfun(@(o) getFullLengthatHalfMaximum(o,percent),obj);
+                return;
+            end
+            requireSetup(obj);
+            flhm = real(ifft(sum(real(obj.F(:,:,1)),2)));
+            flhm = flhm./flhm(1);
+            guess = find(flhm < percent,1,'first');
+            % Multiply by 2 to get full length
+            flhm = interp1(flhm(1:guess),(1:guess)-1,percent,'pchip')*2;
+        end
+        function fwhm = getFullWidthatHalfMaximum(obj,percent)
+            if(nargin < 2)
+                percent = 0.5;
+            end
+            if(~isscalar(obj))
+                fwhm = arrayfun(@(o) getFullWidthatHalfMaximum(o,percent),obj);
+                return;
+            end
+            requireSetup(obj);
+            fwhm = real(ifft(sum(real(obj.F(:,:,1)),1)));
+            fwhm = fwhm./fwhm(1);
+            guess = find(fwhm < percent,1,'first');
+            % Multiply by 2 to get full width
+            fwhm = interp1(fwhm(1:guess),(1:guess)-1,percent,'pchip')*2;
+        end
     end
     methods
         function setupFilter(obj,siz)
@@ -262,7 +312,7 @@ classdef OrientationSpaceFilter < handle
                     case 'scale'
                         obj(o).F = obj(o).F ./ obj(o).f_c ./ sqrt(siz(1)*siz(2));
                     case 'sqrtscale'
-                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2))
+                        obj(o).F = obj(o).F ./ sqrt(obj(o).f_c) ./ sqrt(siz(1)*siz(2));
                     case 'none'
                     otherwise
                         error('OrientationSpaceFilter:setupFilterNormEnergy', ...
@@ -320,6 +370,9 @@ classdef OrientationSpaceFilter < handle
 
         end
         function F = constructByRadialOrder(f_c, K_f, K, normEnergy, constructor)
+            if(nargin < 4)
+                normEnergy = [];
+            end
             if(nargin < 5)
                 constructor = @OrientationSpaceFilter;
             end

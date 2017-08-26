@@ -202,6 +202,7 @@ if nargin >= 10 && strcmp(method,'fast')
             sol_mats.Q=Q;
             sol_mats.R=R;
             sol_mats.L=L;
+            sol_mats.eyeWeights=eyeWeights;
         end            
         sol_mats.tool='QR';
     elseif strcmpi(solMethodBEM,'LaplacianReg')

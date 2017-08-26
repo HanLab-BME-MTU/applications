@@ -249,7 +249,7 @@ periodFrames = floor(periodMin/tIntervalMin); % early period in frames
 %% Integration of existing classifier(s)
 reuseSelectedGroups = 'n';
 if isempty(sampleFolders)
-    importSelectedGroups=input('Do you want to import existing trained data (1/0)?: ');
+    importSelectedGroups=1; %input('Do you want to import existing trained data (1/0)?: ');
     if ~isempty(importSelectedGroups) && importSelectedGroups
         doneLoadingTrainedData = false;
     %     T = table();
@@ -365,7 +365,9 @@ end
 %     end
 % end
 % if ~exist(outputFile,'file') || strcmp(reuseSelectedGroups, 'n') || isempty(reuseSelectedGroups) || strcmp(reuseSelectedGroups, 'a')
-reuseSelectedGroups=input('Do you want to add some more on top of it (a), discard imported data (d) or solely use this data for classifier training(u)?: ','s');
+
+% reuseSelectedGroups=input('Do you want to add some more on top of it (a), discard imported data (d) or solely use this data for classifier training(u)?: ','s');
+reuseSelectedGroups = 'a';
 if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelectedGroups, 'a') || isempty(reuseSelectedGroups) || strcmp(reuseSelectedGroups, 'd')
     if strcmp(reuseSelectedGroups, 'a')
         display('Click additional tracks that belong to each group ...')
@@ -393,10 +395,232 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         end
         fh2.CurrentAxes.Color=[0 0 0];
         fh2.CurrentAxes.Visible='off';
+        
+        % Here is automatically pre-selected samples for G1 (5/18/17)
+        % 1. Edge criterion
+        % 1-1. Adhesions with zero edge movement should be G6 (not
+        % interested) - by looking at edge velocity and edge MSD
+        edgeVelAll=arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        edgeStdAll=arrayfun(@(x) std(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+        
+        % 
+        % 1. edge should protrude - should see overall positive edge
+        % G1 should have decently high edge vel.
+        thresEdgeVelG1 = mean(edgeVelAll); %+std(edgeVelAll);
+        indEdgeVelG1 = edgeVelAll>thresEdgeVelG1;
+                
+        % 2. Relative distance from edge should increase significantly.
+        distToEdgeVelAll=arrayfun(@(x) regress(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        thresRelEdgeVel = quantile(distToEdgeVelAll,0.05);
+        indRelEdgeVelG1 = distToEdgeVelAll>thresRelEdgeVel;
+        
+        % 3. Should start from relatively close to an edge
+        distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
+        thresStartingDistG1G2 = quantile(distToEdgeFirstAll,0.25);
+        indCloseStartingEdgeG1G2 = distToEdgeFirstAll < thresStartingDistG1G2;
+
+        % 5. Clean rising phase
+        assemRateAll = arrayfun(@(y) y.assemRate, tracksNA);
+%         thresAssemRateG1G2 = quantile(assemRateAll,0.25);
+        indCleanRisingG1G2 = ~isnan(assemRateAll); %assemRateAll>thresAssemRateG1G2;        
+        
+        % 6. Clean decaying phase
+        disassemRateAll = arrayfun(@(y) y.lateAmpSlope, tracksNA);
+        thresDisassemRateG1 = nanmean(disassemRateAll);
+        if thresDisassemRateG1<-0.5 || thresDisassemRateG1>0
+            thresDisassemRateG1=-0.5;
+        end
+%         indCleanDecayingG1 = disassemRateAll<thresDisassemRateG1;  
+% %         disassemRateAll = arrayfun(@(y) y.disassemRate, tracksNA);
+% %         thresDisassemRateG1 = quantile(disassemRateAll,0.01);
+% %         indCleanDecayingG1 = disassemRateAll>thresDisassemRateG1;  
+        
+        % 7. maximum point location compared to the life time (G2 has
+        % maximum point at the later phase).
+        timeToMaxInten=zeros(numel(tracksNA),1);
+        maxIntenAll=zeros(numel(tracksNA),1);
+        splineParam=0.01;
+        for ii=1:numel(tracksNA)
+            curFrameRange = tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra;
+            d = tracksNA(ii).ampTotal(curFrameRange);
+            tRange = tracksNA(ii).iFrame(curFrameRange);
+            warning('off','SPLINES:CHCKXYWP:NaNs')
+            d(d==0)=NaN;
+            try
+                sd_spline= csaps(tRange,d,splineParam);
+            catch
+                d = tracksNA(ii).amp;
+                d(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) = ...
+                    tracksNA(ii).ampTotal(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra);
+                sd_spline= csaps(tRange,d,splineParam);
+            end
+            sd=ppval(sd_spline,tRange);
+            %         tRange = [NaN(1,numNan) tRange];
+        %     sd = [NaN(1,numNan) sd];
+            sd(isnan(d))=NaN;
+            %         sd(isnan(d)) = NaN;
+            % Find the maximum
+            [maxIntenAll(ii),curFrameMaxAmp]=nanmax(sd);
+            curFrameMaxAmp = curFrameRange(curFrameMaxAmp);
+            timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
+        end
+        lifeTimesAll = arrayfun(@(y) y.endingFrameExtra-y.startingFrameExtra, tracksNA);
+        relMaxPoints = timeToMaxInten./lifeTimesAll;
+        thresRelMax = min(0.8,mean(relMaxPoints));
+        indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
+        % 8. life time
+        
+        % Summing all those for G1
+        indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
+            indCleanRisingG1G2 & indEarlyMaxPointG1; %& indCleanDecayingG1;
+        
+        indexG1 = find(indAbsoluteG1); 
+        % Inspect each (temporary)
+%         figure; hold on
+%         for mm=indexG1'
+%             plot(tracksNA(mm).ampTotal)
+% %             plot(tracksNA(mm).forceMag)
+%         end
+% %         nn=nn+1;
+%         showSingleAdhesionTrackSummary(MD,tracksNA(indexG1(end-3)),imgMap,tMap,indexG1(end-3));
+
+        % G2
+        
+        % 4. FA segmentation overlapping (for G2)
+        faAssocAll = arrayfun(@(x) any(strcmp(x.state,'FA') | strcmp(x.state,'FC')),tracksNA);
+        % Have to think about having to start with NA state, and FC vs. FA
+        
+        indNonDecayingG2 = disassemRateAll>thresDisassemRateG1 | isnan(disassemRateAll);
+%         indNonDecayingG2 = disassemRateAll<thresDisassemRateG1 | isnan(disassemRateAll);
+        indLateMaxPointG2 = relMaxPoints>thresRelMax;
+        
+        % Also, G2's max point should be higher than that of G1
+        meanIntenG1 = mean(maxIntenAll(indAbsoluteG1));
+        stdIntenG1 = std(maxIntenAll(indAbsoluteG1));
+        indHighEnoughMaxAmp = maxIntenAll>(meanIntenG1+0.2*stdIntenG1);
+        
+        % At the same time, G2 should start from a decently low amplitude
+        % as in G1
+        initIntenAll = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA);
+        initIntenG1 = initIntenAll(indAbsoluteG1);
+        indInitIntenG2 = initIntenAll<(mean(initIntenG1)+0.5*std(initIntenG1));
+        
+        indAbsoluteG2G1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
+            indCleanRisingG1G2 & indNonDecayingG2 & faAssocAll & indLateMaxPointG2 & indInitIntenG2;
+        additionalG1 = indAbsoluteG2G1 & ~indHighEnoughMaxAmp;
+        indAbsoluteG2 = indAbsoluteG2G1 & indHighEnoughMaxAmp;
+        
+        % Inspect each (temporary)
+        indexG2 = find(indAbsoluteG2); 
+        indexG1 = [indexG1; find(additionalG1)];
+%         figure; hold on
+%         for mm=indexG2'
+% %             plot(tracksNA(mm).ampTotal)
+%             plot(tracksNA(mm).forceMag)
+%         end
+        
+%         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
+        % G3
+        thresEdgeVelG3 = quantile(edgeVelAll,0.75);
+        indEdgeVelG3 = edgeVelAll>thresEdgeVelG3;
+        indRelEdgeVelG3 = distToEdgeVelAll<2*thresRelEdgeVel;
+        earlyEdgeVelAll = arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))',(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))'), tracksNA);
+        indEarlyEdgeVelG3 = earlyEdgeVelAll>0.3*thresEdgeVelG3;
+        
+        adhVelAll=arrayfun(@(x) regress(x.advanceDist(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        thresAdhVelG3 = max(0.001,mean(adhVelAll)+0*std(adhVelAll));
+        indForwardVelG3 = adhVelAll>thresAdhVelG3;
+        
+        indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2 & indForwardVelG3 & indEarlyEdgeVelG3;
+        indexG3 = find(indAbsoluteG3); 
+        
+        % G4 - retracting, strong FAs
+        thresEdgeVelG4 = quantile(edgeVelAll(edgeVelAll<0),0.3);
+        indEdgeVelG4 = edgeVelAll<thresEdgeVelG4;
+        indAbsoluteG4 = indEdgeVelG4 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2 & faAssocAll;
+        indexG4 = find(indAbsoluteG4); 
+        
+        % G5 - stable at the edge
+        % edge doesn't move much
+        posEdgeVel = edgeVelAll(edgeVelAll>=0);
+        negEdgeVel = edgeVelAll(edgeVelAll<=0);
+        lowPosEVel = quantile(posEdgeVel,0.1);
+        lowNegEVel = -quantile(negEdgeVel,0.8);
+        thresEdgeVelG5 = (lowPosEVel+lowNegEVel)/2;
+        indEdgeVelG5 = abs(edgeVelAll)<thresEdgeVelG5;
+        
+        thresEdgeStdG5 = quantile(edgeStdAll,0.1);
+        indEdgeStdG5 = edgeStdAll<thresEdgeStdG5;
+        % long life time
+        thresLifetimeG5 = quantile(lifeTimesAll,0.75);
+        indLifetimeG5 = lifeTimesAll>thresLifetimeG5;
+        % high-enough intensity
+        meanAmpAll = arrayfun(@(y) nanmean(y.ampTotal), tracksNA);
+        maxMeanAmp = max(meanAmpAll);
+        meanAmpNorm = meanAmpAll/maxMeanAmp;
+        try
+            thresMeanAmpNorm = graythresh(meanAmpNorm);
+            thresMeanAmp = thresMeanAmpNorm*maxMeanAmp;
+        catch
+            thresMeanAmp = mean(meanAmpAll)+0.5*std(meanAmpAll);
+        end
+        indHighAmpG5 = meanAmpAll>thresMeanAmp;
+        indAbsoluteG5 = indEdgeVelG5 & indEdgeStdG5 & indLifetimeG5 & indHighAmpG5;
+        indexG5 = find(indAbsoluteG5); 
+        
+        % G6 : noise. There are several types of noises, or uninterested
+        % tracks
+        % G6-1. too short tracks or tracks that are unfinished
+        thresShortLifeG6 = min(7, quantile(lifeTimesAll,0.1));
+        indShortLifeG6 = lifeTimesAll<=thresShortLifeG6;
+        % G6-2. amplitude too small
+        lowAmpPopul = meanAmpAll(meanAmpAll<thresMeanAmp);
+        thresLowAmpG6 = mean(lowAmpPopul)-0.3*std(lowAmpPopul);
+        indLowAmpG6 = meanAmpAll<thresLowAmpG6;
+        % G6-3. OR, tracks near the image borders (zero edge movement or std
+        % I am not sure if assigning two differently positioned labels work
+        % for classification - so I'll do this later after classification
+        indAbsoluteG6 = indShortLifeG6 & indLowAmpG6;
+        indexG6 = find(indAbsoluteG6); 
+        
+        % G7 NAs at stalling edge: big difference from G5 is that it has
+        % some early history of edge protrusion & relative weak signal
+        % (ampTotal)
+        edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.edgeAdvanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
+        indLastAdvanceG7 = edgeAdvanceDistLastChangeNAs<max(0.01, mean(edgeAdvanceDistLastChangeNAs));
+
+        thresEdgeVelG7 = quantile(edgeVelAll(edgeVelAll>0),0.1);
+        indEdgeVelG7 = earlyEdgeVelAll > thresEdgeVelG7;
+        indLowAmpG7 = meanAmpAll < thresMeanAmp;
+        
+        indAbsoluteG7 = indLastAdvanceG7 & indEdgeVelG7 & indRelEdgeVelG3 & indLowAmpG7;
+        indexG7 = find(indAbsoluteG7); 
+        
+        % G8 strong inside FAs
+        distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+        indInsideG8G9 = distToEdgeAll > thresStartingDistG1G2;        
+        indAbsoluteG8 = indHighAmpG5 & indInsideG8G9 & indLifetimeG5;
+        indexG8 = find(indAbsoluteG8); 
+        
+        % G9 weak inside NAs
+        indMinLifeG9 = lifeTimesAll>2*thresShortLifeG6;
+        indAbsoluteG9 = indLowAmpG7 & indInsideG8G9 & indMinLifeG9;
+        indexG9 = find(indAbsoluteG9); 
+
+        % Putting together integrated labels
+        idTracksAdditionalAuto = [indexG1' indexG2' indexG3' indexG4' indexG5' indexG6' indexG7' indexG8' indexG9'];
+        iGroupAdditionalAuto = [1*ones(size(indexG1')) 2*ones(size(indexG2')) 3*ones(size(indexG3')) ...
+            4*ones(size(indexG4')) 5*ones(size(indexG5')) 6*ones(size(indexG6')) ...
+            7*ones(size(indexG7')) 8*ones(size(indexG8')) 9*ones(size(indexG9'))]; % On top of this, we can definitely add other group samples
+        
+        idTracksAdditionalManual=[]; iGroupAdditionalManual=[]; % I decided to remove this manual selection because it takes forever - 052517
+%         [idTracksAdditionalManual, iGroupAdditionalManual] = showAdhesionTracks(pathForColocalization,'all',...
+%             'tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD, 'autoIndex', [idTracksAdditionalAuto; iGroupAdditionalAuto]);
+
 %         [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'trainedData',T,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
-        [idTracksAdditional, iGroupAdditional] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
-%         idTracks = [idTracks idTracksAdditional];
-%         iGroup = [iGroup iGroupAdditional];
+        idTracksAdditional = [idTracksAdditionalAuto idTracksAdditionalManual];
+        iGroupAdditional = [iGroupAdditionalAuto iGroupAdditionalManual];
+
         [idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,...
             idGroup7Selected,idGroup8Selected,idGroup9Selected] = ...
             sortIDTracks(idTracksAdditional,iGroupAdditional);
@@ -409,7 +633,7 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
 %         [curT,allData,meas] = extractFeatureNA(tracksNA,idGroupSelected,2,MD);
 %         T=[T; curT];
     else
-        display('Click tracks that belong to each group ...')
+        disp('Click tracks that belong to each group ...')
     %     newTracksNA=tracksNA(~idxMatureNAs);
     %     idNAs = find(~idxMatureNAs);
         [idTracks, iGroup] = showAdhesionTracks(pathForColocalization,'all','tracksNA',tracksNA,'iChan',iChan,'iChanSlave',iChanSlave,'movieData',MD);
@@ -450,7 +674,7 @@ end
 % features = meas;
     
 %% classifier training or import
-useDefinedClassifier=input('Do you want to use already defined classifier? [y/(n)]: ','s');
+useDefinedClassifier='n'; %input('Do you want to use already defined classifier? [y/(n)]: ','s');
 if isempty(useDefinedClassifier)
     useDefinedClassifier='n';
 end
@@ -523,32 +747,32 @@ if strcmp(useDefinedClassifier,'n')
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
     savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
     print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
-    while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
-        disp('Validation accuracy was low. Group reduction is needed.')
-        interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
-        % Re-formatting T with interestedGroups...
-        idGroupFiltered = idGroupSelected;
-        idGroupFiltered(setdiff(1:9,interestedGroups))={[]};
-        [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered,2,MD);
-        [trainedClassifier, validationAccuracy, C, order] = trainClassifierNA(T);
-        disp(['New validation accuracy is ' num2str(validationAccuracy) '.'])
-        % normalize confusion matrix
-        for ii=1:size(C,1)
-            C(ii,:) = C(ii,:)/sum(C(ii,:));
-        end
-        response = T.Group;
-        % Get the unique resonses
-        totalGroups = unique(response);
-        
-        figure; confAxis=axes; imagesc(C); title(['Confusion Matrix: Validation accuracy: ' num2str(validationAccuracy)])
-        set(confAxis,'xticklabel',totalGroups')
-        set(confAxis,'yticklabel',totalGroups')
-        c = colorbar;
-        c.Label.String = 'normalized prediction';
-        print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
-        savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
-        print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
-    end
+%     while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
+%         disp('Validation accuracy was low. Group reduction is needed.')
+%         interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
+%         % Re-formatting T with interestedGroups...
+%         idGroupFiltered = idGroupSelected;
+%         idGroupFiltered(setdiff(1:9,interestedGroups))={[]};
+%         [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered,2,MD);
+%         [trainedClassifier, validationAccuracy, C, order] = trainClassifierNA(T);
+%         disp(['New validation accuracy is ' num2str(validationAccuracy) '.'])
+%         % normalize confusion matrix
+%         for ii=1:size(C,1)
+%             C(ii,:) = C(ii,:)/sum(C(ii,:));
+%         end
+%         response = T.Group;
+%         % Get the unique resonses
+%         totalGroups = unique(response);
+%         
+%         figure; confAxis=axes; imagesc(C); title(['Confusion Matrix: Validation accuracy: ' num2str(validationAccuracy)])
+%         set(confAxis,'xticklabel',totalGroups')
+%         set(confAxis,'yticklabel',totalGroups')
+%         c = colorbar;
+%         c.Label.String = 'normalized prediction';
+%         print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
+%         savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
+%         print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
+%     end
     
     T = sortrows(T,size(T,2));
     features =table2array(T(:,1:end-1));
@@ -579,7 +803,7 @@ if strcmp(useDefinedClassifier,'n')
         rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
     end
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
-    savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
+%     savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
     print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.tif'])
 
     Dfeats = pdist(features');
@@ -589,7 +813,7 @@ if strcmp(useDefinedClassifier,'n')
     c.Label.String = 'p-dist';
 
     print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.eps']);
-    savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongFeatures.fig'])
+%     savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongFeatures.fig'])
     print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.tif'])
     [~,allData] = extractFeatureNA(tracksNA,[],2,MD);
     

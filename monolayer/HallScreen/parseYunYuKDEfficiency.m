@@ -19,7 +19,11 @@ function [] = parseYunYuKDEfficiency(dbFname,kdEfficiencyTH)
 % kdEfficiencyTH = 50;
 
 if nargin == 0
-    dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/GEFScreenFinal20160526_RHOA.xlsx';
+    dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/ShefaliRevision201612_RhoC.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612_RhoC3/ShefaliRevision201612_RhoC_Hairpin3.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data201612_shefali/ShefaliRevision201612All.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20161215_shefali/ShefaliRevision20161215.xlsx';
+    %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/GEFScreenFinal20160526_RHOA.xlsx';
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll20160523/GEFProjectAll20160523.xlsx';
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20160523/YunYuFollowup20160523_AZ.xlsx';
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200/GEFScreenFinal20160526.xlsx';
@@ -28,8 +32,8 @@ if nargin == 0
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd0time200/GEFScreenFinal20160513.xlsx';
     %     dbFname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160314/YunYuValidationData20160314.xlsx';
     
-    %     kdEfficiencyTH = 0;
-    kdEfficiencyTH = 50;
+        kdEfficiencyTH = 0;
+    %     kdEfficiencyTH = 50;
 else
     if nargin < 2
         kdEfficiencyTH = -inf;

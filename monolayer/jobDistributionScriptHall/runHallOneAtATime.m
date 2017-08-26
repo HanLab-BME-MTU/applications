@@ -29,7 +29,8 @@ initParams.always = false; % TEMPORARY!
 % mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160201/';
 % mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160314/';
 % mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160523/';
-mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/';
+% mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/';
+mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data201612_shefali/';
 
 % load([mainDirname 'GTPasesScreenMetaData20140121_new.mat']); % exps
 % load([mainDirname 'GTPasesScreenMetaData20140401_new.mat']); % exps
@@ -49,7 +50,8 @@ mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/';
 % load([mainDirname 'YunYuValidationData20160202_AZ_0215_kd0']);
 % load([mainDirname 'YunYuValidationData20160314_kd0.mat']);
 % load([mainDirname 'YunYuFollowup20160523_AZ_kd0.mat']);
-load([mainDirname 'GEFProjectAll20160523_kd0.mat']);
+% load([mainDirname 'GEFProjectAll20160523_kd0.mat']);
+load([mainDirname 'ShefaliRevision201612All_kd0.mat']);
 
 if ind > length(metaData.fnames)
     fprintf(sprintf('Number of experiments %d < index %d\n',length(metaData.fnames), ind));

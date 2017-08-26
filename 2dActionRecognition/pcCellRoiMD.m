@@ -1,6 +1,7 @@
 %% pcCellRoiMD - calculates rough ROI mask for single cells
-% Uses Otsu on the detected cell region (on a larger FOV!)
+% Uses Otsu on the detected cell region (on a larger FOV with default radius of 120um)
 % saves a file per cell
+% Does not perform well!
 
 function [] = pcCellRoiMD(MD,params,dirs)
 
@@ -52,7 +53,7 @@ for icell = 1 : nCells
             I = MD.getChannel(1).loadImage(curT);
             
             bby0 = max(1,curY - params.RoiRadius);
-            bby1 = min(size(scores,1),curY + params.RoiRadius);
+            bby1 = min(size(scores,1),curY + params.RoiRadius); % RoiRadius = 120 um
             bbx0 = max(1,curX - params.RoiRadius);
             bbx1 = min(size(scores,2),curX + params.RoiRadius);
             

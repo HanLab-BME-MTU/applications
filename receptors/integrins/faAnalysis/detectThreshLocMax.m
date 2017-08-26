@@ -220,7 +220,7 @@ end
 
 % %estimate local background and noise statistics
 [bgMean,bgStd] = ...
-    spatialMovAveBG(imageNorm,imageSizeX,imageSizeY);
+    spatialMovAveBG(imageMinusBackgroundFiltered,imageSizeX,imageSizeY);
 
 % %estimate background/noise statistics %% This was added BACK, TONY
 % % bgIntDistr = imageMinusBackgroundFiltered(~maskBlobs);
@@ -489,9 +489,9 @@ rp2Intensity = Vq;
 rp2Size = 13.*ones(length(Vq),1);
 % [lmIndR,lmIndC] = find(maskLocMax);
 % [IDX, ~]= knnsearch([lmIndR,lmIndC],testCoord,'K',1);
-% maskTest = zeros(imageSizeX,imageSizeY);
+maskTest = zeros(imageSizeX,imageSizeY);
 % % lmInd = sub2ind([350,350],lmIndR(IDX),lmIndC(IDX));
-% maskTest(subRInd) = 1;
+maskTest(subRInd) = 1;
 %     cc = connectedComponents.label2conncomp(maskTest);
 %     cc_dilated = connectedComponents.ccDilate(cc,strel('disk',2));
 % % SE = strel('disk',2);
@@ -500,46 +500,58 @@ rp2Size = 13.*ones(length(Vq),1);
 % % SE = strel('square',3);
 % % maskTestDil2 = imdilate(maskTest,SE);
 % % newMaskLM = (maskTestDil2.*maskLocMax);
-% SE = strel('disk',2);
-% maskTestDil = imdilate(maskTest,SE);
+SE = strel('disk',2);
+maskTestDil = imdilate(maskTest,SE);
 % %-------------------------------
-% wsInput = imimposemin(imageQ, logical(maskTest));
-% wsInput(~maskTestDil) = Inf;
-% wsOutput = watershed(wsInput);
-% wsOutputNoBg = immultiply(wsOutput,logical(maskTestDil));
-% BW2 = logical(wsOutputNoBg);
-% rp2 = regionprops(BW2,imageMinusBackgroundFiltered,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
-%Geting information from single Mask Blob features
-
-%Create new mask, dilate to PSF around LM
-linearInd = sub2ind(size(image),testArrayS(:,1),testArrayS(:,2));
-maskLMS = zeros(imageSizeX,imageSizeY);
-maskLMS(linearInd) = 1;
 imageQ = imcomplement(image);
-maskLMSDil = imdilate(maskLMS,SE);
-maskSingLM = logical(maskSingLM+maskLMSDil);
-wsInput = imimposemin(imageQ, logical(maskLMS));
-wsInput(~maskSingLM) = Inf;
+wsInput = imimposemin(imageQ, logical(maskTest));
+wsInput(~maskTestDil) = Inf;
 wsOutput = watershed(wsInput);
-wsOutputNoBg = immultiply(wsOutput,logical(maskSingLM));
-BW3 = logical(wsOutputNoBg);
-% BW3 = BW3 + maskMyst;
-rp3 = regionprops(BW3,image,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+wsOutputNoBg = immultiply(wsOutput,logical(maskTestDil));
+BW2 = logical(wsOutputNoBg);
+rp2 = regionprops(BW2,imageMinusBackgroundFiltered,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+%Geting information from single Mask Blob features
+if countS > 1
+    %Create new mask, dilate to PSF around LM
+    linearInd = sub2ind(size(image),testArrayS(:,1),testArrayS(:,2));
+    maskLMS = zeros(imageSizeX,imageSizeY);
+    maskLMS(linearInd) = 1;
+    imageQ = imcomplement(image);
+    maskLMSDil = imdilate(maskLMS,SE);
+    maskSingLM = logical(maskSingLM+maskLMSDil);
+    wsInput = imimposemin(imageQ, logical(maskLMS));
+    wsInput(~maskSingLM) = Inf;
+    wsOutput = watershed(wsInput);
+    wsOutputNoBg = immultiply(wsOutput,logical(maskSingLM));
+    BW3 = logical(wsOutputNoBg);
+    % BW3 = BW3 + maskMyst;
+    rp3 = regionprops(BW3,image,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+end
 % testSizeInfo(subR,1) = vertcat(rp2.MeanIntensity);
 % testSizeInfo(subR,2) = vertcat(rp2.Area);
 
 clear fixedTestArray
 % dispCentroid = round(vertcat(rp.Centroid));
-if ~isempty(indxVar)
+if ~isempty(indxVar) && countS >1
 finalPositions = [vertcat(rp.WeightedCentroid);vertcat(rp3.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
 finalSize = [vertcat(rp.MeanIntensity),vertcat(rp.Area);vertcat(rp3.MeanIntensity),vertcat(rp3.Area);rp2Intensity,rp2Size];
 finalEccentricity = [vertcat(rp.Eccentricity);vertcat(rp3.Eccentricity);ones(size(testCoordOrg,1),1)];
-pixelPos(:,1) = {rp.PixelIdxList,rp3.PixelIdxList,subRInd};
-else
+pixelPos(:,1) = {rp.PixelIdxList,rp3.PixelIdxList,rp2.PixelIdxList};
+elseif countS >1
  finalPositions = [vertcat(rp3.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
  finalSize = [vertcat(rp3.MeanIntensity),vertcat(rp3.Area);rp2Intensity,rp2Size];
  finalEccentricity = [vertcat(rp3.Eccentricity);ones(size(testCoordOrg,1),1)]; 
- pixelPos(:,1) = {rp3.PixelIdxList,subRInd};
+ pixelPos(:,1) = {rp3.PixelIdxList,rp2.PixelIdxList};
+elseif ~isempty(indxVar)
+   finalPositions = [vertcat(rp.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
+    finalSize = [vertcat(rp.MeanIntensity),vertcat(rp.Area);rp2Intensity,rp2Size];
+    finalEccentricity = [vertcat(rp.Eccentricity);ones(size(testCoordOrg,1),1)];
+    pixelPos(:,1) = {rp.PixelIdxList,rp2.PixelIdxList};
+else
+   finalPositions = [testCoordOrg(:,2),testCoordOrg(:,1)];
+    finalSize = [rp2Intensity,rp2Size];
+    finalEccentricity = ones(size(testCoordOrg,1),1);
+    pixelPos(:,1) = {rp2.PixelIdxList};    
 end
 localMaxPosZ = zeros(length(finalPositions),1); %Find better way to ignore axis
 varPosX = 0.5*ones(length(finalPositions),1);
