@@ -10,6 +10,8 @@ function mapDescriptives_OneChan(MD, iChan, maxLayer, chanName, chanTitle, figur
 % Input:
 %       MD          - movieData object
 %       iChan       - channel index
+%                     iChan = 1x indicates the differenced map (X_t =
+%                     X_{t-1}) of channel x.
 %       maxLayer    - maximum layer to which activity maps are drawn
 %       chanName    - a short name for the channel. eg. 'Actin'
 %       chanTitle   - a more detailed name for the channel
@@ -38,7 +40,8 @@ function mapDescriptives_OneChan(MD, iChan, maxLayer, chanName, chanTitle, figur
 %       subFrames
 %                   - specified frames will be only used.        
 %
-% Updated: Jungsik Noh, 2017/05/23
+% Updated: J Noh, 2017/08/26. To deal with differenced channels. 
+% Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/18
 
 
@@ -53,6 +56,7 @@ ip.addParameter('numPerm', 1000);
 ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
 ip.addParameter('subFrames', []);
+
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -75,7 +79,8 @@ disp(chanTitle)
 
 [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
         = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, ...
-            'WithN', p.WithN, 'omittedWindows', p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames); 
+            'WithN', p.WithN, 'omittedWindows', p.omittedWindows, ...
+            'Folding', p.Folding, 'subFrames', p.subFrames);
         
 
         
@@ -403,7 +408,10 @@ if p.adf == 1
     for indL = 1:maxLayer
 
         mapName = [chanName, '-', num2str(indL), 'L'];
-        [pvec{indL}, adfMap{indL}] = nanAdfTestMap(imActmap{indL}, mapName, 0.8);
+        % 2017.8 p.derivative
+        mapForAdf = imActmap{indL}(:, ~all(isnan(imActmap{indL})));
+        
+        [pvec{indL}, adfMap{indL}] = nanAdfTestMap(mapForAdf, mapName, 0.8);
 
     end
 

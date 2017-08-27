@@ -11,6 +11,8 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 % Input:
 %       MD          - a movieData object
 %       iChan       - a channel index. If 0, the edge velocity is analyzed.
+%                     iChan = 1x indicates the differenced map (X_t =
+%                     X_{t-1}) of channel x.
 %       maxLayer    - maximum layer to be analyzed
 %
 % Output:
@@ -40,7 +42,8 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 %       subFrames
 %                   - specified frames will be only used.        
 %
-% Updated: Jungsik Noh, 2017/05/23
+% Updated: J Noh, 2017/08/26, To deal with differenced channels. 
+% Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/24
 
 
@@ -51,6 +54,7 @@ ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
 ip.addParameter('subFrames', []);
 
+
 parse(ip, varargin{:});
 p = ip.Results;
 
@@ -58,13 +62,22 @@ p = ip.Results;
 %%  getting Maps from channels (0 indicates the edge velocity)
 
 disp(['==== Channel index: ', num2str(iChan), ' ===='])
+
+% 2017/08 p.derivative
+p.derivative = (iChan >= 10);
+mdChan = mod(iChan, 10);
+
+%fnameChan = double(p.derivative)*10 + iChan;
+%fname0 = ['Chan', num2str(fnameChan)];
+
 fname0 = ['Chan', num2str(iChan)];
 disp(fname0)
+
 MDpixelSize_ = MD.pixelSize_;
 MDtimeInterval_ = MD.timeInterval_; 
 
 % velmap
-if iChan == 0
+if mdChan == 0
 
     indPSP = MD.getProcessIndex('ProtrusionSamplingProcess');
     PSP = MD.getProcess(indPSP);
@@ -107,7 +120,7 @@ elseif p.WithN == true
     inFilePaths = fullfile(samplingWithNDirectory_, fname);
     load(inFilePaths, 'allSamplesWithN');
 
-actmap = allSamplesWithN(iChan).avg;    
+actmap = allSamplesWithN(mdChan).avg;    
     
     disp('size of activity map')
     size(actmap)  
@@ -122,7 +135,7 @@ else
 
     indWSP = MD.getProcessIndex('WindowSamplingProcess');
     WSP = MD.getProcess(indWSP);
-    WSPresult = WSP.loadChannelOutput(iChan);  % Set channel of  ...
+    WSPresult = WSP.loadChannelOutput(mdChan);  % Set channel of  ...
     actmap = WSPresult.avg;                    % actmap > rawActmap, actmap_outl, imActmap
 
     disp('size of activity map')
@@ -134,6 +147,23 @@ else
     wmax = WP.nSliceMax_;
     tmax = MD.nFrames_;
 
+end
+
+
+%% p.derivative option
+
+if (p.derivative == true)
+    actmap2 = actmap;
+    for l = 1:maxLayer
+        tmp = squeeze(actmap(:, l, :));
+        difftmp = diff(tmp, [], 2);   % time-wise difference operation
+        actmap2(:,l,:) = [nan(size(actmap, 1), 1), difftmp];
+    end
+    actmap = actmap2;
+
+    if iChan == 10
+        actmap = actmap ./ MDtimeInterval_;
+    end
 end
 
 
