@@ -33,9 +33,11 @@ K_jump_estimate = xgd(:,:,2-1) ./ d_p2rho_pm2_K ;
 
 % first = true;
 K_jump_estimate_above_threshold = true(size(maxima));
+warningState = warning('off','halleyft:maxIter');
 
 while(any(K_jump_estimate_above_threshold))
     s = K_jump_estimate_above_threshold;
+    fprintf('Finished with %2.1f%%\n',100*(1-sum(s)/numel(K_jump_estimate_above_threshold)));
     [K_jump_estimate_above_threshold(s),maxima(s),coords.K(s),K_jump_estimate(s),maxKdelta(s)] = doJumpIteration(response_hat(:,s), maxima(1,s), coords.K(s), K_jump_estimate(1,s), maxKdelta(1,s), Korg, K_jump_threshold, xg_change_threshold, D);
 
 %     invalid_K_jump_estimate = K_jump_estimate < 0;
@@ -85,6 +87,8 @@ while(any(K_jump_estimate_above_threshold))
     
 end
 
+warning(warningState);
+
 
 end
 
@@ -94,7 +98,7 @@ function [K_jump_estimate_above_threshold,maxima,K,K_jump_estimate,maxKdelta] = 
     Kg = max(Kg,0);
 %     K_jump = K - Kg;
     responseAtKg = getResponseAtOrderFT(response_hat,Korg,Kg);
-    [xg, xgd] = halleyft( responseAtKg, maxima,true,1);
+    [xg, xgd] = halleyft( responseAtKg, maxima,true,1,1e-12,2);
     xg(xgd(:,:,2) > 0) = NaN;
     xg_change = abs(xg - maxima);
     failed = isnan(xg); % | min(xg_change,2*pi-xg_change) > xg_change_threshold;
@@ -113,7 +117,7 @@ function [K_jump_estimate_above_threshold,maxima,K,K_jump_estimate,maxKdelta] = 
     invalid_K_jump_estimate = K_jump_estimate < 0;
     K_jump_estimate(invalid_K_jump_estimate) = maxKdelta(invalid_K_jump_estimate);
 %     K_jump_estimate_above_threshold = K_jump_estimate(:) > K_jump_threshold;
-    K_jump_estimate_above_threshold = (K_jump > K_jump_threshold | succeeded) & K > 0;
+    K_jump_estimate_above_threshold = (K_jump > K_jump_threshold | succeeded) & K > 0; % | abs(xgd(:,:,2)) > 1;
 end
 
 function responseAtOrder = getResponseAtOrderFT(response_hat,Korg,Kg)
