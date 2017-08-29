@@ -1,16 +1,25 @@
 function [ xg, Kg ] = newtonBPproto( R, n, coords , xg, Kg)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
+%newtonBPproto Prototype Newton bifurcation finder
+
+assert(isvector(xg));
+assert(~isnan(xg));
 
 import orientationSpace.diffusion.*;
 
-out = interpft_extrema(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),8:-0.01:1)); out = orientationSpace.diffusion.alignExtrema(out);
-figure; plot(8:-0.01:1,out.');
+Kplot = 8:-0.01:1;
+out = interpft_extrema(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kplot)); out = orientationSpace.diffusion.alignExtrema(out);
+[outdmax,outdmin,~,~,outdother] = interpft_extrema(R.getDerivativeResponseAtPoint(coords.r(n),coords.c(n),1,Kplot));
+outdmax = orientationSpace.diffusion.alignExtrema(outdmax);
+outdmin = orientationSpace.diffusion.alignExtrema(outdmin);
+figure; plot(Kplot,out.');
+hold on;
+plot(Kplot,outdmax,'k');
+plot(Kplot,outdmin,'k');
+plot(Kplot,outdother,'ko');
 title(sprintf('Local maxima trace for r=%d, c=%d, m=%d',coords.r(n),coords.c(n),coords.m(n)));
 xlabel('K');
 ylabel('2\theta (Orientation, radians)');
 out(:,1:3);
-hold on
 grid on
 plot(Kg,xg,'ko');
 
