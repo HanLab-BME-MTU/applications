@@ -394,6 +394,12 @@ classdef OrientationSpaceResponse < handle
                 Response = Response.getResponseAtOrderFT(order,normalize);
             end
         end
+        function response = getDerivativeResponseAtPoint(obj,r,c,deriv,order)
+            response = obj.getResponseAtOrderFTatPoint(r,c,order);
+            nFreq = (obj.n-1)/2;
+            freq = [0:nFreq -nFreq:-1];
+            response = ifft(bsxfun(@times,fft(real(response)),(shiftdim(freq,1)*1i).^deriv));
+        end
         function response = getResponseAtOrderFTatPoint(obj,r,c,K_new)
             % Get response at a lower order using Fourier Transform at a particular point
             % INPUT
