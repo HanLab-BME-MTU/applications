@@ -7,6 +7,7 @@ assert(~isnan(xg));
 import orientationSpace.diffusion.*;
 
 Kplot = 8:-0.01:1;
+if(isempty(get(groot,'CurrentFigure')) || ~ishold)
 out = interpft_extrema(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kplot)); out = orientationSpace.diffusion.alignExtrema(out);
 [outdmax,outdmin,~,~,outdother] = interpft_extrema(R.getDerivativeResponseAtPoint(coords.r(n),coords.c(n),1,Kplot));
 outdmax = orientationSpace.diffusion.alignExtrema(outdmax);
@@ -21,6 +22,7 @@ xlabel('K');
 ylabel('2\theta (Orientation, radians)');
 out(:,1:3);
 grid on
+end
 plot(Kg,xg,'ko');
 
 dnK_dmn(:,:,1) = 1;
@@ -74,10 +76,10 @@ K_jump_estimate3 = d_p2rho_pm2_K./d2_p2rho_pm2_K2;
 if(d2_p2rho_pm2_K2 < 0 && K_jump_estimate > jump_threshold)
     K_jump_estimate = jump_threshold;
 end
-if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0)
+if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0 && ~(K_jump_estimate3 >= 0))
 % if(true)
     disp('Theta Derivative based jump');
-    [~,dtn_dnm,dnK_dmn] = orientationMaximaTimeDerivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),Kg,3,xg,2*pi,false);
+    [~,dtn_dnm,dnK_dmn] = orientationMaximaTimeDerivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),Kg,4,xg,2*pi,false);
     xg_newton = dnK_dmn(:,:,1)./dnK_dmn(:,:,2);
     xg_halley = 2*dnK_dmn(:,:,1).*dnK_dmn(:,:,2)./(2*dnK_dmn(:,:,2).^2-dnK_dmn(:,:,1).*dnK_dmn(:,:,3));
     if(abs(xg_newton) < abs(xg_halley))
@@ -88,11 +90,12 @@ if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0)
         plot([Kold Kold],[xold xg],'r--');
     end
 %      2*v.*vd./(2*vd.^2-v.*vdd);
-    Kgpd = (xg-xold).*dnK_dmn(:,:,1)+(xg-xold).^2.*dnK_dmn(:,:,2)/2+(xg-xold).^3.*dnK_dmn(:,:,3)/6;
+    Kgpd = (xg-xold).*dnK_dmn(:,:,1)+(xg-xold).^2.*dnK_dmn(:,:,2)/2+(xg-xold).^3.*dnK_dmn(:,:,3)/6+(xg-xold).^4.*dnK_dmn(:,:,4)/24;
     Kg = NaN;
     if(Kgpd < 0 && abs(Kgpd) < 1)
         test = linspace(xold,xg,100);
-        plot(Kold+(test-xold)*dnK_dmn(:,:,1)+(test-xold).^2*dnK_dmn(:,:,2)/2+(test-xold).^3*dnK_dmn(:,:,3)/6,test,'g:');
+        Ktest = Kold+(test-xold)*dnK_dmn(:,:,1)+(test-xold).^2*dnK_dmn(:,:,2)/2+(test-xold).^3*dnK_dmn(:,:,3)/6+(test-xold).^4.*dnK_dmn(:,:,4)/24;
+        plot(Ktest,test,'g:');
         Kg = halleyK(xg,Kold+Kgpd,R,coords.r(n),coords.c(n));
         plot([Kold Kold+Kgpd],[xg xg],'y:');
         plot([Kold+Kgpd Kg],[xg xg],'m:');
