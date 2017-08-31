@@ -13,7 +13,7 @@ end
 
 D = 2*pi.^2;
 K_jump_threshold = 0.1;
-xg_change_threshold = pi/6;
+xg_change_threshold = pi/12;
 maxKdelta = 4;
 Korg = coords.K(1);
 response_hat = fft(response);
