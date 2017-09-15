@@ -398,6 +398,7 @@ classdef OrientationSpaceResponse < handle
             response = obj.getResponseAtOrderFTatPoint(r,c,order);
             nFreq = (obj.n-1)/2;
             freq = [0:nFreq -nFreq:-1];
+            deriv = shiftdim(deriv,-1);
             response = ifft(bsxfun(@times,fft(real(response)),(shiftdim(freq,1)*1i).^deriv));
         end
         function response = getResponseAtOrderFTatPoint(obj,r,c,K_new)
