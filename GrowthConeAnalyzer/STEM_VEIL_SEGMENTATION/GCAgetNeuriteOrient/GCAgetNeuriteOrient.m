@@ -191,6 +191,15 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
 if ip.Results.TSOverlays == true
     figCount = 1; % initiate counting of figure - makes easier if user wants to add
     % more figures later for troubleshooting if make generic.
+    % set up colors
+    cMap = brewermap(2,'paired');
+    blue = cMap(2,:);
+    
+    % plot the alignment mask
+    cDark = brewermap(2,'Dark2');
+    orange = cDark(2,:);
+    green = cDark(1,:);
+    
 else 
     TSFigs = []; 
 end
@@ -446,7 +455,9 @@ if ip.Results.TSOverlays == true
     hold on
     candidateSeeds = zeros(size(img));
     candidateSeeds(vertcat(CCBorderRidgeCandPixels{:})) = 1;
-    spy(candidateSeeds,'g'); % figure open 
+    [nyCand,nxCand] = ind2sub(size(img),vertcat(CCBorderRidgeCandPixels{:})); 
+%     spy(candidateSeeds,'g'); % figure open 
+    scatter(nxCand,nyCand,10,blue,'filled'); 
 end % ip.Results.TSOverlays
 %% Find the Best Entering Ridge Candidate
 
@@ -536,11 +547,13 @@ end % if isempty idxNeurite
 
 %% Optional TroubleShoot Plot IV: Candidate Ridge Seeds : NEURITE ENTRANCE SEED CHOSEN
 if ip.Results.TSOverlays == true
-    spy(backboneSeed,'r'); % plot the chosen backbone candidate
+    [nyBack,nxBack] = ind2sub(size(img),find(backboneSeed)); 
+    scatter(nxBack,nyBack,10,orange,'filled'); 
+%     spy(backboneSeed,'r'); % plot the chosen backbone candidate
     if linked == 1 ;
-        scatter(linkCoords(:,1),linkCoords(:,2),'y','filled');
+        scatter(linkCoords(:,1),linkCoords(:,2),10,cDark(2,:),'filled');
     end
-    scatter(xEnter,yEnter,'m','filled'); % plot the neurite entrance point
+    scatter(xEnter,yEnter,100,'k','Marker','*'); % plot the neurite entrance point
     %linked = 0; % reset
     %figCount = figCount+1; % figure closed
 end % if ip.Results.TSOverlays
