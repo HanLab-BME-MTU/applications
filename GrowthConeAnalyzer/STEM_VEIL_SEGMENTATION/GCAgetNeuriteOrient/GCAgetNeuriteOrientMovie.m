@@ -73,6 +73,8 @@ ip.CaseSensitive = false;
 
 % Specific
  ip.addParameter('TSOverlays',true,@(x) islogical(x));
+ ip.addParameter('screen2png',false); 
+ 
  ip.addParameter('BBScale',[5 6 7 8 9 10]);
  ip.addParameter('FilterOrderBB',4,@(x) ismember(x,[2,4]));
  ip.addParameter('MaxRadiusLargeScaleLink',10) ;
@@ -106,6 +108,7 @@ ip.parse(varargin{:});
 nFrames = movieData.nFrames_;
 nChan = numel(ip.Results.ChannelIndex);
 params = ip.Results; 
+
 
 %% Loop for each channel
 for iCh = 1:nChan
@@ -184,10 +187,19 @@ for iCh = 1:nChan
             type{2} = '.tif'; 
             
         if ~isempty(TSFigs)
-            for iType = 1:numel(type)
-            arrayfun(@(x) saveas(x.h,...
-                [saveDir filesep x.name filesep num2str(iFrame,'%03d') type{iType}]),TSFigs);   
-            end 
+            if ip.Results.screen2png
+                
+                arrayfun(@(x) helperScreen2png([saveDir filesep x.name filesep ...
+                    num2str(iFrame,'%03d') '.png'],'figureHandle',x.h),TSFigs);
+            else
+                
+                for iType = 1:numel(type)
+                    
+                    
+                    arrayfun(@(x) saveas(x.h,...
+                        [saveDir filesep x.name filesep num2str(iFrame,'%03d') type{iType}]),TSFigs);
+                end
+            end
         end 
             
         close all
