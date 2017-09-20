@@ -77,7 +77,10 @@ ip.CaseSensitive = false;
  
  ip.addParameter('BBScale',[5 6 7 8 9 10]);
  ip.addParameter('FilterOrderBB',4,@(x) ismember(x,[2,4]));
+ 
  ip.addParameter('MaxRadiusLargeScaleLink',10) ;
+ ip.addParameter('MaxDistNoGeoTerm',3); 
+ 
  ip.addParameter('ThreshNMSResponse',25); 
  ip.addParameter('MinCCRidgeBeforeConnect',3);
  ip.addParameter('MinCCRidgeAfterConnect',5);
