@@ -4,16 +4,21 @@ ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addParameter('package',[]);
 ip.addParameter('createROIs',false);
+ip.addParameter('packID',100);
+ip.addParameter('name',[]);
+ip.addParameter('forceRun',[]);
 ip.parse(varargin{:});
 p=ip.Results;
 
+forceRun=p.forceRun;
+
 % Process type placeholdes
-packPID=100;
+packPID=p.packID;
 % We save the temp processes at packID+1, that way if process get killed
 % halfway through, or other issues, the previous logs are not overidden but
 % the last computation location are still available.
 
-nFrames=min(200,MD.nFrames_);
+nFrames=min(300,MD.nFrames_);
 
 % Process type placeholder
 packPIDTMP=packPID+1;
@@ -33,20 +38,26 @@ MD.setPackage(packPIDTMP,GenericPackage({ ...
   }));
 
 lpid=0;
-    
+
 lpid=lpid+1;
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(lpid))))
-   processMIP=p.package.getProcess(lpid);
+    processMIP=p.package.getProcess(lpid);
+    if(~isempty(forceRun)&&forceRun(lpid))
+        processMIP.run();
+    end
 else
     processMIP=ComputeMIPProcess(MD);
     MD.addProcess(processMIP);
-    processMIP.run();    
+    processMIP.run();
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,processMIP);
 
 lpid=lpid+1;
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(lpid))))
-   processDetectAP2=p.package.getProcess(lpid);
+    processDetectAP2=p.package.getProcess(lpid);
+    if(~isempty(forceRun)&&forceRun(lpid))
+        processDetectAP2.run();
+    end
 else
     processDetectAP2=PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'AP2'],UTrackPackage3D.getDefaultDetectionParams(MD, [MD.outputDirectory_ filesep 'AP2']));
     MD.addProcess(processDetectAP2);
@@ -70,15 +81,15 @@ MD.getPackage(packPIDTMP).setProcess(lpid,processDetectAP2);
 lpid=lpid+1;
 if(~isempty(p.package)&&(~isempty(p.package.getProcess(lpid))))
     processTrack=p.package.getProcess(lpid);
+    if(~isempty(forceRun)&&forceRun(lpid))
+        processTrack.run();
+    end
 else
     processTrack=TrackingProcess(MD, [MD.outputDirectory_ filesep 'AP2'],UTrackPackage3D.getDefaultTrackingParams(MD,[MD.outputDirectory_ filesep 'AP2']));
     MD.addProcess(processTrack);    
     funParams = processTrack.funParams_;
-    [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=kinTrackingParam();
-    funParams.gapCloseParam=gapCloseParam;
-    funParams.costMatrices=costMatrices;
-    funParams.kalmanFunctions=kalmanFunctions;
-    funParams.probDim=probDim;
+    newFunParams=AP2TrackingParam();
+    F=fields(newFunParams); for fIdx=1:length(F) funParams.(F{fIdx})=newFunParams.(F{fIdx}); end;
     processTrack.setPara(funParams);
     paramsIn.ChannelIndex=1;
     paramsIn.DetProcessIndex=processDetectAP2.getIndex();
@@ -88,13 +99,19 @@ MD.getPackage(packPIDTMP).setProcess(lpid,processTrack);
 
 
 tic
-disp('MIP')
 lpid=lpid+1;
-processProj=ExternalProcess(MD,'rawProj');
-project1D(  MD, ...
-            'name','fullMIPNoManifold','channelRender','grayRed', ...
-            'processSingleProj',processProj,'processFrame',1:nFrames, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]); 
-toc;
+if(~isempty(p.package)&&(~isempty(p.package.getProcess(lpid))))
+    processProj=p.package.getProcess(lpid);
+    if(~isempty(forceRun)&&forceRun(lpid))
+        processProj.run();
+    end
+else
+    disp('MIP')
+    processProj=ExternalProcess(MD,'rawProj');
+    project1D(  MD, ...
+        'name','fullMIPNoManifold','channelRender','grayRed', ...
+        'processSingleProj',processProj,'processFrame',1:nFrames, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);
+end
 MD.getPackage(packPIDTMP).setProcess(lpid,processProj);
 
 
@@ -111,9 +128,9 @@ NColor=256;
 cMap=255*jet(NColor);
 cIdx=arrayfun(@(t) t.z(1),tracks);
 cIdx=ceil((NColor-1)*mat2gray(cIdx))+1;
-processOverlay=ExternalProcess(MD,'trackOverlay');
+processOverlay=ExternalProcess(MD,['track-depth' p.name]);
 overlayProjTracksMovie(processProj,'tracks',tracks, ... 
-            'colorIndx',cIdx,'colormap',cMap,'name','track-depth','process',processOverlay);
+            'colorIndx',cIdx,'colormap',cMap,'name',processOverlay.name_,'process',processOverlay);
 toc;
 MD.getPackage(packPIDTMP).setProcess(lpid,processOverlay);
 

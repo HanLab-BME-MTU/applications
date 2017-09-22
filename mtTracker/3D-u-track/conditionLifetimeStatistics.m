@@ -1,5 +1,11 @@
-function conditionLifetimeStatistics(processTrackCell,names,outputDirPlot)
-% load scoring data associated to cells. A Cell of process list describes the conditions
+function conditionLifetimeStatistics(processTrackCell,names,outputDirPlot,varargin)
+% load scoring daip = inputParser;
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addParameter('shade',true);
+ip.parse(varargin{:});
+p=ip.Results;
 
 if(~iscell(processTrackCell))
     processTrackCell={processTrackCell};
@@ -39,16 +45,27 @@ for cIdx=1:length(processTrackCell)
     uncutLifetimeCell{cIdx}=condUCLifetimeCell;
     maxIntensitiesCell{cIdx}=condMaxIntensitiesCell;
 end
+%% PLot maxIntensity vs Lifetime
+[Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',8,'DisplayMode','print','XSpace',[2 2 2 2],'YSpace',[2 2 2 2]);
+plotCumulLifetime(Handle,maxIntensitiesCell,uncutLifetimeCell)
+printPNGEPSFIG(F,outputDirPlot,'lifetimeVSMaxInt')
+
+
+%% Plot lft vs intensity for all celll
+[Handle,~,F]=setupFigure(length(maxIntensitiesCell),6,6*length(maxIntensitiesCell),'AxesWidth',10,'AxesHeight',8,'DisplayMode','print','XSpace',[3 3 3 3],'YSpace',[5 5 5 5]);
+plotCumulLifetimePerCell(Handle,maxIntensitiesCell,uncutLifetimeCell)
+printPNGEPSFIG(F,outputDirPlot,'lifetimeVSMaxiPerCell')
+
 %%
 toc
-[Handle,~,F]=setupFigure(3,9,27,'AxesWidth',10,'AxesHeight',8,'DisplayMode','print','XSpace',[3 3 3 3],'YSpace',[5 5 5 5]);
 
 %percs=[5 10 25 50 75 90 95];
 % percs=[50 55 60 65 70 75 80];
 % percs=[50 75 80 85 90];
 %percs=linspace(50,95,13);
-percs=linspace(1,70,10);
-
+percs=[0 10 45 50 55 60 70];
+nPlot=2+2*length(percs);
+[Handle,~,F]=setupFigure(ceil(nPlot/8),8,nPlot,'AxesWidth',30,'AxesHeight',16,'DisplayMode','print','XSpace',[10 10 10 10],'YSpace',[10 10 10 10]);
 thresholds=prctile(vertcat(maxIntensitiesCell{1}{:}),percs);
 
 c={'r','b','g','y','k'};
@@ -75,20 +92,51 @@ for cIdx=1:length(maxIntensitiesCell)
     vline(thresholds);
 end
 
+plotCumulLifetime(Handle(2),maxIntensitiesCell,uncutLifetimeCell)
+axes(Handle(2));
+hline(thresholds);
+
+%%
 for tIdx=1:length(thresholds)
-    thresholdUncutLifetimeCell=cell(1,length(lifetimeCell));
+    aboveThresholdUncutLifetimeCell=cell(1,length(lifetimeCell));
+    belowThresholdUncutLifetimeCell=cell(1,length(lifetimeCell));
 	for cIdx=1:length(maxIntensitiesCell)
 		for pIdx=1:length(maxIntensitiesCell{cIdx})
-		    thresholdUncutLifetimeCell{cIdx}{pIdx}=uncutLifetimeCell{cIdx}{pIdx}(maxIntensitiesCell{cIdx}{pIdx}>thresholds(tIdx));
+		    aboveThresholdUncutLifetimeCell{cIdx}{pIdx}=uncutLifetimeCell{cIdx}{pIdx}(maxIntensitiesCell{cIdx}{pIdx}>thresholds(tIdx));
+            belowThresholdUncutLifetimeCell{cIdx}{pIdx}=uncutLifetimeCell{cIdx}{pIdx}(maxIntensitiesCell{cIdx}{pIdx}<=thresholds(tIdx));
 		end
 	end
-   	displayCondLifetime(thresholdUncutLifetimeCell,names,outputDirPlot,Handle(2*tIdx:2*tIdx+1));
-    title(Handle(2*tIdx),[' IMax Thresh: ' num2str(thresholds(tIdx)) ', perc: ' num2str(percs(tIdx))]);
+   	displayCondLifetime([aboveThresholdUncutLifetimeCell belowThresholdUncutLifetimeCell],[names cellfun(@(n) [n ' < th.'],names,'unif',0)],outputDirPlot,Handle(2*tIdx+1:2*tIdx+2),p.shade);
+    title(Handle(2*tIdx+1),[' IMax Th.: ' num2str(thresholds(tIdx)) ', perc: ' num2str(percs(tIdx))]);
+end
+printPNGEPSFIG(F,outputDirPlot,'lifetime')
+
+%% scaling intensity
+scaling=cell(1,length(processTrackCell));
+scaledMaxIntensitiesCell=maxIntensitiesCell;
+for cIdx=1:length(scaling)
+    [scaling{cIdx}, offset, refIdx] = scaleEDFs(maxIntensitiesCell{cIdx}, 'Display', true,...
+        'FigureName', ['Ch. ' num2str(cIdx) ' max. intensity scaling']);
+    scaledMaxIntensitiesCell{cIdx}=arrayfun(@(i,s) (i{:})*s, scaledMaxIntensitiesCell{cIdx},scaling{cIdx},'unif',0);
 end
 
-function displayCondLifetime(lifetimeCell,names,outputDirPlot,Handles)
+for tIdx=1:length(thresholds)
+    aboveThresholdUncutLifetimeCell=cell(1,length(lifetimeCell));
+    belowThresholdUncutLifetimeCell=cell(1,length(lifetimeCell));
+    for cIdx=1:length(maxIntensitiesCell)
+        for pIdx=1:length(maxIntensitiesCell{cIdx})
+            aboveThresholdUncutLifetimeCell{cIdx}{pIdx}=uncutLifetimeCell{cIdx}{pIdx}(scaledMaxIntensitiesCell{cIdx}{pIdx}>thresholds(tIdx));
+            belowThresholdUncutLifetimeCell{cIdx}{pIdx}=uncutLifetimeCell{cIdx}{pIdx}(scaledMaxIntensitiesCell{cIdx}{pIdx}<=thresholds(tIdx));
+        end
+    end
+    displayCondLifetime([aboveThresholdUncutLifetimeCell belowThresholdUncutLifetimeCell],[names cellfun(@(n) [n ' < th.'],names,'unif',0)],outputDirPlot,Handle(2*tIdx+1:2*tIdx+2),p.shade);
+    title(Handle(2*tIdx+1),[' IMax Th.: ' num2str(thresholds(tIdx)) ', perc: ' num2str(percs(tIdx))]);
+end
+printPNGEPSFIG(F,outputDirPlot,'scaledLifetime')
+
+function displayCondLifetime(lifetimeCell,names,outputDirPlot,Handles,shade)
 c={'r','b','g','y','k'};
-scoresBin=3:130;
+scoresBin=3:1:140;
 lifetimeHistCell=cell(1,length(lifetimeCell));
 shadedHandles=[];
 hold on;
@@ -102,27 +150,62 @@ for cIdx=1:length(lifetimeCell)
 
 		lifetimeHistCell{cIdx}=[lifetimeHistCell{cIdx}; counts];
     end
-	if(size(lifetimeHistCell{cIdx},1)>1)
+	if((size(lifetimeHistCell{cIdx},1)>1))
         y=lifetimeHistCell{cIdx};
-       %% 
-       axes(Handles(1));
-       H=shadedErrorBar(scoresBin(1:end-1),(mean(y)),(std(y)),c{cIdx},1);
-       axes(Handles(2));
-       H=shadedErrorBar(scoresBin(1:end-1),log(mean(y)),log(std(y)),c{cIdx},1);
-       shadedHandles=[shadedHandles H];
+        if(shade)
+            %%
+            axes(Handles(1));
+            H=shadedErrorBar(scoresBin(1:end-1),(mean(y)),(std(y)),c{cIdx},1);
+            axes(Handles(2));
+            H=shadedErrorBar(scoresBin(1:end-1),log(mean(y)),log(std(y)),c{cIdx},1);
+            shadedHandles=[shadedHandles H];
+        else
+            plot(Handles(1),scoresBin(1:end-1),(mean(y)),[c{cIdx} '-']);
+            plot(Handles(2),scoresBin(1:end-1),(log(mean(y))),[c{cIdx} '-']);
+            shadedHandles=[shadedHandles Handles(2)];
+        end
     else
 	    plot(scoresBin(1:end-1),lifetimeHistCell{cIdx},[c{cIdx} '-']);
     end
 end
-lineToLegend=arrayfun(@(h) h.mainLine,shadedHandles,'unif',0);
-legend(Handles(1),[lineToLegend{:}],names);
-%ylim([0,4])
-%xlim([-pi/2+0.05,1.5]);
+if(shade)
+    lineToLegend=arrayfun(@(h) h.mainLine,shadedHandles,'unif',0);
+    legend(Handles(1),[lineToLegend{:}],names);
+else
+    legend(Handles(1),names);
+end
+ylim(Handles(1),[0,0.05]);
+xlim(Handles(1),[3,140]);
+xlim(Handles(2),[3,140]);
+
 xlabel('lft (s)');
 ylabel('Count')
 hold off;
-print([outputDirPlot  'lifetime.png'],'-dpng');
-print([outputDirPlot  'lifetime.eps'],'-depsc');
 
 
 
+function plotCumulLifetimePerCell(Handle,maxIntensitiesCell,uncutLifetimeCell)
+hold on
+for cIdx=1:length(maxIntensitiesCell)
+	for pIdx=1:length(maxIntensitiesCell{cIdx})
+		measure=(maxIntensitiesCell{cIdx}{pIdx});
+		lifetime=(uncutLifetimeCell{cIdx}{pIdx});
+	    scatter(Handle((cIdx-1)*6+pIdx),lifetime,measure);
+    end
+end
+xlabel('lifetime (f)')
+ylabel('Max Intensity (A.U.)')
+hold off
+
+function plotCumulLifetime(Handle,maxIntensitiesCell,uncutLifetimeCell)
+hold on
+for cIdx=1:length(maxIntensitiesCell)
+	for pIdx=1:length(maxIntensitiesCell{cIdx})
+		measure=(maxIntensitiesCell{cIdx}{pIdx});
+		lifetime=(uncutLifetimeCell{cIdx}{pIdx});
+	    scatter(Handle,lifetime,measure);
+    end
+end
+xlabel(Handle,'lifetime (f)')
+ylabel(Handle,'Max Intensity (A.U.)')
+hold off

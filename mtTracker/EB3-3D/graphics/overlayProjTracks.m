@@ -14,14 +14,18 @@ ip.parse(varargin{:});
   maxZBorder=ZLimit(2);
 
   %% Pnrint tracks on the projections
-  if(isempty(myColormap))
-    myColormap=[[0 0 255]; [0 255 00]];
-  end
 
   if(isempty(colorIndx))
-    colorIndx=ones(1,length(tracksInMask));
+%    colorIndx=floor(linspace(1,255,length(tracksInMask)));
+     colorIndx=ones(1,length(tracksInMask));
+  end
+  
+  if(isempty(myColormap))
+      myColormap=255*jet(length(unique(colorIndx)));
   end
 
+  
+  
   if(~isempty(tracksInMask))
     tracksXY=trackBinaryOverlay(XYProj,[minXBorder maxXBorder],[minYBorder maxYBorder],tracksInMask,fIdx,colorIndx,myColormap,varargin{:});
   else
