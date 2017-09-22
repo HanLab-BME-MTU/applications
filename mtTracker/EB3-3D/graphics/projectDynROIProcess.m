@@ -1,4 +1,4 @@
-classdef projectDynROIProcess < ComputeMIPProcess & NonSingularProcess
+classdef ProjectDynROIProcess < ComputeMIPProcess & NonSingularProcess
     methods
         function obj = projectDynROIProcess(owner, varargin)
             obj = obj@ComputeMIPProcess(owner, varargin{:});

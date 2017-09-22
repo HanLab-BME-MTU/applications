@@ -14,19 +14,19 @@ printMIP(MDCrop);
 toc;
 disp('projectDynROI equivalent');
 tic;
-processProj=projectDynROIProcess(MDCrop);
+processProj=ProjectDynROIProcess(MDCrop);
 projectDynROI(MDCrop,'processRenderer',processProj);
 toc; 
 figure();
 imshow(imread(sprintfPath(processProj.outFilePaths_{4},1)));
 
 %% Using a ROI
-processProj=projectDynROIProcess(MD);
+processProj=ProjectDynROIProcess(MD);
 ref=FrameOfRef().genCanonicalRef(5);
 [poleMovieInfo,tracks]=detectPoles(MDCrop,'isoOutput',true);
 ROI=tracks;
 
-processVolMask=projectDynROIProcess(MD);
+processVolMask=ProjectDynROIProcess(MD);
 tic;
 projectDynROI(MDCrop,ROI, ...
     'name',['testDynProj'], ...
