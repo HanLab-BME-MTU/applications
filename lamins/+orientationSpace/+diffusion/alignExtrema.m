@@ -11,7 +11,8 @@ if(nargin < 4)
     truncate = true;
 end
 
-aligned = sort(extrema,'ComparisonMethod','real');
+% aligned = sort(extrema,'ComparisonMethod','real');
+aligned = sort(extrema);
 nExtrema = sum(~isnan(aligned));
 totalExtrema = max(nExtrema);
 aligned = aligned(1:totalExtrema,:);
