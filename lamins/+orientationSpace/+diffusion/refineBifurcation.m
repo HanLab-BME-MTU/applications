@@ -1,4 +1,4 @@
-function [ x_out, K_out ] = refineBifurcation( x, K, response, Korg )
+function [ x_out, K_out, notDone ] = refineBifurcation( x, K, response, Korg )
 %refineBifurcation Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -30,7 +30,11 @@ last = Inf(size(x));
 x_out = x;
 K_out = K;
 
-while(any(notDone))
+iter = 0;
+maxIter = 25;
+
+while(any(notDone) && iter < maxIter)
+    iter = iter + 1;
     fprintf('%02.1f%% Complete\n',100-sum(notDone)./numel(notDone)*100);
     response_at_K = getResponseAtOrderFT(response_hat(:,notDone),Korg,Kold);
     [~,dtn_dnm,dnK_dmn] = orientationMaximaTimeDerivatives(response_at_K,Kold,3,xold,2*pi,true);
