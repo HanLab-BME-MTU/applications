@@ -1,4 +1,4 @@
-function projImages=projectDynROI(MD,varargin)
+function projectDynROI(MD,varargin)
 % WIPS: 
 %   -   respect computeMIPProcess Specs
 %   -   using dynROI class instead of ad hoc object
@@ -58,9 +58,9 @@ processFrame=p.processFrame;
 minIntensityNorm=[];
 maxIntensityNorm=[];
 for chIdx=1:length(MD.channels_)
-    vol=MD.getChannel(chIdx).loadStack(1); 
-    minIntensityNorm=[ minIntensityNorm prctile(vol(:),p.intMinPrctil(chIdx))];
-    maxIntensityNorm=[ maxIntensityNorm prctile(vol(:),p.intMaxPrctil(chIdx))];
+    vol_ = MD.getChannel(chIdx).loadStack(1); 
+    minIntensityNorm=[ minIntensityNorm prctile(vol_(:),p.intMinPrctil(chIdx))];
+    maxIntensityNorm=[ maxIntensityNorm prctile(vol_(:),p.intMaxPrctil(chIdx))];
 end
 
 %% Define the static Rectangular cuboid that contains the pixel to be projected in the frame of reference.
@@ -132,7 +132,7 @@ for i = 1:numel(MD.channels_);
     outFilePaths{6,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'XY' filesep 'XY_frame_nb%04d.' format];
     outFilePaths{7,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZY' filesep 'ZY_frame_nb%04d.' format];
     outFilePaths{8,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZX' filesep 'ZX_frame_nb%04d.' format];
-    outFilePaths{9,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'Three' filesep 'Three_frame_nb%04d.' format];
+    outFilePaths{9,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'three' filesep 'Three_frame_nb%04d.' format];
     outFilePaths{10,i} = [outputDirSingleProj filesep 'limits.mat'];
     for mIdx=[6:9]
         mkClrDir(fileparts(outFilePaths{mIdx,i}),false);
@@ -153,8 +153,8 @@ end
 
 format='png';
 % Standardized output for processRenderer
+outFilePathsRenderer = cell(1, 5);
 if(~isempty(p.processRenderer))
-    outFilePathsRenderer = cell(1, 5);
     outFilePathsRenderer{1} = [outputDirSingleProj filesep 'merged' filesep p.channelRender filesep 'XY' filesep 'XY_frame_nb%04d.' format ];
     outFilePathsRenderer{2} = [outputDirSingleProj filesep 'merged' filesep p.channelRender filesep 'ZY' filesep 'ZY_frame_nb%04d.' format];
     outFilePathsRenderer{3} = [outputDirSingleProj filesep 'merged' filesep p.channelRender filesep 'ZX' filesep 'ZX_frame_nb%04d.' format];
@@ -183,9 +183,9 @@ if(~isempty(p.processMaskVolume))
     p.processMaskVolume.setOutFilePaths(outFilePathsMaskVolume);
 end
 
-
 % warp, crop, fuse and save each time point
-parfor fIdx=processFrame
+% vol = cell(processFrame,1);
+parfor fIdx = processFrame
     fprintf('.') 
     % produce a ROI mask using the 1D polygon (segment defined by the extremities of the dynPoligonISO).
     % todo: N Channel (now 2).
@@ -201,14 +201,15 @@ parfor fIdx=processFrame
                 if(fIdx>max(F))   pIdx=length(F);  else   pIdx=1; end;
             end
             pIndices(polIdx)=pIdx;
-        end;
+        end
 
         %% Building mask in the 1D case
         nextPoint=length(dynPoligonISO);
         PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
         KCurrent=[dynPoligonISO(nextPoint).x(pIndices(nextPoint)) dynPoligonISO(nextPoint).y(pIndices(nextPoint)) dynPoligonISO(nextPoint).z(pIndices(nextPoint))];
 
-        vol=MD.getChannel(1).loadStack(fIdx);
+        vol = MD.getChannel(1).loadStack(fIdx);
+
         % Building mask for both channel on the whole volume
         % NOTE: in order to apply fringe isotropically, we need the mask to
         % be isotropized briefly.
@@ -546,7 +547,7 @@ parfor fIdx=processFrame
         end
         
         %% write images
-        if(~isempty(p.processSingleProj))
+        if(~isempty(p.processRenderer))
             imwrite(XYProj,sprintfPath(outFilePathsRenderer{1},fIdx));
             imwrite(ZYProj,sprintfPath(outFilePathsRenderer{2},fIdx));
             imwrite(ZXProj,sprintfPath(outFilePathsRenderer{3},fIdx));
@@ -556,7 +557,10 @@ parfor fIdx=processFrame
         ZYProj=permute(ZYProj,[2 1 3]);
         ZXProj=permute(ZXProj,[2 1 3]);
         three=projMontage(XYProj,ZXProj,ZYProj);
-        imwrite(three,sprintfPath(outFilePathsRenderer{4},fIdx));
+        
+        if(~isempty(p.processRenderer))         
+            imwrite(three,sprintfPath(outFilePathsRenderer{4},fIdx));
+        end
     end
 end
 

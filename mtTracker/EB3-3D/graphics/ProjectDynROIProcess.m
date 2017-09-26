@@ -2,7 +2,7 @@ classdef ProjectDynROIProcess < ComputeMIPProcess & NonSingularProcess
     methods
         function obj = ProjectDynROIProcess(owner, varargin)
             obj = obj@ComputeMIPProcess(owner, varargin{:});
-            obj=obj@NonSingularProcess(varargin{:});
+            obj = obj@NonSingularProcess(varargin{:});
             obj.funName_=(@(p) projectDynROI(owner,'processSingleProj',p));
         end
     end
