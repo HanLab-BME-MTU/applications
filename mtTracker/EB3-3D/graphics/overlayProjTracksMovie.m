@@ -6,6 +6,7 @@ function projImages=overlayProjTracksMovie(processSingleProj,varargin)
   ip.addOptional('tracksOrProcess',[]);
   ip.addOptional('tracks',[]);
   ip.addOptional('process',[]);
+  ip.addOptional('dragonTail',[]);
   ip.addOptional('colormap',[]);
   ip.addOptional('colorIndx',[]);
   ip.addOptional('name','tracks');
@@ -23,14 +24,23 @@ function projImages=overlayProjTracksMovie(processSingleProj,varargin)
       tracks=TracksHandle(tracksFinal);
   end
       
-      
+  if(isempty(tracks))
+      return;
+  end
       
 %% testing imwarp to crop the image
 XYProjTemplate=processSingleProj.outFilePaths_{1};
 ZYProjTemplate=processSingleProj.outFilePaths_{2};
 ZXProjTemplate=processSingleProj.outFilePaths_{3};
-projData=load(processSingleProj.outFilePaths_{5},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
-savePath=[fileparts(processSingleProj.outFilePaths_{4}) filesep p.name filesep 'frame_nb%04d.png'];
+projDataIdx=5;
+try % Handle Project1D/ProjDyn different outFilePaths_spec (need to be defined through a class...)
+  projData=load(processSingleProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+catch
+  projDataIdx=4;
+end
+projData=load(processSingleProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+
+savePath=[fileparts(processSingleProj.outFilePaths_{projDataIdx}) filesep p.name filesep 'frame_nb%04d.png'];
 outputDir=fileparts(savePath);
 mkdirRobust(outputDir);
 
@@ -39,11 +49,13 @@ if(~isempty(p.process))
   mkdirRobust([outputDir filesep 'XY'])
   mkdirRobust([outputDir filesep 'YZ'])
   mkdirRobust([outputDir filesep 'XZ']) 
-  load(processSingleProj.outFilePaths_{5},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
-      save([outputDir filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+  mkdirRobust([outputDir filesep 'three']) 
+  load(processSingleProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+  save([outputDir filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
   p.process.setOutFilePaths({[outputDir filesep 'XY' filesep 'frame_nb%04d.png'], ...
     [outputDir filesep 'YZ' filesep 'frame_nb%04d.png'], ...
     [outputDir filesep 'XZ' filesep 'frame_nb%04d.png'],...
+    [outputDir filesep 'three' filesep 'frame_nb%04d.png'],...
     [outputDir filesep 'limits.mat']});
 end
 
@@ -67,16 +79,16 @@ parfor fIdx=1:frameNb
   tracksZY=permute(tracksZY,[2 1 3]);
   tracksZX=permute(tracksZX,[2 1 3]);
   three=projMontage(tracksXY,tracksZX,tracksZY);
-  imwrite(three,sprintfPath(savePath,fIdx));
+  imwrite(three,sprintfPath(sprintfPath(p.process.outFilePaths_{4},fIdx),fIdx));
 end
 
 % save as video
-video = VideoWriter([fileparts(processSingleProj.outFilePaths_{4})  '-'  p.name '.avi']);
+video = VideoWriter([fileparts(processSingleProj.outFilePaths_{projDataIdx})  '-'  p.name '.avi']);
 video.FrameRate = 5;  % Default 30
 video.Quality = 100;    % Default 75
 open(video)
 for fIdx=1:frameNb
-  three=[imread(sprintfPath(savePath,fIdx))];
+  three=[imread(sprintfPath(sprintfPath(p.process.outFilePaths_{4},fIdx),fIdx))];
     writeVideo(video,three);
 end
 close(video)

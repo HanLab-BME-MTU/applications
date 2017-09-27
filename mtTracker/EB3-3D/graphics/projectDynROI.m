@@ -10,6 +10,7 @@ ip.addOptional('dynPoligonISO',[]);
 ip.addOptional('dynPoligonREF',[]);
 ip.addOptional('tracks',[]);
 ip.addOptional('colormap',[]);
+ip.addOptional('renderedChannel',1:length(MD.channels_));
 ip.addOptional('colorIndx',[]);
 ip.addOptional('crop','manifold');
 ip.addOptional('transType','affineOnePass');
@@ -53,14 +54,13 @@ else
 end
 processFrame=p.processFrame;
 
-
 %% Set normalization value
-minIntensityNorm=[];
-maxIntensityNorm=[];
-for chIdx=1:length(MD.channels_)
+minIntensityNorm=zeros(1,numel(MD.channels_));
+maxIntensityNorm=zeros(1,numel(MD.channels_));
+for chIdx=p.renderedChannel
     vol=MD.getChannel(chIdx).loadStack(1); 
-    minIntensityNorm=[ minIntensityNorm prctile(vol(:),p.intMinPrctil(chIdx))];
-    maxIntensityNorm=[ maxIntensityNorm prctile(vol(:),p.intMaxPrctil(chIdx))];
+    minIntensityNorm(chIdx)=[ prctile(vol(:),p.intMinPrctil(chIdx))];
+    maxIntensityNorm(chIdx)=[ prctile(vol(:),p.intMaxPrctil(chIdx))];
 end
 
 %% Define the static Rectangular cuboid that contains the pixel to be projected in the frame of reference.
@@ -123,7 +123,7 @@ end
 % with addtional ROI info and proper file spec
 outFilePaths = cell(6, numel(MD.channels_));
 outputDirSingleProj=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
-for i = 1:numel(MD.channels_);    
+for i = p.renderedChannel;    
     outFilePaths{1,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'XY'];
     outFilePaths{2,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZY'];
     outFilePaths{3,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZX'];
@@ -166,7 +166,13 @@ if(~isempty(p.processRenderer))
     frameNb=length(p.processFrame);
     save(outFilePathsRenderer{5},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
     p.processRenderer.setOutFilePaths(outFilePathsRenderer);
+    %% simulate run to comply with movieViewer requirement
+    p.processRenderer.setFunName((@(x) x));
+    p.processRenderer.run();
+    %% Save the current function run for futur rerun
+    p.processRenderer.setFunName((@(p) projectDynROI(MD,varargin{:},'processRenderer',p)));
 end
+
 
 % Optional process for saving sparse volume
 if(~isempty(p.processMaskVolume))
@@ -261,7 +267,7 @@ parfor fIdx=processFrame
         end
     end
     
-    for chIdx=1:length(MD.channels_)
+    for chIdx=p.renderedChannel
         vol=MD.getChannel(chIdx).loadStack(fIdx);
         if(~isempty(dynPoligonISO))
             if(isempty(p.FoF))&&(strcmp(p.crop,'manifold'))
@@ -272,21 +278,18 @@ parfor fIdx=processFrame
                 amaxYBorder=min(size(vol,1),maxYBorder);
                 amaxZBorder=min(size(vol,3)*MD.pixelSizeZ_/MD.pixelSize_,maxZBorder);
                 
-                XCropMask=false(1,size(vol,2));
-                XCropMask(aminXBorder:amaxXBorder)=true;
+                XCropVol=false(1,size(vol,2));
+                XCropVol(aminXBorder:amaxXBorder)=true;
                 
-                YCropMask=false(1,size(vol,1));
-                YCropMask(aminYBorder:amaxYBorder)=true;
-                
-                ZCropMask=false(1,size(vol,3));
-                ZCropMask(ceil((aminZBorder:amaxZBorder)*MD.pixelSize_/MD.pixelSizeZ_))=true;
+                YCropVol=false(1,size(vol,1));
+                YCropVol(aminYBorder:amaxYBorder)=true;
                 
                 ZCropVol=false(1,size(vol,3));
                 ZCropVol(ceil((aminZBorder:amaxZBorder)*MD.pixelSize_/MD.pixelSizeZ_))=true;
 
                 vol(:,:,~ZCropVol)=[];
-                vol(~YCropMask,:,:)=[];
-                vol(:,~XCropMask,:)=[];
+                vol(~YCropVol,:,:)=[];
+                vol(:,~XCropVol,:)=[];
                 
             end
             
@@ -463,6 +466,7 @@ parfor fIdx=processFrame
                 minIntensityNorm(chIdx),maxIntensityNorm(chIdx),'raw',rawTIFF);
         [maskXY,maskZY,maskZX,~]=computeMIPs(warpedMask,ZRatio, ...
                 minIntensityNorm(chIdx),maxIntensityNorm(chIdx),'raw',true);
+
         % Fuse ROI and context
         if(p.suppressROIBorder)
             % Create MIP of ROI and context
@@ -535,18 +539,18 @@ parfor fIdx=processFrame
     
     if(~isempty(p.processRenderer))
         %% fuse volume if 2 channels
-        if(length(MD.channels_)==2)
+        if(length(p.renderedChannel)==2)
             XYProj=renderChannel(mips{1,1},mips{1,2},p.channelRender);
             ZYProj=renderChannel(mips{2,1},mips{2,2},p.channelRender);
             ZXProj=renderChannel(mips{3,1},mips{3,2},p.channelRender);
         else
-            XYProj=repmat(mips{1,1},1,1,3);
-            ZYProj=repmat(mips{2,1},1,1,3);
-            ZXProj=repmat(mips{3,1},1,1,3);
+            XYProj=repmat(mips{1,p.renderedChannel(1)},1,1,3);
+            ZYProj=repmat(mips{2,p.renderedChannel(1)},1,1,3);
+            ZXProj=repmat(mips{3,p.renderedChannel(1)},1,1,3);
         end
         
         %% write images
-        if(~isempty(p.processSingleProj))
+        if(~isempty(p.processRenderer))
             imwrite(XYProj,sprintfPath(outFilePathsRenderer{1},fIdx));
             imwrite(ZYProj,sprintfPath(outFilePathsRenderer{2},fIdx));
             imwrite(ZXProj,sprintfPath(outFilePathsRenderer{3},fIdx));
@@ -556,7 +560,9 @@ parfor fIdx=processFrame
         ZYProj=permute(ZYProj,[2 1 3]);
         ZXProj=permute(ZXProj,[2 1 3]);
         three=projMontage(XYProj,ZXProj,ZYProj);
-        imwrite(three,sprintfPath(outFilePathsRenderer{4},fIdx));
+        if(~isempty(p.processRenderer))
+           imwrite(three,sprintfPath(outFilePathsRenderer{4},fIdx));
+        end
     end
 end
 

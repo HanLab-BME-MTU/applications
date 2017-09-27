@@ -3,6 +3,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addParameter('package',[]);
+ip.addParameter('packPID',333);
 ip.addParameter('printManifCount',5);
 ip.parse(varargin{:});
 p=ip.Results;
@@ -10,9 +11,12 @@ p=ip.Results;
 %% Ideally will built a Package to be run later.
 %% However, external process does not have a simple way yet to edit the parameter of its associated funtion. 
 %% In practice, for now, we run the whole script through to estimate scores.
+packPID=p.packPID;
+packPIDTMP=packPID+1;
+
 
 % Process type placeholdes
-MD.setPackage(333,GenericPackage({ ... 
+MD.setPackage(packPIDTMP,GenericPackage({ ... 
     PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'EB3']),...
     TrackingProcess(MD,[MD.outputDirectory_ filesep 'EB3']),...
     PointSourceDetectionProcess3D(MD,[MD.outputDirectory_ filesep 'KT']),...
@@ -42,7 +46,7 @@ else
     processDetectEB3.run(paramsIn);
 end
 
-MD.getPackage(333).setProcess(1,processDetectEB3);
+MD.getPackage(packPIDTMP).setProcess(1,processDetectEB3);
 
 if(~isempty(package)&&(~isempty(package.getProcess(2))))
     processTrackEB3=package.getProcess(2);
@@ -61,7 +65,7 @@ else
     processTrackEB3.run(paramsIn);
 end
 
-MD.getPackage(333).setProcess(2,processTrackEB3);
+MD.getPackage(packPIDTMP).setProcess(2,processTrackEB3);
 
 if(~isempty(package)&&(~isempty(package.getProcess(3))))
    processDetectKT=package.getProcess(3);
@@ -81,7 +85,7 @@ else
     processDetectKT.run(paramsIn);    
 end
 
-MD.getPackage(333).setProcess(3,processDetectKT);
+MD.getPackage(packPIDTMP).setProcess(3,processDetectKT);
                     
 if(~isempty(package)&&(~isempty(package.getProcess(4))))
     processTrackKT=package.getProcess(4);
@@ -100,7 +104,7 @@ else
     processTrackKT.run(paramsIn);
 end
 
-MD.getPackage(333).setProcess(4,processTrackKT);
+MD.getPackage(packPIDTMP).setProcess(4,processTrackKT);
 
 
 % Build a Fake externalProcess for tracking process
@@ -119,7 +123,7 @@ else
     processDetectPoles.run();
 end
 
-MD.getPackage(333).setProcess(5,processDetectPoles);
+MD.getPackage(packPIDTMP).setProcess(5,processDetectPoles);
 
 
 if(~isempty(package)&&(~isempty(package.getProcess(6))))
@@ -129,7 +133,7 @@ else
     processBuildRef.run();
 end
 
-MD.getPackage(333).setProcess(6,processBuildRef);
+MD.getPackage(packPIDTMP).setProcess(6,processBuildRef);
 
 
 %% Load tracks, convert and select inliers
@@ -168,7 +172,7 @@ myColormap=uint8( ...
 if(~isempty(package)&&(~isempty(package.getProcess(7))))
     processScoring=package.getProcess(7);
 else
-    lftThreshold=20;
+    lftThreshold=5;
     kinTest=find([kinTracksISOInliers.lifetime]>lftThreshold);
     maxRandomDist=20;
     mappingDist=10;
@@ -192,7 +196,7 @@ else
     processScoring.setOutFilePaths({[MD.outputDirectory_ filesep 'Kin' filesep 'bundles' filesep 'bundleStats.mat']});
 end
 
-MD.getPackage(333).setProcess(7,processScoring);
+MD.getPackage(packPIDTMP).setProcess(7,processScoring);
 
 
 %% Display the N best and worst scores
@@ -210,7 +214,7 @@ sortedScore(isnan(sortedScore(:)))=[];
 [poleIdx,kinIdx]=ind2sub(size(zScores),indx);
 
 %%
-N=p.printManifCount;
+N=min(p.printManifCount,(length(sortedScore)));
 disp('Producing MIPs');
 tic
 processProjCell=cell(1,2*N);
@@ -263,4 +267,5 @@ end
 toc
 package=GenericPackage([{processDetectEB3    processTrackEB3     processDetectKT processTrackKT ... 
                         processDetectPoles  processBuildRef     processScoring}  processProjCell]);
+MD.setPackage(packPID,package);
 

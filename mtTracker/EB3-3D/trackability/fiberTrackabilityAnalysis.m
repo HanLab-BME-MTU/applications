@@ -178,7 +178,7 @@ lpid=lpid+1;
 if(GenericPackage.processExist(package,lpid)&&(~any(lpid==p.forceRunIdx)))
     processScoring=package.getProcess(lpid);
 else
-    lftThreshold=min(50,MD.nFrames_-1);
+    lftThreshold=min(10,MD.nFrames_-1);
     %    lftThreshold=20;
 
     kinTest=find([kinTracksISOInliers.lifetime]>lftThreshold);
@@ -305,7 +305,7 @@ for KTIndex=1:length(projKin)
         project1D(MD,ROI,'dynPoligonREF',refKP.applyBase([ROI],''),'FoF',refKP, ...
             'name',['PK-P' num2str(projPole(KTIndex)) '-' num2str(tIdx)], ...
             'channelRender','grayRed','processSingleProj',processProj, ...
-            'intMinPrctil',[20 98],'intMaxPrctil',[100 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
+            'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99],'fringeWidth',30,'insetFringeWidth',mappingDist);
         ldynROIData.processProj=processProj;
         ldynROIData.ref=refKP;
         ldynROIData.ROI=ROI;

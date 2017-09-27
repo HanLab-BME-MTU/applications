@@ -133,7 +133,7 @@ mkdirRobust(outputDirDemo);
 
 
 % warp, crop, fuse and save each time point
-parfor fIdx=processFrame
+for fIdx=processFrame
     fprintf('.')    
     % produce a ROI mask using the 1D polygon (segment defined by the extremities of the dynPoligonISO).
     % todo: N Channel (now 2).

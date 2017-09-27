@@ -40,7 +40,7 @@ if(~isempty(detections))
                 drawingBoard=MidpointCircle(drawingBoard,5,Y(dIdx),X(dIdx),cIndex(dIdx));
             end
             for cIdx=unique(cIndex)'
-                drawCircleIdx=(drawingBoard==cIdx);
+%                 drawCircleIdx=(drawingBoard==cIdx);
                 [I,J] = find(drawingBoard==cIdx);
                 indx=sub2ind(size(detXY),I,J,1*ones(size(I)));
                 detXY(indx)=colormap(cIdx,1);

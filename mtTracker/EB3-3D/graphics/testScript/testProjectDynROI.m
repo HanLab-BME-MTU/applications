@@ -15,7 +15,7 @@ toc;
 disp('projectDynROI equivalent');
 tic;
 processProj=ProjectDynROIProcess(MDCrop);
-projectDynROI(MDCrop,'processRenderer',processProj);
+projectDynROI(MDCrop,'processSingleProj',processProj);
 toc; 
 figure();
 imshow(imread(sprintfPath(processProj.outFilePaths_{4},1)));

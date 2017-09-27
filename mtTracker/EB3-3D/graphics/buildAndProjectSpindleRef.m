@@ -2,7 +2,7 @@ function buildAndProjectSpindleRef(MD,varargin)
     ip = inputParser;
     ip.CaseSensitive = false;
     ip.KeepUnmatched = true;
-    ip.addParameter('package',[]);
+    ip.addParameter('package',MD.searchPackageName('buildAndProjectSpindleRef'));
     ip.addParameter('debug',[]);
     ip.addParameter('packPID',600);
     ip.parse(varargin{:});
@@ -15,13 +15,13 @@ packPID=p.packPID;
 % the last computation location are still available.
 
 % Process type placeholder (they should be defined by tag and then
-% retrieved below)
+% retrieved below)bui
 packPIDTMP=packPID+1;
 MD.setPackage(packPIDTMP,GenericPackage({ ... 
     ExternalProcess(MD,'detectPoles'),...
     ExternalProcess(MD,'buildRefsAndROI'),...
     ExternalProcess(MD,'project1D'), ... 
-    },[],'name_','buildAndProjectSpindleRef'));
+    },[],'name_','buildAndProjectSpindleRef_backup'));
 
 lpid=0;
 
@@ -48,9 +48,6 @@ MD.getPackage(packPIDTMP).setProcess(lpid,processBuildRef);
 tmp=load(processDetectPoles.outFilePaths_{1});
 P1=tmp.tracks(1);
 P2=tmp.tracks(2);
-
-%% 
-% inlier tracks
 refs=load(processBuildRef.outFilePaths_{1}); refs=refs.refs;
 ROIs=load(processBuildRef.outFilePaths_{2}); ROIs=ROIs.ROI;
 
@@ -66,5 +63,6 @@ else
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,processProjSpindleRef);
 
-MD.setPackage(packPID,MD.getPackage(packPIDTMP));
+completePackage=GenericPackage(MD.getPackage(packPIDTMP).processes_,[],'name_','buildAndProjectSpindleRef');
+MD.setPackage(packPID,completePackage);
 
