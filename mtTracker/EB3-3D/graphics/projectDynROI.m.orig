@@ -54,14 +54,22 @@ else
 end
 processFrame=p.processFrame;
 
-
 %% Set normalization value
+<<<<<<< HEAD
 minIntensityNorm=zeros(1,numel(MD.channels_));
 maxIntensityNorm=zeros(1,numel(MD.channels_));
 for chIdx=p.renderedChannel
     vol=MD.getChannel(chIdx).loadStack(1); 
     minIntensityNorm(chIdx)=[ prctile(vol(:),p.intMinPrctil(chIdx))];
     maxIntensityNorm(chIdx)=[ prctile(vol(:),p.intMaxPrctil(chIdx))];
+=======
+minIntensityNorm=[];
+maxIntensityNorm=[];
+for chIdx=1:length(MD.channels_)
+    vol_ = MD.getChannel(chIdx).loadStack(1); 
+    minIntensityNorm=[ minIntensityNorm prctile(vol_(:),p.intMinPrctil(chIdx))];
+    maxIntensityNorm=[ maxIntensityNorm prctile(vol_(:),p.intMaxPrctil(chIdx))];
+>>>>>>> uT3D
 end
 
 %% Define the static Rectangular cuboid that contains the pixel to be projected in the frame of reference.
@@ -562,8 +570,14 @@ parfor fIdx = processFrame
         ZYProj=permute(ZYProj,[2 1 3]);
         ZXProj=permute(ZXProj,[2 1 3]);
         three=projMontage(XYProj,ZXProj,ZYProj);
-  		if(~isempty(p.processRenderer))         
+<<<<<<< HEAD
+        if(~isempty(p.processRenderer))
+           imwrite(three,sprintfPath(outFilePathsRenderer{4},fIdx));
+=======
+        
+        if(~isempty(p.processRenderer))         
             imwrite(three,sprintfPath(outFilePathsRenderer{4},fIdx));
+>>>>>>> uT3D
         end
     end
 end

@@ -1,4 +1,0 @@
-class projectDynROIProcess < ComputeMIPProcess
-    methods
-
-	function obj = ComputeMIPProcess(owner, varargin)
