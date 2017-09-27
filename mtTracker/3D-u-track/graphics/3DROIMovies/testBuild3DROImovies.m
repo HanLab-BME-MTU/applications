@@ -26,16 +26,34 @@ function testBuild3DROImovies()
 		MDCropRepair=MovieData.loadMatFile(MDOrig.findProcessTag('Crop3D_shorter_Amira_comp').outFilePaths_{1});
 	end
 
-	%% Estimate kinROI
-	[overlayCell]=fiberTrackabilityAnalysis(MDCropRepair,'package',MDCrop.getPackage(1001),'forceRunIdx',9,'printManifCount',2,'KT',1);
-	
+	MD=MDCropRepair;
+	%[overlayCell]=fiberTrackabilityAnalysis(MDCropRepair,'package',MDCrop.getPackage(1001),'forceRunIdx',9,'printManifCount',2,'KT',1);
+	%% Detect Pole
+	buildAndProjectSpindleRef(MD);
+
+	%% Tracks Kinetorchore
+	pack=MD.searchPackageName('trackKT','selectIdx','last');
+	trackKT(MD,'package',pack,'dynROIView',MD.searchPackageName('dynROIView','selectIdx','last'));
+	pack=MD.searchPackageName('trackKT','selectIdx','last');
+	MD.save();
+
+	%% Build Kin ROI and display only the large lifetime (150)
+	KTs=TracksHandle(pack.getProcess(3).loadChannelOutput(2));
+	KTs=KTs([KTs.lifetime]==MD.nFrames_);
+    KTs=KTs(1:3);
+	poleProcess=MD.searchPackageName('buildAndProjectSpindleRef').getProcess(1);
+	dynROIs=build1DDynROI(poleProcess,KTs,8);
+	renderPKTDynROI(MD,dynROIs);
+	MD.openInNautilus();
 	% MDCrop.save();
 % 	outputFolder='/project/bioinformatics/Danuser_lab/externBetzig/analysis/proudot/anaProject/phaseProgression/analysis/trackability/1min_cell1_12_halfvol2time-crop/KTDynROI';
 % 	printProcMIPArray(num2cell([overlayCell{:}]),[outputFolder filesep 'candidateMIPCrop'],'MIPIndex',4,'forceSize',false,'MIPSize',250,'maxHeight',1200,'maxWidth',1000);
 
 	%% Collect kinROI movies and volume
-    buildPoleKT3DMovies(MDCropRepair,'package',[]);
-    MDCrop.save();
+    % buildPoleKT3DMovies(MD,'trackingKTPackage',pack, ...
+    % 								 'buildSpindleRefPackage',MD.searchPackageName('buildAndProjectSpindleRef'));
+    MD.save();
+    
 	% %% Seek ROI of interest in Cell of interest
 	% pack=MDOrig.getPackage(1001);
 	% pack.setProcess(10,[]).setProcess(11,[]).setProcess(12,[]);

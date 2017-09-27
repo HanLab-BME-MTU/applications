@@ -1,4 +1,4 @@
-function MDROI=build3DROImovies(MD,trackBasedROIs,colorIndx)
+function MDROI=build3DROImovies(MD,trackBasedROIs,colorIndx,name)
 	% Build Projection in lab Ref
 	mappingDist=8;
     processProj=ExternalProcess(MD,'dynROIProj');
@@ -12,7 +12,7 @@ function MDROI=build3DROImovies(MD,trackBasedROIs,colorIndx)
                 'name',['Lab-' num2str(ROIIdx)], ...
                 'channelRender','grayRed','processRenderer',processProj, ...
                 'processMaskVolume',processVolMask,'crop','full', ...
-                'intMinPrctil',[20 98],'intMaxPrctil',[100 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
+                'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99],'fringeWidth',30,'insetFringeWidth',mappingDist);
             processVolMaskCell{ROIIdx}=processVolMask;
         end
         toc
@@ -23,9 +23,9 @@ function MDROI=build3DROImovies(MD,trackBasedROIs,colorIndx)
 
 	disp('load labRef masks fuse them in a single channel');
 	tic;
-	outputFolder=fullfile(MD.outputDirectory_,'ROIRendering');
-	outputFolderRaw=fullfile(MD.outputDirectory_,'ROIRendering','raw');
-	outputFolderColor=fullfile(MD.outputDirectory_,'ROIRendering','color');
+	outputFolder=fullfile(MD.outputDirectory_,'ROIRendering',name);
+	outputFolderRaw=fullfile(outputFolder,'raw');
+	outputFolderColor=fullfile(outputFolder,'color');
 	chNb=1;
 	outputFolderCHCell=cell(1,chNb);
 	for cIdx=1:chNb
@@ -45,7 +45,7 @@ function MDROI=build3DROImovies(MD,trackBasedROIs,colorIndx)
 				sparseMask=sparseMask.sparseMask;
 				volCell{roiIdx}=imerode(uint16(full(sparseMask)),ones(3));
 				volColorCell{roiIdx}=volCell{roiIdx};
-				volColorCell{roiIdx}(volCell{roiIdx}>0)=colorIndx{roiIdx}(fIdx);
+				volColorCell{roiIdx}(volCell{roiIdx}>0)=colorIndx{roiIdx}(1);
 			end
 			vol=uint16(zeros(size(MD.getChannel(1).loadStack(1))));
 			for roiIdx=1:numel(trackBasedROIs)

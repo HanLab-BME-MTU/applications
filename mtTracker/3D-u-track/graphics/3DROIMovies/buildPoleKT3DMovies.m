@@ -8,6 +8,7 @@ function [overlayCell]=buildPoleKT3DMovies(MD,varargin)
     ip.addParameter('debug',[]);
     ip.addParameter('name','buildPoleKT3DMovies');
     ip.addParameter('forceRunIdx',[]);
+    ip.addParameter('dynROIs',[]);
     ip.addParameter('KTP',[]);
     ip.parse(varargin{:});
     p=ip.Results;
@@ -37,7 +38,7 @@ if(isempty(p.trackingKTPackage))
     processBuildRef=fiberTrackabilityPackage.getProcess(6);
 else
     processDetectKT=p.trackingKTPackage.getProcess(1);
-    processTrackKT=p.trackingKTPackage.getProcess(2);
+    processTrackKT=p.trackingKTPackage.getProcess(3);
     processDetectPoles=p.buildSpindleRefPackage.getProcess(1);
     processBuildRef=p.buildSpindleRefPackage.getProcess(2);
 end
@@ -92,7 +93,7 @@ for tIdx=1:numel(kinTracksISOInliers)
     [~,~,rhoCellP1P2]=cart2sph(trSpindleRefP1P2.x,trSpindleRefP1P2.y,trSpindleRefP1P2.z);
     [~,~,rhoCellP2P1]=cart2sph(trSpindleRefP2P1.x,trSpindleRefP2P1.y,trSpindleRefP2P1.z);
     [trackRho{tIdx}]=min(rhoCellP2P1,rhoCellP1P2);
-    closestPoleIdx{tIdx}=(rhoCellP1P2<rhoCellP2P1)+1;
+    closestPoleIdx{tIdx}=(rhoCellP1P2>rhoCellP2P1)+1;
 end
 
 % build1DManifold(trackSet1,trackSet2,varargin)
@@ -114,65 +115,75 @@ maxRho=max(cellfun(@max,trackRho));
 for ROIIndex=1:size(KTP,1)
     tIdx=KTP(ROIIndex,1);
     pIdx=KTP(ROIIndex,2);
-    colorIndx{ROIIndex}= ones(size(trackRho{tIdx}))*pIdx*127;
+    colorIndx{ROIIndex}= 127;
 end
 
 %% Filter KinROIs
-ROIToDelete=zeros(1,numel(kinROIs));
+ROIToKeep=ones(1,numel(kinROIs));
 
 % Delete ROI that are linked to the farthest Pole
-initClosestPole=cellfun(@(r) r(1),closestPoleIdx);
-for ROIIndex=1:size(KTP,1)
-    tIdx=KTP(ROIIndex,1);
-    pIdx=KTP(ROIIndex,2);
-    if(pIdx~=initClosestPole(tIdx))  % I write shitty code under stress
-       ROIToDelete(ROIIndex)=1;
-    end
-end
+% endClosestPole=cellfun(@(r) r(end),closestPoleIdx);
+% for ROIIndex=1:size(KTP,1)
+%     tIdx=KTP(ROIIndex,1);
+%     pIdx=KTP(ROIIndex,2);
+%     if(pIdx~=endClosestPole(tIdx))  % I write shitty code under stress
+%        ROIToDelete(ROIIndex)=1;
+%     end
+% end
 
 % If KT are very close, delete one (should be 4 ROIs) 
 % Keep the one that is the closest to the pole (1 left)
-trackStarts=arrayfun(@(t) [t.x(1) t.y(1) t.z(1)],kinTracksISOInliers,'unif',0);
-trackStarts=vertcat(trackStarts{:});
-D = createSparseDistanceMatrix(trackStarts, trackStarts, 5);
-[sortedScore,indx]=sort(full(D));
-trackStartRhos=cellfun(@(r) r(1),trackRho);
-for ROIIndex=1:size(KTP,1)
-    tIdx=KTP(ROIIndex,1);
-    pIdx=KTP(ROIIndex,2);
-    if(sortedScore(tIdx,end)>0)
-       ROIToDelete(ROIIndex) =(trackStartRhos(tIdx)>trackStartRhos(indx(tIdx,end)));
-    end
-end
+% trackStarts=arrayfun(@(t) [t.x(1) t.y(1) t.z(1)],kinTracksISOInliers,'unif',0);
+% trackStarts=vertcat(trackStarts{:});
+% D = createSparseDistanceMatrix(trackStarts, trackStarts, 5);
+% [sortedScore,indx]=sort(full(D));
+% trackStartRhos=cellfun(@(r) r(1),trackRho);
+% for ROIIndex=1:size(KTP,1)
+%     tIdx=KTP(ROIIndex,1);
+%     pIdx=KTP(ROIIndex,2);
+%     if(sortedScore(tIdx,end)>0)
+%        ROIToDelete(ROIIndex) =(trackStartRhos(tIdx)>trackStartRhos(indx(tIdx,end)));
+%     end
+% end
 
 %% lifetime
 for ROIIndex=1:size(KTP,1)
     tIdx=KTP(ROIIndex,1);
     track=kinTracksISOInliers(tIdx);
-    if(track.lifetime<145)
-        ROIToDelete(ROIIndex)=1;
+    if(track.lifetime<MD.nFrames_)
+        ROIToKeep(ROIIndex)=0;
     end 
 end
 
-
+%% Keep the first two ROI because they actually look pretty nice
+keepIdx=find(ROIToKeep);
+ROIToKeep=zeros(size(ROIToKeep));
+ROIToKeep(keepIdx(1:2))=1;
 
 %% Keep only 4 filtered ROI, make sure that the KT are not the same.
-pIdx=KTP(:,2);
-keptROI=(find(ROIToDelete==0));
-% randKept=keptROI(randperm(length(keptROI)));
-keepROIP1=keptROI(pIdx(keptROI)==1);
-keepROIP2=keptROI(pIdx(keptROI)==2);
-ROIToDelete=ones(size(ROIToDelete));
-ROIToDelete([keepROIP1 keepROIP2])=0;
+% pIdx=KTP(:,2);
+% keptROI=(find(ROIToDelete==0));
+% % randKept=keptROI(randperm(length(keptROI)));
+% keepROIP1=keptROI(pIdx(keptROI)==1);
+% keepROIP2=keptROI(pIdx(keptROI)==2);
+% ROIToDelete=ones(size(ROIToDelete));
+% ROIToDelete([keepROIP1(1) keepROIP2]=0;
 
 %%
-kinROIs(logical(ROIToDelete))=[];
-colorIndx(logical(ROIToDelete))=[];
+kinROIs(~logical(ROIToKeep))=[];
+colorIndx(~logical(ROIToKeep))=[];
+
+if(~isempty(p.dynROIs))
+        kinROIs=arrayfun(@(r) r,p.dynROIs,'unif',0);
+        colorIndx=arrayfun(@(r) 120,p.dynROIs,'unif',0);
+
+end
+
 try
     MD.deletePackage(MD.searchPackageName('ROIVolumes'));
 catch
 end;
-MDCropROI=build3DROImovies(MD,kinROIs,colorIndx);
+MDCropROI=build3DROImovies(MD,kinROIs,colorIndx,p.name);
 printMIP(MDCropROI);
 processRenderer1=ExternalProcess(MD,'renderer');
 processProj=ExternalProcess(MD,'dynROIProj');
@@ -183,6 +194,6 @@ projectDynROI(MDCropROI,'processRenderer',processRenderer2,'processSingleProj',p
 printProcMIPArray({processRenderer1,processRenderer2},[MDCropROI.outputDirectory_ filesep 'ColorAndOrig'])
 
 
-completePackage=GenericPackage(temporaryPackage.processes_,[],'name_','buildPoleKT3DMovies');
+completePackage=GenericPackage(temporaryPackage.processes_,[],'name_',p.name);
 MD.setPackage(packageIdx,completePackage);
 
