@@ -6,6 +6,7 @@ function [processOverlayCells]=trackKT(MD,varargin)
     ip.addParameter('debug',false);
     ip.addParameter('packPID',1600);
     ip.addParameter('name','');
+    ip.addParameter('packSpindleRef',MD.searchPackageName('buildAndProjectSpindleRef'));
     ip.addParameter('dynROIView','');
     ip.addParameter('forceRunIdx',[]);
     ip.addParameter('dynROIData',[]);   % Side loading projection
@@ -38,10 +39,10 @@ package=p.package;
 
 MD.setPackage(packPIDTMP,templatePackage);
 
-pack=MD.searchPackageName('buildAndProjectSpindleRef');
-processDetectPoles=pack.getProcess(1);
-processBuildRef=pack.getProcess(2);
-processProj=pack.getProcess(3);
+packSpindleRef=p.packSpindleRef; 
+processDetectPoles=packSpindleRef.getProcess(1);
+processBuildRef=packSpindleRef.getProcess(2);
+processProj=packSpindleRef.getProcess(3);
 
 %% loading fiducials and references (should be dynROI with associated ref really...)
 tmp=load(processDetectPoles.outFilePaths_{1});

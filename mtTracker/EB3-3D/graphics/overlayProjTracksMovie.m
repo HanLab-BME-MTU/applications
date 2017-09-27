@@ -60,7 +60,7 @@ if(~isempty(p.process))
 end
 
 frameNb=projData.frameNb;
-parfor fIdx=1:frameNb
+for fIdx=1:frameNb
   XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
   ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
   ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));

@@ -170,13 +170,56 @@ MDCrop.addProcess(processProj2);
 ref = buildRefsFromTracks(tracks(1), tracks(2));
 tic;
 processProj3 = ProjectDynROIProcess(MDCrop);
+processRenderer = ProjectDynROIProcess(MDCrop);
+
 projectDynROI(MDCrop, ROI,'FoF',ref, ...
     'name',['testDynProj-no-mask'],...%'suppressROIBorder',true, ...
-    'channelRender','grayRed','processSingleProj',processProj3, ...
+    'channelRender','grayRed','processSingleProj',processProj3,'processRenderer',processRenderer, ...
     'processMaskVolume',processVolMask,'crop','manifold', ... 
-    'intMinPrctil',[20 98],'intMaxPrctil',[100 100],'fringeWidth',50,'insetFringeWidth',10);
+    'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99],'fringeWidth',50,'insetFringeWidth',10);
 toc;
 
 figure();
 imshow(imread(sprintfPath(processProj3.outFilePaths_{7},1)));
 MDCrop.addProcess(processProj3);
+
+%% Tracking KT and overlay detection and tracks (the same function are called in the trackKT function for debugging purposes)
+%% The main issue of this implementation is that most of the required input 
+%% should be implemented in a <DynROI> class. For example, per default, calling <overlayProjDetectionMovie>
+%% on a set of detections should take a dynROI as input and set the detection in the proper FoF and 
+%% mapping the object in the dynROI of interest. 
+
+% Relaunch the ref detection so that "trackKT" can access the data.
+buildAndProjectSpindleRef(MDCrop);
+trackKT(MDCrop);
+KTpack=MDCrop.searchPackageName('trackKT','selectIdx','last');
+
+% load detection and register in Spindle FoF
+tmp=load(KTpack.getProcess(1).outFilePaths_{2}); 
+detection=tmp.movieInfo;
+oDetections=Detections(detection);
+oDetectionsP1P2=ref.applyBase(oDetections,'');
+
+%% The overlay require a processRenderer that actually process and merge channel
+disp('Overlay KT detections');tic;
+processAllDetectOverlay=ExternalProcess(MDCrop,'overlayProjDetectionMovie');
+myColormap=255*jet(256);
+colorIndx=arrayfun(@(c) ceil(255*mat2gray(c.zCoord(:,1),[1,50]))+1,oDetectionsP1P2,'unif',0);
+overlayProjDetectionMovie(processRenderer,'detections', oDetectionsP1P2 , ... 
+    'colorIndx',colorIndx, ...
+    'colormap',myColormap,'name',['allDetections'],'process',processAllDetectOverlay);
+figure();
+imshow(imread(sprintfPath(processAllDetectOverlay.outFilePaths_{2},1)));
+toc;
+
+%% load tracks and display
+tmp=load(KTpack.getProcess(3).outFilePaths_{2}); 
+kinTracksISO=TracksHandle(tmp.tracksFinal);
+kinTracksISO=ref.applyBase(kinTracksISO,'');
+processTracksOverlay=ExternalProcess(MDCrop,'overlayProjTracksMovie');
+overlayProjTracksMovie(processRenderer,'tracks', kinTracksISO, ... 
+    'colorIndx',ceil(255*mat2gray([kinTracksISO.lifetime]',[1 MDCrop.nFrames_]))+1,'dragonTail',10, ...
+    'colormap',myColormap,'name',['allTracks'],'process',processTracksOverlay);
+figure();
+imshow(imread(sprintfPath(processTracksOverlay.outFilePaths_{2},MD.nFrames_)));
+toc;
