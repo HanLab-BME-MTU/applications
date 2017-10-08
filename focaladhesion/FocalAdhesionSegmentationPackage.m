@@ -142,7 +142,7 @@ classdef FocalAdhesionSegmentationPackage < Package
         end
         
         function name = getName()
-            name='Focal Adhesion Segmentation';
+            name = 'Focal Adhesion Segmentation';
         end
         function varargout = GUI(varargin)
             % Start the package GUI

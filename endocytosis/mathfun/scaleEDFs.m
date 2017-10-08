@@ -6,20 +6,22 @@
 %
 
 % Francois Aguet, 03/06/2012 (last modified 03/12/2013)
+% Andrew R. Jamieson, Nov. 2016  - fixed deprecated errorbar style bug and
+% other figure errors.
 
 function [a, c, refIdx] = scaleEDFs(samples, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('RefSamples', []);
-ip.addParamValue('Display', false, @islogical);
-ip.addParamValue('Colormap', []);
-ip.addParamValue('Legend', []);
-ip.addParamValue('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 'med'})));
-ip.addParamValue('FigureName', 'EDF scaling');
-ip.addParamValue('XTick', []);
-ip.addParamValue('XLabel', 'Max. fluo. intensity (A.U.)', @ischar);
-ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
+ip.addParameter('Display', false, @islogical);
+ip.addParameter('Colormap', []);
+ip.addParameter('Legend', []);
+ip.addParameter('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 'med'})));
+ip.addParameter('FigureName', 'EDF scaling');
+ip.addParameter('XTick', []);
+ip.addParameter('XLabel', 'Max. fluo. intensity (A.U.)', @ischar);
+ip.addParameter('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(varargin{:});
 refSamples = ip.Results.RefSamples;
 
@@ -169,8 +171,12 @@ if ip.Results.Display
     av = [a 1];
     he = errorbar(0, mean(av), std(av), 'Color', 0.4*[1 1 1], 'LineWidth', 1);
     plot(0.1*[-1 1], mean(av)*[1 1], 'Color', 0.4*[1 1 1], 'LineWidth', 1);
-    setErrorbarStyle(he, 0.15);
     
+    if verLessThan('matlab','8.4')
+        % -- Code to run in MATLAB R2014a and earlier here --
+        setErrorbarStyle(he, 0.15); % Function deprecated after R2014b
+    end
+
     ylim = max(ceil([1-min(av) max(av)-1]/0.2));
     ylim = 1+[-ylim ylim]*0.2;
     axis([-0.5 0.5 ylim]);
@@ -182,8 +188,15 @@ if ip.Results.Display
         set(ha, 'XTick', ip.Results.XTick);
     end
     if ~isempty(ip.Results.Legend)
-        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none');
-        legend(hl, 'hide');
+        
+        if verLessThan('matlab','8.4')
+            hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none');
+            legend(hl, 'hide');
+        else
+            legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none');
+            legend('off');
+        end
+        
     end
 end
 

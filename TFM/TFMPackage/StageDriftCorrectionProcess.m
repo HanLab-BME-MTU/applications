@@ -1,146 +1,148 @@
 classdef StageDriftCorrectionProcess < ImageProcessingProcess
-    % Concrete class for a stage drift correction process
+    % Abstract class for a stage drift correction process
+    % Feb 2017 - Now Implementing multiple concrete class options for stage shift correction
     %
     % Sebastien Besson, Sep 2011
+    % Andrew R. Jamieson Feb. 2017
     
-    methods
-        function obj = StageDriftCorrectionProcess(owner,varargin)
+    methods (Access = public)
+        function obj = StageDriftCorrectionProcess(owner, name, funName, funParams)
             
             if nargin == 0
                 super_args = {};
             else
-                % Input check
-                ip = inputParser;
-                ip.addRequired('owner',@(x) isa(x,'MovieData'));
-                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
-                ip.addOptional('funParams',[],@isstruct);
-                ip.parse(owner,varargin{:});
-                outputDir = ip.Results.outputDir;
-                funParams = ip.Results.funParams;
-                
-                % Define arguments for superclass constructor
                 super_args{1} = owner;
-                super_args{2} = StageDriftCorrectionProcess.getName;
-                super_args{3} = @correctMovieStageDrift;
-                if isempty(funParams)
-                    funParams=StageDriftCorrectionProcess.getDefaultParams(owner,outputDir);
-                end
-                super_args{4} = funParams;
+                super_args{2} = name;                
             end
+            
             obj = obj@ImageProcessingProcess(super_args{:});
+            
+            if nargin > 2
+                obj.funName_ = funName;                              
+            end
+            if nargin > 3
+               obj.funParams_ = funParams;              
+            end
         end
         
         function sanityCheck(obj)
             sanityCheck@ImageProcessingProcess(obj);
-            channelIndex = obj.funParams_.ChannelIndex;
-            psfSigma = obj.owner_.channels_(channelIndex(1)).psfSigma_;
-            assert(~isempty(psfSigma), 'lccb:Process:sanityCheck',...
-                ['The beads channel does not have a valid '...
-                'standard deviation of the Gaussian point-spread function.']);
+            % channelIndex = obj.funParams_.ChannelIndex;
+            % psfSigma = obj.owner_.channels_(channelIndex(1)).psfSigma_;
+            % assert(~isempty(psfSigma), 'MovieData:Process:sanityCheck',...
+            %     ['The beads channel does not have a valid '...
+            %     'standard deviation of the Gaussian point-spread function.']);
         end
         
-        function h=draw(obj,varargin)
+        function h = draw(obj, varargin)
             % Function to draw process output
-            
             outputList = obj.getDrawableOutput();
-            drawGraph = any(strcmp(varargin,'x-flow') | strcmp(varargin,'y-flow') |...
-                strcmp(varargin,'refFrame'));
-            
-            
-            if drawGraph
-                % Use dedicated draw method for plotting flow histograms
+
+            drawRefFrame = any(strcmp(varargin,'refFrame'));     
+                
+            if drawRefFrame
+
+                % Use dedicated draw method for reference frame
                 ip = inputParser;
                 ip.addRequired('obj');
-                ip.addParamValue('output',outputList(2).var,@(x) all(ismember(x,{outputList.var})));
+                ip.addParameter('output',outputList(2).var,@(x) all(ismember(x,{outputList.var})));
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{:})
                 
-                [~,iOutput] =ismember(ip.Results.output,{outputList.var});
-                if regexp(outputList(iOutput).var,'(.+)flow','once')
-                    s=load(obj.outFilePaths_{3,1},'flow');
-                    data=s.flow;
-                else
-%                     data=imread(obj.funParams_.referenceFramePath);
-                    data=imread(obj.outFilePaths_{2,1});
-                end
-                
+%                 [~,iOutput] =ismember(ip.Results.output,{outputList.var});
+                iOutput = find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
+                data = imread(obj.outFilePaths_{2,1});
+
                 if ~isempty(outputList(iOutput).formatData),
-                    data=outputList(iOutput).formatData(data);
+                    data = outputList(iOutput).formatData(data);
                 end
-                
+
                 try
                     assert(~isempty(obj.displayMethod_{iOutput,1}));
                 catch ME
                     obj.displayMethod_{iOutput,1}=...
                         outputList(iOutput).defaultDisplayMethod();
                 end
-                
                 % Delegate to the corresponding method
-                tag = ['process' num2str(obj.getIndex) '_output' num2str(iOutput)];
                 drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
-                    2*numel(fieldnames(ip.Unmatched)),1);
-                h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
+                    2*numel(fieldnames(ip.Unmatched)),1);                
+                tag = ['process' num2str(obj.getIndex) '_output' num2str(iOutput)];
+                h = obj.displayMethod_{iOutput}.draw(data, tag, ip.Unmatched);
+                
             else
-                % Call superclass method
-                h=draw@ImageProcessingProcess(obj,varargin{1},varargin{2},...
-                    varargin{3:end});
+                ip = inputParser;
+                ip.addRequired('obj',@(x) isa(x,'Process'));
+                ip.addRequired('iChan',@isnumeric);
+                ip.addOptional('iFrame',[],@isnumeric);
+                ip.addParameter('output',outputList(3).var,@(x) all(ismember(x,{outputList.var})));
+                ip.KeepUnmatched = true;
+                ip.parse(obj, varargin{:});
+ 
+                if strcmp('merged',ip.Results.output)
+                    if numel(obj.owner_.channels_) > 1, cdim=3; else cdim=1; end
+                        data = zeros([obj.owner_.imSize_ cdim]);
+
+                    iOutput = find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
+
+                    for iChan = 1:numel(obj.owner_.channels_)
+                        imData = obj.loadChannelOutput(iChan, ip.Results.iFrame);
+                        data(:,:,iChan) = outputList(iOutput).formatData(imData);
+                    end                  
+
+                    try
+                        assert(~isempty(obj.displayMethod_{iOutput,1}));
+                    catch ME
+                        obj.displayMethod_{iOutput,1}=...
+                            outputList(iOutput).defaultDisplayMethod();
+                    end
+
+                    % Create graphic tag and delegate drawing to the display class
+                    tag = ['process' num2str(obj.getIndex()) '_MergedOutput'];
+                    h = obj.displayMethod_{3}.draw(data, tag, ip.Unmatched);
+
+                else
+                    
+                    % Call superclass method
+                    h = draw@ImageProcessingProcess(obj,varargin{1},varargin{2},...
+                            varargin{3:end});
+                end
             end
         end
-        
+
+        function output = getDrawableOutput(obj)
+            output = getDrawableOutput@ImageProcessingProcess();
+            output(1).name = 'Registered images';
+            output(2).name = 'Reference frame';
+            output(2).var = 'refFrame';
+            output(2).formatData = @mat2gray;
+            output(2).defaultDisplayMethod=@ImageDisplay;
+            output(2).type = 'movieGraph';
+            output(3).name = 'Merged';
+            output(3).var = 'merged';
+            output(3).formatData = @mat2gray;
+            output(3).defaultDisplayMethod=@ImageDisplay;
+            output(3).type = 'image';
+
+            %%TODO ? OUTPUT #3 Add new registration display similar to imshowpair(fixed, RegisteredCell{p}, 'Scaling','joint');  
+            %%TODO ? OUTPUT #4 (display transforamtions for each frame?)
+        end
     end
+
     methods (Static)
         
         function name =getName()
             name = 'Stage Drift Correction';
         end
         function h = GUI()
-            h= @stageDriftCorrectionProcessGUI;
+            h = @abstractProcessGUI;
         end
-        function output = getDrawableOutput()
-            output(1).name='Registered images';
-            output(1).var='';
-            output(1).formatData=@mat2gray;
-            output(1).type='image';
-            output(1).defaultDisplayMethod=@ImageDisplay;
-            output(2).name='Reference frame';
-            output(2).var='refFrame';
-            output(2).formatData=@mat2gray;
-            output(2).type='movieGraph';
-            output(2).defaultDisplayMethod=@ImageDisplay;
-            output(3).name='Flow along x-axis';
-            output(3).var='x-flow';
-            output(3).formatData=@(x)getFlow(x,1);
-            output(3).type='movieGraph';
-            output(3).defaultDisplayMethod=@FlowHistogramDisplay;
-            output(4).name='Flow along y-axis';
-            output(4).var='y-flow';
-            output(4).formatData=@(x)getFlow(x,2);
-            output(4).type='movieGraph';
-            output(4).defaultDisplayMethod=@FlowHistogramDisplay;
-        end
-        
-        function funParams = getDefaultParams(owner,varargin)
-            % Input check
-            ip=inputParser;
-            ip.addRequired('owner',@(x) isa(x,'MovieData'));
-            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
-            ip.parse(owner, varargin{:})
-            outputDir=ip.Results.outputDir;
-            
-            % Set default parameters
-            funParams.ChannelIndex = 1 : numel(owner.channels_);
-            funParams.OutputDirectory = [outputDir  filesep 'stageDriftCorrection'];
-            funParams.referenceFramePath = '';
-            funParams.minCorLength = 51;
-            funParams.maxFlowSpeed =5;
-            funParams.alpha = .05;
-            funParams.cropROI=[1 1 owner.imSize_(end:-1:1)];
-            funParams.doPreReg=1;
+        function procClasses = getConcreteClasses()
+            procClasses = ...
+                {...
+                 @BeadTrackingCorrectionProcess;
+                 @EfficientSubpixelRegistrationProcess;
+                };
+            procClasses = cellfun(@func2str, procClasses, 'Unif', 0);
         end
     end
-end
-
-function data=getFlow(data,i)
-
-data=cellfun(@(x) x(:,i+2)-x(:,i),data,'UniformOutput',false);
 end

@@ -15,6 +15,7 @@ function calculateMovieForceField(movieData,varargin)
 
 % Sebastien Besson, Sep 2011
 % Last updated by Sangyoon Han, Oct 2014
+% Updates by Andrew R. Jamieson, Feb 2017
 
 %% Input
 %Check input
@@ -83,7 +84,7 @@ try
 catch
     pDisp.useGrid = false;
 end
-if pDisp.useGrid
+if pDisp.useGrid || pDisp.addNonLocMaxBeads
     p.highRes = false;
 else
     p.highRes = true;
@@ -194,6 +195,8 @@ if min(min(maskArray(:,:,1))) == 0
 
     % Use mask of first frame to filter displacementfield
     iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+    displFieldOriginal=displFieldProc.loadChannelOutput;
+    
     if ~isempty(iSDCProc)
         SDCProc=movieData.processes_{iSDCProc};
         if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
@@ -210,19 +213,32 @@ if min(min(maskArray(:,:,1))) == 0
         % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
         tempMask2 = false(size(refFrame));
         y_shift = find(any(firstMask,2),1);
+        y_lastNonZero = find(any(firstMask,2),1,'last');
         x_shift = find(any(firstMask,1),1);
-
-        tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        x_lastNonZero = find(any(firstMask,1),1,'last');
+        % It is possible that I created roiMask based on tMap which is
+        % based on reg_grid. In that case, I'll have to re-size firstMask accordingly
+        % check if maskArray is made based on channel
+        if (y_lastNonZero-y_shift+1)==size(tempMask,1) ...
+                && (x_lastNonZero-x_shift+1)==size(tempMask,2)
+            tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+            if (y_shift+size(tempMask,1))>size(firstMask,1) || x_shift+size(tempMask,2)>size(firstMask,2)
+                firstMask=padarray(firstMask,[y_shift-1 x_shift-1],'replicate','post');
+            end
+        elseif size(firstMask,1)==size(tempMask,1) ... 
+                && size(firstMask,2)==size(tempMask,2) % In this case, maskArray (or roiMask) is based on reg_grid
+            disp('Found that maskArray (or roiMask) is based on reg_grid')
+            tempMask2 = tempMask;
+        else
+            error('Something is wrong! Please check your roiMask!')
+        end
         firstMask = tempMask2 & firstMask;
-        
 %         firstMask = false(size(refFrame));
 %         tempMask = maskArray(:,:,1);
 %         firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask; % This was wrong
-        displFieldOriginal=displFieldProc.loadChannelOutput;
         displField = filterDisplacementField(displFieldOriginal,firstMask);
     else
         firstMask = maskArray(:,:,1);
-        displFieldOriginal=displFieldProc.loadChannelOutput;
         displField = filterDisplacementField(displFieldOriginal,firstMask);
     end        
 else
@@ -260,7 +276,7 @@ end
 % that the edges have been eroded to a certain extend. This is performed by
 % the following function.
 if ~p.highRes
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1,0);
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,0.9,0); % we have to lower grid spacing because there are some redundant or aggregated displ vectors when additional non-loc-max beads were used for tracking SH170311
 else
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.0,0); %no dense mesh in any case. It causes aliasing issue!
 end
@@ -277,25 +293,49 @@ if p.lastToFirst
 else
     frameSequence = firstFrame:nFrames;
 end
-jj = 0;
+
 if strcmpi(p.method,'FastBEM')
     % if FastBEM, we calculate forward map and mesh only in the first frame
     % and then use parfor for the rest of the frames to calculate forces -
     % SH
     i=frameSequence(1); % For the first frame
-    [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
+    [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
     % basis function table name adjustment
-    expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix'];
-    % match basisClassTblPath name to include gridSpacing
+    expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix.mat'];
+    
+    % Check if path exists - this step might not be needed because
+    % sometimes we need to build a new table with a new name.
+    if isempty(p.basisClassTblPath)
+        disp(['Note, no path given for basis tables, outputing to movieData.mat path: ' ...
+            movieData.movieDataPath_]);
+        p.basisClassTblPath = fullfile(movieData.movieDataPath_, expectedName);
+    else
+        if exist(p.basisClassTblPath,'file')==2 
+            disp('BasisFunctionFolderPath is valid.');
+            if numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) ~= 1
+                disp(['basisFunction.mat not valid!' p.basisClassTblPath '. Will build a new basisFunction to this name.']);
+            end
+        else
+            disp('New basisFunctionFolderPath is entered. Will build a new table and save in this path.');
+        end
+%         assert(exist(p.basisClassTblPath,'file')==2, 'basisFunctionFolderPath not valid!');
+%         assert(numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) == 1, ['basisFunction.mat not valid!' p.basisClassTblPath]);
+    end
+
+    % Sanity check the paths.
     basisFunctionFolderPath = fileparts(p.basisClassTblPath);
-    expectedPath = [basisFunctionFolderPath filesep expectedName '.mat'];
-    if ~strcmp(expectedPath,p.basisClassTblPath)
+    assert(exist(basisFunctionFolderPath, 'dir')==7, 'basisFunctionFolderPath not valid!');
+
+    % Check if basis file name is correctly formatted.
+    expectedPath = fullfile(basisFunctionFolderPath, expectedName);
+    if ~strcmp(expectedPath, p.basisClassTblPath)
         p.basisClassTblPath = expectedPath;
         disp(['basisClassTblPath has different name for estimated mesh grid spacing (' num2str(gridSpacing) '). ']);
         disp('Now the path is automatically changed to :')
-        disp([expectedPath '.'])
+        disp([expectedPath '.']);
     end
+        
     % If grid_mat=[], then an optimal hexagonal force mesh is created
     % given the bead locations defined in displField:
     if p.usePaxImg && length(movieData.channels_)>1

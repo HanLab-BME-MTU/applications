@@ -1,6 +1,6 @@
 function [detectedFeatures,pixelPos,maskBlobs] = detectThreshLocMax(image,...
     thresholdMethod,methodValue,filterNoise,filterBackground,minSize,...
-    alphaLocMax,plotRes,mask,maxSize,maskThresh)
+    alphaLocMax,plotRes,mask,maxSize,maskThresh,alphaSubRes,psfSigma)
 %detectThreshLocMax combines blob segmentation with local maxima detection
 %
 %SYNOPSIS maskComb = detectThreshLocMax(image,thresholdMethod,methodValue,...
@@ -102,17 +102,32 @@ end
 %% Image preparation
 
 %make sure that image is in double format
-image = double(image);
+image = double(image)/ (2^16-1);
+
+%crop image
+image = image .* mask;
+
+%find nonzero values (due to masking)
+nzInd = find(image);
+
+%get minumum and maximum pixel values in image
+minSignal = min(image(nzInd));
+maxSignal = max(image(nzInd));
+
+%normalize nonzero value between 0 and 1
+imageNorm = zeros(size(image));
+imageNorm(nzInd) = (image(nzInd) - minSignal) / (maxSignal - minSignal);
+
 
 %estimate background by filtering image with a wide Gaussian
 if filterBackground > 0
-    imageBackground = filterGauss2D(image,filterBackground);
+    imageBackground = filterGauss2D(imageNorm,filterBackground);
 else
     imageBackground = zeros(imageSizeX,imageSizeY);
 end
 
 %remove background from image
-imageMinusBackground = image - imageBackground;
+imageMinusBackground = imageNorm - imageBackground;
  
 
 %remove noise by filtering image-background with a narrow Gaussian
@@ -121,24 +136,9 @@ if filterNoise > 0
 else
     imageMinusBackgroundFiltered = imageMinusBackground;
 end
-
+imageMinusBackgroundFilteredNorm = imageMinusBackgroundFiltered;
 %estimate noise per pixel
 % imageMinusBackgroundFiltered = imageMinusBackground - imageMinusBackgroundFiltered;
-
-
-%crop image
-imageMinusBackgroundFiltered = imageMinusBackgroundFiltered .* mask;
-
-%find nonzero values (due to masking)
-nzInd = find(imageMinusBackgroundFiltered);
-
-%get minumum and maximum pixel values in image
-minSignal = min(imageMinusBackgroundFiltered(nzInd));
-maxSignal = max(imageMinusBackgroundFiltered(nzInd));
-
-%normalize nonzero value between 0 and 1
-imageMinusBackgroundFilteredNorm = zeros(size(imageMinusBackgroundFiltered));
-imageMinusBackgroundFilteredNorm(nzInd) = (imageMinusBackgroundFiltered(nzInd) - minSignal) / (maxSignal - minSignal);
 
 %% Thresholding
 
@@ -192,7 +192,6 @@ switch thresholdMethod
 end
 
 %threshold the image
-level = 0.1;
 imageThresholded = im2bw(imageMinusBackgroundFilteredNorm,level);
 
 %fill holes in thresholded image to make continuous blobs
@@ -220,13 +219,17 @@ end
 %% Local maxima
 
 % %estimate local background and noise statistics
-% % [bgMean,bgStd] = ...
-% %     spatialMovAveBG(imageMinusBackgroundFiltered,imageSizeX,imageSizeY);
+[bgMean,bgStd] = ...
+    spatialMovAveBG(imageMinusBackgroundFiltered,imageSizeX,imageSizeY);
+<<<<<<< HEAD
+=======
+% spatialMovAveBG(imageNorm,imageSizeX,imageSizeY);
+>>>>>>> june_seven
 
 % %estimate background/noise statistics %% This was added BACK, TONY
-bgIntDistr = imageMinusBackgroundFiltered(~maskBlobs);
-[bgMean,bgStd] = robustMean(bgIntDistr);
-bgStd = max(bgStd,eps);
+% % bgIntDistr = imageMinusBackgroundFiltered(~maskBlobs);
+% % [bgMean,bgStd] = robustMean(bgIntDistr);
+% % bgStd = max(bgStd,eps);
 
 %estimate background/noise statistics
 % bgMean = 0;
@@ -234,22 +237,22 @@ bgStd = max(bgStd,eps);
 
 %call locmax2d to get local maxima in filtered image
 fImg = locmax2d(imageMinusBackgroundFiltered,[3 3],1);
-
+% fImg = locmax2d(imageMinusBackground,[3 3],1);
 
 
 %get positions and amplitudes of local maxima
-localMax1DIndx = find(fImg);
+localMax1DIndx = find(fImg(:));
 [localMaxPosX,localMaxPosY,localMaxAmp] = find(fImg);
 testMaxAmp = image(localMax1DIndx);
 
 % %get background values corresponding to local maxima%% This was added BACK, TONY
-% % bgMeanMax = bgMean(localMax1DIndx);
-% % bgStdMax = bgStd(localMax1DIndx);
+bgMeanMax = bgMean(localMax1DIndx);
+bgStdMax = bgStd(localMax1DIndx);
 
 %calculate the p-value corresponding to the local maxima's amplitudes
 %assume that background intensity is normally
 %distributed with mean bgMeanMax and standard deviation bgStdMax
-pValue = 1 - normcdf(localMaxAmp,bgMean,bgStd);
+pValue = 1 - normcdf(localMaxAmp,bgMeanMax,bgStdMax);
 
 
 %calculate the threshold to distinguish significant local maxima
@@ -280,20 +283,46 @@ localMaxPosY = localMaxPosY(indxKeep);
 %make a mask image from the local maxima
 maskLocMax = zeros(imageSizeX,imageSizeY);
 maskLocMax(localMax1DIndx) = 1;
-SE = strel('disk',2);
-maskLocMax = imdilate(maskLocMax,SE);
+% SE = strel('disk',1);
+% maskLocMax = imdilate(maskLocMax,SE);
 
 %% Final mask
 
 maskComb = maskBlobs | maskLocMax;
 
 %% Work Space---------------------------------------------------
+% Sub-Res Section----------------------------------
+numLocMax = length(localMaxPosX);
+cands = repmat(struct('status',1,'IBkg',[],...
+'Lmax',[],'amp',[],'pValue',[]),numLocMax,1);
+bgMeanMax = bgMeanMax(indxKeep);
+pValue = pValue(indxKeep);
+for iMax = 1 : numLocMax
+cands(iMax).IBkg = bgMeanMax(iMax);
+cands(iMax).Lmax = [localMaxPosX(iMax) localMaxPosY(iMax)];
+cands(iMax).amp = localMaxAmp(iMax);
+cands(iMax).pValue = pValue(iMax);
+end
+testAlpha = struct('alphaR',alphaSubRes,'alphaA',alphaSubRes,'alphaD',alphaSubRes,'alphaF',0);
+featuresInfo = detectSubResFeatures2D_V2(image, cands,psfSigma,testAlpha,[],0,1,[],mean(bgStd(:)));%0.59
 
-
+testCoordOrg = [featuresInfo.yCoord(:,1) featuresInfo.xCoord(:,1)];
+testUncertainty = [featuresInfo.yCoord(:,2) featuresInfo.xCoord(:,2)];
+testX = round(featuresInfo.xCoord);
+testY = round(featuresInfo.yCoord);
+% testAmp = featuresInfo.amp;
+testCoord = [testY(:,1),testX(:,1)];
+% testSizeInfo = NaN(size(testCoord,1),size(testCoord,2));
+c = unique(testCoord,'rows');
+locmaxMapSubR = false(size(labels));
+for i = 1:size(c,1)
+locmaxMapSubR(c(i,1),c(i,2)) = true;
+end
+%---------------------------------------------
 %First determines connected components found by segmentation
 [labels,nLabels] = bwlabel(maskBlobs,4); %This will be the threshold image
-s = regionprops(labels, image, {'Centroid','PixelValues','BoundingBox',...
-    'Eccentricity','Area','PixelList'});
+s = regionprops(labels, imageMinusBackgroundFilteredNorm, {'WeightedCentroid','PixelValues','BoundingBox',...
+    'Eccentricity','Area','PixelList','MeanIntensity'});
 
 %Create binary mask where true values represent coordinates of an ROI
 N = length(localMaxPosY);
@@ -305,46 +334,70 @@ end
 % imshowpair(locmaxMap,maskBlobs);
 % % hold on
 %first test: Is there one or more LM in a single object?
-
+countN =1;
+countS =1;
+maskMultLM = zeros(imageSizeX,imageSizeY); %mask with objects that contain many LM
+maskSingLM = zeros(imageSizeX,imageSizeY); %mask with objects that contain single LM
+maskMyst = zeros(imageSizeX,imageSizeY);
 for k =1:nLabels
     
-    cell = (labels == k); %Loop through objects
-    matches = locmaxMap(cell); %Are there LM's in that object?
-    matchNum = sum(matches); %How many?
+    cellBlob = (labels == k); %Loop through objects
+    matches = locmaxMapSubR.*cellBlob;
+    [row,col]  = find(matches);
+    matchNum = length(row);
+%     matches = locmaxMap(cellBlob); %Are there LM's in that object?
+%     matchNum = sum(matches); %How many?
     
     if  matchNum > 1
     s(k).StandardDev = std(double(s(k).PixelValues));
-% %     text(s(k).Centroid(1),s(k).Centroid(2), ...
-% %         sprintf('%2.1f', s(k).Eccentricity), ...
-% %         'EdgeColor','b','Color','r');
-% % if s(k).Eccentricity >= 0.9
-% %     s(k).StandardDev = 0;
 
-% % end
-
+    maskMultLM(cellBlob) = 1;
+    testArrayN(countN:countN+length(row)-1,1) = row;
+    testArrayN(countN:countN+length(row)-1,2) = col;
+    elim = ismember(testCoord,testArrayN(countN:countN+length(row)-1,:),'rows');
+    testCoord(elim,:) = [];
+    testCoordOrg(elim,:) = [];
+    testUncertainty(elim,:) = [];
+    countN = countN + length(row);
+    elseif matchNum ==1
+        testArrayS(countS,:) =[row,col];
+        maskSingLM(cellBlob) = 1;
+      s(k).StandardDev = 0;
+        elim = ismember(testCoord,[row,col],'rows');
+        testCoord(elim,:) = [];
+        testCoordOrg(elim,:) = [];
+        testUncertainty(elim,:) = [];
+     [~, edgePixel] = min(s(k).PixelValues);
+      x = [round(s(k).WeightedCentroid(1)) s(k).PixelList(edgePixel,1)];
+      y = [round(s(k).WeightedCentroid(2)) s(k).PixelList(edgePixel,2)];
+      c = improfile(imageMinusBackgroundFilteredNorm, x,y);
+      s(k).Spread = c(1)/min(c);
+      countS = countS+1;
     else
       s(k).StandardDev = 0;
-     [~, edgePixel] = min(s(k).PixelValues);
-      x = [round(s(k).Centroid(1)) s(k).PixelList(edgePixel,1)];
-      y = [round(s(k).Centroid(2)) s(k).PixelList(edgePixel,2)];
-      c = improfile(image, x,y);
-      s(k).Spread = max(c)/min(c);
+      [~, edgePixel] = min(s(k).PixelValues);
+      x = [round(s(k).WeightedCentroid(1)) s(k).PixelList(edgePixel,1)];
+      y = [round(s(k).WeightedCentroid(2)) s(k).PixelList(edgePixel,2)];
+      c = improfile(imageMinusBackgroundFilteredNorm, x,y);
+      s(k).Spread = c(1)/min(c);
+       maskMyst(cellBlob) = 1;
     end                
     
 end
-
-spreadThreshold = mean(vertcat(s.Spread))-std(vertcat(s.Spread));
+maskMultLM = logical(maskMultLM);
+maskSingLM = logical(maskSingLM);
+maskMyst = logical(maskMyst);
+spreadThreshold = 1.2;%prctile(vertcat(s.Spread),1);%0;%
 
 listVar =vertcat(s.StandardDev);
 indxVar = find(listVar);        
-testArray(:,2) = localMaxPosX;
-testArray(:,1) = localMaxPosY;
-% discardPile = [];
+
 %Remove maxima that are too close
+pathCell = cell(length(indxVar),1);
 for i = 1:length(indxVar)
     
-    [r(:,2),r(:,1)] = find(labels == indxVar(i)); % all points in object, verify x and y
-    lia1 = ismember(testArray,r,'rows');
+    [r(:,1),r(:,2)] = find(labels == indxVar(i)); % all points in object, verify x and y
+    lia1 = ismember(testArrayN,r,'rows');
     lmPos = find(lia1);
     pathMeasure = zeros(((length(lmPos)*(length(lmPos)-1))/2),1);
     point = zeros(length(lmPos),2);
@@ -352,30 +405,30 @@ for i = 1:length(indxVar)
     %lmPoints = [testArray(lmPos,:);round(s(indxVar(i)).Centroid)];
     for j = 1:(length(lmPos)-1)
         for k = (j+1):length(lmPos)
-            x = [testArray(lmPos(j),1) testArray(lmPos(k),1)];
+            y = [testArrayN(lmPos(j),1) testArrayN(lmPos(k),1)];
             %x = [lmPoints(j,1) lmPoints(k,1)];
-            y = [testArray(lmPos(j),2) testArray(lmPos(k),2)];
+            x = [testArrayN(lmPos(j),2) testArrayN(lmPos(k),2)];
             %y = [lmPoints(j,2) lmPoints(k,2)];
-            c = improfile(image, x,y);
+            c = improfile(imageMinusBackgroundFilteredNorm,x,y);
 
-             pathMeasure(count,1) = (max(c))/(min(c));   
+             pathMeasure(count,1) = (mean([c(1),c(end)]))/(min(c));   
             
             % hold on; improfile(image, x,y), grid on; 
             point(j,count+1)= pathMeasure(count,1);
-            point(j,1)= image(testArray(lmPos(j),1),testArray(lmPos(j),2));
+            point(j,1)= image(testArrayN(lmPos(j),1),testArrayN(lmPos(j),2));
             point(k,count+1) = pathMeasure(count,1);
-            point(k,1) = image(testArray(lmPos(k),1),testArray(lmPos(k),2));
+            point(k,1) = image(testArrayN(lmPos(k),1),testArrayN(lmPos(k),2));
             count = count+1;
         end
     end
     % Good var - bad var = #number of points we want
-    
+    pathCell{i} = pathMeasure;
     checkList = pathMeasure <= spreadThreshold;
     checkList = checkList.*pathMeasure;
     [~,~,badPath] = find(checkList);
     if length(badPath) ==length(pathMeasure)
-        testArray(lmPos,:) = testArray(lmPos,:).*zeros(length(lmPos),2);
-        testArray(lmPos(1),:) = round(s(indxVar(i)).Centroid);
+        testArrayN(lmPos,:) = testArrayN(lmPos,:).*zeros(length(lmPos),2);
+        testArrayN(lmPos(1),:) = [round(s(indxVar(i)).WeightedCentroid(2)),round(s(indxVar(i)).WeightedCentroid(1))];
     else
         for m = 1:length(badPath)
           testA = ismember(point,badPath(m));
@@ -386,89 +439,195 @@ for i = 1:length(indxVar)
           [dismiss,~,~] = find(point == min(point(row,1)));
           cleanUp = find(point(dismiss,:));
           point(:,cleanUp(2:end)) = 0;
-          testArray(lmPos(dismiss),:) = testArray(dismiss,:).*zeros(length(dismiss),2);
+          testArrayN(lmPos(dismiss),:) = testArrayN(dismiss,:).*zeros(length(dismiss),2);
           clear dismiss
         end
     end
     
-    
-% %     numMolecules = length(find(pathMeasure > 1.25));
-% %     if numMolecules == 0
-% %         numMolecules = 1;
-% %         sortedPoint = sort(point(:,2));
-% %         keepMolecules = sortedPoint(end-(numMolecules-1):end);
-% %         filterMolecules = ismember(point(:,2),keepMolecules);
-% %         discard  = find(filterMolecules == 0);
-% %         %testArray(lmPos(discard),:) = [];
-% %         keep  = find(filterMolecules == 1);
-% %         if length(keep) >1
-% %         testArray(lmPos(keep(1)),:) = round(s(indxVar(i)).Centroid);
-% %         testArray(lmPos([keep(2:end); discard]),:) = [];
-% %         else
-% %         testArray(lmPos(keep),:) = round(s(indxVar(i)).Centroid);
-% %         testArray(lmPos(discard),:) = [];
-% %         end
-% %         
-% %        
-% %     else
-% %     gbRatio = numMolecules-(length(pathMeasure)-numMolecules);
-% %     if gbRatio <= 0
-% %         numMolecules = 2;
-% %     else
-% %     numMolecules = round(sqrt(numMolecules*2));
-% %     end
-% %     sortedPoint = sort(point(:,1));
-% %     keepMolecules = sortedPoint(end-(numMolecules-1):end);
-% %     filterMolecules = ismember(point(:,1),keepMolecules);
-% %     discard  = find(filterMolecules == 0);
-% %     testArray(lmPos(discard),:) = []; 
-% %     end
     clear r pathVariance 
     %hold off;
 end
-% testArray(lmPos(discard),:) = []; 
-fixedTestArray = [testArray];%round(newPos)];%round(newPosB)]; %Add centroid locations
-fixedTestArray( ~any(fixedTestArray,2), : ) = [];
-%Implement Watershed segmentation to correct/center positions
-imageQ = imcomplement(image);
-markers = zeros(size(image,1),size(image,1));
-for q = 1: length(fixedTestArray)
-    markers(fixedTestArray(q,2),fixedTestArray(q,1)) = 1;
+% testArray(lmPos(discard),:) = [];
+
+if ~isempty(indxVar)
+    fixedTestArray = testArrayN;%round(newPos)];%round(newPosB)]; %Add centroid locations
+    fixedTestArray( ~any(fixedTestArray,2), : ) = [];
+    %Create new mask, dilate to PSF around LM
+    linearInd = sub2ind(size(image),fixedTestArray(:,1),fixedTestArray(:,2));
+    maskLM = zeros(imageSizeX,imageSizeY);
+    maskLM(linearInd) = 1;
+    SE = strel('disk',2);
+    maskLMDil = imdilate(maskLM,SE);
+    maskMultLM = logical(maskMultLM+maskLMDil);
+    %Implement Watershed segmentation to correct/center positions
+    imageQ = imcomplement(image);
+    markers = zeros(size(image,1),size(image,2));
+    for q = 1: size(fixedTestArray,1)
+        markers(fixedTestArray(q,1),fixedTestArray(q,2)) = 1;
+    end
+    markers = logical(markers);
+    % maskComb = bwdist(maskComb)<=1;
+    wsInput = imimposemin(imageQ, markers);
+    wsInput(~maskMultLM) = Inf;
+    wsOutput = watershed(wsInput);
+    % % postWS = regionprops(wsOutput, image, {'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+    % % postWS(1) = [];
+
+    wsOutputNoBg = immultiply(wsOutput,maskMultLM);
+    BW = logical(wsOutputNoBg);
+    % wsOutputNoBg(wsOutput == 1) = 0;
+    % cc = connectedComponents.label2conncomp(wsOutputNoBg);
+    % cc.PixelIdxList = cc.PixelIdxList(2:end);
+    % cc.NumObjects = cc.NumObjects-1;
+    % cc_dilated = connectedComponents.ccDilate(cc,strel('disk',1));
+    rp = regionprops(BW,image,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+    test = vertcat(rp.Area);
+    testE = vertcat(rp.Eccentricity);
+    rp(test > maxSize) = [];
+%     rp(test > maxSize & testE <= 0.7) = [];
+    test = vertcat(rp.Area);
+    rp(test < minSize) = [];
 end
-markers = logical(markers);
-% maskComb = bwdist(maskComb)<=1;
-wsInput = imimposemin(imageQ, markers);
-wsInput(~maskComb) = Inf;
+SE = strel('disk',2);
+%Getting information from sub res features not in maskBlobs
+% subR = isnan(testSizeInfo(:,1));
+subRInd = sub2ind(size(image),testCoord(:,1),testCoord(:,2));
+imagePSF = filterGauss2D(image,psfSigma);%0.59
+Vq = interp2(imagePSF,testCoord(:,2),testCoord(:,1));
+rp2Intensity = Vq;
+rp2Size = 13.*ones(length(Vq),1);
+testMask = zeros(imageSizeX,imageSizeY);
+testMask(subRInd) = 1;
+maskTestDil = imdilate(testMask,SE);
+id2 = find(maskTestDil);
+% [lmIndR,lmIndC] = find(maskLocMax);
+% [IDX, ~]= knnsearch([lmIndR,lmIndC],testCoord,'K',1);
+maskTest = zeros(imageSizeX,imageSizeY);
+% % lmInd = sub2ind([350,350],lmIndR(IDX),lmIndC(IDX));
+maskTest(subRInd) = 1;
+%     cc = connectedComponents.label2conncomp(maskTest);
+%     cc_dilated = connectedComponents.ccDilate(cc,strel('disk',2));
+% % SE = strel('disk',2);
+% % maskTestDil = imdilate(maskTest,SE);
+% %Method to correct close LM's-----------
+% % SE = strel('square',3);
+% % maskTestDil2 = imdilate(maskTest,SE);
+% % newMaskLM = (maskTestDil2.*maskLocMax);
+SE = strel('disk',2);
+maskTestDil = imdilate(maskTest,SE);
+% %-------------------------------
+<<<<<<< HEAD
+=======
+% wsInput = imimposemin(imageQ, logical(maskTest));
+% wsInput(~maskTestDil) = Inf;
+% wsOutput = watershed(wsInput);
+% wsOutputNoBg = immultiply(wsOutput,logical(maskTestDil));
+% BW2 = logical(wsOutputNoBg);
+% rp2 = regionprops(BW2,imageMinusBackgroundFiltered,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+%Geting information from single Mask Blob features
+if countS > 1
+%Create new mask, dilate to PSF around LM
+linearInd = sub2ind(size(image),testArrayS(:,1),testArrayS(:,2));
+maskLMS = zeros(imageSizeX,imageSizeY);
+maskLMS(linearInd) = 1;
+>>>>>>> june_seven
+imageQ = imcomplement(image);
+wsInput = imimposemin(imageQ, logical(maskTest));
+wsInput(~maskTestDil) = Inf;
 wsOutput = watershed(wsInput);
-% % postWS = regionprops(wsOutput, image, {'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
-% % postWS(1) = [];
-
-wsOutputNoBg = immultiply(wsOutput,maskComb);
-BW = logical(wsOutputNoBg);
-% wsOutputNoBg(wsOutput == 1) = 0;
-% cc = connectedComponents.label2conncomp(wsOutputNoBg);
-% cc.PixelIdxList = cc.PixelIdxList(2:end);
-% cc.NumObjects = cc.NumObjects-1;
-% cc_dilated = connectedComponents.ccDilate(cc,strel('disk',1));
-rp = regionprops(BW,image,{'Centroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
-test = vertcat(rp.Area);
-testE = vertcat(rp.Eccentricity);
-% minCluster = find(test < minSize);
-rp(test > maxSize & testE <= 0.7) = [];
-test = vertcat(rp.Area);
-rp(test < minSize) = [];
-% test = vertcat(rp.Area);
-% maxCluster = find(test > maxSize);
-% rp(maxCluster) = [];
-
+<<<<<<< HEAD
+wsOutputNoBg = immultiply(wsOutput,logical(maskTestDil));
+BW2 = logical(wsOutputNoBg);
+rp2 = regionprops(BW2,imageMinusBackgroundFiltered,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+%Geting information from single Mask Blob features
+if countS > 1
+    %Create new mask, dilate to PSF around LM
+    linearInd = sub2ind(size(image),testArrayS(:,1),testArrayS(:,2));
+    maskLMS = zeros(imageSizeX,imageSizeY);
+    maskLMS(linearInd) = 1;
+    imageQ = imcomplement(image);
+    maskLMSDil = imdilate(maskLMS,SE);
+    maskSingLM = logical(maskSingLM+maskLMSDil);
+    wsInput = imimposemin(imageQ, logical(maskLMS));
+    wsInput(~maskSingLM) = Inf;
+    wsOutput = watershed(wsInput);
+    wsOutputNoBg = immultiply(wsOutput,logical(maskSingLM));
+    BW3 = logical(wsOutputNoBg);
+    % BW3 = BW3 + maskMyst;
+    rp3 = regionprops(BW3,image,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+end
+=======
+wsOutputNoBg = immultiply(wsOutput,logical(maskSingLM));
+BW3 = logical(wsOutputNoBg);
+% BW3 = BW3 + maskMyst;
+rp3 = regionprops(BW3,image,{'WeightedCentroid','Area','Eccentricity','PixelIdxList','MeanIntensity'});
+test = vertcat(rp3.Area);
+testE = vertcat(rp3.Eccentricity);
+rp3(test > maxSize) = [];
+%     rp(test > maxSize & testE <= 0.7) = [];
+test = vertcat(rp3.Area);
+rp3(test < minSize) = [];
+>>>>>>> june_seven
+% testSizeInfo(subR,1) = vertcat(rp2.MeanIntensity);
+% testSizeInfo(subR,2) = vertcat(rp2.Area);
+end
 clear fixedTestArray
-dispCentroid = round(vertcat(rp.Centroid));
-fixedTestArray = (vertcat(rp.Centroid));
-objectAmp = (vertcat(rp.MeanIntensity));
-localMaxPosZ = zeros(length(fixedTestArray),1); %Find better way to ignore axis
-varPosX = 0.5*ones(length(fixedTestArray),1);
-varPosY = 0.5*ones(length(fixedTestArray),1);
-varAmp = zeros(length(fixedTestArray),1);
+% dispCentroid = round(vertcat(rp.Centroid));
+<<<<<<< HEAD
+if ~isempty(indxVar) && countS >1
+finalPositions = [vertcat(rp.WeightedCentroid);vertcat(rp3.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
+finalSize = [vertcat(rp.MeanIntensity),vertcat(rp.Area);vertcat(rp3.MeanIntensity),vertcat(rp3.Area);rp2Intensity,rp2Size];
+finalEccentricity = [vertcat(rp.Eccentricity);vertcat(rp3.Eccentricity);ones(size(testCoordOrg,1),1)];
+pixelPos(:,1) = {rp.PixelIdxList,rp3.PixelIdxList,rp2.PixelIdxList};
+elseif countS >1
+ finalPositions = [vertcat(rp3.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
+ finalSize = [vertcat(rp3.MeanIntensity),vertcat(rp3.Area);rp2Intensity,rp2Size];
+ finalEccentricity = [vertcat(rp3.Eccentricity);ones(size(testCoordOrg,1),1)]; 
+ pixelPos(:,1) = {rp3.PixelIdxList,rp2.PixelIdxList};
+elseif ~isempty(indxVar)
+   finalPositions = [vertcat(rp.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
+    finalSize = [vertcat(rp.MeanIntensity),vertcat(rp.Area);rp2Intensity,rp2Size];
+    finalEccentricity = [vertcat(rp.Eccentricity);ones(size(testCoordOrg,1),1)];
+    pixelPos(:,1) = {rp.PixelIdxList,rp2.PixelIdxList};
+else
+   finalPositions = [testCoordOrg(:,2),testCoordOrg(:,1)];
+    finalSize = [rp2Intensity,rp2Size];
+    finalEccentricity = ones(size(testCoordOrg,1),1);
+    pixelPos(:,1) = {rp2.PixelIdxList};    
+=======
+if ~isempty(indxVar) && countS > 1
+finalPositions = [vertcat(rp.WeightedCentroid);vertcat(rp3.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
+finalSize = [vertcat(rp.MeanIntensity),vertcat(rp.Area);vertcat(rp3.MeanIntensity),vertcat(rp3.Area);rp2Intensity,rp2Size];
+finalEccentricity = [vertcat(rp.Eccentricity);vertcat(rp3.Eccentricity);ones(size(testCoordOrg,1),1)];
+pixelPos(:,1) = {rp.PixelIdxList,rp3.PixelIdxList,id2};
+
+localMaxPosZ = zeros(length(finalPositions),1); %Find better way to ignore axis
+varPosX = [0.5*ones(size([vertcat(rp.WeightedCentroid);vertcat(rp3.WeightedCentroid)],1),1);testUncertainty(:,2)];
+varPosY = [0.5*ones(size([vertcat(rp.WeightedCentroid);vertcat(rp3.WeightedCentroid)],1),1);testUncertainty(:,1)];
+varAmp = zeros(length(finalPositions),1);
+elseif countS > 1
+ finalPositions = [vertcat(rp3.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
+ finalSize = [vertcat(rp3.MeanIntensity),vertcat(rp3.Area);rp2Intensity,rp2Size];
+ finalEccentricity = [vertcat(rp3.Eccentricity);ones(size(testCoordOrg,1),1)]; 
+ pixelPos(:,1) = {rp3.PixelIdxList,id2};
+ 
+ localMaxPosZ = zeros(length(finalPositions),1); %Find better way to ignore axis
+varPosX = [0.5*ones(size([vertcat(rp3.WeightedCentroid)],1),1);testUncertainty(:,2)];
+varPosY = [0.5*ones(size([vertcat(rp3.WeightedCentroid)],1),1);testUncertainty(:,1)];
+varAmp = zeros(size(finalPositions,1),1);
+else
+     finalPositions = [vertcat(rp.WeightedCentroid);[testCoordOrg(:,2),testCoordOrg(:,1)]];
+     finalSize = [vertcat(rp.MeanIntensity),vertcat(rp.Area);rp2Intensity,rp2Size];
+     finalEccentricity = [vertcat(rp.Eccentricity);ones(size(testCoordOrg,1),1)]; 
+     pixelPos(:,1) = {rp.PixelIdxList,id2};
+
+     localMaxPosZ = zeros(length(finalPositions),1); %Find better way to ignore axis
+     varPosX = [0.5*ones(size(vertcat(rp.WeightedCentroid),1),1);testUncertainty(:,2)];
+     varPosY = [0.5*ones(size(vertcat(rp.WeightedCentroid),1),1);testUncertainty(:,1)];
+     varAmp = zeros(size(finalPositions,1),1);
+>>>>>>> june_seven
+end
+
 %% Plotting
 
 if plotRes
@@ -506,12 +665,12 @@ if plotRes
     %Record x, y positions
     %positions = regionprops(maskComb,'Centroid');
 end
-    detectedFeatures.xCoord = [fixedTestArray(:,1) varPosX];
-    detectedFeatures.yCoord = [fixedTestArray(:,2) varPosY];%Understand this!
+    detectedFeatures.xCoord = [finalPositions(:,1) varPosX];
+    detectedFeatures.yCoord = [finalPositions(:,2) varPosY];%Understand this!
     detectedFeatures.zCoord = [localMaxPosZ localMaxPosZ];
-    detectedFeatures.amp = [objectAmp vertcat(rp.Area)];
-    pixelPos(:,1) = {rp.PixelIdxList};
-    detectedFeatures.size = [vertcat(rp.Area) varAmp];
+    detectedFeatures.amp = finalSize;
+    detectedFeatures.ecc = finalEccentricity;
+    detectedFeatures.size = [finalSize(:,2) varAmp];
     
     %[positions(:).Centroid(2)];
     

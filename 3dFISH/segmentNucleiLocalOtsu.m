@@ -33,7 +33,7 @@ flagDebugMode = p.Results.flagDebugMode;
 localThresholdWindowRadius = 30;
 localWindowPaceFraction = 1/3;
 minSliceLocalGlobalThresholdRatio = 0.6;
-minSliceToStackThresholdRatio = 0.4;
+minSliceToStackThresholdRatio = 0.2;
 
 % Convert um to pixel and calculate pace
 localWindowRadius = round(localThresholdWindowRadius ./ pixelSizeXY);

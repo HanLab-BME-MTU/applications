@@ -39,22 +39,6 @@ classdef FocalAdhesionSegmentationProcess < SegmentationProcess
         function h = GUI()
             h= @focalAdhesionSegmentationProcessGUI;
         end
-%         function methods = getMethods(varargin)
-%             thresholdingMethods(1).name = 'MinMax';
-%             thresholdingMethods(1).func = @thresholdFluorescenceImage;
-%             thresholdingMethods(2).name = 'Otsu';
-%             thresholdingMethods(2).func = @thresholdOtsu;
-%             thresholdingMethods(3).name = 'Rosin';
-%             thresholdingMethods(3).func = @thresholdRosin;
-%             thresholdingMethods(4).name = 'Gradient-based';
-%             thresholdingMethods(4).func = @intensityBinnedGradientThreshold;
-%             
-%             ip=inputParser;
-%             ip.addOptional('index',1:length(thresholdingMethods),@isvector);
-%             ip.parse(varargin{:});
-%             index = ip.Results.index;
-%             methods=thresholdingMethods(index);
-%         end
         
         function funParams = getDefaultParams(owner,varargin)
             % Input check
@@ -66,14 +50,12 @@ classdef FocalAdhesionSegmentationProcess < SegmentationProcess
             
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);
-            funParams.OutputDirectory = [outputDir  filesep 'adhesion masks'];
+            funParams.OutputDirectory = [outputDir  filesep 'adhesion_masks'];
             funParams.SteerableFilterSigma = 250;%Sigma in nm of steerable filter to use in splitting adjacent adhesions
             funParams.OpeningRadiusXY = 0; %Spatial radius in nm of structuring element used in opening.
             funParams.OpeningHeightT = 50; %Temporal "height" in seconds of structuring element used in opening            
             funParams.MinVolTime = 5; %Minimum spatiotemporal "Volume" in micron^2 * seconds of segmented adhesions to retain.
-            %funParams.ProcessIndex = [];%Default is to use raw images
             funParams.BatchMode = false;
-            %funParams.MethodIndx = 1;
         end
     end
 end

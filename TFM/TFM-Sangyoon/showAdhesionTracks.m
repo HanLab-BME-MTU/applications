@@ -10,7 +10,9 @@ ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
 ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
 ip.addParamValue('trainedData',[],@istable); % trained data
 ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
-ip.addParamValue('iChanSlave',[],@isscalar); % This is the master channle index.
+ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
+ip.addParamValue('imgMap',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
+ip.addParamValue('tMap',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
 ip.parse(pathForColocalization,idList,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 idList=ip.Results.idList;
@@ -20,8 +22,9 @@ T=ip.Results.trainedData;
 MD=ip.Results.movieData;
 iChan=ip.Results.iChan;
 iChanSlave=ip.Results.iChanSlave;
+imgMap=ip.Results.imgMap;
+tMap=ip.Results.tMap;
 %% Load processed data
-disp('Loading raw files ...')
 % movieData to find out pixel size
 if isempty(MD)
     coloPath = fileparts(pathForColocalization);
@@ -37,40 +40,44 @@ if isempty(tracksNA)
     tracksNA = load([pathForColocalization filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
     tracksNA = tracksNA.tracksNA;
 end
-if numChan==1
-    imgMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
-    imgMap = imgMap.tMap;
-elseif numChan==2
-    try
-        imgMap = load([pathForColocalization filesep 'pax'  filesep 'paxImgStack.mat'],'paxImgStack');
-        imgMap = imgMap.paxImgStack;
-        tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
-        tMap = tMap.tMap;
-    catch
-        % This case SDC was not used and first img frame was used.
-        paxImage=MD.getChannel(iChan).loadImage(1); 
-        [hp,w] = size(paxImage);
-        if isempty(iChanSlave)
-            TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
-            forceProc =TFMpackage.processes_{4};
-        %     forceField = forceProc.loadChannelOutput;
-            tMapCell = load(forceProc.outFilePaths_{2});
-            tMapCell = tMapCell.tMap;
-            tMap = zeros(hp,w,nFrames);
-            for iii=1:nFrames
-                tMap(:,:,iii) = tMapCell{iii};
+if isempty(imgMap) || isempty(tMap)
+    disp('Loading raw files ...')
+
+    if numChan==1
+        imgMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
+        imgMap = imgMap.tMap;
+    elseif numChan==2
+        try
+            imgMap = load([pathForColocalization filesep 'pax'  filesep 'paxImgStack.mat'],'paxImgStack');
+            imgMap = imgMap.paxImgStack;
+            tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
+            tMap = tMap.tMap;
+        catch
+            % This case SDC was not used and first img frame was used.
+            paxImage=MD.getChannel(iChan).loadImage(1); 
+            [hp,w] = size(paxImage);
+            if isempty(iChanSlave)
+                TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
+                forceProc =TFMpackage.processes_{4};
+            %     forceField = forceProc.loadChannelOutput;
+                tMapCell = load(forceProc.outFilePaths_{2});
+                tMapCell = tMapCell.tMap;
+                tMap = zeros(hp,w,nFrames);
+                for iii=1:nFrames
+                    tMap(:,:,iii) = tMapCell{iii};
+                end
+            else
+                tMap = zeros(hp,w,nFrames);
+                for iii=1:nFrames
+                    slaveImage=MD.getChannel(iChanSlave).loadImage(iii); 
+                    tMap(:,:,iii) = slaveImage;
+                end
             end
-        else
-            tMap = zeros(hp,w,nFrames);
+            imgMap = zeros(hp,w,nFrames);
             for iii=1:nFrames
-                slaveImage=MD.getChannel(iChanSlave).loadImage(iii); 
-                tMap(:,:,iii) = slaveImage;
+                paxImage=MD.getChannel(iChan).loadImage(iii); 
+                imgMap(:,:,iii) = paxImage;
             end
-        end
-        imgMap = zeros(hp,w,nFrames);
-        for iii=1:nFrames
-            paxImage=MD.getChannel(iChan).loadImage(iii); 
-            imgMap(:,:,iii) = paxImage;
         end
     end
 end
@@ -169,7 +176,8 @@ function pushInspectAdhesion(~,~)
     reAssign=false;
     newlyAssign=true;
     if ismember(idxIDList(IDtoInspect),IDs)
-        reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==idxIDList(IDtoInspect))) '. Do you want to reassign the group for this adhesion?(0/1) ']);
+        reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==idxIDList(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
+        if isempty(reAssign); reAssign=0; end
         whereInIDs = find(IDs==idxIDList(IDtoInspect));
         newlyAssign = false;
     end
@@ -177,8 +185,9 @@ function pushInspectAdhesion(~,~)
         if newlyAssign
             IDs=[IDs idxIDList(IDtoInspect)];
         end
-        curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',20);
-        curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',20);
+%         curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',30);
+%         curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',30);
+        curTrack = tracksNA(IDtoInspect);
         % then use startingFrameExtra and endingFrameExtra to plot intensity
         % time series
         h=figure;
@@ -496,11 +505,11 @@ function pushInspectAdhesion(~,~)
             tracksNA(IDtoInspect).endingFrameExtraExtra = [];
             tracksNA(IDtoInspect) = curTrack;
         end
-        if trainerInitially
-            print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
-            savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
-        end
-        save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
+%         if trainerInitially
+%             print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
+%             savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+%         end
+%         save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
         setappdata(hFig,'IDs',IDs);
         setappdata(hFig,'iGroups',iGroups);
         close(h2)
@@ -519,6 +528,27 @@ function txt=myupdateDC(~,event_obj)
     
     setappdata(hFig,'selPointID',selectedID); 
     try
+        splineParam=0.1;
+        d = tracksNA(selectedID).ampTotal;
+        tRange = tracksNA(selectedID).iFrame;
+        d(d==0)=NaN;
+        warning('off','SPLINES:CHCKXYWP:NaNs')
+        try
+            sd_spline= csaps(tRange,d,splineParam);
+        catch
+            d = tracksNA(selectedID).amp;
+            d(tracksNA(selectedID).startingFrameExtraExtra:tracksNA(selectedID).endingFrameExtraExtra) = ...
+                tracksNA(selectedID).ampTotal(tracksNA(selectedID).startingFrameExtraExtra:tracksNA(selectedID).endingFrameExtraExtra);
+            sd_spline= csaps(tRange,d,splineParam);
+        end
+        sd=ppval(sd_spline,tRange);
+        sd(isnan(d))=NaN;
+        %         sd(isnan(d)) = NaN;
+        % Find the maximum
+        [~,curFrameMaxAmp]=nanmax(sd);
+        timeToMaxInten = curFrameMaxAmp-tracksNA(selectedID).startingFrameExtra;
+        
+        
         txt = {['ID: ', num2str(selectedID)],...
             ['decayingIntensity: ' num2str(nanmax(tracksNA(selectedID).ampTotal)-tracksNA(selectedID).ampTotal(tracksNA(selectedID).endingFrameExtra))],...
             ['edgeAdvance: ' num2str(tracksNA(selectedID).edgeAdvanceDist(tracksNA(selectedID).endingFrameExtra))],...
@@ -531,7 +561,10 @@ function txt=myupdateDC(~,event_obj)
             ['distToEdgeLastNAs: ' num2str(tracksNA(selectedID).distToEdge(tracksNA(selectedID).endingFrameExtra))]...
             ['edgeAdvanceDistFirstChange: ' num2str(tracksNA(selectedID).advanceDistChange2min(min(tracksNA(selectedID).startingFrameExtra+30,tracksNA(selectedID).endingFrameExtra)))],...
             ['edgeAdvanceDistLastChange: ' num2str(tracksNA(selectedID).advanceDistChange2min(tracksNA(selectedID).endingFrameExtra))],...
-            ['maxEdgeAdvanceDistChange: ' num2str(tracksNA(selectedID).maxEdgeAdvanceDistChange)]};
+            ['maxEdgeAdvanceDistChange: ' num2str(tracksNA(selectedID).maxEdgeAdvanceDistChange)],...
+            ['maxIntensity: ' num2str(nanmax(tracksNA(selectedID).ampTotal))],...
+            ['timeToMaxInten: ' num2str(timeToMaxInten)],...
+            ['edgeVariation: ' num2str(min(nanstd(tracksNA(selectedID).closestBdPoint(:,1)),nanstd(tracksNA(selectedID).closestBdPoint(:,2))))]};
     catch
         txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))]};
     end

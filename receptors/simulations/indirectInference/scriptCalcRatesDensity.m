@@ -4,13 +4,14 @@
 %
 %Khuloud Jaqaman, May 2015
 
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150602_simsVaryOffRate/probeISruns';
-
+sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ryirdaw/2014/09/090514/probeISruns';
 %Define strings for directory hierarchy as needed
 rDDir = {'rD10'};
-aPDir = {'dR0p5','dR2p0','dR5p0','aP0p2','aP0p5','aP0p8','dC0p05','dC0p2'};
-outDirNum = 1:10;
-lRDir = {'lR1p0'};
+aPDir =  {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};%,'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'}
+outDirNum =1:5;
+lRDir = {'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5'};
+
+
 
 %define space and time information
 infoSpaceTime = struct('probDim',2,'areaSideLen',25,'timeStep',0.01,'sampleStep',0.1,'firstLastTP',[0 10]);
@@ -20,7 +21,7 @@ fprintf('\n===============================================================');
 %The top level directory is that of receptor density
 for rDDirIndx = 1 : length(rDDir)
     
-    tic    
+        
     %Iterate through association probability values per density
     for aPDirIndx = 1 : length(aPDir)
         
@@ -47,8 +48,17 @@ for rDDirIndx = 1 : length(rDDir)
                     numClustForRateCalc,clustHistory,clustStats] = ...
                     clusterOnOffRatesAndDensity(compTracksAggregState,infoSpaceTime);
                 
-                %save results
-                save([currDir,'/ratesAndDensity_dt0p01_T10'],'rateOnPerClust',...
+                
+                
+              %save results
+              
+              saveDir=[sourceRoot,filesep,rDDir{rDDirIndx},filesep,...
+                    aPDir{aPDirIndx},filesep,'out',int2str(outDirNum(outDirIndx)),...
+                    filesep,lRDir{lRDirIndx}];
+                    mkdir(saveDir)
+                    
+                    
+                save([saveDir,'/ratesAndDensity_dt0p1_T10'],'rateOnPerClust',...
                     'rateOffPerClust','densityPerClust','numClustForRateCalc',...
                     'clustHistory','clustStats','-v7.3');
                 
@@ -60,7 +70,6 @@ for rDDirIndx = 1 : length(rDDir)
         
     end %for each aP
     
-    elapsedTime = toc;
     fprintf('\nElapsed time for aP = %s is %g seconds.\n',aPDir{aPDirIndx},elapsedTime);
     
 end %for each rD

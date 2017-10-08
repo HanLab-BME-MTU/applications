@@ -1,5 +1,6 @@
 classdef ColocalizationProcess < ImageAnalysisProcess
-    
+   % A concreate class for measuring colocalization between two images
+   % Anthony Vega 09/2014
         methods (Access = public)
         function obj = ColocalizationProcess(owner,varargin)
             
@@ -38,12 +39,8 @@ classdef ColocalizationProcess < ImageAnalysisProcess
         end
 
         function methods = getMethods(varargin)
-            colocalizationMethods(1).name = 'Point2Point';
-            colocalizationMethods(1).func = @colocalMeasurePt2Pt;
-            colocalizationMethods(2).name = 'Point2Continuum';
-            colocalizationMethods(2).func = @colocalMeasurePt2Cnt;
-            colocalizationMethods(3).name = 'Continuum2Continuum';
-            colocalizationMethods(3).func = @colocalMeasureCnt2Cnt;
+            colocalizationMethods(1).name = 'Point2Continuum';
+            colocalizationMethods(1).func = @colocalMeasurePt2Cnt;            
             
             ip=inputParser;
             ip.addOptional('index',1:length(colocalizationMethods),@isvector);
@@ -66,9 +63,8 @@ classdef ColocalizationProcess < ImageAnalysisProcess
             funParams.ChannelMask = 2;
             funParams.SearchRadius = 3;
             funParams.RandomRuns =1;
-            funParams.OutputDirectory = [outputDir  filesep 'colocalInfo.mat'];
-            funParams.ProcessIndex = [];%Default is to use raw images
-            funParams.MethodIndx = 2;
+            funParams.OutputDirectory = [outputDir  filesep];
+            funParams.ProcessIndex = [];
         end
     end
 end

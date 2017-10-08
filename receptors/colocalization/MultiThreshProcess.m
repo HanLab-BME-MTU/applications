@@ -1,5 +1,7 @@
 classdef MultiThreshProcess < SegmentationProcess
-    
+    % A concrete class for using multi-otsu for background/foreground
+    % segmentation
+    % Anthony Vega 09/2014
     methods (Access = public)
         function obj = MultiThreshProcess(owner,varargin)
             

@@ -96,7 +96,7 @@ function [x0,y0,iout,jout] = intersectionsHLE(x1,y1,x2,y2,robust)
 
 
 % Input checks.
-error(nargchk(2,5,nargin))
+narginchk(2,5);
 
 % Adjustments when fewer than five arguments are supplied.
 switch nargin

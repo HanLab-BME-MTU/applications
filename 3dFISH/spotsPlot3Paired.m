@@ -14,14 +14,18 @@ for chaNum = 1:numel(dataProperties.channel)
             figure,imshow(max(imageData.green,[],3),[])
             hold on
             for i = 1:numel(nucleiStruc)
-                for j = 1:numel(nucleiStruc(i).greenSpotPair)
-                    xCord = nucleiStruc(i).xRange(1)+nucleiStruc(i).greenSpotPair(j).cord(1);
-                    yCord = nucleiStruc(i).yRange(1)+nucleiStruc(i).greenSpotPair(j).cord(2);
-                    plot(xCord, yCord,'r+');
+                if isempty(nucleiStruc(i).greenSpotPair)
+                    
+                else
+                    for j = 1:numel(nucleiStruc(i).greenSpotPair)
+                        xCord = nucleiStruc(i).xRange(1)+nucleiStruc(i).greenSpotPair(j).cord(1);
+                        yCord = nucleiStruc(i).yRange(1)+nucleiStruc(i).greenSpotPair(j).cord(2);
+                        plot(xCord, yCord,'r+');
+                    end                    
                 end
                 % Mark numbers on nuclei
                 box on;
-                text(xCord, yCord, cellstr(num2str(i)), 'Color', 'y')
+                text(nucleiStruc(i).xRange(1), nucleiStruc(i).yRange(1), cellstr(num2str(i)), 'Color', 'y');
             end
             set(gcf,'Name','Green Channel Spots Detection');
             
@@ -29,14 +33,18 @@ for chaNum = 1:numel(dataProperties.channel)
             figure,imshow(max(imageData.red,[],3),[])
             hold on
             for i = 1:numel(nucleiStruc)
-                for j = 1:numel(nucleiStruc(i).redSpotPair)
-                    xCord = nucleiStruc(i).xRange(1)+nucleiStruc(i).redSpotPair(j).cord(1);
-                    yCord = nucleiStruc(i).yRange(1)+nucleiStruc(i).redSpotPair(j).cord(2);
-                    plot(xCord, yCord,'r+');
+                if isempty(nucleiStruc(i).redSpotPair)
+                    
+                else
+                    for j = 1:numel(nucleiStruc(i).redSpotPair)
+                        xCord = nucleiStruc(i).xRange(1)+nucleiStruc(i).redSpotPair(j).cord(1);
+                        yCord = nucleiStruc(i).yRange(1)+nucleiStruc(i).redSpotPair(j).cord(2);
+                        plot(xCord, yCord,'r+');
+                    end
                 end
                 % Mark numbers on nuclei
                 box on;
-                text(xCord, yCord, cellstr(num2str(i)), 'Color', 'y')
+                text(nucleiStruc(i).xRange(1), nucleiStruc(i).yRange(1), cellstr(num2str(i)), 'Color', 'y');
             end
             set(gcf,'Name','Red Channel Spots Detection');
             

@@ -5,16 +5,14 @@
 %file name.
 %
 %Khuloud Jaqaman, June 2015
-
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150602_simsVaryOffRate/probeISruns';
-
-destinationRoot = '/project/biophysics/jaqaman_lab/interKinetics/kjaqaman/150608_AnalysisLR1_dt0p01_T10/probeISruns';
-
+sourceRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170423';
+destinationRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170423/analysis';
 %Define strings for directory hierarchy as needed
-rDDir = {'rD10'}; %,'rD6','rD8','rD10','rD12','rD14','rD16'};
-aPDir = {'dR0p5','dR2p0','dR5p0'}; %,'aP0p6','aP0p7','aP0p8'};
-outDirNum = 1:10;
-lRDir = {'lR1p0'}; %,'lR0p2','lR0p3','lR0p4','lR0p5','lR0p6','lR1p0'};
+ rDDir = {'rD4'};%,'rD2','rD4','rD6','rD8','rD10','rD12','rD14','rD16'
+ aPDir = {'aP0p5'};%'aP0p6','aP0p7','aP0p8'
+ dRDir={'dR1'};
+outDirNum =1:10;
+lRDir = {'lR1'};%%'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5';'lR0p6'
 
 fprintf('\n===============================================================');
 

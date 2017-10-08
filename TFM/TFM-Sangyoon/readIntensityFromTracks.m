@@ -10,28 +10,74 @@ function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, vararg
 % Sangyoon Han, Jan 2015
 % Last modified, Feb 2016
 ip =inputParser;
-ip.addParamValue('extraLength',0,@isscalar); % selcted track ids
+ip.addParamValue('extraLength',300,@isscalar); % selcted track ids
 ip.addParamValue('reTrack',true,@islogical); % selcted track ids
 ip.addParamValue('trackOnlyDetected',false,@islogical); % selcted track ids
+ip.addParamValue('movieData',[],@(x) isa(x,'MovieData') || isempty(x)); % moviedata for utrack
 ip.parse(varargin{:});
 extraLengthForced=ip.Results.extraLength;
 reTrack=ip.Results.reTrack;
 trackOnlyDetected =ip.Results.trackOnlyDetected;
-extraLength = 300;
+MD =ip.Results.movieData;
+extraLength = ip.Results.extraLength;
 % get stack size
 numFrames = size(imgStack,3);
 % w4 = 8;
 sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
-% parfor_progress(numel(tracksNA));
-progressText(0,'Re-reading and tracking individual tracks:');
-searchRadius = 1;
-searchRadiusDetected = 2;
+if isempty(MD)
+    searchRadius = 1;
+    searchRadiusDetected = 2;
+else
+    iTrackingProc =MD.getProcessIndex('TrackingProcess');
+    trackingProc = MD.getProcess(iTrackingProc);
+    trackingParams = trackingProc.funParams_;
+    minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
+    maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
+    searchRadius = (minR+maxR)/2;
+    searchRadiusDetected = maxR;
+end
 halfWidth=2;
 halfHeight=2;
 
-% parfor k=1:numel(tracksNA)
-for k=1:numTracks
+%% %%%%%%%%%%%%%%%%%%%%%%5
+% poolobj = gcp('nocreate'); % If no pool, do not create new one.
+% myCluster = parcluster('local');
+% if isempty(poolobj)
+%     parpool(myCluster.NumWorkers);
+% end
+    
+% parfor_progress(numTracks);
+% progressText(0,'Re-reading and tracking individual tracks'); %, 'Adhesion Analysis');
+% progressbar
+
+%% Field creation before running parfor
+if ~isfield(tracksNA,'startingFrameExtra')
+    tracksNA(end).startingFrameExtra=[];
+end
+if ~isfield(tracksNA,'startingFrameExtraExtra')
+    tracksNA(end).startingFrameExtraExtra=[];
+end
+if ~isfield(tracksNA,'endingFrameExtra')
+    tracksNA(end).endingFrameExtra=numFrames;
+end
+if ~isfield(tracksNA,'endingFrameExtraExtra')
+    tracksNA(end).endingFrameExtraExtra=[];
+end
+if ~isfield(tracksNA,'ampTotal')
+    tracksNA(end).ampTotal=tracksNA(end).amp;
+end
+if attribute==2 && ~isfield(tracksNA,'forceMag')
+    tracksNA(end).forceMag=[];
+elseif attribute==3 && ~isfield(tracksNA,'fret')
+    tracksNA(end).fret=[];
+elseif attribute==4 && ~isfield(tracksNA,'flowSpeed')
+    tracksNA(end).flowSpeed=[];
+end    
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tic
+parfor k=1:numTracks
+% for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
@@ -48,43 +94,46 @@ for k=1:numTracks
 %             tracksNA(k).forceMag(curRange) = arrayfun(@(x) imgStack(round(tracksNA(k).yCoord(x)),round(tracksNA(k).xCoord(x)),x),curRange);
 %         end
 %     else
+    % initialize amptotal to have it have the same dimension as .amp
+    curTrack=tracksNA(k);
     if attribute==1
+        curTrack.ampTotal = curTrack.amp;
         try
-            curStartingFrame = tracksNA(k).startingFrameExtra;
-            curEndingFrame = tracksNA(k).endingFrameExtra;
+            curStartingFrame = curTrack.startingFrameExtra;
+            curEndingFrame = curTrack.endingFrameExtra;
             if isempty(curStartingFrame)
-                curStartingFrame = tracksNA(k).startingFrame;
+                curStartingFrame = curTrack.startingFrame;
             end
             if isempty(curEndingFrame)
-                curEndingFrame = tracksNA(k).endingFrame;
+                curEndingFrame = curTrack.endingFrame;
             end
         catch
-            curStartingFrame = tracksNA(k).startingFrame;
-            curEndingFrame = tracksNA(k).endingFrame;
+            curStartingFrame = curTrack.startingFrame;
+            curEndingFrame = curTrack.endingFrame;
         end
         if ~trackOnlyDetected
             % for the earlier time-points - going backward
-            startFrame = max(1, tracksNA(k).startingFrame-extraLength);
-            endFrame = min(numFrames,tracksNA(k).endingFrame+extraLength);
+            startFrame = max(1, curTrack.startingFrame-extraLength);
+            endFrame = min(numFrames,curTrack.endingFrame+extraLength);
             ii=curStartingFrame;
-            x = tracksNA(k).xCoord(ii);
-            y = tracksNA(k).yCoord(ii);
-            A = tracksNA(k).amp(curStartingFrame);
-            c = tracksNA(k).bkgAmp(curStartingFrame); 
-            tracksNA(k).startingFrameExtra = curStartingFrame;
-            tracksNA(k).endingFrameExtra = curEndingFrame;
+            x = curTrack.xCoord(ii);
+            y = curTrack.yCoord(ii);
+            A = curTrack.amp(curStartingFrame);
+            c = curTrack.bkgAmp(curStartingFrame); 
+            curTrack.startingFrameExtra = curStartingFrame;
+            curTrack.endingFrameExtra = curEndingFrame;
         end        
         if reTrack
             if ~trackOnlyDetected
                 for ii=curStartingFrame:-1:startFrame
-                    curImg = imgStack(:,:,ii);
+                    curImg = imgStack(:,:,ii); %#ok<*PFBNS>
                     p=-1;
         %             curSigma = sigma;
         %             pitFound = false;
-                    while p<=30
-                        oldP = p;
+                    while p<=15 %30
+                        %oldP = p;
                         p=p+1;
-                        pmP =ceil(p/2)*(-1)^oldP;
+                        pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
                         curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
                         pitFound = false;
                         curAlpha = 0.05+p/100;
@@ -100,98 +149,108 @@ for k=1:numTracks
                             yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
                             curAmpTotal = curImg(yRange,xRange);
                             curAmpTotal = mean(curAmpTotal(:));
-                            tracksNA(k).startingFrameExtra = ii;
-                            tracksNA(k).xCoord(ii) = x;
-                            tracksNA(k).yCoord(ii) = y;
-                            tracksNA(k).amp(ii) = A;
-                            tracksNA(k).bkgAmp(ii) = c;
-                            tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
-                            tracksNA(k).sigma(ii) = curSigma;
-                            if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
-                                tracksNA(k).state{ii} = 'NA';
+                            curTrack.startingFrameExtra = ii;
+                            curTrack.xCoord(ii) = x;
+                            curTrack.yCoord(ii) = y;
+                            curTrack.amp(ii) = A;
+                            curTrack.bkgAmp(ii) = c;
+                            curTrack.ampTotal(ii) =  curAmpTotal;
+                            curTrack.presence(ii) =  true;
+                            curTrack.sigma(ii) = curSigma;
+                            if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
+                                curTrack.state{ii} = 'NA';
                             end
                             pitFound = true;
                             break
                         end
                     end
                     if ii~=curStartingFrame && ~pitFound
-                        tracksNA(k).startingFrameExtra = ii+1;
+                        curTrack.startingFrameExtra = ii+1;
                         break
                     elseif  ii==curStartingFrame && ~pitFound
-                        tracksNA(k).startingFrameExtra = ii;
+                        curTrack.startingFrameExtra = ii;
                         break
                     end
                 end
             end
             % for the present period - it is necessary for ampTotal
-            for ii=curStartingFrame+1:curEndingFrame;
+            for ii=curStartingFrame+1:curEndingFrame
                 curImg = imgStack(:,:,ii);
-                x = tracksNA(k).xCoord(ii-1);
-                y = tracksNA(k).yCoord(ii-1);
-                A = tracksNA(k).amp(ii-1);
-                c = tracksNA(k).bkgAmp(ii-1); 
+                x = curTrack.xCoord(ii);
+                y = curTrack.yCoord(ii);
+%                 A = curTrack.amp(ii);
+%                 c = curTrack.bkgAmp(ii); 
                 xi = round(x);
                 yi = round(y);
                 xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
                 yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
                 curAmpTotal = curImg(yRange,xRange);
                 curAmpTotal = mean(curAmpTotal(:));
-                tracksNA(k).ampTotal(ii) =  curAmpTotal;
+                curTrack.ampTotal(ii) =  curAmpTotal;
 
-                p=-1;
-                while p<=30
-                    oldP = p;
-                    p=p+1;
-                    pmP =ceil(p/2)*(-1)^oldP;
-                    curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
-    %                 curSigma = sigma*(20-p)/20; % increasing sigma by 5 percent per each iteration
-                    pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac');
-                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
-                        x = pstruct.x;
-                        y = pstruct.y;
-                        A = pstruct.A;
-                        c = pstruct.c; 
-                        xi = round(x);
-                        yi = round(y);
-                        xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-                        yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                        curAmpTotal = curImg(yRange,xRange);
-                        curAmpTotal = mean(curAmpTotal(:));
-                        tracksNA(k).xCoord(ii) = x;
-                        tracksNA(k).yCoord(ii) = y;
-                        tracksNA(k).amp(ii) = A;
-                        tracksNA(k).bkgAmp(ii) = c;
-                        tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                        tracksNA(k).presence(ii) =  1;
-                        tracksNA(k).sigma(ii) = curSigma;
-                        if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
-                            tracksNA(k).state{ii} = 'NA';
-                        end
-                        break
-                    end
+%                 p=-1; %This seems waisting the time. Now I am skipping...
+%                 while p<=30
+%                     oldP = p;
+%                     p=p+1;
+%                     pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
+%                     curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+%                     curSigma = sigma*(20-p)/20; % increasing sigma by 5 percent per each iteration
+%                     pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac');
+%                     if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
+%                         x = pstruct.x;
+%                         y = pstruct.y;
+%                         A = pstruct.A;
+%                         c = pstruct.c; 
+%                         xi = round(x);
+%                         yi = round(y);
+%                         xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+%                         yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+%                         curAmpTotal = curImg(yRange,xRange);
+%                         curAmpTotal = mean(curAmpTotal(:));
+%                         curTrack.xCoord(ii) = x;
+%                         curTrack.yCoord(ii) = y;
+%                         curTrack.amp(ii) = A;
+%                         curTrack.bkgAmp(ii) = c;
+%                         curTrack.ampTotal(ii) =  curAmpTotal;
+%                         curTrack.presence(ii) =  1;
+%                         curTrack.sigma(ii) = curSigma;
+%                         if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
+%                             curTrack.state{ii} = 'NA';
+%                         end
+%                         break
+%                     end
+%                 end
+                % It is a rare case, but it is possible that at some point
+                % there is no significant point source detected during this
+                % re-tracking. In this case, we change the curEndingFrame
+                % to be the previous time point
+                if isnan(pstruct.x) && ii==curEndingFrame
+                    curEndingFrame=ii-1;
+                    curTrack.endingFrame = curEndingFrame;
+                    curTrack.endingFrameExtra = curEndingFrame;
+                    break
                 end
             end
             % for the later time-points - going forward, x and y are already
             % set as a last point.
             if ~trackOnlyDetected
-                x = tracksNA(k).xCoord(curEndingFrame);
-                y = tracksNA(k).yCoord(curEndingFrame);
-                A = tracksNA(k).amp(curEndingFrame);
-                c = tracksNA(k).bkgAmp(curEndingFrame);
+                x = curTrack.xCoord(curEndingFrame);
+                y = curTrack.yCoord(curEndingFrame);
+                A = curTrack.amp(curEndingFrame);
+                c = curTrack.bkgAmp(curEndingFrame);
 
                 for ii=(curEndingFrame+1):endFrame
                     curImg = imgStack(:,:,ii);
                     pitFoundEnd = false;
                     p=-1;
                     while p<=30
-                        oldP = p;
+%                         oldP = p;
                         p=p+1;
-                        pmP =ceil(p/2)*(-1)^oldP;
+                        pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
                         curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
                         curAlpha = 0.05+p/100;
                         pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                        if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
+                        if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
                             x = pstruct.x;
                             y = pstruct.y;
                             A = pstruct.A;
@@ -202,119 +261,132 @@ for k=1:numTracks
                             yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
                             curAmpTotal = curImg(yRange,xRange);
                             curAmpTotal = mean(curAmpTotal(:));
-                            tracksNA(k).endingFrameExtra = ii;
-                            tracksNA(k).xCoord(ii) = x;
-                            tracksNA(k).yCoord(ii) = y;
-                            tracksNA(k).amp(ii) = A;
-                            tracksNA(k).bkgAmp(ii) = c;
-                            tracksNA(k).ampTotal(ii) =  curAmpTotal;
-                            tracksNA(k).presence(ii) =  1;
-                            tracksNA(k).sigma(ii) = curSigma;
-                            if strcmp(tracksNA(k).state{ii},'BA') || strcmp(tracksNA(k).state{ii},'ANA')
-                                tracksNA(k).state{ii} = 'NA';
+                            curTrack.endingFrameExtra = ii;
+                            curTrack.xCoord(ii) = x;
+                            curTrack.yCoord(ii) = y;
+                            curTrack.amp(ii) = A;
+                            curTrack.bkgAmp(ii) = c;
+                            curTrack.ampTotal(ii) =  curAmpTotal;
+                            curTrack.presence(ii) =  true;
+                            curTrack.sigma(ii) = curSigma;
+                            if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
+                                curTrack.state{ii} = 'NA';
                             end
                             pitFoundEnd = true;
                             break
                         end
                     end
                     if ~pitFoundEnd
-                        tracksNA(k).endingFrameExtra = ii-1;
+                        curTrack.endingFrameExtra = ii-1;
                         break
                     end
                 end
                 if startFrame==curStartingFrame
-                    tracksNA(k).startingFrameExtra = curStartingFrame;
+                    curTrack.startingFrameExtra = curStartingFrame;
                 end
                 if endFrame==curEndingFrame
-                    tracksNA(k).endingFrameExtra = curEndingFrame;
+                    curTrack.endingFrameExtra = curEndingFrame;
                 end
+            end
+        else
+            for ii=curStartingFrame+1:curEndingFrame
+                curImg = imgStack(:,:,ii);
+                x = curTrack.xCoord(ii);
+                y = curTrack.yCoord(ii);
+                xi = round(x);
+                yi = round(y);
+                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                curAmpTotal = curImg(yRange,xRange);
+                curAmpTotal = mean(curAmpTotal(:));
+                curTrack.ampTotal(ii) =  curAmpTotal;
             end
         end
         if ~isempty(extraLengthForced) && abs(extraLengthForced)>0
-            tracksNA(k).startingFrameExtraExtra = tracksNA(k).startingFrameExtra;
-            tracksNA(k).endingFrameExtraExtra = tracksNA(k).endingFrameExtra;
-            if tracksNA(k).startingFrameExtra>1
-                tracksNA(k).startingFrameExtraExtra = max(1, tracksNA(k).startingFrameExtra-extraLengthForced);
-                x = tracksNA(k).xCoord(tracksNA(k).startingFrameExtra);
-                y = tracksNA(k).yCoord(tracksNA(k).startingFrameExtra);
+            curTrack.startingFrameExtraExtra = curTrack.startingFrameExtra;
+            curTrack.endingFrameExtraExtra = curTrack.endingFrameExtra;
+            if curTrack.startingFrameExtra>1
+                curTrack.startingFrameExtraExtra = max(1, curTrack.startingFrameExtra-extraLengthForced);
+                x = curTrack.xCoord(curTrack.startingFrameExtra);
+                y = curTrack.yCoord(curTrack.startingFrameExtra);
                 xi = round(x);
                 yi = round(y);
                 xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
                 yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                for ii=tracksNA(k).startingFrameExtraExtra:tracksNA(k).startingFrameExtra
+                for ii=curTrack.startingFrameExtraExtra:curTrack.startingFrameExtra
                     curImg = imgStack(:,:,ii);
                     curAmpTotal = curImg(yRange,xRange);
                     curAmpTotal = mean(curAmpTotal(:));
-                    tracksNA(k).xCoord(ii) = x;
-                    tracksNA(k).yCoord(ii) = y;
-                    tracksNA(k).ampTotal(ii) =  curAmpTotal;
-%                     tracksNA(k).presence(ii) =  1;
+                    curTrack.xCoord(ii) = x;
+                    curTrack.yCoord(ii) = y;
+                    curTrack.ampTotal(ii) =  curAmpTotal;
+%                     curTrack.presence(ii) =  1;
                 end
             end
-            if tracksNA(k).endingFrameExtra<numFrames
-                tracksNA(k).endingFrameExtraExtra = min(numFrames,tracksNA(k).endingFrameExtra+extraLengthForced);            
-                x = tracksNA(k).xCoord(tracksNA(k).endingFrameExtra);
-                y = tracksNA(k).yCoord(tracksNA(k).endingFrameExtra);
+            if curTrack.endingFrameExtra<numFrames
+                curTrack.endingFrameExtraExtra = min(numFrames,curTrack.endingFrameExtra+extraLengthForced);            
+                x = curTrack.xCoord(curTrack.endingFrameExtra);
+                y = curTrack.yCoord(curTrack.endingFrameExtra);
                 xi = round(x);
                 yi = round(y);
                 xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
                 yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                for ii=tracksNA(k).endingFrameExtra:tracksNA(k).endingFrameExtraExtra
+                for ii=curTrack.endingFrameExtra:curTrack.endingFrameExtraExtra
                     curImg = imgStack(:,:,ii);
                     curAmpTotal = curImg(yRange,xRange);
                     curAmpTotal = mean(curAmpTotal(:));
-                    tracksNA(k).xCoord(ii) = x;
-                    tracksNA(k).yCoord(ii) = y;
-                    tracksNA(k).ampTotal(ii) =  curAmpTotal;
-%                     tracksNA(k).presence(ii) =  1;
+                    curTrack.xCoord(ii) = x;
+                    curTrack.yCoord(ii) = y;
+                    curTrack.ampTotal(ii) =  curAmpTotal;
+%                     curTrack.presence(ii) =  1;
                 end
             end
         end
     elseif attribute==2 
         try
-            startFrame = tracksNA(k).startingFrameExtraExtra;
-            endFrame = tracksNA(k).endingFrameExtraExtra;
+            startFrame = curTrack.startingFrameExtraExtra;
+            endFrame = curTrack.endingFrameExtraExtra;
         catch
             try
-                startFrame = tracksNA(k).startingFrameExtra;
-                endFrame = tracksNA(k).endingFrameExtra;
+                startFrame = curTrack.startingFrameExtra;
+                endFrame = curTrack.endingFrameExtra;
             catch
-                startFrame = max(1, tracksNA(k).startingFrame-extraLengthForced);
-                endFrame = min(numFrames,tracksNA(k).endingFrame+extraLengthForced);
+                startFrame = max(1, curTrack.startingFrame-extraLengthForced);
+                endFrame = min(numFrames,curTrack.endingFrame+extraLengthForced);
             end
         end
         if reTrack
             frameRange = startFrame:endFrame;
         else
-            frameRange = [tracksNA(k).startingFrameExtraExtra:tracksNA(k).startingFrameExtra tracksNA(k).endingFrameExtra:tracksNA(k).endingFrameExtraExtra];
+            frameRange = [curTrack.startingFrameExtraExtra:curTrack.startingFrameExtra curTrack.endingFrameExtra:curTrack.endingFrameExtraExtra];
         end
         for ii=frameRange
             curImg = imgStack(:,:,ii);
-            x = tracksNA(k).xCoord(ii);
-            y = tracksNA(k).yCoord(ii);
+            x = curTrack.xCoord(ii);
+            y = curTrack.yCoord(ii);
             xi = round(x);
             yi = round(y);
             xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(curImg,2));
             yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(curImg,1));
             curAmpTotal = curImg(yRange,xRange);
-            tracksNA(k).forceMag(ii) = mean(curAmpTotal(:));
+            curTrack.forceMag(ii) = mean(curAmpTotal(:));
         end        
     elseif attribute==3 || attribute==4 %This time it uses FA area
-        startFrame = tracksNA(k).startingFrame;
-        endFrame = tracksNA(k).endingFrame;
+        startFrame = curTrack.startingFrame;
+        endFrame = curTrack.endingFrame;
         frameRange = startFrame:endFrame;
         for ii=frameRange
             curImg = imgStack(:,:,ii);
             if attribute==3
                 curImg(curImg==0)=NaN; %assuming FA value
             end
-            if strcmp(tracksNA(k).state(ii),'FA') || strcmp(tracksNA(k).state(ii),'FC') % this is FA
-                pixelList=tracksNA(k).FApixelList{ii};
+            if strcmp(curTrack.state(ii),'FA') || strcmp(curTrack.state(ii),'FC') % this is FA
+                pixelList=curTrack.FApixelList{ii};
                 pixelIdxList = sub2ind(size(curImg),pixelList(:,2),pixelList(:,1));
                 curAmpTotal = curImg(pixelIdxList);
             else
-                x = tracksNA(k).xCoord(ii);
-                y = tracksNA(k).yCoord(ii);
+                x = curTrack.xCoord(ii);
+                y = curTrack.yCoord(ii);
                 xi = round(x);
                 yi = round(y);
                 xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(curImg,2));
@@ -322,16 +394,21 @@ for k=1:numTracks
                 curAmpTotal = curImg(yRange,xRange);
             end
             if attribute==3
-                tracksNA(k).fret(ii) = nanmean(curAmpTotal(:));
+                curTrack.fret(ii) = nanmean(curAmpTotal(:));
             elseif attribute==4
-                tracksNA(k).flowSpeed(ii) = mean(curAmpTotal(:));
+                curTrack.flowSpeed(ii) = mean(curAmpTotal(:));
             end
         end        
     elseif extrapolState
         disp('Please choose 1 or 2 for attribute.')
     end
-    progressText(k/(numTracks));
+    tracksNA(k)=curTrack;
+    % progressbar(k/(numTracks), 0, 're-reading and tracking individual tracks');
+    % progressbar(ii/(nFrames-1), 0, 'Matching with segmented adhesions:')
+    % tk = toc;
+    % waitbar(k/(numTracks), wtBar, sprintf([logMsg(0) timeMsg(tk*(numTracks/k)-tk)]));
 %     parfor_progress;
+%     progressText(k/(numTracks));
 end
 end
 %         for ii=startFrame:endFrame

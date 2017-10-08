@@ -3,6 +3,7 @@
 function [] = whMetaAnalysis2016(mainDirname,metaDataFname,timePerFrame)
 
 addpath(genpath('/home2/azaritsky/code/applications/monolayer/HallScreen/'));
+addpath(genpath('/home2/azaritsky/code/applications/monolayer/utils/'));
 
 % mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/';
 % metaDataFname = 'GEFScreenFinal_kd0.mat';
@@ -10,8 +11,8 @@ addpath(genpath('/home2/azaritsky/code/applications/monolayer/HallScreen/'));
 
 if nargin == 0
     %% Screen    
-    mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/';
-    metaDataFname = 'GEFScreenFinal20160526_RHOA_kd50.mat';
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/';
+    %     metaDataFname = 'GEFScreenFinal20160526_RHOA_kd50.mat';
     
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200/';
     %     metaDataFname = 'GEFScreenFinal20160526_kd50.mat';
@@ -20,6 +21,9 @@ if nargin == 0
     %     metaDataFname = 'GEFScreenFinal20160513_kd0.mat';
     
     %% Followups, screen + followups    
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll20161101/';
+    %     metaDataFname = 'GEFProjectAll20160523_kd0.mat'; % this is the real "age" of the data
+    
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll20160523/';
     %     metaDataFname = 'GEFProjectAll20160523_kd0.mat';
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/20160523/';
@@ -28,6 +32,23 @@ if nargin == 0
     %     metaDataFname = 'GEFProjectAll20160516_kd0.mat';
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ProjectAll_Lcf/';
     %     metaDataFname = 'GEFProjectAll20160330_kd0.mat';
+    
+    %% Revision
+    % RhoA day 3
+    mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
+    metaDataFname = 'ShefaliRevision201612_RhoC_kd0.mat'; % this is the real "age" of the data
+    % RhoA day 3
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
+    %     metaDataFname = 'ShefaliRevision201612_RhoA_Day3_kd0.mat'; % this is the real "age" of the data
+    % RhoC hairpin #3
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612_RhoC3/';
+    %     metaDataFname = 'ShefaliRevision201612_RhoC_Hairpin3_kd0.mat';
+    % all
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
+    %     metaDataFname = 'ShefaliRevision201612All_kd0.mat'; % this is the real "age" of the data
+    % first experiment
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision20161215/';
+    %     metaDataFname = 'ShefaliRevision20161215_kd0.mat'; % this is the real "age" of the data
     
     timePerFrame = 5;
 end
@@ -48,10 +69,13 @@ metaData.spatialPartition = 3;
 % ??
 metaData.initialTimePartition = 0; %2
 
-metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/';
+% metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/'; % Revision20161215 was not moved
+metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data201612_shefali/';
+% metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20161215_shefali/';
 % metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160523/';
 
-assert(strcmp(metaData.inputDname,'/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/'));
+%% RETURN THIS ASSERTION BACK!
+% assert(strcmp(metaData.inputDname,'/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/'));
 
 [dirs] = whMetaInitDirectories2016(mainDirname);
 

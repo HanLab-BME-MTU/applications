@@ -4,46 +4,34 @@ function [threshold] = calcCellBoundaryImage(image,fixFrameUp, fixFrameDown)
 % dimensions
 % Synopsis: [maskList,mask] = calcCellBoundary(image)
 % Input:
-%   firstImageFile - Name, including full path, of first image tiff file.
-%    Ex: '/home2/avega/Desktop/CD36 Fyn/+TSP-1/image_0001.tif'
-%    Optional. User will be prompted to choose file if not supplied.
+%       image - image that will be thresholded
 %
-%   outputDirectory - Path of directory where results will be saved
+%       fixFrameUp - since the function separates an image into multiple
+%       tiers of intensity to find a threshold and the edge of the 
+%       foreground maybe poorly defined, it may occur that the
+%       threshold chosen is off by a tier. Enter any value to increase the
+%       threshold by one tier.
 %
-%   doPlot - 1 to show result, 0 otherwise. Default: 0.
-%
-%   isMultiChannel - If any value is given, will prompt user to input
-%   channel where image is found
-%
-%   fixFrameUp - Input array containing the number of each frame which
-%   requires higher threshold
-%
-%   fixFrameDown - Input array containing the number of each frame which
-%   requires lower threshold
+%       fixFrameDown - similar to fixFrameUp, enter any value to decrease 
+%       the chosen threshold by one tier
 %
 % Output:
-%   maskList- cell array in which each cell contains n x 2 list of all 
-%   pixels within cellBoundary for a given frame
-%
-%   mask - three dimensional matrix where each slice in z-dimension
-%   contains mask for corresponding frame
-%
-%   fixedFrames- structure containing numbers of frame which required
-%   lower or higher threshold for later reference
+%   threshold - value chosen to separate foreground and background of image 
 
 %% Masking Process
 
  
      % Compute the thresholds
-    Nvals = [1:20];
+    Nvals = 1:20;
     metric = zeros(length(Nvals),1);
     for i = 1:length(Nvals)
         [~, metric(i)] = multithresh(image, Nvals(i) );
     end
-
+ 
      
     %Apply multi-Otsu threshold on image
     thresh = multithresh(image,Nvals(find(metric == (max(metric)))));
+    
     %Attempt to find largest gap in thresholds
     diffThresh = zeros(length(thresh)-1,1);
     for i = 1:(length(thresh)-1)
@@ -51,6 +39,7 @@ function [threshold] = calcCellBoundaryImage(image,fixFrameUp, fixFrameDown)
     end
     threshLevel =1 + (find(diffThresh == max(diffThresh)));
     
+    %Change threshold on tier higher or lower if selected
      if isempty(fixFrameUp) && isempty(fixFrameDown)
          threshold = thresh(threshLevel);
      elseif isempty(fixFrameDown)
@@ -59,49 +48,4 @@ function [threshold] = calcCellBoundaryImage(image,fixFrameUp, fixFrameDown)
          threshold =  thresh(threshLevel-1);
      end
     
-% %     test = imfill(test,'holes');
-% %     
-% % 
-% %     % Find Connected Components and their areas
-% %     [L, ~] = bwlabel(test, 8);
-% %     STATS = regionprops(L, 'Area');
-% % 
-% % 
-% %     %Find all areas and then only get indices of components that have at least
-% %     %some fraction of the largest area (default: 0.5)
-% %     areaInfo = cat(1,STATS.Area);
-% %     sThreshold = find(areaInfo >= (max(areaInfo)/2));
-% % 
-% % 
-% %     % Create new matrix with only the selected components, there's probably an
-% %     % easier way of doing this...
-% %     for i =1:length(sThreshold)
-% %         maskTemp(:,:,i) = (L ==sThreshold(i));
-% %         maskTemp(:,:,1) = maskTemp(:,:,1)+maskTemp(:,:,i);
-% %     end
-% % 
-% %     [i,j] = find(maskTemp(:,:,1));
-% %     maskListTemp(:,1) = i;
-% %     maskListTemp(:,2) = j;
-% %     
-% %     maskList{a} = maskListTemp; 
-% %     mask(:,:,a) = maskTemp(:,:,1); 
-% %     if doPlot
-% %         h = figure;
-% %         imshow(image0,[]);
-% %         hold on;
-% %         maskBounds = bwboundaries(maskTemp(:,:,1));
-% %         cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',1)),maskBounds);
-% %     end
-% %     % Make frame of movie from output
-% %     scrsz = get(0,'ScreenSize');
-% %     set(h,'Position',scrsz);
-% %     testMovie  = getframe(h);
-% %     writeVideo(writerObj,testMovie);
-% %     close(h);
-% %     clear maskListTemp maskTemp
-% % end
-% % close(writerObj);
-% % 
-% % save('/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/CtxB-CD36-Actin/maskingFileNoTSP.mat','mask','maskList','fixedFrames');
 end

@@ -93,10 +93,30 @@ fStr = ['%0' num2str(floor(log10(nImages))) + 1 '.0f'];%Format string for zero-p
 maskDirs  = adSegProc.outFilePaths_(p.ChannelIndex);
 
 %TEMP - check for and load thresholding/mask refinement 
+% existSegmentation=false;
+try
+    try
+        maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
+        existSegmentation=true;
+    catch
+        maskProc = movieData.getProcess(movieData.getProcessIndex('ThresholdingProcess'));
+        existSegmentation=true;
+    end
+catch
+    existSegmentation=false;
+end
 masks = false([imSize, nImages nChanSeg]);
 
 %Get the ROI mask (if not an ROI, this will be all true)
-roiMask = movieData.getROIMask;
+try
+    roiMask = movieData.getROIMask;
+catch
+    roiMask = imread(movieData.roiMaskPath_);
+    roiSize = size(roiMask);
+    if roiSize(1) ~= imSize(1) || roiSize(2) ~=imSize(2)
+        roiMask = true(imSize(1),imSize(2),nImages);
+    end
+end
 
 %% ------------ Segmentation -------------- %%
 
@@ -123,9 +143,16 @@ for iChan = 1:nChanSeg
         %Load the current image        
         currImage = movieData.channels_(p.ChannelIndex(iChan)).loadImage(iImage);
         
+        %Load cell mask here
+        if existSegmentation
+            cellMask = maskProc.loadChannelOutput(p.ChannelIndex(iChan),iImage);
+        else
+            cellMask = [];
+        end
+        
         %Run the blob segmentation to get approx outline. This removes
         %background well but tends to merge close adhesions        
-        currMask = blobSegmentThreshold(currImage,0);                
+        currMask = blobSegmentThreshold(currImage,0,0,cellMask);                
 
         
         % --------- Splitting of Adjacent Adhesions --------- %
@@ -238,9 +265,14 @@ end
 %uniquely between the channels (by specifying a 3D connectivity, objects in
 %diff channels are not considered adjacent)
 cc = bwconncomp(masks,connNum);
-masks = labelmatrix(cc);
-
-
+masks2 = labelmatrix(cc);
+% If mask2 has more than 16 bit depth, we make de-label them to save the
+% memory - SH 2017 Jan
+if max(masks2,1)<2^16
+    masks=masks2;
+else
+    clear masks2
+end
 
 %% ------------- Output ----------------- %%
 %Writes the final masks to disk

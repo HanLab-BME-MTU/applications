@@ -20,7 +20,7 @@ ip.addParamValue('Alpha',0.05, @isnumeric);
 ip.addParamValue('ROI',[], @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
 ip.addParamValue('printAll', false, @islogical);
-ip.addParamValue('subDirectory','EB3', @ischar);
+ip.addParamValue('subDirectory','detections', @ischar);
 ip.addParamValue('type', 'watershedApplegate',  @ischar);
 ip.parse(MD, varargin{:});
 
@@ -55,8 +55,12 @@ labels=cell(1,numel(processFrames));
 movieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 
 outputDirDetect=[MD.outputDirectory_ filesep p.subDirectory filesep p.type];
-mkdir(outputDirDetect);
-mkdir([outputDirDetect filesep 'mask']);
+
+if(p.printAll)
+    outputDirDetect=[MD.outputDirectory_ filesep p.subDirectory filesep p.type];
+    mkdir(outputDirDetect);
+    mkdir([outputDirDetect filesep 'mask']);
+end
 
 % find mask offset (WARNING works only for cubic mask)
 [maskMinX,maskMinY,maskMinZ]=ind2sub(size(p.ROI), find(p.ROI,1));
@@ -158,20 +162,6 @@ if(p.printAll)
  save([outputDirDetect filesep 'detection.mat'],'movieInfo');
 end
 
-function movieInfo= labelToMovieInfo(label,vol)
-[feats,nFeats] = bwlabeln(label);
-featsProp = regionprops(feats,vol,'Area','WeightedCentroid','MeanIntensity','MaxIntensity','PixelValues');
-
-% centroid coordinates with 0.5 uncertainties
-tmp = vertcat(featsProp.WeightedCentroid)-1;
-xCoord = [tmp(:,1) 0.5*ones(nFeats,1)]; yCoord = [tmp(:,2) 0.5*ones(nFeats,1)]; zCoord = [tmp(:,3) 0.5*ones(nFeats,1)];
-amp=[vertcat(featsProp.MaxIntensity) 0.5*ones(nFeats,1)];
-
-% u-track formating
-movieInfo=struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[],'int',[]);
-movieInfo.xCoord= xCoord;movieInfo.yCoord=yCoord;movieInfo.zCoord=zCoord;
-movieInfo.amp=amp;
-movieInfo.int=amp;
 
 function movieInfo= pointCloudToMovieInfo(imgLM,vol)
     lmIdx = find(imgLM~=0);
@@ -187,6 +177,8 @@ function movieInfo= pointCloudToMovieInfo(imgLM,vol)
     movieInfo.amp=amp;
     movieInfo.int=amp;
 
+function mkdir(path)
+system(['mkdir -p ' path]);
 
 
 function movieInfo= pstructToMovieInfo(pstruct)

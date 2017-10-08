@@ -1,4 +1,4 @@
-function [tracksNA,idx] = filterOutNonEmergingNA(tracksNA)
+function [tracksNA,idx,idxFC] = filterOutNonEmergingNA(tracksNA)
 %  [tracksNA] = filterTracksNA(tracksNA)
 % filter out tracks whose state is 'NA' without 'BA' in the previous time
 % point(s).
@@ -18,6 +18,8 @@ end
 toc
 %% filtering
 idx = false(numel(tracksNA),1);
+idxFC = false(numel(tracksNA),1); % When adhesion already starts as FA or FC
+
 for k=1:numel(tracksNA)
     % look for tracks that had a state of 'BA' and become 'NA'
     firstNAidx = find(strcmp(tracksNA(k).state,'NA'),1,'first');
@@ -29,7 +31,10 @@ for k=1:numel(tracksNA)
 %     if (~isempty(firstNAidx) && firstNAidx==1) || (~isempty(firstNAidx) && firstNAidx>1 && ~strcmp(tracksNA(k).state(firstNAidx-1),'BA')) %%|| (~isempty(firstNAidx) &&firstNAidx==1)
 %     if ~isempty(firstNAidx) && (isempty(firstFCidx) || firstNAidx<firstFCidx) && (isempty(firstFAidx) || firstNAidx<firstFAidx)
         idx(k) = true;
-    end        
+    end    
+    if (~isempty(firstFCidx) && firstFCidx==1) || (~isempty(firstFAidx) && firstFAidx==1)
+        idxFC(k)=true;
+    end
 end
 %% Analysis of those whose force was under noise level: how long does it take
 % Analysis shows that force is already developed somewhat compared to

@@ -1,4 +1,4 @@
-classdef MovieDetections < hgsetget
+classdef MovieDetections < matlab.mixin.SetGet
     % Data encapsulator for detections in a movie
     
     properties (SetAccess = protected)

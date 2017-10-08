@@ -21,6 +21,6 @@ do
 done
 echo
 
-echo matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind), exit"
+echo matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind);"
 echo
-matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind),exit"
+matlab -nodisplay -nodesktop -nosplash -singleCompThread -r "$prog($ind);"

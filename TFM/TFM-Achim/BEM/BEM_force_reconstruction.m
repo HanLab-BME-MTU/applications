@@ -202,6 +202,7 @@ if nargin >= 10 && strcmp(method,'fast')
             sol_mats.Q=Q;
             sol_mats.R=R;
             sol_mats.L=L;
+            sol_mats.eyeWeights=eyeWeights;
         end            
         sol_mats.tool='QR';
     elseif strcmpi(solMethodBEM,'LaplacianReg')
@@ -254,7 +255,7 @@ if nargin >= 10 && strcmp(method,'fast')
 %             else
 %                 tolx =  max(0.02,tolxEstimate); % based on u to estimate
 %             end
-            tolx = 0.012; % based on u to estimate
+            tolx = 0.2; % based on u to estimate
         end
         % plot the solution for the corner
         disp(['tolerance value: ' num2str(tolx)])

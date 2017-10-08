@@ -5,6 +5,7 @@ function [sphCumulCoordCell]=sphericalRadiusBinning(sphCoord,radius,timeInterval
 %  radius is a matrix defining the binning edges. 
 % 
 
+% Concatenate the per-frame data-structure
 cumulAzi=vertcat(sphCoord.azimuth{:}); 
 cumulElev=vertcat(sphCoord.elevation{:});
 cumulRho=vertcat(sphCoord.rho{:});
@@ -14,6 +15,7 @@ end
 T=arrayfun(@(f) ones(length(sphCoord.azimuth{f}),1)*f*timeInterval,(1:length(sphCoord.azimuth)),'unif',0);
 cumulTimePt=vertcat(T{:});
 
+% Associate each detection with their a trackID
 trackIdCell=cellfun(@(x) ones(size(x)),sphCoord.azimuth,'unif',0);
 for tIdx=1:length(tracks)
     aTrack=tracks(tIdx);
@@ -25,9 +27,8 @@ for tIdx=1:length(tracks)
 end
 cumulTrackId=vertcat(trackIdCell{:});
 
+% Bin each Kinetochore according to <radius>
 minKinRho=min(cumulRho,[],2);
-
-
 [~,binIdx]=histc(minKinRho,radius);
 sphCumulCoordCell=cell(1,length(radius));   
 for rIdx=1:length(radius)

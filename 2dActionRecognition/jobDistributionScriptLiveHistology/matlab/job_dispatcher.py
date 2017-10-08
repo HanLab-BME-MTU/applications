@@ -38,7 +38,7 @@ paramsList = []
 
 # parse parameters file
 print "Parsing parameters file ./params.txt ..."
-with open("./params_hall.txt", 'r') as f:
+with open("./params.txt", 'r') as f:
 	for line in f:
          line = line.rstrip()
          if not line.startswith('#') and len(line) > 0:
@@ -85,17 +85,40 @@ print str(num_scripts) + " jobs to be submitted."
 job_id = start_job_index
 
 #NOTE
-#submission policy: submit all jobs, allow scheduler to manage jobs-submission
+#submission policy: whenever the selected partition is available, use all the available nodes in it.
 while job_id < total_num_scripts:
+	#check free nodes
+	cmd = "sinfo | grep " + partition +  " | grep idle | awk '{print $4}'"
+	cmd_output = commands.getoutput(cmd)
+	n_free_nodes = 0
+	if cmd_output:
+		n_free_nodes = int(cmd_output)
+	print "#Current Free Nodes in " + partition + " partition = " + str(n_free_nodes)
+	if n_free_nodes == 0:
+		print "Wait for more available nodes in " + partition + " partition."
+		time.sleep(waitTime)
+		continue
+
 	#submit jobs to queue until full	
-	print "SUBJOB_ID " +  str(job_id)
-	script_name = scripts[job_id]
-	cmd = 'sbatch ./scripts/' + script_name
-	os.system(cmd) #dispatch a job
-	print cmd
-	cmd = 'echo ' + script_name +  ' >> ./log/submission.log'
-	os.system(cmd) #keep a log for restarting from interruption.
-	job_id = job_id + 1
+	tmp_job_id = 0
+	for i in range(0, n_free_nodes): 
+		tmp_job_id = job_id + i
+		if tmp_job_id >= total_num_scripts: #come to the end
+			break
+		print "SUBJOB_ID " +  str(tmp_job_id)
+		script_name = scripts[tmp_job_id]
+		cmd = 'sbatch ./scripts/' + script_name
+		os.system(cmd) #dispatch a job
+		print cmd
+		cmd = 'echo ' + script_name +  ' >> ./log/submission.log'
+		os.system(cmd) #keep a log for restarting from interruption.
+
+	if tmp_job_id >= total_num_scripts: #come to the end
+		break
+	job_id = job_id + n_free_nodes
+	#after submission of a bunch of jobs, wait for a while to let PBS schedule the job to the nodes
+	print "Wait for " + str(30) + " seconds to let SLURM react to the submission."
+	time.sleep(30)
 
 print str(num_scripts) + " job(s) submitted."
 print "Submission finished."

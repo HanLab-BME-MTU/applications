@@ -15,12 +15,16 @@ ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
 ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
 ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
 ip.addParamValue('iChanSlave',[],@isscalar); % This is the master channle index.
+ip.addParamValue('labeledData',[],@iscell); % This is the master channle index.
+% ip.addParamValue('outputPath','analysis1',@ischar)
 ip.parse(pathForColocalization,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
 MD=ip.Results.movieData;
 iChan=ip.Results.iChan;
 iChanSlave=ip.Results.iChanSlave;
+sampleFolders=ip.Results.labeledData;
+% outputPath=ip.Results.outputPath;
 %% Load processed data
 disp('Loading raw files ...')
 tic
@@ -81,15 +85,56 @@ scaleBar = 1; %micron
 toc
 %% Read other test data set
 reuseSelectedGroups = 'n';
-importSelectedGroups=input('Do you want to import existing trained data (1/0)?: ');
-if ~isempty(importSelectedGroups) && importSelectedGroups
-    doneLoadingTrainedData = false;
-    T = table();
-    while ~doneLoadingTrainedData
-        % load an existing classifier
-        [FileName,PathName] = uigetfile('*.mat','Select the trained data');
-        curImportFilePath = fullfile(PathName,FileName);
-        idGroups = load(curImportFilePath);
+if isempty(sampleFolders)
+    importSelectedGroups=input('Do you want to import existing trained data (1/0)?: ');
+    if ~isempty(importSelectedGroups) && importSelectedGroups
+        doneLoadingTrainedData = false;
+        jj=0;
+    %     T = table();
+        while ~doneLoadingTrainedData
+            jj=jj+1;
+            % load an existing classifier
+            [FileName,PathName] = uigetfile('*.mat','Select the trained data');
+            curImportFilePath = fullfile(PathName,FileName);
+            idGroups = load(curImportFilePath);
+            idGroup1Selected = idGroups.idGroup1Selected;
+            idGroup2Selected = idGroups.idGroup2Selected;
+            idGroup3Selected = idGroups.idGroup3Selected;
+            idGroup4Selected = idGroups.idGroup4Selected;
+            idGroup5Selected = idGroups.idGroup5Selected;
+            idGroup6Selected = idGroups.idGroup6Selected;
+            idGroup7Selected = idGroups.idGroup7Selected;
+            idGroup8Selected = idGroups.idGroup8Selected;
+            idGroup9Selected = idGroups.idGroup9Selected;
+            idGroupSelected{jj}={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
+                                        idGroup7Selected,idGroup8Selected,idGroup9Selected};
+            try
+                curImportFilePathTracks = fullfile(PathName,'idsClassified.mat');
+                curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
+                curTracksNA{jj} = curTracksNAfile.tracksNA;
+                mdPath = fileparts(fileparts(fileparts(fileparts(PathName))));
+                curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
+                curMD{jj} = curMDFile.MD;
+            catch
+                curImportFilePathTracks = fullfile(PathName,'idsClassified_org.mat');
+                curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
+                curTracksNA{jj} = curTracksNAfile.tracksNA;
+                mdPath = fileparts(fileparts(fileparts(fileparts(PathName))));
+                curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
+                curMD{jj} = curMDFile.MD;
+            end            
+    %         T=[T; extractFeatureNA(curTracksNA,idGroupSelected)];
+            doneLoadingTrainedData = input('Done with importing existing trained data (1/0)?: ');
+        end
+        nTrainingSets=jj;
+    end
+else
+    nSampleFolders = numel(sampleFolders);
+    for jj=1:nSampleFolders
+%         curImportFilePath = fullfile(PathName,FileName);
+        display(['Loading ' sampleFolders{jj} '...'])
+        idGroups = load(sampleFolders{jj});
+        PathName=fileparts(sampleFolders{jj});
         idGroup1Selected = idGroups.idGroup1Selected;
         idGroup2Selected = idGroups.idGroup2Selected;
         idGroup3Selected = idGroups.idGroup3Selected;
@@ -99,22 +144,32 @@ if ~isempty(importSelectedGroups) && importSelectedGroups
         idGroup7Selected = idGroups.idGroup7Selected;
         idGroup8Selected = idGroups.idGroup8Selected;
         idGroup9Selected = idGroups.idGroup9Selected;
-        idGroupSelected={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
+        idGroupSelected{jj}={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
                                     idGroup7Selected,idGroup8Selected,idGroup9Selected};
         try
             curImportFilePathTracks = fullfile(PathName,'idsClassified.mat');
-            curTracksNA = load(curImportFilePathTracks,'tracksNA');
-            curTracksNA = curTracksNA.tracksNA;
+            curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
+            curTracksNA{jj} = curTracksNAfile.tracksNA;
+            mdPath = fileparts(fileparts(fileparts(fileparts(PathName))));
+            curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
+            curMD{jj} = curMDFile.MD;
         catch
             curImportFilePathTracks = fullfile(PathName,'idsClassified_org.mat');
-            curTracksNA = load(curImportFilePathTracks,'tracksNA');
-            curTracksNA = curTracksNA.tracksNA;
+            curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
+            curTracksNA{jj} = curTracksNAfile.tracksNA;
+            mdPath = fileparts(fileparts(fileparts(fileparts(PathName))));
+            try
+                curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
+            catch
+                mdPath = fileparts(fileparts(fileparts(PathName)));
+                curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
+            end                
+            curMD{jj} = curMDFile.MD;
         end            
-%         T=[T; extractFeatureNA(curTracksNA,idGroupSelected)];
-        doneLoadingTrainedData = input('Done with importing existing trained data (1/0)?: ');
     end
-    reuseSelectedGroups=input('Do you want to add some more on top of it (a), discard imported data (d) or solely use this data for classifier training(u)?: ','s');
+    importSelectedGroups=true;
 end
+reuseSelectedGroups=input('Do you want to add some more on top of it (a), discard imported data (d) or solely use this data for classifier training(u)?: ','s');
 %% New training data labeling - for third step - select 'u' in previous question
 if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelectedGroups, 'a') || isempty(reuseSelectedGroups) || strcmp(reuseSelectedGroups, 'd')
     if strcmp(reuseSelectedGroups, 'a')
@@ -172,132 +227,145 @@ if isempty(importSelectedGroups) || ~importSelectedGroups || strcmp(reuseSelecte
         'idGroup7Selected','idGroup8Selected','idGroup9Selected');
 end
 
-%% feature extraction
-if importSelectedGroups && strcmp(reuseSelectedGroups, 'u')
-    bigEnoughGroups=cellfun(@length,idGroupSelected);
-    bigEnoughGroups=find(bigEnoughGroups>=5);
-    idGroupFiltered = idGroupSelected;
-    idGroupFiltered(setdiff(1:9,bigEnoughGroups))={[]};
-    [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered);
-else
-    T=extractFeatureNA(curTracksNA,idGroupSelected);
+%% feature extraction and training the classifier
+for kk=1:5
+    % Using only imported labeled data
+    display(['Testing the feature extraction method ' num2str(kk) '...'])
+    pathForNorm = [pathForColocalization filesep 'normMethod' num2str(kk)];
+    mkClrDir(pathForNorm)
+    T = table();
+    for jj=1:nTrainingSets
+        T=[T; extractFeatureNA(curTracksNA{jj},idGroupSelected{jj},kk,curMD{jj})];
+%         T=extractFeatureNA(curTracksNA{jj},idGroupSelected{jj},ii,curMD);
+    end
+%     bigEnoughGroups=cellfun(@length,idGroupSelected{jj});
+%     bigEnoughGroups=find(bigEnoughGroups>=5);
+%     idGroupFiltered = idGroupSelected{jj};
+%     idGroupFiltered(setdiff(1:9,bigEnoughGroups))={[]};
+
+    [trainedClassifierSVM, validationAccuracySVM, CSVM, orderSVM] = trainClassifierNA(T);
+
+    % I will use SVM no matter what, because it will be compatible with
+    trainedClassifier=trainedClassifierSVM;
+    validationAccuracy=validationAccuracySVM;
+    C=CSVM;
+    order=orderSVM;
+    mkClrDir([pathForNorm filesep 'data'])
+    classifierInfo = fopen([pathForNorm filesep 'data' filesep 'trainedClassifier is from SVM.txt'],'w');
+    fprintf(classifierInfo, 'This is from quadratic SVM. \n');
+    fprintf(classifierInfo, ['Validation accuracy is ' num2str(validationAccuracy) '. \n']);
+    disp(['Validation accuracy is ' num2str(validationAccuracy) '.'])
+    fclose(classifierInfo);
+    save([pathForNorm filesep 'data' filesep 'trainedClassifier.mat'],'trainedClassifier')
+
+    % normalize confusion matrix
+    for ii=1:size(C,1)
+        C(ii,:) = C(ii,:)/sum(C(ii,:));
+    end
+    response = T.Group;
+    % Get the unique resonses
+    totalGroups = unique(response);
+
+    figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
+    set(confAxis,'xticklabel',totalGroups')
+    set(confAxis,'yticklabel',totalGroups')
+    c = colorbar;
+    c.Label.String = 'normalized prediction';
+    mkClrDir([pathForNorm filesep 'eps'])
+    mkClrDir([pathForNorm filesep 'figs'])
+    print('-depsc2', '-r300', [pathForNorm filesep 'eps' filesep 'confusionMatrix.eps']);
+    savefig([pathForNorm filesep 'figs' filesep 'confusionMatrix.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForNorm filesep 'eps' filesep 'confusionMatrix.tif'])
+
+    T = sortrows(T,13);
+    features =table2array(T(:,1:end-1));
+    species = table2array(T(:,end));
+    nGroups = length(totalGroups);
+    % normalize features
+    for i = 1 : size(features,2)
+        features(:,i) = (features(:,i) - min(features(:,i)))./(max(features(:,i)) - min(features(:,i)));
+    end
+    figure; imagesc(features');hold on
+    c = colorbar;
+    c.Label.String = 'feature value';
+    print('-depsc2', '-r300', [pathForNorm filesep 'eps' filesep 'featureSpace.eps']);
+    savefig([pathForNorm filesep 'figs' filesep 'featureSpace.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForNorm filesep 'eps' filesep 'featureSpace.tif'])
+    close
+
+    D = pdist(features);
+    D1 =  squareform(D);
+    figure; imagesc(D1);
+    title('similarityAmongTrainedData')
+    c = colorbar;
+    c.Label.String = 'p-dist';
+    for ii=1:nGroups
+    %         x0 = find(strcmp(species,['Group' num2str(ii)]),1);
+    %         w = sum(strcmp(species,['Group' num2str(ii)]));
+        x0 = find(strcmp(species,totalGroups{ii}),1);
+        w = sum(strcmp(species,totalGroups{ii}));
+        rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
+    end
+    print('-depsc2', '-r300', [pathForNorm filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
+    savefig([pathForNorm filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForNorm filesep 'eps' filesep 'similarityAmongTrainedData.tif'])
+    close
+
+    Dfeats = pdist(features');
+    Dfeats1 =  squareform(Dfeats);
+    figure; imagesc(Dfeats1); title('similarityAmongFeatures')
+    c = colorbar;
+    c.Label.String = 'p-dist';
+
+    print('-depsc2', '-r300', [pathForNorm filesep 'eps' filesep 'similarityAmongFeatures.eps']);
+    savefig([pathForNorm filesep 'figs' filesep 'similarityAmongFeatures.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForNorm filesep 'eps' filesep 'similarityAmongFeatures.tif'])
+    close
+
+    disp('The order is :')
+    disp(order)
+
+    [~,allData] = extractFeatureNA(tracksNA,[],kk,MD);
+    allDataClass = predict(trainedClassifier,allData);
+
+    figure, imshow(imgMap(:,:,end),[])
+    hold on
+    colors = distinguishable_colors(9,'k');
+    idGroup1 = strcmp(allDataClass,'Group1');
+    idGroup2 = strcmp(allDataClass,'Group2');
+    idGroup3 = strcmp(allDataClass,'Group3');
+    idGroup4 = strcmp(allDataClass,'Group4');
+    idGroup5 = strcmp(allDataClass,'Group5');
+    idGroup6 = strcmp(allDataClass,'Group6');
+    idGroup7 = strcmp(allDataClass,'Group7');
+    idGroup8 = strcmp(allDataClass,'Group8');
+    idGroup9 = strcmp(allDataClass,'Group9');
+    htrackG1=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(1,:)),tracksNA(idGroup1),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(1,:)),tracksNA(idGroup1));
+    htrackG2=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(2,:)),tracksNA(idGroup2),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(2,:)),tracksNA(idGroup2));
+    htrackG3=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(3,:)),tracksNA(idGroup3),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(3,:)),tracksNA(idGroup3));
+    htrackG4=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(4,:)),tracksNA(idGroup4),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(4,:)),tracksNA(idGroup4));
+    htrackG5=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(5,:)),tracksNA(idGroup5),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(5,:)),tracksNA(idGroup5));
+    htrackG6=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(9,:)),tracksNA(idGroup6),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(9,:)),tracksNA(idGroup6));
+    htrackG7=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(7,:)),tracksNA(idGroup7),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(7,:)),tracksNA(idGroup7));
+    htrackG8=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(8,:)),tracksNA(idGroup8),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(8,:)),tracksNA(idGroup8));
+    htrackG9=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(6,:)),tracksNA(idGroup9),'UniformOutput',false);
+    arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(6,:)),tracksNA(idGroup9));
+    legend([htrackG1{1} htrackG2{1} htrackG3{1} htrackG4{1} htrackG5{1} htrackG6{1} htrackG7{1} htrackG8{1} htrackG9{1}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
+        'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
+    legend('boxoff')
+    print('-depsc2', '-r300', [pathForNorm filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
+    savefig([pathForNorm filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified.fig'])
+    print('-dtiff', '-loose', '-r300', [pathForNorm filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.tif'])
+    save([pathForNorm filesep 'data' filesep 'idsClassified.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA','-v7.3')
 end
-[trainedClassifierSVM, validationAccuracySVM, CSVM, orderSVM] = trainClassifierNA(T);
-% I will use SVM no matter what, because it will be compatible with
-trainedClassifier=trainedClassifierSVM;
-validationAccuracy=validationAccuracySVM;
-C=CSVM;
-order=orderSVM;
-classifierInfo = fopen([pathForColocalization filesep 'data' filesep 'trainedClassifier is from SVM.txt'],'w');
-fprintf(classifierInfo, 'This is from quadratic SVM. \n');
-fprintf(classifierInfo, ['Validation accuracy is ' num2str(validationAccuracy) '. \n']);
-disp(['Validation accuracy is ' num2str(validationAccuracy) '.'])
-fclose(classifierInfo);
-save([pathForColocalization filesep 'data' filesep 'trainedClassifier.mat'],'trainedClassifier')
-
-% normalize confusion matrix
-for ii=1:size(C,1)
-    C(ii,:) = C(ii,:)/sum(C(ii,:));
-end
-response = T.Group;
-% Get the unique resonses
-totalGroups = unique(response);
-
-figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
-set(confAxis,'xticklabel',totalGroups')
-set(confAxis,'yticklabel',totalGroups')
-c = colorbar;
-c.Label.String = 'normalized prediction';
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.eps']);
-savefig([pathForColocalization filesep 'figs' filesep 'confusionMatrix.fig'])
-print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'confusionMatrix.tif'])
-
-T = sortrows(T,13);
-features =table2array(T(:,1:end-1));
-species = table2array(T(:,end));
-nGroups = length(totalGroups);
-% normalize features
-for i = 1 : size(features,2)
-    features(:,i) = (features(:,i) - min(features(:,i)))./(max(features(:,i)) - min(features(:,i)));
-end
-figure; imagesc(features');hold on
-c = colorbar;
-c.Label.String = 'feature value';
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'featureSpace.eps']);
-savefig([pathForColocalization filesep 'figs' filesep 'featureSpace.fig'])
-print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'featureSpace.tif'])
-
-D = pdist(features);
-D1 =  squareform(D);
-figure; imagesc(D1);
-title('similarityAmongTrainedData')
-c = colorbar;
-c.Label.String = 'p-dist';
-for ii=1:nGroups
-%         x0 = find(strcmp(species,['Group' num2str(ii)]),1);
-%         w = sum(strcmp(species,['Group' num2str(ii)]));
-    x0 = find(strcmp(species,totalGroups{ii}),1);
-    w = sum(strcmp(species,totalGroups{ii}));
-    rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
-end
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
-savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
-print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongTrainedData.tif'])
-
-Dfeats = pdist(features');
-Dfeats1 =  squareform(Dfeats);
-figure; imagesc(Dfeats1); title('similarityAmongFeatures')
-c = colorbar;
-c.Label.String = 'p-dist';
-
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.eps']);
-savefig([pathForColocalization filesep 'figs' filesep 'similarityAmongFeatures.fig'])
-print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'similarityAmongFeatures.tif'])
-
-disp('The order is :')
-disp(order)
-
-    
-    
-allDataClass = predict(trainedClassifier,allData);
-
-figure, imshow(imgMap(:,:,end),[])
-hold on
-colors = distinguishable_colors(9,'k');
-idGroup1 = strcmp(allDataClass,'Group1');
-idGroup2 = strcmp(allDataClass,'Group2');
-idGroup3 = strcmp(allDataClass,'Group3');
-idGroup4 = strcmp(allDataClass,'Group4');
-idGroup5 = strcmp(allDataClass,'Group5');
-idGroup6 = strcmp(allDataClass,'Group6');
-idGroup7 = strcmp(allDataClass,'Group7');
-idGroup8 = strcmp(allDataClass,'Group8');
-idGroup9 = strcmp(allDataClass,'Group9');
-htrackG1=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(1,:)),tracksNA(idGroup1),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(1,:)),tracksNA(idGroup1));
-htrackG2=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(2,:)),tracksNA(idGroup2),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(2,:)),tracksNA(idGroup2));
-htrackG3=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(3,:)),tracksNA(idGroup3),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(3,:)),tracksNA(idGroup3));
-htrackG4=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(4,:)),tracksNA(idGroup4),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(4,:)),tracksNA(idGroup4));
-htrackG5=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(5,:)),tracksNA(idGroup5),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(5,:)),tracksNA(idGroup5));
-htrackG6=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(9,:)),tracksNA(idGroup6),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(9,:)),tracksNA(idGroup6));
-htrackG7=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(7,:)),tracksNA(idGroup7),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(7,:)),tracksNA(idGroup7));
-htrackG8=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(8,:)),tracksNA(idGroup8),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(8,:)),tracksNA(idGroup8));
-htrackG9=arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',colors(6,:)),tracksNA(idGroup9),'UniformOutput',false);
-arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','Color',colors(6,:)),tracksNA(idGroup9));
-% legend([htrackG1{1} htrackG2{1} htrackG3{1} htrackG4{1} htrackG5{1} htrackG6{1} htrackG7{1} htrackG8{1} htrackG9{1}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
-%     'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
-% legend('boxoff')
-print('-depsc2', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
-savefig([pathForColocalization filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified.fig'])
-print('-dtiff', '-loose', '-r300', [pathForColocalization filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.tif'])
-save([pathForColocalization filesep 'data' filesep 'idsClassified.mat'],'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','tracksNA','-v7.3')
 end
 function  [validationAccuracy,C,order] = validateClassifier(trainedClassifier,datasetTable)
 % Extract predictors and response
