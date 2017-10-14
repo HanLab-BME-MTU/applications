@@ -288,7 +288,7 @@ filoBranchC.filterInfo.scaleMap = scaleMap;
 % delete small ridge filter signal from these regions in order to not waste
 % computational time 
  if ip.Results.filterBackEst
-    [maskBack,~,~] = gcaEstimateBackgroundArea(img,'PostProcess',true);
+    [maskBack,~,~] = gcaEstimateBackgroundArea(img);
     if ip.Results.dilateLocalRegion
         maskBack = ~imdilate(~maskBack,strel('disk',ip.Results.LRDilRad)); % added 20170503 % was set to 10 
     end
