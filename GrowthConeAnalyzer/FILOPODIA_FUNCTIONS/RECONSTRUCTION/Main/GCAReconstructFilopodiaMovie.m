@@ -63,13 +63,24 @@ ip.addParameter('EndFrame','auto');
 
 
 
-% Specific
+% Specific￼
 % PARAMETERS
 ip.addParameter('TSOverlays',false); 
 
 % Steerable Filter 
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
 ip.addParameter('FiloScale',1.5);
+
+% Estimate background to localize region of interest 
+ip.addParameter('filterBackEst',true); % flag to estimate high confidence 
+% background using the image intensity histogram : < mean + 2std 
+% is considered background
+ip.addParameter('dilateLocalRegion',false); % flag to dilate further the 
+% local region of interest estimation (ie decrease the background
+% estimation)
+ip.addParameter('LRDilRad',10); % dilation radius of the structuring element 
+% applied to inital guess of the localized region of interest. 
+
 
 % Cleaning Response of Steerable Filter 
 ip.addParameter('multSTDNMSResponse',3);
@@ -93,6 +104,8 @@ ip.addParameter('geoThreshFiloBranch',0.5);
 % Option to detect Embedded actin bundles (for LifeAct and actin staining
 % only)
 ip.addParameter('detectEmbedded',true)
+
+ip.addParameter('rotateVeilStemNormals',true); 
 
 
 ip.parse(varargin{:});
@@ -178,7 +191,7 @@ for iCh = 1:nChan
         imDir = movieData.proceses_{params.ProcessIndex}.outfilePaths_;
     end
     
-    listOfImages = searchFiles('.tif',[],imDir,0);
+    listOfImages = searchFiles('.tif','memo',imDir,0);
     if isempty(listOfImages)
         error('No Images Found: Check Input Directory');
     end
@@ -213,26 +226,35 @@ for iCh = 1:nChan
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
         veilStemMaskC = veilStem(iFrame).finalMask;
         % you store all pieces make sure only considering the largest
-        % connected component 
-        veilStemMaskC = logical(getLargestCC(veilStemMaskC)); 
+        % connected component
+        veilStemMaskC = logical(getLargestCC(veilStemMaskC));
         
-%         if ~isempty(normals)
-%             protrusionC.normal = normals{iFrame};
-%             protrusionC.smoothedEdge = smoothedEdge{iFrame};
-%             x{1} = protrusionC; % make a cell for parsing input. 
-%             [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,x,p);
-%         else
-%             [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,p);
-%         end
-%         
+        %         if ~isempty(normals)
+        %             protrusionC.normal = normals{iFrame};
+        %             protrusionC.smoothedEdge = smoothedEdge{iFrame};
+        %             x{1} = protrusionC; % make a cell for parsing input.
+        %             [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,x,p);
+        %         else
+        %             [filoBranch,TSFigs] = GCAReconstructFilopodiaWorkingInput(img,veilStemMaskC,p);
+        %         end
+        %
         
-        protrusionC.normal = normals{iFrame}; 
-        protrusionC.smoothedEdge = smoothedEdge{iFrame}; 
-        EPLead = veilStem(iFrame).endPointLeadingProt; 
-        LPIndices = veilStem(iFrame).neuriteLongPathIndices;
-        idxEnter = veilStem(iFrame).idxEnterNeurite; 
-    
-       [filoBranchC,TSFigs,TSFigsRecon] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,idxEnter,params); 
+        protrusionC.normal = normals{iFrame};
+        protrusionC.smoothedEdge = smoothedEdge{iFrame};
+        if ip.Results.rotateVeilStemNormals
+            EPLead = veilStem(iFrame).endPointLeadingProt;
+            LPIndices = veilStem(iFrame).neuriteLongPathIndices;
+            idxEnter = veilStem(iFrame).idxEnterNeurite;
+        else
+            EPLead = [];
+            LPIndices = [];
+            idxEnter = [];
+        end
+        
+        [filoBranchC,TSFigs,TSFigsRecon,errorHist] =  GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,EPLead,LPIndices,idxEnter,params);
+        if errorHist == 1
+            display(['Problem With Histogram Frame' num2str(iFrame)]);
+        end
 %% Plot the results. 
 if ip.Results.TSOverlays == 1 
     display('Saving Trouble Shoot Overlays') 
@@ -291,8 +313,9 @@ close all
         
         
         % quick fix for the plots is to just make the frame number an input for not 20140812
-         [~,hashTag] =  gcaArchiveGetGitHashTag;
-        filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+   %      [~,hashTag] =  gcaArchiveGetGitHashTag;
+   hashTag = NaN; 
+       filoBranchC.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
         filoBranchC.timeStamp = clock; 
         filoBranch(iFrame) = filoBranchC;
         p(iFrame) = params; 
