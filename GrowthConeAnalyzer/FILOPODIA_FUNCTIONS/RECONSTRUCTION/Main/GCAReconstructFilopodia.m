@@ -1,4 +1,4 @@
-function [filoBranch,TSFigsFinal,TSFigsRecon] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,idxEnter,varargin)
+function [filoBranch,TSFigsFinal,TSFigsRecon,errorHist] = GCAReconstructFilopodia(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,idxEnter,varargin)
 % GCAReconstructFilopodia: (Step VI of GCA PACKAGE)
 % This function rebuilds and records the filopodia network around a
 % veil/stem mask (in the case of the neurite) or any binary cell mask 
@@ -132,6 +132,17 @@ ip.addRequired('idxEnter');
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
 ip.addParameter('FiloScale',1.5);
 
+% ESTIMATE BACKGROUND TO LOCALIZE REGION OF INTEREST 
+ip.addParameter('filterBackEst',true); % flag to estimate high confidence 
+% background using the image intensity histogram : < mean + 2std 
+% is considered background
+ip.addParameter('dilateLocalRegion',false); % flag to dilate further the 
+% local region of interest estimation (ie decrease the background
+% estimation)
+ip.addParameter('LRDilRad',10); % dilation radius of the structuring element 
+% applied to inital guess of the localized region of interest. 
+
+
 % RIDGE CLEANING
 ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
@@ -157,6 +168,10 @@ ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x));
 % TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
+% FOR FILOPODIA ORIENTATION CALC (GC Only as it has an axis
+ip.addParameter('rotateVeilStemNormals',true); 
+
+
 ip.parse(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,idxEnter,varargin{:});
 p = ip.Results;
 p = rmfield(p,{'img','veilStemMaskC','protrusionC'}); 
@@ -166,7 +181,7 @@ dims = size(img);
 [ny,nx] = size(img);
 normalsC = protrusionC.normal;
 TSFigsFinal = []; 
-
+errorHist = 0; 
 %% these were the pixelated values used to calculate the normals 
  %Get the outline of the object in this mask. We use contourc instead of
     %bwboundaries for 2 reasons: It returns its results in matrix
@@ -220,6 +235,8 @@ TSFigsFinal = [];
 %smoothedEdgeC = protrusionC.smoothedEdge;  
 % rotate the normals of the edge of the veilstem in the direction of the
 % outgrowth for orientation metrics. 
+if ip.Results.rotateVeilStemNormals
+
 [normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims,idxEnter); 
 % add the rotated field. 
 
@@ -256,7 +273,7 @@ end
 protrusionC.normal = normalsC; % note sometimes have to remove some of the boundary pixels from the original 
 protrusionC.smoothedEdge = smoothedEdgeC; 
 protrusionC.normalsRotated = normalsCRotated;  
-
+end 
 %% STEP I: Detect Thin Ridge Structures 
     
 [maxRes, maxTh ,maxNMS ,scaleMap]= gcaMultiscaleSteerableDetector(img,ip.Results.FilterOrderFilo,ip.Results.FiloScale); 
@@ -267,18 +284,34 @@ filoBranchC.filterInfo.maxRes = maxRes;
 filoBranchC.filterInfo.scaleMap = scaleMap; 
 
 %% STEP II :  PREPARE HIGH CONFIDENCE RIDGE 'SEEDS' FOR SUBSEQUANT ITERATIVE MATCHING STEPS
-%% Estimate the background of the image based on intensity (permissive definition) and 
+%% Estimate the background of the image based on intensity (permissive definition) 
 % delete small ridge filter signal from these regions in order to not waste
-% energy on unimportant regions. 
-
-[maskBack,~,~] = gcaEstimateBackgroundArea(img); 
+% computational time 
+ if ip.Results.filterBackEst
+    [maskBack,~,~] = gcaEstimateBackgroundArea(img,'PostProcess',true);
+    if ip.Results.dilateLocalRegion
+        maskBack = ~imdilate(~maskBack,strel('disk',ip.Results.LRDilRad)); % added 20170503 % was set to 10 
+    end
+    else 
+        maskBack = false(size(img)); % no mask 
+ end
 
 %% Take out the first gaussian mode of ridge response intensities (assume it is background) 
     % Determine Threshold
     forValues = maxNMS.*~maskBack; % take out background response based on fluorescence intensity
     valuesFilter = forValues(forValues~=0);  
-    [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(valuesFilter); 
-    cutoffTrueResponse = respNMSMean+ip.Results.multSTDNMSResponse*respNMSSTD; % can make this a variable 
+    if ~isempty(ip.Results.multSTDNMSResponse)
+        [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(valuesFilter);
+        cutoffTrueResponse = respNMSMean+ip.Results.multSTDNMSResponse*respNMSSTD; % can make this a variable
+    else 
+        cutoffTrueResponse = min(valuesFilter); 
+    end
+    %check and make sure the cutoffTrueResponse makes sense. 
+    if cutoffTrueResponse>max(valuesFilter)
+        % try thresholdFluorescenceImage 
+        cutoffTrueResponse = thresholdFluorescenceImage(valuesFilter); 
+        errorHist = 1; 
+    end ; 
     n1 = hist(valuesFilter,500);
     
     % Filter NMS based on Threshold: This will form the basis for your
@@ -308,30 +341,28 @@ filoBranchC.filterInfo.scaleMap = scaleMap;
           
           countFigs = countFigs+1; % close figure 
         end
-%% Eliminate Ridge Junctions
-% Notes: ridge junctions are typically not reliably detected in the NMS and
-% if they are (we should re-check the NMS code - it is debatable if they
-% should exist at all)- it is often ambigious as to whether these are a
-% cross-over, a branch-point, or noise. Therefore we break them here so we
+%% Eliminate Junctions in the Ridge Detection
+% Break any remaining junctions so they may be assigned 
 % can appropriately assign these junction pixels to individual filopdodia in the
 % subsequent matching steps.
 
 % Initiate the cleaned array.
 canRidgeClean =  canRidges; 
 
-% Break the junctions
+%% Break the junctions Original 
 nn = padarrayXT(double(canRidgeClean~=0), [1 1]);
 sumKernel = [1 1 1];
 nn = conv2(sumKernel, sumKernel', nn, 'valid');
 nn1 = (nn-1) .* (canRidgeClean~=0);
 junctionMask = nn1>2;
+
 canRidgeClean(junctionMask) =0;
 
 %% Filter Small Size Connected Component Ridge Pieces
 % typically keep this very small as do not want to remove signal 
 % < 3 pixel connected components are just typically less 
 % well suited to orientation measurements required in the next steps
-CCRidges = bwconncomp(canRidgeClean,8); % FIRST PLACE WHERE I BEGIN TO FILTER out signal
+CCRidges = bwconncomp(canRidgeClean,8); % 
 csize = cellfun(@(c) numel(c), CCRidges.PixelIdxList);
 nsmall = sum(csize<=ip.Results.minCCRidgeOutsideVeil);% 
 CCRidges.NumObjects = CCRidges.NumObjects-nsmall;
@@ -355,10 +386,6 @@ cleanedRidgesAll = labelmatrix(CCRidges)>0;
           text(5,20,'Ridges After Cleaning', 'Color','r','FontSize',10); 
           countFigs = countFigs +1; 
  end 
-%% 
-% Add NormalsRotated to ProtrusionC
-
-
 
 %% Run Main Function that performs the reconstructions
 [reconstruct,filoInfo,TSFigs2,TSFigsRecon] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
