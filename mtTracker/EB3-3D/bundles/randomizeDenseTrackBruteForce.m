@@ -1,5 +1,5 @@
 function [randTrack,firstSearch]=randomizeDenseTrackBruteForce(track,dynManifoldsCell,mappingDistance,maxRandomDist,varargin)
-% randomize a track so that no tracks map in the manifolds
+% randomize a track so that no tracks map in <dynManifoldsCell>
 
 firstSearch=TracksHandle;
 

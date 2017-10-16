@@ -17,7 +17,7 @@ if(~isempty(detections))
     for fIdx=1:length(detections)
 
         d=detections(fIdx);
-        if(~isempty(d))
+        if(~isempty(d)&&~(isempty(d.xCoord)))
 %  %%
 %             if(p.cumulative)
 %               tIdx=length(t.f)
@@ -34,12 +34,13 @@ if(~isempty(detections))
             inIdx=(X>0)&(Y>0)&(X<=size(img,2))&(Y<=size(img,1));
             X=X(inIdx);
             Y=Y(inIdx);
+            cIndex=colorIndex(inIdx);
             drawingBoard=zeros(size(img,1),size(img,2));
             for dIdx=1:length(X)
-                drawingBoard=MidpointCircle(drawingBoard,3,Y(dIdx),X(dIdx),colorIndex(dIdx));
+                drawingBoard=MidpointCircle(drawingBoard,5,Y(dIdx),X(dIdx),cIndex(dIdx));
             end
-            for cIdx=unique(colorIndex)'
-                drawCircleIdx=(drawingBoard==cIdx);
+            for cIdx=unique(cIndex)'
+%                 drawCircleIdx=(drawingBoard==cIdx);
                 [I,J] = find(drawingBoard==cIdx);
                 indx=sub2ind(size(detXY),I,J,1*ones(size(I)));
                 detXY(indx)=colormap(cIdx,1);

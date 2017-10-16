@@ -32,6 +32,10 @@ ip.addParameter('corrType','Spearman');
 ip.addParameter('MarkerSize',700); 
 ip.addParameter('schemaBall',true); 
 ip.addParameter('selectCorrToPlot',true); 
+
+ip.addParameter('HMapFilter', false); 
+ip.addParameter('pValueCutOffHMap',0.1); 
+
 ip.parse(varargin{:});
 figureDirectory = [ip.Results.OutputDirectory filesep ip.Results.corrType ]; 
 if ~isdir(figureDirectory)
@@ -206,8 +210,11 @@ n = size(rAll,1);
 %    
 %     
 % end 
-
-
+if ip.Results.HMapFilter
+    rAll(pAll>ip.Results.pValueCutOffHMap & pAll~=1) = 0; 
+    
+end     
+    
 % Labels = 
 imagesc(tril(rAll),[-1,1]); % 
 % for each row (ie each measurement) find pValue that is significant 
@@ -296,6 +303,7 @@ end
      defaultans = {'0.05'};
      cutOffPValue = inputdlg(prompt,dlg_title,num_lines,defaultans);
      cutOffPValue = cell2mat(cutOffPValue); 
+     cutOffPValue = str2double(cutOffPValue); 
  else 
      idxInclude = 1:numel(L); % screen all measurements
      cutOffPValue = 0.05;

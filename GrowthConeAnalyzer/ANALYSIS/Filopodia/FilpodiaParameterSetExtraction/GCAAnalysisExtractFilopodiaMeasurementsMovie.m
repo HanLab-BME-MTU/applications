@@ -46,8 +46,8 @@ ip.CaseSensitive = false;
 
 % defaultOutDir = [movieData.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION']; 
       
-ip.addParameter('InputDirectory',[],@(x) ischar(x)); 
-ip.addParameter('OutputDirectory',[],@(x) ischar(x));
+ip.addParameter('InputDirectory',[]); 
+ip.addParameter('OutputDirectory',[]);
 
 ip.addParameter('SubRegionInDir',[],@(x) ischar(x)); 
 ip.addParameter('SubRegionOutDir',[],@(x) ischar(x)); 
@@ -61,6 +61,7 @@ ip.addParameter('Rewrite',false);
 
 ip.addParameter('MainMovie',false); % flag to make the output for the 
 % primary visualizations (all ext filo color coded by length); 
+ip.addParameter('Biosensors',false); % flag to 
 
 ip.addParameter('filterOutlierBranchParameters',false); 
 
@@ -215,7 +216,7 @@ else % if not subregion flag
         analInput(1).paramFunc{1} = 'filoLength'; 
         analInput(1).paramName{1} = 'ForMainMovie'; 
         x.filoPart = 'Ext_'; 
-%         x.filoPart = 'Tot';
+        %x.filoPart = 'Tot';
         x.outPercent = false; 
         analInput(1).paramInput{1} = x; 
         
@@ -278,7 +279,46 @@ else % if not subregion flag
         clear x
     
         
-    else % if not main movie 
+    elseif ip.Results.Biosensors
+        
+        %% Add Biosensor Calcs 20161125 : these are the main parameters for which one would like to screen correlations
+        
+        % Define Filter 
+        analInput(1).filterType = 'ConnectToVeil_LengthInt_Biosensors';
+        
+        
+        % Extract a FRET value for the filopodia.
+        analInput(1).paramFunc{1} = 'BiosensorPerFiloRatioDescriptStat';
+        analInput(1).paramName{1} = 'mean_FRET_Ratio_Filopodia';
+        % defaults already set
+        %            x.stat = 'mean';
+        %            x.filoPart = 'Ext_'
+        analInput(1).paramInput{1} = []; % use defaults.
+        
+        % Extract a FRET value for the surrounding windows
+        analInput(1).paramFunc{2} = 'BiosensorFiloAssociatedVeilWinds';
+        analInput(1).paramName{2} = 'mean_FRET_Ratio_LocalVeilSurroundingFilopodia';
+        analInput(1).paramInput{2} = []; % use the defaults.
+        
+        % Extract a value for the length
+        analInput(1).paramFunc{3} = 'filoLength'; % % function ID
+        analInput(1).paramName{3} = 'filoLengthToVeil'; % paramName-
+        x.filoPart = 'Ext_';
+        x.outPercent = false;
+        analInput(1).paramInput{3} = x;
+        clear x
+        
+        % Orientation of Filopodia
+        analInput(1).paramFunc{4} = 'filoOrient';
+        analInput(1).paramName{4} = 'filoOrientation';
+        analInput(1).paramInput{4} = [];
+        
+        % Curvature of Filopodia
+        analInput(1).paramFunc{5} = 'filoCurvature';
+        analInput(1).paramName{5} = 'filoMaxCurvature';
+        analInput(1).paramInput{5} = [];
+        
+    else % if not main movie
         
     
     %% Whole Neurite Measurements
@@ -329,7 +369,7 @@ else % if not subregion flag
         analInput(1).paramName{5} = 'filoIntensityEmbedded_Norm';
         x.filoPart = 'Int_';
         x.normToVeil = true;
-        analInput(1).paramInput{4} = x;
+        analInput(1).paramInput{5} = x;
         clear x
 
 
@@ -402,7 +442,7 @@ else % if not subregion flag
        analInput(3).paramInput{4} = x; 
        clear x 
        
-       
+    
    %%  Filter IV: 'Branch2ndOrder_Density_NoZero'
        analInput(4).filterType = 'Branch2ndOrder_Density_NoZero';
        analInput(4).paramFunc{1} = 'distanceToBranch';
@@ -418,8 +458,16 @@ else % if not subregion flag
        analInput(5).paramFunc{1} = 'filoBranchComplexity';
        analInput(5).paramName{1} = 'filoBranchComplexity'; 
        analInput(5).paramInput{1} = []; 
+       
+      
+       
+       
     end % ip.Results.MainMovie 
 end
+
+% save the analInput 
+save([outDir filesep 'AnalysisInput.mat'],'analInput'); 
+
 %% Wrap through for each analysis type
 for iAnalType = 1:length(analInput);
     

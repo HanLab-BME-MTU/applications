@@ -2,10 +2,11 @@ function MDout=crop3D(MD,ROIorMask,varargin)
 ip = inputParser; ip.CaseSensitive = false;  ip.KeepUnmatched=true;
 ip.addRequired('MD',@(MD) isa(MD,'MovieData'));
 ip.addRequired('ROIorMask',@isnumeric);
+ip.addParameter('keepFrame',1:MD.nFrames_,@isnumeric);
 ip.addParameter('name', '',@ischar);
 ip.parse(MD,ROIorMask, varargin{:});
 p=ip.Results;
-
+keepFrame=p.keepFrame;
 if(numel(ROIorMask)>6)
     % find mask offset (WARNING works only for cubic/rectangular mask)
     [maskMinX,maskMinY,maskMinZ]=ind2sub(size(ROIorMask), find(ROIorMask,1));
@@ -31,9 +32,9 @@ channelList=[];
 for cIdx=1:length(MD.channels_)
     channelList=[channelList Channel([outputDir filesep 'ch' num2str(cIdx) filesep])];
     mkdirRobust([outputDir filesep 'ch' num2str(cIdx)]);
-    parfor t=1:MD.nFrames_
+    parfor t=keepFrame
         vol=MD.getChannel(cIdx).loadStack(t);
-        stackWrite(vol(ROI(1):ROI(4),ROI(2):ROI(5),ROI(3):ROI(6)) ,[outputDir filesep 'ch' num2str(cIdx) filesep 'time-' num2str(t,'%04d') '.tif']);
+        stackWrite(vol(ROI(1):ROI(4),ROI(2):ROI(5),ROI(3):ROI(6)) ,[outputDir filesep 'ch' num2str(cIdx) filesep 'ch-' num2str(cIdx)  '-time-' num2str(t,'%04d') '.tif']);
     end 
 end 
 
@@ -41,7 +42,7 @@ end
 mkdirRobust([outputDir filesep 'analysis']);
 MDout=MovieData();
 tiffReader=TiffSeriesReader({channelList.channelPath_},'force3D',true);
-MDout=MovieData(channelList,[outputDir filesep 'analysis'],'movieDataFileName_','movieData.mat','movieDataPath_',[outputDir filesep 'analysis'], ...
+MDout=MovieData(channelList,[outputDir 'analysis'],'movieDataFileName_','movieData.mat','movieDataPath_',[outputDir filesep 'analysis'], ...
     'pixelSize_',MD.pixelSize_,'pixelSizeZ_',MD.pixelSizeZ_,'timeInterval_',MD.timeInterval_);
 MDout.setReader(tiffReader);
 MDout.sanityCheck();

@@ -18,6 +18,7 @@ for kinIdx=1:length(trackSet2)
     manifold=[P.getOverlapping(kinTrack) kinTrack];
     subManifold=manifold;
     if(~isempty(p.kinDistCutoff) )
+      disp('creating subManifold')
       manifVector= manifold(2).getAddCoord(manifold(1).getMultCoord(-1));
       manifNorm=(manifVector.x.^2 + manifVector.y.^2 + manifVector.z.^2).^0.5;
       subManifold=[manifold(2).getAddCoord(manifVector.getMultCoord(p.kinDistCutoff(1)./manifNorm)) manifold(2).getAddCoord(manifVector.getMultCoord(p.kinDistCutoff(2)./manifNorm))];

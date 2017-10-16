@@ -1,6 +1,6 @@
 maxima = R.getRidgeOrientationLocalMaxima;
 import orientationSpace.diffusion.*;
-[ maxima, coords, response] = linearizeMaxima( R, maxima);
+[ maxima, coords, response] = linearizeMaxima( R, maxima*2);
 [ d.maxima, d.coords, d.response, d.xgd ] = descendHalleyK( maxima, coords, response );
 [x_out,K_out,notDone] = refineBifurcation(d.maxima,d.coords.K,response,8);
 maximaF = NaN(1024,1024,7);
@@ -23,10 +23,46 @@ for n = nn
 end
 save('maximaFixed.mat','maximaFixed')
 
+maximaFixedN = NaN(1024,1024,7);
+maximaFixedN(coords.ind) = x_fixed;
+maximaFixedN = maximaFixedN/2;
+
 K_fixedN = NaN(1024,1024,7);
 K_fixedN(coords.ind) = K_fixed;
+
+R3 = R.getResponseAtOrderFT(3,2);
+maxima3 = R3.getRidgeOrientationLocalMaxima;
+
 maximaFixedN(K_fixedN <= 3) = NaN;
 maximaCombined = cat(3,maximaFixedN,maxima3);
 maximaCombined = sort(maximaCombined,3);
 max(max(sum(~isnan(maximaCombined),3)))
 maximaCombined = maximaCombined(:,:,1:7);
+
+maximaCombinedValues(isnan(maximaCombinedValues)) = -Inf;
+[maximaCombinedValues,maximaCombined] = sortMatrices(maximaCombinedValues,maximaCombined,3,'descend');
+maximaCombinedValues(isinf(maximaCombinedValues)) = -NaN;
+
+% Minimal Bridging process
+
+nlms_mip3 = nanmax(nlms,[],3);
+
+mask = imopen(imfill(nlms_mip3 > 10,'holes'),strel('disk',10));
+
+selected = nlms_mip3(mask & nlms_mip3 ~= 0);
+[outliers,inliers] = detectOutliers(nlms_mip3(mask & nlms_mip3 ~= 0));
+T = thresholdRosin(selected(inliers));
+
+nms = nlms(:,:,1);
+% figure; imshow(nms,[]);
+nlms_binary = (nlms_mip3 > T) & mask;
+nms_binary = (nms > T) & mask;
+nms_skel = bwmorph(nms_binary,'skel',Inf);
+nms_skel_thresh = nms_skel.* nlms_binary;
+nms_skel_thresh_wo_bp = lamins.functions.bwRemoveBranchPoints(nms_skel_thresh);
+nlms_fragments = nlms_binary & ~nms_skel_thresh_wo_bp;
+nlms_fragments_cc = bwconncomp(nlms_fragments);
+nms_skel_wo_bp_cc = bwconncomp(nms_skel_thresh_wo_bp);
+out.bridges{k} = lamins.functions.minimalBridge(nlms_fragments_cc,nms_skel_wo_bp_cc,I);
+nms_skel_bridged = nms_skel | out.bridges{k};
+out.nms_skel_bridged_skel{k} = bwmorph(nms_skel_bridged,'skel',Inf);
