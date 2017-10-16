@@ -1,4 +1,4 @@
-function [ output_args ] = GCAVisualsProtrusionMapMovie(movieData)
+function [ output_args ] = GCAVisualsProtrusionMapMovie(movieData,varargin)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -20,9 +20,34 @@ end
 % load the protrusionSamples 
 
 %% Check Input 
-cDir = [MD.outputDirectory_ filesep 'protrusion_samples'];
-load([cDir filesep 'protrusion_samples.mat']); 
+%cDir = [MD.outputDirectory_ filesep 'protrusion_samples'];
+ip = inputParser;
 
-GCAVisualsProtrusionMap(protSamples,cDir,0); 
+ip.CaseSensitive = false;
+
+ip.addParameter('OutputDirectory', pwd);
+ip.addParameter('CLims',[-100,100]); % currently in nm/sec
+ip.addParameter('smooth',false); 
+ip.parse(varargin{:});
+
+%%
+idxSampProc =  cellfun (@(x) strcmpi(x.name_,'Protrusion Sampling'),movieData.processes_);
+cFile = movieData.processes_{idxSampProc}.outFilePaths_; 
+
+load(cFile{1}); 
+ mapValues =  protSamples.avgNormal;
+ mapValues = mapValues*movieData.pixelSize_/movieData.timeInterval_;
+cmap = brewermap(128,'RdBu');
+cmap = flip(cmap,1);
+if ip.Results.smooth
+    mapValues= smoothActivityMap(mapValues,'upSample',1,'SmoothParam',0.75);
+end
+GCAVisualsProtrusionMap(mapValues,'CLim',ip.Results.CLims,'colorMap',cmap,'frameInSec',movieData.timeInterval_); 
+
+saveas(gcf,[ip.Results.OutputDirectory filesep 'protrusionMap.fig']); 
+saveas(gcf,[ip.Results.OutputDirectory filesep 'protrusionMap.eps']); 
+helperScreen2png([ip.Results.OutputDirectory filesep 'protrusionMap.png']); 
+
+close gcf
 end
 
