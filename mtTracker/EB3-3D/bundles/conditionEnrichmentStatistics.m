@@ -208,7 +208,7 @@ end
 lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
 legend([lineToLegend{:} predHandles],{'Astral','Polar','predAstral'},'Location','northeast')
 % ylim([0,4])
-xlim(Handle,[2.5 7]);
+xlim([0 7]);
 xlabel('Pole distance (\mu m)');
 ylabel(Handle,'Mean Intensties');
 hold off;
@@ -251,7 +251,7 @@ end
 lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
 legend([lineToLegend{:} predHandles],{'Astral','Polar','predAstral'},'Location','northeast')
 % ylim([0,4])
-xlim(Handle,[2.5 7]);
+xlim(Handle,[0 7]);
 xlabel('Pole distance (\mu m)');
 ylabel(Handle,'Normalized comet counts');
 printPNGEPSFIG(F,outputDirPlot,'cometCount');
@@ -274,8 +274,8 @@ for cIdx=nonEmptyProcess
         %%
         decayAmps=sum((lcountAstralCell),2)./sum(exp(-astralXTicks*AstralK));
         predictedAstral= decayAmps*exp(-astralXTicks*AstralK);
-        lowDistances=(astralXTicks<=4);
-        highDistances=(astralXTicks>=5);
+        lowDistances=(astralXTicks<=median(astralXTicks));
+        highDistances=(astralXTicks>=median(astralXTicks));
         
         if(~isempty((lcountAstralCell)))
             notBoxPlot([sum(lcountAstralCell(:,lowDistances),2) sum(lcountAstralCell(:,highDistances),2) sum(predictedAstral(:,highDistances),2)]);
@@ -304,8 +304,8 @@ for cIdx=nonEmptyProcess
 %   
         decayAmps=sum((lcountPolarCell),2)./sum(exp(-polarXTicks*PolarK));
         predictedPolar=decayAmps*exp(-polarXTicks*PolarK);
-        lowDistances=(polarXTicks<=3.5);
-        highDistances=(polarXTicks>=4.5);
+        lowDistances=(polarXTicks<=median(polarXTicks));
+        highDistances=(polarXTicks>=median(polarXTicks));
         
         if(~isempty((lcountPolarCell)))
             notBoxPlot([sum(lcountPolarCell(:,lowDistances),2) sum(lcountPolarCell(:,highDistances),2)]);
@@ -354,7 +354,7 @@ end
 lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
 legend([lineToLegend{:} predHandles],{'Astral','Polar','predAstral'},'Location','northeast')
 % ylim([0,4])
-xlim([2.5 7]);
+xlim([0 7]);
 xlabel('Pole distance (\mu m)');
 ylabel(Handle,'Normalized comet counts per vol (1/\mu m^3)');
 hold off;
@@ -389,7 +389,7 @@ end
 lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
 legend([lineToLegend{:} predHandles],{'Astral','Polar','predAstral'},'Location','northeast')
 % ylim([0,4])
-xlim([2.5 7]);
+xlim([0 7]);
 xlabel('Pole distance (\mu m)');
 ylabel(H,'Comet density (1/\mu m^3)');
 hold off;
@@ -424,7 +424,7 @@ end
 lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
 legend([lineToLegend{:} predHandles],{'Astral','Polar','predAstral'},'Location','northeast')
 % ylim([0,4])
-xlim([2.5 7]);
+xlim([0 7]);
 xlabel('Pole distance (\mu m)');
 ylabel(HAmp,'Normalized intensity');
 hold off;

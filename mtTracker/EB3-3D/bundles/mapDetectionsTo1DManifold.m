@@ -11,7 +11,7 @@ function [mappedDetections,indices]=mapDetectionsTo1DManifold(manifold,movieInfo
 
   % kinTrack.disappMT=cell(1,length(kinTrack.poleRef));
 %  mappedDetections(length(movieInfo))=struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
-  mappedDetections(length(movieInfo))=Detections();
+mappedDetections(length(movieInfo))=Detections();
 indices=cell(1,length(movieInfo));
   for pIdx=1:min(length(mappedDetections),length(manifold(2).f))
       fIdx=manifold(1).f(pIdx);

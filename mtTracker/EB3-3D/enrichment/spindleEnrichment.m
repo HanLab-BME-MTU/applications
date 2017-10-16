@@ -24,7 +24,7 @@ MD.setPackage(packPIDTMP,GenericPackage({ ...
     ExternalProcess(MD,'project1D'),...
     ExternalProcess(MD,'project1D'),...
     ExternalProcess(MD,'DetectionAstral'),...
-    ExternalProcess(MD,'DetectionPolar'),...
+    ExternalProcess(MD,'DetectionPolar')...
     ExternalProcess(MD,'spindleEnrichment'),...
     ExternalProcess(MD,'DetectionAstral'),...
     ExternalProcess(MD,'DetectionPolar')...
@@ -87,14 +87,16 @@ ROIs=load(processBuildRef.outFilePaths_{2}); ROIs=ROIs.ROI;
 toc;
 
 disp('Loading, mapping and setting detection reference');tic;
-
 tmp=load(processDetectEB3.outFilePaths_{1}); detection=tmp.movieInfo;
 
-EB3Inliers=mapDetectionsTo1DManifold(ROIs{1,2},detection,0,'distType','vertexDistOtsu');
+%EB3Inliers=mapDetectionsTo1DManifold(ROIs{1,2},detection,0,'distType','vertexDistOtsu');
+EB3Inliers=mapDetectionsTo1DManifold(ROIs{1,2},detection,80,'distType','euclideanDist');
+
 
 amiraWriteMovieInfo([fileparts(processBuildRef.outFilePaths_{2}) filesep 'AmiraDetect' filesep 'detectionLabRef.am'],EB3Inliers);
 
-oDetections=Detections(EB3Inliers);
+allDetections=Detections(detection);
+oDetections=EB3Inliers.copy();
 oDetectionsP1P2=refs(1,2).applyBase(oDetections,'');
 oDetectionsP2P1=refs(2,1).applyBase(oDetections,'');
 oDetectionsP1P2.addSphericalCoord();
@@ -126,7 +128,23 @@ end
 MD.getPackage(packPIDTMP).setProcess(lpid,processProjSpindleRef);
 
 %% Elevation and densities
-myColormap=255*jet(256);
+
+process=ExternalProcess(MD,'Detection');
+overlayProjDetectionMovie(processProj,'detections',allDetections, ...
+        'process',process,'cumulative',true,'processFrames',1, ...
+        'name','cumulDetectionDensity');
+img1=imread(sprintfPath(process.outFilePaths_{2},1));
+
+process=ExternalProcess(MD,'Detection');
+overlayProjDetectionMovie(processProj,'detections',EB3Inliers, ...
+        'process',process,'cumulative',true,'processFrames',1, ...
+        'name','cumulDetectionDensity');
+img2=imread(sprintfPath(process.outFilePaths_{2},1));
+figure();
+imshow([img1 img2]);
+%%
+
+
 densities=estimateDensity(oDetections,30);
 
 % overlayProjDetectionMovie(processProj,'detections',oDetections, ... 
@@ -173,8 +191,12 @@ astralThresh=-pi/6;
 polarThresh=pi/6;
 
 %% Count and density function of distance to poles
-astralDistBinning=linspace(30,60,30);
-polarDistBinning=linspace(30,50,30);
+% astralDistBinning=linspace(30,60,30);
+% polarDistBinning=linspace(30,50,30);
+
+astralDistBinning=linspace(20,50,30);
+polarDistBinning=linspace(20,50,30);
+
 
 [polarCounts,polarEdges,polarBinIdx]=histcounts(allDist(allElevs>polarThresh),polarDistBinning);
 [meanPolarDensities,medPolarDensities,stdPolarDensities]=statPerIndx(allDens(allElevs>polarThresh),polarBinIdx);
@@ -272,6 +294,7 @@ toc;
 
 
 disp('Render Astral and Polar still');tic;
+myColormap=255*jet(256);
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
     process=ExternalProcess(MD,'Detection astral');

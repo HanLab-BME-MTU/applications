@@ -116,7 +116,7 @@ MD.getPackage(packPIDTMP).setProcess(4,processTrackKT);
 % outputDirProj=[MD.outputDirectory_ filesep 'Kin' filesep 'track' filesep  ];
 % processTrackKT.setOutFilePaths({[outputDirProj  filesep 'tracksLabRef.mat']})
 
-if(~isempty(package)&&(~isempty(package.getProcess(5))))
+if(GenericPackage.processExist(package,5))
     processDetectPoles=package.getProcess(5);
 else
     processDetectPoles=ExternalProcess(MD,'detectPoles',@(p) detectPoles(p.getOwner(),'process',p,'isoOutput',true));
@@ -126,7 +126,7 @@ end
 MD.getPackage(packPIDTMP).setProcess(5,processDetectPoles);
 
 
-if(~isempty(package)&&(~isempty(package.getProcess(6))))
+if(GenericPackage.processExist(package,6))
     processBuildRef=package.getProcess(6);
 else
     processBuildRef=ExternalProcess(MD,'buildRefsAndROI',@(p) buildRefsFromTracks(processDetectPoles,processDetectPoles,'buildROI',true,'process',p));
@@ -169,7 +169,7 @@ myColormap=uint8( ...
 
 
 %% Compute scores
-if(~isempty(package)&&(~isempty(package.getProcess(7))))
+if(GenericPackage.processExist(package,7))
     processScoring=package.getProcess(7);
 else
     lftThreshold=5;
@@ -219,28 +219,33 @@ disp('Producing MIPs');
 tic
 processProjCell=cell(1,2*N);
 pIdx=1;
-for scoreIdx=[1:N (length(sortedScore)-N+1):length(sortedScore)]
+plotScores=unique([1:N (length(sortedScore)-N+1):length(sortedScore)]);
+for scoreIdx=plotScores
     tIdx=kinIdx(scoreIdx);
     track=kinTracksISOInliers(tIdx);
+    fillGaps(track);
+
     %refP1P2=buildRefsFromTracks(P1,P2);
     processProj=ExternalProcess(MD,'dynROIProj');
+    processProjRenderer=ExternalProcess(MD,'dynROIProj');
+    processProjOverlay=ExternalProcess(MD,'dynROIProj');
+
     if(poleIdx(scoreIdx)==1)
         ROI=[P1 track];
-        processProj=ExternalProcess(MD,'dynROIProj');
 %         project1D(MD,ROI,'dynPoligonREF',refP1P2.applyBase([P2 ROI],''),'FoF',refP1P2, ...
 %             'name',['SP-P1-' num2str(tIdx) '-S-' num2str(sortedScore(scoreIdx))], ...
 %             'channelRender','grayRed','processSingleProj',processProj, ... 
 %             'intMinPrctil',[20 98],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
 %         overlayProjTracksMovie(processProj,'tracks',[refP1P2.applyBase([track.associatedMTP1; track],[]) ] , ... 
 %             'colorIndx',[ones(size(track.associatedMTP1)); 3],'colormap',myColormap,'name','test');
-       
         refKP=buildRefsFromTracks(P1,track);
-        project1D(MD,ROI,'dynPoligonREF',refKP.applyBase([ROI],''),'FoF',refKP, ...
+        projectDynROI(MD,ROI,'dynPoligonREF',refKP.applyBase([ROI],''),'FoF',refKP, ...
             'name',['PK-P1-' num2str(tIdx) '-S-' num2str(sortedScore(scoreIdx))], ... 
-            'channelRender','grayRed','processSingleProj',processProj, ... 
-            'intMinPrctil',[20 98],'intMaxPrctil',[100 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
-        overlayProjTracksMovie(processProj,'tracks',refKP.applyBase([track.associatedMTP1; track],[]), ... 
-            'colorIndx',[ones(size(track.associatedMTP1)); 3],'colormap',myColormap,'name','tracks');
+            'channelRender','grayRed','processSingleProj',processProj,'processRenderer',processProjRenderer, ... 
+            'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99],'fringeWidth',30,'insetFringeWidth',mappingDist);
+        
+        overlayProjTracksMovie(processProjRenderer,'tracks',refKP.applyBase([track.associatedMTP1; track],[]), ... 
+            'colorIndx',[ones(size(track.associatedMTP1)); 3],'colormap',myColormap,'name','tracks','process',processProjOverlay);
     end  
     if(poleIdx(scoreIdx)==2)
         ROI=[P2 track];
@@ -250,18 +255,16 @@ for scoreIdx=[1:N (length(sortedScore)-N+1):length(sortedScore)]
 %             'intMinPrctil',[20 98],'intMaxPrctil',[99.9 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
 %         overlayProjTracksMovie(processProj,'tracks',refP1P2.applyBase([track.associatedMTP2; track],[]), ...
 %             'colorIndx',[ones(size(track.associatedMTP2)); 3],'colormap',myColormap,'name','test')            
-
        refKP=buildRefsFromTracks(P2,track);
-       
-       project1D(MD,ROI,'dynPoligonREF',refKP.applyBase([ROI],''),'FoF',refKP, ...
+       projectDynROI(MD,ROI,'dynPoligonREF',refKP.applyBase([ROI],''),'FoF',refKP, ...
             'name',['PK-P2-' num2str(tIdx) '-S-' num2str(sortedScore(scoreIdx))], ...
-            'channelRender','grayRed','processSingleProj',processProj, ...
-            'intMinPrctil',[20 98],'intMaxPrctil',[100 100],'fringeWidth',30,'insetFringeWidth',mappingDist);
+            'channelRender','grayRed','processSingleProj',processProj, 'processRenderer',processProjRenderer,...
+            'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99],'fringeWidth',30,'insetFringeWidth',mappingDist);
         
-        overlayProjTracksMovie(processProj,'tracks',refKP.applyBase([track.associatedMTP2; track],[]) , ... 
-            'colorIndx',[ones(size(track.associatedMTP2)); 3],'colormap',myColormap,'name','tracks');
+        overlayProjTracksMovie(processProjRenderer,'tracks',refKP.applyBase([track.associatedMTP2; track],[]) , ... 
+            'colorIndx',[ones(size(track.associatedMTP2)); 3],'colormap',myColormap,'name','tracks','process',processProjOverlay);
     end
-    processProjCell{pIdx}=processProj;
+    processProjCell{pIdx}=processProjOverlay;
     pIdx=pIdx+1;
 end
 toc
