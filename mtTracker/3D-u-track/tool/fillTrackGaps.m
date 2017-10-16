@@ -1,4 +1,4 @@
-function fillTrackGaps(tracks)
+function tracks=fillTrackGaps(tracks)
     se=[zeros(1,tracks.numTimePoints()) 1 ones(1,tracks.numTimePoints())];
     for tIdx=1:length(tracks)
         gi=tracks(tIdx).gapMask;
