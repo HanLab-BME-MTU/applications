@@ -19,7 +19,7 @@ for oIdx=1:size(refs,1)
 		dynROI.ref=refs(rIdx);
 		dynROI.ROI=ROIs{rIdx};
 		dynROI.mappingDistance=mappingDistance;
-		dynROI.name=['O-' num2str(ROIs{rIdx}(1).index()) '-Z-' num2str(ROIs{rIdx}(2).index())];
+		dynROI.name=['O-' num2str(oIdx) '-Z-' num2str(ROIs{rIdx}(2).index())];
 		dynROIs(rIdx)=dynROI;
 		rIdx=rIdx+1;
 	end

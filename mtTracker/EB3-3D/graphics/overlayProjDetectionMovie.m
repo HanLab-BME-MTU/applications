@@ -19,8 +19,15 @@ cumulative=p.cumulative;
 XYProjTemplate=processSingleProj.outFilePaths_{1};
 ZYProjTemplate=processSingleProj.outFilePaths_{2};
 ZXProjTemplate=processSingleProj.outFilePaths_{3};
-projData=load(processSingleProj.outFilePaths_{5},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
-savePath=[fileparts(processSingleProj.outFilePaths_{5}) filesep p.name filesep 'frame_nb%04d.png'];
+projDataIdx=5;
+try % Handle Project1D/ProjDyn different outFilePaths_spec (need to be defined through a class...)
+  projData=load(processSingleProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+catch
+  projDataIdx=4;
+end
+projData=load(processSingleProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+
+savePath=[fileparts(processSingleProj.outFilePaths_{projDataIdx}) filesep p.name filesep 'frame_nb%04d.png'];
 outputDir=fileparts(savePath);
 mkdirRobust([fileparts(savePath)]);
 frameNb=min([projData.frameNb,length(detections)]);
@@ -30,6 +37,7 @@ if(isempty(processFrames))
     processFrames=1:frameNb;
 end
 frameNb=min([projData.frameNb,length(detections),length(processFrames)]);
+
 
 %% create projection process saving independant projection location
 if(~isempty(p.process))
@@ -57,7 +65,7 @@ if(p.cumulative)
 end
     
 
-parfor fIdx=processFrames
+for fIdx=processFrames
     XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
     ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
     ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
@@ -66,9 +74,15 @@ parfor fIdx=processFrames
     else
         detectionsAtFrame=detections(fIdx);
     end
+
+    if(isempty(p.colorIndx))
+      colorIndx=[]
+    else
+      colorIndx=p.colorIndx{fIdx};
+    end
     [tracksXY,tracksZY,tracksZX]=overlayProjDetections(XYProj,ZYProj,ZXProj, ...
         [projData.minXBorder projData.maxXBorder],[projData.minYBorder projData.maxYBorder],[projData.minZBorder projData.maxZBorder], ...
-        detectionsAtFrame,p.colormap,p.colorIndx{fIdx},varargin{:});
+        detectionsAtFrame,p.colormap,colorIndx,varargin{:});
     
     %% Use Z to index image line (going up)
     %     tracksXY=permute(tracksXY,[2 1 3]);

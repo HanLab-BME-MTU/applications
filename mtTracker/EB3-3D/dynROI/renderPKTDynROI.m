@@ -13,10 +13,8 @@ p=ip.Results;
 for dIdx=1:length(dynROIs)
         tic;
         dynROI=dynROIs(dIdx);
-        track=dynROI.ROI(2);
-        PTrack=dynROI.ROI(1);
         name=dynROI.name;
-
+        dynROI.ROI(2)=fillTrackGaps(dynROI.ROI(2));
         processProj=ExternalProcess(MD,'dynROIProj');
         processRenderer=ExternalProcess(MD,'dynROIProj');
         if(isempty(p.ref))
@@ -31,7 +29,7 @@ for dIdx=1:length(dynROIs)
             context=ref.applyBase(p.contextDynROI.ROI,'');
             fringeWidth=p.contextDynROI.mappingDistance;
         end
-        projectDynROI(MD,dynROIs(dIdx).ROI,'dynPoligonREF',context,'FoF',ref, ...
+        projectDynROI(MD,dynROI.ROI,'dynPoligonREF',context,'FoF',ref, ...
             'name',[p.namePrefix name], ...
             'channelRender','grayRed','processSingleProj',processProj,'processRenderer',processRenderer, ...
             'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99],'fringeWidth',fringeWidth,'insetFringeWidth',dynROI.mappingDistance);

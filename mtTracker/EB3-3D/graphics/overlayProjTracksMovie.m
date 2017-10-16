@@ -60,7 +60,7 @@ if(~isempty(p.process))
 end
 
 frameNb=projData.frameNb;
-for fIdx=1:frameNb
+parfor fIdx=1:frameNb
   XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
   ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
   ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
@@ -79,7 +79,7 @@ for fIdx=1:frameNb
   tracksZY=permute(tracksZY,[2 1 3]);
   tracksZX=permute(tracksZX,[2 1 3]);
   three=projMontage(tracksXY,tracksZX,tracksZY);
-  imwrite(three,sprintfPath(sprintfPath(p.process.outFilePaths_{4},fIdx),fIdx));
+  imwrite(three,sprintfPath(p.process.outFilePaths_{4},fIdx));
 end
 
 % save as video
@@ -88,7 +88,7 @@ video.FrameRate = 5;  % Default 30
 video.Quality = 100;    % Default 75
 open(video)
 for fIdx=1:frameNb
-  three=[imread(sprintfPath(sprintfPath(p.process.outFilePaths_{4},fIdx),fIdx))];
+  three=[imread(sprintfPath(p.process.outFilePaths_{4},fIdx))];
     writeVideo(video,three);
 end
 close(video)
