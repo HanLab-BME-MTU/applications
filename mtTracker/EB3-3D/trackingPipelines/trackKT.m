@@ -125,6 +125,12 @@ save(processTrackKT.outFilePaths_{2},'tracksFinal');
 %% Mapping tracks
 kinTracksISOInliers=mapTracksTo1DManifold(ROIs{1,2},kinTracksISO,0,'position','start','distType','vertexDistOtsu');
 
+
+%% Tracks in the lab FoR.
+amiraWriteTracks([fileparts(processTrackKT.outFilePaths_{2}) filesep 'Amira' filesep 'AmiraTrackLabRefDT10' filesep 'tracksLabRef.am'],kinTracksISOInliers,'dragonTail',10);
+amiraWriteTracks([fileparts(processTrackKT.outFilePaths_{2}) filesep 'Amira' filesep 'AmiraTrackLabRef' filesep 'tracksLabRef.am'],kinTracksISOInliers);
+amiraWriteTracks([fileparts(processTrackKT.outFilePaths_{2}) filesep 'Amira' filesep  'AmiraTrackLabRef20plus' filesep 'trackLabRef20plus.am'],kinTracksISOInliers([kinTracksISOInliers.lifetime]>20));
+
 if(p.debug)
 %% Display CH1 only
 lpid=lpid+1;     

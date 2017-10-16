@@ -102,7 +102,7 @@ else
     processTrackEB3=TrackingProcess(MD, [MD.outputDirectory_ filesep 'EB3'],UTrackPackage3D.getDefaultTrackingParams(MD, [MD.outputDirectory_ filesep 'EB3']));
     MD.addProcess(processTrackEB3);    
     funParams = processTrackEB3.funParams_;
-    [costMatrices,gapCloseParam,kalmanFunctions,probDim]=plusTipCometTracker3DParam(MD);
+    [costMatrices,gapCloseParam,kalmanFunctions,probDim]=plusTipCometTracker3DParamDebug(MD);
     funParams.gapCloseParam=gapCloseParam;
     funParams.costMatrices=costMatrices;
     funParams.kalmanFunctions=kalmanFunctions;
@@ -122,12 +122,14 @@ tracksFinal=EB3TracksISO.getStruct()';
 save(processTrackEB3.outFilePaths_{1},'tracksFinal');
 
 %% Mapping tracks
-EB3TracksInliers=mapTracksTo1DManifold(ROIs{1,2},EB3TracksISO,0,'position','start','distType','vertexDistOtsu');
+EB3TracksInliers=mapTracksTo1DManifold(ROIs{1,2},EB3TracksISO,80,'position','start','distType','euclideanDist');
 
 
 %% Tracks in the lab FoR.
-amiraWriteTracks([fileparts(processTrackEB3.outFilePaths_{1}) filesep 'Amira' filesep 'AmiraTrackLabRef' filesep 'tracksLabRef.am'],EB3TracksISO);
-amiraWriteTracks([fileparts(processTrackEB3.outFilePaths_{1}) filesep 'Amira' filesep  'AmiraTrackLabRef20plus' filesep 'trackLabRef20plus.am'],EB3TracksISO([EB3TracksInliers.lifetime]>20));
+%% Tracks in the lab FoR.
+amiraWriteTracks([fileparts(processTrackEB3.outFilePaths_{1}) filesep 'Amira' filesep 'AmiraTrackLabRefDT10' filesep 'tracksLabRef.am'],EB3TracksInliers,'dragonTail',10);
+amiraWriteTracks([fileparts(processTrackEB3.outFilePaths_{1}) filesep 'Amira' filesep 'AmiraTrackLabRef' filesep 'tracksLabRef.am'],EB3TracksInliers);
+amiraWriteTracks([fileparts(processTrackEB3.outFilePaths_{1}) filesep 'Amira' filesep  'AmiraTrackLabRef20plus' filesep 'trackLabRef20plus.am'],EB3TracksInliers([EB3TracksInliers.lifetime]>20));
 
 %%
 tmp=load(processDetectEB3.outFilePaths_{1}); detection=tmp.movieInfo;
@@ -141,7 +143,7 @@ if(p.debug)
     else
         processPro=ExternalProcess(MD,'projectDynROI');
         processProjSpindleRef=ExternalProcess(MD,'projectDynROI');
-        projectDynROI(  MD,[P1,P2],'FoF',refs(1,2),'renderedChannel',[1], ...
+        projectDynROI(  MD,[P1,P2],'FoF',refs(1,2),'renderedChannel',[1 2], ...
             'name','CroppedSpindleRef','channelRender','grayRed', 'insetFringeWidth',80, ...
             'processSingleProj',processPro,'processRenderer',processProjSpindleRef, ...
             'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);
@@ -187,7 +189,7 @@ if(p.debug)
         disp('Overlay KT tracks');
         process=ExternalProcess(MD,'overlayProjTracksMovie');
         overlayProjTracksMovie(processProjSpindleRef,'tracks', refs(1,2).applyBase(EB3TracksISO,''), ... 
-            'colorIndx',ceil(255*mat2gray([EB3TracksISO.lifetime]',[1 150]))+1,'dragonTail',10,'colormap',myColormap,'name',['allTracks' p.name],'process',process);
+            'colorIndx',ceil(255*mat2gray([EB3TracksISO.lifetime]',[1 20]))+1,'dragonTail',10,'colormap',myColormap,'name',['allTracks' p.name],'process',process);
     end
     MD.getPackage(packPIDTMP).setProcess(lpid,process);
 end
