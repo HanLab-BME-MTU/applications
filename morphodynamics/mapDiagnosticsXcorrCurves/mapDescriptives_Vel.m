@@ -25,9 +25,12 @@ function mapDescriptives_Vel(MD, figuresDir, varargin)
 %                   - window index in which activities will be replaced by
 %                   NaN. Default is null.
 %       subFrames
-%                   - specified frames will be only used.        
+%                   - specified frames will be only used.  
+%       derivative  - if true, it computes differenced velocities per
+%       second.
 %
-% Updated: Jungsik Noh, 2017/05/23
+% Updated: J Noh, 2017/08/26. To deal with differenced channels. 
+% Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/04
 
 
@@ -41,6 +44,7 @@ ip.addParameter('numPerm', 1000);
 ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
 ip.addParameter('subFrames', []);
+ip.addParameter('derivative', false);
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -57,18 +61,29 @@ save(fullfile(figuresDir, tmptext), 'p')
 
 %%  getting Maps from channels
 
-chan0Title = 'Velocity (nm/sec)';
-chan0Name = 'Vel';
-disp(chan0Name)
-disp(chan0Title)
+switch p.derivative
+    case false
+        chan0Title = 'Velocity (nm/sec)';
+        chan0Name = 'Vel';
+        iChan = 0;
+    case true
+        chan0Title = 'D.Velocity (nm/sec^2)';
+        chan0Name = 'D.Vel';
+        iChan = 10;
+end
 
-iChan = 0;
-maxLayer = 1;
+%  fnameChan = double(p.derivative)*10 + iChan;
 
+        disp(chan0Name)
+        disp(chan0Title)
+        disp(iChan);
+        maxLayer = 1;
 
 [~, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
         = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, ...
-            'omittedWindows', p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames); 
+            'omittedWindows', p.omittedWindows, 'Folding', p.Folding, ...
+            'subFrames', p.subFrames); 
+        
 % ..st layer
 
     velmap = rawActmap{1};
@@ -85,8 +100,10 @@ disp(['== MDtimeInterval_: ', num2str(MDtimeInterval_), ' =='])
 
 %%  .txt (export comma delimited files)
 
-dlmwrite(fullfile(figuresDir, 'velmap_outl.txt'), velmap_outl, 'precision', 8)
-dlmwrite(fullfile(figuresDir, 'imvelocitymap.txt'), imvelocitymap, 'precision', 8)
+fname0 = ['Chan', num2str(iChan)];
+
+dlmwrite(fullfile(figuresDir, [fname0, '_velmap_outl.txt']), velmap_outl, 'precision', 8)
+dlmwrite(fullfile(figuresDir, [fname0, 'imvelocitymap.txt']), imvelocitymap, 'precision', 8)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -114,7 +131,7 @@ ax.XTick = curTick+1;
 ax.XTickLabel = (curTick)*MDtimeInterval_;
 
 %%
-saveas(fvelraw, fullfile(figuresDir, '/rawChan0Map.png'), 'png')
+saveas(fvelraw, fullfile(figuresDir, ['/raw', fname0, 'Map.png']), 'png')
 
 
 %%  Run:
@@ -137,8 +154,8 @@ set(gca, 'XTick', 10:10:wmax)
 set(gca, 'XTickLabel', 10:10:wmax)
 
 %%
-saveas(velBoxTime, fullfile(figuresDir, '/chan0BoxTime.png'), 'png')
-saveas(velBoxWin, fullfile(figuresDir, '/chan0BoxWin.png'), 'png')
+saveas(velBoxTime, fullfile(figuresDir, [fname0, 'BoxTime.png']), 'png')
+saveas(velBoxWin, fullfile(figuresDir, [fname0, 'BoxWin.png']), 'png')
  
 
 %%  Histogram of velocity. see CV= sm.std/sm.mean*100
@@ -147,7 +164,7 @@ sm = summary(velmap_outl(:));
 title2 = ['m=', sprintf('%0.2f', sm.mean), ' std=', sprintf('%0.2f', sm.std)];
 velHist = figure('Visible', figFlag);
 histogram(velmap_outl(:));
-title({'Velocity', title2});
+title({chan0Name, title2});
 
 tmp = velmap_outl(:);
 
@@ -157,17 +174,17 @@ vneg = tmp(tmp < 0);
 sm = summary(vpos);
 title2 = ['m=', sprintf('%0.2f', sm.mean), ' std=', sprintf('%0.2f', sm.std)];
 vposHist = figure('Visible', figFlag);  histogram(vpos);
-title({'Positive velocity', title2})
+title({['Positive ', chan0Name], title2})
 
 sm = summary(vneg);
 title2 = ['m=', sprintf('%0.2f', sm.mean), ' std=', sprintf('%0.2f', sm.std)];
 vnegHist = figure('Visible', figFlag);  histogram(vneg);
-title({'Negative velocity', title2})
+title({['Negative ', chan0Name], title2})
 
 %%
-saveas(velHist, fullfile(figuresDir, '/chan0Hist.png'), 'png')
-saveas(vposHist, fullfile(figuresDir, '/chan0PosHist.png'), 'png')
-saveas(vnegHist, fullfile(figuresDir, '/chan0NegHist.png'), 'png')
+saveas(velHist, fullfile(figuresDir, [fname0, 'Hist.png']), 'png')
+saveas(vposHist, fullfile(figuresDir, [fname0, 'PosHist.png']), 'png')
+saveas(vnegHist, fullfile(figuresDir, [fname0, 'NegHist.png']), 'png')
 
 
 %% topomap topographMD
@@ -184,7 +201,7 @@ title0 = chan0Title;
 topomapFig = topographMD(MD, tmax, 1, topoMap, title0, figFlag);
 
 %%
-saveas(topomapFig, fullfile(figuresDir, '/chan0topomapFig.png'), 'png')
+saveas(topomapFig, fullfile(figuresDir, [fname0, 'topomapFig.png']), 'png')
 
 
 
@@ -210,7 +227,7 @@ ax.XTickLabel = (curTick)*MDtimeInterval_;
 
 
 %% 
-saveas(fvel, fullfile(figuresDir, '/chan0Map.png'), 'png')
+saveas(fvel, fullfile(figuresDir, [fname0, 'Map.png']), 'png')
 
  
 %%  Means plot
@@ -307,7 +324,9 @@ save(fullfile(figuresDir, 'Avg_autocor_Vel.mat'), 'Avg_autocor')
 %%  adftest map
 
 if p.adf == 1
-    [~, adfMap] = nanAdfTestMap(imvelocitymap, chan0Name, 0.8);
+    mapForAdf = imvelocitymap(:, ~all(isnan(imvelocitymap)));
+    
+    [~, adfMap] = nanAdfTestMap(mapForAdf, chan0Name, 0.8);
 
 %%
     saveas(adfMap, fullfile(figuresDir, '/adfMapChan0.png'), 'png')  

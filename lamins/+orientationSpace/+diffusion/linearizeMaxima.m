@@ -1,4 +1,4 @@
-function [ maxima, coords, response, K ] = linearizeMaxima( maxima, response, K )
+function [ maxima, coords, response] = linearizeMaxima( response, maxima, K )
 %linearizeMaxima Linearize maxima by getting rid of NaNs and replicating
 %the response as needed
 %
@@ -13,14 +13,19 @@ function [ maxima, coords, response, K ] = linearizeMaxima( maxima, response, K 
 % coords - struct with the following fields
 % .r - row number, 1 x MRC
 % .c - column number, 1 x MRC
-% .m - local maxima number
+% .m - local maxima number, 1 x MRC
+% .K - 1 x MRC, indicating K parameter for the response
 % response - response matrix N x MRC (replicating response for each maxima)
-% K - 1 x MRC, indicating K parameter for the response
 
-if(nargin > 1)
-    if(isa(response,'OrientationSpaceResponse'))
-        K = repmat(response.filter.K,size(maxima));
-        response = response.a;
+if(isa(response,'OrientationSpaceResponse'))
+    R = response;
+    response = real(R.a);
+    if(nargin < 2)
+        maxima = R.getRidgeOrientationLocalMaxima;
+        maxima = maxima*2;
+    end
+    if(nargin < 3)
+        K = repmat(R.filter.K,size(maxima));
     end
 end
 if(nargin > 2)
@@ -51,10 +56,10 @@ if(nargout > 2)
     response = repmat(response,[1 maxima_size(1) 1 1]);
     response = response(:,nanMap);
 end
-if(nargout > 3)
-    K = shiftdim(K,-1);
-    K = repmat(K,[maxima_size(1) 1 1]);
-    K = K(nanMap).';
+if(exist('K','var'))
+    coords.K = shiftdim(K,-1);
+    coords.K = repmat(coords.K,[maxima_size(1) 1 1]);
+    coords.K = coords.K(nanMap).';
 end
 
 end

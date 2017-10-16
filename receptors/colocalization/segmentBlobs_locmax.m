@@ -1,4 +1,4 @@
-function [maskBlobs,imageFilteredMinusBackgroundNorm,labels] = segmentBlobs_locmax(image,...
+function [maskBlobs,labels,maskBlobsVis] = segmentBlobs_locmax(image,...
     thresholdMethod,methodValue,filterNoise,filterBackground,minSize,plotRes,mask) 
 %segmentBlobs_locmax segments blobs in 2Detection_IdxD images via various 
 %thresholding methods and use local maxima to catch the dim objects
@@ -33,8 +33,7 @@ function [maskBlobs,imageFilteredMinusBackgroundNorm,labels] = segmentBlobs_locm
 %                   domain is segmented.
 %
 %OUTPUT maskBlobs : mask including segmentations and local maxima.  
-%    
-%imageFilteredMinusBackgroundNorm: normalize image  
+%     
 %
 %      Labels  : Labels of objects in maskBlobs.
 %   
@@ -52,7 +51,7 @@ end
 
 %thresholding method
 if nargin < 2 || isempty(thresholdMethod)
-    thresholdMethod = 'Otsu';
+    thresholdMethod = 'otsu';
 end
 
 %method value
@@ -189,7 +188,7 @@ imageThresholdedFilled = imfill(imageThresholded,'holes');
 
 % go over blobs and remove those with a size smaller that minSize
 labels = bwlabel(imageThresholdedFilled);
-
+labels = labels.*mask;
 %Take the objects with and area bigger than minSize
 stats = regionprops(logical(labels), 'Area'); 
 idx = find([stats.Area] > minSize);
@@ -231,8 +230,9 @@ thresh = im2bw(locmaxvalues,threshValue);
 %include blobs and local maxima in the same mask
 threshidx= find(thresh);
 maskBlobs(threshidx) = 1;
- 
- 
+maskBlobs = maskBlobs.*mask; 
+SE = strel('disk',1);
+maskBlobsVis = imdilate(maskBlobs,SE); 
  %get labels of mask with segementation and local maxima
  labels = bwlabel(maskBlobs);
 

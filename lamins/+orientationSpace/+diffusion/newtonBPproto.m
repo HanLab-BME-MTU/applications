@@ -1,17 +1,28 @@
 function [ xg, Kg ] = newtonBPproto( R, n, coords , xg, Kg)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
+%newtonBPproto Prototype Newton bifurcation finder
+
+assert(isvector(xg));
+assert(~isnan(xg));
 
 import orientationSpace.diffusion.*;
 
-out = interpft_extrema(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),8:-0.01:1)); out = orientationSpace.diffusion.alignExtrema(out);
-figure; plot(8:-0.01:1,out.');
+Kplot = 8:-0.01:1;
+if(isempty(get(groot,'CurrentFigure')) || ~ishold)
+out = interpft_extrema(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kplot)); out = orientationSpace.diffusion.alignExtrema(out);
+[outdmax,outdmin,~,~,outdother] = interpft_extrema(R.getDerivativeResponseAtPoint(coords.r(n),coords.c(n),1,Kplot));
+outdmax = orientationSpace.diffusion.alignExtrema(outdmax);
+outdmin = orientationSpace.diffusion.alignExtrema(outdmin);
+figure; plot(Kplot,out.');
+hold on;
+plot(Kplot,outdmax,'k');
+plot(Kplot,outdmin,'k');
+plot(Kplot,outdother,'ko');
 title(sprintf('Local maxima trace for r=%d, c=%d, m=%d',coords.r(n),coords.c(n),coords.m(n)));
 xlabel('K');
 ylabel('2\theta (Orientation, radians)');
 out(:,1:3);
-hold on
 grid on
+end
 plot(Kg,xg,'ko');
 
 dnK_dmn(:,:,1) = 1;
@@ -31,14 +42,44 @@ xold = xg; Kold = Kg;
 % [~,dtn_dnm,dnK_dmn] = orientationMaximaTimeDerivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),Kg,3,xg,2*pi,false);
 %  || abs(dnK_dmn(:,:,1)./dnK_dmn(:,:,2)) < 0.2 && abs(dnK_dmn(:,:,1)) < 10
 % if(abs(dnK_dmn(:,:,1)./dnK_dmn(:,:,2)) < 0.1)
- xgd = interpft1_derivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),xg,2:4);
-d_p2rho_pm2_K = -D.*xgd(:,:,3-1).^2./xgd(:,:,2-1) + D.*xgd(:,:,4-1);
-d_p2rho_pm2_K = d_p2rho_pm2_K.*-4./(2*Kg+1).^3;
+ xgd = interpft1_derivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),xg,2:6);
+% d_p2rho_pm2_K = -D.*xgd(:,:,3-1).^2./xgd(:,:,2-1) + D.*xgd(:,:,4-1);
+% d_p2rho_pm2_K = d_p2rho_pm2_K.*-4./(2*Kg+1).^3;
+
+dnm_dtn(:,:,1) = -D.*xgd(:,:,3-1)./xgd(:,:,2-1);
+dnm_dtn(:,:,2) =           xgd(:,:,3-1) .* dnm_dtn(:,:,1).^2 ...
+            +  2 .* D   .* xgd(:,:,4-1) .* dnm_dtn(:,:,1)    ...
+            +       D^2 .* xgd(:,:,5-1);
+dnm_dtn(:,:,2) = -dnm_dtn(:,:,2)./xgd(:,:,2-1);
+
+ d_p2rho_pm2_t  =                  xgd(:,:,3-1) .* dnm_dtn(:,:,1)    ...
+                    +       D   .* xgd(:,:,4-1);
+d2_p2rho_pm2_t2 =                  xgd(:,:,3-1) .* dnm_dtn(:,:,2)    ...
+                    +              xgd(:,:,4-1) .* dnm_dtn(:,:,1).^2 ...
+                    +  2 .* D   .* xgd(:,:,5-1) .* dnm_dtn(:,:,1)    ...
+                    +       D^2 .* xgd(:,:,6-1);
+                
+dnt_dKn(:,:,1) = -4./(2*Kg+1).^3;
+dnt_dKn(:,:,2) = 24./(2*Kg+1).^4;
+
+ d_p2rho_pm2_K  = d_p2rho_pm2_t   .* dnt_dKn(:,:,1);
+d2_p2rho_pm2_K2 = d2_p2rho_pm2_t2 .* dnt_dKn(:,:,1).^2 ... 
+               +  d_p2rho_pm2_t   .* dnt_dKn(:,:,2);
+
 K_jump_estimate = xgd(:,:,2-1) ./ d_p2rho_pm2_K ;
-if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0)
+K_jump_estimate2 = 2*xgd(:,:,2-1).*d_p2rho_pm2_K./(2*d_p2rho_pm2_K.^2-xgd(:,:,2-1).*d2_p2rho_pm2_K2);
+K_jump_estimate3 = d_p2rho_pm2_K./d2_p2rho_pm2_K2;
+
+% if(K_jump_estimate > 0 && K_jump_estimate2 > 0)
+    K_jump_estimate = min(K_jump_estimate,K_jump_estimate2);
+% end
+if(d2_p2rho_pm2_K2 < 0 && K_jump_estimate > jump_threshold)
+    K_jump_estimate = jump_threshold;
+end
+if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0 && ~(K_jump_estimate3 >= 0))
 % if(true)
     disp('Theta Derivative based jump');
-    [~,dtn_dnm,dnK_dmn] = orientationMaximaTimeDerivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),Kg,3,xg,2*pi,false);
+    [~,dtn_dnm,dnK_dmn] = orientationMaximaTimeDerivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),Kg,4,xg,2*pi,false);
     xg_newton = dnK_dmn(:,:,1)./dnK_dmn(:,:,2);
     xg_halley = 2*dnK_dmn(:,:,1).*dnK_dmn(:,:,2)./(2*dnK_dmn(:,:,2).^2-dnK_dmn(:,:,1).*dnK_dmn(:,:,3));
     if(abs(xg_newton) < abs(xg_halley))
@@ -49,11 +90,12 @@ if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0)
         plot([Kold Kold],[xold xg],'r--');
     end
 %      2*v.*vd./(2*vd.^2-v.*vdd);
-    Kgpd = (xg-xold)*dnK_dmn(:,:,1)+(xg-xold).^2*dnK_dmn(:,:,2)/2+(xg-xold).^3*dnK_dmn(:,:,3)/6;
+    Kgpd = (xg-xold).*dnK_dmn(:,:,1)+(xg-xold).^2.*dnK_dmn(:,:,2)/2+(xg-xold).^3.*dnK_dmn(:,:,3)/6+(xg-xold).^4.*dnK_dmn(:,:,4)/24;
     Kg = NaN;
     if(Kgpd < 0 && abs(Kgpd) < 1)
         test = linspace(xold,xg,100);
-        plot(Kold+(test-xold)*dnK_dmn(:,:,1)+(test-xold).^2*dnK_dmn(:,:,2)/2+(test-xold).^3*dnK_dmn(:,:,3)/6,test,'g:');
+        Ktest = Kold+(test-xold)*dnK_dmn(:,:,1)+(test-xold).^2*dnK_dmn(:,:,2)/2+(test-xold).^3*dnK_dmn(:,:,3)/6+(test-xold).^4.*dnK_dmn(:,:,4)/24;
+        plot(Ktest,test,'g:');
         Kg = halleyK(xg,Kold+Kgpd,R,coords.r(n),coords.c(n));
         plot([Kold Kold+Kgpd],[xg xg],'y:');
         plot([Kold+Kgpd Kg],[xg xg],'m:');
@@ -73,6 +115,8 @@ if( K_jump_estimate < jump_threshold && K_jump_estimate >= 0)
         fprintf('jump threshold now %d\n',jump_threshold);
         Kg = Kold;
         xg = xold;
+    else
+        jump_threshold = min(jump_threshold*2,0.5);
     end
     plot(Kg,xg,'.');
     if(abs(xgd(:,:,2-1)) > abs(last))
@@ -95,17 +139,23 @@ else
 %     xg = halleyft( R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg), xg - 0.5./dnK_dmn(:,:,1),false,1);
     disp('K jump');
     if(K_jump_estimate < 0)
-        K_jump_estimate = maxKdelta;
+%         K_jump_estimate = maxKdelta;
+        K_jump_estimate = d_p2rho_pm2_K./d2_p2rho_pm2_K2;
+        if(K_jump_estimate < 0)
+            K_jump_estimate = 0.1;
+        else
+            K_jump_estimate = min(K_jump_estimate*2,jump_threshold);
+        end
     end
     xg_change = -Inf;
     xg = NaN;
-    while(isnan(xg) || min(xg_change,2*pi-xg_change) > pi/6)
+    while(isnan(xg) || min(xg_change,2*pi-xg_change) > pi/12)
         Kg = Kold - min(K_jump_estimate,maxKdelta);
         Kg = max(Kg,0);
         xg = halleyft( R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg), xold,false,1);
         xg(interpft1_derivatives(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kg),xg,2,2*pi) > 0) = NaN;
         xg_change = abs(xg - xold);
-        if(isnan(xg) || min(xg_change,2*pi-xg_change) > pi/6)
+        if(isnan(xg) || min(xg_change,2*pi-xg_change) > pi/12)
             maxKdelta = maxKdelta/2;
             fprintf('maxKdelta now %d\n',maxKdelta)
             Kg = Kold;
@@ -122,6 +172,7 @@ else
 %     end
     plot(Kg,xg,'.');
     last = -Inf;
+    jump_threshold = min(jump_threshold*2,0.5);
 end
 
 if(Kg < 1)

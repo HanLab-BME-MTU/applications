@@ -1,4 +1,4 @@
-function [ h ] = GCAVisualsFilopodiaOverlaysFromFilterSet(filoInfo,imgSize,varargin)
+function [mask ] = GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,varargin)
 %GCAVisualsFilopodiaOverlaysFromFilterSet
 % INPUT:
 % filoInfo
@@ -42,6 +42,7 @@ ip.addParameter('forceFiloText',0); % might be able to get rid of.
 % ip.addParameter('overlayName','filopodiaOverlay');
 ip.addParameter('branchMode',false); % branch mode will by default color code by type
 ip.addParameter('plotText',true,@(x) islogical(x)); 
+
 ip.addParameter('plotTextAtBranches',false,@(x) islogical(x)); % just make an explicit input for now instead of testing 
 
 
@@ -53,6 +54,10 @@ ip.addParameter('LineStyle','-');
 
 % Options related to smoothing 
 ip.addParameter('UseSmoothedCoords',false); 
+
+% output mask pixels. 
+ip.addParameter('createMask',false); 
+
 
 ip.parse(filoInfo,imgSize,varargin{:});
 
@@ -87,7 +92,13 @@ switch ip.Results.justExt
         typeStart  = 1;
         typeEnd = 2;
 end
-%
+
+% if ip.Results.createMask
+    % initiate the mask
+   mask = zeros(imgSize); 
+% end  % always make it so you don't have to add optional output
+%% 
+
 toAdd{1} = 'Ext_'; %
 toAdd{2} = 'Int_';
 
@@ -101,6 +112,7 @@ if ip.Results.colorByValue == true && ~isempty(plotValues)
         minValue = ip.Results.cMapLimits(1);
         maxValue = ip.Results.cMapLimits(2); 
     else
+       
         minValue = min(plotValues); 
         maxValue = max(plotValues); 
     end 
@@ -220,8 +232,12 @@ for iType = typeStart:typeEnd
                             pixIndices = filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'pixIndices']);
                             idxEnd = find(pixIndices == filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'endpointCoordFitPix']));
                             pixIndicesPlot = pixIndices(1:idxEnd);
+                            if ip.Results.createMask
+                                mask(pixIndicesPlot) = 1;
+                            end
                             [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
                         end
+                         
                         plot(xC,yC,'color',cMap(k,:),'Linewidth',ip.Results.LineWidth,'LineStyle',ip.Results.LineStyle);
                         
                            scatter(xycoordsEndFit(test,1),xycoordsEndFit(test,2),ip.Results.MarkerSize,cMap(k,:),'filled');
@@ -231,26 +247,33 @@ for iType = typeStart:typeEnd
                     end % ifilo
                 end
             end % for k
-        else
-            for i = 1:numel(filoInfoFilt)
-                if ip.Results.UseSmoothedCoords
-                    xy=  filoInfoFilt(filoToPlot(i)).([toAdd{iType} 'coordsXY' fieldname]);
-                    xC = xy(:,1);
-                    yC = xy(:,2);
-                    
-                else
-                    pixIndices = filoInfoFilt(i).([toAdd{iType} 'pixIndices']);
-                    idxEnd = find(pixIndices == filoInfoFilt(i).([toAdd{iType} 'endpointCoordFitPix']));
-                    pixIndicesPlot = pixIndices(1:idxEnd);
-                    [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
+        else % don't plot by colorValues
+        %end
+        %% quick fix here 
+        %if ~ip.Results.colorByValues || ip.Results.createMask
+        for i = 1:numel(filoInfoFilt)
+            if ip.Results.UseSmoothedCoords
+                xy=  filoInfoFilt(filoToPlot(i)).([toAdd{iType} 'coordsXY' fieldname]);
+                xC = xy(:,1);
+                yC = xy(:,2);
+                
+            else
+                pixIndices = filoInfoFilt(i).([toAdd{iType} 'pixIndices']);
+                idxEnd = find(pixIndices == filoInfoFilt(i).([toAdd{iType} 'endpointCoordFitPix']));
+                pixIndicesPlot = pixIndices(1:idxEnd);
+                if ip.Results.createMask
+                    mask(pixIndicesPlot) = 1;
                 end
-                plot(xC,yC,'color',colorC,'Linewidth',ip.Results.LineWidth,'LineStyle',ip.Results.LineStyle);
+                [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
             end
+            plot(xC,yC,'color',colorC,'Linewidth',ip.Results.LineWidth,'LineStyle',ip.Results.LineStyle);
+        end
                    
         scatter(xycoordsEndFit(:,1),xycoordsEndFit(:,2),ip.Results.MarkerSize,colorC,'filled');
         scatter(xycoordsBase(:,1),xycoordsBase(:,2),ip.Results.MarkerSize, colorC,'filled');
         clear  idxEnd pixIndicesPlot xycoordsEndFit
         end
+   
     end % isempty
 end    % iType 
 %% Plot Branches if applicable 
@@ -314,5 +337,5 @@ if ~isempty(plotValues) && ip.Results.plotText == true
     end
 end % isempty(plotValues)
  % ip.Results.branchMode
-
+mask = logical(mask); 
  end 
