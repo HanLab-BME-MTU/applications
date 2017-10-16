@@ -206,7 +206,7 @@ switch filterType
         filterParams.filterByBundleLength = [0.3,inf];
         
         filterParams.saveFiloByLengthAndSig = [];
-        %filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
+       %filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
         filterParams.filoFitCriteria = 95;
         
         
@@ -377,9 +377,9 @@ end
     if ~ isempty(filterParams.saveFiloByLengthAndSig);
         s = filterParams.saveFiloByLengthAndSig;
         % get filopodia that meet length cut-off..
-        lengthExt = vertcat(filoInfo(:).Ext_length)*.216; % convert
+        lengthExt = vertcat(filoInfo(:).Ext_length)*ip.Results.pixelSizeNm./1000; % convert
         
-        savePop1 = lengthExt>s(1,1) & lengthExt < s(2,1) & toKeepBasedOnType ; % fixed 201508
+        savePop1 = lengthExt>s(1,1) & lengthExt < s(2,1) & toKeepBasedOnType ; %
         
         % get the full population
         intensities = vertcat(filoInfo(:).Ext_IntensityNormToVeil);
@@ -388,7 +388,7 @@ end
         cutoffMax = prctile(intensitiesForPer,s(2,2));
         
         
-        savePop2 = intensities>cutoffMin & intensities<cutoffMax & ~isnan(intensities) & toKeepBasedOnType; %fixed 201508
+        savePop2 = intensities>cutoffMin & intensities<cutoffMax & ~isnan(intensities) & toKeepBasedOnType; %
         
         savePop = savePop1 & savePop2;
         % get filopoida that meet intensity cut-off (defined by percentile)
