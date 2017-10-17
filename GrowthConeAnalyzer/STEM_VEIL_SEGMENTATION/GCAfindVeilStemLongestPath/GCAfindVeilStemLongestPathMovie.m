@@ -73,7 +73,7 @@ p = ip.Results;
 nFrames = movieData.nFrames_;
 nChan = numel(p.ChannelIndex);
 imSize = movieData.imSize_;
-
+pixelSizeMic = movieData.pixelSize_/1000; 
 %% Start Channel Wrapper
 
 for iCh = 1:nChan
@@ -150,12 +150,13 @@ for iCh = 1:nChan
     end
    
     %% Main Function:
+    
     for iFrame = startFrame:endFrame
         
         veilStemMaskC = veilStem(iFrame).finalMask;
         idxEnterNeuriteC = veilStem(iFrame).idxEnterNeurite;
         
-        [neuriteLengthC,longPathLinIndC,EPLongPathC,~] = GCAfindVeilStemLongestPath(veilStemMaskC,idxEnterNeuriteC);
+        [neuriteLengthC,longPathLinIndC,EPLongPathC,~] = GCAfindVeilStemLongestPath(veilStemMaskC,idxEnterNeuriteC,'pixelSizeMic',pixelSizeMic);
        
         neuriteLength(iFrame,1) = neuriteLengthC;
         
