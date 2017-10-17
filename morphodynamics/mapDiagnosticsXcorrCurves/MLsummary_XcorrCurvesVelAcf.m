@@ -26,6 +26,8 @@ function MLsummary_XcorrCurvesVelAcf(ML, iChan1, iChan2, chan1Name, chan2Name, .
 % Option:
 %       outDirName  - Specify a name of output directory.
 %
+% Updates:
+% J Noh, 2017/09/25. Include the summary of ACF of channels.
 % Jungsik Noh, 2017/05/17
 
 
@@ -71,7 +73,7 @@ for i = 1:num
     md = MDs{i};
     mdDir = md.outputDirectory_;
     %%%% input
-    load(fullfile(mdDir, analNameAcf, 'Avg_autocor_Vel.mat')); % Avg_autocor
+    load(fullfile(mdDir, analNameAcf, 'Chan0_Avg_autocor_Vel.mat')); % Avg_autocor
     acfvecsize(i) = size(Avg_autocor, 2);
 end
 
@@ -114,13 +116,13 @@ for i = 1:num
     %[~, cellName] = fileparts(folderName);
 
     %%%% input
-    load(fullfile(mdDir, analNameAcf, 'Avg_autocor_Vel.mat'));   
+    load(fullfile(mdDir, analNameAcf, 'Chan0_Avg_autocor_Vel.mat'));   
 
     %%%%
     
     cellLabels{i} = cellName;
-    copyfile(fullfile(mdDir, analNameAcf, 'acCurveChan0.png'), ...
-        fullfile(outDir, [cellLabels{i}, '_acCurveChan0.png']) )    
+    copyfile(fullfile(mdDir, analNameAcf, 'acCurve_Chan0.png'), ...
+        fullfile(outDir, [cellLabels{i}, '_acCurve_Chan0.png']) )    
     
     %xcorrMat = Avg_autocor;
         %xcmean = mean(xcorrMat_tmp{indL}, 1, 'omitnan');
@@ -167,6 +169,110 @@ ylim([-0.3, 0.3])
 saveas(fAcf, fullfile(outDir, ['/acfVel', '.png']), 'png')
 saveas(fAcf, fullfile(outDir, ['/acfVel', '.fig']), 'fig')
 
+
+%%  Acf_ChanX
+
+for iChan = [iChan1, iChan2]
+    if (iChan == iChan1)
+        chanName = chan1Name;
+    else
+        chanName = chan2Name;
+    end
+    
+    if (iChan ~= 0)
+        fname0 = ['Chan', num2str(iChan)];
+        
+MDs = ML.getMovies();
+num = numel(MDs);
+%num = num    %%%  input
+cellLabels = cell(num, 1);
+
+acfArr = cell(maxLayer, 1);
+for indL = 1:maxLayer
+    acfArr{indL} = nan(num, lagSizeAcf);
+end
+
+
+%
+for i = 1:num
+    md = MDs{i};
+    mdDir = md.outputDirectory_;
+    [folderName, cellLab0, ~] = fileparts(mdDir);
+    %cellName = [folderName((end-4):end), '_', cellLab0];   %% Adjust name extraction
+    %cellName = [cellLab0(1:14)];   %% Adjust name extraction
+    cellName = [cellLab0(1:end)];    % Generic cellName
+    %[~, cellName] = fileparts(folderName);
+
+    %%%% input
+    load(fullfile(mdDir, analNameAcf, [fname0, '_Avg_autocorLayers.mat']));   
+
+    %%%%
+    
+    %cellLabels{i} = cellName;
+    %copyfile(fullfile(mdDir, analNameAcf, 'acCurveChan0.png'), ...
+    %    fullfile(outDir, [cellLabels{i}, '_acCurveChan0.png']) )    
+    
+    %xcorrMat = Avg_autocor;
+        %xcmean = mean(xcorrMat_tmp{indL}, 1, 'omitnan');
+    
+    for indL = 1:maxLayer        
+        xcmean = Avg_autocorLayers{indL};
+        %tmplen = numel(xcmean);
+    
+        if (numel(xcmean) < lagSizeAcf)
+            xcmeanMiddle = [xcmean, nan(1, lagSizeAcf - numel(xcmean))];
+        else
+            xcmeanMiddle = xcmean(1:lagSizeAcf);
+        end
+            
+        acfArr{indL}(i, :) = reshape(xcmeanMiddle, 1, []);
+    end
+        
+end
+
+totavgXcorrCurve = cell(maxLayer, 1);
+for indL = 1:maxLayer
+totavgXcorrCurve{indL} = squeeze(mean(acfArr{indL}, 1, 'omitnan'));
+end
+
+ 
+ 
+
+%%
+tLag = [0:lagSizeAcf-1].* MDtimeIntvl;
+
+fAcf = cell(maxLayer, 1);
+for indL = 1:maxLayer
+    
+    fAcf{indL} = figure();    %'Visible', p.figFlag);   %%  name
+    
+    acmeanPerCellindL = squeeze(acfArr{indL}(:, :))';
+    
+    plot(tLag, acmeanPerCellindL, 'Color', [.5 .5 .5])
+    h1 = refline([0,0]); h1.Color = [.5 .5 .5];
+    %h = line([lagMax+1, lagMax+1], ylim); h.Color = [.5 .5 .5];
+    hold on
+    p1 = plot(tLag, totavgXcorrCurve{indL}, 'r');
+    p1.LineWidth = 2;
+    
+    title([chanName, '-', num2str(indL), 'L (ACF)'] )
+    
+    xlabel('Time lag (s)');ylabel('Correlation')
+    set(gca, 'XGrid', 'on')
+
+%%%%  !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ylim([-1, 1])
+
+
+%% saveas
+
+saveas(fAcf{indL}, fullfile(outDir, [fname0, '_acf_', num2str(indL), 'L.png']), 'png')
+saveas(fAcf{indL}, fullfile(outDir, [fname0, '_acf_', num2str(indL), 'L.fig']), 'fig')
+
+end
+
+    end
+end
 
 
 

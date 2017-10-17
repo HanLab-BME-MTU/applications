@@ -38,9 +38,14 @@ function mapDescriptives_OneChan(MD, iChan, maxLayer, chanName, chanTitle, figur
 %                   - window index in which activities will be replaced by
 %                   NaN. Default is null.
 %       subFrames
-%                   - specified frames will be only used.        
+%                   - specified frames will be only used.      
+%       topograph   - if 'off' topographs are not plotted. Default is 'on'.
 %
-% Updated: J Noh, 2017/08/26. To deal with differenced channels. 
+% Updated: 
+% J Noh, 2017/10/11, raw activities can be smoothed. New option is
+% 'movingAvgSmoothing'.
+% J Noh, 2017/09/25. Now acf is saved.
+% J Noh, 2017/08/26. To deal with differenced channels. 
 % Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/18
 
@@ -56,6 +61,8 @@ ip.addParameter('numPerm', 1000);
 ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
 ip.addParameter('subFrames', []);
+ip.addParameter('topograph', 'on');
+ip.addParameter('movingAvgSmoothing', false);
 
 
 ip.parse(varargin{:});
@@ -80,7 +87,7 @@ disp(chanTitle)
 [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
         = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, ...
             'WithN', p.WithN, 'omittedWindows', p.omittedWindows, ...
-            'Folding', p.Folding, 'subFrames', p.subFrames);
+            'Folding', p.Folding, 'subFrames', p.subFrames, 'movingAvgSmoothing', p.movingAvgSmoothing); 
         
 
         
@@ -131,6 +138,35 @@ end
 %%
 for indL = 1:maxLayer
     saveas(fchanraw{indL}, fullfile(figuresDir, ['/raw', fname0, 'Map_', num2str(indL), 'L.png']), 'png')
+end
+
+
+%%  outl non-smoothActivityMap prot/act maps
+
+fchanraw = cell(1, maxLayer);
+for indL = 1:maxLayer
+
+    inputmap = actmap_outl{indL};
+    %filteredmap = smoothActivityMap(velmap, 'SmoothParam', smParam, 'UpSample', 1);
+    fchanraw{indL} = figure('Visible', figFlag);  
+    figtmp = imagesc(inputmap);
+    title([chanTitle, '-', num2str(indL), 'L'])
+    colorbar;colormap(jet) 
+
+    figtmp.AlphaData = 1-isnan(inputmap);
+    axis xy;xlabel('Time (s)');ylabel('Window')
+    ax = gca;
+    curTick = ax.XTick;
+    ax.XTickMode = 'manual';
+    ax.XTick = curTick+1;
+    ax.XTickLabel = (curTick)*MDtimeInterval_;
+
+end
+
+
+%%
+for indL = 1:maxLayer
+    saveas(fchanraw{indL}, fullfile(figuresDir, ['outl_', fname0, 'Map_', num2str(indL), 'L.png']), 'png')
 end
 
 
@@ -212,6 +248,7 @@ end
 
 
 %% topomap topographMD
+if strcmp(p.topograph, 'on')
 
 iWinProc = MD.getProcessIndex('WindowingProcess',1,0);
 nBandMax_ = MD.processes_{iWinProc}.nBandMax_;
@@ -229,6 +266,7 @@ topomapFig = topographMD(MD, tmax, 1, topoMap, title0, figFlag);
 %%
 saveas(topomapFig, fullfile(figuresDir, ['/topograph_', fname0, '.png']), 'png')
 
+end
 
 
 %%  smoothActivityMap prot/act maps
@@ -385,10 +423,11 @@ end
 %rseed = 'shuffle';
 
 acCurve = cell(1, maxLayer);
+Avg_autocorLayers = cell(1, maxLayer);
 for indL = 1:maxLayer
         mapName = [chanTitle, '-', num2str(indL), 'L'];
         
-acCurve{indL} = autoCorrCurvePermTest(imActmap{indL}, mapName, MDtimeInterval_, ...
+[acCurve{indL}, Avg_autocorLayers{indL}] = autoCorrCurvePermTest(imActmap{indL}, mapName, MDtimeInterval_, ...
                 p.numPerm, p.parpoolNum, p.rseed, 'figFlag', p.figFlag);
 end
 
@@ -396,6 +435,9 @@ end
 for indL=1:maxLayer
 saveas(acCurve{indL}, fullfile(figuresDir, ['acCurve_', fname0, '_', num2str(indL), 'L.png']), 'png')
 end
+
+%%  09/25/2017
+save(fullfile(figuresDir, [fname0, '_Avg_autocorLayers.mat']), 'Avg_autocorLayers')
 
 
 
