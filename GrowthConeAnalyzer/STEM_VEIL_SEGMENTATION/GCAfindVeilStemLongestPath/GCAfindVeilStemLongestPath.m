@@ -1,4 +1,4 @@
-function [neuriteLength,longPathLinInd,EPLongPath,error] =  GCAfindVeilStemLongestPath(veilStemMaskC,neuriteEntranceCLinIdx)
+function [neuriteLength,longPathLinInd,EPLongPath,error] =  GCAfindVeilStemLongestPath(veilStemMaskC,neuriteEntranceCLinIdx,varargin)
 %% GCAfindVeilStemLongestPath:
 % From a veilStemMask (a mask of the neurite/growth cone minus
 % thin protrusions like filopodia)- this function skeletonizes the veil/stem mask
@@ -31,7 +31,12 @@ function [neuriteLength,longPathLinInd,EPLongPath,error] =  GCAfindVeilStemLonge
 % EPLongPath: 1x2 double
 %   r,c coords of endpoint of the longest path - used as input in 
 %% PARAMS
- 
+ ip = inputParser;
+ ip.addRequired('veilStemMaskC',@islogical); 
+ ip.addRequired('neuriteEntranceCLinIdx'); 
+ ip.addParameter('pixelSizeMic',0.216, @isscalar); % in microns
+ ip.parse(veilStemMaskC,neuriteEntranceCLinIdx, varargin{:});
+
 %% CHECK INPUT
 
 %% Initiate
@@ -172,7 +177,7 @@ if ~isempty(tipVertices) % % implement a small sanity check - if tipVerices foun
  
     
     % Recalculate the distance
-    [ neuriteLength]  = calculateDistance(longPathLinInd,[ny,nx],0);
+    [ neuriteLength]  = calculateDistance(longPathLinInd,[ny,nx],0,'pixelSizeMic',ip.Results.pixelSizeMic);
     
     
     
