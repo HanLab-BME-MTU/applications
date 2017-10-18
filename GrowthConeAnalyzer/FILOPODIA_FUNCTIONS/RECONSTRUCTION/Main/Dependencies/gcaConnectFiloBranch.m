@@ -96,6 +96,8 @@ ip.addRequired('smoothedEdgeC');
 ip.addParameter('maxRadiusConnectFiloBranch',5);
 ip.addParameter('geoThreshFiloBranch',0.5);
 ip.addParameter('TSOverlays',false);
+ip.addParameter('cMapLength',4096); 
+ip.addParameter('cMapType','parula');
 ip.parse(inputPoints,candFiloEPs,pixIdxCands,labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalsC,smoothedEdgeC,varargin{:});
 p = ip.Results;
 
@@ -367,8 +369,11 @@ if sum(testMatch) ~= 0 ;
         TSFigs(countFig).name = 'Potential_Paths_with_Cost_D';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
         
-        gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,D,128);
+        [idxCMapDist] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,D,ip.Results.cMapLength, ... 
+            'cMapType',ip.Results.cMapType);
         text(10,5,'Score By Distance');
+        idxCMapCell{1} = idxCMapDist; 
+        figNames{1} = 'Potential_Paths_with_Cost_D'; 
         countFig = countFig+1;
         
         %%   if ip.Results.TSOverlays == true
@@ -376,7 +381,11 @@ if sum(testMatch) ~= 0 ;
         TSFigs(countFig).name = 'Potential_Paths_with_Cost_Int';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
         
-        gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,normInt,128);
+        [idxCMapInt] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,normInt,ip.Results.cMapLength, ...
+            'cMapType',ip.Results.cMapType);
+        idxCMapCell{2} = idxCMapInt; 
+        figNames{2} = 'Potential_Paths_with_Cost_Int'; 
+        
         text(10,5,'Score By Intensity Mean');
         
         countFig = countFig+1;
@@ -385,16 +394,24 @@ if sum(testMatch) ~= 0 ;
         TSFigs(countFig).name = 'Potential_Paths_with_Cost_CandLinkerGeo';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
         
-        gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotProd,128);
+        [idxCMapCandLink] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotProd,ip.Results.cMapLength, ...
+            'cMapType',ip.Results.cMapType);
         text(10,5,'Score By Candidate Linker Geometry')
+        idxCMapCell{3} = idxCMapCandLink; 
+        figNames{3} = 'Potential_Paths_with_Cost_CandLinkerGeo';
+        
         countFig = countFig+1;
         %% Cand And Seed Value will be from 0 to 1
         TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
         TSFigs(countFig).name = 'Potential_Paths_with_Cost_CandSeedGeo';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
         
-        gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotCandAndSeed,128);
+        [idxCMapCandSeed] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,dotCandAndSeed,ip.Results.cMapLength, ...
+            'cMapType',ip.Results.cMapType);
         text(10,5,'Score By Candidate Seed Geometry');
+        idxCMapCell{4} = idxCMapCandSeed; 
+        figNames{4} = 'Potential_Paths_with_Cost_CandSeedGeo';
+        
         countFig = countFig+1;
     end
     
@@ -404,11 +421,16 @@ if sum(testMatch) ~= 0 ;
         TSFigs(countFig).name = 'Potential_Paths_with_Cost';
         TSFigs(countFig).group = 'Reconstruct_FiloBranch';
         
-        [idxCMap] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,costTotal,128);
+        [idxCMap] = gcaPlotLinksByCost(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,costTotal,ip.Results.cMapLength, ... 
+            'cMapType',ip.Results.cMapType);
         text(10,5,'Final Score');
+        idxCMapCell{5} = idxCMap;
+    figNames{5} = 'Potential_Paths_with_Cost';
+    
+        
         countFig = countFig+1;
     end % if TSOverlays
-    
+   
     %% Filter links by geometery of candidate and linker
     E = [E costTotal D normInt dotProd dotCandAndSeed];
     
@@ -417,6 +439,8 @@ if sum(testMatch) ~= 0 ;
     costTotal = costTotal(dotProd>ip.Results.geoThreshFiloBranch);
     if ip.Results.TSOverlays == 1
         idxCMap =  idxCMap(dotProd>ip.Results.geoThreshFiloBranch,:);
+        idxCMapCell = cellfun(@(x) x(dotProd>ip.Results.geoThreshFiloBranch,:),idxCMapCell,'uniformoutput',0); 
+        
     end
     iSeg= iSeg(:,dotProd>ip.Results.geoThreshFiloBranch);
     %numberNodes =  sum(dotProd);
@@ -442,6 +466,7 @@ if sum(testMatch) ~= 0 ;
     costTotal = costTotal(noOverlapLinks1);
     if ip.Results.TSOverlays == 1
         idxCMap =  idxCMap(noOverlapLinks1,:);
+        idxCMapCell = cellfun(@(x) x(noOverlapLinks1,:),idxCMapCell,'uniformoutput',0); 
     end
     iSeg= iSeg(noOverlapLinks1);
     
@@ -470,10 +495,13 @@ if sum(testMatch) ~= 0 ;
         costTotal = costTotal(noOverlapLinks);
         if ip.Results.TSOverlays == 1
             idxCMap =  idxCMap(noOverlapLinks,:);
+            idxCMapCell = cellfun(@(x) x(noOverlapLinks,:),idxCMapCell,'uniformoutput',0); 
         end
         iSeg= iSeg(noOverlapLinks);
         
     end
+     
+    
     %%
     %numberNodes = size(EFinal,1);
     [candFiloNodes,~,nodeLabels] = unique(EFinal(:,1),'stable'); % reason note: some of the filo will not be candidates as their endpoints are not within the given radius
@@ -501,8 +529,12 @@ if sum(testMatch) ~= 0 ;
             TSFigs(countFig).group = 'Reconstruct_FiloBranch';
             nPaths = size(E,1);
             
+            
+            
             for i = 1:5
                 [n{i},center{i}] = hist(E(:,3+i),50);
+                minVal(i) = min(E(:,3+i));
+                maxVal(i) = max(E(:,3+i)); 
             end
             
             allN = horzcat(n{:});
@@ -516,6 +548,7 @@ if sum(testMatch) ~= 0 ;
             bar(center{1},n{1}/nPaths);
             xlabel('Cost Total');
             axis([ip.Results.geoThreshFiloBranch,3.5,0,maxYVal]);
+            title(['Min ' num2str(minVal(1),3) ' Max ' num2str(maxVal(1),3)]); 
             
             
             subplot(5,1,2);
@@ -523,32 +556,41 @@ if sum(testMatch) ~= 0 ;
             bar(center{2},n{2}/nPaths);
             xlabel('Distance');
             axis([0,1,0,maxYVal]);
-            
+            title(['Min ' num2str(minVal(2),3) ' Max ' num2str(maxVal(2),3)]);
+             
             subplot(5,1,3);
             
             bar(center{3},n{3}/nPaths);
             xlabel('Mean Intensity');
             axis([0,1,0,maxYVal]);
-            
+            title(['Min ' num2str(minVal(3),3) ' Max ' num2str(maxVal(3),3)]);
+           
             subplot(5,1,4);
             
             bar(center{4},n{4}/nPaths);
             xlabel('Geometry With Linker');
             axis([ip.Results.geoThreshFiloBranch,1,0,maxYVal]);
+            title(['Min ' num2str(minVal(4),3) ' Max ' num2str(maxVal(4),3)]);
             
-            subplot(5,1,5);
+             subplot(5,1,5);
             
             bar(center{5},n{5}/nPaths);
             xlabel('Geometry Candidate and Seed');
             axis([0,1,0,maxYVal]);
+              title(['Min ' num2str(minVal(5),3) ' Max ' num2str(maxVal(5),3)]);
             countFig = countFig+1;
         end
         
         %% TS Overlays After Geometry Thresholds : Color Code By Cost
+       
+       
         
         if ip.Results.TSOverlays == true
+            
+            for iCost = 1:5
+            
             TSFigs(countFig).h = setFigure(dims(1),dims(2),'on');
-            TSFigs(countFig).name = 'Potential_Pathg_After_Geometry_Threshold';
+            TSFigs(countFig).name = [figNames{iCost} '_filterGeo'];
             TSFigs(countFig).group = 'Reconstruct_FiloBranch';
             
             imshow(-img,[]);
@@ -561,13 +603,14 @@ if sum(testMatch) ~= 0 ;
             scatter(seedPtsx(:),seedPtsy(:),'k','filled');
             allCandEPs = vertcat(candFiloEPs{:});
             scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled');
-            % create distance mapper
-            cMapLength=128; cMap=jet(cMapLength);
+            cMapType = str2func(ip.Results.cMapType); 
+            % create distance ma            
+            cMapLength=ip.Results.cMapLength; cMap= cMapType(cMapLength);
             
             
             for k = 1:length(cMap);
-                if sum(idxCMap(:,1)==k)~=0
-                    toPlot = iSeg(idxCMap(:,1) == k);
+                if sum(idxCMapCell{iCost}(:,1)==k)~=0
+                    toPlot = iSeg(idxCMapCell{iCost}(:,1) == k);
                     
                     cellfun(@(x) plot([x(1,1),x(end,1)],[x(1,2),x(end,2)],'color',cMap(k,:)),toPlot);
                     clear toPlot
@@ -575,10 +618,11 @@ if sum(testMatch) ~= 0 ;
                 end
                 % make colormap of costs.
                 
-                % show each segment in iSeg cell plotted by the costTotal color
+                % show each segment in iSeg cell plotted by the costTotal colo
                 %
             end
             countFig = countFig +1;
+            end % for iCost
         end % ip.Results.TSOverlays
         
         %% Matching
