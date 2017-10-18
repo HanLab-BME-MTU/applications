@@ -511,7 +511,7 @@ for iType = typeStart:typeEnd
                             idx = find(backMask); 
                             [y,x] = ind2sub(size(backMask),idx); 
                             hold on 
-                            scatter(x,y,10, [0.5020, 0.4510, 0.6745],'x'); % color in purple for now 
+                            scatter(x,y,100, [0.5020, 0.4510, 0.6745],'x'); % color in purple for now 
 
                             ylabel('Filopodia Width (Pixels)'); 
                             axis([0.5,size(maskIndices,2),0.5,5.5])
