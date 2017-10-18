@@ -133,8 +133,11 @@ maxRes = filoBranchC.filterInfo.maxRes ;
 % if  ~isempty(ip.Results.protrusionC)
 %     protrusionC = ip.Results.protrusionC{1};
 %     % load([protrusion filesep 'protrusion_vectors.mat']);
+if isfield(protrusionC,'normalsRotated'); 
      normalC = protrusionC.normalsRotated; % need to load the normal input from the smoothed edges in order  to calculation the filopodia body orientation
-     
+else 
+    normalC = protrusionC.normal; 
+end 
      smoothedEdgeC = protrusionC.smoothedEdge;
 % else
 %     normalC = []; 
@@ -164,6 +167,7 @@ edgeMask(idx) = 1;
   filoExtAll = (filoTips|edgeMask);  
 
 %% INTERNAL LINKING OPTION: NOTE option should only be turned on for life-act images 
+TSFigs1 = []; 
 if ip.Results.detectEmbedded == true; %
     
     % Create the seed extra-veil ridge seed for the subsequent embedded reattachment steps 
@@ -337,14 +341,20 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         meanRespValuesCand = cellfun(@(x) mean(x),respValuesCand);
         sizeCand = cellfun(@(x) length(x), CC.PixelIdxList);
         % get the response of the high confidence seeds
-%% 
-
+%%  
+toExclude = sizeCand<=2;
+   % future iterations
+        filoSkelPreConnect(vertcat(CC.PixelIdxList{toExclude'}))= 0;
+        CC.PixelIdxList(toExclude') = [];
+        CC.NumObjects = CC.NumObjects -sum(toExclude);%
                
                
 %%               %% currently filtering candidates based on mean response values < 5th percentile of 
                    % seeds attached and less then 
                    % if size candidate <2 
               % figure
+              filterBasedOnAttached = 0;
+              if filterBasedOnAttached == 1
         cutoff = prctile(meanRespValuesSeed,5); % SEE if it is this filtering step here. for frame 120
         toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2; %%% NOTE: MARIA YOU ARE INTRODUCING SOME PARAMS HERE
         
@@ -414,7 +424,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         CC.PixelIdxList(toExclude') = [];
         CC.NumObjects = CC.NumObjects -sum(toExclude);%
         % erase from filoSkelPreConnect
-           
+              end    
     end % recon iter == 1 
 %%    
     % keep on iterating until no more viable candidates
@@ -565,6 +575,9 @@ end % while numViaCand
 
 %%
 if ip.Results.TSOverlays == true
+    if exist('TSFigs2') ==0 
+        TSFigs2 = []; 
+    end 
     TSFigsReconAll = horzcat(TSFigsRecon{:});
     TSFigs = [TSFigs1  TSFigs2 TSFigs3];
 end
