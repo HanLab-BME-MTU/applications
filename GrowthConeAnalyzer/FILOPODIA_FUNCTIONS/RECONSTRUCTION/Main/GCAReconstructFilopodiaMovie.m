@@ -85,6 +85,7 @@ ip.addParameter('LRDilRad',10); % dilation radius of the structuring element
 % Cleaning Response of Steerable Filter 
 ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
+ip.addParameter('filterBasedOnVeilStemAttachedDistr',true); 
 
 % Linking Parameters Embedded 
 %ip.addParameter('geoThreshEmbedded',0.9,@(x) isscalar(x)); 
