@@ -146,6 +146,8 @@ ip.addParameter('LRDilRad',10); % dilation radius of the structuring element
 % RIDGE CLEANING
 ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
+% Pass to : gcaAttachFilopodiaStructuresMain.m
+ip.addParameter('filterBasedOnVeilStemAttachedDistr',true); 
 
 % CANDIDATE BUILDING %
 % Pass to: gcaAttachFilopodiaStructuresMain.m
