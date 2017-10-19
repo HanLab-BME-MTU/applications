@@ -48,7 +48,7 @@ for iFrame = 1:length(analInfo)-1
     if ~isempty(filoInfo)
         filterFrameC= filoFilterSet{iFrame};
         
-        if strcmpi(ip.Results.filoPart,'Int')
+        if strcmpi(ip.Results.filoPart,'Int_')
            filterFrameC = (filterFrameC(:,1)==1 & filterFrameC(:,2) ==1);
         end
         
