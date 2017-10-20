@@ -56,30 +56,33 @@ if(~isempty(p.process))
     [outputDir filesep 'limits.mat']});
 end
 
-if(p.cumulative)
-    tmpdetections=copy(detections(1));
-    for i=2:length(detections)
-        tmpdetections.concatenate(detections(i));
-    end
-    detections=tmpdetections;
-end
-    
+% if(p.cumulative)
+%     tmpdetections=copy(detections(1));
+%     for i=2:length(detections)
+%         tmpdetections.concatenate(detections(i));
+%     end
+%     detections=tmpdetections;
+% end
+%     
 
 for fIdx=processFrames
     XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
     ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
     ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
+    
+    if(isempty(p.colorIndx))
+      colorIndx=[];
+    else
+      colorIndx=p.colorIndx{fIdx};
+    end
+    
     if(cumulative)
         detectionsAtFrame=detections;
+        colorIndx=p.colorIndx;
     else
         detectionsAtFrame=detections(fIdx);
     end
 
-    if(isempty(p.colorIndx))
-      colorIndx=[]
-    else
-      colorIndx=p.colorIndx{fIdx};
-    end
     [tracksXY,tracksZY,tracksZX]=overlayProjDetections(XYProj,ZYProj,ZXProj, ...
         [projData.minXBorder projData.maxXBorder],[projData.minYBorder projData.maxYBorder],[projData.minZBorder projData.maxZBorder], ...
         detectionsAtFrame,p.colormap,colorIndx,varargin{:});

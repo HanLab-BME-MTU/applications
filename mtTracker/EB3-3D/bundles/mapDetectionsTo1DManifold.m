@@ -26,7 +26,7 @@ indices=cell(1,length(movieInfo));
       try
         mappedDetections(fIdx).int=movieInfo(fIdx).int(mappedPoint,:);
       catch
-        warning('No int in current detection datastructure');
+        %warning('No int in current detection datastructure');
       end
       indices{pIdx}=mappedPoint;
   end
