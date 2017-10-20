@@ -74,9 +74,24 @@ Yplus = bsxfun(@plus,y,y_offset);
 Xminus = bsxfun(@minus,x,x_offset);
 Yminus = bsxfun(@minus,y,y_offset);
 
+% Extra Chebfun points
+m = sqrt(2)/2;
+XplusCheb = bsxfun(@plus,x,x_offset.*m);
+YplusCheb = bsxfun(@plus,y,y_offset.*m);
+
+XminusCheb = bsxfun(@minus,x,x_offset.*m);
+YminusCheb = bsxfun(@minus,y,y_offset.*m);
+
+
 x = cat(4,Xminus,repmat(x,[1 1 nO]),Xplus);
 y = cat(4,Yminus,repmat(y,[1 1 nO]),Yplus);
 angleIdx = repmat(angleIdx,[1 1 1 3]);
+
+% Extra Chebfun points
+x = cat(4,x,XplusCheb,XminusCheb);
+y = cat(4,y,YplusCheb,YminusCheb);
+angleIdx(:,:,:,4:5) = angleIdx(:,:,:,1:2);
+
 
 clear Xplus Yplus Xminus Yminus x_offset y_offset theta;
 
@@ -119,8 +134,15 @@ nlms(nlms < A(:,:,:,1) | nlms < A(:,:,:,3)) = suppressionValue;
 if(nargout > 1)
     % Calculate sub-pixel offset
     notSuppressed = nlms ~= suppressionValue & ~isnan(nlms);
-    A = reshape(A,nx*ny*nO,3);
-    A = A(notSuppressed,[3 2 1 2]);
+    
+    % Use extra points in order
+    A = A(:,:,:,[1 5 2 4 1]);
+    
+    A = reshape(A,nx*ny*nO,size(A,4));
+    
+%     A = A(notSuppressed,[3 2 1 2]);
+    A = A(notSuppressed,[5 4 3 2 1 2 3 4]);
+
     nS_offset = interpft_extrema(A,2,true);
     nS_offset = nS_offset(:,1);
     nS_offset = cos(nS_offset);
