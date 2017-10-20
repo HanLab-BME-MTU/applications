@@ -39,20 +39,27 @@ maximaCombined = sort(maximaCombined,3);
 max(max(sum(~isnan(maximaCombined),3)))
 maximaCombined = maximaCombined(:,:,1:7);
 
+maximaCombinedValues = R3.interpft1(maximaCombined);
 maximaCombinedValues(isnan(maximaCombinedValues)) = -Inf;
 [maximaCombinedValues,maximaCombined] = sortMatrices(maximaCombinedValues,maximaCombined,3,'descend');
 maximaCombinedValues(isinf(maximaCombinedValues)) = -NaN;
 
 % Minimal Bridging process
 
+% nlms = R3.nonLocalMaximaSuppressionPrecise(maximaCombined);
+[nlms,nlms_offset] = nonLocalMaximaSuppressionPrecise(R3.a,maximaCombined);
+
+
 nlms_mip3 = nanmax(nlms,[],3);
 
-mask = imopen(imfill(nlms_mip3 > 10,'holes'),strel('disk',10));
+% mask = imopen(imfill(nlms_mip3 > 10,'holes'),strel('disk',10));
+mask = lamins.functions.maskFromSteerable(R3);
 
 selected = nlms_mip3(mask & nlms_mip3 ~= 0);
 [outliers,inliers] = detectOutliers(nlms_mip3(mask & nlms_mip3 ~= 0));
 T = thresholdRosin(selected(inliers));
 
+k = 1;
 nms = nlms(:,:,1);
 % figure; imshow(nms,[]);
 nlms_binary = (nlms_mip3 > T) & mask;
