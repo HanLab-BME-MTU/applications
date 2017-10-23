@@ -281,16 +281,9 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     %% Only need to perform filtering if it is the first iteration. 
     if reconIter ==1
         
-        % get the response of the pieces
-        respValuesCand =   cellfun(@(x) maxRes(x),CC.PixelIdxList,'uniformoutput',0);
-        meanRespValuesCand = cellfun(@(x) mean(x),respValuesCand);
         sizeCand = cellfun(@(x) length(x), CC.PixelIdxList);
-        % get the response of the high confidence seeds
-%%  
-        toExclude = sizeCand<=2;
-        filoSkelPreConnect(vertcat(CC.PixelIdxList{toExclude'}))= 0;
-        CC.PixelIdxList(toExclude') = [];
-        CC.NumObjects = CC.NumObjects -sum(toExclude);%
+       
+
         %% Optional filterBasedOnVeilAttachedDistr
         % Option to filter candidate filopodia segments by considereing the 
         % distribution of mean response values of those candidate segments directly 
@@ -302,9 +295,19 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         % if segment piece is < 10 pixels. 
   
         if ip.Results.filterBasedOnVeilStemAttachedDistr
+            
+          
+            % get the average response of each connected component
+            % filopodia candidate for attachment 
+            respValuesCand =   cellfun(@(x) maxRes(x),CC.PixelIdxList,'uniformoutput',0);
+            meanRespValuesCand = cellfun(@(x) mean(x),respValuesCand);
+            
+            
+            % estimate a low value response cut-off for the unattached filopodia candidates based on the 
+            % population of mean response values for filopodia attached to the veil/stem
             cutoff = prctile(meanRespValuesSeed,5); %
-            toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2; %% FOR CLEAN should take out sizeCand<=2
-            % as redundant with above. 
+            toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2; %% need to change this based on the 'minCCRidgeOutsideVeil'
+         
             %% TSFigs
             if ip.Results.TSOverlays == true
                 TSFigs2(countFigs).h = setFigure(nx,ny,'on');
@@ -358,12 +361,16 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
                 ylabel('Size of Candidate Ridge (Pixels)');
                 axis([0,max(totalPop),0,max(sizeCand)]);
                 countFigs = countFigs +1;
+                
             end % if TSOverlays
+        else 
+             toExclude = sizeCand<=2;% need to change this based on the 'minCCRidgeOutsideVeil'
+        end % if ip.Results.filterBasedOnVeilStemAttachedDistr
             %% remove these candidates
             filoSkelPreConnect(vertcat(CC.PixelIdxList{toExclude'}))= 0;
             CC.PixelIdxList(toExclude') = [];
             CC.NumObjects = CC.NumObjects -sum(toExclude);%          
-        end % if ip.Results.filterBasedOnVeilStemAttachedDistr
+      
     end % recon iter == 1 
 %%    
     % keep on iterating until no more viable candidates
