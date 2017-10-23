@@ -17,6 +17,7 @@ ip.KeepUnmatched = true;
 ip.addParamValue('scales', [1 1 1 1], @isnumeric);
 ip.addParamValue('MD',[],@(MD) isa(MD,'MovieData'));
 ip.addParamValue('vertexProp',{}, @iscell);
+ip.addParamValue('dragonTail',[]);
 ip.addParamValue('fillGaps',true, @islogical);
 ip.addParamValue('edgeProp',{}, @iscell);
 ip.addParamValue('cumulativeOnly',false, @islogical);
@@ -53,14 +54,15 @@ if(p.fillGaps)
     end
 end
 
-numTimePoints=tracks.numTimePoints();
+
+processFrames=[0:tracks.numTimePoints()];
 if(p.cumulativeOnly)
-    numTimePoints=0;
+    processFrames=0;
 end
     
 % Frame 0 is the cumulative track distribution. Ugly ? I know, stfu.
-for fIdx=0:numTimePoints
-    
+parfor fIdxIdx=1:length(processFrames)
+    fIdx=processFrames(fIdxIdx);
     %% Indx of tracks on the current frame
     if(fIdx>0)
         tracksOn=([tracks.endFrame]>=fIdx)&(fIdx>[tracks.startFrame]);
@@ -73,18 +75,28 @@ for fIdx=0:numTimePoints
     tracksEnds=size(nbTracsOn*2,3);
     % relative Idx of the end of each tracks (e.g. for use in tracks(i).x)
     endRelIdx=fIdx-[tracks.startFrame]+1; 
+
+
     if(fIdx==0)
         endRelIdx=[tracks.lifetime];
     end;
+
+    % relative Idx of the start of each tracks (e.g. for use in tracks(i).x)
+    if(~isempty(p.dragonTail))
+        startRelIdx=max(endRelIdx-p.dragonTail+1,1);
+    else
+        startRelIdx=endRelIdx;
+        startRelIdx(:)=1;
+    end
     count=1;
     for tIdx=find(tracksOn)
         tr=tracks(tIdx);
         tracksEnds(count+1,1)=(tr.x(endRelIdx(tIdx))-1)*s(1);
         tracksEnds(count+1,2)=(tr.y(endRelIdx(tIdx))-1)*s(2);
         tracksEnds(count+1,3)=(tr.z(endRelIdx(tIdx))-1)*s(3);
-        tracksEnds(count,1)=(tr.x(1)-1)*s(1);
-        tracksEnds(count,2)=(tr.y(1)-1)*s(2);
-        tracksEnds(count,3)=(tr.z(1)-1)*s(3);                        
+        tracksEnds(count,1)=(tr.x(startRelIdx(tIdx))-1)*s(1);
+        tracksEnds(count,2)=(tr.y(startRelIdx(tIdx))-1)*s(2);
+        tracksEnds(count,3)=(tr.z(startRelIdx(tIdx))-1)*s(3);                        
         count=count+2;
     end
 
@@ -98,7 +110,7 @@ for fIdx=0:numTimePoints
     
     %% tracks point    
     % numPointsPerEdge=max(2,endRelIdx(tracksOn)'); %if one single time point Amira still needs two time points...
-    numPointsPerEdge=endRelIdx((tracksOn))';
+    numPointsPerEdge=endRelIdx((tracksOn))'- startRelIdx((tracksOn))'+1;
     numPoints=sum(numPointsPerEdge);
     tracksPoints=zeros([numPoints,3]);
     pointType=zeros(numPoints,1);
@@ -106,12 +118,14 @@ for fIdx=0:numTimePoints
     for tIdx=find(tracksOn)
         tr=tracks(tIdx);
         endIdx=endRelIdx(tIdx);
+        startIdx=startRelIdx(tIdx);
+        nPoint=endIdx-startIdx+1;
         gapM=tr.gapMask;
-        tracksPoints(count:(count+endIdx-1),1)=(tr.x(1:endIdx)-1)*s(1);
-        tracksPoints(count:(count+endIdx-1),2)=(tr.y(1:endIdx)-1)*s(2);
-        tracksPoints(count:(count+endIdx-1),3)=(tr.z(1:endIdx)-1)*s(3);      
-        pointType(count:(count+endIdx-1))=gapM(1:endIdx)';
-        count=count+endIdx;
+        tracksPoints(count-1 + (1:nPoint),1)=(tr.x(startIdx:endIdx)-1)*s(1);
+        tracksPoints(count-1 + (1:nPoint),2)=(tr.y(startIdx:endIdx)-1)*s(2);
+        tracksPoints(count-1 + (1:nPoint),3)=(tr.z(startIdx:endIdx)-1)*s(3);      
+        pointType(count-1 + (startIdx:endIdx))=gapM(startIdx:endIdx)';
+        count=count+endIdx-startIdx+1;
     end
     
     %% Track id (edge property)

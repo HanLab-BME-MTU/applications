@@ -86,7 +86,9 @@ function figure1_DeleteFcn(hObject, ~, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
 
-delete(userData.helpFig(ishandle(userData.helpFig))); 
+if isfield(userData,'helpFig') && userData.helpFig ~= -1 
+    delete(userData.helpFig(ishandle(userData.helpFig))); 
+end
 
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);

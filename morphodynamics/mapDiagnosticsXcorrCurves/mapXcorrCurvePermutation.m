@@ -44,7 +44,10 @@ function mapXcorrCurvePermutation(MD, iChan1, iChan2, chan1Name, chan2Name, laye
 %       subFrames
 %                   - specified frames will be only used.        
 %
-% Updated: Jungsik Noh, 2017/05/23     
+% Updated: J Noh, 2017/08/26. To deal with differenced channels. 
+%                     iChan = 1x indicates the differenced map (X_t =
+%                     X_{t-1}) of channel x.
+% Jungsik Noh, 2017/05/23     
 % Jungsik Noh, 2016/10/22
 
 

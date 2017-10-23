@@ -4,7 +4,7 @@ function [LM,scaleVol]=multiscaleStochasticFiltering(vol,XZRatio)
 %
 %% Set Scale Range for Detection
 % Adhesions setup - [1.1:0.1:4]
-scales=[2:0.5:5];
+scales=[2:0.5:4];
 
 % Myosin setup
 % scales=[1.2:0.1:8];

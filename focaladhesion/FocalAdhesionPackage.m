@@ -238,7 +238,16 @@ classdef FocalAdhesionPackage < Package
             detectedNAProc = owner.getProcess(owner.getProcessIndex('DetectionProcess'));
             
             %%TODO - Move to sanity check section
-            assert(detectedNAProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');
+            if length(detectedNAProc.funParams_.ChannelIndex) > 1
+                numChan = length(trackNAProc.funParams_.ChannelIndex);
+                for i = 1:numChan
+                    assert(detectedNAProc.funParams_.ChannelIndex(i) == trackNAProc.funParams_.ChannelIndex(i), 'ChannelInex should match');        
+                end
+            elseif length(detectedNAProc.funParams_.ChannelIndex) == 1
+                assert(detectedNAProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');    
+            end
+            
+
             
             %%TODO - Sangyoon suggests an automated selection of parameters
             funParams.ChannelIndex = trackNAProc.funParams_.ChannelIndex;

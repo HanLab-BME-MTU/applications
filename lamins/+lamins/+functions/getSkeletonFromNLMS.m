@@ -6,7 +6,7 @@ gcp;
 I = double(I);
 F = OrientationSpaceRidgeFilter(1./2/pi./2,[],8,'none');
 R = I*F;
-R3 = R.getResponseAtOrderFT(3);
+R3 = R.getResponseAtOrderFT(3,2);
 [original.maxima,~,original.maximaV] = R.getRidgeOrientationLocalMaxima;
 nlms = R3.nonLocalMaximaSuppressionPrecise(original.maxima);
 

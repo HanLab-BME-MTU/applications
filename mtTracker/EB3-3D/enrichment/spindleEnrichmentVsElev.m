@@ -1,4 +1,4 @@
-function spindleEnrichmentVsElev(MD,varargin)
+function spindleEnrichment(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;

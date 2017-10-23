@@ -11,6 +11,7 @@ if(nargin < 4)
     truncate = true;
 end
 
+% aligned = sort(extrema,'ComparisonMethod','real');
 aligned = sort(extrema);
 nExtrema = sum(~isnan(aligned));
 totalExtrema = max(nExtrema);
@@ -25,7 +26,7 @@ events = find(diff(nExtrema) ~= 0 | currentCost > period - currentCost);
 % events = 1:length(nExtrema)-1;
 
 for e = events
-    cost = abs(bsxfun(@minus,aligned(:,e).',aligned(:,e+1)));
+    cost = abs(bsxfun(@minus,real(aligned(:,e).'),real(aligned(:,e+1))));
 %     wrap = cost > period;
 %     cost(wrap) = mod(cost(wrap),period);
     cost = min(abs(period-cost),cost);
@@ -34,7 +35,7 @@ for e = events
         % Cost matrix is all NaN
     else
         cost(isnan(cost)) = max(cost(:))+1;
-        [link12,link21] = lap(cost);       
+        [link12,link21] = lap(cost);
         aligned(:,e+1:end) = aligned(link21,e+1:end);
     end
 end

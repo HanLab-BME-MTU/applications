@@ -16,7 +16,7 @@ p=ip.Results;
 
 if(~exist(fileparts(filename))) mkdirRobust(fileparts(filename)); end;
 
-if(~isfield(movieInfo,'zCoord'))
+if(~isfield(movieInfo,'zCoord')&&~all(isprop(movieInfo,'zCoord')))
     for fIdx=1:length(movieInfo)
         movieInfo(fIdx).zCoord=movieInfo(fIdx).xCoord;
         movieInfo(fIdx).zCoord(:)=0;

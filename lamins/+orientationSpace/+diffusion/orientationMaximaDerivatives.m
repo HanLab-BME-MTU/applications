@@ -1,4 +1,4 @@
-function [ dnm_dKn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm , period)
+function [ dnm_dKn, dnm_dtn ] = orientationMaximaDerivatives( rho, K, derivOrder, lm , period)
 %ORIENTATIONMAXIMADERIVATIVES Find the K derivatives of local maxima
 %
 % INPUT
@@ -49,6 +49,9 @@ end
 rho_derivs = interpft1_derivatives(rho,lm,2:derivOrder*2+1,period);
 
 [dnm_dtn,maximaDerivatives] = dqm_dtq(derivOrder,D,rho_derivs);
+if(nargout > 1)
+    dnm_dtn = cat(3,maximaDerivatives{:});
+end
     
 % if(derivOrder == 1)
 % %     rho_derivs = interpft1_derivatives(rho,lm,[2 3]);
@@ -207,7 +210,7 @@ function dqm_dKq = translate_from_t_to_K_hard(q,dqm_dtq_v,K,dnt_dKn)
         return;
     end
     
-    dnt_dKn = repmat(dnt_dKn,[1 size(dqm_dtq_v,2) 1]);
+    dnt_dKn = repmat(dnt_dKn,[1 size(dqm_dtq_v,2)./size(dnt_dKn,2) 1]);
     
     switch(q)
         case 1

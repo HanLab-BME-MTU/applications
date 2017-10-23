@@ -24,6 +24,7 @@ ip.addRequired('toPlot');
 ip.addParameter('Interactive',true,@(x) islogical(x));
 ip.addParameter('OutputDirectory',pwd,@(x) ischar(x));
 ip.addParameter('clearUnusedFields',true);  % Will rewrite the toPlot file just with 
+
 % the user defined measurements 
 
 % ip.addParameter('yLimOff',false,@(x) islogical(x));
@@ -44,6 +45,13 @@ ip.addParameter('calcZ',true); % adds a z-score to the structure
 ip.addParameter('makePlots',true); % make group plots of those that are significant 
 ip.addParameter('plotCutOff',1); % value for making plots  (Currently assumes one std) 
 
+ip.addParameter('cutOffPValue',[]); % filter z-score by permTest p-value before clustering. 
+% default don't filter 
+
+ip.addParameter('filterNonSigFeatures',false); 
+
+ip.addParameter('plotImagesc',true);% 
+
 ip.parse(toPlot,varargin{:});
 %%
 toPlot = helperAddYLabels(toPlot); 
@@ -51,7 +59,7 @@ perNeuriteStat = str2func(ip.Results.perNeuriteStat);
 
 params = fieldnames(toPlot);
 params = params(~strcmpi('info',params)) ;
-paramSelectLogic = false(numel(params,1)); 
+paramSelectLogic = false(size(params,1),1); 
 
 if ip.Results.Interactive
     paramSelect  = listSelectGUI(params,[],'move');
@@ -66,7 +74,7 @@ switch ip.Results.diffMetric
     case 'perCellZ'
         outDir = [ip.Results.OutputDirectory filesep 'HierarchicalCluster' ...
             filesep ip.Results.diffMetric  filesep ip.Results.perNeuriteStat ];
-    case 'pooled'
+    case 'pooledZ'
         outDir = [ip.Results.OutputDirectory filesep 'HierarchicalCluster' ...
             filesep ip.Results.diffMetric  ];
 end
@@ -241,6 +249,36 @@ if ip.Results.calcZ
 %     
 %     filename  = ['dataToCluster_' ip.Results.diffMetric' '_' ip.Results.perNeuriteStat '.csv']; 
     export(data,'file',[outDir filesep 'dataToCluster.csv']);
+    
+    if ~isempty(ip.Results.cutOffPValue)
+      
+        plotDir = [outDir filesep 'IndividualPlotsBeforeCluster']; 
+        if ~isdir(plotDir)
+            mkdir(plotDir)
+        end 
+        toPlotMeas =  GCAGroupAnalysisGroupPlots(toPlot,'Measurements',params,...
+            'Interactive',false,'OutputDirectory',plotDir,... 
+            'plotType','perCell','perNeuriteStat',ip.Results.perNeuriteStat,'FontSize',40,...
+            'makePlot',false);
+        pValuesCell = arrayfun(@(x) toPlotMeas.(params{x}).pValues.perCell,1:numel(params),'uniformoutput',0); 
+        pValues = vertcat(pValuesCell{:});
+        pValues = pValues(:,2:end);  % dont' include control 
+        filterMat = pValues < ip.Results.cutOffPValue;  
+        if ip.Results.filterNonSigFeatures
+            test = sum(filterMat,2); 
+            filterMat(test==0,:) = []; % filter if all perturbations insignificant. 
+            forHeatMap(test==0,:)= []; 
+            params(test==0) =[];
+        end 
+        forHeatMap = forHeatMap.*filterMat; 
+    end 
+     
+    % if filter out non-sig rows for clustering.
+    
+    
+   
+    
+    
     ClusterObj = clustergram(forHeatMap,'ColorMap','redbluecmap','RowLabels',params,'ColumnLabels',names,'Dendrogram',{'default','default'});
     sortedLabels = get(ClusterObj,'ColumnLabels');
     IDSort = cellfun(@(x) find(strcmpi(x,toPlot.info.names)),sortedLabels);
@@ -250,6 +288,28 @@ if ip.Results.calcZ
     IDRow = cellfun(@(x) find(strcmpi(x,params)),sortedLabelsMeas); 
  
     forHeatMapSort = forHeatMap(IDRow,IDSort); 
+    
+    %% Add a small bit here to save a imagesc of the sorted Z Scores 
+    % (with the clusterObj it is non-intuative how the scaling is
+    % performed): also the .eps file of the imagesc images are typically in
+    % weird output that doesn't translate position well in illustrator
+    % (seems to be saved as some repeated background image) 
+    % Therefore it is good to just print the image the approx size you want
+    % using imagesc. 
+    if ip.Results.plotImagesc
+        
+        setFigure(172,250,'on')
+        imagesc(forHeatMapSort);
+        % make sure 'ydir' is normal (typically 'reverse' by default for imagesc)
+        set(gca,'ydir','normal');
+        
+        cmap = get(ClusterObj,'Colormap');
+        set(gcf,'Colormap',cmap);
+        
+        set(gca,'clim',[-3,3])
+        helperScreen2png([outDir filesep 'JustHeatMap.png']); 
+    end
+    %% 
     dataSort = mat2dataset(forHeatMapSort,'ObsNames',sortedLabelsMeas,'varNames',sortedLabels); 
     export(dataSort,'file',[outDir filesep 'dataPostCluster.csv']); 
     
@@ -274,10 +334,17 @@ if ip.Results.calcZ
         % get the sorted labels from the cluster gram so
         % can plot the groups in that order (simply more
         % intuitive) 
-
+        switch ip.Results.diffMetric
+            case 'perCellZ'
+                plotType = 'perCell';
+            case 'pooledZ'
+                plotType = 'pooled';
+        end
+            
+        
         GCAGroupAnalysisGroupPlots(toPlot,'order', sortedLabels,... 
             'Interactive',false,'OutputDirectory',plotDir,... 
-            'plotType','pooled','measurements',measToPlot,'perNeuriteStat',ip.Results.perNeuriteStat,'FontSize',40);
+            'plotType',plotType,'measurements',measToPlot,'perNeuriteStat',ip.Results.perNeuriteStat,'FontSize',40);
         time = clock; 
         save([plotDir filesep 'timeStamp.mat'],'time');  
      end 

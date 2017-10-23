@@ -205,9 +205,9 @@ Inspired by the form of the second derivative of $ \theta_m $, we explore an alt
 & = & \pdv[2]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[3]{\rho}{\theta} \\
 \dv{t} \left( \pdv[n]{\rho(\theta_m(t),t)}{\theta} \right) & = & \pdv[n+1]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[n+2]{\rho}{\theta} \\
 \dv[2]{t} \left( \pdv{\rho(\theta_m(t),t)}{\theta} \right) & = & 0 \\
-& = & \dv{t}( \pdv[2]{\rho}{\theta} ) \pdv{\theta_m}{t} + \pdv[2]{\rho}{\theta} \pdv[2]{\theta_m}{t} + D \dv{t}( \pdv[3]{\rho}{\theta} ) \\
--  \pdv[2]{\rho}{\theta} \pdv[2]{\theta_m}{t}  & = &
- \left( \pdv[3]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[4]{\rho}{\theta} \right) \pdv{\theta_m}{t}
+& = & \dv{t}( \pdv[2]{\rho}{\theta} ) \pdv{\theta_m}{t} + \pdv[2]{\rho}{\theta} \dv[2]{\theta_m}{t} + D \dv{t}( \pdv[3]{\rho}{\theta} ) \\
+-  \pdv[2]{\rho}{\theta} \dv[2]{\theta_m}{t}  & = &
+ \left( \pdv[3]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[4]{\rho}{\theta} \right) \dv{\theta_m}{t}
 + D\left( \pdv[4]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[5]{\rho}{\theta} \right) \\ 
  & = &  \pdv[3]{\rho}{\theta} \left( \dv{\theta_m}{t} \right)^2 + 2 D \pdv[4]{\rho}{\theta}  \dv{\theta_m}{t}  + D^2 \pdv[5]{\rho}{\theta}  \\
 \dv[2]{\theta_m}{t} & = & - \left[ \frac{\displaystyle
@@ -287,6 +287,48 @@ With this formula in hand, we can then calculate $ \dv*[q]{\theta_m}{t} $ by sta
 {\displaystyle \pdv[2]{\rho}{\theta} }
 \end{eqnarray}
 To increment q, another two orders of derivatives of $ \rho $ are required. For the derivative $ \dv*[q]{\theta_m} $ the highest order $ \rho $ derivative with respect to $ \theta $  will be $ 2q+1 $ which will result from the evaluation of the term on the right side. 
+
+\subsubsection{Calculating $ \dv*[q]{t}{\theta_m} $}
+
+Near bifurcation points discussed in the next section, it may also be advantageous to calculate the derivative of the inverse function of the local maxima. Near such bifurcation points, $ \pdv[2]{\rho}{\theta} $ approaches zero causing $ \dv[q]{\theta_m}{t} $ to approach infinity. The inverse function $ \theta_m^{-1} $ is defined as follows:
+\begin{eqnarray}
+	\theta_m^{-1}(\theta_m(t)) & \equiv & t \\
+	\theta_m(\theta_m^{-1}(\theta)) & = & \theta_m(t(\theta)) \\
+	& = & \theta \\
+\end{eqnarray}
+From this definition we obtain an identity that can be used to find $ \dv{t}{\theta} $ via the Inverse Function Theorem.
+\begin{eqnarray}
+	\dv{\theta_m^{-1}}{\theta} \dv{\theta}{t} & = & \dv{t}{\theta} \dv{\theta}{t} = 1 \\
+	\dv{t}{\theta} & = & \left( \dv{\theta}{t} \right)^{-1}
+\end{eqnarray}
+The higher derivatives can also be found by taking derivatives of the identity and using Faa di Bruno's formula.
+\begin{eqnarray}
+	\dv[n]{}{t} \theta_m^{-1}(\theta_m(t)) & = & \dv[n]{t}{t} \\
+	& = & 0 \mbox{ for } n \ge 2 \\
+	\dv[2]{t}{\theta_m} \left(\dv{\theta_m}{t}\right)^2 + \dv{t}{\theta_m}\dv[2]{\theta_m}{t} & = & 0 \\
+	\dv[2]{t}{\theta_m} & = & -\dv[2]{\theta_m}{t} \dv{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^{-2} \\
+	& = & -\dv[2]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-3} = -\dv[2]{\theta_m}{t} \left( \dv{t}{\theta_m} \right)^{3} \\
+\end{eqnarray}
+\begin{eqnarray}
+	0 & = & \dv[3]{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^3 + 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t}  \\
+	\dv[3]{t}{\theta_m} & = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t} \right) \\
+	& = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( -3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-2}  + \left( \dv{\theta_m}{t} \right)^{-1} \dv[3]{\theta_m}{t} \right) \\
+	& = & 3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-5}  - \dv[3]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-4} 
+\end{eqnarray}
+
+\subsubsection{$ \dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} $}
+
+\begin{eqnarray}
+	0 & = & \pdv[2]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv{t}{\theta} \\
+	0 & = & \pdv[3]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta}  + 2 D \pdv[4]{\rho}{\theta} \dv{t}{\theta}  + D^2 \pdv[5]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \\
+	0 & = & D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta}  + \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D \pdv[5]{\rho}{\theta} \dv{t}{\theta}  \\
+	& + & 3 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[6]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2  + D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3 \\
+	0 & = & D \pdv[3]{\rho}{\theta} \dv[4]{t}{\theta}  + 4 D \pdv[4]{\rho}{\theta} \dv[3]{t}{\theta}  + 4 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[3]{t}{\theta}  \\
+	& + & \pdv[5]{\rho}{\theta}  + 6 D \pdv[5]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[5]{\rho}{\theta} \left(\dv[2]{t}{\theta}\right)^2  \\ 
+	& + & 4 D \pdv[6]{\rho}{\theta} \dv{t}{\theta}  + 12 D^2 \pdv[6]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 6 D^2 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2\\
+	& + & 6 D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \dv[2]{t}{\theta}  + 4 D^3 \pdv[8]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3  \\
+	& + & D^4 \pdv[9]{\rho}{\theta} \left(\dv{t}{\theta}\right)^4 
+\end{eqnarray}
 
 \subsection{Bifurcation Points}
 

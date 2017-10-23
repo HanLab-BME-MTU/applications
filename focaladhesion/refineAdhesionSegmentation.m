@@ -1,4 +1,4 @@
-function [ maskAdhesion2 ] = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA)%,mask)
+function [ maskAdhesion2 ] = refineAdhesionSegmentation(maskAdhesion, I, xNA, yNA, varargin)
 %[ maskAdhesion ] = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA)
 % chops off over-segmented segmentation (e.g. series of closely-located
 % nascent adhesions) to several non-overlapping individual masks based on
