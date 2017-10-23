@@ -224,15 +224,15 @@ set(get(handles.uipanel_filterParameters,'Children'),'Enable',enableState);
 function popupmenu_method_Callback(hObject, eventdata, handles)
 
 props=get(handles.popupmenu_method,{'UserData','Value'});
-if strcmpi(props{1}{props{2}},'fastbem'),
+if strcmpi(props{1}{props{2}},'fastbem')
     set(get(handles.uipanel_BEM,'Children'),'Enable','on');
     set(handles.useLcurve,'Enable','on');
     set(get(handles.groupCornerOptimal,'Children'),'Enable','on');
-else
+else %when the method is fttc
     set(get(handles.uipanel_BEM,'Children'),'Enable','off');
-    set(handles.useLcurve,'Value',false);
-    set(handles.useLcurve,'Enable','off');
-    set(get(handles.groupCornerOptimal,'Children'),'Enable','off');
+    set(handles.useLcurve,'Value',true);
+    set(handles.useLcurve,'Enable','on');
+    set(get(handles.groupCornerOptimal,'Children'),'Enable','on');
 end
 
 
