@@ -589,7 +589,7 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
             % Save the labels
             labelAdhesion = bwlabel(maskAdhesion,4);
             imwrite(labelAdhesion, strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
-            parfor k=1:numel(tracksNA)
+            parfor k=1:numTracks
                 curTrack=tracksNA(k);
                 if curTrack.presence(ii)
 %                     if ~strcmp(curTrack.state{ii} , 'NA') && ii>1
@@ -770,20 +770,21 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
                 adhBoundary = adhBound{k};
                 plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
             end
-            for k=1:numel(tracksNA)
-                if tracksNA(k).presence(ii)
-                    if strcmp(tracksNA(k).state{ii} , 'NA')
+            parfor k=1:numel(tracksNA)
+                curTrack = tracksNA(k);
+                if curTrack.presence(ii)
+                    if strcmp(curTrack.state{ii} , 'NA')
                         % drawing tracks
-                        plot(tracksNA(k).xCoord(1:ii),tracksNA(k).yCoord(1:ii),'r', 'LineWidth', 0.5)
-                        plot(tracksNA(k).xCoord(ii),tracksNA(k).yCoord(ii),'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
-                    elseif strcmp(tracksNA(k).state{ii} , 'FC')
+                        plot(curTrack.xCoord(1:ii),curTrack.yCoord(1:ii),'r', 'LineWidth', 0.5)
+                        plot(curTrack.xCoord(ii),curTrack.yCoord(ii),'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
+                    elseif strcmp(curTrack.state{ii} , 'FC')
                         % drawing tracks
-                        plot(tracksNA(k).xCoord(1:ii),tracksNA(k).yCoord(1:ii),'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
-                        plot(tracksNA(k).xCoord(ii),tracksNA(k).yCoord(ii),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
-                    elseif strcmp(tracksNA(k).state{ii} , 'FA')
+                        plot(curTrack.xCoord(1:ii),curTrack.yCoord(1:ii),'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
+                        plot(curTrack.xCoord(ii),curTrack.yCoord(ii),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
+                    elseif strcmp(curTrack.state{ii} , 'FA')
                         % drawing tracks
-                        plot(tracksNA(k).xCoord(1:ii),tracksNA(k).yCoord(1:ii),'b', 'LineWidth', 0.5)
-                        plot(tracksNA(k).xCoord(ii),tracksNA(k).yCoord(ii),'bo','MarkerSize',markerSize, 'LineWidth', 0.5)
+                        plot(curTrack.xCoord(1:ii),curTrack.yCoord(1:ii),'b', 'LineWidth', 0.5)
+                        plot(curTrack.xCoord(ii),curTrack.yCoord(ii),'bo','MarkerSize',markerSize, 'LineWidth', 0.5)
                     end
                 end
             end
@@ -791,7 +792,7 @@ if ~foundTracks || skipOnlyReading || ~exist([dataPath filesep 'focalAdhInfo.mat
             print(h2, '-depsc2', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
             print(h2, '-dtiff', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
         %     hgexport(h2,strcat(paxtifPath,'/paxWithForcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
-            hgsave(h2,strcat(figPath,'/paxPeakFig',num2str(ii,iiformat)),'-v7.3')
+        %    hgsave(h2,strcat(figPath,'/paxPeakFig',num2str(ii,iiformat)),'-v7.3')
             close(h2)
             clear h2
         end
@@ -955,9 +956,10 @@ if saveAnalysis
         end
         lifeTimeAll = [lifeTimeNAmaturing lifeTimeNAfailing];
         maturingRatio = p/(p+q);
-        tracksNAmaturing = trNAonly(indMature);
-        tracksNAfailing = trNAonly(indFail);
-        save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll','-v7.3')
+%         tracksNAmaturing = trNAonly(indMature);
+%         tracksNAfailing = trNAonly(indFail);
+%         save([dataPath filesep 'allData.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll','-v7.3')
+        save([dataPath filesep 'allData.mat'], 'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll','-v7.3')
         lifeNames = {'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll'};
         B= table({maturingRatio';lifeTimeNAfailing;lifeTimeNAmaturing;lifeTimeAll},'RowNames',lifeNames);
         writetable(B,[dataPath filesep 'lifeTimes.csv'])

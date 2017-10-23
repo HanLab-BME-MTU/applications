@@ -210,29 +210,52 @@ if min(min(maskArray(:,:,1))) == 0
         % Use mask of first frame to filter bead detection
         firstMask = refFrame>0; %false(size(refFrame));
         tempMask = maskArray(:,:,1);
-        % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
-        tempMask2 = false(size(refFrame));
-        y_shift = find(any(firstMask,2),1);
-        y_lastNonZero = find(any(firstMask,2),1,'last');
-        x_shift = find(any(firstMask,1),1);
-        x_lastNonZero = find(any(firstMask,1),1,'last');
-        % It is possible that I created roiMask based on tMap which is
-        % based on reg_grid. In that case, I'll have to re-size firstMask accordingly
-        % check if maskArray is made based on channel
-        if (y_lastNonZero-y_shift+1)==size(tempMask,1) ...
-                && (x_lastNonZero-x_shift+1)==size(tempMask,2)
-            tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
-            if (y_shift+size(tempMask,1))>size(firstMask,1) || x_shift+size(tempMask,2)>size(firstMask,2)
-                firstMask=padarray(firstMask,[y_shift-1 x_shift-1],'replicate','post');
+        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+            s = load(SDCProc.outFilePaths_{3,pDisp.ChannelIndex},'T');
+            T = s.T;
+            meanYShift = round(T(1,1));
+            meanXShift = round(T(1,2));
+            firstMask = circshift(tempMask,[meanYShift meanXShift]);
+            % Now I blacked out erroneously circularaly shifted bead image
+            % portion - SH 20171008
+            if meanYShift>=0 %shifted downward
+                firstMask(1:meanYShift,:)=0;
+            else %shifted upward
+                firstMask(end+meanYShift:end,:)=0;
             end
-        elseif size(firstMask,1)==size(tempMask,1) ... 
-                && size(firstMask,2)==size(tempMask,2) % In this case, maskArray (or roiMask) is based on reg_grid
-            disp('Found that maskArray (or roiMask) is based on reg_grid')
-            tempMask2 = tempMask;
+            if meanXShift>=0 %shifted right hand side
+                firstMask(:,1:meanXShift)=0;
+            else %shifted left
+                firstMask(:,end+meanXShift:end)=0;
+            end
+            
         else
-            error('Something is wrong! Please check your roiMask!')
+            % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+            tempMask2 = false(size(refFrame));
+            y_shift = find(any(firstMask,2),1);
+            y_lastNonZero = find(any(firstMask,2),1,'last');
+            x_shift = find(any(firstMask,1),1);
+            
+            x_lastNonZero = find(any(firstMask,1),1,'last');
+            % It is possible that I created roiMask based on tMap which is
+            % based on reg_grid. In that case, I'll have to re-size firstMask accordingly
+            % check if maskArray is made based on channel
+            if (y_lastNonZero-y_shift+1)==size(tempMask,1) ...
+                    && (x_lastNonZero-x_shift+1)==size(tempMask,2)
+                tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+                if (y_shift+size(tempMask,1))>size(firstMask,1) || x_shift+size(tempMask,2)>size(firstMask,2)
+                    firstMask=padarray(firstMask,[y_shift-1 x_shift-1],'replicate','post');
+                end
+            elseif size(firstMask,1)==size(tempMask,1) ... 
+                    && size(firstMask,2)==size(tempMask,2) % In this case, maskArray (or roiMask) is based on reg_grid
+                disp('Found that maskArray (or roiMask) is based on reg_grid')
+                tempMask2 = tempMask;
+            else
+                error('Something is wrong! Please check your roiMask!')
+            end
+            firstMask = tempMask2 & firstMask;
         end
-        firstMask = tempMask2 & firstMask;
+               
 %         firstMask = false(size(refFrame));
 %         tempMask = maskArray(:,:,1);
 %         firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask; % This was wrong
@@ -791,21 +814,19 @@ if strcmpi(p.method,'FastBEM')
         end
     end
 else % FTTC
+    reg_corner=p.regParam;
     for i=frameSequence
         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
-        if p.useLcurve
-            [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat, iu_mat, p.YoungModulus,...
-                p.PoissonRatio, gridSpacing, i_max, j_max, p.regParam,p.LcurveFactor);
-            [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
-                p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, reg_corner);
-            [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(rho,eta,alphas,reg_corner,'manualSelection',true);
-            save(outputFile{5,1},'rho','eta','reg_corner','ireg_corner');
-            saveas(hLcurve,outputFile{4,1});
-            close(hLcurve)
-        else
-            [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
-                p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, p.regParam);
+        if p.useLcurve && i==frameSequence(1)
+                [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat, iu_mat, p.YoungModulus,...
+                    p.PoissonRatio, gridSpacing, i_max, j_max, p.regParam,p.LcurveFactor);
+                [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,'manualSelection',true);
+                save(outputFile{5,1},'rho','eta','reg_corner','ireg_corner');
+                saveas(hLcurve,outputFile{4,1});
+                close(hLcurve)
         end
+        [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
+            p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, reg_corner);
         forceField(i).pos=pos_f;
         forceField(i).vec=force;
     end

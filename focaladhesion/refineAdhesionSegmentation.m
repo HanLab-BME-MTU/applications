@@ -185,7 +185,7 @@ bwInteriorBDAll(allIndexAll)=true;
 % bwInteriorBD2(allInterPixIDs) = true;
 % % bwInteriorBD2 = bwInteriorBDAll;
 %% Make bwInteriorBD2 effective in maskAdhesion
-maskAdhesion2 = maskAdhesion .* ~bwInteriorBDAll;
+maskAdhesion2 = maskAdhesion & ~bwInteriorBDAll;
 %% Filter the weak segmenation
 % % Look at the distribution of area and intensity
 % survivedSegs=regionprops(bwconncomp(maskAdhesion2,4),I,'Area','MeanIntensity','PixelIdxList');
