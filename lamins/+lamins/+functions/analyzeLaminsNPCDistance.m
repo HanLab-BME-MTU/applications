@@ -89,7 +89,7 @@ saveas(hfig,'Nucleus_mask.png');
 % Apply mask to NLMS
 nlms_offset(~repmat(mask,[1 1 size(nlms_offset,3)])) = NaN;
 
-[X,Y] = meshgrid(1:1024,1:1024);
+[X,Y] = meshgrid(1:size(nlms,2),1:size(nlms,1));
 
 % Get sub-pixel NLMS points
 XX = joinColumns(X+cos(original.maxima).*nlms_offset);
