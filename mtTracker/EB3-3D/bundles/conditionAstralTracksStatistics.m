@@ -27,7 +27,10 @@ for cIdx=1:length(processCell)
 	condScoreCell=cell(1,length(processCell{cIdx}));
 	for pIdx=1:length(processCell{cIdx})
 		tmp=load(processCell{cIdx}(pIdx).outFilePaths_{1});
-		condScoreCell{pIdx}=tmp.speedStd;
+        try
+            condScoreCell{pIdx}=tmp.speedStd;
+        catch
+        end;
 	end
 	accelerationCell{cIdx}=condScoreCell;    
 end
@@ -60,13 +63,21 @@ scoresBin=0:0.1:7;
 group=[];
 astralHist=cell(1,length(processCell));
 for cIdx=1:length(processCell)
+    conditionAstralCataData.name=names{cIdx};
+    moviesStruct=[];
 	for pIdx=1:length(processCell{cIdx})
         measures=measureCell{cIdx}{pIdx};
 		allMeasure=[allMeasure measures'];
 		[counts,edges,binIdx]=histcounts(allMeasure,scoresBin);
 		astralHist{cIdx}=[astralHist{cIdx}; counts];
-    end	
+        movie.movieData=processCell{cIdx}(pIdx).getOwner().movieDataPath_;
+        movie.trackLengthBin=scoresBin; 
+        movie.trackLengthCount=counts; 
+        moviesStruct=[moviesStruct movie];
+    end
+    conditionAstralCataData.movies=moviesStruct;  
 end
+save(fullfile(outputDirPlot,'conditionAstralCataData.mat'),'conditionAstralCataData');
 
 [Handles,~,F]=setupFigure(length(processCell),1,length(processCell));
 for cIdx=1:length(astralHist)

@@ -3,6 +3,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addParameter('package',[]);
+ip.addParameter('startTime',0);
 ip.addParameter('dynROIProject',[]);
 ip.addParameter('name',[]);
 ip.addParameter('packPID',400);
@@ -129,19 +130,21 @@ MD.getPackage(packPIDTMP).setProcess(lpid,processProjSpindleRef);
 
 %% Elevation and densities
 
-process=ExternalProcess(MD,'Detection');
-overlayProjDetectionMovie(processProj,'detections',allDetections, ...
-        'process',process,'cumulative',true,'processFrames',1, ...
-        'name','cumulDetectionDensity');
-img1=imread(sprintfPath(process.outFilePaths_{2},1));
+%% Debug inlier selection
+% process=ExternalProcess(MD,'Detection');
+% overlayProjDetectionMovie(processProj,'detections',allDetections, ...
+%         'process',process,'cumulative',true,'processFrames',1, ...
+%         'name','cumulDetectionDensity');
+% img1=imread(sprintfPath(process.outFilePaths_{2},1));
 
-process=ExternalProcess(MD,'Detection');
-overlayProjDetectionMovie(processProj,'detections',EB3Inliers, ...
-        'process',process,'cumulative',true,'processFrames',1, ...
-        'name','cumulDetectionDensity');
-img2=imread(sprintfPath(process.outFilePaths_{2},1));
-figure();
-imshow([img1 img2]);
+% process=ExternalProcess(MD,'Detection');
+% overlayProjDetectionMovie(processProj,'detections',EB3Inliers, ...
+%         'process',process,'cumulative',true,'processFrames',1, ...
+%         'name','cumulDetectionDensity');
+% img2=imread(sprintfPath(process.outFilePaths_{2},1));
+% figure();
+% imshow([img1 img2]);
+
 %%
 
 
@@ -185,6 +188,7 @@ amps=arrayfun(@(d) d.amp,oDetections,'unif',0); % just for data structure cohere
 allDist=vertcat(poleDistances{:});
 allAmp=vertcat(amps{:});
 allAmp=allAmp(:,1);
+timesSteps=arrayfun(@(d,t) p.startTime+MD.timeInterval_*(t-1)*ones(size(d.xCoord(:,1))),oDetections,1:length(oDetections),'unif',0);
 
 %% Define astral and polar region in a naive way
 astralThresh=-pi/6;
@@ -194,9 +198,11 @@ polarThresh=pi/6;
 % astralDistBinning=linspace(30,60,30);
 % polarDistBinning=linspace(30,50,30);
 
-astralDistBinning=linspace(20,50,30);
-polarDistBinning=linspace(20,50,30);
+% astralDistBinning=linspace(5,50,40);
+% polarDistBinning=linspace(5,50,40);
 
+astralDistBinning=5:1:50;
+polarDistBinning=5:1:50;
 
 [polarCounts,polarEdges,polarBinIdx]=histcounts(allDist(allElevs>polarThresh),polarDistBinning);
 [meanPolarDensities,medPolarDensities,stdPolarDensities]=statPerIndx(allDens(allElevs>polarThresh),polarBinIdx);
@@ -220,7 +226,7 @@ normalizedAstralCount=astralCounts./astralVolumes;
 % astralAreas=2*pi*(1-cos(pi/2+astralThresh))*allDist(allElevs<astralThresh).^2;
 % [~,~,~,~,~,normalizedAstralAmp]=statPerIndx(allAmp(allElevs<astralThresh)./astralAreas,astralBinIdx);
 
-%% Density function of distance to poles
+%% Count function of distance to poles
 [Handle,~,F]=setupFigure(1,2,2);
 plot(Handle(1),astralEdges(1:end-1)*0.1,astralCounts);
 plot(Handle(2),polarEdges(1:end-1)*0.1,polarCounts);
@@ -234,11 +240,13 @@ mkdirRobust(outputDirPlot);
 print([outputDirPlot  'poleDist.png'],'-dpng');
 print([outputDirPlot  'poleDist.eps'],'-depsc');
 
+%% Density function of distance to poles
 densityLimit=[0 max([meanAstralDensities(:); meanPolarDensities(:)])*1.05];
+
 [Handle,~,F]=setupFigure(1,2,2);
 plot(Handle(1),astralEdges(1:end-1)*0.1,meanAstralDensities);
 plot(Handle(2),polarEdges(1:end-1)*0.1,meanPolarDensities);
-arrayfun(@(h) xlim(h,[1,6.5]),Handle);
+arrayfun(@(h) xlim(h,[0,6.5]),Handle);
 xlabel(Handle(1),'Pole distance (\mum)');
 xlabel(Handle(2),'Pole distance (\mum)');
 ylabel(Handle(1),'Astral Comet density (per volume)')
@@ -247,17 +255,19 @@ arrayfun(@(h) ylim(h,densityLimit),Handle);
 mkdirRobust(outputDirPlot);
 printPNGEPSFIG(F,outputDirPlot,'densityVsDist');
 
+%% Amplitude function of distance to poles
 [Handle,~,F]=setupFigure(1,2,2);
 plot(Handle(1),astralEdges(1:end-1)*0.1,meanAstralAmp);
 plot(Handle(2),polarEdges(1:end-1)*0.1,meanPolarAmp);
-arrayfun(@(h) xlim(h,[1,6.5]),Handle);
+arrayfun(@(h) xlim(h,[0,6.5]),Handle);
 xlabel(Handle(1),'Pole distance (\mum)');
 xlabel(Handle(2),'Pole distance (\mum)');
 ylabel(Handle(1),'Astral Comet Mean Intensity')
 ylabel(Handle(2),'Polar Comet Mean Intensity')
-arrayfun(@(h) ylim(h,[0 max([meanAstralAmp(:); meanPolarAmp(:)])*1.05]),Handle);
+arrayfun(@(h) ylim(h,[min([meanAstralAmp(:); meanPolarAmp(:)])*0.95 max([meanAstralAmp(:); meanPolarAmp(:)])*1.05]),Handle);
 printPNGEPSFIG(F,outputDirPlot,'ampVsDist');
 
+%% Normalized amplitude function of distance to poles
 [Handle,~,F]=setupFigure(1,2,2);
 plot(Handle(1),astralEdges(1:end-1)*0.1,normalizedAstralAmp);
 plot(Handle(2),polarEdges(1:end-1)*0.1,normalizedPolarAmp);
@@ -266,9 +276,10 @@ xlabel(Handle(1),'Pole distance (\mum)');
 xlabel(Handle(2),'Pole distance (\mum)');
 ylabel(Handle(1),'Astral Comet Intensity (Solid Angle Norm)')
 ylabel(Handle(2),'Polar Comet Intensity (Solid Angle Norm)')
-arrayfun(@(h) ylim(h,[0 max([normalizedPolarAmp(:); normalizedAstralAmp(:)])*1.05]),Handle);
+arrayfun(@(h) ylim(h,[min([normalizedPolarAmp(:); normalizedAstralAmp(:)])*0.95 max([normalizedPolarAmp(:); normalizedAstralAmp(:)])*1.05]),Handle);
 printPNGEPSFIG(F,outputDirPlot,'normAmpVsDist');
 
+%% Normalized count function of distance to poles
 [Handle,~,F]=setupFigure(1,2,2);
 plot(Handle(1),astralEdges(1:end-1)*0.1,normalizedAstralCount);
 plot(Handle(2),polarEdges(1:end-1)*0.1,normalizedPolarCount);
@@ -280,6 +291,7 @@ ylabel(Handle(2),'Polar Comet density (normCount)')
 arrayfun(@(h) ylim(h,[0 max([normalizedPolarCount(:); normalizedAstralCount(:)])*1.05]),Handle);
 printPNGEPSFIG(F,outputDirPlot,'normCountVsDist');
 
+%% volumes function of distance to poles
 [Handle,~,F]=setupFigure(1,2,2);
 plot(Handle(1),astralEdges(1:end-1)*0.1,astralVolumes);
 plot(Handle(2),polarEdges(1:end-1)*0.1,polarVolumes);
@@ -303,7 +315,7 @@ if(~GenericPackage.processExist(p.package,lpid))
     astralDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,astralIndx,'unif',0);
     overlayProjDetectionMovie(processProjSpindleRef,'detections',refs(1,2).applyBase(astralDetections,''), 'process',process, ... 
         'cumulative',true,'processFrames',1, ... 
-        'colorIndx',{vertcat(astralDensitiesIndx{:})},'colormap',myColormap,'name','astralCumulPoleDensity');
+        'colorIndx',astralDensitiesIndx,'colormap',myColormap,'name','astralCumulPoleDensity');
 else
     process=p.package.getProcess(lpid);
 end
@@ -318,7 +330,7 @@ if(~GenericPackage.processExist(p.package,lpid))
     polarDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,polarIndx,'unif',0);
     overlayProjDetectionMovie(processProjSpindleRef,'detections',refs(1,2).applyBase(polarDetections,''), 'process',process, ... 
         'cumulative',true,'processFrames',1, ...
-        'colorIndx',{vertcat(polarDensitiesIndx{:})},'colormap',myColormap,'name','polarCumulPoleDensity');
+        'colorIndx',polarDensitiesIndx,'colormap',myColormap,'name','polarCumulPoleDensity');
 else
     process=p.package.getProcess(lpid);
 end
@@ -331,10 +343,10 @@ imshow([imgAstral imgPolar]);
 
 disp('Save final process');tic;
 lpid=lpid+1;
-processEnrichVsElev=ExternalProcess(MD,'spindleEnrichment');
+processEnrich=ExternalProcess(MD,'spindleEnrichment');
 outputFileName=[MD.outputDirectory_ filesep 'enrichment' filesep 'elevation-density-poleDistance.mat'];
-save(outputFileName,'elevations','densities','poleDistances','amps','astralThresh','polarThresh','Handle','polarDistBinning','astralDistBinning')
-processEnrichVsElev.setOutFilePaths({[outputDirPlot  'ElevationDens.png'], ...
+save(outputFileName,'elevations','densities','timesSteps','poleDistances','amps','astralThresh','polarThresh','Handle','polarDistBinning','astralDistBinning')
+processEnrich.setOutFilePaths({[outputDirPlot  'ElevationDens.png'], ...
         outputFileName, ...
         [outputDirPlot  'poleDist.png'], ...
         [outputDirPlot  'densityVsDist.png'], ...
@@ -342,7 +354,7 @@ processEnrichVsElev.setOutFilePaths({[outputDirPlot  'ElevationDens.png'], ...
         [outputDirPlot  'normAmpVsDist.png'], ...
         [outputDirPlot  'normCountVsDist.png'], ...
         });
-MD.getPackage(packPIDTMP).setProcess(lpid,processEnrichVsElev);
+MD.getPackage(packPIDTMP).setProcess(lpid,processEnrich);
 toc;
 
 if(~isempty(p.dynROIProject))
@@ -365,20 +377,28 @@ else
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
 
+%%
+poleDistLimit=[19.999 20];
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
     process=ExternalProcess(MD,'Detection polar');
     polarIndx=cellfun(@(p,e)  ((p<max(polarDistBinning))&(p>min(polarDistBinning))&(e>polarThresh)) ,poleDistances,elevations,'unif',0);
     polarDetections=oDetections.copy().selectIdx(polarIndx);
     polarDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,polarIndx,'unif',0);
+    polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),poleDistLimit))+1 , poleDistances,polarIndx,'unif',0);
     overlayProjDetectionMovie(processProjSpindleRef,'detections',refs(1,2).applyBase(polarDetections,''), 'process',process, ... 
         'cumulative',false, ...
-        'colorIndx',polarDensitiesIndx,'colormap',myColormap,'name',['polarPoleDensity-' p.name]);
+        'colorIndx',polarDistanceIndx,'colormap',myColormap,'name',['polarPoleDensity-' p.name]);
 else
     process=p.package.getProcess(lpid);
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
 toc;
+
+%% debug display
+imgPolar=imread(sprintfPath(process.outFilePaths_{2},1));
+figure();
+imshow([imgPolar]);
 
 MD.setPackage(packPID,MD.getPackage(packPIDTMP));
 %MD.setPackage(packPIDTMP,[]);

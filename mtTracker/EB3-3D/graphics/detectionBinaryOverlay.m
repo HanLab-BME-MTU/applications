@@ -15,14 +15,15 @@ detColors=colormap;
 
 if(~isempty(detections))
     for fIdx=1:length(detections)
-
+        
         d=detections(fIdx);
+        if(iscell(colorIndex))
+            colIdx=colorIndex{fIdx};
+        else
+            colIdx=colorIndex;
+        end
         if(~isempty(d)&&~(isempty(d.xCoord)))
-%  %%
-%             if(p.cumulative)
-%               tIdx=length(t.f)
-%             end
-            RGB=detColors(colorIndex,:);
+            RGB=detColors(colIdx,:);
             X=d.xCoord(:,1); Y=d.yCoord(:,1);% Z=t.z(1:tIdx);
 
             X=X-XLimit(1);
@@ -34,7 +35,7 @@ if(~isempty(detections))
             inIdx=(X>0)&(Y>0)&(X<=size(img,2))&(Y<=size(img,1));
             X=X(inIdx);
             Y=Y(inIdx);
-            cIndex=colorIndex(inIdx);
+            cIndex=colIdx(inIdx);
             drawingBoard=zeros(size(img,1),size(img,2));
             for dIdx=1:length(X)
                 drawingBoard=MidpointCircle(drawingBoard,5,Y(dIdx),X(dIdx),cIndex(dIdx));
