@@ -1,3 +1,5 @@
+orientationSpace.diffusion.diffusion_test
+
 figure;
 imagesc((0:359)/2,K,mat2gray(interpft(rho,360).'))
 axis xy
