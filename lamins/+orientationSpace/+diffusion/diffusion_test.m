@@ -33,7 +33,7 @@ if(~exist('I','var'))
             % HP Z820 Goldman workstation
             cd 'Z:\Takeshi\N-SIM\040715';
             MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.nd2');
-            I = MD.channels_(1).loadImage(1,11);
+            I = MD.channels_(1).loadImage(1,10);
         case 'mkitti-jaqaman'
             % Laptop T440s
             load('C:\Users\Mark Kittisopikul\Documents\Data\Lamins\MEFLB1-LACLB12-006_Reconstructed_study\MEFLB1-LACLB12-006_Reconstructed\MEFLB1-LACLB12-006_Reconstructed.mat');
@@ -42,7 +42,7 @@ if(~exist('I','var'))
         case 'FSMPC0KTM9U'
             cd 'P:\Basic_Sciences\CMB\GoldmanLab\Takeshi\N-SIM\040715';
             MD = MovieData.load('MEFLB1-LACLB12-006_Reconstructed.nd2');
-            I = MD.channels_(1).loadImage(1,11);
+            I = MD.channels_(1).loadImage(1,10);
         otherwise
             % BioHPC
             cd ~/shortcuts/MEFLB1-LACLB12-006_Reconstructed/
