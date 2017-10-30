@@ -6,6 +6,8 @@ assert(~isnan(xg));
 
 import orientationSpace.diffusion.*;
 
+% if(nargout == 0)
+
 Kplot = 8:-0.01:1;
 if(isempty(get(groot,'CurrentFigure')) || ~ishold)
 out = interpft_extrema(R.getResponseAtOrderFTatPoint(coords.r(n),coords.c(n),Kplot)); out = orientationSpace.diffusion.alignExtrema(out);
@@ -24,6 +26,8 @@ out(:,1:3);
 grid on
 end
 plot(Kg,xg,'ko');
+
+% end
 
 dnK_dmn(:,:,1) = 1;
 
@@ -175,7 +179,7 @@ else
     jump_threshold = min(jump_threshold*2,0.5);
 end
 
-if(Kg < 1)
+if(Kg <= 0)
     dnK_dmn(:,:,1);
 
     break;

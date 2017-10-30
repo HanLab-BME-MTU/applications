@@ -56,7 +56,7 @@ end
 % I = imread('example.tif');
 F = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,8,'none');
 R = F*I;
-K = 8:-0.1:1;
+K = 8:-0.1:0;
 % t = linspace(1/(2*8+1).^2,1/(2+1).^2,1000);
 % K = 1/2./sqrt(t)-1/2;
 % rho = zeros(17,length(K));
@@ -72,6 +72,20 @@ c = 364;
 rho = R.getResponseAtOrderFTatPoint(r,c,K);
 out = interpft_extrema(rho);
 out = orientationSpace.diffusion.alignExtrema(out);
+
+%% Find end
+lastK = max(cumsum(~isnan(out),2),[],2);
+lastInd = sub2ind(size(out),(1:3).',lastK);
+
+newtonfig = figure;
+[xg,Kg] = orientationSpace.diffusion.newtonBPprotoSimple(R,r,c);
+
+xgAligned = orientationSpace.diffusion.alignExtrema([out(lastInd) xg.']);
+
+Kg_aligned = Kg;
+for i = 1:length(Kg)
+    Kg_aligned(i) = Kg(xgAligned(i,2) == xg.');
+end
 
 %% Gradient
 
@@ -107,11 +121,14 @@ plot(K,out);
 legend([strcat({'LM Track '},num2cell(num2str((1:size(out,1)).')))]);
 grid on;
 
+sp2c = cell(1,size(out,1));
+xqc = cell(size(sp2c));
+
 for trackNum = 1:size(out,1)
     try
         figure;
         title(['Track ' num2str(trackNum)]);
-        idx_select = length(K):-35:1;
+        idx_select = fliplr(1:10:length(K));
         track = out(trackNum,idx_select);
         idx_select = idx_select(~isnan(track));
         track = track(~isnan(track));
@@ -128,7 +145,8 @@ for trackNum = 1:size(out,1)
         x2 = joinColumns(repmat(K(idx_select),3,1));
         y2 = joinColumns([track; dm_dK(trackNum,idx_select); d2m_dK2(trackNum,idx_select)]);
         sp2 = spapi(optknt(x2.',5),x2.',y2.');
-        sp2c{trackNum} = sp2;
+%         sp2c{trackNum} = sp2;
+        sp2c{trackNum} = sp;
 
 
         xq = K(idx_select(1)):0.01:K(idx_select(end));
@@ -139,9 +157,16 @@ for trackNum = 1:size(out,1)
         plot(xq,spval(sp2,xq),'--')
         plot(K,out(trackNum,:),'o');
         plot(K(idx_select),out(trackNum,idx_select),'o','MarkerFaceColor','k');
+        keyboard
     catch err
     end
 end
+
+%% Interpolate last K
+
+
+
+%% Plot
 
 figure;
 title('First Derivatives');
