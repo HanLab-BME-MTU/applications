@@ -26,10 +26,19 @@ gI = imfilter(I, fspecial('gaussian', 5,1));
 vI = stdfilt(gI);
 fvI = imfilter(vI, fspecial('gaussian', 7,2));
 bfvI = imbinarize(fvI, .02);
-bfvI = imdilate(bfvI, strel('disk', 2));
-maskAll = imclose(bfvI, strel('disk', 7));
+bfvI = imdilate(bfvI, strel('disk', 7));
+maskAll = imclose(bfvI, strel('disk', 5));
 maskAll = bwfill(maskAll,'holes');
 %%%%%%%%%%%%%%%%%%%%%%%
+
+% I = mat2gray(img);
+% gI = imfilter(I, fspecial('gaussian', 5,1));
+% vI = stdfilt(gI);
+% fvI = imfilter(vI, fspecial('gaussian', 7,2));
+% bfvI = imbinarize(fvI, .02);
+% bfvI = imdilate(bfvI, strel('disk', 2));
+% maskAll = imclose(bfvI, strel('disk', 7));
+% maskAll = bwfill(maskAll,'holes');
 
 % See how many objects
 CC = bwconncomp(maskAll);
@@ -49,6 +58,10 @@ if CC.NumObjects > 1
 else
     mask = maskAll;
 end
+
+
+% check if 97% covering image, then
+
 
 imgOut=mask.*I;
 
