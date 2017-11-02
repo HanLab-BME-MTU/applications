@@ -136,10 +136,12 @@ figure(4);imshow(imgs.readimage(imageIdx),[]);
 %% Evaluation & Visualization
 
 % layer 2
-w1 = net.Layers(2).Weights;
+w1 = net.Layers(6).Weights;
 w1=mat2gray(w1);
 rw1=imresize(w1,2);
-figure; montage(rw1);
+figure; montage(rw1(:,:,2,:));
+figure; montage(rw1(:,:,3,:));
+figure; montage(rw1(:,:,4,:));
 
 
 % layer 2
