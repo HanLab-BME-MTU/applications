@@ -15,19 +15,22 @@ function [imgOut, mask, vI, fvI, bfvI] = segCellLCH(img, varargin)
 ip = inputParser;
 ip.addRequired('img', @isnumeric);
 ip.addOptional('align',false, @islogical);
-ip.addOptional('preview', true, @islogical);
+ip.addOptional('preview', false, @islogical);
+ip.addOptional('avgBG', true, @islogical);
 ip.parse(img,varargin{:});
 p = ip.Results;
 
 % Core image processing steps
 %%%%%%%%%%%%%%%%%%%%%%%
 I = mat2gray(img);
-gI = imfilter(I, fspecial('gaussian', 5,1));
+gI = imfilter(I, fspecial('gaussian', 5,.25));
 vI = stdfilt(gI);
-fvI = imfilter(vI, fspecial('gaussian', 7,2));
+fvI = imfilter(vI, fspecial('gaussian', 5,1));
 bfvI = imbinarize(fvI, .02);
-bfvI = imdilate(bfvI, strel('disk', 7));
+bfvI = imdilate(bfvI, strel('disk', 5));
 maskAll = imclose(bfvI, strel('disk', 5));
+% maskAll = imerode(maskAll, strel('disk', 4));
+% maskAll = imerode(maskAll, strel('disk', 2));
 maskAll = bwfill(maskAll,'holes');
 %%%%%%%%%%%%%%%%%%%%%%%
 
@@ -61,9 +64,26 @@ end
 
 
 % check if 97% covering image, then
+% rp = regionprops(mask);
+% if rp.Area/size(maskAll,1)^2  >= .9
+%     mask = 0;
+% end
 
+imgFG = mask.*I;
 
-imgOut=mask.*I;
+if p.avgBG
+    rp = regionprops(mask);
+    if rp.Area ~= size(maskAll,1)^2
+        imgBG = ~mask.*I;
+        imgBG = ~mask .* mean(imgBG(~mask));
+        imgOut = imgFG + imgBG;
+    else
+        imgOut = imgFG;
+    end
+    
+else
+    imgOut = imgFG;
+end
 
 if p.align
     disp('re-orienting mask')
@@ -72,7 +92,7 @@ if p.align
     imgOut = imrotate(imgOut,-1*rp.Orientation);
 end
 
-if p.preview
+if p.preview 
     % preview results
     figure; imshow(imgOut);
     figure;
