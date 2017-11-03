@@ -1,43 +1,29 @@
 
-% simple script to pre-process the cells for Deep learning.
-% Andrew R. Jamieson Oct 2017
-
+% Deep CNN 
+% Andrew R. Jamieson Nov 2017
 
 clear;
 clc;
 
-
 %% load data state 
-[filename, pathname] = uigetfile('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/','Which data to load?');
+[filename, pathname] = uigetfile('/work/bioinformatics/shared/dope/torch/test/217x217/allTime/','Which data to load?');
 load(fullfile(pathname,filename));
 
 %  number of classes
 numClass = 2;
 
-imdsTrain_Tumor_v_Mel = imdsTrain;
-imdsVal_Tumor_v_Mel = imdsValid;
+% [imdsTrain1, imdsValid] = splitEachLabel(imdsTrain, 0.85);
 
-tumorLabel = imdsTrain_Tumor_v_Mel.Labels == 'highMet' | ...
-    imdsTrain_Tumor_v_Mel.Labels == 'lowMet';
-imdsTrain_Tumor_v_Mel.Labels(tumorLabel) = 'tumor';
+% uisave();
 
-tumorLabel = imdsVal_Tumor_v_Mel.Labels == 'highMet' |...
-    imdsVal_Tumor_v_Mel.Labels == 'lowMet';
-imdsVal_Tumor_v_Mel.Labels(tumorLabel) = 'tumor';
-
-% [imdsTrain_Tumor_v_Mel] = splitEachLabel(imdsTrain_Tumor_v_Mel,.9999999,...
-%                             'Exclude',{'highMet','lowMet'});
-% [imdsVal_Tumor_v_Mel] = splitEachLabel(imdsVal_Tumor_v_Mel,.9999999,...
-%                             'Exclude',{'highMet','lowMet'});
-uisave();
 
 %% Define Checkpoint
 [checkPointDir] = uigetdir('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/netTEMP',...
                             'Where to store net Checkpoints?');
-                                                                      
-                        
+                                                                                              
 if ~verLessThan('matlab', '9.3')
-    % define network
+
+    %% define network
     disp('Note: using 2017b MATLAB layer definitions');
     layers = [ ...netTempDir
         imageInputLayer([217 217 1])
@@ -71,24 +57,18 @@ end
 
 %% Training options
 if ~verLessThan('matlab', '9.3')
-                        % 2017b
     options = trainingOptions('sgdm',...
         'MaxEpochs',100000, ...
-        'ValidationFrequency',2500,...
+        'ValidationFrequency',3000,...
         'MiniBatchSize',50,...
         'Verbose',true,...
         'Plots','training-progress',...
-        'ValidationData',imdsVal_Tumor_v_Mel,...
+        'ValidationData',imdsValid,...
         'ValidationPatience', Inf,...
         'ExecutionEnvironment' , 'multi-gpu',...
         'CheckpointPath', checkPointDir);
-else 
-%     2017a
-    options = trainingOptions('sgdm','LearnRateSchedule','piecewise',...
-          'LearnRateDropFactor',0.2,'LearnRateDropPeriod',5,... 
-          'MaxEpochs',1000,'MiniBatchSize',75,...
-          'CheckpointPath',checkPointDir);    
+ 
 end
 
 %% Start Training
-trainedNet = trainNetwork(imdsTrain_Tumor_v_Mel,layers,options);
+trainedNet = trainNetwork(imdsTrain,layers,options);
