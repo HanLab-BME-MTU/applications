@@ -70,12 +70,22 @@ K = 8:-0.1:0;
 r = 622;
 c = 364;
 rho = R.getResponseAtOrderFTatPoint(r,c,K);
-out = interpft_extrema(rho);
-out = orientationSpace.diffusion.alignExtrema(out);
+
+%% Conditioning
+rhoh = fft(rho);
+rhoh(1,:) = 0;
+rhoh(abs(rhoh) < eps*1e3) = 0;
+rho = ifft(rhoh);
+out = interpft_extrema(rhoh,1,[],[],false);
+
+% out = interpft_extrema(rho);
+
+[out,out_events] = orientationSpace.diffusion.alignExtrema(out);
+out = orientationSpace.diffusion.unwrapExtrema(out,out_events);
 
 %% Find end
 lastK = max(cumsum(~isnan(out),2),[],2);
-lastInd = sub2ind(size(out),(1:3).',lastK);
+lastInd = sub2ind(size(out),(1:size(out,1)).',lastK);
 
 newtonfig = figure;
 [xg,Kg] = orientationSpace.diffusion.newtonBPprotoSimple(R,r,c);
@@ -145,8 +155,8 @@ for trackNum = 1:size(out,1)
         x2 = joinColumns(repmat(K(idx_select),3,1));
         y2 = joinColumns([track; dm_dK(trackNum,idx_select); d2m_dK2(trackNum,idx_select)]);
         sp2 = spapi(optknt(x2.',5),x2.',y2.');
-%         sp2c{trackNum} = sp2;
-        sp2c{trackNum} = sp;
+        sp2c{trackNum} = sp2;
+%         sp2c{trackNum} = sp;
 
 
         xq = K(idx_select(1)):0.01:K(idx_select(end));
@@ -163,7 +173,16 @@ for trackNum = 1:size(out,1)
 end
 
 %% Interpolate last K
+doBifurcationTrace = K(lastK) == Kg_aligned;
 
+rho2 = R.getResponseAtOrderFTatPoint(r,c,Kg_aligned);
+% Conditioning
+rhoh2 = fft(rho2);
+rhoh2(1,:) = 0;
+rhoh2(abs(rhoh2) < eps*1e3) = 0;
+rho2 = ifft(rhoh2);
+
+[~,~,dnK_dmn] = orientationSpace.diffusion.orientationMaximaTimeDerivatives(rho2,Kg_aligned,3,xgAligned(:,2).');
 
 
 %% Plot
