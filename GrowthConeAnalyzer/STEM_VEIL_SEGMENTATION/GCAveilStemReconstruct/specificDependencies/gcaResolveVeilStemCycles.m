@@ -48,7 +48,7 @@ TSFigs = [];
         dilBBMask = imdilate(backbone2Dil,strel('disk',4));
         %[~,~,~,scaleMapFine] = gcaMultiscaleSteerableDetector(img,4,'sigmaArray',[1:0.5:6]);
         %dilBBMask =  gcaImdilateWithScale(backbone2Dil,scaleMapFine,[1:0.5:6]); 
-        
+        %dilBBMask = imdilate(backbone2Dil,strel('disk',8));
         
         
          
@@ -391,8 +391,10 @@ TSFigs = [];
                 % make so lower score more favorable but do not have a zero weight
                 % as a sparse array as will remove that edge completely
                 finalScore = max(finalScore) - finalScore + 0.01;
+                
                 UG = sparse([vect1 vect2], [vect2 vect1], [finalScore finalScore] ); % need to make undirected.
                 
+            
                 gFinal =  graphminspantree(UG);
                 weightsFinal = full(gFinal(gFinal~=0));
                 % delete edges given min span tree output.
@@ -400,31 +402,46 @@ TSFigs = [];
                 idxDiscard   = arrayfun(@(i) find(finalScore == weightDelete(i)),1:length(weightDelete));
                 
                 
-                if p.TSOverlays == true
+                if p.TSOverlays 
                     % create the directory if doesn't exist
                     %outPathTBTree = [p.OutputDirectory filesep 'MinSpan Tree Weights'];
 %                     if ~isdir(outPathTBTree)
 %                         mkdir(outPathTBTree)
 %                     end
-                    
-                    TSFigs(iFig).h = setFigure(nx,ny,'off'); 
+                    cMap = jet(128);
+                    cMap = cMap(1:128,:); % take off the yellows 
+                    mapper=linspace(0,0.5,128)';
+                    D=createDistanceMatrix(finalScore',mapper);
+                    [sD,idxCMap]=sort(abs(D),2);
+
+                    TSFigs(iFig).h = setFigure(nx,ny,'on'); 
                     TSFigs(iFig).name = 'MinSpanTreeWeights';
                     imshow(-img,[]);
                     hold on
-                    
-                    spy(dilBBMask,'b');
-                    hold on
-                end
+                    for k=1:128
+                        toPlot = find(idxCMap(:,1)==k);
+                        
+                        if ~isempty(toPlot)
+                            
+                            [nyC,nxC] = ind2sub(size(img),CCEdges.PixelIdxList{toPlot});
+                            scatter(nxC,nyC,10,cMap(k,:),'filled');
+                            %                     spy(dilBBMask,'b');
+                                                     
+                        end % isempty(toPlot)
+                       
+                    end 
+                      cellfun(@(x) plot(x(:,2),x(:,1),'color','b'),roiYXPieces);
+                end % if TSOverlays
                 % delete the edge from the dilated backbone mask
-                dilBBMask(vertcat(CCEdges.PixelIdxList{idxDiscard}))= 0 ; %
-                if p.TSOverlays == 1
-                    
-                    spy(dilBBMask,'r');
-                    cellfun(@(x) plot(x(:,2),x(:,1),'color','b'),roiYXPieces);
-                    %saveas(gcf, [outPathTBTree filesep num2str(iFrame,'%03d') '.tif']);
-                    %saveas(gcf,[outPathTBTree filesep num2str(iFrame,'%03d') '.fig']);
-                    iFig = iFig +1; 
-                end
+                 dilBBMask(vertcat(CCEdges.PixelIdxList{idxDiscard}))= 0 ; %
+%                 if p.TSOverlays == 1
+              
+%                     spy(dilBBMask,'r');
+%                     cellfun(@(x) plot(x(:,2),x(:,1),'color','b'),roiYXPieces);
+%                     %saveas(gcf, [outPathTBTree filesep num2str(iFrame,'%03d') '.tif']);
+%                     %saveas(gcf,[outPathTBTree filesep num2str(iFrame,'%03d') '.fig']);
+%                     iFig = iFig +1; 
+%                 end
                 
                 
                 % discard the appropriate edges from the list (ccs of the dilBBMask mask )
