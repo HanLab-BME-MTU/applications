@@ -64,10 +64,15 @@ ip.addParameter('EndFrame','auto');
 % Specific
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
 ip.addParameter('TSMovie',false,@(x) islogical(x)); 
+ip.addParameter('screen2png',false); 
+ip.addParameter('writeTitles',true); 
 
 ip.addParameter('LocalThresholdPatchSize',75,@(x) isscalar(x));
 ip.addParameter('DiskSizeLarge',6,@(x) isscalar(x));
 ip.addParameter('DiskSizeSmall',3,@(x) isscalar(x)); 
+
+ip.addParameter('maskDirectory',[]); % directory with another input mask
+% if empty will use local thresholding
 
 ip.parse(varargin{:});
 p = ip.Results;
