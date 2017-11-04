@@ -55,6 +55,8 @@ ip.addParameter('ProcessIndex',0);
 
 % Specific
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
+ip.addParameter('screen2png',false); 
+
 ip.addParameter('SizeOfConsistencyRestraint',5,@(x) isscalar(x));
 ip.addParameter('CheckOrient',false,@(x) islogical(x));
 
@@ -80,6 +82,18 @@ nChan = numel(ip.Results.ChannelIndex);
 sizeImg = movieData.imSize_;
 xSize = sizeImg(2); 
 ySize= sizeImg(1); 
+
+if ip.Results.TSOverlays
+    % set up colors 
+    cMap = brewermap(2,'paired');
+    blue = cMap(2,:);
+    
+    % plot the alignment mask
+    cDark = brewermap(2,'Dark2');
+    orange = cDark(2,:);
+    green = cDark(1,:); 
+      
+end 
 %%
 for iCh = 1:nChan
     
@@ -146,29 +160,42 @@ for iCh = 1:nChan
             imshow(-img,[]) ;
             hold on
             % plot the original signal 
-            spy(backboneInfo(frames2Fix(iFrame)).linkedRidgesFinal,'b');  
+            %spy(backboneInfo(frames2Fix(iFrame)).linkedRidgesFinal,'b');  
             
             % plot the alignment mask 
-            spy(backboneInfoFix(frames2Fix(iFrame)).alignmentMask,'m');
+            [ny,nx] =size(img); 
+            [nyAlign,nxAlign] = ind2sub([ny,nx],find(backboneInfoFix(frames2Fix(iFrame)).alignmentMask)); 
+            %spy(backboneInfoFix(frames2Fix(iFrame)).alignmentMask,c(1,:));
+            scatter(nxAlign,nyAlign,10,green,'filled'); 
             
             % plot the origBB 
+           
             origBBMask = backboneInfo(frames2Fix(iFrame)).backboneSeedMask;
-            spy(origBBMask,'g')
+            [nyBOrig,nxBOrig] = ind2sub([ny,nx],find(origBBMask));
+            scatter(nxBOrig,nyBOrig,10,blue,'filled'); 
+            
+            %spy(origBBMask,'g')
             hold on
             
             % plot the final BB seed
             backboneSeed = backboneInfoFix(frames2Fix(iFrame)).backboneSeedMask;
-            spy(backboneSeed,'r');
+            [nyBBSeed,nxBBSeed] = ind2sub([ny,nx],find(backboneSeed)); 
+            scatter(nxBBSeed,nyBBSeed,10,orange,'filled'); 
+%             spy(backboneSeed,'r');
+    
             
             % plot the old and new input neurite coords 
             [coordsOrg] = backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite;
-            scatter(coordsOrg(1),coordsOrg(2),'g','filled');
+            scatter(coordsOrg(1),coordsOrg(2),100,blue,'filled');
             [coordsNew] = backboneInfoFix(frames2Fix(iFrame)).coordsEnterNeurite ;
-            scatter(coordsNew(1),coordsNew(2),'y','filled');
+            scatter(coordsNew(1),coordsNew(2),100,'k','Marker','*');
            
-            text(10,10,{'Yellow Marks' ; 'Corrected Entry Point'}, 'Color','k');
-            
-            saveas(gcf,[fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.tif']);
+            %             text(10,10,{'Yellow Marks' ; 'Corrected Entry Point'}, 'Color','k');
+            if ip.Results.screen2png
+                helperScreen2png([fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.png']);
+            else
+                saveas(gcf,[fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.png']);
+            end
             close gcf
         end % iFrame
         
