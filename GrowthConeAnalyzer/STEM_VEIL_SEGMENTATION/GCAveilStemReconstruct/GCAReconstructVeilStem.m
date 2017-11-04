@@ -91,16 +91,22 @@ ip.addOptional('paramsArchived',[]);
 % PARAMETERS
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
 ip.addParameter('TSMovie',false,@(x) islogical(x));
-ip.addParameter('OutputDirectory',[],@(x) ischar(x));
+ip.addParameter('writeTitles',true); 
+ip.addParameter('screen2png',false); 
 
+ip.addParameter('OutputDirectory',[],@(x) ischar(x));
 ip.addParameter('LocalThresholdPatchSize',75,@(x) isscalar(x));
 ip.addParameter('DiskSizeLarge',6,@(x) isscalar(x));
 ip.addParameter('DiskSizeSmall',3,@(x) isscalar(x));
 ip.addParameter('MaxRadiusBridgeRidges',5,@(x) isscalar(x));
 ip.addParameter('StartFrame',1,@(x) isscalar(x));
 
+ip.addParameter('maskDirectory',[]); % if empty perform local thresholding 
+% else input the masks from the directly
+
 nFrames = size(listOfImages,1);
 ip.addParameter('EndFrame',nFrames,@(x) isscalar(x));
+
 
 
 ip.parse(listOfImages,backboneInfo,BBScales,varargin{:});
@@ -118,6 +124,12 @@ end
  pToSave = rmfield(p,{'backboneInfo','listOfImages','veilStem','BBScales','paramsArchived'});
  %% 
   
+ if ~isempty(ip.Results.maskDirectory)
+     listOfMasks = searchFiles('.tif',[],ip.Results.maskDirectory,0); 
+    
+     
+ end 
+ 
 %% Start Loop
 for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
      figCount = 1;
@@ -142,10 +154,13 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     
     %% Get Amorphous Large Scale Veil/Pieces
     
-    % load local patch size if user already specified. 
-    
-    % Perform local thresholding
-    [~,maskForErod] = gcaThresholdOtsu_local(img, ip.Results.LocalThresholdPatchSize,3);
+    if isempty(ip.Results.maskDirectory)
+        % Perform local thresholding
+        [~,maskForErod] = gcaThresholdOtsu_local(img, ip.Results.LocalThresholdPatchSize,3);
+    else
+        maskName = [char(listOfMasks(iFrame,2)) filesep char(listOfMasks(iFrame,1))];
+        maskForErod = logical(imread(maskName));
+    end
     
     % Perform a morphological opening with some geometric constraints.
     [erodForBody,saveMask]  =   gcaMorphologicalOpeningWithGeometryConstraints(maskForErod,p);
@@ -224,7 +239,12 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     
     %% Small Method Movie Flag: Show Backbone
     if p.TSMovie == true;
-        imgLarge = [ img ;img];
+        imgLarge = [ img];
+        
+        saveDirMov =  [ip.Results.OutputDirectory filesep 'SmallMovie' filesep 'Frame' num2str(iFrame,'%03d') ];
+        if ~isdir(saveDirMov)
+            mkdir(saveDirMov)
+        end
         
         [nyLarge,nxLarge] = size(imgLarge);
         setFigure(nxLarge,nyLarge,'off');
@@ -234,27 +254,57 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
         % start by plotting the backbone coord and then showing
         % interations
         imshow(-imgLarge,[]);
-        hold on
         
-        scatter(xback,yback,10,'r','filled');
-        
-        
-        hold on
-        
-        scatter(xyEnterNeurite(:,1),xyEnterNeurite(:,2),50,'y','filled');
-        
-        hold on
-        saveDirMov =  [ip.Results.OutputDirectory filesep 'SmallMovie' filesep 'Frame' num2str(iFrame,'%03d') ];
-        if ~isdir(saveDirMov)
-            mkdir(saveDirMov)
+        for i = 1:2
+            if ip.Results.writeTitles
+                hText = text(5,5,'Raw Image','Fontsize',10);
+            end
+            
+            if ip.Results.screen2png
+                helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+            else
+                saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+            end
+            
+            countMovie = countMovie +1;
         end
+        
+        % save one with a scale bar 
+                pixSizeMic = 0.216;
+                pixels = round(10/pixSizeMic);
+                plotScaleBar(pixels,pixels/20,'Color',[0 0 0]);
+                saveas(gcf,[saveDirMov filesep 'RawWithScaleBar' ,'.eps'],'psc2'); 
+                
+        
+        
+        close gcf
+        setFigure(nxLarge,nyLarge,'off');
+        imshow(-imgLarge,[]); 
+        hold on
+        c = brewermap(2,'dark2'); 
+        scatter(xback,yback,10,c(2,:),'filled');
+        
+        
+        hold on
+        
+        scatter(xyEnterNeurite(:,1),xyEnterNeurite(:,2),100,'k','Marker','*');
+        
+        hold on
+       
         %         pixSizeMic = 0.216;
         %         pixels = round(10/pixSizeMic);
         %         plotScaleBar(pixels,pixels/20,'Color',[0 0 0]);
-        text(5,5,'Backbone', 'Color','Red','FontSize',10);
-        saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
-        countMovie = countMovie +1;
-        
+        if ip.Results.writeTitles
+            text(5,5,'Backbone', 'Color',c(2,:),'FontSize',10);
+        end
+        for i = 1:2
+            if ip.Results.screen2png
+                helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']); 
+            else 
+            saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+            end 
+            countMovie = countMovie +1;
+        end
     end
     
     
@@ -280,12 +330,21 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     % Veil/Stem Nodes For Mask
     newBodyMask= labelmatrix(CC);
     %% TSMovie Option: Visualize Veil/Stem Nodes Added to Mask
-    if ip.Results.TSMovie == true;
+    if ip.Results.TSMovie; 
+         
         roiYXBN =  bwboundaries(newBodyMask);
         cellfun(@(x) plot(x(:,2),x(:,1),'color','b','linewidth',2),roiYXBN);
-        text(5,15,'Veil Added','Color','b','fontsize',10);
-        saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+        if ip.Results.writeTitles
+            text(5,15,'Veil Added','Color','b','fontsize',10);
+        end
+        for i = 1:2
+            if ip.Results.screen2png 
+                helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']); 
+            else
+                saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+            end
         countMovie = countMovie+1;
+        end 
     end
     %% If it the first iteration and you did not add any Veil/Stem nodes to your mask
     % it can be due to one of two reasons
@@ -333,7 +392,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                 hold on 
                 roiYXOld=  bwboundaries(oldBody);
                 cellfun(@(x) plot(x(:,2),x(:,1),'b'),roiYXOld);
-                spy(backbone,'r'); 
+                spy(backbone); 
                 roiYXNew = bwboundaries(newBodyMask);
                 cellfun(@(x) plot(x(:,2),x(:,1),'g'),roiYXNew); 
                 figCount  = figCount +1; 
@@ -385,6 +444,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
         floatingBodyIdxCCOld = floatingBodyIdxCC;
         iter = 1; 
         reconstruct = 1; 
+      
         while reconstruct == 1
             %% Get All Ridges Overlapping to New/Veil Stem to Explore Potential Paths
             pixBodySave = find(newBodyMask==1);
@@ -407,14 +467,24 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             cleanedRidge = labelMatCandRidge>0;
             
             %% TSMovie : Exploring paths 
-            if ip.Results.TSMovie == 1
-                TSFigs1(countFigs).h= setFigure(nx,ny,'off');
-                TSFigs1(countFigs).name = 'Explore Paths'; 
-                [yBack,xBack]=  ind2sub([ny,nx],pixRidgeConn);
-                scatter(xBack,yBack,10,'r','filled') % 'color','r','linewidth',2);
-                text(5,35,'Explore New Ridge Paths','color','r','Fontsize',10);
+            if ip.Results.TSMovie 
               
-                countFigs = countFigs+1; 
+%                 setFigure(nx,ny,'off');
+%                 TSFigs1(countMovie).name = 'Explore Paths'; 
+                 
+                [yBack,xBack]=  ind2sub([ny,nx],pixRidgeConn);
+                scatter(xBack,yBack,10,c(2,:),'filled') % 'color','r','linewidth',2);
+                if ip.Results.writeTitles
+                    text(5,35,'Explore New Ridge Paths','color',c(2,:),'Fontsize',10);
+                end
+                for i = 1:2
+                    if ip.Results.screen2png
+                        helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+                    else
+                        saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+                    end
+                    countMovie = countMovie+1;
+                end
             end
             
             %% NOTE: 20150508 LIKELY REMOVE COMPLETELY Try to bridge small gaps in seed with with other nearby ridges/BodyCCs
@@ -430,6 +500,8 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                 % with endpoints of those overlapping with the current
                 % iteration of the veil/stem mask.
                 EPCoordsBodyMask = getEndpoints([find(newBodyMask==1) ; pixBB ; pixRidgeConn],[ny,nx]);
+                newBodyMaskPreBridge = newBodyMask;
+                backboneBeforeBridge = pixBB; 
                 % get coords of all ridges and body pieces
                 % ridge
                 % for now only try is isempty (NOTE 20150508 Note not sure why
@@ -529,16 +601,16 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                             xCoordInput = xyCandRidge(E(iMatch,2),1);
                             yCoordInput = xyCandRidge(E(iMatch,2),2);
                             %iseg = gcaBresenham([xe(E(i,1)) ye(E(i,1))], [xe(E(i,2)) ye(E(i,2))]);
-                            iseg = gcaBresenham([xCoordQuery yCoordQuery],...
+                            iseg{iMatch} = gcaBresenham([xCoordQuery yCoordQuery],...
                                 [xCoordInput yCoordInput]);
                             % save the coords coorsponding to the pixels you are adding
                             % need this to potentially tell not to wreck the junction
                             % mask
-                            segSave{iMatch}= sub2ind([ny,nx], iseg(:,2), iseg(:,1));
-                            backbone(sub2ind([ny,nx], iseg(:,2), iseg(:,1))) = 1;% add to mask
-                            labels2Keep = labelMatCandRidge(yCoordInput,xCoordInput);
-                            backbone(vertcat(CCCleanedRidge.PixelIdxList{labels2Keep})) = 1;
-                            cleanedRidge(vertcat(CCCleanedRidge.PixelIdxList{labels2Keep})) = 0; % get ridge of in the cleaned ridge cand list
+                            segSave{iMatch}= sub2ind([ny,nx], iseg{iMatch}(:,2), iseg{iMatch}(:,1));
+                            backbone(sub2ind([ny,nx], iseg{iMatch}(:,2), iseg{iMatch}(:,1))) = 1;% add to mask
+                            labels2Keep{iMatch} = labelMatCandRidge(yCoordInput,xCoordInput);
+                            backbone(vertcat(CCCleanedRidge.PixelIdxList{labels2Keep{iMatch}})) = 1;
+                            cleanedRidge(vertcat(CCCleanedRidge.PixelIdxList{labels2Keep{iMatch}})) = 0; % get ridge of in the cleaned ridge cand list
                         end
                         
                         % in some cases just make sure to thin and it will fix junction
@@ -568,10 +640,57 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
                            hold on 
                            scatter(EPCoordsBodyMask(:,1),EPCoordsBodyMask(:,2),'r','filled'); 
                            scatter(xyCandRidge(:,1),xyCandRidge(:,2),'y','filled'); 
-                            figCount = figCount +1;           
+                            figCount = figCount +1; 
+                            
                        end 
                          
-                         
+                        if ip.Results.TSMovie
+%                             c = brewermap(3,'dark2'); 
+%                             setFigure(nx,ny,'on');
+%                             imshow(-img,[]); 
+%                             hold on 
+                            % plot the veilStemMask
+%                             roiYXBN =  bwboundaries(newBodyMask);
+%                             cellfun(@(x) plot(x(:,2),x(:,1),'color','b','linewidth',2),roiYXBN);
+                            % plot the old backbone
+%                             roiYXBN = bwboundaries(newBodyMaskPreBridge);
+%                             cellfun(@(x) plot(x(:,2),x(:,1),'color','b','linewidth',2),roiYXBN); 
+                            
+%                             scatter(xBack,yBack,10,'c','filled'); 
+%                             % plot the end-points
+                            scatter(EPCoordsBodyMask(:,1),EPCoordsBodyMask(:,2),15,'k','filled'); 
+                            
+                            % plote the ridge candidates 
+                            hCand = scatter(xyCandRidge(:,1),xyCandRidge(:,2),5,c(2,:),'filled'); 
+                           
+                            % plot the 
+                            saveAll = vertcat(iseg{:}); 
+                            hLinks = scatter(saveAll(:,1),saveAll(:,2),10,'k','filled'); 
+                            if ip.Results.screen2png
+                                helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+                            end    
+                            
+                            countMovie = countMovie +1; 
+                            
+                            delete(hCand)
+                           
+                            labels2KeepAll = horzcat(labels2Keep{:}); 
+                            idxCandKeep = vertcat(CCCleanedRidge.PixelIdxList{labels2KeepAll}); 
+                            [yCandKeep,xCandKeep] = ind2sub(size(img),idxCandKeep); 
+                            scatter(xCandKeep,yCandKeep,10,c(2,:),'filled'); 
+                             if ip.Results.screen2png
+                                helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+                             end    
+                            countMovie = countMovie+1; 
+                            %% 
+                        end  
+                            
+                          
+%                             idx = vertcat(CCCleanedRidge.PixelIdxList{vertcat(labels2Keep{:}})); 
+%                             [xAdd,yAdd]=  ind2sub(size(img),idx); 
+%                             scatter(xAdd,yAdd,10,c(2,:),'filled'); 
+%                             sub2ind([ny,nx], iseg(:,2), iseg(:,1)); 
+                        
                          
                          
                     end % isempty(E)
@@ -604,6 +723,21 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             floatingBodyIdxCCNew = cellfun(@(x) isempty(intersect(pixBB,x)),CCAllBody.PixelIdxList);
             
             newBodyMask(vertcat(CCAllBody.PixelIdxList{~floatingBodyIdxCCNew}))= 1;
+            
+            
+            if ip.Results.TSMovie
+               
+               maskAdd = zeros(ny,nx); 
+               maskAdd(vertcat(CCAllBody.PixelIdxList{~floatingBodyIdxCCNew}))=1; 
+               roiYXVeilAdd = bwboundaries(logical(maskAdd)); 
+               cellfun(@(x) plot(x(:,2),x(:,1),'color','b','linewidth',2),roiYXVeilAdd); 
+              
+               if ip.Results.screen2png
+                   helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+               end
+               countMovie = countMovie+1; 
+               
+            end 
             
             % test to see if either 1) all veil stem nodes have been accounted
             % for or 2) the extended backbone failed to find any path
@@ -882,10 +1016,18 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
         
         idxDil =  find(backbone2Dil==1);
         [yBackD,xBackD] =  ind2sub([ny,nx],idxDil);
-        scatter(xBackD,yBackD,10,'r','filled');
+        scatter(xBackD,yBackD,10,c(2,:),'filled');
 %         pixels = round(10/pixSizeMic);
 %         plotScaleBar(pixels,pixels/20,'Color',[0 0 0]);
-        saveas(gcf,[saveDirMov filesep '05.png']);
+         for i = 1:2 
+             if ip.Results.screen2png
+                 helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']); 
+             else 
+             saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+             end 
+         countMovie = countMovie+1; 
+         end
+         close gcf
     end
     %%  RE-DILATE the ridge regions
     %dilBB = imdilate(backbone2Dil,strel('disk',4)); % arbitrary... need to find small function redilate based on ridge estimation
@@ -906,10 +1048,16 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
             type{2} = '.tif'; 
             
         if ~isempty(TSFigs)
-            for iType = 1:numel(type)
-            arrayfun(@(x) saveas(x.h,...
-                [ip.Results.OutputDirectory filesep x.name filesep num2str(iFrame,'%03d') type{iType}]),TSFigs);   
-            end 
+            if ip.Results.screen2png
+                arrayfun(@(x) helperScreen2png([ip.Results.OutputDirectory filesep x.name filesep ...
+                    num2str(iFrame,'%02d') '.png'],'figureHandle',x.h),TSFigs);
+            else
+                
+                for iType = 1:numel(type)
+                    arrayfun(@(x) saveas(x.h,...
+                        [ip.Results.OutputDirectory filesep x.name filesep num2str(iFrame,'%02d') type{iType}]),TSFigs);
+                end
+            end
         end 
             
         close all
@@ -923,10 +1071,21 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
         imshow(-imgLarge,[]);
         hold on
         roiYXNB = bwboundaries(fullMask);
-        cellfun(@(x) plot(x(:,2),x(:,1),'color','b'),roiYXNB);
+        cellfun(@(x) plot(x(:,2),x(:,1),'color',[ 0.0039  ,  0.4264 ,   0.3848],'LineWidth',2),roiYXNB);
        % pixels = round(10/pixSizeMic);
        % plotScaleBar(pixels,pixels/20,'Color',[0 0 0]);
-        saveas(gcf,[saveDirMov filesep '06.png'])
+       if ip.Results.writeTitles
+           text(5,5,'Veil/Stem Mask Final','color',[ 0.0039  ,  0.4264 ,   0.3848],'Fontsize',10);
+       end
+       for i = 1:2
+           if ip.Results.screen2png
+               helperScreen2png([saveDirMov filesep num2str(countMovie,'%03d') '.png']); 
+           else 
+           saveas(gcf,[saveDirMov filesep num2str(countMovie,'%03d') '.png']);
+           end 
+          
+           countMovie = countMovie+1;
+       end
     end
     %% Save the veilStem
     veilStem(iFrame).finalMask = fullMask;
