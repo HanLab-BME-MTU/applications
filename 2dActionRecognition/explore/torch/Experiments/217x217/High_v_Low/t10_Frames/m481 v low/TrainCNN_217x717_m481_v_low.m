@@ -1,29 +1,46 @@
 
-% Deep CNN 
-% Andrew R. Jamieson Nov 2017
+% simple script to pre-process the cells for Deep learning.
+% Andrew R. Jamieson Oct 2017
+
 
 clear;
 clc;
 
+%% Define experiment dir
+[exprDir] = uigetdir('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/',...
+                            'Where to store experimental output and confis?');
+
 %% load data state 
-[filename, pathname] = uigetfile('/work/bioinformatics/shared/dope/torch/test/217x217/allTime/','Which data to load?');
+[filename, pathname] = uigetfile('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/','Which data to load?');
 load(fullfile(pathname,filename));
 
-%  number of classes
-numClass = 2;
+load('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat', 'cellDataSet');
+c = [cellDataSet{:}];
+labelSet = unique({c.cellType});
 
-% [imdsTrain1, imdsValid] = splitEachLabel(imdsTrain, 0.85);
+% label as m481
+label = 'm481';
+cellLabel = cell2mat(cellfun(@(x) contains(x,['14-May-2017_' label]) ,imdsTrain.Files, 'Uniform', false));
+imdsTrain.Labels(cellLabel) = label;
+
+label = 'm481';
+cellLabel = cell2mat(cellfun(@(x) contains(x,['14-May-2017_' label]) ,imdsValid.Files, 'Uniform', false));
+imdsValid.Labels(cellLabel) = label;
+
+
+[imdsTrain] = splitEachLabel(imdsTrain,.9999999,...
+                            'Exclude',{'highMet','unMet'});
+[imdsValid] = splitEachLabel(imdsValid,.9999999,...
+                            'Exclude',{'highMet','unMet'});
 
 % uisave();
 
-
 %% Define Checkpoint
-[checkPointDir] = uigetdir('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/netTEMP',...
+[checkPointDir] = uigetdir('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/',...
                             'Where to store net Checkpoints?');
                                                                                               
 if ~verLessThan('matlab', '9.3')
-
-    %% define network
+    % define network
     disp('Note: using 2017b MATLAB layer definitions');
     layers = [ ...netTempDir
         imageInputLayer([217 217 1])
@@ -57,6 +74,7 @@ end
 
 %% Training options
 if ~verLessThan('matlab', '9.3')
+                        % 2017b
     options = trainingOptions('sgdm',...
         'MaxEpochs',100000, ...
         'ValidationFrequency',5000,...
@@ -67,8 +85,12 @@ if ~verLessThan('matlab', '9.3')
         'ValidationPatience', Inf,...
         'ExecutionEnvironment' , 'multi-gpu',...
         'CheckpointPath', checkPointDir);
- 
 end
+
+%% Save Configuration state
+saveConfigFile = fullfile(exprDir,['preTrainConfig_' datestr(datetime,'dd-mmm-yyyy-hhMM') '.mat']);
+disp(['Saving preRun configuration state....' saveConfigFile]);
+save(saveConfigFile);
 
 %% Start Training
 trainedNet = trainNetwork(imdsTrain,layers,options);
