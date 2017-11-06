@@ -15,14 +15,6 @@ load('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat', 'cell
 c = [cellDataSet{:}];
 labelSet = unique({c.cellType});
 
-
-% imdsTrainFiles = {};
-% for i = 1:length(imdsTrain.Files)
-%     [a b] = fileparts(imdsTrain.Files{i});
-%     imdsTrainFiles{i} = b;
-% end
-
-
 for i = 1:length(labelSet)
     label = labelSet{i};
     cellLabel = cell2mat(cellfun(@(x) contains(x,['14-May-2017_' label]) ,imdsTrainFiles, 'Uniform', false));
@@ -35,10 +27,6 @@ for i = 1:length(labelSet)
     cellLabel = cell2mat(cellfun(@(x) contains(x,['14-May-2017_' label]) ,imdsValid.Files, 'Uniform', false));
     imdsValid.Labels(cellLabel) = label;
 end
-
-% tumorLabel = imdsTrain_Tumor_v_Mel.Labels == 'highMet' | ...
-%     imdsTrain_Tumor_v_Mel.Labels == 'lowMet';
-% imdsTrain_Tumor_v_Mel.Labels(tumorLabel) = 'tumor';
 
 
 [imdsTrain] = splitEachLabel(imdsTrain,.9999999,...
@@ -98,12 +86,6 @@ if ~verLessThan('matlab', '9.3')
         'ValidationPatience', Inf,...
         'ExecutionEnvironment' , 'multi-gpu',...
         'CheckpointPath', checkPointDir);
-else 
-%     2017a
-    options = trainingOptions('sgdm','LearnRateSchedule','piecewise',...
-          'LearnRateDropFactor',0.2,'LearnRateDropPeriod',5,... 
-          'MaxEpochs',1000,'MiniBatchSize',75,...
-          'CheckpointPath',checkPointDir);    
 end
 
 %% Start Training
