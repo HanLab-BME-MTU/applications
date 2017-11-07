@@ -13,16 +13,18 @@ ip.parse(varargin{:});
   minZBorder=ZLimit(1);
   maxZBorder=ZLimit(2);
 
-  %% Pnrint tracks on the projections
-  if(isempty(myColormap))
-    myColormap=[[0 0 255]; [0 255 00]];
-  end
+  %% Print tracks on the projections
+
   if(isempty(colorIndx))
     colorIndx=arrayfun(@(d) ones(1,length(d.zCoord(:,1))),detections,'unif',0);
   end
 
   if(~iscell(colorIndx))
     colorIndx={colorIndx};
+  end
+  
+  if(isempty(myColormap))
+    myColormap=255*jet(length(unique(vertcat(colorIndx{:}))));
   end
   
   if(~isempty(detections))

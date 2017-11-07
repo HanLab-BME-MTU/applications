@@ -40,6 +40,9 @@ package=p.package;
 MD.setPackage(packPIDTMP,templatePackage);
 
 packSpindleRef=p.packSpindleRef; 
+if(isempty(packSpindleRef))
+    packSpindleRef=buildAndProjectSpindleRef(MD);
+end
 processDetectPoles=packSpindleRef.getProcess(1);
 processBuildRef=packSpindleRef.getProcess(2);
 processProj=packSpindleRef.getProcess(3);
@@ -134,7 +137,7 @@ amiraWriteTracks([fileparts(processTrackKT.outFilePaths_{2}) filesep 'Amira' fil
 if(p.debug)
 %% Display CH1 only
 lpid=lpid+1;     
-if(~isempty(p.package)&&(length(p.package.processes_)>=lpid)&&(~isempty(p.package.getProcess(lpid))))
+if(GenericPackage.processExist(p.package,lpid))
     processProjSpindleRef=p.package.getProcess(lpid);
 else
     processPro=ExternalProcess(MD,'projectDynROI');
