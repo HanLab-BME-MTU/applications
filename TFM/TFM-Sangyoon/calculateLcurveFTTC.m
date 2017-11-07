@@ -13,10 +13,25 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
 %         dx (essentially cluster_size) are in the same units, then the
 %         resulting force has the same dimension as the input E.
 %     LcurveFactor = 10;
+% 
+% Instead of relying on L-curve, we'll use L-curve between alphas vs eta, which is more
+% appropriate for FTTC. Stricker's method doesn't makes sense either.
+% Sangyoon Han, Oct 2017
+    %% set up
     alphas=10.^(log10(L)-5:1.25/LcurveFactor:log10(L)+2.5);
     rho=zeros(length(alphas),1);
     eta=zeros(length(alphas),1);
-    for i=1:length(alphas);
+%     etaMax=zeros(length(alphas),1);
+    grid_mat1=grid_mat(:,:,1);
+    grid_mat2=grid_mat(:,:,2);
+    u1=u(:,:,1);
+    u2=u(:,:,2);
+    firstGridPointX=grid_mat(1,1,1);
+    endGridPointX=grid_mat(end,end,1);
+    firstGridPointY=grid_mat(1,1,2);
+    endGridPointY=grid_mat(end,end,2);
+    %% loop
+    parfor i=1:length(alphas)
         disp(['testing L = ' num2str(alphas(i)) '... '])
         curL=alphas(i);
         V = 2*(1+s)/E;
@@ -25,10 +40,8 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
         ky_vec = 2*pi/j_max/cluster_size.*[0:(j_max/2-1) (-j_max/2:-1)];
         kx = repmat(kx_vec',1,j_max);
         ky = repmat(ky_vec,i_max,1);
-        if nargin<10
-            Rx=ones(size(kx));
-            Ry=ones(size(ky));
-        end
+        Rx=ones(size(kx));
+        Ry=ones(size(ky));
 
         kx(1,1) = 1;
         ky(1,1) = 1;
@@ -64,26 +77,21 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
         Ginv_xy(i_max/2+1,:) = 0;
         Ginv_xy(:,j_max/2+1) = 0;
 
-        Ftu(:,:,1) = fft2(u(:,:,1));
-        Ftu(:,:,2) = fft2(u(:,:,2));
+        Ftu1 = fft2(u1);
+        Ftu2 = fft2(u2);
 
-        Ftf(:,:,1) = Ginv_xx.*Ftu(:,:,1) + Ginv_xy.*Ftu(:,:,2);
-        Ftf(:,:,2) = Ginv_xy.*Ftu(:,:,1) + Ginv_yy.*Ftu(:,:,2);
+        Ftf1 = Ginv_xx.*Ftu1 + Ginv_xy.*Ftu2;
+        Ftf2 = Ginv_xy.*Ftu1 + Ginv_yy.*Ftu2;
 
-        f(:,:,1) = ifft2(Ftf(:,:,1),'symmetric');
-        f(:,:,2) = ifft2(Ftf(:,:,2),'symmetric');
+        f1 = ifft2(Ftf1,'symmetric');
+        f2 = ifft2(Ftf2,'symmetric');
 
-        pos(:,1) = reshape(grid_mat(:,:,1),i_max*j_max,1);
-        pos(:,2) = reshape(grid_mat(:,:,2),i_max*j_max,1);
+        force1 = reshape(f1,i_max*j_max,1);
+        force2 = reshape(f2,i_max*j_max,1);     
 
-        vec(:,1) = reshape(u(:,:,1),i_max*j_max,1);
-        vec(:,2) = reshape(u(:,:,2),i_max*j_max,1);
-
-        force(:,1) = reshape(f(:,:,1),i_max*j_max,1);
-        force(:,2) = reshape(f(:,:,2),i_max*j_max,1);     
-
-        fnorm = (force(:,1).^2 + force(:,2).^2).^0.5;
+        fnorm = (force1.^2 + force2.^2).^0.5;
         eta(i) = sum(fnorm(:));
+%         etaMax(i) = max(fnorm(:));
         % residual norm calculation
 %         G_xx=V*((1-s).*k.^2+s*ky.^2)./(k.^3);
 %         G_xy=V*s*kx.*ky./(k.^3);
@@ -113,18 +121,19 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
 %         hold on
 %         quiver(grid_mat(:,:,1),grid_mat(:,:,2),ue(:,:,1),ue(:,:,2),0,'r')
         
-        [ue(:,:,1),ue(:,:,2)]=fwdSolution(grid_mat(:,:,1),grid_mat(:,:,2),E,...
-            grid_mat(1,1,1),grid_mat(end,end,1),grid_mat(1,1,2),grid_mat(end,end,2),...
-            f(:,:,1),f(:,:,2),'fft','Intp',2^10,[],0.5,false,false);
+        [ue1,ue2]=fwdSolution(grid_mat1,grid_mat2,E,...
+            firstGridPointX,endGridPointX,firstGridPointY,endGridPointY,...
+            f1,f2,'fft','Intp',2^10,[],0.5,false,false);
 %         [ue(:,:,1),ue(:,:,2)]=fwdSolution(grid_mat(:,:,1),grid_mat(:,:,2),E,...
 %             grid_mat(1,1,1),grid_mat(end,end,1),grid_mat(1,1,2),grid_mat(end,end,2),...
 %             f(:,:,1),f(:,:,2),'fft','noIntp',[],[],0.5,false,true);
-        residueU = ((ue(:,:,1)-u(:,:,1)).^2+(ue(:,:,2)-u(:,:,2)).^2).^0.5;
+        residueU = ((ue1-u1).^2+(ue2-u2).^2).^0.5;
         rho(i) = sum(residueU(:));
     end
-    % Find the L-corner
+    %% Find the L-corner
 %     save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
 %     [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
-    
+%     [reg_corner,~,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(alphas',eta,alphas,L);
+%     figure, plot(alphas,etaMax,'-'); hold on, plot(alphas(ireg_corner),etaMax(ireg_corner),'ro')
 end
