@@ -1,8 +1,8 @@
 function [hfig, B, R] = kymograph(R,K,r,c,out)
 % Kymograph - Make kymograph figure for paper
 
-INTERPOLATION_INTERVAL = 10;
-PLOT_INTERVAL = 2;
+INTERPOLATION_INTERVAL = 5;
+PLOT_INTERVAL = 1;
 
 if(nargin < 1)
     I = orientationSpace.paper.loadLaminDemoImage;
@@ -40,7 +40,11 @@ if(nargin < 5)
 end
 
 %% Find end
-lastK = max(cumsum(~isnan(out),2),[],2);
+interpolationIdx = 1:INTERPOLATION_INTERVAL:length(K);
+lastK = cumsum(~isnan(out(:,interpolationIdx)),2);
+% lastK = lastK(:,1:INTERPOLATION_INTERVAL:length(K));
+lastK = max(lastK,[],2);
+lastK = interpolationIdx(lastK).';
 lastInd = sub2ind(size(out),(1:size(out,1)).',lastK);
 
 newtonfig = figure;
@@ -59,7 +63,7 @@ Kg_aligned(Kg_aligned < K(end)) = K(end);
 
 %% Calculate derivatives
 
-derivOrder = 2;
+derivOrder = 3;
 lm = out;
 period = 2*pi;
 [ dnm_dKn, dnm_dtn ] = orientationSpace.diffusion.orientationMaximaDerivatives( rho, K, derivOrder, lm , period);
@@ -138,15 +142,18 @@ end
 %% Do birfurcation interpolation
 
 sppc = cell(1,size(out,1));
+xThetaC = cell(1,size(out,1));
 for trackNum = find(interpolateBifurcation)
     try
         if(xgAligned(trackNum,1) > xgAligned(trackNum,2))
-            xTheta = joinColumns(repmat(fliplr(xgAligned(trackNum,:)),3,1));
-            yK = joinColumns(fliplr([K(lastK(trackNum)) Kg_aligned(trackNum); -[squeeze(dnK_dmn(1,trackNum,:)) squeeze(dnK_dmn(2,trackNum,:))] ]));
+            xTheta = joinColumns(repmat(fliplr(xgAligned(trackNum,:)),derivOrder+1,1));
+            xThetaC{trackNum} = [xgAligned(trackNum,2):0.01:xgAligned(trackNum,1) xgAligned(trackNum,1)];
+            yK = joinColumns(fliplr([K(lastK(trackNum)) Kg_aligned(trackNum); [squeeze(dnK_dmn(1,trackNum,:)) squeeze(dnK_dmn(2,trackNum,:))] ]));
             spp = spapi(optknt(xTheta.',5),xTheta.',yK.');
             sppc{trackNum} = spp;
         else
-            xTheta = joinColumns(repmat(xgAligned(trackNum,:),3,1));
+            xTheta = joinColumns(repmat(xgAligned(trackNum,:),derivOrder+1,1));
+            xThetaC{trackNum} = [xgAligned(trackNum,1):0.01:xgAligned(trackNum,2) xgAligned(trackNum,2)];
             yK = joinColumns([K(lastK(trackNum)) Kg_aligned(trackNum); [squeeze(dnK_dmn(1,trackNum,:)) squeeze(dnK_dmn(2,trackNum,:))] ]);
             spp = spapi(optknt(xTheta.',5),xTheta.',yK.');
             sppc{trackNum} = spp;
@@ -186,6 +193,9 @@ end
 for i=1:length(hp2)
     if(~isempty(sp2c{i}))
         plot(spval(sp2c{i},xqc{i})/2/pi*180,xqc{i},'Color',hp2(i).Color);
+    end
+    if(~isempty(sppc{i}))
+        plot(xThetaC{i}/2/pi*180,spval(sppc{i},xThetaC{i}),'--','Color',hp2(i).Color);
     end
 %     plot(spval(sp2c{i},xqc{i})/2/pi*180,xqc{i},'Color','m')
 end
