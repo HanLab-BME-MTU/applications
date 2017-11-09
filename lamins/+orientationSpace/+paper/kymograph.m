@@ -2,7 +2,7 @@ function [hfig, B, R] = kymograph(R,K,r,c,out)
 % Kymograph - Make kymograph figure for paper
 
 INTERPOLATION_INTERVAL = 5;
-PLOT_INTERVAL = 1;
+PLOT_INTERVAL = 2;
 
 if(nargin < 1)
     I = orientationSpace.paper.loadLaminDemoImage;
