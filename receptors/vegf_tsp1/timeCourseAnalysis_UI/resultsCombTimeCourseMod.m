@@ -24,7 +24,8 @@ function [resSummaryInd] = resultsCombTimeCourseMod(dsSummary)
 %                         Columns = immobile, confined, free, directed,
 %                         undetermined, determined, total.
 %           .numNorm0Class: Normalized number of particles in the various
-%                         motion classes, such that the first time = 1.
+%                         motion classes, such that the mean of the first 3
+%                         timepoints = 1.
 %                         Rows and columns as numAbsClass.
 %           .probClass  : Probability of the various motion classes.
 %                         Rows as above.
@@ -87,6 +88,9 @@ function [resSummaryInd] = resultsCombTimeCourseMod(dsSummary)
 %}
 for iDS = 1
     
+    %get number of time points in this movielist
+    nTP = length(dsSummary);
+    
     %absolute numbers of molecules in various motion classes
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet, 6 det, 7 tot, 8 imm+conf
     %rows are for different timepoints, as listed in corresponding timeList
@@ -97,21 +101,28 @@ for iDS = 1
         catStruct(1,'diffSummary.probMotionType(8,3)') ...
         catStruct(1,'diffSummary.probMotionType(9,3)') ...
         catStruct(1,'diffSummary.probMotionType(11,3)')];
-    numAbsClassCurrent = [numAbsClassCurrent sum(numAbsClassCurrent(:,1:4),2) ...
-        sum(numAbsClassCurrent(:,1:5),2) sum(numAbsClassCurrent(:,1:2),2)]; %#ok<AGROW>
-    numAbsClassInd = numAbsClassCurrent;
+    numAbsClassInd = [numAbsClassCurrent sum(numAbsClassCurrent(:,1:4),2) ...
+        sum(numAbsClassCurrent(:,1:5),2) sum(numAbsClassCurrent(:,1:2),2)];
         
-    %numbers in various motion classes normalized to 1 at absolute time 0
-    %columns and rows same as absolute numbers
-    numNorm0ClassInd = numAbsClassCurrent ./ repmat(numAbsClassCurrent(1,:),length(dsSummary),1);
+    %     %numbers in various motion classes normalized by dividing by mean value
+    %     %of first 3 time points
+    %     %columns and rows same as absolute numbers
+    %     normConst = nanmean(numAbsClassInd(1:min(3,nTP),:));
+    %     numNorm0ClassInd = numAbsClassInd ./ repmat(normConst,nTP,1);
     
     %absolute probabilities of various motion classes
     %columns are: 1 imm, 2 conf, 3 free, 4 dir (all relative to det), 
     %5 det (relative to tot), 6 imm+conf (relative to det)
-    probClassInd = [numAbsClassCurrent(:,1:4)./repmat(numAbsClassCurrent(:,6),1,4) ...
-        numAbsClassCurrent(:,6)./numAbsClassCurrent(:,7) ...
-        numAbsClassCurrent(:,8)./numAbsClassCurrent(:,6)];
+    probAbsClassInd = [numAbsClassInd(:,1:4)./repmat(numAbsClassInd(:,6),1,4) ...
+        numAbsClassInd(:,6)./numAbsClassInd(:,7) ...
+        numAbsClassInd(:,8)./numAbsClassInd(:,6)];
     
+    %     %probabilities of various motion classes normalized by dividing by mean
+    %     %value of first 3 time points
+    %     %columns and rows same as absolute probability
+    %     normConst = nanmean(probAbsClassInd(1:min(3,nTP),:));
+    %     probNorm0ClassInd = probAbsClassInd ./ repmat(normConst,nTP,1);
+
     %cell area in order to get densities
     cellAreaInd = repmat(vertcat(dsSummary.cellArea),1,8);
     
@@ -119,9 +130,11 @@ for iDS = 1
     %columns and rows same as absolute numbers
     densityAbsClassInd = numAbsClassInd ./ cellAreaInd;
     
-    %densities in various motion classes normalized to 1 at absolute time 0
-    %columns and rows same as absolute numbers
-    densityNorm0ClassInd = densityAbsClassInd ./ repmat(densityAbsClassInd(1,:),length(dsSummary),1);
+    %     %densities in various motion classes normalized by dividing by mean
+    %     %value of first 3 time points
+    %     %columns and rows same as absolute numbers
+    %     normConst = nanmean(densityAbsClassInd(1:min(3,nTP),:));
+    %     densityNorm0ClassInd = densityAbsClassInd ./ repmat(normConst,nTP,1);
     
     %diffusion coefficient in various motion classes
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet
@@ -156,6 +169,17 @@ for iDS = 1
     %merging and splitting time information
     msTimeInfoInd = vertcat(dsSummary.msTimeInfo);
     
+    %diffusion mode analysis
+    numDiffModeInd = catStruct(1,'dsSummary.diffModeAnalysis.numMode');
+    numDiffModeControlInd = catStruct(1,'dsSummary.diffModeAnalysis.numModeControl');
+    [modeDiffCoefInd,modeFractionInd] = deal(NaN(nTP,5));
+    for iMode = 1 : 5
+        indxGood = find(numDiffModeInd>=iMode);
+        dsSummaryGood = dsSummary(indxGood);
+        modeDiffCoefInd(indxGood,iMode) = catStruct(1,['dsSummaryGood.diffModeAnalysis.modeParam(' num2str(iMode) ',1)']);
+        modeFractionInd(indxGood,iMode) = catStruct(1,['dsSummaryGood.diffModeAnalysis.modeParam(' num2str(iMode) ',2)']);
+    end
+        
 end
 
 %% Combine dataset results
@@ -195,11 +219,22 @@ ampStatsF20Ind(isnan(ampStatsF20Ind)) = 0;
 ampStatsL20Ind(isnan(ampStatsL20Ind)) = 0;
 %}
 
-resSummaryInd = struct('numAbsClass',numAbsClassInd,'numNorm0Class',numNorm0ClassInd,...
-    'densityAbsClass',densityAbsClassInd,'densityNorm0Class',densityNorm0ClassInd,...
-    'probClass',probClassInd,'diffCoefClass',diffCoefClassInd,'confRadClass',confRadClassInd,...
+% resSummaryInd = struct('numAbsClass',numAbsClassInd,'numNorm0Class',numNorm0ClassInd,...
+%     'densityAbsClass',densityAbsClassInd,'densityNorm0Class',densityNorm0ClassInd,...
+%     'probAbsClass',probAbsClassInd,'probNorm0Class',probNorm0ClassInd,...
+%     'diffCoefClass',diffCoefClassInd,'confRadClass',confRadClassInd,...
+%     'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
+%     'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'ampStatsF01',ampStatsF01Ind,...
+%     'rateMS',rateMSInd,'msTimeInfo',msTimeInfoInd);
+
+resSummaryInd = struct('numAbsClass',numAbsClassInd,...
+    'densityAbsClass',densityAbsClassInd,...
+    'probAbsClass',probAbsClassInd,...
+    'diffCoefClass',diffCoefClassInd,'confRadClass',confRadClassInd,...
     'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
     'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'ampStatsF01',ampStatsF01Ind,...
-    'rateMS',rateMSInd,'msTimeInfo',msTimeInfoInd);
+    'rateMS',rateMSInd,'msTimeInfo',msTimeInfoInd,...
+    'numDiffMode',[numDiffModeInd numDiffModeControlInd],...
+    'modeDiffCoef',modeDiffCoefInd,'modeFraction',modeFractionInd);
 
 %% ~~~ the end ~~~

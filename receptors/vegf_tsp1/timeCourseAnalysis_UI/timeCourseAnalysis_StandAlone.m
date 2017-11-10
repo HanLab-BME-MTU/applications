@@ -46,17 +46,17 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %       .rateMS         : Rate of merging and rate of splitting per
 %                         feature. Columns: merging, splitting.
 %       .time           : List of relative time points (single column)
-% 
+%
 %       *following elements may or may not be present
-% 
+%
 %       .partitionFrac  : Probability of finding the various motion classes
 %                         within a mask
 %                         Row = time points in time course (see time).
 %                         Columns = immobile, confined, free, directed,
 %                         undetermined, determined, total.
-% 
+%
 %   outputDir       : file location where all figures and data will be saved
-% 
+%
 %   varargin        : name_value pair
 %
 %       showPartitionAnalysis   : logical determining if .partitionFrac will
@@ -76,7 +76,9 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %                                 see if they are significantly different
 %                                 or not.
 %       detectOutliers_k_sigma  : (numeric, scalar) see detectOutliers
-% 
+%       aveInterval             : Time Interval for time course averging
+%                                 (as an alternative to spline fit)
+%
 %OUTPUT
 %   commonInfo      : contains information and data common to all figures
 %                     or plots
@@ -112,6 +114,7 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %                                 zero. Default is false.
 %           .shiftTime          : (array, numeric) how much the aligned time are
 %                                 shifted. if ==1, align Event will be at 1
+%           .aveInterval        : Time interval for avering time course.
 %       .fullPath       : fullpath of where commonInfo and figureData are
 %                         saved
 %       .timeShift      : how much time values have been changed from the
@@ -145,7 +148,7 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %                             null hypothesis is more likely.
 %           .timeIndx       : the index of commonInfo.compareTimes that
 %                             correspond to this fit compare
-%                             
+%
 %
 %Tae Kim, July 2015
 
@@ -165,12 +168,15 @@ ip.addParameter('shiftPlotPositive', false, @(x) islogical(x)||isnumeric(x));
 ip.addParameter('shiftTime', [], @(x) isnumeric(x));
 ip.addParameter('detectOutliers_k_sigma', [], @(x) isnumeric(x));
 ip.addParameter('showPlots',true,@(x) islogical(x)||isnumeric(x));
+ip.addParameter('aveInterval', 3, @(x) isnumeric(x) && x>0);
 ip.parse(varargin{:});
 params = ip.Results;
 params.showPartition = params.showPartitionAnalysis;
 
-outputDirFig = [outputDir filesep 'figures'];
-outputDirFig2 = [outputDir filesep 'figures_SE'];
+outputDirFig = [outputDir filesep 'figuresSpline'];
+outputDirFig2 = [outputDir filesep 'figuresSpline_SE'];
+outputDirFigA = [outputDir filesep 'figuresAve'];
+outputDirFigA2 = [outputDir filesep 'figuresAve_SE'];
 %makes sure outputDir folder exists
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
@@ -214,19 +220,21 @@ commonInfo.conditions = names;
 commonInfo.parameters = params;
 commonInfo.outputDirFig = outputDirFig;
 commonInfo.outputDirFig2 = outputDirFig2;
+commonInfo.outputDirFigA = outputDirFigA;
+commonInfo.outputDirFigA2 = outputDirFigA2;
 % iFD = 0;
 
-%% Plot and Fit Smoothing Spline
+%% Plot, Fit Smoothing Spline and Calculate "Moving Average"
 %Initialize
 defCond = { ...
-      'immobile' ...      % 1
-    , 'confined' ...      % 2 
-    , 'free' ...          % 3
-    , 'directed' ...      % 4
-    , 'undetermined' ...  % 5
-    , 'determined' ...    % 6
-    , 'total' ...         % 7
-    , 'sub-diffusive' ... % 8
+    'Immobile' ...      % 1
+    , 'Confined' ...      % 2
+    , 'Free' ...          % 3
+    , 'Directed' ...      % 4
+    , 'Undetermined' ...  % 5
+    , 'Determined' ...    % 6
+    , 'Total' ...         % 7
+    , 'Sub-diffusive' ... % 8
     };
 ampLabels = { ...
     'Fluorescence Amplitude Overall (a.u.)', ... % 1
@@ -235,6 +243,7 @@ ampLabels = { ...
     'Number of Modes', ... % 7
     'Normalized Fluorescence Amplitude Overall (monomer units)' ... % 8
     };
+modeID = {'1', '2', '3', '4', '5'};
 
 commonInfo.defCond = defCond;
 commonInfo.ampLabels = ampLabels;
@@ -255,28 +264,38 @@ calcFigure({data.densityAbsClass}', 'Absolute Density of Class Types', ...
     defCond, 'Density of tracks (molecules/pixel^2)');
 calcFigure({data.densityNorm0Class}', 'Normalized Density of Class Types', ...
     defCond, 'Density of tracks relative to time 0');
-calcFigure({data.probClass}', 'Probability of Class Types', ...
+calcFigure({data.probAbsClass}', 'Absolute Probability of Class Types', ...
+    defCond([1:4 6 8]), ...
+    'Probability');
+calcFigure({data.probNorm0Class}', 'Normalized Probability of Class Types', ...
     defCond([1:4 6 8]), ...
     'Probability');
 
 calcFigure({data.diffCoefClass}', 'Diffusion Coefficient', ...
     defCond(1:4), 'Diffusion coefficient (pixels^2/frame)'); %no 5th
-calcFigure({data.confRadClass}', 'Confinement Radius', ... 
+calcFigure({data.confRadClass}', 'Confinement Radius', ...
     defCond(1:2), 'Confinement radius (pixels)');%no 3 4 5th column
 
 calcFigure({data.ampClass}', 'Fluorescence Amplitude', ...
     defCond(1:5), 'Intensity (arbitrary units)');
-calcFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ... 
+calcFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ...
     defCond(1:5), 'Normalized intensity (monomer units)');
 calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ampLabels, '');
 calcFigure({data.ampStatsL20}', 'Last 20 Frames - ' , ampLabels, '');
 calcFigure({data.ampStatsF01}', 'First Frame Detection - ', ampLabels, '');
 
-calcFigure({data.rateMS}', 'M & S Rate', {'merging', 'splitting'}, '(per frame per particle)');
+calcFigure({data.rateMS}', 'M & S Rate', {'merging', 'splitting'}, 'Rate (per frame per particle)');
 calcFigure({data.msTimeInfo}', 'M & S Time Information', ...
-    {'merge-to-split time', 'split-to-merge (self) time','split-to-merge (other) time','merge-to-end time','start-to-split time'}, '(frames)');
+    {'merge-to-split time', 'split-to-merge (self) time',...
+    'split-to-merge (other) time','merge-to-end time','start-to-split time'}, 'Time (frames)');
 
-%Do only if input specify that this plot be shown. Will cause error if
+calcFigure({data.numDiffMode}', 'Modes: Number of diffusion modes - ', {'Data','Negative control'}, 'Number of modes');
+calcFigure({data.modeDiffCoef}', 'Modes: Diffusion Coefficient Mode', modeID, ...
+    'Diffusion coefficient (pixels^2/frame)');
+calcFigure({data.modeFraction}', 'Modes: Fraction Mode', modeID, 'Fraction');
+
+
+%Do only if input specifies that this plot be shown. Will cause error if
 %data.partitionFrac is not present
 if params.showPartition
     calcFigure({data.chemEnergy}', 'Chemical Energy of Localization', ...
@@ -302,7 +321,7 @@ if(~params.showPlots)
     disp('Figures not shown, but saved in ');
     disp(commonInfo.outputDirFig);
 end
-timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig,~params.showPlots);
+timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig,~params.showPlots,commonInfo.outputDirFigA);
 pause(1);
 %progressText
 fprintf('\b Complete\n');
@@ -341,52 +360,60 @@ if(~params.nBootstrp)
         [figureData.fitError] = deal([]);
     end
 else
-
-[commonInfo.analysisTimes, timeLimit, commonInfo.timeLimitIndx] = timeCourseAnalysis.getAnalysisTimes(commonInfo.times,params.timeResolution);
     
-% Compute standard error
-% determineSEInParallel = true;
-nFig = numel(figureData);
-% if(~determineSEInParallel)
-%     %for progress display
-%     
+    %KJ: get time points used in spline fit
+    
+    inOutFlagAll = horzcat(figureData.inOutFlag);
+    for iCond = 1 : nConditions
+        tmp = horzcat(inOutFlagAll{iCond,:});
+        inOutFlagPerCond{iCond,1} = max(tmp,[],2);
+    end   
+    
+    [commonInfo.analysisTimes, timeLimit, commonInfo.timeLimitIndx] = timeCourseAnalysis.getAnalysisTimes(commonInfo.times,params.timeResolution,inOutFlagPerCond);
+    
+    % Compute standard error
+    % determineSEInParallel = true;
+    nFig = numel(figureData);
+    % if(~determineSEInParallel)
+    %     %for progress display
+    %
     progressTextMultiple('Determining confidence interval', nFig);
-% else
-%     warning('off','parallel:lang:spmd:RemoteTransfer');
-%     disp('Determining confidence interval');
-%     disp('Parallel progress not available');
-%     dFigureData = distributed(figureData);
-%     parfor_progress(nFig);
-% end
-%call determineSE_Bootstrp.m
-fitError = pararrayfun_progress( ...
-    @(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag) ...
-    , figureData ...
-    , 'Uniformoutput', false ...
-    , 'ErrorHandler',  @determineSEEH ...
-    , 'DisplayFunc',   'progressTextMultiple' ...
-    );
-% if(determineSEInParallel)
-%     fitError = gather(fitError);
-% end
-[figureData.fitError] = fitError{:};
-
-%% Add Standard Error to Figures
-disp('Plotting figures: standard error');
-if(~params.showPlots)
-    disp('Figures not shown, but saved in ');
-    disp(commonInfo.outputDirFig2);
-end
-timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2,~params.showPlots);
-fprintf('\b Complete\n');
-
-drawnow;
-
-%% Compare Fitted Curves
-[fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
-[figureData.fitCompare] = fitCompare{:};
-
-
+    % else
+    %     warning('off','parallel:lang:spmd:RemoteTransfer');
+    %     disp('Determining confidence interval');
+    %     disp('Parallel progress not available');
+    %     dFigureData = distributed(figureData);
+    %     parfor_progress(nFig);
+    % end
+    %call determineSE_Bootstrp.m
+    fitError = pararrayfun_progress( ...
+        @(x) determineSE(x.data, commonInfo.times, params.nBootstrp, params.timeResolution, timeLimit, params.smoothingPara, x.inOutFlag) ...
+        , figureData ...
+        , 'Uniformoutput', false ...
+        , 'ErrorHandler',  @determineSEEH ...
+        , 'DisplayFunc',   'progressTextMultiple' ...
+        );
+    % if(determineSEInParallel)
+    %     fitError = gather(fitError);
+    % end
+    [figureData.fitError] = fitError{:};
+    
+    %% Add Standard Error to Figures
+    disp('Plotting figures: standard error');
+    if(~params.showPlots)
+        disp('Figures not shown, but saved in ');
+        disp(commonInfo.outputDirFig2);
+    end
+    timeCourseAnalysis.plot.standardErrorFigure(commonInfo,figureData,true,outputDirFig2,~params.showPlots);
+    fprintf('\b Complete\n');
+    
+    drawnow;
+    
+    %% Compare Fitted Curves
+    [fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
+    [figureData.fitCompare] = fitCompare{:};
+    
+    
 end % end of if(~params.nBootstrp)
 
 %% Save
@@ -394,15 +421,17 @@ save(commonInfo.fullPath, 'commonInfo', 'figureData');
 
 end
 %% Local Functions
+
 %function for progressDisplay and calls determineSE_Bootstrp.m
 function [fitError] = determineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag)
-    fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
-    if(numlabs == 1)
-        progressTextMultiple();
-    else
-        parfor_progress();
-    end
+fitError = determineSmoothSplineSE(data, time, nBoot, timeResolution, timeLimit, smoothingPara, inOutFlag);
+if(numlabs == 1)
+    progressTextMultiple();
+else
+    parfor_progress();
 end
+end
+
 %error handle for determineSE_Bootstrp.m
 function [fitError] = determineSEEH(varargin)
 fitError = [];
