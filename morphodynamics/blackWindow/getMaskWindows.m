@@ -154,6 +154,12 @@ function windows = getMaskWindows(maskIn,perpSize,paraSize,varargin)
 %   This is used by getMovieWindows.m for propagating these start points
 %   and is probably useless for anything else.
 %
+%   ('StartStripOnly'->true/false) If true, the windowing will stop after
+%   two strips and instead the start point locations (the locations of the
+%   gradient ascent starts) will be returned returned as an Mx2 matrix.
+%   This is used by getMovieWindows.m for propagating these start points
+%   and is probably useless for anything else.
+%
 % Output:
 %
 %   windows - A 3-layer cell array containing the 2xM matrices giving the
@@ -224,7 +230,7 @@ if any(paraSize < 1)
 end
 
 %Parse additional options
-[startPoint,nPara,startContour,showPlots,doChecks,spOnly] = parseInput(varargin);
+[startPoint,nPara,startContour,showPlots,doChecks,spOnly,ssOnly] = parseInput(varargin);
 
 if ~isempty(nPara) && (numel(nPara) > 1 || nPara < 2 || round(nPara) ~= nPara)
     error('The number of windows specified by the nPara input must be a positive integer scalar >= 2!')
@@ -275,6 +281,10 @@ end
 
 if isempty(spOnly)
     spOnly = false;
+end
+
+if isempty(ssOnly)
+    ssOnly = false;
 end
 
 %% --------------- Parameters ----------------- %%
@@ -679,6 +689,10 @@ isCollapsed = false;
 
 %Go through each subsequent slice, and find intersections w/ contours.    
 for j = 1:(nStrips+1)
+    
+    if ssOnly && j > 2
+        break
+    end
 
     [intXcur,intYcur,iSintCur,iCintCur] = find_intersections(slices{j},...
                                                     contours);
@@ -1457,7 +1471,7 @@ function [ix,iy,i1,i2] = find_intersections(c,cInt)
     end                                
 
 
-function [startPoint,nPara,startContour,showPlots,doChecks,spOnly] = parseInput(argArray)
+function [startPoint,nPara,startContour,showPlots,doChecks,spOnly,ssOnly] = parseInput(argArray)
 
 startPoint = [];
 nPara = [];
@@ -1465,6 +1479,7 @@ startContour = [];
 showPlots = [];
 doChecks = [];
 spOnly = [];
+ssOnly = [];
 
 if isempty(argArray)
     return
@@ -1504,6 +1519,10 @@ for i = 1:2:nArg
         case 'StartPointsOnly'
             
             spOnly = argArray{i+1};
+         
+        case 'StartStripOnly'
+            
+            ssOnly = argArray{i+1};
             
         otherwise
 
