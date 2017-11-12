@@ -241,12 +241,29 @@ if (p.movingAvgSmoothing == true)
     actmap_outl2 = actmap_outl;
     
     gaussianFilter = fspecial('gaussian', 3, 0.5);   %% minimal gaussian filtering
+    
     for l = 1:maxLayer
         tmp = actmap_outl{l};    
         actmap_outl2{l} = nanconv(tmp, gaussianFilter, 'edge', 'nanout');
     end
     actmap_outl = actmap_outl2;
 end
+
+
+%% 10/18/2017 (temp)
+
+if (p.movingAvgSmoothing > 0) & (p.movingAvgSmoothing < 1)
+    actmap_outl2 = actmap_outl;
+    smParam = p.movingAvgSmoothing;
+
+    for indL = 1:maxLayer
+        actmap_outl2{indL} = smoothActivityMap(actmap_outl{indL}, 'SmoothParam', smParam, 'UpSample', 1); 
+    end
+    actmap_outl = actmap_outl2;
+end
+
+
+
 
 
 

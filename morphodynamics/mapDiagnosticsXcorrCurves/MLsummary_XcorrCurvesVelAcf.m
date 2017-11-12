@@ -16,8 +16,8 @@ function MLsummary_XcorrCurvesVelAcf(ML, iChan1, iChan2, chan1Name, chan2Name, .
 %       iChan2      - the 2nd channel index
 %       chan2Name   - a short name for channel2.
 %       maxLayer    - maximum layer to be analyzed 
-%       analNameAcf - the folder name for output from mapDescriptives_Vel.m
-%                     to collect acf curves
+%       analNameAcf - the folder name for output for edge velocity
+%                       (iChan=0) to collect acf curves
 %       analNameXcf - the folder name for output from
 %                     mapXcorrCurvePermutation.m to collect xcf curves
 %
@@ -27,6 +27,9 @@ function MLsummary_XcorrCurvesVelAcf(ML, iChan1, iChan2, chan1Name, chan2Name, .
 %       outDirName  - Specify a name of output directory.
 %
 % Updates:
+% J Noh, 2017/11/05. 
+% The ouput name of autocorr for Vel is now 'Chan0_Avg_autocorLayers.mat', 
+% which is in general format from mapDescriptives_OneChan(iChan=0).
 % J Noh, 2017/09/25. Include the summary of ACF of channels.
 % Jungsik Noh, 2017/05/17
 
@@ -73,8 +76,9 @@ for i = 1:num
     md = MDs{i};
     mdDir = md.outputDirectory_;
     %%%% input
-    load(fullfile(mdDir, analNameAcf, 'Chan0_Avg_autocor_Vel.mat')); % Avg_autocor
-    acfvecsize(i) = size(Avg_autocor, 2);
+    load(fullfile(mdDir, analNameAcf, 'Chan0_Avg_autocorLayers.mat')); % Avg_autocor
+    %acfvecsize(i) = size(Avg_autocor, 2);
+    acfvecsize(i) = size(Avg_autocorLayers{1}, 2);
 end
 
 lagSizeAcf = min(acfvecsize);
@@ -116,17 +120,18 @@ for i = 1:num
     %[~, cellName] = fileparts(folderName);
 
     %%%% input
-    load(fullfile(mdDir, analNameAcf, 'Chan0_Avg_autocor_Vel.mat'));   
+    load(fullfile(mdDir, analNameAcf, 'Chan0_Avg_autocorLayers.mat'));   
 
     %%%%
     
     cellLabels{i} = cellName;
-    copyfile(fullfile(mdDir, analNameAcf, 'acCurve_Chan0.png'), ...
-        fullfile(outDir, [cellLabels{i}, '_acCurve_Chan0.png']) )    
+    copyfile(fullfile(mdDir, analNameAcf, 'acCurve_Chan0_1L.png'), ...
+        fullfile(outDir, [cellLabels{i}, '_acCurve_Chan0_1L.png']) )    
     
     %xcorrMat = Avg_autocor;
         %xcmean = mean(xcorrMat_tmp{indL}, 1, 'omitnan');
-        xcmean = Avg_autocor;
+        %xcmean = Avg_autocor;
+        xcmean = Avg_autocorLayers{1};
         %tmplen = numel(xcmean);
         if (numel(xcmean) < lagSizeAcf)
             xcmeanMiddle = [xcmean, nan(1, lagSizeAcf - numel(xcmean))];

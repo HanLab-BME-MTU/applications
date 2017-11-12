@@ -42,6 +42,7 @@ function mapDescriptives_OneChan(MD, iChan, maxLayer, chanName, chanTitle, figur
 %       topograph   - if 'off' topographs are not plotted. Default is 'on'.
 %
 % Updated: 
+% J Noh, 2017/11/05, Add topograph for SD and CV with 1%~99% scale bar. Increase FontSize.
 % J Noh, 2017/10/11, raw activities can be smoothed. New option is
 % 'movingAvgSmoothing'.
 % J Noh, 2017/09/25. Now acf is saved.
@@ -68,7 +69,7 @@ ip.addParameter('movingAvgSmoothing', false);
 ip.parse(varargin{:});
 p = ip.Results;
 
-figFlag = p.figFlag;
+%figFlag = p.figFlag;
 
 
 %%  figuresDir setup
@@ -119,7 +120,7 @@ for indL = 1:maxLayer
 
     inputmap = rawActmap{indL};
     %filteredmap = smoothActivityMap(velmap, 'SmoothParam', smParam, 'UpSample', 1);
-    fchanraw{indL} = figure('Visible', figFlag);  
+    fchanraw{indL} = figure('Visible', p.figFlag);  
     figtmp = imagesc(inputmap);
     title([chanTitle, '-', num2str(indL), 'L'])
     colorbar;colormap(jet) 
@@ -131,6 +132,8 @@ for indL = 1:maxLayer
     ax.XTickMode = 'manual';
     ax.XTick = curTick+1;
     ax.XTickLabel = (curTick)*MDtimeInterval_;
+    
+    ax.FontSize = 15;
 
 end
 
@@ -148,7 +151,7 @@ for indL = 1:maxLayer
 
     inputmap = actmap_outl{indL};
     %filteredmap = smoothActivityMap(velmap, 'SmoothParam', smParam, 'UpSample', 1);
-    fchanraw{indL} = figure('Visible', figFlag);  
+    fchanraw{indL} = figure('Visible', p.figFlag);  
     figtmp = imagesc(inputmap);
     title([chanTitle, '-', num2str(indL), 'L'])
     colorbar;colormap(jet) 
@@ -160,6 +163,8 @@ for indL = 1:maxLayer
     ax.XTickMode = 'manual';
     ax.XTick = curTick+1;
     ax.XTickLabel = (curTick)*MDtimeInterval_;
+    
+    ax.FontSize = 15;
 
 end
 
@@ -178,7 +183,7 @@ bpmat = nan(wmax*tmax, maxLayer);
 for l = 1:maxLayer; 
     bpmat(:, l) = reshape(actmap_outl{l}, [], 1); 
 end;
-BPlayer = figure('Visible', figFlag); 
+BPlayer = figure('Visible', p.figFlag); 
 boxplot(bpmat);
 title(chanTitle)
 xlabel('Layers')
@@ -196,7 +201,7 @@ for indL = 1:maxLayer
     
     inputmap = actmap_outl{indL};
     %
-    velBoxTime{indL} = figure('Visible', figFlag);
+    velBoxTime{indL} = figure('Visible', p.figFlag);
     boxplot(inputmap, 'whisker', Inf);
     title([chanTitle, '-', num2str(indL), 'L'])
     xlabel('Time frame')
@@ -204,12 +209,15 @@ for indL = 1:maxLayer
     set(gca, 'XTickLabel', 10:10:tmax)
 
 
-    velBoxWin{indL} = figure('Visible', figFlag); 
+    velBoxWin{indL} = figure('Visible', p.figFlag); 
     boxplot(inputmap', 'whisker', Inf);
     title([chanTitle, '-', num2str(indL), 'L'])
     xlabel('Window')
     set(gca, 'XTick', 10:10:wmax)
     set(gca, 'XTickLabel', 10:10:wmax)
+    
+    ax = gca;
+    ax.FontSize = 15;
 
 end
 
@@ -232,10 +240,13 @@ for indL = 1:maxLayer
     
     sm = summary(inputmap(:));
     title2 = ['m=', sprintf('%0.2f', sm.mean), ' std=', sprintf('%0.2f', sm.std)];
-    chanHist{indL} = figure('Visible', figFlag);
+    chanHist{indL} = figure('Visible', p.figFlag);
     histogram(inputmap(:));
     title1 = [chanTitle, '-', num2str(indL), 'L'];
     title({title1, title2})
+    
+    ax = gca;
+    ax.FontSize = 15;
 
 end
 
@@ -261,12 +272,28 @@ end
 
 title0 = chanTitle;
 
-topomapFig = topographMD(MD, tmax, 1, topoMap, title0, figFlag);
+topomapFig = topographMD(MD, tmax, 1, topoMap, title0, p.figFlag);
+    
+    ax = gca;
+    ax.FontSize = 15;
 
 %%
 saveas(topomapFig, fullfile(figuresDir, ['/topograph_', fname0, '.png']), 'png')
 
 end
+
+
+%% 2017/11/04 update
+
+histMeans = figure('Visible', p.figFlag);
+histogram(topoMap(:), 'BinMethod', 'fd');
+title([chanTitle, '-means'])
+
+    ax = gca;
+    ax.FontSize = 15;
+
+saveas(histMeans, fullfile(figuresDir, ['/histMeans_', fname0, '.png']), 'png')
+
 
 
 %%  smoothActivityMap prot/act maps
@@ -279,7 +306,7 @@ for indL = 1:maxLayer
     inputmap = actmap_outl{indL};
 
     filteredmap = smoothActivityMap(inputmap, 'SmoothParam', smParam, 'UpSample', 1);
-    fchan{indL} = figure('Visible', figFlag);
+    fchan{indL} = figure('Visible', p.figFlag);
     figtmp = imagesc(filteredmap);
     title([chanTitle, '-', num2str(indL), 'L'])
     colorbar;colormap(jet)
@@ -291,6 +318,8 @@ for indL = 1:maxLayer
     ax.XTickMode = 'manual';
     ax.XTick = curTick+1;
     ax.XTickLabel = (curTick)*MDtimeInterval_;
+    
+    ax.FontSize = 15;
 
 end
 
@@ -319,12 +348,15 @@ end
     timeFr = 1:tmax;
     timeAxis = (timeFr-1)*MDtimeInterval_;
    
-    meansTime = figure('Visible', figFlag);
+    meansTime = figure('Visible', p.figFlag);
     plot(timeAxis, cmeansZmat);
     title([chanTitle, '-', 'means'])
     xlabel('Time (s)'); ylabel('Z-score')
     legend('1L', '2L', '3L', '4L', '5L', 'Location','northoutside','Orientation','horizontal');
-
+    
+    ax = gca;
+    ax.FontSize = 15;
+    
 % along windows
 
 cmeansZ = cell(maxLayer,1);
@@ -340,13 +372,15 @@ end
    
     winIndex = 1:wmax;
    
-    meansWin = figure('Visible', figFlag);
+    meansWin = figure('Visible', p.figFlag);
     plot(winIndex, cmeansZmat);
     title([chanTitle, '-', 'means'])
     xlabel('Window'); ylabel('Z-score')
     legend('1L', '2L', '3L', '4L', '5L', 'Location','northoutside','Orientation','horizontal');
 
-
+    ax = gca;
+    ax.FontSize = 15;
+    
     
 %% 
 saveas(meansTime, fullfile(figuresDir, ['/meansTime', fname0, '.png']), 'png')
@@ -369,19 +403,25 @@ for indL = 1:maxLayer
 
     legend1 = {['win', num2str(winInd(1))], ['win', num2str(winInd(2))], ['win', num2str(winInd(3))]};
 
-    tsplots1{indL} = figure('Visible', figFlag);
+    tsplots1{indL} = figure('Visible', p.figFlag);
     plot(timeAxis, inputmap(winInd(1:3), :))
     xlabel('Time (s)'); ylabel(chanName)
     title([chanTitle, ' example1 - ', num2str(indL), 'L'])
     legend(legend1, 'Location','northoutside','Orientation','horizontal')
+    
+    ax = gca;
+    ax.FontSize = 15;
 
     legend2 = {['win', num2str(winInd(4))], ['win', num2str(winInd(5))], ['win', num2str(winInd(6))]};
-
-    tsplots2{indL} = figure('Visible', figFlag);
+    
+    tsplots2{indL} = figure('Visible', p.figFlag);
     plot(timeAxis, inputmap(winInd(4:6), :))
     xlabel('Time (s)'); ylabel(chanName)
     title([chanTitle, ' example2 - ', num2str(indL), 'L'])
     legend(legend2, 'Location','northoutside','Orientation','horizontal')
+    
+    ax = gca;
+    ax.FontSize = 15;
 end
 
 
@@ -403,7 +443,8 @@ for indL = 1:maxLayer
     mapName = [chanTitle, '-', num2str(indL), 'L'];
     
 [acmap{indL}, corrMat{indL}, meanAutocorr{indL}] = ...
-    TimeSpaceAutoCorPlot(imActmap{indL}, mapName, MDtimeInterval_, 'figFlag', figFlag);
+    TimeSpaceAutoCorPlot(imActmap{indL}, mapName, MDtimeInterval_, 'figFlag', p.figFlag);
+    
 end
 
 
@@ -429,6 +470,9 @@ for indL = 1:maxLayer
         
 [acCurve{indL}, Avg_autocorLayers{indL}] = autoCorrCurvePermTest(imActmap{indL}, mapName, MDtimeInterval_, ...
                 p.numPerm, p.parpoolNum, p.rseed, 'figFlag', p.figFlag);
+            
+            ax = gca;
+            ax.FontSize = 15;
 end
 
 %%
@@ -454,6 +498,9 @@ if p.adf == 1
         mapForAdf = imActmap{indL}(:, ~all(isnan(imActmap{indL})));
         
         [pvec{indL}, adfMap{indL}] = nanAdfTestMap(mapForAdf, mapName, 0.8);
+
+        ax = gca;
+        ax.FontSize = 15;
 
     end
 
@@ -496,7 +543,7 @@ for indL = 1:maxLayer
         grChar{wmax_+k} = 'Spatial';
     end
 
-    fvariation{indL} = figure('Visible', figFlag);
+    fvariation{indL} = figure('Visible', p.figFlag);
     boxplot(CVfull, grChar)
     title([chanName, '-', num2str(indL), 'L'])
     ylabel('Coeff. Variation')
@@ -509,6 +556,136 @@ end
 for indL = 1:maxLayer
     saveas(fvariation{indL}, fullfile(figuresDir, ['/CV', fname0, '_', num2str(indL), 'L.png']), 'png')
 end
+
+
+%%  temporal SD plot
+
+SDlayers = cell(1, maxLayer);
+CVlayers = cell(1, maxLayer);
+
+for indL = 1:maxLayer
+
+    map = imActmap{indL};
+    % 
+    stdTemp = std(map, [], 2, 'omitnan');
+    meanTemp = mean(map, 2, 'omitnan');
+    temporalCV = stdTemp./abs(meanTemp);
+
+    SDlayers{indL} = stdTemp;
+    CVlayers{indL} = temporalCV;
+end
+
+
+%%
+
+fSDlayers = figure('Visible', p.figFlag);
+
+plot(cell2mat(SDlayers))
+xlabel('Window'); 
+title('Standard deviation')
+legend('1L', '2L', '3L', '4L', '5L', 'Location','northoutside','Orientation','horizontal');
+
+ax = gca;
+    ax.FontSize = 15;
+    
+
+fCVlayers = figure('Visible', p.figFlag);
+
+plot(cell2mat(CVlayers))
+xlabel('Window'); 
+title('Coeff. Variation')
+legend('1L', '2L', '3L', '4L', '5L', 'Location','northoutside','Orientation','horizontal');
+
+ax = gca;
+    ax.FontSize = 15;
+    
+
+%% save
+saveas(fSDlayers, fullfile(figuresDir, ['SDlayers_', fname0, '.png']), 'png')
+saveas(fCVlayers, fullfile(figuresDir, ['CVlayers_', fname0, '.png']), 'png')
+
+
+
+%% topomap topographMD
+if strcmp(p.topograph, 'on')
+
+iWinProc = MD.getProcessIndex('WindowingProcess',1,0);
+nBandMax_ = MD.processes_{iWinProc}.nBandMax_;
+%
+topoMap = nan(wmax, nBandMax_);
+
+for indL = 1:maxLayer
+    %topoMap(:, indL) = mean(actmap_outl{indL}, 2, 'omitnan');
+    topoMap(:, indL) = SDlayers{indL};
+end
+
+title0 = [chanTitle, '-SD'];
+
+topomapFig = topographMD(MD, tmax, 1, topoMap, title0, p.figFlag);
+
+ax = gca;
+    ax.FontSize = 15;
+
+%%
+saveas(topomapFig, fullfile(figuresDir, ['/topographSD_', fname0, '.png']), 'png')
+
+end
+
+
+
+%% 2017/11/04 update
+
+histMeans = figure('Visible', p.figFlag);
+histogram(topoMap(:), 'BinMethod', 'fd');
+title([chanTitle, '-SDs'])
+
+    ax = gca;
+    ax.FontSize = 15;
+
+saveas(histMeans, fullfile(figuresDir, ['/histSDs_', fname0, '.png']), 'png')
+
+
+
+
+%%
+if strcmp(p.topograph, 'on')
+
+iWinProc = MD.getProcessIndex('WindowingProcess',1,0);
+nBandMax_ = MD.processes_{iWinProc}.nBandMax_;
+%
+topoMap = nan(wmax, nBandMax_);
+
+for indL = 1:maxLayer
+    %topoMap(:, indL) = mean(actmap_outl{indL}, 2, 'omitnan');
+    topoMap(:, indL) = CVlayers{indL};
+end
+
+title0 = [chanTitle, '-CV'];
+
+topomapFig = topographMD(MD, tmax, 1, topoMap, title0, p.figFlag);
+
+ax = gca;
+    ax.FontSize = 15;
+
+%%
+saveas(topomapFig, fullfile(figuresDir, ['/topographCV_', fname0, '.png']), 'png')
+
+end
+
+
+%% 2017/11/04 update
+
+histMeans = figure('Visible', p.figFlag);
+histogram(topoMap(:), 'BinMethod', 'fd');
+title([chanTitle, '-CVs'])
+
+    ax = gca;
+    ax.FontSize = 15;
+
+saveas(histMeans, fullfile(figuresDir, ['/histCVs_', fname0, '.png']), 'png')
+
+
+
 
 
 %%  checkWindowJump

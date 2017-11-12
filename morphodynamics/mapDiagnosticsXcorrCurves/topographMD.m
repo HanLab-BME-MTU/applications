@@ -31,8 +31,14 @@ windows = MD.processes_{iWinProc}.loadChannelOutput(iFrame, iChan);  %% win{iStr
 
 nColor = 1024;
 winColors = colormap(jet(nColor));
-minval = min(topoMap(:));
-maxval = max(topoMap(:));
+%minval = min(topoMap(:));
+%maxval = max(topoMap(:));
+
+minval = quantile(topoMap(:), 0.01);
+maxval = quantile(topoMap(:), 0.99);
+topoMap(topoMap < minval) = minval;
+topoMap(topoMap > maxval) = maxval;
+
 
 %
     nStrip = numel(windows);
