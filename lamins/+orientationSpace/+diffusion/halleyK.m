@@ -57,7 +57,8 @@ x = repmat(x,[1 1 3]);
 
 freqM = [0:floor(response_sz(1)/2) -floor(response_sz(1)/2):-1];
 freqM = shiftdim(freqM,1)*1i;
-freqM = freqM.^shiftdim([1 3 5 2],-1);
+freqM = bsxfun(@power,freqM,shiftdim([1 3 5 2],-1));
+% freqM = freqM.^shiftdim([1 3 5 2],-1);
 freqM(:,:,2) = freqM(:,:,2)*D;
 freqM(:,:,3) = freqM(:,:,3)*D^2;
 response_hat = bsxfun(@times,response_hat,freqM);

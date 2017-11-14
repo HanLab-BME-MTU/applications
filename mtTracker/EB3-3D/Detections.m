@@ -140,6 +140,11 @@ classdef Detections <  handle  & matlab.mixin.Copyable & dynamicprops
             end
         end
         
+        function det=getSelectIdx(obj,indices)
+            det=obj.copy();
+            det.selectIdx(indices);
+        end
+        
         function obj=selectIdx(obj,indices)
             if(~iscell(indices))
                 for fIdx=1:length(obj)

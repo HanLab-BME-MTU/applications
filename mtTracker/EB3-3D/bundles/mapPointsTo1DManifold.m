@@ -10,6 +10,13 @@ manifOrig=manifold(:,1);
 manifVector=manifold(:,2)-manifOrig;
 trackVector=points-repmat(manifOrig,1,size(points,2));
 
+
+if(strcmp(p.distType,'normalDistPseudOptimized'))
+    normManifVector=norm(manifVector);
+    normalizeManifVector=manifVector/normManifVector;
+    normVecRep=repmat(normalizeManifVector,1,size(points,2));
+end
+
 mappedPoint=[];
 dist=[];
 switch p.distType
@@ -31,9 +38,6 @@ switch p.distType
         mappedPoint=(((dist<cutoff)&(abs(tracksAngle)<pi/2)&(tracksDist<sum(manifVector.^2,1).^(0.5))) ... 
                     |(tracksDist<cutoff)|(tracksDist2<cutoff));
     case 'normalDistPseudOptimized'
-        normManifVector=norm(manifVector);
-        normalizeManifVector=manifVector/normManifVector;
-        normVecRep=repmat(normalizeManifVector,1,size(points,2));
         projPara=dot(trackVector,normVecRep);
         inBound=(projPara>0)&(projPara<normManifVector);
         mappedPoint=inBound;
