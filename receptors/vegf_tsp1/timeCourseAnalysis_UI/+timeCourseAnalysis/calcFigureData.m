@@ -29,6 +29,9 @@ end
 %initialization
 nColumns = numel(title_Variable);
 
+%get number of conditions
+nCond = length(subData);
+
 %determine maximum y value to determine y axis limit
 finiteData = cellfun(@(x) x(isfinite(x(:))),subData,'UniformOutput',false);
 finiteData = cellfun(@(x) x(:),finiteData,'UniformOutput',false);
@@ -74,14 +77,18 @@ for iColumns = 1:nColumns
     %designate isolated datapoints (i.e. those in time intervals with very
     %few datapoints) as outliers
     [dataAve, inOutFlag] = calcMultipleDataAve(subSubData, commonInfo.times, inOutFlag, commonInfo.parameters.aveInterval, commonInfo.parameters.shiftTime);
-    if(isempty(dataAve))
-        warning(['Could not average data for ' plotTitle]);
+    for iCond = 1 : nCond
+        if(all(isnan(dataAve{iCond}.dataAve)))
+            warning(['Could not average data for "', plotTitle, '" for CML ', num2str(iCond)]);
+        end
     end
     
     %spline fit
     [fitData] = calcMultipleSmoothingSpline(subSubData, commonInfo.times, inOutFlag, commonInfo.parameters.smoothingPara);
-    if(isempty(fitData))
-        warning(['Could not calculate smoothing spline for ' plotTitle]);
+    for iCond = 1 : nCond
+        if(isempty(fitData{iCond}))
+            warning(['Could not calculate smoothing spline for "', plotTitle '" for CML ', num2str(iCond)]);
+        end
     end
     
     %Save data in figureData

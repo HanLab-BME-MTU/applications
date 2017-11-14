@@ -310,8 +310,7 @@ end
 
 %get rid of figure data that was not calculated
 figureData = [figureData{:}];
-mask = arrayfun(@(x) ~any(cellfun('isempty',x.fitData)), figureData);
-figureData = figureData(mask);
+fitOrNot = arrayfun(@(x) ~any(cellfun('isempty',x.fitData)), figureData);
 
 %% Save
 save(commonInfo.fullPath, 'commonInfo', 'figureData');
@@ -321,7 +320,7 @@ if(~params.showPlots)
     disp('Figures not shown, but saved in ');
     disp(commonInfo.outputDirFig);
 end
-timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig,~params.showPlots,commonInfo.outputDirFigA);
+timeCourseAnalysis.plot.scatterFigure(commonInfo,figureData,commonInfo.outputDirFig,~params.showPlots,commonInfo.outputDirFigA,fitOrNot);
 pause(1);
 %progressText
 fprintf('\b Complete\n');

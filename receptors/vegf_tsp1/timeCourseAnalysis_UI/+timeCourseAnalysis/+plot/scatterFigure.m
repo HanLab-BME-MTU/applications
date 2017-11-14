@@ -1,4 +1,4 @@
-function [ figureHandles ] = scatterFigure( commonInfo, figureData, outputDirFig, doInParallel, outputDirFigA )
+function [ figureHandles ] = scatterFigure( commonInfo, figureData, outputDirFig, doInParallel, outputDirFigA, fitOrNot )
 %scatterFigure Scatter figure for time course analysis
 %
 % INPUT
@@ -43,6 +43,10 @@ if(nargin < 5)
     outputDirFigA = [];
 end
 
+if(nargin < 6)
+    fitOrNot = ones(size(figureData));
+end
+
 if(nargout > 0)
     noClose = true;
 else
@@ -65,28 +69,32 @@ end
 % doInParallel = 0;
 if(doInParallel)
     figureHandles = pararrayfun_progress( ...
-        @(f) scatterIndividualFigure( ...
+        @(f,g) scatterIndividualFigure( ...
         commonInfo, ...
         f, ...
         colors, ...
         outputDirFig, ...
         noClose, ...
-        outputDirFigA), ...
+        outputDirFigA, ...
+        g), ...
         figureData, ...
+        fitOrNot, ...
         'UniformOutput', false, ...
         'ErrorHandler',@scatterFigureErrorParallel ...
         ,'UseErrorStruct',false ...
         );
 else
     figureHandles = arrayfun( ...
-        @(f) scatterIndividualFigure( ...
+        @(f,g) scatterIndividualFigure( ...
         commonInfo, ...
         f, ...
         colors, ...
         outputDirFig, ...
         noClose, ...
-        outputDirFigA), ...
+        outputDirFigA, ...
+        g), ...
         figureData, ...
+        fitOrNot, ...
         'UniformOutput', false, ...
         'ErrorHandler',@scatterFigureError ...
         );
@@ -97,65 +105,71 @@ if(nargout > 0)
 end
 
 end
-function figureHandle = scatterIndividualFigure(commonInfo, figureData, colors, outputDirFig, noClose, outputDirFigA)
+
+function figureHandle = scatterIndividualFigure(commonInfo, figureData, colors, outputDirFig, noClose, outputDirFigA, fitOrNot)
 
 plotTitle = [figureData.titleBase ' ' figureData.titleVariable];
 
 
 %% KJ: This is Tae's original spline fit (with some modifications)
 
-figureHandle = figure('Name', plotTitle);
-hold on;
-
-%plot all inlier data and store line handles
-inIdx = cellfun(@(inOutFlag) inOutFlag==1,figureData.inOutFlag,'UniformOutput',false);
-lineHandleP1 = cellfun(@(fitData,times,data,inIdx) plot(fitData,times(inIdx),data(inIdx)),figureData.fitData,commonInfo.times,figureData.data,inIdx,'UniformOutput',false);
-
-%KJ: plot outliers not used in fit
-if(~isempty(figureData.inOutFlag))
-    %outliers based on value
-    outIdx = cellfun(@(inOutFlag) inOutFlag==0,figureData.inOutFlag,'UniformOutput',false);
-    lineHandle0 = cellfun(@(times,data,outIdx) plot(times(outIdx),data(outIdx),'o'),commonInfo.times,figureData.data,outIdx,'UniformOutput',false);
-    %outliers based on isolation
-    outIdx = cellfun(@(inOutFlag) inOutFlag==-1,figureData.inOutFlag,'UniformOutput',false);
-    lineHandleM1 = cellfun(@(times,data,outIdx) plot(times(outIdx),data(outIdx),'s'),commonInfo.times,figureData.data,outIdx,'UniformOutput',false);
-end
-
-%plot vertical lines indicating aligning Times
-nCond = numel(figureData.data);
-for iCond = 1:nCond
-    plot([commonInfo.timeShift(iCond), commonInfo.timeShift(iCond)], [figureData.yMax, figureData.yMin], 'Color', colors{iCond});
-end
-
-%change the color so that color of data and fit match
-cellfun(@(x, y) set(x, 'Color', y), lineHandleP1, colors);
-cellfun(@(x, y) set(x, 'Color', y), lineHandle0, colors);
-cellfun(@(x, y) set(x, 'Color', y), lineHandleM1, colors);
-
-%create legends
-fitHandle = [lineHandleP1{:}];
-legend(fitHandle(2,:), commonInfo.conditions);
-
-%axis limit
-if ~isempty(figureData.yMax)
-    ylim([figureData.yMin, figureData.yMax]);
-end
-
-%label axis
-xlabel('Time (min)');
-ylabel(figureData.yLabel);
-title(plotTitle);
-
-%save and close
-if(~isempty(outputDirFig))
-    savefig(figureHandle, [outputDirFig filesep plotTitle '.fig']);
-else
-    if(~noClose)
-        pause;
+%KJ: plot spline fit if available
+if fitOrNot == 1
+    
+    figureHandle = figure('Name', plotTitle);
+    hold on;
+    
+    %plot all inlier data and store line handles
+    inIdx = cellfun(@(inOutFlag) inOutFlag==1,figureData.inOutFlag,'UniformOutput',false);
+    lineHandleP1 = cellfun(@(fitData,times,data,inIdx) plot(fitData,times(inIdx),data(inIdx)),figureData.fitData,commonInfo.times,figureData.data,inIdx,'UniformOutput',false);
+    
+    %KJ: plot outliers not used in fit
+    if(~isempty(figureData.inOutFlag))
+        %outliers based on value
+        outIdx = cellfun(@(inOutFlag) inOutFlag==0,figureData.inOutFlag,'UniformOutput',false);
+        lineHandle0 = cellfun(@(times,data,outIdx) plot(times(outIdx),data(outIdx),'o'),commonInfo.times,figureData.data,outIdx,'UniformOutput',false);
+        %outliers based on isolation
+        outIdx = cellfun(@(inOutFlag) inOutFlag==-1,figureData.inOutFlag,'UniformOutput',false);
+        lineHandleM1 = cellfun(@(times,data,outIdx) plot(times(outIdx),data(outIdx),'s'),commonInfo.times,figureData.data,outIdx,'UniformOutput',false);
     end
-end
-if(~noClose)
-    close(figureHandle);
+    
+    %plot vertical lines indicating aligning Times
+    nCond = numel(figureData.data);
+    for iCond = 1:nCond
+        plot([commonInfo.timeShift(iCond), commonInfo.timeShift(iCond)], [figureData.yMax, figureData.yMin], 'Color', colors{iCond});
+    end
+    
+    %change the color so that color of data and fit match
+    cellfun(@(x, y) set(x, 'Color', y), lineHandleP1, colors);
+    cellfun(@(x, y) set(x, 'Color', y), lineHandle0, colors);
+    cellfun(@(x, y) set(x, 'Color', y), lineHandleM1, colors);
+    
+    %create legends
+    fitHandle = [lineHandleP1{:}];
+    legend(fitHandle(2,:), commonInfo.conditions);
+    
+    %axis limit
+    if ~isempty(figureData.yMax)
+        ylim([figureData.yMin, figureData.yMax]);
+    end
+    
+    %label axis
+    xlabel('Time (min)');
+    ylabel(figureData.yLabel);
+    title(plotTitle);
+    
+    %save and close
+    if(~isempty(outputDirFig))
+        savefig(figureHandle, [outputDirFig filesep plotTitle '.fig']);
+    else
+        if(~noClose)
+            pause;
+        end
+    end
+    if(~noClose)
+        close(figureHandle);
+    end
+    
 end
 
 %% KJ: New "moving average" analysis
