@@ -1,7 +1,24 @@
 %% open necessary MLs
-[fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.');
-selectedFolders=load([pathSFolders filesep fileSFolders]);
-pathAnalysisAll=selectedFolders.pathAnalysisAll;
+[fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If you do not have one, please enter 0.');
+if strcmp(pathSFolders,'0')
+    analysisFolderSelectionDone = false;
+    ii=0;
+    rootFolder=pwd;
+    while ~analysisFolderSelectionDone
+        ii=ii+1;
+        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Type zero when no more)');
+        [rootFolder,finalFolder] = fileparts(curPathProject);
+        if strcmp(finalFolder,'0')
+            analysisFolderSelectionDone=true;
+        else
+            pathAnalysisAll{ii} = [curPathProject filesep filnalFolder];
+        end
+    end
+else
+    selectedFolders=load([pathSFolders filesep fileSFolders]);
+    pathAnalysisAll=selectedFolders.pathAnalysisAll;
+end
+
 numConditions = numel(pathAnalysisAll);
 %% Load movieLists for each condition
 for k=1:numConditions
