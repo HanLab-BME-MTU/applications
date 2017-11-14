@@ -1,11 +1,10 @@
-classdef TheOtherChannelReadingProcess < Process
+classdef TheOtherChannelReadingProcess < DataProcessingProcess
     methods (Access = public)
-        function obj = TheOtherChannelReadingProcess(owner)
-            obj = obj@Process(owner, TheOtherChannelReadingProcess.getName);
+        function obj = TheOtherChannelReadingProcess(owner,varargin)
+            obj = obj@DataProcessingProcess(owner, TheOtherChannelReadingProcess.getName);
             obj.funName_ = @readTheOtherChannelFromTracks;
-            obj.funParams_ = TheOtherChannelReadingProcess.getDefaultParams(owner);
+            obj.funParams_ = TheOtherChannelReadingProcess.getDefaultParams(owner,varargin{1});
         end
-        
         
         function output = loadChannelOutput(obj, iChan, varargin)
             outputList = {};
@@ -24,27 +23,31 @@ classdef TheOtherChannelReadingProcess < Process
     end
     methods (Static)
         function name = getName()
-            name = 'TheOtherChannelReading';
+            name = 'The Other Channel Reading';
         end
         
-        function funParams = getDefaultParams(owner)
+        function funParams = getDefaultParams(owner,varargin)
             % Input check
             ip=inputParser;
             ip.addRequired('owner', @(x) isa(x, 'MovieObject'));
             ip.addOptional('outputDir', owner.outputDirectory_, @ischar);
-            ip.addOptional('iChanMaster',1,...
+            adhAnalProc = owner.getProcess(owner.getProcessIndex('AdhesionAnalysisProcess'));
+            pAnal=adhAnalProc.funParams_;
+            
+            ip.addOptional('ChannelIndex',pAnal.ChannelIndex,...
                @(x) all(owner.checkChanNum(x)));
-            ip.addOptional('iChanSlave',min(2,numel(owner.channels_)),...
+            ip.addOptional('iChanSlave',setdiff(1:numel(owner.channels_),pAnal.ChannelIndex),...
                @(x) all(owner.checkChanNum(x)));
-            ip.addOptional('outputPath','analysis1',@ischar)
-            ip.parse(owner)
+            ip.parse(owner,varargin{:})
             
             % Set default parameters
             funParams.OutputDirectory = [ip.Results.outputDir filesep 'TheOtherChannelReading'];
-            funParams.outputPath = ip.Results.outputPath; %This is a specific folder
-            funParams.iChanMaster = ip.Results.iChanMaster;
+            funParams.ChannelIndex = ip.Results.ChannelIndex;
             funParams.iChanSlave = ip.Results.iChanSlave;
-            funParams.onlyEdge = ip.Results.onlyEdge;
+        end
+        
+        function h = GUI()
+            h = @theOtherChannelReadingProcessGUI;
         end
     end
 end
