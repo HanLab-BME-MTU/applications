@@ -124,8 +124,9 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             end
 
             nTracks = length(s.xCoord(:,iFrame));
-            number = [1:length(s.xCoord(:,iFrame))]';
+            number = (1:length(s.xCoord(:,iFrame)))';
             state = categorical(s.state(:,iFrame));
+            iiformat = ['%.' '3' 'd'];
             
             for iout = 1:numel(output)
                 switch output{iout}
@@ -160,9 +161,19 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                 
                 elseif ~isempty(strfind(output{iout},'adhboundary'))                    
                 
-                    adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
-                    varargout{iout} = table2struct(table(adhBoundary, number(validState), ...
-                                                         'VariableNames',{'adhBoundary', 'number'}));                                 
+%                     adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
+                    p=obj.funParams_;
+                    labelTifPath = [p.OutputDirectory filesep 'labelTifs'];
+                    labelAdhesion = imread(strcat(labelTifPath,'/label',num2str(iFrame,iiformat),'.tif'));
+                    maxLabel=max(labelAdhesion(:));
+                    adhBound = cell(1,maxLabel);
+                    for ii=1:maxLabel
+                        curAdhBound = bwboundaries(labelAdhesion==ii,4,'noholes');
+                        adhBound{ii} = curAdhBound{1}; % strongly assumes each has only one boundary
+                    end
+                    validAdhState = cellfun(@(x) x(iFrame),s.refineFAID(validState));
+                    
+                    varargout{iout} = adhBound(validAdhState); %table2struct(table(adhBoundary, number(validState),'VariableNames',{'adhBoundary', 'number'}));                                 
                 else
                     varargout{iout} = [];
                 end
@@ -182,31 +193,31 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
         
         function output = getDrawableOutput()
             ii = 10;
-            i = ii-1; output(i).name='Before Adhesion Detection'; 
-            output(i).var='detBA';
-            output(i).formatData=[];
-            output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','.',...
-                'LineStyle', 'none', 'LineWidth', .6, 'Color', 'g',...
-                'MarkerSize', 5);            
-            i = ii-2; output(i).name='Nascent Adhesion Detection'; 
-            output(i).var='detNA';
-            output(i).formatData=[];
-            output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', .8, 'Color', 'r'); 
-            i = ii-3; output(i).name='Focal Contact Detection'; 
-            output(i).var='detFC';
-            output(i).formatData=[];
-            output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', .8, 'Color', [255/255 153/255 51/255]); 
-            i = ii-4; output(i).name='Focal Adhesion Detection'; 
-            output(i).var='detFA';
-            output(i).formatData=[];
-            output(i).type='overlay';
-            output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
-                'LineStyle','none', 'LineWidth', .8, 'Color', 'b'); 
+%             i = ii-1; output(i).name='Before Adhesion Detection'; 
+%             output(i).var='detBA';
+%             output(i).formatData=[];
+%             output(i).type='overlay';
+%             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','.',...
+%                 'LineStyle', 'none', 'LineWidth', .6, 'Color', 'g',...
+%                 'MarkerSize', 5);            
+%             i = ii-2; output(i).name='Nascent Adhesion Detection'; 
+%             output(i).var='detNA';
+%             output(i).formatData=[];
+%             output(i).type='overlay';
+%             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+%                 'LineStyle','none', 'LineWidth', .8, 'Color', 'r'); 
+%             i = ii-3; output(i).name='Focal Contact Detection'; 
+%             output(i).var='detFC';
+%             output(i).formatData=[];
+%             output(i).type='overlay';
+%             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+%                 'LineStyle','none', 'LineWidth', .8, 'Color', [255/255 153/255 51/255]); 
+%             i = ii-4; output(i).name='Focal Adhesion Detection'; 
+%             output(i).var='detFA';
+%             output(i).formatData=[];
+%             output(i).type='overlay';
+%             output(i).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+%                 'LineStyle','none', 'LineWidth', .8, 'Color', 'b'); 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Tracks Display
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

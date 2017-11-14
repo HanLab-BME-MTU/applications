@@ -221,7 +221,7 @@ else
         'minLifetime',minLifetime,'outputPath',['Colocalization' filesep outputPath]);
 end
 % Get edge related features if not done yet
-if ~isfield(tracksNA,'edgeVel') || ~isfield(tracksNA,'closestBdPoint')
+if ~isfield(tracksNA,'assemRate') || ~isfield(tracksNA,'closestBdPoint')
     error('Please rerun analyzeAdhesionMaturation_old with getEdgeRelatedFeatures on')
 end
 % re-express tracksNA so that each track has information for every frame

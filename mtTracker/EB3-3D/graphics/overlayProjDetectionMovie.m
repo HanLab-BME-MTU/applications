@@ -8,7 +8,7 @@ ip.addOptional('colormap',[]);
 ip.addOptional('process',[]);
 ip.addOptional('processFrames',[]);
 ip.addOptional('cumulative',false);
-ip.addOptional('colorIndx',[]);
+ip.addOptional('colorIndx',[],@iscell);
 ip.addOptional('name','detections');
 ip.parse(varargin{:});
 p=ip.Results;
@@ -56,36 +56,33 @@ if(~isempty(p.process))
     [outputDir filesep 'limits.mat']});
 end
 
-% if(p.cumulative)
-%     tmpdetections=copy(detections(1));
-%     for i=2:length(detections)
-%         tmpdetections.concatenate(detections(i));
-%     end
-%     detections=tmpdetections;
-% end
-%     
+colorIndx=p.colorIndx;
+if(isempty(colorIndx))
+    colorIndx=arrayfun(@(d) ones(1,length(d.zCoord(:,1))),detections,'unif',0);
+end
 
-for fIdx=processFrames
+colormap=p.colormap;
+if(isempty(colormap))
+    colormap=255*jet(length(unique(horzcat(colorIndx{:}))));
+end
+
+parfor fIdx=processFrames
     XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
     ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
     ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
     
-    if(isempty(p.colorIndx))
-      colorIndx=[];
-    else
-      colorIndx=p.colorIndx{fIdx};
-    end
     
     if(cumulative)
         detectionsAtFrame=detections;
-        colorIndx=p.colorIndx;
+        fColorIndx=p.colorIndx;
     else
         detectionsAtFrame=detections(fIdx);
+        fColorIndx=colorIndx{fIdx};
     end
-
+    
     [tracksXY,tracksZY,tracksZX]=overlayProjDetections(XYProj,ZYProj,ZXProj, ...
         [projData.minXBorder projData.maxXBorder],[projData.minYBorder projData.maxYBorder],[projData.minZBorder projData.maxZBorder], ...
-        detectionsAtFrame,p.colormap,colorIndx,varargin{:});
+        detectionsAtFrame,colormap,fColorIndx,varargin{:});
     
     %% Use Z to index image line (going up)
     %     tracksXY=permute(tracksXY,[2 1 3]);

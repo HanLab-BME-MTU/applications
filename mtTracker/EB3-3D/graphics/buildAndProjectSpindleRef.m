@@ -1,4 +1,4 @@
-function buildAndProjectSpindleRef(MD,varargin)
+function completePackage=buildAndProjectSpindleRef(MD,varargin)
     ip = inputParser;
     ip.CaseSensitive = false;
     ip.KeepUnmatched = true;

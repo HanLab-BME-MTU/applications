@@ -12,23 +12,23 @@ function [mappedDetections,indices]=mapDetectionsTo1DManifold(manifold,movieInfo
   % kinTrack.disappMT=cell(1,length(kinTrack.poleRef));
 %  mappedDetections(length(movieInfo))=struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 mappedDetections(length(movieInfo))=Detections();
-indices=cell(1,length(movieInfo));
-  for pIdx=1:min(length(mappedDetections),length(manifold(2).f))
-      fIdx=manifold(1).f(pIdx);
-      manifoldAtT=[[manifold(1).x(pIdx);manifold(1).y(pIdx);manifold(1).z(pIdx)], ...
-          [manifold(2).x(pIdx);manifold(2).y(pIdx);manifold(2).z(pIdx) ]];
-      points=[movieInfo(fIdx).xCoord(:,1),movieInfo(fIdx).yCoord(:,1),movieInfo(fIdx).zCoord(:,1)]';
-      [mappedPoint,~]=mapPointsTo1DManifold(points,manifoldAtT,cutoff,varargin{:});
-      mappedDetections(fIdx).xCoord=movieInfo(fIdx).xCoord(mappedPoint,:);
-      mappedDetections(fIdx).yCoord=movieInfo(fIdx).yCoord(mappedPoint,:);
-      mappedDetections(fIdx).zCoord=movieInfo(fIdx).zCoord(mappedPoint,:);      
-      mappedDetections(fIdx).amp=movieInfo(fIdx).amp(mappedPoint,:);
-      try
-        mappedDetections(fIdx).int=movieInfo(fIdx).int(mappedPoint,:);
-      catch
+indices=arrayfun(@(m) zeros(1,length(m.xCoord(:,1))),movieInfo,'unif',0);
+for pIdx=1:min(length(mappedDetections),length(manifold(2).f))
+  fIdx=manifold(1).f(pIdx);
+  manifoldAtT=[[manifold(1).x(pIdx);manifold(1).y(pIdx);manifold(1).z(pIdx)], ...
+  [manifold(2).x(pIdx);manifold(2).y(pIdx);manifold(2).z(pIdx) ]];
+  points=[movieInfo(fIdx).xCoord(:,1),movieInfo(fIdx).yCoord(:,1),movieInfo(fIdx).zCoord(:,1)]';
+  [mappedPoint,~]=mapPointsTo1DManifold(points,manifoldAtT,cutoff,varargin{:});
+  mappedDetections(fIdx).xCoord=movieInfo(fIdx).xCoord(mappedPoint,:);
+  mappedDetections(fIdx).yCoord=movieInfo(fIdx).yCoord(mappedPoint,:);
+  mappedDetections(fIdx).zCoord=movieInfo(fIdx).zCoord(mappedPoint,:);      
+  mappedDetections(fIdx).amp=movieInfo(fIdx).amp(mappedPoint,:);
+  try
+    mappedDetections(fIdx).int=movieInfo(fIdx).int(mappedPoint,:);
+  catch
         %warning('No int in current detection datastructure');
       end
-      indices{pIdx}=mappedPoint;
+      indices{fIdx}=mappedPoint;
+    end
   end
-end
 

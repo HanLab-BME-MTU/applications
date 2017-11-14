@@ -23,7 +23,6 @@ if(~isempty(detections))
             colIdx=colorIndex;
         end
         if(~isempty(d)&&~(isempty(d.xCoord)))
-            RGB=detColors(colIdx,:);
             X=d.xCoord(:,1); Y=d.yCoord(:,1);% Z=t.z(1:tIdx);
 
             X=X-XLimit(1);
@@ -40,8 +39,9 @@ if(~isempty(detections))
             for dIdx=1:length(X)
                 drawingBoard=MidpointCircle(drawingBoard,5,Y(dIdx),X(dIdx),cIndex(dIdx));
             end
-            for cIdx=unique(cIndex)'
-%                 drawCircleIdx=(drawingBoard==cIdx);
+            uniqueCIdx=unique(cIndex);
+            for ucIdx=1:length(uniqueCIdx)
+                cIdx=uniqueCIdx(ucIdx);
                 [I,J] = find(drawingBoard==cIdx);
                 indx=sub2ind(size(detXY),I,J,1*ones(size(I)));
                 detXY(indx)=colormap(cIdx,1);

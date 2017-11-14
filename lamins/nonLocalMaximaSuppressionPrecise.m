@@ -1,4 +1,4 @@
-function [ nlms, offset ] = nonLocalMaximaSuppressionPrecise( rotationResponse, theta , suppressionValue, interpMethod)
+function [ nlms, offset, X, Y ] = nonLocalMaximaSuppressionPrecise( rotationResponse, theta , suppressionValue, interpMethod)
 %nonLocalMaximaSuppression Suppress pixels which are not local maxima in
 %both orientation and filter response
 %
@@ -10,9 +10,16 @@ function [ nlms, offset ] = nonLocalMaximaSuppressionPrecise( rotationResponse, 
 %
 % OUTPUT
 % nlms: rotationResponse with non-local maxima set to suppressedValue
+% offset: offset from center of pixel for sub-pixel localization
+% X: x-coordinate of sub-pixel localization
+% Y: y-coordinate of sub-pixel localization
 
 % Mark Kittisopikul, 2015
 % UT Southwestern
+
+% Sub-pixel localization added October 2017
+% Mark Kittisopikul
+% Northwestern
 
 % TODO: full-backwards compatability with nonMaximumSuppression?
 
@@ -74,6 +81,8 @@ Yplus = bsxfun(@plus,y,y_offset);
 Xminus = bsxfun(@minus,x,x_offset);
 Yminus = bsxfun(@minus,y,y_offset);
 
+if(nargout > 1)
+
 % Extra Chebfun points
 m = sqrt(2)/2;
 XplusCheb = bsxfun(@plus,x,x_offset.*m);
@@ -81,7 +90,6 @@ YplusCheb = bsxfun(@plus,y,y_offset.*m);
 
 XminusCheb = bsxfun(@minus,x,x_offset.*m);
 YminusCheb = bsxfun(@minus,y,y_offset.*m);
-
 
 x = cat(4,Xminus,repmat(x,[1 1 nO]),Xplus);
 y = cat(4,Yminus,repmat(y,[1 1 nO]),Yplus);
@@ -91,6 +99,10 @@ angleIdx = repmat(angleIdx,[1 1 1 3]);
 x = cat(4,x,XplusCheb,XminusCheb);
 y = cat(4,y,YplusCheb,YminusCheb);
 angleIdx(:,:,:,4:5) = angleIdx(:,:,:,1:2);
+
+clear XplusCheb YplusCheb XminusCheb YminusCheb
+
+end
 
 
 clear Xplus Yplus Xminus Yminus x_offset y_offset theta;
@@ -148,6 +160,16 @@ if(nargout > 1)
     nS_offset = cos(nS_offset);
     offset = NaN(size(nlms));
     offset(notSuppressed) = nS_offset;
+end
+
+if(nargout > 2)
+
+    [Xp,Yp] = meshgrid(1:size(nlms,2),1:size(nlms,1));
+
+    % Get sub-pixel NLMS points
+    X = joinColumns(Xp+cos(theta).*offset);
+    Y = joinColumns(Yp+sin(theta).*offset);
+
 end
 
 end % end of function

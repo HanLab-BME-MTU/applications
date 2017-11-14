@@ -93,10 +93,11 @@ function figure1_DeleteFcn(hObject, ~, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
 
-delete(userData.helpFig(ishandle(userData.helpFig))); 
-
-set(handles.figure1, 'UserData', userData);
-guidata(hObject,handles);
+if ~isempty(userData)
+    delete(userData.helpFig(ishandle(userData.helpFig))); 
+    set(handles.figure1, 'UserData', userData);
+    guidata(hObject,handles);
+end
 
 
 % --- Executes on key press with focus on pushbutton_done and none of its controls.

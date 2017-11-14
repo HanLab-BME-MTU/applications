@@ -434,6 +434,8 @@ classdef OrientationSpaceResponse < handle
             a_hat = fft(squeeze(real(obj.a(r,c,:))));
             % Each column represents an angular response with order K_new(column)
             a_hat = bsxfun(@times,a_hat,f_hat);
+            % Condition step added 2017/11/03
+            a_hat(abs(a_hat) < eps*1e3) = 0;
             response = ifft(a_hat);
         end
         function varargout = getRidgeOrientationLocalMaxima(obj,sorted)
