@@ -1,7 +1,7 @@
 function [hfig, B, R] = kymograph(R,K,r,c,out)
 % Kymograph - Make kymograph figure for paper
 
-INTERPOLATION_INTERVAL = 5;
+INTERPOLATION_INTERVAL = 10;
 PLOT_INTERVAL = 1;
 
 if(nargin < 1)
@@ -40,7 +40,7 @@ if(nargin < 5)
 end
 
 %% Find end
-interpolationIdx = 1:INTERPOLATION_INTERVAL:length(K);
+interpolationIdx = 1:INTERPOLATION_INTERVAL/2:length(K);
 lastK = cumsum(~isnan(out(:,interpolationIdx)),2);
 % lastK = lastK(:,1:INTERPOLATION_INTERVAL:length(K));
 lastK = max(lastK,[],2);
@@ -106,6 +106,9 @@ for trackNum = 1:size(out,1)
 %         figure;
 %         title(['Track ' num2str(trackNum)]);
         idx_select = fliplr(1:INTERPOLATION_INTERVAL:length(K));
+        if(idx_select(1) ~= lastK(trackNum))
+            idx_select = [lastK(trackNum) idx_select];
+        end
         track = out(trackNum,idx_select);
         idx_select = idx_select(~isnan(track));
         track = track(~isnan(track));
@@ -184,7 +187,9 @@ for i=1:size(xgAligned,1)
     hp3(i) = plot(xgAligned(i,2)/pi/2*180,Kg_aligned(i),'s');
 end
 for i=1:length(hp1)
+    hp2e(i) = plot(out(lastInd(i)).'/pi/2*180,K(lastK(i)),'o');
     try
+        set(hp2e(i),'Color',hp1(i).Color);
         set(hp2(i),'Color',hp1(i).Color);
         set(hp3(i),'Color',hp1(i).Color);
     catch err
@@ -205,5 +210,63 @@ hcb.TickLabels{1} = '0 Min';
 hcb.Label.String = 'Relative Response to Max and Min per K';
 ylabel('K');
 xlabel('Orientation (degrees)');
+
+%% Show filters at interpolation points
+figure;
+FI = [];
+sz = 101;
+for Ki = 1:INTERPOLATION_INTERVAL:length(K)
+    FF = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,K(Ki),'none');
+    FF.setupFilter(sz);
+    temp = ifft2(real(FF.getFilterAtAngle(out(:,Ki))));
+    temp = fftshift(fftshift(temp,1),2);
+    temp = reshape(temp,101,101*size(out,1));
+    temp = mat2gray(real(temp));
+    FI = [FI; temp];
+end
+imshow(FI,[]);
+for Ki = 1:INTERPOLATION_INTERVAL:length(K)
+    text(5,10+sz*floor(Ki/INTERPOLATION_INTERVAL),sprintf('K = %d',K(Ki)),'Color','y');
+    for i=1:size(out,1)
+        if(~isnan(out(i,Ki)))
+            text(5+sz*(i-1),sz-10+sz*floor(Ki/INTERPOLATION_INTERVAL),sprintf('%.3f%s',out(i,Ki)/2/pi*180,char(176)),'Color',hp1(i).Color);
+        end
+    end
+end
+
+%% Show filters at last interpolation points
+figure;
+LFI = [];
+for i=1:size(out,1)
+    FF = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,K(lastK(i)),'none');
+    FF.setupFilter(sz);
+    temp = ifft2(real(FF.getFilterAtAngle(out(lastInd(i)))));
+    temp = fftshift(fftshift(temp,1),2);
+    temp = mat2gray(real(temp));
+    LFI = [LFI temp];
+end
+imshow(LFI,[]);
+for i=1:size(out,1)
+    text(5+sz*(i-1),10,sprintf('K = %0.2f',K(lastK(i))),'Color','y');
+    text(5+sz*(i-1),sz-10,sprintf('%.3f%s',out(lastInd(i))/2/pi*180,char(176)),'Color',hp1(i).Color);
+end
+
+%% Show filters at bifurcation points
+figure;
+BFI = [];
+for i=1:size(out,1)
+    FF = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,Kg_aligned(i),'none');
+    FF.setupFilter(sz);
+    temp = ifft2(real(FF.getFilterAtAngle(xgAligned(i,2))));
+    temp = fftshift(fftshift(temp,1),2);
+    temp = mat2gray(real(temp));
+    BFI = [BFI temp];
+end
+imshow(BFI,[]);
+for i=1:size(out,1)
+    text(5+sz*(i-1),10,sprintf('K = %0.2f',Kg_aligned(i)),'Color','y');
+    text(5+sz*(i-1),sz-10,sprintf('%.3f%s',xgAligned(i,2)/2/pi*180,char(176)),'Color',hp1(i).Color);
+end
+
 
 end

@@ -91,9 +91,13 @@ YplusCheb = bsxfun(@plus,y,y_offset.*m);
 XminusCheb = bsxfun(@minus,x,x_offset.*m);
 YminusCheb = bsxfun(@minus,y,y_offset.*m);
 
+end
+
 x = cat(4,Xminus,repmat(x,[1 1 nO]),Xplus);
 y = cat(4,Yminus,repmat(y,[1 1 nO]),Yplus);
 angleIdx = repmat(angleIdx,[1 1 1 3]);
+
+if(nargout > 1)
 
 % Extra Chebfun points
 x = cat(4,x,XplusCheb,XminusCheb);
@@ -105,7 +109,7 @@ clear XplusCheb YplusCheb XminusCheb YminusCheb
 end
 
 
-clear Xplus Yplus Xminus Yminus x_offset y_offset theta;
+clear Xplus Yplus Xminus Yminus x_offset y_offset;
 
 A = interp3(rotationResponse,x,y,angleIdx,interpMethod,0);
 
