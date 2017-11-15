@@ -234,23 +234,27 @@ classdef FocalAdhesionPackage < Package
 
             funParams = FocalAdhesionSegmentationProcess.getDefaultParams(owner,outputDir);
 
-            trackNAProc = owner.getProcess(owner.getProcessIndex('TrackingProcess'));
-            detectedNAProc = owner.getProcess(owner.getProcessIndex('DetectionProcess'));
+            % TODO FIX Sanity checks (be careful of optional processes)
+%             try owner.getProcessIndex('TrackingProcess')
+%                 trackNAProc = owner.getProcess(owner.getProcessIndex('TrackingProcess'));
+%             catch
+%                 trackNAProc = -1
+%             end
+%             detectedNAProc = owner.getProcess(owner.getProcessIndex('DetectionProcess'));
+%             
+%             %%TODO - Move to sanity check section
+%             if length(detectedNAProc.funParams_.ChannelIndex) > 1
+%                 numChan = length(trackNAProc.funParams_.ChannelIndex);
+%                 for i = 1:numChan
+%                     assert(detectedNAProc.funParams_.ChannelIndex(i) == trackNAProc.funParams_.ChannelIndex(i), 'ChannelInex should match');        
+%                 end
+%             elseif length(detectedNAProc.funParams_.ChannelIndex) == 1
+%                 assert(detectedNAProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');    
+%             end
             
-            %%TODO - Move to sanity check section
-            if length(detectedNAProc.funParams_.ChannelIndex) > 1
-                numChan = length(trackNAProc.funParams_.ChannelIndex);
-                for i = 1:numChan
-                    assert(detectedNAProc.funParams_.ChannelIndex(i) == trackNAProc.funParams_.ChannelIndex(i), 'ChannelInex should match');        
-                end
-            elseif length(detectedNAProc.funParams_.ChannelIndex) == 1
-                assert(detectedNAProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');    
-            end
-            
-
             
             %%TODO - Sangyoon suggests an automated selection of parameters
-            funParams.ChannelIndex = trackNAProc.funParams_.ChannelIndex;
+            funParams.ChannelIndex = 1;%trackNAProc.funParams_.ChannelIndex;
             funParams.SteerableFilterSigma = 72; % %Sigma in nm of steerable filter to use in splitting adjacent adhesions
             funParams.OpeningRadiusXY = 0; % %Spatial radius in nm of structuring element used in opening.
             funParams.MinVolTime = 1; %um2*s Minimum spatiotemporal "Volume" in micron^2 * seconds of segmented adhesions to retain.
