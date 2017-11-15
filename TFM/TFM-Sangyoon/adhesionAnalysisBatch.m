@@ -18,7 +18,7 @@ else
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
 end
 
-%s% Load movieLists for each condition
+%% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
 for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep 'movieList.mat']);
