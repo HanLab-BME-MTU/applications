@@ -1,59 +1,29 @@
 
-% simple script to pre-process the cells for Deep learning.
-% Andrew R. Jamieson Oct 2017
-
+% Deep CNN 
+% Andrew R. Jamieson Nov 2017
 
 clear;
 clc;
 
-
 %% load data state 
-[filename, pathname] = uigetfile('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/','Which data to load?');
+[filename, pathname] = uigetfile('/work/bioinformatics/shared/dope/torch/test/217x217/allTime/','Which data to load?');
 load(fullfile(pathname,filename));
 
-load('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat', 'cellDataSet');
-c = [cellDataSet{:}];
-labelSet = unique({c.cellType});
+%  number of classes
+numClass = 2;
 
+% [imdsTrain1, imdsValid] = splitEachLabel(imdsTrain, 0.85);
 
-% imdsTrainFiles = {};
-% for i = 1:length(imdsTrain.Files)
-%     [a b] = fileparts(imdsTrain.Files{i});
-%     imdsTrainFiles{i} = b;
-% end
+% uisave();
 
-
-for i = 1:length(labelSet)
-    label = labelSet{i};
-    cellLabel = cell2mat(cellfun(@(x) contains(x,['14-May-2017_' label]) ,imdsTrainFiles, 'Uniform', false));
-    imdsTrain.Labels(cellLabel) = label;
-end
-
-
-for i = 1:length(labelSet)
-    label = labelSet{i};
-    cellLabel = cell2mat(cellfun(@(x) contains(x,['14-May-2017_' label]) ,imdsValid.Files, 'Uniform', false));
-    imdsValid.Labels(cellLabel) = label;
-end
-
-% tumorLabel = imdsTrain_Tumor_v_Mel.Labels == 'highMet' | ...
-%     imdsTrain_Tumor_v_Mel.Labels == 'lowMet';
-% imdsTrain_Tumor_v_Mel.Labels(tumorLabel) = 'tumor';
-
-
-[imdsTrain] = splitEachLabel(imdsTrain,.9999999,...
-                            'Exclude',{'highMet','lowMet','unMet'});
-[imdsValid] = splitEachLabel(imdsValid,.9999999,...
-                            'Exclude',{'highMet','lowMet','unMet'});
-uisave();
 
 %% Define Checkpoint
 [checkPointDir] = uigetdir('/work/bioinformatics/shared/dope/torch/test/217x217/segmented/netTEMP',...
                             'Where to store net Checkpoints?');
-                                                                      
-                        
+                                                                                              
 if ~verLessThan('matlab', '9.3')
-    % define network
+
+    %% define network
     disp('Note: using 2017b MATLAB layer definitions');
     layers = [ ...netTempDir
         imageInputLayer([217 217 1])
@@ -80,17 +50,16 @@ if ~verLessThan('matlab', '9.3')
         fullyConnectedLayer(1024,'Name','fc2')
         reluLayer
         dropoutLayer
-        fullyConnectedLayer(17,'Name','fc3')
+        fullyConnectedLayer(2,'Name','fc3')
         softmaxLayer
         classificationLayer]
 end
 
 %% Training options
 if ~verLessThan('matlab', '9.3')
-                        % 2017b
     options = trainingOptions('sgdm',...
         'MaxEpochs',100000, ...
-        'ValidationFrequency',2500,...
+        'ValidationFrequency',5000,...
         'MiniBatchSize',50,...
         'Verbose',true,...
         'Plots','training-progress',...
@@ -98,12 +67,7 @@ if ~verLessThan('matlab', '9.3')
         'ValidationPatience', Inf,...
         'ExecutionEnvironment' , 'multi-gpu',...
         'CheckpointPath', checkPointDir);
-else 
-%     2017a
-    options = trainingOptions('sgdm','LearnRateSchedule','piecewise',...
-          'LearnRateDropFactor',0.2,'LearnRateDropPeriod',5,... 
-          'MaxEpochs',1000,'MiniBatchSize',75,...
-          'CheckpointPath',checkPointDir);    
+ 
 end
 
 %% Start Training

@@ -25,6 +25,7 @@ I = zeros(sz);
 I_size = size(I);
 radius = floor(I_size(1)/2);
 center = I_size / 2;
+angles = angles(:).';
 % I(center(1),1:center) = 1;
 for angle = angles
     projection = [cos(angle) sin(angle)]*radius;

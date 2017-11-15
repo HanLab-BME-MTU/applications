@@ -1,23 +1,36 @@
-function [tracksNA,firstIncreseTimeIntAgainstForceAll] = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
+function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
+    ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll] ...
+    = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval,varargin)
 % [tracksNA,firstIncreseTimeIntAgainstForceAll] =
 %  calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
-%  calculates 
- 
-    if nargin<4
-        tInterval=1; %for vinculin 
-    end
-    if nargin<3
-        preDetecFactor=1/5; %for vinculin 
-    end
-    if nargin<2
-        splineParamInit=1;
-    end
+%  calculates the time lag of the main intensity (ampTotal) against the slave source.
+% input:
+%       splineParamInit: smoothing parameter (0-1). Use 1 if you don't want to
+%       smooth the signal.
+%       'slaveSource': either 'forceMag', 'ampTotal2' or 'ampTotal3'
+% output:
+%       
+% Big change: I gave up updating tracksNA becuase it increase too much 
+% the file size
+ip =inputParser;
+ip.addRequired('tracksNA',@isstruct)
+ip.addOptional('splineParamInit',0.99,@isscalar)
+ip.addOptional('preDetecFactor',1/5,@(x)isscalar(x))
+ip.addOptional('tInterval',1,@(x)isscalar(x))
+ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
+ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','ampTotal2','ampTotal3'})); % collect NA tracks that ever close to cell edge
+ip.parse(tracksNA,splineParamInit,preDetecFactor,tInterval,varargin{:});
+slaveSource=ip.Results.slaveSource;
     useSmoothing=false;
     if splineParamInit<1
         useSmoothing=true;
     end
-%     for ii=curIndices
-    firstIncreseTimeIntAgainstForceAll=NaN(numel(tracksNA),1);
+    firstIncreseTimeIntAgainstSlaveAll=NaN(numel(tracksNA),1);
+    forceTransmittingAll=false(numel(tracksNA),1);
+    firstIncreseTimeIntAll=NaN(numel(tracksNA),1);
+    firstIncreseTimeSlaveAll=NaN(numel(tracksNA),1);
+    bkgMaxIntAll=NaN(numel(tracksNA),1);
+    bkgMaxSlaveAll=NaN(numel(tracksNA),1);
     for ii=1:numel(tracksNA)
         curTrack = tracksNA(ii);
         sFEE = curTrack.startingFrameExtraExtra;
@@ -45,18 +58,6 @@ function [tracksNA,firstIncreseTimeIntAgainstForceAll] = calculateFirstIncreaseT
             sd=ppval(sd_spline,tRange);
             sd(isnan(d))=NaN;
 
-%             tRange = 1:nTime;
-%             numNan = find(isnan(d),1,'last');
-%             if isempty(numNan)
-%                 numNan=0;
-%             end
-%             tRange(isnan(d)) = [];
-%             d(isnan(d)) = [];
-%             sd_spline= csaps(tRange,d,splineParamInit);
-%             sd=ppval(sd_spline,tRange);
-%             d = [NaN(1,numNan) d];
-%     %         tRange = [NaN(1,numNan) tRange];
-%             sd = [NaN(1,numNan) sd];
             bkgMaxInt = nanmax(sd(sF10before:sF5before));
             firstIncreseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);
         else
@@ -66,43 +67,32 @@ function [tracksNA,firstIncreseTimeIntAgainstForceAll] = calculateFirstIncreaseT
 %         firstIncreseTimeInt = curTrack.startingFrameExtra;
         if ~isempty(firstIncreseTimeInt)
             if useSmoothing
-                curForce=d;
-                curForce(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) = tracksNA(ii).forceMag(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra);
-%                 curForce(isnan(curForce)) = [];
-                sCurForce_spline= csaps(tRange,curForce,splineParamInit);
+                curSlave=d;
+                curSlave(curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra) = ...
+                 getfield(curTrack,{1},slaveSource,{curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra});
+                %                 curForce(isnan(curForce)) = [];
+                sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
                 sCurForce_sd=ppval(sCurForce_spline,tRange);
-                sCurForce_sd(isnan(curForce))=NaN;
+                sCurForce_sd(isnan(curSlave))=NaN;
 %                 sCurForce = [NaN(1,numNan) sCurForce];
                 bkgMaxForce = nanmax(sCurForce_sd(sF10before:sF5before));
                 firstIncreseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);
             else
                 bkgMaxForce = max(curTrack.forceMag(sF10before:sF5before));
-                firstIncreseTimeForce = find(curTrack.forceMag>bkgMaxForce & 1:nTime>sF5before,1);
+                firstIncreseTimeForce = find(getfield(curTrack,slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
             end
             if isempty(firstIncreseTimeForce) || firstIncreseTimeForce>curTrack.endingFrameExtraExtra
-                tracksNA(ii).forceTransmitting = false;
-                tracksNA(ii).firstIncreseTimeInt = [];
-                tracksNA(ii).firstIncreseTimeForce = [];
-                tracksNA(ii).firstIncreseTimeIntAgainstForce = []; 
-                tracksNA(ii).bkgMaxInt = bkgMaxInt;
-                tracksNA(ii).bkgMaxForce = bkgMaxForce;
-                firstIncreseTimeIntAgainstForceAll(ii)=NaN;
+                bkgMaxIntAll(ii) = bkgMaxInt;
+                bkgMaxSlaveAll(ii) = bkgMaxForce;
            else
-                tracksNA(ii).forceTransmitting = true;
-                tracksNA(ii).firstIncreseTimeInt = firstIncreseTimeInt*tInterval; % in sec
-                tracksNA(ii).firstIncreseTimeForce = firstIncreseTimeForce*tInterval;
-                tracksNA(ii).firstIncreseTimeIntAgainstForce = firstIncreseTimeInt*tInterval - firstIncreseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
-                tracksNA(ii).bkgMaxInt = bkgMaxInt;
-                tracksNA(ii).bkgMaxForce = bkgMaxForce;
-                firstIncreseTimeIntAgainstForceAll(ii)=tracksNA(ii).firstIncreseTimeIntAgainstForce;
+                forceTransmittingAll(ii) = true;
+                firstIncreseTimeIntAll(ii) = firstIncreseTimeInt*tInterval; % in sec
+                firstIncreseTimeSlaveAll(ii) = firstIncreseTimeForce*tInterval;
+                bkgMaxIntAll(ii) = bkgMaxInt;
+                bkgMaxSlaveAll(ii) = bkgMaxForce;
+                firstIncreseTimeIntAgainstSlaveAll(ii)=firstIncreseTimeInt*tInterval - firstIncreseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
             end
         else
-            tracksNA(ii).forceTransmitting = false;
-            tracksNA(ii).firstIncreseTimeInt = [];
-            tracksNA(ii).firstIncreseTimeForce = [];
-            tracksNA(ii).firstIncreseTimeIntAgainstForce = []; 
-            tracksNA(ii).bkgMaxInt = bkgMaxInt;
-            tracksNA(ii).bkgMaxForce = [];
-            firstIncreseTimeIntAgainstForceAll(ii)=NaN;
+            bkgMaxIntAll(ii) = bkgMaxInt;
         end
     end

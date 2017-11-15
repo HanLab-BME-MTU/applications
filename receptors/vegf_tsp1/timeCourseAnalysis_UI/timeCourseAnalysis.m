@@ -36,6 +36,7 @@ function [] = timeCourseAnalysis(CMLs, outputDir, varargin)
 %Tae H Kim, July 2015
 
 %% Input
+
 %convert CMLs if it's cell of strings
 nCML = numel(CMLs);
 if iscellstr(CMLs)
@@ -81,6 +82,7 @@ for iCML = 1:nCML
 end
 
 %% Main Time Course Analysis (CML-level)
+
 % Analyze all MovieData in parallel first
 timeCourseAnalysis.analyzeMDsInParallel(CMLs,analysisPara.doNewAnalysis);
 %Progress Display
@@ -91,6 +93,7 @@ progressTextMultiple('Time Course Analysis', nMLTot);
 startTime = [startTime{:}];
 
 %% Format Change
+
 % Break summary apart by channel
 summary = cellfun(@(s) num2cell(s,1),summary,'UniformOutput',false);
 % Should a nCML x nChannel cell array
@@ -98,11 +101,21 @@ summary = cellfun(@(s) num2cell(s,1),summary,'UniformOutput',false);
 summary = vertcat(summary{:});
 %Using resultsCombTimeCourseMod.m to store data in correct format
 summary = cellfun(@resultsCombTimeCourseMod, summary, 'UniformOutput', false);
+
 %adds time and name (because that's not in resultsCombTimeCourseMod.m)
+%KJ: also specify which movieList each movie comes from. We are making the
+%assumption that movies are in correct order within each movieList
+%(from first to last)
 if(isempty(analysisPara.channels))
     analysisPara.channels = 1:size(summary,2);
 end
 for iCML = 1:nCML
+    nML = length(CMLs(iCML).movieLists_);
+    mlIndex = [];
+    for iML = 1 : nML
+        nMD = length(CMLs(iCML).movieLists_(iML).movies_);
+        mlIndex = [mlIndex; iML*ones(nMD,1)]; %#ok<AGROW>
+    end
     for iChannel = analysisPara.channels;
         summary{iCML,iChannel}.time = time{iCML};
         summary{iCML,iChannel}.name = analysisPara.channelNames{iChannel};
@@ -112,8 +125,10 @@ for iCML = 1:nCML
             end
             summary{iCML,iChannel}.name = [ CMLs(iCML).name_ summary{iCML,iChannel}.name];
         end
+        summary{iCML,iChannel}.mlIndex = mlIndex;
     end
 end
+
 % HACK, FIX
 % essentially let the rest of the analysis use linear indexing to access
 % summary
@@ -127,7 +142,14 @@ if analysisPara.doPartition
         summary{iCML}.eqCond = vertcat(extra{iCML}.eqCond);
     end
 end
+
+%% Calculate normalized molecular properties (normalized by first 3 movies in each ML)
+
+%after sorting, calculate some normalized properties
+summary = cellfun(@resultsNormTimeCourse, summary, 'UniformOutput', false);
+
 %% Sort
+
 %order data from earliest time point to latest
 for iCML = 1:nCML
     [~, sortIndx] = sort(summary{iCML}.time);
@@ -138,6 +160,7 @@ for iCML = 1:nCML
 end
 
 %% Shift time
+
 shiftTime = [];
 if analysisPara.start2zero
     shiftTimeIndx = startTime~=0;
@@ -149,9 +172,12 @@ if analysisPara.start2zero
 end
 
 %% Plot by Calling StandAlone Function
+
 timeCourseAnalysis_StandAlone(summary, outputDir, ip.Unmatched, 'shiftTime', shiftTime);
 
 %% Save
+
 save([outputDir filesep 'analysisData.mat'], 'directory_CML', 'analysisPara', 'summary');
+
 end
 

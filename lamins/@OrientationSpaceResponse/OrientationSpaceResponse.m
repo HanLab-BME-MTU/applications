@@ -154,14 +154,14 @@ classdef OrientationSpaceResponse < handle
             nlms = nonLocalMaximaSuppression(A,theta, suppressionValue);
         end
         
-        function nlms_precise = nonLocalMaximaSuppressionPrecise(obj, theta, suppressionValue)
+        function [nlms_precise,varargout] = nonLocalMaximaSuppressionPrecise(obj, theta, suppressionValue)
             if(nargin < 2 || isempty(theta))
                 theta = obj.getRidgeOrientationLocalMaxima;
             end
             if(nargin < 3 || isempty(suppressionValue))
                 suppressionValue = 0;
             end
-            nlms_precise = nonLocalMaximaSuppressionPrecise(real(obj.a),theta,suppressionValue);
+            [nlms_precise,varargout{1:nargout-1}] = nonLocalMaximaSuppressionPrecise(real(obj.a),theta,suppressionValue);
         end
                
         function A = getAngularGaussians(obj)

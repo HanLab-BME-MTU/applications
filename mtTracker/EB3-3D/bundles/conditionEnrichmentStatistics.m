@@ -28,7 +28,6 @@ polarThresh=0;
 distBinning=[];
 
 %% Condition structure for easier interpretation
-
 for cIdx=1:length(enrichmentProcesses)
     condition.name=names{cIdx};
     condElevationCell=cell(1,length(enrichmentProcesses{cIdx}));
@@ -64,15 +63,11 @@ end
 cmap=cool(length(enrichmentProcesses));
 c={'r','b','g','y','k','o'};
 scoresBin=-pi/2:0.1:pi/2;
-
 nonEmptyProcess=find(cellfun(@(p) ~isempty(p),enrichmentProcesses));
-
 meansDensitiesCell=cell(1,length(enrichmentProcesses));
 Handles=[];
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
 hold on;
-
-
 for cIdx=nonEmptyProcess
 	for pIdx=1:length(enrichmentProcesses{cIdx})
 		allElevs=vertcat(elevationCell{cIdx}{pIdx}{:});
@@ -112,13 +107,6 @@ print([outputDirPlot  'enrichment.eps'],'-depsc');
 close(F);
 
 
-%% Fitting  Astral and Polar results
-% allDist=vertcat(poleDistances{:});
-% allAmp=vertcat(oDetections.amp);
-% allAmp=allAmp(:,1);
-
-
-
 % Count and density function of distance to poles
 % Overlay decay 
 AstralK=1/2;
@@ -127,7 +115,6 @@ PolarK=0;
 %distBinning=linspace(30,70,20);
 coneVolumes=2*pi*(1-cos(pi/2-polarThresh))*polarDistBinning.^3/3;
 polarVolumes=(coneVolumes(2:end)-coneVolumes(1:(end-1)));
-
 coneVolumes=2*pi*(1-cos(pi/2+astralThresh))*astralDistBinning.^3/3;
 astralVolumes=(coneVolumes(2:end)-coneVolumes(1:(end-1)));
 
@@ -158,6 +145,13 @@ for cIdx=nonEmptyProcess
         allElevs=vertcat(elevationCell{cIdx}{pIdx}{:});
         allAmp=vertcat(ampCell{cIdx}{pIdx}{:});
 
+        tmp=load(enrichmentProcesses{cIdx}(pIdx).outFilePaths_{2});
+        allAzim=vertcat(tmp.azimuths{:});
+        allKTAzim=vertcat(tmp.KTazimuths{:});
+        allKTElev=vertcat(tmp.KTelevations{:});
+        allKTDist=vertcat(tmp.KTpoleDistances{:});
+
+
         % separate astral and polar and sort function of distances
         [polarCounts,polarEdges,polarBinIdx]=histcounts(allDist(allElevs>polarThresh),polarDistBinning);
         [meanPolarDensities,medPolarDensities,stdPolarDensities]=statPerIndx(allDens(allElevs>polarThresh),polarBinIdx);
@@ -185,6 +179,7 @@ for cIdx=nonEmptyProcess
         normAmpPolarCell{cIdx}=[normAmpPolarCell{cIdx}; normalizedPolarAmp];
         meansAstralIntCell{cIdx}=[meansAstralIntCell{cIdx}; meanAstralAmp];
         meansPolarIntCell{cIdx}=[meansPolarIntCell{cIdx}; meanPolarAmp];
+
         movie.movieData=enrichmentProcesses{cIdx}(pIdx).getOwner().movieDataPath_;
         movie.poleDist=vertcat(distanceCell{cIdx}{pIdx}{:}); 
         movie.binningDistance=polarDistBinning; 
@@ -195,13 +190,18 @@ for cIdx=nonEmptyProcess
         movie.elevation=vertcat(elevationCell{cIdx}{pIdx}{:});
         movie.intensity=vertcat(ampCell{cIdx}{pIdx}{:});
         movie.density=vertcat(densityCell{cIdx}{pIdx}{:});;
-
+        movie.azimuths=allAzim;
+        movie.KTazimuths=allKTAzim;
+        movie.KTelevations=allKTElev;
+        movie.KTdist=allKTDist;
         movie.time=vertcat(timeCell{cIdx}{pIdx}{:});
         moviesStruct=[moviesStruct movie];
     end
     conditionEnrichmenData.movies=moviesStruct;    
 end
 
+
+%% Mean density vs pole distance.
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
 hold on;
 shadeHandles=[];
@@ -209,7 +209,6 @@ predHandles=[];
 minDist=2;  
 fitXTicks=astralXTicks(astralXTicks>=minDist);
 astralK=0; 
-
 for cIdx=nonEmptyProcess
     % minMeans=min([meansAstralIntCell{cIdx}(:)' meansPolarIntCell{cIdx}(:)']);
     % maxMeans=max([meansAstralIntCell{cIdx}(:)' meansPolarIntCell{cIdx}(:)']);
@@ -220,7 +219,6 @@ for cIdx=nonEmptyProcess
     [f,B]=catastropheRateFit(mean(meansAstralIntCell{cIdx}(:,astralXTicks>=minDist)),fitXTicks);
     predictedAstral= f(B,astralXTicks);
     astralK=B(2); 
-
 
     % A=sum(mean(meansAstralIntCell{cIdx}))./sum(exp(-astralXTicks*AstralK));
     % predictedAstral= A*exp(-astralXTicks*AstralK);
@@ -253,11 +251,11 @@ hold off;
 printPNGEPSFIG(F,outputDirPlot,'meanIntensities');
 %close(F);
 
+%% Count vs pole distance
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
 hold on;
 shadeHandles=[];
 predHandles=[];
-
 astralK=0;
 for cIdx=nonEmptyProcess
     lcountAstralCell=countAstralCell{cIdx};
@@ -285,8 +283,6 @@ for cIdx=nonEmptyProcess
     if(~isempty((lcountPolarCell)))
         shadeHandle=plotOrShade(Handle(1),polarXTicks,lcountPolarCell,p.shade,cmap(2,:));
         shadeHandles=[shadeHandles shadeHandle];
-        % pH=plot(Handle(1),polarXTicks,predictedPolar);
-        % predHandles=[predHandles pH];
     end
 end
 lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
@@ -298,24 +294,14 @@ ylabel(Handle,'Comet counts');
 printPNGEPSFIG(F,outputDirPlot,'cometCount');
 hold off;
 
-
-
+%% Proximal and distal counts
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
 shadeHandles=[];
 predHandles=[];
-
 for cIdx=nonEmptyProcess
-%         minMeans=min([countAstralCell{cIdx}(:)' countPolarCell{cIdx}(:)']);
-%         maxMeans=max([countAstralCell{cIdx}(:)' countPolarCell{cIdx}(:)']);
-%         lcountAstralCell=(countAstralCell{cIdx}-minMeans)./(maxMeans-minMeans);
         lcountAstralCell=countAstralCell{cIdx};
         lcountPolarCell=countPolarCell{cIdx};        
-%         minMeans=min([countAstralCell{cIdx} countPolarCell{cIdx}],[],2);
-%         maxMeans=max([(countAstralCell{cIdx}) countPolarCell{cIdx}],[],2);
-%         lcountAstralCell=(countAstralCell{cIdx}-repmat(minMeans,1,size(countAstralCell{cIdx},2)))./repmat((maxMeans-minMeans),1,size(countAstralCell{cIdx},2));
-%         lcountPolarCell=(countPolarCell{cIdx}-repmat(minMeans,1,size(countPolarCell{cIdx},2)))./repmat((maxMeans-minMeans),1,size(countPolarCell{cIdx},2));
-% %   
-        %%
+
         decayAmps=sum((lcountAstralCell),2)./sum(exp(-astralXTicks*AstralK));
         predictedAstral= decayAmps*exp(-astralXTicks*AstralK);
         lowDistances=(astralXTicks<=median(astralXTicks));
@@ -325,15 +311,11 @@ for cIdx=nonEmptyProcess
             notBoxPlot([sum(lcountAstralCell(:,lowDistances),2) sum(lcountAstralCell(:,highDistances),2) sum(predictedAstral(:,highDistances),2)]);
         end
 end
-% lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
-% legend([lineToLegend{:} predHandles],{'Astral','Polar','predAstral'},'Location','northeast')
-% % ylim([0,4])
-% %xlim(Handle,[1.5 6]);
-% xlabel('Pole distance (\mu m)');
 ylabel('Astral Comet counts');
 Handle.XTickLabel={'Proximal','Distal','Predicted'};
 printPNGEPSFIG(F,outputDirPlot,'cometCountBoxAstral');
 
+%% Proximal and distal counts in Polar area
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6,'XSpace',[3 0.75 0.5]);
 shadeHandles=[];
 predHandles=[];
@@ -347,28 +329,16 @@ for cIdx=nonEmptyProcess
             notBoxPlot([sum(lcountPolarCell(:,lowDistances),2) sum(lcountPolarCell(:,highDistances),2)]);
         end
 end
-% lineToLegend=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0)
-% legend([lineToLegend{:} predHandles],{'Astral','Polar','predAstral'},'Location','northeast')
-% % ylim([0,4])
-% %xlim(Handle,[1.5 6]);
-% xlabel('Pole distance (\mu m)');
-% ylabel(Handle,'Normalized comet counts');
 ylabel(Handle,'Polar Comet counts');
 Handle.XTickLabel={'Proximal','Distal'};
 printPNGEPSFIG(F,outputDirPlot,'cometCountBoxPolar');
 
-
-
+% Polar distance vs cone normalized comet count
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
 hold on;
 shadeHandles=[];
 predHandles=[];
-for cIdx=nonEmptyProcess
-    % minMeans=min([coneNormCountAstralCell{cIdx}(:)' coneNormCountPolarCell{cIdx}(:)']);
-    % maxMeans=max([coneNormCountAstralCell{cIdx}(:)' coneNormCountPolarCell{cIdx}(:)']);
-    % coneNormCountAstralCell{cIdx}=(coneNormCountAstralCell{cIdx}-minMeans)./(maxMeans-minMeans);
-    % coneNormCountPolarCell{cIdx}=(coneNormCountPolarCell{cIdx}-minMeans)./(maxMeans-minMeans);
-%     
+for cIdx=nonEmptyProcess  
 %     coneNormCountAstralCell{cIdx}=coneNormCountAstralCell{cIdx}./repmat(coneNormCountAstralCell{cIdx}(:,1),1,size(coneNormCountAstralCell{cIdx},2));
 %     coneNormCountPolarCell{cIdx}=coneNormCountPolarCell{cIdx}./repmat(coneNormCountPolarCell{cIdx}(:,1),1,size(coneNormCountPolarCell{cIdx},2));
 %     
@@ -397,17 +367,13 @@ hold off;
 printPNGEPSFIG(F,outputDirPlot,'normCometCount');
 %close(F);
 
+% Pole distance vs comet count
 [H,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
 hold on;
 shadeHandles=[];
 predHandles=[];
 for cIdx=nonEmptyProcess
-        % minMeans=min([meansAstralDensitiesCell{cIdx}(:)' meansPolarDensitiesCell{cIdx}(:)']);
-        % maxMeans=max([meansAstralDensitiesCell{cIdx}(:)' meansPolarDensitiesCell{cIdx}(:)']);
-        % meansAstralDensitiesCell{cIdx}=(meansAstralDensitiesCell{cIdx}-minMeans)./(maxMeans-minMeans);
-        % meansPolarDensitiesCell{cIdx}=(meansPolarDensitiesCell{cIdx}-minMeans)./(maxMeans-minMeans);
-        
-        A=sum(mean(meansAstralDensitiesCell{cIdx}))./sum(exp(-astralXTicks*AstralK)./relativeVolumeAstral);
+         A=sum(mean(meansAstralDensitiesCell{cIdx}))./sum(exp(-astralXTicks*AstralK)./relativeVolumeAstral);
         predictedAstralAmp= A*exp(-astralXTicks*AstralK)./relativeVolumeAstral;
         
         if(~isempty((meansAstralDensitiesCell{cIdx})))
@@ -432,23 +398,13 @@ hold off;
 printPNGEPSFIG(F,outputDirPlot,'SphereDensityVsDistance');
 %close(F)
 
+% normalized intensity vs Pole distance 
 [HAmp,~,FAmp]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
 hold on;
 shadeHandles=[];
 predHandles=[];
 astralK=0;
 for cIdx=nonEmptyProcess
-        % minMeans=min([normAmpAstralCell{cIdx}(:)' normAmpPolarCell{cIdx}(:)']);
-        % maxMeans=max([normAmpAstralCell{cIdx}(:)' normAmpPolarCell{cIdx}(:)']);
-        % normAmpAstralCell{cIdx}=(normAmpAstralCell{cIdx}-minMeans)./(maxMeans-minMeans);
-        % normAmpPolarCell{cIdx}=(normAmpPolarCell{cIdx}-minMeans)./(maxMeans-minMeans);
-        % fitPoint=mean(normAmpAstralCell{cIdx}).*astralVolumes;
-        % [f,B]=catastropheRateFit(fitPoint(astralXTicks>=minDist),fitXTicks);
-        % predictedAstralAmp= f(B,astralXTicks);
-        % astralK=B(2);        
-        % A=sum(mean(normAmpAstralCell{cIdx}))./sum(exp(-astralXTicks*AstralK)./relativeVolumeAstral);
-        % predictedAstralAmp= A*exp(-astralXTicks*AstralK)./relativeVolumeAstral;
-        
         if(~isempty((normAmpAstralCell{cIdx})))
             shadeHandles=plotOrShade(HAmp(1),astralXTicks,normAmpAstralCell{cIdx},p.shade,cmap(1,:));
             shadeHandles=[shadeHandles shadeHandle];
@@ -480,6 +436,26 @@ for cIdx=nonEmptyProcess
     end
 end
 save(fullfile(outputDirPlot,'conditionEnrichmenData.mat'),'conditionEnrichmenData');
+
+%% Display Elevation vs Azimuth heatmap at the KT interface
+% normalized intensity vs Pole distance 
+[H,~,H]=setupFigure(1,length(nonEmptyProcess),length(nonEmptyProcess),'AxesWidth',10,'AxesHeight',6);
+hold on;
+for cIdx=nonEmptyProcess
+    % +Tips overlay
+    allAzim=vertcat(conditionEnrichmenData(cIdx).movies.azimuths);
+    allElev=vertcat(conditionEnrichmenData(cIdx).movies.elevations);
+    allKTPoleDistance=vertcat(conditionEnrichmenData(cIdx).movies.elevations);
+    prctile(allKTPoleDistance,0.5);       
+end
+xlabel('');
+ylabel(HAmp,'Normalized intensity');
+hold off;
+printPNGEPSFIG(F,outputDirPlot,'normAmpVsDistance');
+
+
+
+%% Projection display
 
 %% For each conditon, display elevation vs density
 for cIdx=nonEmptyProcess
