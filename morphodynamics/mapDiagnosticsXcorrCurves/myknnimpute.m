@@ -3,16 +3,23 @@ function imputed = myknnimpute(mat)
 % vector (knnimpute.m). If all rows contain NaN, adjust to it. 
 % 
 % Jungsik Noh, 2016/01
+% Updated, J Noh, 2017/08/28
 
 % non-NaN proportion
-cind = (sum(~isnan(mat)) ./ size(mat, 1)) > 0.7;
-mat1 = mat(:, cind);
+cind = (sum(~isnan(mat)) ./ size(mat, 1)) > 0.95;
 
-% knnimpute.m
-immat1 = knnimpute(mat1);
-imputed = nan(size(mat));
-imputed(:, cind) = immat1;
+if sum(cind) > 0
+    mat1 = mat(:, cind);
 
-imputed(:, ~cind) = mat(:, ~cind);
+    % knnimpute.m
+    immat1 = knnimpute(mat1);
+    imputed = nan(size(mat));
+    imputed(:, cind) = immat1;
+else
+    disp('myknnimpute failed and returned all NaNs.')
+    imputed = nan(size(mat));
+end
+
+%imputed(:, ~cind) = mat(:, ~cind);
 
 end
