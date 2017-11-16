@@ -2,9 +2,13 @@ function [ backboneInfo,TSFigs] = GCAgetNeuriteOrient(img,varargin)
 % GCAgetNeuriteOrient: (STEP I of GCA PACKAGE)
 % This function finds the large scale ridge that is most likely to
 % correspond to the point of entry of the neurite in the image, hence
-% detecting the neurite's orientation in the image. It likewise
-% generates and cleans the other large scale ridge detections that will be
-% used in GCAVeilStemReconstructMovie.m
+% detecting the neurite's orientation in the image. Note some practical 
+% ridge linking steps are employed to help deal with some limitations 
+% of the current ridge filter at larger sigmas, causing breaks in the 
+% ridge path. (Indeed initial tests show an OOF filter here might 
+% fix some of these issues in the future and is in testing for future 
+% releases). Finally this function likewise generates and cleans the other 
+% large scale ridge detections that will be used in GCAVeilStemReconstructMovie.m
 %
 %% INPUT:
 %
@@ -132,16 +136,13 @@ function [ backboneInfo,TSFigs] = GCAgetNeuriteOrient(img,varargin)
 %       as small candidates tend to not have high fidelity orientation information
 %       for linking.
 %    6. Ridge linking step.
-%    7. Another small filter for connected components post linking. (likely
-%    can remove...MB Test)
+%    7. Another small filter for connected components post linking. 
 %
 % III. Find Candidate Neurite Entrance Ridges
 %    All ridge candidates with at least one point within a user defined radius
 %   (default 10) pixels of the image boundary are considered backbone seed
 %   candidates, if no candidates are found this search radius is widened
-%   until a candidate is found. (MB 20150428 - likely want to switch this
-%   so it is looking for the endpoints - just don't want to change it now
-%   as did a lot of testing with this framework
+%   until a candidate is found. 
 %
 % A simple length and intensity linear cost for each candidate
 % ridge is calculated to determine the probability of being a true backbone
@@ -153,7 +154,7 @@ function [ backboneInfo,TSFigs] = GCAgetNeuriteOrient(img,varargin)
 % GCAneuriteOrientConsistencyCheck.m
 % 
 % The shortest path between the endpoint of the candidate backbone and the
-% boundary is interpolated : 
+% boundary is interpolated.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% INPUTPARSER
@@ -168,19 +169,27 @@ ip.addRequired('img');
 % PARAMETERS
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
 
+% i. STEERABLE FILTER: Thick Ridge (Stem) Detection 
 ip.addParameter('BBScale',[5 6 7 8 9 10]);
 ip.addParameter('FilterOrderBB',4,@(x) ismember(x,[2 4]));
 
-ip.addParameter('MaxRadiusLargeScaleLink',10) ;
-ip.addParameter('NoLinkDistanceFromBorder',10); 
-ip.addParameter('MaxDistNoGeoTerm',3); 
-
+% ii. THICK RIDGE CLEANING 
 ip.addParameter('ThreshNMSResponse',25);
 ip.addParameter('MinCCRidgeBeforeConnect',3);
 ip.addParameter('MinCCRidgeAfterConnect',5);
 
+% iii. THICK RIDGE LINKING 
+ip.addParameter('MaxRadiusLargeScaleLink',10) ; % in pixels 
+ip.addParameter('MaxDistNoGeoTerm',3); % in pixels 
+% add geoThresh.. 
+
+% iv. DEFINING NEURITE ENTRANCE RIDGE CANDIDATES  
 ip.addParameter('MinCCEntranceRidgeFirstTry',10);
 ip.addParameter('MaxDistBorderFirstTry',10);
+
+ip.addParameter('NoLinkDistanceFromBorder',10); % not mentioned in 
+% param Table in gcaConnectLinearRidges
+
 ip.parse(img,varargin{:});
 
 %% Initiations
@@ -210,11 +219,10 @@ end
 backboneInfo.scaleMapLarge = scaleMapLarge;
 
 % END PART I
-
 %% START PART II. Ridge Cleaning 
 
 %% 1 Ridge Cleaning: Estimate Background Based On Intensity Values and Remove Ridges
-% Associated With This Background
+
 [maskBack,~,~] = gcaEstimateBackgroundArea(img);
 
 maxNMSLarge = maxNMSLarge.*~maskBack ; %
@@ -233,15 +241,8 @@ if ip.Results.TSOverlays == true
 end
 %% 2 Ridge Cleaning: Threshold the NonMaximalSuppression Ridge Response Values:
 %
-% Note this thresholding is a bit arbitrary and one of the weaker steps in
-% the algorithm. Response at this stage is typically almost Guassian
-% Distributed therefore you might be able to argue that one may keep all of it
-% MB: It might make sense to try to skip this step, though all successful
-% segmentations as of 20150427 have been performed with this step included.
-%
 values = maxNMSLarge(maxNMSLarge~=0);
 cutoff = prctile(values,ip.Results.ThreshNMSResponse); % note arbitrarily set this cut-off to the 25th percentile- tried to fit the first mode of
-%backboneInfo.bodyEst.cutoff = cutoff; % save the information in the output
 
 % get ridge candidates
 ridgeCand = maxNMSLarge>cutoff;
@@ -265,20 +266,14 @@ if ip.Results.TSOverlays == true
     
     figCount = figCount + 1; % figure closed
 end
-
 %% 2 Ridge Cleaning: Threshold the NonMaximalSuppression Ridge Response Values:
 %
-% Note this thresholding is a bit arbitrary and one of the weaker steps in
-% the algorithm. Response at this stage is typically almost Gaussian
-% Distributed. MB: It might make sense to try to skip this step, though all successful
-% segmentations as of 20150427 have been performed with this step included.
-% 1
 values = maxNMSLarge(maxNMSLarge~=0);
-cutoff = prctile(values,ip.Results.ThreshNMSResponse); % note arbitrarily set this cut-off to the 25th percentile- tried to fit the first mode of
-%backboneInfo.bodyEst.cutoff = cutoff; % save the information in the output
+cutoff = prctile(values,ip.Results.ThreshNMSResponse); %
 if cutoff <0 
     cutoff = 0 ; 
 end 
+
 % get ridge candidates
 ridgeCand = maxNMSLarge>cutoff;
 ridgeCand(ridgeCand>0)=1;
@@ -305,9 +300,6 @@ ridgeCand(end-2:end,:) = 0;
 
 %% 5 Ridge Cleaning : Remove small connected components < ip.Results.MinCCRidgeBeforeConnect
 %
-% Note: might want to reduce to singletons
-% NOTE MB: you need to test this setting in the new run reduced to
-% singletons. 20150427
 CCRidgeBone = bwconncomp(ridgeCand);
 % filter out small connected components
 csizeRidgeFirst = cellfun(@(x) length(x),CCRidgeBone.PixelIdxList);
@@ -335,27 +327,16 @@ end
 
 CCRidgeBonePreLink = bwconncomp(cleanedRidge);
 cleanedRidgeLabelsPreLink = labelmatrix(CCRidgeBonePreLink);
-
-%%% Get endpoints  %%%- note singletons filtered here above so no
-%%% need to check for them.  20140922 - fix this for final
 EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img),0,1),CCRidgeBonePreLink.PixelIdxList,'uniformoutput',0);
 backboneInfo.beforeConnect= cleanedRidge;
 
 %% 6. Ridge Cleaning : Ridge Linking Step:  PERFORM LINKING
 
-[cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearRidges(EPCandidateSort,cleanedRidgeLabelsPreLink,ip.Results);%NEED to make a variable!
-% MB CHECK BEFORE RELEASE : part of the problem may be that you are
-% introducing junctions at this stage... see how deal with in the next
-% step. The two components you ~ out are the EPs of hte new CCs and the
-% labelMatof the new CCs- you should really potentially put these new CCs
-% into a cellarray so you can pick apart junctions.  
+[cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearRidges(EPCandidateSort,cleanedRidgeLabelsPreLink,ip.Results);
+
 cleanedRidge = bwmorph(cleanedRidge,'thin');  % thinning is very important for subsequent steps
 
 %% 7. Ridge Cleaning :  Remove small connected components < ip.Results.MinCCRidgeAfterConnect
-% I believe I had this step here originally as it was after a junction
-% break- all data run before 04-27-2015 will have included this step
-% STEP II: Clean Pieces Less than 5 pixels
-% again this might lead you to lose info- might want to exclude
 
 CCRidgeBone = bwconncomp(cleanedRidge);
 csizeRidgeFirst = cellfun(@(x) length(x),CCRidgeBone.PixelIdxList);
@@ -384,7 +365,8 @@ if ip.Results.TSOverlays == true
     scatter(test(:,1),test(:,2),5,'c','filled'); % scatter end points of ridges
     figCount = figCount +1; % figure closed
 end % ip.Results.TSOverlays
-%  END PART I
+%  END PART II
+
 %% START PART III. SELECT NEURITE ENTRANCE RIDGE CANDIDATES
 
 % Get connected components of all ridges and make label matrix
@@ -409,6 +391,7 @@ distTransBound =  bwdist(boundaryMask);
 % less leniant if you do not find any candidates
 CCBorderRidgeCandPixels = [];
 distFromBorder = ip.Results.MaxDistBorderFirstTry;
+
 while isempty(CCBorderRidgeCandPixels)
     
     % get the indices of ridge pixels ip.Results.MaxDistBorder1stTry
@@ -421,8 +404,6 @@ while isempty(CCBorderRidgeCandPixels)
     
     distFromBorder = distFromBorder +1; 
 end % while isempty
-
-
 
 % filter out very small candidates unless it is the only one found within
 % the distance, then keep it. 
@@ -443,6 +424,7 @@ CCBorderRidgeCandPixels = CCBorderRidgeCandPixels(csizeCand>minEntranceRidgeSize
 % save candidateSeeds
 candidateSeeds = zeros(size(img));
 candidateSeeds(vertcat(CCBorderRidgeCandPixels{:})) = 1;
+
 % save as input to GCAneuriteOrientConsistencyCheckMovie.m
 backboneInfo.candSeeds = candidateSeeds; % need to save these as they are possible new seeds
 
@@ -456,7 +438,6 @@ if ip.Results.TSOverlays == true
     candidateSeeds = zeros(size(img));
     candidateSeeds(vertcat(CCBorderRidgeCandPixels{:})) = 1;
     [nyCand,nxCand] = ind2sub(size(img),vertcat(CCBorderRidgeCandPixels{:})); 
-%     spy(candidateSeeds,'g'); % figure open 
     scatter(nxCand,nyCand,10,blue,'filled'); 
 end % ip.Results.TSOverlays
 %% Find the Best Entering Ridge Candidate
@@ -464,12 +445,12 @@ end % ip.Results.TSOverlays
 % Check Average Intensity: Largest intensity likely candidate
 avgIntCandBorderRidge = cellfun(@(x) mean(img(x)), CCBorderRidgeCandPixels);
 csize = cellfun(@(x) length(x),CCBorderRidgeCandPixels);
-score = (avgIntCandBorderRidge/max(avgIntCandBorderRidge)+csize/max(csize)); % make a linear cost
+score = (avgIntCandBorderRidge/max(avgIntCandBorderRidge)+csize/max(csize)); % make a simple linear cost
 
-% keep the one seed candidate with the largest score 
+% keep the one seed candidate with the largest score
 backboneSeed = zeros(size(img));
 
-pixBackbone = CCBorderRidgeCandPixels{score==max(score)} ; % changed 12/11/2013 from original of intensity based only
+pixBackbone = CCBorderRidgeCandPixels{score==max(score)} ; %
 
 backboneSeed(pixBackbone) =1 ;
 
@@ -487,15 +468,6 @@ if isempty(idxEnterNeurite) % need to interpolate to make sure closed contour
     [yBoundary,xBoundary] = find(boundaryMask==1);
     
     % find the closest distance between EP and boundary: 
-    % MB note 20150428 if you set this up smarter such that you took only
-    % the ridges with endpoints in a given region it might have been a bit
-    % better as you would know that at least one endpoint is within the
-    % distance you found above... anyway lets not shift things up here too
-    % much as I tested it mainly with this framework. 
-    
-    % need to check which is faster KDTree or just a simple distance
-    % transform... for now keep as is. MB not 20150428
-    
     % First just test for the shortest distance from the backbone endpoints
     % to the boundary within the final open distance. 
     [idxBoundaryClose,dist] = KDTreeBallQuery([xBoundary,yBoundary] ,EPsBackbone,distFromBorder-1);
@@ -513,8 +485,6 @@ if isempty(idxEnterNeurite) % need to interpolate to make sure closed contour
         numPixBBTested = length(xBBAll);
         distAll =vertcat(dist{:});     
     end
-    
-    
         % find the minimum distance
         toSave = find(distAll ==min(distAll));
         if length(toSave) > 1
@@ -537,25 +507,14 @@ if isempty(idxEnterNeurite) % need to interpolate to make sure closed contour
         xEnter = xBoundary(E(toSave,2));
         yEnter = yBoundary(E(toSave,2));
 end % if isempty idxNeurite
-
-
-
-
-
-
-
-
 %% Optional TroubleShoot Plot IV: Candidate Ridge Seeds : NEURITE ENTRANCE SEED CHOSEN
 if ip.Results.TSOverlays == true
     [nyBack,nxBack] = ind2sub(size(img),find(backboneSeed)); 
     scatter(nxBack,nyBack,10,orange,'filled'); 
-%     spy(backboneSeed,'r'); % plot the chosen backbone candidate
     if linked == 1 ;
         scatter(linkCoords(:,1),linkCoords(:,2),10,cDark(2,:),'filled');
     end
     scatter(xEnter,yEnter,100,'k','Marker','*'); % plot the neurite entrance point
-    %linked = 0; % reset
-    %figCount = figCount+1; % figure closed
 end % if ip.Results.TSOverlays
 %% Save the information
 
@@ -563,7 +522,6 @@ end % if ip.Results.TSOverlays
 backboneInfo.backboneSeedMask = backboneSeed;
 backboneInfo.coordsEnterNeurite = [xEnter,yEnter];
 
-backboneInfo.timeStamp = clock; % eventually will be saved in movieData
-
+backboneInfo.timeStamp = clock; % 
 end % end Function
 
