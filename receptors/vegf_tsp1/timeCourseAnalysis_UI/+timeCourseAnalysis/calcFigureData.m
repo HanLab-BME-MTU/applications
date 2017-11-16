@@ -74,9 +74,8 @@ for iColumns = 1:nColumns
     end
     
     %KJ: average over time intervals
-    %designate isolated datapoints (i.e. those in time intervals with very
-    %few datapoints) as outliers
-    [dataAve, inOutFlag] = calcMultipleDataAve(subSubData, commonInfo.times, inOutFlag, commonInfo.parameters.aveInterval, commonInfo.parameters.shiftTime);
+    %identify isolated datapoints (i.e. those in time intervals with very few datapoints)
+    [dataAve, inOutFlag] = calcMultipleDataAve(subSubData, commonInfo.times, inOutFlag, commonInfo.parameters.aveInterval, commonInfo.parameters.shiftTime, commonInfo.parameters.ignoreIsolatedPts);
     for iCond = 1 : nCond
         if(all(isnan(dataAve{iCond}.dataAve)))
             warning(['Could not average data for "', plotTitle, '" for CML ', num2str(iCond)]);
