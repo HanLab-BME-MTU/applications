@@ -3,6 +3,7 @@ clc;
 clear;
 %% Gen Data
 load('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat', 'cellDataSet');
+% cd '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/CellExplorerData'
 
 resizeOn = false;
 padImage = false;%true;
@@ -25,7 +26,7 @@ dataBlanksSeg = fullfile(dataRootDir,'blanks');
 randOrd = randperm(length(cellDataSet));
 percentVal = .05;
 
-parfor iR = 1:10%length(cellDataSet)
+for iR = 1:10%length(cellDataSet)
     i = randOrd(iR);
     MD = load(cellDataSet{i}.cellMD,'MD');
     MD = MD.MD;
