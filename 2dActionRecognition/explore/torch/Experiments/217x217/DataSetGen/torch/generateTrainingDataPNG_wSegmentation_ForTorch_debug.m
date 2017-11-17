@@ -5,7 +5,7 @@ clear;
 load('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat', 'cellDataSet');
 
 resizeOn = true;
-cellSegmentation = true;
+cellSegmentation = false;
 newDim = [128 128];
 
 dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/128x128/';
@@ -17,10 +17,15 @@ dataBlanksSeg = fullfile(dataRootDir,'blanks');
 
 randOrd = randperm(length(cellDataSet));
 percentVal = .1;
-
-parfor iR = 1:length(cellDataSet)
-    i = randOrd(iR);
+blank_mask1 = false;
+% k = [643, 3512];
+for iR = 1:length(k)%cellDataSet)
+    try 
+    
+        blank_mask = blank_mask1;%false;
+    i = k(iR);
     MD = load(cellDataSet{i}.cellMD,'MD');
+    %     I = gpuArray(mat2gray(MD.MD.getChannel(1).loadImage(1)));
     MD = MD.MD;
     expStr = cellDataSet{i}.expStr;
     
@@ -67,10 +72,15 @@ parfor iR = 1:length(cellDataSet)
             disp(['Blank mask: ' dirOut]);
             dirOut = fullfile(dataBlanksSeg, dataSetDir, classDir, expStr, newFileOut);
         end
-        if exist(fileparts(dirOut),'dir') ~= 7
-            mkdir(fileparts(dirOut));
-        end
-        imwrite(I, dirOut);
+%         if exist(fileparts(dirOut),'dir') ~= 7
+%             mkdir(fileparts(dirOut));
+%         end
+%         imwrite(I, dirOut);
+    end
+    catch ME
+        disp(i)
+        disp(fidx)
+        disp(ME)
     end
     
 end
