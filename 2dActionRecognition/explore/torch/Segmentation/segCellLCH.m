@@ -80,9 +80,10 @@ end
 %     mask = 0;
 % end
 if p.varFilterOut
-    Ivar = rangefilt(I);
+%     Ivar = rangefilt(I);
+    Ivar = stdfilt(I);
     imgFG = mask.*Ivar;    
-%     varI = stdfilt(I);
+    
 else
     imgFG = mask.*I;    
 end
@@ -113,8 +114,8 @@ if p.centerMass
     rp = regionprops(mask);
     
     [r c] = size(mask);
-    rShift = round(r/2 - rp.Centroid(2))
-    cShift = round(c/2 - rp.Centroid(1))
+    rShift = round(r/2 - rp.Centroid(2));
+    cShift = round(c/2 - rp.Centroid(1));
 
     % Call circshift to move region to the center.
     imgOut = circshift(imgOut, [rShift cShift]);

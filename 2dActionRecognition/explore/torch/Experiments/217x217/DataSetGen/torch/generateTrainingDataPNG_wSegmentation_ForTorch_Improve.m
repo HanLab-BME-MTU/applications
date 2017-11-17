@@ -5,7 +5,7 @@ clear;
 load('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat', 'cellDataSet');
 
 resizeOn = false;
-padImage = true;
+padImage = false;%true;
 cellSegmentation = true;
 newDim = [256 256];
 center_mass = true;
@@ -13,7 +13,8 @@ variance_filter = true;
 cropImage = true;
 cropSize = [150 150];
 
-dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/150x150_test/';
+% dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/var/217x217_test/';
+dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/var/150x150/';
 % dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/64x64/';
 dataRootDirVal = fullfile(dataRootDir,'test');
 dataRootDirTR = fullfile(dataRootDir,'train');
@@ -24,7 +25,7 @@ dataBlanksSeg = fullfile(dataRootDir,'blanks');
 randOrd = randperm(length(cellDataSet));
 percentVal = .05;
 
-for iR = 1:10%length(cellDataSet)
+parfor iR = 1:10%length(cellDataSet)
     i = randOrd(iR);
     MD = load(cellDataSet{i}.cellMD,'MD');
     MD = MD.MD;
@@ -44,17 +45,20 @@ for iR = 1:10%length(cellDataSet)
         end
                         
         if cellSegmentation
-            [I mask] = segCellLCH(I,'preview',false);
+            
+            [I mask] = segCellLCH(I,'preview', false, 'varFilterOut', variance_filter, ...
+                                    'centerMass', center_mass);
+
             % check if 97% covering image, then
             rp = regionprops(mask);
-            if rp.Area/size(I,1)^2  >= .9
+            Area = rp.Area;
+            if Area/size(I,1)^2  >= .9
                 blank_mask = true;
             else
                 blank_mask = false;
             end
             
         end
-
         
         if cropImage 
             x1 = ceil((size(I,1)-cropSize(1))/2);
