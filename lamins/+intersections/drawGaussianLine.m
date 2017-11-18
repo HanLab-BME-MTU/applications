@@ -1,18 +1,16 @@
-function [ I ] = drawGaussianLine( angle, sigma, start, radius )
+function [ I ] = drawGaussianLine( angle, sigma, center, radius )
 %drawGaussianLine Draw Gaussian Line
 
 sz = [101 101];
 
 [X,Y] = meshgrid(1:sz(1),1:sz(2));
 
-center = ceil(sz/2);
-
 if(nargin < 3)
-    start = center;
+    center = ceil(sz/2);
 end
 
-X = X - start(1);
-Y = Y - start(2);
+X = X - center(1);
+Y = Y - center(2);
 
 % ax + by + c = 0
 % y = mx + d    => -mx + y - d = 0
