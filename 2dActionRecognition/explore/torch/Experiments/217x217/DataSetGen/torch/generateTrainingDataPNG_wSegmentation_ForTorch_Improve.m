@@ -10,12 +10,12 @@ padImage = false;%true;
 cellSegmentation = true;
 newDim = [256 256];
 center_mass = true;
-variance_filter = true;
+variance_filter = false;
 cropImage = true;
 cropSize = [150 150];
 
 % dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/var/217x217_test/';
-dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/var/150x150/';
+dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/150x150_10f_centered/';
 % dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/64x64/';
 dataRootDirVal = fullfile(dataRootDir,'test');
 dataRootDirTR = fullfile(dataRootDir,'train');
@@ -26,7 +26,7 @@ dataBlanksSeg = fullfile(dataRootDir,'blanks');
 randOrd = randperm(length(cellDataSet));
 percentVal = .05;
 
-for iR = 1:10%length(cellDataSet)
+for iR = 1:length(cellDataSet)
     i = randOrd(iR);
     MD = load(cellDataSet{i}.cellMD,'MD');
     MD = MD.MD;
