@@ -107,7 +107,8 @@ ip.addParameter('maskDirectory',[]); % if empty perform local thresholding
 nFrames = size(listOfImages,1);
 ip.addParameter('EndFrame',nFrames,@(x) isscalar(x));
 
-
+ip.addParameter('getGITHashTag',false); 
+ 
 
 ip.parse(listOfImages,backboneInfo,BBScales,varargin{:});
 p = ip.Results;
@@ -437,7 +438,7 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     moreVeilStemNodes = sum(floatingBodyIdxCC);
     if  moreVeilStemNodes == 0 ;
         veilStem(iFrame).rmHiIntPieces = [];
-        moreVeilStemNodes = 1; 
+%         moreVeilStemNodes = 1; 
     end
     %%    If there are more have it enter the reconstruct...
     if moreVeilStemNodes > 0
@@ -1095,11 +1096,15 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     
     veilStem(iFrame).cycleFlag = cycleFlag;
     veilStem(iFrame).timeStamp = clock;
+    if ip.Results.getGITHashTag
     hashTag =  gcaArchiveGetGitHashTag;
+    else 
+        hashTag = NaN;
+    end 
     veilStem(iFrame).hashTag = hashTag;
     
-    paramsArchived(iFrame) = pToSave; 
-    save([ip.Results.OutputDirectory filesep 'params.mat'],'paramsArchived'); 
+     paramsArchived(iFrame) = pToSave; 
+     save([ip.Results.OutputDirectory filesep 'params.mat'],'paramsArchived'); 
     save([ip.Results.OutputDirectory filesep 'veilStem.mat'],'veilStem','-v7.3');
     %%    Make Trouble Shoot Overlays if User Desires
 %     if  ip.Results.TSOverlays == true
