@@ -379,10 +379,10 @@ Another approach is to use the derivatives of the inverse function. At the bifur
 	-D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta} & = & \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \left( \frac{-1}{D} \right) \\
 	\dv[3]{t}{\theta} & = & \frac{2}{D} \frac{\displaystyle \pdv[4]{\rho}{\theta}}{\displaystyle \pdv[3]{\rho}{\theta} }
 \end{eqnarray}
-
+\subsubsection{Estimating location near the bifurcation point with a particular derivative}
 Since the first two derivatives of the inverse function are constants at the bifurcation point regardless of the value of the partial derivatives, we can exploit this fact to understand the behavior of local extrema near all bifurcation points.
 
-First we would like to change the derivatives to be with respect to K. Let $ \theta_B $ be the location of the response critical point such that $ \dv{t}{\theta} (\theta_B) = 0 $.
+First we would like to change the derivatives to be with respect to K. Let $ \theta_B $ be the location of the bifurcation such that $ \dv{t}{\theta} (\theta_B) = 0 $.
 \begin{eqnarray}
 \dv{K}{\theta} & = & \dv{t}{\theta} \dv{K}{t} \\
 \dv{K}{\theta} (\theta_B) & = & \dv{t}{\theta} (\theta_B) \dv{K}{t} = 0 \left( -\frac{(2K+1)^3}{4} \right) = 0 \\
@@ -393,12 +393,12 @@ First we would like to change the derivatives to be with respect to K. Let $ \th
 \end{eqnarray}
 Then we will use a Taylor expansion to estimate the location at which $ \dv{K}{\theta} = S $
 \begin{eqnarray}
-\mbox{Let } \Delta K & = & K_1 - K_B \\
-\mbox{Let } \Delta \theta & = & \theta_1 - \theta_B \\
+\mbox{Let } \Delta K & = & K_S - K_B \\
+\mbox{Let } \Delta \theta & = & \theta_S - \theta_B \\
 \mbox{We want } \dv[2]{K}{\theta}  \Delta \theta & = & \dv{K}{\theta} = S \\
-\Delta \theta & = & \frac{S}{\dv{K}{\theta} } = \frac{4DS}{(2K+1)^3}\\
-K & = & K_B  +\dv{K}{\theta} \Delta \theta + \frac{1}{2} \dv[2]{K}{\theta} (\Delta \theta)^2 \\
-\Delta K & = & \frac{1}{2}  \frac{4DS^2}{(2K+1)^3}
+\Delta \theta & = & \frac{S}{\dv[2]{K}{\theta} } = \frac{4DS}{(2K_B+1)^3}\\
+K_S & = & K_B  +\dv{K}{\theta} \Delta \theta + \frac{1}{2} \dv[2]{K}{\theta} (\Delta \theta)^2 \\
+\Delta K & = & \frac{1}{2}  \frac{4DS^2}{(2K_B+1)^3}
 \end{eqnarray}
 
 
