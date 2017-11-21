@@ -217,12 +217,16 @@ xlabel('Orientation (degrees)');
 
 %% Show parabola near bifurcation points
 o = -pi/6:0.01:pi/6;
-S = 6;
+% S = 6;
 D = pi.^2/2;
+S = pi/14/D;
 for i=1:size(xgAligned,1)
     hold on;
     plot((o+xgAligned(i,2))/2/pi*180,Kg_aligned(i)+0.5*dnK_dmn(2,i,2).*o.^2,'-m');
-    K_select = 0.5*4*D./(2*Kg_aligned(i)+1).^3*S^2+Kg_aligned(i);
+%     K_select = 0.5*4*D./(2*Kg_aligned(i)+1).^3*S^2+Kg_aligned(i);
+    % Convert to t_select
+    K_select = 1./(2*Kg_aligned(i)+1).^2 - 0.5*S^2*D;
+    K_select = (1./sqrt(K_select)-1)/2;
     plot(([-pi/6 pi/6]+xgAligned(i,2))/2/pi*180,[K_select K_select],'-m');
 end
 
