@@ -23,6 +23,17 @@ ip.addRequired('img');
 
 % PARAMETERS
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
+ip.addParameter('reDilationRadius', 4); % in pixels: stem (large sigma) ridge radius 
+% Ideally one would like to estimate the stem radius directly from the image.
+% We found limitations in the ridge filter that prohibited accurate radius estimations, 
+% at larger scales and found it was ultimately more stable to enter these 
+% values approximately based on the size of objects we removed via the morphological 
+% filtering. 
+% (Note the degree of error introduced via visual assessment, if any,
+% is typically minimal)
+% We are working on testing/incorporating the OOF ridge filter for more accurate 
+% automated stem radius estimation at this step to achieve better localization 
+% of the stem boundaries in future releases of the software. 
 
 ip.parse(backbone2Dil,veilStemNodeMask, backboneInfo,varargin{:});
 p = ip.Results;
@@ -33,7 +44,7 @@ end
 [ny,nx] = size(backbone2Dil);
 TSFigs = [];
 %% TEST FOR CYCLES AND CORRECT
-dilBBMask = imdilate(backbone2Dil,strel('disk',4));
+dilBBMask = imdilate(backbone2Dil,strel('disk',p.reDilationRadius));
 %[~,~,~,scaleMapFine] = gcaMultiscaleSteerableDetector(img,4,'sigmaArray',[1:0.5:6]);
 %dilBBMask =  gcaImdilateWithScale(backbone2Dil,scaleMapFine,[1:0.5:6]);
 %dilBBMask = imdilate(backbone2Dil,strel('disk',8));
@@ -79,17 +90,13 @@ if ~isequal(prefill,fullMask) % if true you have a cycle.
     labelsBody = bwlabel(veilStemNodeMask);
     
     % Small test to mask sure dilation does not merge edge paths
-    % the idea here is want to dilate for the intensity
-    % integration reponse metrics but don't want this to be -
-    % think about reworks in this coding for the final release as
-    % it is a bit rough.
-    dilBBMask = imdilate(backbone2Dil,strel('disk',4));
+    dilBBMask = imdilate(backbone2Dil,strel('disk',p.reDilationRadius));
     CCPreDil = bwconncomp(backbone2Dil);
     CCEdges = bwconncomp(dilBBMask);
     stopFlagLowerDil = CCPreDil.NumObjects  > CCEdges.NumObjects;
     countDilDec = 1;
     while stopFlagLowerDil >0
-        dilBBMask = imdilate(backbone2Dil,strel('disk',4-countDilDec));
+        dilBBMask = imdilate(backbone2Dil,strel('disk',p.reDilationRadius-countDilDec));
         CCEdges = bwconncomp(dilBBMask);
         stopFlagLowerDil = CCPreDil.NumObjects  > CCEdges.NumObjects;
         countDilDec = 1 + countDilDec;
@@ -113,7 +120,7 @@ if ~isequal(prefill,fullMask) % if true you have a cycle.
     countDilDec = 1; % initiate count
     
     while stopFlagLowerDil >0
-        dilBBMask = imdilate(backbone2Dil,strel('disk',4-countDilDec));
+        dilBBMask = imdilate(backbone2Dil,strel('disk',p.reDilationRadius-countDilDec));
         labelsC = bwlabel(dilBBMask);
         CCEdges = bwconncomp(labelsC);
         edges = cellfun(@(x) unique(labelsBody(x)),CCEdges.PixelIdxList,'uniformoutput',0);
