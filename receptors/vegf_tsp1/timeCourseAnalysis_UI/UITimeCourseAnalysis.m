@@ -36,6 +36,9 @@ function [p,job] = UITimeCourseAnalysis(varargin)
 %  .nBootstrp: numermic scalar. Number of permutations to do. default: 100
 %  .detectOutliers_k_sigma: numeric scalar. Number of sigma outside of
 %                           which that label an outlier
+%  .ignoreIsolatedPoints: logical. True if isolated points, i.e. cases with
+%                   less than 5 datapoints per 3 min interval, are ignored
+%                   in averaging and spline fit.
 %  .channelTable: cell array containing channel information as described in
 %                 channelTableData above
 %  .channelNames: Name of channels
@@ -43,6 +46,7 @@ function [p,job] = UITimeCourseAnalysis(varargin)
 %
 %Tae H Kim, July 2015
 %Mark Kittisopikul, November 2015
+%Khuloud Jaqaman, November 2017
 
 %% Initialize
 %Progresstext

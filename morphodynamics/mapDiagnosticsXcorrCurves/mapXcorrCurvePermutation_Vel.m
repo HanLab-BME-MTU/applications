@@ -39,9 +39,12 @@ function mapXcorrCurvePermutation_Vel(MD, iChan1, chan1Name, layerMax, figuresDi
 %                   - window index in which activities will be replaced by
 %                   NaN. Default is null.
 %       subFrames
-%                   - specified frames will be only used.        
+%                   - specified frames will be only used.  
+%       topograph   - if 'off' topographs are not plotted. Default is 'on'.
 %
-% Updated: J Noh, 2017/08/26. To deal with differenced channels. 
+% Updated: J Noh, 2017/10/11, raw activities can be smoothed. New option is
+% 'movingAvgSmoothing'.
+% J Noh, 2017/08/26. To deal with differenced channels. 
 %                     iChan = 1x indicates the differenced map (X_t =
 %                     X_{t-1}) of channel x.
 % Jungsik Noh, 2017/05/23  
@@ -63,6 +66,9 @@ ip.addParameter('h0', []);
 ip.addParameter('mvFrSize', 0);
 ip.addParameter('Folding', false);
 ip.addParameter('subFrames', []);
+ip.addParameter('topograph', 'on');
+ip.addParameter('movingAvgSmoothing', false);
+
 
 parse(ip, varargin{:})
 p = ip.Results;
@@ -80,11 +86,13 @@ save(fullfile(figuresDir, tmptext), 'p')
 
 [~, ~,MDtimeInterval_, wmax, tmax, ~, ~, imActmap1] ...
             = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, 'WithN', p.WithN, ...
-                'omittedWindows', p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames); 
+                'omittedWindows', p.omittedWindows, 'Folding', p.Folding, ...
+                'subFrames', p.subFrames, 'movingAvgSmoothing', p.movingAvgSmoothing); 
 
 [~, ~, ~, ~, ~, ~, ~, imVelmap] ...
             = mapOutlierImputation(MD, 0, 1, 'impute', p.impute, 'omittedWindows', ...
-            p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames);  
+            p.omittedWindows, 'Folding', p.Folding, 'subFrames', p.subFrames, ...
+            'movingAvgSmoothing', p.movingAvgSmoothing); 
 
 %end
 %if p.Folding == 1
@@ -123,6 +131,7 @@ xcorrMat = xcorrCurvePermutationTest(ch1Actmap, ch2Actmap, ch1ActmapName, ch2Act
 
 
 %%  Topographs of xcorr
+if strcmp(p.topograph, 'on')
 
 iWinProc = MD.getProcessIndex('WindowingProcess',1,0);
 
@@ -142,6 +151,8 @@ topoFig_xcorrChan1Chan2 = topographMD(MD, tmax, 1, topoMap, title0, p.figFlag);
 
 %%
 saveas(topoFig_xcorrChan1Chan2, fullfile(figuresDir, ['/topoFig_xcorr_', fsaveName0, '.png']), 'png')  
+
+end
 
 %%
 disp('====End of mapXcorrCurvePermutation_Vel====')

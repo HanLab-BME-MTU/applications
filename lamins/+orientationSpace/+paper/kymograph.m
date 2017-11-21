@@ -51,7 +51,9 @@ newtonfig = figure;
 [xg,Kg] = orientationSpace.diffusion.newtonBPprotoSimple(R,r,c);
 close(newtonfig);
 
-xgAligned = orientationSpace.diffusion.alignExtrema([out(lastInd) xg.']);
+unAligned = [out(lastInd) xg.'];
+unAligned = cat(3,unAligned,[K(lastK).' Kg.']);
+xgAligned = orientationSpace.diffusion.alignExtrema(unAligned);
 
 Kg_aligned = Kg;
 for i = 1:length(Kg)
@@ -106,11 +108,13 @@ for trackNum = 1:size(out,1)
 %         figure;
 %         title(['Track ' num2str(trackNum)]);
         idx_select = fliplr(1:INTERPOLATION_INTERVAL:length(K));
-        if(idx_select(1) ~= lastK(trackNum))
-            idx_select = [lastK(trackNum) idx_select];
-        end
+
         track = out(trackNum,idx_select);
         idx_select = idx_select(~isnan(track));
+        if(idx_select(1) ~= lastK(trackNum))
+            idx_select = [lastK(trackNum) idx_select];
+            track = [out(trackNum,lastK(trackNum)) track];
+        end
         track = track(~isnan(track));
 
 %         x = joinColumns(repmat(K(idx_select),2,1));
@@ -210,6 +214,17 @@ hcb.TickLabels{1} = '0 Min';
 hcb.Label.String = 'Relative Response to Max and Min per K';
 ylabel('K');
 xlabel('Orientation (degrees)');
+
+%% Show parabola near bifurcation points
+o = -pi/6:0.01:pi/6;
+S = 6;
+D = pi.^2/2;
+for i=1:size(xgAligned,1)
+    hold on;
+    plot((o+xgAligned(i,2))/2/pi*180,Kg_aligned(i)+0.5*dnK_dmn(2,i,2).*o.^2,'-m');
+    K_select = 0.5*4*D./(2*Kg_aligned(i)+1).^3*S^2+Kg_aligned(i);
+    plot(([-pi/6 pi/6]+xgAligned(i,2))/2/pi*180,[K_select K_select],'-m');
+end
 
 %% Show filters at interpolation points
 figure;

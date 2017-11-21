@@ -10,6 +10,10 @@ function [pvec, adfMap] = nanAdfTestMap(map, mapName, smParam)
 %                   are shown with no transparency, and stationary windows
 %                   are shown with transparency. 
 %
+% Updates:
+% J Noh, 2017/10/13. The model option in adftest changed to 'ARD' instead
+% of using 'TS' (trend-stationarity) to declare 'non-stationary' when there
+% is trend.
 % Jungsik Noh, 2016/10/05
 
 
@@ -29,7 +33,8 @@ pvec = NaN*ones(size(map2, 1), 1);
 for w = 1:size(map2, 1)
     x = map2(w, :);
     %[h, pval, stat] = adftest(x, 'model', 'TS', 'lags', lag0);
-    [~, pval, ~] = adftest(x, 'model', 'TS', 'lags', lag0);
+    [~, pval, ~] = adftest(x, 'model', 'ARD', 'lags', lag0);
+    %[~, pval, ~] = adftest(x, 'lags', lag0);
     pvec(w) = pval;
 end
 

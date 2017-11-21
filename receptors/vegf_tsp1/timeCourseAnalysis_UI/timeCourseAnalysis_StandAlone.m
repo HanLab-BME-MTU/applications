@@ -169,6 +169,7 @@ ip.addParameter('shiftTime', [], @(x) isnumeric(x));
 ip.addParameter('detectOutliers_k_sigma', [], @(x) isnumeric(x));
 ip.addParameter('showPlots',true,@(x) islogical(x)||isnumeric(x));
 ip.addParameter('aveInterval', 3, @(x) isnumeric(x) && x>0);
+ip.addParameter('ignoreIsolatedPts', true, @(x) islogical(x)||isnumeric(x));
 ip.parse(varargin{:});
 params = ip.Results;
 params.showPartition = params.showPartitionAnalysis;
@@ -366,7 +367,7 @@ else
     for iCond = 1 : nConditions
         tmp = horzcat(inOutFlagAll{iCond,:});
         inOutFlagPerCond{iCond,1} = max(tmp,[],2);
-    end   
+    end
     
     [commonInfo.analysisTimes, timeLimit, commonInfo.timeLimitIndx] = timeCourseAnalysis.getAnalysisTimes(commonInfo.times,params.timeResolution,inOutFlagPerCond);
     
@@ -409,8 +410,8 @@ else
     drawnow;
     
     %% Compare Fitted Curves
-    [fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
-    [figureData.fitCompare] = fitCompare{:};
+    %     [fitCompare, commonInfo.compareTime] = timeCourseAnalysis.compareFittedCurves(commonInfo, figureData);
+    %     [figureData.fitCompare] = fitCompare{:};
     
     
 end % end of if(~params.nBootstrp)
@@ -435,5 +436,5 @@ end
 function [fitError] = determineSEEH(varargin)
 fitError = [];
 warning(['Standard error determination for figure ' num2str(varargin{1}.index) ' has failed']);
-error(varargin{1});
+% error(varargin{1});
 end

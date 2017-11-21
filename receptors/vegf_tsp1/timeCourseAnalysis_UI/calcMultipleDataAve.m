@@ -1,4 +1,4 @@
-function [dataAve, inOutFlag] = calcMultipleDataAve(data, times, inOutFlag, aveInterval, shiftTime)
+function [dataAve, inOutFlag] = calcMultipleDataAve(data, times, inOutFlag, aveInterval, shiftTime, ignoreIsolatedPts)
 %Scatter plots given data sets in one plot and averages in aveInterval intervals
 %
 %SYNOPSIS [dataAve] = calcMultipleDataAve(data, times, inOutFlag, aveInterval)
@@ -12,6 +12,9 @@ function [dataAve, inOutFlag] = calcMultipleDataAve(data, times, inOutFlag, aveI
 %   aveInterval     : Interval for averaging. Default: 3 min
 %   shiftTime       : Value by which time is shifted. Needed to shift time
 %                     back temporarily for this analysis.
+%   ignoreIsolatedPts: 1 to ignore isolated points when averaging (and then
+%                     later when doign the spline fit; 0 otherwise.
+%                     Default: 1.
 %
 %OUTPUT
 %   aveData         :
@@ -20,11 +23,14 @@ function [dataAve, inOutFlag] = calcMultipleDataAve(data, times, inOutFlag, aveI
 
 %% Initialization
 %assign default value
-if isempty(aveInterval)
+if nargin<4 || isempty(aveInterval)
     aveInterval = 3;
 end
-if isempty(shiftTime)
+if nargin<5 || isempty(shiftTime)
     shiftTime = zeros(size(data));
+end
+if nargin<6 || isempty(ignoreIsolatedPts)
+    ignoreIsolatedPts = 1;
 end
 
 shiftTimeCell = cell(size(data));
@@ -33,7 +39,7 @@ for iCell = 1 : length(shiftTimeCell)
 end
 
 %creates figure and stores the figure handle
-fxn = @(varargin) calcMultipleDataAvePerCondition(varargin{:}, aveInterval);
+fxn = @(varargin) calcMultipleDataAvePerCondition(varargin{:}, aveInterval, ignoreIsolatedPts);
 [dataAve, inOutFlag] = cellfun(fxn, data, times, inOutFlag, shiftTimeCell, 'UniformOutput',false);
 
 end
@@ -41,7 +47,7 @@ end
 
 %% sub-function
 
-function [dataAve, inOutFlag] = calcMultipleDataAvePerCondition(data, times, inOutFlag, shiftTime, aveInterval)
+function [dataAve, inOutFlag] = calcMultipleDataAvePerCondition(data, times, inOutFlag, shiftTime, aveInterval, ignoreIsolatedPts)
 
 try
     %     %remove nan and inf
@@ -67,13 +73,13 @@ try
         indxGood = indx(finiteFlagBin&inOutFlagBin==1);
         nDP = length(indxGood);
         nDataPoints(iBin) = nDP;
-        if nDP >= 5
+        if ignoreIsolatedPts && nDP < 5
+            inOutFlag(indx) = -1;
+        else
             dataInAve(iBin) = mean(data(indxGood));
             timeInAve(iBin) = mean(times(indxGood));
             dataInStd(iBin) = std(data(indxGood));
             timeInStd(iBin) = std(times(indxGood));
-        else
-            inOutFlag(indx) = -1;
         end
     end
     
