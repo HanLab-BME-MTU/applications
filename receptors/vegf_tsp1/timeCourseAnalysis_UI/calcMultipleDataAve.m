@@ -37,9 +37,14 @@ shiftTimeCell = cell(size(data));
 for iCell = 1 : length(shiftTimeCell)
     shiftTimeCell{iCell} = shiftTime(iCell);
 end
+if max(shiftTime>0)
+    shiftTimeAll = mean(shiftTime(shiftTime~=0));
+else
+    shiftTimeAll = 0;
+end
 
 %creates figure and stores the figure handle
-fxn = @(varargin) calcMultipleDataAvePerCondition(varargin{:}, aveInterval, ignoreIsolatedPts);
+fxn = @(varargin) calcMultipleDataAvePerCondition(varargin{:}, aveInterval, ignoreIsolatedPts, shiftTimeAll);
 [dataAve, inOutFlag] = cellfun(fxn, data, times, inOutFlag, shiftTimeCell, 'UniformOutput',false);
 
 end
@@ -47,7 +52,7 @@ end
 
 %% sub-function
 
-function [dataAve, inOutFlag] = calcMultipleDataAvePerCondition(data, times, inOutFlag, shiftTime, aveInterval, ignoreIsolatedPts)
+function [dataAve, inOutFlag] = calcMultipleDataAvePerCondition(data, times, inOutFlag, shiftTime, aveInterval, ignoreIsolatedPts, shiftTimeAll)
 
 try
     %     %remove nan and inf
@@ -62,7 +67,7 @@ try
     
     %divide time points into bins and take time and data average and
     %std
-    binID = round((times-shiftTime)/aveInterval);
+    binID = floor((times-shiftTimeAll)/aveInterval);
     binUnique = unique(binID);
     nBin = length(binUnique);
     [nDataPoints,dataInAve,dataInStd,timeInAve,timeInStd] = deal(NaN(nBin,1));
@@ -84,7 +89,8 @@ try
     end
     
     %output
-    dataAve = struct('timeAve',timeInAve,'dataAve',dataInAve,...
+    timeBinEdges = [binUnique binUnique+1]*aveInterval + shiftTimeAll;
+    dataAve = struct('timeBinEdges',timeBinEdges,'timeAve',timeInAve,'dataAve',dataInAve,...
         'timeStd',timeInStd,'dataStd',dataInStd,'nDataPts',nDataPoints);
     
 catch
