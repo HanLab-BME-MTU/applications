@@ -18,8 +18,6 @@ function [neuriteLength,longPathLinInd,EPLongPath,error] =  GCAfindVeilStemLonge
 %        marking the linear index of the neurite entrance (Output of Step
 %        III of GCA Segmentation)
 %
-% img : (OPTIONAL)
-%
 % OUTPUT:
 % neuriteLength: (1x1) double
 %   the neurite length measurement in um
@@ -36,15 +34,12 @@ function [neuriteLength,longPathLinInd,EPLongPath,error] =  GCAfindVeilStemLonge
  ip.addRequired('neuriteEntranceCLinIdx'); 
  ip.addParameter('pixelSizeMic',0.216, @isscalar); % in microns
  ip.parse(veilStemMaskC,neuriteEntranceCLinIdx, varargin{:});
-
 %% CHECK INPUT
 
 %% Initiate
 error = false;
 [ny,nx] = size(veilStemMaskC); 
 veilStemMaskC = logical(getLargestCC(veilStemMaskC)); 
-%%   % I think that the 2D skeletonization method is more appropriate here.
-%thinnedBodyAll = bwmorph(veilStemMaskC,'skel','inf');
 %% this is internal for didatic purposes to show the skeletonization once
 
 makeSmallMovie =0;
@@ -73,7 +68,7 @@ else
 end
 
 %% CREATE GRAPH FROM SKELETON
-[adjMat,edges , tipVertices,tipXYCoords,vertMat,edgePixels]   = skel2Graph4OutGrowthMetric(thinnedBodyAll);
+[adjMat,edges,tipVertices,tipXYCoords,vertMat,edgePixels]   = skel2Graph4OutGrowthMetric(thinnedBodyAll);
 
 %% FIND THE SKELETON TIP THAT IS CLOSEST TO THE NEURITE COORD %%
 
@@ -108,30 +103,21 @@ if ~isempty(tipVertices) % % implement a small sanity check - if tipVerices foun
     idxMax  = idxMax(1); % just choose the first in case there is a tie.
     longPath = path{idxMax};
     %% MAKE FINAL LONG PATH MASKS AND RECALCULATE THE FINAL DISTANCE OF THE LONG PATH
-    % NOTE: in the original implementation the length to the vertices is not included in the final
-    %       distPath calc therefore it is slightly more correct to remake the path mask
-    %       with the vertices and re-calculate the distance
-    %       -20140425 should be fixed check this maria and give final ok before
-    %       release
-    
+   
     edgesAll = [vertcat(edges(:,1), edges(:,2)), vertcat(edges(:,2),edges(:,1))];
     idxEdge = zeros(length(longPath)-1,1);
     % plot the pixels that correspond to the path lenghs
     for iPath = 2:length(longPath)
         startNode = longPath(iPath-1);
         endNode = longPath(iPath);
-        %test(i-1,:) = [startNode,endNode];
         idxLog = arrayfun(@(x) isequal(edgesAll(x,:),[startNode,endNode]),1:length(edgesAll(:,1)));
         idxEdge(iPath-1) = find(idxLog==1);
     end
     edgePixels = [edgePixels';edgePixels'] ;
     
-    
-    
     % get edge Pixels
     pathMask = zeros(size(thinnedBodyAll));
     pathMask(vertcat(edgePixels{idxEdge})) = 1;
-    
     
     idxVert = arrayfun(@(x) find(vertMat==x),longPath,'uniformoutput',0);
     % add the path vertices to the path mask
@@ -161,8 +147,7 @@ if ~isempty(tipVertices) % % implement a small sanity check - if tipVerices foun
     EPLongPath = getEndpoints(finalPathPix,[ny,nx],1);
     [nEndpoints,~]= size(EPLongPath);
     dist = arrayfun(@(i) sqrt((xEnter-EPLongPath(i,1))^2 + (yEnter-EPLongPath(i,2))^2),1:nEndpoints);
-    
-    
+     
     EPLongPath = EPLongPath(dist==max(dist),:); % take the end farthest away from the entrance
     
     % Reorder the pixels
@@ -174,23 +159,15 @@ if ~isempty(tipVertices) % % implement a small sanity check - if tipVerices foun
         iPix = iPix +1;
     end
     longPathLinInd = longPathLinInd(~isnan(longPathLinInd));
- 
-    
+   
     % Recalculate the distance
     [ neuriteLength]  = calculateDistance(longPathLinInd,[ny,nx],0,'pixelSizeMic',ip.Results.pixelSizeMic);
-    
-    
-    
-    
-    
+ 
 else
     display(['Error: No Skeleton Vertices Found']);
     error = true ;
     
 end % ~isempty(tipVertices
-
-
-
 
 end
 
