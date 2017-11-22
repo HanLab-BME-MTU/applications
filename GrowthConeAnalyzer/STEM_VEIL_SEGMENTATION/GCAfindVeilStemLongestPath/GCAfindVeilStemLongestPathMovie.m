@@ -62,7 +62,7 @@ ip.addParameter('EndFrame','auto');
 
 % Specific
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
-%ip.addParameter('TSMovie',false,@(x) islogical(x));
+
 ip.addParameter('neuriteElongTS_medFiltWindSize',10,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 ip.addParameter('neuriteElongTSOutlier_outlierDef_k',3,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 
