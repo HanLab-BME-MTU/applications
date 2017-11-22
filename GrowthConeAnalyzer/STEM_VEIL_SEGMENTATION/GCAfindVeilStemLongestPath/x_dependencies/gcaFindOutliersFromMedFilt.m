@@ -24,7 +24,7 @@ medianFilt = medfilt1(dataIn,medFiltWindSize);
 residuals = medianFilt-dataIn;
 if plotFig == true
 % figure;
-TSFig(1).h = setAxis('on');
+TSFig(1).h = setAxis('off');
 TSFig(1).name = 'NeuriteOutgrowth_MedFiltOutlierDetect';
 
 scatter(1:length(dataIn),dataIn,'k','filled');
@@ -67,7 +67,7 @@ legend('Raw Measurements',['Median Filter: (Window Size ' num2str(medFiltWindSiz
     'Outlier Detection','box','off', 'Location','BestOutside');
 
 title('Veil/Stem Outlier Detection' );
-axis([0 120 -25 25]);
+axis([0 length(dataIn) -25 25]);
 else 
     TSFig = []; 
 end 
