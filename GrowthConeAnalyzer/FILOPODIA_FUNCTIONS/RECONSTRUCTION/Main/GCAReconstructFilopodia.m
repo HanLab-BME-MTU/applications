@@ -2,12 +2,8 @@ function [filoBranch,TSFigsFinal,TSFigsRecon,errorHist] = GCAReconstructFilopodi
 % GCAReconstructFilopodia: (Step VI of GCA PACKAGE)
 % This function rebuilds and records the filopodia network around a
 % veil/stem mask (in the case of the neurite) or any binary cell mask 
-% where small scale (often low fidelity) protrusion detections have been 
+% where thin (often low signal to noise/poorly detected) regions have been removed
 % removed. 
-% 
-% STEP I: It applies a small scale steerable ridge filter followed 
-%         by NMS (non-maximum suppression) to detect filopodia. 
-%         It then reconstructs the filopodia network from this 
 % 
 %% INPUT: REQUIRED AND OPTIONAL
 %
@@ -142,7 +138,6 @@ ip.addParameter('dilateLocalRegion',false); % flag to dilate further the
 ip.addParameter('LRDilRad',10); % dilation radius of the structuring element 
 % applied to inital guess of the localized region of interest. 
 
-
 % RIDGE CLEANING
 ip.addParameter('multSTDNMSResponse',3);
 ip.addParameter('minCCRidgeOutsideVeil',3);
@@ -159,7 +154,6 @@ ip.addParameter('geoThresh',0.9, @(x) isscalar(x));
 ip.addParameter('maxRadiusConnectFiloBranch',15);
 ip.addParameter('geoThreshFiloBranch',0.5);
 
-
 % EMBEDDED ACTIN SIGNAL LINKING %
 ip.addParameter('detectEmbedded',true)
 % Pass to: gcaAttachFilopodiaStructuresMain.m
@@ -170,192 +164,162 @@ ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x));
 % TROUBLE SHOOT FLAG 
 ip.addParameter('TSOverlays',true);
 
-% FOR FILOPODIA ORIENTATION CALC (GC Only as it has an axis
+% FOR FILOPODIA ORIENTATION CALC (Growth Cones Only as they have an axis)
 ip.addParameter('rotateVeilStemNormals',true); 
-
 
 ip.parse(img,veilStemMaskC,protrusionC,leadProtrusionPtC,LPIndices,idxEnter,varargin{:});
 p = ip.Results;
 p = rmfield(p,{'img','veilStemMaskC','protrusionC'}); 
-%% Initiate 
-countFigs = 1; 
-dims = size(img); 
+%% Initiate
+countFigs = 1;
+dims = size(img);
 [ny,nx] = size(img);
 normalsC = protrusionC.normal;
-TSFigsFinal = []; 
-errorHist = 0; 
-%% these were the pixelated values used to calculate the normals 
- %Get the outline of the object in this mask. We use contourc instead of
-    %bwboundaries for 2 reasons: It returns its results in matrix
-    %coordinates, and the resulting outline encloses the border pixels
-    %instead of running through their centers. This better agrees with the
-    %windows, as the windows are designed to enclose the entire mask.
-    
-    
-    veilStemMaskC(1:ny,1) =0;
-    veilStemMaskC(1:ny,nx)=0;
-    veilStemMaskC(1,1:nx)= 0;
-    veilStemMaskC(ny,1:nx) =0;
-    
-    % after this step make sure to clean up CCs as well 
-    veilStemMaskC = logical(getLargestCC(veilStemMaskC)); 
-    
-    currOutline = contourc(double(veilStemMaskC),[0 0]);
-    currOutline = separateContours(currOutline);%Post-processing of contourc output
-    currOutline = cleanUpContours(currOutline);    
-    currOutline = currOutline{1}';%We know we only have one object...
-   % currOutline = currOutline(:,[2,1]); 
-    %Make sure the outline is correctly oriented
-    %if ~isCurrClosed
-        %Close the curve before checking handedness
-        %closedOutline = closeContours({currOutline'},bwdist(~veilStemMaskC));
-       % isClockWise = isCurveClockwise(closedOutline{1});        
-    %else
-        isClockWise = isCurveClockwise(currOutline);        
-    %end        
-    
-    if ~isClockWise
-        %Sam requires the curves run in the same direction
-        currOutline = currOutline(end:-1:1,:);
-    end
+TSFigsFinal = [];
+errorHist = 0;
+%% Reorient the Veil/Stem Normals Toward Outgrowth 
+%Get the outline of the veil/stem mask. 
+%We use contourc instead of
+%bwboundaries for 2 reasons: It returns its results in matrix
+%coordinates, and the resulting outline encloses the border pixels
+%instead of running through their centers. This better agrees with the
+%windows/protrusion software from which these vectors were calculated
+%(the windows are designed to enclose the entire mask).
 
-%% OLD From Testing to Remove
-% figure
-% cmap = hsv(length(smoothedEdgeC(:,1))); 
-% imshow(-img,[]); 
-% hold on 
-% %quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'b')
-% 
-% arrayfun(@(i) scatter(smoothedEdgeC(i,1),smoothedEdgeC(i,2),10,cmap(i,:),'filled'),1:length(smoothedEdgeC(:,1)));   
-% text(5,5,'1'); 
-% %quiver(currOutline(:,1),currOutline(:,2),normalsC(:,1),normalsC(:,2),'b')
-%  imshow(-img,[]); 
-%  hold on 
-%  arrayfun(@(i) scatter(currOutline(i,1),currOutline(i,2),10,cmap(i,:),'filled'),1:length(currOutline(:,1)));
+veilStemMaskC(1:ny,1)=0;
+veilStemMaskC(1:ny,nx)=0;
+veilStemMaskC(1,1:nx)=0;
+veilStemMaskC(ny,1:nx)=0;
 
-%% Reorient Normals Toward Outgrowth 
-%smoothedEdgeC = protrusionC.smoothedEdge;  
+% after this step make sure to clean up CCs as well
+veilStemMaskC = logical(getLargestCC(veilStemMaskC));
+
+currOutline = contourc(double(veilStemMaskC),[0 0]);
+currOutline = separateContours(currOutline);%Post-processing of contourc output
+currOutline = cleanUpContours(currOutline);
+currOutline = currOutline{1}';%We know we only have one object...
+isClockWise = isCurveClockwise(currOutline);
+
+if ~isClockWise
+    %protrusion software requires the curves run in the same direction
+    currOutline = currOutline(end:-1:1,:);
+end
+
 % rotate the normals of the edge of the veilstem in the direction of the
-% outgrowth for orientation metrics. 
+% outgrowth for orientation metrics.
 if ip.Results.rotateVeilStemNormals
-
-[normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims,idxEnter); 
-% add the rotated field. 
-
-if ip.Results.TSOverlays
-  TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'on'); 
-  TSFigs(countFigs).name = 'Normals_Rotated'; 
-  TSFigs(countFigs).group = []; 
-    imshow(-img,[]); 
-    hold on 
-    side1 = find(normalsCRotated(:,3) == 1); 
-    side2 = find(normalsCRotated(:,3) == 2) ; 
-    % sanity check 
-    side1 = find(normalsCRotated(:,3) == 1); 
-    side2 = find(normalsCRotated(:,3) == 2) ; 
-    quiver(smoothedEdgeC(side1,1),smoothedEdgeC(side1,2),normalsCRotated(side1,1),...
-    normalsCRotated(side1,2),'b'); 
-    quiver(smoothedEdgeC(side2,1),smoothedEdgeC(side2,2),normalsCRotated(side2,1),...
-    normalsCRotated(side2,2),'r');
-    quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g')
-    scatter(leadProtrusionPtC(:,1),leadProtrusionPtC(:,2),'k','filled'); 
-    maskPath = false(dims); 
-    maskPath(LPIndices) = true; 
-    spy(maskPath,'k'); 
     
-    text(5,10,'"Lead" Protrusion Point From Skeleton ', 'color','k','FontSize',10); 
-    text(5,20,'Veil/Stem Edge Normals', 'color','g','FontSize',10); 
-    text(5,30,'Direction Veil/Stem Edge Toward Lead Protrusion Side 1 (0 Degrees)','color','b','FontSize',10); 
-    text(5,40,'Direction Veil/Stem Edge Toward Lead Protrusion Side 2 (0 Degrees)', 'color', 'r','FontSize',10);
-    
-   % text(5,40,'Direction Veil/Stem Edge Normal','color','g'); 
-    countFigs = countFigs+1; 
-  %  text
-end 
-protrusionC.normal = normalsC; % note sometimes have to remove some of the boundary pixels from the original 
-protrusionC.smoothedEdge = smoothedEdgeC; 
-protrusionC.normalsRotated = normalsCRotated;  
-end 
+    [normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims,idxEnter);
+    %% TroubleShoot Overlay : Vector Rotation
+    if ip.Results.TSOverlays
+        TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'on');
+        TSFigs(countFigs).name = 'Normals_Rotated';
+        TSFigs(countFigs).group = [];
+        imshow(-img,[]);
+        hold on
+        % sanity check
+        side1 = find(normalsCRotated(:,3) == 1);
+        side2 = find(normalsCRotated(:,3) == 2) ;
+        quiver(smoothedEdgeC(side1,1),smoothedEdgeC(side1,2),normalsCRotated(side1,1),...
+            normalsCRotated(side1,2),'b');
+        quiver(smoothedEdgeC(side2,1),smoothedEdgeC(side2,2),normalsCRotated(side2,1),...
+            normalsCRotated(side2,2),'r');
+        quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g')
+        scatter(leadProtrusionPtC(:,1),leadProtrusionPtC(:,2),'k','filled');
+        maskPath = false(dims);
+        maskPath(LPIndices) = true;
+        spy(maskPath,'k');
+        
+        text(5,10,'"Lead" Protrusion Point From Skeleton ', 'color','k','FontSize',10);
+        text(5,20,'Veil/Stem Edge Normals', 'color','g','FontSize',10);
+        text(5,30,'Direction Veil/Stem Edge Toward Lead Protrusion Side 1 (0 Degrees)','color','b','FontSize',10);
+        text(5,40,'Direction Veil/Stem Edge Toward Lead Protrusion Side 2 (0 Degrees)', 'color', 'r','FontSize',10);
+        
+        % text(5,40,'Direction Veil/Stem Edge Normal','color','g');
+        countFigs = countFigs+1;
+    end % if TSOverlays
+    protrusionC.normal = normalsC; % note sometimes have to remove some of the boundary pixels from the original
+    protrusionC.smoothedEdge = smoothedEdgeC;
+    protrusionC.normalsRotated = normalsCRotated;
+end % if rotateVeilStemNormals
 %% STEP I: Detect Thin Ridge Structures 
     
 [maxRes, maxTh ,maxNMS ,scaleMap]= gcaMultiscaleSteerableDetector(img,ip.Results.FilterOrderFilo,ip.Results.FiloScale); 
 
-% (NOTE: MB, possibly make this output verbose only?) 
+% (NOTE: possibly make this output verbose only?) 
 filoBranchC.filterInfo.maxTh = maxTh;
 filoBranchC.filterInfo.maxRes = maxRes;
 filoBranchC.filterInfo.scaleMap = scaleMap; 
 
 %% STEP II :  PREPARE HIGH CONFIDENCE RIDGE 'SEEDS' FOR SUBSEQUANT ITERATIVE MATCHING STEPS
-%% Estimate the background of the image based on intensity (permissive definition) 
+%% Estimate the background of the image based on intensity (permissive definition)
 % delete small ridge filter signal from these regions in order to not waste
-% computational time 
- if ip.Results.filterBackEst
-  
+% computational time
+if ip.Results.filterBackEst
+    
     if ip.Results.dilateLocalRegion
-          [maskBack,~,~] = gcaEstimateBackgroundArea(img,'PostProcess',true);
-        maskBack = ~imdilate(~maskBack,strel('disk',ip.Results.LRDilRad)); % added 20170503 % was set to 10 
-    else 
-          [maskBack,~,~] = gcaEstimateBackgroundArea(img);% original verison used for N1E-115 data 
+        [maskBack,~,~] = gcaEstimateBackgroundArea(img,'PostProcess',true);
+        maskBack = ~imdilate(~maskBack,strel('disk',ip.Results.LRDilRad)); %
+    else
+        [maskBack,~,~] = gcaEstimateBackgroundArea(img);% original verison used for N1E-115 data
     end
-  
-    else 
-        maskBack = false(size(img)); % no mask 
- end
+    
+else
+    maskBack = false(size(img)); % no mask
+end
+%% Take out the first gaussian mode of ridge response intensities (assume it is background)
+% Determine Threshold
+forValues = maxNMS.*~maskBack; % take out background response based on fluorescence intensity
+valuesFilter = forValues(forValues~=0);
+if ~isempty(ip.Results.multSTDNMSResponse)
+    [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(valuesFilter);
+    cutoffTrueResponse = respNMSMean+ip.Results.multSTDNMSResponse*respNMSSTD; % can make this a variable
+else
+    cutoffTrueResponse = min(valuesFilter);
+end
+%check and make sure the cutoffTrueResponse makes sense.
+if cutoffTrueResponse>max(valuesFilter)
+    % try thresholdFluorescenceImage
+    cutoffTrueResponse = thresholdFluorescenceImage(valuesFilter);
+    errorHist = 1;
+end ;
+n1 = hist(valuesFilter,500);
 
-%% Take out the first gaussian mode of ridge response intensities (assume it is background) 
-    % Determine Threshold
-    forValues = maxNMS.*~maskBack; % take out background response based on fluorescence intensity
-    valuesFilter = forValues(forValues~=0);  
-    if ~isempty(ip.Results.multSTDNMSResponse)
-        [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(valuesFilter);
-        cutoffTrueResponse = respNMSMean+ip.Results.multSTDNMSResponse*respNMSSTD; % can make this a variable
-    else 
-        cutoffTrueResponse = min(valuesFilter); 
-    end
-    %check and make sure the cutoffTrueResponse makes sense. 
-    if cutoffTrueResponse>max(valuesFilter)
-        % try thresholdFluorescenceImage 
-        cutoffTrueResponse = thresholdFluorescenceImage(valuesFilter); 
-        errorHist = 1; 
-    end ; 
-    n1 = hist(valuesFilter,500);
-    
-    % Filter NMS based on Threshold: This will form the basis for your
-    % candidate ridges
-    canRidges = maxNMS.*~maskBack;
-    canRidgesPre = canRidges;
-    canRidges(canRidges<cutoffTrueResponse) = 0; 
-    filoBranchC.filterInfo.ThreshNMS = canRidges; 
-    
-    canRidges = bwmorph(canRidges,'thin',inf ); 
+% Filter NMS based on Threshold: This will form the basis for your
+% candidate ridges
+canRidges = maxNMS.*~maskBack;
+canRidgesPre = canRidges;
+canRidges(canRidges<cutoffTrueResponse) = 0;
+filoBranchC.filterInfo.ThreshNMS = canRidges;
+
+canRidges = bwmorph(canRidges,'thin',inf );
 %% OPTIONAL TS PLOT : Show Histogram to see if cut-off reasonable given the distribution
-        if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
-         
-          TSFigs(countFigs).h = setAxis('on'); 
-          
-          TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist'; 
-          TSFigs(countFigs).group = 'Cleaning_Small_Ridges' ; 
-         
-      
-          hist(valuesFilter,500); 
-          hold on 
-          line([cutoffTrueResponse cutoffTrueResponse],[0,max(n1)],'color','r','Linewidth',2); 
-          axis([min(valuesFilter),max(valuesFilter),0,max(n1)]); 
-          title(['Red line ' num2str(ip.Results.multSTDNMSResponse) '*std of first mode']); 
-          xlabel('Response per pixel (NMS Pixels Only)'); 
-          ylabel('Count'); 
-          
-          countFigs = countFigs+1; % close figure 
-        end
+if ip.Results.TSOverlays % plot the histogram with cut-off overlay so can see what losing
+    
+    TSFigs(countFigs).h = setAxis('on');
+    
+    TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist';
+    TSFigs(countFigs).group = 'Cleaning_Small_Ridges' ;
+    
+    
+    hist(valuesFilter,500);
+    hold on
+    line([cutoffTrueResponse cutoffTrueResponse],[0,max(n1)],'color','r','Linewidth',2);
+    axis([min(valuesFilter),max(valuesFilter),0,max(n1)]);
+    title(['Red line ' num2str(ip.Results.multSTDNMSResponse) '*std of first mode']);
+    xlabel('Response per pixel (NMS Pixels Only)');
+    ylabel('Count');
+    
+    countFigs = countFigs+1; %
+end
 %% Eliminate Junctions in the Ridge Detection
-% Break any remaining junctions so they may be assigned 
-% can appropriately assign these junction pixels to individual filopdodia in the
-% subsequent matching steps.
+% Break any remaining junctions so they may be appropriately assigned in
+% the subsequent matching steps
 
 % Initiate the cleaned array.
-canRidgeClean =  canRidges; 
+canRidgeClean =  canRidges;
 
-%% Break the junctions Original 
+%% Break the junctions Original
 nn = padarrayXT(double(canRidgeClean~=0), [1 1]);
 sumKernel = [1 1 1];
 nn = conv2(sumKernel, sumKernel', nn, 'valid');
@@ -365,50 +329,39 @@ junctionMask = nn1>2;
 canRidgeClean(junctionMask) =0;
 
 %% Filter Small Size Connected Component Ridge Pieces
-% typically keep this very small as do not want to remove signal 
-% < 3 pixel connected components are just typically less 
+% typically keep this very small as do not want to remove signal
+% < 3 pixel connected components are just typically less
 % well suited to orientation measurements required in the next steps
-CCRidges = bwconncomp(canRidgeClean,8); % 
+CCRidges = bwconncomp(canRidgeClean,8); %
 csize = cellfun(@(c) numel(c), CCRidges.PixelIdxList);
-nsmall = sum(csize<=ip.Results.minCCRidgeOutsideVeil);% 
+nsmall = sum(csize<=ip.Results.minCCRidgeOutsideVeil);%
 CCRidges.NumObjects = CCRidges.NumObjects-nsmall;
 CCRidges.PixelIdxList(csize<=ip.Results.minCCRidgeOutsideVeil) = []; % was 3 pixels
 
 % MASK OF CLEANED RIDGES MINUS ALL JUNCTIONS
 cleanedRidgesAll = labelmatrix(CCRidges)>0;
-%% Optional TS Figure : Ridge Signal Cleaning Steps 
- if ip.Results.TSOverlays == true % plot the histogram with cut-off overlay so can see what losing 
-         
-          TSFigs(countFigs).h = setFigure(nx,ny,'on'); 
-       
-          TSFigs(countFigs).name =  'Thin_Ridge_NMS_Cleaning';
-          TSFigs(countFigs).group = 'Cleaning_Small_Ridges'; 
-         
-          imshow(-img,[]) ; 
-          hold on 
-          spy(canRidgesPre,'b'); 
-          spy(cleanedRidgesAll,'r'); 
-          text(5,5,'Ridges Before Cleaning','Color','b','FontSize',10);
-          text(5,20,'Ridges After Cleaning', 'Color','r','FontSize',10); 
-          countFigs = countFigs +1; 
- end 
-
+%% Optional TS Figure : Ridge Signal Cleaning Steps
+if ip.Results.TSOverlays == true %
+    
+    TSFigs(countFigs).h = setFigure(nx,ny,'on');
+    
+    TSFigs(countFigs).name =  'Thin_Ridge_NMS_Cleaning';
+    TSFigs(countFigs).group = 'Cleaning_Small_Ridges';
+    
+    imshow(-img,[]) ;
+    hold on
+    spy(canRidgesPre,'b');
+    spy(cleanedRidgesAll,'r');
+    spy(maskBack,'g');
+    text(5,5,'Ridges Before Cleaning','Color','b','FontSize',10);
+    text(5,20,'Ridges After Cleaning', 'Color','r','FontSize',10);
+    countFigs = countFigs +1;
+end
 %% Run Main Function that performs the reconstructions
 [reconstruct,filoInfo,TSFigs2,TSFigsRecon] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
-if ip.Results.TSOverlays == 1 
-TSFigsFinal = [TSFigs  TSFigs2 ]; 
-end 
-filoBranch.filoInfo = filoInfo; % 
+if ip.Results.TSOverlays
+    TSFigsFinal = [TSFigs  TSFigs2 ];
+end
+filoBranch.filoInfo = filoInfo;
 filoBranch.reconstructInfo = reconstruct;
-
-
-end % 
-
-
-        
-        
-        
-
-
-
-
+end % Function End 
