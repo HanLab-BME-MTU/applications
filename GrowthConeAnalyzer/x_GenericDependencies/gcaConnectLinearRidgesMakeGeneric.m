@@ -313,14 +313,14 @@ if ~isempty(E)
         arrayfun(@(x) plot([endPoints1KD(x,1),endPoints2KD(x,1)],...
             [endPoints1KD(x,2),endPoints2KD(x,2)],'color','g'),1:nEdges);
         
-        quiver(endPoints1KD(:,1),endPoints1KD(:,2),vect(idxAll1,1),vect(idxAll1,2),0.2,'color','b');
-        quiver(endPoints2KD(:,1),endPoints2KD(:,2),vect(idxAll2,1),vect(idxAll2,2),0.2,'color','b');
+        quiver(endPoints1KD(:,1),endPoints1KD(:,2),vect(idxAll1,1),vect(idxAll1,2),6,'color','b');
+        quiver(endPoints2KD(:,1),endPoints2KD(:,2),vect(idxAll2,1),vect(idxAll2,2),6,'color','b');
         deltCon12N = [deltXCon12'./d deltYCon12'./d];
         deltCon21N = [deltXCon21'./d deltYCon21'./d];
         
         
-        quiver(endPoints1KD(:,1),endPoints1KD(:,2),deltCon12N(:,1),deltCon12N(:,2),0.2,'color','g');
-        quiver(endPoints2KD(:,1),endPoints2KD(:,2),deltCon21N(:,1),deltCon21N(:,2),0.2,'color','g');
+        quiver(endPoints1KD(:,1),endPoints1KD(:,2),deltCon12N(:,1),deltCon12N(:,2),6,'color','g');
+        quiver(endPoints2KD(:,1),endPoints2KD(:,2),deltCon21N(:,1),deltCon21N(:,2),6,'color','g');
         
         countFigs = countFigs +1;
         
@@ -388,7 +388,7 @@ if ~isempty(E)
     dotProd21(idxFilt) = [];
     dotProd12(idxFilt) = [];
     
-end % isempty E
+
 
 %% TSOverlays : Plot Cost by Color
 if ip.Results.TSOverlays == true;
@@ -474,7 +474,7 @@ if ip.Results.TSOverlays == true;
     
       
 end % ip.Results.
-
+end % isempty E
 %%
 if ~isempty(E) %check if there are reasonable edges
     % make sure to make d so that minimum d are favored
