@@ -7,10 +7,10 @@ function [ output_args ] = GCAAnalysisPartitionTimeSeriesMovie(MD,varargin)
 
 % PARAMETERS
 
-% defaultOutDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' filesep ... 
-%         'Partition_Outgrowth_Trajectory']; 
- defaultOutDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' filesep ... 
-         'Partition_Outgrowth_Trajectory_WithGrowthTimes'];
+defaultOutDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' filesep ... 
+        'Partition_Outgrowth_Trajectory']; 
+%  defaultOutDir = [MD.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' filesep ... 
+%          'Partition_Outgrowth_Trajectory_WithGrowthTimes'];
  defaultMeasFolder =  ['SegmentationPackage/StepsToReconstructTestBugFix20160426/'... 
      'GCAMeasurementExtraction_test20160510/WholeNeurite']; % currently the piece after GrowthConeAnalyzer 
  % and before Descriptor...
@@ -20,7 +20,13 @@ ip = inputParser;
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
 ip.addParameter('splineParam',0.01, @(x) isscalar(x) || isempty(x) ); 
 ip.addParameter('threshPause',0.5, @isscalar); 
-ip.addParameter('MeasurementFolder',defaultMeasFolder); 
+ip.addParameter('secPerFrame',5); 
+
+ip.addParameter('biosensor',false); 
+
+ip.addParameter('partitionLocalMeas',false); % option to partition all 
+% local measurements run by global partitioning. 
+ip.addParameter('MeasurementFolder',defaultMeasFolder);
 
 ip.parse(varargin{:});
 
@@ -42,15 +48,20 @@ if exist(outgrowthFile)~= 0 ;
     % trajectory (when the velocity of outgrowth reaches below a user
     % selected threshold)
     
-    title = gcaGetNeuriteID(MD.outputDirectory_);
+    title = gcaGetNeuriteID(MD.outputDirectory_,'biosensor',ip.Results.biosensor);
+    
+    % just make sure no underscores 
+    title = strrep(title,'_',' '); 
     
     globalMeas =  GCAfindPausingInNeuriteOutgrowthTrajectory(neuriteLength,'outPath',outDir,... 
-        'forTitle',title,'splineParam',splineParam,'threshPause',threshPause) ;
+        'forTitle',title,'splineParam',splineParam,'threshPause',threshPause,'secPerFrame',ip.Results.secPerFrame) ;
     % load
     % load([MD.outputDirectory filesep 'PARAMETER_EXTRACTION_201503015' filesep 'localParams.mat']);
     % go on to partition the rest of the data if user desires..
     %  grouping = globalMeas.grouping;
     
+   %% Partition Local Measurement Trajectories 
+  if    ip.Results.partitionLocalMeas
     %% for now just searchFiles
     parameterDir = [MD.outputDirectory_ filesep ip.Results.MeasurementFolder];
     % for now just search files - redesign so that the parameters in the
@@ -162,7 +173,7 @@ filterInfo = [stateGrp maxVel lifetimes];
     %  save([multRegDir filesep 'predictors.mat'],'predictors');
     % save([multRegDir filesep 'responses.mat'],'responses');
     
-   
+  end   % if ip.Results.partitionLocalMeas
     
     
 else
