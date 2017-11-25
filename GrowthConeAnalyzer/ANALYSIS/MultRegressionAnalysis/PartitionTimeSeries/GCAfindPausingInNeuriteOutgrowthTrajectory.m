@@ -50,6 +50,7 @@ ip.addParameter('makePlot',true,@islogical);
 ip.addParameter('splineParam',0.01,@(x) isscalar(x) || isempty(x));
 ip.addParameter('outPath' ,[],@(x) ischar(x) || isempty(x));
 ip.addParameter('forTitle',[]);
+
 ip.parse(neuriteOutgrowth,varargin{:});
 
 threshPause = ip.Results.threshPause;
@@ -90,7 +91,7 @@ a =diff(sv);
 
 
 % convert to to um per min
-sv = sv*60/secPerFrame; % convert to um per frame*60
+sv = sv*60/secPerFrame; % 
 
 % calculate the transitions in the trajectory
 % find transitions- 
@@ -243,18 +244,18 @@ if ~isempty(outPath)
         frameBinned = globalMeas.outgrowth.groupedFrames;
         
         
-        cellfun(@(x,y,z) plot(x.*5-5,y,'LineWidth',2,'color',c(z)),frameBinned,velBinned,forC);
+        cellfun(@(x,y,z) plot(x.*secPerFrame-secPerFrame,y,'LineWidth',2,'color',c(z)),frameBinned,velBinned,forC);
         % plot(inTime,sv,'r');
         hold on
         
         line([0,inTime(end)],[0,0],'color','k')
-        arrayfun(@(x) line([trans(x)*5-5,trans(x)*5-5],[-4,10],'color','k'),1:length(trans));
+        arrayfun(@(x) line([trans(x)*secPerFrame-secPerFrame,trans(x)*secPerFrame-secPerFrame],[-4,10],'color','k'),1:length(trans));
         line([0,0],[-4 10],'color','k');
         axis([0 inTime(end) -4 10]);
         xlabel('Time (s)');
         ylabel('Neurite Elongation Velocity (um/min)');
-        line([0 600],[ip.Results.threshPause,ip.Results.threshPause],'color','k','lineStyle','--');
-        line([0 600],[-ip.Results.threshPause,-ip.Results.threshPause],'color','k','lineStyle','--');
+        line([0 inTime(end)],[ip.Results.threshPause,ip.Results.threshPause],'color','k','lineStyle','--');
+        line([0 inTime(end)],[-ip.Results.threshPause,-ip.Results.threshPause],'color','k','lineStyle','--');
         
         scatter(inTime(locMaxVel),maxVel,10,'k','filled');
         scatter(inTime(locMinVel),-minVel,10,'k','filled');
@@ -278,9 +279,9 @@ if ~isempty(outPath)
         %arrayfun(@(x) plot(inTime(trans(x):trans(x+1)),sd(trans(x):trans(x+1)),'color',c(x+1,:),'Linewidth',2),1:length(trans(1:end-1)));
         
         hold on
-        arrayfun(@(x) line([trans(x)*5-5,trans(x)*5-5],[-10,25],'color','k'),1:length(trans));
+        arrayfun(@(x) line([trans(x)*secPerFrame-secPerFrame,trans(x)*secPerFrame-secPerFrame],[-10,25],'color','k'),1:length(trans));
         % plot the original
-        cellfun(@(x,y,z) scatter(x.*5-5,y,40,c(z),'filled'),frameBinned,distBinned,forC);
+        cellfun(@(x,y,z) scatter(x.*secPerFrame-secPerFrame,y,40,c(z),'filled'),frameBinned,distBinned,forC);
         
         plot(inTime,sd,'color','k');
         
@@ -374,6 +375,8 @@ if ~isempty(outPath)
         inTime = (1:length(sd)).*secPerFrame;
         inTime = inTime-secPerFrame;
         
+      
+        
         hold on
         c(1) = 'c';
         c(2) = 'b';
@@ -390,18 +393,18 @@ if ~isempty(outPath)
         frameBinned = globalMeas.outgrowth.groupedFramesG;
         
         
-        cellfun(@(x,y,z) plot(x.*5-5,y,'LineWidth',2,'color',c(z)),frameBinned,velBinned,forC);
+        cellfun(@(x,y,z) plot(x.*ip.Results.secPerFrame-ip.Results.secPerFrame,y,'LineWidth',2,'color',c(z)),frameBinned,velBinned,forC);
         % plot(inTime,sv,'r');
         hold on
         
         line([0,inTime(end)],[0,0],'color','k')
-        arrayfun(@(x) line([trans(x)*5-5,trans(x)*5-5],[-4,10],'color','k'),1:length(trans));
+        arrayfun(@(x) line([trans(x)*ip.Results.secPerFrame-ip.Results.secPerFrame,trans(x)*ip.Results.secPerFrame-ip.Results.secPerFrame],[-4,10],'color','k'),1:length(trans));
         line([0,0],[-4 10],'color','k');
         axis([0 inTime(end) -4 10]);
         xlabel('Time (s)');
         ylabel('Neurite Elongation Velocity (um/min)');
-        line([0 600],[ip.Results.threshPause,ip.Results.threshPause],'color','k','lineStyle','--');
-        line([0 600],[-ip.Results.threshPause,-ip.Results.threshPause],'color','k','lineStyle','--');
+        line([0 inTime(end)],[ip.Results.threshPause,ip.Results.threshPause],'color','k','lineStyle','--');
+        line([0 inTime(end)],[-ip.Results.threshPause,-ip.Results.threshPause],'color','k','lineStyle','--');
         
         scatter(inTime(locMaxVel),maxVel,10,'k','filled');
         scatter(inTime(locMinVel),-minVel,10,'k','filled');
@@ -425,9 +428,9 @@ if ~isempty(outPath)
         %arrayfun(@(x) plot(inTime(trans(x):trans(x+1)),sd(trans(x):trans(x+1)),'color',c(x+1,:),'Linewidth',2),1:length(trans(1:end-1)));
         
         hold on
-        arrayfun(@(x) line([trans(x)*5-5,trans(x)*5-5],[-10,25],'color','k'),1:length(trans));
+        arrayfun(@(x) line([trans(x)*ip.Results.secPerFrame-ip.Results.secPerFrame,trans(x)*ip.Results.secPerFrame-ip.Results.secPerFrame],[-10,25],'color','k'),1:length(trans));
         % plot the original
-        cellfun(@(x,y,z) scatter(x.*5-5,y,40,c(z),'filled'),frameBinned,distBinned,forC);
+        cellfun(@(x,y,z) scatter(x.*secPerFrame-secPerFrame,y,40,c(z),'filled'),frameBinned,distBinned,forC);
         
         plot(inTime,sd,'color','k');
         
