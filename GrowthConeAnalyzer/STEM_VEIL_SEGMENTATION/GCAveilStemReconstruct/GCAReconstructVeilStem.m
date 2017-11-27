@@ -165,26 +165,26 @@ for iFrame = ip.Results.StartFrame:ip.Results.EndFrame
     [erodForBody,saveMask]  =   gcaMorphologicalOpeningWithGeometryConstraints(maskForErod,p);
     %% TS Overlays: Show Mask Before Morphological Opening, After Morphological Opening, and the mask that 'saved'
     % using some geometry constraints.
-    if ip.Results.TSOverlays == true
-        
-        [ny,nx] = size(img);
-        TSFigs1(figCount).h = setFigure(nx,ny,'off');
-        TSFigs1(figCount).name = 'Morphological Opening';
-        imshow(-img,[]);
-        hold on
-        roiYX  = bwboundaries(maskForErod);
-        roiYX2 = bwboundaries(erodForBody);
-        
-        cellfun(@(x) plot(x(:,2),x(:,1),'g'),roiYX);
-        spy(saveMask,'r');
-        cellfun(@(x) plot(x(:,2),x(:,1),'color','b','Linewidth',2),roiYX2);
-        
-        text(5,5,['Removed Small Scale Signal- Disk Size ' num2str(ip.Results.DiskSizeLarge)],'color','g','FontSize',10);
-        text(5,20,'Final Veil/Stem Pieces Before Reconstruct With Ridge Info','color','b','FontSize',10);
-        text(5,40,{['Shrink Structuring Element Size From ' num2str(ip.Results.DiskSizeLarge) ' to '] ; ...
-            [ num2str(ip.Results.DiskSizeSmall) ' in Region Due to Geometry Constraints']},'color','r','FontSize',10)
-        figCount= figCount+1;
-    end % TS Overlay Morphological Opening
+%     if ip.Results.TSOverlays == true
+%         
+%         [ny,nx] = size(img);
+%         TSFigs1(figCount).h = setFigure(nx,ny,'off');
+%         TSFigs1(figCount).name = 'Morphological Opening';
+%         imshow(-img,[]);
+%         hold on
+%         roiYX  = bwboundaries(maskForErod);
+%         roiYX2 = bwboundaries(erodForBody);
+%         
+%         cellfun(@(x) plot(x(:,2),x(:,1),'g'),roiYX);
+%         spy(saveMask,'r');
+%         cellfun(@(x) plot(x(:,2),x(:,1),'color','b','Linewidth',2),roiYX2);
+%         
+%         text(5,5,['Removed Small Scale Signal- Disk Size ' num2str(ip.Results.DiskSizeLarge)],'color','g','FontSize',10);
+%         text(5,20,'Final Veil/Stem Pieces Before Reconstruct With Ridge Info','color','b','FontSize',10);
+%         text(5,40,{['Shrink Structuring Element Size From ' num2str(ip.Results.DiskSizeLarge) ' to '] ; ...
+%             [ num2str(ip.Results.DiskSizeSmall) ' in Region Due to Geometry Constraints']},'color','r','FontSize',10)
+%         figCount= figCount+1;
+%     end % TS Overlay Morphological Opening
     %%  Delete veil pieces that are located along the edge of the frame that are not
     % overlapping with the main backbone entrance. (avoids cycles...)
     
