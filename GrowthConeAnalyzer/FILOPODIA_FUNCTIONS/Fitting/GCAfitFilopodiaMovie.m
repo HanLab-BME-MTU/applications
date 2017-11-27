@@ -55,18 +55,21 @@ ip.CaseSensitive = false;
 
 % PARAMETERS
 defaultOutDir = [movieData.outputDirectory_ filesep...
-    'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VII_filopodiaBranch_fits_new'];
+    'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VII_filopodiaBranch_fits'];
 
 
 defaultInDir = [movieData.outputDirectory_ filesep ... 
     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction']; 
-ParamFree
+
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
 ip.addParameter('InputDirectory', defaultInDir,@(x) ischar(x)); 
 ip.addParameter('ChannelIndex',1);
 ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
+
+% Archiving the software version
+ip.addParameter('getGITHashTag',false);
 
 % Specific
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
@@ -78,7 +81,7 @@ ip.addParameter('ValuesForFit','Intensity',@(x) ischar(x)); % maybe remove
 ip.addParameter('PSFSigma',0.43,@(x) isnumeric(x)) ; %% NOTE CHANGE THIS TO BE READ IN FROM MD. 
 ip.addParameter('fitLengthInPix',10,@(x) isscalar(x)); 
 
-ip.parse(varargin{:});ParamFree
+ip.parse(varargin{:});
 params = ip.Results;
  %% Initiate
 nFrames = movieData.nFrames_;
@@ -91,13 +94,9 @@ for iCh = 1:nChan
     
     
     display(['Fitting Filopodia for Channel ' num2str(channels(iCh))]);
-    
-
-    
+   
     %% Get Start and End Frames Based on Restart Choice
-    
-    
-    
+  
     % make final output dir where backboneInfo will be saved
     outDirC =  [ip.Results.OutputDirectory filesep 'Channel_' num2str(channels(iCh))];
     inDirC = [ip.Results.InputDirectory filesep 'Channel_' num2str(channels(iCh))]; 
@@ -186,17 +185,21 @@ for iCh = 1:nChan
         
         [filoInfo] = GCAfitFilopodia(filoInfo,img,params) ;
         
-        
-        
-        
-        
+  
         % rewrite the filoInfo with the extra filo Info fields.
         filoBranch(iFrame).filoInfo = filoInfo;
         display(['Finished Fitting Filopodia for  Channel ' num2str((channels(iCh))) 'Frame ' num2str(iFrame)]);
         filoBranch(iFrame).reconstructInfo.createTimeFiloFit = clock;
-        %hashTag = gcaArchiveGetGitHashTag;
-        %filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
+        
+        if ip.Results.getGITHashTag
+            hashTag = gcaArchiveGetGitHashTag;
+        else
+            hashTag = NaN;
+        end
+        
+        filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
         p(iFrame) = params; 
+        
         save([outDirC filesep 'filoBranch.mat'],'filoBranch','-v7.3')
         save([outDirC filesep 'params.mat'],'p'); 
         
