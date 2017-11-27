@@ -240,16 +240,17 @@ if ip.Results.TSOverlays == true
     figCount = figCount+1; % figure completed
 end
 %% 2 Ridge Cleaning: Threshold the NonMaximalSuppression Ridge Response Values:
-%
 values = maxNMSLarge(maxNMSLarge~=0);
-cutoff = prctile(values,ip.Results.ThreshNMSResponse); % note arbitrarily set this cut-off to the 25th percentile- tried to fit the first mode of
-
+cutoff = prctile(values,ip.Results.ThreshNMSResponse); %
+if cutoff <0
+    cutoff = 0 ;
+end
+ridgeCandBeforeClean = maxNMSLarge>0;
 % get ridge candidates
 ridgeCand = maxNMSLarge>cutoff;
 ridgeCand(ridgeCand>0)=1;
 % Perform a thinning operation to keep tidy
 ridgeCand = bwmorph(ridgeCand,'thin','inf');
-ridgeCandBeforeClean = ridgeCand; 
 %% OPTIONAL Troubleshoot Overlay
 if ip.Results.TSOverlays == true
   
@@ -264,22 +265,8 @@ if ip.Results.TSOverlays == true
     ylabel('Count'); 
     xlabel('Large Scale NMS Response Values'); 
     
-    figCount = figCount + 1; % figure closed
+    figCount = figCount + 1; 
 end
-%% 2 Ridge Cleaning: Threshold the NonMaximalSuppression Ridge Response Values:
-%
-values = maxNMSLarge(maxNMSLarge~=0);
-cutoff = prctile(values,ip.Results.ThreshNMSResponse); %
-if cutoff <0 
-    cutoff = 0 ; 
-end 
-
-% get ridge candidates
-ridgeCand = maxNMSLarge>cutoff;
-ridgeCand(ridgeCand>0)=1;
-% Perform a thinning operation to keep tidy
-ridgeCand = bwmorph(ridgeCand,'thin','inf');
-
 %% 3 Ridge Cleaning: Break Junctions
 % Cut Junctions in the maxNMS
 nn = padarrayXT(double(ridgeCand~=0), [1 1]);
@@ -356,9 +343,8 @@ if ip.Results.TSOverlays == true
     % plot ridge before connect
     spy(cleanedRidge)
     hold on
-    test = vertcat(EPCandidateSort{:}); % figure open 
-    
-    
+    test = vertcat(EPCandidateSort{:}); 
+
     if madeLinks == 1
         spy(linkMask,'r'); % plot any links made
     end
@@ -366,7 +352,6 @@ if ip.Results.TSOverlays == true
     figCount = figCount +1; % figure closed
 end % ip.Results.TSOverlays
 %  END PART II
-
 %% START PART III. SELECT NEURITE ENTRANCE RIDGE CANDIDATES
 
 % Get connected components of all ridges and make label matrix
