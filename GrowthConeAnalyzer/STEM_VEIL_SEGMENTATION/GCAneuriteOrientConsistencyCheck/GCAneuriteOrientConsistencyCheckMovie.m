@@ -116,12 +116,6 @@ for iCh = 1:nChan
         'I_neurite_orientation' filesep 'Channel_' num2str(iCh) ];
     load([saveDirOld filesep 'backboneInfo.mat']);
     
-    % old files
-    
-    if isdir(saveDir)
-        mkdir(saveDir)
-    end
-    
     % get the list of image filenames
     if p.ProcessIndex == 0
         imDir = movieData.channels_(iCh).channelPath_;
@@ -134,7 +128,7 @@ for iCh = 1:nChan
         error('No Images Found: Check Input Directory');
     end
     %% Run Function
-    if ip.Results.CheckOrient == true; % initiate the figure
+    if ip.Results.CheckOrient; % initiate the figure
         setFigure(xSize,ySize,'on');
         
         img = double(imread([movieData.getChannelPaths{1} filesep movieData.getImageFileNames{1}{1}]));
