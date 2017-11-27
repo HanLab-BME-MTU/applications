@@ -143,19 +143,20 @@ end
 end
 
 function responseAtOrder = getResponseAtOrderFT(response_hat,Korg,Kg)
-    if(isempty(Kg))
-        responseAtOrder = NaN(size(response_hat));
-        return;
-    end
-%     x = [0:ceil(R.filter.K)*R.filter.sampleFactor -ceil(R.filter.K)*R.filter.sampleFactor:-1];
-%     x = [0:8 -8:-1];
-    x = [0:floor(size(response_hat,1)/2) -floor(size(response_hat,1)/2):-1];
-    n_org = 2*Korg+1;
-
-    n_new = 2*Kg+1;
-    s_inv = sqrt(n_org^2.*n_new.^2./(n_org.^2-n_new.^2));
-    s_hat = s_inv/(2*pi);
-    f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2);
-    responseAtOrder = bsxfun(@times,response_hat,f_hat);
+    responseAtOrder = orientationSpace.getResponseAtOrderVecHat(response_hat,Korg,Kg);
+%     if(isempty(Kg))
+%         responseAtOrder = NaN(size(response_hat));
+%         return;
+%     end
+% %     x = [0:ceil(R.filter.K)*R.filter.sampleFactor -ceil(R.filter.K)*R.filter.sampleFactor:-1];
+% %     x = [0:8 -8:-1];
+%     x = [0:floor(size(response_hat,1)/2) -floor(size(response_hat,1)/2):-1];
+%     n_org = 2*Korg+1;
+% 
+%     n_new = 2*Kg+1;
+%     s_inv = sqrt(n_org^2.*n_new.^2./(n_org.^2-n_new.^2));
+%     s_hat = s_inv/(2*pi);
+%     f_hat = exp(-0.5 * bsxfun(@rdivide,x(:),s_hat).^2);
+%     responseAtOrder = bsxfun(@times,response_hat,f_hat);
 end
 
