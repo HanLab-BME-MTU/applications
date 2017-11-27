@@ -195,6 +195,6 @@ for iCh = 1:nChan
         y{1} = paramsArchived;
         GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,x,y,p);
     end
-    
+ display(['Finished Reconstructing Veil/Stem Channel ' num2str(iCh)]); 
 end % for iCh
 end % function
