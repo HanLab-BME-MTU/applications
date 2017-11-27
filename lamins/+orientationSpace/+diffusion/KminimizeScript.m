@@ -29,7 +29,7 @@ notDone = [notDone{:}];
 clear LC;
 
 maximaF = NaN(1024,1024,7);
-L.coords.ind = sub2ind([1024 1024 7],L.coords.r,L.coords.c,L.coords.m);
+% L.coords.ind = sub2ind([1024 1024 7],L.coords.r,L.coords.c,L.coords.m);
 maximaF(L.coords.ind) = x_out;
 [fr,fc] = find(sum(maximaF(:,:,1:end-1) == maximaF(:,:,2:end),3));
 maximaF_repeats = cat(3,false(1024),maximaF(:,:,1:end-1) == maximaF(:,:,2:end));
@@ -49,11 +49,11 @@ end
 save('maximaFixed.mat','maximaFixed')
 
 maximaFixedN = NaN(1024,1024,7);
-maximaFixedN(coords.ind) = x_fixed;
+maximaFixedN(L.coords.ind) = x_fixed;
 maximaFixedN = maximaFixedN/2;
 
 K_fixedN = NaN(1024,1024,7);
-K_fixedN(coords.ind) = K_fixed;
+K_fixedN(L.coords.ind) = K_fixed;
 
 R3 = R.getResponseAtOrderFT(3,2);
 maxima3 = R3.getRidgeOrientationLocalMaxima;
