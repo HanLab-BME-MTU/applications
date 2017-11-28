@@ -108,7 +108,12 @@ GCAfindVeilStemLongestPathMovie(MD)
 %  Saves: veilStem.mat (with additional fields, .neuriteLongPathIndices,.endPointLeadingProt),
 %  neuriteLength.mat, params.mat, and some troubleshooting
 %  visualizations if user desires/it is applicable. 
-
+%
+% Note : A bit confusingly I likewise run
+% GCAAnalysisExtract_VeilStemThicknessMovie in the above function, as it
+% was just easier to do so here...(I always calculated this so why reload
+% those dataMats?) I should probably make this a separate step as it is
+% more of a feature extraction. 
 %% STEP V (OPTIONAL) Not applicable here. (Black Block Figure S2)
 
 %% NOTE: After Steps I-IV(V) Veil/Stem Reconstruction complete: 
