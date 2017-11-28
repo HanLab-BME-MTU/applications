@@ -1,6 +1,7 @@
 classdef FATracksDisplay < MovieDataDisplay
     %Conrete class for displaying Focal Adhesions
     % Andrew R. Jamieson, Feb. 2017
+    % Updated to include marker at the end - Sangyoon Han Nov 2017
     properties
         Linestyle='-';
         Linewidth = 2.5;
@@ -217,7 +218,7 @@ classdef FATracksDisplay < MovieDataDisplay
             else
                 % Plot links and gaps
 %                 h=-ones(4,1);
-                h = gobjects(4,1);
+                h = gobjects(5,1);
                 % Attempt to reuse line objects, delete the rest
                 idx = 1:min(numel(hlinesIn),numel(h));
 %                 h(idx) = double(hlinesIn(idx));
@@ -233,11 +234,15 @@ classdef FATracksDisplay < MovieDataDisplay
                     'Linewidth', obj.Linewidth, 'Color',obj.Color, 'Marker', 'none', varargin{:});
                 h(2) = plotFast(h(2),xGapData, yGapData, 'Linestyle', obj.GapLinestyle,...
                         'Linewidth', obj.Linewidth, 'Color', obj.GapColor, 'Marker', 'none', varargin{:}); 
+                if ~isempty(xData)
+                    h(3) = plotFast(h(3),xData(end,:), yData(end,:), 'Linestyle', obj.Linestyle,...
+                    'Linewidth', obj.Linewidth, 'Color',obj.Color, 'Marker', 'o', varargin{:});
+                end
                 if(~isempty(hasMergeEventsIdx)||(~isempty(hasSplitEventsIdx)))
                
-                    h(3) = plotFast(h(3),xSplitData, ySplitData, 'Linestyle', obj.Linestyle,...
+                    h(4) = plotFast(h(4),xSplitData, ySplitData, 'Linestyle', obj.Linestyle,...
                         'Linewidth', obj.Linewidth, 'Color', obj.SplitColor , 'Marker', splitMarker , varargin{:});
-                    h(4) = plotFast(h(4),xMergeData, yMergeData, 'Linestyle', obj.Linestyle,...
+                    h(5) = plotFast(h(5),xMergeData, yMergeData, 'Linestyle', obj.Linestyle,...
                         'Linewidth', obj.Linewidth, 'Color', obj.MergeColor, 'Marker', mergeMarker , varargin{:});
                     uistack(h(2:4),'top');
                 end

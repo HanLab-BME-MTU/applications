@@ -69,15 +69,15 @@ allCellKeys = unique(allCell_Keys);
 remainingKeys = setxor(allCellKeys, doneKeys);
 subSetData = cell(1, length(remainingKeys));
 
-% j = 1;
-% for i = 1:length(allCellKeys)
-%    if ismember({cellDataSetAll{i}.key}, remainingKeys)
-%     subSetData{j} = cellDataSetAll{i};
-%     j = j + 1;
-%    end
-% end
+j = 1;
+for i = 1:length(allCellKeys)
+   if ismember({cellDataSetAll{i}.key}, remainingKeys)
+    subSetData{j} = cellDataSetAll{i};
+    j = j + 1;
+   end
+end
 
-% cellDataSet = subSetData;
+cellDataSet = subSetData;
 checkPointDateStr = ['_dopeCheckPoint_Anno' char(datetime('now','Format','ddMMMyyyy_hhmm'))];
 
 exportVarName = ['dopeCheckPoint_Anno' char(datetime('now','Format','ddMMMyyyy_hhmm'))];
@@ -85,9 +85,9 @@ saveFolder = uigetdir(Save_dir, 'Directory to save annotation .mat file');
 varname = inputdlg('Input where to export modified cellData to ....', ' ',1, {exportVarName});
 
 
-% save([fullfile([saveFolder filesep varname{:}]) '.mat'],...
-%     'cellDataSet', 'annotationSet','checkPointDateStr',...
-%     'allCellKeys','doneKeys','listMats','remainingKeys','-v7.3');
+save([fullfile([saveFolder filesep varname{:} 'longcellDataset']) '.mat'],...
+    'cellDataSet', 'annotationSet','checkPointDateStr',...
+    'allCellKeys','doneKeys','listMats','remainingKeys','-v7.3');
 
 save([fullfile([saveFolder filesep varname{:}]) '.mat'],...
     'cellAnnotations', 'checkPointDateStr',...

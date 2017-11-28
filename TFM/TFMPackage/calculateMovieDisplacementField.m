@@ -51,9 +51,12 @@ end
 nFrames = movieData.nFrames_;
 
 % Check optional process Flow Tracking
-iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
-if ~isempty(iSDCProc)
-    SDCProc=movieData.processes_{iSDCProc};
+% iSDCProc = movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+iTFMPack = movieData.getPackageIndex('TFMPackage');
+tfmPackageHere=movieData.packages_{iTFMPack}; iSDCProc=1;
+SDCProc=tfmPackageHere.processes_{iSDCProc};
+if ~isempty(SDCProc)
+%     SDCProc=movieData.processes_{iSDCProc};
     if ~SDCProc.checkChannelOutput(p.ChannelIndex)
         error(['The channel must have been corrected ! ' ...
             'Please apply stage drift correction to all needed channels before '...
@@ -88,7 +91,7 @@ if exist(outputFile{1},'file')
         % Look at the first non-analyzed frame
         firstFrame = find(~frameDisplField,1);
         % Ask the user if display mode is active
-        if ishandle(wtBar),
+        if ishandle(wtBar)
             recoverRun = questdlg(...
                 ['A displacement field output has been dectected with ' ...
                 num2str(firstFrame-1) ' analyzed frames. Do you' ...
@@ -99,7 +102,7 @@ if exist(outputFile{1},'file')
     end
 end
 
-if firstFrame == 1, 
+if firstFrame == 1 
     % Backup the original vectors to backup folder
     disp('Backing up the original data')
     backupFolder = [p.OutputDirectory ' Backup']; % name]);
@@ -133,11 +136,23 @@ firstMask = refFrame>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
 % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 tempMask2 = false(size(refFrame));
-if ~isempty(iSDCProc)
+if ~isempty(SDCProc)
     if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
         meanYShift = round(T(1,1));
         meanXShift = round(T(1,2));
         firstMask = circshift(tempMask,[meanYShift meanXShift]);
+        % Now I blacked out erroneously circularaly shifted bead image
+        % portion - SH 20171008
+        if meanYShift>=0 %shifted downward
+            firstMask(1:meanYShift,:)=0;
+        else %shifted upward
+            firstMask(end+meanYShift:end,:)=0;
+        end
+        if meanXShift>=0 %shifted right hand side
+            firstMask(:,1:meanXShift)=0;
+        else %shifted left
+            firstMask(:,end+meanXShift:end)=0;
+        end
     else
         y_shift = find(any(firstMask,2),1);
         x_shift = find(any(firstMask,1),1);
@@ -165,7 +180,7 @@ if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
 
 for j= firstFrame:nFrames
     % Read image and perform correlation
-    if ~isempty(iSDCProc)
+    if ~isempty(SDCProc)
         currImage = double(SDCProc.loadChannelOutput(p.ChannelIndex(1),j));
     else
         currImage = double(movieData.channels_(p.ChannelIndex(1)).loadImage(j));
@@ -271,16 +286,19 @@ for j= firstFrame:nFrames
             %     avgBgd = mean(pstruct.c);
             %     thresInten = avgBgd+0.02*avgAmp;
 %                 thresInten = quantile(pstruct.c,0.25);
-                thresInten = quantile(pstruct.c,0.7); % try to pick up bright-enough spots
+                thresInten = quantile(pstruct.c,0.5); % try to pick up bright-enough spots
                 maxNumNotDetected = 20; % the number of maximum trial without detecting possible point
                 numNotDetected = 0;
                 numPrevBeads = size(beads,1);
+                % To avoid camera noise, Gaussian-filtered image will be
+                % used - SH 20171010
+                refFrameFiltered = filterGauss2D(refFrame,psfSigma*0.9);
                 tic
                 while notSaturated
                     x_new = xmin + (xmax-xmin)*rand(10000,1);
                     y_new = ymin + (ymax-ymin)*rand(10000,1);
                     [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
-                    inten_new = arrayfun(@(x,y) refFrame(round(y),round(x)),x_new,y_new);
+                    inten_new = arrayfun(@(x,y) refFrameFiltered(round(y),round(x)),x_new,y_new);
                     idWorthAdding = distToPoints>avg_beads_distance & inten_new>thresInten;
                     if sum(idWorthAdding)>1
                         beads = [beads; [x_new(idWorthAdding), y_new(idWorthAdding)]];

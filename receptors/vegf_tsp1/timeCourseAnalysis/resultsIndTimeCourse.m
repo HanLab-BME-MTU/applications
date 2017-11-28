@@ -63,6 +63,7 @@ function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam,saveF
 %                                  ampMeanPerClass for details).
 %           .ampStatsL20         : Same as ampStatsF20, but for last 20
 %                                  frames of movie.
+%           .diffModeSummary
 %
 %Khuloud Jaqaman, March 2015
 
@@ -104,6 +105,7 @@ if(~exist(dir2save,'dir'))
 end
 
 %% Calculations
+
 % Most of the analysis is done before getting here by running the MD-level
 % processes. All we need to do is retrieve that 
 procs = timeCourseAnalysis.getMovieDataTimeCourseAnalysisProcess(ML.movies_,false);

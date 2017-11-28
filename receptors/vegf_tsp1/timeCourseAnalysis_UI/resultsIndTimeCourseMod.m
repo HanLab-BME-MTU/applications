@@ -38,6 +38,7 @@ function [caseResSummary] = resultsIndTimeCourseMod(ML, saveFile, channels, redo
 %                                  ampMeanPerClass for details).
 %           .ampStatsL20         : Same as ampStatsF20, but for last 20
 %                                  frames of movie.
+%           .diffModeSummary
 %
 %Khuloud Jaqaman, March 2015
 %modified from resultsIndTimeCourse

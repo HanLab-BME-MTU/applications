@@ -13,9 +13,11 @@ ip.addOptional('dynPoligonREF',[]);
 ip.addOptional('tracks',[]);
 ip.addOptional('colormap',[]);
 ip.addOptional('colorIndx',[]);
+ip.addOptional('useGPU',false);
 ip.addOptional('crop','manifold');
 ip.addOptional('transType','affineOnePass');
 ip.addOptional('processFrame',1:MD.nFrames_);
+ip.addOptional('orthoCut',false);   % Instead of producing a MIP on the the 1D line only, produce a MIP on the full plane
 ip.addOptional('FoF',[]);
 ip.addOptional('channelRender','grayRed');
 ip.addOptional('intMinPrctil',[1 99.9]);
@@ -30,7 +32,11 @@ p=ip.Results;
 dynPoligonISO=p.dynPoligonISO;
 dynPoligonREF=p.dynPoligonREF;
 if(isempty(dynPoligonREF))
-    dynPoligonREF=dynPoligonISO;
+    if(~isempty(p.FoF))
+        dynPoligonREF=p.FoF.applyBase(dynPoligonISO,'');
+    else
+        dynPoligonREF=dynPoligonISO;
+    end
 end
 tracks=p.tracks;
 
@@ -128,8 +134,7 @@ mkdirRobust(outputDirDemo);
 
 % warp, crop, fuse and save each time point
 parfor fIdx=processFrame
-    disp(num2str(fIdx))
-    
+    fprintf('.')    
     % produce a ROI mask using the 1D polygon (segment defined by the extremities of the dynPoligonISO).
     % todo: N Channel (now 2).
     if(~isempty(dynPoligonISO))
@@ -149,6 +154,7 @@ parfor fIdx=processFrame
         PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
         KCurrent=[dynPoligonISO(nextPoint).x(pIndices(nextPoint)) dynPoligonISO(nextPoint).y(pIndices(nextPoint)) dynPoligonISO(nextPoint).z(pIndices(nextPoint))];
 
+        vol=MD.getChannel(1).loadStack(fIdx);
         % Building mask for both channel on the whole volume
         % NOTE: in order to apply fringe isotropically, we need the mask to
         % be isotropized briefly.
@@ -165,10 +171,7 @@ parfor fIdx=processFrame
         %% If no transform are needed, now to save on bwdist.
 
         distMap=mask;
-
-%         mask=resize(distMap,[1 1 MD.pixelSizeZ_/MD.pixelSize_]);
         distMap=bwdist(distMap);
-%         distMap=resize(distMap,[1 1 MD.pixelSize_/MD.pixelSizeZ_]);
         mask(distMap<insetFringeWidth)=1;
         [y x z]=...
             ndgrid( linspace(1,size(mask,1),size(vol,1)),...
@@ -220,6 +223,7 @@ parfor fIdx=processFrame
         %% if a FoF is specified, warp and crop data according to the
         tform=affine3d();
         warpedVol=vol;
+        warpedMaskedVol=[];
         if(~isempty(dynPoligonISO))
             warpedMaskedVol=maskedVol;
         else
@@ -279,9 +283,11 @@ parfor fIdx=processFrame
                         ceil(maxZBorderCurr-minZBorderCurr) ], ...
                         [minXBorderCurr maxXBorderCurr], [minYBorderCurr maxYBorderCurr], [minZBorderCurr maxZBorderCurr]);
                     
-                    
-                    warpedVol=imwarp(vol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
-                    
+                    if(p.useGPU)
+                        warpedVol=imwarp(gpuArray(vol),inputRef,tformRotOnly,'OutputView',rotOutputRef);
+                    else
+                        warpedVol=imwarp(vol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
+                    end
                     if(~isempty(dynPoligonISO))
                         warpedMaskedVol=imwarp(maskedVol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
                     else
@@ -356,6 +362,7 @@ parfor fIdx=processFrame
         
         
         %% Create MIPS for each channel, fuse mask and full volume
+        ZRatio=1;
         switch p.transType
             case 'none'
             case 'transCrop'
@@ -437,7 +444,7 @@ parfor fIdx=processFrame
     three=projMontage(tracksXY,tracksZX,tracksZY);
     imwrite(three,[outputDirSlices1 filesep 'frame_nb' num2str(fIdx,'%04d') '.png']);
 end
-
+fprintf('\n')    
 video = VideoWriter([outputDirSlices1  '.avi']);
 video.FrameRate = 5;  % Default 30
 video.Quality = 100;    % Default 75
@@ -455,7 +462,7 @@ end
 close(video)
 
 
-function RGBVol=renderChannel(ch1,ch2,type)
+function RGBVol=renderChannel(ch1,ch2,type,varargin)
     switch(type)
         case 'grayRed'
           RGBVol=grayRedRender(ch1,ch2);

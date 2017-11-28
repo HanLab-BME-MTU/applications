@@ -217,11 +217,11 @@ if exist(outputFile,'file')
 else
     % run analyzeAdhesionMaturation for obtaining tracks from paxillin channel
     tracksNA = analyzeAdhesionMaturation_old(pathForTheMovieDataFile,false,false,...
-        'onlyEdge',onlyEdge,'saveAnalysis',false,'matchWithFA',matchWithFA,...
+        'onlyEdge',onlyEdge,'saveAnalysis',true,'matchWithFA',matchWithFA,...
         'minLifetime',minLifetime,'outputPath',['Colocalization' filesep outputPath]);
 end
 % Get edge related features if not done yet
-if ~isfield(tracksNA,'edgeVel') || ~isfield(tracksNA,'closestBdPoint')
+if ~isfield(tracksNA,'assemRate') || ~isfield(tracksNA,'closestBdPoint')
     error('Please rerun analyzeAdhesionMaturation_old with getEdgeRelatedFeatures on')
 end
 % re-express tracksNA so that each track has information for every frame

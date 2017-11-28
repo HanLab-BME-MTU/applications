@@ -154,14 +154,14 @@ classdef OrientationSpaceResponse < handle
             nlms = nonLocalMaximaSuppression(A,theta, suppressionValue);
         end
         
-        function nlms_precise = nonLocalMaximaSuppressionPrecise(obj, theta, suppressionValue)
+        function [nlms_precise,varargout] = nonLocalMaximaSuppressionPrecise(obj, theta, suppressionValue)
             if(nargin < 2 || isempty(theta))
                 theta = obj.getRidgeOrientationLocalMaxima;
             end
             if(nargin < 3 || isempty(suppressionValue))
                 suppressionValue = 0;
             end
-            nlms_precise = nonLocalMaximaSuppressionPrecise(real(obj.a),theta,suppressionValue);
+            [nlms_precise,varargout{1:nargout-1}] = nonLocalMaximaSuppressionPrecise(real(obj.a),theta,suppressionValue);
         end
                
         function A = getAngularGaussians(obj)
@@ -434,6 +434,8 @@ classdef OrientationSpaceResponse < handle
             a_hat = fft(squeeze(real(obj.a(r,c,:))));
             % Each column represents an angular response with order K_new(column)
             a_hat = bsxfun(@times,a_hat,f_hat);
+            % Condition step added 2017/11/03
+            a_hat(abs(a_hat) < eps*1e3) = 0;
             response = ifft(a_hat);
         end
         function varargout = getRidgeOrientationLocalMaxima(obj,sorted)

@@ -13,16 +13,37 @@ ip.parse(varargin{:});
   minZBorder=ZLimit(1);
   maxZBorder=ZLimit(2);
 
-  %% Pnrint tracks on the projections
-  if(isempty(myColormap))
-    myColormap=[[0 0 255]; [0 255 00]];
-  end
+  %% Print tracks on the projections
 
   if(isempty(colorIndx))
-    colorIndx=ones(1,length(detections));
+    colorIndx=arrayfun(@(d) ones(1,length(d.zCoord(:,1))),detections,'unif',0);
   end
 
+  if(~iscell(colorIndx))
+    colorIndx={colorIndx};
+  end
+  
+  if(isempty(myColormap))
+    myColormap=255*jet(length(unique(vertcat(colorIndx{:}))));
+  end
+  
   if(~isempty(detections))
+      keepIndx=cell(1,length(detections));
+      for dIdx=1:length(detections)
+          d=detections(dIdx);
+          if(~isempty(d.xCoord))
+              keepIndx{dIdx}=(d.zCoord(:,1)>minZBorder)&(d.zCoord(:,1)<maxZBorder)& ...
+                  (d.xCoord(:,1)>minXBorder)&(d.xCoord(:,1)<maxXBorder)& ...
+                  (d.yCoord(:,1)>minYBorder)&(d.yCoord(:,1)<maxYBorder);
+          end
+          colorIndx{dIdx}=colorIndx{dIdx}(keepIndx{dIdx});
+      end
+      detections=detections.copy().selectIdx(keepIndx);
+  end
+
+
+  if(~isempty(detections))
+      % Only Keep detections within ZLimit
     tracksXY=detectionBinaryOverlay(XYProj,[minXBorder maxXBorder],[minYBorder maxYBorder],detections,colorIndx,myColormap,varargin{:});
   else
     tracksXY=XYProj;
@@ -35,7 +56,7 @@ ip.parse(varargin{:});
           trdetections(tIdx).xCoord=detections(tIdx).zCoord;
           trdetections(tIdx).yCoord=detections(tIdx).yCoord;
       end
-
+    
 %     capturedEB3ZY=tracksInMask.copy();
 %     for tIdx=1:length(capturedEB3ZY)
 %       capturedEB3ZY(tIdx).x=tracksInMask(tIdx).z ;%*MD.pixelSize_/MD.pixelSizeZ_;

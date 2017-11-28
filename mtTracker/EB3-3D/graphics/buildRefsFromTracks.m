@@ -5,7 +5,6 @@ ip.KeepUnmatched=true;
 ip.addRequired('originsTracksOrProcess');
 ip.addRequired('ZTracksOrProcess');
 ip.addParamValue('process', []);
-ip.addParamValue('buildROI', false);
 ip.parse(originsTracksOrProcess,ZTracksOrProcess,varargin{:});
 p=ip.Results;
 
@@ -21,6 +20,9 @@ else
     ZTracks=ZTracksOrProcess;
 end
 
+%% supressNans
+
+
 refs(length(origins),length(ZTracks))=FrameOfRef();
 for zIdx=1:length(ZTracks)
     for orIdx=1:length(origins)
@@ -32,21 +34,16 @@ for zIdx=1:length(ZTracks)
     end
 end
 
-ROI=[];
-if(p.buildROI)
-   ROI=build1DManifold(origins,ZTracks); 
-end
+
+ROI=build1DManifold(origins,ZTracks,varargin{:}); 
 
 process=ip.Results.process;
 if(~isempty(process))
     outputDir=[process.getOwner().outputDirectory_ filesep 'refs'];
     mkdirRobust(outputDir);
     save([outputDir filesep 'refs.mat'],'refs');
-    process.setOutFilePaths({[outputDir filesep 'refs.mat']})
-    if(p.buildROI)
-      save([outputDir filesep 'ROIs.mat'],'ROI');
-      process.setOutFilePaths({[outputDir filesep 'refs.mat'],[outputDir filesep 'ROIs.mat']})
-    end
+    save([outputDir filesep 'ROIs.mat'],'ROI');
+    process.setOutFilePaths({[outputDir filesep 'refs.mat'],[outputDir filesep 'ROIs.mat']})
     pa = process.getParameters();
     pa.parameters = ip.Results;
     process.setParameters(pa);

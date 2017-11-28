@@ -43,9 +43,34 @@ classdef Detections <  handle  & matlab.mixin.Copyable & dynamicprops
             for fIdx=1:length(obj)
                 %progressText(tIdx/length(EB3tracks),'Loading EB3 spherical coordinates.')
                 det=obj(fIdx);
+
                 pos=[det.xCoord(:,1),det.yCoord(:,1),det.zCoord(:,1)];
             end    
         end
+
+        function pos=setFromSingleTrack(obj,track)
+            for fIdx=1:length(obj)
+                det=obj(fIdx);
+                for i=1:length(track.x)
+                    obj(track.f(i)).xCoord=[track.x(i)' 0.5*ones(length(track.lifetime,1))];
+                    obj(track.f(i)).yCoord=[track.y(i)' 0.5*ones(length(track.lifetime,1))];
+                    obj(track.f(i)).zCoord=[track.z(i)' 0.5*ones(length(track.lifetime,1))];
+                end
+            end    
+        end
+
+        function movieInfo=getStruct(obj)
+            movieInfo(length(obj))=struct('xCoord',[],'yCoord',[],'zCoord',[]);
+            for fIdx=1:length(obj)
+                %progressText(tIdx/length(EB3tracks),'Loading EB3 spherical coordinates.')
+                det=obj(fIdx);
+                movieInfo(fIdx).xCoord=det.xCoord;
+                movieInfo(fIdx).yCoord=det.yCoord;
+                movieInfo(fIdx).zCoord=det.zCoord;
+                movieInfo(fIdx).amp=det.amp;
+            end    
+        end
+          
           
         
         function addSphericalCoord(obj)
@@ -89,15 +114,49 @@ classdef Detections <  handle  & matlab.mixin.Copyable & dynamicprops
                 
             end
         end
-        
-        function selectIdx(obj,indices)
+
+        function addOffset(obj,X,Y,Z)
+            ip = inputParser;
+            ip.CaseSensitive = false;
+            ip.KeepUnmatched=true;  
+            p=ip.Results;
             for fIdx=1:length(obj)
                 %progressText(tIdx/length(EB3tracks),'Loading EB3 spherical coordinates.');
                 det=obj(fIdx);
-                det.xCoord=det.xCoord(indices,:);
-                det.yCoord=det.yCoord(indices,:);
-                det.zCoord=det.zCoord(indices,:);
-                det.amp=det.amp(indices,:);
+                det.xCoord(:,1)=det.xCoord(:,1)+X;
+                det.yCoord(:,1)=det.yCoord(:,1)+Y;
+                det.zCoord(:,1)=det.zCoord(:,1)+Z;
+            end
+        end
+        
+        
+        function obj=concatenate(obj,cdets)
+            for fIdx=1:length(obj)
+                det=obj(fIdx);
+                det.xCoord=[det(fIdx).xCoord;cdets(fIdx).xCoord];
+                det.yCoord=[det(fIdx).yCoord;cdets(fIdx).yCoord];
+                det.zCoord=[det(fIdx).zCoord;cdets(fIdx).zCoord];
+                det.amp=[det(fIdx).amp;cdets(fIdx).amp];
+            end
+        end
+        
+        function det=getSelectIdx(obj,indices)
+            det=obj.copy();
+            det.selectIdx(indices);
+        end
+        
+        function obj=selectIdx(obj,indices)
+            if(~iscell(indices))
+                for fIdx=1:length(obj)
+                    %progressText(tIdx/length(EB3tracks),'Loading EB3 spherical coordinates.');
+                    det=obj(fIdx);
+                    det.xCoord=det.xCoord(indices,:);
+                    det.yCoord=det.yCoord(indices,:);
+                    det.zCoord=det.zCoord(indices,:);
+                    det.amp=det.amp(indices,:);
+                end
+            else
+                arrayfun(@(d,i) selectIdx(d,indices{i}),obj,1:length(indices),'unif',0);
             end
         end        
 %         function setFromMovieInfo(obj,aMovieInfo)

@@ -115,6 +115,10 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
       end
 
       function detectionsBase=applyBaseToDetection(obj,detections,name)
+          if(isempty(detections))
+              detectionBase=[];
+              return;
+          end
           detectionsBase=detections.copy();
           try
               if(~(isempty(name)))

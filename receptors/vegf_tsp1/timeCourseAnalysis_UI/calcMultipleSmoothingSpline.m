@@ -36,8 +36,8 @@ function dataFit = calcMultipleSmoothingSplinePerCondition(data, times, inOutFla
         times = times(mask);
         inOutFlag = inOutFlag(mask);
         %KJ: discard outliers
-        timesIn = times(inOutFlag);
-        dataIn = data(inOutFlag);
+        timesIn = times(inOutFlag==1);
+        dataIn = data(inOutFlag==1);
         %smoothing
         smoothData = smooth(dataIn, 5);
         smoothData = smoothData(3:end-2);

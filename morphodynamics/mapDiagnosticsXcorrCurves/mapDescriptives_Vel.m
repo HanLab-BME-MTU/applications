@@ -27,9 +27,12 @@ function mapDescriptives_Vel(MD, figuresDir, varargin)
 %       subFrames
 %                   - specified frames will be only used.  
 %       derivative  - if true, it computes differenced velocities per
-%       second.
+%                   second.
+%       topograph   - if 'off' topographs are not plotted. Default is 'on'.
 %
-% Updated: J Noh, 2017/08/26. To deal with differenced channels. 
+% Updated: J Noh, 2017/10/11, raw activities can be smoothed. New option is
+% 'movingAvgSmoothing'.
+% J Noh, 2017/08/26. To deal with differenced channels. 
 % Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/04
 
@@ -45,6 +48,8 @@ ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
 ip.addParameter('subFrames', []);
 ip.addParameter('derivative', false);
+ip.addParameter('topograph', 'on');
+ip.addParameter('movingAvgSmoothing', false);
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -82,7 +87,7 @@ end
 [~, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
         = mapOutlierImputation(MD, iChan, maxLayer, 'impute', p.impute, ...
             'omittedWindows', p.omittedWindows, 'Folding', p.Folding, ...
-            'subFrames', p.subFrames); 
+            'subFrames', p.subFrames, 'movingAvgSmoothing', p.movingAvgSmoothing); 
         
 % ..st layer
 
@@ -116,6 +121,7 @@ dlmwrite(fullfile(figuresDir, [fname0, 'imvelocitymap.txt']), imvelocitymap, 'pr
 %smParam = 1
 
 inputmap = velmap;
+
 %filteredmap = smoothActivityMap(velmap, 'SmoothParam', smParam, 'UpSample', 1);
 fvelraw = figure('Visible', figFlag);  
 figtmp = imagesc(inputmap);
@@ -132,6 +138,32 @@ ax.XTickLabel = (curTick)*MDtimeInterval_;
 
 %%
 saveas(fvelraw, fullfile(figuresDir, ['/raw', fname0, 'Map.png']), 'png')
+
+
+%%  outl non-smoothActivityMap prot/act maps
+%gaussianFilter = fspecial('gaussian', 13, 3);
+
+%smParam = 1
+
+inputmap = velmap_outl;
+
+%filteredmap = smoothActivityMap(velmap, 'SmoothParam', smParam, 'UpSample', 1);
+fvelraw = figure('Visible', figFlag);  
+figtmp = imagesc(inputmap);
+title(chan0Title)
+colorbar;colormap(jet) 
+
+figtmp.AlphaData = 1-isnan(inputmap);
+axis xy;xlabel('Time (s)');ylabel('Window')
+ax = gca;
+curTick = ax.XTick;
+ax.XTickMode = 'manual';
+ax.XTick = curTick+1;
+ax.XTickLabel = (curTick)*MDtimeInterval_;
+
+%%
+saveas(fvelraw, fullfile(figuresDir, ['outl_', fname0, 'Map.png']), 'png')
+
 
 
 %%  Run:
@@ -188,6 +220,7 @@ saveas(vnegHist, fullfile(figuresDir, [fname0, 'NegHist.png']), 'png')
 
 
 %% topomap topographMD
+if strcmp(p.topograph, 'on')
 
 iWinProc = MD.getProcessIndex('WindowingProcess',1,0);
 nBandMax_ = MD.processes_{iWinProc}.nBandMax_;
@@ -203,7 +236,7 @@ topomapFig = topographMD(MD, tmax, 1, topoMap, title0, figFlag);
 %%
 saveas(topomapFig, fullfile(figuresDir, [fname0, 'topomapFig.png']), 'png')
 
-
+end
 
 %%  smoothActivityMap prot/act maps
 
@@ -261,8 +294,8 @@ legend(chan0Name, 'Location','northoutside','Orientation','horizontal')
 
 
 %% 
-saveas(meansTime, fullfile(figuresDir, '/meansTimeChan0.png'), 'png')
-saveas(meansWin, fullfile(figuresDir, '/meansWinChan0.png'), 'png')
+saveas(meansTime, fullfile(figuresDir, ['/meansTime', fname0, '.png']), 'png')
+saveas(meansWin, fullfile(figuresDir, ['/meansWin', fname0, '.png']), 'png')
 
 
 %%  TS plots for sampled 6 windows
@@ -289,8 +322,8 @@ title([chan0Title, ' example2'])
 legend(legend2, 'Location','northoutside','Orientation','horizontal')
 
 %% 
-saveas(tsplots1, fullfile(figuresDir, '/tsplots1Chan0.png'), 'png')
-saveas(tsplots2, fullfile(figuresDir, '/tsplots2Chan0.png'), 'png')
+saveas(tsplots1, fullfile(figuresDir, ['tsplots1_', fname0, '.png']), 'png')
+saveas(tsplots2, fullfile(figuresDir, ['tsplots2_', fname0, '.png']), 'png')
 
 
 %%  spatial/temporal AutoCorr 1
@@ -302,9 +335,9 @@ saveas(tsplots2, fullfile(figuresDir, '/tsplots2Chan0.png'), 'png')
     TimeSpaceAutoCorPlot(imvelocitymap, chan0Name, MDtimeInterval_);
 
 %%
-saveas(acmap, fullfile(figuresDir, '/acmapChan0.png'), 'png')
-saveas(corrMat, fullfile(figuresDir, '/corrMatChan0.png'), 'png')
-saveas(meanAutocorr, fullfile(figuresDir, '/meanAutocorrChan0.png'), 'png')
+saveas(acmap, fullfile(figuresDir, ['acmap', fname0, '.png']), 'png')
+saveas(corrMat, fullfile(figuresDir, ['corrMat', fname0, '.png']), 'png')
+saveas(meanAutocorr, fullfile(figuresDir, ['meanAutocorr', fname0, '.png']), 'png')
 
 
 %% draw autoCorr curves (means) acCurve = autoCorrCurvePermTest
@@ -317,9 +350,9 @@ saveas(meanAutocorr, fullfile(figuresDir, '/meanAutocorrChan0.png'), 'png')
                 p.numPerm, p.parpoolNum, p.rseed);
 
 %%
-saveas(acCurve, fullfile(figuresDir, 'acCurveChan0.png'), 'png')
+saveas(acCurve, fullfile(figuresDir, ['acCurve_', fname0, '.png']), 'png')
 %%  03/23/2017
-save(fullfile(figuresDir, 'Avg_autocor_Vel.mat'), 'Avg_autocor')
+save(fullfile(figuresDir, [fname0, '_Avg_autocor_Vel.mat']), 'Avg_autocor')
 
 %%  adftest map
 
@@ -329,7 +362,7 @@ if p.adf == 1
     [~, adfMap] = nanAdfTestMap(mapForAdf, chan0Name, 0.8);
 
 %%
-    saveas(adfMap, fullfile(figuresDir, '/adfMapChan0.png'), 'png')  
+    saveas(adfMap, fullfile(figuresDir, ['adfMap', fname0, '.png']), 'png')  
 
 end
 
@@ -364,7 +397,7 @@ boxplot(stdFull, grChar)
 title('Standard deviation (nm/sec)')
 
 %%
-saveas(fvariation, fullfile(figuresDir, '/CVchan0'), 'png')
+saveas(fvariation, fullfile(figuresDir, ['CV', fname0, '.png']), 'png')
 
 
 %%  checkWindowJump

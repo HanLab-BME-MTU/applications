@@ -288,7 +288,7 @@ With this formula in hand, we can then calculate $ \dv*[q]{\theta_m}{t} $ by sta
 \end{eqnarray}
 To increment q, another two orders of derivatives of $ \rho $ are required. For the derivative $ \dv*[q]{\theta_m} $ the highest order $ \rho $ derivative with respect to $ \theta $  will be $ 2q+1 $ which will result from the evaluation of the term on the right side. 
 
-\subsubsection{Calculating $ \dv*[q]{t}{\theta_m} $}
+\subsubsection{Calculating $ \dv*[q]{t}{\theta_m} $ via the Inverse Function Theorem}
 
 Near bifurcation points discussed in the next section, it may also be advantageous to calculate the derivative of the inverse function of the local maxima. Near such bifurcation points, $ \pdv[2]{\rho}{\theta} $ approaches zero causing $ \dv[q]{\theta_m}{t} $ to approach infinity. The inverse function $ \theta_m^{-1} $ is defined as follows:
 \begin{eqnarray}
@@ -305,25 +305,58 @@ The higher derivatives can also be found by taking derivatives of the identity a
 \begin{eqnarray}
 	\dv[n]{}{t} \theta_m^{-1}(\theta_m(t)) & = & \dv[n]{t}{t} \\
 	& = & 0 \mbox{ for } n \ge 2 \\
-	\dv[2]{t}{\theta_m} \left(\dv{\theta_m}{t}\right)^2 + \dv{t}{\theta_m}\dv[2]{\theta_m}{t} & = & 0 \\
+\end{eqnarray}
+For $ n = 2 $, the calculation thus proceeds as follows
+\begin{eqnarray}
+	0 & = & \dv[2]{}{t} \left( \theta_m^{-1}(\theta_m(t)) \right)  \\
+	0 & = & \dv[]{}{t} \left( \dv{t}{\theta_m} \dv{\theta_m}{t} \right) \\
+	0 & = &  \dv[2]{t}{\theta_m} \left(\dv{\theta_m}{t}\right)^2 + \dv{t}{\theta_m}\dv[2]{\theta_m}{t}  \\
 	\dv[2]{t}{\theta_m} & = & -\dv[2]{\theta_m}{t} \dv{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^{-2} \\
 	& = & -\dv[2]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-3} = -\dv[2]{\theta_m}{t} \left( \dv{t}{\theta_m} \right)^{3} \\
 \end{eqnarray}
+Similarly, for $ n = 3 $,
 \begin{eqnarray}
+	0 & = & \dv[3]{}{t} \left( \theta_m^{-1}(\theta_m(t)) \right) \\
 	0 & = & \dv[3]{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^3 + 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t}  \\
 	\dv[3]{t}{\theta_m} & = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t} \right) \\
 	& = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( -3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-2}  + \left( \dv{\theta_m}{t} \right)^{-1} \dv[3]{\theta_m}{t} \right) \\
 	& = & 3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-5}  - \dv[3]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-4} 
 \end{eqnarray}
 
-\subsubsection{$ \dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} $}
-
+\subsubsection{Calculating $ \dv*[q]{t}{\theta_m} $ using $ \dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} $}
+Another method to find $ \dv*[q]{t}{\theta_m} $ is to take full derivatives with respect to $ \theta $ of $ \pdv[n]{\rho}{\theta} $, which has the advantage of directly expanding the terms while also being amenable to a recursive algorithm.
 \begin{eqnarray}
-	0 & = & \pdv[2]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv{t}{\theta} \\
-	0 & = & \pdv[3]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta}  + 2 D \pdv[4]{\rho}{\theta} \dv{t}{\theta}  + D^2 \pdv[5]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \\
+	\mbox{Recall that } \dv{}{\theta} \pdv[n]{\rho}{\theta} & = & \pdv[n+1]{\rho}{\theta} + \pdv[n]{\rho}{\theta}{t}\dv{t}{\theta} = \pdv[n+1]{\rho}{\theta} + D \pdv[n+2]{\rho}{\theta} \dv{t}{\theta} \\
+	\dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} & = & \dv[q-1]{ }{\theta} \left(  \pdv[n+1]{\rho}{\theta}  + D \pdv[n+2]{\rho}{\theta} \dv{t}{\theta}  \right) \\
+	& = & \dv[q-1]{ }{\theta} \left(  \pdv[n+1]{\rho}{\theta} \right)\\
+    &   &  + D \dv[q-2]{  }{\theta} \left( \dv{}{\theta} \left( \pdv[n+2]{\rho}{\theta} \right) \dv{t}{\theta} +  \pdv[n+2]{\rho}{\theta} \dv[2]{t}{\theta}  \right) 
+\end{eqnarray}
+Thus to solve for $ \dv[q-1]{t}{\theta} $ we start with $ \dv[q]{ }{\theta} \pdv{\rho}{\theta} $ (with $ n = 1 $). Applying the derivatives across the terms, we then calculate $ \dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} $ for the $ (q,n) $ pairs $ (q-1,n+1), (1,n+2) $ and continue to differentiate until $ q = 0 $. We then obtain the following results.
+\begin{eqnarray}
+	\dv[2]{ }{\theta} \pdv{\rho}{\theta} = 
+    0 & = & \pdv[2]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv{t}{\theta} \\
+	\dv[3]{ }{\theta} \pdv{\rho}{\theta} = 
+	0 & = & \pdv[3]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta}  + 2 D \pdv[4]{\rho}{\theta} \dv{t}{\theta}  + D^2 \pdv[5]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2
+\end{eqnarray}
+\begin{eqnarray}
+	\dv[4]{ }{\theta} \pdv{\rho}{\theta} = 
 	0 & = & D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta}  + \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D \pdv[5]{\rho}{\theta} \dv{t}{\theta}  \\
 	& + & 3 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[6]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2  + D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3 \\
+	\dv[5]{ }{\theta} \pdv{\rho}{\theta} = 
 	0 & = & D \pdv[3]{\rho}{\theta} \dv[4]{t}{\theta}  + 4 D \pdv[4]{\rho}{\theta} \dv[3]{t}{\theta}  + 4 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[3]{t}{\theta}  \\
+	& + & \pdv[5]{\rho}{\theta}  + 6 D \pdv[5]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[5]{\rho}{\theta} \left(\dv[2]{t}{\theta}\right)^2  \\ 
+	& + & 4 D \pdv[6]{\rho}{\theta} \dv{t}{\theta}  + 12 D^2 \pdv[6]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 6 D^2 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2\\
+	& + & 6 D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \dv[2]{t}{\theta}  + 4 D^3 \pdv[8]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3  \\
+	& + & D^4 \pdv[9]{\rho}{\theta} \left(\dv{t}{\theta}\right)^4 
+\end{eqnarray}
+The desired $ \dv*[q]{t}{\theta_m} $ can be solved for algebraically. This follows a regular pattern since the term containing $ \dv*[q]{t}{\theta_m} $ is always the term with $ D \pdv[3] {\rho}{\theta} $, which will end up in the denominator.
+
+\begin{eqnarray}
+    -D \pdv[3]{\rho}{\theta} \dv{t}{\theta} & = & \pdv[2]{\rho}{\theta} \\
+	-D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta} & = & \pdv[3]{\rho}{\theta} + 2 D \pdv[4]{\rho}{\theta} \dv{t}{\theta}  + D^2 \pdv[5]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \\
+	-D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta} & = & \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D \pdv[5]{\rho}{\theta} \dv{t}{\theta}  \\
+	& + & 3 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[6]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2  + D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3 \\
+	-D \pdv[3]{\rho}{\theta} \dv[4]{t}{\theta} & = &  4 D \pdv[4]{\rho}{\theta} \dv[3]{t}{\theta}  + 4 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[3]{t}{\theta}  \\
 	& + & \pdv[5]{\rho}{\theta}  + 6 D \pdv[5]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[5]{\rho}{\theta} \left(\dv[2]{t}{\theta}\right)^2  \\ 
 	& + & 4 D \pdv[6]{\rho}{\theta} \dv{t}{\theta}  + 12 D^2 \pdv[6]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 6 D^2 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2\\
 	& + & 6 D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \dv[2]{t}{\theta}  + 4 D^3 \pdv[8]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3  \\
@@ -334,11 +367,40 @@ The higher derivatives can also be found by taking derivatives of the identity a
 
 The orientation local maxima disappear with decreasing $ K $ or increasing $ t $. From the last section we see that we can calculate a derivative for $ \theta_m $ except when $ \pdv[2]{\rho}{\theta}  = 0 $. At this point, when $ \pdv{\rho}{\theta} = 0 $, however, the critical point is no longer a local orientation maximum since the second derivative test is no longer met. Rather with decreasing $ K $, a local orientation maximum and a local orientation minimum meet each other and anihilate. The meeting of the local orientation maximum and minimum is called a bifurcation point.
 
-To find these bifurcation points, we need to find point points at a particular $ \theta $ and $ K $ such that $ \pdv{\rho}{\theta} = 0 $ and $ \pdv[2]{\rho}{\theta} = 0 $. This cannot be done by tracing the orientation local maxima with decreasing $ K $ since the derivative, $ \dv{\theta_m}{K} $, tends to become very large near the bifurcation point as the denominator approaches zero. Rather this is most easily accomplished by tracing the critical points of the $ \pdv{\rho}{\theta} $, or equivalently when $ \pdv[2]{\rho}{\theta} = 0 $. The traces can be referred to as the second derivative nullclines. After replacing $ \rho $ with its first partial derivative with respect to $ \theta $, $ \pdv{\rho}{\theta} $, this procedure is identical to that needed to trace the orientation local maxima as we do above.
+To find these bifurcation points, we need to find point points at a particular $ \theta $ and $ K $ such that $ \pdv{\rho}{\theta} = 0 $ and $ \pdv[2]{\rho}{\theta} = 0 $. This cannot be done by tracing the orientation local maxima with decreasing $ K $ since the derivative, $ \dv{\theta_m}{K} $, tends to become very large near the bifurcation point as the denominator approaches zero.
 
-The next task is to find where along these second derivative nullclines that the condition $ \pdv{\rho}{\theta} = 0 $ is also met. This can be accomplished by evaluating $ \pdv{\rho}{\theta} $ along the second derivative nullcline and looking for zero crossings.
+One approach is to trace the critical points of the $ \pdv{\rho}{\theta} $, or equivalently when $ \pdv[2]{\rho}{\theta} = 0 $. The traces can be referred to as the second derivative nullclines. After replacing $ \rho $ with its first partial derivative with respect to $ \theta $, $ \pdv{\rho}{\theta} $, this procedure is identical to that needed to trace the orientation local maxima as we do above. The next task is to find where along these second derivative nullclines that the condition $ \pdv{\rho}{\theta} = 0 $ is also met. This can be accomplished by evaluating $ \pdv{\rho}{\theta} $ along the second derivative nullcline and looking for zero crossings. In summary, the meeting point of first and second partial derivative nullclines with respect to $ \theta $ is where the bifurcation point occurs. This can be determined by evaluating the first partial derivative with respect to $ \theta $ along the second derivative nullcline. These bifurcation points indicate at which $ K $ the orientation local maxima cease to exist.
 
-In summary the meeting point of first and second partial derivative nullclines with respect to $ \theta $ is where the bifurcation point occurs. This can be determined by evaluating the first partial derivative with respect to $ \theta $ along the second derivative nullcline. These bifurcation points indicate at which $ K $ the orientation local maxima cease to exist.
+Another approach is to use the derivatives of the inverse function. At the bifurcation point, we can calculate the derivative of the inverse function, $ \dv{t}{\theta_m} $. Rather than tending to infinity, the first derivative goes to zero near the bifurcation point. In fact at the bifurcation point, since $ \pdv[2]{\rho}{\theta}  = 0 $, $ \dv{t}{\theta}  = 0 $ per the last section.    The exception is when $ \pdv[3]{\rho}{\theta}  = 0 $ in which case a higher derivative test will need to be applied and the following is not directly applicable. If  $ \dv{t}{\theta}  = 0 $ then this simplifies the expressions for the higher derivatives at the bifurcation point.
+
+\begin{eqnarray}
+	-D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta} & = & \pdv[3]{\rho}{\theta} + 2 D \pdv[4]{\rho}{\theta} (0)  + D^2 \pdv[5]{\rho}{\theta} \left( 0 \right)^2 \\
+	\dv[2]{t}{\theta} & = & -\frac{1}{D} \\
+	-D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta} & = & \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \left( \frac{-1}{D} \right) \\
+	\dv[3]{t}{\theta} & = & \frac{2}{D} \frac{\displaystyle \pdv[4]{\rho}{\theta}}{\displaystyle \pdv[3]{\rho}{\theta} }
+\end{eqnarray}
+\subsubsection{Estimating location near the bifurcation point with a particular derivative}
+Since the first two derivatives of the inverse function are constants at the bifurcation point regardless of the value of the partial derivatives, we can exploit this fact to understand the behavior of local extrema near all bifurcation points.
+
+First we would like to change the derivatives to be with respect to K. Let $ \theta_B $ be the location of the bifurcation such that $ \dv{t}{\theta} (\theta_B) = 0 $.
+\begin{eqnarray}
+\dv{K}{\theta} & = & \dv{t}{\theta} \dv{K}{t} \\
+\dv{K}{\theta} (\theta_B) & = & \dv{t}{\theta} (\theta_B) \dv{K}{t} = 0 \left( -\frac{(2K+1)^3}{4} \right) = 0 \\
+\dv[2]{K}{\theta} & = & \dv[2]{t}{\theta} \dv{K}{t} + \left( \dv{t}{\theta} \right)^2 \dv[2]{K}{t}  \\
+\dv[2]{K}{\theta} (\theta_B) & = & \dv[2]{t}{\theta} (\theta_B) \dv{K}{t} \\
+    & = & -\frac{1}{D} \left( -\frac{(2K+1)^3}{4} \right) \\
+    & = & \frac{(2K+1)^3}{4D} \\
+\end{eqnarray}
+Then we will use a Taylor expansion to estimate the location at which $ \dv{K}{\theta} = S $
+\begin{eqnarray}
+\mbox{Let } \Delta K & = & K_S - K_B \\
+\mbox{Let } \Delta \theta & = & \theta_S - \theta_B \\
+\mbox{We want } \dv[2]{K}{\theta}  \Delta \theta & = & \dv{K}{\theta} = S \\
+\Delta \theta & = & \frac{S}{\dv[2]{K}{\theta} } = \frac{4DS}{(2K_B+1)^3}\\
+K_S & = & K_B  +\dv{K}{\theta} \Delta \theta + \frac{1}{2} \dv[2]{K}{\theta} (\Delta \theta)^2 \\
+\Delta K & = & \frac{1}{2}  \frac{4DS^2}{(2K_B+1)^3}
+\end{eqnarray}
+
 
 \subsection{Tracing orientation local maxima and other nullclines}
 

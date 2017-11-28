@@ -43,6 +43,11 @@ coords.r = repmat(1:maxima_size(2),[maxima_size(1) 1 maxima_size(3)]);
 coords.c = repmat(shiftdim(1:maxima_size(3),-1),[maxima_size(1) maxima_size(2) 1]);
 coords.m = repmat(shiftdim(1:maxima_size(1),1),[1 maxima_size(2) maxima_size(3)]);
 
+coords.ind = zeros(maxima_size([2 3 1]));
+coords.ind(:) = 1:numel(maxima);
+coords.ind = shiftdim(coords.ind,2);
+coords.ind = coords.ind(:);
+
 nanMap = ~isnan(maxima);
 
 maxima = maxima(nanMap).';
@@ -50,6 +55,7 @@ maxima = maxima(nanMap).';
 coords.r = coords.r(nanMap).';
 coords.c = coords.c(nanMap).';
 coords.m = coords.m(nanMap).';
+coords.ind = coords.ind(nanMap).';
 
 if(nargout > 2)
     response = permute(response,[3 4 1 2]);

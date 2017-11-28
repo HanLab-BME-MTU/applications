@@ -73,6 +73,10 @@ elseif attribute==3 && ~isfield(tracksNA,'fret')
     tracksNA(end).fret=[];
 elseif attribute==4 && ~isfield(tracksNA,'flowSpeed')
     tracksNA(end).flowSpeed=[];
+elseif attribute==5 && ~isfield(tracksNA,'ampTotal2')
+    tracksNA(end).ampTotal2=[];
+elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
+    tracksNA(end).ampTotal3=[];
 end    
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -342,7 +346,7 @@ parfor k=1:numTracks
                 end
             end
         end
-    elseif attribute==2 
+    elseif attribute==2 || attribute==5 || attribute==6
         try
             startFrame = curTrack.startingFrameExtraExtra;
             endFrame = curTrack.endingFrameExtraExtra;
@@ -360,6 +364,14 @@ parfor k=1:numTracks
         else
             frameRange = [curTrack.startingFrameExtraExtra:curTrack.startingFrameExtra curTrack.endingFrameExtra:curTrack.endingFrameExtraExtra];
         end
+        if attribute==2
+            curTrack.forceMag = curTrack.amp;
+        elseif attribute==5
+            curTrack.ampTotal2 = curTrack.amp;
+        elseif attribute==6
+            curTrack.ampTotal3 = curTrack.amp;
+        end
+        
         for ii=frameRange
             curImg = imgStack(:,:,ii);
             x = curTrack.xCoord(ii);
@@ -369,7 +381,13 @@ parfor k=1:numTracks
             xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(curImg,2));
             yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(curImg,1));
             curAmpTotal = curImg(yRange,xRange);
-            curTrack.forceMag(ii) = mean(curAmpTotal(:));
+            if attribute==2
+                curTrack.forceMag(ii) = mean(curAmpTotal(:));
+            elseif attribute==5
+                curTrack.ampTotal2(ii) = mean(curAmpTotal(:));
+            elseif attribute==6
+                curTrack.ampTotal3(ii) = mean(curAmpTotal(:));
+            end
         end        
     elseif attribute==3 || attribute==4 %This time it uses FA area
         startFrame = curTrack.startingFrame;
