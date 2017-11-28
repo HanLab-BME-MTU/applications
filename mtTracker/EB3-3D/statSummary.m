@@ -1,4 +1,4 @@
-function [maxout, minout, meanout, medianout, stdout] = summary(array)
+function [maxout, minout, meanout, medianout, stdout] = statSummary(array)
 
 maxout    = max(array);
 minout    = min(array);
