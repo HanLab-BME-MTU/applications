@@ -1,4 +1,4 @@
-function [ analysisTimes, timeLimit, timeLimitIndx ] = getAnalysisTimes( times, timeResolution )
+function [ analysisTimes, timeLimit, timeLimitIndx ] = getAnalysisTimes( times, timeResolution, inOutFlag )
 %getAnalysisTimes Get analysis times
 %
 % INPUT
@@ -9,6 +9,7 @@ function [ analysisTimes, timeLimit, timeLimitIndx ] = getAnalysisTimes( times, 
 % analysisTimes - for commonInfo
 % timeLimit - 
 
+times = cellfun(@(x,y) x(y==1), times, inOutFlag,'UniformOutput',false);
 timeMax = cellfun(@(x) max(x), times);
 timeMin = cellfun(@(x) min(x), times);
 %determine the overall range of all conditions (This is useful later when comparing two curves)

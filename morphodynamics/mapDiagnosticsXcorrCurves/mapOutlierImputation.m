@@ -41,8 +41,13 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 %                   NaN. Default is null.
 %       subFrames
 %                   - specified frames will be only used.        
+%       movingAvgSmoothing
+%                   - input activities are minimally convolved with just
+%                   adjacent activities, that is, by using 3 by 3 patch.
 %
-% Updated: J Noh, 2017/08/26, To deal with differenced channels. 
+% Updated: J Noh, 2017/10/11, raw activities can be smoothed. New option is
+% 'movingAvgSmoothing'.
+% J Noh, 2017/08/26, To deal with differenced channels. 
 % Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/24
 
@@ -53,6 +58,7 @@ ip.addParameter('WithN', false);
 ip.addParameter('omittedWindows', []);
 ip.addParameter('Folding', false);
 ip.addParameter('subFrames', []);
+ip.addParameter('movingAvgSmoothing', false);
 
 
 parse(ip, varargin{:});
@@ -149,24 +155,7 @@ else
 
 end
 
-
-%% p.derivative option
-
-if (p.derivative == true)
-    actmap2 = actmap;
-    for l = 1:maxLayer
-        tmp = squeeze(actmap(:, l, :));
-        difftmp = diff(tmp, [], 2);   % time-wise difference operation
-        actmap2(:,l,:) = [nan(size(actmap, 1), 1), difftmp];
-    end
-    actmap = actmap2;
-
-    if iChan == 10
-        actmap = actmap ./ MDtimeInterval_;
-    end
-end
-
-
+%% p.derivative option  (old)
 
 %% Omit windows
 
@@ -209,9 +198,8 @@ end
 
 
 
-
 %%  Activity Map Outlier & remove windows
-
+%% omitWin, subFr, Folding -> outlierAdj -> (movAvgSmoothing) -> Diff (smoothing again) -> (impute)
 
 rawActmap = cell(1, maxLayer);
 actmap_outl = cell(1, maxLayer);
@@ -244,6 +232,73 @@ for indL = 1:maxLayer
     disp( sum(sum(abs(inputmap-m0)/std0 > 5)) )
 
 end
+
+
+
+%% movAvg smoothing
+
+if (p.movingAvgSmoothing == true)
+    actmap_outl2 = actmap_outl;
+    
+    gaussianFilter = fspecial('gaussian', 3, 0.5);   %% minimal gaussian filtering
+    
+    for l = 1:maxLayer
+        tmp = actmap_outl{l};    
+        actmap_outl2{l} = nanconv(tmp, gaussianFilter, 'edge', 'nanout');
+    end
+    actmap_outl = actmap_outl2;
+end
+
+
+%% 10/18/2017 (temp)
+
+if (p.movingAvgSmoothing > 0) & (p.movingAvgSmoothing < 1)
+    actmap_outl2 = actmap_outl;
+    smParam = p.movingAvgSmoothing;
+
+    for indL = 1:maxLayer
+        actmap_outl2{indL} = smoothActivityMap(actmap_outl{indL}, 'SmoothParam', smParam, 'UpSample', 1); 
+    end
+    actmap_outl = actmap_outl2;
+end
+
+
+
+
+
+
+%% p.derivative option 
+
+if (p.derivative == true)
+    actmap_outl2 = actmap_outl;
+    for l = 1:maxLayer
+        tmp = actmap_outl{l};
+        difftmp = diff(tmp, [], 2);   % time-wise difference operation
+        actmap_outl2{l} = [nan(size(tmp, 1), 1), difftmp];
+    end
+    actmap_outl = actmap_outl2;
+
+    if iChan == 10
+        for l = 1:maxLayer
+            actmap_outl{l} = actmap_outl{l} ./ MDtimeInterval_;
+        end
+    end
+
+%%%%%  Smoothing again the differences
+
+    if (p.movingAvgSmoothing == true)
+        actmap_outl2 = actmap_outl;
+
+        gaussianFilter = fspecial('gaussian', 3, 0.5);   %% minimal gaussian filtering
+        for l = 1:maxLayer
+            tmp = actmap_outl{l};
+            actmap_outl2{l} = nanconv(tmp, gaussianFilter, 'edge', 'nanout');
+        end
+        actmap_outl = actmap_outl2;
+    end
+
+end
+
 
 
 

@@ -16,18 +16,39 @@ slamin_show = imadjust(mat2gray(slamin),[0.3 1],[0 1]);
 
 %% Acquire mask
 % Skip if mask determined in other fashion
-hfig = figure;
-imshowpair(sI_show,slamin_show,'ColorChannels',[2 1 0]);
-h = imellipse;
-wait(h);
-mask = createMask(h);
-close(hfig);
+askForMask = true;
+choices.yes = 'Use Existing Mask';
+choices.no = 'Create New Mask';
+choices.cancel = 'Cancel';
+if(exist('./mask.mat','file'))
+    askForMask = questdlg('Use previously created mask?','Mask Exists',choices.yes,choices.no,choices.cancel,choices.yes);
+    switch(askForMask)
+        case choices.yes
+            askForMask = false;
+            load('./mask.mat');
+        case choices.no
+            askForMask = true;
+        case choices.cancel
+            askForMask = false;
+            return;
+    end
+end
+
+if(askForMask)
+    hfig = figure;
+    imshowpair(sI_show,slamin_show,'ColorChannels',[2 1 0]);
+    h = imellipse;
+    wait(h);
+    mask = createMask(h);
+    close(hfig);
+end
 
 %% Get region properties and verify mask
 rp = regionprops(mask,'Area','Perimeter','Centroid','BoundingBox','ConvexHull');
-figure; imshowpair(sI_show,slamin_show,'ColorChannels',[2 1 0]);
+hfig = figure; imshowpair(sI_show,slamin_show,'ColorChannels',[2 1 0]);
 hold on;
-fill(rp.ConvexHull(:,1),rp.ConvexHull(:,2),'w','FaceAlpha',0.8);
+fill(rp.ConvexHull(:,1),rp.ConvexHull(:,2),'w','FaceAlpha',0.3);
+saveas(hfig,'mask_overlay.png');
 save('mask.mat','mask');
 
 %% Calculate coordinates
@@ -41,17 +62,18 @@ offset = shiftdim(offset,-1);
 theta_offseted = theta - offset;
 theta_offseted = wraparoundN(theta_offseted,-pi,pi);
 weights = exp(-theta_offseted.^2/2/(2*pi/17).^2).*mask;
+normWeights = shiftdim(sum(sum(weights,1),2),2);
 
 %% Process first (DNA) channel
 sImasked = sI.*mask;
 
 wsI = shiftdim(weights.*sI,2);
-wsI_summed = sum(wsI(:,:),2);
+wsI_summed = sum(wsI(:,:),2)./normWeights;
 
 %% Process second (lamin) channel
 
 wslamin = shiftdim(weights.*slamin,2);
-wslamin_summed = sum(wslamin(:,:),2);
+wslamin_summed = sum(wslamin(:,:),2)./normWeights;
 
 
 %% Polar plot

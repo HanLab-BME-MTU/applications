@@ -179,6 +179,7 @@ handles.p.nBootstrp = get(handles.nBootstrp,'Value');
 handles.p.channelTable = get(handles.channelTable,'Data');
 handles.p.detectOutliers_k_sigma = get(handles.detectOutliers,'Value') ...
                                    .*str2double(get(handles.k_sigma,'String'));
+handles.p.ignoreIsolatedPts = get(handles.isolatedPts,'Value');
 handles.p.channels = find([handles.p.channelTable{:,1}]);
 handles.p.channelNames = handles.p.channelTable(:,2);
 handles.p.showPlots = get(handles.showPlots,'Value');
@@ -227,6 +228,15 @@ function k_sigma_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of k_sigma as text
 %        str2double(get(hObject,'String')) returns contents of k_sigma as a double
+
+
+% --- Executes on button press in isolatedPts.
+function isolatedPts_Callback(hObject, eventdata, handles)
+% hObject    handle to isolatedPts (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of isolatedPts
 
 
 % --- Executes during object creation, after setting all properties.

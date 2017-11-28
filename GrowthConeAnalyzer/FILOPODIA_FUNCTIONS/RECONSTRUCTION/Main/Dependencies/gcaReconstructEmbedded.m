@@ -308,10 +308,17 @@ afterCut(vertcat(pixIdxRemove{:})) = 0;
 CCInt = bwconncomp(afterCut);
 
 % for orientation calcs want to make sure to get rid of pieces less
-% than 3 ccs
+%than 3 ccs
 csize = cellfun(@(x) size(x,1), CCInt.PixelIdxList);
 CCInt.PixelIdxList(csize<=3) =  [];
 CCInt.NumObjects = CCInt.NumObjects - sum(csize<=3);
+
+% Used for Embedded filo in Fig. S3C to quickly solve embedded crossing 
+% problem: Fix further later and make more flexible to potentially adjust
+% with the pixel size. 
+% csize = cellfun(@(x) size(x,1), CCInt.PixelIdxList);
+% CCInt.PixelIdxList(csize<=6) =  [];
+% CCInt.NumObjects = CCInt.NumObjects - sum(csize<=6);
 
 %GetInternal Endpoints
 

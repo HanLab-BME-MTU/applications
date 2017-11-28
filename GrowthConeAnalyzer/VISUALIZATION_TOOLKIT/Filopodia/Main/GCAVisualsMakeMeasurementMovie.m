@@ -28,7 +28,9 @@ ip.addParameter('MeasurementDirectory',[],@(x) ischar(x) || isempty(x));
 ip.addParameter('InputDirectory', [],@(x) ischar(x) || isempty(x));
 
 ip.addParameter('ScaleBar',false,@(x) islogical(x) );
+ip.addParameter('ScaleBarSize',10); % in um 
 ip.addParameter('Timer', false,@(x) islogical(x)); 
+ip.addParameter('FontSizeTimer',18); 
 
 ip.addParameter('TreatmentFrame',[]);
 ip.addParameter('TreatmentTitle','CK666 Added');
@@ -80,7 +82,13 @@ ip.addParameter('OutputDirectoryMask',[]);
 
 ip.addParameter('firstFrameLimits',false); 
 
+ip.addParameter('plotSigma',[]);
 
+ip.addParameter('filoIDs',[]); % if empty will just use the filter
+
+ip.addParameter('screen2png',false); 
+
+ip.addParameter('plotFilteredExt',false); 
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -170,29 +178,22 @@ if ip.Results.interactive == true
     
 else % make all movies
     if ~isempty(ip.Results.measurements);
-        
-        
         selected = ip.Results.measurements;
         % find those measurements from the parameter names
         test = arrayfun(@(x) strcmpi(selected{x},paramNamesC),1:numel(selected),'uniformoutput',0);
         paramSelect = cellfun(@(x) find(x),test);
-        
-        %paramSelect  = find(sum(horzcat(test{:}),2));
     else % loop through all found
         selected = paramNamesC ;
         paramSelect = 1:numel(selected);
     end
 end
 
-
-
-
-
+%% 
 
 % load the filoInfo
 load([inDir filesep 'filoBranch.mat']);
 imgSize = MD.imSize_;
-
+%% Subregion flag
 if ~ip.Results.SubRegionFlag
     % plot the veil in black
     load([veilDir filesep 'veilStem.mat']);
@@ -217,7 +218,7 @@ else % note need to fix this output to remain consistent either one or the other
             veilStem(iFrame).neuriteLongPathIndices = backbone;
         end
     end
-end
+end % if subRegion Flag
 
 %%
 nFrames = length(ip.Results.frames);
@@ -228,6 +229,16 @@ frames = ip.Results.frames;
 
 %% Different File types might require different functions
 for iSelect = 1:numel(selected)
+   
+    
+    if strcmpi(selected{iSelect},'filoDensityAlongVeil') || ...
+            strcmpi(selected{iSelect}, 'filoBranchComplexity') || ...
+            strcmpi(selected{iSelect},'branchDistanceFromVeil');
+        colorByValue = false;
+    else
+        colorByValue = ip.Results.colorByValue;
+    end
+    
     if strcmpi(paramSelect,'IDs')
         if ~isdir(localParamFiles{paramSelect(iSelect),2});
             mkdir(localParamFiles{paramSelect(iSelect),2}); % make the ID directory
@@ -248,16 +259,13 @@ for iSelect = 1:numel(selected)
             mkdir(outDir)
         end
     end 
-        
-        
-    
+ 
     if ~isdir(outDir)
         mkdir(outDir) ;
     end
-    
-    
+
     load([localParamFiles{paramSelect(iSelect),2} filesep localParamFiles{paramSelect(iSelect),1}]);
-    
+   
     x = upDirectory(localParamFiles{paramSelect(iSelect),2},1);
     
     load([x filesep 'filoFilterSet.mat']);
@@ -282,19 +290,27 @@ for iSelect = 1:numel(selected)
             plotValues = measC{frameC};
         end
         if ~isempty(plotValues);
-            if ip.Results.colorByValue
+            if colorByValue
                 if strcmpi(ip.Results.cMapLimits,'defaults')
                     [cMapLimits] =  defaults{strcmpi(selected{iSelect},defaults(:,1)),2} ;
                 elseif isempty(ip.Results.cMapLimits)
                     cMapLimits(1) = min(plotValues);
                     cMapLimits(2) = max(plotValues);
+                else 
+                    cMapLimits = ip.Results.cMapLimits; 
                 end
             else
                 cMapLimits(1) = min(plotValues);
                 cMapLimits(2) = max(plotValues);
             end
-            
-            filterSetC= filoFilterSet{frameC};
+
+            if isempty(ip.Results.filoIDs)
+                filterSetC= filoFilterSet{frameC};
+            else
+                x =  zeros(length(filoInfo));
+                x(ip.Results.filoIDs)=1;
+                filterSetC = logical(x);
+            end
             
             img = double(imread([MD.getChannelPaths{ip.Results.ChannelIndexOverlay} filesep MD.getImageFileNames{ip.Results.ChannelIndexOverlay}{frameC}]));
             
@@ -306,9 +322,8 @@ for iSelect = 1:numel(selected)
                 end
                 
             end
-            
-            
-             setFigure(imgSize(2),imgSize(1),ip.Results.visible);
+
+            setFigure(imgSize(2),imgSize(1),ip.Results.visible);
             
             imshow(-img,lims) ;
             hold on
@@ -322,31 +337,22 @@ for iSelect = 1:numel(selected)
             %                 else
             %                     branchMode = false;
             %                 end
+         
+            %% plot curvature 
             
-            
-            
-            % Know this is a bit cumbersome but for now let's just have a flag to
-            % redirect if need to plot curvature
             if strcmpi(selected{iSelect},'filoMaxCurvature') || strcmpi(selected{iSelect}, 'branchMaxCurvature_2ndOrder')
                 GCAVisualsColorCodeByCurvature(filoInfo,'filoFilterSet',filterSetC,'cMapLimits',cMapLimits,'pix2Micron',MD.pixelSize_/1000);
                 
-                
-                
-                
-                
+         %% plot percentActinBundlesVeilEmbedded
             elseif strcmpi(selected{iSelect},'percentActinBundlesVeilEmbedded');
-                
-                
+ 
                 plotText{1} = true;
                 plotText{2} = false;
                 filterSetForPlot{1}=  filterSetC(:,1)   ;  % both have to be significant
                 filterSetForPlot{2} = filterSetC(:,1) & filterSetC(:,2);
-                
-                
-                
+    
                 for iFilter = 1:2
-                    
-                    
+          
                     GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
                         'filoFilterSet',filterSetForPlot{iFilter},'plotValues',plotValues,...
                         'branchMode',branchMode,'colorByValue',false,'plotText',plotText{iFilter},'justExt',...
@@ -357,13 +363,12 @@ for iSelect = 1:numel(selected)
                 %                 elseif strcmpi(selected{iSelect},'   % full actin bundle you
                 %                 % plot the internal
                 %
-            elseif (strcmpi(selected{iSelect},'filoLengthFullActinBundle') || strcmpi(selected{iSelect},'percentEachActinBundleEmbed') ...
+            elseif (strcmpi(selected{iSelect},'filoLengthFullActinBundle') || strcmpi(selected{iSelect},'percentEachActinBundleEmbed')... 
                     || strcmpi(selected{iSelect},'forMainMovie'))
                 % plot each filopodia by the color of the full actin
                 % bundle length : do not plot embedded bundles that do
                 % not pass the criter
-                
-                
+             
                 plotText{1} = ip.Results.plotText;
                 plotText{2} = false;
                 %filterSetForPlot{1}=  filterSetC(:,1)   ;  % both have to be significant
@@ -396,32 +401,35 @@ for iSelect = 1:numel(selected)
                 end 
                 %
                 for i = 1:2
-                    
-                    
-                    
+                 
                     GCAVisualsFilopodiaMeasurementOverlays(filoInfoFilt{i},imgSize, ...
                         'plotValues',plotValuesSub{i},'colorByValue',true,'plotText',plotText{i},'justExt',i,...
-                        'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'UseSmoothedCoords',ip.Results.UseSmoothedCoords);
+                        'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'UseSmoothedCoords',ip.Results.UseSmoothedCoords,...
+                        'plotSigma',ip.Results.plotSigma);
                     
                 end
-                % add filoBranch complexity metric visualization
-                % 20160616
-            elseif strcmpi(selected{iSelect},'filoBranchComplexity');
+                
+                if ip.Results.plotFilteredExt 
+                     GCAVisualsFilopodiaMeasurementOverlays(filoInfo(~filterFrameC),imgSize,...
+                         'justExt',1,'plotFiltered',true); 
+                end 
+            
+            %% filoBranch complexity metric visualization
+              elseif strcmpi(selected{iSelect},'filoBranchComplexity');
                 
                 % filter based only on external filoBranch network
                 filoInfoFilt= filoInfo(filterSetC(:,1));
                 
-                % Plot the full network in black
-                % GCAVisualsFilopodiaMeasurementOverlays(filoInfoFilt,imgSize,...
-                %    'plotValues',plotValues,  'UseSmoothedCoords',ip.Results.UseSmoothedCoords);
                 filoMask1 = GCAVisualsFilopodiaMeasurementOverlays(filoInfoFilt,imgSize,...
-                    'plotValues',plotValues,  'UseSmoothedCoords',ip.Results.UseSmoothedCoords,'createMask',ip.Results.createMask);
+                    'plotValues',plotValues,  'UseSmoothedCoords',ip.Results.UseSmoothedCoords,'createMask',ip.Results.createMask,...
+                     'plotSigma',ip.Results.plotSigma); 
                 
                 % plot the branches in red
                 types = vertcat(filoInfoFilt(:).type);
                 filoInfoBranch = filoInfoFilt(types>1);
                 filoMask2 = GCAVisualsFilopodiaMeasurementOverlays(filoInfoBranch,imgSize,...
-                    'UseSmoothedCoords',ip.Results.UseSmoothedCoords,'colorFiloBranch',[1,0,0],'createMask',ip.Results.createMask) ;
+                    'UseSmoothedCoords',ip.Results.UseSmoothedCoords,'colorFiloBranch',[1,0,0],'createMask',ip.Results.createMask,...
+                    'plotSigma',ip.Results.plotSigma) ;
                 
                 filoMask = (filoMask1 | filoMask2);
                 
@@ -431,57 +439,42 @@ for iSelect = 1:numel(selected)
                 totalLength = sum(lengths(~isnan(lengths)));
                 
                 totalLength = totalLength.*.216*10;
-         
-                
-                
+   %% All other cases 
             else 
                 
-                % Note: maybe try to fix this input before release - historical and a
-                % bit cumbersome.
                 if ~isempty(regexpi(selected{iSelect},'Embedded'));
                     filoPlotType  = 2;
                     filterSetC = (filterSetC(:,1)==1 & filterSetC(:,2) ==1);
-                    
-                    
+               
                 else
                     filoPlotType = 1;
                     filterSetC = filterSetC(:,1) ==1;
                 end
-                
-                
-                
+              
                 %                     GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
                 %                         'filoFilterSet',filterSetC,'plotValues',plotValues,...
                 %                         'branchMode',branchMode,'colorByValue',ip.Results.colorByValue,'plotText',ip.Results.plotText,'justExt',...
                 %                         filoPlotType,'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'plotTextAtBranches',plotTextAtBranches,'UseSmoothedCoords',ip.Results.UseSmoothedCoords);
                 [filoMask] = GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
                     'filoFilterSet',filterSetC,'plotValues',plotValues,...
-                    'branchMode',branchMode,'colorByValue',ip.Results.colorByValue,'plotText',ip.Results.plotText,'justExt',...
+                    'branchMode',branchMode,'colorByValue',colorByValue,'plotText',ip.Results.plotText,'justExt',...
                     filoPlotType,'extraColor',ip.Results.extraColor,'cMapLimits',cMapLimits,'plotTextAtBranches',...
                     plotTextAtBranches,'UseSmoothedCoords',ip.Results.UseSmoothedCoords,'createMask',ip.Results.createMask,...
-                    'colorFiloBranch',ip.Results.colorFiloBranch);
-                
-                
-                
-                
+                    'colorFiloBranch',ip.Results.colorFiloBranch,'plotSigma',ip.Results.plotSigma);
+  
                 if strcmpi(selected{iSelect},'filoOrientation') ;
                     overlay = zeros(imgSize);
                     backbone = veilStem(frameC).neuriteLongPathIndices;
                     overlay(backbone) = 1;
                     spy(overlay,'k');
                 end
-                
-                
-                
-                
-                
-                
-            end
-            
+                  
+            end % if strcmpi
+%%   
             hold on
             if ip.Results.ScaleBar == true
                 pixSizeMic = MD.pixelSize_./1000;
-                plotScaleBar(10/pixSizeMic,2,'Color',[0,0,0],'Location','SouthEast');
+                plotScaleBar(ip.Results.ScaleBarSize/pixSizeMic,2,'Color',[0,0,0],'Location','SouthEast');
             end
             
             if ~isempty(ip.Results.TreatmentFrame)
@@ -491,56 +484,50 @@ for iSelect = 1:numel(selected)
             end
             
             if ip.Results.Timer
-                text(10,30,[num2str(frameC*5-5) ' (s)'],'color','k'); 
+                text(10,30,[num2str(frameC*5-5) ' s'],'color','k',... 
+                    'FontSize',ip.Results.FontSizeTimer,'FontWeight','Bold'); 
             end 
             
             veilStemMask = veilStem(frameC).finalMask;
             
             roiYX = bwboundaries(veilStemMask);
             cellfun(@(x) plot(x(:,2),x(:,1),'color',ip.Results.colorVeilStem),roiYX);
-            
-            
-            % added 20160621
+         
+            %% Create the mask
             if ip.Results.createMask
                 gcaMask = (veilStemMask | filoMask);
                 gcaMask = logical(getLargestCC(gcaMask));
                 
-                imwrite(gcaMask,[ outDirMask filesep 'GCAMask_' num2str(iFrame,'%03d') '.tif'])
+                %imwrite(gcaMask,[ outDirMask filesep 'GCAMask_' num2str(iFrame,'%03d') '.tif'])
+                imwrite(gcaMask,[outDirMask filesep 'GCAMask_' num2str(iFrame,'%03d') '.tif'],'compression','none'); 
+                [x] = upDirectory(outDirMask,1); 
+                filoDir = [x filesep 'FilopodiaMasks']; 
+                if ~isdir(filoDir)
+                    mkdir(filoDir)
+                end 
+                imwrite(filoMask,[filoDir filesep 'filoMask_' num2str(iFrame,'%03d') '.tif'],'compression','none'); 
+            end % if createMaskFlag
+            %%
+       
+            if isempty(ip.Results.filoIDs)
+                name = [outDir filesep num2str(frameC,'%03d')]; 
+            else 
+                name = [outDir filesep num2str(frameC,'%03d') '_' num2str(ip.Results.filoIDs) ]; 
             end
             
-            
-            %% optional load ratio mask and overlay movie
-            %                 channelDir = upDirectory(MD.channels_(1).channelPath_,1);
-            %
-            %                 thresh = logical(imread([channelDir filesep 'Ratio' filesep 'Ratio' num2str(iFrame,'%03d') '.tif']));
-            %
-            %                 CC = bwconncomp(thresh);
-            %                 csize = cellfun(@(x) length(x), CC.PixelIdxList);
-            %                 CC.PixelIdxList(csize<max(csize))=[];
-            %                 CC.NumObjects  = CC.NumObjects -sum(csize<max(csize));
-            %                 thresh = labelmatrix(CC);
-            %                 thresh(thresh>0) = 1;
-            %                 thresh = logical(thresh);
-            %
-            %                 roiYX = bwboundaries(thresh);
-            %                 cellfun(@(x) plot(x(:,2),x(:,1),'color',[ 0.6471 , 0 , 0.1490]),roiYX);
-            %
-            
-            
-            
-            
-            saveas(gcf,[outDir filesep num2str(frameC,'%03d') '.png']);
-            
-            
+            if ip.Results.screen2png
+                helperScreen2png([name '.png']);
+            else    
+                saveas(gcf,[name  '.png']);
+            end
             
             if ip.Results.otherFiles
-                saveas(gcf,[outDir filesep num2str(frameC,'%03d') '.eps'],'psc2');
-                saveas(gcf,[outDir filesep num2str(frameC,'%03d') '.fig']);
+                saveas(gcf,[name  '.eps'],'psc2');
+                saveas(gcf,[name '.fig']);
             end
-            
+           
             close gcf
-            
-            
+ 
             if ip.Results.colorbarOverlay
                 figure('visible',ip.Results.visible)
                 test = zeros(imgSize);
@@ -554,9 +541,8 @@ for iSelect = 1:numel(selected)
                 saveas(gcf,[outDir filesep 'ColorBarOverlay_' selected{iSelect} '.fig']);
                 close gcf
                 
-            end
-        end
-    end
-    
+            end % colorbarOverlayFlag
+        end % isempty(plotValues)
+    end % for iFrames
 end
 

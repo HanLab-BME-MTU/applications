@@ -1161,7 +1161,7 @@ if ~uptoColo
 %         tracksG1(k).forceSlopeR = curForceR; % Pearson's correlation coefficient
 %     end
 %     plotIntensityForceSingle(tracksG1(k),1,0,0.01,0.3,tInterval)
-        %% assembly rate and force growth rate in curIndices
+    %% assembly rate and force growth rate in curIndices
     forceSlopeG1 =arrayfun(@(x) (x.forceSlope),tracksNA(curIndices));
     earlyAmpSlopeG1 =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(curIndices));
    

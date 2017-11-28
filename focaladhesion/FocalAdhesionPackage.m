@@ -1,19 +1,11 @@
 classdef FocalAdhesionPackage < Package
     % The main class of the focal adhesion package
     %
-    % NOTE: This is the package that is based on anisotropic spot detection,
-    %   tracking and track grouping.
-    %   This package is therefore better suited to detection of small
-    %   (though not truly nascent, as the detection assumes anisotropy) and
-    %   primarily fibrilar (linear) adhesions. It does not support sampling
-    %   of image intensities within focal adhesions. 
-    %   **For sampling of image intensities within adhesions, and for
-    %   support which includes larger non-fibrilar adhesions (but still
-    %   misses very small/dim nascent adhesions) see
-    %   FocalAdhesionSegmentationPackage 
-    %               - Hunter
+    % NOTE: This is the package that is NOT based on anisotropic spot detection,
+    %   anymore.  - Sangyoon
     % Sebastien Besson, May 2011
     % Updated by Andrew R. Jamieson Feb 2017 
+    % Updated by Sangyoon J. Han Oct 2017 
     
     methods
         function obj = FocalAdhesionPackage(owner, varargin)
@@ -122,24 +114,34 @@ classdef FocalAdhesionPackage < Package
 
         function classes = getProcessClassNames(index)
             procContrs = {
+                'EfficientSubpixelRegistrationProcess',...
                 'ThresholdProcess',...
                 'MaskRefinementProcess',...
                 'DetectionProcess',... % default should be pointsourcedetection
                 'TrackingProcess',...
                 'FocalAdhesionSegmentationProcess',...
-                'AdhesionAnalysisProcess'};
+                'AdhesionAnalysisProcess',...
+                'AdhesionClassificationProcess',...
+                'TheOtherChannelReadingProcess',...
+                'TractionForceReadingProcess'...
+                'InitialRiseTimeLagCalculationProcess'};
             if nargin==0, index=1:numel(procContrs); end
             classes=procContrs(index);
         end        
 
         function m = getDependencyMatrix(i,j)
-            %    1 2 3 4 5 6      {Processes}    
-            m = [0 0 0 0 0 0;  %1 Thresholding [optional]
-                 1 0 0 0 0 0;  %2 Mask Refinement [optional]
-                 2 2 0 0 0 0;  %3 DetectionProcess
-                 0 0 1 0 0 0;  %4 TrackingProcess
-                 0 0 0 0 0 0;  %5 FocalAdhesionSegmentationProcess
-                 0 2 1 1 1 0;];%6 AnalyzeAdhesionMaturationProcess
+            %    1 2 3 4 5 6 7 8 9 10 11 {Processes}    
+            m = [0 0 0 0 0 0 0 0 0 0 0;  %1 Stage Drift Correction [optional]
+                 0 0 0 0 0 0 0 0 0 0 0;  %2 Thresholding [optional]
+                 0 1 0 0 0 0 0 0 0 0 0;  %3 Mask Refinement [optional]
+                 0 2 2 0 0 0 0 0 0 0 0;  %4 DetectionProcess
+                 0 0 0 1 0 0 0 0 0 0 0;  %5 TrackingProcess
+                 0 2 2 0 0 0 0 0 0 0 0;  %6 FocalAdhesionSegmentationProcess
+                 2 0 1 1 1 1 0 0 0 0 0;  %7 AnalyzeAdhesionMaturationProcess
+                 0 0 2 1 1 1 1 0 0 0 0;  %8 AdhesionClassificationProcess
+                 0 0 0 0 0 0 1 2 0 0 0;  %9 TheOtherChannelReadingProcess
+                 0 0 0 0 0 0 1 2 2 0 0;  %10 TractionForceReadingProcess
+                 0 0 0 0 0 0 1 2 2 2 0]; %11 InitialRiseTimeLagCalculationProcess
 
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
@@ -148,12 +150,17 @@ classdef FocalAdhesionPackage < Package
 
         function procConstr = getDefaultProcessConstructors(index)
             procContrs = {
+                @EfficientSubpixelRegistrationProcess,...
                 @ThresholdProcess,...
                 @MaskRefinementProcess,...                
                 @(x,y)PointSourceDetectionProcess(x,y,FocalAdhesionPackage.getDefaultDetectionParams(x,y)),...
                 @(x,y)TrackingProcess(x,y,FocalAdhesionPackage.getDefaultTrackingParams(x,y)),...
                 @(x,y)FocalAdhesionSegmentationProcess(x,y,FocalAdhesionPackage.getDefaultFASegParams(x,y)), ...
-                @(x,y)AdhesionAnalysisProcess(x,y,FocalAdhesionPackage.getDefaultAnalysisParams(x,y))};
+                @(x,y)AdhesionAnalysisProcess(x,y,FocalAdhesionPackage.getDefaultAnalysisParams(x,y)),...
+                @(x,y)AdhesionClassificationProcess(x,y,FocalAdhesionPackage.getDefaultClassificationParams(x,y)), ...
+                @(x,y)TheOtherChannelReadingProcess(x,y),...%,FocalAdhesionPackage.getDefaultTheOtherChannelReadingParams(x,y))};
+                @(x,y)TractionForceReadingProcess(x,y),...
+                @(x,y)InitialRiseTimeLagCalculationProcess(x,y)};
             
             if nargin==0, index=1:numel(procContrs); end
             procConstr=procContrs(index);
@@ -234,23 +241,27 @@ classdef FocalAdhesionPackage < Package
 
             funParams = FocalAdhesionSegmentationProcess.getDefaultParams(owner,outputDir);
 
-            trackNAProc = owner.getProcess(owner.getProcessIndex('TrackingProcess'));
-            detectedNAProc = owner.getProcess(owner.getProcessIndex('DetectionProcess'));
+            % TODO FIX Sanity checks (be careful of optional processes)
+%             try owner.getProcessIndex('TrackingProcess')
+%                 trackNAProc = owner.getProcess(owner.getProcessIndex('TrackingProcess'));
+%             catch
+%                 trackNAProc = -1
+%             end
+%             detectedNAProc = owner.getProcess(owner.getProcessIndex('DetectionProcess'));
+%             
+%             %%TODO - Move to sanity check section
+%             if length(detectedNAProc.funParams_.ChannelIndex) > 1
+%                 numChan = length(trackNAProc.funParams_.ChannelIndex);
+%                 for i = 1:numChan
+%                     assert(detectedNAProc.funParams_.ChannelIndex(i) == trackNAProc.funParams_.ChannelIndex(i), 'ChannelInex should match');        
+%                 end
+%             elseif length(detectedNAProc.funParams_.ChannelIndex) == 1
+%                 assert(detectedNAProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');    
+%             end
             
-            %%TODO - Move to sanity check section
-            if length(detectedNAProc.funParams_.ChannelIndex) > 1
-                numChan = length(trackNAProc.funParams_.ChannelIndex);
-                for i = 1:numChan
-                    assert(detectedNAProc.funParams_.ChannelIndex(i) == trackNAProc.funParams_.ChannelIndex(i), 'ChannelInex should match');        
-                end
-            elseif length(detectedNAProc.funParams_.ChannelIndex) == 1
-                assert(detectedNAProc.funParams_.ChannelIndex == trackNAProc.funParams_.ChannelIndex, 'ChannelInex should match');    
-            end
-            
-
             
             %%TODO - Sangyoon suggests an automated selection of parameters
-            funParams.ChannelIndex = trackNAProc.funParams_.ChannelIndex;
+            funParams.ChannelIndex = 1;%trackNAProc.funParams_.ChannelIndex;
             funParams.SteerableFilterSigma = 72; % %Sigma in nm of steerable filter to use in splitting adjacent adhesions
             funParams.OpeningRadiusXY = 0; % %Spatial radius in nm of structuring element used in opening.
             funParams.MinVolTime = 1; %um2*s Minimum spatiotemporal "Volume" in micron^2 * seconds of segmented adhesions to retain.
@@ -277,7 +288,7 @@ classdef FocalAdhesionPackage < Package
             funParams.FAsegProc = iProcFASeg;
             
             % Check if segmentation occured.
-            %% TODO -- Update 
+            % TODO -- Update 
             iProc = owner.getProcessIndex('MaskRefinementProcess', 'askUser', false);
             if isempty(iProc)
                 disp('Note: No Cell Segmentation Mask found');
@@ -295,9 +306,39 @@ classdef FocalAdhesionPackage < Package
             funParams.matchWithFA = true;  
             funParams.getEdgeRelatedFeatures = true;
             funParams.bandwidthNA = 7;
-            funParams.minLifetime = 5;
+            funParams.minLifetime = 3; % Checked: changed to 3 from 5 -Sangyoon10/25/2017
             
         end
+        %% getDefaultClassificationParams
+        function funParams = getDefaultClassificationParams(owner, outputDir)
 
+            funParams = AdhesionClassificationProcess.getDefaultParams(owner, outputDir);
+            
+            iAdhAnal = owner.getProcessIndex('AdhesionAnalysisProcess');
+            adhAnalProc = owner.getProcess(iAdhAnal);
+            
+            % Specify Channels where adhesions are segmented (% Assume Pax Channel?_)
+            %%TODO - Move to sanity check section
+            funParams.ChannelIndex = adhAnalProc.funParams_.ChannelIndex;
+            
+            % Check if segmentation occured.            
+            funParams.labeledData=[];
+            funParams.useAutomaticallySelectedData = true;
+            funParams.manualLabeling=false;
+        end
+
+        %% getDefaultTheOtherChannelReading
+        function funParams = getDefaultTheOtherChannelReadingParams(owner, outputDir)
+            funParams = TheOtherChannelReadingProcess.getDefaultParams(owner, outputDir);
+        end
+        
+        %% getDefaultForceReading
+        function funParams = getDefaultForceReadingParams(owner, outputDir)
+            funParams = TractionForceReadingProcess.getDefaultParams(owner, outputDir);
+        end
+        %% getDefaultInitialRiseTimeLagCalculation
+        function funParams = getDefaultInitialRiseTimeLagCalculationParams(owner, outputDir)
+            funParams = getDefaultInitialRiseTimeLagCalculationProcess.getDefaultParams(owner, outputDir);
+        end
     end
 end

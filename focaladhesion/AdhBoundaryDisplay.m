@@ -11,19 +11,49 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
         end
         function h=initDraw(obj, data, tag, varargin)
             
-            if isempty(data), h=[]; return; end            
+            if isempty(data), h=[]; return; end     
+            % For classification, there is classLabel at the second cell.
+            % Check with it
+            numGroups=9;
+            colors = distinguishable_colors(numGroups,'k');
+            tempColor = colors(6,:);
+            colors(6,:) = colors(9,:);
+            colors(9,:) = tempColor;
+            idGroupLabel=[];
+            if iscell(data{1})
+                idGroupLabel=data{2};
+                data = data{1};
+            end
             h = gobjects(size(data,1),1);
-            for i=1:numel(data) 
-                adhBoundary = data(i).adhBoundary;
-                try
-                    h(i) = line(adhBoundary(:,2), adhBoundary(:,1),...
-                                'Color',obj.Color,'LineStyle',obj.LineStyle,...
-                                varargin{:});
-                catch
-                    disp('error');
+            
+            if isempty(idGroupLabel)
+                for i=1:numel(data) 
+                    adhBoundary = data{i}; %(i).adhBoundary;
+                    try
+                        h(i) = line(adhBoundary(:,2), adhBoundary(:,1),...
+                                    'Color',obj.Color,'LineStyle',obj.LineStyle,...
+                                    varargin{:});
+                    catch
+                        disp('error');
+                    end
+                end
+                set(h,'Tag',tag);
+            else
+                existingClasses=unique(idGroupLabel','sorted');
+                for k = existingClasses
+                    curIndices = find(idGroupLabel'==k);
+                    for i=curIndices
+                        adhBoundary = data{i}; %(i).adhBoundary;
+                        try
+                            h(i) = line(adhBoundary(:,2), adhBoundary(:,1),...
+                                        'Color',colors(k,:),'LineStyle',obj.LineStyle,...
+                                        varargin{:});
+                        catch
+                            disp('error');
+                        end
+                    end
                 end
             end
-            set(h,'Tag',tag);
         end
 
         function updateDraw(obj, h, data, varargin)
@@ -40,7 +70,7 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
             
             for j = 1:nTracks
                 
-                adhBoundary = data(j).adhBoundary;
+                adhBoundary = data{j}; %(j).adhBoundary;
                 
                 if existingTracks  
                     set(h(j),'XData',adhBoundary(:,2), 'YData', adhBoundary(:,1),...
@@ -66,7 +96,7 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
         end
 
         function f=getDataValidator() 
-            f=@isstruct;
+            f=@iscell;
         end
     end    
 end

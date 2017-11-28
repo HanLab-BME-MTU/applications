@@ -51,9 +51,12 @@ end
 nFrames = movieData.nFrames_;
 
 % Check optional process Flow Tracking
-iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
-if ~isempty(iSDCProc)
-    SDCProc=movieData.processes_{iSDCProc};
+% iSDCProc = movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+iTFMPack = movieData.getPackageIndex('TFMPackage');
+tfmPackageHere=movieData.packages_{iTFMPack}; iSDCProc=1;
+SDCProc=tfmPackageHere.processes_{iSDCProc};
+if ~isempty(SDCProc)
+%     SDCProc=movieData.processes_{iSDCProc};
     if ~SDCProc.checkChannelOutput(p.ChannelIndex)
         error(['The channel must have been corrected ! ' ...
             'Please apply stage drift correction to all needed channels before '...
@@ -133,7 +136,7 @@ firstMask = refFrame>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
 % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 tempMask2 = false(size(refFrame));
-if ~isempty(iSDCProc)
+if ~isempty(SDCProc)
     if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
         meanYShift = round(T(1,1));
         meanXShift = round(T(1,2));
@@ -177,7 +180,7 @@ if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
 
 for j= firstFrame:nFrames
     % Read image and perform correlation
-    if ~isempty(iSDCProc)
+    if ~isempty(SDCProc)
         currImage = double(SDCProc.loadChannelOutput(p.ChannelIndex(1),j));
     else
         currImage = double(movieData.channels_(p.ChannelIndex(1)).loadImage(j));

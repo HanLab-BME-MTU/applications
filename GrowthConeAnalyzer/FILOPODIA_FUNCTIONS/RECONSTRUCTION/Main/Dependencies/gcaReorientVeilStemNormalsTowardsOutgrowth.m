@@ -85,8 +85,8 @@ if CCs.NumObjects == 1
     backboneMask(LPIndices) = true;
     backboneMask = bwmorph(backboneMask,'diag');
     toRemove = intersect(find(borderMaskAll==1),find(backboneMask==1));
-    idxRemove = arrayfun(@(x)  find(smoothedEdgeCIdxPix == toRemove(x)),1:length(toRemove) );
-    
+    idxRemove = arrayfun(@(x)  find(smoothedEdgeCIdxPix == toRemove(x)),1:length(toRemove),'uniformoutput',0 );
+    idxRemove = vertcat(idxRemove{:});
     quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g')
     normalsC(idxRemove,:) = [];
     smoothedEdgeC(idxRemove,:) = [];

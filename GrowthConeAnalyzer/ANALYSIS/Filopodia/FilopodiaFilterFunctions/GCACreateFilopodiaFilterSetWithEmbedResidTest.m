@@ -1,4 +1,4 @@
-function [ filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbed(analInfo,filterType)
+function [ filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbed(analInfo,filterType,varargin)
 %GCACreateFilopodiaFilterSet:
 % create a logical filterset for filopodia analysis - ... maybe just have the
 % input be a filoFilterSet created previously (with filter types and
@@ -22,11 +22,18 @@ function [ filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbed(an
 %                                      parameters
 %
 % OUTPUT:
-%       filoFilterSet:   rx1 cell of logical filters for the filopodia for each frame
-%                        where r1 is the number of frames
+%       filoFilterSet:   rx2 cell of logical filters for the filopodia for each frame
+%                        where r1 is the number of frames and column 1 is
+%                        the traditional non-embedded filter and column2 is
+%                        the embedded actin bundle filter. 
 %
 %
 %
+%% Check Input
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addParameter('pixelSizeNm',216,@(x) isscalar(x));
+ip.parse(varargin{:});
 %% SET THE PARAMS BASED ON INPUT CHOICE
 switch filterType
     case 'ConnectToVeil_LengthInt';
@@ -147,7 +154,7 @@ switch filterType
         filterParams.filterByBundleLength = [0.3,inf];
         
        % filterParams.saveFiloByLengthAndSig = [];
-          filterParams.saveFiloByLengthAndSig = [5 inf; 50 100];
+          filterParams.saveFiloByLengthAndSig = [1 inf; 5 100];
       
         filterParams.embedFitCriteria =95 ; % change threshold to be a percentile of the residuals 
         filterParams.filoFitCriteria = 95; 
@@ -156,7 +163,7 @@ switch filterType
         filterParams.filterBasedOnGroupUpstream = 0; 
         filterParams.filterBasedOnBranchConnection = 0 ; 
         
-        filterParams.filterIntNoConnect=1; 
+        filterParams.filterIntNoConnect=0; 
         
         % current problem is that need an option to maintain the flag on
         % the external but kick out the internal if the fit doesn't work
@@ -184,7 +191,7 @@ switch filterType
         filterParams.filterBasedOnGroupUpstream = 1; 
         filterParams.filterBasedOnBranchConnection =1 ; 
         
-        filterParams.filterIntNoConnect=1; 
+        filterParams.filterIntNoConnect=0; 
         
         % current problem is that need an option to maintain the flag on
         % the external but kick out the internal if the fit doesn't work
@@ -193,7 +200,18 @@ switch filterType
         % maybe that is the better option just because this will save info
         % and if you do this here it will allow the user to make this more 
         % permissive or less.       
+    case 'Validation_NoEmbed'
+        filterParams.filoTypes = [0 Inf]; % 0 order attached to veil (no Branch), 1st order attached to a veil with a branch
+        filterParams.filterByFit = 1;
+        filterParams.filterByBundleLength = [0.3,inf];
         
+        %filterParams.saveFiloByLengthAndSig = [];
+        filterParams.saveFiloByLengthAndSig = [10 inf; 0 100];
+        filterParams.filoFitCriteria = 95;
+        
+        
+        filterParams.filterBasedOnGroupUpstream = 0;
+        filterParams.filterBasedOnBranchConnection = 0 ;
         
         
         
@@ -270,14 +288,21 @@ for iFrame = 1:endFrame
 %         missingFits(iFrame,1)= sum(arrayfun(@(x) isempty(x.Ext_endpointCoordFitPix),filoInfo));
 %     end
  %% filter by embedded first 
+ 
+
+if isfield(filterParams,'embedFitCriteria') 
+ 
+ 
 p1Int  = arrayfun(@(x) filoInfo(x).Int_params(1),1:length(filoInfo),'uniformoutput',0)'; % get the amplitude of the fit
 resids = arrayfun(@(x) filoInfo(x).Int_resid,1:length(filoInfo),'uniformoutput',0)'; 
 
 %filtInt = (p1Int<filterParams.embedFitCriteria(1) | isnan(p1Int)); 
 % for a quick test filter out the amplitude of signal that is less than the
 % 95th percentile of the residuals. 
- filtInt  = cellfun(@(x,y) (y < prctile(x,filterParams.embedFitCriteria) | isnan(y)),resids,p1Int); 
-
+filtInt  = cellfun(@(x,y) (y < prctile(x,filterParams.embedFitCriteria) | isnan(y)),resids,p1Int); 
+else 
+    filtInt = false(length(filoInfo),1); % no filtering based on embedded
+end 
     %% FILTER BY SIGMOIDAL FITTING
     if filterParams.filterByFit == 1;
         
@@ -328,14 +353,18 @@ resids = arrayfun(@(x) filoInfo(x).Int_resid,1:length(filoInfo),'uniformoutput',
         maxLength = filterParams.filterByBundleLength(2);
         % get all lengths
         lengthExt = vertcat(filoInfo(:).Ext_length);
-        lengthInt = vertcat(filoInfo(:).Int_length);
+        if isfield(filterParams,'embedFitCriteria')
+            lengthInt = vertcat(filoInfo(:).Int_length);
+        else 
+            lengthInt = zeros(length(filoInfo),1);
+        end
         % change NaNs into zero for addition
         lengthExt(isnan(lengthExt))= 0 ;
         lengthInt(isnan(lengthInt)) = 0 ;
         lengthInt(filtInt) = 0; 
         lengthBundle = lengthExt + lengthInt;
         % convert to um
-        lengthBundle = lengthBundle.* 0.216; % make input!
+        lengthBundle = lengthBundle.* ip.Results.pixelSizeNm./1000; % most intuitive to set the length of the bundle in um
         
         toKeepBasedOnLength = lengthBundle>minLength & lengthBundle<maxLength; % logical marking all the filo that
         % make the bundle length criteria
@@ -348,9 +377,9 @@ resids = arrayfun(@(x) filoInfo(x).Int_resid,1:length(filoInfo),'uniformoutput',
     if ~ isempty(filterParams.saveFiloByLengthAndSig);
         s = filterParams.saveFiloByLengthAndSig;
         % get filopodia that meet length cut-off..
-        lengthExt = vertcat(filoInfo(:).Ext_length)*.216; % convert
+        lengthExt = vertcat(filoInfo(:).Ext_length)*ip.Results.pixelSizeNm./1000; % convert
         
-        savePop1 = lengthExt>s(1,1) & lengthExt < s(2,1) & toKeepBasedOnType ; % fixed 201508
+        savePop1 = lengthExt>s(1,1) & lengthExt < s(1,2) & toKeepBasedOnType ; %
         
         % get the full population
         intensities = vertcat(filoInfo(:).Ext_IntensityNormToVeil);
@@ -359,7 +388,7 @@ resids = arrayfun(@(x) filoInfo(x).Int_resid,1:length(filoInfo),'uniformoutput',
         cutoffMax = prctile(intensitiesForPer,s(2,2));
         
         
-        savePop2 = intensities>cutoffMin & intensities<cutoffMax & ~isnan(intensities) & toKeepBasedOnType; %fixed 201508
+        savePop2 = intensities>cutoffMin & intensities<cutoffMax & ~isnan(intensities) & toKeepBasedOnType; %
         
         savePop = savePop1 & savePop2;
         % get filopoida that meet intensity cut-off (defined by percentile)
@@ -465,28 +494,29 @@ resids = arrayfun(@(x) filoInfo(x).Int_resid,1:length(filoInfo),'uniformoutput',
          clear toRemove
          end % isfield(filoInfo,'conXYCoords')
     end % filterBasedOnBranchConnection
-    %% if filterParams.filterBasedOnBranchConnection
-    idxKeepBasedOnIntNoConnect =  ones(length(filoInfo),1); 
-    
-    if filterParams.filterIntNoConnect
-        % get the end points of the two coords
-        % if not within 3 pixels remove
-        %         idxKeepBasedOnIntNoConnect = ones(length(filoInfo),1);
-        y = zeros(length(filoInfo(:)),1); 
-        for i = 1:length(filoInfo);
-            if ~isnan(filoInfo(i).Int_coordsXY);
-                test1 = filoInfo(i).Int_coordsXY(1,:);
-                test2 = filoInfo(i).Ext_coordsXY(1,:);
-                if ~isnan(test1)
-                    y(i) = sqrt((test1(1)-test2(1))^2 +(test1(2)-test2(2))^2);
-                    
+    %% Quick fix for embedded filo that hit a cell edge before being reconnected with partner. 
+    idxKeepBasedOnIntNoConnect =  ones(length(filoInfo),1);
+    if isfield(filterParams,'filterIntNoConnect')
+        if filterParams.filterIntNoConnect
+            % get the end points of the two coords
+            % if not within 3 pixels remove
+            %         idxKeepBasedOnIntNoConnect = ones(length(filoInfo),1);
+            y = zeros(length(filoInfo(:)),1);
+            for i = 1:length(filoInfo);
+                if ~isnan(filoInfo(i).Int_coordsXY);
+                    test1 = filoInfo(i).Int_coordsXY(1,:);
+                    test2 = filoInfo(i).Ext_coordsXY(1,:);
+                    if ~isnan(test1)
+                        y(i) = sqrt((test1(1)-test2(1))^2 +(test1(2)-test2(2))^2);
+                        
+                    end
                 end
             end
-        end
-        
-        idxKeepBasedOnIntNoConnect = y<6;
-%          idxKeepBasedOnIntNoConnect  = idxKeepBasedOnIntNoConnect'; 
-    end
+            
+            idxKeepBasedOnIntNoConnect = y<6;
+            %          idxKeepBasedOnIntNoConnect  = idxKeepBasedOnIntNoConnect';
+        end % if filterParams.filterIntNoConnect
+    end % if isfield
     %% Add Biosensor Filter 
     % Initiate
     toKeepBasedOnNumSigAtActinBundEnd = ones(length(filoInfo),1);
@@ -532,6 +562,8 @@ resids = arrayfun(@(x) filoInfo(x).Int_resid,1:length(filoInfo),'uniformoutput',
     
     
         %% Make Final Filo Filter Set Based on All the Above Criteria
+        
+        
         filoFilter = (toKeepBasedOnExit & toKeepBasedOnType & ~nanToRemove & toKeepBasedOnLength & toKeepBasedOnGroupUpstream & idxKeepBasedOnBranchConnection ... 
              &  toKeepBasedOnNumSigAtActinBundEnd  & toKeepBasedOnNumBackSampleSize);
         if ~isempty(filterParams.saveFiloByLengthAndSig);
