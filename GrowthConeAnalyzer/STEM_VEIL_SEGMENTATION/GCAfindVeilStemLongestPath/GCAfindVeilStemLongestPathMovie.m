@@ -66,6 +66,8 @@ ip.addParameter('TSOverlays',true,@(x) islogical(x));
 ip.addParameter('neuriteElongTS_medFiltWindSize',10,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 ip.addParameter('neuriteElongTSOutlier_outlierDef_k',3,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 
+ip.addParameter('extractVeilStemThickness',true); 
+% calls GCAAnalysisExtract_VeilStemThicknessMovie
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -210,11 +212,13 @@ for iCh = 1:nChan
     
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'params.mat'],'p');
     display(['Finished Neurite Outgrowth Metric for ' movieData.outputDirectory_]);
+   
     %% Extra: Extract Thickness : Make an option - don't necessarily always want this step
-    veilStemCell{1} = veilStem; % note I am just putting these into cell form as the optional input gets a bit messed up
-    % in the input parser when these are structures- go back and troubleshoot if time.
-    neuriteLengthCell{1} = neuriteLength;
-    GCAAnalysisExtract_VeilStemThicknessMovie(movieData,veilStemCell,neuriteLengthCell);
-    
+    if ip.Results.extractVeilStemThickness
+        veilStemCell{1} = veilStem; % note I am just putting these into cell form as the optional input gets a bit messed up
+        % in the input parser when these are structures- go back and troubleshoot if time.
+        neuriteLengthCell{1} = neuriteLength;
+        GCAAnalysisExtract_VeilStemThicknessMovie(movieData,veilStemCell,neuriteLengthCell);
+    end 
 end % for iCh
 end % function
