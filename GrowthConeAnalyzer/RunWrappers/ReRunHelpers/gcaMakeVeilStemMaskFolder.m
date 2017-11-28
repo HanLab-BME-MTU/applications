@@ -1,43 +1,41 @@
-function [ output_args ] = gcaMakeVeilStemMaskFolder( movieData,movefile)
-%GCAMakeVeilStemMask
-% was makeNeuriteBodyMaskFolder until 2015067
-%
-%
-% INPUT:
-% movieData
-%
-%
-if nargin<2
-    movefile=true; 
+function [ output_args ] = gcaMakeVeilStemMaskFolder(movieData,varargin)
+%gcaMakeVeilStemMaskFolder
+
+%% Check input
+if nargin < 1 || ~isa(movieData,'MovieData')
+    error('The first input must be a valid MovieData object!')
 end
-%% Move the old file
-source = [movieData.outputDirectory_ filesep 'masks' filesep 'masks_for_channel_1'];
-if movefile == true
 
-Global = [movieData.outputDirectory_ filesep 'GlobalThresholding'];
-if ~isdir(Global)
-    mkdir(Global)
-end
-dest = [Global filesep 'masks_for_channel_1'];
-copyfile(source, dest);
+ip = inputParser;
 
-source1 = [movieData.outputDirectory_ filesep 'masks' filesep 'threshold_values_for_channel_1.mat'];
-dest1 = [Global filesep 'threshold_values_for_channel_1.mat'];
-copyfile(source1,dest1);
+ip.CaseSensitive = false;
 
-rmdir(source,'s');
-mkdir(source);
+
+defaultInDir = [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep 'StepsToReconstruct' filesep ...
+    'III_veilStem_reconstruction' filesep 'Channel_1'];
+
+defaultOutDir = [defaultInDir filesep 'finalMask']; 
+
+ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
+ip.addParameter('InputDirectory', defaultInDir,@(x) ischar(x));
+
+ip.addParameter('addExternalSegProcess',true);
+defaultOutDirMD = [movieData.outputDirectory_ filesep...
+    'SegmentationPackage' filesep 'masks_VeilStemFinal'];
+ip.addParameter('OutputDirectoryMD',defaultOutDirMD,@(x) ischar(x)); 
+
+ip.addParameter('Overlays',true);
+ip.parse(varargin{:});
+%% Initialize
+if ~isdir([ip.Results.OutputDirectory])
+    mkdir([ip.Results.OutputDirectory]); 
 end 
-%% Load the veilStemMasks and put them in the original thereshold folder
-%  until can re-adjust the input-output path workflow easier to keep them in
-%  the same format as the default - input output.
 
-fileToLoad = [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep 'StepsToReconstruct' filesep ...
-    'III_veilStem_reconstruction' filesep 'Channel_1' filesep 'veilStem.mat'];
+fileToLoad = [ip.Results.InputDirectory filesep 'veilStem.mat'];
 load(fileToLoad);
 nImTot = numel(veilStem);
 fmt = ['%0' num2str(ceil(log10(nImTot))) 'd'];
-
+%%
 for iFrame = 1:nImTot
     mask  = veilStem(iFrame).finalMask;
     
@@ -56,11 +54,11 @@ for iFrame = 1:nImTot
     % should have been filled but again just in case
     
     mask = imfill(mask,'holes');
-    imwrite(mask,[ source filesep 'veilStemMask' num2str(iFrame,fmt) '.tif']);
-   % if overlaymovie ==1
-        % img = double(imread(analInfo(iFrame).imgPointer));
+    imwrite(mask,[ip.Results.OutputDirectory filesep 'veilStemMask' num2str(iFrame,fmt) '.tif']);
+    if ip.Results.Overlays
+        
         img =  movieData.channels_(1).loadImage(iFrame);
-        img = double(img); 
+        img = double(img);
         [ny,nx] = size(img);
         setFigure(nx,ny,'off');
         imshow(-img,[]);
@@ -68,19 +66,25 @@ for iFrame = 1:nImTot
         roiYX = bwboundaries(mask);
         text(5,10,'VeilStem Outline', 'Color','g');
         cellfun(@(x) plot(x(:,2),x(:,1),'color','g'),roiYX);
-        if ~isdir([source filesep 'Overlays']);
-            mkdir([source filesep 'Overlays']) ;
+        if ~isdir([ip.Results.OutputDirectory filesep 'Overlays']);
+            mkdir([ip.Results.OutputDirectory filesep 'Overlays']) ;
         end
-        saveas(gcf,[source filesep 'Overlays' filesep 'VeilStemOverlay' num2str(iFrame,fmt) '.png']);
+        saveas(gcf,[ip.Results.OutputDirectory filesep 'Overlays' filesep 'VeilStemOverlay' num2str(iFrame,fmt) '.png']);
         close gcf
-        
-    %end
+    end
     clear mask
 end
-% if overlaymovie ==1
-%     cd([saveDir filesep 'Overlays'])
-%
-%     execute = 'mencoder mf://*.png -mf w=800:h=600:fps=5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
-%     system(execute);
-% end
-
+% add to process via external segmentation
+if ip.Results.addExternalSegProcess
+    
+    extProc = ExternalSegmentationProcess(movieData);
+    % % % Save the process in the movie object
+    movieData.addProcess(extProc);
+    params = movieData.processes_{end}.funParams_;
+    params.OutputDirectory = ip.Results.OutputDirectoryMD;
+    params.InputData{1} = ip.Results.OutputDirectory; 
+    parseProcessParams(movieData.processes_{end},params);
+    movieData.processes_{end}.run;
+    movieData.save;   
+end
+end  %function

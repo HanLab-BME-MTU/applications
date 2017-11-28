@@ -1,4 +1,4 @@
-function conditionEnrichmentStatistics(enrichmentProcess,names,outputDirPlot)
+function enrichmentVsImage(enrichmentProcess,names,outputDirPlot)
 % load scoring data associated to cells. A Cell of process list describes the conditions
 
 if(~iscell(enrichmentProcess))

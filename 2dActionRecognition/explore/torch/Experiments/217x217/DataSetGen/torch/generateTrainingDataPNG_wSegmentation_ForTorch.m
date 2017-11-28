@@ -6,9 +6,9 @@ load('/work/bioinformatics/shared/dope/data/OMETIFF/Gen2n3_May15_ALL.mat', 'cell
 
 resizeOn = true;
 cellSegmentation = true;
-newDim = [28 28];
+newDim = [128 128];
 
-dataRootDir = '/work/bioinformatics/shared/dope/torch/test/128x128/small/images/';
+dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/128x128/';
 dataRootDirVal = fullfile(dataRootDir,'test');
 dataRootDirTR = fullfile(dataRootDir,'train');
 
@@ -18,10 +18,9 @@ dataBlanksSeg = fullfile(dataRootDir,'blanks');
 randOrd = randperm(length(cellDataSet));
 percentVal = .1;
 
-parfor iR = 1:25%length(cellDataSet)
+parfor iR = 1:length(cellDataSet)
     i = randOrd(iR);
     MD = load(cellDataSet{i}.cellMD,'MD');
-    %     I = gpuArray(mat2gray(MD.MD.getChannel(1).loadImage(1)));
     MD = MD.MD;
     expStr = cellDataSet{i}.expStr;
     
@@ -51,11 +50,11 @@ parfor iR = 1:25%length(cellDataSet)
         end
         
         frameNum = num2str(fidx);
-        newFileOut = [MD.processes_{1}.funParams_.key '_f' frameNum '.png'];
+        newFileOut = [cellDataSet{i}.key '_f' frameNum '.png'];
 
-        if MD.processes_{1}.funParams_.metEff == 0
+        if cellDataSet{i}.metEff == 0
             classDir = 'lowMet';
-        elseif MD.processes_{1}.funParams_.metEff == 1
+        elseif cellDataSet{i}.metEff == 1
             classDir = 'highMet';
         else
             classDir = 'unMet';

@@ -666,8 +666,8 @@ if ~foundTracks
 
     %% saving
     tableTracksNA = struct2table(tracksNA);
-    save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA');
-    save(dataPath_focalAdhInfo, 'focalAdhInfo')
+    save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
+    save(dataPath_focalAdhInfo, 'focalAdhInfo','-v7.3')
 else
     load(dataPath_tracksNA, 'tracksNA');
     load(dataPath_focalAdhInfo, 'focalAdhInfo')    
@@ -686,7 +686,7 @@ if ~isempty(SDCProc)
         % MSDrate, assemRate, disassemRate, earlyAmpSlope,lateAmpSlope
         tracksNA = getFeaturesFromTracksNA(tracksNA, deltaT, getEdgeRelatedFeatures);%,...);
         tableTracksNA = struct2table(tracksNA);
-        save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA');
+        save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
         
         % Apply SDC to labelAdhesion too
         for  ii = 1 : nFrames

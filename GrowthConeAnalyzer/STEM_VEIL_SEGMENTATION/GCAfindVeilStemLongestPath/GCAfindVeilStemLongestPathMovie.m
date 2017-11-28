@@ -62,10 +62,12 @@ ip.addParameter('EndFrame','auto');
 
 % Specific
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
-%ip.addParameter('TSMovie',false,@(x) islogical(x));
+
 ip.addParameter('neuriteElongTS_medFiltWindSize',10,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 ip.addParameter('neuriteElongTSOutlier_outlierDef_k',3,@(x) isscalar(x)); % see gcaFindOutliersFromMedFilt.m
 
+ip.addParameter('extractVeilStemThickness',true); 
+% calls GCAAnalysisExtract_VeilStemThicknessMovie
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -73,12 +75,12 @@ p = ip.Results;
 nFrames = movieData.nFrames_;
 nChan = numel(p.ChannelIndex);
 imSize = movieData.imSize_;
-
+pixelSizeMic = movieData.pixelSize_/1000;
 %% Start Channel Wrapper
 
 for iCh = 1:nChan
     
-   % display(['Finding VeilStem Longest Path for Channel ' num2str(iCh)]);
+    display(['Finding Veil/Stem Longest Path for Channel ' num2str(iCh)]);
     %% Get Start and End Frames Based on Restart Choice
     
     % make final output dir where backboneInfo will be saved
@@ -104,7 +106,7 @@ for iCh = 1:nChan
     
     % If veilStem.mat  already exists load it
     if  exist(veilStemFile,'file')==2;
-        display('Previous Measurments Detected'); 
+        display('Previous Measurments Detected');
         load(veilStemFile) % load the file
         load([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'neuriteLength.mat']);
         display('Loading Previously Run Longest Path VeilStem Measurements');
@@ -114,24 +116,23 @@ for iCh = 1:nChan
                 startFrame = length(veilStem);
             end
             
-            
             if startFrame == 0
                 startFrame = 1; % reset to 1;
             end
-            display(['Auto Start: Starting Veil/Stem Reconstruction at Frame ' num2str(startFrame)]);
+            display(['Auto Start: Starting Veil/Stem Length at Frame ' num2str(startFrame)]);
         else
             startFrame = ip.Results.StartFrame; % use user input
-            display(['Manual Start: Starting Veil/Stem Reconstruction at Frame ' num2str(startFrame)]);
+            display(['Manual Start: Starting Veil/Stem Length at Frame ' num2str(startFrame)]);
         end
     else % if doesn't exist
         
         startFrame = 1;
         
-        display('No Veil/Stem Folder Found: Creating and Starting at Frame 1');
-        %%    Load Veil Stem Information from Step III 
-         load([ [movieData.outputDirectory_ filesep...
-        'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'III_veilStem_reconstruction'] filesep 'Channel_' num2str(iCh)...
-        filesep 'veilStem.mat']);
+        display('No Neurite Length Folder Found: Creating and Starting at Frame 1');
+        %%    Load Veil Stem Information from Step III
+        load([ [movieData.outputDirectory_ filesep...
+            'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'III_veilStem_reconstruction'] filesep 'Channel_' num2str(iCh)...
+            filesep 'veilStem.mat']);
         
     end % exist(orientFile,'file') == 2
     
@@ -143,20 +144,21 @@ for iCh = 1:nChan
     
     if strcmpi(ip.Results.EndFrame,'auto');
         endFrame = nFrames;
-        display(['Auto End: Finding Veil/Stem From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
+        display(['Auto End: Finding Neurite Lengths From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     else
         endFrame = ip.Results.EndFrame;
-        display(['Manual End: Finding Veil/Stem From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
+        display(['Manual End: Finding Neurite Lengths From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
-   
+    
     %% Main Function:
+    
     for iFrame = startFrame:endFrame
         
         veilStemMaskC = veilStem(iFrame).finalMask;
         idxEnterNeuriteC = veilStem(iFrame).idxEnterNeurite;
         
-        [neuriteLengthC,longPathLinIndC,EPLongPathC,~] = GCAfindVeilStemLongestPath(veilStemMaskC,idxEnterNeuriteC);
-       
+        [neuriteLengthC,longPathLinIndC,EPLongPathC,~] = GCAfindVeilStemLongestPath(veilStemMaskC,idxEnterNeuriteC,'pixelSizeMic',pixelSizeMic);
+        
         neuriteLength(iFrame,1) = neuriteLengthC;
         
         veilStem(iFrame).neuriteLongPathIndices = longPathLinIndC;
@@ -169,7 +171,7 @@ for iCh = 1:nChan
     
     
     % After complete put into the neurite outgrowth measurement file
-    measDir =  [ movieData.outputDirectory_ filesep 'MEASUREMENT_EXTRACTION' filesep 'GlobalFunctional' filesep ...
+    measDir =  [ movieData.outputDirectory_ filesep 'GCAFeatureExtraction' filesep 'GlobalFunctional' filesep ...
         'neurite_outgrowth_measurements'];
     if ~isdir(measDir)
         mkdir(measDir) ;
@@ -184,7 +186,7 @@ for iCh = 1:nChan
         display('A .flagOutlier field was previously found and was overwritten');
     end
     
-   
+    
     neuriteLengthSub = neuriteLength - neuriteLength(1);
     
     [~, outlierIdx, TSFig] = gcaFindOutliersFromMedFilt(neuriteLengthSub,ip.Results.neuriteElongTS_medFiltWindSize,ip.Results.neuriteElongTSOutlier_outlierDef_k); % add these parameters
@@ -205,17 +207,18 @@ for iCh = 1:nChan
         veilStem(frame).flagOutlier = true;
     end
     
-    params.timeStamp= clock; 
+    params.timeStamp= clock;
     save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'veilStem.mat'],'veilStem','-v7.3') ;
-
-    save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'params.mat'],'p');  
-    display(['Finished Neurite Outgrowth Metric for ' movieData.outputDirectory_]); 
- %% Extra: Extract Thickness : Make an option - don't necessarily always want this step 
- veilStemCell{1} = veilStem; % note I am just putting these into cell form as the optional input gets a bit messed up
- % in the input parser when these are structures- go back and troubleshoot if time. 
- neuriteLengthCell{1} = neuriteLength; 
- GCAAnalysisExtract_VeilStemThicknessMovie(movieData,veilStemCell,neuriteLengthCell); 
- 
     
+    save([ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh) filesep 'params.mat'],'p');
+    display(['Finished Neurite Outgrowth Metric for ' movieData.outputDirectory_]);
+   
+    %% Extra: Extract Thickness : Make an option - don't necessarily always want this step
+    if ip.Results.extractVeilStemThickness
+        veilStemCell{1} = veilStem; % note I am just putting these into cell form as the optional input gets a bit messed up
+        % in the input parser when these are structures- go back and troubleshoot if time.
+        neuriteLengthCell{1} = neuriteLength;
+        GCAAnalysisExtract_VeilStemThicknessMovie(movieData,veilStemCell,neuriteLengthCell);
+    end 
 end % for iCh
 end % function

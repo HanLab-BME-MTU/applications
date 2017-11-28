@@ -34,6 +34,8 @@ ip.parse(varargin{:});
 p=ip.Results;
 dynPoligonISO=p.dynPoligonISO;
 dynPoligonREF=p.dynPoligonREF;
+fillTrackGaps(dynPoligonISO);
+fillTrackGaps(dynPoligonREF);
 if(isempty(dynPoligonREF))
     if(~isempty(p.FoF))
         dynPoligonREF=p.FoF.applyBase(dynPoligonISO,'');

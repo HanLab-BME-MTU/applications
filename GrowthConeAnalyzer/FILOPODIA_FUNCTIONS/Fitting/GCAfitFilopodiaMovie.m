@@ -43,7 +43,7 @@ function [ filoInfo] = GCAfitFilopodiaMovie(movieData,varargin)
 %       corresponding to the the filopodia fitting. 
 %% ----- Input ------ %%
 if nargin < 1 || ~isa(movieData,'MovieData')
-    error('The first input must be a valid MovieData object!')
+    error('The first input must be a ParamFreevalid MovieData object!')
 end
 
 %%Input check
@@ -51,9 +51,12 @@ ip = inputParser;
 
 ip.CaseSensitive = false;
 
+
+
 % PARAMETERS
 defaultOutDir = [movieData.outputDirectory_ filesep...
     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VII_filopodiaBranch_fits'];
+
 
 defaultInDir = [movieData.outputDirectory_ filesep ... 
     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'VI_filopodiaBranch_reconstruction']; 
@@ -65,14 +68,18 @@ ip.addParameter('ProcessIndex',0);
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
 
+% Archiving the software version
+ip.addParameter('getGITHashTag',false);
+
 % Specific
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
 ip.addParameter('TSMovie',false,@(x) islogical(x)); 
 
 ip.addParameter('InternalFiloOn',3,@(x) isscalar(x));
-ip.addParameter('NumPixForFitBack',10,@(x) isscalar(x));
+% ip.addParameter('NumPixForFitBack',10,@(x) isscalar(x));
 ip.addParameter('ValuesForFit','Intensity',@(x) ischar(x)); % maybe remove 
 ip.addParameter('PSFSigma',0.43,@(x) isnumeric(x)) ; %% NOTE CHANGE THIS TO BE READ IN FROM MD. 
+ip.addParameter('fitLengthInPix',10,@(x) isscalar(x)); 
 
 ip.parse(varargin{:});
 params = ip.Results;
@@ -80,37 +87,34 @@ params = ip.Results;
 nFrames = movieData.nFrames_;
 nChan = numel(params.ChannelIndex);
 imSize = movieData.imSize_;
-
+channels = params.ChannelIndex; 
 
 %% Start Wrapper
-for iCh = 1:numel(params.ChannelIndex)
+for iCh = 1:nChan
     
     
-    display(['Fitting Filopodia for Channel ' num2str(iCh)]);
-    
-
-    
+    display(['Fitting Filopodia for Channel ' num2str(channels(iCh))]);
+   
     %% Get Start and End Frames Based on Restart Choice
-    
+  
     % make final output dir where backboneInfo will be saved
-    outDirC =  [ip.Results.OutputDirectory filesep 'Channel_' num2str(iCh)];
-    inDirC = [ip.Results.InputDirectory filesep 'Channel_' num2str(iCh)]; 
+    outDirC =  [ip.Results.OutputDirectory filesep 'Channel_' num2str(channels(iCh))];
+    inDirC = [ip.Results.InputDirectory filesep 'Channel_' num2str(channels(iCh))]; 
     
     if ~isdir(outDirC)
         mkdir(outDirC);
     end
     
-    if params.ProcessIndex == 0
-        imgDir =  movieData.channels_(params.ChannelIndex).channelPath_; % currently mainly needed if you do the local thresholding/ otherwise just overlay
-    else
-        imgDir = movieData.proccesses_(params.ProcessIndex).outFilePaths_{params.ChannelIndex};
-    end
+%     if params.ProcessIndex == 0
+%         imgDir =  movieData.channels_(channels(iCh)).channelPath_; % currently mainly needed if you do the local thresholding/ otherwise just overlay
+%     else
+%         imgDir = movieData.proccesses_(params.ProcessIndex).outFilePaths_{params.ChannelIndex};
+%     end
     
     % collect images and initiate
     %[listOfImages] = searchFiles('.tif',[],imgDir ,0);
     
-    
-    
+   
 %% Get Restart Information 
 % Check for a fit file and load if exists 
     fitFile = [outDirC filesep 'filoBranch.mat'];
@@ -156,13 +160,13 @@ for iCh = 1:numel(params.ChannelIndex)
         endFrame = ip.Results.EndFrame;
         display(['Manual End: Fitting Filopodia/Branches From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
-   
+
     %% Start Loop Over Movie
     % GET FRAME INFORMATION - this function wraps per frame
     for iFrame = startFrame:endFrame
         % get the filoInfo for the current frame
         filoInfo = filoBranch(iFrame).filoInfo;
-        imgPath = [movieData.getChannelPaths{params.ChannelIndex(iCh)} filesep movieData.getImageFileNames{params.ChannelIndex(iCh)}{iFrame}];
+        imgPath = [movieData.getChannelPaths{(channels(iCh))} filesep movieData.getImageFileNames{(channels(iCh))}{iFrame}];
         img = double(imread(imgPath));
         % make a specific output directory for the plotting for each frame
 %         pSpecific = p;
@@ -174,22 +178,28 @@ for iCh = 1:numel(params.ChannelIndex)
 %         if pSpecific.SavePlots == 1
         if ip.Results.TSOverlays == 1
              params.OutputDirectory = [outDirC filesep 'Linescans' filesep 'Frame ' num2str(iFrame,'%03d')];
+             
+             
              mkClrDir(params.OutputDirectory)
         end
         
         [filoInfo] = GCAfitFilopodia(filoInfo,img,params) ;
         
-        
-        
-        
-        
+  
         % rewrite the filoInfo with the extra filo Info fields.
         filoBranch(iFrame).filoInfo = filoInfo;
-        display(['Finished Fitting Filopodia for  Channel ' num2str(params.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]);
+        display(['Finished Fitting Filopodia for  Channel ' num2str((channels(iCh))) 'Frame ' num2str(iFrame)]);
         filoBranch(iFrame).reconstructInfo.createTimeFiloFit = clock;
-        [hashTag = gcaArchiveGetGitHashTag;
+        
+        if ip.Results.getGITHashTag
+            hashTag = gcaArchiveGetGitHashTag;
+        else
+            hashTag = NaN;
+        end
+        
         filoBranch(iFrame).reconstructInfo.hashTagFiloFit = hashTag;
         p(iFrame) = params; 
+        
         save([outDirC filesep 'filoBranch.mat'],'filoBranch','-v7.3')
         save([outDirC filesep 'params.mat'],'p'); 
         

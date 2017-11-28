@@ -146,11 +146,22 @@ function pushbutton_sampleGroup1_Callback(hObject, eventdata, handles)
     'Mat files (*.mat)'},...
     'Select the file containing selectedGroups');
 if ~isequal(file, 0) && ~isequal(path, 0)
-    vars = whos('basisClassTbl','-file',[path file]);
-    if numel(vars) ~= 1
-        errordlg('Please select a file containing a valid basis class lookup table');
-        return 
-    end
     set(handles.edit_sampleGroup1,'String',[path file]);
 end
 
+% --- Executes on button press in pushbutton_done.
+function pushbutton_sampleGroup2_Callback(hObject, eventdata, handles)
+[file, path] = uigetfile({'*.mat;*.MAT',...
+    'Mat files (*.mat)'},...
+    'Select the file containing selectedGroups');
+if ~isequal(file, 0) && ~isequal(path, 0)
+    set(handles.edit_sampleGroup2,'String',[path file]);
+end
+% --- Executes on button press in pushbutton_done.
+function pushbutton_sampleGroup3_Callback(hObject, eventdata, handles)
+[file, path] = uigetfile({'*.mat;*.MAT',...
+    'Mat files (*.mat)'},...
+    'Select the file containing selectedGroups');
+if ~isequal(file, 0) && ~isequal(path, 0)
+    set(handles.edit_sampleGroup3,'String',[path file]);
+end

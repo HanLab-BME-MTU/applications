@@ -23,12 +23,11 @@ ip.addRequired('pixIdx',@(x) isvector(x) || isempty(x) );
 ip.addRequired('size',@isvector);
 ip.addOptional('mkPlot',0,@isscalar); % 
 ip.addParameter('distCutOff',[],@(x) isscalar(x) || isempty(x));
-ip.addParameter('pixelSize',0.216, @isscalar); % just make this default for me now
-
+ip.addParameter('pixelSizeMic',0.216, @isscalar); % in microns
 ip.parse(pixIdx,size,varargin{:});
 
 distCutOff = ip.Results.distCutOff;
-pixelSize = ip.Results.pixelSize;
+pixelSize = ip.Results.pixelSizeMic;
 mkPlot = ip.Results.mkPlot;
 
 [y,x]  = ind2sub(size,pixIdx);

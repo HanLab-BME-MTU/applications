@@ -5,6 +5,15 @@ function [imgOut, mask, vI, fvI, bfvI] = segCellLCH(img, varargin)
 %  INPUT: image
 %           'align' : orient the mask along major axis
 %           'preview': plot results for debugging
+%             'avgBG':    default is false for using zeros, 
+%                         otherwise fills the non-mask with the avg of the 
+%                         original image background
+%             'varFilterOut': outputs the variance filter of the segmentated 
+%                         image region, note variance filter is done first on entire 
+%                         image the mask is cut from this
+%             'centerMass": place object in the center of the image and pad
+%             with zero/background
+%             
 %  OUTPUT: binary mask
 %    (optional outputs include image processing steps for debugging)
 %
@@ -16,7 +25,9 @@ ip = inputParser;
 ip.addRequired('img', @isnumeric);
 ip.addOptional('align',false, @islogical);
 ip.addOptional('preview', false, @islogical);
-ip.addOptional('avgBG', true, @islogical);
+ip.addOptional('avgBG', false, @islogical);
+ip.addOptional('varFilterOut', false, @islogical);
+ip.addOptional('centerMass', false, @islogical);
 ip.parse(img,varargin{:});
 p = ip.Results;
 
@@ -68,10 +79,16 @@ end
 % if rp.Area/size(maskAll,1)^2  >= .9
 %     mask = 0;
 % end
+if p.varFilterOut
+    Ivar = rangefilt(I);
+    imgFG = mask.*Ivar;    
+%     varI = stdfilt(I);
+else
+    imgFG = mask.*I;    
+end
 
-imgFG = mask.*I;
 
-if p.avgBG
+if p.avgBG && ~p.varFilterOut % (note, just use zeros for var filter outputs
     rp = regionprops(mask);
     if rp.Area ~= size(maskAll,1)^2
         imgBG = ~mask.*I;
@@ -91,6 +108,27 @@ if p.align
     rp.Orientation
     imgOut = imrotate(imgOut,-1*rp.Orientation);
 end
+
+if p.centerMass
+    rp = regionprops(mask);
+    
+    [r c] = size(mask);
+    rShift = round(r/2 - rp.Centroid(2))
+    cShift = round(c/2 - rp.Centroid(1))
+
+    % Call circshift to move region to the center.
+    imgOut = circshift(imgOut, [rShift cShift]);
+    mask = circshift(mask, [rShift cShift]);
+end
+
+
+if p.align
+    disp('re-orienting mask')
+    rp = regionprops(mask,'orientation');
+    rp.Orientation
+    imgOut = imrotate(imgOut,-1*rp.Orientation);
+end
+
 
 if p.preview 
     % preview results
