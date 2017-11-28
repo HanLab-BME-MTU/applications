@@ -30,12 +30,12 @@ vol2 = vol(xyIndices(2):xyIndices(2)+xyIndices(4),xyIndices(1):xyIndices(1)+xyIn
 maxYZ = squeeze(max(vol2,[],1)); imshow(maxYZ,[],'Border','tight'); zIndices = ceil(getrect);
 
 roiIdx = nan(6,1);
-roiIdx(1) = xyIndices(1);
-roiIdx(2) = xyIndices(1)+xyIndices(3)-1;
-roiIdx(3) = xyIndices(2);
-roiIdx(4) = xyIndices(2)+xyIndices(4)-1;
-roiIdx(5) = zIndices(1);
-roiIdx(6) = zIndices(1)+zIndices(3)-1;
+roiIdx(1) = max(1,xyIndices(1));
+roiIdx(2) = min(size(vol,2),xyIndices(1)+xyIndices(3)-1);
+roiIdx(3) = max(1,xyIndices(2));
+roiIdx(4) = min(size(vol,1),xyIndices(2)+xyIndices(4)-1);
+roiIdx(5) = max(1,zIndices(1));
+roiIdx(6) = min(size(vol,3),zIndices(1)+zIndices(3)-1);
 
 mask = zeros(size(vol,1),size(vol,2),size(vol,3));
 mask(roiIdx(3):roiIdx(4),roiIdx(1):roiIdx(2),roiIdx(5):roiIdx(6)) = 1;
