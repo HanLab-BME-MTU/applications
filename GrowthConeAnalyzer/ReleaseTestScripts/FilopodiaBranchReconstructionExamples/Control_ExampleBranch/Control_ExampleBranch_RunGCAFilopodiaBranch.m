@@ -24,7 +24,8 @@ end
     
  load([outputDirectory filesep 'Control_ExampleBranch_movieData.mat'])
 %% STEP VI: (Purple Block in Figure S2) 
-GCAReconstructFilopodiaMovie(MD); 
+GCAReconstructFilopodiaMovie(MD,'TSOverlaysRidgeCleaning',true,'startFrame',1,'endFrame',1); 
+GCAReconstructFilopodiaMovie(MD,'startFrame',2); 
 % Notes for MD: 
 % Create 'FiloBranchReconstruct' Process
 % funName_ @GCAReconstructFilopodiaMovie
