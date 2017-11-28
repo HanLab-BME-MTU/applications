@@ -66,7 +66,8 @@ ip.addParameter('getGITHashTag',false);
 
 % Specific
 % PARAMETERS
-ip.addParameter('TSOverlays',false);
+ip.addParameter('TSOverlaysReconstruct',false);
+ip.addParameter('TSOverlaysRidgeCleaning',false); 
 
 % Steerable Filter
 ip.addParameter('FilterOrderFilo',4,@(x) ismember(x,[2,4]));
@@ -242,7 +243,7 @@ for iCh = 1:nChan
             display(['Problem With Histogram Frame' num2str(iFrame)]);
         end
         %% Plot the results.
-        if ip.Results.TSOverlays == 1
+        if (ip.Results.TSOverlaysReconstruct || ip.Results.TSOverlaysRidgeCleaning)
             display('Saving Trouble Shoot Overlays')
             for iFig = 1:length(TSFigs)
                 if ~isdir([outDir filesep TSFigs(iFig).group filesep num2str(iFig,'%02d') TSFigs(iFig).name]);
@@ -261,7 +262,7 @@ for iCh = 1:nChan
             end
         end
         
-        if ip.Results.TSOverlays == 1
+        if ip.Results.TSOverlaysReconstruct
             for iFig = 1:length(TSFigsRecon)
                 cDir = [outDir filesep TSFigsRecon(iFig).group  filesep 'ReconIter' num2str(TSFigsRecon(iFig).ReconIt,'%02d') ...
                     filesep TSFigsRecon(iFig).name];
