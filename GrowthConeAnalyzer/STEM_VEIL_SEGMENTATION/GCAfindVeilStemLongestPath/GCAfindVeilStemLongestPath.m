@@ -82,9 +82,13 @@ distFromEnt = arrayfun(@(i) sqrt((xEnter-tipXYCoords(i,1))^2 + (yEnter-tipXYCoor
 % find tip with teh min distance: this will be start point for the graph
 % shortest path algorithm
 enterVertex = tipVertices(distFromEnt==min(distFromEnt));
+idxMin = distFromEnt==min(distFromEnt);
+% quick fix in case two enterVertex values are located equivalent distances
+% away from 
+enterVertex = enterVertex(1); 
 
 % the rest of the skeleton tips will be the other input into the graphshortestpath algorithm
-tipVertices(distFromEnt==min(distFromEnt)) = []; % take out the enter index
+tipVertices(idxMin(1)) = []; % take out the enter index
 
 if ~isempty(tipVertices) % % implement a small sanity check - if tipVerices found continue
     
