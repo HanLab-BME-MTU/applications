@@ -1,5 +1,5 @@
 function [randTrack,firstSearch]=randomizeDenseTrackBruteForce(track,dynManifoldsCell,mappingDistance,maxRandomDist,varargin)
-% randomize a track so that no tracks map in the manifolds
+% randomize a track so that no tracks map in <dynManifoldsCell>
 
 firstSearch=TracksHandle;
 
@@ -29,7 +29,7 @@ while inManifold
   searchPoint= [searchPoint randPoint];
   randInitCount=randInitCount+1;
 end
-randInitCount
+
 firstSearch=TracksHandle;
 firstSearch.x=searchPoint(1,:);
 firstSearch.y=searchPoint(2,:);
@@ -69,7 +69,8 @@ for pIdx=2:length(track.f)
   randTrack.y(pIdx)=R(2);
   randTrack.z(pIdx)=R(3);
 end
-randCount
+disp(['Exploratory trials:: Init: ' num2str(randInitCount) ' tracks: ' num2str(randCount) '/' num2str(length(track.f)-1)]); 
+
 %  randKin=randKinTracksISO(tIdx)
 %   randKin.x=min(randKin.x,MD.imSize_(1));
 %   randKin.x=max(randKin.x,1);

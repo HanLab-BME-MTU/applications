@@ -1,4 +1,4 @@
-function [ backboneInfo,frames2Fix,modified,TSFigs ] = GCAneuriteOrientConsistencyCheck(backboneInfo,varargin)
+function [ backboneInfo,frames2Fix,modified ] = GCAneuriteOrientConsistencyCheck(backboneInfo,varargin)
 %%  GCAneuriteOrientConsistencyCheck: (STEP II of GCA Segmentation)
 %
 % This function inputs the backboneInfo.mat data structure output from
@@ -41,9 +41,7 @@ function [ backboneInfo,frames2Fix,modified,TSFigs ] = GCAneuriteOrientConsisten
 %           of the input img and c is the width (nx) marking cleaned large
 %           scale ridge candidate paths that will be used for the
 %           final reconstruction in GCAveilStemReconstruct.m
-% 
-% img (OPTIONAL) : rxc array of image  
-%        only necessary if TSFigs == true 
+%
 %
 % PARAMS
 %       ('TSOverlays' -> if true will make three troubleshoot
@@ -79,6 +77,9 @@ ip.addParameter('TSOverlays',true,@(x) islogical(x));
 ip.addParameter('SizeOfConsistencyRestraint',5,@(x) isscalar(x));
 ip.addParameter('CheckOrient',false,@(x) islogical(x));
 
+% Archiving the software version
+ip.addParameter('getGITHashTag',false);
+
 ip.parse(backboneInfo,varargin{:});
 p = ip.Results;
 %% Initiate
@@ -86,7 +87,6 @@ p = ip.Results;
 nFrames = length(backboneInfo);
 % initiate modified flag
 modified = false;
-figCount = 1; 
 %% START
 coordIn = arrayfun(@(x) x.coordsEnterNeurite,backboneInfo,'uniformoutput',0);
 coordInPix = cellfun(@(i) sub2ind([ySize,xSize],i(2),i(1)), coordIn,'uniformoutput',0);
@@ -95,7 +95,6 @@ dilateMask = zeros([ySize,xSize]);
 dilateMask(vertcat(coordInPix{:}))=1;
 originalPoints = dilateMask;
 
-%makePlotsSpatialClusters  = 0;
 dilateMask = imdilate(dilateMask,strel('disk',p.SizeOfConsistencyRestraint)); % changed to 10
 if p.CheckOrient == true
     
@@ -105,7 +104,6 @@ if p.CheckOrient == true
     hold on
     spy(originalPoints,'g',10);
     hold on
-    
 end
 
 CCDil  = bwconncomp(dilateMask);
@@ -119,17 +117,8 @@ if(CCDil.NumObjects>1)
     for iCluster = 1:numClust
         current = idxPixelsInClust{iCluster};
         numTimesInClust(iCluster) =  sum(arrayfun(@(i) sum(allPixels==i),current)) ;
-        %         if makePlotsSpatialClusters == 1
-        %             [yPlot,xPlot] = ind2sub([ySize,xSize],current(1));
-        %
-        %             text(xPlot,yPlot,num2str(numTimesInClust(iCluster)),'color','k');
-        %             saveas(gcf,[saveDir filesep 'BackboneInputPoints.fig']);
-        %         end
     end
     
-    % count per frame
-    % numPixInClust = cellfun(@(x) length(intersect(allPixels,x)),CCDil.PixelIdxList);
-    % pixelsClustLarge = CCDil.PixelIdxList{numPixInClust==max(numPixInClust)};
     pixelsClustLarge = vertcat(idxPixelsInClust{numTimesInClust==max(numTimesInClust)});
     pixelsNOClust = vertcat(idxPixelsInClust{numTimesInClust~=max(numTimesInClust)});
     
@@ -174,8 +163,7 @@ frames2Fix = sort(frames2Fix);
 
 %% Start Fixing Frames
 if isempty(frames2Fix)
-    display('All Neurite Orientations Consistent: No Changes Were Made')
-    
+    display('All Neurite Orientations Consistent: No Changes Were Made') 
 else
     display('Fixing Minority Neurite Orientations to the Majority')
     
@@ -186,37 +174,32 @@ else
     % dist transform of that mask
     distTransFromMClust = bwdist(maskMClust);
     
-    %% get the majority body
-        % collect backbone from all good frame
-        goodFrames = setdiff(1:nFrames,frames2Fix);
-        backbones = arrayfun(@(x) x.backboneSeedMask,backboneInfo(goodFrames),'uniformoutput',0);
-        sumBB = zeros(ySize,xSize);
-        for iBB = 1:length(goodFrames)
-            sumBB = sumBB+backbones{iBB}; % likely better way than a loop for this but quick fix
-        end
-        
-        % find pixels in structure that were more in more than 5 frames (to remove
-        % outliers)
-        sumBB(sumBB<=5) =0;
-        sumBB(sumBB>0) = 1;% make a logical mask
-        pixMajBB = find(sumBB==1) ;
-        
-      
+    %% get the majority
+    % collect backbone from all good frames
+    goodFrames = setdiff(1:nFrames,frames2Fix);
+    backbones = arrayfun(@(x) x.backboneSeedMask,backboneInfo(goodFrames),'uniformoutput',0);
+    sumBB = zeros(ySize,xSize);
+    for iBB = 1:length(goodFrames)
+        sumBB = sumBB+backbones{iBB}; %
+    end
+    
+    % find pixels in structure that were more in more than 5 frames (to remove
+    % outliers)
+    sumBB(sumBB<=5) =0;
+    sumBB(sumBB>0) = 1;% make a logical mask
+    pixMajBB = find(sumBB==1) ;
     
     %%
     for iFrame = 1:length(frames2Fix)
         display(['Fixing Frame ' num2str(frames2Fix(iFrame))])
         % load the candidate ridgeMask (mask after cleaning and linear connectivity)
-        backboneInfo(frames2Fix(iFrame)).alignmentMask = sumBB; 
+        backboneInfo(frames2Fix(iFrame)).alignmentMask = sumBB;
         
         candRidges =  backboneInfo(frames2Fix(iFrame)).linkedRidgesFinal;
         
-        %
         origBBMask = backboneInfo(frames2Fix(iFrame)).backboneSeedMask;
         % set the original backbone to 0
         candRidges(origBBMask==1) = 0;
-        
-        
         
         % get the connected component structure of the mask
         CCNMS = bwconncomp(candRidges);
@@ -225,31 +208,21 @@ else
         
         % apply the ridge mask
         distRidgeMat = candRidges.*distTransFromMClust;
-        %    distances = distances(:);
-        %    distances = distances(distances~=0);
-        %    minDist = min(distances);
-        % find all ridges within 50 pixels
+        
+        % find all ridges within 20 pixels
         candLabels = labelsRidges(distRidgeMat<20&distRidgeMat~=0);
         candLabels = unique(candLabels);
-     
         
         % find max overlap between cand ridge and
         overlap = cellfun(@(x) length(intersect(pixMajBB,x)),CCNMS.PixelIdxList(candLabels));
         labelKeep = candLabels(overlap==max(overlap));
         
- 
-        
-        %% try to make flag  so if the wrong side was connected can fix. (as in DOCK01 new data)
+        %% try to make flag  so if the wrong side was connected can fix. (as in DOCK01 )
         if isempty(labelKeep) % sometimes it connects to the wrong side
             % test the original candidate to see if there is significant overlap
             % sometimes simply have a long candidate attach to wrong side
             overlapOrig = length(intersect(pixMajBB,find(origBBMask==1))) ;
             
-            % flag to fix
-            
-            
-            
-            %
             if ~isempty(overlapOrig)
                 % get other endpoint
                 EPCoordsBodyMask = getEndpoints(find(origBBMask==1),[ySize,xSize]);
@@ -261,30 +234,14 @@ else
                 pixBackboneNew = find(origBBMask==1) ;
                 useOtherSide =1 ;
             end
-            %      end
         else
             pixBackboneNew = CCNMS.PixelIdxList{labelKeep};
             useOtherSide =0;
         end
         
-        
-        %    candRidgeIdx = find(cellfun(@(x) ~isempty(intersect(x,pixelsClustLarge)),CCNMS.PixelIdxList));
-        %    toTest = CCNMS.PixelIdxList(candRidgeIdx) ;
-        %    sizeRidge = cellfun(@(x) length(x),toTest);
-        %    candRidgeIdx = candRidgeIdx(sizeRidge==max(sizeRidge));
-        %
-        %
-        
-        
         backboneSeed = zeros(ySize,xSize);
         
-        
-        
-        
         backboneSeed(pixBackboneNew)=1;
-        
-        
-        
         
         dims = [ySize,xSize];
         boundaryMask(1:dims(1),1) =1;
@@ -295,13 +252,6 @@ else
             backboneSeed(enterIdx) = 0; % make sure to take out the old seed point
         else
         end
-        % idxEnterNeurite = find(backboneSeed ==1 & boundaryMask ==1);
-        % [yEnter,xEnter] = ind2sub([ySize,xSize],idxEnterNeurite);
-        
-        %if isempty(idxEnterNeurite) % need to interpolate to make sure closed contour
-        % interpolate between to nearest point on boundary
-        % find endpoint of backboneSeed
-        % filter by the closest distance to the original cluster
         
         EPsBackbone = getEndpoints(pixBackboneNew,[ySize,xSize]);
         idxEPs = sub2ind([ySize,xSize],EPsBackbone(:,2),EPsBackbone(:,1));
@@ -333,67 +283,30 @@ else
         if length(toSave) > 1
             EPDistFromMClust = distTransFromMClust(idxEPs(toSave));
             toSave = toSave(EPDistFromMClust==min(EPDistFromMClust));
-            %toSave = toSave(1);% used to just take the first
         end
         E = arrayfun(@(i) [repmat(i, [numel(idxBoundaryClose{i}) 1]) idxBoundaryClose{i}], 1:length(EPsBackbone(:,1)), 'UniformOutput', false);
         E = vertcat(E{:});
         linkCoords = bresenham([EPsBackbone(E(toSave,1),1),EPsBackbone(E(toSave,1),2)],[xBoundary(E(toSave,2)),yBoundary(E(toSave,2))]);
         backboneSeed(linkCoords(:,2), linkCoords(:,1) ) = 1;
-        %linked = 1;
         
         xEnter = xBoundary(E(toSave,2));
         yEnter = yBoundary(E(toSave,2));
         
-        %% Optional Troubleshoot Overlay 
-% if ip.Results.TSOverlays == true 
-%   [ny,nx] = size(backboneSeed); 
-%   
-%   TSFigs(figCount).h = setFigure(nx,ny,'on'); 
-%   TSFigs(figCount).name = 'Re-Alignment';  
-%  
-%   if ~isempty(ip.Results.img)
-%       imshow(-img,[]); 
-%       hold on 
-%   end 
-%  
-%     hold on 
-%     % plot the information to which to align
-%     spy(sumBB,'m'); 
-%     % plot the candidate ridges 
-%     spy(candRidges,'b'); 
-%   
-%     spy(
-%     
-%     % plot the new backbone choice 
-%     spy(backboneSeed,''); 
-%     
-%     
-%     figCount = figCount +1; 
-%   
-% end 
-%         
-%        
-%         
-        
-        
-        
-        
-        
         clear linkedCoords E
-        % end    % need to close contour
+        
         % save new neurite entrance and the new backboneSeed
         backboneInfo(frames2Fix(iFrame)).backboneSeedMask= backboneSeed;
         backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite = [xEnter,yEnter];
-         backboneInfo(frames2Fix(iFrame)).timeStamp = clock;
-%         hashTag = gcaArchiveGetGitHashTag;
-%         backboneInfo(frames2Fix(iFrame)).hashTag = hashTag;
-        % document in a folder
+        backboneInfo(frames2Fix(iFrame)).timeStamp = clock;
+        if ip.Results.getGITHashTag
+            hashTag = gcaArchiveGetGitHashTag;
+        else
+            hashTag = NaN;
+        end
+        backboneInfo(frames2Fix(iFrame)).hashTag = hashTag;
+        
         close gcf
-        
-        
-        
     end % iFrame
-    
 end  % isempty
 end % function
 

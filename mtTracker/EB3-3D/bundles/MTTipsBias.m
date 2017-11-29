@@ -99,8 +99,6 @@ if(~isempty(randKinTracks))
     end
 end
 
-
-
 % Display for test 
 % %kIdx=1;ktInlier=kinTracksInliers(kIdx);rktInlier=randKinTracksInliers(kIdx);
 % 

@@ -1,5 +1,7 @@
 function tracksNA = applyDriftToTracks(tracksNA, T, efficientSDC) 
-
+% function tracksNA = applyDriftToTracks(tracksNA, T, efficientSDC) applied
+% translation transformation from SDC Process to the tracksNA.
+% Sangyoon Han, 2016.
 if nargin<3
     efficientSDC=true;
 end
@@ -22,11 +24,17 @@ for i = 1:numel(tracksNA)
         tracksNA(i).yCoord(j) = tracksNA(i).yCoord(j)+T(j,1)+maxY;
         tracksNA(i).closestBdPoint(:,1) = tracksNA(i).closestBdPoint(:,1)+T(j,2)+maxX;
         tracksNA(i).closestBdPoint(:,2) = tracksNA(i).closestBdPoint(:,2)+T(j,1)+maxY;
-        try
-            tracksNA(i).adhBoundary{j} = [tracksNA(i).adhBoundary{j}(:,2)+T(j,2)+maxX tracksNA(i).adhBoundary{j}(:,1)+T(j,1)+maxY];
-        catch
-            tracksNA(i).adhBoundary{j} = [];
-        end
+        
+        % look at every aspects in the feature and shift them
+        % Also, labelTif should be also shifted.
+        
+%         try
+%             tracksNA(i).adhBoundary{j} = [tracksNA(i).adhBoundary{j}(:,2)+T(j,2)+maxX tracksNA(i).adhBoundary{j}(:,1)+T(j,1)+maxY];
+%             tracksNA(i).FApixelList{j} = [tracksNA(i).FApixelList{j}(:,2)+T(j,2)+maxX tracksNA(i).FApixelList{j}(:,1)+T(j,1)+maxY];
+%         catch
+%             tracksNA(i).adhBoundary{j} = [];
+%             tracksNA(i).FApixelList{j} = [];
+%         end
     end
     tracksNA(i).SDC_applied = true;
     progressText(i/numel(tracksNA),'Apply stage drift correction to tracksNA:')

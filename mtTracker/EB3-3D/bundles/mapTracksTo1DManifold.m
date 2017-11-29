@@ -10,11 +10,20 @@ function mappedTracks=mapTracksTo1DManifold(manifold,tracks,cutoff,varargin)
   ip.parse(varargin{:});
   p=ip.Results;
 
+  tracksEndPos=[];
   if(strcmp(p.position,'start'))
     TracksEndTime=[tracks.startFrame]';
   else
-    TracksEndTime=[tracks.endFrame]';
+      TracksEndTime=[tracks.endFrame]';
+      if(strcmp(p.position,'endXP'))    
+        tracksEndPos=zeros(3,length(tracks));
+        for i=1:length(tracks)
+            tr=tracks(i);
+            tracksEndPos(:,i)=[tr.x(end);tr.y(end);tr.z(end)];
+        end
+      end
   end;
+  
 
   %        kinTrack.disappMT=cell(1,length(kinTrack.poleRef));
   mappedTracks=[];
@@ -27,11 +36,18 @@ function mappedTracks=mapTracksTo1DManifold(manifold,tracks,cutoff,varargin)
       manifoldPreAssociatonIndx=find(coexistingTracks);
       trackPoint=zeros(3,length(manifoldPreAssociatonIndx));
       for tIdxIdx=1:length(manifoldPreAssociatonIndx)
-        tr=tracks(manifoldPreAssociatonIndx(tIdxIdx));
         if(strcmp(p.position,'start'))
-          trackPoint(:,tIdxIdx)=[tr.x(1);tr.y(1);tr.z(1)];
+            tr=tracks(manifoldPreAssociatonIndx(tIdxIdx));
+            trackPoint(:,tIdxIdx)=[tr.x(1);tr.y(1);tr.z(1)];
         else
-          trackPoint(:,tIdxIdx)=[tr.x(end);tr.y(end);tr.z(end)];
+            if(strcmp(p.position,'end'))
+                tr=tracks(manifoldPreAssociatonIndx(tIdxIdx));
+                a=[tr.x(end);tr.y(end);tr.z(end)];
+                trackPoint(:,tIdxIdx)=a;
+            else
+                a=tracksEndPos(:,manifoldPreAssociatonIndx(tIdxIdx));
+                trackPoint(:,tIdxIdx)=a;
+            end
         end
       end
       manifoldAtT=[[manifold(1).x(pIdx);manifold(1).y(pIdx);manifold(1).z(pIdx)], ...

@@ -8,18 +8,15 @@
 %
 %Luciana de Oliveira, July 2016.
 
-resultsDirectory='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/results';
+resultsDirectory='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170403/results/targetIS_sT25_dT0p1';
 
 
-%target paramMatrix dynamic
+sourceRootTarget='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170403/analysis/targetIS_sT25_dT0p1';
 
-sourceRootTarget ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/target/diffLabelRatio/analysis';
-% name of the target
-rDtarget = {'rD100'};%,'rD60','rD80','rD120','rD140','rD160'};
-aPtarget = {'aP0p5'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-lRtarget = {'lR0p26'};%,'lR0p3','lR0p4','lR0p5'};
-
-
+%Define strings for directory hierarchy as needed
+ rDtarget = {'rD12'};%,'rD60','rD80','rD120','rD140','rD160'};
+ aPtarget = {'aP0p6'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
+lRtarget= {'lR0p2'};%,'lR0p3','lR0p4','lR0p5'};
 
 for rDTarIndx = 1 : length(rDtarget)
     
@@ -39,11 +36,11 @@ clusterSizeTargetOffRate=size(tmp.rateOffPerClust,1);
 clusterSizeTargetDensity=size(tmp.densityPerClust,1);
 
 %probes
-sourceRootProbe ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2017/01/20170126/diffLabelRatio/probe/analysis';
+sourceRootProbe ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/2016/12/20161201/analysis/probeIS_sT25_dT0p1';
 %Define strings for directory hierarchy as needed
-rDDir = {'rD20','rD40','rD80','rD100','rD120','rD140','rD160'};%,'rD8','rD10','rD12','rD14','rD16'};
+rDDir = {'rD4','rD6','rD8','rD10','rD12','rD14','rD16'};%,'rD8','rD10','rD12','rD14','rD16'};
 aPDir = {'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-lRDir = {'lR0p26'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
+lRDir = {'lR0p1','lR0p2','lR0p3','lR0p4','lR0p5','lR0p6'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
 %,'rD6','rD8','rD10','rD12','rD14','rD16'};%,'rD4','rD6','rD8','rD10','rD12','rD14','rD16'};
 
 fprintf('\n===============================================================');
@@ -87,10 +84,11 @@ for lRDirIndx = 1 : length(lRDir)
 end
 %save s and p matrix
 %make a directory
-resultsDirBoot=[resultsDirectory,filesep,rDtarget{rDTarIndx},aPtarget{aPTarIndx},lRtarget{lRTarIndx}];
- mkdir(resultsDirBoot)
- save([resultsDirBoot,filesep,'sMatrix'],'sMatrix','-v7.3');
- save([resultsDirBoot,filesep,'pMatrix'],'pMatrix','-v7.3');
+resultsDir=[resultsDirectory,filesep,rDtarget{rDTarIndx},aPtarget{aPTarIndx},lRtarget{lRTarIndx}];
+ mkdir(resultsDir)
+          save([resultsDir,filesep,'sMatrix.mat'],'sMatrix','-v7.3');
+                        save([resultsDir,filesep,'pMatrix.mat'],'pMatrix','-v7.3');
+                        
         end 
     end
 end

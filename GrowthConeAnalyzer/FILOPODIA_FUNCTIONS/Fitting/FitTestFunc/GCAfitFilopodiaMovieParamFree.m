@@ -161,7 +161,7 @@ for iCh = 1:nChan
         endFrame = ip.Results.EndFrame;
         display(['Manual End: Fitting Filopodia/Branches From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
-   
+
     %% Start Loop Over Movie
     % GET FRAME INFORMATION - this function wraps per frame
     for iFrame = startFrame:endFrame

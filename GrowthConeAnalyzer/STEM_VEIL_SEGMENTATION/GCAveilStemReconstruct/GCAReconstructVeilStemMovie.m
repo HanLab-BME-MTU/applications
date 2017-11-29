@@ -55,19 +55,40 @@ ip.CaseSensitive = false;
 defaultOutDir = [movieData.outputDirectory_ filesep...
     'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'III_veilStem_reconstruction'];
 
+% Input/Output and movieData
 ip.addParameter('OutputDirectory',defaultOutDir,@(x) ischar(x));
 ip.addParameter('ChannelIndex',1);
 ip.addParameter('ProcessIndex',0);
+
+% Restart Options 
 ip.addParameter('StartFrame','auto');
 ip.addParameter('EndFrame','auto');
 
-% Specific
+% Archiving the software version 
+ip.addParameter('getGITHashTag',false);
+
+% 
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
 ip.addParameter('TSMovie',false,@(x) islogical(x)); 
+ip.addParameter('screen2png',false); 
+ip.addParameter('writeTitles',true); 
 
+% Detection of amorphous veil pieces : Initial 
+ip.addParameter('maskDirectory',[]); % directory with another input mask
+% if empty will use local thresholding
 ip.addParameter('LocalThresholdPatchSize',75,@(x) isscalar(x));
-ip.addParameter('DiskSizeLarge',6,@(x) isscalar(x));
-ip.addParameter('DiskSizeSmall',3,@(x) isscalar(x)); 
+
+% Detection of amorphous veil pieces : Morphological Opening 
+ip.addParameter('DiskSizeLarge',6,@(x) isscalar(x)); %in pixels:
+ip.addParameter('DiskSizeSmall',3,@(x) isscalar(x)); %in pixels:
+ % see gcaMorphologicalOpeningWithGeometryConstraints.m
+
+% Stem Radius Estimate  
+ip.addParameter('reDilationRadius',4) ; % in pixels : see gcaResolveVeilStemCycles 
+
+% Extend Path Search Via Bridging 
+ip.addParameter('MaxRadiusBridgeRidges',5,@(x) isscalar(x));
+
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -82,9 +103,7 @@ imSize = movieData.imSize_;
 for iCh = 1:nChan
     
     display(['Reconstructing the Veil/Stem for Channel ' num2str(iCh)]);
-    
 
-    
     %% Get Start and End Frames Based on Restart Choice
     
     % make final output dir where backboneInfo will be saved
@@ -144,38 +163,38 @@ for iCh = 1:nChan
         endFrame = ip.Results.EndFrame;
         display(['Manual End: Finding Veil/Stem From Frame ' num2str(startFrame) ' to ' num2str(endFrame)]);
     end
-%%    Load Backbone Information
+    %%    Load Backbone Information
     load([ movieData.outputDirectory_ filesep...
         'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'II_neurite_orientation_refinements' filesep 'Channel_' num2str(iCh)...
         filesep 'backboneInfoFix.mat']);
-  pBackbone =  load( [movieData.outputDirectory_ filesep ... 
+    pBackbone =  load( [movieData.outputDirectory_ filesep ...
         'SegmentationPackage' filesep 'StepsToReconstruct' filesep 'I_neurite_orientation' filesep 'Channel_' num2str(iCh) ...
-        filesep 'params.mat']); 
+        filesep 'params.mat']);
     pBackbone = pBackbone.p;
-    BBScales = arrayfun(@(x) pBackbone(x).BBScale,1:length(pBackbone),'uniformoutput',0)'; 
-%% Test for a manually chosen local patch size
-    if exist([outDirC filesep 'LocalThreshPatchSizeTest' filesep ... 
-          'manualPatchSizeSelect.mat'  ],'file')==2; 
-      load([outDirC filesep 'LocalThreshPatchSizeTest' filesep ... 
-          'manualPatchSizeSelect.mat']); 
-      p.LocalThresholdPatchSize = patchSize;  
-      display(['Manually Chosen Patch Size of ' num2str(p.LocalThresholdPatchSize) ' Will Be Used']); 
-    end 
-%% Main Function: 
-    % (Note: Requires temporal information so input is per movie) 
+    BBScales = arrayfun(@(x) pBackbone(x).BBScale,1:length(pBackbone),'uniformoutput',0)';
+    %% Test for a manually chosen local patch size
+    if exist([outDirC filesep 'LocalThreshPatchSizeTest' filesep ...
+            'manualPatchSizeSelect.mat'  ],'file')==2;
+        load([outDirC filesep 'LocalThreshPatchSizeTest' filesep ...
+            'manualPatchSizeSelect.mat']);
+        p.LocalThresholdPatchSize = patchSize;
+        display(['Manually Chosen Patch Size of ' num2str(p.LocalThresholdPatchSize) ' Will Be Used']);
+    end
+    %% Main Function:
+    % (Note: Requires temporal information so input is per movie)
     p.StartFrame = startFrame;
     p.EndFrame = endFrame;
-    p.OutputDirectory = outDirC; 
-    p.BBScales = BBScales; 
+    p.OutputDirectory = outDirC;
+    p.BBScales = BBScales;
     
     if p.StartFrame == 1
         
-    GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,p);
+        GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,p);
     else % for restart
         x{1} = veilStem;
-        y{1} = paramsArchived; 
-        GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,x,y,p); 
-    end 
-    
+        y{1} = paramsArchived;
+        GCAReconstructVeilStem(listOfImages,backboneInfo,BBScales,x,y,p);
+    end
+ display(['Finished Reconstructing Veil/Stem Channel ' num2str(iCh)]); 
 end % for iCh
 end % function

@@ -1,0 +1,463 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{physics}
+\usepackage{mathtools}
+\usepackage{hyperref}
+
+%\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{letterpaper} % or letterpaper (US) or a5paper or....
+% \geometry{margin=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+% \usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+\newtheorem{theorem}{Theorem}
+\newcommand{\compose}{\circ}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+\title{Analytical Solutions to Tracing Orientation Local Maxima Through K}
+\author{Mark Kittisopikul, Khuloud Jaqaman}
+%\date{} % Activate to display a given date or no date (if empty),
+         % otherwise the current date is printed 
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+This documents covers an analytical approach to finding local orientation maxima in the context of a heat equation framework. To review, $ \rho(\theta,K) $ represents the orientation response at a single point in space, a single pixel. $ \rho $ is periodic with respect to $ \theta $ with a period of $ \pi $ for ridges. $ K $ is a parameter that determines the orientation resolution of the function to be $ \frac{\pi}{2K+1} $. In order to pose the problem in the form of the heat equation, we make a substitution for $ K $ in terms of  $ t $ as follows.
+
+\begin{eqnarray}
+t & \equiv & \frac{1}{(2K+1)^2} \\
+D & \equiv & \frac{\pi^2}{2} \\
+\frac{\partial \rho}{\partial t} & = & D \frac{\partial^2 \rho}{\partial \theta^2}
+\end{eqnarray}
+
+At a particular $ t $, we use an eigen decomposition method to find orientation local maxima that meet the following criteria.
+
+\begin{eqnarray}
+\frac{\partial \rho}{\partial \theta}(\theta_m,K) & = & 0 \\
+\frac{\partial^2 \rho}{\partial \theta^2}(\theta_m,K) & < & 0
+\end{eqnarray}
+
+Upon finding $ \theta_m $ for a particular $ K $ we would like to extend the solution for other $ K $. Previously we began this analysis using a geometric argument. Here we propose an analytical approach to the problem that allows us to extend the analysis further.
+
+\subsection{Mathematical Preliminaries}
+
+
+We will need a multivariable chain rule to relate full derivatives of $ \rho(\theta_m(K),K) $ with respect to $ K $ with the partial derivatives of $ \rho $ with respect to $ \theta $ or $ K $.
+
+\begin{theorem}[The Chain Rule]
+Let O be an open subset of $ \mathbb{R}^n $ and suppose that the mapping $ \mathbf{F}:O \rightarrow \mathbb{R}^m $ is continuously differentiable. Suppose that $ U $ is an open subset of $ \mathbb{R}^m $ and that the function $ g:U \rightarrow \mathbb{R} $ is continuously differentiable. Finally, suppose that $ \mathbf{F}(O) $ is contained in $ U $. Then the composition $ g \compose \mathbf{F}:O \rightarrow \mathbb{R} $ is also continously differentiable. Moreover, for each point $ \mathbf{x} $ in $ O $ and each index $i $ such that $ 1 \leq i \leq n $,
+\begin{eqnarray}
+\pdv{(g \compose  \mathbf{F})}{x_i} ( \mathbf{x}) & = & \sum_{j=1}^{m} D_j g( \mathbf{F}(x)) \pdv{ \mathbf{F}_j}{x_i}(\mathbf{x}) ; \\
+\mbox{that is, } \quad   \mathbf{D}(g \compose  \mathbf{F})(\mathbf{x}) & = & \mathbf{D}g( \mathbf{F}(\mathbf{x}))\mathbf{D} \mathbf{F}(\mathbf{x})
+\end{eqnarray}
+Here $ \mathbf{D}g(\mathbf{x}) = (\pdv{g}{x_1}, \hdots , \pdv{g}{x_m}) $ for each point $ \mathbf{x} $  in $ U $.
+\end{theorem}
+\begin{proof}
+See Theorem 15.17, The Chain Rule, on page 372 in Fitzpatrick.
+\end{proof}
+
+The orientation maxima, $ \theta_m $ forms an implicit function $ \theta_m(K) $. The existence of this function is an application of Dini's Theorem, which itself is a special case of the General Implicit Function Theorem for functions of  $ \mathbb{R}^2 \rightarrow \mathbb{R} $. 
+
+\begin{theorem}[Dini's Theorem]
+Let O be an open subset of the plane $ \mathbb{R}^2 $ , and suppose that the function $ f:O \rightarrow \mathbb{R} $ is continuously differentiable. Let $ (x_0, y_0) $ be a point in O at which $ f(x_0,y_0) = 0$ and
+\begin{equation}
+\frac{\partial f}{\partial y}(x_0, y_0) \neq 0
+\end{equation}
+
+Then there is a positive number $ r $ and a continuous differentiable function $ g:I \rightarrow \mathbb{R} $ where $ I$ is the open interval $ (x_0 -r, x_0 +r) $ such that
+\begin{enumerate}
+\item $ f(x, g(x)) = 0 $ for all $ x $  in $  I $ and
+\item whenever $ \abs{x - x_0} < r $, $\abs{y-y_0} < r $, and $ f(x,y) = 0 $, then $ y =g(x) $. Moreover,
+\item $ \frac{\partial f}{\partial x}(x, g(x)) + \frac{\partial f}{\partial y}(x, g(x)) g'(x) = 0 $
+\end{enumerate}
+
+\end{theorem}
+\begin{proof}
+See Theorem 17.1, Dini's Theorem, on page 401 in Fitzpatrick, Patrick M. Advanced Calculus: A Course in Mathematical Analysis. PWS Publishing Company. Boston. 1996.
+
+The third statement is a consequence of the chain rule above.
+\begin{eqnarray}
+\dv{f(x,g(x))}{x} & = &  0 \\
+            & = & \pdv{f}{x} \pdv{x}{x} + \pdv{f}{y} \dv{g}{x} \\
+            & = & \pdv{f}{x} + \pdv{f}{y} \dv{g}{x}
+\end{eqnarray}
+\end{proof}
+
+The third item of Dini's theorem can be rearranged into Davidenko's equation used in his method (1953).
+\begin{equation}
+g'(x) =  - \frac{ \displaystyle \pdv{f}{x} } { \displaystyle \pdv{f}{y} }
+\end{equation}
+
+Note the roles of $ x $ and $ y $ above can interchanged.
+\newline
+
+Finally, we will need a formula for higher order derivatives of composed functions.
+\begin{theorem}[Faa di Bruno's formula]
+\begin{equation}
+{d^n \over dx^n} f(g(x))=\sum \frac{n!}{m_1!\,1!^{m_1}\,m_2!\,2!^{m_2}\,\cdots\,m_n!\,n!^{m_n}}\cdot f^{(m_1+\cdots+m_n)}(g(x))\cdot \prod_{j=1}^n\left(g^{(j)}(x)\right)^{m_j}
+\end{equation}
+where the sum is over all combination of nonnegative integers $ m_1 \hdots m_n $ \newline
+ such that $ \sum_j j m_j = n $.
+\end{theorem}
+\begin{proof}
+Proof by induction. See \href{https://en.wikipedia.org/wiki/Fa\%C3\%A0\_di\_Bruno\%27s\_formula}{Wikipedia page}. 
+\end{proof}
+
+\section{Results}
+
+\subsection{First derivative of $\theta_m$: Application of Dini's Theorem}
+
+In our application of Dini's theorem, the roles of x and y are exchanged and
+\begin{eqnarray}
+f(\theta,K) & = &  \pdv{\rho}{\theta} \\
+g(K) & = & \theta_m(K)
+\end{eqnarray}
+We can then state Davidenko's equation to establish the first derivative of $ \theta_m $.
+\begin{eqnarray}
+\dv{\theta_m}{K} & = & -\frac{ \pdv*{\rho}{\theta}{K} }{ \pdv*[2]{\rho}{\theta} } \\
+                         & = & \dv{\theta_m}{t} \dv{t}{K} \\
+\dv[n]{t}{K}  & = & \frac{(-2)^n (n+1)!}{(2K+1)^{2+n}} \\
+\dv{\theta_m}{t}  & = & -\frac{ \pdv*{\rho}{\theta}{t} }{ \pdv*[2]{\rho}{\theta} }  \\
+                         & = & -\frac{ D \pdv*[3]{\rho}{\theta} }{ \pdv*[2]{\rho}{\theta} } 
+\end{eqnarray}
+In the last step, we apply the heat equation to convert derivatives with respect to $ t $ to derivatives with respect to $ \theta $. Here we arrive at the same solution as determined by the geometric analysis.
+
+\subsection{Second derivative of $ \theta_m $}
+
+To solve for the second derivative of $ \theta_m $ with respect to $ t $ we could proceed by using the quotient rule followed by the chain rule, which we will demonstrate first. However, we will see that another approach will provide a recursive and thus more tractable solution.
+
+\begin{eqnarray}
+\dv[2]{\theta_m}{K} & = & \dv[2]{\theta_m}{t} \left( \dv{t}{K} \right)^2 + \dv{\theta_m}{t} \dv[2]{t}{K} \\
+\dv[2]{\theta_m}{t} & = & -D \frac{  \dv{}{t} \pdv*[3]{\rho}{\theta} }{ \pdv*[2]{\rho}{\theta} } +
+D \frac{ \pdv*[3]{\rho}{\theta} }{ ( \pdv*[2]{\rho}{\theta})^2 } \dv{(\pdv*[2]{\rho}{\theta}) }{t} \\
+ & = &  -D \frac{ \pdv*[4]{\rho}{\theta} \dv*{\theta_m}{t} + \pdv*{t}( \pdv*[3]{\rho}{\theta}) }{ \pdv*[2]{\rho}{\theta} }  \\
+& & + D \frac{ \pdv*[3]{\rho}{\theta} }{ ( \pdv*[2]{\rho}{\theta})^2 } \left( \pdv[3]{\rho}{\theta}\dv{\theta_m}{t} + \pdv{t} \pdv[2]{\rho}{\theta} \right) \\
+ & = &  -D \frac{ \pdv*[4]{\rho}{\theta} \dv*{\theta_m}{t} + D ( \pdv*[5]{\rho}{\theta}) }{ \pdv*[2]{\rho}{\theta} }  \\
+& & - \frac{ \dv*{\theta_m}{t} }{ \pdv*[2]{\rho}{\theta} } \left( \pdv[3]{\rho}{\theta}\dv{\theta_m}{t} + D \pdv[4]{\rho}{\theta} \right) \\
+& = & - \left[ \frac{\displaystyle
+\pdv[3]{\rho}{\theta} \left( \dv{\theta_m}{t} \right)^2
++ 2D \pdv[4]{\rho}{\theta} \dv{\theta_m}{t}
++ D^2 \pdv[5]{\rho}{\theta}
+}{ \displaystyle \pdv[2]{\rho}{\theta} } \right]
+\end{eqnarray}
+
+From this direct approach, we see that the first derivative features prominently in the formula for the second derivative and that the second partial derivative of $ \rho $ with respect to $ \theta $ remains in the denominator. To combine the terms into a single fraction, we had to recognize the form of the first derivative of $ \theta_m $ in the second term.
+
+\subsubsection{Alternative Chain Rule Approach to Second Derivative of $ \theta_m $}
+
+Inspired by the form of the second derivative of $ \theta_m $, we explore an alternative approach by examining derivatives of $ \pdv*{\rho}{\theta} (\theta_m(t),t) $ with respect to $ t $. We first note that the value of first full derivative and all higher full derivatives are zero because by definition of the orientation local maxima the first partial derivative is zero.
+
+\begin{eqnarray}
+\dv{t} \left( \pdv{\rho(\theta_m(t),t)}{\theta} \right) & = & 0 \\
+& = & \pdv[2]{\rho}{\theta} \dv{\theta_m}{t} + \pdv{\rho}{\theta}{t} \\
+& = & \pdv[2]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[3]{\rho}{\theta} \\
+\dv{t} \left( \pdv[n]{\rho(\theta_m(t),t)}{\theta} \right) & = & \pdv[n+1]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[n+2]{\rho}{\theta} \\
+\dv[2]{t} \left( \pdv{\rho(\theta_m(t),t)}{\theta} \right) & = & 0 \\
+& = & \dv{t}( \pdv[2]{\rho}{\theta} ) \pdv{\theta_m}{t} + \pdv[2]{\rho}{\theta} \dv[2]{\theta_m}{t} + D \dv{t}( \pdv[3]{\rho}{\theta} ) \\
+-  \pdv[2]{\rho}{\theta} \dv[2]{\theta_m}{t}  & = &
+ \left( \pdv[3]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[4]{\rho}{\theta} \right) \dv{\theta_m}{t}
++ D\left( \pdv[4]{\rho}{\theta} \dv{\theta_m}{t} + D \pdv[5]{\rho}{\theta} \right) \\ 
+ & = &  \pdv[3]{\rho}{\theta} \left( \dv{\theta_m}{t} \right)^2 + 2 D \pdv[4]{\rho}{\theta}  \dv{\theta_m}{t}  + D^2 \pdv[5]{\rho}{\theta}  \\
+\dv[2]{\theta_m}{t} & = & - \left[ \frac{\displaystyle
+\pdv[3]{\rho}{\theta} \left( \dv{\theta_m}{t} \right)^2
++ 2D \pdv[4]{\rho}{\theta} \dv{\theta_m}{t}
++ D^2 \pdv[5]{\rho}{\theta}
+}{ \displaystyle \pdv[2]{\rho}{\theta} } \right]
+\end{eqnarray}
+
+In this approach, we achieve the same result as in the direct approach when we first used the quotient rule. In this approach, however, the dependence on the first derivative of $ \theta_m $ occurs more naturally.We also begin to see a pattern shared by the first and second derivatives of $ \theta_m $. When we take the full derivatives of $ \rho $ composed with the orientation local maxima, the desired derivative of $ \theta_m(t) $  arises in the term with the second partial derivative of $ \rho $ with respect to $ \theta $. This explains the shared denominator between the first and second derivatives of $ \theta_m $.
+
+\subsection{Higher Order Derivatives of $ \theta_m $}
+
+\subsubsection{Higher Order Chain Rule Derivatives: Faa di Bruno's formula}
+To find the higher order derivatives of $ \theta_m $ with respect to $ t $ and ultimately with respect to $ K $, we will expand upon the chain rule approach to finding the second derivative. First, we calculate the formula to convert higher order derivatives of $ \theta_m $ with respect to to $ t $ to those with respect to $ K $.
+
+\begin{eqnarray}
+\dv{\theta_m}{K} & = &  \dv{\theta_m}{t} \dv{t}{K} \\
+\dv[2]{\theta_m}{K} & = & \dv[2]{\theta_m}{t} \left( \dv{t}{K} \right)^2 + \dv{\theta_m}{t} \dv[2]{t}{K} \\
+\dv[3]{\theta_m}{K} & = & \dv{K} \left( \dv[2]{\theta_m}{t} \right) \left( \dv{t}{K} \right)^2 + 2 \dv[2]{\theta_m}{t} \dv{t}{K}  \dv[2]{t}{K}+ \dv[2]{\theta_m}{t} \dv{t}{K} \dv[2]{t}{K} + \dv{\theta_m}{t} \dv[3]{t}{K} \\
+                             & = & \dv[3]{\theta_m}{t} \left( \dv{t}{K} \right)^3  + 3 \dv[2]{\theta_m}{t} \dv{t}{K}  \dv[2]{t}{K} +  \dv{\theta_m}{t} \dv[3]{t}{K};
+\end{eqnarray}
+
+The first three derivatives follow Faa di Bruno's formula in the preliminary section where we are calculating $ \dv[n]{K} \theta_m(t(K)) $. The partitions for the three derivatives correspond to the rows in the following matrices such that $ m_j = M_n(p,j) $. $ n $ here refers to the additive term in the expression. The term on the left corresponds to $ n =1 $.. The entries in the matrix correspond to the exponent of the derivatives of $ t $ with respect to $ K $. The sum of each row corresponds to the order of the derivative of $ \theta_m $ with respect to $ t $.
+
+\begin{eqnarray}
+M_1 = \begin{bmatrix}
+1
+\end{bmatrix},
+&
+M_2 = \begin{bmatrix}
+2 & 0 \\
+0 & 1
+\end{bmatrix},
+&
+M_3 = \begin{bmatrix}
+3 & 0 & 0 \\
+1 & 1 & 0 \\
+0 & 0 & 1 \\
+\end{bmatrix} \\
+M_4 = \begin{bmatrix}
+4 & 0 & 0 & 0 \\
+2 & 1 & 0 & 0 \\
+0 & 2 & 0 & 0 \\
+1 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 \\
+\end{bmatrix}, &
+M_5 = \begin{bmatrix}
+5 & 0 & 0 & 0 & 0\\ 3 & 1 & 0 & 0 & 0\\ 1 & 2 & 0 & 0 & 0\\ 2 & 0 & 1 & 0 & 0\\ 0 & 1 & 1 & 0 & 0\\ 1 & 0 & 0 & 1 & 0\\ 0 & 0 & 0 & 0 & 1
+\end{bmatrix}, &
+M_6 = \begin{bmatrix}
+6 & 0 & 0 & 0 & 0 & 0\\ 4 & 1 & 0 & 0 & 0 & 0\\ 2 & 2 & 0 & 0 & 0 & 0\\ 0 & 3 & 0 & 0 & 0 & 0\\ 3 & 0 & 1 & 0 & 0 & 0\\ 1 & 1 & 1 & 0 & 0 & 0\\ 0 & 0 & 2 & 0 & 0 & 0\\ 2 & 0 & 0 & 1 & 0 & 0\\ 0 & 1 & 0 & 1 & 0 & 0\\ 1 & 0 & 0 & 0 & 1 & 0\\ 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}
+\end{eqnarray}
+The last row of matrices contains the partitions for 4th, 5th, and 6th derivatives. These can be calculated by using the MATLAB function {\em partitions} in the extern repository.
+
+\subsubsection{Calculating $ \dv*[q]{\theta_m}{t} $}
+
+To extend the chain rule method, we will first need a formula for higher order total derivatives of partial derivatives of $ \rho $ with respect to $ \theta $. Here we use a higher order power rule that uses the binomial theorem to create a recursive formula.
+
+\begin{eqnarray}
+& &  \dv[q]{t} \left( \pdv[n]{\rho(\theta_m(t),t)}{\theta} \right) \\
+& = & \dv[q-1]{t} \left( \pdv[n+1]{\rho}{\theta} \dv{\theta_m}{t} \right)+ D \dv[q-1]{t} \left( \pdv[n+2]{\rho}{\theta} \right) \\
+& = & \dv[q-2]{t} \left( \dv{t} \left( \pdv[n+1]{\rho}{\theta} \right) \dv{\theta_m}{t} +  \pdv[n+1]{\rho}{\theta} \dv[2]{\theta_m}{t} \right) \\
+&    & + D \dv[q-1]{t} \left( \pdv[n+2]{\rho}{\theta} \right) \\
+& = & \dv[q-3]{t} \left[ \dv[2]{t} \left( \pdv[n+1]{\rho}{\theta} \right) \dv{\theta_m}{t} +  2 \dv{t} \left( \pdv[n+1]{\rho}{\theta} \right) \dv[2]{\theta_m}{t} +  \pdv[n+1]{\rho}{\theta} \dv[3]{\theta_m}{t} \right] \\
+&    & + D \dv[q-1]{t} \left( \pdv[n+2]{\rho}{\theta} \right) \\
+& = & \left[ \sum_{l=1}^{l=q} \binom{q-1}{l-1} \dv[q-l]{t} \left( \pdv[n+1]{\rho}{\theta} \right) \dv[l]{\theta_m}{t} \right] + D \dv[q-1]{t} \left( \pdv[n+2]{\rho}{\theta} \right)
+\end{eqnarray}
+
+With this formula in hand, we can then calculate $ \dv*[q]{\theta_m}{t} $ by starting with $ n = 1 $. At $ n = 1 $ all the derivatives for $ q \geq 0 $ are equal to zero. The desired term of the binomial expansion occurs when $ l = q $.
+
+\begin{eqnarray}
+& & \dv[q]{t} \left( \pdv{\rho(\theta_m(t),t)}{\theta} \right) =  0 \\
+- \pdv[2]{\rho}{\theta} \dv[q]{\theta_m}{t} & = & \left[ \sum_{l=1}^{l=q-1} \binom{q-1}{l-1} \dv[q-l]{t} \left( \pdv[2]{\rho}{\theta} \right) \dv[l]{\theta_m}{t} \right] + D \dv[q-1]{t} \left( \pdv[3]{\rho}{\theta} \right) \\ 
+\dv[q]{\theta_m}{t} & = & - \frac{\displaystyle \left[ \sum_{l=1}^{l=q-1} \binom{q-1}{l-1} \dv[q-l]{t} \left( \pdv[2]{\rho}{\theta} \right) \dv[l]{\theta_m}{t} \right] + D \dv[q-1]{t} \left( \pdv[3]{\rho}{\theta} \right)  }
+{\displaystyle \pdv[2]{\rho}{\theta} }
+\end{eqnarray}
+To increment q, another two orders of derivatives of $ \rho $ are required. For the derivative $ \dv*[q]{\theta_m} $ the highest order $ \rho $ derivative with respect to $ \theta $  will be $ 2q+1 $ which will result from the evaluation of the term on the right side. 
+
+\subsubsection{Calculating $ \dv*[q]{t}{\theta_m} $ via the Inverse Function Theorem}
+
+Near bifurcation points discussed in the next section, it may also be advantageous to calculate the derivative of the inverse function of the local maxima. Near such bifurcation points, $ \pdv[2]{\rho}{\theta} $ approaches zero causing $ \dv[q]{\theta_m}{t} $ to approach infinity. The inverse function $ \theta_m^{-1} $ is defined as follows:
+\begin{eqnarray}
+	\theta_m^{-1}(\theta_m(t)) & \equiv & t \\
+	\theta_m(\theta_m^{-1}(\theta)) & = & \theta_m(t(\theta)) \\
+	& = & \theta \\
+\end{eqnarray}
+From this definition we obtain an identity that can be used to find $ \dv{t}{\theta} $ via the Inverse Function Theorem.
+\begin{eqnarray}
+	\dv{\theta_m^{-1}}{\theta} \dv{\theta}{t} & = & \dv{t}{\theta} \dv{\theta}{t} = 1 \\
+	\dv{t}{\theta} & = & \left( \dv{\theta}{t} \right)^{-1}
+\end{eqnarray}
+The higher derivatives can also be found by taking derivatives of the identity and using Faa di Bruno's formula.
+\begin{eqnarray}
+	\dv[n]{}{t} \theta_m^{-1}(\theta_m(t)) & = & \dv[n]{t}{t} \\
+	& = & 0 \mbox{ for } n \ge 2 \\
+\end{eqnarray}
+For $ n = 2 $, the calculation thus proceeds as follows
+\begin{eqnarray}
+	0 & = & \dv[2]{}{t} \left( \theta_m^{-1}(\theta_m(t)) \right)  \\
+	0 & = & \dv[]{}{t} \left( \dv{t}{\theta_m} \dv{\theta_m}{t} \right) \\
+	0 & = &  \dv[2]{t}{\theta_m} \left(\dv{\theta_m}{t}\right)^2 + \dv{t}{\theta_m}\dv[2]{\theta_m}{t}  \\
+	\dv[2]{t}{\theta_m} & = & -\dv[2]{\theta_m}{t} \dv{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^{-2} \\
+	& = & -\dv[2]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-3} = -\dv[2]{\theta_m}{t} \left( \dv{t}{\theta_m} \right)^{3} \\
+\end{eqnarray}
+Similarly, for $ n = 3 $,
+\begin{eqnarray}
+	0 & = & \dv[3]{}{t} \left( \theta_m^{-1}(\theta_m(t)) \right) \\
+	0 & = & \dv[3]{t}{\theta_m} \left( \dv{\theta_m}{t} \right)^3 + 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t}  \\
+	\dv[3]{t}{\theta_m} & = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( 3 \dv[2]{t}{\theta_m} \dv{\theta_m}{t} \dv[2]{\theta_m}{t} + \dv{t}{\theta_m} \dv[3]{\theta_m}{t} \right) \\
+	& = & -\left( \dv{\theta_m}{t} \right)^{-3} \left( -3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-2}  + \left( \dv{\theta_m}{t} \right)^{-1} \dv[3]{\theta_m}{t} \right) \\
+	& = & 3 \left( \dv[2]{\theta_m}{t} \right)^2 \left( \dv{\theta_m}{t} \right)^{-5}  - \dv[3]{\theta_m}{t} \left( \dv{\theta_m}{t} \right)^{-4} 
+\end{eqnarray}
+
+\subsubsection{Calculating $ \dv*[q]{t}{\theta_m} $ using $ \dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} $}
+Another method to find $ \dv*[q]{t}{\theta_m} $ is to take full derivatives with respect to $ \theta $ of $ \pdv[n]{\rho}{\theta} $, which has the advantage of directly expanding the terms while also being amenable to a recursive algorithm.
+\begin{eqnarray}
+	\mbox{Recall that } \dv{}{\theta} \pdv[n]{\rho}{\theta} & = & \pdv[n+1]{\rho}{\theta} + \pdv[n]{\rho}{\theta}{t}\dv{t}{\theta} = \pdv[n+1]{\rho}{\theta} + D \pdv[n+2]{\rho}{\theta} \dv{t}{\theta} \\
+	\dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} & = & \dv[q-1]{ }{\theta} \left(  \pdv[n+1]{\rho}{\theta}  + D \pdv[n+2]{\rho}{\theta} \dv{t}{\theta}  \right) \\
+	& = & \dv[q-1]{ }{\theta} \left(  \pdv[n+1]{\rho}{\theta} \right)\\
+    &   &  + D \dv[q-2]{  }{\theta} \left( \dv{}{\theta} \left( \pdv[n+2]{\rho}{\theta} \right) \dv{t}{\theta} +  \pdv[n+2]{\rho}{\theta} \dv[2]{t}{\theta}  \right) 
+\end{eqnarray}
+Thus to solve for $ \dv[q-1]{t}{\theta} $ we start with $ \dv[q]{ }{\theta} \pdv{\rho}{\theta} $ (with $ n = 1 $). Applying the derivatives across the terms, we then calculate $ \dv[q]{ }{\theta} \pdv[n]{\rho}{\theta} $ for the $ (q,n) $ pairs $ (q-1,n+1), (1,n+2) $ and continue to differentiate until $ q = 0 $. We then obtain the following results.
+\begin{eqnarray}
+	\dv[2]{ }{\theta} \pdv{\rho}{\theta} = 
+    0 & = & \pdv[2]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv{t}{\theta} \\
+	\dv[3]{ }{\theta} \pdv{\rho}{\theta} = 
+	0 & = & \pdv[3]{\rho}{\theta}  + D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta}  + 2 D \pdv[4]{\rho}{\theta} \dv{t}{\theta}  + D^2 \pdv[5]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2
+\end{eqnarray}
+\begin{eqnarray}
+	\dv[4]{ }{\theta} \pdv{\rho}{\theta} = 
+	0 & = & D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta}  + \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D \pdv[5]{\rho}{\theta} \dv{t}{\theta}  \\
+	& + & 3 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[6]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2  + D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3 \\
+	\dv[5]{ }{\theta} \pdv{\rho}{\theta} = 
+	0 & = & D \pdv[3]{\rho}{\theta} \dv[4]{t}{\theta}  + 4 D \pdv[4]{\rho}{\theta} \dv[3]{t}{\theta}  + 4 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[3]{t}{\theta}  \\
+	& + & \pdv[5]{\rho}{\theta}  + 6 D \pdv[5]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[5]{\rho}{\theta} \left(\dv[2]{t}{\theta}\right)^2  \\ 
+	& + & 4 D \pdv[6]{\rho}{\theta} \dv{t}{\theta}  + 12 D^2 \pdv[6]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 6 D^2 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2\\
+	& + & 6 D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \dv[2]{t}{\theta}  + 4 D^3 \pdv[8]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3  \\
+	& + & D^4 \pdv[9]{\rho}{\theta} \left(\dv{t}{\theta}\right)^4 
+\end{eqnarray}
+The desired $ \dv*[q]{t}{\theta_m} $ can be solved for algebraically. This follows a regular pattern since the term containing $ \dv*[q]{t}{\theta_m} $ is always the term with $ D \pdv[3] {\rho}{\theta} $, which will end up in the denominator.
+
+\begin{eqnarray}
+    -D \pdv[3]{\rho}{\theta} \dv{t}{\theta} & = & \pdv[2]{\rho}{\theta} \\
+	-D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta} & = & \pdv[3]{\rho}{\theta} + 2 D \pdv[4]{\rho}{\theta} \dv{t}{\theta}  + D^2 \pdv[5]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \\
+	-D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta} & = & \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D \pdv[5]{\rho}{\theta} \dv{t}{\theta}  \\
+	& + & 3 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[6]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2  + D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3 \\
+	-D \pdv[3]{\rho}{\theta} \dv[4]{t}{\theta} & = &  4 D \pdv[4]{\rho}{\theta} \dv[3]{t}{\theta}  + 4 D^2 \pdv[5]{\rho}{\theta} \dv{t}{\theta} \dv[3]{t}{\theta}  \\
+	& + & \pdv[5]{\rho}{\theta}  + 6 D \pdv[5]{\rho}{\theta} \dv[2]{t}{\theta}  + 3 D^2 \pdv[5]{\rho}{\theta} \left(\dv[2]{t}{\theta}\right)^2  \\ 
+	& + & 4 D \pdv[6]{\rho}{\theta} \dv{t}{\theta}  + 12 D^2 \pdv[6]{\rho}{\theta} \dv{t}{\theta} \dv[2]{t}{\theta}  + 6 D^2 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2\\
+	& + & 6 D^3 \pdv[7]{\rho}{\theta} \left(\dv{t}{\theta}\right)^2 \dv[2]{t}{\theta}  + 4 D^3 \pdv[8]{\rho}{\theta} \left(\dv{t}{\theta}\right)^3  \\
+	& + & D^4 \pdv[9]{\rho}{\theta} \left(\dv{t}{\theta}\right)^4 
+\end{eqnarray}
+
+\subsection{Bifurcation Points}
+
+The orientation local maxima disappear with decreasing $ K $ or increasing $ t $. From the last section we see that we can calculate a derivative for $ \theta_m $ except when $ \pdv[2]{\rho}{\theta}  = 0 $. At this point, when $ \pdv{\rho}{\theta} = 0 $, however, the critical point is no longer a local orientation maximum since the second derivative test is no longer met. Rather with decreasing $ K $, a local orientation maximum and a local orientation minimum meet each other and anihilate. The meeting of the local orientation maximum and minimum is called a bifurcation point.
+
+To find these bifurcation points, we need to find point points at a particular $ \theta $ and $ K $ such that $ \pdv{\rho}{\theta} = 0 $ and $ \pdv[2]{\rho}{\theta} = 0 $. This cannot be done by tracing the orientation local maxima with decreasing $ K $ since the derivative, $ \dv{\theta_m}{K} $, tends to become very large near the bifurcation point as the denominator approaches zero.
+
+One approach is to trace the critical points of the $ \pdv{\rho}{\theta} $, or equivalently when $ \pdv[2]{\rho}{\theta} = 0 $. The traces can be referred to as the second derivative nullclines. After replacing $ \rho $ with its first partial derivative with respect to $ \theta $, $ \pdv{\rho}{\theta} $, this procedure is identical to that needed to trace the orientation local maxima as we do above. The next task is to find where along these second derivative nullclines that the condition $ \pdv{\rho}{\theta} = 0 $ is also met. This can be accomplished by evaluating $ \pdv{\rho}{\theta} $ along the second derivative nullcline and looking for zero crossings. In summary, the meeting point of first and second partial derivative nullclines with respect to $ \theta $ is where the bifurcation point occurs. This can be determined by evaluating the first partial derivative with respect to $ \theta $ along the second derivative nullcline. These bifurcation points indicate at which $ K $ the orientation local maxima cease to exist.
+
+Another approach is to use the derivatives of the inverse function. At the bifurcation point, we can calculate the derivative of the inverse function, $ \dv{t}{\theta_m} $. Rather than tending to infinity, the first derivative goes to zero near the bifurcation point. In fact at the bifurcation point, since $ \pdv[2]{\rho}{\theta}  = 0 $, $ \dv{t}{\theta}  = 0 $ per the last section.    The exception is when $ \pdv[3]{\rho}{\theta}  = 0 $ in which case a higher derivative test will need to be applied and the following is not directly applicable. If  $ \dv{t}{\theta}  = 0 $ then this simplifies the expressions for the higher derivatives at the bifurcation point.
+
+\begin{eqnarray}
+	-D \pdv[3]{\rho}{\theta} \dv[2]{t}{\theta} & = & \pdv[3]{\rho}{\theta} + 2 D \pdv[4]{\rho}{\theta} (0)  + D^2 \pdv[5]{\rho}{\theta} \left( 0 \right)^2 \\
+	\dv[2]{t}{\theta} & = & -\frac{1}{D} \\
+	-D \pdv[3]{\rho}{\theta} \dv[3]{t}{\theta} & = & \pdv[4]{\rho}{\theta}  + 3 D \pdv[4]{\rho}{\theta} \left( \frac{-1}{D} \right) \\
+	\dv[3]{t}{\theta} & = & \frac{2}{D} \frac{\displaystyle \pdv[4]{\rho}{\theta}}{\displaystyle \pdv[3]{\rho}{\theta} }
+\end{eqnarray}
+\subsubsection{Estimating location near the bifurcation point with a particular derivative}
+Since the first two derivatives of the inverse function are constants at the bifurcation point regardless of the value of the partial derivatives, we can exploit this fact to understand the behavior of local extrema near all bifurcation points.
+
+First we would like to change the derivatives to be with respect to K. Let $ \theta_B $ be the location of the bifurcation such that $ \dv{t}{\theta} (\theta_B) = 0 $.
+\begin{eqnarray}
+\dv{K}{\theta} & = & \dv{t}{\theta} \dv{K}{t} \\
+\dv{K}{\theta} (\theta_B) & = & \dv{t}{\theta} (\theta_B) \dv{K}{t} = 0 \left( -\frac{(2K+1)^3}{4} \right) = 0 \\
+\dv[2]{K}{\theta} & = & \dv[2]{t}{\theta} \dv{K}{t} + \left( \dv{t}{\theta} \right)^2 \dv[2]{K}{t}  \\
+\dv[2]{K}{\theta} (\theta_B) & = & \dv[2]{t}{\theta} (\theta_B) \dv{K}{t} \\
+    & = & -\frac{1}{D} \left( -\frac{(2K+1)^3}{4} \right) \\
+    & = & \frac{(2K+1)^3}{4D} \\
+\end{eqnarray}
+Then we will use a Taylor expansion to estimate the location at which $ \dv{K}{\theta} = S $
+\begin{eqnarray}
+\mbox{Let } \Delta K & = & K_S - K_B \\
+\mbox{Let } \Delta \theta & = & \theta_S - \theta_B \\
+\mbox{We want } \dv[2]{K}{\theta}  \Delta \theta & = & \dv{K}{\theta} = S \\
+\Delta \theta & = & \frac{S}{\dv[2]{K}{\theta} } = \frac{4DS}{(2K_B+1)^3}\\
+K_S & = & K_B  +\dv{K}{\theta} \Delta \theta + \frac{1}{2} \dv[2]{K}{\theta} (\Delta \theta)^2 \\
+\Delta K & = & \frac{1}{2}  \frac{4DS^2}{(2K_B+1)^3}
+\end{eqnarray}
+
+
+\subsection{Tracing orientation local maxima and other nullclines}
+
+Given the derivatives of the orientaiton local maxima and the location of the bifurcation points where the orientation local maxima anihilate, we can trace them using three methods: numerical integration, spline interpolation, and Chebyshev interpolation. These methods can be also applied to trace other nullclines such as the second derivative nullcline needed to locate the bifurcation points.
+
+\subsubsection{Numerical integration}
+
+Once an initial orientation local maximum has been found by using the eigen decomposition method, the derivatives as calculated above can be used to locate other orientation local maxima as $ K $ changes by multiplying the derivatives by small increments of $ K $. This method alone will accumulate errors, however, at each step it would be possible to correct for each error using the Newton-Rhapson method or other Householder's methods of root finding. This method is slow, however, and does not provide an easy method for interpolation. The main performance issue is that the numerical integration has to be done iteratively as opposed to multiple points being evaluated in parallel.
+
+\subsubsection{Spline interpolation}
+
+By sparsely sampling $ K $ and finding orientation local maxima at the sampled $ K $ values, polynomial interpolants can be determined between the sampled points. The order of these polynomial interpolants can increased by incorporating the derivatives of the orientaiton local maxima with respect to $ K $ as found above. The result is a set of piecewise local functions that approximate the actual function.
+
+While the bifurcation point at which the orientation local maxima anihilates provides for a natural end point, no derivatives are available at that point. Rather an endpoint a small increment before the bifurcation point should be used.
+
+\subsubsection{Chebyshev interpolation}
+
+Chebyshev interpolation provides for a global solution using a transformed Fourier series which would be amenable to other analytical techniques used in this analysis. However, this method does the readily take advantage of derivatives since the input to the Fast Fourier Transform is regularly spaced points.
+
+The Discrete Fourier transform solves the following linear algebra problem for $ x $ given $ y $ where $ A $ is a $ N $ by $ N $ matrix and $ x $ and $ y $ are column vectors of length $ N $ for odd $ N $. $ y $ represents a sampling of a function $ f: \mathbb{R} \rightarrow \mathbb{R} $.
+\begin{eqnarray}
+Ax & = & y \\
+\theta_n & = & \frac{2\pi (n -1)}{N}, n \in \{1, \hdots, N\} \\
+\omega(c) & = & \left(c-\frac{N+1}{2} \right) \\
+A_{rc} & = &  \exp(i\theta_r \omega) \frac{1}{N} \\
+y_n & = & f(\theta_n)
+\end{eqnarray}
+If we wanted to compute x at $ N / 3 $  points with the value of the function as well as the first and second derivatives at those points, we would be solving a modified problem as follows. For $ N $ being a multiple of three, $ B $ is a $ N $ by $ N $ matrix, $ x $  and $ z $ are column vectors of length $ N $. $ x $  is the same as above. $ z $ contains regular samples of the same function  $ f: \mathbb{R} \rightarrow \mathbb{R} $ above as well as $ \pdv*{f}{\theta} $ and $ \pdv*[2]{f}{\theta} $.
+\begin{eqnarray}
+Bx & = & z \\
+\theta_n & = & \frac{6\pi (n -1)}{N}, n \in \{1, \hdots, N/3\} \\
+\omega(c) & = & \left(c-\frac{N+3}{6} \right) \\
+B_{rc} & = & \exp(i\theta_r \omega(c) ) \frac{1}{N}, \mbox{ for } c \in \{1,...,N/3\} \\
+B_{rc} & = & i\omega(c-N/3)\exp(i\theta_r \omega(c-N/3) ) \frac{1}{N}, \mbox{ for }  c \in \{N/3+1,...,2N/3\} \\
+B_{rc} & = & -\omega(c-2N/3)^2\exp(i\theta_r \omega(c-2N/3) ) \frac{1}{N}, \mbox{ for }  c \in \{2N/3+1,...,N\} \\
+z_n & = & f(\theta_n), \mbox{ for }  n \in \{1,...,N/3\} \\
+z_n & = & \pdv*{f}{\theta} (\theta_{n-N/3}), \mbox{ for }  n \in \{N/3+1,...,2N/3\} \\
+z_n & = & \pdv*[2]{f}{\theta} (\theta_{n-2N/3}), \mbox{ for }   n \in \{2N/3+1,...,N\} 
+\end{eqnarray}
+We would like to find a $N$ by $N$ matrix, $ C $ that we can multiply to convert the second problem to one that looks like the first problem.
+\begin{eqnarray}
+C B & = & A \\
+C & = & A/B \\
+C B x & = & C z \\
+A x & = & C z = y
+\end{eqnarray}
+The matrix $ C $ can thus be multiplied against $ z $ to produce a column vector that can be used with a standard discrete Fourier transform algorithm. Testing on my laptop shows that this approach of matrix multiplication and using the fft is about nine times faster than solving the second problem directly for $ N = 15 $. It is about one hundred times faster for $ N = 303 $.
+
+Note that $ C $ depends only the sampling rates used in the first problem and second problem and thus only needs to be calculated once to convert problems of the second sampling rate with derivatives to problems of the first sampling rate without derivatives.
+\subsubsection{Use of Methods}
+The three techniques are not mutually exclusive and can be used in conjunction with each other. Spline interpolation is most useful in the initial processing of the signal since this is easily adapated for uniform sampling across all orientation local maxima. In particular spline interpolation is robust for local maxima that anihilate at large $ K $. Spline interpolation can also be used is an extrapolation mode to cover the full range of K values for which an orientation local maximum exists.
+
+Once the spline interpolation is complete, resampling can be done easily and polished using a Householder root finding technique for accuracy. The resampling can be done on a Chebysehv-Lobatto grid for example which would permit the description of the movement of the local orientation local maxima as a function of  $ K $ by a single trigonometric polynomial. The Chebyshev description is then amenable to further analysis.
+\section{Summary}
+Here we have analyzed orientation local maxima by determining their derivatives with respect to $ K $ up to an arbitrary order. This allows for the implicit function describing the local orientation maximum as a function to be traced using several methods that can be used in combination. Furthermore, we have determined the location of the bifurcation points where local orientation maxima cease to exist. Together this allows us to expand the solutions for orientation local maxima from a few to discrete $ K $ to a continuous curve with known bounds.
+\section{Discussion}
+The main utility of this analysis is that the the orientation local maxima can be located at an arbitrary $ K $ smaller than the initial $ K $. This relieves the burden of having to carefully choose an initial $ K $ while making the choice less capricious. Rather the initial $ K $ just needs to be sufficiently high to distinguish orientaitons at the desired resolution. Furthermore, the dependence of the analysis on the choice of $ K $ can analyzed if needed. This applies at the scope of the entire image.
+
+For individual points in space, this provides an analytical toolbox for further analysis of junctions where multiple orientations exist. In this case, the response value at the local maxima as a function of $ K $ may yield useful information on the persistence of orientation over distance. 
+\end{document}

@@ -97,7 +97,7 @@ end
 %% make plot if user specifies
 if makePlot == true;
     % plot the velocity in red and the transitions
-    fsFigure(0.75,'visible','off');
+   hFig = fsFigure(0.75,'visible','off');
     
     %% Plot the original 
     subplot(nPlots,1,1);

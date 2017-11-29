@@ -4,7 +4,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addParameter('distType','angle');
-ip.addParameter('position','start')
+ip.addParameter('position','end')
 ip.addParameter('manifoldEntry',true)
 ip.addParameter('kinDistCutoff',[])
 ip.addParameter('mappedTracksField','associatedMT')
@@ -26,7 +26,7 @@ parfor kinIdx=1:length(kinTracks)
       manifNorm=(manifVector.x.^2 + manifVector.y.^2 + manifVector.z.^2).^0.5;
       subManifold=[manifold(2).getAddCoord(manifVector.getMultCoord(p.kinDistCutoff(1)./manifNorm)) manifold(2).getAddCoord(manifVector.getMultCoord(p.kinDistCutoff(2)./manifNorm))];
     end
-    mappedTracks=mapTracksTo1DManifold(subManifold,tracks,distCutoff,'position','end');
+    mappedTracks=mapTracksTo1DManifold(subManifold,tracks,distCutoff,'position',p.position);
     %% only keep MT that are aligned with the tube.
     % for each mapped track, take the last non-mapped point,
     % measure if the last unmap solution Z and XY are correct.
@@ -40,10 +40,10 @@ parfor kinIdx=1:length(kinTracks)
         for tIdx=1:length(mappedTracksRef)
             % remap each timepoint to manifold
             mt=mappedTracksRef(tIdx);
-            [~,manifSubIndx]=intersect(subManifoldREf(1).f,mt.f);
-            nonMappedPoint=((((mt.x.^2+mt.y.^2).^(0.5))>distCutoff)| ...
-                            (mt.z<subManifoldREf(1).z(manifSubIndx))| ...
-                            (mt.z>subManifoldREf(2).z(manifSubIndx)));
+            [~,manifSubIndx,mtSubIdx]=intersect(subManifoldREf(1).f,mt.f);
+            nonMappedPoint=((((mt.x(mtSubIdx).^2+mt.y(mtSubIdx).^2).^(0.5))>distCutoff)| ...
+                            (mt.z(mtSubIdx)<subManifoldREf(1).z(manifSubIndx))| ...
+                            (mt.z(mtSubIdx)>subManifoldREf(2).z(manifSubIndx)));
             lastNonMapped=find(nonMappedPoint,1,'last');
             if(isempty(lastNonMapped))
               manifoldEntry(tIdx)=true;

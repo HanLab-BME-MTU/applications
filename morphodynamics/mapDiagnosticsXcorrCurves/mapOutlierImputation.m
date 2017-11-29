@@ -1,4 +1,4 @@
-function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap] ...
+function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_outl, imActmap, actmap_outlSc] ...
             = mapOutlierImputation(MD, iChan, maxLayer, varargin) 
 % mapOutlierImputation Get the input of MD, iChan and maxLayer and Give the
 % corresponding 3-dim (window, layer, time frame) activity array in raw,
@@ -11,6 +11,8 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 % Input:
 %       MD          - a movieData object
 %       iChan       - a channel index. If 0, the edge velocity is analyzed.
+%                     iChan = 1x indicates the differenced map (X_t =
+%                     X_{t-1}) of channel x.
 %       maxLayer    - maximum layer to be analyzed
 %
 % Output:
@@ -34,13 +36,31 @@ function [fname0, MDpixelSize_, MDtimeInterval_, wmax, tmax, rawActmap, actmap_o
 %       WithN       - if true, it uses an alternative windowSampling result
 %                   which is obtained by sampleMovieWindowsWithN.m and includes number
 %                   of pixels for each windows. Default is false.
+%       omittedWindows  
+%                   - window index in which activities will be replaced by
+%                   NaN. Default is null.
+%       subFrames
+%                   - specified frames will be only used.        
+%       movingAvgSmoothing
+%                   - input activities are minimally convolved with just
+%                   adjacent activities, that is, by using 3 by 3 patch.
 %
+% Updated: J Noh, 2017/10/11, raw activities can be smoothed. New option is
+% 'movingAvgSmoothing'.
+% J Noh, 2017/08/26, To deal with differenced channels. 
+% Jungsik Noh, 2017/05/23
 % Jungsik Noh, 2016/10/24
 
 
 ip = inputParser;
 ip.addParameter('impute', true);
 ip.addParameter('WithN', false);
+ip.addParameter('omittedWindows', []);
+ip.addParameter('Folding', false);
+ip.addParameter('subFrames', []);
+ip.addParameter('movingAvgSmoothing', false);
+
+
 parse(ip, varargin{:});
 p = ip.Results;
 
@@ -48,13 +68,22 @@ p = ip.Results;
 %%  getting Maps from channels (0 indicates the edge velocity)
 
 disp(['==== Channel index: ', num2str(iChan), ' ===='])
+
+% 2017/08 p.derivative
+p.derivative = (iChan >= 10);
+mdChan = mod(iChan, 10);
+
+%fnameChan = double(p.derivative)*10 + iChan;
+%fname0 = ['Chan', num2str(fnameChan)];
+
 fname0 = ['Chan', num2str(iChan)];
 disp(fname0)
+
 MDpixelSize_ = MD.pixelSize_;
 MDtimeInterval_ = MD.timeInterval_; 
 
 % velmap
-if iChan == 0
+if mdChan == 0
 
     indPSP = MD.getProcessIndex('ProtrusionSamplingProcess');
     PSP = MD.getProcess(indPSP);
@@ -82,13 +111,22 @@ elseif p.WithN == true
 
     % load all channels.mat for allSamplesWithN
     iWinPackInd = MD.getPackageIndex('WindowingPackage');
-    tmp = MD.packages_{iWinPackInd}.outputDirectory_;
-    samplingWithNDirectory_ = fullfile(tmp, 'window_sampling_WithN');
+    if ~isempty(iWinPackInd)
+        tmp = MD.packages_{iWinPackInd}.outputDirectory_;
+        samplingWithNDirectory_ = fullfile(tmp, 'window_sampling_WithN');
+        if ~isdir(samplingWithNDirectory_)
+            tmp = MD.outputDirectory_;
+            samplingWithNDirectory_ = fullfile(tmp, 'window_sampling_WithN');
+        end
+    else
+        samplingWithNDirectory_ = fullfile(MD.outputDirectory_, 'window_sampling_WithN');
+    end
+        
     fname = 'all channels.mat';
     inFilePaths = fullfile(samplingWithNDirectory_, fname);
     load(inFilePaths, 'allSamplesWithN');
 
-actmap = allSamplesWithN(iChan).avg;    
+actmap = allSamplesWithN(mdChan).avg;    
     
     disp('size of activity map')
     size(actmap)  
@@ -103,7 +141,7 @@ else
 
     indWSP = MD.getProcessIndex('WindowSamplingProcess');
     WSP = MD.getProcess(indWSP);
-    WSPresult = WSP.loadChannelOutput(iChan);  % Set channel of  ...
+    WSPresult = WSP.loadChannelOutput(mdChan);  % Set channel of  ...
     actmap = WSPresult.avg;                    % actmap > rawActmap, actmap_outl, imActmap
 
     disp('size of activity map')
@@ -117,8 +155,51 @@ else
 
 end
 
+%% p.derivative option  (old)
 
-%%  Activity Map Outlier
+%% Omit windows
+
+if numel(p.omittedWindows) > 0
+    actmap(p.omittedWindows, :,:) = NaN;
+end
+
+
+%% Omit time frames
+
+if numel(p.subFrames) > 0
+    actmap = actmap(:,:, p.subFrames);
+    tmax = size(actmap, 3);             %%% update tmax
+end
+
+
+%% if Folding
+
+if p.Folding == 1
+
+    if mod(tmax, 2) == 1
+        tmax = tmax + 1;
+        [a, b, ~] = size(actmap);
+        actmap = cat(3, actmap, nan(a, b));
+    end
+    foldedMap = nan(wmax, maxLayer, tmax/2);
+
+    for w = 1:wmax
+    for l = 1:maxLayer
+        for t = 1:(tmax/2)
+            foldedMap(w, l, t) = mean([actmap(w, l, 2*t-1), actmap(w, l, 2*t)], 'omitnan');
+        end
+    end
+    end
+    actmap = foldedMap;
+    tmax = size(foldedMap, 3);
+    MDtimeInterval_ = MDtimeInterval_ * 2;
+
+end
+
+
+
+%%  Activity Map Outlier & remove windows
+%% omitWin, subFr, Folding -> outlierAdj -> (movAvgSmoothing) -> Diff (smoothing again) -> (impute)
 
 rawActmap = cell(1, maxLayer);
 actmap_outl = cell(1, maxLayer);
@@ -151,6 +232,90 @@ for indL = 1:maxLayer
     disp( sum(sum(abs(inputmap-m0)/std0 > 5)) )
 
 end
+
+
+
+%% movAvg smoothing
+
+if (p.movingAvgSmoothing == true)
+    actmap_outl2 = actmap_outl;
+    
+    gaussianFilter = fspecial('gaussian', 3, 0.5);   %% minimal gaussian filtering
+    
+    for l = 1:maxLayer
+        tmp = actmap_outl{l};    
+        actmap_outl2{l} = nanconv(tmp, gaussianFilter, 'edge', 'nanout');
+    end
+    actmap_outl = actmap_outl2;
+end
+
+
+%% 10/18/2017 (temp)
+
+if (p.movingAvgSmoothing > 0) & (p.movingAvgSmoothing < 1)
+    actmap_outl2 = actmap_outl;
+    smParam = p.movingAvgSmoothing;
+
+    for indL = 1:maxLayer
+        actmap_outl2{indL} = smoothActivityMap(actmap_outl{indL}, 'SmoothParam', smParam, 'UpSample', 1); 
+    end
+    actmap_outl = actmap_outl2;
+end
+
+
+
+
+
+
+%% p.derivative option 
+
+if (p.derivative == true)
+    actmap_outl2 = actmap_outl;
+    for l = 1:maxLayer
+        tmp = actmap_outl{l};
+        difftmp = diff(tmp, [], 2);   % time-wise difference operation
+        actmap_outl2{l} = [nan(size(tmp, 1), 1), difftmp];
+    end
+    actmap_outl = actmap_outl2;
+
+    if iChan == 10
+        for l = 1:maxLayer
+            actmap_outl{l} = actmap_outl{l} ./ MDtimeInterval_;
+        end
+    end
+
+%%%%%  Smoothing again the differences
+
+    if (p.movingAvgSmoothing == true)
+        actmap_outl2 = actmap_outl;
+
+        gaussianFilter = fspecial('gaussian', 3, 0.5);   %% minimal gaussian filtering
+        for l = 1:maxLayer
+            tmp = actmap_outl{l};
+            actmap_outl2{l} = nanconv(tmp, gaussianFilter, 'edge', 'nanout');
+        end
+        actmap_outl = actmap_outl2;
+    end
+
+end
+
+
+
+
+%%  scaling the activity map
+
+actmap_outlSc = cell(1, maxLayer);
+for indL = 1:maxLayer
+    
+    actmap_outlCell = num2cell(actmap_outl{indL}, 2);
+    actmap_outlZ = cellfun(@(x) nanZscore(x), actmap_outlCell, 'UniformOutput', false);
+    actmap_outlSc{indL} = cell2mat(actmap_outlZ);
+    
+    % CentMap ...
+    %actmap_outlSc{indL} = detrend(actmap_outl{indL}', 'constant')';
+end
+
+
 
 
 %%  Imputation (used as an input of computations), later maybe restricted

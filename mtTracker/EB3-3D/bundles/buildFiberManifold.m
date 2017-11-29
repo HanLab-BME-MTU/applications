@@ -1,4 +1,4 @@
-function [manifoldCell,subManifoldCell]=buildFiberManifold(poles,kinTracks,tracks,distCutoff,varargin)
+function [manifoldCell,subManifoldCell]=build1DManifold(trackSet1,trackSet2,varargin)
 %Plot and compare building
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -7,14 +7,14 @@ ip.addParameter('kinDistCutoff',[])
 ip.parse(varargin{:});
 p=ip.Results;
 
-manifoldCell=cell(length(poles),length(kinTracks));
-subManifoldCell=cell(length(poles),length(kinTracks));
+manifoldCell=cell(length(trackSet1),length(trackSet2));
+subManifoldCell=cell(length(trackSet1),length(trackSet2));
 
-for kinIdx=1:length(kinTracks)
-  kinTrack=kinTracks(kinIdx);
-  progressText(kinIdx/length(kinTracks),'Build manifolds');
-  for poIdx=1:length(poles)
-    P=poles(poIdx);
+for kinIdx=1:length(trackSet2)
+  kinTrack=trackSet2(kinIdx);
+  progressText(kinIdx/length(trackSet2),'Build manifolds');
+  for poIdx=1:length(trackSet1)
+    P=trackSet1(poIdx);
     manifold=[P.getOverlapping(kinTrack) kinTrack];
     subManifold=manifold;
     if(~isempty(p.kinDistCutoff) )

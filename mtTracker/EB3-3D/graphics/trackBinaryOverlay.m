@@ -3,6 +3,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
   ip.addOptional('cumulative',false);
+  ip.addOptional('dragonTail',[]);
   ip.parse(varargin{:});
   p=ip.Results;
 %%
@@ -25,7 +26,11 @@ if(~isempty(tracks))
               tIdx=length(t.f)
             end
             RGB=tracksColors(colorIndex(trIdx),:);
-            X=t.x(1:tIdx); Y=t.y(1:tIdx);% Z=t.z(1:tIdx);
+            displayStart=1;
+            if(~isempty(p.dragonTail))
+                displayStart=max(1,tIdx-p.dragonTail);
+            end
+            X=t.x(displayStart:tIdx); Y=t.y(displayStart:tIdx);% Z=t.z(1:tIdx);
 
             X=X-XLimit(1);
             Y=Y-YLimit(1);

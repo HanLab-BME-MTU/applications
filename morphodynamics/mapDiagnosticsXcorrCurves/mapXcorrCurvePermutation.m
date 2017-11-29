@@ -29,7 +29,7 @@ function mapXcorrCurvePermutation(MD, iChan1, iChan2, chan1Name, chan2Name, laye
 %       fullRange   - if true, smoothed xcorr maps are given in [-1, 1]
 %                   scale to compare multiple xcorr maps. Default is false.
 %       impute      - if true, moderate missing values are imputed by using
-%                   knnimpute.m function. Default is true.
+%                   knnimpute.m function. Default is false.
 %       parpoolNum  - number of local parallel pool used during permutation. Default is 4.
 %       rseed       - input for running rng('default'); rng(rseed). Default
 %                   is 'shuffle'. If it is a specific number, the permutation will give
@@ -38,7 +38,18 @@ function mapXcorrCurvePermutation(MD, iChan1, iChan2, chan1Name, chan2Name, laye
 %       WithN       - if true, it uses an alternative windowSampling result
 %                   which is obtained by sampleMovieWindowsWithN.m and includes number
 %                   of pixels for each windows. Default is false.
-%   
+%       omittedWindows  
+%                   - window index in which activities will be replaced by
+%                   NaN. Default is null.
+%       subFrames
+%                   - specified frames will be only used.        
+%
+% Updated: J Noh, 2017/10/11, raw activities can be smoothed. New option is
+% 'movingAvgSmoothing'.
+% J Noh, 2017/10/06. impute default is now false.
+% J Noh, 2017/08/26. To deal with differenced channels. 
+%        iChan = 1x indicates the differenced map (X_t =X_{t-1}) of channel x.
+% Jungsik Noh, 2017/05/23     
 % Jungsik Noh, 2016/10/22
 
 
@@ -52,8 +63,13 @@ ip.addParameter('fullRange', false);
 ip.addParameter('parpoolNum', 4);
 ip.addParameter('rseed', 'shuffle');
 ip.addParameter('numPerm', 1000);
-ip.addParameter('impute', true);
+ip.addParameter('impute', false);
 ip.addParameter('WithN', false);
+ip.addParameter('subFrames', []);
+ip.addParameter('omittedWindows', []);
+ip.addParameter('movingAvgSmoothing', false);
+ip.addParameter('topograph', 'on');
+
 
 parse(ip, varargin{:})
 p = ip.Results;
@@ -63,13 +79,21 @@ p = ip.Results;
 %%  figuresDir setup
 if ~isdir(figuresDir); mkdir(figuresDir); end
 
+tmptext = ['mapXcorrCurvePermutation_', 'inputParser.mat'];
+save(fullfile(figuresDir, tmptext), 'p')
+
+
 %%  getting Maps from channels 1, 2
 
 [~, ~,MDtimeInterval_, wmax, tmax, ~, ~, imActmap1] ...
-            = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, 'WithN', p.WithN); 
+            = mapOutlierImputation(MD, iChan1, layerMax, 'impute', p.impute, ...
+            'omittedWindows', p.omittedWindows, 'WithN', p.WithN, 'subFrames', p.subFrames, ...
+            'movingAvgSmoothing', p.movingAvgSmoothing);
 
 [~, ~, ~, ~, ~, ~, ~, imActmap2] ...
-            = mapOutlierImputation(MD, iChan2, layerMax, 'impute', p.impute, 'WithN', p.WithN); 
+            = mapOutlierImputation(MD, iChan2, layerMax, 'impute', p.impute, ...
+            'omittedWindows', p.omittedWindows, 'WithN', p.WithN, 'subFrames', p.subFrames, ...
+            'movingAvgSmoothing', p.movingAvgSmoothing); 
 
 
 %% variable set up
@@ -86,6 +110,17 @@ if ~isdir(figuresDir); mkdir(figuresDir); end
 %    imActmap2_layer{indL} = reshape(imActmap2{indL}, wmax, 1, tmax);
 %end
 %imActmap2_3dim = cat(2, imActmap2_layer{1:end});
+%%  to handle vel channel reads
+
+if layerMax > 1
+    if numel(imActmap1) == 1
+        for indL = 2:layerMax; imActmap1{indL} = imActmap1{1}; end
+    end
+    if numel(imActmap2) == 1
+        for indL = 2:layerMax; imActmap2{indL} = imActmap2{1}; end
+    end
+end
+
 
 %%  input prepare and call xcorrCurvePermutationTest
 
@@ -104,6 +139,7 @@ xcorrMat = xcorrCurvePermutationTest(ch1Actmap, ch2Actmap, ch1ActmapName, ch2Act
 
 
 %%  Topographs of xcorr
+if strcmp(p.topograph, 'on')
 
 iWinProc = MD.getProcessIndex('WindowingProcess',1,0);
 
@@ -124,6 +160,7 @@ topoFig_xcorrChan1Chan2 = topographMD(MD, tmax, 1, topoMap, title0, p.figFlag);
 %%
 saveas(topoFig_xcorrChan1Chan2, fullfile(figuresDir, ['/topoFig_xcorr_', fsaveName0, '.png']), 'png')  
 
+end
 
 %%
 disp('====End of mapXcorrCurvePermutation====')

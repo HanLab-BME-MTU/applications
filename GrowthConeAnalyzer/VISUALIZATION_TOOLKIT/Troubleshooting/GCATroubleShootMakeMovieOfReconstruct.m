@@ -1,177 +1,103 @@
-function [ hSet,filoFilterSet,filoParams ] = GCATroubleShootMakeMovieOfReconstruct( filoBranch,veilStem,frame,pixSizeMic,imDir)
-% Small function that makes a cool movie of the different steps in the reconstruction
-% likely also will be very helpful for troubleshooting
+function [ hSet,filoFilterSet,filoParams ] = GCATroubleShootMakeMovieOfReconstruct(filoBranch,veilStem,frame,pixSizeMic,imDir,varargin)
+% Small function that makes a nice movie of the main reconstruction steps
+% As the name suggests it is useful for troubleshooting segmentation errors
+%% check input
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addParameter('writeTitles',true);
 
-% if otherImgDir == 0;
-% filename = analInfo(frame).imgPointer;
-% textColor = [ 1 1 1];
-% else
+ip.addParameter('plotScaleBar',true);
+ip.addParameter('sizeScaleBar', 10); % in um 
+
+ip.parse(varargin{:});
+%%
 listOfImages = searchFiles('.tif',[],imDir);
 filename = [char(listOfImages(frame,2)) filesep char(listOfImages(frame,1))];
 textColor = [ 0 0 0 ];
-% end
 fontText =  {'FontName','Arial','FontSize',14,'FontName','Arial','color',textColor};
 %%%% START %%%%
 img = double(imread(filename));
 
 [ny,nx] = size(img);
 
-%% Initiate 
+if ip.Results.plotScaleBar
+     pixels = 10/pixSizeMic;
+end 
 
-countFig = 1; 
+%% Initiate
+
+countFig = 1;
 %% 00 -original image
 
 hSet(countFig).h =setFigure(nx,ny);
 imshow(-img,[]) ;
 hold on
-text(nx/10, 10,'Original Image ', fontText{:});
-pixels = 10/pixSizeMic;
-plotScaleBar(pixels,pixels/10,'Color',textColor);
 
+if ip.Results.writeTitles
+    text(nx/10, 10,'Original Image ', fontText{:});
+end
 
+if ip.Results.plotScaleBar
+    plotScaleBar(pixels,pixels/10,'Color',textColor);
+end
+countFig = countFig+1;
 
-countFig = countFig+1; 
-%% 01 - LOCAL THRESH %%%%
-% h = setFigure(nx,ny);
-% imshow(-img,[])
-% hold on
-%
-% localThresh = analInfo(frame).bodyEst.beforeErod;
-%
-% cellfun(@(x) plot(x(:,2),x(:,1),'c'),localThresh);
-%
-% text(nx/10, 10,'Step 01: Local Thresholding', 'color',textColor);
-% pixels = round(10/pixSizeMic);
-%      plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
-%
-%    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'frame01.png']);
-%         saveas(h,[saveDir filesep 'frame01.eps'],'psc2');
-
-%         close gcf
-
-%% 02 - EROD FILO %%%%
-% h = setFigure(nx,ny) ;
-% imshow(-img,[])
-% hold on
-% erosion =veilStem(frame).bodyEst.erodForBody;
-% cellfun(@(x) plot(x(:,2),x(:,1),'b'),erosion)
-% text(nx/10, 20,{'Estimate Larger-Scale'; 'Veil/Stem Pieces'}, fontText{:});
-% pixels = round(10/pixSizeMic);
-% plotScaleBar(pixels,pixels/20,'Color',textColor);
-% 
-% %  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %          [saveDir filesep 'frame02.png']);
-% saveas(h,[saveDir filesep 'frame02.png']);
-% saveas(h,[saveDir filesep 'frame02.eps'],'psc2');
-% saveas(h,[saveDir filesep 'frame02.fig']);
-% 
-% close gcf
-
-%% 03 BACKBONE SAVE %%%%
-
-% h = setFigure(nx,ny) ;
-% imshow(-img,[])
-% hold on
-% backbone =  veilStem(frame).backbone;
-% % extra = zeros(size(img));
-% % backbone = [backbone extra];
-% spy(backbone,'r')
-% %cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
-% text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
-% pixels = round(10/pixSizeMic);
-% %plotScaleBar(pixels,pixels/20,'Color',textColor);
-% 
-% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %         [saveDir filesep 'frame03.png']);
-% saveas(h,[saveDir filesep 'frame03.png']);
-% close gcf
-
-% hSet(countFig).h = setFigure(nx,ny) ;
-% imshow(-img,[])
-% hold on
-% backbone =  veilStem(frame).backbone;
-% % extra = zeros(size(img));
-% % backbone = [backbone extra];
-% spy(backbone,'r')
-% %cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
-% text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
-% pixels = round(10/pixSizeMic);
-% plotScaleBar(pixels,pixels/20,'Color',textColor);
-% 
-% countFig = countFig+1; 
-
-%% 04 Final Body Mask %%%%
+%% Final Body Mask %%%%
 hSet(countFig).h = setFigure(nx,ny);
 imshow(-img,[]) ;
 hold on
 bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
-cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-text(nx/10, 10,'Veil/Stem Estimation Complete', fontText{:});
-pixels = round(10/pixSizeMic);
 
-% plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+cellfun(@(x) plot(x(:,2),x(:,1), 'color',[0.0039  ,  0.4264 ,   0.3848],'Linewidth',1),edgeYX);
+if ip.Results.writeTitles
+    text(nx/10, 10,'Veil/Stem Estimation Complete', fontText{:});
+end
 
-
-
-plotScaleBar(pixels,pixels/10,'Color',textColor);
-countFig = countFig+1; 
-
-%% 05 Overlay Ridges %%%%
-% h = setFigure(nx,ny);
-% imshow(-img,[]) ;
-% hold on
-% candRidges = filoBranch(frame).filterInfo.ThreshNMS;
-% spy(candRidges ,'m');
-% cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-% text(nx/10, 10,'Detect Small Scale Ridges', fontText{:});
-% pixels = round(10/pixSizeMic);
-% %  plotScaleBar(pixels,pixels/20,'Color',textColor);
-% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %         [saveDir filesep 'frame05.png']);
-% saveas(h,[saveDir filesep 'frame05.png'] );
-% saveas(h,[saveDir filesep 'frame05.eps'],'psc2');
-
-% close gcf
-
-%% 06 Show Seed
+if ip.Results.plotScaleBar
+    plotScaleBar(pixels,pixels/10,'Color',textColor);
+end
+countFig = countFig+1;
+%% Show Seed
 hSet(countFig).h = setFigure(nx,ny);
 imshow(-img,[]) ;
 hold on
 
+if ip.Results.writeTitles
+    text(nx/10, 10,'Get Seed For Reconstruction', fontText{:});
+end
 
-text(nx/10, 10,'Get Seed For Reconstruction', fontText{:});
-bodyFinal = veilStem(frame).finalMask;
-edgeYX = bwboundaries(bodyFinal);
-cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
 seedMask = filoBranch(frame).reconstructInfo.seedMask{1};
-spy(seedMask,'b',5);
-pixels = round(10/pixSizeMic);
+spy(seedMask,'b');
 
+if ip.Results.plotScaleBar
+    plotScaleBar(pixels,pixels/10,'Color',textColor);
+end
 
-
- plotScaleBar(pixels,pixels/10,'Color',textColor);
-countFig = countFig+1; 
-%% 07 Show Candidates
+countFig = countFig+1;
+%%  Show Candidates
 hSet(countFig).h = setFigure(nx,ny) ;
 imshow(-img,[])
 hold on
-text(nx/10, 10,'Get Candidates', fontText{:});
+if ip.Results.writeTitles
+    text(nx/10, 10,'Get Candidates', fontText{:});
+end
 spy(seedMask,'b');
 bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
 preClust = filoBranch(frame).reconstructInfo.CandMaskPreCluster;
+idx = find(preClust);
+[preClustY,preClustX] = ind2sub(size(preClust),idx);
+c = brewermap(2,'dark2');
+scatter(preClustX,preClustY,5,c(2,:),'filled');
 
-spy(preClust,'m',5);
-pixels = round(10/pixSizeMic);
+if ip.Results.plotScaleBar
+    plotScaleBar(pixels,pixels/10,'Color',textColor);
+end
 
-plotScaleBar(pixels,pixels/20,'Color',textColor);
-countFig = countFig+1; 
-
-
-%% 08 Show Clustering
+countFig = countFig+1;
+%% Show Clustering
 hSet(countFig).h = setFigure(nx,ny) ;
 imshow(-img,[])
 hold on
@@ -179,36 +105,44 @@ spy(seedMask,'b');
 bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-text(nx/10, 10,'Cluster Linear Candidates', fontText{:});
+if ip.Results.writeTitles
+    text(nx/10, 10,'Cluster Linear Candidates', fontText{:});
+end
 clusterLinks = filoBranch(frame).reconstructInfo.clusterlinks;
 
 preClust = filoBranch(frame).reconstructInfo.CandMaskPreCluster;
-spy(preClust,'m');
-spy(clusterLinks,'y');
-pixels = round(10/pixSizeMic);
-plotScaleBar(pixels,pixels/20,'Color',textColor);
+idx= find(preClust);
+[preClustY,preClustX] = ind2sub(size(preClust),idx);
+scatter(preClustX,preClustY,5,c(2,:),'filled');
+spy(clusterLinks,'k');
 
+if ip.Results.plotScaleBar
+    plotScaleBar(pixels,pixels/10,'Color',textColor);
+end
 
-countFig = countFig+1; 
-
-%% 09 Candidates Post Clustering
+countFig = countFig+1;
+%% Candidates Post Clustering
 hSet(countFig).h = setFigure(nx,ny) ;
 imshow(-img,[])
 hold on
-text(nx/10, 10,' Linear Candidates Clustered', fontText{:});
+if ip.Results.writeTitles
+    text(nx/10, 10,' Linear Candidates Clustered', fontText{:});
+end
 spy(seedMask,'b');
 bodyFinal = veilStem(frame).finalMask;
 edgeYX = bwboundaries(bodyFinal);
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
 postClust= filoBranch(frame).reconstructInfo.CandMaskPostCluster;
-spy(postClust,'m');
+idx = find(postClust);
+[postClustY,postClustX] = ind2sub(size(postClust),idx);
+scatter(postClustX,postClustY,5,c(2,:),'filled');
 pixels = round(10/pixSizeMic);
-plotScaleBar(pixels,pixels/10,'Color',textColor);
-countFig = countFig+1; 
 
+if ip.Results.plotScaleBar
+    plotScaleBar(pixels,pixels/10,'Color',textColor);
+end
 
-
-
+countFig = countFig+1;
 %% Iterate over reconstruction
 if isfield(filoBranch(frame).reconstructInfo,'output');
     for iReconst = 1:numel(filoBranch(frame).reconstructInfo.output)
@@ -216,88 +150,95 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         hSet(countFig).h = setFigure(nx,ny) ;
         imshow(-img,[])
         hold on
-        text(nx/10, 10,'Link Candidates', fontText{:});
-        spy(postClust,'m');
+        if ip.Results.writeTitles
+            text(nx/10, 10,'Link Candidates', fontText{:});
+        end
+        
+        idx = find(postClust);
+        [postClustY,postClustX] = ind2sub(size(postClust),idx);
+        scatter(postClustX,postClustY,5,c(2,:),'filled');
         spy(seedMask,'b');
         bodyFinal = veilStem(frame).finalMask;
         edgeYX = bwboundaries(bodyFinal);
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
         links= filoBranch(frame).reconstructInfo.output{iReconst}.links;
-        spy(links,'y',5);
-        pixels = round(10/pixSizeMic);
-
-        
-
-        plotScaleBar(pixels,pixels/10,'Color',textColor); 
-        countFig  = countFig+1; 
-
-        %%
+        spy(links,'k',5);
+      
+        if ip.Results.plotScaleBar
+            plotScaleBar(pixels,pixels/10,'Color',textColor);
+        end
+       
+        countFig  = countFig+1;
+        %% Add to VeilStem
         hSet(countFig).h = setFigure(nx,ny) ;
         
         imshow(-img,[])
         hold on
-        spy(postClust,'m');
-        spy(seedMask,'b');
-        bodyFinal = veilStem(frame).finalMask;
-        edgeYX = bwboundaries(bodyFinal);
-        cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
-        spy(links,'b');
-        text(nx/10, 10,'Add to Body', fontText{:});
+        spy(seedMask,'b');
+     
+        if ip.Results.writeTitles
+            text(nx/10, 10,'Add to VeilStem', fontText{:});
+        end
         bodyAdd =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.Body ;
-        spy(bodyAdd,'g',5)
-        pixels = round(10/pixSizeMic);
-
-         plotScaleBar(pixels,pixels/10,'Color',textColor);
-        countFig = countFig+1; 
-        %%
-        hSet(countFig).h = setFigure(nx,ny); 
+        
+        [yB,xB] = ind2sub(size(bodyAdd),find(bodyAdd));
+        
+        aqua = [0.0039  ,  0.4264 ,   0.3848];
+        scatter(xB,yB,8,c(2,:),'filled');
+        
+        if ip.Results.plotScaleBar
+            plotScaleBar(pixels,pixels/10,'Color',textColor);
+        end
+        
+        countFig = countFig+1;
+        %% 'Add Branch'
+        hSet(countFig).h = setFigure(nx,ny);
         imshow(-img,[])
         hold on
-        spy(postClust,'m');
-        spy(seedMask,'b');
-        bodyFinal = veilStem(frame).finalMask;
-        edgeYX = bwboundaries(bodyFinal);
-        cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
-        spy(links,'b');
-        spy(bodyAdd,'b')
-        text(nx/10, 10,'Add Branch', fontText{:});
+        spy(seedMask,'b');
+        scatter(xB,yB,5,'b','filled');
+        
+        if ip.Results.writeTitles
+            text(nx/10, 10,'Add Branch', fontText{:});
+        end
         branchAdd =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.Branch ;
-        spy(branchAdd,'g',5)
-        pixels = round(10/pixSizeMic);
-
-      
-
-          plotScaleBar(pixels,pixels/10,'Color',textColor);
-
+        if sum(branchAdd(:))>0
+            [yBr,xBr] = ind2sub(size(branchAdd),find(branchAdd));
+           
+            scatter(xBr,yBr,8,c(2,:),'filled');
+        end
         
-        countFig  = countFig +1; 
-        %%
-        hSet(countFig).h = setFigure(nx,ny); 
+        if ip.Results.plotScaleBar
+            plotScaleBar(pixels,pixels/10,'Color',textColor);
+        end
+        
+        countFig  = countFig +1;
+        %% Add End-on Attachment
+        hSet(countFig).h = setFigure(nx,ny);
         imshow(-img,[])
         hold on
         
-        spy(postClust,'b');
         spy(seedMask,'b');
+        scatter(xB,yB,5,'b','filled');
         
-        bodyFinal = veilStem(frame).finalMask;
-        edgeYX = bwboundaries(bodyFinal);
-        cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
-        spy(links,'b');
-        spy(bodyAdd,'b')
-        spy(branchAdd,'b');
-        text(nx/10, 10,'Add End-On Attachment', fontText{:});
+        if ip.Results.writeTitles
+            text(nx/10, 10,'Add End-On Attachment', fontText{:});
+        end
         endOn =  filoBranch(frame).reconstructInfo.output{iReconst}.candFiloAdded.EndOn ;
-        spy(endOn,'g',5)
-        pixels = round(10/pixSizeMic);
-        plotScaleBar(pixels,pixels/10,'Color',textColor);
-       
-        countFig = countFig+1; 
         
-
-
+        if sum(endOn(:))>0
+            [yE,xE] = ind2sub(size(endOn),find(endOn));
+            scatter(xE,yE,8,c(2,:),'filled');
+        end
+        
+        if ip.Results.plotScaleBar
+            plotScaleBar(pixels,pixels/10,'Color',textColor);
+        end
+        
+        countFig = countFig+1;        
         %%
         if iReconst == numel(filoBranch(frame).reconstructInfo.output);
             
@@ -309,272 +250,125 @@ if isfield(filoBranch(frame).reconstructInfo,'output');
         hSet(countFig).h = setFigure(nx,ny) ;
         imshow(-img,[])
         hold on
-        text(nx/10, 10,title, fontText{:});
+        
+        if ip.Results.writeTitles
+            text(nx/10, 10,title, fontText{:});
+        end
+        
         seedMask =  filoBranch(frame).reconstructInfo.seedMask{iReconst+1} ;
         spy(seedMask,'b')
         bodyFinal = veilStem(frame).finalMask;
         edgeYX = bwboundaries(bodyFinal);
         cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX);
         
-        pixels = round(10/pixSizeMic);
-        plotScaleBar(pixels,pixels/10,'Color',textColor);
-        
-        countFig = countFig +1; 
-        
-      
+        if ip.Results.plotScaleBar
+            plotScaleBar(pixels,pixels/10,'Color',textColor);
+        end
+   
+        countFig = countFig +1;
     end % iReconst
-end
-
-    
-%% 
-
-% %% plot fits 1st, 2nd, and higher order branches
-%
-%   h  = setFigure(nx,ny);
-% %figure;
-%
-%  imshow(-img,[]);
-%  hold on
-%
-%  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
-%  filoInfoSingle = filoInfo(type==0);
-%  plotfilosIntAndExt(filoInfoSingle,imgSize,1,1,'g',0);
-%
-%  text(nx/10,10,'High Confidence Single Filopodia Attached to Neurite Body', 'color',textColor);
-%  pixels = round(10/pixSizeMic);
-%    plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
-%
-%
-%
-%
-%
-%         test = vertcat(filoInfoSingle(:).Ext_exitFlag);
-%         %c(iType) = c;
-%         idx = test>=1;
-%
-%         filoInfoFilt = filoInfo(idx);
-%
-%         % filter out any that might have passed the exitflag criteria but NOT
-%         % gave a number for the fit ==0  % maybe flag above later...
-%         test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
-%         idx2 = ~isnan(test2);
-%         filoInfoFilt = filoInfoFilt(idx2);
-%    value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic;
-%
-%
-%   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
-%    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
-%  clear filoInfoFilt
-%         imageNum = imageNum+1;
-%         close gcf
-%%
-%  h  = setFigure(nx,ny);
-% %figure;
-%
-%  imshow(-img,[]);
-%  hold on
-%
-%  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
-%  filoInfoBranchStem = filoInfo(type==1);
-%  plotfilosIntAndExt(filoInfoBranchStem,imgSize,1,1,'y',1);
-%
-%  text(nx/10,10,'High Confidence Branch Stem Attached to Neurite Body', 'color',textColor);
-%  pixels = round(10/pixSizeMic);
-%   plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
-%
-%    test = vertcat(filoInfoBranchStem(:).Ext_exitFlag);
-%         %c(iType) = c;
-%         idx = test>=1;
-%
-%         filoInfoFilt = filoInfoBranchStem(idx);
-%
-%         % filter out any that might have passed the exitflag criteria but NOT
-%         % gave a number for the fit ==0  % maybe flag above later...
-%         test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
-%         idx2 = ~isnan(test2);
-%         filoInfoFilt = filoInfoFilt(idx2);
-%    value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic;
-%     valueMax = nanmax(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic;
-%   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
-%    text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor);
-%    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
-%
-%         close gcf
-%         imageNum = imageNum+1;
-%         clear filoInfoFilt
-%%
-% h  = setFigure(nx,ny);
-% %figure;
-%
-%  imshow(-img,[]);
-%  hold on
-%
-%  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
-%  filoInfoHigherOrder = filoInfo(type==2);
-%  plotfilosIntAndExt(filoInfoHigherOrder,imgSize,1,1,'m',1);
-%
-%  text(nx/10,10,'High Confidence 1st Order Branches', 'color',textColor);
-%  pixels = round(10/pixSizeMic);
-%    plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
-%  test = vertcat(filoInfoHigherOrder(:).Ext_exitFlag);
-%         %c(iType) = c;
-%         idx = test>=1;
-%
-%         filoInfoFilt = filoInfoHigherOrder(idx);
-%
-%         % filter out any that might have passed the exitflag criteria but NOT
-%         % gave a number for the fit ==0  % maybe flag above later...
-%         test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
-%         idx2 = ~isnan(test2);
-%         filoInfoFilt = filoInfoFilt(idx2);
-%    value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic;
-%     valueMax = nanmax(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic;
-%   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);
-%   text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor);
-%    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-%             [saveDir filesep 'frame' num2str(imageNum) '.png'])
-%         close gcf
+end % isfield
 
 filoInfo = filoBranch(frame).filoInfo;
 
-% %% Filopodia Fits
-% imageNum = imageNum +1;
-% h = setFigure(nx,ny);
-% imshow(-img,[]);
-% hold on
-% cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);
-% GCAVisualsMakeOverlaysFilopodia(filoInfo,[ny,nx],1,1,[],0);
-% text(nx/10,10,'Filopodia Fits', fontText{:})
-% % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-% %          [saveDir filesep 'frame' num2str(imageNum) '.png'])
-% saveas(h,[saveDir filesep 'frame' num2str(imageNum) '.png']);
-% close gcf
-turnOn = true; 
-if turnOn
+
+if isfield(filoInfo,'Ext_params'); 
     
-%%   Filopodia By Branch Group
-
-hSet(countFig).h  = setFigure(nx,ny);
-imshow(-img,[]);
-hold on
-
-GCAVisualsPlotFilopodiaPerBranchGroup(filoInfo,[ny,nx]);
-cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
-
-text(nx/10,10,'Color-Coded By Branch Group', fontText{:});
-
-
-
-countFig  = countFig+1; 
-
-
-%% Plot Individual: For Validation : Random Permutation of Colors
-hSet(countFig).h = setFigure(nx,ny);
-imshow(-img,[]);
-hold on
-cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
-
-%type = vertcat(filoInfo(:).type);
-%idxBlack = (type == 0 | type ==1);
-%filoInfoBlack  = filoInfo(idxBlack);
-%GCAVisualsMakeOverlaysFilopodia(filoInfoBlack,[ny,nx],1,1,'k',0);
-%filoInfoBranch = filoInfo(type>1);
-
-% Note creates all the filopodia filter sets for the entire movie
-%[filoFilterSet,filoParams] = GCACreateFilopodiaFilterSetWithEmbed(filoBranch,'Validation'); % for now just get the entire filter set per movie 
-[filoFilterSet,filoParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,'Validation'); 
-
-
-filoFilterSetC = filoFilterSet(frame);
-
-% Filter the filopodia  
-filoInfoG = filoInfo(filoFilterSetC{1}(:,1));  
-n = length(filoInfoG);
-
-%c = linspecer(n);
-c = brewermap(n,'spectral'); 
-
-idxRand = randperm(n);
-c = c(idxRand,:);
-
-% plot for each filo 
-for ifilo = 1:length(filoInfoG)
-    filoInfoC = filoInfoG(ifilo);
-    GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],0,1,c(ifilo,:),0);
-    clear filoInfoC
+%     %%   Filopodia By Branch Group
+%     
+%     hSet(countFig).h  = setFigure(nx,ny);
+%     imshow(-img,[]);
+%     hold on
+%     
+%     GCAVisualsPlotFilopodiaPerBranchGroup(filoInfo,[ny,nx]);
+%     cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
+%     
+%     if ip.Results.writeTitles
+%         text(nx/10,10,'Color-Coded By Branch Group', fontText{:});
+%     end
+%     
+%     countFig  = countFig+1;
+%%    
+%     %% Plot Individual: For Validation : Random Permutation of Colors
+%     hSet(countFig).h = setFigure(nx,ny);
+%     imshow(-img,[]);
+%     hold on
+%     cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
+%     
+%     [filoFilterSet,filoParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,'Validation_NoEmbed');
+%     
+%     filoFilterSetC = filoFilterSet(frame);
+%     
+    % Filter the filopodia
+%     filoInfoG = filoInfo(filoFilterSetC{1}(:,1));
+%     n = length(filoInfoG);
+%     
+%     %c = linspecer(n);
+%     c = brewermap(n,'spectral');
+%     
+%     idxRand = randperm(n);
+%     c = c(idxRand,:);
+%     
+%     % plot for each filo
+%     for ifilo = 1:length(filoInfoG)
+%         filoInfoC = filoInfoG(ifilo);
+%         GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],0,1,c(ifilo,:),0);
+%         clear filoInfoC
+%     end
+%     
+%     % plot filo documented but did not pass the criteria in black
+%     filoInfoB = filoInfo(~filoFilterSetC{1}(:,1));
+%     % GCAVisualsMakeOverlaysFilopodia(filoInfoB,[ny,nx],0,1,'k',0,1);
+%     
+%     
+%     if ip.Results.writeTitles
+%         text(nx/10,10,'Color-Coded Individual Segment', fontText{:});
+%     end
+%     countFig = countFig+1;
+%     
+    %% ColorCode by Length Using either the brewermap or the jet map -
+ 
+    %cMap{1} = flip(brewermap(128,'spectral'),1);
+    
+    cMap{1} = jet(128);
+    
+    filoBranchC = filoBranch(frame);
+    
+    [filoFilterSet,filoParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,'Validation_NoEmbed');
+    
+    filoFilterSetC = filoFilterSet(frame);
+    
+    filoLengths = GCAAnalysisExtract_filoLength(filoBranchC,filoFilterSetC,'umPerPixel',pixSizeMic);
+  
+    plotValues = filoLengths{1};
+    cMapLimits(1) = 0;
+    cMapLimits(2) = 10;
+  
+    for iMap = 1:1
+        
+        hSet(countFig).h = setFigure(nx,ny);
+        imshow(-img,[]);
+        hold on
+        cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
+        
+        
+        imgSize = size(img);
+        GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
+            'filoFilterSet',filoFilterSetC{1},'plotValues',plotValues,...
+            'justExt',1,'cMapLimits',cMapLimits,'ColorByValue',true, ...
+            'plotText',false,'colorMap',cMap{iMap},'ExtraColor',[]);
+       
+         if ip.Results.plotScaleBar
+            plotScaleBar(pixels,pixels/10,'Color',textColor);
+        end
+        
+        countFig = countFig+1;
+        
+    end % iMap
+    
+else
+    filoFilterSet = [];
+    filoParams = [];
 end
 
-% plot filo documented but did not pass the criteria in black 
-filoInfoB = filoInfo(~filoFilterSetC{1}(:,1)); 
-GCAVisualsMakeOverlaysFilopodia(filoInfoB,[ny,nx],0,1,'k',0,1); 
-
-
-
-text(nx/10,10,'Color-Coded Individual Segment', fontText{:});
-countFig = countFig+1; 
-
-
-%% ColorCode by Length Using either the brewermap or the jet map - 
-% these will go for now will go in a separate folderin the ReconstructMovie
-% save as an .eps (includes a scale bar etc) 
-
-cMap{1} = flip(brewermap(128,'spectral'),1); 
-
-cMap{2} = jet(128); 
-
-filoBranchC = filoBranch(frame); 
-
-filoLengths = GCAAnalysisExtract_filoLength(filoBranchC,filoFilterSetC); 
-
-
-plotValues = filoLengths{1};
-cMapLimits(1) = 0; 
-cMapLimits(2) = 10; 
-
-
-for iMap = 1:2
-
-hSet(countFig).h = setFigure(nx,ny);
-imshow(-img,[]);
-hold on
-cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
-
-
-imgSize = size(img);
-GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,...
-    'filoFilterSet',filoFilterSetC{1},'plotValues',plotValues,...
-    'justExt',1,'cMapLimits',cMapLimits,'ColorByValue',true, ...
-    'plotText',false,'colorMap',cMap{iMap},'ExtraColor',[])
-pixels = 10/pixSizeMic;
-plotScaleBar(pixels,pixels/10,'Color',textColor);
-countFig = countFig+1;
-
-end % iMap
-
-% execute = ['ffmpeg -r 1 -i ' saveDir filesep 'frame' '%02d.png' ...
-%     ' -crf 22 -pix_fmt yuv420p -b 20000k ' saveDir filesep 'ReconstructMovie.mp4'];
-% system(execute)
-
-% hSet(countFig).h = setFigure(nx,ny) ;
-%         imshow(-img,[])
-%         hold on
-% cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX);
-% GCAVisualsFilopodiaMeasurementOverlays(filoInfo,imgSize,... 
-%     'plotValues','IDs','justExt',1,'plotText',true,'ColorByValue',true,'ExtraColor',[]); 
-%   
-
-
-% cd(saveDir)
-execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
-system(execute);
-else 
-    filoFilterSet = []; 
-    filoParams = []; 
 end
-
-
-
-end
-

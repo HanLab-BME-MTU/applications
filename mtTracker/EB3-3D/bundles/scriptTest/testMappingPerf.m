@@ -96,8 +96,8 @@ bundleStatistics(MD,'kinBundle',{kinTracksISOInliers(1:100),randKinTracksISOInli
 %%
 tic;
 mappedTracksP1Orig=mapTracksTo1DManifold(subManifold,EB3TracksISO,1000/MD.pixelSize_,'position','end');
-toc;
-tic;
+    toc;
+tic;    
 mappedTracksP1Test=mapTracksTo1DManifold(subManifold,EB3TracksISO,1000/MD.pixelSize_,'position','end','distType','normalDistPseudOptimized');
 toc;
 

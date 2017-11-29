@@ -30,7 +30,7 @@ ip.addParameter('AxesWidth', []);
 ip.addParameter('AxesHeight', []);
 ip.addParameter('XSpace', []);
 ip.addParameter('YSpace', []);
-ip.addParameter('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
+ip.addParameter('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen','multiple'})));
 ip.addParameter('InsetPosition', []);
 ip.addParameter('Name', '');
 ip.addParameter('Box', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
@@ -76,6 +76,20 @@ switch ip.Results.DisplayMode
             YSpace = [2 1.5 1];
         end
         axesFont = {'FontName', 'Helvetica', 'FontSize', 12};
+    case 'multiple'
+        if isempty(aw0)
+            aw0 = 12;
+        end
+        if isempty(ah0)
+            ah0 = 7;
+        end
+        if isempty(XSpace)
+            XSpace = [6 2.5 1];
+        end
+        if isempty(YSpace)
+            YSpace = [6 2.5 1];
+        end
+        axesFont = {'FontName', 'Helvetica', 'FontSize', 8};
 end
 tickLength = [0.015 0.025]*6/aw0;
 

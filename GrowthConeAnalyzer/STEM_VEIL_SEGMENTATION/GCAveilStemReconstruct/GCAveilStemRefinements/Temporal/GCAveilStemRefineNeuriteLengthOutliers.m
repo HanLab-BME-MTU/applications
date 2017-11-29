@@ -16,7 +16,7 @@ end
 
 % Get all outlier frames with extra potential body pieces
 outlier = arrayfun(@(x) ~isempty(x.flagOutlier),analInfo);
-idxFloater = arrayfun(@(x) ~isempty(x.bodyEst.rmHiIntPieces),analInfo);
+idxFloater = arrayfun(@(x) ~isempty(x.rmHiIntPieces),analInfo);
 frames2Fix = find(outlier & idxFloater); 
 
 if isempty(frames2Fix) 
@@ -30,12 +30,13 @@ for iFrame = 1:length(frames2Fix)
    frameC = frames2Fix(iFrame);
 
 % load necessary pieces
-floatingPieceC = analInfo(frameC).bodyEst.rmHiIntPieces;
-veilStemC = analInfo(frameC).masks.neuriteEdge; 
+floatingPieceC = analInfo(frameC).rmHiIntPieces;
+veilStemC = analInfo(frameC).finalMask; 
+
 idxEnterNeurite = analInfo(frameC).idxEnterNeurite;
 [ny,nx] = size(veilStemC);
 framesForAndBack = frameC-5:frameC+5; % need a flag for early/late  guys 
-backbones = arrayfun(@(x) analInfo(x).bodyEst.backbone,framesForAndBack,'uniformoutput',0);
+backbones = arrayfun(@(x) analInfo(x).backbone,framesForAndBack,'uniformoutput',0);
             sumBB = zeros(ny,nx);
             
             for iBB = 1:numel(backbones)
@@ -43,7 +44,7 @@ backbones = arrayfun(@(x) analInfo(x).bodyEst.backbone,framesForAndBack,'uniform
             end
             % find pixels in structure that were more in more than 5 frames (to remove
             % outliers)
-           % sumBB(sumBB<=5) =0;
+            sumBB(sumBB<=2) =0;
             sumBB(sumBB>0) = 1;% make a logical mask
             backbone = bwmorph(sumBB,'thin'); 
 
@@ -142,22 +143,22 @@ newBodyXY = bwboundaries(newBodyMask);
  
  CCFullMask = bwconncomp(fullMask); 
    %% added 20140104
-  roiYXAll = bwboundaries(fullMask);
-    pixIndicesAll = sub2ind(size(fullMask),roiYXAll{1}(:,1),roiYXAll{1}(:,2));
-    
-    
-
-    % load the old thin body pixels
-    pixIndicesThinBody =  analInfo(frameC).bodyEst.pixIndThinBody;
-    % anything for now that is not thin body is new thick body
-    pixIndicesThickBodyNew = setdiff(pixIndicesAll,pixIndicesThinBody);
-    
-    thickBodyMask = zeros(size(fullMask));
-    thickBodyMask(pixIndicesThickBodyNew)=1;
-    thickBodyMask = logical(thickBodyMask);
-    % record
-    analInfo(frameC).masks.thickBodyMask = thickBodyMask;
-    analInfo(frameC).bodyEst.pixIndThickBody = pixIndicesThickBodyNew;
+%   roiYXAll = bwboundaries(fullMask);
+%     pixIndicesAll = sub2ind(size(fullMask),roiYXAll{1}(:,1),roiYXAll{1}(:,2));
+%     
+%     
+% 
+%     % load the old thin body pixels
+%     pixIndicesThinBody =  analInfo(frameC).bodyEst.pixIndThinBody;
+%     % anything for now that is not thin body is new thick body
+%     pixIndicesThickBodyNew = setdiff(pixIndicesAll,pixIndicesThinBody);
+%     
+%     thickBodyMask = zeros(size(fullMask));
+%     thickBodyMask(pixIndicesThickBodyNew)=1;
+%     thickBodyMask = logical(thickBodyMask);
+%     % record
+%     analInfo(frameC).masks.thickBodyMask = thickBodyMask;
+%     analInfo(frameC).bodyEst.pixIndThickBody = pixIndicesThickBodyNew;
     
 %% 
  

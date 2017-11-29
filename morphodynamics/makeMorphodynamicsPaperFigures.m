@@ -1,6 +1,7 @@
 %% ---- Settings --- %%
 %Figures made for paper under matlab r2011b with ubuntu 12.04 LTS
 %1/2015 - Updated to matlab r2014a
+%3/2017 (yes I'm somehow still woriking on this...) - added new prop method figures using matlab 2015a
 
 saveFigs = true;
 
@@ -917,7 +918,9 @@ end
 %Whole-cell windowing and propagation comparison
 
 %Use highly motile rac1 cell from marco
-wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco';
+%wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco';
+wcExampMov = '/run/user/1690408239/gvfs/smb-share:server=nucleus,share=idac/Hunter/gtpases_Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco/';%Nucleus mount
+
 if ~exist('MDwc','var')
     MDwc = MovieData.load([wcExampMov filesep 'movieData.mat']);
 end
@@ -994,8 +997,8 @@ if saveFigs
 end
 
 
-%% ---------- Windowing Propagation Comparison -------- %%
-%Compares two propagation methods
+%% ---------- Windowing Propagation Comparison - edge windows -------- %%
+%Compares two propagation methods, showing windows on the cell edge
 scBarSz = 1e4;%Scale bar size in nm
 
 % ----- WHole-Cell Figure ---- %
@@ -1137,7 +1140,7 @@ panelName = [panelName ' colorbar2'];
 panelFile = [figParentDir filesep panelName];
 panelFig = figure;
 
-colormap(winCols);
+colormap(winCols1);
 cBarAx = colorbar(cBarPars{:});
 axis off
 caxis([0 MDwc.timeInterval_ * MDwc.nFrames_]) 
@@ -1153,7 +1156,193 @@ panelName = [panelName ' colorbar2'];
 panelFile = [figParentDir filesep panelName];
 panelFig = figure;
 
-colormap(vecCols);
+colormap(winCols2);
+cBarAx = colorbar(cBarPars{:});
+axis off
+caxis([0 MDwc.timeInterval_ * MDwc.nFrames_]) 
+set(get(cBarAx,'YLabel'),'String','Time, Seconds',cBarPars{:})
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
+%% ---------- Windowing Propagation Comparison - interior windows -------- %%
+%Compares two propagation methods, showing windows in the cell interior
+scBarSz = 1e4;%Scale bar size in nm
+
+% ----- Whole-Cell Figure ---- %
+
+panelName = 'Window propagation comparison interior';
+panelFile = [figParentDir filesep panelName];
+panelFig = fsFigure(.5);
+axis equal
+hold on
+
+
+winType1 = 'protrusion_based';
+winDir1 = [wcExampMov filesep 'windows_' num2str(winSize) 'nm_' winType1 ];
+winFiles1 = dir([winDir1 filesep '*.mat']);
+
+winType2 = 'pde_viscoElastic';
+winDir2 = [wcExampMov filesep 'windows_' num2str(winSize) 'nm_' winType2 ];
+winFiles2 = dir([winDir2 filesep '*.mat']);
+
+
+
+nShow = numel(showFrames);
+
+% iBand = 3;
+% iWin = [29 iBand ;
+%         70 iBand];    
+iBand = 3;
+iWin = [36 iBand ;
+        70 iBand];    
+
+nWinShow = size(iWin,1);    
+nBuf = 10;
+
+frameCols = gray(nShow+nBuf);
+frameCols = frameCols(end-nBuf:-1:1,:);
+winCols1 = gray(nShow+nBuf);
+winCols1 = winCols1(end-nBuf:-1:1,:);
+winCols1(:,1) = 1;
+winBordCols1 = gray(nShow+2*nBuf);
+winBordCols1= winBordCols1(end-2*nBuf:-1:1,:);
+winBordCols1(:,1) = 1;
+
+winCols2 = gray(nShow+nBuf);
+winCols2 = winCols2(end-nBuf:-1:1,:);
+winCols2(:,1) = .6;
+winCols2(:,2) = winCols2(:,2) * .7;
+winCols2(:,3) = .85;
+winBordCols2 = gray(nShow+2*nBuf);
+winBordCols2= winBordCols2(end-2*nBuf:-1:1,:);
+winBordCols2(:,1) = .65;
+winBordCols2(:,2) = winBordCols2(:,2) * .7;
+winBordCols2(:,3) = .85;
+
+
+%Do the edges first so they are behind the windows
+for j = 1:nShow
+    plot(protVecs.smoothedEdge{showFrames(j)}(:,1),protVecs.smoothedEdge{showFrames(j)}(:,2),'Color',frameCols(j,:))
+end
+
+for j = 1:nShow
+    
+    windows = load([winDir1 filesep winFiles1(showFrames(j)).name]);
+    windows = windows.windows;
+    
+    for k = 1:nWinShow
+        if ~isempty(windows{iWin(k,1)}) && numel(windows{iWin(k,1)}) >= iWin(k,2) && ~isempty(windows{iWin(k,1)}{iWin(k,2)})
+            plotWindows(windows{iWin(k,1)}{iWin(k,2)},[{'r','FaceAlpha',1,'EdgeColor',winBordCols1(j,:),'FaceColor',winCols1(j,:)} plotPars{:}]);        
+        else
+            disp(['no win 1 frame ' num2str(showFrames(j))])
+        end
+        
+        %plotWindows(windows,[{'r','FaceAlpha',1,'EdgeColor',winCols1(j,:),'FaceColor','none'} ]);        
+    end
+    windows = load([winDir2 filesep winFiles2(showFrames(j)).name]);
+    windows = windows.windows;
+    
+    for k = 1:nWinShow
+        if ~isempty(windows{iWin(k,1)}) && numel(windows{iWin(k,1)}) >= iWin(k,2) &&  ~isempty(windows{iWin(k,1)}{iWin(k,2)})
+            plotWindows(windows{iWin(k,1)}{iWin(k,2)},[{'r','FaceAlpha',1,'EdgeColor',winBordCols2(j,:),'FaceColor',winCols2(j,:)} plotPars{:}]);
+        else
+            disp(['no win 2 frame ' num2str(showFrames(j))])
+        end
+        %plotWindows(windows,[{'r','FaceAlpha',1,'EdgeColor',winCols2(j,:),'FaceColor','none'} ]);        
+    end
+end
+
+
+xlim(wcFigXlim)
+ylim(wcFigYlim)
+%ylim auto
+%xlim auto
+
+set(gca,'XTick',[]);
+set(gca,'YTick',[]);
+box on
+
+roi1X = [123.679      216.6944];
+roi1Y = [223.1792      353.4006];
+
+
+roiCol = [0 .6 .2];
+%patch(roi1X([1 2 2 1]),roi1Y([1 1 2 2 ]),roiCol,'FaceColor','none','EdgeColor',roiCol,plotPars{:})
+
+plotScaleBar(scBarSz / MDwc.pixelSize_,'Location','Southwest','Color',zeros(1,3))
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
+%% ----- ROI of Whole-Cell Figure ---- %
+
+roi2X = [160 253]
+roi2Y = [219 350]
+
+scBarSz = 5e3;
+
+panelName = 'Window propagation comparison interior closeup';
+panelFile = [figParentDir filesep panelName];
+
+
+ylim(roi2Y);
+xlim(roi2X);
+
+plotScaleBar(scBarSz / MDwc.pixelSize_,'Location','Northwest','Color',zeros(1,3));
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
+%% --- Colorbars for above figure
+
+
+panelName = [panelName ' colorbar1'];
+panelFile = [figParentDir filesep panelName];
+panelFig = figure;
+
+colormap(frameCols);
+cBarAx = colorbar(cBarPars{:});
+axis off
+caxis([0 MDwc.timeInterval_ * MDwc.nFrames_]) 
+set(get(cBarAx,'YLabel'),'String','Time, Seconds',cBarPars{:})
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
+panelName = [panelName ' colorbar2'];
+panelFile = [figParentDir filesep panelName];
+panelFig = figure;
+
+colormap(winCols1);
+cBarAx = colorbar(cBarPars{:});
+axis off
+caxis([0 MDwc.timeInterval_ * MDwc.nFrames_]) 
+set(get(cBarAx,'YLabel'),'String','Time, Seconds',cBarPars{:})
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
+panelName = [panelName ' colorbar2'];
+panelFile = [figParentDir filesep panelName];
+panelFig = figure;
+
+colormap(winCols2);
 cBarAx = colorbar(cBarPars{:});
 axis off
 caxis([0 MDwc.timeInterval_ * MDwc.nFrames_]) 

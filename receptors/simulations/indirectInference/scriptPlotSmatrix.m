@@ -4,19 +4,20 @@
 % saves them in the current file.
 
 
-currDir ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170126/target/results';
-
-% the name until target
-% title of the figure will consider the infos that are filled here for the
-% name of the target
- rDtarget = {'rD10'};%,,'rD40','rD60','rD80','rD100','rD120','rD140','rD160'};
- aPtarget = {'aP0p5'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'};
- lRtarget ={'lR0p1'};%,'lR0p3','lR0p4','lR0p5'};
+currDir ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170207/results';
+% 
+% 
+% % name of the target
+ rDtarget = {'rD100'};%,'rD60','rD80','rD120','rD140','rD160'};
+ aPtarget = {'aP0p5'};%'aP0p2','aP0p3','aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
+lRtarget = {'lR0p03'};%,'lR0p3','lR0p4','lR0p5'};
 
    % values of rD, aP and lR of probe
-    rDvals = [4;6;8;10;12;14;16];%20;40;60;80;100;140;160];
+    rDvals = [20;40;60;80;100;120;140];%20;40;60;80;100;140;160];
     aPvals = [0.2;0.3;0.4;0.5;0.6;0.7;0.8];
-    lRStr = {'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5';'lR0p6'};%'lR0p01lR0p02';'lR0p02lR0p04';'lR0p03lR0p06'
+    lRStr = {'lR0p03lR0p6lR0p9'};%,'lR0p3','lR0p4','lR0p5'};
+
+   
     
  %figures   
 

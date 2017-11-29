@@ -127,10 +127,10 @@ if ~uptoColo
 %     end
     %% Classify with ampTotal and distToEdge
 %     if ~exist('idGroup1','var')
-    if ~exist(idClassifiedFile,'file') 
+%     if ~exist(idClassifiedFile,'file') 
         [idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9]= ...
             classifyNascentAdhesionTracks(pathForColocalization,'tracksNA',tracksNA,'labeledData',samFolders);
-    end
+%     end
 %     end
     %% filter with idFiltered
     try
@@ -339,7 +339,11 @@ if ~uptoColo
         try
             legend([htrackG1{1} htrackG2{1}],{'G1 with high CC','G1 with intermediate CC'},'TextColor','w','Location','best')
         catch
-            legend([htrackG2{1}],{'G1 with intermediate CC'},'TextColor','w','Location','best')
+            try
+                legend([htrackG2{1}],{'G1 with intermediate CC'},'TextColor','w','Location','best')
+            catch
+                disp('Nothing to show for G1')
+            end
         end
     end
     legend('boxoff')
@@ -689,9 +693,9 @@ if ~uptoColo
 %% For non-transmitting
     nonTransmittingIdx = ~firstIncreseTimeIntAgainstForceAllIdx;
     nonTransmittingIdx = find(nonTransmittingIdx);
-    curID = nonTransmittingIdx(8);
-    curTrack = tracksNA(curIndices(curID));%4210);
-    plotIntensityForceSingle(curTrack,curIndices(curID));
+%     curID = nonTransmittingIdx(1);       
+%     curTrack = tracksNA(curIndices(curID));%4210);
+%     plotIntensityForceSingle(curTrack,curIndices(curID));
     %% for transmitting
     firstIncreseTimeIntAgainstForceAllIdxIDs = find(firstIncreseTimeIntAgainstForceAllIdx);
     FTID=ceil(length(firstIncreseTimeIntAgainstForceAllIdxIDs)/2);
@@ -1157,7 +1161,7 @@ if ~uptoColo
 %         tracksG1(k).forceSlopeR = curForceR; % Pearson's correlation coefficient
 %     end
 %     plotIntensityForceSingle(tracksG1(k),1,0,0.01,0.3,tInterval)
-        %% assembly rate and force growth rate in curIndices
+    %% assembly rate and force growth rate in curIndices
     forceSlopeG1 =arrayfun(@(x) (x.forceSlope),tracksNA(curIndices));
     earlyAmpSlopeG1 =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(curIndices));
    

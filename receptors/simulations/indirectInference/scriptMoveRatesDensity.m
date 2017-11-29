@@ -5,16 +5,15 @@
 %file name.
 %
 %Khuloud Jaqaman, June 2015
-
-sourceRoot = '/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170207/target';
-
-destinationRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170207/target/analysis';
-
+sourceRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170423';
+destinationRoot ='/project/biophysics/jaqaman_lab/interKinetics/ldeoliveira/20170423/analysis';
 %Define strings for directory hierarchy as needed
- rDDir = {'rD100'};%,'rD60','rD80','rD120','rD140','rD160'};
- aPDir = {'aP0p5'};%,'aP0p4','aP0p5','aP0p6','aP0p7','aP0p8'
-outDirNum =1:30;
-lRDir = {'lR0p03'};
+ rDDir = {'rD4'};%,'rD2','rD4','rD6','rD8','rD10','rD12','rD14','rD16'
+ aPDir = {'aP0p5'};%'aP0p6','aP0p7','aP0p8'
+ dRDir={'dR1'};
+outDirNum =1:10;
+lRDir = {'lR1'};%%'lR0p1';'lR0p2';'lR0p3';'lR0p4';'lR0p5';'lR0p6'
+
 fprintf('\n===============================================================');
 
 %The top level directory is that of receptor density

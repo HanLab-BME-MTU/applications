@@ -25,6 +25,7 @@ ip.addParameter('visual',true);
 ip.parse(varargin{:});
 p = ip.Results;
 pToSave = rmfield(p,{'veilStem','neuriteLength'});
+pToSave.pixelSizeMic = movieData.pixelSize_/1000; % pixel size in Micron
 %%
 veilStem = ip.Results.veilStem{1};
 neuriteLength = ip.Results.neuriteLength{1};
@@ -46,7 +47,7 @@ neuriteLength = ip.Results.neuriteLength{1};
 nFrames = movieData.nFrames_;
 measC = cell(nFrames,1);
 outDir = [movieData.outputDirectory_ filesep ...
-    'MEASUREMENT_EXTRACTION' filesep 'Descriptor' filesep 'Veil' filesep ...
+    'GCAFeatureExtraction' filesep 'Descriptor' filesep 'Veil' filesep ...
     'VeilStemThickness'];
 
 if ~isempty(outDir)

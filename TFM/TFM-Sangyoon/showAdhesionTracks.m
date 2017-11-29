@@ -11,6 +11,8 @@ ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
 ip.addParamValue('trainedData',[],@istable); % trained data
 ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
 ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
+ip.addParamValue('imgMap',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
+ip.addParamValue('tMap',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
 ip.parse(pathForColocalization,idList,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 idList=ip.Results.idList;
@@ -20,8 +22,9 @@ T=ip.Results.trainedData;
 MD=ip.Results.movieData;
 iChan=ip.Results.iChan;
 iChanSlave=ip.Results.iChanSlave;
+imgMap=ip.Results.imgMap;
+tMap=ip.Results.tMap;
 %% Load processed data
-disp('Loading raw files ...')
 % movieData to find out pixel size
 if isempty(MD)
     coloPath = fileparts(pathForColocalization);
@@ -37,40 +40,44 @@ if isempty(tracksNA)
     tracksNA = load([pathForColocalization filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
     tracksNA = tracksNA.tracksNA;
 end
-if numChan==1
-    imgMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
-    imgMap = imgMap.tMap;
-elseif numChan==2
-    try
-        imgMap = load([pathForColocalization filesep 'pax'  filesep 'paxImgStack.mat'],'paxImgStack');
-        imgMap = imgMap.paxImgStack;
-        tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
-        tMap = tMap.tMap;
-    catch
-        % This case SDC was not used and first img frame was used.
-        paxImage=MD.getChannel(iChan).loadImage(1); 
-        [hp,w] = size(paxImage);
-        if isempty(iChanSlave)
-            TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
-            forceProc =TFMpackage.processes_{4};
-        %     forceField = forceProc.loadChannelOutput;
-            tMapCell = load(forceProc.outFilePaths_{2});
-            tMapCell = tMapCell.tMap;
-            tMap = zeros(hp,w,nFrames);
-            for iii=1:nFrames
-                tMap(:,:,iii) = tMapCell{iii};
+if isempty(imgMap) || isempty(tMap)
+    disp('Loading raw files ...')
+
+    if numChan==1
+        imgMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
+        imgMap = imgMap.tMap;
+    elseif numChan==2
+        try
+            imgMap = load([pathForColocalization filesep 'pax'  filesep 'paxImgStack.mat'],'paxImgStack');
+            imgMap = imgMap.paxImgStack;
+            tMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
+            tMap = tMap.tMap;
+        catch
+            % This case SDC was not used and first img frame was used.
+            paxImage=MD.getChannel(iChan).loadImage(1); 
+            [hp,w] = size(paxImage);
+            if isempty(iChanSlave)
+                TFMpackage=MD.getPackage(MD.getPackageIndex('TFMPackage'));
+                forceProc =TFMpackage.processes_{4};
+            %     forceField = forceProc.loadChannelOutput;
+                tMapCell = load(forceProc.outFilePaths_{2});
+                tMapCell = tMapCell.tMap;
+                tMap = zeros(hp,w,nFrames);
+                for iii=1:nFrames
+                    tMap(:,:,iii) = tMapCell{iii};
+                end
+            else
+                tMap = zeros(hp,w,nFrames);
+                for iii=1:nFrames
+                    slaveImage=MD.getChannel(iChanSlave).loadImage(iii); 
+                    tMap(:,:,iii) = slaveImage;
+                end
             end
-        else
-            tMap = zeros(hp,w,nFrames);
+            imgMap = zeros(hp,w,nFrames);
             for iii=1:nFrames
-                slaveImage=MD.getChannel(iChanSlave).loadImage(iii); 
-                tMap(:,:,iii) = slaveImage;
+                paxImage=MD.getChannel(iChan).loadImage(iii); 
+                imgMap(:,:,iii) = paxImage;
             end
-        end
-        imgMap = zeros(hp,w,nFrames);
-        for iii=1:nFrames
-            paxImage=MD.getChannel(iChan).loadImage(iii); 
-            imgMap(:,:,iii) = paxImage;
         end
     end
 end
@@ -178,8 +185,9 @@ function pushInspectAdhesion(~,~)
         if newlyAssign
             IDs=[IDs idxIDList(IDtoInspect)];
         end
-        curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',30);
-        curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',30);
+%         curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',30);
+%         curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',30);
+        curTrack = tracksNA(IDtoInspect);
         % then use startingFrameExtra and endingFrameExtra to plot intensity
         % time series
         h=figure;

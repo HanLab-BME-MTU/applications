@@ -18,8 +18,9 @@ load('costMatricesGap.mat');
 
 %% %% USER INPUT 
 %costMatricesGap.parameters.brownStdMult=repmat(costMatricesGap.parameters.brownStdMult,gapCloseParam.timeWindow,1);
-for i=1:length(detection) detection(i).yCoord(detection(i).yCoord(:,1)==0,1)=1;  end;
-for i=1:length(detection) detection(i).xCoord(detection(i).xCoord(:,1)==0,1)=1;  end;
+for i=1:length(detection) detection(i).yCoord(detection(i).yCoord(:,1)<1,1)=1;  end;
+for i=1:length(detection) detection(i).xCoord(detection(i).xCoord(:,1)<1,1)=1;  end;
+for i=1:length(detection) detection(i).zCoord(detection(i).zCoord(:,1)<1,1)=1;  end;
 
 costMatrices(1)=costMatricesLink;
 costMatrices(2)=costMatricesGap;

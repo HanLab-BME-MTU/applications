@@ -34,7 +34,7 @@ winProc= MD.processes_{iWinProc};
 iSegProc = winProc.funParams_.SegProcessIndex;   
 segProc = MD.processes_{iSegProc};
 
-MaskChannelIndex = segProc.funParams_.ChannelIndex;
+MaskChannelIndex = segProc.funParams_.ChannelIndex(1);
 
 %% last frame boundary, 1st, last window{1}{1}
 
@@ -54,30 +54,41 @@ window1 = winProc.loadChannelOutput(1, MaskChannelIndex);  % (iChan, iFrame)
 windowEnd = winProc.loadChannelOutput(MD.nFrames_, MaskChannelIndex);  % (iChan, iFrame)
 
 %plotString = {'red','FaceAlpha',0};
-plotWindows(window1{1}{1}); %, plotString)   % windows{w}{l}
-plotWindows(windowEnd{1}{1}); %, plotString)   % windows{w}{l}
+if ~isempty(window1{1}) 
+if ~isempty(window1{1}{1}) 
+    plotWindows(window1{1}{1}); %, plotString)   % windows{w}{l}
+end
+end
+
+if ~isempty(windowEnd{1}) 
+if ~isempty(windowEnd{1}{1}) 
+    plotWindows(windowEnd{1}{1}); %, plotString)   % windows{w}{l}
+end
+end
 
 
 %% win trajectory
 
-x = ones(MD.nFrames_, 1);
-y = ones(MD.nFrames_, 1);
+x = nan(MD.nFrames_, 1);
+y = nan(MD.nFrames_, 1);
 for fr = 1:MD.nFrames_
     winTmp = winProc.loadChannelOutput(fr, MaskChannelIndex);
-    x(fr) = winTmp{1}{1}{end}(1, end);
-    y(fr) = winTmp{1}{1}{end}(2, end);    
+    if ~isempty(winTmp{1})
+        x(fr) = winTmp{1}{1}{end}(1, end); 
+        y(fr) = winTmp{1}{1}{end}(2, end); 
+    end
 end
 
-plot(x, y, 'y')
+plot(x(~isnan(x)), y(~isnan(y)), 'y')
 
 %% jump detection
 
 dx = diff(x); dy = diff(y);
 diffDist = sqrt(dx.^2 + dy.^2);
-
+diffDist = diffDist(~isnan(diffDist));
 %diffDistZ = nanZscore(diffDist); % Not robust
 
-robustZ = (diffDist - median(diffDist)) / mad(diffDist, 1) / 1.4826;  % see mad.m
+robustZ = (diffDist - median(diffDist, 'omitnan')) / mad(diffDist, 1) / 1.4826;  % see mad.m
 jumpFr0 = find( abs(robustZ) > 10);
 jumpFr = jumpFr0 + 1;
 
