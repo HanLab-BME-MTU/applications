@@ -167,7 +167,7 @@ while ~isempty(dirs2check) && ~isempty(dirs2check{topDir2check})
     end %if length(isDirList)>2
 
     %look for files in current directory and store them
-    newFiles = chooseFile(includeString,currentDir,selectionMode,excludeString);
+    newFiles = mitoticChooseFile(includeString,currentDir,selectionMode,excludeString);
     if ~isempty(newFiles)
         if ~iscell(newFiles)
             newFiles = cellstr(newFiles);
