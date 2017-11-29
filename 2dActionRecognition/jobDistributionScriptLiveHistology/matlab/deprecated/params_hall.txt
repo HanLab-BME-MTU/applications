@@ -6,10 +6,10 @@
 /home2/azaritsky/code/applications/2dActionRecognition/jobDistributionScriptLiveHistology/matlab
 
 # 1. user program
-runQLCHOneAtATimeAllMD.m
+runQLCHOneAtATimeMD.m
 
 # 2. total number of tasks
-843
+560
 
 # 3. number of tasks per node
 16

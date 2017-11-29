@@ -1,6 +1,6 @@
 #!/bin/bash
 
-module add matlab/2016b
+module add matlab/2015a
 
 #interpret the arguments according to the application interfaces
 directory=$1

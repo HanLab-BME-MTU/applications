@@ -165,6 +165,7 @@ for ipc = 1 : 7
     
     strKD0 = {}; ikd0 = 0;
     strPosControl = {}; iPosControl = 0;
+    strPosControlGene = {};
     strScreen = {}; iScreen = 0;
     strScreenGene = {};
     
@@ -211,6 +212,7 @@ for ipc = 1 : 7
             else if ismember(dayGeneData{iGeneDay}.geneStr,posControlList)
                     iPosControl = iPosControl + 1;
                     strPosControl{iPosControl} = dayGenesSeqStr{curExp};
+                    strPosControlGene{iPosControl} = geneStr{curExp};
                     DaviesBouldinIndicesPosControl = [DaviesBouldinIndicesPosControl DaviesBouldinIndexPC];
                     DunnIndicesPosControl = [DunnIndicesPosControl DunnIndexPC];
                     SilhouetteCoefficientsPosControl = [SilhouetteCoefficientsPosControl SilhouetteCoefficientPC];
@@ -288,7 +290,8 @@ for ipc = 1 : 7
     sumZScorePosControl = zScoreDaviesBouldinPosControl + zScoreDunnPosControl + zScoreSilhouettePosControl;
     sumZScoreScreen = zScoreDaviesBouldinScreen + zScoreDunnScreen + zScoreSilhouetteScreen;
     sumZScore =  [sumZScoreKD0';sumZScorePosControl';sumZScoreScreen'];
-    displayBoxPlot(sumZScore,labels,'Z-score',[mainDirname 'screen/' propertyStr '_' representativeStr '_sumZScore.eps'],[-5,20]);
+    % SOME THING IS WRONG WITH THIS FUNCTION :-(
+    %     displayBoxPlot(sumZScore,labels,'Z-score',[mainDirname 'screen/' propertyStr '_' representativeStr '_sumZScore.eps'],[-5,20]);
     
     [sortedZScoreScreen,sortedIndsZScoreScreen] = sort(sumZScoreScreen);
     sortedStrScreen = strScreen(sortedIndsZScoreScreen);
@@ -466,14 +469,144 @@ for ipc = 1 : 7
     notValidatedHitsInds = [notValidatedHitsInds{:}];
     
     hitsStr = {'SOS1','ARHGEF18','ARHGEF3','ARHGEF11','ARHGEF28'};
-    [hitsInds,restInds] = getHitsInds(hitsStr,strScreenGene,screenInds,dayGeneData);
+    [hitsInds,restInds] = getHitsInds(hitsStr,strScreenGene,screenInds,dayGeneData);    
+    
+    % Partition positive control (posControlList)
+    [cdc42Inds,~] = getHitsInds({'CDC42'},strPosControlGene,PosControlInds,dayGeneData);
+    [betaPixInds,~] = getHitsInds({'beta-PIX'},strPosControlGene,PosControlInds,dayGeneData);
+    [rac1Inds,~] = getHitsInds({'CDC42'},strPosControlGene,PosControlInds,dayGeneData);
+    
     outFname = [mainDirname 'screen/zScoreHits_' propertyStr '_' representativeStr '.eps'];
-    plotScreenZScore(sumZScoreKD0,sumZScorePosControl,sumZScoreScreen,hitsStr,hitsInds,restInds,notValidatedHitsInds,outFname);          
+    
+    plotScreenZScore(sumZScoreKD0,sumZScorePosControl,sumZScoreScreen,...
+        hitsStr,hitsInds,restInds,notValidatedHitsInds,...
+        cdc42Inds,betaPixInds,rac1Inds,...
+        outFname);          
 end
 end
 %% 
 
-function [] = plotScreenZScore(sumZScoreKD0,sumZScorePosControl,sumZScoreScreen,hitsStr,hitsInds,restInds,notValidatedHitsInds,outFname)
+function [] = plotScreenZScore(sumZScoreKD0,sumZScorePosControl,sumZScoreScreen,...
+    hitsStr,hitsInds,restInds,notValidatedHitsInds,...
+    cdc42Inds,betaPixInds,rac1Inds,...
+    outFname)
+
+restExcludeNotValidatedInds = restInds;
+restExcludeNotValidatedInds(ismember(restInds,notValidatedHitsInds)) = [];
+
+sumZScoreRest = sumZScoreScreen(restExcludeNotValidatedInds);
+sumZScoreNotValidated = sumZScoreScreen(notValidatedHitsInds);
+
+% Trancate Z-score by 15!
+ sumZScorePosControl(sumZScorePosControl > 15) = 15; 
+ sumZScoreKD0(sumZScoreKD0 > 15) = 15; 
+ sumZScoreRest(sumZScoreRest > 15) = 15;
+ sumZScoreNotValidated(sumZScoreNotValidated > 15) = 15;
+ sumZScoreScreen(sumZScoreScreen > 15) = 15;  
+
+nKD0 = length(sumZScoreKD0);
+nPosControl = length(sumZScorePosControl);
+nRest = length(restExcludeNotValidatedInds);
+nNotValidated = length(notValidatedHitsInds);
+
+allZScores = [sumZScorePosControl,sumZScoreKD0,sumZScoreRest,sumZScoreNotValidated];
+allNs = [nPosControl,nKD0,nRest,nNotValidated];
+
+nHits = length(hitsInds);
+
+nsHits = zeros(1,nHits);
+zScoreHits = cell(1,nHits);
+for ihit = 1 : nHits
+    curInds = hitsInds{ihit};
+    nsHits(ihit) = length(curInds);
+    allNs = [allNs nsHits(ihit)];
+    curZscores = sumZScoreScreen(curInds);    
+    zScoreHits{ihit} = curZscores;
+    allZScores = [allZScores curZscores];
+end
+
+assert(max(allZScores) <= 15);
+
+ns = [1 cumsum(allNs)];
+maxZscore = min(15.5,max(allZScores) + 0.5);
+
+N = ns(end);
+
+
+legendStrs = [{'Pos Cntl','KD = 0','Screen'},hitsStr];
+
+cmap = colormap(hsv(nHits+3));
+cmap = cmap([1,3,6,2,4,7,5,8],:);
+
+% [left bottom width height]
+FPosition = [0 0 900 300];
+APosition = [0.1 0.2 0.7 0.75]; 
+
+fontsize = 10;
+
+h = figure;
+xlabel('Experiment','FontSize',fontsize);
+ylabel('Z-score','FontSize',fontsize);
+hold on;
+% plot(ns(1):ns(2),sumZScorePosControl,'o','MarkerEdgeColor',cmap(1,:),'LineWidth',2,'MarkerSize',6);
+
+nCdc42Inds = length(cdc42Inds{1});
+nRac1Inds = length(rac1Inds{1});
+nBetaPixInds= length(betaPixInds{1});
+
+plot(ns(1):ns(1)+nCdc42Inds-1,sumZScorePosControl(cdc42Inds{1}),'o','MarkerEdgeColor',cmap(1,:),'LineWidth',2,'MarkerSize',6);
+sInd = ns(1)+nCdc42Inds;
+plot(sInd:sInd+nRac1Inds-1,sumZScorePosControl(rac1Inds{1}),'X','MarkerEdgeColor',cmap(1,:),'LineWidth',2,'MarkerSize',6);
+sInd = sInd + nRac1Inds;
+plot(sInd:sInd+nBetaPixInds-1,sumZScorePosControl(betaPixInds{1}),'d','MarkerEdgeColor',cmap(1,:),'LineWidth',2,'MarkerSize',6);
+
+plot((ns(2)+1):ns(3),sumZScoreKD0,'o','MarkerEdgeColor',cmap(2,:),'LineWidth',2,'MarkerSize',6);
+plot((ns(3)+1):ns(4),sumZScoreRest,'o','MarkerEdgeColor',cmap(3,:),'LineWidth',2,'MarkerSize',6);
+for i = 4 : nHits+3
+    %     plot((ns(i)+1):ns(i+1),zScoreHits{i-3},'o','MarkerEdgeColor',cmap(i,:),'LineWidth',2,'MarkerSize',6);
+    plot((ns(i+1)+1):ns(i+2),zScoreHits{i-3},'o','MarkerEdgeColor',cmap(i,:),'LineWidth',2,'MarkerSize',6);
+end
+% Include back for legend!!!
+% legend(legendStrs,'Location','eastoutside');
+plot((ns(4)+1):ns(5),sumZScoreNotValidated,'X','MarkerEdgeColor',cmap(3,:),'LineWidth',2,'MarkerSize',6);
+plot([1,N],[10,10],'--k','LineWidth',2);
+plot([1,N],[-10,-10],'--k','LineWidth',2);
+haxes = get(h,'CurrentAxes');
+% set(haxes,'XLim',[-3,(ns(7)+4)]);
+set(haxes,'XLim',[-3,(N+4)]);
+set(haxes,'YLim',[-maxZscore,maxZscore]);
+set(haxes,'XTick',0:50:N);
+set(haxes,'XTickLabel',0:50:N);
+set(haxes,'YTick',-15:5:15);
+set(haxes,'YTickLabel',-15:5:15);
+set(haxes,'FontSize',fontsize);
+set(h,'Color','w');
+set(h,'Position',FPosition,'PaperPositionMode','auto');
+axisHandle= findobj(h,'type','axes');
+set(axisHandle,'Position',APosition,'box','off','XMinorTick','off','TickDir','out','YMinorTick','off','FontSize',fontsize,'LineWidth',2);
+set(get(axisHandle,'XLabel'),'FontSize',fontsize); set(get(axisHandle,'YLabel'),'FontSize',fontsize);
+export_fig([outFname(1:end-4) '_legend.eps']);
+legend off;
+
+FPosition = [0 0 700 300];
+APosition = [0.1 0.2 0.85 0.75]; 
+set(h,'Position',FPosition,'PaperPositionMode','auto');
+axisHandle= findobj(h,'type','axes');
+set(axisHandle,'Position',APosition,'box','off','XMinorTick','off','TickDir','out','YMinorTick','off','FontSize',fontsize,'LineWidth',2);
+set(get(axisHandle,'XLabel'),'FontSize',fontsize); set(get(axisHandle,'YLabel'),'FontSize',fontsize);
+export_fig(outFname);
+hold off;
+
+end
+
+
+
+
+
+
+
+%%
+function [] = plotScreenZScore_backup(sumZScoreKD0,sumZScorePosControl,sumZScoreScreen,hitsStr,hitsInds,restInds,notValidatedHitsInds,outFname)
 
 restExcludeNotValidatedInds = restInds;
 restExcludeNotValidatedInds(ismember(restInds,notValidatedHitsInds)) = [];

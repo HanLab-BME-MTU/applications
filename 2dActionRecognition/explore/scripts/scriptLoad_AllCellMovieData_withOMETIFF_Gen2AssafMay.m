@@ -1,12 +1,14 @@
 % /project/bioinformatics/Danuser_lab/liveCellHistology/analysis/All
 
+addpath(genpath('/home2/azaritsky/code/extern')); % Assaf
+
 % Input Path
-allCellsFileName = '28-Mar-2017_LBP_dLBP_1.mat';
+allCellsFileName = '14-May-2017_LBP_dLBP_1.mat';
 InFilePath =  '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/CellExplorerData';
-loadMatPath = fullfile(InFilePath, allCellsFileName)
+loadMatPath = fullfile(InFilePath, allCellsFileName);
 
 % Output path
-omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/test4Assaf';
+omeTiffDir = '/work/bioinformatics/shared/dope_assaf';%/work/bioinformatics/shared/dope/data/OMETIFF/test4Assaf';
 if ~exist(omeTiffDir, 'dir')
     mkdir(omeTiffDir);
 end
@@ -26,19 +28,21 @@ else
     allCellsSet = allCellsMovieData(1,randsample(length(allCellsMovieData),randset,false));
 end
 
-javaaddpath('/home2/s170480/matlab/extern/bioformats/bioformats_package.jar','-end')
+javaaddpath('/home2/azaritsky/code/extern/bioformats/bioformats_package.jar','-end')
 MList = cell(1, length(allCellsSet));
 
 % pixelSize = ome.units.quantity.Length(java.lang.Double(.325), ome.units.UNITS.MICROMETER);
 PIXS = @(y) ome.units.quantity.Length(java.lang.Double(y), ome.units.UNITS.MICROMETER);
-pixelSizepf = arrayfun(@(x) PIXS(x), repmat(.325,[1 length(allCellsSet)]), 'UniformOutput', false);
+% pixelSizepf = arrayfun(@(x) PIXS(x), repmat(.325,[1
+% length(allCellsSet)]), 'UniformOutput', false); % Assaf
 
 
 % How many frame to include in the movie chops...
 % timeChop = 10?
 
 % for i = 1:2
-parfor i = 1:length(allCellsSet)
+% parfor i = 1:length(allCellsSet) % Assaf
+for i = 1:length(allCellsSet)
 
     iCell = allCellsSet{i};
     disp(['Creating movieData for cell ID key: ' iCell.key]);
@@ -67,10 +71,12 @@ parfor i = 1:length(allCellsSet)
     movieM = zeros(2*FOVRadius+1, 2*FOVRadius+1, ntime);
     
     %% Configure OME-TIFF metadata
-    javaaddpath('/home2/s170480/matlab/extern/bioformats/bioformats_package.jar','-end')
+    javaaddpath('/home2/azaritsky/code/extern/bioformats/bioformats_package.jar','-end')
     metadata = createMinimalOMEXMLMetadata(movieM, 'XYTZC');
-    metadata.setPixelsPhysicalSizeX(pixelSizepf{i}, 0);
-    metadata.setPixelsPhysicalSizeY(pixelSizepf{i}, 0);
+    %     metadata.setPixelsPhysicalSizeX(pixelSizepf{i}, 0); % Assaf
+    %     metadata.setPixelsPhysicalSizeY(pixelSizepf{i}, 0); % Assaf
+    metadata.setPixelsPhysicalSizeX(pixelSize_, 0);
+    metadata.setPixelsPhysicalSizeY(pixelSize_, 0);
     metadata.setImageDescription(iCell.key, 0);
     metadata.setExperimenterGroupDescription(iCell.expStr,0);
     metadata.setExperimenterGroupID(iCell.date,0);

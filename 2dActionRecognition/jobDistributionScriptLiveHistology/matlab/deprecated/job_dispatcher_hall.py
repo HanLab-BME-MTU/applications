@@ -38,7 +38,7 @@ paramsList = []
 
 # parse parameters file
 print "Parsing parameters file ./params.txt ..."
-with open("./params.txt", 'r') as f:
+with open("./params_hall.txt", 'r') as f:
 	for line in f:
          line = line.rstrip()
          if not line.startswith('#') and len(line) > 0:
@@ -75,7 +75,7 @@ elif len(sys.argv) == 4:
 	partition = sys.argv[3]
 
 #get a list of the script files
-scripts = os.listdir('/home2/azaritsky/logsBioHPC/LCH/scripts/')
+scripts = os.listdir('./scripts/')
 sort_nicely(scripts)
 #print scripts
 count = 0
@@ -107,7 +107,7 @@ while job_id < total_num_scripts:
 			break
 		print "SUBJOB_ID " +  str(tmp_job_id)
 		script_name = scripts[tmp_job_id]
-		cmd = 'sbatch /home2/azaritsky/logsBioHPC/LCH/scripts/' + script_name
+		cmd = 'sbatch ./scripts/' + script_name
 		os.system(cmd) #dispatch a job
 		print cmd
 		cmd = 'echo ' + script_name +  ' >> ./log/submission.log'

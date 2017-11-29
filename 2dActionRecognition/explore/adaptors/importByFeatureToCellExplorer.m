@@ -3,9 +3,38 @@ function allCellsMovieData = importByFeatureToCellExplorer(analysisDname,accFeat
 addpath(genpath('/home2/azaritsky/code/applications/2dActionRecognition/'));
 
 if nargin < 2
-    analysisDname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/ThirdGenData/';
-    accFeatsFilename = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/metaAnalysis/LBP_dLBP_120_ThirdGen201701/LBP_dLBP_120_ThirdGen201701_1_allInfo.mat';
-    allCellsDname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/CellExplorerData/';
+    %     analysisDname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/ThirdGenData/';
+    %     accFeatsFilename = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/metaAnalysis/LBP_dLBP_120_ThirdGen201701/LBP_dLBP_120_ThirdGen201701_1_allInfo.mat';
+    
+    analysisDname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/All/';
+    %     featsFname = 'LBP_dLBP_120_All201705_1_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_All201705_2_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_All201705_3_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_All201705_4_allInfo.mat';
+    %     accFeatsFilename = ['/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/metaAnalysis/LBP_dLBP_120_All201705/' featsFname];
+    
+    %     dateStr = '14-May-2017';
+    
+    %     featsFname = 'LBP_dLBP_120_Clones201708_1_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_Clones201708_2_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_Clones201708_3_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_Clones201708_4_allInfo.mat';
+    %     accFeatsFilename = ['/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/metaAnalysis/LBP_dLBP_120_Clones201708/' featsFname];
+    %     dateStr = '10-Aug-2017';
+    
+    %     featsFname = 'LBP_dLBP_120_All201708_1_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_All201708_2_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_All201708_3_allInfo.mat';
+    %     featsFname = 'LBP_dLBP_120_All201708_4_allInfo.mat';
+    %     accFeatsFilename = ['/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/metaAnalysis/LBP_dLBP_120_All201708/' featsFname];
+    %     dateStr = '31-Aug-2017';
+               
+    featsFname = 'LBP_dLBP_60_All201711_1_allInfo.mat';
+    accFeatsFilename = ['/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/metaAnalysis/LBP_dLBP_60_All201711/' featsFname];
+    dateStr = '12-Nov-2017';
+    
+    allCellsDname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/CellExplorerData/';        
+    
 end
 
 load(accFeatsFilename); % allInfo
@@ -13,7 +42,9 @@ nCellTypeDate = length(allInfo.strs);
 
 featsStrID = allInfo.featsStrID;
 
-allCellsFname = [allCellsDname filesep date '_' featsStrID];
+% allCellsFname = [allCellsDname filesep date '_' featsStrID]; % should be
+% dateStr
+allCellsFname = [allCellsDname filesep dateStr '_' featsStrID];
 
 allCellsMovieData = {};
 ncells = 0;
@@ -56,15 +87,14 @@ for iCellTypeDate = 1 : nCellTypeDate
             
             mdFname = [analysisDname curCellMovieData.expStr filesep...
                 curCellMovieData.expStr '_s' curCellMovieData.locationStr filesep...
-                curCellMovieData.expStr '_s' curCellMovieData.locationStr '.mat'];
+                curCellMovieData.expStr '_s' curCellMovieData.locationStr '.mat'];                        
             
-            assert(exist(mdFname,'file') > 0);
-            
-            %             if ~exist(mdFname,'file')
-            %                 mdFname = [analysisDname curCellMovieData.expStr filesep...
-            %                     curCellMovieData.expStr '_s' sprintf('%d',curCellMovieData.locationStr) filesep...
-            %                     curCellMovieData.expStr '_s' sprintf('%d',curCellMovieData.locationStr) '.mat'];
-            %             end
+            % For locations where the location do not have a trailing zero
+            if ~exist(mdFname,'file')
+                mdFname = [analysisDname curCellMovieData.expStr filesep...
+                    curCellMovieData.expStr '_s' sprintf('%d',curCellMovieData.locationStr) filesep...
+                    curCellMovieData.expStr '_s' sprintf('%d',curCellMovieData.locationStr) '.mat'];
+            end
             
             % Movie data to access the cell movies
             curCellMovieData.MD = mdFname;
