@@ -78,8 +78,6 @@ end
 %     
 %     yMax = max(currentMatAll(:,2));
 %     yMin = min(currentMatAll(:,2));
-
-
 %% Start 
 for iGroup = 1:nGroups
     
@@ -108,8 +106,8 @@ for iGroup = 1:nGroups
         
         LC = currentMat{i};
       
-        % convert to form pixels to 1/um
-      
+       
+        
       
         % test for nan 
         idxNoNan = ~isnan(LC(:,1)) & ~isnan(LC(:,2)); 

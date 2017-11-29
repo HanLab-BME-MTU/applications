@@ -1,10 +1,25 @@
-function [ idxCMap ] = gcaPlotLinksByCost( img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,weights,cMapLength )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function [ idxCMap ] = gcaPlotLinksByCost( img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,weights,cMapLength,varargin )
+%gcaPlotLinksByCost... 
+% 
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addRequired('img'); 
+ip.addRequired('labelCandidates'); 
+ip.addRequired('labelMatSeedFilo'); 
+ip.addRequired('candFiloEPs'); 
+ip.addRequired('seedPtsx'); 
+ip.addRequired('seedPtsy'); 
+ip.addRequired('iSeg'); 
+ip.addRequired('weights'); 
+ip.addRequired('cMapLength'); 
+
+ip.addParameter('cMapType','parula');
 
 
-
-
+ip.parse(img,labelCandidates,labelMatSeedFilo,candFiloEPs,seedPtsx,seedPtsy,iSeg,weights,cMapLength,varargin{:});
+cMapType =str2func(ip.Results.cMapType); 
 % Start Plot
         imshow(-img,[]); 
         hold on 
@@ -15,7 +30,7 @@ function [ idxCMap ] = gcaPlotLinksByCost( img,labelCandidates,labelMatSeedFilo,
         scatter(allCandEPs(:,1),allCandEPs(:,2),'k','filled'); 
         
         % create distance mapper
-        cMap=jet(cMapLength);
+        cMap=cMapType(cMapLength);
         mapper=linspace(min(weights),max(weights),cMapLength)';
         
         DMap=createDistanceMatrix(weights,mapper);

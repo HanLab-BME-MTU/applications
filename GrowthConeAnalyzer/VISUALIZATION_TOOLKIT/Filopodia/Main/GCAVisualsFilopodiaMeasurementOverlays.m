@@ -27,6 +27,9 @@ ip.addParameter('plotValues',[]); % values per filopodia for plotting and or col
 
 ip.addParameter('justExt',1); % flag for internal filo versus ext filo plotting
 
+% flag to plotSigma as well as mean  
+ip.addParameter('plotSigma',[]); % if empty don't plot default 1/2 sigma (as plotting positive side only) 
+
 % FiloColor Options
 ip.addParameter('colorEmbed',[0 0 1]);
 ip.addParameter('colorFiloBranch',[0 0 0]);
@@ -57,6 +60,8 @@ ip.addParameter('UseSmoothedCoords',false);
 
 % output mask pixels. 
 ip.addParameter('createMask',false); 
+
+ip.addParameter('plotFiltered',false); 
 
 
 ip.parse(filoInfo,imgSize,varargin{:});
@@ -131,6 +136,11 @@ if ip.Results.colorByValue == true && ~isempty(plotValues)
     [sD,idxCMap]=sort(abs(D),2);
     if ~isempty(ip.Results.extraColor);
         cMap = [ip.Results.extraColor; cMap]; % assumes adding the color to the first value which is blue in jet
+    end
+    % make a cmap for sigma this brightened with respect to the previous
+    % color map 
+    if ~isempty(ip.Results.plotSigma)
+        cMapSigma = brighten(cMap,0.7);
     end
     
 end
@@ -236,13 +246,34 @@ for iType = typeStart:typeEnd
                                 mask(pixIndicesPlot) = 1;
                             end
                             [yC,xC] = ind2sub( imgSize  ,pixIndicesPlot);
+                            
+                            if ~isempty(ip.Results.plotSigma)
+                                % note eventually might want to do this
+                                % calc and save in filo branch structure 
+                               sigma =  filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'params'])(2) ... 
+                                   + filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'params'])(3)/2; 
+                               dist = filoInfoFilt(filoToPlot(ifilo)).([toAdd{iType} 'distFilo']); 
+                               delt = (abs(dist-sigma)); 
+                               idxS = find(delt==min(delt));
+                               pixIndicesSig = pixIndices(idxEnd:idxS); 
+                               [yS,xS] = ind2sub(imgSize,pixIndicesSig); 
+
+                            end 
+                            
                         end
                          
                         plot(xC,yC,'color',cMap(k,:),'Linewidth',ip.Results.LineWidth,'LineStyle',ip.Results.LineStyle);
+                         if ~isempty(ip.Results.plotSigma)
+                             plot(xS,yS,'color',cMapSigma(k,:), 'Linewidth', ip.Results.LineWidth,'LineStyle',ip.Results.LineStyle); 
+                         end 
                         
                            scatter(xycoordsEndFit(test,1),xycoordsEndFit(test,2),ip.Results.MarkerSize,cMap(k,:),'filled');
                            scatter(xycoordsBase(test,1),xycoordsBase(test,2),ip.Results.MarkerSize, cMap(k,:),'filled');
-                        
+                          
+                           
+                           if ~isempty(ip.Results.plotSigma)
+                               scatter(xS(end),yS(end),ip.Results.MarkerSize,cMapSigma(k,:),'filled'); 
+                           end 
                         
                     end % ifilo
                 end
@@ -315,7 +346,19 @@ end    % iType
       clear  idxEnd pixIndicesPlot xycoordsEndFit
   end % branchMode
   
-   
+  %% Added 20170618
+  %plot the lower confidence filo
+  if ip.Results.plotFiltered
+      
+      %filoInfoOther = filoInfo(~filoFilterSet);
+      if   ~isempty(filoInfo)
+          [toPlotY,toPlotX]  =  arrayfun(@(x) ind2sub(imgSize,x.([toAdd{iType} 'pixIndices'])),filoInfo,'uniformoutput',0);
+          
+          for i = 1:numel(toPlotY)
+              plot(toPlotX{i}(:),toPlotY{i}(:),'color','k','Linewidth',ip.Results.LineWidth);
+          end
+      end
+  end
       
 %% Plot Text if applicable  
 if ~isempty(plotValues) && ip.Results.plotText == true

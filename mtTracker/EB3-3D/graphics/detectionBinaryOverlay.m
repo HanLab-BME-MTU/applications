@@ -3,6 +3,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addOptional('cumulative',false);
+ip.addOptional('radius',5);
 ip.parse(varargin{:});
 p=ip.Results;
 %%
@@ -10,7 +11,9 @@ detXY=img;
 if(size(img,3)==1)
     detXY=repmat(img,1,1,3);
 end
-
+XRatio=size(img,2)/(XLimit(2)-XLimit(1));
+YRatio=size(img,1)/(YLimit(2)-YLimit(1));
+radius=ceil(p.radius*XRatio);
 detColors=colormap;
 
 if(~isempty(detections))
@@ -27,8 +30,7 @@ if(~isempty(detections))
 
             X=X-XLimit(1);
             Y=Y-YLimit(1);
-            XRatio=size(img,2)/(XLimit(2)-XLimit(1));
-            YRatio=size(img,1)/(YLimit(2)-YLimit(1));
+
             X=X*XRatio;
             Y=Y*YRatio;
             inIdx=(X>0)&(Y>0)&(X<=size(img,2))&(Y<=size(img,1));
@@ -37,7 +39,7 @@ if(~isempty(detections))
             cIndex=colIdx(inIdx);
             drawingBoard=zeros(size(img,1),size(img,2));
             for dIdx=1:length(X)
-                drawingBoard=MidpointCircle(drawingBoard,5,Y(dIdx),X(dIdx),cIndex(dIdx));
+                drawingBoard=MidpointCircle(drawingBoard,radius,Y(dIdx),X(dIdx),cIndex(dIdx));
             end
             uniqueCIdx=unique(cIndex);
             for ucIdx=1:length(uniqueCIdx)

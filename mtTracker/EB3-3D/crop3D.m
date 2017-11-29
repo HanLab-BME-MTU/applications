@@ -31,7 +31,7 @@ MD.addProcess(process);
 channelList=[];
 for cIdx=1:length(MD.channels_)
     channelList=[channelList Channel([outputDir filesep 'ch' num2str(cIdx) filesep])];
-    mkdirRobust([outputDir filesep 'ch' num2str(cIdx)]);
+    mkClrDir([outputDir filesep 'ch' num2str(cIdx)]);
     parfor t=keepFrame
         vol=MD.getChannel(cIdx).loadStack(t);
         stackWrite(vol(ROI(1):ROI(4),ROI(2):ROI(5),ROI(3):ROI(6)) ,[outputDir filesep 'ch' num2str(cIdx) filesep 'ch-' num2str(cIdx)  '-time-' num2str(t,'%04d') '.tif']);

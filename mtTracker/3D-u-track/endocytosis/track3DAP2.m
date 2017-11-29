@@ -1,4 +1,4 @@
-function tracks3DAP2(MD,varargin)
+function track3DAP2(MD,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
@@ -7,6 +7,7 @@ ip.addParameter('createROIs',false);
 ip.addParameter('packID',100);
 ip.addParameter('name',[]);
 ip.addParameter('forceRun',[]);
+ip.addParameter('maxFrame',300);
 ip.parse(varargin{:});
 p=ip.Results;
 
@@ -18,7 +19,7 @@ packPID=p.packID;
 % halfway through, or other issues, the previous logs are not overidden but
 % the last computation location are still available.
 
-nFrames=min(300,MD.nFrames_);
+nFrames=min(p.maxFrame,MD.nFrames_);
 
 % Process type placeholder
 packPIDTMP=packPID+1;

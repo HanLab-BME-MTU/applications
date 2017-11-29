@@ -28,8 +28,8 @@ function [ backboneInfoFix,frames2Fix] = GCAneuriteOrientConsistencyCheckMovie(m
 %       background subtracted to potentially be input). If not input, the
 %       backbone information will be calculated from the channels (ie raw
 %       images)
-% 
-% 
+%
+%
 %
 % Specific Input:
 %       See GCAgetNeuriteOrientConsistencyCheck.m for details.
@@ -55,8 +55,13 @@ ip.addParameter('ProcessIndex',0);
 
 % Specific
 ip.addParameter('TSOverlays',true,@(x) islogical(x));
+ip.addParameter('screen2png',false);
+
 ip.addParameter('SizeOfConsistencyRestraint',5,@(x) isscalar(x));
 ip.addParameter('CheckOrient',false,@(x) islogical(x));
+
+% Archiving the software version
+ip.addParameter('getGITHashTag',false);
 
 ip.parse(varargin{:});
 p = ip.Results;
@@ -78,8 +83,20 @@ p = ip.Results;
 channels = ip.Results.ChannelIndex;
 nChan = numel(ip.Results.ChannelIndex);
 sizeImg = movieData.imSize_;
-xSize = sizeImg(2); 
-ySize= sizeImg(1); 
+xSize = sizeImg(2);
+ySize= sizeImg(1);
+
+if ip.Results.TSOverlays
+    % set up colors
+    cMap = brewermap(2,'paired');
+    blue = cMap(2,:);
+    
+    % plot the alignment mask
+    cDark = brewermap(2,'Dark2');
+    orange = cDark(2,:);
+    green = cDark(1,:);
+    
+end
 %%
 for iCh = 1:nChan
     
@@ -99,14 +116,6 @@ for iCh = 1:nChan
         'I_neurite_orientation' filesep 'Channel_' num2str(iCh) ];
     load([saveDirOld filesep 'backboneInfo.mat']);
     
-    
-    
-    % old files
-    
-    if isdir(saveDir)
-        mkdir(saveDir)
-    end
-    
     % get the list of image filenames
     if p.ProcessIndex == 0
         imDir = movieData.channels_(iCh).channelPath_;
@@ -119,16 +128,16 @@ for iCh = 1:nChan
         error('No Images Found: Check Input Directory');
     end
     %% Run Function
-    if ip.Results.CheckOrient == true; % initiate the figure
-       setFigure(xSize,ySize,'on'); 
-%     
-    img = double(imread([movieData.getChannelPaths{1} filesep movieData.getImageFileNames{1}{1}]));
-    imshow(-img,[]);
-    hold on
-    end  
+    if ip.Results.CheckOrient; % initiate the figure
+        setFigure(xSize,ySize,'on');
+        
+        img = double(imread([movieData.getChannelPaths{1} filesep movieData.getImageFileNames{1}{1}]));
+        imshow(-img,[]);
+        hold on
+    end
     
     [backboneInfoFix,frames2Fix,modified]=  GCAneuriteOrientConsistencyCheck(backboneInfo,p);
-   
+    
     p.modified = modified;
     %% Troubleshoot Plots
     if (ip.Results.TSOverlays  == true && ~ isempty(frames2Fix))
@@ -145,30 +154,36 @@ for iCh = 1:nChan
             
             imshow(-img,[]) ;
             hold on
-            % plot the original signal 
-            spy(backboneInfo(frames2Fix(iFrame)).linkedRidgesFinal,'b');  
             
-            % plot the alignment mask 
-            spy(backboneInfoFix(frames2Fix(iFrame)).alignmentMask,'m');
+            % plot the alignment mask
+            [ny,nx] =size(img);
+            [nyAlign,nxAlign] = ind2sub([ny,nx],find(backboneInfoFix(frames2Fix(iFrame)).alignmentMask));
+            %spy(backboneInfoFix(frames2Fix(iFrame)).alignmentMask,c(1,:));
+            scatter(nxAlign,nyAlign,10,green,'filled');
             
-            % plot the origBB 
+            % plot the origBB
             origBBMask = backboneInfo(frames2Fix(iFrame)).backboneSeedMask;
-            spy(origBBMask,'g')
+            [nyBOrig,nxBOrig] = ind2sub([ny,nx],find(origBBMask));
+            scatter(nxBOrig,nyBOrig,10,blue,'filled');
+            
             hold on
             
             % plot the final BB seed
             backboneSeed = backboneInfoFix(frames2Fix(iFrame)).backboneSeedMask;
-            spy(backboneSeed,'r');
+            [nyBBSeed,nxBBSeed] = ind2sub([ny,nx],find(backboneSeed));
+            scatter(nxBBSeed,nyBBSeed,10,orange,'filled');
             
-            % plot the old and new input neurite coords 
+            % plot the old and new input neurite coords
             [coordsOrg] = backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite;
-            scatter(coordsOrg(1),coordsOrg(2),'g','filled');
+            scatter(coordsOrg(1),coordsOrg(2),100,blue,'filled');
             [coordsNew] = backboneInfoFix(frames2Fix(iFrame)).coordsEnterNeurite ;
-            scatter(coordsNew(1),coordsNew(2),'y','filled');
-           
-            text(10,10,{'Yellow Marks' ; 'Corrected Entry Point'}, 'Color','k');
+            scatter(coordsNew(1),coordsNew(2),100,'k','Marker','*');
             
-            saveas(gcf,[fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.tif']);
+            if ip.Results.screen2png
+                helperScreen2png([fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.png']);
+            else
+                saveas(gcf,[fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.png']);
+            end
             close gcf
         end % iFrame
         
@@ -181,8 +196,7 @@ for iCh = 1:nChan
         name{1} = 'BeforeAndAfterConnect';
         name{2} = 'CandSeeds';
         name{3} = 'RidgeCandBeforeAfterClean';
-        
-        
+           
         for iFrame = 1:length(frames2Fix)
             
             for iTransfer = 1:3
@@ -200,12 +214,12 @@ for iCh = 1:nChan
         end % iFrame
     end % if ip.Results
     %% Save Information
-    backboneInfo  = backboneInfoFix; 
+    backboneInfo  = backboneInfoFix;
     save([saveDir filesep 'backboneInfoFix.mat'],'backboneInfo');
     save([saveDir filesep 'framesFixed.mat'],'frames2Fix');
     save([saveDir filesep 'paramsIn.mat'],'p');
     
-    display(['Finished Neurite Orientation Consistency Test : ' movieData.outputDirectory_ ' for Ch' num2str(iCh) ]); 
+    display(['Finished Neurite Orientation Consistency Test : ' movieData.outputDirectory_ ' for Ch_' num2str(iCh) ]);
 end % iCh
 end % The END
 

@@ -49,7 +49,9 @@ else
 end
 processFrame=p.processFrame;
 
-
+if(length(fringeWidth)==1)
+    fringeWidth=ones(1,3)*fringeWidth;
+end
 %% Set normalization value
 minIntensityNorm=[];
 maxIntensityNorm=[];
@@ -80,12 +82,12 @@ if(strcmp(p.crop,'manifold')&&(~isempty(dynPoligonREF)))
         maxY=ceil(max(max(dynPoligonREF(iP).y),maxY));
         maxZ=ceil(max(max(dynPoligonREF(iP).z),maxZ));
     end
-    maxXBorder=(maxX+fringeWidth);
-    maxYBorder=(maxY+fringeWidth);
-    maxZBorder=(maxZ+fringeWidth);
-    minXBorder=(minX-fringeWidth);
-    minYBorder=(minY-fringeWidth);
-    minZBorder=(minZ-fringeWidth);
+    maxXBorder=(maxX+fringeWidth(1));
+    maxYBorder=(maxY+fringeWidth(2));
+    maxZBorder=(maxZ+fringeWidth(3));
+    minXBorder=(minX-fringeWidth(1));
+    minYBorder=(minY-fringeWidth(2));
+    minZBorder=(minZ-fringeWidth(3));
 else
     if(~isempty(p.FoF))
         maxXBorder=MD.getDimensions('X')-p.FoF.origin(1,1);
@@ -392,6 +394,8 @@ parfor fIdx=processFrame
             sZ=sZ*MD.pixelSizeZ_/MD.pixelSize_;
         end
         resizeScale=maxMIPSize/max([sX,sY,sZ]);
+        % resizeScale=1;
+        % disp(['resizeScale: ' num2str(resizeScale)]);
         
         XYMax=imresize(maxXY,resizeScale,'nearest');
         ZYMax=imresize(maxZY,resizeScale,'nearest');

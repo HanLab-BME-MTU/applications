@@ -24,7 +24,7 @@ medianFilt = medfilt1(dataIn,medFiltWindSize);
 residuals = medianFilt-dataIn;
 if plotFig == true
 % figure;
-TSFig(1).h = setAxis('on');
+TSFig(1).h = setAxis('off');
 TSFig(1).name = 'NeuriteOutgrowth_MedFiltOutlierDetect';
 
 scatter(1:length(dataIn),dataIn,'k','filled');
@@ -56,21 +56,23 @@ outlierIdx = find(testValue > k^2);
 %differently with different input
 inlierIdx = inlierIdx(:)';
 outlierIdx = outlierIdx(:)';
-if plotFig == true
-hold on
-scatter(outlierIdx,dataIn(outlierIdx),'r','filled')
-xlabel('Frame Number','FontSize',12,'FontName','Arial');
-ylabel('Neurite Length Measurement (um)', 'FontSize',12,'FontName','Arial');
-set(gca,'FontSize',10,'FontName','Arial');
-
-legend('Raw Measurements',['Median Filter: (Window Size ' num2str(medFiltWindSize) ')'],...
-    'Outlier Detection','box','off', 'Location','BestOutside');
-
-title('Veil/Stem Outlier Detection' );
-axis([0 120 -25 25]);
-else 
-    TSFig = []; 
-end 
+if plotFig 
+    hold on
+    scatter(outlierIdx,dataIn(outlierIdx),'r','filled')
+    xlabel('Frame Number','FontSize',12,'FontName','Arial');
+    ylabel('Neurite Length Measurement (um)', 'FontSize',12,'FontName','Arial');
+    set(gca,'FontSize',10,'FontName','Arial');
+    
+    warning('off','MATLAB:legend:IgnoringExtraEntries')
+    legend('Raw Measurements',['Median Filter: (Window Size ' num2str(medFiltWindSize) ')'],...
+        'Outlier Detection','box','off', 'Location','BestOutside');
+    warning('on','MATLAB:legend:IgnoringExtraEntries')
+    
+    title('Veil/Stem Outlier Detection' );
+    axis([0 length(dataIn) -25 25]);
+else
+    TSFig = [];
+end
 
 end
 

@@ -1,10 +1,10 @@
 classdef FrameOfRef < handle  & matlab.mixin.Copyable
    properties
       origin;
-      X;
-      Y;
-      Z;
-      frame;
+      X; % N*3 double
+      Y; % N*3 double
+      Z; % N*3 double
+      frame; % N*1 uint16
    end
    methods
       function obj=setOriginFromTrack(obj,tr)
@@ -21,12 +21,23 @@ classdef FrameOfRef < handle  & matlab.mixin.Copyable
          obj.Z=obj.Z./repmat(sum(obj.Z.^2,2).^0.5,1,3);
       end
 
-      function obj=genBaseFromZ(obj)
-          obj.X=[0*obj.Z(:,1),obj.Z(:,3),-obj.Z(:,2)];
-          obj.X=obj.X./repmat(sum(obj.X.^2,2).^0.5,1,3);
+      function obj=genBaseFromZ(obj,trX)
+          if(nargin<2)
+            obj.X=[0*obj.Z(:,1),obj.Z(:,3),-obj.Z(:,2)];
+            obj.X=obj.X./repmat(sum(obj.X.^2,2).^0.5,1,3);
+          else
+              [F,idxTr,idxObj] = intersect(trX.f,obj.frame);
+              obj.frame=F;
+              obj.X=[trX.x(idxTr)' trX.y(idxTr)' trX.z(idxTr)']-obj.origin;
+              obj.X=obj.X./repmat(sum(obj.X.^2,2).^0.5,1,3);
+              obj.X=obj.X-repmat(sum(obj.X.*obj.Z,2),1,3).*obj.Z;
+              obj.X=obj.X./repmat(sum(obj.X.^2,2).^0.5,1,3);
+          end
           obj.Y=cross(obj.X,obj.Z);
       end
 
+
+      
       function obj=genCanonicalBase(obj)
           obj.X=repmat([1 0 0],[size(obj.origin,1) 1]);
           obj.Y=repmat([0 1 0],[size(obj.origin,1) 1]);
