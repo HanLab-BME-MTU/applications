@@ -61,12 +61,13 @@ if nargin<4|isempty(excludeStr)
 end
 excludeStr = lower(excludeStr);
 
+
 %find all files in directory, create list of filenames and list of dates
 dirList=dir(fileDir);
-dirListCell=struct2cell(dirList);
-nameList=dirListCell(1,:)';
-dateList=dirListCell(2,:)';
-isDirList = cat(1,dirListCell{4,:});
+
+nameList = arrayfun(@(x) x.name,dirList,'uniformoutput',0);
+dateList = arrayfun(@(x) x.date, dirList,'uniformoutput',0);
+isDirList = arrayfun(@(x) x.isdir,dirList);
 
 % %lookfor file. strfind only allows string-by-string comparison, hence loop
 % % fileIdx = [];
