@@ -1,16 +1,17 @@
+% Also defines the single cell trajectories to be processed for every movie
+function [] = pcTrackingMovieLong(MD,params,dirs)
 
-function [] = pcTrackingMovie(MD,params,dirs)
-
-% Save tracking movies to /project/cellbiology/gdanuser/melanomaModel/Analysis/Movies/trackingMovies
+% Save tracking movies to
+% /project/cellbiology/gdanuser/melanomaModel/Analysis/Movies/trackingMoviesLong
 % Note: over 2 minutes per frame from getFrame!!
 
-% Assaf Zaritsky, November 2015
+% Assaf Zaritsky, February 2016
 
-outdir = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/Movies/trackingMovies';
+outdir = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/Movies/trackingMoviesLong';
 % '/project/cellbiology/gdanuser/melanomaModel/Analysis/Movies/trackingMovies/';
 
-movieFname = [outdir filesep dirs.expname '_tracking.avi'];
-cellTYXFname = [dirs.tracking 'cellIdTYX.mat'];
+movieFname = [outdir filesep dirs.expname '_trackingLong.avi'];
+cellTYXFname = [dirs.tracking 'cellIdTYXLong.mat'];
 
 if exist(movieFname,'file') && exist(cellTYXFname,'file') && ~params.always
     fprintf(sprintf('Tracking movie %s exists, finishing\n',movieFname));
@@ -25,16 +26,21 @@ nCurCell = 0;
 curCellsInds = [];
 curTrajectories = [];
 
-load([dirs.tracking 'trackingOutput.mat']); % nTrajFinal, allTrajectories, allTrajectoriesByStartTime
+load([dirs.tracking 'trackingOutputLong.mat']); % 'allTrajectories','allTrajectoriesByStartTimeLong','trajStatsLong'
+
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
 
 cellTYX = {};
 W = nan; H = nan;
-for t = 1 : min(params.nTime - params.frameJump - 1,length(allTrajectoriesByStartTime))
+for t = params.sTime : min(params.nTime - params.frameJump - 1,length(allTrajectoriesByStartTimeLong))
     I = MD.getChannel(1).loadImage(t);
     
-    if ~isempty(allTrajectoriesByStartTime{t})
+    if ~isempty(allTrajectoriesByStartTimeLong{t})
         
-        newTrajectories = allTrajectoriesByStartTime{t}.trajectories;
+        newTrajectories = allTrajectoriesByStartTimeLong{t}.trajectories;
         nNewTrajectories = length(newTrajectories);
         
         if nNewTrajectories > 0            
@@ -106,7 +112,7 @@ assert(length(cellTYX) == nCurCell);
 save(cellTYXFname,'cellTYX');
 close(vwriter);
 
-fprintf(sprintf('Done creating tracking movie (H: %d-%d, W:%d-%d)\n,',minH,maxH,minW,maxW));
+fprintf(sprintf('Long trajectories: done creating tracking movie (H: %d-%d, W:%d-%d)\n,',minH,maxH,minW,maxW));
 end
 
 %%

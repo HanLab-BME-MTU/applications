@@ -1,7 +1,7 @@
 #!/bin/python
 #Name: generate_scripts.py
 #Author: Assaf Zaritsky (originally by Shenghua Wan)
-#Date: 2015-04-22 (Revised 2017-01-17) (Revised 2017-05-10)
+#Date: 2015-04-22 (Revised 2017-01-17)
 #Description: 
 #	this program reads file "params.txt" and
 #generates SLURM job scripts for each node
@@ -10,9 +10,9 @@ import os
 
 #clean up generated script, use CAUTION
 print "Cleaning pu scripts folder ..."
-filelist = [ f for f in os.listdir("/home2/azaritsky/logsBioHPC/LCH/scripts")  ]
+filelist = [ f for f in os.listdir("./scripts")  ]
 for f in filelist:
-    os.remove("/home2/azaritsky/logsBioHPC/LCH/scripts/" + f)
+    os.remove("./scripts/" + f)
 
 
 paramsList = []
@@ -58,14 +58,14 @@ slurmHeader = '#!/bin/bash\n' \
 #			+ '#SBATCH --ntasks-per-node=' +  str(n_prog_per_node) + '\n'
 			
 			
-if not os.path.exists('/home2/azaritsky/logsBioHPC/LCH/scripts'):
-	os.makedirs('/home2/azaritsky/logsBioHPC/LCH/scripts')
+if not os.path.exists('./scripts'):
+	os.makedirs('./scripts')
 
 #generate script for a node
 nWholeScripts = int(nTasks / tasksPerNode)
 nTasksLastScript = nTasks % tasksPerNode
 for i in range(0, nWholeScripts):
-	script_name = '/home2/azaritsky/logsBioHPC/LCH/scripts/job_' + str(i) + '.auto'
+	script_name = './scripts/job_' + str(i) + '.auto'
 	print script_name
 	with open(script_name, 'w') as f:
 		sbatchHeader = slurmHeader + \
@@ -75,7 +75,7 @@ for i in range(0, nWholeScripts):
 		f.write(sbatchHeader)
 		for j in range(0, tasksPerNode):
 			comb_index = i * tasksPerNode + j
-			# print comb_index
+			print comb_index
 			log_name = '/home2/azaritsky/logsBioHPC/LCH/log/task_' + str(i) + '_' + str(j+1) + '_' + str(comb_index+1)
 			script =  s1 + str(comb_index+1) + ' 1>' + log_name + '.std.out' + ' 2>' + log_name + '.stderr'  + ' & \n\n'
 			f.write(script)
@@ -86,7 +86,7 @@ if nWholeScripts == 0:
     i = -1
 
 if(nTasksLastScript != 0):
-	script_name = '/home2/azaritsky/logsBioHPC/LCH/scripts/job_' + str(nWholeScripts) + '.auto'
+	script_name = './scripts/job_' + str(nWholeScripts) + '.auto'
 	print script_name 
 	with open(script_name, 'w') as f:
 		sbatchHeader = slurmHeader + \

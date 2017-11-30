@@ -216,41 +216,41 @@ ylabel('K');
 xlabel('Orientation (degrees)');
 
 %% Show parabola near bifurcation points
-o = -pi/6:0.01:pi/6;
-% S = 6;
-D = pi.^2/2;
-S = pi/14/D;
-for i=1:size(xgAligned,1)
-    hold on;
-    plot((o+xgAligned(i,2))/2/pi*180,Kg_aligned(i)+0.5*dnK_dmn(2,i,2).*o.^2,'-m');
-%     K_select = 0.5*4*D./(2*Kg_aligned(i)+1).^3*S^2+Kg_aligned(i);
-    % Convert to t_select
-    t_select = 1./(2*Kg_aligned(i)+1).^2 - 0.5*S^2*D;
-    if(t_select < 0)
-        K_select = K(1);
-    else
-        K_select = (1./sqrt(t_select)-1)/2;
-    end
-        
-    plot(([-pi/6 pi/6]+xgAligned(i,2))/2/pi*180,[K_select K_select],'-m');
-end
+% o = -pi/6:0.01:pi/6;
+% % S = 6;
+% D = pi.^2/2;
+% S = pi/14/D;
+% for i=1:size(xgAligned,1)
+%     hold on;
+%     plot((o+xgAligned(i,2))/2/pi*180,Kg_aligned(i)+0.5*dnK_dmn(2,i,2).*o.^2,'-m');
+% %     K_select = 0.5*4*D./(2*Kg_aligned(i)+1).^3*S^2+Kg_aligned(i);
+%     % Convert to t_select
+%     t_select = 1./(2*Kg_aligned(i)+1).^2 - 0.5*S^2*D;
+%     if(t_select < 0)
+%         K_select = K(1);
+%     else
+%         K_select = (1./sqrt(t_select)-1)/2;
+%     end
+%         
+%     plot(([-pi/6 pi/6]+xgAligned(i,2))/2/pi*180,[K_select K_select],'-m');
+% end
 
 %% Plot in t-space
-figure;
-for i=1:size(xgAligned,1)
-    hold on;
-    plot((o+xgAligned(i,2))/2/pi*180,1./(2*(Kg_aligned(i)+0.5*dnK_dmn(2,i,2).*o.^2)+1).^2,'-m');
-%     K_select = 0.5*4*D./(2*Kg_aligned(i)+1).^3*S^2+Kg_aligned(i);
-    % Convert to t_select
-    t_select = 1./(2*Kg_aligned(i)+1).^2 - 0.5*S^2*D;
-    if(t_select < 0)
-        K_select = K(1);
-    else
-        K_select = (1./sqrt(t_select)-1)/2;
-    end
-        
-    plot(([-pi/6 pi/6]+xgAligned(i,2))/2/pi*180,1./(2*[K_select K_select]+1).^2,'-m');
-end
+% figure;
+% for i=1:size(xgAligned,1)
+%     hold on;
+%     plot((o+xgAligned(i,2))/2/pi*180,1./(2*(Kg_aligned(i)+0.5*dnK_dmn(2,i,2).*o.^2)+1).^2,'-m');
+% %     K_select = 0.5*4*D./(2*Kg_aligned(i)+1).^3*S^2+Kg_aligned(i);
+%     % Convert to t_select
+%     t_select = 1./(2*Kg_aligned(i)+1).^2 - 0.5*S^2*D;
+%     if(t_select < 0)
+%         K_select = K(1);
+%     else
+%         K_select = (1./sqrt(t_select)-1)/2;
+%     end
+%         
+%     plot(([-pi/6 pi/6]+xgAligned(i,2))/2/pi*180,1./(2*[K_select K_select]+1).^2,'-m');
+% end
 
 %% Show filters at interpolation points
 figure;

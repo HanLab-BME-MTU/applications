@@ -15,7 +15,11 @@ if params.always
     fprintf('detection PP filter (always): clean output directories\n'); 
 end
    
-for t = 1 : params.nTime - params.frameJump
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
+for t = params.sTime : params.nTime - params.frameJump
     PPFilteredFname = [dirs.detectPPData sprintf('%03d',t) '_filtered.mat'];
     PPFilteredVisFname = [dirs.detectPPVis sprintf('%03d',t) '_filtered.eps'];
     

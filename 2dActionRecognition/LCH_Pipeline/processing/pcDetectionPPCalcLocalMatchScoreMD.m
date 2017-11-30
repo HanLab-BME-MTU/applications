@@ -27,7 +27,11 @@ detectionPPVicinityPrctile = params.detectionPPVicinityPrctile;
 % detectionPPVicinityPacthes = ceil(params.detectionPPVicinityPixels / params.pixelSize);
 detectionPPVicinityPacthes = params.detectionPPVicinityPatch;
     
-for t = 1 : params.nTime - params.frameJump
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
+for t = params.sTime : params.nTime - params.frameJump
     detectPPFname = [dirs.detectPPData sprintf('%03d',t) '_detectionStats.mat'];
     
     fprintf(sprintf('cell post processing detection frame %d\n',t));
