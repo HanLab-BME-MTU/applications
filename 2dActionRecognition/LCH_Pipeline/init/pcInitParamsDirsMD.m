@@ -36,6 +36,10 @@ if ~isfield(params,'nTime')
     params.nTime = MD.nFrames_;
 end
 
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
 if ~isfield(params,'always')
     params.always = false;
 end
@@ -87,11 +91,11 @@ if ~isfield(params,'diffDetectionBackgroundScoreTH')
 end
 
 if ~isfield(params, 'minLengthTH')
-    params.minLengthTH = 45;
+    params.minLengthTH = 120; %45
 end
 
 if ~isfield(params, 'minLengthTHLong')
-    params.minLengthTHLong = 180;
+    params.minLengthTHLong = 240;
 end
 
 % Radius for a single cell for the LBP
@@ -131,6 +135,7 @@ dirs.fineResScoresVis = [dirs.fineRes 'scoresVis/'];
 % ROI
 dirs.roi = [dirs.dirname '/ROI/'];
 dirs.roiData = [dirs.roi 'roi/'];
+dirs.roiLever = [dirs.roi 'lever/'];
 dirs.roiVis = [dirs.roi 'vis/'];
 
 % Detection of single cells
@@ -143,6 +148,10 @@ dirs.detectPPVis = [dirs.detect '/detectionsPPVis/'];
 
 dirs.tracking = [dirs.dirname '/tracking/'];
 
+dirs.lbp = [dirs.dirname '/lbp/'];
+
+dirs.lbpDt = [dirs.dirname '/lbpDt/'];
+
 if exist([dirs.detect '/lbp/'],'dir')
    unix(sprintf('rm -rf %s',[dirs.detect '/lbp/']));
 end
@@ -151,7 +160,7 @@ if exist([dirs.detect '/localMorphDynam/'],'dir')
     unix(sprintf('rm -rf %s',[dirs.detect '/localMorphDynam/']));
 end
 
-dirs.lbp = [dirs.dirname '/lbp/'];
+
 
 %% Create local directories
 if ~exist(dirs.dirname,'dir')
@@ -194,6 +203,10 @@ if ~exist(dirs.roiData,'dir')
     unix(sprintf('mkdir %s',dirs.roiData));
 end
 
+if ~exist(dirs.roiLever,'dir')
+    unix(sprintf('mkdir %s',dirs.roiLever));
+end
+
 if ~exist(dirs.roiVis,'dir')
     unix(sprintf('mkdir %s',dirs.roiVis));
 end
@@ -226,18 +239,25 @@ if ~exist(dirs.lbp,'dir')
     unix(sprintf('mkdir %s',dirs.lbp));
 end
 
+if ~exist(dirs.lbpDt,'dir')
+    unix(sprintf('mkdir %s',dirs.lbpDt));
+end
+
 % if ~exist(dirs.localMorphDynam,'dir')
 %     unix(sprintf('mkdir %s',dirs.localMorphDynam));
 % end
 
 
+%% Global folders
+tmp = strsplit(dirs.dirname,filesep);
+dirs.expname = tmp{end};
+
 %% Global Directories
-dirs.trackingVis = [dirs.dirname '/../../../../Movies/trackingMovies/'];
+dirs.trackingVis = [dirs.dirname '/../../../Movies/trackingMovies/'];
 if ~exist(dirs.trackingVis,'dir')
     unix(sprintf('mkdir %s',dirs.trackingVis));
 end
 
-%% Experiment name
-tmp = strsplit(dirs.dirname,filesep);
-dirs.expname = tmp{end};
+dirs.lever = [dirs.dirname '/../../../LEVER/masks/'];
+
 end

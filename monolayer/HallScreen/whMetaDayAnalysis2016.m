@@ -40,8 +40,8 @@ close all;
 
 % flags.variance = 0;
 % flags.dayAnalysisPCA = 0;
-flags.dayScreen = 0;
-flags.dayVisKymographs = 1;
+flags.dayScreen = 1;
+flags.dayVisKymographs = 0;
 flags.dayVisKymographsStd = 0;
 % flags.dayVisTargets = 0;
 % flags.controlInterdayAssessment = 0;
@@ -49,7 +49,7 @@ flags.dayVisKymographsStd = 0;
 %% New analyses
 flags.dayVisPCA = 0;
 flags.dayVisDirectMeasures = 0;
-flags.dayFollowupHits = 1;
+flags.dayFollowupHits = 0;
 
 [dayGeneData,allDiffMeanGeneToMeanControl,healingRateOut] = whCollectDayGeneData2016(data,healingRate,strLabels,metaData,mainDirname,propertyStr,plotBasicPCAFname);
 

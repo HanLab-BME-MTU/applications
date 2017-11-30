@@ -28,7 +28,11 @@ gaussianSigma = 0.6; % optimized for our dataset
 
 gaussianFilter = fspecial('gaussian',[3 3], gaussianSigma);
 
-for t = 1 : params.nTime - params.frameJump
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
+for t = params.sTime : params.nTime - params.frameJump
     detectFname = [dirs.detectData sprintf('%03d',t) '_detections.mat'];
     combinedImageFname = [dirs.detectVis sprintf('%03d',t) '_combinedImage.eps'];
     detectVisFname = [dirs.detectVis sprintf('%03d',t) '_detections.eps'];

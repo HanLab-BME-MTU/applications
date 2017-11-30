@@ -15,7 +15,11 @@ if params.always
     fprintf('motion estimation (always): clean output directories\n'); 
 end
 
-for t = 1 : params.nTime - params.frameJump
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
+for t = params.sTime : params.nTime - params.frameJump
     mfFname = [dirs.mfData sprintf('%03d',t) '_mf.mat'];
     
     fprintf(sprintf('motion estimation frame %d\n',t));
@@ -23,7 +27,7 @@ for t = 1 : params.nTime - params.frameJump
     if exist(mfFname,'file') && ~params.always
         if params.deepDebug
             fprintf('motion estimation: continue\n'); 
-        end;
+        end
         continue;
     end
             

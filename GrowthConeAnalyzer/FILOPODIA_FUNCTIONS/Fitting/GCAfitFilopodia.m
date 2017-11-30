@@ -431,7 +431,7 @@ for iType = typeStart:typeEnd
                             subplot(3,2,(1:2));
                             imgFilo = img(maskIndices);
                             imagesc(-imgFilo,[-max(img(:)),-min(img(:))]);
-                            
+                            colormap('gray')
                             % mark pixels for potential background
                             % estimation
                             
@@ -467,10 +467,10 @@ for iType = typeStart:typeEnd
                         % for troubleshooting
                         hDec = scatter(distFilo(slopeMaxNeg),yData(slopeMaxNeg),50,[ 0.0039  ,  0.4264 ,   0.3848],'filled'); % cyan
                         hInc = scatter(distFilo(slopeMaxPos),yData(slopeMaxPos),50,[ 0.6471 ,        0 ,   0.1490  ] ,'filled');
-                        warning('off','MATLAB:legend:InvalidLocationSpecifier');
+                      
                         warning('off',('MATLAB:legend:IgnoringExtraEntries'));
                         legend([hData,hDataFit,hFit,hDec,hBack,hMean,hInc],'Raw Data', 'Data For Fit','Fit','Potential Signal Decay',...
-                            'Background Estimate','Tip Position','Potential Signal Rise', 'Location','Northeast','FontSize',6,'FontName','Arial');
+                            'Background Estimate','Tip Position','Potential Signal Rise','location','northeast');
                         legend('boxoff');
                         xlabel('Distance Along Filopodia (Pixels)','FontSize',10,'FontName','Arial');
                         ylabel('Fluorescence Intensity (AU)','FontSize',10,'FontName','Arial');
