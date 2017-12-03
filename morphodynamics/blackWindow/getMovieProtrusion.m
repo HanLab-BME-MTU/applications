@@ -177,9 +177,6 @@ protrusion = cell(nFrames-1,1);
 normals = cell(nFrames-1,1);
 smoothedEdge = cell(nFrames,1);
 
-timeBefore = tic;
-
-% DK - debugging purposes
 roiMask=movieData.getROIMask;
 parfor iFrame = 2:nFrames
     [prevMask, isPrevClosed, prevOutline, isPrevClockWise] = ...
@@ -220,9 +217,6 @@ parfor iFrame = 2:nFrames
     end
 end
 smoothedEdge{nFrames} = smoothedEdge_t{nFrames};
-
-% DK - debugging purposes
-toc(timeBefore)
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)
