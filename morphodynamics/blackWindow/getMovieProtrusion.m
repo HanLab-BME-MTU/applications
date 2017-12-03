@@ -173,98 +173,52 @@ protrusion = cell(nFrames-1,1);
 normals = cell(nFrames-1,1);
 smoothedEdge = cell(nFrames,1);
 
+timeBefore = tic;
+
+% DK - debugging purposes
 roiMask=movieData.getROIMask;
-for iFrame = 1:nFrames        
+parfor iFrame = 2:nFrames
+    [prevMask, isPrevClosed, prevOutline, isPrevClockWise] = ...
+        getOutlineInfo(roiMask(:,:,iFrame - 1), iFrame - 1, nChan, maskDirs, maskNames);
+    [currMask, isCurrClosed, currOutline, isClockWise] = ...
+        getOutlineInfo(roiMask(:,:,iFrame), iFrame, nChan, maskDirs, maskNames);
     
-    %Load and combine masks from all channels
-    currMask = roiMask(:,:,iFrame);
-    for iChan = 1:nChan    
-        currMask = currMask & imread([maskDirs{iChan} filesep maskNames{iChan}{iFrame}]);        
+    if isCurrClosed ~= isPrevClosed
+        error('The function prSamProtrusion.m requries that if the mask object is touching the image boundary in one frame, it must also touch the boundary in every frame! Check masks and re-run calculation!')
     end
     
-    isCurrClosed = ~any([currMask(1,:), currMask(end,:) ...
-                         currMask(:,1)' currMask(:,end)']);    
-                         
-    %Separate mask objects - prSamProtrusion only handles one object
-    CC = bwconncomp(currMask);
+    %Set up the inputs for sam's function
+    samIn = struct();
+    samIn.batch_processing = samBatch;
+    samIn.TOLERANCE = p.SplineTolerance;
+    samIn.dl_rate = p.DownSample;
     
-    %Make sure there isn't more than one object
-    if CC.NumObjects > 1
-        if nChan == 1
-            %Because small objects can be created by intersecting masks, we
-            %only warn the user if only one mask was used.
-            warning('blackwindow:protrusion:TooManyObjects',...
-                ['The mask for frame ' num2str(iFrame) ...
-                ' contains more than 1 object - protrusion vectors are only calculated for the largest object.'])            
-        end
-        %We just take the largest of these objects for prot vec calc
-        [~,iBiggest] = max(cellfun(@(x)(numel(x)),CC.PixelIdxList));
-        currMask = false(imSize);
-        currMask(CC.PixelIdxList{iBiggest}) = true;
+    %Set up input for sam's function
+    samIn.pixel_list_last = prevOutline;
+    samIn.pixel_list = currOutline;
+    samIn.ISCLOSE = isCurrClosed;
+    samIn.maskTM1 = prevMask;
+    samIn.time_idx = iFrame;
+    
+    %----call sam's protrusion calc function----%
+    samOut = prSamProtrusion(samIn);
         
+    %Parse output.
+    protrusion{iFrame-1} = samOut.translate_output;
+    normals{iFrame-1} = samOut.xy_normal;
+    smoothedEdge{iFrame-1} = samOut.pixel_tm1_output;
+    if iFrame == nFrames
+        smoothedEdge_t{iFrame} = samOut.pixel_t_output;
     end
-    
-    %Get the outline of the object in this mask. We use contourc instead of
-    %bwboundaries for 2 reasons: It returns its results in matrix
-    %coordinates, and the resulting outline encloses the border pixels
-    %instead of running through their centers. This better agrees with the
-    %windows, as the windows are designed to enclose the entire mask.
-    currOutline = contourc(double(currMask),[0 0]);
-    currOutline = separateContours(currOutline);%Post-processing of contourc output
-    currOutline = cleanUpContours(currOutline);    
-    currOutline = currOutline{1}';%We know we only have one object...
-    
-    %Make sure the outline is correctly oriented
-    if ~isCurrClosed
-        %Close the curve before checking handedness
-        closedOutline = closeContours({currOutline'},bwdist(~currMask));
-        isClockWise = isCurveClockwise(closedOutline{1});        
-    else
-        isClockWise = isCurveClockwise(currOutline);        
-    end        
-    
-    if ~isClockWise
-        %Sam requires the curves run in the same direction
-        currOutline = currOutline(end:-1:1,:);
-    end
-    
-    %We need two timepoints to have prot vectors
-    if iFrame > 1
-        
-        if isCurrClosed ~= isPrevClosed
-            error('The function prSamProtrusion.m requries that if the mask object is touching the image boundary in one frame, it must also touch the boundary in every frame! Check masks and re-run calculation!')
-        end
-        
-        %Set up input for sam's function
-        samIn.pixel_list_last = prevOutline;
-        samIn.pixel_list = currOutline;        
-        samIn.ISCLOSE = isCurrClosed;
-        samIn.maskTM1 = prevMask;       
-        samIn.time_idx = iFrame;        
-        
-        %----call sam's protrusion calc function----%
-        samOut = prSamProtrusion(samIn);
-        
-        
-        %Parse output.
-        protrusion{iFrame-1} = samOut.translate_output;
-        normals{iFrame-1} = samOut.xy_normal;                
-        smoothedEdge{iFrame-1} = samOut.pixel_tm1_output;
-        if iFrame == nFrames
-            smoothedEdge{iFrame} = samOut.pixel_t_output;
-        end
-    end
-    
-    %Swap new with old mask
-    prevMask = currMask;
-    isPrevClosed = isCurrClosed;
-    prevOutline = currOutline;
             
     if ~p.BatchMode        
-        waitbar(iFrame / nFrames,wtBar)
+        %waitbar(iFrame / nFrames,wtBar)
     end
-
 end
+smoothedEdge{nFrames} = smoothedEdge_t{nFrames};
+
+% DK - debugging purposes
+toc(timeBefore)
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)
@@ -283,7 +237,58 @@ movieData.processes_{iProc}.setDateTime;
 movieData.save; %Save the new movieData to disk
 
 disp('Finished protrusion calculation!')
+end
 
 
+function [mask, isClosed, outline, isClockWise] = getOutlineInfo(mask, iFrame, nChan, maskDirs, maskNames)
+%Load and combine masks from all channels
+for iChan = 1:nChan
+    mask = mask & imread([maskDirs{iChan} filesep maskNames{iChan}{iFrame}]);
+end
 
+isClosed = ~any([mask(1,:), mask(end,:) mask(:,1)' mask(:,end)']);
+
+%Separate mask objects - prSamProtrusion only handles one object
+CC = bwconncomp(mask);
+
+%Make sure there isn't more than one object
+if CC.NumObjects > 1
+    if nChan == 1
+        %Because small objects can be created by intersecting masks, we
+        %only warn the user if only one mask was used.
+        warning('blackwindow:protrusion:TooManyObjects',...
+            ['The mask for frame ' num2str(iFrame) ...
+            ' contains more than 1 object - protrusion vectors are only calculated for the largest object.'])
+    end
+    %We just take the largest of these objects for prot vec calc
+    [~,iBiggest] = max(cellfun(@(x)(numel(x)),CC.PixelIdxList));
+    mask = false(imSize);
+    mask(CC.PixelIdxList{iBiggest}) = true;
+    
+end
+
+%Get the outline of the object in this mask. We use contourc instead of
+%bwboundaries for 2 reasons: It returns its results in matrix
+%coordinates, and the resulting outline encloses the border pixels
+%instead of running through their centers. This better agrees with the
+%windows, as the windows are designed to enclose the entire mask.
+outline = contourc(double(mask),[0 0]);
+outline = separateContours(outline);%Post-processing of contourc output
+outline = cleanUpContours(outline);
+outline = outline{1}';%We know we only have one object...
+
+%Make sure the outline is correctly oriented
+if ~isClosed
+    %Close the curve before checking handedness
+    closedOutline = closeContours({outline'},bwdist(~mask));
+    isClockWise = isCurveClockwise(closedOutline{1});
+else
+    isClockWise = isCurveClockwise(outline);
+end
+
+if ~isClockWise
+    %Sam requires the curves run in the same direction
+    outline = outline(end:-1:1,:);
+end
+end
 
