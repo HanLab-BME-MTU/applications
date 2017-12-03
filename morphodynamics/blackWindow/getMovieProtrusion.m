@@ -72,6 +72,10 @@ function movieData = getMovieProtrusion(movieData,paramsIn)
 % Hunter Elliott
 % Re-written 8/2010
 %
+% Daehwan Kim (infphilo@gmail.com)
+% 12/2017
+% Parallelized protrusion detection
+%
 %% ------- Parameters ------ %%
 
 fName = 'protrusion_vectors'; %String for naming file with results
@@ -163,7 +167,7 @@ end
 %% ----- Protrusion Calculation ---- %%
 
 if ~p.BatchMode
-    wtBar = waitbar(0,'Please wait, calculating protrusion vectors ...');        
+    wtBar = parfor_progressbar(nFrames - 1, 'Please wait, calculating protrusion vectors ...');
 end        
 disp('Starting protrusion calculation...');
 
@@ -212,7 +216,7 @@ parfor iFrame = 2:nFrames
     end
             
     if ~p.BatchMode        
-        %waitbar(iFrame / nFrames,wtBar)
+        wtBar.iterate(1);
     end
 end
 smoothedEdge{nFrames} = smoothedEdge_t{nFrames};
