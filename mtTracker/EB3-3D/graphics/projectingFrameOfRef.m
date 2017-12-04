@@ -1,4 +1,4 @@
-function projImages=project1D(MD,dynPoligon,tracks)
+function projImages=projectFrameOfRef(MD,dynPoligon,tracks)
 % tracks are in original FoF and projected  in the manifold
 % described by polygon.
 % Poligon described the projected space (without dilated boundaries), It is composed of Tracks.

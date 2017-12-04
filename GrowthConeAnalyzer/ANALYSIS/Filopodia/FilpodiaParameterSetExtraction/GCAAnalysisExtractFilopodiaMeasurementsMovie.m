@@ -61,6 +61,7 @@ ip.addParameter('Rewrite',false);
 
 ip.addParameter('MainMovie',false); % flag to make the output for the 
 % primary visualizations (all ext filo color coded by length); 
+ip.addParameter('MainMovieNoEmbed',false); 
 ip.addParameter('Biosensors',false); % flag to 
 
 ip.addParameter('filterOutlierBranchParameters',false); 
@@ -209,16 +210,32 @@ if ip.Results.SubRegionFlag
     
     
 else % if not subregion flag 
-    
-    if ip.Results.MainMovie 
+% Note need to eventually make this a switch...     
+    if ip.Results.MainMovie  
         
         analInput(1).filterType = 'Validation';
         analInput(1).paramFunc{1} = 'filoLength'; 
         analInput(1).paramName{1} = 'ForMainMovie'; 
+        %x.filoPart = 'Ext_'; 
+        x.filoPart = 'Tot';
+        x.outPercent = false; 
+        %x.outPercent = true;
+        %x.filterZeroPercent = false; 
+        x.umPerPixel = movieData.pixelSize_/1000; 
+
+        analInput(1).paramInput{1} = x; 
+        
+    elseif ip.Results.MainMovieNoEmbed 
+        analInput(1).filterType = 'Validation_NoEmbed';
+        analInput(1).paramFunc{1} = 'filoLength'; 
+        analInput(1).paramName{1} = 'ForMainMovieNoEmbed'; 
         x.filoPart = 'Ext_'; 
         %x.filoPart = 'Tot';
         x.outPercent = false; 
-        analInput(1).paramInput{1} = x; 
+        x.umPerPixel = movieData.pixelSize_/1000; 
+        analInput(1).paramInput{1} = x;   
+      
+     
         
     elseif ip.Results.curvVsLength % quickFix to change filter to non-branch
         
@@ -485,7 +502,8 @@ for iAnalType = 1:length(analInput);
             system(['mkdir -p '  newFiloDir]);
             
             % get the filopodia filter for analInput
-            [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,analInput(iAnalType).filterType); 
+            [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,analInput(iAnalType).filterType,...
+               'pixelSizeNm', movieData.pixelSize_); 
             %[filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbed(filoBranch,analInput(iAnalType).filterType);
             % save the filter set used
             save([newFiloDir filesep 'filoFilterSet.mat'],'filoFilterSet','filterParams');
@@ -498,7 +516,8 @@ for iAnalType = 1:length(analInput);
     else % make the new directory and make the filter
         %mkdir(newFiloDir);
         system(['mkdir -p '  newFiloDir]);
-        [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,analInput(iAnalType).filterType); 
+        [filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbedResidTest(filoBranch,analInput(iAnalType).filterType,...
+             'pixelSizeNm', movieData.pixelSize_); 
         %[filoFilterSet,filterParams] = GCACreateFilopodiaFilterSetWithEmbed(filoBranch,analInput(iAnalType).filterType);
         % save the filter set used
         filterParams.InputDirectory = inDir; 

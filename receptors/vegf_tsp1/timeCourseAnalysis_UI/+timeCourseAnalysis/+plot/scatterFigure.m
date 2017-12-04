@@ -110,6 +110,8 @@ function figureHandle = scatterIndividualFigure(commonInfo, figureData, colors, 
 
 plotTitle = [figureData.titleBase ' ' figureData.titleVariable];
 
+%number of conditions
+nCond = numel(figureData.data);
 
 %% KJ: This is Tae's original spline fit (with some modifications)
 
@@ -134,7 +136,6 @@ if fitOrNot == 1
     end
     
     %plot vertical lines indicating aligning Times
-    nCond = numel(figureData.data);
     for iCond = 1:nCond
         plot([commonInfo.timeShift(iCond), commonInfo.timeShift(iCond)], [figureData.yMax, figureData.yMin], 'Color', colors{iCond});
     end
@@ -179,19 +180,40 @@ hold on;
 
 %collect all moving average information
 for i=1:length(figureData.dataAve)
-    timesTmp{i,1} = figureData.dataAve{i}.timeAve;
-    dataTmp{i,1} = figureData.dataAve{i}.dataAve;
+    varInter = figureData.dataAve{i}.timeBinEdges;
+    timesSimple{i,1} = varInter;
+    varInter = [varInter NaN(size(varInter,1),1)]';
+    varInter = varInter(:);
+    timesTmp{i,1} = varInter;
+    varInter = figureData.dataAve{i}.dataAve;
+    dataSimple{i,1} = varInter;
+    varInter = [varInter varInter NaN(size(varInter,1),1)]';
+    varInter = varInter(:);
+    dataTmp{i,1} = varInter;
     semTmp = figureData.dataAve{i}.dataStd ./ sqrt(figureData.dataAve{i}.nDataPts);
+    dataPlusSimple{i,1} = dataSimple{i} + semTmp;
+    dataMinusSimple{i,1} = dataSimple{i} - semTmp;
+    semTmp = [semTmp semTmp NaN(size(semTmp,1),1)]';
+    semTmp = semTmp(:);
     dataPlusTmp{i,1} = dataTmp{i} + semTmp;
     dataMinusTmp{i,1} = dataTmp{i} - semTmp;
+end
+
+%plot rectagles indicating mean +- sem
+for iCond = 1 : nCond
+    timesCond = timesSimple{iCond};
+    nRect = size(timesCond,1);
+    for iRect = 1 : nRect
+        fill([timesCond(iRect,[1 2]) timesCond(iRect,[2 1])],[repmat(dataMinusSimple{iCond}(iRect),1,2) repmat(dataPlusSimple{iCond}(iRect),1,2)],colors{iCond},'FaceAlpha',0.2,'EdgeColor','none');
+    end
 end
 
 %plot all inlier data and store line handles
 inIdx = cellfun(@(inOutFlag) inOutFlag==1,figureData.inOutFlag,'UniformOutput',false);
 lineHandleP1 = cellfun(@(times,data,inIdx) plot(times(inIdx),data(inIdx),'.'), commonInfo.times, figureData.data, inIdx, 'UniformOutput', false);
 lineHandleA  = cellfun(@(times,data) plot(times,data),timesTmp,dataTmp,'UniformOutput',false);
-lineHandleAP = cellfun(@(times,data) plot(times,data,'LineStyle',':'),timesTmp,dataPlusTmp,'UniformOutput',false);
-lineHandleAM = cellfun(@(times,data) plot(times,data,'LineStyle',':'),timesTmp,dataMinusTmp,'UniformOutput',false);
+% lineHandleAP = cellfun(@(times,data) plot(times,data,'LineStyle',':'),timesTmp,dataPlusTmp,'UniformOutput',false);
+% lineHandleAM = cellfun(@(times,data) plot(times,data,'LineStyle',':'),timesTmp,dataMinusTmp,'UniformOutput',false);
 
 %KJ: plot outliers not used in fit
 if(~isempty(figureData.inOutFlag))
@@ -214,8 +236,8 @@ cellfun(@(x, y) set(x, 'Color', y), lineHandleP1, colors);
 cellfun(@(x, y) set(x, 'Color', y), lineHandle0, colors);
 cellfun(@(x, y) set(x, 'Color', y), lineHandleM1, colors);
 cellfun(@(x, y) set(x, 'Color', y), lineHandleA, colors);
-cellfun(@(x, y) set(x, 'Color', y), lineHandleAP, colors);
-cellfun(@(x, y) set(x, 'Color', y), lineHandleAM, colors);
+% cellfun(@(x, y) set(x, 'Color', y), lineHandleAP, colors);
+% cellfun(@(x, y) set(x, 'Color', y), lineHandleAM, colors);
 
 %create legends
 fitHandle = [lineHandleA{:}];

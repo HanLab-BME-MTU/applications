@@ -14,8 +14,8 @@ if nargin == 0
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200_RHOA/';
     %     metaDataFname = 'GEFScreenFinal20160526_RHOA_kd50.mat';
     
-    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200/';
-    %     metaDataFname = 'GEFScreenFinal20160526_kd50.mat';
+    mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd50time200/';
+    metaDataFname = 'GEFScreenFinal20160526_kd50.mat';
     
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/ScreenFinal/kd0time200/';
     %     metaDataFname = 'GEFScreenFinal20160513_kd0.mat';
@@ -35,8 +35,8 @@ if nargin == 0
     
     %% Revision
     % RhoA day 3
-    mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
-    metaDataFname = 'ShefaliRevision201612_RhoC_kd0.mat'; % this is the real "age" of the data
+    %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
+    %     metaDataFname = 'ShefaliRevision201612_RhoC_kd0.mat'; % this is the real "age" of the data
     % RhoA day 3
     %     mainDirname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/MetaAnalysis/Revision201612/';
     %     metaDataFname = 'ShefaliRevision201612_RhoA_Day3_kd0.mat'; % this is the real "age" of the data
@@ -69,8 +69,8 @@ metaData.spatialPartition = 3;
 % ??
 metaData.initialTimePartition = 0; %2
 
-% metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/'; % Revision20161215 was not moved
-metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data201612_shefali/';
+metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/allData/'; % Revision20161215 was not moved
+% metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data201612_shefali/';
 % metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20161215_shefali/';
 % metaData.inputDname = '/project/bioinformatics/Danuser_lab/GEFscreen/analysis/Data20160523/';
 

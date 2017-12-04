@@ -69,11 +69,13 @@ function [resSummaryInd] = resultsCombTimeCourseMod(dsSummary)
 %Khuloud Jaqaman, March 2015
 %modified from resultsCombTimeCourse
 %Tae H Kim, June 2015
+%
+%Further modifications: Khuloud Jaqaman, December 2017.
+%Note: All diffusion mode analysis compilation and plotting makes the
+%assumption that there is at most 10 modes. This is a hack, and should be
+%fixed in the future.
 
 %% Input
-
-
-
 
 %get number of datasets
 %numDS = 1;
@@ -91,7 +93,8 @@ for iDS = 1
     %get number of time points in this movielist
     nTP = length(dsSummary);
     
-    %absolute numbers of molecules in various motion classes
+    %absolute numbers of molecules in various motion classes from MSS
+    %analysis
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet, 6 det, 7 tot, 8 imm+conf
     %rows are for different timepoints, as listed in corresponding timeList
     diffSummary = vertcat(dsSummary.diffSummary); %#ok<NASGU>
@@ -104,52 +107,111 @@ for iDS = 1
     numAbsClassInd = [numAbsClassCurrent sum(numAbsClassCurrent(:,1:4),2) ...
         sum(numAbsClassCurrent(:,1:5),2) sum(numAbsClassCurrent(:,1:2),2)];
         
-    %     %numbers in various motion classes normalized by dividing by mean value
-    %     %of first 3 time points
-    %     %columns and rows same as absolute numbers
-    %     normConst = nanmean(numAbsClassInd(1:min(3,nTP),:));
-    %     numNorm0ClassInd = numAbsClassInd ./ repmat(normConst,nTP,1);
+    %absolute numbers of molecules in various motion modes from diffusion
+    %mode analysis
+    %columns 1 to 10 are for modes 1 to 10.
+    %column 11 is for tracks with undeteremined mode
+    %column 12 is for all tracks with determined mode
+    %column 13 is for total tracks
+    diffModeSummary = vertcat(dsSummary.diffModeSummary); %#ok<NASGU>
+    numAbsModeCurrent = catStruct(2,'diffModeSummary.probMotionMode(:,2)')';
+    numModes = size(numAbsModeCurrent,2) - 1;
+    if numModes < 10
+        numAbsModeCurrent = [numAbsModeCurrent(:,1:numModes) NaN(nTP,10-numModes) numAbsModeCurrent(:,numModes+1)];
+    else
+        warning('Number of modes exceeds 10; modes higher than 10 will be ignored')
+        numAbsModeCurrent = numAbsModeCurrent(:,[1:10 end]);
+    end    
+    numAbsModeInd = [numAbsModeCurrent nansum(numAbsModeCurrent(:,1:10),2) ...
+        nansum(numAbsModeCurrent(:,1:11),2)];
     
-    %absolute probabilities of various motion classes
+    %absolute probabilities of various motion classes from MSS analysis
     %columns are: 1 imm, 2 conf, 3 free, 4 dir (all relative to det), 
     %5 det (relative to tot), 6 imm+conf (relative to det)
     probAbsClassInd = [numAbsClassInd(:,1:4)./repmat(numAbsClassInd(:,6),1,4) ...
         numAbsClassInd(:,6)./numAbsClassInd(:,7) ...
         numAbsClassInd(:,8)./numAbsClassInd(:,6)];
     
-    %     %probabilities of various motion classes normalized by dividing by mean
-    %     %value of first 3 time points
-    %     %columns and rows same as absolute probability
-    %     normConst = nanmean(probAbsClassInd(1:min(3,nTP),:));
-    %     probNorm0ClassInd = probAbsClassInd ./ repmat(normConst,nTP,1);
-
+    %absolute probabilities of various motion modes from diffusion mode
+    %analysis
+    %columns 1 to 10 are for modes 1 to 10 (relative to all determined)
+    %column 11 is for all determined (relative to total)
+    probAbsModeInd = [numAbsModeInd(:,1:10)./repmat(numAbsModeInd(:,12),1,10) ...
+        numAbsModeInd(:,12)./numAbsModeInd(:,13)];
+    
     %cell area in order to get densities
-    cellAreaInd = repmat(vertcat(dsSummary.cellArea),1,8);
+    cellAreaInd = vertcat(dsSummary.cellArea);
     
-    %densities of molecules in various motion classes
+    %densities of molecules in various motion classes from MSS analysis
     %columns and rows same as absolute numbers
-    densityAbsClassInd = numAbsClassInd ./ cellAreaInd;
+    densityAbsClassInd = numAbsClassInd ./ repmat(cellAreaInd,1,8);
     
-    %     %densities in various motion classes normalized by dividing by mean
-    %     %value of first 3 time points
-    %     %columns and rows same as absolute numbers
-    %     normConst = nanmean(densityAbsClassInd(1:min(3,nTP),:));
-    %     densityNorm0ClassInd = densityAbsClassInd ./ repmat(normConst,nTP,1);
+    %densities of molecules in various motion modes from diffusion mode
+    %analysis
+    %columns and rows same as absolute numbers
+    densityAbsModeInd = numAbsModeInd ./ repmat(cellAreaInd,1,13);
     
-    %diffusion coefficient in various motion classes
+    %diffusion coefficient in various motion classes from MSS analysis
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet
     diffCoefClassInd = (horzcat(dsSummary.diffCoefMeanPerClass))';
     
-    %confinement radius in various motion classes
+    %confinement radius in various motion classes from MSS analysis
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet
     confRadClassInd = (horzcat(dsSummary.confRadMeanPerClass))';
 
-    %amplitude in various motion classes
+    %diffusion coefficient in various motion modes from diffusion mode
+    %analysis
+    %columns are: modes 1 to 10 + undetermined
+    diffCoefModeInd = (horzcat(dsSummary.diffCoefMeanPerMode))';
+    
+    %frame-to-frame mean square displacement in various motion modes from
+    %diffusion mode analysis
+    %columns are: modes 1 to N + undetermined
+    f2fMeanSqDispModeInd = (horzcat(dsSummary.f2fMeanSqDispPerMode))';
+    
+    %mean positional std in various motion modes from diffusion mode
+    %analysis
+    %columns are: modes 1 to N + undetermined
+    meanPosStdModeInd = (horzcat(dsSummary.meanPosStdPerMode))';
+    
+    %amplitude in various motion classes from MSS analysis
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet
     tmpCollect = (horzcat(dsSummary.ampMeanPerClass))';
     ampClassInd = tmpCollect(1:2:end,:); %might want: ampClassInd = tmpCollect(1:5,:);
     ampNormClassInd = tmpCollect(2:2:end,:); %and: ampNormClassInd = tmpCollect(6:10,:); instead?
-
+    
+    %amplitude in various motion mode from diffusion mode analysis
+    %columns are: modes 1 to N + undetermined
+    tmpCollect = (horzcat(dsSummary.ampMeanPerMode))';
+    ampModeInd = tmpCollect(1:2:end,:);
+    ampNormModeInd = tmpCollect(2:2:end,:);
+    
+    %patch up all variables to make 10 modes
+    if numModes < 10
+        diffCoefModeInd = [diffCoefModeInd(:,1:numModes) NaN(nTP,10-numModes) diffCoefModeInd(:,numModes+1)];
+        f2fMeanSqDispModeInd = [f2fMeanSqDispModeInd(:,1:numModes) NaN(nTP,10-numModes) f2fMeanSqDispModeInd(:,numModes+1)];
+        meanPosStdModeInd = [meanPosStdModeInd(:,1:numModes) NaN(nTP,10-numModes) meanPosStdModeInd(:,numModes+1)];
+        ampModeInd = [ampModeInd(:,1:numModes) NaN(nTP,10-numModes) ampModeInd(:,numModes+1)];
+        ampNormModeInd = [ampNormModeInd(:,1:numModes) NaN(nTP,10-numModes) ampNormModeInd(:,numModes+1)];
+   else
+        diffCoefModeInd = diffCoefModeInd(:,[1:10 end]);
+        f2fMeanSqDispModeInd = f2fMeanSqDispModeInd(:,[1:10 end]);
+        meanPosStdModeInd = meanPosStdModeInd(:,[1:10 end]);
+        ampModeInd = ampModeInd(:,[1:10 end]);
+        ampNormModeInd = ampNormModeInd(:,[1:10 end]);
+    end
+    
+    %diffusion mode decomposition
+    numDiffModeInd = catStruct(1,'dsSummary.diffModeDecomposition.numMode');
+    numDiffModeControlInd = catStruct(1,'dsSummary.diffModeDecomposition.numModeControl');
+    [modeDiffCoefInd,modeFractionInd] = deal(NaN(nTP,10));
+    for iMode = 1 : 10
+        indxGood = find(numDiffModeInd>=iMode);
+        dsSummaryGood = dsSummary(indxGood); %#ok<NASGU>
+        modeDiffCoefInd(indxGood,iMode) = catStruct(1,['dsSummaryGood.diffModeDecomposition.modeParam(' num2str(iMode) ',1)']);
+        modeFractionInd(indxGood,iMode) = catStruct(1,['dsSummaryGood.diffModeDecomposition.modeParam(' num2str(iMode) ',2)']);
+    end
+    
     %amplitude statistics in first 20 frames
     %columns are: 1 mean, 2 first mode mean, 3 first mode std, 4 first mode fraction, 5 number of modes
     ampStatsF20Ind = vertcat(dsSummary.ampStatsF20);
@@ -169,16 +231,8 @@ for iDS = 1
     %merging and splitting time information
     msTimeInfoInd = vertcat(dsSummary.msTimeInfo);
     
-    %diffusion mode analysis
-    numDiffModeInd = catStruct(1,'dsSummary.diffModeAnalysis.numMode');
-    numDiffModeControlInd = catStruct(1,'dsSummary.diffModeAnalysis.numModeControl');
-    [modeDiffCoefInd,modeFractionInd] = deal(NaN(nTP,5));
-    for iMode = 1 : 5
-        indxGood = find(numDiffModeInd>=iMode);
-        dsSummaryGood = dsSummary(indxGood);
-        modeDiffCoefInd(indxGood,iMode) = catStruct(1,['dsSummaryGood.diffModeAnalysis.modeParam(' num2str(iMode) ',1)']);
-        modeFractionInd(indxGood,iMode) = catStruct(1,['dsSummaryGood.diffModeAnalysis.modeParam(' num2str(iMode) ',2)']);
-    end
+    %tracks
+    tracks = {dsSummary.tracks}';
         
 end
 
@@ -227,14 +281,18 @@ ampStatsL20Ind(isnan(ampStatsL20Ind)) = 0;
 %     'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'ampStatsF01',ampStatsF01Ind,...
 %     'rateMS',rateMSInd,'msTimeInfo',msTimeInfoInd);
 
-resSummaryInd = struct('numAbsClass',numAbsClassInd,...
-    'densityAbsClass',densityAbsClassInd,...
-    'probAbsClass',probAbsClassInd,...
+resSummaryInd = struct('numAbsClass',numAbsClassInd,'numAbsMode',numAbsModeInd,...
+    'densityAbsClass',densityAbsClassInd,'densityAbsMode',densityAbsModeInd,...
+    'probAbsClass',probAbsClassInd,'probAbsMode',probAbsModeInd,...
     'diffCoefClass',diffCoefClassInd,'confRadClass',confRadClassInd,...
+    'diffCoefMode',diffCoefModeInd,'f2fMeanSqDispMode',f2fMeanSqDispModeInd,...
+    'meanPosStdMode',meanPosStdModeInd,...
     'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
+    'ampMode',ampModeInd,'ampNormMode',ampNormModeInd,...
     'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'ampStatsF01',ampStatsF01Ind,...
     'rateMS',rateMSInd,'msTimeInfo',msTimeInfoInd,...
     'numDiffMode',[numDiffModeInd numDiffModeControlInd],...
-    'modeDiffCoef',modeDiffCoefInd,'modeFraction',modeFractionInd);
+    'modeDiffCoef',modeDiffCoefInd,'modeFraction',modeFractionInd); 
+resSummaryInd.tracks = tracks;
 
 %% ~~~ the end ~~~

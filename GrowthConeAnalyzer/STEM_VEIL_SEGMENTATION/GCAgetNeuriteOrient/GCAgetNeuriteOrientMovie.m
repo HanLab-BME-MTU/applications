@@ -88,7 +88,7 @@ ip.CaseSensitive = false;
 ip.addParameter('MinCCEntranceRidgeFirstTry',10);
 ip.addParameter('MaxDistBorderFirstTry',10);
  
- 
+ ip.addParameter('getGITHashTag',false); 
  
 ip.parse(varargin{:});
 
@@ -206,13 +206,17 @@ for iCh = 1:nChan
         end 
             
         close all
-         hashTag =  gcaArchiveGetGitHashTag;
-         backboneFrame.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+        if ip.Results.getGITHashTag
+            hashTag =  gcaArchiveGetGitHashTag;
+            backboneFrame.hashTag = hashTag; % make sure to add the hash tag first so the structure is similar (or initiate in begin)
+        else
+            backboneFrame.hashTag = NaN;
+        end
         backboneInfo(iFrame) = backboneFrame;
         save( [saveDir filesep 'backboneInfo.mat'],'backboneInfo');
         display(['Finished Finding Neurite Orientation for Frame ' num2str(iFrame)]);
-        p(iFrame) = params; 
-        save([saveDir filesep 'params.mat'],'p');  
+        p(iFrame) = params;
+        save([saveDir filesep 'params.mat'],'p');
     
     end % iFrame
     

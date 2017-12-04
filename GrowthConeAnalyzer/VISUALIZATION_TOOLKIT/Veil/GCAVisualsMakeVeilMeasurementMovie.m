@@ -17,9 +17,6 @@ ip = inputParser;
 
 ip.CaseSensitive = false;
 
-
-
-
 ip.addParameter('OutputDirectory_', []);
 ip.addParameter('OverlayType','ColorByVel'); 
 ip.addParameter('ScaleBar',false); 
@@ -29,7 +26,9 @@ ip.addParameter('ShowWindowNum',true);
 ip.addParameter('subRoiMaskDirIn',[]); % where the subRoimasks are stored.
 ip.addParameter('OutlierFilter',false); 
 ip.addParameter('StartFrame',1); 
-ip.addParameter('EndFrame',120); 
+ip.addParameter('EndFrame',119);
+
+ip.addParameter('cLims',[-100,100]); % currently in nm/sec, set's the scale limits for the colormap
 
 ip.addParameter('SignalType',[]); % {'P'},{'R'},{'Q'} if empty will plot all signals 
 
@@ -39,6 +38,17 @@ ip.addParameter('SmoothActivityMap',true);
 
 ip.addParameter('windMethod','ConstantNumber'); 
 ip.addParameter('ReInit',61); 
+
+ip.addParameter('firstFrameLimits',false);
+
+ip.addParameter('overlayLongPath',false); 
+ip.addParameter('neuriteElongDir',[]); 
+
+ip.addParameter('screen2png',false); 
+ip.addParameter('highResImage',false); 
+
+ip.addParameter('collectDir',[]); 
+
 ip.parse(varargin{:});
 
 %% Initiate
@@ -108,6 +118,18 @@ if ip.Results.OutlierFilter
 end
 
 
+if ip.Results.overlayLongPath
+
+    if isempty(ip.Results.neuriteElongDir);
+        neuriteElongDir  = [movieData.outputDirectory_ filesep 'SegmentationPackage' filesep 'StepsToReconstruct' filesep ...
+            'IV_veilStem_length' filesep 'Channel_1'];
+    else 
+        neuriteElongDir =  ip.Results.neuriteElongDir; 
+    end
+  
+    load([neuriteElongDir filesep 'veilStem.mat']); 
+end 
+
 if ~isdir(outDir)
     mkdir(outDir)
 end
@@ -118,6 +140,15 @@ if ~isempty(ip.Results.StartFrame)
             
       img = double(imread([movieData.getChannelPaths{1} filesep filenames{1}{iFrame}]));
       
+      
+        if  iFrame ==1 
+            if ip.Results.firstFrameLimits
+            lims = [min(-img(:)) max(-img(:))]; 
+            else 
+                lims = []; 
+            end 
+        
+        end 
       if ~isempty(ip.Results.subRoiMaskDirIn)         
           % currently the input is such that 
           roiMask  = logical(imread(([ip.Results.subRoiMaskDirIn filesep 'masks' filesep  'mask' num2str(iFrame,'%03d') '.tif'])));
@@ -134,7 +165,7 @@ if ~isempty(ip.Results.StartFrame)
       
       setFigure(nx,ny,'off');
       
-      imshow(-img,[]) ;
+      imshow(-img,lims) ;
       hold on
       
       if ~isempty(ip.Results.subRoiMaskDirIn)
@@ -143,10 +174,18 @@ if ~isempty(ip.Results.StartFrame)
          hold on
       else 
           idxWindFinalC = 1:length(windows);
-      
+          
       end
       
-   
+      if ip.Results.overlayLongPath
+          % plot the veil/stem 
+          l = veilStem(iFrame).neuriteLongPathIndices;
+         
+          lmask = zeros(size(img)); 
+          lmask(veilStem(iFrame).neuriteLongPathIndices)= 1;
+          spy(lmask,'k');
+      end 
+      
       
       
       switch ip.Results.OverlayType
@@ -200,7 +239,7 @@ if ~isempty(ip.Results.StartFrame)
                   end
                   
                   
-                  if sum(strcmpi(ip.Results.SignalType,'Q'))>0
+                  if sum(strcmpi(ip.Results.SignalType,'Q'))>0 
                       
                       idxProtC =  arrayfun(@(x) ~isempty(find(vertcat(analysisResults.protrusionAnalysis.windows(x).blockOut{:})==iFrameFind)),1:nWinds);
                       
@@ -229,7 +268,7 @@ if ~isempty(ip.Results.StartFrame)
               plotValues = protSamples.avgNormal(idxWindFinalC,iFrame);
               plotValues = plotValues*movieData.pixelSize_/movieData.timeInterval_;
               
-              mapper=linspace(100,-100,128)'; % lower values are red in the brewermap
+              mapper=linspace(ip.Results.cLims(2),ip.Results.cLims(1),128)'; % lower values are red in the brewermap
               D=createDistanceMatrix(plotValues,mapper);
               [sD,idxCMap]=sort(abs(D),2);
               
@@ -248,15 +287,7 @@ if ~isempty(ip.Results.StartFrame)
 %               
 %               
           
-   % Note 20160607: note for vectorization (ie .eps files and figures) want this to be
-              % plotted second - somehow having the lines plotted second signals it to vectorize and not
-              % smooth
-              if ip.Results.ShowWindowNum
-                  % plot with no color to get the window numbers
-                  gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',1,'showNum',10);
-              end
-              
-
+   
 
 
               % Plot Events Selected 
@@ -271,12 +302,22 @@ if ~isempty(ip.Results.StartFrame)
                   end
               end
             
-           
+           % Note 20160607: note for vectorization (ie .eps files and figures) want this to be
+              % plotted second - somehow having the lines plotted second signals it to vectorize and not
+              % smooth
+              if ip.Results.ShowWindowNum
+                  % plot with no color to get the window numbers
+                  gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',1,'showNum',10);
+              else 
+                  %gcaPlotWindows(windows,{'k','FaceAlpha',0},'bandMax',1,'lineWidth',.01); 
+              end
+              
+
               
               
               if ip.Results.ScaleBar == true
-                  pixSizeMic = MD.pixelSize_./1000;
-                  plotScaleBar(1/pixSizeMic,0.5,'Color',[0,0,0],'Location','SouthEast');
+                  pixSizeMic = movieData.pixelSize_./1000;
+                  plotScaleBar(10/pixSizeMic,1,'Color',[0,0,0],'Location','SouthEast');
               end
               
               
@@ -297,7 +338,7 @@ if ~isempty(ip.Results.StartFrame)
                      % if ~isempty(windToPlot)
                       for iWind = 1:length(idxBlackOut) % I know it is silly but do each individually for now - just because it is the way I can
                           % get the boxes overlaid -
-                          gcaPlotWindows(windows(idxBlackOut(iWind)),{'y','FaceAlpha',1},idxBlackOut(iWind),'bandMax',1,'colorWind',outlierC);
+                          gcaPlotWindows(windows(idxBlackOut(iWind)),{outlierC,'FaceAlpha',1},idxBlackOut(iWind),'bandMax',1,'colorWind',outlierC);
                           
                       end
                   end
@@ -311,13 +352,37 @@ if ~isempty(ip.Results.StartFrame)
               end % if output
                           
       end  % switch
+      
        %% save the results 
+       if ip.Results.screen2png
+          helperScreen2png([outDir filesep num2str(iFrame,'%03d') '.png']); 
+       else 
        saveas(gcf,[outDir filesep num2str(iFrame,'%03d') '.png']);
+       end
+       
+       if ip.Results.highResImage
+           hiResFolder = [outDir filesep '600dpi' ];
+           if ~isdir(hiResFolder)
+               mkdir(hiResFolder);
+           end
+           print(gcf,'-dpng',[hiResFolder filesep num2str(iFrame,'%03d') '.png'], '-r600');
+           
+           
+       end
+       
        saveas(gcf,[outDir filesep num2str(iFrame,'%03d') '.fig']);
        saveas(gcf,[outDir filesep num2str(iFrame,'%03d'),'.eps']);
+       
+    
+       
+       
        close gcf
            
   end % iframe  
+  
+  if ~isempty(ip.Results.collectDir)
+      copyfile([outDir,collectDir]);
+  end
 end  
 if ip.Results.MakeProtMap
      cmap = brewermap(128,'RdBu');
@@ -394,7 +459,7 @@ if (ip.Results.MakeProtMap && ip.Results.OutlierFilter)
     %       processed = [processed1 processed2];
     %
     %GCAVisualsProtrusionMap(raw.*analysisResults.data.scaling,'colorMap',cmapC,'CLim',[-100,100]);
-    GCAVisualsProtrusionMap(data,'colorMap',cmapC,'CLim',[-100,100],'ShowColorBar',false,'FontSize',50);
+    GCAVisualsProtrusionMap(data,'colorMap',cmapC,'CLim',ip.Results.cLims,'ShowColorBar',false,'FontSize',50);
     
     
     hold on 
@@ -415,6 +480,8 @@ if (ip.Results.MakeProtMap && ip.Results.OutlierFilter)
     saveas(gcf,[mapDir filesep 'protrusionMapRemoveSignalDetectOutlier.fig']);
     saveas(gcf,[mapDir filesep 'protrusionMapRemoveSignalDetectOutlier.eps'],'psc2'); 
     % series for outliers or not.
+    
+    
     
     %processed2 = analysis{2}.data.procTimeSeries;
     

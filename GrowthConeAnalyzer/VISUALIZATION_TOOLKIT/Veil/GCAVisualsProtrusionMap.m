@@ -30,11 +30,14 @@ ip.addParameter('colorMap','jet');
 ip.addParameter('FontSize',20); 
 
 ip.addParameter('ShowColorBar',true); 
+ip.addParameter('ColorBarForRatio',false); 
+ip.addParameter('ScaleFactor',1000); 
 
 ip.addParameter('alphaMaskNaN',false); 
 
+
 ip.addParameter('title',[]); 
-ip.addParameter('visible','off'); 
+ip.addParameter('visible','on'); 
 
 ip.parse(imgData,varargin{:});
 
@@ -43,8 +46,8 @@ ip.parse(imgData,varargin{:});
  frameInSec = ip.Results.frameInSec; 
 
 %setFigureMoviePlots(200,200,'off')
-
-h = setAxis(ip.Results.visible,0.95,ip.Results.FontSize);
+h = setupFigure( 'DisplayMode', 'screen'); 
+%h = setAxis(ip.Results.visible,0.95,ip.Results.FontSize);
 x = ip.Results.colorMap;
 if ip.Results.blackOutLo
     % colormap set to go from lowest to highest
@@ -93,7 +96,13 @@ xlabel(['Time ' '( ' forLabel ' )'] )
 
 %set(gca,'FontSize',10,'FontName','Arial');
 if ip.Results.ShowColorBar
-    colorbar
+    c = colorbar;
+    if ip.Results.ColorBarForRatio
+        c.Label.String = 'FRET/Donor';
+        v = c.TickLabels;
+        new = cellfun(@(x) (str2double(x)./ip.Results.ScaleFactor),v,'uniformoutput',0);
+        c.TickLabels = new;
+    end
 end
 [ny,nx] = size(imgData); 
 axis([1,nx-1,1,ny]); 
@@ -120,6 +129,11 @@ end
 if ~isempty(ip.Results.title)
     title(ip.Results.title); 
 end 
+%% This was a quick and dirty to reset the axis  
+%    h1 = get(gcf,'CurrentAxes');
+%             yLim = h1.YLim; % use whatever they used
+%             axis([0.5 29.5 yLim(1) yLim(2)]);  
+%%
 
 %else 
 % if makeMovie~=1
