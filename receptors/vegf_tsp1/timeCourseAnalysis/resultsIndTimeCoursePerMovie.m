@@ -30,7 +30,14 @@ progressTextMultiple('channel', length(curChannels));
 
 for iC = curChannels
     
-    iProcDiff = MD.getProcessIndex('MotionAnalysisProcess',1,0); %diffusion analysis and tracks
+    iProcTracks = MD.getProcessIndex('TrackingProcess',1,0); %tracking process
+    if isempty(iProcTracks)
+        error([MD.movieDataPath_ ' : Tracking Process Missing']);
+    end
+    trackData = load(MD.processes_{iProcTracks}.outFilePaths_{iC});
+    tracks0 = trackData.tracksFinal;
+    
+    iProcDiff = MD.getProcessIndex('MotionAnalysisProcess',1,0); %diffusion analysis and tracks used for diffusion analysis
     if isempty(iProcDiff)
         error([MD.movieDataPath_ ' : Motion Analysis Process Missing']);
     end
@@ -50,17 +57,29 @@ for iC = curChannels
     detectionOutput = load(MD.processes_{iProcDet}.outFilePaths_{iC});
     movieInfoFrame1 = detectionOutput.movieInfo(1);
     
-%     iProcDiffModes = MD.getProcessIndex('DiffusionModeAnalysisProcess',1,0); %diffusion mode analysis
-%     if isempty(iProcDiffModes)
-%         error([MD.movieDataPath_ ' : Diffusion Mode Analysis Process Missing']);
-%     end
-%     diffModeAnalysis = load(MD.processes_{iProcDiffModes}.outFilePaths_{iC});
+    iProcDiffModes = MD.getProcessIndex('DiffusionModeAnalysisProcess',1,0); %diffusion mode analysis
+    if isempty(iProcDiffModes)
+        error([MD.movieDataPath_ ' : Diffusion Mode Analysis Process Missing']);
+    end
+    diffModeAnalysis = load(MD.processes_{iProcDiffModes}.outFilePaths_{iC});
     
     
     %limit analysis to tracks in mask if supplied
     if ~isempty(mask) && any(mask(:)==0)
         
-        %keep only tracks in mask
+        %do this for overall tracks
+        numTracks = length(tracks0);
+        keepTrack = ones(numTracks,1);
+        for iTrack = 1 : numTracks
+            xCoord = tracks0(iTrack).tracksCoordAmpCG(:,1:8:end);
+            yCoord = tracks0(iTrack).tracksCoordAmpCG(:,2:8:end);
+            meanPosX = round(nanmean(xCoord(:)));
+            meanPosY = round(nanmean(yCoord(:)));
+            keepTrack(iTrack) = mask(meanPosY,meanPosX);
+        end
+        tracks0 = tracks0(find(keepTrack));
+        
+        %do this for tracks used in conventional diffusion analysis
         numTracks = length(motionAnalysis.tracks);
         keepTrack = ones(numTracks,1);
         for iTrack = 1 : numTracks
@@ -73,6 +92,7 @@ for iC = curChannels
         indxKeep = find(keepTrack);
         motionAnalysis.tracks = motionAnalysis.tracks(indxKeep);
         motionAnalysis.diffAnalysisRes = motionAnalysis.diffAnalysisRes(indxKeep);
+        
         %redo conventional diffusion analysis summary
         if length(indxKeep) < numTracks
             minTrackLen = 5;
@@ -83,19 +103,56 @@ for iC = curChannels
             motionAnalysis.diffAnalysisRes(1).summary.motionChar = motionChar;
         end
         
+        %do this for tracks used in diffusion mode analysis
+        numTracks = length(diffModeAnalysis.tracks);
+        keepTrack = ones(numTracks,1);
+        for iTrack = 1 : numTracks
+            xCoord = diffModeAnalysis.tracks(iTrack).tracksCoordAmpCG(:,1:8:end);
+            yCoord = diffModeAnalysis.tracks(iTrack).tracksCoordAmpCG(:,2:8:end);
+            meanPosX = round(nanmean(xCoord(:)));
+            meanPosY = round(nanmean(yCoord(:)));
+            keepTrack(iTrack) = mask(meanPosY,meanPosX);
+        end
+        indxKeep = find(keepTrack);
+        diffModeAnalysis.tracks = diffModeAnalysis.tracks(indxKeep);
+        diffModeAnalysis.diffModeAnalysisRes = diffModeAnalysis.diffModeAnalysisRes(indxKeep);
+        
+        %redo diffusion mode analysis summary
+        if length(indxKeep) < numTracks
+            minTrackLen = 5;
+            probDim = 2;
+            extractType = 1;
+            [probMotionMode,modeMotionChar] = summarizeDiffModeRes(diffModeAnalysis.tracks,diffModeAnalysis.diffModeAnalysisRes,minTrackLen,probDim,extractType);
+            diffModeAnalysis.diffModeAnalysisRes(1).summary.probMotionMode = probMotionMode;
+            diffModeAnalysis.diffModeAnalysisRes(1).summary.modeMotionChar = modeMotionChar;
+        end
+        
     end
     
-    %diffusion analysis summary
+    %conventional diffusion analysis summary
     diffSummary = motionAnalysis.diffAnalysisRes(1).summary;
     
-    %diffusion analysis per track
+    %conventional diffusion analysis per track
     trajClass = vertcat(motionAnalysis.diffAnalysisRes.classification);
     trajClass = trajClass(:,2);
     trajDiffCoef = catStruct(1,'motionAnalysis.diffAnalysisRes.fullDim.normDiffCoef');
     trajConfRad = catStruct(1,'motionAnalysis.diffAnalysisRes.confRadInfo.confRadius');
     
+    %diffusion mode decomposition
+    %nothing to do here, just copy results directly into resSummary
+    
+    %diffusion mode analysis summary
+    diffModeSummary = diffModeAnalysis.diffModeAnalysisRes(1).summary;
+    
+    %diffusion mode analysis per track
+    trajMode = vertcat(diffModeAnalysis.diffModeAnalysisRes.diffMode);
+    trajDiffCoefMode = vertcat(diffModeAnalysis.diffModeAnalysisRes.diffCoef);
+    trajMSDF2F = vertcat(diffModeAnalysis.diffModeAnalysisRes.msdF2F);
+    trajMeanPosStd = vertcat(diffModeAnalysis.diffModeAnalysisRes.meanPosStd);
+    numModes = max(trajMode);
+   
     %amplitude matrix
-    tracksMat = convStruct2MatIgnoreMS(motionAnalysis.tracks);
+    tracksMat = convStruct2MatIgnoreMS(tracks0);
     ampMat = tracksMat(:,4:8:end);
     numFrames = size(ampMat,2);
     
@@ -119,6 +176,22 @@ for iC = curChannels
         diffCoefMeanPerClass(i) = mean(trajDiffCoef(indxClass));
     end
     ampMeanPerClass(5) = nanmean(ampMeanPerTraj(isnan(trajClass)));
+    
+    %average properties per diffusion mode
+    [ampMeanPerMode,diffCoefMeanPerMode,f2fMeanSqDispPerMode,meanPosStdPerMode] = deal(NaN(numModes+1,1));
+    for i = 1 : numModes
+        indxMode = find(trajMode == i);
+        ampMeanPerMode(i) = nanmean(ampMeanPerTraj(indxMode));
+        diffCoefMeanPerMode(i) = mean(trajDiffCoefMode(indxMode));
+        f2fMeanSqDispPerMode(i) = mean(trajMSDF2F(indxMode));
+        meanPosStdPerMode(i) = mean(trajMeanPosStd(indxMode));
+    end
+    %unclassified tracks
+    indxMode = find(isnan(trajMode));
+    ampMeanPerMode(end) = nanmean(ampMeanPerTraj(indxMode));
+    diffCoefMeanPerMode(end) = mean(trajDiffCoefMode(indxMode));
+    f2fMeanSqDispPerMode(end) = mean(trajMSDF2F(indxMode));
+    meanPosStdPerMode(end) = mean(trajMeanPosStd(indxMode));
     
     %amplitude statistics in first 20 frames
     ampVec = ampMat(:,1:min(20,numFrames));
@@ -165,8 +238,9 @@ for iC = curChannels
     ampStatsF01 = [mean(ampVec) ampMode1Mean ampMode1Std ampModeFrac numMode];
     
     %normalize mean amplitudes by first mode mean
-    %for amp per class and first 20 frames, use mode of first 20 frames
+    %for amp per class, amp per mode, and amp in first 20 frames, use mode of first 20 frames
     ampMeanPerClass = [ampMeanPerClass ampMeanPerClass/ampStatsF20(2)]; %#ok<AGROW>
+    ampMeanPerMode = [ampMeanPerMode ampMeanPerMode/ampStatsF20(2)]; %#ok<AGROW>
     ampStatsF20 = [ampStatsF20 ampStatsF20(1)/ampStatsF20(2)]; %#ok<AGROW>
     %for last 20 frames, use mode of last 20 frames
     ampStatsL20 = [ampStatsL20 ampStatsL20(1)/ampStatsL20(2)]; %#ok<AGROW>
@@ -174,28 +248,37 @@ for iC = curChannels
     ampStatsF01 = [ampStatsF01 ampStatsF01(1)/ampStatsF01(2)]; %#ok<AGROW>
     
     %merge and split statistics
-    statsMS = calcStatsMS_noMotionInfo(motionAnalysis.tracks,5,1,1);
-    tmp = calcMergeSplitTimes(motionAnalysis.tracks,5,[],1);
+    statsMS = calcStatsMS_noMotionInfo(tracks0,5,1,1);
+    tmp = calcMergeSplitTimes(tracks0,5,[],1);
     tmp = tmp.all;
     msTimeInfo = [mean(tmp.timeMerge2Split) mean(tmp.timeSplit2MergeSelf) mean(tmp.timeSplit2MergeOther) mean(tmp.timeMerge2End) mean(tmp.timeStart2Split)];
     %         msTimeInfo = tmp.timeMerge2Split;
     
-    %diffusion mode analysis results
-    %nothing to do here, just copy results directly into resSummary
-    
     %results for output
+    %conventional diffusion analysis
     resSummary(1,iC).diffSummary = diffSummary;
     resSummary(1,iC).diffCoefMeanPerClass = diffCoefMeanPerClass;
     resSummary(1,iC).confRadMeanPerClass = confRadMeanPerClass;
+    %diffusion mode analysis
+    resSummary(1,iC).diffModeDecomposition = diffModeAnalysis.diffModeDecomposition;
+    resSummary(1,iC).diffModeSummary = diffModeSummary;
+    resSummary(1,iC).diffCoefMeanPerMode = diffCoefMeanPerMode;
+    resSummary(1,iC).f2fMeanSqDispPerMode = f2fMeanSqDispPerMode;
+    resSummary(1,iC).meanPosStdPerMode = meanPosStdPerMode;
+    %amplitude per motion class or mode
     resSummary(1,iC).ampMeanPerClass = ampMeanPerClass;
+    resSummary(1,iC).ampMeanPerMode = ampMeanPerMode;
+    %overall amplitude decomposition
     resSummary(1,iC).ampStatsF20 = ampStatsF20;
     resSummary(1,iC).ampStatsL20 = ampStatsL20;
     resSummary(1,iC).ampStatsF01 = ampStatsF01;
+    %merging and splitting
     resSummary(1,iC).statsMS = statsMS;
     resSummary(1,iC).msTimeInfo = msTimeInfo;
+    %other
     resSummary(1,iC).cellArea = cellArea;
-%     resSummary(1,iC).diffModeAnalysis = diffModeAnalysis.diffModeAnalysisRes;
-    resSummary(1,iC).diffModeAnalysis = struct('modeParam',ones(1,4),'numMode',1,'modeParamControl',ones(1,4),'numModeControl',1);
+    resSummary(1,iC).tracks = tracks0;
+    %     resSummary(1,iC).diffModeAnalysis = struct('modeParam',ones(1,4),'numMode',1,'modeParamControl',ones(1,4),'numModeControl',1);
 
     %Progress Counter
     progressTextMultiple();
