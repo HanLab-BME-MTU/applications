@@ -10,17 +10,18 @@ load(matFile2, 'cellDataSet');
 % /work/bioinformatics/shared/dope/data/OMETIFF/fulltime_Gen2n3_12-Nov-2017/FullTimeSeries_Gen2n3_12Nov2017.mat'
 
 resizeOn = false;
-padImage = false;%true;
+padImage = true;
 cellSegmentation = true;
 newDim = [256 256];
 center_mass = true;
 variance_filter = false;
-cropImage = true;
+cropImage = false;
 cropSize = [150 150];
-stageShift = true; % stage drift correction
+stageShift = false; % stage drift correction
 
 % dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/var/217x217_test/';
-dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/t100/Seg/shifted/150x150/';
+dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/t100/Seg/256x256_split/';
+% dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/var/t100/Seg/256x256_split/';
 % dataRootDir = '/work/bioinformatics/shared/dope/torch/test/AAE/images/64x64/';
 dataRootDirVal = fullfile(dataRootDir,'test');
 dataRootDirTR = fullfile(dataRootDir,'train');
@@ -29,7 +30,7 @@ dataRootDirTR = fullfile(dataRootDir,'train');
 dataBlanksSeg = fullfile(dataRootDir,'blanks');
 
 randOrd = randperm(length(cellDataSet));
-percentVal = .1;
+percentVal = .33333;
 
 parfor iR = 1:length(cellDataSet)
     try
