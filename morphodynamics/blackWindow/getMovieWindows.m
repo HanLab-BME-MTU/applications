@@ -173,6 +173,10 @@ function movieData = getMovieWindows(movieData,paramsIn)
 % 4/2008
 % Re-written 7/2010
 %
+% Daehwan Kim (infphilo@gmail.com)
+% 11/2017
+% Parallelized 'ConstantWidth', 'ConstantNumber', and 'ProtrusionBased'.
+%
 %% ------ Parameters -------%%
 
 pString = 'windows_frame_'; %Prefix for naming window files.
@@ -399,166 +403,181 @@ if usesProt
     protrusion = protrusion.protrusion;
 end
 
-nBandMax  = 0;
-nSliceMax = 0;
-
 
 %% --------- Windowing -------- %%
 
+nSliceMax_array = zeros(nFrames, 1);
+nBandMax_array = zeros(nFrames, 1);
 
-startingPoint = p.StartPoint;
-
-for iFrame = 1:nFrames
-
+if strcmp(p.MethodName,'ConstantWidth') || strcmp(p.MethodName, 'ConstantNumber') || strcmp(p.MethodName, 'ProtrusionBased')
+    nWinPara = 0;
+    startingPoints = cell(1, nFrames);
+    startingPoints{1} = p.StartPoint;
+    startPts_array = cell(1, nFrames); % for 'ProtrusionBased'
+    % Find startingPoints
+    if strcmp(p.MethodName,'ConstantWidth') || strcmp(p.MethodName, 'ConstantNumber')
+        %Create windows based on size in frame 1
+        windows = getMaskWindows(maskArray(:,:,1),p.PerpSize,...
+            p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
+            'StartStripOnly',true,'DoChecks',false);
         
-    
-    switch p.MethodName
+        %Preserve this number throughout movik
+        nWinPara      = numel(windows);
+        startingPoint = windows{1}{1}{end}(:,1)';
 
-        case 'ConstantWidth'                
-            
-            if iFrame == 1
-                
-                windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                            p.ParaSize,'StartPoint',startingPoint,'StartContour',p.StartContour,'DoChecks',false);
-
-                startingPoint = windows{1}{1}{end}(:,1)';
-            else
-                if p.StartPointPropag
-                    startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
-                end
-                
-                windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                                    p.ParaSize,'StartPoint',startingPoint,'StartContour',p.StartContour,'DoChecks',false);
-            end
-            
-        case 'ConstantNumber'
-            
-            if iFrame == 1
-                %Create windows based on size in frame 1
-                windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                    p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,'DoChecks',false);
-                %Preserve this number throughout movie.
-                nWinPara      = numel(windows);                
-                startingPoint = windows{1}{1}{end}(:,1)';
-            else
-                
-                    
+        for iFrame = 2:nFrames
+            if p.StartPointPropag
                 startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
-                windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                                [],'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
-                                'NumParallel',nWinPara,'DoChecks',false);                
-                            
+                startingPoints{iFrame} = startingPoint;
+            else
+                startingPoints{iFrame} = p.StartPoint;
             end
-            
-        case 'ProtrusionBased'
-            
+        end
+    else
+        assert(strcmp(p.MethodName, 'ProtrusionBased'));
+        for iFrame = 1:nFrames
             if iFrame == 1 || mod(iFrame,p.ReInit) < 1
                 %(Re)Initialize the windows to this frame
                 
                 %Since we need to propagate the startpoints anyaways, we
-                %first get them from getMaskWindows.m                         
-                startPts = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                %first get them from getMaskWindows.m
+                startPts_array{iFrame} = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
                     p.ParaSize,'StartPoint',p.StartPoint,'DoChecks',false,...
                     'StartPointsOnly',true,'StartContour',1);
-              
+                
             else
-                %Find the closest point on the edge to these start points              
-                iBestProt = correspondingIndices(startPts',smoothedEdge{iFrame-1}');                    
+                %Find the closest point on the edge to these start points
+                iBestProt = correspondingIndices(startPts_array{iFrame-1}',smoothedEdge{iFrame-1}');
                 %Move the start points with the protrusion vectors for
                 %these edge points
-                startPts = startPts + protrusion{iFrame-1}(iBestProt,:);                                
+                startPts_array{iFrame} = startPts_array{iFrame-1} + protrusion{iFrame-1}(iBestProt,:);
             end
-            
-            %Get the new windows with these start points.                
-            windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                [],'StartPoint',startPts,'StartContour',1,'DoChecks',false);            
-
-        case 'PDEBased'
-            
-            if iFrame == 1 || mod(iFrame,p.ReInit) < 1
-                %(Re) Initialize the windows to this frame
-                windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                    p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
+        end
+    end
+    
+    windows_array = cell(1, nFrames);
+    parfor iFrame = 1:nFrames
+        disp (iFrame)
+        switch p.MethodName
+            case 'ConstantWidth'
+                windows_array{iFrame} = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                    p.ParaSize,'StartPoint',startingPoints{iFrame},'StartContour',p.StartContour,...
                     'DoChecks',false);
                 
-            else
-            
-                %Check if the mask object touches the edge of the image. If
-                %so, we need to close the boundary prior to finding a
-                %solution.
-                if any(any([maskArray([1 end],:) maskArray(:,[1 end])']))
-                    tmp = {smoothedEdge{iFrame-1}'};
-                    %Close the edge to get a full boundary
-                    tmp = closeContours(tmp,bwdist(~maskArray(:,:,iFrame-1)));
-                    smoothedEdge{iFrame-1} = tmp{1}';
-                    %We need to add elements to the protrusion vectors so
-                    %they agree with the new closed contour
-                    nPtsClosed = size(tmp{1},2);
-                    protrusion{iFrame-1} = vertcat(protrusion{iFrame-1},...
-                                   zeros(nPtsClosed-size(protrusion{iFrame-1},1),2));
+            case 'ConstantNumber'
+                if iFrame == 1
+                    windows_array{iFrame} = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                         p.ParaSize,'StartPoint',startingPoints{iFrame},'StartContour',p.StartContour,...
+                         'DoChecks',false);
+                else
+                    windows_array{iFrame} = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                        [],'StartPoint',startingPoints{iFrame},'StartContour',p.StartContour,...
+                        'NumParallel',nWinPara,'DoChecks',false);
                 end
                 
-                                
-                %Propagate these windows based on the PDE solution given
-                %the protrusion vectors as a boundary condition.                                
-                iStrtPt = 1;                                                                
-                while 1
-                    
-                    try
-                        %Get point indices, repeating one point to completely
-                        %close the curve.
-                        iBoundPts = [iStrtPt:size(smoothedEdge{iFrame-1},1) 1:iStrtPt];
-                        %Get the vector field
-                        [X,Y] = solvePDEVectorBoundary(...
-                            smoothedEdge{iFrame-1}(iBoundPts,:),...
-                            protrusion{iFrame-1}(iBoundPts,:),...
-                            p.PDEPar,imSize,p.MeshQuality,p.NonLinearSolver);                    
-                        
-                        break
-                        
-                    catch errMess
-                        
-                        if strcmp(errMess.identifier,'PDE:pdevoron:GeomError') && iStrtPt < 5                               
-                            
-                            %This is an ugly workaround for a bug in the PDE
-                            %toolbox which occasionally causes a geometry error
-                            %on valid geometry. Circularly permuting the
-                            %boundary and boundary condition (which is mathematically                            
-                            %equivalent) somehow avoids this error...
-                            iStrtPt = iStrtPt + 1;
-                            
-                        else
-                            rethrow(errMess)
-                        end
-                        
-                    end
-                end
-                %Displace the inner windows with this vector field
-                windows = displaceWindows(windows,X,Y,...
-                        smoothedEdge{iFrame-1}',smoothedEdge{iFrame}',...
-                        protrusion{iFrame-1}');                    
-
-            end            
-            
-
-
-        otherwise
-
-            error(['"' p.MethodName '" is not a recognized window propagation method!'])                                
-    end
-
-    nSliceMax = max([nSliceMax, numel(windows)]);    
-    nBandMax = max([nBandMax cellfun(@(x)(numel(x)),windows)]);
+            case 'ProtrusionBased'
+                %Get the new windows with these start points.
+                windows_array{iFrame} = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                    [],'StartPoint',startPts_array{iFrame},'StartContour',1,'DoChecks',false);
+        end
         
-    %Save the windows to the output directory!
-    save([p.OutputDirectory filesep pString '_frame_' num2str(iFrame,fString) '.mat'],'windows');
-
-    if ~p.BatchMode && mod(iFrame,5)
-        %Update the waitbar (occasionally to minimize slowdown)
-        waitbar(iFrame / nFrames,wtBar)
+        nSliceMax_array(iFrame) = numel(windows_array{iFrame});
+        nBandMax_array(iFrame) = max(cellfun(@(x)(numel(x)),windows_array{iFrame}));
+        
+        if ~p.BatchMode && mod(iFrame,5)
+            %Update the waitbar (occasionally to minimize slowdown)
+            % waitbar(iFrame / nFrames,wtBar)
+        end
     end
-   
+    
+    for iFrame = 1:nFrames
+        %Save the windows to the output directory!
+        windows = windows_array{iFrame};
+        save([p.OutputDirectory filesep pString '_frame_' num2str(iFrame,fString) '.mat'],'windows');
+    end
+elseif p.MethodName == 'PDEBased'
+    for iFrame = 1:nFrames
+        if iFrame == 1 || mod(iFrame,p.ReInit) < 1
+            %(Re) Initialize the windows to this frame
+            windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
+                'DoChecks',false);
+            
+        else            
+            %Check if the mask object touches the edge of the image. If
+            %so, we need to close the boundary prior to finding a
+            %solution.
+            if any(any([maskArray([1 end],:) maskArray(:,[1 end])']))
+                tmp = {smoothedEdge{iFrame-1}'};
+                %Close the edge to get a full boundary
+                tmp = closeContours(tmp,bwdist(~maskArray(:,:,iFrame-1)));
+                smoothedEdge{iFrame-1} = tmp{1}';
+                %We need to add elements to the protrusion vectors so
+                %they agree with the new closed contour
+                nPtsClosed = size(tmp{1},2);
+                protrusion{iFrame-1} = vertcat(protrusion{iFrame-1},...
+                    zeros(nPtsClosed-size(protrusion{iFrame-1},1),2));
+            end
+            
+            
+            %Propagate these windows based on the PDE solution given
+            %the protrusion vectors as a boundary condition.
+            iStrtPt = 1;
+            while 1
+                
+                try
+                    %Get point indices, repeating one point to completely
+                    %close the curve.
+                    iBoundPts = [iStrtPt:size(smoothedEdge{iFrame-1},1) 1:iStrtPt];
+                    %Get the vector field
+                    [X,Y] = solvePDEVectorBoundary(...
+                        smoothedEdge{iFrame-1}(iBoundPts,:),...
+                        protrusion{iFrame-1}(iBoundPts,:),...
+                        p.PDEPar,imSize,p.MeshQuality,p.NonLinearSolver);
+                    
+                    break
+                    
+                catch errMess
+                    
+                    if strcmp(errMess.identifier,'PDE:pdevoron:GeomError') && iStrtPt < 5
+                        
+                        %This is an ugly workaround for a bug in the PDE
+                        %toolbox which occasionally causes a geometry error
+                        %on valid geometry. Circularly permuting the
+                        %boundary and boundary condition (which is mathematically
+                        %equivalent) somehow avoids this error...
+                        iStrtPt = iStrtPt + 1;
+                        
+                    else
+                        rethrow(errMess)
+                    end
+                    
+                end
+            end
+            %Displace the inner windows with this vector field
+            windows = displaceWindows(windows,X,Y,...
+                smoothedEdge{iFrame-1}',smoothedEdge{iFrame}',...
+                protrusion{iFrame-1}');
+            
+        end
+        
+        nSliceMax_array(iFrame) = numel(windows);
+        nBandMax_array(iFrame) = max(cellfun(@(x)(numel(x)),windows));
+        
+        %Save the windows to the output directory!
+        save([p.OutputDirectory filesep pString '_frame_' num2str(iFrame,fString) '.mat'],'windows');
+        
+        if ~p.BatchMode && mod(iFrame,5)
+            %Update the waitbar (occasionally to minimize slowdown)
+            waitbar(iFrame / nFrames,wtBar)
+        end
+    end
+else
+    error(['"' p.MethodName '" is not a recognized window propagation method!'])
 end
+    
+nSliceMax = max(nSliceMax_array);
+nBandMax = max(nBandMax_array);
 
 
 %% ----------- Output ----------- %%
