@@ -4,6 +4,7 @@ function [] = faPackageRun(MDPath)
 MD=MovieData.load(MDPath);
 iPack=  MD.getPackageIndex('FocalAdhesionPackage');
 FAPackage = MD.getPackage(iPack);
+prevProcChanged = false;
 %% Traction reconstruction
 curProcess=cell(1,11);
 for ii=1:11

@@ -1,9 +1,34 @@
 classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
     methods (Access = public)
         function obj = InitialRiseTimeLagCalculationProcess(owner,varargin)
-            obj = obj@DataProcessingProcess(owner, InitialRiseTimeLagCalculationProcess.getName);
-            obj.funName_ = @calculateInitialRiseTimeLagFromTracks; % This should be variation from colocalizationAdhesionWithTFM
-            obj.funParams_ = InitialRiseTimeLagCalculationProcess.getDefaultParams(owner,varargin{1});
+%             obj = obj@DataProcessingProcess(owner, InitialRiseTimeLagCalculationProcess.getName);
+%             obj.funName_ = @calculateInitialRiseTimeLagFromTracks; % This should be variation from colocalizationAdhesionWithTFM
+%             obj.funParams_ = InitialRiseTimeLagCalculationProcess.getDefaultParams(owner,varargin{1});
+            if nargin == 0
+                super_args = {};
+            else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir', owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
+                super_args{1} = owner;
+                super_args{2} = InitialRiseTimeLagCalculationProcess.getName;
+                super_args{3} = @calculateInitialRiseTimeLagFromTracks;
+                
+                if isempty(funParams)
+                    funParams = InitialRiseTimeLagCalculationProcess.getDefaultParams(owner,outputDir);
+                end
+                
+                super_args{4} = funParams;
+            end
+            
+            obj = obj@DataProcessingProcess(super_args{:});
         end
         
         function output = loadChannelOutput(obj, iChan, varargin)
