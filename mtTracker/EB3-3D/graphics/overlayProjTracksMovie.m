@@ -28,7 +28,6 @@ function projImages=overlayProjTracksMovie(processSingleProj,varargin)
       return;
   end
       
-%% testing imwarp to crop the image
 XYProjTemplate=processSingleProj.outFilePaths_{1};
 ZYProjTemplate=processSingleProj.outFilePaths_{2};
 ZXProjTemplate=processSingleProj.outFilePaths_{3};
@@ -60,7 +59,7 @@ if(~isempty(p.process))
 end
 
 frameNb=projData.frameNb;
-parfor fIdx=1:frameNb
+for fIdx=1:frameNb
   XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
   ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
   ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));

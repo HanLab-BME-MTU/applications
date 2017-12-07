@@ -70,8 +70,7 @@ parfor fIdx=processFrames
     XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
     ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
     ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
-    
-    
+
     if(cumulative)
         detectionsAtFrame=detections;
         fColorIndx=p.colorIndx;
@@ -79,7 +78,7 @@ parfor fIdx=processFrames
         detectionsAtFrame=detections(fIdx);
         fColorIndx=colorIndx{fIdx};
     end
-    
+    % detectionsAtFrame.zCoord(:,1)=detectionsAtFrame.zCoord(:,1)/0.378;
     [tracksXY,tracksZY,tracksZX]=overlayProjDetections(XYProj,ZYProj,ZXProj, ...
         [projData.minXBorder projData.maxXBorder],[projData.minYBorder projData.maxYBorder],[projData.minZBorder projData.maxZBorder], ...
         detectionsAtFrame,colormap,fColorIndx,varargin{:});
