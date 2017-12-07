@@ -115,7 +115,8 @@ ip.addParameter('detectEmbedded',true);
     ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x));
 
 % OVERLAYS 
-ip.addParameter('TSOverlays',false); 
+ip.addParameter('TSOverlaysRidgeCleaning',false); 
+ip.addParameter('TSOverlaysReconstruct',false); 
 
 ip.parse(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,varargin{:});
 p = ip.Results; 
@@ -135,6 +136,7 @@ end
 
 TSFigs =[]; 
 TSFigsReconAll = []; 
+TSFigs2 = []; 
 %% Extract Information 
 % MASK OF EXTERNAL FILOPODIA RIDGE CANDIDATES
 filoTips = cleanedRidgesAll.*~veilStemMaskC;
@@ -152,6 +154,7 @@ filoExtAll = (filoTips|edgeMask);
 
 %% INTERNAL LINKING OPTION: NOTE option should only be turned on for actin stained images
 TSFigs1 = [];
+p.TSOverlays = p.TSOverlaysReconstruct;
 if ip.Results.detectEmbedded; 
     
     % Create the seed extra-veil ridge seed for the subsequent embedded reattachment steps
@@ -291,8 +294,8 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
             toExclude = (meanRespValuesCand<cutoff & sizeCand<10) | sizeCand<=2; %% need to change this based on the 'minCCRidgeOutsideVeil'
          
             %% TSFigs
-            if ip.Results.TSOverlays == true
-                TSFigs2(countFigs).h = setFigure(nx,ny,'on');
+            if ip.Results.TSOverlaysRidgeCleaning
+                TSFigs2(countFigs).h = setFigure(nx,ny);
                 TSFigs2(countFigs).name = 'Thresholding_Candidates_Based_On_Seed';
                 TSFigs2(countFigs).group = 'Reconstruct_FiloBranch';
                 % % %
@@ -310,8 +313,8 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
                 countFigs = countFigs +1;
             end
           
-            if ip.Results.TSOverlays == true
-                TSFigs2(countFigs).h  = setAxis('on');
+            if ip.Results.TSOverlaysRidgeCleaning
+                TSFigs2(countFigs).h  = setAxis;
                 TSFigs2(countFigs).name = 'Thresholding_Candidates_Based_On_Seed_Hist';
                 TSFigs2(countFigs).group = 'Reconstruct_FiloBranch';
                 
@@ -344,7 +347,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
                 axis([0,max(totalPop),0,max(sizeCand)]);
                 countFigs = countFigs +1;
                 
-            end % if TSOverlays
+            end % if TSOverlaysRidgeCleaning
         else 
              toExclude = sizeCand<=2;% need to change this based on the 'minCCRidgeOutsideVeil'
         end % if ip.Results.filterBasedOnVeilStemAttachedDistr
@@ -376,10 +379,6 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
         
         EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img),0,1),CCCandidates.PixelIdxList,'uniformoutput',0);
  
-        % don't loose this information though
-        %[ candidateMask1,linkMask,EPCandidateSort,labelMatCanFilo,madeLinks] = connectLinearStructures(EPCandidateSort,maxTh,candidateMask1,labelMatCanFilo,[0.95,0.95,0.95],5);
-        
-        % [candidateMask1,linkMask,EPCandidateSort, labelMatCanFilo, ~,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p);
         [candidateMask1,linkMask,EPCandidateSortLinked, pixIdxPostConnectLinked,status,TSFigs3] = gcaConnectLinearRidgesMakeGeneric(EPCandidateSort,labelMatCanFilo,img,p);
         
         if status == 0 % no links
@@ -412,6 +411,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
    
     %% Perform the connections.
     before = vertcat(pixIdxPostConnect{:});
+    
     [outputMasks,filoInfo,status,pixIdxPostConnect,EPCandidateSort, TSFigs4] = gcaConnectFiloBranch(xySeed,EPCandidateSort,pixIdxPostConnect, labelMatSeedFilo,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC,p);
     after = vertcat(pixIdxPostConnect{:}); 
   
@@ -432,13 +432,14 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
 end % while numViaCand
 
 %%
-if ip.Results.TSOverlays == true
-    if exist('TSFigs2') ==0 
-        TSFigs2 = []; 
-    end 
+if ip.Results.TSOverlaysReconstruct
+    
     TSFigsReconAll = horzcat(TSFigsRecon{:});
-    TSFigs = [TSFigs1  TSFigs2 TSFigs3];
+    TSFigs = [TSFigs1 TSFigs3]; % these are the figure from the embedded 
+    % and the linear connections. 
 end
-
+if ip.Results.TSOverlaysRidgeCleaning
+    TSFigs = [TSFigs TSFigs2]; % TSFigs2 are from the ridge cleaning
+end
 end
 

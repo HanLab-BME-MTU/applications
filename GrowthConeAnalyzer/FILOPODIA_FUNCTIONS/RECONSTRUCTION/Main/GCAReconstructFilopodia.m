@@ -162,7 +162,8 @@ ip.addParameter('maxRadiusLinkEmbedded',10);
 ip.addParameter('geoThreshEmbedded',0.5,@(x) isscalar(x)); 
 ip.addParameter('curvBreakCandEmbed',0.05,@(x) isscalar(x));
 % TROUBLE SHOOT FLAG 
-ip.addParameter('TSOverlays',true);
+ip.addParameter('TSOverlaysReconstruct',false);
+ip.addParameter('TSOverlaysRidgeCleaning',false); 
 
 % FOR FILOPODIA ORIENTATION CALC (Growth Cones Only as they have an axis)
 ip.addParameter('rotateVeilStemNormals',true); 
@@ -176,6 +177,7 @@ dims = size(img);
 [ny,nx] = size(img);
 normalsC = protrusionC.normal;
 TSFigsFinal = [];
+TSFigs1 = []; 
 errorHist = 0;
 %% Reorient the Veil/Stem Normals Toward Outgrowth 
 %Get the outline of the veil/stem mask. 
@@ -211,37 +213,37 @@ if ip.Results.rotateVeilStemNormals
     
     [normalsCRotated,smoothedEdgeC,normalsC ]= gcaReorientVeilStemNormalsTowardsOutgrowth(leadProtrusionPtC,LPIndices,normalsC,currOutline,dims,idxEnter);
     %% TroubleShoot Overlay : Vector Rotation
-    if ip.Results.TSOverlays
-        TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'on');
-        TSFigs(countFigs).name = 'Normals_Rotated';
-        TSFigs(countFigs).group = [];
-        imshow(-img,[]);
-        hold on
-        % sanity check
-        side1 = find(normalsCRotated(:,3) == 1);
-        side2 = find(normalsCRotated(:,3) == 2) ;
-        quiver(smoothedEdgeC(side1,1),smoothedEdgeC(side1,2),normalsCRotated(side1,1),...
-            normalsCRotated(side1,2),'b');
-        quiver(smoothedEdgeC(side2,1),smoothedEdgeC(side2,2),normalsCRotated(side2,1),...
-            normalsCRotated(side2,2),'r');
-        quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g')
-        scatter(leadProtrusionPtC(:,1),leadProtrusionPtC(:,2),'k','filled');
-        maskPath = false(dims);
-        maskPath(LPIndices) = true;
-        spy(maskPath,'k');
-        
-        text(5,10,'"Lead" Protrusion Point From Skeleton ', 'color','k','FontSize',10);
-        text(5,20,'Veil/Stem Edge Normals', 'color','g','FontSize',10);
-        text(5,30,'Direction Veil/Stem Edge Toward Lead Protrusion Side 1 (0 Degrees)','color','b','FontSize',10);
-        text(5,40,'Direction Veil/Stem Edge Toward Lead Protrusion Side 2 (0 Degrees)', 'color', 'r','FontSize',10);
-        
-        % text(5,40,'Direction Veil/Stem Edge Normal','color','g');
-        countFigs = countFigs+1;
-    end % if TSOverlays
-    protrusionC.normal = normalsC; % note sometimes have to remove some of the boundary pixels from the original
-    protrusionC.smoothedEdge = smoothedEdgeC;
-    protrusionC.normalsRotated = normalsCRotated;
-end % if rotateVeilStemNormals
+%     if ip.Results.TSOverlays
+%         TSFigs(countFigs).h  =  setFigure(dims(2),dims(1),'on');
+%         TSFigs(countFigs).name = 'Normals_Rotated';
+%         TSFigs(countFigs).group = [];
+%         imshow(-img,[]);
+%         hold on
+%         % sanity check
+%         side1 = find(normalsCRotated(:,3) == 1);
+%         side2 = find(normalsCRotated(:,3) == 2) ;
+%         quiver(smoothedEdgeC(side1,1),smoothedEdgeC(side1,2),normalsCRotated(side1,1),...
+%             normalsCRotated(side1,2),'b');
+%         quiver(smoothedEdgeC(side2,1),smoothedEdgeC(side2,2),normalsCRotated(side2,1),...
+%             normalsCRotated(side2,2),'r');
+%         quiver(smoothedEdgeC(:,1),smoothedEdgeC(:,2),normalsC(:,1),normalsC(:,2),'g')
+%         scatter(leadProtrusionPtC(:,1),leadProtrusionPtC(:,2),'k','filled');
+%         maskPath = false(dims);
+%         maskPath(LPIndices) = true;
+%         spy(maskPath,'k');
+%         
+%         text(5,10,'"Lead" Protrusion Point From Skeleton ', 'color','k','FontSize',10);
+%         text(5,20,'Veil/Stem Edge Normals', 'color','g','FontSize',10);
+%         text(5,30,'Direction Veil/Stem Edge Toward Lead Protrusion Side 1 (0 Degrees)','color','b','FontSize',10);
+%         text(5,40,'Direction Veil/Stem Edge Toward Lead Protrusion Side 2 (0 Degrees)', 'color', 'r','FontSize',10);
+%         
+%         % text(5,40,'Direction Veil/Stem Edge Normal','color','g');
+%         countFigs = countFigs+1;
+%     end % if TSOverlays
+%     protrusionC.normal = normalsC; % note sometimes have to remove some of the boundary pixels from the original
+%     protrusionC.smoothedEdge = smoothedEdgeC;
+%     protrusionC.normalsRotated = normalsCRotated;
+% end % if rotateVeilStemNormals
 %% STEP I: Detect Thin Ridge Structures 
     
 [maxRes, maxTh ,maxNMS ,scaleMap]= gcaMultiscaleSteerableDetector(img,ip.Results.FilterOrderFilo,ip.Results.FiloScale); 
@@ -294,9 +296,9 @@ filoBranchC.filterInfo.ThreshNMS = canRidges;
 
 canRidges = bwmorph(canRidges,'thin',inf );
 %% OPTIONAL TS PLOT : Show Histogram to see if cut-off reasonable given the distribution
-if ip.Results.TSOverlays % plot the histogram with cut-off overlay so can see what losing
+if ip.Results.TSOverlaysRidgeCleaning % plot the histogram with cut-off overlay so can see what losing
     
-    TSFigs(countFigs).h = setAxis('on');
+    TSFigs(countFigs).h = setAxis;
     
     TSFigs(countFigs).name =  'Thin_Ridge_NMS_ResponseHist';
     TSFigs(countFigs).group = 'Cleaning_Small_Ridges' ;
@@ -341,9 +343,9 @@ CCRidges.PixelIdxList(csize<=ip.Results.minCCRidgeOutsideVeil) = []; % was 3 pix
 % MASK OF CLEANED RIDGES MINUS ALL JUNCTIONS
 cleanedRidgesAll = labelmatrix(CCRidges)>0;
 %% Optional TS Figure : Ridge Signal Cleaning Steps
-if ip.Results.TSOverlays == true %
+if ip.Results.TSOverlaysRidgeCleaning %
     
-    TSFigs(countFigs).h = setFigure(nx,ny,'on');
+    TSFigs(countFigs).h = setFigure(nx,ny);
     
     TSFigs(countFigs).name =  'Thin_Ridge_NMS_Cleaning';
     TSFigs(countFigs).group = 'Cleaning_Small_Ridges';
@@ -359,7 +361,7 @@ if ip.Results.TSOverlays == true %
 end
 %% Run Main Function that performs the reconstructions
 [reconstruct,filoInfo,TSFigs2,TSFigsRecon] = gcaAttachFilopodiaStructuresMain(img,cleanedRidgesAll,veilStemMaskC,filoBranchC,protrusionC,p);
-if ip.Results.TSOverlays
+if (ip.Results.TSOverlaysReconstruct || ip.Results.TSOverlaysRidgeCleaning)
     TSFigsFinal = [TSFigs  TSFigs2 ];
 end
 filoBranch.filoInfo = filoInfo;

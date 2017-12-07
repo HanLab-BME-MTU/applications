@@ -41,8 +41,12 @@ saveResults.filename = 'trackResults.mat'; %name of file where input and output 
 ntime = params.nTime-2;
 % movieInfoPSD = nan(1,ntime);
 
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
 fprintf('preparing for tracking\n');  
-for t = 1 : ntime    
+for t = params.sTime : ntime    
     PPBacktrackFname = [dirs.detectPPData sprintf('%03d',t) '_backtrack.mat'];
     load(PPBacktrackFname); % detections,combinedImage,pstruct,filterMask
     

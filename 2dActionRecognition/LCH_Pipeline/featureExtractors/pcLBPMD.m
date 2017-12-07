@@ -1,5 +1,5 @@
 %% pcLBPMD - calculates LBP for single cell trajectories
-% calculate multi-scale LBP for image, then crops specific cell and extract
+% calculate multi-scale LBP for entire frames, then crops specific cell and extract
 % corresponding LBP values for every cell's trajectory
 
 function [] = pcLBPMD(MD,params,dirs)
@@ -30,8 +30,12 @@ if exist(lbpFname,'file') && ~params.always
     return;
 end
 
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
 %% LBP for frames - do not execute even if "always"!
-for t = 1 : params.nTime - params.frameJump
+for t = params.sTime : params.nTime - params.frameJump
     lbpTFname = [dirs.lbp sprintf('%03d',t) '_lbp.mat'];
     
     % Just to correct a bug
@@ -42,7 +46,7 @@ for t = 1 : params.nTime - params.frameJump
     if exist(lbpTFname,'file')
         if params.deepDebug
             fprintf(sprintf('LBP frame %d: continue\n',t));
-        end;
+        end
         continue;
     end
     
@@ -58,7 +62,7 @@ for t = 1 : params.nTime - params.frameJump
         IlbpTmp = lbp(curI,1,8,lbpMapping,'');
         Ilbp = nan(size(curI));
         Ilbp(2:end-1,2:end-1) = IlbpTmp;
-        pyramidLBP{iScale} = Ilbp;
+        pyramidLBP{iScale} = Ilbp;        
     end
     
     save(lbpTFname,'pyramidLBP');

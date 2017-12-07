@@ -339,7 +339,10 @@ classdef OrientationSpaceResponse < handle
             end
             if(K_new == obj.filter.K)
                 % copy the response object
-                Response = OrientationSpaceResponse(obj.filter,obj.angularResponse);
+%                 Response = OrientationSpaceResponse(obj.filter,obj.angularResponse);
+                % For consistency at the moment, return only the real
+                % (ridge) component 2017/11/28
+                Response = OrientationSpaceResponse(obj.filter,real(obj.angularResponse));
                 return;
             end
 %             n_new = 2*obj.filter.sampleFactor*K_new+1;
@@ -597,7 +600,8 @@ classdef OrientationSpaceResponse < handle
         end
         [] = animateAngularOrder(R, r, c, Rd);
         [ localMaxima, localMaximaValue, K ] = traceLocalMaxima( obj, r, c, K, polish );
-        [ localMaxima, localMaximaValue, K ] = traceLocalMaximaHouseholder( obj, r, c, K )
+        [ localMaxima, localMaximaValue, K ] = traceLocalMaximaHouseholder( obj, r, c, K );
+        [ maxima ] = traceAllLocalMaxima( obj, K, maxima_org);
     end
     
 end

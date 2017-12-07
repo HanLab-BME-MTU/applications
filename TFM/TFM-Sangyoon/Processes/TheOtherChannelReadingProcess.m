@@ -1,9 +1,35 @@
 classdef TheOtherChannelReadingProcess < DataProcessingProcess
     methods (Access = public)
         function obj = TheOtherChannelReadingProcess(owner,varargin)
-            obj = obj@DataProcessingProcess(owner, TheOtherChannelReadingProcess.getName);
-            obj.funName_ = @readTheOtherChannelFromTracks;
-            obj.funParams_ = TheOtherChannelReadingProcess.getDefaultParams(owner,varargin{1});
+%             obj = obj@DataProcessingProcess(owner, TheOtherChannelReadingProcess.getName);
+%             obj.funName_ = @readTheOtherChannelFromTracks;
+%             obj.funParams_ = TheOtherChannelReadingProcess.getDefaultParams(owner,varargin{1});
+            
+            if nargin == 0
+                super_args = {};
+            else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir', owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
+                super_args{1} = owner;
+                super_args{2} = TheOtherChannelReadingProcess.getName;
+                super_args{3} = @readTheOtherChannelFromTracks;
+                
+                if isempty(funParams)
+                    funParams = TheOtherChannelReadingProcess.getDefaultParams(owner,outputDir);
+                end
+                
+                super_args{4} = funParams;
+            end
+            
+            obj = obj@DataProcessingProcess(super_args{:});
         end
         
         function output = loadChannelOutput(obj, iChan, varargin)

@@ -116,7 +116,7 @@ for iCML = 1:nCML
         nMD = length(CMLs(iCML).movieLists_(iML).movies_);
         mlIndex = [mlIndex; iML*ones(nMD,1)]; %#ok<AGROW>
     end
-    for iChannel = analysisPara.channels;
+    for iChannel = analysisPara.channels
         summary{iCML,iChannel}.time = time{iCML};
         summary{iCML,iChannel}.name = analysisPara.channelNames{iChannel};
         if(~isempty(CMLs(iCML).name_))

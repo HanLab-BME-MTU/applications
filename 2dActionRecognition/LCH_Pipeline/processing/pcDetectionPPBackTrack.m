@@ -26,7 +26,11 @@ diffDetectionBackgroundScoreTH = 0.1-0.05; % based on the data from Analysis/met
 detectionPPVicinityPrctile = params.detectionPPVicinityPrctile;
 detectionPPVicinityPacthes = params.detectionPPVicinityPatch;
    
-for t = params.nTime-1 : -1 : 1
+if ~isfield(params,'sTime')
+    params.sTime = 1;
+end
+
+for t = params.nTime-1 : -1 : params.sTime
     PPBacktrackFname0 = [dirs.detectPPData sprintf('%03d',t) '_backtrack.mat'];
     PPBacktrackisFname = [dirs.detectPPVis sprintf('%03d',t) '_backtrack.eps'];
     

@@ -228,14 +228,14 @@ commonInfo.outputDirFigA2 = outputDirFigA2;
 %% Plot, Fit Smoothing Spline and Calculate "Moving Average"
 %Initialize
 defCond = { ...
-    'Immobile' ...      % 1
-    , 'Confined' ...      % 2
-    , 'Free' ...          % 3
-    , 'Directed' ...      % 4
-    , 'Undetermined' ...  % 5
-    , 'Determined' ...    % 6
-    , 'Total' ...         % 7
-    , 'Sub-diffusive' ... % 8
+    'Immobile', ...      % 1
+    'Confined', ...      % 2
+    'Free', ...          % 3
+    'Directed', ...      % 4
+    'Undetermined', ...  % 5
+    'Determined', ...    % 6
+    'Total', ...         % 7
+    'Sub-diffusive' ...  % 8
     };
 ampLabels = { ...
     'Fluorescence Amplitude Overall (a.u.)', ... % 1
@@ -244,7 +244,8 @@ ampLabels = { ...
     'Number of Modes', ... % 7
     'Normalized Fluorescence Amplitude Overall (monomer units)' ... % 8
     };
-modeID = {'1', '2', '3', '4', '5'};
+modeID = {'Mode 1', 'Mode 2', 'Mode 3', 'Mode 4', 'Mode 5', 'Mode 6', ...
+    'Mode 7', 'Mode 8', 'Mode 9', 'Mode 10', 'Undetermined', 'Determined', 'Total' };
 
 commonInfo.defCond = defCond;
 commonInfo.ampLabels = ampLabels;
@@ -254,9 +255,10 @@ fprintf('Plotting figures: scatter plots\n');
 
 %Each line calls the nested function plotData
 %the first input subData must be cellarray of arrays
-%So using cell fun convert data which is a cellarray of structure of arrays
+%So using cell fun converts data which is a cellarray of structure of arrays
 %into a cellarray of arrays
 %Other inputs are explained in plotData
+
 calcFigure({data.numAbsClass}', 'Absolute Number of Class Types', ...
     defCond, 'Number of tracks (molecules)');
 calcFigure({data.numNorm0Class}', 'Normalized Number of Class Types', ...
@@ -272,15 +274,35 @@ calcFigure({data.probNorm0Class}', 'Normalized Probability of Class Types', ...
     defCond([1:4 6 8]), ...
     'Probability');
 
+calcFigure({data.numAbsMode}', 'Absolute Number of Diffusion Modes', ...
+    modeID, 'Number of tracks (molecules)');
+calcFigure({data.densityAbsMode}', 'Absolute Density of Diffusion Modes', ...
+    modeID, 'Density of tracks (molecules/pixel^2)');
+calcFigure({data.probAbsMode}', 'Absolute Probability of Diffusion Modes', ...
+    modeID([1:10 12]), 'Probability');
+
 calcFigure({data.diffCoefClass}', 'Diffusion Coefficient', ...
     defCond(1:4), 'Diffusion coefficient (pixels^2/frame)'); %no 5th
 calcFigure({data.confRadClass}', 'Confinement Radius', ...
     defCond(1:2), 'Confinement radius (pixels)');%no 3 4 5th column
 
+calcFigure({data.diffCoefMode}', 'Diffusion Coefficient', ...
+    modeID(1:11), 'Diffusion coefficient (pixels^2/frame)');
+calcFigure({data.f2fMeanSqDispMode}', 'Frame-to-Frame Mean Square Displacement', ...
+    modeID(1:11), 'MSD (pixels^2)');
+calcFigure({data.meanPosStdMode}', 'Mean Positional Standard Deviation', ...
+    modeID(1:11), 'std (pixels)');
+
 calcFigure({data.ampClass}', 'Fluorescence Amplitude', ...
     defCond(1:5), 'Intensity (arbitrary units)');
 calcFigure({data.ampNormClass}', 'Normalized Fluorescence Amplitude', ...
     defCond(1:5), 'Normalized intensity (monomer units)');
+
+calcFigure({data.ampMode}', 'Fluorescence Amplitude', ...
+    modeID(1:11), 'Intensity (arbitrary units)');
+calcFigure({data.ampNormMode}', 'Normalized Fluorescence Amplitude', ...
+    modeID(1:11), 'Normalized intensity (monomer units)');
+
 calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ampLabels, '');
 calcFigure({data.ampStatsL20}', 'Last 20 Frames - ' , ampLabels, '');
 calcFigure({data.ampStatsF01}', 'First Frame Detection - ', ampLabels, '');
@@ -290,10 +312,10 @@ calcFigure({data.msTimeInfo}', 'M & S Time Information', ...
     {'merge-to-split time', 'split-to-merge (self) time',...
     'split-to-merge (other) time','merge-to-end time','start-to-split time'}, 'Time (frames)');
 
-calcFigure({data.numDiffMode}', 'Modes: Number of diffusion modes - ', {'Data','Negative control'}, 'Number of modes');
-calcFigure({data.modeDiffCoef}', 'Modes: Diffusion Coefficient Mode', modeID, ...
+calcFigure({data.numDiffMode}', 'Diffusion Mode Decomposition: Number of diffusion modes - ', {'Data','Negative control'}, 'Number of modes');
+calcFigure({data.modeDiffCoef}', 'Diffusion Mode Decomposition: Diffusion Coefficient for ', modeID(1:10), ...
     'Diffusion coefficient (pixels^2/frame)');
-calcFigure({data.modeFraction}', 'Modes: Fraction Mode', modeID, 'Fraction');
+calcFigure({data.modeFraction}', 'Diffusion Mode Decomposition: Fraction of', modeID(1:10), 'Fraction');
 
 
 %Do only if input specifies that this plot be shown. Will cause error if
