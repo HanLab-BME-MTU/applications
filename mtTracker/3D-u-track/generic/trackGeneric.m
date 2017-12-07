@@ -57,6 +57,7 @@ else
     funParams.alpha=0.05;
     funParams.filterSigma=[1.8; .75];
     funParams.WindowSize={[]};
+    funParams.ClearMaskBorder=false;
     funParams.algorithmType= {'pointSourceFit'}
     funParams.ConfRadius={[]};       
     processDetect.setPara(funParams);
@@ -82,7 +83,7 @@ else
     processTrack=TrackingProcess(MD, [MD.outputDirectory_],UTrackPackage3D.getDefaultTrackingParams(MD,[MD.outputDirectory_ ]));
     MD.addProcess(processTrack);    
     funParams = processTrack.funParams_;
-    [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=kinTrackingParam();
+    [gapCloseParam,costMatrices,kalmanFunctions,probDim,verbose]=genericTrackingParam();
     funParams.gapCloseParam=gapCloseParam;
     funParams.costMatrices=costMatrices;
     funParams.kalmanFunctions=kalmanFunctions;
@@ -165,34 +166,50 @@ MD.getPackage(packPIDTMP).setProcess(lpid,process);
 
 %% Isolating the first 3 tracks that do not have a full lifetime
 if(nargout>0)
-    lft=[tracks.lifetime];
-    KTIindices=1:3;
     processDynROIPack=p.dynROIView;
+
+
     if(isempty(processDynROIPack))
+        KTIindices=1;
         processDynROICells=cell(1,length(KTIindices));
         for KTIdx=1:length(KTIindices)
             tr=tracks(KTIindices(KTIdx));
+            tr=tr.copy();
+            tr.x(:)=tr.x(1);
+            tr.y(:)=tr.y(1);
+            tr.z(:)=tr.z(1);
+            ref=FrameOfRef().setOriginFromTrack(tr).genCanonicalBase();
             processProj=ExternalProcess(MD,'projectDynROI');
             processRendererROI=ExternalProcess(MD,'projectDynROI');
-            projectDynROI(MD,tr,[], ...
-                'name',['SingleTrack-' num2str(KTIindices(KTIdx)) p.name],'renderedChannel',1,'channelRender','grayRed', 'fringeWidth',20,'insetFringeWidth',30, ...
+            projectDynROI(MD,[],ref.applyBase(tr,''),'FoF',ref, ...
+                'name',['SingleTrack-' num2str(KTIindices(KTIdx)) p.name],'renderedChannel',1,'channelRender','grayRed', 'fringeWidth',30,'insetFringeWidth',30, ...
                 'processSingleProj',processProj,'processRenderer',processRendererROI, 'intMinPrctil',[1],'intMaxPrctil',[100]);
             processDynROICells{KTIdx}=processRendererROI;
         end
         processDynROIPack=GenericPackage(processDynROICells,[],'name_','dynROIView');
         MD.addPackage(processDynROIPack);
     end
-
-    processOverlayCells=cell(1,length(KTIindices));
-    for KTIdx=1:length(KTIindices)
+    % Bad Bad Bad
+    tr=tracks(1);
+    tr=tr.copy();
+    tr.x(:)=tr.x(1);
+    tr.y(:)=tr.y(1);
+    tr.z(:)=tr.z(1);
+    ref=FrameOfRef().setOriginFromTrack(tr).genCanonicalBase();
+    processOverlayCells=cell(1,length(processDynROIPack.processes_));
+    for KTIdx=1:length(processDynROIPack.processes_)
         processRendererROI=processDynROIPack.getProcess(KTIdx);
         process=ExternalProcess(MD,'overlayProjTracksMovie');
         processAllDetectOverlay=ExternalProcess(MD,'overlayProjDetectionMovie');
-        overlayProjDetectionMovie(processRendererROI,'detections', oDetections , ... 
-            'colorIndx',colorIndx, ...
-            'colormap',myColormap,'name',['localDets' p.name],'process',processAllDetectOverlay);
-        overlayProjTracksMovie(processAllDetectOverlay,'tracks', tracks , ... 
-             'colorIndx',ceil(255*mat2gray([tracks.lifetime]',[1 MD.nFrames_]))+1,'dragonTail',10,'colormap',myColormap,'name','localTrack','process',process);
+        refDet=ref.applyBase(oDetections,'');
+        %det=oDetections;
+        colorIndx=arrayfun(@(d) ceil(255*mat2gray(d.yCoord(:,1)))+1,refDet,'unif',0);
+        overlayProjDetectionMovie(processRendererROI,'detections', refDet , ... 
+            'colorIndx',colorIndx, 'colormap',myColormap, ... 
+            'name',['localDets' p.name],'process',processAllDetectOverlay,'radius',0.5);
+        refTracks=ref.applyBase(tracks,'');
+        overlayProjTracksMovie(processAllDetectOverlay,'tracks', refTracks , ... 
+             'colorIndx',ceil(255*mat2gray([tracks.lifetime]',[1 MD.nFrames_]))+1,'dragonTail',20,'colormap',myColormap,'name','localTrack','process',process);
         processOverlayCells{KTIdx}=process;
     end
 end

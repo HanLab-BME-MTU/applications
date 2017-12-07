@@ -41,10 +41,11 @@ switch p.distType
         projPara=dot(trackVector,normVecRep);
         inBound=(projPara>0)&(projPara<normManifVector);
         mappedPoint=inBound;
+        dist=zeros(size(mappedPoint));
         if(any(inBound))
-            inBoundIdx=find(inBound);
-            dist=sum((trackVector(:,inBound)- normVecRep(:,inBound).*repmat(projPara(inBound),3,1)).^2,1).^0.5;
-            mappedPoint(inBoundIdx(dist>cutoff))=0;
+            dist(inBound)=sum((trackVector(:,inBound)- normVecRep(:,inBound).*repmat(projPara(inBound),3,1)).^2,1).^0.5;
+            mappedPoint(dist>cutoff)=0;
+            dist(dist>cutoff)=0;
         end
     case 'vertexDistOtsu'
         pointDist=points-repmat(manifold(:,1),1,size(points,2));

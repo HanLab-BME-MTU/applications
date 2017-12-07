@@ -1,4 +1,4 @@
-function [lm] = locmax3d(img, windowRadius)
+function [lm] = locmaxnd(img, windowRadius)
 
     ip = inputParser;
     ip.CaseSensitive = false;
