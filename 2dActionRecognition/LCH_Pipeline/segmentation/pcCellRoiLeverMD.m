@@ -158,6 +158,8 @@ for icell = 1 : nCells
     %     clear vwriter;
     save(roiLeverFname,'curCellRoi');
     
+    % Just to test the Windows git crap..
+    
 end
 end
 
