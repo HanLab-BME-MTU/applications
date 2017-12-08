@@ -59,7 +59,9 @@ for icell = 1 : nCells
             
             curI = I(bby0:bby1,bbx0:bbx1);              
             
-            MASK = ROI_LEVER(bby0:bby1,bbx0:bbx1);
+            MASK = false(size(ROI_LEVER));
+            MASK(bby0:bby1,bbx0:bbx1) = ROI_LEVER(bby0:bby1,bbx0:bbx1);
+            %             MASK = ROI_LEVER(bby0:bby1,bbx0:bbx1);
             
 %             combinedImageBlur = imgaussfilt(combinedImage,2);
 %             combinedImageBlurSized = imresize(combinedImageBlur,size(scores));

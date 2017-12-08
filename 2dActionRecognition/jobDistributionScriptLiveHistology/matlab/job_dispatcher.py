@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 #Name: job_dispatcher.py
 #Author: Assaf Zaritsky (originally by Shenghua Wan)
-#Date: 2015-04-23
+#Date: 2015-04-23 (updated Dec. 2017)
 #Description:
 #	This script automatically submits jobs to the queue
 #   NOTE: this file is supported in python 2.7
@@ -30,15 +30,15 @@ def sort_nicely(l):
 
 #clean up previous log files, use CAUTION
 print "Cleaning log folder ..."
-filelist = [ f for f in os.listdir("./log")  ]
+filelist = [ f for f in os.listdir("/home2/azaritsky/logsBioHPC/LCH/log")  ]
 for f in filelist:
-    os.remove("./log/" + f)
+    os.remove("/home2/azaritsky/logsBioHPC/LCH/log/" + f)
 
 paramsList = []
 
 # parse parameters file
 print "Parsing parameters file ./params.txt ..."
-with open("./params.txt", 'r') as f:
+with open("./params.txt", 'r') as f: # TODO: eventually move params.txt to a local location, so not updated in the repo..
 	for line in f:
          line = line.rstrip()
          if not line.startswith('#') and len(line) > 0:
@@ -110,7 +110,7 @@ while job_id < total_num_scripts:
 		cmd = 'sbatch /home2/azaritsky/logsBioHPC/LCH/scripts/' + script_name
 		os.system(cmd) #dispatch a job
 		print cmd
-		cmd = 'echo ' + script_name +  ' >> ./log/submission.log'
+		cmd = 'echo ' + script_name +  ' >> /home2/azaritsky/logsBioHPC/LCH/log/submission.log'
 		os.system(cmd) #keep a log for restarting from interruption.
 
 	if tmp_job_id >= total_num_scripts: #come to the end

@@ -36,6 +36,10 @@ pcDetectionPPBackTrack(MD,params,dirs);
 % params.always = true;
 doneTracking = pcTracking(params,dirs);
 
+params.always = true;
+pcSetSingleCellTrajectories(params,dirs);
+params.always = false;
+
 %% movies
 % pcDetectionMovie(MD, params, dirs);
 
