@@ -14,7 +14,6 @@ ip.parse(varargin{:});
   maxZBorder=ZLimit(2);
 
   %% Print tracks on the projections
-
   if(isempty(colorIndx))
     colorIndx=arrayfun(@(d) ones(1,length(d.zCoord(:,1))),detections,'unif',0);
   end
@@ -32,9 +31,9 @@ ip.parse(varargin{:});
       for dIdx=1:length(detections)
           d=detections(dIdx);
           if(~isempty(d.xCoord))
-              keepIndx{dIdx}=(d.zCoord(:,1)>minZBorder)&(d.zCoord(:,1)<maxZBorder)& ...
-                  (d.xCoord(:,1)>minXBorder)&(d.xCoord(:,1)<maxXBorder)& ...
-                  (d.yCoord(:,1)>minYBorder)&(d.yCoord(:,1)<maxYBorder);
+              keepIndx{dIdx}= (d.zCoord(:,1)>=minZBorder)&(d.zCoord(:,1)<=maxZBorder)& ...
+                              (d.xCoord(:,1)>=minXBorder)&(d.xCoord(:,1)<=maxXBorder)& ...
+                              (d.yCoord(:,1)>=minYBorder)&(d.yCoord(:,1)<=maxYBorder);
           end
           colorIndx{dIdx}=colorIndx{dIdx}(keepIndx{dIdx});
       end

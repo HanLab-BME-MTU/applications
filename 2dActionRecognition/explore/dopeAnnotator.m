@@ -1,7 +1,12 @@
 function [cxFig handles] = dopeAnnotator(cellDataSet, varargin)
 %DOPEANNOTATOR rapid GUI annotation labeling tool for 2D cell movies
 %
-% Inputs:
+%dasdgadsf
+
+
+sgadgf
+
+ Inputs:
 % 		   cellDataSet:	struct or .mat file containing struct with cellMovie metadata 
 %
 % Andrew R. Jamieson, Dec. 2016 updated JUNE 2017

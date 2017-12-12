@@ -161,30 +161,46 @@ end
 %% load and map tracks to the spindle
 KTTracks=TracksHandle(trackKTPack.getProcess(3).loadChannelOutput(2));
 KTTracksInliers=mapTracksTo1DManifold(ROIs{1,2},KTTracks,90,'position','start','distType','euclideanDist');
-KTDetection=Detections(KTTracksInliers.getMovieInfo());
+
+%% Filter arbitraly to weed out some weird outlies
+disp(['lifetime cut off: ' num2str(MD.nFrames_*p.KTMoviePerc)]);
+FilteredKTTracks=KTTracksInliers([KTTracksInliers.lifetime]>MD.nFrames_*p.KTMoviePerc);
+fillTrackGaps(FilteredKTTracks);
+
+%% Remap in Frame of reference of interest, measure spindle coordinate 
+KTDetection=Detections(FilteredKTTracks.getMovieInfo());
 KTDetectionsP1P2=refs(1,2).applyBase(KTDetection,'');
 KTDetectionsP2P1=refs(2,1).applyBase(KTDetection,'');
 KTDetectionsP1P2.addSphericalCoord();
 KTDetectionsP2P1.addSphericalCoord();
+
+%% Compute closest pole at KT end and get the associated detections for display
+KTEndsIdx=arrayfun(@(t) t.tracksFeatIndxCG(end),FilteredKTTracks);
+KTEndsFrame=arrayfun(@(t) t.f(end),FilteredKTTracks);
+KTEndsClosestPoles=arrayfun(@(idx,f)  (KTDetectionsP1P2(f).rho(idx)>KTDetectionsP2P1(f).rho(idx))+1,KTEndsIdx,KTEndsFrame);
+
+KTDetectionsEndIdx=arrayfun(@(f) KTEndsIdx(KTEndsFrame==f),1:length(KTDetection),'unif',0);
+KTEnds=KTDetection.getSelectIdx(KTDetectionsEndIdx);
+
+%% Strips unlinked detection and recompute projection (for integrity)
+linkedDet=arrayfun(@(d) ~isnan(d.xCoord(:,1)),KTDetection,'unif',0);
+KTDetection.selectIdx(linkedDet);
+KTDetectionsP1P2=refs(1,2).applyBase(KTDetection,'');
+KTDetectionsP2P1=refs(2,1).applyBase(KTDetection,'');
+KTDetectionsP1P2.addSphericalCoord();
+KTDetectionsP2P1.addSphericalCoord();
+
 KTelevations=arrayfun(@(d,D) min(d.elevation,D.elevation),KTDetectionsP1P2,KTDetectionsP2P1,'unif',0);
 KTpoleDistances=arrayfun(@(d,D) min(d.rho,D.rho),KTDetectionsP1P2,KTDetectionsP2P1,'unif',0);
 KTazimuths=arrayfun(@(d,D) d.azimuth,KTDetectionsP1P2,'unif',0);
+KTTimesSteps=arrayfun(@(d,t) p.startTime+MD.timeInterval_*(t-1)*ones(size(d.xCoord(:,1))),KTDetection,1:length(KTDetection),'unif',0);
 
-%% Filter KT
-FilteredKTTracks=KTTracksInliers([KTTracksInliers.lifetime]>MD.nFrames_*p.KTMoviePerc);
-
-%% Select KT end for display, debug.
-KTEndsIdx=arrayfun(@(t) t.tracksFeatIndxCG(end),FilteredKTTracks);
-KTEndsFrame=arrayfun(@(t) t.f(end),FilteredKTTracks);
-KTDetectionsEndIdx=arrayfun(@(f) KTEndsIdx(KTEndsFrame==f),1:length(KTDetectionsP1P2),'unif',0);
-KTEnds=KTDetection.getSelectIdx(KTDetectionsEndIdx);
-KTEndsP1P2=KTDetectionsP1P2.getSelectIdx(KTDetectionsEndIdx);
-
-[PKTROI]=build1DManifold([P1 P2],FilteredKTTracks);
-disp('Mapping +Tips on PTK manifolds');
-tic;
+%%
+[P1KTROI]=build1DManifold([P1],FilteredKTTracks(KTEndsClosestPoles==1));
+[P2KTROI]=build1DManifold([P2],FilteredKTTracks(KTEndsClosestPoles==2));
+PKTROI=[P1KTROI P2KTROI];
+disp('Mapping +Tips on PTK manifolds');tic;
 PKTMapDist=p.mappingDistance;
-
 % Map each dyn ROI and measure distance
 allKTMappedTips=cell(1,numel(PKTROI));
 allKTMappedTipsDist=cell(1,numel(PKTROI));
@@ -194,12 +210,22 @@ parfor mIdx=1:numel(PKTROI);
     allKTMappedTips{mIdx}=indices;
     allKTMappedTipsDist{mIdx}=distance;
 end
-% Compute the Union of all the mapped +Tips
+
+%% Compute the Union of all the mapped +Tips (sub-optimal, should be done per detection with a quadtree)
 KTMappedTips=allKTMappedTips{1};
+KTMappedIdx=cellfun(@(i) double(i),allKTMappedTips{1},'unif',0);
+KTMinDist=allKTMappedTipsDist{1};
 for mIdx=2:numel(PKTROI);
 %    KTMappedTips=cellfun(@(m,i) (uint16(m)+uint16(i)),KTMappedTips,allKTMappedTips{mIdx},'unif',0);
     KTMappedTips=cellfun(@(m,i) (m|i),KTMappedTips,allKTMappedTips{mIdx},'unif',0);
+    KTMinDist=cellfun(@(m,d) min(m,d),KTMinDist,allKTMappedTipsDist{mIdx},'unif',0);
+   %KTMappedIdx=cellfun(@(i,m,d) i.*(1-(m==d))+(m==d)&(m>0)*mIdx,KTMappedIdx,KTMinDist,allKTMappedTipsDist{mIdx},'unif',0);
+    KTMappedIdx=cellfun(@(i,m,d)  i+double(m&(i==0))*mIdx,KTMappedIdx,KTMappedTips,allKTMappedTipsDist{mIdx},'unif',0);
+
 end
+figure;histogram(KTMappedTips{2})
+figure;histogram(KTMinDist{2})
+figure;histogram(allKTMappedTipsDist{2}{2})
 polarIndices=KTMappedTips;
 toc;
 
@@ -211,19 +237,19 @@ invFilteredKTTracks=FilteredKTTracks.getAddCoord(P1.getMultCoord(-1)).multCoord(
 [InvP1KTROI]=build1DManifold([P1],invFilteredKTTracks);
 invFilteredKTTracks=FilteredKTTracks.getAddCoord(P2.getMultCoord(-1)).multCoord(-1).addCoord(P2);
 [InvP2KTROI]=build1DManifold([P2],invFilteredKTTracks);
-PKTROI=[InvP1KTROI InvP2KTROI];
+PKTROIAstral=[InvP1KTROI InvP2KTROI];
 disp('Mapping +Tips on inversed PTK manifolds');
 tic;
 PKTMapDist=p.mappingDistance;
-allKTMappedTips=cell(1,numel(PKTROI));
-parfor mIdx=1:numel(PKTROI);
-    [~,indices]=mapDetectionsTo1DManifold(PKTROI{mIdx},oDetections,PKTMapDist, ... 
+allKTMappedTips=cell(1,numel(PKTROIAstral));
+parfor mIdx=1:numel(PKTROIAstral);
+    [~,indices]=mapDetectionsTo1DManifold(PKTROIAstral{mIdx},oDetections,PKTMapDist, ... 
                                                         'distType','normalDistPseudOptimized');
     allKTMappedTips{mIdx}=indices;
 end
 % Compute the Union of all the mapped +Tips
 KTMappedTips=allKTMappedTips{1};
-for mIdx=2:numel(PKTROI);
+for mIdx=2:numel(PKTROIAstral);
     KTMappedTips=cellfun(@(m,i) (m|i),KTMappedTips,allKTMappedTips{mIdx},'unif',0);
 end
 astralIndices=KTMappedTips;
@@ -235,7 +261,10 @@ if(isempty(process_PPKSlice))
     KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
     refPPKT=copy(refs(1,2));
     refPPKT.genBaseFromZ(KT);
-    project1D(  MD,[],'FoF',refPPKT,'dynPoligonREF',refPPKT.applyBase([P1,P2,KT],''), ...
+    KTRefPPKT=refPPKT.applyBase(KT,'');
+    KTRefPPKTOpposite=KTRefPPKT.copy();
+    KTRefPPKTOpposite.x=-KTRefPPKTOpposite.x;
+    project1D(  MD,[],'FoF',refPPKT,'dynPoligonREF',[refPPKT.applyBase([P1,P2],'') KTRefPPKT   KTRefPPKTOpposite], ...
         'name','PPKSlice','channelRender','grayRed','saveSingleProj',true, 'fringeWidth',[40,5,40], ...
         'processSingleProj',process_PPKSlice, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);
     process_PPKSlice.setProcessTag(['project1D_PPKSlice']);
@@ -250,7 +279,7 @@ end
 % img=imread(sprintfPath(process.outFilePaths_{4},1));
 % figure();imshow([img]);
 
-disp('Compute densities in the spindle')
+disp('Compute densities in the spindle'); tic;
 densities=estimateDensity(oDetections,20);
 poleDistances=arrayfun(@(d,D) min(d.rho,D.rho),oDetectionsP1P2,oDetectionsP2P1,'unif',0);
 
@@ -284,6 +313,7 @@ if(~p.useKT)
   polarIndices=polarIndicesAngle;
   astralIndices=astralIndicesAngle;
 end
+toc;
 
 disp('Order  stats in the spindle');tic;
 allElevs=vertcat(elevations{:});
@@ -334,7 +364,7 @@ outputFileName=[MD.outputDirectory_ filesep 'enrichment' filesep p.name filesep 
 mkdirRobust(fileparts(outputFileName));
 save(outputFileName,'elevations','azimuths','densities','timesSteps','poleDistances','amps', ... 
     'astralThresh','polarThresh','polarDistBinning','astralDistBinning','densityLimit', ...
-    'KTelevations','KTpoleDistances','KTazimuths','astralDetectionsMask','polarDetectionsMask');
+    'KTelevations','KTpoleDistances','KTazimuths','KTTimesSteps','astralDetectionsMask','polarDetectionsMask');
 outputDirPlot=[MD.outputDirectory_ filesep 'enrichment' filesep p.name filesep 'plot' filesep];
 processEnrich.setOutFilePaths({ ... 
     [outputDirPlot  'ElevationDens.png'], ...
@@ -441,6 +471,11 @@ else
 toc;
 end
 
+if(~isempty(p.dynROIProject))
+    processProjDynROI=p.dynROIProject;
+else
+    processProjDynROI=process_PPKSlice;
+end
 
 %% Rendering cumulative distribution for debugging and illustrative purposes
 myColormap=255*jet(256);
@@ -451,14 +486,20 @@ if(~GenericPackage.processExist(p.package,lpid))
     process=ExternalProcess(MD,'Detection astral');
     astralDetections=oDetections.copy().selectIdx(astralIndices);
     astralDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,astralIndices,'unif',0);
-    astralDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[0 100]))+1 , poleDistances,astralIndices,'unif',0);
-    overlayProjDetectionMovie(processProjSpindleRef,'detections',refs(1,2).applyBase(astralDetections,''), 'process',process, ... 
+    astralDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[20 60]))+1 , poleDistances,astralIndices,'unif',0);
+    KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
+    refPPKT=copy(refs(1,2));
+    refPPKT.genBaseFromZ(KT);
+    ref=refs(1,2);
+    ref=refPPKT;
+    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(astralDetections,''), 'process',process, ... 
         'cumulative',true,'processFrames',1, ... 
         'colorIndx',astralDistanceIndx,'colormap',myColormap,'name',['astralCumulPoleDensity' p.name]);
     if(p.useKT)
-        overlayProjDetectionMovie(process,'detections',KTEndsP1P2, 'process',process, ... 
-            'cumulative',true,'processFrames',1 ...
-            ,'name',['CumulPoleDensityKT']);
+        tracks=fillTrackGaps(FilteredKTTracks);
+        KTFilteredDetection=Detections(tracks.getMovieInfo());
+        overlayProjDetectionMovie(process,'detections',ref.applyBase(KTEnds,''), 'process',process, ... 
+            'cumulative',true,'processFrames',1,'name','KTDetection','radius',p.mappingDistance);
     end
     figure();imshow([imread(sprintfPath(process.outFilePaths_{4},1));]);
     toc
@@ -468,36 +509,38 @@ end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
 imgAstral=imread(sprintfPath(process.outFilePaths_{4},1));
 
-
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
     disp('Render Polar still picture');tic;
     process=ExternalProcess(MD,'Detection polar');
     polarDetections=oDetections.copy().selectIdx(polarIndices);
     polarDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,polarIndices,'unif',0);
-    polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[0 60]))+1 , poleDistances,polarIndices,'unif',0);
-    overlayProjDetectionMovie(processProjSpindleRef,'detections',refs(1,2).applyBase(polarDetections,''), 'process',process, ... 
+    polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[20 60]))+1 , poleDistances,polarIndices,'unif',0);
+    polarKTIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[1 numel(PKTROI)]))+1 , KTMappedIdx,polarIndices,'unif',0);
+    % polarKTIndx=cellfun(@(m,i) floor(254*i.*mat2gray(m,[1 numel(PKTROI)]))+1 , KTMappedIdx,polarIndices,'unif',0);
+
+    KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
+    refPPKT=copy(refs(1,2));
+    refPPKT.genBaseFromZ(KT);
+    ref=refs(1,2);
+    ref=refPPKT;
+
+    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(polarDetections,''), 'process',process, ... 
         'cumulative',true,'processFrames',1, ...
         'colorIndx',polarDistanceIndx,'colormap',myColormap,'name',['polarCumulPoleDensity' p.name]);
-    if(p.useKT)
-    overlayProjDetectionMovie(process,'detections',KTEndsP1P2, 'process',process, ... 
-        'cumulative',true,'processFrames',1 ...
-        ,'name','CumulPoleDensityKT');
+    if(p.useKT) 
+        overlayProjDetectionMovie(process,'detections',ref.applyBase(KTEnds,''), 'process',process, ... 
+            'cumulative',true,'processFrames',1,'name','KTDetection','radius',p.mappingDistance);
     end
     imgPolar=imread(sprintfPath(process.outFilePaths_{4},1));
     figure();imshow([imgPolar]);
+    toc;
 else
     process=p.package.getProcess(lpid);
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
 
-toc;
 
-if(~isempty(p.dynROIProject))
-    processProjSpindleRef=p.dynROIProject;
-else
-    processProjSpindleRef=process_PPKSlice;
-end
 
 lpid=lpid+1;
 KTColormap=255*winter(256);
@@ -513,19 +556,21 @@ if(~GenericPackage.processExist(p.package,lpid))
     % astralDistancesIndx=cellfun(@(e,i)  floor(254*mat2gray(e(i)))+1, poleDistances,polarIndx,'unif',0);
     astralDistanceIndx=cellfun(@(e,i) floor(254*i'.*mat2gray(e,[0 60]))+1 , poleDistances,astralIndices,'unif',0);
     astralDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,astralIndices,'unif',0);
-    overlayProjDetectionMovie(processProjSpindleRef,'detections',ref.applyBase(oDetections,''), ...
+    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(oDetections,''), ...
          'process',process, 'cumulative',false, ... 
         'colorIndx',astralDistanceIndx,'colormap',myColormap,'name',['astralPoleDensity-' p.name]);
     if(p.useKT)
-        overlayProjTracksMovie(process,'tracks', ref.applyBase(FilteredKTTracks,''), ... 
-            'colorIndx',ceil(255*mat2gray([FilteredKTTracks.lifetime]',[1 150]))+1, ... 
-        'dragonTail',10,'colormap',KTColormap,'name',['KT' p.name],'process',process);
+        tracks=fillTrackGaps(FilteredKTTracks);
+        KTFilteredDetection=Detections(tracks.getMovieInfo());
+        overlayProjDetectionMovie(process,'detections',ref.applyBase(KTFilteredDetection,''), 'process',process, ... 
+            'cumulative',false,'name','KTDetection','radius',p.mappingDistance);
     end
+    toc;
 else
     process=p.package.getProcess(lpid);
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
-imgAstral=imread(sprintfPath(process.outFilePaths_{2},1));
+% imgAstral=imread(sprintfPath(process.outFilePaths_{2},1));
 
 %%
 poleDistLimit=[19.999 20];
@@ -544,7 +589,8 @@ if(~GenericPackage.processExist(p.package,lpid))
     % polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),poleDistLimit))+1 , poleDistances,polarIndices,'unif',0);
     % polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[0 60]))+1 , poleDistances,polarIndices,'unif',0);
     polarDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,polarIndices,'unif',0);
-    overlayProjDetectionMovie(processProjSpindleRef,'detections',ref.applyBase(oDetections,''), 'process',process, ... 
+    polarKTIndx=cellfun(@(e,i) floor(254*i'.*mat2gray(e',[1 numel(PKTROI)]))+1 , KTMappedIdx,polarIndices,'unif',0);
+    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(oDetections,''), 'process',process, ... 
         'cumulative',false, ...
         'colorIndx',polarDistanceIndx,'colormap',myColormap,'name',['polarPoleDensity-' p.name],'radius',2);
     if(p.useKT)
@@ -561,11 +607,11 @@ if(~GenericPackage.processExist(p.package,lpid))
     imgPolar=imread(sprintfPath(process.outFilePaths_{2},1));
     figure();
     %imshow([imgAstral imgPolar]);
+    toc;
 else
     process=p.package.getProcess(lpid);
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
-toc;
 
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
@@ -573,29 +619,31 @@ if(~GenericPackage.processExist(p.package,lpid))
     process=ExternalProcess(MD,'KTDetection');
     overlayProjDetectionMovie(processProjSpindleRef,'detections',KTDetectionsP1P2, 'process',process, ... 
         'cumulative',false,'name',['KTDetection-' p.name]);
+    toc;
 else
     process=p.package.getProcess(lpid);
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
-toc;
 
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
-    disp('Rendering +Tips non-mapped by KT in the interpolar area')
+    disp('Rendering +Tips non-mapped by KT in the interpolar area');tic;
     process=ExternalProcess(MD,'Detection polar');
     polarDetections=oDetections.copy().selectIdx(OutsideKTPolar);
     polarDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,OutsideKTPolar,'unif',0);
-    overlayProjDetectionMovie(processProjSpindleRef,'detections',refs(1,2).applyBase(polarDetections,''), 'process',process, ... 
+    overlayProjDetectionMovie(processProjDynROI,'detections',refs(1,2).applyBase(polarDetections,''), 'process',process, ... 
         'cumulative',true,'processFrames',1, ...
         'colorIndx',polarDensitiesIndx,'colormap',myColormap,'name',['polarCumulNonMapped' p.name]);
     if(p.useKT)
-    overlayProjDetectionMovie(process,'detections',KTEndsP1P2, 'process',process, ... 
-        'cumulative',true,'processFrames',1 ...
-        ,'name','CumulPoleDensityKT');
+
+        overlayProjDetectionMovie(process,'detections',refs(1,2).applyBase(KTEnds,''), 'process',process, ... 
+            'cumulative',true,'processFrames',1 ...
+            ,'name','CumulPoleDensityKT');
     end
     imgPolar=imread(sprintfPath(process.outFilePaths_{4},1));
     figure();
     imshow([imgPolar]);
+    toc;
 else
     process=p.package.getProcess(lpid);
 end

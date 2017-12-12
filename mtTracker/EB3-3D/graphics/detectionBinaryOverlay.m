@@ -3,7 +3,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
 ip.addOptional('cumulative',false);
-ip.addOptional('radius',5);
+ip.addOptional('radius',3);
 ip.parse(varargin{:});
 p=ip.Results;
 %%

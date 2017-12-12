@@ -4,7 +4,12 @@ function [] = pcTrackingMovie(MD,params,dirs)
 % Save tracking movies to /project/cellbiology/gdanuser/melanomaModel/Analysis/Movies/trackingMovies
 % Note: over 2 minutes per frame from getFrame!!
 
-% Assaf Zaritsky, November 2015
+% Assaf Zaritsky, November 2015 
+% Nov. 2017 - redundantly redifining the cells and all here the same way as
+% within pcSetSingleCellTrajectories. This is because the trajectories are
+% orginized according to their time frame which is very convinient for
+% visualization. But I did want the modularity to have one function with
+% no I/O that does the trajectories definition. 
 
 outdir = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/Movies/trackingMovies';
 % '/project/cellbiology/gdanuser/melanomaModel/Analysis/Movies/trackingMovies/';
@@ -107,7 +112,7 @@ end
 
 assert(length(cellTYX) == nCurCell);
 
-save(cellTYXFname,'cellTYX');
+% save(cellTYXFname,'cellTYX');
 close(vwriter);
 
 fprintf(sprintf('Done creating tracking movie (H: %d-%d, W:%d-%d)\n,',minH,maxH,minW,maxW));

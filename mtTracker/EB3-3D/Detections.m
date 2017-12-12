@@ -1,8 +1,8 @@
 classdef Detections <  handle  & matlab.mixin.Copyable & dynamicprops
     % Data encapsulator for detections
     properties %(SetAccess = protected)
-       xCoord;    % 3xN or 2xN coordinate
-       yCoord;    % Image intensity
+       xCoord;    % 
+       yCoord;    % 
        zCoord;
        amp;       % Image amplitude (when estimated) 
        ref;       % optional FrameOfRef objects. 
@@ -20,20 +20,18 @@ classdef Detections <  handle  & matlab.mixin.Copyable & dynamicprops
                 end
             end 
         end
-        
-%         function setFromPStruct(obj,aPstruct)
-%             if isfield(aPstruct,'z')
-%                 obj.xyz=[aPstruct.x; aPstruct.y; aPstruct.z]; 
-%                 obj.dxyz=[aPstruct.x_pstd ; aPstruct.y_pstd; aPstruct.z_pstd];
-%                 obj.scale=[aPstruct.s; aPstruct.s; aPstruct.s];
-%             else 
-%                 obj.xyz=[aPstruct.x; aPstruct.y;]; 
-%                 obj.dxyz=[aPstruct.x_pstd ; aPstruct.y_pstd;];
-%                 obj.scale=[aPstruct.s; aPstruct.s;];
-%             end
-%             obj.amp=aPstruct.A; obj.dAmp=aPstruct.A_pstd;
-%             obj.bg=aPstruct.c; obj.dBg=aPstruct.c_pstd;
-%         end
+
+        function obj=setFromTracks(obj,tracks)
+            mi=tracks.getMovieInfo();
+            nanIdx=arrayfun(@(mi) isnan(mi.xCoord(1,:)),mi,'unif',0);
+            for i=1:length(mi)
+                obj(i).xCoord=mi(i).xCoord(nanIdx{i},:);
+                obj(i).yCoord=mi(i).yCoord(nanIdx{i},:);
+                obj(i).zCoord=mi(i).zCoord(nanIdx{i},:);
+                obj(i).amp=mi(i).amp(nanIdx{i},:);
+            end
+        end     
+
         
         function ret=is3D(obj)
             ret=~isempty(obj.zCoord);
@@ -240,3 +238,20 @@ classdef Detections <  handle  & matlab.mixin.Copyable & dynamicprops
     end
 end
 
+
+%% SNIPPETS
+
+        
+%         function setFromPStruct(obj,aPstruct)
+%             if isfield(aPstruct,'z')
+%                 obj.xyz=[aPstruct.x; aPstruct.y; aPstruct.z]; 
+%                 obj.dxyz=[aPstruct.x_pstd ; aPstruct.y_pstd; aPstruct.z_pstd];
+%                 obj.scale=[aPstruct.s; aPstruct.s; aPstruct.s];
+%             else 
+%                 obj.xyz=[aPstruct.x; aPstruct.y;]; 
+%                 obj.dxyz=[aPstruct.x_pstd ; aPstruct.y_pstd;];
+%                 obj.scale=[aPstruct.s; aPstruct.s;];
+%             end
+%             obj.amp=aPstruct.A; obj.dAmp=aPstruct.A_pstd;
+%             obj.bg=aPstruct.c; obj.dBg=aPstruct.c_pstd;
+%         end

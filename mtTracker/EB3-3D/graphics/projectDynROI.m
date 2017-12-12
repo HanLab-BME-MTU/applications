@@ -2,21 +2,19 @@ function projectDynROI(MD,varargin)
 % WIPS: 
 %   -   respect computeMIPProcess Specs
 %   -   using dynROI class instead of ad hoc object
+%   -   comment and clarify options.
 %   -   shorter function 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
-ip.addOptional('dynPoligonISO',[]);
-ip.addOptional('dynPoligonREF',[]);
-ip.addOptional('tracks',[]);
-ip.addOptional('colormap',[]);
+ip.addRequired('MD'); 
+ip.addOptional('insetDynROI',[]);     % Every pixel mapped inside the ROI is rendered in a MIP mask
+ip.addOptional('dynROI',[]);          % This dynROI define the boundary of the current view (default, insetDynROI) only used if 'crop' is set to manifold
 ip.addOptional('renderedChannel',1:length(MD.channels_));
-ip.addOptional('colorIndx',[]);
-ip.addOptional('crop','manifold');
+ip.addOptional('crop','manifold');  % 'manifold': crop around p.dynROI, 'full': show the full volume.
+ip.addOptional('FoF',[]);           % frame of refenrence for the projection
 ip.addOptional('transType','affineOnePass');
 ip.addOptional('processFrame',1:MD.nFrames_);
-ip.addOptional('orthoCut',false);   % Instead of producing a MIP on the the 1D line only, produce a MIP on the full plane
-ip.addOptional('FoF',[]);
 ip.addOptional('channelRender','grayRed');
 ip.addOptional('intMinPrctil',[1 99.9]);
 ip.addOptional('intMaxPrctil',[100 100]);
@@ -30,24 +28,26 @@ ip.addOptional('processRenderer',[]);
 ip.addOptional('fringeWidth',[]);
 ip.addOptional('insetFringeWidth',20);
 ip.addOptional('maxMIPSize',max([400,MD.imSize_,ceil(MD.zSize_*MD.pixelSizeZ_/MD.pixelSize_)]));
-ip.parse(varargin{:});
+ip.parse(MD,varargin{:});
 p=ip.Results;
-dynPoligonISO=p.dynPoligonISO;
-dynPoligonREF=p.dynPoligonREF;
-fillTrackGaps(dynPoligonISO);
-fillTrackGaps(dynPoligonREF);
-if(isempty(dynPoligonREF))
+
+%% Fill gaps in dynROI
+insetDynROI=p.insetDynROI;
+dynROI=p.dynROI;
+fillTrackGaps(insetDynROI);
+fillTrackGaps(dynROI);
+
+if(isempty(dynROI))
     if(~isempty(p.FoF))
-        dynPoligonREF=p.FoF.applyBase(dynPoligonISO,'');
+        dynROI=p.FoF.applyBase(insetDynROI,'');
     else
-        dynPoligonREF=dynPoligonISO;
+        dynROI=insetDynROI;
     end
 end
-tracks=p.tracks;
 
 rawTIFF=p.rawTIFF;
 
-showDebugGraphics=0;
+%% Define size of mapping areas for insetDynROI and dynROI.
 insetFringeWidth=p.insetFringeWidth;
 if(isempty(p.fringeWidth))
     fringeWidth=insetFringeWidth;
@@ -55,7 +55,6 @@ else
     fringeWidth=p.fringeWidth;
 end
 processFrame=p.processFrame;
-
 
 %% Set normalization value
 minIntensityNorm=zeros(1,numel(MD.channels_));
@@ -71,7 +70,7 @@ end
 
 %% In the manifold crop case, the boundaries are given by the transform coordinate along the manifold polygon
 %% in the full case, one have to estimate the maximum rectangle cuboid contained that can descibe the extremum coordinate of the original volume
-if(strcmp(p.crop,'manifold')&&(~isempty(dynPoligonREF)))
+if(strcmp(p.crop,'manifold')&&(~isempty(dynROI)))
     
     minX=MD.getDimensions('X')+1;
     minY=MD.getDimensions('Y')+1;
@@ -79,13 +78,13 @@ if(strcmp(p.crop,'manifold')&&(~isempty(dynPoligonREF)))
     maxX=0; 
     maxY=0;
     maxZ=0;
-    for iP=1:length(dynPoligonREF)
-        minX=floor(min(min(dynPoligonREF(iP).x),minX));
-        minY=floor(min(min(dynPoligonREF(iP).y),minY));
-        minZ=floor(min(min(dynPoligonREF(iP).z),minZ));
-        maxX=ceil(max(max(dynPoligonREF(iP).x),maxX));
-        maxY=ceil(max(max(dynPoligonREF(iP).y),maxY));
-        maxZ=ceil(max(max(dynPoligonREF(iP).z),maxZ));
+    for iP=1:length(dynROI)
+        minX=floor(min(min(dynROI(iP).x),minX));
+        minY=floor(min(min(dynROI(iP).y),minY));
+        minZ=floor(min(min(dynROI(iP).z),minZ));
+        maxX=ceil(max(max(dynROI(iP).x),maxX));
+        maxY=ceil(max(max(dynROI(iP).y),maxY));
+        maxZ=ceil(max(max(dynROI(iP).z),maxZ));
     end
     maxXBorder=(maxX+fringeWidth);
     maxYBorder=(maxY+fringeWidth);
@@ -196,15 +195,15 @@ end
 % vol = cell(processFrame,1);
 parfor fIdx = processFrame
     fprintf('.') 
-    % produce a ROI mask using the 1D polygon (segment defined by the extremities of the dynPoligonISO).
+    % produce a ROI mask using the 1D polygon (segment defined by the extremities of the insetDynROI).
     % todo: N Channel (now 2).
     mask=ones(MD.imSize_(2),MD.imSize_(1),MD.zSize_);
     maskedVol=[];
-    if(~isempty(dynPoligonISO))
+    if(~isempty(insetDynROI))
          % Collect relative frameIdx
-        pIndices=nan(1,length(dynPoligonISO));
-        for polIdx=1:length(dynPoligonISO)
-            F=dynPoligonISO(polIdx).f;
+        pIndices=nan(1,length(insetDynROI));
+        for polIdx=1:length(insetDynROI)
+            F=insetDynROI(polIdx).f;
             pIdx=find(F==fIdx,1);
             if isempty(pIdx)
                 if(fIdx>max(F))   pIdx=length(F);  else   pIdx=1; end;
@@ -213,9 +212,9 @@ parfor fIdx = processFrame
         end
 
         %% Building mask in the 1D case
-        nextPoint=length(dynPoligonISO);
-        PCurrent=[dynPoligonISO(1).x(pIndices(1)) dynPoligonISO(1).y(pIndices(1)) dynPoligonISO(1).z(pIndices(1))];
-        KCurrent=[dynPoligonISO(nextPoint).x(pIndices(nextPoint)) dynPoligonISO(nextPoint).y(pIndices(nextPoint)) dynPoligonISO(nextPoint).z(pIndices(nextPoint))];
+        nextPoint=length(insetDynROI);
+        PCurrent=[insetDynROI(1).x(pIndices(1)) insetDynROI(1).y(pIndices(1)) insetDynROI(1).z(pIndices(1))];
+        KCurrent=[insetDynROI(nextPoint).x(pIndices(nextPoint)) insetDynROI(nextPoint).y(pIndices(nextPoint)) insetDynROI(nextPoint).z(pIndices(nextPoint))];
 
         vol = MD.getChannel(1).loadStack(fIdx);
 
@@ -244,7 +243,7 @@ parfor fIdx = processFrame
         mask=interp3(mask,x,y,z);
     end
     mips=cell(3,length(MD.channels_));
-    if(~isempty(dynPoligonISO))
+    if(~isempty(insetDynROI))
         if(isempty(p.FoF))&&(strcmp(p.crop,'manifold'))
             aminXBorder=max(1,minXBorder);
             aminYBorder=max(1,minYBorder);
@@ -273,7 +272,7 @@ parfor fIdx = processFrame
     
     for chIdx=p.renderedChannel
         vol=MD.getChannel(chIdx).loadStack(fIdx);
-        if(~isempty(dynPoligonISO))
+        if(~isempty(insetDynROI))
             if(isempty(p.FoF))&&(strcmp(p.crop,'manifold'))
                 aminXBorder=max(1,minXBorder);
                 aminYBorder=max(1,minYBorder);
@@ -312,7 +311,7 @@ parfor fIdx = processFrame
         warpedVol=vol;
         warpedMaskedVol=[];
         warpedMask=mask;
-        if(~isempty(dynPoligonISO))
+        if(~isempty(insetDynROI))
             warpedMaskedVol=maskedVol;
         else
             warpedMaskedVol=zeros(size(warpedVol));
@@ -374,7 +373,7 @@ parfor fIdx = processFrame
                     
                     warpedVol=imwarp(vol,inputRef,tformRotOnly,'OutputView',rotOutputRef);
                     
-                    if(~isempty(dynPoligonISO))
+                    if(~isempty(insetDynROI))
                         if(p.suppressROIBorder)
                             warpedMask=imwarp(mask,inputRef,tformRotOnly,'OutputView',rotOutputRef);
                             warpedMaskedVol=warpedVol(warpedMask==1);

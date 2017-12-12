@@ -1,9 +1,9 @@
 function [tracksXY,tracksZY,tracksZX]=overlayProjTracks(XYProj,ZYProj,ZXProj,XLimit,YLimit,ZLimit,fIdx,tracksInMask,myColormap,colorIndx,varargin)
-ip = inputParser;
-ip.CaseSensitive = false;
-ip.KeepUnmatched = true;
-ip.addOptional('cumulative',false);
-ip.parse(varargin{:});
+  ip = inputParser;
+  ip.CaseSensitive = false;
+  ip.KeepUnmatched = true;
+  ip.addOptional('cumulative',false);
+  ip.parse(varargin{:});
   p=ip.Results;
 
   minXBorder=XLimit(1);
@@ -13,7 +13,7 @@ ip.parse(varargin{:});
   minZBorder=ZLimit(1);
   maxZBorder=ZLimit(2);
 
-  %% Pnrint tracks on the projections
+  %% Print tracks on the projections
 
   if(isempty(colorIndx))
 %    colorIndx=floor(linspace(1,255,length(tracksInMask)));
@@ -24,7 +24,20 @@ ip.parse(varargin{:});
       myColormap=255*jet(length(unique(colorIndx)));
   end
 
-  
+  if(~isempty(tracksInMask))
+      keepIdx=false(1,length(tracksInMask));
+        for tIdx=1:length(tracksInMask)
+          tr=tracksInMask(tIdx);
+          coordIdx=(tr.f==fIdx);
+          if(any(coordIdx))
+            X=tr.x(coordIdx);Y=tr.y(coordIdx); Z=tr.z(coordIdx);
+            keepIdx(tIdx)= (Z>=minZBorder)&&(Z<=maxZBorder)&&(X>=minXBorder)&&(X<=maxXBorder)&&(Y>=minYBorder)&&(Y<=maxYBorder);
+          end
+      end
+      tracksInMask=tracksInMask(keepIdx);
+      colorIndx=colorIndx(keepIdx);
+  end
+
   
   if(~isempty(tracksInMask))
     tracksXY=trackBinaryOverlay(XYProj,[minXBorder maxXBorder],[minYBorder maxYBorder],tracksInMask,fIdx,colorIndx,myColormap,varargin{:});

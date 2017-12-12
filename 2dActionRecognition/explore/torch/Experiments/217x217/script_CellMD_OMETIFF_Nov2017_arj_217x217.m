@@ -1,12 +1,12 @@
 % /project/bioinformatics/Danuser_lab/liveCellHistology/analysis/All
 
 % Input Path
-allCellsFileName = '14-May-2017_LBP_dLBP_1.mat';
+allCellsFileName = '12-Nov-2017_LBP_dLBP_1.mat';
 InFilePath =  '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/CellExplorerData';
 loadMatPath = fullfile(InFilePath, allCellsFileName);
 
 
-matFile_name = 'FullTimeSeries_Gen2n3_May15_ALL_Nov2017';
+matFile_name = 'FullTimeSeries_Gen2n3_12Nov2017';
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Chop up Assaf''s MDs');
@@ -19,7 +19,7 @@ randset = {};
 if isempty(randset)
     allCellsSet = allCellsMovieData;
     % Output path
-    omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/fulltime_Gen2n3_May15';
+    omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/fulltime_Gen2n3_12-Nov-2017';
     if ~exist(omeTiffDir, 'dir')
         mkdir(omeTiffDir);
     end
@@ -45,8 +45,11 @@ pixelSizepf = arrayfun(@(x) PIXS(x), repmat(.325,[1 length(allCellsSet)]), 'Unif
 % How many frame to include in the movie chops...
 % timeChop = 10?
 
-% for i = 1:2
-parfor i = 1:10%length(allCellsSet)
+
+
+
+checkFailList = cell(1,length(allCellsSet));
+parfor i = 1:length(allCellsSet)
 
     iCell = allCellsSet{i};
     
@@ -61,64 +64,163 @@ parfor i = 1:10%length(allCellsSet)
     iCell.key_noTime = iCell.key;
     iCell.key = [iCell.key '_t' num2str(endTime)]
 
-    disp(iCell.key);
+%     disp(iCell.key);
     
-    MD = load(iCell.MD, 'MD');
-    MD = MD.MD;
-    
-    %% HARD CODED!
-    pixelSize_ = 0.325;
-    FOVRadius = round(35/pixelSize_);
-    movieM = zeros(2*FOVRadius+1, 2*FOVRadius+1, ntime);
-    
-    %% Configure OME-TIFF metadata
-    javaaddpath('/home2/s170480/matlab/extern/bioformats/bioformats_package.jar','-end')
-    metadata = createMinimalOMEXMLMetadata(movieM, 'XYTZC');
-    metadata.setPixelsPhysicalSizeX(pixelSizepf{i}, 0);
-    metadata.setPixelsPhysicalSizeY(pixelSizepf{i}, 0);
-    metadata.setImageDescription(iCell.key, 0);
-    metadata.setExperimenterGroupDescription(iCell.expStr,0);
-    metadata.setExperimenterGroupID(iCell.date,0);
-    metadata.setDatasetName(iCell.expStr,0);
-    metadata.setDatasetID(iCell.MD,0);
-    metadata.setDatasetDescription([...
-        'notes=''for Gen2and3 Nov02nd 2017-ARJ''', 'key=''' iCell.key ''', key_noTime=''' iCell.key_noTime ''',date=''' iCell.date ''',Celltype=''' iCell.cellType ''',metEff=' num2str(iCell.metEff) ',locationStr=' num2str(iCell.locationStr)],0);
-    
-    for itime = 1:ntime
-        curTime = ts(itime);
-        curI = MD.getChannel(1).loadImage(curTime);
-        movieM(:,:,itime) = curI(round((ys(itime)-FOVRadius)):(round(ys(itime)+FOVRadius)),round((xs(itime)-FOVRadius)):round((xs(itime)+FOVRadius)));
-    end
+    try 
+        MD = load(iCell.MD, 'MD');
+        MD = MD.MD;
 
-
-    disp(['Creating movieData for cell ID key: ' iCell.key]);
-    movieFileOut = [omeTiffDir filesep iCell.key filesep iCell.key '_CellX.ome.tiff'];
-    disp(['Making OME-TIFF : ' movieFileOut]);
-    
-    % Save as OME-TIFF 
-    mkdir(fileparts(movieFileOut));
-    bfsave(movieM, movieFileOut, 'metadata', metadata);
         
-    % MovieData Validation
-    disp('Loading with MovieData BF reader')
-    MD = MovieData(movieFileOut, true, fileparts(movieFileOut));
-    MD.sanityCheck();
-    MD.save();
+        
+        % first check if already created
+        movieFileOutMat = [omeTiffDir filesep iCell.key filesep iCell.key '_CellX.mat'];
+        
+        allCellsSet{i}.cellMD = MD.getFullPath();
+        allCellsSet{i}.key = iCell.key;
+        allCellsSet{i}.key_noTime = iCell.key_noTime;
+        
+        if exist(movieFileOutMat,'file') == 2
+            % check if passes sanity check
+            MD = load(movieFileOutMat,'MD');
+            MD = MD.MD;
+            try
+                MD.sanityCheck();
+                try
+                    SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
+                    if ~isempty(SDCindx) && MD.processes_{SDCindx}.success_
+                        checkFailList{i} = {'done', allCellsSet{i}};
+                    else
+                        checkFailList{i} = {'SDCincomplete', allCellsSet{i}};
+                    end
+                catch
+                    checkFailList{i} = {'getProcessFail', allCellsSet{i}};
+                end                
+            catch
+                checkFailList{i} = {'fail', allCellsSet{i}};
+                %                 disp('running MD:' mov
+            end 
+%             checkFailList{i} = {'done',allCellsSet{i}}
+        else
+            checkFailList{i} = {'noExist',allCellsSet{i}};
+        end
+    catch
+        checkFailList{i} = {'badMD',allCellsSet{i}};
+    end
+end
+
+matFile = '/work/bioinformatics/shared/dope/data/OMETIFF/fulltime_Gen2n3_12-Nov-2017/FullTimeSeries_Gen2n3_12Nov2017.mat'
+load(matFile, 'cellDataSet');
+omeTiffDir = '/work/bioinformatics/shared/dope/data/OMETIFF/fulltime_Gen2n3_12-Nov-2017';
+parfor i = 1:length(cellDataSet)
+
+    iCell = cellDataSet{i};
     
-    extProc = ExternalProcess(MD, 'LBPfeatures');
-    MD.addProcess(extProc);
-    MD.processes_{1}.setParameters(iCell);
+    xs = iCell.xs;
+    ys = iCell.ys;
+    ts = iCell.ts;
+    
+    startTime = ts;
+    ntime = length(ts);
+    endTime = ts(1) + ntime;
 
-    MD.addProcess(EfficientSubpixelRegistrationProcess(MD));
-    SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
-    MD.processes_{SDCindx}.run()
+%     iCell.key_noTime = iCell.key;
+%     iCell.key = [iCell.key '_t' num2str(endTime)]
+    
+    % first check if already created
+    movieFileOutMat = [omeTiffDir filesep iCell.key filesep iCell.key '_CellX.mat'];
 
-    % MDpath = MD.getFullPath();
-    % Save individual cell movieData
-    allCellsSet{i}.cellMD = MD.getFullPath();
-    allCellsSet{i}.key = iCell.key;
-    allCellsSet{i}.key_noTime = iCell.key_noTime;
-    MList{i} = MD; 
+    cellDataSet{i}.cellMD = movieFileOutMat;
+%     cellDataSet{i}.key = iCell.key;
+%     cellDataSet{i}.key_noTime = iCell.key_noTime;   
+    
+end
+
+matFile2 = '/work/bioinformatics/shared/dope/data/OMETIFF/fulltime_Gen2n3_12-Nov-2017/FullTimeSeries_Gen2n3_12Nov2017_corrected.mat'
+save(matFile2, 'cellDataSet');
+
+
+load('./checkList.mat');
+javaaddpath('/home2/s170480/matlab/extern/bioformats/bioformats_package.jar','-end')
+parfor i = 1:length(allCellsSet)
+
+    iCell = allCellsSet{i};
+    
+    xs = iCell.xs;
+    ys = iCell.ys;
+    ts = iCell.ts;
+    
+    startTime = ts;
+    ntime = length(ts);
+    endTime = ts(1) + ntime;
+
+    iCell.key_noTime = iCell.key;
+    iCell.key = [iCell.key '_t' num2str(endTime)]
+
+%     disp(iCell.key);
+     
+    try 
+        MD = load(iCell.MD, 'MD');
+        MD = MD.MD;
+        if ~strcmp(checkFailList{i}{1},'done')
+
+            %% HARD CODED!
+            pixelSize_ = 0.325;
+            FOVRadius = round(35/pixelSize_);
+            movieM = zeros(2*FOVRadius+1, 2*FOVRadius+1, ntime);
+
+            %% Configure OME-TIFF metadata
+            metadata = createMinimalOMEXMLMetadata(movieM, 'XYTZC');
+            metadata.setPixelsPhysicalSizeX(pixelSizepf{i}, 0);
+            metadata.setPixelsPhysicalSizeY(pixelSizepf{i}, 0);
+            metadata.setImageDescription(iCell.key, 0);
+            metadata.setExperimenterGroupDescription(iCell.expStr,0);
+            metadata.setExperimenterGroupID(iCell.date,0);
+            metadata.setDatasetName(iCell.expStr,0);
+            metadata.setDatasetID(iCell.MD,0);
+            metadata.setDatasetDescription([...
+                'notes=''for Gen2and3 Nov02nd 2017-ARJ''', 'key=''' iCell.key ''', key_noTime=''' iCell.key_noTime ''',date=''' iCell.date ''',Celltype=''' iCell.cellType ''',metEff=' num2str(iCell.metEff) ',locationStr=' num2str(iCell.locationStr)],0);
+
+            for itime = 1:ntime
+                curTime = ts(itime);
+                curI = MD.getChannel(1).loadImage(curTime);
+                movieM(:,:,itime) = curI(round((ys(itime)-FOVRadius)):(round(ys(itime)+FOVRadius)),round((xs(itime)-FOVRadius)):round((xs(itime)+FOVRadius)));
+            end
+
+            disp(['Creating movieData for cell ID key: ' iCell.key]);
+            movieFileOut = [omeTiffDir filesep iCell.key filesep iCell.key '_CellX.ome.tiff'];
+            disp(['Making OME-TIFF : ' movieFileOut]);
+
+            % Save as OME-TIFF 
+            mkdir(fileparts(movieFileOut));
+            bfsave(movieM, movieFileOut, 'metadata', metadata);
+
+            % MovieData Validation
+            disp('Loading with MovieData BF reader')
+            MD = MovieData(movieFileOut, true, fileparts(movieFileOut));
+            MD.sanityCheck();
+            MD.save();
+
+            extProc = ExternalProcess(MD, 'LBPfeatures');
+            MD.addProcess(extProc);
+            MD.processes_{1}.setParameters(iCell);
+
+            MD.addProcess(EfficientSubpixelRegistrationProcess(MD));
+            SDCindx = MD.getProcessIndex('EfficientSubpixelRegistrationProcess');
+            MD.processes_{SDCindx}.run()
+        end
+            % MDpath = MD.getFullPath();
+            % Save individual cell movieData
+            allCellsSet{i}.cellMD = MD.getFullPath();
+            allCellsSet{i}.key = iCell.key;
+            allCellsSet{i}.key_noTime = iCell.key_noTime;
+            MList{i} = MD;
+            checkFail{i} = true;
+    catch ME
+        disp(['FAILED MD{i} Load : ' num2str(i)]);
+        disp(['FAILED MD Load : ' iCell.MD]);
+        disp(ME);
+        checkFail{i} = false;
+    end
 end
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
@@ -157,7 +259,7 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp('% Save .mat file with expected data structures and names (cell array and dictionary)');
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
-    cellDataSet = allCellsSet;
+cellDataSet = allCellsSet;
 if isempty(randset)
     matFileName = [omeTiffDir filesep matFile_name '.mat'];
 else

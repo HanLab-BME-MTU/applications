@@ -1,5 +1,6 @@
-function conditionEnrichmentStatistics(enrichmentProcesses,projProcesses,names,outputDirPlot,varargin)
-% load scoring data associated to cells. A Cell of process list describes the conditions
+function conditionEnrichmentStatistics(packageList,names,outputDirPlot,varargin)
+% packageList describe a condition (either experimental or algorithmical).
+
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
@@ -9,6 +10,23 @@ ip.addParameter('projProcesses',[]);
 ip.parse(varargin{:});
 p=ip.Results;
 
+
+projProcessesLabFrame=(arrayfun(@(pack) pack.getProcess(4),packageList,'unif',0))';
+
+enrichmentProcesses=(arrayfun(@(pack) pack.getProcess(6),packageList,'unif',0))';
+projProcessesAstral=(arrayfun(@(pack) pack.getProcess(7),packageList,'unif',0))';
+projProcessesPolar=(arrayfun(@(pack) pack.getProcess(8),packageList,'unif',0))';
+
+projProcessesAstralMovie=(arrayfun(@(pack) pack.getProcess(9),packageList,'unif',0))';
+projProcessesPolarMovie=(arrayfun(@(pack) pack.getProcess(10),packageList,'unif',0))';
+
+%% Sumarizing movies
+% nProcess=length(enrichmentProcesses);
+% processRenderArray=printProcMIPArray([ num2cell([[projProcessesPolarMovie{:}]])], ... 
+%         [outputDirPlot filesep 'PolarArrayMovie'],'MIPIndex',[3*ones(1,2*nProcess)],'maxHeight',1200, ... 
+%         'MIPSize','auto');
+
+%% A clusterfuck of data collection below...
 if(~iscell(enrichmentProcesses))
     enrichmentProcesses={enrichmentProcesses};
 end
@@ -27,26 +45,16 @@ astralThresh=0;
 polarThresh=0;
 distBinning=[];
 
-%% Cumulative plots rendering in a single image
-renderA=printProjProcessArray(projProcesses,'astrals',outputDirPlot,names);
-renderP=[];
-if(~isempty(p.projProcesses))   
-    renderP=printProjProcessArray(p.projProcesses,'polars',outputDirPlot,names);
-end
-imshow([renderA renderP]);
-printPNGEPSFIG(gcf,outputDirPlot,'AstralAndPolar');
-
-
 %% Cumulative plots rendering movie per movie
-printProjProcessArray(projProcesses,'OrthoProj',outputDirPlot,{'All'}, ... 
-            'splitMovie',true,'forceSize',[],'outFile',4);
+% printProjProcessArray(projProcesses,'OrthoProj',outputDirPlot,{'All'}, ... 
+%             'splitMovie',true,'forceSize',[],'outFile',4);
+% printProcessArray({{[projProcesses{:}]} {[projProcessesPolar{:}]}},{[enrichmentProcesses{:}]},3,outputDirPlot,names(1));
+% printProcessArray({{[projProcesses{:}]} {[projProcessesPolar{:}]}},{[enrichmentProcesses{:}]},4,outputDirPlot,{[names{:}]});
+% printProcessArray({projProcesses projProcessesPolar},enrichmentProcesses,5,outputDirPlot,names);
+% printProcessArray({projProcesses projProcessesPolar},enrichmentProcesses,6,outputDirPlot,names);
+% printProcessArray({projProcesses projProcessesPolar},enrichmentProcesses,7,outputDirPlot,names);
 
-
-printProcessArray({{[projProcesses{:}]} {[p.projProcesses{:}]}},{[enrichmentProcesses{:}]},3,outputDirPlot,names(1));
-% printProcessArray({{[projProcesses{:}]} {[p.projProcesses{:}]}},{[enrichmentProcesses{:}]},4,outputDirPlot,{[names{:}]});
-% printProcessArray({projProcesses p.projProcesses},enrichmentProcesses,5,outputDirPlot,names);
-% printProcessArray({projProcesses p.projProcesses},enrichmentProcesses,6,outputDirPlot,names);
-% printProcessArray({projProcesses p.projProcesses},enrichmentProcesses,7,outputDirPlot,names);
+nonEmptyProcess=find(cellfun(@(p) ~isempty(p),enrichmentProcesses))';
 
 
 %% Condition structure for easier interpretation
@@ -76,52 +84,6 @@ for cIdx=1:length(enrichmentProcesses)
     timeCell{cIdx}=condTimeCell;
 end
 
-
-%% Display elevation vs density data for MT only 
-cmap=cool(length(enrichmentProcesses));
-c={'r','b','g','y','k','o'};
-scoresBin=-pi/2:0.1:pi/2;
-nonEmptyProcess=find(cellfun(@(p) ~isempty(p),enrichmentProcesses))';
-meansDensitiesCell=cell(1,length(enrichmentProcesses));
-Handles=[];
-[Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
-hold on;
-for cIdx=nonEmptyProcess
-	for pIdx=1:length(enrichmentProcesses{cIdx})
-		allElevs=vertcat(elevationCell{cIdx}{pIdx}{:});
-	    allDens=vertcat(densityCell{cIdx}{pIdx}{:});
-        
-        % scale astral density to one
-        allDens=allDens/mean(allDens(allElevs<0));
-        
-		[counts,edges,binIdx]=histcounts(allElevs,scoresBin);
-		[means,meds,stds,orderedIndex,counts] = statPerIndx(allDens,binIdx+1);
-
-		meansDensitiesCell{cIdx}=[meansDensitiesCell{cIdx}; means];
-	end
-    if(~isempty((meansDensitiesCell{cIdx})))
-        if(size(meansDensitiesCell{cIdx},1)>1)
-            y=meansDensitiesCell{cIdx};
-            if(p.shade)
-                H=shadedErrorBar(scoresBin(1:end),mean(y),std(y),{'Color',cmap(cIdx,:)});
-                Handles=[Handles H];
-            else
-                plot(scoresBin(1:end),mean(y),[c{1} '-'],'Color',cmap(cIdx,:));
-            end
-        else
-            plot(scoresBin(1:end),meansDensitiesCell{cIdx},[c{1} '-'],'Color',cmap(cIdx,:));
-        end
-    end
-end
-lineToLegend=arrayfun(@(h) h.mainLine,Handles,'unif',0)
-legend([lineToLegend{:}],names(nonEmptyProcess),'Location','northwest')
-ylim([0,5])
-xlim([-pi/2+0.05,1.5]);
-xlabel('Elevation (rad)');
-ylabel('Comet density (1/\mu m^3)')
-hold off;
-printPNGEPSFIG(F,outputDirPlot,'enrichment');
-close(F);
 
 
 % Count and density function of distance to poles
@@ -169,6 +131,7 @@ for cIdx=nonEmptyProcess
         allKTAzim=vertcat(tmp.KTazimuths{:});
         allKTElev=vertcat(tmp.KTelevations{:});
         allKTDist=vertcat(tmp.KTpoleDistances{:});
+        allKTTime=vertcat(tmp.KTTimesSteps{:});
         polarDetectionsMask=tmp.polarDetectionsMask;
         astralDetectionsMask=tmp.astralDetectionsMask;
 
@@ -189,9 +152,11 @@ for cIdx=nonEmptyProcess
         normalizedAstralAmp=sumAstralAmp./astralVolumes;
         normalizedAstralCount=astralCounts./astralVolumes;
 
+        MD=enrichmentProcesses{cIdx}(pIdx).getOwner();
+
+
         % no scaling at first
         % allDens=allDens/mean(allDens(allElevs<0));  
-        MD=enrichmentProcesses{cIdx}(pIdx).getOwner();
 
         meansPolarDensitiesCell{cIdx}=[meansPolarDensitiesCell{cIdx}; meanPolarDensities];
         meansAstralDensitiesCell{cIdx}=[meansAstralDensitiesCell{cIdx}; meanAstralDensities];
@@ -210,7 +175,35 @@ for cIdx=nonEmptyProcess
         movie.binnedCountAstral=astralCounts; 
         movie.binnedCountPolar=polarCounts; 
         movie.binnedCountAstralPerFrame=astralCounts/MD.nFrames_; 
-        movie.binnedCountPolarPerFrame=polarCounts/MD.nFrames_; 
+        movie.binnedCountPolarPerFrame=polarCounts/MD.nFrames_;
+
+        KTPerFrame=mean(cellfun(@(k) length(k),tmp.KTTimesSteps));
+
+        movie.binnedCountAstralPerFramePerKT=(astralCounts/KTPerFrame)/MD.nFrames_; 
+        movie.binnedCountPolarPerFramePerKT=(polarCounts/KTPerFrame)/MD.nFrames_;  
+        
+        [KTDistCounts,edges,index]=histcounts(allKTDist,[polarDistBinning]);
+
+        KTDistCounts=KTDistCounts./MD.nFrames_;
+        KTROICounts=fliplr(cumsum(fliplr(KTDistCounts)));
+        movie.binnedCountAstralPerFramePerKTAtDist=(astralCounts./KTROICounts)/MD.nFrames_; 
+        movie.binnedCountPolarPerFramePerKTAtDist=(polarCounts./KTROICounts)/MD.nFrames_;  
+        
+
+
+        astalAt2UM=mean(astralCounts((astralDistBinning>20)&(astralDistBinning<26)));
+        polarAt2UM=mean(polarCounts((polarDistBinning>20)&(polarDistBinning<26)));
+
+        % astalAt2UM=mean(astralCounts((astralDistBinning==20)));
+        % polarAt2UM=mean(polarCounts((polarDistBinning==20)));
+
+        movie.binnedCountAstralNorm2um=astralCounts/astalAt2UM; 
+        movie.binnedCountPolarNorm2um=polarCounts/polarAt2UM;  
+
+        KTCountWeigth=KTROICounts./KTROICounts(1);
+        movie.binnedCountAstralNorm2umWeighted=astralCounts./(astalAt2UM); 
+        movie.binnedCountPolarNorm2umWeighted=polarCounts./(polarAt2UM*KTCountWeigth);  
+
         movie.elevation=vertcat(elevationCell{cIdx}{pIdx}{:});
         movie.intensity=vertcat(ampCell{cIdx}{pIdx}{:});
         movie.density=vertcat(densityCell{cIdx}{pIdx}{:});;
@@ -218,12 +211,116 @@ for cIdx=nonEmptyProcess
         movie.KTazimuths=allKTAzim;
         movie.KTelevations=allKTElev;
         movie.KTdist=allKTDist;
+        movie.KTROICounts=KTROICounts;
+        movie.KTDistCounts=KTDistCounts;
+        movie.KTtime=allKTTime;
         movie.time=vertcat(timeCell{cIdx}{pIdx}{:});
         moviesStruct=[moviesStruct movie];
     end
     conditionEnrichmenData(cIdx).movies=moviesStruct;    
 end
 
+%% Retrieving projection process
+projProcessesLabFrame=(arrayfun(@(pack) pack.getProcess(4),packageList,'unif',0))';
+projProcessesPolarMovie=(arrayfun(@(pack) pack.getProcess(10),packageList,'unif',0))';
+%% Plotting analysis data
+processGraphCell=cell(length(conditionEnrichmenData),4);
+for cIdx=1:length(conditionEnrichmenData)
+    processGraphCell{cIdx,1}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','per frame','lightCond',cIdx);
+    processGraphCell{cIdx,2}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','normalized 2um','lightCond',cIdx);
+    processGraphCell{cIdx,3}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','KT ROI Count','lightCond',cIdx);
+    processGraphCell{cIdx,4}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','weighted','lightCond',cIdx);
+end
+nProcess=length(enrichmentProcesses);
+processRenderArray=printProcMIPArray( [projProcessesLabFrame projProcessesAstral projProcessesPolar processGraphCell(:,1)  processGraphCell(:,2) projProcessesPolarMovie processGraphCell(:,3) processGraphCell(:,4)], ... 
+        [outputDirPlot filesep 'GraphFullPolarArrayMovie'],'MIPIndex',[1*ones(1,nProcess) 3*ones(1,nProcess)  3*ones(1,nProcess) ones(1,nProcess)  ones(1,nProcess) 3*ones(1,nProcess) ones(1,nProcess)  ones(1,nProcess)],'maxHeight',1200, ... 
+        'MIPSize','auto','printFrame',1:50);
+figure;imshow(imread(sprintfPath(processRenderArray.outFilePaths_{1},1)));
+return;
+
+plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','per frame');
+plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','normalized 2um');
+plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','weighted');
+
+%% For each condition
+processGraphCell=cell(length(conditionEnrichmenData),4);
+for cIdx=1:length(conditionEnrichmenData)
+    processGraphCell{cIdx,1}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','per frame','lightCond',cIdx);
+    processGraphCell{cIdx,2}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','normalized 2um','lightCond',cIdx);
+    processGraphCell{cIdx,3}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','KT ROI Count','lightCond',cIdx);
+    % processGraphCell{cIdx,4}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','perFramePerKT','lightCond',cIdx);
+    processGraphCell{cIdx,4}=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,'type','weighted','lightCond',cIdx);
+end
+
+%% drawing each condition in a split fashion
+for cIdx=1:length(conditionEnrichmenData)
+    processRenderArray=printProcMIPArray( {processGraphCell{cIdx,:} projProcessesAstral{cIdx} projProcessesPolar{cIdx}}, ... 
+            [outputDirPlot filesep 'GraphPolarArray-Split'],'MIPIndex',[ones(1,size(processGraphCell,2)) 3*ones(1,2)],'maxHeight',1200, ... 
+            'MIPSize','auto','MIParrangement','auto');
+    movefile(sprintfPath(processRenderArray.outFilePaths_{1},1),[outputDirPlot filesep 'GraphPolarArray-Split' filesep 'GraphPolarArray-' num2str(cIdx) '.png']);
+end
+
+%% Show cell growth compared with cell
+nProcess=length(enrichmentProcesses);
+processRenderArray=printProcMIPArray( [processGraphCell num2cell([[projProcessesAstral{:}]' [projProcessesPolar{:}]'])], ... 
+        [outputDirPlot filesep 'GraphAstralPolarArray'],'MIPIndex',[ones(1,size(processGraphCell,2)*nProcess) 3*ones(1,2*nProcess)],'maxHeight',1200, ... 
+        'MIPSize','auto','MIParrangement','auto');
+
+nProcess=length(enrichmentProcesses);
+processRenderArray=printProcMIPArray( [processGraphCell num2cell([[projProcessesAstralMovie{:}]' [projProcessesPolarMovie{:}]'])], ... 
+        [outputDirPlot filesep 'GraphAstralPolarArrayMovie'],'MIPIndex',[ones(1,size(processGraphCell,2)*nProcess) 3*ones(1,2*nProcess)],'maxHeight',1200, ... 
+        'MIPSize','auto');
+
+
+
+
+
+return;
+
+%% Display elevation vs density data for MT only 
+cmap=cool(length(enrichmentProcesses));
+c={'r','b','g','y','k','o'};
+scoresBin=-pi/2:0.1:pi/2;
+meansDensitiesCell=cell(1,length(enrichmentProcesses));
+Handles=[];
+[Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
+hold on;
+for cIdx=nonEmptyProcess
+    for pIdx=1:length(enrichmentProcesses{cIdx})
+        allElevs=vertcat(elevationCell{cIdx}{pIdx}{:});
+        allDens=vertcat(densityCell{cIdx}{pIdx}{:});
+        
+        % scale astral density to one
+        allDens=allDens/mean(allDens(allElevs<0));
+        
+        [counts,edges,binIdx]=histcounts(allElevs,scoresBin);
+        [means,meds,stds,orderedIndex,counts] = statPerIndx(allDens,binIdx+1);
+
+        meansDensitiesCell{cIdx}=[meansDensitiesCell{cIdx}; means];
+    end
+    if(~isempty((meansDensitiesCell{cIdx})))
+        if(size(meansDensitiesCell{cIdx},1)>1)
+            y=meansDensitiesCell{cIdx};
+            if(p.shade)
+                H=shadedErrorBar(scoresBin(1:end),mean(y),std(y),{'Color',cmap(cIdx,:)});
+                Handles=[Handles H];
+            else
+                plot(scoresBin(1:end),mean(y),[c{1} '-'],'Color',cmap(cIdx,:));
+            end
+        else
+            plot(scoresBin(1:end),meansDensitiesCell{cIdx},[c{1} '-'],'Color',cmap(cIdx,:));
+        end
+    end
+end
+lineToLegend=arrayfun(@(h) h.mainLine,Handles,'unif',0)
+legend([lineToLegend{:}],names(nonEmptyProcess),'Location','northwest')
+ylim([0,5])
+xlim([-pi/2+0.05,1.5]);
+xlabel('Elevation (rad)');
+ylabel('Comet density (1/\mu m^3)')
+hold off;
+printPNGEPSFIG(F,outputDirPlot,'enrichment');
+close(F);
 
 %% Mean intensity vs pole distance.
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
@@ -271,59 +368,6 @@ hold off;
 printPNGEPSFIG(F,outputDirPlot,'meanIntensities');
 %close(F);
 
-%% Count/frame vs pole distance
-[Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
-hold on;
-
-shadeHandles=[];
-AstralShadeHandles=[];
-PolarShadeHandles=[];
-predHandles=[];
-astralK=0;
-for cIdx=nonEmptyProcess
-    lcountAstralCell=countAstralCell{cIdx};
-    lcountPolarCell=countPolarCell{cIdx};
-
-    lcountAstralCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountAstralPerFrame);
-    lcountPolarCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountPolarPerFrame);
-
-    [f,B]=catastropheRateFitCount(mean(lcountAstralCell(:,astralXTicks>=minDist)),fitXTicks);
-    predictedAstral= f(B,astralXTicks);
-    astralK=B(2);
-    conditionEnrichmenData(cIdx).predictedAstralCount=predictedAstral;
-    conditionEnrichmenData(cIdx).catastropheModel=f;
-    conditionEnrichmenData(cIdx).catastropheModelParam=B;
-
-    A=sum(mean(lcountPolarCell))./sum(exp(-polarXTicks*PolarK));
-    predictedPolar= A*exp(-polarXTicks*PolarK);
-    if(~isempty((lcountAstralCell)))
-        shadeHandle=plotOrShade(Handle(1),astralXTicks,lcountAstralCell,p.shade,cmapAstral(cIdx,:));
-        shadeHandles=[shadeHandles shadeHandle];
-        % pH=plot(Handle(1),astralXTicks,predictedAstral,'Color',cmapAstral(cIdx,:));
-        % predHandles=[predHandles pH];
-    end    
-
-    if(~isempty((lcountPolarCell)))
-        shadeHandle=plotOrShade(Handle(1),polarXTicks,lcountPolarCell,p.shade,cmapPolar(cIdx,:));
-        shadeHandles=[shadeHandles shadeHandle];
-    end
-end
-shadeHandles=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0);
-polarLineToLegend=arrayfun(@(h) h.mainLine,PolarShadeHandles,'unif',0);
-
-c2m=(@(x) [x{:}]);
-legend([shadeHandles{:}], ... 
-        c2m(cellfun(@(n) {['Astral-' n],['Polar-' n]},names,'unif',0)), ...
-        'Location','northwest');
-%legend([lineToLegend{:} predHandles],{'Astral','Polar',['predAstral K:' num2str(astralK)]},'Location','northwest')
-% ylim([0,4])
-xlim(Handle,[0 7]);
-xlabel('Pole distance (\mu m)');
-ylabel(Handle,'Comet counts per frame');
-printPNGEPSFIG(F,outputDirPlot,'cometCount');
-hold off;
-
-return;
 
 %% Proximal and distal counts
 [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',10,'AxesHeight',6);
@@ -477,7 +521,7 @@ for cIdx=nonEmptyProcess
     rsize=[300 400];
     cellPlate=cell(ceil(length(enrichmentProcesses{cIdx})/2),2);
 	for pIdx=1:length(enrichmentProcesses{cIdx})
-        img=imread(sprintfPath(projProcesses{cIdx}(pIdx).outFilePaths_{2},1));
+        img=imread(sprintfPath(projProcessesAstral{cIdx}(pIdx).outFilePaths_{2},1));
         plotImg=imread(enrichmentProcesses{cIdx}(pIdx).outFilePaths_{1});
         img=imresize(img,rsize);
         plotImg=imresize(plotImg,rsize);
@@ -504,7 +548,7 @@ end
 %     rsize=[200 400];
 %     cellPlate=cell(ceil(length(enrichmentProcesses{cIdx})/2),2);
 % 	for pIdx=1:length(enrichmentProcesses{cIdx})
-%         img=imread(sprintfPath(projProcesses{cIdx}(pIdx).outFilePaths_{2},1));
+%         img=imread(sprintfPath(projProcessesAstral{cIdx}(pIdx).outFilePaths_{2},1));
 %         plotImg=imread(enrichmentProcesses{cIdx}(pIdx).outFilePaths_{4});
 %         img=imresize(img,rsize);
 %         plotImg=imresize(plotImg,rsize);
@@ -519,11 +563,11 @@ end
 % end
 
 
-printProcessArray({{[projProcesses{:}]} {[p.projProcesses{:}]}},{[enrichmentProcesses{:}]},4,outputDirPlot,{[names{:}]});
-printProcessArray({{[projProcesses{:}]} {[p.projProcesses{:}]}},{[enrichmentProcesses{:}]},3,outputDirPlot,{[names{:}]});
-printProcessArray({projProcesses p.projProcesses},enrichmentProcesses,5,outputDirPlot,names);
-printProcessArray({projProcesses p.projProcesses},enrichmentProcesses,6,outputDirPlot,names);
-printProcessArray({projProcesses p.projProcesses},enrichmentProcesses,7,outputDirPlot,names);
+printProcessArray({{[projProcessesAstral{:}]} {[projProcessesPolar{:}]}},{[enrichmentProcesses{:}]},4,outputDirPlot,{[names{:}]});
+printProcessArray({{[projProcessesAstral{:}]} {[projProcessesPolar{:}]}},{[enrichmentProcesses{:}]},3,outputDirPlot,{[names{:}]});
+printProcessArray({projProcessesAstral projProcessesPolar},enrichmentProcesses,5,outputDirPlot,names);
+printProcessArray({projProcessesAstral projProcessesPolar},enrichmentProcesses,6,outputDirPlot,names);
+printProcessArray({projProcessesAstral projProcessesPolar},enrichmentProcesses,7,outputDirPlot,names);
 
 
 function render=printProcessArray(processProjCellArray,enrichmentProcesses,outputIndex,outputDirPlot,names)
@@ -554,8 +598,111 @@ for cIdx=1:length(enrichmentProcesses)
     imwrite(render,[outputDirPlot 'plate_' graphName '_' names{cIdx} '.png']);
 end
 
+function processRenderer=plotCountVsDistance(conditionEnrichmenData,astralXTicks,polarXTicks,names,outputDirPlot,varargin)
+    ip = inputParser;
+    ip.CaseSensitive = false;
+    ip.KeepUnmatched = true;
+    ip.addParameter('shade',false);
+    ip.addParameter('type','per frame');
+    ip.addParameter('lightCond',[]);
+    ip.parse(varargin{:});
+    p=ip.Results;
 
-function shadeHandles=plotOrShade(h,XTicks,measure,shade,cmap)
+    cmap=winter(2*length(conditionEnrichmenData));
+    cmapAstral=winter(2*length(conditionEnrichmenData)); % X2 to avoid light colors
+    cmapPolar=autumn(2*length(conditionEnrichmenData));
+
+    [Handle,~,F]=setupFigure(1,1,1,'AxesWidth',5,'AxesHeight',5,'AspectRatio',1);
+    set(F,'Visible', 'off'); 
+    hold on;
+    shadeHandles=[];
+    AstralShadeHandles=[];
+    PolarShadeHandles=[];
+    predHandles=[];
+    astralK=0;
+    minDist=2;  
+    fitXTicks=astralXTicks(astralXTicks>=minDist);
+    for cIdx=1:length(conditionEnrichmenData)
+        switch p.type
+        case 'per frame'
+            lcountAstralCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountAstralPerFrame);
+            lcountPolarCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountPolarPerFrame); 
+        case 'perFramePerKT'
+            % For each frame, KT is normalize according to the number of
+            lcountAstralCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountAstralPerFramePerKT);
+            lcountPolarCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountPolarPerFramePerKT);
+        case 'perFramePerKTAtDist'
+            % For each frame, KT is normalize according to the number of
+            lcountAstralCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountAstralPerFramePerKTAtDist);
+            lcountPolarCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountPolarPerFramePerKTAtDist);    
+        case 'normalized 2um'
+            % For each frame, KT is normalize according to the number of
+            lcountAstralCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountAstralNorm2um);
+            lcountPolarCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountPolarNorm2um);  
+        case 'weighted'
+            % For each frame, KT is normalize according to the number of
+            lcountAstralCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountAstralNorm2umWeighted);
+            lcountPolarCell=vertcat(conditionEnrichmenData(cIdx).movies.binnedCountPolarNorm2umWeighted);      
+        case 'KT ROI Count'
+            % For each frame, KT is normalize according to the number of
+            lcountAstralCell=[];
+            lcountPolarCell=vertcat(conditionEnrichmenData(cIdx).movies.KTROICounts);       
+        end
+
+
+        % A=sum(mean(lcountPolarCell))./sum(exp(-polarXTicks*PolarK));
+        % predictedPolar= A*exp(-polarXTicks*PolarK);
+        if(isempty(p.lightCond)||(ismember(cIdx,p.lightCond)))
+            transparency=1;
+            thickness=1;
+        else
+            transparency=0.7;
+            thickness=0.5;
+        end
+
+        if(~isempty((lcountAstralCell)))
+            % [f,B]=catastropheRateFitCount(mean(lcountAstralCell(:,astralXTicks>=minDist)),fitXTicks);
+            % predictedAstral= f(B,astralXTicks);
+            % astralK=B(2);
+            % % store fitting results
+            % conditionEnrichmenData(cIdx).predictedAstralCount=predictedAstral;
+            % conditionEnrichmenData(cIdx).catastropheModel=f;
+            % conditionEnrichmenData(cIdx).catastropheModelParam=B;
+            % pH=plot(Handle(1),astralXTicks,predictedAstral,'Color',cmapAstral(cIdx,:));
+            % predHandles=[predHandles pH];
+
+            shadeHandle=plotOrShade(Handle(1),astralXTicks,lcountAstralCell,p.shade,cmapAstral(cIdx,:),transparency,thickness);
+            shadeHandles=[shadeHandles shadeHandle];
+
+        end    
+
+        if(~isempty((lcountPolarCell)))
+            shadeHandle=plotOrShade(Handle(1),polarXTicks,lcountPolarCell,p.shade,cmapPolar(cIdx,:),transparency,thickness);
+            shadeHandles=[shadeHandles shadeHandle];
+        end
+    end
+    hold off;
+    shadeHandles=arrayfun(@(h) h.mainLine,shadeHandles,'unif',0);
+    polarLineToLegend=arrayfun(@(h) h.mainLine,PolarShadeHandles,'unif',0);
+
+    c2m=(@(x) [x{:}]);
+    if(isempty(p.lightCond))
+    % legend([shadeHandles{:}], ... 
+    %         c2m(cellfun(@(n) {['Astral-' n],['Polar-' n]},names,'unif',0)), ...
+    %         'Location','northwest');
+    end
+    %legend([lineToLegend{:} predHandles],{'Astral','Polar',['predAstral K:' num2str(astralK)]},'Location','northwest')
+    % ylim([0,4])
+    xlim(Handle,[0 7]);
+    xlabel('Pole distance (\mu m)');
+    ylabel(Handle,['+Tips count ' p.type]);
+    printPNGEPSFIG(F,outputDirPlot,['cometCount' p.type '_' num2str(p.lightCond)]);
+    %% create projection process saving independant projection location
+    processRenderer=ExternalProcess(MovieList(),'Renderer');
+    processRenderer.setOutFilePaths({[outputDirPlot filesep  'cometCount' p.type '_' num2str(p.lightCond) '.png']});
+
+
+function shadeHandles=plotOrShade(h,XTicks,measure,shade,cmap,transparency,thickness)
 c={'r','b','g','y','k','o'};
 shadeHandles=[];
 if(size(measure,1)>1)
@@ -564,11 +711,16 @@ if(size(measure,1)>1)
         axes(h);
         shadeHandles=shadedErrorBar(XTicks,mean(y),std(y),{'Color',cmap(1,:)},1);
     else
-        plot(XTicks,mean(y),[c{1} '-'],'Color',cmap(1,:));
+        p=plot(h,XTicks,mean(y),[c{1} '-'],'Color',cmap(1,:));
+        p.Color(4)=transparency;
+        p.LineWidth=thickness;
     end
 else
-    plot(XTicks,measure,[c{1} '-'],'Color',cmap(1,:));
+    p=plot(h,XTicks,measure,[c{1} '-'],'Color',cmap(1,:));
+    p.Color(4)=transparency;
+    p.LineWidth=thickness;
 end
+
 function [f,B]=catastropheRateFitCount( dataPoint,fitXTicks)
 
     f = @(b,x) b(1).*exp(-b(2).*x);
