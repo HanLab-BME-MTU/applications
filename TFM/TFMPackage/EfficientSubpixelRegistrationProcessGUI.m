@@ -110,7 +110,9 @@ if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 
 end
 
-if ishandle(userData.previewFig), delete(userData.previewFig); end
+if isfield(userData, 'previewFig') && ishandle(userData.previewFig) 
+    delete(userData.previewFig) 
+end
 
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);

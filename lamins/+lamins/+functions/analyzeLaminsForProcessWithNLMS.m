@@ -273,7 +273,7 @@ function [ out ] = analyzeLaminsForProcessWithNLMS( MD , varargin)
 end
 function [S4,S3,S2,S] = analyzeLaminsImage(laminsImage)
 %     I = images(ii);
-    I = laminsImage;
+    LI = laminsImage;
     % Initial skeleton with basic cleanup
 %     S = I.skeleton;
     F8 = OrientationSpaceFilter(0.08,0.08*0.8,8);
@@ -284,22 +284,22 @@ function [S4,S3,S2,S] = analyzeLaminsImage(laminsImage)
     nlms_mip = nanmax(nlms,[],3);
     S = lamins.classes.Skeleton(nlms_mip);
     S.cleanup
-    score = lamins.functions.scoreEdges(S,I.flattenIntensity);
+    score = lamins.functions.scoreEdges(S,LI.flattenIntensity);
     S.deleteEdges(score < 0);
 
     % Use intensity variation along the edge
     S2 = S.copy;
-    thresh = I.maskThresh(double(I));
-    S2.auditEdges(double(I),[],thresh,thresh/2);
+    thresh = LI.maskThresh(double(LI));
+    S2.auditEdges(double(LI),[],thresh,thresh/2);
 
     % New on June 3rd, 2015
     % Audit using mask, proportion on flattened intensity, and
     % do another round of score optimization including zero
     % This was the version published with the Dec 2015 MBoC Paper
     S3 = S2.copy;
-    S3.auditEdgesByMask(I);
-    S3.auditEdgesByThresholdedIntensity(I);
-    score2 = lamins.functions.scoreEdges(S3,I.flattenIntensity);
+    S3.auditEdgesByMask(LI);
+    S3.auditEdgesByThresholdedIntensity(LI);
+    score2 = lamins.functions.scoreEdges(S3,LI.flattenIntensity);
     S3.deleteEdges(score2 <= 0);
     
     % New on February 1st, 2016

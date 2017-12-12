@@ -39,7 +39,8 @@ for k=1:numConditions
     for ii=1:curNumCells
         curMD = curML.getMovie(ii);
         [~,curProjectName] = fileparts(curMD.movieDataPath_);
-        ClusterInfo.setQueueName('super')
+%         ClusterInfo.setQueueName('super')
+        ClusterInfo.setQueueName('256GB')
         ClusterInfo.setNNode(1);
         disp(['Currently working on ' curProjectName])
         jobs{k,ii}=batch(@faPackageRun,0,{curMD.getFullPath},'Pool',15, 'profile','nucleus_r2017a');

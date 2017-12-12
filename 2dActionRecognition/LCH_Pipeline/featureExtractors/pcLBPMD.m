@@ -39,6 +39,7 @@ for t = params.sTime : params.nTime - params.frameJump
     lbpTFname = [dirs.lbp sprintf('%03d',t) '_lbp.mat'];
     
     % Just to correct a bug
+    assert(exist([dirs.lbp sprintf('%03d',t) '_mf.mat'],'file'));
     if exist([dirs.lbp sprintf('%03d',t) '_mf.mat'],'file')
         unix(sprintf('mv %s %s',[dirs.lbp sprintf('%03d',t) '_mf.mat'],lbpTFname));
     end

@@ -1,11 +1,10 @@
-
-function [doneTracking] = pcTracking(params,dirs)
-
 % pcTracking
 % Input: detected cells
 % Output: trajectories
 
 % Assaf Zaritsky, July 2015
+function [doneTracking] = pcTracking(params,dirs)
+
 if params.always
     unix(sprintf('rm %strackingOutput.mat',[dirs.tracking filesep]));    
     fprintf('tracking (always): clean output directories\n'); 

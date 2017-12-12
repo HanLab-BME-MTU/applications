@@ -1,4 +1,7 @@
 % Measure: difference between LBP at consecutive time points
+% Input: cell trajectories, LBP per cell trajectory
+% Output: dLBP per cell trajectory
+
 % Assaf Zaritsky, June 2016
 function [] = pcSingleCell_dLBP(params,dirs)
 
