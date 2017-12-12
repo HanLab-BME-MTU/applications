@@ -18,8 +18,9 @@ end
     pool = gcp('nocreate');
     if(isempty(pool))
         prev_maxima = maxima_org;
+        % Consider sorting to avoidNans per halleyft
         for ki=Kidx
-            maxima{ki} = halleyft(shiftdim(obj.getResponseAtOrderFT(K(ki),2).a,2),prev_maxima,false,1);
+            [maxima{ki}] = halleyft(shiftdim(obj.getResponseAtOrderFT(K(ki),2).a,2),prev_maxima,false,1,1e-12,10,false);
             prev_maxima = maxima{ki};
         end
 %         maxima{obj.filter.K ==K} = maxima_org;
@@ -70,7 +71,7 @@ end
 function maxima = halleyftDescent(response,prev_maxima,Kidx)
     maxima = cell(1,length(response));
     for ki=Kidx
-        maxima{ki} = halleyft(response{ki},prev_maxima,false,1);
+        maxima{ki} = halleyft(response{ki},prev_maxima,false,1,1e-12,10,false);
         prev_maxima = maxima{ki};
     end
 end
