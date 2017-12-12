@@ -100,24 +100,91 @@ for ii=1:numConditions
         meanMedianFAarea(k) = mean(curMedianFAareaAllFrames);
         curMedianFAlengthAllFrames = arrayfun(@(x) x.medianLength,curFocalAdhInfo);
         meanMedianFAlength(k) = mean(curMedianFAlengthAllFrames);
-        curNumPureFAs
-        curCellAreas
+        curNumPureFAs = arrayfun(@(x) x.numberPureFA,curFocalAdhInfo);
+        meanNumPureFAs = mean(curNumPureFAs);
+        curCellAreas = arrayfun(@(x) x.cellArea,curFocalAdhInfo);
+        meanCellArea = mean(curCellAreas);
         
         nafaStruct=load(curAnalProc.outFilePaths_{3,iAdhChan});
-        focalAdhInfo{k} = nafaStruct.focalAdhInfo;
+        curNADensity = nafaStruct.NADensity;
+        meanNADensity = mean(curNADensity);
+        curFADensity = nafaStruct.FADensity;
+        meanFADensity = mean(curFADensity);
+
+        maturingStruct=load(curAnalProc.outFilePaths_{4,iAdhChan});
+        meanLifeTimeAll(k)=mean(maturingStruct.lifeTimeAll);
+        meanLifeTimeFailingNAs(k)=mean(maturingStruct.lifeTimeNAfailing);
+        meanLifeTimeMaturingNAs(k)=mean(maturingStruct.lifeTimeNAmaturing);
+        meanMaturingRatio(k)=mean(maturingStruct.maturingRatio);
         
-        curSE = curSE_struct.SE;
-        curSEDen = curSE_struct.SEDensity;
-        forceStruct = faInfoStruct.totalForceBlobs;
-        curTotalForce = forceStruct.force;
-%         curSE_struct = seCellStruct.SE_Cell;
-%         curSE = curSE_struct.SE;
-%         curSEDen = curSE_struct.SEDensity;
-%         curTotalForce = seCellStruct.totalForceCell;
+        assemRateStruct=load(curAnalProc.outFilePaths_{5,iAdhChan});
+        meanAssemRate(k)=mean(assemRateStruct.assemRateCell);
+        meanDisassemRate(k)=mean(assemRateStruct.disassemRateCell);
+        meanNucleatingNARatio(k) = mean(assemRateStruct.nucleationRatio);
+        meanDisassemNARatio(k) = mean(assemRateStruct.disassemblingNARatio);
         
-        SEPerGroup{k}=curSE;
-        SEDenPerGroup{k}=curSEDen;
-        totForcePerGroup{k}=curTotalForce;
+        % get the classification-reated features
+        iClassiProc = 8;
+        classProc = curFAPackage.getProcess(iClassiProc);
+%     outFilename = [chanDirName '_Chan' num2str(i) '_idsClassified'];
+%     outFilePaths{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
+        idsStruct=load(classProc.outFilePaths_{4,iAdhChan});
+        numG1(k) = sum(idsStruct.idGroup1);
+        numG2(k) = sum(idsStruct.idGroup2);
+        numG3(k) = sum(idsStruct.idGroup3);
+        numG7(k) = sum(idsStruct.idGroup7);
+        numG9(k) = sum(idsStruct.idGroup9);
+        numG5(k) = sum(idsStruct.idGroup5);
+        numG8(k) = sum(idsStruct.idGroup8);
+        numG4(k) = sum(idsStruct.idGroup4);
+        
+        classiOutFolder = fileparts(classProc.outFilePaths_{4,iAdhChan});
+        classiDataFolder = [classiOutFolder filesep 'data'];
+        % Mean relative population for each group
+        meanRelativePopG1(k) = sum(idsStruct.idGroup1)/length(idsStruct.idGroup1);
+        meanRelativePopG2(k) = sum(idsStruct.idGroup2)/length(idsStruct.idGroup1);
+        meanRelativePopG3(k) = sum(idsStruct.idGroup3)/length(idsStruct.idGroup1);
+        meanRelativePopG4(k) = sum(idsStruct.idGroup4)/length(idsStruct.idGroup1);
+        meanRelativePopG5(k) = sum(idsStruct.idGroup5)/length(idsStruct.idGroup1);
+        meanRelativePopG6(k) = sum(idsStruct.idGroup6)/length(idsStruct.idGroup1);
+        meanRelativePopG7(k) = sum(idsStruct.idGroup7)/length(idsStruct.idGroup1);
+        meanRelativePopG8(k) = sum(idsStruct.idGroup8)/length(idsStruct.idGroup1);
+        meanRelativePopG9(k) = sum(idsStruct.idGroup9)/length(idsStruct.idGroup1);
+        % Mean adh density per each group
+        meanAdhDensityG1(k) = sum(idsStruct.idGroup1)/meanCellArea;
+        meanAdhDensityG2(k) = sum(idsStruct.idGroup2)/meanCellArea;
+        meanAdhDensityG3(k) = sum(idsStruct.idGroup3)/meanCellArea;
+        meanAdhDensityG4(k) = sum(idsStruct.idGroup4)/meanCellArea;
+        meanAdhDensityG5(k) = sum(idsStruct.idGroup5)/meanCellArea;
+        meanAdhDensityG6(k) = sum(idsStruct.idGroup6)/meanCellArea;
+        meanAdhDensityG7(k) = sum(idsStruct.idGroup7)/meanCellArea;
+        meanAdhDensityG8(k) = sum(idsStruct.idGroup8)/meanCellArea;
+        meanAdhDensityG9(k) = sum(idsStruct.idGroup9)/meanCellArea;
+        % Other feature related properties are calculated in the step 11
+        
+        % Initial rise
+        iInitRiseProc = 11;
+        initRiseProc = curFAPackage.getProcess(iInitRiseProc);
+        iForceSlave = 1;
+        iVincSlave =2;
+%     potentialSlaves = {'forceMag','ampTotal2'};
+%     outFilename = [chanDirName '_initialTimeDelayIntAgainst_' potentialSlaves{i}];
+%     outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
+%     outFilename = [chanDirName 'peakTimeIntAgainst_' potentialSlaves{i}];
+%     outputFile{3,i} = [p.OutputDirectory filesep outFilename '.mat'];
+%     outFilename = [chanDirName '_endingIntAgainst_' potentialSlaves{i}];
+%     outputFile{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
+%     outFilename = [chanDirName '_crossCorrelationScore_' potentialSlaves{i}];
+%     outputFile{5,i} = [p.OutputDirectory filesep outFilename '.mat'];
+%     outFilename = [chanDirName '_crossCorrelationTimeLag_' potentialSlaves{i}];
+%     outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
+% save([dataPath filesep 'initialLagGroups.mat'],'initialLagGroups');
+% save([dataPath filesep 'peakLagGroups.mat'],'peakLagGroups');
+% save([dataPath filesep 'endingLagGroups.mat'],'endingLagGroups');
+% save([dataPath filesep 'ccScoreGroups.mat'],'ccScoreGroups');
+% save([dataPath filesep 'ccLagGroups.mat'],'ccLagGroups');
+        initRiseStruct=load(initRiseProc.outFilePaths_{2,iForceSlave});
+        
     end
     SEGroup{ii,1}=SEPerGroup;
     SEDenGroup{ii,1}=SEDenPerGroup;

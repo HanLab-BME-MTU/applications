@@ -262,6 +262,7 @@ for k=1:numClasses
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+    save([dataPath filesep nameTitle],'initialLagTogetherAdjusted','nameList2');    
     
     h2=figure;
     boxPlotCellArray(peakLagTogetherAdjusted,nameList2);
@@ -269,6 +270,7 @@ for k=1:numClasses
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+    save([dataPath filesep nameTitle],'peakLagTogetherAdjusted','nameList2');    
 
     h2=figure;
     boxPlotCellArray(endingLagTogetherAdjusted,nameList2);
@@ -276,6 +278,7 @@ for k=1:numClasses
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+    save([dataPath filesep nameTitle],'endingLagTogetherAdjusted','nameList2');    
     
     h2=figure;
     boxPlotCellArray(ccLagTogetherAdjusted,nameList2);
@@ -283,6 +286,7 @@ for k=1:numClasses
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+    save([dataPath filesep nameTitle],'ccLagTogetherAdjusted','nameList2');    
 end
 %% V. All the other features
 %% Distributing to each group (after filtering)
