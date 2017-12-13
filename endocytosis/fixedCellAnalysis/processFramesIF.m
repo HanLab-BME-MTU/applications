@@ -10,12 +10,27 @@
 % Options:
 %    'Overwrite' : true|{false}
 %
-% The output structure written to the results file contains the fields
-%  .ps     : result of pointSourceDetection at CCP locations, for all channels
-%  .psRand : result of Gaussian fitting at random locations, for all channels
-%  .mask   : cell mask
+% Output:
+%     out : structure with fields
+%          .dist:           distance to cell edge
+%          .A:              amplitude
+%          .dfeHists:       distance from edge histogram      
+%          .ampHists:       amplitude histogram (as a function of distance)
+%          .dfeHistMean_bc: average of bias-corrected dfeHists
+%          .dfeHistSD_bc:   s.d. of bias-corrected dfeHists
+%                           These are the values plotted
+%          .binc:           histogram bin center coordinates
+%          .ampHistMean_bc: average of bias-corrected ampHists  
+%          .ampHistSD_bc:   s.d. of bias-corrected ampHists
+%
+%     Note: 'dist' and 'A' are cell arrays of values for each channel
+%
+%
+%     res : structure saved by processFramesIF(), with additional field
+%          .ex : coordinates (Nx2) of the cell edge
 
 % Francois Aguet, 01/2014
+% Philippe Roudout 12/2017
 
 function processFramesIF(data, varargin)
 
@@ -27,8 +42,12 @@ ip.parse(data, varargin{:});
 
 nd = numel(data);
 
+%% Use mask validation
+allMasks = getCellMask(data, 'Overwrite', ip.Results.Overwrite, 'Validate', true);
+
+
 for i = 1:nd
-    
+
     if ~(exist(data(i).results, 'file')==2) || ip.Results.Overwrite
         fprintf('Processing %s ... ', getDirFromPath(data(i).results));
         
@@ -41,12 +60,13 @@ for i = 1:nd
             ch{c} = imread(data(i).channels{c});
         end
         
-        mask = maskFromFirstMode(ch{1});
-        CC = bwconncomp(~mask, 8);
-        np = cellfun(@numel, CC.PixelIdxList);
-        mask = imfill(mask);
-        bgIdx = vertcat(CC.PixelIdxList{np<100});
-        mask(bgIdx) = 1;
+        mask=allMasks{i};
+        % mask = maskFromFirstMode(ch{1});
+        % CC = bwconncomp(~mask, 8);
+        % np = cellfun(@numel, CC.PixelIdxList);
+        % mask = imfill(mask);
+        % bgIdx = vertcat(CC.PixelIdxList{np<100});
+        % mask(bgIdx) = 1;
         
         % run spot detection
         for c = 1:nc
