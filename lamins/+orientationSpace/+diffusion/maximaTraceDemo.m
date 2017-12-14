@@ -19,9 +19,19 @@ parfor ki=1:length(K)
     maximaTraceDeriv2(:,:,:,ki) = shiftdim(lmd(:,:,:,2),1);
 end
 
-[~,ind] = max(cumsum(abs(maximaTraceDeriv) < threshold,4),[],4);
+maximaTraceDerivIsNaN = isnan(maximaTraceDeriv);
+maximaTraceDerivNotNaN = ~maximaTraceDerivIsNaN;
+maximaTraceDerivIndexed = cumsum(maximaTraceDerivNotNaN,4);
+maximaTraceDerivCount = sum(maximaTraceDerivNotNaN,4);
+maximaTraceDerivIndexed(maximaTraceDerivIsNaN) = NaN;
+maximaTraceDerivIndexed(abs(maximaTraceDeriv) > threshold) = NaN;
+ind = max(maximaTraceDerivIndexed,[],4);
+indNoNaN = ind;
+indNoNaN(isnan(ind)) = 1;
+
+% [~,ind] = max(cumsum(abs(maximaTraceDeriv) < threshold,4),[],4);
 [q.X,q.Y,q.Z] = meshgrid(1:1024,1:1024,1:7);
-q.maximaTraceSelect = maximaTrace(sub2ind(size(maximaTrace),q.Y,q.X,q.Z,ind));
+q.maximaTraceSelect = maximaTrace(sub2ind(size(maximaTrace),q.Y,q.X,q.Z,indNoNaN));
 R3 = R.getResponseAtOrderFT(3,2);
 q.nlms = R3.nonLocalMaximaSuppressionPrecise(q.maximaTraceSelect);
 q.maximaTrace = maximaTrace;
@@ -40,7 +50,7 @@ c = 364;
 
 sz = size(q.maximaTraceData);
 q.maximaTraceData = reshape(q.maximaTraceData,prod(sz(1:3)),sz(4),sz(5));
-s = ind < length(K) & ind > 1;
+s = ind ~= maximaTraceDerivCount & ~isnan(ind);
 % s = true(size(ind));
 ind = ind(s);
 ind = bsxfun(@plus,ind,[ 1 0]);
@@ -56,6 +66,26 @@ coefs = slvblk(blockmat,intervalData).';
 sp = spmak(knots,coefs);
 spd = fnder(sp);
 spd.dim = 1;
+idxPos = spd.coefs(:,1) >  threshold & spd.coefs(:,5) <  threshold;
+idxNeg = spd.coefs(:,1) < -threshold & spd.coefs(:,5) > -threshold;
+spd.coefs(idxPos,:) = spd.coefs(idxPos,:) - threshold;
+spd.coefs(idxNeg,:) = spd.coefs(idxNeg,:) + threshold;
+
+pp = sp2pp(spd);
+discriminant = pp.coefs(:,2).^2-4*pp.coefs(:,1).*pp.coefs(:,3);
+dp = discriminant > 0;
+sqrt_discriminant = sqrt(discriminant(dp));
+pproots = NaN(size(pp.coefs,1),2);
+pproots(dp,1) = (-pp.coefs(dp,2)+sqrt_discriminant)/2./pp.coefs(dp,1);
+pproots(dp,2) = (-pp.coefs(dp,2)-sqrt_discriminant)/2./pp.coefs(dp,1);
+pproots = reshape(pproots,size(pp.coefs,1)/3,3,2);
+pproots(pproots > diff(pp.breaks)) = NaN;
+pproots(pproots < 0) = NaN;
+pproots = pproots + pp.breaks(1:3);
+pproots = reshape(pproots,size(pproots,1),6);
+pproots = max(pproots,[],2);
+
+
 coefsd = num2cell(spd.coefs,2).';
 % manipulate coefsd by threshold somehow
 spdc = struct2cell(spd);
