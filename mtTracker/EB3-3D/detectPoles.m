@@ -101,7 +101,7 @@ tracksScore=[tracks.lifetime].*arrayfun(@(x) median(x.A),tracks)';
 % trackMaxDist=full(max(distMatrix));
 % tracksScore=trackMaxDist;
 
-
+%% Build a detections from the two best scores
 for fIdx=1:numel(processFrames)
     timePoint=processFrames(fIdx);
     tracksOn=([tracks.endFrame]>=timePoint)&(timePoint>=[tracks.startFrame]);
@@ -134,15 +134,21 @@ P1=TracksHandle();
 P1.x=arrayfun(@(d) pixelSize*(d.xCoord(1,1)-1)+1,poleMovieInfo)';
 P1.y=arrayfun(@(d) pixelSize*(d.yCoord(1,1)-1)+1,poleMovieInfo)';
 P1.z=arrayfun(@(d) pixelSize*(d.zCoord(1,1)-1)+1,poleMovieInfo)';
+P1.tracksFeatIndxCG=ones(1,length(poleMovieInfo));
 P1.endFrame=length(poleMovieInfo);
+P1.segmentStartFrame=1;
+P1.segmentEndFrame=length(poleMovieInfo);
 P1.startFrame=1;
 
 P2=TracksHandle();
 P2.x=arrayfun(@(d) pixelSize*(d.xCoord(2,1)-1)+1,poleMovieInfo)';
 P2.y=arrayfun(@(d) pixelSize*(d.yCoord(2,1)-1)+1,poleMovieInfo)';
 P2.z=arrayfun(@(d) pixelSize*(d.zCoord(2,1)-1)+1,poleMovieInfo)';
+P2.tracksFeatIndxCG=2*ones(1,length(poleMovieInfo));
 P2.endFrame=length(poleMovieInfo);
 P2.startFrame=1;
+P2.segmentStartFrame=1;
+P2.segmentEndFrame=length(poleMovieInfo);
 tracks=[P1 P2];
 
 process=ip.Results.process;

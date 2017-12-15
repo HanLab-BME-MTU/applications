@@ -74,7 +74,8 @@ oDetections=Detections(detection);
 
 disp('Computing trackability');
 [maxSpeed,~,densities]=estimateTrackability(oDetections,1/MD.timeInterval_,'debugMode','');
-
+histogram(vertcat(maxSpeed{:}));
+xlabel('Max. speed in pixel');
 
 lpid=lpid+1;                    
 if(GenericPackage.processExist(package,lpid)&&(~any(lpid==p.forceRunIdx)))
@@ -189,27 +190,23 @@ if(nargout>0)
         processDynROIPack=GenericPackage(processDynROICells,[],'name_','dynROIView');
         MD.addPackage(processDynROIPack);
     end
-    % Bad Bad Bad
-    tr=tracks(1);
-    tr=tr.copy();
-    tr.x(:)=tr.x(1);
-    tr.y(:)=tr.y(1);
-    tr.z(:)=tr.z(1);
-    ref=FrameOfRef().setOriginFromTrack(tr).genCanonicalBase();
+
     processOverlayCells=cell(1,length(processDynROIPack.processes_));
     for KTIdx=1:length(processDynROIPack.processes_)
         processRendererROI=processDynROIPack.getProcess(KTIdx);
-        process=ExternalProcess(MD,'overlayProjTracksMovie');
+        
         processAllDetectOverlay=ExternalProcess(MD,'overlayProjDetectionMovie');
-        refDet=ref.applyBase(oDetections,'');
-        %det=oDetections;
-        colorIndx=arrayfun(@(d) ceil(255*mat2gray(d.yCoord(:,1)))+1,refDet,'unif',0);
-        overlayProjDetectionMovie(processRendererROI,'detections', refDet , ... 
+        colorIndx=arrayfun(@(d) ceil(255*mat2gray(d.yCoord(:,1)))+1,oDetections,'unif',0);
+        colorIndx=cellfun(@(s) ceil(255*mat2gray(s,[0,3]))+1,maxSpeed,'unif',0);
+        overlayProjDetectionMovie(processRendererROI,'detections', oDetections , ... 
             'colorIndx',colorIndx, 'colormap',myColormap, ... 
-            'name',['localDets' p.name],'process',processAllDetectOverlay,'radius',0.5);
-        refTracks=ref.applyBase(tracks,'');
-        overlayProjTracksMovie(processAllDetectOverlay,'tracks', refTracks , ... 
-             'colorIndx',ceil(255*mat2gray([tracks.lifetime]',[1 MD.nFrames_]))+1,'dragonTail',20,'colormap',myColormap,'name','localTrack','process',process);
+            'name',['localDets' p.name],'process',processAllDetectOverlay,'radius',2);
+        colorIndx=ceil(255*mat2gray([tracks.lifetime]',[1 MD.nFrames_]))+1;
+
+        process=ExternalProcess(MD,'overlayProjTracksMovie');
+        colorIndx=ceil(255*mat2gray(randi(length(tracks),1,length(tracks))))+1;
+        overlayProjTracksMovie(processAllDetectOverlay,'tracks', tracks , ... 
+             'colorIndx',colorIndx,'dragonTail',20,'colormap',myColormap,'name','localTrack','process',process);
         processOverlayCells{KTIdx}=process;
     end
 end

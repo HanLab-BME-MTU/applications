@@ -1,8 +1,8 @@
-function overlayProjDetectionMovie(processSingleProj,varargin)
+function overlayProjDetectionMovie(processProj,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;
-ip.addRequired('processSingleProj');
+ip.addRequired('processProj');
 ip.addOptional('detections',[]);
 ip.addOptional('colormap',[]);
 ip.addOptional('process',[]);
@@ -16,20 +16,29 @@ p=ip.Results;
 detections=p.detections;
 cumulative=p.cumulative;
 %% testing imwarp to crop the image
-XYProjTemplate=processSingleProj.outFilePaths_{1};
-ZYProjTemplate=processSingleProj.outFilePaths_{2};
-ZXProjTemplate=processSingleProj.outFilePaths_{3};
-projDataIdx=5;
-try % Handle Project1D/ProjDyn different outFilePaths_spec (need to be defined through a class...)
-  projData=load(processSingleProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
-catch
-  projDataIdx=4;
-end
-projData=load(processSingleProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
 
-savePath=[fileparts(processSingleProj.outFilePaths_{projDataIdx}) filesep p.name filesep 'frame_nb%04d.png'];
-outputDir=fileparts(savePath);
-mkdirRobust([fileparts(savePath)]);
+projDataIdx=5;
+ref=[];
+
+if(isa(processProj,'ExternalProcess'))
+  processProjDynROI=ProjectDynROIRendering();
+  processProjDynROI.importFromDeprecatedExternalProcess(processProj);
+  try % Handle Project1D/ProjDyn different outFilePaths_spec (need to be defined through a class...)
+    projData=load(processProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+  catch
+    projDataIdx=4;
+  end
+  projData=load(processProj.outFilePaths_{projDataIdx},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+  processProjDynROI.setBoundingBox( [projData.minXBorder projData.maxXBorder], [projData.minYBorder projData.maxYBorder], [projData.minZBorder projData.maxZBorder]);
+  processProj=processProjDynROI;
+end
+
+
+ref=get(processProj,'ref');
+detections=ref.applyBase(detections,'');  
+projData=processProj;
+
+
 frameNb=min([projData.frameNb,length(detections)]);
 
 processFrames=p.processFrames;
@@ -40,21 +49,9 @@ frameNb=min([projData.frameNb,length(detections),length(processFrames)]);
 
 
 %% create projection process saving independant projection location
-if(~isempty(p.process))
-  mkClrDir([outputDir filesep 'XY'])
-  mkClrDir([outputDir filesep 'YZ'])
-  mkClrDir([outputDir filesep 'XZ']) 
-  mkClrDir([outputDir filesep 'three'])  
-  minXBorder=projData.minXBorder;maxXBorder=projData.maxXBorder;
-  minYBorder=projData.minYBorder;maxYBorder=projData.maxYBorder;
-  minZBorder=projData.minZBorder;maxZBorder=projData.maxZBorder;
-  save([outputDir filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
-  p.process.setOutFilePaths({[outputDir filesep 'XY' filesep 'frame_nb%04d.png'], ...
-    [outputDir filesep 'YZ' filesep 'frame_nb%04d.png'], ...
-    [outputDir filesep 'XZ' filesep 'frame_nb%04d.png'],...
-    [outputDir filesep 'three' filesep 'frame_nb%04d.png'],...
-    [outputDir filesep 'limits.mat']});
-end
+% if(~isempty(p.process))
+%   processRenderer = ProjRendering(processProj,p.name);
+% end
 
 colorIndx=p.colorIndx;
 if(isempty(colorIndx))
@@ -67,10 +64,7 @@ if(isempty(colormap))
 end
 
 parfor fIdx=processFrames
-    XYProj=imread(sprintfPath(XYProjTemplate,fIdx));
-    ZYProj=imread(sprintfPath(ZYProjTemplate,fIdx));
-    ZXProj=imread(sprintfPath(ZXProjTemplate,fIdx));
-
+    [XYProj,ZYProj,ZXProj,three]=processProj.loadFrame(1,fIdx);
     if(cumulative)
         detectionsAtFrame=detections;
         fColorIndx=p.colorIndx;
@@ -79,36 +73,16 @@ parfor fIdx=processFrames
         fColorIndx=colorIndx{fIdx};
     end
     % detectionsAtFrame.zCoord(:,1)=detectionsAtFrame.zCoord(:,1)/0.378;
-    [tracksXY,tracksZY,tracksZX]=overlayProjDetections(XYProj,ZYProj,ZXProj, ...
+    [overlayXY,overlayZY,overlayZX]=overlayProjDetections(XYProj,ZYProj,ZXProj, ...
         [projData.minXBorder projData.maxXBorder],[projData.minYBorder projData.maxYBorder],[projData.minZBorder projData.maxZBorder], ...
         detectionsAtFrame,colormap,fColorIndx,varargin{:});
-    
-    %% Use Z to index image line (going up)
-    %     tracksXY=permute(tracksXY,[2 1 3]);
+
     if(~isempty(p.process))
-        % save the maximum intensity projections
-        imwrite(tracksXY, sprintfPath(p.process.outFilePaths_{1},fIdx), 'Compression', 'none');
-        imwrite(tracksZY, sprintfPath(p.process.outFilePaths_{2},fIdx), 'Compression', 'none');
-        imwrite(tracksZX, sprintfPath(p.process.outFilePaths_{3},fIdx), 'Compression', 'none');
+      p.process.saveFrame(1,fIdx,overlayXY,overlayZY,overlayZX);
     end
-    tracksZY=permute(tracksZY,[2 1 3]);
-    tracksZX=permute(tracksZX,[2 1 3]);
-    three=projMontage(tracksXY,tracksZX,tracksZY);
-    if(~isempty(p.process))
-        imwrite(three, sprintfPath(p.process.outFilePaths_{4},fIdx), 'Compression', 'none');
-    end    
 end
 
-
-
-% save as video
-video = VideoWriter([fileparts(processSingleProj.outFilePaths_{4})  '-'  p.name '.avi']);
-video.FrameRate = 5;  % Default 30
-video.Quality = 100;    % Default 75
-open(video)
-for fIdx=1:frameNb
-  three=[imread(sprintfPath(p.process.outFilePaths_{4},fIdx))];
-    writeVideo(video,three);
+if(~isempty(p.process)) 
+    ProjAnimation(p.process,'ortho').saveVideo([p.process.getOutputDir()  '.avi']);
 end
-close(video)
 

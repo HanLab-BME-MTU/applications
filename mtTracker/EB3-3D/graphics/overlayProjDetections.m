@@ -56,10 +56,6 @@ ip.parse(varargin{:});
           trdetections(tIdx).yCoord=detections(tIdx).yCoord;
       end
     
-%     capturedEB3ZY=tracksInMask.copy();
-%     for tIdx=1:length(capturedEB3ZY)
-%       capturedEB3ZY(tIdx).x=tracksInMask(tIdx).z ;%*MD.pixelSize_/MD.pixelSizeZ_;
-%     end
     tracksZY=detectionBinaryOverlay(ZYProj,[minZBorder maxZBorder],[minYBorder maxYBorder],trdetections,colorIndx,myColormap,varargin{:});
   else
     tracksZY=ZYProj;
