@@ -10,15 +10,25 @@ I = orientationSpace.paper.loadLaminDemoImage;
 F = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,8,'none');
 R = F*I;
 maxima = R.getRidgeOrientationLocalMaxima;
+disp('Doing Maxima Trace');
 maximaTrace = R.traceAllLocalMaxima(K,maxima);
-parfor ki=1:length(K)
+
+disp('Calculating Derivatives');
+% res = cell(1,length(K));
+% for ki=1:length(K)
+%   res{ki} = real(shiftdim(R.getResponseAtOrderFT(K(ki),2).a,2));
+% end
+tic
+parfor (ki=1:length(K),6)
     res = real(shiftdim(R.getResponseAtOrderFT(K(ki),2).a,2));
     lm = shiftdim(maximaTrace(:,:,:,ki),2)*2;
     lmd = orientationSpace.diffusion.orientationMaximaDerivatives(res,K(ki),2,lm);
     maximaTraceDeriv(:,:,:,ki) = shiftdim(lmd(:,:,:,1),1);
     maximaTraceDeriv2(:,:,:,ki) = shiftdim(lmd(:,:,:,2),1);
 end
+toc
 
+disp('Interpolating derivatives and finding threshold');
 tic
 maximaTraceDerivIsNaN = isnan(maximaTraceDeriv);
 maximaTraceDerivNotNaN = ~maximaTraceDerivIsNaN;
@@ -51,8 +61,10 @@ c = 364;
 
 sz = size(q.maximaTraceData);
 q.maximaTraceData = reshape(q.maximaTraceData,prod(sz(1:3)),sz(4),sz(5));
-s = ind ~= maximaTraceDerivCount & ~isnan(ind);
+sMaxed = ind == maximaTraceDerivCount;
+s = ~sMaxed & ~isnan(ind);
 % s = true(size(ind));
+indMaxed = ind(sMaxed);
 ind = ind(s);
 ind = bsxfun(@plus,ind,[ 1 0]);
 sn = sum(s(:));
@@ -88,6 +100,7 @@ pproots = max(pproots,[],2);
 
 rr = NaN(sz(1:3));
 rr(s) = pproots + K(ind(:,1)).';
+q.rr = rr;
 toc
 %15.239661 seconds
 
