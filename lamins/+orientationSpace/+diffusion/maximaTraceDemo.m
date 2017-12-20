@@ -19,6 +19,7 @@ parfor ki=1:length(K)
     maximaTraceDeriv2(:,:,:,ki) = shiftdim(lmd(:,:,:,2),1);
 end
 
+tic
 maximaTraceDerivIsNaN = isnan(maximaTraceDeriv);
 maximaTraceDerivNotNaN = ~maximaTraceDerivIsNaN;
 maximaTraceDerivIndexed = cumsum(maximaTraceDerivNotNaN,4);
@@ -65,7 +66,7 @@ coefs = slvblk(blockmat,intervalData).';
 
 sp = spmak(knots,coefs);
 spd = fnder(sp);
-spd.dim = 1;
+% spd.dim = 1;
 idxPos = spd.coefs(:,1) >  threshold & spd.coefs(:,5) <  threshold;
 idxNeg = spd.coefs(:,1) < -threshold & spd.coefs(:,5) > -threshold;
 spd.coefs(idxPos,:) = spd.coefs(idxPos,:) - threshold;
@@ -85,13 +86,19 @@ pproots = pproots + pp.breaks(1:3);
 pproots = reshape(pproots,size(pproots,1),6);
 pproots = max(pproots,[],2);
 
+rr = NaN(sz(1:3));
+rr(s) = pproots + K(ind(:,1)).';
+toc
+%15.239661 seconds
 
-coefsd = num2cell(spd.coefs,2).';
-% manipulate coefsd by threshold somehow
-spdc = struct2cell(spd);
-spdc = repmat(spdc,1,size(spd.coefs,1));
-spdc(3,:) = coefsd;
-spd = cell2struct(spdc,fields(spd));
+% TODO: 
+
+% coefsd = num2cell(spd.coefs,2).';
+% % manipulate coefsd by threshold somehow
+% spdc = struct2cell(spd);
+% spdc = repmat(spdc,1,size(spd.coefs,1));
+% spdc(3,:) = coefsd;
+% spd = cell2struct(spdc,fields(spd));
 
 
 % q.maximaTraceData = shiftdim(q.maximaTraceData,2);
@@ -113,13 +120,13 @@ spd = cell2struct(spdc,fields(spd));
 % pp.coefs(:,3) = pp.coefs(:,3)+pi/60;
 % z = fnzeros(pp);
 
-coefs = slvblk(blockmat,yy).';
-z = zeros(2,size(coefs,1));
-for i=1:size(coefs,1)
-    sp = spmak(knots,coefs(i,:));
-    pp = sp2pp(fnder(sp));
-     pp.coefs(:,3) = pp.coefs(:,3)+threshold;
-     z(:,i) = fnzeros(pp);
-end
+% coefs = slvblk(blockmat,yy).';
+% z = zeros(2,size(coefs,1));
+% for i=1:size(coefs,1)
+%     sp = spmak(knots,coefs(i,:));
+%     pp = sp2pp(fnder(sp));
+%      pp.coefs(:,3) = pp.coefs(:,3)+threshold;
+%      z(:,i) = fnzeros(pp);
+% end
 
 end
