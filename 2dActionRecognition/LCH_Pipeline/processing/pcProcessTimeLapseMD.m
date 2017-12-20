@@ -36,9 +36,9 @@ pcDetectionPPBackTrack(MD,params,dirs);
 % params.always = true;
 doneTracking = pcTracking(params,dirs);
 
-params.always = true;
+% params.always = true;
 pcSetSingleCellTrajectories(params,dirs);
-params.always = false;
+% params.always = false;
 
 %% movies
 % pcDetectionMovie(MD, params, dirs);
@@ -62,21 +62,22 @@ pcTrackingMovie(MD, params, dirs); % This function also does the single cell def
 % end
 
 %% Single cell segmentaion
-params.always = true;
 pcCellRoiMD(MD,params,dirs);
+params.always = true;
 pcCellRoiLeverMD(MD,params,dirs);
 params.always = false;
 
 %% Feature extraction - per cell!
 % params.always = true;
-tic;
+% tic;
 pcLBPMD(MD,params,dirs);% radius = 35um
 pcLBPdtMD(MD,params,dirs);% radius = 35um
 % pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
-toc
+% toc
+% params.always = false;
 
-pcSingleCellMovies(MD,params,dirs);
-pcSingleCell_dLBP(params,dirs);
-pcSingleCell_dLBP_Plasticity(params,dirs)
+% pcSingleCellMovies(MD,params,dirs);
+% pcSingleCell_dLBP(params,dirs);
+% pcSingleCell_dLBP_Plasticity(params,dirs);
 
 end
