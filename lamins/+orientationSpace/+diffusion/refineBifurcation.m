@@ -15,8 +15,9 @@ function [ x_out, K_out, notDone ] = refineBifurcation( x, K, response, Korg )
     response_hat = fft(response);
     
 if(isscalar(x))
-out = interpft_extrema(getResponseAtOrderFT(response_hat,8,8:-0.01:1),1,true,1e-12,false); out = orientationSpace.diffusion.alignExtrema(out);
-figure; plot(8:-0.01:1,out.');
+out = interpft_extrema(getResponseAtOrderFT(response_hat,Korg,Korg:-0.01:1),1,true,1e-12,false);
+out = orientationSpace.diffusion.alignExtrema(out);
+figure; plot(Korg:-0.01:1,out.');
 % title(sprintf('Local maxima trace for r=%d, c=%d, m=%d',coords.r(n),coords.c(n),coords.m(n)));
 xlabel('K');
 ylabel('2\theta (Orientation, radians)');
@@ -31,7 +32,7 @@ x_out = x;
 K_out = K;
 
 iter = 0;
-maxIter = 25;
+maxIter = 30;
 
 while(any(notDone) && iter < maxIter)
     iter = iter + 1;

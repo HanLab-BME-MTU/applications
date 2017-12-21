@@ -1,8 +1,20 @@
-function [ maxima, coords, response, xgd ] = descendHalleyK( maxima, coords, response, n )
+function [ maxima, coords, response, xgd ] = descendHalleyK( maxima, coords, response, Korg, n )
 %descendHalleyK Summary of this function goes here
 %   Detailed explanation goes here
 
-if(nargin > 3)
+if(~isstruct(coords))
+    coordsS.K = coords;
+    coordsS.r = NaN(size(coordsS.K));
+    coordsS.c = NaN(size(coordsS.K));
+    coordsS.m = NaN(size(coordsS.K));
+    coords = coordsS;
+end
+    
+if(nargin < 4)
+    Korg = coords.K(1);
+end
+
+if(nargin > 4)
     maxima = maxima(:,n);
     coords.K = coords.K(n);
     coords.r = coords.r(n);
@@ -15,7 +27,7 @@ D = 2*pi.^2;
 K_jump_threshold = 0.1;
 xg_change_threshold = pi/12;
 maxKdelta = 4;
-Korg = coords.K(1);
+
 response_hat = fft(response);
 
 maxKdelta = repmat(maxKdelta,size(maxima));
@@ -107,6 +119,7 @@ function [K_jump_estimate_above_threshold,maxima,K,K_jump_estimate,maxKdelta] = 
     succeeded = ~failed;
     maxKdelta(failed) = maxKdelta(failed)/2;
     maxKdelta(succeeded) = maxKdelta(succeeded)*2;
+%     maxKdelta = max(maxKdelta,eps);
     K(succeeded) = Kg(succeeded);
     maxima(succeeded) = xg(succeeded);
 
