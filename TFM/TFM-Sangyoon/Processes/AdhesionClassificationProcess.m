@@ -313,6 +313,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             funParams.labeledData=[];
             funParams.useAutomaticallySelectedData = true;
             funParams.manualLabeling=false;
+            funParams.useSimpleClassification=false;
             %% TODO - likely will remove this.
             funParams.backupOldResults = true;           
         end

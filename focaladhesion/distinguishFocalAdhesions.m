@@ -1,11 +1,12 @@
-function [tracksAD,indNAatEdge,indMaturingNA,indMaturingFA,indDecayingFA] = distinguishFocalAdhesions(tracksAD, MD, outputPath)
-%  [tracksNA,tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio] = distinguishFocalAdhesions(tracksNA, outputPath)
+function [tracksAD,indAll] = distinguishFocalAdhesions(tracksAD, MD, outputPath)
+%  [tracksAD,indNAatEdge,indMaturingNA,indMaturingFA,indDecayingFA] =
+%  distinguishFocalAdhesions(tracksAD, MD, outputPath)
 % distinguishes four obviously different adhesion tracks from input
 % tracksAD: 1) non-maturing NAs at the edge; 2) maturing NAs to FAs; 3)
 % further growing FAs from existing FA state; 4) decaying FAs in terms of
 % area, and 5) all the others. These feature will be encoded in the member
 % called 'dynamicType'.
-% indNAatEdgel,indMaturingNA,indMaturingFA,indDecayingFA will not be used.
+% indAll={indNAatEdge,indMaturingNA,[],indDecayingFA,indMaturingFA, indOthers}; %To be compatible with 9-class-based
 
 % Sangyoon Han Feb 2016
 if nargin<2
@@ -87,9 +88,11 @@ end
 for ii=find(indOthers)'
     tracksAD(ii).dynamicType=5;
 end
-disp(['saving in ' outputPath '.'])
 if ~isempty(outputPath)
+    disp(['saving in ' outputPath '.'])
     save([outputPath filesep 'dynamicTypes.mat'], 'tracksAD', 'indNAatEdge', 'indMaturingNA','indMaturingFA','indDecayingFA','indOthers')
 end
+allFalse = false(size(indNAatEdge));
+indAll={indNAatEdge,indMaturingNA,allFalse,indDecayingFA,indMaturingFA, indOthers,allFalse,allFalse,allFalse}; %To be compatible with 9-class-based
 disp('Done!')
 end
