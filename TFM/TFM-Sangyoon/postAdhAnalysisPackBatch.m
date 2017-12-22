@@ -34,6 +34,7 @@ mkdir(figPath)
 dataPath = [rootAnalysis '/AnalysisSummary' specificName '/Data'];
 mkdir(dataPath)
 %% Collecting general adhesion-reated features
+numClasses=9;
 N=zeros(numConditions,1);
 NAdensityGroup = cell(numConditions,1);
 FAareaGroup = cell(numConditions,1);
@@ -160,7 +161,7 @@ for ii=1:numConditions
     meanAdhDensityG9=zeros(N(ii),1);
     
     curMovies = curML.movies_;
-    parfor k=1:N(ii)
+    for k=1:N(ii)
         disp(['ii: ' num2str(ii) '  k:' num2str(k)])
         % get the movie
         curMovie=curMovies{k};

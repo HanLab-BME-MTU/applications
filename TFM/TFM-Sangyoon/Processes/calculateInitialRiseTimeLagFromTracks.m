@@ -290,7 +290,7 @@ for k=1:numClasses
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
     save([dataPath filesep nameTitle],'ccLagTogetherAdjusted','nameList2');    
-    close(h2)
+     close(h2)
 end
 %% V. All the other features
 %% Distributing to each group (after filtering)
