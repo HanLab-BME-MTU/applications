@@ -120,6 +120,7 @@ funParams.ChannelIndex = get(handles.listbox_selectedChannels, 'Userdata');
 % Get numerical parameters
 funParams.autoLabeling = get(handles.checkbox_autoLabeling, 'Value');
 funParams.manLabeling = get(handles.checkbox_manLabeling, 'Value');
+funParams.useSimpleClassification = get(handles.checkbox_useSimpleFiltering, 'Value');
 
 kk=0;
 labelData=[];
@@ -164,4 +165,18 @@ function pushbutton_sampleGroup3_Callback(hObject, eventdata, handles)
     'Select the file containing selectedGroups');
 if ~isequal(file, 0) && ~isequal(path, 0)
     set(handles.edit_sampleGroup3,'String',[path file]);
+end
+
+
+function useSimpleFiltering_Callback(hObject, eventdata, handles)
+% hObject    handle to useLcurve (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+useSimpleFiltering=get(handles.checkbox_useSimpleFiltering,{'UserData','Value'});
+if useSimpleFiltering{2}
+    set(handles.checkbox_autoLabeling,'Enable','off');
+    set(handles.checkbox_manLabeling,'Enable','off');
+else
+    set(handles.checkbox_autoLabeling,'Enable','on');
+    set(handles.checkbox_manLabeling,'Enable','on');
 end

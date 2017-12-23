@@ -62,7 +62,7 @@ iceConn.startImaris;
 
 %Make sure the viewer is set to surpass so the scene will be setup
 %correctly
-iceConn.mImarisApplication.SetViewer(Imaris.tViewer.eViewerSurpass);    
+% iceConn.mImarisApplication.SetViewer(Imaris.tViewer.eViewerSurpass);    
 
 if ~p.UseImarisFileReader
 

@@ -52,15 +52,15 @@ for icell = 1 : nCells
             
             load(inLeverFname); % ROI_LEVER
             
-            bby0 = max(1,curY - params.RoiRadius);
+            bby0 = max(1,curY - params.FOVRadius);
             bby1 = min(size(ROI_LEVER,1),curY + params.RoiRadius); % RoiRadius = 120 um
             bbx0 = max(1,curX - params.RoiRadius);
             bbx1 = min(size(ROI_LEVER,2),curX + params.RoiRadius);                                    
-            
-            curI = I(bby0:bby1,bbx0:bbx1);              
-            
-            MASK = false(size(ROI_LEVER));
-            MASK(bby0:bby1,bbx0:bbx1) = ROI_LEVER(bby0:bby1,bbx0:bbx1);
+                        
+            %
+            %             MASK = false(size(ROI_LEVER));
+            curI = I(bby0:bby1,bbx0:bbx1);
+            MASK = ROI_LEVER(bby0:bby1,bbx0:bbx1);
             %             MASK = ROI_LEVER(bby0:bby1,bbx0:bbx1);
             
 %             combinedImageBlur = imgaussfilt(combinedImage,2);
@@ -110,7 +110,12 @@ for icell = 1 : nCells
             curCellRoi{curT}.bbx0 = bbx0;
             curCellRoi{curT}.bbx1 = bbx1;
             
-            curCellRoi{curT}.roi = ROI;            
+            curCellRoi{curT}.roi = ROI; 
+            curCellRoi{curT}.img = curI; 
+                        
+            curCellRoi{curT}.x = curX;
+            curCellRoi{curT}.y = curY;
+            curCellRoi{curT}.t = t;
             
             %% movie frame
             %             curPerim = bwperim(ROI);
@@ -156,9 +161,7 @@ for icell = 1 : nCells
     end
     %     close(vwriter);
     %     clear vwriter;
-    save(roiLeverFname,'curCellRoi');
-    
-    % Just to test the Windows git crap..
+    save(roiLeverFname,'curCellRoi');        
     
 end
 end

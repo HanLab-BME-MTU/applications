@@ -165,6 +165,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     p=obj.funParams_;
                     labelTifPath = [p.OutputDirectory filesep 'labelTifs'];
                     labelAdhesion = imread(strcat(labelTifPath,'/label',num2str(iFrame,iiformat),'.tif'));
+                    labelAdhesion = bwlabel(labelAdhesion>0,4);
                     maxLabel=max(labelAdhesion(:));
                     adhBound = cell(1,maxLabel);
                     for ii=1:maxLabel

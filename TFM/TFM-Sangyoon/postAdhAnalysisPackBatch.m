@@ -35,12 +35,59 @@ dataPath = [rootAnalysis '/AnalysisSummary' specificName '/Data'];
 mkdir(dataPath)
 %% Collecting general adhesion-reated features
 N=zeros(numConditions,1);
-NAdensity = cell(numConditions,1);
-FAarea = cell(numConditions,1);
-FAlength = cell(numConditions,1);
-FAdensity = cell(numConditions,1);
+NAdensityGroup = cell(numConditions,1);
+FAareaGroup = cell(numConditions,1);
+FAlengthGroup = cell(numConditions,1);
+FAdensityGroup = cell(numConditions,1);
 NAstructGroup= cell(numConditions,1);
 FAstructGroup= cell(numConditions,1);
+initRiseGroup = cell(numConditions,1);
+peakGroup = cell(numConditions,1);
+endTimeGroup = cell(numConditions,1);
+
+numPureFAsGroup = cell(numConditions,1);
+cellAreaGroup = cell(numConditions,1);
+NADensityGroup = cell(numConditions,1);
+FADensityGroup = cell(numConditions,1);
+lifeTimeAllGroup = cell(numConditions,1);
+lifeTimeFailingNAsGroup = cell(numConditions,1);
+lifeTimeMaturingNAsGroup = cell(numConditions,1);
+maturingRatioGroup = cell(numConditions,1);
+assemRateGroup = cell(numConditions,1);
+disassemRateGroup = cell(numConditions,1);
+nucleatingNARatioGroup = cell(numConditions,1);
+disassemNARatioGroup = cell(numConditions,1);
+
+numG1Group = cell(numConditions,1);
+numG2Group = cell(numConditions,1);
+numG3Group = cell(numConditions,1);
+numG4Group = cell(numConditions,1);
+numG5Group = cell(numConditions,1);
+numG6Group = cell(numConditions,1);
+numG7Group = cell(numConditions,1);
+numG8Group = cell(numConditions,1);
+numG9Group = cell(numConditions,1);
+
+meanRelativePopG1Group = cell(numConditions,1);
+meanRelativePopG2Group = cell(numConditions,1);
+meanRelativePopG3Group = cell(numConditions,1);
+meanRelativePopG4Group = cell(numConditions,1);
+meanRelativePopG5Group = cell(numConditions,1);
+meanRelativePopG6Group = cell(numConditions,1);
+meanRelativePopG7Group = cell(numConditions,1);
+meanRelativePopG8Group = cell(numConditions,1);
+meanRelativePopG9Group = cell(numConditions,1);
+
+meanAdhDensityG1Group = cell(numConditions,1);
+meanAdhDensityG2Group = cell(numConditions,1);
+meanAdhDensityG3Group = cell(numConditions,1);
+meanAdhDensityG4Group = cell(numConditions,1);
+meanAdhDensityG5Group = cell(numConditions,1);
+meanAdhDensityG6Group = cell(numConditions,1);
+meanAdhDensityG7Group = cell(numConditions,1);
+meanAdhDensityG8Group = cell(numConditions,1);
+meanAdhDensityG9Group = cell(numConditions,1);
+
 iAdhChan = input('Your adhesion channel of interest? (default: 2): ');
 if isempty(iAdhChan); iAdhChan=2; end
 
@@ -69,6 +116,48 @@ for ii=1:numConditions
     
     meanMedianFAarea=zeros(N(ii),1);
     meanMedianFAlength=zeros(N(ii),1);
+    meanNumPureFAs=zeros(N(ii),1);
+    meanCellArea=zeros(N(ii),1);
+    meanNADensity=zeros(N(ii),1);
+    meanFADensity=zeros(N(ii),1);
+    meanLifeTimeAll=zeros(N(ii),1);
+    meanLifeTimeFailingNAs=zeros(N(ii),1);
+    meanLifeTimeMaturingNAs=zeros(N(ii),1);
+    meanMaturingRatio=zeros(N(ii),1);
+    meanAssemRate=zeros(N(ii),1);
+    meanDisassemRate=zeros(N(ii),1);
+    meanNucleatingNARatio=zeros(N(ii),1);
+    meanDisassemNARatio=zeros(N(ii),1);
+    
+    numG1=zeros(N(ii),1);
+    numG2=zeros(N(ii),1);
+    numG3=zeros(N(ii),1);
+    numG4=zeros(N(ii),1);
+    numG5=zeros(N(ii),1);
+    numG6=zeros(N(ii),1);
+    numG7=zeros(N(ii),1);
+    numG8=zeros(N(ii),1);
+    numG9=zeros(N(ii),1);
+    
+    meanRelativePopG1=zeros(N(ii),1);
+    meanRelativePopG2=zeros(N(ii),1);
+    meanRelativePopG3=zeros(N(ii),1);
+    meanRelativePopG4=zeros(N(ii),1);
+    meanRelativePopG5=zeros(N(ii),1);
+    meanRelativePopG6=zeros(N(ii),1);
+    meanRelativePopG7=zeros(N(ii),1);
+    meanRelativePopG8=zeros(N(ii),1);
+    meanRelativePopG9=zeros(N(ii),1);
+    
+    meanAdhDensityG1=zeros(N(ii),1);
+    meanAdhDensityG2=zeros(N(ii),1);
+    meanAdhDensityG3=zeros(N(ii),1);
+    meanAdhDensityG4=zeros(N(ii),1);
+    meanAdhDensityG5=zeros(N(ii),1);
+    meanAdhDensityG6=zeros(N(ii),1);
+    meanAdhDensityG7=zeros(N(ii),1);
+    meanAdhDensityG8=zeros(N(ii),1);
+    meanAdhDensityG9=zeros(N(ii),1);
     
     curMovies = curML.movies_;
     parfor k=1:N(ii)
@@ -101,15 +190,15 @@ for ii=1:numConditions
         curMedianFAlengthAllFrames = arrayfun(@(x) x.medianLength,curFocalAdhInfo);
         meanMedianFAlength(k) = mean(curMedianFAlengthAllFrames);
         curNumPureFAs = arrayfun(@(x) x.numberPureFA,curFocalAdhInfo);
-        meanNumPureFAs = mean(curNumPureFAs);
+        meanNumPureFAs(k) = mean(curNumPureFAs);
         curCellAreas = arrayfun(@(x) x.cellArea,curFocalAdhInfo);
-        meanCellArea = mean(curCellAreas);
+        meanCellArea(k) = mean(curCellAreas);
         
         nafaStruct=load(curAnalProc.outFilePaths_{3,iAdhChan});
         curNADensity = nafaStruct.NADensity;
-        meanNADensity = mean(curNADensity);
+        meanNADensity(k) = mean(curNADensity);
         curFADensity = nafaStruct.FADensity;
-        meanFADensity = mean(curFADensity);
+        meanFADensity(k) = mean(curFADensity);
 
         maturingStruct=load(curAnalProc.outFilePaths_{4,iAdhChan});
         meanLifeTimeAll(k)=mean(maturingStruct.lifeTimeAll);
@@ -151,45 +240,100 @@ for ii=1:numConditions
         meanRelativePopG8(k) = sum(idsStruct.idGroup8)/length(idsStruct.idGroup1);
         meanRelativePopG9(k) = sum(idsStruct.idGroup9)/length(idsStruct.idGroup1);
         % Mean adh density per each group
-        meanAdhDensityG1(k) = sum(idsStruct.idGroup1)/meanCellArea;
-        meanAdhDensityG2(k) = sum(idsStruct.idGroup2)/meanCellArea;
-        meanAdhDensityG3(k) = sum(idsStruct.idGroup3)/meanCellArea;
-        meanAdhDensityG4(k) = sum(idsStruct.idGroup4)/meanCellArea;
-        meanAdhDensityG5(k) = sum(idsStruct.idGroup5)/meanCellArea;
-        meanAdhDensityG6(k) = sum(idsStruct.idGroup6)/meanCellArea;
-        meanAdhDensityG7(k) = sum(idsStruct.idGroup7)/meanCellArea;
-        meanAdhDensityG8(k) = sum(idsStruct.idGroup8)/meanCellArea;
-        meanAdhDensityG9(k) = sum(idsStruct.idGroup9)/meanCellArea;
+        meanAdhDensityG1(k) = sum(idsStruct.idGroup1)/meanCellArea(k);
+        meanAdhDensityG2(k) = sum(idsStruct.idGroup2)/meanCellArea(k);
+        meanAdhDensityG3(k) = sum(idsStruct.idGroup3)/meanCellArea(k);
+        meanAdhDensityG4(k) = sum(idsStruct.idGroup4)/meanCellArea(k);
+        meanAdhDensityG5(k) = sum(idsStruct.idGroup5)/meanCellArea(k);
+        meanAdhDensityG6(k) = sum(idsStruct.idGroup6)/meanCellArea(k);
+        meanAdhDensityG7(k) = sum(idsStruct.idGroup7)/meanCellArea(k);
+        meanAdhDensityG8(k) = sum(idsStruct.idGroup8)/meanCellArea(k);
+        meanAdhDensityG9(k) = sum(idsStruct.idGroup9)/meanCellArea(k);
         % Other feature related properties are calculated in the step 11
         
-        % Initial rise
-        iInitRiseProc = 11;
-        initRiseProc = curFAPackage.getProcess(iInitRiseProc);
-        iForceSlave = 1;
-        iVincSlave =2;
-%     potentialSlaves = {'forceMag','ampTotal2'};
-%     outFilename = [chanDirName '_initialTimeDelayIntAgainst_' potentialSlaves{i}];
-%     outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
-%     outFilename = [chanDirName 'peakTimeIntAgainst_' potentialSlaves{i}];
-%     outputFile{3,i} = [p.OutputDirectory filesep outFilename '.mat'];
-%     outFilename = [chanDirName '_endingIntAgainst_' potentialSlaves{i}];
-%     outputFile{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
-%     outFilename = [chanDirName '_crossCorrelationScore_' potentialSlaves{i}];
-%     outputFile{5,i} = [p.OutputDirectory filesep outFilename '.mat'];
-%     outFilename = [chanDirName '_crossCorrelationTimeLag_' potentialSlaves{i}];
-%     outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
-% save([dataPath filesep 'initialLagGroups.mat'],'initialLagGroups');
-% save([dataPath filesep 'peakLagGroups.mat'],'peakLagGroups');
-% save([dataPath filesep 'endingLagGroups.mat'],'endingLagGroups');
-% save([dataPath filesep 'ccScoreGroups.mat'],'ccScoreGroups');
-% save([dataPath filesep 'ccLagGroups.mat'],'ccLagGroups');
-        initRiseStruct=load(initRiseProc.outFilePaths_{2,iForceSlave});
-        
     end
-    SEGroup{ii,1}=SEPerGroup;
-    SEDenGroup{ii,1}=SEDenPerGroup;
-    totalForceGroup{ii,1}=totForcePerGroup;
-    clear SEPerGroup SEDenPerGroup totForcePerGroup 
+    
+    
+    initRiseAgainstForceEachClass=cell(numClasses,1);
+    peakTimeAgainstForceEachClass=cell(numClasses,1);
+    endTimeAgainstForceEachClass=cell(numClasses,1);
+    iForceSlave = 1;
+    for pp=1:numClasses
+        for k=1:N(ii)
+            curMovie=curMovies{k};
+            iCurPack = curMovie.getPackageIndex('FocalAdhesionPackage');
+            curFAPackage = curMovie.getPackage(iCurPack);
+            % Initial rise
+            iInitRiseProc = 11;
+            initRiseProc = curFAPackage.getProcess(iInitRiseProc);
+            % I decided to get the adjusted time lags
+            initOutFolder = fileparts(initRiseProc.outFilePaths_{2,iForceSlave});
+            initDataPath = [initOutFolder filesep 'data'];
+            
+            nameTitle=['initialLag_Class' num2str(pp)];
+            initRiseStruct = load([initDataPath filesep nameTitle],'initialLagTogetherAdjusted','nameList2');   
+            curInitTimeLag=initRiseStruct.initialLagTogetherAdjusted;
+            initRiseAgainstForceEachClass{pp}{k} = curInitTimeLag;
+            
+            nameTitle=['peakLag_Class' num2str(pp)];
+            peakStruct = load([initDataPath filesep nameTitle],'peakLagTogetherAdjusted','nameList2');   
+            curPeakTimeLag=peakStruct.peakLagTogetherAdjusted;
+            peakTimeAgainstForceEachClass{pp}{k} = curPeakTimeLag;
+            
+            nameTitle=['endingLag_Class' num2str(pp)];
+            endTimeStruct = load([initDataPath filesep nameTitle],'endingLagTogetherAdjusted','nameList2');   
+            curEndTimeLag=endTimeStruct.endingLagTogetherAdjusted;
+            endTimeAgainstForceEachClass{pp}{k} = curEndTimeLag;
+        end
+    end
+    FAareaGroup{ii,1}=meanMedianFAarea;
+    FAlengthGroup{ii,1}=meanMedianFAlength;
+    numPureFAsGroup{ii,1}=meanNumPureFAs;
+    cellAreaGroup{ii,1}=meanCellArea;
+    NADensityGroup{ii,1}=meanNADensity;
+    FADensityGroup{ii,1}=meanFADensity;
+    lifeTimeAllGroup{ii,1}=meanLifeTimeAll;
+    lifeTimeFailingNAsGroup{ii,1}=meanLifeTimeFailingNAs;
+    lifeTimeMaturingNAsGroup{ii,1}=meanLifeTimeMaturingNAs;
+    maturingRatioGroup{ii,1}=meanMaturingRatio;
+    assemRateGroup{ii,1}=meanAssemRate;
+    disassemRateGroup{ii,1}=meanDisassemRate;
+    nucleatingNARatioGroup{ii,1}=meanNucleatingNARatio;
+    disassemNARatioGroup{ii,1}=meanDisassemNARatio;
+    
+    numG1Group{ii,1}=numG1;
+    numG2Group{ii,1}=numG2;
+    numG3Group{ii,1}=numG3;
+    numG4Group{ii,1}=numG4;
+    numG5Group{ii,1}=numG5;
+    numG6Group{ii,1}=numG6;
+    numG7Group{ii,1}=numG7;
+    numG8Group{ii,1}=numG8;
+    numG9Group{ii,1}=numG9;
+
+    meanAdhDensityG1Group{ii,1}=meanRelativePopG1;
+    meanRelativePopG2Group{ii,1}=meanRelativePopG2;
+    meanRelativePopG3Group{ii,1}=meanRelativePopG3;
+    meanRelativePopG4Group{ii,1}=meanRelativePopG4;
+    meanRelativePopG5Group{ii,1}=meanRelativePopG5;
+    meanRelativePopG6Group{ii,1}=meanRelativePopG6;
+    meanRelativePopG7Group{ii,1}=meanRelativePopG7;
+    meanRelativePopG8Group{ii,1}=meanRelativePopG8;
+    meanRelativePopG9Group{ii,1}=meanRelativePopG9;
+
+    meanAdhDensityG1Group{ii,1}=meanAdhDensityG1;
+    meanAdhDensityG2Group{ii,1}=meanAdhDensityG2;
+    meanAdhDensityG3Group{ii,1}=meanAdhDensityG3;
+    meanAdhDensityG4Group{ii,1}=meanAdhDensityG4;
+    meanAdhDensityG5Group{ii,1}=meanAdhDensityG5;
+    meanAdhDensityG6Group{ii,1}=meanAdhDensityG6;
+    meanAdhDensityG7Group{ii,1}=meanAdhDensityG7;
+    meanAdhDensityG8Group{ii,1}=meanAdhDensityG8;
+    meanAdhDensityG9Group{ii,1}=meanAdhDensityG9;
+    
+    initRiseGroup{ii,1}=initRiseAgainstForceEachClass;
+    peakGroup{ii,1}=peakTimeAgainstForceEachClass;
+    endTimeGroup{ii,1}=endTimeAgainstForceEachClass;
 end
 disp('Done')
 %% setting up group name
