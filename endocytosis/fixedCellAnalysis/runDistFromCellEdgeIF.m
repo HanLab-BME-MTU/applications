@@ -34,19 +34,20 @@ ip.CaseSensitive = false;
 ip.addRequired('data');
 ip.addParameter('Overwrite', false, @islogical);
 ip.addParameter('Name', '', @ischar);
+ip.addParameter('ChannelNames','', @(x) (ischar(x)||iscell(x)));
 ip.parse(data, varargin{:});
 
 %% Adapt data structure for backward compatibility.
-nCh=1;
 for i = 1:numel(data)
     data_old(i).source=data(i).source;
     data_old(i).framePaths=data(i).framePaths;
 
-    for c = 1:nCh
+    for c = 1:length(data(i).channels);
         data_old(i).channels{c} = [data(i).framePaths{c}];
     end
-    mkdir([data(i).channels{c} filesep 'Membrane-distance' filesep]);
-    data_old(i).results = [data(i).channels{c} filesep 'Membrane-distance' filesep 'Membrane-distance.mat'];
+    resDir=[data(i).channels{1} filesep 'Membrane-distance' filesep];
+    mkdir(resDir);
+    data_old(i).results = [resDir filesep 'Membrane-distance.mat'];
 end
 
 
@@ -62,22 +63,29 @@ processFramesIF(data_old, 'Overwrite', ip.Results.Overwrite);
 % 3) Plot 'cell edge distance' histograms
 %===============================================================================
 fopts = {'Normalized', false, 'Axis', {[0 10 0 100],[0 10 0 1000]},...
-    'DisplayMode', 'print','Name',ip.Results.Name, 'Names', {ip.Results.Name},'Channels', [1]};
+    'DisplayMode', 'print','Name',ip.Results.Name, 'Names', {ip.Results.ChannelNames},'Channels', 1:length(data_old(1).channels)};
 [edgeDistStats,det] = calcDistFromCellEdgeIF(data_old, fopts{:});
 
 
 for i=1:length(data_old)
-    ch1Image = double(imread(data_old(i).channels{1}));
-    ch1Results = load(data_old(i).results);
+    chResults = load(data_old(i).results);
 
-    %% build rgb projection (one channel only here)
-    dRange1 = [(prctile(ch1Results.ps(1).c,25)) (prctile(ch1Image(:), 99.5))];
-    tmp1 = scaleContrast(ch1Image, dRange1);
-    rgb = cat(3, tmp1, tmp1, tmp1);
+    nCh=length(data_old(i).channels);
+    contrastedImg=cell(1,3);
+    for c=1:nCh
+        chImage = double(imread(data_old(i).channels{c}));
+        % build rgb projection (one channel only here)
+        dRange1 = [(prctile(chResults.ps(c).c,25)) (prctile(chImage(:), 99.5))];
+        contrastedImg{c} = scaleContrast(chImage, dRange1);
+    end
+    for c=(nCh+1):3
+        contrastedImg{c}=zeros(size(contrastedImg{1}));
+    end
+    rgb = cat(3, contrastedImg{1},contrastedImg{2},contrastedImg{3});
 
     %% build boundaries
-    [ny,nx] = size(ch1Image);
-    B = bwboundaries(ch1Results.mask);
+    [ny,nx] = size(chImage);
+    B = bwboundaries(chResults.mask);
     B = vertcat(B{:}); % [y x] coordinates
     B(B(:,1)==1 | B(:,1)==ny,:) = [];
     B(B(:,2)==1 | B(:,2)==nx,:) = [];
