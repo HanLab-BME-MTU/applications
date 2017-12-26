@@ -46,9 +46,9 @@ for icell = 1 : nCells
         load(inLeverFname); % ROI_LEVER
         
         bby0 = max(1,curY - params.FOVRadius);
-        bby1 = min(size(ROI_LEVER,1),curY + params.RoiRadius); % RoiRadius = 120 um
-        bbx0 = max(1,curX - params.RoiRadius);
-        bbx1 = min(size(ROI_LEVER,2),curX + params.RoiRadius);
+        bby1 = min(size(ROI_LEVER,1),curY + params.FOVRadius); % FOVRadius = 35um (RoiRadius = 120 um)
+        bbx0 = max(1,curX - params.FOVRadius);
+        bbx1 = min(size(ROI_LEVER,2),curX + params.FOVRadius);
         
         curI = I(bby0:bby1,bbx0:bbx1);
         MASK = ROI_LEVER(bby0:bby1,bbx0:bbx1);
@@ -56,9 +56,9 @@ for icell = 1 : nCells
         yBB = curY - bby0;
         xBB = curX - bbx0;
         
-        [labels,nLables] = bwlabel(MASK,8);
+        [labels,nLabels] = bwlabel(MASK,8);
         
-        ROI = nan;
+        ROI = [];
         for iLabels = 1 : nLabels
             curLabel = (MASK == iLabels);
             curLabel1 = imdilate(curLabel,structElement);
@@ -69,11 +69,11 @@ for icell = 1 : nCells
             end
         end
         
-        if (isnan(ROI) && (curT == 1))                   
+        if (isempty(ROI) && (curT == 1))                   
             assert(false);
         end
         
-        if isnan(ROI)
+        if isempty(ROI)
             ROI = prevROI;
         end
         

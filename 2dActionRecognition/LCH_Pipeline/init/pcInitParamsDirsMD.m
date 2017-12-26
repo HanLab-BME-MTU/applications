@@ -100,7 +100,7 @@ end
 
 % Radius for a single cell for the LBP
 if ~isfield(params, 'FOVRadius')
-    params.FOVRadius = 35/params.pixelSize; % 35 um in pixels
+    params.FOVRadius = round(35/params.pixelSize); % 35 um in pixels
 end
 
 % Radius for Otsu cell segmentaion
