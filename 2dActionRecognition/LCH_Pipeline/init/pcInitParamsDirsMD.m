@@ -152,13 +152,13 @@ dirs.lbp = [dirs.dirname '/lbp/'];
 
 dirs.lbpDt = [dirs.dirname '/lbpDt/'];
 
-if exist([dirs.detect '/lbp/'],'dir')
-   unix(sprintf('rm -rf %s',[dirs.detect '/lbp/']));
-end
-
-if exist([dirs.detect '/localMorphDynam/'],'dir')
-    unix(sprintf('rm -rf %s',[dirs.detect '/localMorphDynam/']));
-end
+% if exist([dirs.detect '/lbp/'],'dir')
+%    unix(sprintf('rm -rf %s',[dirs.detect '/lbp/']));
+% end
+% 
+% if exist([dirs.detect '/localMorphDynam/'],'dir')
+%     unix(sprintf('rm -rf %s',[dirs.detect '/localMorphDynam/']));
+% end
 
 
 

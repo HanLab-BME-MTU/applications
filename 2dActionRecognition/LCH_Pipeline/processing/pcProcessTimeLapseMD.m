@@ -49,7 +49,9 @@ pcSetSingleCellTrajectories(params,dirs);
 % tmpAlways = params.always;
 % params.always = doneTracking || tmpAlways;
 % params.always = true;
-pcTrackingMovie(MD, params, dirs); % This function also does the single cell definition!
+
+pcTrackingMovie(MD, params, dirs); % (Once did the single cell definition)
+
 % pcTrackingMovieLong(MD, params, dirs); % Also single cell definition - long trajectories
 
 % params.always = tmpAlways;
