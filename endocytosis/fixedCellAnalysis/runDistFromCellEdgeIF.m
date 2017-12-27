@@ -62,10 +62,13 @@ processFramesIF(data_old, 'Overwrite', ip.Results.Overwrite);
 %===============================================================================
 % 3) Plot 'cell edge distance' histograms
 %===============================================================================
-fopts = {'Normalized', false, 'Axis', {[0 10 0 100],[0 10 0 1000]},...
-    'DisplayMode', 'print','Name',ip.Results.Name, 'Names', {ip.Results.ChannelNames},'Channels', 1:length(data_old(1).channels)};
-[edgeDistStats,det] = calcDistFromCellEdgeIF(data_old, fopts{:});
+analysisFolder=fullfile(fileparts(fileparts(fileparts(data(1).channels{1}))),'analysis');
+mkdirRobust(analysisFolder);
 
+fopts = {'Normalized', false, 'Axis', {[0 10 0 100],[0 10 0 1000]},...
+    'DisplayMode', 'print','Name',ip.Results.Name, 'Names', {ip.Results.ChannelNames}, ... 
+    'Channels', 1:length(data_old(1).channels),'PrintFolder',analysisFolder};
+[edgeDistStats,det] = calcDistFromCellEdgeIF(data_old, fopts{:});
 
 for i=1:length(data_old)
     chResults = load(data_old(i).results);
@@ -96,5 +99,8 @@ for i=1:length(data_old)
     axes('Position', [0 0 1 1]);
     imagesc(rgb); axis image off; colormap(gray(256));
     hold on; plot(B(:,2), B(:,1), 'Color', 0.99*[1 1 1], 'LineWidth', 1);
-    plotScaleBar(5/0.065);
+%    plotScaleBar(5/0.065);
+    plotScaleBar(5/0.060,'Label','5 um');
+    printPNGEPSFIG(gcf(),analysisFolder,['Cell_' num2str(i) '_mergedChannel']);
+
 end

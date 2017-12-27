@@ -41,7 +41,7 @@ stkList = vdir(stkpath);
 
 % if list of dirs: assume multi-channel, sort into sub-directories
 if all([stkList.isdir])
-    dirList = {stkList.name};
+    dirList = {stkList.name}
     for i = 1:numel(dirList)
         stkList = vdir([stkpath dirList{i}]);
         stkList = {stkList.name};
@@ -49,7 +49,7 @@ if all([stkList.isdir])
         if ~isempty(chSpec)
             for c = 1:numel(stkList); % loop through channels
                 [~,~,ext] = fileparts(stkList{c});
-                destDir = [stkpath dirList{i} filesep chSpec{c} filesep];
+                destDir = [stkpath dirList{i} filesep chSpec{c} filesep]
                 [~,~] = mkdir(destDir);
                 [~] = movefile([stkpath dirList{i} filesep '*' chSpec{c} '*' ext], destDir);
             end
@@ -66,8 +66,7 @@ if all([stkList.isdir])
 else % list of stacks
     stkList = {stkList(~[stkList.isdir]).name};
     idx = ~cellfun(@isempty, regexpi(stkList, '(\.tiff?|\.stk)$'));
-    stkList = stkList(idx);
-    
+    stkList = stkList(idx)
     N = length(stkList);
     if N==0
         fprintf('No TIFF files found in input directory.\n');
@@ -75,7 +74,7 @@ else % list of stacks
     end
     
     nCh = numel(chSpec);
-    
+
     %N = numel(movieID);
     for k = N:-1:1
         if ip.Results.UseFileName
@@ -94,16 +93,18 @@ else % list of stacks
 %                 dirName = [ip.Results.MovieSelector num2str(movieID(k))];
 %             end
         end
-        
+        stkpath
         [~,~] = mkdir([stkpath dirName]);
         
         if nCh>0
             for c = 1:nCh
                 % create sub-directory for each channel
+                dirName
+                [stkpath dirName filesep chSpec{c}]
                 [~,~] = mkdir([stkpath dirName filesep chSpec{c}]);
                 % move matching files to sub-directory
-                movefile([stkpath ip.Results.MovieSelector num2str(movieID(k)) '*' chSpec{c} '*.tif*'],...
-                    [stkpath dirName filesep chSpec{c}]);
+                % movefile([stkpath ip.Results.MovieSelector num2str(movieID(k)) '*' chSpec{c} '*.tif*'],...
+                %       [stkpath dirName filesep chSpec{c}]);
             end
         else
             movefile([stkpath dirName ext], [stkpath dirName]);

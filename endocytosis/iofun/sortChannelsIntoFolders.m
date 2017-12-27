@@ -10,12 +10,12 @@ ip.addRequired('channelDir');
 ip.parse(rootDir, channelID, channelDir);
 
 % get tree of directories from rootDir
-dirlist = recursiveDir(rootDir);
+dirlist = recursiveDir(rootDir)
 nc = numel(channelID);
 
 % parse each dir for TIF files that contain channel IDs
 for i = 1:numel(dirlist)
-    files = [dir([dirlist{i} '*.tif*']) dir([dirlist{i} '*.TIF*'])];
+    files = [dir([dirlist{i} '*.tif*']) dir([dirlist{i} '*.TIF*'])]
     if ~isempty(files)
         files = arrayfun(@(x) x.name, files, 'unif', 0);
         cfiles = cell(1,nc);

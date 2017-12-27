@@ -46,6 +46,7 @@ ip.addParameter('Hues', []);
 ip.addParameter('Names', []);
 ip.addParameter('Normalized', true, @islogical);
 ip.addParameter('DisplayMode', 'screen');
+ip.addParameter('PrintFolder', []);
 ip.addParameter('PixelSize', 0.065, @isscalar);
 ip.parse(data, varargin{:});
 chIdx = ip.Results.Channels;
@@ -206,6 +207,9 @@ if ip.Results.Display
         hl = legend(hp, ip.Results.Names{:}, 'Location', 'NorthEast');
         set(hl, 'Box', 'off');
     end
+    if(~isempty(ip.Results.PrintFolder))
+        printPNGEPSFIG(gcf(),[ip.Results.PrintFolder filesep], 'AvgObjectCounts')
+    end        
     
     % Average spot amplitudes as a function of distance from cell edge
     setupFigure('DisplayMode', ip.Results.DisplayMode, 'Name', ip.Results.Name);
@@ -227,4 +231,7 @@ if ip.Results.Display
         hl = legend(hp, ip.Results.Names{:}, 'Location', 'NorthEast');
         set(hl, 'Box', 'off');
     end
+    if(~isempty(ip.Results.PrintFolder))
+        printPNGEPSFIG(gcf(),[ip.Results.PrintFolder filesep], 'AvgIntensities')
+    end       
 end
