@@ -65,16 +65,16 @@ pcTrackingMovie(MD, params, dirs); % (Once did the single cell definition)
 
 %% Single cell segmentaion
 pcCellRoiMD(MD,params,dirs);
-params.always = true;
+% params.always = true;
 pcCellRoiLeverMD(MD,params,dirs);
-params.always = false;
+% params.always = false;
 
 %% Feature extraction - per cell!
 % params.always = true;
 % tic;
 pcLBPMD(MD,params,dirs);% radius = 35um
 pcLBPdtMD(MD,params,dirs);% radius = 35um
-% pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
+pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
 % toc
 % params.always = false;
 

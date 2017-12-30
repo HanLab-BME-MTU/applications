@@ -108,7 +108,13 @@ for icell = 1 : nCells
     end
     %% FOV - dLBP/dT
     dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
-    lbpData.fov{icell} = sum(dLbp,2);    
+    lbpData.fov{icell} = sum(dLbp,2);   
+    %% FWD - dLBP/dT
+    dLbp = abs(lbpData.fwd{icell}.lbp(1:end-1,:) - lbpData.fwd{icell}.lbp(2:end,:));
+    lbpData.fwd{icell} = sum(dLbp,2); 
+    %% BCK - dLBP/dT
+    dLbp = abs(lbpData.bck{icell}.lbp(1:end-1,:) - lbpData.bck{icell}.lbp(2:end,:));
+    lbpData.bck{icell} = sum(dLbp,2); 
 end
 save(lbpFname,'lbpData','accumulatedFovLBP','accumulatedBckLBP','accumulatedFwdLBP');
 end
