@@ -40,7 +40,12 @@ for icell = 1 : nCells
         inLeverFname = [dirs.lever filesep reduceZeros4Lever(dirs.expname) '.LEVER' filesep num2str(t) '.mat'];
         
         if ~exist(inLeverFname,'file')
-            continue;
+            if curT == 1
+                curCellRoi = [];
+                break;
+            else
+                error('Lever mask missing? %s',inLeverFname);
+            end
         end
         
         load(inLeverFname); % ROI_LEVER

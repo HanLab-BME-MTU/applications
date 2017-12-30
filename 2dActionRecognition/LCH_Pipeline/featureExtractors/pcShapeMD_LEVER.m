@@ -52,7 +52,7 @@ for icell = 1 : nCells
         shapeData.shapeFeats{icell}.feats(curT,:) = getShapeFeats(ROIBB);
     end
 end
-save(shapeFname,'lbpData');
+save(shapeFname,'shapeData');
 end
 
 function shapeFeats = getShapeFeats(ROI)

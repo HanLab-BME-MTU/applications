@@ -115,22 +115,25 @@ for icell = 1 : nCells
         %         accumulatedBckLBP = [accumulatedBckLBP,lbpDescBck'];
         lbpData.bck{icell}.lbp(curT,:) = lbpDescBck;         
     end
-    %% FOV - dLBP/dT
-    dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
-    lbpData.fov{icell}.dlbp10d = dLbp;
-    lbpData.fov{icell}.dlbp1d = sum(lbpData.fov{icell}.dlbp10d,2);
-    %% FWD - dLBP/dT
-    dLbp = abs(lbpData.fwd{icell}.lbp(1:end-1,:) - lbpData.fwd{icell}.lbp(2:end,:));
-    lbpData.fwd{icell}.dlbp10d = dLbp;
-    lbpData.fwd{icell}.dlbp1d = sum(lbpData.fwd{icell}.dlbp10d,2);
-    %% BCK - dLBP/dT
-    dLbp = abs(lbpData.bck{icell}.lbp(1:end-1,:) - lbpData.bck{icell}.lbp(2:end,:));
-    lbpData.bck{icell}.dlbp10d = dLbp;
-    lbpData.bck{icell}.dlbp1d = sum(lbpData.bck{icell}.dlbp10d,2);
-    %% Correlations
-    lbpData.corr{icell}.fov_fwd = corr(lbpData.fov{icell}.dlbp1d,lbpData.fwd{icell}.dlbp1d); % ~0
-    lbpData.corr{icell}.fov_bck = corr(lbpData.fov{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % > 0
-    lbpData.corr{icell}.fwd_bck = corr(lbpData.fwd{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % ~0
+    
+    if ~isempty(lbpData)
+        %% FOV - dLBP/dT
+        dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
+        lbpData.fov{icell}.dlbp10d = dLbp;
+        lbpData.fov{icell}.dlbp1d = sum(lbpData.fov{icell}.dlbp10d,2);
+        %% FWD - dLBP/dT
+        dLbp = abs(lbpData.fwd{icell}.lbp(1:end-1,:) - lbpData.fwd{icell}.lbp(2:end,:));
+        lbpData.fwd{icell}.dlbp10d = dLbp;
+        lbpData.fwd{icell}.dlbp1d = sum(lbpData.fwd{icell}.dlbp10d,2);
+        %% BCK - dLBP/dT
+        dLbp = abs(lbpData.bck{icell}.lbp(1:end-1,:) - lbpData.bck{icell}.lbp(2:end,:));
+        lbpData.bck{icell}.dlbp10d = dLbp;
+        lbpData.bck{icell}.dlbp1d = sum(lbpData.bck{icell}.dlbp10d,2);
+        %% Correlations
+        lbpData.corr{icell}.fov_fwd = corr(lbpData.fov{icell}.dlbp1d,lbpData.fwd{icell}.dlbp1d); % ~0
+        lbpData.corr{icell}.fov_bck = corr(lbpData.fov{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % > 0
+        lbpData.corr{icell}.fwd_bck = corr(lbpData.fwd{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % ~0
+    end
 end
 % save(lbpFname,'lbpData','accumulatedFovLBP','accumulatedBckLBP','accumulatedFwdLBP');
 save(lbpFname,'lbpData');
