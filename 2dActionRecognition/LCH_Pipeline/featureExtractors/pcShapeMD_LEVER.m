@@ -13,6 +13,11 @@ shapeData.t0 = nan(1,nCells); % NEW: initial time for the trajectory
 
 shapeFname = [dirs.tracking filesep 'shapeDataLever.mat'];
 
+if exist(shapeFname,'file') && ~params.always
+    fprintf(sprintf('Shape features using LEVER ROI for %s exists, finishing\n',shapeFname));
+    return;
+end
+
 if ~isfield(params,'sTime')
     params.sTime = 1;
 end

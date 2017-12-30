@@ -27,6 +27,11 @@ lbpData.t0 = nan(1,nCells); % NEW: initial time for the trajectory
 
 lbpFname = [dirs.tracking filesep 'lbpDataLever.mat'];
 
+if exist(lbpFname,'file') && ~params.always
+    fprintf(sprintf('LBP features in LEVER ROI for %s exists, finishing\n',lbpFname));
+    return;
+end
+
 if ~isfield(params,'sTime')
     params.sTime = 1;
 end

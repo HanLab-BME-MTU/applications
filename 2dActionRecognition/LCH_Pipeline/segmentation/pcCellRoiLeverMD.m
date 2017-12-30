@@ -60,7 +60,7 @@ for icell = 1 : nCells
         
         ROI = [];
         for iLabels = 1 : nLabels
-            curLabel = (MASK == iLabels);
+            curLabel = (labels == iLabels);
             curLabel1 = imdilate(curLabel,structElement);
             curLabel2 = imfill(curLabel1,'holes');
             if curLabel2(yBB,xBB)
