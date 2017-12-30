@@ -75,6 +75,7 @@ pcCellRoiLeverMD(MD,params,dirs);
 pcLBPMD(MD,params,dirs);% radius = 35um
 pcLBPdtMD(MD,params,dirs);% radius = 35um
 pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
+pcShapeMD_LEVER(MD,params,dirs);% radius = 35um
 % toc
 % params.always = false;
 

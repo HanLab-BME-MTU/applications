@@ -1,8 +1,9 @@
 %% pcLBPMD_LEVER - calculates LBP for single cell trajectories, within LEVER segmentation masks
 % calculate multi-scale LBP for entire frames, then crops specific cell and extract
 % corresponding LBP values for every cell's trajectory
+% Assaf Zaritsky, December 2017
 
-% MD - not used, for future use...
+% MD - not used (image just used for size), for future use...
 function [] = pcLBPMD_LEVER(MD,params,dirs)
 
 load([dirs.tracking 'cellIdTYX.mat']);% cellTYX
@@ -71,7 +72,7 @@ for icell = 1 : nCells
         
         lbpTFname = [dirs.lbp sprintf('%03d',t) '_lbp.mat'];
         load(lbpTFname); % pyramidLBP
-        Ilbp = pyramidLBP{curScale}; % first scale
+        Ilbp = pyramidLBP{curScale}; % first scale                
         
         %% FOV
         ROI_FOV = false(size(I));
@@ -107,7 +108,7 @@ for icell = 1 : nCells
         lbpDescBck = lbpDescBck ./ sum(lbpDescBck);
         
         %         accumulatedBckLBP = [accumulatedBckLBP,lbpDescBck'];
-        lbpData.bck{icell}.lbp(curT,:) = lbpDescBck;
+        lbpData.bck{icell}.lbp(curT,:) = lbpDescBck;         
     end
     %% FOV - dLBP/dT
     dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
