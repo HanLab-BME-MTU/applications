@@ -43,6 +43,14 @@ for icell = 1 : nCells
     
     load([dirs.roiLever sprintf('%d',icell) '_roi.mat']); % curCellRoi.roi for the bck calculations        
     
+    if isempty(curCellRoi)
+        lbpData.fov{icell} = [];
+        lbpData.bck{icell} = [];
+        lbpData.fwd{icell} = [];
+        continue;
+    end
+        
+    
     for t = curCell.ts
         curT = t - t0 + 1;
         %         curX = round(curCell.xs(curT)*curScale);
@@ -98,6 +106,9 @@ for icell = 1 : nCells
         accumulatedBckLBP = [accumulatedBckLBP,lbpDescBck'];
         lbpData.bwd{icell}.lbp(curT,:) = lbpDescBck;        
     end
+    %% FOV - dLBP/dT
+    dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
+    lbpData.fov{icell} = sum(dLbp,2);    
 end
 save(lbpFname,'lbpData','accumulatedFovLBP','accumulatedBckLBP','accumulatedFwdLBP');
 end

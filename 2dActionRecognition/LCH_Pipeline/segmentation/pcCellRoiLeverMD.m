@@ -70,7 +70,8 @@ for icell = 1 : nCells
         end
         
         if (isempty(ROI) && (curT == 1))                   
-            assert(false);
+            curCellRoi = [];            
+            break;
         end
         
         if isempty(ROI)
@@ -93,8 +94,7 @@ for icell = 1 : nCells
         curCellRoi{curT}.yBB = yBB;
         curCellRoi{curT}.t = t;                
     end
-    save(roiLeverFname,'curCellRoi');
-    
+    save(roiLeverFname,'curCellRoi');    
 end
 end
 
