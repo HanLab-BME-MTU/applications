@@ -12,13 +12,15 @@ curScale = 1; % not doing multi-scale analysis
 
 nCells = length(cellTYX); %#ok<USENS>
 
-accumulatedFovLBP = []; % take LBP for all field of view
-accumulatedBckLBP = []; % take LBP for all bck in FOV
-accumulatedFwdLBP = []; % take LBP for all fwd in FOV
+% accumulatedFovLBP = []; % take LBP for all field of view
+% accumulatedBckLBP = []; % take LBP for all bck in FOV
+% accumulatedFwdLBP = []; % take LBP for all fwd in FOV
 
 lbpData.fov = cell(1,nCells);
 lbpData.bck = cell(1,nCells);
 lbpData.fwd = cell(1,nCells);
+
+lbpData.corr = cell(1,nCells);
 
 lbpData.t0 = nan(1,nCells); % NEW: initial time for the trajectory
 
@@ -41,15 +43,16 @@ for icell = 1 : nCells
     lbpData.bck{icell}.lbp = nan(ntime,10);
     lbpData.fwd{icell}.lbp = nan(ntime,10);
     
-    load([dirs.roiLever sprintf('%d',icell) '_roi.mat']); % curCellRoi.roi for the bck calculations        
+    load([dirs.roiLever sprintf('%d',icell) '_roi.mat']); % curCellRoi.roi for the bck calculations
     
     if isempty(curCellRoi)
         lbpData.fov{icell} = [];
         lbpData.bck{icell} = [];
         lbpData.fwd{icell} = [];
+        lbpData.corr{icell} = [];
         continue;
     end
-        
+    
     
     for t = curCell.ts
         curT = t - t0 + 1;
@@ -64,8 +67,8 @@ for icell = 1 : nCells
         roibbx0 = curCellRoi{curT}.bbx0;
         roibbx1 = curCellRoi{curT}.bbx1;
         
-        ROIBB = curCellRoi{curT}.roi;        
-                        
+        ROIBB = curCellRoi{curT}.roi;
+        
         lbpTFname = [dirs.lbp sprintf('%03d',t) '_lbp.mat'];
         load(lbpTFname); % pyramidLBP
         Ilbp = pyramidLBP{curScale}; % first scale
@@ -75,11 +78,11 @@ for icell = 1 : nCells
         ROI_FOV(roibby0:roibby1,roibbx0:roibbx1) = true;
         ROI_FOV_Scale = imresize(ROI_FOV,curScale,'nearest');
         
-        IlbpFov = Ilbp(ROI_FOV_Scale);            
+        IlbpFov = Ilbp(ROI_FOV_Scale);
         lbpDescFov = hist(IlbpFov(:),0:9);
         lbpDescFov = lbpDescFov ./ sum(lbpDescFov);
         
-        accumulatedFovLBP = [accumulatedFovLBP,lbpDescFov'];
+        %         accumulatedFovLBP = [accumulatedFovLBP,lbpDescFov'];
         lbpData.fov{icell}.lbp(curT,:) = lbpDescFov;
         
         %% FWD
@@ -87,11 +90,11 @@ for icell = 1 : nCells
         ROI_FWD(roibby0:roibby1,roibbx0:roibbx1) = ROIBB;
         ROI_FWD_Scale = imresize(ROI_FWD,curScale,'nearest');
         
-        IlbpFwd = Ilbp(ROI_FWD_Scale);            
+        IlbpFwd = Ilbp(ROI_FWD_Scale);
         lbpDescFwd = hist(IlbpFwd,0:9);
         lbpDescFwd = lbpDescFwd ./ sum(lbpDescFwd);
         
-        accumulatedFwdLBP = [accumulatedFwdLBP,lbpDescFwd'];
+        %         accumulatedFwdLBP = [accumulatedFwdLBP,lbpDescFwd'];
         lbpData.fwd{icell}.lbp(curT,:) = lbpDescFwd;
         
         %% BCK
@@ -99,22 +102,30 @@ for icell = 1 : nCells
         ROI_BCK(roibby0:roibby1,roibbx0:roibbx1) = ~ROIBB;
         ROI_BCK_Scale = imresize(ROI_BCK,curScale,'nearest');
         
-        IlbpBck = Ilbp(ROI_BCK_Scale);            
+        IlbpBck = Ilbp(ROI_BCK_Scale);
         lbpDescBck = hist(IlbpBck,0:9);
         lbpDescBck = lbpDescBck ./ sum(lbpDescBck);
         
-        accumulatedBckLBP = [accumulatedBckLBP,lbpDescBck'];
-        lbpData.bwd{icell}.lbp(curT,:) = lbpDescBck;        
+        %         accumulatedBckLBP = [accumulatedBckLBP,lbpDescBck'];
+        lbpData.bck{icell}.lbp(curT,:) = lbpDescBck;
     end
     %% FOV - dLBP/dT
     dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
-    lbpData.fov{icell} = sum(dLbp,2);   
+    lbpData.fov{icell}.dlbp10d = dLbp;
+    lbpData.fov{icell}.dlbp1d = sum(lbpData.fov{icell}.dlbp10d,2);
     %% FWD - dLBP/dT
     dLbp = abs(lbpData.fwd{icell}.lbp(1:end-1,:) - lbpData.fwd{icell}.lbp(2:end,:));
-    lbpData.fwd{icell} = sum(dLbp,2); 
+    lbpData.fwd{icell}.dlbp10d = dLbp;
+    lbpData.fwd{icell}.dlbp1d = sum(lbpData.fwd{icell}.dlbp10d,2);
     %% BCK - dLBP/dT
     dLbp = abs(lbpData.bck{icell}.lbp(1:end-1,:) - lbpData.bck{icell}.lbp(2:end,:));
-    lbpData.bck{icell} = sum(dLbp,2); 
+    lbpData.bck{icell}.dlbp10d = dLbp;
+    lbpData.bck{icell}.dlbp1d = sum(lbpData.bck{icell}.dlbp10d,2);
+    %% Correlations
+    lbpData.corr{icell}.fov_fwd = corr(lbpData.fov{icell}.dlbp1d,lbpData.fwd{icell}.dlbp1d); % ~0
+    lbpData.corr{icell}.fov_bck = corr(lbpData.fov{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % > 0
+    lbpData.corr{icell}.fwd_bck = corr(lbpData.fwd{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % ~0
 end
-save(lbpFname,'lbpData','accumulatedFovLBP','accumulatedBckLBP','accumulatedFwdLBP');
+% save(lbpFname,'lbpData','accumulatedFovLBP','accumulatedBckLBP','accumulatedFwdLBP');
+save(lbpFname,'lbpData');
 end
