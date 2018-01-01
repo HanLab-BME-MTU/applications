@@ -30,12 +30,12 @@ end
 load(metaDataFname);%metaData
 
 % features
-accFeatsFnameAll = [featsOutDname filesep featsStrOut '_' num2str(iScale) '_all.mat'];
+accFeatsFnameAll = [featsOutDname filesep featsStrOut '_all.mat'];
 
 %% Accumulate
 if ~exist(accFeatsFnameAll,'file') || always
     tic;
-    out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,featsStrID,iScale,fGetFeats);    
+    out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,featsStrID,fGetFeats);    
     allCells = out.allCells;
     clear out;    
     save(accFeatsFnameAll,'allCells','-v7.3');    
@@ -44,7 +44,7 @@ end
 end
 
 %% Here we do the accumulation for every well!
-function out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,featsStrID,iScale,fGetFeats)
+function out = accumulateFeatsGenericThirdGen(metaData,featsInDname,featsStrIn,featsStrID,fGetFeats)
 
 %% init
 out.allCells.accFeats = {};
@@ -53,13 +53,13 @@ out.allCells.accCellID = {};
 
 out.allCells.strs = {};
 out.allCells.date = {};
-out.allCells.task = {}; % needed to go back to the cell movie for cell explorer!
+% out.allCells.task = {}; % needed to go back to the cell movie for cell explorer!
 out.allCells.cellType = {};
 out.allCells.source = {};
 out.allCells.metEff = {};
 
 out.allCells.expStr = {};
-out.allCells.featsStrID = [featsStrID '_' num2str(iScale)];
+out.allCells.featsStrID = featsStrID;
 
 %% Accumulation
 for iexp = 1 : metaData.experiments.N
@@ -90,13 +90,20 @@ for iexp = 1 : metaData.experiments.N
             curSource = metaData.cellTypes.source{cellTypeInd};
             curMetEff = metaData.cellTypes.metastaticEfficiency(cellTypeInd);
             
-            featsInFname = [featsInDname num2str(iScale) filesep expFname sprintf('_s%02d_%s.mat',itask,featsStrIn)];
+            featsInFname = [featsInDname filesep expFname sprintf('_s%02d_%s.mat',itask,featsStrIn)];
             if ~exist(featsInFname,'file')
-                error('file %s does not exist',featsInFname);
+                warning('file %s does not exist',featsInFname);
+                continue;
+            end
+            
+            load(featsInFname);
+            
+            if isempty(dataTask)
+                continue;
             end
             
             [curFeats,curIDs,curTXY] = getLchFeats(fGetFeats,dataTask);
-            nCurCells = size(curFeats,2);
+            nCurCells =curFeats.ncells;
             
             
             %% Actual accumulation
@@ -119,7 +126,7 @@ for iexp = 1 : metaData.experiments.N
             out.allCells.locations{nextPosition}.locationTXY{iLocation} = curTXY;
             
             % accumulation
-            out.allCells.accFeats{nextPosition} = [out.allCells.accFeats{nextPosition},curFeats]; %% TODO??
+            out.allCells.accFeats{nextPosition} = accFeatslocation(out.allCells.accFeats{nextPosition},curFeats); %% TODO??
             
             out.allCells.accLocation{nextPosition} = [out.allCells.accLocation{nextPosition},ones(1,nCurCells)*itask];
             out.allCells.accCellID{nextPosition} = [out.allCells.accCellID{nextPosition},curIDs];
@@ -136,5 +143,25 @@ for iexp = 1 : metaData.experiments.N
         end % task
     end % cell type within experiment
 end % number of experiments
+
+end
+
+%%
+function feats = accFeatslocation(accFeats,curFeats)
+if isempty(accFeats)
+    feats = curFeats;
+    return;
+end
+
+fields = fieldnames(curFeats);
+
+for ifield = 1 : numel(fields)
+    curField = fields{ifield};
+    if strcmp(curField,'ncells')
+        feats.ncells = accFeats.ncells + curFeats.ncells;
+    else
+        feats.(curField) = [accFeats.(curField), curFeats.(curField)];
+    end
+end
 
 end

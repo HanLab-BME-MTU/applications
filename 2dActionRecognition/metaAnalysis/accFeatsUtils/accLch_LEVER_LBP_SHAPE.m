@@ -16,11 +16,11 @@ params.featsStrOut = featsStrOut;
 params.featsStrID = featsStrID;
 params.featsOutDname  = [analysisDirname 'metaAnalysis/' params.featsStrOut]; % output directory
 params.metaDataFname  = [analysisDirname 'MetaData/' metaDataFname]; % meta data (from excel DB)
-params.fGetFeats = @getLch_LEVER_LBP_SHAPE;
+params.fGetFeats = @getLchWrapper_LEVER_LBP_SHAPE;
 
 pcAccumulateFeatsGeneric2018(params);
 end
 
-function [feats,cellID,TXY] = getLch_LEVER_LBP_SHAPE(dataTask)
+function [feats,cellID,TXY] = getLchWrapper_LEVER_LBP_SHAPE(dataTask)
 [feats,cellID,TXY] = getLch_LEVER_LBP_SHAPE(dataTask);
 end

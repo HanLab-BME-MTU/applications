@@ -19,8 +19,8 @@ for icell = 1 : n
     TXY{ncells}.ys = dataTask{icell}.ys;
     
     feats.lbpFOV = [feats.lbpFOV,median(dataTask{icell}.lbpFOV,1)'];
-    feats.lbpFOV = [feats.lbpFWD,median(dataTask{icell}.lbpFWD,1)'];
-    feats.lbpFOV = [feats.lbpBCK,median(dataTask{icell}.lbpBCK,1)'];
+    feats.lbpFWD = [feats.lbpFWD,median(dataTask{icell}.lbpFWD,1)'];
+    feats.lbpBCK = [feats.lbpBCK,median(dataTask{icell}.lbpBCK,1)'];
     
     feats.dlbp10dFOV = [feats.dlbp10dFOV,median(dataTask{icell}.dlbp10dFOV,1)'];
     feats.dlbp10dFWD = [feats.dlbp10dFWD,median(dataTask{icell}.dlbp10dFWD,1)'];
@@ -34,14 +34,16 @@ for icell = 1 : n
     feats.corrFovBck = [feats.corrFovBck,dataTask{icell}.corrFovBck];
     feats.corrFwdBck = [feats.corrFwdBck,dataTask{icell}.corrFwdBck];
     
-    feats.shapeFeats = [feats.shapeFeats, median(dataTask{icell}.shapeFeats,1)'];   
+    feats.shapeFeats = [feats.shapeFeats, median(dataTask{icell}.shapeFeats,1)'];
+    
+    feats.ncells = ncells;
 end
 end
     
 
 
 %%
-function [] = initFeats()
+function feats = initFeats()
 feats.lbpFOV = [];
 feats.lbpFWD = [];
 feats.lbpBCK = [];
@@ -50,9 +52,9 @@ feats.dlbp10dFOV = [];
 feats.dlbp10dFWD = [];
 feats.dlbp10dBCK = [];
 
-feats.dlbp1dFOV = [];
-feats.dlbp1dFWD = [];
-feats.dlbp1dBCK = [];
+% feats.dlbp1dFOV = [];
+% feats.dlbp1dFWD = [];
+% feats.dlbp1dBCK = [];
 
 feats.dlbp1dFOV_median = [];
 feats.dlbp1dFWD_median = [];
