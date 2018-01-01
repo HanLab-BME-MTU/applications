@@ -23,10 +23,10 @@ load(metaDataFname);%metaData
 % features
 accFeatsFnameAll = [featsOutDname filesep featsStrOut '_all.mat'];
 
-assert(exist(accFeatsFnameAll,'file'));
+assert(logical(exist(accFeatsFnameAll,'file')));
 
 load(accFeatsFnameAll); % allCells
-allCellOld = allCells;
+allCellsOld = allCells;
 clear allCells;
 
 feats = allCellsOld.accFeats{1};
@@ -48,8 +48,7 @@ for ifield = 1 : numel(fields)
             allCells.accFeats{i} = allCells.accFeats{i}.(curField);
         end
     end
+    save(curFeatsFname,'allCells');
 end
-
-save(curFeatsFname,'allCells');
 
 end
