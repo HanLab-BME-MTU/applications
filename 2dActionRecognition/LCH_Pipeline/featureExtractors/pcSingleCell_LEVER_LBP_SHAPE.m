@@ -37,6 +37,11 @@ for icell = 1 : nCurCells
     dataTask{icell}.xs = cellTYX{icell}.xs;
     dataTask{icell}.ys = cellTYX{icell}.ys;
     
+    if isempty(lbpData.fov{icell})
+        dataTask{icell} = [];
+        continue;
+    end
+    
     dataTask{icell}.lbpFOV = lbpData.fov{icell}.lbp;
     dataTask{icell}.lbpFWD = lbpData.fwd{icell}.lbp;
     dataTask{icell}.lbpBCK = lbpData.bck{icell}.lbp;
