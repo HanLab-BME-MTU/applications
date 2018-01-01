@@ -13,7 +13,7 @@ function [] = pcAccumulateFeatsGeneric2018(params)
 addpath(genpath('/home2/azaritsky/code/applications/2dActionRecognition/metaAnalysis/'));
 
 close all;
-always = true;%false;
+always = false;
 
 featsInDname = params.featsInDname;
 featsOutDname = params.featsOutDname;
@@ -104,7 +104,9 @@ for iexp = 1 : metaData.experiments.N
             
             [curFeats,curIDs,curTXY] = getLchFeats(fGetFeats,dataTask);
             nCurCells =curFeats.ncells;
-            
+                        
+            assert(length(curIDs) == nCurCells);
+            %             assert(length(out.allCells.locations{nextPosition}.locationTXY{ilocation}));
             
             %% Actual accumulation
             

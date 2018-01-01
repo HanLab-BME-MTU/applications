@@ -1,4 +1,4 @@
-%% 
+%%  Get features from one location (task)
 function [feats, cellID, TXY] = getLch_LEVER_LBP_SHAPE(dataTask)
 n = length(dataTask);
 feats = initFeats();
