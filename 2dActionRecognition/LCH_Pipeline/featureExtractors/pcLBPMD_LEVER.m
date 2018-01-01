@@ -114,19 +114,7 @@ for icell = 1 : nCells
         
         %         accumulatedBckLBP = [accumulatedBckLBP,lbpDescBck'];
         lbpData.bck{icell}.lbp(curT,:) = lbpDescBck;         
-    end
-    
-    %% Verifying that this is a non-empty task
-    nullanize = true;
-    for icell = 1 : nCells
-        if ~isempty(lbpData.fov{icell})
-            nullanize = false;
-        end
-    end
-    if nullanize
-        lbpData = [];
-    end
-    %%
+    end      
     
     if ~isempty(lbpData)
         %% FOV - dLBP/dT
@@ -147,6 +135,19 @@ for icell = 1 : nCells
         lbpData.corr{icell}.fwd_bck = corr(lbpData.fwd{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % ~0
     end
 end
+
+%% Verifying that this is a non-empty task
+nullanize = true;
+for icell = 1 : nCells
+    if ~isempty(lbpData.fov{icell})
+        nullanize = false;
+    end
+end
+if nullanize
+    lbpData = [];
+end
+%%
+
 % save(lbpFname,'lbpData','accumulatedFovLBP','accumulatedBckLBP','accumulatedFwdLBP');
 save(lbpFname,'lbpData');
 end

@@ -6,6 +6,10 @@ function [] = pcSingleCell_LEVER_LBP_SHAPE(params,dirs)
 
 outdir = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/Cells/LEVER_LBP_SHAPE/';
 
+if ~exist(outdir,'dir')
+    error([outdir ' does not exist']);
+end
+
 cellTYXFname = [dirs.tracking 'cellIdTYX.mat'];
 load(cellTYXFname);% cellTYX
 
@@ -21,12 +25,7 @@ end
 
 nCurCells = length(lbpData.fov);
 
-curOutdir = [outdir filesep num2str(iScale) filesep ];
-if ~exist(curOutdir,'dir')
-    error([curOutdir ' does not exist']);
-end
-
-LeverLbpShapeFname = [curOutdir filesep params.curFname sprintf('_s%02d',params.curTask) '_LEVER_LBP_SHAPE.mat'];
+LeverLbpShapeFname = [outdir filesep params.curFname sprintf('_s%02d',params.curTask) '_LEVER_LBP_SHAPE.mat'];
 
 if exist(LeverLbpShapeFname,'dir')  && ~params.always
     return;
