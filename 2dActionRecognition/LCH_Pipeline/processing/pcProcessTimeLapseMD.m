@@ -65,9 +65,8 @@ pcTrackingMovie(MD, params, dirs); % (Once did the single cell definition)
 
 %% Single cell segmentaion
 pcCellRoiMD(MD,params,dirs);
-params.always = true;
 pcCellRoiLeverMD(MD,params,dirs);
-params.always = false;
+
 
 %% Feature extraction - per cell!
 % params.always = true;
@@ -84,5 +83,6 @@ params.always = false;
 % pcSingleCellMovies(MD,params,dirs);
 % pcSingleCell_dLBP(params,dirs);
 % pcSingleCell_dLBP_Plasticity(params,dirs);
+pcSingleCell_LEVER_LBP_SHAPE(params,dirs);
 
 end

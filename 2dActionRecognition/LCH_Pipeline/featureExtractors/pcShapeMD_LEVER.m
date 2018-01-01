@@ -35,7 +35,7 @@ for icell = 1 : nCells
     load([dirs.roiLever sprintf('%d',icell) '_roi.mat']); % curCellRoi.roi
     
     if isempty(curCellRoi)
-        shapeData.shapeFeats{icell}.feats = [];
+        shapeData.shapeFeats{icell} = [];
         continue;
     end
     
@@ -47,11 +47,24 @@ for icell = 1 : nCells
         
         %% ROI        
         ROIBB = curCellRoi{curT}.roi;
-                     
-        %% Shape 
+        
+        %% Shape
         shapeData.shapeFeats{icell}.feats(curT,:) = getShapeFeats(ROIBB);
     end
 end
+
+%% Verifying that this is a non-empty task
+nullanize = true;
+for icell = 1 : nCells
+    if ~isempty(shapeData.shapeFeats{icell})
+        nullanize = false;
+    end
+end
+if nullanize
+    shapeData = [];
+end
+%%
+
 save(shapeFname,'shapeData');
 end
 

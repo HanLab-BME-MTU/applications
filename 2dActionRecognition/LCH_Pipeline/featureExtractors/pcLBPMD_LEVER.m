@@ -116,6 +116,18 @@ for icell = 1 : nCells
         lbpData.bck{icell}.lbp(curT,:) = lbpDescBck;         
     end
     
+    %% Verifying that this is a non-empty task
+    nullanize = true;
+    for icell = 1 : nCells
+        if ~isempty(lbpData.fov{icell})
+            nullanize = false;
+        end
+    end
+    if nullanize
+        lbpData = [];
+    end
+    %%
+    
     if ~isempty(lbpData)
         %% FOV - dLBP/dT
         dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
