@@ -12,13 +12,10 @@ close all;
 
 featsOutDname = params.featsOutDname;
 featsStrOut = params.featsStrOut; % prefix for output of the features
-metaDataFname = params.metaDataFname; % meta data (from excel DB)
 
 if ~exist(featsOutDname,'dir')
     unix(sprintf('mkdir %s',featsOutDname));
 end
-
-load(metaDataFname);%metaData
 
 % features
 accFeatsFnameAll = [featsOutDname filesep featsStrOut '_all.mat'];
