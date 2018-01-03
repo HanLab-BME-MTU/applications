@@ -34,6 +34,7 @@ ip.CaseSensitive = false;
 ip.addRequired('data');
 ip.addParameter('Overwrite', false, @islogical);
 ip.addParameter('Name', '', @ischar);
+ip.addParameter('DisplayPlot',true, @islogical);
 ip.addParameter('ChannelNames','', @(x) (ischar(x)||iscell(x)));
 ip.parse(data, varargin{:});
 
@@ -67,7 +68,7 @@ mkdirRobust(analysisFolder);
 
 fopts = {'Normalized', false, 'Axis', {[0 10 0 100],[0 10 0 1000]},...
     'DisplayMode', 'print','Name',ip.Results.Name, 'Names', {ip.Results.ChannelNames}, ... 
-    'Channels', 1:length(data_old(1).channels),'PrintFolder',analysisFolder};
+    'Channels', 1:length(data_old(1).channels),'PrintFolder',analysisFolder,'DisplayPlot',ip.Results.DisplayPlot};
 [edgeDistStats,det] = calcDistFromCellEdgeIF(data_old, fopts{:});
 
 for i=1:length(data_old)
@@ -96,6 +97,9 @@ for i=1:length(data_old)
     %% Overlay
     rgb = uint8(rgb);
     figure('Units', 'Pixels', 'Position', [150 150 nx/2 ny/2], 'PaperPositionMode', 'auto');
+    if(~ip.Results.DisplayPlot)
+        set(gcf(),'Visible','off')
+    end
     axes('Position', [0 0 1 1]);
     imagesc(rgb); axis image off; colormap(gray(256));
     hold on; plot(B(:,2), B(:,1), 'Color', 0.99*[1 1 1], 'LineWidth', 1);

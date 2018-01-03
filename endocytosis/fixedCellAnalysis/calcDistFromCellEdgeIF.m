@@ -45,6 +45,7 @@ ip.addParameter('Name', '');
 ip.addParameter('Hues', []);
 ip.addParameter('Names', []);
 ip.addParameter('Normalized', true, @islogical);
+ip.addParameter('DisplayPlot',true, @islogical);
 ip.addParameter('DisplayMode', 'screen');
 ip.addParameter('PrintFolder', []);
 ip.addParameter('PixelSize', 0.065, @isscalar);
@@ -181,6 +182,10 @@ end
 if ip.Results.Display
     % #objects/cell as a function of distance from cell edge
     setupFigure('DisplayMode', ip.Results.DisplayMode, 'Name', ip.Results.Name);
+    if(~ip.Results.DisplayPlot)
+        set(gcf(),'Visible','off')
+    end
+
     hp = zeros(1,nc);
     for c = 1:nc
         ch = chIdx(c);
@@ -213,6 +218,9 @@ if ip.Results.Display
     
     % Average spot amplitudes as a function of distance from cell edge
     setupFigure('DisplayMode', ip.Results.DisplayMode, 'Name', ip.Results.Name);
+    if(~ip.Results.DisplayPlot)
+        set(gcf(),'Visible','off')
+    end
     for c = 1:nc
         ch = chIdx(c);
         xi = out.binc{ch}*ip.Results.PixelSize;
