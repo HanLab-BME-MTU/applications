@@ -2,10 +2,9 @@
 function [] = LCH_MetaAnalysis2018(featsDname,featsStr)
 
 close all; clc;
-always = true;
 
 if nargin < 2
-    featsDname = 'C:\Assaf\Research\LCH\data\CellExplorerData\2018';
+    featsDname = '/project/bioinformatics/Danuser_lab/liveCellHistology/analysis/metaAnalysis/LEVER_LBP_SHAPE';
     featsStr = 'LEVER_LBP_SHAPE';
 end
 
@@ -15,8 +14,9 @@ end
 flags.orginizeFeatreus = true; % orginize data structure and normalize
 
 % Analysis
-flags.clsFeatures = true;
-flags.clsFeatsVis = true;
+flags.assessFeatures = true;
+
+flags.always = false;
 
 
 %% Get list of features to process
@@ -35,15 +35,13 @@ end
 function [] = doMetaAnalysis(featsDname,curFeatStr,flags)
 
 if flags.orginizeFeatreus
-    LCH_orginizeFeatures2018(featsDname,curFeatStr);
+    LCH_orginizeFeatures2018(featsDname,curFeatStr,flags.always);
 end
 
-if flags.clsFeatures
-    LCH_clsFeatures(baseDname,dateStr,featsStr); % Transform to new features
-end
-
-if flags.clsFeatsVis
-    LCH_clsFeaturesVisualization_Train(baseDname,dateStr,featsStr);
+if flags.assessFeatures
+    tsneParams.init_dims = 15;
+    tsneParams.perplexity = 10;
+    LCH_assessFeatures(featsDname,curFeatStr,tsneParams,flags.always);
 end
 
 end
@@ -59,7 +57,7 @@ feats2process = {};
 nfeats = 0;
 
 for ifield = 1 : numel(fields)
-    curField = fields{ifield};        
+    curField = fields{ifield};
     
     if strcmp(curField,'ncells') || strcmp(curField(1:4),'corr')
         continue;
