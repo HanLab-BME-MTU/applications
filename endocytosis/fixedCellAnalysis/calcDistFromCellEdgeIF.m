@@ -70,87 +70,26 @@ end
 xv = 0:ip.Results.BinSize:max([nx ny]/2);
 binc = ip.Results.BinSize/2:ip.Results.BinSize:xv(end);
 
-se = strel('disk', 1);
-for i = 1:nd
-    [ny, nx] = size(res(i).mask);
-    
-    % cell boundary (including image boundary)
-    B = bwboundaries(res(i).mask);
-    B = vertcat(B{:}); % [x y] coordinates
-    bmask = false(ny,nx);
-    bmask(sub2ind([ny nx], B(:,1), B(:,2))) = true;
-    
-    % use only detected cell edge (as opposed to image boundary)
-    % for distance calculation
-    % emask: cell edge
-    % bmask: cell edge in image boundary
-    borderIdx = [1:ny 2*ny:ny:(nx-1)*ny nx*ny:-1:(nx-1)*ny+1 (nx-2)*ny+1:-ny:ny+1];
-    borderMask = false(ny,nx);
-    borderMask(borderIdx) = true;
-    emask = bmask;
-    emask(borderIdx) = false;
-    emask = bwmorph(emask, 'skel');
-    emask = emask | (imdilate(emask,se) & borderMask); % add edge pixel(s) at border
-    bmask = bmask & ~emask;
-    
-    [by,bx] = find(bmask);
-    [ey,ex] = find(emask);
-    res(i).ex = [ex ey];
-    
-    % distance transform of mask (for normalization)
-    D = bwdist(~res(i).mask);
-    D2 = bwdist(~padarray(res(i).mask, [1 1],0));
-    D2 = D2(2:end-1,2:end-1);
-    D(D~=D2) = 0;
-    D = D-1;
-    D(D<0) = 0;
-    
-    % relative probability of observing specific distances from edge
-    tmp = D(D~=0);
-    dfeNorm = histc(tmp(tmp<=xv(end)), xv);
-    dfeNorm = dfeNorm(1:end-1);
-    
-    if ip.Results.Normalized
-        dfeNorm = dfeNorm/sum(dfeNorm);
-    else
-        dfeNorm = dfeNorm/max(dfeNorm);
-    end
-    
-    
-    for c = 1:nc
-        % query cell boundary (free edge + image boundary)
-        [idx, dist] = KDTreeBallQuery([ex ey; bx by], [res(i).ps(chIdx(c)).x' res(i).ps(chIdx(c)).y'], max(nx,ny)/2);
-        
-        % index of points with match;
-        % results are sorted by increasing distance -> retain first point only
-        edgeMatchIdx = ~cellfun(@isempty, idx);
-        idx = cellfun(@(i) i(1), idx(edgeMatchIdx));
-        dist = cellfun(@(i) i(1), dist(edgeMatchIdx));
-        
-        % retain only points closer to cell edge than image boundary
-        dist = dist(idx<=numel(ex));
-        
-        out.dist{chIdx(c),i} = dist; % distance to cell edge
-        A = res(i).ps(chIdx(c)).A(idx<=numel(ex))';
-        out.A{chIdx(c),i} = A; % amplitude of retained points
-        
-        [dfeHist, hidx] = histc(dist, xv);
-        dfeHist = dfeHist(1:end-1)./ dfeNorm;
-        
-        dfeHist(isnan(dfeHist)) = 0;
-        if ip.Results.Normalized
-            dfeHist = dfeHist/sum(dfeHist);
-        end
-        out.dfeHists{chIdx(c)}(i,:) = dfeHist;
-        
-        % for each bin, calculate average amplitude
-        ahist = zeros(size(dfeHist));
-        tmp = arrayfun(@(i) mean(A(hidx==i)), unique(hidx));
-        ahist(unique(hidx)) = tmp;
-        out.ampHists{chIdx(c)}(i,:) = ahist;
-    end
+odist = cell(max(chIdx),nd); % distance to cell edge
+oA = cell(max(chIdx),nd); % distance to cell edge
+odfeHists=cell(max(chIdx),nd);
+oampHists=cell(max(chIdx),nd);
+
+parfor i = 1:nd
+    [oodist,ooA,oodfeHists,ooampHists]=compDist(res(i),i,chIdx,ip.Results,xv);
+
+    odist(:,i)=oodist;
+    oA(:,i)=ooA;
+    odfeHists(:,i)=oodfeHists;
+    oampHists(:,i)=ooampHists;
 end
+out.dist=odist;
+out.A=oA;
+
 for c = chIdx
+
+    out.dfeHists{c}=vertcat(odfeHists{c,:});
+    out.ampHists{c}=vertcat(oampHists{c,:});
     
     % correct for observation bias (cell size-dependent), same for all hists/channel
     w = sum(out.dfeHists{c}~=0,1);
@@ -243,3 +182,93 @@ if ip.Results.Display
         printPNGEPSFIG(gcf(),[ip.Results.PrintFolder filesep], 'AvgIntensities')
     end       
 end
+
+
+function [oodist,ooA,oodfeHists,ooampHists]=compDist(resData,dataIdx,chIdx,param,xv)
+    se = strel('disk', 1);
+
+    i=dataIdx;
+    nc=length(chIdx);
+
+    [ny, nx] = size(resData.mask);
+    
+    % cell boundary (including image boundary)
+    B = bwboundaries(resData.mask);
+    B = vertcat(B{:}); % [x y] coordinates
+    bmask = false(ny,nx);
+    bmask(sub2ind([ny nx], B(:,1), B(:,2))) = true;
+    
+    % use only detected cell edge (as opposed to image boundary)
+    % for distance calculation
+    % emask: cell edge
+    % bmask: cell edge in image boundary
+    borderIdx = [1:ny 2*ny:ny:(nx-1)*ny nx*ny:-1:(nx-1)*ny+1 (nx-2)*ny+1:-ny:ny+1];
+    borderMask = false(ny,nx);
+    borderMask(borderIdx) = true;
+    emask = bmask;
+    emask(borderIdx) = false;
+    emask = bwmorph(emask, 'skel');
+    emask = emask | (imdilate(emask,se) & borderMask); % add edge pixel(s) at border
+    bmask = bmask & ~emask;
+    
+    [by,bx] = find(bmask);
+    [ey,ex] = find(emask);
+    resData.ex = [ex ey];
+    
+    % distance transform of mask (for normalization)
+    D = bwdist(~resData.mask);
+    D2 = bwdist(~padarray(resData.mask, [1 1],0));
+    D2 = D2(2:end-1,2:end-1);
+    D(D~=D2) = 0;
+    D = D-1;
+    D(D<0) = 0;
+    
+    % relative probability of observing specific distances from edge
+    tmp = D(D~=0);
+    dfeNorm = histc(tmp(tmp<=xv(end)), xv);
+    dfeNorm = dfeNorm(1:end-1);
+    
+    if param.Normalized
+        dfeNorm = dfeNorm/sum(dfeNorm);
+    else
+        dfeNorm = dfeNorm/max(dfeNorm);
+    end
+    
+    % dirty trick to make it //izable -- PR
+    nd=1;
+    oodist = cell(max(chIdx),nd); % distance to cell edge
+    ooA = cell(max(chIdx),nd); % distance to cell edge
+    oodfeHists=cell(max(chIdx),1);
+    ooampHists=cell(max(chIdx),1);
+    for c = 1:nc
+        % query cell boundary (free edge + image boundary)
+        [idx, dist] = KDTreeBallQuery([ex ey; bx by], [resData.ps(chIdx(c)).x' resData.ps(chIdx(c)).y'], max(nx,ny)/2);
+        
+        % index of points with match;
+        % results are sorted by increasing distance -> retain first point only
+        edgeMatchIdx = ~cellfun(@isempty, idx);
+        idx = cellfun(@(i) i(1), idx(edgeMatchIdx));
+        dist = cellfun(@(i) i(1), dist(edgeMatchIdx));
+        
+        % retain only points closer to cell edge than image boundary
+        dist = dist(idx<=numel(ex));
+        
+        oodist{chIdx(c),1} = dist; % distance to cell edge
+        A = resData.ps(chIdx(c)).A(idx<=numel(ex))';
+        ooA{chIdx(c),1} = A; % amplitude of retained points
+        
+        [dfeHist, hidx] = histc(dist, xv);
+        dfeHist = dfeHist(1:end-1)./ dfeNorm;
+        
+        dfeHist(isnan(dfeHist)) = 0;
+        if param.Normalized
+            dfeHist = dfeHist/sum(dfeHist);
+        end
+        oodfeHists{chIdx(c)}(1,:) = dfeHist;
+        
+        % for each bin, calculate average amplitude
+        ahist = zeros(size(dfeHist));
+        tmp = arrayfun(@(i) mean(A(hidx==i)), unique(hidx));
+        ahist(unique(hidx)) = tmp;
+        ooampHists{chIdx(c)}(1,:) = ahist;
+    end

@@ -34,7 +34,7 @@ if(~iscell(allMasks))
     allMasks={allMasks};
 end
 
-for i = 1:nd
+parfor i = 1:nd
 
     if ~(exist(data(i).results, 'file')==2) || ip.Results.Overwrite
         fprintf('Processing %s ... ', getDirFromPath(data(i).results));
@@ -57,10 +57,12 @@ for i = 1:nd
         % mask(bgIdx) = 1;
         
         % run spot detection
+        ps=cell(1,nc);
         for c = 1:nc
-            ps(c) = pointSourceDetection(ch{c}, sigma(c), 'Mode', 'xyAc', 'Mask', mask);
+            ps{c} = pointSourceDetection(ch{c}, sigma(c), 'Mode', 'xyAc', 'Mask', mask);
         end
-        
+        ps=[ps{:}];
+
         % random positions
         np = max(arrayfun(@(i) numel(i.x), ps));
         N = 10*np;
@@ -78,13 +80,17 @@ for i = 1:nd
         end
         xr = xr(1:N);
         yr = yr(1:N);
-        
+        psRand=cell(1,nc);
         for c = 1:nc
-            psRand(c) = fitGaussians2D(double(ch{c}), xr, yr, [], sigma(c), [], 'Ac'); %#ok<NASGU>
+            psRand{c} = fitGaussians2D(double(ch{c}), xr, yr, [], sigma(c), [], 'Ac'); %#ok<NASGU>
         end
+        psRand=[psRand{:}];
 
         % save mask + detections
-        save(data(i).results, 'ps', 'psRand', 'mask');
+        saveData(data(i).results, ps, psRand, mask);
         fprintf('done.\n');
     end
 end
+
+function saveData(res,ps,psRand,mask)
+    save(res, 'ps', 'psRand', 'mask');
