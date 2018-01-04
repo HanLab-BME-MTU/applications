@@ -1,5 +1,5 @@
 %% Generic accumulation of *ONE* feature from cell type + condition (over all locations),
-%% Assumes pcAccumulateFeatsGeneric2018 was 
+%% Assumes pcAccumulateFeatsGeneric2018 was
 %   Params:
 %        featsOutDname  % input/output directory
 %        featsStrOut    % feature string for the output files
@@ -35,7 +35,7 @@ for ifield = 1 : numel(fields)
     
     curFeatsFname = [featsOutDname filesep curField '_all.mat'];
     
-    if strcmp(curField,'ncells') || strcmp(curField(1:4),'corr') 
+    if strcmp(curField,'ncells') || strcmp(curField(1:4),'corr')
         continue;
     else
         allCells = allCellsOld;
@@ -43,8 +43,19 @@ for ifield = 1 : numel(fields)
         n = length(allCells.accFeats);
         for i = 1 : n
             allCells.accFeats{i} = allCells.accFeats{i}.(curField);
+            
+            locationData = allCells.locations{i};
+            nLocations = length(locationData.locationTXY);
+            
+            for ilocation = 1 : nLocations
+                curLocationFeats = locationData.locationFeats{ilocation};
+                
+                locationData.locationFeats{ilocation} = curLocationFeats.(curField);
+            end
+            allCells.locations{i} = locationData;
         end
     end
+    
     save(curFeatsFname,'allCells');
 end
 
