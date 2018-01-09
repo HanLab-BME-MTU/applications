@@ -1,4 +1,4 @@
-function [hfig, B, R] = kymograph(R,K,r,c,out)
+function [hfig, B, R] = kymograph(R,K,r,c,out,I)
 % Kymograph - Make kymograph figure for paper
 
 INTERPOLATION_INTERVAL = 10;
@@ -27,7 +27,7 @@ else
     rho = R.getResponseAtOrderFTatPoint(r,c,K);
 end
 
-if(nargin < 5)
+if(nargin < 5 || isempty(out))
     %% Conditioning
     rhoh = fft(rho);
     rhoh(1,:) = 0;
@@ -309,5 +309,42 @@ for i=1:size(out,1)
     text(5+sz*(i-1),sz-10,sprintf('%.3f%s',xgAligned(i,2)/2/pi*180,char(176)),'Color',hp1(i).Color);
 end
 
+%% Show point of analysis
+
+if(exist('I','var'))
+    figure;
+    imshow(I,[]);
+    xlim([-20 20]+c);
+    ylim([-20 20]+r);
+    hold on;
+    length_expansion = 1;
+    intersection.X = cat(3,length_expansion*(-K(1:PLOT_INTERVAL:end).*sin(-out(:,1:PLOT_INTERVAL:end)/2)).',length_expansion*( K(1:PLOT_INTERVAL:end).*sin(-out(:,1:PLOT_INTERVAL:end)/2)).',NaN(size(out(:,1:PLOT_INTERVAL:end))).');
+    intersection.Y = cat(3,length_expansion*(-K(1:PLOT_INTERVAL:end).*cos(-out(:,1:PLOT_INTERVAL:end)/2)).',length_expansion*( K(1:PLOT_INTERVAL:end).*cos(-out(:,1:PLOT_INTERVAL:end)/2)).',NaN(size(out(:,1:PLOT_INTERVAL:end))).');
+    intersection.X = permute(intersection.X,[3 1 2]);
+    intersection.Y = permute(intersection.Y,[3 1 2]);
+    intersection.X = reshape(intersection.X,size(intersection.X,1).*size(intersection.X,2),size(intersection.X,3));
+    intersection.Y = reshape(intersection.Y,size(intersection.Y,1).*size(intersection.Y,2),size(intersection.Y,3));
+    intersection.hp1 = plot(intersection.X+c,intersection.Y+r,'LineStyle','-','Marker','.');
+%     hpn1 = plot((-K(1:PLOT_INTERVAL:end).*sin(-out(:,1:PLOT_INTERVAL:end)/2)).'+c,(-K(1:PLOT_INTERVAL:end).*cos(-out(:,1:PLOT_INTERVAL:end)/2)).'+r,'.');
+%     hpp1 = plot(( K(1:PLOT_INTERVAL:end).*sin(-out(:,1:PLOT_INTERVAL:end)/2)).'+c,( K(1:PLOT_INTERVAL:end).*cos(-out(:,1:PLOT_INTERVAL:end)/2)).'+r,'.');
+    for i=1:size(xgAligned,1)
+        hpbn(i) = plot(length_expansion.*-Kg_aligned(i).*sin(-xgAligned(i,2)/2)+c,length_expansion.*-Kg_aligned(i).*cos(-xgAligned(i,2)/2)+r,'s');
+        hpbp(i) = plot(length_expansion.* Kg_aligned(i).*sin(-xgAligned(i,2)/2)+c,length_expansion.* Kg_aligned(i).*cos(-xgAligned(i,2)/2)+r,'s');
+    end
+    for i=1:length(hp1)
+%         hp2e(i) = plot(out(lastInd(i)).'/pi/2*180,K(lastK(i)),'o');
+        try
+            set(intersection.hp1(i),'Color',hp1(i).Color);
+            set(intersection.hp1(i),'ButtonDownFcn',@(h,~) set(h,'LineStyle',subsref({'none','-'},substruct('{}',{strcmp(h.LineStyle,'none')+1}))));
+%             set(hpn1(i),'Color',hp1(i).Color);
+%             set(hpp1(i),'Color',hp1(i).Color);
+            
+            set(hpbn(i),'Color',hp1(i).Color);
+            set(hpbp(i),'Color',hp1(i).Color);
+        catch err
+        end
+    end
+
+end
 
 end
