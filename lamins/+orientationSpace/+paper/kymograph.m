@@ -259,7 +259,7 @@ sz = 101;
 for Ki = 1:INTERPOLATION_INTERVAL:length(K)
     FF = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,K(Ki),'none');
     FF.setupFilter(sz);
-    temp = ifft2(real(FF.getFilterAtAngle(out(:,Ki))));
+    temp = ifft2(real(FF.getFilterAtAngle(out(:,Ki)/2)));
     temp = fftshift(fftshift(temp,1),2);
     temp = reshape(temp,101,101*size(out,1));
     temp = mat2gray(real(temp));
@@ -281,7 +281,7 @@ LFI = [];
 for i=1:size(out,1)
     FF = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,K(lastK(i)),'none');
     FF.setupFilter(sz);
-    temp = ifft2(real(FF.getFilterAtAngle(out(lastInd(i)))));
+    temp = ifft2(real(FF.getFilterAtAngle(out(lastInd(i))/2)));
     temp = fftshift(fftshift(temp,1),2);
     temp = mat2gray(real(temp));
     LFI = [LFI temp];
@@ -298,7 +298,7 @@ BFI = [];
 for i=1:size(out,1)
     FF = OrientationSpaceFilter.constructByRadialOrder(1/2/pi./2,1,Kg_aligned(i),'none');
     FF.setupFilter(sz);
-    temp = ifft2(real(FF.getFilterAtAngle(xgAligned(i,2))));
+    temp = ifft2(real(FF.getFilterAtAngle(xgAligned(i,2)/2)));
     temp = fftshift(fftshift(temp,1),2);
     temp = mat2gray(real(temp));
     BFI = [BFI temp];
