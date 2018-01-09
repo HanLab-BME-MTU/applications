@@ -328,6 +328,7 @@ if(exist('I','var'))
 %     hpn1 = plot((-K(1:PLOT_INTERVAL:end).*sin(-out(:,1:PLOT_INTERVAL:end)/2)).'+c,(-K(1:PLOT_INTERVAL:end).*cos(-out(:,1:PLOT_INTERVAL:end)/2)).'+r,'.');
 %     hpp1 = plot(( K(1:PLOT_INTERVAL:end).*sin(-out(:,1:PLOT_INTERVAL:end)/2)).'+c,( K(1:PLOT_INTERVAL:end).*cos(-out(:,1:PLOT_INTERVAL:end)/2)).'+r,'.');
     for i=1:size(xgAligned,1)
+        intersection.bX = cat(1,length_expansion.*-Kg_aligned(i).*sin(-xgAligned(i,2)/2),length_expansion.* Kg_aligned(i).*sin(-xgAligned(i,2)/2));
         hpbn(i) = plot(length_expansion.*-Kg_aligned(i).*sin(-xgAligned(i,2)/2)+c,length_expansion.*-Kg_aligned(i).*cos(-xgAligned(i,2)/2)+r,'s');
         hpbp(i) = plot(length_expansion.* Kg_aligned(i).*sin(-xgAligned(i,2)/2)+c,length_expansion.* Kg_aligned(i).*cos(-xgAligned(i,2)/2)+r,'s');
     end
