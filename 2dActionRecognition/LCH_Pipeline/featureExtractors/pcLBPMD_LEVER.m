@@ -121,14 +121,17 @@ for icell = 1 : nCells
         dLbp = abs(lbpData.fov{icell}.lbp(1:end-1,:) - lbpData.fov{icell}.lbp(2:end,:));
         lbpData.fov{icell}.dlbp10d = dLbp;
         lbpData.fov{icell}.dlbp1d = sum(lbpData.fov{icell}.dlbp10d,2);
+        lbpData.fov{icell}.dlbp1dTFeats = TS_CalculateFeatureVector(lbpData.fov{icell}.dlbp1d,0);
         %% FWD - dLBP/dT
         dLbp = abs(lbpData.fwd{icell}.lbp(1:end-1,:) - lbpData.fwd{icell}.lbp(2:end,:));
         lbpData.fwd{icell}.dlbp10d = dLbp;
         lbpData.fwd{icell}.dlbp1d = sum(lbpData.fwd{icell}.dlbp10d,2);
+        lbpData.fwd{icell}.dlbp1dTFeats = TS_CalculateFeatureVector(lbpData.fwd{icell}.dlbp1d,0);
         %% BCK - dLBP/dT
         dLbp = abs(lbpData.bck{icell}.lbp(1:end-1,:) - lbpData.bck{icell}.lbp(2:end,:));
         lbpData.bck{icell}.dlbp10d = dLbp;
         lbpData.bck{icell}.dlbp1d = sum(lbpData.bck{icell}.dlbp10d,2);
+        lbpData.bck{icell}.dlbp1dTFeats = TS_CalculateFeatureVector(lbpData.bck{icell}.dlbp1d,0);
         %% Correlations
         lbpData.corr{icell}.fov_fwd = corr(lbpData.fov{icell}.dlbp1d,lbpData.fwd{icell}.dlbp1d); % ~0
         lbpData.corr{icell}.fov_bck = corr(lbpData.fov{icell}.dlbp1d,lbpData.bck{icell}.dlbp1d); % > 0
