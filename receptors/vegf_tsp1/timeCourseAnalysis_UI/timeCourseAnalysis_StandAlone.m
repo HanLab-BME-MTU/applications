@@ -33,14 +33,14 @@ function [commonInfo, figureData] = timeCourseAnalysis_StandAlone(data, outputDi
 %       .ampNormClass   : Mean normalized amplitude of particles in the
 %                         various motion classes.
 %                         Rows and columns as above.
-%       .ampStatsF20    : Amplitude statistics for particles in first 20
+%       .ampStatsF20    : Amplitude statistics for particles in first 5
 %                         frames.
 %                         Rows as above.
 %                         Columns = mean, first mode mean, first mode std,
 %                         first mode fraction, second mode fraction,
 %                         fraction of modes > 3, number of modes, normalized
 %                         mean.
-%       .ampStatsL20    : Amplitude statistics for particles in last 20
+%       .ampStatsL20    : Amplitude statistics for particles in last 5
 %                         frames.
 %                         Rows and columns as above.
 %       .rateMS         : Rate of merging and rate of splitting per
@@ -303,8 +303,8 @@ calcFigure({data.ampMode}', 'Fluorescence Amplitude', ...
 calcFigure({data.ampNormMode}', 'Normalized Fluorescence Amplitude', ...
     modeID(1:11), 'Normalized intensity (monomer units)');
 
-calcFigure({data.ampStatsF20}', 'First 20 Frames - ', ampLabels, '');
-calcFigure({data.ampStatsL20}', 'Last 20 Frames - ' , ampLabels, '');
+calcFigure({data.ampStatsF20}', 'First 5 Frames - ', ampLabels, '');
+calcFigure({data.ampStatsL20}', 'Last 5 Frames - ' , ampLabels, '');
 calcFigure({data.ampStatsF01}', 'First Frame Detection - ', ampLabels, '');
 
 calcFigure({data.rateMS}', 'M & S Rate', {'merging', 'splitting'}, 'Rate (per frame per particle)');
