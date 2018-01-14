@@ -75,8 +75,13 @@ pcLBPMD(MD,params,dirs);% radius = 35um
 pcLBPdtMD(MD,params,dirs);% radius = 35um
 
 params.always = true;
+curDir = pwd;
+cd '/home2/azaritsky/code/extern/hctsa';
+install;
 pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
 pcShapeMD_LEVER(MD,params,dirs);% radius = 35um
+eval(['cd ' curDir]);
+
 % toc
 params.always = false;
 
