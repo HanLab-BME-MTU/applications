@@ -77,7 +77,21 @@ pcLBPdtMD(MD,params,dirs);% radius = 35um
 params.always = true;
 curDir = pwd;
 cd '/home2/azaritsky/code/extern/hctsa';
-install;
+
+% patch to check if the problem is in a specific node
+for iInstall = 1 : 100
+    try
+        install;
+    catch ee
+        warning(ee.message);
+        continue;
+    end
+    break;
+end
+if iInstall == 100
+    install;
+end
+
 pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
 pcShapeMD_LEVER(MD,params,dirs);% radius = 35um
 eval(['cd ' curDir]);
