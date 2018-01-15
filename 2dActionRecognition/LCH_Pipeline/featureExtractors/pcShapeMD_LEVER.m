@@ -1,5 +1,6 @@
 %% pcShapeMD_LEVER - calculates shape features based on LEVER segmentation masks
 % Assaf Zaritsky, December 2017
+% Jan. 2018: extract time-series features for area and eccentricity
 
 % MD - not used (image just used for size), for future use...
 function [] = pcShapeMD_LEVER(MD,params,dirs)
@@ -51,6 +52,8 @@ for icell = 1 : nCells
         %% Shape
         shapeData.shapeFeats{icell}.feats(curT,:) = getShapeFeats(ROIBB);
     end
+    shapeData.shapeFeats{icell}.areaTimeFeats = TS_CalculateFeatureVector(shapeData.shapeFeats{icell}.feats(:,1),0); % area
+    shapeData.shapeFeats{icell}.eccentricityTimeFeats = TS_CalculateFeatureVector(shapeData.shapeFeats{icell}.feats(:,2),0); % eccentricity
 end
 
 %% Verifying that this is a non-empty task
