@@ -12,4 +12,10 @@ for icell = 1 : nCells
     feats(:,icell) = curFeats;
 end
 
+%% deal with nans
+oldFeats = feats;
+nanInds = logical(sum(isnan(feats),2));
+inds = find(~nanInds);
+feats = oldFeats(inds,:);
+
 end

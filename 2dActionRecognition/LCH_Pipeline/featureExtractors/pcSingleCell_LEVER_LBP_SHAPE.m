@@ -58,11 +58,17 @@ for icell = 1 : nCurCells
     dataTask{icell}.dlbp1dFWD_median = median(lbpData.fwd{icell}.dlbp1d);
     dataTask{icell}.dlbp1dBCK_median = median(lbpData.bck{icell}.dlbp1d);
     
+    dataTask{icell}.dlbp1dTimeFOV = lbpData.fov{icell}.dlbp1dTFeats;
+    dataTask{icell}.dlbp1dTimeFWD = lbpData.fwd{icell}.dlbp1dTFeats;
+    dataTask{icell}.dlbp1dTimeBCK = lbpData.bck{icell}.dlbp1dTFeats;
+    
     dataTask{icell}.corrFovFwd = lbpData.corr{icell}.fov_fwd;
     dataTask{icell}.corrFovBck = lbpData.corr{icell}.fov_bck;
     dataTask{icell}.corrFwdBck = lbpData.corr{icell}.fwd_bck;
     
-    dataTask{icell}.shapeFeats = shapeData.shapeFeats{icell}.feats;    
+    dataTask{icell}.shapeFeats = shapeData.shapeFeats{icell}.feats;
+    dataTask{icell}.areaTimeFeats = shapeData.shapeFeats{icell}.areaTimeFeats;
+    dataTask{icell}.eccentricityTimeFeats = shapeData.shapeFeats{icell}.eccentricityTimeFeats;
 end
 save(LeverLbpShapeFname,'dataTask','nCurCells');
 fprintf([params.curFname sprintf('_s%02d',params.curTask) '_LEVER_LBP_SHAPE.mat']);

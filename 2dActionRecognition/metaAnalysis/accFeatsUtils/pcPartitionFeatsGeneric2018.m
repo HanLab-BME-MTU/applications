@@ -1,5 +1,5 @@
 %% Generic accumulation of *ONE* feature from cell type + condition (over all locations),
-%% Assumes pcAccumulateFeatsGeneric2018 was
+%% Assumes pcAccumulateFeatsGeneric2018 was executed as a pre-condition
 %   Params:
 %        featsOutDname  % input/output directory
 %        featsStrOut    % feature string for the output files
@@ -55,7 +55,7 @@ for ifield = 1 : numel(fields)
             allCells.locations{i} = locationData;
         end
     end
-    
+        
     save(curFeatsFname,'allCells');
 end
 

@@ -97,7 +97,7 @@ pcShapeMD_LEVER(MD,params,dirs);% radius = 35um
 eval(['cd ' curDir]);
 
 % toc
-params.always = false;
+params.always = true;
 
 % pcSingleCellMovies(MD,params,dirs);
 % pcSingleCell_dLBP(params,dirs);

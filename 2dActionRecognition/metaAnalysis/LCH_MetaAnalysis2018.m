@@ -11,12 +11,12 @@ end
 
 %% Flags for processing
 % Pre-processing: normalization (& concatenation of features?)
-flags.orginizeFeatreus = true; % orginize data structure and normalize
+flags.orginizeFeatures = true; % orginize data structure and normalize
 
 % Analysis
 flags.assessFeatures = true;
 
-flags.always = false;
+flags.always = true;
 
 
 %% Get list of features to process
@@ -34,7 +34,7 @@ end
 %%
 function [] = doMetaAnalysis(featsDname,curFeatStr,flags)
 
-if flags.orginizeFeatreus
+if flags.orginizeFeatures
     LCH_orginizeFeatures2018(featsDname,curFeatStr,flags.always);
 end
 

@@ -128,7 +128,7 @@ for iexp = 1 : metaData.experiments.N
             out.allCells.locations{nextPosition}.locationTXY{iLocation} = curTXY;
             
             % accumulation
-            out.allCells.accFeats{nextPosition} = accFeatslocation(out.allCells.accFeats{nextPosition},curFeats); %% TODO??
+            out.allCells.accFeats{nextPosition} = accFeatsLocation(out.allCells.accFeats{nextPosition},curFeats); %% TODO??
             
             out.allCells.accLocation{nextPosition} = [out.allCells.accLocation{nextPosition},ones(1,nCurCells)*itask];
             out.allCells.accCellID{nextPosition} = [out.allCells.accCellID{nextPosition},curIDs];
@@ -149,7 +149,7 @@ end % number of experiments
 end
 
 %%
-function feats = accFeatslocation(accFeats,curFeats)
+function feats = accFeatsLocation(accFeats,curFeats)
 if isempty(accFeats)
     feats = curFeats;
     return;
