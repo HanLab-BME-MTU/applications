@@ -42,7 +42,8 @@ numChannelSample = numel(sampleMD.channels_);
 laterChan = sampleMD.channels_(numChannelSample);
 
 calibPath{1} = '/project/bioinformatics/Danuser_lab/P01adhesion/raw/kdean-shan/OMX_SR/2017_06_27/Bead_Ref_003.dv';
-calibPathFor642='/project/bioinformatics/Danuser_lab/P01adhesion/raw/kdean-shan/OMX_SR/2017_10_09_beadRef/TetraSpeck_Cal_004.dv';
+% calibPathFor642='/project/bioinformatics/Danuser_lab/P01adhesion/raw/kdean-shan/OMX_SR/2017_10_09_beadRef/TetraSpeck_Cal_004.dv';
+calibPathFor642='/project/bioinformatics/Danuser_lab/P01adhesion/raw/kdean-shan/OMX_SR/2018_01_16_referenceBeads/tetraspeck_003.dv';
 [path1,fname1] = fileparts(calibPath{1});
 
 if laterChan.excitationWavelength_>560 && laterChan.excitationWavelength_<570
@@ -54,24 +55,29 @@ elseif laterChan.excitationWavelength_>=640
     % get tif for each channel
     % import as MD
     disp('It''s 640. Making files with dv file of calibration bead images')
-%     caliMD = bfImport(calibPathFor642,true);
-%     [path1,fname1] = fileparts(calibPathFor642);
-%     numChanCali = numel(caliMD.channels_);
-%     % There are three channels: green(488), red(562) and far red (640)
-%     for jj=1:numChanCali
-%         curChan = caliMD.channels_(jj);
-%         
-%         curBeadStack = curChan.loadStack(1);
-%         maxIntenPerFrame = reshape(max(max(curBeadStack)),[],1);
-%         [~,maxIntenFrame]=max(maxIntenPerFrame);
-%         minFocusedFrame=max(1,maxIntenFrame-2);
-%         maxFocusedFrame=max(caliMD.zSize_,maxIntenFrame+2);
-%         
-%         curStack = curChan.loadStack(1,'z',minFocusedFrame:maxFocusedFrame);
-%         curImg = mean(curStack,3);
-%         meanCaliImgPath = [path1 filesep fname1 '_' num2str(curChan.excitationWavelength_) '.tif'];
-%         imwrite(uint16(curImg),meanCaliImgPath,'Compression','none')
-%     end   
+    caliMD = bfImport(calibPathFor642,true);
+    [path1,fname1] = fileparts(calibPathFor642);
+    numChanCali = numel(caliMD.channels_);
+    % There are three channels: green(488), red(562) and far red (640)
+    for jj=1:numChanCali
+        curChan = caliMD.channels_(jj);
+        
+        curBeadStack = curChan.loadStack(1);
+        maxIntenPerFrame = reshape(max(max(curBeadStack)),[],1);
+        [~,maxIntenFrame]=max(maxIntenPerFrame);
+        minFocusedFrame=max(1,maxIntenFrame-2);
+        maxFocusedFrame=max(caliMD.zSize_,maxIntenFrame+2);
+        
+        curStack = curChan.loadStack(1,'z',minFocusedFrame:maxFocusedFrame);
+        curImg = mean(curStack,3);
+        if jj==3
+            nameWL=640;
+        else
+            nameWL=curChan.excitationWavelength_;
+        end
+        meanCaliImgPath = [path1 filesep fname1 '_' num2str(nameWL) '.tif'];
+        imwrite(uint16(curImg),meanCaliImgPath,'Compression','none')
+    end   
     %% make the transformation from 01 and 04
     % transformCreationGUI
     [path1,fname1] = fileparts(calibPathFor642);
@@ -80,7 +86,7 @@ elseif laterChan.excitationWavelength_>=640
     tFormPath3= [path1 filesep '640to640transform.mat'];
     disp(['Designate transformation file as ' tFormPath1 '.'])
     disp(['Find the ref bead file at ' meanCaliImgPath '.'])
-    transformCreationGUI % base img: 562, input img: 488, this time I used an existing transform in 2017_02_10
+    transformCreationGUI % base img: 640, input img: 488, this time I used an existing transform in 2017_02_10
 end
 %% loop - now setting up MD!
 numConditions = numel(pathDataAll);

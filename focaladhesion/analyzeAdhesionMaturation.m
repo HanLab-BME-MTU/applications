@@ -748,7 +748,8 @@ for ii=1:nFrames
     numNAs(ii) = sum(arrayfun(@(x) (x.presence(ii)==true), tracksNA));
     numNAsInBand(ii) = sum(trackIdx);
     NADensity(ii) = numNAsInBand(ii)/(bandArea(ii)*MD.pixelSize_^2*1e-6);  % unit: number/um2 
-    FADensity(ii) = numNAsInBand(ii)/(bandArea(ii)*MD.pixelSize_^2*1e-6);  % unit: number/um2 
+    
+    FADensity(ii) = focalAdhInfo(ii).FAdensity;  % unit: number/um2 
 end
 save(dataPath_NAFADensity, 'NADensity','FADensity','bandwidthNA','numNAsInBand')
 lifeNames = {'NADensity','FADensity','bandwidthNA','numNAsInBand'};

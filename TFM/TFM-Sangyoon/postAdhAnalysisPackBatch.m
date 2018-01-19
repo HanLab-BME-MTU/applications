@@ -192,14 +192,14 @@ for ii=1:numConditions
         meanMedianFAlength(k) = mean(curMedianFAlengthAllFrames);
         curNumPureFAs = arrayfun(@(x) x.numberPureFA,curFocalAdhInfo);
         meanNumPureFAs(k) = mean(curNumPureFAs);
-        curCellAreas = arrayfun(@(x) x.cellArea,curFocalAdhInfo);
+        curCellAreas = arrayfun(@(x) x.cellArea,curFocalAdhInfo); % in um2
         meanCellArea(k) = mean(curCellAreas);
         
         nafaStruct=load(curAnalProc.outFilePaths_{3,iAdhChan});
         curNADensity = nafaStruct.NADensity;
         meanNADensity(k) = mean(curNADensity);
         curFADensity = nafaStruct.FADensity;
-        meanFADensity(k) = mean(curFADensity);
+        meanFADensity(k) = meanNumPureFAs(k)/meanCellArea(k); % in num/um2
 
         maturingStruct=load(curAnalProc.outFilePaths_{4,iAdhChan});
         meanLifeTimeAll(k)=mean(maturingStruct.lifeTimeAll);
@@ -208,8 +208,8 @@ for ii=1:numConditions
         meanMaturingRatio(k)=mean(maturingStruct.maturingRatio);
         
         assemRateStruct=load(curAnalProc.outFilePaths_{5,iAdhChan});
-        meanAssemRate(k)=mean(assemRateStruct.assemRateCell);
-        meanDisassemRate(k)=mean(assemRateStruct.disassemRateCell);
+        meanAssemRate(k)=nanmean(assemRateStruct.assemRateCell);
+        meanDisassemRate(k)=nanmean(assemRateStruct.disassemRateCell);
         meanNucleatingNARatio(k) = mean(assemRateStruct.nucleationRatio);
         meanDisassemNARatio(k) = mean(assemRateStruct.disassemblingNARatio);
         
@@ -312,7 +312,7 @@ for ii=1:numConditions
     numG8Group{ii,1}=numG8;
     numG9Group{ii,1}=numG9;
 
-    meanAdhDensityG1Group{ii,1}=meanRelativePopG1;
+    meanRelativePopG1Group{ii,1}=meanRelativePopG1;
     meanRelativePopG2Group{ii,1}=meanRelativePopG2;
     meanRelativePopG3Group{ii,1}=meanRelativePopG3;
     meanRelativePopG4Group{ii,1}=meanRelativePopG4;
@@ -342,36 +342,154 @@ for ii=1:numConditions
     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
     groupNames{ii} = finalFolder;
 end
-%% Plotting each - SE
+%% Plotting each - initRiseGroup - all classes
 nameList=groupNames'; %{'pLVX' 'P29S'};
-SEGroupCell = cellfun(@(x) cell2mat(x),SEGroup,'unif',false);
+for curGroup=1:9
+    initRiseGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),initRiseGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(initRiseGroupEach,nameList,1,false,true);
+    ylabel(['Initial rise in group ' num2str(curGroup) ' (sec)'])
+    title(['Initial rise in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-dtiff')
+end
+%% num of each class
+numGroupAll={numG1Group,numG2Group,numG3Group,numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group};
+for curGroup=1:9
+    curNumGroup=numGroupAll{curGroup};
+    h1=figure; 
+    boxPlotCellArray(curNumGroup,nameList,1,false,true);
+    ylabel(['Number of adhesions in group ' num2str(curGroup) ' (#)'])
+    title(['Number of adhesions in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'numGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'numGroup' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'numGroup' num2str(curGroup)],'-dtiff')
+end
+%% meanRelative population
+meanRelPopGroupAll={meanRelativePopG1Group,meanRelativePopG2Group,meanRelativePopG3Group,...
+    meanRelativePopG4Group,meanRelativePopG5Group,meanRelativePopG6Group,...
+    meanRelativePopG7Group,meanRelativePopG8Group,meanRelativePopG9Group};
+for curGroup=1:9
+    curmeanPopGroup=meanRelPopGroupAll{curGroup};
+    h1=figure; 
+    boxPlotCellArray(curmeanPopGroup,nameList,1,false,true);
+    ylabel(['Mean relative adhesion population in group ' num2str(curGroup) ' (1)'])
+    title(['Mean relative adhesion population in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'meanRelPopGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'meanRelPopGroup' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'meanRelPopGroup' num2str(curGroup)],'-dtiff')
+end
+%% RAtio between g1 and g2
+ratioG1G2=cellfun(@(x,y) y./x,meanRelativePopG1Group,meanRelativePopG2Group,'unif',false);
 h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SEGroupCell,nameList,1,false,true)
-ylabel('Strain energy (femto-Joule)')
-title('Total strain energy')
-hgexport(h1,strcat(figPath,'/strainEnergyTotal'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/strainEnergyTotal'),'-v7.3')
-print(h1,strcat(figPath,'/strainEnergyTotal.tif'),'-dtiff')
-%% Strain energy density
-SEDenGroupCell = cellfun(@(x) cell2mat(x),SEDenGroup,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SEDenGroupCell,nameList,1,false,true)
-ylabel('Strain energy density (J/m^2)')
-title('Strain energy density')
-hgexport(h1,strcat(figPath,'/SEDensity'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/SEDensity'),'-v7.3')
-print(h1,strcat(figPath,'/SEDensity.tif'),'-dtiff')
-%% Total force
-totForceCell = cellfun(@(x) cell2mat(x),totalForceGroup,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(totForceCell,nameList,1,false,true)
-ylabel('Total force (nN)')
-title('Total force in force blobs')
-hgexport(h1,strcat(figPath,'/totForce'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/totForce'),'-v7.3')
-print(h1,strcat(figPath,'/totForce.tif'),'-dtiff')
+boxPlotCellArray(ratioG1G2,nameList,1,false,true);
+ylabel(['Mean relative adhesion population of g2 compared to g1'])
+title('Mean relative adhesion population of g2 compared to g1')
+hgexport(h1,[figPath filesep 'meanRelPopG2overG1'],hgexport('factorystyle'),'Format','eps')
+hgsave(h1,[figPath filesep 'meanRelPopG2overG1'],'-v7.3')
+print(h1,[figPath filesep 'meanRelPopG2overG1'],'-dtiff')
+
+%% mean adhesion density - significantly higher NA density in WT compared to R8
+meanAdhDensityGroupAll={meanAdhDensityG1Group,meanAdhDensityG2Group,meanAdhDensityG3Group,...
+    meanAdhDensityG4Group,meanAdhDensityG5Group,meanAdhDensityG6Group,...
+    meanAdhDensityG7Group,meanAdhDensityG8Group,meanAdhDensityG9Group};
+for curGroup=1:9
+    curAdhDenGroup=meanAdhDensityGroupAll{curGroup};
+    h1=figure; 
+    boxPlotCellArray(curAdhDenGroup,nameList,1,false,true);
+    ylabel(['Mean adhesion density in group ' num2str(curGroup) ' (num/um^2)'])
+    title(['Mean adhesion density in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],'-dtiff')
+end
+%% cell area - 
+    h1=figure; 
+    boxPlotCellArray(cellAreaGroup,nameList,1,false,true);
+    ylabel(['Cell spread area (um^2)'])
+    title(['Cell spread area'])
+    hgexport(h1,[figPath filesep 'cellArea'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'cellArea'],'-v7.3')
+    print(h1,[figPath filesep 'cellArea'],'-dtiff')
+%% FA area - 
+    h1=figure; 
+    boxPlotCellArray(FAareaGroup,nameList,1,false,true);
+    ylabel(['Focal adhesion area (um^2)'])
+    title(['Focal adhesion area'])
+    hgexport(h1,[figPath filesep 'faArea'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'faArea'],'-v7.3')
+    print(h1,[figPath filesep 'faArea'],'-dtiff')
+%% NA density
+    h1=figure; 
+    boxPlotCellArray(NADensityGroup,nameList,1,false,true);
+    ylabel(['NA density (#/um^2)'])
+    title(['NA density'])
+    hgexport(h1,[figPath filesep 'naDensity'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'naDensity'],'-v7.3')
+    print(h1,[figPath filesep 'naDensity'],'-dtiff')
+%% FA density
+    h1=figure; 
+    FADensityGroup=cellfun(@(x,y) x./y,numPureFAsGroup,cellAreaGroup,'unif',false);
+    boxPlotCellArray(FADensityGroup,nameList,1,false,true);
+    ylabel(['FA density (#/um^2)'])
+    title(['FA density'])
+    hgexport(h1,[figPath filesep 'faDensity'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'faDensity'],'-v7.3')
+    print(h1,[figPath filesep 'faDensity'],'-dtiff')
+%% numPureFAsGroup
+    h1=figure; 
+    boxPlotCellArray(numPureFAsGroup,nameList,1,false,true);
+    ylabel(['The number of pure FAs in a cell (#/cell)'])
+    title(['The number of pure FAs in a cell'])
+    hgexport(h1,[figPath filesep 'numFAs'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'numFAs'],'-v7.3')
+    print(h1,[figPath filesep 'numFAs'],'-dtiff')
+%% maturingRatioGroup
+    h1=figure; 
+    boxPlotCellArray(maturingRatioGroup,nameList,1,false,true);
+    ylabel(['Maturing ratio (1)'])
+    title(['Maturing ratio of NAs to FAs'])
+    hgexport(h1,[figPath filesep 'maturingRatio'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'maturingRatio'],'-v7.3')
+    print(h1,[figPath filesep 'maturingRatio'],'-dtiff')
+%% nucleatingNARatioGroup
+    h1=figure; 
+    boxPlotCellArray(nucleatingNARatioGroup,nameList,1,false,true);
+    ylabel(['nucleating NA Ratio (1)'])
+    title(['newly nucleating NA Ratio'])
+    hgexport(h1,[figPath filesep 'nucleatingNARatio'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'nucleatingNARatio'],'-v7.3')
+    print(h1,[figPath filesep 'nucleatingNARatio'],'-dtiff')
+%% assemRateGroup
+    h1=figure; 
+    boxPlotCellArray(assemRateGroup,nameList,1,false,true);
+    ylabel(['assemRateGroup (1)'])
+    title(['assemRateGroup'])
+    hgexport(h1,[figPath filesep 'assemRate'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'assemRate'],'-v7.3')
+    print(h1,[figPath filesep 'assemRate'],'-dtiff')
+%% Plotting each - peakGroup - all classes - usually not interesting: there is no lag.
+for curGroup=1:9
+    peakLagGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),peakGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(peakLagGroupEach,nameList,1,false,true);
+    ylabel(['Peak lag in group ' num2str(curGroup) ' (sec)'])
+    title(['Peak lag in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'peakLagG' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'peakLagG' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'peakLagG' num2str(curGroup)],'-dtiff')
+end
+%% Plotting each - endTimeGroup - all classes - usually not interesting: there is no lag.
+for curGroup=1:9
+    endLagGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),endTimeGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(endLagGroupEach,nameList,1,false,true);
+    ylabel(['Ending Time lag in group ' num2str(curGroup) ' (sec)'])
+    title(['Ending Time lag in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'endLagG' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'endLagG' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'endLagG' num2str(curGroup)],'-dtiff')
+end
 %% save entire workspace for later
 save([dataPath filesep 'allData.mat'])
