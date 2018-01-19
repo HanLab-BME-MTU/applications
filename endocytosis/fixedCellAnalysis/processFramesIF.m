@@ -10,24 +10,10 @@
 % Options:
 %    'Overwrite' : true|{false}
 %
-% Output:
-%     out : structure with fields
-%          .dist:           distance to cell edge
-%          .A:              amplitude
-%          .dfeHists:       distance from edge histogram      
-%          .ampHists:       amplitude histogram (as a function of distance)
-%          .dfeHistMean_bc: average of bias-corrected dfeHists
-%          .dfeHistSD_bc:   s.d. of bias-corrected dfeHists
-%                           These are the values plotted
-%          .binc:           histogram bin center coordinates
-%          .ampHistMean_bc: average of bias-corrected ampHists  
-%          .ampHistSD_bc:   s.d. of bias-corrected ampHists
-%
-%     Note: 'dist' and 'A' are cell arrays of values for each channel
-%
-%
-%     res : structure saved by processFramesIF(), with additional field
-%          .ex : coordinates (Nx2) of the cell edge
+% The output structure written to the results file contains the fields
+%  .ps     : result of pointSourceDetection at CCP locations, for all channels
+%  .psRand : result of Gaussian fitting at random locations, for all channels
+%  .mask   : cell mask
 
 % Francois Aguet, 01/2014
 % Philippe Roudout 12/2017
@@ -44,9 +30,11 @@ nd = numel(data);
 
 %% Use mask validation
 allMasks = getCellMask(data, 'Overwrite', ip.Results.Overwrite, 'Validate', true);
+if(~iscell(allMasks))
+    allMasks={allMasks};
+end
 
-
-for i = 1:nd
+parfor i = 1:nd
 
     if ~(exist(data(i).results, 'file')==2) || ip.Results.Overwrite
         fprintf('Processing %s ... ', getDirFromPath(data(i).results));
@@ -69,10 +57,12 @@ for i = 1:nd
         % mask(bgIdx) = 1;
         
         % run spot detection
+        ps=cell(1,nc);
         for c = 1:nc
-            ps(c) = pointSourceDetection(ch{c}, sigma(c), 'Mode', 'xyAc', 'Mask', mask);
+            ps{c} = pointSourceDetection(ch{c}, sigma(c), 'Mode', 'xyAc', 'Mask', mask);
         end
-        
+        ps=[ps{:}];
+
         % random positions
         np = max(arrayfun(@(i) numel(i.x), ps));
         N = 10*np;
@@ -90,13 +80,17 @@ for i = 1:nd
         end
         xr = xr(1:N);
         yr = yr(1:N);
-        
+        psRand=cell(1,nc);
         for c = 1:nc
-            psRand(c) = fitGaussians2D(double(ch{c}), xr, yr, [], sigma(c), [], 'Ac'); %#ok<NASGU>
+            psRand{c} = fitGaussians2D(double(ch{c}), xr, yr, [], sigma(c), [], 'Ac'); %#ok<NASGU>
         end
+        psRand=[psRand{:}];
 
         % save mask + detections
-        save(data(i).results, 'ps', 'psRand', 'mask');
+        saveData(data(i).results, ps, psRand, mask);
         fprintf('done.\n');
     end
 end
+
+function saveData(res,ps,psRand,mask)
+    save(res, 'ps', 'psRand', 'mask');

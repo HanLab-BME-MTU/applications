@@ -49,7 +49,9 @@ pcSetSingleCellTrajectories(params,dirs);
 % tmpAlways = params.always;
 % params.always = doneTracking || tmpAlways;
 % params.always = true;
-pcTrackingMovie(MD, params, dirs); % This function also does the single cell definition!
+
+pcTrackingMovie(MD, params, dirs); % (Once did the single cell definition)
+
 % pcTrackingMovieLong(MD, params, dirs); % Also single cell definition - long trajectories
 
 % params.always = tmpAlways;
@@ -63,21 +65,43 @@ pcTrackingMovie(MD, params, dirs); % This function also does the single cell def
 
 %% Single cell segmentaion
 pcCellRoiMD(MD,params,dirs);
-params.always = true;
 pcCellRoiLeverMD(MD,params,dirs);
-params.always = false;
+
 
 %% Feature extraction - per cell!
 % params.always = true;
 % tic;
 pcLBPMD(MD,params,dirs);% radius = 35um
 pcLBPdtMD(MD,params,dirs);% radius = 35um
-% pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
+
+params.always = true;
+curDir = pwd;
+cd '/home2/azaritsky/code/extern/hctsa';
+
+% patch to check if the problem is in a specific node
+for iInstall = 1 : 100
+    try
+        install;
+    catch ee
+        warning(ee.message);
+        continue;
+    end
+    break;
+end
+if iInstall == 100
+    install;
+end
+
+pcLBPMD_LEVER(MD,params,dirs);% radius = 35um
+pcShapeMD_LEVER(MD,params,dirs);% radius = 35um
+eval(['cd ' curDir]);
+
 % toc
-% params.always = false;
+params.always = true;
 
 % pcSingleCellMovies(MD,params,dirs);
 % pcSingleCell_dLBP(params,dirs);
 % pcSingleCell_dLBP_Plasticity(params,dirs);
+pcSingleCell_LEVER_LBP_SHAPE(params,dirs);
 
 end

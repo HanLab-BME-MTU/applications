@@ -100,7 +100,7 @@ end
 
 % Radius for a single cell for the LBP
 if ~isfield(params, 'FOVRadius')
-    params.FOVRadius = 35/params.pixelSize; % 35 um in pixels
+    params.FOVRadius = round(35/params.pixelSize); % 35 um in pixels
 end
 
 % Radius for Otsu cell segmentaion
@@ -152,13 +152,13 @@ dirs.lbp = [dirs.dirname '/lbp/'];
 
 dirs.lbpDt = [dirs.dirname '/lbpDt/'];
 
-if exist([dirs.detect '/lbp/'],'dir')
-   unix(sprintf('rm -rf %s',[dirs.detect '/lbp/']));
-end
-
-if exist([dirs.detect '/localMorphDynam/'],'dir')
-    unix(sprintf('rm -rf %s',[dirs.detect '/localMorphDynam/']));
-end
+% if exist([dirs.detect '/lbp/'],'dir')
+%    unix(sprintf('rm -rf %s',[dirs.detect '/lbp/']));
+% end
+% 
+% if exist([dirs.detect '/localMorphDynam/'],'dir')
+%     unix(sprintf('rm -rf %s',[dirs.detect '/localMorphDynam/']));
+% end
 
 
 

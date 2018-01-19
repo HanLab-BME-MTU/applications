@@ -103,9 +103,13 @@ for iDataset=1:length(szDatasetNames)
         
         % create masks for each cell
         
-        for iCell=1:length(tCells)                                              
-            bw=roipoly(im,tCells(iCell).surface(:,1),tCells(iCell).surface(:,2));
-            ROI_LEVER = ROI_LEVER | bw;
+        for iCell=1:length(tCells) 
+            try
+                bw=roipoly(im,tCells(iCell).surface(:,1),tCells(iCell).surface(:,2));
+                ROI_LEVER = ROI_LEVER | bw;
+            catch e
+                load(sprintf('%s%d.mat',curDnameOut,t-1)); % use mask of previous frame
+            end            
         end
         save(curFnameOut,'ROI_LEVER');%d
     end

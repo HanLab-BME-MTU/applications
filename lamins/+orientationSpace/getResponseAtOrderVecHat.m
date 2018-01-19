@@ -13,7 +13,8 @@ function responseAtOrder = getResponseAtOrderVecHat(response_hat,Korg,Kg)
     end
 %     x = [0:ceil(R.filter.K)*R.filter.sampleFactor -ceil(R.filter.K)*R.filter.sampleFactor:-1];
 %     x = [0:8 -8:-1];
-    x = [0:floor(size(response_hat,1)/2) -floor(size(response_hat,1)/2):-1];
+    s = floor(size(response_hat,1)/2);
+    x = [0:s -s:-1];
     n_org = 2*Korg+1;
 
     n_new = 2*Kg+1;

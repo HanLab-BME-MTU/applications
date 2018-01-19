@@ -113,25 +113,19 @@ if(~isempty(p.FoF))
     tform.T(1:3,1:3)=B;
 end
 
-
-%% create projection process saving independant projection location
-outputDirSlices1=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
-outputDirSingleProj=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
 if(~isempty(p.processSingleProj))
-    mkdirRobust([outputDirSingleProj filesep 'XY'])
-    mkdirRobust([outputDirSingleProj filesep 'YZ'])
-    mkdirRobust([outputDirSingleProj filesep 'XZ'])    
-    p.processSingleProj.setOutFilePaths({[outputDirSingleProj filesep 'XY' filesep 'frame_nb%04d.png'], ...
-        [outputDirSingleProj filesep 'YZ' filesep 'frame_nb%04d.png'], ...
-        [outputDirSingleProj filesep 'XZ' filesep 'frame_nb%04d.png'], ...
-        [outputDirSingleProj filesep 'limits.mat']});
-    frameNb=length(p.processFrame);
-    save([outputDirSingleProj filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
+    set(p.processSingleProj,'ref',p.FoF);
+    set(p.processSingleProj,'nFrames',length(p.processFrame));   
+    p.processSingleProj.setBoundingBox(...
+   [minXBorder maxXBorder],...
+   [minYBorder maxYBorder],...
+   [minZBorder maxZBorder]   );
+    %% simulate run to comply with movieViewer requirement
+    p.processSingleProj.setFunName((@(x) x));
+    p.processSingleProj.run();
+    %% Save the current function run for futur rerun
+    p.processSingleProj.setFunName((@(p) projectDynROI(MD,varargin{:},'processSingleProj',p)));
 end
-outputDirDemo=[MD.outputDirectory_ filesep '1DProjection' filesep p.name filesep 'volDemo' ];
-
-mkdirRobust(outputDirSlices1);
-mkdirRobust(outputDirDemo);
 
 
 % warp, crop, fuse and save each time point
@@ -437,31 +431,19 @@ parfor fIdx=processFrame
 
     %% write images
     if(~isempty(p.processSingleProj))
-      imwrite(tracksXY,[outputDirSingleProj filesep 'XY' filesep  'frame_nb' num2str(fIdx,'%04d') '.png']);
-      imwrite(tracksZY,[outputDirSingleProj filesep 'YZ' filesep  'frame_nb' num2str(fIdx,'%04d') '.png']);
-      imwrite(tracksZX,[outputDirSingleProj filesep 'XZ' filesep  'frame_nb' num2str(fIdx,'%04d') '.png']);
+        p.processSingleProj.saveFrame(1,fIdx,tracksXY,tracksZY,tracksZX);
     end
 
-    %% Use Z to index image line (going up)
-    tracksZY=permute(tracksZY,[2 1 3]);
-    tracksZX=permute(tracksZX,[2 1 3]);
-    three=projMontage(tracksXY,tracksZX,tracksZY);
-    imwrite(three,[outputDirSlices1 filesep 'frame_nb' num2str(fIdx,'%04d') '.png']);
 end
 fprintf('\n')    
-video = VideoWriter([outputDirSlices1  '.avi']);
+video = VideoWriter([p.processSingleProj.getOutputDir()  '.avi']);
 video.FrameRate = 5;  % Default 30
 video.Quality = 100;    % Default 75
 
 open(video)
 for frameIdx=processFrame
-    % save the maximum intensity projections
-%     for poleIdx=poleIndices
-%         outputDirSlices1=[MD.outputDirectory_ filesep 'maskSliceTracksSpinleRef' filesep 'kin_' num2str(kIdx,'%04d') '_P' num2str(poleIdx)];
-        three=[imread([outputDirSlices1 filesep 'frame_nb' num2str(frameIdx,'%04d') '.png'])];
-%     end
+    [~,~,~,three]=p.processSingleProj.loadFrame(1,frameIdx);
     writeVideo(video,three);
-    %     fprintf('\b|\n');
 end
 close(video)
 

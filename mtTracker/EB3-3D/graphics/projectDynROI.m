@@ -35,7 +35,7 @@ p=ip.Results;
 insetDynROI=p.insetDynROI;
 dynROI=p.dynROI;
 fillTrackGaps(insetDynROI);
-fillTrackGaps(dynROI);
+% fillTrackGaps(dynROI);
 
 if(isempty(dynROI))
     if(~isempty(p.FoF))
@@ -59,7 +59,7 @@ processFrame=p.processFrame;
 %% Set normalization value
 minIntensityNorm=zeros(1,numel(MD.channels_));
 maxIntensityNorm=zeros(1,numel(MD.channels_));
-for chIdx=p.renderedChannel
+for chIdx=1:length(MD.channels_)
     vol=MD.getChannel(chIdx).loadStack(1); 
     minIntensityNorm(chIdx)=[ prctile(vol(:),p.intMinPrctil(chIdx))];
     maxIntensityNorm(chIdx)=[ prctile(vol(:),p.intMaxPrctil(chIdx))];
@@ -121,30 +121,15 @@ if(rawTIFF)
     format='tif';
 end
 
-% Save files in a standardized output for computeMIPProcess 
-% with addtional ROI info and proper file spec
-outFilePaths = cell(6, numel(MD.channels_));
-outputDirSingleProj=[MD.outputDirectory_ filesep '1DProjection' filesep p.name  ];
-for i = p.renderedChannel;    
-    outFilePaths{1,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'XY'];
-    outFilePaths{2,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZY'];
-    outFilePaths{3,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZX'];
-    outFilePaths{4,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'three'];
-    outFilePaths{5,i} = [outputDirSingleProj filesep 'ch' num2str(i)];
-    outFilePaths{6,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'XY' filesep 'XY_frame_nb%04d.' format];
-    outFilePaths{7,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZY' filesep 'ZY_frame_nb%04d.' format];
-    outFilePaths{8,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'ZX' filesep 'ZX_frame_nb%04d.' format];
-    outFilePaths{9,i} = [outputDirSingleProj filesep 'ch' num2str(i) filesep 'three' filesep 'Three_frame_nb%04d.' format];
-    outFilePaths{10,i} = [outputDirSingleProj filesep 'limits.mat'];
-    for mIdx=[6:9]
-        mkClrDir(fileparts(outFilePaths{mIdx,i}),false);
-    end
-    frameNb=length(p.processFrame);
-    save([outputDirSingleProj filesep 'limits.mat'],'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
-end
+projectDynROIProcess=p.processSingleProj;
+set(projectDynROIProcess,'ref',p.FoF);
+set(projectDynROIProcess,'nFrames',length(p.processFrame));
+projectDynROIProcess.setBoundingBox( ...
+   [minXBorder maxXBorder],...
+   [minYBorder maxYBorder],...
+   [minZBorder maxZBorder] );
 
 if(~isempty(p.processSingleProj))
-    p.processSingleProj.setOutFilePaths(outFilePaths);
     %% simulate run to comply with movieViewer requirement
     p.processSingleProj.setFunName((@(x) x));
     p.processSingleProj.run();
@@ -156,18 +141,14 @@ end
 format='png';
 % Standardized output for processRenderer
 outFilePathsRenderer = cell(1, 5);
+
 if(~isempty(p.processRenderer))
-    outFilePathsRenderer{1} = [outputDirSingleProj filesep 'merged' filesep p.channelRender filesep 'XY' filesep 'XY_frame_nb%04d.' format ];
-    outFilePathsRenderer{2} = [outputDirSingleProj filesep 'merged' filesep p.channelRender filesep 'ZY' filesep 'ZY_frame_nb%04d.' format];
-    outFilePathsRenderer{3} = [outputDirSingleProj filesep 'merged' filesep p.channelRender filesep 'ZX' filesep 'ZX_frame_nb%04d.' format];
-    outFilePathsRenderer{4} = [outputDirSingleProj filesep 'merged' filesep p.channelRender filesep 'Three' filesep 'Three_frame_nb%04d.' format];
-    outFilePathsRenderer{5} = [outputDirSingleProj filesep 'merged' filesep 'limits.mat'];
-    for mIdx=[1:4]
-        mkClrDir(fileparts(outFilePathsRenderer{mIdx}),false);
-    end
-    frameNb=length(p.processFrame);
-    save(outFilePathsRenderer{5},'minXBorder', 'maxXBorder','minYBorder','maxYBorder','minZBorder','maxZBorder','frameNb');
-    p.processRenderer.setOutFilePaths(outFilePathsRenderer);
+    set(p.processRenderer,'ref',p.FoF);
+    set(p.processRenderer,'nFrames',length(p.processFrame));
+    p.processRenderer.setBoundingBox( ...
+       [minXBorder maxXBorder],...
+       [minYBorder maxYBorder],...
+       [minZBorder maxZBorder] );
     %% simulate run to comply with movieViewer requirement
     p.processRenderer.setFunName((@(x) x));
     p.processRenderer.run();
@@ -193,7 +174,7 @@ end
 
 % warp, crop, fuse and save each time point
 % vol = cell(processFrame,1);
-parfor fIdx = processFrame
+for fIdx = processFrame
     fprintf('.') 
     % produce a ROI mask using the 1D polygon (segment defined by the extremities of the insetDynROI).
     % todo: N Channel (now 2).
@@ -270,7 +251,7 @@ parfor fIdx = processFrame
         end
     end
     
-    for chIdx=p.renderedChannel
+    for chIdx=1:length(MD.channels_)
         vol=MD.getChannel(chIdx).loadStack(fIdx);
         if(~isempty(insetDynROI))
             if(isempty(p.FoF))&&(strcmp(p.crop,'manifold'))
@@ -505,33 +486,12 @@ parfor fIdx = processFrame
             mips{3,chIdx} = ZXMax;
         end
             
-        
-        savePathXY = outFilePaths{1, chIdx};
-        savePathZY = outFilePaths{2, chIdx};
-        savePathZX = outFilePaths{3, chIdx};
-        savePathThree = outFilePaths{4, chIdx};
-        savePath = outFilePaths{5, chIdx};
-        mkdirRobust([savePath]);
-        mkdirRobust([savePathXY]);
-        mkdirRobust([savePathZY]);
-        mkdirRobust([savePathZX]);
-        
-        XYFilesPattern = outFilePaths{6, chIdx};
-        YZFilesPattern = outFilePaths{7, chIdx};
-        XZFilesPattern = outFilePaths{8, chIdx};
-        ThreeFilesPattern = outFilePaths{9, chIdx};
-        
+       
         if(~isempty(p.processSingleProj))
-            imwrite(maxXY, sprintfPath(XYFilesPattern, fIdx), 'Compression', 'none');
-            imwrite(maxZY, sprintfPath(YZFilesPattern, fIdx), 'Compression', 'none');
-            imwrite(maxZX, sprintfPath(XZFilesPattern, fIdx), 'Compression', 'none');
+            projectDynROIProcess.saveFrame(chIdx,fIdx,maxXY,maxZY,maxZX);
         end
         
-        %% Use Z to index image line (going up)
-        maxZY=permute(maxZY,[2 1 3]);
-        maxZX=permute(maxZX,[2 1 3]);
-        three=projMontage(maxXY,maxZX,maxZY);
-        imwrite(three, sprintfPath(ThreeFilesPattern, fIdx), 'Compression', 'none');
+
 
         %% save sparse Mask volume
         if(~isempty(p.processMaskVolume))
@@ -554,31 +514,13 @@ parfor fIdx = processFrame
         
         %% write images
         if(~isempty(p.processRenderer))
-            imwrite(XYProj,sprintfPath(outFilePathsRenderer{1},fIdx));
-            imwrite(ZYProj,sprintfPath(outFilePathsRenderer{2},fIdx));
-            imwrite(ZXProj,sprintfPath(outFilePathsRenderer{3},fIdx));
-        end
-        
-        %% Use Z to index image line (going up)
-        ZYProj=permute(ZYProj,[2 1 3]);
-        ZXProj=permute(ZXProj,[2 1 3]);
-        three=projMontage(XYProj,ZXProj,ZYProj);
-  		if(~isempty(p.processRenderer))         
-            imwrite(three,sprintfPath(outFilePathsRenderer{4},fIdx));
+            p.processRenderer.saveFrame(1,fIdx,XYProj,ZYProj,ZXProj);
         end
     end
 end
 
 if(~isempty(p.processRenderer)) 
-    video = VideoWriter([outputDirSingleProj  '.avi']);
-    video.FrameRate = 5;  % Default 30
-    video.Quality = 100;    % Default 75
-    open(video)
-    for fIdx=processFrame
-        three=imread(sprintfPath(outFilePathsRenderer{4},fIdx));
-        writeVideo(video,three);
-    end
-    close(video)
+    ProjAnimation(p.processRenderer,'ortho').saveVideo([p.processRenderer.getOutputDir()  '.avi']);
 end
 
 function RGBVol=renderChannel(ch1,ch2,type,varargin)

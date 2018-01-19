@@ -30,10 +30,10 @@ MD.setPackage(packPIDTMP,GenericPackage({ ...
     ExternalProcess(MD,'project1D'),...
     ExternalProcess(MD,'project1D'),...
     ExternalProcess(MD,'spindleEnrichment'),...
-    ExternalProcess(MD,'DetectionAstral'),...
-    ExternalProcess(MD,'DetectionPolar')...
-    ExternalProcess(MD,'DetectionAstral'),...
-    ExternalProcess(MD,'DetectionPolar'),...
+    ProjectDynROIProcess(MD),...
+    ProjectDynROIProcess(MD)...
+    ProjectDynROIProcess(MD),...
+    ProjectDynROIProcess(MD),...
     ExternalProcess(MD,'KTDetection'),...
     ExternalProcess(MD,'DetectionPolar'),...
     }));
@@ -257,7 +257,7 @@ toc;
 
 process_PPKSlice=MD.findProcessTag('project1D_PPKSlice','safeCall',true);
 if(isempty(process_PPKSlice))
-    process_PPKSlice=ExternalProcess(MD,'project1D');
+    process_PPKSlice=ProjectDynROIProcess(MD,'PPKTSlice');
     KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
     refPPKT=copy(refs(1,2));
     refPPKT.genBaseFromZ(KT);
@@ -271,6 +271,28 @@ if(isempty(process_PPKSlice))
     MD.addProcess(process_PPKSlice);
 end
 
+% process_PPKSlice=MD.findProcessTag('projDynROI_PPKSlice','safeCall',true);
+% if(isempty(process_PPKSlice))
+%     % Building ROI
+%     KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
+%     refPPKT=copy(refs(1,2));
+%     refPPKT.genBaseFromZ(KT);
+%     KTRefPPKT=refPPKT.applyBase(KT,'');
+%     KTRefPPKTOpposite=KTRefPPKT.copy();
+%     KTRefPPKTOpposite.x=-KTRefPPKTOpposite.x;
+
+%     % 
+
+
+%     process_PPKSlice = ProjectDynROIProcess(MD,'projDynROI_PPKSlice');
+
+
+%     projectDynROI(  MD,[],[refPPKT.applyBase([P1,P2],'') KTRefPPKT   KTRefPPKTOpposite], ...
+%         'FoF',refPPKT,'name','PPKSlice','channelRender','grayRed','saveSingleProj',true, 'fringeWidth',[40,5,40], ...
+%         'processSingleProj',process_PPKSlice, 'intMinPrctil',[20 70],'intMaxPrctil',[99.99 99.99]);
+%     process_PPKSlice.setProcessTag(['projDynROI_PPKSlice']);
+%     MD.addProcess(process_PPKSlice);
+% end
 
 % detection debug visualization
 %process=ExternalProcess(MD,'Detection polar');
@@ -483,57 +505,48 @@ myColormap(1,:)=[200 200 200];
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
     disp('Render Astral  still picture');tic;
-    process=ExternalProcess(MD,'Detection astral');
+    process=ProjRendering(processProjDynROI,['astralCumulPoleDensity' p.name]);
+
     astralDetections=oDetections.copy().selectIdx(astralIndices);
     astralDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,astralIndices,'unif',0);
     astralDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[20 60]))+1 , poleDistances,astralIndices,'unif',0);
-    KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
-    refPPKT=copy(refs(1,2));
-    refPPKT.genBaseFromZ(KT);
-    ref=refs(1,2);
-    ref=refPPKT;
-    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(astralDetections,''), 'process',process, ... 
+
+    overlayProjDetectionMovie(processProjDynROI,'detections',astralDetections, 'process',process, ... 
         'cumulative',true,'processFrames',1, ... 
         'colorIndx',astralDistanceIndx,'colormap',myColormap,'name',['astralCumulPoleDensity' p.name]);
     if(p.useKT)
+        processEB=copy(process);
         tracks=fillTrackGaps(FilteredKTTracks);
         KTFilteredDetection=Detections(tracks.getMovieInfo());
-        overlayProjDetectionMovie(process,'detections',ref.applyBase(KTEnds,''), 'process',process, ... 
+        overlayProjDetectionMovie(processEB,'detections',KTEnds, 'process',process, ... 
             'cumulative',true,'processFrames',1,'name','KTDetection','radius',p.mappingDistance);
     end
-    figure();imshow([imread(sprintfPath(process.outFilePaths_{4},1));]);
+    figure();imshow(process.loadFrame(1,1));
     toc
 else
     process=p.package.getProcess(lpid);
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
-imgAstral=imread(sprintfPath(process.outFilePaths_{4},1));
 
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
     disp('Render Polar still picture');tic;
-    process=ExternalProcess(MD,'Detection polar');
+    process=ProjRendering(processProjDynROI,['polarCumulPoleDensity' p.name]);
     polarDetections=oDetections.copy().selectIdx(polarIndices);
     polarDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,polarIndices,'unif',0);
     polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[20 60]))+1 , poleDistances,polarIndices,'unif',0);
     polarKTIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[1 numel(PKTROI)]))+1 , KTMappedIdx,polarIndices,'unif',0);
     % polarKTIndx=cellfun(@(m,i) floor(254*i.*mat2gray(m,[1 numel(PKTROI)]))+1 , KTMappedIdx,polarIndices,'unif',0);
 
-    KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
-    refPPKT=copy(refs(1,2));
-    refPPKT.genBaseFromZ(KT);
-    ref=refs(1,2);
-    ref=refPPKT;
-
-    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(polarDetections,''), 'process',process, ... 
+    overlayProjDetectionMovie(processProjDynROI,'detections',polarDetections, 'process',process, ... 
         'cumulative',true,'processFrames',1, ...
         'colorIndx',polarDistanceIndx,'colormap',myColormap,'name',['polarCumulPoleDensity' p.name]);
     if(p.useKT) 
-        overlayProjDetectionMovie(process,'detections',ref.applyBase(KTEnds,''), 'process',process, ... 
+        processEB=copy(process);
+        overlayProjDetectionMovie(processEB,'detections',KTEnds, 'process',process, ... 
             'cumulative',true,'processFrames',1,'name','KTDetection','radius',p.mappingDistance);
     end
-    imgPolar=imread(sprintfPath(process.outFilePaths_{4},1));
-    figure();imshow([imgPolar]);
+    figure();imshow(process.loadFrame(1,1));
     toc;
 else
     process=p.package.getProcess(lpid);
@@ -546,23 +559,19 @@ lpid=lpid+1;
 KTColormap=255*winter(256);
 if(~GenericPackage.processExist(p.package,lpid))
     disp('Render Astral  detections in dynROI');tic;
-    process=ExternalProcess(MD,'Detection astral');
+    process=ProjRendering(processProjDynROI,['astralPoleDensity-' p.name]);
     % astralDetections=oDetections.copy().selectIdx(astralIndices);
-    KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
-    refPPKT=copy(refs(1,2));
-    refPPKT.genBaseFromZ(KT);
-    ref=refs(1,2);
-    ref=refPPKT;
     % astralDistancesIndx=cellfun(@(e,i)  floor(254*mat2gray(e(i)))+1, poleDistances,polarIndx,'unif',0);
     astralDistanceIndx=cellfun(@(e,i) floor(254*i'.*mat2gray(e,[0 60]))+1 , poleDistances,astralIndices,'unif',0);
     astralDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,astralIndices,'unif',0);
-    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(oDetections,''), ...
+    overlayProjDetectionMovie(processProjDynROI,'detections',oDetections, ...
          'process',process, 'cumulative',false, ... 
         'colorIndx',astralDistanceIndx,'colormap',myColormap,'name',['astralPoleDensity-' p.name]);
     if(p.useKT)
         tracks=fillTrackGaps(FilteredKTTracks);
+        processEB=copy(process);
         KTFilteredDetection=Detections(tracks.getMovieInfo());
-        overlayProjDetectionMovie(process,'detections',ref.applyBase(KTFilteredDetection,''), 'process',process, ... 
+        overlayProjDetectionMovie(processEB,'detections',KTFilteredDetection, 'process',process, ... 
             'cumulative',false,'name','KTDetection','radius',p.mappingDistance);
     end
     toc;
@@ -570,27 +579,22 @@ else
     process=p.package.getProcess(lpid);
 end
 MD.getPackage(packPIDTMP).setProcess(lpid,process);
-% imgAstral=imread(sprintfPath(process.outFilePaths_{2},1));
 
 %%
 poleDistLimit=[19.999 20];
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
     disp('Render polar  detections in dynROI');tic;
-    process=ExternalProcess(MD,'Detection polar');
+    process=ProjRendering(processProjDynROI,['polarPoleDensity-' p.name]);
     polarDetections=oDetections.copy().selectIdx(polarIndices);
     % poleDistLimit used to validate detection.
-    KT=FilteredKTTracks(find([FilteredKTTracks.lifetime]==MD.nFrames_,1));
-    refPPKT=copy(refs(1,2));
-    refPPKT.genBaseFromZ(KT);
-    ref=refs(1,2);
-    ref=refPPKT;
+
     polarDistanceIndx=cellfun(@(e,i) floor(254*i'.*mat2gray(e,[0 60]))+1 , poleDistances,polarIndices,'unif',0);
     % polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),poleDistLimit))+1 , poleDistances,polarIndices,'unif',0);
     % polarDistanceIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),[0 60]))+1 , poleDistances,polarIndices,'unif',0);
     polarDensitiesIndx=cellfun(@(e,i) floor(254*mat2gray(e(i),densityLimit))+1 , densities,polarIndices,'unif',0);
     polarKTIndx=cellfun(@(e,i) floor(254*i'.*mat2gray(e',[1 numel(PKTROI)]))+1 , KTMappedIdx,polarIndices,'unif',0);
-    overlayProjDetectionMovie(processProjDynROI,'detections',ref.applyBase(oDetections,''), 'process',process, ... 
+    overlayProjDetectionMovie(processProjDynROI,'detections',oDetections, 'process',process, ... 
         'cumulative',false, ...
         'colorIndx',polarDistanceIndx,'colormap',myColormap,'name',['polarPoleDensity-' p.name],'radius',2);
     if(p.useKT)
@@ -598,15 +602,13 @@ if(~GenericPackage.processExist(p.package,lpid))
         %     'colorIndx',ceil(255*mat2gray([FilteredKTTracks.lifetime]',[1 150]))+1, ... 
         %     'dragonTail',10,'colormap',KTColormap,'name',['KT' p.name],'process',process);
         tracks=fillTrackGaps(FilteredKTTracks);
+        processEB=copy(process);
         KTFilteredDetection=Detections(tracks.getMovieInfo());
-        overlayProjDetectionMovie(process,'detections',ref.applyBase(KTFilteredDetection,''), 'process',process, ... 
+        overlayProjDetectionMovie(processEB,'detections',KTFilteredDetection, 'process',process, ... 
             'cumulative',false,'name','KTDetection','radius',p.mappingDistance);
     end
 
-    %% debug display
-    imgPolar=imread(sprintfPath(process.outFilePaths_{2},1));
-    figure();
-    %imshow([imgAstral imgPolar]);
+    figure();imshow(process.loadFrame(1,1));
     toc;
 else
     process=p.package.getProcess(lpid);
@@ -616,8 +618,8 @@ MD.getPackage(packPIDTMP).setProcess(lpid,process);
 lpid=lpid+1;
 if(~GenericPackage.processExist(p.package,lpid))
     disp('Render KT detections (TrackKT is broken ...)');tic;
-    process=ExternalProcess(MD,'KTDetection');
-    overlayProjDetectionMovie(processProjSpindleRef,'detections',KTDetectionsP1P2, 'process',process, ... 
+    process=ProjectDynROIProcess(MD);
+    overlayProjDetectionMovie(processProjSpindleRef,'detections',KTDetections, 'process',process, ... 
         'cumulative',false,'name',['KTDetection-' p.name]);
     toc;
 else

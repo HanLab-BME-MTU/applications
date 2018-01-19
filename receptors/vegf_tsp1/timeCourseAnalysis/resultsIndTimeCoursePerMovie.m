@@ -62,6 +62,7 @@ for iC = curChannels
         error([MD.movieDataPath_ ' : Diffusion Mode Analysis Process Missing']);
     end
     diffModeAnalysis = load(MD.processes_{iProcDiffModes}.outFilePaths_{iC});
+    numModes = size(diffModeAnalysis.diffModeAnalysisRes(1).summary.probMotionMode,1) - 1; %number of modes, needed in various instances later
     
     
     %limit analysis to tracks in mask if supplied
@@ -98,7 +99,9 @@ for iC = curChannels
             minTrackLen = 5;
             probDim = 2;
             extractType = 1;
-            [probMotionType,motionChar] = summarizeDiffAnRes(motionAnalysis.tracks,minTrackLen,probDim,motionAnalysis.diffAnalysisRes,extractType);
+            [probMotionType,motionChar] = summarizeDiffAnRes(...
+                motionAnalysis.tracks,minTrackLen,probDim,...
+                motionAnalysis.diffAnalysisRes,extractType);
             motionAnalysis.diffAnalysisRes(1).summary.probMotionType = probMotionType;
             motionAnalysis.diffAnalysisRes(1).summary.motionChar = motionChar;
         end
@@ -122,7 +125,9 @@ for iC = curChannels
             minTrackLen = 5;
             probDim = 2;
             extractType = 1;
-            [probMotionMode,modeMotionChar] = summarizeDiffModeRes(diffModeAnalysis.tracks,diffModeAnalysis.diffModeAnalysisRes,minTrackLen,probDim,extractType);
+            [probMotionMode,modeMotionChar] = summarizeDiffModeRes(...
+                diffModeAnalysis.tracks,diffModeAnalysis.diffModeAnalysisRes,...
+                numModes,minTrackLen,probDim,extractType);
             diffModeAnalysis.diffModeAnalysisRes(1).summary.probMotionMode = probMotionMode;
             diffModeAnalysis.diffModeAnalysisRes(1).summary.modeMotionChar = modeMotionChar;
         end
@@ -149,7 +154,6 @@ for iC = curChannels
     trajDiffCoefMode = vertcat(diffModeAnalysis.diffModeAnalysisRes.diffCoef);
     trajMSDF2F = vertcat(diffModeAnalysis.diffModeAnalysisRes.msdF2F);
     trajMeanPosStd = vertcat(diffModeAnalysis.diffModeAnalysisRes.meanPosStd);
-    numModes = max(trajMode);
    
     %amplitude matrix
     tracksMat = convStruct2MatIgnoreMS(tracks0);
@@ -157,10 +161,10 @@ for iC = curChannels
     numFrames = size(ampMat,2);
     
     %amplitude per track
-    %KJ, 151121: get amplitudes only in first 20 frames of movie
+    %KJ, 171219: get amplitudes only in first 5 frames of movie
     %(instead of all throughout), to minimize effect of photobleaching.
     %This means not all tracks will get an amplitude
-    ampMeanPerTraj = nanmean(ampMat(:,1:min(20,numFrames)),2);
+    ampMeanPerTraj = nanmean(ampMat(:,1:min(5,numFrames)),2);
     
     %average properties per motion class
     [ampMeanPerClass,diffCoefMeanPerClass,confRadMeanPerClass] = deal(NaN(5,1));
@@ -193,8 +197,8 @@ for iC = curChannels
     f2fMeanSqDispPerMode(end) = mean(trajMSDF2F(indxMode));
     meanPosStdPerMode(end) = mean(trajMeanPosStd(indxMode));
     
-    %amplitude statistics in first 20 frames
-    ampVec = ampMat(:,1:min(20,numFrames));
+    %amplitude statistics in first 5 frames
+    ampVec = ampMat(:,1:min(5,numFrames));
     ampVec = ampVec(~isnan(ampVec));
     maxGaussians = min(16,numel(ampVec)-3);
     [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 maxGaussians],2,[],1,[],0);
@@ -208,8 +212,8 @@ for iC = curChannels
     ampModeFrac = [ampModeFrac(1:2) 1-sum(ampModeFrac(1:2))];
     ampStatsF20 = [mean(ampVec) ampMode1Mean ampMode1Std ampModeFrac numMode];
     
-    %amplitude statistics in last 20 frames
-    ampVec = ampMat(:,max(1,end-19):end);
+    %amplitude statistics in last 5 frames
+    ampVec = ampMat(:,max(1,end-4):end);
     ampVec = ampVec(~isnan(ampVec));
     maxGaussians = min(16,numel(ampVec)-3);
     [~,~,modeParam] = fitHistWithGaussians(ampVec,1,0,3,0,[1 maxGaussians],2,[],1,[],0);
@@ -238,11 +242,11 @@ for iC = curChannels
     ampStatsF01 = [mean(ampVec) ampMode1Mean ampMode1Std ampModeFrac numMode];
     
     %normalize mean amplitudes by first mode mean
-    %for amp per class, amp per mode, and amp in first 20 frames, use mode of first 20 frames
+    %for amp per class, amp per mode, and amp in first 5 frames, use mode of first 5 frames
     ampMeanPerClass = [ampMeanPerClass ampMeanPerClass/ampStatsF20(2)]; %#ok<AGROW>
     ampMeanPerMode = [ampMeanPerMode ampMeanPerMode/ampStatsF20(2)]; %#ok<AGROW>
     ampStatsF20 = [ampStatsF20 ampStatsF20(1)/ampStatsF20(2)]; %#ok<AGROW>
-    %for last 20 frames, use mode of last 20 frames
+    %for last 5 frames, use mode of last 5 frames
     ampStatsL20 = [ampStatsL20 ampStatsL20(1)/ampStatsL20(2)]; %#ok<AGROW>
     %for first frame from detection directly, use mode of first frame
     ampStatsF01 = [ampStatsF01 ampStatsF01(1)/ampStatsF01(2)]; %#ok<AGROW>
