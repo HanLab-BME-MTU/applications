@@ -78,6 +78,8 @@ ip.addParamValue('minFeatureSize',11,@isscalar);
 ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
 ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.addParamValue('hardCandidates',[],@(x) iscell(x) || isempty(x))
+ip.addParamValue('magDiffThreshold',2,@isscalar);
+ip.addParamValue('angDiffThreshold',1,@isscalar);
 % ip.addParamValue('usePIVSuite',false,@islogical);
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
@@ -88,6 +90,8 @@ bgAvgImg=ip.Results.bgAvgImg;
 mode=ip.Results.mode;
 scoreCalculation=ip.Results.scoreCalculation;
 closeNeiVecs = ip.Results.hardCandidates;
+magDiffThreshold = ip.Results.magDiffThreshold;
+angDiffThreshold = ip.Results.angDiffThreshold;
 
 meanNeiVecs = cellfun(@(x) mean(x,1),closeNeiVecs,'Unif',false);
 stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
@@ -285,7 +289,7 @@ parfor k = 1:nPoints
                 ind = indDist(1);
                 minAngle = orienDiff(ind);
                 minDistDiff = magDiff(ind);
-                if minDistDiff < 2*norm(curCandVecStd) && abs(minAngle) < curStdAngle % || (ind<=3 && sigtVal(ind)>0.8)
+                if minDistDiff < magDiffThreshold*norm(curCandVecStd) && abs(minAngle) < angDiffThreshold*curStdAngle % || (ind<=3 && sigtVal(ind)>0.8)
                     maxI = locMaxI(ind,:);
                     maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
                     pass = 2;

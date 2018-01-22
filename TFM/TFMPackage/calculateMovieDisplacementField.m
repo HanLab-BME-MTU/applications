@@ -197,17 +197,17 @@ for j= firstFrame:nFrames
             else
                 poolsize = poolobj.NumWorkers;
             end
-            if isempty(gcp('nocreate'))
-                try
-                    parpool('local', poolsize)
-                catch
-                    try 
-                        matlabpool
-                    catch 
-                        warning('matlabpool has been removed, and parpool is not working in this instance');
-                    end
-                end
-            end % we don't need this any more.
+%             if isempty(gcp('nocreate'))
+%                 try
+%                     parpool('local', poolsize)
+%                 catch
+%                     try 
+%                         matlabpool
+%                     catch 
+%                         warning('matlabpool has been removed, and parpool is not working in this instance');
+%                     end
+%                 end
+%             end % we don't need this any more.
             psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
             if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
                 if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
@@ -354,7 +354,7 @@ for j= firstFrame:nFrames
             % Track beads displacement in the xy coordinate system
             v = trackStackFlow(cat(3,refFrame,currImage),currentBeads,...
                 p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-                'mode',p.mode,'scoreCalculation',scoreCalculation);%,'usePIVSuite', p.usePIVSuite);
+                'mode',p.mode,'scoreCalculation',scoreCalculation,'sigCrit',p.sigCrit);%,'usePIVSuite', p.usePIVSuite);
         else
 %             scoreCalculation='difference';
             scoreCalculation='xcorr';
@@ -364,7 +364,7 @@ for j= firstFrame:nFrames
             end
             v = trackStackFlow(cat(3,prevImage,currImage),currentBeads,...
                 p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-                'mode',p.mode,'scoreCalculation',scoreCalculation);
+                'mode',p.mode,'scoreCalculation',scoreCalculation,'sigCrit',p.sigCrit);
             prevImage=currImage;
         end
 

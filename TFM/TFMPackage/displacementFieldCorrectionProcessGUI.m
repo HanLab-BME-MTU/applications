@@ -22,7 +22,7 @@ function varargout = displacementFieldCorrectionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCorrectionProcessGUI
 
-% Last Modified by GUIDE v2.5 10-Mar-2017 13:02:20
+% Last Modified by GUIDE v2.5 20-Jan-2018 02:24:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,6 +61,8 @@ else
 end
 set(handles.checkbox_doRotReg,'Value',funParams.doRotReg);
 set(handles.checkbox_fill,'Value',funParams.fillVectors);
+set(handles.edit_magDiffThreshold,'String',funParams.magDiffThreshold);
+set(handles.edit_angDiffThreshold,'String',funParams.angDiffThreshold);
 
 % Choose default command line output for displacementFieldCorrectionProcessGUI
 handles.output = hObject;
@@ -131,6 +133,8 @@ end
 
 funParams.doRotReg=get(handles.checkbox_doRotReg,'Value');
 funParams.fillVectors=get(handles.checkbox_fill,'Value');
+funParams.magDiffThreshold=str2double(get(handles.edit_magDiffThreshold,'String'));
+funParams.angDiffThreshold=str2double(get(handles.edit_angDiffThreshold,'String'));
 
 % Process Sanity check ( only check underlying data )
 try
@@ -163,3 +167,49 @@ function checkbox_fill_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_fill
+
+
+
+function edit_magDiffThreshold_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_magDiffThreshold (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_magDiffThreshold as text
+%        str2double(get(hObject,'String')) returns contents of edit_magDiffThreshold as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_magDiffThreshold_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_magDiffThreshold (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit_angDiffThreshold_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_angDiffThreshold (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_angDiffThreshold as text
+%        str2double(get(hObject,'String')) returns contents of edit_angDiffThreshold as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_angDiffThreshold_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_angDiffThreshold (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

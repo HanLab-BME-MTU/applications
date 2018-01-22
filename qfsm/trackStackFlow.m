@@ -71,6 +71,7 @@ ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
 ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
 ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
+ip.addParamValue('sigCrit',0.5,@isscalar);
 % ip.addParamValue('usePIVSuite',false,@islogical);
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
@@ -80,6 +81,7 @@ bgMask=ip.Results.bgMask;
 bgAvgImg=ip.Results.bgAvgImg;
 mode=ip.Results.mode;
 scoreCalculation=ip.Results.scoreCalculation;
+sigCrit = ip.Results.sigCrit;
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
 
@@ -185,8 +187,14 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
-% inqryPoint=2000;
-% for k = inqryPoint
+% xI = round(x);
+% yI = round(y); inqryLogicInd=false(size(yI));
+% inqX=[257 539]; inqY=[95 240];
+% for ii=1:numel(inqX)
+%     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
+% end
+% inqryPoint=find(inqryLogicInd);
+% for k = inqryPoint'
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 parfor k = 1:nPoints
 % for k = 1:nPoints
@@ -229,8 +237,13 @@ parfor k = 1:nPoints
         while pass == 0 && maxFlowSpd < maxSpdLimit && maxPerpSpd < maxSpdLimit
             %If the quality of the score function is not good enough (pass == 0),
             % we increase the max sampling speed until the limit is reached.
-            maxFlowSpd = min(maxSpdLimit,maxFlowSpd*2);
-            maxPerpSpd = min(maxSpdLimit,maxPerpSpd*2);
+            if strcmp(mode,'accurate')
+                maxFlowSpd = (maxSpdLimit);
+                maxPerpSpd = (maxSpdLimit);
+            else
+                maxFlowSpd = min(maxSpdLimit,maxFlowSpd*2);
+                maxPerpSpd = min(maxSpdLimit,maxPerpSpd*2);
+            end
             
             %Get sampling speed. Make sure it will not shift the template (block) outside of
             % the image area. We also use bigger stepsize for large speed.
@@ -294,7 +307,7 @@ parfor k = 1:nPoints
             else
                 %Test the quality of the score function and find the index of the
                 % maximum score.
-                [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.59);
+                [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,sigCrit);
 %                 if usePIVSuite && length(locMaxI(:,1))>1
 %                     % Here I use PIV result to find the best candidate
 %                     % regardless of whether score passed or not from findMaxScoreI
@@ -326,7 +339,7 @@ parfor k = 1:nPoints
                     % velocities returned from two block sizes, we identify the
                     % optimal block size that gives a coherent flow.
                     if max(length(vF),length(vP))>80 && maxCorL==minCorL
-                        incRange = [1.75 2.5 3.25 4];
+                        incRange = [1.25 1.75 2.5]; % 3.25];
                     else
                         incRange = 1.25;
                     end
@@ -371,15 +384,15 @@ parfor k = 1:nPoints
 %                         if length(vP)~=length(vP2) || length(vF)~=length(vF2)
 %                             zeroI = [find(vP2==0) find(vF2==0)];
 %                         end
-                        if max(length(vF),length(vP))>160 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,0.65);
-                        elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,0.65);
-                        elseif max(length(vF),length(vP))>40 %applying more generous threshold for higher velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,0.59);
-                        else
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,0.5);
-                        end
+%                         if max(length(vF),length(vP))>161 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
+%                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit*1.1);
+%                         elseif max(length(vF),length(vP))>81 %applying more generous threshold for higher velocity
+%                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit*1.05);
+%                         elseif max(length(vF),length(vP))>41 %applying more generous threshold for higher velocity
+%                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
+%                         else
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
+%                         end
                         if pass2 == 1
                             % This part can be really costly. We can directly
                             % compare locMaxV and choose the index that gives

@@ -154,6 +154,8 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             funParams.doRotReg=0;
             funParams.outlierThreshold = 2;
             funParams.fillVectors=0;
+            funParams.angDiffThreshold=1;
+            funParams.magDiffThreshold=2;
         end
         function units = getUnits(varargin)
             units = 'Displacement (Pix)';

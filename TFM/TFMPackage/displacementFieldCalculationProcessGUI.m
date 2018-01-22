@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 22-Jul-2016 14:19:12
+% Last Modified by GUIDE v2.5 19-Jan-2018 22:36:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,6 +60,7 @@ cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams);
 set(handles.edit_maxFlowSpeedNmMin,'String',...
     funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+set(handles.edit_sigCrit,'String', funParams.sigCrit);
 set(handles.checkbox_highRes, 'Value', funParams.highRes);
 set(handles.checkbox_useGrid, 'Value', funParams.useGrid);
 set(handles.checkbox_addNonLocMaxBeads, 'Value', funParams.addNonLocMaxBeads);
@@ -184,6 +185,7 @@ funParams.lastToFirst = get(handles.checkbox_lastToFirst, 'Value');
 funParams.noFlowOutwardOnBorder = get(handles.checkbox_noOutwardDeform, 'Value');
 funParams.addNonLocMaxBeads = get(handles.checkbox_addNonLocMaxBeads, 'Value');
 funParams.trackSuccessively = get(handles.checkboxTrackSuccessive, 'Value');
+funParams.sigCrit = str2double(get(handles.edit_sigCrit, 'String'));
 
 if get(handles.checkbox_mode, 'Value'),
     funParams.mode = 'accurate';
@@ -309,3 +311,26 @@ function checkboxTrackSuccessive_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkboxTrackSuccessive
+
+
+
+function edit_sigCrit_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_sigCrit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_sigCrit as text
+%        str2double(get(hObject,'String')) returns contents of edit_sigCrit as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_sigCrit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_sigCrit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

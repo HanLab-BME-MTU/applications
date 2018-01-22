@@ -185,7 +185,7 @@ if p.fillVectors
     logMsg = 'Please wait, retracking untracked points ...';
     timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
     tic
-    nFillingTries=5;
+    nFillingTries=50;
     for j= 1:nFrames
         % Read image and perform correlation
         if ~isempty(iSDCProc)
@@ -226,7 +226,8 @@ if p.fillVectors
 
             [v,nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads,...
                 pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
-                'mode',pStep2.mode,'hardCandidates',closeNeiVecs);%,'usePIVSuite', pStep2.usePIVSuite);
+                'mode',pStep2.mode,'hardCandidates',closeNeiVecs,'magDiffThreshold',p.magDiffThreshold,...
+                'angDiffThreshold',p.angDiffThreshold);%,'usePIVSuite', pStep2.usePIVSuite);
             if nTracked==0
                 nFailed=nFailed+1;
             else
