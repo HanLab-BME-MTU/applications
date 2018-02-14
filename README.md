@@ -1,4 +1,4 @@
-# danuser/applications
+# HanLab-BME-MTU/applications
 
 ## Purpose
 Application specific packages, tools, and functions.
@@ -7,7 +7,7 @@ Application specific packages, tools, and functions.
 ---------
 + Project specific application software is labeled by the folder name. 
 + Check for pre-packaged applications built and tested available on the lab website
-    + http://www.utsouthwestern.edu/labs/danuser/software/
+    + http://www.mtu.edu/hanlab
 
 ### For Developers
 --------------
