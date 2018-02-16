@@ -49,20 +49,20 @@ for ii=1:nFrames
     imgMap(:,:,ii) = paxImage;
 end
 toc
-%% Backup previous Analysis output
-if exist(p.OutputDirectory,'dir')
-    if p.backupOldResults
-        disp('Backing up the original data')
-        ii = 1;
-        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
-        while exist(backupFolder,'dir')
-            backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
-            ii=ii+1;
-        end
-        copyfile(p.OutputDirectory, backupFolder,'f')
-    end
-end
-mkClrDir(p.OutputDirectory);
+%% Backup previous Analysis output - This created too much memory. Deleting...
+% if exist(p.OutputDirectory,'dir')
+%     if p.backupOldResults
+%         disp('Backing up the original data')
+%         ii = 1;
+%         backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+%         while exist(backupFolder,'dir')
+%             backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+%             ii=ii+1;
+%         end
+%         copyfile(p.OutputDirectory, backupFolder,'f')
+%     end
+% end
+mkdir(p.OutputDirectory); %mkClrDir(p.OutputDirectory);
 
 %% Output setup
 outputPath = [p.OutputDirectory filesep 'trackAnalysis'];
@@ -788,15 +788,15 @@ else
         savefig(outFilePaths{3,iChan})
         print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified.tif'])
         save(outFilePaths{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
-        tableTracksNA = struct2table(tracksNA);
-        save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3')
+%         tableTracksNA = struct2table(tracksNA);
+%         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 
     else
         print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.eps']);
         savefig([p.OutputDirectory filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.fig'])
         print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.tif'])
         save(outFilePaths{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
-        tableTracksNA = struct2table(tracksNA);
-        save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3')
+%         tableTracksNA = struct2table(tracksNA);
+%         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 
     end
 end
 disp('Classification Process Done!')

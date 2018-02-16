@@ -46,19 +46,22 @@ iChanSlave=p.iChanSlave;
 
 %% Reading tracks from master channel
 % Use the previous analysis folder structure
-try
-    iAdhProc = MD.getProcessIndex('AdhesionClassificationProcess');
-    adhAnalProc = MD.getProcess(iAdhProc);
-    % numChans = numel(p.ChannelIndex);
-    tracksNA = load(adhAnalProc.outFilePaths_{5,p.ChannelIndex},'tracksNA');
-    tracksNA = tracksNA.tracksNA;
-catch
+% try
+%     iAdhProc = MD.getProcessIndex('AdhesionClassificationProcess');
+%     adhAnalProc = MD.getProcess(iAdhProc);
+%     % numChans = numel(p.ChannelIndex);
+%     tracksNA = load(adhAnalProc.outFilePaths_{5,p.ChannelIndex},'tracksNA');
+%     tracksNA = tracksNA.tracksNA;
+% catch
+% We read tracksNA from AdhesionAnalysisProcess because one in
+% Classification step has the identical one and now the step doesn't store
+% tracksNA.
     iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
     adhAnalProc = MD.getProcess(iAdhProc);
     % numChans = numel(p.ChannelIndex);
-    tracksNA = load(adhAnalProc.outFilePaths_{5,p.ChannelIndex},'tracksNA');
+    tracksNA = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'tracksNA');
     tracksNA = tracksNA.tracksNA;
-end    
+% end    
 %% the other channel map stack - iChanSlave
 % Build the interpolated TFM matrix first and then go through each track
 % First build overall TFM images
