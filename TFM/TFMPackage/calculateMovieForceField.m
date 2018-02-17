@@ -193,8 +193,8 @@ if min(min(maskArray(:,:,1))) == 0
     step2Proc = movieData.processes_{iStep2Proc};
     pDisp = parseProcessParams(step2Proc,paramsIn);
 
-    iTFMPack = MD.getPackageIndex('TFMPackage');
-    TFMPack=MD.packages_{iTFMPack}; iSDCProc=1;
+    iTFMPack = movieData.getPackageIndex('TFMPackage');
+    TFMPack=movieData.packages_{iTFMPack}; iSDCProc=1;
     SDCProc_TFM=TFMPack.processes_{iSDCProc};
     %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
     % Use mask of first frame to filter displacementfield
