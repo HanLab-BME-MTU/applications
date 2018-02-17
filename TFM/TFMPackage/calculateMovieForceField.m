@@ -195,13 +195,13 @@ if min(min(maskArray(:,:,1))) == 0
 
     iTFMPack = movieData.getPackageIndex('TFMPackage');
     TFMPack=movieData.packages_{iTFMPack}; iSDCProc=1;
-    SDCProc_TFM=TFMPack.processes_{iSDCProc};
+    SDCProc=TFMPack.processes_{iSDCProc};
     %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
     % Use mask of first frame to filter displacementfield
 %     iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
     displFieldOriginal=displFieldProc.loadChannelOutput;
     
-    if ~isempty(SDCProc_TFM)
+    if ~isempty(SDCProc)
 %         SDCProc=movieData.processes_{iSDCProc};
         if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
             error(['The channel must have been corrected ! ' ...
