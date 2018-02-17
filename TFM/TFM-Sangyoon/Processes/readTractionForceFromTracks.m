@@ -48,27 +48,19 @@ p = parseProcessParams(tractionForceReadProc,paramsIn);
 % It might be good to save which process the tracksNA was obtained.
 disp('Reading tracksNA ...')
 tic
-try
-    iAdhProc = MD.getProcessIndex('TheOtherChannelReadingProcess');
-    adhAnalProc = MD.getProcess(iAdhProc);
-    % numChans = numel(p.ChannelIndex);
-    tracksNA = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'tracksNA');
-    tracksNA = tracksNA.tracksNA;
-catch
-    try
-        iAdhProc = MD.getProcessIndex('AdhesionClassificationProcess');
-        adhAnalProc = MD.getProcess(iAdhProc);
-        % numChans = numel(p.ChannelIndex);
-        tracksNA = load(adhAnalProc.outFilePaths_{5,p.ChannelIndex},'tracksNA');
-        tracksNA = tracksNA.tracksNA;
-    catch
-        iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
-        adhAnalProc = MD.getProcess(iAdhProc);
-        % numChans = numel(p.ChannelIndex);
-        tracksNA = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'tracksNA');
-        tracksNA = tracksNA.tracksNA;
-    end    
+iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
+adhAnalProc = MD.getProcess(iAdhProc);
+% numChans = numel(p.ChannelIndex);
+s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
+metaTrackData = s.metaTrackData;
+fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+numStr = @(trackNum) num2str(trackNum,fString);
+trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+for ii=metaTrackData.numTracks:-1:1
+    curTrackObj = load(trackIndPath(ii),'curTrack');
+    tracksNA(ii) = curTrackObj.curTrack;
 end
+
 toc
 %% Data Set up
 % Set up the output file path for master channel
@@ -173,11 +165,20 @@ idGroup9 = idsClassified.idGroup9(idxTracks);
 % get the intensity
 disp('Reading traction...')
 
-tracksNA = readIntensityFromTracks(tracksNA,tMap,2); % 2 means traction magnitude collection from traction stacks
+% tracksNA = readIntensityFromTracks(tracksNA,tMap,2); % 2 means traction magnitude collection from traction stacks
+fieldsAll = fieldnames(tracksNA);
+unnecFields = setdiff(fieldsAll,{'xCoord','yCoord','startingFrameExtraExtra',...
+    'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
+    'endingFrame','amp'});
+essentialTracks = rmfield(tracksNA,unnecFields);
+addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,2); % 2 means traction magnitude collection from traction stacks
+tracksForceMag = rmfield(addedTracksNA,{'xCoord','yCoord','startingFrameExtraExtra',...
+'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
+'endingFrame','amp'});
 
 %% Saving
 disp('Saving...')
-save(outputFile{1,p.ChannelIndex},'tracksNA','-v7.3'); 
+save(outputFile{1,p.ChannelIndex},'tracksForceMag','-v7.3'); 
 save(outputFile{2,p.ChannelIndex},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3') 
 if p.saveTractionField
     save(outputFile{3,iBeadChan},'tMap','-v7.3'); 

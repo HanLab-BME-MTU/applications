@@ -84,7 +84,7 @@ thisProc.setInFilePaths(inFilePaths);
 outFilePaths = cell(5, numel(MD.channels_));
 for i = p.ChannelIndex
     [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
-    outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_metaTrackData'];
     outFilePaths{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
     dataPath_tracksNA = outFilePaths{1,i};
 
@@ -665,8 +665,6 @@ if ~foundTracks
     end
 
     %% saving
-    tableTracksNA = struct2table(tracksNA);
-    save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
     save(dataPath_focalAdhInfo, 'focalAdhInfo','-v7.3')
 else
     load(dataPath_tracksNA, 'tracksNA');
@@ -685,8 +683,6 @@ if ~isempty(SDCProc)
         % This will add features like: advanceDist, edgeAdvanceDist, MSD,
         % MSDrate, assemRate, disassemRate, earlyAmpSlope,lateAmpSlope
         tracksNA = getFeaturesFromTracksNA(tracksNA, deltaT, getEdgeRelatedFeatures);%,...);
-        tableTracksNA = struct2table(tracksNA);
-        save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
         
         % Apply SDC to labelAdhesion too
         for  ii = 1 : nFrames
@@ -705,6 +701,28 @@ if ~isempty(SDCProc)
     end
 end
 
+%% Saving - this will be not used
+% tableTracksNA = struct2table(tracksNA);
+% save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
+%% Saving with each track
+trackFolderPath = [p.OutputDirectory filesep 'trackIndividual'];
+mkdir(trackFolderPath)
+fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+numStr = @(trackNum) num2str(trackNum,fString);
+trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+
+for ii=1:numTracks
+    curTrack = tracksNA(ii);
+    save(trackIndPath(ii),'curTrack')
+end
+%% Saving the metaTrackData
+metaTrackData.numTracks = numTracks;
+metaTrackData.trackFolderPath = trackFolderPath;
+metaTrackData.eachTrackName = 'curTrack';
+metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
+metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+save(dataPath_tracksNA,'metaTrackData')
 %% NA FA Density analysis
 numNAs = zeros(nFrames,1);
 numNAsInBand = zeros(nFrames,1);

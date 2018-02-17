@@ -56,11 +56,18 @@ iChanSlave=p.iChanSlave;
 % We read tracksNA from AdhesionAnalysisProcess because one in
 % Classification step has the identical one and now the step doesn't store
 % tracksNA.
-    iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
-    adhAnalProc = MD.getProcess(iAdhProc);
-    % numChans = numel(p.ChannelIndex);
-    tracksNA = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'tracksNA');
-    tracksNA = tracksNA.tracksNA;
+iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
+adhAnalProc = MD.getProcess(iAdhProc);
+% numChans = numel(p.ChannelIndex);
+s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
+metaTrackData = s.metaTrackData;
+fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+numStr = @(trackNum) num2str(trackNum,fString);
+trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+for ii=metaTrackData.numTracks:-1:1
+    curTrackObj = load(trackIndPath(ii),'curTrack');
+    tracksNA(ii) = curTrackObj.curTrack;
+end
 % end    
 %% the other channel map stack - iChanSlave
 % Build the interpolated TFM matrix first and then go through each track
@@ -108,7 +115,19 @@ for iCurChan = iChanSlave
     % get the intensity
     disp('Reading the other channel...')
     tic
-    tracksNA = readIntensityFromTracks(tracksNA,imgStack,iReadingCode); % 2 means traction magnitude collection from traction stacks
+    if iReadingCode==5
+        fieldsAll = fieldnames(tracksNA);
+        unnecFields = setdiff(fieldsAll,{'xCoord','yCoord','startingFrameExtraExtra',...
+            'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
+            'endingFrame','amp'});
+        essentialTracks = rmfield(tracksNA,unnecFields);
+        addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,iReadingCode); % 5 means ampTotal2 from the other channel
+    else
+        addedTracksNA = readIntensityFromTracks(addedTracksNA,imgStack,iReadingCode); % 5 means ampTotal2 from the other channel
+    end
+    tracksAmpTotal = rmfield(addedTracksNA,{'xCoord','yCoord','startingFrameExtraExtra',...
+    'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
+    'endingFrame','amp'});
     toc
 end
 %% protrusion/retraction information - most of these are now done in analyzeAdhesionsMaturation
@@ -118,7 +137,7 @@ end
 % place.
 
 disp('Saving...')
-save(outputFile{1,p.ChannelIndex},'tracksNA','-v7.3'); % the later channel has the most information.
+save(outputFile{1,p.ChannelIndex},'tracksAmpTotal','-v7.3'); % the later channel has the most information.
 disp('Done!')
 end
 %

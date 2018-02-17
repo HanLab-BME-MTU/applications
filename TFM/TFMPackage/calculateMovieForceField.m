@@ -45,7 +45,7 @@ p.saveBEMparams = true;
 p.LcurveFactor = 10;
 p.divideConquer = 1; % If this is 9, grid is divided by 9 sub-grids where force field will be calculated to reduce memory usage. It's under refined construction.
 %% --------------- Initialization ---------------%%
-if feature('ShowFigureWindows'),
+if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
     wtBarArgs={'wtBar',wtBar};
 else
@@ -193,12 +193,16 @@ if min(min(maskArray(:,:,1))) == 0
     step2Proc = movieData.processes_{iStep2Proc};
     pDisp = parseProcessParams(step2Proc,paramsIn);
 
+    iTFMPack = MD.getPackageIndex('TFMPackage');
+    TFMPack=MD.packages_{iTFMPack}; iSDCProc=1;
+    SDCProc_TFM=TFMPack.processes_{iSDCProc};
+    %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
     % Use mask of first frame to filter displacementfield
-    iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+%     iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
     displFieldOriginal=displFieldProc.loadChannelOutput;
     
-    if ~isempty(iSDCProc)
-        SDCProc=movieData.processes_{iSDCProc};
+    if ~isempty(SDCProc_TFM)
+%         SDCProc=movieData.processes_{iSDCProc};
         if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
             error(['The channel must have been corrected ! ' ...
                 'Please apply stage drift correction to all needed channels before '...

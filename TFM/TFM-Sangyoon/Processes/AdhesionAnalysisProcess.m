@@ -112,16 +112,27 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             if ischar(output),output={output}; end
             
             % Data loading
-            s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
+            s = load(obj.outFilePaths_{1,iChan},'metaTrackData');
+            metaTrackData = s.metaTrackData;
+            fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+            numStr = @(trackNum) num2str(trackNum,fString);
+            trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+            for ii=metaTrackData.numTracks:-1:1
+                curTrackObj = load(trackIndPath(ii),'curTrack');
+                tracksNA(ii) = curTrackObj.curTrack;
+            end
+            
+%             s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
 %             st = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tracksNA');
             % Note, could do a stack.
             
             %% Check struct vs table loading           
-            if isstruct(s)
-                s = s.tableTracksNA;
-            else
-                disp('loaded as table');
-            end
+%             if isstruct(s)
+%                 s = s.tableTracksNA;
+%             else
+%                 disp('loaded as table');
+%             end
+            s = struct2table(tracksNA);
 
             nTracks = length(s.xCoord(:,iFrame));
             number = (1:length(s.xCoord(:,iFrame)))';
