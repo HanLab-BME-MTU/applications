@@ -72,7 +72,7 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
                 
                 adhBoundary = data{j}; %(j).adhBoundary;
                 
-                if existingTracks  
+                if existingTracks(j)  
                     set(h(j),'XData',adhBoundary(:,2), 'YData', adhBoundary(:,1),...
                              'Color',obj.Color,'LineStyle',obj.LineStyle,varargin{:});
                 else

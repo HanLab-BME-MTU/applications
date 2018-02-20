@@ -114,7 +114,43 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             if ischar(output),output={output}; end
             
             % Data loading
-            s = cached.load(obj.outFilePaths_{5,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
+%             s = cached.load(obj.outFilePaths_{5,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
+            % Persistent works only for double variable or array. Working
+            % around ...
+            persistent xCoord yCoord refineFAID stateAll
+            if isempty(xCoord) || isempty(yCoord) || isempty(refineFAID) || isempty(stateAll)
+                iAdhProc = obj.owner_.getProcessIndex('AdhesionAnalysisProcess');
+                adhAnalProc = obj.owner_.getProcess(iAdhProc);
+                s = load(adhAnalProc.outFilePaths_{1,iChan},'metaTrackData');
+                metaTrackData = s.metaTrackData;
+                fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+                numStr = @(trackNum) num2str(trackNum,fString);
+                trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+                progressText(0,'Loading tracksNA') % Create text & waitbar popup
+                for ii=metaTrackData.numTracks:-1:1
+                    curTrackObj = load(trackIndPath(ii),'curTrack');
+                    tracksNA(ii,1) = curTrackObj.curTrack;
+                    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+                end
+                s = struct2table(tracksNA);
+                
+                xCoord = s.xCoord;
+                yCoord = s.yCoord;
+                refineFAID_cell = s.refineFAID;
+                stateAll = s.state;
+                % refineFAID_cell is numTracks x
+                % refineID_for_everyFramesInvolved. So for each track (each
+                % row), I'll make each raw a full frame entries although it
+                % is a bit memory intensive
+                maxFrame = max(cellfun(@length,refineFAID_cell));
+                insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
+                for k=find(insuffRows')
+                    refineFAID_cell{k} = [refineFAID_cell{k} ...
+                                NaN(1,maxFrame-length(refineFAID_cell{k}))];
+                end
+                refineFAID = cell2mat(refineFAID_cell);
+            end
+            
             iClasses = cached.load(obj.outFilePaths_{4,iChan}, '-useCache', ip.Results.useCache,...
                 'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9');
             idGroupLabel= 1*iClasses.idGroup1 + ...
@@ -128,15 +164,15 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             % Note, could do a stack.
             
             %% Check struct vs table loading           
-            if isstruct(s)
-                s = s.tableTracksNA;
-            else
-                disp('loaded as table');
-            end
+%             if isstruct(s)
+%                 s = s.tableTracksNA;
+%             else
+%                 disp('loaded as table');
+%             end
 
-            nTracks = length(s.xCoord(:,iFrame));
-            number = [1:length(s.xCoord(:,iFrame))]';
-            state = categorical(s.state(:,iFrame));
+            nTracks = length(xCoord(:,iFrame));
+            number = (1:length(xCoord(:,iFrame)))';
+            state = stateAll(:,iFrame);
             iiformat = ['%.' '3' 'd'];
             
             for iout = 1:numel(output)
@@ -162,7 +198,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     case 'adhboundary_Classified'
 %                         validState = (s.refineFAID(:,iFrame));
 %                         validState = cellfun(@(x) ~isempty(x(1,iFrame)) & ~isnan(x(1,iFrame)),validState);
-                        validState = state == 'FA' | state == 'FC';
+                        validState = state == 4 | state == 3; %strcmp(state, 'FA') | strcmp(state,'FC');
                     otherwise
                         error('Incorrect Output Var type');
                 end   
@@ -170,7 +206,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     
                     vars = {'xCoord', 'yCoord', 'number'};
                     validTracks = validState & s.startingFrameExtra <= iFrame & s.endingFrameExtra >= iFrame;                    
-                    st = table(s.xCoord(:,1:iFrame), s.yCoord(:,1:iFrame), number, ...
+                    st = table(xCoord(:,1:iFrame), yCoord(:,1:iFrame), number, ...
                                'VariableNames', {'xCoord', 'yCoord', 'number'});                    
                     
                     varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
@@ -194,7 +230,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                         curAdhBound = bwboundaries(labelAdhesion==ii,4,'noholes');
                         adhBound{ii} = curAdhBound{1}; % strongly assumes each has only one boundary
                     end
-                    validAdhState = cellfun(@(x) x(iFrame),s.refineFAID(validState));
+                    validAdhState = refineFAID(validState,iFrame); %cellfun(@(x) x(iFrame),refineFAID(validState));
                     varargout{iout}{1} = adhBound(validAdhState); 
                     varargout{iout}{2} = idGroupLabel(validState); %corresponding classes
                 else

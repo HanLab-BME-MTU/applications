@@ -66,7 +66,7 @@ numStr = @(trackNum) num2str(trackNum,fString);
 trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
 for ii=metaTrackData.numTracks:-1:1
     curTrackObj = load(trackIndPath(ii),'curTrack');
-    tracksNA(ii) = curTrackObj.curTrack;
+    tracksNA(ii,1) = curTrackObj.curTrack;
 end
 % end    
 %% the other channel map stack - iChanSlave
@@ -137,7 +137,11 @@ end
 % place.
 
 disp('Saving...')
-save(outputFile{1,p.ChannelIndex},'tracksAmpTotal','-v7.3'); % the later channel has the most information.
+try
+    save(outputFile{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
+catch
+    save(outputFile{1,p.ChannelIndex},'tracksAmpTotal','-v7.3');
+end
 disp('Done!')
 end
 %

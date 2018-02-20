@@ -32,22 +32,41 @@ iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 % It might be good to save which process the tracksNA was obtained.
 disp('Reading tracksNA ...')
 tic
-try
-    iAdhProc = MD.getProcessIndex('TractionForceReadingProcess');
-    adhAnalProc = MD.getProcess(iAdhProc);
-    % numChans = numel(p.ChannelIndex);
-    tracksNA = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'tracksNA');
-    tracksNA = tracksNA.tracksNA;
-catch
-    try
-    iAdhProc = MD.getProcessIndex('TheOtherChannelReadingProcess');
-    adhAnalProc = MD.getProcess(iAdhProc);
-    % numChans = numel(p.ChannelIndex);
-    tracksNA = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'tracksNA');
-    tracksNA = tracksNA.tracksNA;
-    catch
-        error('You have to run either TractionForceReadingProcess or TheOtherChannelReadingProcess before running this process!')
-    end    
+iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
+adhAnalProc = MD.getProcess(iAdhProc);
+% numChans = numel(p.ChannelIndex);
+s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
+metaTrackData = s.metaTrackData;
+fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+numStr = @(trackNum) num2str(trackNum,fString);
+trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+for ii=metaTrackData.numTracks:-1:1
+    curTrackObj = load(trackIndPath(ii),'curTrack');
+    tracksNA(ii,1) = curTrackObj.curTrack;
+end
+% Now we have to combine this with readings from step 9 and 10
+iFAPack = movieData.getPackageIndex('FocalAdhesionPackage');
+FAPack=movieData.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
+theOtherReadProc=FAPack.processes_{iTheOtherProc};
+forceReadProc=FAPack.processes_{iForceRead};
+
+if ~isempty(theOtherReadProc)
+    ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
+    tracksAmpTotal = ampObj.tracksAmpTotal;
+    if isfield(tracksAmpTotal,'ampTotal2')
+        [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
+    end
+    if isfield(tracksAmpTotal,'ampTotal3')
+        [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
+    end
+end
+
+if ~isempty(forceReadProc)
+    forceReadObj = load(forceReadProc.outFilePaths_{1,p.ChannelIndex},'tracksForceMag'); % the later channel has the most information.
+    tracksForceMag = forceReadObj.tracksForceMag;
+    if isfield(tracksForceMag,'forceMag')
+        [tracksNA(:).forceMag] = tracksAmpTotal.forceMag;
+    end
 end
 toc
 %% Reading classes

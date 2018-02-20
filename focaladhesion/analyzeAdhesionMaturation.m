@@ -267,7 +267,7 @@ if ~foundTracks
                         round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
                         round(tracksNA(k).yCoord(ii)) < 1) || ...
                         ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
-                    tracksNA(k).state{ii} = 'Out_of_Band';
+                    tracksNA(k).state(ii) = 6; %'Out_of_Band';
                     tracksNA(k).presence(ii) = false;
                     if trackIdx(k)
                         trackIdx(k) = false;
@@ -358,7 +358,7 @@ if ~foundTracks
                         round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
                         round(tracksNA(k).yCoord(ii)) < 1) || ...
                         ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
-                    tracksNA(k).state{ii} = 'Out_of_Band';
+                    tracksNA(k).state(ii) = 6; %'Out_of_Band';
                     tracksNA(k).presence(ii) = false;
                     if trackIdx(k)
                         trackIdx(k) = false;
@@ -374,6 +374,15 @@ if ~foundTracks
     %% Filter with lifeTime again
     lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
     tracksNA = tracksNA(lifeTime>minLifetime);
+    %% SDC application to tracksNA
+    if ~isempty(SDCProc) && ~isfield(tracksNA,'SDC_applied')
+        disp('Applying stage drift correction ...')
+        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+            tracksNA = applyDriftToTracks(tracksNA, T, 1); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+        else
+            tracksNA = applyDriftToTracks(tracksNA, T, 0);
+        end
+    end
     %% Matching with adhesion setup
     if ApplyCellSegMask
         firstMask=maskProc.loadChannelOutput(iChan,1);
@@ -409,13 +418,23 @@ if ~foundTracks
         else
             mask=true(MD.imSize_);
         end
+        % SDC application to masks
+        if ~isempty(SDCProc)
+            mask = imtranslate(mask,T(ii,2:-1:1));
+        end
+
         % Cell Boundary
         [B,~,nBD]  = bwboundaries(mask,'noholes');
         cropMaskStack(:,:,ii) = mask;
         % Get the mask for FAs
         I=MD.channels_(iPaxChannel).loadImage(ii); 
         maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
-        maskAdhesion = maskFAs>0 & mask;
+        if ~isempty(SDCProc)
+            maskFAs = imtranslate(maskFAs,T(ii,2:-1:1));
+            I = imtranslate(I,T(ii,2:-1:1));
+        end
+        
+        maskAdhesion = maskFAs>0 & mask; % Now SDC is applied to maskAdhesion
         % FA Segmentation usually over-segments things. Need to chop them off
         % to smaller ones or filter insignificant segmentation out.
         xNA=arrayfun(@(x) x.xCoord(ii),tracksNA);
@@ -500,6 +519,7 @@ if ~foundTracks
 %             else
 %                 imwrite(uint16(labelAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'),'Compression','none');
 %             end
+%             for k=1:numTracks
             parfor k=1:numTracks
                 curTrack=tracksNA(k);
                 if curTrack.presence(ii)
@@ -510,21 +530,21 @@ if ~foundTracks
                     if maskAdhesion(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii)))>0 %#ok<PFBNS>
                         iAdh = labelAdhesion(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii))); %#ok<PFBNS>
                         if ismember(iAdh,FCIdx)
-                            curTrack.state{ii} = 'FC';
+                            curTrack.state(ii) = 3; %'FC';
                             curTrack.area(ii) = Adhs(iAdh).Area;%#ok<PFBNS> % in pixel
-    %                             curTrack.FApixelList{ii} = Adhs(iAdh).PixelList;
-    %                             curTrack.adhBoundary{ii} = adhBound{iAdh};
+    %                             curTrack.FApixelList(ii) = Adhs(iAdh).PixelList;
+    %                             curTrack.adhBoundary(ii) = adhBound{iAdh};
                             curTrack.refineFAID(ii) = iAdh;
                             curTrack.faID(ii) = maskFAs(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii))); %#ok<PFBNS>
                         elseif ismember(iAdh,FAIdx)
-                            curTrack.state{ii} = 'FA';
+                            curTrack.state(ii) = 4; %'FA';
                             curTrack.area(ii) = Adhs(iAdh).Area;% in pixel
     %                             curTrack.FApixelList{ii} = Adhs(iAdh).PixelList;
     %                             curTrack.adhBoundary{ii} = adhBound{iAdh};
                             curTrack.refineFAID(ii) = iAdh;
                             curTrack.faID(ii) = maskFAs(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii)));
                         else 
-                            curTrack.state{ii} = 'NA';
+                            curTrack.state(ii) = 2; %'NA';
                             curTrack.area(ii) = Adhs(iAdh).Area;% in pixel
     %                             curTrack.FApixelList{ii} = Adhs(iAdh).PixelList;
     %                             curTrack.adhBoundary{ii} = adhBound{iAdh};
@@ -532,7 +552,7 @@ if ~foundTracks
                             curTrack.faID(ii) = maskFAs(round(curTrack.yCoord(ii)),round(curTrack.xCoord(ii)));
                         end
                     else
-                        curTrack.state{ii} = 'NA';
+                        curTrack.state(ii) = 2; %'NA';
                         curTrack.area(ii) = NaN;% in pixel
     %                         curTrack.FApixelList{ii} = [];
     %                         curTrack.adhBoundary{ii} = [];
@@ -540,9 +560,9 @@ if ~foundTracks
                         curTrack.faID(ii) = NaN;
                     end
                 elseif ii>curTrack.endingFrameExtra && ...
-                        (strcmp(curTrack.state{curTrack.endingFrameExtra},'FA')...
-                        || strcmp(curTrack.state{curTrack.endingFrameExtra},'FC')) && ...
-                        sum(cellfun(@(x) strcmp(x,'ANA'),curTrack.state(curTrack.endingFrame:ii)))<3
+                        (curTrack.state(curTrack.endingFrameExtra)==4)...
+                        || curTrack.state(curTrack.endingFrameExtra)==3 && ...
+                        sum(curTrack.state(curTrack.endingFrame:ii)==5)<3 %'ANA'
                     % starting from indexed maskFAs, find out segmentation that is
                     % closest to the last track point.
                     curTrack.xCoord(ii) = curTrack.xCoord(curTrack.endingFrameExtra);
@@ -558,7 +578,7 @@ if ~foundTracks
                     currentFAID = curTrack.faID(curTrack.endingFrameExtra);
                     subMaskFAs = maskFAs==currentFAID;
                     if max(subMaskFAs(:))==0
-                        curTrack.state{ii} = 'ANA';
+                        curTrack.state(ii) = 5; %'ANA';
     %                         curTrack.FApixelList{ii} = NaN;
     %                         curTrack.adhBoundary{ii} = NaN;
                         continue
@@ -587,11 +607,11 @@ if ~foundTracks
     %                             curTrack.state{ii} = 'NA';
     %                         end
                         if ismember(iAdh,FCIdx)
-                            curTrack.state{ii} = 'FC';
+                            curTrack.state(ii) = 3; %'FC';
                         elseif ismember(iAdh,FAIdx)
-                            curTrack.state{ii} = 'FA';
+                            curTrack.state(ii) = 4; %'FA';
                         else 
-                            curTrack.state{ii} = 'NA';
+                            curTrack.state(ii) = 2; %'NA';
                         end
                         curTrack.presence(ii)=true;
                         curTrack.endingFrameExtra = ii; % This is update I did on 5/24/17.
@@ -666,40 +686,56 @@ if ~foundTracks
 
     %% saving
     save(dataPath_focalAdhInfo, 'focalAdhInfo','-v7.3')
-else
-    load(dataPath_tracksNA, 'tracksNA');
+else % If this part above is already processed
+%     load(dataPath_tracksNA, 'tracksNA');
+    load(dataPath_tracksNA);
+    fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+    numStr = @(trackNum) num2str(trackNum,fString);
+    trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+    progressText(0,'Loading tracksNA') % Create text & waitbar popup
+    for ii=metaTrackData.numTracks:-1:1
+        curTrackObj = load(trackIndPath(ii),'curTrack');
+        tracksNA(ii,1) = curTrackObj.curTrack;
+        progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+    end
+    numTracks = metaTrackData.numTracks;
     load(dataPath_focalAdhInfo, 'focalAdhInfo')    
 end
-%% re-express tracksNA so that SDC is applied to each feature
-if ~isempty(SDCProc)
-    if ~isfield(tracksNA,'SDC_applied')
-        disp('Applying stage drift correction ...')
-        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
-            tracksNA = applyDriftToTracks(tracksNA, T, 1); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
-        else
-            tracksNA = applyDriftToTracks(tracksNA, T, 0);
-        end
-        deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
-        % This will add features like: advanceDist, edgeAdvanceDist, MSD,
-        % MSDrate, assemRate, disassemRate, earlyAmpSlope,lateAmpSlope
-        tracksNA = getFeaturesFromTracksNA(tracksNA, deltaT, getEdgeRelatedFeatures);%,...);
-        
-        % Apply SDC to labelAdhesion too
-        for  ii = 1 : nFrames
-            labelAdhesion = imread(strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
-            labelAdhesion = imtranslate(labelAdhesion,T(ii,:));
-            if max(labelAdhesion(:))<2^7
-                imwrite(uint8(labelAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
-            elseif max(labelAdhesion(:))<2^15
-                imwrite(uint16(labelAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
-            else
-                imwrite(uint16(labelAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
-            end
-        end
-    else
-        disp('Stage drift correction was already applied to tracksNA.')
-    end
-end
+%% re-express tracksNA so that SDC is applied to each feature - it's already done now.
+% if ~isempty(SDCProc)
+%     if ~isfield(tracksNA,'SDC_applied')
+%         disp('Applying stage drift correction ...')
+%         if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+%             tracksNA = applyDriftToTracks(tracksNA, T, 1); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+%         else
+%             tracksNA = applyDriftToTracks(tracksNA, T, 0);
+%         end
+%         deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
+%         % This will add features like: advanceDist, edgeAdvanceDist, MSD,
+%         % MSDrate, assemRate, disassemRate, earlyAmpSlope,lateAmpSlope
+% %         tracksNA = getFeaturesFromTracksNA(tracksNA, deltaT, getEdgeRelatedFeatures);%,...);
+%         
+%         % Apply SDC to labelAdhesion too
+%         for  ii = 1 : nFrames
+%             maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
+%             maskAdhesion = imtranslate(maskAdhesion,T(ii,2:-1:1));
+%             % Because of this translation, some of the labels might be
+%             % lost. 
+%             
+%             if max(maskAdhesion(:))<2
+%                 imwrite((maskAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
+%             elseif max(maskAdhesion(:))<2^7
+%                 imwrite(uint8(maskAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
+%             elseif max(maskAdhesion(:))<2^15
+%                 imwrite(uint16(maskAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
+%             else
+%                 imwrite(uint16(maskAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
+%             end
+%         end
+%     else
+%         disp('Stage drift correction was already applied to tracksNA.')
+%     end
+% end
 
 %% Saving - this will be not used
 % tableTracksNA = struct2table(tracksNA);
@@ -779,9 +815,9 @@ p2=0;
 idx = false(numel(tracksNA),1);
 for k=1:numel(tracksNA)
     % look for tracks that had a state of 'BA' and become 'NA'
-    firstNAidx = find(strcmp(tracksNA(k).state,'NA'),1,'first');
+    firstNAidx = find(tracksNA(k).state==2,1,'first');
     % see if the state is 'BA' before 'NA' state
-    if (~isempty(firstNAidx) && firstNAidx>1 && strcmp(tracksNA(k).state(firstNAidx-1),'BA')) || (~isempty(firstNAidx) &&firstNAidx==1)
+    if (~isempty(firstNAidx) && firstNAidx>1 && (tracksNA(k).state(firstNAidx-1)==1)) || (~isempty(firstNAidx) &&firstNAidx==1)
         p2=p2+1;
         idx(k) = true;
         tracksNA(k).emerging = true;
@@ -805,15 +841,15 @@ if matchWithFA
     for k=1:numel(trNAonly)
         if trNAonly(k).emerging 
             % maturing NAs
-            if (any(strcmp(trNAonly(k).state(trNAonly(k).emergingFrame:end),'FC')) || ...
-                    any(strcmp(trNAonly(k).state(trNAonly(k).emergingFrame:end),'FA'))) && ...
+            if (any(trNAonly(k).state(trNAonly(k).emergingFrame:end)==3) || ...
+                    any(trNAonly(k).state(trNAonly(k).emergingFrame:end)==3)) && ...
                     sum(trNAonly(k).presence)>8
 
                 trNAonly(k).maturing = true;
                 indMature(k) = true;
                 p2=p2+1;
                 % lifetime until FC
-                lifeTimeNAmaturing(p2) = sum(strcmp(trNAonly(k).state(trNAonly(k).emergingFrame:end),'NA'));
+                lifeTimeNAmaturing(p2) = sum(trNAonly(k).state(trNAonly(k).emergingFrame:end)==2);
                 % it might be beneficial to store amplitude time series. But
                 % this can be done later from trackNAmature
             elseif sum(tracksNA(k).presence)<61 && sum(tracksNA(k).presence)>6
@@ -822,7 +858,7 @@ if matchWithFA
                 indFail(k) = true;
                 q=q+1;
                 % lifetime until FC
-                lifeTimeNAfailing(q) = sum(strcmp(trNAonly(k).state(trNAonly(k).emergingFrame:end),'NA'));
+                lifeTimeNAfailing(q) = sum(trNAonly(k).state(trNAonly(k).emergingFrame:end)==2);
             end
         end
     end
@@ -938,6 +974,14 @@ newTracks(numel(tracks),1) = struct('xCoord', [], 'yCoord', [],'state',[],'iFram
 %                                   number = start is due to a split, end
 %                                   is due to a merge, number is the index
 %                                   of track segment for the merge/split.
+% state:
+%       1: BA, or Before Adhesion
+%       2: NA, Nascent Adhesion
+%       3: FC, Focal Complex
+%       4: FA, Focal Adhesion
+%       5: ANA, After Adhesion
+%       6: Out_of_Band
+
 progressText(0,'formatting tracks', 'Analysis Initialization');
 for i = 1:numel(tracks)
     % Get the x and y coordinate of all compound tracks
@@ -946,14 +990,14 @@ for i = 1:numel(tracks)
     for  jj = 1 : nFrames
         newTracks(i).iFrame(jj) = jj;
         if jj<tracks(i).seqOfEvents(1,1)     % before Adhesion
-            newTracks(i).state{jj} = 'BA';
+            newTracks(i).state(jj) = 1; %'BA';
             newTracks(i).xCoord(jj) = NaN;
             newTracks(i).yCoord(jj) = NaN;
             newTracks(i).presence(jj) = false;
             newTracks(i).amp(jj) = NaN;
             newTracks(i).bkgAmp(jj) = NaN;
         elseif jj>tracks(i).seqOfEvents(end,1) % Adhesion gone!
-            newTracks(i).state{jj} = 'ANA';
+            newTracks(i).state(jj) = 5; %'ANA';
             newTracks(i).xCoord(jj) = NaN;
             newTracks(i).yCoord(jj) = NaN;
             newTracks(i).amp(jj) = NaN;
@@ -964,7 +1008,7 @@ for i = 1:numel(tracks)
                 endNA = false;
             end
         elseif jj==tracks(i).seqOfEvents(2,1) % Adhesion occuring
-            newTracks(i).state{jj} = 'NA';
+            newTracks(i).state(jj) = 2; %'NA';
             newTracks(i).xCoord(jj) = tracks(i).tracksCoordAmpCG(1,1+8*(jj-tracks(i).seqOfEvents(1,1)));
             newTracks(i).yCoord(jj) = tracks(i).tracksCoordAmpCG(1,2+8*(jj-tracks(i).seqOfEvents(1,1)));
             newTracks(i).amp(jj) = tracks(i).tracksCoordAmpCG(1,4+8*(jj-tracks(i).seqOfEvents(1,1)));
@@ -985,7 +1029,7 @@ for i = 1:numel(tracks)
                 endNA = false;
             end
         else
-            newTracks(i).state{jj} = 'NA';
+            newTracks(i).state(jj) = 2; %'NA';
             newTracks(i).xCoord(jj) = tracks(i).tracksCoordAmpCG(1,1+8*(jj-tracks(i).seqOfEvents(1,1)));
             newTracks(i).yCoord(jj) = tracks(i).tracksCoordAmpCG(1,2+8*(jj-tracks(i).seqOfEvents(1,1)));
             newTracks(i).amp(jj) = tracks(i).tracksCoordAmpCG(1,4+8*(jj-tracks(i).seqOfEvents(1,1)));

@@ -37,8 +37,21 @@ nFrames=MD.nFrames_;
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
 adhAnalProc = MD.getProcess(iAdhProc);
 % numChans = numel(p.ChannelIndex);
-tracksNA = load(adhAnalProc.outFilePaths_{1,iChan},'tracksNA');
-tracksNA = tracksNA.tracksNA;
+% tracksNA = load(adhAnalProc.outFilePaths_{1,iChan},'tracksNA');
+% tracksNA = tracksNA.tracksNA;
+
+tic
+s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
+metaTrackData = s.metaTrackData;
+fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+numStr = @(trackNum) num2str(trackNum,fString);
+trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+for ii=metaTrackData.numTracks:-1:1
+    curTrackObj = load(trackIndPath(ii),'curTrack');
+    tracksNA(ii,1) = curTrackObj.curTrack;
+end
+toc
+
 % This case SDC was not used and first img frame was used.
 paxImage=MD.getChannel(iChan).loadImage(1); 
 [h,w] = size(paxImage);

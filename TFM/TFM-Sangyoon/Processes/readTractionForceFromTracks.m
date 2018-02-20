@@ -58,7 +58,7 @@ numStr = @(trackNum) num2str(trackNum,fString);
 trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
 for ii=metaTrackData.numTracks:-1:1
     curTrackObj = load(trackIndPath(ii),'curTrack');
-    tracksNA(ii) = curTrackObj.curTrack;
+    tracksNA(ii,1) = curTrackObj.curTrack;
 end
 
 toc
@@ -178,7 +178,11 @@ tracksForceMag = rmfield(addedTracksNA,{'xCoord','yCoord','startingFrameExtraExt
 
 %% Saving
 disp('Saving...')
-save(outputFile{1,p.ChannelIndex},'tracksForceMag','-v7.3'); 
+try
+    save(outputFile{1,p.ChannelIndex},'tracksForceMag'); 
+catch
+    save(outputFile{1,p.ChannelIndex},'tracksForceMag','-v7.3'); 
+end
 save(outputFile{2,p.ChannelIndex},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3') 
 if p.saveTractionField
     save(outputFile{3,iBeadChan},'tMap','-v7.3'); 

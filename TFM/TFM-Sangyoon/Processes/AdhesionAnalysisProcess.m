@@ -112,14 +112,43 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             if ischar(output),output={output}; end
             
             % Data loading
-            s = load(obj.outFilePaths_{1,iChan},'metaTrackData');
-            metaTrackData = s.metaTrackData;
-            fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-            numStr = @(trackNum) num2str(trackNum,fString);
-            trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-            for ii=metaTrackData.numTracks:-1:1
-                curTrackObj = load(trackIndPath(ii),'curTrack');
-                tracksNA(ii) = curTrackObj.curTrack;
+            persistent xCoord yCoord refineFAID stateAll startingFrameExtra endingFrameExtra lastFinishTime
+            if isempty(lastFinishTime)
+                lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
+            end
+            if isempty(xCoord) || isempty(yCoord) || isempty(refineFAID) ...
+                    || isempty(stateAll) || isempty(startingFrameExtra) || ...
+                    isempty(endingFrameExtra) || ~all(obj.finishTime_==lastFinishTime)
+                s = load(obj.outFilePaths_{1,iChan},'metaTrackData');
+                metaTrackData = s.metaTrackData;
+                fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+                numStr = @(trackNum) num2str(trackNum,fString);
+                trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+                progressText(0,'Loading tracksNA') % Create text & waitbar popup
+                for ii=metaTrackData.numTracks:-1:1
+                    curTrackObj = load(trackIndPath(ii),'curTrack');
+                    tracksNA(ii,1) = curTrackObj.curTrack;
+                    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+                end
+                s = struct2table(tracksNA);
+                xCoord = s.xCoord;
+                yCoord = s.yCoord;
+                startingFrameExtra = s.startingFrameExtra;
+                endingFrameExtra = s.endingFrameExtra;
+                refineFAID_cell = s.refineFAID;
+                stateAll = s.state;
+                % refineFAID_cell is numTracks x
+                % refineID_for_everyFramesInvolved. So for each track (each
+                % row), I'll make each raw a full frame entries although it
+                % is a bit memory intensive
+                maxFrame = max(cellfun(@length,refineFAID_cell));
+                insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
+                for k=find(insuffRows')
+                    refineFAID_cell{k} = [refineFAID_cell{k} ...
+                                NaN(1,maxFrame-length(refineFAID_cell{k}))];
+                end
+                refineFAID = cell2mat(refineFAID_cell);
+                lastFinishTime = obj.finishTime_;
             end
             
 %             s = cached.load(obj.outFilePaths_{1,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
@@ -132,11 +161,11 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
 %             else
 %                 disp('loaded as table');
 %             end
-            s = struct2table(tracksNA);
+%             s = struct2table(tracksNA);
 
-            nTracks = length(s.xCoord(:,iFrame));
-            number = (1:length(s.xCoord(:,iFrame)))';
-            state = categorical(s.state(:,iFrame));
+            nTracks = length(xCoord(:,iFrame));
+            number = (1:length(xCoord(:,iFrame)))';
+            state = stateAll(:,iFrame); %state = categorical(s.state(:,iFrame));
             iiformat = ['%.' '3' 'd'];
             
             for iout = 1:numel(output)
@@ -144,27 +173,27 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     case 'detectedFA'  
                         varargout{1} = t;
                     case 'detBA' 
-                        validState = state == 'BA';
+                        validState = state == 1; %'BA';
                     case {'detNA', 'trackNA'}
-                        validState = state == 'NA';
+                        validState = state == 2; %'NA';
                     case {'detFC', 'trackFC', 'adhboundary_FC'}
-                        validState = state == 'FC';
+                        validState = state == 3; %'FC';
                     case {'detFA', 'trackFA', 'adhboundary_FA'}
-                        validState = state == 'FA';
+                        validState = state == 4; %'FA';
                     case 'staticTracks'
                     otherwise
                         error('Incorrect Output Var type');
                 end   
                 if ~isempty(strfind(output{iout}, 'det'))
                 
-                    t = table(s.xCoord(:,iFrame), s.yCoord(:,iFrame));
+                    t = table(xCoord(:,iFrame), yCoord(:,iFrame));
                     varargout{iout} = t{validState,:};                                 
                 
                 elseif ~isempty(strfind(output{iout},'track'))
                     
                     vars = {'xCoord', 'yCoord', 'number'};
-                    validTracks = validState & s.startingFrameExtra <= iFrame & s.endingFrameExtra >= iFrame;                    
-                    st = table(s.xCoord(:,1:iFrame), s.yCoord(:,1:iFrame), number, ...
+                    validTracks = validState & startingFrameExtra <= iFrame & endingFrameExtra >= iFrame;                    
+                    st = table(xCoord(:,1:iFrame), yCoord(:,1:iFrame), number, ...
                                'VariableNames', {'xCoord', 'yCoord', 'number'});                    
                     
                     varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
@@ -175,15 +204,15 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
 %                     adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
                     p=obj.funParams_;
                     labelTifPath = [p.OutputDirectory filesep 'labelTifs'];
-                    labelAdhesion = imread(strcat(labelTifPath,'/label',num2str(iFrame,iiformat),'.tif'));
-                    labelAdhesion = bwlabel(labelAdhesion>0,4);
+                    maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(iFrame,iiformat),'.tif'));
+                    labelAdhesion = bwlabel(maskAdhesion,4);
                     maxLabel=max(labelAdhesion(:));
-                    adhBound = cell(1,maxLabel);
+                    adhBound = cell(maxLabel,1);
                     for ii=1:maxLabel
                         curAdhBound = bwboundaries(labelAdhesion==ii,4,'noholes');
                         adhBound{ii} = curAdhBound{1}; % strongly assumes each has only one boundary
                     end
-                    validAdhState = cellfun(@(x) x(iFrame),s.refineFAID(validState));
+                    validAdhState = refineFAID(validState,iFrame); %cellfun(@(x) x(iFrame),refineFAID(validState));
                     
                     varargout{iout} = adhBound(validAdhState); %table2struct(table(adhBoundary, number(validState),'VariableNames',{'adhBoundary', 'number'}));                                 
                 else
