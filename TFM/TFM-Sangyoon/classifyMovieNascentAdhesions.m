@@ -316,7 +316,7 @@ else
         % G2
 
         % G2-1. FA segmentation overlapping (for G2)
-        faAssocAll = arrayfun(@(x) any(strcmp(x.state,'FA') | strcmp(x.state,'FC')),tracksNA);
+        faAssocAll = arrayfun(@(x) any(x.state==4 | x.state==3),tracksNA); %any(strcmp(x.state,'FA') | strcmp(x.state,'FC')),tracksNA);
         % Have to think about having to start with NA state, and FC vs. FA
 
         % G2-2. Area should be increasing overall

@@ -117,10 +117,15 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
 %             s = cached.load(obj.outFilePaths_{5,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
             % Persistent works only for double variable or array. Working
             % around ...
-            persistent xCoord yCoord refineFAID stateAll
-            if isempty(xCoord) || isempty(yCoord) || isempty(refineFAID) || isempty(stateAll)
-                iAdhProc = obj.owner_.getProcessIndex('AdhesionAnalysisProcess');
-                adhAnalProc = obj.owner_.getProcess(iAdhProc);
+            persistent xCoord yCoord refineFAID stateAll startingFrameExtra endingFrameExtra lastFinishTime
+            if isempty(lastFinishTime)
+                lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
+            end
+            iAdhProc = obj.owner_.getProcessIndex('AdhesionAnalysisProcess');
+            adhAnalProc = obj.owner_.getProcess(iAdhProc);
+            if isempty(xCoord) || isempty(yCoord) || isempty(refineFAID) ...
+                    || isempty(stateAll) || isempty(startingFrameExtra) || ...
+                    isempty(endingFrameExtra) || ~all(adhAnalProc.finishTime_==lastFinishTime)
                 s = load(adhAnalProc.outFilePaths_{1,iChan},'metaTrackData');
                 metaTrackData = s.metaTrackData;
                 fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
@@ -136,6 +141,8 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                 
                 xCoord = s.xCoord;
                 yCoord = s.yCoord;
+                startingFrameExtra = s.startingFrameExtra;
+                endingFrameExtra = s.endingFrameExtra;
                 refineFAID_cell = s.refineFAID;
                 stateAll = s.state;
                 % refineFAID_cell is numTracks x
@@ -149,6 +156,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                                 NaN(1,maxFrame-length(refineFAID_cell{k}))];
                 end
                 refineFAID = cell2mat(refineFAID_cell);
+                lastFinishTime = adhAnalProc.finishTime_;
             end
             
             iClasses = cached.load(obj.outFilePaths_{4,iChan}, '-useCache', ip.Results.useCache,...
@@ -205,7 +213,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                 if ~isempty(strfind(output{iout},'Tracks'))
                     
                     vars = {'xCoord', 'yCoord', 'number'};
-                    validTracks = validState & s.startingFrameExtra <= iFrame & s.endingFrameExtra >= iFrame;                    
+                    validTracks = validState & startingFrameExtra <= iFrame & endingFrameExtra >= iFrame;                    
                     st = table(xCoord(:,1:iFrame), yCoord(:,1:iFrame), number, ...
                                'VariableNames', {'xCoord', 'yCoord', 'number'});                    
                     
@@ -217,9 +225,9 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
 %                     adhBoundary = cellfun(@(x) x{iFrame}, s{validState, 'adhBoundary'}, 'UniformOutput', false);                         
 %                     varargout{iout} = table2struct(table(adhBoundary, number(validState), ...
 %                                                          'VariableNames',{'adhBoundary', 'number'}));                                 
-                    MD = obj.owner_;
-                    iAdhAnalProc=MD.getProcessIndex('AdhesionAnalysisProcess');
-                    adhAnalProc=MD.getProcess(iAdhAnalProc);
+%                     MD = obj.owner_;
+%                     iAdhAnalProc=MD.getProcessIndex('AdhesionAnalysisProcess');
+%                     adhAnalProc=MD.getProcess(iAdhAnalProc);
                     p=adhAnalProc.funParams_;
                     labelTifPath = [p.OutputDirectory filesep 'labelTifs'];
                     labelAdhesion = imread(strcat(labelTifPath,'/label',num2str(iFrame,iiformat),'.tif'));

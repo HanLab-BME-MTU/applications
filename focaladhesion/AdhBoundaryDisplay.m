@@ -37,15 +37,16 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
                         disp('error');
                     end
                 end
-                set(h,'Tag',tag);
             else
                 existingClasses=unique(idGroupLabel','sorted');
+                j=0;
                 for k = existingClasses
                     curIndices = find(idGroupLabel'==k);
                     for i=curIndices
+                        j=j+1;
                         adhBoundary = data{i}; %(i).adhBoundary;
                         try
-                            h(i) = line(adhBoundary(:,2), adhBoundary(:,1),...
+                            h(j) = line(adhBoundary(:,2), adhBoundary(:,1),...
                                         'Color',colors(k,:),'LineStyle',obj.LineStyle,...
                                         varargin{:});
                         catch
@@ -54,11 +55,17 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
                     end
                 end
             end
+            set(h,'Tag',tag);
         end
 
         function updateDraw(obj, h, data, varargin)
             tag = get(h(1),'Tag');
-            nTracks = size(data,1);
+            idGroupLabel=[];
+            if iscell(data{1})
+                idGroupLabel=data{2};
+                data = data{1};
+            end
+            nTracks = numel(data); %size(data,1);
             
             % Delete tracks
             delete(h(nTracks+1:end));
@@ -67,19 +74,47 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
             
             existingTracks = false(nTracks,1);
             existingTracks(1:min(numel(h),nTracks)) = true;
+
+            numGroups=9;
+            colors = distinguishable_colors(numGroups,'k');
+            tempColor = colors(6,:);
+            colors(6,:) = colors(9,:);
+            colors(9,:) = tempColor;
+%             h = gobjects(size(data,1),1);
             
-            for j = 1:nTracks
-                
-                adhBoundary = data{j}; %(j).adhBoundary;
-                
-                if existingTracks(j)  
-                    set(h(j),'XData',adhBoundary(:,2), 'YData', adhBoundary(:,1),...
-                             'Color',obj.Color,'LineStyle',obj.LineStyle,varargin{:});
-                else
-                    h(j) = line(adhBoundary(:,2), adhBoundary(:,1),...
-                                'Color',obj.Color,'LineStyle',obj.LineStyle,...
-                                varargin{:});               
+            if isempty(idGroupLabel)
+                for j = 1:nTracks
+
+                    adhBoundary = data{j}; %(j).adhBoundary;
+
+                    if existingTracks(j)  
+                        set(h(j),'XData',adhBoundary(:,2), 'YData', adhBoundary(:,1),...
+                                 'Color',obj.Color,'LineStyle',obj.LineStyle,varargin{:});
+                    else
+                        h(j) = line(adhBoundary(:,2), adhBoundary(:,1),...
+                                    'Color',obj.Color,'LineStyle',obj.LineStyle,...
+                                    varargin{:});               
+                    end
                 end
+            else
+                existingClasses=unique(idGroupLabel','sorted');
+                j=0;
+                for k = existingClasses
+                    curIndices = find(idGroupLabel'==k);
+                    for i=curIndices
+                        j=j+1;
+                        adhBoundary = data{i}; %(i).adhBoundary;
+                        if existingTracks(j)  
+                            set(h(j),'XData',adhBoundary(:,2), 'YData', adhBoundary(:,1),...
+                                     'Color',colors(k,:),'LineStyle',obj.LineStyle,varargin{:});
+                        else
+                            h(j) = line(adhBoundary(:,2), adhBoundary(:,1),...
+                                        'Color',colors(k,:),'LineStyle',obj.LineStyle,...
+                                        varargin{:});
+                        end
+                    end
+                end
+                
             end
             set(h,'Tag',tag);          
         end
