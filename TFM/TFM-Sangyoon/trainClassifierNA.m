@@ -2,7 +2,7 @@ function [trainedClassifier, validationAccuracy,C,order,validationPredictions, v
 % Extract predictors and response
 predictorNames = {'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNAs', 'lifeTimeNAs', 'meanIntensityNAs', 'distToEdgeFirstNAs', 'startingIntensityNAs',...
     'distToEdgeChangeNAs', 'distToEdgeLastNAs', 'edgeAdvanceDistFirstChangeNAs', 'edgeAdvanceDistLastChangeNAs', 'maxEdgeAdvanceDistChangeNAs',...
-    'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation'};
+    'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing'};
 predictors = datasetTable(:,predictorNames);
 predictors = table2array(varfun(@double, predictors));
 response = datasetTable.Group;
@@ -25,7 +25,7 @@ template = templateSVM('KernelFunction', 'polynomial', 'PolynomialOrder', 2, 'Ke
 trainedClassifier = fitcecoc(predictors, response,'FitPosterior',1, 'Learners', template, 'Coding', 'onevsone', 'PredictorNames', ...
     {'decayingIntensityNAs' 'edgeAdvanceSpeedNAs' 'advanceSpeedNAs' 'lifeTimeNAs' 'meanIntensityNAs' 'distToEdgeFirstNAs' 'startingIntensityNAs' ...
     'distToEdgeChangeNAs' 'distToEdgeLastNAs' 'edgeAdvanceDistFirstChangeNAs' 'edgeAdvanceDistLastChangeNAs' 'maxEdgeAdvanceDistChangeNAs' ...
-    'maxIntensityNAs' 'timeToMaxInten' 'edgeVariation'}, 'ResponseName', 'Group', 'ClassNames', totalGroups');
+    'maxIntensityNAs' 'timeToMaxInten' 'edgeVariation', 'Area', 'FAfinishing'}, 'ResponseName', 'Group', 'ClassNames', totalGroups');
 
 % Perform cross-validation
 partitionedModel = crossval(trainedClassifier, 'KFold', 5);

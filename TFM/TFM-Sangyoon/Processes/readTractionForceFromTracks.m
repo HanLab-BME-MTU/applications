@@ -59,12 +59,13 @@ trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr
 for ii=metaTrackData.numTracks:-1:1
     curTrackObj = load(trackIndPath(ii),'curTrack');
     tracksNA(ii,1) = curTrackObj.curTrack;
+    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
 end
 
 toc
 %% Data Set up
 % Set up the output file path for master channel
-outputFile = cell(5, numel(MD.channels_));
+outputFile = cell(6, numel(MD.channels_));
 iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 for i = 1:numel(MD.channels_)
     [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
@@ -78,6 +79,8 @@ for i = 1:numel(MD.channels_)
     outputFile{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
     outFilename = [chanDirName '_Chan' num2str(i) '_forceFieldShifted'];
     outputFile{5,i} = [p.OutputDirectory filesep outFilename '.mat'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_idxTracks'];
+    outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 tractionForceReadProc.setOutFilePaths(outputFile);
 mkClrDir(p.OutputDirectory);
@@ -169,12 +172,12 @@ disp('Reading traction...')
 fieldsAll = fieldnames(tracksNA);
 unnecFields = setdiff(fieldsAll,{'xCoord','yCoord','startingFrameExtraExtra',...
     'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
-    'endingFrame','amp'});
+    'endingFrame','amp','sigma'});
 essentialTracks = rmfield(tracksNA,unnecFields);
-addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,2); % 2 means traction magnitude collection from traction stacks
+addedTracksNA = readIntensityFromTracks(essentialTracks,tMap,2); % 2 means traction magnitude collection from traction stacks
 tracksForceMag = rmfield(addedTracksNA,{'xCoord','yCoord','startingFrameExtraExtra',...
 'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
-'endingFrame','amp'});
+'endingFrame','amp','sigma'});
 
 %% Saving
 disp('Saving...')
@@ -183,7 +186,9 @@ try
 catch
     save(outputFile{1,p.ChannelIndex},'tracksForceMag','-v7.3'); 
 end
-save(outputFile{2,p.ChannelIndex},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3') 
+save(outputFile{2,p.ChannelIndex},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9') 
+save(outputFile{6,p.ChannelIndex},'idxTracks') 
+
 if p.saveTractionField
     save(outputFile{3,iBeadChan},'tMap','-v7.3'); 
     save(outputFile{4,iBeadChan},'forceField','-v7.3'); 

@@ -124,11 +124,10 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                 fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
                 numStr = @(trackNum) num2str(trackNum,fString);
                 trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-                progressText(0,'Loading tracksNA') % Create text & waitbar popup
                 for ii=metaTrackData.numTracks:-1:1
                     curTrackObj = load(trackIndPath(ii),'curTrack');
                     tracksNA(ii,1) = curTrackObj.curTrack;
-                    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+                    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
                 end
                 s = struct2table(tracksNA);
                 xCoord = s.xCoord;

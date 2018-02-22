@@ -30,8 +30,6 @@ MD=ip.Results.MD;
 iChan = p.ChannelIndex;
 sampleFolders=p.labeledData;
 %% Load processed data
-disp('Loading raw files ...')
-tic
 nFrames=MD.nFrames_;
 
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
@@ -40,7 +38,6 @@ adhAnalProc = MD.getProcess(iAdhProc);
 % tracksNA = load(adhAnalProc.outFilePaths_{1,iChan},'tracksNA');
 % tracksNA = tracksNA.tracksNA;
 
-tic
 s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
 metaTrackData = s.metaTrackData;
 fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
@@ -49,8 +46,8 @@ trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr
 for ii=metaTrackData.numTracks:-1:1
     curTrackObj = load(trackIndPath(ii),'curTrack');
     tracksNA(ii,1) = curTrackObj.curTrack;
+    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
 end
-toc
 
 % This case SDC was not used and first img frame was used.
 paxImage=MD.getChannel(iChan).loadImage(1); 
@@ -61,7 +58,6 @@ for ii=1:nFrames
     paxImage=MD.getChannel(iChan).loadImage(ii); 
     imgMap(:,:,ii) = paxImage;
 end
-toc
 %% Backup previous Analysis output - This created too much memory. Deleting...
 % if exist(p.OutputDirectory,'dir')
 %     if p.backupOldResults
@@ -299,11 +295,6 @@ else
         indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
         % 8. life time
 
-        % Summing all those for G1
-        indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
-            indCleanRisingG1G2 & indEarlyMaxPointG1; %& indCleanDecayingG1;
-
-        indexG1 = find(indAbsoluteG1); 
         % Inspect each (temporary)
     %         figure; hold on
     %         for mm=indexG1'
@@ -321,8 +312,10 @@ else
 
         % G2-2. Area should be increasing overall
         slopeArea=-100*ones(size(faAssocAll));
+        meanAreaAll= zeros(size(faAssocAll));
         for k=find(faAssocAll')
             curArea = tracksNA(k).area;
+            meanAreaAll(k)=nanmean(curArea);
             curArea = curArea(~isnan(curArea));
             tRange = tracksNA(k).iFrame(~isnan(curArea));
             slopeArea(k)=regress(curArea',tRange');
@@ -342,17 +335,49 @@ else
     % %     stdIntenG1 = std(maxIntenAll(indAbsoluteG1));
     % %     indHighEnoughMaxAmp = maxIntenAll>(meanIntenG1+0.1*stdIntenG1);
     % 
+        % G1 should not have too big area
+        smallEnoughArea = meanAreaAll<mean(meanAreaAll)+std(meanAreaAll);
+        % Summing all those for G1
+        indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
+            indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea; %& indCleanDecayingG1;
+
         % At the same time, G2 should start from a decently low amplitude
         % as in G1
         initIntenAll = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA);
         initIntenG1 = initIntenAll(indAbsoluteG1);
         indInitIntenG2 = initIntenAll<(mean(initIntenG1)+0.5*std(initIntenG1));
-    % 
+        
+        % G1 summarizing
+        indexG1 = find(indAbsoluteG1 & indInitIntenG2); 
+
+        % G2 adhesions should have sufficient period where they are in
+        % their NA state
+        lengthNA = floor(10/MD.timeInterval_); %at least 10 sec
+        sufficientInitialNAState = false(numel(tracksNA),1);
+        for ii=1:numel(tracksNA)
+            curTrack = tracksNA(ii);
+            indFirstFA = find(curTrack.state==3 | curTrack.state==4, 1);
+            if ~isempty(indFirstFA)
+                sufficientInitialNAState(ii) = sum(curTrack.state==2 & ...
+                        curTrack.iFrame<indFirstFA)>=lengthNA;
+            end
+        end
+        
+        % And G2 should end with FA or FC state in the end
+        lastFAFrame = arrayfun(@(x) find(x.state==3 | x.state==4, 1, 'last'),tracksNA,'unif',false);
+        lastFAFrame(cellfun(@isempty,lastFAFrame))={0};
+        lastFAFrame = cell2mat(lastFAFrame);
+        FAfinishing = arrayfun(@(x) x.endingFrameExtra,tracksNA)-lastFAFrame;
+        nFrames = nanmax(arrayfun(@(x) x.endingFrameExtraExtra,tracksNA));
+        FAfinishing = (nFrames - FAfinishing)/nFrames; %This means that the FA whose state is FA at the end of endingFrameExtra has 1.
+        endingWithFAState = FAfinishing>0.95;
+        
     %     indAbsoluteG2G1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
     %         indCleanRisingG1G2 & indNonDecayingG2 & faAssocAll & indLateMaxPointG2 & indInitIntenG2;
     %     additionalG1 = indAbsoluteG2G1 & ~indHighEnoughMaxAmp;
     %     indAbsoluteG2 = indAbsoluteG2G1 & indHighEnoughMaxAmp;
-        indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2;
+        indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 &...
+            sufficientInitialNAState & endingWithFAState;
 
         % Inspect each (temporary)
         indexG2 = find(indAbsoluteG2); 
@@ -749,19 +774,6 @@ else
     end
 
     allDataClass = predict(trainedClassifier,allData);
-    iFrameInterest=81;
-    figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
-    [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],false);
-    classNames={'G1: turn-over','G2: maturing','G3: moving along protruding edge',...
-        'G4: retracting','G5: stable at the edge','G6: noise or very transient','G7: adhesions at stalling edge','G8: strong stable adhesion', 'G9: weak stable adhesion inside'};
-    existingClasses=~cellfun(@isempty,htrackCircles);
-    % cellfun(@(x) x{1},htrackCircles(existingClasses),'UniformOutput',false)
-    % this didn't work. I have to create line object array using for loop
-    markerArray=[];
-    for qq=find(existingClasses)
-        markerArray=[markerArray htrackCircles{qq}{1}];
-    end
-    legend(markerArray,classNames(existingClasses),'TextColor','w','Location','best','FontSize',8,'FontWeight','bold','Box','off')
 
     % figure, imshow(imgMap(:,:,end),[])
     % hold on
@@ -796,6 +808,76 @@ else
     idGroup7 = strcmp(allDataClass,'Group7');
     idGroup8 = strcmp(allDataClass,'Group8');
     idGroup9 = strcmp(allDataClass,'Group9');
+    
+    %% Adhesion boundary homogenization
+    % This is one last step where we make potentially different classes
+    % associated with the same chunk of adhesion boundary the same.
+    % We base on the labels obtained in Step 6, adhesion segmentation,
+    % which is stored in tracksNA.faID
+    faIDsCell = arrayfun(@(x) nanmax(x.faID),tracksNA,'unif',false);
+    indFaIDs = ~cellfun(@(x) isnan(x) || (x==0),faIDsCell);
+    faIDsAll = cellfun(@(x) uint16(x), faIDsCell(indFaIDs));
+    [faIDsUnique]=unique(faIDsAll); %,iAlltoUniq,iUniqToAll
+    indexFaIDs=find(indFaIDs);
+    idGroupLabel= 1*idGroup1 + 2*idGroup2 + 3*idGroup3 + ...
+                4*idGroup4 + 5*idGroup5 + 6*idGroup6 + ...
+                7*idGroup7 + 8*idGroup8 + 9*idGroup9;    
+    edgeVariationAll = allData(:,end-2);
+    for k=faIDsUnique'
+        % Find the tracks associated with k, one of the faIDs
+        curTrackIDs = indexFaIDs(faIDsAll==k); % This can be multiple
+        % find all classes associated with these tracks
+        curClasses = idGroupLabel(curTrackIDs);
+        % Apply the rule for the representative Class
+        curDistToEdges = arrayfun(@(x) x.distToEdge(x.startingFrameExtra), tracksNA(curTrackIDs));
+        curEdgeVariation = edgeVariationAll(curTrackIDs);
+        curRepClass = mode(curClasses);
+        if (ismember(8,curClasses) && (mean(curDistToEdges)>=2*thresStartingDistG1G2) || sum(curEdgeVariation==0)/length(curEdgeVariation)>0.5)
+            curRepClass = 8;
+        elseif ismember(2,curClasses) && min(curDistToEdges)<1.5*thresStartingDistG1G2
+            curRepClass = 2;
+        elseif ismember(4,curClasses)
+            curRepClass = 4; % G4 has the highest priority
+        elseif ismember(5,curClasses) && min(curDistToEdges)<1.5*thresStartingDistG1G2 && sum(curEdgeVariation==0)<1
+            curRepClass = 5;
+        elseif curRepClass==9 && nanmean(arrayfun(@(x) nanmean(x.area),tracksNA(curTrackIDs)))>0
+            if min(curDistToEdges)<1.5*thresStartingDistG1G2
+                curRepClass = 2;
+            else
+                curRepClass = 8;
+            end
+        end
+        % Putting this back to idGroupLabel
+        idGroupLabel(curTrackIDs) = curRepClass;
+    end
+    % Putting back to idGroups
+    idGroup1=idGroupLabel==1; idGroup2=idGroupLabel==2; idGroup3=idGroupLabel==3; 
+    idGroup4=idGroupLabel==4; idGroup5=idGroupLabel==5; idGroup6=idGroupLabel==6; 
+    idGroup7=idGroupLabel==7; idGroup8=idGroupLabel==8; idGroup9=idGroupLabel==9; 
+    %% Sample drawing
+    allDataClass(idGroup1)={'Group1'};
+    allDataClass(idGroup2)={'Group2'};
+    allDataClass(idGroup3)={'Group3'};
+    allDataClass(idGroup4)={'Group4'};
+    allDataClass(idGroup5)={'Group5'};
+    allDataClass(idGroup6)={'Group6'};
+    allDataClass(idGroup7)={'Group7'};
+    allDataClass(idGroup8)={'Group8'};
+    allDataClass(idGroup9)={'Group9'};
+    iFrameInterest=min(81,MD.nFrames_);
+    figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
+    [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],false);
+    classNames={'G1: turn-over','G2: maturing','G3: moving along protruding edge',...
+        'G4: retracting','G5: stable at the edge','G6: noise or very transient','G7: adhesions at stalling edge','G8: strong stable adhesion', 'G9: weak stable adhesion inside'};
+    existingClasses=~cellfun(@isempty,htrackCircles);
+    % cellfun(@(x) x{1},htrackCircles(existingClasses),'UniformOutput',false)
+    % this didn't work. I have to create line object array using for loop
+    markerArray=[];
+    for qq=find(existingClasses)
+        markerArray=[markerArray htrackCircles{qq}{1}];
+    end
+    legend(markerArray,classNames(existingClasses),'TextColor','w','Location','best','FontSize',8,'FontWeight','bold','Box','off')
+    %% Saving
     if strcmp(useDefinedClassifier,'n')
         print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
         savefig(outFilePaths{3,iChan})

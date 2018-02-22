@@ -67,6 +67,7 @@ trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr
 for ii=metaTrackData.numTracks:-1:1
     curTrackObj = load(trackIndPath(ii),'curTrack');
     tracksNA(ii,1) = curTrackObj.curTrack;
+    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
 end
 % end    
 %% the other channel map stack - iChanSlave
@@ -119,15 +120,15 @@ for iCurChan = iChanSlave
         fieldsAll = fieldnames(tracksNA);
         unnecFields = setdiff(fieldsAll,{'xCoord','yCoord','startingFrameExtraExtra',...
             'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
-            'endingFrame','amp'});
+            'endingFrame','amp','sigma'});
         essentialTracks = rmfield(tracksNA,unnecFields);
         addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,iReadingCode); % 5 means ampTotal2 from the other channel
     else
-        addedTracksNA = readIntensityFromTracks(addedTracksNA,imgStack,iReadingCode); % 5 means ampTotal2 from the other channel
+        addedTracksNA = readIntensityFromTracks(addedTracksNA,imgStack,iReadingCode); % 6 means ampTotal3 from the other channel
     end
     tracksAmpTotal = rmfield(addedTracksNA,{'xCoord','yCoord','startingFrameExtraExtra',...
     'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
-    'endingFrame','amp'});
+    'endingFrame','amp','sigma'});
     toc
 end
 %% protrusion/retraction information - most of these are now done in analyzeAdhesionsMaturation

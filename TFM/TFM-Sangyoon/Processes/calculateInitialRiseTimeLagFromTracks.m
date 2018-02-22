@@ -43,10 +43,11 @@ trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr
 for ii=metaTrackData.numTracks:-1:1
     curTrackObj = load(trackIndPath(ii),'curTrack');
     tracksNA(ii,1) = curTrackObj.curTrack;
+    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
 end
 % Now we have to combine this with readings from step 9 and 10
-iFAPack = movieData.getPackageIndex('FocalAdhesionPackage');
-FAPack=movieData.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
+iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+FAPack=MD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
 theOtherReadProc=FAPack.processes_{iTheOtherProc};
 forceReadProc=FAPack.processes_{iForceRead};
 
@@ -64,8 +65,11 @@ end
 if ~isempty(forceReadProc)
     forceReadObj = load(forceReadProc.outFilePaths_{1,p.ChannelIndex},'tracksForceMag'); % the later channel has the most information.
     tracksForceMag = forceReadObj.tracksForceMag;
+    idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+    idxTracks = idxTracksObj.idxTracks;
+    tracksNA = tracksNA(idxTracks);
     if isfield(tracksForceMag,'forceMag')
-        [tracksNA(:).forceMag] = tracksAmpTotal.forceMag;
+        [tracksNA(:).forceMag] = tracksForceMag.forceMag;
     end
 end
 toc
@@ -277,7 +281,7 @@ for k=1:numClasses
     end
     h2=figure;
     boxPlotCellArray(initialLagTogetherAdjusted,nameList2);
-    nameTitle=['initialLag_Class' num2str(k)];
+    nameTitle=['initialLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
@@ -286,7 +290,7 @@ for k=1:numClasses
     
     h2=figure;
     boxPlotCellArray(peakLagTogetherAdjusted,nameList2);
-    nameTitle=['peakLag_Class' num2str(k)];
+    nameTitle=['peakLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
@@ -295,7 +299,7 @@ for k=1:numClasses
 
     h2=figure;
     boxPlotCellArray(endingLagTogetherAdjusted,nameList2);
-    nameTitle=['endingLag_Class' num2str(k)];
+    nameTitle=['endingLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
@@ -304,7 +308,7 @@ for k=1:numClasses
     
     h2=figure;
     boxPlotCellArray(ccLagTogetherAdjusted,nameList2);
-    nameTitle=['ccLag_Class' num2str(k)];
+    nameTitle=['ccLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')

@@ -64,7 +64,7 @@ end
 if ~isfield(tracksNA,'endingFrameExtraExtra')
     tracksNA(end).endingFrameExtraExtra=[];
 end
-if ~isfield(tracksNA,'ampTotal')
+if ~isfield(tracksNA,'ampTotal') && attribute==1
     tracksNA(end).ampTotal=tracksNA(end).amp;
 end
 if attribute==2 && ~isfield(tracksNA,'forceMag')
@@ -161,8 +161,8 @@ parfor k=1:numTracks
                             curTrack.ampTotal(ii) =  curAmpTotal;
                             curTrack.presence(ii) =  true;
                             curTrack.sigma(ii) = curSigma;
-                            if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
-                                curTrack.state{ii} = 'NA';
+                            if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
+                                curTrack.state(ii) = 2; %'NA';
                             end
                             pitFound = true;
                             break
@@ -273,9 +273,12 @@ parfor k=1:numTracks
                             curTrack.ampTotal(ii) =  curAmpTotal;
                             curTrack.presence(ii) =  true;
                             curTrack.sigma(ii) = curSigma;
-                            if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
-                                curTrack.state{ii} = 'NA';
+                            if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
+                                curTrack.state(ii) = 2; %'NA';
                             end
+%                             if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
+%                                 curTrack.state{ii} = 'NA';
+%                             end
                             pitFoundEnd = true;
                             break
                         end
@@ -398,7 +401,8 @@ parfor k=1:numTracks
             if attribute==3
                 curImg(curImg==0)=NaN; %assuming FA value
             end
-            if strcmp(curTrack.state(ii),'FA') || strcmp(curTrack.state(ii),'FC') % this is FA
+%             if strcmp(curTrack.state(ii),'FA') || strcmp(curTrack.state(ii),'FC') % this is FA
+            if curTrack.state(ii)==4 || curTrack.state(ii)==3 %'FA','FC') % this is FA
                 pixelList=curTrack.FApixelList{ii};
                 pixelIdxList = sub2ind(size(curImg),pixelList(:,2),pixelList(:,1));
                 curAmpTotal = curImg(pixelIdxList);
