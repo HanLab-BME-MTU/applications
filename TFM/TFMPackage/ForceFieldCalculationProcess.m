@@ -54,6 +54,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
 %             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) ismember(x,1:obj.owner_.nFrames_));
 %             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.addParameter('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addParameter('useCache',true,@islogical);
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
 %             iOut = ip.Results.iOut;
@@ -66,7 +67,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 s = load(obj.outFilePaths_{iOut},output{1});
             elseif strcmp(output,outputList{2})
                 iOut=2;
-                s = load(obj.outFilePaths_{iOut},output{1});
+                s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
+%                 s = load(obj.outFilePaths_{iOut},output{1});
             elseif strcmp(output,outputList{3})
                 iOut=1;
                 s = load(obj.outFilePaths_{iOut},output{1});
