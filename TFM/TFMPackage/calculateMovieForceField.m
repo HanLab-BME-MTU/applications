@@ -858,10 +858,10 @@ end
 % display(['Distance to closest bead maximum = ' num2str(tmax) ' Pa.'])
 %% Insert traction map in forceField.pos 
 disp('Writing traction maps ...')
-tMap = cell(1,nFrames);
-tMapX = cell(1,nFrames);
-tMapY = cell(1,nFrames);
-fCfdMap = cell(1,1); %force confidence
+% tMap = cell(1,nFrames);
+% tMapX = cell(1,nFrames);
+% tMapY = cell(1,nFrames);
+% fCfdMap = cell(1,1); %force confidence
 
 % Set up the output directories
 outputDir = fullfile(p.OutputDirectory,'tractionMaps');
@@ -881,13 +881,16 @@ for ii=frameSequence
     cur_tMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapXin{ii};
     cur_tMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapYin{ii};
 %     cur_distBeadMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = distBeadMapIn{ii};
-    tMap{ii} = cur_tMap;
-    tMapX{ii} = cur_tMapX;
-    tMapY{ii} = cur_tMapY;
+%     tMap{ii} = cur_tMap;
+%     tMapX{ii} = cur_tMapX;
+%     tMapY{ii} = cur_tMapY;
     if ii==1 && strcmpi(p.method,'FastBEM')
         cur_fCfdMap = zeros(size(firstMask));
         cur_fCfdMap(cropInfoFC(2):cropInfoFC(4),cropInfoFC(1):cropInfoFC(3)) = fCfdMapIn{ii};
-        fCfdMap = cur_fCfdMap;
+%         fCfdMap = cur_fCfdMap;
+        save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY','cur_fCfdMap'); % I removed v7.3 option to save the space,'-v7.3');
+    else
+        save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY'); % I removed v7.3 option to save the space,'-v7.3');
     end     
 %     distBeadMap{ii} = cur_distBeadMap;
     % Shifted forceField vector field
@@ -906,8 +909,7 @@ for ii=frameSequence
     forceFieldShifted(ii).pos = pos;
     forceFieldShifted(ii).vec = force_vec;
 
-    save(outFileTMap(ii),'cur_tMap','-v7.3');
-
+%     clear tMap tMapX tMapY
 end
 % Fill in the values to be stored:
 clear grid_mat;
@@ -918,11 +920,28 @@ disp('Saving ...')
 % save(outputFile{1},'forceField','forceFieldShifted','displErrField');
 % save(outputFile{2},'tMap','tMapX','tMapY','dErrMap','distBeadMap'); % need to be updated for faster loading. SH 20141106
 save(outputFile{1},'forceField','forceFieldShifted');
+%% Saving the tMap which stores information
+tMap.outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+tMap.eachTMapName = 'cur_tMap';
+tMap.frameSequence = frameSequence;
+tMap.fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+tMap.numStr = @(frame) num2str(frame,fString);
+tMap.outputDir = fullfile(p.OutputDirectory,'tractionMaps');
+tMapX=tMap; tMapX.eachTMapName = 'cur_tMapX';
+tMapY=tMap; tMapY.eachTMapName = 'cur_tMapY';
+save(outputFile{2},'tMap','tMapX','tMapY')
 if strcmpi(p.method,'FastBEM')
-    save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap','-v7.3'); % need to be updated for faster loading. SH 20141106
+    fCfdMap=tMap; fCfdMap.eachTMapName = 'cur_fCfdMap';
+    save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
 else
-    save(outputFile{2},'tMap','tMapX','tMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
+    save(outputFile{2},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
 end
+
+% if strcmpi(p.method,'FastBEM')
+%     save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap','-v7.3'); % need to be updated for faster loading. SH 20141106
+% else
+%     save(outputFile{2},'tMap','tMapX','tMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
+% end
 forceFieldProc.setTractionMapLimits([tmin tmax])
 % forceFieldProc.setDisplErrMapLimits([dEmin dEmax])
 % forceFieldProc.setDistBeadMapLimits([dBeadmin dBeadmax])

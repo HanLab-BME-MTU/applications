@@ -532,14 +532,14 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'forceSlopeAllGroups.eps']); close
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately
-    tracksG1 = tracksNA(idGroup1);
-    tracksG2 = tracksNA(idGroup2);
-    tracksG3 = tracksNA(idGroup3);
-    tracksG7 = tracksNA(idGroup7);
-    save([p.OutputDirectory filesep 'data' filesep 'tracksG1.mat'],'tracksG1','-v7.3')
-    save([p.OutputDirectory filesep 'data' filesep 'tracksG2.mat'],'tracksG2','-v7.3')
-    save([p.OutputDirectory filesep 'data' filesep 'tracksG3.mat'],'tracksG3','-v7.3')
-    save([p.OutputDirectory filesep 'data' filesep 'tracksG7.mat'],'tracksG7','-v7.3')
+%     tracksG1 = tracksNA(idGroup1);
+%     tracksG2 = tracksNA(idGroup2);
+%     tracksG3 = tracksNA(idGroup3);
+%     tracksG7 = tracksNA(idGroup7);
+%     save([p.OutputDirectory filesep 'data' filesep 'tracksG1.mat'],'tracksG1','-v7.3')
+%     save([p.OutputDirectory filesep 'data' filesep 'tracksG2.mat'],'tracksG2','-v7.3')
+%     save([p.OutputDirectory filesep 'data' filesep 'tracksG3.mat'],'tracksG3','-v7.3')
+%     save([p.OutputDirectory filesep 'data' filesep 'tracksG7.mat'],'tracksG7','-v7.3')
 %     %% Filtering G7 for those that increase edge advance 
 %     timeInterval = MD.timeInterval_/60; % in min
 %     numG7=numel(tracksG7);
@@ -718,8 +718,8 @@ end
 
 
 %% Saving
-disp('Saving...')
-save(outputFile{1,p.ChannelIndex},'tracksNA','-v7.3'); % the later channel has the most information.
+% disp('Saving...')
+% save(outputFile{1,p.ChannelIndex},'tracksNA','-v7.3'); % the later channel has the most information.
 disp('Done!')
 end
 %
