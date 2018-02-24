@@ -57,6 +57,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addParameter('useCache',true,@islogical);
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
             
@@ -64,7 +65,8 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             output = ip.Results.output;
             if ischar(output), output = {output}; end
             iOut = cellfun(@(x) strcmp(x,output),outputList);
-            s = load(obj.outFilePaths_{iOut},output{:});
+%             s = load(obj.outFilePaths_{iOut},output{:});
+            s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{:});
             
             varargout = cell(numel(output),1);
             if numel(iFrame)>1
