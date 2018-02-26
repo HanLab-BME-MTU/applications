@@ -44,6 +44,7 @@ p.saveBEMparams = true;
 % p.lastToFirst = false;
 p.LcurveFactor = 10;
 p.divideConquer = 1; % If this is 9, grid is divided by 9 sub-grids where force field will be calculated to reduce memory usage. It's under refined construction.
+p.tolx = 0.3;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
@@ -510,7 +511,7 @@ if strcmpi(p.method,'FastBEM')
                     'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
                     'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
                     'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1},'fwdMap',M,...
-                    'lcornerOptimal',p.lcornerOptimal);
+                    'lcornerOptimal',p.lcornerOptimal, 'tolx', p.tolx);
                 params = parseProcessParams(forceFieldProc,paramsIn);
                 params.regParam = sol_mats.L;
                 p.regParam = sol_mats.L;
@@ -726,7 +727,8 @@ if strcmpi(p.method,'FastBEM')
                     p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
                     'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
                     'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                    'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_,'fwdMap',M);
+                    'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_,...
+                    'fwdMap',M, 'tolx', p.tolx);
                 forceField(i).pos=pos_f;
                 forceField(i).vec=force;
                 save(outputFile{1},'forceField');
@@ -777,13 +779,14 @@ if strcmpi(p.method,'FastBEM')
         % The following values should/could be stored for the BEM-method.
         % In most cases, except the sol_coef this has to be stored only
         % once for all frames!
-        if p.saveBEMparams && strcmpi(reuseFwdMap,'No') && p.divideConquer==1
-            disp(['saving forward map and force mesh at ' outputFile{3} '...'])
-            save(outputFile{3},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
-        elseif p.saveBEMparams && strcmpi(reuseFwdMap,'No') && p.divideConquer>1
-            disp(['saving forward map and force mesh at ' outputFile{3} '...'])
-            save(outputFile{3},'pos_f_sub','force_sub','M_sub','forceMesh_sub','sol_mats','-v7.3');
-        end
+%         if p.saveBEMparams && strcmpi(reuseFwdMap,'No') && p.divideConquer==1
+%             disp(['saving forward map and force mesh at ' outputFile{3} '...'])
+%             save(outputFile{3},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
+%         elseif p.saveBEMparams && strcmpi(reuseFwdMap,'No') && p.divideConquer>1
+%             disp(['saving forward map and force mesh at ' outputFile{3} '...'])
+%             save(outputFile{3},'pos_f_sub','force_sub','M_sub','forceMesh_sub','sol_mats','-v7.3');
+%         end % this is too memory-consuming with little usage later.
+%         Deleting... Sangyoon 20180225
         for i=frameSequence(2:end)
             % since the displ field has been prepared such
             % that the measurements in different frames are ordered in the
@@ -920,16 +923,15 @@ disp('Saving ...')
 % save(outputFile{1},'forceField','forceFieldShifted','displErrField');
 % save(outputFile{2},'tMap','tMapX','tMapY','dErrMap','distBeadMap'); % need to be updated for faster loading. SH 20141106
 save(outputFile{1},'forceField','forceFieldShifted');
-%% Saving the tMap which stores information
+% Saving the tMap which stores information
 tMap.outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
 tMap.eachTMapName = 'cur_tMap';
-tMap.frameSequence = frameSequence;
-tMap.fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
-tMap.numStr = @(frame) num2str(frame,fString);
+% tMap.frameSequence = frameSequence;
+% tMap.fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+% tMap.numStr = @(frame) num2str(frame,fString);
 tMap.outputDir = fullfile(p.OutputDirectory,'tractionMaps');
 tMapX=tMap; tMapX.eachTMapName = 'cur_tMapX';
 tMapY=tMap; tMapY.eachTMapName = 'cur_tMapY';
-save(outputFile{2},'tMap','tMapX','tMapY')
 if strcmpi(p.method,'FastBEM')
     fCfdMap=tMap; fCfdMap.eachTMapName = 'cur_fCfdMap';
     save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106

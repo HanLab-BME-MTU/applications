@@ -121,7 +121,7 @@ if firstFrame == 1
     displField(nFrames)=struct('pos',[],'vec',[]);
 else
     % Load old displacement field structure 
-    displField=s.displField;
+    displField=sDisp.displField;
 end
 
 displFieldProc.setOutFilePaths(outputFile);
@@ -472,12 +472,18 @@ for j= firstFrame:nFrames
 end
 %% Displacement map creation - this is shifted version
 [dMapIn, dmax, dmin, cropInfo,dMapXin,dMapYin,reg_grid] = generateHeatmapShifted(displField,displField,0);
-display(['Estimated displacement maximum = ' num2str(dmax) ' pixel.'])
+disp(['Estimated displacement maximum = ' num2str(dmax) ' pixel.'])
 % Insert traction map in forceField.pos 
 disp('Generating displacement maps ...')
-dMap = cell(1,nFrames);
-dMapX = cell(1,nFrames);
-dMapY = cell(1,nFrames);
+outputDir = fullfile(p.OutputDirectory,'displMaps');
+mkClrDir(outputDir);
+fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+numStr = @(frame) num2str(frame,fString);
+outFileDMap=@(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
+
+% dMap = cell(1,nFrames);
+% dMapX = cell(1,nFrames);
+% dMapY = cell(1,nFrames);
 displFieldShifted(nFrames)=struct('pos','','vec','');
 for ii=1:nFrames
     % starts with original size of beads
@@ -487,9 +493,10 @@ for ii=1:nFrames
     cur_dMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{ii};
     cur_dMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapXin{ii};
     cur_dMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapYin{ii};
-    dMap{ii} = cur_dMap;
-    dMapX{ii} = cur_dMapX;
-    dMapY{ii} = cur_dMapY;
+%     dMap{ii} = cur_dMap;
+%     dMapX{ii} = cur_dMapX;
+%     dMapY{ii} = cur_dMapY;
+    save(outFileDMap(ii),'cur_dMap','cur_dMapX','cur_dMapY'); % I removed v7.3 option to save the space,'-v7.3');
     % Shifted displField vector field
     [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
    
@@ -500,9 +507,17 @@ for ii=1:nFrames
     displFieldShifted(ii).pos = pos;
     displFieldShifted(ii).vec = disp_vec;
 end
+clear dMapIn dMapXin dMapYin
 disp('Saving ...')
-save(outputFile{1},'displField','displFieldShifted','-v7.3');
-save(outputFile{2},'dMap','dMapX','dMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
+save(outputFile{1},'displField','displFieldShifted');% I removed v7.3 option to save the space,'-v7.3');
+% Saving the dMap which stores information
+dMap.eachDMapName = 'cur_dMap';
+dMap.outputDir = fullfile(p.OutputDirectory,'dislplMaps');
+dMap.outFileDMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+dMapX=dMap; dMapX.eachTMapName = 'cur_dMapX';
+dMapY=dMap; dMapY.eachTMapName = 'cur_dMapY';
+save(outputFile{2},'dMap','dMapX','dMapY'); % Updated, SH 20180225
+% save(outputFile{2},'dMap','dMapX','dMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 displFieldProc.setTractionMapLimits([dmin dmax])
 
 % Close waitbar

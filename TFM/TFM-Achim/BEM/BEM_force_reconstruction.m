@@ -44,6 +44,7 @@ ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('strictBEM',false,@islogical); 
 ip.addParamValue('lcornerOptimal','optimal',@ischar);
+ip.addParamValue('tolx',0.1,@isscalar); % tolx value for L1 regularization
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -61,6 +62,7 @@ paxImage = ip.Results.paxImg;
 useLcurve = ip.Results.useLcurve;    
 strictBEM = ip.Results.strictBEM;    
 v = ip.Results.PoissonRatio;
+tolx = ip.Results.tolx;    
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -255,7 +257,7 @@ if nargin >= 10 && strcmp(method,'fast')
 %             else
 %                 tolx =  max(0.02,tolxEstimate); % based on u to estimate
 %             end
-            tolx = 0.2; % based on u to estimate
+%             tolx = 0.2; % based on u to estimate
         end
         % plot the solution for the corner
         disp(['tolerance value: ' num2str(tolx)])

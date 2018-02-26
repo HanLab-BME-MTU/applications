@@ -61,23 +61,73 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
             
+            persistent dMapMap lastFinishTime
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
             iOut = cellfun(@(x) strcmp(x,output),outputList);
 %             s = load(obj.outFilePaths_{iOut},output{:});
-            s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{:});
-            
-            varargout = cell(numel(output),1);
-            if numel(iFrame)>1
-                for i=1:numel(output),
-                    varargout{i}=s.(output{i});
+%             s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{:});
+            if ismember(output,outputList(1))
+%                 iOut=1;
+                s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
+                varargout{1}=s.(output{1})(iFrame);
+            elseif ismember(output,outputList(2))
+%                 iOut=2;
+                if isempty(lastFinishTime)
+                    lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-            else
-                for i=1:numel(output),
-                    varargout{i}=s.(output{i})(iFrame);
+                if isempty(dMapMap) || ~all(obj.finishTime_==lastFinishTime)
+                    s = load(obj.outFilePaths_{iOut},output{1});
+                    dMapObj = s.(output{1});
+                    fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
+                    numStr = @(frame) num2str(frame,fString);
+                    outputDir = fullfile(obj.funParams_.OutputDirectory,'displMaps');
+                    outFileDMap = @(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
+                    if ~isstruct(dMapObj)
+                        % This means that the data is is stored in an old
+                        % way. (cell array). 
+                        disp('The displacement map is stored in a huge cell array format with no compression.')
+                        disp('Reformating and re-saving the individual maps using compression..')
+                        s = load(obj.outFilePaths_{iOut});
+                        mkdir(outputDir);
+                        for ii = obj.owner_.nFrames_:-1:1
+                            cur_dMap = s.dMap{ii};
+                            cur_dMapX = s.dMapX{ii};
+                            cur_dMapY = s.dMapY{ii};
+                            dMapMap(:,:,ii) = cur_dMap;
+                            save(outFileDMap(ii),'cur_dMap','cur_dMapX','cur_dMapY'); % I removed v7.3 option to save the space,'-v7.3');
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map saving') % Update text
+                        end
+                        dMap.outFileTMap = @(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
+                        dMap.eachTMapName = 'cur_dMap';
+                        dMap.outputDir = outputDir;
+                        dMapX=dMap; dMapX.eachTMapName = 'cur_dMapX';
+                        dMapY=dMap; dMapY.eachTMapName = 'cur_dMapY';
+                        save(obj.outFilePaths_{iOut},'dMap','dMapX','dMapY'); % need to be updated for faster loading. SH 20141106
+                        lastFinishTime = obj.finishTime_;
+                    else
+                        for ii=obj.owner_.nFrames_:-1:1
+                            cur_dMapObj = load(outFileDMap(ii),dMapObj.eachDMapName);
+                            dMapMap(:,:,ii) = cur_dMapObj.cur_dMap;
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
+                        end
+                        lastFinishTime = obj.finishTime_;
+                    end
                 end
+                varargout{1}=dMapMap(:,:,iFrame);
             end
+            
+%             varargout = cell(numel(output),1);
+%             if numel(iFrame)>1
+%                 for i=1:numel(output),
+%                     varargout{i}=s.(output{i});
+%                 end
+%             else
+%                 for i=1:numel(output),
+%                     varargout{i}=s.(output{i})(iFrame);
+%                 end
+%             end
         end
         
         function setTractionMapLimits(obj,tMapLimits)

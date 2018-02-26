@@ -237,13 +237,13 @@ parfor k = 1:nPoints
         while pass == 0 && maxFlowSpd < maxSpdLimit && maxPerpSpd < maxSpdLimit
             %If the quality of the score function is not good enough (pass == 0),
             % we increase the max sampling speed until the limit is reached.
-            if strcmp(mode,'accurate')
-                maxFlowSpd = (maxSpdLimit);
-                maxPerpSpd = (maxSpdLimit);
-            else
+%             if strcmp(mode,'accurate')
+%                 maxFlowSpd = (maxSpdLimit);
+%                 maxPerpSpd = (maxSpdLimit);
+%             else
                 maxFlowSpd = min(maxSpdLimit,maxFlowSpd*2);
                 maxPerpSpd = min(maxSpdLimit,maxPerpSpd*2);
-            end
+%             end
             
             %Get sampling speed. Make sure it will not shift the template (block) outside of
             % the image area. We also use bigger stepsize for large speed.

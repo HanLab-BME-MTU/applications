@@ -46,7 +46,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField','tMap','forceFieldShifted','forceFieldShiftedColor'};
+            outputList = {'forceField','forceFieldShifted','forceFieldShiftedColor','tMap','tMapX','tMapY'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -59,36 +59,79 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             iFrame = ip.Results.iFrame;
 %             iOut = ip.Results.iOut;
             
+            persistent tMapMap lastFinishTime
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            if strcmp(output,outputList{1}) 
+            if ismember(output,outputList(1:3))
                 iOut=1;
-                s = load(obj.outFilePaths_{iOut},output{1});
-            elseif strcmp(output,outputList{2})
-                iOut=2;
                 s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
-%                 s = load(obj.outFilePaths_{iOut},output{1});
-            elseif strcmp(output,outputList{3})
-                iOut=1;
-                s = load(obj.outFilePaths_{iOut},output{1});
-            elseif strcmp(output,outputList{4})
-                iOut=1;
-                output = outputList{3};
-                s = load(obj.outFilePaths_{iOut},outputList{3});
+                varargout{1}=s.(output{1})(iFrame);
 %             elseif strcmp(output,outputList{5})
 %                 [OutputDirectory,tMapFolder] = fileparts(obj.outFilePaths_{2});
 %                 % Set up the output directories
 %                 outputDir = fullfile(OutputDirectory,tMapFolder);
 %                 outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+            elseif ismember(output,outputList(4:6))
+                iOut=2;
+                if isempty(lastFinishTime)
+                    lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
+                end
+                if isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)
+                    s = load(obj.outFilePaths_{iOut},output{1});
+                    tMapObj = s.(output{1});
+                    fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
+                    numStr = @(frame) num2str(frame,fString);
+                    outputDir = fullfile(obj.funParams_.OutputDirectory,'tractionMaps');
+                    mkdir(outputDir);
+                    outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+                    if ~isstruct(tMapObj)
+                        % This means that the data is is stored in an old
+                        % way. (cell array). 
+                        disp('The traction map is stored in a huge cell array format with no compression.')
+                        disp('Reformating and re-saving the individual maps using compression..')
+                        s = load(obj.outFilePaths_{iOut});
+                        for ii = obj.owner_.nFrames_:-1:1
+                            cur_tMap = s.tMap{ii};
+                            cur_tMapX = s.tMapX{ii};
+                            cur_tMapY = s.tMapY{ii};
+                            tMapMap(:,:,ii) = cur_tMap;
+                            if ii==1 && strcmpi(obj.funParams_.method,'FastBEM')
+                                cur_fCfdMap = s.fCfdMap{ii};
+                                save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY','cur_fCfdMap'); % I removed v7.3 option to save the space,'-v7.3');
+                            else
+                                save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY'); % I removed v7.3 option to save the space,'-v7.3');
+                            end
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map saving') % Update text
+                        end
+                        tMap.outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+                        tMap.eachTMapName = 'cur_tMap';
+                        tMap.outputDir = outputDir;
+                        tMapX=tMap; tMapX.eachTMapName = 'cur_tMapX';
+                        tMapY=tMap; tMapY.eachTMapName = 'cur_tMapY';
+                        if strcmpi(obj.funParams_.method,'FastBEM')
+                            fCfdMap=tMap; fCfdMap.eachTMapName = 'cur_fCfdMap';
+                            save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+                        else
+                            save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
+                        end
+                    else
+                        for ii=obj.owner_.nFrames_:-1:1
+                            cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
+                            tMapMap(:,:,ii) = cur_tMapObj.cur_tMap;
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                        end
+                    end
+                end
+                varargout{1}=tMapMap(:,:,iFrame);
+%                 s = load(obj.outFilePaths_{iOut},output{1});
             end
-            if ischar(output), output = {output}; end
             
-%             if numel(iFrame)>1,
-            varargout{1}=s.(output{1})(iFrame);
-%             else
-%                 varargout{1}=s.(output{1});
-%             end
+% %             if numel(iFrame)>1,
+%             varargout{1}=s.(output{1})(iFrame);
+% %             else
+% %                 varargout{1}=s.(output{1});
+% %             end
         end
                 
         function h=draw(obj,varargin)
