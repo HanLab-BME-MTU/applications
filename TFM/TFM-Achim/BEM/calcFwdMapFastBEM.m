@@ -160,7 +160,7 @@ for class=1:numClass
                     ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix); %, 'direct'); There is no such thing as direct, but only 'linear'  %This is ux(:,j)
                     uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix); %, 'direct');  %This is uy(:,j)
                 else
-                    display('Have switched over to *cubic. But is this really necessary? It might well be that even if undersampled the upper search will produce the same result as an interpolation')
+                    disp('Have switched over to *cubic. But is this really necessary? It might well be that even if undersampled the upper search will produce the same result as an interpolation')
                     method='*cubic';
                     pizInterval_x = round(x_spacing);
                     pizInterval_y = round(y_spacing);
@@ -178,7 +178,7 @@ for class=1:numClass
         
         toDoBasis=find(vertcat(forceMesh.basis.class)==class)';
         lgthToDoBasis=length(toDoBasis);
-        display(['Evaluate ',num2str(lgthToDoBasis),' basis functions'])
+        disp(['Evaluate ',num2str(lgthToDoBasis),' basis functions'])
         
         
         logMsg = 'Please wait, interpolating basis solutions';
@@ -190,6 +190,12 @@ for class=1:numClass
 %             wtBar = waitbar(0,logMsg);
         end
         
+        x_spacing=x_model_pix(2,2)-x_model_pix(1,1);
+        y_spacing=y_model_pix(2,2)-y_model_pix(1,1);
+        if x_spacing>1 || y_spacing>1
+            method = '*cubic';
+        end
+        
         for i=1:numel(toDoBasis)
             basisID=toDoBasis(i);
             % lgthToDoBasis=length(toDoBasis);
@@ -198,7 +204,6 @@ for class=1:numClass
             % Interpolate the basis-solution:
             xShift = forceMesh.basis(basisID).node(1);
             yShift = forceMesh.basis(basisID).node(2);
-
             
             if strcmp(method,'direct')
                 % Instead of interpolation we can simply search for the

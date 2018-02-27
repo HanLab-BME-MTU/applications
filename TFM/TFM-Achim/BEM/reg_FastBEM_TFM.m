@@ -89,7 +89,7 @@ elseif isempty(forceMesh)
     forceMesh=createMeshAndBasisFromAdhesions(xvec,yvec,paxImage,displField(frame),pixelSize);
 end
 toc;
-display('Done: mesh & basis!');
+disp('Done: mesh & basis!');
 
 if strictBEM
     [fx,fy,x_out,y_out,M,pos_u,u,sol_coef,sol_mats] = ...
@@ -105,7 +105,7 @@ elseif isempty(paxImage)
         [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath,...
         'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'useLcurve',useLcurve,...
         'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath,'fwdMap',M,...
-        'lcornerOptimal',lcornerOptimal);
+        'lcornerOptimal',lcornerOptimal, 'tolx', tolx);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 else
     xmin = min(forceMesh.p(:,1));

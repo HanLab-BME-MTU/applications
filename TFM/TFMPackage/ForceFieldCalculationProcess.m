@@ -122,6 +122,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                         end
                     end
+                    lastFinishTime = obj.finishTime_;
                 end
                 varargout{1}=tMapMap(:,:,iFrame);
 %                 s = load(obj.outFilePaths_{iOut},output{1});

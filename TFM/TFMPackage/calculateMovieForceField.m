@@ -44,7 +44,6 @@ p.saveBEMparams = true;
 % p.lastToFirst = false;
 p.LcurveFactor = 10;
 p.divideConquer = 1; % If this is 9, grid is divided by 9 sub-grids where force field will be calculated to reduce memory usage. It's under refined construction.
-p.tolx = 0.3;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
@@ -340,9 +339,14 @@ if strcmpi(p.method,'FastBEM')
         p.basisClassTblPath = fullfile(movieData.movieDataPath_, expectedName);
     else
         if exist(p.basisClassTblPath,'file')==2 
-            disp('BasisFunctionFolderPath is valid.');
-            if numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) ~= 1
-                disp(['basisFunction.mat not valid!' p.basisClassTblPath '. Will build a new basisFunction to this name.']);
+            try
+                if numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) ~= 1
+                    disp(['basisFunction.mat not valid!' p.basisClassTblPath '. Will build a new basisFunction to this name.']);
+                else                    
+                    disp('BasisFunctionFolderPath is valid.');
+                end
+            catch
+                disp(['basisFunction.mat ' p.basisClassTblPath ' is not valid. Will build a new basisFunction to this name.']);
             end
         else
             disp('New basisFunctionFolderPath is entered. Will build a new table and save in this path.');

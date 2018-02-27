@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 14-Feb-2017 16:17:35
+% Last Modified by GUIDE v2.5 26-Feb-2018 16:05:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -84,6 +84,7 @@ set(handles.checkbox_lastToFirst, 'Value', funParams.lastToFirst);
 % Update BEM parameter panel
 popupmenu_method_Callback(hObject,eventdata,handles);
 popupmenu_solMethodBEM_Callback(hObject,eventdata,handles);
+set(handles.edit_tolx,'String',funParams.tolx);
 
 % Set basis class lookup table path
 set(handles.edit_basisClassTblPath,'String',funParams.basisClassTblPath);
@@ -188,6 +189,7 @@ catch
 end
 funParams.useLcurve = get(handles.useLcurve, 'Value');
 funParams.lastToFirst = get(handles.checkbox_lastToFirst, 'Value');
+funParams.tolx = str2double(get(handles.edit_tolx,'String'));
 
 % Read basis class lookup table path
 funParams.basisClassTblPath=get(handles.edit_basisClassTblPath,'String');
@@ -228,8 +230,12 @@ if strcmpi(props{1}{props{2}},'fastbem')
     set(get(handles.uipanel_BEM,'Children'),'Enable','on');
     set(handles.useLcurve,'Enable','on');
     set(get(handles.groupCornerOptimal,'Children'),'Enable','on');
+    set(handles.edit_tolx,'Enable','on');
+    set(handles.text_tolx,'Enable','on');
 else %when the method is fttc
     set(get(handles.uipanel_BEM,'Children'),'Enable','off');
+    set(handles.edit_tolx,'Enable','off');
+    set(handles.text_tolx,'Enable','off');
     set(handles.useLcurve,'Value',true);
     set(handles.useLcurve,'Enable','on');
     set(get(handles.groupCornerOptimal,'Children'),'Enable','on');
@@ -248,6 +254,15 @@ else
     set(handles.edit_LcurveFactor,'Enable','off');
 end
 
+if ~isempty(props{2}) && any(strcmpi(props{1}{props{2}},{'1NormReg','1NormRegLaplacian'}))
+    set(handles.edit_tolx,'Enable','on');
+    set(handles.text_tolx,'Enable','on');
+else
+    set(handles.edit_tolx,'Enable','off');
+    set(handles.text_tolx,'Enable','off');
+end
+
+
 
 % --- Executes on button press in pushbutton_basisClassTblPath.
 function pushbutton_basisClassTblPath_Callback(hObject, eventdata, handles)
@@ -256,10 +271,14 @@ function pushbutton_basisClassTblPath_Callback(hObject, eventdata, handles)
     'Mat files (*.mat)'},...
     'Select the file containing the basis class lookup table');
 if ~isequal(file, 0) && ~isequal(path, 0)
-    vars = whos('basisClassTbl','-file',[path file]);
-    if numel(vars) ~= 1
-        errordlg('Please select a file containing a valid basis class lookup table');
-        return 
+    try
+        vars = whos('basisClassTbl','-file',[path file]);
+        if numel(vars) ~= 1
+            errordlg('Please select a file containing a valid basis class lookup table');
+            return 
+        end
+    catch
+        disp(['Using this path (' [path file] ') for initial input table path.'])
     end
     set(handles.edit_basisClassTblPath,'String',[path file]);
     
@@ -333,3 +352,26 @@ function pushbutton_basisClassTblPath_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to pushbutton_basisClassTblPath (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+
+function edit_tolx_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_tolx (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_tolx as text
+%        str2double(get(hObject,'String')) returns contents of edit_tolx as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_tolx_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_tolx (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

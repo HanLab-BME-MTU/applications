@@ -322,7 +322,7 @@ if nargin >= 10 && strcmp(method,'fast')
         end
 
         maxIter = 10;
-        tolx =  forceMesh.numBasis*3e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+%         tolx =  forceMesh.numBasis*3e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         tolr = 1e-7;

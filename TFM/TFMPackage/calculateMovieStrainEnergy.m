@@ -114,7 +114,17 @@ if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 
 tractionMaps=load(forceFieldProc.outFilePaths_{2});
 try
-    tMap = tractionMaps.tMap; % this is currently in Pa per pixel (1pix x 1pix)
+    tMapObj = tractionMaps.tMap; % this is currently in Pa per pixel (1pix x 1pix)
+    fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+    numStr = @(frame) num2str(frame,fString);
+    outputDir = fullfile(forceFieldProc.funParams_.OutputDirectory,'tractionMaps');
+    mkdir(outputDir);
+    outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+    for ii=nFrames:-1:1
+        cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
+        tMap{ii} = cur_tMapObj.cur_tMap;
+        progressText((nFrames-ii)/nFrames,'Traction map loading') % Update text
+    end
 catch
     % Set up the output directories
     outputDir = fullfile(forceFieldProc.funParams_.OutputDirectory,'tractionMaps');
@@ -132,7 +142,16 @@ if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if ~isempty(CorrectedDisplFieldProc)
     try
         displMaps=load(CorrectedDisplFieldProc.outFilePaths_{2});
-        dMap=displMaps.dMap; % this is currently in pix
+        dMapObj=displMaps.dMap; % this is currently in pix
+        fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+        numStr = @(frame) num2str(frame,fString);
+        outputDir = fullfile(CorrectedDisplFieldProc.funParams_.OutputDirectory,'displMaps');
+        outFileDMap = @(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
+        for ii=nFrames:-1:1
+            cur_dMapObj = load(outFileDMap(ii),dMapObj.eachDMapName);
+            dMap{ii} = cur_dMapObj.cur_dMap;
+            progressText((nFrames-ii)/nFrames,'One-time displacement map loading') % Update text
+        end
     catch
         disp('Assuming displacement proportional to tMap because there was no iCorrectedDisplFieldProc found')
         dMap=cellfun(@(x) x/(yModulus),tMap,'UniformOutput',false);
@@ -159,10 +178,13 @@ totalForceBlobs = struct('force',zeros(nFrames,1),'avgTraction',[],...
 % Cell Boundary Mask 
 iChan=2;
 iBeadChan=1;
-iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1); 
+iTFMPack = movieData.getPackageIndex('TFMPackage');
+TFMPack=movieData.packages_{iTFMPack}; iSDCProc=1;
+SDCProc=TFMPack.processes_{iSDCProc};
+% iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1); 
 existSDC=false;
-if ~isempty(iSDCProc)
-    SDCProc=movieData.processes_{iSDCProc};
+if ~isempty(SDCProc)
+%     SDCProc=movieData.processes_{iSDCProc};
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
     existSDC=true;
