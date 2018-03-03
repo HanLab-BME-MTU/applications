@@ -1,4 +1,4 @@
-function efficientSubPixelRegistration(movieData, varargin)
+function efficientSubPixelRegistration(movieDataOrProcess, varargin)
 %EFFICIENTSUBPIXELREGISTRATION Method for registering MovieData frames to correct for stage drift  
 %
 % efficientSubPixelRegistration 
@@ -28,36 +28,36 @@ function efficientSubPixelRegistration(movieData, varargin)
 %Check input
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addRequired('movieData', @(x) isa(x,'MovieData'));
+ip.addRequired('movieData', @(x) isa(x,'MovieData') || isa(x,'Process'));
 ip.addOptional('paramsIn',[], @isstruct);
-ip.parse(movieData, varargin{:});
+ip.parse(movieDataOrProcess, varargin{:});
 paramsIn=ip.Results.paramsIn;
 
 
 %Get the indices of any previous stage drift processes  
-[movieData1, thisProcess, iProc] = getOwnerAndProcess(movieData,'EfficientSubpixelRegistrationProcess',true);
+[movieData, thisProcess, iProc] = getOwnerAndProcess(movieDataOrProcess,'EfficientSubpixelRegistrationProcess',true);
 
-assert(movieData==movieData1);
+% assert(movieData==movieData1);
 
 %Parse input, store in parameter structure
 p = parseProcessParams(thisProcess, paramsIn);
 
 %% Backup the original vectors to backup folder
-if exist(p.OutputDirectory,'dir')
-    display('Backing up the original data')
-    ii = 1;
-    backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
-    while exist(backupFolder,'dir')
-        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
-        ii=ii+1;
-    end
-    try
-        mkdir(backupFolder);
-    catch
-        system(['mkdir -p ' backupFolder]);
-    end
-    copyfile(p.OutputDirectory, backupFolder,'f')
-end
+% if exist(p.OutputDirectory,'dir')
+%     display('Backing up the original data')
+%     ii = 1;
+%     backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+%     while exist(backupFolder,'dir')
+%         backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+%         ii=ii+1;
+%     end
+%     try
+%         mkdir(backupFolder);
+%     catch
+%         system(['mkdir -p ' backupFolder]);
+%     end
+%     copyfile(p.OutputDirectory, backupFolder,'f')
+% end
 mkClrDir(p.OutputDirectory);
 
 %% --------------- Initialization ---------------%%

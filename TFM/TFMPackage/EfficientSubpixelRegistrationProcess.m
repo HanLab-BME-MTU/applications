@@ -1,4 +1,4 @@
-classdef  EfficientSubpixelRegistrationProcess < StageDriftCorrectionProcess
+classdef  EfficientSubpixelRegistrationProcess < StageDriftCorrectionProcess & NonSingularProcess
     % Concrete class for a stage drift correction process
     %
     % Andrew R. Jamieson Feb. 2017
