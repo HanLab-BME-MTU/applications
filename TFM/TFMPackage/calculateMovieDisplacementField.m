@@ -461,11 +461,12 @@ for j= firstFrame:nFrames
     end
     
     % Update the waitbar
-    if mod(j,5)==1 && ishandle(wtBar)
+    if ishandle(wtBar) %mod(j,5)==1 && 
         tj=toc;
         waitbar(j/nFrames,wtBar,sprintf([logMsg ...
-            timeMsg(tj*(nFrames-firstFrame++1-j)/j)]));
+            timeMsg(tj*(nFrames-firstFrame+1-j)/j)]));
     end
+    disp(['Done for frame # ' num2str(j)])
     
     % Save each iteration (for recovery of unfinished processes)
     save(outputFile{1},'displField');
