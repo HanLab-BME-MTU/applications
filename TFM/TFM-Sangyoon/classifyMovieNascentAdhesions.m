@@ -66,6 +66,11 @@ catch
 
         for ii=1:numTracks
             curTrack = tracksNA(ii);
+            if iscell(curTrack.state)
+                curTrack.state = strcmp(curTrack.state,'BA')+2*strcmp(curTrack.state,'NA')+...
+                    3*strcmp(curTrack.state,'FC')+4*strcmp(curTrack.state,'FA')+...
+                    5*strcmp(curTrack.state,'ANA')+6*strcmp(curTrack.state,'Out_of_Band');
+            end
             save(trackIndPath(ii),'curTrack')
             progressText((ii)/numTracks,'Saving individual tracksNA') % Update text
         end
@@ -77,6 +82,17 @@ catch
         metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
         metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
         save(adhAnalProc.outFilePaths_{1,iChan},'metaTrackData')
+    end
+end
+
+numTracks = numel(tracksNA);
+if iscell(tracksNA(1).state) %in case the tracksNA.state is in cell format
+    for ii=1:numTracks
+        curState = tracksNA(ii).state;
+        curState = strcmp(curState,'BA')+2*strcmp(curState,'NA')+...
+                3*strcmp(curState,'FC')+4*strcmp(curState,'FA')+...
+                5*strcmp(curState,'ANA')+6*strcmp(curState,'Out_of_Band');
+        tracksNA(ii).state = curState;
     end
 end
 
