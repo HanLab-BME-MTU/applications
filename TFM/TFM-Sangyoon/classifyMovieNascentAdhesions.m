@@ -38,15 +38,45 @@ adhAnalProc = MD.getProcess(iAdhProc);
 % tracksNA = load(adhAnalProc.outFilePaths_{1,iChan},'tracksNA');
 % tracksNA = tracksNA.tracksNA;
 
-s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
-metaTrackData = s.metaTrackData;
-fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-numStr = @(trackNum) num2str(trackNum,fString);
-trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-for ii=metaTrackData.numTracks:-1:1
-    curTrackObj = load(trackIndPath(ii),'curTrack');
-    tracksNA(ii,1) = curTrackObj.curTrack;
-    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
+try
+    s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
+    metaTrackData = s.metaTrackData;
+    fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+    numStr = @(trackNum) num2str(trackNum,fString);
+    trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+    for ii=metaTrackData.numTracks:-1:1
+        curTrackObj = load(trackIndPath(ii),'curTrack');
+        tracksNA(ii,1) = curTrackObj.curTrack;
+        progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
+    end
+catch
+    % Check if the outFilePath has tableTracksNA
+    disp('Checking if the outFilePath has tracksNA...')
+    s = load(adhAnalProc.outFilePaths_{1,iChan},'tracksNA');
+    if isfield(s,'tracksNA')
+        disp('Found the old format. Resaving this with the new format...')
+        % Saving with each track
+        tracksNA = s.tracksNA;
+        trackFolderPath = [adhAnalProc.funParams_.OutputDirectory filesep 'trackIndividual'];
+        mkdir(trackFolderPath)
+        numTracks = numel(tracksNA);
+        fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+        numStr = @(trackNum) num2str(trackNum,fString);
+        trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+
+        for ii=1:numTracks
+            curTrack = tracksNA(ii);
+            save(trackIndPath(ii),'curTrack')
+        end
+        % Saving the metaTrackData
+        metaTrackData.numTracks = numTracks;
+        metaTrackData.trackFolderPath = trackFolderPath;
+        metaTrackData.eachTrackName = 'curTrack';
+        metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+        metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
+        metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+        save(obj.outFilePaths_{1,iChan},'metaTrackData')
+    end
 end
 
 % This case SDC was not used and first img frame was used.
