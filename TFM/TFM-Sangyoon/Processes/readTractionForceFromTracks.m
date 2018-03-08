@@ -100,6 +100,7 @@ forceFieldShifted = forceFieldStruct.forceFieldShifted;
 disp('Reading traction map...')
 tic
 tMapIn=forceFieldProc.loadChannelOutput('output','tMap');
+
 %This tMap is based on the reference image, for which movie frames are
 %shifted with T_TFM. Meanwhile, all tracksNA is based on SDC in FApackage
 %which is based on the first frame (or the second one). Thus we need two
@@ -123,12 +124,12 @@ if ~isempty(SDCProc_TFM)
     T_TFM = s.T;
 end
 nFrames = MD.nFrames_;
-[h,w] = size(tMapIn{1});
+[h,w,~] = size(tMapIn); 
 tMap = zeros(h,w,nFrames);
 
 %% Shifting traction map and field
 for ii=1:nFrames
-    cur_tMap = tMapIn{ii};
+    cur_tMap = tMapIn(:,:,ii);
     cur_T = -T_TFM(ii,:) + T_FA(ii,:);
     cur_tMap = imtranslate(cur_tMap, cur_T);
     tMap(:,:,ii) = cur_tMap;
@@ -137,6 +138,7 @@ for ii=1:nFrames
     forceFieldShifted(ii).pos(:,1) = forceFieldShifted(ii).pos(:,1)+cur_T(2);
     forceFieldShifted(ii).pos(:,2) = forceFieldShifted(ii).pos(:,2)+cur_T(1);
 end
+clear tMapIn
 %% Filter out tracks that is out of traction field
 cropInfo = [ceil(min(forceField(1).pos(:,1))),ceil(min(forceField(1).pos(:,2))),floor(max(forceField(1).pos(:,1))),floor(max(forceField(1).pos(:,2)))];
 idxTracks = true(numel(tracksNA),1);
