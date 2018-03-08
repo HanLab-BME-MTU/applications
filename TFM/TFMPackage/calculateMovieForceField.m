@@ -150,7 +150,7 @@ end
 
 % Backup the original vectors to backup folder
 if firstFrame==1 && (strcmpi(reuseFwdMap,'No') || strcmpi(p.method,'FTTC')) && exist(outputFile{1,1},'file')
-    display('Backing up the original data')
+    disp('Backing up the original data')
     backupFolder = [p.OutputDirectory ' Backup']; % name]);
     if exist(p.OutputDirectory,'dir')
         ii = 1;
