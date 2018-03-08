@@ -67,6 +67,7 @@ catch
         for ii=1:numTracks
             curTrack = tracksNA(ii);
             save(trackIndPath(ii),'curTrack')
+            progressText((ii)/numTracks,'Saving individual tracksNA') % Update text
         end
         % Saving the metaTrackData
         metaTrackData.numTracks = numTracks;
@@ -75,7 +76,7 @@ catch
         metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
         metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
         metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-        save(obj.outFilePaths_{1,iChan},'metaTrackData')
+        save(adhAnalProc.outFilePaths_{1,iChan},'metaTrackData')
     end
 end
 
