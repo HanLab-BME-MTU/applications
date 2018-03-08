@@ -170,7 +170,7 @@ backSpc =repmat('\b',1,L);
 
 %Calculate the correlation coefficient for each sampling velocity at
 % each point.
-startTime = cputime;
+startTime = clock;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
 poolobj = gcp('nocreate'); % If no pool, do not create new one.
@@ -338,7 +338,7 @@ parfor k = 1:nPoints
                     % the ambiguity can be resovled. Also by comparing the two
                     % velocities returned from two block sizes, we identify the
                     % optimal block size that gives a coherent flow.
-                    if max(length(vF),length(vP))>80 && maxCorL==minCorL
+                    if max(length(vF),length(vP))>160 && maxCorL==minCorL
                         incRange = [1.25 1.75 2.5]; % 3.25];
                     else
                         incRange = 1.25;
@@ -677,10 +677,10 @@ parfor k = 1:nPoints
 end
 if feature('ShowFigureWindows'), parfor_progress(0); end
 nanInd = find(isnan(v(:,1)));
-endTime = cputime;
+endTime = clock;
 fprintf(1,[strg '.\n'],nPoints);
 fprintf(1,'   Tracking is done in %f sec (%f sec per point).\n', ...
-    endTime-startTime,(endTime-startTime)/nPoints);
+    etime((endTime), (startTime)),etime((endTime), (startTime))/nPoints);
 fprintf(1,'   Total tracked points: %d (out of %d).\n', ...
     nPoints-length(nanInd),nPoints);
 
