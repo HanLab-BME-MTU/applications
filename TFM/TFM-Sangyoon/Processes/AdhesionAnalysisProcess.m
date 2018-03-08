@@ -137,6 +137,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     if isfield(s,'tracksNA')
                         disp('Found the old format. Resaving this with the new format...')
                         % Saving with each track
+                        tracksNA = s.tracksNA;
                         trackFolderPath = [obj.funParams_.OutputDirectory filesep 'trackIndividual'];
                         mkdir(trackFolderPath)
                         numTracks = numel(tracksNA);
