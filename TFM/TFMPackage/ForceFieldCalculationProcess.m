@@ -231,7 +231,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             output(4).type='movieOverlay';
             output(4).defaultDisplayMethod=@(x) VectorFieldDisplay('Colormap',jet,'Linewidth',1);
             
-            if ~strcmp(obj.funParams_.method,'FTTC')
+%             if ~strcmp(obj.funParams_.method,'FTTC')
 
                 output(5).name='Lcurve';
                 output(5).var='lcurve';
@@ -256,7 +256,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 %     'Colorbar','on','Units',obj.getUnits,'CLim',obj.distBeadMapLimits_);
 
 
-            end                
+%             end                
         end
         
         

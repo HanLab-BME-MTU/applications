@@ -72,6 +72,7 @@ methodData ={'FastBEM';'FTTC'};
 methodValue = find(strcmp(funParams.method,methodData));
 set(handles.popupmenu_method,'String',methodString,...
     'UserData',methodData,'Value',methodValue);
+set(handles.edit_regParam, 'Value', funParams.regParam);
 
 set(handles.useLcurve, 'Value', funParams.useLcurve);
 if funParams.useLcurve
