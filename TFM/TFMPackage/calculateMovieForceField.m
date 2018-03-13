@@ -829,12 +829,12 @@ else % FTTC
     for i=frameSequence
         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
         if p.useLcurve && i==frameSequence(1)
-                [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat, iu_mat, p.YoungModulus,...
-                    p.PoissonRatio, gridSpacing, i_max, j_max, p.regParam,p.LcurveFactor);
-                [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,'manualSelection',true);
-                save(outputFile{5,1},'rho','eta','reg_corner','ireg_corner');
-                saveas(hLcurve,outputFile{4,1});
-                close(hLcurve)
+            [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat, iu_mat, p.YoungModulus,...
+                p.PoissonRatio, gridSpacing, i_max, j_max, p.regParam,p.LcurveFactor);
+            [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,'manualSelection',true);
+            save(outputFile{5,1},'rho','eta','reg_corner','ireg_corner');
+            saveas(hLcurve,outputFile{4,1});
+            close(hLcurve)
         end
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
             p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, reg_corner);
@@ -848,7 +848,7 @@ end
 disp('Creating traction map...')
 tic
 [tMapIn, tmax, tmin, cropInfo,tMapXin,tMapYin] = generateHeatmapShifted(forceField,displField,0);
-display(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
+disp(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
 toc
 if strcmpi(p.method,'FastBEM')
     [fCfdMapIn, fCmax, fCmin, cropInfoFC] = generateHeatmapShifted(forceConfidence,displField,0);
