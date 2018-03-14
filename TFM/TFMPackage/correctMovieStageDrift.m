@@ -157,12 +157,13 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
     tic;
 
-      
+    ref_obj = imref2d(size(refFrame));
+    frame_ref_obj = ref_obj;
     if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
     for j = 1:nFrames
         
         Tr = affine2d([1 0 0; 0 1 0; fliplr(preT(j, :)) 1]);
-        stack(:,:,j) = imwarp(stack(:,:,j), Tr);
+        stack(:,:,j) = imwarp(stack(:,:,j), Tr, 'OutputView', frame_ref_obj);
         
         % Update the waitbar
         if mod(j,5)==1 && ishandle(wtBar)
@@ -273,13 +274,14 @@ tic;
 
 nChan = length(p.ChannelIndex);
 nTot = nChan*nFrames;
+refFrame = double(imread(p.referenceFramePath));
+ref_obj = imref2d(size(refFrame));
+
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
     % Log display
     disp('Results will be saved under:')
     disp(outFilePaths{1,iChan});
-    
-    refFrame = double(imread(p.referenceFramePath));
     
     for j= 1:nFrames
 %          if i==1
@@ -294,7 +296,7 @@ for i = 1:numel(p.ChannelIndex)
         end
         I = double(movieData.channels_(iChan).loadImage(j));
         try
-            I2 = imwarp(I, Tr);%, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+            I2 = imwarp(I, Tr, 'OutputView', ref_obj);%, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
         catch
             I2 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
         end
