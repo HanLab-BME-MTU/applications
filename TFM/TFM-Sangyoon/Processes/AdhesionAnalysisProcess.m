@@ -97,7 +97,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             % Input check
             outputList = {'trackFC','trackNA','trackFA','detBA',...
                           'detectedFA','detFA','detFC','detNA',...
-                          'adhboundary_FA', 'adhboundary_FC'};
+                          'adhboundary_FA', 'adhboundary_FC','tracksNA'};
 
             ip =inputParser;
             ip.addRequired('obj');
@@ -118,7 +118,8 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             end
             if isempty(xCoord) || isempty(yCoord) || isempty(refineFAID) ...
                     || isempty(stateAll) || isempty(startingFrameExtra) || ...
-                    isempty(endingFrameExtra) || ~all(obj.finishTime_==lastFinishTime)
+                    isempty(endingFrameExtra) || ~all(obj.finishTime_==lastFinishTime) ...
+                    || strcmp(output,outputList(end))
                 try
                     s = load(obj.outFilePaths_{1,iChan},'metaTrackData');
                     metaTrackData = s.metaTrackData;
@@ -210,10 +211,16 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     case {'detFA', 'trackFA', 'adhboundary_FA'}
                         validState = state == 4; %'FA';
                     case 'staticTracks'
+                    case 'tracksNA'
+
                     otherwise
                         error('Incorrect Output Var type');
                 end   
-                if ~isempty(strfind(output{iout}, 'det'))
+                if strcmp(output{iout}, 'tracksNA')
+                
+                    varargout{iout} = tracksNA;                                 
+                
+                elseif ~isempty(strfind(output{iout}, 'det'))
                 
                     t = table(xCoord(:,iFrame), yCoord(:,iFrame));
                     varargout{iout} = t{validState,:};                                 

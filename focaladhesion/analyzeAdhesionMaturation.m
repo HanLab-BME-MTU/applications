@@ -450,7 +450,7 @@ if ~foundTracks
     %         Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList','PixelList' );
         % Save focal adhesion information
         Adhs = regionprops(bwconncomp(maskAdhesion,4),'Centroid','Area','Eccentricity','PixelList','PixelIdxList','MajorAxisLength');
-        numAdhs(ii) = numel(Adhs);
+%         numAdhs(ii) = numel(Adhs);
     %         minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1um*1um
     %         minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=0.6um*0.4um
         minFALength = round((2000/MD.pixelSize_)); %adhesion limit=2um
@@ -459,7 +459,7 @@ if ~foundTracks
     %         fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
         fcIdx = arrayfun(@(x) x.MajorAxisLength<minFALength & x.MajorAxisLength>minFCLength, Adhs);
         FCIdx = find(fcIdx);
-        adhBound = bwboundaries(maskAdhesion,4,'noholes');    
+%         adhBound = bwboundaries(maskAdhesion,4,'noholes');    
 
         % for larger adhesions
     %         faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
@@ -510,6 +510,7 @@ if ~foundTracks
                 tracksNA(end).area=[];
             end
             % Save the labels
+            maskAdhesion = maskAdhesion>0; %Making a logical
             imwrite(maskAdhesion, strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'),'Compression','none');
             labelAdhesion = bwlabel(maskAdhesion,4);
 %             if max(labelAdhesion(:))<2^8
