@@ -72,6 +72,7 @@ methodData ={'FastBEM';'FTTC'};
 methodValue = find(strcmp(funParams.method,methodData));
 set(handles.popupmenu_method,'String',methodString,...
     'UserData',methodData,'Value',methodValue);
+set(handles.edit_regParam, 'Value', funParams.regParam);
 
 set(handles.useLcurve, 'Value', funParams.useLcurve);
 if funParams.useLcurve
@@ -80,11 +81,14 @@ if funParams.useLcurve
 end
 
 set(handles.checkbox_lastToFirst, 'Value', funParams.lastToFirst);
+try
+    set(handles.edit_tolx,'String',funParams.tolx);
+catch
+    disp('tolx has not been set up.')
+end
 
 % Update BEM parameter panel
 popupmenu_method_Callback(hObject,eventdata,handles);
-popupmenu_solMethodBEM_Callback(hObject,eventdata,handles);
-set(handles.edit_tolx,'String',funParams.tolx);
 
 % Set basis class lookup table path
 set(handles.edit_basisClassTblPath,'String',funParams.basisClassTblPath);
@@ -232,11 +236,12 @@ if strcmpi(props{1}{props{2}},'fastbem')
     set(get(handles.groupCornerOptimal,'Children'),'Enable','on');
     set(handles.edit_tolx,'Enable','on');
     set(handles.text_tolx,'Enable','on');
+    popupmenu_solMethodBEM_Callback(hObject,eventdata,handles);
 else %when the method is fttc
     set(get(handles.uipanel_BEM,'Children'),'Enable','off');
     set(handles.edit_tolx,'Enable','off');
     set(handles.text_tolx,'Enable','off');
-    set(handles.useLcurve,'Value',true);
+%     set(handles.useLcurve,'Value',true);
     set(handles.useLcurve,'Enable','on');
     set(get(handles.groupCornerOptimal,'Children'),'Enable','on');
 end

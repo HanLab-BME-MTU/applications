@@ -132,10 +132,16 @@ disp('Starting calculating displacement field...')
 % Get the mask
 maskArray = movieData.getROIMask;
 % Use mask of first frame to filter bead detection
-firstMask = refFrame>0; %false(size(refFrame));
+if ~isempty(SDCProc)
+    firstImage = double(SDCProc.loadChannelOutput(p.ChannelIndex(1),1));
+else
+    firstImage = double(movieData.channels_(p.ChannelIndex(1)).loadImage(1));
+end
+firstMask = refFrame>0 & firstImage>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
 % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
-tempMask2 = false(size(refFrame));
+ref_obj = imref2d(size(refFrame));
+% tempMask2 = false(size(refFrame));
 if ~isempty(SDCProc)
     if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
         meanYShift = round(T(1,1));
@@ -154,10 +160,11 @@ if ~isempty(SDCProc)
             firstMask(:,end+meanXShift:end)=0;
         end
     else
-        y_shift = find(any(firstMask,2),1);
-        x_shift = find(any(firstMask,1),1);
-
-        tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        %y_shift = find(any(firstMask,2),1);
+        %x_shift = find(any(firstMask,1),1);
+        %tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
+        Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);
+        tempMask2 = imwarp(tempMask,Tr,'OutputView',ref_obj);
         firstMask = tempMask2 & firstMask;
     end
 end

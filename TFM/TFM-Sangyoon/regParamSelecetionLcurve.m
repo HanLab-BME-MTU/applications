@@ -60,8 +60,8 @@ end
 % kappa2 = diff(diff(y_cut)./diff(x_cut))./diff(x_cut(1:end-1));
 % kappadiff = diff(kappa);
 
-% find a local maximum with three sections
-nSections = 3;
+% find a local maximum with five sections
+nSections = 7;
 nPoints = length(kappa);
 p=0;
 maxKappaCandIdx = [];
@@ -96,6 +96,32 @@ elseif inflection==2 % if inflection point smaller than lcorner is to be chosen.
     ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
     reg_corner = lambda_cut(inflectionIdx);
     disp(['L-inflection value (smaller than L-corner): ' num2str(reg_corner)])
+elseif inflection==3 % mininum Curvature point which represents the rapid drop of semi-norm
+    p=0;
+    minKappaCandIdx = [];
+    for ii=1:nSections
+        [~, minKappaIdx] = min(kappa(floor((ii-1)*nPoints/nSections)+1:floor(ii*nPoints/nSections))); % this is right at the L-corner which is usually over-smoothing
+        minKappaIdx = minKappaIdx + floor((ii-1)*nPoints/nSections);
+        % check if this is truly local maximum
+        if minKappaIdx>1 && minKappaIdx<nPoints && (kappa(minKappaIdx)<kappa(minKappaIdx-1) && kappa(minKappaIdx)<kappa(minKappaIdx+1))
+            p=p+1;
+            minKappaCandIdx(p) = minKappaIdx;
+        end
+    end
+    if length(minKappaCandIdx)==1
+        minKappaIdx = minKappaCandIdx(1);
+    elseif length(minKappaCandIdx)>1
+        % pick the one which is closer to initial lambda
+        [~,Idx_close] = min(abs(log(lambda_cut(minKappaCandIdx))-log(init_lambda)));
+        minKappaIdx = minKappaCandIdx(Idx_close);
+    elseif isempty(minKappaCandIdx)
+        disp('There is no local maximum in curvature in the input lambda range.Using global maximum instead ...');
+        [~, minKappaIdx] = min(kappa);
+    end
+    % This is suitable for FTTC L-curve
+    ireg_corner= minKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+    reg_corner = lambda_cut(minKappaIdx);
+    disp(['Mininum Curvature point which represents the rapid drop of semi-norm: ' num2str(reg_corner)])
 else
     if maxKappaIdx==1 || sum(kappa>0)/length(kappa)>0.8 % if kappa is assymtotically approaching to zero from large positive...
         [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,lambda);
