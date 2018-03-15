@@ -52,15 +52,31 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 % Set default parameters
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
+userData.checkBoxes = {'autoLabeling','manLabeling'};
 
 % Set-up parameters
+% set(handles.listbox_selectedChannels, 'Value', funParams.ChannelIndex);
+
+for kk=1:3
+    if kk<=numel(funParams.labelData) && ~isempty(funParams.labelData{kk})
+        switch kk
+            case 1
+                set(handles.edit_sampleGroup1, 'String', funParams.labelData{kk});
+            case 2
+                set(handles.edit_sampleGroup2, 'String', funParams.labelData{kk});
+            case 3
+                set(handles.edit_sampleGroup3, 'String', funParams.labelData{kk});
+        end
+    end
+end
                         
 % Set edit strings/numbers
 
 % Set edit strings/numbers
-% for paramName = userData.checkBoxes
-%     set(handles.(['checkbox_' paramName{1}]), 'Value', funParams.(paramName{1}));
-% end
+for paramName = userData.checkBoxes
+    set(handles.checkbox_useSimpleFiltering, 'Value', funParams.(paramName{1}));
+end
+set(handles.checkbox_useSimpleFiltering, 'Value', funParams.useSimpleClassification);
 
 % Update GUI user data
 handles.output = hObject;

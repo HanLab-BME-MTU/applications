@@ -28,7 +28,7 @@ p = parseProcessParams(adhClassProc);
 
 MD=ip.Results.MD;
 iChan = p.ChannelIndex;
-sampleFolders=p.labeledData;
+sampleFolders=p.labelData;
 %% Load processed data
 nFrames=MD.nFrames_;
 
@@ -234,12 +234,12 @@ else
             idGroupSelectedAll{jj}={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
                                         idGroup7Selected,idGroup8Selected,idGroup9Selected};
             try
-                curImportFilePathTracks = fullfile(PathName,'idsClassified.mat');
-                curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
-                curTracksNA{jj} = curTracksNAfile.tracksNA;
-                mdPath = fileparts(fileparts(fileparts(fileparts(PathName))));
-                curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
-                curMD{jj} = curMDFile.MD;
+                mdPath = fileparts(fileparts(PathName));
+                curMD = MovieData.load([mdPath filesep 'movieData.mat']);
+                curFAPack = curMD.getPackage(curMD.getPackageIndex('FocalAdhesionPackage'));
+                curAdhAnalProc = curFAPack.processes_{7};
+                curTracksNA{jj} = curAdhAnalProc.loadChannelOutput(iChan,1,'output','tracksNA');
+                MDAll{jj} = curMD;
             catch
                 try
                     curImportFilePathTracks = fullfile(PathName,'idsClassified_org.mat');
@@ -257,7 +257,7 @@ else
                     mdPath = fileparts(fileparts(fileparts(PathName)));
                     curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
                 end
-                curMD{jj} = curMDFile.MD;
+                MDAll{jj} = curMDFile.MD;
             end            
         end
     end
@@ -268,7 +268,9 @@ else
         % 1-1. Adhesions with zero edge movement should be G6 (not
         % interested) - by looking at edge velocity and edge MSD
         edgeVelAll=arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
-        edgeStdAll=arrayfun(@(x) std(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+        edgeStdAll=arrayfun(@(x) nanstd(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+        edgeDistAll=arrayfun(@(x) (x.edgeAdvanceDist(x.endingFrameExtra)-x.edgeAdvanceDist(x.startingFrameExtra))', tracksNA);
+        advDistAll=arrayfun(@(x) (x.advanceDist(x.endingFrameExtra)-x.advanceDist(x.startingFrameExtra))', tracksNA);
 
         % 
         % 1. edge should protrude - should see overall positive edge
@@ -283,13 +285,13 @@ else
 
         % 2. Relative distance from edge should increase significantly.
         distToEdgeVelAll=arrayfun(@(x) regress(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
-        thresRelEdgeVel = quantile(distToEdgeVelAll,0.05);
+        thresRelEdgeVel = max((50/MD.pixelSize_)/(60/MD.timeInterval_), quantile(distToEdgeVelAll,0.05)); %10 nm/min is the absolute vel.
         indRelEdgeVelG1 = distToEdgeVelAll>thresRelEdgeVel;
 
         % 3. Should start from relatively close to an edge
         distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
-        thresStartingDistG1G2 = 3000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
-        indCloseStartingEdgeG1G2 = distToEdgeFirstAll < thresStartingDistG1G2;
+        thresStartingDistG1 = 3000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        indCloseStartingEdgeG1 = distToEdgeFirstAll < thresStartingDistG1;
 
         % 5. Clean rising phase
         assemRateAll = arrayfun(@(y) y.assemRate, tracksNA);
@@ -371,11 +373,11 @@ else
 
         % G2-3. Edge should not retract
         edgeDistAll=edgeVelAll.*lifeTimesAll;
-        indEdgeNotRetracting = edgeDistAll>-0.1*std(edgeDistAll);
+        indEdgeNotRetracting = edgeDistAll>(10/MD.pixelSize_); %-0.1*std(edgeDistAll);
 
-    %     indNonDecayingG2 = disassemRateAll>thresDisassemRateG1 | isnan(disassemRateAll);
-    % %         indNonDecayingG2 = disassemRateAll<thresDisassemRateG1 | isnan(disassemRateAll);
-    %     indLateMaxPointG2 = relMaxPoints>thresRelMax;
+        indNonDecayingG2 = disassemRateAll>thresDisassemRateG1 | isnan(disassemRateAll);
+    %         indNonDecayingG2 = disassemRateAll<thresDisassemRateG1 | isnan(disassemRateAll);
+        indLateMaxPointG2 = relMaxPoints>thresRelMax;
     % 
     % %     % Also, G2's max point should be higher than that of G1
     % %     meanIntenG1 = mean(maxIntenAll(indAbsoluteG1));
@@ -385,7 +387,7 @@ else
         % G1 should not have too big area
         smallEnoughArea = meanAreaAll<mean(meanAreaAll)+std(meanAreaAll);
         % Summing all those for G1
-        indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1G2 & ...
+        indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1 & ...
             indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea; %& indCleanDecayingG1;
 
         % At the same time, G2 should start from a decently low amplitude
@@ -423,8 +425,11 @@ else
     %         indCleanRisingG1G2 & indNonDecayingG2 & faAssocAll & indLateMaxPointG2 & indInitIntenG2;
     %     additionalG1 = indAbsoluteG2G1 & ~indHighEnoughMaxAmp;
     %     indAbsoluteG2 = indAbsoluteG2G1 & indHighEnoughMaxAmp;
+        thresStartingDistG2 = 4000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        indCloseStartingEdgeG2 = distToEdgeFirstAll < thresStartingDistG2;
+        
         indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 &...
-            sufficientInitialNAState & endingWithFAState;
+            sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2; % & indNonDecayingG2 & indLateMaxPointG2;
 
         % Inspect each (temporary)
         indexG2 = find(indAbsoluteG2); 
@@ -437,9 +442,9 @@ else
 
     %         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
         % G3
-        thresEdgeVelG3 = quantile(edgeVelAll,0.75);
+        thresEdgeVelG3 = max((100/MD.pixelSize_)/(60/MD.timeInterval_),quantile(edgeVelAll,0.75)); %Edge should protrude at least 0.1 um/min
         indEdgeVelG3 = edgeVelAll>thresEdgeVelG3;
-        indRelEdgeVelG3 = distToEdgeVelAll<2*thresRelEdgeVel;
+        indRelEdgeVelG3 = distToEdgeVelAll<3*thresRelEdgeVel;
         earlyEdgeVelAll = arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))',(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))'), tracksNA);
         indEarlyEdgeVelG3 = earlyEdgeVelAll>0.3*thresEdgeVelG3;
 
@@ -447,26 +452,30 @@ else
         thresAdhVelG3 = max(0.001,mean(adhVelAll)+0*std(adhVelAll));
         indForwardVelG3 = adhVelAll>thresAdhVelG3;
 
-        indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1G2 & indForwardVelG3 & indEarlyEdgeVelG3;
+        indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1 & indForwardVelG3 & indEarlyEdgeVelG3;
         indexG3 = find(indAbsoluteG3); 
 
         % G4 - retracting, strong FAs
-        thresEdgeVelG4 = quantile(edgeVelAll(edgeVelAll<0),0.5);
+        thresEdgeVelG4 = min((-50/MD.pixelSize_)/(60/MD.timeInterval_), quantile(edgeVelAll(edgeVelAll<0),0.5));%Edge should retract at least 0.1 um/min
+        thresEdgeDistG4 = min((-500/MD.pixelSize_), quantile(edgeDistAll(edgeDistAll<0),0.5));%Edge should retract at least 0.1 um/min
+        thresAdvDistG4 = min((-500/MD.pixelSize_), quantile(advDistAll(advDistAll<0),0.5));%Edge should retract at least 0.1 um/min
         indEdgeVelG4 = edgeVelAll<thresEdgeVelG4;
+        indEdgeDistG4 = edgeDistAll<thresEdgeDistG4;
+        indAdvDistG4 = advDistAll<thresAdvDistG4;
         indAdvVelG4 = adhVelAll<thresEdgeVelG4;
-        indAbsoluteG4 = indEdgeVelG4 & indAdvVelG4 & indCloseStartingEdgeG1G2 & faAssocAll;
+        indAbsoluteG4 = indEdgeVelG4 & indAdvVelG4 & indCloseStartingEdgeG1 & faAssocAll & indEdgeDistG4 & indAdvDistG4;
         indexG4 = find(indAbsoluteG4); 
 
         % G5 - stable at the edge
         % edge doesn't move much
         posEdgeVel = edgeVelAll(edgeVelAll>=0);
         negEdgeVel = edgeVelAll(edgeVelAll<=0);
-        lowPosEVel = quantile(posEdgeVel,0.1);
-        lowNegEVel = -quantile(negEdgeVel,0.8);
+        lowPosEVel = max((5/MD.pixelSize_)/(60/MD.timeInterval_),quantile(posEdgeVel,0.1)); %At most 5 nm/min
+        lowNegEVel = max((5/MD.pixelSize_)/(60/MD.timeInterval_),-quantile(negEdgeVel,0.8)); %At most 5 nm/min
         thresEdgeVelG5 = (lowPosEVel+lowNegEVel)/2;
         indEdgeVelG5 = abs(edgeVelAll)<thresEdgeVelG5;
 
-        thresEdgeStdG5 = quantile(edgeStdAll,0.1);
+        thresEdgeStdG5 = nanmedian(edgeStdAll); %quantile(edgeStdAll,0.1);
         indEdgeStdG5 = edgeStdAll<thresEdgeStdG5;
         % long life time
         thresLifetimeG5 = quantile(lifeTimesAll,0.75);
@@ -481,8 +490,14 @@ else
         catch
             thresMeanAmp = mean(meanAmpAll)+0.5*std(meanAmpAll);
         end
+        
+        % G5 - 2 Should be close to an edge
+        distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdge),tracksNA);
+        thresStartingDistG5 = 2000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        indCloseEdgeG5 = distToEdgeMeanAll < thresStartingDistG5;
+        
         indHighAmpG5 = meanAmpAll>thresMeanAmp;
-        indAbsoluteG5 = indEdgeVelG5 & indEdgeStdG5 & indLifetimeG5 & indHighAmpG5;
+        indAbsoluteG5 = indEdgeVelG5 & indEdgeStdG5 & indLifetimeG5 & indHighAmpG5 & indCloseEdgeG5;
         indexG5 = find(indAbsoluteG5); 
 
         % G6 : noise. There are several types of noises, or uninterested
@@ -504,9 +519,9 @@ else
         % some early history of edge protrusion & relative weak signal
         % (ampTotal)
         edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.edgeAdvanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
-        indLastAdvanceG7 = edgeAdvanceDistLastChangeNAs<max(0.01, mean(edgeAdvanceDistLastChangeNAs));
+        indLastAdvanceG7 = edgeAdvanceDistLastChangeNAs<max(0.0001, nanmean(edgeAdvanceDistLastChangeNAs));
 
-        thresEdgeVelG7 = quantile(edgeVelAll(edgeVelAll>0),0.1);
+        thresEdgeVelG7 = max(0.2*thresEdgeVelG3, quantile(edgeVelAll(edgeVelAll>0),0.1));
         indEdgeVelG7 = earlyEdgeVelAll > thresEdgeVelG7;
         indLowAmpG7 = meanAmpAll < thresMeanAmp;
 
@@ -515,7 +530,7 @@ else
 
         % G8 strong inside FAs
         distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
-        indInsideG8G9 = distToEdgeAll > thresStartingDistG1G2;        
+        indInsideG8G9 = distToEdgeAll > thresStartingDistG1;        
         indAbsoluteG8 = indHighAmpG5 & indInsideG8G9 & indLifetimeG5;
         indexG8 = find(indAbsoluteG8); 
 
@@ -576,7 +591,7 @@ else
         nTrainingSets=nTrainingSets+1;
         curTracksNA{nTrainingSets}=tracksNA;
         idGroupSelectedAll{nTrainingSets}=idGroupSelected;
-        curMD{nTrainingSets}=MD;
+        MDAll{nTrainingSets}=MD;
     %         [curT,allData,meas] = extractFeatureNA(tracksNA,idGroupSelected,2,MD);
     %         T=[T; curT];
     elseif p.manualLabeling
@@ -625,7 +640,7 @@ else
         nTrainingSets=1;
         curTracksNA{nTrainingSets}=tracksNA;
         idGroupSelectedAll{nTrainingSets}=idGroupFiltered;
-        curMD{nTrainingSets}=MD;
+        MDAll{nTrainingSets}=MD;
     %         [T,allData]=extractFeatureNA(tracksNA,idGroupFiltered,2,MD);
     end
         % figure, plot(asymTracks',MSDall','.')
@@ -664,7 +679,7 @@ else
     %     end
         T = table();kk=2;
         for jj=1:nTrainingSets
-            T=[T; extractFeatureNA(curTracksNA{jj},idGroupSelectedAll{jj},kk,curMD{jj})];
+            T=[T; extractFeatureNA(curTracksNA{jj},idGroupSelectedAll{jj},kk,MDAll{jj})];
         %         T=extractFeatureNA(curTracksNA{jj},idGroupSelected{jj},ii,curMD);
         end
 
@@ -754,8 +769,8 @@ else
         species = table2array(T(:,end));
         nGroups = length(totalGroups);
         % normalize features
-        for i = 1 : size(features,2)
-            features(:,i) = (features(:,i) - min(features(:,i)))./(max(features(:,i)) - min(features(:,i)));
+        for ii = 1 : size(features,2)
+            features(:,ii) = (features(:,ii) - min(features(:,ii)))./(max(features(:,ii)) - min(features(:,ii)));
         end
         figure; imagesc(features');hold on
         c = colorbar;
@@ -780,6 +795,7 @@ else
         print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
     %     savefig([p.OutputDirectory filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
         print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongTrainedData.tif'])
+%         close
 
         Dfeats = pdist(features');
         Dfeats1 =  squareform(Dfeats);
@@ -790,6 +806,7 @@ else
         print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongFeatures.eps']);
     %     savefig([p.OutputDirectory filesep 'figs' filesep 'similarityAmongFeatures.fig'])
         print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongFeatures.tif'])
+%         close
         [~,allData] = extractFeatureNA(tracksNA,[],2,MD);
 
     %     disp('The order is :')
@@ -870,6 +887,7 @@ else
                 4*idGroup4 + 5*idGroup5 + 6*idGroup6 + ...
                 7*idGroup7 + 8*idGroup8 + 9*idGroup9;    
     edgeVariationAll = allData(:,end-2);
+    edgeAdvanceSpeedAll = allData(:,2);
     for k=faIDsUnique'
         % Find the tracks associated with k, one of the faIDs
         curTrackIDs = indexFaIDs(faIDsAll==k); % This can be multiple
@@ -878,24 +896,28 @@ else
         % Apply the rule for the representative Class
         curDistToEdges = arrayfun(@(x) x.distToEdge(x.startingFrameExtra), tracksNA(curTrackIDs));
         curEdgeVariation = edgeVariationAll(curTrackIDs);
+        curEdgeAdvanceSpeed = edgeAdvanceSpeedAll(curTrackIDs);
+        curSufficientInitialNAState = sufficientInitialNAState(curTrackIDs);
         curRepClass = mode(curClasses);
-        if (ismember(8,curClasses) && (mean(curDistToEdges)>=2*thresStartingDistG1G2) || sum(curEdgeVariation==0)/length(curEdgeVariation)>0.5)
-            curRepClass = 8;
-        elseif ismember(2,curClasses) && min(curDistToEdges)<1.5*thresStartingDistG1G2
-            curRepClass = 2;
-        elseif ismember(4,curClasses)
-            curRepClass = 4; % G4 has the highest priority
-        elseif ismember(5,curClasses) && min(curDistToEdges)<1.5*thresStartingDistG1G2 && sum(curEdgeVariation==0)<1
-            curRepClass = 5;
-        elseif curRepClass==9 && nanmean(arrayfun(@(x) nanmean(x.area),tracksNA(curTrackIDs)))>0
-            if min(curDistToEdges)<1.5*thresStartingDistG1G2
-                curRepClass = 2;
-            else
+        if mean(curEdgeAdvanceSpeed)<=0 && min(curDistToEdges)>1.5*thresStartingDistG1 % If the edge is protruding, we'll leave this chuck to be regarded as NAs
+            if (ismember(8,curClasses) && (mean(curDistToEdges)>=2*thresStartingDistG1) || sum(curEdgeVariation==0)/length(curEdgeVariation)>0.5)
                 curRepClass = 8;
+            elseif ismember(2,curClasses) && min(curDistToEdges)<1.5*thresStartingDistG1 && mode(curSufficientInitialNAState)
+                curRepClass = 2;
+%             elseif ismember(4,curClasses)
+%                 curRepClass = 4; % G4 has the highest priority
+            elseif ismember(5,curClasses) && min(curDistToEdges)<1.5*thresStartingDistG1 && sum(curEdgeVariation==0)<1
+                curRepClass = 5;
+            elseif curRepClass==9 && nanmean(arrayfun(@(x) nanmean(x.area),tracksNA(curTrackIDs)))>(mean(meanAreaAll(indexG1))+0.5*std(meanAreaAll(indexG1)))
+                if min(curDistToEdges)<1*thresStartingDistG1 && mode(curSufficientInitialNAState)
+                    curRepClass = 2;
+                else
+                    curRepClass = 8;
+                end
             end
+            % Putting this back to idGroupLabel
+            idGroupLabel(curTrackIDs) = curRepClass;
         end
-        % Putting this back to idGroupLabel
-        idGroupLabel(curTrackIDs) = curRepClass;
     end
     % Putting back to idGroups
     idGroup1=idGroupLabel==1; idGroup2=idGroupLabel==2; idGroup3=idGroupLabel==3; 
@@ -913,7 +935,7 @@ else
     allDataClass(idGroup9)={'Group9'};
     iFrameInterest=min(81,MD.nFrames_);
     figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
-    [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],false);
+    [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],10);
     classNames={'G1: turn-over','G2: maturing','G3: moving along protruding edge',...
         'G4: retracting','G5: stable at the edge','G6: noise or very transient','G7: adhesions at stalling edge','G8: strong stable adhesion', 'G9: weak stable adhesion inside'};
     existingClasses=~cellfun(@isempty,htrackCircles);
