@@ -9,9 +9,9 @@ for k=1:numConditions
 end
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
-figPath = [rootAnalysis '/AnalysisSummary/Figs'];
+figPath = [rootAnalysis '/AnalysisSummaryTFM/Figs'];
 mkdir(figPath)
-dataPath = [rootAnalysis '/AnalysisSummary/Data'];
+dataPath = [rootAnalysis '/AnalysisSummaryTFM/Data'];
 mkdir(dataPath)
 %% Now Force analysis: total force, strain energy and SE density
 SEGroup = cell(numConditions,1);

@@ -324,7 +324,7 @@ for j= firstFrame:nFrames
             % away from the padded border. By default, no centered template should 
             % include any NaN's for correlation
             % Create beads mask with zero intensity points as false
-            beadsMask = true(size(refFrame));
+            beadsMask = firstMask; %true(size(refFrame));
             % beadsMask(currImage==0)=false;
             % Remove false regions non-adjacent to the image border
             beadsMask = beadsMask | imclearborder(~beadsMask);

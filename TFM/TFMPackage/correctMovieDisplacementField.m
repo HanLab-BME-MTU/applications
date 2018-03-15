@@ -40,7 +40,7 @@ p = parseProcessParams(displFieldCorrProc,paramsIn);
 
 %% Backup the original vectors to backup folder
 if exist(p.OutputDirectory,'dir')
-    display('Backing up the original data')
+    disp('Backing up the original data')
     ii = 1;
     backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
     while exist(backupFolder,'dir')
@@ -202,7 +202,7 @@ if p.fillVectors
             % only un-tracked vectors
             unTrackedBeads=isnan(displField(j).vec(:,1));
             ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
-            if ratioUntracked<0.0001 || (nTracked==0 && nFailed>30)
+            if ratioUntracked<0.00001 || (nTracked==0 && nFailed>50)
                 break
             end
             currentBeads = displField(j).pos(unTrackedBeads,:);
