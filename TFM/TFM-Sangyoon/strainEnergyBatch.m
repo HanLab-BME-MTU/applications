@@ -24,7 +24,7 @@ for ii=1:numConditions
     SEPerGroup = cell(N(ii),1);
     SEDenPerGroup = cell(N(ii),1);
     totForcePerGroup = cell(N(ii),1);
-    parfor k=1:N(ii)
+    for k=1:N(ii)
         % get the tracksNA
         curMovie=curMovies{k};
         % get the strain energy
