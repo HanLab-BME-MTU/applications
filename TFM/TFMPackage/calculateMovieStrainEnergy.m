@@ -257,19 +257,20 @@ for ii=1:nFrames
     
     if existMask && p.useCellMask
         maskCell = maskProc.loadChannelOutput(iChan,ii);
+        ref_obj = imref2d(size(maskCell));
         if existSDC
-            if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
-                maxX = 0;
-                maxY = 0;
-            else        
-                maxX = ceil(max(abs(T(:, 2))));
-                maxY = ceil(max(abs(T(:, 1))));
-            end
-            Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+%             if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+%                 maxX = 0;
+%                 maxY = 0;
+%             else        
+%                 maxX = ceil(max(abs(T(:, 2))));
+%                 maxY = ceil(max(abs(T(:, 1))));
+%             end
+            Tr = affine2d([1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
             % Apply subpixel-wise registration to original masks
 
-            Ibw = padarray(maskCell, [maxY, maxX]);
-            maskCell = imtransform(Ibw, Tr, 'XData',[1 size(Ibw, 2)],'YData', [1 size(Ibw, 1)]);
+%             Ibw = padarray(maskCell, [maxY, maxX]);
+            maskCell = imwarp(maskCell, Tr,'OutputView',ref_obj);
         end
         tMapCell = curTMap(maskCell);
         dMapCell = curDMap(maskCell);
