@@ -25,9 +25,9 @@ for k=1:numConditions
 end
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
-figPath = [rootAnalysis '/AnalysisSummary/Figs'];
+figPath = [rootAnalysis '/AnalysisSummaryAdhesion/Figs'];
 mkdir(figPath)
-dataPath = [rootAnalysis '/AnalysisSummary/Data'];
+dataPath = [rootAnalysis '/AnalysisSummaryAdhesion/Data'];
 mkdir(dataPath)
 %% Run detectMovieNascentAdhesion for each list
 N=zeros(numConditions,1);
