@@ -82,15 +82,12 @@ for ii=1:numConditions
     SE_FB_Group{ii,1}=SEPerFBGroup;
     SEDen_FB_Group{ii,1}=SEDenPerFBGroup;
     totalForce_FB_Group{ii,1}=totForcePerFBGroup;
-    clear SE_FB_Group SEDen_FB_Group totalForce_FB_Group 
     SE_Cell_Group{ii,1}=SEPerCellGroup;
     SEDen_Cell_Group{ii,1}=SEDenPerCellGroup;
     totalForce_Cell_Group{ii,1}=totForcePerCellGroup;
-    clear SE_Cell_Group SEDen_Cell_Group totalForce_Cell_Group 
     SE_FOV_Group{ii,1}=SEPerFOVGroup;
     SEDen_FOV_Group{ii,1}=SEDenPerFOVGroup;
     totalForce_FOV_Group{ii,1}=totForcePerFOVGroup;
-    clear SE_FOV_Group SEDen_FOV_Group totalForce_FOV_Group 
 end
 disp('Done')
 %% setting up group name
