@@ -151,9 +151,13 @@ for j=1:movieData.nFrames_
 %     maxIntBg=quantile(pixelIntenMargin,0.9999);
 %     psInt = pstruct.A+pstruct.c;
 %     idxSigCCP = psInt>maxIntBg;
-    xNA=pstruct.x;
-    yNA=pstruct.y;
-    maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA); %,mask);
+    if ~isempty(pstruct)
+        xNA=pstruct.x;
+        yNA=pstruct.y;
+        maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA); %,mask);
+    else
+        maskAdhesion2 = maskAdhesion;
+    end
 %     labelAdhesion = bwlabel(maskAdhesion);
     Adhs = regionprops(maskAdhesion2,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength','MinorAxisLength');
 %         minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
