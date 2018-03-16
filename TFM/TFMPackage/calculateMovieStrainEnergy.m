@@ -153,7 +153,7 @@ if ~isempty(CorrectedDisplFieldProc)
             progressText((nFrames-ii)/nFrames,'One-time displacement map loading') % Update text
         end
     catch
-        disp('Assuming displacement proportional to tMap because there was no iCorrectedDisplFieldProc found')
+        disp('Assuming displacement proportional to tMap because CorrectedDisplFieldProc was empty')
         dMap=cellfun(@(x) x/(yModulus),tMap,'UniformOutput',false);
     end
 else
