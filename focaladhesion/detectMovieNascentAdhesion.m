@@ -156,6 +156,8 @@ for j=1:movieData.nFrames_
         yNA=pstruct.y;
         maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA); %,mask);
     else
+        xNA=[];
+        yNA=[];
         maskAdhesion2 = maskAdhesion;
     end
 %     labelAdhesion = bwlabel(maskAdhesion);
