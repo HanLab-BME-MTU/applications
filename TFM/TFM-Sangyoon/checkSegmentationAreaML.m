@@ -10,9 +10,9 @@ ML = MovieList.load(ML.getFullPath);
 numMDs = numel(ML.movies_);
 %% Segmentation information
 segAreas = zeros(numMDs,1);
-mdNames = cell(numMD,1);
+mdNames = cell(numMDs,1);
 
-for ii=1:numMD
+for ii=1:numMDs
     curMD = ML.movies_{ii};
     % Get the MaskRefinement process
     curMaskRefProc = curMD.getProcess(curMD.getProcessIndex('MaskRefinementProcess'));
@@ -27,6 +27,8 @@ thresArea = median(segAreas)-std(segAreas);
 idxLowAreas = segAreas<thresArea;
 disp('MDs with Low Segmentation Areas:')
 disp(mdNames(idxLowAreas))
-newML = MovieList(ML.movies_(idxLowAreas),fullfile(ML.movieListPath_, 'ML_lowSegAreas.mat'));
+newML = MovieList(ML.movies_(idxLowAreas),ML.movieListPath_);
+newML.setFilename('ML_lowSegAreas.mat')
+newML.setPath(ML.movieListPath_);
 newML.save
 disp(['The newML is saved as ' newML.getFullPath])
