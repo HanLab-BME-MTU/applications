@@ -57,8 +57,8 @@ for ii=1:numConditions
         [curNAstruct,curFAstruct] = detectMovieNascentAdhesion(curML.movies_{k},bandNA,iPax);
         if numel(curFAstruct)>1
             curNAdensity(k) = mean(arrayfun(@(x) x.NAdensity,curNAstruct));
-            curFAarea{k} = mean(arrayfun(@(x) x.area,curFAstruct));
-            curFAlength{k} = mean(arrayfun(@(x) x.length,curFAstruct));
+            curFAarea{k} = cell2mat(arrayfun(@(x) x.area,curFAstruct,'unif',false));
+            curFAlength{k} = cell2mat(arrayfun(@(x) x.length,curFAstruct,'unif',false));
             curFAdensity(k) = mean(arrayfun(@(x) x.FAdensity,curFAstruct));
             curFAdensityPeri(k) = mean(arrayfun(@(x) x.FAdensityPeri,curFAstruct));
             curFAdensityInside(k) = mean(arrayfun(@(x) x.FAdensityInside,curFAstruct));
@@ -107,6 +107,9 @@ ylabel('FA area (um^2)')
 % set(gca,'XTickLabel',{'Control' 'PIP5K-\gamma'})
 hgexport(h1,strcat(figPath,'/FAarea'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAarea'),'-v7.3')
+
+tableFAarea=table(FAareaCell,'RowNames',nameList);
+writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% FA area - boxplot
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
@@ -125,6 +128,9 @@ title('FA density')
 ylabel('FA density (#/um^2)')
 hgexport(h2,strcat(figPath,'/FAdensity'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensity'),'-v7.3')
+
+tableFAdensity=table(FAdensity,'RowNames',nameList);
+writetable(tableFAdensity,strcat(dataPath,'/FAdensity.csv'))
 %% FA density at Periphery
 h2=figure; 
 barPlotCellArray(FAdensityPeri,nameList)
@@ -133,6 +139,8 @@ title('FA density in the cell periphery (up to 5 um from the cell edge)')
 ylabel('FA density (#/um^2)')
 hgexport(h2,strcat(figPath,'/FAdensityInside'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
+tableFAdensityPeri=table(FAdensityPeri,'RowNames',nameList);
+writetable(tableFAdensityPeri,strcat(dataPath,'/FAdensityPeri.csv'))
 %% FA density Inside
 h2=figure; 
 barPlotCellArray(FAdensityInside,nameList)
@@ -141,6 +149,8 @@ title('FA density inside a cell (from the center to the 5 um from the edge)')
 ylabel('FA density (#/um^2)')
 hgexport(h2,strcat(figPath,'/FAdensityInside'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
+tableFAdensityInside=table(FAdensityInside,'RowNames',nameList);
+writetable(tableFAdensityInside,strcat(dataPath,'/FAdensityInside.csv'))
 %% NA density
 h3=figure; 
 barPlotCellArray(NAdensity,nameList)
@@ -149,6 +159,8 @@ title('NA density')
 ylabel('NA density (#/um^2)')
 hgexport(h3,strcat(figPath,'/NAdensity'),hgexport('factorystyle'),'Format','eps')
 hgsave(h3,strcat(figPath,'/NAdensity'),'-v7.3')
+tableNAdensity=table(NAdensity,'RowNames',nameList);
+writetable(tableNAdensity,strcat(dataPath,'/NAdensity.csv'))
 %% FA length
 FAlenthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
 h4=figure; 
@@ -165,12 +177,15 @@ title('FA length')
 ylabel('FA length (um)')
 hgexport(h1,strcat(figPath,'/FAlengthBoxPlot'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAlengthBoxPlot'),'-v7.3')
+
+tableFAlength=table(FAlenthCell,'RowNames',nameList);
+writetable(tableFAlength,strcat(dataPath,'/FAlength.csv'))
 %% Ratio of FA over NA
 FAtoNAratio = cell(numConditions,1);
 for ii=1:numConditions
     FAtoNAratio{ii} = [];
     for k=1:N(ii)
-        FAtoNAratio{ii} = [FAtoNAratio{ii} FAstructGroup{ii}(k).numberFA/NAstructGroup{ii}(k).numberNA];
+        FAtoNAratio{ii} = [FAtoNAratio{ii}; FAstructGroup{ii}(k).numberFA/NAstructGroup{ii}(k).numberNA];
     end
 end
 %% Plotting Ratio of FA over NA
@@ -180,12 +195,15 @@ title('Ratio of FA over NA')
 ylabel('Ratio of FA over NA (ratio)')
 hgexport(h4,strcat(figPath,'/FAtoNARatio'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/FAtoNARatio'),'-v7.3')
+
+tableFAtoNAratio=table(FAtoNAratio,'RowNames',nameList);
+writetable(tableFAtoNAratio,strcat(dataPath,'/FAtoNAratio.csv'))
 %% Overal adhesion area per cell area 
 FAareaToCellArea = cell(numConditions,1);
 for ii=1:numConditions
     FAareaToCellArea{ii} = [];
     for k=1:N(ii)
-        FAareaToCellArea{ii} = [FAareaToCellArea{ii} FAstructGroup{ii}(k).meanFAarea*FAstructGroup{ii}(k).numberFA*convertArea/FAstructGroup{ii}(k).cellArea];
+        FAareaToCellArea{ii} = [FAareaToCellArea{ii}; FAstructGroup{ii}(k).meanFAarea*FAstructGroup{ii}(k).numberFA*convertArea/FAstructGroup{ii}(k).cellArea];
     end
 end
 %% Overal adhesion area per cell area plotting
@@ -195,5 +213,8 @@ title('FA area over cell area')
 ylabel('FA area over cell area (ratio)')
 hgexport(h4,strcat(figPath,'/FAoverCell'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/FAoverCell'),'-v7.3')
+
+tableFAareaToCellArea=table(FAareaToCellArea,'RowNames',nameList);
+writetable(tableFAareaToCellArea,strcat(dataPath,'/FAareaToCellArea.csv'))
 %% saving
 save([dataPath filesep 'adhesionData.mat'],'-v7.3');
