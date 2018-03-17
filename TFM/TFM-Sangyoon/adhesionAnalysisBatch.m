@@ -35,6 +35,8 @@ NAdensity = cell(numConditions,1);
 FAarea = cell(numConditions,1);
 FAlength = cell(numConditions,1);
 FAdensity = cell(numConditions,1);
+FAdensityPeri = cell(numConditions,1);
+FAdensityInside = cell(numConditions,1);
 NAstructGroup= cell(numConditions,1);
 FAstructGroup= cell(numConditions,1);
 iPax = input('Enter adhesion channel number (1 or 2 ..): ');
@@ -46,22 +48,41 @@ for ii=1:numConditions
     curFAarea = cell(N(ii),1);
     curFAlength = cell(N(ii),1);
     curFAdensity = zeros(N(ii),1);
+    curFAdensityPeri = zeros(N(ii),1);
+    curFAdensityInside = zeros(N(ii),1);
     curML = MLAll(ii);
 
     % Combine data per each condition (1,2,3,4 for 3.4, 18, 100, 100Y, respectively)
     for k=1:N(ii)
         [curNAstruct,curFAstruct] = detectMovieNascentAdhesion(curML.movies_{k},bandNA,iPax);
-        curNAdensity(k) = curNAstruct.NAdensity;
-        curFAarea{k} = curFAstruct.area;
-        curFAlength{k} = curFAstruct.length;
-        curFAdensity(k) = curFAstruct.FAdensity;
-        NAstruct(k) = curNAstruct;
-        FAstruct(k) = curFAstruct;
+        if numel(curFAstruct)>1
+            curNAdensity(k) = mean(arrayfun(@(x) x.NAdensity,curNAstruct));
+            curFAarea{k} = mean(arrayfun(@(x) x.area,curFAstruct));
+            curFAlength{k} = mean(arrayfun(@(x) x.length,curFAstruct));
+            curFAdensity(k) = mean(arrayfun(@(x) x.FAdensity,curFAstruct));
+            curFAdensityPeri(k) = mean(arrayfun(@(x) x.FAdensityPeri,curFAstruct));
+            curFAdensityInside(k) = mean(arrayfun(@(x) x.FAdensityInside,curFAstruct));
+            NAstruct(k) = curNAstruct(end);
+            FAstruct(k) = curFAstruct(end);
+        else %numel(curFAstruct)==1
+            curNAdensity(k) = curNAstruct.NAdensity;
+            curFAarea{k} = curFAstruct.area;
+            curFAlength{k} = curFAstruct.length;
+            curFAdensity(k) = curFAstruct.FAdensity;
+            NAstruct(k) = curNAstruct;
+            FAstruct(k) = curFAstruct;
+            % FAdensity at cell periphery
+            curFAdensityPeri(k) = mean(arrayfun(@(x) x.FAdensityPeri,curFAstruct));
+            % FAdensity at cell center
+            curFAdensityInside(k) = mean(arrayfun(@(x) x.FAdensityInside,curFAstruct));
+        end
     end
     NAdensity{ii}=curNAdensity;
     FAarea{ii}=curFAarea;
     FAlength{ii}=curFAlength;
     FAdensity{ii}=curFAdensity;
+    FAdensityPeri{ii}=curFAdensityPeri;
+    FAdensityInside{ii}=curFAdensityInside;
     NAstructGroup{ii}=NAstruct;
     FAstructGroup{ii}=FAstruct;
     clear NAstruct FAstruct
@@ -104,6 +125,22 @@ title('FA density')
 ylabel('FA density (#/um^2)')
 hgexport(h2,strcat(figPath,'/FAdensity'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensity'),'-v7.3')
+%% FA density at Periphery
+h2=figure; 
+barPlotCellArray(FAdensityPeri,nameList)
+
+title('FA density in the cell periphery (up to 5 um from the cell edge)')
+ylabel('FA density (#/um^2)')
+hgexport(h2,strcat(figPath,'/FAdensityInside'),hgexport('factorystyle'),'Format','eps')
+hgsave(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
+%% FA density Inside
+h2=figure; 
+barPlotCellArray(FAdensityInside,nameList)
+
+title('FA density inside a cell (from the center to the 5 um from the edge)')
+ylabel('FA density (#/um^2)')
+hgexport(h2,strcat(figPath,'/FAdensityInside'),hgexport('factorystyle'),'Format','eps')
+hgsave(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
 %% NA density
 h3=figure; 
 barPlotCellArray(NAdensity,nameList)

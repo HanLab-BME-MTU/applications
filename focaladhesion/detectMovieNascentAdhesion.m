@@ -83,10 +83,7 @@ nascentAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
 focalAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
     'amp',[],'area',[],'length',[],'meanFAarea',[],'medianFAarea',[]...
     ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],'cellArea',[]...
-    ,'maskFA',[],'boundFA',[],'ecc',[],'width',[],'labelFA',[]);
-if plotGraph
-    h1=figure;
-end
+    ,'maskFA',[],'boundFA',[],'ecc',[],'width',[],'labelFA',[],'FAdensityPeri',[],'FAdensityInside',[]);
 jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
@@ -163,7 +160,7 @@ for j=1:movieData.nFrames_
     end
 %     labelAdhesion = bwlabel(maskAdhesion);
     Adhs = regionprops(maskAdhesion2,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength','MinorAxisLength');
-%         minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
+%         minFASize = round((2000/movieData.pixelSize_)*(500/movieData.pixelSize_)); %adhesion limit=1um*.5um
 
     adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
     FAlengthAll = arrayfun(@(x) x.MajorAxisLength, Adhs);
@@ -224,9 +221,32 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).FAdensity = numAdhs/focalAdhInfo(j).cellArea; % number per um2
     focalAdhInfo(j).maskFA = maskAdhesion2;
     focalAdhInfo(j).labelFA = labelAdhesion;
+    % FADensity at the cell periphery
+    bandwidthNA = 5; %um
+    bandwidthNA_pix = round(bandwidthNA*1000/movieData.pixelSize_);
+    % Cell Boundary Mask 
+    % mask for band from edge
+    iMask = imcomplement(mask);
+    distFromEdge = bwdist(iMask);
+    bandMask = distFromEdge <= bandwidthNA_pix;
+
+    maskOnlyBand = bandMask & mask;
+    bandArea = sum(maskOnlyBand(:))*(pixSize/1000)^2; % in um^2
+
+    % now see if these tracks ever in the maskOnlyBand
+    indFAsAtEdge = false(numAdhs,1);
+    for k=1:numAdhs
+        if maskOnlyBand(round(focalAdhInfo(j).yCoord(k)),round(focalAdhInfo(j).xCoord(k)))
+            indFAsAtEdge(k) = true;
+        end
+    end
+    
+    focalAdhInfo(j).FAdensityPeri = sum(indFAsAtEdge)/bandArea; % number per um2
+    focalAdhInfo(j).FAdensityInside = (numAdhs-sum(indFAsAtEdge))/(focalAdhInfo(j).cellArea-bandArea); % number per um2
 
     % plotting detected adhesions
     if plotGraph
+        h1=figure;
         dI = double(I)/max(max(I));
         combI(:,:,1) = dI;
         combI(:,:,2) = dI+double(maskAdhesion2)*.5;
