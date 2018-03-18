@@ -98,7 +98,11 @@ for ii=1:numConditions
 end
 nameList=groupNames'; 
 %% FA area
-FAareaCell=cellfun(@(x) cell2mat(x'),FAarea,'Unif',false);
+try
+    FAareaCell=cellfun(@(x) cell2mat(x'),FAarea,'Unif',false);
+catch
+    FAareaCell=cellfun(@(x) cell2mat(x),FAarea,'Unif',false);
+end
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 barPlotCellArray(FAareaCell,nameList,convertArea)
@@ -162,12 +166,15 @@ hgsave(h3,strcat(figPath,'/NAdensity'),'-v7.3')
 tableNAdensity=table(NAdensity,'RowNames',nameList);
 writetable(tableNAdensity,strcat(dataPath,'/NAdensity.csv'))
 %% FA length
-FAlenthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
+try
+    FAlenthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
+catch
+    FAlenthCell=cellfun(@(x) cell2mat(x),FAlength,'Unif',false);
+end
 h4=figure; 
 barPlotCellArray(FAlenthCell,nameList,convertL)
 title('FA length')
 ylabel('FA length (um)')
-% set(gca,'XTickLabel',{'Control' 'PIP5K-\alpha' 'PIP5K-\beta' 'PIP5K-\gamma'}) 
 hgexport(h4,strcat(figPath,'/FAlength'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/FAlength'),'-v7.3')
 %% FA length - boxplot
