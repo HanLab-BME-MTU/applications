@@ -99,9 +99,9 @@ end
 nameList=groupNames'; 
 %% FA area
 try
-    FAareaCell=cellfun(@(x) cell2mat(x'),FAarea,'Unif',false);
-catch
     FAareaCell=cellfun(@(x) cell2mat(x),FAarea,'Unif',false);
+catch
+    FAareaCell=cellfun(@(x) cell2mat(x'),FAarea,'Unif',false);
 end
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
@@ -167,9 +167,9 @@ tableNAdensity=table(NAdensity,'RowNames',nameList);
 writetable(tableNAdensity,strcat(dataPath,'/NAdensity.csv'))
 %% FA length
 try
-    FAlenthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
-catch
     FAlenthCell=cellfun(@(x) cell2mat(x),FAlength,'Unif',false);
+catch
+    FAlenthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
 end
 h4=figure; 
 barPlotCellArray(FAlenthCell,nameList,convertL)
