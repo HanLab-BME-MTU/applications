@@ -46,7 +46,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField','forceFieldShifted','forceFieldShiftedColor','tMap','tMapX','tMapY'};
+            outputList = {'forceField','forceFieldShifted','forceFieldShiftedColor','forceFieldUnshifted',...
+                'tMap','tMapX','tMapY','tMapUnshifted'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -63,22 +64,44 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            if ismember(output,outputList(1:3))
+            if ismember(output,outputList(1:4))
                 iOut=1;
-                s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
-                varargout{1}=s.(output{1})(iFrame);
+                if ismember(output,outputList(1:3)) 
+                    s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
+                    varargout{1}=s.(output{1})(iFrame);
+                else %This is for unshifted
+                    s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, outputList{2});
+                    curField = s.(outputList{2})(iFrame);
+                    numPos = size(curField.pos,1);
+                    iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
+                    tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
+                    SDCProc=tfmPackageHere.processes_{iSDCProc};
+                    if ~isempty(SDCProc)
+                        s = load(SDCProc.outFilePaths_{3,1},'T');
+                        T = s.T;
+                        Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);
+                        invTr = invert(Tr);
+                        for ii=1:numPos
+                            curField.pos(ii,1)=curField.pos(ii,1)+invTr.T(3,1);
+                            curField.pos(ii,2)=curField.pos(ii,2)+invTr.T(3,2);
+                        end
+                        varargout{1}=curField;
+                    else
+                        varargout{1}=curField;
+                    end
+                end
 %             elseif strcmp(output,outputList{5})
 %                 [OutputDirectory,tMapFolder] = fileparts(obj.outFilePaths_{2});
 %                 % Set up the output directories
 %                 outputDir = fullfile(OutputDirectory,tMapFolder);
 %                 outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-            elseif ismember(output,outputList(4:6))
+            elseif ismember(output,outputList(5:8))
                 iOut=2;
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
                 if isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)
-                    s = load(obj.outFilePaths_{iOut},output{1});
+                    s = load(obj.outFilePaths_{iOut},outputList{5}); %This will need to be changed if one really wants to see tMapX or tMapY
                     tMapObj = s.(output{1});
                     fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
                     numStr = @(frame) num2str(frame,fString);
@@ -124,7 +147,24 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     end
                     lastFinishTime = obj.finishTime_;
                 end
-                varargout{1}=tMapMap(:,:,iFrame);
+                if ismember(output,outputList(5:7)) 
+                    varargout{1}=tMapMap(:,:,iFrame);
+                else %This is for unshifted
+                    curMap=tMapMap(:,:,iFrame);
+                    ref_obj = imref2d(size(curMap));
+                    iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
+                    tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
+                    SDCProc=tfmPackageHere.processes_{iSDCProc};
+                    if ~isempty(SDCProc)
+                        s = load(SDCProc.outFilePaths_{3,1},'T');
+                        T = s.T;
+                        Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);
+                        invTr = invert(Tr);
+                        varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                    else
+                        varargout{1}=tMapMap(:,:,iFrame);
+                    end
+                end
 %                 s = load(obj.outFilePaths_{iOut},output{1});
             end
             
@@ -140,8 +180,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             
             outputList = obj.getDrawableOutput();
             drawLcurve = any(strcmpi('lcurve',varargin));
-            rendertMap = any(strcmpi('tMap',varargin) | ...
-                strcmpi('dErrMap',varargin) | strcmpi('distBeadMap',varargin) );
+            rendertMap = any(strncmpi('tMap',varargin,4) | ...
+                strncmpi('dErrMap',varargin,4) | strncmpi('distBeadMap',varargin,4) );
             if drawLcurve %Lcurve
                 ip = inputParser;
                 ip.addRequired('obj',@(x) isa(x,'Process'));
@@ -233,13 +273,24 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             
 %             if ~strcmp(obj.funParams_.method,'FTTC')
 
-                output(5).name='Lcurve';
-                output(5).var='lcurve';
-                output(5).formatData=[];
-                output(5).type='movieGraph';
-                output(5).defaultDisplayMethod=@FigFileDisplay;
+            output(5).name='Lcurve';
+            output(5).var='lcurve';
+            output(5).formatData=[];
+            output(5).type='movieGraph';
+            output(5).defaultDisplayMethod=@FigFileDisplay;
 
+            output(6).name='Traction map unshifted';
+            output(6).var='tMapUnshifted';
+            output(6).formatData=[];
+            output(6).type='image';
+            output(6).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                'Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
 
+            output(7).name='Force field SDC unshifted';
+            output(7).var='forceFieldUnshifted';
+            output(7).formatData=@(x) [x.pos x.vec(:,1)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
+            output(7).type='movieOverlay';
+            output(7).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[125/255 50/255 210/255]);
                 %% TODO -- Ensure outputs are generated and available for display
                 % output(6).name='Prediction Err map';
                 % output(6).var='dErrMap';
