@@ -102,7 +102,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 end
                 if isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)
                     s = load(obj.outFilePaths_{iOut},outputList{5}); %This will need to be changed if one really wants to see tMapX or tMapY
-                    tMapObj = s.(output{1});
+                    tMapObj = s.(outputList{5});
                     fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
                     numStr = @(frame) num2str(frame,fString);
                     outputDir = fullfile(obj.funParams_.OutputDirectory,'tractionMaps');
