@@ -134,7 +134,7 @@ parfor k=1:numTracks
                     p=-1;
         %             curSigma = sigma;
         %             pitFound = false;
-                    while p<=20 %30
+                    while p<=15 %30
                         %oldP = p;
                         p=p+1;
                         pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
@@ -192,41 +192,38 @@ parfor k=1:numTracks
                 curAmpTotal = mean(curAmpTotal(:));
                 curTrack.ampTotal(ii) =  curAmpTotal;
 
-                p=-1; %This seems waisting the time. Now I am skipping...
-                while p<=20
-                    oldP = p;
-                    p=p+1;
-                    pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
-                    curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
-                    curSigma = sigma*(20-p)/20; % increasing sigma by 5 percent per each iteration
-                    pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac');
-                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
-                        x = pstruct.x;
-                        y = pstruct.y;
-                        A = pstruct.A;
-                        c = pstruct.c; 
-                        xi = round(x);
-                        yi = round(y);
-                        xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-                        yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                        curAmpTotal = curImg(yRange,xRange);
-                        curAmpTotal = mean(curAmpTotal(:));
-                        curTrack.xCoord(ii) = x;
-                        curTrack.yCoord(ii) = y;
-                        curTrack.amp(ii) = A;
-                        curTrack.bkgAmp(ii) = c;
-                        curTrack.ampTotal(ii) =  curAmpTotal;
-                        curTrack.presence(ii) =  1;
-                        curTrack.sigma(ii) = curSigma;
-                        if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
-                            curTrack.state(ii) = 2; %'NA';
-                        end
-%                         if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
-%                             curTrack.state{ii} = 'NA';
+%                 p=-1; %This seems waisting the time. Now I am skipping...
+%                 while p<=30
+%                     oldP = p;
+%                     p=p+1;
+%                     pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
+%                     curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+%                     curSigma = sigma*(20-p)/20; % increasing sigma by 5 percent per each iteration
+%                     pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac');
+%                     if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
+%                         x = pstruct.x;
+%                         y = pstruct.y;
+%                         A = pstruct.A;
+%                         c = pstruct.c; 
+%                         xi = round(x);
+%                         yi = round(y);
+%                         xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+%                         yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+%                         curAmpTotal = curImg(yRange,xRange);
+%                         curAmpTotal = mean(curAmpTotal(:));
+%                         curTrack.xCoord(ii) = x;
+%                         curTrack.yCoord(ii) = y;
+%                         curTrack.amp(ii) = A;
+%                         curTrack.bkgAmp(ii) = c;
+%                         curTrack.ampTotal(ii) =  curAmpTotal;
+%                         curTrack.presence(ii) =  1;
+%                         curTrack.sigma(ii) = curSigma;
+%                         if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
+%                             curTrack.state(ii) = 2; %'NA';
+%                             break
 %                         end
-                        break
-                    end
-                end
+%                     end
+%                 end
                 % It is a rare case, but it is possible that at some point
                 % there is no significant point source detected during this
                 % re-tracking. In this case, we change the curEndingFrame

@@ -71,12 +71,17 @@ slaveSource=ip.Results.slaveSource;
                 curSlave(curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra) = ...
                  getfield(curTrack,{1},slaveSource,{curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra});
                 %                 curForce(isnan(curForce)) = [];
-                sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
-                sCurForce_sd=ppval(sCurForce_spline,tRange);
-                sCurForce_sd(isnan(curSlave))=NaN;
-%                 sCurForce = [NaN(1,numNan) sCurForce];
-                bkgMaxForce = nanmax(sCurForce_sd(sF10before:sF5before));
-                firstIncreseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);
+                if sum(~isnan(curSlave))>1
+                    sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
+                    sCurForce_sd=ppval(sCurForce_spline,tRange);
+                    sCurForce_sd(isnan(curSlave))=NaN;
+    %                 sCurForce = [NaN(1,numNan) sCurForce];
+                    bkgMaxForce = nanmax(sCurForce_sd(sF10before:sF5before));
+                    firstIncreseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);
+                else
+                    bkgMaxForce = NaN;
+                    firstIncreseTimeForce = NaN;
+                end
             else
                 bkgMaxForce = max(curTrack.forceMag(sF10before:sF5before));
                 firstIncreseTimeForce = find(getfield(curTrack,slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
