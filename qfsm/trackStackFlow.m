@@ -160,6 +160,7 @@ end % we don't need this any more.
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
 % inqryPoint=find(inqryLogicInd);
+% inqryPoint=3100;
 % for k = inqryPoint'
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 parfor k = 1:nPoints
