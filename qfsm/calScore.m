@@ -202,7 +202,7 @@ elseif min(min(kymMask(:,:,1))) == 1 || min(min(kymMask(:,:,1))) == 0
 
     if numFrames == 2 % For image stack of 2, fft-based crosscorrelation is faster and make 
         % the correlation less sensitive to bright region in template window - Sangyoon
-        score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
+        score_nxc2 = xcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames)); %normxcorr2
         score = score_nxc2(K1:N1,K2:N2); % normalized
     else
         for j1 = 1:length(vP)
@@ -212,11 +212,11 @@ elseif min(min(kymMask(:,:,1))) == 1 || min(min(kymMask(:,:,1))) == 0
                 corrM = kym(bI1,bI2,1:numFrames-1).* ...
                     kym(bI1+v1,bI2+v2,2:numFrames);
 
-                %The norm of the shifted image band at each frame.
-                bNorm2 = sqrt(sum(sum(sum(kymP2(bI1+v1,bI2+v2,2:numFrames)))));
+%                 %The norm of the shifted image band at each frame.
+%                 bNorm2 = sqrt(sum(sum(sum(kymP2(bI1+v1,bI2+v2,2:numFrames)))));
 
                 %Normalize the correlation coefficients.
-                score(j1,j2) = sum(corrM(:))/bNorm1/bNorm2;
+                score(end-j1+1,end-j2+1) = sum(corrM(:)); %/bNorm1/bNorm2;
             end
         end
     end

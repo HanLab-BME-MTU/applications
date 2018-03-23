@@ -134,40 +134,6 @@ L=length(num2str(nPoints));
 strg=sprintf('%%.%dd',L);
 backSpc =repmat('\b',1,L);
 
-% if usePIVSuite
-%     disp('Performing PIV as a prestep...'); tic;
-%     pivPar = [];      % variable for settings
-%     pivData = [];     % variable for storing results
-% 
-%     [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
-%     % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
-%     nextPow2=nextpow2(minCorL);
-%     BiggestSize=2^(nextPow2+1);
-%     SecondSize=2^(nextPow2);
-%     ThirdSize=2^(nextPow2-1);
-%     FourthSize=2^(nextPow2-2);
-%     pivPar.iaSizeX = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
-%     pivPar.iaStepX = [SecondSize SecondSize ThirdSize FourthSize];     % grid spacing of velocity vectors in X
-%     pivPar.iaSizeY = [BiggestSize SecondSize ThirdSize ThirdSize];     % size of interrogation area in X 
-%     pivPar.iaStepY = [SecondSize SecondSize ThirdSize FourthSize];    % grid spacing of velocity vectors in X
-% 
-%     pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
-%     pivPar.smMethod = 'none';
-%     pivPar.iaMethod = 'defspline';
-%     pivPar.iaImageInterpolationMethod = 'spline';
-%     pivPar.imMask1=bgMask(:,:,1);
-%     pivPar.imMask2=bgMask(:,:,2);
-% 
-%     [pivData] = pivAnalyzeImagePair(stack(:,:,1),stack(:,:,2),pivData,pivPar);
-%     validV = ~isnan(pivData.V);
-% 
-%     pivPos=[pivData.X(validV), pivData.Y(validV)];
-%     pivVec=[pivData.U(validV), pivData.V(validV)];
-%     toc
-% else
-%     pivPos=[]; pivVec=[];
-% end
-
 %Calculate the correlation coefficient for each sampling velocity at
 % each point.
 startTime = clock;
@@ -384,15 +350,15 @@ parfor k = 1:nPoints
 %                         if length(vP)~=length(vP2) || length(vF)~=length(vF2)
 %                             zeroI = [find(vP2==0) find(vF2==0)];
 %                         end
-%                         if max(length(vF),length(vP))>161 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
-%                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit*1.1);
-%                         elseif max(length(vF),length(vP))>81 %applying more generous threshold for higher velocity
-%                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit*1.05);
-%                         elseif max(length(vF),length(vP))>41 %applying more generous threshold for higher velocity
-%                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
-%                         else
+                        if max(length(vF),length(vP))>321 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.2);
+                        elseif max(length(vF),length(vP))>161 %applying more generous threshold for higher velocity
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.1);
+                        elseif max(length(vF),length(vP))>81 %applying more generous threshold for higher velocity
                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
-%                         end
+                        else
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
+                        end
                         if pass2 == 1
                             % This part can be really costly. We can directly
                             % compare locMaxV and choose the index that gives
