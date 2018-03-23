@@ -121,54 +121,52 @@ if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if feature('ShowFigureWindows'),parfor_progress(nFrames); end
 
 outlierThreshold=p.outlierThreshold;
-parfor j= 1:nFrames
-% for j= 1:nFrames
-    % Outlier detection
-    dispMat = [displField(j).pos displField(j).vec];
-    % Take out duplicate points (Sangyoon)
-    [dispMat,~,~] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
-    displField(j).pos=dispMat(:,1:2);
-    displField(j).vec=dispMat(:,3:4);
+if useGrid
+    disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
+else
+%     parfor j= 1:nFrames
+    for j= 1:nFrames
+        % Outlier detection
+        dispMat = [displField(j).pos displField(j).vec];
+        % Take out duplicate points (Sangyoon)
+        [dispMat,~,~] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
+        displField(j).pos=dispMat(:,1:2);
+        displField(j).vec=dispMat(:,3:4);
 
-    if ~isempty(outlierThreshold)
-        if useGrid
-            if j==1
-                disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
-            end
-        else
+        if ~isempty(outlierThreshold)
             [outlierIndex,sparselyLocatedIdx,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold,1);
             %displField(j).pos(outlierIndex,:)=[];
             %displField(j).vec(outlierIndex,:)=[];
             dispMat(outlierIndex,3:4)=NaN;
             dispMat(sparselyLocatedIdx,3:4)=NaN;
-        end
-        % I deleted this part for later gap-closing
-        % Filter out NaN from the initial data (but keep the index for the
-        % outliers)
-%         ind= ~isnan(dispMat(:,3));
-%         dispMat=dispMat(ind,:);
- 
-        displField(j).pos=dispMat(:,1:2);
-        displField(j).vec=dispMat(:,3:4);
+            % I deleted this part for later gap-closing
+            % Filter out NaN from the initial data (but keep the index for the
+            % outliers)
+    %         ind= ~isnan(dispMat(:,3));
+    %         dispMat=dispMat(ind,:);
 
-        % I deleted this part because artificially interpolated vector can
-        % cause more error or false force. - Sangyoon June 2013
-%         % Filling all NaNs with interpolated displacement vectors -
-%         % We also calculate the interpolated displacements with a bigger correlation length.
-%         % They are considered smoothed displacements at the data points. Sangyoon
-%         dispMat = [dispMat(:,2:-1:1) dispMat(:,2:-1:1)+dispMat(:,4:-1:3)];
-%         intDisp = vectorFieldSparseInterp(dispMat,...
-%             displField(j).pos(:,2:-1:1),...
-%             pd.minCorLength,pd.minCorLength,[],true);
-%         displField(j).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
+            displField(j).pos=dispMat(:,1:2);
+            displField(j).vec=dispMat(:,3:4);
+
+            % I deleted this part because artificially interpolated vector can
+            % cause more error or false force. - Sangyoon June 2013
+    %         % Filling all NaNs with interpolated displacement vectors -
+    %         % We also calculate the interpolated displacements with a bigger correlation length.
+    %         % They are considered smoothed displacements at the data points. Sangyoon
+    %         dispMat = [dispMat(:,2:-1:1) dispMat(:,2:-1:1)+dispMat(:,4:-1:3)];
+    %         intDisp = vectorFieldSparseInterp(dispMat,...
+    %             displField(j).pos(:,2:-1:1),...
+    %             pd.minCorLength,pd.minCorLength,[],true);
+    %         displField(j).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
+        end
+
+        % Update the waitbar
+    %     if mod(j,5)==1 && feature('ShowFigureWindows')
+    %         tj=toc;
+    %         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+    %     end
+        if feature('ShowFigureWindows'), parfor_progress; end
     end
-    
-    % Update the waitbar
-%     if mod(j,5)==1 && feature('ShowFigureWindows')
-%         tj=toc;
-%         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
-%     end
-    if feature('ShowFigureWindows'), parfor_progress; end
 end
 if feature('ShowFigureWindows'), parfor_progress(0); end
 
@@ -248,23 +246,25 @@ if p.fillVectors
         end
     end
     %Filtering again
-    parfor j= 1:nFrames
-        % Outlier detection
-        dispMat = [displField(j).pos displField(j).vec];
-        % Take out duplicate points (Sangyoon)
-        [dispMat,~,~] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
-        displField(j).pos=dispMat(:,1:2);
-        displField(j).vec=dispMat(:,3:4);
+    if ~useGrid
+        parfor j= 1:nFrames
+            % Outlier detection
+            dispMat = [displField(j).pos displField(j).vec];
+            % Take out duplicate points (Sangyoon)
+            [dispMat,~,~] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
+            displField(j).pos=dispMat(:,1:2);
+            displField(j).vec=dispMat(:,3:4);
 
-        [outlierIndex,sparselyLocatedIdx] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold*3,1);
-        %displField(j).pos(outlierIndex,:)=[];
-        %displField(j).vec(outlierIndex,:)=[];
-        dispMat(outlierIndex,3:4)=NaN;
-        dispMat(sparselyLocatedIdx,3:4)=NaN;
+            [outlierIndex,sparselyLocatedIdx] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold*3,1);
+            %displField(j).pos(outlierIndex,:)=[];
+            %displField(j).vec(outlierIndex,:)=[];
+            dispMat(outlierIndex,3:4)=NaN;
+            dispMat(sparselyLocatedIdx,3:4)=NaN;
 
-        displField(j).pos=dispMat(:,1:2);
-        displField(j).vec=dispMat(:,3:4);
-        if feature('ShowFigureWindows'), parfor_progress; end
+            displField(j).pos=dispMat(:,1:2);
+            displField(j).vec=dispMat(:,3:4);
+            if feature('ShowFigureWindows'), parfor_progress; end
+        end
     end
     if feature('ShowFigureWindows'), parfor_progress(0); end
 end
