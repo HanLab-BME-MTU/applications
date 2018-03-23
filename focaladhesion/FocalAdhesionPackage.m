@@ -139,8 +139,8 @@ classdef FocalAdhesionPackage < Package
                  0 2 2 0 0 0 0 0 0 0 0;  %6 FocalAdhesionSegmentationProcess
                  2 0 1 1 1 1 0 0 0 0 0;  %7 AnalyzeAdhesionMaturationProcess
                  0 0 2 1 1 1 1 0 0 0 0;  %8 AdhesionClassificationProcess
-                 0 0 0 0 0 0 1 2 0 0 0;  %9 TheOtherChannelReadingProcess
-                 0 0 0 0 0 0 1 2 2 0 0;  %10 TractionForceReadingProcess
+                 0 0 0 0 0 0 1 0 0 0 0;  %9 TheOtherChannelReadingProcess
+                 0 0 0 0 0 0 1 0 0 0 0;  %10 TractionForceReadingProcess
                  0 0 0 0 0 0 1 2 2 2 0]; %11 InitialRiseTimeLagCalculationProcess
 
             if nargin<2, j=1:size(m,2); end

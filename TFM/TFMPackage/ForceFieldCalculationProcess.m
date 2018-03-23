@@ -120,7 +120,11 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                             cur_tMapY = s.tMapY{ii};
                             tMapMap(:,:,ii) = cur_tMap;
                             if ii==1 && strcmpi(obj.funParams_.method,'FastBEM')
-                                cur_fCfdMap = s.fCfdMap{ii};
+                                try
+                                    cur_fCfdMap = s.fCfdMap;
+                                catch
+                                    cur_fCfdMap = s.fCfdMap{ii};
+                                end
                                 save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY','cur_fCfdMap'); % I removed v7.3 option to save the space,'-v7.3');
                             else
                                 save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY'); % I removed v7.3 option to save the space,'-v7.3');

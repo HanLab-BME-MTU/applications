@@ -56,7 +56,7 @@ end
 if ~isfield(tracksNA,'MSDrate')
     tracksNA(end).MSDrate=[];
 end
-parfor k=1:numTracks
+for k=1:numTracks
     % cross-correlation scores
 %     presIdx = logical(curTrack.presence);
     % get the instantaneous velocity
@@ -105,10 +105,10 @@ parfor k=1:numTracks
     curTrack=tracksNA(k);
     % lifetime information
     try
-        sFextend=tracksNA(k).startingFrameExtraExtra;
-        eFextend=tracksNA(k).endingFrameExtraExtra;
-        sF=tracksNA(k).startingFrameExtra;
-        eF=tracksNA(k).endingFrameExtra;
+        sFextend=curTrack.startingFrameExtraExtra;
+        eFextend=curTrack.endingFrameExtraExtra;
+        sF=curTrack.startingFrameExtra;
+        eF=curTrack.endingFrameExtra;
         if isempty(sF)
             sF=tracksNA(k).startingFrame;
         end
@@ -151,11 +151,15 @@ parfor k=1:numTracks
     
 %     [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame));
     nSampleStart=min(9,floor((maxSdInd)/2));
-    if nSampleStart>4 && ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd)) && ...
-            mean(curAmpTotal(1:nSampleStart))<mean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
-        [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
-            log(curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame)/...
-            curTrack.ampTotal(curTrack.startingFrameExtra)));
+    if ~all(isnan(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))) && ~all(isnan(curAmpTotal(1:nSampleStart)))
+        if nSampleStart>4 && ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd)) && ...
+                nanmean(curAmpTotal(1:nSampleStart))<nanmean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
+            [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
+                log(curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame)/...
+                curTrack.ampTotal(curTrack.startingFrameExtra)));
+        else
+            assemRate = NaN;
+        end
     else
         assemRate = NaN;
     end
@@ -216,7 +220,18 @@ parfor k=1:numTracks
         try
             fitobj = fit(curTrack.xCoord(sF:eF)',curTrack.yCoord(sF:eF)','poly1'); % this is an average linear line fit of the adhesion track
         catch
-            curTrack=readIntensityFromTracks(curTrack,imgStack,1,'extraLength',30,'movieData',MD,'retrack',reTrack);
+            % This means fitting a line with the track has failed, highly
+            % likely due to too short track lifetime or too variable
+            % lacations or having NaNs
+            curX = curTrack.xCoord(sF:eF); curY=curTrack.yCoord(sF:eF);
+            indNaNX = isnan(curX);
+            t = 1:length(curX);
+            t_nn = t(~indNaNX);
+            curX2 = interp1(t_nn,curX(~indNaNX),t,'linear');
+            curY2 = interp1(t_nn,curY(~indNaNX),t,'linear');
+            
+            fitobj = fit(curX2',curY2','poly1'); % this is an average linear line fit of the adhesion track
+%             curTrack=readIntensityFromTracks(curTrack,imgStack,1,'extraLength',30,'movieData',MD,'retrack',reTrack);
         end
         x0=nanmedian(curTrack.xCoord);
         y0=fitobj(x0);
