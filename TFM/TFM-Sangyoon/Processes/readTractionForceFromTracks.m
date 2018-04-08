@@ -95,7 +95,12 @@ iForceFieldProc = 4;
 forceFieldProc=TFMPackage.processes_{iForceFieldProc};
 forceFieldStruct=load(forceFieldProc.outFilePaths_{1});
 forceField = forceFieldStruct.forceField;
-forceFieldShifted = forceFieldStruct.forceFieldShifted;
+% Backward compatibility
+try
+    forceFieldShifted = forceFieldStruct.forceFieldShifted;
+catch
+    forceFieldShifted = [];
+end
 
 disp('Reading traction map...')
 tic
@@ -111,6 +116,7 @@ tMapIn=forceFieldProc.loadChannelOutput('output','tMap');
 iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
 FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
 SDCProc_FA=FAPackage.processes_{iSDCProc};
+nFrames = MD.nFrames_;
 %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
 if ~isempty(SDCProc_FA)
     s = load(SDCProc_FA.outFilePaths_{3,iBeadChan},'T');    
@@ -128,7 +134,6 @@ if ~isempty(SDCProc_TFM)
 else
     T_TFM = zeros(nFrames,2);
 end
-nFrames = MD.nFrames_;
 [h,w,~] = size(tMapIn); 
 tMap = zeros(h,w,nFrames);
 
@@ -140,8 +145,10 @@ for ii=1:nFrames
     tMap(:,:,ii) = cur_tMap;
     forceField(ii).pos(:,1) = forceField(ii).pos(:,1)+cur_T(2);
     forceField(ii).pos(:,2) = forceField(ii).pos(:,2)+cur_T(1);
-    forceFieldShifted(ii).pos(:,1) = forceFieldShifted(ii).pos(:,1)+cur_T(2);
-    forceFieldShifted(ii).pos(:,2) = forceFieldShifted(ii).pos(:,2)+cur_T(1);
+    if ~isempty(forceFieldShifted)
+        forceFieldShifted(ii).pos(:,1) = forceFieldShifted(ii).pos(:,1)+cur_T(2);
+        forceFieldShifted(ii).pos(:,2) = forceFieldShifted(ii).pos(:,2)+cur_T(1);
+    end
 end
 clear tMapIn
 %% Filter out tracks that is out of traction field

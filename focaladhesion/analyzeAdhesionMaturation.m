@@ -760,6 +760,8 @@ metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
 metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
 metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
 save(dataPath_tracksNA,'metaTrackData')
+%% debug
+% save(dataPath_tracksNA,'tracksNA')
 %% NA FA Density analysis
 numNAs = zeros(nFrames,1);
 numNAsInBand = zeros(nFrames,1);

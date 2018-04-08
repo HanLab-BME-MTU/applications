@@ -48,7 +48,7 @@ halfHeight=2;
 % end
     
 % parfor_progress(numTracks);
-% progressText(0,'Re-reading and tracking individual tracks'); %, 'Adhesion Analysis');
+progressText(0,'Re-reading and tracking individual tracks', 'Adhesion Analysis');
 % progressbar
 
 %% Field creation before running parfor
@@ -80,8 +80,8 @@ elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
 end    
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
-parfor k=1:numTracks
-% for k=1:numTracks
+% parfor k=1:numTracks
+for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
@@ -430,7 +430,7 @@ parfor k=1:numTracks
     % tk = toc;
     % waitbar(k/(numTracks), wtBar, sprintf([logMsg(0) timeMsg(tk*(numTracks/k)-tk)]));
 %     parfor_progress;
-%     progressText(k/(numTracks));
+    progressText(k/(numTracks));
 end
 end
 %         for ii=startFrame:endFrame
