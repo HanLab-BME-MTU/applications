@@ -115,13 +115,18 @@ SDCProc_FA=FAPackage.processes_{iSDCProc};
 if ~isempty(SDCProc_FA)
     s = load(SDCProc_FA.outFilePaths_{3,iBeadChan},'T');    
     T_FA = s.T;
+else
+    T_FA = zeros(nFrames,2);
 end
+
 SDCProc_TFM=TFMPackage.processes_{iSDCProc};
 %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
 if ~isempty(SDCProc_TFM)
     iBeadChan = 1; % might need to be updated based on asking TFMPackage..
     s = load(SDCProc_TFM.outFilePaths_{3,iBeadChan},'T');    
     T_TFM = s.T;
+else
+    T_TFM = zeros(nFrames,2);
 end
 nFrames = MD.nFrames_;
 [h,w,~] = size(tMapIn); 
