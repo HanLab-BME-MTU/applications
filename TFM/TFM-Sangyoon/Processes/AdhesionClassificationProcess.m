@@ -370,7 +370,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             funParams.trackFAProc = []; % Specify FA tracking Process index`````
             funParams.FAsegProc = []; % Specify FA segmentation Process index           
 
-            funParams.labeledData=[];
+            funParams.labelData=[];
             funParams.useAutomaticallySelectedData = true;
             funParams.manualLabeling=false;
             funParams.useSimpleClassification=false;
