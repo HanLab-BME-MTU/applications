@@ -7,25 +7,54 @@ if ~ischar(pathSFolders) && pathSFolders==0
     while ~analysisFolderSelectionDone
         ii=ii+1;
         curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        if ~ischar(curPathProject) && curPathProject==0
+        if ~ischar(curPathProject) || curPathProject==0
             analysisFolderSelectionDone=true;
         else
             [~,finalFolder] = fileparts(curPathProject);
             pathAnalysisAll{ii} = curPathProject;
             groupNames{ii} = finalFolder;
+            MLNames{ii} = 'movieList.mat';
+        end
+    end
+    if analysisFolderSelectionDone && ii==1
+        MLSelectionDone = false;
+        ii=0;
+        while ~MLSelectionDone
+            ii=ii+1;
+            [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
+            if ~ischar(curPathML) || isempty(curPathML)
+                MLSelectionDone=true;
+            else
+                curML = load(fullfile(curPathML,nameML),'ML'); curML=curML.ML;
+                pathAnalysisAll{ii} = curML.getPath;
+                try
+                    groupNames{ii} = nameML(10:end-4); %Excluding first 'movieList' and last '.mat'
+                catch % when movieList is just movieList.mat, use the name of the containing folder
+                    [~,finalFolder] = fileparts(pathAnalysisAll{ii});
+                    groupNames{ii} = finalFolder;
+                end
+                MLNames{ii} = nameML;
+            end
         end
     end
     specificName = strjoin(groupNames);
+    rootAnalysis = pathAnalysisAll{1};
+    save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames')
 else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
+    try
+        MLNames = selectedFolders.MLNames;
+    catch
+        MLNames = cellfun(@(x) 'movieList.mat',selectedFolders.pathAnalysisAll,'unif',false);
+    end
 end
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
 
 for k=1:numConditions
-    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep 'movieList.mat']);
+    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
 end
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
@@ -271,17 +300,17 @@ for ii=1:numConditions
             initOutFolder = fileparts(initRiseProc.outFilePaths_{2,iForceSlave});
             initDataPath = [initOutFolder filesep 'data'];
             
-            nameTitle=['initialLag_Class' num2str(pp)];
+            nameTitle=['initialLag Class' num2str(pp)];
             initRiseStruct = load([initDataPath filesep nameTitle],'initialLagTogetherAdjusted','nameList2');   
             curInitTimeLag=initRiseStruct.initialLagTogetherAdjusted;
             initRiseAgainstForceEachClass{pp}{k} = curInitTimeLag;
             
-            nameTitle=['peakLag_Class' num2str(pp)];
+            nameTitle=['peakLag Class' num2str(pp)];
             peakStruct = load([initDataPath filesep nameTitle],'peakLagTogetherAdjusted','nameList2');   
             curPeakTimeLag=peakStruct.peakLagTogetherAdjusted;
             peakTimeAgainstForceEachClass{pp}{k} = curPeakTimeLag;
             
-            nameTitle=['endingLag_Class' num2str(pp)];
+            nameTitle=['endingLag Class' num2str(pp)];
             endTimeStruct = load([initDataPath filesep nameTitle],'endingLagTogetherAdjusted','nameList2');   
             curEndTimeLag=endTimeStruct.endingLagTogetherAdjusted;
             endTimeAgainstForceEachClass{pp}{k} = curEndTimeLag;
@@ -338,10 +367,10 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-for ii=1:numConditions
-    [~, finalFolder]=fileparts(pathAnalysisAll{ii});
-    groupNames{ii} = finalFolder;
-end
+% for ii=1:numConditions
+%     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
+%     groupNames{ii} = finalFolder;
+% end
 %% Plotting each - initRiseGroup - all classes
 nameList=groupNames'; %{'pLVX' 'P29S'};
 for curGroup=1:9
