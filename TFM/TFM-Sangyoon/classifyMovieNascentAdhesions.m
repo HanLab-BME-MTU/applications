@@ -723,7 +723,7 @@ else
         % Get the unique resonses
         totalGroups = unique(response);
 
-        figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
+        confFig=figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
         set(confAxis,'xtick',1:size(C,1))
         set(confAxis,'xticklabel',order')
         set(confAxis,'XTickLabelRotation',45)
@@ -734,9 +734,9 @@ else
 
         c = colorbar;
         c.Label.String = 'normalized prediction';
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'confusionMatrix.eps']);
-        savefig([p.OutputDirectory filesep 'figs' filesep 'confusionMatrix.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'confusionMatrix.tif'])
+        print(confFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'confusionMatrix.eps']);
+        savefig(confFig,[p.OutputDirectory filesep 'figs' filesep 'confusionMatrix.fig'])
+        print(confFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'confusionMatrix.tif'])
     %     while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
     %         disp('Validation accuracy was low. Group reduction is needed.')
     %         interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
@@ -772,16 +772,16 @@ else
         for ii = 1 : size(features,2)
             features(:,ii) = (features(:,ii) - min(features(:,ii)))./(max(features(:,ii)) - min(features(:,ii)));
         end
-        figure; imagesc(features');hold on
+        featFig=figure; imagesc(features');hold on
         c = colorbar;
         c.Label.String = 'feature value';
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'featureSpace.eps']);
-        savefig(outFilePaths{2,p.ChannelIndex})
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'featureSpace.tif'])
+        print(featFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'featureSpace.eps']);
+        savefig(featFig, outFilePaths{2,p.ChannelIndex})
+        print(featFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'featureSpace.tif'])
 
         D = pdist(features);
         D1 =  squareform(D);
-        figure; imagesc(D1);
+        similDataFig=figure; imagesc(D1);
         title('similarityAmongTrainedData')
         c = colorbar;
         c.Label.String = 'p-dist';
@@ -792,20 +792,21 @@ else
             w = sum(strcmp(species,totalGroups{ii}));
             rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
         end
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
+        print(similDataFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
     %     savefig([p.OutputDirectory filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongTrainedData.tif'])
+        print(similDataFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongTrainedData.tif'])
 %         close
 
         Dfeats = pdist(features');
         Dfeats1 =  squareform(Dfeats);
-        figure; imagesc(Dfeats1); title('similarityAmongFeatures')
+        dfeatFig=figure; imagesc(Dfeats1); title('similarityAmongFeatures')
+        shading flat
         c = colorbar;
         c.Label.String = 'p-dist';
 
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongFeatures.eps']);
+        print(dfeatFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongFeatures.eps']);
     %     savefig([p.OutputDirectory filesep 'figs' filesep 'similarityAmongFeatures.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongFeatures.tif'])
+        print(dfeatFig, '-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongFeatures.tif'])
 %         close
         [~,allData] = extractFeatureNA(tracksNA,[],2,MD);
 
@@ -934,7 +935,7 @@ else
     allDataClass(idGroup8)={'Group8'};
     allDataClass(idGroup9)={'Group9'};
     iFrameInterest=min(81,MD.nFrames_);
-    figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
+    mapFig = figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
     [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],10);
     classNames={'G1: turn-over','G2: maturing','G3: moving along protruding edge',...
         'G4: retracting','G5: stable at the edge','G6: noise or very transient','G7: adhesions at stalling edge','G8: strong stable adhesion', 'G9: weak stable adhesion inside'};
@@ -955,9 +956,9 @@ else
 %         tableTracksNA = struct2table(tracksNA);
 %         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 
     else
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.eps']);
-        savefig([p.OutputDirectory filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.tif'])
+        print(mapFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.eps']);
+        savefig(mapFig,[p.OutputDirectory filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.fig'])
+        print(mapFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.tif'])
         save(outFilePaths{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
 %         tableTracksNA = struct2table(tracksNA);
 %         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 
