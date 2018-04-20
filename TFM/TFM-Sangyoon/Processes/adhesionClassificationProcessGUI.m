@@ -56,26 +56,25 @@ userData.checkBoxes = {'autoLabeling','manLabeling'};
 
 % Set-up parameters
 % set(handles.listbox_selectedChannels, 'Value', funParams.ChannelIndex);
-
-for kk=1:3
-    if kk<=numel(funParams.labelData) && ~isempty(funParams.labelData{kk})
-        switch kk
-            case 1
-                set(handles.edit_sampleGroup1, 'String', funParams.labelData{kk});
-            case 2
-                set(handles.edit_sampleGroup2, 'String', funParams.labelData{kk});
-            case 3
-                set(handles.edit_sampleGroup3, 'String', funParams.labelData{kk});
+if ~isempty(funParams.labelData)
+    for kk=1:3
+        if kk<=numel(funParams.labelData) && ~isempty(funParams.labelData{kk})
+            switch kk
+                case 1
+                    set(handles.edit_sampleGroup1, 'String', funParams.labelData{kk});
+                case 2
+                    set(handles.edit_sampleGroup2, 'String', funParams.labelData{kk});
+                case 3
+                    set(handles.edit_sampleGroup3, 'String', funParams.labelData{kk});
+            end
         end
     end
-end
-                        
+end                   
 % Set edit strings/numbers
 
 % Set edit strings/numbers
-for paramName = userData.checkBoxes
-    set(handles.checkbox_useSimpleFiltering, 'Value', funParams.(paramName{1}));
-end
+set(handles.checkbox_autoLabeling, 'Value', funParams.useAutomaticallySelectedData);
+set(handles.checkbox_manLabeling, 'Value', funParams.manualLabeling);
 set(handles.checkbox_useSimpleFiltering, 'Value', funParams.useSimpleClassification);
 
 % Update GUI user data

@@ -338,7 +338,7 @@ classdef FocalAdhesionPackage < Package
         end
         %% getDefaultInitialRiseTimeLagCalculation
         function funParams = getDefaultInitialRiseTimeLagCalculationParams(owner, outputDir)
-            funParams = getDefaultInitialRiseTimeLagCalculationProcess.getDefaultParams(owner, outputDir);
+            funParams = InitialRiseTimeLagCalculationProcess.getDefaultParams(owner, outputDir);
         end
     end
 end

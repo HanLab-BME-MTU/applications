@@ -96,7 +96,11 @@ area(area==0) = -1;
 area(isnan(area)) = -1;
 
 % Ending with FA association
-lastFAFrame = arrayfun(@(x) find(x.state==3 | x.state==4, 1, 'last'),tracksNA,'unif',false);
+try
+    lastFAFrame = arrayfun(@(x) find(x.state==3 | x.state==4, 1, 'last'),tracksNA,'unif',false);
+catch
+    lastFAFrame = arrayfun(@(x) find(strcmp(x.state,'FC') | strcmp(x.state,'FA'), 1, 'last'),tracksNA,'unif',false);
+end
 lastFAFrame(cellfun(@isempty,lastFAFrame))={0};
 lastFAFrame = cell2mat(lastFAFrame);
 FAfinishing = arrayfun(@(x) x.endingFrameExtra,tracksNA)-lastFAFrame;

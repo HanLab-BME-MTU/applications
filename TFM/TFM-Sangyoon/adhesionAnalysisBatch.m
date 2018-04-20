@@ -112,7 +112,8 @@ ylabel('FA area (um^2)')
 hgexport(h1,strcat(figPath,'/FAarea'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAarea'),'-v7.3')
 
-tableFAarea=table(FAareaCell,'RowNames',nameList);
+FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
+tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% FA area - boxplot
 h1=figure; 
@@ -185,7 +186,8 @@ ylabel('FA length (um)')
 hgexport(h1,strcat(figPath,'/FAlengthBoxPlot'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAlengthBoxPlot'),'-v7.3')
 
-tableFAlength=table(FAlenthCell,'RowNames',nameList);
+FAlenthCellConverted = cellfun(@(x) x*convertL, FAlenthCell,'unif',false);
+tableFAlength=table(FAlenthCellConverted,'RowNames',nameList);
 writetable(tableFAlength,strcat(dataPath,'/FAlength.csv'))
 %% Ratio of FA over NA
 FAtoNAratio = cell(numConditions,1);

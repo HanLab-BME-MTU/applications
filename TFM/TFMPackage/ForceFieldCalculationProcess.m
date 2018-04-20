@@ -101,6 +101,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
                 if isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)
+                    tMapMap = [];
                     s = load(obj.outFilePaths_{iOut},outputList{5}); %This will need to be changed if one really wants to see tMapX or tMapY
                     tMapObj = s.(outputList{5});
                     fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
@@ -116,8 +117,14 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         s = load(obj.outFilePaths_{iOut});
                         for ii = obj.owner_.nFrames_:-1:1
                             cur_tMap = s.tMap{ii};
-                            cur_tMapX = s.tMapX{ii};
-                            cur_tMapY = s.tMapY{ii};
+                            %backward compatibility
+                            if isfield(s,'tMapX')
+                                cur_tMapX = s.tMapX{ii};
+                                cur_tMapY = s.tMapY{ii};
+                            else
+                                cur_tMapX = [];
+                                cur_tMapY = []; %Later this can be changed to the code that actually generates tMapX and Y.
+                            end   
                             tMapMap(:,:,ii) = cur_tMap;
                             if ii==1 && strcmpi(obj.funParams_.method,'FastBEM')
                                 try

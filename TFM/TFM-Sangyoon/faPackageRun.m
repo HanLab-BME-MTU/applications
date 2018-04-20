@@ -9,10 +9,12 @@ prevProcChanged = false;
 curProcess=cell(1,11);
 for ii=1:11
     curProcess{ii} = FAPackage.getProcess(ii);
-    if ~curProcess{ii}.success_ || curProcess{ii}.procChanged_ || prevProcChanged
-        curProcess{ii}.run
-        MD.save
-        prevProcChanged = true;
+    if ~isempty(curProcess{ii})
+        if ~curProcess{ii}.success_ || curProcess{ii}.procChanged_ || prevProcChanged
+            curProcess{ii}.run
+            MD.save
+            prevProcChanged = true;
+        end
     end
 end
 
