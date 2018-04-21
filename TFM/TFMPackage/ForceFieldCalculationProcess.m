@@ -149,10 +149,19 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         else
                             save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
                         end
-                    else
+                    elseif isfield(tMapObj,'eachTMapName')
                         for ii=obj.owner_.nFrames_:-1:1
                             cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
                             tMapMap(:,:,ii) = cur_tMapObj.cur_tMap;
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                        end
+                    else % very new format
+                        forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
+                        displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
+                        [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField,displField,0);
+                        for ii=obj.owner_.nFrames_:-1:1
+                            tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                            tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                         end
                     end

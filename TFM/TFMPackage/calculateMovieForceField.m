@@ -854,15 +854,15 @@ end
 %% For calculation of traction map and prediction error map
 % The drift-corrected frames should have independent channel
 % ->StageDriftCorrectionProcess
-disp('Creating traction map...')
-tic
-[tMapIn, tmax, tmin, cropInfo,tMapXin,tMapYin] = generateHeatmapShifted(forceField,displField,0);
-disp(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
-toc
-if strcmpi(p.method,'FastBEM')
-    [fCfdMapIn, fCmax, fCmin, cropInfoFC] = generateHeatmapShifted(forceConfidence,displField,0);
-    fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
-end
+disp('Creating traction map...: Decided to skip this to save the memory')
+% tic
+% [tMapIn, tmax, tmin, cropInfo,tMapXin,tMapYin] = generateHeatmapShifted(forceField,displField,0);
+% disp(['Estimated traction maximum = ' num2str(tmax) ' Pa.'])
+% toc
+% if strcmpi(p.method,'FastBEM')
+%     [fCfdMapIn, fCmax, fCmin, cropInfoFC] = generateHeatmapShifted(forceConfidence,displField,0);
+%     fCfdMapIn{1} = fCfdMapIn{1}/max(fCfdMapIn{1}(:));
+% end
 % display(['Displacement error minimum = ' num2str(dEmax) ' pixel.'])
 
 % for ii=frameSequence
@@ -880,34 +880,34 @@ disp('Writing traction maps ...')
 % fCfdMap = cell(1,1); %force confidence
 
 % Set up the output directories
-outputDir = fullfile(p.OutputDirectory,'tractionMaps');
-mkClrDir(outputDir);
-fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
-numStr = @(frame) num2str(frame,fString);
-outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+% outputDir = fullfile(p.OutputDirectory,'tractionMaps');
+% mkClrDir(outputDir);
+% fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+% numStr = @(frame) num2str(frame,fString);
+% outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
 
 % distBeadMap = cell(1,nFrames);
 for ii=frameSequence
     % starts with original size of beads
-    cur_tMap = zeros(size(firstMask));
-    cur_tMapX = zeros(size(firstMask));
-    cur_tMapY = zeros(size(firstMask));
-%     cur_distBeadMap = zeros(size(firstMask));
-    cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii};
-    cur_tMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapXin{ii};
-    cur_tMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapYin{ii};
+%     cur_tMap = zeros(size(firstMask));
+%     cur_tMapX = zeros(size(firstMask));
+%     cur_tMapY = zeros(size(firstMask));
+% %     cur_distBeadMap = zeros(size(firstMask));
+%     cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii};
+%     cur_tMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapXin{ii};
+%     cur_tMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapYin{ii};
 %     cur_distBeadMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = distBeadMapIn{ii};
 %     tMap{ii} = cur_tMap;
 %     tMapX{ii} = cur_tMapX;
 %     tMapY{ii} = cur_tMapY;
-    if ii==1 && strcmpi(p.method,'FastBEM')
-        cur_fCfdMap = zeros(size(firstMask));
-        cur_fCfdMap(cropInfoFC(2):cropInfoFC(4),cropInfoFC(1):cropInfoFC(3)) = fCfdMapIn{ii};
-%         fCfdMap = cur_fCfdMap;
-        save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY','cur_fCfdMap'); % I removed v7.3 option to save the space,'-v7.3');
-    else
-        save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY'); % I removed v7.3 option to save the space,'-v7.3');
-    end     
+%     if ii==1 && strcmpi(p.method,'FastBEM')
+%         cur_fCfdMap = zeros(size(firstMask));
+%         cur_fCfdMap(cropInfoFC(2):cropInfoFC(4),cropInfoFC(1):cropInfoFC(3)) = fCfdMapIn{ii};
+% %         fCfdMap = cur_fCfdMap;
+%         save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY','cur_fCfdMap'); % I removed v7.3 option to save the space,'-v7.3');
+%     else
+%         save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY'); % I removed v7.3 option to save the space,'-v7.3');
+%     end     
 %     distBeadMap{ii} = cur_distBeadMap;
     % Shifted forceField vector field
     curDispVec = displField(ii).vec;
@@ -933,20 +933,28 @@ clear iu;
 clear iu_mat;
                 
 disp('Saving ...')
-% save(outputFile{1},'forceField','forceFieldShifted','displErrField');
 % save(outputFile{2},'tMap','tMapX','tMapY','dErrMap','distBeadMap'); % need to be updated for faster loading. SH 20141106
-save(outputFile{1},'forceField','forceFieldShifted');
-% Saving the tMap which stores information
-tMap.outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-tMap.eachTMapName = 'cur_tMap';
-% tMap.frameSequence = frameSequence;
-% tMap.fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
-% tMap.numStr = @(frame) num2str(frame,fString);
-tMap.outputDir = fullfile(p.OutputDirectory,'tractionMaps');
-tMapX=tMap; tMapX.eachTMapName = 'cur_tMapX';
-tMapY=tMap; tMapY.eachTMapName = 'cur_tMapY';
 if strcmpi(p.method,'FastBEM')
-    fCfdMap=tMap; fCfdMap.eachTMapName = 'cur_fCfdMap';
+    save(outputFile{1},'forceField','forceFieldShifted','forceConfidence');
+else
+    save(outputFile{1},'forceField','forceFieldShifted');
+end
+
+% Saving the tMap which stores information
+% tMap.outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+% tMap.eachTMapName = 'cur_tMap';
+% % tMap.frameSequence = frameSequence;
+% % tMap.fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+% % tMap.numStr = @(frame) num2str(frame,fString);
+% tMap.outputDir = fullfile(p.OutputDirectory,'tractionMaps');
+tMap.forceFieldPath = outputFile{1};
+tMap.displFieldPath = displFieldProc.outFilePaths_{1};
+tMap.firstMaskSize = size(firstMask);
+
+tMapX=tMap; %tMapX.eachTMapName = 'cur_tMapX';
+tMapY=tMap; %tMapY.eachTMapName = 'cur_tMapY';
+if strcmpi(p.method,'FastBEM')
+    fCfdMap.forceConfidencePath = outputFile{1}; fCfdMap.firstMaskSize = size(firstMask);
     save(outputFile{2},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
 else
     save(outputFile{2},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
@@ -957,6 +965,8 @@ end
 % else
 %     save(outputFile{2},'tMap','tMapX','tMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 % end
+forceMag=cell2mat(arrayfun(@(x) sqrt(x.vec(:,1).^2+x.vec(:,2).^2), forceField,'unif',false));
+tmin = quantile(forceMag(:),0.01); tmax = quantile(forceMag(:),0.95);
 forceFieldProc.setTractionMapLimits([tmin tmax])
 % forceFieldProc.setDisplErrMapLimits([dEmin dEmax])
 % forceFieldProc.setDistBeadMapLimits([dBeadmin dBeadmax])
