@@ -106,13 +106,21 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                         dMapY=dMap; dMapY.eachTMapName = 'cur_dMapY';
                         save(obj.outFilePaths_{iOut},'dMap','dMapX','dMapY'); % need to be updated for faster loading. SH 20141106
                         lastFinishTime = obj.finishTime_;
-                    else
+                    elseif isfield(dMapObj, 'eachDMapName')
                         for ii=obj.owner_.nFrames_:-1:1
                             cur_dMapObj = load(outFileDMap(ii),dMapObj.eachDMapName);
                             dMapMap(:,:,ii) = cur_dMapObj.cur_dMap;
                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
                         end
                         lastFinishTime = obj.finishTime_;
+                    else % very new format
+                        displField = load(dMapObj.displFieldPath,'displField'); displField=displField.displField;
+                        [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
+                        for ii=obj.owner_.nFrames_:-1:1
+                            dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
+                            dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{ii};
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                        end
                     end
                 end
                 varargout{1}=dMapMap(:,:,iFrame);

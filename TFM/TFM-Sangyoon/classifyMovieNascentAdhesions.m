@@ -41,6 +41,14 @@ adhAnalProc = MD.getProcess(iAdhProc);
 try
     s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
     metaTrackData = s.metaTrackData;
+    trackFolderPath = metaTrackData.trackFolderPath;
+    if ~exist(trackFolderPath,'dir')
+        adhProcFolder=fileparts(adhAnalProc.outFilePaths_{1,iChan});
+        trackFolderPath = [adhProcFolder filesep 'trackIndividual'];
+        metaTrackData.trackFolderPath = trackFolderPath;
+        disp('Updaing metaTrackData with relocated trackIndividual location...')
+        save(adhAnalProc.outFilePaths_{1,iChan},'metaTrackData');
+    end
     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
     numStr = @(trackNum) num2str(trackNum,fString);
     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
@@ -336,9 +344,9 @@ else
             % Find the maximum
             [maxIntenAll(ii),curFrameMaxAmp]=nanmax(sd);
             curFrameMaxAmp = curFrameRange(curFrameMaxAmp);
-            timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
+            timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtraExtra;
         end
-        lifeTimesAll = arrayfun(@(y) y.endingFrameExtra-y.startingFrameExtra, tracksNA);
+        lifeTimesAll = arrayfun(@(y) y.endingFrameExtraExtra-y.startingFrameExtraExtra, tracksNA);
         relMaxPoints = timeToMaxInten./lifeTimesAll;
         thresRelMax = min(0.8,mean(relMaxPoints));
         indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
@@ -362,9 +370,13 @@ else
         % G2-2. Area should be increasing overall
         slopeArea=-100*ones(size(faAssocAll));
         meanAreaAll= zeros(size(faAssocAll));
+        maxAreaAll= zeros(size(faAssocAll));
+        minAreaAll= zeros(size(faAssocAll));
         for k=find(faAssocAll')
             curArea = tracksNA(k).area;
             meanAreaAll(k)=nanmean(curArea);
+            maxAreaAll(k)=nanmax(curArea);
+            minAreaAll(k)=nanmin(curArea);
             curArea = curArea(~isnan(curArea));
             tRange = tracksNA(k).iFrame(~isnan(curArea));
             slopeArea(k)=regress(curArea',tRange');
@@ -385,7 +397,8 @@ else
     % %     indHighEnoughMaxAmp = maxIntenAll>(meanIntenG1+0.1*stdIntenG1);
     % 
         % G1 should not have too big area
-        smallEnoughArea = meanAreaAll<mean(meanAreaAll)+std(meanAreaAll);
+        thresMatureArea=500/MD.pixelSize_*500/MD.pixelSize_;
+        smallEnoughArea = meanAreaAll<thresMatureArea/2; %mean(meanAreaAll)+std(meanAreaAll);
         % Summing all those for G1
         indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1 & ...
             indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea; %& indCleanDecayingG1;
@@ -428,8 +441,14 @@ else
         thresStartingDistG2 = 4000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseStartingEdgeG2 = distToEdgeFirstAll < thresStartingDistG2;
         
-        indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 &...
-            sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2; % & indNonDecayingG2 & indLateMaxPointG2;
+        % Re-considering FA area criteria: I quite don't believe this
+        % criterion used in step 7. Basically the G2 adhesions should  ...
+        % evolve to a decently large area.  - SH 180422 
+        bigEnoughArea = maxAreaAll>thresMatureArea; %mean(meanAreaAll)+std(meanAreaAll);
+        
+        indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 & ...
+            sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
+            bigEnoughArea & indCleanRisingG1G2; % & indNonDecayingG2 & indLateMaxPointG2;
 
         % Inspect each (temporary)
         indexG2 = find(indAbsoluteG2); 

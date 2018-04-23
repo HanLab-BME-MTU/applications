@@ -112,27 +112,27 @@ strainEnergyCalcProc.setOutFilePaths(outputFile);
 logMsg='Loading traction map...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 
-tractionMaps=load(forceFieldProc.outFilePaths_{2});
-try
-    tMapObj = tractionMaps.tMap; % this is currently in Pa per pixel (1pix x 1pix)
-    fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
-    numStr = @(frame) num2str(frame,fString);
-    outputDir = fullfile(forceFieldProc.funParams_.OutputDirectory,'tractionMaps');
-    mkdir(outputDir);
-    outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-    for ii=nFrames:-1:1
-        cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
-        tMap{ii} = cur_tMapObj.cur_tMap;
-        progressText((nFrames-ii)/nFrames,'Traction map loading') % Update text
-    end
-catch
-    % Set up the output directories
-    outputDir = fullfile(forceFieldProc.funParams_.OutputDirectory,'tractionMaps');
-    fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
-    numStr = @(frame) num2str(frame,fString);
-    outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-    tMap=cell(1,nFrames);
-end
+tMap=forceFieldProc.loadChannelOutput('output','tMap');
+% try
+%     tMapObj = tractionMaps.tMap; % this is currently in Pa per pixel (1pix x 1pix)
+%     fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+%     numStr = @(frame) num2str(frame,fString);
+%     outputDir = fullfile(forceFieldProc.funParams_.OutputDirectory,'tractionMaps');
+%     mkdir(outputDir);
+%     outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+%     for ii=nFrames:-1:1
+%         cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
+%         tMap{ii} = cur_tMapObj.cur_tMap;
+%         progressText((nFrames-ii)/nFrames,'Traction map loading') % Update text
+%     end
+% catch
+%     % Set up the output directories
+%     outputDir = fullfile(forceFieldProc.funParams_.OutputDirectory,'tractionMaps');
+%     fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+%     numStr = @(frame) num2str(frame,fString);
+%     outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+%     tMap=cell(1,nFrames);
+% end
 yModulus = forceFieldProc.funParams_.YoungModulus;
 %% Load the displfield
 iCorrectedDisplFieldProc = 3;
@@ -140,25 +140,33 @@ CorrectedDisplFieldProc=TFMPackage.processes_{iCorrectedDisplFieldProc};
 logMsg='Loading displacement map...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if ~isempty(CorrectedDisplFieldProc)
-    try
-        displMaps=load(CorrectedDisplFieldProc.outFilePaths_{2});
-        dMapObj=displMaps.dMap; % this is currently in pix
-        fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
-        numStr = @(frame) num2str(frame,fString);
-        outputDir = fullfile(CorrectedDisplFieldProc.funParams_.OutputDirectory,'displMaps');
-        outFileDMap = @(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
-        for ii=nFrames:-1:1
-            cur_dMapObj = load(outFileDMap(ii),dMapObj.eachDMapName);
-            dMap{ii} = cur_dMapObj.cur_dMap;
-            progressText((nFrames-ii)/nFrames,'One-time displacement map loading') % Update text
-        end
-    catch
-        disp('Assuming displacement proportional to tMap because CorrectedDisplFieldProc was empty')
+    dMap=CorrectedDisplFieldProc.loadChannelOutput('output','dMap');
+%     try
+%         displMaps=load(CorrectedDisplFieldProc.outFilePaths_{2});
+%         dMapObj=displMaps.dMap; % this is currently in pix
+%         fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+%         numStr = @(frame) num2str(frame,fString);
+%         outputDir = fullfile(CorrectedDisplFieldProc.funParams_.OutputDirectory,'displMaps');
+%         outFileDMap = @(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
+%         for ii=nFrames:-1:1
+%             cur_dMapObj = load(outFileDMap(ii),dMapObj.eachDMapName);
+%             dMap{ii} = cur_dMapObj.cur_dMap;
+%             progressText((nFrames-ii)/nFrames,'One-time displacement map loading') % Update text
+%         end
+%     catch
+%         disp('Assuming displacement proportional to tMap because CorrectedDisplFieldProc was empty')
+%         dMap=cellfun(@(x) x/(yModulus),tMap,'UniformOutput',false);
+%     end
+else
+    disp('No iCorrectedDisplFieldProc found. Trying to use displacementField from step 2...')
+    iCalculatedDisplFieldProc = 2;
+    CalculatedDisplFieldProc=TFMPackage.processes_{iCalculatedDisplFieldProc};
+    if ~isempty(CalculatedDisplFieldProc)
+        dMap=CalculatedDisplFieldProc.loadChannelOutput('output','dMap');
+    else
+        disp('Assuming displacement proportional to tMap because there were no dmaps found')
         dMap=cellfun(@(x) x/(yModulus),tMap,'UniformOutput',false);
     end
-else
-    disp('Assuming displacement proportional to tMap because there was no iCorrectedDisplFieldProc found')
-    dMap=cellfun(@(x) x/(yModulus),tMap,'UniformOutput',false);
 end
 %% Calculate strain energy for FOV
 % gridSpacing=1;
@@ -217,8 +225,8 @@ logMsg='Quantifying strain energy and total force';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for ii=1:nFrames
     % Make sure if each tmap has its contents
-    curTMap=tMap{ii};
-    curDMap=dMap{ii};
+    curTMap=tMap(:,:,ii);
+    curDMap=dMap(:,:,ii);
     if isempty(curTMap)
         try
             curTMap=load(outFileTMap(ii),'cur_tMap');
