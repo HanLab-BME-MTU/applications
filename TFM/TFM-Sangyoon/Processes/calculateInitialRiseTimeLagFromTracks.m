@@ -316,37 +316,6 @@ for k=1:numClasses
      close(h2)
 end
 %% V. All the other features
-%% Distributing to each group (after filtering)
-    %% drawing group1
-    fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
-    %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
-    plotIntensityForce(tracksNA(idGroup1),fileStore,false,false); close
-    %% group 2
-    fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
-    plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); close
-
-    %% group 3 plotting
-    fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
-    plotIntensityForce(tracksNA(idGroup3),fileStoreG3,false,false); close
-    %% group4 plotting
-    fileStoreG4 = [epsPath filesep 'ampForcePlotG4.eps'];
-    plotIntensityForce(tracksNA(idGroup4),fileStoreG4,false,false); close
-    %% group5 plotting
-    fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
-    plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); close
-    %% group6 plotting
-    fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
-    plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); close
-    %% group7 plotting
-    fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
-    plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); close
-    %% group8 plotting
-    fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
-    plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); close
-    %% group9 plotting
-    fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
-    plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); close
-
 %% Festure statistics
     %% Look at feature difference per each group
     pixSize=MD.pixelSize_/1000; % in um
@@ -529,6 +498,37 @@ end
     ylabel('forceSlope (Pa/min)')
     hgsave(strcat(figPath,'/forceSlopeAllGroups'),'-v7.3')
     save([p.OutputDirectory filesep 'data' filesep 'forceSlopeAllGroups.mat'],'forceSlope','-v7.3')
+%% Distributing to each group (after filtering)
+    %% drawing group1
+    fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
+    %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
+    plotIntensityForce(tracksNA(idGroup1),fileStore,false,false); close
+    %% group 2
+    fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
+    plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); close
+
+    %% group 3 plotting
+    fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
+    plotIntensityForce(tracksNA(idGroup3),fileStoreG3,false,false); close
+    %% group4 plotting
+    fileStoreG4 = [epsPath filesep 'ampForcePlotG4.eps'];
+    plotIntensityForce(tracksNA(idGroup4),fileStoreG4,false,false); close
+    %% group5 plotting
+    fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
+    plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); close
+    %% group6 plotting
+    fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
+    plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); close
+    %% group7 plotting
+    fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
+    plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); close
+    %% group8 plotting
+    fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
+    plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); close
+    %% group9 plotting
+    fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
+    plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); close
+
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'forceSlopeAllGroups.eps']); close
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately
