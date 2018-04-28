@@ -39,7 +39,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
     end
     specificName = strjoin(groupNames);
     rootAnalysis = pathAnalysisAll{1};
-    save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames')
+    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames')
 else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
