@@ -33,6 +33,7 @@ numNAs=numel(xNA);
 bwInteriorBDAll=false(size(maskAdhesion));
 allIndex = cell(numAdhs,1);
 % progressText(0,'watershedding adhesion mask')
+% for ii=1:numAdhs
 parfor ii=1:numAdhs
     curAdh = Adhs(ii);
     % Check if curAdh contains only one NA
