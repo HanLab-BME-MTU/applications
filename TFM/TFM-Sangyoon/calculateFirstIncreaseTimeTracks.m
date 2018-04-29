@@ -59,13 +59,13 @@ slaveSource=ip.Results.slaveSource;
             sd(isnan(d))=NaN;
 
             bkgMaxInt = nanmax(sd(sF10before:sF5before));
-            firstIncreseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);
+            firstIncreaseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);
         else
             bkgMaxInt = max(curTrack.ampTotal(sF10before:sF5before));
-            firstIncreseTimeInt = find(curTrack.ampTotal>bkgMaxInt & 1:nTime>sF5before,1);
+            firstIncreaseTimeInt = find(curTrack.ampTotal>bkgMaxInt & 1:nTime>sF5before,1);
         end
 %         firstIncreseTimeInt = curTrack.startingFrameExtra;
-        if ~isempty(firstIncreseTimeInt)
+        if ~isempty(firstIncreaseTimeInt)
             if useSmoothing
                 curSlave=d;
                 curSlave(curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra) = ...
@@ -76,26 +76,26 @@ slaveSource=ip.Results.slaveSource;
                     sCurForce_sd=ppval(sCurForce_spline,tRange);
                     sCurForce_sd(isnan(curSlave))=NaN;
     %                 sCurForce = [NaN(1,numNan) sCurForce];
-                    bkgMaxForce = nanmax(sCurForce_sd(sF10before:sF5before));
-                    firstIncreseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);
+                    bkgMaxForce = max(10,nanmax(sCurForce_sd(sF10before:sF5before))); % 10 is the tolr value in L1-reg
+                    firstIncreaseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);
                 else
                     bkgMaxForce = NaN;
-                    firstIncreseTimeForce = NaN;
+                    firstIncreaseTimeForce = NaN;
                 end
             else
-                bkgMaxForce = max(curTrack.forceMag(sF10before:sF5before));
-                firstIncreseTimeForce = find(getfield(curTrack,slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
+                bkgMaxForce = max(10,max(curTrack.forceMag(sF10before:sF5before)));
+                firstIncreaseTimeForce = find(getfield(curTrack,slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
             end
-            if isempty(firstIncreseTimeForce) || firstIncreseTimeForce>curTrack.endingFrameExtraExtra
+            if isempty(firstIncreaseTimeForce) || firstIncreaseTimeForce>curTrack.endingFrameExtraExtra
                 bkgMaxIntAll(ii) = bkgMaxInt;
                 bkgMaxSlaveAll(ii) = bkgMaxForce;
            else
                 forceTransmittingAll(ii) = true;
-                firstIncreseTimeIntAll(ii) = firstIncreseTimeInt*tInterval; % in sec
-                firstIncreseTimeSlaveAll(ii) = firstIncreseTimeForce*tInterval;
+                firstIncreseTimeIntAll(ii) = firstIncreaseTimeInt*tInterval; % in sec
+                firstIncreseTimeSlaveAll(ii) = firstIncreaseTimeForce*tInterval;
                 bkgMaxIntAll(ii) = bkgMaxInt;
                 bkgMaxSlaveAll(ii) = bkgMaxForce;
-                firstIncreseTimeIntAgainstSlaveAll(ii)=firstIncreseTimeInt*tInterval - firstIncreseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
+                firstIncreseTimeIntAgainstSlaveAll(ii)=firstIncreaseTimeInt*tInterval - firstIncreaseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
             end
         else
             bkgMaxIntAll(ii) = bkgMaxInt;

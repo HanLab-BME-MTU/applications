@@ -205,7 +205,7 @@ end
 % We filter out tracks whose ampTotal is too high, bigger than mean value
 % of ampTotal maxima
 meanAmpMaximum = mean(arrayfun(@(x) nanmax(x.ampTotal),tracksNA(idGroup1)));
-ampSlopeG1 = arrayfun(@(x) x.ampSlope,tracksNA(idGroup1));
+ampSlopeG1 = arrayfun(@(x) x.earlyAmpSlope,tracksNA(idGroup1));
 lateAmpTotalG1 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup1));
 initForceG1 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup1));
 idxIncreasingAmpG1 = ampSlopeG1>0;
@@ -213,7 +213,7 @@ idxLowInitForceG1= initForceG1<500;
 idxLateAmpLow = lateAmpTotalG1<meanAmpMaximum;
 idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
 % Filtering for group2
-ampSlopeG2 = arrayfun(@(x) x.ampSlope,tracksNA(idGroup2));
+ampSlopeG2 = arrayfun(@(x) x.earlyAmpSlope,tracksNA(idGroup2));
 initForceG2 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup2));
 lifeTimeG2 = arrayfun(@(x) x.lifeTime,tracksNA(idGroup2));
 ampEndingG2 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup2));
@@ -280,7 +280,7 @@ for k=1:numClasses
         end
     end
     h2=figure;
-    boxPlotCellArray(initialLagTogetherAdjusted,nameList2);
+    boxPlotCellArray(initialLagTogetherAdjusted,nameList2,1,false,true,false,5);
     nameTitle=['initialLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -289,7 +289,7 @@ for k=1:numClasses
     close(h2)
     
     h2=figure;
-    boxPlotCellArray(peakLagTogetherAdjusted,nameList2);
+    boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5);
     nameTitle=['peakLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -298,7 +298,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure;
-    boxPlotCellArray(endingLagTogetherAdjusted,nameList2);
+    boxPlotCellArray(endingLagTogetherAdjusted,nameList2,1,false,true,false,5);
     nameTitle=['endingLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -307,7 +307,7 @@ for k=1:numClasses
     close(h2)
     
     h2=figure;
-    boxPlotCellArray(ccLagTogetherAdjusted,nameList2);
+    boxPlotCellArray(ccLagTogetherAdjusted,nameList2,1,false,true,false,5);
     nameTitle=['ccLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
