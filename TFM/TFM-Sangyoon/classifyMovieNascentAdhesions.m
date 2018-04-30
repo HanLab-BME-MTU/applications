@@ -893,6 +893,20 @@ else
     idGroup8 = strcmp(allDataClass,'Group8');
     idGroup9 = strcmp(allDataClass,'Group9');
     
+    %% minority group redemption
+    % There is a case where idgroup with small number of labels is totally
+    % neglected during classifier building. This case we'll put the labels
+    % back to the idGroup
+    if sum(idGroup2)<numel(indexG2)
+        idGroup2(indexG2)=true;
+    end
+    if sum(idGroup1)<numel(indexG1)
+        idGroup1(indexG1)=true;
+    end
+    if sum(idGroup3)<numel(indexG3)
+        idGroup3(indexG3)=true;
+    end
+    
     %% Adhesion boundary homogenization
     % This is one last step where we make potentially different classes
     % associated with the same chunk of adhesion boundary the same.
