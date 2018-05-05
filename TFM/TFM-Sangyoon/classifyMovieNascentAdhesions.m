@@ -348,7 +348,7 @@ else
         end
         lifeTimesAll = arrayfun(@(y) y.endingFrameExtraExtra-y.startingFrameExtraExtra, tracksNA);
         relMaxPoints = timeToMaxInten./lifeTimesAll;
-        thresRelMax = min(0.8,mean(relMaxPoints));
+        thresRelMax = max(0.8,mean(relMaxPoints));
         indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
         % 8. life time
 

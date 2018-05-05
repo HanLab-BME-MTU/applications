@@ -21,18 +21,23 @@ ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
 ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','ampTotal2','ampTotal3'})); % collect NA tracks that ever close to cell edge
 ip.parse(tracksNA,splineParamInit,preDetecFactor,tInterval,varargin{:});
 slaveSource=ip.Results.slaveSource;
-    useSmoothing=false;
-    if splineParamInit<1
-        useSmoothing=true;
-    end
-    firstIncreseTimeIntAgainstSlaveAll=NaN(numel(tracksNA),1);
-    forceTransmittingAll=false(numel(tracksNA),1);
-    firstIncreseTimeIntAll=NaN(numel(tracksNA),1);
-    firstIncreseTimeSlaveAll=NaN(numel(tracksNA),1);
-    bkgMaxIntAll=NaN(numel(tracksNA),1);
-    bkgMaxSlaveAll=NaN(numel(tracksNA),1);
-    for ii=1:numel(tracksNA)
-        curTrack = tracksNA(ii);
+useSmoothing=false;
+if splineParamInit<1
+    useSmoothing=true;
+end
+firstIncreseTimeIntAgainstSlaveAll=NaN(numel(tracksNA),1);
+forceTransmittingAll=false(numel(tracksNA),1);
+firstIncreseTimeIntAll=NaN(numel(tracksNA),1);
+firstIncreseTimeSlaveAll=NaN(numel(tracksNA),1);
+bkgMaxIntAll=NaN(numel(tracksNA),1);
+bkgMaxSlaveAll=NaN(numel(tracksNA),1);
+for ii=1:numel(tracksNA)
+    curTrack = tracksNA(ii);
+    curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
+    [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+    [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+    if curEarlyAmpSlope>0 && curAmpSlope>0 && curForceSlope>0 % intensity should increase. We are not 
+        % interested in decreasing intensity which will 
         sFEE = curTrack.startingFrameExtraExtra;
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
         % See how many frames you have before the startingFrameExtra
@@ -76,20 +81,20 @@ slaveSource=ip.Results.slaveSource;
                     sCurForce_sd=ppval(sCurForce_spline,tRange);
                     sCurForce_sd(isnan(curSlave))=NaN;
     %                 sCurForce = [NaN(1,numNan) sCurForce];
-                    bkgMaxForce = max(10,nanmax(sCurForce_sd(sF10before:sF5before))); % 10 is the tolr value in L1-reg
+                    bkgMaxForce = max(0,nanmax(sCurForce_sd(sF10before:sF5before))); % 10 is the tolr value in L1-reg
                     firstIncreaseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);
                 else
                     bkgMaxForce = NaN;
                     firstIncreaseTimeForce = NaN;
                 end
             else
-                bkgMaxForce = max(10,max(curTrack.forceMag(sF10before:sF5before)));
+                bkgMaxForce = max(0,max(curTrack.forceMag(sF10before:sF5before)));
                 firstIncreaseTimeForce = find(getfield(curTrack,slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
             end
             if isempty(firstIncreaseTimeForce) || firstIncreaseTimeForce>curTrack.endingFrameExtraExtra
                 bkgMaxIntAll(ii) = bkgMaxInt;
                 bkgMaxSlaveAll(ii) = bkgMaxForce;
-           else
+            else
                 forceTransmittingAll(ii) = true;
                 firstIncreseTimeIntAll(ii) = firstIncreaseTimeInt*tInterval; % in sec
                 firstIncreseTimeSlaveAll(ii) = firstIncreaseTimeForce*tInterval;
@@ -101,3 +106,4 @@ slaveSource=ip.Results.slaveSource;
             bkgMaxIntAll(ii) = bkgMaxInt;
         end
     end
+end
