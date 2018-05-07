@@ -39,13 +39,14 @@ if ~ischar(pathSFolders) && pathSFolders==0
     end
     specificName = strjoin(groupNames);
     rootAnalysis = pathAnalysisAll{1};
-    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames')
+    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
-    specificName=fileSFolders(16:end);
+    specificName=fileSFolders(16:end-4);
     try
         MLNames = selectedFolders.MLNames;
+        groupNames = cellfun(@(x) x(10:end-4),MLNames,'unif',false);
     catch
         MLNames = cellfun(@(x) 'movieList.mat',selectedFolders.pathAnalysisAll,'unif',false);
     end
