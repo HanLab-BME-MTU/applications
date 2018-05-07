@@ -51,18 +51,7 @@ tic
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
 adhAnalProc = MD.getProcess(iAdhProc);
 % numChans = numel(p.ChannelIndex);
-s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
-metaTrackData = s.metaTrackData;
-fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-numStr = @(trackNum) num2str(trackNum,fString);
-trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-for ii=metaTrackData.numTracks:-1:1
-    curTrackObj = load(trackIndPath(ii),'curTrack');
-    tracksNA(ii,1) = curTrackObj.curTrack;
-    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
-end
-
-toc
+tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 %% Data Set up
 % Set up the output file path for master channel
 outputFile = cell(6, numel(MD.channels_));
@@ -71,7 +60,7 @@ for i = 1:numel(MD.channels_)
     [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
     outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
     outputFile{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName '_Chan' num2str(i) '_idsClassified'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_idxTracks'];
     outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
     outFilename = [chanDirName '_Chan' num2str(i) '_tractionMap'];
     outputFile{3,i} = [p.OutputDirectory filesep outFilename '.mat'];
@@ -79,8 +68,6 @@ for i = 1:numel(MD.channels_)
     outputFile{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
     outFilename = [chanDirName '_Chan' num2str(i) '_forceFieldShifted'];
     outputFile{5,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName '_Chan' num2str(i) '_idxTracks'];
-    outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 tractionForceReadProc.setOutFilePaths(outputFile);
 mkClrDir(p.OutputDirectory);
@@ -165,19 +152,19 @@ tracksNA=tracksNA(idxTracks);
 %% Filter out idsClassified
 % Since we are resizing tracksNA, we have to apply this to idsClassified
 % too
-iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
-classProc = MD.getProcess(iClaProc);
+% iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
+% classProc = MD.getProcess(iClaProc);
 % numChans = numel(p.ChannelIndex);
-idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
-idGroup1 = idsClassified.idGroup1(idxTracks);
-idGroup2 = idsClassified.idGroup2(idxTracks);
-idGroup3 = idsClassified.idGroup3(idxTracks);
-idGroup4 = idsClassified.idGroup4(idxTracks);
-idGroup5 = idsClassified.idGroup5(idxTracks);
-idGroup6 = idsClassified.idGroup6(idxTracks);
-idGroup7 = idsClassified.idGroup7(idxTracks);
-idGroup8 = idsClassified.idGroup8(idxTracks);
-idGroup9 = idsClassified.idGroup9(idxTracks);
+% idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
+% idGroup1 = idsClassified.idGroup1(idxTracks);
+% idGroup2 = idsClassified.idGroup2(idxTracks);
+% idGroup3 = idsClassified.idGroup3(idxTracks);
+% idGroup4 = idsClassified.idGroup4(idxTracks);
+% idGroup5 = idsClassified.idGroup5(idxTracks);
+% idGroup6 = idsClassified.idGroup6(idxTracks);
+% idGroup7 = idsClassified.idGroup7(idxTracks);
+% idGroup8 = idsClassified.idGroup8(idxTracks);
+% idGroup9 = idsClassified.idGroup9(idxTracks);
 %% Read force from tMap
 % get the intensity
 disp('Reading traction...')
@@ -200,8 +187,8 @@ try
 catch
     save(outputFile{1,p.ChannelIndex},'tracksForceMag','-v7.3'); 
 end
-save(outputFile{2,p.ChannelIndex},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9') 
-save(outputFile{6,p.ChannelIndex},'idxTracks') 
+% save(outputFile{2,p.ChannelIndex},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9') 
+save(outputFile{2,p.ChannelIndex},'idxTracks') 
 
 if p.saveTractionField
     save(outputFile{3,iBeadChan},'tMap','-v7.3'); 

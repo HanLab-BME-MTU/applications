@@ -122,8 +122,8 @@ for k=1:numTracks
     curTrack.lifeTime = eF-sF;    
     % Inital intensity slope for one min
     timeInterval = deltaT/60; % in min
-    earlyPeriod = floor(1/timeInterval); % frames per minute
-    lastFrame = min(sum(~isnan(curTrack.amp)),sF+earlyPeriod-1);
+    entirePeriod = eF-sF; % floor(1/timeInterval); % frames per minute
+    lastFrame = min(sum(~isnan(curTrack.amp)),sF+entirePeriod-1);
     lastFrameFromOne = lastFrame - sF+1;
 %     lastFrameFromOne = sF;
 %     lastFrame = min(sum(~isnan(curTrack.amp)),sF+earlyPeriod-1);

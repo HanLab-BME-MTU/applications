@@ -39,24 +39,7 @@ adhAnalProc = MD.getProcess(iAdhProc);
 % tracksNA = tracksNA.tracksNA;
 
 try
-    s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
-    metaTrackData = s.metaTrackData;
-    trackFolderPath = metaTrackData.trackFolderPath;
-    if ~exist(trackFolderPath,'dir')
-        adhProcFolder=fileparts(adhAnalProc.outFilePaths_{1,iChan});
-        trackFolderPath = [adhProcFolder filesep 'trackIndividual'];
-        metaTrackData.trackFolderPath = trackFolderPath;
-        disp('Updaing metaTrackData with relocated trackIndividual location...')
-        save(adhAnalProc.outFilePaths_{1,iChan},'metaTrackData');
-    end
-    fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-    numStr = @(trackNum) num2str(trackNum,fString);
-    trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-    for ii=metaTrackData.numTracks:-1:1
-        curTrackObj = load(trackIndPath(ii),'curTrack');
-        tracksNA(ii,1) = curTrackObj.curTrack;
-        progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
-    end
+    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 catch
     % Check if the outFilePath has tableTracksNA
     disp('Checking if the outFilePath has tracksNA...')
@@ -348,7 +331,7 @@ else
         end
         lifeTimesAll = arrayfun(@(y) y.endingFrameExtraExtra-y.startingFrameExtraExtra, tracksNA);
         relMaxPoints = timeToMaxInten./lifeTimesAll;
-        thresRelMax = min(0.8,mean(relMaxPoints));
+        thresRelMax = max(0.8,mean(relMaxPoints));
         indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
         % 8. life time
 
