@@ -34,17 +34,9 @@ disp('Reading tracksNA ...')
 tic
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
 adhAnalProc = MD.getProcess(iAdhProc);
+tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 % numChans = numel(p.ChannelIndex);
-s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
-metaTrackData = s.metaTrackData;
-fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-numStr = @(trackNum) num2str(trackNum,fString);
-trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-for ii=metaTrackData.numTracks:-1:1
-    curTrackObj = load(trackIndPath(ii),'curTrack');
-    tracksNA(ii,1) = curTrackObj.curTrack;
-    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
-end
+
 % Now we have to combine this with readings from step 9 and 10
 iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
 FAPack=MD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
@@ -65,7 +57,10 @@ end
 if ~isempty(forceReadProc)
     forceReadObj = load(forceReadProc.outFilePaths_{1,p.ChannelIndex},'tracksForceMag'); % the later channel has the most information.
     tracksForceMag = forceReadObj.tracksForceMag;
-    idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+    idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
+    if ~isfield(idxTracksObj,'idxTracks')
+        idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+    end
     idxTracks = idxTracksObj.idxTracks;
     tracksNA = tracksNA(idxTracks);
     if isfield(tracksForceMag,'forceMag')
@@ -76,9 +71,10 @@ toc
 %% Reading classes
 disp('Reading idsClassified ...')
 try
-    iForceReadingProc = MD.getProcessIndex('TractionForceReadingProcess');
-    forceReadingProc = MD.getProcess(iForceReadingProc);
-    idsClassified = load(forceReadingProc.outFilePaths_{2,p.ChannelIndex});
+    iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
+    classProc = MD.getProcess(iClaProc);
+    % numChans = numel(p.ChannelIndex);
+    idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
     idGroup1 = idsClassified.idGroup1;
     idGroup2 = idsClassified.idGroup2;
     idGroup3 = idsClassified.idGroup3;
@@ -89,27 +85,24 @@ try
     idGroup8 = idsClassified.idGroup8;
     idGroup9 = idsClassified.idGroup9;
 catch
-    try
-        iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
-        classProc = MD.getProcess(iClaProc);
-        % numChans = numel(p.ChannelIndex);
-        idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
-        idGroup1 = idsClassified.idGroup1;
-        idGroup2 = idsClassified.idGroup2;
-        idGroup3 = idsClassified.idGroup3;
-        idGroup4 = idsClassified.idGroup4;
-        idGroup5 = idsClassified.idGroup5;
-        idGroup6 = idsClassified.idGroup6;
-        idGroup7 = idsClassified.idGroup7;
-        idGroup8 = idsClassified.idGroup8;
-        idGroup9 = idsClassified.idGroup9;
-    catch
-        disp('No Classified groups. Using no classification...')
-        % Potentially we can use the dedactically chosen classes here (e.g.
-        % shown in the code used for Tristan's movie analysis.
-        idGroup1 = []; idGroup2 = []; idGroup3 = []; idGroup4 = [];
-        idGroup5 = []; idGroup6 = []; idGroup7 = []; idGroup8 = []; idGroup9 = [];
-    end    
+    disp('No Classified groups. Using no classification...')
+    % Potentially we can use the dedactically chosen classes here (e.g.
+    % shown in the code used for Tristan's movie analysis.
+    idGroup1 = []; idGroup2 = []; idGroup3 = []; idGroup4 = [];
+    idGroup5 = []; idGroup6 = []; idGroup7 = []; idGroup8 = []; idGroup9 = [];
+end    
+if ~isempty(forceReadProc)
+    idGroup1 = idGroup1(idxTracks);
+    idGroup2 = idGroup2(idxTracks);
+    idGroup3 = idGroup3(idxTracks);
+    idGroup4 = idGroup4(idxTracks);
+    idGroup5 = idGroup5(idxTracks);
+    idGroup6 = idGroup6(idxTracks);
+    idGroup7 = idGroup7(idxTracks);
+    idGroup8 = idGroup8(idxTracks);
+    idGroup9 = idGroup9(idxTracks);
+else
+    disp('Traction reading was not done. No further filtering...')
 end
 % idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 %% Data Set up
@@ -172,7 +165,7 @@ for jj=existingSlaveIDs
         = calculatePeakTimeLagFromTracks(tracksNA,splineParam,tInterval,'slaveSource',curSlave);
     peakTimeIntAgainstSlaveAll{jj}=curPeakTimeIntAgainstSlave;
     % statistics about peakTimeIntAgainstSlaveAll
-    figure, histogram(peakTimeIntAgainstSlaveAll{jj})
+%     figure, histogram(peakTimeIntAgainstSlaveAll{jj})
     disp(['Median of peakTimeIntAgainst' curSlave 'All = ' num2str(nanmedian(peakTimeIntAgainstSlaveAll{jj}))])
     % 3. Ending time lag: how much early the main signal ends against when the slave signal ends
     [curEndingIntAgainstSlave,endingTimeIntAll{jj},endingTimeSlaveAll{jj}]...
@@ -204,25 +197,26 @@ end
 % idxLateAmpSlopeG1 = lateAmpSlopeG1<0;
 % We filter out tracks whose ampTotal is too high, bigger than mean value
 % of ampTotal maxima
-meanAmpMaximum = mean(arrayfun(@(x) nanmax(x.ampTotal),tracksNA(idGroup1)));
-ampSlopeG1 = arrayfun(@(x) x.earlyAmpSlope,tracksNA(idGroup1));
-lateAmpTotalG1 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup1));
-initForceG1 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup1));
-idxIncreasingAmpG1 = ampSlopeG1>0;
-idxLowInitForceG1= initForceG1<500;
-idxLateAmpLow = lateAmpTotalG1<meanAmpMaximum;
-idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
+% meanAmpMaximum = mean(arrayfun(@(x) nanmax(x.ampTotal),tracksNA(idGroup1)));
+% ampSlopeG1 = arrayfun(@(x) x.earlyAmpSlope,tracksNA(idGroup1));
+% lateAmpTotalG1 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup1));
+% initForceG1 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup1));
+% idxIncreasingAmpG1 = ampSlopeG1>0;
+% idxLowInitForceG1= initForceG1<500;
+% idxLateAmpLow = lateAmpTotalG1<meanAmpMaximum;
+% idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
 % Filtering for group2
-ampSlopeG2 = arrayfun(@(x) x.earlyAmpSlope,tracksNA(idGroup2));
-initForceG2 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup2));
-lifeTimeG2 = arrayfun(@(x) x.lifeTime,tracksNA(idGroup2));
-ampEndingG2 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup2));
-ampStartingG2 = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA(idGroup2));
-idxIncreasingAmpG2 = ampSlopeG2>=0 & ampEndingG2>ampStartingG2;
-idxLowInitForceG2= initForceG2<500;
-idxLongLifeTimeG2=lifeTimeG2>40;
-idGroup2f = idxIncreasingAmpG2 & idxLowInitForceG2 & idxLongLifeTimeG2;
-idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+% ampSlopeG2 = arrayfun(@(x) x.earlyAmpSlope,tracksNA(idGroup2));
+% initForceG2 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup2));
+% lifeTimeG2 = arrayfun(@(x) x.lifeTime,tracksNA(idGroup2));
+% ampEndingG2 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup2));
+% ampStartingG2 = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA(idGroup2));
+% idxIncreasingAmpG2 = ampSlopeG2>=0 & ampEndingG2>ampStartingG2;
+% idxLowInitForceG2= initForceG2<500;
+% idxLongLifeTimeG2=lifeTimeG2>40;
+% idGroup2f = idxIncreasingAmpG2 & idxLowInitForceG2 & idxLongLifeTimeG2;
+% idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 numClasses = numel(idGroups);
 numSlaves = numel(existingSlaveIDs);
 initialLagGroups=cell(numClasses,numSlaves);
@@ -506,7 +500,7 @@ end
     plotIntensityForce(tracksNA(idGroup1),fileStore,false,false); close
     %% group 2
     fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
-    plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); close
+    plotIntensityForce(tracksNA(idGroup2),fileStoreG2,false,true); close
 
     %% group 3 plotting
     fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];

@@ -33,10 +33,12 @@ bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
-    curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
+%     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
+%     curAmpSlope = curTrack.ampSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
+%     curForceSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
-    [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
-    if curEarlyAmpSlope>0 && curAmpSlope>0 && curForceSlope>0 % intensity should increase. We are not 
+%     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+    if curAmpSlope>0 %curEarlyAmpSlope>0 && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
         sFEE = curTrack.startingFrameExtraExtra;
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);

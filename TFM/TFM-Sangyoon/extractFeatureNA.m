@@ -82,32 +82,39 @@ if ~useOldSet
         timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
     end
     % timeToMaxInten = arrayfun(@(x) find(x.ampTotal==nanmax(x.ampTotal),1),tracksNA); %in frame, this should be high for group 2 
-    %#15
+    %#15 edge variation: with this, we differentiate image internal
+    %boundary vs real cell edge
     edgeVariation = arrayfun(@(x) min(nanstd(x.closestBdPoint(:,1)),nanstd(x.closestBdPoint(:,2))),tracksNA);
+    % #16.One more addition: area. This will enhance its differentiation of G2, G5
+    % and G8. SH 20180221. All NAs will have -1 cause they are
+    % diffraction-limited. This is #16.
+    area = arrayfun(@(x) nanmean(x.area),tracksNA);
+    maxArea = quantile(area,0.95);
+    area = area/maxArea;
+    area(area==0) = -1;
+    area(isnan(area)) = -1;
+
+    % #17. Ending with FA association. To be used for G2
+    try
+        lastFAFrame = arrayfun(@(x) find(x.state==3 | x.state==4, 1, 'last'),tracksNA,'unif',false);
+    catch
+        lastFAFrame = arrayfun(@(x) find(strcmp(x.state,'FC') | strcmp(x.state,'FA'), 1, 'last'),tracksNA,'unif',false);
+    end
+    lastFAFrame(cellfun(@isempty,lastFAFrame))={0};
+    lastFAFrame = cell2mat(lastFAFrame);
+    FAfinishing = arrayfun(@(x) x.endingFrameExtra,tracksNA)-lastFAFrame;
+    nFrames = nanmax(arrayfun(@(x) x.endingFrameExtraExtra,tracksNA));
+    FAfinishing = (nFrames - FAfinishing)/nFrames; %This means that the FA whose state is FA at the end of endingFrameExtra has 1.
+
+    % 18-20. We have to use the amp slopes
+    ampSlopeNAs = arrayfun(@(x) x.ampSlope,tracksNA);
+    earlyAmpSlopeNAs = arrayfun(@(x) x.earlyAmpSlope,tracksNA);
+    lateAmpSlopeNAs = arrayfun(@(x) x.lateAmpSlope,tracksNA);
 end 
 
-% One more addition: area. This will enhance its differentiation of G2, G5
-% and G8. SH 20180221. All NAs will have -1 cause they are
-% diffraction-limited.
-area = arrayfun(@(x) nanmean(x.area),tracksNA);
-maxArea = quantile(area,0.95);
-area = area/maxArea;
-area(area==0) = -1;
-area(isnan(area)) = -1;
-
-% Ending with FA association
-try
-    lastFAFrame = arrayfun(@(x) find(x.state==3 | x.state==4, 1, 'last'),tracksNA,'unif',false);
-catch
-    lastFAFrame = arrayfun(@(x) find(strcmp(x.state,'FC') | strcmp(x.state,'FA'), 1, 'last'),tracksNA,'unif',false);
-end
-lastFAFrame(cellfun(@isempty,lastFAFrame))={0};
-lastFAFrame = cell2mat(lastFAFrame);
-FAfinishing = arrayfun(@(x) x.endingFrameExtra,tracksNA)-lastFAFrame;
-nFrames = nanmax(arrayfun(@(x) x.endingFrameExtraExtra,tracksNA));
-FAfinishing = (nFrames - FAfinishing)/nFrames; %This means that the FA whose state is FA at the end of endingFrameExtra has 1.
 % NA or NA that has momentarily FA in the earlier period will have near
 % zero.
+
 
 % this adhesion once had fast protruding edge, thus crucial for
 % distinguishing group 3 vs 7. For example, group 7 will show low value for
@@ -310,7 +317,8 @@ if nargin>1 && ~isempty(idGroupSelected)
                  startingIntensityNAs(idGroupSelected{ii}) distToEdgeChangeNAs(idGroupSelected{ii}) distToEdgeLastNAs(idGroupSelected{ii}) ...
                  edgeAdvanceDistFirstChangeNAs(idGroupSelected{ii}) edgeAdvanceDistLastChangeNAs(idGroupSelected{ii}) ...
                  maxEdgeAdvanceDistChangeNAs(idGroupSelected{ii}) maxIntensityNAs(idGroupSelected{ii}) ...
-                 timeToMaxInten(idGroupSelected{ii}) edgeVariation(idGroupSelected{ii}) area(idGroupSelected{ii}) FAfinishing(idGroupSelected{ii})];
+                 timeToMaxInten(idGroupSelected{ii}) edgeVariation(idGroupSelected{ii}) area(idGroupSelected{ii}) FAfinishing(idGroupSelected{ii}) ...
+                 ampSlopeNAs(idGroupSelected{ii}) earlyAmpSlopeNAs(idGroupSelected{ii}) lateAmpSlopeNAs(idGroupSelected{ii})];
             if length(idGroupSelected{1})==length(idGroupSelected{2}) || isempty(idGroupSelected{ii}) || numel(idGroupSelected{ii})==1
                 nCurG=sum(idGroupSelected{ii}>0); %
             else
@@ -384,12 +392,13 @@ if nargin>1 && ~isempty(idGroupSelected)
         end
     end
     dataTable = table(meas(:,1),meas(:,2),meas(:,3),meas(:,4),meas(:,5),meas(:,6),meas(:,7),meas(:,8),meas(:,9),meas(:,10),meas(:,11),meas(:,12),...
-        meas(:,13),meas(:,14),meas(:,15),meas(:,16),meas(:,17),species,...
+        meas(:,13),meas(:,14),meas(:,15),meas(:,16),meas(:,17),meas(:,18),species,... %,meas(:,19),meas(:,20)
         'VariableNames',{'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNAs', ...
         'lifeTimeNAs', 'meanIntensityNAs', 'distToEdgeFirstNAs', ...
         'startingIntensityNAs', 'distToEdgeChangeNAs', 'distToEdgeLastNAs', 'edgeAdvanceDistFirstChangeNAs',...
         'edgeAdvanceDistLastChangeNAs','maxEdgeAdvanceDistChangeNAs',...
-        'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing', 'Group'});
+        'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing'...
+        , 'ampSlopeNAs', 'Group'});%, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs', 'Group'});
 else
     dataTable = [];
     meas=[];
@@ -400,7 +409,8 @@ if ~useOldSet
          lifeTimeNAs meanIntensityNAs distToEdgeFirstNAs ...
          startingIntensityNAs distToEdgeChangeNAs distToEdgeLastNAs ...
         edgeAdvanceDistFirstChangeNAs edgeAdvanceDistLastChangeNAs maxEdgeAdvanceDistChangeNAs ...
-         maxIntensityNAs timeToMaxInten edgeVariation area FAfinishing];
+         maxIntensityNAs timeToMaxInten edgeVariation area FAfinishing ...
+         ampSlopeNAs]; % earlyAmpSlopeNAs lateAmpSlopeNAs
 else
     allData = [decayingIntensityNAs edgeAdvanceSpeedNAs advanceSpeedNAs ...
          lifeTimeNAs meanIntensityNAs distToEdgeFirstNAs ...
