@@ -227,6 +227,12 @@ ccLagGroups=cell(numClasses,numSlaves);
 for jj=existingSlaveIDs
     for k=1:numClasses
         initialLagGroups{k,jj}=firstIncreseTimeIntAgainstSlaveAll{jj}(idGroups{k});
+        % For inspection: at first, I need to look at each time series (at
+        % least for G1 and G2) 
+        if ismember(k,[1 2])
+            disp(['Current Class: ' num2str(k)])
+            inspectNATimeSeries(tracksNA(idGroups{k}),tInterval,p.OutputDirectory)
+        end
         peakLagGroups{k,jj}=peakTimeIntAgainstSlaveAll{jj}(idGroups{k});
         endingLagGroups{k,jj}=endingIntAgainstSlaveAll{jj}(idGroups{k});
         ccScoreGroups{k,jj}=CCscoreMaxAll{jj}(idGroups{k});
