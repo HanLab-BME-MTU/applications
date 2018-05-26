@@ -1,6 +1,5 @@
-function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
-    ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll] ...
-    = inspectNATimeSeries(tracksNA,tInterval,rootPath,varargin)
+function [BccMatrix,avgBcc,tStartingFrame,indexValidBccInTracks,firstTimeAboveZeroBccAll,...
+    firstTimeAboveHalfBccAll,firstTimeAboveOneBccAll] = inspectNATimeSeries(tracksNA,tInterval,varargin)
 % [tracksNA,firstIncreseTimeIntAgainstForceAll] =
 %  inspectNATimeSeries(tracksNA,splineParamInit,preDetecFactor,tInterval)
 %  calculates the time lag of the main intensity (ampTotal) against the slave source.
@@ -33,11 +32,13 @@ firstIncreseTimeIntAll=NaN(numel(tracksNA),1);
 firstIncreseTimeSlaveAll=NaN(numel(tracksNA),1);
 bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
+firstTimeAboveZeroBccAll=NaN(numel(tracksNA),1);
+firstTimeAboveHalfBccAll=NaN(numel(tracksNA),1);
+firstTimeAboveOneBccAll=NaN(numel(tracksNA),1);
 
-dataPath=[rootPath filesep 'data'];
-epsPath=[rootPath filesep 'eps'];
-figPath=[rootPath filesep 'figs'];
-
+iii=0;
+tFluc = 10; % this is actually in frame
+tStartingFrame = 30 + tFluc/2 + 1;
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
@@ -45,7 +46,7 @@ for ii=1:numel(tracksNA)
 %     curForceSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
-    disp(['curAmpSlope = ' num2str(curAmpSlope) '  curEarlyAmpSlope = ' num2str(curEarlyAmpSlope)])
+%     disp(['curAmpSlope = ' num2str(curAmpSlope) '  curEarlyAmpSlope = ' num2str(curEarlyAmpSlope)])
 
     sFEE = curTrack.startingFrameExtraExtra;
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
@@ -111,6 +112,7 @@ for ii=1:numel(tracksNA)
 %                 subplot(2,1,2), plot(curSlave,'o-') 
 %                 uiwait(); 
             else
+                iii=iii+1;
                 forceTransmittingAll(ii) = true;
                 firstIncreseTimeIntAll(ii) = firstIncreaseTimeInt*tInterval; % in sec
                 firstIncreseTimeSlaveAll(ii) = firstIncreaseTimeForce*tInterval;
@@ -118,15 +120,32 @@ for ii=1:numel(tracksNA)
                 bkgMaxSlaveAll(ii) = bkgMaxForce;
                 firstIncreseTimeIntAgainstSlaveAll(ii)=firstIncreaseTimeInt*tInterval - firstIncreaseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
                 
-                h=figure;  subplot(2,2,1), plot(sd,'o-'), hold on, plot(tRange(firstIncreaseTimeInt),sd(firstIncreaseTimeInt),'ro'); 
-                subplot(2,2,3), plot(sCurForce_sd,'o-'), hold on, plot(tRange(firstIncreaseTimeForce),sCurForce_sd(firstIncreaseTimeForce),'ro')    
-                subplot(2,2,2), plot(curTrack.xCoord,'o-'); hold on; 
-                subplot(2,2,4), plot(curTrack.yCoord,'o-')
-%                 uiwait(); 
-                hgsave(strcat(figPath,filesep,'IntenAndForce',num2str(ii)),'-v7.3')
-                print('-depsc','-loose',[epsPath filesep 'IntenAndForce' num2str(ii) '.eps']);
-                save(strcat(dataPath,filesep,'IntenAndForce',num2str(ii),'.mat'),'sd','sCurForce_sd')
-                close(h)
+                % Bcc (co-fluctuation) calculation: Here the rule is that
+                % real starting frame is from 36 which is the maximum frame
+                % difference between startingFrameExtra and
+                % startingFrameExtraExtra.
+                lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; clear Bcc
+                tShift = 30 + tFluc/2 + 1 +curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+                for jj=curTrack.startingFrameExtraExtra:lastFrameCC
+                    sd_segment = sd(jj:jj+tFluc); avgSD = mean(sd_segment);
+                    force_seg = sCurForce_sd(jj:jj+tFluc); avgForceSeg = mean(force_seg);
+                    sigma2cc=1/tFluc*sum((sd_segment-avgSD).*(force_seg-avgForceSeg));
+                    Bcc(jj-curTrack.startingFrameExtraExtra+tShift) = sigma2cc/sqrt(avgSD*avgForceSeg);
+                end
+                if tShift>1
+                    Bcc(1:tShift-1)=NaN; 
+                end
+                BccAll{iii}=Bcc;
+                indexValidBccInTracks(iii) = ii;
+                if ~isempty(find(Bcc > 0, 1)-tShift)
+                    firstTimeAboveZeroBccAll(ii) = find(Bcc > 0, 1)-tShift;
+                    if ~isempty(find(Bcc > 0.5, 1)-tShift)
+                        firstTimeAboveHalfBccAll(ii) = find(Bcc > 0.5, 1)-tShift;
+                        if ~isempty(find(Bcc > 1.0, 1)-tShift)
+                            firstTimeAboveOneBccAll(ii) = find(Bcc > 1.0, 1)-tShift;
+                        end
+                    end
+                end
             end
         else
             bkgMaxIntAll(ii) = bkgMaxInt;
@@ -144,3 +163,12 @@ for ii=1:numel(tracksNA)
 %         uiwait();
     end
 end
+numConditions = numel(BccAll);
+[lengthLongest]=max(cellfun(@(x) length(x),BccAll));
+BccMatrix = NaN(numConditions,lengthLongest);
+for k=1:numConditions
+    BccMatrix(k,1:length(BccAll{k})) = BccAll{k};
+end
+disp(['The BccMatrix is aligned with ' num2str(tShift) ' from first.'])
+
+avgBcc = nanmean(BccMatrix,1);

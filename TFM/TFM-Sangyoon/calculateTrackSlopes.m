@@ -5,6 +5,7 @@ function tracksNA = calculateTrackSlopes(tracksNA,tInterval)
 
 tIntervalMin = tInterval/60;
 prePeriodFrame = ceil(10/tInterval); %pre-10 sec
+periodFrames = 30;
 for k=1:numel(tracksNA)
     sF=max(tracksNA(k).startingFrameExtra-prePeriodFrame,tracksNA(k).startingFrameExtraExtra);
     
@@ -18,9 +19,14 @@ for k=1:numel(tracksNA)
     
     [~,curM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).amp(sF:lastFrame));
     tracksNA(k).earlyAmpSlope = curM; % in a.u./min
-    [curForceR,curForceM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame));
+    [~,curForceM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame));
 %         figure, plot(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
 %         figure, plotregression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
     tracksNA(k).forceSlope = curForceM; % in Pa/min
-    tracksNA(k).forceSlopeR = curForceR; % Pearson's correlation coefficient
+
+    curEndFrame = min(sF+periodFrames-1,tracksNA(k).endingFrame);
+    curEarlyPeriod = curEndFrame - sF+1;
+    [~,curForceEarlySlopeGroup] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).forceMag(sF:curEndFrame));
+    
+    tracksNA(k).earlyForceSlope = curForceEarlySlopeGroup; % in Pa/min
 end
