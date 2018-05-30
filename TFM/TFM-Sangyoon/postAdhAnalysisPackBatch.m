@@ -289,13 +289,13 @@ for ii=1:numConditions
     peakTimeAgainstForceEachClass=cell(numClasses,1);
     endTimeAgainstForceEachClass=cell(numClasses,1);
     iForceSlave = 1;
+    iInitRiseProc = 11;
     for pp=1:numClasses
         for k=1:N(ii)
             curMovie=curMovies{k};
             iCurPack = curMovie.getPackageIndex('FocalAdhesionPackage');
             curFAPackage = curMovie.getPackage(iCurPack);
             % Initial rise
-            iInitRiseProc = 11;
             initRiseProc = curFAPackage.getProcess(iInitRiseProc);
             % I decided to get the adjusted time lags
             initOutFolder = fileparts(initRiseProc.outFilePaths_{2,iForceSlave});
@@ -315,6 +315,17 @@ for ii=1:numConditions
             endTimeStruct = load([initDataPath filesep nameTitle],'endingLagTogetherAdjusted','nameList2');   
             curEndTimeLag=endTimeStruct.endingLagTogetherAdjusted;
             endTimeAgainstForceEachClass{pp}{k} = curEndTimeLag;
+            
+            if ismember(pp,[1 2])
+                mainBccPeakValuesGroupStruct = load([initDataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup');
+                mainBccPeakValuesGroup{pp}{k} = mainBccPeakValuesGroupStruct.mainBccPeakValuesGroup{pp};
+                mainTimeToPeakGroupStruct = load([initDataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup');
+                mainTimeToPeakGroup{pp}{k} = mainTimeToPeakGroupStruct.mainTimeToPeakGroup{pp};
+                sideBccPeakValuesGroupStruct = load([initDataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup');
+                sideBccPeakValuesGroup{pp}{k} = sideBccPeakValuesGroupStruct.sideBccPeakValuesGroup{pp};
+                sideTimeToPeakGroupStruct = load([initDataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup');
+                sideTimeToPeakGroup{pp}{k} = sideTimeToPeakGroupStruct.sideTimeToPeakGroup{pp};
+            end
         end
     end
     FAareaGroup{ii,1}=meanMedianFAarea;
@@ -365,6 +376,11 @@ for ii=1:numConditions
     initRiseGroup{ii,1}=initRiseAgainstForceEachClass;
     peakGroup{ii,1}=peakTimeAgainstForceEachClass;
     endTimeGroup{ii,1}=endTimeAgainstForceEachClass;
+
+    mainBccPeakValuesGroupGroup{ii,1}=mainBccPeakValuesGroup;
+    mainTimeToPeakGroupGroup{ii,1}=mainTimeToPeakGroup;
+    sideBccPeakValuesGrouppGroup{ii,1}=sideBccPeakValuesGroup;
+    sideTimeToPeakGroupGroup{ii,1}=sideTimeToPeakGroup;
 end
 disp('Done')
 %% setting up group name
@@ -384,9 +400,21 @@ for curGroup=1:9
     hgsave(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-dtiff')
 end
+%% Plotting each - initRiseGroup - all classes
+nameList=groupNames'; %{'pLVX' 'P29S'};
+for curGroup=1:2
+    mainTimeToPeakGroupGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),mainTimeToPeakGroupGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(mainTimeToPeakGroupGroupEach,nameList,1,false,true);
+    ylabel(['mainTimeToPeakGroupGroupEach ' num2str(curGroup) ' (sec)'])
+    title(['mainTimeToPeakGroupGroupEach ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'mainTimeToPeakGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'mainTimeToPeakGroup' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'mainTimeToPeakGroup' num2str(curGroup)],'-dtiff')
+end
 %% num of each class
-numGroupAll={numG1Group,numG2Group,numG3Group,numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group};
-for curGroup=1:9
+numGroupOnlyTwo={numG1Group,numG2Group}; %,numG3Group,numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group};
+for curGroup=1:2
     curNumGroup=numGroupAll{curGroup};
     h1=figure; 
     boxPlotCellArray(curNumGroup,nameList,1,false,true);

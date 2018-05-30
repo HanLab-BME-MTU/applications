@@ -461,10 +461,6 @@ for k=1:numClasses
 %                     uiwait(); 
                 end
             end
-            save([dataPath filesep 'mainBccPeakValues-G' num2str(k) '.mat'],'mainBccPeakValues')
-            save([dataPath filesep 'mainTimeToPeak-G' num2str(k) '.mat'],'mainTimeToPeak')
-            save([dataPath filesep 'sideBccPeakValues-G' num2str(k) '.mat'],'sideBccPeakValues')
-            save([dataPath filesep 'sideTimeToPeak-G' num2str(k) '.mat'],'sideTimeToPeak')
             
             close(h2)
 
@@ -478,12 +474,17 @@ for k=1:numClasses
             
             mainTimeToPeakGroup{k}=mainTimeToPeak;
             mainBccPeakValuesGroup{k}=mainBccPeakValues;
+            sideTimeToPeakGroup{k}=sideTimeToPeak;
+            sideBccPeakValuesGroup{k}=sideBccPeakValues;
         end
     end
     if iii>0
         close(h)
     end
-
+    save([dataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup')
+    save([dataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup')
+    save([dataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup')
+    save([dataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup')
     
     h2=figure;
     boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5);
