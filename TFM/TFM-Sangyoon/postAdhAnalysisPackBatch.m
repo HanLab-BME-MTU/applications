@@ -6,13 +6,15 @@ if ~ischar(pathSFolders) && pathSFolders==0
     rootFolder=pwd;
     while ~analysisFolderSelectionDone
         ii=ii+1;
-        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        if ~ischar(curPathProject) || curPathProject==0
+%         curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+        [curMLFile,curPathProject] = uigetfile(rootFolder,'Select the movie list file one per each attempt (Click Cancel when no more)');
+        if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
         else
             [~,finalFolder] = fileparts(curPathProject);
             pathAnalysisAll{ii} = curPathProject;
             groupNames{ii} = finalFolder;
+            MLFileNamesAll{ii} = curMLFile;
             MLNames{ii} = 'movieList.mat';
         end
     end
@@ -43,25 +45,22 @@ if ~ischar(pathSFolders) && pathSFolders==0
 else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
-    specificName=fileSFolders(16:end-4);
-    try
-        MLNames = selectedFolders.MLNames;
-        groupNames = cellfun(@(x) x(10:end-4),MLNames,'unif',false);
-    catch
-        MLNames = cellfun(@(x) 'movieList.mat',selectedFolders.pathAnalysisAll,'unif',false);
+    specificName=fileSFolders(16:end);
+    for k=1:numel(pathAnalysisAll)
+        MLFileNamesAll{k} = 'movieList.mat';
     end
 end
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
 
 for k=1:numConditions
-    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
+    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLFileNamesAll{k}]);
 end
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
-figPath = [rootAnalysis '/AnalysisSummary' specificName '/Figs'];
+figPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Figs'];
 mkdir(figPath)
-dataPath = [rootAnalysis '/AnalysisSummary' specificName '/Data'];
+dataPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Data'];
 mkdir(dataPath)
 %% Collecting general adhesion-reated features
 numClasses=9;
@@ -384,10 +383,20 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
+<<<<<<< HEAD
+for ii=1:numConditions
+    [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
+    if isempty(finalFolder)
+        [~, finalFolder]=fileparts(pathFolder);
+    end
+    groupNames{ii} = finalFolder;
+end
+=======
 % for ii=1:numConditions
 %     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
 %     groupNames{ii} = finalFolder;
 % end
+>>>>>>> 1f4ab8ef40f405b766c09b86da19b0e5da324b43
 %% Plotting each - initRiseGroup - all classes
 nameList=groupNames'; %{'pLVX' 'P29S'};
 for curGroup=1:9
@@ -399,6 +408,9 @@ for curGroup=1:9
     hgexport(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-dtiff')
+
+    tableInitRiseGroupEach=table(initRiseGroupEach,'RowNames',nameList);
+    writetable(tableInitRiseGroupEach,[dataPath filesep 'initialRizeG' num2str(curGroup) '.csv'])
 end
 %% Plotting each - initRiseGroup - all classes
 nameList=groupNames'; %{'pLVX' 'P29S'};
@@ -423,6 +435,8 @@ for curGroup=1:2
     hgexport(h1,[figPath filesep 'numGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'numGroup' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'numGroup' num2str(curGroup)],'-dtiff')
+    tableAdhNumGroupEach=table(curNumGroup,'RowNames',nameList);
+    writetable(tableAdhNumGroupEach,[dataPath filesep 'numGroup' num2str(curGroup) '.csv'])
 end
 %% meanRelative population
 meanRelPopGroupAll={meanRelativePopG1Group,meanRelativePopG2Group,meanRelativePopG3Group,...
@@ -437,6 +451,9 @@ for curGroup=1:9
     hgexport(h1,[figPath filesep 'meanRelPopGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'meanRelPopGroup' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'meanRelPopGroup' num2str(curGroup)],'-dtiff')
+
+    tableMeanPopGroupEach=table(curmeanPopGroup,'RowNames',nameList);
+    writetable(tableMeanPopGroupEach,[dataPath filesep 'meanRelPopGroup' num2str(curGroup) '.csv'])
 end
 %% RAtio between g1 and g2
 ratioG1G2=cellfun(@(x,y) y./x,meanRelativePopG1Group,meanRelativePopG2Group,'unif',false);
@@ -447,6 +464,9 @@ title('Mean relative adhesion population of g2 compared to g1')
 hgexport(h1,[figPath filesep 'meanRelPopG2overG1'],hgexport('factorystyle'),'Format','eps')
 hgsave(h1,[figPath filesep 'meanRelPopG2overG1'],'-v7.3')
 print(h1,[figPath filesep 'meanRelPopG2overG1'],'-dtiff')
+
+tableRelPopG2overG1=table(ratioG1G2,'RowNames',nameList);
+writetable(tableRelPopG2overG1,[dataPath filesep 'meanRelPopG2overG1' num2str(curGroup) '.csv'])
 
 %% mean adhesion density - significantly higher NA density in WT compared to R8
 meanAdhDensityGroupAll={meanAdhDensityG1Group,meanAdhDensityG2Group,meanAdhDensityG3Group,...
@@ -461,6 +481,9 @@ for curGroup=1:9
     hgexport(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],'-dtiff')
+
+    tableAdhDenGroupEach=table(curAdhDenGroup,'RowNames',nameList);
+    writetable(tableAdhDenGroupEach,[dataPath filesep 'meanAdhDenGroup' num2str(curGroup) '.csv'])
 end
 %% cell area - 
     h1=figure; 
@@ -470,6 +493,9 @@ end
     hgexport(h1,[figPath filesep 'cellArea'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'cellArea'],'-v7.3')
     print(h1,[figPath filesep 'cellArea'],'-dtiff')
+
+    tableCellArea=table(cellAreaGroup,'RowNames',nameList);
+    writetable(tableCellArea,[dataPath filesep 'cellArea.csv'])
 %% FA area - 
     h1=figure; 
     boxPlotCellArray(FAareaGroup,nameList,1,false,true);
@@ -478,6 +504,9 @@ end
     hgexport(h1,[figPath filesep 'faArea'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'faArea'],'-v7.3')
     print(h1,[figPath filesep 'faArea'],'-dtiff')
+
+    tableFAArea=table(FAareaGroup,'RowNames',nameList);
+    writetable(tableFAArea,[dataPath filesep 'faArea.csv'])
 %% NA density
     h1=figure; 
     boxPlotCellArray(NADensityGroup,nameList,1,false,true);
@@ -486,6 +515,9 @@ end
     hgexport(h1,[figPath filesep 'naDensity'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'naDensity'],'-v7.3')
     print(h1,[figPath filesep 'naDensity'],'-dtiff')
+
+    tableNADensity=table(NADensityGroup,'RowNames',nameList);
+    writetable(tableNADensity,[dataPath filesep 'naDensity.csv'])
 %% FA density
     h1=figure; 
     FADensityGroup=cellfun(@(x,y) x./y,numPureFAsGroup,cellAreaGroup,'unif',false);
@@ -495,6 +527,9 @@ end
     hgexport(h1,[figPath filesep 'faDensity'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'faDensity'],'-v7.3')
     print(h1,[figPath filesep 'faDensity'],'-dtiff')
+
+    tableFADensity=table(FADensityGroup,'RowNames',nameList);
+    writetable(tableFADensity,[dataPath filesep 'faDensity.csv'])
 %% numPureFAsGroup
     h1=figure; 
     boxPlotCellArray(numPureFAsGroup,nameList,1,false,true);
@@ -503,6 +538,9 @@ end
     hgexport(h1,[figPath filesep 'numFAs'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'numFAs'],'-v7.3')
     print(h1,[figPath filesep 'numFAs'],'-dtiff')
+
+    tableNumPureFAs=table(numPureFAsGroup,'RowNames',nameList);
+    writetable(tableNumPureFAs,[dataPath filesep 'numFAs.csv'])
 %% maturingRatioGroup
     h1=figure; 
     boxPlotCellArray(maturingRatioGroup,nameList,1,false,true);
@@ -511,6 +549,9 @@ end
     hgexport(h1,[figPath filesep 'maturingRatio'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'maturingRatio'],'-v7.3')
     print(h1,[figPath filesep 'maturingRatio'],'-dtiff')
+
+    tableMaturingRatio=table(maturingRatioGroup,'RowNames',nameList);
+    writetable(tableMaturingRatio,[dataPath filesep 'maturingRatio.csv'])
 %% nucleatingNARatioGroup
     h1=figure; 
     boxPlotCellArray(nucleatingNARatioGroup,nameList,1,false,true);
@@ -519,6 +560,9 @@ end
     hgexport(h1,[figPath filesep 'nucleatingNARatio'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'nucleatingNARatio'],'-v7.3')
     print(h1,[figPath filesep 'nucleatingNARatio'],'-dtiff')
+
+    tableNucleatingNARatio=table(nucleatingNARatioGroup,'RowNames',nameList);
+    writetable(tableNucleatingNARatio,[dataPath filesep 'nucleatingNARatio.csv'])
 %% assemRateGroup
     h1=figure; 
     boxPlotCellArray(assemRateGroup,nameList,1,false,true);
@@ -527,6 +571,9 @@ end
     hgexport(h1,[figPath filesep 'assemRate'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'assemRate'],'-v7.3')
     print(h1,[figPath filesep 'assemRate'],'-dtiff')
+
+    tableAssemRateGroup=table(assemRateGroup,'RowNames',nameList);
+    writetable(tableAssemRateGroup,[dataPath filesep 'assemRate.csv'])
 %% Plotting each - peakGroup - all classes - usually not interesting: there is no lag.
 for curGroup=1:9
     peakLagGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),peakGroup,'unif',false);
@@ -537,6 +584,9 @@ for curGroup=1:9
     hgexport(h1,[figPath filesep 'peakLagG' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'peakLagG' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'peakLagG' num2str(curGroup)],'-dtiff')
+
+    tablePeakLagGroupEach=table(peakLagGroupEach,'RowNames',nameList);
+    writetable(tablePeakLagGroupEach,[dataPath filesep 'peakLagG' num2str(curGroup) '.csv'])
 end
 %% Plotting each - endTimeGroup - all classes - usually not interesting: there is no lag.
 for curGroup=1:9
@@ -548,6 +598,9 @@ for curGroup=1:9
     hgexport(h1,[figPath filesep 'endLagG' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'endLagG' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'endLagG' num2str(curGroup)],'-dtiff')
+
+    tableEndLagGroupEach=table(endLagGroupEach,'RowNames',nameList);
+    writetable(tableEndLagGroupEach,[dataPath filesep 'endLagG' num2str(curGroup) '.csv'])
 end
 %% save entire workspace for later
 save([dataPath filesep 'allData.mat'])
