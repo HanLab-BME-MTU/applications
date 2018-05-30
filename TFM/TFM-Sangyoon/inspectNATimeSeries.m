@@ -22,6 +22,16 @@ splineParamInit=ip.Results.splineParamInit;
 preDetecFactor=ip.Results.preDetecFactor;
 slaveSource=ip.Results.slaveSource;
 
+if isempty(tracksNA)
+    BccMatrix = [];
+    avgBcc = [];
+    tStartingFrame = NaN;
+    indexValidBccInTracks = [];
+    firstTimeAboveZeroBccAll = [];
+    firstTimeAboveHalfBccAll = [];
+    firstTimeAboveOneBccAll = [];
+    return
+end
 useSmoothing=false;
 if splineParamInit<1
     useSmoothing=true;
@@ -163,12 +173,22 @@ for ii=1:numel(tracksNA)
 %         uiwait();
     end
 end
-numConditions = numel(BccAll);
-[lengthLongest]=max(cellfun(@(x) length(x),BccAll));
-BccMatrix = NaN(numConditions,lengthLongest);
-for k=1:numConditions
-    BccMatrix(k,1:length(BccAll{k})) = BccAll{k};
-end
-disp(['The BccMatrix is aligned with ' num2str(tShift) ' from first.'])
+if exist('BccAll','var')
+    numConditions = numel(BccAll);
+    [lengthLongest]=max(cellfun(@(x) length(x),BccAll));
+    BccMatrix = NaN(numConditions,lengthLongest);
+    for k=1:numConditions
+        BccMatrix(k,1:length(BccAll{k})) = BccAll{k};
+    end
+    disp(['The BccMatrix is aligned with ' num2str(tShift) ' from first.'])
 
-avgBcc = nanmean(BccMatrix,1);
+    avgBcc = nanmean(BccMatrix,1);
+else
+    BccMatrix = [];
+    avgBcc = [];
+    tStartingFrame = [];
+    indexValidBccInTracks = [];
+    firstTimeAboveZeroBccAll = [];
+    firstTimeAboveHalfBccAll = [];
+    firstTimeAboveOneBccAll = [];
+end
