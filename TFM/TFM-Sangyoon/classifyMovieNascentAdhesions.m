@@ -39,16 +39,7 @@ adhAnalProc = MD.getProcess(iAdhProc);
 % tracksNA = tracksNA.tracksNA;
 
 try
-    s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
-    metaTrackData = s.metaTrackData;
-    fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-    numStr = @(trackNum) num2str(trackNum,fString);
-    trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-    for ii=metaTrackData.numTracks:-1:1
-        curTrackObj = load(trackIndPath(ii),'curTrack');
-        tracksNA(ii,1) = curTrackObj.curTrack;
-        progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
-    end
+    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 catch
     % Check if the outFilePath has tableTracksNA
     disp('Checking if the outFilePath has tracksNA...')
@@ -336,11 +327,11 @@ else
             % Find the maximum
             [maxIntenAll(ii),curFrameMaxAmp]=nanmax(sd);
             curFrameMaxAmp = curFrameRange(curFrameMaxAmp);
-            timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtra;
+            timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtraExtra;
         end
-        lifeTimesAll = arrayfun(@(y) y.endingFrameExtra-y.startingFrameExtra, tracksNA);
+        lifeTimesAll = arrayfun(@(y) y.endingFrameExtraExtra-y.startingFrameExtraExtra, tracksNA);
         relMaxPoints = timeToMaxInten./lifeTimesAll;
-        thresRelMax = min(0.8,mean(relMaxPoints));
+        thresRelMax = max(0.8,mean(relMaxPoints));
         indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
         % 8. life time
 
@@ -362,9 +353,13 @@ else
         % G2-2. Area should be increasing overall
         slopeArea=-100*ones(size(faAssocAll));
         meanAreaAll= zeros(size(faAssocAll));
+        maxAreaAll= zeros(size(faAssocAll));
+        minAreaAll= zeros(size(faAssocAll));
         for k=find(faAssocAll')
             curArea = tracksNA(k).area;
             meanAreaAll(k)=nanmean(curArea);
+            maxAreaAll(k)=nanmax(curArea);
+            minAreaAll(k)=nanmin(curArea);
             curArea = curArea(~isnan(curArea));
             tRange = tracksNA(k).iFrame(~isnan(curArea));
             slopeArea(k)=regress(curArea',tRange');
@@ -385,7 +380,8 @@ else
     % %     indHighEnoughMaxAmp = maxIntenAll>(meanIntenG1+0.1*stdIntenG1);
     % 
         % G1 should not have too big area
-        smallEnoughArea = meanAreaAll<mean(meanAreaAll)+std(meanAreaAll);
+        thresMatureArea=500/MD.pixelSize_*500/MD.pixelSize_;
+        smallEnoughArea = meanAreaAll<thresMatureArea/2; %mean(meanAreaAll)+std(meanAreaAll);
         % Summing all those for G1
         indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1 & ...
             indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea; %& indCleanDecayingG1;
@@ -428,8 +424,14 @@ else
         thresStartingDistG2 = 4000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseStartingEdgeG2 = distToEdgeFirstAll < thresStartingDistG2;
         
-        indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 &...
-            sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2; % & indNonDecayingG2 & indLateMaxPointG2;
+        % Re-considering FA area criteria: I quite don't believe this
+        % criterion used in step 7. Basically the G2 adhesions should  ...
+        % evolve to a decently large area.  - SH 180422 
+        bigEnoughArea = maxAreaAll>thresMatureArea; %mean(meanAreaAll)+std(meanAreaAll);
+        
+        indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 & ...
+            sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
+            bigEnoughArea & indCleanRisingG1G2; % & indNonDecayingG2 & indLateMaxPointG2;
 
         % Inspect each (temporary)
         indexG2 = find(indAbsoluteG2); 
@@ -723,7 +725,7 @@ else
         % Get the unique resonses
         totalGroups = unique(response);
 
-        figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
+        confFig=figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
         set(confAxis,'xtick',1:size(C,1))
         set(confAxis,'xticklabel',order')
         set(confAxis,'XTickLabelRotation',45)
@@ -734,9 +736,9 @@ else
 
         c = colorbar;
         c.Label.String = 'normalized prediction';
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'confusionMatrix.eps']);
-        savefig([p.OutputDirectory filesep 'figs' filesep 'confusionMatrix.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'confusionMatrix.tif'])
+        print(confFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'confusionMatrix.eps']);
+        savefig(confFig,[p.OutputDirectory filesep 'figs' filesep 'confusionMatrix.fig'])
+        print(confFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'confusionMatrix.tif'])
     %     while validationAccuracy<0.6 && strcmp(reuseSelectedGroups,'u')
     %         disp('Validation accuracy was low. Group reduction is needed.')
     %         interestedGroups = input('Which groups are in this specific movie? Use bracket form...');
@@ -772,16 +774,16 @@ else
         for ii = 1 : size(features,2)
             features(:,ii) = (features(:,ii) - min(features(:,ii)))./(max(features(:,ii)) - min(features(:,ii)));
         end
-        figure; imagesc(features');hold on
+        featFig=figure; imagesc(features');hold on
         c = colorbar;
         c.Label.String = 'feature value';
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'featureSpace.eps']);
-        savefig(outFilePaths{2,p.ChannelIndex})
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'featureSpace.tif'])
+        print(featFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'featureSpace.eps']);
+        savefig(featFig, outFilePaths{2,p.ChannelIndex})
+        print(featFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'featureSpace.tif'])
 
         D = pdist(features);
         D1 =  squareform(D);
-        figure; imagesc(D1);
+        similDataFig=figure; imagesc(D1);
         title('similarityAmongTrainedData')
         c = colorbar;
         c.Label.String = 'p-dist';
@@ -792,20 +794,21 @@ else
             w = sum(strcmp(species,totalGroups{ii}));
             rectangle('Position',[x0-0.5 x0-0.5 w w],'EdgeColor','w','LineWidth',0.5)
         end
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
+        print(similDataFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongTrainedData.eps']);
     %     savefig([p.OutputDirectory filesep 'figs' filesep 'similarityAmongTrainedData.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongTrainedData.tif'])
+        print(similDataFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongTrainedData.tif'])
 %         close
 
         Dfeats = pdist(features');
         Dfeats1 =  squareform(Dfeats);
-        figure; imagesc(Dfeats1); title('similarityAmongFeatures')
+        dfeatFig=figure; imagesc(Dfeats1); title('similarityAmongFeatures')
+        shading flat
         c = colorbar;
         c.Label.String = 'p-dist';
 
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongFeatures.eps']);
+        print(dfeatFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'similarityAmongFeatures.eps']);
     %     savefig([p.OutputDirectory filesep 'figs' filesep 'similarityAmongFeatures.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongFeatures.tif'])
+        print(dfeatFig, '-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'similarityAmongFeatures.tif'])
 %         close
         [~,allData] = extractFeatureNA(tracksNA,[],2,MD);
 
@@ -873,6 +876,20 @@ else
     idGroup8 = strcmp(allDataClass,'Group8');
     idGroup9 = strcmp(allDataClass,'Group9');
     
+    %% minority group redemption
+    % There is a case where idgroup with small number of labels is totally
+    % neglected during classifier building. This case we'll put the labels
+    % back to the idGroup
+    if sum(idGroup2)<numel(indexG2)
+        idGroup2(indexG2)=true;
+    end
+    if sum(idGroup1)<numel(indexG1)
+        idGroup1(indexG1)=true;
+    end
+    if sum(idGroup3)<numel(indexG3)
+        idGroup3(indexG3)=true;
+    end
+    
     %% Adhesion boundary homogenization
     % This is one last step where we make potentially different classes
     % associated with the same chunk of adhesion boundary the same.
@@ -934,7 +951,7 @@ else
     allDataClass(idGroup8)={'Group8'};
     allDataClass(idGroup9)={'Group9'};
     iFrameInterest=min(81,MD.nFrames_);
-    figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
+    mapFig = figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
     [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],10);
     classNames={'G1: turn-over','G2: maturing','G3: moving along protruding edge',...
         'G4: retracting','G5: stable at the edge','G6: noise or very transient','G7: adhesions at stalling edge','G8: strong stable adhesion', 'G9: weak stable adhesion inside'};
@@ -955,9 +972,9 @@ else
 %         tableTracksNA = struct2table(tracksNA);
 %         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 
     else
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.eps']);
-        savefig([p.OutputDirectory filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.fig'])
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.tif'])
+        print(mapFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.eps']);
+        savefig(mapFig,[p.OutputDirectory filesep 'figs' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.fig'])
+        print(mapFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified_otherClassifier.tif'])
         save(outFilePaths{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
 %         tableTracksNA = struct2table(tracksNA);
 %         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 

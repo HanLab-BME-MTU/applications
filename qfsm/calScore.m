@@ -1,4 +1,6 @@
 function [score,blockIsTooSmall,vP,vF] = calScore(kym,centerI,corL,vP,vF,varargin)
+% function [score,blockIsTooSmall,vP,vF] = calScore(kym,centerI,corL,vP,vF,varargin)
+% calculates cross-correlation score with centerI postion and vP and vF.
 % centerI : The coordinate index of the image block center in the 'kym' image.
 % SH: this local function was updated for bead tracking instead of speckle
 % tracking. The first slice of kym contains the reference frame and the

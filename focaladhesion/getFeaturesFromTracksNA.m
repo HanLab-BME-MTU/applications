@@ -122,8 +122,8 @@ for k=1:numTracks
     curTrack.lifeTime = eF-sF;    
     % Inital intensity slope for one min
     timeInterval = deltaT/60; % in min
-    earlyPeriod = floor(1/timeInterval); % frames per minute
-    lastFrame = min(sum(~isnan(curTrack.amp)),sF+earlyPeriod-1);
+    entirePeriod = eF-sF; % floor(1/timeInterval); % frames per minute
+    lastFrame = min(sum(~isnan(curTrack.amp)),sF+entirePeriod-1);
     lastFrameFromOne = lastFrame - sF+1;
 %     lastFrameFromOne = sF;
 %     lastFrame = min(sum(~isnan(curTrack.amp)),sF+earlyPeriod-1);
@@ -152,11 +152,16 @@ for k=1:numTracks
 %     [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame));
     nSampleStart=min(9,floor((maxSdInd)/2));
     if ~all(isnan(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))) && ~all(isnan(curAmpTotal(1:nSampleStart)))
-        if nSampleStart>4 && ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd)) && ...
-                nanmean(curAmpTotal(1:nSampleStart))<nanmean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
-            [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
-                log(curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame)/...
-                curTrack.ampTotal(curTrack.startingFrameExtra)));
+        sigTtest = ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd));
+        if ~isnan(sigTtest)
+            if nSampleStart>4 && sigTtest && ...
+                    nanmean(curAmpTotal(1:nSampleStart))<nanmean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
+                [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
+                    log(curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame)/...
+                    curTrack.ampTotal(curTrack.startingFrameExtra)));
+            else
+                assemRate = NaN;
+            end
         else
             assemRate = NaN;
         end
@@ -172,10 +177,15 @@ for k=1:numTracks
     % starting point, or the last 10 points are not different from 10
     % poihnts near the maximum
     nSampleEnd=min(9,floor((length(tRange)-maxSdInd)*2/3));
-    if nSampleEnd>4 && ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd)) && ...
-            mean(curAmpTotal(end-nSampleEnd:end))<mean(curAmpTotal(maxSdInd:maxSdInd+nSampleEnd))
-        [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),...
-            log(curAmpTotal(maxSdInd) ./curAmpTotal(maxSdInd:end)));
+    sigTtest=ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd));
+    if ~isnan(sigTtest)
+        if nSampleEnd>4 && sigTtest && ...
+                mean(curAmpTotal(end-nSampleEnd:end))<mean(curAmpTotal(maxSdInd:maxSdInd+nSampleEnd))
+            [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),...
+                log(curAmpTotal(maxSdInd) ./curAmpTotal(maxSdInd:end)));
+        else
+            disassemRate = NaN;
+        end
     else
         disassemRate = NaN;
     end
@@ -184,11 +194,16 @@ for k=1:numTracks
     nSampleEndLate=min(9,floor((curTrack.endingFrameExtraExtra-maxAmpFrame)*2/3));
     curStartFrame = max(curTrack.startingFrame,curTrack.endingFrameExtraExtra-periodFrames+1);
     curLatePeriod = curTrack.endingFrameExtraExtra - curStartFrame+1;
-    if nSampleEndLate>4 && ttest2(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra),...
-            curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate)) && ...
-            mean(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra))...
-            <mean(curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate))
-        [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),curTrack.ampTotal(curStartFrame:curTrack.endingFrameExtraExtra));
+    sigTtest=ttest2(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra),...
+            curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate));
+    if ~isnan(sigTtest)
+        if nSampleEndLate>4 && sigTtest && ...
+                mean(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra))...
+                <mean(curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate))
+            [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),curTrack.ampTotal(curStartFrame:curTrack.endingFrameExtraExtra));
+        else
+            curMlate = NaN;
+        end
     else
         curMlate = NaN;
     end

@@ -46,10 +46,6 @@ end
 % make sure the lifetime calculation is okay
 tracksNA = recalculateLifeTimeTracks(tracksNA);
 nTracks = numel(tracksNA);
-if nTracks<1
-    disp('No data in tracksNA ... Aborting ...')
-    return
-end
 if ~useCurrentAxis
     h=figure; 
 else
@@ -63,6 +59,11 @@ nSources=numel(source);
 
 frameMaxAmp = zeros(nTracks,1);
 longestCohorts=[];
+
+if nTracks<1
+    disp('No data in tracksNA ... Aborting ...')
+    return
+end
 
 if alignEvent
     % Find the maxima using some of the core function in detectProtrusionEvents

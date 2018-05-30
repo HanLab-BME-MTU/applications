@@ -322,30 +322,31 @@ end
 if p.doRotReg, displField=perfRotReg(displField); end 
 
 %% Displacement map creation - this is shifted version
-[dMapIn, dmax, dmin, cropInfo,dMapXin,dMapYin,reg_grid] = generateHeatmapShifted(displField,displField,0);
+% Now decided to discard this part to save the hard disk space 20180421 SH
+% [dMapIn, dmax, dmin, cropInfo,dMapXin,dMapYin,reg_grid] = generateHeatmapShifted(displField,displField,0);
 % Insert displacement map in displField.pos 
-disp('Generating displacement maps ...')
+% disp('Generating displacement maps ...')
 % dMap = cell(1,nFrames);
 % dMapX = cell(1,nFrames);
 % dMapY = cell(1,nFrames);
-outputDir = fullfile(p.OutputDirectory,'displMaps');
-mkClrDir(outputDir);
-fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
-numStr = @(frame) num2str(frame,fString);
-outFileDMap=@(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
+% outputDir = fullfile(p.OutputDirectory,'displMaps');
+% mkClrDir(outputDir);
+% fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+% numStr = @(frame) num2str(frame,fString);
+% outFileDMap=@(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
 displFieldShifted(nFrames)=struct('pos','','vec','');
 for ii=1:nFrames
     % starts with original size of beads
-    cur_dMap = zeros(size(firstMask));
-    cur_dMapX = zeros(size(firstMask));
-    cur_dMapY = zeros(size(firstMask));
-    cur_dMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{ii};
-    cur_dMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapXin{ii};
-    cur_dMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapYin{ii};
+%     cur_dMap = zeros(size(firstMask));
+%     cur_dMapX = zeros(size(firstMask));
+%     cur_dMapY = zeros(size(firstMask));
+%     cur_dMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{ii};
+%     cur_dMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapXin{ii};
+%     cur_dMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapYin{ii};
 %     dMap{ii} = cur_dMap;
 %     dMapX{ii} = cur_dMapX;
 %     dMapY{ii} = cur_dMapY;
-    save(outFileDMap(ii),'cur_dMap','cur_dMapX','cur_dMapY'); % I removed v7.3 option to save the space,'-v7.3');
+%     save(outFileDMap(ii),'cur_dMap','cur_dMapX','cur_dMapY'); % I removed v7.3 option to save the space,'-v7.3');
     % Shifted displField vector field
     [grid_mat,iu_mat, ~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
    
@@ -356,17 +357,22 @@ for ii=1:nFrames
     displFieldShifted(ii).pos = pos;
     displFieldShifted(ii).vec = disp_vec;
 end
-clear dMapIn dMapXin dMapYin
+% clear dMapIn dMapXin dMapYin
 disp('Saving ...')
 save(outputFile{1},'displField','displFieldShifted','-v7.3');
 % Saving the dMap which stores information
-dMap.eachDMapName = 'cur_dMap';
-dMap.outputDir = fullfile(p.OutputDirectory,'dislplMaps');
-dMap.outFileDMap = @(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
-dMapX=dMap; dMapX.eachTMapName = 'cur_dMapX';
-dMapY=dMap; dMapY.eachTMapName = 'cur_dMapY';
+% dMap.eachDMapName = 'cur_dMap';
+% dMap.outputDir = fullfile(p.OutputDirectory,'dislplMaps');
+% dMap.outFileDMap = @(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
+dMap.displFieldPath = outputFile{1};
+dMap.firstMaskSize = size(firstMask);
+
+dMapX=dMap; %dMapX.eachTMapName = 'cur_dMapX';
+dMapY=dMap; %dMapY.eachTMapName = 'cur_dMapY';
 save(outputFile{2},'dMap','dMapX','dMapY'); % Updated, SH 20180225
 % save(outputFile{2},'dMap','dMapX','dMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
+displMag=cell2mat(arrayfun(@(x) sqrt(x.vec(:,1).^2+x.vec(:,2).^2), displField,'unif',false));
+dmin = quantile(displMag(:),0.01); dmax = quantile(displMag(:),0.95);
 displFieldCorrProc.setTractionMapLimits([dmin dmax])
 
 %% Close waitbar

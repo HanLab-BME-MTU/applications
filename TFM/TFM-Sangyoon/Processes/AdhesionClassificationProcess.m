@@ -139,7 +139,16 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     metaTrackData = s.metaTrackData;
                     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
                     numStr = @(trackNum) num2str(trackNum,fString);
-                    trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+                    trackFolderPath = metaTrackData.trackFolderPath;
+                    if ~exist(trackFolderPath,'dir')
+                        adhProcFolder=fileparts(adhAnalProc.outFilePaths_{1,iChan});
+                        trackFolderPath = [adhProcFolder filesep 'trackIndividual'];
+                        metaTrackData.trackFolderPath = trackFolderPath;
+                        disp('Updaing metaTrackData with relocated trackIndividual location...')
+                        save(adhAnalProc.outFilePaths_{1,iChan},'metaTrackData');
+                    end
+                    
+                    trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
                     for ii=metaTrackData.numTracks:-1:1
                         curTrackObj = load(trackIndPath(ii),'curTrack');
                         curTrack = curTrackObj.curTrack;
@@ -370,7 +379,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             funParams.trackFAProc = []; % Specify FA tracking Process index`````
             funParams.FAsegProc = []; % Specify FA segmentation Process index           
 
-            funParams.labeledData=[];
+            funParams.labelData=[];
             funParams.useAutomaticallySelectedData = true;
             funParams.manualLabeling=false;
             funParams.useSimpleClassification=false;
