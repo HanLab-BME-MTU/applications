@@ -12,14 +12,20 @@ ip.addOptional('paramsIn',[], @isstruct);
 ip.parse(MD,varargin{:});
 paramsIn=ip.Results.paramsIn;
 %Parse input, store in parameter structure
-%Get the indices of any previous threshold processes from this function                                                                              
-iProc = MD.getProcessIndex('InitialRiseTimeLagCalculationProcess',1,0);
-%If the process doesn't exist, create it
-if isempty(iProc)
-    iProc = numel(MD.processes_)+1;
-    MD.addProcess(InitialRiseTimeLagCalculationProcess(MD));                                                                                                 
+%Get the indices of any previous threshold processes from this function   
+try
+    iProc = MD.getProcessIndex('InitialRiseTimeLagCalculationProcess',1,0);
+    %If the process doesn't exist, create it
+    if isempty(iProc)
+        iProc = numel(MD.processes_)+1;
+        MD.addProcess(InitialRiseTimeLagCalculationProcess(MD));                                                                                                 
+    end
+    timeLagProc = MD.processes_{iProc};
+catch
+    iFAPack =  MD.getPackageIndex('FocalAdhesionPackage');
+    faPack = MD.getPackage(iFAPack);
+    timeLagProc = faPack.processes_{11};
 end
-timeLagProc = MD.processes_{iProc};
 p = parseProcessParams(timeLagProc,paramsIn);
 iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 
@@ -32,8 +38,12 @@ iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 % It might be good to save which process the tracksNA was obtained.
 disp('Reading tracksNA ...')
 tic
-iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
-adhAnalProc = MD.getProcess(iAdhProc);
+try
+    iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
+    adhAnalProc = MD.getProcess(iAdhProc);
+catch
+    adhAnalProc = faPack.processes_{7};
+end
 tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 % numChans = numel(p.ChannelIndex);
 
@@ -71,8 +81,12 @@ toc
 %% Reading classes
 disp('Reading idsClassified ...')
 try
-    iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
-    classProc = MD.getProcess(iClaProc);
+    try
+        iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
+        classProc = MD.getProcess(iClaProc);
+    catch
+        classProc = faPack.processes_{8};
+    end
     % numChans = numel(p.ChannelIndex);
     idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
     idGroup1 = idsClassified.idGroup1;
@@ -255,6 +269,7 @@ firstTimeAboveOneBccAll=cell(2,numSlaves);
 BccGroups=cell(2,numSlaves);
 avgBccGroups=cell(2,numSlaves);
 indexValidBccInTracks=cell(2,numSlaves);
+tStartingFrame=zeros(2,numSlaves);
 for jj=existingSlaveIDs
     for k=1:numClasses
         initialLagGroups{k,jj}=firstIncreseTimeIntAgainstSlaveAll{jj}(idGroups{k});
@@ -262,7 +277,7 @@ for jj=existingSlaveIDs
         % least for G1 and G2) 
         if ismember(k,[1 2])
             disp(['Current Class: ' num2str(k)])
-            [BccGroups{k,jj},avgBccGroups{k,jj},tStaringFrame,indexValidBccInTracks{k,jj},firstTimeAboveZeroBccAll{k,jj},...
+            [BccGroups{k,jj},avgBccGroups{k,jj},tStartingFrame(k,jj),indexValidBccInTracks{k,jj},firstTimeAboveZeroBccAll{k,jj},...
                 firstTimeAboveHalfBccAll{k,jj},firstTimeAboveOneBccAll{k,jj}] = ...
                 inspectNATimeSeries(tracksNA(idGroups{k}),tInterval); %,p.OutputDirectory);
         end
@@ -371,119 +386,121 @@ for k=1:numClasses
             potentialSlaves = {'forceMag','ampTotal2','ampTotal3'};
             slaveSource = potentialSlaves{jj};
             curBcc = BccGroups{k,jj};
-            idGroupIndex=find(idGroups{k});
-            curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
-%             curAvgBcc = avgBccGroups{k,jj};
-%             tRange = (1:size(curBcc,2))-tShift;
-%             h2=figure;
-%             plot(tRange,curBcc); hold on
-%             plot(tRange,curAvgBcc,'Linewidth',3)
-%             nameTitle=['Bcc ' num2str(k) 'th class'];
-%             title(nameTitle); ylabel('Time lag (s)')
-%             hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-%             hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-%             close(h2)
-            % Filtering done previously
-            % Try clustering
-            % #1 clustering with the features from my feature collection
-            meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
-            T=kmeans(meas,numClusters);
-            
-            % Sort T based on timeToMax
-            meanTimeToMaxPerClus = arrayfun(@(x) mean(meas(T==x)),clusterArray);
-            numPerClusters = arrayfun(@(x) sum(T==x),clusterArray);
-            % Discard the cluster that has too early time to max
-            [~,indClusterEarlyTimetoMax] = min(meanTimeToMaxPerClus);
-            % Discard clusters whose sample sizes are small
-            thresClusterSize = mean(numPerClusters)-0.5*std(numPerClusters);
-            indSmallClusters = find(numPerClusters < thresClusterSize);
-            % Choose the main cluster
-            mainClusters = find(numPerClusters > max(numPerClusters)*0.95);
-            sideClusters = setdiff(clusterArray,[mainClusters indSmallClusters indClusterEarlyTimetoMax]);
-            
-            % Found that They have very similar life time per cluster
-            % Checking lifetime... They are not necessarily the same!
-            % Inspect
-            mainBccPeakValues=[];
-            mainTimeToPeak=[];
-            sideBccPeakValues=[];
-            sideTimeToPeak=[];
-            for curT=[mainClusters sideClusters]
-                h2=figure; 
-                plot(1:size(curBcc,2),curBcc(T==curT,:),'o-')
-                hold on
-                plot(1:size(curBcc,2),nanmean(curBcc(T==curT,:),1),'Linewidth',3,'color','k')
-                line([36 36],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
-                hold off
-                if ismember(curT,mainClusters)
-                    nameTitle=['Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
-                    mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
-                    mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStaringFrame)*tInterval];
-                else
-                    nameTitle=['Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
-                    sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
-                    sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStaringFrame)*tInterval];
+            if ~isempty(curBcc)
+                idGroupIndex=find(idGroups{k});
+                curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
+    %             curAvgBcc = avgBccGroups{k,jj};
+    %             tRange = (1:size(curBcc,2))-tShift;
+    %             h2=figure;
+    %             plot(tRange,curBcc); hold on
+    %             plot(tRange,curAvgBcc,'Linewidth',3)
+    %             nameTitle=['Bcc ' num2str(k) 'th class'];
+    %             title(nameTitle); ylabel('Time lag (s)')
+    %             hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+    %             hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+    %             close(h2)
+                % Filtering done previously
+                % Try clustering
+                % #1 clustering with the features from my feature collection
+                meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
+                T=kmeans(meas,numClusters);
+
+                % Sort T based on timeToMax
+                meanTimeToMaxPerClus = arrayfun(@(x) mean(meas(T==x)),clusterArray);
+                numPerClusters = arrayfun(@(x) sum(T==x),clusterArray);
+                % Discard the cluster that has too early time to max
+                [~,indClusterEarlyTimetoMax] = min(meanTimeToMaxPerClus);
+                % Discard clusters whose sample sizes are small
+                thresClusterSize = mean(numPerClusters)-0.5*std(numPerClusters);
+                indSmallClusters = find(numPerClusters < thresClusterSize);
+                % Choose the main cluster
+                mainClusters = find(numPerClusters > max(numPerClusters)*0.95);
+                sideClusters = setdiff(clusterArray,[mainClusters indSmallClusters indClusterEarlyTimetoMax]);
+
+                % Found that They have very similar life time per cluster
+                % Checking lifetime... They are not necessarily the same!
+                % Inspect
+                mainBccPeakValues=[];
+                mainTimeToPeak=[];
+                sideBccPeakValues=[];
+                sideTimeToPeak=[];
+                for curT=[mainClusters sideClusters]
+                    h2=figure; 
+                    plot(1:size(curBcc,2),curBcc(T==curT,:),'o-')
+                    hold on
+                    plot(1:size(curBcc,2),nanmean(curBcc(T==curT,:),1),'Linewidth',3,'color','k')
+                    line([36 36],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+                    hold off
+                    if ismember(curT,mainClusters)
+                        nameTitle=['Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
+                        mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+                        mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+                    else
+                        nameTitle=['Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
+                        sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+                        sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+                    end
+                    title(nameTitle); 
+                    ylabel('Time (frame, 36th frame = time zero)')
+                    hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+                    hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+
+                    curTind = find(T==curT);
+
+                    for ii=1:sum(T==curT)
+                        iii=iii+1;
+                        if iii==1
+                            h=figure;  
+                        end
+                        curCurBcc = curBcc(curTind(ii),:);
+                        % corresponding index in tracksNA
+                        curTrackInd = curTrackIndex((curTind(ii)));
+                        curTrack = tracksNA(curTrackInd);
+                        tShift = tStartingFrame + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+                        tFluc = 10; % this is actually in frame
+                        lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
+                        sd=curTrack.ampTotal;
+                        subplot(2,2,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
+                        title(['Fluorescent intensity (ii: ' num2str(ii) ')'])
+                        sCurForce_sd=curTrack.forceMag;
+                        subplot(2,2,3), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
+                        title([slaveSource ' (ii: ' num2str(ii) ')'])
+                        subplot(2,2,2), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),curTrack.distToEdge(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'); 
+                        title(['Distance to edge' ' (ii: ' num2str(ii) ')'])
+                        subplot(2,2,4), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
+                        curName = ['trackNum',num2str(curTrackInd) '-Cluster-' num2str(curT) '-numInCluster-' num2str(ii)];
+                        title({['co-variance' ' (ii: ' num2str(ii) ')']; curName})
+                        hold off
+                        hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
+                        print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
+                        save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
+    %                     uiwait(); 
+                    end
                 end
-                title(nameTitle); 
-                ylabel('Time (frame, 36th frame = time zero)')
+                save([dataPath filesep 'mainBccPeakValues-G' num2str(k) '.mat'],'mainBccPeakValues')
+                save([dataPath filesep 'mainTimeToPeak-G' num2str(k) '.mat'],'mainTimeToPeak')
+                save([dataPath filesep 'sideBccPeakValues-G' num2str(k) '.mat'],'sideBccPeakValues')
+                save([dataPath filesep 'sideTimeToPeak-G' num2str(k) '.mat'],'sideTimeToPeak')
+
+                close(h2)
+
+                h2=figure;
+                plot(mainTimeToPeak,mainBccPeakValues,'k.','MarkerSize',14)
+                nameTitle=['mainTimePeak-Bcc-Class-' num2str(k)];
+                title(nameTitle); xlabel('Time (s)'); ylabel('Bcc'); xlim('auto')
                 hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
                 hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-                
-                curTind = find(T==curT);
-                                
-                for ii=1:sum(T==curT)
-                    iii=iii+1;
-                    if iii==1
-                        h=figure;  
-                    end
-                    curCurBcc = curBcc(curTind(ii),:);
-                    % corresponding index in tracksNA
-                    curTrackInd = curTrackIndex((curTind(ii)));
-                    curTrack = tracksNA(curTrackInd);
-                    tShift = tStaringFrame + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
-                    tFluc = 10; % this is actually in frame
-                    lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
-                    sd=curTrack.ampTotal;
-                    subplot(2,2,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
-                    title(['Fluorescent intensity (ii: ' num2str(ii) ')'])
-                    sCurForce_sd=curTrack.forceMag;
-                    subplot(2,2,3), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
-                    title([slaveSource ' (ii: ' num2str(ii) ')'])
-                    subplot(2,2,2), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),curTrack.distToEdge(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'); 
-                    title(['Distance to edge' ' (ii: ' num2str(ii) ')'])
-                    subplot(2,2,4), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
-                    curName = ['trackNum',num2str(curTrackInd) '-Cluster-' num2str(curT) '-numInCluster-' num2str(ii)];
-                    title({['co-variance' ' (ii: ' num2str(ii) ')']; curName})
-                    hold off
-                    hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
-                    print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
-                    save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
-%                     uiwait(); 
-                end
-            end
-            save([dataPath filesep 'mainBccPeakValues-G' num2str(k) '.mat'],'mainBccPeakValues')
-            save([dataPath filesep 'mainTimeToPeak-G' num2str(k) '.mat'],'mainTimeToPeak')
-            save([dataPath filesep 'sideBccPeakValues-G' num2str(k) '.mat'],'sideBccPeakValues')
-            save([dataPath filesep 'sideTimeToPeak-G' num2str(k) '.mat'],'sideTimeToPeak')
-            
-            close(h2)
+                close(h2)
 
-            h2=figure;
-            plot(mainTimeToPeak,mainBccPeakValues,'k.','MarkerSize',14)
-            nameTitle=['mainTimePeak-Bcc-Class-' num2str(k)];
-            title(nameTitle); xlabel('Time (s)'); ylabel('Bcc'); xlim('auto')
-            hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-            hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-            close(h2)
-            
-            mainTimeToPeakGroup{k}=mainTimeToPeak;
-            mainBccPeakValuesGroup{k}=mainBccPeakValues;
+                mainTimeToPeakGroup{k}=mainTimeToPeak;
+                mainBccPeakValuesGroup{k}=mainBccPeakValues;
+            end
         end
     end
-    if iii>0
+    if iii>0 && ishandle(h)
         close(h)
     end
-
+ 
     
     h2=figure;
     boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5);
@@ -640,16 +657,19 @@ end
     save([p.OutputDirectory filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'startingForceMagAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/startingForceMagAllGroups'),'-v7.3'); close
-      %% Look at feature difference per each group - mainTimeToPeakGroup
+    %% Look at feature difference per each group - mainTimeToPeakGroup
+    nameTwoGroups={'G1','G2'};
+    numIdGroups=cellfun(@sum,idGroups);
+    nameTwoGroups(numIdGroups(1:2)<1)=[];
     figure;
-    boxPlotCellArray(mainTimeToPeakGroup,{'G1','G2'});
+    boxPlotCellArray(mainTimeToPeakGroup,nameTwoGroups);
     title('mainTimeToPeakBccGroup ')
     ylabel('mainTimeToPeakBccGroup (sec)')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainTimeToPeakBccGroup.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/mainTimeToPeakBccGroup'),'-v7.3'); 
     %% Look at feature difference per each group - mainBccPeakValuesGroup
     figure;
-    boxPlotCellArray(mainBccPeakValuesGroup,{'G1','G2'});
+    boxPlotCellArray(mainBccPeakValuesGroup,nameTwoGroups);
     title('mainBccPeakValuesGroup ')
     ylabel('mainBccPeakValuesGroup (AU)')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup.eps']);% histogramPeakLagVinVsTal -transparent
