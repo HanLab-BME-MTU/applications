@@ -383,7 +383,7 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-<<<<<<< HEAD
+
 for ii=1:numConditions
     [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
     if isempty(finalFolder)
@@ -391,12 +391,10 @@ for ii=1:numConditions
     end
     groupNames{ii} = finalFolder;
 end
-=======
 % for ii=1:numConditions
 %     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
 %     groupNames{ii} = finalFolder;
 % end
->>>>>>> 1f4ab8ef40f405b766c09b86da19b0e5da324b43
 %% Plotting each - initRiseGroup - all classes
 nameList=groupNames'; %{'pLVX' 'P29S'};
 for curGroup=1:9
