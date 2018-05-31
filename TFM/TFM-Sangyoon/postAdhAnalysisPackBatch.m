@@ -1,4 +1,5 @@
 %% open necessary MLs
+MLdirect=false;
 [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
@@ -16,6 +17,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
             groupNames{ii} = finalFolder;
             MLFileNamesAll{ii} = curMLFile;
             MLNames{ii} = 'movieList.mat';
+            MLdirect=true;
         end
     end
     if analysisFolderSelectionDone && ii==1
@@ -74,6 +76,7 @@ FAstructGroup= cell(numConditions,1);
 initRiseGroup = cell(numConditions,1);
 peakGroup = cell(numConditions,1);
 endTimeGroup = cell(numConditions,1);
+halfBccGroup = cell(numConditions,1);
 
 numPureFAsGroup = cell(numConditions,1);
 cellAreaGroup = cell(numConditions,1);
@@ -287,6 +290,13 @@ for ii=1:numConditions
     initRiseAgainstForceEachClass=cell(numClasses,1);
     peakTimeAgainstForceEachClass=cell(numClasses,1);
     endTimeAgainstForceEachClass=cell(numClasses,1);
+    halfBccTogetherEachClass=cell(numClasses,1);
+    
+    mainBccPeakValuesGroup=cell(2,1);
+    mainTimeToPeakGroup=cell(2,1);
+    sideBccPeakValuesGroup=cell(2,1);
+    sideTimeToPeakGroup=cell(2,1);
+    
     iForceSlave = 1;
     iInitRiseProc = 11;
     for pp=1:numClasses
@@ -315,15 +325,38 @@ for ii=1:numConditions
             curEndTimeLag=endTimeStruct.endingLagTogetherAdjusted;
             endTimeAgainstForceEachClass{pp}{k} = curEndTimeLag;
             
+            nameTitle=['halfBccTogetherAdjusted' num2str(pp)];
+            halfBccTogetherStruct = load([initDataPath filesep nameTitle],'halfBccTogetherAdjusted','nameList2');    
+            halfBccTogetherEachClass{pp}{k} = halfBccTogetherStruct.halfBccTogetherAdjusted;
+            
+            
             if ismember(pp,[1 2])
-                mainBccPeakValuesGroupStruct = load([initDataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup');
-                mainBccPeakValuesGroup{pp}{k} = mainBccPeakValuesGroupStruct.mainBccPeakValuesGroup{pp};
-                mainTimeToPeakGroupStruct = load([initDataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup');
-                mainTimeToPeakGroup{pp}{k} = mainTimeToPeakGroupStruct.mainTimeToPeakGroup{pp};
-                sideBccPeakValuesGroupStruct = load([initDataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup');
-                sideBccPeakValuesGroup{pp}{k} = sideBccPeakValuesGroupStruct.sideBccPeakValuesGroup{pp};
-                sideTimeToPeakGroupStruct = load([initDataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup');
-                sideTimeToPeakGroup{pp}{k} = sideTimeToPeakGroupStruct.sideTimeToPeakGroup{pp};
+                try
+                    mainBccPeakValuesGroupStruct = load([initDataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup');
+                    mainBccPeakValuesGroup{pp}{k} = mainBccPeakValuesGroupStruct.mainBccPeakValuesGroup{pp};
+                    mainTimeToPeakGroupStruct = load([initDataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup');
+                    mainTimeToPeakGroup{pp}{k} = mainTimeToPeakGroupStruct.mainTimeToPeakGroup{pp};
+                    sideBccPeakValuesGroupStruct = load([initDataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup');
+                    sideBccPeakValuesGroup{pp}{k} = sideBccPeakValuesGroupStruct.sideBccPeakValuesGroup{pp};
+                    sideTimeToPeakGroupStruct = load([initDataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup');
+                    sideTimeToPeakGroup{pp}{k} = sideTimeToPeakGroupStruct.sideTimeToPeakGroup{pp};
+                catch
+                    try
+                        mainBccPeakValuesGroupStruct = load([initDataPath filesep 'mainBccPeakValues-G' num2str(pp) '.mat'],'mainBccPeakValues');
+                        mainBccPeakValuesGroup{pp}{k} = mainBccPeakValuesGroupStruct.mainBccPeakValues;
+                        mainTimeToPeakGroupStruct = load([initDataPath filesep 'mainTimeToPeak-G' num2str(pp) '.mat']);%,'mainTimeToPeakGroup');
+                        mainTimeToPeakGroup{pp}{k} = mainTimeToPeakGroupStruct.mainTimeToPeak;
+                        sideBccPeakValuesGroupStruct = load([initDataPath filesep 'sideBccPeakValues-G' num2str(pp) '.mat'],'sideBccPeakValues');
+                        sideBccPeakValuesGroup{pp}{k} = sideBccPeakValuesGroupStruct.sideBccPeakValues;
+                        sideTimeToPeakGroupStruct = load([initDataPath filesep 'sideTimeToPeak-G' num2str(pp) '.mat'],'sideTimeToPeak');
+                        sideTimeToPeakGroup{pp}{k} = sideTimeToPeakGroupStruct.sideTimeToPeak;
+                    catch
+                        mainBccPeakValuesGroup{pp}{k} = [];
+                        mainTimeToPeakGroup{pp}{k} = [];
+                        sideBccPeakValuesGroup{pp}{k} = [];
+                        sideTimeToPeakGroup{pp}{k} = [];
+                    end
+                end
             end
         end
     end
@@ -376,6 +409,8 @@ for ii=1:numConditions
     peakGroup{ii,1}=peakTimeAgainstForceEachClass;
     endTimeGroup{ii,1}=endTimeAgainstForceEachClass;
 
+    halfBccGroup{ii,1}=halfBccTogetherEachClass;
+
     mainBccPeakValuesGroupGroup{ii,1}=mainBccPeakValuesGroup;
     mainTimeToPeakGroupGroup{ii,1}=mainTimeToPeakGroup;
     sideBccPeakValuesGrouppGroup{ii,1}=sideBccPeakValuesGroup;
@@ -383,13 +418,16 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-
-for ii=1:numConditions
-    [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
-    if isempty(finalFolder)
-        [~, finalFolder]=fileparts(pathFolder);
+if MLdirect
+    groupNames=MLFileNamesAll;
+else
+    for ii=1:numConditions
+        [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
+        if isempty(finalFolder)
+            [~, finalFolder]=fileparts(pathFolder);
+        end
+        groupNames{ii} = finalFolder;
     end
-    groupNames{ii} = finalFolder;
 end
 % for ii=1:numConditions
 %     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
@@ -410,10 +448,24 @@ for curGroup=1:9
     tableInitRiseGroupEach=table(initRiseGroupEach,'RowNames',nameList);
     writetable(tableInitRiseGroupEach,[dataPath filesep 'initialRizeG' num2str(curGroup) '.csv'])
 end
-%% Plotting each - initRiseGroup - all classes
-nameList=groupNames'; %{'pLVX' 'P29S'};
+%% halfBccTime
+for curGroup=1:9
+    halfBccGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),halfBccGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(initRiseGroupEach,nameList,1,false,true);
+    ylabel(['halfBccGroup ' num2str(curGroup) ' (sec)'])
+    title(['halfBccGroup in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'halfBccGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'halfBccGroup' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'halfBccGroup' num2str(curGroup)],'-dtiff')
+
+    tableInitRiseGroupEach=table(halfBccGroupEach,'RowNames',nameList);
+    writetable(tableInitRiseGroupEach,[dataPath filesep 'halfBccGroup' num2str(curGroup) '.csv'])
+end
+
+%% Plotting each - mainTimeToPeakGroupGroup - G1 and G2
 for curGroup=1:2
-    mainTimeToPeakGroupGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),mainTimeToPeakGroupGroup,'unif',false);
+    mainTimeToPeakGroupGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),mainTimeToPeakGroupGroup,'unif',false);
     h1=figure; 
     boxPlotCellArray(mainTimeToPeakGroupGroupEach,nameList,1,false,true);
     ylabel(['mainTimeToPeakGroupGroupEach ' num2str(curGroup) ' (sec)'])
@@ -421,6 +473,39 @@ for curGroup=1:2
     hgexport(h1,[figPath filesep 'mainTimeToPeakGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'mainTimeToPeakGroup' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'mainTimeToPeakGroup' num2str(curGroup)],'-dtiff')
+end
+%% Plotting each - mainBccPeakValuesGroupGroup - G1 and G2
+for curGroup=1:2
+    mainBccPeakValuesGroupGrouppEach = cellfun(@(x) cell2mat(x{curGroup}'),mainBccPeakValuesGroupGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(mainBccPeakValuesGroupGrouppEach,nameList,1,false,true);
+    ylabel(['mainBccPeakValuesGroupGrouppEach ' num2str(curGroup) ' (sec)'])
+    title(['mainBccPeakValuesGroupGrouppEach ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'mainBccPeakValuesGroupGrouppEach' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'mainBccPeakValuesGroupGrouppEach' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'mainBccPeakValuesGroupGrouppEach' num2str(curGroup)],'-dtiff')
+end
+%% Plotting each - sideTimeToPeakGroupGroup - G1 and G2
+for curGroup=1:2
+    sideTimeToPeakGroupGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),sideTimeToPeakGroupGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(sideTimeToPeakGroupGroupEach,nameList,1,false,true);
+    ylabel(['sideTimeToPeakGroupGroup ' num2str(curGroup) ' (sec)'])
+    title(['sideTimeToPeakGroupGroup ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'sideTimeToPeakGroupGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'sideTimeToPeakGroupGroup' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'sideTimeToPeakGroupGroup' num2str(curGroup)],'-dtiff')
+end
+%% Plotting each - sideBccPeakValuesGrouppGroup - G1 and G2
+for curGroup=1:2
+    sideBccPeakValuesGrouppGrouppEach = cellfun(@(x) cell2mat(x{curGroup}'),sideBccPeakValuesGrouppGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(sideBccPeakValuesGrouppGrouppEach,nameList,1,false,true);
+    ylabel(['sideBccPeakValuesGrouppGroup ' num2str(curGroup) ' (sec)'])
+    title(['sideBccPeakValuesGrouppGroup ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'sideBccPeakValuesGrouppGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'sideBccPeakValuesGrouppGroup' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'sideBccPeakValuesGrouppGroup' num2str(curGroup)],'-dtiff')
 end
 %% num of each class
 numGroupOnlyTwo={numG1Group,numG2Group}; %,numG3Group,numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group};

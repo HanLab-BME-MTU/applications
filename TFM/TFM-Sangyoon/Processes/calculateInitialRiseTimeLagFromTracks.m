@@ -378,7 +378,6 @@ for k=1:numClasses
     save([dataPath filesep nameTitle],'oneBccTogetherAdjusted','nameList2');    
     close(h2)
 
-    numClusters = 10; clusterArray=1:numClusters;
     iii=0;
 
     if ismember(k,[1 2])
@@ -403,6 +402,8 @@ for k=1:numClasses
                 % Try clustering
                 % #1 clustering with the features from my feature collection
                 meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
+                numClusters = min(10,max(1,round(length(meas)/3))); 
+                clusterArray=1:numClusters;
                 T=kmeans(meas,numClusters);
 
                 % Sort T based on timeToMax
@@ -511,7 +512,7 @@ for k=1:numClasses
     end
     if iii>0 && ishandle(h)
         close(h)
-    end<<<<<<< HEAD
+    end
     save([dataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup')
     save([dataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup')
     save([dataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup')
