@@ -510,7 +510,7 @@ end
 %% num of each class
 numGroupOnlyTwo={numG1Group,numG2Group}; %,numG3Group,numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group};
 for curGroup=1:2
-    curNumGroup=numGroupAll{curGroup};
+    curNumGroup=numGroupOnlyTwo{curGroup};
     h1=figure; 
     boxPlotCellArray(curNumGroup,nameList,1,false,true);
     ylabel(['Number of adhesions in group ' num2str(curGroup) ' (#)'])
