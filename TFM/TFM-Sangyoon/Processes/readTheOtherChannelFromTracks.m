@@ -38,6 +38,8 @@ if isempty(iProc)
 end
 theOtherChanReadProc = MD.processes_{iProc};
 p = parseProcessParams(theOtherChanReadProc,paramsIn);
+p.OutputDirectory=[MD.getPath filesep 'FocalAdhesionPackage' filesep 'TheOtherChannelReading'];
+theOtherChanReadProc.setPara(p)
 
 % ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
 % ip.parse(MD,showAllTracks,plotEachTrack,varargin{:});

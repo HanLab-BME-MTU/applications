@@ -33,18 +33,24 @@ classdef TheOtherChannelReadingProcess < DataProcessingProcess
         end
         
         function output = loadChannelOutput(obj, iChan, varargin)
-            outputList = {};
-            nOutput = length(outputList);
-
+            ip =inputParser;
+            ip.addRequired('obj');
             ip.addRequired('iChan',@(x) obj.checkChanNum(x));
-            ip.addOptional('iOutput',1,@(x) ismember(x,1:nOutput));
-            ip.addParamValue('output','',@(x) all(ismember(x,outputList)));
             ip.addParamValue('useCache',false,@islogical);
-            ip.parse(iChan,varargin{:})
+            ip.parse(obj,iChan,varargin{:})
     
-            s = cached.load(obj.outFilePaths_{iChan},'-useCache',ip.Results.useCache);
+            % relocate metaTrackData.trackFolderPath with current
+            % directory
+            outputFile = obj.outFilePaths_;
+            [prevProcessPath,trackIndividualName] = fileparts(obj.outFilePaths_{iChan});
+            currentProcessPath = [obj.owner_.outputDirectory_ filesep 'FocalAdhesionPackage' filesep 'TheOtherChannelReading'];
+            if ~strcmp(prevProcessPath,currentProcessPath)
+                outputFile{iChan} = [currentProcessPath filesep trackIndividualName '.mat'];
+                obj.setOutFilePaths(outputFile);
+            end
 
-            output = s.Imean;          
+            output = cached.load(obj.outFilePaths_{iChan},'-useCache',ip.Results.useCache);
+%             output = s.Imean;          
         end
     end
     methods (Static)

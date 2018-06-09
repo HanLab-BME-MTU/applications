@@ -56,6 +56,8 @@ forceReadProc=FAPack.processes_{iForceRead};
 if ~isempty(theOtherReadProc)
     ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
     tracksAmpTotal = ampObj.tracksAmpTotal;
+%     tracksAmpTotal = theOtherReadProc.loadChannelOutput(p.ChannelIndex);
+    
     if isfield(tracksAmpTotal,'ampTotal2')
         [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
     end
@@ -131,6 +133,7 @@ mkClrDir(p.OutputDirectory);
 dataPath=[p.OutputDirectory filesep 'data'];mkClrDir(dataPath);
 epsPath=[p.OutputDirectory filesep 'eps'];mkClrDir(epsPath);
 figPath=[p.OutputDirectory filesep 'figs'];mkClrDir(figPath);
+tifPath=[p.OutputDirectory filesep 'tif'];mkClrDir(tifPath);
 
 %% Initial force-increase time quantification! - time
 tInterval = MD.timeInterval_;
@@ -270,6 +273,10 @@ BccGroups=cell(2,numSlaves);
 avgBccGroups=cell(2,numSlaves);
 indexValidBccInTracks=cell(2,numSlaves);
 tStartingFrame=zeros(2,numSlaves);
+mainTimeToPeakGroup=cell(2,numSlaves);
+mainBccPeakValuesGroup=cell(2,numSlaves);
+sideTimeToPeakGroup=cell(2,numSlaves);
+sideBccPeakValuesGroup=cell(2,numSlaves);
 for jj=existingSlaveIDs
     for k=1:numClasses
         initialLagGroups{k,jj}=firstIncreseTimeIntAgainstSlaveAll{jj}(idGroups{k});
@@ -293,6 +300,7 @@ save([dataPath filesep 'peakLagGroups.mat'],'peakLagGroups');
 save([dataPath filesep 'endingLagGroups.mat'],'endingLagGroups');
 save([dataPath filesep 'ccScoreGroups.mat'],'ccScoreGroups');
 save([dataPath filesep 'ccLagGroups.mat'],'ccLagGroups');
+save([dataPath filesep 'BccGroups.mat'],'BccGroups','indexValidBccInTracks');
 %% IV. Plot these wisely: if there are more than one slaves, realign events based on p.mainSlave
 % If there are only ampTotal and forceMag, then it would be one box
 % plotted. If there are also ampTotal2, then everything will be aligned to
@@ -378,7 +386,6 @@ for k=1:numClasses
     save([dataPath filesep nameTitle],'oneBccTogetherAdjusted','nameList2');    
     close(h2)
 
-    iii=0;
 
     if ismember(k,[1 2])
         for jj=existingSlaveIDs
@@ -433,21 +440,23 @@ for k=1:numClasses
                     line([36 36],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
                     hold off
                     if ismember(curT,mainClusters)
-                        nameTitle=['Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
+                        nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
                         mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
                         mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
                     else
-                        nameTitle=['Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
+                        nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
                         sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
                         sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
                     end
                     title(nameTitle); 
-                    ylabel('Time (frame, 36th frame = time zero)')
+                    xlabel('Time (frame, 36th frame = time zero)')
                     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
                     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+                    print(h2,'-dtiff',strcat(tifPath,filesep,nameTitle,'.tif'))
 
                     curTind = find(T==curT);
 
+                    iii=0;
                     for ii=1:sum(T==curT)
                         iii=iii+1;
                         if iii==1
@@ -457,31 +466,33 @@ for k=1:numClasses
                         % corresponding index in tracksNA
                         curTrackInd = curTrackIndex((curTind(ii)));
                         curTrack = tracksNA(curTrackInd);
-                        tShift = tStartingFrame + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+                        tShift = tStartingFrame(k,jj) + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
                         tFluc = 10; % this is actually in frame
                         lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
                         sd=curTrack.ampTotal;
                         subplot(2,2,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
                         title(['Fluorescent intensity (ii: ' num2str(ii) ')'])
-                        sCurForce_sd=curTrack.forceMag;
+                        sCurForce_sd=curTrack.(slaveSource);
                         subplot(2,2,3), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
                         title([slaveSource ' (ii: ' num2str(ii) ')'])
                         subplot(2,2,2), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),curTrack.distToEdge(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'); 
-                        title(['Distance to edge' ' (ii: ' num2str(ii) ')'])
+                        title({['Distance to edge' ' (ii: ' num2str(ii) ')']; ['Class' num2str(k)]})
                         subplot(2,2,4), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
-                        curName = ['trackNum',num2str(curTrackInd) '-Cluster-' num2str(curT) '-numInCluster-' num2str(ii)];
-                        title({['co-variance' ' (ii: ' num2str(ii) ')']; curName})
+                        curName = [slaveSource '-G-' num2str(k) '-Clst-' num2str(curT) '-numClus-' num2str(ii) '-tNum',num2str(curTrackInd)];
+                        title({curName; ['co-variance' ' (ii: ' num2str(ii) ')']})
                         hold off
                         hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
-                        print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
+                        print(h,'-dtiff',strcat(tifPath,filesep,curName,'.tif'))
+%                         print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
                         save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
     %                     uiwait(); 
                     end
+                    close(h)
                 end
-                save([dataPath filesep 'mainBccPeakValues-G' num2str(k) '.mat'],'mainBccPeakValues')
-                save([dataPath filesep 'mainTimeToPeak-G' num2str(k) '.mat'],'mainTimeToPeak')
-                save([dataPath filesep 'sideBccPeakValues-G' num2str(k) '.mat'],'sideBccPeakValues')
-                save([dataPath filesep 'sideTimeToPeak-G' num2str(k) '.mat'],'sideTimeToPeak')
+                save([dataPath filesep 'mainBccPeakValues-G' num2str(k) curSlave '.mat'],'mainBccPeakValues')
+                save([dataPath filesep 'mainTimeToPeak-G' num2str(k) curSlave '.mat'],'mainTimeToPeak')
+                save([dataPath filesep 'sideBccPeakValues-G' num2str(k) curSlave '.mat'],'sideBccPeakValues')
+                save([dataPath filesep 'sideTimeToPeak-G' num2str(k) curSlave '.mat'],'sideTimeToPeak')
 
                 close(h2)
 
@@ -493,8 +504,10 @@ for k=1:numClasses
                 hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
                 close(h2)
 
-                mainTimeToPeakGroup{k}=mainTimeToPeak;
-                mainBccPeakValuesGroup{k}=mainBccPeakValues;
+                mainTimeToPeakGroup{k,jj}=mainTimeToPeak;
+                mainBccPeakValuesGroup{k,jj}=mainBccPeakValues;
+                sideTimeToPeakGroup{k,jj}=sideTimeToPeak;
+                sideBccPeakValuesGroup{k,jj}=sideBccPeakValues;
             end
             h2=figure;
             plot(mainTimeToPeak,mainBccPeakValues,'k.','MarkerSize',14)
@@ -503,16 +516,11 @@ for k=1:numClasses
             hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
             hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
             close(h2)
-            
-            mainTimeToPeakGroup{k}=mainTimeToPeak;
-            mainBccPeakValuesGroup{k}=mainBccPeakValues;
-            sideTimeToPeakGroup{k}=sideTimeToPeak;
-            sideBccPeakValuesGroup{k}=sideBccPeakValues;
         end
     end
-    if iii>0 && ishandle(h)
-        close(h)
-    end
+%     if iii>0 && ishandle(h)
+%         close(h)
+%     end
     save([dataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup')
     save([dataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup')
     save([dataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup')
@@ -621,7 +629,11 @@ end
         ylabel('Fluorescence intensity (A.U.)')
         save([p.OutputDirectory filesep 'data' filesep 'ampTotal2.mat'],'ampTotal2','-v7.3')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotal2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
-        hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); close
+        hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); 
+    end
+    %%
+    if isfield(tracksNA,'ampTotal2')
+        close
     end
     %% Look at feature difference per each group - starting ampTotal
     startingAmpTotal{1} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup1f));
@@ -673,24 +685,45 @@ end
     ylabel('startingForceMag (Pa)')
     save([p.OutputDirectory filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'startingForceMagAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
-    hgsave(strcat(figPath,'/startingForceMagAllGroups'),'-v7.3'); close
+    hgsave(strcat(figPath,'/startingForceMagAllGroups'),'-v7.3'); 
+    %%
+    close
     %% Look at feature difference per each group - mainTimeToPeakGroup
     nameTwoGroups={'G1','G2'};
     numIdGroups=cellfun(@sum,idGroups);
     nameTwoGroups(numIdGroups(1:2)<1)=[];
-    figure;
-    boxPlotCellArray(mainTimeToPeakGroup,nameTwoGroups);
-    title('mainTimeToPeakBccGroup ')
-    ylabel('mainTimeToPeakBccGroup (sec)')
-    print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainTimeToPeakBccGroup.eps']);% histogramPeakLagVinVsTal -transparent
-    hgsave(strcat(figPath,'/mainTimeToPeakBccGroup'),'-v7.3'); 
-    %% Look at feature difference per each group - mainBccPeakValuesGroup
-    figure;
-    boxPlotCellArray(mainBccPeakValuesGroup,nameTwoGroups);
-    title('mainBccPeakValuesGroup ')
-    ylabel('mainBccPeakValuesGroup (AU)')
-    print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup.eps']);% histogramPeakLagVinVsTal -transparent
-    hgsave(strcat(figPath,'/mainBccPeakValuesGroup'),'-v7.3'); 
+    for jj=existingSlaveIDs    
+        curSlaveCell = potentialSlaves(jj);
+        curSlave=curSlaveCell{1};
+        
+        figure;
+        boxPlotCellArray(mainTimeToPeakGroup(:,jj)',nameTwoGroups);
+        title(['mainTimeToPeakBccGroup, amp-' curSlave])
+        ylabel('mainTimeToPeakBccGroup (sec)')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainTimeToPeakBccGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/mainTimeToPeakBccGroup', curSlave),'-v7.3'); 
+        %% Look at feature difference per each group - mainBccPeakValuesGroup
+        figure;
+        boxPlotCellArray(mainBccPeakValuesGroup(:,jj)',nameTwoGroups);
+        title('mainBccPeakValuesGroup ')
+        ylabel('mainBccPeakValuesGroup (AU)')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/mainBccPeakValuesGroup', curSlave),'-v7.3'); 
+        %% Look at feature difference per each group - mainBccPeakValuesGroup
+        figure;
+        boxPlotCellArray(sideBccPeakValuesGroup(:,jj)',nameTwoGroups);
+        title('sideBccPeakValuesGroup ')
+        ylabel('sideBccPeakValuesGroup (AU)')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/sideBccPeakValuesGroup', curSlave),'-v7.3'); 
+        %% Look at feature difference per each group - mainBccPeakValuesGroup
+        figure;
+        boxPlotCellArray(sideTimeToPeakGroup(:,jj)',nameTwoGroups);
+        title('sideTimeToPeakGroup ')
+        ylabel('sideTimeToPeakGroup (AU)')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideTimeToPeakGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/sideTimeToPeakGroup', curSlave),'-v7.3'); 
+    end
     %% recalculate force slope 
     tracksNA = calculateTrackSlopes(tracksNA,tInterval);
 

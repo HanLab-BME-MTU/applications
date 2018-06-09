@@ -125,12 +125,21 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     metaTrackData = s.metaTrackData;
                     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
                     numStr = @(trackNum) num2str(trackNum,fString);
+                    % relocate metaTrackData.trackFolderPath with current
+                    % directory
+                    [prevProcessPath,trackIndividualName] = fileparts(metaTrackData.trackFolderPath);
+                    currentProcessPath = fileparts(obj.outFilePaths_{1,iChan});
+                    if ~strcmp(prevProcessPath,currentProcessPath)
+                        metaTrackData.trackFolderPath=[currentProcessPath filesep trackIndividualName];
+                        save(obj.outFilePaths_{1,iChan},'metaTrackData');
+                    end
                     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
                     for ii=metaTrackData.numTracks:-1:1
                         curTrackObj = load(trackIndPath(ii),'curTrack');
                         tracksNA(ii,1) = curTrackObj.curTrack;
                         progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
                     end
+                    
                 catch
                     % Check if the outFilePath has tableTracksNA
                     disp('Checking if the outFilePath has tableTracksNA...')
