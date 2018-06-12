@@ -97,8 +97,8 @@ x=points(:,1);
 y=points(:,2);
 
 %Initial maximum speed components in both direction.
-initMaxFlowSpd = 20;
-initMaxPerpSpd = 20;
+initMaxFlowSpd = 5;
+initMaxPerpSpd = 5;
 closenessThreshold = 0.5; 
 closenessThresholdpix = 2.5; %changed from 0.25 to account for not-interpolated maxV from 0.25;
 

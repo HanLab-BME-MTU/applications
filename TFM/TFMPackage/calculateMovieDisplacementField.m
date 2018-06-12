@@ -493,6 +493,7 @@ end
 % dMap = cell(1,nFrames);
 % dMapX = cell(1,nFrames);
 % dMapY = cell(1,nFrames);
+[reg_grid,~,~,~]=createRegGridFromDisplField(displField,1.0,0);
 displFieldShifted(nFrames)=struct('pos','','vec','');
 for ii=1:nFrames
     % starts with original size of beads

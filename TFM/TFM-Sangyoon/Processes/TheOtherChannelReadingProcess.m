@@ -70,12 +70,14 @@ classdef TheOtherChannelReadingProcess < DataProcessingProcess
                @(x) all(owner.checkChanNum(x)));
             ip.addOptional('iChanSlave',setdiff(1:numel(owner.channels_),pAnal.ChannelIndex),...
                @(x) all(owner.checkChanNum(x)));
+            ip.addParameter('doFAregistration', true, @islogical);
             ip.parse(owner,varargin{:})
             
             % Set default parameters
             funParams.OutputDirectory = [ip.Results.outputDir filesep 'TheOtherChannelReading'];
             funParams.ChannelIndex = ip.Results.ChannelIndex;
             funParams.iChanSlave = ip.Results.iChanSlave;
+            funParams.doFAregistration = ip.Results.doFAregistration;
         end
         
         function h = GUI()

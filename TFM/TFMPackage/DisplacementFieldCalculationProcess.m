@@ -121,6 +121,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                             dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{ii};
                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                         end
+                        lastFinishTime = obj.finishTime_;
                     end
                 end
                 varargout{1}=dMapMap(:,:,iFrame);

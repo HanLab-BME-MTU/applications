@@ -335,6 +335,8 @@ if p.doRotReg, displField=perfRotReg(displField); end
 % numStr = @(frame) num2str(frame,fString);
 % outFileDMap=@(frame) [outputDir filesep 'displMap' numStr(frame) '.mat'];
 displFieldShifted(nFrames)=struct('pos','','vec','');
+[reg_grid,~,~,~]=createRegGridFromDisplField(displField,1.0,0);
+
 for ii=1:nFrames
     % starts with original size of beads
 %     cur_dMap = zeros(size(firstMask));

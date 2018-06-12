@@ -22,7 +22,7 @@ function varargout = theOtherChannelReadingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help theOtherChannelReadingProcessGUI
 
-% Last Modified by GUIDE v2.5 26-Oct-2017 16:20:03
+% Last Modified by GUIDE v2.5 10-Jun-2018 16:44:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,6 +60,7 @@ if ~all(cellfun(@isempty,userData.crtProc.inFilePaths_(:)))
         userData.crtProc.inFilePaths_(1,funParams.iChanSlave ));
 end
 set(handles.listbox_darkCurrentChannels, 'Value',1);
+set(handles.checkbox_FAregistration,'Value',funParams.doFAregistration);
 
 userData.userDir=userData.MD.outputDirectory_;
 
@@ -110,6 +111,7 @@ funParams = userData.crtProc.funParams_;
 % Apply new channel index and new shade images for sanity check
 funParams.iChanMaster = channelIndex; 
 funParams.iChanSlave = iSlaveChannels; 
+funParams.doFAregistration = get(handles.checkbox_FAregistration,'Value');
 
 parseProcessParams(userData.crtProc,funParams);
 
@@ -253,3 +255,12 @@ function pushbutton_done_KeyPressFcn(hObject, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
+
+
+% --- Executes on button press in checkbox_FAregistration.
+function checkbox_FAregistration_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_FAregistration (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_FAregistration

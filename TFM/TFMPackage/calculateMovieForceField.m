@@ -887,6 +887,8 @@ disp('Writing traction maps ...')
 % outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
 
 % distBeadMap = cell(1,nFrames);
+% [reg_grid,~,~,~]=createRegGridFromDisplField(displField,1.0,0);
+
 for ii=frameSequence
     % starts with original size of beads
 %     cur_tMap = zeros(size(firstMask));
