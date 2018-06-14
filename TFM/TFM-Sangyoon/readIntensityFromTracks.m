@@ -80,8 +80,8 @@ elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
 end    
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
-% parfor k=1:numTracks
-for k=1:numTracks
+parfor k=1:numTracks
+% for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);

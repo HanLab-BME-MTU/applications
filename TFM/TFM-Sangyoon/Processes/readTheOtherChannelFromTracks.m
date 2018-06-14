@@ -60,17 +60,19 @@ iChanSlave=p.iChanSlave;
 % tracksNA.
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
 adhAnalProc = MD.getProcess(iAdhProc);
+tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
+
 % numChans = numel(p.ChannelIndex);
-s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
-metaTrackData = s.metaTrackData;
-fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-numStr = @(trackNum) num2str(trackNum,fString);
-trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-for ii=metaTrackData.numTracks:-1:1
-    curTrackObj = load(trackIndPath(ii),'curTrack');
-    tracksNA(ii,1) = curTrackObj.curTrack;
-    progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
-end
+% s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
+% metaTrackData = s.metaTrackData;
+% fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+% numStr = @(trackNum) num2str(trackNum,fString);
+% trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+% for ii=metaTrackData.numTracks:-1:1
+%     curTrackObj = load(trackIndPath(ii),'curTrack');
+%     tracksNA(ii,1) = curTrackObj.curTrack;
+%     progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
+% end
 % end    
 %% the other channel map stack - iChanSlave
 % Build the interpolated TFM matrix first and then go through each track
@@ -152,7 +154,7 @@ if p.doFAregistration
     % We go from obvious FAs that have high enough intensity and area but
     % exclude too large FAs
     idxStrongFAs = areaAll>20 & intensityAll>(mean(intensityAll)-std(intensityAll)) ...
-        & insideIdx & intensitySubAll>(mean(intensitySubAll)-0.5*std(intensitySubAll)); % ...
+        & insideIdx & intensitySubAll>(mean(intensitySubAll)-1*std(intensitySubAll)); % ...
 %                    & orthoLengthAll<(mean(orthoLengthAll)+3*std(orthoLengthAll));
     
     numSFAs = sum(idxStrongFAs);
@@ -164,8 +166,14 @@ if p.doFAregistration
     pivData = [];     % variable for storing results
     [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
     [pivData] = pivAnalyzeImagePair(mainI,subI,pivData,pivPar);
-    figure, imshow(mainI, []), hold on
+    % show the FA segmentation
+    labelAdh = bwlabel(maskAdhesion,4);
+    % Show boundaries with only in indexFAs
+    labelAdh2 = labelAdh.*ismember(labelAdh,indexFAs);
+    bdryAdh = boundarymask(labelAdh2);
+    figure, imshow(imoverlay(uint8(mainI),bdryAdh,'cyan'), []), hold on
     quiver(pivData.X,pivData.Y,pivData.U,pivData.V,0,'r')
+    
     
     % Decided go from each area with variable area
     for ii=1:numSFAs
@@ -174,14 +182,13 @@ if p.doFAregistration
         deformAll(ii,3)=interp2(pivData.X,pivData.Y,pivData.U,curAdh.Centroid(1),curAdh.Centroid(2));
         deformAll(ii,4)=interp2(pivData.X,pivData.Y,pivData.V,curAdh.Centroid(1),curAdh.Centroid(2));
     end
-    figure, imshow(mainI, []), hold on
-    quiver(deformAll(:,1),deformAll(:,2),deformAll(:,3),deformAll(:,4),0,'r')
+    quiver(deformAll(:,1),deformAll(:,2),deformAll(:,3),deformAll(:,4),0,'y')
     
     % Make the transformation matrix (2d projective) out of deformAll
     idxNoNaN = ~isnan(deformAll(:,3));
     movingPoints = deformAll(idxNoNaN,1:2)+deformAll(idxNoNaN,3:4);
     fixedPoints = deformAll(idxNoNaN,1:2);
-    curXform = fitgeotrans(movingPoints,fixedPoints,'affine'); %'projective');
+    curXform = fitgeotrans(movingPoints,fixedPoints,'nonreflectivesimilarity'); %'projective');%'affine'); %
     invCurXform = curXform.invert;
     disp('Projective transform has been found!')
 
@@ -211,6 +218,7 @@ if p.doFAregistration
                 hAx  = subplot(1,2,1);
                 C = imfuse(mainI,subI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
                 imshow(C,[],'Parent', hAx);
+                
                 title('Original result: red, ch 1, green, ch 2')
                 hAx2  = subplot(1,2,2);
                 C2 = imfuse(mainI,newSubI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
