@@ -230,8 +230,14 @@ curEarlyAmpSlopeGroup = arrayfun(@(x) x.earlyAmpSlope, tracksNA(idGroup1));
 %             figure, plot(curAmpSlopeGroup,curEarlyAmpSlopeGroup,'*')
 indFlatAmp = curAmpSlopeGroup<=0 & curEarlyAmpSlopeGroup<=0;
 % 2. Based on forceMag
+curVeryEarlyAmpSlopeGroup = NaN(sum(idGroup1),1);
 curForceSlopeGroup = NaN(sum(idGroup1),1);
 curForceEarlySlopeGroup = NaN(sum(idGroup1),1);
+curAmpOverallSlopeGroup = NaN(sum(idGroup1),1);
+curAmpOverallSlopeUpErrGroup = NaN(sum(idGroup1),1);
+curAmpOverallSlopeDownErrGroup = NaN(sum(idGroup1),1);
+curForceLateSlopeGroup = NaN(sum(idGroup1),1);
+
 periodFrames = 30;
 ii=0;
 for pp=find(idGroup1)'
@@ -241,24 +247,46 @@ for pp=find(idGroup1)'
     curEndFrame = min(curTrack.startingFrameExtra+periodFrames-1,curTrack.endingFrame);
     curEarlyPeriod = curEndFrame - curTrack.startingFrameExtra+1;
     [~,curForceEarlySlopeGroup(ii)] = regression((1:curEarlyPeriod),curTrack.forceMag(curTrack.startingFrameExtra:curEndFrame));
+    sF=curTrack.startingFrameExtraExtra; eF=curTrack.endingFrameExtraExtra;
+    curEndFrame = min(sF+periodFrames-1,curTrack.endingFrame);
+    curEarlyPeriod = curEndFrame - sF+1;
+    [~,curVeryEarlyAmpSlopeGroup(ii)] = regression((1:curEarlyPeriod),curTrack.ampTotal(sF:curEndFrame));
+    
+%     tVar=(1:eFshifted)';
+%     [curCurAmpOverallSlopeGroup,curCurAmpOverallSlopeErrGroup] = regress(curTrack.ampTotal(sF:eF)',[ones(size(tVar)) tVar]);
+%     curAmpOverallSlopeGroup(ii)= curCurAmpOverallSlopeGroup(2);
+%     curAmpOverallSlopeUpErrGroup(ii) = curCurAmpOverallSlopeErrGroup(2,2);
+%     curAmpOverallSlopeDownErrGroup(ii) = curCurAmpOverallSlopeErrGroup(2,1);
+    
+    % There is amplitude that has rising phase but just stops in the middle
+    % of course. (It means the the particle loses it's point-ness while
+    % increasing the intensity. This does not help in characterizing true
+    % G1 behavior
+    % I'll filter these out with lateAmpSlope
+    curStartFrame = max(eF-periodFrames,curTrack.startingFrame);
+    curLatePeriod = curTrack.endingFrameExtraExtra - curStartFrame + 1;
+    [~,curForceLateSlopeGroup(ii)] = regression((1:curLatePeriod),curTrack.ampTotal(curStartFrame:eF));
 end
 indFlatForce = curForceSlopeGroup<=0 & curForceEarlySlopeGroup<=0;
-validTrackID = (~indFlatForce & ~indFlatAmp);
+validTrackID = (~indFlatForce & ~indFlatAmp) & curVeryEarlyAmpSlopeGroup>0 ...
+    & curForceLateSlopeGroup<0;
 idGroup1f=false(size(idGroup1)); idGroup1index=find(idGroup1);
 idGroup1f(idGroup1index(validTrackID))=true;
 
 % Filtering for group2
-% ampSlopeG2 = arrayfun(@(x) x.earlyAmpSlope,tracksNA(idGroup2));
-% initForceG2 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup2));
-% lifeTimeG2 = arrayfun(@(x) x.lifeTime,tracksNA(idGroup2));
-% ampEndingG2 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup2));
-% ampStartingG2 = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA(idGroup2));
-% idxIncreasingAmpG2 = ampSlopeG2>=0 & ampEndingG2>ampStartingG2;
+ampSlopeG2 = arrayfun(@(x) x.ampSlope,tracksNA(idGroup2));
+initForceG2 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup2));
+lifeTimeG2 = arrayfun(@(x) x.lifeTime,tracksNA(idGroup2));
+ampEndingG2 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup2));
+ampStartingG2 = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA(idGroup2));
+idxIncreasingAmpG2 = ampSlopeG2>0 & ampEndingG2>ampStartingG2;
 % idxLowInitForceG2= initForceG2<500;
-% idxLongLifeTimeG2=lifeTimeG2>40;
-% idGroup2f = idxIncreasingAmpG2 & idxLowInitForceG2 & idxLongLifeTimeG2;
-% idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
-idGroups = {idGroup1f,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+idxLongLifeTimeG2=lifeTimeG2>60;
+idGroup2f = idxIncreasingAmpG2 & idxLongLifeTimeG2; %& idxLowInitForceG2 
+idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+save([dataPath filesep 'idGroups.mat'],'idGroups');
+
+% idGroups = {idGroup1f,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 numClasses = numel(idGroups);
 numSlaves = numel(existingSlaveIDs);
 initialLagGroups=cell(numClasses,numSlaves);
@@ -283,10 +311,10 @@ for jj=existingSlaveIDs
         % For inspection: at first, I need to look at each time series (at
         % least for G1 and G2) 
         if ismember(k,[1 2])
-            disp(['Current Class: ' num2str(k)])
+            disp(['Current Class: ' num2str(k) ', Current Slave: ' potentialSlaves{jj}])
             [BccGroups{k,jj},avgBccGroups{k,jj},tStartingFrame(k,jj),indexValidBccInTracks{k,jj},firstTimeAboveZeroBccAll{k,jj},...
                 firstTimeAboveHalfBccAll{k,jj},firstTimeAboveOneBccAll{k,jj}] = ...
-                inspectNATimeSeries(tracksNA(idGroups{k}),tInterval); %,p.OutputDirectory);
+                inspectNATimeSeries(tracksNA(idGroups{k}),tInterval,'slaveSource',potentialSlaves{jj}); %,p.OutputDirectory);
         end
         peakLagGroups{k,jj}=peakTimeIntAgainstSlaveAll{jj}(idGroups{k});
         endingLagGroups{k,jj}=endingIntAgainstSlaveAll{jj}(idGroups{k});
@@ -386,25 +414,26 @@ for k=1:numClasses
     save([dataPath filesep nameTitle],'oneBccTogetherAdjusted','nameList2');    
     close(h2)
 
-
+    tShift = 36; % This is same as tStartingFrame = 30 + tFluc/2 + 1;
     if ismember(k,[1 2])
-        for jj=existingSlaveIDs
-            potentialSlaves = {'forceMag','ampTotal2','ampTotal3'};
+        if length(existingSlaveIDs)==1
+        	jj=existingSlaveIDs;
             slaveSource = potentialSlaves{jj};
             curBcc = BccGroups{k,jj};
             if ~isempty(curBcc)
                 idGroupIndex=find(idGroups{k});
                 curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
     %             curAvgBcc = avgBccGroups{k,jj};
-    %             tRange = (1:size(curBcc,2))-tShift;
-    %             h2=figure;
-    %             plot(tRange,curBcc); hold on
-    %             plot(tRange,curAvgBcc,'Linewidth',3)
-    %             nameTitle=['Bcc ' num2str(k) 'th class'];
-    %             title(nameTitle); ylabel('Time lag (s)')
-    %             hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-    %             hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-    %             close(h2)
+                tRange = (1:size(curBcc,2))-tShift;
+                h2=figure;
+                plot(tRange,curBcc); hold on
+                plot(tRange,nanmean(curBcc,1),'k','Linewidth',3)
+                line([36 36],[min(min(curBcc(:,:))),max(max(curBcc(:,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+                nameTitle=['Bcc ' num2str(k) 'th class'];
+                title(nameTitle); ylabel('Time lag (s)')
+                hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+                hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+                close(h2)
                 % Filtering done previously
                 % Try clustering
                 % #1 clustering with the features from my feature collection
@@ -516,11 +545,135 @@ for k=1:numClasses
             hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
             hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
             close(h2)
+        elseif length(existingSlaveIDs)>1
+            % Here I'll draw Bcc of each slave pair separately
+            curBccGroup = BccGroups(k,existingSlaveIDs);
+            if ~isempty(curBccGroup)
+%                 idGroupIndex=find(idGroups{k});
+%                 curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
+    %             curAvgBcc = avgBccGroups{k,jj};
+                h2=figure;
+                for jj=existingSlaveIDs
+                    curBcc = curBccGroup{jj};
+                    curSlave = potentialSlaves{jj};
+
+                    tRange = (1:size(curBcc,2))-tShift;
+                    subplot(2,1,jj)
+                    plot(tRange,curBcc); hold on
+                    plot(tRange,nanmedian(curBcc,1),'k','Linewidth',3)
+                    line([36 36],[min(min(curBcc(:,:))),max(max(curBcc(:,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+                    nameTitle=['Bcc ' num2str(k) 'th class, amp-' curSlave];
+                    title(nameTitle);                     
+                    xlabel('Time lag (s)')
+                    ylabel('Bcc (a.u.)')
+                end
+                hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+                hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+                close(h2)
+                % Filtering done previously
+                % Try clustering
+                % #1 clustering with the features from my feature collection
+                meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
+                numClusters = min(10,max(1,round(length(meas)/5))); 
+                clusterArray=1:numClusters;
+                T=kmeans(meas,numClusters);
+
+                % Sort T based on timeToMax
+                meanTimeToMaxPerClus = arrayfun(@(x) mean(meas(T==x)),clusterArray);
+                numPerClusters = arrayfun(@(x) sum(T==x),clusterArray);
+                % Discard the cluster that has too early time to max
+                [~,indClusterEarlyTimetoMax] = min(meanTimeToMaxPerClus);
+                % Discard clusters whose sample sizes are small
+                thresClusterSize = mean(numPerClusters)-0.5*std(numPerClusters);
+                indSmallClusters = find(numPerClusters < thresClusterSize);
+                % Choose the main cluster
+                mainClusters = find(numPerClusters > max(numPerClusters)*0.95);
+                sideClusters = setdiff(clusterArray,[mainClusters indSmallClusters indClusterEarlyTimetoMax]);
+                % Found that They have very similar life time per cluster
+                % Checking lifetime... They are not necessarily the same!
+                % Inspect
+                mainBccPeakValues=[];
+                mainTimeToPeak=[];
+                sideBccPeakValues=[];
+                sideTimeToPeak=[];
+                for curT=[mainClusters sideClusters]
+                    h2=figure; 
+                    for jj=existingSlaveIDs
+                        curBcc = curBccGroup{jj};
+                        slaveSource = potentialSlaves{jj};
+                        subplot(2,1,jj)
+                        plot((1:size(curBcc,2))-tShift,abs(curBcc(T==curT,:)),'o-')
+                        hold on
+                        plot((1:size(curBcc,2))-tShift,nanmedian(abs(curBcc(T==curT,:)),1),'Linewidth',3,'color','k')
+                        line([0 0],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+                        hold off
+                        if ismember(curT,mainClusters)
+                            nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
+                            mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+                            mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+                        else
+                            nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
+                            sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+                            sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+                        end
+                        title(nameTitle); 
+                        xlabel('Time (frame, 0th frame = time zero)')
+                    end
+                    hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+                    hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+                    print(h2,'-dtiff',strcat(tifPath,filesep,nameTitle,'.tif'))
+
+                    curTind = find(T==curT);
+                    idGroupIndex=find(idGroups{k});
+                    curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
+                    iii=0;
+                    numTotalSubplots = 3+length(existingSlaveIDs);
+                    for ii=1:sum(T==curT)
+                        iii=iii+1;
+                        if iii==1
+                            h=figure('Position',[100,50,300,1200]);  
+                        end
+                        % corresponding index in tracksNA
+
+                        curTrackInd = curTrackIndex((curTind(ii)));
+                        curTrack = tracksNA(curTrackInd);
+                        tShift = tStartingFrame(k,jj) + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+                        tFluc = 10; % this is actually in frame
+                        lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
+                        sd=curTrack.ampTotal;
+                        subplot(numTotalSubplots,1,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
+                        title(['Fluorescent intensity (ii: ' num2str(ii) ')']); ylabel('F.I. (a.u.)')
+                        xlabel('Time (frame)')
+                        for jj=existingSlaveIDs
+                            curBcc = curBccGroup{jj};
+                            curSlave = potentialSlaves{jj};
+                        
+                            sCurForce_sd=curTrack.(curSlave);
+                            subplot(numTotalSubplots,1,1+(jj-1)*2+1), hold off, 
+                            plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
+                            title([curSlave ' (ii: ' num2str(ii) ')']); ylabel(curSlave)
+                            xlabel('Time (frame)')
+
+                            curCurBcc = curBcc(curTind(ii),:);
+                            subplot(numTotalSubplots,1,2+(jj-1)*2+1), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
+                            curName = [curSlave '-G-' num2str(k) '-Clst-' num2str(curT) '-numClus-' num2str(ii) '-tNum',num2str(curTrackInd)];
+                            title({curName; 'co-variance'}); ylabel('co-variance (a.u.)')
+                            xlabel('Time (frame)')
+                            hold off
+                        end
+                        hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
+                        print(h,'-dtiff',strcat(tifPath,filesep,curName,'.tif'))
+%                         print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
+                        save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
+%                         uiwait(); 
+                    end
+                end
+            end
         end
     end
-%     if iii>0 && ishandle(h)
-%         close(h)
-%     end
+    if iii>0 && ishandle(h)
+        close(h)
+    end
     save([dataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup')
     save([dataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup')
     save([dataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup')
@@ -552,14 +705,14 @@ for k=1:numClasses
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
     save([dataPath filesep nameTitle],'ccLagTogetherAdjusted','nameList2');    
-     close(h2)
+    close(h2)
 end
 %% V. All the other features
 %% Festure statistics
     %% Look at feature difference per each group
     pixSize=MD.pixelSize_/1000; % in um
     distToEdge{1} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup1f));
-    distToEdge{2} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup2));
+    distToEdge{2} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup2f));
     distToEdge{3} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup3));
     distToEdge{4} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup4));
     distToEdge{5} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup5));
@@ -577,7 +730,7 @@ end
     hgsave(strcat(figPath,'/distToEdgeForAllGroups'),'-v7.3'); close
     %% Look at feature difference per each group - advanceDist
     advanceDist{1} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup1f));
-    advanceDist{2} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup2));
+    advanceDist{2} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup2f));
     advanceDist{3} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup3));
     advanceDist{4} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup4));
     advanceDist{5} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup5));
@@ -595,7 +748,7 @@ end
     hgsave(strcat(figPath,'/advanceDistAllGroups'),'-v7.3'); close
     %% Look at feature difference per each group - ampTotal
     ampTotal{1} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup1f));
-    ampTotal{2} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup2));
+    ampTotal{2} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup2f));
     ampTotal{3} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup3));
     ampTotal{4} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup4));
     ampTotal{5} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup5));
@@ -614,7 +767,7 @@ end
     %% Look at feature difference per each group - ampTotal2
     if isfield(tracksNA,'ampTotal2')
         ampTotal2{1} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup1f));
-        ampTotal2{2} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup2));
+        ampTotal2{2} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup2f));
         ampTotal2{3} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup3));
         ampTotal2{4} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup4));
         ampTotal2{5} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup5));
@@ -637,7 +790,7 @@ end
     end
     %% Look at feature difference per each group - starting ampTotal
     startingAmpTotal{1} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup1f));
-    startingAmpTotal{2} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup2));
+    startingAmpTotal{2} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup2f));
     startingAmpTotal{3} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup3));
     startingAmpTotal{4} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup4));
     startingAmpTotal{5} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup5));
@@ -654,7 +807,7 @@ end
     hgsave(strcat(figPath,'/startingAmpTotalAllGroups'),'-v7.3'); close
     %% Look at feature difference per each group - starting edgeAdvanceDistChange
     edgeAdvanceDistChange{1} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup1f));
-    edgeAdvanceDistChange{2} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup2));
+    edgeAdvanceDistChange{2} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup2f));
     edgeAdvanceDistChange{3} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup3));
     edgeAdvanceDistChange{4} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup4));
     edgeAdvanceDistChange{5} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup5));
@@ -671,7 +824,7 @@ end
     hgsave(strcat(figPath,'/edgeAdvanceDistChangeAllGroups'),'-v7.3'); close
       %% Look at feature difference per each group - starting forceMag
     startingForceMag{1} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup1f));
-    startingForceMag{2} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup2));
+    startingForceMag{2} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup2f));
     startingForceMag{3} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup3));
     startingForceMag{4} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup4));
     startingForceMag{5} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup5));
@@ -705,21 +858,21 @@ end
         %% Look at feature difference per each group - mainBccPeakValuesGroup
         figure;
         boxPlotCellArray(mainBccPeakValuesGroup(:,jj)',nameTwoGroups);
-        title('mainBccPeakValuesGroup ')
+        title(['mainBccPeakValuesGroup, amp-' curSlave])
         ylabel('mainBccPeakValuesGroup (AU)')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
         hgsave(strcat(figPath,'/mainBccPeakValuesGroup', curSlave),'-v7.3'); 
         %% Look at feature difference per each group - mainBccPeakValuesGroup
         figure;
         boxPlotCellArray(sideBccPeakValuesGroup(:,jj)',nameTwoGroups);
-        title('sideBccPeakValuesGroup ')
+        title(['sideBccPeakValuesGroup, amp-' curSlave])
         ylabel('sideBccPeakValuesGroup (AU)')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
         hgsave(strcat(figPath,'/sideBccPeakValuesGroup', curSlave),'-v7.3'); 
         %% Look at feature difference per each group - mainBccPeakValuesGroup
         figure;
         boxPlotCellArray(sideTimeToPeakGroup(:,jj)',nameTwoGroups);
-        title('sideTimeToPeakGroup ')
+        title(['sideTimeToPeakGroup, amp-' curSlave])
         ylabel('sideTimeToPeakGroup (AU)')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideTimeToPeakGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
         hgsave(strcat(figPath,'/sideTimeToPeakGroup', curSlave),'-v7.3'); 
@@ -734,7 +887,7 @@ end
     save([p.OutputDirectory filesep 'data' filesep 'assemblyRateForceSlopes.mat'],'forceSlopeG1','earlyAmpSlopeG1')
     %% Look at feature difference per each group - earlyAmpSlope
     earlyAmpSlope{1} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup1f));
-    earlyAmpSlope{2} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup2));
+    earlyAmpSlope{2} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup2f));
     earlyAmpSlope{3} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup3));
     earlyAmpSlope{4} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup4));
     earlyAmpSlope{5} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup5));
@@ -766,7 +919,7 @@ end
     close
     %% Look at feature difference per each group - force slope
     forceSlope{1} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
-    forceSlope{2} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup2));
+    forceSlope{2} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup2f));
     forceSlope{3} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup3));
     forceSlope{4} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup4));
     forceSlope{5} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup5));
@@ -785,7 +938,7 @@ end
     close
     %% Look at feature difference per each group - force slope
     earlyForceSlope{1} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup1f));
-    earlyForceSlope{2} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup2));
+    earlyForceSlope{2} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup2f));
     earlyForceSlope{3} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup3));
     earlyForceSlope{4} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup4));
     earlyForceSlope{5} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup5));
@@ -809,7 +962,7 @@ end
     [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false); if ~isempty(h); close(h); end
     %% group 2
     fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
-    plotIntensityForce(tracksNA(idGroup2),fileStoreG2,false,true); close
+    plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); close
 
     %% group 3 plotting
     fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
@@ -836,7 +989,7 @@ end
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately
 %     tracksG1 = tracksNA(idGroup1);
-%     tracksG2 = tracksNA(idGroup2);
+%     tracksG2 = tracksNA(idGroup2f);
 %     tracksG3 = tracksNA(idGroup3);
 %     tracksG7 = tracksNA(idGroup7);
 %     save([p.OutputDirectory filesep 'data' filesep 'tracksG1.mat'],'tracksG1','-v7.3')

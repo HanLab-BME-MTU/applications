@@ -67,7 +67,7 @@ for ii=1:numel(tracksNA)
     sF5before = max(curTrack.startingFrameExtra-numPreSigStart,curTrack.startingFrameExtra-numPreFrames);
     sF10before = max(sFEE,curTrack.startingFrameExtra-3*numPreFrames);
 
-    if (curAmpSlope>0 || curEarlyAmpSlope>0) && (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
+    if (curAmpSlope>0 || curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
         d = tracksNA(ii).ampTotal;
         nTime = length(d);
@@ -114,28 +114,28 @@ for ii=1:numel(tracksNA)
                 bkgMaxForce = max(0,max(curTrack.forceMag(sF10before:sF5before)));
                 firstIncreaseTimeForce = find(curTrack.(slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
             end
-            if isempty(firstIncreaseTimeForce) || firstIncreaseTimeForce>curTrack.endingFrameExtraExtra
-                bkgMaxIntAll(ii) = bkgMaxInt;
-                bkgMaxSlaveAll(ii) = bkgMaxForce;
-                
-%                 h=figure;  subplot(2,1,1), plot(sd,'o-'), hold on, plot(tRange(firstIncreaseTimeInt),sd(firstIncreaseTimeInt),'ro'); 
-%                 subplot(2,1,2), plot(curSlave,'o-') 
-%                 uiwait(); 
-            else
+%             if isempty(firstIncreaseTimeForce) || firstIncreaseTimeForce>curTrack.endingFrameExtraExtra
+%                 bkgMaxIntAll(ii) = bkgMaxInt;
+%                 bkgMaxSlaveAll(ii) = bkgMaxForce;
+%                 
+% %                 h=figure;  subplot(2,1,1), plot(sd,'o-'), hold on, plot(tRange(firstIncreaseTimeInt),sd(firstIncreaseTimeInt),'ro'); 
+% %                 subplot(2,1,2), plot(curSlave,'o-') 
+% %                 uiwait(); 
+%             else
                 iii=iii+1;
                 forceTransmittingAll(ii) = true;
                 firstIncreseTimeIntAll(ii) = firstIncreaseTimeInt*tInterval; % in sec
-                firstIncreseTimeSlaveAll(ii) = firstIncreaseTimeForce*tInterval;
+%                 firstIncreseTimeSlaveAll(ii) = firstIncreaseTimeForce*tInterval;
                 bkgMaxIntAll(ii) = bkgMaxInt;
                 bkgMaxSlaveAll(ii) = bkgMaxForce;
-                firstIncreseTimeIntAgainstSlaveAll(ii)=firstIncreaseTimeInt*tInterval - firstIncreaseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
+%                 firstIncreseTimeIntAgainstSlaveAll(ii)=firstIncreaseTimeInt*tInterval - firstIncreaseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
                 
                 % Bcc (co-fluctuation) calculation: Here the rule is that
                 % real starting frame is from 36 which is the maximum frame
                 % difference between startingFrameExtra and
                 % startingFrameExtraExtra.
                 lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; clear Bcc
-                tShift = 30 + tFluc/2 + 1 +curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+                tShift = tStartingFrame +curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
                 for jj=curTrack.startingFrameExtraExtra:lastFrameCC
                     sd_segment = sd(jj:jj+tFluc); avgSD = mean(sd_segment);
                     force_seg = sCurForce_sd(jj:jj+tFluc); avgForceSeg = mean(force_seg);
@@ -156,7 +156,7 @@ for ii=1:numel(tracksNA)
                         end
                     end
                 end
-            end
+%             end
         else
             bkgMaxIntAll(ii) = bkgMaxInt;
 %             h=figure; subplot(2,2,1), plot(sd,'o-')
@@ -186,7 +186,7 @@ if exist('BccAll','var')
 else
     BccMatrix = [];
     avgBcc = [];
-    tStartingFrame = [];
+    tStartingFrame = NaN;
     indexValidBccInTracks = [];
     firstTimeAboveZeroBccAll = [];
     firstTimeAboveHalfBccAll = [];
