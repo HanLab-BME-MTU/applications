@@ -967,7 +967,7 @@ end
 % else
 %     save(outputFile{2},'tMap','tMapX','tMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
 % end
-forceMag=cell2mat(arrayfun(@(x) sqrt(x.vec(:,1).^2+x.vec(:,2).^2), forceField,'unif',false));
+forceMag=cell2mat(arrayfun(@(x) sqrt(x.vec(:,1).^2+x.vec(:,2).^2), forceField,'unif',false)');
 tmin = quantile(forceMag(:),0.01); tmax = quantile(forceMag(:),0.95);
 forceFieldProc.setTractionMapLimits([tmin tmax])
 % forceFieldProc.setDisplErrMapLimits([dEmin dEmax])
