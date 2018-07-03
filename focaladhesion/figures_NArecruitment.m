@@ -1,31 +1,31 @@
 %% Folder Setting
 % box plot for initial rise time lag
 % First, gather all the data
-paxFolder{1} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-01-28/Fibro3T3_paxillin/Colocalization/analysis1';
-paxFolder{2} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-07-17/Paxillin1/Colocalization/analysis2';
-paxFolder{3} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-07-24/Paxillin1/Colocalization/analysis2';
-paxFolder{4} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-07-24/Paxillin2/Colocalization/analysis2';
+paxFolder{1} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-01-28/Fibro3T3_paxillin/Colocalization/analysis1';
+paxFolder{2} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-07-17/Paxillin1/Colocalization/analysis2';
+paxFolder{3} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-07-24/Paxillin1/Colocalization/analysis2';
+paxFolder{4} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-07-24/Paxillin2/Colocalization/analysis2';
 % paxFolder{5} =
-% '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2014-07-Alexia/5kPa/ROI/Colocalization/AveragedPaxillin2';
+% '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2014-07-Alexia/5kPa/ROI/Colocalization/AveragedPaxillin2';
 % % Potentially...
 
-vinFolder{1} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-01-28/CHOK1-vinculin/ROI/Colocalization/analysis2';
-vinFolder{2} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/31-01-2015/Vinc2/Colocalization/analysis1';
-vinFolder{3} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/31-01-2015/Vinc3/Colocalization/analysis2';
-vinFolder{4} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-04-29/cell2/Int1sec/Colocalization/analysis3';
-vinFolder{5} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-07-17/Vinculin5/Colocalization/analysis1';
-vinFolder{6} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-07-24/Vinculin1/Colocalization/analysis2';
+vinFolder{1} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-01-28/CHOK1-vinculin/ROI/Colocalization/analysis2';
+vinFolder{2} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/31-01-2015/Vinc2/Colocalization/analysis1';
+vinFolder{3} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/31-01-2015/Vinc3/Colocalization/analysis2';
+vinFolder{4} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-04-29/cell2/Int1sec/Colocalization/analysis3';
+vinFolder{5} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-07-17/Vinculin5/Colocalization/analysis1';
+vinFolder{6} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-07-24/Vinculin1/Colocalization/analysis2';
 
-talFolder{1} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-07-24/Talin1/Colocalization/analysisBleachCorrected';
-talFolder{2} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_01/Colocalization/analysis2';
-talFolder{3} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_03/Colocalization/analysis2';
-talFolder{4} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_05_2017_02_09/Colocalization/analysis2';
-talFolder{5} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_06/Colocalization/analysis2';
-talFolder{6} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_06_2017_02_09/Colocalization/analysis2';
-talFolder{7} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_07/Colocalization/analysis2';
-talFolder{8} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_07_2017_02_09/Colocalization/analysis2';
-talFolder{9} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_09_2017_02_09/Colocalization/analysis2';
-talFolder{10} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_08_2017_02_09/Colocalization/analysis2';
+talFolder{1} = '/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-07-24/Talin1/Colocalization/analysisBleachCorrected';
+talFolder{2} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_01/Colocalization/analysis2';
+talFolder{3} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_03/Colocalization/analysis2';
+talFolder{4} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_05_2017_02_09/Colocalization/analysis2';
+talFolder{5} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_06/Colocalization/analysis2';
+talFolder{6} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_06_2017_02_09/Colocalization/analysis2';
+talFolder{7} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_07/Colocalization/analysis2';
+talFolder{8} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_07_2017_02_09/Colocalization/analysis2';
+talFolder{9} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_09_2017_02_09/Colocalization/analysis2';
+talFolder{10} = '/storage/disk2/Kevin/2017-02/Talin1_ChoK1_5kPa_1520_08_2017_02_09/Colocalization/analysis2';
 % talFolder{2} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2015-07-22_16kPa/Cell2/Colocalization/analysis3';
 % talFolder{3} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2015-07-22_16kPa/Cell4/Colocalization/analysis3';
 % talFolder{4} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2015-07-22_16kPa/Cell5/Colocalization/analysis3';
@@ -52,7 +52,7 @@ talFolder{10} = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyo
 % Showing overall look over each protein
 iRepTal=1; iRepVin=2; iRepPax=4;
 close all
-f1path = '/home2/shan/ownCloud/documents/NascentAdhesionForce/Manuscript/Figures/Fig1';
+f1path = '/home/sjhan/Documents/Manuscript/NascentAdhesionForce/Figures/Fig1';
 if ~exist(f1path,'dir')
     mkdir(f1path)
 end
@@ -2994,7 +2994,7 @@ savefig([f3_Tmeasure_path filesep 'Fig2TimeLags.fig'])
 %                                     v4i1.idGroup6Selected, v4i1.idGroup7Selected,v4i1.idGroup8Selected,v4i1.idGroup9Selected};
 % [Ti1,allData_i1]=extractFeatureNA(tracksNAvin{4},idGroupSelected4i1);
 % % add vin4 with int4sec
-% vinFolder4i4='/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-04-29/cell2/Int4sec/Colocalization/analysis2';
+% vinFolder4i4='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-04-29/cell2/Int4sec/Colocalization/analysis2';
 % v4i4=load([vinFolder4i4 filesep 'data' filesep 'selectedGroups.mat']);
 % idGroupSelected4i4={v4i4.idGroup1Selected,v4i4.idGroup2Selected,v4i4.idGroup3Selected,v4i4.idGroup4Selected,v4i4.idGroup5Selected,....
 %                                     v4i4.idGroup6Selected, v4i4.idGroup7Selected,v4i4.idGroup8Selected,v4i4.idGroup9Selected};
@@ -3002,7 +3002,7 @@ savefig([f3_Tmeasure_path filesep 'Fig2TimeLags.fig'])
 % tracksNAvin4i4 = curtracksNAvin.tracksNA; 
 % [Ti4,allData_i4]=extractFeatureNA(tracksNAvin4i4,idGroupSelected4i4);
 % % add i1 analysis1
-% vinFolder4i1a1='/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Alexia/2015-04-29/cell2/Int1sec/Colocalization/analysis1';
+% vinFolder4i1a1='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/Alexia/2015-04-29/cell2/Int1sec/Colocalization/analysis1';
 % v4i1a1=load([vinFolder4i1a1 filesep 'data' filesep 'selectedGroups.mat']);
 % idGroupSelected4i1a1={v4i1a1.idGroup1Selected,v4i1a1.idGroup2Selected,v4i1a1.idGroup3Selected,v4i1a1.idGroup4Selected,v4i1a1.idGroup5Selected,....
 %                                     v4i1a1.idGroup6Selected, v4i1a1.idGroup7Selected,v4i1a1.idGroup8Selected,v4i1a1.idGroup9Selected};

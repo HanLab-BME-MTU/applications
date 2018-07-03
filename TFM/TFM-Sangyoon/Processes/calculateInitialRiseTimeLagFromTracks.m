@@ -281,8 +281,13 @@ ampEndingG2 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup2));
 ampStartingG2 = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA(idGroup2));
 idxIncreasingAmpG2 = ampSlopeG2>0 & ampEndingG2>ampStartingG2;
 % idxLowInitForceG2= initForceG2<500;
-idxLongLifeTimeG2=lifeTimeG2>60;
-idGroup2f = idxIncreasingAmpG2 & idxLongLifeTimeG2; %& idxLowInitForceG2 
+% maturing NA should have at least 3 min of lifetime
+thresLT_G2_frames = 3*60/tInterval;
+idxLongLifeTimeG2=lifeTimeG2>thresLT_G2_frames;
+idGroup2valid = idxIncreasingAmpG2 & idxLongLifeTimeG2; %& idxLowInitForceG2 
+idGroup2f=false(size(idGroup2)); idGroup2index=find(idGroup2);
+idGroup2f(idGroup2index(idGroup2valid))=true;
+
 idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 save([dataPath filesep 'idGroups.mat'],'idGroups');
 
