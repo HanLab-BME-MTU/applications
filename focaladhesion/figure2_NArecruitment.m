@@ -2094,7 +2094,7 @@ disp([cellfun(@(x) nanmedian(x),InitTimeLagMatureVin); cellfun(@(x) length(x),In
 disp([cellfun(@(x) nanmedian(x),InitTimeLagMatureTal); cellfun(@(x) length(x),InitTimeLagMatureTal)])
 %% G2 representation - talin
 CurrentFrameTal2=67;
-iRepTal2=3;
+iRepTal2=5;
 % data loading
 talForceStack = load([talFolder{iRepTal2} filesep 'fMap' filesep 'tMap.mat'],'tMap');
 talForceStack = talForceStack.tMap;
@@ -2111,15 +2111,14 @@ axes('Position', [0 5/6 1/6 1/6]); avgWidth=0; % avgWidth
 imshow(imcomplement(mean(talImgStack(:,:,CurrentFrameTal2-avgWidth:CurrentFrameTal2+avgWidth),3)),[])
 
 % Use the filtered tracks for G2 above
-tracksTalStruct = load([talFolder{iRepTal2} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
+tracksTalStruct = load([talFolder{iRepTal2} filesep 'data' filesep 'tracksG2.mat'],'tracksG2');
 tracksNAtal2 = tracksTalStruct.tracksG2;
 % See the iInit for these tracks
 disp(InitTimeLagMatureTal{iRepTal2})
 % See the general trend of 8th track
-iNATal=9;
-showSingleAdhesionTrackSummary(MDtal,tracksNAtal2(iNATal),talImgStack,talForceStack,iNATal);
-
-
+% iNATal=10;
+% showSingleAdhesionTrackSummary(MDtal,tracksNAtal2(iNATal),talImgStack,talForceStack,iNATal);
+iNATal=pickAdhesionTracksInteractive(tracksNAtal2, talImgStack, 'movieData',MDtal,'tMap',talForceStack);
 
 
 

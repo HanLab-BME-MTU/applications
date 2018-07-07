@@ -222,11 +222,11 @@ if montInterval>1
         frameFIIcut = frameFII -chosenStartFrame +1;
         frameFTIcut = frameFTI -chosenStartFrame +1;
         peakFrameCut = peakFrame-chosenStartFrame +1;
-        if ~ismember(frameFIIcut,indiceRange)
+        if ~ismember(frameFIIcut,indiceRange) && frameFIIcut<=numChosenFrames
             indiceRange = [indiceRange frameFIIcut];
             indiceRange = sort(indiceRange);
         end
-        if ~ismember(frameFTIcut,indiceRange)
+        if ~ismember(frameFTIcut,indiceRange) && frameFTIcut<=numChosenFrames
             indiceRange = [indiceRange frameFTIcut];
             indiceRange = sort(indiceRange);
         end
@@ -350,7 +350,7 @@ set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 ax9=axes('Position',[350/figWidth, 50/figHeight, 200/figWidth-marginX,130/figHeight]);
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrame:curEndFrame),'r')
-if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting
+if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting && frameFTI<=length(curTrack.forceMag)
     plot((frameFTI-curStartFrameEE)*tInterval,curTrack.forceMag(frameFTI),'o','MarkerFaceColor','r','MarkerEdgeColor','w')
 end
 try

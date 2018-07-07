@@ -374,7 +374,7 @@ for k=1:numTracks
                 end
             end
         end
-        curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
+%         curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
     elseif attribute==2 || attribute==5 || attribute==6
         try
             startFrame = curTrack.startingFrameExtraExtra;
