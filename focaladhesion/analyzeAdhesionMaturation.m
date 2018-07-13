@@ -766,6 +766,7 @@ save(dataPath_tracksNA,'metaTrackData')
 numNAs = zeros(nFrames,1);
 numNAsInBand = zeros(nFrames,1);
 trackIdx = true(numel(tracksNA),1);
+trackIdxNAs = true(numel(tracksNA),1);
 bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
 for ii=1:nFrames
     mask = maskProc.loadChannelOutput(iChan,ii);
@@ -802,8 +803,8 @@ for ii=1:nFrames
 %                 trackIdx(k) = false;
 %             end
 %         end
-    numNAs(ii) = sum(arrayfun(@(x) (x.presence(ii)==true), tracksNA));
-    numNAsInBand(ii) = sum(trackIdx);
+    numNAs(ii) = sum(arrayfun(@(x) (x.presence(ii)==true & x.state(ii)==2), tracksNA));
+    numNAsInBand(ii) = sum(arrayfun(@(x) (x.presence(ii)==true & x.state(ii)==2), tracksNA) & trackIdx);
     NADensity(ii) = numNAsInBand(ii)/(bandArea(ii)*MD.pixelSize_^2*1e-6);  % unit: number/um2 
     
     FADensity(ii) = focalAdhInfo(ii).FAdensity;  % unit: number/um2 
@@ -811,7 +812,7 @@ end
 save(dataPath_NAFADensity, 'NADensity','FADensity','bandwidthNA','numNAsInBand')
 lifeNames = {'NADensity','FADensity','bandwidthNA','numNAsInBand'};
 A= table({NADensity; FADensity; bandwidthNA; numNAsInBand'},'RowNames',lifeNames);
-writetable(A,[dataPath filesep 'NAFADensity.csv'])
+writetable(A,[dataPath filesep 'NAFADensity.csv'],'WriteRowNames',true)
 
 %% Lifetime analysis
 p2=0;
@@ -874,7 +875,7 @@ if matchWithFA
     B= table({maturingRatio';lifeTimeNAfailing;lifeTimeNAmaturing;lifeTimeAll},'RowNames',lifeNames);
     outFilename = [chanDirName '_Chan' num2str(iChan) '_allAnalysisFA'];
     dataPath_analysisAllcsv = [p.OutputDirectory filesep outFilename 'lifeTimes.csv'];
-    writetable(B,dataPath_analysisAllcsv)
+    writetable(B,dataPath_analysisAllcsv,'WriteRowNames',true)
 
     %% Assembly rate
     % We decided to look at only actually assebling NAs
@@ -902,10 +903,17 @@ if matchWithFA
 
 %     curNumStableNAs = sum(arrayfun(@(x) x.lifeTime>0.8*curNFrames,trNAonly));
     % I have to ignore the very first frame and the last four frames.
-    numStableNAs = curNewNAs(1);
+    stableNAs = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra+1>0.9*nFrames,trNAonly);%curNewNAs(1);
+%     idFAs = arrayfun(@(x) any(x.state==4),trNAonly);%curNewNAs(1);
+%     idOnlyNAs = arrayfun(@(x) any(x.state==2) & ~any(x.state==3 | x.state==4),trNAonly);
+    idOnlyNAFCs = arrayfun(@(x) any(x.state==2) & ~any(x.state==4),trNAonly);
+    numStableNAs = sum(stableNAs & idOnlyNAFCs); %idOnlyNAs);
+    
+    numOnlyNAs = sum(idOnlyNAFCs);
+    
     curNewNAs2 = curNewNAs(2:end-5);
     curNewNARatio2 = curNewNARatio(2:end-5);
-    stableNARatio = curNewNARatio(1);
+    stableNARatio = numStableNAs/numOnlyNAs;
     curDeadNAs2 = curDeadNAs(5:end-1);
     curDeadNARatio2 = curDeadNARatio(5:end-1);
 
@@ -926,7 +934,7 @@ if matchWithFA
     assemNames = {'assemRateCell', 'disassemRateCell','nucleationNumber','nucleationRatio','numStableNAs', 'stableNARatio','disassemblingNANumber','disassemblingNARatio'};
     C= table({assemRateCell; disassemRateCell; nucleationNumber; nucleationRatio; numStableNAs; stableNARatio; disassemblingNANumber; disassemblingNARatio},'RowNames',assemNames);
     assembly_disassembly_ratesPathCSV=[assembly_disassembly_ratesPath(1:end-4) '.csv'];
-    writetable(C,assembly_disassembly_ratesPathCSV)
+    writetable(C,assembly_disassembly_ratesPathCSV,'WriteRowNames',true)
 else
     trNAonly = tracksNA;
     indMature = [];
