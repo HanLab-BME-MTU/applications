@@ -531,7 +531,7 @@ dMapX=dMap; %dMapX.eachTMapName = 'cur_dMapX';
 dMapY=dMap; %dMapY.eachTMapName = 'cur_dMapY';
 save(outputFile{2},'dMap','dMapX','dMapY'); % Updated, SH 20180225
 % save(outputFile{2},'dMap','dMapX','dMapY','-v7.3'); % need to be updated for faster loading. SH 20141106
-displMag=cell2mat(arrayfun(@(x) sqrt(x.vec(:,1).^2+x.vec(:,2).^2), displField,'unif',false));
+displMag=cell2mat(arrayfun(@(x) sqrt(x.vec(:,1).^2+x.vec(:,2).^2), displField,'unif',false)');
 dmin = quantile(displMag(:),0.01); dmax = quantile(displMag(:),0.95);
 displFieldProc.setTractionMapLimits([dmin dmax])
 

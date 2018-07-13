@@ -48,7 +48,7 @@ firstTimeAboveOneBccAll=NaN(numel(tracksNA),1);
 
 iii=0;
 tFluc = 10; % this is actually in frame
-tStartingFrame = 30 + tFluc/2 + 1;
+tStartingFrame = tFluc/2 + 1; %30 + 
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
@@ -134,17 +134,19 @@ for ii=1:numel(tracksNA)
                 % real starting frame is from 36 which is the maximum frame
                 % difference between startingFrameExtra and
                 % startingFrameExtraExtra.
-                lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; clear Bcc
-                tShift = tStartingFrame +curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
-                for jj=curTrack.startingFrameExtraExtra:lastFrameCC
-                    sd_segment = sd(jj:jj+tFluc); avgSD = mean(sd_segment);
-                    force_seg = sCurForce_sd(jj:jj+tFluc); avgForceSeg = mean(force_seg);
-                    sigma2cc=1/tFluc*sum((sd_segment-avgSD).*(force_seg-avgForceSeg));
-                    Bcc(jj-curTrack.startingFrameExtraExtra+tShift) = sigma2cc/sqrt(avgSD*avgForceSeg);
-                end
-                if tShift>1
-                    Bcc(1:tShift-1)=NaN; 
-                end
+%                 lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; clear Bcc
+%                 tShift = tStartingFrame +curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+%                 for jj=curTrack.startingFrameExtraExtra:lastFrameCC
+%                     sd_segment = sd(jj:jj+tFluc); avgSD = mean(sd_segment);
+%                     force_seg = sCurForce_sd(jj:jj+tFluc); avgForceSeg = mean(force_seg);
+%                     sigma2cc=1/tFluc*sum((sd_segment-avgSD).*(force_seg-avgForceSeg));
+%                     Bcc(jj-curTrack.startingFrameExtraExtra+tShift) = sigma2cc/sqrt(avgSD*avgForceSeg);
+%                 end
+%                 if tShift>1
+%                     Bcc(1:tShift-1)=NaN; 
+%                 end
+                Bcc = crossVariance(sd,sCurForce_sd,tFluc);
+                
                 BccAll{iii}=Bcc;
                 indexValidBccInTracks(iii) = ii;
                 if ~isempty(find(Bcc > 0, 1)-tShift)

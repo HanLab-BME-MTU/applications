@@ -17,6 +17,30 @@ pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 
+frameFII=round(curTrack.firstIncreseTimeInt/tInterval);
+frameFTI=round(curTrack.firstIncreseTimeForce/tInterval);
+
+if isempty(frameFII) || isempty(frameFTI)
+    splineParamInit=0.99;
+    preDetecFactor=.15;
+    [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce] =...
+        calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
+    frameFII=round(firstIncreseTimeInt/tInterval);
+    frameFTI=round(firstIncreseTimeForce/tInterval);
+    curTrack.firstIncreseTimeIntAgainstForce = firstIncreseTimeIntAgainstForce;
+    curTrack.forceTransmitting = forceTransmitting;
+    curTrack.bkgMaxInt = bkgMaxIntAll;
+    curTrack.bkgMaxForce = bkgMaxForce;
+end
+
+if ~isnan(frameFII) && frameFII<chosenStartFrame
+    chosenStartFrame = frameFII;
+end
+if ~isnan(frameFTI) && frameFTI<chosenStartFrame
+    chosenStartFrame = frameFTI;
+end
+
+
 % curFrameRangeEE= curStartFrameEE:curEndFrameEE;
 chosenFRange = curFrameRange;
 
@@ -185,8 +209,6 @@ peakFrameForce = chosenFRange(peakFrameForce);
 if ~isempty(curTrack.forcePeakness) && curTrack.forcePeakness
     peakFrameForce = curTrack.forcePeakFrame;
 end
-frameFII=round(curTrack.firstIncreseTimeInt/tInterval);
-frameFTI=round(curTrack.firstIncreseTimeForce/tInterval);
 
 maxMontageNum = floor(535/montWidth)*2;
 numChosenFrames = length(chosenStartFrame:chosenEndFrame);
@@ -195,27 +217,29 @@ if montInterval>1
     %Check if peakFrameForce is included in the range
     modShift=mod(peakFrameForce-chosenStartFrame,montInterval);
     indiceRange=1+modShift:montInterval:numChosenFrames;
-    % Add correct first rise frames
-    frameFIIcut = frameFII -chosenStartFrame +1;
-    frameFTIcut = frameFTI -chosenStartFrame +1;
-    peakFrameCut = peakFrame-chosenStartFrame +1;
-    if ~ismember(frameFIIcut,indiceRange)
-        indiceRange = [indiceRange frameFIIcut];
-        indiceRange = sort(indiceRange);
-    end
-    if ~ismember(frameFTIcut,indiceRange)
-        indiceRange = [indiceRange frameFTIcut];
-        indiceRange = sort(indiceRange);
-    end
-    if ~ismember(peakFrameCut,indiceRange)
-        indiceRange = [indiceRange peakFrameCut];
-        indiceRange = sort(indiceRange);
+    if ~isnan(frameFII)
+        % Add correct first rise frames
+        frameFIIcut = frameFII -chosenStartFrame +1;
+        frameFTIcut = frameFTI -chosenStartFrame +1;
+        peakFrameCut = peakFrame-chosenStartFrame +1;
+        if ~ismember(frameFIIcut,indiceRange) && frameFIIcut<=numChosenFrames
+            indiceRange = [indiceRange frameFIIcut];
+            indiceRange = sort(indiceRange);
+        end
+        if ~ismember(frameFTIcut,indiceRange) && frameFTIcut<=numChosenFrames
+            indiceRange = [indiceRange frameFTIcut];
+            indiceRange = sort(indiceRange);
+        end
+        if ~ismember(peakFrameCut,indiceRange)
+            indiceRange = [indiceRange peakFrameCut];
+            indiceRange = sort(indiceRange);
+        end
     end
 elseif montInterval==1
     indiceRange=1:montInterval:numChosenFrames;
 end
     
-hm1=montage(cropImg,'Size',[2, NaN],'DisplayRange',[minInt maxInt], 'Indices', indiceRange);
+hm1=montage(cropImg,'Size',[2, NaN],'DisplayRange',[minInt maxInt], 'Indices', uint16(indiceRange));
 line([2 2+scaleBar*500/pixSize],...
     [3 3],'LineWidth',2,'Color',[1,1,1]);
 monImgH = floor(hm1.YData(2)/2);
@@ -326,7 +350,7 @@ set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 ax9=axes('Position',[350/figWidth, 50/figHeight, 200/figWidth-marginX,130/figHeight]);
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrame:curEndFrame),'r')
-if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting
+if ~isempty(curTrack.forceTransmitting) && curTrack.forceTransmitting && frameFTI<=length(curTrack.forceMag)
     plot((frameFTI-curStartFrameEE)*tInterval,curTrack.forceMag(frameFTI),'o','MarkerFaceColor','r','MarkerEdgeColor','w')
 end
 try
@@ -366,7 +390,7 @@ plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,s
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,...
     sCurForce(curStartFrame-curStartFrameEE+1:curEndFrame-curStartFrameEE+1),'Color',[229/255 84/255 84/255],'Linewidth',2)
 % Plot maximum point
-if ~isempty(curTrack.forcePeakness) && curTrack.forcePeakness
+if ~isempty(curTrack.forcePeakness) && curTrack.forcePeakness && curTrack.forcePeakFrame>=curStartFrameEE
     plot((curTrack.forcePeakFrame-curStartFrameEE)*tInterval,sCurForce(curTrack.forcePeakFrame-curStartFrameEE+1),'o',...
         'MarkerFaceColor','w','MarkerEdgeColor',[229/255 84/255 84/255])
 end
