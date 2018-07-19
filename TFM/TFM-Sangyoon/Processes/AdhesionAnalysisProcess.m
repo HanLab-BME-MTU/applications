@@ -105,10 +105,12 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             ip.addOptional('iFrame', [] ,@(x) obj.checkFrameNum(x));
             ip.addParameter('useCache',true,@islogical);
             ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
+            ip.addParameter('wantFullTrack', false, @islogical);
             ip.parse(obj,iChan,varargin{:})
             output = ip.Results.output;
             varargout = cell(numel(output), 1);
             iFrame = ip.Results.iFrame;
+            wantFullTrack = ip.Results.wantFullTrack;
             if ischar(output),output={output}; end
             
             % Data loading
@@ -235,14 +237,17 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     varargout{iout} = t{validState,:};                                 
                 
                 elseif ~isempty(strfind(output{iout},'track'))
-                    
-                    vars = {'xCoord', 'yCoord', 'number'};
-                    validTracks = validState & startingFrameExtra <= iFrame & endingFrameExtra >= iFrame;                    
-                    st = table(xCoord(:,1:iFrame), yCoord(:,1:iFrame), number, ...
-                               'VariableNames', {'xCoord', 'yCoord', 'number'});                    
-                    
-                    varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
-                    varargout{iout}(validTracks, :) = table2struct(st(validTracks, vars));
+                    if ~wantFullTrack
+                        vars = {'xCoord', 'yCoord', 'number'};
+                        validTracks = validState & startingFrameExtra <= iFrame & endingFrameExtra >= iFrame;                    
+                        st = table(xCoord(:,1:iFrame), yCoord(:,1:iFrame), number, ...
+                                   'VariableNames', {'xCoord', 'yCoord', 'number'});                    
+
+                        varargout{iout}(nTracks, 1) = struct('xCoord', [], 'yCoord', [], 'number', []);
+                        varargout{iout}(validTracks, :) = table2struct(st(validTracks, vars));
+                    else
+                        varargout{iout} = tracksNA;                                 
+                    end
                 
                 elseif ~isempty(strfind(output{iout},'adhboundary'))                    
                 
