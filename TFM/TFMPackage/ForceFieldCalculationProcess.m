@@ -102,71 +102,93 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 end
                 if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) 
                     tMapMap = [];
-                    s = load(obj.outFilePaths_{iOut}); %This will need to be changed if one really wants to see tMapX or tMapY
-                    fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
-                    numStr = @(frame) num2str(frame,fString);
-                    outputDir = fullfile(obj.funParams_.OutputDirectory,'tractionMaps');
-                    outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-                    if isfield(s,outputList{5}) 
-                        tMapObj = s.(outputList{5});
-                        if ~isstruct(tMapObj)
-                            mkdir(outputDir);
-                            % This means that the data is is stored in an old
-                            % way. (cell array). 
-                            disp('The traction map is stored in a huge cell array format with no compression.')
-                            disp('Reformating and re-saving the individual maps using compression..')
-                            s = load(obj.outFilePaths_{iOut});
-                            for ii = obj.owner_.nFrames_:-1:1
-                                cur_tMap = s.tMap{ii};
-                                %backward compatibility
-                                if isfield(s,'tMapX')
-                                    cur_tMapX = s.tMapX{ii};
-                                    cur_tMapY = s.tMapY{ii};
-                                else
-                                    cur_tMapX = [];
-                                    cur_tMapY = []; %Later this can be changed to the code that actually generates tMapX and Y.
-                                end   
-                                tMapMap(:,:,ii) = cur_tMap;
-                                if ii==1 && strcmpi(obj.funParams_.method,'FastBEM')
-                                    try
-                                        cur_fCfdMap = s.fCfdMap;
-                                    catch
-                                        cur_fCfdMap = s.fCfdMap{ii};
+                    try
+                        s = load(obj.outFilePaths_{iOut}); %This will need to be changed if one really wants to see tMapX or tMapY
+                        fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
+                        numStr = @(frame) num2str(frame,fString);
+                        outputDir = fullfile(obj.funParams_.OutputDirectory,'tractionMaps');
+                        outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+                        if isfield(s,outputList{5}) 
+                            tMapObj = s.(outputList{5});
+                            if ~isstruct(tMapObj)
+                                mkdir(outputDir);
+                                % This means that the data is is stored in an old
+                                % way. (cell array). 
+                                disp('The traction map is stored in a huge cell array format with no compression.')
+                                disp('Reformating and re-saving the individual maps using compression..')
+                                s = load(obj.outFilePaths_{iOut});
+                                for ii = obj.owner_.nFrames_:-1:1
+                                    cur_tMap = s.tMap{ii};
+                                    %backward compatibility
+                                    if isfield(s,'tMapX')
+                                        cur_tMapX = s.tMapX{ii};
+                                        cur_tMapY = s.tMapY{ii};
+                                    else
+                                        cur_tMapX = [];
+                                        cur_tMapY = []; %Later this can be changed to the code that actually generates tMapX and Y.
+                                    end   
+                                    tMapMap(:,:,ii) = cur_tMap;
+                                    if ii==1 && strcmpi(obj.funParams_.method,'FastBEM')
+                                        try
+                                            cur_fCfdMap = s.fCfdMap;
+                                        catch
+                                            cur_fCfdMap = s.fCfdMap{ii};
+                                        end
+                                        save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY','cur_fCfdMap'); % I removed v7.3 option to save the space,'-v7.3');
+                                    else
+                                        save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY'); % I removed v7.3 option to save the space,'-v7.3');
                                     end
-                                    save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY','cur_fCfdMap'); % I removed v7.3 option to save the space,'-v7.3');
-                                else
-                                    save(outFileTMap(ii),'cur_tMap','cur_tMapX','cur_tMapY'); % I removed v7.3 option to save the space,'-v7.3');
+                                    progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map saving') % Update text
                                 end
-                                progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map saving') % Update text
+                                tMap.outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
+                                tMap.eachTMapName = 'cur_tMap';
+                                tMap.outputDir = outputDir;
+                                tMapX=tMap; tMapX.eachTMapName = 'cur_tMapX';
+                                tMapY=tMap; tMapY.eachTMapName = 'cur_tMapY';
+                                if strcmpi(obj.funParams_.method,'FastBEM')
+                                    fCfdMap=tMap; fCfdMap.eachTMapName = 'cur_fCfdMap';
+                                    save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
+                                else
+                                    save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
+                                end
+                            elseif isfield(tMapObj,'eachTMapName')
+                                for ii=obj.owner_.nFrames_:-1:1
+                                    cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
+                                    tMapMap(:,:,ii) = cur_tMapObj.cur_tMap;
+                                    progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                                end
+                            else % very new format
+                                forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
+                                displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
+                                [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField,displField,0);
+                                for ii=obj.owner_.nFrames_:-1:1
+                                    tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                                    tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
+                                    progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                                end
                             end
-                            tMap.outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-                            tMap.eachTMapName = 'cur_tMap';
-                            tMap.outputDir = outputDir;
-                            tMapX=tMap; tMapX.eachTMapName = 'cur_tMapX';
-                            tMapY=tMap; tMapY.eachTMapName = 'cur_tMapY';
-                            if strcmpi(obj.funParams_.method,'FastBEM')
-                                fCfdMap=tMap; fCfdMap.eachTMapName = 'cur_fCfdMap';
-                                save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY','fCfdMap'); % need to be updated for faster loading. SH 20141106
-                            else
-                                save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
-                            end
-                        elseif isfield(tMapObj,'eachTMapName')
-                            for ii=obj.owner_.nFrames_:-1:1
-                                cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
-                                tMapMap(:,:,ii) = cur_tMapObj.cur_tMap;
-                                progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
-                            end
-                        else % very new format
-                            forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
-                            displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
-                            [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField,displField,0);
-                            for ii=obj.owner_.nFrames_:-1:1
-                                tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                                tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
-                                progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
-                            end
+                            lastFinishTime = obj.finishTime_;
                         end
-                        lastFinishTime = obj.finishTime_;
+                    catch
+                        tfmPack = obj.owner_.packages_{obj.getPackageIndex};
+                        tMapObj.forceFieldPath = [tfmPack.outputDirectory_ filesep 'forceField' filesep 'forceField.mat'];
+                        tMapObj.displFieldPath = [tfmPack.outputDirectory_ filesep 'displacementField' filesep 'displField.mat'];
+                        forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
+                        displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
+                        
+                        SDCproc = tfmPack.processes_{1};
+                        if isempty(SDCproc)
+                            tMapObj.firstMaskSize = size(obj.owner_.channels_(1).loadImage(1));
+                        else
+                            tMapObj.firstMaskSize = size(SDCproc.loadChannelOutput(1,1));
+                        end
+                        
+                        [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField,displField,0);
+                        for ii=obj.owner_.nFrames_:-1:1
+                            tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                            tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                        end
                     end
                 end
                 if ismember(output,outputList(5:7)) 

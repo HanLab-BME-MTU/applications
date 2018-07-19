@@ -149,12 +149,12 @@ for ii=1:numel(tracksNA)
                 
                 BccAll{iii}=Bcc;
                 indexValidBccInTracks(iii) = ii;
-                if ~isempty(find(Bcc > 0, 1)-tShift)
-                    firstTimeAboveZeroBccAll(ii) = find(Bcc > 0, 1)-tShift;
-                    if ~isempty(find(Bcc > 0.5, 1)-tShift)
-                        firstTimeAboveHalfBccAll(ii) = find(Bcc > 0.5, 1)-tShift;
-                        if ~isempty(find(Bcc > 1.0, 1)-tShift)
-                            firstTimeAboveOneBccAll(ii) = find(Bcc > 1.0, 1)-tShift;
+                if ~isempty(find(Bcc > 0, 1))
+                    firstTimeAboveZeroBccAll(ii) = find(Bcc > 0, 1);
+                    if ~isempty(find(Bcc > 0.5, 1))
+                        firstTimeAboveHalfBccAll(ii) = find(Bcc > 0.5, 1);
+                        if ~isempty(find(Bcc > 1.0, 1))
+                            firstTimeAboveOneBccAll(ii) = find(Bcc > 1.0, 1);
                         end
                     end
                 end
@@ -182,7 +182,7 @@ if exist('BccAll','var')
     for k=1:numConditions
         BccMatrix(k,1:length(BccAll{k})) = BccAll{k};
     end
-    disp(['The BccMatrix is aligned with ' num2str(tShift) ' from first.'])
+%     disp(['The BccMatrix is aligned with ' num2str(iRepTal2) ' from first.'])
 
     avgBcc = nanmean(BccMatrix,1);
 else

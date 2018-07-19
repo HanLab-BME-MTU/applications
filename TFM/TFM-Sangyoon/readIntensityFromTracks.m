@@ -79,14 +79,16 @@ elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
     tracksNA(end).ampTotal3=[];
 end    
 %% Change the old format
-tracksNA = changeTrackStateFormat( tracksNA );
+if attribute>1 && isfield(tracksNA,'state')
+    tracksNA = changeTrackStateFormat( tracksNA );
+end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % parfor_progress(numTracks);
 progressText(0,'Re-reading and tracking individual tracks', 'Adhesion Analysis');
 % progressbar
 tic
-% parfor k=1:numTracks
-for k=1:numTracks
+parfor k=1:numTracks
+% for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
