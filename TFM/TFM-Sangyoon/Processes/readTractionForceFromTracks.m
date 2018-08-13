@@ -62,12 +62,16 @@ for i = 1:numel(MD.channels_)
     outputFile{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
     outFilename = [chanDirName '_Chan' num2str(i) '_idxTracks'];
     outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
+
+    outFilename = [chanDirName '_Chan' num2str(i) '_adjustedSDC'];
+    outputFile{3,i} = [p.OutputDirectory filesep outFilename '.mat'];    
+    
     outFilename = [chanDirName '_Chan' num2str(i) '_tractionMap'];
-    outputFile{3,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName '_Chan' num2str(i) '_forceField'];
     outputFile{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName '_Chan' num2str(i) '_forceFieldShifted'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_forceField'];
     outputFile{5,i} = [p.OutputDirectory filesep outFilename '.mat'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_forceFieldShifted'];
+    outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 tractionForceReadProc.setOutFilePaths(outputFile);
 mkClrDir(p.OutputDirectory);
@@ -125,6 +129,7 @@ end
 tMap = zeros(h,w,nFrames);
 
 %% Shifting traction map and field
+T = zeros(nFrames,2);
 for ii=1:nFrames
     cur_tMap = tMapIn(:,:,ii);
     cur_T = -T_TFM(ii,:) + T_FA(ii,:);
@@ -136,6 +141,7 @@ for ii=1:nFrames
         forceFieldShifted(ii).pos(:,1) = forceFieldShifted(ii).pos(:,1)+cur_T(2);
         forceFieldShifted(ii).pos(:,2) = forceFieldShifted(ii).pos(:,2)+cur_T(1);
     end
+    T(ii,:) = cur_T;
 end
 clear tMapIn
 %% Filter out tracks that is out of traction field
@@ -189,11 +195,12 @@ catch
 end
 % save(outputFile{2,p.ChannelIndex},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9') 
 save(outputFile{2,p.ChannelIndex},'idxTracks') 
+save(outputFile{3,iBeadChan},'T'); 
 
 if p.saveTractionField
-    save(outputFile{3,iBeadChan},'tMap','-v7.3'); 
-    save(outputFile{4,iBeadChan},'forceField','-v7.3'); 
-    save(outputFile{5,iBeadChan},'forceFieldShifted','-v7.3');
+    save(outputFile{4,iBeadChan},'tMap','-v7.3'); 
+    save(outputFile{5,iBeadChan},'forceField','-v7.3'); 
+    save(outputFile{6,iBeadChan},'forceFieldShifted','-v7.3');
 end
 disp('Done!')
 end

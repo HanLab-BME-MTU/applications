@@ -17,8 +17,9 @@ pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 
-frameFII=round(curTrack.firstIncreseTimeInt/tInterval);
-frameFTI=round(curTrack.firstIncreseTimeForce/tInterval);
+[~,~,firstIncreseTimeInt,firstIncreseTimeForce]=calculateFirstIncreaseTimeTracks(curTrack,.99,1,tInterval);
+frameFII=round(firstIncreseTimeInt/tInterval);
+frameFTI=round(firstIncreseTimeForce/tInterval);
 
 if isempty(frameFII) || isempty(frameFTI)
     splineParamInit=0.99;

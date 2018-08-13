@@ -1,17 +1,27 @@
 function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
     ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll] ...
     = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval,varargin)
-% [tracksNA,firstIncreseTimeIntAgainstForceAll] =
+% [firstIncreseTimeIntAgainstForceAll,forceTransmittingAll...
+%  ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll]=...
 %  calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
 %  calculates the time lag of the main intensity (ampTotal) against the slave source.
 % input:
 %       splineParamInit: smoothing parameter (0-1). Use 1 if you don't want to
 %       smooth the signal.
+%       preDetecFactor: how much ahead of the inital start point you want
+%       to detect as a pre-signal maximum (default: 0.5). It is used as:
+%       numPreFrames = max(1,floor(preDetecFactor*numFramesBefore))
+%       Thus, if you put larger number, you are selecting the maximum from
+%       much earlier time points.
 %       'slaveSource': either 'forceMag', 'ampTotal2' or 'ampTotal3'
 % output:
+%       firstIncreseTimeIntAgainstSlaveAll,firstIncreseTimeIntAll,
+%       firstIncreseTimeSlaveAll are all in the unit of time, not frame. To
+%       get the frame, you should divide them with tInterval.
 %       
 % Big change: I gave up updating tracksNA becuase it increase too much 
 % the file size
+% Sangyoon Han, developed 2016, revised August 2018.
 ip =inputParser;
 ip.addRequired('tracksNA',@isstruct)
 ip.addOptional('splineParamInit',0.99,@isscalar)

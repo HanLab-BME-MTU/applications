@@ -2096,29 +2096,83 @@ disp([cellfun(@(x) nanmedian(x),InitTimeLagMatureTal); cellfun(@(x) length(x),In
 CurrentFrameTal2=67;
 iRepTal2=5;
 % data loading
-talForceStack = load([talFolder{iRepTal2} filesep 'fMap' filesep 'tMap.mat'],'tMap');
-talForceStack = talForceStack.tMap;
-talImgStack = load([talFolder{iRepTal2} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
-talImgStack = talImgStack.paxImgStack;
-forceFieldTal = load([MDpathTal filesep 'TFMPackage' filesep 'forceField' filesep 'forceField.mat']);
-forceFieldTal = forceFieldTal.forceField;
-displFieldTal = load([MDpathTal filesep 'TFMPackage' filesep 'correctedDisplacementField' filesep 'displField.mat']);
-displFieldTal = displFieldTal.displField;
+
+% Use the filtered tracks for G2 above
+% tracksTalStruct = load([talFolder{iRepTal2} filesep 'data' filesep 'tracksG2.mat'],'tracksG2');
+curTalMoviePath = fileparts(fileparts(talFolder{iRepTal2}));
+curTalMD = MovieData.load([curTalMoviePath filesep 'movieData.mat']);
+iFAPack = curTalMD.getPackageIndex('FocalAdhesionPackage');
+FAPack=curTalMD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
+adhAnalProc = FAPack.processes_{7};
+% tracksNAtal2all = adhAnalProc.loadChannelOutput(2,1);
+tracksNAtal2all=adhAnalProc.loadChannelOutput(2,'output','tracksNA');
+idClassesTal2=load(faPack.processes_{8}.outFilePaths_{4,2});
+
+% Now we have to combine this with readings from step 9 and 10
+theOtherReadProc=FAPack.processes_{iTheOtherProc};
+forceReadProc=FAPack.processes_{iForceRead};
+
+if ~isempty(forceReadProc)
+    forceReadObj = load(forceReadProc.outFilePaths_{1,2},'tracksForceMag'); % the later channel has the most information.
+    tracksForceMag = forceReadObj.tracksForceMag;
+    idxTracksObj = load(forceReadProc.outFilePaths_{2,2},'idxTracks');
+    if ~isfield(idxTracksObj,'idxTracks')
+        idxTracksObj = load(forceReadProc.outFilePaths_{6,2},'idxTracks');
+    end
+    idxTracks = idxTracksObj.idxTracks;
+    tracksNAtal2all2 = tracksNAtal2all(idxTracks);
+    if isfield(tracksForceMag,'forceMag')
+        [tracksNAtal2all2(:).forceMag] = tracksForceMag.forceMag;
+    end
+end
+toc
+if ~isempty(forceReadProc)
+    idGroup1 = idClassesTal2.idGroup1(idxTracks);
+    idGroup2 = idClassesTal2.idGroup2(idxTracks);
+    idGroup3 = idClassesTal2.idGroup3(idxTracks);
+    idGroup4 = idClassesTal2.idGroup4(idxTracks);
+    idGroup5 = idClassesTal2.idGroup5(idxTracks);
+    idGroup6 = idClassesTal2.idGroup6(idxTracks);
+    idGroup7 = idClassesTal2.idGroup7(idxTracks);
+    idGroup8 = idClassesTal2.idGroup8(idxTracks);
+    idGroup9 = idClassesTal2.idGroup9(idxTracks);
+else
+    disp('Traction reading was not done. No further filtering...')
+end
+clear tracksNAtal2all
+tracksNAtal2 = tracksNAtal2all2(idClassesTal2.idGroup2);%tracksTalStruct.tracksG2;
+
+tfmPackTal2 = curTalMD.packages_{1};
+talForceStack = tfmPackTal2.processes_{4}.loadChannelOutput(1,'output','tMap');
+tracReadingProc = faPack.processes_{10};
+T=load(tracReadingProc.outFilePaths_{3,1});
+T=T.T;
+nFramesTal2 = curTalMD.nFrames_;
+for ii=nFramesTal2:-1:1
+    cur_tMap=tfmPackTal2.processes_{4}.loadChannelOutput(ii,'output','tMap');
+    cur_T = T(ii,:);
+    cur_tMap2 = imtranslate(cur_tMap, cur_T);
+    tMap(:,:,ii) = cur_tMap2;
+end
+clear cur_tMap
+sdcProc = faPack.processes_{1};
+talImgStack = sdcProc.loadOutStack(2);
+% forceFieldTal = load([MDpathTal filesep 'TFMPackage' filesep 'forceField' filesep 'forceField.mat']);
+% forceFieldTal = forceFieldTal.forceField;
+% displFieldTal = load([MDpathTal filesep 'TFMPackage' filesep 'correctedDisplacementField' filesep 'displField.mat']);
+% displFieldTal = displFieldTal.displField;
 
 
 figure('Position', pos, 'PaperPositionMode', 'auto','Color','w');
 axes('Position', [0 5/6 1/6 1/6]); avgWidth=0; % avgWidth
 imshow(imcomplement(mean(talImgStack(:,:,CurrentFrameTal2-avgWidth:CurrentFrameTal2+avgWidth),3)),[])
 
-% Use the filtered tracks for G2 above
-tracksTalStruct = load([talFolder{iRepTal2} filesep 'data' filesep 'tracksG2.mat'],'tracksG2');
-tracksNAtal2 = tracksTalStruct.tracksG2;
 % See the iInit for these tracks
-disp(InitTimeLagMatureTal{iRepTal2})
+% disp(InitTimeLagMatureTal{iRepTal2})
 % See the general trend of 8th track
 % iNATal=10;
 % showSingleAdhesionTrackSummary(MDtal,tracksNAtal2(iNATal),talImgStack,talForceStack,iNATal);
-iNATal=pickAdhesionTracksInteractive(tracksNAtal2, talImgStack, 'movieData',MDtal,'tMap',talForceStack);
+iNATal=pickAdhesionTracksInteractive(tracksNAtal2, talImgStack, 'movieData',curTalMD,'tMap',tMap);
 
 
 
