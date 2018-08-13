@@ -260,7 +260,7 @@ if CC.NumObjects > 1
     end
     %We just take the largest of these objects for prot vec calc
     [~,iBiggest] = max(cellfun(@(x)(numel(x)),CC.PixelIdxList));
-    mask = false(imSize);
+    mask = false(size(mask));
     mask(CC.PixelIdxList{iBiggest}) = true;
     
 end
@@ -270,6 +270,7 @@ end
 %coordinates, and the resulting outline encloses the border pixels
 %instead of running through their centers. This better agrees with the
 %windows, as the windows are designed to enclose the entire mask.
+mask(1,:)=0;
 outline = contourc(double(mask),[0 0]);
 outline = separateContours(outline);%Post-processing of contourc output
 outline = cleanUpContours(outline);

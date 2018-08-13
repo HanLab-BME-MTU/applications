@@ -67,8 +67,13 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             if ismember(output,outputList(1:4))
                 iOut=1;
                 if ismember(output,outputList(1:3)) 
-                    s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
-                    varargout{1}=s.(output{1})(iFrame);
+                    if ismember(output,outputList(1:2)) 
+                        s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
+                        varargout{1}=s.(output{1})(iFrame);
+                    else
+                        s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, outputList{2});
+                        varargout{1}=s.(outputList{2})(iFrame);
+                    end
                 else %This is for unshifted
                     s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, outputList{2});
                     curField = s.(outputList{2})(iFrame);
@@ -108,7 +113,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         numStr = @(frame) num2str(frame,fString);
                         outputDir = fullfile(obj.funParams_.OutputDirectory,'tractionMaps');
                         outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-                        if isfield(s,outputList{5}) 
+                        if isfield(s,outputList{5}) || isfield(s,'tMapObj')
                             tMapObj = s.(outputList{5});
                             if ~isstruct(tMapObj)
                                 mkdir(outputDir);
@@ -189,6 +194,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                             tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                         end
+                        lastFinishTime = obj.finishTime_;
                     end
                 end
                 if ismember(output,outputList(5:7)) 
