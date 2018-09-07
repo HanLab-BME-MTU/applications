@@ -9,8 +9,9 @@ ip.addParamValue('numChan',2,@isscalar); % selcted track ids
 ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
 ip.addParamValue('trainedData',[],@istable); % trained data
 ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
-ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the master channle index.
+ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the slave channle index.
 ip.addParamValue('tMap',[],@(x) (isnumeric(x))); % This is the master channle index.
+ip.addParamValue('imgMap2',[],@(x) (isnumeric(x))); % This is the master channle index.
 ip.parse(tracksNA, imgMap, varargin{:});
 % pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
@@ -21,6 +22,7 @@ iChan=ip.Results.iChan;
 iChanSlave=ip.Results.iChanSlave;
 imgMap=ip.Results.imgMap;
 tMap=ip.Results.tMap;
+imgMap2=ip.Results.imgMap2;
 %% Load processed data
 % movieData to find out pixel size
 if isempty(MD)
@@ -163,7 +165,7 @@ function pushInspectAdhesion(~,~)
     reAssign=false;
     newlyAssign=true;
     if ismember((IDtoInspect),IDs)
-        reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==idxIDList(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
+        reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
         if isempty(reAssign); reAssign=0; end
         whereInIDs = find(IDs==idxIDList(IDtoInspect));
         newlyAssign = false;
@@ -405,7 +407,7 @@ function pushInspectAdhesion(~,~)
 %         colormap(ax10,'jet')
 %         colormap(ax11,'jet')
 %         
-        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect);
+        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);
 
         % saving
         iCurGroup = input(['Which group does this adhesion belong to :  \ngroup 1 (forming and disassembling as edge protrude),\ngroup 2 (maturing adhesions),', ...

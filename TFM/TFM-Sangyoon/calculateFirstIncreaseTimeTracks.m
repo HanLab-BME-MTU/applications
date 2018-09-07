@@ -1,5 +1,5 @@
 function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
-    ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll] ...
+    ,firstIncreaseTimeIntAll,firstIncreaseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll,tracksNA] ...
     = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval,varargin)
 % [firstIncreseTimeIntAgainstForceAll,forceTransmittingAll...
 %  ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll]=...
@@ -37,26 +37,28 @@ if splineParamInit<1
 end
 firstIncreseTimeIntAgainstSlaveAll=NaN(numel(tracksNA),1);
 forceTransmittingAll=false(numel(tracksNA),1);
-firstIncreseTimeIntAll=NaN(numel(tracksNA),1);
-firstIncreseTimeSlaveAll=NaN(numel(tracksNA),1);
+firstIncreaseTimeIntAll=NaN(numel(tracksNA),1);
+firstIncreaseTimeSlaveAll=NaN(numel(tracksNA),1);
 bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
+    curTrack.lifeTime = curTrack.endingFrameExtra-curTrack.startingFrameExtra;
 %     curAmpSlope = curTrack.ampSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
 %     curForceSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 
-    sFEE = curTrack.startingFrameExtraExtra;
+%     sFEE = curTrack.startingFrameExtraExtra;
+    sFEE = max(1,curTrack.startingFrameExtra-30); %curTrack.startingFrameExtraExtra;
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
     % See how many frames you have before the startingFrameExtra
     stepFrame =5;
     effectiveSF = curTrack.startingFrameExtra - stepFrame; sF5before=1; sF10before=1;
     while sF5before==sF10before
         effectiveSF = effectiveSF + stepFrame;
-        numFramesBefore = effectiveSF - curTrack.startingFrameExtraExtra;
+        numFramesBefore = effectiveSF - sFEE;
         numPreFrames = max(1,floor(preDetecFactor*numFramesBefore));
         numPreSigStart = min([20,numFramesBefore 3*numPreFrames]);
         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
@@ -114,8 +116,8 @@ for ii=1:numel(tracksNA)
                 bkgMaxSlaveAll(ii) = bkgMaxForce;
             else
                 forceTransmittingAll(ii) = true;
-                firstIncreseTimeIntAll(ii) = firstIncreaseTimeInt*tInterval; % in sec
-                firstIncreseTimeSlaveAll(ii) = firstIncreaseTimeForce*tInterval;
+                firstIncreaseTimeIntAll(ii) = firstIncreaseTimeInt*tInterval; % in sec
+                firstIncreaseTimeSlaveAll(ii) = firstIncreaseTimeForce*tInterval;
                 bkgMaxIntAll(ii) = bkgMaxInt;
                 bkgMaxSlaveAll(ii) = bkgMaxForce;
                 firstIncreseTimeIntAgainstSlaveAll(ii)=firstIncreaseTimeInt*tInterval - firstIncreaseTimeForce*tInterval; % -:intensity comes first; +: force comes first. in sec
@@ -123,5 +125,15 @@ for ii=1:numel(tracksNA)
         else
             bkgMaxIntAll(ii) = bkgMaxInt;
         end
+    else
+        
+    end
+    if nargout>6
+        tracksNA(ii).forceTransmitting=forceTransmittingAll(ii);
+        tracksNA(ii).firstIncreaseTimeInt=firstIncreaseTimeIntAll(ii); % in sec
+        tracksNA(ii).firstIncreaseTimeForce = firstIncreaseTimeSlaveAll(ii);
+        tracksNA(ii).bkgMaxInt(ii) = bkgMaxIntAll(ii);
+        tracksNA(ii).bkgMaxSlave(ii) = bkgMaxSlaveAll(ii);
+        tracksNA(ii).firstIncreseTimeIntAgainstForce = firstIncreseTimeIntAgainstSlaveAll(ii);
     end
 end

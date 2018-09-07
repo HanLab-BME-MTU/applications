@@ -31,9 +31,17 @@ endingIntensityNAs = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA); %th
 
 decayingIntensityNAs = maxIntensityNAs-endingIntensityNAs; % this will differentiate group 1 vs group 2.
 %#2
-edgeAdvanceDistNAs = arrayfun(@(x) x.edgeAdvanceDist(x.endingFrameExtra),tracksNA); %this should be also low for group 3
+try
+    edgeAdvanceDistNAs = arrayfun(@(x) x.edgeAdvanceDist(x.endingFrameExtra),tracksNA); %this should be also low for group 3
+catch
+    edgeAdvanceDistNAs = arrayfun(@(x) x.edgeAdvanceDist(end),tracksNA);
+end
 %#3
-advanceDistNAs = arrayfun(@(x) x.advanceDist(x.endingFrameExtra),tracksNA); %this should be also low for group 3
+try
+    advanceDistNAs = arrayfun(@(x) x.advanceDist(x.endingFrameExtra),tracksNA); %this should be also low for group 3
+catch
+    advanceDistNAs = arrayfun(@(x) x.advanceDist(end),tracksNA);
+end
 %#4
 lifeTimeNAs = arrayfun(@(x) x.lifeTime,tracksNA); %this should be low for group 6
 %#5
@@ -45,11 +53,23 @@ startingIntensityNAs = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA);
 %#8
 distToEdgeChangeNAs = arrayfun(@(x) x.distToEdgeChange,tracksNA); %this should be low for group 3 and group 5
 %#9
-distToEdgeLastNAs = arrayfun(@(x) x.distToEdge(x.endingFrameExtra),tracksNA); %this should be low for group 3 and group 7
+try
+    distToEdgeLastNAs = arrayfun(@(x) x.distToEdge(x.endingFrameExtra),tracksNA); %this should be low for group 3 and group 7
+catch
+    distToEdgeLastNAs = arrayfun(@(x) x.distToEdge(end),tracksNA); %this should be low for group 3 and group 7
+end
 %#10
-edgeAdvanceDistFirstChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(min(x.startingFrameExtra+30,x.endingFrameExtra)),tracksNA); %this should be negative for group 5 and for group 7
+try
+    edgeAdvanceDistFirstChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(min(x.startingFrameExtra+30,x.endingFrameExtra)),tracksNA); %this should be negative for group 5 and for group 7
+catch
+    edgeAdvanceDistFirstChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(min(x.startingFrameExtra+30,length(x.advanceDistChange2min))),tracksNA);
+end
 %#11
-edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
+try
+    edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
+catch
+    edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.advanceDistChange2min(end),tracksNA); 
+end
 %#12
 maxEdgeAdvanceDistChangeNAs =  arrayfun(@(x) x.maxEdgeAdvanceDistChange,tracksNA); %This is to see if 
 %#13
