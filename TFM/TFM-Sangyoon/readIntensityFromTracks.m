@@ -40,9 +40,14 @@ else
     
     maxGap = trackingParams.gapCloseParam.timeWindow;
 end
-halfWidth=2;
-halfHeight=2;
 
+if attribute==2
+    halfWidth=4;
+    halfHeight=4;
+else
+    halfWidth=2;
+    halfHeight=2;
+end
 %% %%%%%%%%%%%%%%%%%%%%%%5
 % poolobj = gcp('nocreate'); % If no pool, do not create new one.
 % myCluster = parcluster('local');
@@ -84,11 +89,17 @@ if attribute>1 && isfield(tracksNA,'state')
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % parfor_progress(numTracks);
-progressText(0,'Re-reading and tracking individual tracks', 'Adhesion Analysis');
+progressText(0,'Re-reading and tracking individual tracks');
 % progressbar
 tic
-parfor k=1:numTracks
-% for k=1:numTracks
+if numTracks<100
+  parforArg = 0;
+else
+  parforArg = Inf;
+end
+
+% parfor (k=1:numTracks, parforArg)
+for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);

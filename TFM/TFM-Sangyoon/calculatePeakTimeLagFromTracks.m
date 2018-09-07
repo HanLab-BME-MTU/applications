@@ -1,8 +1,9 @@
-function [peakTimeIntAgainstForceAll,peakTimeIntAll,peakTimeForceAll] ...
+function [peakTimeIntAgainstForceAll,peakTimeIntAll,peakTimeForceAll,tracksNA] ...
     = calculatePeakTimeLagFromTracks(tracksNA,splineParam,tInterval,varargin)
-% [tracksNA,firstIncreseTimeIntAgainstForceAll] =
-%  calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
-%  calculates the time lag of the main intensity (ampTotal) against the slave source.
+% [peakTimeIntAgainstForceAll,peakTimeIntAll,peakTimeForceAll] ...
+%     = calculatePeakTimeLagFromTracks(tracksNA,splineParam,tInterval,varargin)
+%  calculates the time lag of the main intensity peak (ampTotal) against
+%  the slave source's peak.
 % input:
 %       splineParamInit: smoothing parameter (0-1). Use 1 if you don't want to
 %       smooth the signal.
@@ -48,6 +49,8 @@ for ii=1:numel(tracksNA)
 
     if ismember(curFrameMaxAmp,curFrameLocMaxes) && curFrameMaxAmp>tRange(1) && curFrameMaxAmp<tRange(end)
         peakTimeIntAll(ii) = curFrameMaxAmp;
+        tracksNA(ii).intenPeakness = true;
+        tracksNA(ii).intenPeakFrame = curFrameMaxAmp;
 
         curForce=d;
         curForce(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) ...
@@ -66,15 +69,17 @@ for ii=1:numel(tracksNA)
             weightForceMag = (forceMagLMCand - min(sCurForce_sd))/(max(forceMagLMCand) - min(sCurForce_sd));
             [forceMacMax,indMaxForceAmongLMs] = min((abs(curForceLocMaxes-curFrameMaxAmp)).^0.5/length(tracksNA(ii).lifeTime)./weightForceMag);
 %                 [forceMacMax,indMaxForceAmongLMs] = min(abs(curForceLocMaxes-curFrameMaxAmp)./weightForceMag);
-%             tracksNA(ii).forcePeakness = true;
+            tracksNA(ii).forcePeakness = true;
             peakTimeForceAll(ii) = curForceLocMaxes(indMaxForceAmongLMs);
-%             tracksNA(ii).forcePeakMag = forceMacMax; 
-%             tracksNA(ii).forcePeakMagRel = forceMacMax - min(sCurForce_sd); % this is a relative difference
+            tracksNA(ii).forcePeakMag = forceMacMax; 
+            tracksNA(ii).forcePeakMagRel = forceMacMax - min(sCurForce_sd); % this is a relative difference
+            tracksNA(ii).forcePeakFrame = peakTimeForceAll(ii); % this is a relative difference
             peakTimeIntAgainstForceAll(ii) = -peakTimeForceAll(ii)*tInterval + peakTimeIntAll(ii)*tInterval; % - means intensity comes first; + means force peak comes first
         else
             peakTimeForceAll(ii) = NaN;
-%             tracksNA(ii).forcePeakMag = NaN; 
-%             tracksNA(ii).forcePeakMagRel = NaN; % this is a relative difference
+            tracksNA(ii).forcePeakMag = NaN; 
+            tracksNA(ii).forcePeakFrame = NaN; 
+            tracksNA(ii).forcePeakMagRel = NaN; % this is a relative difference
             peakTimeIntAgainstForceAll(ii) = NaN; %
         end
     end

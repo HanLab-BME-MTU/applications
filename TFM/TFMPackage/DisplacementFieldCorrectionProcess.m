@@ -69,6 +69,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
                 if isempty(dMapMap) || ~all(obj.finishTime_==lastFinishTime)
+                    dMapMap=[];
                     try
                         s = load(obj.outFilePaths_{iOut},output{1});
                         dMapObj = s.(output{1});

@@ -2092,21 +2092,24 @@ totalInitTimeLagMaturePax2 = totalInitTimeLagMaturePax(totalInitTimeLagMaturePax
 disp([cellfun(@(x) nanmedian(x),InitTimeLagMaturePax); cellfun(@(x) length(x),InitTimeLagMaturePax)])
 disp([cellfun(@(x) nanmedian(x),InitTimeLagMatureVin); cellfun(@(x) length(x),InitTimeLagMatureVin)])
 disp([cellfun(@(x) nanmedian(x),InitTimeLagMatureTal); cellfun(@(x) length(x),InitTimeLagMatureTal)])
-%% G2 representation - talin
+%% G2 representation - talin - vinculin - paxillin
 CurrentFrameTal2=67;
-iRepTal2=5;
+iRepTal2=1;
 % data loading
 
 % Use the filtered tracks for G2 above
 % tracksTalStruct = load([talFolder{iRepTal2} filesep 'data' filesep 'tracksG2.mat'],'tracksG2');
 curTalMoviePath = fileparts(fileparts(talFolder{iRepTal2}));
+% curTalMoviePath = fileparts(fileparts(vinFolder{iRepTal2}));
+% curTalMoviePath = fileparts(fileparts(talFolder{iRepTal2}));
+
 curTalMD = MovieData.load([curTalMoviePath filesep 'movieData.mat']);
 iFAPack = curTalMD.getPackageIndex('FocalAdhesionPackage');
 FAPack=curTalMD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
 adhAnalProc = FAPack.processes_{7};
 % tracksNAtal2all = adhAnalProc.loadChannelOutput(2,1);
 tracksNAtal2all=adhAnalProc.loadChannelOutput(2,'output','tracksNA');
-idClassesTal2=load(faPack.processes_{8}.outFilePaths_{4,2});
+idClassesTal2=load(FAPack.processes_{8}.outFilePaths_{4,2});
 
 % Now we have to combine this with readings from step 9 and 10
 theOtherReadProc=FAPack.processes_{iTheOtherProc};
@@ -2140,59 +2143,106 @@ else
     disp('Traction reading was not done. No further filtering...')
 end
 clear tracksNAtal2all
-tracksNAtal2 = tracksNAtal2all2(idClassesTal2.idGroup2);%tracksTalStruct.tracksG2;
+tracksNAtal2 = tracksNAtal2all2(idGroup2);%tracksTalStruct.tracksG2;
 
 tfmPackTal2 = curTalMD.packages_{1};
 talForceStack = tfmPackTal2.processes_{4}.loadChannelOutput(1,'output','tMap');
-tracReadingProc = faPack.processes_{10};
-T=load(tracReadingProc.outFilePaths_{3,1});
-T=T.T;
-nFramesTal2 = curTalMD.nFrames_;
+tracReadingProc = FAPack.processes_{10};
+try
+    T=load(tracReadingProc.outFilePaths_{3,1});
+    T=T.T;
+catch
+    iBeadChan = 1; % might need to be updated based on asking TFMPackage..
+    SDCProc_FA= FAPack.processes_{1};
+    if ~isempty(SDCProc_FA)
+        s = load(SDCProc_FA.outFilePaths_{3,iBeadChan},'T');    
+        T_FA = s.T;
+    else
+        T_FA = zeros(nFrames,2);
+    end
+
+    SDCProc_TFM=tfmPackTal2.processes_{1};
+    %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+    if ~isempty(SDCProc_TFM)
+        s = load(SDCProc_TFM.outFilePaths_{3,iBeadChan},'T');    
+        T_TFM = s.T;
+    else
+        T_TFM = zeros(nFrames,2);
+    end
+    T = -T_TFM + T_FA;
+end
+nFramesTal2 = curTalMD.nFrames_; tMap=[];
 for ii=nFramesTal2:-1:1
     cur_tMap=tfmPackTal2.processes_{4}.loadChannelOutput(ii,'output','tMap');
     cur_T = T(ii,:);
-    cur_tMap2 = imtranslate(cur_tMap, cur_T);
+    cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));
     tMap(:,:,ii) = cur_tMap2;
 end
 clear cur_tMap
-sdcProc = faPack.processes_{1};
+sdcProc = FAPack.processes_{1};
 talImgStack = sdcProc.loadOutStack(2);
-% forceFieldTal = load([MDpathTal filesep 'TFMPackage' filesep 'forceField' filesep 'forceField.mat']);
-% forceFieldTal = forceFieldTal.forceField;
-% displFieldTal = load([MDpathTal filesep 'TFMPackage' filesep 'correctedDisplacementField' filesep 'displField.mat']);
-% displFieldTal = displFieldTal.displField;
-
-
-figure('Position', pos, 'PaperPositionMode', 'auto','Color','w');
-axes('Position', [0 5/6 1/6 1/6]); avgWidth=0; % avgWidth
-imshow(imcomplement(mean(talImgStack(:,:,CurrentFrameTal2-avgWidth:CurrentFrameTal2+avgWidth),3)),[])
 
 % See the iInit for these tracks
 % disp(InitTimeLagMatureTal{iRepTal2})
 % See the general trend of 8th track
 % iNATal=10;
 % showSingleAdhesionTrackSummary(MDtal,tracksNAtal2(iNATal),talImgStack,talForceStack,iNATal);
-iNATal=pickAdhesionTracksInteractive(tracksNAtal2, talImgStack, 'movieData',curTalMD,'tMap',tMap);
+[naG2All{iRepTal2},idsAll{iRepTal2}]=pickAdhesionTracksInteractive(tracksNAtal2, talImgStack, 'movieData',curTalMD,'tMap',tMap);
+% naG2All=[281   516   510   375   314   240   441   476   316];
+%% Figure generation
+iNATal=2; % 3 is the one, and 7 is similar
+showSingleAdhesionTrackSummary(curTalMD,tracksNAtal2(naG2All{iRepTal2}(iNATal)),talImgStack,tMap,naG2All{iRepTal2}(iNATal));
+% Save the figure
+
+%% Vinculin G2 representative tracks
+iVinRep = 1;
+tracksG2 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
+curTracksNAvinG2=tracksG2.tracksG2;
+tracksG1 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
+curTracksNAvinG1=tracksG1.tracksG1;
+curMDpath = fileparts(fileparts(vinFolder{iVinRep}));
+curMD = load([curMDpath filesep 'movieData.mat']);
+curMD = curMD.MD;
+% Go through each adhesion track and make sure
+tMap = load([vinFolder{iVinRep} filesep 'fMap' filesep 'tMap.mat'],'tMap');
+tMap = tMap.tMap;
+imgMap = load([vinFolder{iVinRep} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
+imgMap = imgMap.paxImgStack;
+tInterval = curMD.timeInterval_;
 
 
 
+[naG2Vin{iVinRep},idsVin{iVinRep}]=pickAdhesionTracksInteractive(curTracksNAvinG2, imgMap, 'movieData',curMD,'tMap',tMap);
+
+%% Figure generation
+iNAVin=1; % 1 is the one
+showSingleAdhesionTrackSummary(curMD,curTracksNAvinG2(naG2Vin{iVinRep}(iNAVin)),imgMap,tMap,naG2Vin{iVinRep}(iNAVin));
+% Save the figure
+
+%% Paxillin G2 representative tracks
+iPaxRep = 2;
+tracksG2 = load([paxFolder{iPaxRep} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
+curTracksNApaxG2f=tracksG2.tracksG2;
+tracksG1 = load([paxFolder{iPaxRep} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
+curTracksNAvinG1=tracksG1.tracksG1;
+curMDpath = fileparts(fileparts(paxFolder{iPaxRep}));
+curMD = MovieData.load([curMDpath filesep 'movieData.mat']); %load([curMDpath filesep 'movieData.mat']);
+% curMD = curMD.MD;
+% Go through each adhesion track and make sure
+tMap = load([paxFolder{iPaxRep} filesep 'fMap' filesep 'tMap.mat'],'tMap');
+tMap = tMap.tMap;
+imgMap = load([paxFolder{iPaxRep} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
+imgMap = imgMap.paxImgStack;
+tInterval = curMD.timeInterval_;
 
 
 
+[naG2Vin{iPaxRep},idsVin{iPaxRep}]=pickAdhesionTracksInteractive(curTracksNApaxG2f, imgMap, 'movieData',curMD,'tMap',tMap);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+%% Figure generation
+iNAPax=2; % 1 is the one iPaxRep=2
+showSingleAdhesionTrackSummary(curMD,curTracksNApaxG2f(naG2Vin{iPaxRep}(iNAPax)),imgMap,tMap,naG2Vin{iPaxRep}(iNAPax));
+% Save the figure
 
 %% Maturing adhesions - t_init - plotting
 [lengthLongest,iLongest]=max([length(totalInitTimeLagMaturePax2),length(totalInitTimeLagMatureVin2),length(totalInitTimeLagMatureTal2)]);
