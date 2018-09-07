@@ -664,6 +664,8 @@ function [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,sigTh
 % INPUT:
 %    score : The cross-correlation score function.
 %    zeroI : The index of 'score' that corresponds to zero velocity.
+%   sigThreshold: Tolerance of the significance determination. Less (e.g. 0.3) is more
+%   strict, more (e.g. 0.9) is more generous. Default: 0.5
 % OUTPUT:
 %    pass  : If an unambiguous global maximum is found, pass = 1 is returned.
 %            Otherwise, pass = 0 is returned indicating that the quality of the
