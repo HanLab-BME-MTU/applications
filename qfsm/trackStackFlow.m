@@ -72,6 +72,7 @@ ip.addParamValue('minFeatureSize',11,@isscalar);
 ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
 ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.addParamValue('sigCrit',0.5,@isscalar);
+ip.addParamValue('noGradualExpansionOfSearchArea',false,@islogical);
 % ip.addParamValue('usePIVSuite',false,@islogical);
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
@@ -82,6 +83,8 @@ bgAvgImg=ip.Results.bgAvgImg;
 mode=ip.Results.mode;
 scoreCalculation=ip.Results.scoreCalculation;
 sigCrit = ip.Results.sigCrit;
+noGradualExpansionOfSearchArea = ip.Results.noGradualExpansionOfSearchArea;
+noGradualExpansionOfSearchArea = true;
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
 
@@ -204,13 +207,13 @@ parfor k = 1:nPoints
         while pass == 0 && maxFlowSpd < maxSpdLimit && maxPerpSpd < maxSpdLimit
             %If the quality of the score function is not good enough (pass == 0),
             % we increase the max sampling speed until the limit is reached.
-%             if strcmp(mode,'accurate')
-%                 maxFlowSpd = (maxSpdLimit);
-%                 maxPerpSpd = (maxSpdLimit);
-%             else
+            if noGradualExpansionOfSearchArea %strcmp(mode,'accurate')
+                maxFlowSpd = (maxSpdLimit);
+                maxPerpSpd = (maxSpdLimit);
+            else
                 maxFlowSpd = min(maxSpdLimit,maxFlowSpd*2);
                 maxPerpSpd = min(maxSpdLimit,maxPerpSpd*2);
-%             end
+            end
             
             %Get sampling speed. Make sure it will not shift the template (block) outside of
             % the image area. We also use bigger stepsize for large speed.

@@ -274,6 +274,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             funParams.addNonLocMaxBeads = false;
             funParams.trackSuccessively = false;
             funParams.sigCrit = 0.5;
+	    funParams.noGradualExpansionOfSearchArea = false;
         end
         function units = getUnits(varargin)
             units = 'Displacement (Pix)';
