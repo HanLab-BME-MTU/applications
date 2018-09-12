@@ -43,11 +43,12 @@ bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
-    curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
+%     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     curTrack.lifeTime = curTrack.endingFrameExtra-curTrack.startingFrameExtra;
 %     curAmpSlope = curTrack.ampSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
 %     curForceSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
-    [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+    ealryFrames = min(30, curTrack.lifeTime+1);
+    [~,curEarlyAmpSlope] = regression((1:ealryFrames),curTrack.amp(curTrack.startingFrameExtra:curTrack.startingFrameExtra+ealryFrames-1));
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 
 %     sFEE = curTrack.startingFrameExtraExtra;
@@ -64,7 +65,7 @@ for ii=1:numel(tracksNA)
         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
     end
-    if (curAmpSlope>0 || curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
+    if (curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
         d = tracksNA(ii).ampTotal;
         nTime = length(d);
@@ -82,6 +83,11 @@ for ii=1:numel(tracksNA)
             end
             sd=ppval(sd_spline,tRange);
             sd(isnan(d))=NaN;
+%             % median filtering - based outlier filtering
+%             filteredSD = medfilt1(sd,13,'omitnan');
+%             [outlierIdx] = detectOutliers(sd,9);
+            
+            tracksNA(ii).ampTotal = sd;
 
             bkgMaxInt = nanmax(sd(sF10before:sF5before));
             firstIncreaseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);
@@ -100,6 +106,7 @@ for ii=1:numel(tracksNA)
                     sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
                     sCurForce_sd=ppval(sCurForce_spline,tRange);
                     sCurForce_sd(isnan(curSlave))=NaN;
+                    tracksNA(ii).forceMag = sCurForce_sd;
     %                 sCurForce = [NaN(1,numNan) sCurForce];
                     bkgMaxForce = max(0,nanmax(sCurForce_sd(sF10before:sF5before))); % 10 is the tolr value in L1-reg
                     firstIncreaseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);
@@ -108,7 +115,7 @@ for ii=1:numel(tracksNA)
                     firstIncreaseTimeForce = NaN;
                 end
             else
-                bkgMaxForce = max(0,max(curTrack.forceMag(sF10before:sF5before)));
+                bkgMaxForce = max(0,max(curTrack.(slaveSource)(sF10before:sF5before)));
                 firstIncreaseTimeForce = find(getfield(curTrack,slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
             end
             if isempty(firstIncreaseTimeForce) || firstIncreaseTimeForce>curTrack.endingFrameExtraExtra

@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 19-Jan-2018 22:36:16
+% Last Modified by GUIDE v2.5 12-Sep-2018 16:35:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -68,6 +68,7 @@ set(handles.checkbox_lastToFirst, 'Value', funParams.lastToFirst);
 set(handles.checkbox_noOutwardDeform, 'Value', funParams.noFlowOutwardOnBorder);
 set(handles.checkbox_mode, 'Value', strcmp(funParams.mode, 'accurate'));
 set(handles.checkboxTrackSuccessive, 'Value', funParams.trackSuccessively);
+set(handles.checkbox_noGESA, 'Value', funParams.noGradualExpansionOfSearchArea);
 
 % Propagate stage drift correction parameters if no process AND stage drift
 % correction parameters has been set up
@@ -186,6 +187,7 @@ funParams.noFlowOutwardOnBorder = get(handles.checkbox_noOutwardDeform, 'Value')
 funParams.addNonLocMaxBeads = get(handles.checkbox_addNonLocMaxBeads, 'Value');
 funParams.trackSuccessively = get(handles.checkboxTrackSuccessive, 'Value');
 funParams.sigCrit = str2double(get(handles.edit_sigCrit, 'String'));
+funParams.noGradualExpansionOfSearchArea = get(handles.checkbox_noGESA, 'Value');
 
 if get(handles.checkbox_mode, 'Value'),
     funParams.mode = 'accurate';
@@ -334,3 +336,12 @@ function edit_sigCrit_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in checkbox_noGESA.
+function checkbox_noGESA_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_noGESA (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_noGESA

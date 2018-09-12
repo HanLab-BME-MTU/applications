@@ -2,9 +2,9 @@ function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, vararg
 % tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute) records
 % pixel intensity from imgStack for entire track, even after ANA state in the last x,y
 % position, and store it to attribute in tracksNA (1 means ampTotal, 2
-% means forceMag, 3 for fret, 4 for flowSpeed)
-% assumes that tracks reflects coordinates from stage-drift-corrected
-% images. imgStack is also from SDC output.
+% means forceMag, 3 for fret, 4 for flowSpeed, 5 for ampTotal2 and 6 for
+% ampTotal3) assumes that tracks reflects coordinates from
+% stage-drift-corrected images. imgStack is also from SDC output.
 % Set 'reTrack' to be true if you didn't retrack using paxillin image
 % stack and want to read values from other stacks.
 % Sangyoon Han, Jan 2015
@@ -29,6 +29,7 @@ if isempty(MD)
     searchRadius = 1;
     searchRadiusDetected = 2;
     maxGap = 3;
+    brownScaling = 1.1;
 else
     iTrackingProc =MD.getProcessIndex('TrackingProcess');
     trackingProc = MD.getProcess(iTrackingProc);
@@ -37,17 +38,18 @@ else
     maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
     searchRadius = (minR+maxR)/2;
     searchRadiusDetected = maxR;
+    brownScaling = trackingParams.costMatrices(2).parameters.brownScaling(1)+1;
     
     maxGap = trackingParams.gapCloseParam.timeWindow;
 end
 
-if attribute==2
+% if attribute==2
     halfWidth=4;
     halfHeight=4;
-else
-    halfWidth=2;
-    halfHeight=2;
-end
+% else
+%     halfWidth=2;
+%     halfHeight=2;
+% end
 %% %%%%%%%%%%%%%%%%%%%%%%5
 % poolobj = gcp('nocreate'); % If no pool, do not create new one.
 % myCluster = parcluster('local');
@@ -144,84 +146,86 @@ for k=1:numTracks
             c = curTrack.bkgAmp(curStartingFrame); 
             curTrack.startingFrameExtra = curStartingFrame;
             curTrack.endingFrameExtra = curEndingFrame;
-        end        
-        if reTrack
-            if ~trackOnlyDetected
-                gapClosed=0;
-                for ii=curStartingFrame:-1:startFrame
-                    curImg = imgStack(:,:,ii); %#ok<*PFBNS>
-                    p=-1;
-        %             curSigma = sigma;
-        %             pitFound = false;
-                    while p<=15 %30
-                        %oldP = p;
-                        p=p+1;
-                        pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
-                        curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
-                        pitFound = false;
-                        curAlpha = 0.05+p/100;
-                        pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                        if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
-                            x = pstruct.x;
-                            y = pstruct.y;
-                            A = pstruct.A;
-                            c = pstruct.c; 
-                            xi = round(x);
-                            yi = round(y);
-                            xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-                            yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                            curAmpTotal = curImg(yRange,xRange);
-                            curAmpTotal = mean(curAmpTotal(:));
-                            curTrack.startingFrameExtra = ii;
-                            curTrack.xCoord(ii) = x;
-                            curTrack.yCoord(ii) = y;
-                            curTrack.amp(ii) = A;
-                            curTrack.bkgAmp(ii) = c;
-                            curTrack.ampTotal(ii) =  curAmpTotal;
-                            curTrack.presence(ii) =  true;
-                            curTrack.sigma(ii) = curSigma;
-                            if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
-                                curTrack.state(ii) = 2; %'NA';
-                            end
-                            pitFound = true;
-                            if gapClosed>0
-                                % we have to fill in the gap 
-                                for kk=1:gapClosed
-                                    curTrack.xCoord(ii+kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii+gapClosed+1))/(gapClosed+1);
-                                    curTrack.yCoord(ii+kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii+gapClosed+1))/(gapClosed+1);
-                                    curTrack.amp(ii+kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii+gapClosed+1))/(gapClosed+1);
-                                    curTrack.bkgAmp(ii+kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii+gapClosed+1))/(gapClosed+1);
-                                    
-                                    x = curTrack.xCoord(ii+kk);
-                                    y = curTrack.yCoord(ii+kk);
-                                    xi = round(x);
-                                    yi = round(y);
-                                    xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-                                    yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                                    curAmpTotal = curImg(yRange,xRange);
-                                    curAmpTotal = mean(curAmpTotal(:));
-                                    curTrack.ampTotal(ii+kk) =  curAmpTotal;
-                                end
-                            end
-                            gapClosed = 0;
-                            break
+
+            gapClosed=0;
+            for ii=curStartingFrame:-1:startFrame
+                curImg = imgStack(:,:,ii); %#ok<*PFBNS>
+                p=-1;
+    %             curSigma = sigma;
+    %             pitFound = false;
+                while p<=15 %30
+                    %oldP = p;
+                    p=p+1;
+                    pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
+                    curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+                    pitFound = false;
+                    curAlpha = 0.05+p/100;
+                    pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
+                        x = pstruct.x;
+                        y = pstruct.y;
+                        A = pstruct.A;
+                        c = pstruct.c; 
+                        xi = round(x);
+                        yi = round(y);
+                        xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                        yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                        curAmpTotal = curImg(yRange,xRange);
+                        curAmpTotal = mean(curAmpTotal(:));
+                        curTrack.startingFrameExtra = ii;
+                        curTrack.xCoord(ii) = x;
+                        curTrack.yCoord(ii) = y;
+                        curTrack.amp(ii) = A;
+                        curTrack.bkgAmp(ii) = c;
+                        curTrack.ampTotal(ii) =  curAmpTotal;
+                        curTrack.presence(ii) =  true;
+                        curTrack.sigma(ii) = curSigma;
+                        if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
+                            curTrack.state(ii) = 2; %'NA';
                         end
-                    end
-                    if ~pitFound && gapClosed >= maxGap
-                        curTrack.startingFrameExtra = ii+1+gapClosed;
+                        pitFound = true;
+                        if gapClosed>0
+                            % we have to fill in the gap 
+                            for kk=1:gapClosed
+                                curTrack.xCoord(ii+kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii+gapClosed+1))/(gapClosed+1);
+                                curTrack.yCoord(ii+kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii+gapClosed+1))/(gapClosed+1);
+                                curTrack.amp(ii+kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii+gapClosed+1))/(gapClosed+1);
+                                curTrack.bkgAmp(ii+kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii+gapClosed+1))/(gapClosed+1);
+
+                                x = curTrack.xCoord(ii+kk);
+                                y = curTrack.yCoord(ii+kk);
+                                xi = round(x);
+                                yi = round(y);
+                                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                                curAmpTotal = curImg(yRange,xRange);
+                                curAmpTotal = mean(curAmpTotal(:));
+                                curTrack.ampTotal(ii+kk) =  curAmpTotal;
+                            end
+                        end
+                        gapClosed = 0;
                         break
-                    elseif ~pitFound && gapClosed < maxGap
-                        gapClosed = gapClosed+1;
                     end
                 end
+                if ~pitFound && gapClosed >= maxGap
+                    curTrack.startingFrameExtra = ii+1+gapClosed;
+                    break
+                elseif ~pitFound && gapClosed < maxGap
+                    gapClosed = gapClosed+1;
+                end
             end
-            % for the present period - it is necessary for ampTotal
-            for ii=curStartingFrame+1:curEndingFrame
-                curImg = imgStack(:,:,ii);
-                x = curTrack.xCoord(ii);
-                y = curTrack.yCoord(ii);
-%                 A = curTrack.amp(ii);
+        end
+        %% for the present period - it is necessary for ampTotal
+        ii=curStartingFrame+1;
+        x = curTrack.xCoord(ii);
+        y = curTrack.yCoord(ii);
+        A = curTrack.amp(ii);
 %                 c = curTrack.bkgAmp(ii); 
+        
+        gapClosed=0;
+        for ii=curStartingFrame+1:curEndingFrame
+            curImg = imgStack(:,:,ii);
+            if ~reTrack
                 xi = round(x);
                 yi = round(y);
                 xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
@@ -229,109 +233,166 @@ for k=1:numTracks
                 curAmpTotal = curImg(yRange,xRange);
                 curAmpTotal = mean(curAmpTotal(:));
                 curTrack.ampTotal(ii) =  curAmpTotal;
-
-%                 p=-1; %This seems waisting the time. Now I am skipping...
-%                 while p<=30
-%                     oldP = p;
-%                     p=p+1;
-%                     pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
-%                     curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+            else
+                p=-1; %This seems waisting the time. Now I am skipping...
+                while p<=16
+                    p=p+1;
+                    pitFound = false;
+                    pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
+                    curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
 %                     curSigma = sigma*(20-p)/20; % increasing sigma by 5 percent per each iteration
-%                     pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac');
-%                     if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
-%                         x = pstruct.x;
-%                         y = pstruct.y;
-%                         A = pstruct.A;
-%                         c = pstruct.c; 
-%                         xi = round(x);
-%                         yi = round(y);
-%                         xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-%                         yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-%                         curAmpTotal = curImg(yRange,xRange);
-%                         curAmpTotal = mean(curAmpTotal(:));
-%                         curTrack.xCoord(ii) = x;
-%                         curTrack.yCoord(ii) = y;
-%                         curTrack.amp(ii) = A;
-%                         curTrack.bkgAmp(ii) = c;
-%                         curTrack.ampTotal(ii) =  curAmpTotal;
-%                         curTrack.presence(ii) =  1;
-%                         curTrack.sigma(ii) = curSigma;
-%                         if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
-%                             curTrack.state(ii) = 2; %'NA';
-%                             break
-%                         end
+%                     if ismember(curTrack.state(ii),[3,4]) % if this is FC or FC, we use anisotropic fitting
+% %                         pstruct = fitAnisoGaussian2D(curImg, x, y, A, curSigma, c, 'xyAc');
+%                         filterSigma = sigma*sqrt(2);
+%                         [~,T] = steerableDetector(double(curImg),2,filterSigma);
+%                         P = zeros(1, 7);
+%                         P(:,1) = x;
+%                         P(:,2) = y;
+%                         P(:,3) = A;
+%                         P(:,4) = 2*curSigma;       % sigmaX
+%                         P(:,5) = curSigma;         % sigmaY
+%                         P(:,6) = T(round(y),round(x))+pi/2;    % angle
+%                         [params] = fitAnisoGaussian2D(double(curImg), P, 'xyArsct');
+%                         
+%                         pstruct.x=params(1);
+%                         pstruct.y=params(2);
+%                         pstruct.A=params(3);
+%                         pstruct.c=params(4); 
+%                     else
+                        pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyAsc');
 %                     end
-%                 end
-%                 % It is a rare case, but it is possible that at some point
-%                 % there is no significant point source detected during this
-%                 % re-tracking. In this case, we change the curEndingFrame
-%                 % to be the previous time point
-%                 if ii==curEndingFrame %&& isnan(pstruct.x) && 
-%                     curEndingFrame=ii-1;
-%                     curTrack.endingFrame = curEndingFrame;
-%                     curTrack.endingFrameExtra = curEndingFrame;
-%                     break
-%                 end
-            end
-            % for the later time-points - going forward, x and y are already
-            % set as a last point.
-            if ~trackOnlyDetected
-                x = curTrack.xCoord(curEndingFrame);
-                y = curTrack.yCoord(curEndingFrame);
-                A = curTrack.amp(curEndingFrame);
-                c = curTrack.bkgAmp(curEndingFrame);
-
-                for ii=(curEndingFrame+1):endFrame
-                    curImg = imgStack(:,:,ii);
-                    pitFoundEnd = false;
-                    p=-1;
-                    while p<=30
-%                         oldP = p;
-                        p=p+1;
-                        pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
-                        curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
-                        curAlpha = 0.05+p/100;
-                        pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                        if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
-                            x = pstruct.x;
-                            y = pstruct.y;
-                            A = pstruct.A;
-                            c = pstruct.c; 
-                            xi = round(x);
-                            yi = round(y);
-                            xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-                            yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                            curAmpTotal = curImg(yRange,xRange);
-                            curAmpTotal = mean(curAmpTotal(:));
-                            curTrack.endingFrameExtra = ii;
-                            curTrack.xCoord(ii) = x;
-                            curTrack.yCoord(ii) = y;
-                            curTrack.amp(ii) = A;
-                            curTrack.bkgAmp(ii) = c;
-                            curTrack.ampTotal(ii) =  curAmpTotal;
-                            curTrack.presence(ii) =  true;
-                            curTrack.sigma(ii) = curSigma;
-                            if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
-                                curTrack.state(ii) = 2; %'NA';
-                            end
-%                             if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
-%                                 curTrack.state{ii} = 'NA';
-%                             end
-                            pitFoundEnd = true;
-                            break
+%                     pstruct2 = fitGaussianMixtures2D(double(curImg), x, y, A, curSigma, c);
+                    
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected*2 && abs(pstruct.y-y)<searchRadiusDetected*2 && pstruct.A>0 && pstruct.A<2*A
+                        x = pstruct.x;
+                        y = pstruct.y;
+                        A = pstruct.A;
+                        c = pstruct.c; 
+                        xi = round(x);
+                        yi = round(y);
+                        xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                        yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                        curAmpTotal = curImg(yRange,xRange);
+                        curAmpTotal = mean(curAmpTotal(:));
+                        curTrack.xCoord(ii) = x;
+                        curTrack.yCoord(ii) = y;
+                        curTrack.amp(ii) = A;
+                        curTrack.bkgAmp(ii) = c;
+                        curTrack.ampTotal(ii) =  curAmpTotal;
+                        curTrack.presence(ii) =  1;
+                        curTrack.sigma(ii) = curSigma;
+                        if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
+                            curTrack.state(ii) = 2; %'NA';
                         end
-                    end
-                    if ~pitFoundEnd
-                        curTrack.endingFrameExtra = ii-1;
+                        pitFound = true;
+                        if gapClosed>0
+                            % we have to fill in the gap 
+                            for kk=1:gapClosed
+                                curTrack.xCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii-gapClosed-1))/(gapClosed+1);
+                                curTrack.yCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii-gapClosed-1))/(gapClosed+1);
+                                curTrack.amp(ii-kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii-gapClosed-1))/(gapClosed+1);
+                                curTrack.bkgAmp(ii-kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii-gapClosed-1))/(gapClosed+1);
+
+                                x = curTrack.xCoord(ii-kk);
+                                y = curTrack.yCoord(ii-kk);
+                                xi = round(x);
+                                yi = round(y);
+                                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                                curAmpTotal = curImg(yRange,xRange);
+                                curAmpTotal = mean(curAmpTotal(:));
+                                curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                            end
+                        end
+                        gapClosed = 0;
+                        if isempty(MD)
+                            searchRadiusDetected = 2;
+                        else
+                            searchRadiusDetected = maxR;
+                        end
                         break
                     end
                 end
-                if startFrame==curStartingFrame
-                    curTrack.startingFrameExtra = curStartingFrame;
+                if ~pitFound && gapClosed >= maxGap
+                    curTrack.startingFrameExtra = ii+1+gapClosed;
+                    break
+                elseif ~pitFound && gapClosed < maxGap
+                    gapClosed = gapClosed+1;
+                    searchRadiusDetected = searchRadiusDetected^brownScaling;
+                    % If the search is over in this regime, read whatever
+                    % in the same x-y position
+                    
                 end
-                if endFrame==curEndingFrame
+                % It is a rare case, but it is possible that at some point
+                % there is no significant point source detected during this
+                % re-tracking. In this case, we change the curEndingFrame
+                % to be the previous time point
+                if ii==curEndingFrame %&& isnan(pstruct.x) && 
+                    curEndingFrame=ii-1;
+%                     curTrack.endingFrame = curEndingFrame;
                     curTrack.endingFrameExtra = curEndingFrame;
+                    break
                 end
+            end
+        end
+        % for the later time-points - going forward, x and y are already
+        % set as a last point.
+        if ~trackOnlyDetected
+            x = curTrack.xCoord(curEndingFrame);
+            y = curTrack.yCoord(curEndingFrame);
+            A = curTrack.amp(curEndingFrame);
+            c = curTrack.bkgAmp(curEndingFrame);
+
+            for ii=(curEndingFrame+1):endFrame
+                curImg = imgStack(:,:,ii);
+                pitFoundEnd = false;
+                p=-1;
+                while p<=30
+%                         oldP = p;
+                    p=p+1;
+                    pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
+                    curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
+                    curAlpha = 0.05+p/100;
+                    pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
+                        x = pstruct.x;
+                        y = pstruct.y;
+                        A = pstruct.A;
+                        c = pstruct.c; 
+                        xi = round(x);
+                        yi = round(y);
+                        xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                        yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                        curAmpTotal = curImg(yRange,xRange);
+                        curAmpTotal = mean(curAmpTotal(:));
+                        curTrack.endingFrameExtra = ii;
+                        curTrack.xCoord(ii) = x;
+                        curTrack.yCoord(ii) = y;
+                        curTrack.amp(ii) = A;
+                        curTrack.bkgAmp(ii) = c;
+                        curTrack.ampTotal(ii) =  curAmpTotal;
+                        curTrack.presence(ii) =  true;
+                        curTrack.sigma(ii) = curSigma;
+                        if curTrack.state(ii)==1 || curTrack.state(ii)==5 %'BA','ANA')
+                            curTrack.state(ii) = 2; %'NA';
+                        end
+%                             if strcmp(curTrack.state{ii},'BA') || strcmp(curTrack.state{ii},'ANA')
+%                                 curTrack.state{ii} = 'NA';
+%                             end
+                        pitFoundEnd = true;
+                        break
+                    end
+                end
+                if ~pitFoundEnd
+                    curTrack.endingFrameExtra = ii-1;
+                    break
+                end
+            end
+            if startFrame==curStartingFrame
+                curTrack.startingFrameExtra = curStartingFrame;
+            end
+            if endFrame==curEndingFrame
+                curTrack.endingFrameExtra = curEndingFrame;
             end
         else
             for ii=curStartingFrame+1:curEndingFrame
@@ -365,7 +426,7 @@ for k=1:numTracks
                     curTrack.xCoord(ii) = x;
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
-%                     curTrack.presence(ii) =  1;
+    %                     curTrack.presence(ii) =  1;
                 end
             end
             if curTrack.endingFrameExtra<numFrames
@@ -383,10 +444,11 @@ for k=1:numTracks
                     curTrack.xCoord(ii) = x;
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
-%                     curTrack.presence(ii) =  1;
+    %                     curTrack.presence(ii) =  1;
                 end
             end
         end
+
 %         curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
     elseif attribute==2 || attribute==5 || attribute==6
         try
