@@ -167,7 +167,7 @@ function pushInspectAdhesion(~,~)
     if ismember((IDtoInspect),IDs)
         reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
         if isempty(reAssign); reAssign=0; end
-        whereInIDs = find(IDs==idxIDList(IDtoInspect));
+        whereInIDs = find(IDs==(IDtoInspect));
         newlyAssign = false;
     end
     if newlyAssign || reAssign

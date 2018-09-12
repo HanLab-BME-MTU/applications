@@ -13,7 +13,7 @@ scaleBar = 1; %micron
 curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD);
 curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
 if ~isempty(imgMap2)
-    curTrack=readIntensityFromTracks(curTrack,imgMap2,3,'extraLength',120,'movieData',MD);
+    curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);
 end   
 
 curEndFrame=curTrack.endingFrameExtra;
@@ -24,23 +24,24 @@ curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
 
-splineParamInit=1; %0.99;
+splineParamInit=0.99; %0.99;
 preDetecFactor=.3;
 [~,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
 frameFII=round(firstIncreseTimeInt/tInterval);
 frameFTI=round(firstIncreseTimeForce/tInterval);
 
 if isnan(frameFII) || isnan(frameFTI)
-    splineParamInit=0.90;
+    splineParamInit=0.80;
     preDetecFactor=.3;
-    [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce] =...
+    [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,...
+        firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce,curTrack] =...
         calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
     frameFII=round(firstIncreseTimeInt/tInterval);
     frameFTI=round(firstIncreseTimeForce/tInterval);
-    curTrack.firstIncreseTimeIntAgainstForce = firstIncreseTimeIntAgainstForce;
-    curTrack.forceTransmitting = forceTransmitting;
-    curTrack.bkgMaxInt = bkgMaxIntAll;
-    curTrack.bkgMaxForce = bkgMaxForce;
+%     curTrack.firstIncreseTimeIntAgainstForce = firstIncreseTimeIntAgainstForce;
+%     curTrack.forceTransmitting = forceTransmitting;
+%     curTrack.bkgMaxInt = bkgMaxIntAll;
+%     curTrack.bkgMaxForce = bkgMaxForce;
 end
 
 if ~isnan(frameFII) && frameFII<chosenStartFrame
@@ -94,10 +95,14 @@ bBottomBig = max(1,meanY-r_pixBig);
 bTopBig = min(imgHeight,meanY+r_pixBig);
 % make a new figure
 h2=figure;
-figWidth = 600;
+% Depending on input, figure might have to be bigger
+figWidth = 600+200; % addtinal 200 is for new graph place.
 figHeight = 675;
+if ~isempty(imgMap2)
+    figHeight = figHeight + 175 + 5 + 50 + 5;
+end
 %     set(h2,'Position',[100,10,figWidth,figHeight]),title(['ID:' num2str(IDtoInspect)])
-set(h2,'Position',[100,200,figWidth,figHeight])
+set(h2,'Position',[30,100,figWidth,figHeight])
 set(h2,'PaperPositionMode','auto')
 set(h2,'Resize','off')
 set(h2,'Renderer','painters')
@@ -353,12 +358,16 @@ colormap(ax7,'jet')
 %     subplot('Position',[0.5,0,0.5,0.33]), plot(chosenStartFrame:chosenEndFrame,curTrack.forceMag(chosenStartFrame:chosenEndFrame),'r')
 % ax 8: intensity time series
 
-ax8=axes('Position',[50/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+if ~isempty(imgMap2)
+    ax8=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (430+80+40)/figHeight, 155/figWidth,80/figHeight]);
+else
+    ax8=axes('Position',[50/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+end
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'b')
 if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting
     plot((frameFII-curStartFrameEE)*tInterval,curTrack.ampTotal(frameFII),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
-    text((frameFII-curStartFrameEE)*tInterval+12,curTrack.ampTotal(frameFII),[num2str((frameFII-curStartFrameEE)*tInterval) ' s'])
+    text((frameFII-curStartFrameEE)*tInterval+12,curTrack.ampTotal(frameFII)+5,[num2str((frameFII-curStartFrameEE)*tInterval) ' s'])
 end
 %background level
 if isfield(curTrack,'bkgMaxInt') && ~isempty(curTrack.bkgMaxInt)
@@ -368,29 +377,29 @@ end
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
 set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 % force time series
-ax9=axes('Position',[250/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+if ~isempty(imgMap2)
+    ax9=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (200+80+70)/figHeight, 155/figWidth,80/figHeight]);
+else
+    ax9=axes('Position',[250/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+end
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrame:curEndFrame),'r')
 if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting && frameFTI<=length(curTrack.forceMag)
     plot((frameFTI-curStartFrameEE)*tInterval,curTrack.forceMag(frameFTI),'o','MarkerFaceColor','r','MarkerEdgeColor','w')
-    text((frameFTI-curStartFrameEE)*tInterval+12,curTrack.forceMag(frameFTI),[num2str((frameFTI-curStartFrameEE)*tInterval) ' s'])
+    text((frameFTI-curStartFrameEE)*tInterval+12,curTrack.forceMag(frameFTI)+5,[num2str((frameFTI-curStartFrameEE)*tInterval) ' s'])
 end
 if isfield(curTrack,'bkgMaxSlave') && ~isempty(curTrack.bkgMaxSlave)
     line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxSlave curTrack.bkgMaxSlave],'LineStyle',':','Color','k')
-% catch
-%     [~,~,~,~,~,~,curTrack] = calculateFirstIncreaseTimeTracks(curTrack,0.5,0.05,tInterval);
-%     try
-%         line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxSlave curTrack.bkgMaxSlave],...
-%             'LineStyle',':','Color','k')
-%     catch
-%         disp(' ')
-%     end
 end
 xlabel('Time (s)'); ylabel('Traction (Pa)')
 set(ax9,'FontUnits',genFontUnit,'FontSize',genFontSize)
 
 % Cross variance plot
-ax12=axes('Position',[450/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+if ~isempty(imgMap2)
+    ax12=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (200+30)/figHeight, 155/figWidth,80/figHeight]);
+else
+    ax12=axes('Position',[450/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+end
 [curBcc, bgBcc] = crossVariance(curTrack.ampTotal,curTrack.forceMag,9);
 
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curBcc(curStartFrameEE:curEndFrameEE),'k'), hold on
@@ -399,10 +408,10 @@ plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curBc
 line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[bgBcc bgBcc],'LineStyle',':','Color','k')
 line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[-bgBcc -bgBcc],'LineStyle',':','Color','k')
 % Find out when the Bcc exceeds the background level
-frameSigBcc = find(curBcc>bgBcc,1);
+frameSigBcc = find(curBcc>bgBcc & curTrack.iFrame>=curStartFrameEE,1);
 if ~isempty(frameSigBcc)
     plot((frameSigBcc-curStartFrameEE)*tInterval,curBcc(frameSigBcc),'o','MarkerFaceColor','g','MarkerEdgeColor','w')
-    text((frameSigBcc-curStartFrameEE)*tInterval+12,curBcc(frameSigBcc),[num2str((frameSigBcc-curStartFrameEE)*tInterval) ' s'])
+    text((frameSigBcc-curStartFrameEE)*tInterval+12,curBcc(frameSigBcc)+0.5*bgBcc,[num2str((frameSigBcc-curStartFrameEE)*tInterval) ' s'])
 end
 
 xlabel('Time (s)'); ylabel('Cross Variation, Bcc (a.u.)')
@@ -460,12 +469,141 @@ set(get(hcb2,'xlabel'),'String','Traction (Pa)')
 colormap(ax10,'jet')
 colormap(ax11,'jet')
 
+%% Third channel plotting
+if ~isempty(imgMap2)
+    % ax13: initial point for the third channel
+    ax13=axes('Position',[marginX, (490+175+5+50+5)/figHeight, 175/figWidth, 175/figHeight]);
+    cropImg2 = imgMap2(bBottom:bTop,bLeft:bRight,chosenStartFrame:chosenEndFrame);
+    cropImgSmaller = imgMap2(bBottom+7:bTop-7,bLeft+7:bRight-7,chosenStartFrame:chosenEndFrame);
+    maxInt2 = max(cropImgSmaller(:));
+    minInt2 = min(cropImgSmaller(:));
+    imshow(imgMap2(:,:,midStartFrame),[minInt2 maxInt2]), hold on
+    rectangle('Position',[bLeft,bBottom,(bRight-bLeft+1),(bTop-bBottom+1)],'EdgeColor','y'); hold off
+    set(ax13,'XLim',imgBigXLim,'YLim',imgBigYLim)
+    line([bLeftBig+mgScale bLeftBig+mgScale+scaleBar*1000/pixSize],...
+        [bBottomBig+mgScale bBottomBig+mgScale],'LineWidth',2,'Color',[1,1,1]);
+    text(bLeftBig+5, bBottomBig+mgScale+11,'1 \mum','Color',[1,1,1]);
+    txtAx1= text(bRightBig-40, bBottomBig+12,[num2str(midStartFrameAdjusted*tInterval,'% 10.0f') ' sec'],'Color',[1,1,1]);
+    set(txtAx1,'horizontalAlignment','right')
+    set(txtAx1,'position',[bRightBig-mgScale,bBottomBig+12])
+    set(findobj(ax13,'Type','text'),'FontUnits',genFontUnit,'FontSize',genFontSize)
+
+    % ax14: peak point or middle point
+    ax14=subplot('Position',[2*marginX+175/figWidth, (490+175+5+50+5)/figHeight, 175/figWidth, 175/figHeight]);
+    imshow(imgMap2(:,:,middleFrame),[minInt2 maxInt2]), hold on
+    rectangle('Position',[bLeft,bBottom,(bRight-bLeft+1),(bTop-bBottom+1)],'EdgeColor','y'); hold off
+    set(ax14,'XLim',imgBigXLim,'YLim',imgBigYLim)
+    line([bLeftBig+mgScale bLeftBig+mgScale+scaleBar*1000/pixSize],...
+        [bBottomBig+mgScale bBottomBig+mgScale],'LineWidth',2,'Color',[1,1,1]);
+    text(bLeftBig+5, bBottomBig+mgScale+11,'1 \mum','Color',[1,1,1]);
+    peakFrameAdjusted = middleFrame - chosenStartFrame; % in frames
+    txtAx2= text(bRightBig-40, bBottomBig+12,[num2str(peakFrameAdjusted*tInterval,'% 10.0f') ' sec'],'Color',[1,1,1]);
+    set(txtAx2,'horizontalAlignment','right')
+    set(txtAx2,'position',[bRightBig-mgScale,bBottomBig+12])
+    set(findobj(ax14,'Type','text'),'FontUnits',genFontUnit,'FontSize',genFontSize)
+
+    % ax15: end point
+    ax15=subplot('Position',[3*marginX+2*175/figWidth, (490+175+5+50+5)/figHeight, 175/figWidth, 175/figHeight]);
+    imshow(imgMap2(:,:,midEndFrame),[minInt2 maxInt2]), hold on
+    rectangle('Position',[bLeft,bBottom,(bRight-bLeft+1),(bTop-bBottom+1)],'EdgeColor','y'); hold off
+    set(ax15,'XLim',imgBigXLim,'YLim',imgBigYLim)
+    line([bLeftBig+mgScale bLeftBig+mgScale+scaleBar*1000/pixSize],...
+        [bBottomBig+mgScale bBottomBig+mgScale],'LineWidth',2,'Color',[1,1,1]);
+    text(bLeftBig+5, bBottomBig+mgScale+11,'1 \mum','Color',[1,1,1]);
+    midEndFrameAdjusted = midEndFrame - chosenStartFrame; % in frames
+    txtAx3= text(bRightBig-40, bBottomBig+12,[num2str(midEndFrameAdjusted*tInterval,'% 10.0f') ' sec'],'Color',[1,1,1]);
+    set(txtAx3,'horizontalAlignment','right')
+    set(txtAx3,'position',[bRightBig-mgScale,bBottomBig+12])
+    set(findobj(ax15,'Type','text'),'FontUnits',genFontUnit,'FontSize',genFontSize)
+
+
+    %Montage
+    axes('Position',[marginX, (430+50+10+175)/figHeight+marginY, 540/figWidth-marginX,50/figHeight]);
+    cropImg2 = reshape(cropImg2,size(cropImg2,1),size(cropImg2,2),1,size(cropImg2,3));
+    hm3=montage(cropImg2,'Size',[2, NaN],'DisplayRange',[minInt2 maxInt2], 'Indices', uint16(indiceRange));
+    hold on
+    p=0;
+    for ii= indiceRange
+        p=p+1;
+        iCol=mod(p-1,numCols);
+        q=floor((p-1)/numCols);
+        txtMont1= text(1+(iCol)*monImgW, (q+1)*monImgH-1,[num2str((ii-1)*tInterval,'% 10.0f') ' s'],'Color',[1,1,1]);
+        set(txtMont1,'FontUnits','pixels')
+        set(txtMont1,'Fontsize',6)
+        set(txtMont1,'horizontalAlignment','right')
+        set(txtMont1,'position',[(iCol+1)*monImgW-0.5, (q+1)*monImgH-1.5])
+        % Showing tracks
+        eF = chosenStartFrame+ii-1;
+        % Show first increase point if it exists
+        if eF>=curStartFrame && eF<curStartFrame+montInterval
+            markerType = 'yo'; bdType='y';
+        elseif eF==peakFrame
+            markerType = 'wo'; bdType='w';
+        elseif eF>=curEndFrame && eF<curEndFrame+montInterval
+            markerType = 'bo'; bdType='b';
+        else
+            markerType = 'ro'; bdType='r';
+        end
+        if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
+            markerType = 'go'; bdType='g';
+        end
+        plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
+    end
+
+    % Third channel time series
+    ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
+    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrameEE:curEndFrameEE),'k'), hold on
+    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrame:curEndFrame),'m')
+    
+    [curFirstIncreseTimeIntAgainstSlave,SlaveTransmitting...
+    ,~,firstIncreseTimeSlave,~,bkgMaxSlave] ...
+        = calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval,'slaveSource','ampTotal2');
+    frameFII2 = round(firstIncreseTimeSlave/tInterval);
+    if SlaveTransmitting && firstIncreseTimeSlave<=length(curTrack.ampTotal2)
+        plot((frameFII2-curStartFrameEE)*tInterval,curTrack.ampTotal2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
+        text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.ampTotal2(frameFII2)+5,[num2str((frameFTI-curStartFrameEE)*tInterval) ' s'])
+    end
+    if ~isempty(bkgMaxSlave)
+        line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[bkgMaxSlave bkgMaxSlave],'LineStyle',':','Color','k')
+    end
+    xlabel('Time (s)'); ylabel('AmpTotal 2 (A.U.)')
+    set(ax16,'FontUnits',genFontUnit,'FontSize',genFontSize)
+
+    % Cross variance plot
+    if ~isempty(imgMap2)
+        ax12=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+30)/figHeight, 155/figWidth,80/figHeight]);
+    else
+        ax12=axes('Position',[450/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+    end
+    [curBcc2, bgBcc2] = crossVariance(curTrack.ampTotal,curTrack.ampTotal2,9);
+
+    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curBcc2(curStartFrameEE:curEndFrameEE),'k'), hold on
+    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curBcc2(curStartFrame:curEndFrame),'g')
+    % background level
+    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[bgBcc2 bgBcc2],'LineStyle',':','Color','k')
+    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[-bgBcc2 -bgBcc2],'LineStyle',':','Color','k')
+    % Find out when the Bcc exceeds the background level
+    frameSigBcc2 = find(curBcc2>bgBcc2 & curTrack.iFrame>=curStartFrameEE,1);
+    if ~isempty(frameSigBcc2)
+        plot((frameSigBcc2-curStartFrameEE)*tInterval,curBcc2(frameSigBcc2),'o','MarkerFaceColor','g','MarkerEdgeColor','w')
+        text((frameSigBcc2-curStartFrameEE)*tInterval+12,curBcc2(frameSigBcc2)+0.5*bgBcc2,[num2str((frameSigBcc2-curStartFrameEE)*tInterval) ' s'])
+    end
+
+    xlabel('Time (s)'); ylabel('Cross Variation, Bcc (a.u.)')
+    set(ax12,'FontUnits',genFontUnit,'FontSize',genFontSize)
+    
+end
+%% saving
+
 if exist('gPath','var')
     print(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
     savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.fig'))
 end
 if exist('IDtoInspect','var')
-    disp(['This ' num2str(IDtoInspect) ' th track has ' num2str(curTrack.firstIncreseTimeIntAgainstForce,'% 10.1f') ' sec of initial time lag of force after fluorescence signal.'])
+    disp(['This ' num2str(IDtoInspect) ' th track has ' num2str(-curTrack.firstIncreseTimeIntAgainstForce,'% 10.1f') ' sec of initial time lag of force after fluorescence signal.'])
+    if ~isempty(imgMap2)
+        disp(['This track also has ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f') ' sec of initial time lag of ampTotal2 after ampTotal.'])
+    end
 end
 disp('Marker: yellow (track start), green (initial rise), blue(track end), white (peak)')
 end
