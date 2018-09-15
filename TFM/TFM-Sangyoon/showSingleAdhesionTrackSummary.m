@@ -561,7 +561,7 @@ if ~isempty(imgMap2)
     frameFII2 = round(firstIncreseTimeSlave/tInterval);
     if SlaveTransmitting && firstIncreseTimeSlave<=length(curTrack.ampTotal2)
         plot((frameFII2-curStartFrameEE)*tInterval,curTrack.ampTotal2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
-        text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.ampTotal2(frameFII2)+5,[num2str((frameFTI-curStartFrameEE)*tInterval) ' s'])
+        text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.ampTotal2(frameFII2)+5,[num2str((frameFII2-curStartFrameEE)*tInterval) ' s'])
     end
     if ~isempty(bkgMaxSlave)
         line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[bkgMaxSlave bkgMaxSlave],'LineStyle',':','Color','k')

@@ -41,22 +41,17 @@ firstIncreaseTimeIntAll=NaN(numel(tracksNA),1);
 firstIncreaseTimeSlaveAll=NaN(numel(tracksNA),1);
 bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
+
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
 %     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     curTrack.lifeTime = curTrack.endingFrameExtra-curTrack.startingFrameExtra;
 %     curAmpSlope = curTrack.ampSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
 %     curForceSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
-    ealryFrames = min(30, curTrack.lifeTime+1);
-    [~,curEarlyAmpSlope] = regression((1:ealryFrames),curTrack.amp(curTrack.startingFrameExtra:curTrack.startingFrameExtra+ealryFrames-1));
-%     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
-
-%     sFEE = curTrack.startingFrameExtraExtra;
-    sFEE = max(1,curTrack.startingFrameExtra-30); %curTrack.startingFrameExtraExtra;
-%         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
     % See how many frames you have before the startingFrameExtra
     stepFrame =5;
     effectiveSF = curTrack.startingFrameExtra - stepFrame; sF5before=1; sF10before=1;
+    sFEE = max(1,curTrack.startingFrameExtra-30); %curTrack.startingFrameExtraExtra;
     while sF5before==sF10before
         effectiveSF = effectiveSF + stepFrame;
         numFramesBefore = effectiveSF - sFEE;
@@ -65,6 +60,13 @@ for ii=1:numel(tracksNA)
         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
     end
+    
+    ealryFrames = min(30, curTrack.endingFrameExtra-sF10before+1);
+    [~,curEarlyAmpSlope] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));
+%     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+
+%     sFEE = curTrack.startingFrameExtraExtra;
+%         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
     if (curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
         d = tracksNA(ii).ampTotal;

@@ -566,7 +566,7 @@ for curGroup=1:9
     print(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],'-dtiff')
 
     tableAdhDenGroupEach=table(curAdhDenGroup,'RowNames',nameList);
-    writetable(tableAdhDenGroupEach,[dataPath filesep 'meanAdhDenGroup' num2str(curGroup) '.csv'])
+    writetable(tableAdhDenGroupEach,[dataPath filesep 'meanAdhDenGroup' num2str(curGroup) '.csv'],'WriteRowNames',true)
 end
 %% cell area - 
     h1=figure; 
@@ -578,7 +578,7 @@ end
     print(h1,[figPath filesep 'cellArea'],'-dtiff')
 
     tableCellArea=table(cellAreaGroup,'RowNames',nameList);
-    writetable(tableCellArea,[dataPath filesep 'cellArea.csv'])
+    writetable(tableCellArea,[dataPath filesep 'cellArea.csv'],'WriteRowNames',true)
 %% FA area - 
     h1=figure; 
     boxPlotCellArray(FAareaGroup,nameList,1,false,true);
@@ -589,7 +589,7 @@ end
     print(h1,[figPath filesep 'faArea'],'-dtiff')
 
     tableFAArea=table(FAareaGroup,'RowNames',nameList);
-    writetable(tableFAArea,[dataPath filesep 'faArea.csv'])
+    writetable(tableFAArea,[dataPath filesep 'faArea.csv'],'WriteRowNames',true)
 %% NA density
     h1=figure; 
     boxPlotCellArray(NADensityGroup,nameList,1,false,true);
@@ -600,7 +600,7 @@ end
     print(h1,[figPath filesep 'naDensity'],'-dtiff')
 
     tableNADensity=table(NADensityGroup,'RowNames',nameList);
-    writetable(tableNADensity,[dataPath filesep 'naDensity.csv'])
+    writetable(tableNADensity,[dataPath filesep 'naDensity.csv'],'WriteRowNames',true)
 %% FA density
     h1=figure; 
     FADensityGroup=cellfun(@(x,y) x./y,numPureFAsGroup,cellAreaGroup,'unif',false);
@@ -612,7 +612,7 @@ end
     print(h1,[figPath filesep 'faDensity'],'-dtiff')
 
     tableFADensity=table(FADensityGroup,'RowNames',nameList);
-    writetable(tableFADensity,[dataPath filesep 'faDensity.csv'])
+    writetable(tableFADensity,[dataPath filesep 'faDensity.csv'],'WriteRowNames',true)
 %% numPureFAsGroup
     h1=figure; 
     boxPlotCellArray(numPureFAsGroup,nameList,1,false,true);
@@ -623,7 +623,7 @@ end
     print(h1,[figPath filesep 'numFAs'],'-dtiff')
 
     tableNumPureFAs=table(numPureFAsGroup,'RowNames',nameList);
-    writetable(tableNumPureFAs,[dataPath filesep 'numFAs.csv'])
+    writetable(tableNumPureFAs,[dataPath filesep 'numFAs.csv'],'WriteRowNames',true)
 %% maturingRatioGroup
     h1=figure; 
     boxPlotCellArray(maturingRatioGroup,nameList,1,false,true);
@@ -634,7 +634,7 @@ end
     print(h1,[figPath filesep 'maturingRatio'],'-dtiff')
 
     tableMaturingRatio=table(maturingRatioGroup,'RowNames',nameList);
-    writetable(tableMaturingRatio,[dataPath filesep 'maturingRatio.csv'])
+    writetable(tableMaturingRatio,[dataPath filesep 'maturingRatio.csv'],'WriteRowNames',true)
 %% nucleatingNARatioGroup
     h1=figure; 
     boxPlotCellArray(nucleatingNARatioGroup,nameList,1,false,true);
@@ -645,7 +645,7 @@ end
     print(h1,[figPath filesep 'nucleatingNARatio'],'-dtiff')
 
     tableNucleatingNARatio=table(nucleatingNARatioGroup,'RowNames',nameList);
-    writetable(tableNucleatingNARatio,[dataPath filesep 'nucleatingNARatio.csv'])
+    writetable(tableNucleatingNARatio,[dataPath filesep 'nucleatingNARatio.csv'],'WriteRowNames',true)
 %% assemRateGroup
     h1=figure; 
     boxPlotCellArray(assemRateGroup,nameList,1,false,true);
@@ -656,7 +656,7 @@ end
     print(h1,[figPath filesep 'assemRate'],'-dtiff')
 
     tableAssemRateGroup=table(assemRateGroup,'RowNames',nameList);
-    writetable(tableAssemRateGroup,[dataPath filesep 'assemRate.csv'])
+    writetable(tableAssemRateGroup,[dataPath filesep 'assemRate.csv'],'WriteRowNames',true)
 %% Plotting each - peakGroup - all classes - usually not interesting: there is no lag.
 for curGroup=1:9
     peakLagGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),peakGroup,'unif',false);
@@ -669,7 +669,7 @@ for curGroup=1:9
     print(h1,[figPath filesep 'peakLagG' num2str(curGroup)],'-dtiff')
 
     tablePeakLagGroupEach=table(peakLagGroupEach,'RowNames',nameList);
-    writetable(tablePeakLagGroupEach,[dataPath filesep 'peakLagG' num2str(curGroup) '.csv'])
+    writetable(tablePeakLagGroupEach,[dataPath filesep 'peakLagG' num2str(curGroup) '.csv'],'WriteRowNames',true)
 end
 %% Plotting each - endTimeGroup - all classes - usually not interesting: there is no lag.
 for curGroup=1:9
@@ -683,7 +683,7 @@ for curGroup=1:9
     print(h1,[figPath filesep 'endLagG' num2str(curGroup)],'-dtiff')
 
     tableEndLagGroupEach=table(endLagGroupEach,'RowNames',nameList);
-    writetable(tableEndLagGroupEach,[dataPath filesep 'endLagG' num2str(curGroup) '.csv'])
+    writetable(tableEndLagGroupEach,[dataPath filesep 'endLagG' num2str(curGroup) '.csv'],'WriteRowNames',true)
 end
 %% save entire workspace for later
 save([dataPath filesep 'allData.mat'])
