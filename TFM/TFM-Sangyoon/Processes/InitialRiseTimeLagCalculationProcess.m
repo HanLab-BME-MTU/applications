@@ -32,18 +32,122 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
         end
         
         function output = loadChannelOutput(obj, iChan, varargin)
-            outputList = {};
+            outputList = {'tracksNA','idClass'};
             nOutput = length(outputList);
 
+            ip = inputParser;
             ip.addRequired('iChan',@(x) obj.checkChanNum(x));
             ip.addOptional('iOutput',1,@(x) ismember(x,1:nOutput));
             ip.addParamValue('output','',@(x) all(ismember(x,outputList)));
             ip.addParamValue('useCache',false,@islogical);
             ip.parse(iChan,varargin{:})
     
-            s = cached.load(obj.outFilePaths_{iChan},'-useCache',ip.Results.useCache);
+            outputRequested=ip.Ressults.output;
+            p = obj.funParams;
+            %% Reading tracks from master channel
+            % Use the previous analysis folder structure
+            % It might be good to save which process the tracksNA was obtained.
+            MD=obj.owner_;
+            if strcmp(outputRequested,'tracksNA')
+                disp('Reading tracksNA ...')
+                tic
+                try
+                    iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
+                    adhAnalProc = MD.getProcess(iAdhProc);
+                catch
+                    iFAPack =  MD.getPackageIndex('FocalAdhesionPackage');
+                    faPack = MD.getPackage(iFAPack);
+                    adhAnalProc = faPack.processes_{7};
+                end
+                tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
+                % numChans = numel(p.ChannelIndex);
 
-            output = s.Imean;          
+                % Now we have to combine this with readings from step 9 and 10
+                iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+                FAPack=MD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
+                theOtherReadProc=FAPack.processes_{iTheOtherProc};
+                forceReadProc=FAPack.processes_{iForceRead};
+
+                if ~isempty(theOtherReadProc)
+                    ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
+                    tracksAmpTotal = ampObj.tracksAmpTotal;
+                %     tracksAmpTotal = theOtherReadProc.loadChannelOutput(p.ChannelIndex);
+
+                    if isfield(tracksAmpTotal,'ampTotal2')
+                        [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
+                    end
+                    if isfield(tracksAmpTotal,'ampTotal3')
+                        [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
+                    end
+                end
+
+                if ~isempty(forceReadProc)
+                    forceReadObj = load(forceReadProc.outFilePaths_{1,p.ChannelIndex},'tracksForceMag'); % the later channel has the most information.
+                    tracksForceMag = forceReadObj.tracksForceMag;
+                    idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
+                    if ~isfield(idxTracksObj,'idxTracks')
+                        idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+                    end
+                    idxTracks = idxTracksObj.idxTracks;
+                    tracksNA = tracksNA(idxTracks);
+                    if isfield(tracksForceMag,'forceMag')
+                        [tracksNA(:).forceMag] = tracksForceMag.forceMag;
+                    end
+                end
+                toc
+                output = tracksNA;          
+            elseif strcmp(outputRequested,'idsClassfied')
+                %% Reading classes
+                disp('Reading idsClassified ...')
+                iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+                FAPack=MD.packages_{iFAPack}; iForceRead=10;
+
+                forceReadProc=FAPack.processes_{iForceRead};
+                idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
+                if ~isfield(idxTracksObj,'idxTracks')
+                    idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+                end
+                idxTracks = idxTracksObj.idxTracks;
+                try
+                    try
+                        iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
+                        classProc = MD.getProcess(iClaProc);
+                    catch
+                        classProc = faPack.processes_{8};
+                    end
+                    % numChans = numel(p.ChannelIndex);
+                    idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
+                    idGroup1 = idsClassified.idGroup1;
+                    idGroup2 = idsClassified.idGroup2;
+                    idGroup3 = idsClassified.idGroup3;
+                    idGroup4 = idsClassified.idGroup4;
+                    idGroup5 = idsClassified.idGroup5;
+                    idGroup6 = idsClassified.idGroup6;
+                    idGroup7 = idsClassified.idGroup7;
+                    idGroup8 = idsClassified.idGroup8;
+                    idGroup9 = idsClassified.idGroup9;
+                catch
+                    disp('No Classified groups. Using no classification...')
+                    % Potentially we can use the dedactically chosen classes here (e.g.
+                    % shown in the code used for Tristan's movie analysis.
+                    idGroup1 = []; idGroup2 = []; idGroup3 = []; idGroup4 = [];
+                    idGroup5 = []; idGroup6 = []; idGroup7 = []; idGroup8 = []; idGroup9 = [];
+                end    
+                if ~isempty(forceReadProc)
+                    idsClassified.idGroup1 = idGroup1(idxTracks);
+                    idsClassified.idGroup2 = idGroup2(idxTracks);
+                    idsClassified.idGroup3 = idGroup3(idxTracks);
+                    idsClassified.idGroup4 = idGroup4(idxTracks);
+                    idsClassified.idGroup5 = idGroup5(idxTracks);
+                    idsClassified.idGroup6 = idGroup6(idxTracks);
+                    idsClassified.idGroup7 = idGroup7(idxTracks);
+                    idsClassified.idGroup8 = idGroup8(idxTracks);
+                    idsClassified.idGroup9 = idGroup9(idxTracks);
+                else
+                    disp('Traction reading was not done. No further filtering...')
+                end
+                output = tracksNA;          
+            end
         end
     end
     methods (Static)
