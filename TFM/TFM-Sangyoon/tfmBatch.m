@@ -33,11 +33,11 @@ pathDataAll = pathProject;
 pathAnalysisAll = pathAnalysis;
 %% Print information about pathAnalysis and pathProject
 groupNamesCat = strjoin(groupNames);
-save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV')
+save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat']); % 'rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV')
 %% calibration - This is kind of one-time use. We have to ask users if the calibration files are already made or not
 % see if the movie contains 642 or 568 for the bead channel
 disp('Checking which among 568 or 640 is the a channel with higher wavelength...')
-sampleMD = bfImport([pathImgDV{1} filesep fileImgDV{1}{1}]);
+sampleMD = bfImport([pathImgDV{1} filesep fileImgDV{1}{1}], 'outputDirectory', [pathAnalysisAll{1} filesep fileImgDV{1}{1}]);
 numChannelSample = numel(sampleMD.channels_);
 laterChan = sampleMD.channels_(numChannelSample);
 
@@ -54,7 +54,7 @@ if mockTransformation
     for ii=1:numChannelSample
         % Save curXFormAvg into tFormPath1,2,3...
         tFormPath{ii} = [pathMock num2str(sampleMD.channels_(ii).excitationWavelength_) 'to' num2str(laterChan.excitationWavelength_) '_transform_mock.mat'];
-        disp(['Saving mock transformation file ' tFormPath{jj} '....'])
+        disp(['Saving mock transformation file ' tFormPath{ii} '....'])
         userData.xForm = xForm;
         save(tFormPath{ii},'userData','xForm');
     end
@@ -335,7 +335,7 @@ iCellRaw=1;
 iBeadRaw=2;
 
 for k=numConditions:-1:1
-    curDataPath = pathDataAll{k};
+    curDataPath = pathImgDV{k};
     curAnalysisPath = pathAnalysisAll{k};
 %     curDir=dir([curDataPath filesep '*.dv']);
 %     nameFolders = {curDir.name}';
@@ -344,7 +344,9 @@ for k=numConditions:-1:1
 %     curCellDir = curDir(~idxRef);
     
     curCellDir = cellfun(@(x) [curDataPath filesep x],fileImgDV{k},'unif',false);
-    curRefDir = cellfun(@(x) [x(1:end-6) 'Ref_' x(end-5:end)],curCellDir,'unif',false);
+%     curRefDir = cellfun(@(x) [x(1:end-6) 'Ref_' x(end-5:end)],curCellDir,'unif',false);
+    curRefDirStruct = dir([curDataPath filesep '*ref*.dv']);  %
+    curRefDir = arrayfun(@(x) [x.folder filesep x.name],curRefDirStruct,'unif',false);
     
     cellDir{k}=curCellDir;
     refDir{k}=curRefDir;
@@ -353,7 +355,7 @@ for k=numConditions:-1:1
     numCells = numel(curRefDir);
     for ii=1:numCells
         curRef = curRefDir{ii}; %[curRefDir(ii).folder filesep curRefDir(ii).name];
-        refMD = bfImport(curRef,true);
+        refMD = bfImport(curRef,true); % 'outputDirectory', [pathAnalysisAll{1} filesep fileImgDV{1}{1}]);
         curRefBeadChan = refMD.channels_(end);
         if refMD.zSize_>1
             % find the best focus
@@ -715,7 +717,7 @@ end
 close all
 
 %% running through node (MDCS)
-ClusterInfo.setEmailAddress('sjhan@mtu.edu');
+% ClusterInfo.setEmailAddress('sjhan@mtu.edu');
 % ClusterInfo.getWallTime
 % create job script m-file 
 wayOfRun = input('Run by this computer(1), or run by job submission (2), or stop (0 or empty)?:');
