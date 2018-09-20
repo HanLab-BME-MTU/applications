@@ -329,11 +329,12 @@ end
 %         curCellDir{ii} = [cellMD.movieDataPath_ filesep cellMD.movieDataFileName_];
 %     end
 % end
-%% loop - now setting up MD!
+%% loop - reference frame creation
 numConditions = numel(pathDataAll);
 iCellRaw=1;
 iBeadRaw=2;
 
+thresVariance=0.8; applySobel=true;
 for k=numConditions:-1:1
     curDataPath = pathImgDV{k};
     curAnalysisPath = pathAnalysisAll{k};
@@ -344,9 +345,9 @@ for k=numConditions:-1:1
 %     curCellDir = curDir(~idxRef);
     
     curCellDir = cellfun(@(x) [curDataPath filesep x],fileImgDV{k},'unif',false);
-%     curRefDir = cellfun(@(x) [x(1:end-6) 'Ref_' x(end-5:end)],curCellDir,'unif',false);
-    curRefDirStruct = dir([curDataPath filesep '*ref*.dv']);  %
-    curRefDir = arrayfun(@(x) [x.folder filesep x.name],curRefDirStruct,'unif',false);
+    curRefDir = cellfun(@(x) [x(1:end-6) 'Ref_' x(end-5:end)],curCellDir,'unif',false);
+%     curRefDirStruct = dir([curDataPath filesep '*ref*.dv']);  %
+%     curRefDir = arrayfun(@(x) [x.folder filesep x.name],curRefDirStruct,'unif',false);
     
     cellDir{k}=curCellDir;
     refDir{k}=curRefDir;
@@ -356,44 +357,31 @@ for k=numConditions:-1:1
     for ii=1:numCells
         curRef = curRefDir{ii}; %[curRefDir(ii).folder filesep curRefDir(ii).name];
         refMD = bfImport(curRef,true); % 'outputDirectory', [pathAnalysisAll{1} filesep fileImgDV{1}{1}]);
-        curRefBeadChan = refMD.channels_(end);
-        if refMD.zSize_>1
-            % find the best focus
-            curRefBeadStack = curRefBeadChan.loadStack(1);
-            % I will take 100th to 200th brightest pixels to guess the best
-            % focus (usually the very brightest point is from one
-            % extraordinary bead) - SH 20171010
-            % Get 100th to 200th pixels
-            midPixelsAllFrames = cell(refMD.zSize_,1);
-            for jj=1:refMD.zSize_
-                curRefImageFrame = curRefBeadStack(:,:,jj);
-                curRefImageFrameSorted = sort(curRefImageFrame(:),'descend');
-                midPixelsAllFrames{jj} = curRefImageFrameSorted(100:300);
-            end
-            meanMidInten = cellfun(@mean,midPixelsAllFrames);
-            % Take top five frames
-            [~,meanMidIntenIDs]=sort(meanMidInten,'descend');
-            averagingRange = meanMidIntenIDs(1:5);
-%             maxProf = reshape(max(max(curRefBeadStack)),[],1);
-%             [~,maxIntenFrame]=max(maxProf);
-%             minFocusedFrame=max(1,maxIntenFrame-2);
-%             maxFocusedFrame=max(refMD.zSize_,maxIntenFrame+2);
-            
-            curRefBeadStack = curRefBeadChan.loadStack(1,'z',averagingRange);
-            meanRefImg = mean(curRefBeadStack,3); 
-        else
-            meanRefImg = curRefBeadChan.loadImage(1);
-        end
+        [meanRefImg,meanRefImgPath] = createBestFocusedImageMD(refMD);
     %     figure, imshow(meanRefImg,[])
-        % store it somewhere
-        [path1,fname1] = fileparts(curRef);
-        meanRefImgPath = [path1 filesep fname1 '.tif'];
-        imwrite(uint16(meanRefImg),meanRefImgPath,'Compression','none')
         curRefTifPath{ii}=meanRefImgPath;
         % 
     end
     refDirTif{k} = curRefTifPath;
+end
 
+%% now setting up MD!
+for k=numConditions:-1:1
+    curDataPath = pathImgDV{k};
+    curAnalysisPath = pathAnalysisAll{k};
+%     curDir=dir([curDataPath filesep '*.dv']);
+%     nameFolders = {curDir.name}';
+%     idxRef = contains(nameFolders,'Ref');
+%     curRefDir = curDir(idxRef);
+%     curCellDir = curDir(~idxRef);
+    
+    curCellDir = cellfun(@(x) [curDataPath filesep x],fileImgDV{k},'unif',false);
+    curRefDir = cellfun(@(x) [x(1:end-6) 'Ref_' x(end-5:end)],curCellDir,'unif',false);
+%     curRefDirStruct = dir([curDataPath filesep '*ref*.dv']);  %
+%     curRefDir = arrayfun(@(x) [x.folder filesep x.name],curRefDirStruct,'unif',false);
+    
+    cellDir{k}=curCellDir;
+    refDir{k}=curRefDir;
     %% Apply this transforms to the cell channel
     % You don't need to transform ref image because it's bead!!
     for ii=1:numCells
