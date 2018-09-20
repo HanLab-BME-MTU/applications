@@ -19,7 +19,7 @@ end
 curEndFrame=curTrack.endingFrameExtra;
 curStartFrame = curTrack.startingFrameExtra;
 curEndFrameEE=curTrack.endingFrameExtraExtra;
-curStartFrameEE = max(1,curStartFrame-50); %curTrack.startingFrameExtraExtra;
+curStartFrameEE = max(1,curStartFrame-50); %This needs to be updated in calculatePeakTimeLagFromTracks %curTrack.startingFrameExtraExtra;
 curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
@@ -559,7 +559,7 @@ if ~isempty(imgMap2)
     ,~,firstIncreseTimeSlave,~,bkgMaxSlave] ...
         = calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval,'slaveSource','ampTotal2');
     frameFII2 = round(firstIncreseTimeSlave/tInterval);
-    if SlaveTransmitting && firstIncreseTimeSlave<=length(curTrack.ampTotal2)
+    if SlaveTransmitting && frameFII2<=length(curTrack.ampTotal2)
         plot((frameFII2-curStartFrameEE)*tInterval,curTrack.ampTotal2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
         text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.ampTotal2(frameFII2)+5,[num2str((frameFII2-curStartFrameEE)*tInterval) ' s'])
     end

@@ -43,13 +43,13 @@ else
     maxGap = trackingParams.gapCloseParam.timeWindow;
 end
 
-% if attribute==2
+if attribute==2
     halfWidth=4;
     halfHeight=4;
-% else
-%     halfWidth=2;
-%     halfHeight=2;
-% end
+else
+    halfWidth=1;
+    halfHeight=1;
+end
 %% %%%%%%%%%%%%%%%%%%%%%%5
 % poolobj = gcp('nocreate'); % If no pool, do not create new one.
 % myCluster = parcluster('local');
@@ -209,10 +209,22 @@ for k=1:numTracks
                 end
                 if ~pitFound && gapClosed >= maxGap
                     curTrack.startingFrameExtra = ii+1+gapClosed;
-                    break
+                    break % We still have to read the values
                 elseif ~pitFound && gapClosed < maxGap
                     gapClosed = gapClosed+1;
                 end
+%                 if ~pitFound % We read values regardless
+%                     xi = round(x);
+%                     yi = round(y);
+%                     xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+%                     yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+%                     curAmpTotal = curImg(yRange,xRange);
+%                     curAmpTotal = mean(curAmpTotal(:));
+%                     curTrack.xCoord(ii) = x;
+%                     curTrack.yCoord(ii) = y;
+%                     curTrack.ampTotal(ii) =  curAmpTotal;
+%                     curTrack.presence(ii) =  false;
+%                 end                    
             end
         end
         %% for the present period - it is necessary for ampTotal
@@ -263,7 +275,7 @@ for k=1:numTracks
 %                     end
 %                     pstruct2 = fitGaussianMixtures2D(double(curImg), x, y, A, curSigma, c);
                     
-                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected*2 && abs(pstruct.y-y)<searchRadiusDetected*2 && pstruct.A>0 && pstruct.A<2*A
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected*2 && abs(pstruct.y-y)<searchRadiusDetected*2 && pstruct.A>0 
                         x = pstruct.x;
                         y = pstruct.y;
                         A = pstruct.A;
@@ -314,7 +326,8 @@ for k=1:numTracks
                     end
                 end
                 if ~pitFound && gapClosed >= maxGap
-                    curTrack.startingFrameExtra = ii+1+gapClosed;
+                    curTrack.endingFrameExtra = ii-gapClosed;
+                    curEndingFrame = curTrack.endingFrameExtra;
                     break
                 elseif ~pitFound && gapClosed < maxGap
                     gapClosed = gapClosed+1;
@@ -380,13 +393,57 @@ for k=1:numTracks
 %                                 curTrack.state{ii} = 'NA';
 %                             end
                         pitFoundEnd = true;
+                        if gapClosed>0
+                            % we have to fill in the gap 
+                            for kk=1:gapClosed
+                                curTrack.xCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii-gapClosed-1))/(gapClosed+1);
+                                curTrack.yCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii-gapClosed-1))/(gapClosed+1);
+                                curTrack.amp(ii-kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii-gapClosed-1))/(gapClosed+1);
+                                curTrack.bkgAmp(ii-kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii-gapClosed-1))/(gapClosed+1);
+
+                                x = curTrack.xCoord(ii-kk);
+                                y = curTrack.yCoord(ii-kk);
+                                xi = round(x);
+                                yi = round(y);
+                                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                                curAmpTotal = curImg(yRange,xRange);
+                                curAmpTotal = mean(curAmpTotal(:));
+                                curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                            end
+                        end
+                        gapClosed = 0;
+                        if isempty(MD)
+                            searchRadiusDetected = 2;
+                        else
+                            searchRadiusDetected = maxR;
+                        end
                         break
                     end
                 end
-                if ~pitFoundEnd
+                if ~pitFoundEnd && gapClosed >= maxGap
                     curTrack.endingFrameExtra = ii-1;
                     break
+                elseif ~pitFoundEnd && gapClosed < maxGap
+                    gapClosed = gapClosed+1;
+                    searchRadiusDetected = searchRadiusDetected^brownScaling;
+                    % If the search is over in this regime, read whatever
+                    % in the same x-y position
+                    
                 end
+                
+%                 if ~pitFound % We read values regardless
+%                     xi = round(x);
+%                     yi = round(y);
+%                     xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+%                     yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+%                     curAmpTotal = curImg(yRange,xRange);
+%                     curAmpTotal = mean(curAmpTotal(:));
+%                     curTrack.xCoord(ii) = x;
+%                     curTrack.yCoord(ii) = y;
+%                     curTrack.ampTotal(ii) =  curAmpTotal;
+%                     curTrack.presence(ii) =  false;
+%                 end                    
             end
             if startFrame==curStartingFrame
                 curTrack.startingFrameExtra = curStartingFrame;

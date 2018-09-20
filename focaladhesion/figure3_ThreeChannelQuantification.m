@@ -1,5 +1,7 @@
 %% Thhree channel experiment
-repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_010';
+% repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_010';
+% % With this I found the rep G2.
+repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_003';
 % data loading
 curMD = MovieData.load([repFolder filesep 'movieData.mat']);
 iFAPack = curMD.getPackageIndex('FocalAdhesionPackage');
@@ -44,8 +46,7 @@ clear tracksNAall
 tracksNAG2 = tracksNAall2(idGroup2);%tracksTalStruct.tracksG2;
 
 tfmPack = curMD.packages_{1};
-talForceStack = tfmPack.processes_{4}.loadChannelOutput(1,'output','tMap');
-tracReadingProc = FAPack.processes_{10};
+stracReadingProc = FAPack.processes_{10};
 nFrames = curMD.nFrames_; tMap=[];
 try
     T=load(tracReadingProc.outFilePaths_{3,1});
@@ -92,51 +93,11 @@ iNAG2= 767; %465; %781; %1366; %781; % 3 is the one, and 7 is similar
 showSingleAdhesionTrackSummary(curMD,tracksNAG2(iNAG2),imgStack,tMap,imgStack2,iNAG2); %naG2All{iRepTal2}(iNATal));
 % Save the figure
 
-%% Vinculin G2 representative tracks
-iVinRep = 1;
-tracksG2 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
-curTracksNAvinG2=tracksG2.tracksG2;
-tracksG1 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
-curTracksNAvinG1=tracksG1.tracksG1;
-curMDpath = fileparts(fileparts(vinFolder{iVinRep}));
-curMD = load([curMDpath filesep 'movieData.mat']);
-curMD = curMD.MD;
-% Go through each adhesion track and make sure
-tMap = load([vinFolder{iVinRep} filesep 'fMap' filesep 'tMap.mat'],'tMap');
-tMap = tMap.tMap;
-imgMap = load([vinFolder{iVinRep} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
-imgMap = imgMap.paxImgStack;
-tInterval = curMD.timeInterval_;
-
-
-
-[naG2Vin{iVinRep},idsVin{iVinRep}]=pickAdhesionTracksInteractive(curTracksNAvinG2, imgMap, 'movieData',curMD,'tMap',tMap);
-
+%% G1
+tracksNAG1 = tracksNAall2(idGroup1);%tracksTalStruct.tracksG2;
+%% See the iInit for these tracks
+[naG1All,idsAllG1]=pickAdhesionTracksInteractive(tracksNAG1, imgStack, 'movieData',curMD,'tMap',tMap,'imgMap2',imgStack2);
 %% Figure generation
-iNAVin=1; % 1 is the one
-showSingleAdhesionTrackSummary(curMD,curTracksNAvinG2(naG2Vin{iVinRep}(iNAVin)),imgMap,tMap,naG2Vin{iVinRep}(iNAVin));
-% Save the figure
-
-%% Paxillin G2 representative tracks
-iPaxRep = 2;
-tracksG2 = load([paxFolder{iPaxRep} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
-curTracksNApaxG2f=tracksG2.tracksG2;
-tracksG1 = load([paxFolder{iPaxRep} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
-curTracksNAvinG1=tracksG1.tracksG1;
-curMDpath = fileparts(fileparts(paxFolder{iPaxRep}));
-curMD = MovieData.load([curMDpath filesep 'movieData.mat']); %load([curMDpath filesep 'movieData.mat']);
-% curMD = curMD.MD;
-% Go through each adhesion track and make sure
-tMap = load([paxFolder{iPaxRep} filesep 'fMap' filesep 'tMap.mat'],'tMap');
-tMap = tMap.tMap;
-imgMap = load([paxFolder{iPaxRep} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
-imgMap = imgMap.paxImgStack;
-tInterval = curMD.timeInterval_;
-
-
-
-[naG2Vin{iPaxRep},idsVin{iPaxRep}]=pickAdhesionTracksInteractive(curTracksNApaxG2f, imgMap, 'movieData',curMD,'tMap',tMap);
-
-%% Figure generation
-iNAPax=2; % 1 is the one iPaxRep=2
-showSingleAdhesionTrackSummary(curMD,curTracksNApaxG2f(naG2Vin{iPaxRep}(iNAPax)),imgMap,tMap,naG2Vin{iPaxRep}(iNAPax));
+iNAG1= 2768; %2924; %465; %781; %1366; %781; % 3 is the one, and 7 is similar
+showSingleAdhesionTrackSummary(curMD,tracksNAG1(iNAG1),imgStack,tMap,imgStack2,iNAG1); %naG2All{iRepTal2}(iNATal));
+% I couldn't find the right G1 rep in 2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_010. I'll try with other cell

@@ -186,7 +186,7 @@ if p.fillVectors
     logMsg = 'Please wait, retracking untracked points ...';
     timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
     tic
-    nFillingTries=10;
+    nFillingTries=1000;
     for j= 1:nFrames
         % Read image and perform correlation
         if ~isempty(iSDCProc)
@@ -200,7 +200,7 @@ if p.fillVectors
             % only un-tracked vectors
             unTrackedBeads=isnan(displField(j).vec(:,1));
             ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
-            if ratioUntracked<0.0000001 || (nTracked==0 && nFailed>50)
+            if ratioUntracked<0.0000001 || (nTracked==0 && nFailed>10)
                 break
             end
             currentBeads = displField(j).pos(unTrackedBeads,:);

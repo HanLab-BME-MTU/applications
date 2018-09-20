@@ -24,16 +24,16 @@ peakTimeIntAgainstForceAll=NaN(numel(tracksNA),1);
 peakTimeIntAll=NaN(numel(tracksNA),1);
 peakTimeForceAll=NaN(numel(tracksNA),1);
 for ii=1:numel(tracksNA)
-    d = tracksNA(ii).ampTotal;
-    tRange = tracksNA(ii).iFrame;
+    tRange = tracksNA(ii).startingFrameExtra-50:tracksNA(ii).endingFrameExtraExtra;
+    d = tracksNA(ii).ampTotal(tRange);
     warning('off','SPLINES:CHCKXYWP:NaNs')
     d(d==0)=NaN;
     try
         sd_spline= csaps(tRange,d,splineParam);
     catch
         d = tracksNA(ii).amp;
-        d(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) = ...
-            tracksNA(ii).ampTotal(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra);
+        d(tRange) = ...
+            tracksNA(ii).ampTotal(tRange);
         sd_spline= csaps(tRange,d,splineParamInit);
     end
     sd=ppval(sd_spline,tRange);
@@ -52,9 +52,8 @@ for ii=1:numel(tracksNA)
         tracksNA(ii).intenPeakness = true;
         tracksNA(ii).intenPeakFrame = curFrameMaxAmp;
 
-        curForce=d;
-        curForce(tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra) ...
-            = getfield(tracksNA(ii),{1},slaveSource,{tracksNA(ii).startingFrameExtraExtra:tracksNA(ii).endingFrameExtraExtra});
+%         curForce=d;
+        curForce = getfield(tracksNA(ii),{1},slaveSource,{tRange});
         sCurForce_spline= csaps(tRange,curForce,splineParam);
 
         sCurForce_sd=ppval(sCurForce_spline,tRange);

@@ -41,6 +41,7 @@ firstIncreaseTimeIntAll=NaN(numel(tracksNA),1);
 firstIncreaseTimeSlaveAll=NaN(numel(tracksNA),1);
 bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
+differentInitialMargin=50;
 
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
@@ -51,7 +52,7 @@ for ii=1:numel(tracksNA)
     % See how many frames you have before the startingFrameExtra
     stepFrame =5;
     effectiveSF = curTrack.startingFrameExtra - stepFrame; sF5before=1; sF10before=1;
-    sFEE = max(1,curTrack.startingFrameExtra-30); %curTrack.startingFrameExtraExtra;
+    sFEE = max(1,curTrack.startingFrameExtra-differentInitialMargin); %curTrack.startingFrameExtraExtra;
     while sF5before==sF10before
         effectiveSF = effectiveSF + stepFrame;
         numFramesBefore = effectiveSF - sFEE;
@@ -61,7 +62,7 @@ for ii=1:numel(tracksNA)
         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
     end
     
-    ealryFrames = min(30, curTrack.endingFrameExtra-sF10before+1);
+    ealryFrames = min(3*differentInitialMargin, curTrack.endingFrameExtra-sF10before+1);
     [~,curEarlyAmpSlope] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 
