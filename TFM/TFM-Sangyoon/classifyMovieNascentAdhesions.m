@@ -224,22 +224,34 @@ else
             idGroup9Selected = idGroups.idGroup9Selected;
             idGroupSelectedAll{jj}={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
                                         idGroup7Selected,idGroup8Selected,idGroup9Selected};
+            idGroupSelectedTogether = [idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
+                                        idGroup7Selected,idGroup8Selected,idGroup9Selected];
+            ss = 0;
+            for kk=1:9
+                idGroupSelectedReordered{kk} = ss+1:ss+numel(idGroupSelectedAll{jj}{kk});
+                ss = ss + numel(idGroupSelectedAll{jj}{kk});
+            end
             try
                 mdPath = fileparts(fileparts(PathName));
                 curMD = MovieData.load([mdPath filesep 'movieData.mat']);
                 curFAPack = curMD.getPackage(curMD.getPackageIndex('FocalAdhesionPackage'));
                 curAdhAnalProc = curFAPack.processes_{7};
-                curTracksNA{jj} = curAdhAnalProc.loadChannelOutput(iChan,1,'output','tracksNA');
+                curTracksNA{jj} = curAdhAnalProc.loadChannelOutput(iChan,1,'output','tracksNA','idSelected',idGroupSelectedTogether);
                 MDAll{jj} = curMD;
-            catch
+                idGroupSelectedAll{jj} = idGroupSelectedReordered;
+            catch % backward compatibility
                 try
                     curImportFilePathTracks = fullfile(PathName,'idsClassified_org.mat');
                     curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
                     curTracksNA{jj} = curTracksNAfile.tracksNA;
+                    curTracksNA{jj} = curTracksNA{jj}(idGroupSelectedTogether);
+                    idGroupSelectedAll{jj} = idGroupSelectedReordered;
                 catch
                     curImportFilePathTracks = fullfile(PathName,'tracksNA.mat');
                     curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
                     curTracksNA{jj} = curTracksNAfile.tracksNA;
+                    curTracksNA{jj} = curTracksNA{jj}(idGroupSelectedTogether);
+                    idGroupSelectedAll{jj} = idGroupSelectedReordered;
                 end
                 mdPath = fileparts(fileparts(fileparts(fileparts(PathName))));
                 try
