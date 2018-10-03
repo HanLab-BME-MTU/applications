@@ -116,7 +116,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             if ischar(output),output={output}; end
             
             % Data loading
-            persistent xCoord yCoord refineFAID stateAll startingFrameExtra endingFrameExtra lastFinishTime
+            persistent xCoord yCoord refineFAID stateAll startingFrameExtra endingFrameExtra lastFinishTime 
             if isempty(lastFinishTime)
                 lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
             end

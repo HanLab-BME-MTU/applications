@@ -29,7 +29,7 @@ if isempty(MD)
     searchRadius = 1;
     searchRadiusDetected = 2;
     maxGap = 3;
-    brownScaling = 1.1;
+    brownScaling = 1.01;
 else
     iTrackingProc =MD.getProcessIndex('TrackingProcess');
     trackingProc = MD.getProcess(iTrackingProc);
@@ -233,6 +233,7 @@ for k=1:numTracks
         y = curTrack.yCoord(ii);
         A = curTrack.amp(ii);
 %                 c = curTrack.bkgAmp(ii); 
+        trackingFromStartingFrame = true;
         
         gapClosed=0;
         for ii=curStartingFrame+1:curEndingFrame
@@ -276,6 +277,9 @@ for k=1:numTracks
 %                     pstruct2 = fitGaussianMixtures2D(double(curImg), x, y, A, curSigma, c);
                     
                     if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected*2 && abs(pstruct.y-y)<searchRadiusDetected*2 && pstruct.A>0 
+                        if trackingFromStartingFrame
+                            trackingFromStartingFrame=false;
+                        end
                         x = pstruct.x;
                         y = pstruct.y;
                         A = pstruct.A;
@@ -328,7 +332,11 @@ for k=1:numTracks
                 if ~pitFound && gapClosed >= maxGap
                     curTrack.endingFrameExtra = ii-gapClosed;
                     curEndingFrame = curTrack.endingFrameExtra;
-                    break
+                    if trackingFromStartingFrame % this case, we need to change the startingFrameExtra
+                        curTrack.startingFrameExtra = ii-gapClosed;
+                    else
+                        break
+                    end
                 elseif ~pitFound && gapClosed < maxGap
                     gapClosed = gapClosed+1;
                     searchRadiusDetected = searchRadiusDetected^brownScaling;

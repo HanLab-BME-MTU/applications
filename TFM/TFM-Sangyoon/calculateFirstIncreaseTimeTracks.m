@@ -50,17 +50,31 @@ for ii=1:numel(tracksNA)
 %     curAmpSlope = curTrack.ampSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
 %     curForceSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     % See how many frames you have before the startingFrameExtra
-    stepFrame =5;
-    effectiveSF = curTrack.startingFrameExtra - stepFrame; sF5before=1; sF10before=1;
+    % (20181003) I decided to discard this not-clear method to determine
+    % sF5before and sF10before because it a bit hard to explain and now 
+%     stepFrame =5;
+%     effectiveSF = curTrack.startingFrameExtra - stepFrame; sF5before=1; sF10before=1;
+%     sFEE = max(1,curTrack.startingFrameExtra-differentInitialMargin); %curTrack.startingFrameExtraExtra;
+%     while sF5before==sF10before
+%         effectiveSF = effectiveSF + stepFrame;
+%         numFramesBefore = effectiveSF - sFEE;
+%         numPreFrames = max(1,floor(preDetecFactor*numFramesBefore));
+%         numPreSigStart = min([20,numFramesBefore 3*numPreFrames]);
+%         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
+%         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
+%     end
+    effectiveSF = curTrack.startingFrameExtra; 
     sFEE = max(1,curTrack.startingFrameExtra-differentInitialMargin); %curTrack.startingFrameExtraExtra;
-    while sF5before==sF10before
-        effectiveSF = effectiveSF + stepFrame;
-        numFramesBefore = effectiveSF - sFEE;
-        numPreFrames = max(1,floor(preDetecFactor*numFramesBefore));
-        numPreSigStart = min([20,numFramesBefore 3*numPreFrames]);
-        sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
-        sF10before = max(sFEE,effectiveSF-3*numPreFrames);
-    end
+    sF5before = max(sFEE,effectiveSF -1); % So the variabl name should be sF1before
+    sF10before = max(sFEE,effectiveSF - round(60/tInterval)); % So the variabl name should be sF1before
+    
+%     while sF5before==sF10before
+%         numFramesBefore = effectiveSF - sFEE;
+%         numPreFrames = max(1,floor(preDetecFactor*numFramesBefore));
+%         numPreSigStart = min([20,numFramesBefore 3*numPreFrames]);
+%         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
+%         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
+%     end
     
     ealryFrames = min(3*differentInitialMargin, curTrack.endingFrameExtra-sF10before+1);
     [~,curEarlyAmpSlope] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));

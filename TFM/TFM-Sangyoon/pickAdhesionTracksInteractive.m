@@ -174,6 +174,7 @@ function pushInspectAdhesion(~,~)
     reAssign=false;
     newlyAssign=true;
     if ismember((IDtoInspect),IDs)
+        disp(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
         reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
         if isempty(reAssign); reAssign=0; end
         whereInIDs = IDs==(IDtoInspect);
@@ -419,6 +420,16 @@ function pushInspectAdhesion(~,~)
         h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);
 
         % saving
+        % This is a temporary fix for matlab 2018a, after this version this
+        % disp function should be removed.
+        disp({'Which group does this adhesion belong to :';  
+            'group 1 (forming and disassembling as edge protrude),';
+            'group 2 (maturing adhesions),';
+            'group 3 (moving along with protruding edge)'; 'group 4 (adhesions at the retracting edges),';
+            'group 5 (strong stable adhesion at the edge)'; 'group 6 (noisy and transient),';
+            'group 7 (adhesions experiencing stalling edge)';
+            'group 8 (strong stable adhesion inside edge) and )'; 
+            'group 9 (weak adhesion inside edge)?'})
         iCurGroup = input(['Which group does this adhesion belong to :  \ngroup 1 (forming and disassembling as edge protrude),\ngroup 2 (maturing adhesions),', ...
             '\ngroup 3 (moving along with protruding edge), \ngroup 4 (adhesions at the retracting edges),' ...
             '\ngroup 5 (strong stable adhesion at the edge)','\ngroup 6 (noisy and transient) and ...','\ngroup 7 (adhesions experiencing stalling edge)',...

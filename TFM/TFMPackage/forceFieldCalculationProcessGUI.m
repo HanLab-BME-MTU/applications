@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 26-Feb-2018 16:05:27
+% Last Modified by GUIDE v2.5 03-Oct-2018 10:48:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -380,3 +380,10 @@ function edit_tolx_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes during object creation, after setting all properties.
+function setROIfromForcemap_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setROIfromForcemap (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called

@@ -263,7 +263,7 @@ elseif montInterval==1
     indiceRange=1:montInterval:numChosenFrames;
 end
     
-hm1=montage(cropImg,'Size',[2, NaN],'DisplayRange',[minInt maxInt], 'Indices', uint16(indiceRange));
+hm1=montage(cropImg,'Size',[2, NaN],'DisplayRange',[minInt maxInt], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
 line([2 2+scaleBar*500/pixSize],...
     [3 3],'LineWidth',2,'Color',[1,1,1]);
 monImgH = floor(hm1.YData(2)/2);
@@ -312,9 +312,9 @@ ax7=subplot('Position',[marginX, 200/figHeight, 540/figWidth-marginX,50/figHeigh
 % tCropMax = max(curTrack.forceMag(chosenStartFrame:chosenEndFrame))*1.1;
 % tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
 try
-    montage(cropTmap,'DisplayRange',[tCropMin, tCropMax],'Size',[2, NaN], 'Indices', indiceRange)
+    montage(cropTmap,'DisplayRange',[tCropMin, tCropMax],'Size',[2, NaN], 'Indices', indiceRange,'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
 catch
-    montage(cropTmap,'DisplayRange',[tCropMin, 10],'Size',[2, NaN], 'Indices', indiceRange)
+    montage(cropTmap,'DisplayRange',[tCropMin, 10],'Size',[2, NaN], 'Indices', indiceRange,'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
 end
 p=0;
 hold on
@@ -520,7 +520,7 @@ if ~isempty(imgMap2)
     %Montage
     axes('Position',[marginX, (430+50+10+175)/figHeight+marginY, 540/figWidth-marginX,50/figHeight]);
     cropImg2 = reshape(cropImg2,size(cropImg2,1),size(cropImg2,2),1,size(cropImg2,3));
-    hm3=montage(cropImg2,'Size',[2, NaN],'DisplayRange',[minInt2 maxInt2], 'Indices', uint16(indiceRange));
+    hm3=montage(cropImg2,'Size',[2, NaN],'DisplayRange',[minInt2 maxInt2], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
     hold on
     p=0;
     for ii= indiceRange
