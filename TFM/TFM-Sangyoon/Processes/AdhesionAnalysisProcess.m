@@ -284,6 +284,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     varargout{iout} = [];
                 end
             end
+            disp(' ')
         end      
     end
 

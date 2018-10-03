@@ -24,7 +24,8 @@ peakTimeIntAgainstForceAll=NaN(numel(tracksNA),1);
 peakTimeIntAll=NaN(numel(tracksNA),1);
 peakTimeForceAll=NaN(numel(tracksNA),1);
 for ii=1:numel(tracksNA)
-    tRange = tracksNA(ii).startingFrameExtra-50:tracksNA(ii).endingFrameExtraExtra;
+    sF = max(1,tracksNA(ii).startingFrameExtra-50);
+    tRange = sF:tracksNA(ii).endingFrameExtraExtra;
     d = tracksNA(ii).ampTotal(tRange);
     warning('off','SPLINES:CHCKXYWP:NaNs')
     d(d==0)=NaN;

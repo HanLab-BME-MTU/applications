@@ -173,6 +173,7 @@ function pushbutton_sampleGroup2_Callback(hObject, eventdata, handles)
 if ~isequal(file, 0) && ~isequal(path, 0)
     set(handles.edit_sampleGroup2,'String',[path file]);
 end
+
 % --- Executes on button press in pushbutton_done.
 function pushbutton_sampleGroup3_Callback(hObject, eventdata, handles)
 [file, path] = uigetfile({'*.mat;*.MAT',...
@@ -181,6 +182,14 @@ function pushbutton_sampleGroup3_Callback(hObject, eventdata, handles)
 if ~isequal(file, 0) && ~isequal(path, 0)
     set(handles.edit_sampleGroup3,'String',[path file]);
 end
+
+% --- Executes on button press in pushbutton_manualLabelingAfterInitialClassification.
+function pushbutton_manualLabelingAfterInitialClassification_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_manualLabelingAfterInitialClassification (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+MD=handles.figure1.UserData.MD;
+manualLabelingAfterInitialClassification(MD);
 
 
 function useSimpleFiltering_Callback(hObject, eventdata, handles)

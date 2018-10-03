@@ -101,6 +101,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             end
             outputList{10} = 'adhboundary_Classified';
             outputList{11} = 'selectedGroups';
+            outputList{12} = 'iClassesAll'; 
 
             ip =inputParser;
             ip.addRequired('obj');
@@ -129,6 +130,12 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     'idGroup3Selected', 'idGroup4Selected', 'idGroup5Selected', 'idGroup6Selected',...
                     'idGroup7Selected', 'idGroup8Selected', 'idGroup9Selected');
                 varargout{1}=s;
+            elseif ismember(output,outputList(12))
+                iOut=4;
+                iClasses = cached.load(obj.outFilePaths_{iOut,iChan}, '-useCache', ip.Results.useCache,...
+                    'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9');
+                
+                varargout{1}=iClasses;
             elseif ismember(output,outputList(1:10))
                 iAdhProc = obj.owner_.getProcessIndex('AdhesionAnalysisProcess');
                 adhAnalProc = obj.owner_.getProcess(iAdhProc);
