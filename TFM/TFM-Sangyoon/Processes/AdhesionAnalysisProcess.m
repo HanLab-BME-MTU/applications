@@ -106,11 +106,13 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             ip.addParameter('useCache',true,@islogical);
             ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
             ip.addParameter('wantFullTrack', false, @islogical);
+            ip.addParameter('idSelected', [], @(x) isempty(x) || isnumeric(x));
             ip.parse(obj,iChan,varargin{:})
             output = ip.Results.output;
             varargout = cell(numel(output), 1);
             iFrame = ip.Results.iFrame;
             wantFullTrack = ip.Results.wantFullTrack;
+            idSelected = ip.Results.idSelected;
             if ischar(output),output={output}; end
             
             % Data loading
@@ -136,10 +138,23 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                         save(obj.outFilePaths_{1,iChan},'metaTrackData');
                     end
                     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-                    for ii=metaTrackData.numTracks:-1:1
+                    if isempty(idSelected)
+                        loadingSequence=metaTrackData.numTracks:-1:1;
+                    else
+                        loadingSequence=idSelected;
+                    end
+                    
+                    jj=0;
+                    for ii=loadingSequence
+                        if ~isempty(idSelected)
+                            jj=jj+1;
+                            progressText((jj)/numel(loadingSequence),'Loading tracksNA') % Update text
+                        else
+                            jj=ii;
+                            progressText((numel(loadingSequence)-ii)/numel(loadingSequence),'Loading tracksNA') % Update text
+                        end
                         curTrackObj = load(trackIndPath(ii),'curTrack');
-                        tracksNA(ii,1) = curTrackObj.curTrack;
-                        progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
+                        tracksNA(jj,1) = curTrackObj.curTrack;
                     end
                     
                 catch
@@ -269,6 +284,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     varargout{iout} = [];
                 end
             end
+            disp(' ')
         end      
     end
 

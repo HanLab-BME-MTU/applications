@@ -1,4 +1,4 @@
-function [IDs, iGroups]=pickAdhesionTracksInteractive(tracksNA, imgMap, varargin)
+function [IDs, iGroups, iPrevGroups]=pickAdhesionTracksInteractive(tracksNA, imgMap, varargin)
 % this function reads from Colocalization folder and shows the specified
 % tracks on selected Channel interactively.
 %% input reading
@@ -12,6 +12,8 @@ ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
 ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the slave channle index.
 ip.addParamValue('tMap',[],@(x) (isnumeric(x))); % This is the master channle index.
 ip.addParamValue('imgMap2',[],@(x) (isnumeric(x))); % This is the master channle index.
+ip.addParamValue('idSelected',[],@(x) (isstruct(x))); % This is the master channle index.
+
 ip.parse(tracksNA, imgMap, varargin{:});
 % pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
@@ -23,6 +25,7 @@ iChanSlave=ip.Results.iChanSlave;
 imgMap=ip.Results.imgMap;
 tMap=ip.Results.tMap;
 imgMap2=ip.Results.imgMap2;
+idSelected=ip.Results.idSelected;
 %% Load processed data
 % movieData to find out pixel size
 if isempty(MD)
@@ -122,7 +125,9 @@ setappdata(hFig,'MyMatrix',imgMap); %// You could use %//setappdata(0,'MyMatrix'
 setappdata(hFig,'tracksNA',tracksNA); 
 %// Display 1st frame
 imshow(imgMap(:,:,startFrame),[]), hold on
-if trainerInitially
+if ~isempty(idSelected)
+    htrackG = drawSelectedTracks(tracksNA,idSelected,1,gca);
+elseif trainerInitially
     drawClassifiedTracks(allDataClass,tracksNA,1,gca,true);
 else
 %     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
@@ -139,6 +144,9 @@ else
         plot(xmat',ymat','r')
     end
 end
+legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
+    'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
+
 hold off
 % Supporting data cursor mode to identify an ID of NA track of interest.
 dcm_obj = datacursormode(hFig);
@@ -148,6 +156,7 @@ imgHeight = size(imgMap,1);
 selectedID = [];
 IDs=[];
 iGroups=[];
+iPrevGroups = [];
 %// IMPORTANT. Update handles structure.
 guidata(hFig,handles);
 waitfor(hFig)
@@ -167,7 +176,7 @@ function pushInspectAdhesion(~,~)
     if ismember((IDtoInspect),IDs)
         reAssign=input(['The id, ' num2str(IDtoInspect) ' has been already selected for group ' num2str(iGroups(IDs==(IDtoInspect))) '. Do you want to reassign the group for this adhesion?((0)/1) ']);
         if isempty(reAssign); reAssign=0; end
-        whereInIDs = find(IDs==(IDtoInspect));
+        whereInIDs = IDs==(IDtoInspect);
         newlyAssign = false;
     end
     if newlyAssign || reAssign
@@ -469,15 +478,26 @@ function pushInspectAdhesion(~,~)
         end
         if newlyAssign
             iGroups=[iGroups iCurGroup];
-            idGroupSelected = sortIDTracks((IDtoInspect),iCurGroup,true);
-            [curT] = extractFeatureNA(tracksNA,idGroupSelected);
-            T = [T; curT];
+            if ~isempty(idSelected)
+                iCurPrevGroup = 0;
+                for kk=1:numel(fieldnames(idSelected))
+                    memberName = ['idGroup' num2str(kk) 'Selected'];
+                    if ismember(IDtoInspect,idSelected.(memberName))
+                        iCurPrevGroup = kk;
+                        break
+                    end
+                end
+                iPrevGroups = [iPrevGroups iCurPrevGroup];
+            end
+%             idGroupSelected = sortIDTracks((IDtoInspect),iCurGroup,true);
+%             [curT] = extractFeatureNA(tracksNA,idGroupSelected);
+%             T = [T; curT];
         end
         if reAssign
             iGroups(whereInIDs)=iCurGroup;
             idGroupSelected = sortIDTracks((IDtoInspect),iCurGroup,true);
-            [curT] = extractFeatureNA(tracksNA,idGroupSelected);
-            T(whereInIDs,:) =curT;
+%             [curT] = extractFeatureNA(tracksNA,idGroupSelected);
+%             T(whereInIDs,:) =curT;
         end
         disp(['Currently labeled groups: ' num2str(iGroups)])
         disp(['Currently labeled IDs: ' num2str(IDs)])
@@ -582,7 +602,9 @@ function XListenerCallBack
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-    if trainerInitially
+    if ~isempty(idSelected)
+        drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
+    elseif trainerInitially
         drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
     else
 %         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
@@ -628,7 +650,9 @@ function XSliderCallback(~,~)
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-    if trainerInitially
+    if ~isempty(idSelected)
+        drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
+    elseif trainerInitially
         drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
     else
 %         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))

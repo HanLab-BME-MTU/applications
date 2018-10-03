@@ -211,45 +211,7 @@ else
         for jj=1:nTrainingSets
     %         curImportFilePath = fullfile(PathName,FileName);
             disp(['Loading ' sampleFolders{jj} '...'])
-            idGroups = load(sampleFolders{jj});
-            PathName=fileparts(sampleFolders{jj});
-            idGroup1Selected = idGroups.idGroup1Selected;
-            idGroup2Selected = idGroups.idGroup2Selected;
-            idGroup3Selected = idGroups.idGroup3Selected;
-            idGroup4Selected = idGroups.idGroup4Selected;
-            idGroup5Selected = idGroups.idGroup5Selected;
-            idGroup6Selected = idGroups.idGroup6Selected;
-            idGroup7Selected = idGroups.idGroup7Selected;
-            idGroup8Selected = idGroups.idGroup8Selected;
-            idGroup9Selected = idGroups.idGroup9Selected;
-            idGroupSelectedAll{jj}={idGroup1Selected,idGroup2Selected,idGroup3Selected,idGroup4Selected,idGroup5Selected,idGroup6Selected,....
-                                        idGroup7Selected,idGroup8Selected,idGroup9Selected};
-            try
-                mdPath = fileparts(fileparts(PathName));
-                curMD = MovieData.load([mdPath filesep 'movieData.mat']);
-                curFAPack = curMD.getPackage(curMD.getPackageIndex('FocalAdhesionPackage'));
-                curAdhAnalProc = curFAPack.processes_{7};
-                curTracksNA{jj} = curAdhAnalProc.loadChannelOutput(iChan,1,'output','tracksNA');
-                MDAll{jj} = curMD;
-            catch
-                try
-                    curImportFilePathTracks = fullfile(PathName,'idsClassified_org.mat');
-                    curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
-                    curTracksNA{jj} = curTracksNAfile.tracksNA;
-                catch
-                    curImportFilePathTracks = fullfile(PathName,'tracksNA.mat');
-                    curTracksNAfile = load(curImportFilePathTracks,'tracksNA');
-                    curTracksNA{jj} = curTracksNAfile.tracksNA;
-                end
-                mdPath = fileparts(fileparts(fileparts(fileparts(PathName))));
-                try
-                    curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
-                catch
-                    mdPath = fileparts(fileparts(fileparts(PathName)));
-                    curMDFile =  load([mdPath filesep 'movieData.mat'],'MD');
-                end
-                MDAll{jj} = curMDFile.MD;
-            end            
+            [idGroupSelectedAll{jj},MDAll{jj}]=loadSampleFolder(sampleFolders{jj});
         end
     end
 
