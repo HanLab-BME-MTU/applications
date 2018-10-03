@@ -89,7 +89,7 @@ imgStack2 = sdcProc.loadOutStack(3);
 [naG2All,idsAll]=pickAdhesionTracksInteractive(tracksNAG2, imgStack, 'movieData',curMD,'tMap',tMap,'imgMap2',imgStack2);
 % naG2All=[281   516   510   375   314   240   441   476   316];
 %% Figure generation
-iNAG2= 767; %465; %781; %1366; %781; % 3 is the one, and 7 is similar
+iNAG2= 568; %<-for cell3 %767;% <-for cell10 %465; %781; %1366; %781; % 3 is the one, and 7 is similar
 showSingleAdhesionTrackSummary(curMD,tracksNAG2(iNAG2),imgStack,tMap,imgStack2,iNAG2); %naG2All{iRepTal2}(iNATal));
 % Save the figure
 
