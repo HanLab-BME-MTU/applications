@@ -1,5 +1,6 @@
 function [htrackG] = drawSelectedTracks(tracksNA,idSelected,iFrame,h)
 markerSize = 7;
+lineWidth = 3;
 numGroups = 9;
 colors = distinguishable_colors(numGroups,'k');
 % switching colors between group 6 and 9
@@ -34,7 +35,11 @@ for ii=iGroups
     if size(xmat,2)==1
         htrackG{ii} = plot(xmat',ymat','.','Color',colors(ii,:),'MarkerSize',markerSize);
     else
-        htrackG{ii} = plot(xmat',ymat','Color',colors(ii,:));
+        htrackG{ii} = plot(xmat',ymat','Color',colors(ii,:),'LineWidth',lineWidth);
+    end
+    % Make only one present as a representative
+    if numel(htrackG{ii})>1
+        htrackG{ii}=htrackG{ii}(1);
     end
 end
 % legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...

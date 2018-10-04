@@ -144,8 +144,11 @@ else
         plot(xmat',ymat','r')
     end
 end
-legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],{'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
-    'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'},'TextColor','w','Location','best')
+classDescription={'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
+    'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'};
+lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
+    classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
+lgdHandle.Color='k'; lgdHandle.TextColor='w';
 
 hold off
 % Supporting data cursor mode to identify an ID of NA track of interest.
@@ -614,7 +617,7 @@ function XListenerCallBack
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
     if ~isempty(idSelected)
-        drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
+        htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
     elseif trainerInitially
         drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
     else
@@ -636,7 +639,10 @@ function XListenerCallBack
 %     catch
 %         disp(' ')
 %     end
-    
+    lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
+        classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
+    lgdHandle.Color='k'; lgdHandle.TextColor='w';
+
     hold off
 
     guidata(hFig,handles);
@@ -662,7 +668,7 @@ function XSliderCallback(~,~)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
     if ~isempty(idSelected)
-        drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
+        htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
     elseif trainerInitially
         drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
     else
@@ -676,7 +682,9 @@ function XSliderCallback(~,~)
             plot(xmat',ymat','r')
         end
     end
-    
+    lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
+        classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
+    lgdHandle.Color='k'; lgdHandle.TextColor='w';
     %% segmented focal adhesions
 %     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
 %     try

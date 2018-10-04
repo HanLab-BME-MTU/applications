@@ -279,6 +279,7 @@ for k=1:numTracks
                     if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected*2 && abs(pstruct.y-y)<searchRadiusDetected*2 && pstruct.A>0 
                         if trackingFromStartingFrame
                             trackingFromStartingFrame=false;
+                            curTrack.startingFrameExtra = ii;
                         end
                         x = pstruct.x;
                         y = pstruct.y;
@@ -333,7 +334,8 @@ for k=1:numTracks
                     curTrack.endingFrameExtra = ii-gapClosed;
                     curEndingFrame = curTrack.endingFrameExtra;
                     if trackingFromStartingFrame % this case, we need to change the startingFrameExtra
-                        curTrack.startingFrameExtra = ii-gapClosed;
+                        curTrack.startingFrameExtra = ii;
+                        gapClosed=0;
                     else
                         break
                     end
@@ -353,6 +355,18 @@ for k=1:numTracks
 %                     curTrack.endingFrame = curEndingFrame;
                     curTrack.endingFrameExtra = curEndingFrame;
                     break
+                end
+                if ~pitFound % We read values regardless
+                    xi = round(x);
+                    yi = round(y);
+                    xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                    yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                    curAmpTotal = curImg(yRange,xRange);
+                    curAmpTotal = mean(curAmpTotal(:));
+                    curTrack.xCoord(ii) = x;
+                    curTrack.yCoord(ii) = y;
+                    curTrack.ampTotal(ii) =  curAmpTotal;
+                    curTrack.presence(ii) =  false;
                 end
             end
         end
@@ -430,7 +444,7 @@ for k=1:numTracks
                     end
                 end
                 if ~pitFoundEnd && gapClosed >= maxGap
-                    curTrack.endingFrameExtra = ii-1;
+                    curTrack.endingFrameExtra = ii-gapClosed;
                     break
                 elseif ~pitFoundEnd && gapClosed < maxGap
                     gapClosed = gapClosed+1;
