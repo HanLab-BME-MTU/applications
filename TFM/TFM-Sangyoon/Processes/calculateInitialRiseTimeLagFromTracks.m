@@ -419,271 +419,271 @@ for k=1:numClasses
     save([dataPath filesep nameTitle],'oneBccTogetherAdjusted','nameList2');    
     close(h2)
 
-    tShift = 36; % This is same as tStartingFrame = 30 + tFluc/2 + 1;
-    if ismember(k,[1 2])
-        if length(existingSlaveIDs)==1
-        	jj=existingSlaveIDs;
-            slaveSource = potentialSlaves{jj};
-            curBcc = BccGroups{k,jj};
-            if ~isempty(curBcc)
-                idGroupIndex=find(idGroups{k});
-                curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
-    %             curAvgBcc = avgBccGroups{k,jj};
-                tRange = (1:size(curBcc,2))-tShift;
-                h2=figure;
-                plot(tRange,curBcc); hold on
-                plot(tRange,nanmean(curBcc,1),'k','Linewidth',3)
-                line([36 36],[min(min(curBcc(:,:))),max(max(curBcc(:,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
-                nameTitle=['Bcc ' num2str(k) 'th class'];
-                title(nameTitle); ylabel('Time lag (s)')
-                hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-                hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-                close(h2)
-                % Filtering done previously
-                % Try clustering
-                % #1 clustering with the features from my feature collection
-                meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
-                numClusters = min(10,max(1,round(length(meas)/3))); 
-                clusterArray=1:numClusters;
-                T=kmeans(meas,numClusters);
-
-                % Sort T based on timeToMax
-                meanTimeToMaxPerClus = arrayfun(@(x) mean(meas(T==x)),clusterArray);
-                numPerClusters = arrayfun(@(x) sum(T==x),clusterArray);
-                % Discard the cluster that has too early time to max
-                [~,indClusterEarlyTimetoMax] = min(meanTimeToMaxPerClus);
-                % Discard clusters whose sample sizes are small
-                thresClusterSize = mean(numPerClusters)-0.5*std(numPerClusters);
-                indSmallClusters = find(numPerClusters < thresClusterSize);
-                % Choose the main cluster
-                mainClusters = find(numPerClusters > max(numPerClusters)*0.95);
-                sideClusters = setdiff(clusterArray,[mainClusters indSmallClusters indClusterEarlyTimetoMax]);
-
-                % Found that They have very similar life time per cluster
-                % Checking lifetime... They are not necessarily the same!
-                % Inspect
-                mainBccPeakValues=[];
-                mainTimeToPeak=[];
-                sideBccPeakValues=[];
-                sideTimeToPeak=[];
-                for curT=[mainClusters sideClusters]
-                    h2=figure; 
-                    plot(1:size(curBcc,2),curBcc(T==curT,:),'o-')
-                    hold on
-                    plot(1:size(curBcc,2),nanmean(curBcc(T==curT,:),1),'Linewidth',3,'color','k')
-                    line([36 36],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
-                    hold off
-                    if ismember(curT,mainClusters)
-                        nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
-                        mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
-                        mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
-                    else
-                        nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
-                        sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
-                        sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
-                    end
-                    title(nameTitle); 
-                    xlabel('Time (frame, 36th frame = time zero)')
-                    hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-                    hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-                    print(h2,'-dtiff',strcat(tifPath,filesep,nameTitle,'.tif'))
-
-                    curTind = find(T==curT);
-
-                    iii=0;
-                    for ii=1:sum(T==curT)
-                        iii=iii+1;
-                        if iii==1
-                            h=figure;  
-                        end
-                        curCurBcc = curBcc(curTind(ii),:);
-                        % corresponding index in tracksNA
-                        curTrackInd = curTrackIndex((curTind(ii)));
-                        curTrack = tracksNA(curTrackInd);
-                        tShift = tStartingFrame(k,jj) + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
-                        tFluc = 10; % this is actually in frame
-                        lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
-                        sd=curTrack.ampTotal;
-                        subplot(2,2,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
-                        title(['Fluorescent intensity (ii: ' num2str(ii) ')'])
-                        sCurForce_sd=curTrack.(slaveSource);
-                        subplot(2,2,3), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
-                        title([slaveSource ' (ii: ' num2str(ii) ')'])
-                        subplot(2,2,2), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),curTrack.distToEdge(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'); 
-                        title({['Distance to edge' ' (ii: ' num2str(ii) ')']; ['Class' num2str(k)]})
-                        subplot(2,2,4), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
-                        curName = [slaveSource '-G-' num2str(k) '-Clst-' num2str(curT) '-numClus-' num2str(ii) '-tNum',num2str(curTrackInd)];
-                        title({curName; ['co-variance' ' (ii: ' num2str(ii) ')']})
-                        hold off
-                        hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
-                        print(h,'-dtiff',strcat(tifPath,filesep,curName,'.tif'))
-%                         print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
-                        save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
-    %                     uiwait(); 
-                    end
-                    close(h)
-                end
-                save([dataPath filesep 'mainBccPeakValues-G' num2str(k) curSlave '.mat'],'mainBccPeakValues')
-                save([dataPath filesep 'mainTimeToPeak-G' num2str(k) curSlave '.mat'],'mainTimeToPeak')
-                save([dataPath filesep 'sideBccPeakValues-G' num2str(k) curSlave '.mat'],'sideBccPeakValues')
-                save([dataPath filesep 'sideTimeToPeak-G' num2str(k) curSlave '.mat'],'sideTimeToPeak')
-
-                close(h2)
-
-                h2=figure;
-                plot(mainTimeToPeak,mainBccPeakValues,'k.','MarkerSize',14)
-                nameTitle=['mainTimePeak-Bcc-Class-' num2str(k)];
-                title(nameTitle); xlabel('Time (s)'); ylabel('Bcc'); xlim('auto')
-                hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-                hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-                close(h2)
-
-                mainTimeToPeakGroup{k,jj}=mainTimeToPeak;
-                mainBccPeakValuesGroup{k,jj}=mainBccPeakValues;
-                sideTimeToPeakGroup{k,jj}=sideTimeToPeak;
-                sideBccPeakValuesGroup{k,jj}=sideBccPeakValues;
-            end
-            h2=figure;
-            plot(mainTimeToPeak,mainBccPeakValues,'k.','MarkerSize',14)
-            nameTitle=['mainTimePeak-Bcc-Class-' num2str(k)];
-            title(nameTitle); xlabel('Time (s)'); ylabel('Bcc'); xlim('auto')
-            hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-            hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-            close(h2)
-        elseif length(existingSlaveIDs)>1
-            % Here I'll draw Bcc of each slave pair separately
-            curBccGroup = BccGroups(k,existingSlaveIDs);
-            if ~isempty(curBccGroup)
+%     tShift = 36; % This is same as tStartingFrame = 30 + tFluc/2 + 1;
+%     if ismember(k,[1 2])
+%         if length(existingSlaveIDs)==1
+%         	jj=existingSlaveIDs;
+%             slaveSource = potentialSlaves{jj};
+%             curBcc = BccGroups{k,jj};
+%             if ~isempty(curBcc)
 %                 idGroupIndex=find(idGroups{k});
 %                 curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
-    %             curAvgBcc = avgBccGroups{k,jj};
-                h2=figure;
-                for jj=existingSlaveIDs
-                    curBcc = curBccGroup{jj};
-                    curSlave = potentialSlaves{jj};
-
-                    tRange = (1:size(curBcc,2))-tShift;
-                    subplot(2,1,jj)
-                    plot(tRange,curBcc); hold on
-                    plot(tRange,nanmedian(curBcc,1),'k','Linewidth',3)
-                    line([36 36],[min(min(curBcc(:,:))),max(max(curBcc(:,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
-                    nameTitle=['Bcc ' num2str(k) 'th class, amp-' curSlave];
-                    title(nameTitle);                     
-                    xlabel('Time lag (s)')
-                    ylabel('Bcc (a.u.)')
-                end
-                hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-                hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-                close(h2)
-                % Filtering done previously
-                % Try clustering
-                % #1 clustering with the features from my feature collection
-                meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
-                numClusters = min(10,max(1,round(length(meas)/5))); 
-                clusterArray=1:numClusters;
-                T=kmeans(meas,numClusters);
-
-                % Sort T based on timeToMax
-                meanTimeToMaxPerClus = arrayfun(@(x) mean(meas(T==x)),clusterArray);
-                numPerClusters = arrayfun(@(x) sum(T==x),clusterArray);
-                % Discard the cluster that has too early time to max
-                [~,indClusterEarlyTimetoMax] = min(meanTimeToMaxPerClus);
-                % Discard clusters whose sample sizes are small
-                thresClusterSize = mean(numPerClusters)-0.5*std(numPerClusters);
-                indSmallClusters = find(numPerClusters < thresClusterSize);
-                % Choose the main cluster
-                mainClusters = find(numPerClusters > max(numPerClusters)*0.95);
-                sideClusters = setdiff(clusterArray,[mainClusters indSmallClusters indClusterEarlyTimetoMax]);
-                % Found that They have very similar life time per cluster
-                % Checking lifetime... They are not necessarily the same!
-                % Inspect
-                mainBccPeakValues=[];
-                mainTimeToPeak=[];
-                sideBccPeakValues=[];
-                sideTimeToPeak=[];
-                for curT=[mainClusters sideClusters]
-                    h2=figure; 
-                    for jj=existingSlaveIDs
-                        curBcc = curBccGroup{jj};
-                        slaveSource = potentialSlaves{jj};
-                        subplot(2,1,jj)
-                        plot((1:size(curBcc,2))-tShift,abs(curBcc(T==curT,:)),'o-')
-                        hold on
-                        plot((1:size(curBcc,2))-tShift,nanmedian(abs(curBcc(T==curT,:)),1),'Linewidth',3,'color','k')
-                        line([0 0],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
-                        hold off
-                        if ismember(curT,mainClusters)
-                            nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
-                            mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
-                            mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
-                        else
-                            nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
-                            sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
-                            sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
-                        end
-                        title(nameTitle); 
-                        xlabel('Time (frame, 0th frame = time zero)')
-                    end
-                    hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
-                    hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
-                    print(h2,'-dtiff',strcat(tifPath,filesep,nameTitle,'.tif'))
-
-                    curTind = find(T==curT);
-                    idGroupIndex=find(idGroups{k});
-                    curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
-                    iii=0;
-                    numTotalSubplots = 3+length(existingSlaveIDs);
-                    for ii=1:sum(T==curT)
-                        iii=iii+1;
-                        if iii==1
-                            h=figure('Position',[100,50,300,1200]);  
-                        end
-                        % corresponding index in tracksNA
-
-                        curTrackInd = curTrackIndex((curTind(ii)));
-                        curTrack = tracksNA(curTrackInd);
-                        tShift = tStartingFrame(k,jj) + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
-                        tFluc = 10; % this is actually in frame
-                        lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
-                        sd=curTrack.ampTotal;
-                        subplot(numTotalSubplots,1,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
-                        title(['Fluorescent intensity (ii: ' num2str(ii) ')']); ylabel('F.I. (a.u.)')
-                        xlabel('Time (frame)')
-                        for jj=existingSlaveIDs
-                            curBcc = curBccGroup{jj};
-                            curSlave = potentialSlaves{jj};
-                        
-                            sCurForce_sd=curTrack.(curSlave);
-                            subplot(numTotalSubplots,1,1+(jj-1)*2+1), hold off, 
-                            plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
-                            title([curSlave ' (ii: ' num2str(ii) ')']); ylabel(curSlave)
-                            xlabel('Time (frame)')
-
-                            curCurBcc = curBcc(curTind(ii),:);
-                            subplot(numTotalSubplots,1,2+(jj-1)*2+1), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
-                            curName = [curSlave '-G-' num2str(k) '-Clst-' num2str(curT) '-numClus-' num2str(ii) '-tNum',num2str(curTrackInd)];
-                            title({curName; 'co-variance'}); ylabel('co-variance (a.u.)')
-                            xlabel('Time (frame)')
-                            hold off
-                        end
-                        hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
-                        print(h,'-dtiff',strcat(tifPath,filesep,curName,'.tif'))
-%                         print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
-                        save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
-%                         uiwait(); 
-                    end
-                end
-            end
-        end
-    end
-    if iii>0 && ishandle(h)
-        close(h)
-    end
-    save([dataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup')
-    save([dataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup')
-    save([dataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup')
-    save([dataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup')
- 
+%     %             curAvgBcc = avgBccGroups{k,jj};
+%                 tRange = (1:size(curBcc,2))-tShift;
+%                 h2=figure;
+%                 plot(tRange,curBcc); hold on
+%                 plot(tRange,nanmean(curBcc,1),'k','Linewidth',3)
+%                 line([36 36],[min(min(curBcc(:,:))),max(max(curBcc(:,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+%                 nameTitle=['Bcc ' num2str(k) 'th class'];
+%                 title(nameTitle); ylabel('Time lag (s)')
+%                 hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+%                 hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+%                 close(h2)
+%                 % Filtering done previously
+%                 % Try clustering
+%                 % #1 clustering with the features from my feature collection
+%                 meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
+%                 numClusters = min(10,max(1,round(length(meas)/3))); 
+%                 clusterArray=1:numClusters;
+%                 T=kmeans(meas,numClusters);
+% 
+%                 % Sort T based on timeToMax
+%                 meanTimeToMaxPerClus = arrayfun(@(x) mean(meas(T==x)),clusterArray);
+%                 numPerClusters = arrayfun(@(x) sum(T==x),clusterArray);
+%                 % Discard the cluster that has too early time to max
+%                 [~,indClusterEarlyTimetoMax] = min(meanTimeToMaxPerClus);
+%                 % Discard clusters whose sample sizes are small
+%                 thresClusterSize = mean(numPerClusters)-0.5*std(numPerClusters);
+%                 indSmallClusters = find(numPerClusters < thresClusterSize);
+%                 % Choose the main cluster
+%                 mainClusters = find(numPerClusters > max(numPerClusters)*0.95);
+%                 sideClusters = setdiff(clusterArray,[mainClusters indSmallClusters indClusterEarlyTimetoMax]);
+% 
+%                 % Found that They have very similar life time per cluster
+%                 % Checking lifetime... They are not necessarily the same!
+%                 % Inspect
+%                 mainBccPeakValues=[];
+%                 mainTimeToPeak=[];
+%                 sideBccPeakValues=[];
+%                 sideTimeToPeak=[];
+%                 for curT=[mainClusters sideClusters]
+%                     h2=figure; 
+%                     plot(1:size(curBcc,2),curBcc(T==curT,:),'o-')
+%                     hold on
+%                     plot(1:size(curBcc,2),nanmean(curBcc(T==curT,:),1),'Linewidth',3,'color','k')
+%                     line([36 36],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+%                     hold off
+%                     if ismember(curT,mainClusters)
+%                         nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
+%                         mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+%                         mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+%                     else
+%                         nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
+%                         sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+%                         sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+%                     end
+%                     title(nameTitle); 
+%                     xlabel('Time (frame, 36th frame = time zero)')
+%                     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+%                     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+%                     print(h2,'-dtiff',strcat(tifPath,filesep,nameTitle,'.tif'))
+% 
+%                     curTind = find(T==curT);
+% 
+%                     iii=0;
+%                     for ii=1:sum(T==curT)
+%                         iii=iii+1;
+%                         if iii==1
+%                             h=figure;  
+%                         end
+%                         curCurBcc = curBcc(curTind(ii),:);
+%                         % corresponding index in tracksNA
+%                         curTrackInd = curTrackIndex((curTind(ii)));
+%                         curTrack = tracksNA(curTrackInd);
+%                         tShift = tStartingFrame(k,jj) + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+%                         tFluc = 10; % this is actually in frame
+%                         lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
+%                         sd=curTrack.ampTotal;
+%                         subplot(2,2,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
+%                         title(['Fluorescent intensity (ii: ' num2str(ii) ')'])
+%                         sCurForce_sd=curTrack.(slaveSource);
+%                         subplot(2,2,3), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
+%                         title([slaveSource ' (ii: ' num2str(ii) ')'])
+%                         subplot(2,2,2), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),curTrack.distToEdge(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'); 
+%                         title({['Distance to edge' ' (ii: ' num2str(ii) ')']; ['Class' num2str(k)]})
+%                         subplot(2,2,4), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
+%                         curName = [slaveSource '-G-' num2str(k) '-Clst-' num2str(curT) '-numClus-' num2str(ii) '-tNum',num2str(curTrackInd)];
+%                         title({curName; ['co-variance' ' (ii: ' num2str(ii) ')']})
+%                         hold off
+%                         hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
+%                         print(h,'-dtiff',strcat(tifPath,filesep,curName,'.tif'))
+% %                         print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
+%                         save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
+%     %                     uiwait(); 
+%                     end
+%                     close(h)
+%                 end
+%                 save([dataPath filesep 'mainBccPeakValues-G' num2str(k) curSlave '.mat'],'mainBccPeakValues')
+%                 save([dataPath filesep 'mainTimeToPeak-G' num2str(k) curSlave '.mat'],'mainTimeToPeak')
+%                 save([dataPath filesep 'sideBccPeakValues-G' num2str(k) curSlave '.mat'],'sideBccPeakValues')
+%                 save([dataPath filesep 'sideTimeToPeak-G' num2str(k) curSlave '.mat'],'sideTimeToPeak')
+% 
+%                 close(h2)
+% 
+%                 h2=figure;
+%                 plot(mainTimeToPeak,mainBccPeakValues,'k.','MarkerSize',14)
+%                 nameTitle=['mainTimePeak-Bcc-Class-' num2str(k)];
+%                 title(nameTitle); xlabel('Time (s)'); ylabel('Bcc'); xlim('auto')
+%                 hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+%                 hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+%                 close(h2)
+% 
+%                 mainTimeToPeakGroup{k,jj}=mainTimeToPeak;
+%                 mainBccPeakValuesGroup{k,jj}=mainBccPeakValues;
+%                 sideTimeToPeakGroup{k,jj}=sideTimeToPeak;
+%                 sideBccPeakValuesGroup{k,jj}=sideBccPeakValues;
+%             end
+%             h2=figure;
+%             plot(mainTimeToPeak,mainBccPeakValues,'k.','MarkerSize',14)
+%             nameTitle=['mainTimePeak-Bcc-Class-' num2str(k)];
+%             title(nameTitle); xlabel('Time (s)'); ylabel('Bcc'); xlim('auto')
+%             hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+%             hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+%             close(h2)
+%         elseif length(existingSlaveIDs)>1
+            % Here I'll draw Bcc of each slave pair separately
+%             curBccGroup = BccGroups(k,existingSlaveIDs);
+%             if ~isempty(curBccGroup)
+% %                 idGroupIndex=find(idGroups{k});
+% %                 curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
+%     %             curAvgBcc = avgBccGroups{k,jj};
+%                 h2=figure;
+%                 for jj=existingSlaveIDs
+%                     curBcc = curBccGroup{jj};
+%                     curSlave = potentialSlaves{jj};
+% 
+%                     tRange = (1:size(curBcc,2))-tShift;
+%                     subplot(2,1,jj)
+%                     plot(tRange,curBcc); hold on
+%                     plot(tRange,nanmedian(curBcc,1),'k','Linewidth',3)
+%                     line([36 36],[min(min(curBcc(:,:))),max(max(curBcc(:,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+%                     nameTitle=['Bcc ' num2str(k) 'th class, amp-' curSlave];
+%                     title(nameTitle);                     
+%                     xlabel('Time lag (s)')
+%                     ylabel('Bcc (a.u.)')
+%                 end
+%                 hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+%                 hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+%                 close(h2)
+%                 % Filtering done previously
+%                 % Try clustering
+%                 % #1 clustering with the features from my feature collection
+%                 meas=extractGeneralFeatureTimeSeries(curBcc); %time of peak is the main feature
+%                 numClusters = min(10,max(1,round(length(meas)/5))); 
+%                 clusterArray=1:numClusters;
+%                 T=kmeans(meas,numClusters);
+% 
+%                 % Sort T based on timeToMax
+%                 meanTimeToMaxPerClus = arrayfun(@(x) mean(meas(T==x)),clusterArray);
+%                 numPerClusters = arrayfun(@(x) sum(T==x),clusterArray);
+%                 % Discard the cluster that has too early time to max
+%                 [~,indClusterEarlyTimetoMax] = min(meanTimeToMaxPerClus);
+%                 % Discard clusters whose sample sizes are small
+%                 thresClusterSize = mean(numPerClusters)-0.5*std(numPerClusters);
+%                 indSmallClusters = find(numPerClusters < thresClusterSize);
+%                 % Choose the main cluster
+%                 mainClusters = find(numPerClusters > max(numPerClusters)*0.95);
+%                 sideClusters = setdiff(clusterArray,[mainClusters indSmallClusters indClusterEarlyTimetoMax]);
+%                 % Found that They have very similar life time per cluster
+%                 % Checking lifetime... They are not necessarily the same!
+%                 % Inspect
+%                 mainBccPeakValues=[];
+%                 mainTimeToPeak=[];
+%                 sideBccPeakValues=[];
+%                 sideTimeToPeak=[];
+%                 for curT=[mainClusters sideClusters]
+%                     h2=figure; 
+%                     for jj=existingSlaveIDs
+%                         curBcc = curBccGroup{jj};
+%                         slaveSource = potentialSlaves{jj};
+%                         subplot(2,1,jj)
+%                         plot((1:size(curBcc,2))-tShift,abs(curBcc(T==curT,:)),'o-')
+%                         hold on
+%                         plot((1:size(curBcc,2))-tShift,nanmedian(abs(curBcc(T==curT,:)),1),'Linewidth',3,'color','k')
+%                         line([0 0],[min(min(curBcc(T==curT,:))),max(max(curBcc(T ==curT,:)))],'LineStyle','--','Color',[0.5 .5 .5],'linewidth',4)
+%                         hold off
+%                         if ismember(curT,mainClusters)
+%                             nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, main cluster'];
+%                             mainBccPeakValues=[mainBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+%                             mainTimeToPeak = [mainTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+%                         else
+%                             nameTitle=['Amp-' slaveSource ' Bcc ' num2str(k) 'th class, ' num2str(curT) 'th cluster, side cluster'];
+%                             sideBccPeakValues=[sideBccPeakValues; nanmax(curBcc(T==curT,:),[],2)];
+%                             sideTimeToPeak = [sideTimeToPeak; (meas(T==curT)-tStartingFrame(k,jj))*tInterval];
+%                         end
+%                         title(nameTitle); 
+%                         xlabel('Time (frame, 0th frame = time zero)')
+%                     end
+%                     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+%                     hgsave(h2,strcat(figPath,filesep,nameTitle),'-v7.3')
+%                     print(h2,'-dtiff',strcat(tifPath,filesep,nameTitle,'.tif'))
+% 
+%                     curTind = find(T==curT);
+%                     idGroupIndex=find(idGroups{k});
+%                     curTrackIndex = idGroupIndex(indexValidBccInTracks{k,jj});
+%                     iii=0;
+%                     numTotalSubplots = 3+length(existingSlaveIDs);
+%                     for ii=1:sum(T==curT)
+%                         iii=iii+1;
+%                         if iii==1
+%                             h=figure('Position',[100,50,300,1200]);  
+%                         end
+%                         % corresponding index in tracksNA
+% 
+%                         curTrackInd = curTrackIndex((curTind(ii)));
+%                         curTrack = tracksNA(curTrackInd);
+%                         tShift = tStartingFrame(k,jj) + curTrack.startingFrameExtraExtra-curTrack.startingFrameExtra;
+%                         tFluc = 10; % this is actually in frame
+%                         lastFrameCC = curTrack.endingFrameExtraExtra-tFluc; 
+%                         sd=curTrack.ampTotal;
+%                         subplot(numTotalSubplots,1,1), hold off, plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeInt)-curTrack.startingFrameExtraExtra+1,sd(firstIncreaseTimeInt),'ro'); 
+%                         title(['Fluorescent intensity (ii: ' num2str(ii) ')']); ylabel('F.I. (a.u.)')
+%                         xlabel('Time (frame)')
+%                         for jj=existingSlaveIDs
+%                             curBcc = curBccGroup{jj};
+%                             curSlave = potentialSlaves{jj};
+%                         
+%                             sCurForce_sd=curTrack.(curSlave);
+%                             subplot(numTotalSubplots,1,1+(jj-1)*2+1), hold off, 
+%                             plot(tShift-curTrack.startingFrameExtraExtra+(curTrack.startingFrameExtraExtra:lastFrameCC),sCurForce_sd(curTrack.startingFrameExtraExtra:lastFrameCC),'o-'), %hold on, plot(tRange(firstIncreaseTimeForce)-curTrack.startingFrameExtraExtra+1,sCurForce_sd(firstIncreaseTimeForce),'ro')    
+%                             title([curSlave ' (ii: ' num2str(ii) ')']); ylabel(curSlave)
+%                             xlabel('Time (frame)')
+% 
+%                             curCurBcc = curBcc(curTind(ii),:);
+%                             subplot(numTotalSubplots,1,2+(jj-1)*2+1), plot(1:length(curCurBcc),curCurBcc,'o-'), hold on, 
+%                             curName = [curSlave '-G-' num2str(k) '-Clst-' num2str(curT) '-numClus-' num2str(ii) '-tNum',num2str(curTrackInd)];
+%                             title({curName; 'co-variance'}); ylabel('co-variance (a.u.)')
+%                             xlabel('Time (frame)')
+%                             hold off
+%                         end
+%                         hgsave(h,strcat(figPath,filesep,curName),'-v7.3')
+%                         print(h,'-dtiff',strcat(tifPath,filesep,curName,'.tif'))
+% %                         print(h,'-depsc','-loose',[epsPath filesep curName '.eps']);
+%                         save(strcat(dataPath,filesep,curName,'.mat'),'sd','sCurForce_sd','curCurBcc')
+% %                         uiwait(); 
+%                     end
+%                 end
+%             end
+%         end
+%     end
+%     if iii>0 && ishandle(h)
+%         close(h)
+%     end
+%     save([dataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup')
+%     save([dataPath filesep 'mainTimeToPeakGroup.mat'],'mainTimeToPeakGroup')
+%     save([dataPath filesep 'sideBccPeakValuesGroup.mat'],'sideBccPeakValuesGroup')
+%     save([dataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup')
+%  
     
     h2=figure;
     boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5);
@@ -860,27 +860,27 @@ end
         ylabel('mainTimeToPeakBccGroup (sec)')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainTimeToPeakBccGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
         hgsave(strcat(figPath,'/mainTimeToPeakBccGroup', curSlave),'-v7.3'); 
-        %% Look at feature difference per each group - mainBccPeakValuesGroup
-        figure;
-        boxPlotCellArray(mainBccPeakValuesGroup(:,jj)',nameTwoGroups);
-        title(['mainBccPeakValuesGroup, amp-' curSlave])
-        ylabel('mainBccPeakValuesGroup (AU)')
-        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
-        hgsave(strcat(figPath,'/mainBccPeakValuesGroup', curSlave),'-v7.3'); 
-        %% Look at feature difference per each group - mainBccPeakValuesGroup
-        figure;
-        boxPlotCellArray(sideBccPeakValuesGroup(:,jj)',nameTwoGroups);
-        title(['sideBccPeakValuesGroup, amp-' curSlave])
-        ylabel('sideBccPeakValuesGroup (AU)')
-        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
-        hgsave(strcat(figPath,'/sideBccPeakValuesGroup', curSlave),'-v7.3'); 
-        %% Look at feature difference per each group - mainBccPeakValuesGroup
-        figure;
-        boxPlotCellArray(sideTimeToPeakGroup(:,jj)',nameTwoGroups);
-        title(['sideTimeToPeakGroup, amp-' curSlave])
-        ylabel('sideTimeToPeakGroup (AU)')
-        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideTimeToPeakGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
-        hgsave(strcat(figPath,'/sideTimeToPeakGroup', curSlave),'-v7.3'); 
+%         %% Look at feature difference per each group - mainBccPeakValuesGroup
+%         figure;
+%         boxPlotCellArray(mainBccPeakValuesGroup(:,jj)',nameTwoGroups);
+%         title(['mainBccPeakValuesGroup, amp-' curSlave])
+%         ylabel('mainBccPeakValuesGroup (AU)')
+%         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+%         hgsave(strcat(figPath,'/mainBccPeakValuesGroup', curSlave),'-v7.3'); 
+%         %% Look at feature difference per each group - mainBccPeakValuesGroup
+%         figure;
+%         boxPlotCellArray(sideBccPeakValuesGroup(:,jj)',nameTwoGroups);
+%         title(['sideBccPeakValuesGroup, amp-' curSlave])
+%         ylabel('sideBccPeakValuesGroup (AU)')
+%         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+%         hgsave(strcat(figPath,'/sideBccPeakValuesGroup', curSlave),'-v7.3'); 
+%         %% Look at feature difference per each group - mainBccPeakValuesGroup
+%         figure;
+%         boxPlotCellArray(sideTimeToPeakGroup(:,jj)',nameTwoGroups);
+%         title(['sideTimeToPeakGroup, amp-' curSlave])
+%         ylabel('sideTimeToPeakGroup (AU)')
+%         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideTimeToPeakGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+%         hgsave(strcat(figPath,'/sideTimeToPeakGroup', curSlave),'-v7.3'); 
     end
     %% recalculate force slope 
     tracksNA = calculateTrackSlopes(tracksNA,tInterval);
@@ -960,36 +960,36 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'earlyForceSlopeAllGroups.eps']); 
     %%
     close
-%% Distributing to each group (after filtering)
-    %% drawing group1
-    fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
-    %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
-    [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false); if ~isempty(h); close(h); end
-    %% group 2
-    fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
-    plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); close
-
-    %% group 3 plotting
-    fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup3),fileStoreG3,false,false); if ~isempty(h); close(h); end
-    %% group4 plotting
-    fileStoreG4 = [epsPath filesep 'ampForcePlotG4.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup4),fileStoreG4,false,false); if ~isempty(h); close(h); end
-    %% group5 plotting
-    fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); if ~isempty(h); close(h); end
-    %% group6 plotting
-    fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); if ~isempty(h); close(h); end
-    %% group7 plotting
-    fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); if ~isempty(h); close(h); end
-    %% group8 plotting
-    fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); if ~isempty(h); close(h); end
-    %% group9 plotting
-    fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
+% %% Distributing to each group (after filtering)
+%     %% drawing group1
+%     fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
+%     %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
+%     [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false); if ~isempty(h); close(h); end
+%     %% group 2
+%     fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
+%     plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); close
+% 
+%     %% group 3 plotting
+%     fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup3),fileStoreG3,false,false); if ~isempty(h); close(h); end
+%     %% group4 plotting
+%     fileStoreG4 = [epsPath filesep 'ampForcePlotG4.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup4),fileStoreG4,false,false); if ~isempty(h); close(h); end
+%     %% group5 plotting
+%     fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); if ~isempty(h); close(h); end
+%     %% group6 plotting
+%     fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); if ~isempty(h); close(h); end
+%     %% group7 plotting
+%     fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); if ~isempty(h); close(h); end
+%     %% group8 plotting
+%     fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); if ~isempty(h); close(h); end
+%     %% group9 plotting
+%     fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
 
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately

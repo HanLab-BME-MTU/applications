@@ -55,6 +55,15 @@ for ii=1:numel(tracksNA)
 
 %         curForce=d;
         curForce = getfield(tracksNA(ii),{1},slaveSource,{tRange});
+        if all(isnan(curForce))
+            disp(['There is something wrong with ' slaveSource '. Please run the associated process again and run the step 11.'])
+            peakTimeForceAll(ii) = NaN;
+            tracksNA(ii).forcePeakMag = NaN; 
+            tracksNA(ii).forcePeakFrame = NaN; 
+            tracksNA(ii).forcePeakMagRel = NaN; % this is a relative difference
+            peakTimeIntAgainstForceAll(ii) = NaN; %
+            continue;
+        end
         sCurForce_spline= csaps(tRange,curForce,splineParam);
 
         sCurForce_sd=ppval(sCurForce_spline,tRange);

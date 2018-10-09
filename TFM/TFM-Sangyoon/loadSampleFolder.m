@@ -28,6 +28,7 @@ function [idGroupSelected,MD,curTracksNA]=loadSampleFolder(sampleFolder)
         curMD = MovieData.load([mdPath filesep 'movieData.mat']);
         curFAPack = curMD.getPackage(curMD.getPackageIndex('FocalAdhesionPackage'));
         curAdhAnalProc = curFAPack.processes_{7};
+        iChan=find(curAdhAnalProc.checkChannelOutput,1);
         curTracksNA = curAdhAnalProc.loadChannelOutput(iChan,1,'output','tracksNA','idSelected',idGroupSelectedTogether);
         MD = curMD;
         idGroupSelected = idGroupSelectedReordered;

@@ -108,6 +108,8 @@ theOtherChanReadProc.setOutFilePaths(outputFile);
 mkClrDir(p.OutputDirectory);
 nFrames = MD.nFrames_;
 %% Slave to Master registration using PIV
+p.doMultimodalRegistration = true;
+p.doFAregistration = false;
 if p.doFAregistration
     % Find the FA locations in the master channel at t=1
     iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
@@ -237,6 +239,106 @@ if p.doFAregistration
         for ii=1:nFrames
             subI = MD.getChannel(p.iChanSlave).loadImage(ii);
             newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
+            copyfile(outFile(p.iChanSlave, ii),backupFolder)
+            imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
+        end
+        disp(['Channel has been overwritten in ' MD.getChannel(chan)])
+    end
+elseif p.doMultimodalRegistration
+    % Get the images
+    iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+    FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
+    SDCProc=FAPackage.processes_{iSDCProc};
+    if ~isempty(SDCProc)
+        mainI = SDCProc.loadChannelOutput(p.ChannelIndex,1);
+        subI = SDCProc.loadChannelOutput(p.iChanSlave,1);
+    else
+        mainI = MD.getChannel(p.ChannelIndex).loadImage(1);
+        subI = MD.getChannel(p.iChanSlave).loadImage(1);
+    end
+    figure,imshowpair(mainI,subI,'montage')
+    title('Unregistered')
+    imshowpair(mainI,subI)
+    title('Unregistered')
+    
+    % Improving registration 
+    [optimizer,metric] = imregconfig('multimodal');
+    subRegisteredDefault = imregister(subI,mainI,'affine',optimizer,metric);
+
+    figure,imshowpair(subRegisteredDefault,mainI)
+    title('A: Default Registration')
+%     disp(optimizer)
+%     disp(metric)
+    optimizer.InitialRadius = optimizer.InitialRadius/3.5;
+    subRegisteredAdjustedInitialRadius = imregister(subI,mainI,'affine',optimizer,metric);
+%     figure,imshowpair(subRegisteredAdjustedInitialRadius,mainI)
+%     title('B: Adjusted InitialRadius')
+
+    optimizer.MaximumIterations = 300;
+    subRegisteredAdjustedInitialRadius300 = imregister(subI,mainI,'affine',optimizer,metric);
+%     figure,imshowpair(subRegisteredAdjustedInitialRadius300,mainI)
+%     title('C: Adjusted InitialRadius, MaximumIterations = 300')    
+    
+    % Step 4: Use Initial Conditions to Improve Registration
+    tformSimilarity = imregtform(subI,mainI,'similarity',optimizer,metric);
+    Rfixed = imref2d(size(mainI));
+    movingRegisteredRigid = imwarp(subI,tformSimilarity,'OutputView',Rfixed);
+%     figure, imshowpair(movingRegisteredRigid, mainI)
+%     title('D: Registration Based on Similarity Transformation Model')
+    
+    subRegisteredAffineWithIC = imregister(subI,mainI,'affine',optimizer,metric,...
+    'InitialTransformation',tformSimilarity);
+%     figure, imshowpair(subRegisteredAffineWithIC,mainI)
+%     title('E: Registration from Affine Model Based on Similarity Initial Condition')
+    % Apply to the slave channel
+    ref_obj = imref2d(size(subI));
+    imageFileNames = MD.getImageFileNames;
+%     newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
+    
+    % Overwrite the side channel
+    if ~isempty(SDCProc)
+        % back up
+        backupFolder = [SDCProc.outFilePaths_{1,p.iChanSlave} ' Original']; 
+        if ~exist(backupFolder,'dir')
+            mkdir(backupFolder);
+        end
+        % Anonymous functions for reading input/output
+        outFile=@(chan,frame) [SDCProc.outFilePaths_{1,chan} filesep imageFileNames{chan}{frame}];
+        for ii=1:nFrames
+            mainI = SDCProc.loadChannelOutput(p.ChannelIndex,ii);
+            subI = SDCProc.loadChannelOutput(p.iChanSlave,ii);
+            newSubI = imregister(subI,mainI,'affine',optimizer,metric,...
+                'InitialTransformation',tformSimilarity);
+            copyfile(outFile(p.iChanSlave, ii),backupFolder,'f')
+            imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
+            
+            if ii==1
+                mainI = SDCProc.loadChannelOutput(p.iChanMaster,ii);
+                hFig = figure;
+                hAx  = subplot(1,2,1);
+                C = imfuse(mainI,subI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
+                imshow(C,[],'Parent', hAx);
+                
+                title('Original result: red, ch 1, green, ch 2')
+                hAx2  = subplot(1,2,2);
+                C2 = imfuse(mainI,newSubI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
+                imshow(C2,[],'Parent', hAx2);
+                title('Aligned result: red, ch 1, green, adjusted ch 2')
+            end
+        end
+        disp(['Channel has been overwritten in ' SDCProc.outFilePaths_{1,p.iChanSlave}])
+    else
+        backupFolder = [MD.getChannel(p.iChanSlave).getPath ' Original']; 
+        if ~exist(backupFolder,'dir')
+            mkdir(backupFolder);
+        end
+        % Anonymous functions for reading input/output
+        outFile=@(chan,frame) [MD.getChannel(chan) filesep imageFileNames{chan}{frame}];
+        for ii=1:nFrames
+            subI = MD.getChannel(p.iChanSlave).loadImage(ii);
+            mainI = MD.getChannel(p.ChannelIndex).loadImage(ii);
+            newSubI = imregister(subI,mainI,'affine',optimizer,metric,...
+                'InitialTransformation',tformSimilarity);
             copyfile(outFile(p.iChanSlave, ii),backupFolder)
             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
         end

@@ -42,6 +42,7 @@ tracksNA=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA');
 % % check if the included iGroups were changing from iPrevGroups
 % iChangedGroups = iGroups ~= iPrevGroups;
 numGroups = 9;
+idGroupSelectedCell=cell(1,numGroups);
 for ii=1:numGroups
     % check if this iGroups is included in pre-existing
     % idGroupSelectedStruct's ii-th group
@@ -56,6 +57,7 @@ for ii=1:numGroups
     if any(indIncludedInIGroup)
         idGroupSelectedStruct.(memberName)=[idGroupSelectedStruct.(memberName) IDs(indIncludedInIGroup)];
     end
+    idGroupSelectedCell{ii} = idGroupSelectedStruct.(memberName);
 end
 
 %% Perform classification for entire population of tracksNA
@@ -78,7 +80,7 @@ end
 % Current one
 nTrainingSets=nTrainingSets+1;
 curTracksNA{nTrainingSets}=tracksNA;
-idGroupSelectedAll{nTrainingSets}=idGroupSelectedStruct;
+idGroupSelectedAll{nTrainingSets}=idGroupSelectedCell;
 MDAll{nTrainingSets}=MD;
 
 
@@ -129,5 +131,6 @@ end
 
 save(classProc.outFilePaths_{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
 
+disp('Re-classification Done!')
 end
 

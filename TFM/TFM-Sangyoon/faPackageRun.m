@@ -8,17 +8,18 @@ else
 end
 iPack=  MD.getPackageIndex('FocalAdhesionPackage');
 FAPackage = MD.getPackage(iPack);
+status = FAPackage.sanityCheck;
 prevProcChanged = false;
 %% Traction reconstruction
 curProcess=cell(1,11);
-for ii=1:11
+for ii=find(~status)
     curProcess{ii} = FAPackage.getProcess(ii);
     if ~isempty(curProcess{ii})
-        if ~curProcess{ii}.success_ || curProcess{ii}.procChanged_ || prevProcChanged
+%         if (~curProcess{ii}.success_ && ~curProcess{ii}.procChanged_) || prevProcChanged || ~curProcess{ii}.updated_
             curProcess{ii}.run
             MD.save
             prevProcChanged = true;
-        end
+%         end
     end
 end
 

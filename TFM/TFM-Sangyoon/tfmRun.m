@@ -1,7 +1,7 @@
 function [] = tfmRun(MDPath)
 %% set up
 % analysisFolder = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-06-29//ChoK1_shRNA_WT_Rescue_FACS_5kPa_006';
-MD=MovieData.load(MDPath);
+MD=MovieData.load(MDPath); %,'askUser',false,'askUserChannel',false);
 iPack=  MD.getPackageIndex('TFMPackage');
 TFM = MD.getPackage(iPack);
 %% SDC

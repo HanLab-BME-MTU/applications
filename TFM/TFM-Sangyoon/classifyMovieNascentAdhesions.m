@@ -211,7 +211,7 @@ else
         for jj=1:nTrainingSets
     %         curImportFilePath = fullfile(PathName,FileName);
             disp(['Loading ' sampleFolders{jj} '...'])
-            [idGroupSelectedAll{jj},MDAll{jj}]=loadSampleFolder(sampleFolders{jj});
+            [idGroupSelectedAll{jj},MDAll{jj},curTracksNA{jj}]=loadSampleFolder(sampleFolders{jj});
         end
     end
 
@@ -391,9 +391,17 @@ else
         % evolve to a decently large area.  - SH 180422 
         bigEnoughArea = maxAreaAll>thresMatureArea; %mean(meanAreaAll)+std(meanAreaAll);
         
+        % One more feature to add to distinguish the maturing adhesion from
+        % clumps of nascent adhesion at the cell edge. We should expect
+        % that the G2 should end up being a way behind the cell edge at the
+        % end of the day, e.g. at least 3 um away
+        distToEdgeLastAll = arrayfun(@(x) x.distToEdge(x.endingFrameExtraExtra),tracksNA);
+        thresDistAwayFromEdge = 3000/MD.pixelSize_;
+        awayfromEdgeLater = distToEdgeLastAll > thresDistAwayFromEdge;
+        
         indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 & ...
             sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
-            bigEnoughArea & indCleanRisingG1G2; % & indNonDecayingG2 & indLateMaxPointG2;
+            bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater; % & indNonDecayingG2 & indLateMaxPointG2;
 
         % Inspect each (temporary)
         indexG2 = find(indAbsoluteG2); 
