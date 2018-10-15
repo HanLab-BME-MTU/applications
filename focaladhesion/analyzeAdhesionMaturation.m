@@ -109,15 +109,22 @@ thisProc.setOutFilePaths(outFilePaths);
 
 %% Backup previous Analysis output
 foundTracks=false;
+startFromIntermediate = false;
 if exist(p.OutputDirectory,'dir')
     if exist(outFilePaths{1,i},'file') && exist(outFilePaths{2,i},'file') && usejava('desktop')
         useExistingTracks = questdlg(...
             ['A tracksNA and focalAdhInfo outputs have been dectected. Do you' ...
-            ' want to use these results and continue the analysis'],...
+            ' want to use these results and continue the analysis?'],...
             'Recover previous run','Yes','No','Yes');
         if strcmpi(useExistingTracks,'Yes'), foundTracks=true; end
+    elseif exist(outFilePaths{1,i},'file') && usejava('desktop')
+        useExistingTracks = questdlg(...
+            ['A tracksNA have been dectected. Do you want to use ' ...
+            ' this as an intermediate result and continue the analysis?'],...
+            'Recover previous run','Yes','No','Yes');
+        if strcmpi(useExistingTracks,'Yes'), startFromIntermediate=true; end
     end
-    if p.backupOldResults && ~foundTracks
+    if p.backupOldResults && ~foundTracks && ~startFromIntermediate
         disp('Backing up the original data')
         ii = 1;
         backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
@@ -184,100 +191,102 @@ end
 
 %% tracksNA quantification
 if ~foundTracks
-    % tracks
-    % filter out tracks that have lifetime less than 2 frames
-    disp('loading NA tracks...')
-    tic
-    tracksNAorg = trackNAProc.loadChannelOutput(iPaxChannel);
-    toc
-    % if ii>minLifetime
-    SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
-    % Remove any less than 3-frame long track.
-    isValid = SEL(:,3) >= minLifetime;
-    tracksNAorg = tracksNAorg(isValid);
-    % end
-    detectedNAs = detectedNAProc.loadChannelOutput(iPaxChannel);
+    % reformating tracks
+    if ~startFromIntermediate
+        disp('loading NA tracks...')
+        tic
+        tracksNAorg = trackNAProc.loadChannelOutput(iPaxChannel);
+        toc
+        % if ii>minLifetime: filter out tracks that have lifetime less than minLifetime
+        SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
+        % Remove any less than 3-frame long track.
+        isValid = SEL(:,3) >= minLifetime;
+        tracksNAorg = tracksNAorg(isValid);
+        % end
+        detectedNAs = detectedNAProc.loadChannelOutput(iPaxChannel);
 
-    % re-express tracksNA so that each track has information for every frame
-    disp('reformating NA tracks...')
+        % re-express tracksNA so that each track has information for every frame
+        disp('reformating NA tracks...')
 
-    tracksNA = formatTracks(tracksNAorg, detectedNAs, nFrames); 
+        tracksNA = formatTracks(tracksNAorg, detectedNAs, nFrames); 
 
-    bandArea = zeros(nFrames,1);
-    NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
-    FADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
-    nChannels = numel(MD.channels_);
-    % minEcc = 0.7;
+        bandArea = zeros(nFrames,1);
+        NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
+        FADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
+        nChannels = numel(MD.channels_);
+        % minEcc = 0.7;
 
-    % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
-    if onlyEdge
-        disp(['Filtering adhesion tracks based on cell mask. Only adhesions appearing at the edge are considered'])
-        trackIdx = false(numel(tracksNA),1);
-        bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
-        for ii=1:nFrames
-            % Cell Boundary Mask 
-            if ApplyCellSegMask
-                mask = maskProc.loadChannelOutput(iChan,ii);
-            else
-                mask = true(MD.imSize_);
-            end
-            % mask for band from edge
-            iMask = imcomplement(mask);
-            distFromEdge = bwdist(iMask);
-            bandMask = distFromEdge <= bandwidthNA_pix;
-
-            maskOnlyBand = bandMask & mask;
-            bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
-
-            % collect index of tracks which first appear at frame ii
-            idxFirstAppear = arrayfun(@(x) x.startingFrame==ii,tracksNA);
-            % now see if these tracks ever in the maskOnlyBand
-            for k=find(idxFirstAppear)'
-                if maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)))
-                    trackIdx(k) = true;
+        % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
+        if onlyEdge
+            disp('Filtering adhesion tracks based on cell mask. Only adhesions appearing at the edge are considered')
+            trackIdx = false(numel(tracksNA),1);
+            bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
+            for ii=1:nFrames
+                % Cell Boundary Mask 
+                if ApplyCellSegMask
+                    mask = maskProc.loadChannelOutput(iChan,ii);
+                else
+                    mask = true(MD.imSize_);
                 end
-            end
-        end    
-    else
-        disp('Entire adhesion tracks are considered.')
-        trackIdx = true(numel(tracksNA),1);
-        if ApplyCellSegMask
-            mask = maskProc.loadChannelOutput(iChan,1);
+                % mask for band from edge
+                iMask = imcomplement(mask);
+                distFromEdge = bwdist(iMask);
+                bandMask = distFromEdge <= bandwidthNA_pix;
+
+                maskOnlyBand = bandMask & mask;
+                bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
+
+                % collect index of tracks which first appear at frame ii
+                idxFirstAppear = arrayfun(@(x) x.startingFrame==ii,tracksNA);
+                % now see if these tracks ever in the maskOnlyBand
+                for k=find(idxFirstAppear)'
+                    if maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)))
+                        trackIdx(k) = true;
+                    end
+                end
+            end    
         else
-            mask = true(MD.imSize_);
-        end
-        for ii=1:nFrames
-            % Cell Boundary Mask 
+            disp('Entire adhesion tracks are considered.')
+            trackIdx = true(numel(tracksNA),1);
             if ApplyCellSegMask
-                mask = maskProc.loadChannelOutput(iChan,ii);
+                mask = maskProc.loadChannelOutput(iChan,1);
             else
                 mask = true(MD.imSize_);
             end
-            % mask for band from edge
-            maskOnlyBand = mask;
-            bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
-            % filter tracks with naMasks
-            % only deal with presence and status
-            % Tracks in its emerging state ever overlap with bandMask are
-            % considered.
-            for k=1:numel(tracksNA)
-                if tracksNA(k).presence(ii) && ~isnan(tracksNA(k).yCoord(ii)) && ...
-                        ((round(tracksNA(k).xCoord(ii)) > size(maskOnlyBand,2) || ...
-                        round(tracksNA(k).xCoord(ii)) < 1 || ...
-                        round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
-                        round(tracksNA(k).yCoord(ii)) < 1) || ...
-                        ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
-                    tracksNA(k).state(ii) = 6; %'Out_of_Band';
-                    tracksNA(k).presence(ii) = false;
-                    if trackIdx(k)
-                        trackIdx(k) = false;
+            for ii=1:nFrames
+                % Cell Boundary Mask 
+                if ApplyCellSegMask
+                    mask = maskProc.loadChannelOutput(iChan,ii);
+                else
+                    mask = true(MD.imSize_);
+                end
+                % mask for band from edge
+                maskOnlyBand = mask;
+                bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
+                % filter tracks with naMasks
+                % only deal with presence and status
+                % Tracks in its emerging state ever overlap with bandMask are
+                % considered.
+                for k=1:numel(tracksNA)
+                    if tracksNA(k).presence(ii) && ~isnan(tracksNA(k).yCoord(ii)) && ...
+                            ((round(tracksNA(k).xCoord(ii)) > size(maskOnlyBand,2) || ...
+                            round(tracksNA(k).xCoord(ii)) < 1 || ...
+                            round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
+                            round(tracksNA(k).yCoord(ii)) < 1) || ...
+                            ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
+                        tracksNA(k).state(ii) = 6; %'Out_of_Band';
+                        tracksNA(k).presence(ii) = false;
+                        if trackIdx(k)
+                            trackIdx(k) = false;
+                        end
                     end
                 end
             end
         end
+        % get rid of tracks that have out of bands...
+        disp(['Total ' num2str(sum(trackIdx)) ' tracks.'])
+        tracksNA = tracksNA(trackIdx);
     end
-    % get rid of tracks that have out of bands...
-    tracksNA = tracksNA(trackIdx);
     %% add intensity of tracks including before and after NA status
     % get the movie stack
     disp('Loading image stacks ...'); tic;
@@ -289,15 +298,60 @@ if ~foundTracks
     end
     toc;
 
-    % get the intensity
-    disp('Reading intensities with additional tracking...')
-    tic
+    if ~startFromIntermediate
+        %% reTracking
+        % get the intensity
+        disp('Reading intensities with additional tracking...')
+        tracksNA = readIntensityFromTracks(tracksNA, imgStack, 1, 'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
 
-    % reTrack=false;
-    tracksNA = readIntensityFromTracks(tracksNA, imgStack, 1, 'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
+        %% Filter with lifeTime 
+        lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
+        tracksNA = tracksNA(lifeTime>minLifetime);
+        %% tracks saving format
+        numTracks=numel(tracksNA);
+        trackFolderPath = [p.OutputDirectory filesep 'trackIndividual'];
+        mkdir(trackFolderPath)
+        fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+        numStr = @(trackNum) num2str(trackNum,fString);
+        trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
 
+        for ii=1:numTracks
+            curTrack = tracksNA(ii);
+            save(trackIndPath(ii), 'curTrack')
+        end
+        metaTrackData.numTracks = numTracks;
+        metaTrackData.trackFolderPath = trackFolderPath;
+        metaTrackData.eachTrackName = 'curTrack';
+        metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+        metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
+        metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+        save(dataPath_tracksNA,'metaTrackData')
+        disp('Intermediate saving for tracksNA is done (only readIntnesity performed)')
 
-    toc
+        toc
+    end
+        
+    if startFromIntermediate
+    %     load(dataPath_tracksNA, 'tracksNA');
+        load(dataPath_tracksNA);
+        fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+        numStr = @(trackNum) num2str(trackNum,fString);
+        trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+        progressText(0,'Loading tracksNA') % Create text & waitbar popup
+        for ii=metaTrackData.numTracks:-1:1
+            curTrackObj = load(trackIndPath(ii),'curTrack');
+            try
+                tracksNA(ii,1) = curTrackObj.curTrack;
+            catch % this time fields are not common
+                names=fieldnames(tracksNA);
+                for qq=1:numel(names)
+                    tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
+                end
+            end
+            progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+        end
+    end
+    
     %% Filtering again after re-reading
     disp('Filtering again after re-reading with cell mask ...')
     tic
@@ -335,7 +389,6 @@ if ~foundTracks
             end
         end    
     else
-        disp('Entire adhesion tracks are considered.')
         trackIdx = true(numel(tracksNA),1);
         for ii=1:nFrames
             % Cell Boundary Mask 
@@ -370,6 +423,7 @@ if ~foundTracks
     toc
     % get rid of tracks that have out of bands...
     tracksNA = tracksNA(trackIdx);
+    disp(['Total ' num2str(sum(trackIdx)) ' tracks.'])
     %%%%%
     %% Filter with lifeTime again
     lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
@@ -629,46 +683,119 @@ if ~foundTracks
                         end
                     end
                 end
+                parsave(trackIndPath(ii),curTrack)
+                
                 tracksNA(k)=curTrack;
             end
         else
             FCIdx = [];
             FAIdx = [];
         end
-        % recording features
-        % get the point on the boundary closest to the adhesion
-        if getEdgeRelatedFeatures
-            allBdPoints = [];
-            for kk=1:nBD
-                boundary = B{kk};
-                allBdPoints = [allBdPoints; boundary(:,2), boundary(:,1)];
-            end
-            for k=1:numel(tracksNA)
-                % distance to the cell edge
-        %         if tracksNA(k).presence(ii)
-                if ii>=tracksNA(k).startingFrameExtraExtra && ii<=tracksNA(k).endingFrameExtraExtra
-                    xCropped = tracksNA(k).xCoord(ii);
-                    yCropped = tracksNA(k).yCoord(ii);
-                    distToAdh = sqrt(sum((allBdPoints- ...
-                        ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
-                    [minDistToBd,indMinBdPoint] = min(distToAdh);
-                    tracksNA(k).distToEdge(ii) = minDistToBd;
-                    tracksNA(k).closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
-                    if allBdPoints(indMinBdPoint,1)==0 || isnan(allBdPoints(indMinBdPoint,1))
-                        error(['Error occurred at ii=' num2str(ii) ' and indMinBDPoint=' num2str(indMinBdPoint) ' and k=' num2str(k) ', allBdPoints(indMinBdPoint,1)=' num2str(allBdPoints(indMinBdPoint,1))]);
-                    end
-                end
-            end
-        end
         progressText(ii/(nFrames));
     end
-
-
+    %% saving
+    save(dataPath_focalAdhInfo, 'focalAdhInfo','-v7.3')
     %% protrusion/retraction information
     % time after protrusion onset (negative value if retraction, based
     % on the next protrusion onset) in frame, based on tracksNA.distToEdge
     % First I have to quantify when the protrusion and retraction onset take
     % place.
+    % recording features
+    % get the point on the boundary closest to the adhesion
+    % I changed the way to calculate the closest boundary
+    % point and distance to the edge. I will make it to
+    % reflect the moving direction
+    numTracks=numel(tracksNA);
+    
+    if getEdgeRelatedFeatures
+        %% Getting edge information relative to adhesions
+        progressText(0,'Getting edge information relative to adhesions', 'Adhesion Analysis');
+        matchingAdhLineFit=cell(numTracks,1);
+        allBdPointsAll=cell(numTracks,1);
+        for ii=1:nFrames
+            % Cell Boundary Mask 
+            if ApplyCellSegMask
+                mask = maskProc.loadChannelOutput(iChan,ii);
+            else
+                mask = true(MD.imSize_);
+            end
+            [B,~,nBD]  = bwboundaries(mask,'noholes');
+            allBdPoints = [];
+            for kk=1:nBD
+                boundary = B{kk};
+                allBdPoints = [allBdPoints; boundary(:,2), boundary(:,1)];
+            end
+            allBdPointsAll{ii}=allBdPoints;
+            progressText(ii/(nFrames));
+        end
+        %% Get each adhesion's moving direction
+        progressText(0,'Adhesion''s main movement direction', 'Adhesion Analysis');
+        parfor k=1:numTracks
+            curTrack = tracksNA(k);
+            sF=curTrack.startingFrameExtra; eF=curTrack.endingFrameExtra;
+            try
+                fitobj = fit(curTrack.xCoord(sF:eF)',curTrack.yCoord(sF:eF)','poly1'); % this is an average linear line fit of the adhesion track
+            catch
+                % This means fitting a line with the track has failed, highly
+                % likely due to too short track lifetime or too variable
+                % lacations or having NaNs
+                curX = curTrack.xCoord(sF:eF); curY=curTrack.yCoord(sF:eF);
+                indNaNX = isnan(curX);
+                t = 1:length(curX);
+                t_nn = t(~indNaNX);
+                curX2 = interp1(t_nn,curX(~indNaNX),t,'linear','extrap');
+                curY2 = interp1(t_nn,curY(~indNaNX),t,'linear','extrap');
+
+                fitobj = fit(curX2(~isnan(curX2))',curY2(~isnan(curY2))','poly1'); % this is an average linear line fit of the adhesion track
+            end
+            matchingAdhLineFit{k}=fitobj;
+            progressText(k/numTracks);
+        end    
+        %% Calculating distance from each adhesion to relevant edge
+        progressText(0,'Calculating distance from each adhesion to relevant edge', 'Adhesion Analysis');
+        if ~isfield(tracksNA,'distToEdge')
+            tracksNA(end).distToEdge=[];
+        end
+        if ~isfield(tracksNA,'closestBdPoint')
+            tracksNA(end).closestBdPoint=[];
+        end
+        parfor k=1:numTracks
+            curTrack = tracksNA(k);
+            % Load each adhesion's moving direction
+            fitobj=matchingAdhLineFit{k};
+            for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
+                allBdPoints = allBdPointsAll{ii};
+                xCropped = curTrack.xCoord(ii);
+                yCropped = curTrack.yCoord(ii);
+                % Make the line out of the fit (along the major moving
+                % direction of the adhesion
+                xmin=min(allBdPoints(:,1)); xmax=max(allBdPoints(:,1));
+                x2=xmin:xmax;
+                y2=fitobj(x2)';
+                % The intersect between this line and
+                % the allBdPoints
+                P = InterX([allBdPoints(:,1)';allBdPoints(:,2)'],[x2;y2])';
+                distToAdh = sqrt(sum((P-ones(size(P,1),1)*[xCropped, yCropped]).^2,2));
+                [minDistToBd,indMinBdPoint] = min(distToAdh);
+
+                curTrack.distToEdge(ii) = minDistToBd;
+                curTrack.closestBdPoint(ii,:) = P(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+%                     x0=nanmedian(curTrack.xCoord);
+%                     y0=fitobj(x0);
+%                     dx = 1;
+%                     dy = fitobj.p1;
+%                     trackLine = createLineGeom2d(x0,y0,dx,dy); % this is a geometric average linear line of the adhesion track
+%                     distToAdh = sqrt(sum((allBdPoints- ...
+%                         ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
+%                     [minDistToBd,indMinBdPoint] = min(distToAdh);
+%                     if allBdPoints(indMinBdPoint,1)==0 || isnan(allBdPoints(indMinBdPoint,1))
+%                         error(['Error occurred at ii=' num2str(ii) ' and indMinBDPoint=' num2str(indMinBdPoint) ' and k=' num2str(k) ', allBdPoints(indMinBdPoint,1)=' num2str(allBdPoints(indMinBdPoint,1))]);
+%                     end
+                tracksNA(k) = curTrack;
+            end
+            progressText(k/numTracks);
+        end
+    end
 
     if getEdgeRelatedFeatures
         for k=1:numTracks
@@ -680,13 +807,11 @@ if ~foundTracks
     deltaT = MD.timeInterval_; % sampling rate (in seconds, every deltaT seconds)
     if ~isfield(tracksNA,'advanceDist')
         tracksNA = getFeaturesFromTracksNA(tracksNA, deltaT, getEdgeRelatedFeatures);%,...);
-        clear cropMaskStack
+        clear cropMaskStack matchingAdhLineFit
         % This will add features like: advanceDist, edgeAdvanceDist, MSD,
         % MSDrate, assemRate, disassemRate, earlyAmpSlope,lateAmpSlope
     end
 
-    %% saving
-    save(dataPath_focalAdhInfo, 'focalAdhInfo','-v7.3')
 else % If this part above is already processed
 %     load(dataPath_tracksNA, 'tracksNA');
     load(dataPath_tracksNA);
@@ -696,7 +821,14 @@ else % If this part above is already processed
     progressText(0,'Loading tracksNA') % Create text & waitbar popup
     for ii=metaTrackData.numTracks:-1:1
         curTrackObj = load(trackIndPath(ii),'curTrack');
-        tracksNA(ii,1) = curTrackObj.curTrack;
+        try
+            tracksNA(ii,1) = curTrackObj.curTrack;
+        catch % this time fields are not common
+            names=fieldnames(tracksNA);
+            for qq=1:numel(names)
+                tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
+            end
+        end
         progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
     end
     numTracks = metaTrackData.numTracks;
@@ -742,24 +874,16 @@ end
 % tableTracksNA = struct2table(tracksNA);
 % save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
 %% Saving with each track
-trackFolderPath = [p.OutputDirectory filesep 'trackIndividual'];
-mkdir(trackFolderPath)
-fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
-numStr = @(trackNum) num2str(trackNum,fString);
-trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-
-for ii=1:numTracks
-    curTrack = tracksNA(ii);
-    save(trackIndPath(ii),'curTrack')
+if ~foundTracks
+    %% Saving the metaTrackData
+    metaTrackData.numTracks = numTracks;
+    metaTrackData.trackFolderPath = trackFolderPath;
+    metaTrackData.eachTrackName = 'curTrack';
+    metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+    metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
+    metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+    save(dataPath_tracksNA,'metaTrackData')
 end
-%% Saving the metaTrackData
-metaTrackData.numTracks = numTracks;
-metaTrackData.trackFolderPath = trackFolderPath;
-metaTrackData.eachTrackName = 'curTrack';
-metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
-metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
-metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-save(dataPath_tracksNA,'metaTrackData')
 %% debug
 % save(dataPath_tracksNA,'tracksNA')
 %% NA FA Density analysis

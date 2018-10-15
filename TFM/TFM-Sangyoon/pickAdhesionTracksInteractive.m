@@ -1,4 +1,4 @@
-function [IDs, iGroups, iPrevGroups]=pickAdhesionTracksInteractive(tracksNA, imgMap, varargin)
+function [IDs, iGroups, iPrevGroups, tracksNA]=pickAdhesionTracksInteractive(tracksNA, imgMap, varargin)
 % this function reads from Colocalization folder and shows the specified
 % tracks on selected Channel interactively.
 %% input reading
@@ -144,12 +144,13 @@ else
         plot(xmat',ymat','r')
     end
 end
-classDescription={'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
-    'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'};
-lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
-    classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
-lgdHandle.Color='k'; lgdHandle.TextColor='w';
-
+if ~isempty(idSelected)
+    classDescription={'G1:turn-over','G2:maturing','G3:moving along protruding edge',...
+        'G4:retracting','G5:stable at the edge','G6:noise or very transient','G7:adhesions at stalling edge','G8:strong stable adhesion', 'G9:weak stable adhesion inside'};
+    lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
+        classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
+    lgdHandle.Color='k'; lgdHandle.TextColor='w';
+end
 hold off
 % Supporting data cursor mode to identify an ID of NA track of interest.
 dcm_obj = datacursormode(hFig);
@@ -495,10 +496,18 @@ function pushInspectAdhesion(~,~)
             if ~isempty(idSelected)
                 iCurPrevGroup = 0;
                 for kk=1:numel(fieldnames(idSelected))
-                    memberName = ['idGroup' num2str(kk) 'Selected'];
-                    if ismember(IDtoInspect,idSelected.(memberName))
-                        iCurPrevGroup = kk;
-                        break
+                    if isfield(idSelected,'idGroup1Selected')
+                        memberName = ['idGroup' num2str(kk) 'Selected'];
+                        if ismember(IDtoInspect,idSelected.(memberName))
+                            iCurPrevGroup = kk;
+                            break
+                        end
+                    else
+                        memberName = ['idGroup' num2str(kk)];
+                        if ismember(IDtoInspect,find(idSelected.(memberName)))
+                            iCurPrevGroup = kk;
+                            break
+                        end
                     end
                 end
                 iPrevGroups = [iPrevGroups iCurPrevGroup];
@@ -639,9 +648,11 @@ function XListenerCallBack
 %     catch
 %         disp(' ')
 %     end
-    lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
-        classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
-    lgdHandle.Color='k'; lgdHandle.TextColor='w';
+    if ~isempty(idSelected)
+        lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
+            classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
+        lgdHandle.Color='k'; lgdHandle.TextColor='w';
+    end
 
     hold off
 
@@ -682,9 +693,11 @@ function XSliderCallback(~,~)
             plot(xmat',ymat','r')
         end
     end
-    lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
-        classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
-    lgdHandle.Color='k'; lgdHandle.TextColor='w';
+    if ~isempty(idSelected)
+        lgdHandle=legend([htrackG{1} htrackG{2} htrackG{3} htrackG{4} htrackG{5} htrackG{6} htrackG{7} htrackG{8} htrackG{9}],...
+            classDescription(~cellfun(@isempty,htrackG)'),'TextColor','k','Location','best');
+        lgdHandle.Color='k'; lgdHandle.TextColor='w';
+    end
     %% segmented focal adhesions
 %     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
 %     try

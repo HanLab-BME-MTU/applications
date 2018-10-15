@@ -19,6 +19,10 @@ for k=1:numel(tracksNA)
     
     [~,curM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).amp(sF:lastFrame));
     tracksNA(k).earlyAmpSlope = curM; % in a.u./min
+    if isfield(tracksNA,'ampTotal2')
+        [~,curM2] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).ampTotal2(sF:lastFrame));
+        tracksNA(k).earlyAmpSlope2 = curM2; % in a.u./min
+    end
     [~,curForceM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame));
 %         figure, plot(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
 %         figure, plotregression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))

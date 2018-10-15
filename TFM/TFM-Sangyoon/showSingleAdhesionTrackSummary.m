@@ -26,7 +26,7 @@ chosenEndFrame = curEndFrameEE;
 
 splineParamInit=0.99; %0.99;
 preDetecFactor=.3;
-[~,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
+[~,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack1]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
 frameFII=round(firstIncreseTimeInt/tInterval);
 frameFTI=round(firstIncreseTimeForce/tInterval);
 
@@ -34,7 +34,7 @@ if isnan(frameFII) || isnan(frameFTI)
     splineParamInit=0.80;
     preDetecFactor=.3;
     [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,...
-        firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce,curTrack] =...
+        firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce,curTrack1] =...
         calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
     frameFII=round(firstIncreseTimeInt/tInterval);
     frameFTI=round(firstIncreseTimeForce/tInterval);
@@ -295,7 +295,7 @@ for ii= indiceRange
     else
         markerType = 'ro'; bdType='r';
     end
-    if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
+    if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
         markerType = 'go'; bdType='g';
     end
     plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
@@ -339,7 +339,7 @@ for ii= indiceRange
     else
         markerType = 'ro';
     end
-    if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting && (eF==frameFTI)% && eF<frameFTI+montInterval)
+    if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && (eF==frameFTI)% && eF<frameFTI+montInterval)
         markerType = 'go';
     end
 %     plot(curTrack.xCoord(sF:eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(sF:eF)-bBottom+q*monImgH+1,'w', 'LineWidth', 0.5)
@@ -365,13 +365,15 @@ else
 end
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'b')
-if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting
-    plot((frameFII-curStartFrameEE)*tInterval,curTrack.ampTotal(frameFII),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
+plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack1.ampTotal(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
+plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack1.ampTotal(curStartFrame+4:curEndFrame-4),'b')
+if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting
+    plot((frameFII-curStartFrameEE)*tInterval,curTrack1.ampTotal(frameFII),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
     text((frameFII-curStartFrameEE)*tInterval+12,curTrack.ampTotal(frameFII)+5,[num2str((frameFII-curStartFrameEE)*tInterval) ' s'])
 end
 %background level
-if isfield(curTrack,'bkgMaxInt') && ~isempty(curTrack.bkgMaxInt)
-    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxInt curTrack.bkgMaxInt],'linestyle',':','Color','k')
+if isfield(curTrack1,'bkgMaxInt') && ~isempty(curTrack1.bkgMaxInt)
+    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack1.bkgMaxInt curTrack1.bkgMaxInt],'linestyle',':','Color','k')
 end
     
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
@@ -383,13 +385,15 @@ else
     ax9=axes('Position',[250/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
 end
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
+plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack1.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrame:curEndFrame),'r')
-if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting && frameFTI<=length(curTrack.forceMag)
+plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack1.forceMag(curStartFrame:curEndFrame),'r')
+if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && frameFTI<=length(curTrack.forceMag)
     plot((frameFTI-curStartFrameEE)*tInterval,curTrack.forceMag(frameFTI),'o','MarkerFaceColor','r','MarkerEdgeColor','w')
     text((frameFTI-curStartFrameEE)*tInterval+12,curTrack.forceMag(frameFTI)+5,[num2str((frameFTI-curStartFrameEE)*tInterval) ' s'])
 end
-if isfield(curTrack,'bkgMaxSlave') && ~isempty(curTrack.bkgMaxSlave)
-    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack.bkgMaxSlave curTrack.bkgMaxSlave],'LineStyle',':','Color','k')
+if isfield(curTrack1,'bkgMaxSlave') && ~isempty(curTrack1.bkgMaxSlave)
+    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack1.bkgMaxSlave curTrack1.bkgMaxSlave],'LineStyle',':','Color','k')
 end
 xlabel('Time (s)'); ylabel('Traction (Pa)')
 set(ax9,'FontUnits',genFontUnit,'FontSize',genFontSize)
@@ -544,23 +548,26 @@ if ~isempty(imgMap2)
         else
             markerType = 'ro'; bdType='r';
         end
-        if isfield(curTrack,'forceTransmitting') && curTrack.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
+        if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
             markerType = 'go'; bdType='g';
         end
         plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
     end
 
     % Third channel time series
-    ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
-    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrameEE:curEndFrameEE),'k'), hold on
-    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrame:curEndFrame),'m')
-    
     [curFirstIncreseTimeIntAgainstSlave,SlaveTransmitting...
-    ,~,firstIncreseTimeSlave,~,bkgMaxSlave] ...
+    ,~,firstIncreseTimeSlave,~,bkgMaxSlave,curTrack2] ...
         = calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval,'slaveSource','ampTotal2');
     frameFII2 = round(firstIncreseTimeSlave/tInterval);
-    if SlaveTransmitting && frameFII2<=length(curTrack.ampTotal2)
-        plot((frameFII2-curStartFrameEE)*tInterval,curTrack.ampTotal2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
+
+    ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
+    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrameEE:curEndFrameEE),'k'), hold on
+    plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack2.ampTotal2(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
+    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrame:curEndFrame),'m')
+    plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack2.ampTotal2(curStartFrame+4:curEndFrame-4),'m')
+    
+    if SlaveTransmitting && frameFII2<=length(curTrack2.ampTotal2)
+        plot((frameFII2-curStartFrameEE)*tInterval,curTrack2.ampTotal2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
         text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.ampTotal2(frameFII2)+5,[num2str((frameFII2-curStartFrameEE)*tInterval) ' s'])
     end
     if ~isempty(bkgMaxSlave)
@@ -600,7 +607,7 @@ if exist('gPath','var')
     savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.fig'))
 end
 if exist('IDtoInspect','var')
-    disp(['This ' num2str(IDtoInspect) ' th track has ' num2str(-curTrack.firstIncreseTimeIntAgainstForce,'% 10.1f') ' sec of initial time lag of force after fluorescence signal.'])
+    disp(['This ' num2str(IDtoInspect) ' th track has ' num2str(-curTrack1.firstIncreseTimeIntAgainstForce,'% 10.1f') ' sec of initial time lag of force after fluorescence signal.'])
     if ~isempty(imgMap2)
         disp(['This track also has ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f') ' sec of initial time lag of ampTotal2 after ampTotal.'])
     end

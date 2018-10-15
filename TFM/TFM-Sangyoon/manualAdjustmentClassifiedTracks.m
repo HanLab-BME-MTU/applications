@@ -1,4 +1,4 @@
-function [] = manualLabelingAfterInitialClassification( MD )
+function [] = manualAdjustmentClassifiedTracks( MD )
 %function [] = manualLabelingAfterInitialClassification( MD ) opens an
 % interactive window with classified adhesion tracks so that the user can
 % select several adhesions to change their assignment to a right class. 
@@ -6,11 +6,11 @@ function [] = manualLabelingAfterInitialClassification( MD )
 % Show some instruction window to tell a user what to do
 
 %% Let the user know whats going on
-waitHan = msgbox({'You will see the cell window and auto-labeled adhesion tracks with color';
-'label. After closing this window, please select colored (labeled)';
-'adhesions to correct their assignment or select the white (unlabeled) to';
-'add the training data to the selectedGroups.mat, which will be updated';
-'after this process.'});
+waitHan = msgbox({'You will see the cell window and classified adhesion tracks with color';
+'label. After closing this window, please select colored (classified)';
+'adhesions to correct their assignment to add the adjusted class';
+'assignment to the idsClassified.mat, which will be updated after this process.'});
+
 uiwait(waitHan);            
 
 %% Load FA package
@@ -21,7 +21,7 @@ classProc = faPackage.getProcess(8);
 
 %% Load the selectedGroups.mat
 iChan = find(classProc.checkChannelOutput);
-idGroupSelectedStruct = classProc.loadChannelOutput(iChan, 'output', 'selectedGroups');
+idsClassifiedStruct = load(classProc.outFilePaths_{4,iChan});
 
 %% Load tracksNA
 adhAnalProc = faPackage.getProcess(7);
@@ -33,7 +33,7 @@ tracksNA=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA');
 % unlabed ones with white color. Get the right classes per newly selected
 % adhesions
 [IDs, iGroups, iPrevGroups,tracksNA]=pickAdhesionTracksInteractive(tracksNA, imgStack,...
-    'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2, 'idSelected',idGroupSelectedStruct);
+    'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2, 'idSelected',idsClassifiedStruct);
 
 
 %% Combine the indices into a new selectedGroups (take out ids from
@@ -41,29 +41,27 @@ tracksNA=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA');
 % idGroupSelectedStruct).
 % % check if the included iGroups were changing from iPrevGroups
 % iChangedGroups = iGroups ~= iPrevGroups;
+idGroupSelectedStruct = classProc.loadChannelOutput(iChan, 'output', 'selectedGroups');
 numGroups = 9;
 idGroupSelectedCell=cell(1,numGroups);
-for ii=1:numGroups
-    % check if this iGroups is included in pre-existing
-    % idGroupSelectedStruct's ii-th group
-    memberName = ['idGroup' num2str(ii) 'Selected'];
-    % take out ids from idGroupSelectedStruct if changed in iGroups
-    indIncludedInPrevGroup=ismember(iPrevGroups,ii);
-    if any(indIncludedInPrevGroup)
-        idGroupSelectedStruct.(memberName)(ismember(idGroupSelectedStruct.(memberName),IDs(indIncludedInPrevGroup)))=[];
+% go over each label and assign and de-assign the group
+for kk=1:numel(IDs)
+    curID = IDs(kk);
+    curPrevGroup = iPrevGroups(kk);
+    curGroup = iGroups(kk);
+    % Deassign if it was belong to another group
+    groupPrevName = ['idGroup' num2str(curPrevGroup) 'Selected'];
+    if ismember(curID,idGroupSelectedStruct.(groupPrevName))
+        idGroupSelectedStruct.(groupPrevName)(ismember(idGroupSelectedStruct.(groupPrevName),curID))=[];
     end
-    % put into a new idGroupSelectedStruct if changed from iPrevGroups
-    indIncludedInIGroup=ismember(iGroups,ii) & iGroups ~= iPrevGroups;
-    if any(indIncludedInIGroup)
-        idGroupSelectedStruct.(memberName)=[idGroupSelectedStruct.(memberName) IDs(indIncludedInIGroup)];
+    % Assign to the current group
+    groupCurName = ['idGroup' num2str(curGroup) 'Selected'];
+    if ~ismember(curID,idGroupSelectedStruct.(groupCurName))
+        idGroupSelectedStruct.(groupCurName)=[idGroupSelectedStruct.(groupCurName) curID];
     end
-    idGroupSelectedCell{ii} = idGroupSelectedStruct.(memberName);
 end
 
 %% Perform classification for entire population of tracksNA
-% Load idClasses
-idClasses = classProc.loadChannelOutput(iChan, 'output', 'iClassesAll');
-
 % including previous training data
 p=classProc.funParams_;
 sampleFolders=p.labelData;
@@ -131,6 +129,6 @@ end
 
 save(classProc.outFilePaths_{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
 
-disp('Re-classification Done!')
+disp('Classification Adjustment Done!')
 end
 

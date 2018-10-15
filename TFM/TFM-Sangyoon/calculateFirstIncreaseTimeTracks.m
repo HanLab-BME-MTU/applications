@@ -88,18 +88,31 @@ for ii=1:numel(tracksNA)
         nTime = length(d);
         if useSmoothing
 %             d = tracksNA(ii).ampTotal;
-            tRange = tracksNA(ii).iFrame;
+%             tRange = tracksNA(ii).iFrame;
             d(d==0)=NaN;
             warning('off','SPLINES:CHCKXYWP:NaNs')
-            try
-                sd_spline= csaps(tRange,d,splineParamInit);
-            catch
-                d = tracksNA(ii).amp;
-                d(sFEE:curTrack.endingFrameExtraExtra) = tracksNA(ii).ampTotal(sFEE:curTrack.endingFrameExtraExtra);
-                sd_spline= csaps(tRange,d,splineParamInit);
+%             try
+%                 sd_spline= csaps(tRange,d,splineParamInit);
+%             catch
+%                 d = tracksNA(ii).amp;
+%                 d(sFEE:curTrack.endingFrameExtraExtra) = tracksNA(ii).ampTotal(sFEE:curTrack.endingFrameExtraExtra);
+%                 sd_spline= csaps(tRange,d,splineParamInit);
+%             end
+%             sd=ppval(sd_spline,tRange);
+%             sd(isnan(d))=NaN;
+            % Trying the change point analysis with mean of 3 moving window
+            windowSize = 5; 
+            b = (1/windowSize)*ones(1,windowSize);
+            a = 1;
+            sd = filter(b,a,d);
+            sF = find(~isnan(d),1);
+            eF = find(~isnan(d),1,'last');
+            % End points correction
+            for jj=1:windowSize
+                % first point
+                sd(sF+jj-1) = sd(sF+jj-1) * windowSize / jj;
+                sd(eF-jj+1) = sd(eF-jj+1) * windowSize / jj;
             end
-            sd=ppval(sd_spline,tRange);
-            sd(isnan(d))=NaN;
 %             % median filtering - based outlier filtering
 %             filteredSD = medfilt1(sd,13,'omitnan');
 %             [outlierIdx] = detectOutliers(sd,9);
@@ -120,10 +133,17 @@ for ii=1:numel(tracksNA)
                  getfield(curTrack,{1},slaveSource,{curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra});
                 %                 curForce(isnan(curForce)) = [];
                 if sum(~isnan(curSlave))>1
-                    sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
-                    sCurForce_sd=ppval(sCurForce_spline,tRange);
+%                     sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
+%                     sCurForce_sd=ppval(sCurForce_spline,tRange);
+                    sCurForce_sd = filter(b,a,curSlave);
+                    for jj=1:windowSize
+                        % first point
+                        sCurForce_sd(sF+jj-1) = sCurForce_sd(sF+jj-1) * windowSize / jj;
+                        sCurForce_sd(eF-jj+1) = sCurForce_sd(eF-jj+1) * windowSize / jj;
+                    end
+                    
                     sCurForce_sd(isnan(curSlave))=NaN;
-                    tracksNA(ii).forceMag = sCurForce_sd;
+                    tracksNA(ii).(slaveSource) = sCurForce_sd;
     %                 sCurForce = [NaN(1,numNan) sCurForce];
                     bkgMaxForce = max(0,nanmax(sCurForce_sd(sF10before:sF5before))); % 10 is the tolr value in L1-reg
                     firstIncreaseTimeForce = find(sCurForce_sd>bkgMaxForce & 1:length(sCurForce_sd)>sF5before,1);

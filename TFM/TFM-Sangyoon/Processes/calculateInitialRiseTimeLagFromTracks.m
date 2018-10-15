@@ -274,15 +274,24 @@ idGroup1f=false(size(idGroup1)); idGroup1index=find(idGroup1);
 idGroup1f(idGroup1index(validTrackID))=true;
 
 % Filtering for group2
-ampSlopeG2 = arrayfun(@(x) x.ampSlope,tracksNA(idGroup2));
-initForceG2 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup2));
+ampSlopeG2 = zeros(sum(idGroup2),1); %arrayfun(@(x) x.ampSlope,tracksNA(idGroup2));
+ii=0;
+for pp=find(idGroup2)'
+    ii=ii+1;
+    tracksNA(pp).lifeTime = tracksNA(pp).endingFrameExtra - tracksNA(pp).startingFrameExtra;
+    curTrack = tracksNA(pp);
+    
+    sF=curTrack.startingFrameExtraExtra; eF=curTrack.endingFrameExtraExtra;
+    [~,ampSlopeG2(ii)] = regression((1:eF-sF+1),curTrack.ampTotal(sF:eF));
+end
+% initForceG2 = arrayfun(@(x) x.forceMag(x.startingFrame),tracksNA(idGroup2));
 lifeTimeG2 = arrayfun(@(x) x.lifeTime,tracksNA(idGroup2));
 ampEndingG2 = arrayfun(@(x) x.ampTotal(x.endingFrameExtra),tracksNA(idGroup2));
 ampStartingG2 = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA(idGroup2));
 idxIncreasingAmpG2 = ampSlopeG2>0 & ampEndingG2>ampStartingG2;
 % idxLowInitForceG2= initForceG2<500;
 % maturing NA should have at least 3 min of lifetime
-thresLT_G2_frames = 3*60/tInterval;
+thresLT_G2_frames = 2*60/tInterval;
 idxLongLifeTimeG2=lifeTimeG2>thresLT_G2_frames;
 idGroup2valid = idxIncreasingAmpG2 & idxLongLifeTimeG2; %& idxLowInitForceG2 
 idGroup2f=false(size(idGroup2)); idGroup2index=find(idGroup2);
@@ -810,6 +819,31 @@ end
     save([p.OutputDirectory filesep 'data' filesep 'startingAmpTotal.mat'],'startingAmpTotal','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'startingAmpTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/startingAmpTotalAllGroups'),'-v7.3'); close
+    %% Look at feature difference per each group - starting ampTotal2
+    if isfield(tracksNA,'ampTotal2')
+        startingAmpTotal2{1} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup1f));
+        startingAmpTotal2{2} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup2f));
+        startingAmpTotal2{3} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup3));
+        startingAmpTotal2{4} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup4));
+        startingAmpTotal2{5} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup5));
+        startingAmpTotal2{6} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup6));
+        startingAmpTotal2{7} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup7));
+        startingAmpTotal2{8} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup8));
+        startingAmpTotal2{9} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup9));
+        figure;
+        boxPlotCellArray(startingAmpTotal2,groupNameList);
+
+        title('startingAmpTotal2')
+        ylabel('Fluorescence intensity (A.U.)')
+        save([p.OutputDirectory filesep 'data' filesep 'startingAmpTotal2.mat'],'startingAmpTotal2','-v7.3')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotal2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); 
+    end
+    %%
+    if isfield(tracksNA,'ampTotal2')
+        close
+    end
+   
     %% Look at feature difference per each group - starting edgeAdvanceDistChange
     edgeAdvanceDistChange{1} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup1f));
     edgeAdvanceDistChange{2} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup2f));
@@ -847,44 +881,46 @@ end
     %%
     close
     %% Look at feature difference per each group - mainTimeToPeakGroup
-    nameTwoGroups={'G1','G2'};
-    numIdGroups=cellfun(@sum,idGroups);
-    nameTwoGroups(numIdGroups(1:2)<1)=[];
-    for jj=existingSlaveIDs    
-        curSlaveCell = potentialSlaves(jj);
-        curSlave=curSlaveCell{1};
-        
-        figure;
-        boxPlotCellArray(mainTimeToPeakGroup(:,jj)',nameTwoGroups);
-        title(['mainTimeToPeakBccGroup, amp-' curSlave])
-        ylabel('mainTimeToPeakBccGroup (sec)')
-        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainTimeToPeakBccGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
-        hgsave(strcat(figPath,'/mainTimeToPeakBccGroup', curSlave),'-v7.3'); 
-%         %% Look at feature difference per each group - mainBccPeakValuesGroup
+%     nameTwoGroups={'G1','G2'};
+%     numIdGroups=cellfun(@sum,idGroups);
+%     nameTwoGroups(numIdGroups(1:2)<1)=[];
+%     for jj=existingSlaveIDs    
+%         curSlaveCell = potentialSlaves(jj);
+%         curSlave=curSlaveCell{1};
+%         
 %         figure;
-%         boxPlotCellArray(mainBccPeakValuesGroup(:,jj)',nameTwoGroups);
-%         title(['mainBccPeakValuesGroup, amp-' curSlave])
-%         ylabel('mainBccPeakValuesGroup (AU)')
-%         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
-%         hgsave(strcat(figPath,'/mainBccPeakValuesGroup', curSlave),'-v7.3'); 
-%         %% Look at feature difference per each group - mainBccPeakValuesGroup
-%         figure;
-%         boxPlotCellArray(sideBccPeakValuesGroup(:,jj)',nameTwoGroups);
-%         title(['sideBccPeakValuesGroup, amp-' curSlave])
-%         ylabel('sideBccPeakValuesGroup (AU)')
-%         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
-%         hgsave(strcat(figPath,'/sideBccPeakValuesGroup', curSlave),'-v7.3'); 
-%         %% Look at feature difference per each group - mainBccPeakValuesGroup
-%         figure;
-%         boxPlotCellArray(sideTimeToPeakGroup(:,jj)',nameTwoGroups);
-%         title(['sideTimeToPeakGroup, amp-' curSlave])
-%         ylabel('sideTimeToPeakGroup (AU)')
-%         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideTimeToPeakGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
-%         hgsave(strcat(figPath,'/sideTimeToPeakGroup', curSlave),'-v7.3'); 
-    end
+%         boxPlotCellArray(mainTimeToPeakGroup(:,jj)',nameTwoGroups);
+%         title(['mainTimeToPeakBccGroup, amp-' curSlave])
+%         ylabel('mainTimeToPeakBccGroup (sec)')
+%         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainTimeToPeakBccGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+%         hgsave(strcat(figPath,'/mainTimeToPeakBccGroup', curSlave),'-v7.3'); 
+% %         %% Look at feature difference per each group - mainBccPeakValuesGroup
+% %         figure;
+% %         boxPlotCellArray(mainBccPeakValuesGroup(:,jj)',nameTwoGroups);
+% %         title(['mainBccPeakValuesGroup, amp-' curSlave])
+% %         ylabel('mainBccPeakValuesGroup (AU)')
+% %         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'mainBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+% %         hgsave(strcat(figPath,'/mainBccPeakValuesGroup', curSlave),'-v7.3'); 
+% %         %% Look at feature difference per each group - mainBccPeakValuesGroup
+% %         figure;
+% %         boxPlotCellArray(sideBccPeakValuesGroup(:,jj)',nameTwoGroups);
+% %         title(['sideBccPeakValuesGroup, amp-' curSlave])
+% %         ylabel('sideBccPeakValuesGroup (AU)')
+% %         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideBccPeakValuesGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+% %         hgsave(strcat(figPath,'/sideBccPeakValuesGroup', curSlave),'-v7.3'); 
+% %         %% Look at feature difference per each group - mainBccPeakValuesGroup
+% %         figure;
+% %         boxPlotCellArray(sideTimeToPeakGroup(:,jj)',nameTwoGroups);
+% %         title(['sideTimeToPeakGroup, amp-' curSlave])
+% %         ylabel('sideTimeToPeakGroup (AU)')
+% %         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'sideTimeToPeakGroup' curSlave '.eps']);% histogramPeakLagVinVsTal -transparent
+% %         hgsave(strcat(figPath,'/sideTimeToPeakGroup', curSlave),'-v7.3'); 
+%     end
     %% recalculate force slope 
+    disp('Calculating slopes of amplitude and force again...')
+    tic
     tracksNA = calculateTrackSlopes(tracksNA,tInterval);
-
+    toc
     %% assembly rate and force growth rate in curIndices
     forceSlopeG1 =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
     earlyAmpSlopeG1 =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup1f));
@@ -922,6 +958,30 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'earlyAmpSlopeAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     %%
     close
+    %% Look at feature difference per each group - earlyAmpSlope2
+    if isfield(tracksNA,'ampTotal2')
+        earlyAmpSlope2{1} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup1f));
+        earlyAmpSlope2{2} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup2f));
+        earlyAmpSlope2{3} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup3));
+        earlyAmpSlope2{4} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup4));
+        earlyAmpSlope2{5} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup5));
+        earlyAmpSlope2{6} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup6));
+        earlyAmpSlope2{7} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup7));
+        earlyAmpSlope2{8} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup8));
+        earlyAmpSlope2{9} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup9));
+        figure;
+        boxPlotCellArray(earlyAmpSlope2,groupNameList);
+
+        title('earlyAmpSlope2')
+        ylabel('Fluorescence intensity (A.U.)')
+        save([p.OutputDirectory filesep 'data' filesep 'earlyAmpSlope2.mat'],'earlyAmpSlope2','-v7.3')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotal2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); 
+    end
+    %%
+    if isfield(tracksNA,'ampTotal2')
+        close
+    end
     %% Look at feature difference per each group - force slope
     forceSlope{1} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
     forceSlope{2} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup2f));

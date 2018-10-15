@@ -8,18 +8,29 @@ tempColor = colors(6,:);
 colors(6,:) = colors(9,:);
 colors(9,:) = tempColor;
 
-idCurrent = find(arrayfun(@(x) x.startingFrameExtra<=iFrame & x.endingFrameExtra>=iFrame,tracksNA));
-
-idGroup{1} = intersect(idSelected.idGroup1Selected', idCurrent);
-idGroup{2} = intersect(idSelected.idGroup2Selected', idCurrent);
-idGroup{3} = intersect(idSelected.idGroup3Selected', idCurrent);
-idGroup{4} = intersect(idSelected.idGroup4Selected', idCurrent);
-idGroup{5} = intersect(idSelected.idGroup5Selected', idCurrent);
-idGroup{6} = intersect(idSelected.idGroup6Selected', idCurrent);
-idGroup{7} = intersect(idSelected.idGroup7Selected', idCurrent);
-idGroup{8} = intersect(idSelected.idGroup8Selected', idCurrent);
-idGroup{9} = intersect(idSelected.idGroup9Selected', idCurrent);
-
+if isfield(idSelected,'idGroup1Selected')
+    idCurrent = find(arrayfun(@(x) x.startingFrameExtra<=iFrame & x.endingFrameExtra>=iFrame,tracksNA));
+    idGroup{1} = intersect(idSelected.idGroup1Selected', idCurrent);
+    idGroup{2} = intersect(idSelected.idGroup2Selected', idCurrent);
+    idGroup{3} = intersect(idSelected.idGroup3Selected', idCurrent);
+    idGroup{4} = intersect(idSelected.idGroup4Selected', idCurrent);
+    idGroup{5} = intersect(idSelected.idGroup5Selected', idCurrent);
+    idGroup{6} = intersect(idSelected.idGroup6Selected', idCurrent);
+    idGroup{7} = intersect(idSelected.idGroup7Selected', idCurrent);
+    idGroup{8} = intersect(idSelected.idGroup8Selected', idCurrent);
+    idGroup{9} = intersect(idSelected.idGroup9Selected', idCurrent);
+else
+    idCurrent = arrayfun(@(x) x.startingFrameExtra<=iFrame & x.endingFrameExtra>=iFrame,tracksNA);
+    idGroup{1} = idSelected.idGroup1 & idCurrent;
+    idGroup{2} = idSelected.idGroup2 & idCurrent;
+    idGroup{3} = idSelected.idGroup3 & idCurrent;
+    idGroup{4} = idSelected.idGroup4 & idCurrent;
+    idGroup{5} = idSelected.idGroup5 & idCurrent;
+    idGroup{6} = idSelected.idGroup6 & idCurrent;
+    idGroup{7} = idSelected.idGroup7 & idCurrent;
+    idGroup{8} = idSelected.idGroup8 & idCurrent;
+    idGroup{9} = idSelected.idGroup9 & idCurrent;
+end
 if nargin<3 || isempty(h)
     h=gca;
 end

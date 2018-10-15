@@ -191,6 +191,13 @@ function pushbutton_manualLabelingAfterInitialClassification_Callback(hObject, e
 MD=handles.figure1.UserData.MD;
 manualLabelingAfterInitialClassification(MD);
 
+% --- Executes on button press in pushbutton_manualLabelingAfterInitialClassification.
+function pushbutton_manualAdjustment_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_manualLabelingAfterInitialClassification (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+MD=handles.figure1.UserData.MD;
+manualAdjustmentClassifiedTracks(MD);
 
 function useSimpleFiltering_Callback(hObject, eventdata, handles)
 % hObject    handle to useLcurve (see GCBO)

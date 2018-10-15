@@ -242,11 +242,10 @@ for k=1:numTracks
             indNaNX = isnan(curX);
             t = 1:length(curX);
             t_nn = t(~indNaNX);
-            curX2 = interp1(t_nn,curX(~indNaNX),t,'linear');
-            curY2 = interp1(t_nn,curY(~indNaNX),t,'linear');
+            curX2 = interp1(t_nn,curX(~indNaNX),t,'linear','extrap');
+            curY2 = interp1(t_nn,curY(~indNaNX),t,'linear','extrap');
             
-            fitobj = fit(curX2',curY2','poly1'); % this is an average linear line fit of the adhesion track
-%             curTrack=readIntensityFromTracks(curTrack,imgStack,1,'extraLength',30,'movieData',MD,'retrack',reTrack);
+            fitobj = fit(curX2(~isnan(curX2))',curY2(~isnan(curY2))','poly1'); % this is an average linear line fit of the adhesion track
         end
         x0=nanmedian(curTrack.xCoord);
         y0=fitobj(x0);

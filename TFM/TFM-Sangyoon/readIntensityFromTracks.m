@@ -27,7 +27,7 @@ sigma = max(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 if isempty(MD)
     searchRadius = 1;
-    searchRadiusDetected = 2;
+%     searchRadiusDetected = 2;
     maxGap = 3;
     brownScaling = 1.01;
 else
@@ -37,7 +37,7 @@ else
     minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
     maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
     searchRadius = (minR+maxR)/2;
-    searchRadiusDetected = maxR;
+%     searchRadiusDetected = maxR;
     brownScaling = trackingParams.costMatrices(2).parameters.brownScaling(1)+1;
     
     maxGap = trackingParams.gapCloseParam.timeWindow;
@@ -50,14 +50,6 @@ else
     halfWidth=1;
     halfHeight=1;
 end
-%% %%%%%%%%%%%%%%%%%%%%%%5
-% poolobj = gcp('nocreate'); % If no pool, do not create new one.
-% myCluster = parcluster('local');
-% if isempty(poolobj)
-%     parpool(myCluster.NumWorkers);
-% end
-    
-
 %% Field creation before running parfor
 if ~isfield(tracksNA,'startingFrameExtra')
     tracksNA(end).startingFrameExtra=[];
@@ -93,11 +85,15 @@ end
 % parfor_progress(numTracks);
 progressText(0,'Re-reading and tracking individual tracks');
 % progressbar
-tic
 if numTracks<100
-  parforArg = 0;
+    parforArg = 0;
 else
-  parforArg = Inf;
+    parforArg = Inf;
+%     poolobj = gcp('nocreate'); % If no pool, do not create new one.
+%     myCluster = parcluster('local');
+%     if isempty(poolobj)
+%         parpool([2 myCluster.NumWorkers]);
+%     end
 end
 
 parfor (k=1:numTracks, parforArg)
@@ -119,6 +115,7 @@ parfor (k=1:numTracks, parforArg)
 %         end
 %     else
     % initialize amptotal to have it have the same dimension as .amp
+    mode='xyac';
     curTrack=tracksNA(k);
     if attribute==1
         curTrack.ampTotal = curTrack.amp;
@@ -138,7 +135,7 @@ parfor (k=1:numTracks, parforArg)
         if ~trackOnlyDetected
             % for the earlier time-points - going backward
             startFrame = max(1, curTrack.startingFrame-extraLength);
-            endFrame = min(numFrames,curTrack.endingFrame+extraLength);
+            endFrame = numFrames; %min(numFrames,curTrack.endingFrame+extraLength);
             ii=curStartingFrame;
             x = curTrack.xCoord(ii);
             y = curTrack.yCoord(ii);
@@ -146,7 +143,14 @@ parfor (k=1:numTracks, parforArg)
             c = curTrack.bkgAmp(curStartingFrame); 
             curTrack.startingFrameExtra = curStartingFrame;
             curTrack.endingFrameExtra = curEndingFrame;
+            mode='xyac';
 
+            if isempty(MD)
+                searchRadiusDetected = 2;
+            else
+                searchRadiusDetected = maxR;
+            end
+            
             gapClosed=0;
             for ii=curStartingFrame:-1:startFrame
                 curImg = imgStack(:,:,ii); %#ok<*PFBNS>
@@ -161,7 +165,7 @@ parfor (k=1:numTracks, parforArg)
                     pitFound = false;
                     curAlpha = 0.05+p/100;
                     pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*A
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*curTrack.amp(ii+gapClosed+1)
                         x = pstruct.x;
                         y = pstruct.y;
                         A = pstruct.A;
@@ -204,14 +208,15 @@ parfor (k=1:numTracks, parforArg)
                             end
                         end
                         gapClosed = 0;
+                        mode='xyac';
                         break
                     end
                 end
                 if ~pitFound && gapClosed >= maxGap
-                    curTrack.startingFrameExtra = ii+1+gapClosed;
+                    curTrack.startingFrameExtra = ii+gapClosed;
                     break % We still have to read the values
                 elseif ~pitFound && gapClosed < maxGap
-                    gapClosed = gapClosed+1;
+                    gapClosed = gapClosed+1; A=[]; c=[]; mode='xyasc';
                 end
 %                 if ~pitFound % We read values regardless
 %                     xi = round(x);
@@ -228,7 +233,7 @@ parfor (k=1:numTracks, parforArg)
             end
         end
         %% for the present period - it is necessary for ampTotal
-        ii=curStartingFrame+1;
+        ii=curStartingFrame;
         x = curTrack.xCoord(ii);
         y = curTrack.yCoord(ii);
         A = curTrack.amp(ii);
@@ -236,9 +241,11 @@ parfor (k=1:numTracks, parforArg)
         trackingFromStartingFrame = true;
         
         gapClosed=0;
-        for ii=curStartingFrame+1:curEndingFrame
+        for ii=curStartingFrame:curEndingFrame
             curImg = imgStack(:,:,ii);
             if ~reTrack
+                x = curTrack.xCoord(ii);
+                y = curTrack.yCoord(ii);
                 xi = round(x);
                 yi = round(y);
                 xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
@@ -277,9 +284,8 @@ parfor (k=1:numTracks, parforArg)
 %                     pstruct2 = fitGaussianMixtures2D(double(curImg), x, y, A, curSigma, c);
                     
                     if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected*2 && abs(pstruct.y-y)<searchRadiusDetected*2 && pstruct.A>0 
-                        if trackingFromStartingFrame
+                        if trackingFromStartingFrame && ~gapClosed
                             trackingFromStartingFrame=false;
-                            curTrack.startingFrameExtra = ii;
                         end
                         x = pstruct.x;
                         y = pstruct.y;
@@ -303,22 +309,28 @@ parfor (k=1:numTracks, parforArg)
                         end
                         pitFound = true;
                         if gapClosed>0
+                            if trackingFromStartingFrame
+                                trackingFromStartingFrame=false;
+                                curTrack.startingFrameExtra = ii;
+                            end
                             % we have to fill in the gap 
-                            for kk=1:gapClosed
-                                curTrack.xCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii-gapClosed-1))/(gapClosed+1);
-                                curTrack.yCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii-gapClosed-1))/(gapClosed+1);
-                                curTrack.amp(ii-kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii-gapClosed-1))/(gapClosed+1);
-                                curTrack.bkgAmp(ii-kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii-gapClosed-1))/(gapClosed+1);
+                            if ii-gapClosed > curTrack.startingFrameExtra
+                                for kk=1:gapClosed
+                                    curTrack.xCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii-gapClosed-1))/(gapClosed+1);
+                                    curTrack.yCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii-gapClosed-1))/(gapClosed+1);
+                                    curTrack.amp(ii-kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii-gapClosed-1))/(gapClosed+1);
+                                    curTrack.bkgAmp(ii-kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii-gapClosed-1))/(gapClosed+1);
 
-                                x = curTrack.xCoord(ii-kk);
-                                y = curTrack.yCoord(ii-kk);
-                                xi = round(x);
-                                yi = round(y);
-                                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-                                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                                curAmpTotal = curImg(yRange,xRange);
-                                curAmpTotal = mean(curAmpTotal(:));
-                                curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                                    x = curTrack.xCoord(ii-kk);
+                                    y = curTrack.yCoord(ii-kk);
+                                    xi = round(x);
+                                    yi = round(y);
+                                    xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                                    yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                                    curAmpTotal = curImg(yRange,xRange);
+                                    curAmpTotal = mean(curAmpTotal(:));
+                                    curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                                end
                             end
                         end
                         gapClosed = 0;
@@ -334,13 +346,16 @@ parfor (k=1:numTracks, parforArg)
                     curTrack.endingFrameExtra = ii-gapClosed;
                     curEndingFrame = curTrack.endingFrameExtra;
                     if trackingFromStartingFrame % this case, we need to change the startingFrameExtra
+                        curTrack.startingFrame = ii;
                         curTrack.startingFrameExtra = ii;
+                        curTrack.endingFrameExtra = ii;
+                        curEndingFrame = ii;
                         gapClosed=0;
                     else
                         break
                     end
                 elseif ~pitFound && gapClosed < maxGap
-                    gapClosed = gapClosed+1;
+                    gapClosed = gapClosed+1;A=[]; c=[];
                     searchRadiusDetected = searchRadiusDetected^brownScaling;
                     % If the search is over in this regime, read whatever
                     % in the same x-y position
@@ -352,7 +367,7 @@ parfor (k=1:numTracks, parforArg)
                 % to be the previous time point
                 if ii==curEndingFrame %&& isnan(pstruct.x) && 
                     curEndingFrame=ii-1;
-%                     curTrack.endingFrame = curEndingFrame;
+                    curTrack.endingFrame = curEndingFrame;
                     curTrack.endingFrameExtra = curEndingFrame;
                     break
                 end
@@ -377,6 +392,7 @@ parfor (k=1:numTracks, parforArg)
             y = curTrack.yCoord(curEndingFrame);
             A = curTrack.amp(curEndingFrame);
             c = curTrack.bkgAmp(curEndingFrame);
+            gapClosed=0;
 
             for ii=(curEndingFrame+1):endFrame
                 curImg = imgStack(:,:,ii);
@@ -388,8 +404,13 @@ parfor (k=1:numTracks, parforArg)
                     pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
                     curSigma = sigma*(20-pmP)/20; % increasing sigma by 5 percent per each iteration
                     curAlpha = 0.05+p/100;
-                    pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*A
+                    pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, mode,'Alpha',curAlpha);
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*curTrack.amp(ii-1-gapClosed)
+                        if trackingFromStartingFrame
+                            trackingFromStartingFrame=false;
+                            curTrack.startingFrameExtra = ii;
+                            curTrack.startingFrame = ii;
+                        end
                         x = pstruct.x;
                         y = pstruct.y;
                         A = pstruct.A;
@@ -416,22 +437,28 @@ parfor (k=1:numTracks, parforArg)
 %                             end
                         pitFoundEnd = true;
                         if gapClosed>0
-                            % we have to fill in the gap 
-                            for kk=1:gapClosed
-                                curTrack.xCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii-gapClosed-1))/(gapClosed+1);
-                                curTrack.yCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii-gapClosed-1))/(gapClosed+1);
-                                curTrack.amp(ii-kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii-gapClosed-1))/(gapClosed+1);
-                                curTrack.bkgAmp(ii-kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii-gapClosed-1))/(gapClosed+1);
+                            if trackingFromStartingFrame
+                                trackingFromStartingFrame=false;
+                                curTrack.startingFrameExtra = ii;
+                            end
+                            if ii-gapClosed > curTrack.startingFrameExtra
+                                % we have to fill in the gap 
+                                for kk=1:gapClosed
+                                    curTrack.xCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.xCoord(ii)+kk*curTrack.xCoord(ii-gapClosed-1))/(gapClosed+1);
+                                    curTrack.yCoord(ii-kk) = ((gapClosed+1-kk)*curTrack.yCoord(ii)+kk*curTrack.yCoord(ii-gapClosed-1))/(gapClosed+1);
+                                    curTrack.amp(ii-kk) = ((gapClosed+1-kk)*curTrack.amp(ii)+kk*curTrack.amp(ii-gapClosed-1))/(gapClosed+1);
+                                    curTrack.bkgAmp(ii-kk) = ((gapClosed+1-kk)*curTrack.bkgAmp(ii)+kk*curTrack.bkgAmp(ii-gapClosed-1))/(gapClosed+1);
 
-                                x = curTrack.xCoord(ii-kk);
-                                y = curTrack.yCoord(ii-kk);
-                                xi = round(x);
-                                yi = round(y);
-                                xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
-                                yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
-                                curAmpTotal = curImg(yRange,xRange);
-                                curAmpTotal = mean(curAmpTotal(:));
-                                curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                                    x = curTrack.xCoord(ii-kk);
+                                    y = curTrack.yCoord(ii-kk);
+                                    xi = round(x);
+                                    yi = round(y);
+                                    xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(imgStack,2));
+                                    yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(imgStack,1));
+                                    curAmpTotal = curImg(yRange,xRange);
+                                    curAmpTotal = mean(curAmpTotal(:));
+                                    curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                                end
                             end
                         end
                         gapClosed = 0;
@@ -444,10 +471,13 @@ parfor (k=1:numTracks, parforArg)
                     end
                 end
                 if ~pitFoundEnd && gapClosed >= maxGap
-                    curTrack.endingFrameExtra = ii-gapClosed;
+                    curTrack.endingFrameExtra = ii-gapClosed-1;
+                    if trackingFromStartingFrame %When it did find any points after all...
+                        curTrack.startingFrameExtra = ii-gapClosed-1;
+                    end
                     break
                 elseif ~pitFoundEnd && gapClosed < maxGap
-                    gapClosed = gapClosed+1;
+                    gapClosed = gapClosed+1; A=[]; c=[];
                     searchRadiusDetected = searchRadiusDetected^brownScaling;
                     % If the search is over in this regime, read whatever
                     % in the same x-y position

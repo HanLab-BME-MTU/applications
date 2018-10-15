@@ -1,7 +1,7 @@
 %% Thhree channel experiment
-% repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_010';
-% % With this I found the rep G2.
-repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_003';
+repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_010'; % With this I found the rep G2.
+
+% repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_003'; % For G1
 % data loading
 curMD = MovieData.load([repFolder filesep 'movieData.mat']);
 iFAPack = curMD.getPackageIndex('FocalAdhesionPackage');
@@ -88,8 +88,12 @@ imgStack2 = sdcProc.loadOutStack(3);
 % showSingleAdhesionTrackSummary(MDtal,tracksNAtal2(iNATal),talImgStack,talForceStack,iNATal);
 [naG2All,idsAll]=pickAdhesionTracksInteractive(tracksNAG2, imgStack, 'movieData',curMD,'tMap',tMap,'imgMap2',imgStack2);
 % naG2All=[281   516   510   375   314   240   441   476   316];
-%% Figure generation
-iNAG2= 568; %<-for cell3 %767;% <-for cell10 %465; %781; %1366; %781; % 3 is the one, and 7 is similar
+%% Figure generation - G1 from G2 population
+iNAG2= 136; % for cell3 newly analyzed. %568; %<-for cell3 %767;% <-for cell10 %465; %781; %1366; %781; % 3 is the one, and 7 is similar
+showSingleAdhesionTrackSummary(curMD,tracksNAG2(iNAG2),imgStack,tMap,imgStack2,iNAG2); %naG2All{iRepTal2}(iNATal));
+% Save the figure
+%% Figure generation - G1
+iNAG2= 179; % for cell3 newly analyzed. %568; %<-for cell3 %767;% <-for cell10 %465; %781; %1366; %781; % 3 is the one, and 7 is similar
 showSingleAdhesionTrackSummary(curMD,tracksNAG2(iNAG2),imgStack,tMap,imgStack2,iNAG2); %naG2All{iRepTal2}(iNATal));
 % Save the figure
 
