@@ -97,6 +97,8 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
                     end
                 end
             else
+                % In case there is zero label, make it six (noise)
+                idGroupLabel(idGroupLabel==0)=6;
                 existingClasses=unique(idGroupLabel','sorted');
                 j=0;
                 for k = existingClasses

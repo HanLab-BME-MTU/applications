@@ -2,7 +2,7 @@ function [trainedClassifier, validationAccuracy,C,order,validationPredictions, v
 % Extract predictors and response
 predictorNames = {'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNAs', 'lifeTimeNAs', 'meanIntensityNAs', 'distToEdgeFirstNAs', 'startingIntensityNAs',...
     'distToEdgeChangeNAs', 'distToEdgeLastNAs', 'edgeAdvanceDistFirstChangeNAs', 'edgeAdvanceDistLastChangeNAs', 'maxEdgeAdvanceDistChangeNAs',...
-    'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing', 'ampSlopeNAs'}; %, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'};
+    'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing', 'ampSlopeNAs', 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'}; %, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'};
 predictors = datasetTable(:,predictorNames);
 predictors = table2array(varfun(@double, predictors));
 response = datasetTable.Group;
@@ -25,7 +25,7 @@ template = templateSVM('KernelFunction', 'polynomial', 'PolynomialOrder', 2, 'Ke
 trainedClassifier = fitcecoc(predictors, response,'FitPosterior',1, 'Learners', template, 'Coding', 'onevsone', 'PredictorNames', ...
     {'decayingIntensityNAs' 'edgeAdvanceSpeedNAs' 'advanceSpeedNAs' 'lifeTimeNAs' 'meanIntensityNAs' 'distToEdgeFirstNAs' 'startingIntensityNAs' ...
     'distToEdgeChangeNAs' 'distToEdgeLastNAs' 'edgeAdvanceDistFirstChangeNAs' 'edgeAdvanceDistLastChangeNAs' 'maxEdgeAdvanceDistChangeNAs' ...
-    'maxIntensityNAs' 'timeToMaxInten' 'edgeVariation', 'Area', 'FAfinishing', 'ampSlopeNAs'}, 'ResponseName', 'Group', 'ClassNames', totalGroups');
+    'maxIntensityNAs' 'timeToMaxInten' 'edgeVariation', 'Area', 'FAfinishing', 'ampSlopeNAs', 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'}, 'ResponseName', 'Group', 'ClassNames', totalGroups');
 %, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'
 
 % Perform cross-validation

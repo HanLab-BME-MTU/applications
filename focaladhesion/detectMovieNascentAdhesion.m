@@ -56,7 +56,7 @@ else
 end
 
 %% --------------- Initialization ---------------%%
-nChan=numel(movieData.channels_);
+nChans=numel(movieData.channels_);
 % psfSigma = 1.2; %hard coded for nascent adhesion
 psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iPax).emissionWavelength_*1e-9);
 
@@ -88,7 +88,8 @@ jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
 minSize = round((500/pixSize)*(500/pixSize)); %adhesion limit=0.25 um2
-minLength = 500/pixSize;
+minLengthFC = 500/pixSize;
+minLengthFA = 2000/pixSize;
 minEcc = 0.7;
 psAlpha = 0.0001;%This will ensure 
 
@@ -109,7 +110,7 @@ for j=1:movieData.nFrames_
             maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,j),find(maskProc.checkChannelOutput),'UniformOutput',false);
             maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
             mask = any(maskAll,3);
-        elseif length(iChans)==1
+        elseif nChans==1 && nChans==iPax
             mask = maskProc.loadChannelOutput(iPax,j); % 1 is CCP channel
         end
     catch
@@ -165,13 +166,22 @@ for j=1:movieData.nFrames_
     adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
     FAlengthAll = arrayfun(@(x) x.MajorAxisLength, Adhs);
 %     maxLength=mean(FAlengthAll)+5*std(FAlengthAll);
-    adhLengthIdx = FAlengthAll>minLength;
-    Adhs = Adhs(adhEccIdx & adhLengthIdx);
+    adhLengthIdxFC = FAlengthAll>minLengthFC;
+    AdhsFCFA = Adhs(adhEccIdx & adhLengthIdxFC);
     labelAdhesion = zeros(size(maskAdhesion2));
-    for kk=1:numel(Adhs)
-        labelAdhesion(Adhs(kk).PixelIdxList)=kk;
+    for kk=1:numel(AdhsFCFA)
+        labelAdhesion(AdhsFCFA(kk).PixelIdxList)=kk;
     end
     maskAdhesion2 = logical(labelAdhesion);
+    adhLengthIdxFA = FAlengthAll>minLengthFA;
+    AdhsFA = Adhs(adhEccIdx & adhLengthIdxFA);
+    labelAdhesionFA = zeros(size(maskAdhesion2));
+    for kk=1:numel(AdhsFA)
+        labelAdhesionFA(AdhsFA(kk).PixelIdxList)=kk;
+    end
+    maskAdhesionFA = logical(labelAdhesionFA);
+    maskAdhesionFC = maskAdhesion2 .* ~maskAdhesionFA;
+
     indInside=maskVectors(xNA,yNA,maskAdhesion2);
     indTrueNAs=~indInside;
     if ~isempty(pstruct)
@@ -247,13 +257,16 @@ for j=1:movieData.nFrames_
     % plotting detected adhesions
     if plotGraph
         h1=figure;
-        dI = double(I)/max(max(I));
-        combI(:,:,1) = dI;
-        combI(:,:,2) = dI+double(maskAdhesion2)*.5;
-        combI(:,:,3) = dI;%+double(ultimateMask)*.5;
+        maxI=max(I(:)); minI=min(I(:));
+        dI = (double(I)-minI)/(maxI-minI);
+        combI(:,:,1) = ~maskAdhesionFA.*dI+maskAdhesionFA.*(0.4*dI+double(maskAdhesionFA)*.5);
+        combI(:,:,2) = ~maskAdhesionFA.*~maskAdhesionFC.*dI...
+            +maskAdhesionFC.*(0.4*dI+double(maskAdhesionFC)*.6)...
+            +maskAdhesionFA.*(0.4*dI);
+        combI(:,:,3) = ~maskAdhesionFA.*dI+maskAdhesionFA.*(0.4*dI+double(maskAdhesionFA)*.0);%+double(ultimateMask)*.5;
         imshow(combI,[]); hold on
         if ~isempty(pstruct)
-            plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'ro')
+            plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'yo')
         end
         hgexport(h1,strcat(tifPath,'/imgNAFA',num2str(j,jformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')

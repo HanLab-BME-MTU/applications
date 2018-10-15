@@ -1,4 +1,4 @@
-%% Thhree channel experiment
+%% Three channel experiment
 % repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_010';
 % % With this I found the rep G2.
 repFolder='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/2017_10_13/ChoK1_shRNA_WT_gTal_rVinc_frBead_003';

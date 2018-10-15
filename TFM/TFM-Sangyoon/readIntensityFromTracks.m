@@ -23,11 +23,11 @@ extraLength = ip.Results.extraLength;
 % get stack size
 numFrames = size(imgStack,3);
 % w4 = 8;
-sigma = max(tracksNA(1).sigma);
+sigma = median(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 if isempty(MD)
     searchRadius = 1;
-    searchRadiusDetected = 2;
+    maxR = 2;
     maxGap = 3;
     brownScaling = 1.01;
 else
@@ -37,7 +37,7 @@ else
     minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
     maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
     searchRadius = (minR+maxR)/2;
-    searchRadiusDetected = maxR;
+%     searchRadiusDetected = maxR;
     brownScaling = trackingParams.costMatrices(2).parameters.brownScaling(1)+1;
     
     maxGap = trackingParams.gapCloseParam.timeWindow;
@@ -121,6 +121,11 @@ parfor (k=1:numTracks, parforArg)
     % initialize amptotal to have it have the same dimension as .amp
     curTrack=tracksNA(k);
     if attribute==1
+        if isempty(MD)
+            searchRadiusDetected = 2;
+        else
+            searchRadiusDetected = maxR;
+        end
         curTrack.ampTotal = curTrack.amp;
         try
             curStartingFrame = curTrack.startingFrameExtra;
@@ -377,6 +382,7 @@ parfor (k=1:numTracks, parforArg)
             y = curTrack.yCoord(curEndingFrame);
             A = curTrack.amp(curEndingFrame);
             c = curTrack.bkgAmp(curEndingFrame);
+            gapClosed=0;
 
             for ii=(curEndingFrame+1):endFrame
                 curImg = imgStack(:,:,ii);
@@ -444,7 +450,7 @@ parfor (k=1:numTracks, parforArg)
                     end
                 end
                 if ~pitFoundEnd && gapClosed >= maxGap
-                    curTrack.endingFrameExtra = ii-gapClosed;
+                    curTrack.endingFrameExtra = ii-gapClosed-1;
                     break
                 elseif ~pitFoundEnd && gapClosed < maxGap
                     gapClosed = gapClosed+1;
