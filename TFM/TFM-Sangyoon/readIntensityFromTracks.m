@@ -23,11 +23,11 @@ extraLength = ip.Results.extraLength;
 % get stack size
 numFrames = size(imgStack,3);
 % w4 = 8;
-sigma = max(tracksNA(1).sigma);
+sigma = median(tracksNA(1).sigma);
 numTracks = numel(tracksNA);
 if isempty(MD)
     searchRadius = 1;
-%     searchRadiusDetected = 2;
+    maxR = 2;
     maxGap = 3;
     brownScaling = 1.01;
 else
@@ -118,6 +118,11 @@ parfor (k=1:numTracks, parforArg)
     mode='xyac';
     curTrack=tracksNA(k);
     if attribute==1
+        if isempty(MD)
+            searchRadiusDetected = 2;
+        else
+            searchRadiusDetected = maxR;
+        end
         curTrack.ampTotal = curTrack.amp;
         try
             curStartingFrame = curTrack.startingFrameExtra;
