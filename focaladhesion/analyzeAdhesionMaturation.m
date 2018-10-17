@@ -163,7 +163,7 @@ iiformat = ['%.' '3' 'd'];
 % minSize = round((500/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.5um*.5um
 minLifetime = min(nFrames, minLifetime);
 markerSize = 2;
-
+minBD = 30000/MD.pixelSize_; % minimum boundary lenth to be considered as cell body (30 um in perimeter)
 %% For Debugging 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 loadSaved_state = false;
@@ -477,8 +477,6 @@ if ~foundTracks
             mask = imtranslate(mask,T(ii,2:-1:1));
         end
 
-        % Cell Boundary
-        [B,~,nBD]  = bwboundaries(mask,'noholes');
         cropMaskStack(:,:,ii) = mask;
         % Get the mask for FAs
         I=MD.channels_(iPaxChannel).loadImage(ii); 
@@ -710,7 +708,6 @@ if ~foundTracks
     if getEdgeRelatedFeatures
         %% Getting edge information relative to adhesions
         progressText(0,'Getting edge information relative to adhesions', 'Adhesion Analysis');
-        matchingAdhLineFit=cell(numTracks,1);
         allBdPointsAll=cell(numTracks,1);
         for ii=1:nFrames
             % Cell Boundary Mask 
@@ -720,8 +717,14 @@ if ~foundTracks
                 mask = true(MD.imSize_);
             end
             [B,~,nBD]  = bwboundaries(mask,'noholes');
+            if nBD>1
+                % Disregard the small boundaries
+                iBDchosen=find(cellfun(@(x) size(x,1),B)>minBD)';
+            else
+                iBDchosen=1:nBD;
+            end
             allBdPoints = [];
-            for kk=1:nBD
+            for kk=iBDchosen
                 boundary = B{kk};
                 allBdPoints = [allBdPoints; boundary(:,2), boundary(:,1)];
             end
@@ -729,12 +732,13 @@ if ~foundTracks
             progressText(ii/(nFrames));
         end
         %% Get each adhesion's moving direction
+        matchingAdhLineFit=cell(numTracks,1);
         progressText(0,'Adhesion''s main movement direction', 'Adhesion Analysis');
         parfor k=1:numTracks
             curTrack = tracksNA(k);
             sF=curTrack.startingFrameExtra; eF=curTrack.endingFrameExtra;
             try
-                fitobj = fit(curTrack.xCoord(sF:eF)',curTrack.yCoord(sF:eF)','poly1'); % this is an average linear line fit of the adhesion track
+                [fitobj, gof] = fit(curTrack.xCoord(sF:eF)',curTrack.yCoord(sF:eF)','poly1'); % this is an average linear line fit of the adhesion track
             catch
                 % This means fitting a line with the track has failed, highly
                 % likely due to too short track lifetime or too variable
@@ -746,9 +750,11 @@ if ~foundTracks
                 curX2 = interp1(t_nn,curX(~indNaNX),t,'linear','extrap');
                 curY2 = interp1(t_nn,curY(~indNaNX),t,'linear','extrap');
 
-                fitobj = fit(curX2(~isnan(curX2))',curY2(~isnan(curY2))','poly1'); % this is an average linear line fit of the adhesion track
+                [fitobj, gof] = fit(curX2(~isnan(curX2))',curY2(~isnan(curY2))','poly1'); % this is an average linear line fit of the adhesion track
             end
-            matchingAdhLineFit{k}=fitobj;
+            if gof.adjrsquare>0.3 % otherwise the track is not linear enough
+                matchingAdhLineFit{k}=fitobj;
+            end
             progressText(k/numTracks);
         end    
         %% Calculating distance from each adhesion to relevant edge
@@ -762,37 +768,43 @@ if ~foundTracks
         parfor k=1:numTracks
             curTrack = tracksNA(k);
             % Load each adhesion's moving direction
-            fitobj=matchingAdhLineFit{k};
-            for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
-                allBdPoints = allBdPointsAll{ii};
-                xCropped = curTrack.xCoord(ii);
-                yCropped = curTrack.yCoord(ii);
-                % Make the line out of the fit (along the major moving
-                % direction of the adhesion
-                xmin=min(allBdPoints(:,1)); xmax=max(allBdPoints(:,1));
-                x2=xmin:xmax;
-                y2=fitobj(x2)';
-                % The intersect between this line and
-                % the allBdPoints
-                P = InterX([allBdPoints(:,1)';allBdPoints(:,2)'],[x2;y2])';
-                distToAdh = sqrt(sum((P-ones(size(P,1),1)*[xCropped, yCropped]).^2,2));
-                [minDistToBd,indMinBdPoint] = min(distToAdh);
+            if ~isempty(matchingAdhLineFit{k})
+                fitobj=matchingAdhLineFit{k};
+                for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
+                    allBdPoints = allBdPointsAll{ii};
+                    xCropped = curTrack.xCoord(ii);
+                    yCropped = curTrack.yCoord(ii);
+                    % Make the line out of the fit (along the major moving
+                    % direction of the adhesion
+                    xmin=min(allBdPoints(:,1)); xmax=max(allBdPoints(:,1));
+                    x2=xmin:xmax;
+                    y2=fitobj(x2)';
+                    % The intersect between this line and
+                    % the allBdPoints
+                    P = InterX([allBdPoints(:,1)';allBdPoints(:,2)'],[x2;y2])';
+                    distToAdh = sqrt(sum((P-ones(size(P,1),1)*[xCropped, yCropped]).^2,2));
+                    [minDistToBd,indMinBdPoint] = min(distToAdh);
 
-                curTrack.distToEdge(ii) = minDistToBd;
-                curTrack.closestBdPoint(ii,:) = P(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
-%                     x0=nanmedian(curTrack.xCoord);
-%                     y0=fitobj(x0);
-%                     dx = 1;
-%                     dy = fitobj.p1;
-%                     trackLine = createLineGeom2d(x0,y0,dx,dy); % this is a geometric average linear line of the adhesion track
-%                     distToAdh = sqrt(sum((allBdPoints- ...
-%                         ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
-%                     [minDistToBd,indMinBdPoint] = min(distToAdh);
-%                     if allBdPoints(indMinBdPoint,1)==0 || isnan(allBdPoints(indMinBdPoint,1))
-%                         error(['Error occurred at ii=' num2str(ii) ' and indMinBDPoint=' num2str(indMinBdPoint) ' and k=' num2str(k) ', allBdPoints(indMinBdPoint,1)=' num2str(allBdPoints(indMinBdPoint,1))]);
-%                     end
-                tracksNA(k) = curTrack;
+                    curTrack.distToEdge(ii) = minDistToBd;
+                    curTrack.closestBdPoint(ii,:) = P(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                end
+            else
+                for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
+                    allBdPoints = allBdPointsAll{ii};
+                    xCropped = curTrack.xCoord(ii);
+                    yCropped = curTrack.yCoord(ii);
+                    distToAdh = sqrt(sum((allBdPoints- ...
+                        ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
+                    [minDistToBd,indMinBdPoint] = min(distToAdh);
+                    if allBdPoints(indMinBdPoint,1)==0 || isnan(allBdPoints(indMinBdPoint,1))
+                        error(['Error occurred at ii=' num2str(ii) ' and indMinBDPoint=' num2str(indMinBdPoint) ' and k=' num2str(k) ', allBdPoints(indMinBdPoint,1)=' num2str(allBdPoints(indMinBdPoint,1))]);
+                    end
+                    curTrack.distToEdge(ii) = minDistToBd;
+                    curTrack.closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                    tracksNA(k) = curTrack;
+                end
             end
+            tracksNA(k) = curTrack;
             progressText(k/numTracks);
         end
     end
