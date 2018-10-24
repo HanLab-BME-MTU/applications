@@ -96,8 +96,8 @@ else
 %     end
 end
 
-% parfor (k=1:numTracks, parforArg)
-for k=1:numTracks
+parfor (k=1:numTracks, parforArg)
+% for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
