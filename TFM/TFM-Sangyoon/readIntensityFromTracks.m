@@ -23,7 +23,7 @@ extraLength = ip.Results.extraLength;
 % get stack size
 numFrames = size(imgStack,3);
 % w4 = 8;
-sigma = median(tracksNA(1).sigma);
+sigma = median(tracksNA(1).sigma(tracksNA(1).sigma>0));
 numTracks = numel(tracksNA);
 if isempty(MD)
     searchRadius = 1;
@@ -58,7 +58,7 @@ if ~isfield(tracksNA,'startingFrameExtraExtra')
     tracksNA(end).startingFrameExtraExtra=[];
 end
 if ~isfield(tracksNA,'endingFrameExtra')
-    tracksNA(end).endingFrameExtra=numFrames;
+    tracksNA(end).endingFrameExtra=[];
 end
 if ~isfield(tracksNA,'endingFrameExtraExtra')
     tracksNA(end).endingFrameExtraExtra=[];
@@ -96,8 +96,8 @@ else
 %     end
 end
 
-parfor (k=1:numTracks, parforArg)
-% for k=1:numTracks
+% parfor (k=1:numTracks, parforArg)
+for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
@@ -139,7 +139,7 @@ parfor (k=1:numTracks, parforArg)
         end
         if ~trackOnlyDetected
             % for the earlier time-points - going backward
-            startFrame = max(1, curTrack.startingFrame-extraLength);
+            startFrame = 1; %max(1, curTrack.startingFrame-extraLength);
             endFrame = numFrames; %min(numFrames,curTrack.endingFrame+extraLength);
             ii=curStartingFrame;
             x = curTrack.xCoord(ii);
@@ -148,6 +148,7 @@ parfor (k=1:numTracks, parforArg)
             c = curTrack.bkgAmp(curStartingFrame); 
             curTrack.startingFrameExtra = curStartingFrame;
             curTrack.endingFrameExtra = curEndingFrame;
+            trackingFromStartingFrame = true;
             mode='xyac';
 
             if isempty(MD)
@@ -170,7 +171,10 @@ parfor (k=1:numTracks, parforArg)
                     pitFound = false;
                     curAlpha = 0.05+p/100;
                     pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyac','Alpha',curAlpha);
-                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadius && abs(pstruct.y-y)<searchRadius && pstruct.A>0 && pstruct.A<2*curTrack.amp(ii+gapClosed+1)
+                    if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected && abs(pstruct.y-y)<searchRadiusDetected && pstruct.A>0 && pstruct.A<2*curTrack.amp(ii+gapClosed+1)
+                        if trackingFromStartingFrame 
+                            trackingFromStartingFrame=false;
+                        end
                         x = pstruct.x;
                         y = pstruct.y;
                         A = pstruct.A;
@@ -210,6 +214,7 @@ parfor (k=1:numTracks, parforArg)
                                 curAmpTotal = curImg(yRange,xRange);
                                 curAmpTotal = mean(curAmpTotal(:));
                                 curTrack.ampTotal(ii+kk) =  curAmpTotal;
+                                curTrack.presence(ii+kk) =  true;
                             end
                         end
                         gapClosed = 0;
@@ -218,7 +223,7 @@ parfor (k=1:numTracks, parforArg)
                     end
                 end
                 if ~pitFound && gapClosed >= maxGap
-                    curTrack.startingFrameExtra = ii+gapClosed;
+                    curTrack.startingFrameExtra = ii+gapClosed+1;
                     break % We still have to read the values
                 elseif ~pitFound && gapClosed < maxGap
                     gapClosed = gapClosed+1; A=[]; c=[]; mode='xyasc';
@@ -243,7 +248,6 @@ parfor (k=1:numTracks, parforArg)
         y = curTrack.yCoord(ii);
         A = curTrack.amp(ii);
 %                 c = curTrack.bkgAmp(ii); 
-        trackingFromStartingFrame = true;
         
         gapClosed=0;
         for ii=curStartingFrame:curEndingFrame
@@ -291,6 +295,7 @@ parfor (k=1:numTracks, parforArg)
                     if ~isnan(pstruct.x) && abs(pstruct.x-x)<searchRadiusDetected*2 && abs(pstruct.y-y)<searchRadiusDetected*2 && pstruct.A>0 
                         if trackingFromStartingFrame && ~gapClosed
                             trackingFromStartingFrame=false;
+                            curTrack.startingFrameExtra = ii;
                         end
                         x = pstruct.x;
                         y = pstruct.y;
@@ -335,6 +340,7 @@ parfor (k=1:numTracks, parforArg)
                                     curAmpTotal = curImg(yRange,xRange);
                                     curAmpTotal = mean(curAmpTotal(:));
                                     curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                                    curTrack.presence(ii-kk) =  true;
                                 end
                             end
                         end
@@ -351,11 +357,12 @@ parfor (k=1:numTracks, parforArg)
                     curTrack.endingFrameExtra = ii-gapClosed;
                     curEndingFrame = curTrack.endingFrameExtra;
                     if trackingFromStartingFrame % this case, we need to change the startingFrameExtra
-                        curTrack.startingFrame = ii;
+%                         curTrack.startingFrame = ii;
                         curTrack.startingFrameExtra = ii;
                         curTrack.endingFrameExtra = ii;
                         curEndingFrame = ii;
                         gapClosed=0;
+                        break
                     else
                         break
                     end
@@ -366,16 +373,20 @@ parfor (k=1:numTracks, parforArg)
                     % in the same x-y position
                     
                 end
-                % It is a rare case, but it is possible that at some point
-                % there is no significant point source detected during this
-                % re-tracking. In this case, we change the curEndingFrame
-                % to be the previous time point
-                if ii==curEndingFrame %&& isnan(pstruct.x) && 
-                    curEndingFrame=ii-1;
-                    curTrack.endingFrame = curEndingFrame;
-                    curTrack.endingFrameExtra = curEndingFrame;
-                    break
-                end
+%                 % It is a rare case, but it is possible that at some point
+%                 % there is no significant point source detected during this
+%                 % re-tracking. In this case, we change the curEndingFrame
+%                 % to be the previous time point
+%                 if ii==curEndingFrame %&& isnan(pstruct.x) && 
+%                     curEndingFrame=ii-1;
+%                     curTrack.endingFrame = curEndingFrame;
+%                     curTrack.endingFrameExtra = curEndingFrame;
+%                     if trackingFromStartingFrame % this case, we need to change the startingFrameExtra
+%                         curTrack.startingFrame = curEndingFrame;
+%                         curTrack.startingFrameExtra = curEndingFrame;
+%                     end
+%                     break
+%                 end
                 if ~pitFound % We read values regardless
                     xi = round(x);
                     yi = round(y);
@@ -463,6 +474,7 @@ parfor (k=1:numTracks, parforArg)
                                     curAmpTotal = curImg(yRange,xRange);
                                     curAmpTotal = mean(curAmpTotal(:));
                                     curTrack.ampTotal(ii-kk) =  curAmpTotal;
+                                    curTrack.presence(ii-kk) =  true;
                                 end
                             end
                         end
@@ -479,6 +491,12 @@ parfor (k=1:numTracks, parforArg)
                     curTrack.endingFrameExtra = ii-gapClosed-1;
                     if trackingFromStartingFrame %When it did find any points after all...
                         curTrack.startingFrameExtra = ii-gapClosed-1;
+                    end
+                    if curTrack.startingFrameExtra>curTrack.startingFrame
+                        curTrack.startingFrame=curTrack.startingFrameExtra;
+                    end
+                    if curTrack.endingFrameExtra<curTrack.endingFrame
+                        curTrack.endingFrame=curTrack.endingFrameExtra;
                     end
                     break
                 elseif ~pitFoundEnd && gapClosed < maxGap

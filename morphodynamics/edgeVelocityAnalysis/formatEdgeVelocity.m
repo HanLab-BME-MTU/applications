@@ -64,8 +64,9 @@ includeWin = ip.Results.includeWin;
 outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLength;
 scale      = ip.Results.scale;
-trend      = ip.Results.trend;
+trend      = ip.Results.trendType;
 gapSize    = ip.Results.gapSize;
+excBorder    = ip.Results.excBorder;
 
 timeSeriesOperations = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize};
 
@@ -75,25 +76,27 @@ cellData = struct('data',repmat({dataS},1,nCell)) ;
 
 for iCell = 1:nCell
     
-    currMD                             = ML.movies_{iCell};
+    curMD                             = ML.movies_{iCell};
     cellData(iCell).data.includedWin   = includeWin{iCell};
+    % Get the windowing package
+    windPack = curMD.getPackage(curMD.getPackageIndex('WindowingPackage'));
+    % Protrusion sampling process
+    protProc = windPack.processes_{3};
+    protSamples = protProc.loadChannelOutput;
     cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
-    
-    edgeProcIdx = currMD.getProcessIndex('ProtrusionSamplingProcess');
-    protSamples = currMD.processes_{edgeProcIdx}.loadChannelOutput;
-    
     
     %Extracting outliers
     %Removing NaN and closing 1 frame gaps
     cellData(iCell).data.timeSeriesOperations        = timeSeriesOperations;
     [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,timeSeriesOperations{:});    
-    cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
+    cellData(iCell).data.excludedWin                  = unique([cellData(iCell).data.excludedWin excludeVar]);
     
 end
 %% Performing windowing exclusion
-cellData = excludeWindowsFromAnalysis(ML,'excBorder',border,'cellData',cellData);
+cellData = excludeWindowsFromAnalysis(ML,'excBorder',excBorder,'cellData',cellData);
 
 %% Saving results per cell
-savingMovieResultsPerCell(ML,cellData)
+analysis = 'FormatEdgeVelocity'; [~,fileName]=fileparts(movieObj.getPath);
+savingMovieResultsPerCell(ML,cellData,analysis,fileName)
 
 end

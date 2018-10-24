@@ -28,7 +28,9 @@ for ii=1:nMovies
     maxIm = double(quantile(img(:),0.998));
 
     figPath= [MD.getPath filesep 'EdgeOverlay']; mkdir(figPath)
+    
     h=makeProtrusionOverlay(smoothedEdge,img,minIm,maxIm,MD.timeInterval_);
+    
     print(h, '-depsc2', strcat(figPath,'/coloredEdgeOverlay.eps'));
     print(h, '-dtiff', strcat(figPath,'/coloredEdgeOverlay','.tif'));
     savefig(h,strcat(figPath,'/coloredEdgeOverlay.fig'),'compact')

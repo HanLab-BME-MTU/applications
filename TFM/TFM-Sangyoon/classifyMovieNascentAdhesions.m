@@ -866,6 +866,9 @@ else
     % We base on the labels obtained in Step 6, adhesion segmentation,
     % which is stored in tracksNA.faID
     faIDsCell = arrayfun(@(x) nanmax(x.faID),tracksNA,'unif',false);
+    % Make the ones with empty faID to ID zero
+    indEmpty = cellfun(@isempty,faIDsCell);
+    faIDsCell(indEmpty)={0};
     indFaIDs = ~cellfun(@(x) isnan(x) || (x==0),faIDsCell);
     faIDsAll = cellfun(@(x) uint16(x), faIDsCell(indFaIDs));
     [faIDsUnique]=unique(faIDsAll); %,iAlltoUniq,iUniqToAll

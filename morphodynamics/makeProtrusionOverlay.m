@@ -13,7 +13,7 @@ if nargin<5
 end
 
 nFrame = size(smoothedEdge,1);
-cmap=parula(nFrame);
+cmap=jet(nFrame);
 %Load the image(s).
 
 h=figure;    
@@ -30,14 +30,23 @@ for iFrame = 1:nFrame
    
 end
 
+% To show the colorbar for jet, I need to make a fake axis and hide it and
+% show only the colorbar about it.
+ax1=axes('Position',[.9 .1 .1 .8]);
 if isempty(timeInterval)
     caxis([1 nFrame]);
-    colorUnit='frames';
+    colorUnit='Frames';
 else
     caxis([0 (nFrame-1)*timeInterval/60]);
-    colorUnit='min';
+    colorUnit='Time (min)';
 end
-hc=colorbar;
-xlabel(hc,colorUnit);
+axis off
+%     if isempty(hc)
+axis tight
+hcb1 = colorbar('West');
+set(hcb1,'YAxisLocation','right')
+set(get(hcb1,'xlabel'),'String', colorUnit)
+colormap(ax1,'jet')
+
 
 hold off

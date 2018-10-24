@@ -31,6 +31,6 @@ for iVar = 1:nVar
       'BarWidth', 0.8, 'GroupDistance', 2,'XTickLabel',label.dataSet,'YLabel', label.variable{iVar});
     h1 = legend(label.condition);
     set(h1,'EdgeColor','w')
-   ylabel(label.variable{iVar})
+    ylabel(label.variable{iVar})
    
 end

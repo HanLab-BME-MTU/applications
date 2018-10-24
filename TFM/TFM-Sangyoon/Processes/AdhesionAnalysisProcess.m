@@ -153,10 +153,24 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                             jj=ii;
                             progressText((numel(loadingSequence)-ii)/numel(loadingSequence),'Loading tracksNA') % Update text
                         end
-                        curTrackObj = load(trackIndPath(ii),'curTrack');
+                        try
+                            curTrackObj = load(trackIndPath(ii),'curTrack');
+                        catch
+                            continue
+                        end
+                        if ii~=loadingSequence(1)
+                            potentialExtraFields = setdiff(fieldnames(curTrackObj.curTrack),fieldnames(tracksNA));
+                            if ~isempty(potentialExtraFields)
+                                for pp=1:numel(potentialExtraFields)
+                                    tracksNA(end).(potentialExtraFields{pp})=[];
+                                end
+                            end
+                        end
                         tracksNA(jj,1) = curTrackObj.curTrack;
                     end
-                    
+                    % Might need to filter out failed tracks
+                    indEmptyTracks = arrayfun(@(x) isempty(x.xCoord),tracksNA);
+                    tracksNA = tracksNA(~indEmptyTracks);
                 catch
                     % Check if the outFilePath has tableTracksNA
                     disp('Checking if the outFilePath has tableTracksNA...')

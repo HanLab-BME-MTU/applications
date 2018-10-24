@@ -44,7 +44,8 @@ end
 
 if isempty(cellData)
     %Loading formatted data - see formatEdgeVelocity
-    cellData = loadingMovieResultsPerCell(ML);
+    analysis = 'FormatEdgeVelocity'; [~,fileName]=fileparts(movieObj.getPath);
+    cellData = loadingMovieResultsPerCell(ML,analysis,fileName);
 end
 
 nCell   = numel(ML.movies_);
@@ -54,19 +55,28 @@ exclude(1:nExc) = excludeW;
 
 
 for iCell = 1:nCell
-    
+    curData = cellData(iCell);
+    if iscell(curData)
+        curData=curData{1};
+    end
+        
     if excBorder
-        nWin   = size( cellData(iCell).data.rawEdgeMotion,1 );
+        nWin   = size( curData.data.rawEdgeMotion,1 );
         border = [1:excBorder nWin-(excBorder-1):nWin];
-        cellData(iCell).data.excludeWin = unique([cellData(iCell).data.excludeWin border]);
+        curData.data.excludeWin = unique([curData.data.excludeWin border]);
     end
     
     %Excluding pre-selected windows
-    cellData(iCell).data.excludeWin = unique([cellData(iCell).data.excludeWin exclude{iCell}]);
+    curData.data.excludedWin = unique([curData.data.excludedWin exclude{iCell}]);
     
-    cellData(iCell).data.excProcEdgeMotion                                  = num2cell(cellData(iCell).data.procEdgeMotion,2);
-    cellData(iCell).data.excProcEdgeMotion(cellData(iCell).data.excludeWin) = [];
-    
+    curData.data.excProcEdgeMotion                                  = num2cell(curData.data.procEdgeMotion,2);
+    curData.data.excProcEdgeMotion(curData.data.excludedWin) = [];
+    try
+        cellData(iCell) = curData;
+    catch
+        cellData{iCell} = curData;
+    end
 end
 
-savingMovieResultsPerCell(ML,cellData)
+analysis = 'ExcludedWindows'; [~,fileName]=fileparts(movieObj.getPath);
+savingMovieResultsPerCell(ML,cellData,analysis,fileName)

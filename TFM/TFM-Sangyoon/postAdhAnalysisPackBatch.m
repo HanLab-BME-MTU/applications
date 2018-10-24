@@ -59,7 +59,8 @@ for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLFileNamesAll{k}]);
 end
 %% Output
-rootAnalysis = fileparts(pathAnalysisAll{1});
+% rootAnalysis = fileparts(pathAnalysisAll{1});
+rootAnalysis = pathAnalysisAll{1};
 figPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Figs'];
 mkdir(figPath)
 dataPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Data'];

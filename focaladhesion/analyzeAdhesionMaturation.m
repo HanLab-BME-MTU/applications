@@ -782,11 +782,17 @@ if ~foundTracks
                     % The intersect between this line and
                     % the allBdPoints
                     P = InterX([allBdPoints(:,1)';allBdPoints(:,2)'],[x2;y2])';
-                    distToAdh = sqrt(sum((P-ones(size(P,1),1)*[xCropped, yCropped]).^2,2));
-                    [minDistToBd,indMinBdPoint] = min(distToAdh);
-
+                    if ~isempty(P)
+                        distToAdh = sqrt(sum((P-ones(size(P,1),1)*[xCropped, yCropped]).^2,2));
+                        [minDistToBd,indMinBdPoint] = min(distToAdh);
+                        curTrack.closestBdPoint(ii,:) = P(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                    else
+                        distToAdh = sqrt(sum((allBdPoints- ...
+                            ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
+                        [minDistToBd,indMinBdPoint] = min(distToAdh);
+                        curTrack.closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                    end
                     curTrack.distToEdge(ii) = minDistToBd;
-                    curTrack.closestBdPoint(ii,:) = P(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                 end
             else
                 for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
@@ -805,6 +811,7 @@ if ~foundTracks
                 end
             end
             tracksNA(k) = curTrack;
+            parsave(feval(trackIndPath,k),curTrack)
             progressText(k/numTracks);
         end
     end
@@ -826,23 +833,24 @@ if ~foundTracks
 
 else % If this part above is already processed
 %     load(dataPath_tracksNA, 'tracksNA');
+    tracksNA = thisProc.loadChannelOutput(iChan,'output','tracksNA');
     load(dataPath_tracksNA);
-    fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-    numStr = @(trackNum) num2str(trackNum,fString);
-    trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-    progressText(0,'Loading tracksNA') % Create text & waitbar popup
-    for ii=metaTrackData.numTracks:-1:1
-        curTrackObj = load(trackIndPath(ii),'curTrack');
-        try
-            tracksNA(ii,1) = curTrackObj.curTrack;
-        catch % this time fields are not common
-            names=fieldnames(tracksNA);
-            for qq=1:numel(names)
-                tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
-            end
-        end
-        progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
-    end
+%     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+%     numStr = @(trackNum) num2str(trackNum,fString);
+%     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+%     progressText(0,'Loading tracksNA') % Create text & waitbar popup
+%     for ii=metaTrackData.numTracks:-1:1
+%         curTrackObj = load(trackIndPath(ii),'curTrack');
+%         try
+%             tracksNA(ii,1) = curTrackObj.curTrack;
+%         catch % this time fields are not common
+%             names=fieldnames(tracksNA);
+%             for qq=1:numel(names)
+%                 tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
+%             end
+%         end
+%         progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+%     end
     numTracks = metaTrackData.numTracks;
     load(dataPath_focalAdhInfo, 'focalAdhInfo')    
 end
@@ -895,6 +903,11 @@ if ~foundTracks
     metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
     metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
     save(dataPath_tracksNA,'metaTrackData')
+    
+    parfor k=1:numTracks
+        curTrack=tracksNA(k);
+        parsave(feval(trackIndPath,k),curTrack)
+    end
 end
 %% debug
 % save(dataPath_tracksNA,'tracksNA')
