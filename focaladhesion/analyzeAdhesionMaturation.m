@@ -428,6 +428,12 @@ if ~foundTracks
     %% Filter with lifeTime again
     lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
     tracksNA = tracksNA(lifeTime>minLifetime);
+    %% Update the track information
+    numTracks=numel(tracksNA);
+    fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+    numStr = @(trackNum) num2str(trackNum,fString);
+    trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+    
     %% SDC application to tracksNA
     if ~isempty(SDCProc) && ~isfield(tracksNA,'SDC_applied')
         disp('Applying stage drift correction ...')
@@ -896,6 +902,10 @@ end
 %% Saving with each track
 if ~foundTracks
     %% Saving the metaTrackData
+    numTracks=numel(tracksNA);
+    fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+    numStr = @(trackNum) num2str(trackNum,fString);
+    trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
     metaTrackData.numTracks = numTracks;
     metaTrackData.trackFolderPath = trackFolderPath;
     metaTrackData.eachTrackName = 'curTrack';
