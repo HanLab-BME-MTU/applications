@@ -93,12 +93,12 @@ closeNeiVecs = ip.Results.hardCandidates;
 magDiffThreshold = ip.Results.magDiffThreshold;
 angDiffThreshold = ip.Results.angDiffThreshold;
 
-meanNeiVecs = cellfun(@(x) mean(x,1),closeNeiVecs,'Unif',false);
+medianNeiVecs = cellfun(@(x) median(x,1),closeNeiVecs,'Unif',false);   %changed from mean to median
 stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
 anglesBetweenVecs = cell(numel(closeNeiVecs),1);
 disp('Calculating angles between neighboring vectors...')
 if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
-parfor k=1:numel(closeNeiVecs) %for angles between vectors
+for k=1:numel(closeNeiVecs) %for angles between vectors
     curNei = closeNeiVecs{k};
     numCurNei = size(curNei,1);
     for p=1:numCurNei-1
@@ -187,8 +187,8 @@ end % we don't need this any more.
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % inqryPoint=200;
 % for k = inqryPoint
-parfor k = 1:nPoints
-% for k = 1:nPoints
+%parfor k = 1:nPoints
+  for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -197,7 +197,7 @@ parfor k = 1:nPoints
     corL = minCorL;
     
     % candidate vector
-    curCandVec = meanNeiVecs{k};
+    curCandVec = medianNeiVecs{k};
     curCandVecStd = stdNeiVecs{k};
     curStdAngle = stdAngleAll(k);
     

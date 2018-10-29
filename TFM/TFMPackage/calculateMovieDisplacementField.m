@@ -361,7 +361,7 @@ for j= firstFrame:nFrames
             % Track beads displacement in the xy coordinate system
             v = trackStackFlow(cat(3,refFrame,currImage),currentBeads,...
                 p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-                'mode',p.mode,'scoreCalculation',scoreCalculation,'sigCrit',p.sigCrit);%,'usePIVSuite', p.usePIVSuite);
+                'mode',p.mode,'scoreCalculation',scoreCalculation,'sigCrit',p.sigCrit,'noGradualExpansionOfSearchArea',p.noGradualExpansionOfSearchArea>0);%,'usePIVSuite', p.usePIVSuite);
         else
 %             scoreCalculation='difference';
             scoreCalculation='xcorr';
