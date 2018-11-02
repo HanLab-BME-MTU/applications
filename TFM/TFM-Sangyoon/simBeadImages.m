@@ -35,23 +35,23 @@ ymin = gridSpacing;
 
 [x_mat_u, y_mat_u]=meshgrid(xmin:gridSpacing:xmax,ymin:gridSpacing:ymax);
 
-% % temporary - get the coordinates
-% figure, imshow(ones(500))
-% hold on
-% fposxy = [];
-% n = 0;
-% % Loop, picking up the points.
-% disp('Left mouse button picks points.')
-% disp('Right mouse button picks last point.')
-% but = 1;
-% while but == 1
-%     [xi,yi,but] = ginput(1);
-%     plot(xi,yi,'ro')
-%     n = n+1;
-%     text(xi,yi-8,num2str(n));
-%     fposxy(n,:) = [xi yi];
-% end
-% hold off
+% temporary - get the coordinates
+figure, imshow(ones(500))
+hold on
+fposxy = [];
+n = 0;
+% Loop, picking up the points.
+disp('Left mouse button picks points.')
+disp('Right mouse button picks last point.')
+but = 1;
+while but == 1
+    [xi,yi,but] = ginput(1);
+    plot(xi,yi,'ro')
+    n = n+1;
+    text(xi,yi-8,num2str(n));
+    fposxy(n,:) = [xi yi];
+end
+hold off
 
 posNA = [139.0000  267.0000
   156.0000  232.0000
