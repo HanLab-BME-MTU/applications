@@ -401,6 +401,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             funParams.reTrack = true;
             funParams.getEdgeRelatedFeatures = true;
             funParams.bandwidthNA = 7;
+            funParams.minFALengthMicron = 2;
             
             %% TODO - likely will remove this.
             funParams.backupOldResults = true;           
