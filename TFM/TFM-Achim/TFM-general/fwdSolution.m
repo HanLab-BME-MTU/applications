@@ -22,7 +22,7 @@ elseif nargin <16
 end
 if strcmpi(method,'conv_free')
     tic;
-    display('Calulate the convolution explicitely in free triangulated mesh')
+    disp('Calulate the convolution explicitely in free triangulated mesh')
     [nRow,~]=size(x0);
 
     ux = zeros(nRow,1);
@@ -37,7 +37,7 @@ if strcmpi(method,'conv_free')
     toc;
 elseif nargin<10 || strcmpi(method,'conv')
     tic;
-    display('Calulate the convolution explicitely')
+    disp('Calulate the convolution explicitely')
     [nRow,nCol]=size(x0);
 
     for i=1:nRow
@@ -77,7 +77,7 @@ elseif strcmpi(method,'fft')
     
     % This determines the sampling of the force field:
     if (nargin < 12 || isempty(meshPtsFwdSol)) && ~useSameSampling
-        display('Use meshPtsFwdSol=2^10. This value should be given with the function call!!!');
+        disp('Use meshPtsFwdSol=2^10. This value should be given with the function call!!!');
         meshPtsFwdSol=2^10;
     end
     
@@ -502,6 +502,9 @@ ymax=3;
 
 force_x=@(x,y) assumedForce(1,x,y);
 force_y=@(x,y) assumedForce(2,x,y);
+force_x =@(x,y)  assumedForceAniso2D(1,x,y,70,28,150,620,400/72,500/72,'groupForce');
+force_y =@(x,y)  assumedForceAniso2D(2,x,y,70,28,150,620,400/72,500/72,'groupForce');
+
 
 [ux_conv uy_conv]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,'conv');
 
