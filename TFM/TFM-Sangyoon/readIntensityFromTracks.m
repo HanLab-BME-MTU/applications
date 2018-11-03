@@ -127,10 +127,10 @@ parfor (k=1:numTracks, parforArg)
         try
             curStartingFrame = curTrack.startingFrameExtra;
             curEndingFrame = curTrack.endingFrameExtra;
-            if isempty(curStartingFrame)
+            if isempty(curStartingFrame) || curEndingFrame<curStartingFrame
                 curStartingFrame = curTrack.startingFrame;
             end
-            if isempty(curEndingFrame)
+            if isempty(curEndingFrame) || curEndingFrame<curStartingFrame
                 curEndingFrame = curTrack.endingFrame;
             end
         catch
@@ -150,6 +150,7 @@ parfor (k=1:numTracks, parforArg)
             curTrack.endingFrameExtra = curEndingFrame;
             trackingFromStartingFrame = true;
             mode='xyac';
+            curTrack.startingFrameExtra = ii;
 
             if isempty(MD)
                 searchRadiusDetected = 2;
@@ -158,7 +159,7 @@ parfor (k=1:numTracks, parforArg)
             end
             
             gapClosed=0;
-            for ii=curStartingFrame:-1:startFrame
+            for ii=curStartingFrame-1:-1:startFrame
                 curImg = imgStack(:,:,ii); %#ok<*PFBNS>
                 p=-1;
     %             curSigma = sigma;
@@ -223,7 +224,7 @@ parfor (k=1:numTracks, parforArg)
                     end
                 end
                 if ~pitFound && gapClosed >= maxGap
-                    curTrack.startingFrameExtra = ii+gapClosed+1;
+%                     curTrack.startingFrameExtra = ii+gapClosed+1;
                     break % We still have to read the values
                 elseif ~pitFound && gapClosed < maxGap
                     gapClosed = gapClosed+1; A=[]; c=[]; mode='xyasc';
@@ -250,7 +251,7 @@ parfor (k=1:numTracks, parforArg)
 %                 c = curTrack.bkgAmp(ii); 
         
         gapClosed=0;
-        for ii=curStartingFrame:curEndingFrame
+        for ii=curStartingFrame+1:curEndingFrame
             curImg = imgStack(:,:,ii);
             if ~reTrack
                 x = curTrack.xCoord(ii);

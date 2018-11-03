@@ -725,6 +725,10 @@ end
     writetable(tableStableNAFCratio,[dataPath filesep 'stableNAFCratio.csv'],'WriteRowNames',true)
 
 %% intensity of the other channel at each adhesion type
+    intensitiesInNAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInNAsGroup,'unif',false);
+    intensitiesInFCsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInFCsGroup,'unif',false);
+    intensitiesInFAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInFAsGroup,'unif',false);
+    intensityGroup={intensitiesInNAsGroupCell, intensitiesInFCsGroupCell, intensitiesInFAsGroupCell};
 
     nameList={'NA','FC','FA'};
     boxPlotCellArray(intensityGroup,nameList,1,false,true);
@@ -734,8 +738,8 @@ end
     hgsave(h1,[figPath filesep 'intenTheOtherChannel'],'-v7.3')
     print(h1,[figPath filesep 'intenTheOtherChannel'],'-dtiff')
 
-    tableCellArea=table(cellAreaGroup,'RowNames',nameList);
-    writetable(tableCellArea,[dataPath filesep 'intenTheOtherChannel.csv'],'WriteRowNames',true)    
+    tableIntensityTheOther=table(intensityGroup,'RowNames',nameList);
+    writetable(tableIntensityTheOther,[dataPath filesep 'intenTheOtherChannel.csv'],'WriteRowNames',true)    
 %% nucleatingNARatioGroup
     h1=figure; 
     boxPlotCellArray(nucleatingNARatioGroup,nameList,1,false,true);
