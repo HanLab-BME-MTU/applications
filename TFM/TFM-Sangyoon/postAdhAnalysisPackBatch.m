@@ -126,6 +126,10 @@ meanAdhDensityG7Group = cell(numConditions,1);
 meanAdhDensityG8Group = cell(numConditions,1);
 meanAdhDensityG9Group = cell(numConditions,1);
 
+intensitiesInNAsGroup = cell(numConditions,1);
+intensitiesInFCsGroup = cell(numConditions,1);
+intensitiesInFAsGroup = cell(numConditions,1);
+
 mainBccPeakValuesGroupGroup = cell(numConditions,1);
 mainTimeToPeakGroupGroup = cell(numConditions,1);
 sideBccPeakValuesGrouppGroup = cell(numConditions,1);
@@ -205,6 +209,10 @@ for ii=1:numConditions
     meanAdhDensityG7=zeros(N(ii),1);
     meanAdhDensityG8=zeros(N(ii),1);
     meanAdhDensityG9=zeros(N(ii),1);
+
+    intensitiesInNAs=cell(N(ii),1);   
+    intensitiesInFCs=cell(N(ii),1);   
+    intensitiesInFAs=cell(N(ii),1);   
     
     curMovies = curML.movies_;
     for k=1:N(ii)
@@ -311,12 +319,20 @@ for ii=1:numConditions
         % About process 9
         iTheOtherProc = 9;
         tOtherProc = curFAPackage.getProcess(iTheOtherProc);
-        intenGroupStruct=load(tOtherProc.outFilePaths_{2,iOther});
-        intenGroup=intenGroupStruct.intenGroup; 
-        intensitiesInNAs{k} = intenGroup{1};
-        intensitiesInFCs{k} = intenGroup{2};
-        intensitiesInFAs{k} = intenGroup{3};
-        
+        if ~isempty(tOtherProc)
+            iOther = input('Another channel other than the main adhesion channel? (default: 3): ');
+            if isempty(iOther); iOther=3; end
+
+            intenGroupStruct=load(tOtherProc.outFilePaths_{2,iOther});
+            intenGroup=intenGroupStruct.intenGroup; 
+            intensitiesInNAs{k} = intenGroup{1};
+            intensitiesInFCs{k} = intenGroup{2};
+            intensitiesInFAs{k} = intenGroup{3};
+        else
+            intensitiesInNAs{k} = [];
+            intensitiesInFCs{k} = [];
+            intensitiesInFAs{k} = [];
+        end        
         % Other feature related properties are calculated in the step 11
         
     end

@@ -99,7 +99,7 @@ end
 %% Data Set up
 % Set up the output file path for master channel
 outputFile = cell(2, numel(MD.channels_));
-for i = p.ChannelIndex
+for i = [p.ChannelIndex iChanSlave]
     [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
     outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
     outputFile{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
@@ -111,143 +111,143 @@ theOtherChanReadProc.setOutFilePaths(outputFile);
 mkClrDir(p.OutputDirectory);
 nFrames = MD.nFrames_;
 %% Slave to Master registration using PIV
-p.doMultimodalRegistration = true;
-p.doFAregistration = false;
+% p.doMultimodalRegistration = true;
+% p.doFAregistration = false;
 if p.doFAregistration
-    % Find the FA locations in the master channel at t=1
-    iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
-    FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
-    SDCProc=FAPackage.processes_{iSDCProc};
-
-    iFAsegProc = MD.getProcessIndex('FocalAdhesionSegmentationProcess');
-    FASegProc = MD.getProcess(iFAsegProc);
-    maskFAs = FASegProc.loadChannelOutput(p.ChannelIndex,1);
-    if ~isempty(SDCProc)
-        iBeadChan = 1; % might need to be updated based on asking TFMPackage..
-        s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
-        T = s.T;
-        
-        maskFAs = imtranslate(maskFAs,T(1,2:-1:1));
-        mainI = SDCProc.loadChannelOutput(p.ChannelIndex,1);
-        subI = SDCProc.loadChannelOutput(p.iChanSlave,1);
-    else
-        mainI = MD.getChannel(p.ChannelIndex).loadImage(1);
-        subI = MD.getChannel(p.iChanSlave).loadImage(1);
-    end
-    % Do the PIV from FA locations
-    % Track beads displacement in the xy coordinate system
-    xNA=arrayfun(@(x) x.xCoord(1),tracksNA);
-    yNA=arrayfun(@(x) x.yCoord(1),tracksNA);
-
-    maskAdhesion = refineAdhesionSegmentation(maskFAs>0,mainI,xNA,yNA);
-    indivAdhs = regionprops(bwconncomp(maskAdhesion,4),mainI,'Centroid','Area','BoundingBox','MajorAxisLength','MeanIntensity');
-%     lengthAll = arrayfun(@(x) x.MajorAxisLength,indivAdhs);
-    indivSubAdhs = regionprops(bwconncomp(maskAdhesion,4),subI,'MeanIntensity');
-    orthoLengthAll = arrayfun(@(x) max(x.BoundingBox(3:4)),indivAdhs);
-    areaAll = arrayfun(@(x) x.Area,indivAdhs);
-    intensityAll = arrayfun(@(x) x.MeanIntensity,indivAdhs);
-    intensitySubAll = arrayfun(@(x) x.MeanIntensity,indivSubAdhs);
-    maxFlowSpeed = 5;
-    % Filter out segmentation near image boundary
-    dispMatX = arrayfun(@(x) x.Centroid(1),indivAdhs);
-    dispMatY = arrayfun(@(x) x.Centroid(2),indivAdhs);
-    bwstackImg = true(size(maskFAs));
-    bwstackImg = bwmorph(bwstackImg,'erode',maxFlowSpeed+10);
-    
-    [insideIdx] = maskVectors(dispMatX,dispMatY,bwstackImg); 
-
-    % We go from obvious FAs that have high enough intensity and area but
-    % exclude too large FAs
-    idxStrongFAs = areaAll>20 & intensityAll>(mean(intensityAll)-std(intensityAll)) ...
-        & insideIdx & intensitySubAll>(mean(intensitySubAll)-1*std(intensitySubAll)); % ...
-%                    & orthoLengthAll<(mean(orthoLengthAll)+3*std(orthoLengthAll));
-    
-    numSFAs = sum(idxStrongFAs);
-    deformAll = zeros(numSFAs,4);
-    indexFAs = find(idxStrongFAs)';
-    addDist = 10;
-
-    pivPar = [];      % variable for settings
-    pivData = [];     % variable for storing results
-    [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
-    [pivData] = pivAnalyzeImagePair(mainI,subI,pivData,pivPar);
-    % show the FA segmentation
-    labelAdh = bwlabel(maskAdhesion,4);
-    % Show boundaries with only in indexFAs
-    labelAdh2 = labelAdh.*ismember(labelAdh,indexFAs);
-    bdryAdh = boundarymask(labelAdh2);
-    figure, imshow(imoverlay(uint8(mainI),bdryAdh,'cyan'), []), hold on
-    quiver(pivData.X,pivData.Y,pivData.U,pivData.V,0,'r')
-    
-    
-    % Decided go from each area with variable area
-    for ii=1:numSFAs
-        curAdh = indivAdhs(indexFAs(ii));
-        deformAll(ii,1:2) = curAdh.Centroid;
-        deformAll(ii,3)=interp2(pivData.X,pivData.Y,pivData.U,curAdh.Centroid(1),curAdh.Centroid(2));
-        deformAll(ii,4)=interp2(pivData.X,pivData.Y,pivData.V,curAdh.Centroid(1),curAdh.Centroid(2));
-    end
-    quiver(deformAll(:,1),deformAll(:,2),deformAll(:,3),deformAll(:,4),0,'y')
-    
-    % Make the transformation matrix (2d projective) out of deformAll
-    idxNoNaN = ~isnan(deformAll(:,3));
-    movingPoints = deformAll(idxNoNaN,1:2)+deformAll(idxNoNaN,3:4);
-    fixedPoints = deformAll(idxNoNaN,1:2);
-    curXform = fitgeotrans(movingPoints,fixedPoints,'nonreflectivesimilarity'); %'projective');%'affine'); %
-    invCurXform = curXform.invert;
-    disp('Projective transform has been found!')
-
-    % Apply to the slave channel
-    ref_obj = imref2d(size(subI));
-    imageFileNames = MD.getImageFileNames;
-%     newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
-    
-    % Overwrite the side channel
-    if ~isempty(SDCProc)
-        % back up
-        backupFolder = [SDCProc.outFilePaths_{1,p.iChanSlave} ' Original']; 
-        if ~exist(backupFolder,'dir')
-            mkdir(backupFolder);
-        end
-        % Anonymous functions for reading input/output
-        outFile=@(chan,frame) [SDCProc.outFilePaths_{1,chan} filesep imageFileNames{chan}{frame}];
-        for ii=1:nFrames
-            subI = SDCProc.loadChannelOutput(p.iChanSlave,ii);
-            newSubI = imwarp(subI, curXform, 'OutputView', ref_obj);
-            copyfile(outFile(p.iChanSlave, ii),backupFolder,'f')
-            imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
-            
-            if ii==1
-                mainI = SDCProc.loadChannelOutput(p.iChanMaster,ii);
-                hFig = figure;
-                hAx  = subplot(1,2,1);
-                C = imfuse(mainI,subI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
-                imshow(C,[],'Parent', hAx);
-                
-                title('Original result: red, ch 1, green, ch 2')
-                hAx2  = subplot(1,2,2);
-                C2 = imfuse(mainI,newSubI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
-                imshow(C2,[],'Parent', hAx2);
-                title('Aligned result: red, ch 1, green, adjusted ch 2')
-            end
-        end
-        disp(['Channel has been overwritten in ' SDCProc.outFilePaths_{1,p.iChanSlave}])
-    else
-        backupFolder = [MD.getChannel(p.iChanSlave).getPath ' Original']; 
-        if ~exist(backupFolder,'dir')
-            mkdir(backupFolder);
-        end
-        % Anonymous functions for reading input/output
-        outFile=@(chan,frame) [MD.getChannel(chan) filesep imageFileNames{chan}{frame}];
-        for ii=1:nFrames
-            subI = MD.getChannel(p.iChanSlave).loadImage(ii);
-            newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
-            copyfile(outFile(p.iChanSlave, ii),backupFolder)
-            imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
-        end
-        disp(['Channel has been overwritten in ' MD.getChannel(chan)])
-    end
-elseif p.doMultimodalRegistration
+%     % Find the FA locations in the master channel at t=1
+%     iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+%     FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
+%     SDCProc=FAPackage.processes_{iSDCProc};
+% 
+%     iFAsegProc = MD.getProcessIndex('FocalAdhesionSegmentationProcess');
+%     FASegProc = MD.getProcess(iFAsegProc);
+%     maskFAs = FASegProc.loadChannelOutput(p.ChannelIndex,1);
+%     if ~isempty(SDCProc)
+%         iBeadChan = 1; % might need to be updated based on asking TFMPackage..
+%         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
+%         T = s.T;
+%         
+%         maskFAs = imtranslate(maskFAs,T(1,2:-1:1));
+%         mainI = SDCProc.loadChannelOutput(p.ChannelIndex,1);
+%         subI = SDCProc.loadChannelOutput(p.iChanSlave,1);
+%     else
+%         mainI = MD.getChannel(p.ChannelIndex).loadImage(1);
+%         subI = MD.getChannel(p.iChanSlave).loadImage(1);
+%     end
+%     % Do the PIV from FA locations
+%     % Track beads displacement in the xy coordinate system
+%     xNA=arrayfun(@(x) x.xCoord(1),tracksNA);
+%     yNA=arrayfun(@(x) x.yCoord(1),tracksNA);
+% 
+%     maskAdhesion = refineAdhesionSegmentation(maskFAs>0,mainI,xNA,yNA);
+%     indivAdhs = regionprops(bwconncomp(maskAdhesion,4),mainI,'Centroid','Area','BoundingBox','MajorAxisLength','MeanIntensity');
+% %     lengthAll = arrayfun(@(x) x.MajorAxisLength,indivAdhs);
+%     indivSubAdhs = regionprops(bwconncomp(maskAdhesion,4),subI,'MeanIntensity');
+%     orthoLengthAll = arrayfun(@(x) max(x.BoundingBox(3:4)),indivAdhs);
+%     areaAll = arrayfun(@(x) x.Area,indivAdhs);
+%     intensityAll = arrayfun(@(x) x.MeanIntensity,indivAdhs);
+%     intensitySubAll = arrayfun(@(x) x.MeanIntensity,indivSubAdhs);
+%     maxFlowSpeed = 5;
+%     % Filter out segmentation near image boundary
+%     dispMatX = arrayfun(@(x) x.Centroid(1),indivAdhs);
+%     dispMatY = arrayfun(@(x) x.Centroid(2),indivAdhs);
+%     bwstackImg = true(size(maskFAs));
+%     bwstackImg = bwmorph(bwstackImg,'erode',maxFlowSpeed+10);
+%     
+%     [insideIdx] = maskVectors(dispMatX,dispMatY,bwstackImg); 
+% 
+%     % We go from obvious FAs that have high enough intensity and area but
+%     % exclude too large FAs
+%     idxStrongFAs = areaAll>20 & intensityAll>(mean(intensityAll)-std(intensityAll)) ...
+%         & insideIdx & intensitySubAll>(mean(intensitySubAll)-1*std(intensitySubAll)); % ...
+% %                    & orthoLengthAll<(mean(orthoLengthAll)+3*std(orthoLengthAll));
+%     
+%     numSFAs = sum(idxStrongFAs);
+%     deformAll = zeros(numSFAs,4);
+%     indexFAs = find(idxStrongFAs)';
+%     addDist = 10;
+% 
+%     pivPar = [];      % variable for settings
+%     pivData = [];     % variable for storing results
+%     [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
+%     [pivData] = pivAnalyzeImagePair(mainI,subI,pivData,pivPar);
+%     % show the FA segmentation
+%     labelAdh = bwlabel(maskAdhesion,4);
+%     % Show boundaries with only in indexFAs
+%     labelAdh2 = labelAdh.*ismember(labelAdh,indexFAs);
+%     bdryAdh = boundarymask(labelAdh2);
+%     figure, imshow(imoverlay(uint8(mainI),bdryAdh,'cyan'), []), hold on
+%     quiver(pivData.X,pivData.Y,pivData.U,pivData.V,0,'r')
+%     
+%     
+%     % Decided go from each area with variable area
+%     for ii=1:numSFAs
+%         curAdh = indivAdhs(indexFAs(ii));
+%         deformAll(ii,1:2) = curAdh.Centroid;
+%         deformAll(ii,3)=interp2(pivData.X,pivData.Y,pivData.U,curAdh.Centroid(1),curAdh.Centroid(2));
+%         deformAll(ii,4)=interp2(pivData.X,pivData.Y,pivData.V,curAdh.Centroid(1),curAdh.Centroid(2));
+%     end
+%     quiver(deformAll(:,1),deformAll(:,2),deformAll(:,3),deformAll(:,4),0,'y')
+%     
+%     % Make the transformation matrix (2d projective) out of deformAll
+%     idxNoNaN = ~isnan(deformAll(:,3));
+%     movingPoints = deformAll(idxNoNaN,1:2)+deformAll(idxNoNaN,3:4);
+%     fixedPoints = deformAll(idxNoNaN,1:2);
+%     curXform = fitgeotrans(movingPoints,fixedPoints,'nonreflectivesimilarity'); %'projective');%'affine'); %
+%     invCurXform = curXform.invert;
+%     disp('Projective transform has been found!')
+% 
+%     % Apply to the slave channel
+%     ref_obj = imref2d(size(subI));
+%     imageFileNames = MD.getImageFileNames;
+% %     newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
+%     
+%     % Overwrite the side channel
+%     if ~isempty(SDCProc)
+%         % back up
+%         backupFolder = [SDCProc.outFilePaths_{1,p.iChanSlave} ' Original']; 
+%         if ~exist(backupFolder,'dir')
+%             mkdir(backupFolder);
+%         end
+%         % Anonymous functions for reading input/output
+%         outFile=@(chan,frame) [SDCProc.outFilePaths_{1,chan} filesep imageFileNames{chan}{frame}];
+%         for ii=1:nFrames
+%             subI = SDCProc.loadChannelOutput(p.iChanSlave,ii);
+%             newSubI = imwarp(subI, curXform, 'OutputView', ref_obj);
+%             copyfile(outFile(p.iChanSlave, ii),backupFolder,'f')
+%             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
+%             
+%             if ii==1
+%                 mainI = SDCProc.loadChannelOutput(p.iChanMaster,ii);
+%                 hFig = figure;
+%                 hAx  = subplot(1,2,1);
+%                 C = imfuse(mainI,subI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
+%                 imshow(C,[],'Parent', hAx);
+%                 
+%                 title('Original result: red, ch 1, green, ch 2')
+%                 hAx2  = subplot(1,2,2);
+%                 C2 = imfuse(mainI,newSubI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
+%                 imshow(C2,[],'Parent', hAx2);
+%                 title('Aligned result: red, ch 1, green, adjusted ch 2')
+%             end
+%         end
+%         disp(['Channel has been overwritten in ' SDCProc.outFilePaths_{1,p.iChanSlave}])
+%     else
+%         backupFolder = [MD.getChannel(p.iChanSlave).getPath ' Original']; 
+%         if ~exist(backupFolder,'dir')
+%             mkdir(backupFolder);
+%         end
+%         % Anonymous functions for reading input/output
+%         outFile=@(chan,frame) [MD.getChannel(chan) filesep imageFileNames{chan}{frame}];
+%         for ii=1:nFrames
+%             subI = MD.getChannel(p.iChanSlave).loadImage(ii);
+%             newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
+%             copyfile(outFile(p.iChanSlave, ii),backupFolder)
+%             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
+%         end
+%         disp(['Channel has been overwritten in ' MD.getChannel(chan)])
+%     end
+% elseif p.doMultimodalRegistration
     % Get the images
     iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
     FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
@@ -389,10 +389,9 @@ for iCurChan = iChanSlave
 %         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
 %     indFAs = arrayfun(@(x) sum(x.state(x.startingFrameExtra:x.endingFrameExtra)==4)...
 %         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
-    intensitiesInNAs = arrayfun(@(x) nanmean(x.ampTotal(x.state==2)),tracksNA);
-    intensitiesInFCs = arrayfun(@(x) nanmean(x.ampTotal(x.state==3)),tracksNA);
-    intensitiesInFAs = arrayfun(@(x) nanmean(x.ampTotal(x.state==4)),tracksNA);
-    h1=figure; 
+    intensitiesInNAs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==2)),tracksNA,addedTracksNA);
+    intensitiesInFCs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==3)),tracksNA,addedTracksNA);
+    intensitiesInFAs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==4)),tracksNA,addedTracksNA);
     intensityGroup={intensitiesInNAs, intensitiesInFCs, intensitiesInFAs};
     save(outputFile{2,iChanSlave},'intensityGroup');
 end
