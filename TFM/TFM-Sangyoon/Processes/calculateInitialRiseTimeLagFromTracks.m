@@ -191,7 +191,7 @@ for jj=existingSlaveIDs
     disp(['Median of endingIntAgainstSlaveAll' curSlave 'All = ' num2str(nanmedian(endingIntAgainstSlaveAll{jj}))])
     % 4. Cross-correlation: score and 5. lag
     for k=1:numel(tracksNA)
-        presIdx = logical(tracksNA(k).presence);
+        presIdx = tracksNA(k).startingFrameExtra:tracksNA(k).endingFrameExtra;%logical(tracksNA(k).presence);
         maxLag = ceil(tracksNA(k).lifeTime/2);
         [curCC,~,curLag]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),...
             getfield(tracksNA(k),{1},curSlave,{presIdx}),'corrType','Pearson','maxLag',maxLag);

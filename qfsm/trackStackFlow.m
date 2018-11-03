@@ -84,7 +84,6 @@ mode=ip.Results.mode;
 scoreCalculation=ip.Results.scoreCalculation;
 sigCrit = ip.Results.sigCrit;
 noGradualExpansionOfSearchArea = ip.Results.noGradualExpansionOfSearchArea;
-noGradualExpansionOfSearchArea = true;
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
 
@@ -309,9 +308,9 @@ parfor k = 1:nPoints
                     % velocities returned from two block sizes, we identify the
                     % optimal block size that gives a coherent flow.
                     if max(length(vF),length(vP))>160 && maxCorL==minCorL
-                        incRange = [1.25 1.75 2.5]; % 3.25];
+                        incRange = [1.5 2.0 3.0]; %was 1.25 1.75 2.5/// was 3.25];
                     else
-                        incRange = 1.25;
+                        incRange = 1.5;   %was 1.25
                     end
                     for incFactor = incRange
                         % recalculating score, centerI, vP and vF

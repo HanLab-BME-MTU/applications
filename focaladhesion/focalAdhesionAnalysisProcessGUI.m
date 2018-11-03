@@ -54,7 +54,7 @@ userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 % Set-up parameters
-userData.numParams = {'bandwidthNA', 'minLifetime'};
+userData.numParams = {'bandwidthNA', 'minLifetime', 'minFALengthMicron'};
 userData.checkBoxes = {'reTrack','onlyEdge','matchWithFA',...
                        'getEdgeRelatedFeatures'};
                         

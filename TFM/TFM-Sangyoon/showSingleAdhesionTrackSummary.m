@@ -10,7 +10,7 @@ pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 
-curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD);
+curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
 curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
 if ~isempty(imgMap2)
     curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);

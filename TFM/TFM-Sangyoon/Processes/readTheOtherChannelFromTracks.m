@@ -98,11 +98,14 @@ if ~isempty(iTFMPackage)
 end
 %% Data Set up
 % Set up the output file path for master channel
-outputFile = cell(1, numel(MD.channels_));
+outputFile = cell(2, numel(MD.channels_));
 for i = p.ChannelIndex
     [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
     outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
     outputFile{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
+
+    outFilename = [chanDirName '_Chan' num2str(i) '_ampTotal2PerNAFCFA'];
+    outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 theOtherChanReadProc.setOutFilePaths(outputFile);
 mkClrDir(p.OutputDirectory);
@@ -379,6 +382,19 @@ for iCurChan = iChanSlave
     'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
     'endingFrame','amp','sigma'});
     toc
+    %% Add report of mean intensity of the other channel per status
+%     indNAs = arrayfun(@(x) sum(x.state(x.startingFrameExtra:x.endingFrameExtra)==2)...
+%         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
+%     indFCs = arrayfun(@(x) sum(x.state(x.startingFrameExtra:x.endingFrameExtra)==3)...
+%         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
+%     indFAs = arrayfun(@(x) sum(x.state(x.startingFrameExtra:x.endingFrameExtra)==4)...
+%         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
+    intensitiesInNAs = arrayfun(@(x) nanmean(x.ampTotal(x.state==2)),tracksNA);
+    intensitiesInFCs = arrayfun(@(x) nanmean(x.ampTotal(x.state==3)),tracksNA);
+    intensitiesInFAs = arrayfun(@(x) nanmean(x.ampTotal(x.state==4)),tracksNA);
+    h1=figure; 
+    intensityGroup={intensitiesInNAs, intensitiesInFCs, intensitiesInFAs};
+    save(outputFile{2,iChanSlave},'intensityGroup');
 end
 %% protrusion/retraction information - most of these are now done in analyzeAdhesionsMaturation
 % time after protrusion onset (negative value if retraction, based

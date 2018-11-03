@@ -87,6 +87,10 @@ lifeTimeAllGroup = cell(numConditions,1);
 lifeTimeFailingNAsGroup = cell(numConditions,1);
 lifeTimeMaturingNAsGroup = cell(numConditions,1);
 maturingRatioGroup = cell(numConditions,1);
+maturingRatioNAtoFAGroup = cell(numConditions,1);
+maturingRatioFCtoFAGroup = cell(numConditions,1);
+lifeTimeFAsGroup = cell(numConditions,1);
+stableNAFCratioGroup = cell(numConditions,1);
 assemRateGroup = cell(numConditions,1);
 disassemRateGroup = cell(numConditions,1);
 nucleatingNARatioGroup = cell(numConditions,1);
@@ -121,6 +125,11 @@ meanAdhDensityG6Group = cell(numConditions,1);
 meanAdhDensityG7Group = cell(numConditions,1);
 meanAdhDensityG8Group = cell(numConditions,1);
 meanAdhDensityG9Group = cell(numConditions,1);
+
+mainBccPeakValuesGroupGroup = cell(numConditions,1);
+mainTimeToPeakGroupGroup = cell(numConditions,1);
+sideBccPeakValuesGrouppGroup = cell(numConditions,1);
+sideTimeToPeakGroupGroup = cell(numConditions,1);
 
 iAdhChan = input('Your adhesion channel of interest? (default: 2): ');
 if isempty(iAdhChan); iAdhChan=2; end
@@ -158,6 +167,10 @@ for ii=1:numConditions
     meanLifeTimeFailingNAs=zeros(N(ii),1);
     meanLifeTimeMaturingNAs=zeros(N(ii),1);
     meanMaturingRatio=zeros(N(ii),1);
+    meanMaturingRatioNAtoFA=NaN(N(ii),1);
+    meanMaturingRatioFCtoFA=NaN(N(ii),1);
+    lifeTimeFAsAll=cell(N(ii),1);
+    meanStableNAFCratio=NaN(N(ii),1);
     meanAssemRate=zeros(N(ii),1);
     meanDisassemRate=zeros(N(ii),1);
     meanNucleatingNARatio=zeros(N(ii),1);
@@ -239,6 +252,17 @@ for ii=1:numConditions
         meanLifeTimeFailingNAs(k)=mean(maturingStruct.lifeTimeNAfailing);
         meanLifeTimeMaturingNAs(k)=mean(maturingStruct.lifeTimeNAmaturing);
         meanMaturingRatio(k)=mean(maturingStruct.maturingRatio);
+        if isfield(maturingStruct,'maturingRatioNAtoFA') % This is the newer fields
+            meanMaturingRatioNAtoFA(k)=mean(maturingStruct.maturingRatioNAtoFA);
+            meanMaturingRatioFCtoFA(k)=mean(maturingStruct.maturingRatioFCtoFA);
+            meanStableNAFCratio(k)=mean(maturingStruct.stableNAFCratio);
+            lifeTimeFAsAll{k}=lifeTimeFAs;
+        else
+            meanMaturingRatioNAtoFA(k)=NaN;
+            meanMaturingRatioFCtoFA(k)=NaN;
+            meanStableNAFCratio(k)=NaN;
+            lifeTimeFAsAll{k}=NaN;
+        end
         
         assemRateStruct=load(curAnalProc.outFilePaths_{5,iAdhChan});
         meanAssemRate(k)=nanmean(assemRateStruct.assemRateCell);
@@ -283,6 +307,16 @@ for ii=1:numConditions
         meanAdhDensityG7(k) = sum(idsStruct.idGroup7)/meanCellArea(k);
         meanAdhDensityG8(k) = sum(idsStruct.idGroup8)/meanCellArea(k);
         meanAdhDensityG9(k) = sum(idsStruct.idGroup9)/meanCellArea(k);
+        
+        % About process 9
+        iTheOtherProc = 9;
+        tOtherProc = curFAPackage.getProcess(iTheOtherProc);
+        intenGroupStruct=load(tOtherProc.outFilePaths_{2,iOther});
+        intenGroup=intenGroupStruct.intenGroup; 
+        intensitiesInNAs{k} = intenGroup{1};
+        intensitiesInFCs{k} = intenGroup{2};
+        intensitiesInFAs{k} = intenGroup{3};
+        
         % Other feature related properties are calculated in the step 11
         
     end
@@ -371,6 +405,10 @@ for ii=1:numConditions
     lifeTimeFailingNAsGroup{ii,1}=meanLifeTimeFailingNAs;
     lifeTimeMaturingNAsGroup{ii,1}=meanLifeTimeMaturingNAs;
     maturingRatioGroup{ii,1}=meanMaturingRatio;
+    maturingRatioNAtoFAGroup{ii,1}=meanMaturingRatioNAtoFA;
+    maturingRatioFCtoFAGroup{ii,1}=meanMaturingRatioFCtoFA;
+    stableNAFCratioGroup{ii,1}=meanStableNAFCratio;
+    lifeTimeFAsGroup{ii,1} = lifeTimeFAsAll;
     assemRateGroup{ii,1}=meanAssemRate;
     disassemRateGroup{ii,1}=meanDisassemRate;
     nucleatingNARatioGroup{ii,1}=meanNucleatingNARatio;
@@ -405,7 +443,11 @@ for ii=1:numConditions
     meanAdhDensityG7Group{ii,1}=meanAdhDensityG7;
     meanAdhDensityG8Group{ii,1}=meanAdhDensityG8;
     meanAdhDensityG9Group{ii,1}=meanAdhDensityG9;
-    
+
+    intensitiesInNAsGroup{ii,1}=intensitiesInNAs;
+    intensitiesInFCsGroup{ii,1}=intensitiesInFCs;
+    intensitiesInFAsGroup{ii,1}=intensitiesInFAs;
+
     initRiseGroup{ii,1}=initRiseAgainstForceEachClass;
     peakGroup{ii,1}=peakTimeAgainstForceEachClass;
     endTimeGroup{ii,1}=endTimeAgainstForceEachClass;
@@ -629,13 +671,71 @@ end
     h1=figure; 
     boxPlotCellArray(maturingRatioGroup,nameList,1,false,true);
     ylabel(['Maturing ratio (1)'])
-    title(['Maturing ratio of NAs to FAs'])
+    title(['Maturing ratio of NAs to FCs'])
     hgexport(h1,[figPath filesep 'maturingRatio'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'maturingRatio'],'-v7.3')
     print(h1,[figPath filesep 'maturingRatio'],'-dtiff')
 
     tableMaturingRatio=table(maturingRatioGroup,'RowNames',nameList);
     writetable(tableMaturingRatio,[dataPath filesep 'maturingRatio.csv'],'WriteRowNames',true)
+%% maturingRatioNAtoFAGroup
+    h1=figure; 
+    boxPlotCellArray(maturingRatioNAtoFAGroup,nameList,1,false,true);
+    ylabel(['Maturing ratio from NA to FA (1)'])
+    title(['Maturing ratio of NAs to FAs'])
+    hgexport(h1,[figPath filesep 'maturingRatioNAtoFA'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'maturingRatioNAtoFA'],'-v7.3')
+    print(h1,[figPath filesep 'maturingRatioNAtoFA'],'-dtiff')
+
+    tableMaturingRatioNAtoFAGroup=table(maturingRatioNAtoFAGroup,'RowNames',nameList);
+    writetable(tableMaturingRatioNAtoFAGroup,[dataPath filesep 'maturingRatioNAtoFA.csv'],'WriteRowNames',true)
+%% maturingRatioFCtoFAGroup
+    h1=figure; 
+    boxPlotCellArray(maturingRatioFCtoFAGroup,nameList,1,false,true);
+    ylabel('Maturing ratio from FCs to FAs (1)')
+    title(['Maturing ratio of FCs to FAs'])
+    hgexport(h1,[figPath filesep 'maturingRatioFCtoFA'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'maturingRatioFCtoFA'],'-v7.3')
+    print(h1,[figPath filesep 'maturingRatioFCtoFA'],'-dtiff')
+
+    tableMaturingRatioFCtoFA=table(maturingRatioFCtoFAGroup,'RowNames',nameList);
+    writetable(tableMaturingRatioFCtoFA,[dataPath filesep 'maturingRatioFCtoFA.csv'],'WriteRowNames',true)
+%% stableNAFCratioGroup
+    h1=figure; 
+    boxPlotCellArray(stableNAFCratioGroup,nameList,1,false,true);
+    ylabel('The ratio of stable NAs and FCs (1)')
+    title(['The ratio of stable NAs and FCs'])
+    hgexport(h1,[figPath filesep 'stableNAFCratio'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'stableNAFCratio'],'-v7.3')
+    print(h1,[figPath filesep 'stableNAFCratio'],'-dtiff')
+
+    tableStableNAFCratio=table(stableNAFCratioGroup,'RowNames',nameList);
+    writetable(tableStableNAFCratio,[dataPath filesep 'stableNAFCratio.csv'],'WriteRowNames',true)
+%% lifeTimeFAsGroup
+    lifeTimeFAsGroupCell = cellfun(@(x) cell2mat(x),lifeTimeFAsGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60,false,true);
+    ylabel('Life time of FAs (min)')
+    title(['Life time of FAs'])
+    hgexport(h1,[figPath filesep 'stableNAFCratio'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'stableNAFCratio'],'-v7.3')
+    print(h1,[figPath filesep 'stableNAFCratio'],'-dtiff')
+
+    tableStableNAFCratio=table(stableNAFCratioGroup,'RowNames',nameList);
+    writetable(tableStableNAFCratio,[dataPath filesep 'stableNAFCratio.csv'],'WriteRowNames',true)
+
+%% intensity of the other channel at each adhesion type
+
+    nameList={'NA','FC','FA'};
+    boxPlotCellArray(intensityGroup,nameList,1,false,true);
+    ylabel(['Fluorescence Intensity (a.u.)'])
+    title(['F.I. of the other channel'])
+    hgexport(h1,[figPath filesep 'intenTheOtherChannel'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'intenTheOtherChannel'],'-v7.3')
+    print(h1,[figPath filesep 'intenTheOtherChannel'],'-dtiff')
+
+    tableCellArea=table(cellAreaGroup,'RowNames',nameList);
+    writetable(tableCellArea,[dataPath filesep 'intenTheOtherChannel.csv'],'WriteRowNames',true)    
 %% nucleatingNARatioGroup
     h1=figure; 
     boxPlotCellArray(nucleatingNARatioGroup,nameList,1,false,true);
