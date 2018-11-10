@@ -28,8 +28,8 @@ if strcmpi(method,'conv_free')
     ux = zeros(nRow,1);
     uy = zeros(nRow,1);
     for i=1:nRow
-        integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E,v).*force_x(x,y) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E,v).*force_y(x,y);
-        integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E,v).*force_x(x,y) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E,v).*force_y(x,y);
+        integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E,v).*force_x(i) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E,v).*force_y(i);
+        integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E,v).*force_x(i) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E,v).*force_y(i);
 
         ux(i) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
         uy(i) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
@@ -41,12 +41,12 @@ elseif nargin<10 || strcmpi(method,'conv')
     [nRow,nCol]=size(x0);
 
     for i=1:nRow
-        for j=1:nCol  
-            integrandx = @(x,y) boussinesqGreens(1,1,x0(i,j)-x,y0(i,j)-y,E,v).*force_x(x,y) + boussinesqGreens(1,2,x0(i,j)-x,y0(i,j)-y,E,v).*force_y(x,y);
-            integrandy = @(x,y) boussinesqGreens(2,1,x0(i,j)-x,y0(i,j)-y,E,v).*force_x(x,y) + boussinesqGreens(2,2,x0(i,j)-x,y0(i,j)-y,E,v).*force_y(x,y);
+        for jj=1:nCol  
+            integrandx = @(x,y) boussinesqGreens(1,1,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_x(i,jj) + boussinesqGreens(1,2,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_y(i,jj);
+            integrandy = @(x,y) boussinesqGreens(2,1,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_x(i,jj) + boussinesqGreens(2,2,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_y(i,jj);
 
-            ux(i,j) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
-            uy(i,j) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+            ux(i,jj) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+            uy(i,jj) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
         end
     end
     toc;
@@ -57,8 +57,7 @@ elseif strcmpi(method,'fft')
     % Here starts the calculation using the fast fourier transform *
     %***************************************************************
     
-    % Number of points to calculate the force field and the Greensfunction.
-    % Since below Nx_G and Ny_G are odd, the Greensfunctions will be
+    % Number of points to calculate the force field and the Greensfunction    % Since below Nx_G and Ny_G are odd, the Greensfunctions will be
     % evaluated at zero. Since the Greensfunctions at x=0 diverges, this
     % will in general cause a problem. For this I have found a work around.
     % The Greensfunction will be evaluated as is and the divergent value
@@ -175,9 +174,9 @@ elseif strcmpi(method,'fft')
 %    %discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post'); 
 %     discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
     
-    discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
-    discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
-    discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
+    discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Ny_pad-Ny_G Nx_pad-Nx_G Nz_pad-Nz_G],0,'post');
+    discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Ny_pad-Ny_G Nx_pad-Nx_G Nz_pad-Nz_G],0,'post');
+    discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Ny_pad-Ny_G Nx_pad-Nx_G Nz_pad-Nz_G],0,'post');
     
     % Now calculate the fourier transforms:
     dFT_Force_x=fft2(discrete_Force_x);
