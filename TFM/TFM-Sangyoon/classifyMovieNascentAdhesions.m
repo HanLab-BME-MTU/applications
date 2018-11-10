@@ -516,7 +516,7 @@ else
         indexG3 = find(indAbsoluteG3 & ~indAbsoluteG7 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)); 
         indexG4 = find(indAbsoluteG4 | indAdditionalG4); 
         indexG5 = find(indAbsoluteG5); 
-        indexG6 = find(indAbsoluteG6 & ~(indAbsoluteG1 & indInitIntenG2) & ~indAbsoluteG3 & & ~indAbsoluteG7); 
+        indexG6 = find(indAbsoluteG6 & ~(indAbsoluteG1 & indInitIntenG2) & ~indAbsoluteG3 & ~indAbsoluteG7); 
         indexG7 = find(indAbsoluteG7 & ~indAbsoluteG3); 
         indexG8 = find(indAbsoluteG8 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)...
                     & ~indAbsoluteG3 & ~(indAbsoluteG4 | indAdditionalG4) & ~indAbsoluteG6 ...
