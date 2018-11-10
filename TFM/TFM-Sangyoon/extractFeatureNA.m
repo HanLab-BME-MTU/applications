@@ -130,10 +130,24 @@ if ~useOldSet
     ampSlopeNAs = arrayfun(@(x) x.ampSlope,tracksNA);
     earlyAmpSlopeNAs = arrayfun(@(x) x.earlyAmpSlope,tracksNA);
     lateAmpSlopeNAs = arrayfun(@(x) x.lateAmpSlope,tracksNA);
+    lateAmpSlopeNAs(isnan(lateAmpSlopeNAs))=0; % This lateAmpSlopeNAs should be calculated better in getFeaturesFromTracksNA
     
-    % dist to edge at the end of the day: G2 should have at least 3 um away
-    % from the edge. 
-    distToEdgeLastAll = arrayfun(@(x) x.distToEdge(x.endingFrameExtraExtra),tracksNA);
+%     % dist to edge at the end of the day: G2 should have at least 3 um away
+%     % from the edge. 
+%     distToEdgeLastAll = arrayfun(@(x) x.distToEdge(x.endingFrameExtraExtra),tracksNA);
+    
+    % G1 and G2 adhesions should have sufficient period where they are in
+    % their NA state
+    startingAsNA = zeros(numel(tracksNA),1);
+    for ii=1:numel(tracksNA)
+        curTrack = tracksNA(ii);
+        indFirstFA = find(curTrack.state==3 | curTrack.state==4, 1);
+        if ~isempty(indFirstFA)
+            startingAsNA(ii) = sum(curTrack.state==2 & ...
+                    curTrack.iFrame<indFirstFA)/MD.timeInterval_;
+        end
+    end
+    
 end 
 
 % NA or NA that has momentarily FA in the earlier period will have near
@@ -342,7 +356,8 @@ if nargin>1 && ~isempty(idGroupSelected)
                  edgeAdvanceDistFirstChangeNAs(idGroupSelected{ii}) edgeAdvanceDistLastChangeNAs(idGroupSelected{ii}) ...
                  maxEdgeAdvanceDistChangeNAs(idGroupSelected{ii}) maxIntensityNAs(idGroupSelected{ii}) ...
                  timeToMaxInten(idGroupSelected{ii}) edgeVariation(idGroupSelected{ii}) area(idGroupSelected{ii}) FAfinishing(idGroupSelected{ii}) ...
-                 ampSlopeNAs(idGroupSelected{ii}) earlyAmpSlopeNAs(idGroupSelected{ii}) lateAmpSlopeNAs(idGroupSelected{ii})];
+                 ampSlopeNAs(idGroupSelected{ii}) earlyAmpSlopeNAs(idGroupSelected{ii}) lateAmpSlopeNAs(idGroupSelected{ii}) ...
+                 startingAsNA(idGroupSelected{ii})];
             if length(idGroupSelected{1})==length(idGroupSelected{2}) || isempty(idGroupSelected{ii}) || numel(idGroupSelected{ii})==1
                 nCurG=sum(idGroupSelected{ii}>0); %
             else
@@ -416,13 +431,13 @@ if nargin>1 && ~isempty(idGroupSelected)
         end
     end
     dataTable = table(meas(:,1),meas(:,2),meas(:,3),meas(:,4),meas(:,5),meas(:,6),meas(:,7),meas(:,8),meas(:,9),meas(:,10),meas(:,11),meas(:,12),...
-        meas(:,13),meas(:,14),meas(:,15),meas(:,16),meas(:,17),meas(:,18),meas(:,19),meas(:,20),species,... %
+        meas(:,13),meas(:,14),meas(:,15),meas(:,16),meas(:,17),meas(:,18),meas(:,19),meas(:,20),meas(:,21),species,... %
         'VariableNames',{'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNAs', ...
         'lifeTimeNAs', 'meanIntensityNAs', 'distToEdgeFirstNAs', ...
         'startingIntensityNAs', 'distToEdgeChangeNAs', 'distToEdgeLastNAs', 'edgeAdvanceDistFirstChangeNAs',...
         'edgeAdvanceDistLastChangeNAs','maxEdgeAdvanceDistChangeNAs',...
         'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing'...
-        , 'ampSlopeNAs', 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs', 'Group'});%, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs', 'Group'});
+        , 'ampSlopeNAs', 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs', 'startingAsNA', 'Group'});%, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs', 'Group'});
 else
     dataTable = [];
     meas=[];
@@ -434,13 +449,12 @@ if ~useOldSet
          startingIntensityNAs distToEdgeChangeNAs distToEdgeLastNAs ...
         edgeAdvanceDistFirstChangeNAs edgeAdvanceDistLastChangeNAs maxEdgeAdvanceDistChangeNAs ...
          maxIntensityNAs timeToMaxInten edgeVariation area FAfinishing ...
-         ampSlopeNAs earlyAmpSlopeNAs lateAmpSlopeNAs]; % earlyAmpSlopeNAs lateAmpSlopeNAs
+         ampSlopeNAs earlyAmpSlopeNAs lateAmpSlopeNAs startingAsNA]; % earlyAmpSlopeNAs lateAmpSlopeNAs
 else
     allData = [decayingIntensityNAs edgeAdvanceSpeedNAs advanceSpeedNAs ...
          lifeTimeNAs meanIntensityNAs distToEdgeFirstNAs ...
          startingIntensityNAs distToEdgeChangeNAs distToEdgeLastNAs ...
-         edgeAdvanceDistLastChangeNAs maxEdgeAdvanceDistChangeNAs ...
-         ];
+         edgeAdvanceDistLastChangeNAs maxEdgeAdvanceDistChangeNAs];
 end
 
     
