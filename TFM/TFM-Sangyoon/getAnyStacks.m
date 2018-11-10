@@ -40,5 +40,14 @@ end
 
 % Other image maps
 sdcProc = FAPack.processes_{1};
-imgStack = sdcProc.loadOutStack(2);
-imgStack2 = sdcProc.loadOutStack(3);
+if ismember(2, find(sdcProc.checkChannelOutput))
+    imgStack = sdcProc.loadOutStack(2);
+else
+    imgStack = [];
+end
+
+if ismember(3, find(sdcProc.checkChannelOutput))
+    imgStack2 = sdcProc.loadOutStack(3);
+else
+    imgStack2 = [];
+end

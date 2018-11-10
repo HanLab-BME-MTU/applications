@@ -20,12 +20,12 @@ function analyzeAdhesionMaturation(MD)
 %           NADensity                   density of nascent adhesions, unit: number/um2
 %           FADensity                   density of focal adhesions , unit: number/um2
 % status of each track
-%           BA,          Before Adhesion
-%           NA,          Nascent Adhesion
-%           FC,            Focal Contact
-%           FA,            Focal Adhesion
-%           ANA,           After Nascent Adhesion
-%           Out_of_Band,            Out of band from the cell edge
+%           BA,1,               Before Adhesion
+%           NA,2,               Nascent Adhesion
+%           FC,3,               Focal Contact
+%           FA,4,               Focal Adhesion
+%           ANA,5,              After Nascent Adhesion
+%           Out_of_Band,6,      Out of band from the cell edge
 % Sangyoon Han April 2014
 % Andrew R. Jamieson Feb. 2017 - Updating to incorporate into MovieData Process GUI (Focal Adhesion Package)
 
@@ -54,6 +54,7 @@ reTrack = p.reTrack;
 getEdgeRelatedFeatures = p.getEdgeRelatedFeatures;
 iChan = p.ChannelIndex;
 bandwidthNA = p.bandwidthNA;
+minFALengthMicron = p.minFALengthMicron;
 
 ApplyCellSegMask = p.ApplyCellSegMask;
 
@@ -511,7 +512,7 @@ if ~foundTracks
 %         numAdhs(ii) = numel(Adhs);
     %         minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1um*1um
     %         minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=0.6um*0.4um
-        minFALength = round((2000/MD.pixelSize_)); %adhesion limit=2um
+        minFALength = round((minFALengthMicron*1000/MD.pixelSize_)); %adhesion limit=2um in default
         minFCLength = round((600/MD.pixelSize_)); %adhesion limit=0.6um
 
     %         fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
@@ -974,14 +975,14 @@ A= table({NADensity; FADensity; bandwidthNA; numNAsInBand'},'RowNames',lifeNames
 writetable(A,[dataPath filesep 'NAFADensity.csv'],'WriteRowNames',true)
 
 %% Lifetime analysis
-p2=0;
+pNAtoFC=0;
 idx = false(numel(tracksNA),1);
 for k=1:numel(tracksNA)
     % look for tracks that had a state of 'BA' and become 'NA'
     firstNAidx = find(tracksNA(k).state==2,1,'first');
     % see if the state is 'BA' before 'NA' state
     if (~isempty(firstNAidx) && firstNAidx>1 && (tracksNA(k).state(firstNAidx-1)==1)) || (~isempty(firstNAidx) &&firstNAidx==1)
-        p2=p2+1;
+        pNAtoFC=pNAtoFC+1;
         idx(k) = true;
         tracksNA(k).emerging = true;
         tracksNA(k).emergingFrame = firstNAidx;
@@ -997,22 +998,27 @@ end
 % after NA ...)
 trNAonly = tracksNA(idx);
 if matchWithFA
-    indMature = false(numel(trNAonly));
-    indFail = false(numel(trNAonly));
-    p2=0; q=0;
+    indMature = false(numel(tracksNA));
+    indFail = false(numel(tracksNA));
+    pNAtoFC=0; q=0; qStable=0; qStableExisting=0;
+    pNAtoFA=0; pFCtoFA=0;
 
-    for k=1:numel(trNAonly)
-        if trNAonly(k).emerging 
-            % maturing NAs
-            if (any(trNAonly(k).state(trNAonly(k).emergingFrame:end)==3) || ...
-                    any(trNAonly(k).state(trNAonly(k).emergingFrame:end)==3)) && ...
-                    sum(trNAonly(k).presence)>8
+    for k=1:numel(tracksNA)
+        if tracksNA(k).emerging 
+            % maturing NAs up to FCs and FAs
+            if (any(tracksNA(k).state(tracksNA(k).emergingFrame:end)==3) || ...
+                    any(tracksNA(k).state(tracksNA(k).emergingFrame:end)==4)) && ...
+                    sum(tracksNA(k).presence)>8
 
-                trNAonly(k).maturing = true;
+                tracksNA(k).maturing = true;
                 indMature(k) = true;
-                p2=p2+1;
+                pNAtoFC=pNAtoFC+1;
                 % lifetime until FC
-                lifeTimeNAmaturing(p2) = sum(trNAonly(k).state(trNAonly(k).emergingFrame:end)==2);
+                lifeTimeNAmaturing(pNAtoFC) = sum(tracksNA(k).state(tracksNA(k).emergingFrame:end)==2);
+                if any(tracksNA(k).state(tracksNA(k).emergingFrame:end)==4)
+                    pNAtoFA = pNAtoFA+1;
+                    pFCtoFA=pFCtoFA+1;
+                end
                 % it might be beneficial to store amplitude time series. But
                 % this can be done later from trackNAmature
             elseif sum(tracksNA(k).presence)<61 && sum(tracksNA(k).presence)>6
@@ -1021,17 +1027,34 @@ if matchWithFA
                 indFail(k) = true;
                 q=q+1;
                 % lifetime until FC
-                lifeTimeNAfailing(q) = sum(trNAonly(k).state(trNAonly(k).emergingFrame:end)==2);
+                lifeTimeNAfailing(q) = sum(tracksNA(k).state(tracksNA(k).emergingFrame:end)==2);
+            else
+                % stable NAs
+                qStable=qStable+1;
+            end
+        else %it means that adhesions started already with FC or FA or NA status
+            % We check if these adhesion have occasions to convert into FAs
+            if (any(tracksNA(k).state==2) || any(tracksNA(k).state==3)) 
+                pFCtoFA=pFCtoFA+1;
+            else
+                qStableExisting=qStableExisting+1;
             end
         end
     end
+    % quantifying lifetime of FAs separately
+    indFAs = arrayfun(@(x) any(x.state==4),tracksNA);
+    lifeTimeFAs = arrayfun(@(x) x.endingFrameExtra - x.startingFrameExtra, tracksNA(indFAs));
     lifeTimeAll = [lifeTimeNAmaturing lifeTimeNAfailing];
-    maturingRatio = p2/(p2+q);
-    tracksNAmaturing = trNAonly(indMature);
-    tracksNAfailing = trNAonly(indFail);
-    save(dataPath_analysisAll, 'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll','-v7.3'); %, 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
-    lifeNames = {'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll'};
-    B= table({maturingRatio';lifeTimeNAfailing;lifeTimeNAmaturing;lifeTimeAll},'RowNames',lifeNames);
+    maturingRatio = pNAtoFC/(pNAtoFC+q+qStable);
+    maturingRatioNAtoFA = pNAtoFA/(pNAtoFC+q+qStable);
+    maturingRatioFCtoFA = pFCtoFA/(pNAtoFC+qStableExisting+pFCtoFA+qStable); %Among All FCs and stable NAs
+    stableNAFCratio = (qStable+qStableExisting)/(qStableExisting+qStable+pFCtoFA+q+pNAtoFC); %Among all NAs and FCs
+    tracksNAmaturing = tracksNA(indMature);
+    tracksNAfailing = tracksNA(indFail);
+    save(dataPath_analysisAll, 'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll',...
+        'maturingRatioNAtoFA','maturingRatioFCtoFA','stableNAFCratio','lifeTimeFAs'); %, 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
+    lifeNames = {'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll','lifeTimeFAs'};
+    B= table({maturingRatio';lifeTimeNAfailing;lifeTimeNAmaturing;lifeTimeAll;lifeTimeFAs},'RowNames',lifeNames);
     outFilename = [chanDirName '_Chan' num2str(iChan) '_allAnalysisFA'];
     dataPath_analysisAllcsv = [p.OutputDirectory filesep outFilename 'lifeTimes.csv'];
     writetable(B,dataPath_analysisAllcsv,'WriteRowNames',true)

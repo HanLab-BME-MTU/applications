@@ -354,8 +354,7 @@ else
         initIntenG1 = initIntenAll(indAbsoluteG1);
         indInitIntenG2 = initIntenAll<(mean(initIntenG1)+0.5*std(initIntenG1));
         
-        % G1 summarizing
-        indexG1 = find(indAbsoluteG1 & indInitIntenG2); 
+        % G1 summarizing -> below at Line 505
 
         % G2 adhesions should have sufficient period where they are in
         % their NA state
@@ -403,16 +402,6 @@ else
             sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
             bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater; % & indNonDecayingG2 & indLateMaxPointG2;
 
-        % Inspect each (temporary)
-        indexG2 = find(indAbsoluteG2); 
-    %     indexG1 = [indexG1; find(additionalG1)];
-    %         figure; hold on
-    %         for mm=indexG2'
-    % %             plot(tracksNA(mm).ampTotal)
-    %             plot(tracksNA(mm).forceMag)
-    %         end
-
-    %         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
         % G3
         thresEdgeVelG3 = max((100/MD.pixelSize_)/(60/MD.timeInterval_),quantile(edgeVelAll,0.75)); %Edge should protrude at least 0.1 um/min
         indEdgeVelG3 = edgeVelAll>thresEdgeVelG3;
@@ -425,7 +414,6 @@ else
         indForwardVelG3 = adhVelAll>thresAdhVelG3;
 
         indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1 & indForwardVelG3 & indEarlyEdgeVelG3;
-        indexG3 = find(indAbsoluteG3); 
 
         % G4 - retracting, strong FAs
         thresEdgeVelG4 = min((-50/MD.pixelSize_)/(60/MD.timeInterval_), quantile(edgeVelAll(edgeVelAll<0),0.5));%Edge should retract at least 0.1 um/min
@@ -436,7 +424,12 @@ else
         indAdvDistG4 = advDistAll<thresAdvDistG4;
         indAdvVelG4 = adhVelAll<thresEdgeVelG4;
         indAbsoluteG4 = indEdgeVelG4 & indAdvVelG4 & indCloseStartingEdgeG1 & faAssocAll & indEdgeDistG4 & indAdvDistG4;
-        indexG4 = find(indAbsoluteG4); 
+        % Found that there are cases adhesions stay at the place while edge
+        % is retracting. This case the adhesion is decaying its intensity.
+        % Adding them... Nov 9 2018 Sangyoon
+        ampSlopeAll = arrayfun(@(x) x.ampSlope, tracksNA);
+        indDecayingAmp = ampSlopeAll<0;
+        indAdditionalG4 = indEdgeVelG4 & indDecayingAmp & indCloseStartingEdgeG1 & faAssocAll & indEdgeDistG4 & indAdvDistG4;
 
         % G5 - stable at the edge
         % edge doesn't move much
@@ -470,12 +463,11 @@ else
         
         indHighAmpG5 = meanAmpAll>thresMeanAmp;
         indAbsoluteG5 = indEdgeVelG5 & indEdgeStdG5 & indLifetimeG5 & indHighAmpG5 & indCloseEdgeG5;
-        indexG5 = find(indAbsoluteG5); 
 
         % G6 : noise. There are several types of noises, or uninterested
         % tracks
         % G6-1. too short tracks or tracks that are unfinished
-        thresShortLifeG6 = min(7, quantile(lifeTimesAll,0.1));
+        thresShortLifeG6 = min(100/MD.timeInterval_, quantile(lifeTimesAll,0.05));
         indShortLifeG6 = lifeTimesAll<=thresShortLifeG6;
         % G6-2. amplitude too small
         lowAmpPopul = meanAmpAll(meanAmpAll<thresMeanAmp);
@@ -484,8 +476,7 @@ else
         % G6-3. OR, tracks near the image borders (zero edge movement or std
         % I am not sure if assigning two differently positioned labels work
         % for classification - so I'll do this later after classification
-        indAbsoluteG6 = indShortLifeG6 & indLowAmpG6;
-        indexG6 = find(indAbsoluteG6); 
+        indAbsoluteG6 = indShortLifeG6 | indLowAmpG6;
 
         % G7 NAs at stalling edge: big difference from G5 is that it has
         % some early history of edge protrusion & relative weak signal
@@ -498,20 +489,42 @@ else
         indLowAmpG7 = meanAmpAll < thresMeanAmp;
 
         indAbsoluteG7 = indLastAdvanceG7 & indEdgeVelG7 & indRelEdgeVelG3 & indLowAmpG7;
-        indexG7 = find(indAbsoluteG7); 
 
         % G8 strong inside FAs
-        distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
-        indInsideG8G9 = distToEdgeAll > thresStartingDistG1;        
+%         distToEdgeMean = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+%         indInsideG8G9 = distToEdgeMean > thresStartingDistG1;        
+        indInsideG8G9 = distToEdgeFirstAll > thresStartingDistG1; % decided to 
+        
         indAbsoluteG8 = indHighAmpG5 & indInsideG8G9 & indLifetimeG5;
-        indexG8 = find(indAbsoluteG8); 
 
         % G9 weak inside NAs
         indMinLifeG9 = lifeTimesAll>2*thresShortLifeG6;
         indAbsoluteG9 = indLowAmpG7 & indInsideG8G9 & indMinLifeG9;
-        indexG9 = find(indAbsoluteG9); 
+        
+        %% I decided to get mutually exclusive indices
+        indexG1 = find(indAbsoluteG1 & indInitIntenG2); 
+        % Inspect each (temporary)
+        indexG2 = find(indAbsoluteG2); 
+    %     indexG1 = [indexG1; find(additionalG1)];
+    %         figure; hold on
+    %         for mm=indexG2'
+    % %             plot(tracksNA(mm).ampTotal)
+    %             plot(tracksNA(mm).forceMag)
+    %         end
 
-        % Putting together integrated labels
+    %         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
+        indexG3 = find(indAbsoluteG3 & ~indAbsoluteG7 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)); 
+        indexG4 = find(indAbsoluteG4 | indAdditionalG4); 
+        indexG5 = find(indAbsoluteG5); 
+        indexG6 = find(indAbsoluteG6 & ~(indAbsoluteG1 & indInitIntenG2) & ~indAbsoluteG3 & & ~indAbsoluteG7); 
+        indexG7 = find(indAbsoluteG7 & ~indAbsoluteG3); 
+        indexG8 = find(indAbsoluteG8 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)...
+                    & ~indAbsoluteG3 & ~(indAbsoluteG4 | indAdditionalG4) & ~indAbsoluteG6 ...
+                    & ~indAbsoluteG7 & ~indAbsoluteG9 & ~indAbsoluteG5); 
+        indexG9 = find(indAbsoluteG9 & ~indAbsoluteG6 & ~indAbsoluteG7); 
+        
+
+        %% Putting together integrated labels
         % I have to tone down the number of the large label group according to
         % groups with smaller number (especially indexG2)
         meanSampleNum = round(mean([numel(indexG1) numel(indexG2) numel(indexG3) numel(indexG5)]));
