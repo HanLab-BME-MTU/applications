@@ -347,6 +347,10 @@ if p.doFAregistration
         end
         disp(['Channel has been overwritten in ' MD.getChannel(chan)])
     end
+else
+    iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+    FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
+    SDCProc=FAPackage.processes_{iSDCProc};
 end
 %% Reading
 iReadingCode=4;
