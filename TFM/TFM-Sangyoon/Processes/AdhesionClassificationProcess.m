@@ -119,7 +119,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
 %             s = cached.load(obj.outFilePaths_{5,iChan}, '-useCache', ip.Results.useCache, 'tableTracksNA');
             % Persistent works only for double variable or array. Working
             % around ...
-            persistent xCoord yCoord refineFAID stateAll startingFrameExtra endingFrameExtra lastFinishTime
+            persistent xCoord yCoord refineFAID stateAll startingFrameExtra endingFrameExtra lastFinishTime lastFinishTimeClass
             if isempty(lastFinishTime)
                 lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
             end
@@ -190,8 +190,19 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     refineFAID = cell2mat(refineFAID_cell);
                     lastFinishTime = adhAnalProc.finishTime_;
                 end
-                iClasses = cached.load(obj.outFilePaths_{4,iChan}, '-useCache', ip.Results.useCache,...
-                    'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9');
+                fileInfo = dir(obj.outFilePaths_{4,iChan});
+                if isempty(lastFinishTimeClass)
+                    iClasses = cached.load(obj.outFilePaths_{4,iChan}, '-useCache', ip.Results.useCache,...
+                        'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9');
+                    lastFinishTimeClass = datevec(fileInfo.datenum);
+                elseif all(datevec(fileInfo.datenum)==lastFinishTimeClass)
+                    iClasses = cached.load(obj.outFilePaths_{4,iChan}, '-useCache', ip.Results.useCache,...
+                        'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9');
+                    lastFinishTimeClass = datevec(fileInfo.datenum);
+                else
+                    iClasses = cached.load(obj.outFilePaths_{4,iChan}, '-useCache', false,...
+                        'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9');
+                end
                 idGroupLabel= 1*iClasses.idGroup1 + ...
                                 2*iClasses.idGroup2 + ...
                                 3*iClasses.idGroup3 + ...

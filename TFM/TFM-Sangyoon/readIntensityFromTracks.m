@@ -251,7 +251,7 @@ parfor (k=1:numTracks, parforArg)
 %                 c = curTrack.bkgAmp(ii); 
         
         gapClosed=0;
-        for ii=curStartingFrame+1:curEndingFrame
+        for ii=curStartingFrame:curEndingFrame
             curImg = imgStack(:,:,ii);
             if ~reTrack
                 x = curTrack.xCoord(ii);

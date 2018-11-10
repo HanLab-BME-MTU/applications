@@ -501,8 +501,10 @@ else
         indexG7 = find(indAbsoluteG7); 
 
         % G8 strong inside FAs
-        distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
-        indInsideG8G9 = distToEdgeAll > thresStartingDistG1;        
+%         distToEdgeMean = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+%         indInsideG8G9 = distToEdgeMean > thresStartingDistG1;        
+        indInsideG8G9 = distToEdgeFirstAll > thresStartingDistG1; % decided to 
+        
         indAbsoluteG8 = indHighAmpG5 & indInsideG8G9 & indLifetimeG5;
         indexG8 = find(indAbsoluteG8); 
 
