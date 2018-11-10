@@ -18,11 +18,15 @@ end
 for ii=processesToRun
     curProcess{ii} = FAPackage.getProcess(ii);
     if ~isempty(curProcess{ii})
-%         if (~curProcess{ii}.success_ && ~curProcess{ii}.procChanged_) || prevProcChanged || ~curProcess{ii}.updated_
-            curProcess{ii}.run
-            MD.save
-%             prevProcChanged = true;
-%         end
+        if isempty(curProcess{ii}.funName_)
+            % A rare case when the funName is not defined.
+            % Run constructing the process
+            constructor=str2func(class(curProcess{ii}));
+            funParams = curProcess{ii}.funParams_;
+            curProcess{ii}=constructor(MD,funParams.OutputDirectory,funParams);
+        end
+        curProcess{ii}.run
+        MD.save
     end
 end
 
