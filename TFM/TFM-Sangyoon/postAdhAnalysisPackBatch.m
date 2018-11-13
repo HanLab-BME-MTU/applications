@@ -744,17 +744,28 @@ end
     intensitiesInNAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInNAsGroup,'unif',false);
     intensitiesInFCsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInFCsGroup,'unif',false);
     intensitiesInFAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInFAsGroup,'unif',false);
+    intensityGroupAll=cell(numel(intensitiesInNAsGroup)*3,1);
     intensityGroup={intensitiesInNAsGroupCell, intensitiesInFCsGroupCell, intensitiesInFAsGroupCell};
 
-    nameList={'NA','FC','FA'};
-    boxPlotCellArray(intensityGroup,nameList,1,false,true);
+    nameListAdh={'NA','FC','FA'};
+    nameListAdhComb=cell(numel(intensitiesInNAsGroup)*3,1);
+    
+    for ii=1:numel(intensitiesInNAsGroup)
+        p=ii-1;
+        for jj=1:3
+            nameListAdhComb{3*p+jj,1} = [nameList{ii} '-' nameListAdh{jj}];
+            intensityGroupAll{3*p+jj,1} = intensityGroup{jj}{ii};
+        end
+        
+    end
+    boxPlotCellArray(intensityGroupAll,nameListAdhComb,1,false,true);
     ylabel(['Fluorescence Intensity (a.u.)'])
     title(['F.I. of the other channel'])
     hgexport(h1,[figPath filesep 'intenTheOtherChannel'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'intenTheOtherChannel'],'-v7.3')
     print(h1,[figPath filesep 'intenTheOtherChannel'],'-dtiff')
 
-    tableIntensityTheOther=table(intensityGroup,'RowNames',nameList);
+    tableIntensityTheOther=table(intensityGroupAll,'RowNames',nameListAdhComb);
     writetable(tableIntensityTheOther,[dataPath filesep 'intenTheOtherChannel.csv'],'WriteRowNames',true)    
 %% nucleatingNARatioGroup
     h1=figure; 

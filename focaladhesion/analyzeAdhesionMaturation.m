@@ -772,6 +772,12 @@ if ~foundTracks
         if ~isfield(tracksNA,'closestBdPoint')
             tracksNA(end).closestBdPoint=[];
         end
+        if ~isfield(tracksNA,'distToEdgeNaive')
+            tracksNA(end).distToEdgeNaive=[];
+        end
+        if ~isfield(tracksNA,'closestBdPointNaive')
+            tracksNA(end).closestBdPointNaive=[];
+        end
         parfor k=1:numTracks
             curTrack = tracksNA(k);
             % Load each adhesion's moving direction
@@ -793,13 +799,23 @@ if ~foundTracks
                         distToAdh = sqrt(sum((P-ones(size(P,1),1)*[xCropped, yCropped]).^2,2));
                         [minDistToBd,indMinBdPoint] = min(distToAdh);
                         curTrack.closestBdPoint(ii,:) = P(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                        curTrack.distToEdge(ii) = minDistToBd;
+                        %Decided to add distToEdgeNaive and closestBdPointNaive
+                        %additionally
+                        distToAdhNoive = sqrt(sum((allBdPoints- ...
+                            ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
+                        [minDistToBdNaive,indMinBdPointNoive] = min(distToAdhNoive);
+                        curTrack.closestBdPointNaive(ii,:) = allBdPoints(indMinBdPointNoive,:); % this is lab frame of reference. (not relative to adhesion position)
+                        curTrack.distToEdgeNaive(ii) = minDistToBdNaive;
                     else
                         distToAdh = sqrt(sum((allBdPoints- ...
                             ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
                         [minDistToBd,indMinBdPoint] = min(distToAdh);
                         curTrack.closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                        curTrack.distToEdge(ii) = minDistToBd;
+                        curTrack.closestBdPointNaive(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                        curTrack.distToEdgeNaive(ii) = minDistToBd;
                     end
-                    curTrack.distToEdge(ii) = minDistToBd;
                 end
             else
                 for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
@@ -813,7 +829,9 @@ if ~foundTracks
                         error(['Error occurred at ii=' num2str(ii) ' and indMinBDPoint=' num2str(indMinBdPoint) ' and k=' num2str(k) ', allBdPoints(indMinBdPoint,1)=' num2str(allBdPoints(indMinBdPoint,1))]);
                     end
                     curTrack.distToEdge(ii) = minDistToBd;
+                    curTrack.distToEdgeNaive(ii) = minDistToBd;
                     curTrack.closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
+                    curTrack.closestBdPointNaive(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                     tracksNA(k) = curTrack;
                 end
             end

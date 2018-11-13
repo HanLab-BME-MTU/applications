@@ -242,7 +242,11 @@ else
         indRelEdgeVelG1 = distToEdgeVelAll>thresRelEdgeVel;
 
         % 3. Should start from relatively close to an edge
-        distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
+        try
+            distToEdgeFirstAll = arrayfun(@(x) x.distToEdgeNaive(x.startingFrameExtra),tracksNA);
+        catch
+            distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
+        end
         thresStartingDistG1 = 3000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseStartingEdgeG1 = distToEdgeFirstAll < thresStartingDistG1;
 
@@ -291,7 +295,7 @@ else
             curFrameMaxAmp = curFrameRange(curFrameMaxAmp);
             timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtraExtra;
         end
-        lifeTimesAll = arrayfun(@(y) y.endingFrameExtraExtra-y.startingFrameExtraExtra, tracksNA);
+        lifeTimesAll = arrayfun(@(y) y.endingFrameExtra-y.startingFrameExtra, tracksNA);
         relMaxPoints = timeToMaxInten./lifeTimesAll;
         thresRelMax = max(0.8,mean(relMaxPoints));
         indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
@@ -403,7 +407,7 @@ else
             bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater; % & indNonDecayingG2 & indLateMaxPointG2;
 
         % G3
-        thresEdgeVelG3 = max((100/MD.pixelSize_)/(60/MD.timeInterval_),quantile(edgeVelAll,0.75)); %Edge should protrude at least 0.1 um/min
+        thresEdgeVelG3 = max((50/MD.pixelSize_)/(60/MD.timeInterval_),quantile(edgeVelAll,0.75)); %Edge should protrude at least 0.05 um/min
         indEdgeVelG3 = edgeVelAll>thresEdgeVelG3;
         indRelEdgeVelG3 = distToEdgeVelAll<3*thresRelEdgeVel;
         earlyEdgeVelAll = arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))',(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))'), tracksNA);
@@ -433,6 +437,9 @@ else
 
         % G5 - stable at the edge
         % edge doesn't move much
+        if isfield(tracksNA,'edgeAdvanceDistNaive') %override if edgeAdvanceDistNaive exists.
+            edgeVelAll=arrayfun(@(x) regress(x.edgeAdvanceDistNaive(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        end
         posEdgeVel = edgeVelAll(edgeVelAll>=0);
         negEdgeVel = edgeVelAll(edgeVelAll<=0);
         lowPosEVel = max((5/MD.pixelSize_)/(60/MD.timeInterval_),quantile(posEdgeVel,0.1)); %At most 5 nm/min
@@ -444,7 +451,7 @@ else
         indEdgeStdG5 = edgeStdAll<thresEdgeStdG5;
         % long life time
         thresLifetimeG5 = quantile(lifeTimesAll,0.75);
-        indLifetimeG5 = lifeTimesAll>thresLifetimeG5;
+        indLifetimeG5 = lifeTimesAll>=thresLifetimeG5;
         % high-enough intensity
         meanAmpAll = arrayfun(@(y) nanmean(y.ampTotal), tracksNA);
         maxMeanAmp = max(meanAmpAll);
@@ -457,7 +464,11 @@ else
         end
         
         % G5 - 2 Should be close to an edge
-        distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdge),tracksNA);
+        try
+            distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdgeNaive),tracksNA);
+        catch
+            distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdge),tracksNA);
+        end
         thresStartingDistG5 = 2000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseEdgeG5 = distToEdgeMeanAll < thresStartingDistG5;
         
@@ -504,7 +515,7 @@ else
         %% I decided to get mutually exclusive indices
         indexG1 = find(indAbsoluteG1 & indInitIntenG2); 
         % Inspect each (temporary)
-        indexG2 = find(indAbsoluteG2); 
+        indexG2 = find(indAbsoluteG2 & ~indAbsoluteG8 & ~indAbsoluteG9); 
     %     indexG1 = [indexG1; find(additionalG1)];
     %         figure; hold on
     %         for mm=indexG2'
@@ -522,7 +533,7 @@ else
         indexG8 = find(indAbsoluteG8 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)...
                     & ~indAbsoluteG3 & ~(indAbsoluteG4 | indAdditionalG4) & ~indAbsoluteG6 ...
                     & ~indAbsoluteG7 & ~indAbsoluteG9 & ~indAbsoluteG5); 
-        indexG9 = find(indAbsoluteG9 & ~indAbsoluteG6 & ~indAbsoluteG7); 
+        indexG9 = find(indAbsoluteG9 & ~indAbsoluteG6 & ~indAbsoluteG7 & ~indAbsoluteG8); 
         
 
         %% Putting together integrated labels
@@ -541,14 +552,17 @@ else
             end
         end
         for ii=1:9
-            if numel(indexAll{ii})>meanSampleNum
-                numMax = numel(indexAll{ii});
-                randNumInt = ceil(numMax*rand(meanSampleNum,1));
+            numMax = numel(indexAll{ii});
+            if numMax>meanSampleNum
+                randNumInt = ceil(numMax*rand(round(meanSampleNum*log(numMax/meanSampleNum)),1));
                 indexAll{ii} = indexAll{ii}(randNumInt);
     %             indexAll{ii} = indexAll{ii}(1:meanSampleNum);
             else
-                %Need oversampling (3x)
-                indexAll{ii}=[indexAll{ii}; indexAll{ii}; indexAll{ii}];
+                %Need oversampling up to two thirds of the mean sample
+                %number
+                while numel(indexAll{ii})<meanSampleNum*exp(-numMax/meanSampleNum)
+                    indexAll{ii}=[indexAll{ii}; indexAll{ii}];
+                end
             end
         end
         idTracksAdditionalAuto = [indexAll{1}' indexAll{2}' indexAll{3}' indexAll{4}' ...
