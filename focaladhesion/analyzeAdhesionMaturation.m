@@ -124,6 +124,8 @@ if exist(p.OutputDirectory,'dir')
             ' this as an intermediate result and continue the analysis?'],...
             'Recover previous run','Yes','No','Yes');
         if strcmpi(useExistingTracks,'Yes'), startFromIntermediate=true; end
+    elseif exist(outFilePaths{1,i},'file') && exist(outFilePaths{2,i},'file') && ~usejava('desktop')
+        foundTracks=true;
     end
     if p.backupOldResults && ~foundTracks && ~startFromIntermediate && usejava('desktop')
         disp('Backing up the original data')
@@ -133,15 +135,6 @@ if exist(p.OutputDirectory,'dir')
             backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
             ii=ii+1;
         end
-%         if strcmp(computer('arch'), 'win64')
-%             mkdir(backupFolder);
-%         else
-%             try
-%                 system(['mkdir -p ''' backupFolder '''']);
-%             catch
-%                 mkdir(backupFolder);
-%             end            
-%         end
         copyfile(p.OutputDirectory, backupFolder,'f')
         mkClrDir(p.OutputDirectory);
     end
@@ -188,6 +181,36 @@ if ~isempty(SDCProc)
     iBeadChan = 1; % might need to be updated based on asking TFMPackage..
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
+end
+
+%% get the track if you already have it
+if foundTracks || startFromIntermediate % If this part above is already processed
+%     load(dataPath_tracksNA, 'tracksNA');
+    tracksNA = thisProc.loadChannelOutput(iChan,'output','tracksNA');
+    load(dataPath_tracksNA);
+%     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+%     numStr = @(trackNum) num2str(trackNum,fString);
+%     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+%     progressText(0,'Loading tracksNA') % Create text & waitbar popup
+%     for ii=metaTrackData.numTracks:-1:1
+%         curTrackObj = load(trackIndPath(ii),'curTrack');
+%         try
+%             tracksNA(ii,1) = curTrackObj.curTrack;
+%         catch % this time fields are not common
+%             names=fieldnames(tracksNA);
+%             for qq=1:numel(names)
+%                 tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
+%             end
+%         end
+%         progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+%     end
+    numTracks = metaTrackData.numTracks;
+    fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+    numStr = @(trackNum) num2str(trackNum,fString);
+    trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+    if foundTracks
+        load(dataPath_focalAdhInfo, 'focalAdhInfo')
+    end
 end
 
 %% tracksNA quantification
@@ -331,28 +354,7 @@ if ~foundTracks
 
         toc
     end
-        
-    if startFromIntermediate
-    %     load(dataPath_tracksNA, 'tracksNA');
-        load(dataPath_tracksNA);
-        fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-        numStr = @(trackNum) num2str(trackNum,fString);
-        trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-        progressText(0,'Loading tracksNA') % Create text & waitbar popup
-        for ii=metaTrackData.numTracks:-1:1
-            curTrackObj = load(trackIndPath(ii),'curTrack');
-            try
-                tracksNA(ii,1) = curTrackObj.curTrack;
-            catch % this time fields are not common
-                names=fieldnames(tracksNA);
-                for qq=1:numel(names)
-                    tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
-                end
-            end
-            progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
-        end
-    end
-    
+            
     %% Filtering again after re-reading
     disp('Filtering again after re-reading with cell mask ...')
     tic
@@ -700,6 +702,10 @@ if ~foundTracks
     end
     %% saving
     save(dataPath_focalAdhInfo, 'focalAdhInfo','-v7.3')
+end
+%% protrusion/retraction information
+
+if 1
     %% protrusion/retraction information
     % time after protrusion onset (negative value if retraction, based
     % on the next protrusion onset) in frame, based on tracksNA.distToEdge
@@ -855,29 +861,6 @@ if ~foundTracks
         % This will add features like: advanceDist, edgeAdvanceDist, MSD,
         % MSDrate, assemRate, disassemRate, earlyAmpSlope,lateAmpSlope
     end
-
-else % If this part above is already processed
-%     load(dataPath_tracksNA, 'tracksNA');
-    tracksNA = thisProc.loadChannelOutput(iChan,'output','tracksNA');
-    load(dataPath_tracksNA);
-%     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-%     numStr = @(trackNum) num2str(trackNum,fString);
-%     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-%     progressText(0,'Loading tracksNA') % Create text & waitbar popup
-%     for ii=metaTrackData.numTracks:-1:1
-%         curTrackObj = load(trackIndPath(ii),'curTrack');
-%         try
-%             tracksNA(ii,1) = curTrackObj.curTrack;
-%         catch % this time fields are not common
-%             names=fieldnames(tracksNA);
-%             for qq=1:numel(names)
-%                 tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
-%             end
-%         end
-%         progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
-%     end
-    numTracks = metaTrackData.numTracks;
-    load(dataPath_focalAdhInfo, 'focalAdhInfo')    
 end
 %% re-express tracksNA so that SDC is applied to each feature - it's already done now.
 % if ~isempty(SDCProc)
