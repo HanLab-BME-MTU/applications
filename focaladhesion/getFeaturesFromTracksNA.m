@@ -38,6 +38,12 @@ end
 if ~isfield(tracksNA,'edgeAdvanceDist')
     tracksNA(end).edgeAdvanceDist=[];
 end
+if ~isfield(tracksNA,'advanceDistNaive')
+    tracksNA(end).advanceDistNaive=[];
+end
+if ~isfield(tracksNA,'edgeAdvanceDistNaive')
+    tracksNA(end).edgeAdvanceDistNaive=[];
+end
 if ~isfield(tracksNA,'advanceDistChange2min')
     tracksNA(end).advanceDistChange2min=[];
 end
@@ -268,6 +274,7 @@ for k=1:numTracks
             fromCurBdPointToLastAdh = [curTrack.xCoord(ii)-curBdPointProjected(1), curTrack.yCoord(ii)-curBdPointProjected(2)]; % a vector from the last edge point to the last track point
             firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
             curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
+            
             if firstBDproduct>0 && firstBDproduct>curBDproduct% both adhesion points are in the same side
                 curTrack.advanceDist(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
                                                                 (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
@@ -306,6 +313,57 @@ for k=1:numTracks
                     end
                 end
             end
+            % Now I'll copy everything to advanceDistNaive and
+            % edgeAdvanceDistNaive -Nov 2018 Sangyoon
+            curBdPointNaive = [curTrack.closestBdPointNaive(ii,1) curTrack.closestBdPoint(ii,2)];
+            curBdPointProjected = projPointOnLine(curBdPointNaive, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
+
+            fromFirstBdPointToFirstAdh = [curTrack.xCoord(sF)-firstBdPointProjected(1), curTrack.yCoord(sF)-firstBdPointProjected(2)]; % a vector from the first edge point to the first track point
+            fromFirstBdPointToLastAdh = [curTrack.xCoord(ii)-firstBdPointProjected(1), curTrack.yCoord(ii)-firstBdPointProjected(2)]; % a vector from the first edge point to the last track point
+            fromCurBdPointToFirstAdh = [curTrack.xCoord(sF)-curBdPointProjected(1), curTrack.yCoord(sF)-curBdPointProjected(2)]; % a vector from the last edge point to the first track point
+            fromCurBdPointToLastAdh = [curTrack.xCoord(ii)-curBdPointProjected(1), curTrack.yCoord(ii)-curBdPointProjected(2)]; % a vector from the last edge point to the last track point
+            firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+            curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
+            
+            if firstBDproduct>0 && firstBDproduct>curBDproduct% both adhesion points are in the same side
+                curTrack.advanceDistNaive(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                curTrack.edgeAdvanceDistNaive(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
+                                                                (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+            else
+                if curBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
+                    curTrack.advanceDistNaive(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                    (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5; % in pixel
+                    curTrack.edgeAdvanceDistNaive(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                    (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+                    % this code is nice to check:
+        %             figure, imshow(paxImgStack(:,:,curTrack.endingFrame),[]), hold on, plot(curTrack.xCoord,curTrack.yCoord,'w'), plot(curTrack.closestBdPoint(:,1),curTrack.closestBdPoint(:,2),'r')
+        %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
+        %             plot(curTrack.xCoord(curTrack.startingFrame),curTrack.yCoord(curTrack.startingFrame),'yo'),plot(curTrack.xCoord(curTrack.endingFrame),curTrack.yCoord(curTrack.endingFrame),'mo')
+                else % Neither products are positive. This means the track crossed both the first and last boundaries. These would show shear movement. Relative comparison is performed.
+        %             disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
+                    % Using actual BD points instead of projected ones because
+                    % somehow the track might be tilted...
+                    fromFirstBdPointToFirstAdh = [curTrack.xCoord(sF)-curTrack.closestBdPointNaive(sF,1), curTrack.yCoord(sF)-curTrack.closestBdPointNaive(sF,2)];
+                    fromFirstBdPointToLastAdh = [curTrack.xCoord(ii)-curTrack.closestBdPointNaive(sF,1), curTrack.yCoord(ii)-curTrack.closestBdPointNaive(sF,2)];
+                    fromCurBdPointToFirstAdh = [curTrack.xCoord(sF)-curTrack.closestBdPointNaive(ii,1), curTrack.yCoord(sF)-curTrack.closestBdPointNaive(ii,2)];
+                    fromCurBdPointToLastAdh = [curTrack.xCoord(ii)-curTrack.closestBdPointNaive(ii,1), curTrack.yCoord(ii)-curTrack.closestBdPointNaive(ii,2)];
+                    firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+                    curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
+                    if firstBDproduct>curBDproduct % First BD point is in more distant position from the two adhesion points than the current BD point is.
+                        curTrack.advanceDistNaive(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                        (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                        curTrack.edgeAdvanceDistNaive(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
+                                                                        (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                    else
+                        curTrack.advanceDistNaive(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                        (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5; % in pixel
+                        curTrack.edgeAdvanceDistNaive(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                        (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+                    end
+                end
+            end
+            
         end
         % Record average advanceDist and edgeAdvanceDist for entire lifetime,
         % last 2 min, and every 2 minutes, and maximum of those

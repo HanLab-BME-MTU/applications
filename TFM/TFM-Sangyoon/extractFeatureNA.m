@@ -104,7 +104,11 @@ if ~useOldSet
     % timeToMaxInten = arrayfun(@(x) find(x.ampTotal==nanmax(x.ampTotal),1),tracksNA); %in frame, this should be high for group 2 
     %#15 edge variation: with this, we differentiate image internal
     %boundary vs real cell edge
-    edgeVariation = arrayfun(@(x) min(nanstd(x.closestBdPoint(:,1)),nanstd(x.closestBdPoint(:,2))),tracksNA);
+    try
+        edgeVariation = arrayfun(@(x) min(nanstd(x.closestBdPointNaive(:,1)),nanstd(x.closestBdPoint(:,2))),tracksNA);
+    catch
+        edgeVariation = arrayfun(@(x) min(nanstd(x.closestBdPoint(:,1)),nanstd(x.closestBdPoint(:,2))),tracksNA);
+    end
     % #16.One more addition: area. This will enhance its differentiation of G2, G5
     % and G8. SH 20180221. All NAs will have -1 cause they are
     % diffraction-limited. This is #16.
