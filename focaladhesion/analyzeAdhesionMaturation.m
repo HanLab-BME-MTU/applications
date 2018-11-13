@@ -125,7 +125,7 @@ if exist(p.OutputDirectory,'dir')
             'Recover previous run','Yes','No','Yes');
         if strcmpi(useExistingTracks,'Yes'), startFromIntermediate=true; end
     end
-    if p.backupOldResults && ~foundTracks && ~startFromIntermediate
+    if p.backupOldResults && ~foundTracks && ~startFromIntermediate && usejava('desktop')
         disp('Backing up the original data')
         ii = 1;
         backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
