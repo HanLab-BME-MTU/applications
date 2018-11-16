@@ -65,7 +65,7 @@ sd=ppval(sd_spline,tRange);
 peakFrame = chosenFRange(peakFrame);
 [~,~,~,curTrack]=calculatePeakTimeLagFromTracks(curTrack,.1,tInterval);
 
-if isfield(curTrack,'intenPeakness') && curTrack.intenPeakness
+if isfield(curTrack,'intenPeakness') && ~isempty(curTrack.intenPeakness) && curTrack.intenPeakness
     peakFrame = curTrack.intenPeakFrame;
 end
 if peakFrame >= ((chosenFRange(end)-chosenFRange(1))*0.8 + chosenFRange(1))

@@ -264,7 +264,7 @@ for ii=1:numConditions
             meanMaturingRatioNAtoFA(k)=mean(maturingStruct.maturingRatioNAtoFA);
             meanMaturingRatioFCtoFA(k)=mean(maturingStruct.maturingRatioFCtoFA);
             meanStableNAFCratio(k)=mean(maturingStruct.stableNAFCratio);
-            lifeTimeFAsAll{k}=lifeTimeFAs;
+            lifeTimeFAsAll{k}=maturingStruct.lifeTimeFAs;
         else
             meanMaturingRatioNAtoFA(k)=NaN;
             meanMaturingRatioFCtoFA(k)=NaN;
@@ -315,6 +315,14 @@ for ii=1:numConditions
         meanAdhDensityG7(k) = sum(idsStruct.idGroup7)/meanCellArea(k);
         meanAdhDensityG8(k) = sum(idsStruct.idGroup8)/meanCellArea(k);
         meanAdhDensityG9(k) = sum(idsStruct.idGroup9)/meanCellArea(k);
+%         % Individual adh density per each group per frame -- I will do
+%         this later SH 11/14/2018
+%         s = struct2table(tracksNA);
+%         startingFrameExtra = s.startingFrameExtra;
+%         endingFrameExtra = s.endingFrameExtra;
+%         validTracks = validState & startingFrameExtra <= iFrame & endingFrameExtra >= iFrame;                    
+%         numG1PerFrame = 1
+%         adhDensityG1{k}=1
         
         % About process 9
         iTheOtherProc = 9;

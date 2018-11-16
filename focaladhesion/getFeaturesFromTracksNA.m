@@ -26,41 +26,43 @@ end
 if ~isfield(tracksNA,'lateAmpSlope')
     tracksNA(end).lateAmpSlope=[];
 end
-if ~isfield(tracksNA,'distToEdgeSlope')
-    tracksNA(end).distToEdgeSlope=[];
-end
-if ~isfield(tracksNA,'distToEdgeChange')
-    tracksNA(end).distToEdgeChange=[];
-end
-if ~isfield(tracksNA,'advanceDist')
-    tracksNA(end).advanceDist=[];
-end
-if ~isfield(tracksNA,'edgeAdvanceDist')
-    tracksNA(end).edgeAdvanceDist=[];
-end
-if ~isfield(tracksNA,'advanceDistNaive')
-    tracksNA(end).advanceDistNaive=[];
-end
-if ~isfield(tracksNA,'edgeAdvanceDistNaive')
-    tracksNA(end).edgeAdvanceDistNaive=[];
-end
-if ~isfield(tracksNA,'advanceDistChange2min')
-    tracksNA(end).advanceDistChange2min=[];
-end
-if ~isfield(tracksNA,'edgeAdvanceDistChange2min')
-    tracksNA(end).edgeAdvanceDistChange2min=[];
-end
-if ~isfield(tracksNA,'maxAdvanceDistChange')
-    tracksNA(end).maxAdvanceDistChange=[];
-end
-if ~isfield(tracksNA,'maxEdgeAdvanceDistChange')
-    tracksNA(end).maxEdgeAdvanceDistChange=[];
-end
-if ~isfield(tracksNA,'MSD')
-    tracksNA(end).MSD=[];
-end
-if ~isfield(tracksNA,'MSDrate')
-    tracksNA(end).MSDrate=[];
+if getEdgeRelatedFeatures
+    if ~isfield(tracksNA,'distToEdgeSlope')
+        tracksNA(end).distToEdgeSlope=[];
+    end
+    if ~isfield(tracksNA,'distToEdgeChange')
+        tracksNA(end).distToEdgeChange=[];
+    end
+    if ~isfield(tracksNA,'advanceDist')
+        tracksNA(end).advanceDist=[];
+    end
+    if ~isfield(tracksNA,'edgeAdvanceDist')
+        tracksNA(end).edgeAdvanceDist=[];
+    end
+    if ~isfield(tracksNA,'advanceDistNaive')
+        tracksNA(end).advanceDistNaive=[];
+    end
+    if ~isfield(tracksNA,'edgeAdvanceDistNaive')
+        tracksNA(end).edgeAdvanceDistNaive=[];
+    end
+    if ~isfield(tracksNA,'advanceDistChange2min')
+        tracksNA(end).advanceDistChange2min=[];
+    end
+    if ~isfield(tracksNA,'edgeAdvanceDistChange2min')
+        tracksNA(end).edgeAdvanceDistChange2min=[];
+    end
+    if ~isfield(tracksNA,'maxAdvanceDistChange')
+        tracksNA(end).maxAdvanceDistChange=[];
+    end
+    if ~isfield(tracksNA,'maxEdgeAdvanceDistChange')
+        tracksNA(end).maxEdgeAdvanceDistChange=[];
+    end
+    if ~isfield(tracksNA,'MSD')
+        tracksNA(end).MSD=[];
+    end
+    if ~isfield(tracksNA,'MSDrate')
+        tracksNA(end).MSDrate=[];
+    end
 end
 for k=1:numTracks
     % cross-correlation scores

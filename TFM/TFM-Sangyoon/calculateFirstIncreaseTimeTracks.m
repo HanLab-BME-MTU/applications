@@ -139,7 +139,7 @@ for ii=1:numel(tracksNA)
                     for jj=1:windowSize
                         % first point
                         sCurForce_sd(sF+jj-1) = sCurForce_sd(sF+jj-1) * windowSize / jj;
-                        sCurForce_sd(eF-jj+1) = sCurForce_sd(eF-jj+1) * windowSize / jj;
+%                         sCurForce_sd(eF-jj+1) = sCurForce_sd(eF-jj+1) * windowSize / jj;
                     end
                     
                     sCurForce_sd(isnan(curSlave))=NaN;

@@ -487,7 +487,9 @@ else
         % G6-3. OR, tracks near the image borders (zero edge movement or std
         % I am not sure if assigning two differently positioned labels work
         % for classification - so I'll do this later after classification
-        indAbsoluteG6 = indShortLifeG6 | indLowAmpG6;
+        thresStartingDistG6 = 1000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        indInsideG6 = distToEdgeFirstAll > thresStartingDistG6; % decided to exclude ones at very edge
+        indAbsoluteG6 = (indShortLifeG6 | indLowAmpG6) & indInsideG6;
 
         % G7 NAs at stalling edge: big difference from G5 is that it has
         % some early history of edge protrusion & relative weak signal
@@ -533,7 +535,8 @@ else
         indexG8 = find(indAbsoluteG8 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)...
                     & ~indAbsoluteG3 & ~(indAbsoluteG4 | indAdditionalG4) & ~indAbsoluteG6 ...
                     & ~indAbsoluteG7 & ~indAbsoluteG9 & ~indAbsoluteG5); 
-        indexG9 = find(indAbsoluteG9 & ~indAbsoluteG6 & ~indAbsoluteG7 & ~indAbsoluteG8); 
+        indexG9 = find(indAbsoluteG9 & ~indAbsoluteG6 & ~indAbsoluteG7 & ~indAbsoluteG8 & ~(indAbsoluteG1 & indInitIntenG2) ...
+                        & ~indAbsoluteG2 & ~indAbsoluteG3); 
         
 
         %% Putting together integrated labels
@@ -554,13 +557,13 @@ else
         for ii=1:9
             numMax = numel(indexAll{ii});
             if numMax>meanSampleNum
-                randNumInt = ceil(numMax*rand(round(meanSampleNum*log(numMax/meanSampleNum)),1));
+                randNumInt = ceil(numMax*rand(round(meanSampleNum*(1+log(numMax/meanSampleNum))),1));
                 indexAll{ii} = indexAll{ii}(randNumInt);
     %             indexAll{ii} = indexAll{ii}(1:meanSampleNum);
-            else
+            elseif numMax>1
                 %Need oversampling up to two thirds of the mean sample
                 %number
-                while numel(indexAll{ii})<meanSampleNum*exp(-numMax/meanSampleNum)
+                while numel(indexAll{ii})<meanSampleNum*(1-exp(-3*numMax/meanSampleNum))
                     indexAll{ii}=[indexAll{ii}; indexAll{ii}];
                 end
             end

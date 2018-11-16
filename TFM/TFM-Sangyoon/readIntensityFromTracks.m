@@ -78,7 +78,7 @@ elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
     tracksNA(end).ampTotal3=[];
 end    
 %% Change the old format
-if attribute>1 && isfield(tracksNA,'state')
+if isfield(tracksNA,'state') % attribute>1 && 
     tracksNA = changeTrackStateFormat( tracksNA );
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -115,8 +115,14 @@ parfor (k=1:numTracks, parforArg)
 %         end
 %     else
     % initialize amptotal to have it have the same dimension as .amp
+    
     mode='xyac';
     curTrack=tracksNA(k);
+%     if iscell(curTrack.state)
+%         curTrack.state = strcmp(curTrack.state,'BA')+2*strcmp(curTrack.state,'NA')+...
+%             3*strcmp(curTrack.state,'FC')+4*strcmp(curTrack.state,'FA')+...
+%             5*strcmp(curTrack.state,'ANA')+6*strcmp(curTrack.state,'Out_of_Band');
+%     end
     if attribute==1
         if isempty(MD)
             searchRadiusDetected = 2;
