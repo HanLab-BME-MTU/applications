@@ -466,14 +466,17 @@ else
         % G5 - 2 Should be close to an edge
         try
             distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdgeNaive),tracksNA);
+            distToEdgeStdAll = arrayfun(@(x) nanstd(x.distToEdgeNaive),tracksNA);
         catch
             distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdge),tracksNA);
+            distToEdgeStdAll = arrayfun(@(x) nanstd(x.distToEdge),tracksNA);
         end
         thresStartingDistG5 = 2000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseEdgeG5 = distToEdgeMeanAll < thresStartingDistG5;
-        
+        thresEdgeStd = median(distToEdgeStdAll); %G5 should stay at edge
+        indStayAtEdge = distToEdgeStdAll<thresEdgeStd;
         indHighAmpG5 = meanAmpAll>thresMeanAmp;
-        indAbsoluteG5 = indEdgeVelG5 & indEdgeStdG5 & indLifetimeG5 & indHighAmpG5 & indCloseEdgeG5;
+        indAbsoluteG5 = indStayAtEdge & indLifetimeG5 & indHighAmpG5 & indCloseEdgeG5; %indEdgeVelG5 & indEdgeStdG5
 
         % G6 : noise. There are several types of noises, or uninterested
         % tracks
@@ -515,7 +518,7 @@ else
         indAbsoluteG9 = indLowAmpG7 & indInsideG8G9 & indMinLifeG9;
         
         %% I decided to get mutually exclusive indices
-        indexG1 = find(indAbsoluteG1 & indInitIntenG2); 
+        indexG1 = find(indAbsoluteG1 & indInitIntenG2 & ~indAbsoluteG2); 
         % Inspect each (temporary)
         indexG2 = find(indAbsoluteG2 & ~indAbsoluteG8 & ~indAbsoluteG9); 
     %     indexG1 = [indexG1; find(additionalG1)];
@@ -528,7 +531,7 @@ else
     %         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
         indexG3 = find(indAbsoluteG3 & ~indAbsoluteG7 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)); 
         indexG4 = find(indAbsoluteG4 | indAdditionalG4); 
-        indexG5 = find(indAbsoluteG5); 
+        indexG5 = find(indAbsoluteG5 & ~(indAbsoluteG4 | indAdditionalG4) & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)); 
         indexG6 = find(indAbsoluteG6 & ~(indAbsoluteG1 & indInitIntenG2) & ~indAbsoluteG3 & ~indAbsoluteG7...
                         & ~indAbsoluteG9); 
         indexG7 = find(indAbsoluteG7 & ~indAbsoluteG3 & ~indAbsoluteG6 & ~indAbsoluteG9); 
@@ -542,8 +545,8 @@ else
         %% Putting together integrated labels
         % I have to tone down the number of the large label group according to
         % groups with smaller number (especially indexG2)
-        meanSampleNum = round(mean([numel(indexG1) numel(indexG2) numel(indexG3) numel(indexG5)]));
         indexAll={indexG1, indexG2, indexG3, indexG4, indexG5, indexG6, indexG7, indexG8, indexG9};
+        meanSampleNum = round(median(cellfun(@numel,indexAll))); %mean([numel(indexG1) numel(indexG2) numel(indexG3) numel(indexG5)]));
         for ii=1:9
             for jj=ii+1:9
                 indCommon = intersect(indexAll{ii},indexAll{jj});

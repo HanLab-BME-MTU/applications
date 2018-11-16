@@ -39,15 +39,26 @@ for ii=nFrames:-1:1
 end
 
 % Other image maps
-sdcProc = FAPack.processes_{1};
-if ismember(2, find(sdcProc.checkChannelOutput))
-    imgStack = sdcProc.loadOutStack(2);
+if ~isempty(SDCProc_FA)
+    if ismember(2, find(SDCProc_FA.checkChannelOutput))
+        imgStack = SDCProc_FA.loadOutStack(2);
+    else
+        imgStack = [];
+    end
 else
-    imgStack = [];
+    imgStack = MD.channels_(iChan).loadImage(1:nFrames);
 end
 
-if ismember(3, find(sdcProc.checkChannelOutput))
-    imgStack2 = sdcProc.loadOutStack(3);
+if ~isempty(SDCProc_FA)
+    if ismember(iChan+1, find(SDCProc_FA.checkChannelOutput))
+        imgStack2 = SDCProc_FA.loadOutStack(iChan+1);
+    else
+        imgStack2 = [];
+    end
 else
-    imgStack2 = [];
+    if numel(MD.channels_)>2
+        imgStack2 = MD.channels_(iChan+1).loadImage(1:nFrames);
+    else
+        imgStack2 = [];
+    end
 end

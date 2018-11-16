@@ -1,10 +1,17 @@
-function [] = tfmRunML(ML)
+function [] = tfmRunML(MLPath)
 %% set up
 % analysisFolder = '/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/2017-06-29//ChoK1_shRNA_WT_Rescue_FACS_5kPa_006';
-ML=MovieList.load([ML.movieListPath_ filesep ML.movieListFileName_]);
-nMovies = numel(ML.movies_);
+if isa(MLPath,'MovieList')
+    ML=MovieList.load(MLPath.getFullPath); %,'askUser',false,'askUserChannel',false);
+else
+    ML=MovieList.load(MLPath,'askUser',false); %,'askUserChannel',false);
+end
+
+nMovies = numel(ML.movieDataFile_);
+MDAll = ML.movies_;
 for ii=1:nMovies
-    curMD = ML.movies_{ii};
-    tfmRun([curMD.movieDataPath_ filesep curMD.movieDataFileName_])
+    curMD = MDAll{ii};
+    tfmRun(curMD)
 end
 ML.save
+end
