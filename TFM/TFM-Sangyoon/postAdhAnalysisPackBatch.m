@@ -79,6 +79,9 @@ peakGroup = cell(numConditions,1);
 endTimeGroup = cell(numConditions,1);
 halfBccGroup = cell(numConditions,1);
 
+earlyAmpSlopeGroup = cell(numConditions,1);
+earlyForceSlopeGroup = cell(numConditions,1);
+
 numPureFAsGroup = cell(numConditions,1);
 cellAreaGroup = cell(numConditions,1);
 NADensityGroup = cell(numConditions,1);
@@ -351,6 +354,9 @@ for ii=1:numConditions
     endTimeAgainstForceEachClass=cell(numClasses,1);
     halfBccTogetherEachClass=cell(numClasses,1);
     
+    earlyAmpSlopeEachClass=cell(numClasses,1);
+    earlyForceSlopeEachClass=cell(numClasses,1);
+    
     mainBccPeakValuesGroup=cell(2,1);
     mainTimeToPeakGroup=cell(2,1);
     sideBccPeakValuesGroup=cell(2,1);
@@ -387,6 +393,12 @@ for ii=1:numConditions
             nameTitle=['halfBccTogetherAdjusted' num2str(pp)];
             halfBccTogetherStruct = load([initDataPath filesep nameTitle],'halfBccTogetherAdjusted','nameList2');    
             halfBccTogetherEachClass{pp}{k} = halfBccTogetherStruct.halfBccTogetherAdjusted;
+
+            earlyAmpSlopeStr=load([initDataPath filesep 'earlyAmpSlopeAllGroups.mat'],'earlyAmpSlope');
+            earlyAmpSlopeEachClass{pp}{k} = earlyAmpSlopeStr.earlyAmpSlope{pp};
+
+            earlyForceSlopeStr=load([initDataPath filesep 'earlyForceSlopeAllGroups.mat'],'earlyForceSlope');
+            earlyForceSlopeEachClass{pp}{k} = earlyForceSlopeStr.earlyForceSlope{pp};
             
             
             if ismember(pp,[1 2])
@@ -478,6 +490,9 @@ for ii=1:numConditions
 
     halfBccGroup{ii,1}=halfBccTogetherEachClass;
 
+    earlyAmpSlopeGroup{ii,1}=earlyAmpSlopeEachClass;
+    earlyForceSlopeGroup{ii,1}=earlyForceSlopeEachClass;
+    
     mainBccPeakValuesGroupGroup{ii,1}=mainBccPeakValuesGroup;
     mainTimeToPeakGroupGroup{ii,1}=mainTimeToPeakGroup;
     sideBccPeakValuesGrouppGroup{ii,1}=sideBccPeakValuesGroup;
@@ -512,24 +527,101 @@ for curGroup=1:9
     hgsave(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-dtiff')
 
-    tableInitRiseGroupEach=table(initRiseGroupEach,'RowNames',nameList);
-    writetable(tableInitRiseGroupEach,[dataPath filesep 'initialRizeG' num2str(curGroup) '.csv'])
+    tableHalfBccGroup=table(initRiseGroupEach,'RowNames',nameList);
+    writetable(tableHalfBccGroup,[dataPath filesep 'initialRizeG' num2str(curGroup) '.csv'])
 end
 %% halfBccTime
 for curGroup=1:9
     halfBccGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),halfBccGroup,'unif',false);
     h1=figure; 
-    boxPlotCellArray(initRiseGroupEach,nameList,1,false,true);
+    boxPlotCellArray(halfBccGroupEach,nameList,1,false,true);
     ylabel(['halfBccGroup ' num2str(curGroup) ' (sec)'])
     title(['halfBccGroup in group ' num2str(curGroup)])
     hgexport(h1,[figPath filesep 'halfBccGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'halfBccGroup' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'halfBccGroup' num2str(curGroup)],'-dtiff')
 
-    tableInitRiseGroupEach=table(halfBccGroupEach,'RowNames',nameList);
-    writetable(tableInitRiseGroupEach,[dataPath filesep 'halfBccGroup' num2str(curGroup) '.csv'])
+    tableHalfBccGroup=table(halfBccGroupEach,'RowNames',nameList);
+    writetable(tableHalfBccGroup,[dataPath filesep 'halfBccGroup' num2str(curGroup) '.csv'])
+end
+%% earlyAmpSlope
+for curGroup=1:9
+    earlyAmpSlopeGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),earlyAmpSlopeGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(earlyAmpSlopeGroupEach,nameList,1,false,true);
+    ylabel(['earlyAmpSlope ' num2str(curGroup) ' (sec)'])
+    title(['earlyAmpSlope in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],'-dtiff')
+
+    tableEarlyAmpSlope=table(earlyAmpSlopeGroupEach,'RowNames',nameList);
+    writetable(tableEarlyAmpSlope,[dataPath filesep 'earlyAmpSlope' num2str(curGroup) '.csv'])
+end
+%% earlyAmpSlope - G1G2 only
+curGroup=1;
+earlyAmpSlopeG1 = cellfun(@(x) cell2mat(x{curGroup}'),earlyAmpSlopeGroup,'unif',false);
+curGroup=2;
+earlyAmpSlopeG2 = cellfun(@(x) cell2mat(x{curGroup}'),earlyAmpSlopeGroup,'unif',false);
+earlyAmpSlopeG1G2=cell(numel(earlyAmpSlopeG1)*2,1);
+nameListG1G2=cell(numel(earlyAmpSlopeG1)*2,1);
+for ii=1:numel(earlyAmpSlopeG1)
+    earlyAmpSlopeG1G2(2*(ii-1)+1)=earlyAmpSlopeG1(ii);
+    earlyAmpSlopeG1G2(2*(ii))=earlyAmpSlopeG2(ii);
+end
+if MLdirect
+    for ii=1:numel(earlyAmpSlopeG1)
+        nameListG1G2(2*(ii-1)+1)=[nameList{ii}(10:end-4) '-G1'];
+        nameListG1G2(2*(ii))=[nameList{ii}(10:end-4) '-G2'];
+    end
+else
+    for ii=1:numel(earlyAmpSlopeG1)
+        nameListG1G2{2*(ii-1)+1}=[nameList{ii} '-G1'];
+        nameListG1G2{2*(ii)}=[nameList{ii} '-G2'];
+    end
+end
+h1=figure; 
+boxPlotCellArray(earlyAmpSlopeG1G2,nameListG1G2,1,false,true);
+ylabel('earlyAmpSlope (a.u./sec)')
+title('earlyAmpSlope in G1 vs. G2')
+hgexport(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+hgsave(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],'-v7.3')
+print(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],'-dtiff')
+            
+%% earlyForceSlope
+for curGroup=1:9
+    earlyForceSlopeGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),earlyForceSlopeGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(earlyForceSlopeGroupEach,nameList,1,false,true);
+    ylabel(['earlyForceSlope ' num2str(curGroup) ' (sec)'])
+    title(['earlyForceSlope in group ' num2str(curGroup)])
+    hgexport(h1,[figPath filesep 'earlyForceSlope' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'earlyForceSlope' num2str(curGroup)],'-v7.3')
+    print(h1,[figPath filesep 'earlyForceSlope' num2str(curGroup)],'-dtiff')
+
+    tableEarlyForceSlope=table(earlyForceSlopeGroupEach,'RowNames',nameList);
+    writetable(tableEarlyForceSlope,[dataPath filesep 'earlyForceSlope' num2str(curGroup) '.csv'])
+end
+%% earlyForceSlope - G1G2 only
+curGroup=1;
+earlyForceSlopeG1 = cellfun(@(x) cell2mat(x{curGroup}'),earlyForceSlopeGroup,'unif',false);
+curGroup=2;
+earlyForceSlopeG2 = cellfun(@(x) cell2mat(x{curGroup}'),earlyForceSlopeGroup,'unif',false);
+earlyForceSlopeG1G2=cell(numel(earlyAmpSlopeG1)*2,1);
+for ii=1:numel(earlyForceSlopeG1)
+    earlyForceSlopeG1G2(2*(ii-1)+1)=earlyForceSlopeG1(ii);
+    earlyForceSlopeG1G2(2*(ii))=earlyForceSlopeG2(ii);
 end
 
+h1=figure; 
+barPlotCellArray(earlyForceSlopeG1G2,nameListG1G2);
+boxPlotCellArray(earlyForceSlopeG1G2,nameListG1G2,1,false,true);
+ylabel('earlyForceSlope (a.u./sec)')
+title('earlyForceSlope in G1 vs. G2')
+hgexport(h1,[figPath filesep 'earlyForceSlopeG1G2' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+hgsave(h1,[figPath filesep 'earlyForceSlopeG1G2' num2str(curGroup)],'-v7.3')
+print(h1,[figPath filesep 'earlyForceSlopeG1G2' num2str(curGroup)],'-dtiff')
+            
 %% Plotting each - mainTimeToPeakGroupGroup - G1 and G2
 for curGroup=1:2
     mainTimeToPeakGroupGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),mainTimeToPeakGroupGroup,'unif',false);

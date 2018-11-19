@@ -152,6 +152,9 @@ if ~useOldSet
         end
     end
     
+%     % 22 directionality of the adhesion movement
+%     directionalityAll=arrayfun(@(x) x.directionality,tracksNA);
+
 end 
 
 % NA or NA that has momentarily FA in the earlier period will have near

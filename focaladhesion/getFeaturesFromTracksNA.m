@@ -1,5 +1,11 @@
-function tracksNA = getFeaturesFromTracksNA(tracksNA,deltaT,getEdgeRelatedFeatures)
+function tracksNA = getFeaturesFromTracksNA(tracksNA,deltaT,getEdgeRelatedFeatures,onlyNewAnalysis)
 
+%% input set up
+if nargin<4
+    onlyNewAnalysis=false;
+end
+
+%%
 disp('Post-analysis on adhesion movement...')
 tIntervalMin = deltaT/60; % in min
 periodMin = 1;
@@ -133,90 +139,91 @@ for k=1:numTracks
     entirePeriod = eF-sF; % floor(1/timeInterval); % frames per minute
     lastFrame = min(sum(~isnan(curTrack.amp)),sF+entirePeriod-1);
     lastFrameFromOne = lastFrame - sF+1;
-%     lastFrameFromOne = sF;
-%     lastFrame = min(sum(~isnan(curTrack.amp)),sF+earlyPeriod-1);
-    [~,curM] = regression(timeInterval*(1:lastFrameFromOne),curTrack.amp(sF:lastFrame));
-    curTrack.ampSlope = curM; % in a.u./min
-%     curTrack.ampSlopeR = curR; % Pearson's correlation coefficient
-    
-    curEndFrame = min(curTrack.startingFrameExtra+periodFrames-1,curTrack.endingFrame);
-    curEarlyPeriod = curEndFrame - curTrack.startingFrameExtra+1;
-    [~,curM] = regression(tIntervalMin*(1:curEarlyPeriod),curTrack.ampTotal(curTrack.startingFrameExtra:curEndFrame));
-    curTrack.earlyAmpSlope = curM; % in a.u./min
+    if ~onlyNewAnalysis
+    %     lastFrameFromOne = sF;
+    %     lastFrame = min(sum(~isnan(curTrack.amp)),sF+earlyPeriod-1);
+        [~,curM] = regression(timeInterval*(1:lastFrameFromOne),curTrack.amp(sF:lastFrame));
+        curTrack.ampSlope = curM; % in a.u./min
+    %     curTrack.ampSlopeR = curR; % Pearson's correlation coefficient
 
-    % Assembly rate: Slope from emergence to maximum - added 10/27/2016 for
-    % Michelle's analysis % This output might contain an error when the
-    % value has noisy maximum. So it should be filtered with
-    % earlyAmpSlope..
-    splineParam=0.01; 
-    tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
-    curAmpTotal =  curTrack.ampTotal(tRange);
-    sd_spline= csaps(tRange,curAmpTotal,splineParam);
-    sd=ppval(sd_spline,tRange);
-    % Find the maximum
-    [~,maxSdInd] = max(sd);
-    maxAmpFrame = tRange(maxSdInd);
-    
-%     [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame));
-    nSampleStart=min(9,floor((maxSdInd)/2));
-    if ~all(isnan(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))) && ~all(isnan(curAmpTotal(1:nSampleStart)))
-        sigTtest = ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd));
-        if ~isnan(sigTtest)
-            if nSampleStart>4 && sigTtest && ...
-                    nanmean(curAmpTotal(1:nSampleStart))<nanmean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
-                [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
-                    log(curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame)/...
-                    curTrack.ampTotal(curTrack.startingFrameExtra)));
+        curEndFrame = min(curTrack.startingFrameExtra+periodFrames-1,curTrack.endingFrame);
+        curEarlyPeriod = curEndFrame - curTrack.startingFrameExtra+1;
+        [~,curM] = regression(tIntervalMin*(1:curEarlyPeriod),curTrack.ampTotal(curTrack.startingFrameExtra:curEndFrame));
+        curTrack.earlyAmpSlope = curM; % in a.u./min
+
+        % Assembly rate: Slope from emergence to maximum - added 10/27/2016 for
+        % Michelle's analysis % This output might contain an error when the
+        % value has noisy maximum. So it should be filtered with
+        % earlyAmpSlope..
+        splineParam=0.01; 
+        tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
+        curAmpTotal =  curTrack.ampTotal(tRange);
+        sd_spline= csaps(tRange,curAmpTotal,splineParam);
+        sd=ppval(sd_spline,tRange);
+        % Find the maximum
+        [~,maxSdInd] = max(sd);
+        maxAmpFrame = tRange(maxSdInd);
+
+    %     [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame));
+        nSampleStart=min(9,floor((maxSdInd)/2));
+        if ~all(isnan(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))) && ~all(isnan(curAmpTotal(1:nSampleStart)))
+            sigTtest = ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd));
+            if ~isnan(sigTtest)
+                if nSampleStart>4 && sigTtest && ...
+                        nanmean(curAmpTotal(1:nSampleStart))<nanmean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
+                    [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
+                        log(curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame)/...
+                        curTrack.ampTotal(curTrack.startingFrameExtra)));
+                else
+                    assemRate = NaN;
+                end
             else
                 assemRate = NaN;
             end
         else
             assemRate = NaN;
         end
-    else
-        assemRate = NaN;
-    end
-    curTrack.assemRate = assemRate; % in 1/min
-    
-    % Disassembly rate: Slope from maximum to end
-%     [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),curTrack.ampTotal(maxAmpFrame:curTrack.endingFrameExtra));
-    % I decided to exclude tracks whose end point amplitude is still
-    % hanging, i.e., ending amplitude is still high enough compared to
-    % starting point, or the last 10 points are not different from 10
-    % poihnts near the maximum
-    nSampleEnd=min(9,floor((length(tRange)-maxSdInd)*2/3));
-    sigTtest=ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd));
-    if ~isnan(sigTtest)
-        if nSampleEnd>4 && sigTtest && ...
-                mean(curAmpTotal(end-nSampleEnd:end))<mean(curAmpTotal(maxSdInd:maxSdInd+nSampleEnd))
-            [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),...
-                log(curAmpTotal(maxSdInd) ./curAmpTotal(maxSdInd:end)));
+        curTrack.assemRate = assemRate; % in 1/min
+
+        % Disassembly rate: Slope from maximum to end
+    %     [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),curTrack.ampTotal(maxAmpFrame:curTrack.endingFrameExtra));
+        % I decided to exclude tracks whose end point amplitude is still
+        % hanging, i.e., ending amplitude is still high enough compared to
+        % starting point, or the last 10 points are not different from 10
+        % poihnts near the maximum
+        nSampleEnd=min(9,floor((length(tRange)-maxSdInd)*2/3));
+        sigTtest=ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd));
+        if ~isnan(sigTtest)
+            if nSampleEnd>4 && sigTtest && ...
+                    mean(curAmpTotal(end-nSampleEnd:end))<mean(curAmpTotal(maxSdInd:maxSdInd+nSampleEnd))
+                [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),...
+                    log(curAmpTotal(maxSdInd) ./curAmpTotal(maxSdInd:end)));
+            else
+                disassemRate = NaN;
+            end
         else
             disassemRate = NaN;
         end
-    else
-        disassemRate = NaN;
-    end
-    curTrack.disassemRate = disassemRate; % in 1/min
+        curTrack.disassemRate = disassemRate; % in 1/min
 
-    nSampleEndLate=min(9,floor((curTrack.endingFrameExtraExtra-maxAmpFrame)*2/3));
-    curStartFrame = max(curTrack.startingFrame,curTrack.endingFrameExtraExtra-periodFrames+1);
-    curLatePeriod = curTrack.endingFrameExtraExtra - curStartFrame+1;
-    sigTtest=ttest2(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra),...
-            curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate));
-    if ~isnan(sigTtest)
-        if nSampleEndLate>4 && sigTtest && ...
-                mean(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra))...
-                <mean(curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate))
-            [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),curTrack.ampTotal(curStartFrame:curTrack.endingFrameExtraExtra));
+        nSampleEndLate=min(9,floor((curTrack.endingFrameExtraExtra-maxAmpFrame)*2/3));
+        curStartFrame = max(curTrack.startingFrame,curTrack.endingFrameExtraExtra-periodFrames+1);
+        curLatePeriod = curTrack.endingFrameExtraExtra - curStartFrame+1;
+        sigTtest=ttest2(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra),...
+                curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate));
+        if ~isnan(sigTtest)
+            if nSampleEndLate>4 && sigTtest && ...
+                    mean(curTrack.ampTotal(curTrack.endingFrameExtraExtra-nSampleEndLate:curTrack.endingFrameExtraExtra))...
+                    <mean(curTrack.ampTotal(maxAmpFrame:maxAmpFrame+nSampleEndLate))
+                [~,curMlate] = regression(tIntervalMin*(1:curLatePeriod),curTrack.ampTotal(curStartFrame:curTrack.endingFrameExtraExtra));
+            else
+                curMlate = NaN;
+            end
         else
             curMlate = NaN;
         end
-    else
-        curMlate = NaN;
+        curTrack.lateAmpSlope = curMlate; % in a.u./min
     end
-    curTrack.lateAmpSlope = curMlate; % in a.u./min
-    
 
     curEndFrame = min(sF+periodFrames-1,eF);
     curEarlyPeriod = curEndFrame - sF+1;
@@ -252,7 +259,7 @@ for k=1:numTracks
             t_nn = t(~indNaNX);
             curX2 = interp1(t_nn,curX(~indNaNX),t,'linear','extrap');
             curY2 = interp1(t_nn,curY(~indNaNX),t,'linear','extrap');
-            
+
             fitobj = fit(curX2(~isnan(curX2))',curY2(~isnan(curY2))','poly1'); % this is an average linear line fit of the adhesion track
         end
         x0=nanmedian(curTrack.xCoord);
@@ -267,51 +274,53 @@ for k=1:numTracks
         % try to record advanceDist and edgeAdvanceDist for every single time
         % point ...
         for ii=sFextend:eFextend
-            curBdPoint = [curTrack.closestBdPoint(ii,1) curTrack.closestBdPoint(ii,2)];
-            curBdPointProjected = projPointOnLine(curBdPoint, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
+            if ~onlyNewAnalysis
+                curBdPoint = [curTrack.closestBdPoint(ii,1) curTrack.closestBdPoint(ii,2)];
+                curBdPointProjected = projPointOnLine(curBdPoint, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
 
-            fromFirstBdPointToFirstAdh = [curTrack.xCoord(sF)-firstBdPointProjected(1), curTrack.yCoord(sF)-firstBdPointProjected(2)]; % a vector from the first edge point to the first track point
-            fromFirstBdPointToLastAdh = [curTrack.xCoord(ii)-firstBdPointProjected(1), curTrack.yCoord(ii)-firstBdPointProjected(2)]; % a vector from the first edge point to the last track point
-            fromCurBdPointToFirstAdh = [curTrack.xCoord(sF)-curBdPointProjected(1), curTrack.yCoord(sF)-curBdPointProjected(2)]; % a vector from the last edge point to the first track point
-            fromCurBdPointToLastAdh = [curTrack.xCoord(ii)-curBdPointProjected(1), curTrack.yCoord(ii)-curBdPointProjected(2)]; % a vector from the last edge point to the last track point
-            firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
-            curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
-            
-            if firstBDproduct>0 && firstBDproduct>curBDproduct% both adhesion points are in the same side
-                curTrack.advanceDist(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
-                                                                (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-                curTrack.edgeAdvanceDist(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
-                                                                (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-            else
-                if curBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
-                    curTrack.advanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
-                                                                    (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5; % in pixel
-                    curTrack.edgeAdvanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
-                                                                    (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
-                    % this code is nice to check:
-        %             figure, imshow(paxImgStack(:,:,curTrack.endingFrame),[]), hold on, plot(curTrack.xCoord,curTrack.yCoord,'w'), plot(curTrack.closestBdPoint(:,1),curTrack.closestBdPoint(:,2),'r')
-        %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
-        %             plot(curTrack.xCoord(curTrack.startingFrame),curTrack.yCoord(curTrack.startingFrame),'yo'),plot(curTrack.xCoord(curTrack.endingFrame),curTrack.yCoord(curTrack.endingFrame),'mo')
-                else % Neither products are positive. This means the track crossed both the first and last boundaries. These would show shear movement. Relative comparison is performed.
-        %             disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
-                    % Using actual BD points instead of projected ones because
-                    % somehow the track might be tilted...
-                    fromFirstBdPointToFirstAdh = [curTrack.xCoord(sF)-curTrack.closestBdPoint(sF,1), curTrack.yCoord(sF)-curTrack.closestBdPoint(sF,2)];
-                    fromFirstBdPointToLastAdh = [curTrack.xCoord(ii)-curTrack.closestBdPoint(sF,1), curTrack.yCoord(ii)-curTrack.closestBdPoint(sF,2)];
-                    fromCurBdPointToFirstAdh = [curTrack.xCoord(sF)-curTrack.closestBdPoint(ii,1), curTrack.yCoord(sF)-curTrack.closestBdPoint(ii,2)];
-                    fromCurBdPointToLastAdh = [curTrack.xCoord(ii)-curTrack.closestBdPoint(ii,1), curTrack.yCoord(ii)-curTrack.closestBdPoint(ii,2)];
-                    firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
-                    curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
-                    if firstBDproduct>curBDproduct % First BD point is in more distant position from the two adhesion points than the current BD point is.
-                        curTrack.advanceDist(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
-                                                                        (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-                        curTrack.edgeAdvanceDist(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
-                                                                        (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
-                    else
+                fromFirstBdPointToFirstAdh = [curTrack.xCoord(sF)-firstBdPointProjected(1), curTrack.yCoord(sF)-firstBdPointProjected(2)]; % a vector from the first edge point to the first track point
+                fromFirstBdPointToLastAdh = [curTrack.xCoord(ii)-firstBdPointProjected(1), curTrack.yCoord(ii)-firstBdPointProjected(2)]; % a vector from the first edge point to the last track point
+                fromCurBdPointToFirstAdh = [curTrack.xCoord(sF)-curBdPointProjected(1), curTrack.yCoord(sF)-curBdPointProjected(2)]; % a vector from the last edge point to the first track point
+                fromCurBdPointToLastAdh = [curTrack.xCoord(ii)-curBdPointProjected(1), curTrack.yCoord(ii)-curBdPointProjected(2)]; % a vector from the last edge point to the last track point
+                firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+                curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
+
+                if firstBDproduct>0 && firstBDproduct>curBDproduct% both adhesion points are in the same side
+                    curTrack.advanceDist(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                    (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                    curTrack.edgeAdvanceDist(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
+                                                                    (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                else
+                    if curBDproduct>0 % both adhesion points are in the same side w.r.t. last boundary point
                         curTrack.advanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
                                                                         (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5; % in pixel
                         curTrack.edgeAdvanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
                                                                         (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+                        % this code is nice to check:
+            %             figure, imshow(paxImgStack(:,:,curTrack.endingFrame),[]), hold on, plot(curTrack.xCoord,curTrack.yCoord,'w'), plot(curTrack.closestBdPoint(:,1),curTrack.closestBdPoint(:,2),'r')
+            %             plot(firstBdPointProjected(1),firstBdPointProjected(2),'co'),plot(lastBdPointProjected(1),lastBdPointProjected(2),'bo')
+            %             plot(curTrack.xCoord(curTrack.startingFrame),curTrack.yCoord(curTrack.startingFrame),'yo'),plot(curTrack.xCoord(curTrack.endingFrame),curTrack.yCoord(curTrack.endingFrame),'mo')
+                    else % Neither products are positive. This means the track crossed both the first and last boundaries. These would show shear movement. Relative comparison is performed.
+            %             disp(['Adhesion track ' num2str(k) ' crosses both the first and last boundaries. These would show shear movement. Relative comparison is performed...'])
+                        % Using actual BD points instead of projected ones because
+                        % somehow the track might be tilted...
+                        fromFirstBdPointToFirstAdh = [curTrack.xCoord(sF)-curTrack.closestBdPoint(sF,1), curTrack.yCoord(sF)-curTrack.closestBdPoint(sF,2)];
+                        fromFirstBdPointToLastAdh = [curTrack.xCoord(ii)-curTrack.closestBdPoint(sF,1), curTrack.yCoord(ii)-curTrack.closestBdPoint(sF,2)];
+                        fromCurBdPointToFirstAdh = [curTrack.xCoord(sF)-curTrack.closestBdPoint(ii,1), curTrack.yCoord(sF)-curTrack.closestBdPoint(ii,2)];
+                        fromCurBdPointToLastAdh = [curTrack.xCoord(ii)-curTrack.closestBdPoint(ii,1), curTrack.yCoord(ii)-curTrack.closestBdPoint(ii,2)];
+                        firstBDproduct=fromFirstBdPointToFirstAdh*fromFirstBdPointToLastAdh';
+                        curBDproduct=fromCurBdPointToFirstAdh*fromCurBdPointToLastAdh';
+                        if firstBDproduct>curBDproduct % First BD point is in more distant position from the two adhesion points than the current BD point is.
+                            curTrack.advanceDist(ii) = (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                            (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                            curTrack.edgeAdvanceDist(ii) = (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5 - ...
+                                                                            (fromFirstBdPointToLastAdh(1)^2 + fromFirstBdPointToLastAdh(2)^2)^0.5; % in pixel
+                        else
+                            curTrack.advanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                            (fromCurBdPointToLastAdh(1)^2 + fromCurBdPointToLastAdh(2)^2)^0.5; % in pixel
+                            curTrack.edgeAdvanceDist(ii) = (fromCurBdPointToFirstAdh(1)^2 + fromCurBdPointToFirstAdh(2)^2)^0.5 - ...
+                                                                            (fromFirstBdPointToFirstAdh(1)^2 + fromFirstBdPointToFirstAdh(2)^2)^0.5; % in pixel
+                        end
                     end
                 end
             end
@@ -365,20 +374,21 @@ for k=1:numTracks
                     end
                 end
             end
-            
         end
-        % Record average advanceDist and edgeAdvanceDist for entire lifetime,
-        % last 2 min, and every 2 minutes, and maximum of those
-        % protrusion/retraction distance to figure out if the adhesion
-        % experienced any previous protrusion ...
-        for ii=sF:eF
-            i2minBefore = max(sF,ii-frames2min);
-            curTrack.advanceDistChange2min(ii) = curTrack.advanceDist(ii)-curTrack.advanceDist(i2minBefore);
-            curTrack.edgeAdvanceDistChange2min(ii) = curTrack.edgeAdvanceDist(ii)-curTrack.edgeAdvanceDist(i2minBefore);
+        if ~onlyNewAnalysis
+            % Record average advanceDist and edgeAdvanceDist for entire lifetime,
+            % last 2 min, and every 2 minutes, and maximum of those
+            % protrusion/retraction distance to figure out if the adhesion
+            % experienced any previous protrusion ...
+            for ii=sF:eF
+                i2minBefore = max(sF,ii-frames2min);
+                curTrack.advanceDistChange2min(ii) = curTrack.advanceDist(ii)-curTrack.advanceDist(i2minBefore);
+                curTrack.edgeAdvanceDistChange2min(ii) = curTrack.edgeAdvanceDist(ii)-curTrack.edgeAdvanceDist(i2minBefore);
+            end
+            % Get the maximum of them. 
+            curTrack.maxAdvanceDistChange = max(curTrack.advanceDistChange2min(sF:eF-1));
+            curTrack.maxEdgeAdvanceDistChange = max(curTrack.edgeAdvanceDistChange2min(sF:eF-1));
         end
-        % Get the maximum of them. 
-        curTrack.maxAdvanceDistChange = max(curTrack.advanceDistChange2min(sF:eF-1));
-        curTrack.maxEdgeAdvanceDistChange = max(curTrack.edgeAdvanceDistChange2min(sF:eF-1));
     %     lastBdPoint = [curTrack.closestBdPoint(eF,1) curTrack.closestBdPoint(eF,2)];
     %     lastBdPointProjected = projPointOnLine(lastBdPoint, trackLine); % this is an edge boundary point at the last time point projected on the average line of track.
     %     
@@ -425,12 +435,14 @@ for k=1:numTracks
     %         end
     %     end
     end
-    %Mean Squared Displacement
-    meanX = mean(curTrack.xCoord(logical(curTrack.presence)));
-    meanY = mean(curTrack.yCoord(logical(curTrack.presence)));
-    curTrack.MSD=sum((curTrack.xCoord(logical(curTrack.presence))'-meanX).^2+...
-        (curTrack.yCoord(logical(curTrack.presence))'-meanY).^2);
-    curTrack.MSDrate = curTrack.MSD/curTrack.lifeTime;
+    if ~onlyNewAnalysis    
+        %Mean Squared Displacement
+        meanX = mean(curTrack.xCoord(logical(curTrack.presence)));
+        meanY = mean(curTrack.yCoord(logical(curTrack.presence)));
+        curTrack.MSD=sum((curTrack.xCoord(logical(curTrack.presence))'-meanX).^2+...
+            (curTrack.yCoord(logical(curTrack.presence))'-meanY).^2);
+        curTrack.MSDrate = curTrack.MSD/curTrack.lifeTime;
+    end
     progressText(k/(numTracks-1));
     tracksNA(k) = curTrack;
 end
