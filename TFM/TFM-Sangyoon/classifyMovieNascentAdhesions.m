@@ -467,9 +467,82 @@ else
         thresDistAwayFromEdge = 3000/MD.pixelSize_;
         awayfromEdgeLater = distToEdgeLastAll > thresDistAwayFromEdge;
         
+        % Yet another feature to distinguish the maturing adhesion from
+        % clumps of nascent adhesion is texture, specifically the spatial
+        % homogeneity. This needs GLCM matrix calculation of the FA
+        % segmentation. We'll need to do this for only when the segmented
+        % area is largest to reduce computational burdon. First, let's find
+        % the FA segmentation -Sangyoon Nov 19 2018
+        % Finding area
+        areaAll = arrayfun(@(x) x.area,tracksNA,'unif',false);
+        iEmptyArea = cellfun(@isempty,areaAll);
+        iFrameMaxArea = zeros(numel(iEmptyArea),1);
+        actualMaxArea = zeros(numel(iEmptyArea),1);
+        [actualMaxArea(~iEmptyArea),iFrameMaxArea(~iEmptyArea)]=cellfun(@(x) nanmax(x),areaAll(~iEmptyArea));
+        framesToInspect = unique(iFrameMaxArea);
+        framesToInspect(framesToInspect==0)=[]; %delete frame 0
+        % Go over each frame and find the tracks that has the 
+        iiformat = ['%.' '3' 'd'];
+        iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+        FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
+        SDCProc=FAPackage.processes_{iSDCProc};        
+        homogeneityAll=zeros(numel(tracksNA),1);
+        if ~isfield(tracksNA,'FAtextureHomogeneity')
+            tracksNA(end).FAtextureHomogeneity=0;
+            [tracksNA(:).FAtextureHomogeneity] = deal(0);
+        end
+        progressText(0,'Calculating FA texture homogeneity', 'Adhesion Classification');
+        for jj=framesToInspect'
+            %Find the tracks
+            relevantTrackIDs = iFrameMaxArea==jj & actualMaxArea>0;
+            if isempty(relevantTrackIDs)
+                continue
+            else
+                %Load the image
+                if ~isempty(SDCProc)
+                    curImg = SDCProc.loadOutImage(iChan,jj);
+                else
+                    curImg = MD.channels_(iChan).loadImage(jj);
+                end
+                % Load the label
+                pAnal=adhAnalProc.funParams_;
+                labelTifPath = [pAnal.OutputDirectory filesep 'labelTifs'];
+                maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(jj,iiformat),'.tif'));
+                labelAdhesion = bwlabel(maskAdhesion>0,4); % strongly assumes each has only one boundary
+                % Per track ID, get the FA image
+                for kk=find(relevantTrackIDs')
+                    curFAID = tracksNA(kk).faID(jj);
+                    if curFAID==0
+                        continue
+                    else
+                        % Get the individual FA image
+                        curFAstruct=regionprops(labelAdhesion==curFAID,'BoundingBox');
+                        if ~isempty(curFAstruct)
+                            curBoundingBox=[tracksNA(kk).xCoord(jj)-5,tracksNA(kk).yCoord(jj)-5,10,10];
+                            try
+                                curFAImg = imcrop(curImg,curBoundingBox);
+                            catch
+                                curBoundingBox=curFAstruct.BoundingBox;
+                                curFAImg = imcrop(curImg,curBoundingBox);
+                            end                                
+                            %Get the gray-level co-occurerence matrix
+                            glcm = graycomatrix((curFAImg),'Offset',[1 1],'NumLevels',8,'GrayLimits',[]);
+                            stats = graycoprops(glcm);
+                            homogeneityAll(kk) = stats.Homogeneity;
+                            tracksNA(kk).FAtextureHomogeneity= stats.Homogeneity;
+                        end
+                    end
+                end
+            end
+            progressText(jj/framesToInspect(end));
+        end
+        % See the distribution and determine the threshold figure,histogram(homogeneityAll) 
+        thresHomogeneity = max(0.6,mean(homogeneityAll(homogeneityAll>0))+1*std(homogeneityAll(homogeneityAll>0)));
+        homogeneousEnoughWhenMatured = homogeneityAll>thresHomogeneity;
+        
         indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 & ...
             sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
-            bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater; % & indNonDecayingG2 & indLateMaxPointG2;
+            bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater & homogeneousEnoughWhenMatured; % & indNonDecayingG2 & indLateMaxPointG2;
         toc
         disp('Automatic labeling for G3...'); tic;        
         % G3
@@ -1019,7 +1092,7 @@ else
     allDataClass(idGroup7)={'Group7'};
     allDataClass(idGroup8)={'Group8'};
     allDataClass(idGroup9)={'Group9'};
-    iFrameInterest=min(81,MD.nFrames_);
+    iFrameInterest=round(0.8*MD.nFrames_);
     mapFig = figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
     [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],10);
     classNames={'G1: turn-over','G2: maturing','G3: moving along protruding edge',...

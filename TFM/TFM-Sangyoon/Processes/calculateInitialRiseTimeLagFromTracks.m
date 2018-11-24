@@ -1035,21 +1035,21 @@ end
     %% group4 plotting
     fileStoreG4 = [epsPath filesep 'ampForcePlotG4.eps'];
     [~,h]=plotIntensityForce(tracksNA(idGroup4),fileStoreG4,false,false); if ~isempty(h); close(h); end
-    %% group5 plotting
-    fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); if ~isempty(h); close(h); end
-    %% group6 plotting
-    fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); if ~isempty(h); close(h); end
-    %% group7 plotting
-    fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); if ~isempty(h); close(h); end
-    %% group8 plotting
-    fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); if ~isempty(h); close(h); end
-    %% group9 plotting
-    fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
+%     %% group5 plotting
+%     fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); if ~isempty(h); close(h); end
+%     %% group6 plotting
+%     fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); if ~isempty(h); close(h); end
+%     %% group7 plotting
+%     fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); if ~isempty(h); close(h); end
+%     %% group8 plotting
+%     fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); if ~isempty(h); close(h); end
+%     %% group9 plotting
+%     fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
+%     [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
 
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately

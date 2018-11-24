@@ -614,7 +614,7 @@ for ii=1:numel(earlyForceSlopeG1)
 end
 
 h1=figure; 
-barPlotCellArray(earlyForceSlopeG1G2,nameListG1G2);
+% barPlotCellArray(earlyForceSlopeG1G2,nameListG1G2);
 boxPlotCellArray(earlyForceSlopeG1G2,nameListG1G2,1,false,true);
 ylabel('earlyForceSlope (a.u./sec)')
 title('earlyForceSlope in G1 vs. G2')
