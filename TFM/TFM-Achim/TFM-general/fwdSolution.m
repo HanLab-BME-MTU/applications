@@ -174,9 +174,9 @@ elseif strcmpi(method,'fft')
 %    %discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post'); 
 %     discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
     
-    discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Ny_pad-Ny_G Nx_pad-Nx_G Nz_pad-Nz_G],0,'post');
-    discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Ny_pad-Ny_G Nx_pad-Nx_G Nz_pad-Nz_G],0,'post');
-    discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Ny_pad-Ny_G Nx_pad-Nx_G Nz_pad-Nz_G],0,'post');
+    discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
+    discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
+    discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
     
     % Now calculate the fourier transforms:
     dFT_Force_x=fft2(discrete_Force_x);
