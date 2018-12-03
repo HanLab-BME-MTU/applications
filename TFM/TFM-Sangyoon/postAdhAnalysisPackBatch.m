@@ -335,7 +335,7 @@ for ii=1:numConditions
             if isempty(iOther); iOther=3; end
 
             intenGroupStruct=load(tOtherProc.outFilePaths_{2,iOther});
-            intenGroup=intenGroupStruct.intenGroup; 
+            intenGroup=intenGroupStruct.intensityGroup; 
             intensitiesInNAs{k} = intenGroup{1};
             intensitiesInFCs{k} = intenGroup{2};
             intensitiesInFAs{k} = intenGroup{3};

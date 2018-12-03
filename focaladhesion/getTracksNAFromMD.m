@@ -1,4 +1,4 @@
-function tracksNA = getTracksNAFromMD(MD)
+function [tracksNA,adhAnalProc] = getTracksNAFromMD(MD)
 
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
 adhAnalProc = MD.getProcess(iAdhProc);

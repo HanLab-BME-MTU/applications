@@ -2,6 +2,35 @@ function [indMature,indMatureNAtoFA,indMatureNAtoFC,indMatureFCtoFA,...
         indFail,indFailFC,indFailFA, indStableNA,indStableFC,indStableFA,...
         pNAtoFC,pNAtoFA,pFCtoFA,lifeTimeNAmaturing,lifeTimeNAfailing]=findAdhesionMaturation(tracksNA)
 
+%function [indMature,indMatureNAtoFA,indMatureNAtoFC,indMatureFCtoFA,...
+%indFail,indFailFC,indFailFA, indStableNA,indStableFC,indStableFA,...
+%pNAtoFC,pNAtoFA,pFCtoFA,lifeTimeNAmaturing,lifeTimeNAfailing]=findAdhesionMaturation(tracksNA)
+%classifies all the adhesions in tracksNA with very simple criteria of
+%maturation. For example, if the emerging NA become FC, index
+%indMatureNAtoFC is 1 at such adhesion. 
+% 
+% input:    tracksNA        tracksNA struct variable an output of
+% AdhesionAnalysisProcess. You can use getTracksNAFromMD(MD) function to
+% get this variable too.
+% 
+% output:   indMature       Nx1 logical vector where all NAs maturing to
+% either FC or FA have true values
+%           indMatureNAtoFA
+%           indMatureNAtoFC
+%           indFail
+%           indFailFC
+%           indFailFA
+%           indStableNA
+%           indStableFC
+%           indStableFA
+%           pNAtoFC
+%           pNAtoFA
+%           pFCtoFA
+%           lifeTimeNAmaturing
+%           lifeTimeNAfailing
+% 
+% Sangyoon Han December 2018
+
 if ~isfield(tracksNA,'emerging')
     for k=1:numel(tracksNA)
         % look for tracks that had a state of 'BA' and become 'NA'
