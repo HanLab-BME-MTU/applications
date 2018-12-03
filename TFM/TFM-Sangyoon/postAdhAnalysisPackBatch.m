@@ -507,17 +507,17 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-if MLdirect
-    groupNames=MLFileNamesAll;
-else
-    for ii=1:numConditions
-        [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
-        if isempty(finalFolder)
-            [~, finalFolder]=fileparts(pathFolder);
-        end
-        groupNames{ii} = finalFolder;
-    end
-end
+% if MLdirect
+%     groupNames=MLFileNamesAll;
+% else
+%     for ii=1:numConditions
+%         [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
+%         if isempty(finalFolder)
+%             [~, finalFolder]=fileparts(pathFolder);
+%         end
+%         groupNames{ii} = finalFolder;
+%     end
+% end
 % for ii=1:numConditions
 %     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
 %     groupNames{ii} = finalFolder;
