@@ -12,8 +12,11 @@ if ~ischar(pathSFolders) && pathSFolders==0
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
         else
-            [~,finalFolder] = fileparts(curPathProject);
+            [curPathProject2,finalFolder] = fileparts(curPathProject);
             pathAnalysisAll{ii} = curPathProject;
+            if isempty(finalFolder)
+                [~,finalFolder] = fileparts(curPathProject2);
+            end
             groupNames{ii} = finalFolder;
             MLFileNamesAll{ii} = curMLFile;
             MLNames{ii} = 'movieList.mat';
