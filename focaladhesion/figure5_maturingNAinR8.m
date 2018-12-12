@@ -1,22 +1,22 @@
 % figure5_maturingNAinR8: Figure 5 of NA recruitment paper
 % Showing the overlay of NAs that mature to FCs and FAs
 
-% Load MD
+%% Load MD
 MDstruct=load('/storage/disk2/Kevin/2017-05-17/ChoK1_TalinShRNA_TalinWT_20170517_1520_006/movieData.mat');
 % MDstruct=load('/storage/disk2/Kevin/2017-04-24/ChoK1_TalinShRNA_R8Mut_1520_005/movieData.mat');
 MD = MDstruct.MD;
 
-% Get the tracks
+%% Get the tracks
 [tracksNA,adhAnalProc]=getTracksNAFromMD(MD);
 
-% Get the indices
+%% Get the indices
 [indMature,indMatureNAtoFA,indMatureNAtoFC,indMatureFCtoFA,...
  indFail,indFailFC,indFailFA, indStableNA,indStableFC,indStableFA,...
  pNAtoFC,pNAtoFA,pFCtoFA]=findAdhesionMaturation(tracksNA);
 
-% Show over the image
+%% Show over the image
 iFrameInterest=round(0.8*MD.nFrames_);
-[imgStack] = getAnyStacks(MD);
+[imgStack,tMap] = getAnyStacks(MD);
 
 mapFig = figure; imshow(imgStack(:,:,iFrameInterest),[]), hold on
 idCurrent=arrayfun(@(x) iFrameInterest>=x.startingFrameExtra & iFrameInterest<=x.endingFrameExtra,tracksNA);
@@ -26,7 +26,7 @@ markerSize = 4;
 % htrackCircles = arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','MarkerSize',markerSize,'Color','b'),...
 %     tracksNA(indMatureNAtoFC & idCurrent),'UniformOutput',false);
 
-% Show segmentation
+%% Show segmentation
 iiformat = '%.3d';
 p=adhAnalProc.funParams_;
 labelTifPath = [p.OutputDirectory filesep 'labelTifs'];
@@ -66,3 +66,9 @@ arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','MarkerSi
     tracksNA(indMatureFCtoFA & idCurrent),'UniformOutput',false);
 validAdhState = refineFAID(indMatureFCtoFA & idCurrent,iFrameInterest); %cellfun(@(x) x(iFrame),refineFAID(validState));
 htrackSegLine = cellfun(@(x) plot(x(:,2),x(:,1),'Color',[.7 0.2 0.1]),adhBound(validAdhState(~isnan(validAdhState) & validAdhState>0)),'UniformOutput',false);
+
+%% Show time series
+% Pick one good one - from maturing ones
+[idMaNA,groupIDsAll]=pickAdhesionTracksInteractive(tracksNA(indMatureNAtoFA), imgStack, 'movieData',MD,'tMap',tMap);
+
+

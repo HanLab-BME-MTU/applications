@@ -849,15 +849,16 @@ end
 %% lifeTimeFAsGroup
     lifeTimeFAsGroupCell = cellfun(@(x) cell2mat(x),lifeTimeFAsGroup,'unif',false);
     h1=figure; 
-    boxPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60,false,true);
+%     boxPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60,false,true);
+    barPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60);
     ylabel('Life time of FAs (min)')
     title(['Life time of FAs'])
-    hgexport(h1,[figPath filesep 'stableNAFCratio'],hgexport('factorystyle'),'Format','eps')
-    hgsave(h1,[figPath filesep 'stableNAFCratio'],'-v7.3')
-    print(h1,[figPath filesep 'stableNAFCratio'],'-dtiff')
+    hgexport(h1,[figPath filesep 'lifeTimeFAs'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'lifeTimeFAs'],'-v7.3')
+    print(h1,[figPath filesep 'lifeTimeFAs'],'-dtiff')
 
     tableStableNAFCratio=table(stableNAFCratioGroup,'RowNames',nameList);
-    writetable(tableStableNAFCratio,[dataPath filesep 'stableNAFCratio.csv'],'WriteRowNames',true)
+    writetable(tableStableNAFCratio,[dataPath filesep 'lifeTimeFAs.csv'],'WriteRowNames',true)
 
 %% intensity of the other channel at each adhesion type
     intensitiesInNAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInNAsGroup,'unif',false);
