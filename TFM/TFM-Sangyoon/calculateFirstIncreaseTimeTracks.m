@@ -75,14 +75,18 @@ for ii=1:numel(tracksNA)
 %         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
 %         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
 %     end
-    
-    ealryFrames = min(3*differentInitialMargin, curTrack.endingFrameExtra-sF10before+1);
-    [~,curEarlyAmpSlope] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));
+    pp=0;
+    curEarlyAmpSlope = NaN(5,1);
+    for  initialTime=10:10:50
+        pp=pp+1;
+        ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
+        [~,curEarlyAmpSlope(pp)] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));
+    end
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 
 %     sFEE = curTrack.startingFrameExtraExtra;
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
-    if (curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
+    if any(curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
         d = tracksNA(ii).ampTotal;
         nTime = length(d);
@@ -132,7 +136,15 @@ for ii=1:numel(tracksNA)
                 curSlave(curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra) = ...
                  getfield(curTrack,{1},slaveSource,{curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra});
                 %                 curForce(isnan(curForce)) = [];
-                if sum(~isnan(curSlave))>1
+                pp=0;
+                curEarlyForceSlope = NaN(5,1);
+                for  initialTime=10:10:50
+                    pp=pp+1;
+                    ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
+                    [~,curEarlyForceSlope(pp)] = regression((1:ealryFrames),curSlave(sF10before:sF10before+ealryFrames-1));
+                end
+                
+                if any(curEarlyForceSlope>0) && sum(~isnan(curSlave))>1
 %                     sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
 %                     sCurForce_sd=ppval(sCurForce_spline,tRange);
                     sCurForce_sd = filter(b,a,curSlave);

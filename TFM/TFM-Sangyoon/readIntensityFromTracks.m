@@ -31,8 +31,11 @@ if isempty(MD)
     maxGap = 3;
     brownScaling = 1.01;
 else
-    iTrackingProc =MD.getProcessIndex('TrackingProcess');
-    trackingProc = MD.getProcess(iTrackingProc);
+    faPackage=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
+    % Load classification process
+    trackingProc = faPackage.getProcess(5);
+%     iTrackingProc =MD.getProcessIndex('TrackingProcess');
+%     trackingProc = MD.getProcess(iTrackingProc);
     trackingParams = trackingProc.funParams_;
     minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
     maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
@@ -496,7 +499,7 @@ parfor (k=1:numTracks, parforArg)
                 end
                 if ~pitFoundEnd && gapClosed >= maxGap
                     curTrack.endingFrameExtra = ii-gapClosed-1;
-                    if trackingFromStartingFrame %When it did find any points after all...
+                    if trackingFromStartingFrame && reTrack %When it did find any points after all...
                         curTrack.startingFrameExtra = ii-gapClosed-1;
                     end
                     if curTrack.startingFrameExtra>curTrack.startingFrame

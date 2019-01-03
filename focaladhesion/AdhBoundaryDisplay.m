@@ -99,7 +99,11 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
             else
                 % In case there is zero label, make it six (noise)
                 idGroupLabel(idGroupLabel==0)=6;
+                % if there is anything related to more than group 9, those
+                % are assigned to be group 6 (noise)
+                idGroupLabel(idGroupLabel>9)=6;
                 existingClasses=unique(idGroupLabel','sorted');
+                
                 j=0;
                 for k = existingClasses
                     curIndices = find(idGroupLabel'==k);

@@ -25,6 +25,7 @@ end
 %Parse input, store in parameter structure
 adhClassProc = MD.processes_{iProc};
 p = parseProcessParams(adhClassProc);
+p.useHomogeneity=false;
 
 MD=ip.Results.MD;
 iChan = p.ChannelIndex;
@@ -248,7 +249,7 @@ else
         catch
             distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
         end
-        thresStartingDistG1 = 3000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        thresStartingDistG1 = 2000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseStartingEdgeG1 = distToEdgeFirstAll < thresStartingDistG1;
 
         % 5. Clean rising phase
@@ -485,61 +486,64 @@ else
         iiformat = ['%.' '3' 'd'];
         iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
         FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
-        SDCProc=FAPackage.processes_{iSDCProc};        
-        homogeneityAll=zeros(numel(tracksNA),1);
-        if ~isfield(tracksNA,'FAtextureHomogeneity')
-            tracksNA(end).FAtextureHomogeneity=0;
-            [tracksNA(:).FAtextureHomogeneity] = deal(0);
-        end
-        progressText(0,'Calculating FA texture homogeneity', 'Adhesion Classification');
-        for jj=framesToInspect'
-            %Find the tracks
-            relevantTrackIDs = iFrameMaxArea==jj & actualMaxArea>0;
-            if isempty(relevantTrackIDs)
-                continue
-            else
-                %Load the image
-                if ~isempty(SDCProc)
-                    curImg = SDCProc.loadOutImage(iChan,jj);
+        SDCProc=FAPackage.processes_{iSDCProc};      
+        if p.useHomogeneity
+            homogeneityAll=zeros(numel(tracksNA),1);
+            if ~isfield(tracksNA,'FAtextureHomogeneity')
+                tracksNA(end).FAtextureHomogeneity=0;
+                [tracksNA(:).FAtextureHomogeneity] = deal(0);
+            end
+            progressText(0,'Calculating FA texture homogeneity', 'Adhesion Classification');
+            for jj=framesToInspect'
+                %Find the tracks
+                relevantTrackIDs = iFrameMaxArea==jj & actualMaxArea>0;
+                if isempty(relevantTrackIDs)
+                    continue
                 else
-                    curImg = MD.channels_(iChan).loadImage(jj);
-                end
-                % Load the label
-                pAnal=adhAnalProc.funParams_;
-                labelTifPath = [pAnal.OutputDirectory filesep 'labelTifs'];
-                maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(jj,iiformat),'.tif'));
-                labelAdhesion = bwlabel(maskAdhesion>0,4); % strongly assumes each has only one boundary
-                % Per track ID, get the FA image
-                for kk=find(relevantTrackIDs')
-                    curFAID = tracksNA(kk).faID(jj);
-                    if curFAID==0
-                        continue
+                    %Load the image
+                    if ~isempty(SDCProc)
+                        curImg = SDCProc.loadOutImage(iChan,jj);
                     else
-                        % Get the individual FA image
-                        curFAstruct=regionprops(labelAdhesion==curFAID,'BoundingBox');
-                        if ~isempty(curFAstruct)
-                            curBoundingBox=[tracksNA(kk).xCoord(jj)-5,tracksNA(kk).yCoord(jj)-5,10,10];
-                            try
-                                curFAImg = imcrop(curImg,curBoundingBox);
-                            catch
+                        curImg = MD.channels_(iChan).loadImage(jj);
+                    end
+                    % Load the label
+                    pAnal=adhAnalProc.funParams_;
+                    labelTifPath = [pAnal.OutputDirectory filesep 'labelTifs'];
+                    maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(jj,iiformat),'.tif'));
+                    labelAdhesion = bwlabel(maskAdhesion>0,4); % strongly assumes each has only one boundary
+                    % Per track ID, get the FA image
+                    for kk=find(relevantTrackIDs')
+                        curFAID = tracksNA(kk).faID(jj);
+                        if curFAID==0
+                            continue
+                        else
+                            % Get the individual FA image
+                            curFAstruct=regionprops(labelAdhesion==curFAID,'BoundingBox');
+                            if ~isempty(curFAstruct)
                                 curBoundingBox=curFAstruct.BoundingBox;
-                                curFAImg = imcrop(curImg,curBoundingBox);
-                            end                                
-                            %Get the gray-level co-occurerence matrix
-                            glcm = graycomatrix((curFAImg),'Offset',[1 1],'NumLevels',8,'GrayLimits',[]);
-                            stats = graycoprops(glcm);
-                            homogeneityAll(kk) = stats.Homogeneity;
-                            tracksNA(kk).FAtextureHomogeneity= stats.Homogeneity;
+                                try
+                                    curFAImg = imcrop(curImg,curBoundingBox);
+                                catch
+                                    curBoundingBox=[tracksNA(kk).xCoord(jj)-5,tracksNA(kk).yCoord(jj)-5,10,10];
+                                    curFAImg = imcrop(curImg,curBoundingBox);
+                                end                                
+                                %Get the gray-level co-occurerence matrix
+                                glcm = graycomatrix((curFAImg),'Offset',[1 1],'NumLevels',8,'GrayLimits',[]);
+                                stats = graycoprops(glcm);
+                                homogeneityAll(kk) = stats.Homogeneity;
+                                tracksNA(kk).FAtextureHomogeneity= stats.Homogeneity;
+                            end
                         end
                     end
                 end
+                progressText(jj/framesToInspect(end));
             end
-            progressText(jj/framesToInspect(end));
+            % See the distribution and determine the threshold figure,histogram(homogeneityAll) 
+            thresHomogeneity = max(0.3,mean(homogeneityAll(homogeneityAll>0))+1*std(homogeneityAll(homogeneityAll>0)));
+            homogeneousEnoughWhenMatured = homogeneityAll>thresHomogeneity;
+        else
+            homogeneousEnoughWhenMatured = true(size(indIncreasingArea));
         end
-        % See the distribution and determine the threshold figure,histogram(homogeneityAll) 
-        thresHomogeneity = max(0.6,mean(homogeneityAll(homogeneityAll>0))+1*std(homogeneityAll(homogeneityAll>0)));
-        homogeneousEnoughWhenMatured = homogeneityAll>thresHomogeneity;
-        
         indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 & ...
             sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
             bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater & homogeneousEnoughWhenMatured; % & indNonDecayingG2 & indLateMaxPointG2;

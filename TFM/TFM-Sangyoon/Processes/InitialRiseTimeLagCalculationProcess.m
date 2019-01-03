@@ -40,10 +40,11 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
             ip.addOptional('iOutput',1,@(x) ismember(x,1:nOutput));
             ip.addParamValue('output','',@(x) all(ismember(x,outputList)));
             ip.addParamValue('useCache',false,@islogical);
+            ip.addParamValue('idSelected',[]);
             ip.parse(iChan,varargin{:})
     
-            outputRequested=ip.Ressults.output;
-            p = obj.funParams;
+            outputRequested=ip.Results.output;
+            p = obj.funParams_;
             %% Reading tracks from master channel
             % Use the previous analysis folder structure
             % It might be good to save which process the tracksNA was obtained.
@@ -59,7 +60,12 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                     faPack = MD.getPackage(iFAPack);
                     adhAnalProc = faPack.processes_{7};
                 end
-                tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
+                idSelected=ip.Results.idSelected;
+                if isempty(idSelected)
+                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
+                else
+                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA','idSelected',idSelected);
+                end
                 % numChans = numel(p.ChannelIndex);
 
                 % Now we have to combine this with readings from step 9 and 10
@@ -71,6 +77,9 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                 if ~isempty(theOtherReadProc)
                     ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
                     tracksAmpTotal = ampObj.tracksAmpTotal;
+                    if ~isempty(idSelected)
+                        tracksAmpTotal = tracksAmpTotal(idSelected);
+                    end
                 %     tracksAmpTotal = theOtherReadProc.loadChannelOutput(p.ChannelIndex);
 
                     if isfield(tracksAmpTotal,'ampTotal2')
@@ -83,13 +92,21 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
 
                 if ~isempty(forceReadProc)
                     forceReadObj = load(forceReadProc.outFilePaths_{1,p.ChannelIndex},'tracksForceMag'); % the later channel has the most information.
+                    
                     tracksForceMag = forceReadObj.tracksForceMag;
                     idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
                     if ~isfield(idxTracksObj,'idxTracks')
                         idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
                     end
                     idxTracks = idxTracksObj.idxTracks;
+                    %Apply if idSelected is applied
+                    if ~isempty(idSelected)
+                        idxTracks = idxTracks(idSelected);
+                        tracksForceMag = tracksForceMag(idSelected);
+                    end
+                
                     tracksNA = tracksNA(idxTracks);
+
                     if isfield(tracksForceMag,'forceMag')
                         [tracksNA(:).forceMag] = tracksForceMag.forceMag;
                     end
