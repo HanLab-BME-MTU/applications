@@ -61,9 +61,11 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
         function updateDraw(obj, h, data, varargin)
             tag = get(h(1),'Tag');
             idGroupLabel=[];
-            if iscell(data{1})
-                idGroupLabel=data{2};
-                data = data{1};
+            if ~isempty(data)
+                if iscell(data{1})
+                    idGroupLabel=data{2};
+                    data = data{1};
+                end
             end
             nTracks = numel(data); %size(data,1);
             

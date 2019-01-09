@@ -186,24 +186,8 @@ end
 %% get the track if you already have it
 if foundTracks || startFromIntermediate % If this part above is already processed
 %     load(dataPath_tracksNA, 'tracksNA');
-    tracksNA = thisProc.loadChannelOutput(iChan,'output','tracksNA');
-    load(dataPath_tracksNA);
-%     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-%     numStr = @(trackNum) num2str(trackNum,fString);
-%     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-%     progressText(0,'Loading tracksNA') % Create text & waitbar popup
-%     for ii=metaTrackData.numTracks:-1:1
-%         curTrackObj = load(trackIndPath(ii),'curTrack');
-%         try
-%             tracksNA(ii,1) = curTrackObj.curTrack;
-%         catch % this time fields are not common
-%             names=fieldnames(tracksNA);
-%             for qq=1:numel(names)
-%                 tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
-%             end
-%         end
-%         progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
-%     end
+    metaTrackDataStruct=load(dataPath_tracksNA);
+    metaTrackData=metaTrackDataStruct.metaTrackData;
     numTracks = metaTrackData.numTracks;
     fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
     numStr = @(trackNum) num2str(trackNum,fString);
@@ -211,6 +195,26 @@ if foundTracks || startFromIntermediate % If this part above is already processe
     if foundTracks
         load(dataPath_focalAdhInfo, 'focalAdhInfo')
     end
+    try
+        tracksNA = thisProc.loadChannelOutput(iChan,'output','tracksNA');
+    catch
+        progressText(0,'Loading tracksNA') % Create text & waitbar popup
+        for ii=metaTrackData.numTracks:-1:1
+            curTrackObj = load(trackIndPath(ii),'curTrack');
+            try
+                tracksNA(ii,1) = curTrackObj.curTrack;
+            catch % this time fields are not common
+                names=fieldnames(tracksNA);
+                for qq=1:numel(names)
+                    tracksNA(ii,1).(names{qq})=curTrackObj.curTrack.(names{qq});
+                end
+            end
+            progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks) % Update text
+        end
+    end
+%     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
+%     numStr = @(trackNum) num2str(trackNum,fString);
+%     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
 end
 
 %% tracksNA quantification
@@ -331,6 +335,10 @@ if ~foundTracks
         %% Filter with lifeTime 
         lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
         tracksNA = tracksNA(lifeTime>minLifetime);
+        
+        %% Filter overlapping adhesions
+        tracksNA = filterOverlappingTracks(tracksNA);        
+        
         %% tracks saving format
         numTracks=numel(tracksNA);
         trackFolderPath = [p.OutputDirectory filesep 'trackIndividual'];
@@ -698,7 +706,7 @@ if ~foundTracks
             FCIdx = [];
             FAIdx = [];
         end
-        progressText(ii/(nFrames));
+        progressText(ii/(nFrames),'Matching with segmented adhesions', 'Adhesion Analysis');
     end
     %% saving
     save(dataPath_focalAdhInfo, 'focalAdhInfo','-v7.3')
@@ -771,7 +779,6 @@ if 1
             progressText(k/numTracks);
         end    
         %% Calculating distance from each adhesion to relevant edge
-        progressText(0,'Calculating distance from each adhesion to relevant edge', 'Adhesion Analysis');
         if ~isfield(tracksNA,'distToEdge')
             tracksNA(end).distToEdge=[];
         end
@@ -789,6 +796,8 @@ if 1
             % Load each adhesion's moving direction
             if ~isempty(matchingAdhLineFit{k})
                 fitobj=matchingAdhLineFit{k};
+                progressText(0,[num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
+
                 for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
                     allBdPoints = allBdPointsAll{ii};
                     xCropped = curTrack.xCoord(ii);
@@ -822,8 +831,11 @@ if 1
                         curTrack.closestBdPointNaive(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                         curTrack.distToEdgeNaive(ii) = minDistToBd;
                     end
+                    progressText((ii-curTrack.startingFrameExtraExtra)/(curTrack.endingFrameExtraExtra-curTrack.startingFrameExtraExtra),...
+                        [num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
                 end
             else
+                progressText(0,[num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
                 for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
                     allBdPoints = allBdPointsAll{ii};
                     xCropped = curTrack.xCoord(ii);
@@ -839,11 +851,12 @@ if 1
                     curTrack.closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                     curTrack.closestBdPointNaive(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                     tracksNA(k) = curTrack;
+                    progressText((ii-curTrack.startingFrameExtraExtra)/(curTrack.endingFrameExtraExtra-curTrack.startingFrameExtraExtra),...
+                        [num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
                 end
             end
             tracksNA(k) = curTrack;
             parsave(feval(trackIndPath,k),curTrack)
-            progressText(k/numTracks);
         end
     end
 
@@ -902,7 +915,7 @@ end
 % tableTracksNA = struct2table(tracksNA);
 % save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
 %% Saving with each track
-if ~foundTracks
+% if ~foundTracks
     %% Saving the metaTrackData
     numTracks=numel(tracksNA);
     fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
@@ -920,7 +933,7 @@ if ~foundTracks
         curTrack=tracksNA(k);
         parsave(feval(trackIndPath,k),curTrack)
     end
-end
+% end
 %% debug
 % save(dataPath_tracksNA,'tracksNA')
 %% NA FA Density analysis
@@ -1094,13 +1107,24 @@ if matchWithFA
 %         end
 %     end
     % quantifying lifetime of FAs separately
+    numNAtoFA = sum(indMatureNAtoFA); numStableNA= sum(indStableNA);
+    numNAtoFC = sum(indMatureNAtoFC); numFCtoFA = sum(indMatureFCtoFA);
+    numStableFC = sum(indStableFC);
+    numFailingNA = sum(indFail);     numFailingFC = sum(indFailFC);
+%     numFailingFA = sum(indFailFA);
+    
+    totalNA=numNAtoFC+numNAtoFA+numStableNA+numFailingNA;
+    totalFC=numFCtoFA+numStableFC+numFailingFC;
+    totalFA=numNAtoFC+numNAtoFA+numStableNA+numFailingNA;
+
     indFAs = arrayfun(@(x) any(x.state==4),tracksNA);
     lifeTimeFAs = arrayfun(@(x) x.endingFrameExtra - x.startingFrameExtra, tracksNA(indFAs));
     lifeTimeAll = [lifeTimeNAmaturing lifeTimeNAfailing];
-    maturingRatio = pNAtoFC/(pNAtoFC+q+qStable);
-    maturingRatioNAtoFA = pNAtoFA/(pNAtoFC+q+qStable);
-    maturingRatioFCtoFA = pFCtoFA/(pNAtoFC+qStableExisting+pFCtoFA+qStable); %Among All FCs and stable NAs
-    stableNAFCratio = (qStable+qStableExisting)/(qStableExisting+qStable+pFCtoFA+q+pNAtoFC); %Among all NAs and FCs
+    
+    maturingRatio = pNAtoFC/(totalNA);
+    maturingRatioNAtoFA = pNAtoFA/(totalNA);
+    maturingRatioFCtoFA = numFCtoFA/(totalFC); %Among All FCs and stable NAs
+    stableNAFCratio = (numStableNA+numStableFC)/(totalNA+totalFC); %Among all NAs and FCs
     tracksNAmaturing = tracksNA(indMature);
     tracksNAfailing = tracksNA(indFail);
     save(dataPath_analysisAll, 'maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing','lifeTimeAll',...

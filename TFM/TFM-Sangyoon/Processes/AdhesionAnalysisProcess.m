@@ -124,7 +124,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     || isempty(stateAll) || isempty(startingFrameExtra) || ...
                     isempty(endingFrameExtra) || ~all(obj.finishTime_==lastFinishTime) ...
                     || strcmp(output,outputList(end))
-%                 try
+                try
                     s = load(obj.outFilePaths_{1,iChan},'metaTrackData');
                     metaTrackData = s.metaTrackData;
                     fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
@@ -145,6 +145,9 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     end
                     
                     jj=0;
+                    if size(loadingSequence,1)>1
+                        loadingSequence=loadingSequence';
+                    end
                     for ii=loadingSequence
                         if ~isempty(idSelected)
                             jj=jj+1;
@@ -171,35 +174,35 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     % Might need to filter out failed tracks
                     indEmptyTracks = arrayfun(@(x) isempty(x.xCoord),tracksNA);
                     tracksNA = tracksNA(~indEmptyTracks);
-%                 catch
-%                     % Check if the outFilePath has tableTracksNA
-%                     disp('Checking if the outFilePath has tableTracksNA...')
-%                     s = load(obj.outFilePaths_{1,iChan},'tracksNA');
-%                     if isfield(s,'tracksNA')
-%                         disp('Found the old format. Resaving this with the new format...')
-%                         % Saving with each track
-%                         tracksNA = s.tracksNA;
-%                         trackFolderPath = [obj.funParams_.OutputDirectory filesep 'trackIndividual'];
-%                         mkdir(trackFolderPath)
-%                         numTracks = numel(tracksNA);
-%                         fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
-%                         numStr = @(trackNum) num2str(trackNum,fString);
-%                         trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-% 
-%                         for ii=1:numTracks
-%                             curTrack = tracksNA(ii);
-%                             save(trackIndPath(ii),'curTrack')
-%                         end
-%                         % Saving the metaTrackData
-%                         metaTrackData.numTracks = numTracks;
-%                         metaTrackData.trackFolderPath = trackFolderPath;
-%                         metaTrackData.eachTrackName = 'curTrack';
-%                         metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
-%                         metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
-%                         metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-%                         save(obj.outFilePaths_{1,iChan},'metaTrackData')
-%                     end
-%                 end
+                catch
+                    % Check if the outFilePath has tableTracksNA
+                    disp('Checking if the outFilePath has tableTracksNA...')
+                    s = load(obj.outFilePaths_{1,iChan},'tracksNA');
+                    if isfield(s,'tracksNA')
+                        disp('Found the old format. Resaving this with the new format...')
+                        % Saving with each track
+                        tracksNA = s.tracksNA;
+                        trackFolderPath = [obj.funParams_.OutputDirectory filesep 'trackIndividual'];
+                        mkdir(trackFolderPath)
+                        numTracks = numel(tracksNA);
+                        fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+                        numStr = @(trackNum) num2str(trackNum,fString);
+                        trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+
+                        for ii=1:numTracks
+                            curTrack = tracksNA(ii);
+                            save(trackIndPath(ii),'curTrack')
+                        end
+                        % Saving the metaTrackData
+                        metaTrackData.numTracks = numTracks;
+                        metaTrackData.trackFolderPath = trackFolderPath;
+                        metaTrackData.eachTrackName = 'curTrack';
+                        metaTrackData.fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+                        metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
+                        metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+                        save(obj.outFilePaths_{1,iChan},'metaTrackData')
+                    end
+                end
                 s = struct2table(tracksNA);
                 xCoord = s.xCoord;
                 yCoord = s.yCoord;

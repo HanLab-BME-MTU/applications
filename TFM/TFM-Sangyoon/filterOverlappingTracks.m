@@ -1,4 +1,4 @@
-function [tracks,idxFinalTracks] = filterOverlappingTracks(tracks)
+function [tracks,idxFinalTracks,idOtherOverlappingTracks] = filterOverlappingTracks(tracks)
 %function curStartingAmpG1 = filterOverlappingTracks(curStartingAmpG1)
 %filters out overlapping tracks.
 % input: tracks      tracks
@@ -15,6 +15,7 @@ numOverFrames=5;
 % notCompletelyChecked=true;
 idxlTracksLeft=true(numel(tracks),1);
 idxFinalTracks=false(numel(tracks),1);
+idOtherOverlappingTracks=zeros(numel(tracks),1);
 allX = arrayfun(@(x) x.xCoord,tracks,'UniformOutput',false);
 allY = arrayfun(@(x) x.yCoord,tracks,'UniformOutput',false);
 while any(idxlTracksLeft)
@@ -47,15 +48,18 @@ while any(idxlTracksLeft)
             disp([num2str(indexCurOver') 'th tracks have ' num2str(length(unique(lateX))) ' endings.'])
         end
         idxFinalTracks(indexCurOver(indEarliest))=true;
+        idOtherOverlappingTracks(curIdxOver)=(indexCurOver(indEarliest));
     else
         [~,indLatest]=min(lateX);
         if length(unique(earlyX))>1
             disp([num2str(indexCurOver') 'th tracks have ' num2str(length(unique(earlyX))) ' beginnings.'])
         end
         idxFinalTracks(indexCurOver(indLatest))=true;
+        idOtherOverlappingTracks(curIdxOver)=(indexCurOver(indLatest));
     end
     idxlTracksLeft(curIdxOver)=false;
 end
 disp(['Originally ' num2str(numel(tracks)) ' tracks were found to have ' num2str(sum(~idxFinalTracks)) ' overlaps.'])
 tracks=tracks(idxFinalTracks);
+disp(['Returning ' num2str(numel(tracks)) ' tracks as non-overlapping tracks.'])
 end

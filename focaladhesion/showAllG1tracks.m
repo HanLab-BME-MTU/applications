@@ -11,7 +11,9 @@ faPackage=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
 % Load classification process
 classProc = faPackage.getProcess(8);
 % p = classProc.funParams_;
-
+if nargin<2
+    askUser = false;
+end
 %% Load the class ids
 iChan = find(classProc.checkChannelOutput);
 idsClassifiedStruct = load(classProc.outFilePaths_{4,iChan});

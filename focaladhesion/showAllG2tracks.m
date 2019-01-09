@@ -10,7 +10,9 @@ faPackage=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
 % Load classification process
 classProc = faPackage.getProcess(8);
 % p = classProc.funParams_;
-
+if nargin<2
+    askUser = false;
+end
 %% Load the class ids
 iChan = find(classProc.checkChannelOutput);
 idsClassifiedStruct = load(classProc.outFilePaths_{4,iChan});
@@ -25,9 +27,16 @@ end
 adhAnalProc = faPackage.getProcess(7);
 tracksNAG2=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2);
 %% indexG2 filtering
-idG2 = getForceTransmittingG2(idG2,tracksNAG2);
-indexG2  = find(idG2)';
-tracksNAG2=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2);
+idG2_FT = getForceTransmittingG2(idG2,tracksNAG2,MD.timeInterval_);
+% indexG2  = find(idG2)';
+%% another filtering for redundant tracks
+[~,idxFinalTracks,idOtherOverlappingTracks] = filterOverlappingTracks(tracksNAG2);
+idG2_nonOverlapping = false(size(idG2));
+idG2_nonOverlapping(indexG2(idxFinalTracks'))=true;
+indexG2NO = find(idG2_nonOverlapping & idG2_FT);
+indexFinalTracks = find(idxFinalTracks);
+
+tracksNAG2=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2NO);
 
 numTracksG2 = numel(tracksNAG2);
 %% Load imgStack, forceStack and another stack if it exists.
@@ -39,11 +48,12 @@ if ~exist(gPath,'dir')
 end
 for ii=1:numTracksG2
     curTrack = tracksNAG2(ii);
-    IDtoInspect = indexG2(ii);
+    IDtoInspect = indexG2NO(ii);
+    OtherOverlappingIDs = indexG2(idOtherOverlappingTracks==indexFinalTracks(ii));
     additionalName = 'G2';
     h=showSingleAdhesionTrackSummary(MD,curTrack,imgStack,tMap,imgStack2,IDtoInspect, gPath,additionalName);
     if askUser
-        answer = questdlg('Does this belong to G2?',['Confirmation of each track' num2str(ii) '/' num2str(numTracksG1)],...
+        answer = questdlg('Does this belong to G2?',['Confirmation of each track' num2str(ii) '/' num2str(numTracksG2)],...
                   'Yes(G2)','No(G6)','Others(G1)','No(G6)');
         % Handle response
         switch answer
@@ -54,14 +64,14 @@ for ii=1:numTracksG2
                 end
             case 'No(G6)'
                 % take out the existing G2
-                idG2(IDtoInspect)=false;
+                idG2(OtherOverlappingIDs)=false;
                 % insert it to G6
-                idG6(IDtoInspect)=true;
+                idG6(OtherOverlappingIDs)=true;
             case 'Others(G1)'
                 % take out the existing G2
-                idG2(IDtoInspect)=false;
+                idG2(OtherOverlappingIDs)=false;
                 % insert it to G6
-                idG1(IDtoInspect)=true;
+                idG1(OtherOverlappingIDs)=true;
         end  
     end
     close(h)

@@ -507,17 +507,17 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-% if MLdirect
-%     groupNames=MLFileNamesAll;
-% else
-%     for ii=1:numConditions
-%         [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
-%         if isempty(finalFolder)
-%             [~, finalFolder]=fileparts(pathFolder);
-%         end
-%         groupNames{ii} = finalFolder;
-%     end
-% end
+if MLdirect
+    groupNames=MLFileNamesAll;
+else
+    for ii=1:numConditions
+        [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
+        if isempty(finalFolder)
+            [~, finalFolder]=fileparts(pathFolder);
+        end
+        groupNames{ii} = finalFolder;
+    end
+end
 % for ii=1:numConditions
 %     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
 %     groupNames{ii} = finalFolder;
@@ -585,8 +585,8 @@ if ~isempty(initRiseProc)
     end
     if MLdirect
         for ii=1:numel(earlyAmpSlopeG1)
-            nameListG1G2(2*(ii-1)+1)=[nameList{ii}(10:end-4) '-G1'];
-            nameListG1G2(2*(ii))=[nameList{ii}(10:end-4) '-G2'];
+            nameListG1G2{2*(ii-1)+1}=[nameList{ii}(10:end-4) '-G1'];
+            nameListG1G2{2*(ii)}=[nameList{ii}(10:end-4) '-G2'];
         end
     else
         for ii=1:numel(earlyAmpSlopeG1)
