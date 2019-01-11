@@ -27,8 +27,13 @@ if askUser
 end
 %% Load tracksNA belonged to only G1
 initRiseProc = faPackage.getProcess(11);
-tracksNAG1=initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG1);
+[tracksNAG1,idxTracks]=initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG1);
 %% indexG1 filtering
+if ~isempty(idxTracks)
+    idG1 = false(size(idG1));
+    idG1(indexG1(idxTracks))=true;
+end
+
 idG1 = getForceTransmittingG1(idG1,tracksNAG1);
 indexG1  = find(idG1)';
 tracksNAG1=initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG1);
@@ -54,6 +59,7 @@ for ii=1:numTracksG1
             case 1
                 if exist('gPath','var')
                     print(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
+                    print(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.tif'),'-dtiff')
                     savefig(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
                 end
             case 2
@@ -72,6 +78,10 @@ for ii=1:numTracksG1
                 % insert it to G6
                 idG9(IDtoInspect)=true;
         end  
+    else
+        print(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
+        print(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.tif'),'-dtiff')
+        savefig(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
     end
     close(h)
 end

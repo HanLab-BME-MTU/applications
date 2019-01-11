@@ -31,7 +31,7 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
             obj = obj@DataProcessingProcess(super_args{:});
         end
         
-        function output = loadChannelOutput(obj, iChan, varargin)
+        function [output, output2] = loadChannelOutput(obj, iChan, varargin)
             outputList = {'tracksNA','idClass'};
             nOutput = length(outputList);
 
@@ -110,9 +110,18 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                     if isfield(tracksForceMag,'forceMag')
                         [tracksNA(:).forceMag] = tracksForceMag.forceMag;
                     end
+                    
+                    if any(~idxTracks)
+                        output2 = idxTracks;
+                    else
+                        output2 = [];
+                    end
+                else
+                    output2 = [];
                 end
                 toc
                 output = tracksNA;          
+                
             elseif strcmp(outputRequested,'idsClassfied')
                 %% Reading classes
                 disp('Reading idsClassified ...')

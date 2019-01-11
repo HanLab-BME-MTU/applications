@@ -73,6 +73,10 @@ for ii=1:numTracksG2
                 % insert it to G6
                 idG1(OtherOverlappingIDs)=true;
         end  
+    else
+        print(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
+        print(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.tif'),'-dtiff')
+        savefig(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
     end
     close(h)
 end

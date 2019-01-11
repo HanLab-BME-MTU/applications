@@ -161,6 +161,8 @@ end
 timeLagProc.setOutFilePaths(outputFile);
 
 %% I. Time series analyses
+p.numWinSize=10; %frames
+p.preDetecPeriod=10; %sec
 for jj=existingSlaveIDs
     curSlaveCell = potentialSlaves(jj);
     curSlave=curSlaveCell{1};
@@ -172,7 +174,7 @@ for jj=existingSlaveIDs
     splineParamInit=0.99;
     [curFirstIncreseTimeIntAgainstSlave,SlaveTransmittingAll{jj}...
     ,firstIncreseTimeIntAll{jj},firstIncreseTimeSlaveAll{jj},bkgMaxIntAll{jj},bkgMaxSlaveAll{jj}] ...
-        = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval,'slaveSource',curSlave);
+        = calculateFirstIncreaseTimeTracks(tracksNA,p.numWinSize,p.preDetecPeriod,tInterval,'slaveSource',curSlave);
     firstIncreseTimeIntAgainstSlaveAll{jj}=curFirstIncreseTimeIntAgainstSlave;
     disp(['Median of firstIncreseTimeIntAgainst' curSlave 'All = ' num2str(nanmedian(firstIncreseTimeIntAgainstSlaveAll{jj}))])
     % 2. Peak intensity lag against force

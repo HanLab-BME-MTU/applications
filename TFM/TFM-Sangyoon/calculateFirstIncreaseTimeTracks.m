@@ -1,6 +1,6 @@
 function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
     ,firstIncreaseTimeIntAll,firstIncreaseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll,tracksNA] ...
-    = calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval,varargin)
+    = calculateFirstIncreaseTimeTracks(tracksNA,numAveragingWind,preDetecPeriod,tInterval,varargin)
 % [firstIncreseTimeIntAgainstForceAll,forceTransmittingAll...
 %  ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll]=...
 %  calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
@@ -24,15 +24,15 @@ function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
 % Sangyoon Han, developed 2016, revised August 2018.
 ip =inputParser;
 ip.addRequired('tracksNA',@isstruct)
-ip.addOptional('splineParamInit',0.99,@isscalar)
-ip.addOptional('preDetecFactor',1/5,@(x)isscalar(x))
+ip.addOptional('numAveragingWind',5,@isscalar)
+ip.addOptional('preDetecPeriod',60,@(x)isscalar(x)) % in second
 ip.addOptional('tInterval',1,@(x)isscalar(x))
 ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
 ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','ampTotal2','ampTotal3'})); % collect NA tracks that ever close to cell edge
-ip.parse(tracksNA,splineParamInit,preDetecFactor,tInterval,varargin{:});
+ip.parse(tracksNA,numAveragingWind,preDetecPeriod,tInterval,varargin{:}); %splineParamInit,preDetecParam
 slaveSource=ip.Results.slaveSource;
 useSmoothing=false;
-if splineParamInit<1
+if numAveragingWind>1
     useSmoothing=true;
 end
 firstIncreseTimeIntAgainstSlaveAll=NaN(numel(tracksNA),1);
@@ -66,7 +66,7 @@ for ii=1:numel(tracksNA)
     effectiveSF = curTrack.startingFrameExtra; 
     sFEE = max(1,curTrack.startingFrameExtra-differentInitialMargin); %curTrack.startingFrameExtraExtra;
     sF5before = max(sFEE,effectiveSF -1); % So the variabl name should be sF1before
-    sF10before = max(sFEE,effectiveSF - round(60/tInterval)); % So the variabl name should be sF1before
+    sF10before = max(sFEE,effectiveSF - round(preDetecPeriod/tInterval)); % So the variabl name should be sF1before
     
 %     while sF5before==sF10before
 %         numFramesBefore = effectiveSF - sFEE;
@@ -94,7 +94,7 @@ for ii=1:numel(tracksNA)
 %             d = tracksNA(ii).ampTotal;
 %             tRange = tracksNA(ii).iFrame;
             d(d==0)=NaN;
-            warning('off','SPLINES:CHCKXYWP:NaNs')
+%             warning('off','SPLINES:CHCKXYWP:NaNs')
 %             try
 %                 sd_spline= csaps(tRange,d,splineParamInit);
 %             catch

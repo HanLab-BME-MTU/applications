@@ -24,15 +24,15 @@ curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
 
-splineParamInit=0.99; %0.99;
-preDetecFactor=.3;
+splineParamInit=10; % This now has to be taken from the InitRise process. 0.99; %0.99;
+preDetecFactor=10; %.3; Changed.
 [~,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack1]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
 frameFII=round(firstIncreseTimeInt/tInterval);
 frameFTI=round(firstIncreseTimeForce/tInterval);
 
 if isnan(frameFII) || isnan(frameFTI)
-    splineParamInit=0.80;
-    preDetecFactor=.3;
+    splineParamInit=15;
+    preDetecFactor=5;
     [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,...
         firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce,curTrack1] =...
         calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
@@ -525,7 +525,7 @@ if ~isempty(imgMap2)
     %Montage
     axes('Position',[marginX, (430+50+10+175)/figHeight+marginY, 540/figWidth-marginX,50/figHeight]);
     cropImg2 = reshape(cropImg2,size(cropImg2,1),size(cropImg2,2),1,size(cropImg2,3));
-    hm3=montage(cropImg2,'Size',[2, NaN],'DisplayRange',[minInt2 maxInt2], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
+    hm3=montage(cropImg2,'Size',[1, NaN],'DisplayRange',[minInt2 maxInt2], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
     hold on
     p=0;
     for ii= indiceRange
@@ -552,7 +552,7 @@ if ~isempty(imgMap2)
         if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
             markerType = 'go'; bdType='g';
         end
-        plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
+        plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',14, 'LineWidth', 0.5)
     end
 
     % Third channel time series
