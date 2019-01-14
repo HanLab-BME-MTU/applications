@@ -1,10 +1,11 @@
+
 %% Preparing synthetic bead images
 clc
 clear all
 meshPtsFwdSol=2^9;
 xmax=meshPtsFwdSol;
 ymax=meshPtsFwdSol;
-nPoints = 5000; % was 25000
+nPoints = 10000; % was 25000
 bead_r = 40; % nm
 pixSize = 72; % nm/pix 90x
 sigma = 1.73; % was 1.6 before
@@ -13,8 +14,7 @@ Aorg = 300+1000*rand(1,nPoints);
         'npoints', nPoints, 'Border', 'truncated','A',Aorg);
 %% may not add noise
 %% Displacement Field
-
-E=8000;  %Young's modulus, unit: Pa
+E=5000;  %Young's modulus, unit: Pa %changed from 8000 to 5000
 forceType = 'groupForce';
 gridSpacing = 1;
 xmin = gridSpacing;
@@ -22,42 +22,42 @@ ymin = gridSpacing;
 [x_mat_u, y_mat_u]=meshgrid(xmin:gridSpacing:xmax,ymin:gridSpacing:ymax);
 
 %% posNA - get the coordinates
-figure, imshow(ones(500))
-hold on
-posNA = [];
-n = 0;
-% Loop, picking up the points.
-disp('Left mouse button picks points.')
-disp('Right mouse button picks last point.')
-
-but = 1;
-while but == 1
-    [xi,yi,but] = ginput(1);
-    plot(xi,yi,'ro')
-    n = n+1;
-    text(xi,yi-8,num2str(n));
-    posNA(n,:) = [xi yi];
-end
-hold off
+% figure, imshow(ones(500))
+% hold on
+% posNA = [];
+% n = 0;
+% % Loop, picking up the points.
+% disp('Left mouse button picks points.')
+% disp('Right mouse button picks last point.')
+% 
+% but = 1;
+% while but == 1
+%     [xi,yi,but] = ginput(1);
+%     plot(xi,yi,'ro')
+%     n = n+1;
+%     text(xi,yi-8,num2str(n));
+%     posNA(n,:) = [xi yi];
+% end
+% hold off
 %% posFA - get the coordinates
-figure, imshow(ones(500))
-
-hold on
-posFA = [];
-n = 0
-% Loop, picking up the points.
-disp('Left mouse button picks points.')
-disp('Right mouse button picks last point.')
-
-but = 1;
-while but == 1
-    [xi,yi,but] = ginput(1);
-    plot(xi,yi,'ro')
-    n = n+1;
-    text(xi,yi-8,num2str(n));
-    posFA(n,:) = [xi yi];
-end
-hold off
+% figure, imshow(ones(500))
+% 
+% hold on
+% posFA = [];
+% n = 0
+% % Loop, picking up the points.
+% disp('Left mouse button picks points.')
+% disp('Right mouse button picks last point.')
+% 
+% but = 1;
+% while but == 1
+%     [xi,yi,but] = ginput(1);
+%     plot(xi,yi,'ro')
+%     n = n+1;
+%     text(xi,yi-8,num2str(n));
+%     posFA(n,:) = [xi yi];
+% end
+% hold off
 
 % %% posBigFA - get the coordinates
 % figure, imshow(ones(500))
@@ -79,8 +79,8 @@ hold off
 % hold off
 
 %% display selected positions
-disp([posFA])
-disp([posNA])
+% disp([posFA])
+% disp([posNA])
 % disp([posBigFA])
 
 posFA = [ 103.0000  352.0000
@@ -123,7 +123,7 @@ force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,posNA(1,1),posNA(1,2),300,620,40
           assumedForceAniso2D(1,x_mat_u,y_mat_u,posNA(3,1),posNA(3,2),150,700,400/72,500/72,forceType)+...
           assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(1,1),posFA(1,2),800,1600,500/108,2000/108,forceType)+...
           assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(2,1),posFA(2,2),600,2000,500/500,2100/108,forceType)+...
-          assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(3,1),posFA(3,2),2500,10000,2000/108,5200/108,forceType)+...
+          assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(3,1),posFA(3,2),2500,5000,2000/108,5200/108,forceType)+...
           assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(4,1),posFA(4,2),440,2800,1000/108,2500/108,forceType)+...
           assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(5,1),posFA(5,2),160,1840,500/108,2000/108,forceType)+...
           assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(6,1),posFA(6,2),80,1900,500/108,2300/108,forceType)+...
@@ -139,8 +139,8 @@ force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,posNA(1,1),posNA(1,2),300,620,40
           assumedForceAniso2D(2,x_mat_u,y_mat_u,posNA(3,1),posNA(3,2),150,700,400/72,500/72,forceType)+...
           assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(1,1),posFA(1,2),800,1600,500/108,2000/108,forceType)+...
           assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(2,1),posFA(2,2),600,2000,500/500,2100/108,forceType)+...
-          assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(3,1),posFA(3,2),2500,10000,2000/108,5200/108,forceType)+...
-          assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(4,1),posFA(4,2),440,2800,1000/108,2500/108,forceType)+...
+          assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(3,1),posFA(3,2),2500,5000,2000/108,5200/108,forceType)+...
+          assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(4,2),posFA(4,2),440,2800,1000/108,2500/108,forceType)+...
           assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(5,1),posFA(5,2),160,1840,500/108,2000/108,forceType)+...
           assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(6,1),posFA(6,2),80,1900,500/108,2300/108,forceType)+...
           assumedForceAniso2D(2,x_mat_u,y_mat_u,posFA(7,1),posFA(7,2),0,3000,800/108,2500/108,forceType)+...
@@ -151,6 +151,7 @@ force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,posNA(1,1),posNA(1,2),300,620,40
           assumedForceAniso2D(1,x_mat_u,y_mat_u,posFA(12,1),posFA(12,2),500,3000,1000/108,3000/108,forceType);
  
 %% force noise
+% figure 1
 maxFnoise = 100;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
 foreground = fnorm_org>120;
@@ -158,13 +159,45 @@ background = ~foreground;
 force_x = (maxFnoise*rand(ymax,xmax)).*background + force_x;
 force_y = (maxFnoise*rand(ymax,xmax)).*background + force_y;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
-figure, imshow(fnorm_org,[0 500]), colormap jet
+figure, imshow(fnorm_org,[0 5100]), colormap jet
 
 %% displacement field
+% figure 2
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
     force_x,force_y,'fft',[],meshPtsFwdSol,50000,0.5,false); %,'conv',[],meshPtsFwdSol);
 figure, imshow(uy,[]), colormap jet
 
+%%
+% figure (3); surf(x_mat_u,y_mat_u,ux)
+% [x_mat_u,y_mat_u,uy] = peaks(512);
+% uy(:,:,1) = zeros(512); % red
+% uy(:,:,2) = ones(512).*linspace(0,256,512); % green
+% uy(:,:,3) = ones(512).*linspace(0,1,512); % blue
+%[X,Y] = meshgrid(x_mat_u,y_mat_u);
+Z = uy;
+
+figure (3); surf(x_mat_u,y_mat_u,uy)
+grid on
+iy = y_mat_u(x_mat_u == 1);
+iz = Z(y_mat_u == 1);
+
+figure(4); 
+plot(iy,iz)
+grid on
+
+figure(5);
+ix = x_mat_u(y_mat_u == 256);
+iz = uy(y_mat_u == 256);
+plot(ix,iz)
+grid on
+
+% xslice = 300;
+% yslice = [];
+% zslice = [];
+
+% grid on
+% iy = y_mat_u(x_mat_u == 1);
+% iz = uy(x_mat_u == 1);
 %% finding displacement at bead location
 nPoints = length(bead_x);
 bead_ux = zeros(size(bead_x));
@@ -193,7 +226,7 @@ end
 % pixelSize = 0.108; % assuming 60x objective um/pixel
 beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
 
-%% datapath
+%% saving
 dataPath='/storage/network/TFM_Development/TFM2D/PIVimprovement/simulation';
 %PIVImprovement - simulation folder
 imgPath=[dataPath filesep 'Beads'];
@@ -205,24 +238,19 @@ end
 imwrite(uint16(refimg*2^16/max(max(refimg))),[refPath filesep 'img1ref.tif'],'tif')
 imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep 'img2bead.tif'],'tif')
 %% display original forcefield
-generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield'],0,0,3100,false,430,430);
-%% display original forcefield with 200 max
-generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield 200'],0,0,200,false,430,430);
-%% display original forcefield with 500 max
-generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield 500'],0,0,500,false,430,430);
-
+generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield'],0,0,6000,false,430,430);
 %% display original displacement field
-    generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,[dataPath '/Original displacementField'],0,0,16,false,430,430);
+    generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,[dataPath '/Original displacementField'],0,0,40,false,430,430);
     %% display measured displacement field
     % load displacement field
     displPath = [dataPath filesep 'TFMPackage/displacementField'];
-    displFile =[dataPath filesep 'TFMPackage/displacementField/displField.mat'];
+    displFile = [displPath filesep 'displField.mat'];  %/displField.mat'
     load(displFile)
-    generateHeatmapFromField(displField,displPath,0,16,'jet',430,430,false);
+    generateHeatmapFromField(displField,displPath,0,40,'jet',430,430,false);
     %% display corrected displacement field
     % load displacement field
     displPath = [dataPath filesep 'TFMPackage/correctedDisplacementField'];
-    displFile =[dataPath filesep 'TFMPackage/correctedDisplacementField/displField.mat'];
+    displFile = [displPath filesep 'displField.mat'];  %/displField.mat'
     load(displFile)
     generateHeatmapFromField(displField,displPath,0,16,[],430,430,false);
 %% view refimg and beadimg

@@ -93,7 +93,10 @@ closeNeiVecs = ip.Results.hardCandidates;
 magDiffThreshold = ip.Results.magDiffThreshold;
 angDiffThreshold = ip.Results.angDiffThreshold;
 
-medianNeiVecs = cellfun(@(x) median(x,1),closeNeiVecs,'Unif',false);   %changed from mean to median
+%medianNeiVecs = cellfun(@(x) (magDiffThreshold+angDiffThreshold)*quantile(x,0.25),closeNeiVecs,'Unif',false);   %changed from mean to median
+%medianNeiVecs = cellfun(@(x) (magDiffThreshold+angDiffThreshold)*quantile(x,0.3),closeNeiVecs,'Unif',false);   %changed from mean to median
+%maximum displacement vector/minimum displacement vector = max(uy)/min(uy)
+medianNeiVecs = cellfun(@(x) (max(median(x,1))/min(median(x,1))*mean(x,1)),closeNeiVecs,'Unif',false);   %changed from mean to median
 stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
 anglesBetweenVecs = cell(numel(closeNeiVecs),1);
 disp('Calculating angles between neighboring vectors...')
@@ -152,10 +155,10 @@ bandDir = [1 0];
 perpDir = [-bandDir(2) bandDir(1)];
 
 %We only use odd correlation lengths greater than 3 pixels
-minCorL = max(3,minCorL+(1-mod(minCorL,2)));
+minCorL = max(3,minCorL+(1-mod(minCorL,2)));   %changed from 3 to 5 to 7 to 1
 maxCorL = max(minCorL,maxCorL+(1-mod(maxCorL,2)));
 
-bAreaThreshold = min(0.95*minCorL^2,maxCorL^2*0.5);
+bAreaThreshold = min(0.95*minCorL^2,maxCorL^2*0.5);   
 
 % %Options for optimization.
 % options = optimset('GradObj','on','Display','off');
@@ -188,7 +191,7 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % inqryPoint=200;
 % for k = inqryPoint
 %parfor k = 1:nPoints
-  for k = 1:nPoints
+for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -211,7 +214,7 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
         if xI < 1 || xI > imgL || yI < 1 || yI > imgW
             %The point is outside the image. Mark it untrackable.
             pass = 0;
-            corL = 2*maxCorL;
+            corL = 7*maxCorL;  %changed from 2 to 7
             continue;
         end
         %Always get back the initial max speed for new 'corL'.
@@ -235,8 +238,10 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
         %End of debugging
 
         hCLL    = min(xI-1,(corL-1)/2)+max(-vF(1),0);
+        %hCLL = 30;
         hCLR    = min(imgL-xI,(corL-1)/2)+max(vF(end),0);
         hCWL    = min(yI-1,(corL-1)/2)+max(-vP(1),0);
+        %hCWL = 30;
         hCWR    = min(imgW-yI,(corL-1)/2)+max(vP(end),0);
         cropL   = hCLL+hCLR+1;
         cropW   = hCWL+hCWR+1;
