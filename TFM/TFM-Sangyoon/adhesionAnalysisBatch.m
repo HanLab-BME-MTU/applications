@@ -225,5 +225,7 @@ hgsave(h4,strcat(figPath,'/FAoverCell'),'-v7.3')
 
 tableFAareaToCellArea=table(FAareaToCellArea,'RowNames',nameList);
 writetable(tableFAareaToCellArea,strcat(dataPath,'/FAareaToCellArea.csv'))
+%% Plotting the other channel amplitudes - Mehdi: fill here
+
 %% saving
 save([dataPath filesep 'adhesionData.mat'],'-v7.3');

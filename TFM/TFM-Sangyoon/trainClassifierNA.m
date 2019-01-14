@@ -2,8 +2,13 @@ function [trainedClassifier, validationAccuracy,C,order,validationPredictions, v
 % Extract predictors and response
 predictorNames = {'decayingIntensityNAs', 'edgeAdvanceSpeedNAs', 'advanceSpeedNAs', 'lifeTimeNAs', 'meanIntensityNAs', 'distToEdgeFirstNAs', 'startingIntensityNAs',...
     'distToEdgeChangeNAs', 'distToEdgeLastNAs', 'edgeAdvanceDistFirstChangeNAs', 'edgeAdvanceDistLastChangeNAs', 'maxEdgeAdvanceDistChangeNAs',...
-    'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing', 'ampSlopeNAs', 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'}; %, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'};
+    'maxIntensityNAs', 'timeToMaxInten', 'edgeVariation', 'Area', 'FAfinishing', 'ampSlopeNAs', 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs',...
+    'startingAsNA','homogeneityAll'}; %, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'};
 
+missingVarNames=setdiff(predictorNames,datasetTable.Properties.VariableNames);
+if ~isempty(missingVarNames)
+    predictorNames(strcmp(predictorNames,missingVarNames))=[];
+end
 predictors = datasetTable(:,predictorNames);
 predictors = table2array(varfun(@double, predictors));
 response = datasetTable.Group;
@@ -24,9 +29,7 @@ totalGroups = totalGroups(bigEnoughGroups);
 % Train a classifier
 template = templateSVM('KernelFunction', 'polynomial', 'PolynomialOrder', 2, 'KernelScale', 'auto', 'BoxConstraint', 1, 'Standardize', 1);
 trainedClassifier = fitcecoc(predictors, response,'FitPosterior',1, 'Learners', template, 'Coding', 'onevsone', 'PredictorNames', ...
-    {'decayingIntensityNAs' 'edgeAdvanceSpeedNAs' 'advanceSpeedNAs' 'lifeTimeNAs' 'meanIntensityNAs' 'distToEdgeFirstNAs' 'startingIntensityNAs' ...
-    'distToEdgeChangeNAs' 'distToEdgeLastNAs' 'edgeAdvanceDistFirstChangeNAs' 'edgeAdvanceDistLastChangeNAs' 'maxEdgeAdvanceDistChangeNAs' ...
-    'maxIntensityNAs' 'timeToMaxInten' 'edgeVariation', 'Area', 'FAfinishing', 'ampSlopeNAs', 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'}, 'ResponseName', 'Group', 'ClassNames', totalGroups'); %, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'
+    predictorNames, 'ResponseName', 'Group', 'ClassNames', totalGroups'); %, 'earlyAmpSlopeNAs', 'lateAmpSlopeNAs'
 
 % Perform cross-validation
 partitionedModel = crossval(trainedClassifier, 'KFold', 5);

@@ -31,14 +31,37 @@ else
 end
 T = -T_TFM + T_FA;
 
-for ii=nFrames:-1:1
-    cur_tMap=tfmPack.processes_{4}.loadChannelOutput(ii,'output','tMap');
-    cur_T = T(ii,:);
-    cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));
-    tMap(:,:,ii) = cur_tMap2;
+if nargout>1
+    for ii=nFrames:-1:1
+        cur_tMap=tfmPack.processes_{4}.loadChannelOutput(ii,'output','tMap');
+        cur_T = T(ii,:);
+        cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));
+        tMap(:,:,ii) = cur_tMap2;
+    end
+end
+% Other image maps
+if ~isempty(SDCProc_FA)
+    if ismember(2, find(SDCProc_FA.checkChannelOutput))
+        imgStack = SDCProc_FA.loadOutStack(2);
+    else
+        imgStack = [];
+    end
+else
+    imgStack = MD.channels_(iChan).loadImage(1:nFrames);
 end
 
-% Other image maps
-sdcProc = FAPack.processes_{1};
-imgStack = sdcProc.loadOutStack(2);
-imgStack2 = sdcProc.loadOutStack(3);
+if nargout>2
+    if ~isempty(SDCProc_FA)
+        if ismember(iChan+1, find(SDCProc_FA.checkChannelOutput))
+            imgStack2 = SDCProc_FA.loadOutStack(iChan+1);
+        else
+            imgStack2 = [];
+        end
+    else
+        if numel(MD.channels_)>2
+            imgStack2 = MD.channels_(iChan+1).loadImage(1:nFrames);
+        else
+            imgStack2 = [];
+        end
+    end
+end

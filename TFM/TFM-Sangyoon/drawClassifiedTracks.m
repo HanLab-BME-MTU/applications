@@ -12,15 +12,19 @@ colors(9,:) = tempColor;
 
 idCurrent = arrayfun(@(x) x.startingFrameExtra<=iFrame & x.endingFrameExtra>=iFrame,tracksNA);
 
-idGroup{1} = strcmp(allDataClass,'Group1') & idCurrent;
-idGroup{2} = strcmp(allDataClass,'Group2') & idCurrent;
-idGroup{3} = strcmp(allDataClass,'Group3') & idCurrent;
-idGroup{4} = strcmp(allDataClass,'Group4') & idCurrent;
-idGroup{5} = strcmp(allDataClass,'Group5') & idCurrent;
-idGroup{6} = strcmp(allDataClass,'Group6') & idCurrent;
-idGroup{7} = strcmp(allDataClass,'Group7') & idCurrent;
-idGroup{8} = strcmp(allDataClass,'Group8') & idCurrent;
-idGroup{9} = strcmp(allDataClass,'Group9') & idCurrent;
+if ischar(allDataClass{1})
+    idGroup{1} = strcmp(allDataClass,'Group1') & idCurrent;
+    idGroup{2} = strcmp(allDataClass,'Group2') & idCurrent;
+    idGroup{3} = strcmp(allDataClass,'Group3') & idCurrent;
+    idGroup{4} = strcmp(allDataClass,'Group4') & idCurrent;
+    idGroup{5} = strcmp(allDataClass,'Group5') & idCurrent;
+    idGroup{6} = strcmp(allDataClass,'Group6') & idCurrent;
+    idGroup{7} = strcmp(allDataClass,'Group7') & idCurrent;
+    idGroup{8} = strcmp(allDataClass,'Group8') & idCurrent;
+    idGroup{9} = strcmp(allDataClass,'Group9') & idCurrent;
+else
+    idGroup = allDataClass; % in case this is a cell format
+end
 
 if nargin<4 || isempty(h)
     h=gca;

@@ -145,7 +145,26 @@ for iChan = 1:nChanSeg
         
         %Load cell mask here
         if existSegmentation
-            cellMask = maskProc.loadChannelOutput(p.ChannelIndex(iChan),iImage);
+            % It is possible that the cell mask is in a different channel
+            % (e.g. actin) than the channel used for adhesions. In that
+            % case we use that one
+%             try
+%                 cellMask = maskProc.loadChannelOutput(p.ChannelIndex(iChan),iImage);
+%             catch
+                iExistingMask = find(maskProc.checkChannelOutput);
+                if length(iExistingMask)==1
+                    cellMask = maskProc.loadChannelOutput(iExistingMask,iImage);
+                elseif length(iExistingMask)>1
+                    % Then we combine the masks
+                    ii=1; cellMask = maskProc.loadChannelOutput(iExistingMask(ii),iImage);
+                    for ii=2:length(iExistingMask)
+                        cellMask = cellMask | maskProc.loadChannelOutput(iExistingMask(ii),iImage);
+                    end
+                else
+                    disp('There is no mask in the maskProc!')
+                    cellMask = [];
+                end
+%             end
         else
             cellMask = [];
         end

@@ -2094,7 +2094,7 @@ disp([cellfun(@(x) nanmedian(x),InitTimeLagMatureVin); cellfun(@(x) length(x),In
 disp([cellfun(@(x) nanmedian(x),InitTimeLagMatureTal); cellfun(@(x) length(x),InitTimeLagMatureTal)])
 %% G2 representation - talin - vinculin - paxillin
 CurrentFrameTal2=67;
-iRepTal2=1;
+iRepTal2=4;
 % data loading
 
 % Use the filtered tracks for G2 above
@@ -2142,7 +2142,7 @@ if ~isempty(forceReadProc)
 else
     disp('Traction reading was not done. No further filtering...')
 end
-clear tracksNAtal2all
+% clear tracksNAtal2all
 tracksNAtal2 = tracksNAtal2all2(idGroup2);%tracksTalStruct.tracksG2;
 
 tfmPackTal2 = curTalMD.packages_{1};
@@ -2187,19 +2187,22 @@ talImgStack = sdcProc.loadOutStack(2);
 % See the general trend of 8th track
 % iNATal=10;
 % showSingleAdhesionTrackSummary(MDtal,tracksNAtal2(iNATal),talImgStack,talForceStack,iNATal);
-[naG2All{iRepTal2},idsAll{iRepTal2}]=pickAdhesionTracksInteractive(tracksNAtal2, talImgStack, 'movieData',curTalMD,'tMap',tMap);
+[naG2All{iRepTal2},idsAll{iRepTal2}]=pickAdhesionTracksInteractive(tracksNAtal2all2, talImgStack, 'movieData',curTalMD,'tMap',tMap);
 % naG2All=[281   516   510   375   314   240   441   476   316];
 %% Figure generation
 iNATal=2; % 3 is the one, and 7 is similar
-showSingleAdhesionTrackSummary(curTalMD,tracksNAtal2(naG2All{iRepTal2}(iNATal)),talImgStack,tMap,naG2All{iRepTal2}(iNATal));
+showSingleAdhesionTrackSummary(curTalMD,tracksNAtal2all2(naG2All{iRepTal2}(iNATal)),talImgStack,tMap,[],naG2All{iRepTal2}(iNATal));
 % Save the figure
-
+%% Show earlySlopes
+tracksNAtal2all2(naG2All{iRepTal2}(iNATal)).earlyAmpSlope
 %% Vinculin G2 representative tracks
-iVinRep = 1;
-tracksG2 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
-curTracksNAvinG2=tracksG2.tracksG2;
-tracksG1 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
-curTracksNAvinG1=tracksG1.tracksG1;
+iVinRep = 2;
+% tracksG2 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
+% curTracksNAvinG2=tracksG2.tracksG2;
+% tracksG1 = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
+% curTracksNAvinG1=tracksG1.tracksG1;
+tracksVinAll = load([vinFolder{iVinRep} filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
+curTracksNAvinAll=tracksVinAll.tracksNA;
 curMDpath = fileparts(fileparts(vinFolder{iVinRep}));
 curMD = load([curMDpath filesep 'movieData.mat']);
 curMD = curMD.MD;
@@ -2210,21 +2213,32 @@ imgMap = load([vinFolder{iVinRep} filesep 'pax' filesep 'paxImgStack.mat'],'paxI
 imgMap = imgMap.paxImgStack;
 tInterval = curMD.timeInterval_;
 
-
-
-[naG2Vin{iVinRep},idsVin{iVinRep}]=pickAdhesionTracksInteractive(curTracksNAvinG2, imgMap, 'movieData',curMD,'tMap',tMap);
+[naG2Vin{iVinRep},idsVin{iVinRep}]=pickAdhesionTracksInteractive(curTracksNAvinAll, imgMap, 'movieData',curMD,'tMap',tMap);
 
 %% Figure generation
 iNAVin=1; % 1 is the one
-showSingleAdhesionTrackSummary(curMD,curTracksNAvinG2(naG2Vin{iVinRep}(iNAVin)),imgMap,tMap,naG2Vin{iVinRep}(iNAVin));
+showSingleAdhesionTrackSummary(curMD,curTracksNAvinAll(naG2Vin{iVinRep}(iNAVin)),imgMap,tMap,[],naG2Vin{iVinRep}(iNAVin));
 % Save the figure
+%% Show early assembly rate for vinculin
+curTracksNAvinAll(naG2Vin{iVinRep}) = readIntensityFromTracks(curTracksNAvinAll(naG2Vin{iVinRep}),imgMap,1);
+curVinAll = getFeaturesFromTracksNA(curTracksNAvinAll(naG2Vin{iVinRep}),curMD.timeInterval_,false);
+disp('Group: ')
+disp(idsVin{iVinRep})
+disp('Assembly rate for vinculin: ')
+disp(arrayfun(@(x) x.assemRate,curVinAll))
+disp('AmpSlope for vinculin: ')
+disp(arrayfun(@(x) x.ampSlope,curVinAll))
+disp('EarlyAmpSlope for vinculin: ')
+disp(arrayfun(@(x) x.earlyAmpSlope,curVinAll))
 
 %% Paxillin G2 representative tracks
 iPaxRep = 2;
 tracksG2 = load([paxFolder{iPaxRep} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
 curTracksNApaxG2f=tracksG2.tracksG2;
 tracksG1 = load([paxFolder{iPaxRep} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
-curTracksNAvinG1=tracksG1.tracksG1;
+curTracksNApaxG1=tracksG1.tracksG1;
+tracksPaxAll = load([paxFolder{iPaxRep} filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
+curTracksNApaxAll=tracksPaxAll.tracksNA;
 curMDpath = fileparts(fileparts(paxFolder{iPaxRep}));
 curMD = MovieData.load([curMDpath filesep 'movieData.mat']); %load([curMDpath filesep 'movieData.mat']);
 % curMD = curMD.MD;
@@ -2235,15 +2249,23 @@ imgMap = load([paxFolder{iPaxRep} filesep 'pax' filesep 'paxImgStack.mat'],'paxI
 imgMap = imgMap.paxImgStack;
 tInterval = curMD.timeInterval_;
 
-
-
-[naG2Vin{iPaxRep},idsVin{iPaxRep}]=pickAdhesionTracksInteractive(curTracksNApaxG2f, imgMap, 'movieData',curMD,'tMap',tMap);
+[naG2Pax{iPaxRep},idsPax{iPaxRep}]=pickAdhesionTracksInteractive(curTracksNApaxAll, imgMap, 'movieData',curMD,'tMap',tMap);
 
 %% Figure generation
-iNAPax=2; % 1 is the one iPaxRep=2
-showSingleAdhesionTrackSummary(curMD,curTracksNApaxG2f(naG2Vin{iPaxRep}(iNAPax)),imgMap,tMap,naG2Vin{iPaxRep}(iNAPax));
+iNAPax=5; % 1 is the one iPaxRep=2
+showSingleAdhesionTrackSummary(curMD,curTracksNApaxAll(naG2Pax{iPaxRep}(iNAPax)),imgMap,tMap,[],naG2Pax{iPaxRep}(iNAPax));
 % Save the figure
-
+%% Show early assembly rate
+curTracksNApaxAll(naG2Pax{iPaxRep}) = readIntensityFromTracks(curTracksNApaxAll(naG2Pax{iPaxRep}),imgMap,1);
+curTracksNApaxAll(naG2Pax{iPaxRep}) = getFeaturesFromTracksNA(curTracksNApaxAll(naG2Pax{iPaxRep}),curMD.timeInterval_,false);
+disp(['Group: '])
+disp(idsPax{iPaxRep})
+disp('Assembly rate for paxillin: ')
+disp(arrayfun(@(x) x.assemRate,curTracksNApaxAll(naG2Pax{iPaxRep})))
+disp('AmpSlope for paxillin: ')
+disp(arrayfun(@(x) x.ampSlope,curTracksNApaxAll(naG2Pax{iPaxRep})))
+disp('EarlyAmpSlope for paxillin: ')
+disp(arrayfun(@(x) x.earlyAmpSlope,curTracksNApaxAll(naG2Pax{iPaxRep})))
 %% Maturing adhesions - t_init - plotting
 [lengthLongest,iLongest]=max([length(totalInitTimeLagMaturePax2),length(totalInitTimeLagMatureVin2),length(totalInitTimeLagMatureTal2)]);
 % it was vinculin that was longest
@@ -2289,7 +2311,7 @@ title('maturing adhesions (G2)')
 % boxPlotCellArray(totalInitTimeLagMature,{'pax','vin','tal'},1,0)
 %% Molecular association rate
 %% Re-calculate/normalize the rates. 3 time frames were creating almost random distribution
-tR = 5; % time of regression
+tR = 30; % time of regression
 iT_vp = 0;
 %% pax recal
 for ii=1:numel(paxFolder)
@@ -2301,6 +2323,23 @@ for ii=1:numel(paxFolder)
     curMD = load([curMDpath filesep 'movieData.mat']);
     curMD = curMD.MD;
     tInterval = curMD.timeInterval_;
+
+    tMap = load([paxFolder{ii} filesep 'fMap' filesep 'tMap.mat'],'tMap');
+    tMap = tMap.tMap;
+    imgMap = load([paxFolder{ii} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
+    imgMap = imgMap.paxImgStack;
+    if ~isempty(curTracksNApaxG2)
+        tracksG2p = readIntensityFromTracks(curTracksNApaxG2,imgMap,1);
+        tracksG2p = readIntensityFromTracks(tracksG2p,tMap,2);
+    else
+        tracksG2p=curTracksNApaxG2;
+    end
+    if ~isempty(curTracksNApaxG1)
+        tracksG1p = readIntensityFromTracks(curTracksNApaxG1,imgMap,1);
+        tracksG1p = readIntensityFromTracks(tracksG1p,tMap,2);
+    else
+        tracksG1p=curTracksNApaxG1;
+    end
     
 %     [curTracksNApaxG1,timeG1] = calculateFirstIncreaseTimeTracks(curTracksNApaxG1,splineParamInit,preDetecFactor,tInterval);
 %     [curTracksNApaxG2,timeG2] = calculateFirstIncreaseTimeTracks(curTracksNApaxG2,splineParamInit,preDetecFactor,tInterval);
@@ -2319,19 +2358,19 @@ for ii=1:numel(paxFolder)
 %         log(x.ampTotal(round(x.firstIncreseTimeInt/tInterval)+iT_vp:round(x.firstIncreseTimeInt/tInterval)+tR-1+iT_vp)...
 %         /x.ampTotal(round(x.firstIncreseTimeInt/tInterval)+iT_vp))),curTracksNApaxG2(transG2));
     % Get the assembly rate and force growth rate
-    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,curTracksNApaxG1);
-    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,curTracksNApaxG2);
+    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,tracksG1p);
+    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,tracksG2p);
     % Get the assembly rate and force growth rate
     [~,curEarlyAssmRateG1] = arrayfun(@(x) regression(1:tR,...
-        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),curTracksNApaxG1(longEnoughG1));
+        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),tracksG1p(longEnoughG1));
     [~,curEarlyAssmRateG2] = arrayfun(@(x) regression(1:tR,...
-        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),curTracksNApaxG2(longEnoughG2));
+        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),tracksG2p(longEnoughG2));
 
     earlyAssmRateG1All{ii} = curEarlyAssmRateG1; %cur_tlagInitPax;
     earlyAssmRateG2All{ii} = curEarlyAssmRateG2; %cur_tlagInitPax;
     
-    [~,earlyForceRateG1] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)),curTracksNApaxG1(longEnoughG1));
-    [~,earlyForceRateG2] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)),curTracksNApaxG2(longEnoughG2));
+    [~,earlyForceRateG1] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)),tracksG1p(longEnoughG1));
+    [~,earlyForceRateG2] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)),tracksG2p(longEnoughG2));
     earlyForceRateG1All{ii} = earlyForceRateG1; %cur_tlagInitPax;
     earlyForceRateG2All{ii} = earlyForceRateG2; %cur_tlagInitPax;
     disp([paxFolder{ii} ' done.'])
@@ -2357,13 +2396,22 @@ for ii=1:numel(vinFolder)
     curMD = curMD.MD;
     tInterval = curMD.timeInterval_;
 
-    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,curTracksNAvinG2);
-    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,curTracksNAvinG1);
+    tMap = load([vinFolder{ii} filesep 'fMap' filesep 'tMap.mat'],'tMap');
+    tMap = tMap.tMap;
+    imgMap = load([vinFolder{ii} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
+    imgMap = imgMap.paxImgStack;
+    tracksG2p = readIntensityFromTracks(curTracksNAvinG2,imgMap,1);
+    tracksG2p = readIntensityFromTracks(tracksG2p,tMap,2);
+    tracksG1p = readIntensityFromTracks(curTracksNAvinG1,imgMap,1);
+    tracksG1p = readIntensityFromTracks(tracksG1p,tMap,2);
+
+    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,tracksG2p);
+    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tR,tracksG1p);
     % Get the assembly rate and force growth rate
     [~,curEarlyAssmRateG1] = arrayfun(@(x) regression(1:tR,...
-        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),curTracksNAvinG1(longEnoughG1));
+        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),tracksG1p(longEnoughG1));
     [~,curEarlyAssmRateG2] = arrayfun(@(x) regression(1:tR,...
-        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),curTracksNAvinG2(longEnoughG2));
+        log(x.ampTotal(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tR-1+iT_vp)/x.ampTotal(x.startingFrameExtra+iT_vp))),tracksG2p(longEnoughG2));
 %     [curTracksNAvinG1,timeG1] = calculateFirstIncreaseTimeTracks(curTracksNAvinG1,splineParamInit,preDetecFactor,tInterval);
 %     [curTracksNAvinG2,timeG2] = calculateFirstIncreaseTimeTracks(curTracksNAvinG2,splineParamInit,preDetecFactor,tInterval);
 %     transG1=~isnan(timeG1);
@@ -2385,10 +2433,10 @@ for ii=1:numel(vinFolder)
     earlyAssmRateG1All{ii} = curEarlyAssmRateG1; %cur_tlagInitPax;
     earlyAssmRateG2All{ii} = curEarlyAssmRateG2; %cur_tlagInitPax;
 
-    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tRf,curTracksNAvinG2);
-    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tRf,curTracksNAvinG1);
-    [~,earlyForceRateG1] = arrayfun(@(x) regression(1:tRf,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tRf-1+iT_vp)),curTracksNAvinG1(longEnoughG1));
-    [~,earlyForceRateG2] = arrayfun(@(x) regression(1:tRf,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tRf-1+iT_vp)),curTracksNAvinG2(longEnoughG2));
+    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tRf,tracksG2p);
+    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_vp+tRf,tracksG1p);
+    [~,earlyForceRateG1] = arrayfun(@(x) regression(1:tRf,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tRf-1+iT_vp)),tracksG1p(longEnoughG1));
+    [~,earlyForceRateG2] = arrayfun(@(x) regression(1:tRf,x.forceMag(x.startingFrameExtra+iT_vp:x.startingFrameExtra+tRf-1+iT_vp)),tracksG2p(longEnoughG2));
     earlyForceRateG1All{ii} = earlyForceRateG1; %cur_tlagInitPax;
     earlyForceRateG2All{ii} = earlyForceRateG2; %cur_tlagInitPax;
     disp([vinFolder{ii} ' done.'])
@@ -2400,19 +2448,114 @@ totalEarlyForceRateG2Vin=[earlyForceRateG2All{1}; earlyForceRateG2All{2}; earlyF
 %% talin- recal
 % tR = 10; % time of regression
 iT_t = iT_vp;
-for ii=1:1
-    tracksG2=load([talFolder{ii} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
-    curTracksNAtalG2 = tracksG2.tracksG2.tracksG2;
-    tracksG1 = load([talFolder{ii} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
-    curTracksNAtalG1=tracksG1.tracksG1.tracksG1;
-    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_t+tR,curTracksNAtalG2);
-    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_t+tR,curTracksNAtalG1);
+for ii=1:5
+    if ii==1
+        tracksG2=load([talFolder{ii} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
+        curTracksNAtalG2 = tracksG2.tracksG2;
+        tracksG1 = load([talFolder{ii} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
+        curTracksNAtalG1=tracksG1.tracksG1;
+
+        tMap = load([talFolder{ii} filesep 'fMap' filesep 'tMap.mat'],'tMap');
+        tMap = tMap.tMap;
+        imgMap = load([talFolder{ii} filesep 'pax' filesep 'paxImgStack.mat'],'paxImgStack');
+        imgMap = imgMap.paxImgStack;
+    else
+        curTalMoviePath = fileparts(fileparts(talFolder{ii}));
+
+        curTalMD = MovieData.load([curTalMoviePath filesep 'movieData.mat']);
+        iFAPack = curTalMD.getPackageIndex('FocalAdhesionPackage');
+        FAPack=curTalMD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
+        adhAnalProc = FAPack.processes_{7};
+        % tracksNAtal2all = adhAnalProc.loadChannelOutput(2,1);
+        tracksNAtalAll=adhAnalProc.loadChannelOutput(2,'output','tracksNA');
+        idClassesTal2=load(FAPack.processes_{8}.outFilePaths_{4,2});
+
+        % Now we have to combine this with readings from step 9 and 10
+        theOtherReadProc=FAPack.processes_{iTheOtherProc};
+        forceReadProc=FAPack.processes_{iForceRead};
+
+        if ~isempty(forceReadProc)
+            forceReadObj = load(forceReadProc.outFilePaths_{1,2},'tracksForceMag'); % the later channel has the most information.
+            tracksForceMag = forceReadObj.tracksForceMag;
+            idxTracksObj = load(forceReadProc.outFilePaths_{2,2},'idxTracks');
+            if ~isfield(idxTracksObj,'idxTracks')
+                idxTracksObj = load(forceReadProc.outFilePaths_{6,2},'idxTracks');
+            end
+            idxTracks = idxTracksObj.idxTracks;
+            tracksNAtalAll2 = tracksNAtalAll(idxTracks);
+            if isfield(tracksForceMag,'forceMag')
+                [tracksNAtalAll2(:).forceMag] = tracksForceMag.forceMag;
+            end
+        end
+        toc
+        if ~isempty(forceReadProc)
+            idGroup1 = idClassesTal2.idGroup1(idxTracks);
+            idGroup2 = idClassesTal2.idGroup2(idxTracks);
+            idGroup3 = idClassesTal2.idGroup3(idxTracks);
+            idGroup4 = idClassesTal2.idGroup4(idxTracks);
+            idGroup5 = idClassesTal2.idGroup5(idxTracks);
+            idGroup6 = idClassesTal2.idGroup6(idxTracks);
+            idGroup7 = idClassesTal2.idGroup7(idxTracks);
+            idGroup8 = idClassesTal2.idGroup8(idxTracks);
+            idGroup9 = idClassesTal2.idGroup9(idxTracks);
+        else
+            disp('Traction reading was not done. No further filtering...')
+        end
+        % clear tracksNAtal2all
+        curTracksNAtalG2 = tracksNAtalAll2(idGroup2);%tracksTalStruct.tracksG2;
+        curTracksNAtalG1 = tracksNAtalAll2(idGroup1);%tracksTalStruct.tracksG2;
+
+        tfmPackTal2 = curTalMD.packages_{1};
+        talForceStack = tfmPackTal2.processes_{4}.loadChannelOutput(1,'output','tMap');
+        tracReadingProc = FAPack.processes_{10};
+        try
+            T=load(tracReadingProc.outFilePaths_{3,1});
+            T=T.T;
+        catch
+            iBeadChan = 1; % might need to be updated based on asking TFMPackage..
+            SDCProc_FA= FAPack.processes_{1};
+            if ~isempty(SDCProc_FA)
+                s = load(SDCProc_FA.outFilePaths_{3,iBeadChan},'T');    
+                T_FA = s.T;
+            else
+                T_FA = zeros(nFrames,2);
+            end
+
+            SDCProc_TFM=tfmPackTal2.processes_{1};
+            %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+            if ~isempty(SDCProc_TFM)
+                s = load(SDCProc_TFM.outFilePaths_{3,iBeadChan},'T');    
+                T_TFM = s.T;
+            else
+                T_TFM = zeros(nFrames,2);
+            end
+            T = -T_TFM + T_FA;
+        end
+        nFramesTal2 = curTalMD.nFrames_; tMap=[];
+        for ii=nFramesTal2:-1:1
+            cur_tMap=tfmPackTal2.processes_{4}.loadChannelOutput(ii,'output','tMap');
+            cur_T = T(ii,:);
+            cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));
+            tMap(:,:,ii) = cur_tMap2;
+        end
+        clear cur_tMap
+        sdcProc = FAPack.processes_{1};
+        imgMap = sdcProc.loadOutStack(2);        
+    end
+    tracksG2p = readIntensityFromTracks(curTracksNAtalG2,imgMap,1);
+    tracksG2p = readIntensityFromTracks(tracksG2p,tMap,2);
+    tracksG1p = readIntensityFromTracks(curTracksNAtalG1,imgMap,1);
+    tracksG1p = readIntensityFromTracks(tracksG1p,tMap,2);
+    
+    
+    longEnoughG2 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_t+tR,tracksG2p);
+    longEnoughG1 = arrayfun(@(x) (x.endingFrameExtra-x.startingFrameExtra+1)>iT_t+tR,tracksG1p);
     
     % Get the assembly rate and force growth rate
     [~,curEarlyAssmRateG1] = arrayfun(@(x) regression(1:tR,...
-        log(x.ampTotal(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)/x.ampTotal(x.startingFrameExtra+iT_t))),curTracksNAtalG1(longEnoughG1));
+        log(x.ampTotal(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)/x.ampTotal(x.startingFrameExtra+iT_t))),tracksG1p(longEnoughG1));
     [~,curEarlyAssmRateG2] = arrayfun(@(x) regression(1:tR,...
-        log(x.ampTotal(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)/x.ampTotal(x.startingFrameExtra+iT_t))),curTracksNAtalG2(longEnoughG2));
+        log(x.ampTotal(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)/x.ampTotal(x.startingFrameExtra+iT_t))),tracksG2p(longEnoughG2));
 %     [curTracksNAtalG1,timeG1] = calculateFirstIncreaseTimeTracks(curTracksNAtalG1,splineParamInit,preDetecFactor,tInterval);
 %     [curTracksNAtalG2,timeG2] = calculateFirstIncreaseTimeTracks(curTracksNAtalG2,splineParamInit,preDetecFactor,tInterval);
 %     transG1=~isnan(timeG1);
@@ -2435,24 +2578,25 @@ for ii=1:1
     earlyAssmRateG1All{ii} = curEarlyAssmRateG1; %cur_tlagInitPax;
     earlyAssmRateG2All{ii} = curEarlyAssmRateG2; %cur_tlagInitPax;
 
-    [~,earlyForceRateG1] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)),curTracksNAtalG1(longEnoughG1));
-    [~,earlyForceRateG2] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)),curTracksNAtalG2(longEnoughG2));
+    [~,earlyForceRateG1] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)),tracksG1p(longEnoughG1));
+    [~,earlyForceRateG2] = arrayfun(@(x) regression(1:tR,x.forceMag(x.startingFrameExtra+iT_t:x.startingFrameExtra+tR-1+iT_t)),tracksG2p(longEnoughG2));
     earlyForceRateG1All{ii} = earlyForceRateG1; %cur_tlagInitPax;
     earlyForceRateG2All{ii} = earlyForceRateG2; %cur_tlagInitPax;
-    disp([vinFolder{ii} ' done.'])
+    disp([talFolder{ii} ' done.'])
 end
-totalEarlyAssmRateG1Tal=[earlyAssmRateG1All{1}];
-totalEarlyAssmRateG2Tal=[earlyAssmRateG2All{1}];
-totalEarlyForceRateG1Tal=[earlyForceRateG1All{1}];
-totalEarlyForceRateG2Tal=[earlyForceRateG2All{1}];
+totalEarlyAssmRateG1Tal=[earlyAssmRateG1All{1}; earlyAssmRateG1All{2}; earlyAssmRateG1All{3}; earlyAssmRateG1All{4}; earlyAssmRateG1All{5}];
+totalEarlyAssmRateG2Tal=[earlyAssmRateG2All{1}; earlyAssmRateG2All{2}; earlyAssmRateG2All{3}; earlyAssmRateG2All{4}; earlyAssmRateG2All{5}];
+totalEarlyForceRateG1Tal=[earlyForceRateG1All{1}; earlyForceRateG1All{2}; earlyForceRateG1All{3}; earlyForceRateG1All{4}; earlyForceRateG1All{5}];
+totalEarlyForceRateG2Tal=[earlyForceRateG2All{1}; earlyForceRateG2All{2}; earlyForceRateG2All{3}; earlyForceRateG2All{4}; earlyForceRateG2All{5}];
 %% Molecular association rate
 earlyAmpSlopeG1G2={totalEarlyAssmRateG1Tal,totalEarlyAssmRateG2Tal,...
     totalEarlyAssmRateG1Vin,totalEarlyAssmRateG2Vin,totalEarlyAssmRateG1Pax,totalEarlyAssmRateG2Pax};
 nameListG1G2={'Tal_G1','Tal_G2','Vin_G1','Vin_G2','Pax_G1','Pax_G2'};
 % axes('Position', [380/600 225/600 80/600 65/600]); % 
-axes('Position', [350/600 (115-50)/600 50/600 (80+50)/600]);
+% axes('Position', [350/600 (115-50)/600 50/600 (80+50)/600]);
 % barPlotCellArray(earlyAmpSlopeG1G2,nameListG1G2,1)
-boxPlotCellArray(earlyAmpSlopeG1G2,nameListG1G2,1,0,0,2)
+figure
+boxPlotCellArray(earlyAmpSlopeG1G2,nameListG1G2,1,0,1,2)
 
 % do some statistics:
 [pTalG1G2,hTalG1G2] = ranksum(totalEarlyAssmRateG1Tal,totalEarlyAssmRateG2Tal);
@@ -2469,12 +2613,19 @@ set(findobj(gca,'Type','Text'),'FontSize',7)
 set(gca,'FontSize',7)
 xlim([0.4 6.6])
 ylim([-0.07 0.13])
+f3_Tmeasure_path='/storage/disk3/NA_recruitment/analysis/Sangyoon/NA_recruitment/figuresForPublication/assemblyRate';
+mkdir(f3_Tmeasure_path)
+curName='assemRate30sec';
+print('-depsc', '-loose', [f3_Tmeasure_path filesep 'Fig3' curName '.eps'])
+print('-dtiff', '-loose', '-r300', [f3_Tmeasure_path filesep 'Fig3' curName '.tif'])
+savefig([f3_Tmeasure_path filesep 'Fig3' curName '.fig'])
 %% dF/dt on initial molecular binding
 
 earlyForceSlopeG1G2={totalEarlyForceRateG1Tal, totalEarlyForceRateG2Tal,...
     totalEarlyForceRateG1Vin,totalEarlyForceRateG2Vin,totalEarlyForceRateG1Pax,totalEarlyForceRateG2Pax};
 % axes('Position', [490/600 (115-50)/600 50/600 (80+50)/600]); % 
-figure('Position',[100 100 150 200])
+% figure('Position',[100 100 150 200])
+figure
 boxPlotCellArray(earlyForceSlopeG1G2,nameListG1G2,1,0,0,2)
 % barPlotCellArray(earlyForceSlopeG1G2,nameListG1G2,1)
 ylabel('Force growth rate (Pa/sec)')
@@ -2493,15 +2644,15 @@ set(gca,'FontSize',7)
 xlim([0.4 6.6])
 % ylim([-12 12])
 curName = ['ForceGrowth' num2str(2*tR) 'sec after ' num2str(2*iT_vp) ' sec'];
-print('-depsc', '-loose', [f3_Tmeasure_path filesep 'FigS3' curName '.eps'])
-print('-dtiff', '-loose', '-r300', [f3_Tmeasure_path filesep 'FigS3' curName '.tif'])
-savefig([f3_Tmeasure_path filesep 'FigS3' curName '.fig'])
-
+print('-depsc', '-loose', [f3_Tmeasure_path filesep 'Fig3' curName '.eps'])
+print('-dtiff', '-loose', '-r300', [f3_Tmeasure_path filesep 'Fig3' curName '.tif'])
+savefig([f3_Tmeasure_path filesep 'Fig3' curName '.fig'])
+%% 
 %% Replotting time series - talin G1
 tracksG1 = load([talFolder{1} filesep 'data' filesep 'tracksG1real.mat'],'tracksG1');
-tracksNAtalG1=tracksG1.tracksG1.tracksG1;
+tracksNAtalG1=tracksG1.tracksG1;
 tracksG2 = load([talFolder{1} filesep 'data' filesep 'tracksG2real.mat'],'tracksG2');
-tracksNAtalG2=tracksG2.tracksG2.tracksG2;
+tracksNAtalG2=tracksG2.tracksG2;
 axes('Position', [130/600 530/600 65/600 65/600]); % 
 plotIntensityForce(tracksNAtalG1,[],false,false,'UseCurrentAxis',true,...
     'Source',{'ampTotal'},'plotCohorts',true,'tInterval',MDtal.timeInterval_,'prePostFrames',10,...

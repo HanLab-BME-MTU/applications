@@ -22,14 +22,14 @@ elseif nargin <16
 end
 if strcmpi(method,'conv_free')
     tic;
-    display('Calulate the convolution explicitely in free triangulated mesh')
+    disp('Calulate the convolution explicitely in free triangulated mesh')
     [nRow,~]=size(x0);
 
     ux = zeros(nRow,1);
     uy = zeros(nRow,1);
     for i=1:nRow
-        integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E,v).*force_x(x,y) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E,v).*force_y(x,y);
-        integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E,v).*force_x(x,y) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E,v).*force_y(x,y);
+        integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E,v).*force_x(i) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E,v).*force_y(i);
+        integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E,v).*force_x(i) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E,v).*force_y(i);
 
         ux(i) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
         uy(i) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
@@ -37,16 +37,16 @@ if strcmpi(method,'conv_free')
     toc;
 elseif nargin<10 || strcmpi(method,'conv')
     tic;
-    display('Calulate the convolution explicitely')
+    disp('Calulate the convolution explicitely')
     [nRow,nCol]=size(x0);
 
     for i=1:nRow
-        for j=1:nCol  
-            integrandx = @(x,y) boussinesqGreens(1,1,x0(i,j)-x,y0(i,j)-y,E,v).*force_x(x,y) + boussinesqGreens(1,2,x0(i,j)-x,y0(i,j)-y,E,v).*force_y(x,y);
-            integrandy = @(x,y) boussinesqGreens(2,1,x0(i,j)-x,y0(i,j)-y,E,v).*force_x(x,y) + boussinesqGreens(2,2,x0(i,j)-x,y0(i,j)-y,E,v).*force_y(x,y);
+        for jj=1:nCol  
+            integrandx = @(x,y) boussinesqGreens(1,1,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_x(i,jj) + boussinesqGreens(1,2,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_y(i,jj);
+            integrandy = @(x,y) boussinesqGreens(2,1,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_x(i,jj) + boussinesqGreens(2,2,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_y(i,jj);
 
-            ux(i,j) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
-            uy(i,j) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+            ux(i,jj) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+            uy(i,jj) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
         end
     end
     toc;
@@ -57,8 +57,7 @@ elseif strcmpi(method,'fft')
     % Here starts the calculation using the fast fourier transform *
     %***************************************************************
     
-    % Number of points to calculate the force field and the Greensfunction.
-    % Since below Nx_G and Ny_G are odd, the Greensfunctions will be
+    % Number of points to calculate the force field and the Greensfunction    % Since below Nx_G and Ny_G are odd, the Greensfunctions will be
     % evaluated at zero. Since the Greensfunctions at x=0 diverges, this
     % will in general cause a problem. For this I have found a work around.
     % The Greensfunction will be evaluated as is and the divergent value
@@ -77,7 +76,7 @@ elseif strcmpi(method,'fft')
     
     % This determines the sampling of the force field:
     if (nargin < 12 || isempty(meshPtsFwdSol)) && ~useSameSampling
-        display('Use meshPtsFwdSol=2^10. This value should be given with the function call!!!');
+        disp('Use meshPtsFwdSol=2^10. This value should be given with the function call!!!');
         meshPtsFwdSol=2^10;
     end
     
@@ -502,6 +501,9 @@ ymax=3;
 
 force_x=@(x,y) assumedForce(1,x,y);
 force_y=@(x,y) assumedForce(2,x,y);
+force_x =@(x,y)  assumedForceAniso2D(1,x,y,70,28,150,620,400/72,500/72,'groupForce');
+force_y =@(x,y)  assumedForceAniso2D(2,x,y,70,28,150,620,400/72,500/72,'groupForce');
+
 
 [ux_conv uy_conv]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,'conv');
 

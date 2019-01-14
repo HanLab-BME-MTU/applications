@@ -25,6 +25,7 @@ end
 %Parse input, store in parameter structure
 adhClassProc = MD.processes_{iProc};
 p = parseProcessParams(adhClassProc);
+p.useHomogeneity=false;
 
 MD=ip.Results.MD;
 iChan = p.ChannelIndex;
@@ -220,6 +221,7 @@ else
         % 1. Edge criterion
         % 1-1. Adhesions with zero edge movement should be G6 (not
         % interested) - by looking at edge velocity and edge MSD
+        disp('Automatic labeling for G1 ...'); tic;
         edgeVelAll=arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
         edgeStdAll=arrayfun(@(x) nanstd(x.edgeAdvanceDist(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
         edgeDistAll=arrayfun(@(x) (x.edgeAdvanceDist(x.endingFrameExtra)-x.edgeAdvanceDist(x.startingFrameExtra))', tracksNA);
@@ -242,8 +244,12 @@ else
         indRelEdgeVelG1 = distToEdgeVelAll>thresRelEdgeVel;
 
         % 3. Should start from relatively close to an edge
-        distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
-        thresStartingDistG1 = 3000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        try
+            distToEdgeFirstAll = arrayfun(@(x) x.distToEdgeNaive(x.startingFrameExtra),tracksNA);
+        catch
+            distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
+        end
+        thresStartingDistG1 = 2000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseStartingEdgeG1 = distToEdgeFirstAll < thresStartingDistG1;
 
         % 5. Clean rising phase
@@ -291,7 +297,7 @@ else
             curFrameMaxAmp = curFrameRange(curFrameMaxAmp);
             timeToMaxInten(ii) = curFrameMaxAmp-tracksNA(ii).startingFrameExtraExtra;
         end
-        lifeTimesAll = arrayfun(@(y) y.endingFrameExtraExtra-y.startingFrameExtraExtra, tracksNA);
+        lifeTimesAll = arrayfun(@(y) y.endingFrameExtra-y.startingFrameExtra, tracksNA);
         relMaxPoints = timeToMaxInten./lifeTimesAll;
         thresRelMax = max(0.8,mean(relMaxPoints));
         indEarlyMaxPointG1 = relMaxPoints<thresRelMax;
@@ -344,18 +350,81 @@ else
         % G1 should not have too big area
         thresMatureArea=500/MD.pixelSize_*500/MD.pixelSize_;
         smallEnoughArea = meanAreaAll<thresMatureArea/2; %mean(meanAreaAll)+std(meanAreaAll);
+        
+%         % Should exclude the ones near the interior boundary. Checking for
+%         % edgeVariationNaive
+%         if ~isfield(tracksNA,'edgeAdvanceDistNaive') && isfield(tracksNA,'distToEdgeNaive')
+%             tracksNANew=getFeaturesFromTracksNA(tracksNA,MD.timeInterval_,1,true);
+%             tracksNA = tracksNANew;
+%         end
+%         if isfield(tracksNA,'edgeAdvanceDistNaive')
+%             % edgeVel!=0 will be discarded because it means it is not moving
+%             edgeVariation = arrayfun(@(x) min(nanstd(x.closestBdPointNaive(:,1)),nanstd(x.closestBdPoint(:,2))),tracksNA);
+%             indEdgeVary = edgeVariation~=0;
+%         else
+%             indEdgeVary=true(numel(tracksNA),1);
+%         end
+        
+%         % And this G1 should be sliding backward or forward while it is
+%         % close to the edge. Thus it's closestBd (in the direction of
+%         % sliding) should be the same as closestBDNaive.
+%         progressText(0,'Adhesion''s main movement direction', 'Adhesion Classification');
+%         directionalityAll=zeros(numel(tracksNA),1);
+%         for k=1:numTracks
+%             curTrack = tracksNA(k);
+%             sF=curTrack.startingFrameExtra; eF=curTrack.endingFrameExtra;
+%             try
+%                 [~, gof] = fit(curTrack.xCoord(sF:eF)',curTrack.yCoord(sF:eF)','poly1'); % this is an average linear line fit of the adhesion track
+%             catch
+%                 % This means fitting a line with the track has failed, highly
+%                 % likely due to too short track lifetime or too variable
+%                 % lacations or having NaNs
+%                 curX = curTrack.xCoord(sF:eF); curY=curTrack.yCoord(sF:eF);
+%                 indNaNX = isnan(curX);
+%                 t = 1:length(curX);
+%                 t_nn = t(~indNaNX);
+%                 curX2 = interp1(t_nn,curX(~indNaNX),t,'linear','extrap');
+%                 curY2 = interp1(t_nn,curY(~indNaNX),t,'linear','extrap');
+% 
+%                 [~, gof] = fit(curX2(~isnan(curX2))',curY2(~isnan(curY2))','poly1'); % this is an average linear line fit of the adhesion track
+%             end
+%             directionalityAll(k)=gof.adjrsquare;
+%             tracksNA(k).directionality=gof.adjrsquare;
+%             progressText(k/numTracks);
+%         end   
+%         directionalityAll=arrayfun(@(x) x.directionality,tracksNA);
+% %         distBetweenNaiveAndProj = arrayfun(@(x) nanmean(x.distToEdge-x.distToEdgeNaive), tracksNA);
+%         indDirectional = directionalityAll>.6;
+        
+        % We don't want the noise which should belong to G6. 
+        meanAmpAll = arrayfun(@(y) nanmean(y.ampTotal), tracksNA);
+        maxMeanAmp = max(meanAmpAll);
+        meanAmpNorm = meanAmpAll/maxMeanAmp;
+        try
+            thresMeanAmpNorm = graythresh(meanAmpNorm);
+            thresMeanAmp = thresMeanAmpNorm*maxMeanAmp;
+        catch
+            thresMeanAmp = mean(meanAmpAll)+0.5*std(meanAmpAll);
+        end
+        lowAmpPopul = meanAmpAll(meanAmpAll<thresMeanAmp);
+        thresLowAmpG1 = quantile(lowAmpPopul,.9);
+        maxAmpAll = arrayfun(@(y) nanmax(y.ampTotal), tracksNA);
+        indHighEnoughMaxInten = maxAmpAll>thresLowAmpG1;
+        
         % Summing all those for G1
         indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1 & ...
-            indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea; %& indCleanDecayingG1;
-
+            indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea ...
+            & indHighEnoughMaxInten; %& indCleanDecayingG1 & indDirectional;
+        toc
+        
+        disp('Automatic labeling for G2...'); tic;
         % At the same time, G2 should start from a decently low amplitude
         % as in G1
         initIntenAll = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA);
         initIntenG1 = initIntenAll(indAbsoluteG1);
         indInitIntenG2 = initIntenAll<(mean(initIntenG1)+0.5*std(initIntenG1));
         
-        % G1 summarizing
-        indexG1 = find(indAbsoluteG1 & indInitIntenG2); 
+        % G1 summarizing -> below at Line 505
 
         % G2 adhesions should have sufficient period where they are in
         % their NA state
@@ -399,22 +468,89 @@ else
         thresDistAwayFromEdge = 3000/MD.pixelSize_;
         awayfromEdgeLater = distToEdgeLastAll > thresDistAwayFromEdge;
         
+        % Yet another feature to distinguish the maturing adhesion from
+        % clumps of nascent adhesion is texture, specifically the spatial
+        % homogeneity. This needs GLCM matrix calculation of the FA
+        % segmentation. We'll need to do this for only when the segmented
+        % area is largest to reduce computational burdon. First, let's find
+        % the FA segmentation -Sangyoon Nov 19 2018
+        % Finding area
+        areaAll = arrayfun(@(x) x.area,tracksNA,'unif',false);
+        iEmptyArea = cellfun(@isempty,areaAll);
+        iFrameMaxArea = zeros(numel(iEmptyArea),1);
+        actualMaxArea = zeros(numel(iEmptyArea),1);
+        [actualMaxArea(~iEmptyArea),iFrameMaxArea(~iEmptyArea)]=cellfun(@(x) nanmax(x),areaAll(~iEmptyArea));
+        framesToInspect = unique(iFrameMaxArea);
+        framesToInspect(framesToInspect==0)=[]; %delete frame 0
+        % Go over each frame and find the tracks that has the 
+        iiformat = ['%.' '3' 'd'];
+        iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
+        FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
+        SDCProc=FAPackage.processes_{iSDCProc};      
+        if p.useHomogeneity
+            homogeneityAll=zeros(numel(tracksNA),1);
+            if ~isfield(tracksNA,'FAtextureHomogeneity')
+                tracksNA(end).FAtextureHomogeneity=0;
+                [tracksNA(:).FAtextureHomogeneity] = deal(0);
+            end
+            progressText(0,'Calculating FA texture homogeneity', 'Adhesion Classification');
+            for jj=framesToInspect'
+                %Find the tracks
+                relevantTrackIDs = iFrameMaxArea==jj & actualMaxArea>0;
+                if isempty(relevantTrackIDs)
+                    continue
+                else
+                    %Load the image
+                    if ~isempty(SDCProc)
+                        curImg = SDCProc.loadOutImage(iChan,jj);
+                    else
+                        curImg = MD.channels_(iChan).loadImage(jj);
+                    end
+                    % Load the label
+                    pAnal=adhAnalProc.funParams_;
+                    labelTifPath = [pAnal.OutputDirectory filesep 'labelTifs'];
+                    maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(jj,iiformat),'.tif'));
+                    labelAdhesion = bwlabel(maskAdhesion>0,4); % strongly assumes each has only one boundary
+                    % Per track ID, get the FA image
+                    for kk=find(relevantTrackIDs')
+                        curFAID = tracksNA(kk).faID(jj);
+                        if curFAID==0
+                            continue
+                        else
+                            % Get the individual FA image
+                            curFAstruct=regionprops(labelAdhesion==curFAID,'BoundingBox');
+                            if ~isempty(curFAstruct)
+                                curBoundingBox=curFAstruct.BoundingBox;
+                                try
+                                    curFAImg = imcrop(curImg,curBoundingBox);
+                                catch
+                                    curBoundingBox=[tracksNA(kk).xCoord(jj)-5,tracksNA(kk).yCoord(jj)-5,10,10];
+                                    curFAImg = imcrop(curImg,curBoundingBox);
+                                end                                
+                                %Get the gray-level co-occurerence matrix
+                                glcm = graycomatrix((curFAImg),'Offset',[1 1],'NumLevels',8,'GrayLimits',[]);
+                                stats = graycoprops(glcm);
+                                homogeneityAll(kk) = stats.Homogeneity;
+                                tracksNA(kk).FAtextureHomogeneity= stats.Homogeneity;
+                            end
+                        end
+                    end
+                end
+                progressText(jj/framesToInspect(end));
+            end
+            % See the distribution and determine the threshold figure,histogram(homogeneityAll) 
+            thresHomogeneity = max(0.3,mean(homogeneityAll(homogeneityAll>0))+1*std(homogeneityAll(homogeneityAll>0)));
+            homogeneousEnoughWhenMatured = homogeneityAll>thresHomogeneity;
+        else
+            homogeneousEnoughWhenMatured = true(size(indIncreasingArea));
+        end
         indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 & ...
             sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
-            bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater; % & indNonDecayingG2 & indLateMaxPointG2;
-
-        % Inspect each (temporary)
-        indexG2 = find(indAbsoluteG2); 
-    %     indexG1 = [indexG1; find(additionalG1)];
-    %         figure; hold on
-    %         for mm=indexG2'
-    % %             plot(tracksNA(mm).ampTotal)
-    %             plot(tracksNA(mm).forceMag)
-    %         end
-
-    %         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
+            bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater & homogeneousEnoughWhenMatured; % & indNonDecayingG2 & indLateMaxPointG2;
+        toc
+        disp('Automatic labeling for G3...'); tic;        
         % G3
-        thresEdgeVelG3 = max((100/MD.pixelSize_)/(60/MD.timeInterval_),quantile(edgeVelAll,0.75)); %Edge should protrude at least 0.1 um/min
+        thresEdgeVelG3 = max((50/MD.pixelSize_)/(60/MD.timeInterval_),quantile(edgeVelAll,0.75)); %Edge should protrude at least 0.05 um/min
         indEdgeVelG3 = edgeVelAll>thresEdgeVelG3;
         indRelEdgeVelG3 = distToEdgeVelAll<3*thresRelEdgeVel;
         earlyEdgeVelAll = arrayfun(@(x) regress(x.edgeAdvanceDist(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))',(x.startingFrameExtra:round((x.startingFrameExtra+x.endingFrameExtra)/2))'), tracksNA);
@@ -425,9 +561,9 @@ else
         indForwardVelG3 = adhVelAll>thresAdhVelG3;
 
         indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1 & indForwardVelG3 & indEarlyEdgeVelG3;
-        indexG3 = find(indAbsoluteG3); 
-
+        toc
         % G4 - retracting, strong FAs
+        disp('Automatic labeling for G4...'); tic;        
         thresEdgeVelG4 = min((-50/MD.pixelSize_)/(60/MD.timeInterval_), quantile(edgeVelAll(edgeVelAll<0),0.5));%Edge should retract at least 0.1 um/min
         thresEdgeDistG4 = min((-500/MD.pixelSize_), quantile(edgeDistAll(edgeDistAll<0),0.5));%Edge should retract at least 0.1 um/min
         thresAdvDistG4 = min((-500/MD.pixelSize_), quantile(advDistAll(advDistAll<0),0.5));%Edge should retract at least 0.1 um/min
@@ -436,10 +572,19 @@ else
         indAdvDistG4 = advDistAll<thresAdvDistG4;
         indAdvVelG4 = adhVelAll<thresEdgeVelG4;
         indAbsoluteG4 = indEdgeVelG4 & indAdvVelG4 & indCloseStartingEdgeG1 & faAssocAll & indEdgeDistG4 & indAdvDistG4;
-        indexG4 = find(indAbsoluteG4); 
-
+        % Found that there are cases adhesions stay at the place while edge
+        % is retracting. This case the adhesion is decaying its intensity.
+        % Adding them... Nov 9 2018 Sangyoon
+        ampSlopeAll = arrayfun(@(x) x.ampSlope, tracksNA);
+        indDecayingAmp = ampSlopeAll<0;
+        indAdditionalG4 = indEdgeVelG4 & indDecayingAmp & indCloseStartingEdgeG1 & faAssocAll & indEdgeDistG4 & indAdvDistG4;
+        toc
         % G5 - stable at the edge
+        disp('Automatic labeling for G5...'); tic;
         % edge doesn't move much
+        if isfield(tracksNA,'edgeAdvanceDistNaive') %override if edgeAdvanceDistNaive exists.
+            edgeVelAll=arrayfun(@(x) regress(x.edgeAdvanceDistNaive(x.startingFrameExtra:x.endingFrameExtra)',(x.startingFrameExtra:x.endingFrameExtra)'), tracksNA);
+        end
         posEdgeVel = edgeVelAll(edgeVelAll>=0);
         negEdgeVel = edgeVelAll(edgeVelAll<=0);
         lowPosEVel = max((5/MD.pixelSize_)/(60/MD.timeInterval_),quantile(posEdgeVel,0.1)); %At most 5 nm/min
@@ -451,45 +596,44 @@ else
         indEdgeStdG5 = edgeStdAll<thresEdgeStdG5;
         % long life time
         thresLifetimeG5 = quantile(lifeTimesAll,0.75);
-        indLifetimeG5 = lifeTimesAll>thresLifetimeG5;
+        indLifetimeG5 = lifeTimesAll>=thresLifetimeG5;
         % high-enough intensity
-        meanAmpAll = arrayfun(@(y) nanmean(y.ampTotal), tracksNA);
-        maxMeanAmp = max(meanAmpAll);
-        meanAmpNorm = meanAmpAll/maxMeanAmp;
-        try
-            thresMeanAmpNorm = graythresh(meanAmpNorm);
-            thresMeanAmp = thresMeanAmpNorm*maxMeanAmp;
-        catch
-            thresMeanAmp = mean(meanAmpAll)+0.5*std(meanAmpAll);
-        end
         
         % G5 - 2 Should be close to an edge
-        distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdge),tracksNA);
+        try
+            distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdgeNaive),tracksNA);
+            distToEdgeStdAll = arrayfun(@(x) nanstd(x.distToEdgeNaive),tracksNA);
+        catch
+            distToEdgeMeanAll = arrayfun(@(x) nanmean(x.distToEdge),tracksNA);
+            distToEdgeStdAll = arrayfun(@(x) nanstd(x.distToEdge),tracksNA);
+        end
         thresStartingDistG5 = 2000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseEdgeG5 = distToEdgeMeanAll < thresStartingDistG5;
-        
+        thresEdgeStd = median(distToEdgeStdAll); %G5 should stay at edge
+        indStayAtEdge = distToEdgeStdAll<thresEdgeStd;
         indHighAmpG5 = meanAmpAll>thresMeanAmp;
-        indAbsoluteG5 = indEdgeVelG5 & indEdgeStdG5 & indLifetimeG5 & indHighAmpG5 & indCloseEdgeG5;
-        indexG5 = find(indAbsoluteG5); 
-
+        indAbsoluteG5 = indStayAtEdge & indLifetimeG5 & indHighAmpG5 & indCloseEdgeG5; %indEdgeVelG5 & indEdgeStdG5
+        toc
         % G6 : noise. There are several types of noises, or uninterested
         % tracks
+        disp('Automatic labeling for G6...'); tic;
         % G6-1. too short tracks or tracks that are unfinished
-        thresShortLifeG6 = min(7, quantile(lifeTimesAll,0.1));
+        thresShortLifeG6 = min(100/MD.timeInterval_, quantile(lifeTimesAll,0.05));
         indShortLifeG6 = lifeTimesAll<=thresShortLifeG6;
         % G6-2. amplitude too small
-        lowAmpPopul = meanAmpAll(meanAmpAll<thresMeanAmp);
         thresLowAmpG6 = mean(lowAmpPopul)-0.3*std(lowAmpPopul);
         indLowAmpG6 = meanAmpAll<thresLowAmpG6;
         % G6-3. OR, tracks near the image borders (zero edge movement or std
         % I am not sure if assigning two differently positioned labels work
         % for classification - so I'll do this later after classification
-        indAbsoluteG6 = indShortLifeG6 & indLowAmpG6;
-        indexG6 = find(indAbsoluteG6); 
-
+        thresStartingDistG6 = 1000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        indInsideG6 = distToEdgeFirstAll > thresStartingDistG6; % decided to exclude ones at very edge
+        indAbsoluteG6 = (indShortLifeG6 | indLowAmpG6) & indInsideG6;
+        toc
         % G7 NAs at stalling edge: big difference from G5 is that it has
         % some early history of edge protrusion & relative weak signal
         % (ampTotal)
+        disp('Automatic labeling for G7...'); tic;
         edgeAdvanceDistLastChangeNAs =  arrayfun(@(x) x.edgeAdvanceDistChange2min(x.endingFrameExtra),tracksNA); %this should be negative for group 5 and for group 7
         indLastAdvanceG7 = edgeAdvanceDistLastChangeNAs<max(0.0001, nanmean(edgeAdvanceDistLastChangeNAs));
 
@@ -498,24 +642,50 @@ else
         indLowAmpG7 = meanAmpAll < thresMeanAmp;
 
         indAbsoluteG7 = indLastAdvanceG7 & indEdgeVelG7 & indRelEdgeVelG3 & indLowAmpG7;
-        indexG7 = find(indAbsoluteG7); 
-
+        toc
         % G8 strong inside FAs
-        distToEdgeAll = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
-        indInsideG8G9 = distToEdgeAll > thresStartingDistG1;        
+%         distToEdgeMean = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
+%         indInsideG8G9 = distToEdgeMean > thresStartingDistG1;        
+        disp('Automatic labeling for G8...'); tic;
+        indInsideG8G9 = distToEdgeFirstAll > thresStartingDistG1; % decided to 
+        
         indAbsoluteG8 = indHighAmpG5 & indInsideG8G9 & indLifetimeG5;
-        indexG8 = find(indAbsoluteG8); 
-
+        toc
         % G9 weak inside NAs
+        disp('Automatic labeling for G9...'); tic;
         indMinLifeG9 = lifeTimesAll>2*thresShortLifeG6;
         indAbsoluteG9 = indLowAmpG7 & indInsideG8G9 & indMinLifeG9;
-        indexG9 = find(indAbsoluteG9); 
+        toc
+        %% I decided to get mutually exclusive indices
+        indexG1 = find(indAbsoluteG1 & indInitIntenG2 & ~indAbsoluteG2); 
+        % Inspect each (temporary)
+        indexG2 = find(indAbsoluteG2 & ~indAbsoluteG8 & ~indAbsoluteG9); 
+    %     indexG1 = [indexG1; find(additionalG1)];
+    %         figure; hold on
+    %         for mm=indexG2'
+    % %             plot(tracksNA(mm).ampTotal)
+    %             plot(tracksNA(mm).forceMag)
+    %         end
 
-        % Putting together integrated labels
+    %         nn=nn+1; close; showSingleAdhesionTrackSummary(MD,tracksNA(indexG2(nn)),imgMap,tMap,indexG2(nn));
+        indexG3 = find(indAbsoluteG3 & ~indAbsoluteG7 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)); 
+        indexG4 = find(indAbsoluteG4 | indAdditionalG4); 
+        indexG5 = find(indAbsoluteG5 & ~(indAbsoluteG4 | indAdditionalG4) & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)); 
+        indexG6 = find(indAbsoluteG6 & ~(indAbsoluteG1 & indInitIntenG2) & ~indAbsoluteG3 & ~indAbsoluteG7...
+                        & ~indAbsoluteG9); 
+        indexG7 = find(indAbsoluteG7 & ~indAbsoluteG3 & ~indAbsoluteG6 & ~indAbsoluteG9); 
+        indexG8 = find(indAbsoluteG8 & ~indAbsoluteG2 & ~(indAbsoluteG1 & indInitIntenG2)...
+                    & ~indAbsoluteG3 & ~(indAbsoluteG4 | indAdditionalG4) & ~indAbsoluteG6 ...
+                    & ~indAbsoluteG7 & ~indAbsoluteG9 & ~indAbsoluteG5); 
+        indexG9 = find(indAbsoluteG9 & ~indAbsoluteG6 & ~indAbsoluteG7 & ~indAbsoluteG8 & ~(indAbsoluteG1 & indInitIntenG2) ...
+                        & ~indAbsoluteG2 & ~indAbsoluteG3); 
+        
+
+        %% Putting together integrated labels
         % I have to tone down the number of the large label group according to
         % groups with smaller number (especially indexG2)
-        meanSampleNum = round(mean([numel(indexG1) numel(indexG2) numel(indexG3) numel(indexG5)]));
         indexAll={indexG1, indexG2, indexG3, indexG4, indexG5, indexG6, indexG7, indexG8, indexG9};
+        meanSampleNum = round(median(cellfun(@numel,indexAll))); %mean([numel(indexG1) numel(indexG2) numel(indexG3) numel(indexG5)]));
         for ii=1:9
             for jj=ii+1:9
                 indCommon = intersect(indexAll{ii},indexAll{jj});
@@ -527,14 +697,17 @@ else
             end
         end
         for ii=1:9
-            if numel(indexAll{ii})>meanSampleNum
-                numMax = numel(indexAll{ii});
-                randNumInt = ceil(numMax*rand(meanSampleNum,1));
+            numMax = numel(indexAll{ii});
+            if numMax>meanSampleNum
+                randNumInt = ceil(numMax*rand(round(meanSampleNum*(1+log(numMax/meanSampleNum))),1));
                 indexAll{ii} = indexAll{ii}(randNumInt);
     %             indexAll{ii} = indexAll{ii}(1:meanSampleNum);
-            else
-                %Need oversampling (3x)
-                indexAll{ii}=[indexAll{ii}; indexAll{ii}; indexAll{ii}];
+            elseif numMax>1
+                %Need oversampling up to two thirds of the mean sample
+                %number
+                while numel(indexAll{ii})<meanSampleNum*(1-exp(-3*numMax/meanSampleNum))
+                    indexAll{ii}=[indexAll{ii}; indexAll{ii}];
+                end
             end
         end
         idTracksAdditionalAuto = [indexAll{1}' indexAll{2}' indexAll{3}' indexAll{4}' ...
@@ -923,7 +1096,7 @@ else
     allDataClass(idGroup7)={'Group7'};
     allDataClass(idGroup8)={'Group8'};
     allDataClass(idGroup9)={'Group9'};
-    iFrameInterest=min(81,MD.nFrames_);
+    iFrameInterest=round(0.8*MD.nFrames_);
     mapFig = figure; imshow(imgMap(:,:,iFrameInterest),[]), hold on
     [~, htrackCircles] = drawClassifiedTracks(allDataClass,tracksNA,iFrameInterest,[],10);
     classNames={'G1: turn-over','G2: maturing','G3: moving along protruding edge',...

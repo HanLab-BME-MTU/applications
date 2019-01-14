@@ -24,15 +24,15 @@ curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
 
-splineParamInit=0.99; %0.99;
-preDetecFactor=.3;
+splineParamInit=10; % This now has to be taken from the InitRise process. 0.99; %0.99;
+preDetecFactor=10; %.3; Changed.
 [~,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack1]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
 frameFII=round(firstIncreseTimeInt/tInterval);
 frameFTI=round(firstIncreseTimeForce/tInterval);
 
 if isnan(frameFII) || isnan(frameFTI)
-    splineParamInit=0.80;
-    preDetecFactor=.3;
+    splineParamInit=15;
+    preDetecFactor=5;
     [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,...
         firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce,curTrack1] =...
         calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
@@ -65,7 +65,7 @@ sd=ppval(sd_spline,tRange);
 peakFrame = chosenFRange(peakFrame);
 [~,~,~,curTrack]=calculatePeakTimeLagFromTracks(curTrack,.1,tInterval);
 
-if isfield(curTrack,'intenPeakness') && curTrack.intenPeakness
+if isfield(curTrack,'intenPeakness') && ~isempty(curTrack.intenPeakness) && curTrack.intenPeakness
     peakFrame = curTrack.intenPeakFrame;
 end
 if peakFrame >= ((chosenFRange(end)-chosenFRange(1))*0.8 + chosenFRange(1))
@@ -80,7 +80,7 @@ end
 % r_pix should include all of the track trace ...
 maxX = nanmax(curTrack.xCoord)-nanmin(curTrack.xCoord);
 maxY =  nanmax(curTrack.yCoord)-nanmin(curTrack.yCoord);
-r_pix = ceil(max(max(maxX,maxY)/2+7,10));
+r_pix = ceil(max(max(maxX,maxY)/2+5,10));
 meanX = round(nanmean(curTrack.xCoord));
 meanY = round(nanmean(curTrack.yCoord));
 bLeft = max(1,meanX-r_pix);
@@ -234,7 +234,7 @@ if isfield(curTrack,'forcePeakness') && curTrack.forcePeakness
     peakFrameForce = curTrack.forcePeakFrame;
 end
 
-maxMontageNum = floor(535/montWidth)*2;
+maxMontageNum = floor(535/montWidth/2); %*2;
 numChosenFrames = length(chosenStartFrame:chosenEndFrame);
 montInterval = ceil(numChosenFrames/maxMontageNum);
 if montInterval>1
@@ -263,11 +263,11 @@ elseif montInterval==1
     indiceRange=1:montInterval:numChosenFrames;
 end
     
-hm1=montage(cropImg,'Size',[2, NaN],'DisplayRange',[minInt maxInt], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
+hm1=montage(cropImg,'Size',[1, NaN],'DisplayRange',[minInt maxInt], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
 line([2 2+scaleBar*500/pixSize],...
     [3 3],'LineWidth',2,'Color',[1,1,1]);
-monImgH = floor(hm1.YData(2)/2);
-numCols = ceil(length(indiceRange)/2);
+monImgH = floor(hm1.YData(2)); %/2);
+numCols = ceil(length(indiceRange)); %/2);
 monImgW = floor(hm1.XData(2)/numCols);
 p=0;
 hold on
@@ -276,9 +276,9 @@ for ii= indiceRange
     p=p+1;
     iCol=mod(p-1,numCols);
     q=floor((p-1)/numCols);
-    txtMont1= text(1+(iCol)*monImgW, (q+1)*monImgH-1,[num2str((ii-1)*tInterval,'% 10.0f') ' s'],'Color',[1,1,1]);
+    txtMont1= text(1+(iCol)*monImgW, (q+1)*monImgH-4,[num2str((ii-1)*tInterval,'% 10.0f') ' s'],'Color',[1,1,1]);
     set(txtMont1,'FontUnits','pixels')
-    set(txtMont1,'Fontsize',6)
+    set(txtMont1,'Fontsize',7)
     set(txtMont1,'horizontalAlignment','right')
     set(txtMont1,'position',[(iCol+1)*monImgW-0.5, (q+1)*monImgH-1.5])
     % Showing tracks
@@ -298,7 +298,7 @@ for ii= indiceRange
     if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
         markerType = 'go'; bdType='g';
     end
-    plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
+    plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',14, 'LineWidth', 0.5)
 %     if ~isempty(curTrack.adhBoundary{eF})
 %         plot(curTrack.adhBoundary{eF}(:,1)-bLeft+(iCol)*monImgW+1,...
 %             curTrack.adhBoundary{eF}(:,2)-bBottom+(q)*monImgH+1,bdType);
@@ -312,9 +312,9 @@ ax7=subplot('Position',[marginX, 200/figHeight, 540/figWidth-marginX,50/figHeigh
 % tCropMax = max(curTrack.forceMag(chosenStartFrame:chosenEndFrame))*1.1;
 % tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
 try
-    montage(cropTmap,'DisplayRange',[tCropMin, tCropMax],'Size',[2, NaN], 'Indices', indiceRange,'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
+    montage(cropTmap,'DisplayRange',[tCropMin, tCropMax],'Size',[1, NaN], 'Indices', indiceRange,'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
 catch
-    montage(cropTmap,'DisplayRange',[tCropMin, 10],'Size',[2, NaN], 'Indices', indiceRange,'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
+    montage(cropTmap,'DisplayRange',[tCropMin, 10],'Size',[1, NaN], 'Indices', indiceRange,'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
 end
 p=0;
 hold on
@@ -322,9 +322,9 @@ for ii= indiceRange
     p=p+1;
     iCol=mod(p-1,numCols);
     q=floor((p-1)/numCols);
-    txtMont2= text(1+(iCol)*monImgW, (q+1)*monImgH-1,[num2str((ii-1)*tInterval,'% 10.0f') ' s'],'Color','w');
+    txtMont2= text(1+(iCol)*monImgW, (q+1)*monImgH-4,[num2str((ii-1)*tInterval,'% 10.0f') ' s'],'Color','w');
     set(txtMont2,'FontUnits','pixels')
-    set(txtMont2,'Fontsize',6)
+    set(txtMont2,'Fontsize',7)
     set(txtMont2,'horizontalAlignment','right')
     set(txtMont2,'position',[(iCol+1)*monImgW-0.5, (q+1)*monImgH-1.5])
     % Showing tracks
@@ -343,7 +343,7 @@ for ii= indiceRange
         markerType = 'go';
     end
 %     plot(curTrack.xCoord(sF:eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(sF:eF)-bBottom+q*monImgH+1,'w', 'LineWidth', 0.5)
-    plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
+    plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',14, 'LineWidth', 0.5)
 %     if ~isempty(curTrack.adhBoundary{eF})
 %         plot(curTrack.adhBoundary{eF}(:,1)-bLeft+(iCol)*monImgW+1,...
 %             curTrack.adhBoundary{eF}(:,2)-bBottom+(q)*monImgH+1,bdType);
@@ -434,7 +434,7 @@ if isfield(curTrack,'intenPeakness') && curTrack.intenPeakness
     plot((curTrack.intenPeakFrame-curStartFrameEE)*tInterval,sd(curTrack.intenPeakFrame-curStartFrameEE+1),'o',...
         'MarkerFaceColor','w','MarkerEdgeColor',[84/255 84/255 255/255])
 end
-
+title(['Track ' num2str(IDtoInspect)])
 
 axes(ax9)
 curForce = curTrack.forceMag(curStartFrameEE:curEndFrameEE);
@@ -448,6 +448,7 @@ if isfield(curTrack,'forcePeakness') && curTrack.forcePeakness && curTrack.force
     plot((curTrack.forcePeakFrame-curStartFrameEE)*tInterval,sCurForce(curTrack.forcePeakFrame-curStartFrameEE+1),'o',...
         'MarkerFaceColor','w','MarkerEdgeColor',[229/255 84/255 84/255])
 end
+title(['\Deltat_{force-F.I.} = ' num2str(-curTrack1.firstIncreseTimeIntAgainstForce,'% 10.1f')])
 
 % force map colorbar
 ax10=axes('Position',[3*marginX+3*175/figWidth, 260/figHeight+marginY, 60/figWidth,145/figHeight]);
@@ -524,7 +525,7 @@ if ~isempty(imgMap2)
     %Montage
     axes('Position',[marginX, (430+50+10+175)/figHeight+marginY, 540/figWidth-marginX,50/figHeight]);
     cropImg2 = reshape(cropImg2,size(cropImg2,1),size(cropImg2,2),1,size(cropImg2,3));
-    hm3=montage(cropImg2,'Size',[2, NaN],'DisplayRange',[minInt2 maxInt2], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
+    hm3=montage(cropImg2,'Size',[1, NaN],'DisplayRange',[minInt2 maxInt2], 'Indices', uint16(indiceRange),'ThumbnailSize',[2*r_pix+1 2*r_pix+1]);
     hold on
     p=0;
     for ii= indiceRange
@@ -551,7 +552,7 @@ if ~isempty(imgMap2)
         if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && (eF==frameFII)% && eF<frameFII+montInterval)
             markerType = 'go'; bdType='g';
         end
-        plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',7, 'LineWidth', 0.5)
+        plot(curTrack.xCoord(eF)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(eF)-bBottom+q*monImgH+1,markerType,'MarkerSize',14, 'LineWidth', 0.5)
     end
 
     % Third channel time series
@@ -575,6 +576,8 @@ if ~isempty(imgMap2)
     end
     xlabel('Time (s)'); ylabel('AmpTotal 2 (A.U.)')
     set(ax16,'FontUnits',genFontUnit,'FontSize',genFontSize)
+    title(['\Deltat_{force-F.I.2} = ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f')])
+
 
     % Cross variance plot
     if ~isempty(imgMap2)
@@ -603,8 +606,8 @@ end
 %% saving
 
 if exist('gPath','var')
-    print(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
-    savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),additionalName,'.fig'))
+    print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
+    savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
 end
 if exist('IDtoInspect','var')
     disp(['This ' num2str(IDtoInspect) ' th track has ' num2str(-curTrack1.firstIncreseTimeIntAgainstForce,'% 10.1f') ' sec of initial time lag of force after fluorescence signal.'])

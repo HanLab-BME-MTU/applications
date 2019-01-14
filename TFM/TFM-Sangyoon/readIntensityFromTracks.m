@@ -31,8 +31,11 @@ if isempty(MD)
     maxGap = 3;
     brownScaling = 1.01;
 else
-    iTrackingProc =MD.getProcessIndex('TrackingProcess');
-    trackingProc = MD.getProcess(iTrackingProc);
+    faPackage=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
+    % Load classification process
+    trackingProc = faPackage.getProcess(5);
+%     iTrackingProc =MD.getProcessIndex('TrackingProcess');
+%     trackingProc = MD.getProcess(iTrackingProc);
     trackingParams = trackingProc.funParams_;
     minR=trackingParams.costMatrices(2).parameters.minSearchRadius;
     maxR=trackingParams.costMatrices(2).parameters.maxSearchRadius;
@@ -78,7 +81,7 @@ elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
     tracksNA(end).ampTotal3=[];
 end    
 %% Change the old format
-if attribute>1 && isfield(tracksNA,'state')
+if isfield(tracksNA,'state') % attribute>1 && 
     tracksNA = changeTrackStateFormat( tracksNA );
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -115,8 +118,14 @@ parfor (k=1:numTracks, parforArg)
 %         end
 %     else
     % initialize amptotal to have it have the same dimension as .amp
+    
     mode='xyac';
     curTrack=tracksNA(k);
+%     if iscell(curTrack.state)
+%         curTrack.state = strcmp(curTrack.state,'BA')+2*strcmp(curTrack.state,'NA')+...
+%             3*strcmp(curTrack.state,'FC')+4*strcmp(curTrack.state,'FA')+...
+%             5*strcmp(curTrack.state,'ANA')+6*strcmp(curTrack.state,'Out_of_Band');
+%     end
     if attribute==1
         if isempty(MD)
             searchRadiusDetected = 2;
@@ -127,10 +136,10 @@ parfor (k=1:numTracks, parforArg)
         try
             curStartingFrame = curTrack.startingFrameExtra;
             curEndingFrame = curTrack.endingFrameExtra;
-            if isempty(curStartingFrame)
+            if isempty(curStartingFrame) || curEndingFrame<curStartingFrame
                 curStartingFrame = curTrack.startingFrame;
             end
-            if isempty(curEndingFrame)
+            if isempty(curEndingFrame) || curEndingFrame<curStartingFrame
                 curEndingFrame = curTrack.endingFrame;
             end
         catch
@@ -150,6 +159,7 @@ parfor (k=1:numTracks, parforArg)
             curTrack.endingFrameExtra = curEndingFrame;
             trackingFromStartingFrame = true;
             mode='xyac';
+            curTrack.startingFrameExtra = ii;
 
             if isempty(MD)
                 searchRadiusDetected = 2;
@@ -158,7 +168,7 @@ parfor (k=1:numTracks, parforArg)
             end
             
             gapClosed=0;
-            for ii=curStartingFrame:-1:startFrame
+            for ii=curStartingFrame-1:-1:startFrame
                 curImg = imgStack(:,:,ii); %#ok<*PFBNS>
                 p=-1;
     %             curSigma = sigma;
@@ -223,7 +233,7 @@ parfor (k=1:numTracks, parforArg)
                     end
                 end
                 if ~pitFound && gapClosed >= maxGap
-                    curTrack.startingFrameExtra = ii+gapClosed+1;
+%                     curTrack.startingFrameExtra = ii+gapClosed+1;
                     break % We still have to read the values
                 elseif ~pitFound && gapClosed < maxGap
                     gapClosed = gapClosed+1; A=[]; c=[]; mode='xyasc';
@@ -489,7 +499,7 @@ parfor (k=1:numTracks, parforArg)
                 end
                 if ~pitFoundEnd && gapClosed >= maxGap
                     curTrack.endingFrameExtra = ii-gapClosed-1;
-                    if trackingFromStartingFrame %When it did find any points after all...
+                    if trackingFromStartingFrame && reTrack %When it did find any points after all...
                         curTrack.startingFrameExtra = ii-gapClosed-1;
                     end
                     if curTrack.startingFrameExtra>curTrack.startingFrame

@@ -60,7 +60,10 @@ for kk=1:numel(IDs)
         idGroupSelectedStruct.(groupCurName)=[idGroupSelectedStruct.(groupCurName) curID];
     end
 end
-
+for curGroup=1:numGroups
+    groupCurName = ['idGroup' num2str(curGroup) 'Selected'];
+    idGroupSelectedCell{curGroup}=idGroupSelectedStruct.(groupCurName);
+end
 %% Perform classification for entire population of tracksNA
 % including previous training data
 p=classProc.funParams_;
@@ -99,6 +102,28 @@ classifierInfo = fopen([p.OutputDirectory filesep 'data' filesep 'trainedClassif
 fprintf(classifierInfo, 'This is from quadratic SVM. \n');
 fprintf(classifierInfo, ['Validation accuracy is ' num2str(validationAccuracy) '. \n']);
 
+%% normalize confusion matrix
+for ii=1:size(C,1)
+    C(ii,:) = C(ii,:)/sum(C(ii,:));
+end
+response = T.Group;
+% Get the unique resonses
+totalGroups = unique(response);
+
+confFig=figure; confAxis=axes; imagesc(C); title('Confusion Matrix')
+set(confAxis,'xtick',1:size(C,1))
+set(confAxis,'xticklabel',order')
+set(confAxis,'XTickLabelRotation',45)
+set(confAxis,'ytick',1:size(C,2))
+set(confAxis,'yticklabel',order')
+xlabel('Prediction outcome')
+ylabel('Actual labels')
+
+c = colorbar;
+c.Label.String = 'normalized prediction';
+print(confFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'confusionMatrix.eps']);
+savefig(confFig,[p.OutputDirectory filesep 'figs' filesep 'confusionMatrix.fig'])
+print(confFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'confusionMatrix.tif'])
 %% Update idClassified.mat
 [~,allData] = extractFeatureNA(tracksNA,[],2,MD);
 allDataClass = predict(trainedClassifier,allData);
