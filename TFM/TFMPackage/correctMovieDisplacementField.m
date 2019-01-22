@@ -194,7 +194,7 @@ if p.fillVectors
         else
             currImage = double(movieData.channels_(pStep2.ChannelIndex(1)).loadImage(j));
         end
-        nTracked=1000;
+        nTracked=1000; 
         nFailed=0;
         for k=1:nFillingTries
             % only un-tracked vectors
@@ -207,7 +207,7 @@ if p.fillVectors
             neighborBeads = displField(j).pos(~unTrackedBeads,:);
             neighborVecs = displField(j).vec(~unTrackedBeads,:);
             % Get neighboring vectors from these vectors (meanNeiVecs)
-            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1+5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
+            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
 %             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (2-1.5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
             % In case of empty idx, search with larger radius.
             emptyCases = cellfun(@isempty,idx);
@@ -235,6 +235,10 @@ if p.fillVectors
                 nFailed=0;
             end
 
+            figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
+            hold on
+            plot(currentBeads(:,1),currentBeads(:,2),'ro')
+            quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'m')
         %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
             displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
         end
