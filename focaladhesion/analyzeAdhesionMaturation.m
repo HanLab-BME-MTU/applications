@@ -920,6 +920,7 @@ end
     numTracks=numel(tracksNA);
     fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
     numStr = @(trackNum) num2str(trackNum,fString);
+    trackFolderPath = [p.OutputDirectory filesep 'trackIndividual'];
     trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
     metaTrackData.numTracks = numTracks;
     metaTrackData.trackFolderPath = trackFolderPath;
