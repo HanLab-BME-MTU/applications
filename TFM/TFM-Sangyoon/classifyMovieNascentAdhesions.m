@@ -25,7 +25,8 @@ end
 %Parse input, store in parameter structure
 adhClassProc = MD.processes_{iProc};
 p = parseProcessParams(adhClassProc);
-p.useHomogeneity=false;
+p.useHomogeneity = false;
+% p.startingDist = 3; % in micron
 
 MD=ip.Results.MD;
 iChan = p.ChannelIndex;
@@ -249,7 +250,7 @@ else
         catch
             distToEdgeFirstAll = arrayfun(@(x) x.distToEdge(x.startingFrameExtra),tracksNA);
         end
-        thresStartingDistG1 = 2000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
+        thresStartingDistG1 = p.startingDist*1000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indCloseStartingEdgeG1 = distToEdgeFirstAll < thresStartingDistG1;
 
         % 5. Clean rising phase
@@ -1111,9 +1112,9 @@ else
     legend(markerArray,classNames(existingClasses),'TextColor','w','Location','best','FontSize',8,'FontWeight','bold','Box','off')
     %% Saving
     if strcmp(useDefinedClassifier,'n')
-        print('-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
-        savefig(outFilePaths{3,iChan})
-        print('-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified.tif'])
+        print(mapFig,'-depsc2', '-r300', [p.OutputDirectory filesep 'eps' filesep 'FluorescenceChannelWithIdsClassified.eps']);
+        savefig(mapFig,outFilePaths{3,iChan})
+        print(mapFig,'-dtiff', '-loose', '-r300', [p.OutputDirectory filesep 'tif' filesep 'FluorescenceChannelWithIdsClassified.tif'])
         save(outFilePaths{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
 %         tableTracksNA = struct2table(tracksNA);
 %         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 

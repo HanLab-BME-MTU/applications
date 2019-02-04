@@ -401,6 +401,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             funParams.useAutomaticallySelectedData = true;
             funParams.manualLabeling=false;
             funParams.useSimpleClassification=false;
+            funParams.startingDist=2; % in micron
             %% TODO - likely will remove this.
             funParams.backupOldResults = true;           
         end

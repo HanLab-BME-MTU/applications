@@ -77,6 +77,8 @@ set(handles.checkbox_autoLabeling, 'Value', funParams.useAutomaticallySelectedDa
 set(handles.checkbox_manLabeling, 'Value', funParams.manualLabeling);
 set(handles.checkbox_useSimpleFiltering, 'Value', funParams.useSimpleClassification);
 
+set(handles.edit_startingDist, 'String', num2str(funParams.startingDist));
+
 % Update GUI user data
 handles.output = hObject;
 set(hObject, 'UserData', userData);
@@ -136,6 +138,8 @@ funParams.ChannelIndex = get(handles.listbox_selectedChannels, 'Userdata');
 funParams.autoLabeling = get(handles.checkbox_autoLabeling, 'Value');
 funParams.manLabeling = get(handles.checkbox_manLabeling, 'Value');
 funParams.useSimpleClassification = get(handles.checkbox_useSimpleFiltering, 'Value');
+
+funParams.startingDist = str2double(get(handles.edit_startingDist, 'String'));
 
 kk=0;
 labelData=[];

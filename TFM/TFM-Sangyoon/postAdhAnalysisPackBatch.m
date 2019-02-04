@@ -167,12 +167,12 @@ for ii=1:numConditions
     nucleationRatio=cell(N(ii),1);    
     disassemblingNARatio=cell(N(ii),1);   
     
-    meanMedianFAarea=zeros(N(ii),1);
-    meanMedianFAlength=zeros(N(ii),1);
+    allFAareaGroup=cell(N(ii),1);
+    allFAlengthGroup=zeros(N(ii),1);
     meanNumPureFAs=zeros(N(ii),1);
     meanCellArea=zeros(N(ii),1);
-    meanNADensity=zeros(N(ii),1);
-    meanFADensity=zeros(N(ii),1);
+    naDensityAllFrames=cell(N(ii),1);
+    faDensityAllFrames=cell(N(ii),1);
     meanLifeTimeAll=zeros(N(ii),1);
     meanLifeTimeFailingNAs=zeros(N(ii),1);
     meanLifeTimeMaturingNAs=zeros(N(ii),1);
@@ -246,20 +246,21 @@ for ii=1:numConditions
         
         faInfoStruct=load(curAnalProc.outFilePaths_{2,iAdhChan});
         curFocalAdhInfo = faInfoStruct.focalAdhInfo;
-        curMedianFAareaAllFrames = arrayfun(@(x) x.medianFAarea,curFocalAdhInfo);
-        meanMedianFAarea(k) = mean(curMedianFAareaAllFrames);
-        curMedianFAlengthAllFrames = arrayfun(@(x) x.medianLength,curFocalAdhInfo);
-        meanMedianFAlength(k) = mean(curMedianFAlengthAllFrames);
+        allFAareaGroup{k} = cell2mat(arrayfun(@(x) x.area',curFocalAdhInfo,'unif',false));
+%         allFAareaGroup{k} = mean(curAllFAareaAllFrames);
+        allFAlengthGroup{k} = cell2mat(arrayfun(@(x) x.length',curFocalAdhInfo,'unif',false));
+%         curMedianFAlengthAllFrames = arrayfun(@(x) x.medianLength,curFocalAdhInfo);
+%         allFAlengthGroup(k) = mean(curMedianFAlengthAllFrames);
         curNumPureFAs = arrayfun(@(x) x.numberPureFA,curFocalAdhInfo);
         meanNumPureFAs(k) = mean(curNumPureFAs);
         curCellAreas = arrayfun(@(x) x.cellArea,curFocalAdhInfo); % in um2
         meanCellArea(k) = mean(curCellAreas);
         
         nafaStruct=load(curAnalProc.outFilePaths_{3,iAdhChan});
-        curNADensity = nafaStruct.NADensity;
-        meanNADensity(k) = mean(curNADensity);
-        curFADensity = nafaStruct.FADensity;
-        meanFADensity(k) = meanNumPureFAs(k)/meanCellArea(k); % in num/um2
+        naDensityAllFrames{k} = nafaStruct.NADensity;
+%         meanNADensity(k) = mean(curNADensity);
+        faDensityAllFrames{k} = nafaStruct.FADensity;
+%         meanFADensity(k) = meanNumPureFAs(k)/meanCellArea(k); % in num/um2
 
         maturingStruct=load(curAnalProc.outFilePaths_{4,iAdhChan});
         meanLifeTimeAll(k)=mean(maturingStruct.lifeTimeAll);
@@ -436,12 +437,12 @@ for ii=1:numConditions
             end
         end
     end
-    FAareaGroup{ii,1}=meanMedianFAarea;
-    FAlengthGroup{ii,1}=meanMedianFAlength;
+    FAareaGroup{ii,1}=allFAareaGroup;
+    FAlengthGroup{ii,1}=allFAlengthGroup;
     numPureFAsGroup{ii,1}=meanNumPureFAs;
     cellAreaGroup{ii,1}=meanCellArea;
-    NADensityGroup{ii,1}=meanNADensity;
-    FADensityGroup{ii,1}=meanFADensity;
+    NADensityGroup{ii,1}=naDensityAllFrames;
+    FADensityGroup{ii,1}=faDensityAllFrames;
     lifeTimeAllGroup{ii,1}=meanLifeTimeAll;
     lifeTimeFailingNAsGroup{ii,1}=meanLifeTimeFailingNAs;
     lifeTimeMaturingNAsGroup{ii,1}=meanLifeTimeMaturingNAs;
@@ -758,19 +759,33 @@ end
     tableCellArea=table(cellAreaGroup,'RowNames',nameList);
     writetable(tableCellArea,[dataPath filesep 'cellArea.csv'],'WriteRowNames',true)
 %% FA area - 
+    FAareaGroupCell = cellfun(@(x) cell2mat(x),FAareaGroup,'unif',false);
     h1=figure; 
-    boxPlotCellArray(FAareaGroup,nameList,1,false,true);
+    boxPlotCellArray(FAareaGroupCell,nameList,1,false,true);
     ylabel(['Focal adhesion area (um^2)'])
     title(['Focal adhesion area'])
     hgexport(h1,[figPath filesep 'faArea'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'faArea'],'-v7.3')
     print(h1,[figPath filesep 'faArea'],'-dtiff')
 
-    tableFAArea=table(FAareaGroup,'RowNames',nameList);
+    tableFAArea=table(FAareaGroupCell,'RowNames',nameList);
     writetable(tableFAArea,[dataPath filesep 'faArea.csv'],'WriteRowNames',true)
-%% NA density
+%% FA length - 
+    FAlengthGroupCell = cellfun(@(x) cell2mat(x),FAlengthGroup,'unif',false);
     h1=figure; 
-    boxPlotCellArray(NADensityGroup,nameList,1,false,true);
+    boxPlotCellArray(FAlengthGroupCell,nameList,1,false,true);
+    ylabel(['Focal adhesion length (um)'])
+    title(['Focal adhesion length'])
+    hgexport(h1,[figPath filesep 'faLength'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'faLength'],'-v7.3')
+    print(h1,[figPath filesep 'faLength'],'-dtiff')
+
+    tableFALength=table(FAlengthGroupCell,'RowNames',nameList);
+    writetable(tableFALength,[dataPath filesep 'faLength.csv'],'WriteRowNames',true)
+%% NA density
+    NADensityGroupCell = cellfun(@(x) cell2mat(x),NADensityGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(NADensityGroupCell,nameList,1,false,true);
     ylabel(['NA density (#/um^2)'])
     title(['NA density'])
     hgexport(h1,[figPath filesep 'naDensity'],hgexport('factorystyle'),'Format','eps')
@@ -780,9 +795,10 @@ end
     tableNADensity=table(NADensityGroup,'RowNames',nameList);
     writetable(tableNADensity,[dataPath filesep 'naDensity.csv'],'WriteRowNames',true)
 %% FA density
+    FADensityGroupCell = cellfun(@(x) cell2mat(x),FADensityGroup,'unif',false);
     h1=figure; 
-    FADensityGroup=cellfun(@(x,y) x./y,numPureFAsGroup,cellAreaGroup,'unif',false);
-    boxPlotCellArray(FADensityGroup,nameList,1,false,true);
+%     FADensityGroup=cellfun(@(x,y) x./y,numPureFAsGroup,cellAreaGroup,'unif',false);
+    boxPlotCellArray(FADensityGroupCell,nameList,1,false,true);
     ylabel(['FA density (#/um^2)'])
     title(['FA density'])
     hgexport(h1,[figPath filesep 'faDensity'],hgexport('factorystyle'),'Format','eps')
