@@ -158,7 +158,7 @@ for i = p.ChannelIndex
     outFilename = [chanDirName '_Chan' num2str(i) '_idsClassified'];
     outFilePaths{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
 
-    outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
+    outFilename = [chanDirName '_Chan' num2str(i) '_presence'];
     outFilePaths{5,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 
@@ -203,8 +203,8 @@ if p.useSimpleClassification
     save(outFilePaths{1,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3') %This is temporary remedy
     save(outFilePaths{2,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3') %This is temporary remedy
     save(outFilePaths{4,iChan},'idGroup1','idGroup2','idGroup3','idGroup4','idGroup5','idGroup6','idGroup7','idGroup8','idGroup9','-v7.3')
-    tableTracksNA = struct2table(tracksNA);
-    save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3')
+%     tableTracksNA = struct2table(tracksNA);
+%     save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3')
 else
     %% Integration of existing classifier(s)
     nTrainingSets = numel(sampleFolders);
@@ -1126,6 +1126,10 @@ else
 %         tableTracksNA = struct2table(tracksNA);
 %         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 
     end
+    % saving presence
+    s = struct2table(tracksNA);
+    presenceAll = s.presence;
+    save(outFilePaths{5,iChan},'presenceAll')
 end
 disp('Classification Process Done!')
 end
