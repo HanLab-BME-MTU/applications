@@ -1,6 +1,7 @@
 %% open necessary MLs
 MLdirect=false;
 [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
+groupNames=[];
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
     ii=0;
@@ -19,7 +20,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
             end
             groupNames{ii} = finalFolder;
             MLFileNamesAll{ii} = curMLFile;
-            MLNames{ii} = 'movieList.mat';
+            MLNames{ii} = curMLFile;
             MLdirect=true;
         end
     end
@@ -51,9 +52,10 @@ else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
-    for k=1:numel(pathAnalysisAll)
-        MLFileNamesAll{k} = 'movieList.mat';
-    end
+    MLFileNamesAll = selectedFolders.MLNames;%'movieList.mat';
+%     for k=1:numel(pathAnalysisAll)
+%         MLFileNamesAll{k} = selectedFolders.MLNames{k};%'movieList.mat';
+%     end
 end
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
@@ -168,7 +170,7 @@ for ii=1:numConditions
     disassemblingNARatio=cell(N(ii),1);   
     
     allFAareaGroup=cell(N(ii),1);
-    allFAlengthGroup=zeros(N(ii),1);
+    allFAlengthGroup=cell(N(ii),1);
     meanNumPureFAs=zeros(N(ii),1);
     meanCellArea=zeros(N(ii),1);
     naDensityAllFrames=cell(N(ii),1);
@@ -181,10 +183,10 @@ for ii=1:numConditions
     meanMaturingRatioFCtoFA=NaN(N(ii),1);
     lifeTimeFAsAll=cell(N(ii),1);
     meanStableNAFCratio=NaN(N(ii),1);
-    meanAssemRate=zeros(N(ii),1);
-    meanDisassemRate=zeros(N(ii),1);
-    meanNucleatingNARatio=zeros(N(ii),1);
-    meanDisassemNARatio=zeros(N(ii),1);
+    meanAssemRate=cell(N(ii),1);
+    meanDisassemRate=cell(N(ii),1);
+    meanNucleatingNARatio=cell(N(ii),1);
+    meanDisassemNARatio=cell(N(ii),1);
     
     numG1=zeros(N(ii),1);
     numG2=zeros(N(ii),1);
@@ -206,15 +208,15 @@ for ii=1:numConditions
     meanRelativePopG8=zeros(N(ii),1);
     meanRelativePopG9=zeros(N(ii),1);
     
-    meanAdhDensityG1=zeros(N(ii),1);
-    meanAdhDensityG2=zeros(N(ii),1);
-    meanAdhDensityG3=zeros(N(ii),1);
-    meanAdhDensityG4=zeros(N(ii),1);
-    meanAdhDensityG5=zeros(N(ii),1);
-    meanAdhDensityG6=zeros(N(ii),1);
-    meanAdhDensityG7=zeros(N(ii),1);
-    meanAdhDensityG8=zeros(N(ii),1);
-    meanAdhDensityG9=zeros(N(ii),1);
+    meanAdhDensityG1=cell(N(ii),1);
+    meanAdhDensityG2=cell(N(ii),1);
+    meanAdhDensityG3=cell(N(ii),1);
+    meanAdhDensityG4=cell(N(ii),1);
+    meanAdhDensityG5=cell(N(ii),1);
+    meanAdhDensityG6=cell(N(ii),1);
+    meanAdhDensityG7=cell(N(ii),1);
+    meanAdhDensityG8=cell(N(ii),1);
+    meanAdhDensityG9=cell(N(ii),1);
 
     intensitiesInNAs=cell(N(ii),1);   
     intensitiesInFCs=cell(N(ii),1);   
@@ -280,10 +282,10 @@ for ii=1:numConditions
         end
         
         assemRateStruct=load(curAnalProc.outFilePaths_{5,iAdhChan});
-        meanAssemRate(k)=nanmean(assemRateStruct.assemRateCell);
-        meanDisassemRate(k)=nanmean(assemRateStruct.disassemRateCell);
-        meanNucleatingNARatio(k) = mean(assemRateStruct.nucleationRatio);
-        meanDisassemNARatio(k) = mean(assemRateStruct.disassemblingNARatio);
+        meanAssemRate{k}=(assemRateStruct.assemRateCell);
+        meanDisassemRate{k}=(assemRateStruct.disassemRateCell);
+        meanNucleatingNARatio{k} = (assemRateStruct.nucleationRatio);
+        meanDisassemNARatio{k} = (assemRateStruct.disassemblingNARatio);
         
         % get the classification-reated features
         iClassiProc = 8;
@@ -300,6 +302,9 @@ for ii=1:numConditions
         numG8(k) = sum(idsStruct.idGroup8);
         numG4(k) = sum(idsStruct.idGroup4);
         
+        curPresenceStruct = load(classProc.outFilePaths_{5,iAdhChan},'presenceAll');
+        curPresence = curPresenceStruct.presenceAll;
+        
         classiOutFolder = fileparts(classProc.outFilePaths_{4,iAdhChan});
         classiDataFolder = [classiOutFolder filesep 'data'];
         % Mean relative population for each group
@@ -313,15 +318,15 @@ for ii=1:numConditions
         meanRelativePopG8(k) = sum(idsStruct.idGroup8)/length(idsStruct.idGroup1);
         meanRelativePopG9(k) = sum(idsStruct.idGroup9)/length(idsStruct.idGroup1);
         % Mean adh density per each group
-        meanAdhDensityG1(k) = sum(idsStruct.idGroup1)/meanCellArea(k);
-        meanAdhDensityG2(k) = sum(idsStruct.idGroup2)/meanCellArea(k);
-        meanAdhDensityG3(k) = sum(idsStruct.idGroup3)/meanCellArea(k);
-        meanAdhDensityG4(k) = sum(idsStruct.idGroup4)/meanCellArea(k);
-        meanAdhDensityG5(k) = sum(idsStruct.idGroup5)/meanCellArea(k);
-        meanAdhDensityG6(k) = sum(idsStruct.idGroup6)/meanCellArea(k);
-        meanAdhDensityG7(k) = sum(idsStruct.idGroup7)/meanCellArea(k);
-        meanAdhDensityG8(k) = sum(idsStruct.idGroup8)/meanCellArea(k);
-        meanAdhDensityG9(k) = sum(idsStruct.idGroup9)/meanCellArea(k);
+        meanAdhDensityG1{k} = sum(idsStruct.idGroup1 & curPresence)./curCellAreas'; meanAdhDensityG1{k}(1)=[];
+        meanAdhDensityG2{k} = sum(idsStruct.idGroup2 & curPresence)./curCellAreas'; meanAdhDensityG2{k}(1)=[];
+        meanAdhDensityG3{k} = sum(idsStruct.idGroup3 & curPresence)./curCellAreas'; meanAdhDensityG3{k}(1)=[];
+        meanAdhDensityG4{k} = sum(idsStruct.idGroup4 & curPresence)./curCellAreas'; meanAdhDensityG4{k}(1)=[];
+        meanAdhDensityG5{k} = sum(idsStruct.idGroup5 & curPresence)./curCellAreas'; meanAdhDensityG5{k}(1)=[];
+        meanAdhDensityG6{k} = sum(idsStruct.idGroup6 & curPresence)./curCellAreas'; meanAdhDensityG6{k}(1)=[];
+        meanAdhDensityG7{k} = sum(idsStruct.idGroup7 & curPresence)./curCellAreas'; meanAdhDensityG7{k}(1)=[];
+        meanAdhDensityG8{k} = sum(idsStruct.idGroup8 & curPresence)./curCellAreas'; meanAdhDensityG8{k}(1)=[];
+        meanAdhDensityG9{k} = sum(idsStruct.idGroup9 & curPresence)./curCellAreas'; meanAdhDensityG9{k}(1)=[];
 %         % Individual adh density per each group per frame -- I will do
 %         this later SH 11/14/2018
 %         s = struct2table(tracksNA);
@@ -508,9 +513,10 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-if MLdirect
+if MLdirect && isempty(groupNames)
+%     if strcmp(MLFileNamesAll{1}(end-7:end-4),'List')
     groupNames=MLFileNamesAll;
-else
+elseif isempty(groupNames)
     for ii=1:numConditions
         [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
         if isempty(finalFolder)
@@ -737,7 +743,9 @@ meanAdhDensityGroupAll={meanAdhDensityG1Group,meanAdhDensityG2Group,meanAdhDensi
 for curGroup=1:9
     curAdhDenGroup=meanAdhDensityGroupAll{curGroup};
     h1=figure; 
-    boxPlotCellArray(curAdhDenGroup,nameList,1,false,true);
+    curAdhDenGroupCell = cellfun(@(x) cell2mat(x'),curAdhDenGroup,'unif',false);
+
+    boxPlotCellArray(curAdhDenGroupCell,nameList,1,false,true);
     ylabel(['Mean adhesion density in group ' num2str(curGroup) ' (num/um^2)'])
     title(['Mean adhesion density in group ' num2str(curGroup)])
     hgexport(h1,[figPath filesep 'meanAdhDenGroup' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
@@ -865,8 +873,8 @@ end
 %% lifeTimeFAsGroup
     lifeTimeFAsGroupCell = cellfun(@(x) cell2mat(x),lifeTimeFAsGroup,'unif',false);
     h1=figure; 
-%     boxPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60,false,true);
-    barPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60);
+    boxPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60,false,true);
+%     barPlotCellArray(lifeTimeFAsGroupCell,nameList,curMovie.timeInterval_/60);
     ylabel('Life time of FAs (min)')
     title(['Life time of FAs'])
     hgexport(h1,[figPath filesep 'lifeTimeFAs'],hgexport('factorystyle'),'Format','eps')
@@ -877,6 +885,7 @@ end
     writetable(tableStableNAFCratio,[dataPath filesep 'lifeTimeFAs.csv'],'WriteRowNames',true)
 
 %% intensity of the other channel at each adhesion type
+    h1=figure; 
     intensitiesInNAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInNAsGroup,'unif',false);
     intensitiesInFCsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInFCsGroup,'unif',false);
     intensitiesInFAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInFAsGroup,'unif',false);
@@ -904,8 +913,9 @@ end
     tableIntensityTheOther=table(intensityGroupAll,'RowNames',nameListAdhComb);
     writetable(tableIntensityTheOther,[dataPath filesep 'intenTheOtherChannel.csv'],'WriteRowNames',true)    
 %% nucleatingNARatioGroup
+    nucleatingNARatioGroupCell = cellfun(@(x) cell2mat(x),nucleatingNARatioGroup,'unif',false);
     h1=figure; 
-    boxPlotCellArray(nucleatingNARatioGroup,nameList,1,false,true);
+    boxPlotCellArray(nucleatingNARatioGroupCell,nameList,1,false,true);
     ylabel(['nucleating NA Ratio (1)'])
     title(['newly nucleating NA Ratio'])
     hgexport(h1,[figPath filesep 'nucleatingNARatio'],hgexport('factorystyle'),'Format','eps')
@@ -915,8 +925,9 @@ end
     tableNucleatingNARatio=table(nucleatingNARatioGroup,'RowNames',nameList);
     writetable(tableNucleatingNARatio,[dataPath filesep 'nucleatingNARatio.csv'],'WriteRowNames',true)
 %% assemRateGroup
+    assemRateGroupCell = cellfun(@(x) cell2mat(x),assemRateGroup,'unif',false);
     h1=figure; 
-    boxPlotCellArray(assemRateGroup,nameList,1,false,true);
+    boxPlotCellArray(assemRateGroupCell,nameList,1,false,true);
     ylabel(['assemRateGroup (1)'])
     title(['assemRateGroup'])
     hgexport(h1,[figPath filesep 'assemRate'],hgexport('factorystyle'),'Format','eps')
@@ -925,6 +936,18 @@ end
 
     tableAssemRateGroup=table(assemRateGroup,'RowNames',nameList);
     writetable(tableAssemRateGroup,[dataPath filesep 'assemRate.csv'],'WriteRowNames',true)
+%% disassemRateGroup
+    disassemRateGroupCell = cellfun(@(x) cell2mat(x),disassemRateGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(disassemRateGroupCell,nameList,1,false,true);
+    ylabel(['disassemRate (1)'])
+    title(['disassembly rate'])
+    hgexport(h1,[figPath filesep 'disassemRate'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'disassemRate'],'-v7.3')
+    print(h1,[figPath filesep 'disassemRate'],'-dtiff')
+
+    tableDisassemRateGroup=table(disassemRateGroupCell,'RowNames',nameList);
+    writetable(tableDisassemRateGroup,[dataPath filesep 'disassemRate.csv'],'WriteRowNames',true)
 %% Plotting each - peakGroup - all classes - usually not interesting: there is no lag.
 if ~isempty(initRiseProc)
     for curGroup=1:9
