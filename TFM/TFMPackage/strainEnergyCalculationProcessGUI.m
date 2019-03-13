@@ -22,7 +22,7 @@ function varargout = strainEnergyCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help strainEnergyCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 15-May-2017 10:00:14
+% Last Modified by GUIDE v2.5 12-Mar-2019 21:59:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,6 +57,12 @@ set(handles.checkbox_useFOV,'Value',funParams.useFOV);
 set(handles.checkbox_cellMask,'Value',funParams.useCellMask);
 set(handles.checkbox_performForceBlobAnal,'Value',funParams.performForceBlobAnalysis);
 set(handles.checkbox_exportCSV,'Value',funParams.exportCSV);
+if funParams.subcellularTFM
+    set(get(handles.uipanel_subcellularAnal,'Children'),'Enable','on');
+else
+    set(get(handles.uipanel_subcellularAnal,'Children'),'Enable','off');
+end
+set(handles.edit_bandWidth,'Value',funParams.bandWidth);
 
 % Choose default command line output for strainEnergyCalculationProcessGUI
 handles.output = hObject;
@@ -119,6 +125,9 @@ funParams.useCellMask=get(handles.checkbox_cellMask,'Value');
 funParams.performForceBlobAnalysis=get(handles.checkbox_performForceBlobAnal,'Value');
 funParams.exportCSV=get(handles.checkbox_exportCSV,'Value');
 
+funParams.subcellularTFM=get(handles.checkbox_peripheryAnalysis,'Value');
+funParams.bandWidth=get(handles.edit_bandWidth,'Value');
+
 % Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
@@ -152,6 +161,12 @@ function checkbox_cellMask_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+if get(hObject,'Value')
+    enableState='on';
+else
+    enableState='off';    
+end
+set(get(handles.uipanel_subcellularAnal,'Children'),'Enable',enableState);
 % Hint: get(hObject,'Value') returns toggle state of checkbox_cellMask
 
 
@@ -162,3 +177,35 @@ function checkbox_performForceBlobAnal_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_performForceBlobAnal
+
+
+
+function edit_bandWidth_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_bandWidth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_bandWidth as text
+%        str2double(get(hObject,'String')) returns contents of edit_bandWidth as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_bandWidth_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_bandWidth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox_peripheryAnalysis.
+function checkbox_peripheryAnalysis_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_peripheryAnalysis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_peripheryAnalysis

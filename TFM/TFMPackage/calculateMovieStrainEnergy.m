@@ -221,6 +221,8 @@ borderWidth=2*gridSapcing;
 nTopBlobs=150; % the number of top maxForceBlobs in single frames
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 
+bandwidthNA_pix = round(bandwidthNA*1000/movieData.pixelSize_);
+
 logMsg='Quantifying strain energy and total force';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for ii=1:nFrames
@@ -265,6 +267,7 @@ for ii=1:nFrames
     
     if existMask && p.useCellMask
         maskCell = maskProc.loadChannelOutput(iChan,ii);
+
         ref_obj = imref2d(size(maskCell));
         if existSDC
 %             if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
@@ -280,13 +283,33 @@ for ii=1:nFrames
 %             Ibw = padarray(maskCell, [maxY, maxX]);
             maskCell = imwarp(maskCell, Tr,'OutputView',ref_obj);
         end
+        % mask for band from edge
+        iMask = imcomplement(maskCell);
+        distFromEdge = bwdist(iMask);
+        bandMask = distFromEdge <= bandwidthNA_pix;
+
+        maskOnlyBand = bandMask & mask;
+        maskInterior = ~bandMask & mask;
+        areaPeri = sum(maskOnlyBand(:))*areaConvert; % in um2
+        areaInside = sum(maskInterior(:))*areaConvert; % in um2
+
         tMapCell = curTMap(maskCell);
         dMapCell = curDMap(maskCell);
+        tMapCellPeri = curTMap(maskOnlyBand);
+        dMapCellPeri = curDMap(maskOnlyBand);
+        tMapCellInside = curTMap(maskInterior);
+        dMapCellInside = curDMap(maskInterior);
 
         SE_Cell.SE(ii)=1/2*sum(sum(dMapCell.*tMapCell))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
         SE_Cell.area(ii)=sum(maskCell(:))*areaConvert; % this is in um2
         SE_Cell.SEDensity(ii)=SE_Cell.SE(ii)/SE_Cell.area(ii)*1e3; % J/m2
+        SE_Cell.SE_peri(ii)=1/2*sum(sum(dMapCellPeri.*tMapCellPeri))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
+        SE_Cell.SE_inside(ii)=1/2*sum(sum(dMapCellInside.*tMapCellInside))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
+        SE_Cell.SEDensityPeri(ii)=SE_Cell.SE_peri(ii)/areaPeri(ii)*1e3; % J/m2
+        SE_Cell.SEDensityInside(ii)=SE_Cell.SE_inside(ii)/areaInside(ii)*1e3; % J/m2
         totalForceCell(ii) = sum(sum(tMapCell))*areaConvert*1e-3; % in nN
+        totalForceCellPeri(ii) = sum(sum(tMapCellPeri))*areaConvert*1e-3; % in nN
+        totalForceCellInside(ii) = sum(sum(tMapCellInside))*areaConvert*1e-3; % in nN
     end
         
     if p.performForceBlobAnalysis
@@ -344,7 +367,7 @@ end
 logMsg='Saving...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if p.useFOV || 1
-    save(outputFile{1},'SE_FOV','totalForceFOV','-v7.3');
+    save(outputFile{1},'SE_FOV','totalForceFOV');
     if p.exportCSV
         tableSE_FOV=struct2table(SE_FOV);
         writetable(tableSE_FOV,outputFile{4})
@@ -353,7 +376,7 @@ if p.useFOV || 1
     end
 end
 if p.useCellMask
-    save(outputFile{2},'SE_Cell','totalForceCell','-v7.3'); % need to be updated for faster loading. SH 20141106
+    save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri','totalForceCellInside'); % need to be updated for faster loading. SH 20141106
     if p.exportCSV
         tableSE_Cell=struct2table(SE_Cell);
         writetable(tableSE_Cell,outputFile{6})
@@ -362,7 +385,7 @@ if p.useCellMask
     end
 end
 if p.performForceBlobAnalysis
-    save(outputFile{3},'SE_Blobs','totalForceBlobs','-v7.3');
+    save(outputFile{3},'SE_Blobs','totalForceBlobs');
     if p.exportCSV
         tableSE_Blobs=struct2table(SE_Blobs);
         writetable(tableSE_Blobs,outputFile{8})
