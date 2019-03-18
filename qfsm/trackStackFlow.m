@@ -155,18 +155,18 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
-% xI = round(x);
-% yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[257 539]; inqY=[95 240];
-% for ii=1:numel(inqX)
-%     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
-% end
-% inqryPoint=find(inqryLogicInd);
-% inqryPoint=3100;
-% for k = inqryPoint'
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
-parfor k = 1:nPoints
+% parfor k = 1:nPoints
 % for k = 1:nPoints
+xI = round(x);
+yI = round(y); inqryLogicInd=false(size(yI));
+inqX=[510]; inqY=[743];
+for ii=1:numel(inqX)
+    inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
+end
+inqryPoint=find(inqryLogicInd);
+% inqryPoint=3100;
+for k = inqryPoint'
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -805,7 +805,7 @@ avgMinS    = locAvgMinS(1); %Note: this is not global 'minS'. It is the
 % 'baseS' below.
 maxINorm = norm(maxI-zeroI);
 
-if size(locMaxI,1) == 1
+if size(locMaxI,1) <= 2
     sigtVal = [maxS 0 maxS];
     if maxI(1) < m/4 || maxI(1) > 3*m/4 || ...
             maxI(2) < n/4 || maxI(2) > 3*n/4
