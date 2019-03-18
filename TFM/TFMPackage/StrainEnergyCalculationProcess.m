@@ -161,6 +161,9 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
             funParams.performForceBlobAnalysis=true;
             funParams.useFOV=true;
             funParams.useCellMask=true;
+            funParams.subcellularTFM=false;
+            funParams.bandWidth=2; % in micron
+
         end
 %         function units = getUnits(varargin)
 %             units = 'Traction (Pa)';
