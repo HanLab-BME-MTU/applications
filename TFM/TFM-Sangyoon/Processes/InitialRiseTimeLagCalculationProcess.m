@@ -62,9 +62,9 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                 end
                 idSelected=ip.Results.idSelected;
                 if isempty(idSelected)
-                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
+                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA','wantFullTrack',true);
                 else
-                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA','idSelected',idSelected);
+                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA','idSelected',idSelected,'wantFullTrack',true);
                 end
                 % numChans = numel(p.ChannelIndex);
 
