@@ -346,7 +346,7 @@ for j= firstFrame:nFrames
                 cumulativeV_forV=zeros(size(localbeads));
                 cumulativeV_forBeads=zeros(size(localbeads));
             else % Debugging mode
-                localbeads = [362 465; 436 1150];
+                localbeads = [545 880];
                 currentBeads = localbeads; %This will keep updated
             end
         elseif j==firstFrame && firstFrame>1

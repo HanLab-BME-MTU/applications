@@ -99,8 +99,8 @@ x=points(:,1);
 y=points(:,2);
 
 %Initial maximum speed components in both direction.
-initMaxFlowSpd = 5;
-initMaxPerpSpd = 5;
+initMaxFlowSpd = 20;
+initMaxPerpSpd = 20;
 closenessThreshold = 0.5; 
 closenessThresholdpix = 2.5; %changed from 0.25 to account for not-interpolated maxV from 0.25;
 
@@ -354,11 +354,11 @@ parfor k = 1:nPoints
 %                             zeroI = [find(vP2==0) find(vF2==0)];
 %                         end
                         if max(length(vF),length(vP))>321 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.2);
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.4); %sigCrit+0.4 should not more than, or equal to, 1.
                         elseif max(length(vF),length(vP))>161 %applying more generous threshold for higher velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.1);
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.3);
                         elseif max(length(vF),length(vP))>81 %applying more generous threshold for higher velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.1);
                         else
                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
                         end
