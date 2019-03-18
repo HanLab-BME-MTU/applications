@@ -203,7 +203,7 @@ parfor k = 1:nPoints
         
         %Flag that indicates the quality of the score.
         pass = 0;
-        while pass == 0 && maxFlowSpd < maxSpdLimit && maxPerpSpd < maxSpdLimit
+        while pass <= 0 && maxFlowSpd < maxSpdLimit && maxPerpSpd < maxSpdLimit
             %If the quality of the score function is not good enough (pass == 0),
             % we increase the max sampling speed until the limit is reached.
             if noGradualExpansionOfSearchArea %strcmp(mode,'accurate')
@@ -483,8 +483,8 @@ parfor k = 1:nPoints
         if pass <= 0
             if corL == maxCorL
                 corL = Inf;
-%             else
-%                 corL = min(maxCorL,odd(corL*3/2));%floor(corL*3/2));
+            else
+                corL = min(maxCorL,odd(corL*3/2));%floor(corL*3/2));
             end
         end
     end
@@ -492,6 +492,7 @@ parfor k = 1:nPoints
     if pass <= 0
         maxV = [NaN NaN];
         sigtVal = [NaN NaN NaN];
+        corL = Inf;
     elseif pass == 1
         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
     end

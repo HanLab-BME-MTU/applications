@@ -184,7 +184,7 @@ tic;
 
 % Perform sub-pixel registration
 if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
-debuggingMode = false; % default should b false. If you want use it, change currentBeads at line 349
+debuggingMode = false; %true; % default should be false. If you want use it, change currentBeads at line 349
 for j= firstFrame:nFrames
     % Read image and perform correlation
     if ~isempty(SDCProc)
@@ -346,7 +346,7 @@ for j= firstFrame:nFrames
                 cumulativeV_forV=zeros(size(localbeads));
                 cumulativeV_forBeads=zeros(size(localbeads));
             else % Debugging mode
-                localbeads = [510 743];
+                localbeads = [362 465; 436 1150];
                 currentBeads = localbeads; %This will keep updated
             end
         elseif j==firstFrame && firstFrame>1
