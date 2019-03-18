@@ -156,17 +156,17 @@ if isempty(gcp('nocreate'))
 end % we don't need this any more.
 
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
-% parfor k = 1:nPoints
+parfor k = 1:nPoints
 % for k = 1:nPoints
-xI = round(x);
-yI = round(y); inqryLogicInd=false(size(yI));
-inqX=[510]; inqY=[743];
-for ii=1:numel(inqX)
-    inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
-end
-inqryPoint=find(inqryLogicInd);
-% inqryPoint=3100;
-for k = inqryPoint'
+% xI = round(x);
+% yI = round(y); inqryLogicInd=false(size(yI));
+% inqX=[510]; inqY=[743];
+% for ii=1:numel(inqX)
+%     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
+% end
+% inqryPoint=find(inqryLogicInd);
+% % inqryPoint=3100;
+% for k = inqryPoint'
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -179,7 +179,7 @@ for k = inqryPoint'
     corL = minCorL;
     
     pass = 0;
-    while pass == 0 && corL <= maxCorL
+    while pass <= 0 && corL <= maxCorL
         
         %Create kymograph around each point. 'bandDir' is used as the direction
         % of the kymographed line.
@@ -805,11 +805,11 @@ avgMinS    = locAvgMinS(1); %Note: this is not global 'minS'. It is the
 % 'baseS' below.
 maxINorm = norm(maxI-zeroI);
 
-if size(locMaxI,1) <= 2
+if size(locMaxI,1) == 1
     sigtVal = [maxS 0 maxS];
     if maxI(1) < m/4 || maxI(1) > 3*m/4 || ...
             maxI(2) < n/4 || maxI(2) > 3*n/4
-        pass = 0;
+        pass = -1;
     else
         pass = 1;
     end
@@ -886,9 +886,9 @@ elseif length(locMaxS) > 1
     return;
 end
 
-if maxI(1) < min(m/20,2*minFeatureRadius) || maxI(1) > max(19*m/20,m-2*minFeatureRadius) || ...
-        maxI(2) < min(n/20,2*minFeatureRadius) || maxI(2) > max(19*n/20, n-2*minFeatureRadius)
-    pass = 0;
+if maxI(1) < min(m/4,2*minFeatureRadius) || maxI(1) > max(3*m/4,m-2*minFeatureRadius) || ...
+        maxI(2) < min(n/4,2*minFeatureRadius) || maxI(2) > max(3*n/4, n-2*minFeatureRadius)
+    pass = -1;
     return;
 end
 
