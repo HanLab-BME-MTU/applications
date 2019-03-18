@@ -480,22 +480,22 @@ parfor k = 1:nPoints
             end
         end
         
-        if pass == 0
+        if pass <= 0
             if corL == maxCorL
                 corL = Inf;
-            else
-                corL = min(maxCorL,odd(corL*3/2));%floor(corL*3/2));
+%             else
+%                 corL = min(maxCorL,odd(corL*3/2));%floor(corL*3/2));
             end
         end
     end
     
-    if pass == 0
+    if pass <= 0
         maxV = [NaN NaN];
         sigtVal = [NaN NaN NaN];
     elseif pass == 1
         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
     end
-    if pass && strcmp(mode,'accurate')
+    if pass>=1 && strcmp(mode,'accurate')
         % subpixel continuous correlation score. This is more accurate than
         % interpolation from discrete scores - Sangyoon
         %         if norm(maxV)<1 && norm(maxV)>1e-5
@@ -616,7 +616,7 @@ parfor k = 1:nPoints
         
         maxV = maxVmagnified/refineFactor;
     end
-    if pass && strcmp(mode,'CCWS')
+    if pass>=1 && strcmp(mode,'CCWS')
         refineRange = 1; % in pixel
         maxIterCCWS = 4;
         oldmaxV = [1e6 1e6];
