@@ -155,16 +155,16 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
+% inqryPoint=3100;
+if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[257 539]; inqY=[95 240];
+% inqX=[527]; inqY=[565];
 % for ii=1:numel(inqX)
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
 % inqryPoint=find(inqryLogicInd);
-% inqryPoint=3100;
 % for k = inqryPoint'
-if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 parfor k = 1:nPoints
 % for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);

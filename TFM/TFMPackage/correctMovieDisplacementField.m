@@ -196,49 +196,56 @@ if p.fillVectors
         end
         nTracked=1000; 
         nFailed=0;
+        thresDist=15;
         for k=1:nFillingTries
             % only un-tracked vectors
             unTrackedBeads=isnan(displField(j).vec(:,1));
             ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
-            if ratioUntracked<0.0000001 || (nTracked==0 && nFailed>10)
+            if ratioUntracked<0.0000001 || (nTracked==0 && nFailed>3)
                 break
             end
             currentBeads = displField(j).pos(unTrackedBeads,:);
             neighborBeads = displField(j).pos(~unTrackedBeads,:);
             neighborVecs = displField(j).vec(~unTrackedBeads,:);
             % Get neighboring vectors from these vectors (meanNeiVecs)
-            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
+%             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
+            [idx,dist] = KDTreeClosestPoint(neighborBeads, currentBeads); % Increasing search radius with further iteration
 %             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (2-1.5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
-            % In case of empty idx, search with larger radius.
-            emptyCases = cellfun(@isempty,idx);
-            mulFactor=1;
-            while any(emptyCases)
-                mulFactor=mulFactor+0.5;
-                idxEmpty = KDTreeBallQuery(neighborBeads, currentBeads(emptyCases,:), mulFactor*(1+5*k/nFillingTries)*neighborhood_distance(j));
-                idx(emptyCases)=idxEmpty;
-                emptyCases = cellfun(@isempty,idx);
-            end
+%             % In case of empty idx, search with larger radius.
+%             emptyCases = cellfun(@isempty,idx);
+%             mulFactor=1;
+%             while any(emptyCases)
+%                 mulFactor=mulFactor+0.5;
+%                 idxEmpty = KDTreeBallQuery(neighborBeads, currentBeads(emptyCases,:), mulFactor*(1+5*k/nFillingTries)*neighborhood_distance(j));
+%                 idx(emptyCases)=idxEmpty;
+%                 emptyCases = cellfun(@isempty,idx);
+%             end
             % Subsample idx to reduce computing time
-            % Calculate the subsampling rate
-            leap = cellfun(@(x) max(1,round(length(x)/100)),idx,'Unif',false);
-            idx = cellfun(@(x,y) x(1:y:end,1),idx,leap,'Unif',false);
-            closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
+%             % Calculate the subsampling rate
+%             leap = cellfun(@(x) max(1,round(length(x)/100)),idx,'Unif',false);
+%             idx = cellfun(@(x,y) x(1:y:end,1),idx,leap,'Unif',false);
+%             closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
+            closeNeiVecs = arrayfun(@(x) neighborVecs(x,:),idx,'Unif',false);
+            idCloseEnough = dist<thresDist;
+            v=NaN(sum(unTrackedBeads),2);
         %     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
 
-            [v,nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads,...
+            [v(idCloseEnough,:),nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads(idCloseEnough,:),...
                 pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
-                'mode',pStep2.mode,'hardCandidates',closeNeiVecs,'magDiffThreshold',p.magDiffThreshold,...
-                'angDiffThreshold',p.angDiffThreshold);%,'usePIVSuite', pStep2.usePIVSuite);
+                'mode',pStep2.mode,'hardCandidates',closeNeiVecs(idCloseEnough),'magDiffThreshold',p.magDiffThreshold,...
+                'angDiffThreshold',p.angDiffThreshold, 'hardCandidateDists', dist(idCloseEnough));%,'usePIVSuite', pStep2.usePIVSuite);
             if nTracked==0
                 nFailed=nFailed+1;
+                thresDist=thresDist+5;
             else
                 nFailed=0;
+                thresDist=15;
             end
 
-            figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
-            hold on
-            plot(currentBeads(:,1),currentBeads(:,2),'ro')
-            quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'m')
+%             figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
+%             hold on
+%             plot(currentBeads(:,1),currentBeads(:,2),'ro')
+%             quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'m')
         %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
             displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
         end
