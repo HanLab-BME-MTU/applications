@@ -52,11 +52,12 @@ classdef TFMPackage < Package
         
         function m = getDependencyMatrix(i,j)
   
-            m = [0 0 0 0 0;   %1 StageDriftCorrectionProcess [optional]
-                 2 0 0 0 0;   %2 DisplacementFieldCalculationProcess
-                 0 1 0 0 0;   %3 DisplacementFieldCorrectionProcess [optional]
-                 0 1 2 0 0;   %4 ForceFieldCalculationProcess
-                 0 1 2 1 0];  %5 StrainEnergyCalculationProcess
+            m = [0 0 0 0 0 0;   %1 StageDriftCorrectionProcess [optional]
+                 2 0 0 0 0 0;   %2 DisplacementFieldCalculationProcess
+                 0 1 0 0 0 0;   %3 DisplacementFieldCorrectionProcess [optional]
+                 0 1 2 0 0 0;   %4 ForceFieldCalculationProcess
+                 0 1 2 1 2 0;   %5 StrainEnergyCalculationProcess [optional]
+                 0 1 2 1 0 2];  %6 OutputTFMProcess [optional]
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
             m=m(i,j);
@@ -73,7 +74,8 @@ classdef TFMPackage < Package
                 @DisplacementFieldCalculationProcess,...
                 @DisplacementFieldCorrectionProcess,...
                 @ForceFieldCalculationProcess,...
-                @StrainEnergyCalculationProcess};
+                @StrainEnergyCalculationProcess,...
+                @OutputTFMProcess};
             
             if nargin==0, index=1:numel(TFMProcConstr); end
             procConstr=TFMProcConstr(index);
@@ -84,7 +86,8 @@ classdef TFMPackage < Package
                 'DisplacementFieldCalculationProcess',...
                 'DisplacementFieldCorrectionProcess',...
                 'ForceFieldCalculationProcess',...
-                'StrainEnergyCalculationProcess'};
+                'StrainEnergyCalculationProcess'...
+                'OutputTFMProcess'};
             if nargin==0, index=1:numel(TFMClasses); end
             classes=TFMClasses(index);
         end

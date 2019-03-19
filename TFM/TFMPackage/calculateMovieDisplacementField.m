@@ -184,7 +184,7 @@ tic;
 
 % Perform sub-pixel registration
 if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
-
+debuggingMode = false; %true; % default should be false. If you want use it, change currentBeads at line 349
 for j= firstFrame:nFrames
     % Read image and perform correlation
     if ~isempty(SDCProc)
@@ -215,135 +215,140 @@ for j= firstFrame:nFrames
 %                     end
 %                 end
 %             end % we don't need this any more.
-            psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
-            if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
-                if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-                    psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-                elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-                    psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-                elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-                    psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-                else
-                    error('image type should be chosen among Widefield, confocal and TIRF!');
-                end
-            end
-            disp(['Determined sigma: ' num2str(psfSigma)])
-
-            disp('Detecting beads in the reference frame...')
-            pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
-            assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
-            % filtering out points in saturated image based on pstruct.c
-            [N,edges]= histcounts(pstruct.c);
-            % starting with median, find a edge disconnected with two consequtive
-            % zeros.
-            medC = median(pstruct.c);
-            idxAfterMedC=find(edges>medC);
-            qq=idxAfterMedC(1);
-            while N(qq)>0 || N(qq+1)>0
-                qq=qq+1;
-                if qq>=length(edges)-1
-                    break
-                end
-            end
-            idx = pstruct.c<edges(qq);
-            beads = [round(pstruct.x(idx)') round(pstruct.y(idx)')];
-            %     beads = [ceil(pstruct.x') ceil(pstruct.y')];
-
-            % Subsample detected beads ensuring beads are separated by at least half of
-            % the correlation length - commented out to get more beads
-            if ~p.highRes
-                disp('Subsampling detected beads (normal resolution)...')
-                max_beads_distance = floor(p.minCorLength/2);
-            else
-                % To get high-resolution information, subsample detected beads ensuring 
-                % beads are separated by 0.1 um the correlation length 
-                disp('Subsampling detected beads (high resolution)...')
-                max_beads_distance = (100/movieData.pixelSize_);
-            end
-
-            idx = KDTreeBallQuery(beads, beads, max_beads_distance);
-            valid = true(numel(idx),1);
-            for i = 1 : numel(idx)
-                if ~valid(i), continue; end
-                neighbors = idx{i}(idx{i} ~= i);
-                valid(neighbors) = false;
-            end
-            beads = beads(valid, :);
-            % It doesn't critically require local maximal pixel to start
-            % x-correlation-based tracking. Thus, to increase spatial resolution,
-            % we add additional points in the mid points of pstruct
-            % We first randomly distribute point, and if it is not too close to
-            % existing points and the intensity of the point is above a half of the
-            % existing points, include the point into the point set
-            if addNonLocMaxBeads
-                disp('Finding additional non-local-maximal points with high intensity ...')
-                distance=zeros(length(beads),1);
-                for i=1:length(beads)
-                    neiBeads = beads;
-                    neiBeads(i,:)=[];
-                    [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
-                end
-                avg_beads_distance = quantile(distance,0.5);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
-                notSaturated = true;
-                xmin = min(pstruct.x);
-                xmax = max(pstruct.x);
-                ymin = min(pstruct.y);
-                ymax = max(pstruct.y);
-            %     avgAmp = mean(pstruct.A);
-            %     avgBgd = mean(pstruct.c);
-            %     thresInten = avgBgd+0.02*avgAmp;
-%                 thresInten = quantile(pstruct.c,0.25);
-                thresInten = quantile(pstruct.c,0.5); % try to pick up bright-enough spots
-                maxNumNotDetected = 20; % the number of maximum trial without detecting possible point
-                numNotDetected = 0;
-                numPrevBeads = size(beads,1);
-                % To avoid camera noise, Gaussian-filtered image will be
-                % used - SH 20171010
-                refFrameFiltered = filterGauss2D(refFrame,psfSigma*0.9);
-                tic
-                while notSaturated
-                    x_new = xmin + (xmax-xmin)*rand(10000,1);
-                    y_new = ymin + (ymax-ymin)*rand(10000,1);
-                    [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
-                    inten_new = arrayfun(@(x,y) refFrameFiltered(round(y),round(x)),x_new,y_new);
-                    idWorthAdding = distToPoints>avg_beads_distance & inten_new>thresInten;
-                    if sum(idWorthAdding)>1
-                        beads = [beads; [x_new(idWorthAdding), y_new(idWorthAdding)]];
-                        numNotDetected = 0;
+            if ~debuggingMode
+                psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
+                if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
+                    if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+                        psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+                    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+                        psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+                    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+                        psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
                     else
-                        numNotDetected=numNotDetected+1;
-                    end
-                    if numNotDetected>maxNumNotDetected
-                        notSaturated = false; % this means now we have all points to start tracking from the image
+                        error('image type should be chosen among Widefield, confocal and TIRF!');
                     end
                 end
-                toc
-                disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking. Total detected beads: ' num2str(length(beads))])
+                disp(['Determined sigma: ' num2str(psfSigma)])
+
+                disp('Detecting beads in the reference frame...')
+                pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
+                assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
+                % filtering out points in saturated image based on pstruct.c
+                [N,edges]= histcounts(pstruct.c);
+                % starting with median, find a edge disconnected with two consequtive
+                % zeros.
+                medC = median(pstruct.c);
+                idxAfterMedC=find(edges>medC);
+                qq=idxAfterMedC(1);
+                while N(qq)>0 || N(qq+1)>0
+                    qq=qq+1;
+                    if qq>=length(edges)-1
+                        break
+                    end
+                end
+                idx = pstruct.c<edges(qq);
+                beads = [round(pstruct.x(idx)') round(pstruct.y(idx)')];
+                %     beads = [ceil(pstruct.x') ceil(pstruct.y')];
+
+                % Subsample detected beads ensuring beads are separated by at least half of
+                % the correlation length - commented out to get more beads
+                if ~p.highRes
+                    disp('Subsampling detected beads (normal resolution)...')
+                    max_beads_distance = floor(p.minCorLength/2);
+                else
+                    % To get high-resolution information, subsample detected beads ensuring 
+                    % beads are separated by 0.1 um the correlation length 
+                    disp('Subsampling detected beads (high resolution)...')
+                    max_beads_distance = (100/movieData.pixelSize_);
+                end
+
+                idx = KDTreeBallQuery(beads, beads, max_beads_distance);
+                valid = true(numel(idx),1);
+                for i = 1 : numel(idx)
+                    if ~valid(i), continue; end
+                    neighbors = idx{i}(idx{i} ~= i);
+                    valid(neighbors) = false;
+                end
+                beads = beads(valid, :);
+                % It doesn't critically require local maximal pixel to start
+                % x-correlation-based tracking. Thus, to increase spatial resolution,
+                % we add additional points in the mid points of pstruct
+                % We first randomly distribute point, and if it is not too close to
+                % existing points and the intensity of the point is above a half of the
+                % existing points, include the point into the point set
+                if addNonLocMaxBeads
+                    disp('Finding additional non-local-maximal points with high intensity ...')
+                    distance=zeros(length(beads),1);
+                    for i=1:length(beads)
+                        neiBeads = beads;
+                        neiBeads(i,:)=[];
+                        [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
+                    end
+                    avg_beads_distance = quantile(distance,0.5);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+                    notSaturated = true;
+                    xmin = min(pstruct.x);
+                    xmax = max(pstruct.x);
+                    ymin = min(pstruct.y);
+                    ymax = max(pstruct.y);
+                %     avgAmp = mean(pstruct.A);
+                %     avgBgd = mean(pstruct.c);
+                %     thresInten = avgBgd+0.02*avgAmp;
+    %                 thresInten = quantile(pstruct.c,0.25);
+                    thresInten = quantile(pstruct.c,0.5); % try to pick up bright-enough spots
+                    maxNumNotDetected = 20; % the number of maximum trial without detecting possible point
+                    numNotDetected = 0;
+                    numPrevBeads = size(beads,1);
+                    % To avoid camera noise, Gaussian-filtered image will be
+                    % used - SH 20171010
+                    refFrameFiltered = filterGauss2D(refFrame,psfSigma*0.9);
+                    tic
+                    while notSaturated
+                        x_new = xmin + (xmax-xmin)*rand(10000,1);
+                        y_new = ymin + (ymax-ymin)*rand(10000,1);
+                        [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
+                        inten_new = arrayfun(@(x,y) refFrameFiltered(round(y),round(x)),x_new,y_new);
+                        idWorthAdding = distToPoints>avg_beads_distance & inten_new>thresInten;
+                        if sum(idWorthAdding)>1
+                            beads = [beads; [x_new(idWorthAdding), y_new(idWorthAdding)]];
+                            numNotDetected = 0;
+                        else
+                            numNotDetected=numNotDetected+1;
+                        end
+                        if numNotDetected>maxNumNotDetected
+                            notSaturated = false; % this means now we have all points to start tracking from the image
+                        end
+                    end
+                    toc
+                    disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking. Total detected beads: ' num2str(length(beads))])
+                end
+                % Exclude all beads which are less  than half the correlation length 
+                % away from the padded border. By default, no centered template should 
+                % include any NaN's for correlation
+                % Create beads mask with zero intensity points as false
+                beadsMask = firstMask; %true(size(refFrame));
+                % beadsMask(currImage==0)=false;
+                % Remove false regions non-adjacent to the image border
+                beadsMask = beadsMask | imclearborder(~beadsMask);
+                %         % Erode the mask with half the correlation length and filter beads
+                %         erosionDist=round((p.minCorLength+1)/2);
+                % Erode the mask with the correlation length + half maxFlowSpeed
+                % and filter beads to minimize error
+                if p.noFlowOutwardOnBorder
+                    erosionDist=(p.minCorLength+1);
+                else
+                    erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
+                end            
+                beadsMask=bwmorph(beadsMask,'erode',erosionDist);
+                %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
+                indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
+                localbeads = beads(indx,:);
+                currentBeads = localbeads; %This will keep updated
+                cumulativeV_forV=zeros(size(localbeads));
+                cumulativeV_forBeads=zeros(size(localbeads));
+            else % Debugging mode
+                localbeads = [545 880];
+                currentBeads = localbeads; %This will keep updated
             end
-            % Exclude all beads which are less  than half the correlation length 
-            % away from the padded border. By default, no centered template should 
-            % include any NaN's for correlation
-            % Create beads mask with zero intensity points as false
-            beadsMask = firstMask; %true(size(refFrame));
-            % beadsMask(currImage==0)=false;
-            % Remove false regions non-adjacent to the image border
-            beadsMask = beadsMask | imclearborder(~beadsMask);
-            %         % Erode the mask with half the correlation length and filter beads
-            %         erosionDist=round((p.minCorLength+1)/2);
-            % Erode the mask with the correlation length + half maxFlowSpeed
-            % and filter beads to minimize error
-            if p.noFlowOutwardOnBorder
-                erosionDist=(p.minCorLength+1);
-            else
-                erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
-            end            
-            beadsMask=bwmorph(beadsMask,'erode',erosionDist);
-            %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
-            indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
-            localbeads = beads(indx,:);
-            currentBeads = localbeads; %This will keep updated
-            cumulativeV_forV=zeros(size(localbeads));
-            cumulativeV_forBeads=zeros(size(localbeads));
         elseif j==firstFrame && firstFrame>1
             localbeads = displField(j-1).pos;
             currentBeads = localbeads; %This will keep updated

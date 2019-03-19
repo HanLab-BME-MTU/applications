@@ -99,8 +99,8 @@ x=points(:,1);
 y=points(:,2);
 
 %Initial maximum speed components in both direction.
-initMaxFlowSpd = 5;
-initMaxPerpSpd = 5;
+initMaxFlowSpd = 20;
+initMaxPerpSpd = 20;
 closenessThreshold = 0.5; 
 closenessThresholdpix = 2.5; %changed from 0.25 to account for not-interpolated maxV from 0.25;
 
@@ -155,17 +155,17 @@ if isempty(gcp('nocreate'))
     end
 end % we don't need this any more.
 
-% inqryPoint=3100;
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
+parfor k = 1:nPoints
+% for k = 1:nPoints
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[527]; inqY=[565];
+% inqX=[510]; inqY=[743];
 % for ii=1:numel(inqX)
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
 % inqryPoint=find(inqryLogicInd);
 % for k = inqryPoint'
-parfor k = 1:nPoints
 % for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
@@ -179,7 +179,7 @@ parfor k = 1:nPoints
     corL = minCorL;
     
     pass = 0;
-    while pass == 0 && corL <= maxCorL
+    while pass <= 0 && corL <= maxCorL
         
         %Create kymograph around each point. 'bandDir' is used as the direction
         % of the kymographed line.
@@ -203,7 +203,7 @@ parfor k = 1:nPoints
         
         %Flag that indicates the quality of the score.
         pass = 0;
-        while pass == 0 && maxFlowSpd < maxSpdLimit && maxPerpSpd < maxSpdLimit
+        while pass <= 0 && maxFlowSpd < maxSpdLimit && maxPerpSpd < maxSpdLimit
             %If the quality of the score function is not good enough (pass == 0),
             % we increase the max sampling speed until the limit is reached.
             if noGradualExpansionOfSearchArea %strcmp(mode,'accurate')
@@ -354,11 +354,11 @@ parfor k = 1:nPoints
 %                             zeroI = [find(vP2==0) find(vF2==0)];
 %                         end
                         if max(length(vF),length(vP))>321 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.2);
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.4); %sigCrit+0.4 should not more than, or equal to, 1.
                         elseif max(length(vF),length(vP))>161 %applying more generous threshold for higher velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.1);
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.3);
                         elseif max(length(vF),length(vP))>81 %applying more generous threshold for higher velocity
-                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit+0.1);
                         else
                             [pass2,maxI2] = findMaxScoreI(score2,zeroI2,minFeatureSize,sigCrit);
                         end
@@ -480,7 +480,7 @@ parfor k = 1:nPoints
             end
         end
         
-        if pass == 0
+        if pass <= 0
             if corL == maxCorL
                 corL = Inf;
             else
@@ -489,13 +489,14 @@ parfor k = 1:nPoints
         end
     end
     
-    if pass == 0
+    if pass <= 0
         maxV = [NaN NaN];
         sigtVal = [NaN NaN NaN];
+        corL = Inf;
     elseif pass == 1
         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
     end
-    if pass && strcmp(mode,'accurate')
+    if pass>=1 && strcmp(mode,'accurate')
         % subpixel continuous correlation score. This is more accurate than
         % interpolation from discrete scores - Sangyoon
         %         if norm(maxV)<1 && norm(maxV)>1e-5
@@ -616,7 +617,7 @@ parfor k = 1:nPoints
         
         maxV = maxVmagnified/refineFactor;
     end
-    if pass && strcmp(mode,'CCWS')
+    if pass>=1 && strcmp(mode,'CCWS')
         refineRange = 1; % in pixel
         maxIterCCWS = 4;
         oldmaxV = [1e6 1e6];
@@ -809,7 +810,7 @@ if size(locMaxI,1) == 1
     sigtVal = [maxS 0 maxS];
     if maxI(1) < m/4 || maxI(1) > 3*m/4 || ...
             maxI(2) < n/4 || maxI(2) > 3*n/4
-        pass = 0;
+        pass = -1;
     else
         pass = 1;
     end
@@ -886,9 +887,9 @@ elseif length(locMaxS) > 1
     return;
 end
 
-if maxI(1) < min(m/20,2*minFeatureRadius) || maxI(1) > max(19*m/20,m-2*minFeatureRadius) || ...
-        maxI(2) < min(n/20,2*minFeatureRadius) || maxI(2) > max(19*n/20, n-2*minFeatureRadius)
-    pass = 0;
+if maxI(1) < min(m/4,2*minFeatureRadius) || maxI(1) > max(3*m/4,m-2*minFeatureRadius) || ...
+        maxI(2) < min(n/4,2*minFeatureRadius) || maxI(2) > max(3*n/4, n-2*minFeatureRadius)
+    pass = -1;
     return;
 end
 

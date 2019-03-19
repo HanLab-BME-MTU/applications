@@ -203,7 +203,11 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                         save(obj.outFilePaths_{1,iChan},'metaTrackData')
                     end
                 end
-                s = struct2table(tracksNA);
+                if numel(tracksNA)==1
+                    s = struct2table(tracksNA,'AsArray',true);
+                else
+                    s = struct2table(tracksNA);
+                end
                 xCoord = s.xCoord;
                 yCoord = s.yCoord;
                 startingFrameExtra = s.startingFrameExtra;
@@ -214,13 +218,17 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                 % refineID_for_everyFramesInvolved. So for each track (each
                 % row), I'll make each raw a full frame entries although it
                 % is a bit memory intensive
-                maxFrame = max(cellfun(@length,refineFAID_cell));
-                insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
-                for k=find(insuffRows')
-                    refineFAID_cell{k} = [refineFAID_cell{k} ...
-                                NaN(1,maxFrame-length(refineFAID_cell{k}))];
+                if numel(tracksNA)==1
+                    refineFAID = refineFAID_cell;
+                else
+                    maxFrame = max(cellfun(@length,refineFAID_cell));
+                    insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
+                    for k=find(insuffRows')
+                        refineFAID_cell{k} = [refineFAID_cell{k} ...
+                                    NaN(1,maxFrame-length(refineFAID_cell{k}))];
+                    end
+                    refineFAID = cell2mat(refineFAID_cell);
                 end
-                refineFAID = cell2mat(refineFAID_cell);
                 lastFinishTime = obj.finishTime_;
             end
             

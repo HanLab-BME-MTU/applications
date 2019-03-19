@@ -543,7 +543,7 @@ if ~isempty(initRiseProc)
         print(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-dtiff')
 
         tableHalfBccGroup=table(initRiseGroupEach,'RowNames',nameList);
-        writetable(tableHalfBccGroup,[dataPath filesep 'initialRizeG' num2str(curGroup) '.csv'])
+        writetable(tableHalfBccGroup,[dataPath filesep 'initialRizeG' num2str(curGroup) '.csv'],'WriteRowNames',true)
     end
 end
 %% halfBccTime
@@ -559,7 +559,7 @@ if ~isempty(initRiseProc)
         print(h1,[figPath filesep 'halfBccGroup' num2str(curGroup)],'-dtiff')
 
         tableHalfBccGroup=table(halfBccGroupEach,'RowNames',nameList);
-        writetable(tableHalfBccGroup,[dataPath filesep 'halfBccGroup' num2str(curGroup) '.csv'])
+        writetable(tableHalfBccGroup,[dataPath filesep 'halfBccGroup' num2str(curGroup) '.csv'],'WriteRowNames',true)
     end
 end
 %% earlyAmpSlope
@@ -575,7 +575,7 @@ if ~isempty(initRiseProc)
         print(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],'-dtiff')
 
         tableEarlyAmpSlope=table(earlyAmpSlopeGroupEach,'RowNames',nameList);
-        writetable(tableEarlyAmpSlope,[dataPath filesep 'earlyAmpSlope' num2str(curGroup) '.csv'])
+        writetable(tableEarlyAmpSlope,[dataPath filesep 'earlyAmpSlope' num2str(curGroup) '.csv'],'WriteRowNames',true)
     end
 end
 %% earlyAmpSlope - G1G2 only
@@ -622,7 +622,7 @@ if ~isempty(initRiseProc)
         print(h1,[figPath filesep 'earlyForceSlope' num2str(curGroup)],'-dtiff')
 
         tableEarlyForceSlope=table(earlyForceSlopeGroupEach,'RowNames',nameList);
-        writetable(tableEarlyForceSlope,[dataPath filesep 'earlyForceSlope' num2str(curGroup) '.csv'])
+        writetable(tableEarlyForceSlope,[dataPath filesep 'earlyForceSlope' num2str(curGroup) '.csv'],'WriteRowNames',true)
     end
 end
 %% earlyForceSlope - G1G2 only
@@ -704,7 +704,7 @@ for curGroup=1:2
     hgsave(h1,[figPath filesep 'numGroup' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'numGroup' num2str(curGroup)],'-dtiff')
     tableAdhNumGroupEach=table(curNumGroup,'RowNames',nameList);
-    writetable(tableAdhNumGroupEach,[dataPath filesep 'numGroup' num2str(curGroup) '.csv'])
+    writetable(tableAdhNumGroupEach,[dataPath filesep 'numGroup' num2str(curGroup) '.csv'],'WriteRowNames',true)
 end
 %% meanRelative population
 meanRelPopGroupAll={meanRelativePopG1Group,meanRelativePopG2Group,meanRelativePopG3Group,...
@@ -721,7 +721,7 @@ for curGroup=1:9
     print(h1,[figPath filesep 'meanRelPopGroup' num2str(curGroup)],'-dtiff')
 
     tableMeanPopGroupEach=table(curmeanPopGroup,'RowNames',nameList);
-    writetable(tableMeanPopGroupEach,[dataPath filesep 'meanRelPopGroup' num2str(curGroup) '.csv'])
+    writetable(tableMeanPopGroupEach,[dataPath filesep 'meanRelPopGroup' num2str(curGroup) '.csv'],'WriteRowNames',true)
 end
 %% RAtio between g1 and g2
 ratioG1G2=cellfun(@(x,y) y./x,meanRelativePopG1Group,meanRelativePopG2Group,'unif',false);
@@ -734,7 +734,7 @@ hgsave(h1,[figPath filesep 'meanRelPopG2overG1'],'-v7.3')
 print(h1,[figPath filesep 'meanRelPopG2overG1'],'-dtiff')
 
 tableRelPopG2overG1=table(ratioG1G2,'RowNames',nameList);
-writetable(tableRelPopG2overG1,[dataPath filesep 'meanRelPopG2overG1' num2str(curGroup) '.csv'])
+writetable(tableRelPopG2overG1,[dataPath filesep 'meanRelPopG2overG1' num2str(curGroup) '.csv'],'WriteRowNames',true)
 
 %% mean adhesion density - significantly higher NA density in WT compared to R8
 meanAdhDensityGroupAll={meanAdhDensityG1Group,meanAdhDensityG2Group,meanAdhDensityG3Group,...
