@@ -221,7 +221,7 @@ borderWidth=2*gridSapcing;
 nTopBlobs=150; % the number of top maxForceBlobs in single frames
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 
-bandwidthNA_pix = round(bandwidthNA*1000/movieData.pixelSize_);
+bandwidthNA_pix = round(p.bandWidth*1000/movieData.pixelSize_);
 
 logMsg='Quantifying strain energy and total force';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
@@ -288,8 +288,8 @@ for ii=1:nFrames
         distFromEdge = bwdist(iMask);
         bandMask = distFromEdge <= bandwidthNA_pix;
 
-        maskOnlyBand = bandMask & mask;
-        maskInterior = ~bandMask & mask;
+        maskOnlyBand = bandMask & maskCell;
+        maskInterior = ~bandMask & maskCell;
         areaPeri = sum(maskOnlyBand(:))*areaConvert; % in um2
         areaInside = sum(maskInterior(:))*areaConvert; % in um2
 
