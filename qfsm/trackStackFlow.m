@@ -165,8 +165,8 @@ parfor k = 1:nPoints
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
 % inqryPoint=find(inqryLogicInd);
-% % inqryPoint=3100;
 % for k = inqryPoint'
+% for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];

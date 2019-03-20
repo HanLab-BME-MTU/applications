@@ -60,10 +60,8 @@ function [v,numTrackedPoints,corLength,sigtValues] = trackStackFlowWithHardCandi
 % References:
 % J. Li & G. Danuser, J. of microscopy, 220 150-167, 2005.
 
-% Lin Ji, 2005
-% Sebastien Besson, May 2011 (last modified Nov 2011)
-% Adapted from imFlowTrack.m
-% Sangyoon Han, October 2012 (last modified July 2013)
+% Adapted from trackStackFlow.m
+% Sangyoon Han, October 2016 
 
 % Input check
 ip= inputParser;
@@ -78,6 +76,7 @@ ip.addParamValue('minFeatureSize',11,@isscalar);
 ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
 ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.addParamValue('hardCandidates',[],@(x) iscell(x) || isempty(x))
+ip.addParamValue('hardCandidateDists',[],@(x) isnumeric(x) || isempty(x))
 ip.addParamValue('magDiffThreshold',2,@isscalar);
 ip.addParamValue('angDiffThreshold',1,@isscalar);
 % ip.addParamValue('usePIVSuite',false,@islogical);
@@ -92,30 +91,37 @@ scoreCalculation=ip.Results.scoreCalculation;
 closeNeiVecs = ip.Results.hardCandidates;
 magDiffThreshold = ip.Results.magDiffThreshold;
 angDiffThreshold = ip.Results.angDiffThreshold;
+neighDists = ip.Results.hardCandidateDists;
 
 %medianNeiVecs = cellfun(@(x) (magDiffThreshold+angDiffThreshold)*quantile(x,0.25),closeNeiVecs,'Unif',false);   %changed from mean to median
 %medianNeiVecs = cellfun(@(x) (magDiffThreshold+angDiffThreshold)*quantile(x,0.3),closeNeiVecs,'Unif',false);   %changed from mean to median
 %maximum displacement vector/minimum displacement vector = max(uy)/min(uy)
-medianNeiVecs = cellfun(@(x) (max(median(x,1))/min(median(x,1))*mean(x,1)),closeNeiVecs,'Unif',false);   %changed from mean to median
-stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
-anglesBetweenVecs = cell(numel(closeNeiVecs),1);
-disp('Calculating angles between neighboring vectors...')
-if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
-for k=1:numel(closeNeiVecs) %for angles between vectors
-    curNei = closeNeiVecs{k};
-    numCurNei = size(curNei,1);
-    for p=1:numCurNei-1
-        vecP=curNei(p,:);
-        for q=p+1:numCurNei
-            vecQ = curNei(q,:);
-            curAngle = acos(vecP*vecQ'/(norm(vecP)*norm(vecQ)));
-            anglesBetweenVecs{k}=[anglesBetweenVecs{k} curAngle];
-        end
-    end
-    if feature('ShowFigureWindows'), parfor_progress; end
-end
-if feature('ShowFigureWindows'), parfor_progress(0); end
-stdAngleAll = cellfun(@std,anglesBetweenVecs);
+% medianNeiVecs = cellfun(@(x) (max(median(x,1))/min(median(x,1))*mean(x,1)),closeNeiVecs,'Unif',false);   %changed from mean to median
+medianNeiVecs = closeNeiVecs;   %changed from mean to median
+stdNeiVecs = neighDists;
+% stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
+% anglesBetweenVecs = cell(numel(closeNeiVecs),1);
+% disp('Calculating angles between neighboring vectors...')
+% if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
+% numCloseNeiVecs=numel(closeNeiVecs);
+% parfor k=1:numCloseNeiVecs %for angles between vectors
+%     curNei = closeNeiVecs{k};
+%     numCurNei = size(curNei,1);
+%     curAnglesBetweenVecs=[];
+%     for p=1:numCurNei-1
+%         vecP=curNei(p,:);
+%         for q=p+1:numCurNei
+%             vecQ = curNei(q,:);
+%             curAngle = acos(vecP*vecQ'/(norm(vecP)*norm(vecQ)));
+%             curAnglesBetweenVecs=[curAnglesBetweenVecs curAngle];
+%         end
+%     end
+%     anglesBetweenVecs{k} = curAnglesBetweenVecs;
+%     if feature('ShowFigureWindows'), parfor_progress; end
+% end
+% if feature('ShowFigureWindows'), parfor_progress(0); end
+% stdAngleAll = cellfun(@std,anglesBetweenVecs);
+curStdAngle = 0.5; % This is arbitrary now
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
 
@@ -190,8 +196,8 @@ end % we don't need this any more.
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % inqryPoint=200;
 % for k = inqryPoint
-%parfor k = 1:nPoints
-for k = 1:nPoints
+parfor k = 1:nPoints
+% for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -201,8 +207,9 @@ for k = 1:nPoints
     
     % candidate vector
     curCandVec = medianNeiVecs{k};
-    curCandVecStd = stdNeiVecs{k};
-    curStdAngle = stdAngleAll(k);
+    curCandVecStd = stdNeiVecs(k);
+%     curCandVecStd = stdNeiVecs{k};
+%     curStdAngle = stdAngleAll(k);
     
     pass = 0;
     while pass == 0 && corL <= maxCorL
