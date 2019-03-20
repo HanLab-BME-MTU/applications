@@ -14,7 +14,7 @@
 % Adapted from getGaussianPSFsigmaFromData by Francois Aguet, September 2010
 % Sangyoon Han May 2015
 
-function sigma = getGaussianSmallestPSFsigmaFromData(imageList, varargin)
+function [sigma, flag] = getGaussianSmallestPSFsigmaFromData(imageList, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -97,7 +97,9 @@ try
         formatTickLabels();
         drawnow;
     end
+    flag = true;
 catch
     fprintf('Could not determine distribution, potentially due to insufficient samples.');
     sigma = mean(svect);
+    flag = false;
 end
