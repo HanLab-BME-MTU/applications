@@ -266,19 +266,19 @@ if p.doFAregistration
     
     % Improving registration 
     [optimizer,metric] = imregconfig('multimodal');
-    subRegisteredDefault = imregister(subI,mainI,'affine',optimizer,metric);
+    subRegisteredDefault = imregister(subI,mainI,'similarity',optimizer,metric);
 
     figure,imshowpair(subRegisteredDefault,mainI)
     title('A: Default Registration')
 %     disp(optimizer)
 %     disp(metric)
     optimizer.InitialRadius = optimizer.InitialRadius/3.5;
-    subRegisteredAdjustedInitialRadius = imregister(subI,mainI,'affine',optimizer,metric);
+    subRegisteredAdjustedInitialRadius = imregister(subI,mainI,'similarity',optimizer,metric);
 %     figure,imshowpair(subRegisteredAdjustedInitialRadius,mainI)
 %     title('B: Adjusted InitialRadius')
 
     optimizer.MaximumIterations = 300;
-    subRegisteredAdjustedInitialRadius300 = imregister(subI,mainI,'affine',optimizer,metric);
+    subRegisteredAdjustedInitialRadius300 = imregister(subI,mainI,'similarity',optimizer,metric);
 %     figure,imshowpair(subRegisteredAdjustedInitialRadius300,mainI)
 %     title('C: Adjusted InitialRadius, MaximumIterations = 300')    
     
@@ -289,7 +289,7 @@ if p.doFAregistration
 %     figure, imshowpair(movingRegisteredRigid, mainI)
 %     title('D: Registration Based on Similarity Transformation Model')
     
-    subRegisteredAffineWithIC = imregister(subI,mainI,'affine',optimizer,metric,...
+    subRegisteredAffineWithIC = imregister(subI,mainI,'similarity',optimizer,metric,...
     'InitialTransformation',tformSimilarity);
 %     figure, imshowpair(subRegisteredAffineWithIC,mainI)
 %     title('E: Registration from Affine Model Based on Similarity Initial Condition')
@@ -310,7 +310,7 @@ if p.doFAregistration
         for ii=1:nFrames
             mainI = SDCProc.loadChannelOutput(p.ChannelIndex,ii);
             subI = SDCProc.loadChannelOutput(p.iChanSlave,ii);
-            newSubI = imregister(subI,mainI,'affine',optimizer,metric,...
+            newSubI = imregister(subI,mainI,'similarity',optimizer,metric,...
                 'InitialTransformation',tformSimilarity);
             copyfile(outFile(p.iChanSlave, ii),backupFolder,'f')
             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
@@ -340,7 +340,7 @@ if p.doFAregistration
         for ii=1:nFrames
             subI = MD.getChannel(p.iChanSlave).loadImage(ii);
             mainI = MD.getChannel(p.ChannelIndex).loadImage(ii);
-            newSubI = imregister(subI,mainI,'affine',optimizer,metric,...
+            newSubI = imregister(subI,mainI,'similarity',optimizer,metric,...
                 'InitialTransformation',tformSimilarity);
             copyfile(outFile(p.iChanSlave, ii),backupFolder)
             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));

@@ -101,6 +101,9 @@ slaveChannels = get(handles.listbox_darkCurrentChannels, 'String');
 if isempty(slaveChannels)
     errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
     return;
+elseif numel(slaveChannels)>1
+    errordlg('Please select only one input channel from ''Available Channels''.','Setting Error','modal')
+    return;
 end
 iSlaveChannels=find(strcmp(userData.crtProc.inFilePaths_,slaveChannels));
 
