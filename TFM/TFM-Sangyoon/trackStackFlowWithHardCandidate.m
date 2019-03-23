@@ -76,7 +76,7 @@ ip.addParamValue('minFeatureSize',11,@isscalar);
 ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
 ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.addParamValue('hardCandidates',[],@(x) iscell(x) || isempty(x))
-ip.addParamValue('hardCandidateDists',[],@(x) isnumeric(x) || isempty(x))
+% ip.addParamValue('hardCandidateDists',[],@(x) isnumeric(x) || isempty(x))
 ip.addParamValue('magDiffThreshold',2,@isscalar);
 ip.addParamValue('angDiffThreshold',1,@isscalar);
 % ip.addParamValue('usePIVSuite',false,@islogical);
@@ -91,23 +91,30 @@ scoreCalculation=ip.Results.scoreCalculation;
 closeNeiVecs = ip.Results.hardCandidates;
 magDiffThreshold = ip.Results.magDiffThreshold;
 angDiffThreshold = ip.Results.angDiffThreshold;
-neighDists = ip.Results.hardCandidateDists;
+% neighDists = ip.Results.hardCandidateDists;
 
 %medianNeiVecs = cellfun(@(x) (magDiffThreshold+angDiffThreshold)*quantile(x,0.25),closeNeiVecs,'Unif',false);   %changed from mean to median
 %medianNeiVecs = cellfun(@(x) (magDiffThreshold+angDiffThreshold)*quantile(x,0.3),closeNeiVecs,'Unif',false);   %changed from mean to median
 %maximum displacement vector/minimum displacement vector = max(uy)/min(uy)
 % medianNeiVecs = cellfun(@(x) (max(median(x,1))/min(median(x,1))*mean(x,1)),closeNeiVecs,'Unif',false);   %changed from mean to median
-medianNeiVecs = closeNeiVecs;   %changed from mean to median
-stdNeiVecs = neighDists;
-% stdNeiVecs = cellfun(@(x) std(x,1),closeNeiVecs,'Unif',false);
-% anglesBetweenVecs = cell(numel(closeNeiVecs),1);
-% disp('Calculating angles between neighboring vectors...')
-% if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
-% numCloseNeiVecs=numel(closeNeiVecs);
-% parfor k=1:numCloseNeiVecs %for angles between vectors
-%     curNei = closeNeiVecs{k};
-%     numCurNei = size(curNei,1);
+% medianNeiVecs = closeNeiVecs;   %changed from mean to median
+% stdNeiVecs = neighDists;
+magNeiVecs = cellfun(@(x) (x(:,1).^2+x(:,2).^2).^0.5,closeNeiVecs,'Unif',false);
+medianMagNeiVecs = cellfun(@(x) median(x),magNeiVecs);   %changed from mean to median
+stdNeiVecs = cellfun(@(x) std(x),magNeiVecs);
+orienNeiVecs = cell(numel(closeNeiVecs),1);
+disp('Calculating angles between neighboring vectors...')
+if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
+numCloseNeiVecs=numel(closeNeiVecs);
+baseVector = [1 0]; %x-axis
+parfor k=1:numCloseNeiVecs %for angles between vectors
+    curNei = closeNeiVecs{k};
+    numCurNei = size(curNei,1);
 %     curAnglesBetweenVecs=[];
+    % Get the orientation directly
+    
+    curAngle = arrayfun(@(x) acos(curNei(x,:)*baseVector'/(norm(curNei(x,:))*norm(baseVector))),(1:numCurNei)');
+    
 %     for p=1:numCurNei-1
 %         vecP=curNei(p,:);
 %         for q=p+1:numCurNei
@@ -116,12 +123,13 @@ stdNeiVecs = neighDists;
 %             curAnglesBetweenVecs=[curAnglesBetweenVecs curAngle];
 %         end
 %     end
-%     anglesBetweenVecs{k} = curAnglesBetweenVecs;
-%     if feature('ShowFigureWindows'), parfor_progress; end
-% end
-% if feature('ShowFigureWindows'), parfor_progress(0); end
-% stdAngleAll = cellfun(@std,anglesBetweenVecs);
-curStdAngle = 0.5; % This is arbitrary now
+    orienNeiVecs{k} = curAngle; %curAnglesBetweenVecs;
+    if feature('ShowFigureWindows'), parfor_progress; end
+end
+if feature('ShowFigureWindows'), parfor_progress(0); end
+stdAngleAll = cellfun(@std,orienNeiVecs);
+avgAngleAll = cellfun(@mean,orienNeiVecs);
+% curStdAngle = 0.5; % This is arbitrary now
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
 
@@ -195,8 +203,15 @@ end % we don't need this any more.
 
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % inqryPoint=200;
-% for k = inqryPoint
-parfor k = 1:nPoints
+% xI = round(x);
+% yI = round(y); inqryLogicInd=false(size(yI));
+% inqX=[469 470]; inqY=[1042 938];
+% for ii=1:numel(inqX)
+%     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
+% end
+% inqryPoint=find(inqryLogicInd);
+% for k = inqryPoint'
+ parfor k = 1:nPoints
 % for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
@@ -206,10 +221,12 @@ parfor k = 1:nPoints
     corL = minCorL;
     
     % candidate vector
-    curCandVec = medianNeiVecs{k};
-    curCandVecStd = stdNeiVecs(k);
+    curNeiMag = medianMagNeiVecs(k);
+    curNeiStd = stdNeiVecs(k);
 %     curCandVecStd = stdNeiVecs{k};
 %     curStdAngle = stdAngleAll(k);
+    curStdAngle = stdAngleAll(k);
+    curAvgAngle = avgAngleAll(k);
     
     pass = 0;
     while pass == 0 && corL <= maxCorL
@@ -229,8 +246,8 @@ parfor k = 1:nPoints
         
         %If the quality of the score function is not good enough (pass == 0),
         % we increase the max sampling speed until the limit is reached.
-        maxFlowSpd = max(10,round(abs(curCandVec(1)))*4);
-        maxPerpSpd = max(10,round(abs(curCandVec(2)))*4);
+        maxFlowSpd = max(10,2*round(curNeiMag + 2*curNeiStd));
+        maxPerpSpd = max(10,2*round(curNeiMag + 2*curNeiStd));
 
         %Get sampling speed. Make sure it will not shift the template (block) outside of
         % the image area. We also use bigger stepsize for large speed.
@@ -279,38 +296,55 @@ parfor k = 1:nPoints
             maxFlowSpd = Inf;
             maxPerpSpd = Inf;
         else
+            % Make the mask of our search of interest
+            maskSearchInterest = false(numel(vP),numel(vF));
+            % Making an arc having the average angle, std angle, mag and
+            % stdMag...
+            for row = 1:size(maskSearchInterest,1)
+                for col = 1:size(maskSearchInterest,2)
+                    curDist = ((row-zeroI(1))^2+(col-zeroI(2))^2)^0.5;
+                    curAng = acos([col-zeroI(2),row-zeroI(1)]*baseVector'/(norm([col-zeroI(2),row-zeroI(1)])*norm(baseVector))); % Angle criteria
+                    if curDist<=curNeiMag + 3*curNeiStd && curDist>=curNeiMag-curNeiStd ...
+                            && curAng <= curAvgAngle+1.5*curStdAngle && curAng >= curAvgAngle-1.5*curStdAngle
+                        maskSearchInterest(row,col)=true;
+                    end
+                end
+            end
+            maskSearchInterest = double(maskSearchInterest);
+            
             %Test the quality of the score function and find the index of the
             % maximum score.
-            [~,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.1);
-            if ~isempty(curCandVec)
-                % Here I use PIV result to find the best candidate
-                % regardless of whether score passed or not from findMaxScoreI
-                % Get the candidate vectors
-                locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
-                % What's the piv result in location closest to [xI, yI]
-                options = {1:size(locMaxI,1),'Unif',false};
-
-                curCandVecRot= curCandVec*[perpDir;bandDir]; %Rotated version we should use
-
-                vecDiff = arrayfun(@(x) locMaxV(x,:)-curCandVecRot,options{:});
-                orienDiff = arrayfun(@(x) acos(locMaxV(x,:)*curCandVecRot'/(norm(locMaxV(x,:))*norm(curCandVecRot))),options{1});
-%                 distToMaxV2 = sqrt(sum((locMaxV-ones(size(locMaxV,1),1)*curCandVec).^2,2));
-                magDiff = cellfun(@norm,vecDiff);
-                
-                [~,indDist]=sort(magDiff.*orienDiff.^2);
-                ind = indDist(1);
-                minAngle = orienDiff(ind);
-                minDistDiff = magDiff(ind);
-                if minDistDiff < magDiffThreshold*norm(curCandVecStd) && abs(minAngle) < angDiffThreshold*curStdAngle % || (ind<=3 && sigtVal(ind)>0.8)
-                    maxI = locMaxI(ind,:);
-                    maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
-                    pass = 2;
-                else
-                    pass = 0;
-                end
-            else
-                error('You have to set hardCandidates!');
-            end
+            [pass,locMaxI,sigtVal] = findMaxScoreI(score.*maskSearchInterest,zeroI,minFeatureSize,0.9);
+            
+%             if ~isempty(curNeiMag)
+%                 % Here I use PIV result to find the best candidate
+%                 % regardless of whether score passed or not from findMaxScoreI
+%                 % Get the candidate vectors
+%                 locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+%                 % What's the piv result in location closest to [xI, yI]
+%                 options = {1:size(locMaxI,1),'Unif',false};
+% 
+%                 curCandVecRot= curNeiMag*[perpDir;bandDir]; %Rotated version we should use
+% 
+%                 vecDiff = arrayfun(@(x) locMaxV(x,:)-curCandVecRot,options{:});
+%                 orienDiff = arrayfun(@(x) acos(locMaxV(x,:)*curCandVecRot'/(norm(locMaxV(x,:))*norm(curCandVecRot))),options{1});
+% %                 distToMaxV2 = sqrt(sum((locMaxV-ones(size(locMaxV,1),1)*curCandVec).^2,2));
+%                 magDiff = cellfun(@norm,vecDiff);
+%                 
+%                 [~,indDist]=sort(magDiff.*orienDiff.^2);
+%                 ind = indDist(1);
+%                 minAngle = orienDiff(ind);
+%                 minDistDiff = magDiff(ind);
+%                 if minDistDiff < magDiffThreshold*norm(curNeiStd) && abs(minAngle) < angDiffThreshold*curStdAngle % || (ind<=3 && sigtVal(ind)>0.8)
+%                     maxI = locMaxI(ind,:);
+%                     maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+%                     pass = 2;
+%                 else
+%                     pass = 0;
+%                 end
+%             else
+%                 error('You have to set hardCandidates!');
+%             end
         end
         
         if pass == 0
@@ -326,6 +360,7 @@ parfor k = 1:nPoints
         maxV = [NaN NaN];
         sigtVal = [NaN NaN NaN];
     elseif pass == 1
+        maxI = locMaxI(1,:);
         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
     end
     if pass && strcmp(mode,'accurate')
