@@ -336,7 +336,7 @@ if p.doFAregistration
             mkdir(backupFolder);
         end
         % Anonymous functions for reading input/output
-        outFile=@(chan,frame) [MD.getChannel(chan) filesep imageFileNames{chan}{frame}];
+        outFile=@(chan,frame) [MD.getChannel(chan).getPath filesep imageFileNames{chan}{frame}];
         for ii=1:nFrames
             subI = MD.getChannel(p.iChanSlave).loadImage(ii);
             mainI = MD.getChannel(p.ChannelIndex).loadImage(ii);
@@ -345,7 +345,7 @@ if p.doFAregistration
             copyfile(outFile(p.iChanSlave, ii),backupFolder)
             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
         end
-        disp(['Channel has been overwritten in ' MD.getChannel(chan)])
+        disp(['Channel has been overwritten in ' MD.getChannel(chan).getPath])
     end
 else
     iFAPack = MD.getPackageIndex('FocalAdhesionPackage');

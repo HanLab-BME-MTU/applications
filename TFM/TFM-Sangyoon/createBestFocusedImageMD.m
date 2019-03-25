@@ -1,8 +1,11 @@
-function [meanRefImg,meanRefImgPath] = createBestFocusedImageMD(refMD)
+function [meanRefImg,meanRefImgPath] = createBestFocusedImageMD(refMD,iChan)
 %[meanRefImg] = createBestFocusedImageMD(refMD) It is a wrapper function
 %for findBestFocusFromStack. It takes end channel for stack.
 %   Sangyoon Han Sep 2018
-curRefBeadChan = refMD.channels_(end);
+if nargin<2
+    iChan = numel(refMD.channels_);
+end
+curRefBeadChan = refMD.channels_(iChan);
 thresVariance=0.8;applySobel=true;
 if refMD.zSize_>1
     % find the best focus
@@ -18,7 +21,7 @@ end
 curRef = curRefBeadChan.getPath; %[curRefDir(ii).folder filesep curRefDir(ii).name];
          
 [path1,fname1] = fileparts(curRef);
-meanRefImgPath = [path1 filesep fname1 '.tif'];
+meanRefImgPath = [path1 filesep fname1 '_Chan' num2str(iChan) '.tif'];
 imwrite(uint16(meanRefImg),meanRefImgPath,'Compression','none')
 
 end
