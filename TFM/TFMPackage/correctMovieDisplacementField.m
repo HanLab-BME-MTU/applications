@@ -167,6 +167,7 @@ else
     %     end
         if feature('ShowFigureWindows'), parfor_progress; end
     end
+
 end
 if feature('ShowFigureWindows'), parfor_progress(0); end
 
@@ -207,7 +208,7 @@ if p.fillVectors
             neighborBeads = displField(j).pos(~unTrackedBeads,:);
             neighborVecs = displField(j).vec(~unTrackedBeads,:);
             % Get neighboring vectors from these vectors (meanNeiVecs)
-            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
+              [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
 %             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (2-1.5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
             % In case of empty idx, search with larger radius.
             emptyCases = cellfun(@isempty,idx);
@@ -235,45 +236,45 @@ if p.fillVectors
                 nFailed=0;
             end
 
-            figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
-            hold on
-            plot(currentBeads(:,1),currentBeads(:,2),'ro')
-            quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'m')
-        %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
-            displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
-        end
-        disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
-        % Update the waitbar
-        if feature('ShowFigureWindows')
-            tj=toc;
-            waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
-        end
+%             figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
+%             hold on
+%             plot(currentBeads(:,1),currentBeads(:,2),'ro')
+%             quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'m')
+%         %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
+             displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+         end
+%         disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
+%         % Update the waitbar
+%         if feature('ShowFigureWindows')
+%             tj=toc;
+%             waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+%         end
     end
-    %Filtering again
-    if ~useGrid
-        parfor j= 1:nFrames
-            % Outlier detection
-            dispMat = [displField(j).pos displField(j).vec];
-            % Take out duplicate points (Sangyoon)
-            [dispMat,~,~] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
-            displField(j).pos=dispMat(:,1:2);
-            displField(j).vec=dispMat(:,3:4);
-
-            [outlierIndex,sparselyLocatedIdx] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold*3,1);
-            %displField(j).pos(outlierIndex,:)=[];
-            %displField(j).vec(outlierIndex,:)=[];
-            dispMat(outlierIndex,3:4)=NaN;
-            dispMat(sparselyLocatedIdx,3:4)=NaN;
-
-            displField(j).pos=dispMat(:,1:2);
-            displField(j).vec=dispMat(:,3:4);
-            if feature('ShowFigureWindows'), parfor_progress; end
-        end
-    end
-    if feature('ShowFigureWindows'), parfor_progress(0); end
+%     %Filtering again
+%     if ~useGrid
+%         parfor j= 1:nFrames
+%             % Outlier detection
+%             dispMat = [displField(j).pos displField(j).vec];
+%             % Take out duplicate points (Sangyoon)
+%             [dispMat,~,~] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
+%             displField(j).pos=dispMat(:,1:2);
+%             displField(j).vec=dispMat(:,3:4);
+% 
+%             [outlierIndex,sparselyLocatedIdx] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold*3,1);
+%             %displField(j).pos(outlierIndex,:)=[];
+%             %displField(j).vec(outlierIndex,:)=[];
+%             dispMat(outlierIndex,3:4)=NaN;
+%             dispMat(sparselyLocatedIdx,3:4)=NaN;
+% 
+%             displField(j).pos=dispMat(:,1:2);
+%             displField(j).vec=dispMat(:,3:4);
+%             if feature('ShowFigureWindows'), parfor_progress; end
+%         end
+%     end
+%     if feature('ShowFigureWindows'), parfor_progress(0); end
 end
-% Here, if nFrame>1, we do inter- and extrapolation of displacement vectors
-% to prevent sudden, wrong force field change.
+% % Here, if nFrame>1, we do inter- and extrapolation of displacement vectors
+% % to prevent sudden, wrong force field change.
 if nFrames>1 && ~displParams.useGrid
     disp('Performing displacement vector gap closing ...')
     % Depending on stage drift correction, some beads can be missed in certain

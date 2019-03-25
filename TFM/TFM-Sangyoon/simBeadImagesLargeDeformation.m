@@ -14,7 +14,7 @@ Aorg = 300+1000*rand(1,nPoints);
         'npoints', nPoints, 'Border', 'truncated','A',Aorg);
 %% may not add noise
 %% Displacement Field
-E=5000;  %Young's modulus, unit: Pa %changed from 8000 to 5000
+E=8000;  %Young's modulus, unit: Pa
 forceType = 'groupForce';
 gridSpacing = 1;
 xmin = gridSpacing;
@@ -166,6 +166,7 @@ figure, imshow(fnorm_org,[0 5100]), colormap jet
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
     force_x,force_y,'fft',[],meshPtsFwdSol,50000,0.5,false); %,'conv',[],meshPtsFwdSol);
 figure, imshow(uy,[]), colormap jet
+%save
 
 %%
 % figure (3); surf(x_mat_u,y_mat_u,ux)

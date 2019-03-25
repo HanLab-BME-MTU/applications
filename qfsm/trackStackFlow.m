@@ -157,16 +157,16 @@ end % we don't need this any more.
 
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[257 539]; inqY=[95 240];
+% inqX=[399]; inqY=[203];
 % for ii=1:numel(inqX)
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
 % inqryPoint=find(inqryLogicInd);
 % inqryPoint=3100;
-% for k = inqryPoint'
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
-parfor k = 1:nPoints
-% for k = 1:nPoints
+% for k = inqryPoint'
+% parfor k = 1:nPoints
+ for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];

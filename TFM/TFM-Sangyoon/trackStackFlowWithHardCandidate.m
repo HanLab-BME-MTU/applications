@@ -188,9 +188,21 @@ if isempty(gcp('nocreate'))
 end % we don't need this any more.
 
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
+% 
+xI = round(x);
+yI = round(y); inqryLogicInd=false(size(yI));
+% inqX = [369 194]; inqY = [306 245];
+% inqX=[278]; inqY=[225];
+% for ii=1:numel(inqX)
+% 
+%     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
+% end
+% inqryPoint=find(inqryLogicInd);
+% for k = inqryPoint'
+
 % inqryPoint=200;
 % for k = inqryPoint
-%parfor k = 1:nPoints
+% parfor k = 1:nPoints
 for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
@@ -205,8 +217,8 @@ for k = 1:nPoints
     curStdAngle = stdAngleAll(k);
     
     pass = 0;
-    while pass == 0 && corL <= maxCorL
-        
+%     while pass == 0 && corL <= maxCorL
+    while pass == 0 && corL <= minCorL   
         %Create kymograph around each point. 'bandDir' is used as the direction
         % of the kymographed line.
         xI = round(x(k));
@@ -214,7 +226,8 @@ for k = 1:nPoints
         if xI < 1 || xI > imgL || yI < 1 || yI > imgW
             %The point is outside the image. Mark it untrackable.
             pass = 0;
-            corL = 7*maxCorL;  %changed from 2 to 7
+%             corL = 7*maxCorL;  %changed from 2 to 7
+            corL = 7*minCorL;  %changed from 2 to 7
             continue;
         end
         %Always get back the initial max speed for new 'corL'.
@@ -273,7 +286,10 @@ for k = 1:nPoints
             maxPerpSpd = Inf;
         else
             %Test the quality of the score function and find the index of the
-            % maximum score.
+            % maximum score.% inqX=[266 258]; inqY=[221 185]// 
+            %inqX = [369 194]; inqY = [306 245];
+            %(xI == 258 && yI == 185) || (xI == 226 && yI == 221)
+            %(xI == 171 && yI == 178) || (xI == 357 && yI == 195)
             [~,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,0.1);
             if ~isempty(curCandVec)
                 % Here I use PIV result to find the best candidate
