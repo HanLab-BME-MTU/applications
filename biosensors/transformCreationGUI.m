@@ -291,7 +291,9 @@ props = get(handles.popupmenu_initXformMethod,{'String','Value'});
 userData.initXformMethod =props{1}{props{2}};
 xFormTypes= get(handles.popupmenu_xFormType,'String');
 userData.xFormType = xFormTypes{get(handles.popupmenu_xFormType,'Value')};
- 
+% if strcmp(userData.xFormType,'nonreflective similarity')
+%     userData.xFormType = 'nonreflectivesimilarity';
+% end
 %% Enable/disable uipanels based on the selection of the radiobuttons
 % Set the state of the initial calculation panel
 if userData.doInit
@@ -365,16 +367,20 @@ if userData.doInit
                 if strcmp(userData.xFormType,'polynomial')
                     %Use second-order polynomial
                     userData.initXform = cp2tform(cpIn,cpBase,userData.xFormType,2);
+                elseif strcmp(userData.xFormType,'nonreflective similarity')
+%                     userData.xFormType = 'nonreflectivesimilarity';
+                    userData.initXform = cp2tform(cpIn,cpBase,userData.xFormType);
                 else
                     userData.initXform = cp2tform(cpIn,cpBase,userData.xFormType);
                 end
             end
         case 'Spot Detection'
-                    
+%             if strcmp(userData.xFormType,'nonreflective similarity')
+%                 userData.xFormType = 'nonreflectivesimilarity';
+%             end
             set(handles.text_status,'String','Please wait, calculating initial transform...');
             drawnow
             try
-                
                 %Call the bead-alignment routine
                 userData.initXform = getTransformFromBeadImages(userData.baseImage,userData.inImage,userData.xFormType,userData.beadRad,1);
             catch em
@@ -428,6 +434,9 @@ if userData.doRefine
         
         switch userData.xFormType
             
+            case 'nonreflective similarity'
+                userData.xForm = findOptimalXform(userData.baseImage,userData.inImage,0,userData.xFormType,userData.initXform.tdata.T);    
+                
             case 'projective'
                 userData.xForm = findOptimalXform(userData.baseImage,userData.inImage,0,userData.xFormType,userData.initXform.tdata.T);    
                 
