@@ -175,7 +175,7 @@ if p.fillVectors
     % information of existing displacement in neighbors
     % Check optional process Flow Tracking
     pStep2 = displParams;
-    if ~isempty(iSDCProc)
+    if ~isempty(SDCProc)
         s = load(SDCProc.outFilePaths_{3,pStep2.ChannelIndex},'T');
         residualT = s.T-round(s.T);
         refFrame = double(imread(SDCProc.outFilePaths_{2,pStep2.ChannelIndex}));
@@ -187,9 +187,10 @@ if p.fillVectors
     timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
     tic
     nFillingTries=1000;
+    k2=1;
     for j= 1:nFrames
         % Read image and perform correlation
-        if ~isempty(iSDCProc)
+        if ~isempty(SDCProc)
             currImage = double(SDCProc.loadChannelOutput(pStep2.ChannelIndex(1),j));
         else
             currImage = double(movieData.channels_(pStep2.ChannelIndex(1)).loadImage(j));
@@ -210,7 +211,7 @@ if p.fillVectors
             % Get neighboring vectors from these vectors (meanNeiVecs)
 %             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
 %             [idx,dist] = KDTreeClosestPoint(neighborBeads, currentBeads); % Increasing search radius with further iteration
-            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, neighborhood_distance(j)); % Increasing search radius with further iteration
+            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-0.2*k2)*neighborhood_distance(j)); % Decreasing search radius with further iteration
 %             % In case of empty idx, search with larger radius.
 %             emptyCases = cellfun(@isempty,idx);
 %             mulFactor=1;
@@ -238,10 +239,10 @@ if p.fillVectors
                 'angDiffThreshold',p.angDiffThreshold); %, 'hardCandidateDists', dist(idCloseEnough));%,'usePIVSuite', pStep2.usePIVSuite);
             if nTracked==0
                 nFailed=nFailed+1;
-                thresDist=thresDist+5;
+                k2 = k2+1;
             else
                 nFailed=0;
-                thresDist=15;
+                k2 = k2-1;
             end
 
 %             figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')

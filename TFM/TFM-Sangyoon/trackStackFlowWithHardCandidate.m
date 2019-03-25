@@ -115,6 +115,20 @@ parfor k=1:numCloseNeiVecs %for angles between vectors
     
     curAngle = arrayfun(@(x) acos(curNei(x,:)*baseVector'/(norm(curNei(x,:))*norm(baseVector))),(1:numCurNei)');
     
+    % There are angles that are supposed to be negative angles (because
+    % they are in the third- or fourth- quandrants. We need to correct for
+    % them.
+    % Find out which quandrant each vector is on. (1,2 vs. 3,4th quadrants)
+%     isThirdFourthQuad = false(size(curAngle));
+%     for ii=1:length(isThirdFourthQuad)
+%         curVec = curNei(ii,:);
+%         if curVec(2)<0
+%             isThirdFourthQuad(ii)=true;
+%         end
+%     end
+    isThirdFourthQuad = arrayfun(@(x) x<0, curNei(:,2));
+    curAngle(isThirdFourthQuad)=-curAngle(isThirdFourthQuad);
+    
 %     for p=1:numCurNei-1
 %         vecP=curNei(p,:);
 %         for q=p+1:numCurNei
@@ -152,6 +166,7 @@ closenessThresholdpix = 2.5; %changed from 0.25 to account for not-interpolated 
 
 %For isotropic correlation.
 maxSpdLimit = max(maxSpdLimit,initMaxFlowSpd);
+minMinCorL=9;
 
 % Initialize output
 nPoints = size(points,1);
@@ -205,13 +220,13 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % inqryPoint=200;
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[469 470]; inqY=[1042 938];
+% inqX=[250]; inqY=[203];
 % for ii=1:numel(inqX)
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
 % inqryPoint=find(inqryLogicInd);
 % for k = inqryPoint'
- parfor k = 1:nPoints
+parfor k = 1:nPoints
 % for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
@@ -229,7 +244,7 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
     curAvgAngle = avgAngleAll(k);
     
     pass = 0;
-    while pass == 0 && corL <= maxCorL
+    while pass == 0 && corL >= minMinCorL
         
         %Create kymograph around each point. 'bandDir' is used as the direction
         % of the kymographed line.
@@ -246,8 +261,8 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
         
         %If the quality of the score function is not good enough (pass == 0),
         % we increase the max sampling speed until the limit is reached.
-        maxFlowSpd = max(10,2*round(curNeiMag + 2*curNeiStd));
-        maxPerpSpd = max(10,2*round(curNeiMag + 2*curNeiStd));
+        maxFlowSpd = max(10,4*round(curNeiMag + 2*curNeiStd));
+        maxPerpSpd = max(10,4*round(curNeiMag + 2*curNeiStd));
 
         %Get sampling speed. Make sure it will not shift the template (block) outside of
         % the image area. We also use bigger stepsize for large speed.
@@ -302,9 +317,16 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
             % stdMag...
             for row = 1:size(maskSearchInterest,1)
                 for col = 1:size(maskSearchInterest,2)
-                    curDist = ((row-zeroI(1))^2+(col-zeroI(2))^2)^0.5;
-                    curAng = acos([col-zeroI(2),row-zeroI(1)]*baseVector'/(norm([col-zeroI(2),row-zeroI(1)])*norm(baseVector))); % Angle criteria
-                    if curDist<=curNeiMag + 3*curNeiStd && curDist>=curNeiMag-curNeiStd ...
+                    curVec = [col-zeroI(2), row-zeroI(1)];
+                    curDist = ((curVec(1))^2+(curVec(2))^2)^0.5;
+                    curAng = acos(curVec*baseVector'/(norm(curVec)*norm(baseVector))); % Angle criteria
+                    % Again, there might be a negative angle which is
+                    % blocked by acos function. We need to correct for
+                    % them.
+                    if curVec(2)<0 %if this vector is in third- or fourth- quadrants, we need to flip the sign.
+                        curAng = -curAng;
+                    end
+                    if curDist<=curNeiMag + 20*curNeiStd && curDist>=curNeiMag-curNeiStd ...
                             && curAng <= curAvgAngle+1.5*curStdAngle && curAng >= curAvgAngle-1.5*curStdAngle
                         maskSearchInterest(row,col)=true;
                     end
@@ -348,10 +370,10 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
         end
         
         if pass == 0
-            if corL == maxCorL
-                corL = Inf;
+            if corL == minMinCorL
+                corL = 0;
             else
-                corL = min(maxCorL,odd(corL*3/2));%floor(corL*3/2));
+                corL = max(minMinCorL,odd(corL-2));%floor(corL*3/2));
             end
         end
     end
