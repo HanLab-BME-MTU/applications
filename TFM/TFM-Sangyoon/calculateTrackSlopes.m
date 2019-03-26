@@ -12,18 +12,24 @@ for k=1:numel(tracksNA)
 %     eF=tracksNA(k).endingFrameExtra;
     curLT = tracksNA(k).lifeTime;
     halfLT = ceil(curLT/2);
-    earlyPeriod = min(halfLT,floor(60/tInterval)); % frames per a minute or half life time
+    earlyPeriod = min(halfLT,floor(20/tInterval)); % frames per 20 sec or half life time
+    oneMinPeriod = min(halfLT,floor(60/tInterval)); % frames per a minute or half life time
 
     lastFrame = min(tracksNA(k).endingFrameExtraExtra,sF+earlyPeriod+prePeriodFrame-1);
     lastFrameFromOne = lastFrame - sF+1;
+
+    lastFrameOneMin = min(tracksNA(k).endingFrameExtraExtra,sF+oneMinPeriod+prePeriodFrame-1);
+    lastFrameFromOneOneMin = lastFrameOneMin - sF+1;
     
     [~,curM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).amp(sF:lastFrame));
     tracksNA(k).earlyAmpSlope = curM; % in a.u./min
     if isfield(tracksNA,'ampTotal2')
         [~,curM2] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).ampTotal2(sF:lastFrame));
         tracksNA(k).earlyAmpSlope2 = curM2; % in a.u./min
+        [~,curM2] = regression(tIntervalMin*(1:lastFrameFromOneOneMin),tracksNA(k).ampTotal2(sF:lastFrameOneMin));
+        tracksNA(k).ampSlope2 = curM2; % in a.u./min
     end
-    [~,curForceM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame));
+    [~,curForceM] = regression(tIntervalMin*(1:lastFrameFromOneOneMin),tracksNA(k).forceMag(sF:lastFrameOneMin));
 %         figure, plot(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
 %         figure, plotregression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
     tracksNA(k).forceSlope = curForceM; % in Pa/min

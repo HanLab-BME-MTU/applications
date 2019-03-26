@@ -53,8 +53,8 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
-set(handles.checkbox_useCellConfig,'Value',funParams.useCellConfig);
-set(handles.checkbox_useRefConfig,'Value',funParams.useRefConfig);
+set(handles.radiobutton_useCellConfig,'Value',funParams.useCellConfig);
+set(handles.radiobutton_useRefConfig,'Value',funParams.useRefConfig);
 
 % Choose default command line output for outputTFMProcessGUI
 handles.output = hObject;

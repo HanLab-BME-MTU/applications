@@ -768,8 +768,8 @@ end
         title(ax,'startingAmpTotal2')
         ylabel(ax,'Fluorescence intensity (A.U.)')
         save([p.OutputDirectory filesep 'data' filesep 'startingAmpTotal2.mat'],'startingAmpTotal2','-v7.3')
-        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotal2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
-        hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); 
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'startingAmpTotal2.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/startingAmpTotal2'),'-v7.3'); 
     end
     %%
     if isfield(tracksNA,'ampTotal2')
@@ -905,10 +905,30 @@ end
         boxPlotCellArray(earlyAmpSlope2,groupNameList,1,false,true,false,5,'ax',ax);
 
         title(ax,'earlyAmpSlope2')
-        ylabel(ax,'Fluorescence intensity (A.U.)')
+        ylabel(ax,'AmpSlope (A.U./min)')
         save([p.OutputDirectory filesep 'data' filesep 'earlyAmpSlope2.mat'],'earlyAmpSlope2','-v7.3')
-        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotal2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
-        hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); 
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'earlyAmpSlope2.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/earlyAmpSlope2'),'-v7.3'); 
+    end
+    %% Look at feature difference per each group - ampSlope2
+    if isfield(tracksNA,'ampTotal2')
+        ampSlope2{1} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup1f));
+        ampSlope2{2} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup2f));
+        ampSlope2{3} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup3));
+        ampSlope2{4} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup4));
+        ampSlope2{5} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup5));
+        ampSlope2{6} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup6));
+        ampSlope2{7} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup7));
+        ampSlope2{8} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup8));
+        ampSlope2{9} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup9));
+        hFig=figure; ax=axes(hFig);
+        boxPlotCellArray(ampSlope2,groupNameList,1,false,true,false,5,'ax',ax);
+
+        title(ax,'ampSlope2')
+        ylabel(ax,'AmpSlope (A.U./min)')
+        save([p.OutputDirectory filesep 'data' filesep 'ampSlope2.mat'],'ampSlope2','-v7.3')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampSlope2.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/ampSlope2'),'-v7.3'); 
     end
     %%
     if isfield(tracksNA,'ampTotal2')
