@@ -22,7 +22,7 @@ function varargout = outputTFMProcessGUI(varargin)
 
 % Edit the above text to modify the response to help outputTFMProcessGUI
 
-% Last Modified by GUIDE v2.5 13-Mar-2019 00:54:11
+% Last Modified by GUIDE v2.5 25-Mar-2019 23:03:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -112,8 +112,8 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % Check user input
 userData = get(handles.figure1, 'UserData');
 
-funParams.useCellConfig = get(handles.checkbox_useCellConfig,'Value');
-funParams.useRefConfig = get(handles.checkbox_useRefConfig,'Value');
+funParams.useCellConfig = get(handles.radiobutton_useCellConfig,'Value');
+funParams.useRefConfig = get(handles.radiobutton_useRefConfig,'Value');
 
 % Process Sanity check ( only check underlying data )
 try
@@ -150,4 +150,3 @@ function checkbox_useRefConfig_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_useRefConfig
-

@@ -199,9 +199,10 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 end
                 if ismember(output,outputList(5:7)) 
                     varargout{1}=tMapMap(:,:,iFrame);
-                else %This is for unshifted
+                else %This is for unshifted (in the size of raw channels)
+                    sampleRawChanImg = obj.owner_.channels_(1).loadImage(1);
                     curMap=tMapMap(:,:,iFrame);
-                    ref_obj = imref2d(size(curMap));
+                    ref_obj = imref2d(size(sampleRawChanImg));
                     iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
                     tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
                     SDCProc=tfmPackageHere.processes_{iSDCProc};
