@@ -101,8 +101,8 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                     idxTracks = idxTracksObj.idxTracks;
                     %Apply if idSelected is applied
                     if ~isempty(idSelected)
-                        idxTracks = idxTracks(idSelected);
-                        tracksForceMag = tracksForceMag(idSelected);
+                        idxTracks = find(idxTracks(idSelected));
+                        tracksForceMag = tracksForceMag(idxTracks);
                     end
                 
                     tracksNA = tracksNA(idxTracks);
@@ -111,7 +111,7 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                         [tracksNA(:).forceMag] = tracksForceMag.forceMag;
                     end
                     
-                    if any(~idxTracks)
+                    if any(idxTracks)
                         output2 = idxTracks;
                     else
                         output2 = [];

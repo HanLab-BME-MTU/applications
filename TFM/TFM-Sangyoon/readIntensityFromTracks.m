@@ -77,6 +77,8 @@ elseif attribute==4 && ~isfield(tracksNA,'flowSpeed')
     tracksNA(end).flowSpeed=[];
 elseif attribute==5 && ~isfield(tracksNA,'ampTotal2')
     tracksNA(end).ampTotal2=[];
+elseif attribute==5 && ~isfield(tracksNA,'amp2')
+    tracksNA(end).amp2=[];
 elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
     tracksNA(end).ampTotal3=[];
 end    
@@ -99,8 +101,8 @@ else
 %     end
 end
 
-parfor (k=1:numTracks, parforArg)
-% for k=1:numTracks
+% parfor (k=1:numTracks, parforArg)
+for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
@@ -158,7 +160,7 @@ parfor (k=1:numTracks, parforArg)
             curTrack.startingFrameExtra = curStartingFrame;
             curTrack.endingFrameExtra = curEndingFrame;
             trackingFromStartingFrame = true;
-            mode='xyac';
+            mode='xyacs';
             curTrack.startingFrameExtra = ii;
 
             if isempty(MD)
@@ -614,6 +616,8 @@ parfor (k=1:numTracks, parforArg)
             curTrack.forceMag = curTrack.amp;
         elseif attribute==5
             curTrack.ampTotal2 = curTrack.amp;
+            curTrack.amp2 = curTrack.amp;
+            mode = 'xyacs';
         elseif attribute==6
             curTrack.ampTotal3 = curTrack.amp;
         end
@@ -631,6 +635,9 @@ parfor (k=1:numTracks, parforArg)
                 curTrack.forceMag(ii) = mean(curAmpTotal(:));
             elseif attribute==5
                 curTrack.ampTotal2(ii) = mean(curAmpTotal(:));
+                % now also trying to get 'amplitude' by gaussian fitting
+                pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
+                curTrack.amp2(ii) = pstruct.A;
             elseif attribute==6
                 curTrack.ampTotal3(ii) = mean(curAmpTotal(:));
             end

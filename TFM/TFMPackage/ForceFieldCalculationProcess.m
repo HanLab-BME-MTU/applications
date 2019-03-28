@@ -177,7 +177,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     catch
                         tfmPack = obj.owner_.packages_{obj.getPackageIndex};
                         tMapObj.forceFieldPath = [tfmPack.outputDirectory_ filesep 'forceField' filesep 'forceField.mat'];
-                        tMapObj.displFieldPath = [tfmPack.outputDirectory_ filesep 'displacementField' filesep 'displField.mat'];
+                        tMapObj.displFieldPath = [tfmPack.outputDirectory_ filesep 'correctedDisplacementField' filesep 'displField.mat'];
                         forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
                         displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
                         

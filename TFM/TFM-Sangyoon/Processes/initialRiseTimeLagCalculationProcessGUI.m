@@ -111,7 +111,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % Check user input
 userData = get(handles.figure1, 'UserData');
 
-funParams.mainSlave=get(handles.edit_mainSlave,'Value');
+funParams.mainSlave=str2double(get(handles.edit_mainSlave,'String'));
 
 % Process Sanity check ( only check underlying data )
 try

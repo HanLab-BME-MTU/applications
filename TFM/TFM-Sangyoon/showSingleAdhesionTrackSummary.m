@@ -576,7 +576,7 @@ if ~isempty(imgMap2)
     end
     xlabel('Time (s)'); ylabel('AmpTotal 2 (A.U.)')
     set(ax16,'FontUnits',genFontUnit,'FontSize',genFontSize)
-    title(['\Deltat_{force-F.I.2} = ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f')])
+    title(['\Deltat_{F.I.-F.I.2} = ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f')])
 
 
     % Cross variance plot
