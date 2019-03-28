@@ -160,7 +160,7 @@ for k=1:numTracks
             curTrack.startingFrameExtra = curStartingFrame;
             curTrack.endingFrameExtra = curEndingFrame;
             trackingFromStartingFrame = true;
-            mode='xyacs';
+            mode='xyac';
             curTrack.startingFrameExtra = ii;
 
             if isempty(MD)
@@ -300,7 +300,7 @@ for k=1:numTracks
 %                         pstruct.A=params(3);
 %                         pstruct.c=params(4); 
 %                     else
-                        pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyAsc');
+                        pstruct = fitGaussians2D(curImg, x, y, A, curSigma, c, 'xyAc');
 %                     end
 %                     pstruct2 = fitGaussianMixtures2D(double(curImg), x, y, A, curSigma, c);
                     
@@ -550,6 +550,9 @@ for k=1:numTracks
                 curAmpTotal = curImg(yRange,xRange);
                 curAmpTotal = mean(curAmpTotal(:));
                 curTrack.ampTotal(ii) =  curAmpTotal;
+                pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
+                curTrack.amp(ii) = pstruct.A;
+                curTrack.bkgAmp(ii) = pstruct.c;
             end
         end
         if ~isempty(extraLengthForced) && abs(extraLengthForced)>0
@@ -571,6 +574,9 @@ for k=1:numTracks
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
     %                     curTrack.presence(ii) =  1;
+                    pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
+                    curTrack.amp(ii) = pstruct.A;
+                    curTrack.bkgAmp(ii) = pstruct.c;
                 end
             end
             if curTrack.endingFrameExtra<numFrames
@@ -588,10 +594,17 @@ for k=1:numTracks
                     curTrack.xCoord(ii) = x;
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
+                    pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
+                    curTrack.amp(ii) = pstruct.A;
+                    curTrack.bkgAmp(ii) = pstruct.c;
     %                     curTrack.presence(ii) =  1;
                 end
             end
         end
+        frameRange=find(~isnan(curTrack.ampTotal));
+        noNanRange = frameRange(~isnan(curTrack.amp)); 
+        curTrack.amp=interp1(noNanRange,curTrack.amp(noNanRange),frameRange);
+        curTrack.bkgAmp=interp1(noNanRange,curTrack.bkgAmp(noNanRange),frameRange);
 
 %         curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
     elseif attribute==2 || attribute==5 || attribute==6
@@ -617,7 +630,6 @@ for k=1:numTracks
         elseif attribute==5
             curTrack.ampTotal2 = curTrack.amp;
             curTrack.amp2 = curTrack.amp;
-            mode = 'xyacs';
         elseif attribute==6
             curTrack.ampTotal3 = curTrack.amp;
         end
@@ -641,7 +653,12 @@ for k=1:numTracks
             elseif attribute==6
                 curTrack.ampTotal3(ii) = mean(curAmpTotal(:));
             end
-        end        
+        end  
+        if attribute==5
+            %interpolate
+            noNanRange = frameRange(~isnan(curTrack.amp2)); 
+            curTrack.amp2=interp1(noNanRange,curTrack.amp2(noNanRange),frameRange);
+        end
     elseif attribute==3 || attribute==4 %This time it uses FA area
         startFrame = curTrack.startingFrame;
         endFrame = curTrack.endingFrame;
