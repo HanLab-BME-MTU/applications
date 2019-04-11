@@ -143,8 +143,8 @@ mainTimeToPeakGroupGroup = cell(numConditions,1);
 sideBccPeakValuesGrouppGroup = cell(numConditions,1);
 sideTimeToPeakGroupGroup = cell(numConditions,1);
 
-iAdhChan = input('Your adhesion channel of interest? (default: 2): ');
-if isempty(iAdhChan); iAdhChan=2; end
+% iAdhChan = input('Your adhesion channel of interest? (default: 2): ');
+% if isempty(iAdhChan); iAdhChan=2; end
 
 for ii=1:numConditions
     N(ii) = numel(MLAll(ii).movies_);
@@ -175,9 +175,9 @@ for ii=1:numConditions
     meanCellArea=zeros(N(ii),1);
     naDensityAllFrames=cell(N(ii),1);
     faDensityAllFrames=cell(N(ii),1);
-    meanLifeTimeAll=zeros(N(ii),1);
-    meanLifeTimeFailingNAs=zeros(N(ii),1);
-    meanLifeTimeMaturingNAs=zeros(N(ii),1);
+    meanLifeTimeAll=cell(N(ii),1);
+    meanLifeTimeFailingNAs=cell(N(ii),1);
+    meanLifeTimeMaturingNAs=cell(N(ii),1);
     meanMaturingRatio=zeros(N(ii),1);
     meanMaturingRatioNAtoFA=NaN(N(ii),1);
     meanMaturingRatioFCtoFA=NaN(N(ii),1);
@@ -233,7 +233,8 @@ for ii=1:numConditions
         % get the general adhesion-reated features
         iCurAnalyProc = 7;
         curAnalProc = curFAPackage.getProcess(iCurAnalyProc);
-        
+        iAdhChan = find(curAnalProc.checkChannelOutput);
+
 %     outFilename = [chanDirName '_Chan' num2str(i) '_focalAdhInfo'];
 %     outFilePaths{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
 % 
@@ -265,9 +266,9 @@ for ii=1:numConditions
 %         meanFADensity(k) = meanNumPureFAs(k)/meanCellArea(k); % in num/um2
 
         maturingStruct=load(curAnalProc.outFilePaths_{4,iAdhChan});
-        meanLifeTimeAll(k)=mean(maturingStruct.lifeTimeAll);
-        meanLifeTimeFailingNAs(k)=mean(maturingStruct.lifeTimeNAfailing);
-        meanLifeTimeMaturingNAs(k)=mean(maturingStruct.lifeTimeNAmaturing);
+        meanLifeTimeAll{k}=(maturingStruct.lifeTimeAll);
+        meanLifeTimeFailingNAs{k}=(maturingStruct.lifeTimeNAfailing);
+        meanLifeTimeMaturingNAs{k}=(maturingStruct.lifeTimeNAmaturing);
         meanMaturingRatio(k)=mean(maturingStruct.maturingRatio);
         if isfield(maturingStruct,'maturingRatioNAtoFA') % This is the newer fields
             meanMaturingRatioNAtoFA(k)=mean(maturingStruct.maturingRatioNAtoFA);
@@ -302,8 +303,21 @@ for ii=1:numConditions
         numG8(k) = sum(idsStruct.idGroup8);
         numG4(k) = sum(idsStruct.idGroup4);
         
-        curPresenceStruct = load(classProc.outFilePaths_{5,iAdhChan},'presenceAll');
-        curPresence = curPresenceStruct.presenceAll;
+        try
+            curPresenceStruct = load(classProc.outFilePaths_{5,iAdhChan},'presenceAll');
+            curPresence = curPresenceStruct.presenceAll;
+        catch % This is for backward compatibility - SH 20190403
+            tracksNA = curAnalProc.loadChannelOutput(iAdhChan,'output','tracksNA'); %load(classProc.outFilePaths_{5,iAdhChan},'tableTracksNA');
+            tableTracksNA = struct2table(tracksNA);
+            curPresence = tableTracksNA.presence; presenceAll=curPresence;
+            try
+                movefile(classProc.outFilePaths_{5,iAdhChan},[classProc.outFilePaths_{5,iAdhChan}(1:end-4) 'Original.mat'])
+            catch
+                disp(['Overwriting ' classProc.outFilePaths_{5,iAdhChan} ' ...'])
+            end
+            save(classProc.outFilePaths_{5,iAdhChan},'presenceAll')
+            clear tracksNA tableTracksNA
+        end
         
         classiOutFolder = fileparts(classProc.outFilePaths_{4,iAdhChan});
         classiDataFolder = [classiOutFolder filesep 'data'];
@@ -339,8 +353,9 @@ for ii=1:numConditions
         % About process 9
         iTheOtherProc = 9;
         tOtherProc = curFAPackage.getProcess(iTheOtherProc);
+        theOtherFunParams = tOtherProc.funParams_;
         if ~isempty(tOtherProc)
-            iOther = input('Another channel other than the main adhesion channel? (default: 3): ');
+            iOther = theOtherFunParams.iChanSlave; %input('Another channel other than the main adhesion channel? (default: 3): ');
             if isempty(iOther); iOther=3; end
 
             intenGroupStruct=load(tOtherProc.outFilePaths_{2,iOther});
@@ -529,21 +544,24 @@ end
 %     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
 %     groupNames{ii} = finalFolder;
 % end
-%% Plotting each - initRiseGroup - all classes
+%% Plotting each - initRiseGroup against force - all classes
 nameList=groupNames'; %{'pLVX' 'P29S'};
 if ~isempty(initRiseProc)
-    for curGroup=1:9
-        initRiseGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),initRiseGroup,'unif',false);
-        h1=figure; 
-        boxPlotCellArray(initRiseGroupEach,nameList,1,false,true);
-        ylabel(['Initial rise in group ' num2str(curGroup) ' (sec)'])
-        title(['Initial rise in group ' num2str(curGroup)])
-        hgexport(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
-        hgsave(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-v7.3')
-        print(h1,[figPath filesep 'initialRizeG' num2str(curGroup)],'-dtiff')
+    numSlaves = numel(initRiseStruct.nameList2);
+    for ii=1:numSlaves
+        for curGroup=1:9
+            initRiseGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) y{ii},x{curGroup}','unif',false)),initRiseGroup,'unif',false);
+            h1=figure; 
+            boxPlotCellArray(initRiseGroupEach,nameList,1,false,true);
+            ylabel(['Initial rise in group ' num2str(curGroup) ' (sec): ' initRiseStruct.nameList2{ii}])
+            title(['Initial rise in group ' num2str(curGroup) ': ' initRiseStruct.nameList2{ii}])
+            hgexport(h1,[figPath filesep 'initialRiseG' num2str(curGroup) initRiseStruct.nameList2{ii}],hgexport('factorystyle'),'Format','eps')
+            hgsave(h1,[figPath filesep 'initialRiseG' num2str(curGroup) initRiseStruct.nameList2{ii}],'-v7.3')
+            print(h1,[figPath filesep 'initialRiseG' num2str(curGroup) initRiseStruct.nameList2{ii}],'-dtiff')
 
-        tableHalfBccGroup=table(initRiseGroupEach,'RowNames',nameList);
-        writetable(tableHalfBccGroup,[dataPath filesep 'initialRizeG' num2str(curGroup) '.csv'],'WriteRowNames',true)
+            tableInitialRiseGroup=table(initRiseGroupEach,'RowNames',nameList);
+            writetable(tableInitialRiseGroup,[dataPath filesep 'initialRiseG' num2str(curGroup) initRiseStruct.nameList2{ii} '.csv'],'WriteRowNames',true)
+        end
     end
 end
 %% halfBccTime
@@ -778,6 +796,25 @@ end
 
     tableFAArea=table(FAareaGroupCell,'RowNames',nameList);
     writetable(tableFAArea,[dataPath filesep 'faArea.csv'],'WriteRowNames',true)
+%% Percentage of FA area
+    percLT=5;
+    perc=percLT/100;
+    FAareaGroupCellSmall=cell(numel(FAareaGroupCell),1);
+    for ii=1:numel(FAareaGroupCell)
+        FAareaGroupCellSmall{ii,1} = ...
+        quantile(FAareaGroupCell{ii},(1-perc)+(perc-0.01)*rand(1,round((perc-0.01)*sum(~isnan(FAareaGroupCell{ii})))));
+    end
+    
+    h1=figure;
+    boxPlotCellArray(FAareaGroupCellSmall,nameList,1,false,true);
+    ylabel(['Focal adhesion area (um^2)'])
+    title(['Focal adhesion area (top ' num2str(percLT) ' percentile)'])
+    ylim auto
+    hgexport(h1,[figPath filesep 'faAreaTop' num2str(percLT)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'faAreaTop' num2str(percLT)],'-v7.3')
+    print(h1,[figPath filesep 'faAreaTop' num2str(percLT)],'-dtiff')
+    faAreaTop20=table(FAareaGroupCellSmall,'RowNames',nameList);
+    writetable(faAreaTop20,[dataPath filesep 'faAreaTop' num2str(percLT) '.csv'],'WriteRowNames',true)    
 %% FA length - 
     FAlengthGroupCell = cellfun(@(x) cell2mat(x),FAlengthGroup,'unif',false);
     h1=figure; 
@@ -813,9 +850,61 @@ end
     hgsave(h1,[figPath filesep 'faDensity'],'-v7.3')
     print(h1,[figPath filesep 'faDensity'],'-dtiff')
 
-    tableFADensity=table(FADensityGroup,'RowNames',nameList);
+    tableFADensity=table(FADensityGroupCell,'RowNames',nameList);
     writetable(tableFADensity,[dataPath filesep 'faDensity.csv'],'WriteRowNames',true)
-%% numPureFAsGroup
+%% Life times
+    lifeTimeAllGroupCell = cellfun(@(x) cell2mat(x'),lifeTimeAllGroup,'unif',false);
+    h1=figure; 
+%     FADensityGroup=cellfun(@(x,y) x./y,numPureFAsGroup,cellAreaGroup,'unif',false);
+    boxPlotCellArray(lifeTimeAllGroupCell,nameList,1,false,true);
+    ylabel(['Life time (sec)'])
+    title(['Life time of all NAs'])
+    hgexport(h1,[figPath filesep 'lifeTimeAll'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'lifeTimeAll'],'-v7.3')
+    print(h1,[figPath filesep 'lifeTimeAll'],'-dtiff')
+
+    lifeTimeAll=table(lifeTimeAllGroupCell,'RowNames',nameList);
+    writetable(lifeTimeAll,[dataPath filesep 'lifeTimeAll.csv'],'WriteRowNames',true)    
+%% lifeTimeFailingNAsGroup
+    lifeTimeFailingNAsGroupCell = cellfun(@(x) cell2mat(x'),lifeTimeFailingNAsGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(lifeTimeFailingNAsGroupCell,nameList,1,false,true);
+    ylabel(['Life time (sec)'])
+    title(['Life time of non-maturing NAs'])
+    hgexport(h1,[figPath filesep 'lifeTimeFailing'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'lifeTimeFailing'],'-v7.3')
+    print(h1,[figPath filesep 'lifeTimeFailing'],'-dtiff')
+
+    lifeTimeFailing=table(lifeTimeFailingNAsGroupCell,'RowNames',nameList);
+    writetable(lifeTimeFailing,[dataPath filesep 'lifeTimeFailing.csv'],'WriteRowNames',true)    
+%% lifeTimeMaturingNAsGroup
+    lifeTimeMaturingNAsGrouppCell = cellfun(@(x) cell2mat(x'),lifeTimeMaturingNAsGroup,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(lifeTimeMaturingNAsGrouppCell,nameList,1,false,true);
+    ylabel(['Life time (sec)'])
+    title(['Life time of maturing NAs'])
+    hgexport(h1,[figPath filesep 'lifeTimeMaturing'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'lifeTimeMaturing'],'-v7.3')
+    print(h1,[figPath filesep 'lifeTimeMaturing'],'-dtiff')
+
+    lifeTimeMaturing=table(lifeTimeMaturingNAsGrouppCell,'RowNames',nameList);
+    writetable(lifeTimeMaturing,[dataPath filesep 'lifeTimeMaturing.csv'],'WriteRowNames',true)    
+
+    lifeTimeMaturingNAsGrouppCellSmall{1} = ...
+    quantile(lifeTimeMaturingNAsGrouppCell{1},0.8+0.19*rand(1,round(0.1*sum(~isnan(lifeTimeMaturingNAsGrouppCell{1})))));
+    lifeTimeMaturingNAsGrouppCellSmall{2,1} = ...
+    quantile(lifeTimeMaturingNAsGrouppCell{2},0.8+0.19*rand(1,round(0.1*sum(~isnan(lifeTimeMaturingNAsGrouppCell{2})))));
+    h1=figure; 
+    boxPlotCellArray(lifeTimeMaturingNAsGrouppCellSmall,nameList,1,false,true);
+    ylabel(['Life time (sec)'])
+    title(['Life time of maturing NAs (top 20 percentile)'])
+    ylim auto
+    hgexport(h1,[figPath filesep 'lifeTimeMaturingTop20'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'lifeTimeMaturingTop20'],'-v7.3')
+    print(h1,[figPath filesep 'lifeTimeMaturingTop20'],'-dtiff')
+    lifeTimeMaturingT20=table(lifeTimeMaturingNAsGrouppCellSmall,'RowNames',nameList);
+    writetable(lifeTimeMaturingT20,[dataPath filesep 'lifeTimeMaturingT20.csv'],'WriteRowNames',true)    
+    %% numPureFAsGroup
     h1=figure; 
     boxPlotCellArray(numPureFAsGroup,nameList,1,false,true);
     ylabel(['The number of pure FAs in a cell (#/cell)'])
@@ -884,6 +973,24 @@ end
     tableStableNAFCratio=table(stableNAFCratioGroup,'RowNames',nameList);
     writetable(tableStableNAFCratio,[dataPath filesep 'lifeTimeFAs.csv'],'WriteRowNames',true)
 
+%% Percentage of life time
+    percLT=60;
+    perc=percLT/100;
+    lifeTimeFAsGroupCellSmall{1} = ...
+    quantile(lifeTimeFAsGroupCell{1},(1-perc)+(perc-0.01)*rand(1,round((perc-0.01)*sum(~isnan(lifeTimeFAsGroupCell{1})))));
+    lifeTimeFAsGroupCellSmall{2,1} = ...
+    quantile(lifeTimeMaturingNAsGrouppCell{2},(1-perc)+(perc-0.01)*rand(1,round((perc-0.01)*sum(~isnan(lifeTimeMaturingNAsGrouppCell{2})))));
+    h1=figure; 
+    boxPlotCellArray(lifeTimeFAsGroupCellSmall,nameList,curMovie.timeInterval_/60,false,true);
+    ylabel(['Life time (min)'])
+    title(['Life time of FAs (top ' num2str(percLT) ' percentile)'])
+    ylim auto
+    hgexport(h1,[figPath filesep 'lifeTimeFATop' num2str(percLT)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'lifeTimeFATop' num2str(percLT)],'-v7.3')
+    print(h1,[figPath filesep 'lifeTimeFATop' num2str(percLT)],'-dtiff')
+    lifeTimeFATop20=table(lifeTimeFAsGroupCellSmall,'RowNames',nameList);
+    writetable(lifeTimeFATop20,[dataPath filesep 'lifeTimeFATop' num2str(percLT) '.csv'],'WriteRowNames',true)    
+    
 %% intensity of the other channel at each adhesion type
     h1=figure; 
     intensitiesInNAsGroupCell = cellfun(@(x) cell2mat(x),intensitiesInNAsGroup,'unif',false);

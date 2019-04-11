@@ -326,8 +326,8 @@ parfor k = 1:nPoints
                     if curVec(2)<0 %if this vector is in third- or fourth- quadrants, we need to flip the sign.
                         curAng = -curAng;
                     end
-                    if curDist<=curNeiMag + 20*curNeiStd && curDist>=curNeiMag-curNeiStd ...
-                            && curAng <= curAvgAngle+1.5*curStdAngle && curAng >= curAvgAngle-1.5*curStdAngle
+                    if curDist<=curNeiMag + 20*curNeiStd && curDist>=curNeiMag-2*curNeiStd ...
+                            && curAng <= curAvgAngle+2*curStdAngle && curAng >= curAvgAngle-2*curStdAngle
                         maskSearchInterest(row,col)=true;
                     end
                 end
@@ -373,7 +373,7 @@ parfor k = 1:nPoints
             if corL == minMinCorL
                 corL = 0;
             else
-                corL = max(minMinCorL,odd(corL-2));%floor(corL*3/2));
+                corL = max(minMinCorL,odd(corL-4));%floor(corL*3/2));
             end
         end
     end

@@ -1,4 +1,4 @@
-function h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, gPath,additionalName)
+function [h2, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave] = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, gPath,additionalName)
 % h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
 % This function shows big picture, montage, and time series of fluorescence
 % intensity and traction.
@@ -26,24 +26,24 @@ chosenEndFrame = curEndFrameEE;
 
 splineParamInit=10; % This now has to be taken from the InitRise process. 0.99; %0.99;
 preDetecFactor=10; %.3; Changed.
-[~,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack1]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
+[firstIncreseTimeIntAgainstForce,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack1]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
 frameFII=round(firstIncreseTimeInt/tInterval);
 frameFTI=round(firstIncreseTimeForce/tInterval);
 
-if isnan(frameFII) || isnan(frameFTI)
-    splineParamInit=15;
-    preDetecFactor=5;
-    [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,...
-        firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce,curTrack1] =...
-        calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
-    frameFII=round(firstIncreseTimeInt/tInterval);
-    frameFTI=round(firstIncreseTimeForce/tInterval);
-%     curTrack.firstIncreseTimeIntAgainstForce = firstIncreseTimeIntAgainstForce;
-%     curTrack.forceTransmitting = forceTransmitting;
-%     curTrack.bkgMaxInt = bkgMaxIntAll;
-%     curTrack.bkgMaxForce = bkgMaxForce;
-end
-
+% if isnan(frameFII) || isnan(frameFTI)
+%     splineParamInit=15;
+%     preDetecFactor=5;
+%     [firstIncreseTimeIntAgainstForce,forceTransmitting,firstIncreseTimeInt,...
+%         firstIncreseTimeForce,bkgMaxIntAll,bkgMaxForce,curTrack1] =...
+%         calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
+%     frameFII=round(firstIncreseTimeInt/tInterval);
+%     frameFTI=round(firstIncreseTimeForce/tInterval);
+% %     curTrack.firstIncreseTimeIntAgainstForce = firstIncreseTimeIntAgainstForce;
+% %     curTrack.forceTransmitting = forceTransmitting;
+% %     curTrack.bkgMaxInt = bkgMaxIntAll;
+% %     curTrack.bkgMaxForce = bkgMaxForce;
+% end
+timeLagMasterAgainstForce=firstIncreseTimeIntAgainstForce;
 if ~isnan(frameFII) && frameFII<chosenStartFrame
     chosenStartFrame = frameFII;
 end
@@ -56,7 +56,7 @@ end
 chosenFRange = curFrameRange;
 
 splineParam = 0.01;
-d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
+d = curTrack.amp(curStartFrameEE:curEndFrameEE);
 tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 sd_spline= csaps(tRange,d,splineParam);
 sd=ppval(sd_spline,tRange);
@@ -363,18 +363,18 @@ if ~isempty(imgMap2)
 else
     ax8=axes('Position',[50/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
 end
-plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrameEE:curEndFrameEE),'k'), hold on
-plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'b')
-plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack1.ampTotal(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
-plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack1.ampTotal(curStartFrame+4:curEndFrame-4),'b')
+plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp(curStartFrameEE:curEndFrameEE),'k'), hold on
+plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'b')
+plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack1.amp(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
+plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack1.amp(curStartFrame+4:curEndFrame-4),'b')
 if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting
-    plot((frameFII-curStartFrameEE)*tInterval,curTrack1.ampTotal(frameFII),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
-    text((frameFII-curStartFrameEE)*tInterval+12,curTrack.ampTotal(frameFII)+5,[num2str((frameFII-curStartFrameEE)*tInterval) ' s'])
+    plot((frameFII-curStartFrameEE)*tInterval,curTrack1.amp(frameFII),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
+    text((frameFII-curStartFrameEE)*tInterval+12,curTrack.amp(frameFII)+5,[num2str((frameFII-curStartFrameEE)*tInterval) ' s'])
 end
-%background level
-if isfield(curTrack1,'bkgMaxInt') && ~isempty(curTrack1.bkgMaxInt)
-    line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack1.bkgMaxInt curTrack1.bkgMaxInt],'linestyle',':','Color','k')
-end
+% %background level
+% if isfield(curTrack1,'bkgMaxInt') && ~isempty(curTrack1.bkgMaxInt)
+%     line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack1.bkgMaxInt curTrack1.bkgMaxInt],'linestyle',':','Color','k')
+% end
     
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
 set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
@@ -404,7 +404,7 @@ if ~isempty(imgMap2)
 else
     ax12=axes('Position',[450/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
 end
-[curBcc, bgBcc] = crossVariance(curTrack.ampTotal,curTrack.forceMag,9);
+[curBcc, bgBcc] = crossVariance(curTrack.amp,curTrack.forceMag,9);
 
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curBcc(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curBcc(curStartFrame:curEndFrame),'g')
@@ -412,7 +412,7 @@ plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curBc
 line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[bgBcc bgBcc],'LineStyle',':','Color','k')
 line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[-bgBcc -bgBcc],'LineStyle',':','Color','k')
 % Find out when the Bcc exceeds the background level
-frameSigBcc = find(curBcc>bgBcc & curTrack.iFrame>=curStartFrameEE,1);
+frameSigBcc = find(curBcc>bgBcc & (1:length(curTrack.amp))>=curStartFrameEE,1);
 if ~isempty(frameSigBcc)
     plot((frameSigBcc-curStartFrameEE)*tInterval,curBcc(frameSigBcc),'o','MarkerFaceColor','g','MarkerEdgeColor','w')
     text((frameSigBcc-curStartFrameEE)*tInterval+12,curBcc(frameSigBcc)+0.5*bgBcc,[num2str((frameSigBcc-curStartFrameEE)*tInterval) ' s'])
@@ -557,27 +557,27 @@ if ~isempty(imgMap2)
 
     % Third channel time series
     [curFirstIncreseTimeIntAgainstSlave,SlaveTransmitting...
-    ,~,firstIncreseTimeSlave,~,bkgMaxSlave,curTrack2] ...
-        = calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval,'slaveSource','ampTotal2');
+    ,firstIncreseTimeInt,firstIncreseTimeSlave,~,bkgMaxSlave,curTrack2] ...
+        = calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval,'slaveSource','amp2');
     frameFII2 = round(firstIncreseTimeSlave/tInterval);
 
     ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
-    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrameEE:curEndFrameEE),'k'), hold on
-    plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack2.ampTotal2(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
-    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrame:curEndFrame),'m')
-    plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack2.ampTotal2(curStartFrame+4:curEndFrame-4),'m')
+    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrameEE:curEndFrameEE),'k'), hold on
+    plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack2.amp2(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
+    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrame:curEndFrame),'m')
+    plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack2.amp2(curStartFrame+4:curEndFrame-4),'m')
     
-    if SlaveTransmitting && frameFII2<=length(curTrack2.ampTotal2)
-        plot((frameFII2-curStartFrameEE)*tInterval,curTrack2.ampTotal2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
-        text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.ampTotal2(frameFII2)+5,[num2str((frameFII2-curStartFrameEE)*tInterval) ' s'])
+    if SlaveTransmitting && frameFII2<=length(curTrack2.amp2)
+        plot((frameFII2-curStartFrameEE)*tInterval,curTrack2.amp2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
+        text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.amp2(frameFII2)+5,[num2str((frameFII2-curStartFrameEE)*tInterval) ' s'])
     end
     if ~isempty(bkgMaxSlave)
         line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[bkgMaxSlave bkgMaxSlave],'LineStyle',':','Color','k')
     end
-    xlabel('Time (s)'); ylabel('AmpTotal 2 (A.U.)')
+    xlabel('Time (s)'); ylabel('amp 2 (A.U.)')
     set(ax16,'FontUnits',genFontUnit,'FontSize',genFontSize)
     title(['\Deltat_{F.I.-F.I.2} = ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f')])
-
+    timeLagMasterAgainstMainSlave = curFirstIncreseTimeIntAgainstSlave;
 
     % Cross variance plot
     if ~isempty(imgMap2)
@@ -585,7 +585,7 @@ if ~isempty(imgMap2)
     else
         ax12=axes('Position',[450/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
     end
-    [curBcc2, bgBcc2] = crossVariance(curTrack.ampTotal,curTrack.ampTotal2,9);
+    [curBcc2, bgBcc2] = crossVariance(curTrack.amp,curTrack.amp2,9);
 
     plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curBcc2(curStartFrameEE:curEndFrameEE),'k'), hold on
     plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curBcc2(curStartFrame:curEndFrame),'g')
@@ -593,7 +593,7 @@ if ~isempty(imgMap2)
     line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[bgBcc2 bgBcc2],'LineStyle',':','Color','k')
     line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[-bgBcc2 -bgBcc2],'LineStyle',':','Color','k')
     % Find out when the Bcc exceeds the background level
-    frameSigBcc2 = find(curBcc2>bgBcc2 & curTrack.iFrame>=curStartFrameEE,1);
+    frameSigBcc2 = find(curBcc2>bgBcc2 & (1:curTrack.endingFrameExtraExtra)>=curStartFrameEE,1);
     if ~isempty(frameSigBcc2)
         plot((frameSigBcc2-curStartFrameEE)*tInterval,curBcc2(frameSigBcc2),'o','MarkerFaceColor','g','MarkerEdgeColor','w')
         text((frameSigBcc2-curStartFrameEE)*tInterval+12,curBcc2(frameSigBcc2)+0.5*bgBcc2,[num2str((frameSigBcc2-curStartFrameEE)*tInterval) ' s'])
@@ -601,7 +601,8 @@ if ~isempty(imgMap2)
 
     xlabel('Time (s)'); ylabel('Cross Variation, Bcc (a.u.)')
     set(ax12,'FontUnits',genFontUnit,'FontSize',genFontSize)
-    
+else
+    timeLagMasterAgainstMainSlave = NaN;
 end
 %% saving
 
@@ -612,7 +613,7 @@ end
 if exist('IDtoInspect','var')
     disp(['This ' num2str(IDtoInspect) ' th track has ' num2str(-curTrack1.firstIncreseTimeIntAgainstForce,'% 10.1f') ' sec of initial time lag of force after fluorescence signal.'])
     if ~isempty(imgMap2)
-        disp(['This track also has ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f') ' sec of initial time lag of ampTotal2 after ampTotal.'])
+        disp(['This track also has ' num2str(-curFirstIncreseTimeIntAgainstSlave,'% 10.1f') ' sec of initial time lag of amp2 after amp.'])
     end
 end
 disp('Marker: yellow (track start), green (initial rise), blue(track end), white (peak)')

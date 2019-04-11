@@ -125,7 +125,7 @@ if useGrid
     disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
 else
 %     parfor j= 1:nFrames
-    for j= 1:nFrames
+    parfor j= 1:nFrames
         % Outlier detection
         dispMat = [displField(j).pos displField(j).vec];
         % Take out duplicate points (Sangyoon)
@@ -197,6 +197,7 @@ if p.fillVectors
         end
         nTracked=1000; 
         nFailed=0;
+        prevAttempt=false; prevNeiVecs=[]; prevIndices=[];
         thresDist=15;
         for k=1:nFillingTries
             % only un-tracked vectors
@@ -230,6 +231,30 @@ if p.fillVectors
 %             idCloseEnough = dist<thresDist;
             atLeast3neis = cellfun(@(x) numel(x)>2,idx);
             idCloseEnough = atLeast3neis; %dist<thresDist;
+            % See if there is any previous attempt
+            tolR = 1e-2;
+            if prevAttempt
+                % Collect bead locations that have no neighbor information
+                % change.
+                curUntrackedIndeces = 1;
+                pp=0;
+                for jj=find(unTrackedBeads')
+                    % We compare with mean vec
+                    pp=pp+1;
+                    if ismember(jj,prevIndices)
+                        % Find the index inside prevNeiVecs
+                        indInPrevNeiVecs = find(jj==prevIndices);
+                        curMeanX = mean(closeNeiVecs{pp}(:,1));
+                        curMeanY = mean(closeNeiVecs{pp}(:,2));
+                        prevMeanX = mean(prevNeiVecs{indInPrevNeiVecs}(:,1));
+                        prevMeanY = mean(prevNeiVecs{indInPrevNeiVecs}(:,2));
+                        if abs(curMeanX-prevMeanX)<tolR && abs(curMeanY-prevMeanY)<tolR
+                            idCloseEnough(pp)=false;
+                        end
+                    end
+                end
+            end
+            
             v=NaN(sum(unTrackedBeads),2);
         %     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
 
@@ -242,8 +267,17 @@ if p.fillVectors
                 k2 = k2+1;
             else
                 nFailed=0;
-                k2 = k2-1;
+                if k2>1
+                    k2 = k2-1;
+                end
+                % We don't need to track ones that have failed tracking if
+                % the radius is not updated (thus the neighboring
+                % information is not updated). 
+                % Save untracked locations
             end
+            prevAttempt=true;
+            prevNeiVecs = closeNeiVecs;
+            prevIndices = find(unTrackedBeads);
 
 %             figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
 %             hold on

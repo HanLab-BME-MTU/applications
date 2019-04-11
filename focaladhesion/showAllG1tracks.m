@@ -46,11 +46,17 @@ gPath = [faPackage.outputDirectory_ filesep 'tracksG1'];
 if ~exist(gPath,'dir')
     mkdir(gPath)
 end
+
+iForceSlave = 1;
+initOutFolder = fileparts(initRiseProc.outFilePaths_{2,iForceSlave});
+initDataPath = [initOutFolder filesep 'data'];
+nameTitle=['initialLag Class' num2str(1)];
+
 for ii=1:numTracksG1
     curTrack = tracksNAG1(ii);
     IDtoInspect = indexG1(ii);
     additionalName = 'G1';
-    h=showSingleAdhesionTrackSummary(MD,curTrack,imgStack,tMap,imgStack2,IDtoInspect);
+    [h, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave]=showSingleAdhesionTrackSummary(MD,curTrack,imgStack,tMap,imgStack2,IDtoInspect);
     if askUser
         answer = listdlg('PromptString',['Does this belong to G1? ' 'Confirmation of each track' num2str(ii) '/' num2str(numTracksG1)],...
             'ListString',{'Yes(G1)','No(G6)','Others(G2)','Others(G9)'});
@@ -84,7 +90,35 @@ for ii=1:numTracksG1
         savefig(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
     end
     close(h)
+    % Quantify timelag from curTrack2...
+    initialRiseLagAgainstEachSlave{1}(ii,1) = timeLagMasterAgainstForce;
+    initialRiseLagAgainstEachSlave{2}(ii,1) = timeLagMasterAgainstMainSlave;
 end
+% Retrieve the existing inital rise time delay
+initRiseStruct = load([initDataPath filesep nameTitle '.mat'],'initialLagTogetherAdjusted','nameList2');   
+initialLagTogetherAdjusted=initRiseStruct.initialLagTogetherAdjusted; %nameList2 contains the information on how the time lag was calculated.
+nameList2 = initRiseStruct.nameList2;
+% Update it and save it again
+if numel(nameList2)<2
+    initialLagTogetherAdjusted = initialRiseLagAgainstEachSlave(1);
+else
+    % identify the common slave
+    if strcmp(nameList2{1}(end),'2') && strcmp(nameList2{2}(end),'2') %if the common slave is amp2 or ampTotal2,
+        % rearrange accordingly
+        initialLagTogetherAdjusted{1} = initialRiseLagAgainstEachSlave{1}-initialRiseLagAgainstEachSlave{2};
+        initialLagTogetherAdjusted{2} = -initialRiseLagAgainstEachSlave{2};
+    elseif strcmp(nameList2{1}(end),'g') && strcmp(nameList2{2}(end),'g') %if the common slave is forceMag,
+        initialLagTogetherAdjusted{1} = -initialRiseLagAgainstEachSlave{1};
+        initialLagTogetherAdjusted{2} = initialRiseLagAgainstEachSlave{2}-initialRiseLagAgainstEachSlave{1};
+    else 
+        initialLagTogetherAdjusted = initialRiseLagAgainstEachSlave;
+    end
+end
+% Save it
+nameTitleBackup=[nameTitle 'Original'];
+movefile([initDataPath filesep nameTitle '.mat'],[initDataPath filesep nameTitleBackup '.mat'])
+save([initDataPath filesep nameTitle '.mat'],'initialLagTogetherAdjusted','nameList2');   
+
 if askUser
     idGroup1=idG1;
     idGroup2=idG2;

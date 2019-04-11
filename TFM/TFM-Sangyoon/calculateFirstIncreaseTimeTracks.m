@@ -28,7 +28,7 @@ ip.addOptional('numAveragingWind',5,@isscalar)
 ip.addOptional('preDetecPeriod',60,@(x)isscalar(x)) % in second
 ip.addOptional('tInterval',1,@(x)isscalar(x))
 ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
-ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','ampTotal2','ampTotal3'})); % collect NA tracks that ever close to cell edge
+ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','amp2','amp3','ampTotal2','ampTotal3'})); % collect NA tracks that ever close to cell edge
 ip.parse(tracksNA,numAveragingWind,preDetecPeriod,tInterval,varargin{:}); %splineParamInit,preDetecParam
 slaveSource=ip.Results.slaveSource;
 useSmoothing=false;
@@ -88,7 +88,7 @@ for ii=1:numel(tracksNA)
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
     if any(curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
-        d = tracksNA(ii).ampTotal;
+        d = tracksNA(ii).amp;
         nTime = length(d);
         if useSmoothing
 %             d = tracksNA(ii).ampTotal;
@@ -121,7 +121,7 @@ for ii=1:numel(tracksNA)
 %             filteredSD = medfilt1(sd,13,'omitnan');
 %             [outlierIdx] = detectOutliers(sd,9);
             
-            tracksNA(ii).ampTotal = sd;
+            tracksNA(ii).amp = sd;
 
             bkgMaxInt = nanmax(sd(sF10before:sF5before));
             firstIncreaseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);

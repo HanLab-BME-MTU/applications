@@ -305,8 +305,8 @@ for ii=1:nFrames
         SE_Cell.SEDensity(ii)=SE_Cell.SE(ii)/SE_Cell.area(ii)*1e3; % J/m2
         SE_Cell.SE_peri(ii)=1/2*sum(sum(dMapCellPeri.*tMapCellPeri))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
         SE_Cell.SE_inside(ii)=1/2*sum(sum(dMapCellInside.*tMapCellInside))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
-        SE_Cell.SEDensityPeri(ii)=SE_Cell.SE_peri(ii)/areaPeri(ii)*1e3; % J/m2
-        SE_Cell.SEDensityInside(ii)=SE_Cell.SE_inside(ii)/areaInside(ii)*1e3; % J/m2
+        SE_Cell.SEDensityPeri(ii)=SE_Cell.SE_peri(ii)/areaPeri*1e3; % J/m2
+        SE_Cell.SEDensityInside(ii)=SE_Cell.SE_inside(ii)/areaInside*1e3; % J/m2
         totalForceCell(ii) = sum(sum(tMapCell))*areaConvert*1e-3; % in nN
         totalForceCellPeri(ii) = sum(sum(tMapCellPeri))*areaConvert*1e-3; % in nN
         totalForceCellInside(ii) = sum(sum(tMapCellInside))*areaConvert*1e-3; % in nN

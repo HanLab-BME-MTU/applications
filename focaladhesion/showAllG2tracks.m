@@ -20,23 +20,33 @@ idsClassifiedStruct = load(classProc.outFilePaths_{4,iChan});
 idG2 = idsClassifiedStruct.idGroup2;
 indexG2  = find(idG2)';
 if askUser
-    idG1 = idsClassifiedStruct.idGroup1;
+    idG2 = idsClassifiedStruct.idGroup1;
     idG6 = idsClassifiedStruct.idGroup6;
 end
 %% Load tracksNA belonged to only G1
-adhAnalProc = faPackage.getProcess(7);
-tracksNAG2=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2);
+% adhAnalProc = faPackage.getProcess(7);
+% tracksNAG2=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2);
+initRiseProc = faPackage.getProcess(11);
+[tracksNAG2,idxTracks]=initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2);
 %% indexG2 filtering
-idG2_FT = getForceTransmittingG2(idG2,tracksNAG2,MD.timeInterval_);
+if ~isempty(idxTracks)
+    idG2 = false(size(idG2));
+    idG2(indexG2(idxTracks))=true;
+end
+
+idG2 = getForceTransmittingG1(idG2,tracksNAG2);
+indexG2  = find(idG2);
+tracksNAG2=initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2);
+
 % indexG2  = find(idG2)';
 %% another filtering for redundant tracks
 [~,idxFinalTracks,idOtherOverlappingTracks] = filterOverlappingTracks(tracksNAG2);
 idG2_nonOverlapping = false(size(idG2));
 idG2_nonOverlapping(indexG2(idxFinalTracks'))=true;
-indexG2NO = find(idG2_nonOverlapping & idG2_FT);
+indexG2NO = find(idG2_nonOverlapping & idG2);
 indexFinalTracks = find(idxFinalTracks);
 
-tracksNAG2=adhAnalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2NO);
+tracksNAG2=initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',indexG2NO);
 
 numTracksG2 = numel(tracksNAG2);
 %% Load imgStack, forceStack and another stack if it exists.
@@ -46,12 +56,17 @@ gPath = [faPackage.outputDirectory_ filesep 'tracksG2'];
 if ~exist(gPath,'dir')
     mkdir(gPath)
 end
+iForceSlave = 1;
+initOutFolder = fileparts(initRiseProc.outFilePaths_{2,iForceSlave});
+initDataPath = [initOutFolder filesep 'data'];
+nameTitle=['initialLag Class' num2str(2)];
+
 for ii=1:numTracksG2
     curTrack = tracksNAG2(ii);
     IDtoInspect = indexG2NO(ii);
     OtherOverlappingIDs = indexG2(idOtherOverlappingTracks==indexFinalTracks(ii));
     additionalName = 'G2';
-    h=showSingleAdhesionTrackSummary(MD,curTrack,imgStack,tMap,imgStack2,IDtoInspect, gPath,additionalName);
+    [h, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave]=showSingleAdhesionTrackSummary(MD,curTrack,imgStack,tMap,imgStack2,IDtoInspect, gPath,additionalName);
     if askUser
         answer = questdlg('Does this belong to G2?',['Confirmation of each track' num2str(ii) '/' num2str(numTracksG2)],...
                   'Yes(G2)','No(G6)','Others(G1)','No(G6)');
@@ -71,7 +86,7 @@ for ii=1:numTracksG2
                 % take out the existing G2
                 idG2(OtherOverlappingIDs)=false;
                 % insert it to G6
-                idG1(OtherOverlappingIDs)=true;
+                idG2(OtherOverlappingIDs)=true;
         end  
     else
         print(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
@@ -79,9 +94,37 @@ for ii=1:numTracksG2
         savefig(h,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
     end
     close(h)
+    % Quantify timelag from curTrack2...
+    initialRiseLagAgainstEachSlave{1}(ii,1) = timeLagMasterAgainstForce;
+    initialRiseLagAgainstEachSlave{2}(ii,1) = timeLagMasterAgainstMainSlave;
 end
+% Retrieve the existing inital rise time delay
+initRiseStruct = load([initDataPath filesep nameTitle '.mat'],'initialLagTogetherAdjusted','nameList2');   
+initialLagTogetherAdjusted=initRiseStruct.initialLagTogetherAdjusted; %nameList2 contains the information on how the time lag was calculated.
+nameList2 = initRiseStruct.nameList2;
+% Update it and save it again
+if numel(nameList2)<2
+    initialLagTogetherAdjusted = initialRiseLagAgainstEachSlave(1);
+else
+    % identify the common slave
+    if strcmp(nameList2{1}(end),'2') && strcmp(nameList2{2}(end),'2') %if the common slave is amp2 or ampTotal2,
+        % rearrange accordingly
+        initialLagTogetherAdjusted{1} = initialRiseLagAgainstEachSlave{1}-initialRiseLagAgainstEachSlave{2};
+        initialLagTogetherAdjusted{2} = -initialRiseLagAgainstEachSlave{2};
+    elseif strcmp(nameList2{1}(end),'g') && strcmp(nameList2{2}(end),'g') %if the common slave is forceMag,
+        initialLagTogetherAdjusted{1} = -initialRiseLagAgainstEachSlave{1};
+        initialLagTogetherAdjusted{2} = initialRiseLagAgainstEachSlave{2}-initialRiseLagAgainstEachSlave{1};
+    else 
+        initialLagTogetherAdjusted = initialRiseLagAgainstEachSlave;
+    end
+end
+% Save it
+nameTitleBackup=[nameTitle 'Original'];
+movefile([initDataPath filesep nameTitle '.mat'],[initDataPath filesep nameTitleBackup '.mat'])
+save([initDataPath filesep nameTitle '.mat'],'initialLagTogetherAdjusted','nameList2');   
+
 if askUser
-    idGroup1=idG1;
+    idGroup1=idG2;
     idGroup2=idG2;
     idGroup3=idsClassifiedStruct.idGroup3;
     idGroup4=idsClassifiedStruct.idGroup4;

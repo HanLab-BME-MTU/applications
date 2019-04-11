@@ -75,10 +75,11 @@ elseif attribute==3 && ~isfield(tracksNA,'fret')
     tracksNA(end).fret=[];
 elseif attribute==4 && ~isfield(tracksNA,'flowSpeed')
     tracksNA(end).flowSpeed=[];
-elseif attribute==5 && ~isfield(tracksNA,'ampTotal2')
+elseif attribute==5 && (~isfield(tracksNA,'ampTotal2') || ~isfield(tracksNA,'amp2'))
     tracksNA(end).ampTotal2=[];
-elseif attribute==5 && ~isfield(tracksNA,'amp2')
     tracksNA(end).amp2=[];
+    tracksNA(end).bkgAmp2=[];
+% elseif attribute==5 && ~isfield(tracksNA,'amp2')
 elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
     tracksNA(end).ampTotal3=[];
 end    
@@ -574,9 +575,9 @@ for k=1:numTracks
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
     %                     curTrack.presence(ii) =  1;
-                    pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
-                    curTrack.amp(ii) = pstruct.A;
-                    curTrack.bkgAmp(ii) = pstruct.c;
+                    curAvgBkgAmp = nanmean(curTrack.bkgAmp(ii+1:min(ii+11,curTrack.endingFrameExtra)));
+                    curTrack.amp(ii) = curTrack.ampTotal(ii) - curAvgBkgAmp;
+                    curTrack.bkgAmp(ii) = curAvgBkgAmp;                    
                 end
             end
             if curTrack.endingFrameExtra<numFrames
@@ -594,15 +595,15 @@ for k=1:numTracks
                     curTrack.xCoord(ii) = x;
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
-                    pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
-                    curTrack.amp(ii) = pstruct.A;
-                    curTrack.bkgAmp(ii) = pstruct.c;
+                    curAvgBkgAmp = nanmean(curTrack.bkgAmp(max(curTrack.startingFrameExtra,ii-11):ii-1));
+                    curTrack.amp(ii) = curTrack.ampTotal(ii) - curAvgBkgAmp;
+                    curTrack.bkgAmp(ii) = curAvgBkgAmp;                    
     %                     curTrack.presence(ii) =  1;
                 end
             end
         end
-        frameRange=find(~isnan(curTrack.ampTotal));
-        noNanRange = frameRange(~isnan(curTrack.amp)); 
+        frameRange=1:find(~isnan(curTrack.ampTotal),1,'last');
+        noNanRange = find(~isnan(curTrack.amp)); 
         curTrack.amp=interp1(noNanRange,curTrack.amp(noNanRange),frameRange);
         curTrack.bkgAmp=interp1(noNanRange,curTrack.bkgAmp(noNanRange),frameRange);
 
@@ -629,7 +630,8 @@ for k=1:numTracks
             curTrack.forceMag = curTrack.amp;
         elseif attribute==5
             curTrack.ampTotal2 = curTrack.amp;
-            curTrack.amp2 = curTrack.amp;
+            curTrack.amp2 = NaN(size(curTrack.amp));
+            curTrack.bkgAmp2 = NaN(size(curTrack.amp));
         elseif attribute==6
             curTrack.ampTotal3 = curTrack.amp;
         end
@@ -649,15 +651,25 @@ for k=1:numTracks
                 curTrack.ampTotal2(ii) = mean(curAmpTotal(:));
                 % now also trying to get 'amplitude' by gaussian fitting
                 pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
-                curTrack.amp2(ii) = pstruct.A;
+                if ~isnan(pstruct.x)
+                    curTrack.amp2(ii) = pstruct.A;
+                    curTrack.bkgAmp2(ii) = pstruct.c;
+                elseif any(~isnan(curTrack.bkgAmp2))
+                    % In case that it can't find the gaussian fitting, we
+                    % want to use the average of bkgAmp2 and get the
+                    % difference from ampTotal2
+                    curAvgBkgAmp2 = nanmean(curTrack.bkgAmp2(1:ii-1));
+                    curTrack.amp2(ii) = curTrack.ampTotal2(ii) - curAvgBkgAmp2;
+                    curTrack.bkgAmp2(ii) = curAvgBkgAmp2;                    
+                end
             elseif attribute==6
                 curTrack.ampTotal3(ii) = mean(curAmpTotal(:));
             end
         end  
         if attribute==5
             %interpolate
-            noNanRange = frameRange(~isnan(curTrack.amp2)); 
-            curTrack.amp2=interp1(noNanRange,curTrack.amp2(noNanRange),frameRange);
+            noNanRange = find(~isnan(curTrack.amp2)); 
+            curTrack.amp2=interp1(noNanRange,curTrack.amp2(noNanRange),1:frameRange(end));
         end
     elseif attribute==3 || attribute==4 %This time it uses FA area
         startFrame = curTrack.startingFrame;
