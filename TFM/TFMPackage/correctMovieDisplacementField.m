@@ -187,7 +187,6 @@ if p.fillVectors
     timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
     tic
     nFillingTries=1000;
-    k2=1;
     for j= 1:nFrames
         % Read image and perform correlation
         if ~isempty(SDCProc)
@@ -195,15 +194,18 @@ if p.fillVectors
         else
             currImage = double(movieData.channels_(pStep2.ChannelIndex(1)).loadImage(j));
         end
+        k2=0;
         nTracked=1000; 
-        nFailed=0;
+        nFailed=0; nMaxFailed=5;
         prevAttempt=false; prevNeiVecs=[]; prevIndices=[];
-        thresDist=15;
+        thresDist=3; 
+        iFigureDrawing=0;
         for k=1:nFillingTries
+            iFigureDrawing=iFigureDrawing+1;
             % only un-tracked vectors
             unTrackedBeads=isnan(displField(j).vec(:,1));
             ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
-            if ratioUntracked<0.0000001 || (nTracked==0 && nFailed>3)
+            if ratioUntracked<0.0000001 || (nTracked==0 && nFailed>nMaxFailed)
                 break
             end
             currentBeads = displField(j).pos(unTrackedBeads,:);
@@ -213,6 +215,30 @@ if p.fillVectors
 %             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
 %             [idx,dist] = KDTreeClosestPoint(neighborBeads, currentBeads); % Increasing search radius with further iteration
             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-0.2*k2)*neighborhood_distance(j)); % Decreasing search radius with further iteration
+            % Here we want to be very wise. The fact that one bead location
+            % has few  neighboring vectors is not always good. What if the
+            % neighboring vectors are far from the location? 
+            % We need to get an optimal distance 
+            % First get the number distribution
+            quantityNeis = cellfun(@numel,idx);
+            qq=1;
+            meanNumNeis = NaN(51,1);
+            meanNumNeis(qq,1) = mean(quantityNeis);
+            % Currently mean is about 30. I am going now keep lowering the
+            % distance and see how mean is changing
+            for k2=0.1:0.1:5
+                [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-0.2*k2)*neighborhood_distance(j)); % Decreasing search radius with further iteration
+                quantityNeis = cellfun(@numel,idx);
+                qq=qq+1;
+                meanNumNeis(qq,1) = mean(quantityNeis);
+            end
+            %figure, plot(0:0.1:5',meanNumNeis)
+            % Now limit the distance so that meanNumNei becomes only
+            % thresDist
+            [~,indOptDist]=min(abs(meanNumNeis -thresDist));
+            optDist = (1-0.2*0.1*indOptDist)*neighborhood_distance(j);
+            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, optDist); % optimal neighbors
+            
 %             % In case of empty idx, search with larger radius.
 %             emptyCases = cellfun(@isempty,idx);
 %             mulFactor=1;
@@ -229,8 +255,8 @@ if p.fillVectors
             closeNeiVecs = cellfun(@(x) neighborVecs(x,:),idx,'Unif',false);
 %             closeNeiVecs = arrayfun(@(x) neighborVecs(x,:),idx,'Unif',false);
 %             idCloseEnough = dist<thresDist;
-            atLeast3neis = cellfun(@(x) numel(x)>2,idx);
-            idCloseEnough = atLeast3neis; %dist<thresDist;
+            atLeast5neis = cellfun(@(x) numel(x)>thresDist+1,idx);
+            idCloseEnough = atLeast5neis; %dist<thresDist;
             % See if there is any previous attempt
             tolR = 1e-2;
             if prevAttempt
@@ -262,29 +288,49 @@ if p.fillVectors
                 pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
                 'mode',pStep2.mode,'hardCandidates',closeNeiVecs(idCloseEnough),'magDiffThreshold',p.magDiffThreshold,...
                 'angDiffThreshold',p.angDiffThreshold); %, 'hardCandidateDists', dist(idCloseEnough));%,'usePIVSuite', pStep2.usePIVSuite);
-            if nTracked==0
-                nFailed=nFailed+1;
-                k2 = k2+1;
-            else
-                nFailed=0;
-                if k2>1
-                    k2 = k2-1;
-                end
-                % We don't need to track ones that have failed tracking if
-                % the radius is not updated (thus the neighboring
-                % information is not updated). 
-                % Save untracked locations
+
+            if j== 1 && (iFigureDrawing==1 || nFailed==nMaxFailed)
+                figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
+                hold on
+%             plot(currentBeads(:,1),currentBeads(:,2),'ro')
+                quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'r')
             end
+        %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
+            displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+
+%             % Filtering it again because retracked vectors might contain
+%             % errors - I decided to not do this but controlling the
+%             significance criteria
+%             dispMat = [displField(j).pos displField(j).vec];
+%             [outlierIndex,sparselyLocatedIdx,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold,1);
+%             if iFigureDrawing==1 || nTracked==nMaxFailed
+%                 quiver(dispMat(outlierIndex,1),dispMat(outlierIndex,2),dispMat(outlierIndex,3), dispMat(outlierIndex,4),0,'g')
+%                 quiver(dispMat(sparselyLocatedIdx,1),dispMat(sparselyLocatedIdx,2),dispMat(sparselyLocatedIdx,3), dispMat(sparselyLocatedIdx,4),0,'b')
+%             end
+%             dispMat(outlierIndex,3:4)=NaN;
+%             dispMat(sparselyLocatedIdx,3:4)=NaN;
+%             displField(j).pos=dispMat(:,1:2);
+%             displField(j).vec=dispMat(:,3:4);
+%             nTracked = sum(~isnan(dispMat(:,3)) & unTrackedBeads);
+%             disp(['Tracked - filtered = ' num2str(nTracked)])
+
+            % We don't need to track ones that have failed tracking if
+            % the radius is not updated (thus the neighboring
+            % information is not updated). 
+            % Save untracked locations
             prevAttempt=true;
             prevNeiVecs = closeNeiVecs;
             prevIndices = find(unTrackedBeads);
 
-%             figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
-%             hold on
-%             plot(currentBeads(:,1),currentBeads(:,2),'ro')
-%             quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'m')
-        %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
-            displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+            if nTracked==0
+                nFailed=nFailed+1;
+                thresDist = 3 +(-1)^nFailed*ceil((nFailed+1)/2);
+            else
+                nFailed=0;
+                if thresDist ~= 3
+                    thresDist = 3;
+                end
+            end
         end
         disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
         % Update the waitbar

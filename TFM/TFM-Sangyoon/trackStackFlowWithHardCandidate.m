@@ -107,6 +107,8 @@ disp('Calculating angles between neighboring vectors...')
 if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
 numCloseNeiVecs=numel(closeNeiVecs);
 baseVector = [1 0]; %x-axis
+stdAngleAll = zeros(numCloseNeiVecs,1);
+avgAngleAll = zeros(numCloseNeiVecs,1);
 parfor k=1:numCloseNeiVecs %for angles between vectors
     curNei = closeNeiVecs{k};
     numCurNei = size(curNei,1);
@@ -129,6 +131,27 @@ parfor k=1:numCloseNeiVecs %for angles between vectors
     isThirdFourthQuad = arrayfun(@(x) x<0, curNei(:,2));
     curAngle(isThirdFourthQuad)=-curAngle(isThirdFourthQuad);
     
+    % There are cases where similar orientations have sign changes due to acos
+    % artifact (definition) which results in a large variation which do not
+    % make sense. I'll correct for that. This should be used only when
+    % curNei vectors are within second and third quadrants.
+    
+    % Angles for statistics near pi:
+    isThirdQuad = arrayfun(@(x,y) x<0 & y<0, curNei(:,1),curNei(:,2));
+    isSecondQuad = arrayfun(@(x,y) x<0 & y>0, curNei(:,1),curNei(:,2));
+    isFourthQuad = arrayfun(@(x,y) x>0 & y<0, curNei(:,1),curNei(:,2));
+    if any(isThirdQuad) && any(isSecondQuad) && ~any(isFourthQuad)
+        curAngle(isThirdQuad)=2*pi+curAngle(isThirdQuad);
+    elseif any(isThirdQuad) && ~any(isSecondQuad) && any(isFourthQuad)
+        curAngle(isThirdQuad)=2*pi+curAngle(isThirdQuad);
+        curAngle(isFourthQuad)=2*pi+curAngle(isFourthQuad);
+    end
+    avgAngleAll(k) = mean(curAngle);
+    stdAngleAll(k) = std(curAngle);
+    if avgAngleAll(k)>pi
+        avgAngleAll(k) = avgAngleAll(k)-2*pi;
+    end
+    %Angles near zero should be fine
 %     for p=1:numCurNei-1
 %         vecP=curNei(p,:);
 %         for q=p+1:numCurNei
@@ -137,12 +160,14 @@ parfor k=1:numCloseNeiVecs %for angles between vectors
 %             curAnglesBetweenVecs=[curAnglesBetweenVecs curAngle];
 %         end
 %     end
-    orienNeiVecs{k} = curAngle; %curAnglesBetweenVecs;
+%     orienNeiVecs{k} = curAngle; %curAnglesBetweenVecs;
     if feature('ShowFigureWindows'), parfor_progress; end
 end
 if feature('ShowFigureWindows'), parfor_progress(0); end
-stdAngleAll = cellfun(@std,orienNeiVecs);
-avgAngleAll = cellfun(@mean,orienNeiVecs);
+
+
+% stdAngleAll = cellfun(@std,orienNeiVecs);
+% avgAngleAll = cellfun(@mean,orienNeiVecs);
 % curStdAngle = 0.5; % This is arbitrary now
 % usePIVSuite = ip.Results.usePIVSuite;
 % contWind = true;
@@ -217,10 +242,10 @@ if isempty(gcp('nocreate'))
 end % we don't need this any more.
 
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
-% inqryPoint=200;
+
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[250]; inqY=[203];
+% inqX=[557]; inqY=[564];
 % for ii=1:numel(inqX)
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
@@ -244,7 +269,7 @@ parfor k = 1:nPoints
     curAvgAngle = avgAngleAll(k);
     
     pass = 0;
-    while pass == 0 && corL >= minMinCorL
+%     while pass == 0 && corL >= minMinCorL
         
         %Create kymograph around each point. 'bandDir' is used as the direction
         % of the kymographed line.
@@ -326,8 +351,12 @@ parfor k = 1:nPoints
                     if curVec(2)<0 %if this vector is in third- or fourth- quadrants, we need to flip the sign.
                         curAng = -curAng;
                     end
-                    if curDist<=curNeiMag + 20*curNeiStd && curDist>=curNeiMag-2*curNeiStd ...
+                    % If curAvgAngle+2*curStdAngle is over pi and curAng is
+                    % over near negative pi, we need to correct for that.
+                    if curDist<=3*curNeiMag && curDist>=0.5*curNeiMag ...
                             && curAng <= curAvgAngle+2*curStdAngle && curAng >= curAvgAngle-2*curStdAngle
+                        maskSearchInterest(row,col)=true;
+                    elseif curAvgAngle+2*curStdAngle>pi && (curAng+2*pi)<(curAvgAngle+2*curStdAngle)
                         maskSearchInterest(row,col)=true;
                     end
                 end
@@ -336,7 +365,7 @@ parfor k = 1:nPoints
             
             %Test the quality of the score function and find the index of the
             % maximum score.
-            [pass,locMaxI,sigtVal] = findMaxScoreI(score.*maskSearchInterest,zeroI,minFeatureSize,0.9);
+            [pass,locMaxI,sigtVal] = findMaxScoreI(score.*maskSearchInterest,zeroI,minFeatureSize,0.6);
             
 %             if ~isempty(curNeiMag)
 %                 % Here I use PIV result to find the best candidate
@@ -369,14 +398,14 @@ parfor k = 1:nPoints
 %             end
         end
         
-        if pass == 0
-            if corL == minMinCorL
-                corL = 0;
-            else
-                corL = max(minMinCorL,odd(corL-4));%floor(corL*3/2));
-            end
-        end
-    end
+%         if pass == 0
+%             if corL == minMinCorL
+%                 corL = 0;
+%             else
+%                 corL = max(minMinCorL,odd(corL-4));%floor(corL*3/2));
+%             end
+%         end
+%     end
     
     if pass == 0
         maxV = [NaN NaN];

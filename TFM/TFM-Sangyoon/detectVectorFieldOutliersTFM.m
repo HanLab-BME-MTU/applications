@@ -181,10 +181,10 @@ medianRes=arrayfun(@(x) median(abs(neighVel{x}-repmat(medianVel{x},size(neighVel
 normFluct = arrayfun(@(x) abs(localVel{x}-medianVel{x})./(medianRes{x}+epsilon),options{:});
 r=cellfun(@norm, normFluct);
 
-% Get median weighted magnited and orientation separately -added by SH
-% 170307
-critAng=pi/8;
-rOri = cellfun(@(x,y) acos(x*y'/(norm(x)*norm(y))),medianVel,localVel);
+% % Get median weighted magnited and orientation separately -added by SH
+% % 170307
+% critAng=pi/8;
+% rOri = cellfun(@(x,y) acos(x*y'/(norm(x)*norm(y))),medianVel,localVel);
 
 % Filter outliers using threshold
 % outlierIndex = ind(idata([idCloseVectors(r.^(1/2).*(rOri/critAng).^1.5>threshold)]));
