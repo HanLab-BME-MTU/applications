@@ -585,7 +585,7 @@ if ~isempty(imgMap2)
     else
         ax12=axes('Position',[450/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
     end
-    [curBcc2, bgBcc2] = crossVariance(curTrack.amp,curTrack.amp2,9);
+    [curBcc2, bgBcc2] = crossVariance(curTrack.amp(1:curTrack.endingFrameExtraExtra),curTrack.amp2(1:curTrack.endingFrameExtraExtra),9);
 
     plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curBcc2(curStartFrameEE:curEndFrameEE),'k'), hold on
     plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curBcc2(curStartFrame:curEndFrame),'g')
