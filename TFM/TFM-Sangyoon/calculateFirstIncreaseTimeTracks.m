@@ -1,9 +1,11 @@
 function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
-    ,firstIncreaseTimeIntAll,firstIncreaseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll,tracksNA] ...
+    ,firstIncreaseTimeIntAll,firstIncreaseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll, ...
+    tracksNA, ampIncreasingAll] ...
     = calculateFirstIncreaseTimeTracks(tracksNA,numAveragingWind,preDetecPeriod,tInterval,varargin)
-% [firstIncreseTimeIntAgainstForceAll,forceTransmittingAll...
-%  ,firstIncreseTimeIntAll,firstIncreseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll]=...
-%  calculateFirstIncreaseTimeTracks(tracksNA,splineParamInit,preDetecFactor,tInterval)
+% function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
+%     ,firstIncreaseTimeIntAll,firstIncreaseTimeSlaveAll,bkgMaxIntAll,bkgMaxSlaveAll, ...
+%     tracksNA, ampIncreasingAll] ...
+%     = calculateFirstIncreaseTimeTracks(tracksNA,numAveragingWind,preDetecPeriod,tInterval,varargin)
 %  calculates the time lag of the main intensity (ampTotal) against the slave source.
 % input:
 %       splineParamInit: smoothing parameter (0-1). Use 1 if you don't want to
@@ -42,6 +44,7 @@ firstIncreaseTimeSlaveAll=NaN(numel(tracksNA),1);
 bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
 differentInitialMargin=50;
+ampIncreasingAll=false(numel(tracksNA),1);
 
 for ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
@@ -76,8 +79,11 @@ for ii=1:numel(tracksNA)
 %         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
 %     end
     pp=0;
-    curEarlyAmpSlope = NaN(5,1);
-    for  initialTime=10:10:50
+    lastPeriod = min(curTrack.lifeTime+1, 100);
+    firstPeriod = 20; pStep=20;
+    nSlopes = floor((lastPeriod-firstPeriod)/pStep);
+    curEarlyAmpSlope = NaN(nSlopes,1);
+    for  initialTime=firstPeriod:pStep:lastPeriod
         pp=pp+1;
         ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
         [~,curEarlyAmpSlope(pp)] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));
@@ -108,14 +114,19 @@ for ii=1:numel(tracksNA)
             windowSize = 5; 
             b = (1/windowSize)*ones(1,windowSize);
             a = 1;
-            sd = filter(b,a,d);
+%             sd = filter(b,a,d);
+            sd = conv(d,b,'same'); %filter(b,a,d);
+%             zeroPhaseFilter = designfilt('lowpassiir','FilterOrder',12, ...
+%                 'HalfPowerFrequency',0.15,'DesignMethod','butter');            
+%             sd = filtfilt(zeroPhaseFilter,d); %filter(b,a,d);
+            % End points correction
             sF = find(~isnan(d),1);
             eF = find(~isnan(d),1,'last');
-            % End points correction
-            for jj=1:windowSize
+            halfW = floor(windowSize/2);
+            for jj=1:halfW
                 % first point
-                sd(sF+jj-1) = sd(sF+jj-1) * windowSize / jj;
-                sd(eF-jj+1) = sd(eF-jj+1) * windowSize / jj;
+                sd(sF+jj-1) = sd(sF+jj-1) * windowSize / (jj+halfW);
+                sd(eF-jj+1) = sd(eF-jj+1) * windowSize / (jj+halfW);
             end
 %             % median filtering - based outlier filtering
 %             filteredSD = medfilt1(sd,13,'omitnan');
@@ -131,6 +142,7 @@ for ii=1:numel(tracksNA)
         end
 %         firstIncreseTimeInt = curTrack.startingFrameExtra;
         if ~isempty(firstIncreaseTimeInt)
+            ampIncreasingAll(ii)=true;
             if useSmoothing
                 curSlave=d;
                 curSlave(curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra) = ...
@@ -147,10 +159,11 @@ for ii=1:numel(tracksNA)
                 if any(curEarlyForceSlope>0) && sum(~isnan(curSlave))>1
 %                     sCurForce_spline= csaps(tRange,curSlave,splineParamInit);
 %                     sCurForce_sd=ppval(sCurForce_spline,tRange);
-                    sCurForce_sd = filter(b,a,curSlave);
-                    for jj=1:windowSize
+                    sCurForce_sd = conv(curSlave,b,'same'); %filter(b,a,d);
+%                     sCurForce_sd = filter(b,a,curSlave);
+                    for jj=1:halfW
                         % first point
-                        sCurForce_sd(sF+jj-1) = sCurForce_sd(sF+jj-1) * windowSize / jj;
+                        sCurForce_sd(sF+jj-1) = sCurForce_sd(sF+jj-1) * windowSize / (jj+halfW);
 %                         sCurForce_sd(eF-jj+1) = sCurForce_sd(eF-jj+1) * windowSize / jj;
                     end
                     
@@ -182,7 +195,7 @@ for ii=1:numel(tracksNA)
             bkgMaxIntAll(ii) = bkgMaxInt;
         end
     else
-        
+        disp(''); %disp('Amplitude not increasing')
     end
     if nargout>6
         tracksNA(ii).forceTransmitting=forceTransmittingAll(ii);

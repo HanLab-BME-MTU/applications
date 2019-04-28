@@ -173,7 +173,7 @@ for jj=existingSlaveIDs
     % 1. Initial force-increase time quantification! - time
     splineParamInit=0.99;
     [curFirstIncreseTimeIntAgainstSlave,SlaveTransmittingAll{jj}...
-    ,firstIncreseTimeIntAll{jj},firstIncreseTimeSlaveAll{jj},bkgMaxIntAll{jj},bkgMaxSlaveAll{jj}] ...
+    ,firstIncreseTimeIntAll{jj},firstIncreseTimeSlaveAll{jj},bkgMaxIntAll{jj},bkgMaxSlaveAll{jj},~,ampIncreasing] ...
         = calculateFirstIncreaseTimeTracks(tracksNA,p.numWinSize,p.preDetecPeriod,tInterval,'slaveSource',curSlave);
     firstIncreseTimeIntAgainstSlaveAll{jj}=curFirstIncreseTimeIntAgainstSlave;
     disp(['Median of firstIncreseTimeIntAgainst' curSlave 'All = ' num2str(nanmedian(firstIncreseTimeIntAgainstSlaveAll{jj}))])
@@ -224,15 +224,46 @@ end
 % idxLowInitForceG1= initForceG1<500;
 % idxLateAmpLow = lateAmpTotalG1<meanAmpMaximum;
 % idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
+
 % Filtering for group1
-idGroup1f = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
+idGroup1FT = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
 % Filtering for group2
-idGroup2f = getForceTransmittingG2(idGroup2,tracksNA(idGroup2),MD.timeInterval_);
+idGroup2long = getForceTransmittingG2(idGroup2,tracksNA(idGroup2),MD.timeInterval_);
+
+% Potential G2 in G1
+idGroup2fromG1 = getForceTransmittingG2(idGroup1,tracksNA(idGroup1),MD.timeInterval_);
+% Potential G1 in G2
+idGroup1fromG2 = idGroup2 & ~idGroup2long;
+
+idGroup2f = idGroup2long | idGroup2fromG1;
+idGroup1f = (idGroup1FT | idGroup1fromG2) & ~idGroup2f;
+
 
 idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 save([dataPath filesep 'idGroups.mat'],'idGroups');
 
+%% Get the fraction of how many adhesions are
+% increasing the force during their lifetime.
+if ismember(1,existingSlaveIDs)
+    isForceTransmitting = SlaveTransmittingAll{1};
+    isAmpIncreasing = ampIncreasing;
+%     idGroupsBeforeFiltering = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+    numEachGroup = cellfun(@(x) sum(x & isAmpIncreasing),idGroups); %idGroupsBeforeFiltering);
+    numEachGroup(3:9) = cellfun(@(x) sum(x),idGroups(3:9)); %G3-9 do not necessarily have to increase amplitudes during their lifetime
+    numEachGroupForceTransmitting = cellfun(@(x) sum(x & isForceTransmitting),idGroups);
+    fractionForceTransmitting = numEachGroupForceTransmitting./numEachGroup;
+    groupLabel = categorical(arrayfun(@(x,y) ['G' num2str(x) '(N=' num2str(y) ')'],1:9,numEachGroup,'unif',false));
+    h3=figure; bar(groupLabel,fractionForceTransmitting); title('Fraction of force-transmitting NAs per group')
+    ylabel('Fraction (1)'); nameTitle = 'fractionForceTransmitting';
+    hgexport(h3,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
+    hgsave(h3,strcat(figPath,filesep,nameTitle))
+
+    save([dataPath filesep 'forceTransmitting.mat'],'fractionForceTransmitting','numEachGroup','numEachGroupForceTransmitting','groupLabel');
+else
+    disp('No force channel, skipping quantification of force-transmitting NA fraction...')
+end
 % idGroups = {idGroup1f,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+%% For loop
 numClasses = numel(idGroups);
 numSlaves = numel(existingSlaveIDs);
 initialLagGroups=cell(numClasses,numSlaves);
@@ -977,10 +1008,16 @@ end
     fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
     %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
     [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false); if ~isempty(h); close(h); end
+    fileStore = [epsPath filesep 'ampForcePlotG1cohorts.eps'];
+    [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false,'plotCohorts',true); if ~isempty(h); close(h); end
+    fileStore = [epsPath filesep 'ampForcePlotG1color.eps'];
+    [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,true); if ~isempty(h); close(h); end
+
     %% group 2
     fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
     [~,h]= plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); if ~isempty(h); close(h); end
-
+    fileStoreG2 = [epsPath filesep 'ampForcePlotG2cohorts.eps'];
+    [~,h]= plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true,'plotCohorts',true); if ~isempty(h); close(h); end
     %% group 3 plotting
     fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
     [~,h]=plotIntensityForce(tracksNA(idGroup3),fileStoreG3,false,false); if ~isempty(h); close(h); end

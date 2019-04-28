@@ -44,6 +44,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
                 MLNames{ii} = nameML;
             end
         end
+        MLdirect=true;
     end
     specificName = strjoin(groupNames);
     rootAnalysis = pathAnalysisAll{1};
@@ -353,23 +354,24 @@ for ii=1:numConditions
         % About process 9
         iTheOtherProc = 9;
         tOtherProc = curFAPackage.getProcess(iTheOtherProc);
-        theOtherFunParams = tOtherProc.funParams_;
         if ~isempty(tOtherProc)
-            iOther = theOtherFunParams.iChanSlave; %input('Another channel other than the main adhesion channel? (default: 3): ');
-            if isempty(iOther); iOther=3; end
+            theOtherFunParams = tOtherProc.funParams_;
+            if ~isempty(tOtherProc)
+                iOther = theOtherFunParams.iChanSlave; %input('Another channel other than the main adhesion channel? (default: 3): ');
+                if isempty(iOther); iOther=3; end
 
-            intenGroupStruct=load(tOtherProc.outFilePaths_{2,iOther});
-            intenGroup=intenGroupStruct.intensityGroup; 
-            intensitiesInNAs{k} = intenGroup{1};
-            intensitiesInFCs{k} = intenGroup{2};
-            intensitiesInFAs{k} = intenGroup{3};
-        else
-            intensitiesInNAs{k} = [];
-            intensitiesInFCs{k} = [];
-            intensitiesInFAs{k} = [];
+                intenGroupStruct=load(tOtherProc.outFilePaths_{2,iOther});
+                intenGroup=intenGroupStruct.intensityGroup; 
+                intensitiesInNAs{k} = intenGroup{1};
+                intensitiesInFCs{k} = intenGroup{2};
+                intensitiesInFAs{k} = intenGroup{3};
+            else
+                intensitiesInNAs{k} = [];
+                intensitiesInFCs{k} = [];
+                intensitiesInFAs{k} = [];
+            end        
+            % Other feature related properties are calculated in the step 11
         end        
-        % Other feature related properties are calculated in the step 11
-        
     end
     
     
@@ -425,6 +427,9 @@ for ii=1:numConditions
                 earlyForceSlopeStr=load([initDataPath filesep 'earlyForceSlopeAllGroups.mat'],'earlyForceSlope');
                 earlyForceSlopeEachClass{pp}{k} = earlyForceSlopeStr.earlyForceSlope{pp};
 
+                fractionForceTransmittingStr=load([initDataPath filesep 'forceTransmitting.mat'],'fractionForceTransmitting','numEachGroup','numEachGroupForceTransmitting','groupLabel');
+                fractionForceTransmittingEachClass{pp}(k) = fractionForceTransmittingStr.fractionForceTransmitting(pp);               
+                numEachGroupForceTransmitting{pp}(k) = fractionForceTransmittingStr.numEachGroup(pp);               
 
                 if ismember(pp,[1 2])
                     try
@@ -519,6 +524,9 @@ for ii=1:numConditions
 
         earlyAmpSlopeGroup{ii,1}=earlyAmpSlopeEachClass;
         earlyForceSlopeGroup{ii,1}=earlyForceSlopeEachClass;
+
+        fractionForceTransmittingGroup{ii,1} = fractionForceTransmittingEachClass;
+        numEachGroupForceTransmittingGroup{ii,1} = numEachGroupForceTransmitting;
 
         mainBccPeakValuesGroupGroup{ii,1}=mainBccPeakValuesGroup;
         mainTimeToPeakGroupGroup{ii,1}=mainTimeToPeakGroup;
@@ -663,7 +671,23 @@ if ~isempty(initRiseProc)
     hgexport(h1,[figPath filesep 'earlyForceSlopeG1G2' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'earlyForceSlopeG1G2' num2str(curGroup)],'-v7.3')
     print(h1,[figPath filesep 'earlyForceSlopeG1G2' num2str(curGroup)],'-dtiff')
-end            
+end  
+%% fraction of force transmitting
+if ~isempty(initRiseProc) && ~isempty(curFAPackage.getProcess(10))
+    for ii=1:numConditions
+        curFractionForceTransmitting = fractionForceTransmittingGroup{ii,1};
+        curNumEachGroupForceTransmitting = numEachGroupForceTransmittingGroup{ii,1};
+        groupLabel = arrayfun(@(x,y) ['G' num2str(x) '(M=' num2str(numel(y{1})) ',N=' num2str(sum(y{1})) ')'],1:9,curNumEachGroupForceTransmitting,'unif',false);
+        
+        h1=figure; 
+        boxPlotCellArray(curFractionForceTransmitting,groupLabel,1,false,true);
+        ylabel('Fraction of force transmitting NAs (1)')
+        title(['Fraction of force transmitting NAs. ' groupNames{ii}])
+        hgexport(h1,[figPath filesep 'fractionForceTransmitting_' groupNames{ii}],hgexport('factorystyle'),'Format','eps')
+        hgsave(h1,[figPath filesep 'fractionForceTransmitting_' groupNames{ii}],'-v7.3')
+        print(h1,[figPath filesep 'fractionForceTransmitting_' groupNames{ii}],'-dtiff')
+    end
+end
 %% Plotting each - mainTimeToPeakGroupGroup - G1 and G2
 if ~isempty(initRiseProc)
     for curGroup=1:2
