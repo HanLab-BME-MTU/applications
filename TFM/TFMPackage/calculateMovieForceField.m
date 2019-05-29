@@ -837,6 +837,15 @@ else % FTTC
             else
                 [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,...
                     'manualSelection',true,'inflection',2); %Inflection point smaller than l-curve will be chosen.
+                if isempty(reg_corner)
+                    disp('Optimal regularization parameter selection was not converged. Going with L-corner...')
+                    [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,...
+                        'manualSelection',true); % L-corner
+                    if isempty(reg_corner)
+                        disp('L-corner regularization parameter selection was not converged either. Going with what''s entered initially...')
+                        reg_corner=p.regParam; 
+                    end
+                end
             end
             save(outputFile{5,1},'rho','eta','reg_corner','ireg_corner');
             saveas(hLcurve,outputFile{4,1});
