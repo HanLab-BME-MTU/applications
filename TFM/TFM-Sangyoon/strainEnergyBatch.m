@@ -1,21 +1,62 @@
 %% open necessary MLs
+MLdirect=false;
 [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
+groupNames=[];
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
     ii=0;
     rootFolder=pwd;
     while ~analysisFolderSelectionDone
         ii=ii+1;
-        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+%         curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+        [curMLFile,curPathProject] = uigetfile(rootFolder,'Select the movie list file one per each attempt (Click Cancel when no more)');
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
         else
+            [curPathProject2,finalFolder] = fileparts(curPathProject);
             pathAnalysisAll{ii} = curPathProject;
+            if isempty(finalFolder)
+                [~,finalFolder] = fileparts(curPathProject2);
+            end
+            groupNames{ii} = finalFolder;
+            MLFileNamesAll{ii} = curMLFile;
+            MLNames{ii} = curMLFile;
+            MLdirect=true;
         end
     end
+    if analysisFolderSelectionDone && ii==1
+        MLSelectionDone = false;
+        ii=0;
+        while ~MLSelectionDone
+            ii=ii+1;
+            [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
+            if ~ischar(curPathML) || isempty(curPathML)
+                MLSelectionDone=true;
+            else
+                curML = load(fullfile(curPathML,nameML),'ML'); curML=curML.ML;
+                pathAnalysisAll{ii} = curML.getPath;
+                try
+                    groupNames{ii} = nameML(10:end-4); %Excluding first 'movieList' and last '.mat'
+                catch % when movieList is just movieList.mat, use the name of the containing folder
+                    [~,finalFolder] = fileparts(pathAnalysisAll{ii});
+                    groupNames{ii} = finalFolder;
+                end
+                MLNames{ii} = nameML;
+            end
+        end
+        MLdirect=true;
+    end
+    specificName = strjoin(groupNames);
+    rootAnalysis = pathAnalysisAll{1};
+    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
+    specificName=fileSFolders(16:end);
+    MLFileNamesAll = selectedFolders.MLNames;%'movieList.mat';
+%     for k=1:numel(pathAnalysisAll)
+%         MLFileNamesAll{k} = selectedFolders.MLNames{k};%'movieList.mat';
+%     end
 end
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
@@ -23,10 +64,10 @@ for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep 'movieList.mat']);
 end
 %% Output
-rootAnalysis = fileparts(pathAnalysisAll{1});
-figPath = [rootAnalysis '/AnalysisSummaryTFM/Figs'];
+rootAnalysis = pathAnalysisAll{1};
+figPath = [rootAnalysis '/AnalysisSummary_TFM' specificName '/Figs'];
 mkdir(figPath)
-dataPath = [rootAnalysis '/AnalysisSummaryTFM/Data'];
+dataPath = [rootAnalysis '/AnalysisSummary_TFM' specificName '/Data'];
 mkdir(dataPath)
 %% Now Force analysis: total force, strain energy and SE density
 N=zeros(numConditions,1);
@@ -136,16 +177,25 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
+groupNames2=groupNames;
 for ii=1:numConditions
     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
     groupNames{ii} = finalFolder;
 end
 nameList=groupNames'; 
+if any(cellfun(@isempty,nameList))
+    nameList = MLNames;
+end
 %% Plotting each - SE-ForceBlob
 SE_FB_GroupCellArray = cellfun(@(x) cell2mat(x),SE_FB_Group,'unif',false);
 h1=figure; 
 % barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SE_FB_GroupCellArray,nameList,1,false,true)
+try
+    boxPlotCellArray(SE_FB_GroupCellArray,nameList,1,false,true)
+catch
+    nameList = nameList';
+    boxPlotCellArray(SE_FB_GroupCellArray,nameList,1,false,true)
+end
 ylabel('Strain energy (femto-Joule)')
 title('Total strain energy in force blobs')
 hgexport(h1,strcat(figPath,'/strainEnergyForceBlobs'),hgexport('factorystyle'),'Format','eps')
