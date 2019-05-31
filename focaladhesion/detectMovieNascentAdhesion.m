@@ -254,34 +254,34 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).FAdensityPeri = sum(indFAsAtEdge)/bandArea; % number per um2
     focalAdhInfo(j).FAdensityInside = (numAdhs-sum(indFAsAtEdge))/(focalAdhInfo(j).cellArea-bandArea); % number per um2
     
-    % New feature: the other channel reading
-    % 1. Check if there is the other channel
-    % e.g. see if there is more than one channels
-    % e.g. see if there is TFM package
-    % e.g. see if the additional channel is used for TFM or not.
-    %      if there is a channel, get the channel.
-    %
-    % 2. Go over each adhesion
-    for ii=1:numAdhs
-        % 3. Get the specific segmentation-based mask
-        
-        % 4. Dilate the mask
-        
-        % 5. Exclude the any other adhesion mask and Get the band mask
-        
-        % 6. Get the Ibg (mean intensity of the band in the channel image)
-        % curImg2 = chan2.loadImage(j);
-        % Ibg2d = M_bg .* curImg2;
-        % Ibg = mean(ibg2d(:));
-        
-        % 7. Get the Iabs
-        
-        % 8. Get the ampTheOther
-        % ampTheOther = Iabs - Ibg;
-        
-        % 9. Save it to focalAdhInfo
-        focalAdhInfo(j).ampTheOther(ii) = ampTheOther;
-    end
+%     % New feature: the other channel reading
+%     % 1. Check if there is the other channel
+%     % e.g. see if there is more than one channels
+%     % e.g. see if there is TFM package
+%     % e.g. see if the additional channel is used for TFM or not.
+%     %      if there is a channel, get the channel.
+%     %
+%     % 2. Go over each adhesion
+%     for ii=1:numAdhs
+%         % 3. Get the specific segmentation-based mask
+%         
+%         % 4. Dilate the mask
+%         
+%         % 5. Exclude the any other adhesion mask and Get the band mask
+%         
+%         % 6. Get the Ibg (mean intensity of the band in the channel image)
+%         % curImg2 = chan2.loadImage(j);
+%         % Ibg2d = M_bg .* curImg2;
+%         % Ibg = mean(ibg2d(:));
+%         
+%         % 7. Get the Iabs
+%         
+%         % 8. Get the ampTheOther
+%         % ampTheOther = Iabs - Ibg;
+%         
+%         % 9. Save it to focalAdhInfo
+%         focalAdhInfo(j).ampTheOther(ii) = ampTheOther;
+%     end
     
 
     % plotting detected adhesions

@@ -199,7 +199,11 @@ for ii=1:numConditions
 end
 %% Plotting Ratio of FA over NA
 h4=figure; 
-barPlotCellArray(FAtoNAratio,nameList)
+try
+    barPlotCellArray(FAtoNAratio,nameList)
+catch
+    text(0,0.2,'Not plottable')
+end
 title('Ratio of FA over NA')
 ylabel('Ratio of FA over NA (ratio)')
 hgexport(h4,strcat(figPath,'/FAtoNARatio'),hgexport('factorystyle'),'Format','eps')

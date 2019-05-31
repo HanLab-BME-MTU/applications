@@ -176,7 +176,8 @@ pixSize_mu=movieData.pixelSize_*1e-3; % in um/pixel
 areaConvert=pixSize_mu^2; % in um2/pixel
 SE_FOV=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nFrames,1));
 totalForceFOV = zeros(nFrames,1);
-SE_Cell=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nFrames,1));
+SE_Cell=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nFrames,1),...
+    'SE_peri',zeros(nFrames,1),'SE_inside',zeros(nFrames,1),'SEDensityPeri',zeros(nFrames,1),'SEDensityInside',zeros(nFrames,1));
 totalForceCell = zeros(nFrames,1);
 SE_Blobs=struct('SE',zeros(nFrames,1),'nFA',zeros(nFrames,1),'areaFA',zeros(nFrames,1),...
     'SEDensity',zeros(nFrames,1),'avgFAarea',zeros(nFrames,1),'avgSEperFA',zeros(nFrames,1));
