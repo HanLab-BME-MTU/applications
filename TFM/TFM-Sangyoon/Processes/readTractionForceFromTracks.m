@@ -51,6 +51,8 @@ tic
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
 adhAnalProc = MD.getProcess(iAdhProc);
 % numChans = numel(p.ChannelIndex);
+% Doublecheck the p.ChannelIndex
+p.ChannelIndex = adhAnalProc.funParams_.ChannelIndex;
 tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 %% Data Set up
 % Set up the output file path for master channel
