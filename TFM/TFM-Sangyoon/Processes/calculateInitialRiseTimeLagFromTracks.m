@@ -44,6 +44,8 @@ try
 catch
     adhAnalProc = faPack.processes_{7};
 end
+% Doublecheck the p.ChannelIndex
+p.ChannelIndex = adhAnalProc.funParams_.ChannelIndex;
 tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 % numChans = numel(p.ChannelIndex);
 
