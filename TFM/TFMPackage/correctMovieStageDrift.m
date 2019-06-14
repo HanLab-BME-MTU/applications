@@ -101,6 +101,8 @@ outFile=@(chan,frame) [outFilePaths{1,chan} filesep imageFileNames{chan}{frame}]
 % Loading reference channel images and cropping reference frame
 refFrame = double(imread(p.referenceFramePath));
 croppedRefFrame = imcrop(refFrame,p.cropROI);
+widthCrop = size(croppedRefFrame,2); hW = round(widthCrop/2); %p.cropROI(3);
+heightCrop = size(croppedRefFrame,1); hH = round(heightCrop/2); %p.cropROI(4);
 
 % Detect beads in reference frame
 p.doSubPixReg = true;
@@ -122,7 +124,8 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
    
     % Caclulate autocorrelation of the reference frame
     selfCorr = normxcorr2(croppedRefFrame,refFrame);
-    [maxAutoScore , imax] = max(abs(selfCorr(:)));
+    trueSelfCorr = selfCorr(heightCrop+1:end-heightCrop,widthCrop+1:end-widthCrop); %(hH:end-hH,hW:end-hW);
+    [maxAutoScore , imax] = max(abs(trueSelfCorr(:))); %selfCorr(:)));
     [rowPosInRef, colPosInRef] = ind2sub(size(selfCorr),imax(1));
 
     if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
@@ -130,12 +133,16 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
         % Find the maximum of the cross correlation between the template and
         % the current image:
         xCorr  = normxcorr2(croppedRefFrame,stack(:,:,j)); 
-        [maxXScore , imax] = max(abs(xCorr(:)));
-        if maxXScore/maxAutoScore<0.3
+        trueXCorr = xCorr(heightCrop+1:end-heightCrop,widthCrop+1:end-widthCrop);
+        [maxXScore , imax] = max(abs(trueXCorr(:))); %xCorr(:)));
+        if maxXScore/maxAutoScore<0.4
             % this means the position roi-ed is wrong. skipping ..
             preT(j,:)=[0 0];
+            disp({['Cross correlation peak score: ' num2str(maxXScore) ' is too low.'];
+                'Please use a large max deformation limit for subpixel tracking';
+                'Or choose another region or inspect your ref image!'})
         else
-            [rowPosInCurr, colPosInCurr] = ind2sub(size(xCorr),imax(1));
+            [rowPosInCurr, colPosInCurr] = ind2sub(size(trueXCorr),imax(1));
 
             % The shift is thus:
             rowShift = rowPosInCurr-rowPosInRef;
@@ -143,6 +150,7 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
 
             % and the Transformation is:
             preT(j,:)=-[rowShift colShift];
+            disp(['Shift: ' num2str(preT(j,:))])
         end        
         % Update the waitbar
         if mod(j,5)==1 && ishandle(wtBar)
@@ -203,13 +211,13 @@ if p.doSubPixReg
     pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
     beads = [pstruct.x' pstruct.y'];
 
-    % Select only beads  which are minCorLength away from the border of the
-    % cropped reference frame
-    beadsMask = true(size(croppedRefFrame));
-    erosionDist=ceil((p.minCorLength+1+floor(p.maxFlowSpeed))/2);
-    beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-    indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
-    beads(indx,:)=[];
+%     % Select only beads  which are minCorLength away from the border of the
+%     % cropped reference frame
+%     beadsMask = true(size(croppedRefFrame));
+%     erosionDist=ceil((p.minCorLength+1+floor(p.maxFlowSpeed))/2);
+%     beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+%     indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
+%     beads(indx,:)=[];
     assert(size(beads,1)>=10, ['Insufficient number of detected beads (less than 10): current number: ' num2str(length(beads)) '.']);
 end
 
@@ -231,7 +239,7 @@ if p.doSubPixReg
         corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
 
         delta = trackStackFlow(corrStack,beads,...
-            p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,'mode','accurate');
+            p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,'mode','fast','sigCrit',0.3);
         
         %The transformation has the same form as the registration method from
         %Sylvain. Here we take simply the median of the determined flow
@@ -243,7 +251,7 @@ if p.doSubPixReg
         % non-normal, we have to discard this tracking
         numTrackedVectors = sum(nonNanFlow);
         numAllVectors = length(nonNanFlow);
-        if numTrackedVectors>minNumVectors && numTrackedVectors/numAllVectors>0.5 
+        if numTrackedVectors>minNumVectors && numTrackedVectors/numAllVectors>0.1 
             hNormal= kstest(delta(nonNanFlow,2));
             if hNormal
                 T(j,:)=-nanmedian(delta(finiteFlow,2:-1:1),1);
@@ -264,6 +272,8 @@ if p.doSubPixReg
             tj=toc;
             waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
         end
+        
+        disp(['Shift: ' num2str(T(j,:))])
     end
 end
 T=T+preT;
