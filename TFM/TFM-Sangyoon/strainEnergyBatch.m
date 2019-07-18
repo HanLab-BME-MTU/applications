@@ -53,7 +53,7 @@ else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
-    MLFileNamesAll = selectedFolders.MLNames;%'movieList.mat';
+    MLNames = selectedFolders.MLNames;%'movieList.mat';
 %     for k=1:numel(pathAnalysisAll)
 %         MLFileNamesAll{k} = selectedFolders.MLNames{k};%'movieList.mat';
 %     end
