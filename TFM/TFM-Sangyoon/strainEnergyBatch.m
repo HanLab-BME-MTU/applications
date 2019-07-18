@@ -193,6 +193,12 @@ end
 nameList=groupNames'; 
 if any(cellfun(@isempty,nameList))
     nameList = MLNames;
+    if strcmp(nameList{1},nameList{2})
+        for ii=1:numConditions
+            curPath=fileparts(pathAnalysisAll{ii});
+            [~,nameList{ii}] = fileparts(curPath);
+        end
+    end
 end
 %% Plotting each - SE-ForceBlob
 SE_FB_GroupCellArray = cellfun(@(x) cell2mat(x),SE_FB_Group,'unif',false);
