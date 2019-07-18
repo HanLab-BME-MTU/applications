@@ -89,6 +89,8 @@ spreadArea_Group = cell(numConditions,1);
 SEDen_CellPeri_Group = cell(numConditions,1);
 SEDen_CellInside_Group = cell(numConditions,1);
 
+isCellSeg = true;
+
 for ii=1:numConditions
     curML=MLAll(ii);
     curMovies = curML.movies_;
@@ -132,20 +134,23 @@ for ii=1:numConditions
         
         % 2. Cell - It is possible this is zero (when cell segmentation is
         % not there)
-        seCellStruct=load(curSEProc.outFilePaths_{2});
-        curSECell_struct = seCellStruct.SE_Cell;
-        curSECellGroup{k} = curSECell_struct.SE; %in femto-Joule=1e15*(N*m)
-        curSEDenCellGroup{k} = curSECell_struct.SEDensity; % in J/m2
-        curTotalForceCellGroup{k} = seCellStruct.totalForceCell; % in nN
+        if exist(curSEProc.outFilePaths_{2},'file')
+            seCellStruct=load(curSEProc.outFilePaths_{2});
+            curSECell_struct = seCellStruct.SE_Cell;
+            curSECellGroup{k} = curSECell_struct.SE; %in femto-Joule=1e15*(N*m)
+            curSEDenCellGroup{k} = curSECell_struct.SEDensity; % in J/m2
+            curTotalForceCellGroup{k} = seCellStruct.totalForceCell; % in nN
         
-        curSECellPeriGroup{k} = curSECell_struct.SE_peri; %in femto-Joule=1e15*(N*m)
-        curSECellInsideGroup{k} = curSECell_struct.SE_inside; %in femto-Joule=1e15*(N*m)
-        curSEDenCellPeriGroup{k} = curSECell_struct.SEDensityPeri; % in J/m2
-        curSEDenCellInsideGroup{k} = curSECell_struct.SEDensityInside; % in J/m2
-        curSpreadAreaGroup{k} = curSECell_struct.area; % in um2
-        curTotalForceCellPeriGroup{k} = seCellStruct.totalForceCellPeri; % in nN
-        curTotalForceCellInsideGroup{k} = seCellStruct.totalForceCellInside; % in nN
-        
+            curSECellPeriGroup{k} = curSECell_struct.SE_peri; %in femto-Joule=1e15*(N*m)
+            curSECellInsideGroup{k} = curSECell_struct.SE_inside; %in femto-Joule=1e15*(N*m)
+            curSEDenCellPeriGroup{k} = curSECell_struct.SEDensityPeri; % in J/m2
+            curSEDenCellInsideGroup{k} = curSECell_struct.SEDensityInside; % in J/m2
+            curSpreadAreaGroup{k} = curSECell_struct.area; % in um2
+            curTotalForceCellPeriGroup{k} = seCellStruct.totalForceCellPeri; % in nN
+            curTotalForceCellInsideGroup{k} = seCellStruct.totalForceCellInside; % in nN
+        else
+            isCellSeg = false;
+        end
         % 3. FOV
         seFOVStruct=load(curSEProc.outFilePaths_{1});
         curSEFOV_struct = seFOVStruct.SE_FOV;
@@ -160,20 +165,23 @@ for ii=1:numConditions
     SE_FB_Group{ii,1}=curSEPerFBGroup;
     SEDen_FB_Group{ii,1}=curSEDenPerFBGroup;
     totalForce_FB_Group{ii,1}=curTotForcePerFBGroup;
-    SE_Cell_Group{ii,1}=curSECellGroup;
-    SEDen_Cell_Group{ii,1}=curSEDenCellGroup;
-    totalForce_Cell_Group{ii,1}=curTotalForceCellGroup;
     SE_FOV_Group{ii,1}=curSEPerFOVGroup;
     SEDen_FOV_Group{ii,1}=curSEDenPerFOVGroup;
     totalForce_FOV_Group{ii,1}=curTotForcePerFOVGroup;
     
-    SE_CellPeri_Group{ii,1}=curSECellPeriGroup;
-    SE_CellInside_Group{ii,1}=curSECellInsideGroup;
-    totalForce_CellPeri_Group{ii,1}=curTotalForceCellPeriGroup;
-    totalForce_CellInside_Group{ii,1}=curTotalForceCellInsideGroup;
-    spreadArea_Group{ii,1}=curSpreadAreaGroup;
-    SEDen_CellPeri_Group{ii,1}=curSEDenCellPeriGroup;
-    SEDen_CellInside_Group{ii,1}=curSEDenCellInsideGroup;
+    if isCellSeg
+        SE_Cell_Group{ii,1}=curSECellGroup;
+        SEDen_Cell_Group{ii,1}=curSEDenCellGroup;
+        totalForce_Cell_Group{ii,1}=curTotalForceCellGroup;
+
+        SE_CellPeri_Group{ii,1}=curSECellPeriGroup;
+        SE_CellInside_Group{ii,1}=curSECellInsideGroup;
+        totalForce_CellPeri_Group{ii,1}=curTotalForceCellPeriGroup;
+        totalForce_CellInside_Group{ii,1}=curTotalForceCellInsideGroup;
+        spreadArea_Group{ii,1}=curSpreadAreaGroup;
+        SEDen_CellPeri_Group{ii,1}=curSEDenCellPeriGroup;
+        SEDen_CellInside_Group{ii,1}=curSEDenCellInsideGroup;
+    end
 end
 disp('Done')
 %% setting up group name
@@ -205,44 +213,50 @@ print(h1,strcat(figPath,'/strainEnergyForceBlobs.tif'),'-dtiff')
 tableSE_FB=table(SE_FB_GroupCellArray,'RowNames',nameList);
 writetable(tableSE_FB,strcat(dataPath,'/strainEnergyForceBlobs.csv'),'WriteRowNames',true)
 %% Plotting each - SE-Cell
-SE_Cell_GroupCellArray = cellfun(@(x) cell2mat(x),SE_Cell_Group,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SE_Cell_GroupCellArray,nameList,1,false,true)
-ylabel('Strain energy (femto-Joule)')
-title('Total strain energy in a cell')
-hgexport(h1,strcat(figPath,'/strainEnergyCell'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/strainEnergyCell'),'-v7.3')
-print(h1,strcat(figPath,'/strainEnergyCell.tif'),'-dtiff')
+if isCellSeg
+    SE_Cell_GroupCellArray = cellfun(@(x) cell2mat(x),SE_Cell_Group,'unif',false);
+    h1=figure; 
+    % barPlotCellArray(SEGroupCell,nameList,1)
+    boxPlotCellArray(SE_Cell_GroupCellArray,nameList,1,false,true)
+    ylabel('Strain energy (femto-Joule)')
+    title('Total strain energy in a cell')
+    hgexport(h1,strcat(figPath,'/strainEnergyCell'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/strainEnergyCell'),'-v7.3')
+    print(h1,strcat(figPath,'/strainEnergyCell.tif'),'-dtiff')
 
-tableSE_Cell=table(SE_Cell_GroupCellArray,'RowNames',nameList);
-writetable(tableSE_Cell,strcat(dataPath,'/strainEnergyCell.csv'),'WriteRowNames',true)
+    tableSE_Cell=table(SE_Cell_GroupCellArray,'RowNames',nameList);
+    writetable(tableSE_Cell,strcat(dataPath,'/strainEnergyCell.csv'),'WriteRowNames',true)
+end
 %% Plotting each - SE-Cell-Peri
-SE_CellPeri_GroupCellArray = cellfun(@(x) cell2mat(x),SE_CellPeri_Group,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SE_CellPeri_GroupCellArray,nameList,1,false,true)
-ylabel('Strain energy (femto-Joule)')
-title('Total strain energy in a cell periphery')
-hgexport(h1,strcat(figPath,'/strainEnergyCellPeri'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/strainEnergyCellPeri'),'-v7.3')
-print(h1,strcat(figPath,'/strainEnergyCellPeri.tif'),'-dtiff')
+if isCellSeg
+    SE_CellPeri_GroupCellArray = cellfun(@(x) cell2mat(x),SE_CellPeri_Group,'unif',false);
+    h1=figure; 
+    % barPlotCellArray(SEGroupCell,nameList,1)
+    boxPlotCellArray(SE_CellPeri_GroupCellArray,nameList,1,false,true)
+    ylabel('Strain energy (femto-Joule)')
+    title('Total strain energy in a cell periphery')
+    hgexport(h1,strcat(figPath,'/strainEnergyCellPeri'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/strainEnergyCellPeri'),'-v7.3')
+    print(h1,strcat(figPath,'/strainEnergyCellPeri.tif'),'-dtiff')
 
-tableSE_CellPeri=table(SE_CellPeri_GroupCellArray,'RowNames',nameList);
-writetable(tableSE_CellPeri,strcat(dataPath,'/strainEnergyCellPeri.csv'),'WriteRowNames',true)
+    tableSE_CellPeri=table(SE_CellPeri_GroupCellArray,'RowNames',nameList);
+    writetable(tableSE_CellPeri,strcat(dataPath,'/strainEnergyCellPeri.csv'),'WriteRowNames',true)
+end
 %% Plotting each - SE-Cell-Inside
-SE_CellInside_GroupCellArray = cellfun(@(x) cell2mat(x),SE_CellInside_Group,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SE_CellInside_GroupCellArray,nameList,1,false,true)
-ylabel('Strain energy (femto-Joule)')
-title('Total strain energy in a cell interior')
-hgexport(h1,strcat(figPath,'/strainEnergyCellInside'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/strainEnergyCellInside'))
-print(h1,strcat(figPath,'/strainEnergyCellInside.tif'),'-dtiff')
+if isCellSeg
+    SE_CellInside_GroupCellArray = cellfun(@(x) cell2mat(x),SE_CellInside_Group,'unif',false);
+    h1=figure; 
+    % barPlotCellArray(SEGroupCell,nameList,1)
+    boxPlotCellArray(SE_CellInside_GroupCellArray,nameList,1,false,true)
+    ylabel('Strain energy (femto-Joule)')
+    title('Total strain energy in a cell interior')
+    hgexport(h1,strcat(figPath,'/strainEnergyCellInside'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/strainEnergyCellInside'))
+    print(h1,strcat(figPath,'/strainEnergyCellInside.tif'),'-dtiff')
 
-tableSE_CellInside=table(SE_CellInside_GroupCellArray,'RowNames',nameList);
-writetable(tableSE_CellInside,strcat(dataPath,'/strainEnergyCellInside.csv'),'WriteRowNames',true)
+    tableSE_CellInside=table(SE_CellInside_GroupCellArray,'RowNames',nameList);
+    writetable(tableSE_CellInside,strcat(dataPath,'/strainEnergyCellInside.csv'),'WriteRowNames',true)
+end
 %% Plotting each - SE-FOV
 SE_FOV_GroupCellArray = cellfun(@(x) cell2mat(x),SE_FOV_Group,'unif',false);
 h1=figure; 
@@ -270,44 +284,50 @@ print(h1,strcat(figPath,'/SEDensityFB.tif'),'-dtiff')
 tableSED_FB=table(SEDenGroupFB_CellArray,'RowNames',nameList);
 writetable(tableSED_FB,strcat(dataPath,'/strainEnergyDensityForceBlobs.csv'),'WriteRowNames',true)
 %% Strain energy density - Cell
-SEDenGroupCell_CellArray = cellfun(@(x) cell2mat(x),SEDen_Cell_Group,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SEDenGroupCell_CellArray,nameList,1,false,true)
-ylabel('Strain energy density (J/m^2)')
-title('Strain energy density in a cell')
-hgexport(h1,strcat(figPath,'/SEDensityCell'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/SEDensityCell'),'-v7.3')
-print(h1,strcat(figPath,'/SEDensityCell.tif'),'-dtiff')
+if isCellSeg
+    SEDenGroupCell_CellArray = cellfun(@(x) cell2mat(x),SEDen_Cell_Group,'unif',false);
+    h1=figure; 
+    % barPlotCellArray(SEGroupCell,nameList,1)
+    boxPlotCellArray(SEDenGroupCell_CellArray,nameList,1,false,true)
+    ylabel('Strain energy density (J/m^2)')
+    title('Strain energy density in a cell')
+    hgexport(h1,strcat(figPath,'/SEDensityCell'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/SEDensityCell'),'-v7.3')
+    print(h1,strcat(figPath,'/SEDensityCell.tif'),'-dtiff')
 
-tableSED_Cell=table(SEDenGroupCell_CellArray,'RowNames',nameList);
-writetable(tableSED_Cell,strcat(dataPath,'/strainEnergyDensityCell.csv'),'WriteRowNames',true)
+    tableSED_Cell=table(SEDenGroupCell_CellArray,'RowNames',nameList);
+    writetable(tableSED_Cell,strcat(dataPath,'/strainEnergyDensityCell.csv'),'WriteRowNames',true)
+end
 %% Strain energy density - CellPeri
-SEDenGroupCellPeri_CellArray = cellfun(@(x) cell2mat(x),SEDen_CellPeri_Group,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SEDenGroupCellPeri_CellArray,nameList,1,false,true)
-ylabel('Strain energy density (J/m^2)')
-title('Strain energy density in a cell periphery')
-hgexport(h1,strcat(figPath,'/SEDensityCellPeri'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/SEDensityCellPeri'),'-v7.3')
-print(h1,strcat(figPath,'/SEDensityCellPeri.tif'),'-dtiff')
+if isCellSeg
+    SEDenGroupCellPeri_CellArray = cellfun(@(x) cell2mat(x),SEDen_CellPeri_Group,'unif',false);
+    h1=figure; 
+    % barPlotCellArray(SEGroupCell,nameList,1)
+    boxPlotCellArray(SEDenGroupCellPeri_CellArray,nameList,1,false,true)
+    ylabel('Strain energy density (J/m^2)')
+    title('Strain energy density in a cell periphery')
+    hgexport(h1,strcat(figPath,'/SEDensityCellPeri'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/SEDensityCellPeri'),'-v7.3')
+    print(h1,strcat(figPath,'/SEDensityCellPeri.tif'),'-dtiff')
 
-tableSED_CellPeri=table(SEDenGroupCellPeri_CellArray,'RowNames',nameList);
-writetable(tableSED_CellPeri,strcat(dataPath,'/strainEnergyDensityCellPeri.csv'),'WriteRowNames',true)
+    tableSED_CellPeri=table(SEDenGroupCellPeri_CellArray,'RowNames',nameList);
+    writetable(tableSED_CellPeri,strcat(dataPath,'/strainEnergyDensityCellPeri.csv'),'WriteRowNames',true)
+end
 %% Strain energy density - CellInside
-SEDenGroupCellInside_CellArray = cellfun(@(x) cell2mat(x),SEDen_CellInside_Group,'unif',false);
-h1=figure; 
-% barPlotCellArray(SEGroupCell,nameList,1)
-boxPlotCellArray(SEDenGroupCellInside_CellArray,nameList,1,false,true)
-ylabel('Strain energy density (J/m^2)')
-title('Strain energy density in a cell interior')
-hgexport(h1,strcat(figPath,'/SEDensityCellInside'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/SEDensityCellInside'),'-v7.3')
-print(h1,strcat(figPath,'/SEDensityCellInside.tif'),'-dtiff')
+if isCellSeg
+    SEDenGroupCellInside_CellArray = cellfun(@(x) cell2mat(x),SEDen_CellInside_Group,'unif',false);
+    h1=figure; 
+    % barPlotCellArray(SEGroupCell,nameList,1)
+    boxPlotCellArray(SEDenGroupCellInside_CellArray,nameList,1,false,true)
+    ylabel('Strain energy density (J/m^2)')
+    title('Strain energy density in a cell interior')
+    hgexport(h1,strcat(figPath,'/SEDensityCellInside'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/SEDensityCellInside'),'-v7.3')
+    print(h1,strcat(figPath,'/SEDensityCellInside.tif'),'-dtiff')
 
-tableSED_CellInside=table(SEDenGroupCellInside_CellArray,'RowNames',nameList);
-writetable(tableSED_CellInside,strcat(dataPath,'/strainEnergyDensityCellInside.csv'),'WriteRowNames',true)
+    tableSED_CellInside=table(SEDenGroupCellInside_CellArray,'RowNames',nameList);
+    writetable(tableSED_CellInside,strcat(dataPath,'/strainEnergyDensityCellInside.csv'),'WriteRowNames',true)
+end
 %% Strain energy density - FOV
 SEDenGroupFOV_CellArray = cellfun(@(x) cell2mat(x),SEDen_FOV_Group,'unif',false);
 h1=figure; 
@@ -334,41 +354,47 @@ print(h1,strcat(figPath,'/totForceFB.tif'),'-dtiff')
 tableTotalForce_FB=table(totForceFBCellArray,'RowNames',nameList);
 writetable(tableTotalForce_FB,strcat(dataPath,'/totalForce_ForceBlobs.csv'),'WriteRowNames',true)
 %% Total force - Cell
-totForceCell_CellArray = cellfun(@(x) cell2mat(x),totalForce_Cell_Group,'unif',false);
-h1=figure; 
-boxPlotCellArray(totForceCell_CellArray,nameList,1,false,true)
-ylabel('Total force (nN)')
-title('Total force in a cell')
-hgexport(h1,strcat(figPath,'/totForceCell'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/totForceCell'),'-v7.3')
-print(h1,strcat(figPath,'/totForceCell.tif'),'-dtiff')
+if isCellSeg
+    totForceCell_CellArray = cellfun(@(x) cell2mat(x),totalForce_Cell_Group,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(totForceCell_CellArray,nameList,1,false,true)
+    ylabel('Total force (nN)')
+    title('Total force in a cell')
+    hgexport(h1,strcat(figPath,'/totForceCell'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/totForceCell'),'-v7.3')
+    print(h1,strcat(figPath,'/totForceCell.tif'),'-dtiff')
 
-tableTotalForce_Cell=table(totForceCell_CellArray,'RowNames',nameList);
-writetable(tableTotalForce_Cell,strcat(dataPath,'/totalForce_Cell.csv'),'WriteRowNames',true)
+    tableTotalForce_Cell=table(totForceCell_CellArray,'RowNames',nameList);
+    writetable(tableTotalForce_Cell,strcat(dataPath,'/totalForce_Cell.csv'),'WriteRowNames',true)
+end
 %% Total force - CellPeri
-totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellPeri_Group,'unif',false);
-h1=figure; 
-boxPlotCellArray(totForceCellPeri_CellArray,nameList,1,false,true)
-ylabel('Total force (nN)')
-title('Total force in a cell periphery')
-hgexport(h1,strcat(figPath,'/totForceCellPeri'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/totForceCellPeri'),'-v7.3')
-print(h1,strcat(figPath,'/totForceCellPeri.tif'),'-dtiff')
+if isCellSeg
+    totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellPeri_Group,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(totForceCellPeri_CellArray,nameList,1,false,true)
+    ylabel('Total force (nN)')
+    title('Total force in a cell periphery')
+    hgexport(h1,strcat(figPath,'/totForceCellPeri'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/totForceCellPeri'),'-v7.3')
+    print(h1,strcat(figPath,'/totForceCellPeri.tif'),'-dtiff')
 
-tableTotalForce_CellPeri=table(totForceCellPeri_CellArray,'RowNames',nameList);
-writetable(tableTotalForce_CellPeri,strcat(dataPath,'/totalForce_CellPeri.csv'),'WriteRowNames',true)
+    tableTotalForce_CellPeri=table(totForceCellPeri_CellArray,'RowNames',nameList);
+    writetable(tableTotalForce_CellPeri,strcat(dataPath,'/totalForce_CellPeri.csv'),'WriteRowNames',true)
+end
 %% Total force - CellInside
-totForceCellInside_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellInside_Group,'unif',false);
-h1=figure; 
-boxPlotCellArray(totForceCellInside_CellArray,nameList,1,false,true)
-ylabel('Total force (nN)')
-title('Total force in a cell interior')
-hgexport(h1,strcat(figPath,'/totForceCellInside'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/totForceCellInside'),'-v7.3')
-print(h1,strcat(figPath,'/totForceCellInside.tif'),'-dtiff')
+if isCellSeg
+    totForceCellInside_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellInside_Group,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(totForceCellInside_CellArray,nameList,1,false,true)
+    ylabel('Total force (nN)')
+    title('Total force in a cell interior')
+    hgexport(h1,strcat(figPath,'/totForceCellInside'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/totForceCellInside'),'-v7.3')
+    print(h1,strcat(figPath,'/totForceCellInside.tif'),'-dtiff')
 
-tableTotalForce_CellInside=table(totForceCellInside_CellArray,'RowNames',nameList);
-writetable(tableTotalForce_CellInside,strcat(dataPath,'/totalForce_CellInside.csv'),'WriteRowNames',true)
+    tableTotalForce_CellInside=table(totForceCellInside_CellArray,'RowNames',nameList);
+    writetable(tableTotalForce_CellInside,strcat(dataPath,'/totalForce_CellInside.csv'),'WriteRowNames',true)
+end
 %% Total force - FOV
 totForceFOV_CellArray = cellfun(@(x) cell2mat(x),totalForce_FOV_Group,'unif',false);
 h1=figure; 
@@ -382,16 +408,18 @@ print(h1,strcat(figPath,'/totForceFOV.tif'),'-dtiff')
 tableTotalForce_FOV=table(totForceFOV_CellArray,'RowNames',nameList);
 writetable(tableTotalForce_FOV,strcat(dataPath,'/totalForce_FOV.csv'))
 %% Total force - Spread Area
-spreadArea_CellArray = cellfun(@(x) cell2mat(x),spreadArea_Group,'unif',false);
-h1=figure; 
-boxPlotCellArray(spreadArea_CellArray,nameList,1,false,true)
-ylabel('Spread area (um2)')
-title('Cell spread area')
-hgexport(h1,strcat(figPath,'/spreadArea'),hgexport('factorystyle'),'Format','eps')
-hgsave(h1,strcat(figPath,'/spreadArea'),'-v7.3')
-print(h1,strcat(figPath,'/spreadArea.tif'),'-dtiff')
+if isCellSeg
+    spreadArea_CellArray = cellfun(@(x) cell2mat(x),spreadArea_Group,'unif',false);
+    h1=figure; 
+    boxPlotCellArray(spreadArea_CellArray,nameList,1,false,true)
+    ylabel('Spread area (um2)')
+    title('Cell spread area')
+    hgexport(h1,strcat(figPath,'/spreadArea'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/spreadArea'),'-v7.3')
+    print(h1,strcat(figPath,'/spreadArea.tif'),'-dtiff')
 
-tableSpreadArea=table(spreadArea_CellArray,'RowNames',nameList);
-writetable(tableSpreadArea,strcat(dataPath,'/spreadArea.csv'),'WriteRowNames',true)
+    tableSpreadArea=table(spreadArea_CellArray,'RowNames',nameList);
+    writetable(tableSpreadArea,strcat(dataPath,'/spreadArea.csv'),'WriteRowNames',true)
+end
 %% save entire workspace for later
 save([dataPath filesep 'allData.mat'])
