@@ -376,7 +376,7 @@ if p.useFOV || 1
         writetable(tableForceFOV,outputFile{5})
     end
 end
-if p.useCellMask
+if existMask && p.useCellMask
     save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri','totalForceCellInside'); % need to be updated for faster loading. SH 20141106
     if p.exportCSV
         tableSE_Cell=struct2table(SE_Cell);
