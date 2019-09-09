@@ -41,7 +41,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
         end
         
         function varargout = loadChannelOutput(obj,varargin)
-            outputList = {'displField','dMap'};
+            outputList = {'displField','dMap','dMapRef'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'DisplacementFieldCorrectionProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
@@ -52,7 +52,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             iFrame = ip.Results.iFrame;
             
             % Data loading
-            persistent dMapMap lastFinishTime
+            persistent dMapMap dMapMapRef lastFinishTime
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
@@ -63,13 +63,13 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
 %                 iOut=1;
                 s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
                 varargout{1}=s.(output{1})(iFrame);
-            elseif ismember(output,outputList(2))
+            elseif ismember(output,outputList(2:3))
 %                 iOut=2;
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-                if isempty(dMapMap) || ~all(obj.finishTime_==lastFinishTime)
-                    dMapMap=[];
+                if (isempty(dMapMap) && strcmp(output,'dMap')) || (isempty(dMapMapRef) && strcmp(output,'dMapRef')) || ~all(obj.finishTime_==lastFinishTime)
+%                     dMapMap=[];
                     try
                         s = load(obj.outFilePaths_{iOut},output{1});
                         dMapObj = s.(output{1});
@@ -118,7 +118,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                         end
                     catch
                         tfmPack = obj.owner_.packages_{obj.getPackageIndex};
-                        dMapObj.displFieldPath = [tfmPack.outputDirectory_ filesep 'displacementField' filesep 'displField.mat'];
+                        dMapObj.displFieldPath = [tfmPack.outputDirectory_ filesep 'correctedDisplacementField' filesep 'displField.mat'];
                         displField = load(dMapObj.displFieldPath,'displField'); displField=displField.displField;
                         
                         SDCproc = tfmPack.processes_{1};
@@ -128,16 +128,33 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                             dMapObj.firstMaskSize = size(SDCproc.loadChannelOutput(1,1));
                         end
                         
-                        [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
-                        for ii=obj.owner_.nFrames_:-1:1
-                            dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
-                            dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{ii};
-                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
+                        if strcmp(output,'dMap')
+                            [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
+                            for ii=obj.owner_.nFrames_:-1:1
+                                dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
+                                dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{ii};
+                                progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
+                            end
+                        elseif strcmp(output,'dMapRef')
+                            [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,0,0);
+                            iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
+                            tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
+                            SDCProc=tfmPackageHere.processes_{iSDCProc};
+
+                            for ii=obj.owner_.nFrames_:-1:1
+                                dMapMapRef(:,:,ii) = zeros(size(SDCProc.loadOutImage(1,1)));
+                                dMapMapRef(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{ii};
+                                progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
+                            end
                         end
                         lastFinishTime = obj.finishTime_;
                     end
                 end
-                varargout{1}=dMapMap(:,:,iFrame);
+                if strcmp(output,'dMap')
+                    varargout{1}=dMapMap(:,:,iFrame);
+                elseif strcmp(output,'dMapRef')
+                    varargout{1}=dMapMapRef(:,:,iFrame);
+                end
             end
             
 %             if numel(iFrame)>1,
@@ -161,7 +178,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
             outputList = obj.getDrawableOutput();
 
-            rendertMap = any(strcmpi('dMap',varargin));
+            rendertMap = (contains(varargin(3),'dMap'));
             if rendertMap
                 % Input parser
                 ip = inputParser;
@@ -208,12 +225,18 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             output(1).type='movieOverlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','b');
             
-            output(2).name='Displacement map';
+            output(2).name='Displacement map (in cell coord)';
             output(2).var='dMap';
             output(2).formatData=[];
             output(2).type='image';
             output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
                 'Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
+
+            output(3).name='Displacement map (in ref coord)';
+            output(3).var='dMapRef';
+            output(3).formatData=[];
+            output(3).type='image';
+            output(3).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet','Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
         end
     end
     

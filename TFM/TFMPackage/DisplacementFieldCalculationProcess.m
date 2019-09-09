@@ -78,11 +78,11 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
                 if (isempty(dMapMap) && strcmp(output,'dMap')) || (isempty(dMapMapRef) && strcmp(output,'dMapRef')) || ~all(obj.finishTime_==lastFinishTime)
-                    dMapMap=[]; dMapMapRef=[];
+%                     dMapMap=[]; dMapMapRef=[];
                     try
-                        if exist(obj.outFilePaths_{iOut},'file')
-                            s = load(obj.outFilePaths_{iOut},output{1});
-                            dMapObj = s.(output{1});
+                        try %if exist(obj.outFilePaths_{iOut},'file')
+                            s = load(obj.outFilePaths_{iOut},output); %outputList{iOut});
+                            dMapObj = s.(output); %outputList{iOut});
                             fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
                             numStr = @(frame) num2str(frame,fString);
                             outputDir = fullfile(obj.funParams_.OutputDirectory,'displMaps');
@@ -117,7 +117,11 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                                 end
                                 lastFinishTime = obj.finishTime_;
                             else % very new format
-                                displField = load(dMapObj.displFieldPath,'displField'); displField=displField.displField;
+                                try
+                                    displField = load(dMapObj.displFieldPath,'displField'); displField=displField.displField;
+                                catch
+                                    displField = load(obj.outFilePaths_{1},'displField'); displField=displField.displField;
+                                end
                                 [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
                                 for ii=obj.owner_.nFrames_:-1:1
                                     dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
@@ -126,7 +130,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                                 end
                                 lastFinishTime = obj.finishTime_;
                             end
-                        else % This is what we are actually running.
+                        catch %else % This is what we are actually running.
                             displField = load(obj.outFilePaths_{1},'displField'); displField=displField.displField;
                             if strcmp(output,'dMap')
                                 [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
@@ -167,7 +171,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                         
                         [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
                         for ii=obj.owner_.nFrames_:-1:1
-                            dMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                            dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
                             dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{ii};
                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
                         end
