@@ -101,6 +101,8 @@ angDiffThreshold = ip.Results.angDiffThreshold;
 % stdNeiVecs = neighDists;
 magNeiVecs = cellfun(@(x) (x(:,1).^2+x(:,2).^2).^0.5,closeNeiVecs,'Unif',false);
 medianMagNeiVecs = cellfun(@(x) median(x),magNeiVecs);   %changed from mean to median
+medianNeiVecs = cellfun(@(x) median(x),closeNeiVecs,'unif',false);
+
 stdNeiVecs = cellfun(@(x) std(x),magNeiVecs);
 orienNeiVecs = cell(numel(closeNeiVecs),1);
 disp('Calculating angles between neighboring vectors...')
@@ -148,6 +150,7 @@ parfor k=1:numCloseNeiVecs %for angles between vectors
     end
     avgAngleAll(k) = mean(curAngle);
     stdAngleAll(k) = std(curAngle);
+    orienNeiVecs{k} = curAngle;
     if avgAngleAll(k)>pi
         avgAngleAll(k) = avgAngleAll(k)-2*pi;
     end
@@ -245,7 +248,7 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[557]; inqY=[564];
+% inqX=[277 255]; inqY=[273 278];
 % for ii=1:numel(inqX)
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
@@ -263,6 +266,7 @@ parfor k = 1:nPoints
     % candidate vector
     curNeiMag = medianMagNeiVecs(k);
     curNeiStd = stdNeiVecs(k);
+    curNeiVec = medianNeiVecs{k};
 %     curCandVecStd = stdNeiVecs{k};
 %     curStdAngle = stdAngleAll(k);
     curStdAngle = stdAngleAll(k);
@@ -365,37 +369,41 @@ parfor k = 1:nPoints
             
             %Test the quality of the score function and find the index of the
             % maximum score.
-            [pass,locMaxI,sigtVal] = findMaxScoreI(score.*maskSearchInterest,zeroI,minFeatureSize,0.6);
+            [pass,locMaxI,sigtVal,locMaxI_moreGenerous,sigVal_moreGen] = findMaxScoreI(score.*maskSearchInterest,zeroI,minFeatureSize,0.6);
             
-%             if ~isempty(curNeiMag)
-%                 % Here I use PIV result to find the best candidate
-%                 % regardless of whether score passed or not from findMaxScoreI
-%                 % Get the candidate vectors
-%                 locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
-%                 % What's the piv result in location closest to [xI, yI]
-%                 options = {1:size(locMaxI,1),'Unif',false};
-% 
-%                 curCandVecRot= curNeiMag*[perpDir;bandDir]; %Rotated version we should use
-% 
-%                 vecDiff = arrayfun(@(x) locMaxV(x,:)-curCandVecRot,options{:});
-%                 orienDiff = arrayfun(@(x) acos(locMaxV(x,:)*curCandVecRot'/(norm(locMaxV(x,:))*norm(curCandVecRot))),options{1});
-% %                 distToMaxV2 = sqrt(sum((locMaxV-ones(size(locMaxV,1),1)*curCandVec).^2,2));
-%                 magDiff = cellfun(@norm,vecDiff);
-%                 
-%                 [~,indDist]=sort(magDiff.*orienDiff.^2);
-%                 ind = indDist(1);
-%                 minAngle = orienDiff(ind);
-%                 minDistDiff = magDiff(ind);
-%                 if minDistDiff < magDiffThreshold*norm(curNeiStd) && abs(minAngle) < angDiffThreshold*curStdAngle % || (ind<=3 && sigtVal(ind)>0.8)
-%                     maxI = locMaxI(ind,:);
-%                     maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
-%                     pass = 2;
-%                 else
-%                     pass = 0;
-%                 end
-%             else
-%                 error('You have to set hardCandidates!');
-%             end
+            if pass==0 && ~isempty(curNeiMag)
+                % Here I use the best candidate
+                % Get the candidate vectors
+                locMaxV = [vP(locMaxI_moreGenerous(:,1)).' vF(locMaxI_moreGenerous(:,2)).'];
+                % What's the piv result in location closest to [xI, yI]
+                options = {1:size(locMaxI_moreGenerous,1),'Unif',false};
+
+                curCandVecRot= flip(curNeiVec); %Rotated version we should use
+
+                vecDiff = arrayfun(@(x) locMaxV(x,:)-curCandVecRot,options{:});
+                orienDiff = arrayfun(@(x) acos(locMaxV(x,:)*curCandVecRot'/(norm(locMaxV(x,:))*norm(curCandVecRot))),options{1});
+%                 distToMaxV2 = sqrt(sum((locMaxV-ones(size(locMaxV,1),1)*curCandVec).^2,2));
+                magDiff = cellfun(@norm,vecDiff);
+                
+                [~,indDist]=sort(magDiff); %.*orienDiff.^2);
+                ind = indDist(1);
+                restInds = indDist; restInds(1)=[];
+                minAngle = orienDiff(ind);
+                minDistDiff = magDiff(ind);
+                if minDistDiff < magDiffThreshold*curNeiStd && abs(minAngle) < angDiffThreshold*curStdAngle
+                    maxI = locMaxI_moreGenerous(ind,:);
+                    maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+                    pass = 2;
+                elseif ~isempty(restInds) && sigVal_moreGen(ind)>max(sigVal_moreGen(restInds))*1.25 % the last criterion is a free pass when the score is relatively good
+                    maxI = locMaxI_moreGenerous(ind,:);
+                    maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+                    pass = 2;
+                else
+                    pass = 0;
+                end
+            elseif pass==0 && isempty(curNeiMag)
+                error('You have to set hardCandidates!');
+            end
         end
         
 %         if pass == 0
@@ -553,7 +561,7 @@ newvF = round(maxV(2)*refineFactor)/refineFactor - refineRange:1/refineFactor:ro
 [ind4x,ind4y] = ind2sub(size(score4),maxI4ind);
 maxV = [newvP(ind4x),newvF(ind4y)];
 
-function [pass,locMaxI,sigtVal] = findMaxScoreI(score,zeroI,minFeatureSize,sigThreshold)
+function [pass,locMaxI,sigtVal,locMaxI_moreGenerous,sigVal_moreGen] = findMaxScoreI(score,zeroI,minFeatureSize,sigThreshold)
 %
 % INPUT:
 %    score : The cross-correlation score function.
@@ -764,6 +772,10 @@ elseif baseS(2) == maxS
 else
     sigtVal = [maxS locMaxS(2) baseS(2)];
 end
+inSigImoreGenerous = (maxS-baseS > 0 & locMaxS-baseS < (maxS-baseS)*0.1)';
+locMaxI_moreGenerous = locMaxI(~inSigImoreGenerous,:);
+sigVal_moreGen = locMaxS(~inSigImoreGenerous);
+
 inSigI = find(maxS-baseS > 0 & locMaxS-baseS < (maxS-baseS)*sigThreshold);
 locMaxI(inSigI,:) = [];
 locMaxS(inSigI)   = [];

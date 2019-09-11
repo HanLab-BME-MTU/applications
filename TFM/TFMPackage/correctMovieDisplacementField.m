@@ -196,7 +196,7 @@ if p.fillVectors
         end
         k2=0;
         nTracked=1000; 
-        nFailed=0; nMaxFailed=5;
+        nFailed=0; nMaxFailed=10;
         prevAttempt=false; prevNeiVecs=[]; prevIndices=[];
         thresDist=3; 
         iFigureDrawing=0;
@@ -214,7 +214,7 @@ if p.fillVectors
             % Get neighboring vectors from these vectors (meanNeiVecs)
 %             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-5*k/nFillingTries)*neighborhood_distance(j)); % Increasing search radius with further iteration
 %             [idx,dist] = KDTreeClosestPoint(neighborBeads, currentBeads); % Increasing search radius with further iteration
-            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1-0.2*k2)*neighborhood_distance(j)); % Decreasing search radius with further iteration
+            [idx] = KDTreeBallQuery(neighborBeads, currentBeads, (1)*neighborhood_distance(j)); % Decreasing search radius with further iteration
             % Here we want to be very wise. The fact that one bead location
             % has few  neighboring vectors is not always good. What if the
             % neighboring vectors are far from the location? 
@@ -324,7 +324,10 @@ if p.fillVectors
 
             if nTracked==0
                 nFailed=nFailed+1;
-                thresDist = 3 +(-1)^nFailed*ceil((nFailed+1)/2);
+                thresDist = 3 +nFailed; %(-1)^nFailed*ceil((nFailed+1)/2);
+%                 if thresDist==0
+%                     thresDist=nFailed+1;
+%                 end
             else
                 nFailed=0;
                 if thresDist ~= 3
