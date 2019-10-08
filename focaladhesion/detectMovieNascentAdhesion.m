@@ -383,9 +383,74 @@ for j=1:movieData.nFrames_
                 focalAdhInfo(j).ampTheOther(ii) = ampTheOther;
             end
         end
+        
         % 10. colocalization analysis
-        
-        
+        if ~isempty(iTFM)
+            curTmap = tMap(:,:,j);
+%             hScatter = figure; plot(I(:),curTmap(:),'.')
+            hHist2D = figure; hold on
+            cellMask2 = bwmorph(cellMask,'dilate',5) & roiMask(:,:,j);
+            [~,xBins] = histcounts(I(cellMask2));  [~,yBins] = histcounts(curTmap(cellMask2));
+            densityplot(I(cellMask2), curTmap(cellMask2), xBins, yBins,'DisplayFunction', @log);
+            colormap jet
+            hCBar = colorbar;
+            hCBar.Label.String = 'Counts (10^x )';
+            ylabel('Traction (Pa)')
+            xlabel('Adhesion Intensity (A.U.)')
+            % Correlation - Pearson
+            rP = corr(I(cellMask2), curTmap(cellMask2));
+            % Mander's overlap coefficient, MOC
+            products=(double(I(cellMask2)).*double(curTmap(cellMask2)));
+            redsq=double(I(cellMask2)).^2;
+            greensq=double(curTmap(cellMask2)).^2;
+
+            MOC=sum(products(:))/sqrt(sum(redsq(:))*sum(greensq(:)));
+            
+            hold on
+            text(xBins(round(0.09*length(xBins))),yBins(round(0.95*length(yBins))),....
+                ['Pearson''s corr: ' num2str(rP)], 'Color', 'w')
+            text(xBins(round(0.09*length(xBins))),yBins(round(0.85*length(yBins))),...
+                ['Mander''s coeff: ' num2str(MOC)], 'Color', 'w')
+            hHist2D.Units='inch';
+            hHist2D.Position(3)=3; hHist2D.Position(4)=2.5;
+            
+            hgexport(hHist2D,[figPath filesep 'scatter2Dhist'],hgexport('factorystyle'),'Format','eps')
+            hgsave(hHist2D,[figPath filesep 'scatter2Dhist'],'-v7.3')
+            print(hHist2D,[figPath filesep 'scatter2Dhist'],'-dtiff')
+
+            % Save them
+            tableCorr=table([rP; MOC],'RowNames',{'rP', 'MOC'});
+            writetable(tableCorr,[dataPath filesep 'corrValues.csv'],'WriteRowNames',true)
+            focalAdhInfo.rP(j) = rP;
+            focalAdhInfo.MOC(j) = MOC;
+
+            % 11. Now we are segmenting TFM map (force blob) and calculate
+            % fraction of it inside the cell or outside.
+            cellMask3 = bwmorph(cellMask,'dilate',20) & bwmorph(roiMask(:,:,j),'erode',15);
+            maskForceBlob = blobSegmentThresholdTFM(curTmap,minSize,true,cellMask3);
+            % fraction of the blob mask inside
+            blobPixelsAll = sum(maskForceBlob(:));
+            blobInside = sum(maskForceBlob(cellMask));
+            blobOutside = sum(maskForceBlob(~cellMask));
+            fractionBlobInside = blobInside/blobPixelsAll;
+            fractionBlobOutside = blobOutside/blobPixelsAll;
+            % Plot them
+            focalAdhInfo.fractionBlobInside(j) = fractionBlobInside;
+            focalAdhInfo.fractionBlobOutside(j) = fractionBlobOutside;
+            hBarFrac = figure; bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
+            hBarFrac.Units='inch';
+            hBarFrac.Position(3)=3; hBarFrac.Position(4)=2.5;
+            ylim([0 1]); title({'fraction of force blobs'; 'inside the cell or outside'})
+            % Overlay them
+            % cell mask
+            combI(:,:,1) = 0.4*maskForceBlob.*cellMask + 0.6*cellMask;
+            combI(:,:,2) = 0.7*maskForceBlob.*~cellMask + 0.6*cellMask - 0.5*maskForceBlob.*cellMask;
+            combI(:,:,3) = -0.5*maskForceBlob.*cellMask + 0.6*cellMask;
+            hBlob=figure; imshow(combI,[]); hold on
+            hgexport(hBlob,[figPath filesep 'forceBlobOverlay'],hgexport('factorystyle'),'Format','eps')
+            hgsave(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
+            print(hBlob,[figPath filesep 'forceBlobOverlay'],'-dtiff')
+        end        
     end
 
     % plotting detected adhesions
@@ -432,6 +497,9 @@ if ~isempty(iTFM)
     tableForcePerAdhesionType=table(forceGroupCell','RowNames',nameList);
     writetable(tableForcePerAdhesionType,[dataPath filesep 'forcePerAdhesionType.csv'],'WriteRowNames',true)
 
+    % Save them
+    tableBlobFrac=table([focalAdhInfo.fractionBlobInside; focalAdhInfo.fractionBlobOutside],'RowNames',{'Inside','Outside'});
+    writetable(tableBlobFrac,[dataPath filesep 'tableBlobFrac.csv'],'WriteRowNames',true)
 end
 
 
