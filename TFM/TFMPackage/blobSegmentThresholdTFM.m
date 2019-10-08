@@ -54,21 +54,12 @@ end
 %make sure that image is in double format
 image = double(image);
 
-%remove noise by filtering image with a Gaussian whose sigma = 1 pixel
-imageFiltered = filterGauss2D(image,1);
-
-%estimate background by filtering image with a Gaussian whose sigma = 10 pixels
-imageBackground = filterGauss2D(image,10);
-
-%calculate noise-filtered and background-subtracted image
-imageFilteredMinusBackground = imageFiltered - imageBackground;
-
 %crop image
-imageFilteredMinusBackground = imageFilteredMinusBackground .* mask;
+image = image .* mask;
 
 %enhance features by performing a maximum filter
-[sizeX,sizeY] = size(imageFilteredMinusBackground);
-imageDilated = imageFilteredMinusBackground;
+[sizeX,sizeY] = size(image);
+imageDilated = image;
 imageTmp(:,:,1) = imageDilated;
 imageTmp(:,:,2) = [zeros(1,sizeY); imageDilated(2:end,:)];
 imageTmp(:,:,3) = [imageDilated(1:end-1,:); zeros(1,sizeY)];

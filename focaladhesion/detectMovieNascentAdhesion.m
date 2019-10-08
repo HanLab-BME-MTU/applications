@@ -59,7 +59,12 @@ end
 nChans=numel(movieData.channels_);
 % psfSigma = 1.2; %hard coded for nascent adhesion
 psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iPax).emissionWavelength_*1e-9);
-
+if isempty(psfSigma)
+    movieData.getChannel(iPax).emissionWavelength_ = 568; 
+    disp('Adhesion channel emmission wave length is set to be 568 nm. If this value is incorrect, please set up your fluorophore of the adhesion channel')
+    psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iPax).emissionWavelength_*1e-9);    
+end
+    
 % Set up the output directories
 outputFilePath = [movieData.outputDirectory_ filesep 'Adhesion Quantification'];
 imgPath = [outputFilePath filesep 'imgs'];
@@ -72,6 +77,25 @@ if ~exist(figPath,'dir')
     mkClrDir(dataPath);
     mkClrDir(tifPath);
     mkClrDir(figPath);
+end
+% e.g. see if there is TFM package
+iTFM =  movieData.getPackageIndex('TFMPackage');
+% e.g. see if the additional channel is used for TFM or not.
+%      if there is a channel, get the channel.
+if ~isempty(iTFM)
+    tfmPack = movieData.getPackage(iTFM);
+    forceProc = tfmPack.getProcess(4);
+    iChanTFM = forceProc.checkChannelOutput;
+    iAdditionalChan = setdiff(1:nChans,[iChanTFM, iPax]);
+    % Read TFM map
+    tMap=forceProc.loadChannelOutput('output','tMapUnshifted'); % in Pa per pixel (1pix x 1pix)
+    forceFA=cell(1,movieData.nFrames_);
+    forceFC=cell(1,movieData.nFrames_);
+    forceNA=cell(1,movieData.nFrames_);
+    forceBGinCell=cell(1,movieData.nFrames_);
+    forceBGoutCell=cell(1,movieData.nFrames_);
+else
+    iAdditionalChan = setdiff(1:nChans,[iPax]);
 end
 
 %% --------------- Sub-resolution object detection ---------------%%% 
@@ -123,7 +147,7 @@ for j=1:movieData.nFrames_
     end
 %         maskProc = movieData.processes_{2};
 %         mask = maskProc.loadChannelOutput(1,j);
-    maskAdhesion = blobSegmentThreshold(I,minSize,0,mask);
+    maskAdhesion = blobSegmentThreshold(I,minSize,0,mask & roiMask(:,:,j));
     maskAdhesionFine = blobSegmentThreshold(I,0); % mask for all adhesions without minSize
 
 %     maskAdhesionC = imcomplement(maskAdhesion);
@@ -143,7 +167,7 @@ for j=1:movieData.nFrames_
 %         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
         ultimateMask = roiMask(:,:,j) & mask; % & maskAdhesionFine;
     end
-    pstruct = pointSourceDetection(I, psfSigma,  ...
+    [pstruct, maskNAs] = pointSourceDetection(I, psfSigma,  ...
         'Alpha',psAlpha,'Mask',ultimateMask);
         % filter out points where overall intensity is in the noise level
 %     pixelIntenMargin = I(~mask);
@@ -179,10 +203,18 @@ for j=1:movieData.nFrames_
     for kk=1:numel(AdhsFA)
         labelAdhesionFA(AdhsFA(kk).PixelIdxList)=kk;
     end
+    
+    AdhsFC = Adhs(~(adhEccIdx & adhLengthIdxFA));
+    labelAdhesionFC = zeros(size(maskAdhesion2));
+    for kk=1:numel(AdhsFC)
+        labelAdhesionFC(AdhsFC(kk).PixelIdxList)=kk;
+    end
+    
     maskAdhesionFA = logical(labelAdhesionFA);
     maskAdhesionFC = maskAdhesion2 .* ~maskAdhesionFA;
 
     indInside=maskVectors(xNA,yNA,maskAdhesion2);
+    maskNAs2 = maskNAs & ~maskAdhesion2;
     indTrueNAs=~indInside;
     if ~isempty(pstruct)
         idxSigCCP = pstruct.A>0 & indTrueNAs';
@@ -254,35 +286,172 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).FAdensityPeri = sum(indFAsAtEdge)/bandArea; % number per um2
     focalAdhInfo(j).FAdensityInside = (numAdhs-sum(indFAsAtEdge))/(focalAdhInfo(j).cellArea-bandArea); % number per um2
     
-%     % New feature: the other channel reading
-%     % 1. Check if there is the other channel
-%     % e.g. see if there is more than one channels
-%     % e.g. see if there is TFM package
-%     % e.g. see if the additional channel is used for TFM or not.
-%     %      if there is a channel, get the channel.
-%     %
-%     % 2. Go over each adhesion
-%     for ii=1:numAdhs
-%         % 3. Get the specific segmentation-based mask
-%         
-%         % 4. Dilate the mask
-%         
-%         % 5. Exclude the any other adhesion mask and Get the band mask
-%         
-%         % 6. Get the Ibg (mean intensity of the band in the channel image)
-%         % curImg2 = chan2.loadImage(j);
-%         % Ibg2d = M_bg .* curImg2;
-%         % Ibg = mean(ibg2d(:));
-%         
-%         % 7. Get the Iabs
-%         
-%         % 8. Get the ampTheOther
-%         % ampTheOther = Iabs - Ibg;
-%         
-%         % 9. Save it to focalAdhInfo
-%         focalAdhInfo(j).ampTheOther(ii) = ampTheOther;
-%     end
-    
+    % New feature: the other channel reading
+    % 1. Check if there is the other channel
+    % e.g. see if there is more than one channels
+    if nChans >1 && (~isempty(iTFM) || ~isempty(iAdditionalChan))
+        % 2. Go over each FA and FC and NA
+        numFAs = numel(AdhsFA);
+        numFCs = numAdhs - numFAs;
+        numNAs = nascentAdhInfo(j).numberNA;
+        if ~isempty(iTFM)
+            curTmap = tMap(:,:,j);
+            % FA first
+            for ii=1:numFAs
+                % 3. Get the specific segmentation-based mask
+                curAdhMask = labelAdhesionFA==ii;
+                % 4. Dilate the mask
+                curAdhMaskDilated = bwmorph(curAdhMask,'dilate',1);
+                % 5. Read from tMap
+                forceFA{j}(ii) = mean(curTmap(curAdhMaskDilated));
+            end
+            % FC second
+            for ii=1:numFCs
+                % 3. Get the specific segmentation-based mask
+                curAdhMask = labelAdhesionFC==ii;
+                % 4. Dilate the mask
+                curAdhMaskDilated = bwmorph(curAdhMask,'dilate',1);
+                % 5. Read from tMap
+                forceFC{j}(ii) = mean(curTmap(curAdhMaskDilated));
+            end
+            % NA next
+            seNA = strel('disk',2);
+            for ii=1:numNAs
+                % 3. Get the specific segmentation-based mask
+                curAdhMask = false(size(labelAdhesionFC));
+                cutA=0; if nascentAdhInfo(j).yCoord(ii,1)-2 <=0, cutA= -nascentAdhInfo(j).yCoord(ii,1)+3; end
+                cutC=0; if nascentAdhInfo(j).xCoord(ii,1)-2 <=0, cutC= -nascentAdhInfo(j).xCoord(ii,1)+3; end
+                cutB=0; if nascentAdhInfo(j).yCoord(ii,1)+2 >size(curAdhMask,1), cutB= nascentAdhInfo(j).yCoord(ii,1)+2-size(curAdhMask,1); end
+                cutD=0; if nascentAdhInfo(j).xCoord(ii,1)+2 >size(curAdhMask,2), cutD= nascentAdhInfo(j).xCoord(ii,1)+2-size(curAdhMask,2); end
+                curAdhMask(nascentAdhInfo(j).yCoord(ii,1)-2+cutA:nascentAdhInfo(j).yCoord(ii,1)+2-cutB,...
+                    nascentAdhInfo(j).xCoord(ii,1)-2+cutC:nascentAdhInfo(j).xCoord(ii,1)+2-cutD) = ...
+                    seNA.Neighborhood(1+cutA:end-cutB,1+cutC:end-cutD);
+                % 4. Dilate the mask
+                curAdhMaskDilated = bwmorph(curAdhMask,'dilate',1);
+                % 5. Read from tMap
+                forceNA{j}(ii) = mean(curTmap(curAdhMaskDilated));
+            end
+            % Finally BG
+            maskAdhesion2dilated = bwmorph(maskAdhesion2,'dilate',5);
+            cellMask = roiMask(:,:,j) & mask;
+            bgMask = roiMask(:,:,j) & ~mask;
+            areaThres = round(mean(focalAdhInfo(j).area));
+            curForceBGinCell = curTmap(~maskAdhesion2dilated & cellMask)';
+            for ii=1:floor(length(curForceBGinCell)/areaThres)
+                if ii<floor(length(curForceBGinCell)/areaThres)
+                    forceBGinCell{j}(ii) = mean(curForceBGinCell((ii-1)*areaThres+1:(ii)*areaThres));
+                else
+                    forceBGinCell{j}(ii) = mean(curForceBGinCell((ii-1)*areaThres+1:end));
+                end
+            end
+            
+            curForceBGoutCell = curTmap(~maskAdhesion2dilated & bgMask)';
+            for ii=1:floor(length(curForceBGoutCell)/areaThres)
+                if ii<floor(length(curForceBGoutCell)/areaThres)
+                    forceBGoutCell{j}(ii) = mean(curForceBGoutCell((ii-1)*areaThres+1:(ii)*areaThres));
+                else
+                    forceBGoutCell{j}(ii) = mean(curForceBGoutCell((ii-1)*areaThres+1:end));
+                end
+            end
+            
+        end
+        % For the other channel
+        if ~isempty(iAdditionalChan)
+            % 6. Get the Ibg (mean intensity of the band in the channel image)
+            chan2 = movieData.getChannel(iAdditionalChan);
+            curImg2 = chan2.loadImage(j);
+            maskAdhesionDilated = bwmorph(maskAdhesion,'dilate',5);
+            cellMask = roiMask(:,:,j) & mask;
+            M_bg = curTmap(~maskAdhesionDilated & cellMask);
+            for ii=1:numAdhs
+                % 3. Get the specific segmentation-based mask
+                curAdhMask = labelAdhesion==ii;
+
+                % 4. Dilate the mask
+                curAdhMaskDilated = bwmorph(curAdhMask,'dilate',1);
+
+                Ibg2d = M_bg .* curImg2;
+                Ibg = mean(Ibg2d(:));
+
+                % 7. Get the Iabs
+                Iabs = mean(curImg2(curAdhMaskDilated));
+
+                % 8. Get the ampTheOther
+                ampTheOther = Iabs - Ibg;
+
+                % 9. Save it to focalAdhInfo
+                focalAdhInfo(j).ampTheOther(ii) = ampTheOther;
+            end
+        end
+        
+        % 10. colocalization analysis
+        if ~isempty(iTFM)
+            curTmap = tMap(:,:,j);
+%             hScatter = figure; plot(I(:),curTmap(:),'.')
+            hHist2D = figure; hold on
+            cellMask2 = bwmorph(cellMask,'dilate',5) & roiMask(:,:,j);
+            [~,xBins] = histcounts(I(cellMask2));  [~,yBins] = histcounts(curTmap(cellMask2));
+            densityplot(I(cellMask2), curTmap(cellMask2), xBins, yBins,'DisplayFunction', @log);
+            colormap jet
+            hCBar = colorbar;
+            hCBar.Label.String = 'Counts (10^x )';
+            ylabel('Traction (Pa)')
+            xlabel('Adhesion Intensity (A.U.)')
+            % Correlation - Pearson
+            rP = corr(I(cellMask2), curTmap(cellMask2));
+            % Mander's overlap coefficient, MOC
+            products=(double(I(cellMask2)).*double(curTmap(cellMask2)));
+            redsq=double(I(cellMask2)).^2;
+            greensq=double(curTmap(cellMask2)).^2;
+
+            MOC=sum(products(:))/sqrt(sum(redsq(:))*sum(greensq(:)));
+            
+            hold on
+            text(xBins(round(0.09*length(xBins))),yBins(round(0.95*length(yBins))),....
+                ['Pearson''s corr: ' num2str(rP)], 'Color', 'w')
+            text(xBins(round(0.09*length(xBins))),yBins(round(0.85*length(yBins))),...
+                ['Mander''s coeff: ' num2str(MOC)], 'Color', 'w')
+            hHist2D.Units='inch';
+            hHist2D.Position(3)=3; hHist2D.Position(4)=2.5;
+            
+            hgexport(hHist2D,[figPath filesep 'scatter2Dhist'],hgexport('factorystyle'),'Format','eps')
+            hgsave(hHist2D,[figPath filesep 'scatter2Dhist'],'-v7.3')
+            print(hHist2D,[figPath filesep 'scatter2Dhist'],'-dtiff')
+
+            % Save them
+            tableCorr=table([rP; MOC],'RowNames',{'rP', 'MOC'});
+            writetable(tableCorr,[dataPath filesep 'corrValues.csv'],'WriteRowNames',true)
+            focalAdhInfo.rP(j) = rP;
+            focalAdhInfo.MOC(j) = MOC;
+
+            % 11. Now we are segmenting TFM map (force blob) and calculate
+            % fraction of it inside the cell or outside.
+            cellMask3 = bwmorph(cellMask,'dilate',20) & bwmorph(roiMask(:,:,j),'erode',15);
+            maskForceBlob = blobSegmentThresholdTFM(curTmap,minSize,true,cellMask3);
+            % fraction of the blob mask inside
+            blobPixelsAll = sum(maskForceBlob(:));
+            blobInside = sum(maskForceBlob(cellMask));
+            blobOutside = sum(maskForceBlob(~cellMask));
+            fractionBlobInside = blobInside/blobPixelsAll;
+            fractionBlobOutside = blobOutside/blobPixelsAll;
+            % Plot them
+            focalAdhInfo.fractionBlobInside(j) = fractionBlobInside;
+            focalAdhInfo.fractionBlobOutside(j) = fractionBlobOutside;
+            hBarFrac = figure; bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
+            hBarFrac.Units='inch';
+            hBarFrac.Position(3)=3; hBarFrac.Position(4)=2.5;
+            ylim([0 1]); title({'fraction of force blobs'; 'inside the cell or outside'})
+            % Overlay them
+            % cell mask
+            combI(:,:,1) = 0.4*maskForceBlob.*cellMask + 0.6*cellMask;
+            combI(:,:,2) = 0.7*maskForceBlob.*~cellMask + 0.6*cellMask - 0.5*maskForceBlob.*cellMask;
+            combI(:,:,3) = -0.5*maskForceBlob.*cellMask + 0.6*cellMask;
+            hBlob=figure; imshow(combI,[]); hold on
+            hgexport(hBlob,[figPath filesep 'forceBlobOverlay'],hgexport('factorystyle'),'Format','eps')
+            hgsave(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
+            print(hBlob,[figPath filesep 'forceBlobOverlay'],'-dtiff')
+        end        
+    end
 
     % plotting detected adhesions
     if plotGraph
@@ -304,11 +473,36 @@ for j=1:movieData.nFrames_
         close(h1)
     end
     if ~isempty(pstruct)
-        disp(['detected ' num2str(numel(pstruct.x)) ' nascent adhesions and ' num2str(numAdhs) ' focal adhesions for ' num2str(j) 'th frame.'])
+        disp(['detected ' num2str(numel(pstruct.x)) ' nascent adhesions, '  num2str(numFCs) ' focal complexes and ' num2str(numFAs) ' focal adhesions  for ' num2str(j) 'th frame.'])
     else
         disp(['detected zero nascent adhesion and ' num2str(numAdhs) ' focal adhesions for ' num2str(j) 'th frame.'])
     end
 end
+
+% Plot the force result
+if ~isempty(iTFM)
+    forceGroup = {forceFA, forceFC, forceNA, forceBGinCell, forceBGoutCell};
+    nameList = {'FA', 'FC', 'NA', 'BG_inside', 'BG_outside'};
+    forceGroupCell = cellfun(@(x) cell2mat(x),forceGroup,'unif',false);
+    h1=figure; 
+    
+    boxPlotCellArray(forceGroupCell,nameList,1,false,false);
+    ylabel('Force magnitude (Pa)')
+    title('Force per adhesion type')
+    hgexport(h1,[figPath filesep 'forcePerAdhesionType'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'forcePerAdhesionType'],'-v7.3')
+    print(h1,[figPath filesep 'forcePerAdhesionType'],'-dtiff')
+
+    % Save them
+    tableForcePerAdhesionType=table(forceGroupCell','RowNames',nameList);
+    writetable(tableForcePerAdhesionType,[dataPath filesep 'forcePerAdhesionType.csv'],'WriteRowNames',true)
+
+    % Save them
+    tableBlobFrac=table([focalAdhInfo.fractionBlobInside; focalAdhInfo.fractionBlobOutside],'RowNames',{'Inside','Outside'});
+    writetable(tableBlobFrac,[dataPath filesep 'tableBlobFrac.csv'],'WriteRowNames',true)
+end
+
+
 save([dataPath filesep 'AdhInfo.mat'],'nascentAdhInfo','focalAdhInfo','-v7.3');
 
 disp('Finished detecting objects...')
