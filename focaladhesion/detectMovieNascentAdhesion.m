@@ -94,6 +94,7 @@ if ~isempty(iTFM)
     forceNA=cell(1,movieData.nFrames_);
     forceBGinCell=cell(1,movieData.nFrames_);
     forceBGoutCell=cell(1,movieData.nFrames_);
+    tMax = 2000;
 else
     iAdditionalChan = setdiff(1:nChans,[iPax]);
 end
@@ -450,6 +451,26 @@ for j=1:movieData.nFrames_
             hgexport(hBlob,[figPath filesep 'forceBlobOverlay'],hgexport('factorystyle'),'Format','eps')
             hgsave(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
             print(hBlob,[figPath filesep 'forceBlobOverlay'],'-dtiff')
+            
+            % Show force blobs on TFM image
+            hTFMBlob=figure;
+            imshow(curTmap, [0 tMax]), colormap jet
+            hC=colorbar('east');
+            hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
+            hold on
+            [B,~,nBD]  = bwboundaries(cellMask,'noholes');
+            for kk=1:nBD
+                boundary = B{kk};
+                plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 2) % cell boundary
+            end
+            [forceBlobIndiv,~,nFCs] = bwboundaries(maskForceBlob,4,'noholes');    
+            for kk=1:nFCs
+                boundary = forceBlobIndiv{kk};
+                plot(boundary(:,2), boundary(:,1), 'Color','m', 'LineWidth', 2) % cell boundary
+            end
+            hgexport(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],hgexport('factorystyle'),'Format','eps')
+            hgsave(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-v7.3')
+            print(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-dtiff')
         end        
     end
 
@@ -470,6 +491,34 @@ for j=1:movieData.nFrames_
         hgexport(h1,strcat(tifPath,'/imgNAFA',num2str(j,jformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')
         hold off
+        
+        if ~isempty(iTFM)
+            imshow(curTmap, [0 2000]), colormap jet
+            hC=colorbar('east');
+            hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
+            hold on
+            [B,~,nBD]  = bwboundaries(cellMask,'noholes');
+            for kk=1:nBD
+                boundary = B{kk};
+                plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 2) % cell boundary
+            end
+            [adhBoundFC,~,nFCs] = bwboundaries(maskAdhesionFC,4,'noholes');    
+            for kk=1:nFCs
+                boundary = adhBoundFC{kk};
+                plot(boundary(:,2), boundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) % cell boundary
+            end
+            [adhBoundFA,~,nFAs] = bwboundaries(maskAdhesionFA,4,'noholes');    
+            for k = 1:nFAs
+                adhBoundary = adhBoundFA{k};
+                plot(adhBoundary(:,2), adhBoundary(:,1), 'm', 'LineWidth', 0.5) %adhesion boundary
+            end
+            if ~isempty(pstruct)
+                plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'yo')
+            end
+            hgexport(h1,[figPath filesep 'tractionMapWithAdhesions'],hgexport('factorystyle'),'Format','eps')
+            hgsave(h1,[figPath filesep 'tractionMapWithAdhesions'],'-v7.3')
+            print(h1,[figPath filesep 'tractionMapWithAdhesions'],'-dtiff')
+        end
         close(h1)
     end
     if ~isempty(pstruct)
