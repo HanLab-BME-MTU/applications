@@ -427,7 +427,7 @@ for j=1:movieData.nFrames_
 
             % 11. Now we are segmenting TFM map (force blob) and calculate
             % fraction of it inside the cell or outside.
-            cellMask3 = bwmorph(cellMask,'dilate',20) & bwmorph(roiMask(:,:,j),'erode',15);
+            cellMask3 = bwmorph(cellMask,'dilate',200) & bwmorph(roiMask(:,:,j),'erode',15);
             maskForceBlob = blobSegmentThresholdTFM(curTmap,minSize,true,cellMask3);
             % fraction of the blob mask inside
             blobPixelsAll = sum(maskForceBlob(:));

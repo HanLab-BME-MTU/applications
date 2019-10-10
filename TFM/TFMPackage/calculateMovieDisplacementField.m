@@ -408,10 +408,10 @@ for j= firstFrame:nFrames
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
 %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
         nextPow2max=nextpow2(p.maxFlowSpeed);
-        nextPow2min=nextpow2(p.minCorLength)-2;
+        nextPow2corLeng=nextpow2(p.minCorLength);
         
-        sizeArray=2.^([nextPow2max:-1:nextPow2min+1 nextPow2min+1 nextPow2min+1]);
-        stepArray=2.^([nextPow2max:-1:nextPow2min nextPow2min]);
+        sizeArray=2.^([nextPow2max nextPow2max nextPow2max nextPow2max]);
+        stepArray=2.^([nextPow2corLeng nextPow2corLeng:-1:nextPow2corLeng-2]);
         pivPar.anNpasses = length(stepArray);
         pivPar.iaSizeX = sizeArray;     % size of interrogation area in X 
         pivPar.iaStepX = stepArray;     % grid spacing of velocity vectors in X
