@@ -215,7 +215,6 @@ for j=1:movieData.nFrames_
     maskAdhesionFC = maskAdhesion2 .* ~maskAdhesionFA;
 
     indInside=maskVectors(xNA,yNA,maskAdhesion2);
-    maskNAs2 = maskNAs & ~maskAdhesion2;
     indTrueNAs=~indInside;
     if ~isempty(pstruct)
         idxSigCCP = pstruct.A>0 & indTrueNAs';
