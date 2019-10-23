@@ -362,7 +362,7 @@ for j=1:movieData.nFrames_
             curImg2 = chan2.loadImage(j);
             maskAdhesionDilated = bwmorph(maskAdhesion,'dilate',5);
             cellMask = roiMask(:,:,j) & mask;
-            M_bg = curTmap(~maskAdhesionDilated & cellMask);
+            M_bg = curTmap.*~maskAdhesionDilated .* cellMask;
             for ii=1:numAdhs
                 % 3. Get the specific segmentation-based mask
                 curAdhMask = labelAdhesion==ii;
@@ -370,7 +370,7 @@ for j=1:movieData.nFrames_
                 % 4. Dilate the mask
                 curAdhMaskDilated = bwmorph(curAdhMask,'dilate',1);
 
-                Ibg2d = M_bg .* curImg2;
+                Ibg2d = M_bg .* double(curImg2);
                 Ibg = mean(Ibg2d(:));
 
                 % 7. Get the Iabs
