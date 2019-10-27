@@ -1,4 +1,4 @@
-function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iPax,plotGraph,indMask)
+function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iAdhChan,plotGraph,indMask)
 % detectMovieNascentAdhesion detect objects by fitting isotropic Gaussians
 %
 % SYNOPSIS adapted from detectMovieSubResFeatures(movieData,paramsIn)
@@ -7,6 +7,13 @@ function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMo
 %   pathForTheMovieDataFile - path to a MovieData object describing the movie to be processed
 %   bandwidth               - bandwidth in micron from the edge to qunatify
 %                               nascent adhesions (default: 5 um)
+%   iAdhChan                - the channel number for adhesion channel used
+%   plotGraph               - true if you want to plot graphs and store
+%                             them
+%   indMask                 - the channel index of a mask to be added to
+%                             mask in iAdhChan channel. If you add it, you are analyzing more
+%                             features (e.g. CCPs)
+% 
 % OUTPUT   
 %   adhesionInfo  - stored in Adhesion Quantification folder containing:
 %   nascentAdhInfo: locations of nascent adhesions, area of lamellipodial band
@@ -36,7 +43,7 @@ if nargin==1
     plotGraph = true;
 end
 if nargin<3
-    iPax = 1; %assumed
+    iAdhChan = 1; %assumed
     plotGraph = true;
     indMask = [];
 end
@@ -58,11 +65,11 @@ end
 %% --------------- Initialization ---------------%%
 nChans=numel(movieData.channels_);
 % psfSigma = 1.2; %hard coded for nascent adhesion
-psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iPax).emissionWavelength_*1e-9);
+psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iAdhChan).emissionWavelength_*1e-9);
 if isempty(psfSigma)
-    movieData.getChannel(iPax).emissionWavelength_ = 568; 
+    movieData.getChannel(iAdhChan).emissionWavelength_ = 568; 
     disp('Adhesion channel emmission wave length is set to be 568 nm. If this value is incorrect, please set up your fluorophore of the adhesion channel')
-    psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iPax).emissionWavelength_*1e-9);    
+    psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iAdhChan).emissionWavelength_*1e-9);    
 end
     
 % Set up the output directories
@@ -86,7 +93,7 @@ if ~isempty(iTFM)
     tfmPack = movieData.getPackage(iTFM);
     forceProc = tfmPack.getProcess(4);
     iChanTFM = forceProc.checkChannelOutput;
-    iAdditionalChan = setdiff(1:nChans,[iChanTFM, iPax]);
+    iAdditionalChan = setdiff(1:nChans,[iChanTFM, iAdhChan]);
     % Read TFM map
     tMap=forceProc.loadChannelOutput('output','tMapUnshifted'); % in Pa per pixel (1pix x 1pix)
     forceFA=cell(1,movieData.nFrames_);
@@ -96,7 +103,7 @@ if ~isempty(iTFM)
     forceBGoutCell=cell(1,movieData.nFrames_);
     tMax = 2000;
 else
-    iAdditionalChan = setdiff(1:nChans,[iPax]);
+    iAdditionalChan = setdiff(1:nChans,[iAdhChan]);
 end
 
 %% --------------- Sub-resolution object detection ---------------%%% 
@@ -118,12 +125,12 @@ minLengthFA = 2000/pixSize;
 minEcc = 0.7;
 psAlpha = 0.0001;%This will ensure 
 
-disp(['Paxillin channel was assumed to be in channel ' num2str(iPax) '.'])
+disp(['Paxillin channel was assumed to be in channel ' num2str(iAdhChan) '.'])
 disp('Results will be saved under:')
 disp(outputFilePath);
 
 for j=1:movieData.nFrames_
-    I=double(movieData.channels_(iPax).loadImage(j));
+    I=double(movieData.channels_(iAdhChan).loadImage(j));
     noMask=false;
     try
         maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
@@ -135,8 +142,8 @@ for j=1:movieData.nFrames_
             maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,j),find(maskProc.checkChannelOutput),'UniformOutput',false);
             maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
             mask = any(maskAll,3);
-        elseif nChans==1 && nChans==iPax
-            mask = maskProc.loadChannelOutput(iPax,j); % 1 is CCP channel
+        elseif nChans==1 && nChans==iAdhChan
+            mask = maskProc.loadChannelOutput(iAdhChan,j); % 1 is CCP channel
         end
     catch
         mask = movieData.roiMask;
@@ -388,15 +395,8 @@ for j=1:movieData.nFrames_
         if ~isempty(iTFM)
             curTmap = tMap(:,:,j);
 %             hScatter = figure; plot(I(:),curTmap(:),'.')
-            hHist2D = figure; hold on
             cellMask2 = bwmorph(cellMask,'dilate',5) & roiMask(:,:,j);
             [~,xBins] = histcounts(I(cellMask2));  [~,yBins] = histcounts(curTmap(cellMask2));
-            densityplot(I(cellMask2), curTmap(cellMask2), xBins, yBins,'DisplayFunction', @log);
-            colormap jet
-            hCBar = colorbar;
-            hCBar.Label.String = 'Counts (10^x )';
-            ylabel('Traction (Pa)')
-            xlabel('Adhesion Intensity (A.U.)')
             % Correlation - Pearson
             rP = corr(I(cellMask2), curTmap(cellMask2));
             % Mander's overlap coefficient, MOC
@@ -406,17 +406,26 @@ for j=1:movieData.nFrames_
 
             MOC=sum(products(:))/sqrt(sum(redsq(:))*sum(greensq(:)));
             
-            hold on
-            text(xBins(round(0.09*length(xBins))),yBins(round(0.95*length(yBins))),....
-                ['Pearson''s corr: ' num2str(rP)], 'Color', 'w')
-            text(xBins(round(0.09*length(xBins))),yBins(round(0.85*length(yBins))),...
-                ['Mander''s coeff: ' num2str(MOC)], 'Color', 'w')
-            hHist2D.Units='inch';
-            hHist2D.Position(3)=3; hHist2D.Position(4)=2.5;
-            
-            hgexport(hHist2D,[figPath filesep 'scatter2Dhist'],hgexport('factorystyle'),'Format','eps')
-            hgsave(hHist2D,[figPath filesep 'scatter2Dhist'],'-v7.3')
-            print(hHist2D,[figPath filesep 'scatter2Dhist'],'-dtiff')
+            if plotGraph
+                hHist2D = figure; hold on
+                densityplot(I(cellMask2), curTmap(cellMask2), xBins, yBins,'DisplayFunction', @log);
+                colormap jet
+                hCBar = colorbar;
+                hCBar.Label.String = 'Counts (10^x )';
+                ylabel('Traction (Pa)')
+                xlabel('Adhesion Intensity (A.U.)')
+                hold on
+                text(xBins(round(0.09*length(xBins))),yBins(round(0.95*length(yBins))),....
+                    ['Pearson''s corr: ' num2str(rP)], 'Color', 'w')
+                text(xBins(round(0.09*length(xBins))),yBins(round(0.85*length(yBins))),...
+                    ['Mander''s coeff: ' num2str(MOC)], 'Color', 'w')
+                hHist2D.Units='inch';
+                hHist2D.Position(3)=3; hHist2D.Position(4)=2.5;
+
+                hgexport(hHist2D,[figPath filesep 'scatter2Dhist'],hgexport('factorystyle'),'Format','eps')
+                hgsave(hHist2D,[figPath filesep 'scatter2Dhist'],'-v7.3')
+                print(hHist2D,[figPath filesep 'scatter2Dhist'],'-dtiff')
+            end
 
             % Save them
             tableCorr=table([rP; MOC],'RowNames',{'rP', 'MOC'});
@@ -437,39 +446,41 @@ for j=1:movieData.nFrames_
             % Plot them
             focalAdhInfo.fractionBlobInside(j) = fractionBlobInside;
             focalAdhInfo.fractionBlobOutside(j) = fractionBlobOutside;
-            hBarFrac = figure; bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
-            hBarFrac.Units='inch';
-            hBarFrac.Position(3)=3; hBarFrac.Position(4)=2.5;
-            ylim([0 1]); title({'fraction of force blobs'; 'inside the cell or outside'})
-            % Overlay them
-            % cell mask
-            combI(:,:,1) = 0.4*maskForceBlob.*cellMask + 0.6*cellMask;
-            combI(:,:,2) = 0.7*maskForceBlob.*~cellMask + 0.6*cellMask - 0.5*maskForceBlob.*cellMask;
-            combI(:,:,3) = -0.5*maskForceBlob.*cellMask + 0.6*cellMask;
-            hBlob=figure; imshow(combI,[]); hold on
-            hgexport(hBlob,[figPath filesep 'forceBlobOverlay'],hgexport('factorystyle'),'Format','eps')
-            hgsave(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
-            print(hBlob,[figPath filesep 'forceBlobOverlay'],'-dtiff')
-            
-            % Show force blobs on TFM image
-            hTFMBlob=figure;
-            imshow(curTmap, [0 tMax]), colormap jet
-            hC=colorbar('east');
-            hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
-            hold on
-            [B,~,nBD]  = bwboundaries(cellMask,'noholes');
-            for kk=1:nBD
-                boundary = B{kk};
-                plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 2) % cell boundary
+            if plotGraph
+                hBarFrac = figure; bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
+                hBarFrac.Units='inch';
+                hBarFrac.Position(3)=3; hBarFrac.Position(4)=2.5;
+                ylim([0 1]); title({'fraction of force blobs'; 'inside the cell or outside'})
+                % Overlay them
+                % cell mask
+                combI(:,:,1) = 0.4*maskForceBlob.*cellMask + 0.6*cellMask;
+                combI(:,:,2) = 0.7*maskForceBlob.*~cellMask + 0.6*cellMask - 0.5*maskForceBlob.*cellMask;
+                combI(:,:,3) = -0.5*maskForceBlob.*cellMask + 0.6*cellMask;
+                hBlob=figure; imshow(combI,[]); hold on
+                hgexport(hBlob,[figPath filesep 'forceBlobOverlay'],hgexport('factorystyle'),'Format','eps')
+                hgsave(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
+                print(hBlob,[figPath filesep 'forceBlobOverlay'],'-dtiff')
+
+                % Show force blobs on TFM image
+                hTFMBlob=figure;
+                imshow(curTmap, [0 tMax]), colormap jet
+                hC=colorbar('east');
+                hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
+                hold on
+                [B,~,nBD]  = bwboundaries(cellMask,'noholes');
+                for kk=1:nBD
+                    boundary = B{kk};
+                    plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 2) % cell boundary
+                end
+                [forceBlobIndiv,~,nFCs] = bwboundaries(maskForceBlob,4,'noholes');    
+                for kk=1:nFCs
+                    boundary = forceBlobIndiv{kk};
+                    plot(boundary(:,2), boundary(:,1), 'Color','m', 'LineWidth', 2) % cell boundary
+                end
+                hgexport(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],hgexport('factorystyle'),'Format','eps')
+                hgsave(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-v7.3')
+                print(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-dtiff')
             end
-            [forceBlobIndiv,~,nFCs] = bwboundaries(maskForceBlob,4,'noholes');    
-            for kk=1:nFCs
-                boundary = forceBlobIndiv{kk};
-                plot(boundary(:,2), boundary(:,1), 'Color','m', 'LineWidth', 2) % cell boundary
-            end
-            hgexport(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],hgexport('factorystyle'),'Format','eps')
-            hgsave(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-v7.3')
-            print(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-dtiff')
         end        
     end
 
@@ -532,15 +543,16 @@ if ~isempty(iTFM)
     forceGroup = {forceFA, forceFC, forceNA, forceBGinCell, forceBGoutCell};
     nameList = {'FA', 'FC', 'NA', 'BG_inside', 'BG_outside'};
     forceGroupCell = cellfun(@(x) cell2mat(x),forceGroup,'unif',false);
-    h1=figure; 
-    
-    boxPlotCellArray(forceGroupCell,nameList,1,false,false);
-    ylabel('Force magnitude (Pa)')
-    title('Force per adhesion type')
-    hgexport(h1,[figPath filesep 'forcePerAdhesionType'],hgexport('factorystyle'),'Format','eps')
-    hgsave(h1,[figPath filesep 'forcePerAdhesionType'],'-v7.3')
-    print(h1,[figPath filesep 'forcePerAdhesionType'],'-dtiff')
+    if plotGraph
+        h1=figure; 
 
+        boxPlotCellArray(forceGroupCell,nameList,1,false,false);
+        ylabel('Force magnitude (Pa)')
+        title('Force per adhesion type')
+        hgexport(h1,[figPath filesep 'forcePerAdhesionType'],hgexport('factorystyle'),'Format','eps')
+        hgsave(h1,[figPath filesep 'forcePerAdhesionType'],'-v7.3')
+        print(h1,[figPath filesep 'forcePerAdhesionType'],'-dtiff')
+    end
     % Save them
     tableForcePerAdhesionType=table(forceGroupCell','RowNames',nameList);
     writetable(tableForcePerAdhesionType,[dataPath filesep 'forcePerAdhesionType.csv'],'WriteRowNames',true)
