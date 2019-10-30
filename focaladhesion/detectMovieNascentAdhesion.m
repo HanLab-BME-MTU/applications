@@ -430,6 +430,7 @@ for j=1:movieData.nFrames_
                 hgexport(hHist2D,[figPath filesep 'scatter2Dhist'],hgexport('factorystyle'),'Format','eps')
                 hgsave(hHist2D,[figPath filesep 'scatter2Dhist'],'-v7.3')
                 print(hHist2D,[figPath filesep 'scatter2Dhist'],'-dtiff')
+                close(hHist2D)
             end
 
             % Save them
@@ -465,6 +466,7 @@ for j=1:movieData.nFrames_
                 hgexport(hBlob,[figPath filesep 'forceBlobOverlay'],hgexport('factorystyle'),'Format','eps')
                 hgsave(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
                 print(hBlob,[figPath filesep 'forceBlobOverlay'],'-dtiff')
+                close(hBarFrac)
 
                 % Show force blobs on TFM image
                 hTFMBlob=figure;
@@ -485,6 +487,7 @@ for j=1:movieData.nFrames_
                 hgexport(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],hgexport('factorystyle'),'Format','eps')
                 hgsave(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-v7.3')
                 print(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-dtiff')
+                close(hTFMBlob)
             end
         end        
     end
@@ -557,6 +560,7 @@ if ~isempty(iTFM)
         hgexport(h1,[figPath filesep 'forcePerAdhesionType'],hgexport('factorystyle'),'Format','eps')
         hgsave(h1,[figPath filesep 'forcePerAdhesionType'],'-v7.3')
         print(h1,[figPath filesep 'forcePerAdhesionType'],'-dtiff')
+        close(h1)
     end
     % Save them
     tableForcePerAdhesionType=table(forceGroupCell','RowNames',nameList);
