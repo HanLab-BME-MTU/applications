@@ -1,4 +1,4 @@
-function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iAdhChan,plotGraph,indMask)
+function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iAdhChan,plotGraph,indMask,plotGraphTFM)
 % detectMovieNascentAdhesion detect objects by fitting isotropic Gaussians
 %
 % SYNOPSIS adapted from detectMovieSubResFeatures(movieData,paramsIn)
@@ -13,6 +13,7 @@ function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMo
 %   indMask                 - the channel index of a mask to be added to
 %                             mask in iAdhChan channel. If you add it, you are analyzing more
 %                             features (e.g. CCPs)
+%   plotGraphTFM            - true if you want to plot graphs about TFM
 % 
 % OUTPUT   
 %   adhesionInfo  - stored in Adhesion Quantification folder containing:
@@ -41,18 +42,22 @@ function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMo
 if nargin==1
     bandwidth = 5;
     plotGraph = true;
+    plotGraphTFM = false;
 end
 if nargin<3
     iAdhChan = 1; %assumed
     plotGraph = true;
     indMask = [];
+    plotGraphTFM = false;
 end
 if nargin<4
     plotGraph = true;
     indMask = [];
+    plotGraphTFM = false;
 end
 if nargin<5
     indMask = []; %indMask is the channel index of a mask to be added to mask in iPax channel.
+    plotGraphTFM = false;
 end
 % Load the MovieData
 if isa(pathForTheMovieDataFile, 'MovieData')
@@ -406,7 +411,7 @@ for j=1:movieData.nFrames_
 
             MOC=sum(products(:))/sqrt(sum(redsq(:))*sum(greensq(:)));
             
-            if plotGraph
+            if plotGraphTFM
                 hHist2D = figure; hold on
                 densityplot(I(cellMask2), curTmap(cellMask2), xBins, yBins,'DisplayFunction', @log);
                 colormap jet
@@ -446,7 +451,7 @@ for j=1:movieData.nFrames_
             % Plot them
             focalAdhInfo.fractionBlobInside(j) = fractionBlobInside;
             focalAdhInfo.fractionBlobOutside(j) = fractionBlobOutside;
-            if plotGraph
+            if plotGraphTFM
                 hBarFrac = figure; bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
                 hBarFrac.Units='inch';
                 hBarFrac.Position(3)=3; hBarFrac.Position(4)=2.5;
@@ -502,7 +507,7 @@ for j=1:movieData.nFrames_
         hgsave(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')
         hold off
         
-        if ~isempty(iTFM)
+        if ~isempty(iTFM) && plotGraphTFM
             imshow(curTmap, [0 2000]), colormap jet
             hC=colorbar('east');
             hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
@@ -543,7 +548,7 @@ if ~isempty(iTFM)
     forceGroup = {forceFA, forceFC, forceNA, forceBGinCell, forceBGoutCell};
     nameList = {'FA', 'FC', 'NA', 'BG_inside', 'BG_outside'};
     forceGroupCell = cellfun(@(x) cell2mat(x),forceGroup,'unif',false);
-    if plotGraph
+    if plotGraphTFM
         h1=figure; 
 
         boxPlotCellArray(forceGroupCell,nameList,1,false,false);
