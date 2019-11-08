@@ -81,7 +81,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
 %                     dMapMap=[]; dMapMapRef=[];
                     try
                         try %if exist(obj.outFilePaths_{iOut},'file')
-                            s = load(obj.outFilePaths_{iOut},output); %outputList{iOut});
+                            s = load(obj.outFilePaths_{iOut},output{:}); %outputList{iOut});
                             dMapObj = s.(output); %outputList{iOut});
                             fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
                             numStr = @(frame) num2str(frame,fString);
