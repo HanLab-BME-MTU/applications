@@ -69,7 +69,6 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
                 if (isempty(dMapMap) && strcmp(output,'dMap')) || (isempty(dMapMapRef) && strcmp(output,'dMapRef')) || ~all(obj.finishTime_==lastFinishTime)
-%                     dMapMap=[];
                     try
                         s = load(obj.outFilePaths_{iOut},output{1});
                         dMapObj = s.(output{1});
@@ -107,6 +106,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                             end
                             lastFinishTime = obj.finishTime_;
                         else % very new format
+                            dMapMap=[];
                             displField = load(dMapObj.displFieldPath,'displField'); displField=displField.displField;
                             [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
                             for ii=obj.owner_.nFrames_:-1:1
