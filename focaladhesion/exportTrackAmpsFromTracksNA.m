@@ -28,14 +28,34 @@ nElementsG2 = numel(tracksG2long);
 tracksG1(nElementsG1,1) = struct(myFieldNames{1},[],myFieldNames{2},[]);
 tracksG2(nElementsG2,1) = struct(myFieldNames{1},[],myFieldNames{2},[]);
 
-for curFN=myFieldNames
-    for ii=nElementsG1:-1:1
-        tracksG1(ii,1).(curFN{1}) = tracksG1long(ii,1).(curFN{1});
+% try
+    for curFN=myFieldNames
+        for ii=nElementsG1:-1:1
+            try
+                tracksG1(ii,1).(curFN{1}) = tracksG1long(ii,1).(curFN{1});
+            catch
+                disp(['Skipping ' num2str(ii) 'th tracks'])
+            end
+        end
+        for ii=nElementsG2:-1:1
+            try
+                tracksG2(ii,1).(curFN{1}) = tracksG2long(ii,1).(curFN{1});
+            catch
+                disp(['Skipping ' num2str(ii) 'th tracks'])
+            end
+        end
     end
-    for ii=nElementsG2:-1:1
-        tracksG2(ii,1).(curFN{1}) = tracksG2long(ii,1).(curFN{1});
-    end
-end
+% catch
+%     myFieldNames2={'ampTotal','ampTotal2'};
+%     for curFN=myFieldNames
+%         for ii=nElementsG1:-1:1
+%             tracksG1(ii,1).(curFN{1}) = tracksG1long(ii,1).(curFN{1});
+%         end
+%         for ii=nElementsG2:-1:1
+%             tracksG2(ii,1).(curFN{1}) = tracksG2long(ii,1).(curFN{1});
+%         end
+%     end
+% end
 
 end
 
