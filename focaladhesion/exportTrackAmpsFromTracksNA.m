@@ -57,5 +57,17 @@ tracksG2(nElementsG2,1) = struct(myFieldNames{1},[],myFieldNames{2},[]);
 %     end
 % end
 
+% Saving
+faDir = [faPack.outputDirectory_ filesep 'TracksSimple'];
+g1Dir = [faDir filesep 'G1'];
+g2Dir = [faDir filesep 'G2'];
+if ~exist(g1Dir,'dir')
+    mkdir(g1Dir); mkdir(g2Dir);
+end
+
+save([g1Dir filesep 'tracksG1.mat'], 'tracksG1')
+save([g2Dir filesep 'tracksG1.mat'], 'tracksG2')
+
+disp('done!')
 end
 

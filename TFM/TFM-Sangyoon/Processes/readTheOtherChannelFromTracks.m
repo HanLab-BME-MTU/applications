@@ -307,27 +307,33 @@ if p.doFAregistration
         end
         % Anonymous functions for reading input/output
         outFile=@(chan,frame) [SDCProc.outFilePaths_{1,chan} filesep imageFileNames{chan}{frame}];
-        for ii=1:nFrames
-            mainI = SDCProc.loadChannelOutput(p.ChannelIndex,ii);
-            subI = SDCProc.loadChannelOutput(p.iChanSlave,ii);
+        ii=1;
+        mainI = SDCProc.loadChannelOutput(p.ChannelIndex,ii);
+        subI = SDCProc.loadChannelOutput(p.iChanSlave,ii);
+        newSubI = imregister(subI,mainI,'similarity',optimizer,metric,...
+            'InitialTransformation',tformSimilarity);
+        copyfile(outFile(p.iChanSlave, ii),backupFolder,'f')
+        imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
+            
+        hFig = figure;
+        hAx  = subplot(1,2,1);
+        C = imfuse(mainI,subI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
+        imshow(C,[],'Parent', hAx);
+
+        title('Original result: red, ch 1, green, ch 2')
+        hAx2  = subplot(1,2,2);
+        C2 = imfuse(mainI,newSubI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
+        imshow(C2,[],'Parent', hAx2);
+        title('Aligned result: red, ch 1, green, adjusted ch 2')
+
+        iMainChan=p.ChannelIndex; iSlaveChan = p.iChanSlave;
+        parfor ii=2:nFrames
+            mainI = SDCProc.loadChannelOutput(iMainChan,ii);
+            subI = SDCProc.loadChannelOutput(iSlaveChan,ii);
             newSubI = imregister(subI,mainI,'similarity',optimizer,metric,...
                 'InitialTransformation',tformSimilarity);
             copyfile(outFile(p.iChanSlave, ii),backupFolder,'f')
             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
-            
-            if ii==1
-                mainI = SDCProc.loadChannelOutput(p.iChanMaster,ii);
-                hFig = figure;
-                hAx  = subplot(1,2,1);
-                C = imfuse(mainI,subI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
-                imshow(C,[],'Parent', hAx);
-                
-                title('Original result: red, ch 1, green, ch 2')
-                hAx2  = subplot(1,2,2);
-                C2 = imfuse(mainI,newSubI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
-                imshow(C2,[],'Parent', hAx2);
-                title('Aligned result: red, ch 1, green, adjusted ch 2')
-            end
         end
         disp(['Channel has been overwritten in ' SDCProc.outFilePaths_{1,p.iChanSlave}])
     else
