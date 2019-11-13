@@ -122,7 +122,7 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                 toc
                 output = tracksNA;          
                 
-            elseif strcmp(outputRequested,'idsClassfied')
+            elseif strcmp(outputRequested,'idClass')
                 %% Reading classes
                 disp('Reading idsClassified ...')
                 iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
@@ -172,7 +172,7 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                 else
                     disp('Traction reading was not done. No further filtering...')
                 end
-                output = tracksNA;          
+                output = idsClassified;          
             end
         end
     end
