@@ -101,6 +101,11 @@ else
 %         parpool([2 myCluster.NumWorkers]);
 %     end
 end
+if ~reTrack
+    maxSigmaAttempts=1;
+else
+    maxSigmaAttempts=15;
+end
 
 parfor (k=1:numTracks, parforArg)
 % for k=1:numTracks
@@ -176,7 +181,7 @@ parfor (k=1:numTracks, parforArg)
                 p=-1;
     %             curSigma = sigma;
     %             pitFound = false;
-                while p<=15 %30
+                while p<=maxSigmaAttempts %30
                     %oldP = p;
                     p=p+1;
                     pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
