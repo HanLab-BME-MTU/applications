@@ -282,7 +282,7 @@ parfor (k=1:numTracks, parforArg)
                 curTrack.ampTotal(ii) =  curAmpTotal;
             else
                 p=-1; %This seems waisting the time. Now I am skipping...
-                while p<=16
+                while p<=maxSigmaAttempts
                     p=p+1;
                     pitFound = false;
                     pmP = -p; %ceil(p/2)*(-1)^oldP; % I removed the 'decreasing mode' because it also captures too much noise.
