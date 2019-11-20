@@ -85,6 +85,9 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                     if isfield(tracksAmpTotal,'ampTotal2')
                         [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
                     end
+                    if isfield(tracksAmpTotal,'amp2')
+                        [tracksNA(:).amp2] = tracksAmpTotal.amp2;
+                    end
                     if isfield(tracksAmpTotal,'ampTotal3')
                         [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
                     end

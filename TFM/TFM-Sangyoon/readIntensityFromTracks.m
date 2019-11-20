@@ -669,10 +669,14 @@ parfor (k=1:numTracks, parforArg)
         if attribute==5
             %interpolate
             noNanRange = find(~isnan(curTrack.amp2)); 
-            if isempty(noNanRange)
+            if isempty(noNanRange) || length(noNanRange)==1
                 disp('amp2 was failed to be estimated.')
             else
-                curTrack.amp2=interp1(noNanRange,curTrack.amp2(noNanRange),1:frameRange(end));
+                try
+                    curTrack.amp2=interp1(noNanRange,curTrack.amp2(noNanRange),1:frameRange(end));
+                catch
+                    disp('amp2 was failed to be estimated - no colocalization')
+                end
             end
         end
     elseif attribute==3 || attribute==4 %This time it uses FA area

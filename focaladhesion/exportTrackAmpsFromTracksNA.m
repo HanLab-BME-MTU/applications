@@ -12,21 +12,31 @@ function [] = exportTrackAmpsFromTracksNA(MD,iChan)
 % Load FA package
 faPack = MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
 % Load idsClasses
-iInitialRise = 11;
+iInitialRise = 11; iClassProc = 8;
 initRiseProc = faPack.getProcess(iInitialRise);
-chanOutput = initRiseProc.checkChannelOutput;
-idsClassfied = initRiseProc.loadChannelOutput(iChan,'output','idClass');
+classProc = faPack.getProcess(iClassProc);
+% chanOutput = initRiseProc.checkChannelOutput;
+chanOutput = classProc.checkChannelOutput;
+if sum(chanOutput)>0
+    iChan=find(chanOutput);
+end
+idsClassfied = classProc.loadChannelOutput(iChan,'output','iClassesAll');
+% idsClassfied = initRiseProc.loadChannelOutput(iChan,'output','idClass');
+
+% % test
+% trackslong = initRiseProc.loadChannelOutput(iChan,'output','tracksNA');
+
 % Load tracks selectively
 tracksG1long = initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',find(idsClassfied.idGroup1));
 tracksG2long = initRiseProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',find(idsClassfied.idGroup2));
 % Maybee some inspection here
 
 % Export to simpler variables
-myFieldNames={'amp','amp2'};
+myFieldNames={'amp','amp2','ampTotal','ampTotal2'};
 nElementsG1 = numel(tracksG1long);
 nElementsG2 = numel(tracksG2long);
-tracksG1(nElementsG1,1) = struct(myFieldNames{1},[],myFieldNames{2},[]);
-tracksG2(nElementsG2,1) = struct(myFieldNames{1},[],myFieldNames{2},[]);
+tracksG1(nElementsG1,1) = struct(myFieldNames{1},[],myFieldNames{2},[],myFieldNames{3},[],myFieldNames{4},[]);
+tracksG2(nElementsG2,1) = struct(myFieldNames{1},[],myFieldNames{2},[],myFieldNames{3},[],myFieldNames{4},[]);
 
 % try
     for curFN=myFieldNames
@@ -66,7 +76,7 @@ if ~exist(g1Dir,'dir')
 end
 
 save([g1Dir filesep 'tracksG1.mat'], 'tracksG1')
-save([g2Dir filesep 'tracksG1.mat'], 'tracksG2')
+save([g2Dir filesep 'tracksG2.mat'], 'tracksG2')
 
 disp('done!')
 end
