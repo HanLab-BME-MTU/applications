@@ -755,7 +755,7 @@ if 1
         %% Get each adhesion's moving direction
         matchingAdhLineFit=cell(numTracks,1);
         progressText(0,'Adhesion''s main movement direction', 'Adhesion Analysis');
-        parfor k=1:numTracks
+        for k=1:numTracks
             curTrack = tracksNA(k);
             sF=curTrack.startingFrameExtra; eF=curTrack.endingFrameExtra;
             try
