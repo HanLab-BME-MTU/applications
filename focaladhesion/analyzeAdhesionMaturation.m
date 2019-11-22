@@ -128,15 +128,7 @@ if exist(p.OutputDirectory,'dir')
         foundTracks=true;
     end
     if p.backupOldResults && ~foundTracks && ~startFromIntermediate && usejava('desktop')
-        disp('Backing up the original data')
-        ii = 1;
-        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
-        while exist(backupFolder,'dir')
-            backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
-            ii=ii+1;
-        end
-        copyfile(p.OutputDirectory, backupFolder,'f')
-        mkClrDir(p.OutputDirectory);
+        mkClrDirWithBackup(p.OutputDirectory);
     end
 else
     mkClrDir(p.OutputDirectory);

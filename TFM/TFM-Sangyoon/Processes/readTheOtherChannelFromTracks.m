@@ -108,7 +108,7 @@ for i = [p.ChannelIndex iChanSlave]
     outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 theOtherChanReadProc.setOutFilePaths(outputFile);
-mkClrDir(p.OutputDirectory);
+mkClrDirWithBackup(p.OutputDirectory);
 nFrames = MD.nFrames_;
 %% Slave to Master registration using PIV
 % p.doMultimodalRegistration = true;
