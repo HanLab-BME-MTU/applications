@@ -446,6 +446,10 @@ if ~foundTracks
             tracksNA = applyDriftToTracks(tracksNA, T, 0);
         end
     end
+end 
+
+if foundTracks && ~isfield(tracksNA,'faID')
+
     %% Matching with adhesion setup
     if ApplyCellSegMask
         firstMask=maskProc.loadChannelOutput(iChan,1);
@@ -458,7 +462,8 @@ if ~foundTracks
 
     focalAdhInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
         'amp',[],'area',[],'length',[],'meanFAarea',[],'medianFAarea',[]...
-        ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],'cellArea',[],'ecc',[]);
+        ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],...
+        'cellArea',[],'ecc',[],'numberFC',[],'FAtoFCratio',[],'numberPureFA',[]);
     FAInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
         'amp',[],'area',[],'length',[]);
 
@@ -525,7 +530,7 @@ if ~foundTracks
         % for larger adhesions
     %         faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
         faIdx = arrayfun(@(x) x.MajorAxisLength>=minFALength, Adhs);
-        FAIdx =  find(faIdx);
+        FAIdx = find(faIdx);
 
         FCs = Adhs(fcIdx | faIdx);
         numFCs = length(FCs);
@@ -581,8 +586,8 @@ if ~foundTracks
 %             else
 %                 imwrite(uint16(labelAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'),'Compression','none');
 %             end
-%             for k=1:numTracks
-            parfor k=1:numTracks
+            for k=1:numTracks
+%             parfor k=1:numTracks
                 curTrack=tracksNA(k);
                 if curTrack.presence(ii)
     %                     if ~strcmp(curTrack.state{ii} , 'NA') && ii>1
@@ -689,6 +694,10 @@ if ~foundTracks
                             curTrack.endingFrameExtraExtra=curTrack.endingFrameExtra;
                         end
                     end
+                else
+                    curTrack.area=[];
+                    curTrack.faID=[];
+                    curTrack.refineFAID=[];
                 end
                 parsave(trackIndPath(ii),curTrack)
                 
