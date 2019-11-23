@@ -586,8 +586,8 @@ if foundTracks && ~isfield(tracksNA,'faID')
 %             else
 %                 imwrite(uint16(labelAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'),'Compression','none');
 %             end
-            for k=1:numTracks
-%             parfor k=1:numTracks
+%             for k=1:numTracks
+            parfor k=1:numTracks
                 curTrack=tracksNA(k);
                 if curTrack.presence(ii)
     %                     if ~strcmp(curTrack.state{ii} , 'NA') && ii>1
