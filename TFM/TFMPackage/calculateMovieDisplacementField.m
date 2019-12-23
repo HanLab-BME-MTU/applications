@@ -401,6 +401,9 @@ for j= firstFrame:nFrames
             displField(j).vec=[cumulativeV_forV(validV,1)+residualT(j,2) cumulativeV_forV(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
         end
     else
+        % Just in case there is a path problem
+        addpath('~/matlab/extern/PIVsuite/PIVsuite v.0.81')
+        
         pivPar = [];      % variable for settings
         pivData = [];     % variable for storing results
 
