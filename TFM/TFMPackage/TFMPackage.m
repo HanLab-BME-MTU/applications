@@ -29,15 +29,15 @@ classdef TFMPackage < Package
         function [status processExceptions] = sanityCheck(obj,varargin) 
             
             % Check that the at least one channel has a valid psf sigma
-            hasPsfSigma = any(~cellfun(@isempty, {obj.owner_.channels_.psfSigma_}));
-            if ~hasPsfSigma
-                error(['Missing standard deviation of the theoretical point-spread function! '...
-                    'Please fill the numerical aperture, pixel size and'...
-                    ' emission wavelengths for the beads channel!']);            
-            end
+%             hasPsfSigma = any(~cellfun(@isempty, {obj.owner_.channels_.psfSigma_}));
+%             if ~hasPsfSigma
+%                 error(['Missing standard deviation of the theoretical point-spread function! '...
+%                     'Please fill the numerical aperture, pixel size and'...
+%                     ' emission wavelengths for the beads channel!']);            
+%             end
             
             % Check that the movie has a frame rate
-            if isempty(obj.owner_.timeInterval_)
+            if isempty(obj.owner_.timeInterval_) && obj.owner_.nFrames_>1
                 error('Missing frame rate! Please fill the time interval!');            
             end
             [status, processExceptions] = sanityCheck@Package(obj,varargin{:});

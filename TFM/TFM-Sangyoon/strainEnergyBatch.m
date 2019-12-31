@@ -8,8 +8,8 @@ if ~ischar(pathSFolders) && pathSFolders==0
     rootFolder=pwd;
     while ~analysisFolderSelectionDone
         ii=ii+1;
-%         curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        [curMLFile,curPathProject] = uigetfile(rootFolder,'Select the movie list file one per each attempt (Click Cancel when no more)');
+        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+%         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
         else
@@ -24,7 +24,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
             MLdirect=true;
         end
     end
-    if analysisFolderSelectionDone && ii==1
+    if ~analysisFolderSelectionDone && ii==1
         MLSelectionDone = false;
         ii=0;
         while ~MLSelectionDone
@@ -185,20 +185,24 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-groupNames2=groupNames;
-for ii=1:numConditions
-    [~, finalFolder]=fileparts(pathAnalysisAll{ii});
-    groupNames{ii} = finalFolder;
-end
-nameList=groupNames'; 
-if any(cellfun(@isempty,nameList))
-    nameList = MLNames;
-    if strcmp(nameList{1},nameList{2})
-        for ii=1:numConditions
-            curPath=fileparts(pathAnalysisAll{ii});
-            [~,nameList{ii}] = fileparts(curPath);
+if ~analysisFolderSelectionDone
+    groupNames2=groupNames;
+    for ii=1:numConditions
+        [~, finalFolder]=fileparts(pathAnalysisAll{ii});
+        groupNames{ii} = finalFolder;
+    end
+    nameList=groupNames'; 
+    if any(cellfun(@isempty,nameList))
+        nameList = MLNames;
+        if strcmp(nameList{1},nameList{2})
+            for ii=1:numConditions
+                curPath=fileparts(pathAnalysisAll{ii});
+                [~,nameList{ii}] = fileparts(curPath);
+            end
         end
     end
+else
+    nameList=groupNames'; 
 end
 %% Plotting each - SE-ForceBlob
 SE_FB_GroupCellArray = cellfun(@(x) cell2mat(x),SE_FB_Group,'unif',false);
