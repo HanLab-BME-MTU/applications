@@ -19,8 +19,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
                 [~,finalFolder] = fileparts(curPathProject2);
             end
             groupNames{ii} = finalFolder;
-            MLFileNamesAll{ii} = curMLFile;
-            MLNames{ii} = curMLFile;
+            MLNames{ii} = 'movieList.mat';
             MLdirect=true;
         end
     end
