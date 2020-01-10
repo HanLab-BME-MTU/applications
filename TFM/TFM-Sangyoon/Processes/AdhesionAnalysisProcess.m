@@ -174,6 +174,10 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     % Might need to filter out failed tracks
                     indEmptyTracks = arrayfun(@(x) isempty(x.xCoord),tracksNA);
                     tracksNA = tracksNA(~indEmptyTracks);
+                    if strcmp(output,outputList(end))
+                        varargout{1} = tracksNA;
+                        return
+                    end
                 catch
                     % Check if the outFilePath has tableTracksNA
                     disp('Checking if the outFilePath has tableTracksNA...')

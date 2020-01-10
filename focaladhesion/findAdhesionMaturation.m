@@ -58,6 +58,8 @@ indFailFC = false(numel(tracksNA),1);
 indFailFA = false(numel(tracksNA),1);
 pNAtoFC=0; q=0; qStable=0; qStableExisting=0;
 pNAtoFA=0; pFCtoFA=0;
+lifeTimeNAmaturing=[];
+lifeTimeNAfailing=[];
 
 for k=1:numel(tracksNA)
     if tracksNA(k).emerging 
