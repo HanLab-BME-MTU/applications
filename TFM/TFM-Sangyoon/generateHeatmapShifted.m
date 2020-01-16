@@ -1,4 +1,4 @@
-function [tMap, tmax, tmin, cropInfo,tMapX,tMapY,reg_grid1] = generateHeatmapShifted(forceField,displField,band)
+function [tMap, tmax, tmin, cropInfo,tMapX,tMapY,reg_grid1] = generateHeatmapShifted(forceField,displField,band,iFrame)
 %[tMap, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,band)
 % generates an image of traction in the place of deformed position defined
 % by displField. 
@@ -14,6 +14,9 @@ function [tMap, tmax, tmin, cropInfo,tMapX,tMapY,reg_grid1] = generateHeatmapShi
 %           cropInfo: pos min and max that is used in creating tMap [xmin,ymin,xmax,ymax]
 % Sangyoon Han, Nov, 2014
 
+if nargin<4
+    iFrame=1:numel(forceField);
+end
 %% tmax and tmin determination
 tmax = -1;
 tmin = 1e10;
@@ -52,7 +55,7 @@ tMap = cell(1,numel(forceField));
 tMapX = cell(1,numel(forceField));
 tMapY = cell(1,numel(forceField));
 progressText(0,'Traction map creation:') % Create text
-for ii=1:numel(forceField)
+for ii=iFrame
     if isstruct(displField)
         curDispVec = displField(ii).vec;
         curDispPos = displField(ii).pos;
