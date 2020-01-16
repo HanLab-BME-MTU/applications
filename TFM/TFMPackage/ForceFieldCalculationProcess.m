@@ -167,8 +167,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                             else % very new format
                                 forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
                                 displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
-                                [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField,displField,0);
-                                for ii=obj.owner_.nFrames_:-1:1
+                                [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField,displField,0,iFrame);
+                                for ii=fliplr(iFrame)
                                     tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
                                     tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
                                     tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
