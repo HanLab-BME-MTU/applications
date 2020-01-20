@@ -169,9 +169,11 @@ for ii=1:numConditions
     SEDen_FB_Group{ii,1}=curSEDenPerFBGroup;
     totalForce_FB_Group{ii,1}=curTotForceAllFBGroup;
     if isfield(forceFBStruct,'avgTractionCell')
-        totalForce_FBindiv_Group{ii,1}=cell2mat(curTotForcePerFBGroup);
+        avgForce_FBindiv_Group{ii,1}=cell2mat(curTotForcePerFBGroup);
+        avgForce_FB_Group{ii,1}=mean(curTotForcePerFBGroup);
+        totForce_FBInCell_Group{ii,1}=sum(curTotForcePerFBGroup);
     else
-        totalForce_FBindiv_Group{ii,1}=NaN;
+        avgForce_FBindiv_Group{ii,1}=NaN;
     end
     SE_FOV_Group{ii,1}=curSEPerFOVGroup;
     SEDen_FOV_Group{ii,1}=curSEDenPerFOVGroup;
@@ -371,18 +373,42 @@ print(h1,strcat(figPath,'/totForceFB.tif'),'-dtiff')
 
 tableTotalForce_FB=table(totForceFBCellArray,'RowNames',nameList);
 writetable(tableTotalForce_FB,strcat(dataPath,'/totalForce_ForceBlobs.csv'),'WriteRowNames',true)
-%% Total force - Force Blobs in Cell
-forceFBCellCellArray = cellfun(@(x) cell2mat(x),totalForce_FBindiv_Group,'unif',false);
+%% avg force in all individual force blob in Cell
+forceFBCellCellArray = cellfun(@(x) cell2mat(x),avgForce_FBindiv_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(forceFBCellCellArray,nameList,1,false,true)
 ylabel('Avereage force (nN)')
-title('Average force in force blobs in Cells')
+title('Average force in force blobs in Cells (per force blob)')
 hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
 print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
 
-tableAvgForceFBinCell=table(forceFBCellCellArray,'RowNames',nameList);
-writetable(tableAvgForceFBinCell,strcat(dataPath,'/forceFBCellCellArray.csv'),'WriteRowNames',true)
+tableAvgForceAllFBinCell=table(forceFBCellCellArray,'RowNames',nameList);
+writetable(tableAvgForceAllFBinCell,strcat(dataPath,'/forceAllFBs.csv'),'WriteRowNames',true)
+%% avg force of average force blob in Cell
+avgforceFBCellArray = cellfun(@(x) cell2mat(x),avgForce_FB_Group,'unif',false);
+h1=figure; 
+boxPlotCellArray(avgforceFBCellArray,nameList,1,false,true)
+ylabel('Avereage force (nN)')
+title('Average force of force blobs in cell per cell')
+hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
+print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
+
+tableAvgForceFBinCell=table(avgforceFBCellArray,'RowNames',nameList);
+writetable(tableAvgForceFBinCell,strcat(dataPath,'/avgForceFBsCell.csv'),'WriteRowNames',true)
+%% total force of average force blob in Cell
+totforceFBCellArray = cellfun(@(x) cell2mat(x),totForce_FBInCell_Group,'unif',false);
+h1=figure; 
+boxPlotCellArray(totforceFBCellArray,nameList,1,false,true)
+ylabel('Total force (nN)')
+title('Total force of force blobs in cell (per cell)')
+hgexport(h1,strcat(figPath,'/totForceFBinCell'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/totForceFBinCell'),'-v7.3')
+print(h1,strcat(figPath,'/totForceFBinCell.tif'),'-dtiff')
+
+tableTotForceFBinCell=table(totforceFBCellArray,'RowNames',nameList);
+writetable(tableTotForceFBinCell,strcat(dataPath,'/totForceFBsCell.csv'),'WriteRowNames',true)
 %% Total force - Cell
 if isCellSeg
     totForceCell_CellArray = cellfun(@(x) cell2mat(x),totalForce_Cell_Group,'unif',false);
