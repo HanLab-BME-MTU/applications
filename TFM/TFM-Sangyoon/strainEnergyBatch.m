@@ -96,7 +96,7 @@ for ii=1:numConditions
     N(ii) = numel(curMovies);
     curSEPerFBGroup = cell(N(ii),1);
     curSEDenPerFBGroup = cell(N(ii),1);
-    curTotForcePerFBGroup = cell(N(ii),1);
+    curTotForceAllFBGroup = cell(N(ii),1);
     curSECellGroup = cell(N(ii),1);
     curSEDenCellGroup = cell(N(ii),1);
     curTotalForceCellGroup = cell(N(ii),1);
@@ -126,10 +126,14 @@ for ii=1:numConditions
         curSEFBDen = curSEFB_struct.SEDensity;
         forceFBStruct = seFBStruct.totalForceBlobs;
         curTotalForceFB = forceFBStruct.force;
+        if isfield(forceFBStruct,'avgTractionCell')
+            curForcePerBlobs = forceFBStruct.avgTractionCell;
+            curTotForcePerFBGroup{k}=curForcePerBlobs;
+        end
         
         curSEPerFBGroup{k}=curSEFB;
         curSEDenPerFBGroup{k}=curSEFBDen;
-        curTotForcePerFBGroup{k}=curTotalForceFB;
+        curTotForceAllFBGroup{k}=curTotalForceFB;
         
         % 2. Cell - It is possible this is zero (when cell segmentation is
         % not there)
@@ -163,7 +167,12 @@ for ii=1:numConditions
     end
     SE_FB_Group{ii,1}=curSEPerFBGroup;
     SEDen_FB_Group{ii,1}=curSEDenPerFBGroup;
-    totalForce_FB_Group{ii,1}=curTotForcePerFBGroup;
+    totalForce_FB_Group{ii,1}=curTotForceAllFBGroup;
+    if isfield(forceFBStruct,'avgTractionCell')
+        totalForce_FBindiv_Group{ii,1}=cell2mat(curTotForcePerFBGroup);
+    else
+        totalForce_FBindiv_Group{ii,1}=NaN;
+    end
     SE_FOV_Group{ii,1}=curSEPerFOVGroup;
     SEDen_FOV_Group{ii,1}=curSEDenPerFOVGroup;
     totalForce_FOV_Group{ii,1}=curTotForcePerFOVGroup;
@@ -362,6 +371,18 @@ print(h1,strcat(figPath,'/totForceFB.tif'),'-dtiff')
 
 tableTotalForce_FB=table(totForceFBCellArray,'RowNames',nameList);
 writetable(tableTotalForce_FB,strcat(dataPath,'/totalForce_ForceBlobs.csv'),'WriteRowNames',true)
+%% Total force - Force Blobs in Cell
+forceFBCellCellArray = cellfun(@(x) cell2mat(x),totalForce_FBindiv_Group,'unif',false);
+h1=figure; 
+boxPlotCellArray(forceFBCellCellArray,nameList,1,false,true)
+ylabel('Avereage force (nN)')
+title('Average force in force blobs in Cells')
+hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
+print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
+
+tableAvgForceFBinCell=table(forceFBCellCellArray,'RowNames',nameList);
+writetable(tableAvgForceFBinCell,strcat(dataPath,'/forceFBCellCellArray.csv'),'WriteRowNames',true)
 %% Total force - Cell
 if isCellSeg
     totForceCell_CellArray = cellfun(@(x) cell2mat(x),totalForce_Cell_Group,'unif',false);

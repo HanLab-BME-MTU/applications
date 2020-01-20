@@ -50,7 +50,7 @@ p = parseProcessParams(strainEnergyCalcProc,paramsIn);
 if exist(p.OutputDirectory,'dir')
     contents=dir(p.OutputDirectory);
     if any(arrayfun(@(x) ~x.isdir,contents)) % There should be something inside. Otherwise, backing up
-        display('Backing up the original data')
+        disp('Backing up the original data')
         ii = 1;
         backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
         while exist(backupFolder,'dir')
@@ -214,12 +214,12 @@ end
 %% Calculate strain energy and total force
 tic
 minSize = 20; % in pixel
-minTraction = 100; % in Pa
+% minTraction = 0; %decided to not use it. used to be 100; % in Pa
 forceField=load(forceFieldProc.outFilePaths_{1});
 forceField = forceField.forceField;
 gridSapcing=forceField(1).pos(2,2)-forceField(1).pos(1,2);
 borderWidth=2*gridSapcing;
-nTopBlobs=150; % the number of top maxForceBlobs in single frames
+% nTopBlobs=150; % the number of top maxForceBlobs in single frames
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 
 bandwidthNA_pix = round(p.bandWidth*1000/movieData.pixelSize_);
@@ -317,8 +317,8 @@ for ii=1:nFrames
         maskForceBlob = blobSegmentThresholdTFM(tMapFOV,minSize,0,maskShrunkenBorder);
         maskForceBlob = bwmorph(maskForceBlob,'dilate',1);
 %         maskForceBlob = padarray(maskForceBlob,[borderWidth borderWidth]);
-        maskHighTraction=tMapFOV>minTraction;
-        maskForceBlob = maskForceBlob & maskHighTraction;
+%         maskHighTraction=tMapFOV>minTraction;
+%         maskForceBlob = maskForceBlob & maskHighTraction;
 
         SE_Blobs.SE(ii)=1/2*sum(dMapFOV(maskForceBlob).*tMapFOV(maskForceBlob))*(pixSize_mu*1e-6)^3; % this is in Newton*m.
         SE_Blobs.SE(ii)=SE_Blobs.SE(ii)*1e15; % this is now in femto-Joule
@@ -341,6 +341,13 @@ for ii=1:nFrames
         totalForceBlobs.forceBlobPixelIdxList{ii,1}=arrayfun(@(x) x.PixelIdxList,stats,'UniformOutput',false);
         % find an adhesion that contains top three max traction
     %     [individualForceBlobMaxSorted, topIDs]=sort(individualForceBlobMax,'descend');
+        if existMask && p.useCellMask
+            % This is to quantify force blob inside the cell
+            maskForceBlobCell = maskForceBlob & maskCell;
+            statsCell = regionprops(maskForceBlobCell,tMapFOV,'Area','PixelIdxList','Centroid','MinIntensity','MaxIntensity','MeanIntensity','WeightedCentroid');
+            individualForceBlobsCell = arrayfun(@(x) x.MeanIntensity,statsCell);
+            totalForceBlobs.avgTractionCell{ii,1}=(individualForceBlobsCell); % in Pa
+        end
     end
     
     % See if there is overlap between interiorMask and maskAdhesion - for
