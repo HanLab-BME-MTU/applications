@@ -315,7 +315,7 @@ for ii=1:nFrames
         
     if p.performForceBlobAnalysis
         maskForceBlob = blobSegmentThresholdTFM(tMapFOV,minSize,0,maskShrunkenBorder);
-        maskForceBlob = bwmorph(maskForceBlob,'dilate',1);
+%         maskForceBlob = bwmorph(maskForceBlob,'dilate',1);
 %         maskForceBlob = padarray(maskForceBlob,[borderWidth borderWidth]);
 %         maskHighTraction=tMapFOV>minTraction;
 %         maskForceBlob = maskForceBlob & maskHighTraction;
@@ -343,7 +343,8 @@ for ii=1:nFrames
     %     [individualForceBlobMaxSorted, topIDs]=sort(individualForceBlobMax,'descend');
         if existMask && p.useCellMask
             % This is to quantify force blob inside the cell
-            maskForceBlobCell = maskForceBlob & maskCell;
+            maskCellFOV = maskCell(row1:row2, col1:col2);
+            maskForceBlobCell = maskForceBlob & maskCellFOV;
             statsCell = regionprops(maskForceBlobCell,tMapFOV,'Area','PixelIdxList','Centroid','MinIntensity','MaxIntensity','MeanIntensity','WeightedCentroid');
             individualForceBlobsCell = arrayfun(@(x) x.MeanIntensity,statsCell);
             totalForceBlobs.avgTractionCell{ii,1}=(individualForceBlobsCell); % in Pa
