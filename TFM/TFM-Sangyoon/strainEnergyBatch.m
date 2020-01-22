@@ -170,8 +170,8 @@ for ii=1:numConditions
     totalForce_FB_Group{ii,1}=curTotForceAllFBGroup;
     if isfield(forceFBStruct,'avgTractionCell')
         avgForce_FBindiv_Group{ii,1}=cellfun(@(x) cell2mat(x),curTotForcePerFBGroup,'unif',false);
-        avgForce_FB_Group{ii,1}=cellfun(@(x) mean(x),curTotForcePerFBGroup,'unif',false);
-        totForce_FBInCell_Group{ii,1}=cellfun(@(x) sum(x),curTotForcePerFBGroup,'unif',false);
+        avgForce_FB_Group{ii,1}=cellfun(@(x) nanmean(x),curTotForcePerFBGroup);
+        totForce_FBInCell_Group{ii,1}=cellfun(@(x) nansum(x),curTotForcePerFBGroup);
     else
         avgForce_FBindiv_Group{ii,1}=NaN;
     end
