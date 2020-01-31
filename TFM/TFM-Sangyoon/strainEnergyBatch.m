@@ -128,7 +128,7 @@ for ii=1:numConditions
         curTotalForceFB = forceFBStruct.force;
         if isfield(forceFBStruct,'avgTractionCell')
             curForcePerBlobs = forceFBStruct.avgTractionCell;
-            curTotForcePerFBGroup{k}=curForcePerBlobs;
+            curTotForcePerFBGroup{k}=cell2mat(curForcePerBlobs);
         end
         
         curSEPerFBGroup{k}=curSEFB;
@@ -169,7 +169,7 @@ for ii=1:numConditions
     SEDen_FB_Group{ii,1}=curSEDenPerFBGroup;
     totalForce_FB_Group{ii,1}=curTotForceAllFBGroup;
     if isfield(forceFBStruct,'avgTractionCell')
-        avgForce_FBindiv_Group{ii,1}=cellfun(@(x) cell2mat(x),curTotForcePerFBGroup,'unif',false);
+        avgForce_FBindiv_Group{ii,1}=cell2mat(curTotForcePerFBGroup');
         avgForce_FB_Group{ii,1}=cellfun(@(x) nanmean(x),curTotForcePerFBGroup);
         totForce_FBInCell_Group{ii,1}=cellfun(@(x) nansum(x),curTotForcePerFBGroup);
     else
@@ -374,7 +374,7 @@ print(h1,strcat(figPath,'/totForceFB.tif'),'-dtiff')
 tableTotalForce_FB=table(totForceFBCellArray,'RowNames',nameList);
 writetable(tableTotalForce_FB,strcat(dataPath,'/totalForce_ForceBlobs.csv'),'WriteRowNames',true)
 %% avg force in all individual force blob in Cell
-forceFBCellCellArray = cellfun(@(x) cell2mat(x),avgForce_FBindiv_Group,'unif',false);
+forceFBCellCellArray = avgForce_FBindiv_Group;%cellfun(@(x) cell2mat(x),avgForce_FBindiv_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(forceFBCellCellArray,nameList,1,false,true)
 ylabel('Avereage force (nN)')
@@ -386,7 +386,7 @@ print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
 tableAvgForceAllFBinCell=table(forceFBCellCellArray,'RowNames',nameList);
 writetable(tableAvgForceAllFBinCell,strcat(dataPath,'/forceAllFBs.csv'),'WriteRowNames',true)
 %% avg force of average force blob in Cell
-avgforceFBCellArray = cellfun(@(x) cell2mat(x),avgForce_FB_Group,'unif',false);
+avgforceFBCellArray = avgForce_FB_Group;%cellfun(@(x) cell2mat(x),avgForce_FB_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(avgforceFBCellArray,nameList,1,false,true)
 ylabel('Avereage force (nN)')
@@ -398,7 +398,7 @@ print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
 tableAvgForceFBinCell=table(avgforceFBCellArray,'RowNames',nameList);
 writetable(tableAvgForceFBinCell,strcat(dataPath,'/avgForceFBsCell.csv'),'WriteRowNames',true)
 %% total force of average force blob in Cell
-totforceFBCellArray = cellfun(@(x) cell2mat(x),totForce_FBInCell_Group,'unif',false);
+totforceFBCellArray = totForce_FBInCell_Group;%cellfun(@(x) cell2mat(x),totForce_FBInCell_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(totforceFBCellArray,nameList,1,false,true)
 ylabel('Total force (nN)')
