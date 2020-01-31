@@ -1,4 +1,5 @@
-% Code plots the ground truth displacement field from dispField.mat file
+% Code plots the ground truth displacement field from displField.mat file
+% The displField.mat file can be found in the Han Lab google drive
 
 %\\ Extracting Displacement Values of Ground Truth Field
 data=load('displField.mat');
