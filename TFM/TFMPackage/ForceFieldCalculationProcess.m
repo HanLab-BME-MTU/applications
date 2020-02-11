@@ -60,7 +60,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             iFrame = ip.Results.iFrame;
 %             iOut = ip.Results.iOut;
             
-            persistent tMapMap lastFinishTime
+            persistent tMapMap tMapMapX tMapMapY lastFinishTime
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
@@ -105,8 +105,10 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) 
+                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || length(iFrame)==1
                     tMapMap = [];
+                    tMapMapX = [];
+                    tMapMapY = [];
                     try
                         s = load(obj.outFilePaths_{iOut}); %This will need to be changed if one really wants to see tMapX or tMapY
                         fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
@@ -165,10 +167,14 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                             else % very new format
                                 forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
                                 displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
-                                [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField,displField,0);
-                                for ii=obj.owner_.nFrames_:-1:1
+                                [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField,displField,0,iFrame);
+                                for ii=fliplr(iFrame)
                                     tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
                                     tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
+                                    tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                                    tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{ii};
+                                    tMapMapY(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                                    tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{ii};
                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                                 end
                             end
@@ -198,7 +204,13 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     end
                 end
                 if ismember(output,outputList(5:7)) 
-                    varargout{1}=tMapMap(:,:,iFrame);
+                    if strcmp(output,outputList(5))
+                        varargout{1}=tMapMap(:,:,iFrame);
+                    elseif strcmp(output,outputList(6))
+                        varargout{1}=tMapMapX(:,:,iFrame);
+                    elseif strcmp(output,outputList(7))
+                        varargout{1}=tMapMapY(:,:,iFrame);
+                    end
                 else %This is for unshifted (in the size of raw channels)
                     sampleRawChanImg = obj.owner_.channels_(1).loadImage(1);
                     curMap=tMapMap(:,:,iFrame);
