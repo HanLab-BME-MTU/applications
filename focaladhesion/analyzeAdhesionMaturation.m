@@ -448,7 +448,7 @@ if ~foundTracks
     end
 end 
 
-if foundTracks && ~isfield(tracksNA,'faID')
+if ~foundTracks && ~isfield(tracksNA,'faID')
 
     %% Matching with adhesion setup
     if ApplyCellSegMask
