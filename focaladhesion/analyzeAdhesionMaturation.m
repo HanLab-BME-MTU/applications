@@ -695,9 +695,9 @@ if ~foundTracks && ~isfield(tracksNA,'faID')
                         end
                     end
                 else
-                    curTrack.area=[];
-                    curTrack.faID=[];
-                    curTrack.refineFAID=[];
+                    curTrack.area(ii)=NaN;
+                    curTrack.faID(ii)=NaN;
+                    curTrack.refineFAID(ii)=NaN;
                 end
                 parsave(trackIndPath(ii),curTrack)
                 
