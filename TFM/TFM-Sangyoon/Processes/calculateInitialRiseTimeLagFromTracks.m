@@ -334,29 +334,35 @@ for k=1:numClasses
     for jj=existingSlaveIDs
         kk=kk+1;
         if jj==p.mainSlave
-            initialLagTogetherAdjusted{kk} = initialLagTogether{p.mainSlave};
-            peakLagTogetherAdjusted{kk} = peakLagTogether{p.mainSlave};
-            endingLagTogetherAdjusted{kk} = endingLagTogether{p.mainSlave};
-            ccLagTogetherAdjusted{kk} = ccLagTogether{p.mainSlave};
-            nameList2{kk} = ['ampTotal - ' nameList{p.mainSlave}];
+            initialLagTogetherAdjusted{kk} = initialLagTogether{existingSlaveIDs==p.mainSlave};
+            peakLagTogetherAdjusted{kk} = peakLagTogether{existingSlaveIDs==p.mainSlave};
+            endingLagTogetherAdjusted{kk} = endingLagTogether{existingSlaveIDs==p.mainSlave};
+            ccLagTogetherAdjusted{kk} = ccLagTogether{existingSlaveIDs==p.mainSlave};
+            nameList2{kk} = ['ampTotal - ' nameList{existingSlaveIDs==p.mainSlave}];
             if ismember(k,[1 2])
-                zeroBccTogetherAdjusted{kk} = zeroBccTogether{p.mainSlave};
-                halfBccTogetherAdjusted{kk} = halfBccTogether{p.mainSlave};
-                oneBccTogetherAdjusted{kk} = oneBccTogether{p.mainSlave};
+                zeroBccTogetherAdjusted{kk} = zeroBccTogether{existingSlaveIDs==p.mainSlave};
+                halfBccTogetherAdjusted{kk} = halfBccTogether{existingSlaveIDs==p.mainSlave};
+                oneBccTogetherAdjusted{kk} = oneBccTogether{existingSlaveIDs==p.mainSlave};
             end
         else
-            initialLagTogetherAdjusted{kk} = initialLagTogether{p.mainSlave}-initialLagTogether{jj};
-            peakLagTogetherAdjusted{kk} = peakLagTogether{p.mainSlave}-peakLagTogether{jj};
-            endingLagTogetherAdjusted{kk} = endingLagTogether{p.mainSlave}-endingLagTogether{jj};
-            ccLagTogetherAdjusted{kk} = ccLagTogether{p.mainSlave}-ccLagTogether{jj};
-            nameList2{kk} = [potentialSlaves{jj} ' - ' nameList{p.mainSlave}];
+            initialLagTogetherAdjusted{kk} = initialLagTogether{existingSlaveIDs==p.mainSlave}-initialLagTogether{existingSlaveIDs==jj};
+            peakLagTogetherAdjusted{kk} = peakLagTogether{existingSlaveIDs==p.mainSlave}-peakLagTogether{existingSlaveIDs==jj};
+            endingLagTogetherAdjusted{kk} = endingLagTogether{existingSlaveIDs==p.mainSlave}-endingLagTogether{existingSlaveIDs==jj};
+            ccLagTogetherAdjusted{kk} = ccLagTogether{existingSlaveIDs==p.mainSlave}-ccLagTogether{existingSlaveIDs==jj};
+            nameList2{kk} = [potentialSlaves{existingSlaveIDs==jj} ' - ' nameList{existingSlaveIDs==p.mainSlave}];
             if ismember(k,[1 2])
-                zeroBccTogetherAdjusted{kk} = zeroBccTogether{p.mainSlave}-zeroBccTogether{jj};
-                halfBccTogetherAdjusted{kk} = halfBccTogether{p.mainSlave}-halfBccTogether{jj};
-                oneBccTogetherAdjusted{kk} = oneBccTogether{p.mainSlave}-oneBccTogether{jj};
+                zeroBccTogetherAdjusted{kk} = zeroBccTogether{existingSlaveIDs==p.mainSlave}-zeroBccTogether{existingSlaveIDs==jj};
+                halfBccTogetherAdjusted{kk} = halfBccTogether{existingSlaveIDs==p.mainSlave}-halfBccTogether{existingSlaveIDs==jj};
+                oneBccTogetherAdjusted{kk} = oneBccTogether{existingSlaveIDs==p.mainSlave}-oneBccTogether{existingSlaveIDs==jj};
             end
         end
     end
+    
+    if all(cellfun(@isempty,initialLagTogetherAdjusted)) || all(cellfun(@(x) all(isnan(x)),initialLagTogetherAdjusted))
+        disp(['The class ' num2str(k) ' has no data to analyze. Skipping...'])
+        continue
+    end
+    
     h2=figure; ax=axes(h2);
     boxPlotCellArray(initialLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
     nameTitle=['initialLag Class' num2str(k)];
