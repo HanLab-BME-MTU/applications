@@ -29,14 +29,16 @@ for k=1:numel(tracksNA)
         [~,curM2] = regression(tIntervalMin*(1:lastFrameFromOneOneMin),tracksNA(k).ampTotal2(sF:lastFrameOneMin));
         tracksNA(k).ampSlope2 = curM2; % in a.u./min
     end
-    [~,curForceM] = regression(tIntervalMin*(1:lastFrameFromOneOneMin),tracksNA(k).forceMag(sF:lastFrameOneMin));
-%         figure, plot(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
-%         figure, plotregression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
-    tracksNA(k).forceSlope = curForceM; % in Pa/min
+    if isfield(tracksNA,'forceMag')  
+        [~,curForceM] = regression(tIntervalMin*(1:lastFrameFromOneOneMin),tracksNA(k).forceMag(sF:lastFrameOneMin));
+    %         figure, plot(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
+    %         figure, plotregression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).forceMag(sF:lastFrame))
+        tracksNA(k).forceSlope = curForceM; % in Pa/min
 
-    curEndFrame = min(sF+periodFrames-1,tracksNA(k).endingFrame);
-    curEarlyPeriod = curEndFrame - sF+1;
-    [~,curForceEarlySlopeGroup] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).forceMag(sF:curEndFrame));
-    
-    tracksNA(k).earlyForceSlope = curForceEarlySlopeGroup; % in Pa/min
+        curEndFrame = min(sF+periodFrames-1,tracksNA(k).endingFrame);
+        curEarlyPeriod = curEndFrame - sF+1;
+        [~,curForceEarlySlopeGroup] = regression(tIntervalMin*(1:curEarlyPeriod),tracksNA(k).forceMag(sF:curEndFrame));
+
+        tracksNA(k).earlyForceSlope = curForceEarlySlopeGroup; % in Pa/min
+    end
 end

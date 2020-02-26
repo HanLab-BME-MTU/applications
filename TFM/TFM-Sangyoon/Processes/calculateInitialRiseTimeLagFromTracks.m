@@ -832,23 +832,25 @@ end
     save([p.OutputDirectory filesep 'data' filesep 'edgeAdvanceDistChange.mat'],'edgeAdvanceDistChange','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'edgeAdvanceDistChangeAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/edgeAdvanceDistChangeAllGroups'),'-v7.3'); close(hFig)
-      %% Look at feature difference per each group - starting forceMag
-    startingForceMag{1} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup1f));
-    startingForceMag{2} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup2f));
-    startingForceMag{3} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup3));
-    startingForceMag{4} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup4));
-    startingForceMag{5} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup5));
-    startingForceMag{6} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup6));
-    startingForceMag{7} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup7));
-    startingForceMag{8} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup8));
-    startingForceMag{9} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup9));
-    hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(startingForceMag,groupNameList,1,false,true,false,5,'ax',ax);
-    title(ax,'startingForceMag (to see g1,2,3,7 start nearly at similar force)')
-    ylabel(ax,'startingForceMag (Pa)')
-    save([p.OutputDirectory filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
-    print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'startingForceMagAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
-    hgsave(strcat(figPath,'/startingForceMagAllGroups'),'-v7.3'); 
+    %% Look at feature difference per each group - starting forceMag
+    if isfield(tracksNA,'forceMag')  
+        startingForceMag{1} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup1f));
+        startingForceMag{2} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup2f));
+        startingForceMag{3} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup3));
+        startingForceMag{4} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup4));
+        startingForceMag{5} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup5));
+        startingForceMag{6} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup6));
+        startingForceMag{7} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup7));
+        startingForceMag{8} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup8));
+        startingForceMag{9} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup9));
+        hFig=figure; ax=axes(hFig);
+        boxPlotCellArray(startingForceMag,groupNameList,1,false,true,false,5,'ax',ax);
+        title(ax,'startingForceMag (to see g1,2,3,7 start nearly at similar force)')
+        ylabel(ax,'startingForceMag (Pa)')
+        save([p.OutputDirectory filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'startingForceMagAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+        hgsave(strcat(figPath,'/startingForceMagAllGroups'),'-v7.3'); 
+    end
     %%
     close(hFig)
     %% Look at feature difference per each group - mainTimeToPeakGroup
@@ -974,80 +976,83 @@ end
         close(hFig)
     end
     %% Look at feature difference per each group - force slope
-    forceSlope{1} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
-    forceSlope{2} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup2f));
-    forceSlope{3} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup3));
-    forceSlope{4} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup4));
-    forceSlope{5} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup5));
-    forceSlope{6} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup6));
-    forceSlope{7} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup7));
-    forceSlope{8} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup8));
-    forceSlope{9} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup9));
-    hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(forceSlope,groupNameList,1,false,true,false,5,'ax',ax);
-    title(ax,'forceSlope (all nascent adhesions (g1,2,3,7) show the same force slopes).')
-    ylabel(ax,'forceSlope (Pa/min)')
-    hgsave(strcat(figPath,'/forceSlopeAllGroups'),'-v7.3')
-    save([p.OutputDirectory filesep 'data' filesep 'forceSlopeAllGroups.mat'],'forceSlope','-v7.3')
-    print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'forceSlopeAllGroups.eps']); 
-    %%
-    close(hFig)
-    %% Look at feature difference per each group - force slope
-    earlyForceSlope{1} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup1f));
-    earlyForceSlope{2} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup2f));
-    earlyForceSlope{3} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup3));
-    earlyForceSlope{4} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup4));
-    earlyForceSlope{5} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup5));
-    earlyForceSlope{6} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup6));
-    earlyForceSlope{7} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup7));
-    earlyForceSlope{8} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup8));
-    earlyForceSlope{9} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup9));
-    hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(earlyForceSlope,groupNameList,1,false,true,false,5,'ax',ax);
-    title(ax,'earlyForceSlope')
-    ylabel(ax,'earlyForceSlope (Pa/min)')
-    hgsave(strcat(figPath,'/earlyForceSlopeAllGroups'),'-v7.3')
-    save([p.OutputDirectory filesep 'data' filesep 'earlyForceSlopeAllGroups.mat'],'earlyForceSlope','-v7.3')
-    print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'earlyForceSlopeAllGroups.eps']); 
-    %%
-    close(hFig)
+    if isfield(tracksNA,'forceMag')  
+        forceSlope{1} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
+        forceSlope{2} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup2f));
+        forceSlope{3} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup3));
+        forceSlope{4} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup4));
+        forceSlope{5} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup5));
+        forceSlope{6} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup6));
+        forceSlope{7} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup7));
+        forceSlope{8} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup8));
+        forceSlope{9} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup9));
+        hFig=figure; ax=axes(hFig);
+        boxPlotCellArray(forceSlope,groupNameList,1,false,true,false,5,'ax',ax);
+        title(ax,'forceSlope (all nascent adhesions (g1,2,3,7) show the same force slopes).')
+        ylabel(ax,'forceSlope (Pa/min)')
+        hgsave(strcat(figPath,'/forceSlopeAllGroups'),'-v7.3')
+        save([p.OutputDirectory filesep 'data' filesep 'forceSlopeAllGroups.mat'],'forceSlope','-v7.3')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'forceSlopeAllGroups.eps']); 
+        %%
+        close(hFig)
+        %% Look at feature difference per each group - force slope
+        earlyForceSlope{1} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup1f));
+        earlyForceSlope{2} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup2f));
+        earlyForceSlope{3} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup3));
+        earlyForceSlope{4} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup4));
+        earlyForceSlope{5} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup5));
+        earlyForceSlope{6} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup6));
+        earlyForceSlope{7} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup7));
+        earlyForceSlope{8} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup8));
+        earlyForceSlope{9} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup9));
+        hFig=figure; ax=axes(hFig);
+        boxPlotCellArray(earlyForceSlope,groupNameList,1,false,true,false,5,'ax',ax);
+        title(ax,'earlyForceSlope')
+        ylabel(ax,'earlyForceSlope (Pa/min)')
+        hgsave(strcat(figPath,'/earlyForceSlopeAllGroups'),'-v7.3')
+        save([p.OutputDirectory filesep 'data' filesep 'earlyForceSlopeAllGroups.mat'],'earlyForceSlope','-v7.3')
+        print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'earlyForceSlopeAllGroups.eps']); 
+        %%
+        close(hFig)
+    end
 %% Distributing to each group (after filtering)
-    %% drawing group1
-    fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
-    %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
-    [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false); if ~isempty(h); close(h); end
-    fileStore = [epsPath filesep 'ampForcePlotG1cohorts.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false,'plotCohorts',true); if ~isempty(h); close(h); end
-    fileStore = [epsPath filesep 'ampForcePlotG1color.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,true); if ~isempty(h); close(h); end
+    if isfield(tracksNA,'forceMag')  
+        %% drawing group1
+        fileStore = [epsPath filesep 'ampForcePlotG1.eps'];
+        %     plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false)
+        [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false); if ~isempty(h); close(h); end
+        fileStore = [epsPath filesep 'ampForcePlotG1cohorts.eps'];
+        [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,false,'plotCohorts',true); if ~isempty(h); close(h); end
+        fileStore = [epsPath filesep 'ampForcePlotG1color.eps'];
+        [~,h]=plotIntensityForce(tracksNA(idGroup1f),fileStore,false,true); if ~isempty(h); close(h); end
 
-    %% group 2
-    fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
-    [~,h]= plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); if ~isempty(h); close(h); end
-    fileStoreG2 = [epsPath filesep 'ampForcePlotG2cohorts.eps'];
-    [~,h]= plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true,'plotCohorts',true); if ~isempty(h); close(h); end
-    %% group 3 plotting
-    fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup3),fileStoreG3,false,false); if ~isempty(h); close(h); end
-    %% group4 plotting
-    fileStoreG4 = [epsPath filesep 'ampForcePlotG4.eps'];
-    [~,h]=plotIntensityForce(tracksNA(idGroup4),fileStoreG4,false,false); if ~isempty(h); close(h); end
-%     %% group5 plotting
-%     fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
-%     [~,h]=plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); if ~isempty(h); close(h); end
-%     %% group6 plotting
-%     fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
-%     [~,h]=plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); if ~isempty(h); close(h); end
-%     %% group7 plotting
-%     fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
-%     [~,h]=plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); if ~isempty(h); close(h); end
-%     %% group8 plotting
-%     fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
-%     [~,h]=plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); if ~isempty(h); close(h); end
-%     %% group9 plotting
-%     fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
-%     [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
-
+        %% group 2
+        fileStoreG2 = [epsPath filesep 'ampForcePlotG2.eps'];
+        [~,h]= plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true); if ~isempty(h); close(h); end
+        fileStoreG2 = [epsPath filesep 'ampForcePlotG2cohorts.eps'];
+        [~,h]= plotIntensityForce(tracksNA(idGroup2f),fileStoreG2,false,true,'plotCohorts',true); if ~isempty(h); close(h); end
+        %% group 3 plotting
+        fileStoreG3 = [epsPath filesep 'ampForcePlotG3.eps'];
+        [~,h]=plotIntensityForce(tracksNA(idGroup3),fileStoreG3,false,false); if ~isempty(h); close(h); end
+        %% group4 plotting
+        fileStoreG4 = [epsPath filesep 'ampForcePlotG4.eps'];
+        [~,h]=plotIntensityForce(tracksNA(idGroup4),fileStoreG4,false,false); if ~isempty(h); close(h); end
+    %     %% group5 plotting
+    %     fileStoreG5 = [epsPath filesep 'ampForcePlotG5.eps'];
+    %     [~,h]=plotIntensityForce(tracksNA(idGroup5),fileStoreG5,false,false); if ~isempty(h); close(h); end
+    %     %% group6 plotting
+    %     fileStoreG6 = [epsPath filesep 'ampForcePlotG6.eps'];
+    %     [~,h]=plotIntensityForce(tracksNA(idGroup6),fileStoreG6,false,false); if ~isempty(h); close(h); end
+    %     %% group7 plotting
+    %     fileStoreG7 = [epsPath filesep 'ampForcePlotG7.eps'];
+    %     [~,h]=plotIntensityForce(tracksNA(idGroup7),fileStoreG7,false,false); if ~isempty(h); close(h); end
+    %     %% group8 plotting
+    %     fileStoreG8 = [epsPath filesep 'ampForcePlotG8.eps'];
+    %     [~,h]=plotIntensityForce(tracksNA(idGroup8),fileStoreG8,false,false); if ~isempty(h); close(h); end
+    %     %% group9 plotting
+    %     fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
+    %     [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
+    end
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately
 %     tracksG1 = tracksNA(idGroup1);
