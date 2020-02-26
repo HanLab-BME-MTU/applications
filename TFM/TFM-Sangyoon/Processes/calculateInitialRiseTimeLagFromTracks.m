@@ -850,9 +850,9 @@ end
         save([p.OutputDirectory filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'startingForceMagAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
         hgsave(strcat(figPath,'/startingForceMagAllGroups'),'-v7.3'); 
+        close(hFig)
     end
     %%
-    close(hFig)
     %% Look at feature difference per each group - mainTimeToPeakGroup
 %     nameTwoGroups={'G1','G2'};
 %     numIdGroups=cellfun(@sum,idGroups);
@@ -895,10 +895,12 @@ end
     tracksNA = calculateTrackSlopes(tracksNA,tInterval);
     toc
     %% assembly rate and force growth rate in curIndices
-    forceSlopeG1 =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
-    earlyAmpSlopeG1 =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup1f));
+    if isfield(tracksNA,'forceMag')  
+        forceSlopeG1 =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
+        earlyAmpSlopeG1 =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup1f));
 
-    save([p.OutputDirectory filesep 'data' filesep 'assemblyRateForceSlopes.mat'],'forceSlopeG1','earlyAmpSlopeG1')
+        save([p.OutputDirectory filesep 'data' filesep 'assemblyRateForceSlopes.mat'],'forceSlopeG1','earlyAmpSlopeG1')
+    end
     %% Look at feature difference per each group - earlyAmpSlope
     earlyAmpSlope{1} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup1f));
     earlyAmpSlope{2} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup2f));
