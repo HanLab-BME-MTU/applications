@@ -54,7 +54,16 @@ for ii=1:numel(tracksNA)
     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
 %     curAmpSlope = curTrack.ampSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
 %     curForceSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
-    [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+    try
+        [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+    catch
+        % There was a case where  startingFrameExtra and endingFrameExtra
+        % are incorrectly recorded. 
+        curTrack.startingFrameExtra = find(~isnan(curTrack.amp),1);
+        curTrack.endingFrameExtra = find(~isnan(curTrack.amp),1,'last');
+        curTrack.lifeTime = curTrack.endingFrameExtra -curTrack.startingFrameExtra;
+        [~,curAmpSlope] = regression((1:curTrack.lifeTime+1),curTrack.amp(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
+    end
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 %     disp(['curAmpSlope = ' num2str(curAmpSlope) '  curEarlyAmpSlope = ' num2str(curEarlyAmpSlope)])
 
