@@ -37,6 +37,9 @@ iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 % Use the previous analysis folder structure
 % It might be good to save which process the tracksNA was obtained.
 disp('Reading tracksNA ...')
+iFAPack =  MD.getPackageIndex('FocalAdhesionPackage');
+faPack = MD.getPackage(iFAPack);
+
 tic
 try
     iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
@@ -227,21 +230,27 @@ end
 % idxLateAmpLow = lateAmpTotalG1<meanAmpMaximum;
 % idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
 
-% Filtering for group1
-idGroup1FT = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
-% Filtering for group2
-idGroup2long = getForceTransmittingG2(idGroup2,tracksNA(idGroup2),MD.timeInterval_);
+iForceReadProc = 10;
+forceReadProc = faPack.processes_{iForceReadProc};
+if ~isempty(forceReadProc)
+    % Filtering for group1
+    idGroup1FT = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
+    % Filtering for group2
+    idGroup2long = getForceTransmittingG2(idGroup2,tracksNA(idGroup2),MD.timeInterval_);
 
-% Potential G2 in G1
-idGroup2fromG1 = getForceTransmittingG2(idGroup1,tracksNA(idGroup1),MD.timeInterval_);
-% Potential G1 in G2
-idGroup1fromG2 = idGroup2 & ~idGroup2long;
+    % Potential G2 in G1
+    idGroup2fromG1 = getForceTransmittingG2(idGroup1,tracksNA(idGroup1),MD.timeInterval_);
+    % Potential G1 in G2
+    idGroup1fromG2 = idGroup2 & ~idGroup2long;
 
-idGroup2f = idGroup2long | idGroup2fromG1;
-idGroup1f = (idGroup1FT | idGroup1fromG2) & ~idGroup2f;
+    idGroup2f = idGroup2long | idGroup2fromG1;
+    idGroup1f = (idGroup1FT | idGroup1fromG2) & ~idGroup2f;
 
 
-idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+    idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+else
+    idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+end
 save([dataPath filesep 'idGroups.mat'],'idGroups');
 
 %% Get the fraction of how many adhesions are
@@ -696,8 +705,8 @@ end
 %% Festure statistics
     %% Look at feature difference per each group
     pixSize=MD.pixelSize_/1000; % in um
-    distToEdge{1} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup1f));
-    distToEdge{2} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup2f));
+    distToEdge{1} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroups{1}));
+    distToEdge{2} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroups{2}));
     distToEdge{3} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup3));
     distToEdge{4} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup4));
     distToEdge{5} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup5));
@@ -714,8 +723,8 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'distToEdgeForAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/distToEdgeForAllGroups'),'-v7.3'); close(h2)
     %% Look at feature difference per each group - advanceDist
-    advanceDist{1} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup1f));
-    advanceDist{2} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup2f));
+    advanceDist{1} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroups{1}));
+    advanceDist{2} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroups{2}));
     advanceDist{3} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup3));
     advanceDist{4} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup4));
     advanceDist{5} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup5));
@@ -732,8 +741,8 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'advanceDistAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/advanceDistAllGroups'),'-v7.3'); close(h2)
     %% Look at feature difference per each group - ampTotal
-    ampTotal{1} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup1f));
-    ampTotal{2} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup2f));
+    ampTotal{1} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroups{1}));
+    ampTotal{2} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroups{2}));
     ampTotal{3} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup3));
     ampTotal{4} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup4));
     ampTotal{5} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup5));
@@ -751,8 +760,8 @@ end
     hgsave(strcat(figPath,'/ampTotalAllGroups'),'-v7.3'); close(h2)
     %% Look at feature difference per each group - ampTotal2
     if isfield(tracksNA,'ampTotal2')
-        ampTotal2{1} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup1f));
-        ampTotal2{2} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup2f));
+        ampTotal2{1} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroups{1}));
+        ampTotal2{2} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroups{2}));
         ampTotal2{3} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup3));
         ampTotal2{4} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup4));
         ampTotal2{5} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup5));
@@ -774,8 +783,8 @@ end
         close(h2)
     end
     %% Look at feature difference per each group - starting ampTotal
-    startingAmpTotal{1} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup1f));
-    startingAmpTotal{2} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup2f));
+    startingAmpTotal{1} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroups{1}));
+    startingAmpTotal{2} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroups{2}));
     startingAmpTotal{3} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup3));
     startingAmpTotal{4} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup4));
     startingAmpTotal{5} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup5));
@@ -792,8 +801,8 @@ end
     hgsave(strcat(figPath,'/startingAmpTotalAllGroups'),'-v7.3'); close(hFig)
     %% Look at feature difference per each group - starting ampTotal2
     if isfield(tracksNA,'ampTotal2')
-        startingAmpTotal2{1} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup1f));
-        startingAmpTotal2{2} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup2f));
+        startingAmpTotal2{1} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroups{1}));
+        startingAmpTotal2{2} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroups{2}));
         startingAmpTotal2{3} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup3));
         startingAmpTotal2{4} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup4));
         startingAmpTotal2{5} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup5));
@@ -816,8 +825,8 @@ end
     end
    
     %% Look at feature difference per each group - starting edgeAdvanceDistChange
-    edgeAdvanceDistChange{1} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup1f));
-    edgeAdvanceDistChange{2} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup2f));
+    edgeAdvanceDistChange{1} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroups{1}));
+    edgeAdvanceDistChange{2} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroups{2}));
     edgeAdvanceDistChange{3} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup3));
     edgeAdvanceDistChange{4} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup4));
     edgeAdvanceDistChange{5} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup5));
@@ -834,8 +843,8 @@ end
     hgsave(strcat(figPath,'/edgeAdvanceDistChangeAllGroups'),'-v7.3'); close(hFig)
     %% Look at feature difference per each group - starting forceMag
     if isfield(tracksNA,'forceMag')  
-        startingForceMag{1} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup1f));
-        startingForceMag{2} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup2f));
+        startingForceMag{1} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroups{1}));
+        startingForceMag{2} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroups{2}));
         startingForceMag{3} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup3));
         startingForceMag{4} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup4));
         startingForceMag{5} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup5));
@@ -902,8 +911,8 @@ end
         save([p.OutputDirectory filesep 'data' filesep 'assemblyRateForceSlopes.mat'],'forceSlopeG1','earlyAmpSlopeG1')
     end
     %% Look at feature difference per each group - earlyAmpSlope
-    earlyAmpSlope{1} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup1f));
-    earlyAmpSlope{2} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup2f));
+    earlyAmpSlope{1} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroups{1}));
+    earlyAmpSlope{2} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroups{2}));
     earlyAmpSlope{3} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup3));
     earlyAmpSlope{4} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup4));
     earlyAmpSlope{5} =arrayfun(@(x) (x.earlyAmpSlope),tracksNA(idGroup5));
@@ -935,8 +944,8 @@ end
     close(hFig)
     %% Look at feature difference per each group - earlyAmpSlope2
     if isfield(tracksNA,'ampTotal2')
-        earlyAmpSlope2{1} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup1f));
-        earlyAmpSlope2{2} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup2f));
+        earlyAmpSlope2{1} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroups{1}));
+        earlyAmpSlope2{2} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroups{2}));
         earlyAmpSlope2{3} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup3));
         earlyAmpSlope2{4} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup4));
         earlyAmpSlope2{5} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup5));
@@ -955,8 +964,8 @@ end
     end
     %% Look at feature difference per each group - ampSlope2
     if isfield(tracksNA,'ampTotal2')
-        ampSlope2{1} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup1f));
-        ampSlope2{2} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup2f));
+        ampSlope2{1} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroups{1}));
+        ampSlope2{2} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroups{2}));
         ampSlope2{3} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup3));
         ampSlope2{4} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup4));
         ampSlope2{5} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup5));
@@ -979,8 +988,8 @@ end
     end
     %% Look at feature difference per each group - force slope
     if isfield(tracksNA,'forceMag')  
-        forceSlope{1} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup1f));
-        forceSlope{2} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup2f));
+        forceSlope{1} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroups{1}));
+        forceSlope{2} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroups{2}));
         forceSlope{3} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup3));
         forceSlope{4} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup4));
         forceSlope{5} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup5));
@@ -998,8 +1007,8 @@ end
         %%
         close(hFig)
         %% Look at feature difference per each group - force slope
-        earlyForceSlope{1} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup1f));
-        earlyForceSlope{2} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup2f));
+        earlyForceSlope{1} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroups{1}));
+        earlyForceSlope{2} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroups{2}));
         earlyForceSlope{3} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup3));
         earlyForceSlope{4} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup4));
         earlyForceSlope{5} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup5));
