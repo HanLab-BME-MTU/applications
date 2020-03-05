@@ -15,8 +15,12 @@ nFrames = MD.nFrames_; tMap=[];
 iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 SDCProc_FA= FAPack.processes_{1};
 if ~isempty(SDCProc_FA)
-    s = load(SDCProc_FA.outFilePaths_{3,iBeadChan},'T');    
-    T_FA = s.T;
+    try
+        s = load(SDCProc_FA.outFilePaths_{3,iBeadChan},'T');    
+        T_FA = s.T;
+    catch
+        T_FA = zeros(nFrames,2);
+    end
 else
     T_FA = zeros(nFrames,2);
 end
@@ -32,8 +36,9 @@ end
 T = -T_TFM + T_FA;
 
 if nargout>1
+    tMapOrg=tfmPack.processes_{4}.loadChannelOutput('output','tMap');
     for ii=nFrames:-1:1
-        cur_tMap=tfmPack.processes_{4}.loadChannelOutput(ii,'output','tMap');
+        cur_tMap=tMapOrg(:,:,ii);
         cur_T = T(ii,:);
         cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));
         tMap(:,:,ii) = cur_tMap2;
