@@ -158,16 +158,15 @@ parfor (k=1:numTracks, parforArg)
             % for the earlier time-points - going backward
             startFrame = 1; %max(1, curTrack.startingFrame-extraLength);
             endFrame = numFrames; %min(numFrames,curTrack.endingFrame+extraLength);
-            ii=curStartingFrame;
-            x = curTrack.xCoord(ii);
-            y = curTrack.yCoord(ii);
+            x = curTrack.xCoord(curStartingFrame);
+            y = curTrack.yCoord(curStartingFrame);
             A = curTrack.amp(curStartingFrame);
             c = curTrack.bkgAmp(curStartingFrame); 
             curTrack.startingFrameExtra = curStartingFrame;
             curTrack.endingFrameExtra = curEndingFrame;
             trackingFromStartingFrame = true;
             mode='xyac';
-            curTrack.startingFrameExtra = ii;
+            curTrack.startingFrameExtra = curStartingFrame;
 
             if isempty(MD)
                 searchRadiusDetected = 2;
@@ -261,10 +260,9 @@ parfor (k=1:numTracks, parforArg)
             end
         end
         %% for the present period - it is necessary for ampTotal
-        ii=curStartingFrame;
-        x = curTrack.xCoord(ii);
-        y = curTrack.yCoord(ii);
-        A = curTrack.amp(ii);
+        x = curTrack.xCoord(curStartingFrame);
+        y = curTrack.yCoord(curStartingFrame);
+        A = curTrack.amp(curStartingFrame);
 %                 c = curTrack.bkgAmp(ii); 
         
         gapClosed=0;

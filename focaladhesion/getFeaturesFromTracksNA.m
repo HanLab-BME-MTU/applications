@@ -155,34 +155,9 @@ for k=1:numTracks
         % Michelle's analysis % This output might contain an error when the
         % value has noisy maximum. So it should be filtered with
         % earlyAmpSlope..
-        splineParam=0.01; 
-        tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
-        curAmpTotal =  curTrack.ampTotal(tRange);
-        sd_spline= csaps(tRange,curAmpTotal,splineParam);
-        sd=ppval(sd_spline,tRange);
-        % Find the maximum
-        [~,maxSdInd] = max(sd);
-        maxAmpFrame = tRange(maxSdInd);
-
-    %     [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame));
-        nSampleStart=min(9,floor((maxSdInd)/2));
-        if ~all(isnan(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))) && ~all(isnan(curAmpTotal(1:nSampleStart)))
-            sigTtest = ttest2(curAmpTotal(1:nSampleStart),curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd));
-            if ~isnan(sigTtest)
-                if nSampleStart>4 && sigTtest && ...
-                        nanmean(curAmpTotal(1:nSampleStart))<nanmean(curAmpTotal(maxSdInd-nSampleStart+1:maxSdInd))
-                    [~,assemRate] = regression(tIntervalMin*(tRange(1:maxSdInd)),...
-                        log(curTrack.ampTotal(curTrack.startingFrameExtra:maxAmpFrame)/...
-                        curTrack.ampTotal(curTrack.startingFrameExtra)));
-                else
-                    assemRate = NaN;
-                end
-            else
-                assemRate = NaN;
-            end
-        else
-            assemRate = NaN;
-        end
+        
+        % Need to update this calculate this part more wisely
+        assemRate = getAssemRateFromTracks(curTrack,tIntervalMin);
         curTrack.assemRate = assemRate; % in 1/min
 
         % Disassembly rate: Slope from maximum to end
@@ -191,19 +166,7 @@ for k=1:numTracks
         % hanging, i.e., ending amplitude is still high enough compared to
         % starting point, or the last 10 points are not different from 10
         % poihnts near the maximum
-        nSampleEnd=min(9,floor((length(tRange)-maxSdInd)*2/3));
-        sigTtest=ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd));
-        if ~isnan(sigTtest)
-            if nSampleEnd>4 && sigTtest && ...
-                    mean(curAmpTotal(end-nSampleEnd:end))<mean(curAmpTotal(maxSdInd:maxSdInd+nSampleEnd))
-                [~,disassemRate] = regression(tIntervalMin*(tRange(maxSdInd:end)),...
-                    log(curAmpTotal(maxSdInd) ./curAmpTotal(maxSdInd:end)));
-            else
-                disassemRate = NaN;
-            end
-        else
-            disassemRate = NaN;
-        end
+        disassemRate = getDisassemRateFromTracks(curTrack,tIntervalMin);
         curTrack.disassemRate = disassemRate; % in 1/min
 
         nSampleEndLate=min(9,floor((curTrack.endingFrameExtraExtra-maxAmpFrame)*2/3));

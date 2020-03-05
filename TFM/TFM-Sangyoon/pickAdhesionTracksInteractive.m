@@ -95,6 +95,7 @@ tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 
 trainerInitially = false;
+allDataClass = [];
 % if ~isempty(T)
 %     trainerInitially = true;
 %     trainedClassifier = trainClassifierNA(T);
@@ -109,16 +110,17 @@ hFig = figure('Position',[100 100 720 750],'Units','normalized','DeleteFcn',@win
 handles.axes1 = axes('Units','normalized','Position',[0 0.05 1 0.95]);
 
 %// Create slider and listener object for smooth visualization
-handles.SliderFrame = uicontrol('Style','slider','Units','normalized','Position',[0 0 0.6 0.05],...
+handles.SliderFrame = uicontrol('Style','slider','Units','normalized','Position',[0 0 0.5 0.05],...
     'Min',startFrame,'Max',endFrame,'Value',startFrame,'SliderStep',[1/curNumFrames 2/curNumFrames],'Callback',@XSliderCallback);
 handles.SliderxListener = handles.SliderFrame.addlistener('Value','PreSet',@(s,e) XListenerCallBack);
 % handles.SliderxListener = addlistener(handles.SliderFrame,'Value','ContinuousValueChange',@(s,e) XListenerCallBack);
 
 % handles.Text1 = uicontrol('Style','Text','Position',[180 420 60 30],'String','Current frame');
-handles.Edit1 = uicontrol('Style','Edit','Units','normalized','Position',[0.6 0 0.05 0.05],'String',num2str(startFrame));
-handles.Text2 = uicontrol('Style','Text','Units','normalized','Position',[0.65 0 0.15 0.05],'String',{'Adhesion ID to inspect'});
-handles.Edit2 = uicontrol('Style','Edit','Units','normalized','Position',[0.8 0 0.06 0.05],'String',num2str(startFrame));
-handles.PushB2 = uicontrol('Style','pushbutton','Units','normalized','Position',[0.86 0 0.14 0.05],'String','Inspect','Callback',@pushInspectAdhesion);
+handles.Edit1 = uicontrol('Style','Edit','Units','normalized','Position',[0.5 0 0.05 0.05],'String',num2str(startFrame));
+handles.Text2 = uicontrol('Style','Text','Units','normalized','Position',[0.55 0 0.15 0.05],'String',{'Adhesion ID ';'to inspect'});
+handles.Edit2 = uicontrol('Style','Edit','Units','normalized','Position',[0.7 0 0.06 0.05],'String',num2str(startFrame));
+handles.PushB2 = uicontrol('Style','pushbutton','Units','normalized','Position',[0.76 0 0.10 0.05],'String','Inspect','Callback',@pushInspectAdhesion);
+handles.PushB3 = uicontrol('Style','pushbutton','Units','normalized','Position',[0.86 0 0.14 0.05],'String','RateConst','Callback',@pushRateConstant);
 
 %// Use setappdata to store the image stack and in callbacks, use getappdata to retrieve it and use it. Check the docs for the calling syntax.
 setappdata(hFig,'MyMatrix',imgMap); %// You could use %//setappdata(0,'MyMatrix',MyMatrix) to store in the base workspace. 
@@ -169,6 +171,16 @@ if isempty(IDs)
 else
     disp(['Selected track is ' num2str(IDs) '.'])
 end
+
+function pushRateConstant(~,~)
+    IDtoInspect=get(handles.Edit2,'String');
+    IDtoInspect = str2double(IDtoInspect);
+    curTrack = tracksNA(IDtoInspect);
+
+    h2 = showSingleAdhesionTrackSummaryRateConstFitting(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect, outputPath);
+    
+end
+
 function pushInspectAdhesion(~,~)
     IDtoInspect=get(handles.Edit2,'String');
     IDtoInspect = str2double(IDtoInspect);
