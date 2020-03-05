@@ -53,7 +53,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
-set(handles.edit_mainSlave,'Value',funParams.mainSlave);
+set(handles.edit_mainSlave,'String',num2str(funParams.mainSlave));
 
 % Choose default command line output for initialRiseTimeLagCalculationProcessGUI
 handles.output = hObject;
