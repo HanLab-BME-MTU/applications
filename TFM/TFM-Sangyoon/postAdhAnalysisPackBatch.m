@@ -89,7 +89,8 @@ earlyAmpSlopeGroup = cell(numConditions,1);
 earlyForceSlopeGroup = cell(numConditions,1);
 fractionForceTransmittingGroup{ii,1} = cell(numConditions,1);
 numEachGroupForceTransmittingGroup{ii,1} = cell(numConditions,1);
-
+assemRateEachGroup = cell(numConditions,1);
+disassemRateEachGroup = cell(numConditions,1);
 
 numPureFAsGroup = cell(numConditions,1);
 cellAreaGroup = cell(numConditions,1);
@@ -313,6 +314,7 @@ for ii=1:numConditions
         numG5(k) = sum(idsStruct.idGroup5);
         numG8(k) = sum(idsStruct.idGroup8);
         numG4(k) = sum(idsStruct.idGroup4);
+        numG6(k) = sum(idsStruct.idGroup6);
         
         try
             curPresenceStruct = load(classProc.outFilePaths_{5,iAdhChan},'presenceAll');
@@ -392,6 +394,8 @@ for ii=1:numConditions
     
     earlyAmpSlopeEachClass=cell(numClasses,1);
     earlyForceSlopeEachClass=cell(numClasses,1);
+    assemRateEachClass=cell(numClasses,1);
+    disassemRateEachClass=cell(numClasses,1);
     
     fractionForceTransmittingEachClass=cell(numClasses,1);
     numEachGroupForceTransmitting=cell(numClasses,1);
@@ -442,6 +446,15 @@ for ii=1:numConditions
                     earlyAmpSlopeStr=load([initDataPath filesep 'earlyAmpSlopeAllGroups.mat'],'earlyAmpSlope');
                     earlyAmpSlopeEachClass{pp}{k} = earlyAmpSlopeStr.earlyAmpSlope{pp};
 
+                    assemRateStr=load([initDataPath filesep 'assemRate.mat'],'assemRate');
+                    assemRateEachClass{pp}{k} = assemRateStr.assemRate{pp};
+                    disassemRateStr=load([initDataPath filesep 'disassemRate.mat'],'disassemRate');
+                    disassemRateEachClass{pp}{k} = disassemRateStr.disassemRate{pp};
+
+                    nameTitle=['halfBccTogetherAdjusted' num2str(pp)];
+                    halfBccTogetherStruct = load([initDataPath filesep nameTitle],'halfBccTogetherAdjusted','nameList2');    
+                    halfBccTogetherEachClass{pp}{k} = halfBccTogetherStruct.halfBccTogetherAdjusted;
+                    
                     try
                         earlyForceSlopeStr=load([initDataPath filesep 'earlyForceSlopeAllGroups.mat'],'earlyForceSlope');
                         earlyForceSlopeEachClass{pp}{k} = earlyForceSlopeStr.earlyForceSlope{pp};
@@ -548,6 +561,8 @@ for ii=1:numConditions
 
         earlyAmpSlopeGroup{ii,1}=earlyAmpSlopeEachClass;
         earlyForceSlopeGroup{ii,1}=earlyForceSlopeEachClass;
+        assemRateEachGroup{ii,1}=assemRateEachClass;
+        disassemRateEachGroup{ii,1}=disassemRateEachClass;
 
         fractionForceTransmittingGroup{ii,1} = fractionForceTransmittingEachClass;
         numEachGroupForceTransmittingGroup{ii,1} = numEachGroupForceTransmitting;
@@ -1158,13 +1173,60 @@ if plotSuccess
     tableNucleatingNARatio=table(nucleatingNARatioGroup,'RowNames',nameList);
     writetable(tableNucleatingNARatio,[dataPath filesep 'nucleatingNARatio.csv'],'WriteRowNames',true)
 end
+%% Profile plot
+% fraction of each class
+allNumGroup = cellfun(@(a,b,c,d,e,f,g,h,i) arrayfun(@(a2,b2,c2,d2,e2,f2,g2,h2,i2) ...
+    a2+b2+c2+d2+e2+f2+g2+h2+i2,a,b,c,d,e,f,g,h,i),numG1Group,numG2Group,numG3Group,...
+    numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group,'unif',false);
+fractionGroupG1 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG1Group, allNumGroup,'unif',false);
+fractionGroupG2 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG2Group, allNumGroup,'unif',false);
+fractionGroupG3 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG3Group, allNumGroup,'unif',false);
+fractionGroupG4 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG4Group, allNumGroup,'unif',false);
+fractionGroupG5 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG5Group, allNumGroup,'unif',false);
+fractionGroupG6 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG6Group, allNumGroup,'unif',false);
+fractionGroupG7 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG7Group, allNumGroup,'unif',false);
+fractionGroupG8 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG8Group, allNumGroup,'unif',false);
+fractionGroupG9 = cellfun(@(a,b) arrayfun(@(a2,b2) ...
+    a2/b2,a,b),numG9Group, allNumGroup,'unif',false);
+avgFractionGroupG1=cellfun(@mean,fractionGroupG1);
+avgFractionGroupG2=cellfun(@mean,fractionGroupG2);
+avgFractionGroupG3=cellfun(@mean,fractionGroupG3);
+avgFractionGroupG4=cellfun(@mean,fractionGroupG4);
+avgFractionGroupG5=cellfun(@mean,fractionGroupG5);
+avgFractionGroupG6=cellfun(@mean,fractionGroupG6);
+avgFractionGroupG7=cellfun(@mean,fractionGroupG7);
+avgFractionGroupG8=cellfun(@mean,fractionGroupG8);
+avgFractionGroupG9=cellfun(@mean,fractionGroupG9);
+
+stdFractionGroupG1=cellfun(@std,fractionGroupG1);
+stdFractionGroupG2=cellfun(@std,fractionGroupG2);
+stdFractionGroupG3=cellfun(@std,fractionGroupG3);
+stdFractionGroupG4=cellfun(@std,fractionGroupG4);
+stdFractionGroupG5=cellfun(@std,fractionGroupG5);
+stdFractionGroupG6=cellfun(@std,fractionGroupG6);
+stdFractionGroupG7=cellfun(@std,fractionGroupG7);
+stdFractionGroupG8=cellfun(@std,fractionGroupG8);
+stdFractionGroupG9=cellfun(@std,fractionGroupG9);
+
+avgFractionGroupAll=[avgFractionGroupG1 avgFractionGroupG2 avgFractionGroupG3 avgFractionGroupG4 ...
+    avgFractionGroupG5 avgFractionGroupG6 avgFractionGroupG7 avgFractionGroupG8 avgFractionGroupG9];
+h1=figure; 
+bar(avgFractionGroupAll,'stacked');legend('g1','g2','g3','g4','g5','g6','g7','g8','g9')
 %% assemRateGroup
 assemRateGroupCell = cellfun(@(x) cell2mat(x),assemRateGroup,'unif',false);
 h1=figure; 
 plotSuccess=boxPlotCellArray(assemRateGroupCell,nameList,1,false,true);
 if plotSuccess
-    ylabel(['assemRateGroup (1)'])
-    title(['assemRateGroup'])
+    ylabel('assembly rate (1/min)')
+    title(['assembly rate all adhesions'])
     hgexport(h1,[figPath filesep 'assemRate'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'assemRate'],'-v7.3')
     print(h1,[figPath filesep 'assemRate'],'-dtiff')
@@ -1177,8 +1239,8 @@ disassemRateGroupCell = cellfun(@(x) cell2mat(x),disassemRateGroup,'unif',false)
 h1=figure; 
 plotSuccess=boxPlotCellArray(disassemRateGroupCell,nameList,1,false,true);
 if plotSuccess
-    ylabel(['disassemRate (1)'])
-    title(['disassembly rate'])
+    ylabel('disassembly rate (1/min)')
+    title(['disassembly rate all adhesions'])
     hgexport(h1,[figPath filesep 'disassemRate'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'disassemRate'],'-v7.3')
     print(h1,[figPath filesep 'disassemRate'],'-dtiff')
@@ -1188,7 +1250,8 @@ if plotSuccess
 end
 %% Plotting each - peakGroup - all classes - usually not interesting: there is no lag.
 if ~isempty(initRiseProc)
-    for curGroup=1:9
+    nonZeroGroups=~cellfun(@isempty,peakGroup{1});
+    for curGroup=find(nonZeroGroups)'
         peakLagGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),peakGroup,'unif',false);
         h1=figure; 
         plotSuccess=boxPlotCellArray(peakLagGroupEach,nameList,1,false,true);
@@ -1204,7 +1267,7 @@ if ~isempty(initRiseProc)
         end
     end
     %% Plotting each - endTimeGroup - all classes - usually not interesting: there is no lag.
-    for curGroup=1:9
+    for curGroup=find(nonZeroGroups)'
         endLagGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),endTimeGroup,'unif',false);
         h1=figure; 
         plotSuccess=boxPlotCellArray(endLagGroupEach,nameList,1,false,true);
@@ -1217,6 +1280,50 @@ if ~isempty(initRiseProc)
 
             tableEndLagGroupEach=table(endLagGroupEach,'RowNames',nameList);
             writetable(tableEndLagGroupEach,[dataPath filesep 'endLagG' num2str(curGroup) '.csv'],'WriteRowNames',true)
+        end
+    end
+    %% assemRateGroup
+    for curGroup=find(nonZeroGroups)'
+        try
+            assemRateGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRateEachGroup,'unif',false);
+            % Discarding not assemblying adhesions
+            for ii=1:numel(assemRateGroupEach)
+                assemRateGroupEach{ii}(assemRateGroupEach{ii}<=0)=[];
+            end
+            h1=figure; 
+            boxPlotCellArray(assemRateGroupEach,nameList,1,false,true);
+            ylabel('assembly rate (1/min)')
+            title(['assembly rate in group ' num2str(curGroup)])
+            hgexport(h1,[figPath filesep 'assemRate' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+            hgsave(h1,[figPath filesep 'assemRate' num2str(curGroup)],'-v7.3')
+            print(h1,[figPath filesep 'assemRate' num2str(curGroup)],'-dtiff')
+
+            tableAssemRate=table(assemRateGroupEach,'RowNames',nameList);
+            writetable(tableAssemRate,[dataPath filesep 'assemRate' num2str(curGroup) '.csv'],'WriteRowNames',true)
+        catch
+            disp(['Nothing in ' num2str(curGroup) 'th group'])
+        end
+    end
+    %% disassemRateGroup
+    for curGroup=find(nonZeroGroups)'
+        try
+            disassemRateGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRateEachGroup,'unif',false);
+            % Discarding not-disassemblying adhesions
+            for ii=1:numel(disassemRateGroupEach)
+                disassemRateGroupEach{ii}(disassemRateGroupEach{ii}<=0)=[];
+            end
+            h1=figure; 
+            boxPlotCellArray(disassemRateGroupEach,nameList,1,false,true);
+            ylabel('disassembly rate (1/min)')
+            title(['disassembly rate in group ' num2str(curGroup)])
+            hgexport(h1,[figPath filesep 'disassemRate' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+            hgsave(h1,[figPath filesep 'disassemRate' num2str(curGroup)],'-v7.3')
+            print(h1,[figPath filesep 'disassemRate' num2str(curGroup)],'-dtiff')
+
+            tableDisassemRate=table(disassemRateGroupEach,'RowNames',nameList);
+            writetable(tableDisassemRate,[dataPath filesep 'disassemRate' num2str(curGroup) '.csv'],'WriteRowNames',true)
+        catch
+            disp(['Nothing in ' num2str(curGroup) 'th group'])
         end
     end
 end

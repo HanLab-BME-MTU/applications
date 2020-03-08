@@ -124,9 +124,11 @@ for k=1:numel(tracksNA)
             end
         elseif tracksNA(k).state(tracksNA(k).startingFrameExtra)==4 %if it started with FA state
             % see if this ends with FA state
+            [~,areaGrowth]=regression(tracksNA(k).iFrame(tracksNA(k).startingFrame:tracksNA(k).endingFrame), tracksNA(k).area(tracksNA(k).startingFrame:tracksNA(k).endingFrame));
             if tracksNA(k).state(tracksNA(k).endingFrameExtra)==4
                 indStableFA(k) = true;
-            else % turn-over FA
+            elseif areaGrowth<0 && ~isnan(tracksNA(k).disassemRate) && tracksNA(k).disassemRate>0 && ...
+                    ismember(tracksNA(k).state(end), [2,3,5])% turn-over FA if it is decreasing size and intensity and ending with FC, NA then ANA
                 indFailFA(k) = true;
             end
         end

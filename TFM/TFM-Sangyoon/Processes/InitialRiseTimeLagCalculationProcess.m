@@ -132,11 +132,13 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                 FAPack=MD.packages_{iFAPack}; iForceRead=10;
 
                 forceReadProc=FAPack.processes_{iForceRead};
-                idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
-                if ~isfield(idxTracksObj,'idxTracks')
-                    idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+                if ~isempty(forceReadProc)
+                    idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
+                    if ~isfield(idxTracksObj,'idxTracks')
+                        idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+                    end
+                    idxTracks = idxTracksObj.idxTracks;
                 end
-                idxTracks = idxTracksObj.idxTracks;
                 try
                     try
                         iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');

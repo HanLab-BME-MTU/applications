@@ -608,6 +608,7 @@ end
 
 if exist('gPath','var')
     print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
+    print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.png'),'-dpng')
     savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
 end
 if exist('IDtoInspect','var')

@@ -1,6 +1,6 @@
 function [htrackG] = drawSelectedTracks(tracksNA,idSelected,iFrame,h)
 markerSize = 7;
-lineWidth = 3;
+lineWidth = 1;
 numGroups = 9;
 colors = distinguishable_colors(numGroups,'k');
 % switching colors between group 6 and 9

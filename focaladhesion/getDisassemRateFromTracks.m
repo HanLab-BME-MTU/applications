@@ -1,4 +1,4 @@
-function [disassemRate,bestModel,bestSummary,yEntire] = getDisassemRateFromTracks(curTrack,tIntervalMin,plotFit)
+function [disassemRate,bestModel,bestSummary,yEntire] = getDisassemRateFromTracks(curTrack,tIntervalMin, whichComp, minLifeTime,plotFit)
 %function assemRate = getAssemRateFromTracks(curTrack) is a wrapper
 %function for tracksNA to run getAssemRate 
 % input:
@@ -11,15 +11,35 @@ function [disassemRate,bestModel,bestSummary,yEntire] = getDisassemRateFromTrack
 %                   ampTotal)
 % Sangyoon Han 2020/3/4
 
+if nargin<3
+    plotFit=false;
+    minLifeTime=25;
+    whichComp='amp';
+end
 if nargin<4
     plotFit=false;
+    minLifeTime=25;
 end
+if nargin<5
+    plotFit=false;
+end
+%% Set up
 tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
 % curAmpTotal =  curTrack.ampTotal(tRange);
-curAmpTotal =  curTrack.amp(tRange);
-
+try
+    curAmpTotal =  getfield(curTrack,{1},whichComp,{tRange});
+%     curAmpTotal =  curTrack.amp(tRange);
+catch
+    tRange = find(~isnan(curTrack.amp));
+    curAmpTotal =  getfield(curTrack,{1},whichComp,{tRange});
+end
 %% GET IT
-[disassemRate,bestModel,bestSummary] = getDisassemRate(tIntervalMin*(tRange),curAmpTotal);
+if length(tRange)<minLifeTime+1
+    disassemRate=NaN;
+    bestModel=[]; bestSummary=[]; yEntire=NaN;
+    return
+end
+[disassemRate,bestModel,bestSummary] = getDisassemRate(tIntervalMin*(tRange),curAmpTotal,minLifeTime);
 yEntire = bestSummary.startingTS./curAmpTotal;
 
 %% Plot

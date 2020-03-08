@@ -917,7 +917,7 @@ end
 % save(dataPath_tracksNA, 'tracksNA', 'tableTracksNA','-v7.3');
 %% Saving with each track
 % if ~foundTracks
-    %% Saving the metaTrackData
+    % Saving the metaTrackData
     numTracks=numel(tracksNA);
     fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
     numStr = @(trackNum) num2str(trackNum,fString);
@@ -930,11 +930,12 @@ end
     metaTrackData.numStr = @(trackNum) num2str(trackNum,fString);
     metaTrackData.trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
     save(dataPath_tracksNA,'metaTrackData')
-    
+
     parfor k=1:numTracks
         curTrack=tracksNA(k);
         parsave(feval(trackIndPath,k),curTrack)
     end
+
 % end
 %% debug
 % save(dataPath_tracksNA,'tracksNA')
@@ -1012,102 +1013,29 @@ end
 % background. 
 % Filter out any tracks that has 'Out_of_ROI' in their status (especially
 % after NA ...)
-trNAonly = tracksNA(idx);
+tracksNA = tracksNA(trackIdx);
 if matchWithFA
+    %% Assembly rate
+    % We decided to look at only actually assebling NAs
+    % Getting indices of them:
+    assemblingNAIdx = arrayfun(@(y) y.startingFrame>1,tracksNA);
+
+    assemRateCellAll = arrayfun(@(y) y.assemRate, tracksNA);
+    % filtering in only actually assembling NAs and make it positive
+    assemRateCell = assemRateCellAll(assemblingNAIdx);
+    
+    %% Disassembly rate
+    % We decided to look at only actually disassebling NAs
+    % Getting indices of them:
+    disassemblingNAIdx = arrayfun(@(y) y.endingFrame+1, tracksNA)<max(arrayfun(@(y) y.endingFrame, tracksNA));
+
+    disassemRateCellAll = arrayfun(@(y) y.disassemRate, tracksNA);
+    % filtering in only actually disassembling NAs and make it positive
+    disassemRateCell = disassemRateCellAll(disassemblingNAIdx);
+    %% Maturation analysis
     [indMature,indMatureNAtoFA,indMatureNAtoFC,indMatureFCtoFA,...
         indFail,indFailFC,indFailFA, indStableNA,indStableFC,indStableFA,...
         pNAtoFC,pNAtoFA,pFCtoFA,lifeTimeNAmaturing,lifeTimeNAfailing]=findAdhesionMaturation(tracksNA);
-%     indMature = false(numel(tracksNA));
-%     indMatureNAtoFA = false(numel(tracksNA));
-%     indMatureNAtoFC = false(numel(tracksNA));
-%     indMatureFCtoFA = false(numel(tracksNA));
-%     indStableNA = false(numel(tracksNA));
-%     indStableFC = false(numel(tracksNA));
-%     indStableFA = false(numel(tracksNA));
-%     
-%     indFail = false(numel(tracksNA));
-%     indFailFC = false(numel(tracksNA));
-%     indFailFA = false(numel(tracksNA));
-%     pNAtoFC=0; q=0; qStable=0; qStableExisting=0;
-%     pNAtoFA=0; pFCtoFA=0;
-% 
-%     for k=1:numel(tracksNA)
-%         if tracksNA(k).emerging 
-%             % maturing NAs up to FCs and FAs
-%             if (any(tracksNA(k).state(tracksNA(k).emergingFrame:end)==3) || ...
-%                     any(tracksNA(k).state(tracksNA(k).emergingFrame:end)==4)) && ...
-%                     sum(tracksNA(k).presence)>8
-% 
-%                 tracksNA(k).maturing = true;
-%                 indMature(k) = true;
-%                 pNAtoFC=pNAtoFC+1;
-%                 % lifetime until FC
-%                 lifeTimeNAmaturing(pNAtoFC) = sum(tracksNA(k).state(tracksNA(k).emergingFrame:end)==2);
-%                 if any(tracksNA(k).state(tracksNA(k).emergingFrame:end)==4)
-%                     pNAtoFA = pNAtoFA+1;
-%                     pFCtoFA=pFCtoFA+1;
-%                     indMatureNAtoFA(k) = true;
-%                 else
-%                     indMatureNAtoFC(k) = true;
-%                 end
-%                 % it might be beneficial to store amplitude time series. But
-%                 % this can be done later from trackNAmature
-%             elseif sum(tracksNA(k).presence)<61 && sum(tracksNA(k).presence)>6
-%             % failing NAs
-%                 tracksNA(k).maturing = false;
-%                 indFail(k) = true;
-%                 q=q+1;
-%                 % lifetime until FC
-%                 lifeTimeNAfailing(q) = sum(tracksNA(k).state(tracksNA(k).emergingFrame:end)==2);
-%             else
-%                 % stable NAs
-%                 qStable=qStable+1;
-%             end
-%         else %it means that adhesions started already with FC or FA or NA status
-%             % We check if these adhesion have occasions to convert into FAs
-%             if tracksNA(k).state(tracksNA(k).startingFrameExtra)==2
-%                 if any(tracksNA(k).state(tracksNA(k).startingFrameExtra:end)==3) % NA becoming FC
-%                     if any(tracksNA(k).state(tracksNA(k).startingFrameExtra:end)==4) % NA becoming FA
-%                         indMatureNAtoFA(k) = true;
-%                     else % NA becoming only FC
-%                         indMatureNAtoFC(k) = true;
-%                     end
-%                 else
-%                     % see if this NA ends with NA state
-%                     if tracksNA(k).state(tracksNA(k).endingFrameExtra)==2
-%                         indStableNA(k) = true;
-%                     else
-%                         indFail(k) = true;
-%                     end
-%                 end
-%             elseif tracksNA(k).state(tracksNA(k).startingFrameExtra)==3 %if it started with FC state
-%                 if any(tracksNA(k).state(tracksNA(k).startingFrameExtra:end)==4) % FC becoming FA
-%                     indMatureFCtoFA(k) = true;
-%                 else
-%                     % see if this ends with FC state
-%                     if tracksNA(k).state(tracksNA(k).endingFrameExtra)==3
-%                         indStableFC(k) = true;
-%                     else % turn-over FC
-%                         indFailFC(k) = true;
-%                     end
-%                 end
-%             elseif tracksNA(k).state(tracksNA(k).startingFrameExtra)==4 %if it started with FA state
-%                 % see if this ends with FA state
-%                 if tracksNA(k).state(tracksNA(k).endingFrameExtra)==4
-%                     indStableFA(k) = true;
-%                 else % turn-over FA
-%                     indFailFA(k) = true;
-%                 end
-%             end
-% %             if (any(tracksNA(k).state==2) || any(tracksNA(k).state==3)) 
-% %                 pFCtoFA=pFCtoFA+1;
-% %                 indMatureFCtoFA(k) = true;
-% %             else
-% %                 qStableExisting=qStableExisting+1;
-% %                 indStableNA(k) = true;
-% %             end
-%         end
-%     end
     % quantifying lifetime of FAs separately
     numNAtoFA = sum(indMatureNAtoFA); numStableNA= sum(indStableNA);
     numNAtoFC = sum(indMatureNAtoFC); numFCtoFA = sum(indMatureFCtoFA);
@@ -1139,36 +1067,19 @@ if matchWithFA
     dataPath_analysisAllcsv = [p.OutputDirectory filesep outFilename 'lifeTimes.csv'];
     writetable(B,dataPath_analysisAllcsv,'WriteRowNames',true)
 
-    %% Assembly rate
-    % We decided to look at only actually assebling NAs
-    % Getting indices of them:
-    assemblingNAIdx = arrayfun(@(y) y.startingFrame>1,trNAonly);
-
-    assemRateCellAll = arrayfun(@(y) y.assemRate, trNAonly);
-    % filtering in only actually assembling NAs and make it positive
-    assemRateCell = assemRateCellAll(assemblingNAIdx);
-    
-    %% Disassembly rate
-    % We decided to look at only actually disassebling NAs
-    % Getting indices of them:
-    disassemblingNAIdx = arrayfun(@(y) y.endingFrame+1, trNAonly)<max(arrayfun(@(y) y.endingFrame, trNAonly));
-
-    disassemRateCellAll = arrayfun(@(y) y.disassemRate, trNAonly);
-    % filtering in only actually disassembling NAs and make it positive
-    disassemRateCell = disassemRateCellAll(disassemblingNAIdx);
     %% NA nucleation ratio: How many of NAs were newly assembled - I changed this.
-    curNewNAs = arrayfun(@(y) sum(arrayfun(@(x) x.startingFrameExtra==y,trNAonly)),(1:nFrames)');
-    curDeadNAs = arrayfun(@(y) sum(arrayfun(@(x) x.endingFrameExtra==y,trNAonly)),(1:nFrames)');
-    curExistingNAs = arrayfun(@(y) sum(arrayfun(@(x) double(x.presence(y)),trNAonly)),(1:nFrames)');
+    curNewNAs = arrayfun(@(y) sum(arrayfun(@(x) x.startingFrameExtra==y,tracksNA)),(1:nFrames)');
+    curDeadNAs = arrayfun(@(y) sum(arrayfun(@(x) x.endingFrameExtra==y,tracksNA)),(1:nFrames)');
+    curExistingNAs = arrayfun(@(y) sum(arrayfun(@(x) double(x.presence(y)),tracksNA)),(1:nFrames)');
     curNewNARatio = curNewNAs./curExistingNAs;
     curDeadNARatio = curDeadNAs./curExistingNAs;
 
 %     curNumStableNAs = sum(arrayfun(@(x) x.lifeTime>0.8*curNFrames,trNAonly));
     % I have to ignore the very first frame and the last four frames.
-    stableNAs = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra+1>0.9*nFrames,trNAonly);%curNewNAs(1);
+    stableNAs = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra+1>0.9*nFrames,tracksNA);%curNewNAs(1);
 %     idFAs = arrayfun(@(x) any(x.state==4),trNAonly);%curNewNAs(1);
 %     idOnlyNAs = arrayfun(@(x) any(x.state==2) & ~any(x.state==3 | x.state==4),trNAonly);
-    idOnlyNAFCs = arrayfun(@(x) any(x.state==2) & ~any(x.state==4),trNAonly);
+    idOnlyNAFCs = arrayfun(@(x) any(x.state==2) & ~any(x.state==4),tracksNA);
     numStableNAs = sum(stableNAs & idOnlyNAFCs); %idOnlyNAs);
     
     numOnlyNAs = sum(idOnlyNAFCs);
@@ -1198,7 +1109,7 @@ if matchWithFA
     assembly_disassembly_ratesPathCSV=[assembly_disassembly_ratesPath(1:end-4) '.csv'];
     writetable(C,assembly_disassembly_ratesPathCSV,'WriteRowNames',true)
 else
-    trNAonly = tracksNA;
+    tracksNA = tracksNA;
     indMature = [];
     indFail = [];
     lifeTimeNAfailing=[];
@@ -1207,6 +1118,7 @@ else
 end
 
 end
+
 disp('Adhesion Analysis Done!')
 end
 

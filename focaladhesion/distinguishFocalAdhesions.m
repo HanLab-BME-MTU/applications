@@ -28,7 +28,7 @@ imgHeight=MD.imSize_(1);
 % [~,adhVel]=arrayfun(@(x) regression(x.iFrame(x.startingFrame:x.endingFrame), x.advanceDist(x.startingFrame:x.endingFrame)),tracksAD);
 % idxPositiveVel = adhVel>=0;
 idxNoBoundary = arrayfun(@(x) isempty(intersect(nanmean(x.closestBdPoint), [0 1 imgWidth imgHeight])), tracksAD);
-idxCloseToEdge = arrayfun(@(x) mean(x.distToEdge)<1000/pixSize, tracksAD);
+idxCloseToEdge = arrayfun(@(x) mean(x.distToEdge)<10000/pixSize, tracksAD);
 % Check where they are
 % FirstImgStack=MD.channels_(1).loadImage(1); 
 % figure, imshow(FirstImgStack,[]), hold on
@@ -50,26 +50,27 @@ idxStartingFromNAcell2 = cellfun(@(x) ~isempty(x), firstFAidx,'UniformOutput',fa
 idxStartingFromNAcell3 = arrayfun(@(y) y.distToEdge(y.startingFrame) <1000/pixSize, tracksAD,'UniformOutput',false);
 idxStartingFromNA = cellfun(@(x) ~isempty(x),idxStartingFromNAcell);
 idxStartingFromNA2 = cellfun(@(x,y) ~isempty(x) & ~isempty(y),idxStartingFromNAcell2,idxStartingFromNAcell3);
-idxCloseToEdge2 = arrayfun(@(x) mean(x.distToEdge)<5000/pixSize, tracksAD);
-idxCloseToEdgeStarting = arrayfun(@(x) x.distToEdge(x.startingFrame) <1000/pixSize, tracksAD);
+idxCloseToEdge2 = arrayfun(@(x) mean(x.distToEdge)<50000/pixSize, tracksAD);
+idxCloseToEdgeStarting = arrayfun(@(x) x.distToEdge(x.startingFrame) <10000/pixSize, tracksAD);
 indMaturingNA = idxNegativeVel & (idxStartingFromNA | idxStartingFromNA2) & idxCloseToEdge2 & idxCloseToEdgeStarting;
 %% 3) maturing FAs from existing FAs
 % For this, adhesions should have 1) negative overall velocity; 2) should
 % be always 'FA' or 'FC'; 3) associated area should increase; 
-AlwaysFAcell = arrayfun(@(x) strcmp(x.state,'FA') | strcmp(x.state,'FC'),tracksAD,'UniformOutput',false);
-lifeTimeCell = arrayfun(@(x)x.lifeTime+1,tracksAD,'UniformOutput',false);
+iFA=4; iFC=3;
+AlwaysFAcell = arrayfun(@(x) x.state==iFA | x.state==iFC,tracksAD,'unif',false);
+lifeTimeCell = arrayfun(@(x)x.lifeTime+1,tracksAD,'unif',false);
 idxAlwaysFAcell = cellfun(@(x,y) sum(x)==y,AlwaysFAcell,lifeTimeCell);
 [~,faGrowth]=arrayfun(@(x) regression(x.iFrame(x.startingFrame:x.endingFrame), x.area(x.startingFrame:x.endingFrame)),tracksAD(idxAlwaysFAcell));
 indexAlwaysFAcell=find(idxAlwaysFAcell);
 positiveFAGrowth=false(size(idxAlwaysFAcell));
 positiveFAGrowth(indexAlwaysFAcell(faGrowth>0))=true;
-indMaturingFA = idxNegativeVel & positiveFAGrowth;
+indMaturingFA = positiveFAGrowth; %idxNegativeVel & 
 %% 4) decaying FAs from existing FAs
 % For this, adhesions should have 1) negative overall velocity; 2) should
 % be always 'FA' or 'FC'; 3) associated area should decrease; 
 negativeFAGrowth=false(size(idxAlwaysFAcell));
 negativeFAGrowth(indexAlwaysFAcell(faGrowth<0))=true;
-indDecayingFA = idxNegativeVel & negativeFAGrowth;
+indDecayingFA = negativeFAGrowth; %idxNegativeVel & 
 %% 5) Others
 indOthers = ~indDecayingFA & ~indMaturingFA & ~indMaturingNA & ~indNAatEdge;
 %% Assign dynamicType

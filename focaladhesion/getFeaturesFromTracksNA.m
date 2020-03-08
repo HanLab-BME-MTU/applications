@@ -133,7 +133,8 @@ for k=1:numTracks
         sF=tracksNA(k).startingFrame;
         eF=tracksNA(k).endingFrame;
     end
-    curTrack.lifeTime = eF-sF;    
+    curTrack.lifeTime = eF-sF;   
+    tRange = sF:eF;
     % Inital intensity slope for one min
     timeInterval = deltaT/60; % in min
     entirePeriod = eF-sF; % floor(1/timeInterval); % frames per minute
@@ -168,6 +169,18 @@ for k=1:numTracks
         % poihnts near the maximum
         disassemRate = getDisassemRateFromTracks(curTrack,tIntervalMin);
         curTrack.disassemRate = disassemRate; % in 1/min
+        
+        % MaxAmpFrame estimation
+        splineParam=0.01; 
+        try
+            sd_spline= csaps(tRange,curTrack.amp(tRange),splineParam);
+        catch
+            tRange = find(~isnan(curTrack.amp));
+            sd_spline= csaps(tRange,curTrack.amp(tRange),splineParam);
+        end
+        sd=ppval(sd_spline,tRange);
+        [~,maxSdInd] = max(sd);
+        maxAmpFrame = tRange(maxSdInd);
 
         nSampleEndLate=min(9,floor((curTrack.endingFrameExtraExtra-maxAmpFrame)*2/3));
         curStartFrame = max(curTrack.startingFrame,curTrack.endingFrameExtraExtra-periodFrames+1);

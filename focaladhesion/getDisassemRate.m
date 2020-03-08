@@ -1,4 +1,4 @@
-function [disassemRate,bestModel,bestSummary] = getDisassemRate(tRangeMin,TS)
+function [disassemRate,bestModel,bestSummary] = getDisassemRate(tRangeMin,TS,minLength)
 %function assemRate = getAssemRate(tRangeMin,curAmpTotal) calculates
 %assembly rate using Webb 2004 NCB method.
 % input:
@@ -10,13 +10,18 @@ function [disassemRate,bestModel,bestSummary] = getDisassemRate(tRangeMin,TS)
 % Sangyon Han March 4, 2020
 
 %% Get the maximum amp, time range
-% splineParam=0.01; 
-% sd_spline= csaps(tRangeMin,TS,splineParam);
-% sd=ppval(sd_spline,tRangeMin);
-% % Find the maximum
-% [~,maxSdInd] = max(sd);
+if nargin<3
+    minLength=9;
+end
+
+splineParam=0.01; 
+sd_spline= csaps(tRangeMin,TS,splineParam);
+sd=ppval(sd_spline,tRangeMin);
+% Find the maximum
+[~,maxSdInd] = max(sd);
 % maxAmpFrame = tRangeMin(maxSdInd);
-minLength = 9;
+% minLength = 9;
+maxSdInd = min(maxSdInd,length(TS)-minLength+1);
 
 % nSampleStart=min(minLength,floor((maxSdInd)/2));
 
@@ -24,13 +29,13 @@ minLength = 9;
 % maxAmp = max(curAmpTotal);
 
 pp=0;
-fitSummary(length(TS)-minLength+1)=struct('adjRsquared',NaN,'rSquared',NaN,'pValue',NaN,'slope',NaN,'time_length',NaN,'image_count',NaN); 
-statModel = cell(1,length(TS)-minLength+1);
-for ii= minLength:length(TS)-1
+fitSummary(length(TS)-minLength-maxSdInd+2)=struct('adjRsquared',NaN,'rSquared',NaN,'pValue',NaN,'slope',NaN,'time_length',NaN,'image_count',NaN,'startingTS',NaN); 
+statModel = cell(1,length(TS)-minLength-maxSdInd+2);
+for ii= minLength:length(TS)-maxSdInd
     pp=pp+1;
     curTS = TS(end-ii:end);
     curTSnorm = curTS(1)./curTS;
-    curTSnorm(curTSnorm < 0) = 1e-5;
+    curTSnorm(curTSnorm < 0) = NaN;
     curTRange = tRangeMin(end-ii:end);
 
     statModel{pp} = fitlm(curTRange, log(curTSnorm));

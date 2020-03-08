@@ -8,7 +8,10 @@ classProc = FAPack.getProcess(8);
 % Load the selectedGroups.mat
 iChan = find(classProc.checkChannelOutput);
 
-tfmPack = MD.getPackage(MD.getPackageIndex('TFMPackage'));
+iTFMPackage=MD.getPackageIndex('TFMPackage');
+if ~isempty(iTFMPackage)
+    tfmPack = MD.getPackage(iTFMPackage);
+end
 nFrames = MD.nFrames_; tMap=[];
 
 % tMap creation
@@ -25,29 +28,37 @@ else
     T_FA = zeros(nFrames,2);
 end
 
-SDCProc_TFM=tfmPack.processes_{1};
-%iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
-if ~isempty(SDCProc_TFM)
-    s = load(SDCProc_TFM.outFilePaths_{3,iBeadChan},'T');    
-    T_TFM = s.T;
+if ~isempty(iTFMPackage)
+    SDCProc_TFM=tfmPack.processes_{1};
+    %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+    if ~isempty(SDCProc_TFM)
+        s = load(SDCProc_TFM.outFilePaths_{3,iBeadChan},'T');    
+        T_TFM = s.T;
+    else
+        T_TFM = zeros(nFrames,2);
+    end
 else
     T_TFM = zeros(nFrames,2);
 end
+
 T = -T_TFM + T_FA;
 
-if nargout>1
-    tMapOrg=tfmPack.processes_{4}.loadChannelOutput('output','tMap');
-    for ii=nFrames:-1:1
-        cur_tMap=tMapOrg(:,:,ii);
-        cur_T = T(ii,:);
-        cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));
-        tMap(:,:,ii) = cur_tMap2;
+if ~isempty(iTFMPackage)
+    if nargout>1 && ~isempty(tfmPack.processes_{4})
+        tMapOrg=tfmPack.processes_{4}.loadChannelOutput('output','tMap');
+        for ii=nFrames:-1:1
+            cur_tMap=tMapOrg(:,:,ii);
+            cur_T = T(ii,:);
+            cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));
+            tMap(:,:,ii) = cur_tMap2;
+        end
     end
 end
+
 % Other image maps
 if ~isempty(SDCProc_FA)
     if ismember(2, find(SDCProc_FA.checkChannelOutput))
-        imgStack = SDCProc_FA.loadOutStack(2);
+        imgStack = SDCProc_FA.loadOutStack(iChan);
     else
         imgStack = [];
     end

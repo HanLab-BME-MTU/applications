@@ -32,7 +32,7 @@ idsClassifiedStruct = finalProc.loadChannelOutput(iChan,'output','idClass');
 %% Launch pickAdhesion window with labeled adhesions with a right color and
 % unlabed ones with white color. Get the right classes per newly selected
 % adhesions
-[IDs, iGroups, iPrevGroups,tracksNA]=pickAdhesionTracksInteractive(tracksNA, imgStack,...
+pickAdhesionTracksInteractive(tracksNA, imgStack,...
     'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2, 'idSelected',idsClassifiedStruct);
 
 
