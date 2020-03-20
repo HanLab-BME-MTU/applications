@@ -210,6 +210,7 @@ if foundTracks || startFromIntermediate % If this part above is already processe
 end
 
 %% tracksNA quantification
+nChans=numel(MD.channels_);
 if ~foundTracks
     % reformating tracks
     if ~startFromIntermediate
@@ -233,10 +234,10 @@ if ~foundTracks
         bandArea = zeros(nFrames,1);
         NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
         FADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
-        nChannels = numel(MD.channels_);
         % minEcc = 0.7;
 
         % Filtering adhesion tracks based on cell mask. Adhesions appearing at the edge are only considered
+        masterMask=zeros(MD.imSize_(1),MD.imSize_(2),nFrames);
         if onlyEdge
             disp('Filtering adhesion tracks based on cell mask. Only adhesions appearing at the edge are considered')
             trackIdx = false(numel(tracksNA),1);
@@ -244,10 +245,29 @@ if ~foundTracks
             for ii=1:nFrames
                 % Cell Boundary Mask 
                 if ApplyCellSegMask
-                    mask = maskProc.loadChannelOutput(iChan,ii);
+                    if sum(maskProc.checkChannelOutput)>1
+                        %Combine the the multiple masks to one
+                        if ii==1
+                            disp('All channels are combined for cell mask')
+                        end
+                        maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,ii),find(maskProc.checkChannelOutput),'UniformOutput',false);
+                        maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
+                        mask = any(maskAll,3);
+                    elseif find(maskProc.checkChannelOutput)~=iChan
+                        if ii==1
+                            disp('The channel other than adhesion channel is used for cell mask')
+                        end
+                        mask = maskProc.loadChannelOutput(find(maskProc.checkChannelOutput),ii); % 1 is CCP channel
+                    elseif nChans==1 
+                        if ii==1
+                            disp('Adhesion channel is used for mask')
+                        end
+                        mask = maskProc.loadChannelOutput(iChan,ii); % 1 is CCP channel
+                    end
                 else
                     mask = true(MD.imSize_);
                 end
+                masterMask(:,:,ii)=mask;
                 % mask for band from edge
                 iMask = imcomplement(mask);
                 distFromEdge = bwdist(iMask);
@@ -268,18 +288,33 @@ if ~foundTracks
         else
             disp('Entire adhesion tracks are considered.')
             trackIdx = true(numel(tracksNA),1);
-            if ApplyCellSegMask
-                mask = maskProc.loadChannelOutput(iChan,1);
-            else
-                mask = true(MD.imSize_);
-            end
             for ii=1:nFrames
                 % Cell Boundary Mask 
                 if ApplyCellSegMask
-                    mask = maskProc.loadChannelOutput(iChan,ii);
+%                     mask = maskProc.loadChannelOutput(iChan,ii);
+                    if sum(maskProc.checkChannelOutput)>1
+                        %Combine the the multiple masks to one
+                        if ii==1
+                            disp('All channels are combined for cell mask')
+                        end
+                        maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,ii),find(maskProc.checkChannelOutput),'UniformOutput',false);
+                        maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
+                        mask = any(maskAll,3);
+                    elseif find(maskProc.checkChannelOutput)~=iChan
+                        if ii==1
+                            disp('The channel other than adhesion channel is used for cell mask')
+                        end
+                        mask = maskProc.loadChannelOutput(find(maskProc.checkChannelOutput),ii); % 1 is CCP channel
+                    elseif nChans==1 
+                        if ii==1
+                            disp('Adhesion channel is used for mask')
+                        end
+                        mask = maskProc.loadChannelOutput(iChan,ii); % 1 is CCP channel
+                    end
                 else
                     mask = true(MD.imSize_);
                 end
+                masterMask(:,:,ii)=mask;
                 % mask for band from edge
                 maskOnlyBand = mask;
                 bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
@@ -363,11 +398,7 @@ if ~foundTracks
         bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            if ApplyCellSegMask
-                mask = maskProc.loadChannelOutput(iChan,ii);
-            else
-                mask = true(MD.imSize_);
-            end
+            mask = masterMask(:,:,ii); 
             % mask for band from edge
             iMask = imcomplement(mask);
             distFromEdge = bwdist(iMask);
@@ -395,11 +426,7 @@ if ~foundTracks
         trackIdx = true(numel(tracksNA),1);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            if ApplyCellSegMask
-                mask = maskProc.loadChannelOutput(iChan,ii);
-            else
-                mask = true(MD.imSize_);
-            end
+            mask = masterMask(:,:,ii); 
             % mask for band from edge
             maskOnlyBand = mask;
             bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
@@ -451,13 +478,7 @@ end
 if ~foundTracks && ~isfield(tracksNA,'faID')
 
     %% Matching with adhesion setup
-    if ApplyCellSegMask
-        firstMask=maskProc.loadChannelOutput(iChan,1);
-    else
-        firstMask=true(MD.imSize_);
-    end
-
-    cropMaskStack = false(size(firstMask,1),size(firstMask,2),nFrames);
+    cropMaskStack = false(size(masterMask));
     numTracks=numel(tracksNA);
 
     focalAdhInfo(nFrames,1)=struct('xCoord',[],'yCoord',[],...
@@ -476,7 +497,7 @@ if ~foundTracks && ~isfield(tracksNA,'faID')
     for ii=1:nFrames
         % Cell Boundary Mask 
         if ApplyCellSegMask
-            mask = maskProc.loadChannelOutput(iChan,ii);
+            mask = masterMask(:,:,ii);
             if ii>1 && max(mask(:))==0
                 mask=prevMask;
                 disp('Previous mask is used for cell edge because the current mask is empty.')
@@ -733,11 +754,7 @@ if 1
         allBdPointsAll=cell(numTracks,1);
         for ii=1:nFrames
             % Cell Boundary Mask 
-            if ApplyCellSegMask
-                mask = maskProc.loadChannelOutput(iChan,ii);
-            else
-                mask = true(MD.imSize_);
-            end
+            mask = masterMask(:,:,ii);
             [B,~,nBD]  = bwboundaries(mask,'noholes');
             if nBD>1
                 % Disregard the small boundaries
@@ -946,7 +963,7 @@ trackIdx = true(numel(tracksNA),1);
 trackIdxNAs = true(numel(tracksNA),1);
 bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
 for ii=1:nFrames
-    mask = maskProc.loadChannelOutput(iChan,ii);
+    mask = masterMask(:,:,ii);
     % mask for band from edge
     iMask = imcomplement(mask);
     distFromEdge = bwdist(iMask);

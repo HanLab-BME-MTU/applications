@@ -181,13 +181,17 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     % refineID_for_everyFramesInvolved. So for each track (each
                     % row), I'll make each raw a full frame entries although it
                     % is a bit memory intensive
-                    maxFrame = max(cellfun(@length,refineFAID_cell));
-                    insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
-                    for k=find(insuffRows')
-                        refineFAID_cell{k} = [refineFAID_cell{k} ...
-                                    NaN(1,maxFrame-length(refineFAID_cell{k}))];
+                    try %if numel(tracksNA)==1
+                        refineFAID = refineFAID_cell;
+                    catch %else
+                        maxFrame = max(cellfun(@length,refineFAID_cell));
+                        insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
+                        for k=find(insuffRows')
+                            refineFAID_cell{k} = [refineFAID_cell{k} ...
+                                        NaN(1,maxFrame-length(refineFAID_cell{k}))];
+                        end
+                        refineFAID = cell2mat(refineFAID_cell);
                     end
-                    refineFAID = cell2mat(refineFAID_cell);
                     lastFinishTime = adhAnalProc.finishTime_;
                 end
                 fileInfo = dir(obj.outFilePaths_{4,iChan});
