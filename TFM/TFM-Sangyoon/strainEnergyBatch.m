@@ -231,7 +231,7 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-if exist(analysisFolderSelectionDone,'var')
+if exist('analysisFolderSelectionDone','var')
     if ~analysisFolderSelectionDone
         groupNames2=groupNames;
         for ii=1:numConditions
