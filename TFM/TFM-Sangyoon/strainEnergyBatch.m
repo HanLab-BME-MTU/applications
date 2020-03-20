@@ -231,21 +231,25 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-if ~analysisFolderSelectionDone
-    groupNames2=groupNames;
-    for ii=1:numConditions
-        [~, finalFolder]=fileparts(pathAnalysisAll{ii});
-        groupNames{ii} = finalFolder;
-    end
-    nameList=groupNames'; 
-    if any(cellfun(@isempty,nameList))
-        nameList = MLNames;
-        if strcmp(nameList{1},nameList{2})
-            for ii=1:numConditions
-                curPath=fileparts(pathAnalysisAll{ii});
-                [~,nameList{ii}] = fileparts(curPath);
+if ~isempty(analysisFolderSelectionDone)
+    if ~analysisFolderSelectionDone
+        groupNames2=groupNames;
+        for ii=1:numConditions
+            [~, finalFolder]=fileparts(pathAnalysisAll{ii});
+            groupNames{ii} = finalFolder;
+        end
+        nameList=groupNames'; 
+        if any(cellfun(@isempty,nameList))
+            nameList = MLNames;
+            if strcmp(nameList{1},nameList{2})
+                for ii=1:numConditions
+                    curPath=fileparts(pathAnalysisAll{ii});
+                    [~,nameList{ii}] = fileparts(curPath);
+                end
             end
         end
+    else
+        nameList=groupNames'; 
     end
 else
     nameList=groupNames'; 
