@@ -1,6 +1,7 @@
 %% open necessary MLs
 MLdirect=false;
 isDesktopAvail = usejava('desktop');
+usedSelectedFoldersMat=false;
 
 if isDesktopAvail
     [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
@@ -16,6 +17,7 @@ else
 end
 
 groupNames=[];
+
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
     ii=0;
@@ -85,6 +87,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
     rootAnalysis = pathAnalysisAll{1};
     save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 else
+    usedSelectedFoldersMat=true;    
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
@@ -96,7 +99,7 @@ end
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
 for k=1:numConditions
-    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep 'movieList.mat']);
+    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
 end
 %% Output
 rootAnalysis = pathAnalysisAll{1};
@@ -231,8 +234,8 @@ for ii=1:numConditions
 end
 disp('Done')
 %% setting up group name
-if exist('analysisFolderSelectionDone','var')
-    if ~analysisFolderSelectionDone
+% if exist('analysisFolderSelectionDone','var')
+    if usedSelectedFoldersMat
         groupNames2=groupNames;
         for ii=1:numConditions
             [~, finalFolder]=fileparts(pathAnalysisAll{ii});
@@ -251,9 +254,9 @@ if exist('analysisFolderSelectionDone','var')
     else
         nameList=groupNames'; 
     end
-else
-    nameList=groupNames'; 
-end
+% else
+%     nameList=groupNames'; 
+% end
 %% Plotting each - SE-ForceBlob
 SE_FB_GroupCellArray = cellfun(@(x) cell2mat(x),SE_FB_Group,'unif',false);
 h1=figure; 
@@ -435,8 +438,12 @@ hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format
 hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
 print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
 
-tableAvgForceFBinCell=table(avgforceFBCellArray,'RowNames',nameList);
-writetable(tableAvgForceFBinCell,strcat(dataPath,'/avgForceFBsCell.csv'),'WriteRowNames',true)
+try
+    tableAvgForceFBinCell=table(avgforceFBCellArray,'RowNames',nameList);
+    writetable(tableAvgForceFBinCell,strcat(dataPath,'/avgForceFBsCell.csv'),'WriteRowNames',true)
+catch
+    disp('Not all movieList had processed new force blob analysis')
+end
 %% total force of average force blob in Cell
 totforceFBCellArray = totForce_FBInCell_Group;%cellfun(@(x) cell2mat(x),totForce_FBInCell_Group,'unif',false);
 h1=figure; 
@@ -447,8 +454,12 @@ hgexport(h1,strcat(figPath,'/totForceFBinCell'),hgexport('factorystyle'),'Format
 hgsave(h1,strcat(figPath,'/totForceFBinCell'),'-v7.3')
 print(h1,strcat(figPath,'/totForceFBinCell.tif'),'-dtiff')
 
-tableTotForceFBinCell=table(totforceFBCellArray,'RowNames',nameList);
-writetable(tableTotForceFBinCell,strcat(dataPath,'/totForceFBsCell.csv'),'WriteRowNames',true)
+try
+    tableTotForceFBinCell=table(totforceFBCellArray,'RowNames',nameList);
+    writetable(tableTotForceFBinCell,strcat(dataPath,'/totForceFBsCell.csv'),'WriteRowNames',true)
+catch
+    disp('Not all movieList had processed new force blob analysis')
+end
 %% Total force - Cell
 if isCellSeg
     totForceCell_CellArray = cellfun(@(x) cell2mat(x),totalForce_Cell_Group,'unif',false);
