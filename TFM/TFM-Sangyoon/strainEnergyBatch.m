@@ -1,6 +1,20 @@
 %% open necessary MLs
 MLdirect=false;
-[fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
+isDesktopAvail = usejava('desktop');
+
+if isDesktopAvail
+    [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
+else
+    disp({'Type selectedFolders.mat.  If do not have one, push enter';
+        ['Your current path: ' pwd]});
+    rawPath = input(': ','s');
+    if isempty(rawPath)
+        pathSFolders = 0;
+    else
+        [pathSFolders, fileSFolders] = fileparts(rawPath);
+    end
+end
+
 groupNames=[];
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
@@ -8,7 +22,18 @@ if ~ischar(pathSFolders) && pathSFolders==0
     rootFolder=pwd;
     while ~analysisFolderSelectionDone
         ii=ii+1;
-        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+        if isDesktopAvail
+            curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+        else
+            disp({'Select each analysis folder that contains movieList.mat.  If do not have one, push enter';
+                ['Your current path: ' pwd]});
+            rawPath = input(': ','s');
+            if isempty(rawPath)
+                curPathProject = 0;
+            else
+                curPathProject = rawPath;
+            end
+        end
 %         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
@@ -28,7 +53,18 @@ if ~ischar(pathSFolders) && pathSFolders==0
         ii=0;
         while ~MLSelectionDone
             ii=ii+1;
-            [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
+            if isDesktopAvail
+                [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
+            else
+                disp({'Select each movieList.  If do not have one, push enter';
+                    ['Your current path: ' pwd]});
+                rawPath = input(': ','s');
+                if isempty(rawPath)
+                    curPathML = rawPath;
+                else
+                    [curPathML, nameML] = fileparts(rawPath);
+                end
+            end
             if ~ischar(curPathML) || isempty(curPathML)
                 MLSelectionDone=true;
             else
