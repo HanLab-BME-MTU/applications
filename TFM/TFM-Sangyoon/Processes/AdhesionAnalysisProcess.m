@@ -222,9 +222,9 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                 % refineID_for_everyFramesInvolved. So for each track (each
                 % row), I'll make each raw a full frame entries although it
                 % is a bit memory intensive
-                if numel(tracksNA)==1
+                try %if numel(tracksNA)==1
                     refineFAID = refineFAID_cell;
-                else
+                catch %else
                     maxFrame = max(cellfun(@length,refineFAID_cell));
                     insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
                     for k=find(insuffRows')
