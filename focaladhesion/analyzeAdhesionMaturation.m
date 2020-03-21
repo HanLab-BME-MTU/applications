@@ -390,6 +390,25 @@ if ~foundTracks
         toc
     end
             
+    %% Filter with lifeTime again
+    lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
+    tracksNA = tracksNA(lifeTime>minLifetime);
+    %% Update the track information
+    numTracks=numel(tracksNA);
+    fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+    numStr = @(trackNum) num2str(trackNum,fString);
+    trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+    
+    %% SDC application to tracksNA
+    if ~isempty(SDCProc) && ~isfield(tracksNA,'SDC_applied')
+        disp('Applying stage drift correction ...')
+        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
+            tracksNA = applyDriftToTracks(tracksNA, T, 1); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
+        else
+            tracksNA = applyDriftToTracks(tracksNA, T, 0);
+        end
+    end
+
     %% Filtering again after re-reading
     disp('Filtering again after re-reading with cell mask ...')
     tic
@@ -452,27 +471,10 @@ if ~foundTracks
     end
     toc
     % get rid of tracks that have out of bands...
+    disp(['Previous total ' num2str(sum(trackIdx)) ' tracks.'])
     tracksNA = tracksNA(trackIdx);
-    disp(['Total ' num2str(sum(trackIdx)) ' tracks.'])
-    %%%%%
-    %% Filter with lifeTime again
-    lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);
-    tracksNA = tracksNA(lifeTime>minLifetime);
-    %% Update the track information
-    numTracks=numel(tracksNA);
-    fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
-    numStr = @(trackNum) num2str(trackNum,fString);
-    trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-    
-    %% SDC application to tracksNA
-    if ~isempty(SDCProc) && ~isfield(tracksNA,'SDC_applied')
-        disp('Applying stage drift correction ...')
-        if isa(SDCProc,'EfficientSubpixelRegistrationProcess')
-            tracksNA = applyDriftToTracks(tracksNA, T, 1); % need some other function....formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
-        else
-            tracksNA = applyDriftToTracks(tracksNA, T, 0);
-        end
-    end
+    disp(['After filtering: Total ' num2str(sum(trackIdx)) ' tracks.'])
+    %%%%%    
 end 
 
 if ~foundTracks && ~isfield(tracksNA,'faID')
