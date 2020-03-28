@@ -403,7 +403,13 @@ for iCurChan = iChanSlave
     intensitiesInFCs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==3)),tracksNA,addedTracksNA);
     intensitiesInFAs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==4)),tracksNA,addedTracksNA);
     intensityGroup={intensitiesInNAs, intensitiesInFCs, intensitiesInFAs};
-    save(outputFile{2,iChanSlave},'intensityGroup');
+%     save(outputFile{2,iChanSlave},'intensityGroup');
+
+    amplitudeInNAs = arrayfun(@(x,y) nanmean(y.amp2(x.state==2)),tracksNA,addedTracksNA);
+    amplitudeInFCs = arrayfun(@(x,y) nanmean(y.amp2(x.state==3)),tracksNA,addedTracksNA);
+    amplitudeInFAs = arrayfun(@(x,y) nanmean(y.amp2(x.state==4)),tracksNA,addedTracksNA);
+    amplitudeGroup={amplitudeInNAs, amplitudeInFCs, amplitudeInFAs};
+    save(outputFile{2,iChanSlave},'intensityGroup','amplitudeGroup');
 end
 %% protrusion/retraction information - most of these are now done in analyzeAdhesionsMaturation
 % time after protrusion onset (negative value if retraction, based
