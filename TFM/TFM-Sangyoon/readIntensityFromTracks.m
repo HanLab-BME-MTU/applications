@@ -69,6 +69,7 @@ end
 if ~isfield(tracksNA,'ampTotal') && attribute==1
     tracksNA(end).ampTotal=tracksNA(end).amp;
 end
+imgStackBS=[];
 if attribute==2 && ~isfield(tracksNA,'forceMag')
     tracksNA(end).forceMag=[];
 elseif attribute==3 && ~isfield(tracksNA,'fret')
@@ -79,7 +80,16 @@ elseif attribute==5 && (~isfield(tracksNA,'ampTotal2') || ~isfield(tracksNA,'amp
     tracksNA(end).ampTotal2=[];
     tracksNA(end).amp2=[];
     tracksNA(end).bkgAmp2=[];
-% elseif attribute==5 && ~isfield(tracksNA,'amp2')
+    
+    % In this case, make background-subtracted images
+    imgStackBS=zeros(size(imgStack));
+    for ii=1:size(imgStack,3)
+        curImg=imgStack(:,:,ii);
+        imageBackground = filterGauss2D(curImg,10);
+        %calculate noise-filtered and background-subtracted image
+        imgStackBS(:,:,ii) = curImg - imageBackground;
+    end
+    
 elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
     tracksNA(end).ampTotal3=[];
 end    
@@ -651,20 +661,28 @@ parfor (k=1:numTracks, parforArg)
             if attribute==2
                 curTrack.forceMag(ii) = mean(curAmpTotal(:));
             elseif attribute==5
+                curBS = imgStackBS(:,:,ii);
+                curBSTotal = curBS(yRange,xRange);
                 curTrack.ampTotal2(ii) = mean(curAmpTotal(:));
-                % now also trying to get 'amplitude' by gaussian fitting
-                pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
-                if ~isnan(pstruct.x)
-                    curTrack.amp2(ii) = pstruct.A;
-                    curTrack.bkgAmp2(ii) = pstruct.c;
-                elseif any(~isnan(curTrack.bkgAmp2))
-                    % In case that it can't find the gaussian fitting, we
-                    % want to use the average of bkgAmp2 and get the
-                    % difference from ampTotal2
-                    curAvgBkgAmp2 = nanmean(curTrack.bkgAmp2(1:ii-1));
-                    curTrack.amp2(ii) = curTrack.ampTotal2(ii) - curAvgBkgAmp2;
-                    curTrack.bkgAmp2(ii) = curAvgBkgAmp2;                    
-                end
+                
+                % We decided to use background-subtracted signal instead of
+                % gaussian fitting which can fail time to time.
+                curTrack.amp2(ii) = mean(curBSTotal(:));
+                curTrack.bkgAmp2(ii) = curTrack.ampTotal2(ii)-curTrack.amp2(ii);
+                
+%                 % now also trying to get 'amplitude' by gaussian fitting
+%                 pstruct = fitGaussians2D(curImg, x, y, [], sigma, [], mode,'Alpha',0.05);
+%                 if ~isnan(pstruct.x)
+%                     curTrack.amp2(ii) = pstruct.A;
+%                     curTrack.bkgAmp2(ii) = pstruct.c;
+%                 elseif any(~isnan(curTrack.bkgAmp2))
+%                     % In case that it can't find the gaussian fitting, we
+%                     % want to use the average of bkgAmp2 and get the
+%                     % difference from ampTotal2
+%                     curAvgBkgAmp2 = nanmean(curTrack.bkgAmp2(1:ii-1));
+%                     curTrack.amp2(ii) = curTrack.ampTotal2(ii) - curAvgBkgAmp2;
+%                     curTrack.bkgAmp2(ii) = curAvgBkgAmp2;                    
+%                 end
             elseif attribute==6
                 curTrack.ampTotal3(ii) = mean(curAmpTotal(:));
             end

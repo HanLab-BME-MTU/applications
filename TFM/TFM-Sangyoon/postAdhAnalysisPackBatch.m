@@ -143,6 +143,10 @@ intensitiesInNAsGroup = cell(numConditions,1);
 intensitiesInFCsGroup = cell(numConditions,1);
 intensitiesInFAsGroup = cell(numConditions,1);
 
+amplitudeInNAsGroup = cell(numConditions,1);
+amplitudeInFCsGroup = cell(numConditions,1);
+amplitudeInFAsGroup = cell(numConditions,1);
+
 mainBccPeakValuesGroupGroup = cell(numConditions,1);
 mainTimeToPeakGroupGroup = cell(numConditions,1);
 sideBccPeakValuesGrouppGroup = cell(numConditions,1);
@@ -377,10 +381,25 @@ for ii=1:numConditions
                 intensitiesInNAs{k} = intenGroup{1};
                 intensitiesInFCs{k} = intenGroup{2};
                 intensitiesInFAs{k} = intenGroup{3};
+
+                try
+                    amp2Group=intenGroupStruct.amplitudeGroup; 
+                    amplitudeInNAs{k} = amp2Group{1};
+                    amplitudeInFCs{k} = amp2Group{2};
+                    amplitudeInFAs{k} = amp2Group{3};
+                catch
+                    amplitudeInNAs{k} = [];
+                    amplitudeInFCs{k} = [];
+                    amplitudeInFAs{k} = [];
+                end                    
             else
                 intensitiesInNAs{k} = [];
                 intensitiesInFCs{k} = [];
                 intensitiesInFAs{k} = [];
+
+                amplitudeInNAs{k} = [];
+                amplitudeInFCs{k} = [];
+                amplitudeInFAs{k} = [];
             end        
             % Other feature related properties are calculated in the step 11
         end        
@@ -556,6 +575,10 @@ for ii=1:numConditions
     intensitiesInNAsGroup{ii,1}=intensitiesInNAs;
     intensitiesInFCsGroup{ii,1}=intensitiesInFCs;
     intensitiesInFAsGroup{ii,1}=intensitiesInFAs;
+    
+    amplitudeInNAsGroup{ii,1}=amplitudeInNAs;
+    amplitudeInFCsGroup{ii,1}=amplitudeInFCs;
+    amplitudeInFAsGroup{ii,1}=amplitudeInFAs;
 
     if ~isempty(initRiseProc)
         initRiseGroup{ii,1}=initRiseAgainstForceEachClass;
@@ -1163,6 +1186,33 @@ if plotSuccess
 
     tableIntensityTheOther=table(intensityGroupAll,'RowNames',nameListAdhComb);
     writetable(tableIntensityTheOther,[dataPath filesep 'intenTheOtherChannel.csv'],'WriteRowNames',true)    
+end
+%% amplitude of the other channel at each adhesion type
+h1=figure; 
+amplitudeInNAsGroupCell = cellfun(@(x) cell2mat(x),amplitudeInNAsGroup,'unif',false);
+amplitudeInFCsGroupCell = cellfun(@(x) cell2mat(x),amplitudeInFCsGroup,'unif',false);
+amplitudeInFAsGroupCell = cellfun(@(x) cell2mat(x),amplitudeInFAsGroup,'unif',false);
+amplitudeGroupAll=cell(numel(amplitudeInNAsGroup)*3,1);
+amplitudeGroup={amplitudeInNAsGroupCell, amplitudeInFCsGroupCell, amplitudeInFAsGroupCell};
+
+for ii=1:numel(intensitiesInNAsGroup)
+    p=ii-1;
+    for jj=1:3
+        nameListAdhComb{3*p+jj,1} = [nameList{ii} '-' nameListAdh{jj}];
+        amplitudeGroupAll{3*p+jj,1} = amplitudeGroup{jj}{ii};
+    end
+
+end
+plotSuccess=boxPlotCellArray(amplitudeGroupAll,nameListAdhComb,1,false,true);
+if plotSuccess
+    ylabel('Fluorescence amplitude (a.u.)')
+    title('Background-subtracted amplitude of the other channel')
+    hgexport(h1,[figPath filesep 'amplitudeTheOther'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'amplitudeTheOther'],'-v7.3')
+    print(h1,[figPath filesep 'amplitudeTheOther'],'-dtiff')
+
+    tableAmplitudeTheOther=table(amplitudeGroupAll,'RowNames',nameListAdhComb);
+    writetable(tableAmplitudeTheOther,[dataPath filesep 'amplitudeTheOther.csv'],'WriteRowNames',true)    
 end
 %% nucleatingNARatioGroup
 nucleatingNARatioGroupCell = cellfun(@(x) cell2mat(x),nucleatingNARatioGroup,'unif',false);
