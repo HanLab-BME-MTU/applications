@@ -17,7 +17,15 @@ response = datasetTable.Group;
 % Filter out small training data group
 arrayIc = unique(ic);
 numEntitiesInGroup=arrayfun(@(x) sum(ic==x), arrayIc);
-bigEnoughGroups=find(numEntitiesInGroup>5);
+minNumGroup=5; bigEnoughGroups=[];
+while isempty(bigEnoughGroups)
+    bigEnoughGroups=find(numEntitiesInGroup>minNumGroup);
+    minNumGroup=minNumGroup-1;
+    if minNumGroup<1
+        error('There is not enough training data! Cannot proceed with training')
+    end
+end
+
 bigEnoughGroupsIcCellArray=arrayfun(@(x) (ic==x), bigEnoughGroups,'UniformOutput',false);
 bigEnoughGroupsIc = bigEnoughGroupsIcCellArray{1};
 for kk=2:numel(bigEnoughGroupsIcCellArray)

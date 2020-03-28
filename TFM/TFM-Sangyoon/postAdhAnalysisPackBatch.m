@@ -8,8 +8,8 @@ if ~ischar(pathSFolders) && pathSFolders==0
     rootFolder=pwd;
     while ~analysisFolderSelectionDone
         ii=ii+1;
-%         curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        [curMLFile,curPathProject] = uigetfile(rootFolder,'Select the movie list file one per each attempt (Click Cancel when no more)');
+        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+%         [curMLFile,curPathProject] = uigetfile(rootFolder,'Select the movie list file one per each attempt (Click Cancel when no more)');
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
         else
@@ -19,8 +19,8 @@ if ~ischar(pathSFolders) && pathSFolders==0
                 [~,finalFolder] = fileparts(curPathProject2);
             end
             groupNames{ii} = finalFolder;
-            MLFileNamesAll{ii} = curMLFile;
-            MLNames{ii} = curMLFile;
+            MLFileNamesAll{ii} = 'movieList.mat';
+            MLNames{ii} = 'movieList';
             MLdirect=true;
         end
     end
@@ -48,12 +48,12 @@ if ~ischar(pathSFolders) && pathSFolders==0
     end
     specificName = strjoin(groupNames);
     rootAnalysis = pathAnalysisAll{1};
-    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
+    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','MLFileNamesAll','groupNames')
 else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
-    MLFileNamesAll = selectedFolders.MLNames;%'movieList.mat';
+    MLFileNamesAll = selectedFolders.MLFileNamesAll;%'movieList.mat';
 %     for k=1:numel(pathAnalysisAll)
 %         MLFileNamesAll{k} = selectedFolders.MLNames{k};%'movieList.mat';
 %     end
@@ -87,8 +87,8 @@ halfBccGroup = cell(numConditions,1);
 
 earlyAmpSlopeGroup = cell(numConditions,1);
 earlyForceSlopeGroup = cell(numConditions,1);
-fractionForceTransmittingGroup{ii,1} = cell(numConditions,1);
-numEachGroupForceTransmittingGroup{ii,1} = cell(numConditions,1);
+fractionForceTransmittingGroup = cell(numConditions,1);
+numEachGroupForceTransmittingGroup = cell(numConditions,1);
 assemRateEachGroup = cell(numConditions,1);
 disassemRateEachGroup = cell(numConditions,1);
 
@@ -443,30 +443,10 @@ for ii=1:numConditions
                     halfBccTogetherStruct = load([initDataPath filesep nameTitle],'halfBccTogetherAdjusted','nameList2');    
                     halfBccTogetherEachClass{pp}{k} = halfBccTogetherStruct.halfBccTogetherAdjusted;
 
-                    earlyAmpSlopeStr=load([initDataPath filesep 'earlyAmpSlopeAllGroups.mat'],'earlyAmpSlope');
-                    earlyAmpSlopeEachClass{pp}{k} = earlyAmpSlopeStr.earlyAmpSlope{pp};
-
-                    assemRateStr=load([initDataPath filesep 'assemRate.mat'],'assemRate');
-                    assemRateEachClass{pp}{k} = assemRateStr.assemRate{pp};
-                    disassemRateStr=load([initDataPath filesep 'disassemRate.mat'],'disassemRate');
-                    disassemRateEachClass{pp}{k} = disassemRateStr.disassemRate{pp};
-
                     nameTitle=['halfBccTogetherAdjusted' num2str(pp)];
                     halfBccTogetherStruct = load([initDataPath filesep nameTitle],'halfBccTogetherAdjusted','nameList2');    
                     halfBccTogetherEachClass{pp}{k} = halfBccTogetherStruct.halfBccTogetherAdjusted;
                     
-                    try
-                        earlyForceSlopeStr=load([initDataPath filesep 'earlyForceSlopeAllGroups.mat'],'earlyForceSlope');
-                        earlyForceSlopeEachClass{pp}{k} = earlyForceSlopeStr.earlyForceSlope{pp};
-
-                        fractionForceTransmittingStr=load([initDataPath filesep 'forceTransmitting.mat'],'fractionForceTransmitting','numEachGroup','numEachGroupForceTransmitting','groupLabel');
-                        fractionForceTransmittingEachClass{pp}(k) = fractionForceTransmittingStr.fractionForceTransmitting(pp);               
-                        numEachGroupForceTransmitting{pp}(k) = fractionForceTransmittingStr.numEachGroup(pp);               
-                    catch
-                        disp('No force measured')
-                        forceMeasured=false;
-                    end
-
                     if ismember(pp,[1 2])
                         try
                             mainBccPeakValuesGroupStruct = load([initDataPath filesep 'mainBccPeakValuesGroup.mat'],'mainBccPeakValuesGroup');
@@ -495,6 +475,31 @@ for ii=1:numConditions
                             end
                         end
                     end
+                    
+                    %Force related
+                    try
+                        earlyForceSlopeStr=load([initDataPath filesep 'earlyForceSlopeAllGroups.mat'],'earlyForceSlope');
+                        earlyForceSlopeEachClass{pp}{k} = earlyForceSlopeStr.earlyForceSlope{pp};
+
+                        fractionForceTransmittingStr=load([initDataPath filesep 'forceTransmitting.mat'],'fractionForceTransmitting','numEachGroup','numEachGroupForceTransmitting','groupLabel');
+                        fractionForceTransmittingEachClass{pp}(k) = fractionForceTransmittingStr.fractionForceTransmitting(pp);               
+                        numEachGroupForceTransmitting{pp}(k) = fractionForceTransmittingStr.numEachGroup(pp);               
+                    catch
+                        disp('No force measured')
+                        forceMeasured=false;
+                    end
+                end
+                
+                % AssemRate and DisassemRate related
+                earlyAmpSlopPath=[initDataPath filesep 'earlyAmpSlopeAllGroups.mat'];
+                if exist(earlyAmpSlopPath,'file')
+                    earlyAmpSlopeStr=load([initDataPath filesep 'earlyAmpSlopeAllGroups.mat'],'earlyAmpSlope');
+                    earlyAmpSlopeEachClass{pp}{k} = earlyAmpSlopeStr.earlyAmpSlope{pp};
+
+                    assemRateStr=load([initDataPath filesep 'assemRate.mat'],'assemRate');
+                    assemRateEachClass{pp}{k} = assemRateStr.assemRate{pp};
+                    disassemRateStr=load([initDataPath filesep 'disassemRate.mat'],'disassemRate');
+                    disassemRateEachClass{pp}{k} = disassemRateStr.disassemRate{pp};                    
                 end
             end
         end
@@ -593,7 +598,7 @@ end
 % end
 %% Plotting each - initRiseGroup against force - all classes
 nameList=groupNames'; %{'pLVX' 'P29S'};
-if ~isempty(initRiseProc)
+if ~isempty(initRiseProc) && exist('initRiseStruct','var')
     numSlaves = numel(initRiseStruct.nameList2);
     for ii=1:numSlaves
         for curGroup=1:9
@@ -616,7 +621,7 @@ if ~isempty(initRiseProc)
     end
 end
 %% halfBccTime
-if ~isempty(initRiseProc)
+if ~isempty(initRiseProc) && exist('halfBccGroup','var') && ~isempty(halfBccGroup{1}{1})
     for curGroup=1:9
         try        
             halfBccGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),halfBccGroup,'unif',false);
@@ -636,7 +641,7 @@ if ~isempty(initRiseProc)
     end
 end
 %% earlyAmpSlope
-if ~isempty(initRiseProc)
+if ~isempty(initRiseProc) && exist('earlyAmpSlopeGroup','var') && ~isempty(earlyAmpSlopeGroup{1}{1})
     for curGroup=1:9
         try
             earlyAmpSlopeGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),earlyAmpSlopeGroup,'unif',false);
@@ -656,7 +661,7 @@ if ~isempty(initRiseProc)
     end
 end
 %% earlyAmpSlope - G1G2 only
-if ~isempty(initRiseProc)
+if ~isempty(initRiseProc) && exist('earlyAmpSlopeGroup','var') && ~isempty(earlyAmpSlopeGroup{1}{1})
     curGroup=1;
     earlyAmpSlopeG1 = cellfun(@(x) cell2mat(x{curGroup}'),earlyAmpSlopeGroup,'unif',false);
     curGroup=2;
@@ -687,7 +692,7 @@ if ~isempty(initRiseProc)
     print(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],'-dtiff')
 end            
 %% earlyForceSlope
-if ~isempty(initRiseProc)
+if ~isempty(initRiseProc) && exist('earlyForceSlopeGroup','var') && ~isempty(earlyForceSlopeGroup{1}{1})
     for curGroup=1:9
         earlyForceSlopeGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),earlyForceSlopeGroup,'unif',false);
         h1=figure; 
@@ -705,7 +710,7 @@ if ~isempty(initRiseProc)
     end
 end
 %% earlyForceSlope - G1G2 only
-if ~isempty(initRiseProc)
+if ~isempty(initRiseProc) && exist('earlyForceSlopeGroup','var') && ~isempty(earlyForceSlopeGroup{1}{1})
     curGroup=1;
     earlyForceSlopeG1 = cellfun(@(x) cell2mat(x{curGroup}'),earlyForceSlopeGroup,'unif',false);
     curGroup=2;
@@ -746,7 +751,7 @@ if ~isempty(initRiseProc) && ~isempty(curFAPackage.getProcess(10))
     end
 end
 %% Plotting each - mainTimeToPeakGroupGroup - G1 and G2
-if ~isempty(initRiseProc)
+if ~isempty(initRiseProc) && exist('mainTimeToPeakGroupGroup','var') && ~isempty(mainTimeToPeakGroupGroup{1}{1})
     for curGroup=1:2
         mainTimeToPeakGroupGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),mainTimeToPeakGroupGroup,'unif',false);
         h1=figure; 
@@ -1249,8 +1254,8 @@ if plotSuccess
     writetable(tableDisassemRateGroup,[dataPath filesep 'disassemRate.csv'],'WriteRowNames',true)
 end
 %% Plotting each - peakGroup - all classes - usually not interesting: there is no lag.
-if ~isempty(initRiseProc)
-    nonZeroGroups=~cellfun(@isempty,peakGroup{1});
+if ~isempty(initRiseProc) && ~isempty(peakGroup{1}{1})
+    nonZeroGroups=~cellfun(@isempty,assemRateEachGroup{1});
     for curGroup=find(nonZeroGroups)'
         peakLagGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x{curGroup}','unif',false)),peakGroup,'unif',false);
         h1=figure; 
@@ -1282,6 +1287,8 @@ if ~isempty(initRiseProc)
             writetable(tableEndLagGroupEach,[dataPath filesep 'endLagG' num2str(curGroup) '.csv'],'WriteRowNames',true)
         end
     end
+end
+if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
     %% assemRateGroup
     for curGroup=find(nonZeroGroups)'
         try

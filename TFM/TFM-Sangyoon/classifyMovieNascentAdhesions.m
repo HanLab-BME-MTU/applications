@@ -350,7 +350,7 @@ else
     % 
         % G1 should not have too big area
         thresMatureArea=500/MD.pixelSize_*500/MD.pixelSize_;
-        smallEnoughArea = meanAreaAll<thresMatureArea/2; %mean(meanAreaAll)+std(meanAreaAll);
+        smallEnoughArea = meanAreaAll<thresMatureArea; %mean(meanAreaAll)+std(meanAreaAll);
         
 %         % Should exclude the ones near the interior boundary. Checking for
 %         % edgeVariationNaive
@@ -408,7 +408,7 @@ else
             thresMeanAmp = mean(meanAmpAll)+0.5*std(meanAmpAll);
         end
         lowAmpPopul = meanAmpAll(meanAmpAll<thresMeanAmp);
-        thresLowAmpG1 = quantile(lowAmpPopul,.9);
+        thresLowAmpG1 = quantile(lowAmpPopul,.5);
         maxAmpAll = arrayfun(@(y) nanmax(y.ampTotal), tracksNA);
         indHighEnoughMaxInten = maxAmpAll>thresLowAmpG1;
         
@@ -416,14 +416,19 @@ else
         indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1 & ...
             indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea ...
             & indHighEnoughMaxInten; %& indCleanDecayingG1 & indDirectional;
+        disp([num2str(sum(indAbsoluteG1)) ' tracks'])
         toc
         
         disp('Automatic labeling for G2...'); tic;
         % At the same time, G2 should start from a decently low amplitude
         % as in G1
         initIntenAll = arrayfun(@(x) x.ampTotal(x.startingFrameExtra),tracksNA);
-        initIntenG1 = initIntenAll(indAbsoluteG1);
-        indInitIntenG2 = initIntenAll<(mean(initIntenG1)+0.5*std(initIntenG1));
+        if sum(indAbsoluteG1)>1
+            initIntenG1 = initIntenAll(indAbsoluteG1);
+            indInitIntenG2 = initIntenAll<(mean(initIntenG1)+0.5*std(initIntenG1));
+        else
+            indInitIntenG2 = initIntenAll<(mean(initIntenAll)-0.5*std(initIntenAll));
+        end
         
         % G1 summarizing -> below at Line 505
 
@@ -548,6 +553,7 @@ else
         indAbsoluteG2 = indIncreasingArea & indEdgeNotRetracting & indInitIntenG2 & ...
             sufficientInitialNAState & endingWithFAState & indCloseStartingEdgeG2 & ...
             bigEnoughArea & indCleanRisingG1G2 & awayfromEdgeLater & homogeneousEnoughWhenMatured; % & indNonDecayingG2 & indLateMaxPointG2;
+        disp([num2str(sum(indAbsoluteG2)) ' tracks'])
         toc
         disp('Automatic labeling for G3...'); tic;        
         % G3
@@ -562,6 +568,7 @@ else
         indForwardVelG3 = adhVelAll>thresAdhVelG3;
 
         indAbsoluteG3 = indEdgeVelG3 & indRelEdgeVelG3 & indCloseStartingEdgeG1 & indForwardVelG3 & indEarlyEdgeVelG3;
+        disp([num2str(sum(indAbsoluteG3)) ' tracks'])
         toc
         % G4 - retracting, strong FAs
         disp('Automatic labeling for G4...'); tic;        
@@ -579,6 +586,7 @@ else
         ampSlopeAll = arrayfun(@(x) x.ampSlope, tracksNA);
         indDecayingAmp = ampSlopeAll<0;
         indAdditionalG4 = indEdgeVelG4 & indDecayingAmp & indCloseStartingEdgeG1 & faAssocAll & indEdgeDistG4 & indAdvDistG4;
+        disp([num2str(sum(indAbsoluteG4)) ' tracks'])
         toc
         % G5 - stable at the edge
         disp('Automatic labeling for G5...'); tic;
@@ -614,6 +622,7 @@ else
         indStayAtEdge = distToEdgeStdAll<thresEdgeStd;
         indHighAmpG5 = meanAmpAll>thresMeanAmp;
         indAbsoluteG5 = indStayAtEdge & indLifetimeG5 & indHighAmpG5 & indCloseEdgeG5; %indEdgeVelG5 & indEdgeStdG5
+        disp([num2str(sum(indAbsoluteG5)) ' tracks'])
         toc
         % G6 : noise. There are several types of noises, or uninterested
         % tracks
@@ -630,6 +639,7 @@ else
         thresStartingDistG6 = 1000/MD.pixelSize_;%quantile(distToEdgeFirstAll,0.25);
         indInsideG6 = distToEdgeFirstAll > thresStartingDistG6; % decided to exclude ones at very edge
         indAbsoluteG6 = (indShortLifeG6 | indLowAmpG6) & indInsideG6;
+        disp([num2str(sum(indAbsoluteG6)) ' tracks'])
         toc
         % G7 NAs at stalling edge: big difference from G5 is that it has
         % some early history of edge protrusion & relative weak signal
@@ -643,6 +653,7 @@ else
         indLowAmpG7 = meanAmpAll < thresMeanAmp;
 
         indAbsoluteG7 = indLastAdvanceG7 & indEdgeVelG7 & indRelEdgeVelG3 & indLowAmpG7;
+        disp([num2str(sum(indAbsoluteG7)) ' tracks'])
         toc
         % G8 strong inside FAs
 %         distToEdgeMean = arrayfun(@(x) mean(x.distToEdge(x.startingFrameExtra:x.endingFrameExtra)),tracksNA);
@@ -651,11 +662,13 @@ else
         indInsideG8G9 = distToEdgeFirstAll > thresStartingDistG1; % decided to 
         
         indAbsoluteG8 = indHighAmpG5 & indInsideG8G9 & indLifetimeG5;
+        disp([num2str(sum(indAbsoluteG8)) ' tracks'])
         toc
         % G9 weak inside NAs
         disp('Automatic labeling for G9...'); tic;
         indMinLifeG9 = lifeTimesAll>2*thresShortLifeG6;
         indAbsoluteG9 = indLowAmpG7 & indInsideG8G9 & indMinLifeG9;
+        disp([num2str(sum(indAbsoluteG9)) ' tracks'])
         toc
         %% I decided to get mutually exclusive indices
         indexG1 = find(indAbsoluteG1 & indInitIntenG2 & ~indAbsoluteG2); 
