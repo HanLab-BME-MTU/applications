@@ -56,7 +56,7 @@ else
     try
         MLFileNamesAll = selectedFolders.MLFileNamesAll;%'movieList.mat';
     catch
-        MLFileNamesAll = selectedFolders.MLFileNamesAll;%'movieList.mat';
+        MLFileNamesAll = 'movieList.mat';
     end
 %     for k=1:numel(pathAnalysisAll)
 %         MLFileNamesAll{k} = selectedFolders.MLNames{k};%'movieList.mat';
