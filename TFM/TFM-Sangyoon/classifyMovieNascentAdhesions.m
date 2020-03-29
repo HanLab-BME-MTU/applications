@@ -1139,11 +1139,12 @@ else
 %         tableTracksNA = struct2table(tracksNA);
 %         save(outFilePaths{5,iChan},'tracksNA','tableTracksNA','-v7.3') Doesn't need to store tracksNA in Step 8 because it's not changed 
     end
-    % saving presence
-    s = struct2table(tracksNA);
-    presenceAll = s.presence;
-    save(outFilePaths{5,iChan},'presenceAll')
 end
+% saving presence
+s = struct2table(tracksNA);
+presenceAll = s.presence;
+save(outFilePaths{5,iChan},'presenceAll')
+
 disp('Classification Process Done!')
 end
 % function  [validationAccuracy,C,order] = validateClassifier(trainedClassifier,datasetTable) %This function is now separate.
