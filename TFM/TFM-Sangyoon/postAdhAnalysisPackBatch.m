@@ -41,7 +41,8 @@ if ~ischar(pathSFolders) && pathSFolders==0
                     [~,finalFolder] = fileparts(pathAnalysisAll{ii});
                     groupNames{ii} = finalFolder;
                 end
-                MLNames{ii} = nameML;
+                MLNames{ii} = nameML(10:end-4);
+                MLFileNamesAll{ii} = nameML;
             end
         end
         MLdirect=true;
@@ -232,6 +233,10 @@ for ii=1:numConditions
     intensitiesInNAs=cell(N(ii),1);   
     intensitiesInFCs=cell(N(ii),1);   
     intensitiesInFAs=cell(N(ii),1);   
+    
+    amplitudeInNAs=cell(N(ii),1);   
+    amplitudeInFCs=cell(N(ii),1);   
+    amplitudeInFAs=cell(N(ii),1);   
     
     curMovies = curML.movies_;
     for k=1:N(ii)
@@ -514,11 +519,15 @@ for ii=1:numConditions
                 if exist(earlyAmpSlopPath,'file')
                     earlyAmpSlopeStr=load([initDataPath filesep 'earlyAmpSlopeAllGroups.mat'],'earlyAmpSlope');
                     earlyAmpSlopeEachClass{pp}{k} = earlyAmpSlopeStr.earlyAmpSlope{pp};
-
+                end
+                if exist([initDataPath filesep 'assemRate.mat'],'file')
                     assemRateStr=load([initDataPath filesep 'assemRate.mat'],'assemRate');
                     assemRateEachClass{pp}{k} = assemRateStr.assemRate{pp};
                     disassemRateStr=load([initDataPath filesep 'disassemRate.mat'],'disassemRate');
                     disassemRateEachClass{pp}{k} = disassemRateStr.disassemRate{pp};                    
+                else
+                    assemRateEachClass{pp}{k} = [];
+                    disassemRateEachClass{pp}{k} = [];                    
                 end
             end
         end
@@ -843,6 +852,34 @@ for curGroup=1:2
         writetable(tableAdhNumGroupEach,[dataPath filesep 'numGroup' num2str(curGroup) '.csv'],'WriteRowNames',true)
     end
 end
+%% num of adhesion for all classes - new nameList
+nameListAllTogether=cell(1,numConditions*9);
+for ii=1:numConditions
+    for jj=1:9
+        nameListAllTogether{1,(jj-1)*2+ii}= [nameList{ii} 'G' num2str(jj)];
+    end
+end
+%% num of adhesion for all classes
+numGroupAll={numG1Group,numG2Group,numG3Group,numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group};
+numGroupAllLinear = cell(1,numConditions*9);
+for ii=1:numConditions
+    for jj=1:9
+        numGroupAllLinear{1,(jj-1)*2+ii}=numGroupAll{jj}{ii,1};
+    end
+end
+h1=figure; 
+% barPlotCellArray(numGroupAllLinear,nameListAllTogether,1);
+plotSuccess=boxPlotCellArray(numGroupAllLinear,nameListAllTogether,1,false, true);
+if plotSuccess
+    ylabel(['Number of adhesions in each group (#)'])
+    title(['Number of adhesions in each group '])
+    hgexport(h1,[figPath filesep 'numGroupAll'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'numGroupAll'],'-v7.3')
+    print(h1,[figPath filesep 'numGroupAll'],'-dtiff')
+    tablenumGroupAll=table(numGroupAllLinear','RowNames',nameListAllTogether');
+    writetable(tablenumGroupAll,[dataPath filesep 'numGroupAll.csv'],'WriteRowNames',true)
+end
+
 %% meanRelative population
 meanRelPopGroupAll={meanRelativePopG1Group,meanRelativePopG2Group,meanRelativePopG3Group,...
     meanRelativePopG4Group,meanRelativePopG5Group,meanRelativePopG6Group,...
@@ -861,6 +898,26 @@ for curGroup=1:9
         tableMeanPopGroupEach=table(curmeanPopGroup,'RowNames',nameList);
         writetable(tableMeanPopGroupEach,[dataPath filesep 'meanRelPopGroup' num2str(curGroup) '.csv'],'WriteRowNames',true)
     end
+end
+
+%% relative population for all classes
+meanRelPopGroupAllLinear = cell(1,numConditions*9);
+for ii=1:numConditions
+    for jj=1:9
+        meanRelPopGroupAllLinear{1,(jj-1)*2+ii}=meanRelPopGroupAll{jj}{ii,1};
+    end
+end
+h1=figure; 
+% barPlotCellArray(numGroupAllLinear,nameListAllTogether,1);
+plotSuccess=boxPlotCellArray(meanRelPopGroupAllLinear,nameListAllTogether,1,false, true);
+if plotSuccess
+    ylabel(['Relative adhesion population in each group (#/#)'])
+    title(['Relative adhesion population in each group '])
+    hgexport(h1,[figPath filesep 'meanRelPopAllGroup'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'meanRelPopAllGroup'],'-v7.3')
+    print(h1,[figPath filesep 'meanRelPopAllGroup'],'-dtiff')
+    tableAll=table(meanRelPopGroupAllLinear','RowNames',nameListAllTogether');
+    writetable(tableAll,[dataPath filesep 'meanRelPopAllGroup.csv'],'WriteRowNames',true)
 end
 %% RAtio between g1 and g2
 ratioG1G2=cellfun(@(x,y) y./x,meanRelativePopG1Group,meanRelativePopG2Group,'unif',false);
@@ -896,6 +953,26 @@ for curGroup=1:9
         tableAdhDenGroupEach=table(curAdhDenGroup,'RowNames',nameList);
         writetable(tableAdhDenGroupEach,[dataPath filesep 'meanAdhDenGroup' num2str(curGroup) '.csv'],'WriteRowNames',true)
     end
+end
+
+%% mean adhesion density for all classes
+meanAdhDensityGroupAllLinear = cell(1,numConditions*9);
+for ii=1:numConditions
+    for jj=1:9
+        meanAdhDensityGroupAllLinear{1,(jj-1)*2+ii}=cell2mat(meanAdhDensityGroupAll{jj}{ii,1}');
+    end
+end
+h1=figure; 
+% barPlotCellArray(numGroupAllLinear,nameListAllTogether,1);
+plotSuccess=boxPlotCellArray(meanAdhDensityGroupAllLinear,nameListAllTogether,1,false, true);
+if plotSuccess
+    ylabel(['Mean adhesion density in each group (#/#)'])
+    title(['Mean adhesion density in each group '])
+    hgexport(h1,[figPath filesep 'meanAdhDenAllGroup'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'meanAdhDenAllGroup'],'-v7.3')
+    print(h1,[figPath filesep 'meanAdhDenAllGroup'],'-dtiff')
+    tableAll=table(meanAdhDensityGroupAllLinear','RowNames',nameListAllTogether');
+    writetable(tableAll,[dataPath filesep 'meanAdhDenAllGroup.csv'],'WriteRowNames',true)
 end
 %% cell area - 
 h1=figure; 
