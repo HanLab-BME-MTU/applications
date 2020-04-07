@@ -218,8 +218,10 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
                     tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
                     SDCProc=tfmPackageHere.processes_{iSDCProc};
+                    iBeadChan=SDCProc.funParams_.iBeadChannel;
+
                     if ~isempty(SDCProc)
-                        s = load(SDCProc.outFilePaths_{3,1},'T');
+                        s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
                         Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);
                         invTr = invert(Tr);
