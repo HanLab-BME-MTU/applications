@@ -121,9 +121,9 @@ if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if feature('ShowFigureWindows'),parfor_progress(nFrames); end
 
 outlierThreshold=p.outlierThreshold;
-if useGrid
-    disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
-else
+% if useGrid
+%     disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
+% else
 %     parfor j= 1:nFrames
     parfor j= 1:nFrames
         % Outlier detection
@@ -167,7 +167,7 @@ else
     %     end
         if feature('ShowFigureWindows'), parfor_progress; end
     end
-end
+% end
 if feature('ShowFigureWindows'), parfor_progress(0); end
 
 if p.fillVectors
