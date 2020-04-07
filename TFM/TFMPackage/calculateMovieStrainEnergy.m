@@ -210,9 +210,12 @@ else
         existMask = true;
     end
 end
-iChan=find(maskProc.checkChannelOutput);
-if length(iChan)>1
-    iChan=iChan(1);
+
+if ~isempty(iMaskProcess)
+    iChan=find(maskProc.checkChannelOutput);
+    if length(iChan)>1
+        iChan=iChan(1);
+    end
 end
 
 %% Calculate strain energy and total force
