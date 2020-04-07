@@ -264,10 +264,10 @@ else
         if thresDisassemRateG1<-0.5 || thresDisassemRateG1>0
             thresDisassemRateG1=-0.5;
         end
-    %         indCleanDecayingG1 = disassemRateAll<thresDisassemRateG1;  
-    % %         disassemRateAll = arrayfun(@(y) y.disassemRate, tracksNA);
-    % %         thresDisassemRateG1 = quantile(disassemRateAll,0.01);
-    % %         indCleanDecayingG1 = disassemRateAll>thresDisassemRateG1;  
+        indCleanDecayingG1 = disassemRateAll<thresDisassemRateG1;  
+    %         disassemRateAll = arrayfun(@(y) y.disassemRate, tracksNA);
+    %         thresDisassemRateG1 = quantile(disassemRateAll,0.01);
+    %         indCleanDecayingG1 = disassemRateAll>thresDisassemRateG1;  
 
         % 7. maximum point location compared to the life time (G2 has
         % maximum point at the later phase).
@@ -349,7 +349,7 @@ else
     % %     indHighEnoughMaxAmp = maxIntenAll>(meanIntenG1+0.1*stdIntenG1);
     % 
         % G1 should not have too big area
-        thresMatureArea=500/MD.pixelSize_*500/MD.pixelSize_;
+        thresMatureArea=500/MD.pixelSize_*200/MD.pixelSize_;
         smallEnoughArea = meanAreaAll<thresMatureArea; %mean(meanAreaAll)+std(meanAreaAll);
         
 %         % Should exclude the ones near the interior boundary. Checking for
@@ -398,7 +398,7 @@ else
 %         indDirectional = directionalityAll>.6;
         
         % We don't want the noise which should belong to G6. 
-        meanAmpAll = arrayfun(@(y) nanmean(y.ampTotal), tracksNA);
+        meanAmpAll = arrayfun(@(y) nanmean(y.amp), tracksNA);
         maxMeanAmp = max(meanAmpAll);
         meanAmpNorm = meanAmpAll/maxMeanAmp;
         try
@@ -415,7 +415,7 @@ else
         % Summing all those for G1
         indAbsoluteG1 = indEdgeVelG1 & indRelEdgeVelG1 & indCloseStartingEdgeG1 & ...
             indCleanRisingG1G2 & indEarlyMaxPointG1 & smallEnoughArea ...
-            & indHighEnoughMaxInten; %& indCleanDecayingG1 & indDirectional;
+            & indHighEnoughMaxInten & indCleanDecayingG1; % & indDirectional;
         disp([num2str(sum(indAbsoluteG1)) ' tracks'])
         toc
         
@@ -471,7 +471,7 @@ else
         % that the G2 should end up being a way behind the cell edge at the
         % end of the day, e.g. at least 3 um away
         distToEdgeLastAll = arrayfun(@(x) x.distToEdge(x.endingFrameExtraExtra),tracksNA);
-        thresDistAwayFromEdge = 3000/MD.pixelSize_;
+        thresDistAwayFromEdge = 2000/MD.pixelSize_;
         awayfromEdgeLater = distToEdgeLastAll > thresDistAwayFromEdge;
         
         % Yet another feature to distinguish the maturing adhesion from
@@ -631,7 +631,7 @@ else
         thresShortLifeG6 = min(100/MD.timeInterval_, quantile(lifeTimesAll,0.05));
         indShortLifeG6 = lifeTimesAll<=thresShortLifeG6;
         % G6-2. amplitude too small
-        thresLowAmpG6 = mean(lowAmpPopul)-0.3*std(lowAmpPopul);
+        thresLowAmpG6 = mean(lowAmpPopul)-1*std(lowAmpPopul);
         indLowAmpG6 = meanAmpAll<thresLowAmpG6;
         % G6-3. OR, tracks near the image borders (zero edge movement or std
         % I am not sure if assigning two differently positioned labels work

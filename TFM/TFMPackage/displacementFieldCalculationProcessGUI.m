@@ -47,19 +47,47 @@ end
 % --- Executes just before displacementFieldCalculationProcessGUI is made visible.
 function displacementFieldCalculationProcessGUI_OpeningFcn(hObject,eventdata,handles,varargin)
 
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
-processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
-    'initChannel',1);
+userData = get(handles.figure1, 'UserData');
+
+% Propagate stage drift correction parameters if no process AND stage drift
+% correction parameters has been set up
+stageDriftCorrProc = userData.crtPackage.processes_{1};
+
+if ~isempty(stageDriftCorrProc) 
+    set(handles.edit_referenceFramePath, 'String',stageDriftCorrProc.funParams_.referenceFramePath)
+    set(handles.edit_referenceFramePath,'Enable','off');
+    set(handles.pushbutton_selectReferenceFrame,'Enable','off');
+end
+    
+if ~isempty(stageDriftCorrProc) && strcmp(stageDriftCorrProc.name_, 'Bead Tracking Drift Correction')
+    if isempty(userData.crtPackage.processes_{userData.procID}) 
+        set(handles.edit_alpha,'String', stageDriftCorrProc.funParams_.alpha);
+    end
+end
+
+
+if ~isempty(stageDriftCorrProc) 
+    channelString = userData.MD.getChannelPaths(stageDriftCorrProc.funParams_.iBeadChannel);
+
+    set(handles.listbox_selectedChannels,'String',channelString,...
+        'UserData',stageDriftCorrProc.funParams_.iBeadChannel);
+end
 
 % Set process parameters
-userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 set(handles.edit_referenceFramePath,'String',funParams.referenceFramePath);
 userData.numParams ={'alpha','minCorLength', 'maxFlowSpeed'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams);
-set(handles.edit_maxFlowSpeedNmMin,'String',...
-    funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+if ~isempty(userData.MD.timeInterval_)
+    set(handles.edit_maxFlowSpeedNmMin,'String',...
+        funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+else
+    set(handles.edit_maxFlowSpeedNmMin,'String',...
+        funParams.maxFlowSpeed*userData.MD.pixelSize_);
+end
 set(handles.edit_sigCrit,'String', funParams.sigCrit);
 set(handles.checkbox_highRes, 'Value', funParams.highRes);
 set(handles.checkbox_useGrid, 'Value', funParams.useGrid);
@@ -70,20 +98,6 @@ set(handles.checkbox_mode, 'Value', strcmp(funParams.mode, 'accurate'));
 set(handles.checkboxTrackSuccessive, 'Value', funParams.trackSuccessively);
 set(handles.checkbox_noGESA, 'Value', funParams.noGradualExpansionOfSearchArea);
 
-% Propagate stage drift correction parameters if no process AND stage drift
-% correction parameters has been set up
-stageDriftCorrProc = userData.crtPackage.processes_{1};
-
-if ~isempty(stageDriftCorrProc) 
-    set(handles.edit_referenceFramePath,'Enable','off');
-    set(handles.pushbutton_selectReferenceFrame,'Enable','off');
-end
-    
-if ~isempty(stageDriftCorrProc) && strcmp(stageDriftCorrProc.name_, 'Bead Tracking Drift Correction')
-    if isempty(userData.crtPackage.processes_{userData.procID}) 
-        set(handles.edit_alpha,'String', stageDriftCorrProc.funParams_.alpha);
-    end
-end
 
 % Override default channels callback function
 set(handles.checkbox_all,'Callback',@(hObject,eventdata)...
