@@ -117,7 +117,7 @@ distance2(idxBeadsEnoughNeis>1)=cellfun(@(x) x(2),distance(idxBeadsEnoughNeis>1)
 %     threshDist = 2*mean(distance2);
 % end
 threshDist = nanmean(distance2)+2*nanstd(distance2);
-idxCloseVectors = distance2<threshDist & ~isnan(distance2);
+idxCloseVectors = distance2<=threshDist & ~isnan(distance2);
 neighborhood_distance = 5*max(distance2(idxCloseVectors));%quantile(distance,0.95);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
 idAwayVectors = distance2>neighborhood_distance | isnan(distance2);
 idxCloseEnoughVectors = distance2<neighborhood_distance & ~isnan(distance2);

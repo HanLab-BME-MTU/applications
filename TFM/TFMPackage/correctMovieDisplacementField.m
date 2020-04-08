@@ -124,8 +124,8 @@ outlierThreshold=p.outlierThreshold;
 % if useGrid
 %     disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
 % else
-%     parfor j= 1:nFrames
     parfor j= 1:nFrames
+%     for j= 1:nFrames
         % Outlier detection
         dispMat = [displField(j).pos displField(j).vec];
         % Take out duplicate points (Sangyoon)
