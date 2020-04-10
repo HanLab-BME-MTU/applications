@@ -525,8 +525,8 @@ parfor k = 1:nPoints
         if minVP>=maxVP
             minVF=round(maxV(2)*refineFactor) - refineRange*refineFactor;
         end
-        newvP = minVP:maxVP;
-        newvF = minVF:maxVF;
+        newvP = minVP:1:maxVP;
+        newvF = minVF:1:maxVF;
 
 %         newhCLL    = max(min(xI-1-ceil(newvF(1)/refineFactor)-ceil(incFactor*corL)),0);
 %         newhCLR    = min(imgL-xI,ceil(incFactor*corL)+max(abs(newvF(end))/refineFactor,0));
@@ -550,18 +550,19 @@ parfor k = 1:nPoints
         curYLfine = max(1,(yI-incFactor2*halfCorL));
         curYRfine = min(imgW,(yI+incFactor2*halfCorL));
 
+        % Refined template grid
         [curXI,curYI] = meshgrid(curXL:curXR,curYL:curYR);
         [fineXI,fineYI] = meshgrid(curXLfine:1/refineFactor:curXRfine,curYLfine:1/refineFactor:curYRfine);
         
-        curXL2 = floor(xI+newvF(1)/refineFactor-incFactor*halfCorL+trimmedXL);
-        curXR2 = ceil(xI+newvF(end)/refineFactor+incFactor*halfCorL-trimmedXR);
-        curYL2 = floor(yI+newvP(1)/refineFactor-incFactor*halfCorL+trimmedYL);
-        curYR2 = ceil(yI+newvP(end)/refineFactor+incFactor*halfCorL-trimmedYR);
+        curXL2 = floor(xI+newvF(1)/refineFactor-incFactor2*halfCorL+trimmedXL);
+        curXR2 = ceil(xI+newvF(end)/refineFactor+incFactor2*halfCorL-trimmedXR);
+        curYL2 = floor(yI+newvP(1)/refineFactor-incFactor2*halfCorL+trimmedYL);
+        curYR2 = ceil(yI+newvP(end)/refineFactor+incFactor2*halfCorL-trimmedYR);
 
-        curXLfine2 = (xI+newvF(1)/refineFactor-incFactor*halfCorL+trimmedXL);
-        curXRfine2 = (xI+newvF(end)/refineFactor+incFactor*halfCorL-trimmedXR);
-        curYLfine2 = (yI+newvP(1)/refineFactor-incFactor*halfCorL+trimmedYL);
-        curYRfine2 = (yI+newvP(end)/refineFactor+incFactor*halfCorL-trimmedYR);
+        curXLfine2 = (xI+newvF(1)/refineFactor-incFactor2*halfCorL+trimmedXL);
+        curXRfine2 = (xI+newvF(end)/refineFactor+incFactor2*halfCorL-trimmedXR);
+        curYLfine2 = (yI+newvP(1)/refineFactor-incFactor2*halfCorL+trimmedYL);
+        curYRfine2 = (yI+newvP(end)/refineFactor+incFactor2*halfCorL-trimmedYR);
                 
         [curXI2,curYI2] = meshgrid(curXL2:curXR2,curYL2:curYR2);
 %         [fineXI,fineYI] = meshgrid(xI-newhCLL:1/refineFactor:xI+newhCLR,yI-newhCWL:1/refineFactor:yI+newhCWR);
