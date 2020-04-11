@@ -188,7 +188,11 @@ totalForceBlobs = struct('force',zeros(nFrames,1),'avgTraction',[],...
 iTFMPack = movieData.getPackageIndex('TFMPackage');
 TFMPack=movieData.packages_{iTFMPack}; iSDCProc=1;
 SDCProc=TFMPack.processes_{iSDCProc};
-iBeadChan=SDCProc.funParams_.iBeadChannel;
+if ~isempty(SDCProc)
+    iBeadChan=SDCProc.funParams_.iBeadChannel;
+else
+    iBeadChan=1;
+end
 % iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1); 
 existSDC=false;
 if ~isempty(SDCProc)
