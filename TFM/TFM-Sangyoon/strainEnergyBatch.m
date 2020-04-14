@@ -293,6 +293,10 @@ end
 %% Plotting each - SE-Cell-Peri
 if isCellSeg
     SE_CellPeri_GroupCellArray = cellfun(@(x) cell2mat(x),SE_CellPeri_Group,'unif',false);
+    samNum=cellfun(@numel,SE_CellPeri_GroupCellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        SE_CellPeri_GroupCellArray = cellfun(@(x) cellfun(@mean,x),SE_CellPeri_Group,'unif',false);
+    end
     h1=figure; 
     % barPlotCellArray(SEGroupCell,nameList,1)
     boxPlotCellArray(SE_CellPeri_GroupCellArray,nameList,1,false,true)
@@ -308,6 +312,10 @@ end
 %% Plotting each - SE-Cell-Inside
 if isCellSeg
     SE_CellInside_GroupCellArray = cellfun(@(x) cell2mat(x),SE_CellInside_Group,'unif',false);
+    samNum=cellfun(@numel,SE_CellInside_GroupCellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        SE_CellInside_GroupCellArray = cellfun(@(x) cellfun(@mean,x),SE_CellInside_Group,'unif',false);
+    end
     h1=figure; 
     % barPlotCellArray(SEGroupCell,nameList,1)
     boxPlotCellArray(SE_CellInside_GroupCellArray,nameList,1,false,true)
@@ -322,6 +330,10 @@ if isCellSeg
 end
 %% Plotting each - SE-FOV
 SE_FOV_GroupCellArray = cellfun(@(x) cell2mat(x),SE_FOV_Group,'unif',false);
+samNum=cellfun(@numel,SE_FOV_GroupCellArray);
+if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+    SE_FOV_GroupCellArray = cellfun(@(x) cellfun(@mean,x),SE_FOV_Group,'unif',false);
+end
 h1=figure; 
 % barPlotCellArray(SEGroupCell,nameList,1)
 boxPlotCellArray(SE_FOV_GroupCellArray,nameList,1,false,true)
@@ -335,6 +347,10 @@ tableSE_FOV=table(SE_FOV_GroupCellArray,'RowNames',nameList);
 writetable(tableSE_FOV,strcat(dataPath,'/strainEnergyFOV.csv'),'WriteRowNames',true)
 %% Strain energy density - ForceBlob
 SEDenGroupFB_CellArray = cellfun(@(x) cell2mat(x),SEDen_FB_Group,'unif',false);
+samNum=cellfun(@numel,SEDenGroupFB_CellArray);
+if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+    SEDenGroupFB_CellArray = cellfun(@(x) cellfun(@mean,x),SEDen_FB_Group,'unif',false);
+end
 h1=figure; 
 % barPlotCellArray(SEGroupCell,nameList,1)
 boxPlotCellArray(SEDenGroupFB_CellArray,nameList,1,false,true)
@@ -349,6 +365,10 @@ writetable(tableSED_FB,strcat(dataPath,'/strainEnergyDensityForceBlobs.csv'),'Wr
 %% Strain energy density - Cell
 if isCellSeg
     SEDenGroupCell_CellArray = cellfun(@(x) cell2mat(x),SEDen_Cell_Group,'unif',false);
+    samNum=cellfun(@numel,SEDenGroupCell_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        SEDenGroupCell_CellArray = cellfun(@(x) cellfun(@mean,x),SEDen_Cell_Group,'unif',false);
+    end
     h1=figure; 
     % barPlotCellArray(SEGroupCell,nameList,1)
     boxPlotCellArray(SEDenGroupCell_CellArray,nameList,1,false,true)
@@ -364,6 +384,10 @@ end
 %% Strain energy density - CellPeri
 if isCellSeg
     SEDenGroupCellPeri_CellArray = cellfun(@(x) cell2mat(x),SEDen_CellPeri_Group,'unif',false);
+    samNum=cellfun(@numel,SEDenGroupCellPeri_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        SEDenGroupCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),SEDen_CellPeri_Group,'unif',false);
+    end
     h1=figure; 
     % barPlotCellArray(SEGroupCell,nameList,1)
     boxPlotCellArray(SEDenGroupCellPeri_CellArray,nameList,1,false,true)
@@ -379,6 +403,10 @@ end
 %% Strain energy density - CellInside
 if isCellSeg
     SEDenGroupCellInside_CellArray = cellfun(@(x) cell2mat(x),SEDen_CellInside_Group,'unif',false);
+    samNum=cellfun(@numel,SEDenGroupCellInside_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        SEDenGroupCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),SEDen_CellInside_Group,'unif',false);
+    end
     h1=figure; 
     % barPlotCellArray(SEGroupCell,nameList,1)
     boxPlotCellArray(SEDenGroupCellInside_CellArray,nameList,1,false,true)
@@ -393,6 +421,10 @@ if isCellSeg
 end
 %% Strain energy density - FOV
 SEDenGroupFOV_CellArray = cellfun(@(x) cell2mat(x),SEDen_FOV_Group,'unif',false);
+    samNum=cellfun(@numel,SEDenGroupFOV_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        SEDenGroupFOV_CellArray = cellfun(@(x) cellfun(@mean,x),SEDen_FOV_Group,'unif',false);
+    end
 h1=figure; 
 % barPlotCellArray(SEGroupCell,nameList,1)
 boxPlotCellArray(SEDenGroupFOV_CellArray,nameList,1,false,true)
@@ -406,6 +438,10 @@ tableSED_FOV=table(SEDenGroupFOV_CellArray,'RowNames',nameList);
 writetable(tableSED_FOV,strcat(dataPath,'/strainEnergyDensityFOV.csv'),'WriteRowNames',true)
 %% Total force - Force Blobs
 totForceFBCellArray = cellfun(@(x) cell2mat(x),totalForce_FB_Group,'unif',false);
+    samNum=cellfun(@numel,totForceFBCellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totForceFBCellArray = cellfun(@(x) cellfun(@mean,x),totalForce_FB_Group,'unif',false);
+    end
 h1=figure; 
 boxPlotCellArray(totForceFBCellArray,nameList,1,false,true)
 ylabel('Total force (nN)')
@@ -463,6 +499,10 @@ end
 %% Total force - Cell
 if isCellSeg
     totForceCell_CellArray = cellfun(@(x) cell2mat(x),totalForce_Cell_Group,'unif',false);
+    samNum=cellfun(@numel,totForceCell_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totForceCell_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_Cell_Group,'unif',false);
+    end
     h1=figure; 
     boxPlotCellArray(totForceCell_CellArray,nameList,1,false,true)
     ylabel('Total force (nN)')
@@ -476,7 +516,11 @@ if isCellSeg
 end
 %% Total force - CellPeri
 if isCellSeg
-    totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellPeri_Group,'unif',false);
+    totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellPeri_Group,'unif',false);
+    samNum=cellfun(@numel,totForceCellPeri_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totForceCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_CellPeri_Group,'unif',false);
+    end
     h1=figure; 
     boxPlotCellArray(totForceCellPeri_CellArray,nameList,1,false,true)
     ylabel('Total force (nN)')
@@ -490,7 +534,11 @@ if isCellSeg
 end
 %% Total force - CellInside
 if isCellSeg
-    totForceCellInside_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellInside_Group,'unif',false);
+    totForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellInside_Group,'unif',false);
+    samNum=cellfun(@numel,totForceCellInside_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totForceCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_CellInside_Group,'unif',false);
+    end
     h1=figure; 
     boxPlotCellArray(totForceCellInside_CellArray,nameList,1,false,true)
     ylabel('Total force (nN)')
@@ -504,6 +552,10 @@ if isCellSeg
 end
 %% Total force - FOV
 totForceFOV_CellArray = cellfun(@(x) cell2mat(x),totalForce_FOV_Group,'unif',false);
+    samNum=cellfun(@numel,totForceFOV_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totForceFOV_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_FOV_Group,'unif',false);
+    end
 h1=figure; 
 boxPlotCellArray(totForceFOV_CellArray,nameList,1,false,true)
 ylabel('Total force (nN)')
@@ -517,6 +569,10 @@ writetable(tableTotalForce_FOV,strcat(dataPath,'/totalForce_FOV.csv'))
 %% Total force - Spread Area
 if isCellSeg
     spreadArea_CellArray = cellfun(@(x) cell2mat(x),spreadArea_Group,'unif',false);
+    samNum=cellfun(@numel,spreadArea_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        spreadArea_CellArray = cellfun(@(x) cellfun(@mean,x),spreadArea_Group,'unif',false);
+    end
     h1=figure; 
     boxPlotCellArray(spreadArea_CellArray,nameList,1,false,true)
     ylabel('Spread area (um2)')
