@@ -108,7 +108,7 @@ figure(2)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement)
 figure(4)
-pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.z, ...
+pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
     'Deformation',structModelResults.Displacement)
 
 % //Shifting bead locations to apply interpDisp at those locations ********
@@ -174,10 +174,10 @@ set(gca,'Color','k');
 %\\ Generating Deformed Bead Image ****************************************
 %2D
 beadimg = simGaussianBeads(xmax,ymax, sigma, ...
-    'x',bead_x + bead_ux,'y',bead_y + bead_uy,'A',Av,'Border', 'periodic');
+    'x',bead_x + bead_ux,'y',bead_y + bead_uy,'A',Av,'Border', 'padded');
 save(append(chrBead,chr1),'beadimg');
 imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep imgstring]);
 %3D
 beadimg3D = simGaussianSpots3D([xmax3D ymax3D zmax3D], sigma, ...
-    'X', newbeadcenters3D,'npoints', nPoints, 'A', Av3D, 'Border', 'periodic', 'Verbose' ,'on');
+    'X', newbeadcenters3D,'npoints', nPoints, 'A', Av3D, 'Border', 'padded', 'Verbose' ,'on');
 save(append(chrBead,chr13D),'beadimg3D');
