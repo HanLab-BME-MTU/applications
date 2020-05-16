@@ -1190,7 +1190,7 @@ end
 %% amplitude of the other channel at each adhesion type
 h1=figure; 
 amplitudeInNAsGroupCell = cellfun(@(x) cell2mat(x'),amplitudeInNAsGroup,'unif',false);
-amplitudeInFCsGroupCell = cellfun(@(x) cell2mat(x'),amplitudeInFCsGroup,'unif',false);
+amplitudeInFCsGroummit -pCell = cellfun(@(x) cell2mat(x'),amplitudeInFCsGroup,'unif',false);
 amplitudeInFAsGroupCell = cellfun(@(x) cell2mat(x'),amplitudeInFAsGroup,'unif',false);
 amplitudeGroupAll=cell(numel(amplitudeInNAsGroup)*3,1);
 amplitudeGroup={amplitudeInNAsGroupCell, amplitudeInFCsGroupCell, amplitudeInFAsGroupCell};
