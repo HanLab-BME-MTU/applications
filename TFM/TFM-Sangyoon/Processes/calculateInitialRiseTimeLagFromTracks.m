@@ -870,7 +870,7 @@ end
             save([p.OutputDirectory filesep 'data' filesep 'assemRate2.mat'],'assemRate2','-v7.3')
             
             print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'assemRate2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
-            hgsave(strcat(figPath,'/assemRate2AllGroups'),'-v7.3'); close(h2)
+            hgsave(strcat(figPath,'/assemRate2AllGroups'),'-v7.3');
         %% disassembly rate for ampTotal2
             disassemRate2{1} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroups{1}));
             disassemRate2{2} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroups{2}));
@@ -888,7 +888,7 @@ end
             ylabel(ax,'Disssembly Rate 2 (1/min)')
             save([p.OutputDirectory filesep 'data' filesep 'disassemRate2.mat'],'disassemRate2','-v7.3')
             print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'disassemRate2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
-            hgsave(strcat(figPath,'/disassemRate2AllGroups'),'-v7.3'); close(h2)
+            hgsave(strcat(figPath,'/disassemRate2AllGroups'),'-v7.3'); 
         end
     end
     %%
