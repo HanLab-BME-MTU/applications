@@ -28,6 +28,7 @@ catch
 end
 p = parseProcessParams(timeLagProc,paramsIn);
 iBeadChan = 1; % might need to be updated based on asking TFMPackage..
+p.measureAmp2rates = true; % Should be replaced with a user input.
 
 % ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
 % ip.parse(MD,showAllTracks,plotEachTrack,varargin{:});
@@ -759,20 +760,6 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/ampTotalAllGroups'),'-v7.3'); close(h2)
     %% Look at feature difference per each group - assemRate
-    numTracks=numel(tracksNA);
-%     tIntMin=MD.timeInterval_/60;
-%     if ~isfield(tracksNA,'assemRate')
-%         tracksNA(end).assemRate=[];
-%     end
-%     disp('Calculating assembly rates'); tic
-%     parfor kk=1:numTracks
-%         curTrack=tracksNA(kk);
-%         curAssemRate = getAssemRateFromTracks(curTrack,tIntMin);
-%         curTrack.assemRate = curAssemRate;
-%         tracksNA(kk)=curTrack;
-% %         progressText(kk/numTracks,'Calculating assembly rates') % Update text
-%     end
-    toc
     assemRate{1} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{1}));
     assemRate{2} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{2}));
     assemRate{3} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup3));
@@ -839,6 +826,64 @@ end
         save([p.OutputDirectory filesep 'data' filesep 'ampTotal2.mat'],'ampTotal2','-v7.3')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotal2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
         hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); 
+        
+        %% Assembly rate for ampTotal2
+        if p.measureAmp2rates
+            numTracks=numel(tracksNA);
+            tIntMin=MD.timeInterval_/60;
+            if ~isfield(tracksNA,'assemRate2')
+                tracksNA(end).assemRate2=[];
+            end
+            if ~isfield(tracksNA,'disassemRate2')
+                tracksNA(end).disassemRate2=[];
+            end
+            disp('Calculating assembly/disassembly rates'); tic
+            parfor kk=1:numTracks
+                curTrack=tracksNA(kk);
+                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'amp2');
+                curTrack.assemRate2 = curAssemRate;
+                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'amp2');
+                curTrack.disassemRate2 = curDisassemRate;
+                tracksNA(kk)=curTrack;
+            end
+            toc
+            
+            assemRate2{1} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroups{1}));
+            assemRate2{2} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroups{2}));
+            assemRate2{3} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup3));
+            assemRate2{4} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup4));
+            assemRate2{5} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup5));
+            assemRate2{6} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup6));
+            assemRate2{7} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup7));
+            assemRate2{8} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup8));
+            assemRate2{9} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup9));
+            h2=figure; ax = axes(h2);
+            boxPlotCellArray(assemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+
+            title(ax,'assemRate2')
+            ylabel(ax,'Assembly Rate 2 (1/min)')
+            save([p.OutputDirectory filesep 'data' filesep 'assemRate2.mat'],'assemRate2','-v7.3')
+            print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'assemRate2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+            hgsave(strcat(figPath,'/assemRate2AllGroups'),'-v7.3'); close(h2)
+        %% disassembly rate for ampTotal2
+            disassemRate2{1} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroups{1}));
+            disassemRate2{2} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroups{2}));
+            disassemRate2{3} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup3));
+            disassemRate2{4} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup4));
+            disassemRate2{5} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup5));
+            disassemRate2{6} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup6));
+            disassemRate2{7} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup7));
+            disassemRate2{8} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup8));
+            disassemRate2{9} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup9));
+            h2=figure; ax = axes(h2);
+            boxPlotCellArray(disassemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+
+            title(ax,'disassemRate2')
+            ylabel(ax,'Disssembly Rate 2 (1/min)')
+            save([p.OutputDirectory filesep 'data' filesep 'disassemRate2.mat'],'disassemRate2','-v7.3')
+            print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'disassemRate2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+            hgsave(strcat(figPath,'/disassemRate2AllGroups'),'-v7.3'); close(h2)
+        end
     end
     %%
     if isfield(tracksNA,'ampTotal2')

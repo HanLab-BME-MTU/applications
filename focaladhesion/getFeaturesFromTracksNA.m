@@ -70,7 +70,7 @@ if getEdgeRelatedFeatures
         tracksNA(end).MSDrate=[];
     end
 end
-for k=1:numTracks
+parfor k=1:numTracks
     % cross-correlation scores
 %     presIdx = logical(curTrack.presence);
     % get the instantaneous velocity

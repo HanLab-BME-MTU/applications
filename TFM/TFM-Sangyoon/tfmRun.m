@@ -10,11 +10,13 @@ iPack=  MD.getPackageIndex('TFMPackage');
 TFMPack = MD.getPackage(iPack);
 status = TFMPack.sanityCheck;
 %% Traction reconstruction
-curProcess=cell(1,5);
+curProcess=cell(1,6);
 for ii=find(~status)
     curProcess{ii} = TFMPack.getProcess(ii);
     if ~isempty(curProcess{ii})
-        curProcess{ii}.run
-        MD.save
+        if ~curProcess{ii}.success_ || ~curProcess{ii}.updated_ || curProcess{ii}.procChanged_
+            curProcess{ii}.run
+            MD.save
+        end
     end
 end

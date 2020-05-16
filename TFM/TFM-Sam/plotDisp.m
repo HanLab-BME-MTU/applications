@@ -1,3 +1,4 @@
+
 % Code plots the displacement vectors calculated by TPT.mat
 % exampleRunFile.m creates the 'x' and 'track' vectors used in this script
 
@@ -36,9 +37,9 @@ n = 1;
 figure(1)
 q=quiver3(x1(n:n:end),y1(n:n:end),z1(n:n:end),relP(n:n:end,1),relP(n:n:end,2),relP(n:n:end,3));
 if fullaxes == 1
-    xlim([0 198])
-    ylim([0 198])
-    zlim([0 64])
+    xlim([0 256])
+    ylim([0 256])
+    zlim([0 20])
 end
 
 %\\ Colormapping
@@ -68,9 +69,10 @@ set(q.Tail, ...
 get(q.Tail)
 
 set(gca,'Color','k')
-title('Sample Data Displacement Field')
-xlabel('X COORD')
-ylabel('Y COORD')
+
+title('T-PT Tracking Displacement Field - 0.5kPa')
+xlabel('Y COORD')
+ylabel('X COORD')
 zlabel('Z COORD')
 hold off
 end

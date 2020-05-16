@@ -59,6 +59,7 @@ classdef  EfficientSubpixelRegistrationProcess < StageDriftCorrectionProcess & N
             funParams.OutputDirectory = [outputDir  filesep 'stageDriftCorrection_Efficientsubpixel'];
             funParams.referenceFramePath = '';
             funParams.referenceFrameNum = 1;
+            funParams.iBeadChannel = 1;
             funParams.usfac = 20;
         end
     end

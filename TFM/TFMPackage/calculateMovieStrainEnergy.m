@@ -185,11 +185,14 @@ totalForceBlobs = struct('force',zeros(nFrames,1),'avgTraction',[],...
     'maxTraction',[],'forceBlobPixelIdxList',[]);
 %% Get SDC
 % Cell Boundary Mask 
-iChan=2;
-iBeadChan=1;
 iTFMPack = movieData.getPackageIndex('TFMPackage');
 TFMPack=movieData.packages_{iTFMPack}; iSDCProc=1;
 SDCProc=TFMPack.processes_{iSDCProc};
+if ~isempty(SDCProc)
+    iBeadChan=SDCProc.funParams_.iBeadChannel;
+else
+    iBeadChan=1;
+end
 % iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1); 
 existSDC=false;
 if ~isempty(SDCProc)
@@ -211,6 +214,14 @@ else
         existMask = true;
     end
 end
+
+if ~isempty(iMaskProcess)
+    iChan=find(maskProc.checkChannelOutput);
+    if length(iChan)>1
+        iChan=iChan(1);
+    end
+end
+
 %% Calculate strain energy and total force
 tic
 minSize = 20; % in pixel

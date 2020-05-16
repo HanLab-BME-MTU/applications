@@ -816,7 +816,7 @@ if 1
             % Load each adhesion's moving direction
             if ~isempty(matchingAdhLineFit{k})
                 fitobj=matchingAdhLineFit{k};
-                progressText(0,[num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
+%                 progressText(0,[num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
 
                 for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
                     allBdPoints = allBdPointsAll{ii};
@@ -851,11 +851,11 @@ if 1
                         curTrack.closestBdPointNaive(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                         curTrack.distToEdgeNaive(ii) = minDistToBd;
                     end
-                    progressText((ii-curTrack.startingFrameExtraExtra)/(curTrack.endingFrameExtraExtra-curTrack.startingFrameExtraExtra),...
-                        [num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
+%                     progressText((ii-curTrack.startingFrameExtraExtra)/(curTrack.endingFrameExtraExtra-curTrack.startingFrameExtraExtra),...
+%                         [num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
                 end
             else
-                progressText(0,[num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
+%                 progressText(0,[num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
                 for ii=curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra
                     allBdPoints = allBdPointsAll{ii};
                     xCropped = curTrack.xCoord(ii);
@@ -871,12 +871,13 @@ if 1
                     curTrack.closestBdPoint(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                     curTrack.closestBdPointNaive(ii,:) = allBdPoints(indMinBdPoint,:); % this is lab frame of reference. (not relative to adhesion position)
                     tracksNA(k) = curTrack;
-                    progressText((ii-curTrack.startingFrameExtraExtra)/(curTrack.endingFrameExtraExtra-curTrack.startingFrameExtraExtra),...
-                        [num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
+%                     progressText((ii-curTrack.startingFrameExtraExtra)/(curTrack.endingFrameExtraExtra-curTrack.startingFrameExtraExtra),...
+%                         [num2str(k) '/' num2str(numTracks) ': Calculating distance from each adhesion to relevant edge'], 'Adhesion Analysis');
                 end
             end
             tracksNA(k) = curTrack;
             parsave(feval(trackIndPath,k),curTrack)
+            fprintf('.')
         end
     end
 

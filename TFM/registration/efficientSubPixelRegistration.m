@@ -99,8 +99,8 @@ else
   % refFrame = double(imread(p.referenceFramePath));
 end
 
-outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
-outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationParameters.mat'];
+outFilePaths{2,p.ChannelIndex(p.iBeadChannel)} = [p.OutputDirectory filesep refName refExt];
+outFilePaths{3,p.ChannelIndex(p.iBeadChannel)} = [p.OutputDirectory filesep 'transformationParameters.mat'];
 
 thisProcess.setOutFilePaths(outFilePaths);
 
@@ -114,7 +114,7 @@ outFile=@(chan,frame) [outFilePaths{1,chan} filesep imageFileNames{chan}{frame}]
 
 
 ImStack = zeros([movieData.imSize_ nFrames]);
-beadsChannel = movieData.channels_(p.ChannelIndex(1));
+beadsChannel = movieData.channels_(p.iBeadChannel);
 for j = 1:nFrames, ImStack(:,:,j) = double(beadsChannel.loadImage(j)); end
 
 
@@ -151,10 +151,10 @@ for frame_num = 1:nFrames
    disp(['x shift: ' num2str(DFTout(frame_num).row_shift)]);
    disp(['y shift: ' num2str(DFTout(frame_num).col_shift)]);
    I_beads = abs(ifft2(Greg_beads));
-   imwrite(uint16(I_beads), outFile(1, frame_num));
+   imwrite(uint16(I_beads), outFile(p.iBeadChannel, frame_num));
 
    % Apply transform to each selected channel
-   for i = 2:numel(p.ChannelIndex)
+   for i = setdiff(p.ChannelIndex, p.iBeadChannel)
 
       % Load frame from appropriate channel
       iChan = p.ChannelIndex(i);
@@ -189,10 +189,10 @@ else
   % refFrame = double(imread(p.referenceFramePath));
 end
 
-imwrite(uint16(refFrame), outFilePaths{2, p.ChannelIndex(1)});
+imwrite(uint16(refFrame), outFilePaths{2, p.ChannelIndex(p.iBeadChannel)});
 
 T = [DFTout.row_shift; DFTout.col_shift]';
-save(outFilePaths{3, p.ChannelIndex(1)},'DFTout', 'T');
+save(outFilePaths{3, p.ChannelIndex(p.iBeadChannel)},'DFTout', 'T');
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 disp('Finished correcting stage drift!')

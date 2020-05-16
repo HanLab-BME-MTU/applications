@@ -81,6 +81,9 @@ set(handles.pushbutton_delete,'Callback',@(hObject,eventdata)...
 % Choose default command line output for EfficientSubpixelRegistrationProcessGUI
 handles.output = hObject;
 
+% Highlight the bead channel chosen
+set(handles.listbox_selectedChannels, 'Value', funParams.iBeadChannel);
+
 % Update user data and GUI data
 set(hObject, 'UserData', userData);
 guidata(hObject, handles);
@@ -159,6 +162,9 @@ if handles.referenceFrame_popupmenu.Value == 1 && isempty(funParams.referenceFra
     errordlg('No reference frame selected, please select path or choose frame #.')
     return;
 end
+
+% Bead channel
+funParams.iBeadChannel = handles.listbox_selectedChannels.Value;
 
 % Read numeric information
 for i = 1:numel(userData.numParams)
