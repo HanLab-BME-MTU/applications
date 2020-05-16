@@ -103,6 +103,30 @@ numConditions = numel(pathAnalysisAll);
 for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLFileNamesAll{k}]);
 end
+%% setting up group name
+if MLdirect && isempty(groupNames)
+%     if strcmp(MLFileNamesAll{1}(end-7:end-4),'List')
+    groupNames=MLFileNamesAll;
+elseif isempty(groupNames)
+    for ii=1:numConditions
+        [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
+        if isempty(finalFolder)
+            [~, finalFolder]=fileparts(pathFolder);
+        end
+        groupNames{ii} = finalFolder;
+    end
+end
+nameList=groupNames'; %{'pLVX' 'P29S'};
+
+% Asking user
+disp('Do you want to rename your condition names? The current names are: ')
+disp(nameList)
+for ii=1:numel(nameList)
+    curName = input(['For ' nameList{ii} ': '], 's');
+    if ~isempty(curName)
+        nameList{ii} = curName;
+    end
+end
 %% Output
 % rootAnalysis = fileparts(pathAnalysisAll{1});
 rootAnalysis = pathAnalysisAll{1};
@@ -670,25 +694,7 @@ for ii=1:numConditions
     end
 end
 disp('Done')
-%% setting up group name
-if MLdirect && isempty(groupNames)
-%     if strcmp(MLFileNamesAll{1}(end-7:end-4),'List')
-    groupNames=MLFileNamesAll;
-elseif isempty(groupNames)
-    for ii=1:numConditions
-        [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
-        if isempty(finalFolder)
-            [~, finalFolder]=fileparts(pathFolder);
-        end
-        groupNames{ii} = finalFolder;
-    end
-end
-% for ii=1:numConditions
-%     [~, finalFolder]=fileparts(pathAnalysisAll{ii});
-%     groupNames{ii} = finalFolder;
-% end
 %% Plotting each - initRiseGroup against force - all classes
-nameList=groupNames'; %{'pLVX' 'P29S'};
 if ~isempty(initRiseProc) && exist('initRiseStruct','var')
     numSlaves = numel(initRiseStruct.nameList2);
     for ii=1:numSlaves
