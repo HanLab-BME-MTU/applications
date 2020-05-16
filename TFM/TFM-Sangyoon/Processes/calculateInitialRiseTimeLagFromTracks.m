@@ -67,6 +67,9 @@ if ~isempty(theOtherReadProc)
     if isfield(tracksAmpTotal,'ampTotal2')
         [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
     end
+    if isfield(tracksAmpTotal,'amp2')
+        [tracksNA(:).amp2] = tracksAmpTotal.amp2;
+    end
     if isfield(tracksAmpTotal,'ampTotal3')
         [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
     end
@@ -265,7 +268,9 @@ if ismember(1,existingSlaveIDs)
     numEachGroupForceTransmitting = cellfun(@(x) sum(x & isForceTransmitting),idGroups);
     fractionForceTransmitting = numEachGroupForceTransmitting./numEachGroup;
     groupLabel = categorical(arrayfun(@(x,y) ['G' num2str(x) '(N=' num2str(y) ')'],1:9,numEachGroup,'unif',false));
-    h3=figure; bar(groupLabel,fractionForceTransmitting); title('Fraction of force-transmitting NAs per group')
+    
+    h3=figure; 
+    bar(groupLabel,fractionForceTransmitting); title('Fraction of force-transmitting NAs per group')
     ylabel('Fraction (1)'); nameTitle = 'fractionForceTransmitting';
     hgexport(h3,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h3,strcat(figPath,filesep,nameTitle))
@@ -675,7 +680,7 @@ for k=1:numClasses
 %     save([dataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup')
 %  
     
-    h2=figure; ax = axes(h2);
+    h2=figure; ax = axes(h2); 
     boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
     nameTitle=['peakLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
@@ -863,6 +868,7 @@ end
             title(ax,'assemRate2')
             ylabel(ax,'Assembly Rate 2 (1/min)')
             save([p.OutputDirectory filesep 'data' filesep 'assemRate2.mat'],'assemRate2','-v7.3')
+            
             print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'assemRate2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
             hgsave(strcat(figPath,'/assemRate2AllGroups'),'-v7.3'); close(h2)
         %% disassembly rate for ampTotal2
