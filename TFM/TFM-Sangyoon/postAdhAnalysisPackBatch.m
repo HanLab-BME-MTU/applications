@@ -1,15 +1,42 @@
 %% open necessary MLs
 MLdirect=false;
-[fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
+isDesktopAvail = usejava('desktop');
+usedSelectedFoldersMat=false;
+
+if isDesktopAvail
+    [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
+else
+    disp({'Type selectedFolders.mat.  If do not have one, push enter';
+        ['Your current path: ' pwd]});
+    rawPath = input(': ','s');
+    if isempty(rawPath)
+        pathSFolders = 0;
+    else
+        [pathSFolders, fileSFolders] = fileparts(rawPath);
+    end
+end
+
 groupNames=[];
+
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
     ii=0;
     rootFolder=pwd;
     while ~analysisFolderSelectionDone
         ii=ii+1;
-        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-%         [curMLFile,curPathProject] = uigetfile(rootFolder,'Select the movie list file one per each attempt (Click Cancel when no more)');
+        if isDesktopAvail
+            curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
+        else
+            disp({'Select each analysis folder that contains movieList.mat.  If do not have one, push enter';
+                ['Your current path: ' pwd]});
+            rawPath = input(': ','s');
+            if isempty(rawPath)
+                curPathProject = 0;
+            else
+                curPathProject = rawPath;
+            end
+        end
+%         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
         else
@@ -19,17 +46,27 @@ if ~ischar(pathSFolders) && pathSFolders==0
                 [~,finalFolder] = fileparts(curPathProject2);
             end
             groupNames{ii} = finalFolder;
-            MLFileNamesAll{ii} = 'movieList.mat';
-            MLNames{ii} = 'movieList';
+            MLNames{ii} = 'movieList.mat';
             MLdirect=true;
         end
     end
-    if analysisFolderSelectionDone && ii==1
+    if ~analysisFolderSelectionDone && ii==1
         MLSelectionDone = false;
         ii=0;
         while ~MLSelectionDone
             ii=ii+1;
-            [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
+            if isDesktopAvail
+                [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
+            else
+                disp({'Select each movieList.  If do not have one, push enter';
+                    ['Your current path: ' pwd]});
+                rawPath = input(': ','s');
+                if isempty(rawPath)
+                    curPathML = rawPath;
+                else
+                    [curPathML, nameML] = fileparts(rawPath);
+                end
+            end
             if ~ischar(curPathML) || isempty(curPathML)
                 MLSelectionDone=true;
             else
@@ -41,24 +78,25 @@ if ~ischar(pathSFolders) && pathSFolders==0
                     [~,finalFolder] = fileparts(pathAnalysisAll{ii});
                     groupNames{ii} = finalFolder;
                 end
-                MLNames{ii} = nameML(10:end-4);
-                MLFileNamesAll{ii} = nameML;
+                MLNames{ii} = nameML;
             end
         end
         MLdirect=true;
     end
     specificName = strjoin(groupNames);
     rootAnalysis = pathAnalysisAll{1};
-    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','MLFileNamesAll','groupNames')
+    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 else
+    usedSelectedFoldersMat=true;    
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
-    MLFileNamesAll = selectedFolders.MLFileNamesAll;%'movieList.mat';
+    MLNames = selectedFolders.MLNames;%'movieList.mat';
 %     for k=1:numel(pathAnalysisAll)
 %         MLFileNamesAll{k} = selectedFolders.MLNames{k};%'movieList.mat';
 %     end
 end
+
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
 
@@ -107,6 +145,8 @@ lifeTimeFAsGroup = cell(numConditions,1);
 stableNAFCratioGroup = cell(numConditions,1);
 assemRateGroup = cell(numConditions,1);
 disassemRateGroup = cell(numConditions,1);
+assemRate2Group = cell(numConditions,1);
+disassemRate2Group = cell(numConditions,1);
 nucleatingNARatioGroup = cell(numConditions,1);
 disassemNARatioGroup = cell(numConditions,1);
 
@@ -306,6 +346,8 @@ for ii=1:numConditions
         assemRateStruct=load(curAnalProc.outFilePaths_{5,iAdhChan});
         meanAssemRate{k}=(assemRateStruct.assemRateCell);
         meanDisassemRate{k}=(assemRateStruct.disassemRateCell);
+        meanAssemRate2{k}=(assemRateStruct.assemRateCell);
+        meanDisassemRate2{k}=(assemRateStruct.disassemRateCell);
         meanNucleatingNARatio{k} = (assemRateStruct.nucleationRatio);
         meanDisassemNARatio{k} = (assemRateStruct.disassemblingNARatio);
         
@@ -529,6 +571,19 @@ for ii=1:numConditions
                     assemRateEachClass{pp}{k} = [];
                     disassemRateEachClass{pp}{k} = [];                    
                 end
+                if exist([initDataPath filesep 'assemRate2.mat'],'file')
+                    if pp==1
+                        assemRate2Str=load([initDataPath filesep 'assemRate2.mat'],'assemRate2');
+                        disassemRate2Str=load([initDataPath filesep 'disassemRate.mat'],'disassemRate');
+                        meanAssemRate2{k} = cell2mat(assemRate2Str.assemRate2);
+                        meanDisassemRate2{k} = cell2mat(disassemRate2Str.disassemRate2);
+                    end
+                    assemRate2EachClass{pp}{k} = assemRate2Str.assemRate{pp};
+                    disassemRate2EachClass{pp}{k} = disassemRate2Str.disassemRate{pp};                    
+                else
+                    assemRate2EachClass{pp}{k} = [];
+                    disassemRate2EachClass{pp}{k} = [];                    
+                end
             end
         end
     end
@@ -548,6 +603,10 @@ for ii=1:numConditions
     lifeTimeFAsGroup{ii,1} = lifeTimeFAsAll;
     assemRateGroup{ii,1}=meanAssemRate;
     disassemRateGroup{ii,1}=meanDisassemRate;
+    if exist([initDataPath filesep 'assemRate2.mat'],'file')
+        assemRate2Group{ii,1}=meanAssemRate2;
+        disassemRate2Group{ii,1}=meanDisassemRate2;
+    end
     nucleatingNARatioGroup{ii,1}=meanNucleatingNARatio;
     disassemNARatioGroup{ii,1}=meanDisassemNARatio;
     
@@ -1352,7 +1411,7 @@ avgFractionGroupAll=[avgFractionGroupG1 avgFractionGroupG2 avgFractionGroupG3 av
     avgFractionGroupG5 avgFractionGroupG6 avgFractionGroupG7 avgFractionGroupG8 avgFractionGroupG9];
 h1=figure; 
 bar(avgFractionGroupAll,'stacked');legend('g1','g2','g3','g4','g5','g6','g7','g8','g9')
-%% assemRateGroup
+%% assemRateGroup for all
 assemRateGroupCell = cellfun(@(x) cell2mat(x),assemRateGroup,'unif',false);
 h1=figure; 
 plotSuccess=boxPlotCellArray(assemRateGroupCell,nameList,1,false,true);
@@ -1366,7 +1425,7 @@ if plotSuccess
     tableAssemRateGroup=table(assemRateGroup,'RowNames',nameList);
     writetable(tableAssemRateGroup,[dataPath filesep 'assemRate.csv'],'WriteRowNames',true)
 end
-%% disassemRateGroup
+%% disassemRateGroup for all
 disassemRateGroupCell = cellfun(@(x) cell2mat(x),disassemRateGroup,'unif',false);
 h1=figure; 
 plotSuccess=boxPlotCellArray(disassemRateGroupCell,nameList,1,false,true);
@@ -1379,6 +1438,34 @@ if plotSuccess
 
     tableDisassemRateGroup=table(disassemRateGroupCell,'RowNames',nameList);
     writetable(tableDisassemRateGroup,[dataPath filesep 'disassemRate.csv'],'WriteRowNames',true)
+end
+%% assemRate2Group for all
+assemRateGroup2Cell = cellfun(@(x) cell2mat(x),assemRate2Group,'unif',false);
+h1=figure; 
+plotSuccess=boxPlotCellArray(assemRateGroup2Cell,nameList,1,false,true);
+if plotSuccess
+    ylabel('assembly rate (1/min)')
+    title(['assembly rate all adhesions of the other channel'])
+    hgexport(h1,[figPath filesep 'assemRate2'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'assemRate2'],'-v7.3')
+    print(h1,[figPath filesep 'assemRate2'],'-dtiff')
+
+    tableAssemRate2Group=table(assemRate2Group,'RowNames',nameList);
+    writetable(tableAssemRate2Group,[dataPath filesep 'assemRate2.csv'],'WriteRowNames',true)
+end
+%% disassemRateGroup for all
+disassemRate2GroupCell = cellfun(@(x) cell2mat(x),disassemRate2Group,'unif',false);
+h1=figure; 
+plotSuccess=boxPlotCellArray(disassemRate2GroupCell,nameList,1,false,true);
+if plotSuccess
+    ylabel('disassembly rate (1/min)')
+    title(['disassembly rate all adhesions of the other channel'])
+    hgexport(h1,[figPath filesep 'disassemRate2'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'disassemRate2'],'-v7.3')
+    print(h1,[figPath filesep 'disassemRate2'],'-dtiff')
+
+    tableDisassemRate2Group=table(disassemRate2GroupCell,'RowNames',nameList);
+    writetable(tableDisassemRate2Group,[dataPath filesep 'disassemRate2.csv'],'WriteRowNames',true)
 end
 %% Plotting each - peakGroup - all classes - usually not interesting: there is no lag.
 if ~isempty(initRiseProc) && ~isempty(peakGroup{1}{1})
@@ -1456,6 +1543,50 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
 
             tableDisassemRate=table(disassemRateGroupEach,'RowNames',nameList);
             writetable(tableDisassemRate,[dataPath filesep 'disassemRate' num2str(curGroup) '.csv'],'WriteRowNames',true)
+        catch
+            disp(['Nothing in ' num2str(curGroup) 'th group'])
+        end
+    end
+    %% assemRate2Group
+    for curGroup=find(nonZeroGroups)'
+        try
+            assemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRate2EachGroup,'unif',false);
+            % Discarding not assemblying adhesions
+            for ii=1:numel(assemRate2GroupEach)
+                assemRate2GroupEach{ii}(assemRate2GroupEach{ii}<=0)=[];
+            end
+            h1=figure; 
+            boxPlotCellArray(assemRate2GroupEach,nameList,1,false,true);
+            ylabel('assembly rate (1/min)')
+            title(['assembly rate in group ' num2str(curGroup) ' of the other channel'])
+            hgexport(h1,[figPath filesep 'assemRate2' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+            hgsave(h1,[figPath filesep 'assemRate2' num2str(curGroup)],'-v7.3')
+            print(h1,[figPath filesep 'assemRate2' num2str(curGroup)],'-dtiff')
+
+            tableAssemRate2=table(assemRate2GroupEach,'RowNames',nameList);
+            writetable(tableAssemRate2,[dataPath filesep 'assemRate2_' num2str(curGroup) '.csv'],'WriteRowNames',true)
+        catch
+            disp(['Nothing in ' num2str(curGroup) 'th group'])
+        end
+    end
+    %% disassemRateGroup
+    for curGroup=find(nonZeroGroups)'
+        try
+            disassemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRate2EachGroup,'unif',false);
+            % Discarding not-disassemblying adhesions
+            for ii=1:numel(disassemRate2GroupEach)
+                disassemRate2GroupEach{ii}(disassemRate2GroupEach{ii}<=0)=[];
+            end
+            h1=figure; 
+            boxPlotCellArray(disassemRate2GroupEach,nameList,1,false,true);
+            ylabel('disassembly rate (1/min)')
+            title(['disassembly rate in group ' num2str(curGroup) ' of the other channel'])
+            hgexport(h1,[figPath filesep 'disassemRate2_' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+            hgsave(h1,[figPath filesep 'disassemRate2_' num2str(curGroup)],'-v7.3')
+            print(h1,[figPath filesep 'disassemRate2_' num2str(curGroup)],'-dtiff')
+
+            tableDisassem2Rate=table(disassemRateGroupEach,'RowNames',nameList);
+            writetable(tableDisassem2Rate,[dataPath filesep 'disassemRate2_' num2str(curGroup) '.csv'],'WriteRowNames',true)
         catch
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         end
