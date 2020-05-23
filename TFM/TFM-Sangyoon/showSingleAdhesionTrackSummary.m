@@ -19,7 +19,7 @@ end
 curEndFrame=curTrack.endingFrameExtra;
 curStartFrame = curTrack.startingFrameExtra;
 curEndFrameEE=curTrack.endingFrameExtraExtra;
-curStartFrameEE = max(1,curStartFrame-50); %This needs to be updated in calculatePeakTimeLagFromTracks %curTrack.startingFrameExtraExtra;
+curStartFrameEE = curTrack.startingFrameExtraExtra; %max(1,curStartFrame-50); %This needs to be updated in calculatePeakTimeLagFromTracks
 curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;

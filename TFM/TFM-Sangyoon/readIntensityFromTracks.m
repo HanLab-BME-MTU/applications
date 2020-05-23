@@ -82,14 +82,24 @@ elseif attribute==5 && (~isfield(tracksNA,'ampTotal2') || ~isfield(tracksNA,'amp
     tracksNA(end).bkgAmp2=[];
     
     % In this case, make background-subtracted images
+    imgClass = class(imgStack);
     imgStackBS=zeros(size(imgStack));
     for ii=1:size(imgStack,3)
         curImg=imgStack(:,:,ii);
         imageBackground = filterGauss2D(curImg,10);
         %calculate noise-filtered and background-subtracted image
-        imgStackBS(:,:,ii) = curImg - imageBackground;
+        imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
     end
-    
+elseif attribute==1 
+    % In this case, make background-subtracted images
+    imgClass = class(imgStack);
+    imgStackBS=zeros(size(imgStack));
+    for ii=1:size(imgStack,3)
+        curImg=imgStack(:,:,ii);
+        imageBackground = filterGauss2D(curImg,10);
+        %calculate noise-filtered and background-subtracted image
+        imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
+    end
 elseif attribute==6 && ~isfield(tracksNA,'ampTotal3')
     tracksNA(end).ampTotal3=[];
 end    
@@ -588,9 +598,10 @@ parfor (k=1:numTracks, parforArg)
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
     %                     curTrack.presence(ii) =  1;
-                    curAvgBkgAmp = nanmean(curTrack.bkgAmp(ii+1:min(ii+11,curTrack.endingFrameExtra)));
-                    curTrack.amp(ii) = curTrack.ampTotal(ii) - curAvgBkgAmp;
-                    curTrack.bkgAmp(ii) = curAvgBkgAmp;                    
+                    curBS = imgStackBS(:,:,ii);
+                    curBSTotal = curBS(yRange,xRange);
+                    curTrack.amp(ii) = mean(curBSTotal(:));
+                    curTrack.bkgAmp(ii) = curTrack.ampTotal(ii)-curTrack.amp(ii);
                 end
             end
             if curTrack.endingFrameExtra<numFrames
@@ -608,9 +619,10 @@ parfor (k=1:numTracks, parforArg)
                     curTrack.xCoord(ii) = x;
                     curTrack.yCoord(ii) = y;
                     curTrack.ampTotal(ii) =  curAmpTotal;
-                    curAvgBkgAmp = nanmean(curTrack.bkgAmp(max(curTrack.startingFrameExtra,ii-11):ii-1));
-                    curTrack.amp(ii) = curTrack.ampTotal(ii) - curAvgBkgAmp;
-                    curTrack.bkgAmp(ii) = curAvgBkgAmp;                    
+                    curBS = imgStackBS(:,:,ii);
+                    curBSTotal = curBS(yRange,xRange);
+                    curTrack.amp(ii) = mean(curBSTotal(:));
+                    curTrack.bkgAmp(ii) = curTrack.ampTotal(ii)-curTrack.amp(ii);
     %                     curTrack.presence(ii) =  1;
                 end
             end
