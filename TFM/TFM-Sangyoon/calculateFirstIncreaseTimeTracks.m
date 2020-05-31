@@ -10,9 +10,9 @@ function [firstIncreseTimeIntAgainstSlaveAll,forceTransmittingAll...
 % input:
 %       splineParamInit: smoothing parameter (0-1). Use 1 if you don't want to
 %       smooth the signal.
-%       preDetecFactor: how much ahead of the inital start point you want
-%       to detect as a pre-signal maximum (default: 0.5). It is used as:
-%       numPreFrames = max(1,floor(preDetecFactor*numFramesBefore))
+%       preDetecPeriod: how much ahead of the inital start point you want
+%       to detect as a pre-signal maximum (default: 60 seconds). It is used as:
+%       sF10before = effectiveSF - round(preDetecPeriod/tInterval)
 %       Thus, if you put larger number, you are selecting the maximum from
 %       much earlier time points.
 %       'slaveSource': either 'forceMag', 'ampTotal2' or 'ampTotal3'
@@ -178,7 +178,12 @@ for ii=1:numel(tracksNA)
                 end
             else
                 bkgMaxForce = max(0,max(curTrack.(slaveSource)(sF10before:sF5before)));
-                firstIncreaseTimeForce = find(getfield(curTrack,slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
+                try
+                    firstIncreaseTimeForce = find(curTrack.(slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
+                catch
+                    nTime = length(curTrack.(slaveSource));
+                    firstIncreaseTimeForce = find(curTrack.(slaveSource)>bkgMaxForce & 1:nTime>sF5before,1);
+                end
             end
             if isempty(firstIncreaseTimeForce) || firstIncreaseTimeForce>curTrack.endingFrameExtraExtra
                 bkgMaxIntAll(ii) = bkgMaxInt;

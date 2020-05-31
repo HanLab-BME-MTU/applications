@@ -111,8 +111,12 @@ end
 % parfor_progress(numTracks);
 progressText(0,'Re-reading and tracking individual tracks');
 % progressbar
-if numTracks<100
+s=whos('imgStack');
+if numTracks<100 || s.bytes>=2e9 %memory requirement
     parforArg = 0;
+    if s.bytes>=2e9
+        disp('Using for-loop (instead of parfor) due to large movie size...')
+    end
 else
     parforArg = Inf;
 %     poolobj = gcp('nocreate'); % If no pool, do not create new one.
