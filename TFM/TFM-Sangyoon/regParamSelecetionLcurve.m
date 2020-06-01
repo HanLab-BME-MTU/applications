@@ -117,7 +117,7 @@ elseif inflection==2 % if inflection point smaller than lcorner is to be chosen.
         nextMinIdx = find(nextMinCands<maxKappaIdx,1,'last');
         inflectionIdx = nextMinCands(nextMinIdx);
         l_optimal_small= round((inflectionIdx+maxKappaIdx)/2);
-        ireg_corner = l_optimal_small;
+        ireg_corner = l_optimal_small+3; %to account for the shift from x to kappa
         reg_corner = lambda_cut(l_optimal_small);
     else
         ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
