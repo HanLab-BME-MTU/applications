@@ -170,8 +170,8 @@ end
 timeLagProc.setOutFilePaths(outputFile);
 
 %% I. Time series analyses
-p.numWinSize=10; %frames
-p.preDetecPeriod=10; %sec
+p.numWinSize=0; %frames
+p.preDetecPeriod=60; %sec
 for jj=existingSlaveIDs
     curSlaveCell = potentialSlaves(jj);
     curSlave=curSlaveCell{1};
@@ -180,7 +180,6 @@ for jj=existingSlaveIDs
     %     preDetecFactor=1/5; %for vinculin 
     preDetecFactor=1/10; %for talin
     % 1. Initial force-increase time quantification! - time
-    splineParamInit=0.99;
     [curFirstIncreseTimeIntAgainstSlave,SlaveTransmittingAll{jj}...
     ,firstIncreseTimeIntAll{jj},firstIncreseTimeSlaveAll{jj},bkgMaxIntAll{jj},bkgMaxSlaveAll{jj},~,ampIncreasing] ...
         = calculateFirstIncreaseTimeTracks(tracksNA,p.numWinSize,p.preDetecPeriod,tInterval,'slaveSource',curSlave);
