@@ -8,15 +8,17 @@ function [reg_corner,ireg_corner,kappa,h]=regParamSelecetionLcurve(rho,eta,lambd
 %   rho       - misfit
 %   eta       - model norm or seminorm
 %   reg_param - the regularization parameter
-%   inflection - 0: L-corner, 1: Inflection point before corner (lambda smaller than l-corner), 2:
-%   Inflectionpoint after corner  (lambda smaller than l-corner). If
-%   the second derivative has a shape of which curvature approaches
-%   assymtotically to zero, the algorithm uses strict definition of
-%   curvature (instead of second derivative) to find L-corner, and find the
-%   optimal lambda (by comparing solution norm difference and noise level
-%   in non-cell area)...
+%   inflection - 0: L-corner, 
+%               1: Inflectionpoint after corner  (lambda smaller than l-corner).
+%               2: Inflection point before corner (lambda smaller than l-corner), 
+% 
+%              If the second derivative has a shape of which curvature approaches
+%              assymtotically to zero, the algorithm uses strict definition of
+%              curvature (instead of second derivative) to find L-corner, and find the
+%              optimal lambda (by comparing solution norm difference and noise level
+%              in non-cell area)...
 %   manualSelection - true if you want to iterate selection process to get
-%   better reg parameter. (default: false)
+%                   better reg parameter. (default: false)
 %
 % OUTPUT
 %   reg_corner  - the value of reg_param with maximum curvature
@@ -30,35 +32,44 @@ ip.addRequired('lambda',@isnumeric);
 ip.addOptional('init_lambda',median(lambda),@isnumeric);
 ip.addParamValue('inflection',0,@isnumeric);
 ip.addParamValue('manualSelection',false,@islogical);
+ip.addParamValue('useGeometricCurvature',true,@islogical);
+
 ip.parse(rho,eta,lambda,init_lambda, varargin{:});
 rho=ip.Results.rho;
 eta=ip.Results.eta;
 lambda=ip.Results.lambda;
 init_lambda=ip.Results.init_lambda;
 manualSelection=ip.Results.manualSelection;
+useGeometricCurvature=ip.Results.useGeometricCurvature;
 inflection=ip.Results.inflection;
 
+%% Two ways of calculating curvature
 % transform rho and eta into log-log space
 x=log(rho);
 y=log(eta);
+if useGeometricCurvature
+    [~,~,kappa]=l_curve_corner(rho,eta,lambda);    
+    x_kappa = x(4:end-3);
+    kappa = kappa(4:end-3);
+else
+    % calculating slopes by linear regression
+    x_slope = x(3:end-2);
+    slope = zeros(size(x_slope));
+    for k=1:length(x)-4 
+        [~,slope(k,1),~] = regression(x(k:k+4)',y(k:k+4)');
+    end
 
-% calculating slopes by linear regression
-x_slope = x(3:end-2);
-slope = zeros(size(x_slope));
-for k=1:length(x)-4 
-    [~,slope(k,1),~] = regression(x(k:k+4)',y(k:k+4)');
+    % calculating kappas by linear regression
+    x_kappa = x_slope(2:end-1);
+    kappa = zeros(size(x_kappa));
+    for k=1:length(x_slope)-2 
+        [~,kappa(k),~] = regression(x_slope(k:k+2)',slope(k:k+2)');
+    end
+
+    % kappa2 = diff(diff(y_cut)./diff(x_cut))./diff(x_cut(1:end-1));
+    % kappadiff = diff(kappa);
 end
-
-% calculating kappas by linear regression
-x_kappa = x_slope(2:end-1);
-kappa = zeros(size(x_kappa));
 lambda_cut = lambda(4:end-3);
-for k=1:length(x_slope)-2 
-    [~,kappa(k),~] = regression(x_slope(k:k+2)',slope(k:k+2)');
-end
-
-% kappa2 = diff(diff(y_cut)./diff(x_cut))./diff(x_cut(1:end-1));
-% kappadiff = diff(kappa);
 
 % find a local maximum with five sections
 nSections = 7;
@@ -87,14 +98,31 @@ elseif isempty(maxKappaCandIdx)
     [~, maxKappaIdx] = max(kappa);
 end
 if inflection==1 % if inflection point larger than lcorner is to be chosen.
-    inflectionIdx = find(kappa<0 & (1:nPoints)'>maxKappaIdx,1,'first');
-    ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-    reg_corner = lambda_cut(inflectionIdx);
+    inflectionIdx = find(kappa<=0 & (1:nPoints)'>maxKappaIdx,1,'first');
+    if isempty(inflectionIdx) || inflectionIdx>=nPoints-1
+        nextMinCands=locmin1d(kappa,3);
+        nextMinIdx = find(nextMinCands>maxKappaIdx,1,'first');
+        inflectionIdx = nextMinCands(nextMinIdx);
+        ireg_corner= inflectionIdx+3; %to account for the shift from x to kappa
+        reg_corner = lambda_cut(inflectionIdx);
+    else
+        ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+        reg_corner = lambda_cut(inflectionIdx);
+    end
     disp(['L-inflection value (larger than L-corner): ' num2str(reg_corner)])
 elseif inflection==2 % if inflection point smaller than lcorner is to be chosen.
     inflectionIdx = find(kappa<0 & (1:nPoints)'<maxKappaIdx,1,'last');
-    ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-    reg_corner = lambda_cut(inflectionIdx);
+    if isempty(inflectionIdx) || inflectionIdx<=3
+        nextMinCands=locmin1d(kappa,3);
+        nextMinIdx = find(nextMinCands<maxKappaIdx,1,'last');
+        inflectionIdx = nextMinCands(nextMinIdx);
+        l_optimal_small= round((inflectionIdx+maxKappaIdx)/2);
+        ireg_corner = l_optimal_small;
+        reg_corner = lambda_cut(l_optimal_small);
+    else
+        ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+        reg_corner = lambda_cut(inflectionIdx);
+    end
     disp(['L-inflection value (smaller than L-corner): ' num2str(reg_corner)])
 elseif inflection==3 % mininum Curvature point which represents the rapid drop of semi-norm
     p=0;
@@ -160,20 +188,20 @@ if manualSelection
 %     x_cut = x((numCutPoints+1:end));
     
     h=figure; set(h,'Position',[1000,100,350,600])
-    subplot(3,1,1),plot(x,y,'k')
+    subplot(2,1,1),plot(x,y,'k')
     xlabel('Residual Norm ||Gm-d||_{2}');
     ylabel('Simi-Norm ||Lm||_{2}');
-    subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
+    subplot(2,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
     text(x(ireg_corner),1.01*y(ireg_corner),...
         ['    ',num2str(reg_corner,'%5.3e')]);
-    subplot(3,1,2), plot(x_slope,slope), title('slope')
-    if ireg_corner-2>0
-        subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
-    end
-    subplot(3,1,3), plot(x_kappa,kappa), title('curvature')
+%     subplot(2,1,2), plot(x_slope,slope), title('slope')
+%     if ireg_corner-2>0
+%         subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
+%     end
+    subplot(2,1,2), plot(x_kappa,kappa), title('curvature')
 %     subplot(3,1,3), plot(x_cut(3:end-5),diff(kappa)),title('jerk')
     if ireg_corner-3>0
-        subplot(3,1,3), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
+        subplot(2,1,2), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
     end
 %     subplot(3,1,3), hold on,plot(x_cut(maxKappaIdx),kappadiff(maxKappaIdx),'ro')
 
