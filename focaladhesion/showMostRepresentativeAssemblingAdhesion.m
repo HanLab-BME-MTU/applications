@@ -46,9 +46,6 @@ iChan = find(classProc.checkChannelOutput);
 
 %% persistent set up for large memory-requiring variable
 persistent imgStack tMap imgStack2 tracksNA curChanPath
-if isempty(curChanPath)
-    curChanPath = MD.channels_(1).channelPath_;
-end
 %% Load tracksNA
 finalProc = faPackage.getProcess(11);
 
@@ -64,9 +61,9 @@ idGroupLabel= 1*iClasses.idGroup1 + ...
                 8*iClasses.idGroup8 + 9*iClasses.idGroup9;
 
 %% Load imgStack, forceStack and anyother stack if it exists.
-if ~strcmp(curChanPath, MD.channels_(1).channelPath_)
-    tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA');
+if isempty(curChanPath) || ~strcmp(curChanPath, MD.channels_(1).channelPath_)
     curChanPath = MD.channels_(1).channelPath_;
+    tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA');
     [imgStack, tMap, imgStack2] = getAnyStacks(MD);
 end
 

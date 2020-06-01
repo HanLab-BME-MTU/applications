@@ -250,15 +250,15 @@ if montInterval>1
         frameFIIcut = frameFII -chosenStartFrame +1;
         frameFTIcut = frameFTI -chosenStartFrame +1;
         peakFrameCut = peakFrame-chosenStartFrame +1;
-        if ~ismember(frameFIIcut,indiceRange) && frameFIIcut<=numChosenFrames
+        if frameFIIcut>0 && ~ismember(frameFIIcut,indiceRange) && frameFIIcut<=numChosenFrames
             indiceRange = [indiceRange frameFIIcut];
             indiceRange = sort(indiceRange);
         end
-        if ~ismember(frameFTIcut,indiceRange) && frameFTIcut<=numChosenFrames
+        if frameFTIcut>0 && ~ismember(frameFTIcut,indiceRange) && frameFTIcut<=numChosenFrames
             indiceRange = [indiceRange frameFTIcut];
             indiceRange = sort(indiceRange);
         end
-        if ~ismember(peakFrameCut,indiceRange)
+        if peakFrameCut>0 && ~ismember(peakFrameCut,indiceRange)
             indiceRange = [indiceRange peakFrameCut];
             indiceRange = sort(indiceRange);
         end
