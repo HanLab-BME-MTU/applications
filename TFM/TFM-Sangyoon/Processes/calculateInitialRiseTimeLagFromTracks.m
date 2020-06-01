@@ -23,8 +23,8 @@ try
     timeLagProc = MD.processes_{iProc};
 catch
     iFAPack =  MD.getPackageIndex('FocalAdhesionPackage');
-    faPack = MD.getPackage(iFAPack);
-    timeLagProc = faPack.processes_{11};
+    FAPack = MD.getPackage(iFAPack);
+    timeLagProc = FAPack.processes_{11};
 end
 p = parseProcessParams(timeLagProc,paramsIn);
 iBeadChan = 1; % might need to be updated based on asking TFMPackage..
@@ -39,25 +39,44 @@ p.measureAmp2rates = true; % Should be replaced with a user input.
 % It might be good to save which process the tracksNA was obtained.
 disp('Reading tracksNA ...')
 iFAPack =  MD.getPackageIndex('FocalAdhesionPackage');
-faPack = MD.getPackage(iFAPack);
+FAPack = MD.getPackage(iFAPack);
 
 tic
 try
     iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
     adhAnalProc = MD.getProcess(iAdhProc);
 catch
-    adhAnalProc = faPack.processes_{7};
+    adhAnalProc = FAPack.processes_{7};
 end
 % Doublecheck the p.ChannelIndex
 p.ChannelIndex = adhAnalProc.funParams_.ChannelIndex;
 tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 % numChans = numel(p.ChannelIndex);
+%% Doublecheck if amp has similar range as amp2 and read it again at least for the extra part
+% find one examplary track that has intermediate starting point
+startingFrameExtraAll = arrayfun(@(x) x.startingFrameExtra,tracksNA);
+startingFrameExtraExtraAll = arrayfun(@(x) x.startingFrameExtraExtra,tracksNA);
+intermedTrackIDs = find(startingFrameExtraExtraAll<(startingFrameExtraAll-10));
+if ~isempty(intermedTrackIDs)
+    trackInspected = tracksNA(intermedTrackIDs(1));
+    % See if amp is NaN before startingFrameExtra (after
+    % startingFrameExtraExtra)
+    if isnan(trackInspected.amp(trackInspected.startingFrameExtraExtra+1))
+        % then we need to read this amp again
+        disp('Reading image stack again to read extra time regime of amp...')
+        tic
+        imgStack = getAnyStacks(MD);
+        toc
+        disp('Reading from tracks')
+        tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true);
+    end
+else
+    disp('All tracks have the same or similar starting points')
+end
 
-% Now we have to combine this with readings from step 9 and 10
-iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
-FAPack=MD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
+%% Now we have to combine this with readings from step 9 and 10
+iTheOtherProc=9; 
 theOtherReadProc=FAPack.processes_{iTheOtherProc};
-forceReadProc=FAPack.processes_{iForceRead};
 
 if ~isempty(theOtherReadProc)
     ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
@@ -75,6 +94,9 @@ if ~isempty(theOtherReadProc)
     end
 end
 
+%% Combinging from Step 10
+iForceRead=10;
+forceReadProc=FAPack.processes_{iForceRead};
 if ~isempty(forceReadProc)
     forceReadObj = load(forceReadProc.outFilePaths_{1,p.ChannelIndex},'tracksForceMag'); % the later channel has the most information.
     tracksForceMag = forceReadObj.tracksForceMag;
@@ -96,7 +118,7 @@ try
         iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
         classProc = MD.getProcess(iClaProc);
     catch
-        classProc = faPack.processes_{8};
+        classProc = FAPack.processes_{8};
     end
     % numChans = numel(p.ChannelIndex);
     idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
@@ -234,7 +256,7 @@ end
 % idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
 
 iForceReadProc = 10;
-forceReadProc = faPack.processes_{iForceReadProc};
+forceReadProc = FAPack.processes_{iForceReadProc};
 if ~isempty(forceReadProc)
     % Filtering for group1
     idGroup1FT = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
