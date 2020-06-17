@@ -23,11 +23,12 @@ try
     timeLagProc = MD.processes_{iProc};
 catch
     iFAPack =  MD.getPackageIndex('FocalAdhesionPackage');
-    faPack = MD.getPackage(iFAPack);
-    timeLagProc = faPack.processes_{11};
+    FAPack = MD.getPackage(iFAPack);
+    timeLagProc = FAPack.processes_{11};
 end
 p = parseProcessParams(timeLagProc,paramsIn);
 iBeadChan = 1; % might need to be updated based on asking TFMPackage..
+p.measureAmp2rates = true; % Should be replaced with a user input.
 
 % ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
 % ip.parse(MD,showAllTracks,plotEachTrack,varargin{:});
@@ -38,25 +39,44 @@ iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 % It might be good to save which process the tracksNA was obtained.
 disp('Reading tracksNA ...')
 iFAPack =  MD.getPackageIndex('FocalAdhesionPackage');
-faPack = MD.getPackage(iFAPack);
+FAPack = MD.getPackage(iFAPack);
 
 tic
 try
     iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
     adhAnalProc = MD.getProcess(iAdhProc);
 catch
-    adhAnalProc = faPack.processes_{7};
+    adhAnalProc = FAPack.processes_{7};
 end
 % Doublecheck the p.ChannelIndex
 p.ChannelIndex = adhAnalProc.funParams_.ChannelIndex;
 tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 % numChans = numel(p.ChannelIndex);
+%% Doublecheck if amp has similar range as amp2 and read it again at least for the extra part
+% find one examplary track that has intermediate starting point
+startingFrameExtraAll = arrayfun(@(x) x.startingFrameExtra,tracksNA);
+startingFrameExtraExtraAll = arrayfun(@(x) x.startingFrameExtraExtra,tracksNA);
+intermedTrackIDs = find(startingFrameExtraExtraAll<(startingFrameExtraAll-10));
+if ~isempty(intermedTrackIDs)
+    trackInspected = tracksNA(intermedTrackIDs(1));
+    % See if amp is NaN before startingFrameExtra (after
+    % startingFrameExtraExtra)
+    if isnan(trackInspected.amp(trackInspected.startingFrameExtraExtra+1))
+        % then we need to read this amp again
+        disp('Reading image stack again to read extra time regime of amp...')
+        tic
+        imgStack = getAnyStacks(MD);
+        toc
+        disp('Reading from tracks')
+        tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true);
+    end
+else
+    disp('All tracks have the same or similar starting points')
+end
 
-% Now we have to combine this with readings from step 9 and 10
-iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
-FAPack=MD.packages_{iFAPack}; iTheOtherProc=9; iForceRead=10;
+%% Now we have to combine this with readings from step 9 and 10
+iTheOtherProc=9; 
 theOtherReadProc=FAPack.processes_{iTheOtherProc};
-forceReadProc=FAPack.processes_{iForceRead};
 
 if ~isempty(theOtherReadProc)
     ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
@@ -66,11 +86,17 @@ if ~isempty(theOtherReadProc)
     if isfield(tracksAmpTotal,'ampTotal2')
         [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
     end
+    if isfield(tracksAmpTotal,'amp2')
+        [tracksNA(:).amp2] = tracksAmpTotal.amp2;
+    end
     if isfield(tracksAmpTotal,'ampTotal3')
         [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
     end
 end
 
+%% Combinging from Step 10
+iForceRead=10;
+forceReadProc=FAPack.processes_{iForceRead};
 if ~isempty(forceReadProc)
     forceReadObj = load(forceReadProc.outFilePaths_{1,p.ChannelIndex},'tracksForceMag'); % the later channel has the most information.
     tracksForceMag = forceReadObj.tracksForceMag;
@@ -92,7 +118,7 @@ try
         iClaProc = MD.getProcessIndex('AdhesionClassificationProcess');
         classProc = MD.getProcess(iClaProc);
     catch
-        classProc = faPack.processes_{8};
+        classProc = FAPack.processes_{8};
     end
     % numChans = numel(p.ChannelIndex);
     idsClassified = load(classProc.outFilePaths_{4,p.ChannelIndex});
@@ -166,8 +192,8 @@ end
 timeLagProc.setOutFilePaths(outputFile);
 
 %% I. Time series analyses
-p.numWinSize=10; %frames
-p.preDetecPeriod=10; %sec
+p.numWinSize=0; %frames
+p.preDetecPeriod=60; %sec
 for jj=existingSlaveIDs
     curSlaveCell = potentialSlaves(jj);
     curSlave=curSlaveCell{1};
@@ -176,7 +202,6 @@ for jj=existingSlaveIDs
     %     preDetecFactor=1/5; %for vinculin 
     preDetecFactor=1/10; %for talin
     % 1. Initial force-increase time quantification! - time
-    splineParamInit=0.99;
     [curFirstIncreseTimeIntAgainstSlave,SlaveTransmittingAll{jj}...
     ,firstIncreseTimeIntAll{jj},firstIncreseTimeSlaveAll{jj},bkgMaxIntAll{jj},bkgMaxSlaveAll{jj},~,ampIncreasing] ...
         = calculateFirstIncreaseTimeTracks(tracksNA,p.numWinSize,p.preDetecPeriod,tInterval,'slaveSource',curSlave);
@@ -231,7 +256,7 @@ end
 % idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
 
 iForceReadProc = 10;
-forceReadProc = faPack.processes_{iForceReadProc};
+forceReadProc = FAPack.processes_{iForceReadProc};
 if ~isempty(forceReadProc)
     % Filtering for group1
     idGroup1FT = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
@@ -264,7 +289,9 @@ if ismember(1,existingSlaveIDs)
     numEachGroupForceTransmitting = cellfun(@(x) sum(x & isForceTransmitting),idGroups);
     fractionForceTransmitting = numEachGroupForceTransmitting./numEachGroup;
     groupLabel = categorical(arrayfun(@(x,y) ['G' num2str(x) '(N=' num2str(y) ')'],1:9,numEachGroup,'unif',false));
-    h3=figure; bar(groupLabel,fractionForceTransmitting); title('Fraction of force-transmitting NAs per group')
+    
+    h3=figure; 
+    bar(groupLabel,fractionForceTransmitting); title('Fraction of force-transmitting NAs per group')
     ylabel('Fraction (1)'); nameTitle = 'fractionForceTransmitting';
     hgexport(h3,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
     hgsave(h3,strcat(figPath,filesep,nameTitle))
@@ -674,7 +701,7 @@ for k=1:numClasses
 %     save([dataPath filesep 'sideTimeToPeakGroup.mat'],'sideTimeToPeakGroup')
 %  
     
-    h2=figure; ax = axes(h2);
+    h2=figure; ax = axes(h2); 
     boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
     nameTitle=['peakLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
@@ -759,20 +786,6 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/ampTotalAllGroups'),'-v7.3'); close(h2)
     %% Look at feature difference per each group - assemRate
-    numTracks=numel(tracksNA);
-%     tIntMin=MD.timeInterval_/60;
-%     if ~isfield(tracksNA,'assemRate')
-%         tracksNA(end).assemRate=[];
-%     end
-%     disp('Calculating assembly rates'); tic
-%     parfor kk=1:numTracks
-%         curTrack=tracksNA(kk);
-%         curAssemRate = getAssemRateFromTracks(curTrack,tIntMin);
-%         curTrack.assemRate = curAssemRate;
-%         tracksNA(kk)=curTrack;
-% %         progressText(kk/numTracks,'Calculating assembly rates') % Update text
-%     end
-    toc
     assemRate{1} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{1}));
     assemRate{2} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{2}));
     assemRate{3} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup3));
@@ -839,6 +852,65 @@ end
         save([p.OutputDirectory filesep 'data' filesep 'ampTotal2.mat'],'ampTotal2','-v7.3')
         print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotal2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
         hgsave(strcat(figPath,'/ampTotal2AllGroups'),'-v7.3'); 
+        
+        %% Assembly rate for ampTotal2
+        if p.measureAmp2rates
+            numTracks=numel(tracksNA);
+            tIntMin=MD.timeInterval_/60;
+            if ~isfield(tracksNA,'assemRate2')
+                tracksNA(end).assemRate2=[];
+            end
+            if ~isfield(tracksNA,'disassemRate2')
+                tracksNA(end).disassemRate2=[];
+            end
+            disp('Calculating assembly/disassembly rates'); tic
+            parfor kk=1:numTracks
+                curTrack=tracksNA(kk);
+                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'amp2');
+                curTrack.assemRate2 = curAssemRate;
+                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'amp2');
+                curTrack.disassemRate2 = curDisassemRate;
+                tracksNA(kk)=curTrack;
+            end
+            toc
+            
+            assemRate2{1} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroups{1}));
+            assemRate2{2} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroups{2}));
+            assemRate2{3} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup3));
+            assemRate2{4} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup4));
+            assemRate2{5} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup5));
+            assemRate2{6} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup6));
+            assemRate2{7} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup7));
+            assemRate2{8} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup8));
+            assemRate2{9} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup9));
+            h2=figure; ax = axes(h2);
+            boxPlotCellArray(assemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+
+            title(ax,'assemRate2')
+            ylabel(ax,'Assembly Rate 2 (1/min)')
+            save([p.OutputDirectory filesep 'data' filesep 'assemRate2.mat'],'assemRate2','-v7.3')
+            
+            print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'assemRate2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+            hgsave(strcat(figPath,'/assemRate2AllGroups'),'-v7.3');
+        %% disassembly rate for ampTotal2
+            disassemRate2{1} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroups{1}));
+            disassemRate2{2} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroups{2}));
+            disassemRate2{3} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup3));
+            disassemRate2{4} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup4));
+            disassemRate2{5} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup5));
+            disassemRate2{6} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup6));
+            disassemRate2{7} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup7));
+            disassemRate2{8} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup8));
+            disassemRate2{9} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup9));
+            h2=figure; ax = axes(h2);
+            boxPlotCellArray(disassemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+
+            title(ax,'disassemRate2')
+            ylabel(ax,'Disssembly Rate 2 (1/min)')
+            save([p.OutputDirectory filesep 'data' filesep 'disassemRate2.mat'],'disassemRate2','-v7.3')
+            print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'disassemRate2AllGroups.eps']);% histogramPeakLagVinVsTal -transparent
+            hgsave(strcat(figPath,'/disassemRate2AllGroups'),'-v7.3'); 
+        end
     end
     %%
     if isfield(tracksNA,'ampTotal2')

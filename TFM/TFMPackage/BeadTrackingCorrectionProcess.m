@@ -131,6 +131,7 @@ classdef BeadTrackingCorrectionProcess < StageDriftCorrectionProcess
             funParams.alpha = .05;
             funParams.cropROI=[1 1 owner.imSize_(end:-1:1)];
             funParams.doPreReg=1;
+            funParams.iBeadChannel = 1;
         end
     end
 end

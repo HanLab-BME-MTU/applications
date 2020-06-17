@@ -10,23 +10,27 @@ pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 
-curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
-curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
-if ~isempty(imgMap2)
+if ~isfield(curTrack,'amp')
+    curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+end
+if ~isfield(curTrack,'forceMag')
+    curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
+end
+if ~isempty(imgMap2) && ~isfield(curTrack,'amp2')
     curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);
 end   
 
 curEndFrame=curTrack.endingFrameExtra;
 curStartFrame = curTrack.startingFrameExtra;
 curEndFrameEE=curTrack.endingFrameExtraExtra;
-curStartFrameEE = max(1,curStartFrame-50); %This needs to be updated in calculatePeakTimeLagFromTracks %curTrack.startingFrameExtraExtra;
+curStartFrameEE = curTrack.startingFrameExtraExtra; %max(1,curStartFrame-50); %This needs to be updated in calculatePeakTimeLagFromTracks
 curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
 
-splineParamInit=10; % This now has to be taken from the InitRise process. 0.99; %0.99;
-preDetecFactor=10; %.3; Changed.
-[firstIncreseTimeIntAgainstForce,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack1]=calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval);
+numAvgWindows=0; % Chose to use no smoothing
+preDetecFactor=60; %sec; Changed.
+[firstIncreseTimeIntAgainstForce,~,firstIncreseTimeInt,firstIncreseTimeForce,~,~,curTrack1]=calculateFirstIncreaseTimeTracks(curTrack,numAvgWindows,preDetecFactor,tInterval);
 frameFII=round(firstIncreseTimeInt/tInterval);
 frameFTI=round(firstIncreseTimeForce/tInterval);
 
@@ -246,15 +250,15 @@ if montInterval>1
         frameFIIcut = frameFII -chosenStartFrame +1;
         frameFTIcut = frameFTI -chosenStartFrame +1;
         peakFrameCut = peakFrame-chosenStartFrame +1;
-        if ~ismember(frameFIIcut,indiceRange) && frameFIIcut<=numChosenFrames
+        if frameFIIcut>0 && ~ismember(frameFIIcut,indiceRange) && frameFIIcut<=numChosenFrames
             indiceRange = [indiceRange frameFIIcut];
             indiceRange = sort(indiceRange);
         end
-        if ~ismember(frameFTIcut,indiceRange) && frameFTIcut<=numChosenFrames
+        if frameFTIcut>0 && ~ismember(frameFTIcut,indiceRange) && frameFTIcut<=numChosenFrames
             indiceRange = [indiceRange frameFTIcut];
             indiceRange = sort(indiceRange);
         end
-        if ~ismember(peakFrameCut,indiceRange)
+        if peakFrameCut>0 && ~ismember(peakFrameCut,indiceRange)
             indiceRange = [indiceRange peakFrameCut];
             indiceRange = sort(indiceRange);
         end
@@ -425,29 +429,30 @@ set(ax12,'FontUnits',genFontUnit,'FontSize',genFontSize)
 %     numNan = find(isnan(d),1,'last');
 %     tRange(isnan(d)) = [];
 %     d(isnan(d)) = [];
+
 axes(ax8)
-plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,sd,'Color',[0/255 0/255 0/255],'Linewidth',2)
-plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,...
-    sd(curStartFrame-curStartFrameEE+1:curEndFrame-curStartFrameEE+1),'Color',[84/255 84/255 255/255],'Linewidth',2)
-% Plot maximum point
-if isfield(curTrack,'intenPeakness') && curTrack.intenPeakness
-    plot((curTrack.intenPeakFrame-curStartFrameEE)*tInterval,sd(curTrack.intenPeakFrame-curStartFrameEE+1),'o',...
-        'MarkerFaceColor','w','MarkerEdgeColor',[84/255 84/255 255/255])
-end
+% plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,sd,'Color',[0/255 0/255 0/255],'Linewidth',2)
+% plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,...
+%     sd(curStartFrame-curStartFrameEE+1:curEndFrame-curStartFrameEE+1),'Color',[84/255 84/255 255/255],'Linewidth',2)
+% % Plot maximum point
+% if isfield(curTrack,'intenPeakness') && curTrack.intenPeakness
+%     plot((curTrack.intenPeakFrame-curStartFrameEE)*tInterval,sd(curTrack.intenPeakFrame-curStartFrameEE+1),'o',...
+%         'MarkerFaceColor','w','MarkerEdgeColor',[84/255 84/255 255/255])
+% end
 title(['Track ' num2str(IDtoInspect)])
 
 axes(ax9)
-curForce = curTrack.forceMag(curStartFrameEE:curEndFrameEE);
-sCurForce_spline= csaps(tRange,curForce,splineParam);
-sCurForce=ppval(sCurForce_spline,tRange);
-plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,sCurForce,'Color',[0/255 0/255 0/255],'Linewidth',2)
-plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,...
-    sCurForce(curStartFrame-curStartFrameEE+1:curEndFrame-curStartFrameEE+1),'Color',[229/255 84/255 84/255],'Linewidth',2)
-% Plot maximum point
-if isfield(curTrack,'forcePeakness') && curTrack.forcePeakness && curTrack.forcePeakFrame>=curStartFrameEE
-    plot((curTrack.forcePeakFrame-curStartFrameEE)*tInterval,sCurForce(curTrack.forcePeakFrame-curStartFrameEE+1),'o',...
-        'MarkerFaceColor','w','MarkerEdgeColor',[229/255 84/255 84/255])
-end
+% curForce = curTrack.forceMag(curStartFrameEE:curEndFrameEE);
+% sCurForce_spline= csaps(tRange,curForce,splineParam);
+% sCurForce=ppval(sCurForce_spline,tRange);
+% plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,sCurForce,'Color',[0/255 0/255 0/255],'Linewidth',2)
+% plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,...
+%     sCurForce(curStartFrame-curStartFrameEE+1:curEndFrame-curStartFrameEE+1),'Color',[229/255 84/255 84/255],'Linewidth',2)
+% % Plot maximum point
+% if isfield(curTrack,'forcePeakness') && curTrack.forcePeakness && curTrack.forcePeakFrame>=curStartFrameEE
+%     plot((curTrack.forcePeakFrame-curStartFrameEE)*tInterval,sCurForce(curTrack.forcePeakFrame-curStartFrameEE+1),'o',...
+%         'MarkerFaceColor','w','MarkerEdgeColor',[229/255 84/255 84/255])
+% end
 title(['\Deltat_{force-F.I.} = ' num2str(-curTrack1.firstIncreseTimeIntAgainstForce,'% 10.1f')])
 
 % force map colorbar
@@ -558,7 +563,7 @@ if ~isempty(imgMap2)
     % Third channel time series
     [curFirstIncreseTimeIntAgainstSlave,SlaveTransmitting...
     ,firstIncreseTimeInt,firstIncreseTimeSlave,~,bkgMaxSlave,curTrack2] ...
-        = calculateFirstIncreaseTimeTracks(curTrack,splineParamInit,preDetecFactor,tInterval,'slaveSource','amp2');
+        = calculateFirstIncreaseTimeTracks(curTrack,numAvgWindows,preDetecFactor,tInterval,'slaveSource','amp2');
     frameFII2 = round(firstIncreseTimeSlave/tInterval);
 
     ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
@@ -607,6 +612,9 @@ end
 %% saving
 
 if exist('gPath','var')
+    if ~exist('additionalName','var')
+        additionalName=[];
+    end
     print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
     print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.png'),'-dpng')
     savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))
