@@ -9,7 +9,7 @@ function [reg_corner,ireg_corner,kappa,h]=regParamSelecetionLcurve(rho,eta,lambd
 %   eta       - model norm or seminorm
 %   reg_param - the regularization parameter
 %   inflection - 0: L-corner, 
-%               1: Inflectionpoint after corner  (lambda smaller than l-corner).
+%               1: Inflectionpoint after corner  (lambda larger than l-corner).
 %               2: Inflection point before corner (lambda smaller than l-corner), 
 % 
 %              If the second derivative has a shape of which curvature approaches
