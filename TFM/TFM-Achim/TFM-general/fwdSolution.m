@@ -50,6 +50,69 @@ elseif nargin<10 || strcmpi(method,'conv')
         end
     end
     toc;
+    
+elseif strcmpi(method,'conv_FEM')
+    % //Work in progress FEM fwd solution method
+    tic;
+    disp('Utilizing FEM for forward soluton')
+
+    vx = linspace(x0(1),x0(2),meshPtsFwdSol);
+    vy = linspace(y0(1),y0(2),meshPtsFwdSol);
+    [x_grid,y_grid] = meshgrid(vx,vy);
+
+    %Creating PDE Container
+    femFwdModel = createpde('structural','static-solid');
+    
+    %Define geometry
+    gm = multicuboid(x0(2)*2,y0(2)*2,100); %multicuboid(x,y,z)
+    %200 or 100 micron thickness
+    %72 nm per pixel
+    femFwdModel.Geometry = gm;
+    
+    %Mesh the model
+    generateMesh(femFwdModel,'Hmax',10);
+    if length(femFwdModel.Mesh.Nodes(1,:)) < meshPtsFwdSol*h
+    generateMesh(femFwdModel,'Hmax',30);
+    end
+    
+    %Material properties
+    %FEM will fail when given a Poisson's Ratio of 0.5, therefore we detect
+    %that case and slightly reduce the ratio to 0.49
+    if v < 0.5
+    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v);
+    elseif v == 0.5
+    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v-0.001);
+    end
+    
+    %Constrain bottom face
+    structuralBC(femFwdModel,'Face',1,'Constraint','fixed');
+    
+    %Setting up forces
+    force_z = zeros(meshPtsFwdSol); %can be replaced by real data if a normal force is desired
+    %To utilize griddedInterpolant, the input matrices must be NGRID format,
+    %therefore the dummy variables x_zgrid and y_zgrid are created.
+    [x_zgrid,y_zgrid] = ndgrid(vx,vy);
+    forceInterpZ = griddedInterpolant(x_zgrid,y_zgrid,force_z);
+    
+    %force_xy is defined using function handles for the central basis
+    %function
+    force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
+                                force_y(location.x,location.y); ... %force_y is force mesh of y forces
+                                forceInterpZ(location.x,location.y);]; %forceInterpz is dummy variable for now
+    
+    %Solve model
+    structuralBoundaryLoad(femFwdModel,'Face',2,'SurfaceTraction',force_xy,'Vectorize','on');
+    femFwdResults = solve(femFwdModel);
+
+    %Interpolate displacements
+    z_grid = 100*ones(meshPtsFwdSol);
+    interpDisp=interpolateDisplacement(femFwdResults,x_grid,y_grid,z_grid);
+
+    %Fill in output displacement variables
+    ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
+    uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
+    toc;    
+
 elseif strcmpi(method,'fft')
     %display('Use fast convolution')    
 
