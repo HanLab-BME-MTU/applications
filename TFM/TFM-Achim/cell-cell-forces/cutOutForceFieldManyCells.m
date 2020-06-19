@@ -228,14 +228,23 @@ while finished==false
                 else
                     while ~inputOk
                         try
-                            polygonObject = impoly(gca,'Closed',false);
-                            inputOk=1;
+                            try
+                                polygonObject = drawpolyline(gca);
+                                inputOk=1;
+                            catch
+                                polygonObject = impoly(gca,'Closed',false);
+                                inputOk=1;
+                            end
                         catch
                             inputOk=0;
                         end
                     end
                 end
-                curveInterface       = round(getPosition(polygonObject));
+                try
+                    curveInterface       = round(getPosition(polygonObject));
+                catch  
+                    curveInterface       = round(polygonObject.Position);
+                end
                 curveInterfaceOld{j} = curveInterface;
             end
             % devide the force field into two parts:

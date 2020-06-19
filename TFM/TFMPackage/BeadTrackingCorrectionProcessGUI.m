@@ -82,7 +82,10 @@ userData.imIndx=1;
 userData.imData=userData.MD.channels_(userData.chanIndx).loadImage(userData.imIndx);
     
 set(handles.listbox_selectedChannels,'Callback',@(h,event) update_data(h,event,guidata(h)));
-    
+
+% Highlight the bead channel chosen
+set(handles.listbox_selectedChannels, 'Value', funParams.iBeadChannel);
+
 % Override default channels callback function
 set(handles.checkbox_all,'Callback',@(hObject,eventdata)...
     checkallChannels(hObject,eventdata,guidata(hObject)));
@@ -165,6 +168,9 @@ if isempty(funParams.referenceFramePath)
     errordlg('Please select a reference frame.','Setting Error','modal')
     return;
 end
+
+% Bead channel
+funParams.iBeadChannel = handles.listbox_selectedChannels.Value;
 
 % Read numeric information
 for i = 1:numel(userData.numParams),
