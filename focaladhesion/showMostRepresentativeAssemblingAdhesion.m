@@ -112,8 +112,13 @@ for curClass=RepClass
         mkdir(gPath)
     end
     for ii=find(trackID')
-        h2 = showSingleAdhesionTrackSummary(MD,curClassTracks(ii),imgStack,tMap,imgStack2, ii,gPath);
-        close(h2)
+        try
+            h2 = showSingleAdhesionTrackSummary(MD,curClassTracks(ii),imgStack,tMap,imgStack2, ii,gPath);
+            close(h2)
+        catch
+            disp(['error on this track: ' num2str(ii)])
+            continue
+        end
     end
 
 end

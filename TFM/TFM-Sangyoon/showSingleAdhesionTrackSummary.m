@@ -567,13 +567,18 @@ if ~isempty(imgMap2)
     frameFII2 = round(firstIncreseTimeSlave/tInterval);
 
     ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
-    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrameEE:curEndFrameEE),'k'), hold on
-    plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack2.amp2(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
+    try
+        plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrameEE:curEndFrameEE),'k'), hold on
+    catch
+        curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'movieData',MD);
+        plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrameEE:curEndFrameEE),'k'), hold on
+    end
+    plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack.amp2(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
     plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrame:curEndFrame),'m')
-    plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack2.amp2(curStartFrame+4:curEndFrame-4),'m')
+    plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack.amp2(curStartFrame+4:curEndFrame-4),'m')
     
     if SlaveTransmitting && frameFII2<=length(curTrack2.amp2)
-        plot((frameFII2-curStartFrameEE)*tInterval,curTrack2.amp2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
+        plot((frameFII2-curStartFrameEE)*tInterval,curTrack.amp2(frameFII2),'o','MarkerFaceColor','m','MarkerEdgeColor','w')
         text((frameFII2-curStartFrameEE)*tInterval+12,curTrack.amp2(frameFII2)+5,[num2str((frameFII2-curStartFrameEE)*tInterval) ' s'])
     end
     if ~isempty(bkgMaxSlave)

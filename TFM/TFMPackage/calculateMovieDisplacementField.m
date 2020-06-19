@@ -197,33 +197,16 @@ for j= firstFrame:nFrames
         % Detect beads in reference frame
         if j==firstFrame && firstFrame==1
             disp('Determining PSF sigma from reference frame...')
-            % Adaptation of psfSigma from bead channel image data
-            poolobj = gcp('nocreate'); % If no pool, do not create new one.
-            if isempty(poolobj)
-                poolsize = feature('numCores');
-            else
-                poolsize = poolobj.NumWorkers;
-            end
-%             if isempty(gcp('nocreate'))
-%                 try
-%                     parpool('local', poolsize)
-%                 catch
-%                     try 
-%                         matlabpool
-%                     catch 
-%                         warning('matlabpool has been removed, and parpool is not working in this instance');
-%                     end
-%                 end
-%             end % we don't need this any more.
             if ~debuggingMode
-                psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
-                if isnan(psfSigma) || psfSigma>movieData.channels_(1).psfSigma_*3 
+                % psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
+                psfSigma=NaN;
+                if isnan(psfSigma) || psfSigma>movieData.channels_(p.ChannelIndex(1)).psfSigma_*3 
                     if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-                        psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*2; %*2 scale up for widefield
                     elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-                        psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
                     elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-                        psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
                     else
                         error('image type should be chosen among Widefield, confocal and TIRF!');
                     end

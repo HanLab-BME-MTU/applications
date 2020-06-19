@@ -137,8 +137,8 @@ for ii=1:numel(tracksNA)
             bkgMaxInt = nanmax(sd(sF10before:sF5before));
             firstIncreaseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);
         else
-            bkgMaxInt = max(curTrack.ampTotal(sF10before:sF5before));
-            firstIncreaseTimeInt = find(curTrack.ampTotal>bkgMaxInt & 1:nTime>sF5before,1);
+            bkgMaxInt = max(d(sF10before:sF5before));
+            firstIncreaseTimeInt = find(d>bkgMaxInt & 1:nTime>sF5before,1);
         end
 %         firstIncreseTimeInt = curTrack.startingFrameExtra;
         if ~isempty(firstIncreaseTimeInt)
