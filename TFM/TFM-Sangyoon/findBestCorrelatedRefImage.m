@@ -4,7 +4,11 @@ function [averagingRange] = findBestCorrelatedRefImage(curRefBeadStack,img)
 % with img.
 % Sangyoon Han, June 2020
 
-numZ = size(curRefBeadStack,3);
+[h,w,numZ] = size(curRefBeadStack);
+%Should use only central part
+startX=round(w/4); endX=round(3*w/4);
+startY=round(h/4); endY=round(3*h/4);
+
 curCor = zeros(numZ,1);
 xOffsetAll = zeros(numZ,1);
 yOffsetAll = zeros(numZ,1);
@@ -12,8 +16,9 @@ yOffsetAll = zeros(numZ,1);
 % midPixelsAllFrames = cell(refMD.zSize_,1);
 for jj=1:numZ
     curRefImageFrame = curRefBeadStack(:,:,jj);
+    tempRef = curRefImageFrame(startY:endY,startX:endX);
     % Get the cross correlation score
-    score = normxcorr2(curRefImageFrame,img); 
+    score = normxcorr2(tempRef,img); 
     % Find peak
     [ypeak, xpeak] = find(score==max(score(:)));
     % Account for the padding that normxcorr2 adds.
