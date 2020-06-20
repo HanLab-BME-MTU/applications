@@ -230,19 +230,19 @@ backSpc =repmat('\b',1,L);
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-poolobj = gcp('nocreate'); % If no pool, do not create new one.
-if isempty(poolobj)
-    poolsize = feature('numCores');
-else
-    poolsize = poolobj.NumWorkers;
-end
-if isempty(gcp('nocreate'))
-    try
-        parpool('local',poolsize)
-    catch
-        disp('Please use matlab version 2015a or higher to use parallel computing') %matlabpool
-    end
-end % we don't need this any more.
+% poolobj = gcp('nocreate'); % If no pool, do not create new one.
+% if isempty(poolobj)
+%     poolsize = feature('numCores');
+% else
+%     poolsize = poolobj.NumWorkers;
+% end
+% if isempty(gcp('nocreate'))
+%     try
+%         parpool('local',poolsize)
+%     catch
+%         disp('Please use matlab version 2015a or higher to use parallel computing') %matlabpool
+%     end
+% end % we don't need this any more.
 
 if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 
@@ -254,8 +254,8 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % end
 % inqryPoint=find(inqryLogicInd);
 % for k = inqryPoint'
-parfor k = 1:nPoints
-% for k = 1:nPoints
+% parfor k = 1:nPoints
+for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];

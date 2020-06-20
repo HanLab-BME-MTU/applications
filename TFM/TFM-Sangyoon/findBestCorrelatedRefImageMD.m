@@ -1,4 +1,4 @@
-function [meanRefImg,meanRefImgPath] = findBestCorrelatedRefImageMD(refMD,img,iChan)
+function [meanRefImg,meanRefImgPath,averagingRange] = findBestCorrelatedRefImageMD(refMD,img,iChan)
 %[meanRefImg] = findBestCorrelatedRefImageMD(refMD,img,iChan) 
 % It is a wrapper function for findBestCorrelatedRefImage. 
 % It takes end channel for stack.
