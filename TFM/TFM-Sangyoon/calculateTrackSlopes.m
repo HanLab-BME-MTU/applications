@@ -21,8 +21,12 @@ for k=1:numel(tracksNA)
     lastFrameOneMin = min(tracksNA(k).endingFrameExtraExtra,sF+oneMinPeriod+prePeriodFrame-1);
     lastFrameFromOneOneMin = lastFrameOneMin - sF+1;
     
-    [~,curM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).amp(sF:lastFrame));
-    tracksNA(k).earlyAmpSlope = curM; % in a.u./min
+    try
+        [~,curM] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).amp(sF:lastFrame));
+        tracksNA(k).earlyAmpSlope = curM; % in a.u./min
+    catch
+        tracksNA(k).earlyAmpSlope = NaN;
+    end
     if isfield(tracksNA,'ampTotal2')
         [~,curM2] = regression(tIntervalMin*(1:lastFrameFromOne),tracksNA(k).ampTotal2(sF:lastFrame));
         tracksNA(k).earlyAmpSlope2 = curM2; % in a.u./min

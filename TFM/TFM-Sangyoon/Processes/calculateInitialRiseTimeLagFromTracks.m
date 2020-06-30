@@ -67,8 +67,20 @@ if ~isempty(intermedTrackIDs)
         tic
         imgStack = getAnyStacks(MD);
         toc
-        disp('Reading from tracks')
-        tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true);
+        disp('Reading from tracks'); tic
+        tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true); toc;
+        disp('Saving the tracks...'); tic
+        numTracks=numel(tracksNA);
+        fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+        numStr = @(trackNum) num2str(trackNum,fString);
+        trackFolderPath = [adhAnalProc.funParams_.OutputDirectory filesep 'trackIndividual'];
+        trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+        
+        parfor k=1:numTracks
+            curTrack=tracksNA(k);
+            parsave(feval(trackIndPath,k),curTrack)
+        end
+        toc
     end
 else
     disp('All tracks have the same or similar starting points')

@@ -141,23 +141,23 @@ backSpc =repmat('\b',1,L);
 startTime = clock;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-poolobj = gcp('nocreate'); % If no pool, do not create new one.
-if isempty(poolobj)
-    poolsize = feature('numCores');
-else
-    poolsize = poolobj.NumWorkers;
-end
-if isempty(gcp('nocreate'))
-    try
-        parpool('local',poolsize)
-    catch
-        disp('Please use matlab version 2015a or higher to use parallel computing') %matlabpool
-    end
-end % we don't need this any more.
+% poolobj = gcp('nocreate'); % If no pool, do not create new one.
+% if isempty(poolobj)
+%     poolsize = feature('numCores');
+% else
+%     poolsize = poolobj.NumWorkers;
+% end
+% if isempty(gcp('nocreate'))
+%     try
+%         parpool('local',poolsize)
+%     catch
+%         disp('Please use matlab version 2015a or higher to use parallel computing') %matlabpool
+%     end
+% end % we don't need this any more.
 
-if feature('ShowFigureWindows'), parfor_progress(nPoints); end
-parfor k = 1:nPoints
-% for k = 1:nPoints
+% if feature('ShowFigureWindows'), parfor_progress(nPoints); end
+% parfor k = 1:nPoints
+for k = 1:nPoints
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
 % inqX=[510]; inqY=[743];
@@ -645,9 +645,9 @@ parfor k = 1:nPoints
     sigtValues(k,:) = sigtVal;
     
 %     fprintf(1,[backSpc '\b\b\b\b']);
-    if feature('ShowFigureWindows'), parfor_progress; end
+%     if feature('ShowFigureWindows'), parfor_progress; end
 end
-if feature('ShowFigureWindows'), parfor_progress(0); end
+% if feature('ShowFigureWindows'), parfor_progress(0); end
 nanInd = find(isnan(v(:,1)));
 endTime = clock;
 fprintf(1,[strg '.\n'],nPoints);

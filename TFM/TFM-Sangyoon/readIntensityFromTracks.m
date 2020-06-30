@@ -78,11 +78,12 @@ elseif attribute==3 && ~isfield(tracksNA,'fret')
     tracksNA(end).fret=[];
 elseif attribute==4 && ~isfield(tracksNA,'flowSpeed')
     tracksNA(end).flowSpeed=[];
-elseif attribute==5 && (~isfield(tracksNA,'ampTotal2') || ~isfield(tracksNA,'amp2'))
-    tracksNA(end).ampTotal2=[];
-    tracksNA(end).amp2=[];
-    tracksNA(end).bkgAmp2=[];
-    
+elseif attribute==5
+    if (~isfield(tracksNA,'ampTotal2') || ~isfield(tracksNA,'amp2') || ~isfield(tracksNA,'bkgAmp2'))
+        tracksNA(end).ampTotal2=[];
+        tracksNA(end).amp2=[];
+        tracksNA(end).bkgAmp2=[];
+    end
     % In this case, make background-subtracted images
     imgClass = class(imgStack);
     imgStackBS=zeros(size(imgStack));
@@ -133,8 +134,8 @@ else
     maxSigmaAttempts=15;
 end
 
-parfor (k=1:numTracks, parforArg)
-% for k=1:numTracks
+% parfor (k=1:numTracks, parforArg)
+for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
@@ -588,7 +589,7 @@ parfor (k=1:numTracks, parforArg)
             end
         end
         
-        if extraReadingOnly || (~isempty(extraLengthForced) && abs(extraLengthForced)>0)
+        if ~extraReadingOnly && (~isempty(extraLengthForced) && abs(extraLengthForced)>0)
             curTrack.startingFrameExtraExtra = curTrack.startingFrameExtra;
             curTrack.endingFrameExtraExtra = curTrack.endingFrameExtra;
             if curTrack.startingFrameExtra>1
@@ -636,11 +637,12 @@ parfor (k=1:numTracks, parforArg)
                 end
             end
         end
-        frameRange=1:find(~isnan(curTrack.ampTotal),1,'last');
-        noNanRange = find(~isnan(curTrack.amp)); 
-        curTrack.amp=interp1(noNanRange,curTrack.amp(noNanRange),frameRange);
-        curTrack.bkgAmp=interp1(noNanRange,curTrack.bkgAmp(noNanRange),frameRange);
-
+        if ~extraReadingOnly
+            frameRange=1:find(~isnan(curTrack.ampTotal),1,'last');
+            noNanRange = find(~isnan(curTrack.amp)); 
+            curTrack.amp(frameRange)=interp1(noNanRange,curTrack.amp(noNanRange),frameRange);
+            curTrack.bkgAmp(frameRange)=interp1(noNanRange,curTrack.bkgAmp(noNanRange),frameRange);
+        end
 %         curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
     elseif attribute==2 || attribute==5 || attribute==6
         try
@@ -715,7 +717,7 @@ parfor (k=1:numTracks, parforArg)
                 disp('amp2 was failed to be estimated.')
             else
                 try
-                    curTrack.amp2=interp1(noNanRange,curTrack.amp2(noNanRange),1:frameRange(end));
+                    curTrack.amp2(1:frameRange(end))=interp1(noNanRange,curTrack.amp2(noNanRange),1:frameRange(end));
                 catch
                     disp('amp2 was failed to be estimated - no colocalization')
                 end
@@ -761,6 +763,76 @@ parfor (k=1:numTracks, parforArg)
 %     parfor_progress;
     progressText(k/(numTracks));
 end
+
+if attribute==1 && extraReadingOnly
+    [h,w,z]=size(imgStack);
+    for ii=1:numFrames
+        curImg = imgStack(:,:,ii);
+        curBS = imgStackBS(:,:,ii);
+        % Get indices of all absent points
+        idxAbsentBefore = arrayfun(@(x) ii<x.startingFrameExtra,tracksNA);
+        idxAbsentAfter = arrayfun(@(x) ii>x.endingFrameExtra,tracksNA);
+        
+        % Get all points to read
+        iFrameStarting = arrayfun(@(x) x.startingFrameExtra,tracksNA(idxAbsentBefore));
+        iFrameEnding = arrayfun(@(x) x.endingFrameExtra,tracksNA(idxAbsentAfter));
+        
+        xStarting = arrayfun(@(y,x) round(x.xCoord(y)),iFrameStarting,tracksNA(idxAbsentBefore));
+        yStarting = arrayfun(@(y,x) round(x.yCoord(y)),iFrameStarting,tracksNA(idxAbsentBefore));
+        xEnding = arrayfun(@(y,x) round(x.xCoord(y)),iFrameEnding,tracksNA(idxAbsentAfter));
+        yEnding = arrayfun(@(y,x) round(x.yCoord(y)),iFrameEnding,tracksNA(idxAbsentAfter));
+        % Get all neighboring points (into cell array)
+        xSneigh = arrayfun(@(x) x-1:x+1,xStarting,'unif',false);
+        ySneigh = arrayfun(@(x) x-1:x+1,yStarting,'unif',false);
+        xEneigh = arrayfun(@(x) x-1:x+1,xEnding,'unif',false);
+        yEneigh = arrayfun(@(x) x-1:x+1,yEnding,'unif',false);
+        % Trim them for image boundary
+        xSneigh = cellfun(@(x) x(x>0 & x<=w),xSneigh,'unif',false);
+        ySneigh = cellfun(@(x) x(x>0 & x<=h),ySneigh,'unif',false);
+        xEneigh = cellfun(@(x) x(x>0 & x<=w),xEneigh,'unif',false);
+        yEneigh = cellfun(@(x) x(x>0 & x<=h),yEneigh,'unif',false);
+        % Get intensity from the curImg
+        ampTotalStartingNeigh = cellfun(@(x,y) curImg(y,x), xSneigh, ySneigh, 'unif',false);
+        ampTotalEndingNeigh = cellfun(@(x,y) curImg(y,x), xEneigh, yEneigh, 'unif',false);
+        ampStartingNeigh = cellfun(@(x,y) curBS(y,x), xSneigh, ySneigh, 'unif',false);
+        ampEndingNeigh = cellfun(@(x,y) curBS(y,x), xEneigh, yEneigh, 'unif',false);
+        % Get mean intensity 
+        ampTotalStarting = cellfun(@(x) mean(x(:)), ampTotalStartingNeigh);
+        ampTotalEnding = cellfun(@(x) mean(x(:)), ampTotalEndingNeigh);
+        ampStarting = cellfun(@(x) mean(x(:)), ampStartingNeigh);
+        ampEnding = cellfun(@(x) mean(x(:)), ampEndingNeigh);
+        % Record to tracksNA
+        pp=0;
+        for jj=find(idxAbsentBefore')
+            pp=pp+1;
+            tracksNA(jj).xCoord(ii) = xStarting(pp);
+            tracksNA(jj).yCoord(ii) = yStarting(pp);
+        end
+        pp=0;
+        for jj=find(idxAbsentAfter')
+            pp=pp+1;
+            tracksNA(jj).xCoord(ii) = xEnding(pp);
+            tracksNA(jj).yCoord(ii) = yEnding(pp);
+        end
+        pp=0;
+        for jj=find(idxAbsentBefore')
+            pp=pp+1;
+            tracksNA(jj).ampTotal(ii) = ampTotalStarting(pp);
+            tracksNA(jj).amp(ii) = ampStarting(pp);
+            tracksNA(jj).bkgAmp(ii) = ampTotalStarting(pp)-ampStarting(pp);
+        end
+        pp=0;
+        for jj=find(idxAbsentBefore')
+            pp=pp+1;
+            tracksNA(jj).ampTotal(ii) = ampTotalEnding(pp);
+            tracksNA(jj).amp(ii) = ampEnding(pp);
+            tracksNA(jj).bkgAmp(ii) = ampTotalEnding(pp)-ampEnding(pp);
+        end
+        progressText(k/(numFrames));
+    end
+    disp('Extra-regime reading done!')
+end
+
 end
 %         for ii=startFrame:endFrame
 %             curImg = imgStack(:,:,ii);
