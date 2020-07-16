@@ -51,7 +51,7 @@ elseif nargin<10 || strcmpi(method,'conv')
     end
     toc;
     
-elseif strcmpi(method,'conv_FEM')
+elseif strcmpi(method,'FEM')
     % //Work in progress FEM fwd solution method
     tic;
     disp('Utilizing FEM for forward soluton')

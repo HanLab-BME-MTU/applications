@@ -67,8 +67,8 @@ set(handles.popupmenu_solMethodBEM,'String',solMethodBEMString,...
     'UserData',solMethodBEMData,'Value',solMethodBEMValue);
 
 % Create pop-up menu for force reconstruction method
-methodString ={'FastBEM';'FTTC'};
-methodData ={'FastBEM';'FTTC'};
+methodString ={'FastBEM';'FTTC';'FEM'};
+methodData ={'FastBEM';'FTTC';'FEM'};
 methodValue = find(strcmp(funParams.method,methodData));
 set(handles.popupmenu_method,'String',methodString,...
     'UserData',methodData,'Value',methodValue);
