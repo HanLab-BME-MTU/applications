@@ -452,7 +452,7 @@ if strcmpi(p.method,'FastBEM')
             waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
         end
     end
-elseif strcmpi(p.method,'FEMTFM') % FEMTFM
+elseif strcmpi(p.method,'FEM') % FEMTFM
     % Fill in here
     i=frameSequence(1); % For the first frame
     [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
