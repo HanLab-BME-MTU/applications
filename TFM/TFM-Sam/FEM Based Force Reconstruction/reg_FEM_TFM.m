@@ -11,7 +11,7 @@ ip.addRequired('yModu_Pa',@isscalar);
 ip.addRequired('pRatio',@(x) isequal(pRatio,.5));
 ip.addRequired('regParam',@isscalar);
 ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
-ip.addOptional('solMethodBEM','QR',@ischar);
+ip.addOptional('solMethodFEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
 ip.addParamValue('LcurveDataPath','',@ischar);
 ip.addParamValue('LcurveFigPath','',@ischar);
