@@ -112,6 +112,7 @@ elseif strcmpi(method,'FEM')
     ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
     uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
     toc;    
+    disp('Completed FEM fwd solution.')
 
 elseif strcmpi(method,'fft')
     %display('Use fast convolution')    
