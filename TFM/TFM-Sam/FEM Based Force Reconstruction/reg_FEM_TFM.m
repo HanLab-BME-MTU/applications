@@ -66,6 +66,7 @@ else
 end
 
 display('1.) Creating mesh & basis [~5sec]:...');
+display('reg_FEM_TFM')
 tic;
 % keepBDPts=true; %this might lead to unmatching forward map that lead to
 % diagonalized traction map

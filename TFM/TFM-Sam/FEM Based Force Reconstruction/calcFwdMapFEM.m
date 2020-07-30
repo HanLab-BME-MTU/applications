@@ -24,6 +24,8 @@ imgCols = ip.Results.imgCols;
 thickness = ip.Results.thickness;    
 v = ip.Results.PoissonRatio;
 
+disp('calcFwdMapFEM')
+
 % try to load the lookup table:
 try
     basisClassTblData=load(basisClassTblPath);
