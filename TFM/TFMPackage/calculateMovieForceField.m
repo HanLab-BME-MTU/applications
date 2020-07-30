@@ -454,6 +454,7 @@ if strcmpi(p.method,'FastBEM')
     end
 elseif strcmpi(p.method,'FEM') % FEMTFM
     % Fill in here
+    disp('calculateMovieForceField FEM')
     i=frameSequence(1); % For the first frame
     [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
