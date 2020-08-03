@@ -88,7 +88,7 @@ pos_u=horzcat(x_vec,y_vec);
 %construction of forward map, this takes a long time!
 
 display('2.) Building up forward map:...');
-disp('FEM_force_recondstruction')
+disp('FEM_force_reconstruction')
 inputFwdMap = false;
 tic;
 if nargin >= 10 && strcmp(method,'fast') && isempty(M) && ~FEM
