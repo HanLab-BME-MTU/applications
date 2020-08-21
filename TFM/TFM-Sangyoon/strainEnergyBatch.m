@@ -115,6 +115,7 @@ totalForce_FB_Group = cell(numConditions,1);
 SE_Cell_Group = cell(numConditions,1);
 SEDen_Cell_Group = cell(numConditions,1);
 totalForce_Cell_Group = cell(numConditions,1);
+totalDisp_Cell_Group = cell(numConditions,1);
 SE_FOV_Group = cell(numConditions,1);
 SEDen_FOV_Group = cell(numConditions,1);
 totalForce_FOV_Group = cell(numConditions,1);
@@ -139,6 +140,7 @@ for ii=1:numConditions
     curSECellGroup = cell(N(ii),1);
     curSEDenCellGroup = cell(N(ii),1);
     curTotalForceCellGroup = cell(N(ii),1);
+    curTotalDispCellGroup = cell(N(ii),1);
     curSEPerFOVGroup = cell(N(ii),1);
     curSEDenPerFOVGroup = cell(N(ii),1);
     curTotForcePerFOVGroup = cell(N(ii),1);
@@ -182,6 +184,7 @@ for ii=1:numConditions
             curSECellGroup{k} = curSECell_struct.SE; %in femto-Joule=1e15*(N*m)
             curSEDenCellGroup{k} = curSECell_struct.SEDensity; % in J/m2
             curTotalForceCellGroup{k} = seCellStruct.totalForceCell; % in nN
+            curTotalDispCellGroup{k} = seCellStruct.totDispCell; % in um2
         
             curSECellPeriGroup{k} = curSECell_struct.SE_peri; %in femto-Joule=1e15*(N*m)
             curSECellInsideGroup{k} = curSECell_struct.SE_inside; %in femto-Joule=1e15*(N*m)
@@ -222,6 +225,7 @@ for ii=1:numConditions
         SE_Cell_Group{ii,1}=curSECellGroup;
         SEDen_Cell_Group{ii,1}=curSEDenCellGroup;
         totalForce_Cell_Group{ii,1}=curTotalForceCellGroup;
+        totalDisp_Cell_Group{ii,1}=curTotalDispCellGroup;
 
         SE_CellPeri_Group{ii,1}=curSECellPeriGroup;
         SE_CellInside_Group{ii,1}=curSECellInsideGroup;
@@ -514,6 +518,25 @@ if isCellSeg
     tableTotalForce_Cell=table(totForceCell_CellArray,'RowNames',nameList);
     writetable(tableTotalForce_Cell,strcat(dataPath,'/totalForce_Cell.csv'),'WriteRowNames',true)
 end
+%% Integrated Displacement - Cell
+if isCellSeg
+    totDispCell_CellArray = cellfun(@(x) cell2mat(x),totalDisp_Cell_Group,'unif',false);
+    samNum=cellfun(@numel,totDispCell_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totDispCell_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_Cell_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(totDispCell_CellArray,nameList,1,false,true)
+    ylabel('Displacement, integrated (um^3)')
+    title('Integrated displacement over cell area')
+    hgexport(h1,strcat(figPath,'/totDispCell'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/totDispCell'),'-v7.3')
+    print(h1,strcat(figPath,'/totDispCell.tif'),'-dtiff')
+
+    tableTotDispCell_CellArray=table(totDispCell_CellArray,'RowNames',nameList);
+    writetable(tableTotDispCell_CellArray,strcat(dataPath,'/totDispCell.csv'),'WriteRowNames',true)
+end
+
 %% Total force - CellPeri
 if isCellSeg
     totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellPeri_Group,'unif',false);
