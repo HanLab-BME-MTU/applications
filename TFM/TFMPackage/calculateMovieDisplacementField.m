@@ -206,9 +206,10 @@ for j= firstFrame:nFrames
                     elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
                         psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
                     elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*4/7; %*3/7 scale down for TIRF finer detection SH012913
                     else
-                        error('image type should be chosen among Widefield, confocal and TIRF!');
+                        disp('image type should be chosen among Widefield, confocal and TIRF! Assuming TIRF for now...');
+                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*4/7; %*3/7 scale down for TIRF finer detection SH012913
                     end
                 end
                 disp(['Determined sigma: ' num2str(psfSigma)])
