@@ -180,7 +180,12 @@ SE_Cell=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(n
     'SE_peri',zeros(nFrames,1),'SE_inside',zeros(nFrames,1),'SEDensityPeri',zeros(nFrames,1),'SEDensityInside',zeros(nFrames,1));
 
 totalForceCell = zeros(nFrames,1);
-totDispCell = zeros(nFrames,1);
+totalDispCell = zeros(nFrames,1);
+totalDispCellPeri = zeros(nFrames,1);
+totalDispCellInside = zeros(nFrames,1);
+avgDispCell = zeros(nFrames,1);
+avgDispCellPeri = zeros(nFrames,1);
+avgDispCellInside = zeros(nFrames,1);
 
 SE_Blobs=struct('SE',zeros(nFrames,1),'nFA',zeros(nFrames,1),'areaFA',zeros(nFrames,1),...
     'SEDensity',zeros(nFrames,1),'avgFAarea',zeros(nFrames,1),'avgSEperFA',zeros(nFrames,1));
@@ -327,12 +332,13 @@ for ii=1:nFrames
         totalForceCellPeri(ii) = sum(sum(tMapCellPeri))*areaConvert*1e-3; % in nN
         totalForceCellInside(ii) = sum(sum(tMapCellInside))*areaConvert*1e-3; % in nN
         
-        totDispCell(ii) = sum(sum(dMapCell))*areaConvert*pixSize_mu; % in um3
-        % Fill in for peri and inside (Sam)
-        
-        avgDispCell(ii) = totDispCell(ii)/areaCell; % um
-        %Set a memory for this variable and fill in for peri and inside
-        %(Sam)
+        totalDispCell(ii) = sum(sum(dMapCell))*areaConvert*pixSize_mu; % in um3
+        totalDispCellPeri(ii) = sum(sum(dMapCellPeri))*areaConvert*pixSize_mu; % in um3
+        totalDispCellInside(ii) = sum(sum(dMapCellInside))*areaConvert*pixSize_mu; % in um3
+               
+        avgDispCell(ii) = totalDispCell(ii)/areaCell; % um
+        avgDispCellPeri(ii) = totalDispCellPeri(ii)/areaPeri; %um
+        avgDispCellInside(ii) = totalDispCellInside/areaInside; %um
     end
         
     if p.performForceBlobAnalysis
@@ -407,7 +413,9 @@ if p.useFOV || 1
     end
 end
 if existMask && p.useCellMask
-    save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri','totalForceCellInside','totDispCell'); % need to be updated for faster loading. SH 20141106
+    save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri',...
+        'totalForceCellInside','totalDispCell','totalDispCellPeri','totalDispCellInside',...
+        'avgDispCell','avgDispCellPeri','avgDispCellInside'); % need to be updated for faster loading. SH 20141106
     if p.exportCSV
         tableSE_Cell=struct2table(SE_Cell);
         writetable(tableSE_Cell,outputFile{6})
