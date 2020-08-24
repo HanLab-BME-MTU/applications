@@ -1,7 +1,7 @@
 %% open necessary MLs
 MLdirect=false;
 %% Read selectedFolders or MLs directly
-[pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat] = chooseSelectedFolders;
+[pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat, specificName] = chooseSelectedFolders;
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
 for k=1:numConditions

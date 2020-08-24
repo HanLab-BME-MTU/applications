@@ -68,15 +68,6 @@ else
 end
 
 %% --------------- Initialization ---------------%%
-nChans=numel(movieData.channels_);
-% psfSigma = 1.2; %hard coded for nascent adhesion
-psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iAdhChan).emissionWavelength_*1e-9);
-if isempty(psfSigma)
-    movieData.getChannel(iAdhChan).emissionWavelength_ = 568; 
-    disp('Adhesion channel emmission wave length is set to be 568 nm. If this value is incorrect, please set up your fluorophore of the adhesion channel')
-    psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iAdhChan).emissionWavelength_*1e-9);    
-end
-    
 % Set up the output directories
 outputFilePath = [movieData.outputDirectory_ filesep 'Adhesion Quantification'];
 imgPath = [outputFilePath filesep 'imgs'];
@@ -90,6 +81,8 @@ if ~exist(figPath,'dir')
     mkClrDir(tifPath);
     mkClrDir(figPath);
 end
+
+nChans=numel(movieData.channels_);
 % e.g. see if there is TFM package
 iTFM =  movieData.getPackageIndex('TFMPackage');
 % e.g. see if the additional channel is used for TFM or not.
@@ -97,7 +90,17 @@ iTFM =  movieData.getPackageIndex('TFMPackage');
 if ~isempty(iTFM)
     tfmPack = movieData.getPackage(iTFM);
     forceProc = tfmPack.getProcess(4);
-    iChanTFM = forceProc.checkChannelOutput;
+    dispProc = tfmPack.getProcess(2);
+    
+    dispFunParam = dispProc.funParams_; % forceProc.checkChannelOutput;
+    iChanTFM = dispFunParam.ChannelIndex;
+    % iAdhChan can be mistakenly input. It is reasonable to change it to
+    % the other channel if it overlaps with iChanTFM
+    if iAdhChan==iChanTFM && nChans==2
+        iAdhChan = setdiff(1:nChans,[iChanTFM]);
+        disp(['Adhesion channel index is automatically changed to ' num2str(iAdhChan) ' since ' ...
+            num2str(iChanTFM) ' overlapped with it.']);
+    end
     iAdditionalChan = setdiff(1:nChans,[iChanTFM, iAdhChan]);
     % Read TFM map
     tMap=forceProc.loadChannelOutput('output','tMapUnshifted'); % in Pa per pixel (1pix x 1pix)
@@ -111,6 +114,13 @@ else
     iAdditionalChan = setdiff(1:nChans,[iAdhChan]);
 end
 
+% psfSigma = 1.2; %hard coded for nascent adhesion
+psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iAdhChan).emissionWavelength_*1e-9);
+if isempty(psfSigma)
+    movieData.getChannel(iAdhChan).emissionWavelength_ = 568; 
+    disp('Adhesion channel emmission wave length is set to be 568 nm. If this value is incorrect, please set up your fluorophore of the adhesion channel')
+    psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(iAdhChan).emissionWavelength_*1e-9);    
+end
 %% --------------- Sub-resolution object detection ---------------%%% 
 disp('Starting detecting isotropic Gaussians...')
 
@@ -442,7 +452,7 @@ for j=1:movieData.nFrames_
             % 11. Now we are segmenting TFM map (force blob) and calculate
             % fraction of it inside the cell or outside.
             cellMask3 = bwmorph(cellMask,'dilate',100) & bwmorph(roiMask(:,:,j),'erode',15);
-            maskForceBlob = blobSegmentThresholdTFM(curTmap,minSize,true,cellMask3);
+            maskForceBlob = blobSegmentThresholdTFM(curTmap,minSize,false,cellMask3);
             % fraction of the blob mask inside
             blobPixelsAll = sum(maskForceBlob(:));
             blobInside = sum(maskForceBlob(cellMask));
