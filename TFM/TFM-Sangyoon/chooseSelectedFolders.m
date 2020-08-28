@@ -1,4 +1,4 @@
-function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat]=chooseSelectedFolders
+function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,specificName]=chooseSelectedFolders
 %function [pathAnalysisAll, MLNames, groupNames,
 %usedSelectedFoldersMat]=chooseSelectedFolders let users choose predefined
 %selectedfolder.mat or directly choose ML files to perform many batch
