@@ -9,15 +9,26 @@ imgHeight = size(imgMap,1);
 pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
+ampReSampled=false;
 
 if ~isfield(curTrack,'amp')
     curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+    ampReSampled=true;
 end
-if ~isfield(curTrack,'forceMag')
+if ~isfield(curTrack,'forceMag') || (isfield(curTrack,'forceMag') && sum(~isnan(curTrack.forceMag)) ~= sum(~isnan(curTrack.amp)))
+    if ~ampReSampled
+        curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+        ampReSampled=true;
+    end
     curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
 end
-if ~isempty(imgMap2) && ~isfield(curTrack,'amp2')
+if ~isempty(imgMap2) && ~isfield(curTrack,'amp2') || (isfield(curTrack,'amp2') && sum(~isnan(curTrack.amp2)) ~= sum(~isnan(curTrack.amp)))
+    if ~ampReSampled
+        curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+    end
     curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);
+%     if length(curTrack.amp) ~= length(curTrack.amp2)
+%     end
 end   
 
 curEndFrame=curTrack.endingFrameExtra;
@@ -369,8 +380,8 @@ else
 end
 plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp(curStartFrameEE:curEndFrameEE),'k'), hold on
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'b')
-plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack1.amp(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
-plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack1.amp(curStartFrame+4:curEndFrame-4),'b')
+% plot((curStartFrameEE-curStartFrameEE+4:curEndFrameEE-curStartFrameEE-4)*tInterval,curTrack1.amp(curStartFrameEE+4:curEndFrameEE-4),'k'), hold on
+% plot((curStartFrame-curStartFrameEE+4:curEndFrame-curStartFrameEE-4)*tInterval,curTrack1.amp(curStartFrame+4:curEndFrame-4),'b')
 if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting
     plot((frameFII-curStartFrameEE)*tInterval,curTrack1.amp(frameFII),'o','MarkerFaceColor','b','MarkerEdgeColor','w')
     text((frameFII-curStartFrameEE)*tInterval+12,curTrack.amp(frameFII)+5,[num2str((frameFII-curStartFrameEE)*tInterval) ' s'])

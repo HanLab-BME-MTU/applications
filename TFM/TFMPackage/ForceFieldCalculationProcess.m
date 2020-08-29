@@ -105,7 +105,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || length(iFrame)==1
+                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || length(iFrame)==1 || size(tMapMap,3)<length(iFrame)
                     tMapMap = [];
                     tMapMapX = [];
                     tMapMapY = [];
