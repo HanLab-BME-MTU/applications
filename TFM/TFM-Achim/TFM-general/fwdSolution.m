@@ -51,7 +51,7 @@ elseif nargin<10 || strcmpi(method,'conv')
     end
     toc;
     
-elseif strcmpi(method,'conv_FEM')
+elseif strcmpi(method,'FEM')
     % //Work in progress FEM fwd solution method
     tic;
     disp('Utilizing FEM for forward soluton')
@@ -64,16 +64,11 @@ elseif strcmpi(method,'conv_FEM')
     femFwdModel = createpde('structural','static-solid');
     
     %Define geometry
-    gm = multicuboid(x0(2)*2,y0(2)*2,100); %multicuboid(x,y,z)
-    %200 or 100 micron thickness
-    %72 nm per pixel
+    gm = multicuboid(x0(2)*2,y0(2)*2,h); %multicuboid(x,y,z)   
     femFwdModel.Geometry = gm;
     
     %Mesh the model
-    generateMesh(femFwdModel,'Hmax',10);
-    if length(femFwdModel.Mesh.Nodes(1,:)) < meshPtsFwdSol*h
-    generateMesh(femFwdModel,'Hmax',30);
-    end
+    generateMesh(femFwdModel,'Hmax',20);
     
     %Material properties
     %FEM will fail when given a Poisson's Ratio of 0.5, therefore we detect
@@ -81,7 +76,7 @@ elseif strcmpi(method,'conv_FEM')
     if v < 0.5
     structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v);
     elseif v == 0.5
-    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v-0.001);
+    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v-0.1);
     end
     
     %Constrain bottom face
@@ -94,24 +89,32 @@ elseif strcmpi(method,'conv_FEM')
     [x_zgrid,y_zgrid] = ndgrid(vx,vy);
     forceInterpZ = griddedInterpolant(x_zgrid,y_zgrid,force_z);
     
-    %force_xy is defined using function handles for the central basis
-    %function
-    force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
-                                force_y(location.x,location.y); ... %force_y is force mesh of y forces
-                                forceInterpZ(location.x,location.y);]; %forceInterpz is dummy variable for now
+    oneORtwo = force_x(0,0);
+    if oneORtwo == 1
+        %force_xy is defined using function handles for the central basis
+        %function
+        force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
+                                    force_y(location.x,location.y); ... %force_y is force mesh of y forces
+                                    force_y(location.x,location.y);]; %forceInterpz is dummy variable for now         
+    elseif oneORtwo == 0
+        force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
+                                    force_y(location.x,location.y); ... %force_y is force mesh of y forces
+                                    force_x(location.x,location.y);]; %forceInterpz is dummy variable for now  
+    end
     
     %Solve model
     structuralBoundaryLoad(femFwdModel,'Face',2,'SurfaceTraction',force_xy,'Vectorize','on');
     femFwdResults = solve(femFwdModel);
 
     %Interpolate displacements
-    z_grid = 100*ones(meshPtsFwdSol);
+    z_grid = h*ones(meshPtsFwdSol);
     interpDisp=interpolateDisplacement(femFwdResults,x_grid,y_grid,z_grid);
 
     %Fill in output displacement variables
     ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
     uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
     toc;    
+    disp('Completed FEM fwd solution.')
 
 elseif strcmpi(method,'fft')
     %display('Use fast convolution')    

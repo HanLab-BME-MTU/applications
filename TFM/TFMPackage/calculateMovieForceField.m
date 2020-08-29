@@ -370,461 +370,217 @@ if strcmpi(p.method,'FastBEM')
         
     % If grid_mat=[], then an optimal hexagonal force mesh is created
     % given the bead locations defined in displField:
-    if p.usePaxImg && length(movieData.channels_)>1
-        for i=frameSequence
-            paxImage=movieData.channels_(2).loadImage(i);
-            [pos_f, force, forceMesh, M, ~, ~, ~, ~]=...
-                reg_FastBEM_TFM(grid_mat, displField, i, ...
-                p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                'thickness',p.thickness/movieData.pixelSize_,'paxImg',paxImage,'pixelSize',movieData.pixelSize_);
-
-            outputFile{3+i,1} = [p.OutputDirectory filesep 'BEMParams ' num2str(i) ' frame.mat'];
-
-            disp(['saving forward map and custom force mesh at ' outputFile{3+i,1} '...'])
-            save(outputFile{3+i,1},'forceMesh','M','-v7.3');
-            display(['Done: solution for frame: ',num2str(i)]);
-            % Fill in the values to be stored:
-            forceField(i).pos=pos_f;
-            forceField(i).vec=force;
-            save(outputFile{1},'forceField');
-        end
-    elseif p.usePaxImg && i>1
-        display('Loading BEM parameters... ')
-        load(outputFile{3},'forceMesh','M','sol_mats');
-        for i=frameSequence
-            if p.usePaxImg && length(movieData.channels_)>1
-                paxImage=movieData.channels_(2).loadImage(i);
-                [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], 'paxImg', paxImage, 'useLcurve', p.useLcurve);
-            else
-                [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
-            end
-            forceField(i).pos=pos_f;
-            forceField(i).vec=force;
-            % Save each iteration (for recovery of unfinished processes)
-            save(outputFile{1},'forceField');
-            display(['Done: solution for frame: ',num2str(i)]);
-            %Update the waitbar
-            if mod(i,5)==1 && ishandle(wtBar)
-                ti=toc;
-                waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
-            end
-        end
+    if ishandle(wtBar)
+        waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
+    end
+    if p.useLcurve
+        [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
+            reg_FastBEM_TFM(grid_mat, displField, i, ...
+            p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+            'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+            'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+            'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
+            'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1},'fwdMap',M,...
+            'lcornerOptimal',p.lcornerOptimal, 'tolx', p.tolx);
+        params = parseProcessParams(forceFieldProc,paramsIn);
+        params.regParam = sol_mats.L;
+        p.regParam = sol_mats.L;
+        forceFieldProc.setPara(params);
+        forceField(i).pos=pos_f;
+        forceField(i).vec=force;
+        save(outputFile{1},'forceField');
     else
-        if ishandle(wtBar)
-            waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
-        end
-        if p.useLcurve
-            if p.divideConquer>1 % divide and conquer
-                nOverlap = 10; % the number of grid points to be overlapped
-                % sub-divide grid_mat
-                nLength = sqrt(p.divideConquer);
-                [nRows, nCols,~]=size(grid_mat);
-                subGridLimits(nLength,nLength) = struct('rowLim','','colLim','');
-                subGrid = cell(nLength);
-                subDisplField = cell(nLength);
-                nRowBlock = ceil(nRows/nLength);
-                nColBlock = ceil(nCols/nLength);
-                forceInFullGrid = zeros(size(grid_mat));
-                subForceInFullGrid = cell(nLength);% zeros(size(grid_mat));
-                fullGrid = zeros(size(grid_mat));
-                subFullGrid = cell(nLength); % zeros(size(grid_mat));
-                % setting up the limits
-                for jj=1:nLength % rows
-                    for kk=1:nLength % columns
-                        nRowFirst = max(1,1+nRowBlock*(jj-1)-nOverlap);
-                        nRowSecond = min(nRows,1+nRowBlock*(jj)+nOverlap);
-                        subGridLimits(jj,kk).rowLim=[nRowFirst nRowSecond];
-                        nColFirst = max(1,1+nColBlock*(kk-1)-nOverlap);
-                        nColSecond = min(nCols,1+nColBlock*(kk)+nOverlap);
-                        subGridLimits(jj,kk).colLim=[nColFirst nColSecond];
-                    end
-                end
-                
-                nOverlapComb = 1;
-                pp=0; %linear index
-                % Combining...
-                for jj=1:nLength % rows
-                    for kk=1:nLength % columns
-                        pp=pp+1;
-                        curRowRange = subGridLimits(jj,kk).rowLim(1):subGridLimits(jj,kk).rowLim(2);
-                        curColRange = subGridLimits(jj,kk).colLim(1):subGridLimits(jj,kk).colLim(2);
-                        subGrid{jj,kk} = grid_mat(curRowRange,curColRange,:);
-                        % Constructing sub-displacement field
-                        subForceMask=zeros(size(firstMask));
-                        subDispYFirst = max(1,subGrid{jj,kk}(1,1,2)-2*gridSpacing);
-                        subDispYLast = min(size(firstMask,1),subGrid{jj,kk}(end,end,2)+2*gridSpacing);
-                        subDispXFirst = max(1,subGrid{jj,kk}(1,1,1)-2*gridSpacing);
-                        subDispXLast = min(size(firstMask,2),subGrid{jj,kk}(end,end,1)+2*gridSpacing);
-                        subForceMask(subDispYFirst:subDispYLast,subDispXFirst:subDispXLast)=1;
-                        subDisplField{jj,kk} = filterDisplacementField(displField,subForceMask);
-                        [pos_f_sub{jj,kk}, force_sub{jj,kk}, forceMesh_sub{jj,kk}, M_sub{jj,kk}, ~, ~, ~,  sol_mats{jj,kk}]=...
-                            reg_FastBEM_TFM(subGrid{jj,kk}, subDisplField{jj,kk}, i, ...
-                            p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                            'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                            'useLcurve',p.useLcurve>0, ...
-                            'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
-                            'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1},'fwdMap',M,...
-                            'lcornerOptimal',p.lcornerOptimal);
-                        % Now we are adding code to use some shared part
-                        % for matching the force coefficient outcome and adjusting regularization parameter
-                        % Take the overlapping area
-                        clear curForceInGrid
-                        clear curGrid
-                        curForceInGrid(:,:,1) = reshape(force_sub{jj,kk}(:,1),size(subGrid{jj,kk}(:,:,1),2),size(subGrid{jj,kk}(:,:,1),1)); 
-                        curForceInGrid(:,:,2) = reshape(force_sub{jj,kk}(:,2),size(subGrid{jj,kk}(:,:,2),2),size(subGrid{jj,kk}(:,:,2),1));
-                        curGrid(:,:,1) = reshape(pos_f_sub{jj,kk}(:,1),size(subGrid{jj,kk}(:,:,1),2),size(subGrid{jj,kk}(:,:,1),1));
-                        curGrid(:,:,2) = reshape(pos_f_sub{jj,kk}(:,2),size(subGrid{jj,kk}(:,:,2),2),size(subGrid{jj,kk}(:,:,1),1));
-                        % Define the overlapping area in the clock-wise
-                        % fashion.
-                        nRowFirst = max(1,1+nRowBlock*(jj-1)-nOverlapComb);
-                        nRowSecond = min(nRows,1+nRowBlock*(jj)+nOverlapComb);
-                        nColFirst = max(1,1+nColBlock*(kk-1)-nOverlapComb);
-                        nColSecond = min(nCols,1+nColBlock*(kk)+nOverlapComb);
-                        curRowRangeComb = nRowFirst:nRowSecond;
-                        curColRangeComb =nColFirst:nColSecond;
-                        %Insert in the full grid force
-                        tempSubForceInFullGrid = zeros(size(grid_mat));
-                        tempSubForceInFullGrid(curColRange,curRowRange,:) = curForceInGrid;
-                        subForceInFullGrid{jj,kk}=zeros(size(grid_mat));
-                        subForceInFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:)=tempSubForceInFullGrid(curColRangeComb,curRowRangeComb,:);
-                        tempSubFullGrid = zeros(size(grid_mat));
-                        tempSubFullGrid(curColRange,curRowRange,:) = curGrid;
-                        subFullGrid{jj,kk}=zeros(size(grid_mat));
-                        subFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:)=tempSubFullGrid(curColRangeComb,curRowRangeComb,:);
-                        
-                        % Actual combining
-                        forceInFullGrid(curColRangeComb,curRowRangeComb,:)=...
-                            subForceInFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:);
-                        fullGrid(curColRangeComb,curRowRangeComb,:)=...
-                            subFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:);
-                    end
-                end
-                % re-format forceInFullGrid into vector format
-                forceField(i).pos=[reshape(fullGrid(:,:,1),[],1), reshape(fullGrid(:,:,2),[],1)];
-                forceField(i).vec=[reshape(forceInFullGrid(:,:,1),[],1), reshape(forceInFullGrid(:,:,2),[],1)];
-                save(outputFile{1},'forceField');
-            else
-                [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
-                    reg_FastBEM_TFM(grid_mat, displField, i, ...
-                    p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                    'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                    'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                    'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
-                    'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1},'fwdMap',M,...
-                    'lcornerOptimal',p.lcornerOptimal, 'tolx', p.tolx);
-                params = parseProcessParams(forceFieldProc,paramsIn);
-                params.regParam = sol_mats.L;
-                p.regParam = sol_mats.L;
-                forceFieldProc.setPara(params);
-                forceField(i).pos=pos_f;
-                forceField(i).vec=force;
-                save(outputFile{1},'forceField');
-            end
-        else
-            if p.divideConquer>1 % divide and conquer
-                nOverlap = 10; % the number of grid points to be overlapped
-                % sub-divide grid_mat
-                nLength = sqrt(p.divideConquer);
-                [nRows, nCols,~]=size(grid_mat);
-                subGridLimits(nLength,nLength) = struct('rowLim','','colLim','');
-                subGrid = cell(nLength);
-                subDisplField = cell(nLength);
-                nRowBlock = ceil(nRows/nLength);
-                nColBlock = ceil(nCols/nLength);
-                forceInFullGrid = zeros(size(grid_mat));
-                subForceInFullGrid = cell(nLength);% zeros(size(grid_mat));
-                fullGrid = zeros(size(grid_mat));
-                subFullGrid = cell(nLength); % zeros(size(grid_mat));
-                % setting up the limits
-                for jj=1:nLength % rows
-                    for kk=1:nLength % columns
-                        nRowFirst = max(1,1+nRowBlock*(jj-1)-nOverlap);
-                        nRowSecond = min(nRows,1+nRowBlock*(jj)+nOverlap);
-                        subGridLimits(jj,kk).rowLim=[nRowFirst nRowSecond];
-                        nColFirst = max(1,1+nColBlock*(kk-1)-nOverlap);
-                        nColSecond = min(nCols,1+nColBlock*(kk)+nOverlap);
-                        subGridLimits(jj,kk).colLim=[nColFirst nColSecond];
-                    end
-                end
-                
-                nOverlapComb = 1;
-                pp=0; %linear index
-                % Combining...
-                for jj=1:nLength % rows
-                    for kk=1:nLength % columns
-                        pp=pp+1;
-                        curRowRange = subGridLimits(jj,kk).rowLim(1):subGridLimits(jj,kk).rowLim(2);
-                        curColRange = subGridLimits(jj,kk).colLim(1):subGridLimits(jj,kk).colLim(2);
-                        subGrid{jj,kk} = grid_mat(curRowRange,curColRange,:);
-                        % Constructing sub-displacement field
-                        subForceMask=zeros(size(firstMask));
-                        subDispYFirst = max(1,subGrid{jj,kk}(1,1,2)-2*gridSpacing);
-                        subDispYLast = min(size(firstMask,1),subGrid{jj,kk}(end,end,2)+2*gridSpacing);
-                        subDispXFirst = max(1,subGrid{jj,kk}(1,1,1)-2*gridSpacing);
-                        subDispXLast = min(size(firstMask,2),subGrid{jj,kk}(end,end,1)+2*gridSpacing);
-                        subForceMask(subDispYFirst:subDispYLast,subDispXFirst:subDispXLast)=1;
-                        subDisplField{jj,kk} = filterDisplacementField(displField,subForceMask);
-                        [pos_f_sub{jj,kk}, force_sub{jj,kk}, forceMesh_sub{jj,kk}, M_sub{jj,kk}, ~, ~, ~,  sol_mats{jj,kk}]=...
-                            reg_FastBEM_TFM(subGrid{jj,kk}, subDisplField{jj,kk}, i, ...
-                            p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                            'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                            'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_);
-                        % Now we are adding code to use some shared part
-                        % for matching the force coefficient outcome and adjusting regularization parameter
-                        % Take the overlapping area
-                        clear curForceInGrid
-                        clear curGrid
-                        curForceInGrid(:,:,1) = reshape(force_sub{jj,kk}(:,1),size(subGrid{jj,kk}(:,:,1),2),size(subGrid{jj,kk}(:,:,1),1)); 
-                        curForceInGrid(:,:,2) = reshape(force_sub{jj,kk}(:,2),size(subGrid{jj,kk}(:,:,2),2),size(subGrid{jj,kk}(:,:,2),1));
-                        curGrid(:,:,1) = reshape(pos_f_sub{jj,kk}(:,1),size(subGrid{jj,kk}(:,:,1),2),size(subGrid{jj,kk}(:,:,1),1));
-                        curGrid(:,:,2) = reshape(pos_f_sub{jj,kk}(:,2),size(subGrid{jj,kk}(:,:,2),2),size(subGrid{jj,kk}(:,:,1),1));
-                        % Define the overlapping area in the clock-wise
-                        % fashion.
-                        nRowFirst = max(1,1+nRowBlock*(jj-1)-nOverlapComb);
-                        nRowSecond = min(nRows,1+nRowBlock*(jj)+nOverlapComb);
-                        nColFirst = max(1,1+nColBlock*(kk-1)-nOverlapComb);
-                        nColSecond = min(nCols,1+nColBlock*(kk)+nOverlapComb);
-                        curRowRangeComb = nRowFirst:nRowSecond;
-                        curColRangeComb =nColFirst:nColSecond;
-                        %Insert in the full grid force
-                        tempSubForceInFullGrid = zeros(size(grid_mat));
-                        tempSubForceInFullGrid(curColRange,curRowRange,:) = curForceInGrid;
-                        subForceInFullGrid{jj,kk}=zeros(size(grid_mat));
-                        subForceInFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:)=tempSubForceInFullGrid(curColRangeComb,curRowRangeComb,:);
-                        tempSubFullGrid = zeros(size(grid_mat));
-                        tempSubFullGrid(curColRange,curRowRange,:) = curGrid;
-                        subFullGrid{jj,kk}=zeros(size(grid_mat));
-                        subFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:)=tempSubFullGrid(curColRangeComb,curRowRangeComb,:);
-                        
-                        % Find the overlapping area
-                        if ~(pp==1)
-                            % find indices of overlapping grid
-                            numOverlap = zeros(pp-1,1);
-                            idxOverlap = cell(pp-1,1);
-                            for qq=1:(pp-1)
-                                jjp = floor((qq-1)/nLength)+1;
-                                kkp = qq-(jjp-1)*nLength;
-                                idxOverlap{qq}=subFullGrid{jjp,kkp}(:,:,1)== subFullGrid{jj,kk}(:,:,1) & ...
-                                    subFullGrid{jjp,kkp}(:,:,2)== subFullGrid{jj,kk}(:,:,2) & ...
-                                    subFullGrid{jjp,kkp}(:,:,1) & subFullGrid{jjp,kkp}(:,:,2) & ...
-                                    subFullGrid{jj,kk}(:,:,1) & subFullGrid{jj,kk}(:,:,2);
-                                numOverlap(qq) = sum(idxOverlap{qq}(:));
-                            end
-                            % Find the subGrid that has the most overlaps
-                            [~,iMaxSubGrid]=max(numOverlap);
-                            % Compare force between the current subgrid vs.
-                            % iMaxSubGrid
-                            jjpSelected = floor((iMaxSubGrid-1)/nLength)+1;
-                            kkpSelected = iMaxSubGrid-(jjpSelected-1)*nLength;
-                            idxSelectedX = idxOverlap{iMaxSubGrid};
-                            idxSelectedY(:,:,2)=idxOverlap{iMaxSubGrid};
-                            
-                            % force vectors in iMaxSubGrid'th subgrid
-                            clear forceInPrevSub gridInPrevSub forceInCurSub gridInCurSub
-                            forceInPrevSub(:,1) = subForceInFullGrid{jjpSelected,kkpSelected}(idxSelectedX);
-                            forceInPrevSub(:,2) = subForceInFullGrid{jjpSelected,kkpSelected}(idxSelectedY);
-                            gridInPrevSub(:,1) = subFullGrid{jjpSelected,kkpSelected}(idxSelectedX);
-                            gridInPrevSub(:,2) = subFullGrid{jjpSelected,kkpSelected}(idxSelectedY);
-                            
-                            % force vectors in the current subgrid
-                            forceInCurSub(:,1) = subForceInFullGrid{jj,kk}(idxSelectedX);
-                            forceInCurSub(:,2) = subForceInFullGrid{jj,kk}(idxSelectedY);
-                            gridInCurSub(:,1) = subFullGrid{jj,kk}(idxSelectedX);
-                            gridInCurSub(:,2) = subFullGrid{jj,kk}(idxSelectedY);
-                            
-                            L=p.regParam;
-                            % calculate difference
-                            diffNorm=norm(forceInCurSub)-norm(forceInPrevSub);
-                            % Inner product between the two vector field
-                            innerProdAll = forceInPrevSub*forceInCurSub';
-                            innerProd = diag(innerProdAll);
-                            innerProdSum = sum(abs(innerProd));
-                            prevSelfProdAll = forceInPrevSub*forceInPrevSub';
-                            prevSelfProd = diag(prevSelfProdAll);
-                            prevSelfProdSum = sum(abs(prevSelfProd));
-                            ratioProdSum=innerProdSum/prevSelfProdSum; %<1 if the current subgrid has underestimating force than overlap from previous subgrid.
-                            
-                            regFactor=10;
-%                             oldDiffNorm=0;
-                            oldRatio = ratioProdSum;
-                            % For debugging
-                            sc=0.01;
-                            figure,quiver(gridInPrevSub(:,1),gridInPrevSub(:,2),sc*forceInPrevSub(:,1),sc*forceInPrevSub(:,2),0,'k')
-                            hold on,quiver(gridInCurSub(:,1),gridInCurSub(:,2),sc*forceInCurSub(:,1),sc*forceInCurSub(:,2),0,'r')
-                            disp(['ratioProdSum: ' num2str(ratioProdSum) ])
-                            accuFactor=0.1; %deviation by 10 % is allowed
-                            while (ratioProdSum>(1+accuFactor) || ratioProdSum<(1-accuFactor)) && regFactor>=1.01 %while the difference in norm is more than 100 Pa,
-                                % change regularization parameter appropriately
-                                if ratioProdSum<1 % if the current norm is smaller, L should be smaller to yield less-underestimated solution
-                                    if oldRatio>1
-                                        regFactor=regFactor^0.9;
-                                    end
-                                    L=L*1/regFactor;
-                                elseif ratioProdSum>1 % if the current dot product sum is larger, the larger L should be applied to yield suppressed solution.
-                                    if oldRatio<1 
-                                        regFactor=regFactor^0.9;
-                                    end
-                                    L=L*regFactor;
-                                end
-                                disp(['Testing L= ' num2str(L)])
-                                oldRatio=ratioProdSum;
-                                [pos_f_sub{jj,kk}, force_sub{jj,kk}, forceMesh_sub{jj,kk}, M_sub{jj,kk}, ~, ~, ~,  sol_mats{jj,kk}]=...
-                                    reg_FastBEM_TFM(subGrid{jj,kk}, subDisplField{jj,kk}, i, ...
-                                    p.YoungModulus, p.PoissonRatio, L, p.meshPtsFwdSol,p.solMethodBEM,...
-                                    'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:}, 'fwdMap', M_sub{jj,kk},...
-                                    'useLcurve',false, 'thickness',p.thickness/movieData.pixelSize_);
-                                
-                                clear curForceInGrid
-                                clear curGrid
-                                curForceInGrid(:,:,1) = reshape(force_sub{jj,kk}(:,1),size(subGrid{jj,kk}(:,:,1),2),size(subGrid{jj,kk}(:,:,1),1)); 
-                                curForceInGrid(:,:,2) = reshape(force_sub{jj,kk}(:,2),size(subGrid{jj,kk}(:,:,2),2),size(subGrid{jj,kk}(:,:,2),1));
-                                curGrid(:,:,1) = reshape(pos_f_sub{jj,kk}(:,1),size(subGrid{jj,kk}(:,:,1),2),size(subGrid{jj,kk}(:,:,1),1));
-                                curGrid(:,:,2) = reshape(pos_f_sub{jj,kk}(:,2),size(subGrid{jj,kk}(:,:,2),2),size(subGrid{jj,kk}(:,:,1),1));
-                                % Define the overlapping area in the clock-wise
-                                % fashion.
-                                %Insert in the full grid force
-                                tempSubForceInFullGrid = zeros(size(grid_mat));
-                                tempSubForceInFullGrid(curColRange,curRowRange,:) = curForceInGrid;
-                                subForceInFullGrid{jj,kk}=zeros(size(grid_mat));
-                                subForceInFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:)=tempSubForceInFullGrid(curColRangeComb,curRowRangeComb,:);
-                                tempSubFullGrid = zeros(size(grid_mat));
-                                tempSubFullGrid(curColRange,curRowRange,:) = curGrid;
-                                subFullGrid{jj,kk}=zeros(size(grid_mat));
-                                subFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:)=tempSubFullGrid(curColRangeComb,curRowRangeComb,:);
-                                
-                                forceInCurSub(:,1) = subForceInFullGrid{jj,kk}(idxSelectedX);
-                                forceInCurSub(:,2) = subForceInFullGrid{jj,kk}(idxSelectedY);
-                                gridInCurSub(:,1) = subFullGrid{jj,kk}(idxSelectedX);
-                                gridInCurSub(:,2) = subFullGrid{jj,kk}(idxSelectedY);
-%                                 diffNorm=norm(forceInCurSub)-norm(forceInPrevSub);
-                                
-                                innerProdAll = forceInPrevSub*forceInCurSub';
-                                innerProd = diag(innerProdAll);
-                                innerProdSum = sum(abs(innerProd));
-                                ratioProdSum=innerProdSum/prevSelfProdSum; %<1 if the current subgrid has underestimating force than overlap from previous subgrid.
-                                % For debugging
-                                sc=0.01;
-                                figure,quiver(gridInPrevSub(:,1),gridInPrevSub(:,2),sc*forceInPrevSub(:,1),sc*forceInPrevSub(:,2),0,'k')
-                                hold on,quiver(gridInCurSub(:,1),gridInCurSub(:,2),sc*forceInCurSub(:,1),sc*forceInCurSub(:,2),0,'r')
-                                disp(['ratioProdSum: ' num2str(ratioProdSum) ' at L=' num2str(L)])
-                            end
-                        end
-                        
-                        % Actual combining
-                        forceInFullGrid(curColRangeComb,curRowRangeComb,:)=...
-                            subForceInFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:);
-                        fullGrid(curColRangeComb,curRowRangeComb,:)=...
-                            subFullGrid{jj,kk}(curColRangeComb,curRowRangeComb,:);
-                    end
-                end
-                % re-format forceInFullGrid into vector format
-                forceField(i).pos=[reshape(fullGrid(:,:,1),[],1), reshape(fullGrid(:,:,2),[],1)];
-                forceField(i).vec=[reshape(forceInFullGrid(:,:,1),[],1), reshape(forceInFullGrid(:,:,2),[],1)];
-                save(outputFile{1},'forceField');
-            else
-                [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
-                    reg_FastBEM_TFM(grid_mat, displField, i, ...
-                    p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                    'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                    'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                    'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_,...
-                    'fwdMap',M, 'tolx', p.tolx);
-                forceField(i).pos=pos_f;
-                forceField(i).vec=force;
-                save(outputFile{1},'forceField');
-            end
-        end
-        % Error estimation
-        % I will use forward matrix to estimate relative uncertainty of
-        % calculated displacement field for each force node. - SH
-        % 09/08/2015
-        % First, get the maxima for each force node from M
-        forceNodeMaxima = max(M);
+        [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
+            reg_FastBEM_TFM(grid_mat, displField, i, ...
+            p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+            'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+            'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+            'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_,...
+            'fwdMap',M, 'tolx', p.tolx);
+        forceField(i).pos=pos_f;
+        forceField(i).vec=force;
+        save(outputFile{1},'forceField');
+    end
+    % Error estimation
+    % I will use forward matrix to estimate relative uncertainty of
+    % calculated displacement field for each force node. - SH
+    % 09/08/2015
+    % First, get the maxima for each force node from M
+    forceNodeMaxima = max(M);
 %             [neigh,bounds,bdPtsID]=findNeighAndBds(p,t);
 %         forceConfidence.pos = forceMesh.p;
-        cellPosition = arrayfun(@(x) x.node, forceMesh.basis,'UniformOutput',false);
-        forceConfidence.pos = cell2mat(cellPosition');
-        forceConfidence.vec = reshape(forceNodeMaxima,[],2);
-        % Make it relative
-        maxCfd = max(forceNodeMaxima);
-        forceConfidence.vec = forceConfidence.vec/maxCfd;
-        u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
-%         if p.divideConquer>1
-%             %reconstruct M from M_sub
-%             
-%             u_predict = M*sol_coef;
-%         else
-%             u_predict = M*sol_coef;
-%         end
-%         u_diff = u_org-u_predict;
-%         u_diff_vec=reshape(u_diff,[],2);
-%         displErrField(i).pos=pos_u;
-%         displErrField(i).vec=u_diff_vec;
-        % Distance to the closest bead from each force node
-        % check if pos_u is already nan-clear in terms of u
-        if length(pos_u(:))==length(u)
-            beadsWhole = pos_u;
-        else
-            idNanU = isnan(u_org);
-            pos_u = pos_u(~idNanU);
-            beadsWhole = pos_u;
-        end
-        
-%         parfor i=1:length(forceField(i).pos(:,1))
-%             [~,distToBead(i)] = KDTreeClosestPoint(beadsWhole,forceField(i).pos(:,1));
-%         end
-        
-        %             display('The total time for calculating the FastBEM solution: ')
+    cellPosition = arrayfun(@(x) x.node, forceMesh.basis,'UniformOutput',false);
+    forceConfidence.pos = cell2mat(cellPosition');
+    forceConfidence.vec = reshape(forceNodeMaxima,[],2);
+    % Make it relative
+    maxCfd = max(forceNodeMaxima);
+    forceConfidence.vec = forceConfidence.vec/maxCfd;
+    u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+    % Distance to the closest bead from each force node
+    % check if pos_u is already nan-clear in terms of u
+    if length(pos_u(:))==length(u)
+        beadsWhole = pos_u;
+    else
+        idNanU = isnan(u_org);
+        pos_u = pos_u(~idNanU);
+        beadsWhole = pos_u;
+    end
 
-        % The following values should/could be stored for the BEM-method.
-        % In most cases, except the sol_coef this has to be stored only
-        % once for all frames!
-%         if p.saveBEMparams && strcmpi(reuseFwdMap,'No') && p.divideConquer==1
-%             disp(['saving forward map and force mesh at ' outputFile{3} '...'])
-%             save(outputFile{3},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
-%         elseif p.saveBEMparams && strcmpi(reuseFwdMap,'No') && p.divideConquer>1
-%             disp(['saving forward map and force mesh at ' outputFile{3} '...'])
-%             save(outputFile{3},'pos_f_sub','force_sub','M_sub','forceMesh_sub','sol_mats','-v7.3');
-%         end % this is too memory-consuming with little usage later.
-%         Deleting... Sangyoon 20180225
-        for i=frameSequence(2:end)
-            % since the displ field has been prepared such
-            % that the measurements in different frames are ordered in the
-            % same way, we don't need the position information any
-            % more. The displ. measurements are enough.
-            display('5.) Re-evaluate the solution:... ')
-            if p.usePaxImg && length(movieData.channels_)>1
-                paxImage=movieData.channels_(2).loadImage(i);
-                [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], 'paxImg', paxImage, 'useLcurve', p.useLcurve);
-            else
-                [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
-            end
-            forceField(i).pos=pos_f;
-            forceField(i).vec=force;
-            % Save each iteration (for recovery of unfinished processes)
-            save(outputFile{1},'forceField');
-            % Error estimation
-            u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
-            u_predict = M*sol_coef;
-            u_diff = u_org-u_predict;
-            u_diff_vec=reshape(u_diff,[],2);
-            displErrField(i).pos=pos_u;
-            displErrField(i).vec=u_diff_vec;
-            display(['Done: solution for frame: ',num2str(i)]);
-            %Update the waitbar
-            if mod(i,5)==1 && ishandle(wtBar)
-                ti=toc;
-                waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
-            end
+    for i=frameSequence(2:end)
+        % since the displ field has been prepared such
+        % that the measurements in different frames are ordered in the
+        % same way, we don't need the position information any
+        % more. The displ. measurements are enough.
+        disp('5.) Re-evaluate the solution:... ')
+        [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+            displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+        forceField(i).pos=pos_f;
+        forceField(i).vec=force;
+        % Save each iteration (for recovery of unfinished processes)
+        save(outputFile{1},'forceField');
+        % Error estimation
+        u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+        u_predict = M*sol_coef;
+        u_diff = u_org-u_predict;
+        u_diff_vec=reshape(u_diff,[],2);
+        displErrField(i).pos=pos_u;
+        displErrField(i).vec=u_diff_vec;
+        display(['Done: solution for frame: ',num2str(i)]);
+        %Update the waitbar
+        if mod(i,5)==1 && ishandle(wtBar)
+            ti=toc;
+            waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
         end
     end
-else % FTTC
+elseif strcmpi(p.method,'FEM') % FEMTFM
+    % Fill in here
+    disp('calculateMovieForceField FEM')
+    i=frameSequence(1); % For the first frame
+    [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
+    
+    % basis function table name adjustment
+    expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix.mat'];
+    
+    % Check if path exists - this step might not be needed because
+    % sometimes we need to build a new table with a new name.
+    if isempty(p.basisClassTblPath)
+        disp(['Note, no path given for basis tables, outputing to movieData.mat path: ' ...
+            movieData.movieDataPath_]);
+        p.basisClassTblPath = fullfile(movieData.movieDataPath_, expectedName);
+    else
+        if exist(p.basisClassTblPath,'file')==2 
+            try
+                if numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) ~= 1
+                    disp(['basisFunction.mat not valid!' p.basisClassTblPath '. Will build a new basisFunction to this name.']);
+                else                    
+                    disp('BasisFunctionFolderPath is valid.');
+                end
+            catch
+                disp(['basisFunction.mat ' p.basisClassTblPath ' is not valid. Will build a new basisFunction to this name.']);
+            end
+        else
+            disp('New basisFunctionFolderPath is entered. Will build a new table and save in this path.');
+        end
+%         assert(exist(p.basisClassTblPath,'file')==2, 'basisFunctionFolderPath not valid!');
+%         assert(numel(whos('basisClassTbl', '-file', p.basisClassTblPath)) == 1, ['basisFunction.mat not valid!' p.basisClassTblPath]);
+    end
+
+    % Sanity check the paths.
+    basisFunctionFolderPath = fileparts(p.basisClassTblPath);
+    assert(exist(basisFunctionFolderPath, 'dir')==7, 'basisFunctionFolderPath not valid!');
+
+    % Check if basis file name is correctly formatted.
+    expectedPath = fullfile(basisFunctionFolderPath, expectedName);
+    if ~strcmp(expectedPath, p.basisClassTblPath)
+        p.basisClassTblPath = expectedPath;
+        disp(['basisClassTblPath has different name for estimated mesh grid spacing (' num2str(gridSpacing) '). ']);
+        disp('Now the path is automatically changed to :')
+        disp([expectedPath '.']);
+    end
+        
+    % If grid_mat=[], then an optimal hexagonal force mesh is created
+    % given the bead locations defined in displField:
+    if ishandle(wtBar)
+        waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
+    end
+    if p.useLcurve
+        [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
+            reg_FEM_TFM(grid_mat, displField, i, ...
+            p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+            'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+            'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+            'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
+            'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1},'fwdMap',M,...
+            'lcornerOptimal',p.lcornerOptimal, 'tolx', p.tolx);
+        params = parseProcessParams(forceFieldProc,paramsIn);
+        params.regParam = sol_mats.L;
+        p.regParam = sol_mats.L;
+        forceFieldProc.setPara(params);
+        forceField(i).pos=pos_f;
+        forceField(i).vec=force;
+        save(outputFile{1},'forceField');
+    else
+        [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
+            reg_FEM_TFM(grid_mat, displField, i, ...
+            p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+            'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+            'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+            'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_,...
+            'fwdMap',M, 'tolx', p.tolx);
+        forceField(i).pos=pos_f;
+        forceField(i).vec=force;
+        save(outputFile{1},'forceField');
+    end
+    % Error estimation
+    % I will use forward matrix to estimate relative uncertainty of
+    % calculated displacement field for each force node. - SH
+    % 09/08/2015
+    % First, get the maxima for each force node from M
+    forceNodeMaxima = max(M);
+    cellPosition = arrayfun(@(x) x.node, forceMesh.basis,'UniformOutput',false);
+    forceConfidence.pos = cell2mat(cellPosition');
+    forceConfidence.vec = reshape(forceNodeMaxima,[],2);
+    % Make it relative
+    maxCfd = max(forceNodeMaxima);
+    forceConfidence.vec = forceConfidence.vec/maxCfd;
+    u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+    % Distance to the closest bead from each force node
+    % check if pos_u is already nan-clear in terms of u
+    if length(pos_u(:))==length(u)
+        beadsWhole = pos_u;
+    else
+        idNanU = isnan(u_org);
+        pos_u = pos_u(~idNanU);
+        beadsWhole = pos_u;
+    end
+
+    for i=frameSequence(2:end)
+        % since the displ field has been prepared such
+        % that the measurements in different frames are ordered in the
+        % same way, we don't need the position information any
+        % more. The displ. measurements are enough.
+        disp('5.) Re-evaluate the solution:... ')
+        [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+            displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+        forceField(i).pos=pos_f;
+        forceField(i).vec=force;
+        % Save each iteration (for recovery of unfinished processes)
+        save(outputFile{1},'forceField');
+        % Error estimation
+        u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+        u_predict = M*sol_coef;
+        u_diff = u_org-u_predict;
+        u_diff_vec=reshape(u_diff,[],2);
+        displErrField(i).pos=pos_u;
+        displErrField(i).vec=u_diff_vec;
+        display(['Done: solution for frame: ',num2str(i)]);
+        %Update the waitbar
+        if mod(i,5)==1 && ishandle(wtBar)
+            ti=toc;
+            waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
+        end
+    end    
+elseif strcmpi(p.method,'FTTC') % FTTC
     reg_corner=p.regParam;
     for i=frameSequence
         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);

@@ -1,101 +1,7 @@
 %% open necessary MLs
 MLdirect=false;
-isDesktopAvail = usejava('desktop');
-usedSelectedFoldersMat=false;
-
-if isDesktopAvail
-    [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
-else
-    disp({'Type selectedFolders.mat.  If do not have one, push enter';
-        ['Your current path: ' pwd]});
-    rawPath = input(': ','s');
-    if isempty(rawPath)
-        pathSFolders = 0;
-    else
-        [pathSFolders, fileSFolders] = fileparts(rawPath);
-    end
-end
-
-groupNames=[];
-
-if ~ischar(pathSFolders) && pathSFolders==0
-    analysisFolderSelectionDone = false;
-    ii=0;
-    rootFolder=pwd;
-    while ~analysisFolderSelectionDone
-        ii=ii+1;
-        if isDesktopAvail
-            curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        else
-            disp({'Select each analysis folder that contains movieList.mat.  If do not have one, push enter';
-                ['Your current path: ' pwd]});
-            rawPath = input(': ','s');
-            if isempty(rawPath)
-                curPathProject = 0;
-            else
-                curPathProject = rawPath;
-            end
-        end
-%         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
-        if ~ischar(curPathProject) && curPathProject==0
-            analysisFolderSelectionDone=true;
-        else
-            [curPathProject2,finalFolder] = fileparts(curPathProject);
-            pathAnalysisAll{ii} = curPathProject;
-            if isempty(finalFolder)
-                [~,finalFolder] = fileparts(curPathProject2);
-            end
-            groupNames{ii} = finalFolder;
-            MLNames{ii} = 'movieList.mat';
-            MLdirect=true;
-        end
-    end
-    if ~analysisFolderSelectionDone && ii==1
-        MLSelectionDone = false;
-        ii=0;
-        while ~MLSelectionDone
-            ii=ii+1;
-            if isDesktopAvail
-                [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
-            else
-                disp({'Select each movieList.  If do not have one, push enter';
-                    ['Your current path: ' pwd]});
-                rawPath = input(': ','s');
-                if isempty(rawPath)
-                    curPathML = rawPath;
-                else
-                    [curPathML, nameML] = fileparts(rawPath);
-                end
-            end
-            if ~ischar(curPathML) || isempty(curPathML)
-                MLSelectionDone=true;
-            else
-                curML = load(fullfile(curPathML,nameML),'ML'); curML=curML.ML;
-                pathAnalysisAll{ii} = curML.getPath;
-                try
-                    groupNames{ii} = nameML(10:end-4); %Excluding first 'movieList' and last '.mat'
-                catch % when movieList is just movieList.mat, use the name of the containing folder
-                    [~,finalFolder] = fileparts(pathAnalysisAll{ii});
-                    groupNames{ii} = finalFolder;
-                end
-                MLNames{ii} = nameML;
-            end
-        end
-        MLdirect=true;
-    end
-    specificName = strjoin(groupNames);
-    rootAnalysis = pathAnalysisAll{1};
-    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
-else
-    usedSelectedFoldersMat=true;    
-    selectedFolders=load([pathSFolders filesep fileSFolders]);
-    pathAnalysisAll=selectedFolders.pathAnalysisAll;
-    specificName=fileSFolders(16:end);
-    MLNames = selectedFolders.MLNames;%'movieList.mat';
-%     for k=1:numel(pathAnalysisAll)
-%         MLFileNamesAll{k} = selectedFolders.MLNames{k};%'movieList.mat';
-%     end
-end
+%% Read selectedFolders or MLs directly
+[pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat, specificName] = chooseSelectedFolders;
 %% Load movieLists for each condition
 numConditions = numel(pathAnalysisAll);
 for k=1:numConditions
@@ -115,6 +21,8 @@ totalForce_FB_Group = cell(numConditions,1);
 SE_Cell_Group = cell(numConditions,1);
 SEDen_Cell_Group = cell(numConditions,1);
 totalForce_Cell_Group = cell(numConditions,1);
+totalDisp_Cell_Group = cell(numConditions,1);
+avgDisp_Cell_Group = cell(numConditions,1);
 SE_FOV_Group = cell(numConditions,1);
 SEDen_FOV_Group = cell(numConditions,1);
 totalForce_FOV_Group = cell(numConditions,1);
@@ -123,6 +31,10 @@ SE_CellPeri_Group = cell(numConditions,1);
 SE_CellInside_Group = cell(numConditions,1);
 totalForce_CellPeri_Group = cell(numConditions,1);
 totalForce_CellInside_Group = cell(numConditions,1);
+totalDisp_CellPeri_Group = cell(numConditions,1);
+totalDisp_CellInside_Group = cell(numConditions,1);
+avgDisp_CellPeri_Group = cell(numConditions,1);
+avgDisp_CellInside_Group = cell(numConditions,1);
 spreadArea_Group = cell(numConditions,1);
 SEDen_CellPeri_Group = cell(numConditions,1);
 SEDen_CellInside_Group = cell(numConditions,1);
@@ -139,6 +51,8 @@ for ii=1:numConditions
     curSECellGroup = cell(N(ii),1);
     curSEDenCellGroup = cell(N(ii),1);
     curTotalForceCellGroup = cell(N(ii),1);
+    curTotalDispCellGroup = cell(N(ii),1);
+    curAvgDispCellGroup = cell(N(ii),1);
     curSEPerFOVGroup = cell(N(ii),1);
     curSEDenPerFOVGroup = cell(N(ii),1);
     curTotForcePerFOVGroup = cell(N(ii),1);
@@ -147,6 +61,10 @@ for ii=1:numConditions
     curSECellInsideGroup = cell(N(ii),1);
     curTotalForceCellPeriGroup = cell(N(ii),1);
     curTotalForceCellInsideGroup = cell(N(ii),1);
+    curTotalDispCellPeriGroup = cell(N(ii),1);
+    curTotalDispCellInsideGroup = cell(N(ii),1);
+    curAvgDispCellPeriGroup = cell(N(ii),1);
+    curAvgDispCellInsideGroup = cell(N(ii),1);
     curSpreadAreaGroup = cell(N(ii),1);
     curSEDenCellPeriGroup = cell(N(ii),1);
     curSEDenCellInsideGroup = cell(N(ii),1);
@@ -182,7 +100,9 @@ for ii=1:numConditions
             curSECellGroup{k} = curSECell_struct.SE; %in femto-Joule=1e15*(N*m)
             curSEDenCellGroup{k} = curSECell_struct.SEDensity; % in J/m2
             curTotalForceCellGroup{k} = seCellStruct.totalForceCell; % in nN
-        
+            curTotalDispCellGroup{k} = seCellStruct.totalDispCell; % in um3
+            curAvgDispCellGroup{k} = seCellStruct.avgDispCell; %in um
+                    
             curSECellPeriGroup{k} = curSECell_struct.SE_peri; %in femto-Joule=1e15*(N*m)
             curSECellInsideGroup{k} = curSECell_struct.SE_inside; %in femto-Joule=1e15*(N*m)
             curSEDenCellPeriGroup{k} = curSECell_struct.SEDensityPeri; % in J/m2
@@ -190,6 +110,10 @@ for ii=1:numConditions
             curSpreadAreaGroup{k} = curSECell_struct.area; % in um2
             curTotalForceCellPeriGroup{k} = seCellStruct.totalForceCellPeri; % in nN
             curTotalForceCellInsideGroup{k} = seCellStruct.totalForceCellInside; % in nN
+            curTotalDispCellPeriGroup{k} = seCellStruct.totalForceCellPeri; %in um3
+            curTotalDispCellInsideGroup{k} = seCellStruct.totalForceCellInside; %in um3
+            curAvgDispCellPeriGroup{k} = seCellStruct.avgDispCellPeri; %in um
+            curAvgDispCellInsideGroup{k} = seCellStruct.avgDispCellInside; %in um
         else
             isCellSeg = false;
         end
@@ -222,11 +146,17 @@ for ii=1:numConditions
         SE_Cell_Group{ii,1}=curSECellGroup;
         SEDen_Cell_Group{ii,1}=curSEDenCellGroup;
         totalForce_Cell_Group{ii,1}=curTotalForceCellGroup;
+        totalDisp_Cell_Group{ii,1}=curTotalDispCellGroup;
+        avgDisp_Cell_Group{ii,1}=curAvgDispCellGroup;
 
         SE_CellPeri_Group{ii,1}=curSECellPeriGroup;
         SE_CellInside_Group{ii,1}=curSECellInsideGroup;
         totalForce_CellPeri_Group{ii,1}=curTotalForceCellPeriGroup;
         totalForce_CellInside_Group{ii,1}=curTotalForceCellInsideGroup;
+        totalDisp_CellPeri_Group{ii,1}=curTotalDispCellPeriGroup;
+        totalDisp_CellInside_Group{ii,1}=curTotalDispCellInsideGroup;
+        avgDisp_CellPeri_Group{ii,1}=curAvgDispCellPeriGroup;
+        avgDisp_CellInside_Group{ii,1}=curAvgDispCellInsideGroup;
         spreadArea_Group{ii,1}=curSpreadAreaGroup;
         SEDen_CellPeri_Group{ii,1}=curSEDenCellPeriGroup;
         SEDen_CellInside_Group{ii,1}=curSEDenCellInsideGroup;
@@ -495,6 +425,114 @@ try
     writetable(tableTotForceFBinCell,strcat(dataPath,'/totForceFBsCell.csv'),'WriteRowNames',true)
 catch
     disp('Not all movieList had processed new force blob analysis')
+end
+%% Integrated Displacement - Cell
+if isCellSeg
+    totalDispCell_CellArray = cellfun(@(x) cell2mat(x),totalDisp_Cell_Group,'unif',false);
+    samNum=cellfun(@numel,totalDispCell_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totalDispCell_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_Cell_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(totalDispCell_CellArray,nameList,1,false,true)
+    ylabel('Displacement, integrated (um^3)')
+    title('Integrated displacement over cell area')
+    hgexport(h1,strcat(figPath,'/totalDispCell'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/totalDispCell'),'-v7.3')
+    print(h1,strcat(figPath,'/totalDispCell.tif'),'-dtiff')
+
+    tableTotalDispCell_CellArray=table(totalDispCell_CellArray,'RowNames',nameList);
+    writetable(tableTotalDispCell_CellArray,strcat(dataPath,'/totalDispCell.csv'),'WriteRowNames',true)
+end
+%% Integrated Displacement - CellPeri
+if isCellSeg
+    totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellPeri_Group,'unif',false);
+    samNum=cellfun(@numel,totalDispCellPeri_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totalDispCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellPeri_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(totalDispCellPeri_CellArray,nameList,1,false,true)
+    ylabel('Displacement, integrated (um^3)')
+    title('Integrated displacement over cell perimeter')
+    hgexport(h1,strcat(figPath,'/totalDispCellPeri'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/totalDispCellPeri'),'-v7.3')
+    print(h1,strcat(figPath,'/totalDispCellPeri.tif'),'-dtiff')
+
+    tableTotalDispCellPeri_CellArray=table(totalDispCellPeri_CellArray,'RowNames',nameList);
+    writetable(tableTotalDispCellPeri_CellArray,strcat(dataPath,'/totalDispCellPeri.csv'),'WriteRowNames',true)
+end
+%% Integrated Displacement - CellInside
+if isCellSeg
+    totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellInside_Group,'unif',false);
+    samNum=cellfun(@numel,totalDispCellInside_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        totalDispCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellInside_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(totalDispCellInside_CellArray,nameList,1,false,true)
+    ylabel('Displacement, integrated (um^3)')
+    title('Integrated displacement over cell inside')
+    hgexport(h1,strcat(figPath,'/totalDispCellInside'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/totalDispCellInside'),'-v7.3')
+    print(h1,strcat(figPath,'/totalDispCellInside.tif'),'-dtiff')
+
+    tableTotalDispCellInside_CellArray=table(totalDispCellInside_CellArray,'RowNames',nameList);
+    writetable(tableTotalDispCellInside_CellArray,strcat(dataPath,'/totalDispCellInside.csv'),'WriteRowNames',true)
+end
+%% Avg Displacement - Cell
+if isCellSeg
+    avgDispCell_CellArray = cellfun(@(x) cell2mat(x),avgDisp_Cell_Group,'unif',false);
+    samNum=cellfun(@numel,avgDispCell_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        avgDispCell_CellArray = cellfun(@(x) cellfun(@mean,x),avgDisp_Cell_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(avgDispCell_CellArray,nameList,1,false,true)
+    ylabel('Displacement, average (um)')
+    title('Average displacement over cell')
+    hgexport(h1,strcat(figPath,'/avgDispCell'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgDispCell'),'-v7.3')
+    print(h1,strcat(figPath,'/avgDispCell.tif'),'-dtiff')
+
+    tableAvgDispCell_CellArray=table(avgDispCell_CellArray,'RowNames',nameList);
+    writetable(tableAvgDispCell_CellArray,strcat(dataPath,'/avgDispCell.csv'),'WriteRowNames',true)
+end
+%% Avg Displacement - CellPeri
+if isCellSeg
+    avgDispCellPeri_CellArray = cellfun(@(x) cell2mat(x),avgDisp_CellPeri_Group,'unif',false);
+    samNum=cellfun(@numel,avgDispCellPeri_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        avgDispCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),avgDisp_CellPeri_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(avgDispCellPeri_CellArray,nameList,1,false,true)
+    ylabel('Displacement, average (um)')
+    title('Average displacement over cell perimeter')
+    hgexport(h1,strcat(figPath,'/avgDispCellPeri'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgDispCellPeri'),'-v7.3')
+    print(h1,strcat(figPath,'/avgDispCellPeri.tif'),'-dtiff')
+
+    tableAvgDispCellPeri_CellArray=table(avgDispCellPeri_CellArray,'RowNames',nameList);
+    writetable(tableAvgDispCellPeri_CellArray,strcat(dataPath,'/avgDispCellPeri.csv'),'WriteRowNames',true)
+end
+%% Avg Displacement - CellInside
+if isCellSeg
+    avgDispCellInside_CellArray = cellfun(@(x) cell2mat(x),avgDisp_CellInside_Group,'unif',false);
+    samNum=cellfun(@numel,avgDispCellInside_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        avgDispCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),avgDisp_CellInside_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(avgDispCellInside_CellArray,nameList,1,false,true)
+    ylabel('Displacement, average (um)')
+    title('Average displacement over cell inside')
+    hgexport(h1,strcat(figPath,'/avgDispCellInside'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgDispCellInside'),'-v7.3')
+    print(h1,strcat(figPath,'/avgDispCellInside.tif'),'-dtiff')
+
+    tableAvgDispCellInside_CellArray=table(avgDispCellInside_CellArray,'RowNames',nameList);
+    writetable(tableAvgDispCellInside_CellArray,strcat(dataPath,'/avgDispCell.csv'),'WriteRowNames',true)
 end
 %% Total force - Cell
 if isCellSeg

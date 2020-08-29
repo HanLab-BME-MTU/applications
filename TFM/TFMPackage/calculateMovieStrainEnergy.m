@@ -178,7 +178,15 @@ SE_FOV=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nF
 totalForceFOV = zeros(nFrames,1);
 SE_Cell=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nFrames,1),...
     'SE_peri',zeros(nFrames,1),'SE_inside',zeros(nFrames,1),'SEDensityPeri',zeros(nFrames,1),'SEDensityInside',zeros(nFrames,1));
+
 totalForceCell = zeros(nFrames,1);
+totalDispCell = zeros(nFrames,1);
+totalDispCellPeri = zeros(nFrames,1);
+totalDispCellInside = zeros(nFrames,1);
+avgDispCell = zeros(nFrames,1);
+avgDispCellPeri = zeros(nFrames,1);
+avgDispCellInside = zeros(nFrames,1);
+
 SE_Blobs=struct('SE',zeros(nFrames,1),'nFA',zeros(nFrames,1),'areaFA',zeros(nFrames,1),...
     'SEDensity',zeros(nFrames,1),'avgFAarea',zeros(nFrames,1),'avgSEperFA',zeros(nFrames,1));
 totalForceBlobs = struct('force',zeros(nFrames,1),'avgTraction',[],...
@@ -302,6 +310,7 @@ for ii=1:nFrames
 
         maskOnlyBand = bandMask & maskCell;
         maskInterior = ~bandMask & maskCell;
+        areaCell = sum(maskCell(:))*areaConvert;  % in um2
         areaPeri = sum(maskOnlyBand(:))*areaConvert; % in um2
         areaInside = sum(maskInterior(:))*areaConvert; % in um2
 
@@ -313,7 +322,7 @@ for ii=1:nFrames
         dMapCellInside = curDMap(maskInterior);
 
         SE_Cell.SE(ii)=1/2*sum(sum(dMapCell.*tMapCell))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
-        SE_Cell.area(ii)=sum(maskCell(:))*areaConvert; % this is in um2
+        SE_Cell.area(ii)=areaCell; % this is in um2
         SE_Cell.SEDensity(ii)=SE_Cell.SE(ii)/SE_Cell.area(ii)*1e3; % J/m2
         SE_Cell.SE_peri(ii)=1/2*sum(sum(dMapCellPeri.*tMapCellPeri))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
         SE_Cell.SE_inside(ii)=1/2*sum(sum(dMapCellInside.*tMapCellInside))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
@@ -322,6 +331,14 @@ for ii=1:nFrames
         totalForceCell(ii) = sum(sum(tMapCell))*areaConvert*1e-3; % in nN
         totalForceCellPeri(ii) = sum(sum(tMapCellPeri))*areaConvert*1e-3; % in nN
         totalForceCellInside(ii) = sum(sum(tMapCellInside))*areaConvert*1e-3; % in nN
+        
+        totalDispCell(ii) = sum(sum(dMapCell))*areaConvert*pixSize_mu; % in um3
+        totalDispCellPeri(ii) = sum(sum(dMapCellPeri))*areaConvert*pixSize_mu; % in um3
+        totalDispCellInside(ii) = sum(sum(dMapCellInside))*areaConvert*pixSize_mu; % in um3
+               
+        avgDispCell(ii) = totalDispCell(ii)/areaCell; % um
+        avgDispCellPeri(ii) = totalDispCellPeri(ii)/areaPeri; %um
+        avgDispCellInside(ii) = totalDispCellInside/areaInside; %um
     end
         
     if p.performForceBlobAnalysis
@@ -396,7 +413,9 @@ if p.useFOV || 1
     end
 end
 if existMask && p.useCellMask
-    save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri','totalForceCellInside'); % need to be updated for faster loading. SH 20141106
+    save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri',...
+        'totalForceCellInside','totalDispCell','totalDispCellPeri','totalDispCellInside',...
+        'avgDispCell','avgDispCellPeri','avgDispCellInside'); % need to be updated for faster loading. SH 20141106
     if p.exportCSV
         tableSE_Cell=struct2table(SE_Cell);
         writetable(tableSE_Cell,outputFile{6})

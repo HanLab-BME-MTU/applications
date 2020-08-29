@@ -37,9 +37,9 @@ n = 1;
 figure(1)
 q=quiver3(x1(n:n:end),y1(n:n:end),z1(n:n:end),relP(n:n:end,1),relP(n:n:end,2),relP(n:n:end,3));
 if fullaxes == 1
-    xlim([0 256])
-    ylim([0 256])
-    zlim([0 20])
+    xlim([0 256]);
+    ylim([0 256]);
+    zlim([0 20]);
 end
 
 %\\ Colormapping
@@ -55,24 +55,24 @@ cmap(:,:,4) = 255;
 cmap = permute(repmat(cmap, [1 3 1]), [2 1 3]);
 
 %We repeat each color 3 times (using 1:3 below) because each arrow has 3 vertices
-get(q.Head)
+get(q.Head);
 set(q.Head, ...
     'ColorBinding', 'interpolated', ...
     'ColorData', reshape(cmap(1:3,:,:), [], 4).');   %'
-get(q.Head)
+get(q.Head);
 
 %We repeat each color 2 times (using 1:2 below) because each tail has 2 vertices
-get(q.Tail)
+get(q.Tail);
 set(q.Tail, ...
     'ColorBinding', 'interpolated', ...
     'ColorData', reshape(cmap(1:2,:,:), [], 4).');
-get(q.Tail)
+get(q.Tail);
 
-set(gca,'Color','k')
+set(gca,'Color','k');
 
-title('T-PT Tracking Displacement Field - 0.5kPa')
-xlabel('Y COORD')
-ylabel('X COORD')
-zlabel('Z COORD')
+title('T-PT Tracking Displacement Field - 0.5kPa');
+xlabel('Y COORD');
+ylabel('X COORD');
+zlabel('Z COORD');
 hold off
 end

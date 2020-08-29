@@ -257,8 +257,8 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 % end
 % inqryPoint=find(inqryLogicInd);
 % for k = inqryPoint'
-% parfor k = 1:nPoints
-for k = 1:nPoints
+parfor k = 1:nPoints
+% for k = 1:nPoints
 %     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
