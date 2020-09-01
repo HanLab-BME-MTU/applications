@@ -264,6 +264,8 @@ if ~foundTracks
                             disp('Adhesion channel is used for mask')
                         end
                         mask = maskProc.loadChannelOutput(iChan,ii); % 1 is CCP channel
+                    else
+                        mask = maskProc.loadChannelOutput(iChan,ii); % This is the most honest method, user-designated.
                     end
                 else
                     mask = true(MD.imSize_);
