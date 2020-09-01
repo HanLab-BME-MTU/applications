@@ -106,12 +106,14 @@ medianNeiVecs = cellfun(@(x) median(x),closeNeiVecs,'unif',false);
 stdNeiVecs = cellfun(@(x) std(x),magNeiVecs);
 orienNeiVecs = cell(numel(closeNeiVecs),1);
 disp('Calculating angles between neighboring vectors...')
-if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
+% if feature('ShowFigureWindows'), parfor_progress(numel(closeNeiVecs)); end
 numCloseNeiVecs=numel(closeNeiVecs);
 baseVector = [1 0]; %x-axis
 stdAngleAll = zeros(numCloseNeiVecs,1);
 avgAngleAll = zeros(numCloseNeiVecs,1);
-parfor k=1:numCloseNeiVecs %for angles between vectors
+% parfor k=1:numCloseNeiVecs %for angles between vectors
+tic
+for k=1:numCloseNeiVecs %for angles between vectors
     curNei = closeNeiVecs{k};
     numCurNei = size(curNei,1);
 %     curAnglesBetweenVecs=[];
@@ -164,9 +166,10 @@ parfor k=1:numCloseNeiVecs %for angles between vectors
 %         end
 %     end
 %     orienNeiVecs{k} = curAngle; %curAnglesBetweenVecs;
-    if feature('ShowFigureWindows'), parfor_progress; end
+%     if feature('ShowFigureWindows'), parfor_progress; end
 end
-if feature('ShowFigureWindows'), parfor_progress(0); end
+toc
+% if feature('ShowFigureWindows'), parfor_progress(0); end
 
 
 % stdAngleAll = cellfun(@std,orienNeiVecs);

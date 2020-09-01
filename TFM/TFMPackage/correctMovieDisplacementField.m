@@ -124,8 +124,8 @@ outlierThreshold=p.outlierThreshold;
 % if useGrid
 %     disp('In previous step, PIV was used, which does not require the current filtering step. skipping...')
 % else
-    parfor j= 1:nFrames
-%     for j= 1:nFrames
+%     parfor j= 1:nFrames
+    for j= 1:nFrames
         % Outlier detection
         dispMat = [displField(j).pos displField(j).vec];
         % Take out duplicate points (Sangyoon)
@@ -205,7 +205,7 @@ if p.fillVectors
             % only un-tracked vectors
             unTrackedBeads=isnan(displField(j).vec(:,1));
             ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
-            if ratioUntracked<0.0000001 || (nTracked==0 && nFailed>nMaxFailed)
+            if ratioUntracked<0.0001 || (nTracked==0 && nFailed>nMaxFailed)
                 break
             end
             currentBeads = displField(j).pos(unTrackedBeads,:);
@@ -330,8 +330,8 @@ if p.fillVectors
 %                 end
             else
                 nFailed=0;
-                if thresDist ~= 3
-                    thresDist = 3;
+                if thresDist > 7
+                    thresDist = 7; % Decided to let thresDist stay where it was, but there is a maximum.
                 end
             end
         end
@@ -344,7 +344,7 @@ if p.fillVectors
     end
     %Filtering again
     if ~useGrid
-        parfor j= 1:nFrames
+        for j= 1:nFrames
             % Outlier detection
             dispMat = [displField(j).pos displField(j).vec];
             % Take out duplicate points (Sangyoon)
@@ -360,10 +360,10 @@ if p.fillVectors
 
             displField(j).pos=dispMat(:,1:2);
             displField(j).vec=dispMat(:,3:4);
-            if feature('ShowFigureWindows'), parfor_progress; end
+%             if feature('ShowFigureWindows'), parfor_progress; end
         end
     end
-    if feature('ShowFigureWindows'), parfor_progress(0); end
+%     if feature('ShowFigureWindows'), parfor_progress(0); end
 end
 % Here, if nFrame>1, we do inter- and extrapolation of displacement vectors
 % to prevent sudden, wrong force field change.

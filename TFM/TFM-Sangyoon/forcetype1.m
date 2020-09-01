@@ -1,10 +1,10 @@
 %% force
 imScale=10;
-numPoints_u=50*imScale;       %(must be even number)
+numPoints_u=512;       %(must be even number)
 xmin =1;
-xmax =50*imScale;
+xmax =512;
 ymin =1;
-ymax =50*imScale;
+ymax =512;
 forceType='groupForce';
 
 [x_mat_u, y_mat_u]=meshgrid(linspace(xmin,xmax,numPoints_u) , linspace(ymin,ymax,numPoints_u));
