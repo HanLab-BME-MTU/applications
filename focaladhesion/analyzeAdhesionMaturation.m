@@ -170,7 +170,8 @@ FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
 SDCProc=FAPackage.processes_{iSDCProc};
 %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
 if ~isempty(SDCProc)
-    iBeadChan = 1; % might need to be updated based on asking TFMPackage..
+    sdcFunParam = SDCProc.funParams_;
+    iBeadChan = sdcFunParam.iBeadChannel; % might need to be updated based on asking TFMPackage..    
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
 end
