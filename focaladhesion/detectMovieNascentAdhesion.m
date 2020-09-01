@@ -1,4 +1,4 @@
-function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iAdhChan,plotGraph,indMask,plotGraphTFM)
+function [nascentAdhInfo,focalAdhInfo,forceGroupCell] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iAdhChan,plotGraph,indMask,plotGraphTFM)
 % detectMovieNascentAdhesion detect objects by fitting isotropic Gaussians
 %
 % SYNOPSIS adapted from detectMovieSubResFeatures(movieData,paramsIn)
@@ -579,6 +579,8 @@ if ~isempty(iTFM)
     % Save them
     tableBlobFrac=table([focalAdhInfo.fractionBlobInside; focalAdhInfo.fractionBlobOutside],'RowNames',{'Inside','Outside'});
     writetable(tableBlobFrac,[dataPath filesep 'tableBlobFrac.csv'],'WriteRowNames',true)
+else
+    forceGroupCell=[];
 end
 
 
