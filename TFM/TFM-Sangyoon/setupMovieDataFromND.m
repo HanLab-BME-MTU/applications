@@ -157,10 +157,11 @@ for k=numConditions:-1:1
             curMD(pp).sanityCheck;
             
             % Save corresponding Ref tiff path
-            refDirTifAll{pp}=refDirTif{k}{ii}{jj};
+            refDirTifIntegrated{pp}=refDirTif{k}{ii}{jj};
         end
     end
     %%
+    refDirTifAll{k}=refDirTifIntegrated;
     PathAnalysis = pathAnalysisAll{k};
     ML = MovieList(curMD,PathAnalysis);
     ML.setPath(PathAnalysis);
@@ -170,6 +171,7 @@ for k=numConditions:-1:1
     clear curMD
     clear ML
     clear channels
+    clear refDirTifIntegrated
 end
-save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'cellDir','refDir','refDirTifAll','rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV')
+save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'cellDir','refDir','refDirTifIntegrated','rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV')
 disp('Done making movieDatas and movieList!')
