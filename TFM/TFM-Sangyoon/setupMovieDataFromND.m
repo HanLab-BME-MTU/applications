@@ -173,5 +173,5 @@ for k=numConditions:-1:1
     clear channels
     clear refDirTifIntegrated
 end
-save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'cellDir','refDir','refDirTifIntegrated','rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV')
+save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'cellDir','refDir', 'refDirTifAll', 'rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV')
 disp('Done making movieDatas and movieList!')

@@ -99,7 +99,7 @@ else
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
     try
-        refDirTif = selectedFolders.refDirTifIntegrated;
+        refDirTif = selectedFolders.refDirTifAll;
     catch
         refDirTif = [];
     end
