@@ -1,7 +1,8 @@
 % setupTFMPackageDefault.m sets up TFM package for chosen set of MLs.
+% It is recommended that you run setupMovieDataFromOMXDV.m first. 
 
 %% Read selectedFolders.mat
-[pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat] = chooseSelectedFolders;
+[pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat,refDirTif] = chooseSelectedFolders;
 %% Load movieLists for each condition
 for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
