@@ -2,7 +2,12 @@
 % It is recommended that you run setupMovieDataFromOMXDV.m first. 
 
 %% Read selectedFolders.mat
-[pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat,refDirTifAll] = chooseSelectedFolders;
+try
+    [pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat,refDirTifAll] = chooseSelectedFolders;
+catch
+    [pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat] = chooseSelectedFolders;
+end
+
 %% Load movieLists for each condition
 for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
