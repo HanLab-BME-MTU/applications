@@ -2,8 +2,9 @@
 % It is recommended that you run setupMovieDataFromOMXDV.m first. 
 
 %% Read selectedFolders.mat
+clear refDirTifAllCell
 try
-    [pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat,refDirTifAll] = chooseSelectedFolders;
+    [pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat,specificName,refDirTifAllCell] = chooseSelectedFolders;
 catch
     [pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat] = chooseSelectedFolders;
 end
@@ -38,7 +39,7 @@ for k=1:numML
     curNumCells = numel(curML.movieDataFile_);
 
     curDataPath = pathDataAll{k};
-    curRefDir=refDirTifAll{k}; %dir([curDataPath filesep '*Ref*.tif']);
+    curRefDir=refDirTifAllCell{k}; %dir([curDataPath filesep '*Ref*.tif']);
     for ii=1:curNumCells
         curMD = curML.getMovie(ii);
         %% Create TFM package and retrieve package index

@@ -71,13 +71,43 @@ for k=numConditions:-1:1
             end
         end
     end
+    % There is a case where there are more ref.nd taken than cell.nd. In
+    % that case, we don't know what to match. We try to limit the number of
+    % nds to the same number as cell nds and see what is the best matching
+    % names.
+    if numel(curRefDir)>numel(curCellDir)
+        curRefDir2 = curCellDir;
+        pp=1;
+        for ii=1:numel(curCellDir)
+            curRefDir2(ii) = curRefDir(pp);
+            %Compare the current one with the next one
+            curRefDirCandStruct = dir([curRefDir2{ii}(1:end-3) '*.nd']);  %
+
+            if numel(curRefDirCandStruct)==1
+                pp=pp+1;
+                continue
+            elseif numel(curRefDirCandStruct)>1
+                % have to find the right one
+                curCandDir = arrayfun(@(x) [x.folder filesep x.name],curRefDirCandStruct,'unif',false);
+                % in this case, choose the shortest name
+                [~,shortestNameID] = min(cellfun(@length,curCandDir));
+                curRefDir2(ii) = curCandDir(shortestNameID); 
+                pp=pp+1;
+                for qq=setdiff(1:numel(curRefDirCandStruct),shortestNameID)
+                    pp=pp+1;
+                    disp(['The nd file, ' curCandDir{qq} ' is not used due to overlap with ' curRefDir2{ii} '.'])
+                end
+            end
+        end
+        curRefDir = curRefDir2;
+    end
     
     cellDir{k}=curCellDir;
     refDir{k}=curRefDir;
     %% Check the ref folders
     % averaging 8-12th sections of the stack
-    numCells = numel(curRefDir);
-    for ii=1:numCells
+    numNDs = numel(curRefDir);
+    for ii=1:numNDs
         curRef = curRefDir{ii}; %[curRefDir(ii).folder filesep curRefDir(ii).name];
         refMD = bfImport(curRef,true); % one curRef contains several movies!
 %         [meanRefImg,meanRefImgPath] = createBestFocusedImageMD(refMD);
@@ -131,7 +161,7 @@ for k=numConditions:-1:1
     %% Apply this transforms to the cell channel
     % You don't need to transform ref image because it's bead!!
     pp=0;
-    for ii=1:numCells
+    for ii=1:numNDs
         curRawPath=curCellDir{ii}; %[curCellDir(ii).folder filesep curCellDir(ii).name];
         cellMD=bfImport(curRawPath,true); %Now with this Nik's ND, there will be multiple movies per ND
         %identifying what's missing
