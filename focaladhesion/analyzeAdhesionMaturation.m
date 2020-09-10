@@ -308,7 +308,7 @@ if ~foundTracks
                             disp('The channel other than adhesion channel is used for cell mask')
                         end
                         mask = maskProc.loadChannelOutput(find(maskProc.checkChannelOutput),ii); % 1 is CCP channel
-                    elseif nChans==1 
+                    elseif nChans==1 || find(maskProc.checkChannelOutput)==iChan
                         if ii==1
                             disp('Adhesion channel is used for mask')
                         end
