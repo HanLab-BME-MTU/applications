@@ -2,8 +2,16 @@
 % It is recommended that you run setupMovieDataFromOMXDV.m first. 
 
 %% Read selectedFolders.mat
-[pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat,refDirTif] = chooseSelectedFolders;
+clear refDirTifAllCell
+try
+    [pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat,specificName,refDirTifAllCell] = chooseSelectedFolders;
+catch
+    [pathAnalysisAll, MLNames, groupNames,usedSelectedFoldersMat] = chooseSelectedFolders;
+    refDirTifAllCell=[];
+end
+
 %% Load movieLists for each condition
+numConditions = numel(pathAnalysisAll);
 for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
 end
@@ -33,7 +41,13 @@ for k=1:numML
     curNumCells = numel(curML.movieDataFile_);
 
     curDataPath = pathDataAll{k};
-    curRefDir=refDirTif{k}; %dir([curDataPath filesep '*Ref*.tif']);
+    if ~isempty(refDirTifAllCell)
+        curRefDir=refDirTifAllCell{k}; %dir([curDataPath filesep '*Ref*.tif']);
+    else
+        curRefDir='';
+        disp('Ref dir is not set up')
+    end
+    
     for ii=1:curNumCells
         curMD = curML.getMovie(ii);
         %% Create TFM package and retrieve package index
@@ -50,8 +64,12 @@ for k=1:numML
         curSDCProc = tfmPack.getProcess(1);
         if 1 %curSDCProc.updated_ %&& curSDCProc.procChanged_
             params = curSDCProc.funParams_;
-            refImgPath = curRefDir{ii}; %[curRefDir(ii).folder filesep curRefDir(ii).name];
-            params.referenceFramePath=refImgPath;
+            if iscell(curRefDir)
+                refImgPath = curRefDir{ii}; %[curRefDir(ii).folder filesep curRefDir(ii).name];
+                params.referenceFramePath=refImgPath;
+            else
+                params.referenceFramePath=curRefDir;
+            end                
             params.usfac=100;
             curSDCProc.setPara(params);
         end

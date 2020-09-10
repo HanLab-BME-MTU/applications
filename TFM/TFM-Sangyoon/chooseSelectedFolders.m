@@ -98,10 +98,10 @@ else
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
-    try
-        refDirTif = selectedFolders.refDirTifIntegrated;
-    catch
-        refDirTif = [];
+    if isfield(selectedFolders,'refDirTifAll')
+        refDirTif = selectedFolders.refDirTifAll;
+    else
+        disp('refDirTifAll was not saved right in setupMovieDataFromND!')
     end
     
     try
