@@ -125,9 +125,9 @@ if exist(p.OutputDirectory,'dir')
             'Recover previous run','Yes','No','Yes');
         if strcmpi(useExistingTracks,'Yes'), startFromIntermediate=true; end
     elseif exist(outFilePaths{1,i},'file') && exist(outFilePaths{2,i},'file') && ~usejava('desktop')
-        foundTracks=true;
+        foundTracks=false;
     end
-    if p.backupOldResults && ~foundTracks && ~startFromIntermediate && usejava('desktop')
+    if p.backupOldResults && ~foundTracks && ~startFromIntermediate 
         mkClrDirWithBackup(p.OutputDirectory);
     end
 else

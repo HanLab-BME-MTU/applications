@@ -2,7 +2,9 @@
 % Showing the overlay of NAs that mature to FCs and FAs
 
 %% Load MD
-MDstruct=load('/storage/disk2/Kevin/2017-05-17/ChoK1_TalinShRNA_TalinWT_20170517_1520_006/movieData.mat');
+MDstruct=load('/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/20200819_imcdTalinR8/TalinR8_012/TalinR8_012.mat');
+% MDstruct=load('/project/bioinformatics/Danuser_lab/P01adhesion/analysis/Sangyoon/NA_RecruitmentProject/Kevin/20200814_IMCDKO_TalinWT_5kPa/20200814_imcdTalinWT/TalinWT_013/TalinWT_013.mat');
+% MDstruct=load('/storage/disk2/Kevin/2017-05-17/ChoK1_TalinShRNA_TalinWT_20170517_1520_006/movieData.mat');
 % MDstruct=load('/storage/disk2/Kevin/2017-04-24/ChoK1_TalinShRNA_R8Mut_1520_005/movieData.mat');
 MD = MDstruct.MD;
 
@@ -59,6 +61,20 @@ arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','MarkerSi
     tracksNA(indMatureNAtoFA & idCurrent),'UniformOutput',false);
 validAdhState = refineFAID(indMatureNAtoFA & idCurrent,iFrameInterest); %cellfun(@(x) x(iFrame),refineFAID(validState));
 cellfun(@(x) plot(x(:,2),x(:,1),'Color',[.1 0.1 .7]),adhBound(validAdhState(~isnan(validAdhState) & validAdhState>0)),'UniformOutput',false);
+
+% For NAs failing
+arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',[.2 0.8 .2]),tracksNA(indFail & idCurrent),'UniformOutput',false);
+arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','MarkerSize',markerSize,'Color',[.1 0.9 .1]),...
+    tracksNA(indFail & idCurrent),'UniformOutput',false);
+validAdhState = refineFAID(indFail & idCurrent,iFrameInterest); %cellfun(@(x) x(iFrame),refineFAID(validState));
+cellfun(@(x) plot(x(:,2),x(:,1),'Color',[.1 0.9 .1]),adhBound(validAdhState(~isnan(validAdhState) & validAdhState>0)),'UniformOutput',false);
+
+% For NAs stable
+arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',[.7 0.7 .2]),tracksNA(indStableNA & idCurrent),'UniformOutput',false);
+arrayfun(@(x) plot(x.xCoord(x.endingFrame),x.yCoord(x.endingFrame),'o','MarkerSize',markerSize,'Color',[.7 0.7 .2]),...
+    tracksNA(indStableNA & idCurrent),'UniformOutput',false);
+validAdhState = refineFAID(indStableNA & idCurrent,iFrameInterest); %cellfun(@(x) x(iFrame),refineFAID(validState));
+cellfun(@(x) plot(x(:,2),x(:,1),'Color',[.7 0.7 .2]),adhBound(validAdhState(~isnan(validAdhState) & validAdhState>0)),'UniformOutput',false);
 
 % For FCs maturing to FAs
 arrayfun(@(x) plot(x.xCoord,x.yCoord,'Color',[.8 0.4 0.2]),tracksNA(indMatureFCtoFA & idCurrent),'UniformOutput',false);
