@@ -68,7 +68,8 @@ end
 
 if nargout>2
     if ~isempty(SDCProc_FA)
-        if ismember(iChan+1, find(SDCProc_FA.checkChannelOutput))
+        if ismember(iChan+1, find(SDCProc_FA.checkChannelOutput)) && ...
+                ~isempty(FAPack.getProcess(9))
             imgStack2 = SDCProc_FA.loadOutStack(iChan+1);
         else
             imgStack2 = [];

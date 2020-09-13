@@ -48,7 +48,8 @@ for ii=1:numel(tracksNA)
 
     curFrameLocMaxes=locmax1d(sd,movingWindowSize);
 
-    if ismember(curFrameMaxAmp,curFrameLocMaxes) && curFrameMaxAmp>tRange(1) && curFrameMaxAmp<tRange(end)
+    if ismember(curFrameMaxAmp,curFrameLocMaxes) && curFrameMaxAmp>tRange(1) && ...
+            curFrameMaxAmp<tRange(end) && isfield(tracksNA(ii),slaveSource)
         peakTimeIntAll(ii) = curFrameMaxAmp;
         tracksNA(ii).intenPeakness = true;
         tracksNA(ii).intenPeakFrame = curFrameMaxAmp;

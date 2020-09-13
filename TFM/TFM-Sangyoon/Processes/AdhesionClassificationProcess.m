@@ -194,6 +194,19 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     end
                     lastFinishTime = adhAnalProc.finishTime_;
                 end
+                
+                %I didn't fully investigate this yet, but refineFAID is
+                %sometimes cell array. We need to convert this to matrix
+                if iscell(refineFAID)
+                    maxFrame = max(cellfun(@length,refineFAID_cell));
+                    insuffRows = cellfun(@(x) length(x)<maxFrame,refineFAID_cell);
+                    for k=find(insuffRows')
+                        refineFAID_cell{k} = [refineFAID_cell{k} ...
+                                    NaN(1,maxFrame-length(refineFAID_cell{k}))];
+                    end
+                    refineFAID = cell2mat(refineFAID_cell);
+                end                
+                
                 fileInfo = dir(obj.outFilePaths_{4,iChan});
                 if isempty(lastFinishTimeClass)
                     iClasses = cached.load(obj.outFilePaths_{4,iChan}, '-useCache', ip.Results.useCache,...
@@ -285,6 +298,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
     %                         adhBound{ii} = curAdhBound{1}; % strongly assumes each has only one boundary
     %                     end
                         adhBound = bwboundaries(labelAdhesion>0,4,'noholes'); % strongly assumes each has only one boundary
+
                         validAdhState = refineFAID(validState,iFrame); %cellfun(@(x) x(iFrame),refineFAID(validState));
                         varargout{iout}{1} = adhBound(validAdhState); 
                         varargout{iout}{2} = idGroupLabel(validState); %corresponding classes
