@@ -1,4 +1,4 @@
-function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoints,E,v,dataPath)
+function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoints,E,v,dataPath,multiForce)
 % SIMHYDROGELDEFORMATION generates a 2D gaussian reference bead
 % image and then uses the user defined force, area, young's modulus, and 
 % poisson's ratio to deform the image using FEA
@@ -11,6 +11,8 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %       E =         Young's Modulus (Pa) - usually 1000
 %       v =         Poisson's Ratio - usually 0.49
 %       dataPath =  File directory for bead images
+%       multiForce = true or false, utilize multiple force application areas
+%       
 %
 %   Outputs:
 %       bead_x =    x coordinates of bead centers
@@ -20,7 +22,7 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %       Av =        vector containing gaussian bead amplitudes
 %
 %   Example:
-%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,2000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation')
+%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,2000,1000,0.49,'C:\Users\Sam Haarman\Documents\MATLAB\Han Lab\Bead Image Creation',True)
 
 % //Data path configuration ***********************************************
 imgPath=[dataPath filesep 'Beads'];
@@ -35,35 +37,24 @@ end
 chrRef='img1ref_';
 chrBead='img3bead_';
 %Change these character vectors to rename files for next run
-chr1='newBeads(0.5kpa,4k,1kE)_512x'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+chr1='testbead_consistentunits'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
-if ~isempty(fx)
-    forceChar = num2str(fx);
-elseif ~isempty(fx)
-    forceChar = num2str(fy);
-else
-    forceChar = '1';
-end
 
 % //Generate reference bead image *****************************************
-beadDiameter = 20; %20nm/bead
-pixelSize = 20; %20 nm/pix
-thickness = 15; %thickness of hydrogel for FEM purposes
-meshPtsFwdSol=2^9; %number of pix/pts in mesh
-numPix_x=meshPtsFwdSol; xmin=1; %number of pixels in X
-numPix_y=meshPtsFwdSol; ymin=1; %number of pixels in Y
+beadDiameter = 40; %20nm/bead
+pixelSize = 72; %20 nm/pix
+thickness = 15*10^3; %thickness of hydrogel for FEM purposes (micrometers)
+meshPtsFwdSol = 2^9; %number of pix/pts in mesh
+numPix_x = meshPtsFwdSol; xmin=1; %number of pixels in X
+numPix_x = numPix_x*pixelSize*10^-6; %convert to mm
+numPix_y = meshPtsFwdSol; ymin=1; %number of pixels in Y
+numPix_y = numPix_y*pixelSize*10^-6; %convert to mm
 sigma = 1.68; %stdev of gaussian function
-
-%randomized amplitude matrix with an upper ceiling of 1 to define
-%brightness of beads
-A = 0.6 + rand(1,nPoints);
-A(A > 1) = 1;
-
 %2D
 [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(numPix_x,numPix_y, sigma, ...
-        'npoints', nPoints, 'Border', 'periodic','A',A,'pixelSize',pixelSize,...
-        'beadDiameter',beadDiameter);
+        'npoints', nPoints, 'Border', 'periodic','A',0.4+rand(1,nPoints),...
+        'pixelSize',pixelSize,'beadDiameter',beadDiameter);
 %3D
 % [refimg3D, beadcenters3D, ~, Av3D] = simGaussianSpots3D([meshPtsFwdSol meshPtsFwdSol thickness], ...
 %         sigma,'npoints', nPoints, 'Border', 'periodic', 'A',0.5+rand(1,nPoints));
@@ -77,10 +68,17 @@ imwrite(uint16(refimg*2^16/max(max(refimg))),[refPath filesep refstring]);
 %add saving 3D refimg
     
 % //Generate force field
+if multiForce
+    [force_x,force_y] = generateMultiForce();
+else
 forceType = 'groupForce';
 [x_mat_u, y_mat_u]=meshgrid(xmin:1:numPix_x,ymin:1:numPix_y);
+%convert forces to microN
+fx = fx*10^6;
+fy = fy*10^6;
 force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(numPix_x/2),numPix_y/2,0,fx,d,d,forceType);
 force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,(numPix_x/2),numPix_y/2,0,fy,d,d,forceType);
+end
 force_z = [];
 
 
@@ -90,7 +88,7 @@ structModel=createpde('structural','static-solid');
 % //Define geometry *******************************************************
 %meshPtsFwdSol is multiplied by pixelSize to ensure FEM operates in 
 %nanometers rather than pixels
-gm=multicuboid(meshPtsFwdSol,meshPtsFwdSol,thickness);
+gm=multicuboid(numPix_x,numPix_y,thickness);
 structModel.Geometry=gm;
 
 % //Specify material properties *******************************************
@@ -124,14 +122,9 @@ structModelResults=solve(structModel);
 figure(2)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement)
-if strcmp('2020a',version('-release'))
 figure(4)
-    pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.z, ...
-        'Deformation',structModelResults.Displacement)
-elseif strcmp('2019a',version('-release')) || strcmp('2019b',version('-release'))
-    pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
-        'Deformation',structModelResults.Displacement)
-end
+pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.z, ...
+    'Deformation',structModelResults.Displacement)
 
 % //Shifting bead locations to apply interpDisp at those locations ********
 %2D
@@ -170,7 +163,7 @@ magsFEA = sqrt((bead_ux.^2)+(bead_uy.^2));
 figure(3)
 q2=quiver(bead_xshifted,bead_yshifted,bead_ux,bead_uy);
 xlim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]); ylim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]);
-xlabel('X'); ylabel('Y'); title(strcat('Ground Truth Displacement Field - ',forceChar,' kPa'));
+xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
 
 %\\ Colormapping **********************************************************
 %Get the current colormap
