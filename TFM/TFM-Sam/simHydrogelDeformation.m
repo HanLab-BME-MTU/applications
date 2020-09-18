@@ -46,14 +46,12 @@ beadDiameter = 40; %20nm/bead
 pixelSize = 72; %20 nm/pix
 thickness = 15*10^3; %thickness of hydrogel for FEM purposes (micrometers)
 meshPtsFwdSol = 2^9; %number of pix/pts in mesh
-numPix_x = meshPtsFwdSol; xmin=1; %number of pixels in X
-numPix_x = numPix_x*pixelSize*10^-6; %convert to mm
-numPix_y = meshPtsFwdSol; ymin=1; %number of pixels in Y
-numPix_y = numPix_y*pixelSize*10^-6; %convert to mm
-meshPtsFwdSol = numPix_x;
+numPts_x = meshPtsFwdSol; numPts_y = meshPtsFwdSol;
+length_x = meshPtsFwdSol*pixelSize*10^-6; xmin=1; %length of X in mm
+length_y = meshPtsFwdSol*pixelSize*10^-6; ymin=1; %length of Y in mm
 sigma = 1.68; %stdev of gaussian function
 %2D
-[refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(numPix_x,numPix_y, sigma, ...
+[refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(numPts_x,numPts_y, sigma, ...
         'npoints', nPoints, 'Border', 'periodic','A',0.4+rand(1,nPoints),...
         'pixelSize',pixelSize,'beadDiameter',beadDiameter);
 %3D
@@ -61,7 +59,7 @@ sigma = 1.68; %stdev of gaussian function
 %         sigma,'npoints', nPoints, 'Border', 'periodic', 'A',0.5+rand(1,nPoints));
     
 %noise addition
-refimg = refimg+0.05*rand(numPix_y,numPix_x)*max(refimg(:));
+refimg = refimg+0.05*rand(numPts_y,numPts_x)*max(refimg(:));
 %add 3D noise addition in future
 
 %writing reference image
@@ -73,12 +71,12 @@ if multiForce
     [force_x,force_y] = generateMultiForce();
 else
 forceType = 'groupForce';
-[x_mat_u, y_mat_u]=meshgrid(xmin:1:numPix_x,ymin:1:numPix_y);
+[x_mat_u, y_mat_u]=meshgrid(xmin:1:numPts_x,ymin:1:numPts_y);
 %convert forces to microN
 fx = fx*10^6;
 fy = fy*10^6;
-force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(numPix_x/2),numPix_y/2,0,fx,d,d,forceType);
-force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,(numPix_x/2),numPix_y/2,0,fy,d,d,forceType);
+force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(numPts_x/2),numPts_y/2,0,fx,d,d,forceType);
+force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,(numPts_x/2),numPts_y/2,0,fy,d,d,forceType);
 end
 force_z = [];
 
@@ -89,7 +87,7 @@ structModel=createpde('structural','static-solid');
 % //Define geometry *******************************************************
 %meshPtsFwdSol is multiplied by pixelSize to ensure FEM operates in 
 %nanometers rather than pixels
-gm=multicuboid(numPix_x,numPix_y,thickness);
+gm=multicuboid(length_x,length_y,thickness);
 structModel.Geometry=gm;
 
 % //Specify material properties *******************************************
@@ -100,9 +98,9 @@ structuralBC(structModel,'Face',1,'Constraint','fixed');
 
 % //Apply force distribution on face 2 ************************************
 if isempty(force_z)
-force_z=zeros(meshPtsFwdSol); %can be replaced by real data if a normal force is desired
+force_z=zeros(length_x); %can be replaced by real data if a normal force is desired
 end
-[xLoc,yLoc]=ndgrid(-meshPtsFwdSol/2:(meshPtsFwdSol/2)-1,-meshPtsFwdSol/2:(meshPtsFwdSol/2)-1);
+[xLoc,yLoc]=ndgrid(-length_x/2:(length_x/2)-1,-length_x/2:(length_x/2)-1);
 forceInterpX=griddedInterpolant(xLoc,yLoc,force_x);
 forceInterpY=griddedInterpolant(xLoc,yLoc,force_y);
 forceInterpZ=griddedInterpolant(xLoc,yLoc,force_z);
@@ -118,6 +116,9 @@ generateMesh(structModel,'Hmax',10);
 
 % //Solving structural model **********************************************
 structModelResults=solve(structModel);
+%outputs
+%   displacement = mm
+%   stress = Pa
 
 % //Visualizing results ***************************************************
 figure(2)
@@ -131,9 +132,9 @@ pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.z, ...
 %2D
 %Shifting bead locations because the outputs from simGaussianBeads are not
 %centered around the origin which is required for our FEM model.
-bead_xshifted=bead_x-(meshPtsFwdSol/2)+0.5;     %bead_x from simGaussianBeads.m
-bead_yshifted=bead_y-(meshPtsFwdSol/2)+0.5;     %bead_y from simGaussianBeads.m
-bead_zshifted=thickness*ones(nPoints,1); %bead_z can be included in future
+bead_xshifted=bead_x-(length_x/2)+0.5;     %bead_x from simGaussianBeads.m
+bead_yshifted=bead_y-(length_x/2)+0.5;     %bead_y from simGaussianBeads.m
+bead_zshifted=thickness*ones(nPoints,1);   %bead_z can be included in future
 %3D
 % bead_x3Dshifted=beadcenters3D(:,1)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
 % bead_y3Dshifted=beadcenters3D(:,2)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
@@ -149,7 +150,6 @@ interpDisp=interpolateDisplacement(structModelResults,bead_xshifted,bead_yshifte
 %2D
 bead_ux = reshape(interpDisp.ux,size(bead_x));
 bead_uy = reshape(interpDisp.uy,size(bead_y));
-magsFEA = sqrt((bead_ux.^2)+(bead_uy.^2));
 %3D
 % bead_ux3D = reshape(interpDisp3D.ux,size(beadcenters3D(:,1)));
 % bead_uy3D = reshape(interpDisp3D.uy,size(beadcenters3D(:,2)));
@@ -194,7 +194,7 @@ xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
 nanElements = sum(isnan(bead_ux));
 bead_ux(isnan(bead_ux)) = 0;
 bead_uy(isnan(bead_uy)) = 0;
-beadimg = simGaussianBeads(numPix_x,numPix_y, sigma, ...
+beadimg = simGaussianBeads(numPts_x,numPts_y, sigma, ...
     'x',bead_x + bead_ux,'y',bead_y + bead_uy,'A',Av,...
     'pixelSize',20,'beadDiameter',20,'Border','periodic');
 imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep imgstring]);
