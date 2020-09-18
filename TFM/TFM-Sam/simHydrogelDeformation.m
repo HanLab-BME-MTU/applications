@@ -47,9 +47,10 @@ pixelSize = 72; %20 nm/pix
 thickness = 15*10^3; %thickness of hydrogel for FEM purposes (micrometers)
 meshPtsFwdSol = 2^9; %number of pix/pts in mesh
 numPts_x = meshPtsFwdSol; numPts_y = meshPtsFwdSol;
-length_x = meshPtsFwdSol*pixelSize*10^-6; xmin=1; %length of X in mm
-length_y = meshPtsFwdSol*pixelSize*10^-6; ymin=1; %length of Y in mm
+length_x = meshPtsFwdSol*pixelSize; xmin=1; %length of X in nm
+length_y = meshPtsFwdSol*pixelSize; ymin=1; %length of Y in nm
 sigma = 1.68; %stdev of gaussian function
+E = E/10^18; %convert E for consistent units
 %2D
 [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(numPts_x,numPts_y, sigma, ...
         'npoints', nPoints, 'Border', 'periodic','A',0.4+rand(1,nPoints),...
