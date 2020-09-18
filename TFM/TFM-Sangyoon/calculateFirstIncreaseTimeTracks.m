@@ -141,7 +141,7 @@ for ii=1:numel(tracksNA)
             firstIncreaseTimeInt = find(d>bkgMaxInt & 1:nTime>sF5before,1);
         end
 %         firstIncreseTimeInt = curTrack.startingFrameExtra;
-        if ~isempty(firstIncreaseTimeInt)
+        if ~isempty(firstIncreaseTimeInt) && isfield(curTrack,slaveSource)
             ampIncreasingAll(ii)=true;
             if useSmoothing
                 curSlave=d;

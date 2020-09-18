@@ -46,7 +46,8 @@ if ~ischar(pathSFolders) && pathSFolders==0
                 [~,finalFolder] = fileparts(curPathProject2);
             end
             groupNames{ii} = finalFolder;
-            MLNames{ii} = 'movieList.mat';
+            MLNames{ii} = 'movieList';
+            MLFileNamesAll{ii} = 'movieList.mat';
             MLdirect=true;
         end
     end
@@ -1526,6 +1527,7 @@ if ~isempty(initRiseProc) && ~isempty(peakGroup{1}{1})
     end
 end
 if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
+    nonZeroGroups = ~cellfun(@isempty, assemRateEachGroup{1});
     %% assemRateGroup
     for curGroup=find(nonZeroGroups)'
         try
@@ -1571,7 +1573,13 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
         end
     end
     %% assemRate2Group
-    for curGroup=find(nonZeroGroups)'
+    try
+        nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup{1});
+    catch
+        nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup); %This will anyway generates 0
+    end
+
+    for curGroup=find(nonZeroGroups2)'
         %try
             assemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRate2EachGroup,'unif',false);
             % Discarding not assemblying adhesions
@@ -1592,8 +1600,8 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         %end
     end
-    %% disassemRateGroup
-    for curGroup=find(nonZeroGroups)'
+    %% disassemRate2Group
+    for curGroup=find(nonZeroGroups2)'
         %try
             disassemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRate2EachGroup,'unif',false);
             % Discarding not-disassemblying adhesions
@@ -1617,3 +1625,4 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
 end
 %% save entire workspace for later
 save([dataPath filesep 'allData.mat'])
+disp('Done plotting data!')

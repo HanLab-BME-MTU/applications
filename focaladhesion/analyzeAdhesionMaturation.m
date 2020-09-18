@@ -125,9 +125,9 @@ if exist(p.OutputDirectory,'dir')
             'Recover previous run','Yes','No','Yes');
         if strcmpi(useExistingTracks,'Yes'), startFromIntermediate=true; end
     elseif exist(outFilePaths{1,i},'file') && exist(outFilePaths{2,i},'file') && ~usejava('desktop')
-        foundTracks=true;
+        foundTracks=false;
     end
-    if p.backupOldResults && ~foundTracks && ~startFromIntermediate && usejava('desktop')
+    if p.backupOldResults && ~foundTracks && ~startFromIntermediate 
         mkClrDirWithBackup(p.OutputDirectory);
     end
 else
@@ -170,7 +170,8 @@ FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
 SDCProc=FAPackage.processes_{iSDCProc};
 %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
 if ~isempty(SDCProc)
-    iBeadChan = 1; % might need to be updated based on asking TFMPackage..
+    sdcFunParam = SDCProc.funParams_;
+    iBeadChan = sdcFunParam.iBeadChannel; % might need to be updated based on asking TFMPackage..    
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
 end
@@ -263,6 +264,8 @@ if ~foundTracks
                             disp('Adhesion channel is used for mask')
                         end
                         mask = maskProc.loadChannelOutput(iChan,ii); % 1 is CCP channel
+                    else
+                        mask = maskProc.loadChannelOutput(iChan,ii); % This is the most honest method, user-designated.
                     end
                 else
                     mask = true(MD.imSize_);
@@ -305,7 +308,7 @@ if ~foundTracks
                             disp('The channel other than adhesion channel is used for cell mask')
                         end
                         mask = maskProc.loadChannelOutput(find(maskProc.checkChannelOutput),ii); % 1 is CCP channel
-                    elseif nChans==1 
+                    elseif nChans==1 || find(maskProc.checkChannelOutput)==iChan
                         if ii==1
                             disp('Adhesion channel is used for mask')
                         end

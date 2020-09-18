@@ -3,10 +3,18 @@ function [] = showMostRepresentativeAssemblingAdhesion(MD,varargin)
 %through trajectories, pick one that shows bona fide new assembly and shows
 %the best goodness of fit.
 % input
-%       MD          MovieData file that has run FAPackage
+%       MD                      MovieData file that has run FAPackage
+%       RepClass                Specific class name (1-9). Type 0 for all classes and
+%                               pick manually
+%       PickManually            true if you want to pick manually (default: false)
+%       TimeShiftFromMedian     time shift from the median time lag. e.g.
+%                               The TimeLagFromMedian -1 is 1 sec the secondary signal (e.g. 
+%                               vinculin) comes before the main signal (e.g. talin).
+%       iSlave                  the slave channel. 1 is for TFM, 2 is for amp2, 3 is for amp3.
+%                               The main is the one at channel 2 (e.g. talin-GFP channel) usually
 % output
 %       figures will be generated and stored in
-%       FocalAdhesionPackage/AssemblyFigure
+%       FocalAdhesionPackage/RepTracks_Class
 % Example: 
 % showMostRepresentativeAssemblingAdhesion(MD,'RepClass',1,'TimeShiftFromMedian',-6, 'iSlave',2) 
 % Sangyoon Han, March 4 2020
@@ -112,16 +120,18 @@ for curClass=RepClass
         mkdir(gPath)
     end
     for ii=find(trackID')
-        try
+%         try
             h2 = showSingleAdhesionTrackSummary(MD,curClassTracks(ii),imgStack,tMap,imgStack2, ii,gPath);
             close(h2)
-        catch
-            disp(['error on this track: ' num2str(ii)])
-            continue
-        end
+%         catch
+%             disp(['error on this track: ' num2str(ii)])
+%             continue
+%         end
     end
 
 end
+disp(['The number of tracks identified: ' num2str(sum(trackID))])
+disp(['Figures will be generated and stored in FocalAdhesionPackage/RepTracks_Class' num2str(curClass) '.'])
     
 
 

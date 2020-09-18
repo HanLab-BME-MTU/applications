@@ -1,4 +1,4 @@
-function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,specificName]=chooseSelectedFolders
+function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,specificName,refDirTif]=chooseSelectedFolders
 %function [pathAnalysisAll, MLNames, groupNames,
 %usedSelectedFoldersMat]=chooseSelectedFolders let users choose predefined
 %selectedfolder.mat or directly choose ML files to perform many batch
@@ -91,12 +91,19 @@ if ~ischar(pathSFolders) && pathSFolders==0
     end
     specificName = strjoin(groupNames);
     rootAnalysis = pathAnalysisAll{1};
+    refDirTif = [];
     save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 else
     usedSelectedFoldersMat=true;    
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end);
+    if isfield(selectedFolders,'refDirTifAll')
+        refDirTif = selectedFolders.refDirTifAll;
+    else
+        disp('refDirTifAll was not saved right in setupMovieDataFromND!')
+    end
+    
     try
         MLNames = selectedFolders.MLNames;%'movieList.mat';
     catch

@@ -225,6 +225,9 @@ end
 
 if ~isempty(iMaskProcess)
     iChan=find(maskProc.checkChannelOutput);
+    % if the bead channel is also selected for segmentation, we need to
+    % remove that
+    iChan = setdiff(iChan,iBeadChan);
     if length(iChan)>1
         iChan=iChan(1);
     end
