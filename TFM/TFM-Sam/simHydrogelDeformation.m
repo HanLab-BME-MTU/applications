@@ -50,6 +50,7 @@ numPix_x = meshPtsFwdSol; xmin=1; %number of pixels in X
 numPix_x = numPix_x*pixelSize*10^-6; %convert to mm
 numPix_y = meshPtsFwdSol; ymin=1; %number of pixels in Y
 numPix_y = numPix_y*pixelSize*10^-6; %convert to mm
+meshPtsFwdSol = numPix_x;
 sigma = 1.68; %stdev of gaussian function
 %2D
 [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(numPix_x,numPix_y, sigma, ...
