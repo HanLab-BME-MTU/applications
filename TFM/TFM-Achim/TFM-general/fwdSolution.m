@@ -76,7 +76,7 @@ elseif strcmpi(method,'FEM')
     if v < 0.5
     structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v);
     elseif v == 0.5
-    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v-0.1);
+    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v-0.01);
     end
     
     %Constrain bottom face
@@ -112,7 +112,9 @@ elseif strcmpi(method,'FEM')
 
     %Fill in output displacement variables
     ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
+    ux = ux ./ 72;
     uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
+    uy = uy ./ 72;
     toc;    
     disp('Completed FEM fwd solution.')
 
