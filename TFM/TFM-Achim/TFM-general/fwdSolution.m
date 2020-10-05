@@ -64,11 +64,12 @@ elseif strcmpi(method,'FEM')
     femFwdModel = createpde('structural','static-solid');
     
     %Define geometry
+    h = 256/4;
     gm = multicuboid(x0(2)*2,y0(2)*2,h); %multicuboid(x,y,z)   
     femFwdModel.Geometry = gm;
     
     %Mesh the model
-    generateMesh(femFwdModel,'Hmax',20);
+    generateMesh(femFwdModel,'Hmax',10);
     
     %Material properties
     %FEM will fail when given a Poisson's Ratio of 0.5, therefore we detect
@@ -76,7 +77,7 @@ elseif strcmpi(method,'FEM')
     if v < 0.5
     structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v);
     elseif v == 0.5
-    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v-0.01);
+    structuralProperties(femFwdModel,'YoungsModulus',E,'PoissonsRatio',v-0.001);
     end
     
     %Constrain bottom face
@@ -112,9 +113,7 @@ elseif strcmpi(method,'FEM')
 
     %Fill in output displacement variables
     ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
-    ux = ux ./ 72;
     uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
-    uy = uy ./ 72;
     toc;    
     disp('Completed FEM fwd solution.')
 
