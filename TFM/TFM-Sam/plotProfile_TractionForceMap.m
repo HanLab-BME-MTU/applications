@@ -58,29 +58,27 @@ heatMap_FastBEM = generateHeatmapFromField(forceField_FastBEM);
 heatMap_FEM = generateHeatmapFromField(forceField_FEM);
 
 %Heatmaps
-figure(1)
-tiledlayout(1,3)
-nexttile
-imagesc(heatMap_FTTC); cbr1 = colorbar; 
-set(cbr1,'YTick',0:50:351)
-title('FTTC Force Reconstruction Magnitude')
-nexttile
+figure
+subplot(1,3,1)
+imagesc(heatMap_FTTC); colorbar; 
+title('FTTC Force Magnitude','FontSize',8)
+subplot(1,3,2)
 imagesc(heatMap_FastBEM); colorbar;
-title('FastBEM Force Reconstruction Magnitude')
-nexttile
+title('FastBEM Force Magnitude','FontSize',8)
+subplot(1,3,3)
 imagesc(heatMap_FEM); colorbar;
-title('FEM Force Reconstruction Magnitude')
+title('FEM Force Magnitude','FontSize',8)
 
 %Profile Plot
-figure(2)
+figure
 title('Comparing Traction Profiles of Different Force Reconstruction Methods')
 xlabel('Pixel Number')
 ylabel('Traction Magnitude')
 midPoint = [length(heatMap_FTTC)/2 length(heatMap_FastBEM)/2 length(heatMap_FEM)/2]; %1,2,3: FTTC,FastBEM,FEM
-plot(heatMap_FTTC(midPoint(1),:),'LineWidth',2)
+plot(heatMap_FTTC(midPoint(1),:),'LineWidth',1.4)
 hold on
-plot(heatMap_FastBEM(midPoint(2),:),'LineWidth',2)
+plot(heatMap_FastBEM(midPoint(2),:),'LineWidth',1.4)
 hold on
-plot(heatMap_FEM(midPoint(3),:),'LineWidth',2)
+plot(heatMap_FEM(midPoint(3),:),'LineWidth',1.4)
 legend('FTTC','FastBEM','FEM')
 grid on

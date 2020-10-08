@@ -64,7 +64,7 @@ elseif strcmpi(method,'FEM')
     femFwdModel = createpde('structural','static-solid');
     
     %Define geometry
-    h = 256/4;
+    h = 256;
     gm = multicuboid(x0(2)*2,y0(2)*2,h); %multicuboid(x,y,z)   
     femFwdModel.Geometry = gm;
     

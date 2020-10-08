@@ -50,9 +50,6 @@ thickness = meshPtsFwdSol/2; %thickness of hydrogel for FEM purposes (pixels)
 numPix_x = meshPtsFwdSol; numPix_y = meshPtsFwdSol; %pixel length of image & fem geometry
 xmin = 1; ymin = 1;
 sigma = 1.68; %stdev of gaussian function
-%conversions
-E = E/(10^9*(1/72)); %convert E for consistent units kg/(sec^2*pix)
-fx = fx*(10^9)/72; fy = fy*(10^9)/72; %convert forces for consistent units (kg*pix)/(sec^2)
 %2D
 [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(numPix_x,numPix_y, sigma, ...
         'npoints', nPoints, 'Border', 'periodic','A',0.4+rand(1,nPoints),...
