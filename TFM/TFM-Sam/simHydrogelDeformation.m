@@ -24,7 +24,7 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %   Example:
 %       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,2000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',True)
 
-% //Data path configuration ***********************************************
+%% //Data path configuration ***********************************************
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];
 orgPath=[dataPath filesep 'Original'];
@@ -41,7 +41,7 @@ chr1='testbead_consistentunits'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 
-% //Generate reference bead image *****************************************
+%% //Generate reference bead image *****************************************
 meshPtsFwdSol = 2^9; %number of pix/pts in mesh
 beadDiameter = 40; %20nm/bead
 pixelSize = 72; %20 nm/pix
@@ -66,35 +66,121 @@ refimg = refimg+0.05*rand(numPix_y,numPix_x)*max(refimg(:));
 imwrite(uint16(refimg*2^16/max(max(refimg))),[refPath filesep refstring]);
 %add saving 3D refimg
     
-% //Generate force field
+%% //Generate force field
 if multiForce
     [force_x,force_y] = generateMultiForce();
 else
-forceType = 'groupForce';
-[x_mat_u, y_mat_u]=meshgrid(xmin:1:numPix_x,ymin:1:numPix_y);
-force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,numPix_x/2,numPix_y/2,0,fx,d,d,forceType);
-force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,numPix_x/2,numPix_y/2,0,fy,d,d,forceType);
+    forceType = 'groupForce';
+    [x_mat_u, y_mat_u]=meshgrid(xmin:1:numPix_x,ymin:1:numPix_y);
+    force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,numPix_x/2,numPix_y/2,fx,0,d,d,forceType);
+    force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,numPix_x/2,numPix_y/2,0,fy,d,d,forceType);
 end
 force_z = [];
 
 
-% //Generate model container **********************************************
+%% //Generate model container **********************************************
 structModel=createpde('structural','static-solid');
 
-% //Define geometry *******************************************************
+%% //Define geometry *******************************************************
 %we use pixels to define fem geometry to ensure consistent units
-gm=multicuboid(numPix_x,numPix_y,thickness);
-structModel.Geometry=gm;
+% gm=multicuboid(numPix_x,numPix_y,thickness);
+% We want to now insert a sphere to ensure the refined mesh near force
+% application area
+% Create a 3-D rectangular mesh grid first (with sparse spacing)
+
+[xg, yg, zg] = meshgrid(linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/2^4),...
+                        linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/2^4),...
+                        -thickness:0); 
+Pcube = [xg(:) yg(:), zg(:)];
+% Extract the grid points located outside of the spherical region with
+% force diameter 
+Pcavitycube = Pcube(vecnorm(Pcube') > d,:);
+% Create points on the sphere
+[x1,y1,z1] = sphere(24);
+Psphere = d*[x1(:) y1(:) z1(:)];
+% Get rid of the upper half sphere
+PsphereHalf = Psphere(z1(:) <= 0,:); 
+PsphereHalf = unique(PsphereHalf,'rows');
+% Combine the coordinates of the rectangular grid (without the points
+% inside the sphere) and the surface coordinates of the unit sphere. 
+Pcombined = [Pcavitycube;PsphereHalf];
+% Create an alphaShape object representing the cube with the spherical
+% cavity. 
+shpCubeWithSphericalCavity = alphaShape(Pcombined(:,1), ...
+                                        Pcombined(:,2), ...
+                                        Pcombined(:,3));
+% Increasing alpha to fill unconnected mesh in the middle
+shpCubeWithSphericalCavity.Alpha = 20;
+% cavityAlone = alphaShape(Pcavitycube(:,1), ...
+%                         Pcavitycube(:,2), ...
+%                         Pcavitycube(:,3));       
+% sphereAlone = alphaShape(PsphereHalf(:,1), ...
+%                         PsphereHalf(:,2), ...
+%                         PsphereHalf(:,3));       
+% figure
+% plot(shpCubeWithSphericalCavity,'FaceAlpha',0.4)
+% title('alphaShape: Cube with Half-Spherical Cavity')
+% plot(cavityAlone,'FaceAlpha',0.4)
+% plot(sphereAlone,'FaceAlpha',0.4)
+
+% Recover the triangulation that defines the domain of the alphaShape object.
+[tri,loc] = alphaTriangulation(shpCubeWithSphericalCavity);
+
+% Create a PDE model.
+modelCube = createpde;
+
+% Create a geometry from the mesh and import the geometry and the mesh into the model.
+[gCube,mshCube] = geometryFromMesh(modelCube,loc',tri');
+
+% % Plot the resulting geometry.
+% figure
+% pdegplot(modelCube,'FaceAlpha',0.5,'CellLabels','on','FaceLabels','on')
+% title('PDEModel: Cube with Half-Spherical Cavity')
+% Identified that the half sphere is F7.
+%% Solid Half-Sphere Nested in Cube
+% Create tetrahedral elements to form a solid sphere by using the spherical
+% shell and adding a new node at the center. First, obtain the spherical
+% shell by extracting facets of the spherical boundary.  
+sphereFacets = boundaryFacets(mshCube,'Face',7);
+sphereNodes = findNodes(mshCube,'region','Face',7);
+
+% Add a new node at the center.
+newNodeID = size(mshCube.Nodes,2) + 1;
+
+% Construct the tetrahedral elements by using each of the three nodes on the spherical boundary facets and the new node at the origin.
+sphereTets =  [sphereFacets; newNodeID*ones(1,size(sphereFacets,2))];
+
+% Create a model that combines the cube with the spherical cavity and a sphere.
+model = createpde;
+
+% Create a vector that maps all mshCube elements to cell 1, and all elements of the solid sphere to cell 2.
+e2c = [ones(1,size(mshCube.Elements,2)), 2*ones(1,size(sphereTets,2))];
+
+% Add a new node at the center [0;0;0] to the nodes of the cube with the cavity.
+combinedNodes = [mshCube.Nodes,[0;0;0]];
+
+% Combine the element connectivity matrices.
+combinedElements = [mshCube.Elements,sphereTets];
+
+% Create a two-cell geometry from the mesh.
+[g,msh] = geometryFromMesh(model,combinedNodes,combinedElements,e2c);
+ 
+% figure
+% pdegplot(model,'FaceAlpha',0.5,'CellLabels','on','FaceLabels','on')
+% title('Solid Sphere in Cube')
+
+
+structModel.Geometry=g;
 
 % //Specify material properties *******************************************
 structuralProperties(structModel,'YoungsModulus',E,'PoissonsRatio',v);
 
 % //Apply boundary constraints ********************************************
-structuralBC(structModel,'Face',1,'Constraint','fixed');
+structuralBC(structModel,'Face',5,'Constraint','fixed'); %New face ID for the bottom.
 
-% //Apply force distribution on face 2 ************************************
+%% //Apply force distribution on face 2 ************************************
 if isempty(force_z)
-force_z=zeros(numPix_x); %can be replaced by real data if a normal force is desired
+    force_z=zeros(numPix_x); %can be replaced by real data if a normal force is desired
 end
 [xLoc,yLoc]=ndgrid(-numPix_x/2:(numPix_x/2)-1,-numPix_x/2:(numPix_x/2)-1);
 forceInterpX=griddedInterpolant(xLoc,yLoc,force_x);
@@ -105,12 +191,12 @@ hydrogelForce = @(location,state)[forceInterpX(location.x,location.y); ...
                                   forceInterpY(location.x,location.y); ...
                                   forceInterpZ(location.x,location.y);];
 %pass function handle and define BCs
-structuralBoundaryLoad(structModel,'Face',2,'SurfaceTraction',hydrogelForce,'Vectorize','on');
+structuralBoundaryLoad(structModel,'Face',8,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
 
-% //Generate mesh for model ***********************************************
-generateMesh(structModel,'Hmax',10);
-
-% //Solving structural model **********************************************
+%% //Generate mesh for model ***********************************************
+generateMesh(structModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
+% pdeplot3D(structModel)
+%% //Solving structural model **********************************************
 structModelResults=solve(structModel);
 %outputs
 %   displacement = pix
@@ -121,7 +207,7 @@ figure(2)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement)
 figure(4)
-pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.z, ...
+pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
     'Deformation',structModelResults.Displacement)
 
 % //Shifting bead locations to apply interpDisp at those locations ********
