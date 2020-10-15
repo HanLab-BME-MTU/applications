@@ -22,7 +22,7 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %       Av =        vector containing gaussian bead amplitudes
 %
 %   Example:
-%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,4000,5000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',true)
+%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,4000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',false)
 
 %% //Data path configuration ***********************************************
 imgPath=[dataPath filesep 'Beads'];
@@ -37,7 +37,7 @@ end
 chrRef='img1ref_';
 chrBead='img3bead_';
 %Change these character vectors to rename files for next run
-chr1='multiforce_finemesh_512x_5kE_4kbeads'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+chr1='singleforce_finemesh_1kE_4kbeads'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 
@@ -87,10 +87,9 @@ structModel=createpde('structural','static-solid');
 % We want to now insert a sphere to ensure the refined mesh near force
 % application area
 % Create a 3-D rectangular mesh grid first (with sparse spacing)
-
 [xg, yg, zg] = meshgrid(linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/2^4),...
                         linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/2^4),...
-                        -thickness:0); 
+                        -thickness:0); %/2^4 defines sparsity
 Pcube = [xg(:) yg(:), zg(:)];
 % Extract the grid points located outside of the spherical region with
 % force diameter 
