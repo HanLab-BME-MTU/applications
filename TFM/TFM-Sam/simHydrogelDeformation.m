@@ -22,7 +22,7 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %       Av =        vector containing gaussian bead amplitudes
 %
 %   Example:
-%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,2000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',True)
+%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,4000,5000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',true)
 
 %% //Data path configuration ***********************************************
 imgPath=[dataPath filesep 'Beads'];
@@ -37,7 +37,7 @@ end
 chrRef='img1ref_';
 chrBead='img3bead_';
 %Change these character vectors to rename files for next run
-chr1='testbead_consistentunits'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+chr1='multiforce_finemesh_512x_5kE_4kbeads'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 
@@ -202,7 +202,7 @@ structModelResults=solve(structModel);
 %   displacement = pix
 %   stress = kg/(sec^2*pix) = Pa * ((10^9)/72)
 
-% //Visualizing results ***************************************************
+%% //Visualizing results ***************************************************
 figure(2)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement)
@@ -210,7 +210,7 @@ figure(4)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
     'Deformation',structModelResults.Displacement)
 
-% //Shifting bead locations to apply interpDisp at those locations ********
+%% //Shifting bead locations to apply interpDisp at those locations ********
 %2D
 %Shifting bead locations because the outputs from simGaussianBeads are not
 %centered around the origin which is required for our FEM model.
@@ -222,13 +222,13 @@ bead_zshifted=thickness*ones(nPoints,1);   %bead_z can be included in future
 % bead_y3Dshifted=beadcenters3D(:,2)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
 % bead_z3Dshifted=beadcenters3D(:,3)-0.5;   %beadcenters3D from simGaussianSpots3D.m
 
-% //Interpolating displacements at bead locations using interpDisp ********
+%% //Interpolating displacements at bead locations using interpDisp ********
 %2D
 interpDisp=interpolateDisplacement(structModelResults,bead_xshifted,bead_yshifted,bead_zshifted);
 %3D
 % interpDisp3D=interpolateDisplacement(structModelResults,bead_x3Dshifted,bead_y3Dshifted,bead_z3Dshifted);
 
-% //Reshaping to match bead location vectors ******************************
+%% //Reshaping to match bead location vectors ******************************
 %2D
 bead_ux = reshape(interpDisp.ux,size(bead_x));
 bead_uy = reshape(interpDisp.uy,size(bead_y));
@@ -242,13 +242,13 @@ bead_uy = reshape(interpDisp.uy,size(bead_y));
 % ymax3D = ceil(max(newbeadcenters3D(:,2)));
 % zmax3D = ceil(max(newbeadcenters3D(:,3)));
 
-% //Plotting interpolated displacement ************************************
+%% //Plotting interpolated displacement ************************************
 figure(3)
 q2=quiver(bead_xshifted,bead_yshifted,bead_ux,bead_uy);
 xlim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]); ylim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]);
 xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
 
-%\\ Colormapping **********************************************************
+%% //Colormapping *********************************************************
 %Get the current colormap
 % currentColormap = colormap(gca);
 % %Now determine the color to make each arrow using a colormap
@@ -271,7 +271,7 @@ xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
 % 
 % set(gca,'Color','k');
 
-%\\ Generating Deformed Bead Image ****************************************
+%% //Generating Deformed Bead Image ****************************************
 %2D
 nanElements = sum(isnan(bead_ux));
 bead_ux(isnan(bead_ux)) = 0;
@@ -285,6 +285,6 @@ imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep imgstring]);
 %     'X', newbeadcenters3D,'npoints', nPoints, 'A', Av3D,'Border', 'periodic');
 %add saving 3D beadimg
 
-%\\ Saving outputs for comparison after TFM processing ********************
+%% //Saving outputs for comparison after TFM processing ********************
 disp(strcat('Removed ',num2str(nanElements),'NaN elements.'))
 save(strcat('outputs_',chr1,'.mat'),'bead_ux','bead_uy','force_x','force_y'); %chr1 defined initially by user, matches image file naming
