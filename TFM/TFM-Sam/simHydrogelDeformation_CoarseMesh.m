@@ -38,7 +38,8 @@ end
 chrRef='img1ref_';
 chrBead='img3bead_';
 %Change these character vectors to rename files for next run
-chr1='singleforce_finemesh_1kE_3kbeads_1kPa'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+char = 'singleforce_coarsemesh_';
+chr1=strcat(char,num2str(E),'E_',num2str(nPoints),'beads_(',num2str(fx),',',num2str(fy),')Pa'); %chr13D='newBeads3D(1kpa,0.5k,1kE)';
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 
@@ -108,8 +109,8 @@ hydrogelForce = @(location,state)[forceInterpX(location.x,location.y); ...
 structuralBoundaryLoad(structModel,'Face',2,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
 
 %% //Generate mesh for model ***********************************************
-generateMesh(structModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
-% pdeplot3D(structModel)
+generateMesh(structModel,'Hmax',25, 'Hmin',1, 'Hgrad', 1.2);
+figure,pdeplot3D(structModel)
 %% //Solving structural model **********************************************
 structModelResults=solve(structModel);
 %outputs
@@ -117,12 +118,12 @@ structModelResults=solve(structModel);
 %   stress = kg/(sec^2*pix) = Pa * ((10^9)/72)
 
 %% //Visualizing results ***************************************************
-figure(2)
+figure
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
-    'Deformation',structModelResults.Displacement)
-figure(4)
+    'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
+figure
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
-    'Deformation',structModelResults.Displacement)
+    'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
 
 %% //Shifting bead locations to apply interpDisp at those locations ********
 %2D
@@ -157,7 +158,7 @@ bead_uy = reshape(interpDisp.uy,size(bead_y));
 % zmax3D = ceil(max(newbeadcenters3D(:,3)));
 
 %% //Plotting interpolated displacement ************************************
-figure(3)
+figure
 q2=quiver(bead_xshifted,bead_yshifted,bead_ux,bead_uy);
 xlim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]); ylim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]);
 xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
