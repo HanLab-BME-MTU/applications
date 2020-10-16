@@ -1,4 +1,4 @@
-function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoints,E,v,dataPath,multiForce)
+function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation_CoarseMesh(fx,fy,d,nPoints,E,v,dataPath,multiForce)
 % SIMHYDROGELDEFORMATION generates a 2D gaussian reference bead
 % image and then uses the user defined force, area, young's modulus, and 
 % poisson's ratio to deform the image using FEA
@@ -22,9 +22,10 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %       Av =        vector containing gaussian bead amplitudes
 %
 %   Example:
-%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,4000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',false)
+%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation_CoarseMesh(0,1000,40,4000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',false)
 
 %% //Data path configuration ***********************************************
+close all
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];
 orgPath=[dataPath filesep 'Original'];
@@ -37,7 +38,7 @@ end
 chrRef='img1ref_';
 chrBead='img3bead_';
 %Change these character vectors to rename files for next run
-chr1='singleforce_finemesh_1kE_4kbeads'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+chr1='singleforce_finemesh_1kE_3kbeads_1kPa'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 
@@ -77,135 +78,19 @@ else
 end
 force_z = [];
 
-
 %% //Generate model container **********************************************
 structModel=createpde('structural','static-solid');
 
 %% //Define geometry *******************************************************
 %we use pixels to define fem geometry to ensure consistent units
-% gm=multicuboid(numPix_x,numPix_y,thickness);
-% We want to now insert a sphere to ensure the refined mesh near force
-% application area
-% Create a 3-D rectangular mesh grid first (with sparse spacing)
-spacing = 2^3;
-[xg, yg, zg] = meshgrid(linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/spacing),...
-                        linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/spacing),...
-                        linspace(-thickness,0,meshPtsFwdSol/spacing));
-[x2,y2] = meshgrid(linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/spacing),...
-                   linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/spacing));
-z2 = real(-sqrt((d)^2 - (x2).^2 - (y2).^2));
-% for i = 1:d
-%     zg(:,:,i) = i * ones(size(z2)) + z2;
-%     zg(zg(:,:,i) > 0) = 0;
-% end
-
-
-% 
-% Pcube = [xg(:) yg(:), zg(:)];
-% Pcavitycube = Pcube;
-
-% Extract the grid points located outside of the spherical region with
-% force diameter 
-%Pcavitycube = Pcube(vecnorm(Pcube') > d,:);
-% Create points on the sphere
-[x1,y1,z1] = sphere(24);
-Psphere = d*[x1(:) y1(:) z1(:)];
-Psphere = unique(Psphere,'rows');
-sphereShp = alphaShape(Psphere(:,1),Psphere(:,2),Psphere(:,3),100);
-in = inShape(sphereShp,xg,yg,zg);
-zg(:,:,1) = z2;
-xg = [xg(~in)]; yg = [yg(~in)]; zg = [zg(~in)]; 
-
-cavityShp = alphaShape(xg,yg,zg);
-cavityShp.Alpha = 20;
-[tri,loc] = alphaTriangulation(cavityShp);
-halfSphere = sphereShp;
-halfSphere.Points = halfSphere.Points(halfSphere.Points(:,3) <= 0,:);
-% % Get rid of the upper half sphere
-% PsphereHalf = Psphere(z1(:) <= 0,:); 
-% PsphereHalf = unique(PsphereHalf,'rows');
-
-% Combine the coordinates of the rectangular grid (without the points
-% inside the sphere) and the surface coordinates of the unit sphere. 
-%Pcombined = [Pcavitycube;PsphereHalf];
-% Create an alphaShape object representing the cube with the spherical
-% cavity. 
-% shpCubeWithSphericalCavity = alphaShape(Pcombined(:,1), ...
-%                                         Pcombined(:,2), ...
-%                                         Pcombined(:,3), ...
-%                                         Inf,'HoleThreshold',400);
-% Increasing alpha to fill unconnected mesh in the middle
-%shpCubeWithSphericalCavity.Alpha = 20;
-% cavityAlone = alphaShape(Pcavitycube(:,1), ...
-%                         Pcavitycube(:,2), ...
-%                         Pcavitycube(:,3));       
-% sphereAlone = alphaShape(PsphereHalf(:,1), ...
-%                         PsphereHalf(:,2), ...
-%                         PsphereHalf(:,3));       
-% figure
-% plot(shpCubeWithSphericalCavity,'FaceAlpha',0.4)
-% title('alphaShape: Cube with Half-Spherical Cavity')
-% plot(cavityAlone,'FaceAlpha',0.4)
-% plot(sphereAlone,'FaceAlpha',0.4)
-
-
-% Recover the triangulation that defines the domain of the alphaShape object.
-%[tri,loc] = boundaryFacets(shpCubeWithSphericalCavity);
-%[tri,loc] = alphaTriangulation(shpCubeWithSphericalCavity);
-
-% Create a PDE model.
-modelCube = createpde;
-
-% Create a geometry from the mesh and import the geometry and the mesh into the model.
-[gCube,mshCube] = geometryFromMesh(modelCube,loc',tri');
-
-% % Plot the resulting geometry.
-% figure
-% pdegplot(modelCube,'FaceAlpha',0.5,'CellLabels','on','FaceLabels','on')
-% title('PDEModel: Cube with Half-Spherical Cavity')
-% Identified that the half sphere is F7.
-%% Solid Half-Sphere Nested in Cube
-% Create tetrahedral elements to form a solid sphere by using the spherical
-% shell and adding a new node at the center. First, obtain the spherical
-% shell by extracting facets of the spherical boundary. 
-sphereFacets = boundaryFacets(halfSphere);
-%sphereFacets = boundaryFacets(mshCube,'Face',7);
-%sphereNodes = findNodes(mshCube,'region','Cell',7);
-
-% Add a new node at the center.
-newNodeID = size(mshCube.Nodes,2) + 1;
-
-% Construct the tetrahedral elements by using each of the three nodes on the spherical boundary facets and the new node at the origin.
-%sphereTets =  [sphereFacets, newNodeID*ones(1,size(sphereFacets,2))];
-sphereTets = [sphereFacets, newNodeID*ones(length(sphereFacets),1)];
-
-% Create a model that combines the cube with the spherical cavity and a sphere.
-model = createpde;
-
-% Create a vector that maps all mshCube elements to cell 1, and all elements of the solid sphere to cell 2.
-e2c = [ones(1,size(mshCube.Elements,2)), 2*ones(1,size(sphereTets,1))];
-
-% Add a new node at the center [0;0;0] to the nodes of the cube with the cavity.
-combinedNodes = [mshCube.Nodes,[0;0;0]];
-
-% Combine the element connectivity matrices.
-combinedElements = [mshCube.Elements,sphereTets'];
-
-% Create a two-cell geometry from the mesh.
-[g,msh] = geometryFromMesh(model,combinedNodes,combinedElements,e2c);
- 
-figure
-pdegplot(model,'FaceAlpha',0.5,'CellLabels','on','FaceLabels','on')
-title('Solid Sphere in Cube')
-
-
-structModel.Geometry=g;
+gm=multicuboid(numPix_x,numPix_y,thickness);
+structModel.Geometry = gm;
 
 % //Specify material properties *******************************************
 structuralProperties(structModel,'YoungsModulus',E,'PoissonsRatio',v);
 
 % //Apply boundary constraints ********************************************
-structuralBC(structModel,'Face',5,'Constraint','fixed'); %New face ID for the bottom.
+structuralBC(structModel,'Face',1,'Constraint','fixed'); %New face ID for the bottom.
 
 %% //Apply force distribution on face 2 ************************************
 if isempty(force_z)
@@ -220,7 +105,7 @@ hydrogelForce = @(location,state)[forceInterpX(location.x,location.y); ...
                                   forceInterpY(location.x,location.y); ...
                                   forceInterpZ(location.x,location.y);];
 %pass function handle and define BCs
-structuralBoundaryLoad(structModel,'Face',8,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
+structuralBoundaryLoad(structModel,'Face',2,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
 
 %% //Generate mesh for model ***********************************************
 generateMesh(structModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
