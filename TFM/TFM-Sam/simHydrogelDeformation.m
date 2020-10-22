@@ -204,10 +204,10 @@ structModelResults=solve(structModel);
 %% //Visualizing results ***************************************************
 figure(2)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
-    'Deformation',structModelResults.Displacement)
+    'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
 figure(4)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
-    'Deformation',structModelResults.Displacement)
+    'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
 
 %% //Shifting bead locations to apply interpDisp at those locations ********
 %2D
@@ -215,7 +215,7 @@ pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
 %centered around the origin which is required for our FEM model.
 bead_xshifted=bead_x-(numPix_x/2)+0.5;     %bead_x from simGaussianBeads.m
 bead_yshifted=bead_y-(numPix_x/2)+0.5;     %bead_y from simGaussianBeads.m
-bead_zshifted=thickness*ones(nPoints,1);   %bead_z can be included in future
+bead_zshifted=0*ones(nPoints,1);   %bead_z can be included in future
 %3D
 % bead_x3Dshifted=beadcenters3D(:,1)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
 % bead_y3Dshifted=beadcenters3D(:,2)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
