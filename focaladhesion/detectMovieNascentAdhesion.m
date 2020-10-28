@@ -138,7 +138,7 @@ minSize = round((500/pixSize)*(500/pixSize)); %adhesion limit=0.25 um2
 minLengthFC = 500/pixSize;
 minLengthFA = 2000/pixSize;
 minEcc = 0.7;
-psAlpha = 0.0001;%This will ensure 
+psAlpha = 0.01;%it was 1e-4
 
 disp(['Paxillin channel was assumed to be in channel ' num2str(iAdhChan) '.'])
 disp('Results will be saved under:')

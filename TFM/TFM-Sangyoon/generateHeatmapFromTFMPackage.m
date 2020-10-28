@@ -103,17 +103,12 @@ if ~isempty(iSDCProc)
             'Please apply stage drift correction to all needed channels before '...
             'running displacement field calclation tracking!'])
     end
-    if length(SDCProc.funParams_.ChannelIndex)>1
-        iChan = 2;
-    elseif length(SDCProc.funParams_.ChannelIndex) == 1
-        iChan = SDCProc.funParams_.ChannelIndex;
+
+    iBeadChan = SDCProc.funParams_.iBeadChannel;
+    if iBeadChan==2
+        iChan=1;
     else
-        error('No channel associated with SDC process!')
-    end
-    if iChan==2
-        iBeadChan=1;
-    else
-        iBeadChan = SDCProc.funParams_.ChannelIndex(1);
+        iChan=2;
     end
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
