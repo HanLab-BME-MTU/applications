@@ -378,7 +378,7 @@ for ii=1:nFrames
     %     paxImageCropped = paxImage(indULy+spacing*band:indBRy-spacing*band,indULx+spacing*band:indBRx-spacing*band);
         secondImageCropped = secondImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         %Scale bar
-        secondImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
+        secondImageCropped(15:16,10:10+round(scale*1000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
         imwrite(secondImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
         % composite for both channels
         compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
@@ -407,7 +407,7 @@ for ii=1:nFrames
         secondImageCropped = secondImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         thirdImageCropped = thirdImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         %Scale bar
-        secondImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
+        secondImageCropped(15:16,10:10+round(scale*1000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
         thirdPath = [outputFilePath filesep 'thirdChannel'];
         if ~exist(thirdPath,'dir') 
             mkdir(thirdPath);
