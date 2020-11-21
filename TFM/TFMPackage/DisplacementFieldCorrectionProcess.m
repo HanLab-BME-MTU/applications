@@ -128,6 +128,10 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                             dMapObj.firstMaskSize = size(SDCproc.loadChannelOutput(1,1));
                         end
                         
+                        if exist('dMapMap','var')
+                            clear dMapMap
+                        end
+                        
                         if strcmp(output,'dMap')
                             [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
                             for ii=obj.owner_.nFrames_:-1:1

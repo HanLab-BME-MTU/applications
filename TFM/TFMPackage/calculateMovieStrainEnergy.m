@@ -197,7 +197,11 @@ iTFMPack = movieData.getPackageIndex('TFMPackage');
 TFMPack=movieData.packages_{iTFMPack}; iSDCProc=1;
 SDCProc=TFMPack.processes_{iSDCProc};
 if ~isempty(SDCProc)
-    iBeadChan=SDCProc.funParams_.iBeadChannel;
+    try
+        iBeadChan=SDCProc.funParams_.iBeadChannel;
+    catch
+        iBeadChan=1;
+    end
 else
     iBeadChan=1;
 end
@@ -341,7 +345,7 @@ for ii=1:nFrames
                
         avgDispCell(ii) = totalDispCell(ii)/areaCell; % um
         avgDispCellPeri(ii) = totalDispCellPeri(ii)/areaPeri; %um
-        avgDispCellInside(ii) = totalDispCellInside/areaInside; %um
+        avgDispCellInside(ii) = totalDispCellInside(ii)/areaInside; %um
     end
         
     if p.performForceBlobAnalysis
