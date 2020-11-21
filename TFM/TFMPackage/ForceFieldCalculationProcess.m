@@ -220,7 +220,11 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     SDCProc=tfmPackageHere.processes_{iSDCProc};
 
                     if ~isempty(SDCProc)
-                        iBeadChan=SDCProc.funParams_.iBeadChannel;
+                        try
+                            iBeadChan=SDCProc.funParams_.iBeadChannel;
+                        catch
+                            iBeadChan=1;
+                        end
                         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
                         Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);

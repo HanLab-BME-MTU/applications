@@ -41,7 +41,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
         end
         
         function varargout = loadChannelOutput(obj,varargin)
-            outputList = {'displField','dMap','dMapRef'};
+            outputList = {'displField','dMap','dMapRef','dMapUnshifted'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'DisplacementFieldCorrectionProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
@@ -63,12 +63,12 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
 %                 iOut=1;
                 s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
                 varargout{1}=s.(output{1})(iFrame);
-            elseif ismember(output,outputList(2:3))
+            elseif ismember(output,outputList(2:4))
 %                 iOut=2;
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-                if (isempty(dMapMap) && strcmp(output,'dMap')) || (isempty(dMapMapRef) && strcmp(output,'dMapRef')) || ~all(obj.finishTime_==lastFinishTime)
+                if (isempty(dMapMap) && ismember(output,outputList([2 4]))) || (isempty(dMapMapRef) && strcmp(output,'dMapRef')) || ~all(obj.finishTime_==lastFinishTime)
                     try
                         s = load(obj.outFilePaths_{iOut},output{1});
                         dMapObj = s.(output{1});
@@ -132,7 +132,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                             clear dMapMap
                         end
                         
-                        if strcmp(output,'dMap')
+                        if ismember(output,outputList([2 4])) 
                             [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField,displField,0);
                             for ii=obj.owner_.nFrames_:-1:1
                                 dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
@@ -158,6 +158,28 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                     varargout{1}=dMapMap(:,:,iFrame);
                 elseif strcmp(output,'dMapRef')
                     varargout{1}=dMapMapRef(:,:,iFrame);
+                else %This is for unshifted (in the size of raw channels)
+                    sampleRawChanImg = obj.owner_.channels_(1).loadImage(1);
+                    curMap=dMapMap(:,:,iFrame);
+                    ref_obj = imref2d(size(sampleRawChanImg));
+                    iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
+                    tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
+                    SDCProc=tfmPackageHere.processes_{iSDCProc};
+
+                    if ~isempty(SDCProc)
+                        try
+                            iBeadChan=SDCProc.funParams_.iBeadChannel;
+                        catch
+                            iBeadChan=1;
+                        end
+                        s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
+                        T = s.T;
+                        Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);
+                        invTr = invert(Tr);
+                        varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                    else
+                        varargout{1}=dMapMap(:,:,iFrame);
+                    end
                 end
             end
             
@@ -241,6 +263,13 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             output(3).formatData=[];
             output(3).type='image';
             output(3).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet','Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
+
+            output(4).name='Displacement map unshifted';
+            output(4).var='dMapUnshifted';
+            output(4).formatData=[];
+            output(4).type='image';
+            output(4).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet',...
+                'Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
         end
     end
     

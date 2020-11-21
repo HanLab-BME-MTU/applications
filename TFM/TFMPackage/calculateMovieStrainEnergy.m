@@ -112,7 +112,8 @@ strainEnergyCalcProc.setOutFilePaths(outputFile);
 logMsg='Loading traction map...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 
-tMap=forceFieldProc.loadChannelOutput('output','tMap');
+% tMap=forceFieldProc.loadChannelOutput('output','tMap');
+tMap=forceFieldProc.loadChannelOutput('output','tMapUnshifted');
 % try
 %     tMapObj = tractionMaps.tMap; % this is currently in Pa per pixel (1pix x 1pix)
 %     fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
@@ -140,7 +141,7 @@ CorrectedDisplFieldProc=TFMPackage.processes_{iCorrectedDisplFieldProc};
 logMsg='Loading displacement map...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if ~isempty(CorrectedDisplFieldProc)
-    dMap=CorrectedDisplFieldProc.loadChannelOutput('output','dMap');
+    dMap=CorrectedDisplFieldProc.loadChannelOutput('output','dMapUnshifted');
 %     try
 %         displMaps=load(CorrectedDisplFieldProc.outFilePaths_{2});
 %         dMapObj=displMaps.dMap; % this is currently in pix

@@ -446,7 +446,7 @@ if isCellSeg
 end
 %% Integrated Displacement - CellPeri
 if isCellSeg
-    totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellPeri_Group,'unif',false);
+    totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellPeri_Group,'unif',false);
     samNum=cellfun(@numel,totalDispCellPeri_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totalDispCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellPeri_Group,'unif',false);
@@ -464,7 +464,7 @@ if isCellSeg
 end
 %% Integrated Displacement - CellInside
 if isCellSeg
-    totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellInside_Group,'unif',false);
+    totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellInside_Group,'unif',false);
     samNum=cellfun(@numel,totalDispCellInside_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totalDispCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellInside_Group,'unif',false);
