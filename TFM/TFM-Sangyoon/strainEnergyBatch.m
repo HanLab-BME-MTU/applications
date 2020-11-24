@@ -386,20 +386,20 @@ writetable(tableTotalForce_FB,strcat(dataPath,'/totalForce_ForceBlobs.csv'),'Wri
 forceFBCellCellArray = avgForce_FBindiv_Group;%cellfun(@(x) cell2mat(x),avgForce_FBindiv_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(forceFBCellCellArray,nameList,1,false,true)
-ylabel('Avereage force (nN)')
-title('Average force in force blobs in Cells (per force blob)')
+ylabel('Avereage traction (Pa)')
+title('Average traction in force blobs in Cells (per force blob)')
 hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
 print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
 
 tableAvgForceAllFBinCell=table(forceFBCellCellArray,'RowNames',nameList);
 writetable(tableAvgForceAllFBinCell,strcat(dataPath,'/forceAllFBs.csv'),'WriteRowNames',true)
-%% avg force of average force blob in Cell
+%% avg traction of average force blob in Cell
 avgforceFBCellArray = avgForce_FB_Group;%cellfun(@(x) cell2mat(x),avgForce_FB_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(avgforceFBCellArray,nameList,1,false,true)
-ylabel('Avereage force (nN)')
-title('Average force of force blobs in cell per cell')
+ylabel('Avereage traction (Pa)')
+title('Average traction of force blobs in cell per cell')
 hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
 print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
@@ -604,7 +604,7 @@ print(h1,strcat(figPath,'/totForceFOV.tif'),'-dtiff')
 
 tableTotalForce_FOV=table(totForceFOV_CellArray,'RowNames',nameList);
 writetable(tableTotalForce_FOV,strcat(dataPath,'/totalForce_FOV.csv'))
-%% Total force - Spread Area
+%% Spread Area - all frames
 if isCellSeg
     spreadArea_CellArray = cellfun(@(x) cell2mat(x),spreadArea_Group,'unif',false);
     samNum=cellfun(@numel,spreadArea_CellArray);
@@ -614,6 +614,21 @@ if isCellSeg
     h1=figure; 
     boxPlotCellArray(spreadArea_CellArray,nameList,1,false,true)
     ylabel('Spread area (um2)')
+    title('Cell spread area')
+    hgexport(h1,strcat(figPath,'/spreadArea'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/spreadArea'),'-v7.3')
+    print(h1,strcat(figPath,'/spreadArea.tif'),'-dtiff')
+
+    tableSpreadArea=table(spreadArea_CellArray,'RowNames',nameList);
+    writetable(tableSpreadArea,strcat(dataPath,'/spreadArea.csv'),'WriteRowNames',true)
+end
+%% Spread Area - sampling mean per each movie
+if isCellSeg
+    spreadArea_Mean = cellfun(@(x) cellfun(@mean,x),spreadArea_Group,'unif',false);
+    samNumMean=cellfun(@numel,spreadArea_Mean);
+    h1=figure; 
+    barPlotCellArray(spreadArea_Mean,nameList',1)
+    ylabel('Spread area (\mum^2)')
     title('Cell spread area')
     hgexport(h1,strcat(figPath,'/spreadArea'),hgexport('factorystyle'),'Format','eps')
     hgsave(h1,strcat(figPath,'/spreadArea'),'-v7.3')
