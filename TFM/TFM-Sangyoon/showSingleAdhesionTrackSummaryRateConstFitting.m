@@ -29,7 +29,7 @@ catch
 %     if ~isempty(imgMap2)
 %         curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);
 %     end   
-    d = curTrack.amp(curStartFrame:curEndFrame);
+    d = curTrack.ampTotal(curStartFrame:curEndFrame);
 end    
 tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 sd_spline= csaps(tRange,d,splineParam);
@@ -476,7 +476,12 @@ if ~isempty(imgMap2)
 
     ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
 %     plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrameEE:curEndFrameEE),'k'), hold on
-    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrame:curEndFrame),'m')
+
+    try
+        plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrame:curEndFrame),'m')
+    catch
+        plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrame:curEndFrame),'m')
+    end
     
     xlabel('Time (s)'); ylabel('amp 2 (A.U.)')
     set(ax16,'FontUnits',genFontUnit,'FontSize',genFontSize)
