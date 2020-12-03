@@ -93,8 +93,13 @@ convertArea = (pixSize/1000)^2;
 convertL = pixSize/1000;
 %% setting up group name
 for ii=1:numConditions
-    [~, finalFolder]=fileparts(pathAnalysisAll{ii});
-    groupNames{ii} = finalFolder;
+    [dumPath, finalFolder]=fileparts(pathAnalysisAll{ii});
+    if isempty(finalFolder)
+        [dumPath, finalFolder]=fileparts(dumPath);
+        groupNames{ii} = finalFolder;
+    else        
+        groupNames{ii} = finalFolder;
+    end
 end
 nameList=groupNames'; 
 %% FA area
@@ -107,30 +112,36 @@ h1=figure;
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 barPlotCellArray(FAareaCell,nameList,convertArea)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
-ylabel('FA area (um^2)')
+ylabel('FA area (\mum^2)')
+title('FA area - bar plot')
 % set(gca,'XTickLabel',{'Control' 'PIP5K-\gamma'})
 hgexport(h1,strcat(figPath,'/FAarea'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAarea'),'-v7.3')
 
-FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
-tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
+try
+    FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
+    tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
+catch
+    FAareaCellConverted = cellfun(@(x) x'*convertArea, FAareaCell,'unif',false);
+    tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
+end
 writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% FA area - boxplot
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 boxPlotCellArray(FAareaCell,nameList,convertArea,false,true)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
-ylabel('FA area (um^2)')
+ylabel('FA area (\mum^2)')
+title('FA area')
 % set(gca,'XTickLabel',{'Control' 'PIP5K-\gamma'})
 hgexport(h1,strcat(figPath,'/FAareaBoxPlot'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAareaBoxPlot'),'-v7.3')
-
 %% FA density
 h2=figure; 
 barPlotCellArray(FAdensity,nameList)
 
 title('FA density')
-ylabel('FA density (#/um^2)')
+ylabel('FA density (#/\mum^2)')
 hgexport(h2,strcat(figPath,'/FAdensity'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensity'),'-v7.3')
 
@@ -141,7 +152,7 @@ h2=figure;
 barPlotCellArray(FAdensityPeri,nameList)
 
 title('FA density in the cell periphery (up to 5 um from the cell edge)')
-ylabel('FA density (#/um^2)')
+ylabel('FA density (#/\mum^2)')
 hgexport(h2,strcat(figPath,'/FAdensityInside'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
 tableFAdensityPeri=table(FAdensityPeri,'RowNames',nameList);
@@ -151,7 +162,7 @@ h2=figure;
 barPlotCellArray(FAdensityInside,nameList)
 
 title('FA density inside a cell (from the center to the 5 um from the edge)')
-ylabel('FA density (#/um^2)')
+ylabel('FA density (#/\mum^2)')
 hgexport(h2,strcat(figPath,'/FAdensityInside'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
 tableFAdensityInside=table(FAdensityInside,'RowNames',nameList);
@@ -175,7 +186,7 @@ end
 h4=figure; 
 barPlotCellArray(FAlenthCell,nameList,convertL)
 title('FA length')
-ylabel('FA length (um)')
+ylabel('FA length (\mum)')
 hgexport(h4,strcat(figPath,'/FAlength'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/FAlength'),'-v7.3')
 %% FA length - boxplot
@@ -229,7 +240,55 @@ hgsave(h4,strcat(figPath,'/FAoverCell'),'-v7.3')
 
 tableFAareaToCellArea=table(FAareaToCellArea,'RowNames',nameList);
 writetable(tableFAareaToCellArea,strcat(dataPath,'/FAareaToCellArea.csv'))
-%% Plotting the other channel amplitudes - Mehdi: fill here
+%% Overal cell area 
+cellArea = cell(numConditions,1);
+for ii=1:numConditions
+    cellArea{ii} = [];
+    for k=1:N(ii)
+        cellArea{ii} = [cellArea{ii}; FAstructGroup{ii}(k).cellArea];
+    end
+end
+h4=figure; 
+barPlotCellArray(cellArea,nameList)
+title('Cell area')
+ylabel('Cell area (ratio)')
+hgexport(h4,strcat(figPath,'/CellArea'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/CellArea'),'-v7.3')
 
+tableFAareaToCellArea=table(FAareaToCellArea,'RowNames',nameList);
+writetable(tableFAareaToCellArea,strcat(dataPath,'/FAareaToCellArea.csv'))
+%% Plotting the other channel amplitudes
+ampTheOther = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOther, x','unif',false)'),FAstructGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(ampTheOther,nameList',1,0,1)
+title('Amplitude of the other channel')
+ylabel('Fluorescence amplitude (a.u.)')
+hgexport(h4,strcat(figPath,'/ampTheOther'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/ampTheOther'),'-v7.3')
+
+tableAmpTheOther=table(ampTheOther,'RowNames',nameList);
+writetable(tableAmpTheOther,strcat(dataPath,'/ampTheOther.csv'))
+%% Adhesion eccentricity
+eccCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ecc, x,'unif',false)'),FAstructGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(eccCell,nameList',1,0,1)
+title('Adhesion eccentricity')
+ylabel('Eccentricity (1)')
+hgexport(h4,strcat(figPath,'/ecc'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/ecc'),'-v7.3')
+
+tableEcc=table(eccCell,'RowNames',nameList);
+writetable(tableEcc,strcat(dataPath,'/ecc.csv'))
+%% Adhesion width
+widthCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.width, x,'unif',false)'),FAstructGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(widthCell,nameList',convertL,0,1)
+title('Adhesion width')
+ylabel('width (\mum)')
+hgexport(h4,strcat(figPath,'/width'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/width'),'-v7.3')
+
+tablewidth=table(widthCell,'RowNames',nameList);
+writetable(tablewidth,strcat(dataPath,'/width.csv'))
 %% saving
 save([dataPath filesep 'adhesionData.mat'],'-v7.3');
