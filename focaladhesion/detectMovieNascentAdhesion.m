@@ -380,7 +380,10 @@ for j=1:movieData.nFrames_
         % For the other channel
         if ~isempty(iAdditionalChan)
             % 6. Get the Ibg (mean intensity of the band in the channel image)
-            chan2 = movieData.getChannel(iAdditionalChan);
+            chan2 = movieData.getChannel(iAdditionalChan(1));
+            % If there is more than one additional channels, let's select
+            % the first one
+            
             curImg2 = chan2.loadImage(j);
             maskAdhesionDilated = bwmorph(maskAdhesion,'dilate',5);
             cellMask = roiMask(:,:,j) & mask;
