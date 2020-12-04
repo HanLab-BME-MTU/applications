@@ -37,7 +37,7 @@ end
 chrRef='img1ref_';
 chrBead='img3bead_';
 %Change these character vectors to rename files for next run
-chr1='singleforce_finemesh_1kE_4kbeads'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+chr1='multiforce_finemesh_8000E_4000beads'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 
@@ -224,7 +224,7 @@ elseif multiForce
 
     %extrude 2D geometry into 3D of defined thickness
     thickness = 256;
-    gm = extrude(gm,thickness);
+    g = extrude(gm,thickness);
     
 end
 
@@ -234,26 +234,46 @@ structModel.Geometry=g;
 structuralProperties(structModel,'YoungsModulus',E,'PoissonsRatio',v);
 
 % //Apply boundary constraints ********************************************
-structuralBC(structModel,'Face',5,'Constraint','fixed'); %New face ID for the bottom.
+if ~multiForce
+    structuralBC(structModel,'Face',5,'Constraint','fixed'); %New face ID for the bottom.
+elseif multiForce
+    structuralBC(structModel,'Face',1,'Constraint','fixed'); %New face ID for the bottom.
+end
 
 % //Apply force distribution on face 2 ************************************
-if isempty(force_z)
-    force_z=zeros(numPix_x); %can be replaced by real data if a normal force is desired
+if ~multiForce
+    if isempty(force_z)
+        force_z=zeros(numPix_x); %can be replaced by real data if a normal force is desired
+    end
+    [xLoc,yLoc]=ndgrid(-numPix_x/2:(numPix_x/2)-1,-numPix_x/2:(numPix_x/2)-1);
+    forceInterpX=griddedInterpolant(xLoc,yLoc,force_x);
+    forceInterpY=griddedInterpolant(xLoc,yLoc,force_y);
+    forceInterpZ=griddedInterpolant(xLoc,yLoc,force_z);
+    %define function handle
+    hydrogelForce = @(location,state)[forceInterpX(location.x,location.y); ...
+                                      forceInterpY(location.x,location.y); ...
+                                      forceInterpZ(location.x,location.y);];
+elseif multiForce
+    if isempty(force_z)
+        force_z=zeros(numPix_x); %can be replaced by real data if a normal force is desired
+    end
+    [xLoc,yLoc]=ndgrid(1:numPix_x,1:numPix_y);
+    forceInterpX=griddedInterpolant(xLoc,yLoc,force_x);
+    forceInterpY=griddedInterpolant(xLoc,yLoc,force_y);
+    forceInterpZ=griddedInterpolant(xLoc,yLoc,force_z);
+    %define function handle
+    hydrogelForce = @(location,state)[forceInterpX(location.x,location.y); ...
+                                      forceInterpY(location.x,location.y); ...
+                                      forceInterpZ(location.x,location.y);];
 end
-[xLoc,yLoc]=ndgrid(-numPix_x/2:(numPix_x/2)-1,-numPix_x/2:(numPix_x/2)-1);
-forceInterpX=griddedInterpolant(xLoc,yLoc,force_x);
-forceInterpY=griddedInterpolant(xLoc,yLoc,force_y);
-forceInterpZ=griddedInterpolant(xLoc,yLoc,force_z);
-%define function handle
-hydrogelForce = @(location,state)[forceInterpX(location.x,location.y); ...
-                                  forceInterpY(location.x,location.y); ...
-                                  forceInterpZ(location.x,location.y);];
-%pass function handle and define BCs
-structuralBoundaryLoad(structModel,'Face',8,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
 
 % //Generate mesh for model ***********************************************
 generateMesh(structModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
 % pdeplot3D(structModel)
+
+%pass function handle and define BCs
+structuralBoundaryLoad(structModel,'Face',21,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
+
 
 % //Solving structural model **********************************************
 structModelResults=solve(structModel);
@@ -270,14 +290,16 @@ pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
 %2D
 %Shifting bead locations because the outputs from simGaussianBeads are not
 %centered around the origin which is required for our FEM model.
-bead_xshifted=bead_x-(numPix_x/2)+0.5;     %bead_x from simGaussianBeads.m
-bead_yshifted=bead_y-(numPix_x/2)+0.5;     %bead_y from simGaussianBeads.m
-if ~multiforce
+if ~multiForce
     % top of the geometry is located at z = 0
     bead_zshifted=0*ones(nPoints,1);   %interpolation location in z direction
-elseif multiforce
+    bead_xshifted=bead_x-(numPix_x/2)+0.5;     %bead_x from simGaussianBeads.m
+    bead_yshifted=bead_y-(numPix_x/2)+0.5;     %bead_y from simGaussianBeads.m
+elseif multiForce
     % top of the geometry is located at z = 256
     bead_zshifted=256*ones(nPoints,1);  
+    bead_xshifted=bead_x;     %bead_x from simGaussianBeads.m
+    bead_yshifted=bead_y;     %bead_y from simGaussianBeads.m
 end
 %3D
 % bead_x3Dshifted=beadcenters3D(:,1)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
@@ -305,11 +327,17 @@ bead_uy = reshape(interpDisp.uy,size(bead_y));
 % zmax3D = ceil(max(newbeadcenters3D(:,3)));
 
 % //Plotting interpolated displacement ************************************
-figure(3)
-q2=quiver(bead_xshifted,bead_yshifted,bead_ux,bead_uy);
-xlim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]); ylim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]);
-xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
-
+if ~multiForce
+    figure, grid on;
+    q2=quiver(bead_xshifted,bead_yshifted,bead_ux,bead_uy);
+    xlim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]); ylim([-(meshPtsFwdSol/2) (meshPtsFwdSol/2)]);
+    xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
+elseif multiForce
+    figure, grid on;
+    q2=quiver(bead_xshifted,bead_yshifted,bead_ux,bead_uy);
+    xlim([0 numPix_x]); ylim([0 numPix_y]);
+    xlabel('X'); ylabel('Y'); title('Ground Truth Displacement Field - 1 kPa');
+end
 % //Colormapping *********************************************************
 %Get the current colormap
 % currentColormap = colormap(gca);
