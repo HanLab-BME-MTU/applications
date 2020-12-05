@@ -39,6 +39,7 @@ FAdensityPeri = cell(numConditions,1);
 FAdensityInside = cell(numConditions,1);
 NAstructGroup= cell(numConditions,1);
 FAstructGroup= cell(numConditions,1);
+forceAllGroup= cell(numConditions,1);
 iPax = input('Enter adhesion channel number (1 or 2 ..): ');
 for ii=1:numConditions
     N(ii) = numel(MLAll(ii).movies_);
@@ -51,7 +52,7 @@ for ii=1:numConditions
     curFAdensityPeri = zeros(N(ii),1);
     curFAdensityInside = zeros(N(ii),1);
     curML = MLAll(ii);
-
+    
     % Combine data per each condition (1,2,3,4 for 3.4, 18, 100, 100Y, respectively)
     for k=1:N(ii)
         [curNAstruct,curFAstruct] = detectMovieNascentAdhesion(curML.movies_{k},bandNA,iPax);
@@ -76,6 +77,13 @@ for ii=1:numConditions
             % FAdensity at cell center
             curFAdensityInside(k) = mean(arrayfun(@(x) x.FAdensityInside,curFAstruct));
         end
+        % Reading potential forces
+        iTFM = curML.movies_{k}.getPackageIndex('TFMPackage');
+        if ~isempty(iTFM)
+            outputFilePath = [curML.movies_{k}.outputDirectory_ filesep 'Adhesion Quantification'];
+            dataPath= [outputFilePath filesep 'data'];
+            forceAll(k) = load([dataPath filesep 'forcePerAdhesionType.mat'],'forceFA', 'forceFC', 'forceNA', 'forceBGinCell', 'forceBGoutCell');
+        end
     end
     NAdensity{ii}=curNAdensity;
     FAarea{ii}=curFAarea;
@@ -85,6 +93,7 @@ for ii=1:numConditions
     FAdensityInside{ii}=curFAdensityInside;
     NAstructGroup{ii}=NAstruct;
     FAstructGroup{ii}=FAstruct;
+    forceAllGroup{ii}=forceAll;
     clear NAstruct FAstruct
 end
 %% convert
@@ -179,27 +188,49 @@ tableNAdensity=table(NAdensity,'RowNames',nameList);
 writetable(tableNAdensity,strcat(dataPath,'/NAdensity.csv'))
 %% FA length
 try
-    FAlenthCell=cellfun(@(x) cell2mat(x),FAlength,'Unif',false);
+    FAlengthCell=cellfun(@(x) cell2mat(x),FAlength,'Unif',false);
 catch
-    FAlenthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
+    FAlengthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
 end
 h4=figure; 
-barPlotCellArray(FAlenthCell,nameList,convertL)
+barPlotCellArray(FAlengthCell,nameList,convertL)
 title('FA length')
 ylabel('FA length (\mum)')
 hgexport(h4,strcat(figPath,'/FAlength'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/FAlength'),'-v7.3')
 %% FA length - boxplot
 h1=figure; 
-boxPlotCellArray(FAlenthCell,nameList,convertL,false,true)
+boxPlotCellArray(FAlengthCell,nameList,convertL,false,true)
 title('FA length')
 ylabel('FA length (um)')
 hgexport(h1,strcat(figPath,'/FAlengthBoxPlot'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAlengthBoxPlot'),'-v7.3')
 
-FAlenthCellConverted = cellfun(@(x) x*convertL, FAlenthCell,'unif',false);
+FAlenthCellConverted = cellfun(@(x) x*convertL, FAlengthCell,'unif',false);
 tableFAlength=table(FAlenthCellConverted,'RowNames',nameList);
 writetable(tableFAlength,strcat(dataPath,'/FAlength.csv'))
+%% FA length - boxplot -top 10 percentile
+percLT=10;
+perc=percLT/100;
+FAlengthCellSmall=cell(numel(FAlengthCell),1);
+for ii=1:numel(FAlengthCell)
+    FAlengthCellSmall{ii,1} = ...
+    quantile(FAlengthCell{ii},(1-perc)+(perc-0.01)*rand(1,round((perc-0.01)*sum(~isnan(FAlengthCell{ii})))));
+end
+
+h1=figure;
+plotSuccess=boxPlotCellArray(FAlengthCellSmall,nameList,1,false,true);
+if plotSuccess
+    ylabel(['Focal adhesion length (\mum)'])
+    title(['Focal adhesion length (top ' num2str(percLT) ' percentile)'])
+    ylim auto
+    hgexport(h1,[figPath filesep 'faLengthTop' num2str(percLT)],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'faLengthTop' num2str(percLT)],'-v7.3')
+    print(h1,[figPath filesep 'faLengthTop' num2str(percLT)],'-dtiff')
+    faAreaTop20=table(FAlengthCellSmall,'RowNames',nameList);
+    writetable(faAreaTop20,[dataPath filesep 'faLengthTop' num2str(percLT) '.csv'],'WriteRowNames',true)    
+end
+
 %% Ratio of FA over NA
 FAtoNAratio = cell(numConditions,1);
 for ii=1:numConditions
@@ -234,7 +265,7 @@ end
 h4=figure; 
 barPlotCellArray(FAareaToCellArea,nameList)
 title('FA area over cell area')
-ylabel('FA area over cell area (ratio)')
+ylabel('FA area over cell area (\mum^2)')
 hgexport(h4,strcat(figPath,'/FAoverCell'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/FAoverCell'),'-v7.3')
 
@@ -257,6 +288,30 @@ hgsave(h4,strcat(figPath,'/CellArea'),'-v7.3')
 
 tableFAareaToCellArea=table(FAareaToCellArea,'RowNames',nameList);
 writetable(tableFAareaToCellArea,strcat(dataPath,'/FAareaToCellArea.csv'))
+%% FA quantity
+numFA = cellfun(@(x,y) x.*y,FAdensity,cellArea,'unif',false);
+h2=figure; 
+barPlotCellArray(numFA,nameList)
+
+title('FA quantity per cell')
+ylabel('FA quantity (#/cell)')
+hgexport(h2,strcat(figPath,'/FAquantity'),hgexport('factorystyle'),'Format','eps')
+hgsave(h2,strcat(figPath,'/FAquantity'),'-v7.3')
+
+tableFAquantity=table(numFA,'RowNames',nameList);
+writetable(tableFAquantity,strcat(dataPath,'/FAquantity.csv'))
+%% NA quantity
+numNA = cellfun(@(x,y) x.*y,NAdensity,cellArea,'unif',false);
+h2=figure; 
+barPlotCellArray(numNA,nameList)
+
+title('NA quantity per cell')
+ylabel('NA quantity (#/cell)')
+hgexport(h2,strcat(figPath,'/NAquantity'),hgexport('factorystyle'),'Format','eps')
+hgsave(h2,strcat(figPath,'/NAquantity'),'-v7.3')
+
+tableNAquantity=table(numNA,'RowNames',nameList);
+writetable(tableNAquantity,strcat(dataPath,'/NAquantity.csv'))
 %% Plotting the other channel amplitudes
 ampTheOther = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOther, x','unif',false)'),FAstructGroup','unif',false);
 h4=figure; 
@@ -266,7 +321,7 @@ ylabel('Fluorescence amplitude (a.u.)')
 hgexport(h4,strcat(figPath,'/ampTheOther'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/ampTheOther'),'-v7.3')
 
-tableAmpTheOther=table(ampTheOther,'RowNames',nameList);
+tableAmpTheOther=table(ampTheOther','RowNames',nameList);
 writetable(tableAmpTheOther,strcat(dataPath,'/ampTheOther.csv'))
 %% Adhesion eccentricity
 eccCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ecc, x,'unif',false)'),FAstructGroup','unif',false);
@@ -277,18 +332,59 @@ ylabel('Eccentricity (1)')
 hgexport(h4,strcat(figPath,'/ecc'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/ecc'),'-v7.3')
 
-tableEcc=table(eccCell,'RowNames',nameList);
+tableEcc=table(eccCell','RowNames',nameList);
 writetable(tableEcc,strcat(dataPath,'/ecc.csv'))
+%% Eccentricity barplot
+h4=figure; 
+barPlotCellArray(eccCell,nameList',1)
+title('Adhesion eccentricity')
+ylabel('Eccentricity (1)')
+hgexport(h4,strcat(figPath,'/eccBar'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/eccBar'))
+
 %% Adhesion width
 widthCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.width, x,'unif',false)'),FAstructGroup','unif',false);
 h4=figure; 
 boxPlotCellArray(widthCell,nameList',convertL,0,1)
 title('Adhesion width')
 ylabel('width (\mum)')
-hgexport(h4,strcat(figPath,'/width'),hgexport('factorystyle'),'Format','eps')
-hgsave(h4,strcat(figPath,'/width'),'-v7.3')
+hgexport(h4,strcat(figPath,'/FAwidth'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/FAwidth'),'-v7.3')
 
-tablewidth=table(widthCell,'RowNames',nameList);
+tablewidth=table(widthCell','RowNames',nameList);
 writetable(tablewidth,strcat(dataPath,'/width.csv'))
+%% Width barplot
+h5=figure; 
+barPlotCellArray(widthCell,nameList',convertL)
+title('Adhesion width')
+ylabel('width (\mum)')
+hgexport(h5,strcat(figPath,'/FAwidthBar'),hgexport('factorystyle'),'Format','eps')
+hgsave(h5,strcat(figPath,'/FAwidthBar'),'-v7.3')
+%% Force per focal adhesion
+forcesFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceFA, x)),forceAllGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(forcesFACell,nameList',1,0,1)
+title('Traction per FA')
+ylabel('Traction (Pa)')
+hgexport(h4,strcat(figPath,'/forceFA'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/forceFA'),'-v7.3')
+
+%% Force per focal complex
+forcesFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceFC, x)),forceAllGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(forcesFCCell,nameList',1,0,1)
+title('Traction per FC')
+ylabel('Traction (Pa)')
+hgexport(h4,strcat(figPath,'/forceFC'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/forceFC'),'-v7.3')
+%% Force per nascent adhesion
+forcesNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceNA, x)),forceAllGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(forcesNACell,nameList',1,0,1)
+title('Traction per NA')
+ylabel('Traction (Pa)')
+hgexport(h4,strcat(figPath,'/forceNA'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/forceNA'),'-v7.3')
+
 %% saving
 save([dataPath filesep 'adhesionData.mat'],'-v7.3');

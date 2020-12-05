@@ -223,8 +223,8 @@ if ~isempty(iMask)
         maxX = ceil(max(abs(T(:, 2))));
         maxY = ceil(max(abs(T(:, 1))));
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-        I = padarray(bwPI4, [maxY, maxX]);
-        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+%         I = padarray(bwPI4, [maxY, maxX]);
+        bwPI4 = imtransform(bwPI4, Tr, 'XData',[1 size(bwPI4, 2)],'YData', [1 size(bwPI4, 1)]);
     else
         iMask = movieData.getProcessIndex('ThresholdProcess');
         maskProc = movieData.getProcess(iMask);
@@ -233,8 +233,8 @@ if ~isempty(iMask)
             maxX = ceil(max(abs(T(:, 2))));
             maxY = ceil(max(abs(T(:, 1))));
             Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-            I = padarray(bwPI4, [maxY, maxX]);
-            bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+%             I = padarray(bwPI4, [maxY, maxX]);
+            bwPI4 = imtransform(bwPI4, Tr, 'XData',[1 size(bwPI4, 2)],'YData', [1 size(bwPI4, 1)]);
         end
     end
 else
@@ -339,13 +339,15 @@ for ii=1:nFrames
 %     hq.HeadStyle = 'cback2';
 %     hq.HeadLength = 15; % does not work!
     % boundary
-    bwPI4 = maskProc.loadChannelOutput(iChan,ii);
-    if ~isempty(iSDCProc)
-        maxX = ceil(max(abs(T(:, 2))));
-        maxY = ceil(max(abs(T(:, 1))));
-        Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-        I = padarray(bwPI4, [maxY, maxX]);
-        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    if ~exist('bwPI4','var') || isempty(bwPI4)
+        bwPI4 = maskProc.loadChannelOutput(iChan,ii);
+        if ~isempty(iSDCProc)
+            maxX = ceil(max(abs(T(:, 2))));
+            maxY = ceil(max(abs(T(:, 1))));
+            Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+%             I = padarray(bwPI4, [maxY, maxX]);
+            bwPI4 = imtransform(bwPI4, Tr, 'XData',[1 size(bwPI4, 2)],'YData', [1 size(bwPI4, 1)]);
+        end
     end
     
     maskCrop = bwPI4(reg_grid(1,1,2):reg_grid(end,end,2),reg_grid(1,1,1):reg_grid(end,end,1));
@@ -435,12 +437,13 @@ for ii=1:nFrames
         thirdImageInverted=(ones(size(thirdImageLog)))*max(thirdImageLog(:))-thirdImageLog;
         
 %         imshow(thirdImageInverted,[minThird+0.3*maxThird maxThird]), hold on
-        imshow(thirdImageInverted,[minThird maxThird])
-        hold on
+        ax2=axes(h2);
+        imshow(thirdImageInverted,[minThird maxThird],'Parent',ax2)
+        hold(ax2,'on')
 %         colormap jet;
         for kk=1:nCBD
             boundary = cB{kk};
-            plot(boundary(:,2), boundary(:,1), 'k', 'LineWidth', 1) % cell boundary
+            plot(ax2,boundary(:,2), boundary(:,1), 'y', 'LineWidth', 1) % cell boundary
         end
         % saving
         I2 = getframe(h2);

@@ -572,6 +572,7 @@ if ~isempty(iTFM)
         print(h1,[figPath filesep 'forcePerAdhesionType'],'-dtiff')
         close(h1)
     end
+    save([dataPath filesep 'forcePerAdhesionType.mat'],'forceFA', 'forceFC', 'forceNA', 'forceBGinCell', 'forceBGoutCell');
     % Save them
     tableForcePerAdhesionType=table(forceGroupCell','RowNames',nameList);
     writetable(tableForcePerAdhesionType,[dataPath filesep 'forcePerAdhesionType.csv'],'WriteRowNames',true)
