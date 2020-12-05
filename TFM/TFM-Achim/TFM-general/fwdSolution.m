@@ -72,70 +72,74 @@ elseif strcmpi(method,'FEM')
     %gm = multicuboid(x0(2)*2,y0(2)*2,h); %multicuboid(x,y,z)   
     %femFwdModel.Geometry = gm;
     
-    [xg, yg, zg] = meshgrid(linspace(-x0(2)/2,(x0(2)/2)-1,x0(2)/2^4),...
-                        linspace(-x0(2)/2,(x0(2)/2)-1,x0(2)/2^4),...
-                        -h:0); %/2^4 defines sparsity
-    Pcube = [xg(:) yg(:), zg(:)];
+    %single force fine meshing at center of substrate
+    singleForce = 1;
+    if singleForce
+        [xg, yg, zg] = meshgrid(linspace(-x0(2)/2,(x0(2)/2)-1,x0(2)/2^4),...
+                            linspace(-x0(2)/2,(x0(2)/2)-1,x0(2)/2^4),...
+                            -h:0); %/2^4 defines sparsity
+        Pcube = [xg(:) yg(:), zg(:)];
 
-    % Extract the grid points located outside of the spherical region with
-    % force diameter 
-    Pcavitycube = Pcube(vecnorm(Pcube') > d,:);
-    
-    % Create points on the sphere
-    [x1,y1,z1] = sphere(24);
-    Psphere = d*[x1(:) y1(:) z1(:)];
-    
-    % Get rid of the upper half sphere
-    PsphereHalf = Psphere(z1(:) <= 0,:); 
-    PsphereHalf = unique(PsphereHalf,'rows');
-    
-    % Combine the coordinates of the rectangular grid (without the points
-    % inside the sphere) and the surface coordinates of the unit sphere. 
-    Pcombined = [Pcavitycube;PsphereHalf];
-    
-    % Create an alphaShape object representing the cube with the spherical
-    % cavity. 
-    shpCubeWithSphericalCavity = alphaShape(Pcombined(:,1), ...
-                                        Pcombined(:,2), ...
-                                        Pcombined(:,3));
-                                    
-    % Increasing alpha to fill unconnected mesh in the middle
-    shpCubeWithSphericalCavity.Alpha = 20;
+        % Extract the grid points located outside of the spherical region with
+        % force diameter 
+        Pcavitycube = Pcube(vecnorm(Pcube') > d,:);
 
-    % Recover the triangulation that defines the domain of the alphaShape object.
-    [tri,loc] = alphaTriangulation(shpCubeWithSphericalCavity);
+        % Create points on the sphere
+        [x1,y1,z1] = sphere(24);
+        Psphere = d*[x1(:) y1(:) z1(:)];
 
-    % Create a PDE model.
-    modelCube = createpde;
+        % Get rid of the upper half sphere
+        PsphereHalf = Psphere(z1(:) <= 0,:); 
+        PsphereHalf = unique(PsphereHalf,'rows');
 
-    % Create a geometry from the mesh and import the geometry and the mesh into the model.
-    [~,mshCube] = geometryFromMesh(modelCube,loc',tri');
- 
-    sphereFacets = boundaryFacets(mshCube,'Face',7);
-    sphereNodes = findNodes(mshCube,'region','Face',7);
+        % Combine the coordinates of the rectangular grid (without the points
+        % inside the sphere) and the surface coordinates of the unit sphere. 
+        Pcombined = [Pcavitycube;PsphereHalf];
 
-    % Add a new node at the center.
-    newNodeID = size(mshCube.Nodes,2) + 1;
+        % Create an alphaShape object representing the cube with the spherical
+        % cavity. 
+        shpCubeWithSphericalCavity = alphaShape(Pcombined(:,1), ...
+                                            Pcombined(:,2), ...
+                                            Pcombined(:,3));
 
-    % Construct the tetrahedral elements by using each of the three nodes on the spherical boundary facets and the new node at the origin.
-    sphereTets =  [sphereFacets; newNodeID*ones(1,size(sphereFacets,2))];
+        % Increasing alpha to fill unconnected mesh in the middle
+        shpCubeWithSphericalCavity.Alpha = 20;
 
-    % Create a model that combines the cube with the spherical cavity and a sphere.
-    model = createpde;
+        % Recover the triangulation that defines the domain of the alphaShape object.
+        [tri,loc] = alphaTriangulation(shpCubeWithSphericalCavity);
 
-    % Create a vector that maps all mshCube elements to cell 1, and all elements of the solid sphere to cell 2.
-    e2c = [ones(1,size(mshCube.Elements,2)), 2*ones(1,size(sphereTets,2))];
+        % Create a PDE model.
+        modelCube = createpde;
 
-    % Add a new node at the center [0;0;0] to the nodes of the cube with the cavity.
-    combinedNodes = [mshCube.Nodes,[0;0;0]];
+        % Create a geometry from the mesh and import the geometry and the mesh into the model.
+        [~,mshCube] = geometryFromMesh(modelCube,loc',tri');
 
-    % Combine the element connectivity matrices.
-    combinedElements = [mshCube.Elements,sphereTets];
+        sphereFacets = boundaryFacets(mshCube,'Face',7);
+        sphereNodes = findNodes(mshCube,'region','Face',7);
 
-    % Create a two-cell geometry from the mesh.
-    [g,~] = geometryFromMesh(model,combinedNodes,combinedElements,e2c);
- 
-    femFwdModel.Geometry=g;
+        % Add a new node at the center.
+        newNodeID = size(mshCube.Nodes,2) + 1;
+
+        % Construct the tetrahedral elements by using each of the three nodes on the spherical boundary facets and the new node at the origin.
+        sphereTets =  [sphereFacets; newNodeID*ones(1,size(sphereFacets,2))];
+
+        % Create a model that combines the cube with the spherical cavity and a sphere.
+        model = createpde;
+
+        % Create a vector that maps all mshCube elements to cell 1, and all elements of the solid sphere to cell 2.
+        e2c = [ones(1,size(mshCube.Elements,2)), 2*ones(1,size(sphereTets,2))];
+
+        % Add a new node at the center [0;0;0] to the nodes of the cube with the cavity.
+        combinedNodes = [mshCube.Nodes,[0;0;0]];
+
+        % Combine the element connectivity matrices.
+        combinedElements = [mshCube.Elements,sphereTets];
+
+        % Create a two-cell geometry from the mesh.
+        [g,~] = geometryFromMesh(model,combinedNodes,combinedElements,e2c);
+
+        femFwdModel.Geometry=g;
+    end
     
     %Mesh the model
     generateMesh(femFwdModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
