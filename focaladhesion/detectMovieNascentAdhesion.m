@@ -111,7 +111,14 @@ if ~isempty(iTFM)
     forceBGoutCell=cell(1,movieData.nFrames_);
     tMax = 2000;
 else
-    iAdditionalChan = setdiff(1:nChans,[iAdhChan]);
+    iAdditionalChan = setdiff(1:nChans,iAdhChan);
+end
+
+if ~isempty(iAdditionalChan)
+    ampTheOtherFA=cell(1,movieData.nFrames_);
+    ampTheOtherFC=cell(1,movieData.nFrames_);
+    ampTheOtherNA=cell(1,movieData.nFrames_);
+    
 end
 
 % psfSigma = 1.2; %hard coded for nascent adhesion
@@ -152,12 +159,14 @@ for j=1:movieData.nFrames_
 %         mask = maskProc.loadChannelOutput(iPax,j);
         % if there are masks for more than one channels, combine them.
         
-        if length(maskProc.checkChannelOutput)>1
+        if length(maskProc.checkChannelOutput)>1 && (~isempty(iTFM) && ~ismember(iChanTFM, find(maskProc.checkChannelOutput)))
             %Combine the the multiple masks to one
             maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,j),find(maskProc.checkChannelOutput),'UniformOutput',false);
             maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
             mask = any(maskAll,3);
         elseif nChans==1 && nChans==iAdhChan
+            mask = maskProc.loadChannelOutput(iAdhChan,j); % 1 is CCP channel
+        elseif nChans>1 && ~isempty(iTFM) && ismember(iChanTFM, find(maskProc.checkChannelOutput))
             mask = maskProc.loadChannelOutput(iAdhChan,j); % 1 is CCP channel
         end
     catch
@@ -387,7 +396,8 @@ for j=1:movieData.nFrames_
             curImg2 = chan2.loadImage(j);
             maskAdhesionDilated = bwmorph(maskAdhesion,'dilate',5);
             cellMask = roiMask(:,:,j) & mask;
-            M_bg = curTmap.*~maskAdhesionDilated .* cellMask;
+            M_bg = ~maskAdhesionDilated & cellMask;
+            Ibg = mean(curImg2(M_bg));
             for ii=1:numAdhs
                 % 3. Get the specific segmentation-based mask
                 curAdhMask = labelAdhesion==ii;
@@ -395,8 +405,6 @@ for j=1:movieData.nFrames_
                 % 4. Dilate the mask
                 curAdhMaskDilated = bwmorph(curAdhMask,'dilate',1);
 
-                Ibg2d = M_bg .* double(curImg2);
-                Ibg = mean(Ibg2d(:));
 
                 % 7. Get the Iabs
                 Iabs = mean(curImg2(curAdhMaskDilated));
@@ -406,6 +414,37 @@ for j=1:movieData.nFrames_
 
                 % 9. Save it to focalAdhInfo
                 focalAdhInfo(j).ampTheOther(ii) = ampTheOther;
+            end
+            
+            % FA first
+            for ii=1:numFAs
+                % Get the specific segmentation-based mask
+                curAdhMask = labelAdhesionFA==ii;
+                % Read from curImg2
+                ampTheOtherFA{j}(ii) = mean(curImg2(curAdhMask)) - Ibg;
+            end
+            % FC second
+            for ii=1:numFCs
+                % 3. Get the specific segmentation-based mask
+                curAdhMask = labelAdhesionFC==ii;
+                % 5. Read from curImg2
+                ampTheOtherFC{j}(ii) = mean(curImg2(curAdhMask)) - Ibg;
+            end
+            % NA next
+            seNA = strel('disk',2);
+            for ii=1:numNAs
+                % 3. Get the specific segmentation-based mask
+                curAdhMask = false(size(labelAdhesionFC));
+                cutA=0; if nascentAdhInfo(j).yCoord(ii,1)-2 <=0, cutA= -nascentAdhInfo(j).yCoord(ii,1)+3; end
+                cutC=0; if nascentAdhInfo(j).xCoord(ii,1)-2 <=0, cutC= -nascentAdhInfo(j).xCoord(ii,1)+3; end
+                cutB=0; if nascentAdhInfo(j).yCoord(ii,1)+2 >size(curAdhMask,1), cutB= nascentAdhInfo(j).yCoord(ii,1)+2-size(curAdhMask,1); end
+                cutD=0; if nascentAdhInfo(j).xCoord(ii,1)+2 >size(curAdhMask,2), cutD= nascentAdhInfo(j).xCoord(ii,1)+2-size(curAdhMask,2); end
+                curAdhMask(nascentAdhInfo(j).yCoord(ii,1)-2+cutA:nascentAdhInfo(j).yCoord(ii,1)+2-cutB,...
+                    nascentAdhInfo(j).xCoord(ii,1)-2+cutC:nascentAdhInfo(j).xCoord(ii,1)+2-cutD) = ...
+                    seNA.Neighborhood(1+cutA:end-cutB,1+cutC:end-cutD);
+
+                % 5. Read from curImg2
+                ampTheOtherNA{j}(ii) = mean(curImg2(curAdhMask)) - Ibg;
             end
         end
         
@@ -587,6 +626,10 @@ else
     forceGroupCell=[];
 end
 
+if ~isempty(iAdditionalChan)
+    ampTheOtherGroup = {ampTheOtherFA, ampTheOtherFC, ampTheOtherNA};
+    save([dataPath filesep 'ampTheOtherPerAdhesionType.mat'],'ampTheOtherFA', 'ampTheOtherFC', 'ampTheOtherNA', 'ampTheOtherGroup');
+end
 
 save([dataPath filesep 'AdhInfo.mat'],'nascentAdhInfo','focalAdhInfo','-v7.3');
 

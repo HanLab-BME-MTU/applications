@@ -29,6 +29,28 @@ figPath = [rootAnalysis '/AnalysisSummaryAdhesion/Figs'];
 mkdir(figPath)
 dataPath = [rootAnalysis '/AnalysisSummaryAdhesion/Data'];
 mkdir(dataPath)
+%% setting up group name
+for ii=1:numConditions
+    [dumPath, finalFolder]=fileparts(pathAnalysisAll{ii});
+    if isempty(finalFolder)
+        [dumPath, finalFolder]=fileparts(dumPath);
+        groupNames{ii} = finalFolder;
+    else        
+        groupNames{ii} = finalFolder;
+    end
+end
+nameList=groupNames'; 
+
+% Asking user
+disp('Do you want to rename your condition names? The current names are: ')
+disp(nameList)
+for ii=1:numel(nameList)
+    curName = input(['For ' nameList{ii} ': '], 's');
+    if ~isempty(curName)
+        nameList{ii} = curName;
+    end
+end
+specificName = strjoin(nameList);
 %% Run detectMovieNascentAdhesion for each list
 N=zeros(numConditions,1);
 NAdensity = cell(numConditions,1);
@@ -40,6 +62,8 @@ FAdensityInside = cell(numConditions,1);
 NAstructGroup= cell(numConditions,1);
 FAstructGroup= cell(numConditions,1);
 forceAllGroup= cell(numConditions,1);
+ampTheOtherAllGroup= cell(numConditions,1);
+
 iPax = input('Enter adhesion channel number (1 or 2 ..): ');
 for ii=1:numConditions
     N(ii) = numel(MLAll(ii).movies_);
@@ -83,6 +107,17 @@ for ii=1:numConditions
             outputFilePath = [curML.movies_{k}.outputDirectory_ filesep 'Adhesion Quantification'];
             dataPath= [outputFilePath filesep 'data'];
             forceAll(k) = load([dataPath filesep 'forcePerAdhesionType.mat'],'forceFA', 'forceFC', 'forceNA', 'forceBGinCell', 'forceBGoutCell');
+        else
+            forceAll(k)=[];
+        end
+        % Reading the other channels's amplitudes
+        nChan = numel(curML.movies_{k}.channels_);
+        if nChan>2
+            outputFilePath = [curML.movies_{k}.outputDirectory_ filesep 'Adhesion Quantification'];
+            dataPath= [outputFilePath filesep 'data'];
+            ampTheOtherAll(k) = load([dataPath filesep 'ampTheOtherPerAdhesionType.mat']);
+        else
+            ampTheOtherAll(k)=[];
         end
     end
     NAdensity{ii}=curNAdensity;
@@ -94,23 +129,13 @@ for ii=1:numConditions
     NAstructGroup{ii}=NAstruct;
     FAstructGroup{ii}=FAstruct;
     forceAllGroup{ii}=forceAll;
-    clear NAstruct FAstruct
+    ampTheOtherAllGroup{ii}=ampTheOtherAll;
+    clear NAstruct FAstruct ampTheOtherAll forceAll
 end
 %% convert
 pixSize = MLAll(1).getMovie(1).pixelSize_; % nm/pix
 convertArea = (pixSize/1000)^2;
 convertL = pixSize/1000;
-%% setting up group name
-for ii=1:numConditions
-    [dumPath, finalFolder]=fileparts(pathAnalysisAll{ii});
-    if isempty(finalFolder)
-        [dumPath, finalFolder]=fileparts(dumPath);
-        groupNames{ii} = finalFolder;
-    else        
-        groupNames{ii} = finalFolder;
-    end
-end
-nameList=groupNames'; 
 %% FA area
 try
     FAareaCell=cellfun(@(x) cell2mat(x),FAarea,'Unif',false);
@@ -385,6 +410,58 @@ title('Traction per NA')
 ylabel('Traction (Pa)')
 hgexport(h4,strcat(figPath,'/forceNA'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/forceNA'),'-v7.3')
-
+%% the amplitude of the other channel (than TFM and than the adhesion) for FAs
+ampTheOtherFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFA, x)),ampTheOtherAllGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(ampTheOtherFACell,nameList',1,0,1)
+title('The amplitude (background-subtracted) of the third channel per FA')
+ylabel('The amplitude (a.u.)')
+hgexport(h4,strcat(figPath,'/ampTheOtherFA'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/ampTheOtherFA'))
+%% the amplitude of the other channel (than TFM and than the adhesion) for FCs
+ampTheOtherFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFC, x)),ampTheOtherAllGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(ampTheOtherFCCell,nameList',1,0,1)
+title('The amplitude (background-subtracted) of the third channel per FC')
+ylabel('The amplitude (a.u.)')
+hgexport(h4,strcat(figPath,'/ampTheOtherFC'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/ampTheOtherFC'))
+%% the amplitude of the other channel (than TFM and than the adhesion) for NAs
+ampTheOtherNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherNA, x)),ampTheOtherAllGroup','unif',false);
+h4=figure; 
+boxPlotCellArray(ampTheOtherNACell,nameList',1,0,1)
+title('The amplitude (background-subtracted) of the third channel per NA')
+ylabel('The amplitude (a.u.)')
+hgexport(h4,strcat(figPath,'/ampTheOtherNA'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/ampTheOtherNA'))
+%% the amplitude of the other channel all together
+nameListAdh={'NA','FC','FA'};
+nameListAdhComb=cell(numel(ampTheOtherNACell)*3,1);
+amplitudeGroupAll=cell(numel(ampTheOtherNACell)*3,1);
+amplitudeGroup={ampTheOtherNACell, ampTheOtherFCCell, ampTheOtherFACell};
+for ii=1:numel(ampTheOtherNACell)
+    p=ii-1;
+    for jj=1:3
+        nameListAdhComb{3*p+jj,1} = [nameList{ii} '-' nameListAdh{jj}];
+        amplitudeGroupAll{3*p+jj,1} = amplitudeGroup{jj}{ii};
+    end
+end
+h1=figure; 
+plotSuccess=boxPlotCellArray(amplitudeGroupAll,nameListAdhComb,1,false,true);
+if plotSuccess
+    ylabel('Fluorescence amplitude (a.u.)')
+    title('Background-subtracted amplitude of the other channel')
+    hgexport(h1,[figPath filesep 'amplitudeTheOtherAll'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'amplitudeTheOtherAll'])
+    print(h1,[figPath filesep 'amplitudeTheOtherAll'],'-dtiff')
+end
+%% amplitude the other bar plot
+h1=figure; 
+barPlotCellArray(amplitudeGroupAll,nameListAdhComb);
+ylabel('Fluorescence amplitude (a.u.)')
+title('Background-subtracted amplitude of the other channel')
+hgexport(h1,[figPath filesep 'amplitudeTheOtherAllBar'],hgexport('factorystyle'),'Format','eps')
+hgsave(h1,[figPath filesep 'amplitudeTheOtherAllBar'])
+print(h1,[figPath filesep 'amplitudeTheOtherAllBar'],'-dtiff')
 %% saving
 save([dataPath filesep 'adhesionData.mat'],'-v7.3');
