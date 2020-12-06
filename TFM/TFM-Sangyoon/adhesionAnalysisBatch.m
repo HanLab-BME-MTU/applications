@@ -463,5 +463,20 @@ title('Background-subtracted amplitude of the other channel')
 hgexport(h1,[figPath filesep 'amplitudeTheOtherAllBar'],hgexport('factorystyle'),'Format','eps')
 hgsave(h1,[figPath filesep 'amplitudeTheOtherAllBar'])
 print(h1,[figPath filesep 'amplitudeTheOtherAllBar'],'-dtiff')
+%% the force in adhesions all together
+forceGroup = {forcesNACell, forcesFCCell,forcesFACell};
+for ii=1:numel(forcesNACell)
+    p=ii-1;
+    for jj=1:3
+        forceGroupAll{3*p+jj,1} = forceGroup{jj}{ii};
+    end
+end
+h1=figure; 
+boxPlotCellArray(forceGroupAll,nameListAdhComb,1,false,true);
+title('Traction at all adhesions')
+ylabel('Traction (Pa)')
+hgexport(h4,strcat(figPath,'/forceAll'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/forceAll'),'-v7.3')
+
 %% saving
 save([dataPath filesep 'adhesionData.mat'],'-v7.3');
