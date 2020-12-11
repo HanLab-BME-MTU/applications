@@ -1,6 +1,6 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
     clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
-                            kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion)
+                            kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,v_actin)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -47,11 +47,6 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 Fs = nm.*fm1; %Stall force of the system 
 
 ts = 5e-3; % Time step used for calculation
-f = []; %Total force on the substrate as a function of time
-v = []; %Rearward speed as a function of time
-t = 0; %Time vector
-nb1 = []; % Total number of bound clutches, integrin 1
-nb2 = []; % Total number of bound clutches, integrin 2
 xsub = 0; %Substrate displacement
 bound = zeros(nc,1); % Binding status of each clutch (0 unbound, 1 1st integrin, 2 2nd integrin)
 folding = zeros(nc,1); % Folding status of each clutch (0 folded, 1 unfolded, 2 vinculin-bound)
@@ -59,11 +54,19 @@ xc = zeros(nc,1); %displacement of each clutch
 Fc = zeros(nc,1); % Force in each clutch
 dint1i = dint1; %Density of integrin type 1 before reinforcement
 dint2i = dint2; %Density of integrin type 2 before reinforcement
-dint1t = []; % Density of integrin type 1 as a function of time
-dint2t = []; % Density of integrin type 2 as a function of time
+timeStepAll = 0:ts:100;
+nTimeSteps = numel(timeStepAll);
+f = zeros(1,nTimeSteps); %Total force on the substrate as a function of time
+v = zeros(1,nTimeSteps);  %Rearward speed as a function of time
+nb1 = zeros(1,nTimeSteps); % Total number of bound clutches, integrin 1
+nb2 = zeros(1,nTimeSteps); % Total number of bound clutches, integrin 2
+dint1t = zeros(1,nTimeSteps); % Density of integrin type 1 as a function of time
+dint2t = zeros(1,nTimeSteps); % Density of integrin type 2 as a function of time
 
 %% Simulation through time
-for t=0:ts:100
+p = 0;
+for t=timeStepAll
+    p = p + 1;
     koff1 = kof1*koffcb(Fc,ion); % koff 1 in each clutch
     koff2 = kof2*koffcb(Fc,ion); %koff 2 in each clutch
     kuf = 1.*exp(-7.573).*exp(1.786e12.*abs(Fc).*pt); % k unfolding in each clutch
@@ -73,7 +76,7 @@ for t=0:ts:100
     % This is something that's needed to be updated as the actin retrograde
     % flow is not only due to myosin. For myosin-free simulation, vu, the
     % unloaded myosin motor velocity, should be zero. 
-    vf = vu.*(1 - ksub.*xsub./Fs); % Filament speed: force-velocity relationship in myosin motor
+    vf = vu.*(1 - ksub.*xsub./Fs) + v_actin; % Filament speed: force-velocity relationship in myosin motor
 
     % For bound clutches, we create vector k (koff) and vectors kvuf
     % (unfolding) and kvf (refolding)
@@ -105,16 +108,21 @@ for t=0:ts:100
     teventf = -log(rand(nc,1))./kvf; % Times for refolding events
     teventvinc = -log(rand(nc,1))./(konv); % Time for vinculin binding
 
-    teventb2(teventb2 - teventb1 > 0) = ts +1; % If binding of int2 happens after binding of int1 we don't execute it.
-    teventvinc(teventvinc - teventf > 0) = ts +1; % If refolding happens before vinculin binding we don't execute vinculin binding. 
-    teventvinc(teventvinc - teventub > 0) = ts +1; % If unbinding happens before vinculin binding we don't execute vinculin binding. 
+    % If binding of int2 happens after binding of int1 we don't execute it.
+    teventb2(teventb2 - teventb1 > 0) = ts +1; 
+    % If refolding happens before vinculin binding we don't execute
+    % vinculin binding.  
+    teventvinc(teventvinc - teventf > 0) = ts +1; 
+    % If unbinding happens before vinculin binding we don't execute
+    % vinculin binding.  
+    teventvinc(teventvinc - teventub > 0) = ts +1; 
 
     % We find which events happen before ts and execute them:
-    indub = find(teventub < ts);
-    indb1 = find(teventb1 < ts);
-    indb2 = find(teventb2 < ts);
-    induf = find(teventuf < ts);
-    indvinculin = find(teventuf + teventvinc < ts);
+    indub = (teventub < ts);
+    indb1 = (teventb1 < ts);
+    indb2 = (teventb2 < ts);
+    induf = (teventuf < ts);
+    indvinculin = (teventuf + teventvinc < ts);
 
     boundbefore = bound;
     bound(indub) = 0;
@@ -156,17 +164,17 @@ for t=0:ts:100
     xc = xc + vf.*ts.*boundbin; %Position of each clutch
     xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate position
     xc(bound == 0) = xsub;
-    f(end +1) = xsub.*ksub;  % Force on substrate
-    v(end +1) = vf;          % Actin rearward speed
-    nb1(end +1) = sum(bound == 1); % Number of bound clutches (integrin 1)
-    nb2(end +1) = sum(bound == 2); % Number of bound clutches (integrin 2)
+    f(p) = xsub.*ksub;  % Force on substrate
+    v(p) = vf;          % Actin rearward speed
+    nb1(p) = sum(bound == 1); % Number of bound clutches (integrin 1)
+    nb2(p) = sum(bound == 2); % Number of bound clutches (integrin 2)
 
     if t == 0
         dint1t(1) = dint1i;
         dint2t(1) = dint2i;
     else
-        dint1t(end+1) = dint1;
-        dint2t(end+1) = dint2;
+        dint1t(p) = dint1;
+        dint2t(p) = dint2;
     end
     Fc = kc.*(xc - xsub); % Force in each clutch
 end
