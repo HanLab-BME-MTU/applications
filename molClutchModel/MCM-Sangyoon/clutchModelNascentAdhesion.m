@@ -1,6 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
     clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
-                            kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,v_actin)
+                            kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
+                            v_actin, dActin, tTotal)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -32,6 +33,11 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 %       mr      Maximum integrin density for each integrin
 %       intadd  Number of integrins added per sq. micron every time reinforcement happens.
 %       ion     mn or mg, to take corresponding koff data from kong et al JCB paper
+%       v_actin Unloaded actin-polymerization-driven actin flow speed
+%       dActin  Density of F-actin molecules (which can be low for
+%               Arp2/3-inhibited actin and intermediate for
+%               Formin-inhibited actin). (Need a reference, 300 for now for
+%               control)
 % 
 % Output parameters
 %       mf              Mean force on substrate (N)
@@ -43,10 +49,19 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 % Sangyoon Han, December 2020
 
 %% Initialize variables:
-
+verbose = 1;
 Fs = nm.*fm1; %Stall force of the system 
+kB = 1.38064852e-23; %m2 kg s-2 K-1
+T = 278; %K
+% deltaActin = 2.7e-9; % m
+c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for sphere, maybe 1 for a flat edge. 
+C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: This is assumption for now 
+R = 1e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
 
 ts = 5e-3; % Time step used for calculation
+if nargin<20
+    tTotal = 100; % total time period
+end
 xsub = 0; %Substrate displacement
 bound = zeros(nc,1); % Binding status of each clutch (0 unbound, 1 1st integrin, 2 2nd integrin)
 folding = zeros(nc,1); % Folding status of each clutch (0 folded, 1 unfolded, 2 vinculin-bound)
@@ -54,7 +69,7 @@ xc = zeros(nc,1); %displacement of each clutch
 Fc = zeros(nc,1); % Force in each clutch
 dint1i = dint1; %Density of integrin type 1 before reinforcement
 dint2i = dint2; %Density of integrin type 2 before reinforcement
-timeStepAll = 0:ts:100;
+timeStepAll = 0:ts:tTotal;
 nTimeSteps = numel(timeStepAll);
 f = zeros(1,nTimeSteps); %Total force on the substrate as a function of time
 v = zeros(1,nTimeSteps);  %Rearward speed as a function of time
@@ -65,6 +80,11 @@ dint2t = zeros(1,nTimeSteps); % Density of integrin type 2 as a function of time
 
 %% Simulation through time
 p = 0;
+if verbose
+    f100=figure(100); f100.Position(3:4)=[300 1000];
+end
+Fs_actin = -C_actin/(4*R);
+
 for t=timeStepAll
     p = p + 1;
     koff1 = kof1*koffcb(Fc,ion); % koff 1 in each clutch
@@ -76,7 +96,7 @@ for t=timeStepAll
     % This is something that's needed to be updated as the actin retrograde
     % flow is not only due to myosin. For myosin-free simulation, vu, the
     % unloaded myosin motor velocity, should be zero. 
-    vf = vu.*(1 - ksub.*xsub./Fs) + v_actin; % Filament speed: force-velocity relationship in myosin motor
+    vf = vu.*(1 - ksub.*xsub./Fs) + C_actin/(-4*ksub.*xsub*R+C_actin)*v_actin; % - 0.2*v_actin; % v_actin*(1-ksub.*xsub./Fs_actin); 
 
     % For bound clutches, we create vector k (koff) and vectors kvuf
     % (unfolding) and kvf (refolding)
@@ -159,7 +179,7 @@ for t=timeStepAll
     folding(indub) = 0;
 
     % We recalculate all elements:
-    boundbin = logical(bound);
+    boundbin = logical(bound); % when there is no bound clutch at all, force will be zero
 
     xc = xc + vf.*ts.*boundbin; %Position of each clutch
     xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate position
@@ -177,6 +197,15 @@ for t=timeStepAll
         dint2t(p) = dint2;
     end
     Fc = kc.*(xc - xsub); % Force in each clutch
+    
+end
+q=1000;
+if verbose 
+    subplot(4,1,1); plot(1:q,abs(f(1:q)),'.-'); title('f')
+    subplot(4,1,2); plot(1:q,abs(v(1:q)));  title('v')
+    subplot(4,1,3); plot(1:q,nb1(1:q));  title('nb1')
+    subplot(4,1,4); plot(1:q,nb2(1:q));  title('nb2')
+    drawnow
 end
 
 mf = mean(f); %Mean force on substrate

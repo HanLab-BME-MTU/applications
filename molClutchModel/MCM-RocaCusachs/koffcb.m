@@ -7,9 +7,9 @@ f = abs(f);
 a = 0.*f;
 b = 0.*f;
 
-switch ion;
+switch ion
     
-    case 'mg';
+    case 'mg'
     
     a(f <= 13.2e-12) = 0.1905;
     b(f <= 13.2e-12) = 2.333e+011;
@@ -22,7 +22,7 @@ switch ion;
     
     koff = a.*exp(b.*f);
     
-    case 'mn';
+    case 'mn'
     
     %     a(f <= 32.8e-12) = 6.237;
     %     b(f <= 32.8e-12) = -0.1466e12;
@@ -36,7 +36,7 @@ switch ion;
     d = 1.225e+011;  % 1.356e11;
     koff = a.*exp(b.*f) + c.*exp(d.*f);
     
-    case 'cm'; %Custom curve to fit data
+    case 'cm' %Custom curve to fit data
     
     c = 0.0008882;   % 0.001442;
     d = 1.225e+011;  % 1.356e11;
@@ -70,7 +70,7 @@ switch ion;
     h = -log(0.1./g)./fend;
     
     koff = a.*exp(b.*f) + c.*exp(d.*f) + g.*exp(-h.*f);
-end;
+end
 
 
 
