@@ -96,7 +96,7 @@ for t=timeStepAll
     % This is something that's needed to be updated as the actin retrograde
     % flow is not only due to myosin. For myosin-free simulation, vu, the
     % unloaded myosin motor velocity, should be zero. 
-    vf = vu.*(1 - ksub.*xsub./Fs) + C_actin/(-4*ksub.*xsub*R+C_actin)*v_actin; % - 0.2*v_actin; % v_actin*(1-ksub.*xsub./Fs_actin); 
+    vf = vu.*(1 - ksub.*xsub./Fs) +  v_actin*(1-ksub.*xsub./Fs_actin); %C_actin/(-4*ksub.*xsub*R+C_actin)*v_actin; % - 0.2*v_actin; 
 
     % For bound clutches, we create vector k (koff) and vectors kvuf
     % (unfolding) and kvf (refolding)

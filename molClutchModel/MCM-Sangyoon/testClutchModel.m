@@ -13,11 +13,10 @@ konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
-ion = 'cm';
+ion = 'b3_lateslip'; %'cm';
 ksub = 10.^(-0.1:0.1:2).*1e-3; %Range of substrate stiffness
 kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 0.9;
 kof2 = 1.5;
 E = 9*ksub./(4*pi*a);
 dint1 = 300; %Density of integrin molecules, type 1 (integrins/um2).
@@ -38,8 +37,12 @@ mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 %% talin2 shRNA: intadd=0: same as chan and odde
+ion = 'cm'; %'cm';
 nc = nc10; %Number of molecular clutches
+v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 1e4; % density of actin at the leading edge #/um
+kof1 = 0.9;
 % nm = 750; fm1 = -2e-12; vu = -120e-9; 
 % kc = 5e-3; % Clutch spring constant (N/m)
 % pt = 0.073; % fraction of force experienced by talin 0.073
@@ -61,7 +64,7 @@ for ii=1:numKsub
     
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = clutchModelNascentAdhesion(nm,...
        fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,kc,ksub(ii),konv,pt,...
-       mr,intadd,ion,0,1);
+       mr,intadd,ion,v_actin,dActin);
     mf(ii) = mfi;
     mv(ii) = mvi;
     mnb1(ii) = mnb1i;
@@ -140,15 +143,15 @@ P_blebbiRC = mf_blebbiRC/(pi*a^2);
 
 %% testing actin-only mechanosensitivity with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
-v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e4; % density of actin at the leading edge #/um
-kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
-kof1 = 0.7; % from 0.9
-dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
-ion = 'b3'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+dActin = 1e6; % density of actin at the leading edge #/um
+kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kof1 = 0.9e2; % from 0.9
+dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
+ion = 'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
 
-for ii=1:numKsub
+parfor ii=1:numKsub
     
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
@@ -168,14 +171,15 @@ mdint1_blebbi_actinSlowdown = mdint1;
 
 P_blebbi_actinSlowdown = mf_blebbi_actinSlowdown/(pi*a^2);
 %% Arp2/3 inhibition
-v_actin = -1e-9; % same so far
-dActin = 5e3; % the only parameter decreased
+vu = 0; % zero myosin contraction produces zero shortening velocity
+v_actin = -5e-9; % same so far
+dActin = 8e5; % the only parameter decreased
 dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
-ion = 'b3'; % 'cm' doesn't makes sense. Why koff goes up with less force?
-kont1 = 1.21e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
-kof1 = 1.8; % from 1.3
-tTotal=1000;
-for ii=1:numKsub
+ion = 'mg_earlyslipmore'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+kont1 = 4.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kof1 = 0.9e0; % from 1.3
+% tTotal=1000;
+parfor ii=1:numKsub
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
@@ -193,6 +197,56 @@ mf_ck666 = mf;
 mdint1_ck666 = mdint1;
 
 P_ck666 = mf_ck666/(pi*a^2);
+%% Arp2/3 inhibition: only kon koff control
+v_actin = -1e-9; % same so far
+kont1 = 2.11e-4; % same as 2.11e-4 True on-rate (um2/s), 1st integrin type
+kof1 = 0.5e0; % from 1.3
+% tTotal=1000;
+parfor ii=1:numKsub
+   [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+       clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
+       kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
+    mf(ii) = mfi;
+    mv(ii) = mvi;
+    mnb1(ii) = mnb1i;
+    mnb2(ii) = mnb2i;
+    mdint1(ii) = mdint1i;
+    mdint2(ii) = mdint2i;
+    disp([num2str(100*ii/numKsub) '% done...'])
+end
+
+v_ck666_2 = mv;
+mf_ck666_2 = mf;
+mdint1_ck666_2 = mdint1;
+
+P_ck666_2 = mf_ck666_2/(pi*a^2);
+%% Formin inhibition
+vu = 0; % zero myosin contraction produces zero shortening velocity
+v_actin = -1e-9; % same so far
+dActin = 1e5; % the only parameter decreased
+dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
+ion = 'mg_earlyslip'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+kont1 = 5.51e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kof1 = 2.1e0; % from 1.3
+tTotal=1000;
+parfor ii=1:numKsub
+   [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+       clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
+       kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
+    mf(ii) = mfi;
+    mv(ii) = mvi;
+    mnb1(ii) = mnb1i;
+    mnb2(ii) = mnb2i;
+    mdint1(ii) = mdint1i;
+    mdint2(ii) = mdint2i;
+    disp([num2str(100*ii/numKsub) '% done...'])
+end
+
+v_smif = mv;
+mf_smif = mf;
+mdint1_smif = mdint1;
+
+P_smif = mf_smif/(pi*a^2);
 %% plotting
 figure(1)
 hold off
@@ -200,11 +254,16 @@ plot(ksub,abs(Pctrl10),'r.-')
 hold on
 plot(ksub,abs(Pdep10),'b.-')
 plot(ksub,abs(P_blebbiRC),'g.-') 
-plot(ksub,abs(P_blebbi_actinSlowdown),'ko-','LineWidth',2) 
+plot(ksub,abs(P_blebbi_actinSlowdown),'ro-','LineWidth',2) 
 plot(ksub,abs(P_ck666),'co-','LineWidth',2) 
+plot(ksub,abs(P_ck666_2),'ko-','LineWidth',2) 
+
+plot(ksub,abs(P_smif),'bo-','LineWidth',2) 
 % semilogx(ksub,abs(P_ck666),'co-','LineWidth',2) 
 legend('Myosin','Myoin, no FA growth','Blebbi, n_m=180',...
-    'No myosin, Actin F-v relationship','No myosin, No Arp2/3','Location','best')
+    'No myosin, Actin F-v relationship','No myosin, No Arp2/3 (CK666)',...
+    'No myosin, No Arp2/3,vactin=2 (CK666)',...
+    'No myosin, No formin (SMIFH2)','Location','best')
 ylabel('Traction force')
 xlabel('Stiffness')
 %% plotting velocity
