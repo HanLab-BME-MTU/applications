@@ -180,7 +180,7 @@ for j=1:movieData.nFrames_
 %         maskProc = movieData.processes_{2};
 %         mask = maskProc.loadChannelOutput(1,j);
     maskAdhesion = blobSegmentThreshold(I,minSize,0,mask & roiMask(:,:,j));
-    maskAdhesionFine = blobSegmentThreshold(I,0); % mask for all adhesions without minSize
+    maskAdhesionFine = blobSegmentThreshold(I,0,0,mask & roiMask(:,:,j)); % mask for all adhesions without minSize
 
 %     maskAdhesionC = imcomplement(maskAdhesion);
     % mask for band from edge
@@ -199,7 +199,7 @@ for j=1:movieData.nFrames_
 %         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
         ultimateMask = roiMask(:,:,j) & mask; % & maskAdhesionFine;
     end
-    [pstruct, maskNAs] = pointSourceDetection(I, psfSigma,  ...
+    [pstruct, maskNAs] = pointSourceDetection(I, 1.5*psfSigma,  ...
         'Alpha',psAlpha,'Mask',ultimateMask);
         % filter out points where overall intensity is in the noise level
 %     pixelIntenMargin = I(~mask);
@@ -547,7 +547,7 @@ for j=1:movieData.nFrames_
     % plotting detected adhesions
     if plotGraph
         h1=figure;
-        maxI=max(I(:)); minI=min(I(:));
+        maxI=quantile(I(:),0.999); minI=quantile(I(:),0.01);
         dI = (double(I)-minI)/(maxI-minI);
         combI(:,:,1) = ~maskAdhesionFA.*dI+maskAdhesionFA.*(0.4*dI+double(maskAdhesionFA)*.5);
         combI(:,:,2) = ~maskAdhesionFA.*~maskAdhesionFC.*dI...

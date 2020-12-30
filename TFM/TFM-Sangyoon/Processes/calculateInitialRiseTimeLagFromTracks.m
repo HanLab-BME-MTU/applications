@@ -798,6 +798,22 @@ end
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/ampTotalAllGroups'),'-v7.3'); close(h2)
     %% Look at feature difference per each group - assemRate
+    if ~isfield(tracksNA,'assemRate')
+        tracksNA(end).assemRate=[];
+    end
+    disp('Calculating assembly rates'); tic
+    numTracks=numel(tracksNA);
+    tIntMin=MD.timeInterval_/60;
+    tRangeSelectedAssem = cell(numTracks,1);
+    parfor kk=1:numTracks
+        curTrack=tracksNA(kk);
+        [curAssemRate,~,~,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal');
+        curTrack.disassemRate = curAssemRate;
+        tRangeSelectedAssem{kk} = tRangeSelected;
+        tracksNA(kk)=curTrack;
+%         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
+    end
+    toc
     assemRate{1} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{1}));
     assemRate{2} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{2}));
     assemRate{3} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup3));
@@ -815,19 +831,21 @@ end
     save([p.OutputDirectory filesep 'data' filesep 'assemRate.mat'],'assemRate','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'assemRateAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/assemRateAllGroups'),'-v7.3'); close(h2)
-    %% Look at feature difference per each group - assemRate
-%     if ~isfield(tracksNA,'disassemRate')
-%         tracksNA(end).disassemRate=[];
-%     end
-%     disp('Calculating disassembly rates'); tic
-%     parfor kk=1:numTracks
-%         curTrack=tracksNA(kk);
-%         curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin);
-%         curTrack.disassemRate = curDisassemRate;
-%         tracksNA(kk)=curTrack;
-% %         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
-%     end
-%     toc
+    %% Look at feature difference per each group - disassemRate
+    if ~isfield(tracksNA,'disassemRate')
+        tracksNA(end).disassemRate=[];
+    end
+    disp('Calculating disassembly rates'); tic
+    tRangeSelectedDisassem = cell(numel(tracksNA),1);
+    parfor kk=1:numTracks
+        curTrack=tracksNA(kk);
+        [curDisassemRate,~,~,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal');
+        curTrack.disassemRate = curDisassemRate;
+        tRangeSelectedDisassem{kk} = tRangeSelected;
+        tracksNA(kk)=curTrack;
+%         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
+    end
+    toc
     disassemRate{1} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroups{1}));
     disassemRate{2} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroups{2}));
     disassemRate{3} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroup3));
@@ -876,13 +894,14 @@ end
                 tracksNA(end).disassemRate2=[];
             end
             disp('Calculating assembly/disassembly rates'); tic
-            parfor kk=1:numTracks
+            for kk=1:numTracks
                 curTrack=tracksNA(kk);
-                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'amp2');
+                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal2',15,0,tRangeSelectedAssem{kk});
                 curTrack.assemRate2 = curAssemRate;
-                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'amp2');
+                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal2',25,0,tRangeSelectedDisassem{kk});
                 curTrack.disassemRate2 = curDisassemRate;
                 tracksNA(kk)=curTrack;
+                progressText(kk/numTracks,'assem/Disassem calculation');
             end
             toc
             

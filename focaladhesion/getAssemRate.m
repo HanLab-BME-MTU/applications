@@ -1,4 +1,4 @@
-function [assemRate,bestModel,bestSummary] = getAssemRate(tRangeMin,TS,minLength)
+function [assemRate,bestModel,bestSummary,tRangeSelected] = getAssemRate(tRangeMin,TS,minLength)
 %function assemRate = getAssemRate(tRangeMin,curAmpTotal) calculates
 %assembly rate using Webb 2004 NCB method.
 % input:
@@ -50,6 +50,8 @@ bestSummary = fitSummary(maxRframe);
 bestModel = statModel{maxRframe};
 assemRate = bestSummary.slope;
 
+iiRange = minLength:maxSdInd;
+tRangeSelected=1:iiRange(maxRframe);
 
     
     
