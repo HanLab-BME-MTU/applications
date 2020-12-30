@@ -17,6 +17,8 @@ function [] = showMostRepresentativeAssemblingAdhesion(MD,varargin)
 %       FocalAdhesionPackage/RepTracks_Class
 % Example: 
 % showMostRepresentativeAssemblingAdhesion(MD,'RepClass',1,'TimeShiftFromMedian',-6, 'iSlave',2) 
+% To sample adhesion track manually,
+% showMostRepresentativeAssemblingAdhesion(MD,'RepClass',0,'PickManually',true,'iSlave',2)
 % Sangyoon Han, March 4 2020
 
 %% Input
