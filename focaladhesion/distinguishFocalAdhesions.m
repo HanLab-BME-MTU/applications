@@ -50,6 +50,9 @@ firstNAidx = arrayfun(@(x) find(x.state==iNA,1,'first'),tracksAD,'UniformOutput'
 firstFAidx = arrayfun(@(x) find(x.state==iFC | x.state==iFA,1,'first'),tracksAD,'UniformOutput',false);
 % firstNAidx = arrayfun(@(x) find(strcmp(x.state,'NA'),1,'first'),tracksAD,'UniformOutput',false);
 % firstFAidx = arrayfun(@(x) find(strcmp(x.state,'FA') | strcmp(x.state,'FC'),1,'first'),tracksAD,'UniformOutput',false);
+% Additionally, G1 and G2 should be increasing in intensity
+assemRateAll = arrayfun(@(x) x.assemRate, tracksAD);
+isAssembling = assemRateAll>0;
 idxStartingFromNAToFAcell = cellfun(@(x,y) ~isempty(x) & ~isempty(y) & x<y, firstNAidx, firstFAidx,'UniformOutput',false);
 idxEvenBeenFA = cellfun(@(x) ~isempty(x), firstFAidx,'UniformOutput',false);
 idxCloseToEdge = arrayfun(@(y) y.distToEdge(y.startingFrame) <100000/pixSize, tracksAD,'UniformOutput',false);
@@ -57,10 +60,15 @@ idxStartingFromNAToFA = cellfun(@(x) ~isempty(x),idxStartingFromNAToFAcell);
 idxEverBeenFAAndCloseToEdge = cellfun(@(x,y) ~isempty(x) & ~isempty(y),idxEvenBeenFA,idxCloseToEdge);
 idxCloseToEdge2 = arrayfun(@(x) mean(x.distToEdge)<500000/pixSize, tracksAD);
 idxCloseToEdgeStarting = arrayfun(@(x) x.distToEdge(x.startingFrame) <100000/pixSize, tracksAD);
-indMaturingNA = (idxStartingFromNAToFA) & idxCloseToEdge2 & idxCloseToEdgeStarting; % &  | idxEverBeenFAAndCloseToEdge  & idxNegativeVel
+
+% Additionally, G1 and G2 should be increasing in intensity
+disassemRateAll = arrayfun(@(x) x.disassemRate, tracksAD);
+isDisassembling = disassemRateAll>0;
+
+indMaturingNA = (idxStartingFromNAToFA) & idxCloseToEdge2 & idxCloseToEdgeStarting & isAssembling & ~isDisassembling; % &  | idxEverBeenFAAndCloseToEdge  & idxNegativeVel
 idxStartingFromNACell = cellfun(@(x,y) ~isempty(x) & ~isempty(y) & x<y, firstBAidxCell, firstNAidx,'UniformOutput',false);
 idxStartingFromNA= cellfun(@(x) ~isempty(x),idxStartingFromNACell);
-indNonmaturingNA = (idxStartingFromNA) & indNAatEdge & ~indMaturingNA;
+indNonmaturingNA = (idxStartingFromNA) & indNAatEdge & ~indMaturingNA & isAssembling & isDisassembling;
 %% 3) maturing FAs from existing FAs: G5
 % For this, adhesions should have 1) negative overall velocity; 2) should
 % be always 'FA' or 'FC'; 3) associated area should increase; 

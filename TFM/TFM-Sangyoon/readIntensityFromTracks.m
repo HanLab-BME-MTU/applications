@@ -15,6 +15,8 @@ ip.addParamValue('reTrack',true,@islogical); % selcted track ids
 ip.addParamValue('trackOnlyDetected',false,@islogical); % selcted track ids
 ip.addParamValue('extraReadingOnly',false,@islogical); % when you want to read only extra parts in amp
 ip.addParamValue('movieData',[],@(x) isa(x,'MovieData') || isempty(x)); % moviedata for utrack
+ip.addParamValue('imgStackBS',[]); % Now started to get the background-subtracted images explicitly
+
 ip.parse(varargin{:});
 extraLengthForced=ip.Results.extraLength;
 reTrack=ip.Results.reTrack;
@@ -85,21 +87,23 @@ elseif attribute==5
         tracksNA(end).bkgAmp2=[];
     end
     % In this case, make background-subtracted images
-    imgClass = class(imgStack);
-    imgStackBS=zeros(size(imgStack));
-    for ii=1:size(imgStack,3)
-        curImg=imgStack(:,:,ii);
-        imageBackground = filterGauss2D(curImg,30);
-        %calculate noise-filtered and background-subtracted image
-        imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
-    end
+%     imgClass = class(imgStack);
+%     imgStackBS=zeros(size(imgStack));
+%     for ii=1:size(imgStack,3)
+%         curImg=imgStack(:,:,ii);
+%         imageBackground = filterGauss2D(curImg,30);
+%         %calculate noise-filtered and background-subtracted image
+%         imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
+%     end
+    imgStackBS = ip.Results.imgStackBS;
+
 elseif attribute==1 
     % In this case, make background-subtracted images
     imgClass = class(imgStack);
     imgStackBS=zeros(size(imgStack));
     for ii=1:size(imgStack,3)
         curImg=imgStack(:,:,ii);
-        imageBackground = filterGauss2D(curImg,30);
+        imageBackground = filterGauss2D(curImg,50);
         %calculate noise-filtered and background-subtracted image
         imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
     end

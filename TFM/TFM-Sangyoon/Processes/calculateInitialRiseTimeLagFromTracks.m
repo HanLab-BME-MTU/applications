@@ -807,7 +807,7 @@ end
     tRangeSelectedAssem = cell(numTracks,1);
     parfor kk=1:numTracks
         curTrack=tracksNA(kk);
-        [curAssemRate,~,~,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal');
+        [curAssemRate,~,~,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp');
         curTrack.disassemRate = curAssemRate;
         tRangeSelectedAssem{kk} = tRangeSelected;
         tracksNA(kk)=curTrack;
@@ -839,7 +839,7 @@ end
     tRangeSelectedDisassem = cell(numel(tracksNA),1);
     parfor kk=1:numTracks
         curTrack=tracksNA(kk);
-        [curDisassemRate,~,~,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal');
+        [curDisassemRate,~,~,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'amp');
         curTrack.disassemRate = curDisassemRate;
         tRangeSelectedDisassem{kk} = tRangeSelected;
         tracksNA(kk)=curTrack;
@@ -896,9 +896,9 @@ end
             disp('Calculating assembly/disassembly rates'); tic
             for kk=1:numTracks
                 curTrack=tracksNA(kk);
-                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal2',15,0,tRangeSelectedAssem{kk});
+                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'amp2',15,0,tRangeSelectedAssem{kk});
                 curTrack.assemRate2 = curAssemRate;
-                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal2',25,0,tRangeSelectedDisassem{kk});
+                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'amp2',25,0,tRangeSelectedDisassem{kk});
                 curTrack.disassemRate2 = curDisassemRate;
                 tracksNA(kk)=curTrack;
                 progressText(kk/numTracks,'assem/Disassem calculation');
