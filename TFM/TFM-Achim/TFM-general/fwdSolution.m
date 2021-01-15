@@ -35,6 +35,7 @@ if strcmpi(method,'conv_free')
         uy(i) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
     end
     toc;
+    
 elseif nargin<10 || strcmpi(method,'conv')
     tic;
     disp('Calulate the convolution explicitely')
@@ -64,85 +65,40 @@ elseif strcmpi(method,'FEM')
     femFwdModel = createpde('structural','static-solid');
     
     %Define geometry
-    h = 256; %thickness
-    %try to find a way to obtain this from displfield in future
-    %or perhaps add an option to define the area on the substrate
-    d = 40; %diameter of force application
+    h = 256; %thickness of substrate
+    d = 64; %diameter of fine mesh section
     
-    %gm = multicuboid(x0(2)*2,y0(2)*2,h); %multicuboid(x,y,z)   
-    %femFwdModel.Geometry = gm;
+    %extrude method
+    halfSide = x0(2);
+    bound = [3; 4; -halfSide; halfSide; halfSide; -halfSide; halfSide; halfSide; -halfSide; -halfSide]; %rectangle of substrate size
+    %create circles of decreasing radius in order 
+    r = d/2;
+    circ = [1; 0; 0; r; 0; 0; 0; 0; 0; 0]; %circle of radius r
+    circ1 = [1; 0; 0; r/2; 0; 0; 0; 0; 0; 0]; %circle of radius r/2
+    circ2 = [1; 0; 0; r/4; 0; 0; 0; 0; 0; 0]; %circle of radius r/4
+    circ3 = [1; 0; 0; r/6; 0; 0; 0; 0; 0; 0]; %circle of radius r/6
+    gd = [bound,circ,circ1,circ2,circ3];
+    ns = char('bound','circ','circ1','circ2','circ3');
+    ns = ns';
+    sf = 'bound + circ + circ1 + circ2 + circ3';    
+    [dl, ~] = decsg(gd,sf,ns);
+        
+    pdem = createpde;
+    g = geometryFromEdges(pdem,dl);
     
-    %single force fine meshing at center of substrate
-    singleForce = 1;
-    if singleForce
-        [xg, yg, zg] = meshgrid(linspace(-x0(2)/2,(x0(2)/2)-1,x0(2)/2^4),...
-                            linspace(-x0(2)/2,(x0(2)/2)-1,x0(2)/2^4),...
-                            -h:0); %/2^4 defines sparsity
-        Pcube = [xg(:) yg(:), zg(:)];
+    %convert analytical model geometry to discrete geometry
+    facets = facetAnalyticGeometry(pdem,g,0);
+    gm = analyticToDiscrete(facets);
+    pdem.Geometry = gm; %reassign discrete geometry to model
 
-        % Extract the grid points located outside of the spherical region with
-        % force diameter 
-        Pcavitycube = Pcube(vecnorm(Pcube') > d,:);
-
-        % Create points on the sphere
-        [x1,y1,z1] = sphere(24);
-        Psphere = d*[x1(:) y1(:) z1(:)];
-
-        % Get rid of the upper half sphere
-        PsphereHalf = Psphere(z1(:) <= 0,:); 
-        PsphereHalf = unique(PsphereHalf,'rows');
-
-        % Combine the coordinates of the rectangular grid (without the points
-        % inside the sphere) and the surface coordinates of the unit sphere. 
-        Pcombined = [Pcavitycube;PsphereHalf];
-
-        % Create an alphaShape object representing the cube with the spherical
-        % cavity. 
-        shpCubeWithSphericalCavity = alphaShape(Pcombined(:,1), ...
-                                            Pcombined(:,2), ...
-                                            Pcombined(:,3));
-
-        % Increasing alpha to fill unconnected mesh in the middle
-        shpCubeWithSphericalCavity.Alpha = 20;
-
-        % Recover the triangulation that defines the domain of the alphaShape object.
-        [tri,loc] = alphaTriangulation(shpCubeWithSphericalCavity);
-
-        % Create a PDE model.
-        modelCube = createpde;
-
-        % Create a geometry from the mesh and import the geometry and the mesh into the model.
-        [~,mshCube] = geometryFromMesh(modelCube,loc',tri');
-
-        sphereFacets = boundaryFacets(mshCube,'Face',7);
-        sphereNodes = findNodes(mshCube,'region','Face',7);
-
-        % Add a new node at the center.
-        newNodeID = size(mshCube.Nodes,2) + 1;
-
-        % Construct the tetrahedral elements by using each of the three nodes on the spherical boundary facets and the new node at the origin.
-        sphereTets =  [sphereFacets; newNodeID*ones(1,size(sphereFacets,2))];
-
-        % Create a model that combines the cube with the spherical cavity and a sphere.
-        model = createpde;
-
-        % Create a vector that maps all mshCube elements to cell 1, and all elements of the solid sphere to cell 2.
-        e2c = [ones(1,size(mshCube.Elements,2)), 2*ones(1,size(sphereTets,2))];
-
-        % Add a new node at the center [0;0;0] to the nodes of the cube with the cavity.
-        combinedNodes = [mshCube.Nodes,[0;0;0]];
-
-        % Combine the element connectivity matrices.
-        combinedElements = [mshCube.Elements,sphereTets];
-
-        % Create a two-cell geometry from the mesh.
-        [g,~] = geometryFromMesh(model,combinedNodes,combinedElements,e2c);
-
-        femFwdModel.Geometry=g;
-    end
+    %extrude 2D geometry into 3D of defined thickness
+    g = extrude(gm,h);
+    %reassign extruded geometry to model for fwdSolution
+    femFwdModel.Geometry = g;
     
     %Mesh the model
     generateMesh(femFwdModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
+    figure,pdeplot3D(femFwdModel)
     
     %Material properties
     %FEM will fail when given a Poisson's Ratio of 0.5, therefore we detect
@@ -154,7 +110,7 @@ elseif strcmpi(method,'FEM')
     end
     
     %Constrain bottom face
-    structuralBC(femFwdModel,'Face',1,'Constraint','fixed');
+    structuralBC(femFwdModel,'Face',1:5,'Constraint','fixed');
     
     %Setting up forces
     force_z = zeros(meshPtsFwdSol); %can be replaced by real data if a normal force is desired
@@ -177,7 +133,7 @@ elseif strcmpi(method,'FEM')
     end
     
     %Solve model
-    structuralBoundaryLoad(femFwdModel,'Face',2,'SurfaceTraction',force_xy,'Vectorize','on');
+    structuralBoundaryLoad(femFwdModel,'Face',10,'SurfaceTraction',force_xy,'Vectorize','on');
     femFwdResults = solve(femFwdModel);
 
     %Interpolate displacements

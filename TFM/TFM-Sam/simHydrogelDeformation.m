@@ -36,8 +36,11 @@ end
 
 chrRef='img1ref_';
 chrBead='img3bead_';
-%Change these character vectors to rename files for next run
-chr1='multiforce_finemesh_8000E_4000beads'; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+if multiForce
+    chr1=['multiforce_finemesh_',num2str(E),'E_',num2str(nPoints),'beads']; %chr13D='newBeads3D(1kpa,0.5k,1kE)';
+else
+    chr1=['singleforce_finemesh_',num2str(E),'E_',num2str(nPoints),'beads_(',num2str(fx),',',num2str(fy),')Pa'];
+end
 refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 

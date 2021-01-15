@@ -567,12 +567,15 @@ elseif strcmpi(p.method,'FEM') % FEMTFM
         % Save each iteration (for recovery of unfinished processes)
         save(outputFile{1},'forceField');
         % Error estimation
-        u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
-        u_predict = M*sol_coef;
-        u_diff = u_org-u_predict;
-        u_diff_vec=reshape(u_diff,[],2);
-        displErrField(i).pos=pos_u;
-        displErrField(i).vec=u_diff_vec;
+        
+%Currently not working due to some bug, solve later
+        
+%         u_org = vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+%         u_predict = M*sol_coef;
+%         u_diff = u_org-u_predict;
+%         u_diff_vec=reshape(u_diff,[],2);
+%         displErrField(i).pos=pos_u;
+%         displErrField(i).vec=u_diff_vec;
         display(['Done: solution for frame: ',num2str(i)]);
         %Update the waitbar
         if mod(i,5)==1 && ishandle(wtBar)
