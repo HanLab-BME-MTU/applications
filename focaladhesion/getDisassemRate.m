@@ -1,4 +1,4 @@
-function [disassemRate,bestModel,bestSummary] = getDisassemRate(tRangeMin,TS,minLength)
+function [disassemRate,bestModel,bestSummary,tRangeSelected] = getDisassemRate(tRangeMin,TS,minLength)
 %function assemRate = getAssemRate(tRangeMin,curAmpTotal) calculates
 %assembly rate using Webb 2004 NCB method.
 % input:
@@ -7,6 +7,7 @@ function [disassemRate,bestModel,bestSummary] = getDisassemRate(tRangeMin,TS,min
 % output:
 %       assemRate           assembly rate
 %       bestModel           The best linear model out of fitting
+%       tRangeSelected      frame range selected
 % Sangyon Han March 4, 2020
 
 %% Get the maximum amp, time range
@@ -31,7 +32,21 @@ maxSdInd = min(maxSdInd,length(TS)-minLength+1);
 pp=0;
 fitSummary(length(TS)-minLength-maxSdInd+2)=struct('adjRsquared',NaN,'rSquared',NaN,'pValue',NaN,'slope',NaN,'time_length',NaN,'image_count',NaN,'startingTS',NaN); 
 statModel = cell(1,length(TS)-minLength-maxSdInd+2);
-for ii= minLength:length(TS)-maxSdInd
+if (length(TS)-maxSdInd)< minLength
+    bestSummary.adjRsquared = NaN;
+    bestSummary.rSquared = NaN;
+    bestSummary.pValue = NaN;
+    bestSummary.slope = NaN;
+    bestSummary.time_length = NaN;
+    bestSummary.image_count = NaN;
+    bestSummary.startingTS = NaN;
+    bestModel= [];
+    tRangeSelected=[];
+    disassemRate = NaN;
+    return
+end
+    
+for ii= minLength:(length(TS)-maxSdInd)
     pp=pp+1;
     curTS = TS(end-ii:end);
     curTSnorm = curTS(1)./curTS;
@@ -57,8 +72,8 @@ bestSummary = fitSummary(maxRframe);
 bestModel = statModel{maxRframe};
 disassemRate = bestSummary.slope;
 
-
-
+iiRange = minLength:(length(TS)-maxSdInd);
+tRangeSelected=(length(TS)-iiRange(maxRframe)):length(TS);
 % nSampleEnd=min(9,floor((length(tRange)-maxSdInd)*2/3));
 % sigTtest=ttest2(curAmpTotal(end-nSampleEnd:end),curAmpTotal(maxSdInd:maxSdInd+nSampleEnd));
 % if ~isnan(sigTtest)

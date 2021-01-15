@@ -1,4 +1,5 @@
-function [disassemRate,bestModel,bestSummary,yEntire] = getDisassemRateFromTracks(curTrack,tIntervalMin, whichComp, minLifeTime,plotFit)
+function [disassemRate,bestModel,bestSummary,yEntire,tRangeSelected] = ...
+    getDisassemRateFromTracks(curTrack,tIntervalMin, whichComp, minLifeTime,plotFit,tRangeSelected)
 %function assemRate = getAssemRateFromTracks(curTrack) is a wrapper
 %function for tracksNA to run getAssemRate 
 % input:
@@ -14,7 +15,7 @@ function [disassemRate,bestModel,bestSummary,yEntire] = getDisassemRateFromTrack
 if nargin<3
     plotFit=false;
     minLifeTime=25;
-    whichComp='amp';
+    whichComp='ampTotal';
 end
 if nargin<4
     plotFit=false;
@@ -25,10 +26,17 @@ if nargin<5
 end
 %% Set up
 tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
+if nargin<6
+    tRangeSelected=tRange;
+end
+
 % curAmpTotal =  curTrack.ampTotal(tRange);
 try
     curAmpTotal =  getfield(curTrack,{1},whichComp,{tRange});
-%     curAmpTotal =  curTrack.amp(tRange);
+    if tRange(end) > length(curTrack.amp) %Just in case amp2 is well-fit in the tRange than amp, we stick with 'catch' section.
+        tRange = find(~isnan(curTrack.amp));
+        curAmpTotal =  getfield(curTrack,{1},whichComp,{tRange});
+    end
 catch
     tRange = find(~isnan(curTrack.amp));
     curAmpTotal =  getfield(curTrack,{1},whichComp,{tRange});
@@ -39,8 +47,17 @@ if length(tRange)<minLifeTime+1
     bestModel=[]; bestSummary=[]; yEntire=NaN;
     return
 end
-[disassemRate,bestModel,bestSummary] = getDisassemRate(tIntervalMin*(tRange),curAmpTotal,minLifeTime);
-yEntire = bestSummary.startingTS./curAmpTotal;
+
+% Now I am revising this. For amp2, the time points should come from the
+% amp1 directly.
+if strcmp(whichComp,'ampTotal') || strcmp(whichComp,'amp')
+    [disassemRate,bestModel,bestSummary,tRangeSelected] = getDisassemRate(tIntervalMin*(tRange),curAmpTotal,minLifeTime);
+    yEntire = bestSummary.startingTS./curAmpTotal;
+elseif strcmp(whichComp,'ampTotal2') || strcmp(whichComp,'amp2')
+    [disassemRate,bestModel,bestSummary] = getDisassemRateDirect(tIntervalMin*(tRange),curAmpTotal,tRangeSelected);
+    yEntire = bestSummary.startingTS./curAmpTotal;
+    tRangeSelected=[];
+end
 
 %% Plot
 if plotFit

@@ -105,8 +105,8 @@ for ii=1:numConditions
         iTFM = curML.movies_{k}.getPackageIndex('TFMPackage');
         if ~isempty(iTFM)
             outputFilePath = [curML.movies_{k}.outputDirectory_ filesep 'Adhesion Quantification'];
-            dataPath= [outputFilePath filesep 'data'];
-            forceAll(k) = load([dataPath filesep 'forcePerAdhesionType.mat'],'forceFA', 'forceFC', 'forceNA', 'forceBGinCell', 'forceBGoutCell');
+            curDataPath= [outputFilePath filesep 'data'];
+            forceAll(k) = load([curDataPath filesep 'forcePerAdhesionType.mat'],'forceFA', 'forceFC', 'forceNA', 'forceBGinCell', 'forceBGoutCell');
         else
             forceAll(k)=[];
         end
@@ -114,8 +114,8 @@ for ii=1:numConditions
         nChan = numel(curML.movies_{k}.channels_);
         if nChan>2
             outputFilePath = [curML.movies_{k}.outputDirectory_ filesep 'Adhesion Quantification'];
-            dataPath= [outputFilePath filesep 'data'];
-            ampTheOtherAll(k) = load([dataPath filesep 'ampTheOtherPerAdhesionType.mat']);
+            curDataPath= [outputFilePath filesep 'data'];
+            ampTheOtherAll(k) = load([curDataPath filesep 'ampTheOtherPerAdhesionType.mat']);
         else
             ampTheOtherAll(k)=[];
         end
@@ -244,7 +244,7 @@ for ii=1:numel(FAlengthCell)
 end
 
 h1=figure;
-plotSuccess=boxPlotCellArray(FAlengthCellSmall,nameList,1,false,true);
+plotSuccess=boxPlotCellArray(FAlengthCellSmall,nameList,convertL,false,true);
 if plotSuccess
     ylabel(['Focal adhesion length (\mum)'])
     title(['Focal adhesion length (top ' num2str(percLT) ' percentile)'])
@@ -314,7 +314,8 @@ hgsave(h4,strcat(figPath,'/CellArea'),'-v7.3')
 tableFAareaToCellArea=table(FAareaToCellArea,'RowNames',nameList);
 writetable(tableFAareaToCellArea,strcat(dataPath,'/FAareaToCellArea.csv'))
 %% FA quantity
-numFA = cellfun(@(x,y) x.*y,FAdensity,cellArea,'unif',false);
+% numFA = cellfun(@(x,y) x.*y,FAdensity,cellArea,'unif',false);
+numFA = cellfun(@(x) cell2mat(arrayfun(@(y) y.numberFA, x,'unif',false)'),FAstructGroup','unif',false)';
 h2=figure; 
 barPlotCellArray(numFA,nameList)
 
@@ -326,9 +327,14 @@ hgsave(h2,strcat(figPath,'/FAquantity'),'-v7.3')
 tableFAquantity=table(numFA,'RowNames',nameList);
 writetable(tableFAquantity,strcat(dataPath,'/FAquantity.csv'))
 %% NA quantity
-numNA = cellfun(@(x,y) x.*y,NAdensity,cellArea,'unif',false);
+% numNA = cellfun(@(x,y) x.*y,NAdensity,cellArea,'unif',false);
+numNA = cellfun(@(x) cell2mat(arrayfun(@(y) y.numberNA, x,'unif',false)'),NAstructGroup','unif',false)';
+% bandAreaNA = cellfun(@(x) cell2mat(arrayfun(@(y) y.bandArea, x,'unif',false)'),NAstructGroup','unif',false);
 h2=figure; 
 barPlotCellArray(numNA,nameList)
+% boxPlotCellArray(numNA,nameList,1,0,1,1)
+
+% barPlotCellArray(bandAreaNA',nameList)
 
 title('NA quantity per cell')
 ylabel('NA quantity (#/cell)')
@@ -359,6 +365,23 @@ hgsave(h4,strcat(figPath,'/ecc'),'-v7.3')
 
 tableEcc=table(eccCell','RowNames',nameList);
 writetable(tableEcc,strcat(dataPath,'/ecc.csv'))
+%% Ecc - top 10 percentile
+percLT=20;
+perc=percLT/100;
+eccCellSmall=cell(numel(eccCell),1);
+for ii=1:numel(eccCell)
+    percInd = (1-0.9*perc)+(0.4*perc)*randn(1,round((perc-0.01)*sum(~isnan(eccCell{ii}))));
+    percInd(percInd>1) = 1;
+    eccCellSmall{ii,1} = ...
+    quantile(eccCell{ii},percInd);
+end
+h4=figure; 
+boxPlotCellArray(eccCellSmall,nameList,1,0,1), ylim auto
+title(['Adhesion eccentricity top ' num2str(percLT) ' percentile'])
+ylabel('Eccentricity (1)')
+hgexport(h4,strcat(figPath,'/eccT', num2str(percLT), 'P'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/eccT', num2str(percLT), 'P'),'-v7.3')
+
 %% Eccentricity barplot
 h4=figure; 
 barPlotCellArray(eccCell,nameList',1)
@@ -378,6 +401,21 @@ hgsave(h4,strcat(figPath,'/FAwidth'),'-v7.3')
 
 tablewidth=table(widthCell','RowNames',nameList);
 writetable(tablewidth,strcat(dataPath,'/width.csv'))
+%% Adhesion width - bottom 30 percentile
+percLT=30;
+perc=percLT/100;
+widthCellSmall=cell(numel(widthCell),1);
+for ii=1:numel(widthCell)
+    widthCellSmall{ii,1} = ...
+    quantile(widthCell{ii},(perc)+0.2*(perc)*randn(1,round((perc-0.01)*sum(~isnan(widthCell{ii})))));
+end
+h4=figure; 
+boxPlotCellArray(widthCellSmall,nameList,convertL,0,1); ylim auto
+title(['Adhesion width bottom ' num2str(percLT) ' percentile'])
+ylabel('width (\mum)')
+hgexport(h4,strcat(figPath,'/FAwidthB',num2str(percLT),'P'),hgexport('factorystyle'),'Format','eps')
+hgsave(h4,strcat(figPath,'/FAwidthB',num2str(percLT),'P'),'-v7.3')
+
 %% Width barplot
 h5=figure; 
 barPlotCellArray(widthCell,nameList',convertL)
@@ -479,4 +517,5 @@ hgexport(h4,strcat(figPath,'/forceAll'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/forceAll'),'-v7.3')
 
 %% saving
+close all
 save([dataPath filesep 'adhesionData.mat'],'-v7.3');
