@@ -23,6 +23,7 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %
 %   Example:
 %       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,4000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',false)
+close all
 
 % //Data path configuration ***********************************************
 imgPath=[dataPath filesep 'Beads'];
@@ -48,7 +49,7 @@ imgstring=[chrBead chr1 '.tif'];
 meshPtsFwdSol = 2^9; %number of pix/pts in mesh
 beadDiameter = 40; %20nm/bead
 pixelSize = 72; %20 nm/pix
-thickness = meshPtsFwdSol/2; %thickness of hydrogel for FEM purposes (pixels)
+thickness = meshPtsFwdSol/4; %thickness of hydrogel for FEM purposes (pixels)
 %geometry & image lengths
 numPix_x = meshPtsFwdSol; numPix_y = meshPtsFwdSol; %pixel length of image & fem geometry
 xmin = 1; ymin = 1;
@@ -92,88 +93,34 @@ structModel=createpde('structural','static-solid');
 
 if ~multiForce
     
-    % We want to now insert a sphere to ensure the refined mesh near force application area
-    % Create a 3-D rectangular mesh grid first (with sparse spacing)
-    [xg, yg, zg] = meshgrid(linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/2^4),...
-                            linspace(-numPix_x/2,(numPix_x/2)-1,meshPtsFwdSol/2^4),...
-                            -thickness:0); %/2^4 defines sparsity
-    Pcube = [xg(:) yg(:), zg(:)];
-    % Extract the grid points located outside of the spherical region with force diameter 
-    Pcavitycube = Pcube(vecnorm(Pcube') > d,:);
-    % Create points on the sphere
-    [x1,y1,z1] = sphere(24);
-    Psphere = d*[x1(:) y1(:) z1(:)];
-    % Get rid of the upper half sphere
-    PsphereHalf = Psphere(z1(:) <= 0,:); 
-    PsphereHalf = unique(PsphereHalf,'rows');
-    % Combine the coordinates of the rectangular grid (without the points
-    % inside the sphere) and the surface coordinates of the unit sphere. 
-    Pcombined = [Pcavitycube;PsphereHalf];
-    % Create an alphaShape object representing the cube with the spherical cavity. 
-    shpCubeWithSphericalCavity = alphaShape(Pcombined(:,1), ...
-                                            Pcombined(:,2), ...
-                                            Pcombined(:,3));
-    % Increasing alpha to fill unconnected mesh in the middle
-    shpCubeWithSphericalCavity.Alpha = 20;
-    % cavityAlone = alphaShape(Pcavitycube(:,1), ...
-    %                         Pcavitycube(:,2), ...
-    %                         Pcavitycube(:,3));       
-    % sphereAlone = alphaShape(PsphereHalf(:,1), ...
-    %                         PsphereHalf(:,2), ...
-    %                         PsphereHalf(:,3));       
-    % figure
-    % plot(shpCubeWithSphericalCavity,'FaceAlpha',0.4)
-    % title('alphaShape: Cube with Half-Spherical Cavity')
-    % plot(cavityAlone,'FaceAlpha',0.4)
-    % plot(sphereAlone,'FaceAlpha',0.4)
+    d = 64; %diameter of fine mesh section
+    
+    %extrude method
+    halfSide = 512/2;
+    bound = [3; 4; -halfSide; halfSide; halfSide; -halfSide; halfSide; halfSide; -halfSide; -halfSide]; %rectangle of substrate size
+    %create circles of decreasing radius in order 
+    r = d/2;
+    circ = [1; 0; 0; r; 0; 0; 0; 0; 0; 0]; %circle of radius r
+    circ1 = [1; 0; 0; r/2; 0; 0; 0; 0; 0; 0]; %circle of radius r/2
+    circ2 = [1; 0; 0; r/4; 0; 0; 0; 0; 0; 0]; %circle of radius r/4
+    circ3 = [1; 0; 0; r/6; 0; 0; 0; 0; 0; 0]; %circle of radius r/6
+    gd = [bound,circ,circ1,circ2,circ3];
+    ns = char('bound','circ','circ1','circ2','circ3');
+    ns = ns';
+    sf = 'bound + circ + circ1 + circ2 + circ3';    
+    [dl, ~] = decsg(gd,sf,ns);
+        
+    pdem = createpde;
+    g = geometryFromEdges(pdem,dl);
+    
+    %convert analytical model geometry to discrete geometry
+    facets = facetAnalyticGeometry(pdem,g,0);
+    gm = analyticToDiscrete(facets);
+    pdem.Geometry = gm; %reassign discrete geometry to model
 
-    % Recover the triangulation that defines the domain of the alphaShape object.
-    [tri,loc] = alphaTriangulation(shpCubeWithSphericalCavity);
-
-    % Create a PDE model.
-    modelCube = createpde;
-
-    % Create a geometry from the mesh and import the geometry and the mesh into the model.
-    [~,mshCube] = geometryFromMesh(modelCube,loc',tri');
-
-    % % Plot the resulting geometry.
-    % figure
-    % pdegplot(modelCube,'FaceAlpha',0.5,'CellLabels','on','FaceLabels','on')
-    % title('PDEModel: Cube with Half-Spherical Cavity')
-    % Identified that the half sphere is F7.
-
-    % //Solid Half Sphere Nested in Cube
-    % Create tetrahedral elements to form a solid sphere by using the spherical
-    % shell and adding a new node at the center. First, obtain the spherical
-    % shell by extracting facets of the spherical boundary.  
-    sphereFacets = boundaryFacets(mshCube,'Face',7);
-    %sphereNodes = findNodes(mshCube,'region','Face',7);
-
-    % Add a new node at the center.
-    newNodeID = size(mshCube.Nodes,2) + 1;
-
-    % Construct the tetrahedral elements by using each of the three nodes on the spherical boundary facets and the new node at the origin.
-    sphereTets =  [sphereFacets; newNodeID*ones(1,size(sphereFacets,2))];
-
-    % Create a model that combines the cube with the spherical cavity and a sphere.
-    model = createpde;
-
-    % Create a vector that maps all mshCube elements to cell 1, and all elements of the solid sphere to cell 2.
-    e2c = [ones(1,size(mshCube.Elements,2)), 2*ones(1,size(sphereTets,2))];
-
-    % Add a new node at the center [0;0;0] to the nodes of the cube with the cavity.
-    combinedNodes = [mshCube.Nodes,[0;0;0]];
-
-    % Combine the element connectivity matrices.
-    combinedElements = [mshCube.Elements,sphereTets];
-
-    % Create a two-cell geometry from the mesh.
-    [g,~] = geometryFromMesh(model,combinedNodes,combinedElements,e2c);
-
-    % figure
-    % pdegplot(model,'FaceAlpha',0.5,'CellLabels','on','FaceLabels','on')
-    % title('Solid Sphere in Cube')
-
+    %extrude 2D geometry into 3D of defined thickness
+    g = extrude(gm,thickness);
+    
 elseif multiForce
 
     imScale = 10;
@@ -226,7 +173,6 @@ elseif multiForce
     pdem.Geometry = gm; %reassign discrete geometry to model
 
     %extrude 2D geometry into 3D of defined thickness
-    thickness = 256;
     g = extrude(gm,thickness);
     
 end
@@ -236,11 +182,11 @@ structModel.Geometry=g;
 % //Specify material properties *******************************************
 structuralProperties(structModel,'YoungsModulus',E,'PoissonsRatio',v);
 
-% //Apply boundary constraints ********************************************
-if ~multiForce
-    structuralBC(structModel,'Face',5,'Constraint','fixed'); %New face ID for the bottom.
-elseif multiForce
+% //Apply boundary constraints *******************************************
+if multiForce
     structuralBC(structModel,'Face',1,'Constraint','fixed'); %New face ID for the bottom.
+elseif ~multiForce
+    structuralBC(structModel,'Face',1:5,'Constraint','fixed'); %New face ID for the bottom.
 end
 
 % //Apply force distribution on face 2 ************************************
@@ -275,8 +221,11 @@ generateMesh(structModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
 % pdeplot3D(structModel)
 
 %pass function handle and define BCs
-structuralBoundaryLoad(structModel,'Face',21,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
-
+if multiForce
+    structuralBoundaryLoad(structModel,'Face',21,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
+elseif ~multiForce
+    structuralBoundaryLoad(structModel,'Face',6:10,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
+end
 
 % //Solving structural model **********************************************
 structModelResults=solve(structModel);
@@ -286,7 +235,7 @@ figure(2)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
 figure(4)
-pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.uz, ...
+pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
 
 % //Shifting bead locations to apply interpDisp at those locations ********
@@ -299,8 +248,8 @@ if ~multiForce
     bead_xshifted=bead_x-(numPix_x/2)+0.5;     %bead_x from simGaussianBeads.m
     bead_yshifted=bead_y-(numPix_x/2)+0.5;     %bead_y from simGaussianBeads.m
 elseif multiForce
-    % top of the geometry is located at z = 256
-    bead_zshifted=256*ones(nPoints,1);  
+    % top of the geometry is located at z = thickness
+    bead_zshifted=thickness*ones(nPoints,1);  
     bead_xshifted=bead_x;     %bead_x from simGaussianBeads.m
     bead_yshifted=bead_y;     %bead_y from simGaussianBeads.m
 end
