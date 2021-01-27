@@ -22,7 +22,7 @@ function [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(fx,fy,d,nPoin
 %       Av =        vector containing gaussian bead amplitudes
 %
 %   Example:
-%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,1000,40,4000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',false)
+%       [bead_x,bead_y,bead_ux,bead_uy,Av]=simHydrogelDeformation(0,500,40,8000,1000,0.49,'/home/sehaarma/Documents/MATLAB/Bead Image Creation',false)
 close all
 
 % //Data path configuration ***********************************************
@@ -46,7 +46,7 @@ refstring=[chrRef chr1 '.tif'];
 imgstring=[chrBead chr1 '.tif'];
 
 % //Generate reference bead image *****************************************
-meshPtsFwdSol = 2^9; %number of pix/pts in mesh
+meshPtsFwdSol = 2^9; %number of points in mesh
 beadDiameter = 40; %20nm/bead
 pixelSize = 72; %20 nm/pix
 thickness = meshPtsFwdSol/4; %thickness of hydrogel for FEM purposes (pixels)
@@ -86,11 +86,6 @@ force_z = [];
 structModel=createpde('structural','static-solid');
 
 % //Define geometry *******************************************************
-% we use pixels to define fem geometry to ensure consistent units
-
-% deprecated coarse meshing:
-% gm=multicuboid(numPix_x,numPix_y,thickness);
-
 if ~multiForce
     
     d = 64; %diameter of fine mesh section
@@ -179,6 +174,8 @@ end
 
 structModel.Geometry=g;
 
+pdegplot(structModel)
+
 % //Specify material properties *******************************************
 structuralProperties(structModel,'YoungsModulus',E,'PoissonsRatio',v);
 
@@ -243,8 +240,8 @@ pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, 
 %Shifting bead locations because the outputs from simGaussianBeads are not
 %centered around the origin which is required for our FEM model.
 if ~multiForce
-    % top of the geometry is located at z = 0
-    bead_zshifted=0*ones(nPoints,1);   %interpolation location in z direction
+    % top of the geometry is located at z = thickness
+    bead_zshifted=thickness*ones(nPoints,1);   %interpolation location in z direction
     bead_xshifted=bead_x-(numPix_x/2)+0.5;     %bead_x from simGaussianBeads.m
     bead_yshifted=bead_y-(numPix_x/2)+0.5;     %bead_y from simGaussianBeads.m
 elseif multiForce
@@ -253,6 +250,7 @@ elseif multiForce
     bead_xshifted=bead_x;     %bead_x from simGaussianBeads.m
     bead_yshifted=bead_y;     %bead_y from simGaussianBeads.m
 end
+    
 %3D
 % bead_x3Dshifted=beadcenters3D(:,1)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
 % bead_y3Dshifted=beadcenters3D(:,2)-(meshPtsFwdSol/2)+0.5; %beadcenters3D from simGaussianSpots3D.m
