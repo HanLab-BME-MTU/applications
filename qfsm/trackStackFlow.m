@@ -53,11 +53,32 @@ function [v,corLength,sigtValues] = trackStackFlow(stack,points,minCorL,varargin
 %
 % References:
 % J. Li & G. Danuser, J. of microscopy, 220 150-167, 2005.
-
+%
+% Copyright (C) 2021, Han Lab - Michigan Tech & Danuser Lab - UTSouthwestern  
+% 
+% This file is part of TFM_Package.
+% 
+% TFM_Package is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% TFM_Package is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with TFM_Package.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% Adapted from imFlowTrack.m
 % Lin Ji, 2005
 % Sebastien Besson, May 2011 (last modified Nov 2011)
 % Adapted from imFlowTrack.m
-% Sangyoon Han, October 2012 (last modified July 2013)
+% Sangyoon Han, October 2012 (last modified Jan 2021)
+% Fix nested for-loop variable 'incFactor' not supported in parfor-loops issue for
+% matlab version R2019b and after. - Debugged by Jenny
+%
 
 % Input check
 ip= inputParser;
