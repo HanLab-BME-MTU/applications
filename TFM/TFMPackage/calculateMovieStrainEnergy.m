@@ -181,6 +181,12 @@ SE_Cell=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(n
     'SE_peri',zeros(nFrames,1),'SE_inside',zeros(nFrames,1),'SEDensityPeri',zeros(nFrames,1),'SEDensityInside',zeros(nFrames,1));
 
 totalForceCell = zeros(nFrames,1);
+avgTractionCell= zeros(nFrames,1);
+totalForceCellPeri= zeros(nFrames,1);
+totalForceCellInside= zeros(nFrames,1);
+avgTractionCellPeri= zeros(nFrames,1);
+avgTractionCellInside= zeros(nFrames,1);
+
 totalDispCell = zeros(nFrames,1);
 totalDispCellPeri = zeros(nFrames,1);
 totalDispCellInside = zeros(nFrames,1);
@@ -339,6 +345,10 @@ for ii=1:nFrames
         totalForceCell(ii) = sum(sum(tMapCell))*areaConvert*1e-3; % in nN
         totalForceCellPeri(ii) = sum(sum(tMapCellPeri))*areaConvert*1e-3; % in nN
         totalForceCellInside(ii) = sum(sum(tMapCellInside))*areaConvert*1e-3; % in nN
+
+        avgTractionCell(ii) = mean(tMapCell(:)); % in Pa
+        avgTractionCellPeri(ii) = mean(tMapCellPeri); % in Pa
+        avgTractionCellInside(ii) = mean(tMapCellInside); % in Pa
         
         totalDispCell(ii) = sum(sum(dMapCell))*areaConvert*pixSize_mu; % in um3
         totalDispCellPeri(ii) = sum(sum(dMapCellPeri))*areaConvert*pixSize_mu; % in um3
@@ -423,12 +433,24 @@ end
 if existMask && p.useCellMask
     save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri',...
         'totalForceCellInside','totalDispCell','totalDispCellPeri','totalDispCellInside',...
+        'avgTractionCell','avgTractionCellPeri','avgTractionCellInside',...
         'avgDispCell','avgDispCellPeri','avgDispCellInside'); % need to be updated for faster loading. SH 20141106
     if p.exportCSV
         tableSE_Cell=struct2table(SE_Cell);
         writetable(tableSE_Cell,outputFile{6})
         tableForceCell=table(totalForceCell,'VariableNames',{'totalForceCell'});
         writetable(tableForceCell,outputFile{7})
+        tableForceCell2=table(totalForceCellPeri,'VariableNames',{'totalForceCellPeri'});
+        writetable(tableForceCell2,[p.OutputDirectory filesep 'totalForceCellPeri.csv'])
+        tableForceCell3=table(totalForceCellInside,'VariableNames',{'totalForceCellInside'});
+        writetable(tableForceCell3,[p.OutputDirectory filesep 'totalForceCellInside.csv'])
+        tableForceCell4=table(avgTractionCell,'VariableNames',{'avgTractionCell'});
+        writetable(tableForceCell4,[p.OutputDirectory filesep 'avgTractionCell.csv'])
+        tableForceCell5=table(avgTractionCellPeri,'VariableNames',{'avgTractionCellPeri'});
+        writetable(tableForceCell5,[p.OutputDirectory filesep 'avgTractionCellPeri.csv'])
+        tableForceCell6=table(avgTractionCellInside,'VariableNames',{'avgTractionCellInside'});
+        writetable(tableForceCell6,[p.OutputDirectory filesep 'avgTractionCellInside.csv'])
+        
     end
 end
 if p.performForceBlobAnalysis
