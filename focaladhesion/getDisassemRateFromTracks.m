@@ -28,6 +28,10 @@ end
 tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
 if nargin<6
     tRangeSelected=tRange;
+elseif isempty(tRangeSelected)
+    disassemRate = NaN;
+    bestModel=[]; bestSummary=[]; yEntire=NaN;
+    return
 end
 
 % curAmpTotal =  curTrack.ampTotal(tRange);
@@ -52,10 +56,18 @@ end
 % amp1 directly.
 if strcmp(whichComp,'ampTotal') || strcmp(whichComp,'amp')
     [disassemRate,bestModel,bestSummary,tRangeSelected] = getDisassemRate(tIntervalMin*(tRange),curAmpTotal,minLifeTime);
-    yEntire = bestSummary.startingTS./curAmpTotal;
+    if isempty(bestSummary)
+        yEntire = [];
+    else
+        yEntire = bestSummary.startingTS./curAmpTotal;
+    end
 elseif strcmp(whichComp,'ampTotal2') || strcmp(whichComp,'amp2')
     [disassemRate,bestModel,bestSummary] = getDisassemRateDirect(tIntervalMin*(tRange),curAmpTotal,tRangeSelected);
-    yEntire = bestSummary.startingTS./curAmpTotal;
+    if isempty(bestSummary)
+        yEntire = [];
+    else
+        yEntire = bestSummary.startingTS./curAmpTotal;
+    end
     tRangeSelected=[];
 end
 

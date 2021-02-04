@@ -1564,6 +1564,21 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         end
     end
+    %% assemRate for all - again from step 11 quantification
+    assemRateAll = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x,'unif',false)),assemRateEachGroup,'unif',false); %need to work on this
+    % Discarding not assemblying adhesions
+    noAssembling = cell(numel(assemRateAll),1);
+    h1=figure; 
+    boxPlotCellArray(assemRateAll,nameList,1,false,true);
+    ylabel('Assembly rate (1/min)')
+    title(['Assembly rate in all groups'])
+    hgexport(h1,[figPath filesep 'assemRateAll'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'assemRateAll'],'-v7.3')
+    print(h1,[figPath filesep 'assemRateAll'],'-dtiff')
+
+    tableAssemRate=table(assemRateAll,'RowNames',nameList);
+    writetable(tableAssemRate,[dataPath filesep 'assemRateAll.csv'],'WriteRowNames',true)
+    
     %% disassemRateGroup
     for curGroup=find(nonZeroGroups)'
         try
@@ -1588,6 +1603,18 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         end
     end
+    %% disassemRate for all - again from step 11 quantification
+    disassemRateAll = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x,'unif',false)),disassemRateEachGroup,'unif',false); %need to work on this
+    h1=figure; 
+    boxPlotCellArray(disassemRateAll,nameList,1,false,true);
+    ylabel('disassembly rate (1/min)')
+    title('disassembly rate in all groups ')
+    hgexport(h1,[figPath filesep 'disassemRateAll'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'disassemRateAll'],'-v7.3')
+    print(h1,[figPath filesep 'disassemRateAll'],'-dtiff')
+
+    tableDisassemRate=table(disassemRateAll,'RowNames',nameList);
+    writetable(tableDisassemRate,[dataPath filesep 'disassemRateAll.csv'],'WriteRowNames',true)
     %% assemRate2Group
     try
         nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup{1});
@@ -1618,6 +1645,21 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         %end
     end
+    %% assemRate for all - again from step 11 quantification
+    assemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),assemRate2EachGroup,'unif',false); %need to work on this
+    % Discarding not assemblying adhesions
+    noAssembling = cell(numel(assemRate2All),1);
+    h1=figure; 
+    boxPlotCellArray(assemRate2All,nameList,1,false,true);
+    ylabel('Assembly rate (1/min)')
+    title(['Assembly rate in all groups of the other channel'])
+    hgexport(h1,[figPath filesep 'assemRate2All'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'assemRate2All'],'-v7.3')
+    print(h1,[figPath filesep 'assemRate2All'],'-dtiff')
+
+    tableAssemRate2=table(assemRate2All,'RowNames',nameList);
+    writetable(tableAssemRate2,[dataPath filesep 'assemRate2All.csv'],'WriteRowNames',true)
+
     %% disassemRate2Group
     for curGroup=find(nonZeroGroups2)
         %try
@@ -1642,6 +1684,20 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         %end
     end
+    %% disassemRate for all - again from step 11 quantification
+    disassemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),disassemRate2EachGroup,'unif',false); %need to work on this
+    % Discarding not disassemblying adhesions
+    nodisassembling = cell(numel(disassemRate2All),1);
+    h1=figure; 
+    boxPlotCellArray(disassemRate2All,nameList,1,false,true);
+    ylabel('Disassembly rate (1/min)')
+    title(['Disassembly rate in all groups of the other channel'])
+    hgexport(h1,[figPath filesep 'disassemRate2All'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'disassemRate2All'],'-v7.3')
+    print(h1,[figPath filesep 'disassemRate2All'],'-dtiff')
+
+    tableDisassemRate2=table(disassemRate2All,'RowNames',nameList);
+    writetable(tableDisassemRate2,[dataPath filesep 'disassemRate2All.csv'],'WriteRowNames',true)
 end
 %% save entire workspace for later
 save([dataPath filesep 'allData.mat'])
