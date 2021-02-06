@@ -332,7 +332,7 @@ if ~isempty(bestModelAssem)
 
     xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
     ylabel('Log[I/I_o]','FontUnits',genFontUnit,'FontSize',genFontSize)
-    text(bestModelAssem.Variables.x1(1)*60, (bestModelAssem.Fitted(1)+2*bestModelAssem.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem.adjRsquared) ];['K_{assem}=' num2str(assemRate)]})
+    text(bestModelAssem.Variables.x1(1)*60 - curStartFrameEE*tInterval, (bestModelAssem.Fitted(1)+2*bestModelAssem.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem.adjRsquared) ];['K_{assem}=' num2str(assemRate)]})
 else
     text(0,0.5,{'Failed assembly rate'; 'estimation'})
 end
@@ -353,8 +353,8 @@ if ~isempty(bestModelDis)
     plot(bestModelDis.Variables.x1*60 - curStartFrameEE*tInterval,bestModelDis.Fitted, 'r-')
     
     xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
-    ylabel('Log[I/I_o]','FontUnits',genFontUnit,'FontSize',genFontSize)
-    text(bestModelDis.Variables.x1(2)*60, (bestModelDis.Fitted(1)+2*bestModelDis.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis.adjRsquared) ];['K_{disassem}=' num2str(disassemRate)]})
+    ylabel('Log[I_o/I]','FontUnits',genFontUnit,'FontSize',genFontSize)
+    text(bestModelDis.Variables.x1(2)*60 - curStartFrameEE*tInterval, (bestModelDis.Fitted(1)+2*bestModelDis.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis.adjRsquared) ];['K_{disassem}=' num2str(disassemRate)]})
 else
     text(0,0.5,{'Failed disassembly rate'; 'estimation'})
 end
@@ -498,7 +498,11 @@ if ~isempty(imgMap2)
 
     % Assembly for amp2
     ax17=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (410+175+80+70)/figHeight, 155/figWidth,60/figHeight]);
-    [assemRate2,bestModelAssem2,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp2',15,0,tRangeSelectedAssem);
+    if ~isempty(bestModelAssem)
+        [assemRate2,bestModelAssem2,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp2',15,0,tRangeSelectedAssem);
+    else
+        bestModelAssem2 = [];
+    end
     % bestModelAssem.plot
     if ~isempty(bestModelAssem2)
         plot(bestModelAssem2.Variables.x1*60 - curStartFrameEE*tInterval,bestModelAssem2.Variables.y, 'bx-.')
@@ -507,7 +511,7 @@ if ~isempty(imgMap2)
 
         xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
         ylabel('Log[I/I_o]','FontUnits',genFontUnit,'FontSize',genFontSize)
-        text(bestModelAssem2.Variables.x1(1)*60, (bestModelAssem2.Fitted(1)+2*bestModelAssem2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem2.adjRsquared) ];['K_{assem}=' num2str(assemRate2)]})
+        text(bestModelAssem2.Variables.x1(1)*60 - curStartFrameEE*tInterval, (bestModelAssem2.Fitted(1)+2*bestModelAssem2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem2.adjRsquared) ];['K_{assem}=' num2str(assemRate2)]})
     else
         text(0,0.5,{'Failed assembly rate'; 'estimation'})
     end
@@ -523,8 +527,8 @@ if ~isempty(imgMap2)
         plot(bestModelDis2.Variables.x1*60- curStartFrameEE*tInterval,bestModelDis2.Fitted, 'r-')
 
         xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
-        ylabel('Log[I/I_o]','FontUnits',genFontUnit,'FontSize',genFontSize)
-        text(bestModelDis2.Variables.x1(2)*60, (bestModelDis2.Fitted(1)+2*bestModelDis2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis2.adjRsquared) ];['K_{disassem}=' num2str(disassemRate2)]})
+        ylabel('Log[I_o/I]','FontUnits',genFontUnit,'FontSize',genFontSize)
+        text(bestModelDis2.Variables.x1(2)*60 - curStartFrameEE*tInterval, (bestModelDis2.Fitted(1)+2*bestModelDis2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis2.adjRsquared) ];['K_{disassem}=' num2str(disassemRate2)]})
     else
         text(0,0.5,{'Failed disassembly rate'; 'estimation'})
     end

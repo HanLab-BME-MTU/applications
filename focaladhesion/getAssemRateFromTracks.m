@@ -28,7 +28,12 @@ tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
 % curAmpTotal =  curTrack.ampTotal(tRange);
 if nargin<6
     tRangeSelected=tRange;
+elseif isempty(tRangeSelected)
+    assemRate = NaN;
+    bestModel=[]; bestSummary=[]; yEntire=NaN;
+    return
 end
+
 
 try
     curAmpTotal =  getfield(curTrack,{1},whichComp,{tRange});
@@ -42,6 +47,11 @@ catch
 %     curAmpTotal =  curTrack.amp(tRange);
 end
 
+% There is a case where the first element is negative. In that case, we
+% elevate the entire sereis above zero.
+if curAmpTotal(1)<0
+    curAmpTotal = curAmpTotal - curAmpTotal(1) + 0.1*std(curAmpTotal);
+end
 %% GET IT
 if length(tRange)<minLifeTime+1
     assemRate=NaN;

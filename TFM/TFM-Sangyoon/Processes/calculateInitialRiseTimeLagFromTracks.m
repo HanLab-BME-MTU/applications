@@ -805,10 +805,16 @@ end
     numTracks=numel(tracksNA);
     tIntMin=MD.timeInterval_/60;
     tRangeSelectedAssem = cell(numTracks,1);
+    R2criteria = 0.5;
     parfor kk=1:numTracks
         curTrack=tracksNA(kk);
-        [curAssemRate,~,~,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp');
-        curTrack.disassemRate = curAssemRate;
+        [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp');
+        if ~isnan(curAssemRate)
+            if bestSummaryAssem.adjRsquared<R2criteria %something about too short TS?
+                curAssemRate = NaN;
+            end
+        end
+        curTrack.assemRate = curAssemRate;
         tRangeSelectedAssem{kk} = tRangeSelected;
         tracksNA(kk)=curTrack;
 %         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
@@ -838,8 +844,14 @@ end
     disp('Calculating disassembly rates'); tic
     tRangeSelectedDisassem = cell(numel(tracksNA),1);
     parfor kk=1:numTracks
+%     for kk=1:numTracks
         curTrack=tracksNA(kk);
-        [curDisassemRate,~,~,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'amp');
+        [curDisassemRate,~,bestSummaryDisassem,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'amp');
+        if ~isnan(curDisassemRate)
+            if bestSummaryDisassem.adjRsquared<R2criteria
+                curDisassemRate = NaN;
+            end
+        end
         curTrack.disassemRate = curDisassemRate;
         tRangeSelectedDisassem{kk} = tRangeSelected;
         tracksNA(kk)=curTrack;
@@ -896,9 +908,19 @@ end
             disp('Calculating assembly/disassembly rates'); tic
             for kk=1:numTracks
                 curTrack=tracksNA(kk);
-                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'amp2',15,0,tRangeSelectedAssem{kk});
+                [curAssemRate,~,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntMin,'amp2',15,0,tRangeSelectedAssem{kk});
+                if ~isnan(curAssemRate)
+                    if (bestSummaryAssem2.adjRsquared<0.125*R2criteria && abs(curAssemRate) > 0.5) || isnan(curTrack.assemRate)
+                        curAssemRate = NaN;
+                    end
+                end
                 curTrack.assemRate2 = curAssemRate;
-                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'amp2',25,0,tRangeSelectedDisassem{kk});
+                [curDisassemRate,~,bestSummaryDisassem2] = getDisassemRateFromTracks(curTrack,tIntMin,'amp2',25,0,tRangeSelectedDisassem{kk});
+                if ~isnan(curDisassemRate)
+                    if (bestSummaryDisassem2.adjRsquared<0.125*R2criteria && abs(curDisassemRate) > 0.5) || isnan(curTrack.disassemRate)
+                        curDisassemRate = NaN;
+                    end
+                end
                 curTrack.disassemRate2 = curDisassemRate;
                 tracksNA(kk)=curTrack;
                 progressText(kk/numTracks,'assem/Disassem calculation');
