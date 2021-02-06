@@ -1,136 +1,20 @@
 %% open necessary MLs
 MLdirect=false;
-isDesktopAvail = usejava('desktop');
-usedSelectedFoldersMat=false;
-
-if isDesktopAvail
-    [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
-else
-    disp({'Type selectedFolders.mat.  If do not have one, push enter';
-        ['Your current path: ' pwd]});
-    rawPath = input(': ','s');
-    if isempty(rawPath)
-        pathSFolders = 0;
-    else
-        [pathSFolders, fileSFolders] = fileparts(rawPath);
-    end
-end
-
-groupNames=[];
-
-if ~ischar(pathSFolders) && pathSFolders==0
-    analysisFolderSelectionDone = false;
-    ii=0;
-    rootFolder=pwd;
-    while ~analysisFolderSelectionDone
-        ii=ii+1;
-        if isDesktopAvail
-            curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        else
-            disp({'Select each analysis folder that contains movieList.mat.  If do not have one, push enter';
-                ['Your current path: ' pwd]});
-            rawPath = input(': ','s');
-            if isempty(rawPath)
-                curPathProject = 0;
-            else
-                curPathProject = rawPath;
-            end
-        end
-%         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
-        if ~ischar(curPathProject) && curPathProject==0
-            analysisFolderSelectionDone=true;
-        else
-            [curPathProject2,finalFolder] = fileparts(curPathProject);
-            pathAnalysisAll{ii} = curPathProject;
-            if isempty(finalFolder)
-                [~,finalFolder] = fileparts(curPathProject2);
-            end
-            groupNames{ii} = finalFolder;
-            MLNames{ii} = 'movieList';
-            MLFileNamesAll{ii} = 'movieList.mat';
-            MLdirect=true;
-        end
-    end
-    if ~analysisFolderSelectionDone && ii==1
-        MLSelectionDone = false;
-        ii=0;
-        while ~MLSelectionDone
-            ii=ii+1;
-            if isDesktopAvail
-                [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
-            else
-                disp({'Select each movieList.  If do not have one, push enter';
-                    ['Your current path: ' pwd]});
-                rawPath = input(': ','s');
-                if isempty(rawPath)
-                    curPathML = rawPath;
-                else
-                    [curPathML, nameML] = fileparts(rawPath);
-                end
-            end
-            if ~ischar(curPathML) || isempty(curPathML)
-                MLSelectionDone=true;
-            else
-                curML = load(fullfile(curPathML,nameML),'ML'); curML=curML.ML;
-                pathAnalysisAll{ii} = curML.getPath;
-                try
-                    groupNames{ii} = nameML(10:end-4); %Excluding first 'movieList' and last '.mat'
-                catch % when movieList is just movieList.mat, use the name of the containing folder
-                    [~,finalFolder] = fileparts(pathAnalysisAll{ii});
-                    groupNames{ii} = finalFolder;
-                end
-                MLNames{ii} = nameML;
-            end
-        end
-        MLdirect=true;
-    end
-    specificName = strjoin(groupNames);
-    rootAnalysis = pathAnalysisAll{1};
-    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
-else
-    usedSelectedFoldersMat=true;    
-    selectedFolders=load([pathSFolders filesep fileSFolders]);
-    pathAnalysisAll=selectedFolders.pathAnalysisAll;
-    specificName=fileSFolders(16:end);
-    MLNames = selectedFolders.MLNames;%'movieList.mat';
-%    MLFileNamesAll = MLNames;
-    for k=1:numel(pathAnalysisAll)
-        MLFileNamesAll{k} = [selectedFolders.MLNames{k} '.mat'];%'movieList.mat';
-    end
-end
-
-%% Load movieLists for each condition
-numConditions = numel(pathAnalysisAll);
-
-for k=1:numConditions
-    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLFileNamesAll{k}]);
-end
-%% setting up group name
-if MLdirect && isempty(groupNames)
-%     if strcmp(MLFileNamesAll{1}(end-7:end-4),'List')
-    groupNames=MLFileNamesAll;
-elseif isempty(groupNames)
-    for ii=1:numConditions
-        [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
-        if isempty(finalFolder)
-            [~, finalFolder]=fileparts(pathFolder);
-        end
-        groupNames{ii} = finalFolder;
-    end
-end
-nameList=groupNames'; %{'pLVX' 'P29S'};
-
+[pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,specificName]=chooseSelectedFolders;
 % Asking user
-disp('Do you want to rename your condition names? The current names are: ')
+disp('The current names are: ')
+nameList = groupNames';
 disp(nameList)
-for ii=1:numel(nameList)
-    curName = input(['For ' nameList{ii} ': '], 's');
-    if ~isempty(curName)
-        nameList{ii} = curName;
+namesOK = input('Do you want to rename your condition names? (y/n)','s');
+if strcmp(namesOK, 'y')
+    for ii=1:numel(nameList)
+        curName = input(['For ' nameList{ii} ': '], 's');
+        if ~isempty(curName)
+            nameList{ii} = curName;
+        end
     end
+    specificName = strjoin(nameList);
 end
-specificName = strjoin(nameList);
-
 %% Output
 % rootAnalysis = fileparts(pathAnalysisAll{1});
 rootAnalysis = pathAnalysisAll{1};
@@ -138,6 +22,12 @@ figPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Figs'];
 mkdir(figPath)
 dataPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Data'];
 mkdir(dataPath)
+%% Loading
+numConditions=numel(pathAnalysisAll);
+
+for k=1:numConditions
+    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
+end
 %% Collecting general adhesion-reated features
 numClasses=9;
 N=zeros(numConditions,1);
@@ -844,10 +734,14 @@ if ~isempty(initRiseProc) && ~isempty(curFAPackage.getProcess(10))
     for ii=1:numConditions
         curFractionForceTransmitting = fractionForceTransmittingGroup{ii,1};
         curNumEachGroupForceTransmitting = numEachGroupForceTransmittingGroup{ii,1};
-        groupLabel = arrayfun(@(x,y) ['G' num2str(x) '(M=' num2str(numel(y{1})) ',N=' num2str(sum(y{1})) ')'],1:9,curNumEachGroupForceTransmitting,'unif',false);
+        try
+            groupLabel = arrayfun(@(x,y) ['G' num2str(x) '(M=' num2str(numel(y{1})) ',N=' num2str(sum(y{1})) ')'],1:9,curNumEachGroupForceTransmitting,'unif',false);
+        catch
+            groupLabel = arrayfun(@(x,y) ['G' num2str(x) '(M=' num2str(numel(y{1})) ',N=' num2str(sum(y{1})) ')'],1:9,curNumEachGroupForceTransmitting','unif',false);
+        end
         
         h1=figure; 
-        plotSuccess=boxPlotCellArray(curFractionForceTransmitting,groupLabel,1,false,true);
+        plotSuccess=boxPlotCellArray(curFractionForceTransmitting,groupLabel',1,false,true);
         if plotSuccess
             ylabel('Fraction of force transmitting NAs (1)')
             title(['Fraction of force transmitting NAs. ' groupNames{ii}])
