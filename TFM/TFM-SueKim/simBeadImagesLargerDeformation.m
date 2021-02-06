@@ -132,7 +132,7 @@ background = ~foreground;
 force_x = (maxFnoise*rand(ymax,xmax)).*background + force_x;
 force_y = (maxFnoise*rand(ymax,xmax)).*background + force_y;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
-figure, imshow(fnorm_org,[0 5100]), colormap jet
+figure, imshow(fnorm_org,[0 12000]), colormap jet
 
 %% displacement field
 % figure 2
