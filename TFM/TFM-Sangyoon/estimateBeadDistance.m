@@ -45,7 +45,7 @@ distAllUm = distAll*pixSizeUm;
 %% Output
 beadDistAll = distAllUm; %in um
 % beadDensity = numel(pstruct.x)/curArea; % in #/um2
-beadDensity = 1./sqrt(beadDistAll);
+beadDensity = 1./sqrt(mean(beadDistAll));
 disp(['Mean distance= ' num2str(mean(distAllUm),3) ' um, Bead density= ' num2str(beadDensity,3) ' /um^2.'])
 end
 
