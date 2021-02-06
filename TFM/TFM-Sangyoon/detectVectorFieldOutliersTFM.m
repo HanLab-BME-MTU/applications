@@ -43,10 +43,12 @@ ip.addRequired('data',@(x) size(x,2)==4);
 ip.addOptional('threshold',2,@isscalar);
 ip.addOptional('weighted' ,1,@isscalar);
 ip.addParamValue('epsilon',.1,@isscalar);
+ip.addParamValue('maxDist',20,@isscalar);
 ip.parse(data,varargin{:})
 threshold=ip.Results.threshold;
 weighted=ip.Results.weighted;
 epsilon=ip.Results.epsilon;
+maxDist=ip.Results.maxDist;
 
 % Filter out NaN from the initial data (but keep the index for the
 % outliers)
@@ -72,7 +74,7 @@ neiBeadsWhole = dataU(:,1:2);
 %         distance2(i) = NaN;
 %     end
 % end
-for scanDist=1:20 % Get the distance until each point has at least 2 neighbors
+for scanDist=1:maxDist % Get the distance until each point has at least 2 neighbors
     [~,distance] = KDTreeBallQuery(neiBeadsWhole,dataU(:,1:2),scanDist);
     idxBeadsEnoughNeis = cellfun(@length,distance);
     if quantile(idxBeadsEnoughNeis,0.01)>=3

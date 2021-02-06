@@ -134,7 +134,7 @@ outlierThreshold=p.outlierThreshold;
         displField(j).vec=dispMat(:,3:4);
 
         if ~isempty(outlierThreshold)
-            [outlierIndex,sparselyLocatedIdx,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold,1);
+            [outlierIndex,sparselyLocatedIdx,~,neighborhood_distance(j)] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold,1,'maxDist',pDistProc.maxFlowSpeed);
             %displField(j).pos(outlierIndex,:)=[];
             %displField(j).vec(outlierIndex,:)=[];
             dispMat(outlierIndex,3:4)=NaN;
