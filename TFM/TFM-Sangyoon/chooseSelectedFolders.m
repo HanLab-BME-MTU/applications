@@ -46,7 +46,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
             analysisFolderSelectionDone=true;
             MLdirectNeeded=true;
         else
-            analysisFolderSelectionDone=true;
+%             analysisFolderSelectionDone=true;
             [curPathProject2,finalFolder] = fileparts(curPathProject);
             pathAnalysisAll{ii} = curPathProject;
             if isempty(finalFolder)
