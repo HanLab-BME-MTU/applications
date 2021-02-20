@@ -532,8 +532,8 @@ h1=figure;
 boxPlotCellArray(forceGroupAll,nameListAdhComb,1,false,true);
 title('Traction at all adhesions')
 ylabel('Traction (Pa)')
-hgexport(h4,strcat(figPath,'/forceAll'),hgexport('factorystyle'),'Format','eps')
-hgsave(h4,strcat(figPath,'/forceAll'),'-v7.3')
+hgexport(h1,strcat(figPath,'/forceAll'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/forceAll'),'-v7.3')
 
 %% saving
 close all
