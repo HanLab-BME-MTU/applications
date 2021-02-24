@@ -232,8 +232,7 @@ figure(2)
 pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
 figure(4)
-pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
-    'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
+pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude,'Mesh','on')
 
 % //Shifting bead locations to apply interpDisp at those locations ********
 %2D

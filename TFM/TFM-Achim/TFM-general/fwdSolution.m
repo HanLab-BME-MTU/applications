@@ -145,6 +145,111 @@ elseif strcmpi(method,'FEM')
     uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
     toc;    
     disp('Completed FEM fwd solution.')
+    
+%%%%%NONLINEAR FEM SOLUTION%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if nonlin == 1
+        tic;
+        disp('Utilizing Non-linear FEM for forward soluton')
+
+        vx = linspace(x0(1),x0(2),meshPtsFwdSol);
+        vy = linspace(y0(1),y0(2),meshPtsFwdSol);
+        [x_grid,y_grid] = meshgrid(vx,vy);
+
+        %Creating PDE Container
+        femNonLinModel = createpde(3);
+
+        %Define geometry
+        h = x0(2) / 2; %thickness of substrate
+        d = 0.1250 * x0(2); %diameter of fine mesh section
+
+        %extrude method
+        halfSide = x0(2);
+        bound = [3; 4; -halfSide; halfSide; halfSide; -halfSide; halfSide; halfSide; -halfSide; -halfSide]; %rectangle of substrate size
+        %create circles of decreasing radius in order 
+        r = d/2;
+        circ = [1; 0; 0; r; 0; 0; 0; 0; 0; 0]; %circle of radius r
+        circ1 = [1; 0; 0; r/2; 0; 0; 0; 0; 0; 0]; %circle of radius r/2
+        circ2 = [1; 0; 0; r/4; 0; 0; 0; 0; 0; 0]; %circle of radius r/4
+        circ3 = [1; 0; 0; r/6; 0; 0; 0; 0; 0; 0]; %circle of radius r/6
+        gd = [bound,circ,circ1,circ2,circ3];
+        ns = char('bound','circ','circ1','circ2','circ3');
+        ns = ns';
+        sf = 'bound + circ + circ1 + circ2 + circ3';    
+        [dl, ~] = decsg(gd,sf,ns);
+
+        pdem = createpde;
+        g = geometryFromEdges(pdem,dl);
+
+        %convert analytical model geometry to discrete geometry
+        facets = facetAnalyticGeometry(pdem,g,0);
+        gm = analyticToDiscrete(facets);
+        pdem.Geometry = gm; %reassign discrete geometry to model
+
+        %extrude 2D geometry into 3D of defined thickness
+        g = extrude(gm,h);
+        %reassign extruded geometry to model for fwdSolution
+        femNonLinModel.Geometry = g;
+
+        %Derive equation coefficients
+        %E defined in inputs
+        %gnu defined in inputs
+        rho = 1302; %kg/m3 !placeholder! (density of PA gel)
+        if v == 0.5
+            G = E / (2 .* (1 + (v - 0.001))); %approx. bulk modulus if v = 0.5
+        else
+            G = E / (2 .* (1 + v)); %bulk modulus
+        end
+        mu = (2 * G * v) / (1 - v);
+        c = @(location,state) cCoefficientLagrangePlaneStress(E,v,location,state); %
+        f = [0 0]';
+        specifyCoefficients(femNonLinModel,'m',rho,'d',0,'c',c,'a',0,'f',f);
+
+        %Constrain bottom face
+        applyBoundaryCondition(femNonLinModel,'dirichlet','Face',1:5,'u',[0 0 0])
+
+        %Setting up forces
+        force_z = zeros(meshPtsFwdSol); %can be replaced by real data if a normal force is desired
+        %To utilize griddedInterpolant, the input matrices must be NGRID format,
+        %therefore the dummy variables x_zgrid and y_zgrid are created.
+        [x_zgrid,y_zgrid] = ndgrid(vx,vy);
+        forceInterpZ = griddedInterpolant(x_zgrid,y_zgrid,force_z);
+
+        oneORtwo = force_x(0,0);
+        if oneORtwo == 1
+            %force_xy is defined using function handles for the central basis
+            %function
+            force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
+                                        force_y(location.x,location.y); ... %force_y is force mesh of y forces
+                                        force_y(location.x,location.y);]; %forceInterpz is dummy variable for now         
+        elseif oneORtwo == 0
+            force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
+                                        force_y(location.x,location.y); ... %force_y is force mesh of y forces
+                                        force_x(location.x,location.y);]; %forceInterpz is dummy variable for now  
+        end
+
+        %Apply force on top face
+        applyBoundaryCondition(femNonLinModel,'neumann','Face',10,'g',force_xy);
+        
+        %Set initial conditions
+        setInitialConditions(femNonLinModel,0,0);
+        
+        %Mesh the model
+        generateMesh(femNonLinModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
+        
+        %Solve the model
+        tlist = 100;
+        femNonLinResults = solve(femFwdModel,tlist);
+
+        %Interpolate displacements
+        z_grid = h*ones(meshPtsFwdSol);
+        interpDisp=interpolateDisplacement(femNonLinResults,x_grid,y_grid,z_grid);
+
+        %Fill in output displacement variables
+        ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
+        uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
+        toc;    
+        disp('Completed Non-linear FEM fwd solution.')
+    end
 
 elseif strcmpi(method,'fft')
     %display('Use fast convolution')    
