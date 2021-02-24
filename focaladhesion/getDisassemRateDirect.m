@@ -34,7 +34,7 @@ statModel = fitlm(curTRange, log(curTSnorm));
 
 fitSummary.adjRsquared = statModel.Rsquared.Adjusted;
 fitSummary.rSquared = statModel.Rsquared.Ordinary;
-fitSummary.pValue = statModel.Coefficients.pValue;
+fitSummary.pValue = statModel.Coefficients.pValue(2);
 fitSummary.slope = statModel.Coefficients.Estimate(2);
 fitSummary.time_length = tRangeMin(tRangeSelected(1));
 fitSummary.image_count = 1;

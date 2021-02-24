@@ -117,7 +117,7 @@ for ii=1:numConditions
             curDataPath= [outputFilePath filesep 'data'];
             ampTheOtherAll(k) = load([curDataPath filesep 'ampTheOtherPerAdhesionType.mat']);
         else
-            ampTheOtherAll(k)=[];
+            ampTheOtherAll(k)=NaN;
         end
     end
     NAdensity{ii}=curNAdensity;
@@ -344,16 +344,18 @@ hgsave(h2,strcat(figPath,'/NAquantity'),'-v7.3')
 tableNAquantity=table(numNA,'RowNames',nameList);
 writetable(tableNAquantity,strcat(dataPath,'/NAquantity.csv'))
 %% Plotting the other channel amplitudes
-ampTheOther = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOther, x','unif',false)'),FAstructGroup','unif',false);
-h4=figure; 
-boxPlotCellArray(ampTheOther,nameList',1,0,1)
-title('Amplitude of the other channel')
-ylabel('Fluorescence amplitude (a.u.)')
-hgexport(h4,strcat(figPath,'/ampTheOther'),hgexport('factorystyle'),'Format','eps')
-hgsave(h4,strcat(figPath,'/ampTheOther'),'-v7.3')
+if isfield(FAstructGroup{1}(1),'ampTheOther')
+    ampTheOther = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOther, x','unif',false)'),FAstructGroup','unif',false);
+    h4=figure; 
+    boxPlotCellArray(ampTheOther,nameList',1,0,1)
+    title('Amplitude of the other channel')
+    ylabel('Fluorescence amplitude (a.u.)')
+    hgexport(h4,strcat(figPath,'/ampTheOther'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h4,strcat(figPath,'/ampTheOther'),'-v7.3')
 
-tableAmpTheOther=table(ampTheOther','RowNames',nameList);
-writetable(tableAmpTheOther,strcat(dataPath,'/ampTheOther.csv'))
+    tableAmpTheOther=table(ampTheOther','RowNames',nameList);
+    writetable(tableAmpTheOther,strcat(dataPath,'/ampTheOther.csv'))
+end
 %% Adhesion eccentricity
 eccCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ecc, x,'unif',false)'),FAstructGroup','unif',false);
 h4=figure; 
@@ -449,38 +451,53 @@ ylabel('Traction (Pa)')
 hgexport(h4,strcat(figPath,'/forceNA'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/forceNA'),'-v7.3')
 %% the amplitude of the other channel (than TFM and than the adhesion) for FAs
-ampTheOtherFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFA, x)),ampTheOtherAllGroup','unif',false);
-h4=figure; 
-boxPlotCellArray(ampTheOtherFACell,nameList',1,0,1)
-title('The amplitude (background-subtracted) of the third channel per FA')
-ylabel('The amplitude (a.u.)')
-hgexport(h4,strcat(figPath,'/ampTheOtherFA'),hgexport('factorystyle'),'Format','eps')
-hgsave(h4,strcat(figPath,'/ampTheOtherFA'))
+if isfield(FAstructGroup{1}(1),'ampTheOther')
+    ampTheOtherFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFA, x)),ampTheOtherAllGroup','unif',false);
+    h4=figure; 
+    boxPlotCellArray(ampTheOtherFACell,nameList',1,0,1)
+    title('The amplitude (background-subtracted) of the third channel per FA')
+    ylabel('The amplitude (a.u.)')
+    hgexport(h4,strcat(figPath,'/ampTheOtherFA'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h4,strcat(figPath,'/ampTheOtherFA'))
+end
 %% the amplitude of the other channel (than TFM and than the adhesion) for FCs
-ampTheOtherFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFC, x)),ampTheOtherAllGroup','unif',false);
-h4=figure; 
-boxPlotCellArray(ampTheOtherFCCell,nameList',1,0,1)
-title('The amplitude (background-subtracted) of the third channel per FC')
-ylabel('The amplitude (a.u.)')
-hgexport(h4,strcat(figPath,'/ampTheOtherFC'),hgexport('factorystyle'),'Format','eps')
-hgsave(h4,strcat(figPath,'/ampTheOtherFC'))
+if isfield(FAstructGroup{1}(1),'ampTheOther')
+    ampTheOtherFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFC, x)),ampTheOtherAllGroup','unif',false);
+    h4=figure; 
+    boxPlotCellArray(ampTheOtherFCCell,nameList',1,0,1)
+    title('The amplitude (background-subtracted) of the third channel per FC')
+    ylabel('The amplitude (a.u.)')
+    hgexport(h4,strcat(figPath,'/ampTheOtherFC'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h4,strcat(figPath,'/ampTheOtherFC'))
+end
 %% the amplitude of the other channel (than TFM and than the adhesion) for NAs
-ampTheOtherNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherNA, x)),ampTheOtherAllGroup','unif',false);
-h4=figure; 
-boxPlotCellArray(ampTheOtherNACell,nameList',1,0,1)
-title('The amplitude (background-subtracted) of the third channel per NA')
-ylabel('The amplitude (a.u.)')
-hgexport(h4,strcat(figPath,'/ampTheOtherNA'),hgexport('factorystyle'),'Format','eps')
-hgsave(h4,strcat(figPath,'/ampTheOtherNA'))
-%% the amplitude of the other channel all together
+if isfield(FAstructGroup{1}(1),'ampTheOther')
+    ampTheOtherNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherNA, x)),ampTheOtherAllGroup','unif',false);
+    h4=figure; 
+    boxPlotCellArray(ampTheOtherNACell,nameList',1,0,1)
+    title('The amplitude (background-subtracted) of the third channel per NA')
+    ylabel('The amplitude (a.u.)')
+    hgexport(h4,strcat(figPath,'/ampTheOtherNA'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h4,strcat(figPath,'/ampTheOtherNA'))
+end
+%% the name for all together
 nameListAdh={'NA','FC','FA'};
-nameListAdhComb=cell(numel(ampTheOtherNACell)*3,1);
+nameListAdhComb=cell(numel(eccCell)*3,1);
+
+for ii=1:numel(eccCell)
+    p=ii-1;
+    for jj=1:3
+        nameListAdhComb{3*p+jj,1} = [nameList{ii} '-' nameListAdh{jj}];
+    end
+end
+
+%% the amplitude of the other channel all together
+
 amplitudeGroupAll=cell(numel(ampTheOtherNACell)*3,1);
 amplitudeGroup={ampTheOtherNACell, ampTheOtherFCCell, ampTheOtherFACell};
 for ii=1:numel(ampTheOtherNACell)
     p=ii-1;
     for jj=1:3
-        nameListAdhComb{3*p+jj,1} = [nameList{ii} '-' nameListAdh{jj}];
         amplitudeGroupAll{3*p+jj,1} = amplitudeGroup{jj}{ii};
     end
 end
@@ -494,13 +511,15 @@ if plotSuccess
     print(h1,[figPath filesep 'amplitudeTheOtherAll'],'-dtiff')
 end
 %% amplitude the other bar plot
-h1=figure; 
-barPlotCellArray(amplitudeGroupAll,nameListAdhComb);
-ylabel('Fluorescence amplitude (a.u.)')
-title('Background-subtracted amplitude of the other channel')
-hgexport(h1,[figPath filesep 'amplitudeTheOtherAllBar'],hgexport('factorystyle'),'Format','eps')
-hgsave(h1,[figPath filesep 'amplitudeTheOtherAllBar'])
-print(h1,[figPath filesep 'amplitudeTheOtherAllBar'],'-dtiff')
+if isfield(FAstructGroup{1}(1),'ampTheOther')
+    h1=figure; 
+    barPlotCellArray(amplitudeGroupAll,nameListAdhComb);
+    ylabel('Fluorescence amplitude (a.u.)')
+    title('Background-subtracted amplitude of the other channel')
+    hgexport(h1,[figPath filesep 'amplitudeTheOtherAllBar'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'amplitudeTheOtherAllBar'])
+    print(h1,[figPath filesep 'amplitudeTheOtherAllBar'],'-dtiff')
+end
 %% the force in adhesions all together
 forceGroup = {forcesNACell, forcesFCCell,forcesFACell};
 for ii=1:numel(forcesNACell)
@@ -513,8 +532,8 @@ h1=figure;
 boxPlotCellArray(forceGroupAll,nameListAdhComb,1,false,true);
 title('Traction at all adhesions')
 ylabel('Traction (Pa)')
-hgexport(h4,strcat(figPath,'/forceAll'),hgexport('factorystyle'),'Format','eps')
-hgsave(h4,strcat(figPath,'/forceAll'),'-v7.3')
+hgexport(h1,strcat(figPath,'/forceAll'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/forceAll'),'-v7.3')
 
 %% saving
 close all

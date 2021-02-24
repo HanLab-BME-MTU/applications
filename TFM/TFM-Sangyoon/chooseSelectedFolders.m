@@ -33,7 +33,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
         if isDesktopAvail
             curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
         else
-            disp({'Select each analysis folder that contains movieList.mat.  If do not have one, push enter';
+            disp({'Type each analysis folder that contains movieList.mat.  If do not have one, push enter';
                 ['Your current path: ' pwd]});
             rawPath = input(': ','s');
             if isempty(rawPath)
@@ -42,10 +42,11 @@ if ~ischar(pathSFolders) && pathSFolders==0
                 curPathProject = rawPath;
             end
         end
-%         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
+            MLdirectNeeded=true;
         else
+%             analysisFolderSelectionDone=true;
             [curPathProject2,finalFolder] = fileparts(curPathProject);
             pathAnalysisAll{ii} = curPathProject;
             if isempty(finalFolder)
@@ -53,10 +54,10 @@ if ~ischar(pathSFolders) && pathSFolders==0
             end
             groupNames{ii} = finalFolder;
             MLNames{ii} = 'movieList.mat';
-            MLdirect=true;
+            MLdirectNeeded=false;
         end
     end
-    if ~analysisFolderSelectionDone && ii==1
+    if ii==1 && MLdirectNeeded
         MLSelectionDone = false;
         ii=0;
         while ~MLSelectionDone

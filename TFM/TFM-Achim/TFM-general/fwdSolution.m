@@ -66,13 +66,12 @@ elseif strcmpi(method,'FEM')
     
     %Define geometry
     h = 256; %thickness of substrate
-    d = 64; %diameter of fine mesh section
+    r = 16; %radius of fine mesh section
     
     %extrude method
     halfSide = x0(2);
     bound = [3; 4; -halfSide; halfSide; halfSide; -halfSide; halfSide; halfSide; -halfSide; -halfSide]; %rectangle of substrate size
-    %create circles of decreasing radius in order 
-    r = d/2;
+    %create circles of decreasing radius in order
     circ = [1; 0; 0; r; 0; 0; 0; 0; 0; 0]; %circle of radius r
     circ1 = [1; 0; 0; r/2; 0; 0; 0; 0; 0; 0]; %circle of radius r/2
     circ2 = [1; 0; 0; r/4; 0; 0; 0; 0; 0; 0]; %circle of radius r/4

@@ -40,11 +40,12 @@ distAllUm = distAll*pixSizeUm;
 % end
 %% Bead density
 % There is some boundary where beads are not detected. Excluding those area
-curAreaPix = (size(img,1)-8*sigma) * (size(img,2)-8*sigma);
-curArea = curAreaPix * pixSizeUm^2;
+% curAreaPix = (size(img,1)-8*sigma) * (size(img,2)-8*sigma);
+% curArea = curAreaPix * pixSizeUm^2;
 %% Output
 beadDistAll = distAllUm; %in um
-beadDensity = numel(pstruct.x)/curArea; % in #/um2
+% beadDensity = numel(pstruct.x)/curArea; % in #/um2
+beadDensity = 1./sqrt(mean(beadDistAll));
 disp(['Mean distance= ' num2str(mean(distAllUm),3) ' um, Bead density= ' num2str(beadDensity,3) ' /um^2.'])
 end
 
