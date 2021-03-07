@@ -80,13 +80,15 @@ for ii=1:numel(tracksNA)
 %     end
     pp=0;
     lastPeriod = min(curTrack.lifeTime+1, 100);
-    firstPeriod = 20; pStep=20;
+    firstPeriod = min(lastPeriod,20); pStep=20;
     nSlopes = floor((lastPeriod-firstPeriod)/pStep);
     curEarlyAmpSlope = NaN(nSlopes,1);
     for  initialTime=firstPeriod:pStep:lastPeriod
         pp=pp+1;
-        ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
-        [~,curEarlyAmpSlope(pp)] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));
+        ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF5before+1);
+%         curModel = fitlm((1:ealryFrames),curTrack.ampTotal(sF5before:sF5before+ealryFrames-1));
+%         curEarlyAmpSlope(pp) = curModel.Coefficients.Estimate(2);
+        [~,curEarlyAmpSlope(pp)] = regression((1:ealryFrames),curTrack.ampTotal(sF5before:sF5before+ealryFrames-1));
     end
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 
@@ -94,7 +96,7 @@ for ii=1:numel(tracksNA)
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
     if any(curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
-        d = tracksNA(ii).amp;
+        d = tracksNA(ii).ampTotal;
         nTime = length(d);
         if useSmoothing
 %             d = tracksNA(ii).ampTotal;
@@ -137,7 +139,7 @@ for ii=1:numel(tracksNA)
             bkgMaxInt = nanmax(sd(sF10before:sF5before));
             firstIncreaseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);
         else
-            bkgMaxInt = max(d(sF10before:sF5before));
+            bkgMaxInt = nanmax(d(sF10before:sF5before));
             firstIncreaseTimeInt = find(d>bkgMaxInt & 1:nTime>sF5before,1);
         end
 %         firstIncreseTimeInt = curTrack.startingFrameExtra;
