@@ -87,15 +87,18 @@ elseif attribute==5
         tracksNA(end).bkgAmp2=[];
     end
     % In this case, make background-subtracted images
-%     imgClass = class(imgStack);
-%     imgStackBS=zeros(size(imgStack));
-%     for ii=1:size(imgStack,3)
-%         curImg=imgStack(:,:,ii);
-%         imageBackground = filterGauss2D(curImg,30);
-%         %calculate noise-filtered and background-subtracted image
-%         imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
-%     end
-    imgStackBS = ip.Results.imgStackBS;
+    if isempty(imgStackBS)
+        imgClass = class(imgStack);
+        imgStackBS=zeros(size(imgStack));
+        for ii=1:size(imgStack,3)
+            curImg=imgStack(:,:,ii);
+            imageBackground = filterGauss2D(curImg,30);
+            %calculate noise-filtered and background-subtracted image
+            imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
+        end
+%     else
+%         imgStackBS = ip.Results.imgStackBS;
+    end
 
 elseif attribute==1 
     % In this case, make background-subtracted images
