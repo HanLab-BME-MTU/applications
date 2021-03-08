@@ -284,8 +284,8 @@ end
 % idxLateAmpLow = lateAmpTotalG1<meanAmpMaximum;
 % idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
 
-iForceReadProc = 10;
-forceReadProc = FAPack.processes_{iForceReadProc};
+% iForceReadProc = 10;
+% forceReadProc = FAPack.processes_{iForceReadProc};
 if ~isempty(forceReadProc)
     % Filtering for group1
     idGroup1FT = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
@@ -305,6 +305,57 @@ if ~isempty(forceReadProc)
 else
     idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 end
+
+if ~isempty(theOtherReadProc)
+    % Here we want to filter out noisy tracks that are 1) nearly invisible
+    % by eye (via sigma); 2) not enough pre-signal period; 3) no
+    % amp2-increasing (via SlaveTransmittingAll{jj})
+    % It'll overwrite the idGroups from force-based
+    startingFrameG1 = arrayfun(@(x) x.startingFrameExtra, tracksNA);
+    % amp and amp2 should be also near zero at pre-signal period
+    preAmp = arrayfun(@(x) x.amp(x.startingFrameExtraExtra:x.startingFrameExtra),tracksNA,'unif',false);
+    preAmp2 = arrayfun(@(x) x.amp2(x.startingFrameExtraExtra:x.startingFrameExtra),tracksNA,'unif',false);
+    % 
+    preMeanAmp1 = cellfun(@nanmean,preAmp);
+    ampThres = nanstd(cell2mat(preAmp'));
+    nearZeroAmp1 = preMeanAmp1<ampThres;
+    nearZeroAmp1(isnan(nearZeroAmp1))=0;
+    
+    preMeanAmp2 = cellfun(@nanmean,preAmp2);
+    amp2Thres = nanstd(cell2mat(preAmp2'));
+    nearZeroAmp2 = preMeanAmp2<amp2Thres;
+    nearZeroAmp2(isnan(nearZeroAmp2))=0;
+%     nearZeroAmp2 = cellfun(@ttest,preAmp2);
+%     nearZeroAmp2(isnan(nearZeroAmp2))=1;
+%     nearZeroAmp2 = ~nearZeroAmp2;
+    
+    idGroup1clean = SlaveTransmittingAll{2} & idGroup1 & startingFrameG1>20 ...
+                    & nearZeroAmp1; % & nearZeroAmp2;
+    
+    idGroup2clean = SlaveTransmittingAll{2} & idGroup2 & startingFrameG1>20 ...
+                    & nearZeroAmp1; % & nearZeroAmp2;
+                
+%     %Plotting
+%     hold off
+%     for ii=find(idGroup1clean')
+%         plot(tracksNA(ii).amp)
+%         hold on
+%     end
+%     %Plotting
+%     hold off
+%     for ii=find(idGroup2clean')
+%         plot(tracksNA(ii).amp)
+%         hold on
+%     end
+    %saving
+    tracksG1 = tracksNA(idGroup1clean);
+    tracksG2 = tracksNA(idGroup2clean);
+    
+    save([dataPath filesep 'tracksG1.mat'],'tracksG1')
+    save([dataPath filesep 'tracksG2.mat'],'tracksG2')
+    
+end
+
 save([dataPath filesep 'idGroups.mat'],'idGroups');
 
 %% Get the fraction of how many adhesions are
