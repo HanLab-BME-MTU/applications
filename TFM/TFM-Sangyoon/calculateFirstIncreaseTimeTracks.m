@@ -45,8 +45,20 @@ bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
 differentInitialMargin=50;
 ampIncreasingAll=false(numel(tracksNA),1);
+wantUpdatedTracks = nargout>6;
 
-for ii=1:numel(tracksNA)
+if wantUpdatedTracks
+    %Have to make the new fields
+    tracksNA(end).forceTransmitting=false;
+    tracksNA(end).firstIncreaseTimeInt=NaN; % in sec
+    tracksNA(end).firstIncreaseTimeForce = NaN;
+    tracksNA(end).bkgMaxInt = NaN;
+    tracksNA(end).bkgMaxSlave = NaN;
+    tracksNA(end).firstIncreseTimeIntAgainstForce = NaN;
+end
+
+% for ii=1:numel(tracksNA)
+parfor ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
 %     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     curTrack.lifeTime = curTrack.endingFrameExtra-curTrack.startingFrameExtra;
@@ -204,7 +216,7 @@ for ii=1:numel(tracksNA)
     else
         disp(''); %disp('Amplitude not increasing')
     end
-    if nargout>6
+    if wantUpdatedTracks
         tracksNA(ii).forceTransmitting=forceTransmittingAll(ii);
         tracksNA(ii).firstIncreaseTimeInt=firstIncreaseTimeIntAll(ii); % in sec
         tracksNA(ii).firstIncreaseTimeForce = firstIncreaseTimeSlaveAll(ii);

@@ -202,6 +202,23 @@ for i = existingSlaveIDs
     outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 timeLagProc.setOutFilePaths(outputFile);
+%% Backup the original vectors to backup folder
+if exist(outputFile{2,p.ChannelIndex(1)},'file')
+    disp('Backing up the original data')
+    backupFolder = [p.OutputDirectory ' Backup']; % name]);
+    if exist(p.OutputDirectory,'dir')
+        ii = 1;
+        while exist(backupFolder,'dir')
+            backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+            ii=ii+1;
+        end
+        mkdir(backupFolder);
+        copyfile(p.OutputDirectory, backupFolder,'f')
+    end
+    mkClrDir(p.OutputDirectory);
+else
+    mkClrDir(p.OutputDirectory);
+end
 
 %% I. Time series analyses
 p.numWinSize=0; %frames
@@ -234,7 +251,7 @@ for jj=existingSlaveIDs
     endingIntAgainstSlaveAll{jj}=curEndingIntAgainstSlave;
     disp(['Median of endingIntAgainstSlaveAll' curSlave 'All = ' num2str(nanmedian(endingIntAgainstSlaveAll{jj}))])
     % 4. Cross-correlation: score and 5. lag
-    for k=1:numel(tracksNA)
+    parfor k=1:numel(tracksNA)
         presIdx = tracksNA(k).startingFrameExtra:tracksNA(k).endingFrameExtra;%logical(tracksNA(k).presence);
         maxLag = ceil(tracksNA(k).lifeTime/2);
         [curCC,~,curLag]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),...
@@ -906,7 +923,7 @@ end
                 tracksNA(end).disassemRate2=[];
             end
             disp('Calculating assembly/disassembly rates'); tic
-            for kk=1:numTracks
+            parfor kk=1:numTracks
                 curTrack=tracksNA(kk);
                 [curAssemRate,~,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntMin,'amp2',15,0,tRangeSelectedAssem{kk});
                 if ~isnan(curAssemRate)
