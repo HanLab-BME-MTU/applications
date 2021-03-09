@@ -329,11 +329,9 @@ if ~isempty(theOtherReadProc)
 %     nearZeroAmp2(isnan(nearZeroAmp2))=1;
 %     nearZeroAmp2 = ~nearZeroAmp2;
     
-    idGroup1clean = SlaveTransmittingAll{2} & idGroup1 & startingFrameG1>20 ...
-                    & nearZeroAmp1; % & nearZeroAmp2;
+    idGroup1clean = idGroup1 & startingFrameG1>20 & nearZeroAmp1 & nearZeroAmp2; %& SlaveTransmittingAll{2};
     
-    idGroup2clean = SlaveTransmittingAll{2} & idGroup2 & startingFrameG1>20 ...
-                    & nearZeroAmp1; % & nearZeroAmp2;
+    idGroup2clean = idGroup2 & startingFrameG1>20 & nearZeroAmp1 & nearZeroAmp2; %SlaveTransmittingAll{2};
                 
 %     %Plotting
 %     hold off
@@ -353,7 +351,18 @@ if ~isempty(theOtherReadProc)
     
     save([dataPath filesep 'tracksG1.mat'],'tracksG1')
     save([dataPath filesep 'tracksG2.mat'],'tracksG2')
-    
+
+    if ~isempty(forceReadProc)
+        idGroup1f = idGroup1f & idGroup1clean;
+        idGroup2f = idGroup2f & idGroup2clean;
+        
+        idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+    else
+        idGroup1 = idGroup1 & idGroup1clean;
+        idGroup2 = idGroup2 & idGroup2clean;
+        
+        idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+    end
 end
 
 save([dataPath filesep 'idGroups.mat'],'idGroups');

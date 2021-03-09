@@ -46,7 +46,8 @@ T = -T_TFM + T_FA;
 if ~isempty(iTFMPackage)
     if nargout>1 && ~isempty(tfmPack.processes_{4})
         tMapOrg=tfmPack.processes_{4}.loadChannelOutput('output','tMap');
-        for ii=nFrames:-1:1
+        tMap = zeros(size(tMapOrg));
+        for ii=1:nFrames %nFrames:-1:1
             cur_tMap=tMapOrg(:,:,ii);
             cur_T = T(ii,:);
             cur_tMap2 = imtranslate(cur_tMap, cur_T(2:-1:1));

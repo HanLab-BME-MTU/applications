@@ -600,7 +600,7 @@ if ~isempty(initRiseProc) && exist('initRiseStruct','var')
     for ii=1:numSlaves
         for curGroup=1:9
             try
-                initRiseGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) y{ii},x{curGroup}','unif',false)),initRiseGroup,'unif',false);
+                initRiseGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) y{ii},x{curGroup}(~cellfun(@isempty,x{curGroup}))','unif',false)),initRiseGroup,'unif',false);
                 h1=figure; 
                 boxPlotCellArray(initRiseGroupEach,nameList,1,false,true);
                 ylabel(['Initial rise in group ' num2str(curGroup) ' (sec): ' initRiseStruct.nameList2{ii}])
@@ -1594,5 +1594,6 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
     writetable(tableDisassemRate2,[dataPath filesep 'disassemRate2All.csv'],'WriteRowNames',true)
 end
 %% save entire workspace for later
+close all
 save([dataPath filesep 'allData.mat'])
 disp('Done plotting data!')

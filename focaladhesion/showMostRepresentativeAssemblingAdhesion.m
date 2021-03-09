@@ -60,20 +60,31 @@ persistent imgStack tMap imgStack2 tracksNA curChanPath
 finalProc = faPackage.getProcess(11);
 
 %% Load the idsClassifiedStruct
-iClasses = finalProc.loadChannelOutput(iChan,'output','idClass');
-idGroupLabel= 1*iClasses.idGroup1 + ...
-                2*iClasses.idGroup2 + ...
-                3*iClasses.idGroup3 + ...
-                4*iClasses.idGroup4 + ...
-                5*iClasses.idGroup5 + ...
-                6*iClasses.idGroup6 + ...
-                7*iClasses.idGroup7 + ...
-                8*iClasses.idGroup8 + 9*iClasses.idGroup9;
+% iClasses = finalProc.loadChannelOutput(iChan,'output','idClass');
+iClassObj = load([finalProc.funParams_.OutputDirectory filesep 'data' ...
+    filesep 'idGroups.mat'],'idGroups');
+iClasses = iClassObj.idGroups;
+idGroupLabel = 1*iClasses{1};
+for ii=2:9 
+    idGroupLabel = idGroupLabel+ ii*iClasses{ii};
+end
+% idGroupLabel= 1*iClasses.idGroup1 + ...
+%                 2*iClasses.idGroup2 + ...
+%                 3*iClasses.idGroup3 + ...
+%                 4*iClasses.idGroup4 + ...
+%                 5*iClasses.idGroup5 + ...
+%                 6*iClasses.idGroup6 + ...
+%                 7*iClasses.idGroup7 + ...
+%                 8*iClasses.idGroup8 + 9*iClasses.idGroup9;
 
 %% Load imgStack, forceStack and anyother stack if it exists.
 if isempty(curChanPath) || ~strcmp(curChanPath, MD.channels_(1).channelPath_)
     curChanPath = MD.channels_(1).channelPath_;
-    tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA');
+    if RepClass>0
+        tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',find(idGroupLabel==RepClass)');
+    else
+        tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA');
+    end
     [imgStack, tMap, imgStack2] = getAnyStacks(MD);
 end
 
@@ -91,17 +102,23 @@ if PickManually
 end
 %% Representative case(s)
 if RepClass==0
-    RepClass=1:9;
+    iRepClass=1:9;
+else
+    iRepClass = RepClass;
 end
 numAvgWindow=0;
 preDetecPeriod = 60; %seconds
 
-for curClass=RepClass
+% for curClass=iRepClass
+curClass=iRepClass;
     % Get the tracks of the same class
-    curClassTracks = tracksNA(idGroupLabel==curClass);
+%     curClassTracks = tracksNA; %(idGroupLabel==curClass);
+    % Read the intensity again
+    tracksNA=readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',120,'movieData',MD,'reTrack',true);
+
     % Get the distribution of the time lag
     curFirstIncreseTimeIntAgainstSlave = ...
-        calculateFirstIncreaseTimeTracks(curClassTracks,numAvgWindow,...
+        calculateFirstIncreaseTimeTracks(tracksNA,numAvgWindow,...
         preDetecPeriod,tInterval,'slaveSource',potentialSlaves{iSlave});
     
     % Get the median
@@ -121,17 +138,21 @@ for curClass=RepClass
     if ~exist(gPath,'dir')
         mkdir(gPath)
     end
-    for ii=find(trackID')
-%         try
-            h2 = showSingleAdhesionTrackSummary(MD,curClassTracks(ii),imgStack,tMap,imgStack2, ii,gPath);
+    if RepClass>1
+        for ii=1:numel(tracksNA)
+            h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath);
             close(h2)
-%         catch
-%             disp(['error on this track: ' num2str(ii)])
-%             continue
-%         end
+        end
+    else
+        for ii=find(trackID')
+            h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath);
+            close(h2)
+        end
     end
-
-end
+% end
+% Exporting
+t = table(curFirstIncreseTimeIntAgainstSlave);
+writetable(t,[finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.xlsx']);
 disp(['The number of tracks identified: ' num2str(sum(trackID))])
 disp(['Figures will be generated and stored in FocalAdhesionPackage/RepTracks_Class' num2str(curClass) '.'])
     

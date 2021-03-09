@@ -57,8 +57,8 @@ if wantUpdatedTracks
     tracksNA(end).firstIncreseTimeIntAgainstForce = NaN;
 end
 
-% for ii=1:numel(tracksNA)
-parfor ii=1:numel(tracksNA)
+for ii=1:numel(tracksNA)
+% parfor ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
 %     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     curTrack.lifeTime = curTrack.endingFrameExtra-curTrack.startingFrameExtra;
@@ -97,18 +97,18 @@ parfor ii=1:numel(tracksNA)
     curEarlyAmpSlope = NaN(nSlopes,1);
     for  initialTime=firstPeriod:pStep:lastPeriod
         pp=pp+1;
-        ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF5before+1);
+        earlyFrames = min(initialTime, curTrack.endingFrameExtra-sF5before+1);
 %         curModel = fitlm((1:ealryFrames),curTrack.ampTotal(sF5before:sF5before+ealryFrames-1));
 %         curEarlyAmpSlope(pp) = curModel.Coefficients.Estimate(2);
-        [~,curEarlyAmpSlope(pp)] = regression((1:ealryFrames),curTrack.ampTotal(sF5before:sF5before+ealryFrames-1));
+        [~,curEarlyAmpSlope(pp)] = regression((1:earlyFrames),curTrack.amp(sF5before:sF5before+earlyFrames-1));
     end
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 
 %     sFEE = curTrack.startingFrameExtraExtra;
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
-    if any(curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
+    if any(curEarlyAmpSlope>-std(curTrack.amp)/(earlyFrames)) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
-        d = tracksNA(ii).ampTotal;
+        d = tracksNA(ii).amp;
         nTime = length(d);
         if useSmoothing
 %             d = tracksNA(ii).ampTotal;
@@ -166,8 +166,8 @@ parfor ii=1:numel(tracksNA)
                 curEarlyForceSlope = NaN(5,1);
                 for  initialTime=10:10:50
                     pp=pp+1;
-                    ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
-                    [~,curEarlyForceSlope(pp)] = regression((1:ealryFrames),curSlave(sF10before:sF10before+ealryFrames-1));
+                    earlyFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
+                    [~,curEarlyForceSlope(pp)] = regression((1:earlyFrames),curSlave(sF10before:sF10before+earlyFrames-1));
                 end
                 
                 if any(curEarlyForceSlope>0) && sum(~isnan(curSlave))>1
