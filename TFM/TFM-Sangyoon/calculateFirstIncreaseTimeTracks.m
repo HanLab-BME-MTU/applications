@@ -78,6 +78,14 @@ for ii=1:numel(tracksNA)
 %         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
 %         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
 %     end
+    if curTrack.endingFrameExtra>find(~isnan(curTrack.amp),1,'last')
+        curTrack.endingFrameExtra = find(~isnan(curTrack.amp),1,'last');
+    end
+    if curTrack.startingFrameExtra<find(~isnan(curTrack.amp),1)
+        curTrack.startingFrameExtra = find(~isnan(curTrack.amp),1);
+    end
+    curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
+
     effectiveSF = curTrack.startingFrameExtra; 
     sFEE = max(1,curTrack.startingFrameExtra-differentInitialMargin); %curTrack.startingFrameExtraExtra;
     sF5before = max(sFEE,effectiveSF -1); % So the variabl name should be sF1before
