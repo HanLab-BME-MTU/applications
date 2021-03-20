@@ -1,6 +1,6 @@
 %% open necessary MLs
-MLdirect=false;
-[pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,specificName]=chooseSelectedFolders;
+[pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,...
+    specificName,~,MLdirect]=chooseSelectedFolders;
 % Asking user
 disp('The current names are: ')
 nameList = groupNames';
@@ -16,12 +16,20 @@ if strcmp(namesOK, 'y')
     specificName = strjoin(nameList);
 end
 %% Output
-% rootAnalysis = fileparts(pathAnalysisAll{1});
-rootAnalysis = pathAnalysisAll{1};
-figPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Figs'];
+rootAnalysis = fileparts(pathAnalysisAll{1});
+% rootAnalysis = pathAnalysisAll{1};
+summaryPath = [rootAnalysis '/AnalysisSummary_AdhesionDynamic' specificName];
+ii=0;
+while exist(summaryPath, 'dir')
+    ii=ii+1;
+    summaryPath = [rootAnalysis '/AnalysisSummary_AdhesionDynamic' specificName num2str(ii)];
+end
+figPath = [summaryPath '/Figs'];
 mkdir(figPath)
-dataPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Data'];
+dataPath = [summaryPath '/Data'];
 mkdir(dataPath)
+save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
+
 %% Loading
 numConditions=numel(pathAnalysisAll);
 

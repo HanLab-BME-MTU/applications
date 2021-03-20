@@ -1,56 +1,35 @@
 %% open necessary MLs
-[fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
-if ~ischar(pathSFolders) && pathSFolders==0
-    analysisFolderSelectionDone = false;
-    ii=0;
-    rootFolder=pwd;
-    while ~analysisFolderSelectionDone
-        ii=ii+1;
-        curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        if ~ischar(curPathProject) && curPathProject==0
-            analysisFolderSelectionDone=true;
-        else
-            pathAnalysisAll{ii} = curPathProject;
+[pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,...
+    specificName,~,MLdirect]=chooseSelectedFolders;
+% Asking user
+disp('The current names are: ')
+nameList = groupNames';
+disp(nameList)
+namesOK = input('Do you want to rename your condition names? (y/n)','s');
+if strcmp(namesOK, 'y')
+    for ii=1:numel(nameList)
+        curName = input(['For ' nameList{ii} ': '], 's');
+        if ~isempty(curName)
+            nameList{ii} = curName;
         end
     end
-else
-    selectedFolders=load([pathSFolders filesep fileSFolders]);
-    pathAnalysisAll=selectedFolders.pathAnalysisAll;
-end
-
-%% Load movieLists for each condition
-numConditions = numel(pathAnalysisAll);
-for k=1:numConditions
-    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep 'movieList.mat']);
+    specificName = strjoin(nameList);
 end
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
-figPath = [rootAnalysis '/AnalysisSummaryAdhesion/Figs'];
+% rootAnalysis = pathAnalysisAll{1};
+summaryPath = [rootAnalysis '/AnalysisSummary_AdhesionStatic' specificName];
+ii=0;
+while exist(summaryPath, 'dir')
+    ii=ii+1;
+    summaryPath = [rootAnalysis '/AnalysisSummary_AdhesionStatic' specificName num2str(ii)];
+end
+figPath = [summaryPath '/Figs'];
 mkdir(figPath)
-dataPath = [rootAnalysis '/AnalysisSummaryAdhesion/Data'];
+dataPath = [summaryPath '/Data'];
 mkdir(dataPath)
-%% setting up group name
-for ii=1:numConditions
-    [dumPath, finalFolder]=fileparts(pathAnalysisAll{ii});
-    if isempty(finalFolder)
-        [dumPath, finalFolder]=fileparts(dumPath);
-        groupNames{ii} = finalFolder;
-    else        
-        groupNames{ii} = finalFolder;
-    end
-end
-nameList=groupNames'; 
+save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 
-% Asking user
-disp('Do you want to rename your condition names? The current names are: ')
-disp(nameList)
-for ii=1:numel(nameList)
-    curName = input(['For ' nameList{ii} ': '], 's');
-    if ~isempty(curName)
-        nameList{ii} = curName;
-    end
-end
-specificName = strjoin(nameList);
 %% Run detectMovieNascentAdhesion for each list
 N=zeros(numConditions,1);
 NAdensity = cell(numConditions,1);

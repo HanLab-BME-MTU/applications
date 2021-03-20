@@ -1,4 +1,5 @@
-function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,specificName,refDirTif]=chooseSelectedFolders
+function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,...
+    specificName,refDirTif, MLdirect]=chooseSelectedFolders
 %function [pathAnalysisAll, MLNames, groupNames,
 %usedSelectedFoldersMat]=chooseSelectedFolders let users choose predefined
 %selectedfolder.mat or directly choose ML files to perform many batch
@@ -23,6 +24,7 @@ else
 end
 
 groupNames=[];
+MLdirect=false;
 
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
@@ -114,3 +116,4 @@ else
         
     end
 end
+
