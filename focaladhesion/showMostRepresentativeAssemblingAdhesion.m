@@ -78,27 +78,14 @@ end
 %                 8*iClasses.idGroup8 + 9*iClasses.idGroup9;
 
 %% Load imgStack, forceStack and anyother stack if it exists.
-if isempty(curChanPath) || ~strcmp(curChanPath, MD.channels_(1).channelPath_)
+if isempty(curChanPath) || ~strcmp(curChanPath, MD.channels_(1).channelPath_) ...
+    || numel(tracksNA) ~= sum(idGroupLabel==RepClass)
     curChanPath = MD.channels_(1).channelPath_;
     if RepClass>0
         tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',find(idGroupLabel==RepClass)');
     else
         tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA');
     end
-    [imgStack, tMap, imgStack2] = getAnyStacks(MD);
-end
-
-%% Launch pickAdhesion window with labeled adhesions with a right color and
-% unlabed ones with white color. Get the right classes per newly selected
-% adhesions
-if PickManually
-    waitHan = msgbox({'You will see the cell window and classified adhesion tracks with color';
-    'label. After closing this window, you can select colored (classified)';
-    'adhesions to see their time-series and associated assembly rates'});
-
-    uiwait(waitHan);    
-    pickAdhesionTracksInteractive(tracksNA, imgStack,...
-        'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2, 'idSelected',iClasses);
 end
 %% Representative case(s)
 if RepClass==0
@@ -114,7 +101,7 @@ curClass=iRepClass;
     % Get the tracks of the same class
 %     curClassTracks = tracksNA; %(idGroupLabel==curClass);
     % Read the intensity again
-    tracksNA=readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',120,'movieData',MD,'reTrack',true);
+%     tracksNA=readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',120,'movieData',MD,'reTrack',true);
 
     % Get the distribution of the time lag
     curFirstIncreseTimeIntAgainstSlave = ...
@@ -133,6 +120,53 @@ curClass=iRepClass;
     % slave (but usually we want the slave against the master), we subtract
     % (instead of add) the timeshift.
     
+    % Exporting
+    lifetimes = arrayfun(@(x) x.lifeTime, tracksNA);
+    t = table(curFirstIncreseTimeIntAgainstSlave,lifetimes);
+    writetable(t,[finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.xlsx']);
+    save([finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.mat'],...
+        'curFirstIncreseTimeIntAgainstSlave','lifetimes');
+    
+    
+    if isempty(imgStack) 
+        [imgStack, tMap, imgStack2] = getAnyStacks(MD);
+    end
+    %% Launch pickAdhesion window with labeled adhesions with a right color and
+    % unlabed ones with white color. Get the right classes per newly selected
+    % adhesions
+    if PickManually
+        waitHan = msgbox({'You will see the cell window and classified adhesion tracks with color';
+        'label. After closing this window, you can select colored (classified)';
+        'adhesions to see their time-series and associated assembly rates'});
+
+        uiwait(waitHan);    
+        pickAdhesionTracksInteractive(tracksNA, imgStack,...
+            'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2, 'idSelected',iClasses);
+    end
+
+    %% background substraction
+    if ~isempty(imgStack)
+        imgClass = class(imgStack);
+        imgStackBS=zeros(size(imgStack));
+        for ii=1:size(imgStack,3)
+            curImg=imgStack(:,:,ii);
+            imageBackground = filterGauss2D(curImg,30);
+            %calculate noise-filtered and background-subtracted image
+            imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
+        end
+    end
+    if ~isempty(imgStack2)
+        imgClass = class(imgStack2);
+        imgStackBS2=zeros(size(imgStack2));
+        for ii=1:size(imgStack2,3)
+            curImg=imgStack2(:,:,ii);
+            imageBackground = filterGauss2D(curImg,30);
+            %calculate noise-filtered and background-subtracted image
+            imgStackBS2(:,:,ii) = curImg - cast(imageBackground,imgClass);
+        end
+    end
+
+    
     % Loop through each id and generate the summary figures
     gPath = [faPackage.outputDirectory_ filesep 'RepTracks_Class' num2str(curClass)];
     if ~exist(gPath,'dir')
@@ -140,19 +174,17 @@ curClass=iRepClass;
     end
     if RepClass>1
         for ii=1:numel(tracksNA)
-            h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath);
+            h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath,[],imgStackBS,imgStackBS2);
             close(h2)
         end
     else
         for ii=find(trackID')
-            h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath);
+            h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath,[],imgStackBS,imgStackBS2);
             close(h2)
         end
     end
 % end
-% Exporting
-t = table(curFirstIncreseTimeIntAgainstSlave);
-writetable(t,[finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.xlsx']);
+
 disp(['The number of tracks identified: ' num2str(sum(trackID))])
 disp(['Figures will be generated and stored in FocalAdhesionPackage/RepTracks_Class' num2str(curClass) '.'])
     
