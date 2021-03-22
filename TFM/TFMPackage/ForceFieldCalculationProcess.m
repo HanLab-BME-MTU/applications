@@ -105,10 +105,9 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || length(iFrame)==1 || size(tMapMap,3)<length(iFrame)
-                    tMapMap = [];
-                    tMapMapX = [];
-                    tMapMapY = [];
+                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || length(iFrame)==1 || size(tMapMap,3)<length(iFrame) ...
+                        || size(tMapMap,3)<iFrame(end) ...
+                        || (size(tMapMap,3)>=iFrame(end) && ~any(any(tMapMap(:,:,iFrame(end))))) 
                     try
                         s = load(obj.outFilePaths_{iOut}); %This will need to be changed if one really wants to see tMapX or tMapY
                         fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
@@ -159,24 +158,39 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                                     save(obj.outFilePaths_{iOut},'tMap','tMapX','tMapY'); % need to be updated for faster loading. SH 20141106
                                 end
                             elseif isfield(tMapObj,'eachTMapName')
-                                for ii=obj.owner_.nFrames_:-1:1
-                                    cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
-                                    tMapMap(:,:,ii) = cur_tMapObj.cur_tMap;
-                                    progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
-                                end
+%                                 for ii=obj.owner_.nFrames_:-1:1
+%                                     cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
+%                                     tMapMap(:,:,ii) = cur_tMapObj.cur_tMap;
+%                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+%                                 end
+                                cur_tMapObj = load(outFileTMap(iFrame),tMapObj.eachTMapName);
+                                tMapMap(:,:,iFrame) = cur_tMapObj.cur_tMap;
                             else % very new format
                                 forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
                                 displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
-                                [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField,displField,0,iFrame);
+%                                 [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0,iFrame);
+%                                 for ii=fliplr(iFrame)
+%                                     tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
+%                                     tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
+%                                     tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
+%                                     tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{ii};
+%                                     tMapMapY(:,:,ii) = zeros(tMapObj.firstMaskSize);
+%                                     tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{ii};
+%                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+%                                 end
+                                [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0,iFrame);
+                                pp=numel(iFrame)+1;
                                 for ii=fliplr(iFrame)
+                                    pp=pp-1;
                                     tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                                    tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
+                                    tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{pp};
                                     tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                                    tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{ii};
+                                    tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{pp};
                                     tMapMapY(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                                    tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{ii};
+                                    tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{pp};
                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                                 end
+                                
                             end
                             lastFinishTime = obj.finishTime_;
                         end
@@ -227,9 +241,19 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         end
                         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
-                        Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);
-                        invTr = invert(Tr);
-                        varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                        if length(iFrame)>1
+                            curMap2 = zeros(size(curMap));
+                            for ii=fliplr(iFrame)
+                                Tr = affine2d([1 0 0; 0 1 0; (T(ii, :)) 1]);
+                                invTr = invert(Tr);
+                                curMap2(:,:,ii) = imwarp(curMap(:,:,ii),invTr,'OutputView',ref_obj);
+                            end
+                            varargout{1} = curMap2;
+                        else
+                            Tr = affine2d([1 0 0; 0 1 0; fliplr(T(iFrame, :)) 1]);
+                            invTr = invert(Tr);
+                            varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                        end
                     else
                         varargout{1}=tMapMap(:,:,iFrame);
                     end
