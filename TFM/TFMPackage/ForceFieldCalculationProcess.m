@@ -105,7 +105,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || length(iFrame)==1 || size(tMapMap,3)<length(iFrame) ...
+                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || size(tMapMap,3)<length(iFrame) ... %length(iFrame)==1 || 
                         || size(tMapMap,3)<iFrame(end) ...
                         || (size(tMapMap,3)>=iFrame(end) && ~any(any(tMapMap(:,:,iFrame(end))))) 
                     try
@@ -166,8 +166,10 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                                 cur_tMapObj = load(outFileTMap(iFrame),tMapObj.eachTMapName);
                                 tMapMap(:,:,iFrame) = cur_tMapObj.cur_tMap;
                             else % very new format
-                                forceField = load(tMapObj.forceFieldPath,'forceField'); forceField=forceField.forceField;
-                                displField = load(tMapObj.displFieldPath,'displField'); displField=displField.displField;
+                                forceFieldObj = cached.load(tMapObj.forceFieldPath, '-useCache', ip.Results.useCache, outputList{1});
+                                forceField=forceFieldObj.forceField;
+                                displFieldObj = cached.load(tMapObj.displFieldPath, '-useCache', ip.Results.useCache, 'displField');
+                                displField = displFieldObj.displField;
 %                                 [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0,iFrame);
 %                                 for ii=fliplr(iFrame)
 %                                     tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
@@ -178,7 +180,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
 %                                     tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{ii};
 %                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
 %                                 end
-                                [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0,iFrame);
+                                [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0); %,iFrame);
                                 pp=numel(iFrame)+1;
                                 for ii=fliplr(iFrame)
                                     pp=pp-1;
