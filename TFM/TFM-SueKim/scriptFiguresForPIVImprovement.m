@@ -8,7 +8,8 @@ displOriginalPTVstruct = load('/storage/network/TFM_Development/TFM2D/PIVimprove
 displOriginalPTV = displOriginalPTVstruct.displField;
 
 % quiver plot - original PTV
-figure(1), quiver(displOriginalPTV.pos(:,1),displOriginalPTV.pos(:,2),displOriginalPTV.vec(:,1),displOriginalPTV.vec(:,2),0,'Color','g')
+figure(1), quiver(displOriginalPTV(1).pos(:,1),displOriginalPTV(1).pos(:,2),...
+    displOriginalPTV(1).vec(:,1),displOriginalPTV(1).vec(:,2),0,'Color','g')
 hold on
 
 % missing spots
@@ -126,13 +127,13 @@ nElements = length(dispVectorImageJstruct.vectorImageJ);   %900
 uDownSampled = zeros(size(dispVectorImageJstruct.vectorImageJ));
 matchingVector = true(size(dispVectorImageJstruct.vectorImageJ(:,1)));
 for ii = 1:nElements
-% Find the location at which dispVectorImageJstruct.vectorImageJ(i)belong to
-curPos = dispPositionImageJstruct.positionImageJ(ii,:);
-curU = [ux(curPos(2),curPos(1)),uy(curPos(2),curPos(1))];  % assign ground-truth disp. vector onto positionImageJ
-curDiffVec = curU - dispVectorImageJstruct.vectorImageJ(ii);    %ground-truth vector - ImageJvector
-matchingVector(ii) = (curDiffVec(1)^2+curDiffVec(2)^2)^0.5 < tol*(curU(1)^2+curU(2)^2)^0.5;  %magnitude
-%     matches_large = (curDiffVec(1)^2+curDiffVec(2)^2)^0.5 > tol*(curU(1)^2+curU(2)^2)^0.5;
-uDownSampled(ii,:)=curU;
+    % Find the location at which dispVectorImageJstruct.vectorImageJ(i)belong to
+    curPos = dispPositionImageJstruct.positionImageJ(ii,:);
+    curU = [ux(curPos(2),curPos(1)),uy(curPos(2),curPos(1))];  % assign ground-truth disp. vector onto positionImageJ
+    curDiffVec = curU - dispVectorImageJstruct.vectorImageJ(ii);    %ground-truth vector - ImageJvector
+    matchingVector(ii) = (curDiffVec(1)^2+curDiffVec(2)^2)^0.5 < tol*(curU(1)^2+curU(2)^2)^0.5;  %magnitude
+    %     matches_large = (curDiffVec(1)^2+curDiffVec(2)^2)^0.5 > tol*(curU(1)^2+curU(2)^2)^0.5;
+    uDownSampled(ii,:)=curU;
 end
 unMatching = ~matchingVector;
 quiver(dispPositionImageJstruct.positionImageJ(unMatching,1),dispPositionImageJstruct.positionImageJ(unMatching,2),...
