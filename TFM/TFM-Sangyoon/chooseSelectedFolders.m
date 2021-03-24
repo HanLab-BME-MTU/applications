@@ -25,6 +25,7 @@ end
 
 groupNames=[];
 MLdirect=false;
+refDirTif=[];
 
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
