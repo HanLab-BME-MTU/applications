@@ -130,7 +130,8 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                                 lastFinishTime = obj.finishTime_;
                             else % very new format
                                 try
-                                    displField = load(dMapObj.displFieldPath,'displField'); displField=displField.displField;
+                                    displFieldObj = cached.load(dMapObj.displFieldPath, '-useCache', ip.Results.useCache, 'displField');
+                                    displField = displFieldObj.displField;
                                 catch
                                     displField = load(obj.outFilePaths_{1},'displField'); displField=displField.displField;
                                 end

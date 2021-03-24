@@ -64,7 +64,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                 s = cached.load(obj.outFilePaths_{iOut}, '-useCache', ip.Results.useCache, output{1});
                 varargout{1}=s.(output{1})(iFrame);
             elseif ismember(output,outputList(2:4))
-%                 iOut=2;
+                iOut=2;
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
@@ -75,8 +75,8 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                         || ~all(obj.finishTime_==lastFinishTime) || size(dMapMapRef,3)<iFrame(end) ...
                         || (size(dMapMapRef,3)>=iFrame && ~any(any(dMapMapRef(:,:,iFrame(end))))))
                     try
-                        s = load(obj.outFilePaths_{iOut},output{1});
-                        dMapObj = s.(output{1});
+                        s = load(obj.outFilePaths_{iOut});
+                        dMapObj = s.(outputList{2});
                         fString = ['%0' num2str(floor(log10(obj.owner_.nFrames_))+1) '.f'];
                         numStr = @(frame) num2str(frame,fString);
                         outputDir = fullfile(obj.funParams_.OutputDirectory,'displMaps');
@@ -113,7 +113,8 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                             dMapMap(:,:,iFrame) = cur_dMapObj.cur_dMap;
                             lastFinishTime = obj.finishTime_;
                         else % very new format
-                            displField = load(dMapObj.displFieldPath,'displField'); displField=displField.displField;
+                            displFieldObj = cached.load(dMapObj.displFieldPath, '-useCache', ip.Results.useCache, 'displField');
+                            displField = displFieldObj.displField;
                             [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField(iFrame),displField(iFrame),0);
                             pp=numel(iFrame)+1;
                             for ii=fliplr(iFrame)

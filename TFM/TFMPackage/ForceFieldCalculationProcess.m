@@ -186,10 +186,12 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                                     pp=pp-1;
                                     tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
                                     tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{pp};
-                                    tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                                    tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{pp};
-                                    tMapMapY(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                                    tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{pp};
+                                    if ismember(output,outputList(6:7))
+                                        tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                                        tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{pp};
+                                        tMapMapY(:,:,ii) = zeros(tMapObj.firstMaskSize);
+                                        tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{pp};
+                                    end
                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                                 end
                                 
@@ -229,7 +231,6 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     end
                 else %This is for unshifted (in the size of raw channels)
                     sampleRawChanImg = obj.owner_.channels_(1).loadImage(1);
-                    curMap=tMapMap(:,:,iFrame);
                     ref_obj = imref2d(size(sampleRawChanImg));
                     iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
                     tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
@@ -244,17 +245,17 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
                         if length(iFrame)>1
-                            curMap2 = zeros(size(curMap));
+                            curMap2 = zeros(size(tMapMap(:,:,iFrame)));
                             for ii=fliplr(iFrame)
                                 Tr = affine2d([1 0 0; 0 1 0; (T(ii, :)) 1]);
                                 invTr = invert(Tr);
-                                curMap2(:,:,ii) = imwarp(curMap(:,:,ii),invTr,'OutputView',ref_obj);
+                                curMap2(:,:,ii) = imwarp(tMapMap(:,:,ii),invTr,'OutputView',ref_obj);
                             end
                             varargout{1} = curMap2;
                         else
                             Tr = affine2d([1 0 0; 0 1 0; fliplr(T(iFrame, :)) 1]);
                             invTr = invert(Tr);
-                            varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                            varargout{1} = imwarp(tMapMap(:,:,iFrame),invTr,'OutputView',ref_obj);
                         end
                     else
                         varargout{1}=tMapMap(:,:,iFrame);
