@@ -48,6 +48,7 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.addParameter('useCache',true,@islogical);
+            ip.addParameter('noStackRequired',false,@islogical) % 
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
             
@@ -55,6 +56,10 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             persistent dMapMap dMapMapRef lastFinishTime
             % Data loading
             output = ip.Results.output;
+            noStackRequired = ip.Results.noStackRequired; % this variable is used to empty
+            % tMapMap, anticipating it will be very large, creating
+            % out-of-memory error. But if the full tMapMap is already
+            % created, we'll use that.
             if ischar(output), output = {output}; end
             iOut = cellfun(@(x) strcmp(x,output),outputList);
 %             s = load(obj.outFilePaths_{iOut},output{:});
@@ -109,8 +114,13 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
 %                                 dMapMap(:,:,ii) = cur_dMapObj.cur_dMap;
 %                                 progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
 %                             end
-                            cur_dMapObj = load(outFileDMap(iFrame),dMapObj.eachDMapName);
-                            dMapMap(:,:,iFrame) = cur_dMapObj.cur_dMap;
+                            for ii=iFrame
+                                cur_dMapObj = load(outFileDMap(ii),dMapObj.eachDMapName);
+                                curMap = cur_dMapObj.cur_dMap;
+                                if ~noStackRequired
+                                    dMapMap(:,:,ii) = curMap;
+                                end
+                            end
                             lastFinishTime = obj.finishTime_;
                         else % very new format
                             displFieldObj = cached.load(dMapObj.displFieldPath, '-useCache', ip.Results.useCache, 'displField');
@@ -119,8 +129,11 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                             pp=numel(iFrame)+1;
                             for ii=fliplr(iFrame)
                                 pp=pp-1;
-                                dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
-                                dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{pp};
+                                curMap = zeros(dMapObj.firstMaskSize);
+                                curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{pp};
+                                if ~noStackRequired
+                                    dMapMap(:,:,ii) = curMap;
+                                end
 %                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                             end
                             lastFinishTime = obj.finishTime_;
@@ -146,8 +159,11 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                             pp=numel(iFrame)+1;
                             for ii=fliplr(iFrame)
                                 pp=pp-1;
-                                dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
-                                dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{pp};
+                                curMap = zeros(dMapObj.firstMaskSize);
+                                curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{pp};
+                                if ~noStackRequired
+                                    dMapMap(:,:,ii) = curMap;
+                                end
 %                                 progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
                             end
                         elseif strcmp(output,'dMapRef')
@@ -168,12 +184,15 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                     end
                 end
                 if strcmp(output,'dMap')
-                    varargout{1}=dMapMap(:,:,iFrame);
+                    if noStackRequired
+                        varargout{1} = curMap;
+                    else
+                        varargout{1}=dMapMap(:,:,iFrame);
+                    end
                 elseif strcmp(output,'dMapRef')
                     varargout{1}=dMapMapRef(:,:,iFrame);
                 else %This is for unshifted (in the size of raw channels)
                     sampleRawChanImg = obj.owner_.channels_(1).loadImage(1);
-                    curMap=dMapMap(:,:,iFrame);
                     ref_obj = imref2d(size(sampleRawChanImg));
                     iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
                     tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
@@ -188,17 +207,29 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
                         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
                         if length(iFrame)>1
-                            curMap2 = zeros(size(curMap));
+                            if noStackRequired
+                                curMap2 = zeros(size(curMap));
+                            else
+                                curMap2 = zeros(size(dMapMap(:,:,iFrame)));
+                            end
                             for ii=fliplr(iFrame)
                                 Tr = affine2d([1 0 0; 0 1 0; (T(ii, :)) 1]);
                                 invTr = invert(Tr);
-                                curMap2(:,:,ii) = imwarp(curMap(:,:,ii),invTr,'OutputView',ref_obj);
+                                if noStackRequired
+                                    curMap2 = imwarp(curMap,invTr,'OutputView',ref_obj);
+                                else
+                                    curMap2(:,:,ii) = imwarp(dMapMap(:,:,ii),invTr,'OutputView',ref_obj);
+                                end
                             end
                             varargout{1} = curMap2;
                         else
                             Tr = affine2d([1 0 0; 0 1 0; fliplr(T(iFrame, :)) 1]);
                             invTr = invert(Tr);
-                            varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                            if noStackRequired
+                                varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                            else
+                                varargout{1} = imwarp(dMapMap(:,:,iFrame),invTr,'OutputView',ref_obj);
+                            end
                         end
                     else
                         varargout{1}=dMapMap(:,:,iFrame);

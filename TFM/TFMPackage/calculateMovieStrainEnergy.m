@@ -138,8 +138,8 @@ yModulus = forceFieldProc.funParams_.YoungModulus;
 %% Load the displfield
 iCorrectedDisplFieldProc = 3;
 CorrectedDisplFieldProc=TFMPackage.processes_{iCorrectedDisplFieldProc};
-logMsg='Loading displacement map...';
-if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
+% logMsg='Loading displacement map...';
+% if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if ~isempty(CorrectedDisplFieldProc)
     dispProc = CorrectedDisplFieldProc;
 %     dMap=CorrectedDisplFieldProc.loadChannelOutput('output','dMapUnshifted');
@@ -263,10 +263,10 @@ if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for ii=1:nFrames
     % Make sure if each tmap has its contents
 %     curTMap=tMap(:,:,ii);
-    curTMap=forceFieldProc.loadChannelOutput('output','tMapUnshifted','iFrame',ii);
+    curTMap=forceFieldProc.loadChannelOutput('output','tMapUnshifted','iFrame',ii,'noStackRequired',true);
 
 %     curDMap=dMap(:,:,ii);
-    curDMap=dispProc.loadChannelOutput('output','dMapUnshifted','iFrame',ii);
+    curDMap=dispProc.loadChannelOutput('output','dMapUnshifted','iFrame',ii,'noStackRequired',true);
     if isempty(curTMap)
         try
             curTMap=load(outFileTMap(ii),'cur_tMap');

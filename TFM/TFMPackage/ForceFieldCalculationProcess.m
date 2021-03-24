@@ -56,11 +56,17 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
 %             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.addParameter('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.addParameter('useCache',true,@islogical);
+            ip.addParameter('noStackRequired',false,@islogical) % 
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
+            noStackRequired = ip.Results.noStackRequired; % this variable is used to empty
+            % tMapMap, anticipating it will be very large, creating
+            % out-of-memory error. But if the full tMapMap is already
+            % created, we'll use that.
 %             iOut = ip.Results.iOut;
             
             persistent tMapMap tMapMapX tMapMapY lastFinishTime
+            
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
@@ -163,29 +169,27 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
 %                                     tMapMap(:,:,ii) = cur_tMapObj.cur_tMap;
 %                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
 %                                 end
-                                cur_tMapObj = load(outFileTMap(iFrame),tMapObj.eachTMapName);
-                                tMapMap(:,:,iFrame) = cur_tMapObj.cur_tMap;
+                                for ii=iFrame
+                                    cur_tMapObj = load(outFileTMap(ii),tMapObj.eachTMapName);
+                                    curMap = cur_tMapObj.cur_tMap;
+                                    if ~noStackRequired
+                                        tMapMap(:,:,ii) = curMap;
+                                    end
+                                end
                             else % very new format
                                 forceFieldObj = cached.load(tMapObj.forceFieldPath, '-useCache', ip.Results.useCache, outputList{1});
                                 forceField=forceFieldObj.forceField;
                                 displFieldObj = cached.load(tMapObj.displFieldPath, '-useCache', ip.Results.useCache, 'displField');
                                 displField = displFieldObj.displField;
-%                                 [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0,iFrame);
-%                                 for ii=fliplr(iFrame)
-%                                     tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
-%                                     tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
-%                                     tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
-%                                     tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{ii};
-%                                     tMapMapY(:,:,ii) = zeros(tMapObj.firstMaskSize);
-%                                     tMapMapY(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapYIn{ii};
-%                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
-%                                 end
                                 [tMapIn, ~, ~, cropInfo, tMapXIn, tMapYIn] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0); %,iFrame);
                                 pp=numel(iFrame)+1;
                                 for ii=fliplr(iFrame)
                                     pp=pp-1;
-                                    tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                                    tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{pp};
+                                    curMap = zeros(tMapObj.firstMaskSize);
+                                    curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{pp};
+                                    if ~noStackRequired
+                                        tMapMap(:,:,ii) = curMap;
+                                    end
                                     if ismember(output,outputList(6:7))
                                         tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
                                         tMapMapX(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapXIn{pp};
@@ -214,8 +218,11 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         
                         [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField,displField,0);
                         for ii=obj.owner_.nFrames_:-1:1
-                            tMapMap(:,:,ii) = zeros(tMapObj.firstMaskSize);
-                            tMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = tMapIn{ii};
+                            curMap = zeros(tMapObj.firstMaskSize);
+                            curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{pp};
+                            if ~noStackRequired
+                                tMapMap(:,:,ii) = curMap;
+                            end
                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                         end
                         lastFinishTime = obj.finishTime_;
@@ -223,7 +230,11 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 end
                 if ismember(output,outputList(5:7)) 
                     if strcmp(output,outputList(5))
-                        varargout{1}=tMapMap(:,:,iFrame);
+                        if noStackRequired
+                            varargout{1} = curMap;
+                        else
+                            varargout{1}=tMapMap(:,:,iFrame);
+                        end
                     elseif strcmp(output,outputList(6))
                         varargout{1}=tMapMapX(:,:,iFrame);
                     elseif strcmp(output,outputList(7))
@@ -245,17 +256,29 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
                         if length(iFrame)>1
-                            curMap2 = zeros(size(tMapMap(:,:,iFrame)));
+                            if noStackRequired
+                                curMap2 = zeros(size(curMap));
+                            else
+                                curMap2 = zeros(size(tMapMap(:,:,iFrame)));
+                            end
                             for ii=fliplr(iFrame)
                                 Tr = affine2d([1 0 0; 0 1 0; (T(ii, :)) 1]);
                                 invTr = invert(Tr);
-                                curMap2(:,:,ii) = imwarp(tMapMap(:,:,ii),invTr,'OutputView',ref_obj);
+                                if noStackRequired
+                                    curMap2 = imwarp(curMap,invTr,'OutputView',ref_obj);
+                                else
+                                    curMap2(:,:,ii) = imwarp(tMapMap(:,:,ii),invTr,'OutputView',ref_obj);
+                                end
                             end
                             varargout{1} = curMap2;
                         else
                             Tr = affine2d([1 0 0; 0 1 0; fliplr(T(iFrame, :)) 1]);
                             invTr = invert(Tr);
-                            varargout{1} = imwarp(tMapMap(:,:,iFrame),invTr,'OutputView',ref_obj);
+                            if noStackRequired
+                                varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                            else
+                                varargout{1} = imwarp(tMapMap(:,:,iFrame),invTr,'OutputView',ref_obj);
+                            end
                         end
                     else
                         varargout{1}=tMapMap(:,:,iFrame);

@@ -40,8 +40,8 @@ cropInfo = [xmin,ymin,xmax,ymax];
 tMap = cell(1,numel(forceField));
 tMapX = cell(1,numel(forceField));
 tMapY = cell(1,numel(forceField));
-progressText(0,'Traction map creation:') % Create text
-parfor ii=iFrame
+progressText(0,'Map creation:') % Create text
+for ii=iFrame
     if isstruct(displField)
         curDispVec = displField(ii).vec;
         curDispPos = displField(ii).pos;
