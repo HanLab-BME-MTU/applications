@@ -177,9 +177,19 @@ pixSize_mu=movieData.pixelSize_*1e-3; % in um/pixel
 % factorConvert=gridSpacing^2*(pixSize_mu*1e-6)^3;
 areaConvert=pixSize_mu^2; % in um2/pixel
 SE_FOV=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nFrames,1));
+SE_FOV_SE = zeros(nFrames,1);
+SE_FOV_area = zeros(nFrames,1);
+SE_FOV_SEDensity = zeros(nFrames,1);
 totalForceFOV = zeros(nFrames,1);
 SE_Cell=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nFrames,1),...
     'SE_peri',zeros(nFrames,1),'SE_inside',zeros(nFrames,1),'SEDensityPeri',zeros(nFrames,1),'SEDensityInside',zeros(nFrames,1));
+SE_Cell_SE = zeros(nFrames,1); % in femto-Joule=1e15*(N*m)
+SE_Cell_area = zeros(nFrames,1); % this is in um2
+SE_Cell_SEDensity = zeros(nFrames,1); % J/m2
+SE_Cell_SE_peri = zeros(nFrames,1); % in femto-Joule=1e15*(N*m)
+SE_Cell_SE_inside = zeros(nFrames,1); % in femto-Joule=1e15*(N*m)
+SE_Cell_SEDensityPeri = zeros(nFrames,1); % J/m2
+SE_Cell_SEDensityInside = zeros(nFrames,1); % J/m2
 
 totalForceCell = zeros(nFrames,1);
 avgTractionCell= zeros(nFrames,1);
@@ -199,6 +209,20 @@ SE_Blobs=struct('SE',zeros(nFrames,1),'nFA',zeros(nFrames,1),'areaFA',zeros(nFra
     'SEDensity',zeros(nFrames,1),'avgFAarea',zeros(nFrames,1),'avgSEperFA',zeros(nFrames,1));
 totalForceBlobs = struct('force',zeros(nFrames,1),'avgTraction',[],...
     'maxTraction',[],'forceBlobPixelIdxList',[]);
+
+SE_Blobs_SE = zeros(nFrames,1); % this is in femto-Joule
+SE_Blobs_nFA = zeros(nFrames,1);
+SE_Blobs_areaFA = zeros(nFrames,1); % in um2
+SE_Blobs_avgFAarea = zeros(nFrames,1);
+SE_Blobs_avgSEperFA = zeros(nFrames,1); % still in femto-J
+SE_Blobs_SEDensity = zeros(nFrames,1); % J/m2
+
+totalForceBlobs_force= zeros(nFrames,1); % in nN %*(pixSize_mu*1e-6)^2*1e9; % in nN
+totalForceBlobs_avgTraction= cell(nFrames,1); % in Pa
+totalForceBlobs_maxTraction= cell(nFrames,1); % in Pa
+totalForceBlobs_forceBlobPixelIdxList= cell(nFrames,1);
+totalForceBlobs_avgTractionCell= cell(nFrames,1); % in Pa
+
 %% Get SDC
 % Cell Boundary Mask 
 iTFMPack = movieData.getPackageIndex('TFMPackage');
@@ -258,6 +282,10 @@ timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 
 bandwidthNA_pix = round(p.bandWidth*1000/movieData.pixelSize_);
 
+useFOV = p.useFOV;
+useCellMask = p.useCellMask;
+performForceBlobAnalysis=p.performForceBlobAnalysis;
+
 logMsg='Quantifying strain energy and total force';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for ii=1:nFrames
@@ -278,7 +306,7 @@ for ii=1:nFrames
             curTMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3))=curTMapInsert{1};
         end
     end
-    if p.useFOV || 1 % I will calculate this anyway
+    if useFOV || 1 % I will calculate this anyway
         % segment
         maskFOV = curTMap>0;%~isnan(curTMap); 
         % To crop, you can calculate the top, bottom, left, and right columns of the mask's "true" area by using any(). 
@@ -296,14 +324,23 @@ for ii=1:nFrames
         maskShrunkenBorder = true(size(tMapFOV));
         maskShrunkenBorder = bwmorph(maskShrunkenBorder,'erode',borderWidth);
 
-        SE_FOV.SE(ii)=1/2*sum(sum(dMapFOV.*tMapFOV.*maskShrunkenBorder))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
-        SE_FOV.area(ii)=sum(maskShrunkenBorder(:))*areaConvert; % this is in um2
-        SE_FOV.SEDensity(ii)=SE_FOV.SE(ii)/SE_FOV.area(ii)*1e3; % J/m2
+        curSE_FOV_SE=1/2*sum(sum(dMapFOV.*tMapFOV.*maskShrunkenBorder))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
+        curSE_FOV_area=sum(maskShrunkenBorder(:))*areaConvert; % this is in um2
+        curSE_FOV_SEDensity=curSE_FOV_SE/curSE_FOV_area*1e3; % J/m2
+        
+        SE_FOV_SE(ii)=curSE_FOV_SE; % in femto-Joule=1e15*(N*m)
+        SE_FOV_area(ii)=curSE_FOV_area; % this is in um2
+        SE_FOV_SEDensity(ii)=curSE_FOV_SEDensity; % J/m2
         
         totalForceFOV(ii) = sum(sum(tMapFOV.*maskShrunkenBorder))*areaConvert*1e-3; % in nN
+    else
+        SE_FOV_SE(ii)=NaN; % in femto-Joule=1e15*(N*m)
+        SE_FOV_area(ii)=NaN; % this is in um2
+        SE_FOV_SEDensity(ii)=NaN; % J/m2
+        totalForceFOV(ii) = NaN;
     end
     
-    if existMask && p.useCellMask
+    if existMask && useCellMask
         maskCell = maskProc.loadChannelOutput(iChan,ii);
 
         ref_obj = imref2d(size(maskCell));
@@ -339,13 +376,13 @@ for ii=1:nFrames
         tMapCellInside = curTMap(maskInterior);
         dMapCellInside = curDMap(maskInterior);
 
-        SE_Cell.SE(ii)=1/2*sum(sum(dMapCell.*tMapCell))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
-        SE_Cell.area(ii)=areaCell; % this is in um2
-        SE_Cell.SEDensity(ii)=SE_Cell.SE(ii)/SE_Cell.area(ii)*1e3; % J/m2
-        SE_Cell.SE_peri(ii)=1/2*sum(sum(dMapCellPeri.*tMapCellPeri))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
-        SE_Cell.SE_inside(ii)=1/2*sum(sum(dMapCellInside.*tMapCellInside))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
-        SE_Cell.SEDensityPeri(ii)=SE_Cell.SE_peri(ii)/areaPeri*1e3; % J/m2
-        SE_Cell.SEDensityInside(ii)=SE_Cell.SE_inside(ii)/areaInside*1e3; % J/m2
+        SE_Cell_SE(ii)=1/2*sum(sum(dMapCell.*tMapCell))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
+        SE_Cell_area(ii)=areaCell; % this is in um2
+        SE_Cell_SEDensity(ii)=SE_Cell_SE(ii)/SE_Cell_area(ii)*1e3; % J/m2
+        SE_Cell_SE_peri(ii)=1/2*sum(sum(dMapCellPeri.*tMapCellPeri))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
+        SE_Cell_SE_inside(ii)=1/2*sum(sum(dMapCellInside.*tMapCellInside))*(pixSize_mu*1e-6)^3*1e15; % in femto-Joule=1e15*(N*m)
+        SE_Cell_SEDensityPeri(ii)=SE_Cell_SE_peri(ii)/areaPeri*1e3; % J/m2
+        SE_Cell_SEDensityInside(ii)=SE_Cell_SE_inside(ii)/areaInside*1e3; % J/m2
         totalForceCell(ii) = sum(sum(tMapCell))*areaConvert*1e-3; % in nN
         totalForceCellPeri(ii) = sum(sum(tMapCellPeri))*areaConvert*1e-3; % in nN
         totalForceCellInside(ii) = sum(sum(tMapCellInside))*areaConvert*1e-3; % in nN
@@ -363,41 +400,41 @@ for ii=1:nFrames
         avgDispCellInside(ii) = totalDispCellInside(ii)/areaInside; %um
     end
         
-    if p.performForceBlobAnalysis
+    if performForceBlobAnalysis
         maskForceBlob = blobSegmentThresholdTFM(tMapFOV,minSize,0,maskShrunkenBorder);
 %         maskForceBlob = bwmorph(maskForceBlob,'dilate',1);
 %         maskForceBlob = padarray(maskForceBlob,[borderWidth borderWidth]);
 %         maskHighTraction=tMapFOV>minTraction;
 %         maskForceBlob = maskForceBlob & maskHighTraction;
 
-        SE_Blobs.SE(ii)=1/2*sum(dMapFOV(maskForceBlob).*tMapFOV(maskForceBlob))*(pixSize_mu*1e-6)^3; % this is in Newton*m.
-        SE_Blobs.SE(ii)=SE_Blobs.SE(ii)*1e15; % this is now in femto-Joule
+        SE_Blobs_SE(ii)=1/2*sum(dMapFOV(maskForceBlob).*tMapFOV(maskForceBlob))*(pixSize_mu*1e-6)^3; % this is in Newton*m.
+        SE_Blobs_SE(ii)=SE_Blobs_SE(ii)*1e15; % this is now in femto-Joule
         
         stats=regionprops(maskForceBlob,tMapFOV,'Area','PixelIdxList','Centroid','MinIntensity','MaxIntensity','MeanIntensity','WeightedCentroid');
-        SE_Blobs.nFA(ii)=numel(stats);
-        SE_Blobs.areaFA(ii) = sum(maskForceBlob(:))*areaConvert; % in um2
-        SE_Blobs.avgFAarea(ii) = SE_Blobs.areaFA(ii)/SE_Blobs.nFA(ii);
-        SE_Blobs.avgSEperFA(ii) = SE_Blobs.SE(ii)/SE_Blobs.nFA(ii); % still in femto-J
-        SE_Blobs.SEDensity(ii)=SE_Blobs.SE(ii)/SE_Blobs.areaFA(ii)*1e3; % J/m2
+        SE_Blobs_nFA(ii)=numel(stats);
+        SE_Blobs_areaFA(ii) = sum(maskForceBlob(:))*areaConvert; % in um2
+        SE_Blobs_avgFAarea(ii) = SE_Blobs_areaFA(ii)/SE_Blobs_nFA(ii);
+        SE_Blobs_avgSEperFA(ii) = SE_Blobs_SE(ii)/SE_Blobs_nFA(ii); % still in femto-J
+        SE_Blobs_SEDensity(ii)=SE_Blobs_SE(ii)/SE_Blobs_areaFA(ii)*1e3; % J/m2
         individualForceBlobs = arrayfun(@(x) x.MeanIntensity,stats);
         individualForceBlobMax = arrayfun(@(x) x.MaxIntensity,stats);
     %     individualForceBlobMin = arrayfun(@(x) x.MinIntensity,stats);
 %         individualForceBlobCenters = arrayfun(@(x) x.WeightedCentroid,stats,'UniformOutput',false);
 %         individualForceBlobAreas = arrayfun(@(x) x.Area,stats);
 
-        totalForceBlobs.force(ii,1)=sum(tMapFOV(maskForceBlob))*areaConvert*1e-3; % in nN %*(pixSize_mu*1e-6)^2*1e9; % in nN
-        totalForceBlobs.avgTraction{ii,1}=(individualForceBlobs); % in Pa
-        totalForceBlobs.maxTraction{ii,1}=(individualForceBlobMax); % in Pa
-        totalForceBlobs.forceBlobPixelIdxList{ii,1}=arrayfun(@(x) x.PixelIdxList,stats,'UniformOutput',false);
+        totalForceBlobs_force(ii,1)=sum(tMapFOV(maskForceBlob))*areaConvert*1e-3; % in nN %*(pixSize_mu*1e-6)^2*1e9; % in nN
+        totalForceBlobs_avgTraction{ii,1}=(individualForceBlobs); % in Pa
+        totalForceBlobs_maxTraction{ii,1}=(individualForceBlobMax); % in Pa
+        totalForceBlobs_forceBlobPixelIdxList{ii,1}=arrayfun(@(x) x.PixelIdxList,stats,'UniformOutput',false);
         % find an adhesion that contains top three max traction
     %     [individualForceBlobMaxSorted, topIDs]=sort(individualForceBlobMax,'descend');
-        if existMask && p.useCellMask
+        if existMask && useCellMask
             % This is to quantify force blob inside the cell
             maskCellFOV = maskCell(row1:row2, col1:col2);
             maskForceBlobCell = maskForceBlob & maskCellFOV;
             statsCell = regionprops(maskForceBlobCell,tMapFOV,'Area','PixelIdxList','Centroid','MinIntensity','MaxIntensity','MeanIntensity','WeightedCentroid');
             individualForceBlobsCell = arrayfun(@(x) x.MeanIntensity,statsCell);
-            totalForceBlobs.avgTractionCell{ii,1}=(individualForceBlobsCell); % in Pa
+            totalForceBlobs_avgTractionCell{ii,1}=(individualForceBlobsCell); % in Pa
         end
     end
     
@@ -420,12 +457,34 @@ for ii=1:nFrames
         waitbar(ii/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-ii)/ii)]));
     end
 end
+SE_FOV.SE = SE_FOV_SE;
+SE_FOV.area = SE_FOV_area;
+SE_FOV.SEDensity=SE_FOV_SEDensity;
+SE_Cell.SE=SE_Cell_SE; % in femto-Joule=1e15*(N*m)
+SE_Cell.area=SE_Cell_area; % this is in um2
+SE_Cell.SEDensity=SE_Cell_SEDensity; % J/m2
+SE_Cell.SE_peri=SE_Cell_SE_peri; % in femto-Joule=1e15*(N*m)
+SE_Cell.SE_inside=SE_Cell_SE_inside; % in femto-Joule=1e15*(N*m)
+SE_Cell.SEDensityPeri=SE_Cell_SEDensityPeri; % J/m2
+SE_Cell.SEDensityInside=SE_Cell_SEDensityInside; % J/m2
 
+SE_Blobs.SE=SE_Blobs_SE; % this is in femto-Joule
+SE_Blobs.nFA=SE_Blobs_nFA;
+SE_Blobs.areaFA=SE_Blobs_areaFA; % in um2
+SE_Blobs.avgFAarea=SE_Blobs_avgFAarea;
+SE_Blobs.avgSEperFA=SE_Blobs_avgSEperFA; % still in femto-J
+SE_Blobs.SEDensity=SE_Blobs_SEDensity; % J/m2
+
+totalForceBlobs.force=        totalForceBlobs_force; % in nN %*(pixSize_mu*1e-6)^2*1e9; % in nN
+totalForceBlobs.avgTraction =       totalForceBlobs_avgTraction; % in Pa
+totalForceBlobs.maxTraction =         totalForceBlobs_maxTraction; % in Pa
+totalForceBlobs.forceBlobPixelIdxList =        totalForceBlobs_forceBlobPixelIdxList;
+totalForceBlobs.avgTractionCell =        totalForceBlobs_avgTractionCell; % in Pa
 
 %% Save
 logMsg='Saving...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
-if p.useFOV || 1
+if useFOV || 1
     save(outputFile{1},'SE_FOV','totalForceFOV');
     if p.exportCSV
         tableSE_FOV=struct2table(SE_FOV);
@@ -434,7 +493,7 @@ if p.useFOV || 1
         writetable(tableForceFOV,outputFile{5})
     end
 end
-if existMask && p.useCellMask
+if existMask && useCellMask
     save(outputFile{2},'SE_Cell','totalForceCell','totalForceCellPeri',...
         'totalForceCellInside','totalDispCell','totalDispCellPeri','totalDispCellInside',...
         'avgTractionCell','avgTractionCellPeri','avgTractionCellInside',...
@@ -457,7 +516,7 @@ if existMask && p.useCellMask
         
     end
 end
-if p.performForceBlobAnalysis
+if performForceBlobAnalysis
     save(outputFile{3},'SE_Blobs','totalForceBlobs');
     if p.exportCSV
         tableSE_Blobs=struct2table(SE_Blobs);
