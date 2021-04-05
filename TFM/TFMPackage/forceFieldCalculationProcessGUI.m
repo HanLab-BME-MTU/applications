@@ -80,11 +80,9 @@ set(handles.lcorner, 'Value', strcmp(funParams.lcornerOptimal,'lcorner'));
 set(handles.optimal, 'Value', strcmp(funParams.lcornerOptimal,'optimal'));
 if funParams.useLcurve
     set(handles.checkbox_everyframe, 'Enable', 'on');
-    set(handles.groupCornerOptimal,  'Enable', 'on');
     set(handles.groupCornerOptimal.Children,  'Enable', 'on');
 else
     set(handles.checkbox_everyframe, 'Enable', 'off');
-    set(handles.groupCornerOptimal,  'Enable', 'off');
     set(handles.groupCornerOptimal.Children,  'Enable', 'off');
 end
 
