@@ -111,7 +111,10 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
                 end
-                if (isempty(tMapMap) || ~all(obj.finishTime_==lastFinishTime)) || size(tMapMap,3)<length(iFrame) ... %length(iFrame)==1 || 
+                if ~all(obj.finishTime_==lastFinishTime) % We have initialize maps if the process is updated or different
+                    tMapMap = [];
+                end
+                if isempty(tMapMap) || size(tMapMap,3)<length(iFrame) ... %length(iFrame)==1 || 
                         || size(tMapMap,3)<iFrame(end) ...
                         || (size(tMapMap,3)>=iFrame(end) && ~any(any(tMapMap(:,:,iFrame(end))))) 
                     try
@@ -216,8 +219,10 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                             tMapObj.firstMaskSize = size(SDCproc.loadChannelOutput(1,1));
                         end
                         
-                        [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField,displField,0);
-                        for ii=obj.owner_.nFrames_:-1:1
+                        [tMapIn, ~, ~, cropInfo] = generateHeatmapShifted(forceField(iFrame),displField(iFrame),0);
+                        pp=numel(iFrame)+1;
+                        for ii=fliplr(iFrame)
+                            pp=pp-1;
                             curMap = zeros(tMapObj.firstMaskSize);
                             curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{pp};
                             if ~noStackRequired
