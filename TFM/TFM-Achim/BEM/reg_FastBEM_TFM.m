@@ -65,7 +65,7 @@ else
     yvec=yvec(:);
 end
 
-display('1.) Creating mesh & basis [~5sec]:...');
+disp('1.) Creating mesh & basis [~5sec]:...');
 tic;
 % keepBDPts=true; %this might lead to unmatching forward map that lead to
 % diagonalized traction map

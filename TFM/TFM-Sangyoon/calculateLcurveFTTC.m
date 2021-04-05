@@ -31,7 +31,7 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
     firstGridPointY=grid_mat(1,1,2);
     endGridPointY=grid_mat(end,end,2);
     %% loop
-    parfor i=1:length(alphas)
+    for i=1:length(alphas)
         disp(['testing L = ' num2str(alphas(i)) '... '])
         curL=alphas(i);
         V = 2*(1+s)/E;
@@ -93,9 +93,9 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
         eta(i) = sum(fnorm(:));
 %         etaMax(i) = max(fnorm(:));
         % residual norm calculation
-%         G_xx=V*((1-s).*k.^2+s*ky.^2)./(k.^3);
-%         G_xy=V*s*kx.*ky./(k.^3);
-%         G_yy=V*((1-s).*k.^2+s*kx.^2)./(k.^3);
+        G_xx=V*((1-s).*k.^2+s*ky.^2)./(k.^3);
+        G_xy=V*s*kx.*ky./(k.^3);
+        G_yy=V*((1-s).*k.^2+s*kx.^2)./(k.^3);
 % 
 % %         Ginv_xx =k*(-kx.^2+ky.^2.*(-1+s))/(V*(-1+s));
 % % 
@@ -110,20 +110,21 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
 %         G_xy(i_max/2+1,:) = 0;
 %         G_xy(:,j_max/2+1) = 0;
 % 
-%         Ftu_estm(:,:,1) = G_xx.*Ftf(:,:,1)+G_xy.*Ftf(:,:,2);
-%         Ftu_estm(:,:,2) = G_xy.*Ftf(:,:,1)+G_yy.*Ftf(:,:,2);
+        Ftu_estm(:,:,1) = G_xx.*Ftf1+G_xy.*Ftf2;
+        Ftu_estm(:,:,2) = G_xy.*Ftf1+G_yy.*Ftf2;
 % %         ue(:,:,1) = ifft2(Ftu_estm(:,:,1),'symmetric');
 % %         ue(:,:,2) = ifft2(Ftu_estm(:,:,2),'symmetric');
-%         ue(:,:,1) = real(ifft2(Ftu_estm(:,:,1),'symmetric'));
-%         ue(:,:,2) = real(ifft2(Ftu_estm(:,:,2),'symmetric'));
+        ue(:,:,1) = real(ifft2(Ftu_estm(:,:,1),'symmetric'));
+        ue(:,:,2) = real(ifft2(Ftu_estm(:,:,2),'symmetric'));
+        ue1=ue(:,:,1); ue2=ue(:,:,2);
 %         
 %         figure, quiver(grid_mat(:,:,1),grid_mat(:,:,2),u(:,:,1),u(:,:,2),0)     
 %         hold on
 %         quiver(grid_mat(:,:,1),grid_mat(:,:,2),ue(:,:,1),ue(:,:,2),0,'r')
         
-        [ue1,ue2]=fwdSolution(grid_mat1,grid_mat2,E,...
-            firstGridPointX,endGridPointX,firstGridPointY,endGridPointY,...
-            f1,f2,'fft','Intp',2^10,[],0.5,false,false);
+%         [ue1,ue2]=fwdSolution(grid_mat1,grid_mat2,E,...
+%             firstGridPointX,endGridPointX,firstGridPointY,endGridPointY,...
+%             f1,f2,'fft','Intp',2^10,[],0.5,false,false);
 %         [ue(:,:,1),ue(:,:,2)]=fwdSolution(grid_mat(:,:,1),grid_mat(:,:,2),E,...
 %             grid_mat(1,1,1),grid_mat(end,end,1),grid_mat(1,1,2),grid_mat(end,end,2),...
 %             f(:,:,1),f(:,:,2),'fft','noIntp',[],[],0.5,false,true);
@@ -133,7 +134,7 @@ function  [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat,u,E,s, clus
     %% Find the L-corner
 %     save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
 %     [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
-%     [reg_corner,~,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(alphas',eta,alphas,L);
+    [reg_corner,~,~]=regParamSelecetionLcurve(1./rho,1./eta,alphas,L);
+%     [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(alphas',eta,alphas,L);
 %     figure, plot(alphas,etaMax,'-'); hold on, plot(alphas(ireg_corner),etaMax(ireg_corner),'ro')
 end
