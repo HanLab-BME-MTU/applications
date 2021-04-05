@@ -209,7 +209,7 @@ if min(min(maskArray(:,:,1))) == 0
                 'running displacement field calclation tracking!'])
         end
         %Parse input, store in parameter structure
-        refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex}));
+        refFrame = double(imread(SDCProc.funParams_.referenceFramePath));
 
         % Use mask of first frame to filter bead detection
         firstMask = refFrame>0; %false(size(refFrame));
@@ -427,13 +427,29 @@ if strcmpi(p.method,'FastBEM')
     end
 
     for i=frameSequence(2:end)
-        % since the displ field has been prepared such
-        % that the measurements in different frames are ordered in the
-        % same way, we don't need the position information any
-        % more. The displ. measurements are enough.
-        disp('5.) Re-evaluate the solution:... ')
-        [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-            displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+        if p.useLcurveEveryFrame 
+            % this will be extremely slow, but should be used if there is
+            % frame-to-frame variance in displacement field, e.g., due to
+            % focusing or image noises. - Sangyoon Apr 2021
+            disp(['5.) Calculating L-curve and force for frame #' num2str(i) ':... '])
+            [pos_f, force, forceMesh, M, pos_u, ~, sol_coef,  sol_mats]=...
+                reg_FastBEM_TFM(grid_mat, displField, i, ...
+                p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+                'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness*1000/movieData.pixelSize_,...
+                'LcurveDataPath',[outputFile{5,1}(1:end-4) 'f' num2str(i) '.mat'],...
+                'LcurveFigPath',[outputFile{4,1}(1:end-4) 'f' num2str(i) '.fig'],'fwdMap',M,...
+                'lcornerOptimal',p.lcornerOptimal, 'tolx', p.tolx);
+        else
+            % since the displ field has been prepared such
+            % that the measurements in different frames are ordered in the
+            % same way, we don't need the position information any
+            % more. The displ. measurements are enough.
+            disp('5.) Re-evaluate the solution:... ')
+            [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+        end
         forceField(i).pos=pos_f;
         forceField(i).vec=force;
         % Save each iteration (for recovery of unfinished processes)
@@ -454,7 +470,7 @@ if strcmpi(p.method,'FastBEM')
     end
 elseif strcmpi(p.method,'FEM') % FEMTFM
     % Fill in here
-    disp('calculateMovieForceField FEM')
+    disp('calculating force fields using FEM...')
     i=frameSequence(1); % For the first frame
     [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
@@ -555,13 +571,29 @@ elseif strcmpi(p.method,'FEM') % FEMTFM
     end
 
     for i=frameSequence(2:end)
-        % since the displ field has been prepared such
-        % that the measurements in different frames are ordered in the
-        % same way, we don't need the position information any
-        % more. The displ. measurements are enough.
-        disp('5.) Re-evaluate the solution:... ')
-        [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-            displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+        if p.useLcurveEveryFrame 
+            % this will be extremely slow, but should be used if there is
+            % frame-to-frame variance in displacement field, e.g., due to
+            % focusing or image noises. - Sangyoon Apr 2021
+            disp(['5.) Calculating L-curve and force for frame #' num2str(i) ':... '])
+            [pos_f, force, forceMesh, M, ~, ~, ~,  sol_mats]=...
+                reg_FEM_TFM(grid_mat, displField, i, ...
+                p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+                'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness*1000/movieData.pixelSize_,...
+                'LcurveDataPath',[outputFile{5,1}(1:end-4) 'f' num2str(i) '.mat'],...
+                'LcurveFigPath',[outputFile{4,1}(1:end-4) 'f' num2str(i) '.fig'],'fwdMap',M,...
+                'lcornerOptimal',p.lcornerOptimal, 'tolx', p.tolx);
+        else
+            % since the displ field has been prepared such
+            % that the measurements in different frames are ordered in the
+            % same way, we don't need the position information any
+            % more. The displ. measurements are enough.
+            disp('5.) Re-evaluate the solution:... ')
+            [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+        end
         forceField(i).pos=pos_f;
         forceField(i).vec=force;
         % Save each iteration (for recovery of unfinished processes)
@@ -612,6 +644,27 @@ elseif strcmpi(p.method,'FTTC') % FTTC
             params = parseProcessParams(forceFieldProc,paramsIn);
             params.regParam = reg_corner;
             forceFieldProc.setPara(params);
+        elseif p.useLcurve && p.useLcurveEveryFrame 
+            [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat, iu_mat, p.YoungModulus,...
+                p.PoissonRatio, gridSpacing, i_max, j_max, p.regParam,p.LcurveFactor);
+            if strcmp(p.lcornerOptimal,'lcorner')
+                [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,...
+                    'manualSelection',true); % L-corner
+            else
+                [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,...
+                    'manualSelection',true,'inflection',2); %Inflection point smaller than l-curve will be chosen.
+                if isempty(reg_corner)
+                    disp('Optimal regularization parameter selection was not converged. Going with L-corner...')
+                    [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(alphas',eta,alphas,reg_corner,...
+                        'manualSelection',true); % L-corner
+                    if isempty(reg_corner)
+                        disp('L-corner regularization parameter selection was not converged either. Going with what''s entered initially...')
+                        reg_corner=p.regParam; 
+                    end
+                end
+            end   
+            save([outputFile{5,1}(1:end-4) 'f' num2str(i) '.mat'],'rho','eta','reg_corner','ireg_corner');
+            saveas(hLcurve,[outputFile{4,1}(1:end-4) 'f' num2str(i) '.fig']);
         end
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
             p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, reg_corner);

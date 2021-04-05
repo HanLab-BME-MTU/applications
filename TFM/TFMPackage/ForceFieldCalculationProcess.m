@@ -466,6 +466,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.LcurveFactor=10;
             funParams.thickness=34000;
             funParams.useLcurve=true;
+            funParams.useLcurveEveryFrame=false;
             funParams.lastToFirst=false;
             funParams.lcornerOptimal='optimal';
             funParams.tolx=0.2;
