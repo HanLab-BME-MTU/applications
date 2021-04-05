@@ -1,3 +1,5 @@
+% This was not chosen to be used for the study. - Sangyoon Mar 2021
+% We chose to use simBeadImagesLargerDeformation.m
 %% Preparing synthetic bead images
 clc
 clear all
@@ -170,8 +172,10 @@ nPoints = length(bead_x);
 bead_ux = zeros(size(bead_x));
 bead_uy = zeros(size(bead_y));
 for k=1:nPoints
+    % identify closest integer location in mat_u
     [~,indcol_closest_x] = min(abs(x_mat_u(1,:)-bead_x(k)),[],2);
     [~,indrow_closest_y] = min(abs(y_mat_u(:,1)-bead_y(k)),[],1);
+    % get the neighborhood with the x,y location
     row_bottom = max(1,indrow_closest_y-2);
     row_top = min(size(x_mat_u,2),indrow_closest_y+2);
     col_bottom = max(1,indcol_closest_x-2);
@@ -180,6 +184,7 @@ for k=1:nPoints
     loc_ymat = y_mat_u(row_bottom:row_top,col_bottom:col_top);
     loc_ux = ux(row_bottom:row_top,col_bottom:col_top);
     loc_uy = uy(row_bottom:row_top,col_bottom:col_top);
+    % interpolate for subpixel location
     bead_ux(k) = interp2(loc_xmat,loc_ymat,loc_ux,bead_x(k),bead_y(k));
     if isnan(bead_ux(k))
         bead_ux(k) = ux(indrow_closest_y,indcol_closest_x);

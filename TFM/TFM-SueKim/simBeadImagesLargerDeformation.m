@@ -1,6 +1,7 @@
-%% Preparing synthetic bead images
+%% set up
 clc
-clear all
+clear
+%% Preparing synthetic bead images
 meshPtsFwdSol=2^9;
 xmax=meshPtsFwdSol;
 ymax=meshPtsFwdSol;
@@ -199,7 +200,8 @@ end
 beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
 
 %% saving
-dataPath='/storage/network/TFM_Development/TFM2D/PIVimprovement/simulation';
+% dataPath='/storage/network/TFM_Development/TFM2D/PIVimprovement/simulation';
+dataPath=pwd;
 %PIVImprovement - simulation folder
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];

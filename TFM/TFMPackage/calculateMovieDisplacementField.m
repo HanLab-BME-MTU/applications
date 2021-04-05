@@ -424,7 +424,8 @@ for j= firstFrame:nFrames
 %         pivData.V=zeros(size(pivData.Y));
 
         [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
-        validV = ~isnan(pivData.V);
+%         validV = ~isnan(pivData.V);
+        validV = true(size(pivData.V));
         
         if ~p.trackSuccessively
             displField(j).pos=[pivData.X(validV), pivData.Y(validV)];

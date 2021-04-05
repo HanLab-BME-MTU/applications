@@ -38,7 +38,9 @@ function [v,corLength,sigtValues] = trackStackFlow(stack,points,minCorL,varargin
 %    'minFeatureSize': The minimum feature size in the image. This is 
 %                      measured as the diameter of features.
 %                      Default, 11 pixels (typical speckle size).
-%
+%    'sigCrit': Tolerance of the significance determination. Less (e.g. 0.3) is more
+%               strict, more (e.g. 0.9) is more generous. Default: 0.5
+% 
 % OUTPUT :
 %    v      : velocity vector of (size nP x2) expressed in the xy
 %             coordinate system.
