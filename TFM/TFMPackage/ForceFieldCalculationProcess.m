@@ -275,6 +275,9 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                             Tr = affine2d([1 0 0; 0 1 0; fliplr(T(iFrame, :)) 1]);
                             invTr = invert(Tr);
                             if noStackRequired
+                                if ~exist('curMap','var') % this is because tMapMap was there.
+                                    curMap = tMapMap(:,:,iFrame);
+                                end
                                 varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
                             else
                                 varargout{1} = imwarp(tMapMap(:,:,iFrame),invTr,'OutputView',ref_obj);
