@@ -175,6 +175,7 @@ if p.fillVectors
     % information of existing displacement in neighbors
     % Check optional process Flow Tracking
     pStep2 = displParams;
+    minCorLength = pStep2.minCorLength;
     if ~isempty(SDCProc)
         s = load(SDCProc.outFilePaths_{3,pStep2.ChannelIndex},'T');
         residualT = s.T-round(s.T);
@@ -196,7 +197,7 @@ if p.fillVectors
         end
         k2=0;
         nTracked=1000; 
-        nFailed=0; nMaxFailed=10;
+        nFailed=0; nMaxFailed=30;
         prevAttempt=false; prevNeiVecs=[]; prevIndices=[];
         thresDist=3; 
         iFigureDrawing=0;
@@ -285,16 +286,26 @@ if p.fillVectors
         %     meanNeiVecs = cellfun(@mean,closeNeiVecs,'Unif',false);
 
             [v(idCloseEnough,:),nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads(idCloseEnough,:),...
-                pStep2.minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
+                minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
                 'mode',pStep2.mode,'hardCandidates',closeNeiVecs(idCloseEnough),'magDiffThreshold',p.magDiffThreshold,...
                 'angDiffThreshold',p.angDiffThreshold); %, 'hardCandidateDists', dist(idCloseEnough));%,'usePIVSuite', pStep2.usePIVSuite);
 
-            if j== 1 && (iFigureDrawing==1 || nFailed==nMaxFailed)
-                figure, quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
-                hold on
-%             plot(currentBeads(:,1),currentBeads(:,2),'ro')
-                quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'r')
-            end
+%             if j== 1 && (iFigureDrawing==1 || nFailed==nMaxFailed)
+%             if k==1 % This is for publication purpose for PTVR
+%                 figure
+%             end
+%                 hold off
+%                 quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
+%                 hold on
+% %             plot(currentBeads(:,1),currentBeads(:,2),'ro')
+%                 quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'r')
+%                 set(gca, 'YDir','reverse')
+%                 set(gca, 'XLim',[32 480], 'YLim',[32 480])
+%                 set(gca, 'PlotBoxAspectRatio',[1 1 1])
+%                 set(gca, 'XTickLabel', [])
+%                 set(gca, 'YTickLabel', [])
+%                 savefig([p.OutputDirectory filesep 'field_iter' num2str(k) '.fig'])
+%             end
         %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
             displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
 
@@ -325,11 +336,17 @@ if p.fillVectors
             if nTracked==0
                 nFailed=nFailed+1;
                 thresDist = 3 +nFailed; %(-1)^nFailed*ceil((nFailed+1)/2);
+                if minCorLength > 7
+                    minCorLength = minCorLength - 2;
+                end
 %                 if thresDist==0
 %                     thresDist=nFailed+1;
 %                 end
             else
                 nFailed=0;
+                if minCorLength < 8
+                    minCorLength = pStep2.minCorLength;
+                end
                 if thresDist > 7
                     thresDist = 7; % Decided to let thresDist stay where it was, but there is a maximum.
                 end

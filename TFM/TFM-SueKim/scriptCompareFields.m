@@ -26,7 +26,8 @@ quiver(displFieldSuite(1).pos(:,1),displFieldSuite(1).pos(:,2),...
 set(gca, 'YDir','reverse')
 set(gca, 'XLim',[32 480], 'YLim',[32 480])
 set(gca, 'PlotBoxAspectRatio',[1 1 1])
-
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
 %% Compare for PIVSuite
 displFieldOrg.x_mat_u = x_mat_u;
 displFieldOrg.y_mat_u = y_mat_u;
