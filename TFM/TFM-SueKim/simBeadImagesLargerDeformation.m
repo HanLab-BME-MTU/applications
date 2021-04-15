@@ -134,7 +134,7 @@ force_x = (maxFnoise*rand(ymax,xmax)).*background + force_x;
 force_y = (maxFnoise*rand(ymax,xmax)).*background + force_y;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
 figure, imshow(fnorm_org,[0 12000]), colormap jet
-
+save('forceGTlarger.mat','force_x','force_y');
 %% displacement field
 % figure 2
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...

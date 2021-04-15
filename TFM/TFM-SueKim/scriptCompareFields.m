@@ -1,6 +1,7 @@
 % Sue's code for saving all publishable figures
 % This is to compare the PIVs and PTVs with ground-truth filed 
 % written by Sangyoon Han, March 2021
+cd('/Volumes/GoogleDrive/My Drive/Documents/Faculty/Projects/PTV-Retracking/Manuscript/Data')
 %% Load ground truth ux and uy
 uxStruct = load('ux_sim.mat');
 ux = uxStruct.ux;
@@ -146,7 +147,7 @@ generateHeatmapFromField(displOriginalPTV,dataPath,0,60); % step
 displOriginalPTVFilteredstruct = load('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_justFiltering/displField.mat');
 displOriginalPTVFiltered = displOriginalPTVFilteredstruct.displField;
 %% MSE for filtered PTV
-[deviationLevels_ptvFilt,indWrongVectors_ptvFilt,indMissing_ptvFilt] = ...
+[deviationLevels_ptvFilt,indWrongVectors_ptvFilt,indMissing_ptvFilt,MSE_ptvFilt] = ...
     compareFields(displOriginalPTVFiltered,displFieldOrg,plotRes);
 %% quiver plot for filtered PTV
 intactVectorsPTVFilt = ~(indWrongVectors_ptvFilt | indMissing_ptvFilt);
@@ -207,4 +208,284 @@ dF_ptvf_SA = filterDisplacementField( displOriginalPTVFiltered, maskSmallAdh);
 figure, barPlotCellArray(MSESA,namePIVs,1)
 ylabel('Mean Squared Deviation (1)')
 title('MSD at small forces')
+%% Fig 4 Enlargement factor
+% We want to compare MSE for them
+% loading it again
+%% Retrack without enlargement factor
+displPTVretractedStruct = load('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_retrackedUpperMedian/displField.mat');
+displPTVretracted = displPTVretractedStruct.displField;
+%% MSE for filtered PTV
+[deviationLevels_ptvR,indWrongVectors_ptvR,indMissing_ptvR,MSEptvR] = ...
+    compareFields(displPTVretracted,displFieldOrg,plotRes);
+figure
+intactVectors_ptvR = ~(indWrongVectors_ptvR | indMissing_ptvR);
+quiver(displPTVretracted(1).pos(intactVectors_ptvR,1),displPTVretracted(1).pos(intactVectors_ptvR,2),...
+    displPTVretracted(1).vec(intactVectors_ptvR,1),displPTVretracted(1).vec(intactVectors_ptvR,2),0,'Color','b')
+hold on
+quiver(displPTVretracted(1).pos(indWrongVectors_ptvR,1),displPTVretracted(1).pos(indWrongVectors_ptvR,2),...
+    displPTVretracted(1).vec(indWrongVectors_ptvR,1),displPTVretracted(1).vec(indWrongVectors_ptvR,2),0,'Color','g')
+plot(displPTVretracted(1).pos(indMissing_ptvR,1),displPTVretracted(1).pos(indMissing_ptvR,2),'ro')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% Enla
+displPTVretractedEnlargedStruct = load('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_enlarge7_cor_nei_med/displField.mat');
+displPTVretractedEnlarged = displPTVretractedEnlargedStruct.displField;
+%% MSE for PTVR enlargementFactor
+[deviationLevels_ptvEnla,indWrongVectors_ptvEnla,indMissing_ptvEnla,MSEptvEnla] = ...
+    compareFields(displPTVretractedEnlarged,displFieldOrg,plotRes);
+%% Quiver for PTVR enlarge
+figure
+intactVectors_ptvEnla = ~(indWrongVectors_ptvEnla | indMissing_ptvEnla);
+quiver(displPTVretractedEnlarged(1).pos(intactVectors_ptvEnla,1),displPTVretractedEnlarged(1).pos(intactVectors_ptvEnla,2),...
+    displPTVretractedEnlarged(1).vec(intactVectors_ptvEnla,1),displPTVretractedEnlarged(1).vec(intactVectors_ptvEnla,2),0,'Color','b')
+hold on
+quiver(displPTVretractedEnlarged(1).pos(indWrongVectors_ptvEnla,1),displPTVretractedEnlarged(1).pos(indWrongVectors_ptvEnla,2),...
+    displPTVretractedEnlarged(1).vec(indWrongVectors_ptvEnla,1),displPTVretractedEnlarged(1).vec(indWrongVectors_ptvEnla,2),0,'Color','g')
+plot(displPTVretractedEnlarged(1).pos(indMissing_ptvEnla,1),displPTVretractedEnlarged(1).pos(indMissing_ptvEnla,2),'ro')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% Plotting MSEs for PTVfiltered, PTVretracked, and PTVEnla
+MSEGroup2 = {MSE_ptvFilt,MSEptvR,MSEptvEnla};
+namePTVs = {'cPTV-filtered','cPTVR-median','cPTVR-with enlargement factor'};
+figure, barPlotCellArray(MSEGroup2,namePTVs,1)
+ylabel('Mean Squared Deviation (1)')
+title('MSD in FOV')
+%% map for PTVretracked
+dataPath='./analysisWithoutSDC/TFMPackage/correctedDisplacementField_retrackedUpperMedian';
+generateHeatmapFromField(displPTVretracted,dataPath,0,60); % step 
 
+%% map for PTVretrackedEnla
+dataPath='./analysisWithoutSDC/TFMPackage/correctedDisplacementField_enlarge7_cor_nei_med';
+generateHeatmapFromField(displPTVretractedEnlarged,dataPath,0,60); % step 
+
+%% Now Fig 5!!! Force map
+%% Org force field
+fStruct = load('forceGTlarger.mat');
+fx = fStruct.force_x;
+fy = fStruct.force_y;
+sf = 1/50;
+quiver(x_mat_u(xR,yR),y_mat_u(xR,yR), sf*fx(xR,yR), sf*fy(xR,yR), 0,'b')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% Org forcemap
+generateHeatmapFromGridData(x_mat_u,y_mat_u,fx,fy,'./orgForceField',32,0,12000,0)
+
+%% PIV Suite-based force
+forceFieldOrg.x_mat_u = x_mat_u;
+forceFieldOrg.y_mat_u = y_mat_u;
+forceFieldOrg.ux = fx;
+forceFieldOrg.uy = fy;
+plotRes = true;
+%% field for PTVretrackedEnla
+forcePIVSuiteStruct= load('./analysisWithoutSDC/TFMPackage/forceField_fromPIVSuite/forceField.mat');
+forceFieldSuite = forcePIVSuiteStruct.forceField;
+%% force field for suite
+[deviationLevelsSuiteF,indWrongVectorsSuiteF,indMissingSuiteF, MSESuiteF,DTMSuiteF] =  ...
+    compareFields(forceFieldSuite,forceFieldOrg,plotRes, sf);
+% intactVectorsSuiteF = ~(indWrongVectorsSuiteF | indMissingSuiteF);
+% figure;
+% quiver(forceFieldSuite(1).pos(intactVectorsSuiteF,1),...
+%     forceFieldSuite(1).pos(intactVectorsSuiteF,2),...
+%     sf*forceFieldSuite(1).vec(intactVectorsSuiteF,1),...
+%     sf*forceFieldSuite(1).vec(intactVectorsSuiteF,2),0,'Color','b')
+% hold on
+% quiver(forceFieldSuite(1).pos(indWrongVectorsSuiteF,1),...
+%     forceFieldSuite(1).pos(indWrongVectorsSuiteF,2),...
+%     sf*forceFieldSuite(1).vec(indWrongVectorsSuiteF,1),...
+%     sf*forceFieldSuite(1).vec(indWrongVectorsSuiteF,2),0,'Color','g')
+% plot(forceFieldSuite(1).pos(indMissingSuiteF,1),...
+%     forceFieldSuite(1).pos(indMissingSuiteF,2),'ro')
+% set(gca, 'YDir','reverse')
+% set(gca, 'XLim',[32 480], 'YLim',[32 480])
+% set(gca, 'PlotBoxAspectRatio',[1 1 1])
+figure;
+quiver(forceFieldSuite(1).pos(:,1),...
+    forceFieldSuite(1).pos(:,2),...
+    sf*forceFieldSuite(1).vec(:,1),...
+    sf*forceFieldSuite(1).vec(:,2),0,'Color','k')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% map for PIVSuite
+dataPath='./analysisWithoutSDC/TFMPackage/forceField_fromPIVSuite';
+generateHeatmapFromField(forceFieldSuite,dataPath,0,10000); % step 
+%% running force calculation for Tseng's PIV result
+displField = displFieldTseng;
+mkdir('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_Tseng')
+save('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_Tseng/displField.mat','displField')
+%% run TFM
+%% field for Tseng
+forceTsengStruct= load('./analysisWithoutSDC/TFMPackage/forceField_Tseng/forceField.mat');
+forceFieldTseng = forceTsengStruct.forceField;
+%% force field for Tseng
+[deviationLevelsTsengF,indWrongVectorsTsengF,indMissingTsengF, MSETsengF, DTMTsengF] =  ...
+    compareFields(forceFieldTseng,forceFieldOrg,plotRes, sf);
+%% field
+figure;
+quiver(forceFieldTseng(1).pos(:,1),...
+    forceFieldTseng(1).pos(:,2),...
+    sf*forceFieldTseng(1).vec(:,1),...
+    sf*forceFieldTseng(1).vec(:,2),0,'Color','k')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% force map for Tseng
+dataPath='./analysisWithoutSDC/TFMPackage/forceField_Tseng';
+generateHeatmapFromField(forceFieldTseng,dataPath,0,10000); % step 
+
+%% mpiv force
+displField=displFieldMPIV;
+mkdir('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_mpiv')
+save('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_mpiv/displField.mat','displField')
+%% run TFM
+%% field for mpiv
+forceMpivStruct= load('./analysisWithoutSDC/TFMPackage/forceField_mpiv/forceField.mat');
+forceFieldMpiv = forceMpivStruct.forceField;
+%% force field for mpiv
+[deviationLevelsMpivF,indWrongVectorsMpivF,indMissingMpivF, MSEMpivF, DTMMpivF] =  ...
+    compareFields(forceFieldMpiv,forceFieldOrg,plotRes, sf);
+
+%% field
+figure;
+quiver(forceFieldMpiv(1).pos(:,1),...
+    forceFieldMpiv(1).pos(:,2),...
+    sf*forceFieldMpiv(1).vec(:,1),...
+    sf*forceFieldMpiv(1).vec(:,2),0,'Color','k')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% force map for mpiv
+dataPath='./analysisWithoutSDC/TFMPackage/forceField_mpiv';
+generateHeatmapFromField(forceFieldMpiv,dataPath,0,10000); % step 
+%% cptv filtering
+%% field for cptv filtering
+forceCPTVFStruct= load('./analysisWithoutSDC/TFMPackage/forceField_cPTVFiltering/forceField.mat');
+forceFieldCPTVF = forceCPTVFStruct.forceField;
+%% force field for cptv filtering
+[deviationLevelsCPTVFF,indWrongVectorsCPTVFF,indMissingCPTVFF, MSECPTVFF, DTMcPTVFF] =  ...
+    compareFields(forceFieldCPTVF,forceFieldOrg,plotRes, sf);
+%% field
+figure;
+quiver(forceFieldCPTVF(1).pos(:,1),...
+    forceFieldCPTVF(1).pos(:,2),...
+    sf*forceFieldCPTVF(1).vec(:,1),...
+    sf*forceFieldCPTVF(1).vec(:,2),0,'Color','k')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+
+%% force map for cPTV filtering
+dataPath='./analysisWithoutSDC/TFMPackage/forceField_cPTVFiltering';
+generateHeatmapFromField(forceFieldCPTVF,dataPath,0,10000); % step 
+
+%% cPTVR with median
+%run TFM package
+displField = displPTVretracted;
+save('./analysisWithoutSDC/TFMPackage/correctedDisplacementField_retrackedUpperMedian/displField.mat','displField')
+%% field for cptvr med
+forceCPTVR_MedStruct= load('./analysisWithoutSDC/TFMPackage/forceField_cPTVR_median/forceField.mat');
+forceFieldCPTVR_Med = forceCPTVR_MedStruct.forceField;
+%% force field for cptvr med
+[deviationLevelsCPTVR_MedF,indWrongVectorsCPTVR_MedF,indMissingCPTVR_MedF, MSECPTVR_MedF, DTMcPTVR_MedF] =  ...
+    compareFields(forceFieldCPTVR_Med,forceFieldOrg,plotRes, sf);
+%% field cptvr med
+figure;
+quiver(forceFieldCPTVR_Med(1).pos(:,1),...
+    forceFieldCPTVR_Med(1).pos(:,2),...
+    sf*forceFieldCPTVR_Med(1).vec(:,1),...
+    sf*forceFieldCPTVR_Med(1).vec(:,2),0,'Color','k')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% force map for cptvr med
+dataPath='./analysisWithoutSDC/TFMPackage/forceField_cPTVR_median';
+generateHeatmapFromField(forceFieldCPTVR_Med,dataPath,0,10000); % step 
+%% CPTVR with EF
+%% field for cptvr ef
+forceCPTVR_EFStruct= load('./analysisWithoutSDC/TFMPackage/forceField_cPTVR_EF_reg2e-6/forceField.mat');
+forceFieldCPTVR_EF = forceCPTVR_EFStruct.forceField;
+%% force field for cptvr ef
+[deviationLevelsCPTVR_EF,indWrongVectorsCPTVR_EF,indMissingCPTVR_EF, MSECPTVR_EF,DTMcPTVR_EF] =  ...
+    compareFields(forceFieldCPTVR_EF,forceFieldOrg,plotRes, sf);
+%% field cptvr ef
+figure;
+quiver(forceFieldCPTVR_EF(1).pos(:,1),...
+    forceFieldCPTVR_EF(1).pos(:,2),...
+    sf*forceFieldCPTVR_EF(1).vec(:,1),...
+    sf*forceFieldCPTVR_EF(1).vec(:,2),0,'Color','k')
+set(gca, 'YDir','reverse')
+set(gca, 'XLim',[32 480], 'YLim',[32 480])
+set(gca, 'PlotBoxAspectRatio',[1 1 1])
+set(gca, 'XTickLabel', [])
+set(gca, 'YTickLabel', [])
+%% force map for cptvr ef
+dataPath='./analysisWithoutSDC/TFMPackage/forceField_cPTVR_EF';
+generateHeatmapFromField(forceFieldCPTVR_EF,dataPath,0,10000); % step 
+
+%% MSE plot
+MSDGroup = {MSESuiteF, MSETsengF, MSEMpivF,MSECPTVFF, MSECPTVR_MedF,MSECPTVR_EF};
+namePITVs = {'PIVSuite','TsengPIV','mpiv','cPTV-filtered','cPTVR-med','cPTVR-EF'};
+figure, barPlotCellArray(MSDGroup,namePITVs,1)
+ylabel('Mean Squared Deviation (1)')
+title('MSD in FOV')
+%% MSE for small and large adhesions
+% We need a mask for large and small adhesions
+open('./orgField/heatMap/figs/hMapFigWithMasks.fig');
+h = drawellipse;
+maskLargeAdh = createMask(h);
+h2 = drawpolygon;
+maskSmallAdh = createMask(h2);
+save('./maskAdhs.mat','maskLargeAdh','maskSmallAdh')
+%% Large adh first
+fF_Suite_LA = filterDisplacementField( forceFieldSuite, maskLargeAdh);
+[~,~,~, MSELA_f{1}] =  compareFields(fF_Suite_LA,forceFieldOrg);
+fF_Tseng_LA = filterDisplacementField( forceFieldTseng, maskLargeAdh);
+[~,~,~, MSELA_f{2}] =  compareFields(fF_Tseng_LA,forceFieldOrg);
+fF_mpiv_LA = filterDisplacementField( forceFieldMpiv, maskLargeAdh);
+[~,~,~, MSELA_f{3}] =  compareFields(fF_mpiv_LA,forceFieldOrg);
+fF_ptvf_LA = filterDisplacementField( forceFieldCPTVF, maskLargeAdh);
+[~,~,~, MSELA_f{4}] =  compareFields(fF_ptvf_LA,forceFieldOrg);
+fF_ptvr_med_LA = filterDisplacementField( forceFieldCPTVR_Med, maskLargeAdh);
+[~,~,~, MSELA_f{5}] =  compareFields(fF_ptvr_med_LA,forceFieldOrg);
+fF_ptvr_ef_LA = filterDisplacementField( forceFieldCPTVR_EF, maskLargeAdh);
+[~,~,~, MSELA_f{6}] =  compareFields(fF_ptvr_ef_LA,forceFieldOrg);
+figure, barPlotCellArray(MSELA_f,namePITVs,1)
+ylabel('Mean squared deviation (1)')
+title('Force MSD at large forces')
+%% Small adhs
+fF_Suite_SA = filterDisplacementField( forceFieldSuite, maskSmallAdh);
+[~,~,~, MSESA_f{1}] =  compareFields(fF_Suite_SA,forceFieldOrg);
+fF_Tseng_SA = filterDisplacementField( forceFieldTseng, maskSmallAdh);
+[~,~,~, MSESA_f{2}] =  compareFields(fF_Tseng_SA,forceFieldOrg);
+fF_mpiv_SA = filterDisplacementField( forceFieldMpiv, maskSmallAdh);
+[~,~,~, MSESA_f{3}] =  compareFields(fF_mpiv_SA,forceFieldOrg);
+fF_ptvf_SA = filterDisplacementField( forceFieldCPTVF, maskSmallAdh);
+[~,~,~, MSESA_f{4}] =  compareFields(fF_ptvf_SA,forceFieldOrg);
+fF_ptvr_med_SA = filterDisplacementField( forceFieldCPTVR_Med, maskSmallAdh);
+[~,~,~, MSESA_f{5}] =  compareFields(fF_ptvr_med_SA,forceFieldOrg);
+fF_ptvr_ef_SA = filterDisplacementField( forceFieldCPTVR_EF, maskSmallAdh);
+[~,~,~, MSESA_f{6}] =  compareFields(fF_ptvr_ef_SA,forceFieldOrg);
+figure, barPlotCellArray(MSESA_f,namePITVs,1)
+ylabel('Mean squared deviation (1)')
+title('Force MSD at small forces')
+%% save all data
+save('allData.mat')

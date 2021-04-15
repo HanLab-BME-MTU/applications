@@ -1,4 +1,4 @@
-function [deviationLevels,indWrongVectors, indMissing, MSE] =  compareFields(field1,field2,plotResult)
+function [deviationLevels,indWrongVectors, indMissing, MSE,DTM] =  compareFields(field1,field2,plotResult,sc)
 %function [deviationLevels,indMissing,MSE] =  compareFields(field1,field2)
 %compares field1 against field2 and reports how much each vector deviates from
 %field2 (deviationLevels), indexes of wrong and missing vectors, and mean
@@ -10,6 +10,7 @@ function [deviationLevels,indWrongVectors, indMissing, MSE] =  compareFields(fie
 %                       y_mat_u, ux and uy,  as fields.
 %       plotResult:     true if you want to see the results (default:
 %                       false)
+%       sc:             scale for the quiver 1 for default
 %   output:
 %       deviationLevels     a Nx1 vector where each component corresponds
 %                           to each position in field1, compared to
@@ -25,6 +26,8 @@ function [deviationLevels,indWrongVectors, indMissing, MSE] =  compareFields(fie
 %                           deviations divided by sum of vector norms of
 %                           original vectors (in field2) at corresponding
 %                           positions
+%       DTM                 Deviation of tractio magnitude (from Sabass et
+%                           al 2008 BiophysJ)
 % Sangyoon Han, March 2021
 
 if nargin<3
@@ -72,11 +75,19 @@ ux1d = ux1; ux1d(isnan(ux1d))=0;
 uy1d = uy1; uy1d(isnan(uy1d))=0;
 
 deviation =  ((ux1d-ux2).^2 + (uy1d-uy2).^2).^0.5;
-mag  = (ux2.^2 + uy2.^2).^0.5;
-deviationLevels =  deviation  ./ mag;
+magOrg  = sum((ux2.^2 + uy2.^2).^0.5)/numel(ux2);
+% magD2  = (ux1d.^2 + uy1d.^2).^0.5;
+% magInteg = magOrg.* (magOrg>0) + magD2.* (magOrg==0);
+deviationLevels = deviation  / magOrg; %magInteg;
+
+if nargin <4 
+    sc=1;
+end
 if  plotResult
     figure
-    quiverColormap(bead_x,bead_y,ux1,uy1,'customIntensity',deviationLevels);
+    quiverColormap(bead_x,bead_y,sc*ux1,sc*uy1,'customIntensity',deviationLevels);
+%     cBar=colorbar; colormap jet
+%     cBar.Limits=[min(deviationLevels) max(deviationLevels)];
 %     quiverColormap(bead_x,bead_y,ux1-ux2,uy1-uy2);
 % quiverColormap(bead_x,bead_y,ux2,uy2);
 end
@@ -88,6 +99,12 @@ indMissing = isnan(ux1);
 %% MSE
 % MSE = nansum(deviation)/nansum(mag);
 MSE = nansum(deviationLevels)/numel(ux1d); % the higher MSE is, the more deviation is.
+% MSE = nansum(deviation)/numel(ux1d); % the higher MSE is, the more deviation is. 
+% Now the unit is the same as the ux1.
+%% DTM
+deviationMag =  ((ux1d.^2 + uy1d.^2).^0.5-(ux2.^2 + uy2.^2).^0.5)./(ux2.^2 + uy2.^2).^0.5;
+numValVecs = sum(~isnan(deviationMag));
+DTM  = sum(deviationMag)/numValVecs;
 
 end
 

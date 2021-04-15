@@ -141,10 +141,10 @@ focalAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
 jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
-minSize = round((500/pixSize)*(500/pixSize)); %adhesion limit=0.25 um2
+minSize = round((500/pixSize)*(100/pixSize)); %adhesion limit=0.25 um2
 minLengthFC = 500/pixSize;
 minLengthFA = 2000/pixSize;
-minEcc = 0.7;
+% minEcc = 0.7;
 psAlpha = 0.01;%it was 1e-4
 
 disp(['Paxillin channel was assumed to be in channel ' num2str(iAdhChan) '.'])
@@ -199,7 +199,7 @@ for j=1:movieData.nFrames_
 %         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
         ultimateMask = roiMask(:,:,j) & mask; % & maskAdhesionFine;
     end
-    [pstruct, maskNAs] = pointSourceDetection(I, 1.5*psfSigma,  ...
+    [pstruct, maskNAs] = pointSourceDetection(I, psfSigma,  ...
         'Alpha',psAlpha,'Mask',ultimateMask);
         % filter out points where overall intensity is in the noise level
 %     pixelIntenMargin = I(~mask);
@@ -219,24 +219,24 @@ for j=1:movieData.nFrames_
     Adhs = regionprops(maskAdhesion2,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength','MinorAxisLength');
 %         minFASize = round((2000/movieData.pixelSize_)*(500/movieData.pixelSize_)); %adhesion limit=1um*.5um
 
-    adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
+%     adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
     FAlengthAll = arrayfun(@(x) x.MajorAxisLength, Adhs);
 %     maxLength=mean(FAlengthAll)+5*std(FAlengthAll);
     adhLengthIdxFC = FAlengthAll>minLengthFC;
-    AdhsFCFA = Adhs(adhEccIdx & adhLengthIdxFC);
+    AdhsFCFA = Adhs(adhLengthIdxFC); %adhEccIdx & % Ecc requirement filter out big FAs too...
     labelAdhesion = zeros(size(maskAdhesion2));
     for kk=1:numel(AdhsFCFA)
         labelAdhesion(AdhsFCFA(kk).PixelIdxList)=kk;
     end
     maskAdhesion2 = logical(labelAdhesion);
     adhLengthIdxFA = FAlengthAll>minLengthFA;
-    AdhsFA = Adhs(adhEccIdx & adhLengthIdxFA);
+    AdhsFA = Adhs(adhLengthIdxFA);
     labelAdhesionFA = zeros(size(maskAdhesion2));
     for kk=1:numel(AdhsFA)
         labelAdhesionFA(AdhsFA(kk).PixelIdxList)=kk;
     end
     
-    AdhsFC = Adhs(~(adhEccIdx & adhLengthIdxFA));
+    AdhsFC = Adhs(~(adhLengthIdxFA));
     labelAdhesionFC = zeros(size(maskAdhesion2));
     for kk=1:numel(AdhsFC)
         labelAdhesionFC(AdhsFC(kk).PixelIdxList)=kk;
@@ -245,7 +245,8 @@ for j=1:movieData.nFrames_
     maskAdhesionFA = logical(labelAdhesionFA);
     maskAdhesionFC = maskAdhesion2 .* ~maskAdhesionFA;
 
-    indInside=maskVectors(xNA,yNA,maskAdhesion2);
+    indInside=maskVectors(xNA,yNA,bwmorph(maskAdhesion2,'dilate',10)); 
+    % Now point sources too close to FAs will be disregarded.
     indTrueNAs=~indInside;
     if ~isempty(pstruct)
         idxSigCCP = pstruct.A>0 & indTrueNAs';
@@ -363,11 +364,12 @@ for j=1:movieData.nFrames_
                 forceNA{j}(ii) = mean(curTmap(curAdhMaskDilated));
             end
             % Finally BG
-            maskAdhesion2dilated = bwmorph(maskAdhesion2,'dilate',5);
+            maskAdhesion2dilated = bwmorph(maskAdhesion2,'dilate',10);
+            maskNAsDil = bwmorph(maskNAs,'dilate',10);
             cellMask = roiMask(:,:,j) & mask;
             bgMask = roiMask(:,:,j) & ~mask;
             areaThres = round(mean(focalAdhInfo(j).area));
-            curForceBGinCell = curTmap(~maskAdhesion2dilated & cellMask)';
+            curForceBGinCell = curTmap(~maskAdhesion2dilated & ~maskNAsDil & cellMask)';
             for ii=1:floor(length(curForceBGinCell)/areaThres)
                 if ii<floor(length(curForceBGinCell)/areaThres)
                     forceBGinCell{j}(ii) = mean(curForceBGinCell((ii-1)*areaThres+1:(ii)*areaThres));

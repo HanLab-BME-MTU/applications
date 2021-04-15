@@ -176,6 +176,7 @@ if p.fillVectors
     % Check optional process Flow Tracking
     pStep2 = displParams;
     minCorLength = pStep2.minCorLength;
+    enlargeFactor = 1;
     if ~isempty(SDCProc)
         s = load(SDCProc.outFilePaths_{3,pStep2.ChannelIndex},'T');
         residualT = s.T-round(s.T);
@@ -197,13 +198,25 @@ if p.fillVectors
         end
         k2=0;
         nTracked=1000; 
+        useNeighbors = false;
         nFailed=0; nMaxFailed=30;
         prevAttempt=false; prevNeiVecs=[]; prevIndices=[];
-        thresDist=3; 
+        minNumNei=4; %was 3 before. This means there should be at least thresDist neighboring vectors per position. 
+        % This is used for determining search radius. This will increase
+        % over iteration.
+        thresDist = 4; %this is used for determining what points will be interrogated.
         iFigureDrawing=0;
+        unTrackedBeadsOrg = isnan(displField(j).vec(:,1));
+        
         for k=1:nFillingTries
             iFigureDrawing=iFigureDrawing+1;
-            % only un-tracked vectors
+            % only un-tracked vectors, and ones with zero displacement (
+            % I don't know where the zero displacements came from, but we
+            % need to make these to NaNs)
+            %Converting zero vectors into NaNs (It just make no sence that the
+            %absolute zero displacement)
+            zeroDisp = displField(j).vec(:,1)==0 & displField(j).vec(:,2)==0;
+            displField(j).vec(zeroDisp,:) = NaN(sum(zeroDisp),2);
             unTrackedBeads=isnan(displField(j).vec(:,1));
             ratioUntracked = sum(unTrackedBeads)/length(unTrackedBeads);
             if ratioUntracked<0.0001 || (nTracked==0 && nFailed>nMaxFailed)
@@ -236,8 +249,8 @@ if p.fillVectors
             %figure, plot(0:0.1:5',meanNumNeis)
             % Now limit the distance so that meanNumNei becomes only
             % thresDist
-            [~,indOptDist]=min(abs(meanNumNeis -thresDist));
-            optDist = (1-0.2*0.1*indOptDist)*neighborhood_distance(j);
+            [~,indOptDist]=min(abs(meanNumNeis -minNumNei));
+            optDist = (1-0.015*indOptDist)*neighborhood_distance(j);
             [idx] = KDTreeBallQuery(neighborBeads, currentBeads, optDist); % optimal neighbors
             
 %             % In case of empty idx, search with larger radius.
@@ -288,23 +301,29 @@ if p.fillVectors
             [v(idCloseEnough,:),nTracked] = trackStackFlowWithHardCandidate(cat(3,refFrame,currImage),currentBeads(idCloseEnough,:),...
                 minCorLength,pStep2.minCorLength,'maxSpd',pStep2.maxFlowSpeed,...
                 'mode',pStep2.mode,'hardCandidates',closeNeiVecs(idCloseEnough),'magDiffThreshold',p.magDiffThreshold,...
-                'angDiffThreshold',p.angDiffThreshold); %, 'hardCandidateDists', dist(idCloseEnough));%,'usePIVSuite', pStep2.usePIVSuite);
+                'angDiffThreshold',p.angDiffThreshold,'enlargeFactor',enlargeFactor,...
+                'useNeighbors',useNeighbors); %, 'hardCandidateDists', dist(idCloseEnough));%,'usePIVSuite', pStep2.usePIVSuite);
 
 %             if j== 1 && (iFigureDrawing==1 || nFailed==nMaxFailed)
-%             if k==1 % This is for publication purpose for PTVR
-%                 figure
-%             end
-%                 hold off
-%                 quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
-%                 hold on
-% %             plot(currentBeads(:,1),currentBeads(:,2),'ro')
-%                 quiver(currentBeads(:,1),currentBeads(:,2),v(:,1)+residualT(j,2), v(:,2)+residualT(j,1),0,'r')
-%                 set(gca, 'YDir','reverse')
-%                 set(gca, 'XLim',[32 480], 'YLim',[32 480])
-%                 set(gca, 'PlotBoxAspectRatio',[1 1 1])
-%                 set(gca, 'XTickLabel', [])
-%                 set(gca, 'YTickLabel', [])
-%                 savefig([p.OutputDirectory filesep 'field_iter' num2str(k) '.fig'])
+            if k==1 % This is for publication purpose for PTVR
+                figure
+            end
+            if nansum(v(idCloseEnough,1))>0
+                hold off
+                quiver(neighborBeads(:,1),neighborBeads(:,2),neighborVecs(:,1),neighborVecs(:,2),0,'k')
+                hold on
+                curTrackedPos = ~isnan(v(:,1));
+                plot(currentBeads(~curTrackedPos,1),currentBeads(~curTrackedPos,2),'bo')
+                quiver(currentBeads(curTrackedPos,1),currentBeads(curTrackedPos,2),...
+                    v(curTrackedPos,1)+residualT(j,2), v(curTrackedPos,2)+residualT(j,1),0,'r')
+                set(gca, 'YDir','reverse')
+                set(gca, 'XLim',[32 480], 'YLim',[32 480])
+                set(gca, 'PlotBoxAspectRatio',[1 1 1])
+                set(gca, 'XTickLabel', [])
+                set(gca, 'YTickLabel', [])
+                savefig([p.OutputDirectory filesep 'field_iter' num2str(k) '.fig'])
+                print([p.OutputDirectory filesep 'field_iter' num2str(k) '.tif'], '-djpeg')
+            end
 %             end
         %     displField(j).pos(unTrackedBeads,:)=currentBeads; % validV is removed to include NaN location - SH 030417
             displField(j).vec(unTrackedBeads,:)=[v(:,1)+residualT(j,2) v(:,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
@@ -335,21 +354,27 @@ if p.fillVectors
 
             if nTracked==0
                 nFailed=nFailed+1;
-                thresDist = 3 +nFailed; %(-1)^nFailed*ceil((nFailed+1)/2);
-                if minCorLength > 7
+                useNeighbors = true;
+                minNumNei = 3 +nFailed; %(-1)^nFailed*ceil((nFailed+1)/2);
+                if minNumNei > 7 && minCorLength > 7
                     minCorLength = minCorLength - 2;
+                end
+                if enlargeFactor<2 && nFailed>1 % perform this after all median-based vectors are found
+                    enlargeFactor = enlargeFactor *1.1;
                 end
 %                 if thresDist==0
 %                     thresDist=nFailed+1;
 %                 end
             else
                 nFailed=0;
+                useNeighbors = false;
                 if minCorLength < 8
                     minCorLength = pStep2.minCorLength;
                 end
-                if thresDist > 7
-                    thresDist = 7; % Decided to let thresDist stay where it was, but there is a maximum.
+                if minNumNei > 7
+                    minNumNei = 7; % Decided to let thresDist stay where it was, but there is a maximum.
                 end
+                enlargeFactor=1;
             end
         end
         disp(['Done for frame ' num2str(j) '/' num2str(nFrames) '.'])
@@ -369,9 +394,12 @@ if p.fillVectors
             displField(j).pos=dispMat(:,1:2);
             displField(j).vec=dispMat(:,3:4);
 
-            [outlierIndex,sparselyLocatedIdx] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold*3,1);
+            [outlierIndex,sparselyLocatedIdx] = detectVectorFieldOutliersTFM(dispMat,outlierThreshold*10,1);
             %displField(j).pos(outlierIndex,:)=[];
             %displField(j).vec(outlierIndex,:)=[];
+            % We neglect these if the outliers are from well-tracked ones:
+            outlierIndex = outlierIndex(~ismember(outlierIndex',find(unTrackedBeadsOrg)')');
+            sparselyLocatedIdx = sparselyLocatedIdx(~ismember(sparselyLocatedIdx',find(unTrackedBeadsOrg)')');
             dispMat(outlierIndex,3:4)=NaN;
             dispMat(sparselyLocatedIdx,3:4)=NaN;
 
@@ -475,7 +503,7 @@ for ii=1:nFrames
 end
 % clear dMapIn dMapXin dMapYin
 disp('Saving ...')
-save(outputFile{1},'displField','displFieldShifted','-v7.3');
+save(outputFile{1},'displField','displFieldShifted');
 % Saving the dMap which stores information
 % dMap.eachDMapName = 'cur_dMap';
 % dMap.outputDir = fullfile(p.OutputDirectory,'dislplMaps');
