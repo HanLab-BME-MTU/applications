@@ -29,9 +29,13 @@ mkdir(figPath)
 dataPath = [summaryPath '/Data'];
 mkdir(dataPath)
 save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
+%% Load movieLists for each condition
+numConditions = numel(pathAnalysisAll);
+for k=1:numConditions
+    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
+end
 
 %% Run detectMovieNascentAdhesion for each list
-numConditions = numel(pathAnalysisAll);
 N=zeros(numConditions,1);
 NAdensity = cell(numConditions,1);
 FAarea = cell(numConditions,1);
