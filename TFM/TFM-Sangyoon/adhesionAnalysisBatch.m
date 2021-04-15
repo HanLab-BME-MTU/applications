@@ -31,6 +31,7 @@ mkdir(dataPath)
 save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 
 %% Run detectMovieNascentAdhesion for each list
+numConditions = numel(pathAnalysisAll);
 N=zeros(numConditions,1);
 NAdensity = cell(numConditions,1);
 FAarea = cell(numConditions,1);
