@@ -53,7 +53,9 @@ elseif nargin<10 || strcmpi(method,'conv')
     toc;
     
 elseif strcmpi(method,'FEM')
+    nonlin = 1;
     % //Work in progress FEM fwd solution method
+    if nonlin == 0
     tic;
     disp('Utilizing FEM for forward soluton')
 
@@ -112,11 +114,11 @@ elseif strcmpi(method,'FEM')
     structuralBC(femFwdModel,'Face',1:5,'Constraint','fixed');
     
     %Setting up forces
-    force_z = zeros(meshPtsFwdSol); %can be replaced by real data if a normal force is desired
+    %force_z = zeros(meshPtsFwdSol); %can be replaced by real data if a normal force is desired
     %To utilize griddedInterpolant, the input matrices must be NGRID format,
     %therefore the dummy variables x_zgrid and y_zgrid are created.
-    [x_zgrid,y_zgrid] = ndgrid(vx,vy);
-    forceInterpZ = griddedInterpolant(x_zgrid,y_zgrid,force_z);
+    %[x_zgrid,y_zgrid] = ndgrid(vx,vy);
+    %forceInterpZ = griddedInterpolant(x_zgrid,y_zgrid,force_z);
     
     oneORtwo = force_x(0,0);
     if oneORtwo == 1
@@ -146,106 +148,253 @@ elseif strcmpi(method,'FEM')
     disp('Completed FEM fwd solution.')
     
 %%%%%NONLINEAR FEM SOLUTION%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if nonlin == 1
+    elseif nonlin == 1
         tic;
         disp('Utilizing Non-linear FEM for forward soluton')
 
-        vx = linspace(x0(1),x0(2),meshPtsFwdSol);
-        vy = linspace(y0(1),y0(2),meshPtsFwdSol);
-        [x_grid,y_grid] = meshgrid(vx,vy);
+        %Path names
+        currentFolder = pwd;
+%       defaultFolder = fileparts(fileparts(mfilename('fullpath')));
+        savePath=fullfile(currentFolder,'FEBio_Data');
 
-        %Creating PDE Container
-        femNonLinModel = createpde(3);
+        %Defining file names
+        febioFebFileNamePart='nonLinearModel';
+        febioFebFileName=fullfile(savePath,[febioFebFileNamePart,'.feb']); %FEB file name
+        febioLogFileName=[febioFebFileNamePart,'.txt']; %FEBio log file name
+        febioLogFileName_disp=[febioFebFileNamePart,'_disp_out.txt']; %Log file name for exporting displacement
+        febioLogFileName_stress=[febioFebFileNamePart,'_stress_out.txt']; %Log file name for exporting stress
 
-        %Define geometry
-        h = x0(2) / 2; %thickness of substrate
-        d = 0.1250 * x0(2); %diameter of fine mesh section
+        %Specifying dimensions and number of elements
+        sampleWidth=x0(2); %Width
+        sampleThickness=y0(2); %Thickness
+        sampleHeight=256; %Height
+        pointSpacings=(meshPtsFwdSol/64)*ones(1,3); %Desired point spacing between nodes
+        numElementsWidth=round(sampleWidth/pointSpacings(1)); %Number of elemens in dir 1
+        numElementsThickness=round(sampleThickness/pointSpacings(2)); %Number of elemens in dir 2
+        numElementsHeight=round(sampleHeight/pointSpacings(3)); %Number of elemens in dir 3
 
-        %extrude method
-        halfSide = x0(2);
-        bound = [3; 4; -halfSide; halfSide; halfSide; -halfSide; halfSide; halfSide; -halfSide; -halfSide]; %rectangle of substrate size
-        %create circles of decreasing radius in order 
-        r = d/2;
-        circ = [1; 0; 0; r; 0; 0; 0; 0; 0; 0]; %circle of radius r
-        circ1 = [1; 0; 0; r/2; 0; 0; 0; 0; 0; 0]; %circle of radius r/2
-        circ2 = [1; 0; 0; r/4; 0; 0; 0; 0; 0; 0]; %circle of radius r/4
-        circ3 = [1; 0; 0; r/6; 0; 0; 0; 0; 0; 0]; %circle of radius r/6
-        gd = [bound,circ,circ1,circ2,circ3];
-        ns = char('bound','circ','circ1','circ2','circ3');
-        ns = ns';
-        sf = 'bound + circ + circ1 + circ2 + circ3';    
-        [dl, ~] = decsg(gd,sf,ns);
+        %Material Properties
+        E_youngs1=E; %Material Young's modulus
+        nu1=v; %Material Poisson's ratio
 
-        pdem = createpde;
-        g = geometryFromEdges(pdem,dl);
+        %FEA control settings
+        numTimeSteps=15; %Number of time steps desired
+        max_refs=25; %Max reforms
+        max_ups=0; %Set to zero to use full-Newton iterations
+        opt_iter=6; %Optimum number of iterations
+        max_retries=5; %Maximum number of retires
+        dtmin=(1/numTimeSteps)/100; %Minimum time step size
+        dtmax=1/numTimeSteps; %Maximum time step size
 
-        %convert analytical model geometry to discrete geometry
-        facets = facetAnalyticGeometry(pdem,g,0);
-        gm = analyticToDiscrete(facets);
-        pdem.Geometry = gm; %reassign discrete geometry to model
+        % //Creating geometry and mesh *******************************************
+        % Create a box with hexahedral elements
+        cubeDimensions=[sampleWidth sampleThickness sampleHeight]; %Dimensions
+        cubeElementNumbers=[numElementsWidth numElementsThickness numElementsHeight]; %Number of elements
+        outputStructType=2; %A structure compatible with mesh view
+        [meshStruct]=hexMeshBox(cubeDimensions,cubeElementNumbers,outputStructType);
 
-        %extrude 2D geometry into 3D of defined thickness
-        g = extrude(gm,h);
-        %reassign extruded geometry to model for fwdSolution
-        femNonLinModel.Geometry = g;
+        %Access elements, nodes, and faces from the structure
+        El=meshStruct.elements; %The elements
+        V=meshStruct.nodes; %The nodes (vertices)
+        Fb=meshStruct.facesBoundary; %The boundary faces
+        Cb=meshStruct.boundaryMarker; %The "colors" or labels for the boundary faces
+        %elementMaterialIndices=ones(size(El,1),1); %Element material indices
 
-        %Derive equation coefficients
-        %E defined in inputs
-        %gnu defined in inputs
-        rho = 1302; %kg/m3 !placeholder! (density of PA gel)
-        if v == 0.5
-            G = E / (2 .* (1 + (v - 0.001))); %approx. bulk modulus if v = 0.5
-        else
-            G = E / (2 .* (1 + v)); %bulk modulus
+        % //Prepare face nodes for BC application *********************************
+        %Define supported node sets
+        logicFace=Cb==1; %Logic for current face set
+        Fr=Fb(logicFace,:); %The current face set
+        bcSupportList_X=unique(Fr(:)); %Node set part of selected face
+
+        logicFace=Cb==3; %Logic for current face set
+        Fr=Fb(logicFace,:); %The current face set
+        bcSupportList_Y=unique(Fr(:)); %Node set part of selected face
+
+        logicFace=Cb==5; %Logic for current face set
+        Fr=Fb(logicFace,:); %The current face set
+        bcSupportList_Z=unique(Fr(:)); %Node set part of selected face
+
+        %Prescribed force nodes
+        logicPrescribe=Cb==6; %Logic for current face set
+        Fr=fliplr(Fb(logicPrescribe,:)); %The current face set
+        %bcPrescribeList=unique(Fr(:)); %Node set part of selected face
+
+        %Create spatially varying traction force
+        %force_X and y should be 512x512 arrays
+        C_traction_x = force_x(pointSpacings(1):pointSpacings(1):end,pointSpacings(1):pointSpacings(1):end);
+        C_traction_y = force_y(pointSpacings(2):pointSpacings(2):end,pointSpacings(2):pointSpacings(2):end);
+
+        % X=V(:,1);
+        % C_pressure=mean(X(Fr),2);
+        % C_pressure=C_pressure-min(C_pressure(:));
+        % C_pressure=C_pressure./max(C_pressure(:));
+        % C_pressure=C_pressure.^2;
+        % C_pressure=C_pressure.*(2.0e-4-0.1e-4)+0.1e-4;
+
+        % //Define FEBio input structure *****************************************
+        %Get a template with default settings
+        [febio_spec]=febioStructTemplate;
+
+        %febio_spec version
+        febio_spec.ATTR.version='3.0';
+
+        %Module section
+        febio_spec.Module.ATTR.type='solid';
+
+        %Control section
+        febio_spec.Control.analysis='STATIC';
+        febio_spec.Control.time_steps=numTimeSteps;
+        febio_spec.Control.step_size=1/numTimeSteps;
+        febio_spec.Control.solver.max_refs=max_refs;
+        febio_spec.Control.solver.max_ups=max_ups;
+        febio_spec.Control.time_stepper.dtmin=dtmin;
+        febio_spec.Control.time_stepper.dtmax=dtmax;
+        febio_spec.Control.time_stepper.max_retries=max_retries;
+        febio_spec.Control.time_stepper.opt_iter=opt_iter;
+
+        %Material section
+        materialName1='Material1';
+        febio_spec.Material.material{1}.ATTR.name=materialName1;
+        febio_spec.Material.material{1}.ATTR.type='neo-Hookean';
+        febio_spec.Material.material{1}.ATTR.id=1;
+        febio_spec.Material.material{1}.E=E_youngs1;
+        febio_spec.Material.material{1}.v=nu1;
+
+        % Mesh section
+        % -> Nodes
+        febio_spec.Mesh.Nodes{1}.ATTR.name='nodeSet_all'; %The node set name
+        febio_spec.Mesh.Nodes{1}.node.ATTR.id=(1:size(V,1))'; %The node id's
+        febio_spec.Mesh.Nodes{1}.node.VAL=V; %The nodel coordinates
+
+        % -> Elements
+        partName1='Part1';
+        febio_spec.Mesh.Elements{1}.ATTR.name=partName1; %Name of this part
+        febio_spec.Mesh.Elements{1}.ATTR.type='hex8'; %Element type
+        febio_spec.Mesh.Elements{1}.elem.ATTR.id=(1:1:size(El,1))'; %Element id's
+        febio_spec.Mesh.Elements{1}.elem.VAL=El; %The element matrix
+
+        % -> NodeSets
+        nodeSetName1='bcSupportList_X';
+        nodeSetName2='bcSupportList_Y';
+        nodeSetName3='bcSupportList_Z';
+
+        febio_spec.Mesh.NodeSet{1}.ATTR.name=nodeSetName1;
+        febio_spec.Mesh.NodeSet{1}.node.ATTR.id=bcSupportList_X(:);
+
+        febio_spec.Mesh.NodeSet{2}.ATTR.name=nodeSetName2;
+        febio_spec.Mesh.NodeSet{2}.node.ATTR.id=bcSupportList_Y(:);
+
+        febio_spec.Mesh.NodeSet{3}.ATTR.name=nodeSetName3;
+        febio_spec.Mesh.NodeSet{3}.node.ATTR.id=bcSupportList_Z(:);
+
+        % -> Surfaces
+        surfaceName1='LoadedSurface';
+        febio_spec.Mesh.Surface{1}.ATTR.name=surfaceName1;
+        febio_spec.Mesh.Surface{1}.tri3.ATTR.id=(1:1:size(Fr,1))';
+        febio_spec.Mesh.Surface{1}.tri3.VAL=Fr;
+
+        %MeshDomains section
+        febio_spec.MeshDomains.SolidDomain.ATTR.name=partName1;
+        febio_spec.MeshDomains.SolidDomain.ATTR.mat=materialName1;
+
+        %Boundary condition section
+        % -> Fix boundary conditions
+        febio_spec.Boundary.bc{1}.ATTR.type='fix';
+        febio_spec.Boundary.bc{1}.ATTR.node_set=nodeSetName1;
+        febio_spec.Boundary.bc{1}.dofs='x';
+
+        febio_spec.Boundary.bc{2}.ATTR.type='fix';
+        febio_spec.Boundary.bc{2}.ATTR.node_set=nodeSetName2;
+        febio_spec.Boundary.bc{2}.dofs='y';
+
+        febio_spec.Boundary.bc{3}.ATTR.type='fix';
+        febio_spec.Boundary.bc{3}.ATTR.node_set=nodeSetName3;
+        febio_spec.Boundary.bc{3}.dofs='z';
+
+        %MeshData section
+        % -> Surface data
+        loadDataName1='LoadData1';
+        febio_spec.MeshData.SurfaceData.ATTR.name=loadDataName1;
+        febio_spec.MeshData.SurfaceData.ATTR.surface=surfaceName1;
+        febio_spec.MeshData.SurfaceData.ATTR.datatype='vec3';
+        febio_spec.MeshData.SurfaceData.face.ATTR.lid=(1:1:numel(C_traction_x))';
+        febio_spec.MeshData.SurfaceData.face.VAL=[C_traction_x(:) C_traction_y(:) zeros(size(C_traction_x(:)))];
+
+        %Loads section
+        % -> Surface load
+        febio_spec.Loads.surface_load{1}.ATTR.type='traction';
+        febio_spec.Loads.surface_load{1}.ATTR.surface=surfaceName1;
+        febio_spec.Loads.surface_load{1}.traction.ATTR.lc=1;
+        febio_spec.Loads.surface_load{1}.traction.ATTR.type='map';
+        febio_spec.Loads.surface_load{1}.traction.VAL=loadDataName1;
+
+        %LoadData section
+        % -> load_controller
+        febio_spec.LoadData.load_controller{1}.ATTR.id=1;
+        febio_spec.LoadData.load_controller{1}.ATTR.type='loadcurve';
+        febio_spec.LoadData.load_controller{1}.interpolate='LINEAR';
+        febio_spec.LoadData.load_controller{1}.points.point.VAL=[0 0; 1 1];
+
+        %Output section
+        % -> log file
+        febio_spec.Output.logfile.ATTR.file=febioLogFileName;
+        febio_spec.Output.logfile.node_data{1}.ATTR.file=febioLogFileName_disp;
+        febio_spec.Output.logfile.node_data{1}.ATTR.data='ux;uy;uz';
+        febio_spec.Output.logfile.node_data{1}.ATTR.delim=',';
+        febio_spec.Output.logfile.node_data{1}.VAL=1:size(V,1);
+
+        febio_spec.Output.logfile.element_data{1}.ATTR.file=febioLogFileName_stress;
+        febio_spec.Output.logfile.element_data{1}.ATTR.data='s1';
+        febio_spec.Output.logfile.element_data{1}.ATTR.delim=',';
+        febio_spec.Output.logfile.element_data{1}.VAL=1:size(V,1);
+
+        % //FEBio running ********************************************************
+        %Run Settings
+        febioAnalysis.run_filename=febioFebFileName; %The input file name
+        febioAnalysis.run_logname=febioLogFileName; %The name for the log file
+        febioAnalysis.disp_on=1; %Display information on the command window
+        febioAnalysis.runMode='internal';%'internal';
+        febioAnalysis.maxLogCheckTime=120; %Max log file checking time
+        optionStruct.arrayParseMethod = 1;
+
+        %Export FEBio Structure
+        febioStruct2xml(febio_spec,febioFebFileName,optionStruct); %Exporting to file and domNode
+        %system(['gedit ',febioFebFileName,' &']);
+
+        %Run Model
+        [runFlag]=runMonitorFEBio(febioAnalysis);%START FEBio NOW!!!!!!!!
+
+        % //Import Displacement from Logfile *************************************
+        if runFlag == 1
+        dataStruct=importFEBio_logfile(fullfile(savePath,febioLogFileName_disp),1,1);
+
+        N_disp_mat=dataStruct.data; %Displacement
+        %timeVec=dataStruct.time; %Time
+
+        %Create deformed coordinate set
+        %V_DEF=N_disp_mat+repmat(V,[1 1 size(N_disp_mat,3)]);
+        %DN_magnitude=sqrt(sum(N_disp_mat(:,:,end).^2,2)); %Current displacement magnitude
+
+        %Component displacement at final time step
+        dispMat = N_disp_mat(:,:,end);
+        node_ux = dispMat(:,1);
+        node_uy = dispMat(:,2);
+
+        %Extract top face
+        topNode_ux = node_ux(V(:,3)==64);
+        topNode_uy = node_uy(V(:,3)==64);
+
+        %Convert to NxN displacement map
+        nodeDispMap_ux = reshape(topNode_ux,[],numElementsWidth+1);
+        nodeDispMap_uy = reshape(topNode_uy,[],numElementsWidth+1);
+
+        %Interpolate disp map to meshPtsFwdSol size
+        [X,Y] = meshgrid(-meshPtsFwdSol/2:pointsSpacing(1):meshPtsFwdSol/2);
+        [Xq,Yq] = meshgrid(-meshPtsFwdSol/2:1:meshPtsFwdSol/2);
+
+        ux = interp2(X,Y,nodeDispMap_ux,Xq,Yq);
+        uy = interp2(X,Y,nodeDispMap_uy,Xq,Yq);
         end
-        mu = (2 * G * v) / (1 - v);
-        c = @(location,state) cCoefficientLagrangePlaneStress(E,v,location,state); %
-        f = [0 0]';
-        specifyCoefficients(femNonLinModel,'m',rho,'d',0,'c',c,'a',0,'f',f);
-
-        %Constrain bottom face
-        applyBoundaryCondition(femNonLinModel,'dirichlet','Face',1:5,'u',[0 0 0])
-
-        %Setting up forces
-        force_z = zeros(meshPtsFwdSol); %can be replaced by real data if a normal force is desired
-        %To utilize griddedInterpolant, the input matrices must be NGRID format,
-        %therefore the dummy variables x_zgrid and y_zgrid are created.
-        [x_zgrid,y_zgrid] = ndgrid(vx,vy);
-        forceInterpZ = griddedInterpolant(x_zgrid,y_zgrid,force_z);
-
-        oneORtwo = force_x(0,0);
-        if oneORtwo == 1
-            %force_xy is defined using function handles for the central basis
-            %function
-            force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
-                                        force_y(location.x,location.y); ... %force_y is force mesh of y forces
-                                        force_y(location.x,location.y);]; %forceInterpz is dummy variable for now         
-        elseif oneORtwo == 0
-            force_xy = @(location,state)[force_x(location.x,location.y); ... %force_x is force mesh of x forces
-                                        force_y(location.x,location.y); ... %force_y is force mesh of y forces
-                                        force_x(location.x,location.y);]; %forceInterpz is dummy variable for now  
-        end
-
-        %Apply force on top face
-        applyBoundaryCondition(femNonLinModel,'neumann','Face',10,'g',force_xy);
-        
-        %Set initial conditions
-        setInitialConditions(femNonLinModel,0,0);
-        
-        %Mesh the model
-        generateMesh(femNonLinModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
-        
-        %Solve the model
-        tlist = 100;
-        femNonLinResults = solve(femFwdModel,tlist);
-
-        %Interpolate displacements
-        z_grid = h*ones(meshPtsFwdSol);
-        interpDisp=interpolateDisplacement(femNonLinResults,x_grid,y_grid,z_grid);
-
-        %Fill in output displacement variables
-        ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
-        uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
         toc;    
         disp('Completed Non-linear FEM fwd solution.')
     end
