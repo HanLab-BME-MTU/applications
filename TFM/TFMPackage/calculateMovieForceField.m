@@ -758,9 +758,9 @@ clear iu_mat;
 disp('Saving ...')
 % save(outputFile{2},'tMap','tMapX','tMapY','dErrMap','distBeadMap'); % need to be updated for faster loading. SH 20141106
 if strcmpi(p.method,'FastBEM')
-    save(outputFile{1},'forceField','forceFieldShifted','forceConfidence');
+    save(outputFile{1},'forceField','forceFieldShifted','forceConfidence','-v7.3');
 else
-    save(outputFile{1},'forceField','forceFieldShifted');
+    save(outputFile{1},'forceField','forceFieldShifted','-v7.3');
 end
 
 % Saving the tMap which stores information

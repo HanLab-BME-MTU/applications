@@ -1,4 +1,4 @@
-function [deviationLevels,indWrongVectors, indMissing, MSE,DTM] =  compareFields(field1,field2,plotResult,sc)
+function [deviationLevels,indWrongVectors, indMissing, MSE,DTM,Accu] =  compareFields(field1,field2,plotResult,sc)
 %function [deviationLevels,indMissing,MSE] =  compareFields(field1,field2)
 %compares field1 against field2 and reports how much each vector deviates from
 %field2 (deviationLevels), indexes of wrong and missing vectors, and mean
@@ -28,6 +28,8 @@ function [deviationLevels,indWrongVectors, indMissing, MSE,DTM] =  compareFields
 %                           positions
 %       DTM                 Deviation of tractio magnitude (from Sabass et
 %                           al 2008 BiophysJ)
+%       Accu                Accuracy of field1 compared to field2
+%                           quantified as sum(1-deviationLevel)/N.
 % Sangyoon Han, March 2021
 
 if nargin<3
@@ -75,10 +77,16 @@ ux1d = ux1; ux1d(isnan(ux1d))=0;
 uy1d = uy1; uy1d(isnan(uy1d))=0;
 
 deviation =  ((ux1d-ux2).^2 + (uy1d-uy2).^2).^0.5;
-magOrg  = sum((ux2.^2 + uy2.^2).^0.5)/numel(ux2);
-% magD2  = (ux1d.^2 + uy1d.^2).^0.5;
-% magInteg = magOrg.* (magOrg>0) + magD2.* (magOrg==0);
-deviationLevels = deviation  / magOrg; %magInteg;
+magOrg  = mean((ux2.^2 + uy2.^2).^0.5)+0.5*std((ux2.^2 + uy2.^2).^0.5); 
+deviationLevels = deviation / magOrg; %
+% % I will use the average magnitude to normalize the deviation
+% %To prevent over quantification for small vectors, I'll use magOrg for
+% %small vectors but use their own mag for large enough vectors
+% magD2  = (ux2.^2 + uy2.^2).^0.5;
+% noiseFloorFactor = 0.8;
+% floorMag = noiseFloorFactor*magOrg;
+% magInteg = floorMag.* (magD2 < floorMag) + magD2.* (magD2 >= floorMag);
+% deviationLevelsForAcc = deviation ./ magInteg; %/magOrg; %
 
 if nargin <4 
     sc=1;
@@ -92,7 +100,7 @@ if  plotResult
 % quiverColormap(bead_x,bead_y,ux2,uy2);
 end
 %% indWrongVectors
-thresDev = 0.35;
+thresDev = 0.5;
 indWrongVectors = deviationLevels>thresDev;
 %% indMissing
 indMissing = isnan(ux1);
@@ -102,9 +110,16 @@ MSE = nansum(deviationLevels)/numel(ux1d); % the higher MSE is, the more deviati
 % MSE = nansum(deviation)/numel(ux1d); % the higher MSE is, the more deviation is. 
 % Now the unit is the same as the ux1.
 %% DTM
-deviationMag =  ((ux1d.^2 + uy1d.^2).^0.5-(ux2.^2 + uy2.^2).^0.5)./(ux2.^2 + uy2.^2).^0.5;
+deviationMag =  abs((ux2.^2 + uy2.^2).^0.5 - (ux1d.^2 + uy1d.^2).^0.5)./(ux2.^2 + uy2.^2).^0.5;
 numValVecs = sum(~isnan(deviationMag));
 DTM  = sum(deviationMag)/numValVecs;
-
+%% Accuracy
+% thresGoodDev=0.5;
+Accu = nansum(1-deviationLevels)/numel(ux1d); 
+% Accu = nansum(deviationLevels<thresGoodDev)/numel(ux1d); 
+% debug
+% figure, quiver(field1.pos(:,1),field1.pos(:,2),field1.vec(:,1),field1.vec(:,2),0)
+% hold on
+% quiver(field1.pos(:,1),field1.pos(:,2),ux2,uy2,0)
 end
 
