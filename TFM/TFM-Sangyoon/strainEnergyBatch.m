@@ -446,7 +446,11 @@ if isCellSeg
 end
 %% Integrated Displacement - CellPeri
 if isCellSeg
-    totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellPeri_Group,'unif',false);
+    try
+        totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellPeri_Group,'unif',false);
+    catch
+        totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellPeri_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totalDispCellPeri_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totalDispCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellPeri_Group,'unif',false);
@@ -464,7 +468,11 @@ if isCellSeg
 end
 %% Integrated Displacement - CellInside
 if isCellSeg
-    totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellInside_Group,'unif',false);
+    try
+        totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellInside_Group,'unif',false);
+    catch 
+        totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellInside_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totalDispCellInside_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totalDispCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellInside_Group,'unif',false);
@@ -554,7 +562,11 @@ if isCellSeg
 end
 %% Total force - CellPeri
 if isCellSeg
-    totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellPeri_Group,'unif',false);
+    try
+        totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellPeri_Group,'unif',false);
+    catch
+        totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellPeri_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totForceCellPeri_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totForceCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_CellPeri_Group,'unif',false);
@@ -572,7 +584,11 @@ if isCellSeg
 end
 %% Total force - CellInside
 if isCellSeg
-    totForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellInside_Group,'unif',false);
+    try
+        totForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellInside_Group,'unif',false);
+    catch
+        totForceCellInside_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellInside_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totForceCellInside_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totForceCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_CellInside_Group,'unif',false);
