@@ -883,7 +883,7 @@ end
     tIntMin=MD.timeInterval_/60;
     tRangeSelectedAssem = cell(numTracks,1);
     R2criteria = 0.5;
-    parfor kk=1:numTracks
+    for kk=1:numTracks
         curTrack=tracksNA(kk);
         [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp');
         if ~isnan(curAssemRate)

@@ -155,8 +155,9 @@ else
 end
 
 if ~extraReadingOnly
+    parfor k=1:numTracks
 %     parfor (k=1:numTracks, parforArg)
-    for k=1:numTracks
+%     for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
 %     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA))+extraLength);
 %     startFrame = max(1, tracksNA(k).startingFrame-extraLength);
@@ -658,12 +659,12 @@ if ~extraReadingOnly
                     end
                 end
             end
-            if ~extraReadingOnly
-                frameRange=1:find(~isnan(curTrack.ampTotal),1,'last');
-                noNanRange = find(~isnan(curTrack.amp)); 
-                curTrack.amp(frameRange)=interp1(noNanRange,curTrack.amp(noNanRange),frameRange,'nearest','extrap');
-                curTrack.bkgAmp(frameRange)=interp1(noNanRange,curTrack.bkgAmp(noNanRange),frameRange,'nearest','extrap');
-            end
+%             if ~extraReadingOnly
+%                 frameRange=1:find(~isnan(curTrack.ampTotal),1,'last');
+%                 noNanRange = find(~isnan(curTrack.amp)); 
+%                 curTrack.amp(frameRange)=interp1(noNanRange,curTrack.amp(noNanRange),frameRange,'nearest','extrap');
+%                 curTrack.bkgAmp(frameRange)=interp1(noNanRange,curTrack.bkgAmp(noNanRange),frameRange,'nearest','extrap');
+%             end
     %         curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
         elseif attribute==2 || attribute==5 || attribute==6
             try
