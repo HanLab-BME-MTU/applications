@@ -50,7 +50,7 @@ end
 % There is a case where the first element is negative. In that case, we
 % elevate the entire sereis above zero.
 if curAmpTotal(1)<0
-    curAmpTotal = curAmpTotal - curAmpTotal(1) + 0.1*std(curAmpTotal);
+    curAmpTotal = curAmpTotal - curAmpTotal(1) + 0.1*nanstd(curAmpTotal);
 end
 %% GET IT
 if length(tRange)<minLifeTime+1
