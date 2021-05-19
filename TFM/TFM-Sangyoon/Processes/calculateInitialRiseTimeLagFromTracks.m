@@ -489,7 +489,7 @@ for k=1:numClasses
     end
     
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(initialLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(initialLagTogetherAdjusted,nameList2,1,false,true,'ax',ax); 
     nameTitle=['initialLag Class' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -498,7 +498,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(zeroBccTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(zeroBccTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['zeroBccTogetherAdjusted' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -507,7 +507,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(halfBccTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(halfBccTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['halfBccTogetherAdjusted' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -516,7 +516,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(oneBccTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(oneBccTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['oneBccTogetherAdjusted' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -791,7 +791,7 @@ for k=1:numClasses
 %  
     
     h2=figure; ax = axes(h2); 
-    boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['peakLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -800,7 +800,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(endingLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(endingLagTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['endingLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -809,7 +809,7 @@ for k=1:numClasses
     close(h2)
     
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(ccLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(ccLagTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['ccLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -832,7 +832,7 @@ end
     distToEdge{9} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup9));
     groupNameList={'g1','g2','g3','g4','g5','g6','g7','g8','g9'};
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(distToEdge,groupNameList,pixSize,false,true,false,5,'ax',ax);
+    boxPlotCellArray(distToEdge,groupNameList,pixSize,false,true,'ax',ax);
     title(ax,'Distance to edge')
     ylabel(ax,'Distance to edge (um)')
     save([p.OutputDirectory filesep 'data' filesep 'distToEdge.mat'],'distToEdge','-v7.3')
@@ -850,7 +850,7 @@ end
     advanceDist{9} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup9));
 
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(advanceDist,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(advanceDist,groupNameList,1,false,true,'ax',ax);
     title(ax,'Adhesion advancement forward')
     ylabel(ax,'Adhesion advancement (um)')
     save([p.OutputDirectory filesep 'data' filesep 'advanceDist.mat'],'advanceDist','-v7.3')
@@ -867,7 +867,7 @@ end
     ampTotal{8} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup8));
     ampTotal{9} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup9));
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(ampTotal,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(ampTotal,groupNameList,1,false,true,'ax',ax);
 
     title(ax,'ampTotal')
     ylabel(ax,'Fluorescence intensity (A.U.)')
@@ -907,7 +907,7 @@ end
     assemRate{8} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup8));
     assemRate{9} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup9));
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(assemRate,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(assemRate,groupNameList,1,false,true,'ax',ax);
 
     title(ax,'assemRate')
     ylabel(ax,'Assembly Rate(1/min)')
@@ -945,7 +945,7 @@ end
     disassemRate{8} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroup8));
     disassemRate{9} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroup9));
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(disassemRate,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(disassemRate,groupNameList,1,false,true,'ax',ax);
 
     title(ax,'disassemRate')
     ylabel(ax,'Disssembly Rate(1/min)')
@@ -964,7 +964,7 @@ end
         ampTotal2{8} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup8));
         ampTotal2{9} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup9));
         h2=figure; ax = axes(h2);
-        boxPlotCellArray(ampTotal2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(ampTotal2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'ampTotal2')
         ylabel(ax,'Fluorescence intensity (A.U.)')
@@ -1014,7 +1014,7 @@ end
             assemRate2{8} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup8));
             assemRate2{9} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup9));
             h2=figure; ax = axes(h2);
-            boxPlotCellArray(assemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+            boxPlotCellArray(assemRate2,groupNameList,1,false,true,'ax',ax);
 
             title(ax,'assemRate2')
             ylabel(ax,'Assembly Rate 2 (1/min)')
@@ -1033,7 +1033,7 @@ end
             disassemRate2{8} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup8));
             disassemRate2{9} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup9));
             h2=figure; ax = axes(h2);
-            boxPlotCellArray(disassemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+            boxPlotCellArray(disassemRate2,groupNameList,1,false,true,'ax',ax);
 
             title(ax,'disassemRate2')
             ylabel(ax,'Disssembly Rate 2 (1/min)')
@@ -1057,7 +1057,7 @@ end
     startingAmpTotal{8} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup8));
     startingAmpTotal{9} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup9));
     hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(startingAmpTotal,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(startingAmpTotal,groupNameList,1,false,true,'ax',ax);
     title(ax,'Starting Amplitude')
     ylabel(ax,'Fluorescence intensity (A.U.)')
     save([p.OutputDirectory filesep 'data' filesep 'startingAmpTotal.mat'],'startingAmpTotal','-v7.3')
@@ -1075,7 +1075,7 @@ end
         startingAmpTotal2{8} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup8));
         startingAmpTotal2{9} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(startingAmpTotal2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(startingAmpTotal2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'startingAmpTotal2')
         ylabel(ax,'Fluorescence intensity (A.U.)')
@@ -1099,7 +1099,7 @@ end
     edgeAdvanceDistChange{8} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup8));
     edgeAdvanceDistChange{9} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup9));
     hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(edgeAdvanceDistChange,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(edgeAdvanceDistChange,groupNameList,1,false,true,'ax',ax);
     title(ax,'edgeAdvanceDistChange at the end of tracks (to see g7 has nearly zero edge advance)')
     ylabel(ax,'edgeAdvanceDistChange (um)')
     save([p.OutputDirectory filesep 'data' filesep 'edgeAdvanceDistChange.mat'],'edgeAdvanceDistChange','-v7.3')
@@ -1117,7 +1117,7 @@ end
         startingForceMag{8} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup8));
         startingForceMag{9} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(startingForceMag,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(startingForceMag,groupNameList,1,false,true,'ax',ax);
         title(ax,'startingForceMag (to see g1,2,3,7 start nearly at similar force)')
         ylabel(ax,'startingForceMag (Pa)')
         save([p.OutputDirectory filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
@@ -1198,7 +1198,7 @@ end
     %     set(findobj(gca,'tag','Median'),'LineWidth',2)
     % %     ylim([-2 50])
     hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(earlyAmpSlope,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(earlyAmpSlope,groupNameList,1,false,true,'ax',ax);
     title(ax,'earlyAmpSlope (this shows that g7 has the same early slope as g3).')
     ylabel(ax,'earlyAmpSlope (A.U./min)')
     hgsave(strcat(figPath,'/earlyAmpSlopeAllGroups'),'-v7.3')
@@ -1218,7 +1218,7 @@ end
         earlyAmpSlope2{8} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup8));
         earlyAmpSlope2{9} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(earlyAmpSlope2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(earlyAmpSlope2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'earlyAmpSlope2')
         ylabel(ax,'AmpSlope (A.U./min)')
@@ -1238,7 +1238,7 @@ end
         ampSlope2{8} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup8));
         ampSlope2{9} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(ampSlope2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(ampSlope2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'ampSlope2')
         ylabel(ax,'AmpSlope (A.U./min)')
@@ -1262,7 +1262,7 @@ end
         forceSlope{8} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup8));
         forceSlope{9} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(forceSlope,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(forceSlope,groupNameList,1,false,true,'ax',ax);
         title(ax,'forceSlope (all nascent adhesions (g1,2,3,7) show the same force slopes).')
         ylabel(ax,'forceSlope (Pa/min)')
         hgsave(strcat(figPath,'/forceSlopeAllGroups'),'-v7.3')
@@ -1281,7 +1281,7 @@ end
         earlyForceSlope{8} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup8));
         earlyForceSlope{9} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(earlyForceSlope,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(earlyForceSlope,groupNameList,1,false,true,'ax',ax);
         title(ax,'earlyForceSlope')
         ylabel(ax,'earlyForceSlope (Pa/min)')
         hgsave(strcat(figPath,'/earlyForceSlopeAllGroups'),'-v7.3')

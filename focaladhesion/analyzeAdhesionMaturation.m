@@ -252,7 +252,7 @@ if ~foundTracks
                             disp('All channels are combined for cell mask')
                         end
                         maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,ii),find(maskProc.checkChannelOutput),'UniformOutput',false);
-                        maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
+                        maskAll=reshape(cell2mat(maskEach),MD.imSize_(1),MD.imSize_(2),[]);
                         mask = any(maskAll,3);
                     elseif find(maskProc.checkChannelOutput)~=iChan
                         if ii==1

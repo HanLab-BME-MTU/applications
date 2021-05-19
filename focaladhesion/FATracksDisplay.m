@@ -107,6 +107,9 @@ classdef FATracksDisplay < MovieDataDisplay
             % Fill gaps
             for gapLength = 1 : max(gapLengths)
                 s = gapLengths == gapLength;
+                if length(s)==1 && ~s
+                    continue
+                end
                 px = [cc.PixelIdxList{s}];
                 
                 % Remove extra columns by adjusting index
