@@ -137,7 +137,8 @@ nascentAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
 focalAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
     'amp',[],'area',[],'length',[],'meanFAarea',[],'medianFAarea',[]...
     ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[],'cellArea',[]...
-    ,'maskFA',[],'boundFA',[],'ecc',[],'width',[],'labelFA',[],'FAdensityPeri',[],'FAdensityInside',[]);
+    ,'maskFA',[],'boundFA',[],'ecc',[],'width',[],'labelFA',[],'FAdensityPeri',[],...
+    'FAdensityInside',[],'rP',[],'MOC',[],'fractionBlobInside',[],'fractionBlobOutside',[]);
 jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
@@ -170,7 +171,7 @@ for j=1:movieData.nFrames_
             mask = maskProc.loadChannelOutput(iAdhChan,j); % 1 is CCP channel
         end
     catch
-        mask = movieData.roiMask;
+        mask = true(movieData.imSize_);
         noMask=true;
     end
     if ~isempty(indMask)
@@ -490,8 +491,8 @@ for j=1:movieData.nFrames_
             % Save them
             tableCorr=table([rP; MOC],'RowNames',{'rP', 'MOC'});
             writetable(tableCorr,[dataPath filesep 'corrValues.csv'],'WriteRowNames',true)
-            focalAdhInfo.rP(j) = rP;
-            focalAdhInfo.MOC(j) = MOC;
+            focalAdhInfo(j).rP = rP;
+            focalAdhInfo(j).MOC = MOC;
 
             % 11. Now we are segmenting TFM map (force blob) and calculate
             % fraction of it inside the cell or outside.
@@ -504,8 +505,8 @@ for j=1:movieData.nFrames_
             fractionBlobInside = blobInside/blobPixelsAll;
             fractionBlobOutside = blobOutside/blobPixelsAll;
             % Plot them
-            focalAdhInfo.fractionBlobInside(j) = fractionBlobInside;
-            focalAdhInfo.fractionBlobOutside(j) = fractionBlobOutside;
+            focalAdhInfo(j).fractionBlobInside = fractionBlobInside;
+            focalAdhInfo(j).fractionBlobOutside = fractionBlobOutside;
             if plotGraphTFM
                 hBarFrac = figure; bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
                 hBarFrac.Units='inch';

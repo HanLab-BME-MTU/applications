@@ -72,7 +72,16 @@ for ii=1:numConditions
             curFAdensityPeri(k) = mean(arrayfun(@(x) x.FAdensityPeri,curFAstruct));
             curFAdensityInside(k) = mean(arrayfun(@(x) x.FAdensityInside,curFAstruct));
             NAstruct(k) = curNAstruct(end);
-            FAstruct(k) = curFAstruct(end);
+            try
+                FAstruct(k) = curFAstruct(end);
+            catch
+                % This time they have in dissimilar structure
+                FAstruct(k)=FAstruct(k-1); % I assume k is already more than 1
+                fieldList = fieldnames(curFAstruct(end));
+                for pp=1:numel(fieldList)
+                    FAstruct(k).(fieldList{pp})=curFAstruct(end).(fieldList{pp});
+                end
+            end
         else %numel(curFAstruct)==1
             curNAdensity(k) = curNAstruct.NAdensity;
             curFAarea{k} = curFAstruct.area;
@@ -100,8 +109,11 @@ for ii=1:numConditions
             outputFilePath = [curML.movies_{k}.outputDirectory_ filesep 'Adhesion Quantification'];
             curDataPath= [outputFilePath filesep 'data'];
             ampTheOtherAll(k) = load([curDataPath filesep 'ampTheOtherPerAdhesionType.mat']);
-        else
-            ampTheOtherAll(k)=NaN;
+%         else
+%             ampTheOtherAll(k).ampTheOtherFA=NaN;
+%             ampTheOtherAll(k).ampTheOtherFC=NaN;
+%             ampTheOtherAll(k).ampTheOtherNA=NaN;
+%             ampTheOtherAll(k).ampTheOtherGroup=NaN;
         end
     end
     NAdensity{ii}=curNAdensity;
@@ -410,7 +422,11 @@ ylabel('width (\mum)')
 hgexport(h5,strcat(figPath,'/FAwidthBar'),hgexport('factorystyle'),'Format','eps')
 hgsave(h5,strcat(figPath,'/FAwidthBar'),'-v7.3')
 %% Force per focal adhesion
-forcesFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceFA, x)),forceAllGroup','unif',false);
+try
+    forcesFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceFA, x)),forceAllGroup','unif',false);
+catch
+    forcesFACell = cellfun(@(x) cell2mat(arrayfun(@(y) cell2mat(y.forceFA), x,'unif',false)),forceAllGroup','unif',false);
+end
 h4=figure; 
 boxPlotCellArray(forcesFACell,nameList',1,0,1)
 title('Traction per FA')
@@ -419,7 +435,11 @@ hgexport(h4,strcat(figPath,'/forceFA'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/forceFA'),'-v7.3')
 
 %% Force per focal complex
-forcesFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceFC, x)),forceAllGroup','unif',false);
+try
+    forcesFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceFC, x)),forceAllGroup','unif',false);
+catch
+    forcesFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) cell2mat(y.forceFC), x,'unif',false)),forceAllGroup','unif',false);
+end
 h4=figure; 
 boxPlotCellArray(forcesFCCell,nameList',1,0,1)
 title('Traction per FC')
@@ -427,7 +447,11 @@ ylabel('Traction (Pa)')
 hgexport(h4,strcat(figPath,'/forceFC'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/forceFC'),'-v7.3')
 %% Force per nascent adhesion
-forcesNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceNA, x)),forceAllGroup','unif',false);
+try
+    forcesNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.forceNA, x)),forceAllGroup','unif',false);
+catch
+    forcesNACell = cellfun(@(x) cell2mat(arrayfun(@(y) cell2mat(y.forceNA), x, 'unif', false)),forceAllGroup','unif',false);
+end
 h4=figure; 
 boxPlotCellArray(forcesNACell,nameList',1,0,1)
 title('Traction per NA')
@@ -436,7 +460,12 @@ hgexport(h4,strcat(figPath,'/forceNA'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/forceNA'),'-v7.3')
 %% the amplitude of the other channel (than TFM and than the adhesion) for FAs
 if isfield(FAstructGroup{1}(1),'ampTheOther')
-    ampTheOtherFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFA, x)),ampTheOtherAllGroup','unif',false);
+    try
+        ampTheOtherFACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFA, x)),ampTheOtherAllGroup','unif',false);
+    catch
+        indCell = cellfun(@(x) cell2mat(arrayfun(@(y) iscell(y.ampTheOtherFA), x, 'unif', false)),ampTheOtherAllGroup','unif',false);
+        ampTheOtherFACell = cellfun(@(x,z) cell2mat(arrayfun(@(y) cell2mat(y.ampTheOtherFA), x(z), 'unif', false)),ampTheOtherAllGroup',indCell,'unif',false);
+    end
     h4=figure; 
     boxPlotCellArray(ampTheOtherFACell,nameList',1,0,1)
     title('The amplitude (background-subtracted) of the third channel per FA')
@@ -446,7 +475,12 @@ if isfield(FAstructGroup{1}(1),'ampTheOther')
 end
 %% the amplitude of the other channel (than TFM and than the adhesion) for FCs
 if isfield(FAstructGroup{1}(1),'ampTheOther')
-    ampTheOtherFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFC, x)),ampTheOtherAllGroup','unif',false);
+    try
+        ampTheOtherFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherFC, x)),ampTheOtherAllGroup','unif',false);
+    catch
+        indCell = cellfun(@(x) cell2mat(arrayfun(@(y) iscell(y.ampTheOtherFC), x, 'unif', false)),ampTheOtherAllGroup','unif',false);
+        ampTheOtherFCCell = cellfun(@(x,z) cell2mat(arrayfun(@(y) cell2mat(y.ampTheOtherFC), x(z), 'unif', false)),ampTheOtherAllGroup',indCell,'unif',false);
+    end
     h4=figure; 
     boxPlotCellArray(ampTheOtherFCCell,nameList',1,0,1)
     title('The amplitude (background-subtracted) of the third channel per FC')
@@ -456,7 +490,12 @@ if isfield(FAstructGroup{1}(1),'ampTheOther')
 end
 %% the amplitude of the other channel (than TFM and than the adhesion) for NAs
 if isfield(FAstructGroup{1}(1),'ampTheOther')
-    ampTheOtherNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherNA, x)),ampTheOtherAllGroup','unif',false);
+    try
+        ampTheOtherNACell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOtherNA, x)),ampTheOtherAllGroup','unif',false);
+    catch
+        indCell = cellfun(@(x) cell2mat(arrayfun(@(y) iscell(y.ampTheOtherNA), x, 'unif', false)),ampTheOtherAllGroup','unif',false);
+        ampTheOtherNACell = cellfun(@(x,z) cell2mat(arrayfun(@(y) cell2mat(y.ampTheOtherNA), x(z), 'unif', false)),ampTheOtherAllGroup',indCell,'unif',false);
+    end
     h4=figure; 
     boxPlotCellArray(ampTheOtherNACell,nameList',1,0,1)
     title('The amplitude (background-subtracted) of the third channel per NA')
