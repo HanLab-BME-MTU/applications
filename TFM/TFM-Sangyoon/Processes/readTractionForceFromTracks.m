@@ -57,7 +57,6 @@ tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 %% Data Set up
 % Set up the output file path for master channel
 outputFile = cell(6, numel(MD.channels_));
-iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 for i = 1:numel(MD.channels_)
     [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
     outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
@@ -105,6 +104,7 @@ tMapIn=forceFieldProc.loadChannelOutput('output','tMap');
 %things: First, we need to shift traction field back to the movie frame (-T_TFM),
 %and then we have to shift it again with T_FA. In conclusion, we need to
 %do: -T_TFM + T_FA per each frame.
+iBeadChan = 1; % might need to be updated based on asking TFMPackage..
 
 iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
 FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
@@ -112,6 +112,7 @@ SDCProc_FA=FAPackage.processes_{iSDCProc};
 nFrames = MD.nFrames_;
 %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
 if ~isempty(SDCProc_FA)
+    iBeadChan = SDCProc_FA.funParams_.iBeadChannel; % might need to be updated based on asking TFMPackage..
     s = load(SDCProc_FA.outFilePaths_{3,iBeadChan},'T');    
     T_FA = s.T;
 else
@@ -122,7 +123,12 @@ SDCProc_TFM=TFMPackage.processes_{iSDCProc};
 %iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
 if ~isempty(SDCProc_TFM)
     iBeadChan = 1; % might need to be updated based on asking TFMPackage..
-    s = load(SDCProc_TFM.outFilePaths_{3,iBeadChan},'T');    
+    try
+        s = load(SDCProc_TFM.outFilePaths_{3,iBeadChan},'T');    
+    catch
+        iTransChan = SDCProc_TFM.funParams_.ChannelIndex(end);
+        s = load(SDCProc_TFM.outFilePaths_{3,iTransChan},'T');    
+    end
     T_TFM = s.T;
 else
     T_TFM = zeros(nFrames,2);
