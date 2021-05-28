@@ -143,7 +143,7 @@ jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
 minSize = round((500/pixSize)*(100/pixSize)); %adhesion limit=0.25 um2
-minLengthFC = 500/pixSize;
+minLengthFC = 1000/pixSize; %This is temporary. %500/pixSize;
 minLengthFA = 2000/pixSize;
 % minEcc = 0.7;
 psAlpha = 0.01;%it was 1e-4
@@ -156,7 +156,8 @@ for j=1:movieData.nFrames_
     I=double(movieData.channels_(iAdhChan).loadImage(j));
     noMask=false;
     try
-        maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
+        iMaskProc = movieData.getProcessIndex('MaskRefinementProcess','askUser',false);
+        maskProc = movieData.getProcess(iMaskProc);
 %         mask = maskProc.loadChannelOutput(iPax,j);
         % if there are masks for more than one channels, combine them.
         
@@ -195,7 +196,7 @@ for j=1:movieData.nFrames_
         bandMask = distFromEdge <= bandwidth_pix;
 
 %         ultimateMask = bandMask & roiMask(:,:,j) & maskAdhesionC & mask & maskAdhesionFine;
-        ultimateMask = bandMask & roiMask(:,:,j) & mask & maskAdhesionFine;
+        ultimateMask = bandMask & roiMask(:,:,j) & mask; % & maskAdhesionFine;
     else
 %         ultimateMask = roiMask(:,:,j) & maskAdhesionC & mask; % & maskAdhesionFine;
         ultimateMask = roiMask(:,:,j) & mask; % & maskAdhesionFine;

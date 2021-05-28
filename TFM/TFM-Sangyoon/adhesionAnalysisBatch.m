@@ -51,7 +51,7 @@ ampTheOtherAllGroup= cell(numConditions,1);
 iPax = input('Enter adhesion channel number (1 or 2 ..): ');
 for ii=1:numConditions
     N(ii) = numel(MLAll(ii).movies_);
-    bandNA = []; % 2 um from the edge
+    bandNA = 1; % 2 um from the edge
 
     curNAdensity = zeros(N(ii),1);
     curFAarea = cell(N(ii),1);

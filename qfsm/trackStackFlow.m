@@ -179,8 +179,8 @@ fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 % end % we don't need this any more.
 
 % if feature('ShowFigureWindows'), parfor_progress(nPoints); end
-parfor k = 1:nPoints
-% for k = 1:nPoints
+% parfor k = 1:nPoints
+for k = 1:nPoints
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
 % inqX=[510]; inqY=[743];

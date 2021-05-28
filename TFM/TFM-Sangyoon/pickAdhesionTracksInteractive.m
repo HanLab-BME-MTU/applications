@@ -12,7 +12,7 @@ ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
 ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the slave channle index.
 ip.addParamValue('tMap',[],@(x) (isnumeric(x))); % This is the master channle index.
 ip.addParamValue('imgMap2',[],@(x) (isnumeric(x))); % This is the master channle index.
-ip.addParamValue('idSelected',[],@(x) (isstruct(x))); % This is the master channle index.
+ip.addParamValue('idSelected',[],@(x) (isstruct(x) | iscell(x))); % This is the master channle index.
 
 ip.parse(tracksNA, imgMap, varargin{:});
 % pathForColocalization=ip.Results.pathForColocalization;
@@ -281,16 +281,25 @@ function pushInspectAdhesion(~,~)
             iGroups=[iGroups iCurGroup];
             if ~isempty(idSelected)
                 iCurPrevGroup = 0;
-                for kk=1:numel(fieldnames(idSelected))
-                    if isfield(idSelected,'idGroup1Selected')
-                        memberName = ['idGroup' num2str(kk) 'Selected'];
-                        if ismember(IDtoInspect,idSelected.(memberName))
-                            iCurPrevGroup = kk;
-                            break
+                if isstruct(idSelected)
+                    for kk=1:numel(fieldnames(idSelected))
+                        if isfield(idSelected,'idGroup1Selected')
+                            memberName = ['idGroup' num2str(kk) 'Selected'];
+                            if ismember(IDtoInspect,idSelected.(memberName))
+                                iCurPrevGroup = kk;
+                                break
+                            end
+                        else
+                            memberName = ['idGroup' num2str(kk)];
+                            if ismember(IDtoInspect,find(idSelected.(memberName)))
+                                iCurPrevGroup = kk;
+                                break
+                            end
                         end
-                    else
-                        memberName = ['idGroup' num2str(kk)];
-                        if ismember(IDtoInspect,find(idSelected.(memberName)))
+                    end
+                elseif iscell(idSelected)
+                    for kk=1:numel(idSelected)
+                        if ismember(IDtoInspect,find(idSelected{kk}))
                             iCurPrevGroup = kk;
                             break
                         end
