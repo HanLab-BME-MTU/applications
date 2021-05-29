@@ -56,12 +56,10 @@ iChan = p.ChannelIndex;
 bandwidthNA = p.bandwidthNA;
 minFALengthMicron = p.minFALengthMicron;
 
-ApplyCellSegMask = p.ApplyCellSegMask;
-
 % Load Respective Process objects
-if ApplyCellSegMask
-    maskProc = MD.getProcess(p.SegCellMaskProc);
-end
+% if ApplyCellSegMask
+%     maskProc = MD.getProcess(p.SegCellMaskProc);
+% end
 detectedNAProc = MD.getProcess(p.detectedNAProc);
 trackNAProc = MD.getProcess(p.trackFAProc);
 FASegProc = MD.getProcess(p.FAsegProc);
@@ -175,7 +173,9 @@ if ~isempty(SDCProc)
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
 end
-
+%% Cell mask
+maskProc = FAPackage.getProcess(3);
+ApplyCellSegMask=~isempty(maskProc);
 %% get the track if you already have it
 if foundTracks || startFromIntermediate % If this part above is already processed
 %     load(dataPath_tracksNA, 'tracksNA');
