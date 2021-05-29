@@ -399,7 +399,7 @@ for iCurChan = iChanSlave
             % Get X Y for blobMask
             [rows,columns] = ind2sub(size(curImg),find(~blobMask2));
             fnInterp = scatteredInterpolant(columns,rows,curImg(~blobMask2),'nearest','nearest');
-            [X, Y] = meshgrid(1:size(curImg,1),1:size(curImg,2));%ind2sub(size(curImg),find(curImg>0));
+            [X, Y] = meshgrid(1:size(curImg,2),1:size(curImg,1));%ind2sub(size(curImg),find(curImg>0));
             % Interpolate images
             imgFilled = fnInterp(X,Y);
             % blur this img

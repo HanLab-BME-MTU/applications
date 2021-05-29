@@ -80,7 +80,6 @@ end
 %% Load imgStack, forceStack and anyother stack if it exists.
 if isempty(curChanPath) || ~strcmp(curChanPath, MD.channels_(1).channelPath_) ...
     || numel(tracksNA) ~= sum(idGroupLabel==RepClass)
-    curChanPath = MD.channels_(1).channelPath_;
     if RepClass>0
         tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA','idSelected',find(idGroupLabel==RepClass)');
     else
@@ -128,8 +127,9 @@ curClass=iRepClass;
         'curFirstIncreseTimeIntAgainstSlave','lifetimes');
     
     
-    if isempty(imgStack) 
+    if isempty(imgStack) || ~strcmp(curChanPath, MD.channels_(1).channelPath_)
         [imgStack, tMap, imgStack2] = getAnyStacks(MD);
+        curChanPath = MD.channels_(1).channelPath_;
     end
     %% Launch pickAdhesion window with labeled adhesions with a right color and
     % unlabed ones with white color. Get the right classes per newly selected

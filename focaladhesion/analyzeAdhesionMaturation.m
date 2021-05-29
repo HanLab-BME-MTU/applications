@@ -56,12 +56,10 @@ iChan = p.ChannelIndex;
 bandwidthNA = p.bandwidthNA;
 minFALengthMicron = p.minFALengthMicron;
 
-ApplyCellSegMask = p.ApplyCellSegMask;
-
 % Load Respective Process objects
-if ApplyCellSegMask
-    maskProc = MD.getProcess(p.SegCellMaskProc);
-end
+% if ApplyCellSegMask
+%     maskProc = MD.getProcess(p.SegCellMaskProc);
+% end
 detectedNAProc = MD.getProcess(p.detectedNAProc);
 trackNAProc = MD.getProcess(p.trackFAProc);
 FASegProc = MD.getProcess(p.FAsegProc);
@@ -175,7 +173,9 @@ if ~isempty(SDCProc)
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
 end
-
+%% Cell mask
+maskProc = FAPackage.getProcess(3);
+ApplyCellSegMask=~isempty(maskProc);
 %% get the track if you already have it
 if foundTracks || startFromIntermediate % If this part above is already processed
 %     load(dataPath_tracksNA, 'tracksNA');
@@ -252,7 +252,7 @@ if ~foundTracks
                             disp('All channels are combined for cell mask')
                         end
                         maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,ii),find(maskProc.checkChannelOutput),'UniformOutput',false);
-                        maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
+                        maskAll=reshape(cell2mat(maskEach),MD.imSize_(1),MD.imSize_(2),[]);
                         mask = any(maskAll,3);
                     elseif find(maskProc.checkChannelOutput)~=iChan
                         if ii==1
@@ -278,10 +278,15 @@ if ~foundTracks
 
                 maskOnlyBand = bandMask & mask;
                 bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
+                % maskOnlyBand should be shifted by SDC
+                if ~isempty(SDCProc)
+                    maskOnlyBand = imtranslate(maskOnlyBand,T(ii,2:-1:1));
+                end
 
                 % collect index of tracks which first appear at frame ii
                 idxFirstAppear = arrayfun(@(x) x.startingFrame==ii,tracksNA);
                 % now see if these tracks ever in the maskOnlyBand
+                % And I find that ...
                 for k=find(idxFirstAppear)'
                     if maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii)))
                         trackIdx(k) = true;
@@ -320,6 +325,11 @@ if ~foundTracks
                 masterMask(:,:,ii)=mask;
                 % mask for band from edge
                 maskOnlyBand = mask;
+                % maskOnlyBand should be shifted by SDC
+                if ~isempty(SDCProc)
+                    maskOnlyBand = imtranslate(maskOnlyBand,T(ii,2:-1:1));
+                end
+
                 bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
                 % filter tracks with naMasks
                 % only deal with presence and status
@@ -428,6 +438,11 @@ if ~foundTracks
 
             maskOnlyBand = bandMask & mask;
             bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
+            
+            % maskOnlyBand should be shifted by SDC
+            if ~isempty(SDCProc)
+                maskOnlyBand = imtranslate(maskOnlyBand,T(ii,2:-1:1));
+            end
 
             % collect index of tracks which first appear at frame ii
     %         idxFirstAppear = arrayfun(@(x) x.startingFrameExtra==ii,tracksNA);
@@ -451,6 +466,11 @@ if ~foundTracks
             mask = masterMask(:,:,ii); 
             % mask for band from edge
             maskOnlyBand = mask;
+            % maskOnlyBand should be shifted by SDC
+            if ~isempty(SDCProc)
+                maskOnlyBand = imtranslate(maskOnlyBand,T(ii,2:-1:1));
+            end
+
             bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
             % filter tracks with naMasks
             % only deal with presence and status
@@ -474,7 +494,7 @@ if ~foundTracks
     end
     toc
     % get rid of tracks that have out of bands...
-    disp(['Previous total ' num2str(sum(trackIdx)) ' tracks.'])
+    disp(['Previous total ' num2str(length(trackIdx)) ' tracks.'])
     tracksNA = tracksNA(trackIdx);
     disp(['After filtering: Total ' num2str(sum(trackIdx)) ' tracks.'])
     %%%%%    

@@ -36,7 +36,8 @@ if wantUpdatedTracks
     tracksNA(end).intenPeakFrame = NaN;
 end
 
-parfor ii=1:numel(tracksNA)
+% parfor ii=1:numel(tracksNA)
+for ii=1:numel(tracksNA)
     sF = max(1,tracksNA(ii).startingFrameExtra-50);
     tRange = sF:tracksNA(ii).endingFrameExtraExtra;
     d = tracksNA(ii).ampTotal(tRange);

@@ -467,7 +467,12 @@ if ~plotCohorts && ~plotConfInt
     end
 end
 xlim([-1-prePostFramesUsed maxLifeTime]*tInterval_used)
-ylim([minYamp maxYamp])
+
+try
+    ylim([minYamp maxYamp])
+catch
+    ylim auto
+end
 % if strcmp(source{1},'forceMag')
 %     ylim([0 maxYamp])
 % end

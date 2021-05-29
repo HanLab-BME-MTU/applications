@@ -6,11 +6,19 @@ if nargin<2
     iChan = numel(refMD.channels_);
 end
 curRefBeadChan = refMD.channels_(iChan);
-thresVariance=0.8;applySobel=true;
+thresVariance=0.8;
+applySobel = true;
 if refMD.zSize_>1
     % find the best focus
     curRefBeadStack = curRefBeadChan.loadStack(1);
     averagingRange = findBestFocusFromStack(curRefBeadStack,thresVariance,applySobel);
+    if numel(averagingRange)>5
+        applySobel=false;
+        averagingRange = findBestFocusFromStack(curRefBeadStack,thresVariance,applySobel);
+        if numel(averagingRange)>5
+            averagingRange = findBestFocusFromStack(curRefBeadStack,thresVariance,applySobel,'amp');
+        end
+    end
     curRefBeadStackChosen = curRefBeadStack(:,:,averagingRange);
     meanRefImg = mean(curRefBeadStackChosen,3); 
 else

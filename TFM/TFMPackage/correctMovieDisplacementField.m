@@ -503,7 +503,7 @@ for ii=1:nFrames
 end
 % clear dMapIn dMapXin dMapYin
 disp('Saving ...')
-save(outputFile{1},'displField','displFieldShifted');
+save(outputFile{1},'displField','displFieldShifted','-v7.3');
 % Saving the dMap which stores information
 % dMap.eachDMapName = 'cur_dMap';
 % dMap.outputDir = fullfile(p.OutputDirectory,'dislplMaps');
