@@ -652,7 +652,7 @@ if ~isempty(initRiseProc) && exist('earlyAmpSlopeGroup','var') && ~isempty(early
             earlyAmpSlopeGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),earlyAmpSlopeGroup,'unif',false);
             h1=figure; 
             boxPlotCellArray(earlyAmpSlopeGroupEach,nameList,1,false,true);
-            ylabel(['earlyAmpSlope ' num2str(curGroup) ' (sec)'])
+            ylabel(['earlyAmpSlope ' num2str(curGroup) ' (a.u./min)'])
             title(['earlyAmpSlope in group ' num2str(curGroup)])
             hgexport(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
             hgsave(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],'-v7.3')
@@ -690,7 +690,7 @@ if ~isempty(initRiseProc) && exist('earlyAmpSlopeGroup','var') && ~isempty(early
     end
     h1=figure; 
     boxPlotCellArray(earlyAmpSlopeG1G2,nameListG1G2,1,false,true);
-    ylabel('earlyAmpSlope (a.u./sec)')
+    ylabel('earlyAmpSlope (a.u./min)')
     title('earlyAmpSlope in G1 vs. G2')
     hgexport(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],'-v7.3')
