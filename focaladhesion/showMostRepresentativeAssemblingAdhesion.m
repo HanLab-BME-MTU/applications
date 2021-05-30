@@ -139,8 +139,9 @@ curClass=iRepClass;
     % adhesions
     if PickManually
         waitHan = msgbox({'You will see the cell window and classified adhesion tracks with color';
-        'label. After closing this window, you can select colored (classified)';
-        'adhesions to see their time-series and associated assembly rates'});
+        'label. After closing this window, you can select ';
+        ', by using Data Tips icon, a colored (classified)';
+        'adhesion to see their time-series and associated assembly rates'});
 
         uiwait(waitHan);    
         pickAdhesionTracksInteractive(tracksNA, imgStack,...
