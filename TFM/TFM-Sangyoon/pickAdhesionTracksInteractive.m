@@ -83,7 +83,7 @@ if isempty(imgMap) %|| isempty(tMap)
         end
     end
 end
-outputPath = [MD.getPath filesep 'FAPackage' filesep 'trackAnalysis'];
+outputPath = [MD.getPath filesep 'FocalAdhesionPackage' filesep 'trackAnalysis'];
 if ~exist(outputPath,'dir')
     mkdir(outputPath);
 end
@@ -202,9 +202,7 @@ function pushInspectAdhesion(~,~)
         end
         curTrack = tracksNA(IDtoInspect);
 
-        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);
-
-        % Display the features of the curTrack
+        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);        
         
         % Display the threshold of the currently assigned class
         
@@ -335,14 +333,24 @@ function pushInspectAdhesion(~,~)
             tracksNA(IDtoInspect).endingFrameExtraExtra = [];
             tracksNA(IDtoInspect) = curTrack;
         end
-%         if trainerInitially
+        % Display the features of the curTrack
+        h3=figure; h3.Position(3:4)=[500 900]; % ax=axes(h3);
+        subplot(3,1,1), plot(curTrack.edgeAdvanceDist,'k.-'), title('Edge advance dist (px)')
+        ylabel('Movement (px)')
+        subplot(3,1,2), plot(curTrack.advanceDist,'r.-'), title('Adhesion advance dist (px)')
+        ylabel('Adhesion movement (px)')
+        subplot(3,1,3), plot(curTrack.distToEdge,'b.-'), title('Distance from edge (px)')
+        ylabel('Distance from edge (px)')
+        xlabel('Time (frame)')
+        if trainerInitially
 %             print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
-%             savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
-%         end
+            savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+            savefig(h3,strcat(gPath,'/track',num2str(IDtoInspect),'Distance.fig'))
+        end
 %         save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
         setappdata(hFig,'IDs',IDs);
         setappdata(hFig,'iGroups',iGroups);
-        close(h2)
+        close(h2); close(h3);
         axes(handles.axes1)
     end
 end

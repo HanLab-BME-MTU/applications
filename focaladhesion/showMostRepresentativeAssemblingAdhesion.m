@@ -103,29 +103,32 @@ curClass=iRepClass;
 %     tracksNA=readIntensityFromTracks(tracksNA,imgStack,1,'extraLength',120,'movieData',MD,'reTrack',true);
 
     % Get the distribution of the time lag
-    curFirstIncreseTimeIntAgainstSlave = ...
-        calculateFirstIncreaseTimeTracks(tracksNA,numAvgWindow,...
-        preDetecPeriod,tInterval,'slaveSource',potentialSlaves{iSlave});
-    
-    % Get the median
-    medianLag = nanmedian(curFirstIncreseTimeIntAgainstSlave);
-    disp(['The median of the time lags of ' potentialSlaves{iSlave} ' of the class ' num2str(curClass) ...
-        ' against amp1 is ' num2str(-medianLag,2) ' sec.'])
+    if iSlave>0
+        curFirstIncreseTimeIntAgainstSlave = ...
+            calculateFirstIncreaseTimeTracks(tracksNA,numAvgWindow,...
+            preDetecPeriod,tInterval,'slaveSource',potentialSlaves{iSlave});
+
+        % Get the median
+        medianLag = nanmedian(curFirstIncreseTimeIntAgainstSlave);
+        disp(['The median of the time lags of ' potentialSlaves{iSlave} ' of the class ' num2str(curClass) ...
+            ' against amp1 is ' num2str(-medianLag,2) ' sec.'])
+    end
     disp(['The current movie is: ' MD.getFullPath '.'])
     % Get the repTracks where their time lags are the same as the median or
     % median + shift.
-    trackID = curFirstIncreseTimeIntAgainstSlave == medianLag - TimeShiftFromMedian;
-    % because the function generates a number of the master against the
-    % slave (but usually we want the slave against the master), we subtract
-    % (instead of add) the timeshift.
-    
-    % Exporting
-    lifetimes = arrayfun(@(x) x.lifeTime, tracksNA);
-    t = table(curFirstIncreseTimeIntAgainstSlave,lifetimes);
-    writetable(t,[finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.xlsx']);
-    save([finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.mat'],...
-        'curFirstIncreseTimeIntAgainstSlave','lifetimes');
-    
+    if iSlave>0
+        trackID = curFirstIncreseTimeIntAgainstSlave == medianLag - TimeShiftFromMedian;
+        % because the function generates a number of the master against the
+        % slave (but usually we want the slave against the master), we subtract
+        % (instead of add) the timeshift.
+
+        % Exporting
+        lifetimes = arrayfun(@(x) x.lifeTime, tracksNA);
+        t = table(curFirstIncreseTimeIntAgainstSlave,lifetimes);
+        writetable(t,[finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.xlsx']);
+        save([finalProc.funParams_.OutputDirectory filesep 'data' filesep 'timeLagG' num2str(RepClass) '.mat'],...
+            'curFirstIncreseTimeIntAgainstSlave','lifetimes');
+    end    
     
     if isempty(imgStack) || ~strcmp(curChanPath, MD.channels_(1).channelPath_)
         [imgStack, tMap, imgStack2] = getAnyStacks(MD);
@@ -178,14 +181,18 @@ curClass=iRepClass;
             close(h2)
         end
     else
-        for ii=find(trackID')
-            h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath,[],imgStackBS,imgStackBS2);
-            close(h2)
+        if exist('trackID','var')
+            for ii=find(trackID')
+                h2 = showSingleAdhesionTrackSummary(MD,tracksNA(ii),imgStack,tMap,imgStack2, ii,gPath,[],imgStackBS,imgStackBS2);
+                close(h2)
+            end
         end
     end
 % end
 
-disp(['The number of tracks identified: ' num2str(sum(trackID))])
+if exist('trackID','var')
+    disp(['The number of tracks identified: ' num2str(sum(trackID))])
+end
 disp(['Figures will be generated and stored in FocalAdhesionPackage/RepTracks_Class' num2str(curClass) '.'])
     
 

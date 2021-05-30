@@ -1518,88 +1518,91 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
     tableDisassemRate=table(disassemRateAll,'RowNames',nameList);
     writetable(tableDisassemRate,[dataPath filesep 'disassemRateAll.csv'],'WriteRowNames',true)
     %% assemRate2Group
-    try
-        nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup{1});
-    catch
-        nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup); %This will anyway generates 0
-    end
+    if exist('assemRate2EachGroup','var') && any(~cellfun(@isempty,assemRate2EachGroup))
+        try
+            nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup{1});
+        catch
+            nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup); %This will anyway generates 0
+        end
 
-    for curGroup=find(nonZeroGroups2)
-        %try
-            assemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRate2EachGroup,'unif',false);
-%             % Discarding not assemblying adhesions - this doesn't make
-%             sense because the other channel might not necessarily
-%             correlate with the main adhesion channel.
-            for ii=1:numel(assemRate2GroupEach)
-                assemRate2GroupEach{ii}(noAssembling{ii})=[];
-            end
-            h1=figure; 
-            boxPlotCellArray(assemRate2GroupEach,nameList,1,false,true);
-            ylabel('assembly rate (1/min)')
-            title(['assembly rate in group ' num2str(curGroup) ' of the other channel'])
-            hgexport(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
-            hgsave(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-v7.3')
-            print(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-dtiff')
+        for curGroup=find(nonZeroGroups2)
+            %try
+                assemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRate2EachGroup,'unif',false);
+    %             % Discarding not assemblying adhesions - this doesn't make
+    %             sense because the other channel might not necessarily
+    %             correlate with the main adhesion channel.
+                for ii=1:numel(assemRate2GroupEach)
+                    assemRate2GroupEach{ii}(noAssembling{ii})=[];
+                end
+                h1=figure; 
+                boxPlotCellArray(assemRate2GroupEach,nameList,1,false,true);
+                ylabel('assembly rate (1/min)')
+                title(['assembly rate in group ' num2str(curGroup) ' of the other channel'])
+                hgexport(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+                hgsave(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-v7.3')
+                print(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-dtiff')
 
-            tableAssemRate2=table(assemRate2GroupEach,'RowNames',nameList);
-            writetable(tableAssemRate2,[dataPath filesep 'assemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
-        %catch
-            disp(['Nothing in ' num2str(curGroup) 'th group'])
-        %end
-    end
+                tableAssemRate2=table(assemRate2GroupEach,'RowNames',nameList);
+                writetable(tableAssemRate2,[dataPath filesep 'assemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
+            %catch
+                disp(['Nothing in ' num2str(curGroup) 'th group'])
+            %end
+        end
+    
     %% assemRate for all - again from step 11 quantification
-    assemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),assemRate2EachGroup,'unif',false); %need to work on this
-    % Discarding not assemblying adhesions
-    noAssembling = cell(numel(assemRate2All),1);
-    h1=figure; 
-    boxPlotCellArray(assemRate2All,nameList,1,false,true);
-    ylabel('Assembly rate (1/min)')
-    title(['Assembly rate in all groups of the other channel'])
-    hgexport(h1,[figPath filesep 'assemRate2All'],hgexport('factorystyle'),'Format','eps')
-    hgsave(h1,[figPath filesep 'assemRate2All'],'-v7.3')
-    print(h1,[figPath filesep 'assemRate2All'],'-dtiff')
+        assemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),assemRate2EachGroup,'unif',false); %need to work on this
+        % Discarding not assemblying adhesions
+        noAssembling = cell(numel(assemRate2All),1);
+        h1=figure; 
+        boxPlotCellArray(assemRate2All,nameList,1,false,true);
+        ylabel('Assembly rate (1/min)')
+        title(['Assembly rate in all groups of the other channel'])
+        hgexport(h1,[figPath filesep 'assemRate2All'],hgexport('factorystyle'),'Format','eps')
+        hgsave(h1,[figPath filesep 'assemRate2All'],'-v7.3')
+        print(h1,[figPath filesep 'assemRate2All'],'-dtiff')
 
-    tableAssemRate2=table(assemRate2All,'RowNames',nameList);
-    writetable(tableAssemRate2,[dataPath filesep 'assemRate2All.csv'],'WriteRowNames',true)
+        tableAssemRate2=table(assemRate2All,'RowNames',nameList);
+        writetable(tableAssemRate2,[dataPath filesep 'assemRate2All.csv'],'WriteRowNames',true)
 
-    %% disassemRate2Group
-    for curGroup=find(nonZeroGroups2)
-        %try
-            disassemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRate2EachGroup,'unif',false);
-%             % Discarding not-disassemblying adhesions- this doesn't make
-%             sense because the other channel might not necessarily
-%             correlate with the main adhesion channel.
-            for ii=1:numel(disassemRate2GroupEach)
-                disassemRate2GroupEach{ii}(noDisassembling{ii})=[];
-            end
-            h1=figure; 
-            boxPlotCellArray(disassemRate2GroupEach,nameList,1,false,true);
-            ylabel('disassembly rate (1/min)')
-            title(['disassembly rate in group ' num2str(curGroup) ' of the other channel'])
-            hgexport(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
-            hgsave(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-v7.3')
-            print(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-dtiff')
+        %% disassemRate2Group
+        for curGroup=find(nonZeroGroups2)
+            %try
+                disassemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRate2EachGroup,'unif',false);
+    %             % Discarding not-disassemblying adhesions- this doesn't make
+    %             sense because the other channel might not necessarily
+    %             correlate with the main adhesion channel.
+                for ii=1:numel(disassemRate2GroupEach)
+                    disassemRate2GroupEach{ii}(noDisassembling{ii})=[];
+                end
+                h1=figure; 
+                boxPlotCellArray(disassemRate2GroupEach,nameList,1,false,true);
+                ylabel('disassembly rate (1/min)')
+                title(['disassembly rate in group ' num2str(curGroup) ' of the other channel'])
+                hgexport(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+                hgsave(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-v7.3')
+                print(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-dtiff')
 
-            tableDisassem2Rate=table(disassemRateGroupEach,'RowNames',nameList);
-            writetable(tableDisassem2Rate,[dataPath filesep 'disassemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
-        %catch
-            disp(['Nothing in ' num2str(curGroup) 'th group'])
-        %end
+                tableDisassem2Rate=table(disassemRateGroupEach,'RowNames',nameList);
+                writetable(tableDisassem2Rate,[dataPath filesep 'disassemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
+            %catch
+                disp(['Nothing in ' num2str(curGroup) 'th group'])
+            %end
+        end
+        %% disassemRate for all - again from step 11 quantification
+        disassemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),disassemRate2EachGroup,'unif',false); %need to work on this
+        % Discarding not disassemblying adhesions
+        nodisassembling = cell(numel(disassemRate2All),1);
+        h1=figure; 
+        boxPlotCellArray(disassemRate2All,nameList,1,false,true);
+        ylabel('Disassembly rate (1/min)')
+        title(['Disassembly rate in all groups of the other channel'])
+        hgexport(h1,[figPath filesep 'disassemRate2All'],hgexport('factorystyle'),'Format','eps')
+        hgsave(h1,[figPath filesep 'disassemRate2All'],'-v7.3')
+        print(h1,[figPath filesep 'disassemRate2All'],'-dtiff')
+
+        tableDisassemRate2=table(disassemRate2All,'RowNames',nameList);
+        writetable(tableDisassemRate2,[dataPath filesep 'disassemRate2All.csv'],'WriteRowNames',true)
     end
-    %% disassemRate for all - again from step 11 quantification
-    disassemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),disassemRate2EachGroup,'unif',false); %need to work on this
-    % Discarding not disassemblying adhesions
-    nodisassembling = cell(numel(disassemRate2All),1);
-    h1=figure; 
-    boxPlotCellArray(disassemRate2All,nameList,1,false,true);
-    ylabel('Disassembly rate (1/min)')
-    title(['Disassembly rate in all groups of the other channel'])
-    hgexport(h1,[figPath filesep 'disassemRate2All'],hgexport('factorystyle'),'Format','eps')
-    hgsave(h1,[figPath filesep 'disassemRate2All'],'-v7.3')
-    print(h1,[figPath filesep 'disassemRate2All'],'-dtiff')
-
-    tableDisassemRate2=table(disassemRate2All,'RowNames',nameList);
-    writetable(tableDisassemRate2,[dataPath filesep 'disassemRate2All.csv'],'WriteRowNames',true)
 end
 %% save entire workspace for later
 close all

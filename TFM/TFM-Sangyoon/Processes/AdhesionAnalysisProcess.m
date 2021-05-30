@@ -160,7 +160,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
 %                     end
 
                     if isempty(idSelected)
-                        parfor ii=1:numTracks
+                        for ii=1:numTracks
                             try
                                 curTrackObj = load(feval(trackIndPath,ii),'curTrack');
                             catch

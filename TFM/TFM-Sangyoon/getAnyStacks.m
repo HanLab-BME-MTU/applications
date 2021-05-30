@@ -64,7 +64,7 @@ if ~isempty(SDCProc_FA)
         imgStack = [];
     end
 else
-    imgStack = MD.channels_(iChan).loadImage(1:nFrames);
+    imgStack = MD.channels_(iChan).loadStack(1:nFrames,1);
 end
 
 if nargout>2
