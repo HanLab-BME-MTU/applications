@@ -99,7 +99,6 @@ elseif strcmpi(method,'FEM')
     
     %Mesh the model
     generateMesh(femFwdModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
-    figure,pdeplot3D(femFwdModel)
     
     %Material properties
     %FEM will fail when given a Poisson's Ratio of 0.5, therefore we detect
@@ -153,9 +152,10 @@ elseif strcmpi(method,'FEM')
         disp('Utilizing Non-linear FEM for forward soluton')
 
         %Path names
+        folderName = 'FEBio_Data';
         currentFolder = pwd;
 %       defaultFolder = fileparts(fileparts(mfilename('fullpath')));
-        savePath=fullfile(currentFolder,'FEBio_Data');
+        savePath=fullfile(currentFolder,folderName);
 
         %Defining file names
         febioFebFileNamePart='nonLinearModel';
@@ -165,17 +165,24 @@ elseif strcmpi(method,'FEM')
         febioLogFileName_stress=[febioFebFileNamePart,'_stress_out.txt']; %Log file name for exporting stress
 
         %Specifying dimensions and number of elements
-        sampleWidth=x0(2); %Width
-        sampleThickness=y0(2); %Thickness
-        sampleHeight=256; %Height
-        pointSpacings=(meshPtsFwdSol/64)*ones(1,3); %Desired point spacing between nodes
-        numElementsWidth=round(sampleWidth/pointSpacings(1)); %Number of elemens in dir 1
-        numElementsThickness=round(sampleThickness/pointSpacings(2)); %Number of elemens in dir 2
-        numElementsHeight=round(sampleHeight/pointSpacings(3)); %Number of elemens in dir 3
+        sampleWidth = x0(2)*2; %Width
+        sampleThickness = y0(2)*2; %Thickness
+        sampleHeight = x0(2)/4; %Height
+        pointSpacings = (meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
+        numElementsWidth = round(sampleWidth/pointSpacings(1))+1; %Number of elemens in dir 1
+        numElementsThickness = round(sampleThickness/pointSpacings(2))+1; %Number of elemens in dir 2
+        numElementsHeight = round(sampleHeight/pointSpacings(3))+1; %Number of elemens in dir 3
+
+        %Specifying load type
+        loadType = 'traction';
 
         %Material Properties
         E_youngs1=E; %Material Young's modulus
-        nu1=v; %Material Poisson's ratio
+        if v == 0.5
+            nu1=v - 0.001; %Material Poisson's ratio
+        elseif v ~= 0.5
+            nul=v;
+        end
 
         %FEA control settings
         numTimeSteps=15; %Number of time steps desired
@@ -198,7 +205,7 @@ elseif strcmpi(method,'FEM')
         V=meshStruct.nodes; %The nodes (vertices)
         Fb=meshStruct.facesBoundary; %The boundary faces
         Cb=meshStruct.boundaryMarker; %The "colors" or labels for the boundary faces
-        %elementMaterialIndices=ones(size(El,1),1); %Element material indices
+        elementMaterialIndices=ones(size(El,1),1); %Element material indices
 
         % //Prepare face nodes for BC application *********************************
         %Define supported node sets
@@ -220,10 +227,11 @@ elseif strcmpi(method,'FEM')
         %bcPrescribeList=unique(Fr(:)); %Node set part of selected face
 
         %Create spatially varying traction force
-        %force_X and y should be 512x512 arrays
-        C_traction_x = force_x(pointSpacings(1):pointSpacings(1):end,pointSpacings(1):pointSpacings(1):end);
-        C_traction_y = force_y(pointSpacings(2):pointSpacings(2):end,pointSpacings(2):pointSpacings(2):end);
-
+        %force_X and Y should be meshPts/Spacing by meshPts/Spacing arrays
+        [X,Y] = meshgrid(-x0(2)/2:pointSpacings(1):x0(2)/2);
+        C_traction_x = force_x(X,Y);
+        C_traction_y = force_y(X,Y);
+        
         % X=V(:,1);
         % C_pressure=mean(X(Fr),2);
         % C_pressure=C_pressure-min(C_pressure(:));
@@ -356,9 +364,14 @@ elseif strcmpi(method,'FEM')
         febioAnalysis.runMode='internal';%'internal';
         febioAnalysis.maxLogCheckTime=120; %Max log file checking time
         optionStruct.arrayParseMethod = 1;
+        
+        %Check and create output folders
+        if ~exist(folderName,'dir')
+            mkdir(folderName)
+        end
 
         %Export FEBio Structure
-        febioStruct2xml(febio_spec,febioFebFileName,optionStruct); %Exporting to file and domNode
+        [domNode] = febioStruct2xml(febio_spec,febioFebFileName,optionStruct); %Exporting to file and domNode
         %system(['gedit ',febioFebFileName,' &']);
 
         %Run Model
@@ -387,13 +400,16 @@ elseif strcmpi(method,'FEM')
         %Convert to NxN displacement map
         nodeDispMap_ux = reshape(topNode_ux,[],numElementsWidth+1);
         nodeDispMap_uy = reshape(topNode_uy,[],numElementsWidth+1);
-
-        %Interpolate disp map to meshPtsFwdSol size
-        [X,Y] = meshgrid(-meshPtsFwdSol/2:pointsSpacing(1):meshPtsFwdSol/2);
-        [Xq,Yq] = meshgrid(-meshPtsFwdSol/2:1:meshPtsFwdSol/2);
-
-        ux = interp2(X,Y,nodeDispMap_ux,Xq,Yq);
-        uy = interp2(X,Y,nodeDispMap_uy,Xq,Yq);
+        
+        %Define FEM Nodal Locations
+        [X,Y] = meshgrid((-sampleWidth/2-pointSpacings(1)/2):pointSpacings(1):(sampleWidth/2+pointSpacings(1)/2));
+        %Define interpolation locations using image coords
+        vx = linspace(x0(1),x0(2),meshPtsFwdSol);
+        vy = linspace(y0(1),y0(2),meshPtsFwdSol);
+        [x_grid,y_grid] = meshgrid(vx,vy);
+        %Interpolate disp map at TFM nodal locations
+        ux = interp2(X,Y,nodeDispMap_ux,x_grid,y_grid);
+        uy = interp2(X,Y,nodeDispMap_uy,x_grid,y_grid);
         end
         toc;    
         disp('Completed Non-linear FEM fwd solution.')
