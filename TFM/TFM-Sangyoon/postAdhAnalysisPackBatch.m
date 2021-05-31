@@ -79,6 +79,10 @@ disassemRate2Group = cell(numConditions,1);
 nucleatingNARatioGroup = cell(numConditions,1);
 disassemNARatioGroup = cell(numConditions,1);
 
+ampEmergingArrayGroup = cell(numConditions,1);
+ampFailingArrayGroup = cell(numConditions,1);
+ampMaturingArrayGroup = cell(numConditions,1);
+
 numG1Group = cell(numConditions,1);
 numG2Group = cell(numConditions,1);
 numG3Group = cell(numConditions,1);
@@ -168,6 +172,10 @@ for ii=1:numConditions
     meanDisassemRate=cell(N(ii),1);
     meanNucleatingNARatio=cell(N(ii),1);
     meanDisassemNARatio=cell(N(ii),1);
+    
+    ampMaturingArray=cell(N(ii),1);
+    ampFailingArray=cell(N(ii),1);
+    ampEmergingArray=cell(N(ii),1);
     
     numG1=NaN(N(ii),1);
     numG2=NaN(N(ii),1);
@@ -513,6 +521,16 @@ for ii=1:numConditions
                     assemRate2EachClass{pp}{k} = [];
                     disassemRate2EachClass{pp}{k} = [];                    
                 end
+                % Amp profile related
+                if pp==1 % this needs only once
+                    ampArrayPath=[initDataPath filesep 'ampArrays.mat'];
+                    if exist(ampArrayPath,'file')
+                        ampArrayStr=load(ampArrayPath);
+                        ampEmergingArray{k}=ampArrayStr.ampEmergingArray;
+                        ampFailingArray{k}=ampArrayStr.ampFailingArray;
+                        ampMaturingArray{k}=ampArrayStr.ampMaturingArray;
+                    end
+                end
             end
         end
     end
@@ -538,6 +556,10 @@ for ii=1:numConditions
     end
     nucleatingNARatioGroup{ii,1}=meanNucleatingNARatio;
     disassemNARatioGroup{ii,1}=meanDisassemNARatio;
+    
+    ampEmergingArrayGroup{ii,1} = ampEmergingArray;
+    ampFailingArrayGroup{ii,1} = ampFailingArray;
+    ampMaturingArrayGroup{ii,1} = ampMaturingArray;
     
     numG1Group{ii,1}=numG1;
     numG2Group{ii,1}=numG2;
@@ -1294,8 +1316,80 @@ if plotSuccess
     tableNucleatingNARatio=table(nucleatingNARatioGroup,'RowNames',nameList);
     writetable(tableNucleatingNARatio,[dataPath filesep 'nucleatingNARatio.csv'],'WriteRowNames',true)
 end
-%% Profile plot
-% fraction of each class
+%% Profile plot  - ampMature
+ampArrayAllMature = cellfun(@(x) cell2mat(x),ampMaturingArrayGroup,'unif',false);
+h1=figure; hold on
+colorList{1} = [255/255, 204/255, 103/255];
+colorList{2} = [181/255, 217/255, 148/255];
+colorList{3} = [20/255, 110/255, 255/255];
+colorList{4} = [255/255, 128/255, 255/255];
+
+colorMeanList{1} = [248/255, 152/255, 56/255];
+colorMeanList{2} = [13/255, 159/255, 73/255];
+colorMeanList{3} = [10/255, 60/255, 200/255];
+colorMeanList{4} = [180/255, 72/255, 180/255];
+
+nSampleFrames = size(ampArrayAllMature{1},2);
+t = (0:nSampleFrames-1)*curMovie.timeInterval_;
+
+
+for ii=1:numel(ampArrayAllMature)
+    plot(t,ampArrayAllMature{ii}','Color',colorList{ii})
+end
+% For mean
+for ii=1:numel(ampArrayAllMature)
+    curAmpAvg = nanmean(ampArrayAllMature{ii},1)';
+    pM(ii)=plot(t,curAmpAvg','Color',colorMeanList{ii},'LineWidth',2);
+end
+legend(pM,nameList')
+ylabel('Amplitude (a.u.)')
+xlabel('Time (sec)')
+title({'Amplitude timeseries for'; ...
+    ['first ' num2str(round(nSampleFrames*curMovie.timeInterval_/60)) ' min at maturing NAs']})
+hgsave(h1,[figPath filesep 'ampArrayMature'],'-v7.3')
+print(h1,[figPath filesep 'ampArrayMature'],'-dtiff')
+close(h1)
+%% Profile plot  - ampFail
+ampArrayAllFail = cellfun(@(x) cell2mat(x),ampFailingArrayGroup,'unif',false);
+h1=figure; hold on
+
+for ii=1:numel(ampArrayAllFail)
+    plot(t,ampArrayAllFail{ii}','Color',colorList{ii})
+end
+% For mean
+for ii=1:numel(ampArrayAllFail)
+    curAmpAvg = nanmean(ampArrayAllFail{ii},1)';
+    pM(ii)=plot(t,curAmpAvg','Color',colorMeanList{ii},'LineWidth',2);
+end
+legend(pM,nameList')
+ylabel('Amplitude (a.u.)')
+xlabel('Time (sec)')
+title({'Amplitude timeseries for'; ...
+    ['first ' num2str(round(nSampleFrames*curMovie.timeInterval_/60)) ' min at failing NAs']})
+hgsave(h1,[figPath filesep 'ampArrayFail'],'-v7.3')
+print(h1,[figPath filesep 'ampArrayFail'],'-dtiff')
+close(h1)
+%% Profile plot  - ampEmerg
+ampArrayAllEmerge = cellfun(@(x) cell2mat(x),ampEmergingArrayGroup,'unif',false);
+h1=figure; hold on
+
+for ii=1:numel(ampArrayAllEmerge)
+    plot(t,ampArrayAllEmerge{ii}','Color',colorList{ii})
+end
+% For mean
+for ii=1:numel(ampArrayAllEmerge)
+    curAmpAvg = nanmean(ampArrayAllEmerge{ii},1)';
+    pM(ii)=plot(t,curAmpAvg','Color',colorMeanList{ii},'LineWidth',2);
+end
+legend(pM,nameList')
+ylabel('Amplitude (a.u.)')
+xlabel('Time (sec)')
+title({'Amplitude timeseries for'; ...
+    ['first ' num2str(round(nSampleFrames*curMovie.timeInterval_/60)) ' min at all emerging NAs']})
+hgsave(h1,[figPath filesep 'ampArrayEmerge'],'-v7.3')
+print(h1,[figPath filesep 'ampArrayEmerge'],'-dtiff')
+close(h1)
+%% fraction of each class
 allNumGroup = cellfun(@(a,b,c,d,e,f,g,h,i) arrayfun(@(a2,b2,c2,d2,e2,f2,g2,h2,i2) ...
     a2+b2+c2+d2+e2+f2+g2+h2+i2,a,b,c,d,e,f,g,h,i),numG1Group,numG2Group,numG3Group,...
     numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group,'unif',false);

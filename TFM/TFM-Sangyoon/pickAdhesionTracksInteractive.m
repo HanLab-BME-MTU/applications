@@ -318,14 +318,14 @@ function pushInspectAdhesion(~,~)
         disp(['Currently labeled groups: ' num2str(iGroups)])
         disp(['Currently labeled IDs: ' num2str(IDs)])
         disp(['Just labeled ID: ' num2str((IDtoInspect))])
-        if trainerInitially
-            disp('Training the classifier ...')
-            tic
-            trainedClassifier = trainClassifierNA(T);
-        %     [~,allData] = extractFeatureNA(tracksNA);
-            allDataClass = predict(trainedClassifier,allData);
-            toc
-        end    
+%         if trainerInitially
+%             disp('Training the classifier ...')
+%             tic
+%             trainedClassifier = trainClassifierNA(T);
+%         %     [~,allData] = extractFeatureNA(tracksNA);
+%             allDataClass = predict(trainedClassifier,allData);
+%             toc
+%         end    
         try
             tracksNA(IDtoInspect) = curTrack;
         catch
@@ -342,11 +342,11 @@ function pushInspectAdhesion(~,~)
         subplot(3,1,3), plot(curTrack.distToEdge,'b.-'), title('Distance from edge (px)')
         ylabel('Distance from edge (px)')
         xlabel('Time (frame)')
-        if trainerInitially
+%         if trainerInitially
 %             print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
             savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
             savefig(h3,strcat(gPath,'/track',num2str(IDtoInspect),'Distance.fig'))
-        end
+%         end
 %         save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
         setappdata(hFig,'IDs',IDs);
         setappdata(hFig,'iGroups',iGroups);

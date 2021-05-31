@@ -1370,7 +1370,7 @@ end
     maturingAmpAvg = nanmean(ampMaturingArray,1)';
     failingAmpAvg = nanmean(ampFailingArray,1)';
     
-    figure;
+    h1=figure;
     hold on
     plot(t,ampFailingArray','Color',[255/255, 204/255, 103/255])
     plot(t,ampMaturingArray','Color',[181/255, 217/255, 148/255])
@@ -1378,6 +1378,7 @@ end
     plot(t,maturingAmpAvg','Color',[13/255, 159/255, 73/255],'LineWidth',2)
     
     hgsave(strcat(figPath,'/ampArrays'),'-v7.3'); 
+    close(h1)
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately
 %     tracksG1 = tracksNA(idGroup1);
