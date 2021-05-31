@@ -20,9 +20,12 @@ p=0;
 idx = false(numel(tracksNA),1);
 for k=1:numel(tracksNA)
     % look for tracks that had a state of 'BA' and become 'NA'
-    firstNAidx = find(strcmp(tracksNA(k).state,'NA'),1,'first');
-    firstFCidx = find(strcmp(tracksNA(k).state,'FC'),1,'first');
-    firstFAidx = find(strcmp(tracksNA(k).state,'FA'),1,'first');
+    firstNAidx = find((tracksNA(k).state==2),1,'first');
+    firstFCidx = find((tracksNA(k).state==3),1,'first');
+    firstFAidx = find((tracksNA(k).state==4),1,'first');
+%     firstNAidx = find(strcmp(tracksNA(k).state,'NA'),1,'first');
+%     firstFCidx = find(strcmp(tracksNA(k).state,'FC'),1,'first');
+%     firstFAidx = find(strcmp(tracksNA(k).state,'FA'),1,'first');
     % see if the state is 'BA' before 'NA' state
 %     if (~isempty(firstNAidx) && firstNAidx>1 && strcmp(tracksNA(k).state(firstNAidx-1),'BA')) %%|| (~isempty(firstNAidx) &&firstNAidx==1)
     if ~isempty(firstNAidx) && (isempty(firstFCidx) || firstNAidx<firstFCidx) && (isempty(firstFAidx) || firstNAidx<firstFAidx)
@@ -43,12 +46,13 @@ trNAonly = tracksNA(idx);
 indMature = false(numel(tracksNA),1);
 indFail = false(numel(tracksNA),1);
 p=0; q=0;
-
+lifeTimeNAfailing=[];
+lifeTimeNAmaturing=[];
 for k=1:numel(tracksNA)
     if tracksNA(k).emerging 
         % maturing NAs
-        if (any(strcmp(tracksNA(k).state(tracksNA(k).emergingFrame:end),'FC')) || ...
-                any(strcmp(tracksNA(k).state(tracksNA(k).emergingFrame:end),'FA'))) && ...
+        if (any((tracksNA(k).state(tracksNA(k).emergingFrame:end)==3)) || ...
+                any((tracksNA(k).state(tracksNA(k).emergingFrame:end)==4))) && ...
                 sum(tracksNA(k).presence)>8
             
             tracksNA(k).maturing = 1;

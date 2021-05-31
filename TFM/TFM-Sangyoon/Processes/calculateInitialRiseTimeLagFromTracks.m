@@ -1328,6 +1328,56 @@ end
     %     fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
     %     [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
     end
+    %% average profile for the first n frames
+    [tracksNA, idFailing,idMaturing] = ...
+        separateMatureAdhesionTracks(tracksNA);
+    tracksNAfailing = tracksNA(idFailing);
+    tracksNAmaturing = tracksNA(idMaturing);
+%     idMaturingExisting = arrayfun(@(x) isfield(x,'maturing'), tracksNA);
+%     idMaturing = arrayfun(@(x) x.maturing,tracksNA(idMaturingExisting));
+%     idFailing = arrayfun(@(x) ~x.maturing,tracksNA(idMaturingExisting));
+    idEmergingExisting = arrayfun(@(x) isfield(x,'emerging'),tracksNA);
+    idEmerging = arrayfun(@(x) x.emerging,tracksNA(idEmergingExisting));
+    
+    nSampleFrames = 25;
+    ampMaturingArray = NaN(sum(idMaturing),nSampleFrames);
+    ampFailingArray = NaN(sum(idFailing),nSampleFrames);
+    ampEmergingArray = NaN(sum(idEmerging),nSampleFrames);
+    
+%     tracksMatureExt = tracksNA(idMaturingExisting);
+    for k=1:numel(tracksNAmaturing)
+        curProfileMaturing = tracksNAmaturing(k).amp;
+        fmax = min(nSampleFrames, length(curProfileMaturing));
+        ampMaturingArray(k,1:fmax) = curProfileMaturing(1:fmax);
+    end
+    for k=1:numel(tracksNAfailing)
+        curProfileFailing = tracksNAfailing(k).amp;
+        fmax = min(nSampleFrames, length(curProfileFailing));
+        ampFailingArray(k,1:fmax) = curProfileFailing(1:fmax);
+    end
+    tracksEmegExt = tracksNA(idEmergingExisting);
+
+    pp=0;
+    for k=find(idEmerging)'
+        pp=pp+1;
+        curProfileEmerging = tracksEmegExt(k).amp;
+        fmax = min(nSampleFrames, length(curProfileEmerging));
+        ampEmergingArray(pp,1:fmax) = curProfileEmerging(1:fmax);
+    end
+    save([p.OutputDirectory filesep 'data' filesep 'ampArrays.mat'],'ampEmergingArray','ampFailingArray','ampMaturingArray','-v7.3')
+    
+    t = (0:nSampleFrames-1)*tInterval;
+    maturingAmpAvg = nanmean(ampMaturingArray,1)';
+    failingAmpAvg = nanmean(ampFailingArray,1)';
+    
+    figure;
+    hold on
+    plot(t,ampFailingArray','Color',[255/255, 204/255, 103/255])
+    plot(t,ampMaturingArray','Color',[181/255, 217/255, 148/255])
+    plot(t,failingAmpAvg','Color',[248/255, 152/255, 56/255],'LineWidth',2)
+    plot(t,maturingAmpAvg','Color',[13/255, 159/255, 73/255],'LineWidth',2)
+    
+    hgsave(strcat(figPath,'/ampArrays'),'-v7.3'); 
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately
 %     tracksG1 = tracksNA(idGroup1);
