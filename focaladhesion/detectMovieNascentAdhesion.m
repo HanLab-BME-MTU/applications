@@ -170,6 +170,8 @@ for j=1:movieData.nFrames_
             mask = maskProc.loadChannelOutput(iAdhChan,j); % 1 is CCP channel
         elseif nChans>1 && ~isempty(iTFM) && ismember(iChanTFM, find(maskProc.checkChannelOutput))
             mask = maskProc.loadChannelOutput(iAdhChan,j); % 1 is CCP channel
+        else
+            mask = maskProc.loadChannelOutput(iAdhChan,j); % 1 is CCP channel
         end
     catch
         mask = true(movieData.imSize_);

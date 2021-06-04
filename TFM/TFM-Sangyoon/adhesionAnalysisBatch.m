@@ -100,8 +100,8 @@ for ii=1:numConditions
             outputFilePath = [curML.movies_{k}.outputDirectory_ filesep 'Adhesion Quantification'];
             curDataPath= [outputFilePath filesep 'data'];
             forceAll(k) = load([curDataPath filesep 'forcePerAdhesionType.mat'],'forceFA', 'forceFC', 'forceNA', 'forceBGinCell', 'forceBGoutCell');
-        else
-            forceAll(k)=[];
+%         else
+%             forceAll(k)=[];
         end
         % Reading the other channels's amplitudes
         nChan = numel(curML.movies_{k}.channels_);
@@ -124,9 +124,15 @@ for ii=1:numConditions
     FAdensityInside{ii}=curFAdensityInside;
     NAstructGroup{ii}=NAstruct;
     FAstructGroup{ii}=FAstruct;
-    forceAllGroup{ii}=forceAll;
-    ampTheOtherAllGroup{ii}=ampTheOtherAll;
-    clear NAstruct FAstruct ampTheOtherAll forceAll
+    if exist('forceAll','var')
+        forceAllGroup{ii}=forceAll;
+        clear forceAll
+    end
+    if exist('forceAll','var')
+        ampTheOtherAllGroup{ii}=ampTheOtherAll;
+        clear ampTheOtherAll
+    end
+    clear NAstruct FAstruct 
 end
 %% convert
 pixSize = MLAll(1).getMovie(1).pixelSize_; % nm/pix
@@ -303,7 +309,7 @@ end
 h4=figure; 
 barPlotCellArray(cellArea,nameList)
 title('Cell area')
-ylabel('Cell area (ratio)')
+ylabel('Cell area (\mum^2)')
 hgexport(h4,strcat(figPath,'/CellArea'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/CellArea'),'-v7.3')
 
@@ -339,19 +345,6 @@ hgsave(h2,strcat(figPath,'/NAquantity'),'-v7.3')
 
 tableNAquantity=table(numNA,'RowNames',nameList);
 writetable(tableNAquantity,strcat(dataPath,'/NAquantity.csv'))
-%% Plotting the other channel amplitudes
-if isfield(FAstructGroup{1}(1),'ampTheOther')
-    ampTheOther = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOther, x','unif',false)'),FAstructGroup','unif',false);
-    h4=figure; 
-    boxPlotCellArray(ampTheOther,nameList',1,0,1)
-    title('Amplitude of the other channel')
-    ylabel('Fluorescence amplitude (a.u.)')
-    hgexport(h4,strcat(figPath,'/ampTheOther'),hgexport('factorystyle'),'Format','eps')
-    hgsave(h4,strcat(figPath,'/ampTheOther'),'-v7.3')
-
-    tableAmpTheOther=table(ampTheOther','RowNames',nameList);
-    writetable(tableAmpTheOther,strcat(dataPath,'/ampTheOther.csv'))
-end
 %% Adhesion eccentricity
 eccCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ecc, x,'unif',false)'),FAstructGroup','unif',false);
 h4=figure; 
@@ -502,6 +495,19 @@ if isfield(FAstructGroup{1}(1),'ampTheOther')
     ylabel('The amplitude (a.u.)')
     hgexport(h4,strcat(figPath,'/ampTheOtherNA'),hgexport('factorystyle'),'Format','eps')
     hgsave(h4,strcat(figPath,'/ampTheOtherNA'))
+end
+%% Plotting the other channel amplitudes
+if isfield(FAstructGroup{1}(1),'ampTheOther')
+    ampTheOther = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOther, x','unif',false)'),FAstructGroup','unif',false);
+    h4=figure; 
+    boxPlotCellArray(ampTheOther,nameList',1,0,1)
+    title('Amplitude of the other channel')
+    ylabel('Fluorescence amplitude (a.u.)')
+    hgexport(h4,strcat(figPath,'/ampTheOther'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h4,strcat(figPath,'/ampTheOther'),'-v7.3')
+
+    tableAmpTheOther=table(ampTheOther','RowNames',nameList);
+    writetable(tableAmpTheOther,strcat(dataPath,'/ampTheOther.csv'))
 end
 %% the name for all together
 nameListAdh={'NA','FC','FA'};
