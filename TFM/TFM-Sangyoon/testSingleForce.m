@@ -1,15 +1,21 @@
-function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av,varargin)
+function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,...
+    meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh,...
+    bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,...
+                                        bead_x, bead_y, Av,varargin)
 % Input check
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('solMethodBEM','QR', @ischar);
 ip.addParameter('regParam',1e-6,@isnumeric);
 ip.addParameter('addNoise',false,@islogical);
+ip.addParameter('whiteNoise',0.05,@isscalar);
+ip.addParameter('nPoints',7000,@isscalar);
 ip.parse(varargin{:});
 solMethodBEM = ip.Results.solMethodBEM;    
 regParam = ip.Results.regParam;    
 addNoise = ip.Results.addNoise;    
-
+whiteNoise = ip.Results.whiteNoise;    
+nPoints = ip.Results.nPoints;
 %% single force experiment
 % input parameters to be replaced with function inputs
 % f=2000; %Pa
@@ -29,7 +35,6 @@ meshPtsFwdSol=2^8;
 xmax=meshPtsFwdSol;
 ymax=meshPtsFwdSol;
 
-nPoints = 7000;
 % bead_r = 40; % nm
 % pixSize = 72e-9; % nm/pix 90x
 % NA = 1.49; %TIRF
@@ -111,7 +116,7 @@ beadimg = simGaussianBeads(xmax,ymax, sigma, ...
 % figure, imshow(refimg,[])
 % figure, imshow(beadimg,[])
 %% Noise addition (5%)
-beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
+beadimg = beadimg+whiteNoise*rand(ymax,xmax)*max(beadimg(:));
 % %% Noise addition (10%)
 % beadimg = beadimg+0.10*rand(ymax,xmax)*max(beadimg(:));
 
@@ -200,7 +205,8 @@ params.solMethodBEM = solMethodBEM;
 params.useLcurve = false;
 % params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
 % params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
-params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
+% params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
+params.basisClassTblPath = [];
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
 
