@@ -10,12 +10,14 @@ ip.addParameter('regParam',1e-6,@isnumeric);
 ip.addParameter('addNoise',false,@islogical);
 ip.addParameter('whiteNoise',0.05,@isscalar);
 ip.addParameter('nPoints',7000,@isscalar);
+ip.addParameter('pathBasisClassTbl',[],@(x) isempty(x) || ischar(x));
 ip.parse(varargin{:});
 solMethodBEM = ip.Results.solMethodBEM;    
 regParam = ip.Results.regParam;    
 addNoise = ip.Results.addNoise;    
 whiteNoise = ip.Results.whiteNoise;    
 nPoints = ip.Results.nPoints;
+pathBasisClassTbl = ip.Results.pathBasisClassTbl;
 %% single force experiment
 % input parameters to be replaced with function inputs
 % f=2000; %Pa
@@ -206,7 +208,7 @@ params.useLcurve = false;
 % params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
 % params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
 % params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
-params.basisClassTblPath = [];
+params.basisClassTblPath = pathBasisClassTbl;
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
 

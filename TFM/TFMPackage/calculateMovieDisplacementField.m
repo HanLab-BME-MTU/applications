@@ -199,23 +199,25 @@ for j= firstFrame:nFrames
             disp('Determining PSF sigma from reference frame...')
             if ~debuggingMode
                 % psfSigma = getGaussianSmallestPSFsigmaFromData(refFrame,'Display',false);
-                psfSigma=NaN;
-                if isnan(psfSigma) || psfSigma>movieData.channels_(p.ChannelIndex(1)).psfSigma_*3 
-                    if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
-                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*2; %*2 scale up for widefield
-                    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
-                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-                    elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
-                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*4/7; %*3/7 scale down for TIRF finer detection SH012913
-                    else
-                        disp('image type should be chosen among Widefield, confocal and TIRF! Assuming TIRF for now...');
-                        psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*4/7; %*3/7 scale down for TIRF finer detection SH012913
-                    end
-                end
+%                 psfSigma=NaN;
+%                 if isnan(psfSigma) || psfSigma>movieData.channels_(p.ChannelIndex(1)).psfSigma_*3 
+%                     if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
+%                         psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*2; %*2 scale up for widefield
+%                     elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+%                         psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+%                     elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+%                         psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*4/7; %*3/7 scale down for TIRF finer detection SH012913
+%                     else
+%                         disp('image type should be chosen among Widefield, confocal and TIRF! Assuming TIRF for now...');
+%                         psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_*4/7; %*3/7 scale down for TIRF finer detection SH012913
+%                     end
+%                 end
+                psfSigma = movieData.channels_(p.ChannelIndex(1)).psfSigma_;
                 disp(['Determined sigma: ' num2str(psfSigma)])
 
                 disp('Detecting beads in the reference frame...')
-                pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
+                pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,...
+                    'FitMixtures',true, 'MaxMixtures', 3);
                 assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
                 % filtering out points in saturated image based on pstruct.c
                 [N,edges]= histcounts(pstruct.c);
@@ -278,7 +280,7 @@ for j= firstFrame:nFrames
                 %     avgBgd = mean(pstruct.c);
                 %     thresInten = avgBgd+0.02*avgAmp;
     %                 thresInten = quantile(pstruct.c,0.25);
-                    thresInten = quantile(pstruct.c,0.5); % try to pick up bright-enough spots
+                    thresInten = quantile(pstruct.c+pstruct.A,0.5); % try to pick up bright-enough spots
                     maxNumNotDetected = 20; % the number of maximum trial without detecting possible point
                     numNotDetected = 0;
                     numPrevBeads = size(beads,1);
@@ -291,7 +293,7 @@ for j= firstFrame:nFrames
                         y_new = ymin + (ymax-ymin)*rand(10000,1);
                         [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
                         inten_new = arrayfun(@(x,y) refFrameFiltered(round(y),round(x)),x_new,y_new);
-                        idWorthAdding = distToPoints>avg_beads_distance & inten_new>thresInten;
+                        idWorthAdding = distToPoints>avg_beads_distance/3 & inten_new>thresInten;
                         if sum(idWorthAdding)>1
                             beads = [beads; [x_new(idWorthAdding), y_new(idWorthAdding)]];
                             numNotDetected = 0;
