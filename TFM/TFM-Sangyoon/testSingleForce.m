@@ -11,6 +11,8 @@ ip.addParameter('addNoise',false,@islogical);
 ip.addParameter('whiteNoise',0.05,@isscalar);
 ip.addParameter('nPoints',7000,@isscalar);
 ip.addParameter('pathBasisClassTbl',[],@(x) isempty(x) || ischar(x));
+ip.addParameter('E',8000,@isscalar);
+
 ip.parse(varargin{:});
 solMethodBEM = ip.Results.solMethodBEM;    
 regParam = ip.Results.regParam;    
@@ -18,6 +20,8 @@ addNoise = ip.Results.addNoise;
 whiteNoise = ip.Results.whiteNoise;    
 nPoints = ip.Results.nPoints;
 pathBasisClassTbl = ip.Results.pathBasisClassTbl;
+E = ip.Results.E; % in Pa
+
 %% single force experiment
 % input parameters to be replaced with function inputs
 % f=2000; %Pa
@@ -61,7 +65,7 @@ refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
 % %% Noise addition (10%)
 % refimg = refimg+0.10*rand(ymax,xmax)*max(refimg(:));
 %% Now displacement field from given force
-E=8000;  %Young's modulus, unit: Pa
+% E=8000;  %Young's modulus, unit: Pa
 forceType = 'groupForce';
 
 gridSpacing = 1;
@@ -201,7 +205,7 @@ MD.getPackage(iPack).getProcess(3).run();
 MD.getPackage(iPack).createDefaultProcess(4)
 params = MD.getPackage(iPack).getProcess(4).funParams_;
 
-params.YoungModulus = 8000;
+params.YoungModulus = E;
 params.regParam = regParam;
 params.solMethodBEM = solMethodBEM;
 params.useLcurve = false;

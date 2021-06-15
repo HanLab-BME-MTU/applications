@@ -123,21 +123,23 @@ else
         end
         beads = beads(valid, :);
         % take care of discarded beads
-        notSaturated=true;
-        maxNumTry = 100; % the number of maximum trial without detecting possible point
-        numTried = 0;
-        while notSaturated
-            x_new = nx*rand()+0.5;
-            y_new = ny*rand()+0.5;
-            [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
-            if distToPoints>r_pix 
-                beads = [beads; x_new, y_new];
-                numTried = 0;
-            else
-                numTried=numTried+1;
-            end
-            if numTried>maxNumTry || length(beads)>=length(xv)
-                notSaturated = false; % basically saturated or used up input number
+        if length(valid)>sum(valid)
+            notSaturated=true;
+            maxNumTry = 100; % the number of maximum trial without detecting possible point
+            numTried = 0;
+            while notSaturated
+                x_new = nx*rand()+0.5;
+                y_new = ny*rand()+0.5;
+                [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
+                if distToPoints>r_pix 
+                    beads = [beads; x_new, y_new];
+                    numTried = 0;
+                else
+                    numTried=numTried+1;
+                end
+                if numTried>maxNumTry || length(beads)>=length(xv)
+                    notSaturated = false; % basically saturated or used up input number
+                end
             end
         end
         

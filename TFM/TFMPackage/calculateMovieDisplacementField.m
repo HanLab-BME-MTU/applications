@@ -324,9 +324,9 @@ for j= firstFrame:nFrames
                 else
                     erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/4);
                 end            
-                beadsMask=bwmorph(beadsMask,'erode',erosionDist);
+                beadsMask2=beadsMask & bwmorph(true(size(refFrame)),'erode',erosionDist);
                 %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
-                indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
+                indx=beadsMask2(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
                 localbeads = beads(indx,:);
                 currentBeads = localbeads; %This will keep updated
                 cumulativeV_forV=zeros(size(localbeads));
