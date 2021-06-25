@@ -9,7 +9,7 @@ pixSizeUm = pixSize/1000;
 d = 4; %pix (which means ~400 nm)
 noiseLevels = 0:0.05:0.2;
 nNL = length(noiseLevels);
-nExp = 3;
+nExp = 10;
 E=2000; %Pa
 
 d_err_Adh = zeros(nNB,nNL,nExp);
@@ -32,6 +32,9 @@ B2Bspacing = 1./beadDensity.^2;
 % kk=0;
 %% simulation for numBeads and noiseLevel
 pathBasisClassTbl='/storage/network/TFM_Development/TFM2D/TFM_basisClass/basisClass2kPa9pix.mat';
+% pathBasisClassTbl='/storage/network/TFM_Development/TFM2D/TFM_basisClass/basisClass2kPa9pix.mat';
+% pathBasisClassTbl='$PROJECT/TFM/TFM_basisClass/basisClass2kPa9pix.mat';
+
 for epm=1:nExp
     p=0;
     ii=0;
@@ -41,7 +44,8 @@ for epm=1:nExp
         for curWN = noiseLevels
             jj=jj+1;
             p=p+1;
-            dataPath=['/storage/network/TFM_Development/TFM2D/BeadDensityRequirement/2kPaSimulation/f' num2str(round(f)) ...
+%             dataPath=['/storage/network/TFM_Development/TFM2D/BeadDensityRequirement/2kPaSimulation/f' num2str(round(f)) ...
+            dataPath=['$PROJECT/TFM/TFMBeadDensity/2kPaSimulation/f' num2str(round(f)) ...
                 'd' num2str(d) 'nB' num2str(nB) 'noise' num2str(curWN) 'exp' num2str(epm)];
 
             if jj==1
@@ -71,7 +75,9 @@ for jj=1:nNL
     h(jj) = plot(beadDensity,mean(forceDetec(:,jj,:),3),'LineWidth',2,'Color',myCs(jj,:));
 end
 legend(h,'0 %','5 %','10%','15%','20%')
-savefig('/storage/network/TFM_Development/TFM2D/BeadDensityRequirement/2kPaSimulation/beadDensityVsForceDetec.fig')
+savefig('$PROJECT/TFM/TFMBeadDensity/2kPaSimulation/beadDensityVsForceDetec.fig')
+% savefig('/storage/network/TFM_Development/TFM2D/BeadDensityRequirement/2kPaSimulation/beadDensityVsForceDetec.fig')
 %% save
-dataPath='/storage/network/TFM_Development/TFM2D/BeadDensityRequirement/2kPaSimulation/allData.mat';
+% dataPath='/storage/network/TFM_Development/TFM2D/BeadDensityRequirement/2kPaSimulation/allData.mat';
+dataPath='$PROJECT/TFM/TFMBeadDensity/2kPaSimulation/allData.mat';
 save(dataPath)
