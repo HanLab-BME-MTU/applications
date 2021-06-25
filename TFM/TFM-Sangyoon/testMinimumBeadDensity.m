@@ -32,7 +32,7 @@ B2Bspacing = 1./beadDensity.^2;
 % kk=0;
 %% simulation for numBeads and noiseLevel
 pathBasisClassTbl='/storage/network/TFM_Development/TFM2D/TFM_basisClass/basisClass2kPa9pix.mat';
-for epm=3:nExp
+for epm=1:nExp
     p=0;
     ii=0;
     for nB=numBeads
