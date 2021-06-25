@@ -302,6 +302,15 @@ end
 % place the regular grid centered to the orignal bounds. Thereby make sure 
 % that the edges have been eroded to a certain extend. This is performed by
 % the following function.
+
+% But if displacement is calculated from upscaled images (for
+% super-resolution), we need to downscale it again for force calculation. 
+magSR = 1; % This should be entered from the setting later.
+for ii=1:nFrames
+    displField(ii).pos=displField(ii).pos/magSR;
+    displField(ii).vec=displField(ii).vec/magSR;
+end
+
 if ~p.highRes
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,0.9,0); % we have to lower grid spacing because there are some redundant or aggregated displ vectors when additional non-loc-max beads were used for tracking SH170311
 else

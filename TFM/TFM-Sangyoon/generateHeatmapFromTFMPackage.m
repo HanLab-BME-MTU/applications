@@ -119,6 +119,7 @@ if ~isempty(iSDCProc)
     T = s.T;
 else
     iChan = 2;
+    iBeadChan=1;
 end
 
 iDisplFieldCalProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
@@ -239,7 +240,11 @@ if ~isempty(iMask)
     end
 else
     % if there was no cell mask, just use the entire pixel as a mask
-    firstBeadImg=SDCProc.loadChannelOutput(iBeadChan,1);
+    if ~isempty(iSDCProc)
+        firstBeadImg=SDCProc.loadChannelOutput(iBeadChan,1);
+    else
+        firstBeadImg=movieData.channels_(iBeadChan).loadImage(1);
+    end
     bwPI4 = true(size(firstBeadImg,1),size(firstBeadImg,2));
 end
 strainEnergy = zeros(nFrames,1);
