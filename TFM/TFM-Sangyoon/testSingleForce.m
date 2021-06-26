@@ -56,8 +56,14 @@ if ~isempty(bead_x)
 else
 %     [refimg,bead_x, bead_y, ~, Av] = simGaussianSpots(xmax,ymax, sigma, ...
 %         'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
+    curA = zeros(1,nPoints);
+    kon=100; koff=50;
+    nDye=650; dyeAmp=1/nDye;
+    for pp=1:nPoints
+        curA(1,pp) = dyeAmp * sum(rand(1,nDye)<kon/(kon+koff));
+    end
     [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
-        'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
+        'npoints', nPoints, 'Border', 'truncated','A',curA);
 end
 nPoints = length(bead_x);
 
