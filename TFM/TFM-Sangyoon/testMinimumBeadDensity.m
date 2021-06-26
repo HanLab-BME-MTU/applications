@@ -288,4 +288,16 @@ else
     forceDetec = max(forceFieldMag)/max(forceFieldBgdMag(1:length(forceFieldMag)));
 end
 
-
+%% force detectability plot
+forceDetecCell{1}=[0.31 .42 .27 .21 .25 .33 .18 .38 .31];
+forceDetecCell{2} = [ 4.24 3.88 2.89 3.41 4.05 3.75 3.59 3.22];
+nameList={'No SR', 'LiveSRRF'};
+figure, boxPlotCellArray(forceDetecCell,nameList,1,0,true)
+ylabel('Force detectability, \psi (1)')
+%% peak force ratio plot
+pFRCell{1}=[0.03 .042 .027 .021 .025 .033 .018 .038 .031];
+pFRCell{2} = [0.07 0.08 0.12 0.04 0.05 0.075 0.81];
+figure, boxPlotCellArray(pFRCell,nameList,1,0,true)
+ylabel('Peak force ratio (1)')
+%% save everything
+save('allData.mat')
