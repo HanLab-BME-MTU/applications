@@ -41,12 +41,13 @@ meshPtsFwdSol=2^8;
 xmax=meshPtsFwdSol;
 ymax=meshPtsFwdSol;
 
-% bead_r = 40; % nm
-% pixSize = 72e-9; % nm/pix 90x
-% NA = 1.49; %TIRF
-% lambda = 665e-9;
-% M = 1; %1 because I use alreay magnified pixSize.
-sigma = 1.68; % after getGaussianPSFsigma(NA,M,pixSize,lambda);
+bead_r = 40; % nm
+pixSize = 6.5e-6; %m/pix     %72e-9; % nm/pix 90x
+NA = 1.49; %TIRF
+lambda = 665e-9;
+M = 60; %60 %1 because I use alreay magnified pixSize.
+sigma = getGaussianPSFsigma(NA,M,pixSize,lambda); %1.68; % after 
+
 if ~isempty(bead_x)
 %     refimg = simGaussianSpots(xmax,ymax,sigma, ...
 %         'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
@@ -154,7 +155,7 @@ MD.setFilename('movieData.mat');
 
 % Set some additional movie properties
 MD.numAperture_=1.49;
-MD.pixelSize_=108;
+MD.pixelSize_=pixSize/M*1e9; %nm/pix
 MD.camBitdepth_=16;
 MD.timeInterval_ = 5;
 MD.notes_=['Created for single force test purposes with f=' num2str(f) ' and d=' num2str(d)]; 
@@ -182,7 +183,9 @@ params = MD.getPackage(iPack).getProcess(2).funParams_;
 refFullPath = [refPath filesep 'img1ref.tif'];
 
 params.referenceFramePath = refFullPath;
-if f<1000
+if f<300
+    params.maxFlowSpeed = 5;
+elseif f<1000
     params.maxFlowSpeed = 10;
 elseif f<2000
     params.maxFlowSpeed = 20;
@@ -206,6 +209,7 @@ MD.getPackage(iPack).createDefaultProcess(4)
 params = MD.getPackage(iPack).getProcess(4).funParams_;
 
 params.YoungModulus = E;
+params.method = 'FTTC';
 params.regParam = regParam;
 params.solMethodBEM = solMethodBEM;
 params.useLcurve = false;
