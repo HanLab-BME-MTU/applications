@@ -174,8 +174,8 @@ MD.sanityCheck;
 MD.save;
 
 %% Load the movie
-clear MD
-MD=MovieData.load(fullfile(analysisFolder,'movieData.mat'));
+% clear MD
+% MD=MovieData.load(fullfile(analysisFolder,'movieData.mat'));
 
 %% Create TFM package and retrieve package index
 MD.addPackage(TFMPackage(MD));
