@@ -5,15 +5,18 @@ function [IDs, iGroups, iPrevGroups, tracksNA]=pickAdhesionTracksInteractive(tra
 ip =inputParser;
 ip.addRequired('tracksNA',@isstruct)
 ip.addOptional('imgMap',[],@(x) isnumeric(x)); % This is the master channle index.
-ip.addParamValue('numChan',2,@isscalar); % selcted track ids
-ip.addParamValue('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
-ip.addParamValue('trainedData',[],@istable); % trained data
-ip.addParamValue('iChan',2,@isscalar); % This is the master channle index.
-ip.addParamValue('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the slave channle index.
-ip.addParamValue('tMap',[],@(x) (isnumeric(x))); % This is the master channle index.
-ip.addParamValue('imgMap2',[],@(x) (isnumeric(x))); % This is the master channle index.
-ip.addParamValue('idSelected',[],@(x) (isstruct(x) | iscell(x))); % This is the master channle index.
-
+ip.addParameter('numChan',2,@isscalar); % selcted track ids
+ip.addParameter('movieData',[],@(x) isa(x,'MovieData')); % selcted track ids
+ip.addParameter('trainedData',[],@istable); % trained data
+ip.addParameter('iChan',2,@isscalar); % This is the master channle index.
+ip.addParameter('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the slave channle index.
+ip.addParameter('tMap',[],@(x) (isnumeric(x))); % This is the master channle index.
+ip.addParameter('imgMap2',[],@(x) (isnumeric(x))); % This is the master channle index.
+ip.addParameter('idSelected',[],@(x) (isstruct(x) | iscell(x))); % This is the master channle index.
+ip.addParameter('drawingOnly',false, @islogical); %This is used only when you want to show the movie with tracks overlaid
+ip.addParameter('Property','earlyAmpSlope', @ischar); %0 for all classes and pick manually
+ip.addParameter('PropRange',[-1 1], @isnumeric);
+ip.addParameter('Colormap',jet, @(x) isnumeric(x) && size(x,2)==3); 
 ip.parse(tracksNA, imgMap, varargin{:});
 % pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
@@ -26,6 +29,10 @@ imgMap=ip.Results.imgMap;
 tMap=ip.Results.tMap;
 imgMap2=ip.Results.imgMap2;
 idSelected=ip.Results.idSelected;
+drawingOnly=ip.Results.drawingOnly;
+Property=ip.Results.Property;
+PropRange=ip.Results.PropRange;
+Colormap=ip.Results.Colormap;
 %% Load processed data
 % movieData to find out pixel size
 if isempty(MD)
@@ -83,7 +90,7 @@ if isempty(imgMap) %|| isempty(tMap)
         end
     end
 end
-outputPath = [MD.getPath filesep 'FAPackage' filesep 'trackAnalysis'];
+outputPath = [MD.getPath filesep 'FocalAdhesionPackage' filesep 'trackAnalysis'];
 if ~exist(outputPath,'dir')
     mkdir(outputPath);
 end
@@ -93,6 +100,7 @@ endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA)));
 pixSize = MD.pixelSize_; % nm/pixel
 tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
+scaleBarLargeView = 5; %micron
 
 trainerInitially = false;
 allDataClass = [];
@@ -115,35 +123,51 @@ handles.SliderFrame = uicontrol('Style','slider','Units','normalized','Position'
 handles.SliderxListener = handles.SliderFrame.addlistener('Value','PreSet',@(s,e) XListenerCallBack);
 % handles.SliderxListener = addlistener(handles.SliderFrame,'Value','ContinuousValueChange',@(s,e) XListenerCallBack);
 
-% handles.Text1 = uicontrol('Style','Text','Position',[180 420 60 30],'String','Current frame');
+    % handles.Text1 = uicontrol('Style','Text','Position',[180 420 60 30],'String','Current frame');
 handles.Edit1 = uicontrol('Style','Edit','Units','normalized','Position',[0.5 0 0.05 0.05],'String',num2str(startFrame));
-handles.Text2 = uicontrol('Style','Text','Units','normalized','Position',[0.55 0 0.15 0.05],'String',{'Adhesion ID ';'to inspect'});
-handles.Edit2 = uicontrol('Style','Edit','Units','normalized','Position',[0.7 0 0.06 0.05],'String',num2str(startFrame));
-handles.PushB2 = uicontrol('Style','pushbutton','Units','normalized','Position',[0.76 0 0.10 0.05],'String','Inspect','Callback',@pushInspectAdhesion);
-handles.PushB3 = uicontrol('Style','pushbutton','Units','normalized','Position',[0.86 0 0.14 0.05],'String','RateConst','Callback',@pushRateConstant);
-
+if ~drawingOnly
+    handles.Text2 = uicontrol('Style','Text','Units','normalized','Position',[0.55 0 0.15 0.05],'String',{'Adhesion ID ';'to inspect'});
+    handles.Edit2 = uicontrol('Style','Edit','Units','normalized','Position',[0.7 0 0.06 0.05],'String',num2str(startFrame));
+    handles.PushB2 = uicontrol('Style','pushbutton','Units','normalized','Position',[0.76 0 0.10 0.05],'String','Inspect','Callback',@pushInspectAdhesion);
+    handles.PushB3 = uicontrol('Style','pushbutton','Units','normalized','Position',[0.86 0 0.14 0.05],'String','RateConst','Callback',@pushRateConstant);
+end
 %// Use setappdata to store the image stack and in callbacks, use getappdata to retrieve it and use it. Check the docs for the calling syntax.
 setappdata(hFig,'MyMatrix',imgMap); %// You could use %//setappdata(0,'MyMatrix',MyMatrix) to store in the base workspace. 
 setappdata(hFig,'tracksNA',tracksNA); 
 %// Display 1st frame
 imshow(imgMap(:,:,startFrame),[]), hold on
-if ~isempty(idSelected)
-    htrackG = drawSelectedTracks(tracksNA,idSelected,1,gca);
-elseif trainerInitially
-    drawClassifiedTracks(allDataClass,tracksNA,1,gca,true);
+% Scale bar
+hL1 = line([10 10+scaleBarLargeView*1000/pixSize],[10 10],'LineWidth',2,'Color',[1,1,1]);
+hT4 = text(10,20,[num2str(scaleBarLargeView) ' \mum']); hT4.Color='w'; hT4.FontSize=5;
+if drawingOnly
+    drawTracksColormap(tracksNA,1,Property,PropRange,Colormap);
+    % colorbar
+    handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
+    lineBox = repmat(PropRange(1):PropRange(2),20,1);
+    imshow(lineBox,PropRange);
+    colormap(handles.axes3, jet)
+    hT1 = text(-0.1,1,num2str(PropRange(1))); hT1.Units='normalized'; hT1.Position=[-0.1 2 0]; hT1.Color='w'; hT1.FontSize=6;
+    hT2 = text(1.4,1,num2str(PropRange(2))); hT2.Units='normalized'; hT2.Position=[0.9 2 0]; hT2.Color='w'; hT2.FontSize=6;
+    hT3 = text(50,60,Property); hT3.Units='normalized'; hT3.Position=[0.15 3 0];     hT3.Color='w'; hT3.FontSize=6;
 else
-%     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
-%     idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{startFrame}),tracksNA(idAdhLogic));
-%     idAdh = find(idAdhLogic);
-%     idAdhCur = idAdh(idAdhCur);
-%     arrayfun(@(x) plot(x.adhBoundary{startFrame}(:,1),x.adhBoundary{startFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
-    plot(arrayfun(@(x) x.xCoord(startFrame),tracksNA),arrayfun(@(x) x.yCoord(startFrame),tracksNA),'ro')
-    xmat = cell2mat(arrayfun(@(x) x.xCoord(1:startFrame),tracksNA,'UniformOutput',false));
-    ymat = cell2mat(arrayfun(@(x) x.yCoord(1:startFrame),tracksNA,'UniformOutput',false));
-    if size(xmat,2)==1
-        plot(xmat',ymat','r.')
+    if ~isempty(idSelected)
+        htrackG = drawSelectedTracks(tracksNA,idSelected,1,gca);
+    elseif trainerInitially
+        drawClassifiedTracks(allDataClass,tracksNA,1,gca,true);
     else
-        plot(xmat',ymat','r')
+    %     idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+    %     idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{startFrame}),tracksNA(idAdhLogic));
+    %     idAdh = find(idAdhLogic);
+    %     idAdhCur = idAdh(idAdhCur);
+    %     arrayfun(@(x) plot(x.adhBoundary{startFrame}(:,1),x.adhBoundary{startFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
+        plot(arrayfun(@(x) x.xCoord(startFrame),tracksNA),arrayfun(@(x) x.yCoord(startFrame),tracksNA),'ro')
+        xmat = cell2mat(arrayfun(@(x) x.xCoord(1:startFrame),tracksNA,'UniformOutput',false));
+        ymat = cell2mat(arrayfun(@(x) x.yCoord(1:startFrame),tracksNA,'UniformOutput',false));
+        if size(xmat,2)==1
+            plot(xmat',ymat','r.')
+        else
+            plot(xmat',ymat','r')
+        end
     end
 end
 if ~isempty(idSelected)
@@ -202,9 +226,7 @@ function pushInspectAdhesion(~,~)
         end
         curTrack = tracksNA(IDtoInspect);
 
-        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);
-
-        % Display the features of the curTrack
+        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);        
         
         % Display the threshold of the currently assigned class
         
@@ -320,14 +342,14 @@ function pushInspectAdhesion(~,~)
         disp(['Currently labeled groups: ' num2str(iGroups)])
         disp(['Currently labeled IDs: ' num2str(IDs)])
         disp(['Just labeled ID: ' num2str((IDtoInspect))])
-        if trainerInitially
-            disp('Training the classifier ...')
-            tic
-            trainedClassifier = trainClassifierNA(T);
-        %     [~,allData] = extractFeatureNA(tracksNA);
-            allDataClass = predict(trainedClassifier,allData);
-            toc
-        end    
+%         if trainerInitially
+%             disp('Training the classifier ...')
+%             tic
+%             trainedClassifier = trainClassifierNA(T);
+%         %     [~,allData] = extractFeatureNA(tracksNA);
+%             allDataClass = predict(trainedClassifier,allData);
+%             toc
+%         end    
         try
             tracksNA(IDtoInspect) = curTrack;
         catch
@@ -335,14 +357,24 @@ function pushInspectAdhesion(~,~)
             tracksNA(IDtoInspect).endingFrameExtraExtra = [];
             tracksNA(IDtoInspect) = curTrack;
         end
+        % Display the features of the curTrack
+        h3=figure; h3.Position(3:4)=[500 900]; % ax=axes(h3);
+        subplot(3,1,1), plot(curTrack.edgeAdvanceDist,'k.-'), title('Edge advance dist (px)')
+        ylabel('Movement (px)')
+        subplot(3,1,2), plot(curTrack.advanceDist,'r.-'), title('Adhesion advance dist (px)')
+        ylabel('Adhesion movement (px)')
+        subplot(3,1,3), plot(curTrack.distToEdge,'b.-'), title('Distance from edge (px)')
+        ylabel('Distance from edge (px)')
+        xlabel('Time (frame)')
 %         if trainerInitially
 %             print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
-%             savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+            savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+            savefig(h3,strcat(gPath,'/track',num2str(IDtoInspect),'Distance.fig'))
 %         end
 %         save([outputPath filesep 'selectedIDs.mat'], 'IDs', 'iGroups')
         setappdata(hFig,'IDs',IDs);
         setappdata(hFig,'iGroups',iGroups);
-        close(h2)
+        close(h2); close(h3);
         axes(handles.axes1)
     end
 end
@@ -416,23 +448,40 @@ function XListenerCallBack
     prevYLim = handles.axes1.YLim;
 
     %// Display appropriate frame.
+    axes(handles.axes1); hold off
     imshow(imgMap(:,:,CurrentFrame),[],'Parent',handles.axes1); 
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-    if ~isempty(idSelected)
-        htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
-    elseif trainerInitially
-        drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
-    else
-%         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
-%         plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
-        xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-        ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-        if size(xmat,2)==1
-            plot(xmat',ymat','r.')
+    % Scale bar
+    hL1 = line([prevXLim(1)+10 prevXLim(1)+10+scaleBarLargeView*1000/pixSize],[prevYLim(1)+10 prevYLim(1)+10],...
+        'LineWidth',2,'Color',[1,1,1]);
+    hT4 = text(prevXLim(1)+10,prevYLim(1)+20,[num2str(scaleBarLargeView) '\mum']); hT4.Color='w';  hT4.FontSize=5;
+    if drawingOnly
+        drawTracksColormap(tracksNA,1,Property,PropRange,Colormap);
+        % colorbar
+        handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
+        lineBox = repmat(PropRange(1):PropRange(2),20,1);
+        imshow(lineBox,PropRange);
+        colormap(handles.axes3, jet)
+        hT1 = text(-0.1,1,num2str(PropRange(1))); hT1.Units='normalized'; hT1.Position=[-0.1 2 0]; hT1.Color='w';  hT1.FontSize=6;
+        hT2 = text(1.4,1,num2str(PropRange(2))); hT2.Units='normalized'; hT2.Position=[0.9 2 0]; hT2.Color='w'; hT2.FontSize=6;
+        hT3 = text(50,60,Property); hT3.Units='normalized'; hT3.Position=[0.15 3 0];     hT3.Color='w'; hT3.FontSize=6;
+    else    
+        if ~isempty(idSelected)
+            htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
+        elseif trainerInitially
+            drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
         else
-            plot(xmat',ymat','r')
+    %         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
+    %         plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
+            xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+            ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+            if size(xmat,2)==1
+                plot(xmat',ymat','r.')
+            else
+                plot(xmat',ymat','r')
+            end
         end
     end
 %     try
@@ -468,24 +517,41 @@ function XSliderCallback(~,~)
     prevXLim = handles.axes1.XLim;
     prevYLim = handles.axes1.YLim;
 
+    axes(handles.axes1); hold off
     imshow(imgMap(:,:,CurrentFrame),[],'Parent',handles.axes1); 
     zoom reset
     set(handles.axes1,'XLim',prevXLim,'YLim',prevYLim)
     hold on
+    % Scale bar
+    hL1 = line([prevXLim(1)+10 prevXLim(1)+10+scaleBarLargeView*1000/pixSize],[prevYLim(1)+10 prevYLim(1)+10],...
+        'LineWidth',2,'Color',[1,1,1]);
+    hT4 = text(prevXLim(1)+10,prevYLim(1)+20,[num2str(scaleBarLargeView) '\mum']); hT4.Color='w';  hT4.FontSize=5;
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
-    if ~isempty(idSelected)
-        htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
-    elseif trainerInitially
-        drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
+    if drawingOnly
+        drawTracksColormap(tracksNA,CurrentFrame,Property,PropRange,Colormap);
+        % colorbar
+        handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
+        lineBox = repmat(PropRange(1):PropRange(2),30,1);
+        imshow(lineBox,PropRange);
+        colormap(handles.axes3, jet)
+        hT1 = text(-0.1,1,num2str(PropRange(1))); hT1.Units='normalized'; hT1.Position=[-0.1 2 0]; hT1.Color='w'; hT1.FontSize=6;
+        hT2 = text(1.4,1,num2str(PropRange(2))); hT2.Units='normalized'; hT2.Position=[0.9 2 0]; hT2.Color='w'; hT2.FontSize=6;
+        hT3 = text(50,60,Property); hT3.Units='normalized'; hT3.Position=[0.15 3 0];     hT3.Color='w'; hT3.FontSize=6;
     else
-%         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
-%         plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
-        xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-        ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
-        if size(xmat,2)==1
-            plot(xmat',ymat','r.')
+        if ~isempty(idSelected)
+            htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
+        elseif trainerInitially
+            drawClassifiedTracks(allDataClass(idCurrent,:),tracksNA(idCurrent),CurrentFrame,gca,true);
         else
-            plot(xmat',ymat','r')
+    %         arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
+    %         plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
+            xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+            ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
+            if size(xmat,2)==1
+                plot(xmat',ymat','r.')
+            else
+                plot(xmat',ymat','r')
+            end
         end
     end
     if ~isempty(idSelected)

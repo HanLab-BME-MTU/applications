@@ -58,13 +58,13 @@ end
 
 % Other image maps
 if ~isempty(SDCProc_FA)
-    if ismember(2, find(SDCProc_FA.checkChannelOutput))
+    if ismember(iChan, find(SDCProc_FA.checkChannelOutput))
         imgStack = SDCProc_FA.loadOutStack(iChan);
     else
         imgStack = [];
     end
 else
-    imgStack = MD.channels_(iChan).loadImage(1:nFrames);
+    imgStack = MD.channels_(iChan).loadStack(1:nFrames,1);
 end
 
 if nargout>2

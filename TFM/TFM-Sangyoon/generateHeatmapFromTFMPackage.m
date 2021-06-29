@@ -119,6 +119,7 @@ if ~isempty(iSDCProc)
     T = s.T;
 else
     iChan = 2;
+    iBeadChan=1;
 end
 
 iDisplFieldCalProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
@@ -239,7 +240,11 @@ if ~isempty(iMask)
     end
 else
     % if there was no cell mask, just use the entire pixel as a mask
-    firstBeadImg=SDCProc.loadChannelOutput(iBeadChan,1);
+    if ~isempty(iSDCProc)
+        firstBeadImg=SDCProc.loadChannelOutput(iBeadChan,1);
+    else
+        firstBeadImg=movieData.channels_(iBeadChan).loadImage(1);
+    end
     bwPI4 = true(size(firstBeadImg,1),size(firstBeadImg,2));
 end
 strainEnergy = zeros(nFrames,1);
@@ -327,8 +332,9 @@ for ii=1:nFrames
     pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
     forceScale=0.1*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
 %     hq = quiver(pos_vecx,pos_vecy, tmat_vecx./forceScale,tmat_vecy./forceScale,0,'k');
-    hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx./forceScale,vectorScale*tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
-    hq.ShowArrowHead = 'off';
+    hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx./forceScale,vectorScale*tmat_vecy./forceScale,0,'Color',[200/255 200/255 200/255]);
+%     hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx./forceScale,vectorScale*tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
+%     hq.ShowArrowHead = 'off';
 %     hq.LineWidth=0.5;
 %     anno=hq.Annotation;
 %     anno.LegendInformation

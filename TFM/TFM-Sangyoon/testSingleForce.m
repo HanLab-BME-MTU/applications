@@ -1,14 +1,26 @@
-function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av,varargin)
+function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,...
+    meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh,...
+    bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,...
+                                        bead_x, bead_y, Av,varargin)
 % Input check
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('solMethodBEM','QR', @ischar);
 ip.addParameter('regParam',1e-6,@isnumeric);
 ip.addParameter('addNoise',false,@islogical);
+ip.addParameter('whiteNoise',0.05,@isscalar);
+ip.addParameter('nPoints',7000,@isscalar);
+ip.addParameter('pathBasisClassTbl',[],@(x) isempty(x) || ischar(x));
+ip.addParameter('E',8000,@isscalar);
+
 ip.parse(varargin{:});
 solMethodBEM = ip.Results.solMethodBEM;    
 regParam = ip.Results.regParam;    
 addNoise = ip.Results.addNoise;    
+whiteNoise = ip.Results.whiteNoise;    
+nPoints = ip.Results.nPoints;
+pathBasisClassTbl = ip.Results.pathBasisClassTbl;
+E = ip.Results.E; % in Pa
 
 %% single force experiment
 % input parameters to be replaced with function inputs
@@ -29,13 +41,13 @@ meshPtsFwdSol=2^8;
 xmax=meshPtsFwdSol;
 ymax=meshPtsFwdSol;
 
-nPoints = 7000;
-% bead_r = 40; % nm
-% pixSize = 72e-9; % nm/pix 90x
-% NA = 1.49; %TIRF
-% lambda = 665e-9;
-% M = 1; %1 because I use alreay magnified pixSize.
-sigma = 1.68; % after getGaussianPSFsigma(NA,M,pixSize,lambda);
+bead_r = 40; % nm
+pixSize = 6.5e-6; %m/pix     %72e-9; % nm/pix 90x
+NA = 1.49; %TIRF
+lambda = 665e-9;
+M = 60; %60 %1 because I use alreay magnified pixSize.
+sigma = getGaussianPSFsigma(NA,M,pixSize,lambda); %1.68; % after 
+
 if ~isempty(bead_x)
 %     refimg = simGaussianSpots(xmax,ymax,sigma, ...
 %         'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
@@ -44,8 +56,14 @@ if ~isempty(bead_x)
 else
 %     [refimg,bead_x, bead_y, ~, Av] = simGaussianSpots(xmax,ymax, sigma, ...
 %         'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
+    curA = zeros(1,nPoints);
+    kon=100; koff=50;
+    nDye=650; dyeAmp=1/nDye;
+    for pp=1:nPoints
+        curA(1,pp) = dyeAmp * sum(rand(1,nDye)<kon/(kon+koff));
+    end
     [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
-        'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
+        'npoints', nPoints, 'Border', 'truncated','A',curA);
 end
 nPoints = length(bead_x);
 
@@ -54,7 +72,7 @@ refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
 % %% Noise addition (10%)
 % refimg = refimg+0.10*rand(ymax,xmax)*max(refimg(:));
 %% Now displacement field from given force
-E=8000;  %Young's modulus, unit: Pa
+% E=8000;  %Young's modulus, unit: Pa
 forceType = 'groupForce';
 
 gridSpacing = 1;
@@ -111,7 +129,7 @@ beadimg = simGaussianBeads(xmax,ymax, sigma, ...
 % figure, imshow(refimg,[])
 % figure, imshow(beadimg,[])
 %% Noise addition (5%)
-beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
+beadimg = beadimg+whiteNoise*rand(ymax,xmax)*max(beadimg(:));
 % %% Noise addition (10%)
 % beadimg = beadimg+0.10*rand(ymax,xmax)*max(beadimg(:));
 
@@ -143,7 +161,7 @@ MD.setFilename('movieData.mat');
 
 % Set some additional movie properties
 MD.numAperture_=1.49;
-MD.pixelSize_=108;
+MD.pixelSize_=pixSize/M*1e9; %nm/pix
 MD.camBitdepth_=16;
 MD.timeInterval_ = 5;
 MD.notes_=['Created for single force test purposes with f=' num2str(f) ' and d=' num2str(d)]; 
@@ -156,8 +174,8 @@ MD.sanityCheck;
 MD.save;
 
 %% Load the movie
-clear MD
-MD=MovieData.load(fullfile(analysisFolder,'movieData.mat'));
+% clear MD
+% MD=MovieData.load(fullfile(analysisFolder,'movieData.mat'));
 
 %% Create TFM package and retrieve package index
 MD.addPackage(TFMPackage(MD));
@@ -171,7 +189,9 @@ params = MD.getPackage(iPack).getProcess(2).funParams_;
 refFullPath = [refPath filesep 'img1ref.tif'];
 
 params.referenceFramePath = refFullPath;
-if f<1000
+if f<300
+    params.maxFlowSpeed = 5;
+elseif f<1000
     params.maxFlowSpeed = 10;
 elseif f<2000
     params.maxFlowSpeed = 20;
@@ -194,13 +214,15 @@ MD.getPackage(iPack).getProcess(3).run();
 MD.getPackage(iPack).createDefaultProcess(4)
 params = MD.getPackage(iPack).getProcess(4).funParams_;
 
-params.YoungModulus = 8000;
+params.YoungModulus = E;
+params.method = 'FTTC';
 params.regParam = regParam;
 params.solMethodBEM = solMethodBEM;
 params.useLcurve = false;
 % params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
 % params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
-params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
+% params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
+params.basisClassTblPath = pathBasisClassTbl;
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
 

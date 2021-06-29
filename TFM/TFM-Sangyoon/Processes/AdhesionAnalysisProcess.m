@@ -160,7 +160,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
 %                     end
 
                     if isempty(idSelected)
-                        parfor ii=1:numTracks
+                        for ii=1:numTracks
                             try
                                 curTrackObj = load(feval(trackIndPath,ii),'curTrack');
                             catch
@@ -320,7 +320,7 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                         curAdhBound = bwboundaries(labelAdhesion==ii,4,'noholes');
                         adhBound{ii} = curAdhBound{1}; % strongly assumes each has only one boundary
                     end
-                    validAdhState = refineFAID(validState,iFrame); %cellfun(@(x) x(iFrame),refineFAID(validState));
+                    validAdhState = cellfun(@(x) x(iFrame),refineFAID(validState)); %refineFAID(validState,iFrame); %
                     
                     varargout{iout} = adhBound(validAdhState); %table2struct(table(adhBoundary, number(validState),'VariableNames',{'adhBoundary', 'number'}));                                 
                 else

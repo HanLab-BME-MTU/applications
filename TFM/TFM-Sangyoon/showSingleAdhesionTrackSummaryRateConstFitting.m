@@ -85,7 +85,7 @@ set(h2,'Renderer','painters')
 set(h2,'InvertHardcopy','off')
 
 genFontSize = 7;
-genFontUnit = 'points';
+genFontUnit = 'pixels';
 % Overall shots 
 imgBigXLim = [bLeftBig, bRightBig];
 imgBigYLim = [bBottomBig, bTopBig];
@@ -310,7 +310,7 @@ end
 if ~isempty(imgMap2)
     ax8=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (430+80+40)/figHeight, 155/figWidth,80/figHeight]);
 else
-    ax8=axes('Position',[50/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+    ax8=axes('Position',[50/figWidth, 50/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 % plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'k'), hold on    
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'k'), hold on    
@@ -320,7 +320,7 @@ set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 if ~isempty(imgMap2)
     axA=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (330+80+40)/figHeight, 155/figWidth,80/figHeight]);
 else
-    axA=axes('Position',[50/figWidth, 200/figHeight, 150/figWidth-marginX,130/figHeight]);
+    axA=axes('Position',[50/figWidth, 170/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
 [assemRate,bestModelAssem,bestSummaryAssem,yEntireAssem,tRangeSelectedAssem] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp');
@@ -332,17 +332,19 @@ if ~isempty(bestModelAssem)
 
     xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
     ylabel('Log[I/I_o]','FontUnits',genFontUnit,'FontSize',genFontSize)
-    text(bestModelAssem.Variables.x1(1)*60 - curStartFrameEE*tInterval, (bestModelAssem.Fitted(1)+2*bestModelAssem.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem.adjRsquared) ];['K_{assem}=' num2str(assemRate)]})
+    hTxt = text(bestModelAssem.Variables.x1(1)*60 - curStartFrameEE*tInterval, (bestModelAssem.Fitted(1)+2*bestModelAssem.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem.adjRsquared) ];['K_{assem}=' num2str(assemRate)]});
+    hTxt.FontSize=6; hTxt.FontUnits='pixels';
 else
     text(0,0.5,{'Failed assembly rate'; 'estimation'})
 end
 set(axA,'FontUnits',genFontUnit,'FontSize',genFontSize)
+title('Assembly rate')
 
 
 if ~isempty(imgMap2)
     axB=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (240+80+40)/figHeight, 155/figWidth,70/figHeight]);
 else
-    axB=axes('Position',[50/figWidth, 100/figHeight, 150/figWidth-marginX,80/figHeight]);
+    axB=axes('Position',[50/figWidth, 290/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
 [disassemRate,bestModelDis,bestSummaryDis,yEntireDis,tRangeSelectedDisassem] = getDisassemRateFromTracks(curTrack,tIntervalMin,'amp');
@@ -354,11 +356,69 @@ if ~isempty(bestModelDis)
     
     xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
     ylabel('Log[I_o/I]','FontUnits',genFontUnit,'FontSize',genFontSize)
-    text(bestModelDis.Variables.x1(2)*60 - curStartFrameEE*tInterval, (bestModelDis.Fitted(1)+2*bestModelDis.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis.adjRsquared) ];['K_{disassem}=' num2str(disassemRate)]})
+    hTxt = text(bestModelDis.Variables.x1(2)*60 - curStartFrameEE*tInterval, (bestModelDis.Fitted(1)+2.5*bestModelDis.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis.adjRsquared) ];['K_{disassem}=' num2str(disassemRate)]});
+    hTxt.FontSize=5; hTxt.FontUnits='pixels';
 else
     text(0,0.5,{'Failed disassembly rate'; 'estimation'})
 end
 set(axB,'FontUnits',genFontUnit,'FontSize',genFontSize)
+title('Disassembly rate')
+
+if isempty(imgMap2) % Now this is for ampSlope and earlyAmpSlope
+    axC=axes('Position',[400/figWidth, 170/figHeight, 150/figWidth-marginX,90/figHeight]);
+    prePeriodFrame = ceil(10/tInterval); %pre-10 sec
+    sF=max(curTrack.startingFrameExtra-prePeriodFrame,curTrack.startingFrameExtraExtra);
+    curLT = curTrack.lifeTime;
+    halfLT = ceil(curLT/2);
+    earlyPeriod = min(halfLT,floor(30/tInterval)); % frames per 30 sec or half life time
+    oneMinPeriod = min(halfLT,floor(60/tInterval)); % frames per a minute or half life time
+
+    lastFrame = min(curTrack.endingFrameExtraExtra,sF+earlyPeriod+prePeriodFrame-1);
+    lastFrameFromOne = lastFrame - sF+1;
+
+    lastFrameOneMin = min(curTrack.endingFrameExtraExtra,sF+oneMinPeriod+prePeriodFrame-1);
+    lastFrameFromOneOneMin = lastFrameOneMin - sF+1;
+    curTRange = tIntervalMin*(1:lastFrameFromOne);
+    curTSnorm = curTrack.amp(sF:lastFrame);
+    
+    try
+        statModel = fitlm(curTRange, curTSnorm);
+        earlyAmpSlope = statModel.Coefficients.Estimate(2);
+        
+        curTRange2 = tIntervalMin*(1:lastFrameFromOneOneMin);
+        curTSnorm2 = curTrack.amp(sF:lastFrameOneMin);
+        statModel2 = fitlm(curTRange2, curTSnorm2);
+        ampSlope = statModel2.Coefficients.Estimate(2);       
+        
+    catch
+        statModel = [];
+    end
+
+    % bestModelAssem.plot
+    if ~isempty(statModel)
+%         plot(statModel.Variables.x1*60 - curStartFrameEE*tInterval,statModel.Variables.y, 'bx-.')
+        plot(statModel2.Variables.x1*60 - curStartFrameEE*tInterval,statModel2.Variables.y, 'bx-.')
+        hold on
+%         plot(statModel.Variables.x1*60 - curStartFrameEE*tInterval,statModel.Fitted, 'g-')
+
+        xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
+        ylabel('I (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
+%         hTxt = text(statModel.Variables.x1(1)*60 - curStartFrameEE*tInterval, ...
+%             (statModel.Fitted(1)+2*statModel.Fitted(end))/3, ...
+%             {['early slope=' num2str(earlyAmpSlope)]});
+%         hTxt.FontSize=5; hTxt.FontUnits='pixels';
+        
+        plot(statModel2.Variables.x1*60 - curStartFrameEE*tInterval,statModel2.Fitted, 'r-')
+        hTxt = text(statModel2.Variables.x1(1)*60 - curStartFrameEE*tInterval, ...
+            (statModel2.Fitted(1)+2*statModel2.Fitted(end))/3, ...
+            {['R^2_{adj}=' num2str(statModel2.Rsquared.Adjusted) ];['slope=' num2str(ampSlope) 'au/min']});
+        hTxt.FontSize=5; hTxt.FontUnits='pixels';
+    else
+        text(0,0.5,{'Failed slope '; 'estimation'})
+    end
+    set(axC,'FontUnits',genFontUnit,'FontSize',genFontSize)
+    title('Slope of amplitude')
+end
 
 % force time series
 if ~isempty(tMap)
