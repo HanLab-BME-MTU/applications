@@ -168,7 +168,7 @@ elseif strcmpi(method,'FEM')
         sampleWidth = x0(2)*2; %Width
         sampleThickness = y0(2)*2; %Thickness
         sampleHeight = x0(2)/4; %Height
-        pointSpacings = (meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
+        pointSpacings = 8*ones(1,3);%(meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
         numElementsWidth = round(sampleWidth/pointSpacings(1))+1; %Number of elemens in dir 1
         numElementsThickness = round(sampleThickness/pointSpacings(2))+1; %Number of elemens in dir 2
         numElementsHeight = round(sampleHeight/pointSpacings(3))+1; %Number of elemens in dir 3
@@ -193,7 +193,7 @@ elseif strcmpi(method,'FEM')
         dtmin=(1/numTimeSteps)/100; %Minimum time step size
         dtmax=1/numTimeSteps; %Maximum time step size
 
-        % //Creating geometry and mesh *******************************************
+        % //Creating geometry and mesh ************************************
         % Create a box with hexahedral elements
         cubeDimensions=[sampleWidth sampleThickness sampleHeight]; %Dimensions
         cubeElementNumbers=[numElementsWidth numElementsThickness numElementsHeight]; %Number of elements
@@ -207,7 +207,7 @@ elseif strcmpi(method,'FEM')
         Cb=meshStruct.boundaryMarker; %The "colors" or labels for the boundary faces
         elementMaterialIndices=ones(size(El,1),1); %Element material indices
 
-        % //Prepare face nodes for BC application *********************************
+        % //Prepare face nodes for BC application *************************
         %Define supported node sets
         logicFace=Cb==1; %Logic for current face set
         Fr=Fb(logicFace,:); %The current face set
@@ -228,7 +228,7 @@ elseif strcmpi(method,'FEM')
 
         %Create spatially varying traction force
         %force_X and Y should be meshPts/Spacing by meshPts/Spacing arrays
-        [X,Y] = meshgrid(-x0(2)/2:pointSpacings(1):x0(2)/2);
+        [X,Y] = meshgrid(-x0(2):pointSpacings(1):x0(2));
         C_traction_x = force_x(X,Y);
         C_traction_y = force_y(X,Y);
         
@@ -239,7 +239,7 @@ elseif strcmpi(method,'FEM')
         % C_pressure=C_pressure.^2;
         % C_pressure=C_pressure.*(2.0e-4-0.1e-4)+0.1e-4;
 
-        % //Define FEBio input structure *****************************************
+        % //Define FEBio input structure **********************************
         %Get a template with default settings
         [febio_spec]=febioStructTemplate;
 
@@ -356,7 +356,7 @@ elseif strcmpi(method,'FEM')
         febio_spec.Output.logfile.element_data{1}.ATTR.delim=',';
         febio_spec.Output.logfile.element_data{1}.VAL=1:size(V,1);
 
-        % //FEBio running ********************************************************
+        % //FEBio running *************************************************
         %Run Settings
         febioAnalysis.run_filename=febioFebFileName; %The input file name
         febioAnalysis.run_logname=febioLogFileName; %The name for the log file
@@ -375,18 +375,51 @@ elseif strcmpi(method,'FEM')
         %system(['gedit ',febioFebFileName,' &']);
 
         %Run Model
+        skipFEBio = 1;
+        if skipFEBio ~= 1
         [runFlag]=runMonitorFEBio(febioAnalysis);%START FEBio NOW!!!!!!!!
+        end
 
-        % //Import Displacement from Logfile *************************************
+        % //Import Displacement from Logfile ******************************
         if runFlag == 1
         dataStruct=importFEBio_logfile(fullfile(savePath,febioLogFileName_disp),1,1);
 
         N_disp_mat=dataStruct.data; %Displacement
-        %timeVec=dataStruct.time; %Time
-
-        %Create deformed coordinate set
-        %V_DEF=N_disp_mat+repmat(V,[1 1 size(N_disp_mat,3)]);
-        %DN_magnitude=sqrt(sum(N_disp_mat(:,:,end).^2,2)); %Current displacement magnitude
+%         timeVec=dataStruct.time; %Time
+% 
+%         %Create deformed coordinate set
+%         V_DEF=N_disp_mat+repmat(V,[1 1 size(N_disp_mat,3)]);
+%         DN_magnitude=sqrt(sum(N_disp_mat(:,:,end).^2,2)); %Current displacement magnitude
+%         
+%         % Create basic view and store graphics handle to initiate animation
+%         hf=cFigure; %Open figure
+%         gtitle([febioFebFileNamePart,': Press play to animate']);
+%         title('Displacement magnitude [mm]','Interpreter','Latex')
+%         hp=gpatch(Fb,V_DEF(:,:,end),DN_magnitude,'k',1,2); %Add graphics object to animate
+%         hp.Marker='.';
+%         hp.MarkerSize=markerSize2;
+%         hp.FaceColor='interp';
+%         gpatch(Fb,V,0.5*ones(1,3),'none',0.25); %A static graphics object
+% 
+%         axisGeom(gca,fontSize);
+%         colormap(cMap); colorbar;
+%         caxis([0 max(DN_magnitude)]); caxis manual;
+%         axis(axisLim(V_DEF)); %Set axis limits statically
+%         view(140,30);
+%         camlight headlight;
+% 
+%         % Set up animation features
+%         animStruct.Time=timeVec; %The time vector
+%         for qt=1:1:size(N_disp_mat,3) %Loop over time increments
+%             DN_magnitude=sqrt(sum(N_disp_mat(:,:,qt).^2,2)); %Current displacement magnitude
+% 
+%             %Set entries in animation structure
+%             animStruct.Handles{qt}=[hp hp]; %Handles of objects to animate
+%             animStruct.Props{qt}={'Vertices','CData'}; %Properties of objects to animate
+%             animStruct.Set{qt}={V_DEF(:,:,qt),DN_magnitude}; %Property values for to set in order to animate
+%         end
+%         anim8(hf,animStruct); %Initiate animation feature
+%         drawnow;
 
         %Component displacement at final time step
         dispMat = N_disp_mat(:,:,end);
@@ -396,18 +429,49 @@ elseif strcmpi(method,'FEM')
         %Extract top face
         topNode_ux = node_ux(V(:,3)==64);
         topNode_uy = node_uy(V(:,3)==64);
-
-        %Convert to NxN displacement map
-        nodeDispMap_ux = reshape(topNode_ux,[],numElementsWidth+1);
-        nodeDispMap_uy = reshape(topNode_uy,[],numElementsWidth+1);
         
-        %Define FEM Nodal Locations
+%         %Get nodal locations of displacement values from top face
+%         topLoc = V(V(:,3)==64,:);
+        
+%         %Convert to NxN displacement map
+%         nodeLocMap_x = reshape(topLoc(:,1),[],numElementsWidth+1);
+%         nodeLocMap_y = reshape(topLoc(:,2),[],numElementsWidth+1);
+
+        %Initialize loop variables
+        nodeDispMap_ux = zeros(130);
+        nodeDispMap_uy = zeros(130);
+        outMatWidth = numElementsWidth + 1;
+        startID = 1;
+        endID = outMatWidth;
+        idx = 1;
+        %Loop through every column of the output matrices to place the
+        %displacements in the correct order
+        for k = 1:outMatWidth
+            %Get current column of UX and UY displacement
+            %Rotate 180 to orient Y coordinates in proper order
+            curXcol = rot90(topNode_ux(startID:endID),2);
+            curYcol = rot90(topNode_uy(startID:endID),2);
+            %Place current columns into output matrices 1 column at a time
+            %from left to right
+            nodeDispMap_ux(1:outMatWidth,idx) = curXcol;
+            nodeDispMap_uy(1:outMatWidth,idx) = curYcol;
+            %Increment counters
+            startID = startID + outMatWidth;
+            endID = endID + outMatWidth;
+            idx = idx + 1;
+        end
+         
+%         %Convert to NxN displacement maps
+%         nodeDispMap_ux = reshape(topNode_ux,[],numElementsWidth+1);
+%         nodeDispMap_uy = reshape(topNode_uy,[],numElementsWidth+1);
+        
+        %Define FEM Nodal Locations (not FEBio nodal locations)
         [X,Y] = meshgrid((-sampleWidth/2-pointSpacings(1)/2):pointSpacings(1):(sampleWidth/2+pointSpacings(1)/2));
-        %Define interpolation locations using image coords
+        %Define interpolation locations
         vx = linspace(x0(1),x0(2),meshPtsFwdSol);
         vy = linspace(y0(1),y0(2),meshPtsFwdSol);
         [x_grid,y_grid] = meshgrid(vx,vy);
-        %Interpolate disp map at TFM nodal locations
+        %Interpolate disp map at TFM nodal locations into output variables
         ux = interp2(X,Y,nodeDispMap_ux,x_grid,y_grid);
         uy = interp2(X,Y,nodeDispMap_uy,x_grid,y_grid);
         end
