@@ -72,9 +72,11 @@ for jj=1:nNL
     brighterCol = curCol.*1.5;
     brighterCol(brighterCol>1) = 1;
     plot(beadDensity,squeeze(forceDetec(:,jj,:)),'Color',brighterCol);
-    h(jj) = plot(beadDensity,mean(forceDetec(:,jj,:),3),'LineWidth',2,'Color',myCs(jj,:));
+    h(jj) = plot(beadDensity,median(forceDetec(:,jj,:),3),'LineWidth',2,'Color',myCs(jj,:));
 end
 legend(h,'0 %','5 %','10%','15%','20%')
+xlabel('Simulated bead density (#/\mum^2)')
+ylabel('Force detectability, \psi (1)')
 savefig('$PROJECT/TFM/TFMBeadDensity/2kPaSimulation/beadDensityVsForceDetec.fig')
 % savefig('/storage/network/TFM_Development/TFM2D/BeadDensityRequirement/2kPaSimulation/beadDensityVsForceDetec.fig')
 %% save

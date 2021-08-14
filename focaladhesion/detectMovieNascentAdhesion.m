@@ -322,14 +322,14 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).FAdensityPeri = sum(indFAsAtEdge)/bandArea; % number per um2
     focalAdhInfo(j).FAdensityInside = (numAdhs-sum(indFAsAtEdge))/(focalAdhInfo(j).cellArea-bandArea); % number per um2
     
+    numFAs = numel(AdhsFA);
+    numFCs = numAdhs - numFAs;
+    numNAs = nascentAdhInfo(j).numberNA;
     % New feature: the other channel reading
     % 1. Check if there is the other channel
     % e.g. see if there is more than one channels
     if nChans >1 && (~isempty(iTFM) || ~isempty(iAdditionalChan))
         % 2. Go over each FA and FC and NA
-        numFAs = numel(AdhsFA);
-        numFCs = numAdhs - numFAs;
-        numNAs = nascentAdhInfo(j).numberNA;
         if ~isempty(iTFM)
             curTmap = tMap(:,:,j);
             % FA first

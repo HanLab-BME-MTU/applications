@@ -61,6 +61,14 @@ sigma = 1.68; %stdev of gaussian function
 %3D
 % [refimg3D, beadcenters3D, ~, Av3D] = simGaussianSpots3D([meshPtsFwdSol meshPtsFwdSol thickness], ...
 %         sigma,'npoints', nPoints, 'Border', 'periodic', 'A',0.5+rand(1,nPoints));
+
+%Save bead coords and displacements to movieData structure
+displField(1).pos = [bead_x, bead_y];
+displField(1).vec = [zeros(length(bead_x),1), zeros(length(bead_y),1)];
+
+%Save bead coords and forces to movieData structure
+forceField(1).pos = [bead_x, bead_y];
+forceField(1).vec = [zeros(length(bead_x),1), zeros(length(bead_y),1)];
     
 %noise addition
 refimg = refimg+0.05*rand(numPix_y,numPix_x)*max(refimg(:));
@@ -324,6 +332,14 @@ imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep imgstring]);
 %     'X', newbeadcenters3D,'npoints', nPoints, 'A', Av3D,'Border', 'periodic');
 %add saving 3D beadimg
 
+%Save bead coords and displacements to movieData structure
+displField(2).pos = [bead_x, bead_y];
+displField(2).vec = [bead_ux, bead_uy];
+
+%Save bead coords and forces to movieData structure
+forceField(2).pos = [bead_x, bead_y];
+forceField(2).vec = [force_x, force_y];
+
 % //Saving outputs for comparison after TFM processing ********************
 disp(strcat('Removed ',num2str(nanElements),'NaN elements.'))
-save(strcat('outputs_',chr1,'.mat'),'bead_ux','bead_uy','force_x','force_y'); %chr1 defined initially by user, matches image file naming
+save(strcat('outputs_',chr1,'.mat'),'displField','forceField'); %chr1 defined initially by user, matches image file naming
