@@ -58,8 +58,10 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.addParameter('useCache',true,@islogical);
+            ip.addParameter('noStackRequired',false,@islogical) % 
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
+            noStackRequired = ip.Results.noStackRequired; % this variable is used to empty
             
             persistent dMapMap dMapMapRef lastFinishTime
             % Data loading
@@ -143,9 +145,12 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                                 pp=numel(iFrame)+1;
                                 for ii=fliplr(iFrame)
                                     pp=pp-1;
-                                    dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
-                                    dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{pp};
+                                    curMap = zeros(dMapObj.firstMaskSize);
+                                    curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{pp};
 %                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                                    if ~noStackRequired
+                                        dMapMap(:,:,ii) = curMap;
+                                    end
                                 end
                                 lastFinishTime = obj.finishTime_;
                             end
@@ -160,9 +165,12 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                                 pp=numel(iFrame)+1;
                                 for ii=fliplr(iFrame)
                                     pp=pp-1;
-                                    dMapMap(:,:,ii) = zeros(size(SDCProc.loadOutImage(1,1)));
-                                    dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{pp};
+                                    curMap = zeros(size(SDCProc.loadOutImage(1,1)));
+                                    curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{pp};
                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                                    if ~noStackRequired
+                                        dMapMap(:,:,ii) = curMap;
+                                    end
                                 end
                             elseif strcmp(output,'dMapRef')
                                 [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField(iFrame),0,0);
@@ -173,9 +181,12 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                                 pp=numel(iFrame)+1;
                                 for ii=fliplr(iFrame)
                                     pp=pp-1;
-                                    dMapMapRef(:,:,ii) = zeros(size(SDCProc.loadOutImage(1,1)));
-                                    dMapMapRef(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{pp};
+                                    curMapRef  = zeros(size(SDCProc.loadOutImage(1,1)));
+                                    curMapRef(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{pp};
 %                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                                    if noStackRequired
+                                        dMapMapRef(:,:,ii) = curMapRef;
+                                    end
                                 end
                             end
                             lastFinishTime = obj.finishTime_;
@@ -197,20 +208,33 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                         pp=numel(iFrame)+1;
                         for ii=fliplr(iFrame)
                             pp=pp-1;
-                            dMapMap(:,:,ii) = zeros(dMapObj.firstMaskSize);
-                            dMapMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3),ii) = dMapIn{pp};
-%                             progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time displacement map loading') % Update text
+                            curMap = zeros(dMapObj.firstMaskSize);
+                            curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{pp};
+                            progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
+                            if ~noStackRequired
+                                dMapMap(:,:,ii) = curMap;
+                            end
                         end
                         lastFinishTime = obj.finishTime_;
                     end
                 end
                 if strcmp(output,'dMap')
-                    varargout{1}=dMapMap(:,:,iFrame);
+                    if noStackRequired
+                        varargout{1} = curMap; % need to take care of this curMap
+                    else
+                        varargout{1}=dMapMap(:,:,iFrame);
+                    end
                 elseif strcmp(output,'dMapRef')
-                    varargout{1}=dMapMapRef(:,:,iFrame);
+                    if noStackRequired
+                        varargout{1} = curMapRef; % need to take care of this curMap
+                    else
+                        varargout{1}=dMapMapRef(:,:,iFrame);
+                    end
                 else %This is for unshifted (in the size of raw channels)
                     sampleRawChanImg = obj.owner_.channels_(1).loadImage(1);
-                    curMap=dMapMap(:,:,iFrame);
+                    if ~noStackRequired
+                        curMap=dMapMap(:,:,iFrame);
+                    end
                     ref_obj = imref2d(size(sampleRawChanImg));
                     iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
                     tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
@@ -242,7 +266,11 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                         invTr = invert(Tr);
                         varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
                     else
-                        varargout{1}=dMapMap(:,:,iFrame);
+                        if ~noStackRequired
+                            varargout{1}=dMapMap(:,:,iFrame);
+                        else
+                            varargout{1} = curMap;
+                        end
                     end
                 end
             end
@@ -281,7 +309,17 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1:end})
                 iFrame=ip.Results.iFrame;
-                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
+                % recognize how big the movie is and determine if
+                % noStackRequired is used or not. I will say if the movie
+                % is larger than 512x512x300, we will call noStackRequired.
+                nFrames = obj.owner_.nFrames_;
+                movie3DSize = obj.owner_.imSize_(1)*obj.owner_.imSize_(2)*nFrames;
+                thres3DSize = 512*512*299;
+                if movie3DSize > thres3DSize
+                    data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output,'noStackRequired',true);
+                else
+                    data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
+                end
                 if iscell(data), data = data{1}; end
             else                
                 ip = inputParser;
