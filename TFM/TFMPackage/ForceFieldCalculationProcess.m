@@ -142,7 +142,11 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                                         cur_tMapX = [];
                                         cur_tMapY = []; %Later this can be changed to the code that actually generates tMapX and Y.
                                     end   
-                                    tMapMap(:,:,ii) = cur_tMap;
+                                    if ~noStackRequired
+                                        tMapMap(:,:,ii) = cur_tMap;
+                                    else
+                                        tMapMap = [];
+                                    end
                                     if ii==1 && strcmpi(obj.funParams_.method,'FastBEM')
                                         try
                                             cur_fCfdMap = s.fCfdMap;
@@ -192,6 +196,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                                     curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{pp};
                                     if ~noStackRequired
                                         tMapMap(:,:,ii) = curMap;
+                                    else
+                                        tMapMap = [];
                                     end
                                     if ismember(output,outputList(6:7))
                                         tMapMapX(:,:,ii) = zeros(tMapObj.firstMaskSize);
@@ -328,7 +334,17 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1:end})
                 iFrame=ip.Results.iFrame;
-                data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
+                % recognize how big the movie is and determine if
+                % noStackRequired is used or not. I will say if the movie
+                % is larger than 512x512x300, we will call noStackRequired.
+                nFrames = obj.owner_.nFrames_;
+                movie3DSize = obj.owner_.imSize_(1)*obj.owner_.imSize_(2)*nFrames;
+                thres3DSize = 512*512*299;
+                if movie3DSize > thres3DSize
+                    data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output,'noStackRequired',true);
+                else
+                    data=obj.loadChannelOutput('iFrame',iFrame,'output',ip.Results.output);
+                end
                 if iscell(data), data = data{1}; end
             else % forcefield
                 % Input parser
