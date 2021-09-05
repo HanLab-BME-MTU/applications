@@ -521,23 +521,24 @@ for ii=1:numel(eccCell)
 end
 
 %% the amplitude of the other channel all together
-
-amplitudeGroupAll=cell(numel(ampTheOtherNACell)*3,1);
-amplitudeGroup={ampTheOtherNACell, ampTheOtherFCCell, ampTheOtherFACell};
-for ii=1:numel(ampTheOtherNACell)
-    p=ii-1;
-    for jj=1:3
-        amplitudeGroupAll{3*p+jj,1} = amplitudeGroup{jj}{ii};
+if exist('ampTheOtherNACell','var')
+    amplitudeGroupAll=cell(numel(ampTheOtherNACell)*3,1);
+    amplitudeGroup={ampTheOtherNACell, ampTheOtherFCCell, ampTheOtherFACell};
+    for ii=1:numel(ampTheOtherNACell)
+        p=ii-1;
+        for jj=1:3
+            amplitudeGroupAll{3*p+jj,1} = amplitudeGroup{jj}{ii};
+        end
     end
-end
-h1=figure; 
-plotSuccess=boxPlotCellArray(amplitudeGroupAll,nameListAdhComb,1,false,true);
-if plotSuccess
-    ylabel('Fluorescence amplitude (a.u.)')
-    title('Background-subtracted amplitude of the other channel')
-    hgexport(h1,[figPath filesep 'amplitudeTheOtherAll'],hgexport('factorystyle'),'Format','eps')
-    hgsave(h1,[figPath filesep 'amplitudeTheOtherAll'])
-    print(h1,[figPath filesep 'amplitudeTheOtherAll'],'-dtiff')
+    h1=figure; 
+    plotSuccess=boxPlotCellArray(amplitudeGroupAll,nameListAdhComb,1,false,true);
+    if plotSuccess
+        ylabel('Fluorescence amplitude (a.u.)')
+        title('Background-subtracted amplitude of the other channel')
+        hgexport(h1,[figPath filesep 'amplitudeTheOtherAll'],hgexport('factorystyle'),'Format','eps')
+        hgsave(h1,[figPath filesep 'amplitudeTheOtherAll'])
+        print(h1,[figPath filesep 'amplitudeTheOtherAll'],'-dtiff')
+    end
 end
 %% amplitude the other bar plot
 if isfield(FAstructGroup{1}(1),'ampTheOther')

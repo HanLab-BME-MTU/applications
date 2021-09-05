@@ -12,9 +12,11 @@ for ii=1:nTracks
     % Making out of range NaNs
     if sF>1
         tracksNA(ii).amp(1:sF-1)=NaN;
+        tracksNA(ii).ampTotal(1:sF-1)=NaN;
     end
     if eF<nFrames
         tracksNA(ii).amp(eF+1:nFrames)=NaN;
+        tracksNA(ii).ampTotal(eF+1:nFrames)=NaN;
     end
 end
 toc
