@@ -28,7 +28,8 @@ chosenFRange = curFrameRange;
 
 splineParam = 0.01;
 try
-    d = curTrack.amp(curStartFrameEE:curEndFrameEE);
+%     d = curTrack.amp(curStartFrameEE:curEndFrameEE);
+    d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
     tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 catch
 %     curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
@@ -312,8 +313,8 @@ if ~isempty(imgMap2)
 else
     ax8=axes('Position',[50/figWidth, 50/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
-% plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'k'), hold on    
-plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'k'), hold on    
+plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'k'), hold on    
+% plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'k'), hold on    
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
 set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 
@@ -323,7 +324,7 @@ else
     axA=axes('Position',[50/figWidth, 170/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
-[assemRate,bestModelAssem,bestSummaryAssem,yEntireAssem,tRangeSelectedAssem] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp');
+[assemRate,bestModelAssem,bestSummaryAssem,yEntireAssem,tRangeSelectedAssem] = getAssemRateFromTracks(curTrack,tIntervalMin,'ampTotal');
 % bestModelAssem.plot
 if ~isempty(bestModelAssem)
     plot(bestModelAssem.Variables.x1*60 - curStartFrameEE*tInterval,bestModelAssem.Variables.y, 'bx-.')
@@ -347,7 +348,7 @@ else
     axB=axes('Position',[50/figWidth, 290/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
-[disassemRate,bestModelDis,bestSummaryDis,yEntireDis,tRangeSelectedDisassem] = getDisassemRateFromTracks(curTrack,tIntervalMin,'amp');
+[disassemRate,bestModelDis,bestSummaryDis,yEntireDis,tRangeSelectedDisassem] = getDisassemRateFromTracks(curTrack,tIntervalMin,'ampTotal');
 % bestModelAssem.plot
 if ~isempty(bestModelDis)
     plot(bestModelDis.Variables.x1*60 - curStartFrameEE*tInterval,bestModelDis.Variables.y, 'bx-.')
@@ -379,14 +380,16 @@ if isempty(imgMap2) % Now this is for ampSlope and earlyAmpSlope
     lastFrameOneMin = min(curTrack.endingFrameExtraExtra,sF+oneMinPeriod+prePeriodFrame-1);
     lastFrameFromOneOneMin = lastFrameOneMin - sF+1;
     curTRange = tIntervalMin*(1:lastFrameFromOne);
-    curTSnorm = curTrack.amp(sF:lastFrame);
+    curTSnorm = curTrack.ampTotal(sF:lastFrame);
+%     curTSnorm = curTrack.amp(sF:lastFrame);
     
     try
         statModel = fitlm(curTRange, curTSnorm);
         earlyAmpSlope = statModel.Coefficients.Estimate(2);
         
         curTRange2 = tIntervalMin*(1:lastFrameFromOneOneMin);
-        curTSnorm2 = curTrack.amp(sF:lastFrameOneMin);
+%         curTSnorm2 = curTrack.amp(sF:lastFrameOneMin);
+        curTSnorm2 = curTrack.ampTotal(sF:lastFrameOneMin);
         statModel2 = fitlm(curTRange2, curTSnorm2);
         ampSlope = statModel2.Coefficients.Estimate(2);       
         
@@ -559,7 +562,7 @@ if ~isempty(imgMap2)
     % Assembly for amp2
     ax17=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (410+175+80+70)/figHeight, 155/figWidth,60/figHeight]);
     if ~isempty(bestModelAssem)
-        [assemRate2,bestModelAssem2,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp2',15,0,tRangeSelectedAssem);
+        [assemRate2,bestModelAssem2,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntervalMin,'ampTotal2',15,0,tRangeSelectedAssem);
     else
         bestModelAssem2 = [];
     end
@@ -579,7 +582,7 @@ if ~isempty(imgMap2)
 
     % Disassembly rate
     ax18=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (320+175+80+70)/figHeight, 155/figWidth,60/figHeight]);
-    [disassemRate2,bestModelDis2,bestSummaryDis2,~] = getDisassemRateFromTracks(curTrack,tIntervalMin,'amp2',25,0,tRangeSelectedDisassem);
+    [disassemRate2,bestModelDis2,bestSummaryDis2,~] = getDisassemRateFromTracks(curTrack,tIntervalMin,'ampTotal2',25,0,tRangeSelectedDisassem);
     % bestModelAssem.plot
     if ~isempty(bestModelDis2)
         plot(bestModelDis2.Variables.x1*60- curStartFrameEE*tInterval,bestModelDis2.Variables.y, 'bx-.')

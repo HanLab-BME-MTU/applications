@@ -93,6 +93,10 @@ if ~ischar(pathSFolders) && pathSFolders==0
         end
         MLdirect=true;
     end
+    if isempty(groupNames)
+        disp('Nothing is happening')
+        return
+    end
     specificName = strjoin(groupNames);
     rootAnalysis = pathAnalysisAll{1};
     refDirTif = [];

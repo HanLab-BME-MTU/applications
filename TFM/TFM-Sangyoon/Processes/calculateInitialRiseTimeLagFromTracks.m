@@ -885,7 +885,7 @@ end
     R2criteria = 0.5;
     for kk=1:numTracks
         curTrack=tracksNA(kk);
-        [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp');
+        [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal');%'amp');
         if ~isnan(curAssemRate)
             if bestSummaryAssem.adjRsquared<R2criteria %something about too short TS?
                 curAssemRate = NaN;
@@ -923,7 +923,7 @@ end
     parfor kk=1:numTracks
 %     for kk=1:numTracks
         curTrack=tracksNA(kk);
-        [curDisassemRate,~,bestSummaryDisassem,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'amp');
+        [curDisassemRate,~,bestSummaryDisassem,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal'); %'amp');
         if ~isnan(curDisassemRate)
             if bestSummaryDisassem.adjRsquared<R2criteria
                 curDisassemRate = NaN;
@@ -985,14 +985,14 @@ end
             disp('Calculating assembly/disassembly rates'); tic
             parfor kk=1:numTracks
                 curTrack=tracksNA(kk);
-                [curAssemRate,~,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntMin,'amp2',15,0,tRangeSelectedAssem{kk});
+                [curAssemRate,~,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal2',15,0,tRangeSelectedAssem{kk});
                 if ~isnan(curAssemRate)
                     if (bestSummaryAssem2.adjRsquared<0.125*R2criteria && abs(curAssemRate) > 0.5) || isnan(curTrack.assemRate)
                         curAssemRate = NaN;
                     end
                 end
                 curTrack.assemRate2 = curAssemRate;
-                [curDisassemRate,~,bestSummaryDisassem2] = getDisassemRateFromTracks(curTrack,tIntMin,'amp2',25,0,tRangeSelectedDisassem{kk});
+                [curDisassemRate,~,bestSummaryDisassem2] = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal2',25,0,tRangeSelectedDisassem{kk});
                 if ~isnan(curDisassemRate)
                     if (bestSummaryDisassem2.adjRsquared<0.125*R2criteria && abs(curDisassemRate) > 0.5) || isnan(curTrack.disassemRate)
                         curDisassemRate = NaN;
