@@ -146,6 +146,8 @@ elseif strcmpi(method,'FEM')
     toc;    
     disp('Completed FEM fwd solution.')
     
+    save('FEMOutputs.mat','ux','uy')
+    
 %%%%%NONLINEAR FEM SOLUTION%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     elseif nonlin == 1
         tic;
@@ -167,8 +169,8 @@ elseif strcmpi(method,'FEM')
         %Specifying dimensions and number of elements
         sampleWidth = x0(2)*2; %Width
         sampleThickness = y0(2)*2; %Thickness
-        sampleHeight = x0(2)/4; %Height
-        pointSpacings = 8*ones(1,3);%(meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
+        sampleHeight = x0(2)/16; %Height
+        pointSpacings = [4,4,8];%(meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
         numElementsWidth = round(sampleWidth/pointSpacings(1))+1; %Number of elemens in dir 1
         numElementsThickness = round(sampleThickness/pointSpacings(2))+1; %Number of elemens in dir 2
         numElementsHeight = round(sampleHeight/pointSpacings(3))+1; %Number of elemens in dir 3
@@ -209,13 +211,13 @@ elseif strcmpi(method,'FEM')
 
         % //Prepare face nodes for BC application *************************
         %Define supported node sets
-        logicFace=Cb==1; %Logic for current face set
-        Fr=Fb(logicFace,:); %The current face set
-        bcSupportList_X=unique(Fr(:)); %Node set part of selected face
+        %logicFace=Cb==1; %Logic for current face set
+        %Fr=Fb(logicFace,:); %The current face set
+        %bcSupportList_X=unique(Fr(:)); %Node set part of selected face
 
-        logicFace=Cb==3; %Logic for current face set
-        Fr=Fb(logicFace,:); %The current face set
-        bcSupportList_Y=unique(Fr(:)); %Node set part of selected face
+        %logicFace=Cb==3; %Logic for current face set
+        %Fr=Fb(logicFace,:); %The current face set
+        %bcSupportList_Y=unique(Fr(:)); %Node set part of selected face
 
         logicFace=Cb==5; %Logic for current face set
         Fr=Fb(logicFace,:); %The current face set
@@ -224,7 +226,7 @@ elseif strcmpi(method,'FEM')
         %Prescribed force nodes
         logicPrescribe=Cb==6; %Logic for current face set
         Fr=fliplr(Fb(logicPrescribe,:)); %The current face set
-        %bcPrescribeList=unique(Fr(:)); %Node set part of selected face
+        bcPrescribeList=unique(Fr(:)); %Node set part of selected face
 
         %Create spatially varying traction force
         %force_X and Y should be meshPts/Spacing by meshPts/Spacing arrays
@@ -261,12 +263,27 @@ elseif strcmpi(method,'FEM')
         febio_spec.Control.time_stepper.opt_iter=opt_iter;
 
         %Material section
+        %Ogden material parameters
+        c1 = 1e-3;
+        m1 = 8;
+        k_factor = 1e2;
+        k = c1*k_factor;
+        %Assign material parameters
         materialName1='Material1';
         febio_spec.Material.material{1}.ATTR.name=materialName1;
-        febio_spec.Material.material{1}.ATTR.type='neo-Hookean';
+        %Neo-Hookean Material
+        %febio_spec.Material.material{1}.ATTR.type='neo-Hookean';
+        %febio_spec.Material.material{1}.ATTR.id=1;
+        %febio_spec.Material.material{1}.E=E_youngs1;
+        %febio_spec.Material.material{1}.v=nu1;
+        %Ogden Material
+        febio_spec.Material.material{1}.ATTR.type='Ogden';
         febio_spec.Material.material{1}.ATTR.id=1;
-        febio_spec.Material.material{1}.E=E_youngs1;
-        febio_spec.Material.material{1}.v=nu1;
+        febio_spec.Material.material{1}.c1=c1;
+        febio_spec.Material.material{1}.m1=m1;
+        febio_spec.Material.material{1}.c2=c1;
+        febio_spec.Material.material{1}.m2=-m1;
+        febio_spec.Material.material{1}.k=k;
 
         % Mesh section
         % -> Nodes
@@ -282,24 +299,25 @@ elseif strcmpi(method,'FEM')
         febio_spec.Mesh.Elements{1}.elem.VAL=El; %The element matrix
 
         % -> NodeSets
-        nodeSetName1='bcSupportList_X';
-        nodeSetName2='bcSupportList_Y';
-        nodeSetName3='bcSupportList_Z';
-
+        %nodeSetName2='bcSupportList_X';
+        %nodeSetName3='bcSupportList_Y';
+        nodeSetName1='bcSupportList_Z';
+        %nodeSetName4='bcPrescribeList';
+        
         febio_spec.Mesh.NodeSet{1}.ATTR.name=nodeSetName1;
-        febio_spec.Mesh.NodeSet{1}.node.ATTR.id=bcSupportList_X(:);
+        febio_spec.Mesh.NodeSet{1}.node.ATTR.id=bcSupportList_Z(:);
 
-        febio_spec.Mesh.NodeSet{2}.ATTR.name=nodeSetName2;
-        febio_spec.Mesh.NodeSet{2}.node.ATTR.id=bcSupportList_Y(:);
+        %febio_spec.Mesh.NodeSet{2}.ATTR.name=nodeSetName2;
+        %febio_spec.Mesh.NodeSet{2}.node.ATTR.id=bcSupportList_X(:);
 
-        febio_spec.Mesh.NodeSet{3}.ATTR.name=nodeSetName3;
-        febio_spec.Mesh.NodeSet{3}.node.ATTR.id=bcSupportList_Z(:);
+        %febio_spec.Mesh.NodeSet{3}.ATTR.name=nodeSetName3;
+        %febio_spec.Mesh.NodeSet{3}.node.ATTR.id=bcSupportList_Y(:);
 
         % -> Surfaces
         surfaceName1='LoadedSurface';
         febio_spec.Mesh.Surface{1}.ATTR.name=surfaceName1;
         febio_spec.Mesh.Surface{1}.tri3.ATTR.id=(1:1:size(Fr,1))';
-        febio_spec.Mesh.Surface{1}.tri3.VAL=Fr;
+        febio_spec.Mesh.Surface{1}.tri3.VAL=Fr;%bcPrescribeList;
 
         %MeshDomains section
         febio_spec.MeshDomains.SolidDomain.ATTR.name=partName1;
@@ -309,15 +327,15 @@ elseif strcmpi(method,'FEM')
         % -> Fix boundary conditions
         febio_spec.Boundary.bc{1}.ATTR.type='fix';
         febio_spec.Boundary.bc{1}.ATTR.node_set=nodeSetName1;
-        febio_spec.Boundary.bc{1}.dofs='x';
+        febio_spec.Boundary.bc{1}.dofs='x,y,z';
+        
+        %febio_spec.Boundary.bc{2}.ATTR.type='fix';
+        %febio_spec.Boundary.bc{2}.ATTR.node_set=nodeSetName2;
+        %febio_spec.Boundary.bc{2}.dofs='x';
 
-        febio_spec.Boundary.bc{2}.ATTR.type='fix';
-        febio_spec.Boundary.bc{2}.ATTR.node_set=nodeSetName2;
-        febio_spec.Boundary.bc{2}.dofs='y';
-
-        febio_spec.Boundary.bc{3}.ATTR.type='fix';
-        febio_spec.Boundary.bc{3}.ATTR.node_set=nodeSetName3;
-        febio_spec.Boundary.bc{3}.dofs='z';
+        %febio_spec.Boundary.bc{3}.ATTR.type='fix';
+        %febio_spec.Boundary.bc{3}.ATTR.node_set=nodeSetName3;
+        %febio_spec.Boundary.bc{3}.dofs='y';
 
         %MeshData section
         % -> Surface data
@@ -371,11 +389,11 @@ elseif strcmpi(method,'FEM')
         end
 
         %Export FEBio Structure
-        [domNode] = febioStruct2xml(febio_spec,febioFebFileName,optionStruct); %Exporting to file and domNode
+        febioStruct2xml(febio_spec,febioFebFileName,optionStruct); %Exporting to file
         %system(['gedit ',febioFebFileName,' &']);
 
         %Run Model
-        skipFEBio = 1;
+        skipFEBio = 0;
         if skipFEBio ~= 1
         [runFlag]=runMonitorFEBio(febioAnalysis);%START FEBio NOW!!!!!!!!
         end
@@ -427,8 +445,8 @@ elseif strcmpi(method,'FEM')
         node_uy = dispMat(:,2);
 
         %Extract top face
-        topNode_ux = node_ux(V(:,3)==64);
-        topNode_uy = node_uy(V(:,3)==64);
+        topNode_ux = node_ux(V(:,3)==(sampleHeight/2));
+        topNode_uy = node_uy(V(:,3)==(sampleHeight/2));
         
 %         %Get nodal locations of displacement values from top face
 %         topLoc = V(V(:,3)==64,:);
@@ -438,27 +456,34 @@ elseif strcmpi(method,'FEM')
 %         nodeLocMap_y = reshape(topLoc(:,2),[],numElementsWidth+1);
 
         %Initialize loop variables
-        nodeDispMap_ux = zeros(130);
-        nodeDispMap_uy = zeros(130);
-        outMatWidth = numElementsWidth + 1;
-        startID = 1;
-        endID = outMatWidth;
-        idx = 1;
-        %Loop through every column of the output matrices to place the
-        %displacements in the correct order
-        for k = 1:outMatWidth
-            %Get current column of UX and UY displacement
-            %Rotate 180 to orient Y coordinates in proper order
-            curXcol = rot90(topNode_ux(startID:endID),2);
-            curYcol = rot90(topNode_uy(startID:endID),2);
-            %Place current columns into output matrices 1 column at a time
-            %from left to right
-            nodeDispMap_ux(1:outMatWidth,idx) = curXcol;
-            nodeDispMap_uy(1:outMatWidth,idx) = curYcol;
-            %Increment counters
-            startID = startID + outMatWidth;
-            endID = endID + outMatWidth;
-            idx = idx + 1;
+        reformatOut = 0;
+        %Reformatting output matrices to ensure correct orientation
+        if reformatOut == 1
+            nodeDispMap_ux = zeros(130);
+            nodeDispMap_uy = zeros(130);
+            outMatWidth = numElementsWidth + 1;
+            startID = 1;
+            endID = outMatWidth;
+            idx = 1;
+            %Loop through every column of the output matrices to place the
+            %displacements in the correct order
+            for k = 1:outMatWidth
+                %Get current column of UX and UY displacement
+                %Rotate 180 to orient Y coordinates in proper order
+                curXcol = rot90(topNode_ux(startID:endID),2);
+                curYcol = rot90(topNode_uy(startID:endID),2);
+                %Place current columns into output matrices 1 column at a time
+                %from left to right
+                nodeDispMap_ux(1:outMatWidth,idx) = curXcol;
+                nodeDispMap_uy(1:outMatWidth,idx) = curYcol;
+                %Increment counters
+                startID = startID + outMatWidth;
+                endID = endID + outMatWidth;
+                idx = idx + 1;
+            end
+        else
+            nodeDispMap_ux = reshape(topNode_ux,[],numElementsWidth+1);
+            nodeDispMap_uy = reshape(topNode_uy,[],numElementsWidth+1);
         end
          
 %         %Convert to NxN displacement maps
@@ -477,6 +502,8 @@ elseif strcmpi(method,'FEM')
         end
         toc;    
         disp('Completed Non-linear FEM fwd solution.')
+        
+        save('FEMNonLinOgdenOutputs.mat','ux','uy')
     end
 
 elseif strcmpi(method,'fft')
@@ -740,6 +767,8 @@ elseif strcmpi(method,'fft')
         x_grid=x0;
         y_grid=y0;
     end
+    
+    save('fastBEMoutputs.mat','ux','uy')
     
     %toc;
     

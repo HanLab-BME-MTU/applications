@@ -422,7 +422,18 @@ for ii=1:numConditions
                 try
                     initOutFolder = fileparts(initRiseProc.outFilePaths_{2,iForceSlave});
                 catch
-                    initOutFolder = fileparts(initRiseProc.outFilePaths_{1,iForceSlave});
+                    try
+                        initOutFolder = fileparts(initRiseProc.outFilePaths_{1,iForceSlave});
+                    catch
+                        % get whatever that's not empty
+                        iFilledOutput = find(~cellfun(@isempty,initRiseProc.outFilePaths_));
+                        if ~isempty(iFilledOutput)
+                            initOutFolder = fileparts(initRiseProc.outFilePaths_{iFilledOutput(1)});
+                        else
+                            disp('No init rise process results! Skipping ...')
+                            continue
+                        end
+                    end
                 end
                 initDataPath = [initOutFolder filesep 'data'];
 
