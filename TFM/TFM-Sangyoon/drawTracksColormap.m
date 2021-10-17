@@ -1,4 +1,12 @@
 function h = drawTracksColormap(tracksNA,iFrame,Property,PropRange,Colormap)
+% h = drawTracksColormap(tracksNA,iFrame,Property,PropRange,Colormap) draws
+% trajectories of adhesions on top of an existing figure, colorcoded w.r.t.
+% Property with PropRange.
+% Usage:
+%   
+%   figure, imshow(
+
+
 markerSize = 7;
 circleMarkerSize=4;
 lineWidth = 1;

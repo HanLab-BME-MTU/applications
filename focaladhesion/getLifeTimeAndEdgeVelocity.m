@@ -1,4 +1,4 @@
-function [meanLF,meanEV,meanEdgeAdvance] = getLifeTimeAndEdgeVelocity(MD)
+function [allLF,allEV,PTprot] = getLifeTimeAndEdgeVelocity(MD)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 %% Load tracks
@@ -15,70 +15,308 @@ for ii=2:9
     idGroupLabel = idGroupLabel+ ii*iClasses{ii};
 end
 tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA');
-
+%% sampling only adhesions near the edge
+distToEdge = arrayfun(@(x) min(x.distToEdge(x.distToEdge>0)),tracksNA);
+thresDist = 1000/MD.pixelSize_;
+tracksNA2 = tracksNA(distToEdge<thresDist);
 %% Get edge velocity
 % I'll use mean(edgeAdvanceDist)/lifetime
-eV = arrayfun(@(x) mean(x.edgeAdvanceDist)/x.lifeTime,tracksNA);
-meanDist = arrayfun(@(x) mean(x.edgeAdvanceDist),tracksNA);
+eV = arrayfun(@(x) mean(x.edgeAdvanceDist)/x.lifeTime,tracksNA2);
+meanDist = arrayfun(@(x) mean(x.edgeAdvanceDist),tracksNA2);
 % Get adhesion life time
-lifeTime = arrayfun(@(x) x.lifeTime,tracksNA);
+lifeTime = arrayfun(@(x) x.lifeTime,tracksNA2);
+distToEdge2 = distToEdge(distToEdge<thresDist);
 % Plot between the two
 % Scatter plot
 % plot(lifeTime,eV,'ko')
 % 2D histogram
+%% Window-based edge protrusion
+% Get the window package
+wPack = MD.getPackage(MD.getPackageIndex('WindowingPackage'));
+% inspect each process
+% pProc = wPack.getProcess(1);
+wProc = wPack.getProcess(2);
+psProc = wPack.getProcess(3);
+psSamples = psProc.loadChannelOutput;
+% I got the information. probably in avgNormal would do it.
+% Only problem is to find out the location of each window.
+% First, find where each adhesion is located
+nTracks = numel(tracksNA2);
+meanPersTimeProt = zeros(nTracks,1);
+meanPersTimeRet = zeros(nTracks,1);
+meanEdgeProtVelAll = zeros(nTracks,1);
+meanEdgeRetVelAll = zeros(nTracks,1);
+for ii=1:nTracks
+    % get the location
+    sF = tracksNA2(ii).startingFrameExtra;
+    eF = tracksNA2(ii).endingFrameExtraExtra;
+    curX = tracksNA2(ii).xCoord(sF);
+    curY = tracksNA2(ii).yCoord(sF);
+    % get windows
+    windows = wProc.loadChannelOutput(sF);
+    % Now identify which window contains the adhesion location.
+    iClosest = findClosestWindow(windows,[curX curY]);
+    % Found it! Now let's get the vector
+    curEdgeVel = psSamples.avgNormal(iClosest,sF:eF);
+    % Now get the mean velocity and persistent time
+%     %little bit of smoothing?
+%     tRange = 1:MD.nFrames_;
+%     sd_spline= csaps(tRange,curEdgeVel,0.5);
+%     curEdgeVel2=ppval(sd_spline,tRange);
+%     tRange = tracksNA2(ii).startingFrameExtraExtra:tracksNA2(ii).endingFrameExtraExtra;
+%     d = tracksNA2(ii).edgeAdvanceDist(tRange);
+%     % if we are collecting the zero edge motion, that would be from the
+%     % image boundary. Need to ignore them.
+%     if all(d==0)
+%         meanPersTimeProt(ii) = NaN;
+%         meanPersTimeRet(ii) = NaN;
+%         continue
+%     end
+%         
+%     sd_spline= csaps(tRange,d,0.1);
+%     sd=ppval(sd_spline,tRange);
+%     
+%     %Get the velocity
+%     curVel = diff(sd);
+%     % The same thing. if the edgeAdvanceDist captures the image boundary,
+%     % the velocity will come out as zero. Should ignore them.
+%     if all(curVel==0)
+%         meanPersTimeProt(ii) = NaN;
+%         meanPersTimeRet(ii) = NaN;
+%         continue
+%     end
+    
+    [curProt,curRet] = getPersistenceTime(curEdgeVel,MD.timeInterval_); %,'plotYes',true);
+%     [curProt,curRet] = getPersistenceTime(curEdgeVel2,MD.timeInterval_); %,'plotYes',true);
+    % I will report the mean persistent time for protrusion and retraction
+    meanPersTimeProt(ii) = mean(curProt.persTime);
+    meanPersTimeRet(ii) = mean(curRet.persTime);
+%     meanEdgeProtVelAll(ii) = nanmean(curEdgeVel(curEdgeVel>=0));
+%     meanEdgeRetVelAll(ii) = nanmean(curEdgeVel(curEdgeVel<=0));
+    meanEdgeProtVelAll(ii) = nanmean(curProt.Veloc);
+    meanEdgeRetVelAll(ii) = nanmean(curRet.Veloc);
+end
+
+
 %% refinement
 % Some filterring is required
+% % 1. We are not interested in adhesions in static or retracting edge
+% idValid1 = meanDist>abs(0.5*std(meanDist));
+% %  2. We are not interested in adhesions that has movie-long lifetime
+% idValid2 = lifeTime <0.8*MD.nFrames_;
+% idValid = idValid1 & idValid2;
 % 1. We are not interested in adhesions in static or retracting edge
-idValid1 = meanDist>abs(0.5*std(meanDist));
+% idValid1 = meanEdgeProtVelAll>abs(0.5*nanstd(meanEdgeProtVelAll));
 %  2. We are not interested in adhesions that has movie-long lifetime
-idValid2 = lifeTime <0.8*MD.nFrames_;
-idValid = idValid1 & idValid2;
+idValid2 = lifeTime <0.9*MD.nFrames_; % & lifeTime >=0;
+% idValid = idValid1 & idValid2;
+idValid = idValid2;
 
 %% All
-figure('Position',[100,100,400,900]), subplot(3,1,1)
-plot(lifeTime(idValid),meanDist(idValid),'ko')
+figEVvsLT=figure('Position',[100,100,400,700]); subplot(2,1,1)
+% plot(lifeTime(idValid),meanDist(idValid),'ko')
+% plot(lifeTime,meanEdgeProtVelAll,'ko')
+plot(lifeTime(idValid),meanEdgeProtVelAll(idValid),'ko')
+
 hold on
-plot(mean(lifeTime(idValid)),mean(meanDist(idValid)),'bx','MarkerSize',20)
+% plot(mean(lifeTime(idValid)),mean(meanDist(idValid)),'bx','MarkerSize',20)
 % Add barplot by binning data by 10 in x-axis. I can use discretize
 % function!
 % edges = [0:20:80 100:50:ceil(max(lifeTime(idValid))/50)*50];
+% edges = [0:20:40 ceil(max(lifeTime(idValid)))];
 edges = 0:20:ceil(max(lifeTime(idValid))/50)*50;
 Y = discretize(lifeTime(idValid),edges);
-mDValid = meanDist(idValid);
-meanDistPerBin = arrayfun(@(x) mean(mDValid(Y==x)),1:numel(edges));
-pB = bar(edges+10,meanDistPerBin);
+% mDValid = meanDist(idValid);
+eVValid = meanEdgeProtVelAll(idValid);
+
+eVPerBin = arrayfun(@(x) nanmean(eVValid(Y==x)),1:numel(edges));
+pB = bar(edges+10,eVPerBin);
 pB.FaceAlpha=0;
 pB.EdgeColor='r';
 pB.LineWidth = 2;
-stdDistPerBin = arrayfun(@(x) stdErrMean(mDValid(Y==x)),1:numel(edges));
-eH = errorbar(edges+10,meanDistPerBin,...
-    stdDistPerBin,'Color', 'r');
+% stdDistPerBin = arrayfun(@(x) stdErrMean(mDValid(Y==x)),1:numel(edges));eVValid
+stdDistPerBin = arrayfun(@(x) stdErrMean(eVValid(Y==x)),1:numel(edges));
+% eH = errorbar(edges+10,meanDistPerBin,...
+%     stdDistPerBin,'Color', 'r');
+eH = errorbar(edges+10,eVPerBin, stdDistPerBin,'Color', 'r');
 eH.YNegativeDelta = [];
 eH.LineStyle='none';
 eH.LineWidth = 2;
 mPath = MD.getPath;
 title(mPath(end-17:end))
 xlabel('Lifetime (frames)')
-ylabel('Edge advance distance (px)')
+ylabel('Edge velocity (px/sec)')
+
+subplot(2,1,2)
+edgeVelBinArray = arrayfun(@(x) eVValid(Y==x),1:numel(edges),'unif',false);
+boxPlotCellArray(edgeVelBinArray,cellstr(num2str(edges'+10))',1,0,0);
+xlabel('Lifetime (frames)')
+ylabel('Edge advance velocity (px/frame)')
+
+%% save the figure
+savefig(figEVvsLT,[MD.getPath filesep 'edgeVelVsLifetime.fig']);
+print(figEVvsLT,[MD.getPath filesep 'edgeVelVsLifetime.eps'], '-depsc')
+close(figEVvsLT)
+
+% subplot(3,1,3)
+% plot(lifeTime(idValid),eV(idValid),'ko')
+% hold on
+% plot(mean(lifeTime(idValid)),mean(eV(idValid)),'rx','MarkerSize',20)
+% xlabel('Lifetime (frames)')
+% ylabel('Edge velocity (px/frame)')
+
+allLF = lifeTime(idValid);
+allEV = meanEdgeProtVelAll(idValid);
+%% All - eV
+% meanEV = mean(eV(idValid));
+% It might be necessary to group all high lifetime (80-140 frames) into one
+% I will need to convert the edge advance distance into the velocity
+% divided by the same (max) life time.
+% But I will concentrate on persistence measurement
+%% Persistence measurement about the edge fluctuation.
+% It went up.
+%% plotting persistent time as a function of lifetime
+figPTvsLT=figure('Position',[500,100,400,900]); subplot(3,1,1)
+LT = lifeTime(idValid);
+PTprot = meanPersTimeProt(idValid);
+% plot(LT,PTprot,'ko')
+% regression
+% full series
+mdl = fitlm(LT,PTprot,'VarNames',{'Lifetime','Persistent time'});
+mdl.plot
+% Plot for x>35
+thresLT = 35;
+idx = LT>thresLT & ~(LT==83 & PTprot>93);
+mdl35 = fitlm(LT(idx),PTprot(idx),'VarNames',{'Lifetime','Persistent time'});
+mdl35.plot
+mdlunder = fitlm(LT(LT<=thresLT),PTprot(LT<=thresLT),'VarNames',{'Lifetime','Persistent time'});
+hold on;
+mdlunder.plot
+%%
+hold on
+% plot(lifeTime(idValid),meanPersTimeRet(idValid),'ro')
 
 subplot(3,1,2)
-meanDistBinArray = arrayfun(@(x) mDValid(Y==x),1:numel(edges),'unif',false);
-boxPlotCellArray(meanDistBinArray,cellstr(num2str(edges'+10))',1,0,0);
+meanPTPValid = meanPersTimeProt(idValid);
+meanPTP_BinArray = arrayfun(@(x) meanPTPValid(Y==x),1:numel(edges),'unif',false);
+boxPlotCellArray(meanPTP_BinArray,cellstr(num2str(edges'+10))',1,0,0);
 xlabel('Lifetime (frames)')
-ylabel('Edge advance distance (px)')
-
+ylabel('Persistance time (sec)')
+title('Protrusion persistance')
 
 subplot(3,1,3)
-plot(lifeTime(idValid),eV(idValid),'ko')
-hold on
-plot(mean(lifeTime(idValid)),mean(eV(idValid)),'rx','MarkerSize',20)
+meanPTRValid = meanPersTimeRet(idValid);
+meanPTR_BinArray = arrayfun(@(x) meanPTRValid(Y==x),1:numel(edges),'unif',false);
+boxPlotCellArray(meanPTR_BinArray,cellstr(num2str(edges'+10))',1,0,0);
 xlabel('Lifetime (frames)')
-ylabel('Edge velocity (px/frame)')
+ylabel('Persistance time (sec)')
+title('Retraction persistance')
+%% Need to look at where they are:
+%% cell and cell boundary
+iFrame = 100;
+% imshow(MD.channels_(iChan).loadImage(iFrame),[])
+iEdgeFrames = 1:iFrame; colorMap = @jet;
+[figHan,ax1] = makeColoredEdgeOverlayFigure(MD,iFrame,iEdgeFrames,iChan,colorMap);
+%colorbar for protrusion
+nFramesSel = numel(iEdgeFrames);
+frameCols = colorMap(nFramesSel);
+ax2  = axes('Position',[0.05  0.2 0.05  0.6]);
+cBarRGD = ones(length(frameCols),5,3);
+cBarRGD(:,:,1) = repmat(frameCols(:,1),1,5);
+cBarRGD(:,:,2) = repmat(frameCols(:,2),1,5);
+cBarRGD(:,:,3) = repmat(frameCols(:,3),1,5);
+imshow(flip(cBarRGD))
+% tick
+hold on
+text(5,iEdgeFrames(end),['frame ' num2str(iEdgeFrames(1))],'Color','w');
+text(5,iEdgeFrames(1),['frame ' num2str(iEdgeFrames(end))],'Color','w');
+text(10,50,'Edge Protrusion (frame)','Color','w',...
+    'HorizontalAlignment','center','Rotation',90);
+%% save the figure
+savefig(figPTvsLT,[MD.getPath filesep 'PersistenceVsLifetime.fig']);
+print(figPTvsLT,[MD.getPath filesep 'PersistenceVsLifetime.eps'], '-depsc')
+close(figPTvsLT)
 
-meanLF = mean(lifeTime(idValid));
-meanEdgeAdvance = mean(meanDist(idValid));
+%% Now let's look at where adhesions in each group are.
+axes(ax1)
 
-%% All - eV
-meanEV = mean(eV(idValid));
+idxG1 = idValid & lifeTime>thresLT & ~(lifeTime==83 & meanPersTimeProt>93);
+idxG2 = idValid & lifeTime<=thresLT;
+
+% now showinig the tracks
+ltMax = 0.6*MD.nFrames_;
+hG1 = drawTracksColormap(tracksNA2(idxG1), iFrame, 'lifeTime',[1 ltMax],hot);
+%% short ones
+% axes(ax1)
+hG2 = drawTracksColormap(tracksNA2(idxG2), iFrame, 'lifeTime',[1 ltMax],hot);
+%% scale bar
+scaleBarLength = 5000; %nm
+line([5 5+scaleBarLength/MD.pixelSize_],[10 10],'Color','w','LineWidth',3)
+text(5+scaleBarLength/MD.pixelSize_/2,20,[num2str(scaleBarLength/1000) ' \mum'],...
+    'HorizontalAlignment','center','Color','w','FontSize',7);
+%% colorbar for lifetime
+nLT = numel(1:ltMax);
+colorMap2 = @hot;
+frameCols2 = colorMap2(nLT);
+ax3  = axes('Position',[0.25  0.2 0.05  0.6]);
+cBarRGD2 = ones(length(frameCols2),5,3);
+cBarRGD2(:,:,1) = repmat(frameCols2(:,1),1,5);
+cBarRGD2(:,:,2) = repmat(frameCols2(:,2),1,5);
+cBarRGD2(:,:,3) = repmat(frameCols2(:,3),1,5);
+imshow(flip(cBarRGD2))
+% tick
+hold on
+text(6,ltMax,num2str(1),'Color','w');
+text(6,1,num2str(ltMax),'Color','w');
+text(10,ltMax/2,'Lifetime (frame)','Color','w',...
+    'HorizontalAlignment','center','Rotation',90);
+pp=0;
+%% bring back the bar for the edges
+axes(ax2)
+axes(ax3)
+%% save the figure
+savefig(figHan,[MD.getPath filesep 'edge_adhesions.fig']);
+print(figHan,[MD.getPath filesep 'edge_adhesions.eps'], '-depsc')
+close(figHan)
+%% Now let's look at one by one 
+indexG1 = find(idxG1');
+pp=pp+1;
+ii = indexG1(pp);
+% for ii=find(idxG1')
+    sF = tracksNA2(ii).startingFrameExtra;
+    eF = tracksNA2(ii).endingFrameExtra;
+    iEdgeFrames = sF:eF;
+%     [figHanAll(ii),ax1all(ii)] = ...
+    [figHanAll,ax1all] = ...
+        makeColoredEdgeOverlayFigure(MD,iFrame,iEdgeFrames,iChan,colorMap);
+    drawTracksColormap(tracksNA2(ii), iFrame, 'lifeTime',[1 ltMax],hot);
+%     plot(tracksNA2(ii).closestBdPoint(sF:eF,1),...
+%         tracksNA2(ii).closestBdPoint(sF:eF,2),'w.');
+    windows = wProc.loadChannelOutput(iFrame);
+    % Now identify which window contains the adhesion location.
+    curX  = tracksNA2(ii).xCoord(sF);
+    curY  = tracksNA2(ii).yCoord(sF);
+    iClosest = findClosestWindow(windows,[curX curY]);
+    plotWindows(windows{iClosest}{1});
+    %Get the distance
+    distToW = cellfun(@(x) dist2Pt(x',[curX curY]), windows{iClosest}{1},'unif',false);
+    [~,indMinDist]=cellfun(@min,distToW);
+    % we want to choose the distance to the very edge of the cell mask,
+    % which will be not the minimum
+    [distBds,indDistBds] = max(cellfun(@min,distToW));
+    closestBDPoint = windows{iClosest}{1}{indDistBds}(:,indMinDist(indDistBds));
+    plot(closestBDPoint(1),closestBDPoint(2),'w.');
+    text(tracksNA2(ii).xCoord(eF)+2,tracksNA2(ii).yCoord(eF),...
+        {['LT: ' num2str(tracksNA2(ii).lifeTime)];
+        ['Protrusion vel: ' num2str(meanEdgeProtVelAll(ii))];
+        ['Persistent time: ' num2str(meanPersTimeProt(ii))];
+        ['Distance to edge: ' num2str(distBds)];
+        ['ID: ' num2str(ii)]}, 'Color','w');
+    %% save the figure
+    savefig(figHanAll,[MD.getPath filesep 'one_specific_adhesion.fig']);
+    print(figHanAll,[MD.getPath filesep 'one_specific_adhesion.eps'], '-depsc')
+    close(figHanAll)
+% end
+
 end
 
