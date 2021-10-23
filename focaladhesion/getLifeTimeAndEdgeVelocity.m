@@ -46,18 +46,25 @@ meanPersTimeProt = zeros(nTracks,1);
 meanPersTimeRet = zeros(nTracks,1);
 meanEdgeProtVelAll = zeros(nTracks,1);
 meanEdgeRetVelAll = zeros(nTracks,1);
+% get windows
+windows = wProc.loadChannelOutput(1);
+nF = size(windows,2);
+WindowRange{1} = 4:(nF-3);
+nIMFs = 1; % Input # of IMFs to subtract
+[cellData, dataSet] =...
+    edgeVelocityQuantification_KRC(MD,nIMFs,'includeWin',WindowRange,...
+    'scale',true(1,nF),'outLevel',9*ones(1,nF)); %,'fileName',[name, 'Analysis01']); 
+
 for ii=1:nTracks
     % get the location
     sF = tracksNA2(ii).startingFrameExtra;
     eF = tracksNA2(ii).endingFrameExtraExtra;
     curX = tracksNA2(ii).xCoord(sF);
     curY = tracksNA2(ii).yCoord(sF);
-    % get windows
-    windows = wProc.loadChannelOutput(sF);
     % Now identify which window contains the adhesion location.
     iClosest = findClosestWindow(windows,[curX curY]);
     % Found it! Now let's get the vector
-    curEdgeVel = psSamples.avgNormal(iClosest,sF:eF);
+%     curEdgeVel = psSamples.avgNormal(iClosest,sF:eF);
     % Now get the mean velocity and persistent time
 %     %little bit of smoothing?
 %     tRange = 1:MD.nFrames_;
@@ -85,16 +92,33 @@ for ii=1:nTracks
 %         meanPersTimeRet(ii) = NaN;
 %         continue
 %     end
-    
-    [curProt,curRet] = getPersistenceTime(curEdgeVel,MD.timeInterval_); %,'plotYes',true);
-%     [curProt,curRet] = getPersistenceTime(curEdgeVel2,MD.timeInterval_); %,'plotYes',true);
-    % I will report the mean persistent time for protrusion and retraction
-    meanPersTimeProt(ii) = mean(curProt.persTime);
-    meanPersTimeRet(ii) = mean(curRet.persTime);
-%     meanEdgeProtVelAll(ii) = nanmean(curEdgeVel(curEdgeVel>=0));
-%     meanEdgeRetVelAll(ii) = nanmean(curEdgeVel(curEdgeVel<=0));
-    meanEdgeProtVelAll(ii) = nanmean(curProt.Veloc);
-    meanEdgeRetVelAll(ii) = nanmean(curRet.Veloc);
+%     curEdgeVel = psSamples.avgNormal(iClosest,sF:eF);
+
+    if ismember(iClosest,cellData{1}.data.includedWin{1})
+        curWinStatProt = cellData{1}.protrusionAnalysis.windows(...
+            find(cellData{1}.data.includedWin{1}==iClosest));
+        meanPersTimeProt(ii) = mean(curWinStatProt.persTime);
+        meanEdgeProtVelAll(ii) = mean(curWinStatProt.Veloc);
+        curWinStatRet = cellData{1}.retractionAnalysis.windows(...
+            find(cellData{1}.data.includedWin{1}==iClosest));
+        meanPersTimeRet(ii) = mean(curWinStatRet.persTime);
+        meanEdgeRetVelAll(ii) = mean(curWinStatRet.Veloc);
+    else
+        meanPersTimeProt(ii) = NaN;
+        meanPersTimeRet(ii) = NaN;
+        meanEdgeProtVelAll(ii) = NaN;
+        meanEdgeRetVelAll(ii) = NaN;
+    end
+
+%     [curProt,curRet] = getPersistenceTime(curEdgeVel,MD.timeInterval_); %,'plotYes',true);
+% %     [curProt,curRet] = getPersistenceTime(curEdgeVel2,MD.timeInterval_); %,'plotYes',true);
+%     % I will report the mean persistent time for protrusion and retraction
+%     meanPersTimeProt(ii) = mean(curProt.persTime);
+%     meanPersTimeRet(ii) = mean(curRet.persTime);
+% %     meanEdgeProtVelAll(ii) = nanmean(curEdgeVel(curEdgeVel>=0));
+% %     meanEdgeRetVelAll(ii) = nanmean(curEdgeVel(curEdgeVel<=0));
+%     meanEdgeProtVelAll(ii) = nanmean(curProt.Veloc);
+%     meanEdgeRetVelAll(ii) = nanmean(curRet.Veloc);
 end
 
 
@@ -112,7 +136,7 @@ idValid2 = lifeTime <0.9*MD.nFrames_; % & lifeTime >=0;
 % idValid = idValid1 & idValid2;
 idValid = idValid2;
 
-%% All
+%% Vel vs LT
 figEVvsLT=figure('Position',[100,100,400,700]); subplot(2,1,1)
 % plot(lifeTime(idValid),meanDist(idValid),'ko')
 % plot(lifeTime,meanEdgeProtVelAll,'ko')
