@@ -205,17 +205,24 @@ LT = lifeTime(idValid);
 PTprot = meanPersTimeProt(idValid);
 % plot(LT,PTprot,'ko')
 % regression
-% full series
-mdl = fitlm(LT,PTprot,'VarNames',{'Lifetime','Persistent time'});
-mdl.plot
-% Plot for x>35
 thresLT = 35;
-idx = LT>thresLT & ~(LT==83 & PTprot>93);
-mdl35 = fitlm(LT(idx),PTprot(idx),'VarNames',{'Lifetime','Persistent time'});
-mdl35.plot
-mdlunder = fitlm(LT(LT<=thresLT),PTprot(LT<=thresLT),'VarNames',{'Lifetime','Persistent time'});
-hold on;
-mdlunder.plot
+% full series
+try
+    mdl = fitlm(LT,PTprot,'VarNames',{'Lifetime','Persistent time'});
+    mdl.plot
+    % Plot for x>35
+    idx = LT>thresLT & ~(LT==83 & PTprot>93);
+    mdl35 = fitlm(LT(idx),PTprot(idx),'VarNames',{'Lifetime','Persistent time'});
+    mdl35.plot
+    mdlunder = fitlm(LT(LT<=thresLT),PTprot(LT<=thresLT),'VarNames',{'Lifetime','Persistent time'});
+    hold on;
+    mdlunder.plot
+catch
+    plot(LT,PTprot,'ko')
+    xlabel('Lifetime (frames)')
+    ylabel('Persistance time (sec)')
+    title('Protrusion persistance')
+end
 %%
 hold on
 % plot(lifeTime(idValid),meanPersTimeRet(idValid),'ro')
@@ -235,6 +242,10 @@ boxPlotCellArray(meanPTR_BinArray,cellstr(num2str(edges'+10))',1,0,0);
 xlabel('Lifetime (frames)')
 ylabel('Persistance time (sec)')
 title('Retraction persistance')
+%% save the figure
+savefig(figPTvsLT,[MD.getPath filesep 'PersistenceVsLifetime.fig']);
+print(figPTvsLT,[MD.getPath filesep 'PersistenceVsLifetime.eps'], '-depsc')
+close(figPTvsLT)
 %% Need to look at where they are:
 %% cell and cell boundary
 iFrame = 100;
@@ -256,10 +267,6 @@ text(5,iEdgeFrames(end),['frame ' num2str(iEdgeFrames(1))],'Color','w');
 text(5,iEdgeFrames(1),['frame ' num2str(iEdgeFrames(end))],'Color','w');
 text(10,50,'Edge Protrusion (frame)','Color','w',...
     'HorizontalAlignment','center','Rotation',90);
-%% save the figure
-savefig(figPTvsLT,[MD.getPath filesep 'PersistenceVsLifetime.fig']);
-print(figPTvsLT,[MD.getPath filesep 'PersistenceVsLifetime.eps'], '-depsc')
-close(figPTvsLT)
 
 %% Now let's look at where adhesions in each group are.
 axes(ax1)
