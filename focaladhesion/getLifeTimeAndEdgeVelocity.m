@@ -17,15 +17,14 @@ end
 tracksNA=finalProc.loadChannelOutput(iChan,'output','tracksNA');
 %% sampling only adhesions near the edge
 distToEdge = arrayfun(@(x) min(x.distToEdge(x.distToEdge>0)),tracksNA);
-thresDist = 1000/MD.pixelSize_;
-tracksNA2 = tracksNA(distToEdge<thresDist);
+thresDist = 700/MD.pixelSize_;
+tracksNA2 = tracksNA(distToEdge<thresDist);% & idGroupLabel~=6);
 %% Get edge velocity
 % I'll use mean(edgeAdvanceDist)/lifetime
-eV = arrayfun(@(x) mean(x.edgeAdvanceDist)/x.lifeTime,tracksNA2);
-meanDist = arrayfun(@(x) mean(x.edgeAdvanceDist),tracksNA2);
+% eV = arrayfun(@(x) mean(x.edgeAdvanceDist)/x.lifeTime,tracksNA2);
+% meanDist = arrayfun(@(x) mean(x.edgeAdvanceDist),tracksNA2);
 % Get adhesion life time
 lifeTime = arrayfun(@(x) x.lifeTime,tracksNA2);
-distToEdge2 = distToEdge(distToEdge<thresDist);
 % Plot between the two
 % Scatter plot
 % plot(lifeTime,eV,'ko')
@@ -58,7 +57,17 @@ nIMFs = 1; % Input # of IMFs to subtract
 for ii=1:nTracks
     % get the location
     sF = tracksNA2(ii).startingFrameExtra;
-    eF = tracksNA2(ii).endingFrameExtraExtra;
+    eF = tracksNA2(ii).endingFrameExtra;
+    % If the adhesion didn't end until the end of the movie, we shouldn't
+    % count those into our lifetime quantification except for long-lived adhesions 
+    if (eF-sF)<60/MD.timeInterval_ && eF>= MD.nFrames_-2 %2 is a tolerance
+        meanPersTimeProt(ii) = NaN;
+        meanPersTimeRet(ii) = NaN;
+        meanEdgeProtVelAll(ii) = NaN;
+        meanEdgeRetVelAll(ii) = NaN;
+        continue
+    end
+        
     curX = tracksNA2(ii).xCoord(sF);
     curY = tracksNA2(ii).yCoord(sF);
     % Now identify which window contains the adhesion location.
@@ -137,45 +146,29 @@ idValid2 = lifeTime <0.9*MD.nFrames_; % & lifeTime >=0;
 idValid = idValid2;
 
 %% Vel vs LT
-figEVvsLT=figure('Position',[100,100,400,700]); subplot(2,1,1)
+figEVvsLT=figure('Position',[100,100,300,600]); subplot(2,1,1)
 % plot(lifeTime(idValid),meanDist(idValid),'ko')
 % plot(lifeTime,meanEdgeProtVelAll,'ko')
 plot(lifeTime(idValid),meanEdgeProtVelAll(idValid),'ko')
 
 hold on
+binSize=20;
+[edges,Y]=plotBinnedBarFromArray(lifeTime(idValid),...
+    meanEdgeProtVelAll(idValid),binSize);
 % plot(mean(lifeTime(idValid)),mean(meanDist(idValid)),'bx','MarkerSize',20)
 % Add barplot by binning data by 10 in x-axis. I can use discretize
 % function!
-% edges = [0:20:80 100:50:ceil(max(lifeTime(idValid))/50)*50];
-% edges = [0:20:40 ceil(max(lifeTime(idValid)))];
-edges = 0:20:ceil(max(lifeTime(idValid))/50)*50;
-Y = discretize(lifeTime(idValid),edges);
-% mDValid = meanDist(idValid);
-eVValid = meanEdgeProtVelAll(idValid);
-
-eVPerBin = arrayfun(@(x) nanmean(eVValid(Y==x)),1:numel(edges));
-pB = bar(edges+10,eVPerBin);
-pB.FaceAlpha=0;
-pB.EdgeColor='r';
-pB.LineWidth = 2;
-% stdDistPerBin = arrayfun(@(x) stdErrMean(mDValid(Y==x)),1:numel(edges));eVValid
-stdDistPerBin = arrayfun(@(x) stdErrMean(eVValid(Y==x)),1:numel(edges));
-% eH = errorbar(edges+10,meanDistPerBin,...
-%     stdDistPerBin,'Color', 'r');
-eH = errorbar(edges+10,eVPerBin, stdDistPerBin,'Color', 'r');
-eH.YNegativeDelta = [];
-eH.LineStyle='none';
-eH.LineWidth = 2;
 mPath = MD.getPath;
 title(mPath(end-17:end))
 xlabel('Lifetime (frames)')
-ylabel('Edge velocity (px/sec)')
+ylabel('Edge velocity (px/frame)')
 
 subplot(2,1,2)
+eVValid = meanEdgeProtVelAll(idValid);
 edgeVelBinArray = arrayfun(@(x) eVValid(Y==x),1:numel(edges),'unif',false);
-boxPlotCellArray(edgeVelBinArray,cellstr(num2str(edges'+10))',1,0,0);
+boxPlotCellArray(edgeVelBinArray,cellstr(num2str(edges'))',1,0,0);
 xlabel('Lifetime (frames)')
-ylabel('Edge advance velocity (px/frame)')
+ylabel('Edge velocity (px/frame)')
 
 %% save the figure
 savefig(figEVvsLT,[MD.getPath filesep 'edgeVelVsLifetime.fig']);
@@ -219,6 +212,8 @@ try
     mdlunder.plot
 catch
     plot(LT,PTprot,'ko')
+    hold on
+    plotBinnedBarFromArray(LT,PTprot,binSize)
     xlabel('Lifetime (frames)')
     ylabel('Persistance time (sec)')
     title('Protrusion persistance')
@@ -255,7 +250,7 @@ iEdgeFrames = 1:iFrame; colorMap = @jet;
 %colorbar for protrusion
 nFramesSel = numel(iEdgeFrames);
 frameCols = colorMap(nFramesSel);
-ax2  = axes('Position',[0.05  0.2 0.05  0.6]);
+ax2  = axes('Position',[0.80  0.2 0.05  0.6]);
 cBarRGD = ones(length(frameCols),5,3);
 cBarRGD(:,:,1) = repmat(frameCols(:,1),1,5);
 cBarRGD(:,:,2) = repmat(frameCols(:,2),1,5);
@@ -289,7 +284,7 @@ text(5+scaleBarLength/MD.pixelSize_/2,20,[num2str(scaleBarLength/1000) ' \mum'],
 nLT = numel(1:ltMax);
 colorMap2 = @hot;
 frameCols2 = colorMap2(nLT);
-ax3  = axes('Position',[0.25  0.2 0.05  0.6]);
+ax3  = axes('Position',[0.90  0.2 0.05  0.6]);
 cBarRGD2 = ones(length(frameCols2),5,3);
 cBarRGD2(:,:,1) = repmat(frameCols2(:,1),1,5);
 cBarRGD2(:,:,2) = repmat(frameCols2(:,2),1,5);

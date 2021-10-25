@@ -1,4 +1,4 @@
-function []=plotBinnedBarFromArray(X,Y,bin)
+function [edges,Ydiscrete]=plotBinnedBarFromArray(X,Y,bin)
 %function []=plotBinnedBarFromArray(X,Y,bin) plot a bar graph by binning X
 %with bin.
 %   Usage: plotBinnedBarFromArray(LF,PT,20)
