@@ -1,6 +1,11 @@
-function [allLF,allEV,PTprot] = getLifeTimeAndEdgeVelocity(MD)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function [allLF,allEV,PTprot] = getLifeTimeAndEdgeVelocity(MD,askPlotColorBar,ltMax)
+%function [allLF,allEV,PTprot] =
+%getLifeTimeAndEdgeVelocity(MD,askPlotColorBar) calculate lifetime and edge
+%velocity and persistence time.
+
+if nargin<2
+    askPlotColorBar = false;
+end
 %% Load tracks
 faPackage=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
 % Load classification process
@@ -250,7 +255,19 @@ iEdgeFrames = 1:iFrame; colorMap = @jet;
 %colorbar for protrusion
 nFramesSel = numel(iEdgeFrames);
 frameCols = colorMap(nFramesSel);
-ax2  = axes('Position',[0.80  0.2 0.05  0.6]);
+if askPlotColorBar
+    disp('Draw a rectangle to show a colorbar for cell edges')
+    roi = drawrectangle;
+    fWidth = floor(ax1.XLim(2));
+    fHeight = floor(ax1.YLim(2));
+    myPos = [roi.Position(1)/fWidth, roi.Position(2)/fHeight, ...
+        0.05 roi.Position(4)/fHeight];
+    roi.Visible = 'off';
+    
+    ax2  = axes('Position',myPos);
+else
+    ax2  = axes('Position',[0.80  0.2 0.05  0.6]);
+end
 cBarRGD = ones(length(frameCols),5,3);
 cBarRGD(:,:,1) = repmat(frameCols(:,1),1,5);
 cBarRGD(:,:,2) = repmat(frameCols(:,2),1,5);
@@ -270,7 +287,9 @@ idxG1 = idValid & lifeTime>thresLT & ~(lifeTime==83 & meanPersTimeProt>93);
 idxG2 = idValid & lifeTime<=thresLT;
 
 % now showinig the tracks
-ltMax = 0.6*MD.nFrames_;
+if nargin<3
+    ltMax = 0.6*MD.nFrames_;
+end
 hG1 = drawTracksColormap(tracksNA2(idxG1), iFrame, 'lifeTime',[1 ltMax],hot);
 %% short ones
 % axes(ax1)
@@ -284,7 +303,19 @@ text(5+scaleBarLength/MD.pixelSize_/2,20,[num2str(scaleBarLength/1000) ' \mum'],
 nLT = numel(1:ltMax);
 colorMap2 = @hot;
 frameCols2 = colorMap2(nLT);
-ax3  = axes('Position',[0.90  0.2 0.05  0.6]);
+if askPlotColorBar
+    disp('Draw a rectangle to show a colorbar for lifetime')
+    roi = drawrectangle;
+    fWidth = floor(ax1.XLim(2));
+    fHeight = floor(ax1.YLim(2));
+    myPos = [roi.Position(1)/fWidth, roi.Position(2)/fHeight, ...
+        0.05 roi.Position(4)/fHeight];
+    roi.Visible = 'off';
+    
+    ax3  = axes('Position',myPos);
+else
+    ax3  = axes('Position',[0.90  0.2 0.05  0.6]);
+end
 cBarRGD2 = ones(length(frameCols2),5,3);
 cBarRGD2(:,:,1) = repmat(frameCols2(:,1),1,5);
 cBarRGD2(:,:,2) = repmat(frameCols2(:,2),1,5);
