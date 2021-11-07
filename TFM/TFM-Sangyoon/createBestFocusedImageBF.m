@@ -54,7 +54,7 @@ for jj=1:nMovies
         curPath = curMD.outputDirectory_;
         % Make the channel folder
         curNChan = numel(curMD.channels_);
-        curChanAll = cell(curNChan,1);
+        curChanAll = cell(curNChan,mat1);
         for kk=1:curNChan
             curChanPath = [curPath filesep 'Chan' num2str(kk)];
             curChanAll{kk} = curChanPath;
@@ -87,9 +87,13 @@ for jj=1:nMovies
         for kk=1:curNChan
             curChan = curMD.channels_(kk);
             channel(kk) = Channel(curChanAll{kk});
-            channel(kk).fluorophore_=curChan.name_;
-            channel(kk).emissionWavelength_=name2wavelength('curChan.name_')*1e9;
-            channel(kk).imageType_='confocal';
+            try
+                channel(kk).fluorophore_=curChan.name_;
+                channel(kk).emissionWavelength_=name2wavelength(curChan.name_)*1e9;
+                channel(kk).imageType_='Confocal'; % this should be changed later.
+            catch
+                disp(['Channel ' num2str(kk) ' is ' curChan.name_])
+            end
         end
         MDnew(jj) = MovieData(channel,curPath);
 
@@ -118,9 +122,6 @@ for jj=1:nMovies
         % Check image size and number of frames are consistent. 
         % Save the movie if successfull
         MDnew(jj).sanityCheck;
-        % Save the movie
-        MDnew(jj).save;
-
     else
         disp('This MD was not z-stack. You can use this directly after checking focused images')
     end
@@ -129,7 +130,8 @@ if nMovies==1
     MO= MDnew;
 else
     MO = MovieList(MDnew,pathSFolder);
-    MO.save;
+    MO.movieListFileName_ = 'movieList.mat';
+    MO.sanityCheck;
 end
 %     if numel(averagingRange)>5
 %         applySobel=false;
