@@ -38,41 +38,50 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
         function varargout = loadChannelOutput(obj, iFrame, varargin)
             % Input check
             outputList = {'SE_Blobs','SE_FOV','SE_Cell','totalForceBlobs',...
-                'totalForceCell','totalForceFOV'};
+                'totalForceCell','totalForceFOV','mask'};
             ip = inputParser;
             ip.addRequired('obj');
             ip.addRequired('iFrame', @(x) obj.checkFrameNum(x));
             ip.addParameter('useCache',true, @islogical);
             ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
-            ip.parse(obj,iFrame, varargin{:})
+            ip.parse(obj, iFrame, varargin{:})
             output = ip.Results.output;
             varargout = cell(numel(output), 1);
             iFrame = ip.Results.iFrame;
             if ischar(output),output={output}; end
 
-            % Load all the output data
-            s = cached.load(obj.outFilePaths_{1,10}, '-useCache', ip.Results.useCache);
-            
-            for iout = 1:numel(output)
-                switch output{iout} 
-                    case 'SE_FOV' 
-                        val = s.(output{iout}).SE(iFrame);                   
-                    case 'SE_Cell'
-                        val = s.(output{iout}).SE(iFrame);
-                    case 'SE_Blobs'
-                        val = s.(output{iout}).SE(iFrame);
-                    case 'totalForceBlobs' 
-                        val = s.(output{iout}).force(iFrame);                   
-                    case 'totalForceCell'
-                        val = s.(output{iout})(iFrame);
-                    case 'totalForceFOV'
-                        val = s.(output{iout})(iFrame);
-                    otherwise
-                        error('Incorrect Output Var type');
-                end
-                varargout{iout} = val;
-            end 
+            if ~strcmp(output, 'mask')
+                % Load all the output data
+                s = cached.load(obj.outFilePaths_{1,10}, '-useCache', ip.Results.useCache);
 
+                for iout = 1:numel(output)
+                    switch output{iout} 
+                        case 'SE_FOV' 
+                            val = s.(output{iout}).SE(iFrame);                   
+                        case 'SE_Cell'
+                            val = s.(output{iout}).SE(iFrame);
+                        case 'SE_Blobs'
+                            val = s.(output{iout}).SE(iFrame);
+                        case 'totalForceBlobs' 
+                            val = s.(output{iout}).force(iFrame);                   
+                        case 'totalForceCell'
+                            val = s.(output{iout})(iFrame);
+                        case 'totalForceFOV'
+                            val = s.(output{iout})(iFrame);
+                        otherwise
+                            error('Incorrect Output Var type');
+                    end
+                    varargout{iout} = val;
+                end 
+            else
+                nFrames = obj.owner_.nFrames_;
+                maskFolder = [obj.funParams_.OutputDirectory filesep 'BandMasks'];
+                fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+                numStr = @(frame) num2str(frame,fString);
+                maskIndPath = @(frame) [maskFolder filesep 'mask' numStr(frame) '.mat'];
+                maskObj = load(maskIndPath(iFrame), 'maskOnlyBand');
+                varargout{1} = maskObj.maskOnlyBand;
+            end
         % @(proc,iChan,iFrame,varargin) proc.getParameters().text;
         % frame = arrayfun(@(x) ['Frame ' num2str(x)], 1:3, 'Uniform' ,0)';
         % t = struct2table(SE_Blobs);
@@ -133,6 +142,13 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
             output(i).type = 'movieOverlay';
             output(i).defaultDisplayMethod = @TextDisplay;            
             
+            i = i+1;
+            output(i).name = 'Cell Periphery Mask';
+            output(i).var='mask';            
+            output(i).type='movieOverlay';
+            output(i).formatData=@StrainEnergyCalculationProcess.getMaskBoundaries;
+            colors = hsv(numel(obj.owner_.channels_));
+            output(i).defaultDisplayMethod=@(x) LineDisplay('Color',colors(x,:));                                
         end
     end
 %         function status = checkChannelOutput(obj,varargin)
@@ -147,6 +163,19 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
         function h = GUI()
             h= @strainEnergyCalculationProcessGUI;
         end
+    
+        function boundaries = getMaskBoundaries(mask)
+            % Format mask boundaries in xy-coordinate system
+            b=bwboundaries(mask);
+            b2 =cellfun(@(x) vertcat(x,[NaN NaN]),b,'Unif',false);
+            boundaries =vertcat(b2{:});
+            if ~isempty(boundaries)
+                boundaries = boundaries(:,2:-1:1);
+            else
+                boundaries = [NaN NaN];
+            end
+        end
+        
         function funParams = getDefaultParams(owner,varargin)
             % Input check
             ip=inputParser;
