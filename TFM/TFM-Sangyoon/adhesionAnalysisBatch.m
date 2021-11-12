@@ -187,12 +187,23 @@ writetable(tableFAdensity,strcat(dataPath,'/FAdensity.csv'))
 h2=figure; 
 barPlotCellArray(FAdensityPeri,nameList)
 
-title('FA density in the cell periphery (up to 5 um from the cell edge)')
+title({'FA density in the cell periphery'; ['(up to ' num2str(bandNA) ' um from the cell edge)']})
 ylabel('FA density (#/\mum^2)')
 hgexport(h2,strcat(figPath,'/FAdensityInside'),hgexport('factorystyle'),'Format','eps')
 hgsave(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
 tableFAdensityPeri=table(FAdensityPeri,'RowNames',nameList);
 writetable(tableFAdensityPeri,strcat(dataPath,'/FAdensityPeri.csv'))
+%% FA area - cell periphery
+faAreaPeri = cellfun(@(x) cell2mat(x),FAstructGroup','unif',false);
+h1=figure; 
+% faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
+boxPlotCellArray(faAreaPeri,nameList,convertArea,false,true)
+% ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
+ylabel('FA area (\mum^2)')
+title({'FA area in the cell periphery'; ['(up to ' num2str(bandNA) ' um from the cell edge)']})
+% set(gca,'XTickLabel',{'Control' 'PIP5K-\gamma'})
+hgexport(h1,strcat(figPath,'/FAareaPeri'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FAareaPeri'),'-v7.3')
 %% FA density Inside
 h2=figure; 
 barPlotCellArray(FAdensityInside,nameList)

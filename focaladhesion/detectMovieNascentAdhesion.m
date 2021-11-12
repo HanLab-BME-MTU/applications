@@ -299,16 +299,16 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).FAdensity = numAdhs/focalAdhInfo(j).cellArea; % number per um2
     focalAdhInfo(j).maskFA = maskAdhesion2;
     focalAdhInfo(j).labelFA = labelAdhesion;
-    % FADensity at the cell periphery
-    bandwidthNA = 5; %um
-    bandwidthNA_pix = round(bandwidthNA*1000/movieData.pixelSize_);
-    % Cell Boundary Mask 
-    % mask for band from edge
-    iMask = imcomplement(mask);
-    distFromEdge = bwdist(iMask);
-    bandMask = distFromEdge <= bandwidthNA_pix;
+%     % FADensity at the cell periphery
+%     bandwidthNA = 5; %um
+%     bandwidthNA_pix = round(bandwidthNA*1000/movieData.pixelSize_);
+%     % Cell Boundary Mask 
+%     % mask for band from edge
+%     iMask = imcomplement(mask);
+%     distFromEdge = bwdist(iMask);
+%     bandMask = distFromEdge <= bandwidthNA_pix;
 
-    maskOnlyBand = bandMask & mask;
+    maskOnlyBand = ultimateMask; %bandMask & mask;
     bandArea = sum(maskOnlyBand(:))*(pixSize/1000)^2; % in um^2
 
     % now see if these tracks ever in the maskOnlyBand
@@ -321,6 +321,9 @@ for j=1:movieData.nFrames_
     
     focalAdhInfo(j).FAdensityPeri = sum(indFAsAtEdge)/bandArea; % number per um2
     focalAdhInfo(j).FAdensityInside = (numAdhs-sum(indFAsAtEdge))/(focalAdhInfo(j).cellArea-bandArea); % number per um2
+    
+    focalAdhInfo(j).FAareaPeri = arrayfun(@(x) x.Area, Adhs(indFAsAtEdge),'unif',false);
+    focalAdhInfo(j).FAlengthPeri = arrayfun(@(x) x.MajorAxisLength, Adhs(indFAsAtEdge),'unif',false);
     
     numFAs = numel(AdhsFA);
     numFCs = numAdhs - numFAs;
@@ -561,6 +564,12 @@ for j=1:movieData.nFrames_
             +maskAdhesionFA.*(0.4*dI);
         combI(:,:,3) = ~maskAdhesionFA.*dI+maskAdhesionFA.*(0.4*dI+double(maskAdhesionFA)*.0);%+double(ultimateMask)*.5;
         imshow(combI,[]); hold on
+        [boundBand,~,nBDs] = bwboundaries(maskOnlyBand,4,'noholes');    
+        for kk=1:nBDs
+            boundary = boundBand{kk};
+            plot(boundary(:,2), boundary(:,1), 'Color','w', 'LineWidth', 1) % cell boundary
+        end
+
         if ~isempty(pstruct)
             plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'yo')
         end
