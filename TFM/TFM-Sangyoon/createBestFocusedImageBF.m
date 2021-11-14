@@ -54,7 +54,7 @@ for jj=1:nMovies
         curPath = curMD.outputDirectory_;
         % Make the channel folder
         curNChan = numel(curMD.channels_);
-        curChanAll = cell(curNChan,mat1);
+        curChanAll = cell(curNChan,1);
         for kk=1:curNChan
             curChanPath = [curPath filesep 'Chan' num2str(kk)];
             curChanAll{kk} = curChanPath;

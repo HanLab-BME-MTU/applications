@@ -105,7 +105,7 @@ else
     usedSelectedFoldersMat=true;    
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
-    specificName=fileSFolders(16:end);
+    specificName=fileSFolders(16:end-4);
     groupNames=selectedFolders.groupNames;
     if isfield(selectedFolders,'refDirTifAll')
         refDirTif = selectedFolders.refDirTifAll;

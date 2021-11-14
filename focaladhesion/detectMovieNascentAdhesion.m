@@ -143,8 +143,9 @@ jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
 minSize = round((500/pixSize)*(100/pixSize)); %adhesion limit=0.25 um2
-minLengthFC = 1000/pixSize; %This is temporary. %500/pixSize;
+minLengthFC = 800/pixSize; %This is temporary. %500/pixSize;
 minLengthFA = 2000/pixSize;
+maxLengthFA = 4000/pixSize; % I set this up to filter outlier.
 % minEcc = 0.7;
 psAlpha = 0.01;%it was 1e-4
 
@@ -226,21 +227,21 @@ for j=1:movieData.nFrames_
 %     adhEccIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
     FAlengthAll = arrayfun(@(x) x.MajorAxisLength, Adhs);
 %     maxLength=mean(FAlengthAll)+5*std(FAlengthAll);
-    adhLengthIdxFC = FAlengthAll>minLengthFC;
+    adhLengthIdxFC = FAlengthAll>minLengthFC & FAlengthAll<minLengthFA;
     AdhsFCFA = Adhs(adhLengthIdxFC); %adhEccIdx & % Ecc requirement filter out big FAs too...
     labelAdhesion = zeros(size(maskAdhesion2));
     for kk=1:numel(AdhsFCFA)
         labelAdhesion(AdhsFCFA(kk).PixelIdxList)=kk;
     end
     maskAdhesion2 = logical(labelAdhesion);
-    adhLengthIdxFA = FAlengthAll>minLengthFA;
+    adhLengthIdxFA = FAlengthAll>=minLengthFA & FAlengthAll<maxLengthFA;
     AdhsFA = Adhs(adhLengthIdxFA);
     labelAdhesionFA = zeros(size(maskAdhesion2));
     for kk=1:numel(AdhsFA)
         labelAdhesionFA(AdhsFA(kk).PixelIdxList)=kk;
     end
     
-    AdhsFC = Adhs(~(adhLengthIdxFA));
+    AdhsFC = Adhs(adhLengthIdxFC);
     labelAdhesionFC = zeros(size(maskAdhesion2));
     for kk=1:numel(AdhsFC)
         labelAdhesionFC(AdhsFC(kk).PixelIdxList)=kk;
@@ -322,8 +323,8 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).FAdensityPeri = sum(indFAsAtEdge)/bandArea; % number per um2
     focalAdhInfo(j).FAdensityInside = (numAdhs-sum(indFAsAtEdge))/(focalAdhInfo(j).cellArea-bandArea); % number per um2
     
-    focalAdhInfo(j).FAareaPeri = arrayfun(@(x) x.Area, Adhs(indFAsAtEdge),'unif',false);
-    focalAdhInfo(j).FAlengthPeri = arrayfun(@(x) x.MajorAxisLength, Adhs(indFAsAtEdge),'unif',false);
+    focalAdhInfo(j).FAareaPeri = arrayfun(@(x) x.Area, Adhs(indFAsAtEdge)); %,'unif',false);
+    focalAdhInfo(j).FAlengthPeri = arrayfun(@(x) x.MajorAxisLength, Adhs(indFAsAtEdge));%,'unif',false);
     
     numFAs = numel(AdhsFA);
     numFCs = numAdhs - numFAs;
@@ -564,7 +565,9 @@ for j=1:movieData.nFrames_
             +maskAdhesionFA.*(0.4*dI);
         combI(:,:,3) = ~maskAdhesionFA.*dI+maskAdhesionFA.*(0.4*dI+double(maskAdhesionFA)*.0);%+double(ultimateMask)*.5;
         imshow(combI,[]); hold on
-        [boundBand,~,nBDs] = bwboundaries(maskOnlyBand,4,'noholes');    
+        boundBand = bwboundaries(maskOnlyBand); 
+        nBDs =numel(boundBand);
+
         for kk=1:nBDs
             boundary = boundBand{kk};
             plot(boundary(:,2), boundary(:,1), 'Color','w', 'LineWidth', 1) % cell boundary
