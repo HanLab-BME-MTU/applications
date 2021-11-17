@@ -166,14 +166,60 @@ elseif strcmpi(method,'FEM')
         febioLogFileName_disp=[febioFebFileNamePart,'_disp_out.txt']; %Log file name for exporting displacement
         febioLogFileName_stress=[febioFebFileNamePart,'_stress_out.txt']; %Log file name for exporting stress
 
-        %Specifying dimensions and number of elements
+        %Specifying dimensions of substrate
         sampleWidth = x0(2)*2; %Width
         sampleThickness = y0(2)*2; %Thickness
-        sampleHeight = x0(2)/16; %Height
-        pointSpacings = [4,4,8];%(meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
-        numElementsWidth = round(sampleWidth/pointSpacings(1))+1; %Number of elemens in dir 1
-        numElementsThickness = round(sampleThickness/pointSpacings(2))+1; %Number of elemens in dir 2
-        numElementsHeight = round(sampleHeight/pointSpacings(3))+1; %Number of elemens in dir 3
+        sampleHeight = x0(2); %Height
+        
+        %Generating preliminary mesh to use as the basis for the sizing function
+        pointSpacing = width * (40/512); %determine point spacing from experimentally derived constant\
+        boxDim = [sampleWidth sampleThickness sampleHeight]; %box dimensions
+        [F,V,C] = triBox(boxDim,pointSpacing); %preliminary mesh creation
+        C = ones(size(F,1),1); %unify region IDs
+        
+        %Setup tetGen input structures
+        V_regions = getInnerPoint(F,V);
+        V_holes = [];
+        regionTetVolumes = tetVolMeanEst(F,V);
+        
+        %Generate size field
+        %Initialize mask of all nodes on top surface of substrate
+        topFaceHeight = max(V(:,3)); %Get height in terms of mesh coords
+        edgeSizeField = ones(length(V(:,1)),1); %initialize size field
+        topFaceMask = V(:,3) == topFaceHeight; %locate all nodes on top face
+        %Assign decreasing edge length to inner radius on top
+        distanceFromCenter = sum(bsxfun(@minus,V(:,1:2),[0,0]).^2,2); %calculates the distance from the center to all nodes
+        distanceFromCenter = 1.5 * ((distanceFromCenter * ((pointSpacing) / max(distanceFromCenter)))) + 2; %scale distance from 2 to max edge size
+        edgeSizeField(topFaceMask) = distanceFromCenter(topFaceMask); %assign sizing function to top face
+        edgeSizeField(~topFaceMask) = pointSpacing; %set other nodes to original mesh size
+        
+        %tetGen string modifiers
+        stringOpt = '-pq1.2m';
+        
+        %Setup tetGen options
+        inputStruct.stringOpt = stringOpt; %tetGen meshing options
+        inputStruct.Faces = F; %combined surface faces
+        inputStruct.Nodes = V; %combined boundary nodes
+        inputStruct.faceBoundaryMarker = C;
+        %inputStruct.regionPoints = V_regions; %interior separation points for regions
+        inputStruct.holePoints = V_holes; %interior points for hole boundaries
+        %inputStruct.regionA = regionTetVolumes; %desired tetrahedral volumes
+        inputStruct.sizeData=edgeSizeField; %The size data
+        
+        %Volume mesh the substrate using tetGen
+        meshOutput = runTetGen(inputStruct);
+        
+        %Write the output data to usable variables for FEBio/GIBBON
+        El = meshOutput.elements; %volume mesh elements
+        V = meshOutput.nodes; %mesh nodal locations
+        CE = meshOutput.elementMaterialID; %region ID for different materials
+        Fb = meshOutput.facesBoundary; %boundary faces
+        Cb = meshOutput.boundaryMarker; %boundary markers
+        
+        %pointSpacings = [4,4,8];%(meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
+        %numElementsWidth = round(sampleWidth/pointSpacings(1))+1; %Number of elemens in dir 1
+        %numElementsThickness = round(sampleThickness/pointSpacings(2))+1; %Number of elemens in dir 2
+        %numElementsHeight = round(sampleHeight/pointSpacings(3))+1; %Number of elemens in dir 3
 
         %Specifying load type
         loadType = 'traction';
@@ -196,18 +242,18 @@ elseif strcmpi(method,'FEM')
         dtmax=1/numTimeSteps; %Maximum time step size
 
         % //Creating geometry and mesh ************************************
-        % Create a box with hexahedral elements
-        cubeDimensions=[sampleWidth sampleThickness sampleHeight]; %Dimensions
-        cubeElementNumbers=[numElementsWidth numElementsThickness numElementsHeight]; %Number of elements
-        outputStructType=2; %A structure compatible with mesh view
-        [meshStruct]=hexMeshBox(cubeDimensions,cubeElementNumbers,outputStructType);
+%         % Create a box with hexahedral elements
+%         cubeDimensions=[sampleWidth sampleThickness sampleHeight]; %Dimensions
+%         cubeElementNumbers=[numElementsWidth numElementsThickness numElementsHeight]; %Number of elements
+%         outputStructType=2; %A structure compatible with mesh view
+%         [meshStruct]=hexMeshBox(cubeDimensions,cubeElementNumbers,outputStructType);
 
-        %Access elements, nodes, and faces from the structure
-        El=meshStruct.elements; %The elements
-        V=meshStruct.nodes; %The nodes (vertices)
-        Fb=meshStruct.facesBoundary; %The boundary faces
-        Cb=meshStruct.boundaryMarker; %The "colors" or labels for the boundary faces
-        elementMaterialIndices=ones(size(El,1),1); %Element material indices
+%         %Access elements, nodes, and faces from the structure
+%         El=meshStruct.elements; %The elements
+%         V=meshStruct.nodes; %The nodes (vertices)
+%         Fb=meshStruct.facesBoundary; %The boundary faces
+%         Cb=meshStruct.boundaryMarker; %The "colors" or labels for the boundary faces
+        %elementMaterialIndices=ones(size(El,1),1); %Element material indices
 
         % //Prepare face nodes for BC application *************************
         %Define supported node sets
@@ -271,19 +317,25 @@ elseif strcmpi(method,'FEM')
         %Assign material parameters
         materialName1='Material1';
         febio_spec.Material.material{1}.ATTR.name=materialName1;
-        %Neo-Hookean Material
-        %febio_spec.Material.material{1}.ATTR.type='neo-Hookean';
-        %febio_spec.Material.material{1}.ATTR.id=1;
-        %febio_spec.Material.material{1}.E=E_youngs1;
-        %febio_spec.Material.material{1}.v=nu1;
-        %Ogden Material
-        febio_spec.Material.material{1}.ATTR.type='Ogden';
-        febio_spec.Material.material{1}.ATTR.id=1;
-        febio_spec.Material.material{1}.c1=c1;
-        febio_spec.Material.material{1}.m1=m1;
-        febio_spec.Material.material{1}.c2=c1;
-        febio_spec.Material.material{1}.m2=-m1;
-        febio_spec.Material.material{1}.k=k;
+        
+        ogden = 0;
+        switch ogden
+            case 0
+                %Neo-Hookean Material
+                febio_spec.Material.material{1}.ATTR.type='neo-Hookean';
+                febio_spec.Material.material{1}.ATTR.id=1;
+                febio_spec.Material.material{1}.E=E_youngs1;
+                febio_spec.Material.material{1}.v=nu1;
+            case 1
+                %Ogden Material
+                febio_spec.Material.material{1}.ATTR.type='Ogden';
+                febio_spec.Material.material{1}.ATTR.id=1;
+                febio_spec.Material.material{1}.c1=c1;
+                febio_spec.Material.material{1}.m1=m1;
+                febio_spec.Material.material{1}.c2=c1;
+                febio_spec.Material.material{1}.m2=-m1;
+                febio_spec.Material.material{1}.k=k;
+        end
 
         % Mesh section
         % -> Nodes
@@ -403,41 +455,44 @@ elseif strcmpi(method,'FEM')
         dataStruct=importFEBio_logfile(fullfile(savePath,febioLogFileName_disp),1,1);
 
         N_disp_mat=dataStruct.data; %Displacement
-%         timeVec=dataStruct.time; %Time
-% 
-%         %Create deformed coordinate set
-%         V_DEF=N_disp_mat+repmat(V,[1 1 size(N_disp_mat,3)]);
-%         DN_magnitude=sqrt(sum(N_disp_mat(:,:,end).^2,2)); %Current displacement magnitude
-%         
-%         % Create basic view and store graphics handle to initiate animation
-%         hf=cFigure; %Open figure
-%         gtitle([febioFebFileNamePart,': Press play to animate']);
-%         title('Displacement magnitude [mm]','Interpreter','Latex')
-%         hp=gpatch(Fb,V_DEF(:,:,end),DN_magnitude,'k',1,2); %Add graphics object to animate
-%         hp.Marker='.';
-%         hp.MarkerSize=markerSize2;
-%         hp.FaceColor='interp';
-%         gpatch(Fb,V,0.5*ones(1,3),'none',0.25); %A static graphics object
-% 
-%         axisGeom(gca,fontSize);
-%         colormap(cMap); colorbar;
-%         caxis([0 max(DN_magnitude)]); caxis manual;
-%         axis(axisLim(V_DEF)); %Set axis limits statically
-%         view(140,30);
-%         camlight headlight;
-% 
-%         % Set up animation features
-%         animStruct.Time=timeVec; %The time vector
-%         for qt=1:1:size(N_disp_mat,3) %Loop over time increments
-%             DN_magnitude=sqrt(sum(N_disp_mat(:,:,qt).^2,2)); %Current displacement magnitude
-% 
-%             %Set entries in animation structure
-%             animStruct.Handles{qt}=[hp hp]; %Handles of objects to animate
-%             animStruct.Props{qt}={'Vertices','CData'}; %Properties of objects to animate
-%             animStruct.Set{qt}={V_DEF(:,:,qt),DN_magnitude}; %Property values for to set in order to animate
-%         end
-%         anim8(hf,animStruct); %Initiate animation feature
-%         drawnow;
+        timeVec=dataStruct.time; %Time
+
+        %Create deformed coordinate set
+        V_DEF=N_disp_mat+repmat(V,[1 1 size(N_disp_mat,3)]);
+        DN_magnitude=sqrt(sum(N_disp_mat(:,:,end).^2,2)); %Current displacement magnitude
+        
+        drawFEBioFig = 0;
+        if drawFEBioFig == 1
+        % Create basic view and store graphics handle to initiate animation
+        hf=cFigure; %Open figure
+        gtitle([febioFebFileNamePart,': Press play to animate']);
+        title('Displacement magnitude [mm]','Interpreter','Latex')
+        hp=gpatch(Fb,V_DEF(:,:,end),DN_magnitude,'k',1,2); %Add graphics object to animate
+        hp.Marker='.';
+        hp.MarkerSize=markerSize2;
+        hp.FaceColor='interp';
+        gpatch(Fb,V,0.5*ones(1,3),'none',0.25); %A static graphics object
+
+        axisGeom(gca,fontSize);
+        colormap(cMap); colorbar;
+        caxis([0 max(DN_magnitude)]); caxis manual;
+        axis(axisLim(V_DEF)); %Set axis limits statically
+        view(140,30);
+        camlight headlight;
+
+        % Set up animation features
+        animStruct.Time=timeVec; %The time vector
+        for qt=1:1:size(N_disp_mat,3) %Loop over time increments
+            DN_magnitude=sqrt(sum(N_disp_mat(:,:,qt).^2,2)); %Current displacement magnitude
+
+            %Set entries in animation structure
+            animStruct.Handles{qt}=[hp hp]; %Handles of objects to animate
+            animStruct.Props{qt}={'Vertices','CData'}; %Properties of objects to animate
+            animStruct.Set{qt}={V_DEF(:,:,qt),DN_magnitude}; %Property values for to set in order to animate
+        end
+        anim8(hf,animStruct); %Initiate animation feature
+        drawnow;
+        end
 
         %Component displacement at final time step
         dispMat = N_disp_mat(:,:,end);
