@@ -7,10 +7,9 @@ function [speedCell]=quantifyMovieFlowSpeed(MD)
 %               package should have been run.
 % output:
 %   speedCell:  cell array containing mean speeds per layer upto layer 5
-%               It will have a format of speedCell{frame}{layer} containing
-%               mean speeds of all windows per layer per frame. Speed at
+%               It will have a format of speedCell(windows:layers:frame). Speed at
 %               cell periphery will be fram layer 1 or 2.
-% Unit is in ??
+% Unit is in nm/min
 % Sangyoon Han Nov, 2021
 
 %% Load QFSM package
@@ -27,14 +26,31 @@ if isempty(iFlow)
     end
 end
 flowProcess = MD.getProcess(iFlow);
-iChan = flowProcess.checkChannelOutput;
+iChan = find(flowProcess.checkChannelOutput);
 %% Get the flow
 flow1 = flowProcess.loadChannelOutput(iChan,'output','Md');
 % Load segmented masks
 dt = movieData.timeInterval_; 
 res = movieData.pixelSize_;
-%% Get the window
+%% Get the window package
+iWinPack = MD.getPackageIndex('WindowingPackage');
+winPack = MD.getPackage(iWinPack);
+%% Get samples from windows
+wsProc = winPack.getProcess(4);
+for ii=1:numel(wsProc.outFilePaths_(:,iChan))
+    [~,outName{ii}]=fileparts(wsProc.outFilePaths_{ii,iChan});
+end
+%Choose the name that contains Speed
+iOutput = find(cellfun(@(x) contains(x,'Speed'),outName));
+sampleStr = wsProc.loadChannelOutput(iChan,iOutput);
+%% Need to interpret them
+% e.g., if sampleStr is 223x22x31 in size, final one (33) is the number of
+% frames, middle one (22) is depth, and first one 223 is the number of
+% windows per layer? Yes I confirm that.
+% figure, imagesc(squeeze(sampleStr.avg(:,1,:)))
+maxNumLayers = 5;
 
+speedCell = sampleStr.avg(:,1:maxNumLayers,:);
 
 end
 
