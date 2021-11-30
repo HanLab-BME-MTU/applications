@@ -30,8 +30,8 @@ iChan = find(flowProcess.checkChannelOutput);
 %% Get the flow
 flow1 = flowProcess.loadChannelOutput(iChan,'output','Md');
 % Load segmented masks
-dt = movieData.timeInterval_; 
-res = movieData.pixelSize_;
+dt = MD.timeInterval_; 
+res = MD.pixelSize_;
 %% Get the window package
 iWinPack = MD.getPackageIndex('WindowingPackage');
 winPack = MD.getPackage(iWinPack);
