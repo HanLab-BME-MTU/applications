@@ -53,7 +53,7 @@ elseif nargin<10 || strcmpi(method,'conv')
     toc;
     
 elseif strcmpi(method,'FEM')
-    nonlin = 0; %nonlinear solver switch, 1 uses nonlin neohookean FEBio, 0 uses linear matlab PDEtool
+    nonlin = 1; %nonlinear solver switch, 1 uses nonlin neohookean FEBio, 0 uses linear matlab PDEtool
     % //Work in progress FEM fwd solution method
     if nonlin == 0
     tic;
@@ -309,7 +309,7 @@ elseif strcmpi(method,'FEM')
         %C_traction_y_nodal = force_y(nodal_x,nodal_y);
         %**********************
         
-        debugFig = 0;
+        debugFig = 1;
         if debugFig == 1
             for i = 1
                 %Debugging figures
@@ -351,22 +351,22 @@ elseif strcmpi(method,'FEM')
 
                 gpatch(Fb,V,'kw','k',0.5);
 
-                hl(1)=plotV(V(bcSupportList,:),'k.','MarkerSize',markerSize);
+                %hl(1)=plotV(V(bcSupportList,:),'k.','MarkerSize',markerSize);
                 
-                if force_x(0,0) == 1
-                    hl(2)=scatterV(V(bcPrescribeList,:),75,C_traction_x,'filled');
-                else
-                    hl(2)=scatterV(V(bcPrescribeList,:),75,C_traction_y,'filled');
-                end
+                %if force_x(0,0) == 1
+                %    hl(2)=scatterV(V(bcPrescribeList,:),75,C_traction_x,'filled');
+                %else
+                %    hl(2)=scatterV(V(bcPrescribeList,:),75,C_traction_y,'filled');
+                %end
 
-                legend(hl,{'BC fix support','BC prescribed force'});
+                %legend(hl,{'BC fix support','BC prescribed force'});
 
                 axisGeom(gca,fontSize);
-                hcb=colorbar; colormap(warmcold(250)); caxis([min(C_traction_x) max(C_traction_x)]);
-                yl = ylabel(hcb,'Force Magnitude','FontSize',fontSize);
-                ylp = get(yl,'Position');
-                ylp(1) = 1.4 * ylp(1);
-                set(get(hcb,'ylabel'),'rotation',270,'position',ylp)
+                %hcb=colorbar; colormap(warmcold(250)); caxis([min(C_traction_x) max(C_traction_x)]);
+                %yl = ylabel(hcb,'Force Magnitude','FontSize',fontSize);
+                %ylp = get(yl,'Position');
+                %ylp(1) = 1.4 * ylp(1);
+                %set(get(hcb,'ylabel'),'rotation',270,'position',ylp)
                 camlight headlight;
                 drawnow;
                 lol = 1;
