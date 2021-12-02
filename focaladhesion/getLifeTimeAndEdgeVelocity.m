@@ -250,7 +250,7 @@ close(figPTvsLT)
 %% cell and cell boundary
 iFrame = 100;
 % imshow(MD.channels_(iChan).loadImage(iFrame),[])
-iEdgeFrames = 1:iFrame; colorMap = @jet;
+iEdgeFrames = 1:iFrame; colorMap = @winter;
 [figHan,ax1] = makeColoredEdgeOverlayFigure(MD,iFrame,iEdgeFrames,iChan,colorMap);
 %colorbar for protrusion
 nFramesSel = numel(iEdgeFrames);
@@ -260,7 +260,7 @@ if askPlotColorBar
     roi = drawrectangle;
     fWidth = floor(ax1.XLim(2));
     fHeight = floor(ax1.YLim(2));
-    myPos = [roi.Position(1)/fWidth, roi.Position(2)/fHeight, ...
+    myPos = [roi.Position(1)/fWidth, (fHeight-sum(roi.Position([2 4])))/fHeight, ...
         0.05 roi.Position(4)/fHeight];
     roi.Visible = 'off';
     
@@ -275,10 +275,10 @@ cBarRGD(:,:,3) = repmat(frameCols(:,3),1,5);
 imshow(flip(cBarRGD))
 % tick
 hold on
-text(5,iEdgeFrames(end),['frame ' num2str(iEdgeFrames(1))],'Color','w');
-text(5,iEdgeFrames(1),['frame ' num2str(iEdgeFrames(end))],'Color','w');
-text(10,50,'Edge Protrusion (frame)','Color','w',...
-    'HorizontalAlignment','center','Rotation',90);
+text(5,iEdgeFrames(end),num2str((iEdgeFrames(1)-1)*MD.timeInterval_/60),'Color','w','FontSize',7);
+text(5,iEdgeFrames(1),num2str((iEdgeFrames(end)-1)*MD.timeInterval_/60),'Color','w','FontSize',7);
+text(10,50,'Edges (min)','Color','w',...
+    'HorizontalAlignment','center','Rotation',90,'FontSize',7);
 
 %% Now let's look at where adhesions in each group are.
 axes(ax1)
@@ -290,25 +290,26 @@ idxG2 = idValid & lifeTime<=thresLT;
 if nargin<3
     ltMax = 0.6*MD.nFrames_;
 end
-hG1 = drawTracksColormap(tracksNA2(idxG1), iFrame, 'lifeTime',[1 ltMax],hot);
+ltMaxFrame = floor(ltMax*60/MD.timeInterval_);
+hG1 = drawTracksColormap(tracksNA2(idxG1), iFrame, 'lifeTime',[1 ltMaxFrame],spring);
 %% short ones
 % axes(ax1)
-hG2 = drawTracksColormap(tracksNA2(idxG2), iFrame, 'lifeTime',[1 ltMax],hot);
+hG2 = drawTracksColormap(tracksNA2(idxG2), iFrame, 'lifeTime',[1 ltMaxFrame],spring);
 %% scale bar
 scaleBarLength = 5000; %nm
 line([5 5+scaleBarLength/MD.pixelSize_],[10 10],'Color','w','LineWidth',3)
 text(5+scaleBarLength/MD.pixelSize_/2,20,[num2str(scaleBarLength/1000) ' \mum'],...
     'HorizontalAlignment','center','Color','w','FontSize',7);
 %% colorbar for lifetime
-nLT = numel(1:ltMax);
-colorMap2 = @hot;
+nLT = numel(1:ltMaxFrame);
+colorMap2 = @spring;
 frameCols2 = colorMap2(nLT);
 if askPlotColorBar
     disp('Draw a rectangle to show a colorbar for lifetime')
     roi = drawrectangle;
     fWidth = floor(ax1.XLim(2));
     fHeight = floor(ax1.YLim(2));
-    myPos = [roi.Position(1)/fWidth, roi.Position(2)/fHeight, ...
+    myPos = [roi.Position(1)/fWidth, (fHeight-sum(roi.Position([2 4])))/fHeight, ...
         0.05 roi.Position(4)/fHeight];
     roi.Visible = 'off';
     
@@ -323,10 +324,11 @@ cBarRGD2(:,:,3) = repmat(frameCols2(:,3),1,5);
 imshow(flip(cBarRGD2))
 % tick
 hold on
-text(6,ltMax,num2str(1),'Color','w');
-text(6,1,num2str(ltMax),'Color','w');
-text(10,ltMax/2,'Lifetime (frame)','Color','w',...
-    'HorizontalAlignment','center','Rotation',90);
+text(6,ltMaxFrame,num2str(0*MD.timeInterval_/60),'Color','w','FontSize',7);
+text(6,1,num2str((ltMaxFrame-1)*MD.timeInterval_/60),'Color','w','FontSize',7);
+text(10,ltMaxFrame/2,'Lifetime (min)','Color','w',...
+    'HorizontalAlignment','center','Rotation',90,...
+    'FontSize',7);
 pp=0;
 %% bring back the bar for the edges
 axes(ax2)

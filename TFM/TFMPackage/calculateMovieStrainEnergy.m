@@ -107,6 +107,13 @@ if p.exportCSV
     outputFile{1,9} = [p.OutputDirectory filesep 'indivForceInForceBlobs.csv'];
 end    
 outputFile{1,10} = [p.OutputDirectory filesep 'MovieStrainEnergyData_all.mat'];
+
+maskFolder = [p.OutputDirectory filesep 'BandMasks'];
+mkdir(maskFolder)
+fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
+numStr = @(frame) num2str(frame,fString);
+maskIndPath = @(frame) [maskFolder filesep 'mask' numStr(frame) '.mat'];
+
 strainEnergyCalcProc.setOutFilePaths(outputFile);
 
 logMsg='Loading traction map...';
@@ -365,6 +372,9 @@ for ii=1:nFrames
 
         maskOnlyBand = bandMask & maskCell;
         maskInterior = ~bandMask & maskCell;
+        % saving it
+        save(maskIndPath(ii), 'maskOnlyBand')
+        
         areaCell = sum(maskCell(:))*areaConvert;  % in um2
         areaPeri = sum(maskOnlyBand(:))*areaConvert; % in um2
         areaInside = sum(maskInterior(:))*areaConvert; % in um2
