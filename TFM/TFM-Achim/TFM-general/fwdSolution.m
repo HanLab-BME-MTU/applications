@@ -53,12 +53,13 @@ elseif nargin<10 || strcmpi(method,'conv')
     toc;
     
 elseif strcmpi(method,'FEM')
-    nonlin = 1;
+    nonlin = 1; %nonlinear solver switch, 1 uses nonlin neohookean FEBio, 0 uses linear matlab PDEtool
     % //Work in progress FEM fwd solution method
     if nonlin == 0
     tic;
-    disp('Utilizing FEM for forward soluton')
+    disp('Utilizing FEM for forward solution')
 
+    fprintf(1,'Building substrate...')
     vx = linspace(x0(1),x0(2),meshPtsFwdSol);
     vy = linspace(y0(1),y0(2),meshPtsFwdSol);
     [x_grid,y_grid] = meshgrid(vx,vy);
@@ -96,11 +97,15 @@ elseif strcmpi(method,'FEM')
     g = extrude(gm,h);
     %reassign extruded geometry to model for fwdSolution
     femFwdModel.Geometry = g;
+    fprintf(' done.\n') %Done generating substrate
     
     %Mesh the model
+    fprintf(1,'Meshing model...')
     generateMesh(femFwdModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
+    fprintf(1,' done.\n') %Done meshing
     
     %Material properties
+    fprintf(1,'Assigning BCs and material properties...')
     %FEM will fail when given a Poisson's Ratio of 0.5, therefore we detect
     %that case and slightly reduce the ratio to 0.49
     if v < 0.5
@@ -132,17 +137,24 @@ elseif strcmpi(method,'FEM')
                                     force_x(location.x,location.y);]; %forceInterpz is dummy variable for now  
     end
     
-    %Solve model
+    %Apply loading condition
     structuralBoundaryLoad(femFwdModel,'Face',10,'SurfaceTraction',force_xy,'Vectorize','on');
+    fprintf(1,' done.\n') %Done setting BCs and material properties
+    
+    %Solve model
+    fprintf(1,'Solving model...')
     femFwdResults = solve(femFwdModel);
+    fprintf(1,' done.\n') %Done solving
 
     %Interpolate displacements
+    fprintf(1,'Interpolating results...')
     z_grid = h*ones(meshPtsFwdSol);
     interpDisp=interpolateDisplacement(femFwdResults,x_grid,y_grid,z_grid);
 
     %Fill in output displacement variables
     ux = reshape(interpDisp.ux,meshPtsFwdSol,[]);
     uy = reshape(interpDisp.uy,meshPtsFwdSol,[]);
+    fprintf(1,' done.\n') %Done interpolating results
     toc;    
     disp('Completed FEM fwd solution.')
     
@@ -153,10 +165,12 @@ elseif strcmpi(method,'FEM')
         tic;
         disp('Utilizing Non-linear FEM for forward soluton')
 
+        fprintf(1,'Building substrate...')
+        % //Initializing paths and filenames
         %Path names
         folderName = 'FEBio_Data';
         currentFolder = pwd;
-%       defaultFolder = fileparts(fileparts(mfilename('fullpath')));
+        %defaultFolder = fileparts(fileparts(mfilename('fullpath')));
         savePath=fullfile(currentFolder,folderName);
 
         %Defining file names
@@ -164,21 +178,69 @@ elseif strcmpi(method,'FEM')
         febioFebFileName=fullfile(savePath,[febioFebFileNamePart,'.feb']); %FEB file name
         febioLogFileName=[febioFebFileNamePart,'.txt']; %FEBio log file name
         febioLogFileName_disp=[febioFebFileNamePart,'_disp_out.txt']; %Log file name for exporting displacement
-        febioLogFileName_stress=[febioFebFileNamePart,'_stress_out.txt']; %Log file name for exporting stress
+        %febioLogFileName_stress=[febioFebFileNamePart,'_stress_out.txt']; %Log file name for exporting stress
 
-        %Specifying dimensions and number of elements
+        % //Create substrate geometry and tetrahedral mesh
+        %Specifying dimensions of substrate
         sampleWidth = x0(2)*2; %Width
         sampleThickness = y0(2)*2; %Thickness
-        sampleHeight = x0(2)/16; %Height
-        pointSpacings = [4,4,8];%(meshPtsFwdSol/x0(2)*2) * ones(1,3); %Desired point spacing between nodes
-        numElementsWidth = round(sampleWidth/pointSpacings(1))+1; %Number of elemens in dir 1
-        numElementsThickness = round(sampleThickness/pointSpacings(2))+1; %Number of elemens in dir 2
-        numElementsHeight = round(sampleHeight/pointSpacings(3))+1; %Number of elemens in dir 3
+        sampleHeight = x0(2); %Height
+        
+        %Generating preliminary mesh to use as the basis for the sizing function
+        pointSpacing = sampleWidth * 40 / 512; %determine point spacing from experimentally derived constant
+        boxDim = [sampleWidth sampleThickness sampleHeight]; %box dimensions
+        [F,V,C] = triBox(boxDim,pointSpacing); %preliminary mesh creation
+        fprintf(1,' done.\n') %Done generating substrate and surface mesh
+        %C = ones(size(F,1),1); %unify region IDs
+        
+        %Setup tetGen input structure
+        V_regions = getInnerPoint(F,V);
+        V_holes = [];
+        regionTetVolumes = tetVolMeanEst(F,V);
+        
+        %Generate size field
+        %Initialize mask of all nodes on top surface of substrate
+        topFaceHeight = max(V(:,3)); %Get height in terms of mesh coords
+        edgeSizeField = ones(length(V(:,1)),1); %initialize size field
+        topFaceMask = V(:,3) == topFaceHeight; %locate all nodes on top face
+        %Assign decreasing edge length to inner radius on top
+        distanceFromCenter = sum(bsxfun(@minus,V(:,1:2),[0,0]).^2,2); %calculates the distance from the center to all nodes
+        distanceFromCenter = 1.5 * ((distanceFromCenter * ((pointSpacing) / max(distanceFromCenter)))) + 0.5; %scale distance from 2 to max edge size
+        edgeSizeField(topFaceMask) = distanceFromCenter(topFaceMask); %assign sizing function to top face
+        edgeSizeField(~topFaceMask) = pointSpacing; %set other nodes to original mesh size
+        
+        %tetGen string modifiers
+        stringOpt = '-pq1.2mi';
+                    
+        %Setup tetGen options
+        inputStruct.stringOpt = stringOpt; %tetGen meshing options
+        inputStruct.Faces = F; %combined surface faces
+        inputStruct.Nodes = V; %combined boundary nodes
+        inputStruct.faceBoundaryMarker = C;
+        %inputStruct.regionPoints = V_regions; %interior separation points for regions
+        inputStruct.holePoints = V_holes; %interior points for hole boundaries
+        %inputStruct.regionA = regionTetVolumes; %desired tetrahedral volumes
+        inputStruct.sizeData=edgeSizeField; %The size data
+        
+        %Volume mesh the substrate using tetGen
+        meshOutput = runTetGen(inputStruct);
+               
+        %Write the output data to usable variables for FEBio/GIBBON
+        El = meshOutput.elements; %volume mesh elements
+        V = meshOutput.nodes; %mesh nodal locations
+        CE = meshOutput.elementMaterialID; %region ID for different materials
+        Fb = meshOutput.facesBoundary; %boundary faces
+        Cb = meshOutput.boundaryMarker; %boundary markers
+        
+        if isempty(V)
+            error('Meshing failed, node list is empty! Try altering tetGen options.')
+        end
 
         %Specifying load type
-        loadType = 'traction';
+        %loadType = 'traction';
 
         %Material Properties
+        fprintf('Assigning BCs and material properties...')
         E_youngs1=E; %Material Young's modulus
         if v == 0.5
             nu1=v - 0.001; %Material Poisson's ratio
@@ -192,22 +254,8 @@ elseif strcmpi(method,'FEM')
         max_ups=0; %Set to zero to use full-Newton iterations
         opt_iter=6; %Optimum number of iterations
         max_retries=5; %Maximum number of retires
-        dtmin=(1/numTimeSteps)/100; %Minimum time step size
+        dtmin=(1/numTimeSteps)/250; %Minimum time step size
         dtmax=1/numTimeSteps; %Maximum time step size
-
-        % //Creating geometry and mesh ************************************
-        % Create a box with hexahedral elements
-        cubeDimensions=[sampleWidth sampleThickness sampleHeight]; %Dimensions
-        cubeElementNumbers=[numElementsWidth numElementsThickness numElementsHeight]; %Number of elements
-        outputStructType=2; %A structure compatible with mesh view
-        [meshStruct]=hexMeshBox(cubeDimensions,cubeElementNumbers,outputStructType);
-
-        %Access elements, nodes, and faces from the structure
-        El=meshStruct.elements; %The elements
-        V=meshStruct.nodes; %The nodes (vertices)
-        Fb=meshStruct.facesBoundary; %The boundary faces
-        Cb=meshStruct.boundaryMarker; %The "colors" or labels for the boundary faces
-        elementMaterialIndices=ones(size(El,1),1); %Element material indices
 
         % //Prepare face nodes for BC application *************************
         %Define supported node sets
@@ -219,28 +267,112 @@ elseif strcmpi(method,'FEM')
         %Fr=Fb(logicFace,:); %The current face set
         %bcSupportList_Y=unique(Fr(:)); %Node set part of selected face
 
-        logicFace=Cb==5; %Logic for current face set
-        Fr=Fb(logicFace,:); %The current face set
-        bcSupportList_Z=unique(Fr(:)); %Node set part of selected face
+        %logicFace=Cb==5; %Logic for current face set
+        %Fr=Fb(logicFace,:); %The current face set
+        bcSupportList = unique(Fb(Cb==5,:)); %Extract unique nodes from each face in set
+        %Since applying BCs only takes the nodal number not the facet of
+        %three nodes we select the unique nodes to get a list of support nodes
+        
+        %bcSupportList = unique(Fb(Cb==1,:));
+        %bcSupportList = [bcSupportList; unique(Fb(Cb==2,:))];
+        %bcSupportList = [bcSupportList; unique(Fb(Cb==3,:))];
+        %bcSupportList = [bcSupportList; unique(Fb(Cb==4,:))];
+        %bcSupportList = [bcSupportList; unique(Fb(Cb==5,:))];
 
         %Prescribed force nodes
-        logicPrescribe=Cb==6; %Logic for current face set
-        Fr=fliplr(Fb(logicPrescribe,:)); %The current face set
-        bcPrescribeList=unique(Fr(:)); %Node set part of selected face
-
-        %Create spatially varying traction force
-        %force_X and Y should be meshPts/Spacing by meshPts/Spacing arrays
-        [X,Y] = meshgrid(-x0(2):pointSpacings(1):x0(2));
-        C_traction_x = force_x(X,Y);
-        C_traction_y = force_y(X,Y);
+        %logicPrescribe=Cb==6; %Logic for current face set
+        %Fr=fliplr(Fb(Cb==6,:)); %The current face set
+        bcPrescribeList=Fb(Cb==6,:);
+        %bcPrescribeList=fliplr(bcPrescribeList);
+        bcPrescribeList=unique(bcPrescribeList);
         
-        % X=V(:,1);
-        % C_pressure=mean(X(Fr),2);
-        % C_pressure=C_pressure-min(C_pressure(:));
-        % C_pressure=C_pressure./max(C_pressure(:));
-        % C_pressure=C_pressure.^2;
-        % C_pressure=C_pressure.*(2.0e-4-0.1e-4)+0.1e-4;
+        % //Create traction matrix ****************************************
+        %Remake topFaceMask
+        %topFaceMaskFine = V(:,3) == topFaceHeight; %locate all nodes on top face
+        
+        %Extract traction value at each surface node
+        %topFaceNodeLocations = V((Fb(Cb==6,:)),1:2); %locations of all top nodes
+        topFaceNodeLocations = V(bcPrescribeList(:),1:2);
+        topFaceNodeLocationX = topFaceNodeLocations(:,1);
+        topFaceNodeLocationY = topFaceNodeLocations(:,2);
+        C_traction_x = force_x(topFaceNodeLocationX(:),topFaceNodeLocationY(:));
+        C_traction_y = force_y(topFaceNodeLocationX(:),topFaceNodeLocationY(:));
+        C_traction_z = zeros(length(bcPrescribeList(:)),1);
+        
+        nodalTractionForce = [C_traction_x(:) C_traction_y(:) C_traction_z(:)];
+        
+        %**********************
+        %bcPrescribeNodalForce=unique(Fb(Cb==6,:));
+        %nodal_x = V(bcPrescribeNodalForce,1);
+        %nodal_y = V(bcPrescribeNodalForce,2);
+        %C_traction_x_nodal = force_x(nodal_x,nodal_y);
+        %C_traction_y_nodal = force_y(nodal_x,nodal_y);
+        %**********************
+        
+        debugFig = 1;
+        if debugFig == 1
+            for i = 1
+                %Debugging figures
+                %figure,histogram(C_traction_x); ylim([0 5])
+                %figure,histogram(C_traction_y);
+                
+                %Interpolated colormap on top surface
+                figure
+                x = topFaceNodeLocationX; y = topFaceNodeLocationY; z = C_traction_x;
+                dt = delaunayTriangulation(x,y) ;
+                tri = dt.ConnectivityList ;
+                xi = dt.Points(:,1) ; 
+                yi = dt.Points(:,2) ; 
+                F = scatteredInterpolant(x,y,z);
+                zi = F(xi,yi) ;
+                trisurf(tri,xi,yi,zi) 
+                hcb=colorbar; colormap(warmcold(250)); caxis([min(C_traction_x) max(C_traction_x)]);
+                view(2)
+                shading interp
+                
+                %2D Nodal location colormap on top surface
+                figure
+                x = topFaceNodeLocationX; y = topFaceNodeLocationY; c = C_traction_x;
+                sz = 40;
+                scatter(x,y,sz,c,'filled')
+                colormap(warmcold(250));
 
+                %Plotting BCs
+                fontSize=18;
+                %faceAlpha1=0.8;
+                markerSize=20;
+                markerSize2=15;
+                %lineWidth=3;
+
+                hf=cFigure;
+                title('Boundary conditions','FontSize',fontSize);
+                xlabel('X','FontSize',fontSize); ylabel('Y','FontSize',fontSize); zlabel('Z','FontSize',fontSize);
+                hold on;
+
+                gpatch(Fb,V,'kw','k',0.5);
+
+                %hl(1)=plotV(V(bcSupportList,:),'k.','MarkerSize',markerSize);
+                
+                %if force_x(0,0) == 1
+                %    hl(2)=scatterV(V(bcPrescribeList,:),75,C_traction_x,'filled');
+                %else
+                %    hl(2)=scatterV(V(bcPrescribeList,:),75,C_traction_y,'filled');
+                %end
+
+                %legend(hl,{'BC fix support','BC prescribed force'});
+
+                axisGeom(gca,fontSize);
+                %hcb=colorbar; colormap(warmcold(250)); caxis([min(C_traction_x) max(C_traction_x)]);
+                %yl = ylabel(hcb,'Force Magnitude','FontSize',fontSize);
+                %ylp = get(yl,'Position');
+                %ylp(1) = 1.4 * ylp(1);
+                %set(get(hcb,'ylabel'),'rotation',270,'position',ylp)
+                camlight headlight;
+                drawnow;
+                lol = 1;
+            end
+        end
+        
         % //Define FEBio input structure **********************************
         %Get a template with default settings
         [febio_spec]=febioStructTemplate;
@@ -271,19 +403,25 @@ elseif strcmpi(method,'FEM')
         %Assign material parameters
         materialName1='Material1';
         febio_spec.Material.material{1}.ATTR.name=materialName1;
-        %Neo-Hookean Material
-        %febio_spec.Material.material{1}.ATTR.type='neo-Hookean';
-        %febio_spec.Material.material{1}.ATTR.id=1;
-        %febio_spec.Material.material{1}.E=E_youngs1;
-        %febio_spec.Material.material{1}.v=nu1;
-        %Ogden Material
-        febio_spec.Material.material{1}.ATTR.type='Ogden';
-        febio_spec.Material.material{1}.ATTR.id=1;
-        febio_spec.Material.material{1}.c1=c1;
-        febio_spec.Material.material{1}.m1=m1;
-        febio_spec.Material.material{1}.c2=c1;
-        febio_spec.Material.material{1}.m2=-m1;
-        febio_spec.Material.material{1}.k=k;
+        
+        materialType = 0;
+        switch materialType
+            case 0
+                %Neo-Hookean Material
+                febio_spec.Material.material{1}.ATTR.type='neo-Hookean';
+                febio_spec.Material.material{1}.ATTR.id=1;
+                febio_spec.Material.material{1}.E=E_youngs1;
+                febio_spec.Material.material{1}.v=nu1;
+            case 1
+                %Ogden Material
+                febio_spec.Material.material{1}.ATTR.type='Ogden';
+                febio_spec.Material.material{1}.ATTR.id=1;
+                febio_spec.Material.material{1}.c1=c1;
+                febio_spec.Material.material{1}.m1=m1;
+                febio_spec.Material.material{1}.c2=c1;
+                febio_spec.Material.material{1}.m2=-m1;
+                febio_spec.Material.material{1}.k=k;
+        end
 
         % Mesh section
         % -> Nodes
@@ -294,30 +432,40 @@ elseif strcmpi(method,'FEM')
         % -> Elements
         partName1='Part1';
         febio_spec.Mesh.Elements{1}.ATTR.name=partName1; %Name of this part
-        febio_spec.Mesh.Elements{1}.ATTR.type='hex8'; %Element type
+        febio_spec.Mesh.Elements{1}.ATTR.type='tet4'; %Element type
         febio_spec.Mesh.Elements{1}.elem.ATTR.id=(1:1:size(El,1))'; %Element id's
         febio_spec.Mesh.Elements{1}.elem.VAL=El; %The element matrix
 
         % -> NodeSets
         %nodeSetName2='bcSupportList_X';
         %nodeSetName3='bcSupportList_Y';
-        nodeSetName1='bcSupportList_Z';
+        nodeSetName1='bcSupportList';
         %nodeSetName4='bcPrescribeList';
         
         febio_spec.Mesh.NodeSet{1}.ATTR.name=nodeSetName1;
-        febio_spec.Mesh.NodeSet{1}.node.ATTR.id=bcSupportList_Z(:);
+        febio_spec.Mesh.NodeSet{1}.node.ATTR.id=bcSupportList(:);
 
         %febio_spec.Mesh.NodeSet{2}.ATTR.name=nodeSetName2;
         %febio_spec.Mesh.NodeSet{2}.node.ATTR.id=bcSupportList_X(:);
 
         %febio_spec.Mesh.NodeSet{3}.ATTR.name=nodeSetName3;
         %febio_spec.Mesh.NodeSet{3}.node.ATTR.id=bcSupportList_Y(:);
+        
+        %febio_spec.Mesh.NodeSet{2}.ATTR.name=nodeSetName2;
+        %febio_spec.Mesh.NodeSet{2}.node.ATTR.id=bcPrescribeList;
+        
+        %**********************
+        nodeSetName2='bcPrescribeList';
+        febio_spec.Mesh.NodeSet{2}.ATTR.name=nodeSetName2;
+        febio_spec.Mesh.NodeSet{2}.node.ATTR.id=bcPrescribeList(:);
+        %**********************
 
         % -> Surfaces
-        surfaceName1='LoadedSurface';
-        febio_spec.Mesh.Surface{1}.ATTR.name=surfaceName1;
-        febio_spec.Mesh.Surface{1}.tri3.ATTR.id=(1:1:size(Fr,1))';
-        febio_spec.Mesh.Surface{1}.tri3.VAL=Fr;%bcPrescribeList;
+        %surfaceName1='LoadedSurface';
+        %febio_spec.Mesh.Surface{1}.ATTR.name=surfaceName1;
+        %febio_spec.Mesh.Surface{1}.tri3.ATTR.id=(1:1:size(bcPrescribeList,1))';
+        %There is some debate regarding using Fr over bcPrescribe here
+        %febio_spec.Mesh.Surface{1}.tri3.VAL=bcPrescribeList;%Fr;
 
         %MeshDomains section
         febio_spec.MeshDomains.SolidDomain.ATTR.name=partName1;
@@ -338,27 +486,46 @@ elseif strcmpi(method,'FEM')
         %febio_spec.Boundary.bc{3}.dofs='y';
 
         %MeshData section
+        %************************
+        % -> Node data
+        loadDataName1='traction_force';
+        febio_spec.MeshData.NodeData{1}.ATTR.name=loadDataName1;
+        febio_spec.MeshData.NodeData{1}.ATTR.node_set=nodeSetName2;
+        febio_spec.MeshData.NodeData{1}.ATTR.datatype='vec3';
+        febio_spec.MeshData.NodeData{1}.node.ATTR.lid=(1:1:numel(bcPrescribeList))';
+        febio_spec.MeshData.NodeData{1}.node.VAL=nodalTractionForce;
+        
+        % -> Prescribed nodal forces
+        febio_spec.Loads.nodal_load{1}.ATTR.name='topface_nodal_force';
+        febio_spec.Loads.nodal_load{1}.ATTR.type='nodal_force';
+        febio_spec.Loads.nodal_load{1}.ATTR.node_set=nodeSetName2;
+        febio_spec.Loads.nodal_load{1}.value.ATTR.lc=1;
+        febio_spec.Loads.nodal_load{1}.value.ATTR.type='map';
+        febio_spec.Loads.nodal_load{1}.value.VAL=loadDataName1;
+        %************************
+        
         % -> Surface data
-        loadDataName1='LoadData1';
-        febio_spec.MeshData.SurfaceData.ATTR.name=loadDataName1;
-        febio_spec.MeshData.SurfaceData.ATTR.surface=surfaceName1;
-        febio_spec.MeshData.SurfaceData.ATTR.datatype='vec3';
-        febio_spec.MeshData.SurfaceData.face.ATTR.lid=(1:1:numel(C_traction_x))';
-        febio_spec.MeshData.SurfaceData.face.VAL=[C_traction_x(:) C_traction_y(:) zeros(size(C_traction_x(:)))];
+        %loadDataName1='LoadData1';
+        %febio_spec.MeshData.SurfaceData{1}.ATTR.name=loadDataName1;
+        %febio_spec.MeshData.SurfaceData{1}.ATTR.surface=surfaceName1;
+        %febio_spec.MeshData.SurfaceData{1}.ATTR.datatype='vec3';
+        %febio_spec.MeshData.SurfaceData{1}.face.ATTR.lid=(1:1:numel(C_traction_x))';
+        %febio_spec.MeshData.SurfaceData{1}.face.VAL=[C_traction_x(:) C_traction_y(:) zeros(size(C_traction_x(:)))];
 
         %Loads section
         % -> Surface load
-        febio_spec.Loads.surface_load{1}.ATTR.type='traction';
-        febio_spec.Loads.surface_load{1}.ATTR.surface=surfaceName1;
-        febio_spec.Loads.surface_load{1}.traction.ATTR.lc=1;
-        febio_spec.Loads.surface_load{1}.traction.ATTR.type='map';
-        febio_spec.Loads.surface_load{1}.traction.VAL=loadDataName1;
-
+        %febio_spec.Loads.surface_load{1}.ATTR.type='traction';
+        %febio_spec.Loads.surface_load{1}.ATTR.surface=surfaceName1;
+        %febio_spec.Loads.surface_load{1}.traction.ATTR.lc=1;
+        %febio_spec.Loads.surface_load{1}.traction.ATTR.type='map';
+        %febio_spec.Loads.surface_load{1}.traction.VAL=loadDataName1;
+        
         %LoadData section
         % -> load_controller
         febio_spec.LoadData.load_controller{1}.ATTR.id=1;
         febio_spec.LoadData.load_controller{1}.ATTR.type='loadcurve';
         febio_spec.LoadData.load_controller{1}.interpolate='LINEAR';
+        %Conduct a run with all points set to 1
         febio_spec.LoadData.load_controller{1}.points.point.VAL=[0 0; 1 1];
 
         %Output section
@@ -369,27 +536,28 @@ elseif strcmpi(method,'FEM')
         febio_spec.Output.logfile.node_data{1}.ATTR.delim=',';
         febio_spec.Output.logfile.node_data{1}.VAL=1:size(V,1);
 
-        febio_spec.Output.logfile.element_data{1}.ATTR.file=febioLogFileName_stress;
-        febio_spec.Output.logfile.element_data{1}.ATTR.data='s1';
-        febio_spec.Output.logfile.element_data{1}.ATTR.delim=',';
-        febio_spec.Output.logfile.element_data{1}.VAL=1:size(V,1);
+        %febio_spec.Output.logfile.element_data{1}.ATTR.file=febioLogFileName_stress;
+        %febio_spec.Output.logfile.element_data{1}.ATTR.data='s1';
+        %febio_spec.Output.logfile.element_data{1}.ATTR.delim=',';
+        %febio_spec.Output.logfile.element_data{1}.VAL=1:size(V,1);
 
         % //FEBio running *************************************************
         %Run Settings
         febioAnalysis.run_filename=febioFebFileName; %The input file name
         febioAnalysis.run_logname=febioLogFileName; %The name for the log file
         febioAnalysis.disp_on=1; %Display information on the command window
-        febioAnalysis.runMode='internal';%'internal';
+        febioAnalysis.runMode='internal';%'internal';preferred
         febioAnalysis.maxLogCheckTime=120; %Max log file checking time
-        optionStruct.arrayParseMethod = 1;
+        optionStruct.arrayParseMethod = 1; %1,2, or 3 (1 preferred)
         
         %Check and create output folders
         if ~exist(folderName,'dir')
             mkdir(folderName)
         end
+        fprintf(1,' done.\n') %Done defining BCs and material conditions
 
         %Export FEBio Structure
-        febioStruct2xml(febio_spec,febioFebFileName,optionStruct); %Exporting to file
+        [domNode] = febioStruct2xml(febio_spec,febioFebFileName,optionStruct); %Exporting to file
         %system(['gedit ',febioFebFileName,' &']);
 
         %Run Model
@@ -402,63 +570,69 @@ elseif strcmpi(method,'FEM')
         if runFlag == 1
         dataStruct=importFEBio_logfile(fullfile(savePath,febioLogFileName_disp),1,1);
 
-        N_disp_mat=dataStruct.data; %Displacement
-%         timeVec=dataStruct.time; %Time
-% 
-%         %Create deformed coordinate set
-%         V_DEF=N_disp_mat+repmat(V,[1 1 size(N_disp_mat,3)]);
-%         DN_magnitude=sqrt(sum(N_disp_mat(:,:,end).^2,2)); %Current displacement magnitude
-%         
-%         % Create basic view and store graphics handle to initiate animation
-%         hf=cFigure; %Open figure
-%         gtitle([febioFebFileNamePart,': Press play to animate']);
-%         title('Displacement magnitude [mm]','Interpreter','Latex')
-%         hp=gpatch(Fb,V_DEF(:,:,end),DN_magnitude,'k',1,2); %Add graphics object to animate
-%         hp.Marker='.';
-%         hp.MarkerSize=markerSize2;
-%         hp.FaceColor='interp';
-%         gpatch(Fb,V,0.5*ones(1,3),'none',0.25); %A static graphics object
-% 
-%         axisGeom(gca,fontSize);
-%         colormap(cMap); colorbar;
-%         caxis([0 max(DN_magnitude)]); caxis manual;
-%         axis(axisLim(V_DEF)); %Set axis limits statically
-%         view(140,30);
-%         camlight headlight;
-% 
-%         % Set up animation features
-%         animStruct.Time=timeVec; %The time vector
-%         for qt=1:1:size(N_disp_mat,3) %Loop over time increments
-%             DN_magnitude=sqrt(sum(N_disp_mat(:,:,qt).^2,2)); %Current displacement magnitude
-% 
-%             %Set entries in animation structure
-%             animStruct.Handles{qt}=[hp hp]; %Handles of objects to animate
-%             animStruct.Props{qt}={'Vertices','CData'}; %Properties of objects to animate
-%             animStruct.Set{qt}={V_DEF(:,:,qt),DN_magnitude}; %Property values for to set in order to animate
-%         end
-%         anim8(hf,animStruct); %Initiate animation feature
-%         drawnow;
+        N_disp_mat=dataStruct.data; % nNodes-by-(u,v,w)-by-nTimeSteps
+        timeVec=dataStruct.time; %Time
+        
+        % //Plotting results **********************************************
+        drawFEBioFig = 0;
+        if drawFEBioFig == 1
+            for i = 1
+        %Create deformed coordinate set
+        V_DEF=N_disp_mat+repmat(V,[1 1 size(N_disp_mat,3)]);
+        DN_magnitude=sqrt(sum(N_disp_mat(:,:,end).^2,2)); %Current displacement magnitude
+        % Create basic view and store graphics handle to initiate animation
+        hf=cFigure; %Open figure
+        gtitle([febioFebFileNamePart,': Press play to animate']);
+        title('Displacement magnitude [mm]','Interpreter','Latex')
+        hp=gpatch(Fb,V_DEF(:,:,end),DN_magnitude,'k',1,2); %Add graphics object to animate
+        hp.Marker='.';
+        hp.MarkerSize=markerSize2;
+        hp.FaceColor='interp';
+        gpatch(Fb,V,0.5*ones(1,3),'none',0.25); %A static graphics object
 
+        axisGeom(gca,fontSize);
+        colormap(cMap); colorbar;
+        caxis([0 max(DN_magnitude)]); caxis manual;
+        axis(axisLim(V_DEF)); %Set axis limits statically
+        view(140,30);
+        camlight headlight;
+
+        % Set up animation features
+        animStruct.Time=timeVec; %The time vector
+        for qt=1:1:size(N_disp_mat,3) %Loop over time increments
+            DN_magnitude=sqrt(sum(N_disp_mat(:,:,qt).^2,2)); %Current displacement magnitude
+
+            %Set entries in animation structure
+            animStruct.Handles{qt}=[hp hp]; %Handles of objects to animate
+            animStruct.Props{qt}={'Vertices','CData'}; %Properties of objects to animate
+            animStruct.Set{qt}={V_DEF(:,:,qt),DN_magnitude}; %Property values for to set in order to animate
+        end
+        anim8(hf,animStruct); %Initiate animation feature
+        drawnow;
+            end
+        end
+
+        % //Format FEBio output into fwdSolution compatible form **********
         %Component displacement at final time step
         dispMat = N_disp_mat(:,:,end);
         node_ux = dispMat(:,1);
         node_uy = dispMat(:,2);
 
-        %Extract top face
-        topNode_ux = node_ux(V(:,3)==(sampleHeight/2));
-        topNode_uy = node_uy(V(:,3)==(sampleHeight/2));
+        %Extract top face nodal displacements
+        topNode_ux = node_ux(bcPrescribeList(:));
+        topNode_uy = node_uy(bcPrescribeList(:));
+        %topNode_ux = node_ux(V(:,3) == topFaceHeight);
+        %topNode_uy = node_uy(V(:,3) == topFaceHeight);
         
-%         %Get nodal locations of displacement values from top face
-%         topLoc = V(V(:,3)==64,:);
-        
-%         %Convert to NxN displacement map
-%         nodeLocMap_x = reshape(topLoc(:,1),[],numElementsWidth+1);
-%         nodeLocMap_y = reshape(topLoc(:,2),[],numElementsWidth+1);
+        %Define interpolation locations
+        vx = linspace(x0(1),x0(2),meshPtsFwdSol);
+        vy = linspace(y0(1),y0(2),meshPtsFwdSol);
+        [x_grid,y_grid] = meshgrid(vx,vy);
 
-        %Initialize loop variables
         reformatOut = 0;
         %Reformatting output matrices to ensure correct orientation
         if reformatOut == 1
+            %Initialize loop variables
             nodeDispMap_ux = zeros(130);
             nodeDispMap_uy = zeros(130);
             outMatWidth = numElementsWidth + 1;
@@ -481,29 +655,31 @@ elseif strcmpi(method,'FEM')
                 endID = endID + outMatWidth;
                 idx = idx + 1;
             end
-        else
-            nodeDispMap_ux = reshape(topNode_ux,[],numElementsWidth+1);
-            nodeDispMap_uy = reshape(topNode_uy,[],numElementsWidth+1);
         end
-         
-%         %Convert to NxN displacement maps
-%         nodeDispMap_ux = reshape(topNode_ux,[],numElementsWidth+1);
-%         nodeDispMap_uy = reshape(topNode_uy,[],numElementsWidth+1);
         
-        %Define FEM Nodal Locations (not FEBio nodal locations)
-        [X,Y] = meshgrid((-sampleWidth/2-pointSpacings(1)/2):pointSpacings(1):(sampleWidth/2+pointSpacings(1)/2));
-        %Define interpolation locations
-        vx = linspace(x0(1),x0(2),meshPtsFwdSol);
-        vy = linspace(y0(1),y0(2),meshPtsFwdSol);
-        [x_grid,y_grid] = meshgrid(vx,vy);
+        %x = topFaceNodeLocationX ; y = topFaceNodeLocationY ; z = topNode_ux ;
+        %dt = delaunayTriangulation(x,y) ;
+        %tri = dt.ConnectivityList ;
+        %xi = dt.Points(:,1) ; 
+        %yi = dt.Points(:,2) ; 
+        %F = scatteredInterpolant(x,y,z);
+        %zi = F(xi,yi) ;
+        %trisurf(tri,xi,yi,zi) 
+        %view(2)
+        %shading interp
+
         %Interpolate disp map at TFM nodal locations into output variables
-        ux = interp2(X,Y,nodeDispMap_ux,x_grid,y_grid);
-        uy = interp2(X,Y,nodeDispMap_uy,x_grid,y_grid);
+        [~,~,ux] = griddata(topFaceNodeLocationX,topFaceNodeLocationY,topNode_ux,x_grid,y_grid);
+        [~,~,uy] = griddata(topFaceNodeLocationX,topFaceNodeLocationY,topNode_uy,x_grid,y_grid);
         end
         toc;    
         disp('Completed Non-linear FEM fwd solution.')
-        
-        save('FEMNonLinOgdenOutputs.mat','ux','uy')
+        switch materialType
+            case 0
+                save('FEMNonLinNeoHookeanOutputs.mat','ux','uy')
+            case 1
+                save('FEMNonLinOgdenOutputs.mat','ux','uy')
+        end     
     end
 
 elseif strcmpi(method,'fft')

@@ -67,7 +67,7 @@ for ii=1:numConditions
     
     % Combine data per each condition (1,2,3,4 for 3.4, 18, 100, 100Y, respectively)
     for k=1:N(ii)
-        speedCell = quantifyMovieFlowSpeed(MD);
+        speedCell = quantifyMovieFlowSpeed(curML.movies_{k});
         % output will be in speedCell(windows:layers:frame) format
         % Will need to separately store them
         SpeedL1{k} = squeeze(speedCell(:,1,:));
