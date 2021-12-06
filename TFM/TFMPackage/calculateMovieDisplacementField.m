@@ -216,8 +216,22 @@ for j= firstFrame:nFrames
                 disp(['Determined sigma: ' num2str(psfSigma)])
 
                 disp('Detecting beads in the reference frame...')
-                pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,...
-                    'FitMixtures',true, 'MaxMixtures', 3);
+                try
+                    pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,...
+                        'FitMixtures',true, 'MaxMixtures', 3);
+                catch
+                    % in this case, firstMask is wrong due to cropped
+                    % image. Setting it again...
+                    if ~isempty(SDCProc)
+                        firstImage = double(SDCProc.loadChannelOutput(p.ChannelIndex(1),1));
+                    else
+                        firstImage = double(movieData.channels_(p.ChannelIndex(1)).loadImage(1));
+                    end
+                    firstMask = refFrame>0 & firstImage>0;
+                    pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,...
+                        'FitMixtures',true, 'MaxMixtures', 3);
+                    
+                end
                 assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
                 % filtering out points in saturated image based on pstruct.c
                 [N,edges]= histcounts(pstruct.c);
