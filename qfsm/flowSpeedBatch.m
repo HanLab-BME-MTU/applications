@@ -259,3 +259,5 @@ hgsave(h1,strcat(figPath,'/FlowSpeedAll'),'-v7.3')
 %% saving
 close all
 save([dataPath filesep 'flowDataAll.mat'],'-v7.3');
+disp(['Figures are stored in ' figPath '.'])
+disp(['Data are stored in ' dataPath '.'])
