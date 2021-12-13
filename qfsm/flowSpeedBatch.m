@@ -99,7 +99,7 @@ hgsave(h1,strcat(figPath,'/FlowSpeedL1'),'-v7.3')
 % tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 % writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% Plotting SpeedL1 - only top 10 percentile per movie per frame
-speedL1CellTop10 = cell(1,numConditions);
+speedL1CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
     speedL1Top10 = cell(N(ii),1);
     for k=1:N(ii)
@@ -132,7 +132,7 @@ hgsave(h1,strcat(figPath,'/FlowSpeedL2'),'-v7.3')
 % tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 % writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% Plotting SpeedL2 - only top 10 percentile per movie per frame
-speedL2CellTop10 = cell(1,numConditions);
+speedL2CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
     speedL2Top10 = cell(N(ii),1);
     for k=1:N(ii)
@@ -164,7 +164,7 @@ hgsave(h1,strcat(figPath,'/FlowSpeedL3'),'-v7.3')
 % tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 % writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% Plotting SpeedL3 - only top 10 percentile per movie per frame
-speedL3CellTop10 = cell(1,numConditions);
+speedL3CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
     speedL3Top10 = cell(N(ii),1);
     for k=1:N(ii)
@@ -196,7 +196,7 @@ hgsave(h1,strcat(figPath,'/FlowSpeedL4'),'-v7.3')
 % tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 % writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% Plotting SpeedL4 - only top 10 percentile per movie per frame
-speedL4CellTop10 = cell(1,numConditions);
+speedL4CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
     speedL4Top10 = cell(N(ii),1);
     for k=1:N(ii)
@@ -228,7 +228,7 @@ hgsave(h1,strcat(figPath,'/FlowSpeedL5'),'-v7.3')
 % tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 % writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% Plotting SpeedL5 - only top 10 percentile per movie per frame
-speedL5CellTop10 = cell(1,numConditions);
+speedL5CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
     speedL5Top10 = cell(N(ii),1);
     for k=1:N(ii)
@@ -256,3 +256,8 @@ ylabel('Flow speed (nm/min)')
 title('Flow speed at all layers')
 hgexport(h1,strcat(figPath,'/FlowSpeedAll'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedAll'),'-v7.3')
+%% saving
+close all
+save([dataPath filesep 'flowDataAll.mat'],'-v7.3');
+disp(['Figures are stored in ' figPath '.'])
+disp(['Data are stored in ' dataPath '.'])
