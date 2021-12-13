@@ -267,14 +267,26 @@ legend('Myosin','Myoin, no FA growth','Blebbi, n_m=180',...
 ylabel('Traction force')
 xlabel('Stiffness')
 %% plotting velocity
-figure,
-hold off
+%This one should be reentered.
+h=figure(2);
 plot(ksub,abs(vctrl10),'r.-') 
 hold on
-plot(ksub,abs(v_blebbi),'b.-')
+% plot(ksub,abs(v_blebbi),'b.-')
 plot(ksub,abs(v_blebbiRC),'g.-') 
+plot(ksub,abs(v_ck666_2),'ko-','LineWidth',2) 
+plot(ksub,abs(v_smif),'bo-','LineWidth',2) 
 ylabel('Actin flow speed')
-legend('Control','Actin-only, v_u=0, v-actin=1e-8','Blebbi, n_m=180','Location','best')
+xlabel('Stiffness')
+legend('Myosin','Blebbi, n_m=180',...
+    'No myosin, No Arp2/3,vactin=2 (CK666)',...
+    'No myosin, No formin (SMIFH2)','Location','best')
+try
+    figPath = '/Volumes/GoogleDrive/My Drive/Documents/Faculty/Projects/StiffnessSensing/Simulation';
+    savefig(h,[figPath,'/flowSpeed_vs_stiffness'])
+catch
+    savefig(h,[pwd,'/flowSpeed_vs_stiffness'])
+    disp('Saving to current directory...')
+end
 
 %% testing actin-only mechanosensitivity
 
