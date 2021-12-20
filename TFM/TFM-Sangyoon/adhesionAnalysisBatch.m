@@ -15,7 +15,7 @@ if strcmp(namesOK, 'y')
             nameList{ii} = curName;
         end
     end
-    specificName = strjoin(nameList);
+    specificName = strjoin(nameList, '_');
 end
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});

@@ -20,8 +20,15 @@ if strcmp(namesOK, 'y')
             nameList{ii} = curName;
         end
     end
-    specificName = strjoin(nameList);
+    specificName = strjoin(nameList, '_');
 end
+%% Just in case when there is a larger condition.
+largerCondition = input('Do you want to add a larger condition name, e.g., WT or Blebbi etc (y/n)?','s');
+if strcmp(largerCondition, 'y')
+    largerConditionName = input(['Enter the condition name:'], 's');
+    specificName = [largerConditionName specificName];
+end
+
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
 % rootAnalysis = pathAnalysisAll{1};
@@ -98,6 +105,22 @@ hgsave(h1,strcat(figPath,'/FlowSpeedL1'),'-v7.3')
 % FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
 % tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 % writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
+%% Scatter plot
+% name should be only numeric for scatter plot
+try
+    xValues = cellfun(@(x) str2double(x), nameList);
+    xLabel = input(['Label and unit? e.g. Stiffness (kPa): '], 's');
+catch
+    disp('Your initial x labels were not numerical texts. Run this code again with renaming the labels.')
+end
+%% scatter plot
+h1=figure; 
+errorBarPlotCellArray(speedL1Cell,xValues,1);
+xlabel(xLabel)
+ylabel('Flow speed (nm/min)')
+title('Flow speed at first layer')
+hgexport(h1,strcat(figPath,'/FlowSpeedL1Scatter'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FlowSpeedL1Scatter'),'-v7.3')
 %% Plotting SpeedL1 - only top 10 percentile per movie per frame
 speedL1CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
@@ -119,6 +142,14 @@ title('Flow speed at first layer, top 10 percentile')
 hgexport(h1,strcat(figPath,'/FlowSpeedL1Top10'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL1Top10'),'-v7.3')
 % FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
+%% scatter plot
+h1=figure; 
+errorBarPlotCellArray(speedL1CellTop10,xValues,1);
+xlabel(xLabel)
+ylabel('Flow speed (nm/min)')
+title('Flow speed at first layer, top 10 percentile')
+hgexport(h1,strcat(figPath,'/FlowSpeedL1T10Scatter'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FlowSpeedL1T10Scatter'),'-v7.3')
 %% Plotting SpeedL2
 speedL2Cell = cellfun(@(x) cell2mat(x), SpeedL2Group,'unif',false);
 speedL2Cell = cellfun(@(x) x(:), speedL2Cell,'unif',false);
@@ -128,9 +159,14 @@ ylabel('Flow speed (nm/min)')
 title('Flow speed at second layer')
 hgexport(h1,strcat(figPath,'/FlowSpeedL2'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL2'),'-v7.3')
-% FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
-% tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
-% writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
+%% scatter plot
+h1=figure; 
+errorBarPlotCellArray(speedL1Cell,xValues,1);
+xlabel(xLabel)
+ylabel('Flow speed (nm/min)')
+title('Flow speed at second layer')
+hgexport(h1,strcat(figPath,'/FlowSpeedL2Scatter'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FlowSpeedL2Scatter'),'-v7.3')
 %% Plotting SpeedL2 - only top 10 percentile per movie per frame
 speedL2CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
@@ -160,9 +196,14 @@ ylabel('Flow speed (nm/min)')
 title('Flow speed at third layer')
 hgexport(h1,strcat(figPath,'/FlowSpeedL3'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL3'),'-v7.3')
-% FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
-% tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
-% writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
+%% scatter plot
+h1=figure; 
+errorBarPlotCellArray(speedL3Cell,xValues,1);
+xlabel(xLabel)
+ylabel('Flow speed (nm/min)')
+title('Flow speed at the third layer')
+hgexport(h1,strcat(figPath,'/FlowSpeedL3Scatter'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FlowSpeedL3Scatter'),'-v7.3')
 %% Plotting SpeedL3 - only top 10 percentile per movie per frame
 speedL3CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
@@ -192,9 +233,14 @@ ylabel('Flow speed (nm/min)')
 title('Flow speed at fourth layer')
 hgexport(h1,strcat(figPath,'/FlowSpeedL4'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL4'),'-v7.3')
-% FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
-% tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
-% writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
+%% scatter plot
+h1=figure; 
+errorBarPlotCellArray(speedL4Cell,xValues,1);
+xlabel(xLabel)
+ylabel('Flow speed (nm/min)')
+title('Flow speed at the fourth layer')
+hgexport(h1,strcat(figPath,'/FlowSpeedL4Scatter'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FlowSpeedL4Scatter'),'-v7.3')
 %% Plotting SpeedL4 - only top 10 percentile per movie per frame
 speedL4CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
@@ -224,9 +270,14 @@ ylabel('Flow speed (nm/min)')
 title('Flow speed at fifth layer')
 hgexport(h1,strcat(figPath,'/FlowSpeedL5'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL5'),'-v7.3')
-% FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
-% tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
-% writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
+%% scatter plot
+h1=figure; 
+errorBarPlotCellArray(speedL5Cell,xValues,1);
+xlabel(xLabel)
+ylabel('Flow speed (nm/min)')
+title('Flow speed at the fifth layer')
+hgexport(h1,strcat(figPath,'/FlowSpeedL5Scatter'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FlowSpeedL5Scatter'),'-v7.3')
 %% Plotting SpeedL5 - only top 10 percentile per movie per frame
 speedL5CellTop10 = cell(numConditions,1);
 for ii=1:numConditions
@@ -256,6 +307,14 @@ ylabel('Flow speed (nm/min)')
 title('Flow speed at all layers')
 hgexport(h1,strcat(figPath,'/FlowSpeedAll'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedAll'),'-v7.3')
+%% scatter plot
+h1=figure; 
+errorBarPlotCellArray(speedAllCell,xValues,1);
+xlabel(xLabel)
+ylabel('Flow speed (nm/min)')
+title('Flow speed at all layers')
+hgexport(h1,strcat(figPath,'/FlowSpeedAllScatter'),hgexport('factorystyle'),'Format','eps')
+hgsave(h1,strcat(figPath,'/FlowSpeedAllScatter'),'-v7.3')
 %% saving
 close all
 save([dataPath filesep 'flowDataAll.mat'],'-v7.3');
