@@ -202,7 +202,7 @@ v_actin = -1e-9; % same so far
 kont1 = 2.11e-4; % same as 2.11e-4 True on-rate (um2/s), 1st integrin type
 kof1 = 0.5e0; % from 1.3
 % tTotal=1000;
-parfor ii=1:numKsub
+for ii=1:numKsub
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
@@ -250,16 +250,16 @@ P_smif = mf_smif/(pi*a^2);
 %% plotting
 figure(1)
 hold off
-plot(ksub,abs(Pctrl10),'r.-') 
+plot(E,abs(Pctrl10),'r.-') 
 hold on
-plot(ksub,abs(Pdep10),'b.-')
-plot(ksub,abs(P_blebbiRC),'g.-') 
-plot(ksub,abs(P_blebbi_actinSlowdown),'ro-','LineWidth',2) 
-plot(ksub,abs(P_ck666),'co-','LineWidth',2) 
-plot(ksub,abs(P_ck666_2),'ko-','LineWidth',2) 
+plot(E,abs(Pdep10),'b.-')
+plot(E,abs(P_blebbiRC),'g.-') 
+plot(E,abs(P_blebbi_actinSlowdown),'ro-','LineWidth',2) 
+plot(E,abs(P_ck666),'co-','LineWidth',2) 
+plot(E,abs(P_ck666_2),'ko-','LineWidth',2) 
 
-plot(ksub,abs(P_smif),'bo-','LineWidth',2) 
-% semilogx(ksub,abs(P_ck666),'co-','LineWidth',2) 
+plot(E,abs(P_smif),'bo-','LineWidth',2) 
+% semilogx(E,abs(P_ck666),'co-','LineWidth',2) 
 legend('Myosin','Myoin, no FA growth','Blebbi, n_m=180',...
     'No myosin, Actin F-v relationship','No myosin, No Arp2/3 (CK666)',...
     'No myosin, No Arp2/3,vactin=2 (CK666)',...
@@ -269,12 +269,12 @@ xlabel('Stiffness')
 %% plotting velocity
 %This one should be reentered.
 h=figure(2);
-plot(ksub,abs(vctrl10),'r.-') 
+plot(E,abs(vctrl10),'r.-') 
 hold on
-% plot(ksub,abs(v_blebbi),'b.-')
-plot(ksub,abs(v_blebbiRC),'g.-') 
-plot(ksub,abs(v_ck666_2),'ko-','LineWidth',2) 
-plot(ksub,abs(v_smif),'bo-','LineWidth',2) 
+% plot(E,abs(v_blebbi),'b.-')
+plot(E,abs(v_blebbiRC),'g.-') 
+plot(E,abs(v_ck666_2),'ko-','LineWidth',2) 
+plot(E,abs(v_smif),'bo-','LineWidth',2) 
 ylabel('Actin flow speed')
 xlabel('Stiffness')
 legend('Myosin','Blebbi, n_m=180',...

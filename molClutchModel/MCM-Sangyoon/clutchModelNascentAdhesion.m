@@ -81,7 +81,7 @@ dint2t = zeros(1,nTimeSteps); % Density of integrin type 2 as a function of time
 %% Simulation through time
 p = 0;
 if verbose
-    f100=figure(100); f100.Position(3:4)=[300 1000];
+    f100=figure; f100.Position(3:4)=[300 1000];
 end
 Fs_actin = -C_actin/(4*R);
 
@@ -119,6 +119,20 @@ for t=timeStepAll
     k1(indunbound) = kont1*dint1;
     k2(indunbound) = kont2*dint2;
 
+%     if verbose 
+%         if p==1 
+%             ax1 = subplot(4,1,1); plot(t,sum(k),'.-'); hold on; title('k, unbinding'); 
+%             ax2 = subplot(4,1,2); plot(t,sum(k1),'.-'); hold on; title('k1, binding');
+%             ax3 = subplot(4,1,3); plot(t,sum(kvuf),'.-'); hold on; title('kv_uf, unfolding');
+%             ax4 = subplot(4,1,4); plot(t,sum(kvf),'.-'); hold on; title('konv, vinculin binding'); 
+%         else
+%             plot(ax1, t,sum(k),'.-');
+%             plot(ax2, t,sum(k1),'.-');
+%             plot(ax3, t,sum(kvuf),'.-');
+%             plot(ax4, t,sum(kvf),'.-');
+%         end
+%     end
+    
     %We calculate the times for all events:
     teventub = -log(rand(nc,1))./k;  %Times for unbinding events
     teventb1 = -log(rand(nc,1))./(k1); %Times for binding events, int. 1
@@ -200,11 +214,11 @@ for t=timeStepAll
     
 end
 q=1000;
+a =1700e-9; % Radius of adhesion (m) 1500e-9
 if verbose 
-    subplot(4,1,1); plot(1:q,abs(f(1:q)),'.-'); title('f')
-    subplot(4,1,2); plot(1:q,abs(v(1:q)));  title('v')
-    subplot(4,1,3); plot(1:q,nb1(1:q));  title('nb1')
-    subplot(4,1,4); plot(1:q,nb2(1:q));  title('nb2')
+    subplot(3,1,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
+    subplot(3,1,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (ms)'); ylabel('Velocity (nm/s)')
+    subplot(3,1,3); plot(timeStepAll,nb1);  title('Bound integrin'); xlabel('Time (ms)'); ylabel('Number (1)')
     drawnow
 end
 
