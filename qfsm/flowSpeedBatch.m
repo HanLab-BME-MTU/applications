@@ -94,8 +94,8 @@ for ii=1:numConditions
 end
 
 %% Plotting SpeedL1
-speedL1Cell = cellfun(@(x) cell2mat(x), SpeedL1Group,'unif',false);
-speedL1Cell = cellfun(@(x) x(:), speedL1Cell,'unif',false);
+speedL1Cell = cellfun(@(x) cell2mat(cellfun(@(y) y(:),x,'unif',false)), SpeedL1Group,'unif',false);
+% speedL1Cell = cellfun(@(x) x(:), speedL1Cell,'unif',false);
 h1=figure; 
 boxPlotCellArray(speedL1Cell,nameList,1,1,1)
 ylabel('Flow speed (nm/min)')
@@ -151,8 +151,8 @@ title('Flow speed at first layer, top 10 percentile')
 hgexport(h1,strcat(figPath,'/FlowSpeedL1T10Scatter'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL1T10Scatter'),'-v7.3')
 %% Plotting SpeedL2
-speedL2Cell = cellfun(@(x) cell2mat(x), SpeedL2Group,'unif',false);
-speedL2Cell = cellfun(@(x) x(:), speedL2Cell,'unif',false);
+speedL2Cell = cellfun(@(x) cell2mat(cellfun(@(y) y(:),x,'unif',false)), SpeedL2Group,'unif',false);
+% speedL2Cell = cellfun(@(x) x(:), speedL2Cell,'unif',false);
 h1=figure; 
 boxPlotCellArray(speedL2Cell,nameList,1,1,1)
 ylabel('Flow speed (nm/min)')
@@ -188,8 +188,8 @@ title('Flow speed at second layer, top 10 percentile')
 hgexport(h1,strcat(figPath,'/FlowSpeedL2Top10'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL2Top10'),'-v7.3')
 %% Plotting SpeedL3
-speedL3Cell = cellfun(@(x) cell2mat(x), SpeedL3Group,'unif',false);
-speedL3Cell = cellfun(@(x) x(:), speedL3Cell,'unif',false);
+speedL3Cell = cellfun(@(x) cell2mat(cellfun(@(y) y(:),x,'unif',false)), SpeedL3Group,'unif',false);
+% speedL3Cell = cellfun(@(x) x(:), speedL3Cell,'unif',false);
 h1=figure; 
 boxPlotCellArray(speedL3Cell,nameList,1,1,1)
 ylabel('Flow speed (nm/min)')
@@ -225,8 +225,8 @@ title('Flow speed at third layer, top 10 percentile')
 hgexport(h1,strcat(figPath,'/FlowSpeedL3Top10'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL3Top10'),'-v7.3')
 %% Plotting SpeedL4
-speedL4Cell = cellfun(@(x) cell2mat(x), SpeedL4Group,'unif',false);
-speedL4Cell = cellfun(@(x) x(:), speedL4Cell,'unif',false);
+speedL4Cell = cellfun(@(x) cell2mat(cellfun(@(y) y(:),x,'unif',false)), SpeedL4Group,'unif',false);
+% speedL4Cell = cellfun(@(x) x(:), speedL4Cell,'unif',false);
 h1=figure; 
 boxPlotCellArray(speedL4Cell,nameList,1,1,1)
 ylabel('Flow speed (nm/min)')
@@ -262,8 +262,8 @@ title('Flow speed at fourth layer, top 10 percentile')
 hgexport(h1,strcat(figPath,'/FlowSpeedL4Top10'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL4Top10'),'-v7.3')
 %% Plotting SpeedL5
-speedL5Cell = cellfun(@(x) cell2mat(x), SpeedL5Group,'unif',false);
-speedL5Cell = cellfun(@(x) x(:), speedL5Cell,'unif',false);
+speedL5Cell = cellfun(@(x) cell2mat(cellfun(@(y) y(:),x,'unif',false)), SpeedL5Group,'unif',false);
+% speedL5Cell = cellfun(@(x) x(:), speedL5Cell,'unif',false);
 h1=figure; 
 boxPlotCellArray(speedL5Cell,nameList,1,1,1)
 ylabel('Flow speed (nm/min)')
@@ -299,8 +299,8 @@ title('Flow speed at fifth layer, top 10 percentile')
 hgexport(h1,strcat(figPath,'/FlowSpeedL5Top10'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FlowSpeedL5Top10'),'-v7.3')
 %% Plotting SpeedAll
-speedAllCell = cellfun(@(x) cell2mat(x), SpeedAllGroup,'unif',false);
-speedAllCell = cellfun(@(x) x(:), speedAllCell,'unif',false);
+speedAllCell = cellfun(@(x) cell2mat(cellfun(@(y) y(:),x,'unif',false)), SpeedAllGroup,'unif',false);
+% speedAllCell = cellfun(@(x) x(:), speedAllCell,'unif',false);
 h1=figure; 
 boxPlotCellArray(speedAllCell,nameList,1,1,1)
 ylabel('Flow speed (nm/min)')
