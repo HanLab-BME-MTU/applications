@@ -523,7 +523,6 @@ if existMask && useCellMask
         writetable(tableForceCell5,[p.OutputDirectory filesep 'avgTractionCellPeri.csv'])
         tableForceCell6=table(avgTractionCellInside,'VariableNames',{'avgTractionCellInside'});
         writetable(tableForceCell6,[p.OutputDirectory filesep 'avgTractionCellInside.csv'])
-        
     end
 end
 if performForceBlobAnalysis
@@ -535,7 +534,9 @@ if performForceBlobAnalysis
         writetable(tableForceBlobs,outputFile{9})
     end
 end
-save(outputFile{1,10},'SE_Blobs','totalForceBlobs', 'SE_Cell','totalForceCell','SE_FOV','totalForceFOV','-v7.3')
+save(outputFile{1,10},'SE_Blobs','totalForceBlobs', 'SE_Cell','totalForceCell','SE_FOV',...
+    'totalForceFOV','totalForceCellPeri','totalForceCellInside','avgTractionCell',...
+    'avgTractionCellPeri','avgTractionCellInside','-v7.3')
 %% Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
 
