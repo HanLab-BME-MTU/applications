@@ -49,7 +49,7 @@ NAstructGroup= cell(numConditions,1);
 FAstructGroup= cell(numConditions,1);
 forceAllGroup= cell(numConditions,1);
 ampTheOtherAllGroup= cell(numConditions,1);
-bandNA = 4; % 2 um from the edge
+bandNA = 14; % 2 um from the edge
 
 sampleMovie = MLAll(1).movies_{1};
 numChan = numel(sampleMovie.channels_);
@@ -313,7 +313,7 @@ if plotSuccess
 end
 %% FA area - boxplot -top 10 percentile
 h1=figure;
-plotSuccess=boxPlotCellArray(FAareaCellSmall,nameList,convertL,false,true);
+plotSuccess=boxPlotCellArray(FAareaCellSmall,nameList,convertArea,false,true);
 if plotSuccess
     ylabel(['Focal adhesion area (\mum^2)'])
     title(['Focal adhesion area (top ' num2str(percLT) ' percentile)'])
@@ -326,7 +326,7 @@ if plotSuccess
 end
 %% FA area - barplot -top 10 percentile
 h1=figure;
-barPlotCellArray(FAareaCellSmall,nameList,convertL,true);
+barPlotCellArray(FAareaCellSmall,nameList,convertArea,true);
 ylabel('Focal adhesion area (\mum^2)')
 title(['Focal adhesion area (top ' num2str(percLT) ' percentile)'])
 ylim auto
@@ -335,7 +335,7 @@ hgsave(h1,[figPath filesep 'faAreaTopBar' num2str(percLT)],'-v7.3')
 print(h1,[figPath filesep 'faAreaTopBar' num2str(percLT)],'-dtiff')
 %% FA area peri- boxplot -top 10 percentile
 h1=figure;
-boxPlotCellArray(FAareaPeriSmall,nameList,convertL,false,true);
+boxPlotCellArray(FAareaPeriSmall,nameList,convertArea,false,true);
 ylabel(['Focal adhesion area (\mum^2)'])
 title(['Focal adhesion area at periphery (top ' num2str(percLT) ' percentile)'])
 ylim auto
@@ -346,7 +346,7 @@ faAreaPeriTopBox10=table(FAareaPeriSmall,'RowNames',nameList);
 writetable(faAreaPeriTopBox10,[dataPath filesep 'faAreaPeriTopBox' num2str(percLT) '.csv'],'WriteRowNames',true)    
 %% FA area peri- barplot -top 10 percentile
 h1=figure;
-boxPlotCellArray(FAareaPeriSmall,nameList,convertL);
+boxPlotCellArray(FAareaPeriSmall,nameList,convertArea,false,true);
 ylabel(['Focal adhesion area (\mum^2)'])
 title(['Focal adhesion area at periphery (top ' num2str(percLT) ' percentile)'])
 ylim auto
@@ -638,7 +638,7 @@ if exist('ampTheOtherNACell','var')
     end
 end
 %% amplitude the other bar plot
-if isfield(FAstructGroup{1}(1),'ampTheOther')
+if isfield(FAstructGroup{1}(1),'ampTheOther') && ~isempty(amplitudeGroupAll{1})
     h1=figure; 
     barPlotCellArray(amplitudeGroupAll,nameListAdhComb);
     ylabel('Fluorescence amplitude (a.u.)')
