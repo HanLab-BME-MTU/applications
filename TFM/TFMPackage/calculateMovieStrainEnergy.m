@@ -100,7 +100,7 @@ outputFile{1,2} = [p.OutputDirectory filesep 'strainEnergyInCell.mat'];
 outputFile{1,3} = [p.OutputDirectory filesep 'forceBlobs.mat'];
 if p.exportCSV
     outputFile{1,4} = [p.OutputDirectory filesep 'strainEnergyInFOV.csv'];
-    outputFile{1,5} = [p.OutputDirectory filesep 'totalForceInFOV.csv'];
+    outputFile{1,5} = [p.OutputDirectory filesep 'totalAvgForceInFOV.csv'];
     outputFile{1,6} = [p.OutputDirectory filesep 'strainEnergyInCell.csv'];
     outputFile{1,7} = [p.OutputDirectory filesep 'totalForceInCell.csv'];
     outputFile{1,8} = [p.OutputDirectory filesep 'strainEnergyInForceBlobs.csv'];
@@ -188,6 +188,8 @@ SE_FOV_SE = zeros(nFrames,1);
 SE_FOV_area = zeros(nFrames,1);
 SE_FOV_SEDensity = zeros(nFrames,1);
 totalForceFOV = zeros(nFrames,1);
+avgTractionFOV = zeros(nFrames,1);
+
 SE_Cell=struct('SE',zeros(nFrames,1),'area',zeros(nFrames,1),'SEDensity',zeros(nFrames,1),...
     'SE_peri',zeros(nFrames,1),'SE_inside',zeros(nFrames,1),'SEDensityPeri',zeros(nFrames,1),'SEDensityInside',zeros(nFrames,1));
 SE_Cell_SE = zeros(nFrames,1); % in femto-Joule=1e15*(N*m)
@@ -339,12 +341,15 @@ for ii=1:nFrames
         SE_FOV_area(ii)=curSE_FOV_area; % this is in um2
         SE_FOV_SEDensity(ii)=curSE_FOV_SEDensity; % J/m2
         
-        totalForceFOV(ii) = sum(sum(tMapFOV.*maskShrunkenBorder))*areaConvert*1e-3; % in nN
+        reducedTmap = tMapFOV.*maskShrunkenBorder;
+        totalForceFOV(ii) = sum(sum(reducedTmap))*areaConvert*1e-3; % in nN
+        avgTractionFOV(ii) = mean(tMapFOV(maskShrunkenBorder)); % in Pa
     else
         SE_FOV_SE(ii)=NaN; % in femto-Joule=1e15*(N*m)
         SE_FOV_area(ii)=NaN; % this is in um2
         SE_FOV_SEDensity(ii)=NaN; % J/m2
         totalForceFOV(ii) = NaN;
+        avgTractionFOV(ii) = NaN;
     end
     
     if existMask && useCellMask
@@ -495,12 +500,14 @@ totalForceBlobs.avgTractionCell =        totalForceBlobs_avgTractionCell; % in P
 logMsg='Saving...';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 if useFOV || 1
-    save(outputFile{1},'SE_FOV','totalForceFOV');
+    save(outputFile{1},'SE_FOV','totalForceFOV','avgTractionFOV');
     if p.exportCSV
         tableSE_FOV=struct2table(SE_FOV);
         writetable(tableSE_FOV,outputFile{4})
-        tableForceFOV=table(totalForceFOV,'VariableNames',{'totalForceFOV'});
-        writetable(tableForceFOV,outputFile{5})
+%         writetable(tableForceFOV,outputFile{5})
+        totalAvgTractionFOV=cell2table({totalForceFOV, avgTractionFOV},...
+            'VariableNames',{'totalForceFOV','avgTractionFOV'});        
+        writetable(totalAvgTractionFOV,outputFile{5})
     end
 end
 if existMask && useCellMask
@@ -523,7 +530,6 @@ if existMask && useCellMask
         writetable(tableForceCell5,[p.OutputDirectory filesep 'avgTractionCellPeri.csv'])
         tableForceCell6=table(avgTractionCellInside,'VariableNames',{'avgTractionCellInside'});
         writetable(tableForceCell6,[p.OutputDirectory filesep 'avgTractionCellInside.csv'])
-        
     end
 end
 if performForceBlobAnalysis
@@ -535,7 +541,9 @@ if performForceBlobAnalysis
         writetable(tableForceBlobs,outputFile{9})
     end
 end
-save(outputFile{1,10},'SE_Blobs','totalForceBlobs', 'SE_Cell','totalForceCell','SE_FOV','totalForceFOV','-v7.3')
+save(outputFile{1,10},'SE_Blobs','totalForceBlobs', 'SE_Cell','totalForceCell','SE_FOV',...
+    'totalForceFOV','totalForceCellPeri','totalForceCellInside','avgTractionCell',...
+    'avgTractionCellPeri','avgTractionCellInside','-v7.3')
 %% Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
 
