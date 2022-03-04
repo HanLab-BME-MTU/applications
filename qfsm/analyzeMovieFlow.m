@@ -184,16 +184,20 @@ for i=1:numel(p.ChannelIndex)
         E{j}(outlierIndex,:)=[];
         S{j}(outlierIndex,:)=[];
     end
-
+    
     % Create speed maps
     if ishandle(wtBar), waitbar(.5,wtBar,['Generating speed maps for channel ' num2str(iChan)']); end
     speedMap = createSpeedMaps(flow,p.timeWindow,p.corrLength,movieData.timeInterval_,...
         movieData.pixelSize_,movieData.imSize_,p.gridSize,mask);
     
     % Create error mapss
-    if ishandle(wtBar), waitbar(.75,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
+    if ishandle(wtBar), waitbar(.6,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
     [img3C_map img3C_SNR]=createErrorMaps(stack,E,S); %#ok<ASGLU,NASGU>
-    
+
+    % Create protrusive speed (with sign)
+    if ishandle(wtBar), waitbar(.75,wtBar,['Generating protrusive speed maps for channel ' num2str(iChan)']); end
+    protSpeedMap = createProtrusiveSpeedMaps(Md,mask,movieData.pixelSize_,movieData.timeInterval_,p.gridSize); 
+        
     % Fill output structure for each frame and save it
     disp('Results will be saved under:')
     disp(flowAnProc.outFilePaths_{1,iChan});
@@ -205,6 +209,7 @@ for i=1:numel(p.ChannelIndex)
         s.speedMap=speedMap{j};
         s.img3C_map=img3C_map{j};
         s.img3C_SNR=img3C_SNR{j};
+        s.protSpeedMap=protSpeedMap{j};
         
         save(outFile(iChan,j),'-struct','s');
     end
@@ -213,6 +218,10 @@ for i=1:numel(p.ChannelIndex)
     allMaps = vertcat(speedMap{:});
     speedMapLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
     
+    % Store speed maps and flow limits
+    allMapsProt = vertcat(protSpeedMap{:});
+    protSpeedMapLimits{iChan}=[min(allMapsProt(:)) max(allMapsProt(:))];
+
     allFlow = vertcat(Md{:});
     
     flowLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
@@ -237,6 +246,7 @@ for i=1:numel(p.ChannelIndex)
     
 end
 flowAnProc.setSpeedMapLimits(speedMapLimits)
+flowAnProc.setProtSpeedMapLimits(protSpeedMapLimits)
 flowAnProc.setFlowLimits(flowLimits);
 
 % Close waitbar
