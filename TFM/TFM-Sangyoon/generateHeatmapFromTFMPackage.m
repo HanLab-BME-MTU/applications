@@ -371,6 +371,12 @@ for ii=1:nFrames
     text(10,30,[num2str(scale), ' um.'],'Color','w');
 %     disp(['Scale bar: ', num2str(scale), ' um.'])
 %     end
+
+    % Force Scale bar: whatever the mean is
+    nearestTensofForce = 10^ceil(log10(forceScale));
+    quiver(10,imSizeY-15, vectorScale*nearestTensofForce/forceScale, 0,0,'Color',[1,1,1]);
+    text(10,imSizeY-30,[num2str(nearestTensofForce), ' Pa'],'Color','w');
+    
     axis off
     hold off
     subplot('Position',[0.8 0.1 0.1 0.8])

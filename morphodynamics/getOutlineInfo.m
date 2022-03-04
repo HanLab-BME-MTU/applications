@@ -7,13 +7,13 @@ CC = bwconncomp(mask);
 
 %Make sure there isn't more than one object
 if CC.NumObjects > 1
-    if nChan == 1
+%     if nChan == 1
         %Because small objects can be created by intersecting masks, we
         %only warn the user if only one mask was used.
         warning('blackwindow:protrusion:TooManyObjects',...
             ['The mask for frame ' num2str(iFrame) ...
             ' contains more than 1 object - protrusion vectors are only calculated for the largest object.'])
-    end
+%     end
     %We just take the largest of these objects for prot vec calc
     [~,iBiggest] = max(cellfun(@(x)(numel(x)),CC.PixelIdxList));
     mask = false(size(mask));
