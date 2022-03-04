@@ -135,7 +135,7 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             output(8).var='protSpeedMap';
             output(8).formatData=[];
             output(8).type='image';
-            output(8).defaultDisplayMethod=@(x)ImageDisplay('Colormap',GreenBlackRedColorMap,...
+            output(8).defaultDisplayMethod=@(x)ImageDisplay('Colormap',BlueBlackRedColorMap,...
                 'Colorbar','on','Units',obj.getUnits,'CLim',obj.protSpeedMapLimits_{x}); %speedMapLimits_{x}); %
         end  
         
