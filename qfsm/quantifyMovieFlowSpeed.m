@@ -15,18 +15,18 @@ function [speedCell,protSpeedCell]=quantifyMovieFlowSpeed(MD)
 %% Load QFSM package
 % nFrames = MD.nFrames_;
 % nChannels = length(MD.channels_);
-% % Load flow vectors
-% iFlow = MD.getProcessIndex('FlowAnalysisProcess');
-% if isempty(iFlow)
-%     iFlow = MD.getProcessIndex('FlowTrackingProcess');
-%     if isempty(iFlow)
-%         error('Flow tracking has to be run.')
-%     else
-%         disp('Flow analysis process has not been run, flow tracking process is used instead.')
-%     end
-% end
-% flowProcess = MD.getProcess(iFlow);
-% iChan = find(flowProcess.checkChannelOutput);
+% Load flow vectors
+iFlow = MD.getProcessIndex('FlowAnalysisProcess');
+if isempty(iFlow)
+    iFlow = MD.getProcessIndex('FlowTrackingProcess');
+    if isempty(iFlow)
+        error('Flow tracking has to be run.')
+    else
+        disp('Flow analysis process has not been run, flow tracking process is used instead.')
+    end
+end
+flowProcess = MD.getProcess(iFlow);
+iChan = find(flowProcess.checkChannelOutput);
 %% Get the flow
 % flow1 = flowProcess.loadChannelOutput(iChan,'output','Md');
 % % Load segmented masks
