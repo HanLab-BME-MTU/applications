@@ -263,11 +263,11 @@ for j=1:movieData.nFrames_
             nascentAdhInfo(j).bandMask = bandMask;
         end
         nascentAdhInfo(j).numberNA = length(pstruct.x(idxSigCCP));
-        if ~isempty(bandwidth)
-            nascentAdhInfo(j).bandArea = sum(sum(bandMask))*(pixSize/1000)^2; % in um^2
-        else
+%         if ~isempty(bandwidth)
+%             nascentAdhInfo(j).bandArea = sum(sum(bandMask))*(pixSize/1000)^2; % in um^2
+%         else
             nascentAdhInfo(j).bandArea = sum(ultimateMask(:))*(pixSize/1000)^2; % in um^2
-        end
+%         end
         nascentAdhInfo(j).NAdensity = nascentAdhInfo(j).numberNA/nascentAdhInfo(j).bandArea; % number per um2
     else
         nascentAdhInfo(j).xCoord = [];
@@ -574,7 +574,7 @@ for j=1:movieData.nFrames_
         end
 
         if ~isempty(pstruct)
-            plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'yo')
+            plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'yo','MarkerSize',4)
         end
         hgexport(h1,strcat(tifPath,'/imgNAFA',num2str(j,jformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')
