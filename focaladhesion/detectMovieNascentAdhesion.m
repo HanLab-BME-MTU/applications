@@ -162,7 +162,10 @@ for j=1:movieData.nFrames_
 %         mask = maskProc.loadChannelOutput(iPax,j);
         % if there are masks for more than one channels, combine them.
         
-        if length(maskProc.checkChannelOutput)>1 && (~isempty(iTFM) && ~ismember(iChanTFM, find(maskProc.checkChannelOutput)))
+        if sum(maskProc.checkChannelOutput)==1
+            iMaskChan = find(maskProc.checkChannelOutput);
+            mask = maskProc.loadChannelOutput(iMaskChan,j);
+        elseif sum(maskProc.checkChannelOutput)>1 && (~isempty(iTFM) && ~ismember(iChanTFM, find(maskProc.checkChannelOutput)))
             %Combine the the multiple masks to one
             maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,j),find(maskProc.checkChannelOutput),'UniformOutput',false);
             maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
