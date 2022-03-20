@@ -1,4 +1,4 @@
-function [nascentAdhInfo,focalAdhInfo,forceGroupCell] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iAdhChan,plotGraph,indMask,plotGraphTFM)
+function [nascentAdhInfo,focalAdhInfo,forceGroupCell] = detectMovieNascentAdhesion(pathForTheMovieDataFile,bandwidth,iAdhChan,plotGraph,indMask,plotGraphTFM,useRefinement)
 % detectMovieNascentAdhesion detect objects by fitting isotropic Gaussians
 %
 % SYNOPSIS adapted from detectMovieSubResFeatures(movieData,paramsIn)
@@ -14,6 +14,7 @@ function [nascentAdhInfo,focalAdhInfo,forceGroupCell] = detectMovieNascentAdhesi
 %                             mask in iAdhChan channel. If you add it, you are analyzing more
 %                             features (e.g. CCPs)
 %   plotGraphTFM            - true if you want to plot graphs about TFM
+%   useRefinement           - true if you want to break up aggregated NAs
 % 
 % OUTPUT   
 %   adhesionInfo  - stored in Adhesion Quantification folder containing:
@@ -43,21 +44,29 @@ if nargin==1
     bandwidth = 5;
     plotGraph = true;
     plotGraphTFM = false;
+    useRefinement = false;
 end
 if nargin<3
     iAdhChan = 1; %assumed
     plotGraph = true;
     indMask = [];
     plotGraphTFM = false;
+    useRefinement = false;
 end
 if nargin<4
     plotGraph = true;
     indMask = [];
     plotGraphTFM = false;
+    useRefinement = false;
 end
 if nargin<5
     indMask = []; %indMask is the channel index of a mask to be added to mask in iPax channel.
     plotGraphTFM = false;
+    useRefinement = false;
+end
+if nargin<6
+    plotGraphTFM = false;
+    useRefinement = false;
 end
 % Load the MovieData
 if isa(pathForTheMovieDataFile, 'MovieData')
@@ -145,7 +154,7 @@ pixSize = movieData.pixelSize_;
 minSize = round((500/pixSize)*(100/pixSize)); %adhesion limit=0.25 um2
 minLengthFC = 800/pixSize; %This is temporary. %500/pixSize;
 minLengthFA = 2000/pixSize;
-maxLengthFA = 4000/pixSize; % I set this up to filter outlier.
+maxLengthFA = 30000/pixSize; % I set this up to filter outlier.
 % minEcc = 0.7;
 psAlpha = 0.01;%it was 1e-4
 
@@ -217,10 +226,10 @@ for j=1:movieData.nFrames_
     if ~isempty(pstruct)
         xNA=pstruct.x;
         yNA=pstruct.y;
+    end
+    if useRefinement
         maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA); %,mask);
     else
-        xNA=[];
-        yNA=[];
         maskAdhesion2 = maskAdhesion;
     end
 %     labelAdhesion = bwlabel(maskAdhesion);

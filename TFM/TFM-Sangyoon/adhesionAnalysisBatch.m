@@ -3,20 +3,7 @@ clear
 
 [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,...
     specificName,~,MLdirect]=chooseSelectedFolders;
-% Asking user
-disp('The current names are: ')
-nameList = groupNames';
-disp(nameList)
-namesOK = input('Do you want to rename your condition names? (y/n)','s');
-if strcmp(namesOK, 'y')
-    for ii=1:numel(nameList)
-        curName = input(['For ' nameList{ii} ': '], 's');
-        if ~isempty(curName)
-            nameList{ii} = curName;
-        end
-    end
-    specificName = strjoin(nameList, '_');
-end
+
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
 % rootAnalysis = pathAnalysisAll{1};

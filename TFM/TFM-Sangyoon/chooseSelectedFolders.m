@@ -107,6 +107,7 @@ else
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
     specificName=fileSFolders(16:end-4);
     groupNames=selectedFolders.groupNames;
+    rootAnalysis = selectedFolders.rootAnalysis;
     if isfield(selectedFolders,'refDirTifAll')
         refDirTif = selectedFolders.refDirTifAll;
     else
@@ -119,7 +120,22 @@ else
         for k=1:numel(pathAnalysisAll)
             MLNames{k} = 'movieList.mat';
         end
-        
     end
 end
 
+% Asking user
+disp('The current names are: ')
+nameList = groupNames';
+disp(nameList)
+namesOK = input('Do you want to rename your condition names? (y/n)','s');
+if strcmp(namesOK, 'y')
+    for ii=1:numel(nameList)
+        curName = input(['For ' nameList{ii} ': '], 's');
+        if ~isempty(curName)
+            nameList{ii} = curName;
+        end
+    end
+    specificName = strjoin(nameList, '_');
+end
+groupNames = nameList';
+save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
