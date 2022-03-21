@@ -217,8 +217,8 @@ for j= firstFrame:nFrames
 
                 disp('Detecting beads in the reference frame...')
                 try
-                    pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask,...
-                        'FitMixtures',true, 'MaxMixtures', 3);
+                    pstruct = pointSourceDetection(refFrame, psfSigma, 'alpha', p.alpha,'Mask',firstMask) %,...
+                        %'FitMixtures',true, 'MaxMixtures', 3);
                 catch
                     % in this case, firstMask is wrong due to cropped
                     % image. Setting it again...
