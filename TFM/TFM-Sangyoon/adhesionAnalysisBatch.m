@@ -3,7 +3,7 @@ clear
 
 [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,...
     specificName,~,MLdirect]=chooseSelectedFolders;
-
+nameList=groupNames';
 %% Output
 rootAnalysis = fileparts(pathAnalysisAll{1});
 % rootAnalysis = pathAnalysisAll{1};
@@ -36,7 +36,7 @@ NAstructGroup= cell(numConditions,1);
 FAstructGroup= cell(numConditions,1);
 forceAllGroup= cell(numConditions,1);
 ampTheOtherAllGroup= cell(numConditions,1);
-bandNA = 14; % 2 um from the edge
+bandNA = 5; % 2 um from the edge
 
 sampleMovie = MLAll(1).movies_{1};
 numChan = numel(sampleMovie.channels_);
@@ -142,7 +142,7 @@ catch
 end
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
-barPlotCellArray(FAareaCell,nameList,convertArea,1)
+barPlotCellArray(FAareaCell,nameList,1,1)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
 ylabel('FA area (\mum^2)')
 title('FA area - bar plot')
@@ -151,17 +151,17 @@ hgexport(h1,strcat(figPath,'/FAarea'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAarea'),'-v7.3')
 
 try
-    FAareaCellConverted = cellfun(@(x) x*convertArea, FAareaCell,'unif',false);
+    FAareaCellConverted = cellfun(@(x) x, FAareaCell,'unif',false);
     tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 catch
-    FAareaCellConverted = cellfun(@(x) x'*convertArea, FAareaCell,'unif',false);
+    FAareaCellConverted = cellfun(@(x) x', FAareaCell,'unif',false);
     tableFAarea=table(FAareaCellConverted,'RowNames',nameList);
 end
 writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% FA area - boxplot
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
-boxPlotCellArray(FAareaCell,nameList,convertArea,false,true)
+boxPlotCellArray(FAareaCell,nameList,1,false,true)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
 ylabel('FA area (\mum^2)')
 title('FA area')
@@ -193,7 +193,7 @@ writetable(tableFAdensityPeri,strcat(dataPath,'/FAdensityPeri.csv'))
 faAreaPeri = cellfun(@(x) cell2mat(arrayfun(@(y) y.FAareaPeri,x,'unif',false)'),FAstructGroup','unif',false);
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
-boxPlotCellArray(faAreaPeri',nameList,convertArea,false,true)
+boxPlotCellArray(faAreaPeri',nameList,1,false,true)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
 ylabel('FA area (\mum^2)')
 title({'FA area in the cell periphery'; ['(up to ' num2str(bandNA) ' um from the cell edge)']})
@@ -203,7 +203,7 @@ hgsave(h1,strcat(figPath,'/FAareaPeri'),'-v7.3')
 %% FA area periphery bar plot
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
-barPlotCellArray(faAreaPeri',nameList,convertArea,true)
+barPlotCellArray(faAreaPeri',nameList,1,true)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
 ylabel('FA area (\mum^2)')
 title({'FA area in the cell periphery'; ['(up to ' num2str(bandNA) ' um from the cell edge)']})
@@ -214,7 +214,7 @@ hgsave(h1,strcat(figPath,'/FAareaPeriBar'),'-v7.3')
 faLengthPeri = cellfun(@(x) cell2mat(arrayfun(@(y) y.FAlengthPeri,x,'unif',false)'),FAstructGroup','unif',false);
 h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
-boxPlotCellArray(faLengthPeri',nameList,convertL,false,true)
+boxPlotCellArray(faLengthPeri',nameList,1,false,true)
 ylabel('FA length (\mum)')
 title({'FA length in the cell periphery'; ['(up to ' num2str(bandNA) ' um from the cell edge)']})
 % set(gca,'XTickLabel',{'Control' 'PIP5K-\gamma'})
@@ -255,20 +255,20 @@ catch
     FAlengthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
 end
 h4=figure; 
-barPlotCellArray(FAlengthCell,nameList,convertL)
+barPlotCellArray(FAlengthCell,nameList,1)
 title('FA length')
 ylabel('FA length (\mum)')
 hgexport(h4,strcat(figPath,'/FAlength'),hgexport('factorystyle'),'Format','eps')
 hgsave(h4,strcat(figPath,'/FAlength'),'-v7.3')
 %% FA length - boxplot
 h1=figure; 
-boxPlotCellArray(FAlengthCell,nameList,convertL,false,true)
+boxPlotCellArray(FAlengthCell,nameList,1,false,true)
 title('FA length')
 ylabel('FA length (um)')
 hgexport(h1,strcat(figPath,'/FAlengthBoxPlot'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/FAlengthBoxPlot'),'-v7.3')
 
-FAlenthCellConverted = cellfun(@(x) x*convertL, FAlengthCell,'unif',false);
+FAlenthCellConverted = cellfun(@(x) x, FAlengthCell,'unif',false);
 tableFAlength=table(FAlenthCellConverted,'RowNames',nameList);
 writetable(tableFAlength,strcat(dataPath,'/FAlength.csv'))
 %% top 10 percentile
@@ -287,7 +287,7 @@ for ii=1:numel(FAlengthCell)
 end
 %% FA length - boxplot -top 10 percentile
 h1=figure;
-plotSuccess=boxPlotCellArray(FAlengthCellSmall,nameList,convertL,false,true);
+plotSuccess=boxPlotCellArray(FAlengthCellSmall,nameList,1,false,true);
 if plotSuccess
     ylabel(['Focal adhesion length (\mum)'])
     title(['Focal adhesion length (top ' num2str(percLT) ' percentile)'])
@@ -300,7 +300,7 @@ if plotSuccess
 end
 %% FA area - boxplot -top 10 percentile
 h1=figure;
-plotSuccess=boxPlotCellArray(FAareaCellSmall,nameList,convertArea,false,true);
+plotSuccess=boxPlotCellArray(FAareaCellSmall,nameList,1,false,true);
 if plotSuccess
     ylabel(['Focal adhesion area (\mum^2)'])
     title(['Focal adhesion area (top ' num2str(percLT) ' percentile)'])
@@ -313,7 +313,7 @@ if plotSuccess
 end
 %% FA area - barplot -top 10 percentile
 h1=figure;
-barPlotCellArray(FAareaCellSmall,nameList,convertArea,true);
+barPlotCellArray(FAareaCellSmall,nameList,1,true);
 ylabel('Focal adhesion area (\mum^2)')
 title(['Focal adhesion area (top ' num2str(percLT) ' percentile)'])
 ylim auto
@@ -322,7 +322,7 @@ hgsave(h1,[figPath filesep 'faAreaTopBar' num2str(percLT)],'-v7.3')
 print(h1,[figPath filesep 'faAreaTopBar' num2str(percLT)],'-dtiff')
 %% FA area peri- boxplot -top 10 percentile
 h1=figure;
-boxPlotCellArray(FAareaPeriSmall,nameList,convertArea,false,true);
+boxPlotCellArray(FAareaPeriSmall,nameList,1,false,true);
 ylabel(['Focal adhesion area (\mum^2)'])
 title(['Focal adhesion area at periphery (top ' num2str(percLT) ' percentile)'])
 ylim auto
@@ -333,7 +333,7 @@ faAreaPeriTopBox10=table(FAareaPeriSmall,'RowNames',nameList);
 writetable(faAreaPeriTopBox10,[dataPath filesep 'faAreaPeriTopBox' num2str(percLT) '.csv'],'WriteRowNames',true)    
 %% FA area peri- barplot -top 10 percentile
 h1=figure;
-boxPlotCellArray(FAareaPeriSmall,nameList,convertArea,false,true);
+boxPlotCellArray(FAareaPeriSmall,nameList,1,false,true); %Now we don't need to convert again.
 ylabel(['Focal adhesion area (\mum^2)'])
 title(['Focal adhesion area at periphery (top ' num2str(percLT) ' percentile)'])
 ylim auto
@@ -353,7 +353,7 @@ end
 %% Plotting Ratio of FA over NA
 h4=figure; 
 try
-    barPlotCellArray(FAtoNAratio,nameList)
+    barPlotCellArray(FAtoNAratio,nameList);
 catch
     text(0,0.2,'Not plottable')
 end
@@ -369,7 +369,7 @@ FAareaToCellArea = cell(numConditions,1);
 for ii=1:numConditions
     FAareaToCellArea{ii} = [];
     for k=1:N(ii)
-        FAareaToCellArea{ii} = [FAareaToCellArea{ii}; FAstructGroup{ii}(k).meanFAarea*FAstructGroup{ii}(k).numberFA*convertArea/FAstructGroup{ii}(k).cellArea];
+        FAareaToCellArea{ii} = [FAareaToCellArea{ii}; FAstructGroup{ii}(k).meanFAarea*FAstructGroup{ii}(k).numberFA/FAstructGroup{ii}(k).cellArea];
     end
 end
 %% Overal adhesion area per cell area plotting
@@ -468,7 +468,7 @@ hgsave(h4,strcat(figPath,'/eccBar'))
 %% Adhesion width
 widthCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.width, x,'unif',false)'),FAstructGroup','unif',false);
 h4=figure; 
-boxPlotCellArray(widthCell,nameList',convertL,0,1)
+boxPlotCellArray(widthCell,nameList',1,0,1)
 title('Adhesion width')
 ylabel('width (\mum)')
 hgexport(h4,strcat(figPath,'/FAwidth'),hgexport('factorystyle'),'Format','eps')
@@ -485,7 +485,7 @@ for ii=1:numel(widthCell)
     quantile(widthCell{ii},(perc)+0.2*(perc)*randn(1,round((perc-0.0001)*sum(~isnan(widthCell{ii})))));
 end
 h4=figure; 
-boxPlotCellArray(widthCellSmall,nameList,convertL,0,1); ylim auto
+boxPlotCellArray(widthCellSmall,nameList,1,0,1); ylim auto
 title(['Adhesion width bottom ' num2str(percLT) ' percentile'])
 ylabel('width (\mum)')
 hgexport(h4,strcat(figPath,'/FAwidthB',num2str(percLT),'P'),hgexport('factorystyle'),'Format','eps')

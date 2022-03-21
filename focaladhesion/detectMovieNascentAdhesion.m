@@ -151,6 +151,8 @@ focalAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
 jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 pixSize = movieData.pixelSize_;
+convertL = pixSize/1000;
+convertArea = (pixSize/1000)^2;
 minSize = round((500/pixSize)*(100/pixSize)); %adhesion limit=0.25 um2
 minLengthFC = 800/pixSize; %This is temporary. %500/pixSize;
 minLengthFA = 2000/pixSize;
@@ -278,7 +280,7 @@ for j=1:movieData.nFrames_
 %         if ~isempty(bandwidth)
 %             nascentAdhInfo(j).bandArea = sum(sum(bandMask))*(pixSize/1000)^2; % in um^2
 %         else
-            nascentAdhInfo(j).bandArea = sum(ultimateMask(:))*(pixSize/1000)^2; % in um^2
+            nascentAdhInfo(j).bandArea = sum(ultimateMask(:))*convertArea; % in um^2
 %         end
         nascentAdhInfo(j).NAdensity = nascentAdhInfo(j).numberNA/nascentAdhInfo(j).bandArea; % number per um2
     else
@@ -296,19 +298,19 @@ for j=1:movieData.nFrames_
     for k=1:numAdhs
         focalAdhInfo(j).xCoord(k,1) = round(Adhs(k).Centroid(1));
         focalAdhInfo(j).yCoord(k,1) = round(Adhs(k).Centroid(2));
-        focalAdhInfo(j).area(k,1) = Adhs(k).Area;
-        focalAdhInfo(j).length(k,1) = Adhs(k).MajorAxisLength;
-        focalAdhInfo(j).width(k,1) = Adhs(k).MinorAxisLength;
+        focalAdhInfo(j).area(k,1) = Adhs(k).Area*convertArea; %in um2
+        focalAdhInfo(j).length(k,1) = Adhs(k).MajorAxisLength*convertL; %in um
+        focalAdhInfo(j).width(k,1) = Adhs(k).MinorAxisLength*convertL;
         focalAdhInfo(j).amp(k,1) = mean(I(Adhs(k).PixelIdxList));
         focalAdhInfo(j).ecc(k,1) = Adhs(k).Eccentricity;
     end
     focalAdhInfo(j).boundFA= boundFAs;
     focalAdhInfo(j).numberFA = numAdhs;
-    focalAdhInfo(j).meanFAarea = mean(focalAdhInfo(j).area);
-    focalAdhInfo(j).medianFAarea = median(focalAdhInfo(j).area);
-    focalAdhInfo(j).meanLength = mean(focalAdhInfo(j).length);
-    focalAdhInfo(j).medianLength = median(focalAdhInfo(j).length);
-    focalAdhInfo(j).cellArea = sum(mask(:))*(pixSize/1000)^2; % in um^2
+    focalAdhInfo(j).meanFAarea = mean(focalAdhInfo(j).area); %in um2
+    focalAdhInfo(j).medianFAarea = median(focalAdhInfo(j).area); %in um2
+    focalAdhInfo(j).meanLength = mean(focalAdhInfo(j).length); %in um
+    focalAdhInfo(j).medianLength = median(focalAdhInfo(j).length); %in um
+    focalAdhInfo(j).cellArea = sum(mask(:))*convertArea; % in um^2
     focalAdhInfo(j).FAdensity = numAdhs/focalAdhInfo(j).cellArea; % number per um2
     focalAdhInfo(j).maskFA = maskAdhesion2;
     focalAdhInfo(j).labelFA = labelAdhesion;
@@ -322,7 +324,7 @@ for j=1:movieData.nFrames_
 %     bandMask = distFromEdge <= bandwidthNA_pix;
 
     maskOnlyBand = ultimateMask; %bandMask & mask;
-    bandArea = sum(maskOnlyBand(:))*(pixSize/1000)^2; % in um^2
+    bandArea = sum(maskOnlyBand(:))*convertArea; % in um^2
 
     % now see if these tracks ever in the maskOnlyBand
     indFAsAtEdge = false(numAdhs,1);
@@ -335,8 +337,8 @@ for j=1:movieData.nFrames_
     focalAdhInfo(j).FAdensityPeri = sum(indFAsAtEdge)/bandArea; % number per um2
     focalAdhInfo(j).FAdensityInside = (numAdhs-sum(indFAsAtEdge))/(focalAdhInfo(j).cellArea-bandArea); % number per um2
     
-    focalAdhInfo(j).FAareaPeri = arrayfun(@(x) x.Area, Adhs(indFAsAtEdge)); %,'unif',false);
-    focalAdhInfo(j).FAlengthPeri = arrayfun(@(x) x.MajorAxisLength, Adhs(indFAsAtEdge));%,'unif',false);
+    focalAdhInfo(j).FAareaPeri = arrayfun(@(x) x.Area, Adhs(indFAsAtEdge))*convertArea; %,'unif',false);
+    focalAdhInfo(j).FAlengthPeri = arrayfun(@(x) x.MajorAxisLength, Adhs(indFAsAtEdge))*convertL;%,'unif',false);
     
     numFAs = numel(AdhsFA);
     numFCs = numAdhs - numFAs;
