@@ -198,7 +198,7 @@ for k=numConditions:-1:1
     ML.setFilename('movieList.mat');
     ML.sanityCheck;
     ML.save
-    MLNames{ii} = 'movieList.mat';
+    MLNames{k} = 'movieList.mat';
 
     clear curMD
     clear ML
