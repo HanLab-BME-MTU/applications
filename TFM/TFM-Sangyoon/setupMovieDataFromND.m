@@ -198,10 +198,13 @@ for k=numConditions:-1:1
     ML.setFilename('movieList.mat');
     ML.sanityCheck;
     ML.save
+    MLNames{ii} = 'movieList.mat';
+
     clear curMD
     clear ML
     clear channels
     clear refDirTifIntegrated
 end
-save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'cellDir','refDir', 'refDirTifAll', 'rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV')
+
+save([rootAnalysis filesep 'selectedFolders' groupNamesCat '.mat'], 'cellDir','refDir', 'refDirTifAll', 'rootAnalysis', 'pathDataAll','pathAnalysisAll','pathImgDV','fileImgDV','groupNames','MLNames')
 disp('Done making movieDatas and movieList!')
