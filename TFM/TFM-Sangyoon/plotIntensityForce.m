@@ -120,16 +120,19 @@ if alignEvent
         edgeDistArray = NaN(nTracks,nSampleFrames);
     end
     for ii=1:nTracks
-        curAmp = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
-        curAmp = (curAmp);%-min(curAmp));%/(max(curAmp)-min(curAmp));
-        curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
-        curForce = (curForce);%-min(curForce));%/(max(curForce)-min(curForce));
-        
         curFrameRange = tracksNA(ii).iFrame(logical(tracksNA(ii).presence));
         curFrameRangeShifted = curFrameRange - framesToShift(ii);
         curFrameRangeShifted = curFrameRangeShifted(curFrameRangeShifted>0 & curFrameRangeShifted<=nSampleFrames & curFrameRangeShifted<=nSampleFrames);
-        AmpArray(ii,curFrameRangeShifted) = curAmp(curFrameRange>framesToShift(ii) & (curFrameRange - framesToShift(ii))<= nSampleFrames);
-        forceArray(ii,curFrameRangeShifted) = curForce(curFrameRange>framesToShift(ii) & (curFrameRange - framesToShift(ii))<= nSampleFrames);
+        if strcmp(source,'ampTotal')
+            curAmp = tracksNA(ii).ampTotal(logical(tracksNA(ii).presence));
+            curAmp = (curAmp);%-min(curAmp));%/(max(curAmp)-min(curAmp));
+            AmpArray(ii,curFrameRangeShifted) = curAmp(curFrameRange>framesToShift(ii) & (curFrameRange - framesToShift(ii))<= nSampleFrames);
+        end
+        if strcmp(source,'forceMag')
+            curForce = tracksNA(ii).forceMag(logical(tracksNA(ii).presence));
+            curForce = (curForce);%-min(curForce));%/(max(curForce)-min(curForce));
+            forceArray(ii,curFrameRangeShifted) = curForce(curFrameRange>framesToShift(ii) & (curFrameRange - framesToShift(ii))<= nSampleFrames);
+        end
         if strcmp(source,'edgeAdvanceDist')
             curEdgeDist = tracksNA(ii).edgeAdvanceDist(logical(tracksNA(ii).presence));
             edgeDistArray(ii,curFrameRangeShifted) = curEdgeDist(curFrameRange>framesToShift(ii) & (curFrameRange - framesToShift(ii))<= nSampleFrames);
