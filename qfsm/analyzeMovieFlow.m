@@ -130,6 +130,7 @@ logMsg = @(chan) ['Please wait, analyzing flow for channel ' num2str(chan)];
 outFile=@(chan,frame) [outputDir{chan} filesep 'flowMaps_' numStr(frame) '.mat'];
 
 speedMapLimits=cell(1,nChan);
+protSpeedMapLimits=cell(1,nChan);
 flowLimits=cell(1,nChan);
 channelLog=cell(1,numel(p.ChannelIndex));
 
@@ -194,7 +195,7 @@ for i=1:numel(p.ChannelIndex)
     if ishandle(wtBar), waitbar(.6,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
     [img3C_map img3C_SNR]=createErrorMaps(stack,E,S); %#ok<ASGLU,NASGU>
 
-    % Create protrusive speed (with sign)
+    % Create protrusive flow speed (with sign)
     if ishandle(wtBar), waitbar(.75,wtBar,['Generating protrusive speed maps for channel ' num2str(iChan)']); end
     protSpeedMap = createProtrusiveSpeedMaps(Md,mask,movieData.pixelSize_,movieData.timeInterval_,p.gridSize); 
         
