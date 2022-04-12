@@ -22,7 +22,7 @@ function varargout = flowAnalysisProcessGUI(varargin)
 
 % Edit the above text to modify the response to help flowAnalysisProcessGUI
 
-% Last Modified by GUIDE v2.5 30-Sep-2011 21:04:01
+% Last Modified by GUIDE v2.5 12-Apr-2022 10:14:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -72,6 +72,9 @@ flowValue = find(strcmp(funParams.FlowProcess,flowProc));
 if isempty(flowValue), flowValue=1; end
 set(handles.popupmenu_FlowProcess,'String',flowString,'Value',flowValue,...
     'UserData',flowProc);
+
+% New: a check box for a drift correction
+set(handles.checkbox_driftCorrection,'Value',funParams.driftCorrection);
 
 % Choose default command line output for speedMapsProcessGUI
 handles.output = hObject;
@@ -165,6 +168,9 @@ end
 flowProps = get(handles.popupmenu_FlowProcess,{'UserData','Value'});
 funParams.FlowProcess = flowProps{1}{flowProps{2}};
 
+% New: a drift correction
+funParams.driftCorrection = handles.checkbox_driftCorrection.Value;
+
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 
 function edit_corrLength_Callback(hObject, eventdata, handles)
@@ -178,3 +184,12 @@ function edit_gridSize_Callback(hObject, eventdata, handles)
 userData=get(handles.figure1,'UserData');
 value = str2double(get(handles.edit_gridSize,'String'));
 set(handles.edit_gridSizeMicrons,'String',value*userData.MD.pixelSize_/1000);
+
+
+% --- Executes on button press in checkbox_driftCorrection.
+function checkbox_driftCorrection_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_driftCorrection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_driftCorrection

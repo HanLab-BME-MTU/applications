@@ -172,6 +172,7 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             funParams.gridSize = 11;
             funParams.noise = 1;
             funParams.error = 1;
+            funParams.driftCorrection = false;
         end 
         function units = getUnits(varargin)
             units = 'Speed (nm/min)';

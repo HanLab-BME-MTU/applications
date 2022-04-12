@@ -170,6 +170,24 @@ for i=1:numel(p.ChannelIndex)
             end           
     end
     
+    % Drift correction
+    if p.driftCorrection
+        velField = cellfun(@(x) [x(:,4)-x(:,2),x(:,3)-x(:,1)],flow,'unif',false);
+        meanVel = cellfun(@(x) mean(x),velField,'unif',false);
+        %Subtract meanVel from velField
+        velFieldCorrected = cellfun(@(x,y) [x(:,1)-y(1), x(:,2)-y(2)],velField,meanVel,...
+            'unif',false);
+%         figure, quiver(flow{1}(:,2),flow{1}(:,1),...
+%             flow{1}(:,4)-flow{1}(:,2),flow{1}(:,3)-flow{1}(:,1))
+%         hold on
+%         quiver(flow{1}(:,2),flow{1}(:,1),...
+%             velFieldCorrected{1}(:,1),velFieldCorrected{1}(:,2))
+        % Put it back to flow
+        for ii=1:numel(flow)
+            flow{ii}(:,3:4) = flow{ii}(:,1:2)+velFieldCorrected{ii}(:,2:-1:1); %#ok<NASGU>
+        end
+    end
+    
     % Interpolate field
     if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
     [Md,Ms,E,S,stats] =  analyzeFlow(flow,p.timeWindow,p.corrLength,...
