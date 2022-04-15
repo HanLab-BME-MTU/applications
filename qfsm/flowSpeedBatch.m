@@ -96,12 +96,12 @@ for ii=1:numConditions
         SpeedL5{k} = squeeze(speedCell(:,5,:));
         SpeedAll{k} = speedCell;
         
-        pSpeedL1{k} = squeeze(speedCell(:,1,:));
-        pSpeedL2{k} = squeeze(speedCell(:,2,:));
-        pSpeedL3{k} = squeeze(speedCell(:,3,:));
-        pSpeedL4{k} = squeeze(speedCell(:,4,:));
-        pSpeedL5{k} = squeeze(speedCell(:,5,:));
-        pSpeedAll{k} = speedCell;
+        pSpeedL1{k} = squeeze(protSpeedCell(:,1,:));
+        pSpeedL2{k} = squeeze(protSpeedCell(:,2,:));
+        pSpeedL3{k} = squeeze(protSpeedCell(:,3,:));
+        pSpeedL4{k} = squeeze(protSpeedCell(:,4,:));
+        pSpeedL5{k} = squeeze(protSpeedCell(:,5,:));
+        pSpeedAll{k} = protSpeedCell;
     end
     SpeedL1Group{ii} = SpeedL1;
     SpeedL2Group{ii} = SpeedL2;
