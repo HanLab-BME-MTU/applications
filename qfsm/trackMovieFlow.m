@@ -190,18 +190,18 @@ for i = 1:numel(p.ChannelIndex)
             [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
             % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
     %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
-            nextPow2max=nextpow2(p.maxFlowSpeed);
-            nextPow2corLeng=nextpow2(p.minCorLength);
+            nextPow2max=nextpow2(p.maxCorLength);
+            nextPow2min=nextpow2(p.minCorLength);
 
-            sizeArray=2.^([nextPow2max nextPow2max nextPow2max nextPow2max]);
-            stepArray=2.^([nextPow2corLeng nextPow2corLeng:-1:nextPow2corLeng-2]);
+            sizeArray=2.^([nextPow2max nextPow2max round((nextPow2max+nextPow2min)/2) nextPow2min]);
+            stepArray=sizeArray;
             pivPar.anNpasses = length(stepArray);
             pivPar.iaSizeX = sizeArray;     % size of interrogation area in X 
             pivPar.iaStepX = stepArray;     % grid spacing of velocity vectors in X
             pivPar.iaSizeY = sizeArray;     % size of interrogation area in X 
             pivPar.iaStepY = stepArray;    % grid spacing of velocity vectors in X
             pivPar.ccMaxDisplacement = 0.7;%p.maxFlowSpeed/sizeArray(end);   % This filter is relatively narrow and will 
-            pivPar.ccWindow = 'Gauss2';   
+            %pivPar.ccWindow = 'Gauss2';   %will use Welch, which is default.
             pivPar.smMethod = 'none';
             pivPar.iaMethod = 'defspline';
             pivPar.iaImageInterpolationMethod = 'spline';
