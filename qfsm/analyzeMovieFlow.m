@@ -237,7 +237,7 @@ for i=1:numel(p.ChannelIndex)
     allMaps = vertcat(speedMap{:});
     speedMapLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
     
-    % Store speed maps and flow limits
+    % Store protrusive flow speed maps and flow limits
     allMapsProt = vertcat(protSpeedMap{:});
     protSpeedMapLimits{iChan}=[min(allMapsProt(:)) max(allMapsProt(:))];
 
