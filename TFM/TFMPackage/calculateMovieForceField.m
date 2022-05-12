@@ -309,6 +309,12 @@ magSR = 1; % This should be entered from the setting later.
 for ii=1:nFrames
     displField(ii).pos=displField(ii).pos/magSR;
     displField(ii).vec=displField(ii).vec/magSR;
+    
+    % subtract mean vel
+    meanVel = nanmean(displField(ii).vec);
+    %Subtract meanVel from velField
+    displField(ii).vec = [displField(ii).vec(:,1) - meanVel(1), ...
+                       displField(ii).vec(:,2) - meanVel(2)]; 
 end
 
 if ~p.highRes

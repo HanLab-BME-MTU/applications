@@ -1,4 +1,4 @@
-function [umMap,XI,YI]=generateHeatmapFromField(Field,dataPath,band,ummax,cmapmode,w,h,plotQuiver)
+function [umMap,XI,YI,uxMap,uyMap]=generateHeatmapFromField(Field,dataPath,band,ummax,cmapmode,w,h,plotQuiver)
 if nargin <5 || isempty(cmapmode)
     cmapmode = 'jet';
 end
@@ -47,6 +47,8 @@ for k=1:numNonEmpty
 
     umnorm = (iu_mat(:,:,1).^2 + iu_mat(:,:,2).^2).^0.5;
     umMap = griddata(grid_mat(:,:,1),grid_mat(:,:,2),umnorm,XI,YI,'cubic');
+    uxMap = griddata(grid_mat(:,:,1),grid_mat(:,:,2),iu_mat(:,:,1),XI,YI,'cubic');
+    uyMap = griddata(grid_mat(:,:,1),grid_mat(:,:,2),iu_mat(:,:,2),XI,YI,'cubic');
     if nargin >=2
         h3=figure('color','w');
         set(h3, 'Position', [100 100 w*1.25 h])
