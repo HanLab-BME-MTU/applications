@@ -1,7 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
     clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal)
+                            v_actin, dActin, tTotal,d,verbose)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -64,7 +64,7 @@ if nargin<20
 elseif nargin<21
     d = 2e-6; % distance from edge to adhesion in m
 end
-verbose = false; %1; 
+% verbose = false; %1; 
 verboseEach = false; %true; %false;
 Fs = nm.*fm1; %Stall force of the system 
 kB = 1.38064852e-23; %m2 kg s-2 K-1
@@ -73,14 +73,23 @@ T = 278; %K
 c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for sphere, maybe 1 for a flat edge. 
 C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: This is assumption for now 
 R = 1e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
+Fs_actin = C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addition
 L = 2e-9; % m, the length of each actin monomer spring segment. 
 Norg = d/L; % The number of actin springs in-between the membrane and adhesion
 Nnew = 0; % Newly-added actin springs at the membrane in front of the adhesion
-k_basicActin = 0.01; % basic actin elasiticity: currently totally ambiguous.
+Nall = Norg + Nnew; % all new actin
+
+k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 k_actin = dActin * k_basicActin; % actin polymer elasticity
+a = 0.0001; %Adaptation factor for k_actin
+pK = 0.6; %Max contraction limit: There should be an ultimate strain per spring.
+pNnew = 2; %proportion of distance difference for space for new actin addition.
+q = 0.1; % Max conpression limit of the spring
+
 
 ts = 5e-3; % Time step used for calculation
 xsub = 0; %Substrate displacement
+prevXcMax = 0; %  clutch displacement in the previous step
 bound = zeros(nc,1); % Binding status of each clutch (0 unbound, 1 1st integrin, 2 2nd integrin)
 folding = zeros(nc,1); % Folding status of each clutch (0 folded, 1 unfolded, 2 vinculin-bound)
 xc = zeros(nc,1); %displacement of each clutch
@@ -96,13 +105,18 @@ nb1 = zeros(1,nTimeSteps); % Total number of bound clutches, integrin 1
 nb2 = zeros(1,nTimeSteps); % Total number of bound clutches, integrin 2
 dint1t = zeros(1,nTimeSteps); % Density of integrin type 1 as a function of time
 dint2t = zeros(1,nTimeSteps); % Density of integrin type 2 as a function of time
-
+FcAll = zeros(1,nTimeSteps); %Total force on the substrate as a function of time
+xcAll = zeros(1,nTimeSteps); %Total force on the substrate as a function of time
+xcSumAll = zeros(1,nTimeSteps);
+Nnew_curAll = zeros(1,nTimeSteps);
+NnewAll = zeros(1,nTimeSteps);
+NallAll = zeros(1,nTimeSteps);
+k_actinAll = zeros(1,nTimeSteps);
 %% Simulation through time
 p = 0;
 if verbose
     f100=figure; f100.Position(3:4)=[500 1000];
 end
-Fs_actin = -C_actin/(4*R); % stall force for actin addition
 
 for t=timeStepAll
     p = p + 1;
@@ -140,11 +154,11 @@ for t=timeStepAll
 
     if verboseEach 
         if p==1 
-            ax1 = subplot(5,2,1); plot(t,sum(k),'.-'); hold on; title('k, unbinding'); 
-            ax2 = subplot(5,2,3); plot(t,sum(k1),'.-'); hold on; title('k1, binding');
-            ax3 = subplot(5,2,5); plot(t,sum(kvuf),'.-'); hold on; title('kvuf, unfolding');
-            ax4 = subplot(5,2,7); plot(t,sum(kvf),'.-'); hold on; title('konv, refolding'); 
-            ax5 = subplot(5,2,9); plot(t,sum(konv),'.-'); hold on; title('konv, vinculin binding'); 
+            ax1 = subplot(6,2,1); plot(t,sum(k),'.-'); hold on; title('k, unbinding'); 
+            ax2 = subplot(6,2,3); plot(t,sum(k1),'.-'); hold on; title('k1, binding');
+            ax3 = subplot(6,2,5); plot(t,sum(kvuf),'.-'); hold on; title('kvuf, unfolding');
+            ax4 = subplot(6,2,7); plot(t,sum(kvf),'.-'); hold on; title('konv, refolding'); 
+            ax5 = subplot(6,2,9); plot(t,sum(konv),'.-'); hold on; title('konv, vinculin binding'); 
         else
             plot(ax1, t,sum(k),'.-');
             plot(ax2, t,sum(k1),'.-');
@@ -217,11 +231,11 @@ for t=timeStepAll
 
     if verboseEach 
         if p==1 
-            ax1_2 = subplot(5,2,2); plot(t,sum(indub),'.-'); hold on; title('total indub'); 
-            ax2_2 = subplot(5,2,4); plot(t,sum(indb1),'.-'); hold on; title('total, indb1');
-            ax3_2 = subplot(5,2,6); plot(t,sum(indb2),'.-'); hold on; title('total indb2');
-            ax4_2 = subplot(5,2,8); plot(t,sum(induf),'.-'); hold on; title('total induf'); 
-            ax5_2 = subplot(5,2,10); plot(t,sum(indvinculin),'.-'); hold on; title('total indvinculin'); 
+            ax1_2 = subplot(6,2,2); plot(t,sum(indub),'.-'); hold on; title('total indub'); 
+            ax2_2 = subplot(6,2,4); plot(t,sum(indb1),'.-'); hold on; title('total, indb1');
+            ax3_2 = subplot(6,2,6); plot(t,sum(indb2),'.-'); hold on; title('total indb2');
+            ax4_2 = subplot(6,2,8); plot(t,sum(induf),'.-'); hold on; title('total induf'); 
+            ax5_2 = subplot(6,2,10); plot(t,sum(indvinculin),'.-'); hold on; title('total indvinculin'); 
         else
             plot(ax1_2, t,sum(indub),'.-');
             plot(ax2_2, t,sum(indb1),'.-');
@@ -239,20 +253,55 @@ for t=timeStepAll
 
 %     xc = xc + vf.*ts.*boundbin; %Position of each clutch
     % Determining xc based on force balance. 
-    FcTotal = sum(Fc); % Total tension within F_actin (same as force in adhesion)
-    if FcTotal < Fs_actin %this case, actin monomer can be added
-        Nnew = Nnew +1;
-    end
+%     FcMax = max(abs(Fc)); % Total tension within F_actin (same as force in adhesion)
+%     if FcMax >= abs(Fs_actin) %this case, actin monomer can be added
+%         Nnew_cur=0;
+%     elseif FcMax >= 4/5*abs(Fs_actin)
+%         Nnew_cur=1;
+%     elseif FcMax >= 3/5*abs(Fs_actin)
+%         Nnew_cur=2;
+%     elseif FcMax >= 2/5*abs(Fs_actin)
+%         Nnew_cur=3;
+%     elseif FcMax >= 1/5*abs(Fs_actin)
+%         Nnew_cur=4;
+%     else
+%         Nnew_cur=5;
+%     end
+    % Space-based Nnew_cur addition (instead force-based, which didn't produce
+    % stiffness-dependence)
+    Nnew_cur = round((prevXcMax+d-q*L*Nall)*pNnew/(q*L*Nall));
+
+    Nnew = Nnew + Nnew_cur;
     Nall = Norg + Nnew;
-    xc = k_actin*Nnew*(ksub+kc)*L/(ksub*kc*Nall + k_actin*(ksub+kc)); % clutch position
-    xsub = k_actin*kc*Nnew*L/(ksub*kc*Nall+k_actin*(ksub+kc)); %Substrate position
-    vf = (xc - xc_prev)/ts;
-    
+    Nc = sum(boundbin);
+    if Nc>0
+        xc(boundbin) = k_actin*Nnew*(ksub+kc*Nc)*L/(ksub*kc*Nall*Nc + k_actin*(ksub+Nc*kc)); % clutch position
+        vf = (max(xc) - max(xc_prev))/ts;
+        % k_actin update is needed for next round
+%         k_actin = k_actin + (pK*Nnew*L-max(xc))*a*k_actin/(pK*Nnew*L); 
+    else %Nc==0, then it slips, and by added actin springs (i.e., Nnew), the edge advances
+        xc = zeros(nc,1);
+        vf = Nnew*L/ts;
+%         k_actin = dActin * k_basicActin; % actin polymer elasticity
+        Nnew = 0;
+    end
+%     xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
+    xc(~boundbin) = 0;
+    xsub = sum(kc*xc)/(ksub+Nc*kc); %Substrate position
+    if verboseEach 
+        if p==1 
+            ax3_1 = subplot(6,2,11); plot(t,xc,'k.'); hold on; title('x_c'); 
+            ax3_2 = subplot(6,2,12); plot(t,xsub,'b.'); hold on; title('x_{sub}');
+        else
+            plot(ax3_1, t,xc,'k.');
+            plot(ax3_2, t,xsub,'b.');
+        end
+    end
     %xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
     %position need to be compared with the expression result above
     
-    xc(bound == 0) = xsub;
-    f(p) = xsub.*ksub;  % Force on substrate
+%     xc(bound == 0) = xsub;
+    f(p) = xsub*ksub;  % Force on substrate
     v(p) = vf;          % Actin rearward speed
     nb1(p) = sum(bound == 1); % Number of bound clutches (integrin 1)
     nb2(p) = sum(bound == 2); % Number of bound clutches (integrin 2)
@@ -265,14 +314,29 @@ for t=timeStepAll
         dint2t(p) = dint2;
     end
     Fc = kc.*(xc - xsub); % Force in each clutch
+    FcAll(p) = max(Fc); % Force at clutch
+    prevXcMax = max(xc);
+    xcAll(p) = max(xc); % xc at clutch
+    xcSumAll(p) = sum(xc); % xc at clutch
+    Nnew_curAll(p) = Nnew_cur;
+    NnewAll(p) = Nnew;
+    NallAll(p) = Nall;
     xc_prev = xc;
+    k_actinAll(p) = k_actin;
 end
 q=1000;
 a =1700e-9; % Radius of adhesion (m) 1500e-9
 if verbose 
-    subplot(3,1,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
-    subplot(3,1,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (ms)'); ylabel('Velocity (nm/s)')
-    subplot(3,1,3); plot(timeStepAll,nb1);  title('Bound integrin'); xlabel('Time (ms)'); ylabel('Number (1)')
+    subplot(3,4,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
+    subplot(3,4,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (ms)'); ylabel('Velocity (nm/s)')
+    subplot(3,4,3); plot(timeStepAll,nb1);  title('Bound integrin'); xlabel('Time (ms)'); ylabel('Number (1)')
+    subplot(3,4,4); plot(timeStepAll,abs(FcAll));  title('FcAll'); xlabel('Time (ms)'); ylabel('FcAll')
+    subplot(3,4,5); plot(timeStepAll,xcAll);  title('xcAll'); xlabel('Time (ms)'); ylabel('xcAll')
+    subplot(3,4,6); plot(timeStepAll,xcSumAll);  title('xcSumAll'); xlabel('Time (ms)'); ylabel('xcSumAll')
+    subplot(3,4,7); plot(timeStepAll,Nnew_curAll);  title('Nnew_{cur}'); xlabel('Time (ms)'); ylabel('N')
+    subplot(3,4,8); plot(timeStepAll,NnewAll);  title('Nnew'); xlabel('Time (ms)'); ylabel('N')
+    subplot(3,4,9); plot(timeStepAll,NallAll);  title('Nall'); xlabel('Time (ms)'); ylabel('N')
+    subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (ms)'); ylabel('k actin (N/m)')
     drawnow
 end
 
@@ -282,9 +346,39 @@ mnb1 = mean(nb1); % Mean number of bound clutches
 mnb2 = mean(nb2); % Mean number of bound clutches
 mdint1 = mean(dint1t); % Mean density, integrin 1
 mdint2 = mean(dint2t); % Mean density, integrin 2
-end
+return
 
-% mf = mean(f); %Mean force on substrate
-% mv = mean(v); %Mean rearward speed
-% mnb1 = mean(nb1); % Mean number of bound clutches
-% mnb2 = mean(nb2); % Mean number of bound clutches
+nm = 800; %Number of myosin motors, optimal fit 800
+fm1 = -2e-12; % Stall force of 1 motor (N)
+vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+kc = 1; % Clutch spring constant (N/m)
+pt = 0.073; % fraction of force experienced by talin 0.073
+konv = 1e8; % on-rate of vinculin to unfolded talin
+mr = 300*50;  % Maximum integrin density for each integrin
+% intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
+a =1700e-9; % Radius of adhesion (m) 1500e-9
+ksub = 10.^(-0.1:0.1:2).*1e-3; %Range of substrate stiffness
+kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
+kont2 = 0; % True on-rate (um2/s), 2nd integrin type
+kof2 = 1.5;
+E = 9*ksub./(4*pi*a);
+intaddctrl = 24; % At 1000 s: 4 at 100 s: 24
+nc10 = 1200; %Number of molecular clutches for 10 ug/ml fn 1200
+nc1 = 750; %Number of molecular clutches for 1 ug/ml fn 800
+nc100 = 1650; %Number of molecular clutches for 100 ug/ml fn
+vu = 0; % zero myosin contraction produces zero shortening velocity
+v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 1e6; % density of actin at the leading edge #/um
+kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kont2 = 2.11e-3; % True on-rate (um2/s), 2nd integrin type
+kof1 = 9; % from 90 previously (5/26/2022)
+kof2 = 9; % from 90 previously (5/26/2022)
+dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
+ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+nc = nc10;
+
+[mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
+kont2,kof1,kof2,kc,ksub(end),konv,pt,mr,intadd,ion,v_actin,dActin,10,2e-6);

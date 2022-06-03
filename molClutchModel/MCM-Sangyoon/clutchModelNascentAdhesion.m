@@ -49,7 +49,8 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 % Sangyoon Han, December 2020
 
 %% Initialize variables:
-verbose = 1;
+verbose = false; %1; 
+verboseEach = false; %true; %false;
 Fs = nm.*fm1; %Stall force of the system 
 kB = 1.38064852e-23; %m2 kg s-2 K-1
 T = 278; %K
@@ -81,7 +82,7 @@ dint2t = zeros(1,nTimeSteps); % Density of integrin type 2 as a function of time
 %% Simulation through time
 p = 0;
 if verbose
-    f100=figure; f100.Position(3:4)=[300 1000];
+    f100=figure; f100.Position(3:4)=[500 1000];
 end
 Fs_actin = -C_actin/(4*R);
 
@@ -119,19 +120,21 @@ for t=timeStepAll
     k1(indunbound) = kont1*dint1;
     k2(indunbound) = kont2*dint2;
 
-%     if verbose 
-%         if p==1 
-%             ax1 = subplot(4,1,1); plot(t,sum(k),'.-'); hold on; title('k, unbinding'); 
-%             ax2 = subplot(4,1,2); plot(t,sum(k1),'.-'); hold on; title('k1, binding');
-%             ax3 = subplot(4,1,3); plot(t,sum(kvuf),'.-'); hold on; title('kv_uf, unfolding');
-%             ax4 = subplot(4,1,4); plot(t,sum(kvf),'.-'); hold on; title('konv, vinculin binding'); 
-%         else
-%             plot(ax1, t,sum(k),'.-');
-%             plot(ax2, t,sum(k1),'.-');
-%             plot(ax3, t,sum(kvuf),'.-');
-%             plot(ax4, t,sum(kvf),'.-');
-%         end
-%     end
+    if verboseEach 
+        if p==1 
+            ax1 = subplot(5,2,1); plot(t,sum(k),'.-'); hold on; title('k, unbinding'); 
+            ax2 = subplot(5,2,3); plot(t,sum(k1),'.-'); hold on; title('k1, binding');
+            ax3 = subplot(5,2,5); plot(t,sum(kvuf),'.-'); hold on; title('kvuf, unfolding');
+            ax4 = subplot(5,2,7); plot(t,sum(kvf),'.-'); hold on; title('konv, refolding'); 
+            ax5 = subplot(5,2,9); plot(t,sum(konv),'.-'); hold on; title('konv, vinculin binding'); 
+        else
+            plot(ax1, t,sum(k),'.-');
+            plot(ax2, t,sum(k1),'.-');
+            plot(ax3, t,sum(kvuf),'.-');
+            plot(ax4, t,sum(kvf),'.-');
+            plot(ax5, t,sum(konv),'.-');
+        end
+    end
     
     %We calculate the times for all events:
     teventub = -log(rand(nc,1))./k;  %Times for unbinding events
@@ -188,7 +191,28 @@ for t=timeStepAll
     elseif dint2 > mr
         dint2 = mr;
     end
+    indub = (teventub < ts);
+    indb1 = (teventb1 < ts);
+    indb2 = (teventb2 < ts);
+    induf = (teventuf < ts);
+    indvinculin = (teventuf + teventvinc < ts);
 
+    if verboseEach 
+        if p==1 
+            ax1_2 = subplot(5,2,2); plot(t,sum(indub),'.-'); hold on; title('total indub'); 
+            ax2_2 = subplot(5,2,4); plot(t,sum(indb1),'.-'); hold on; title('total, indb1');
+            ax3_2 = subplot(5,2,6); plot(t,sum(indb2),'.-'); hold on; title('total indb2');
+            ax4_2 = subplot(5,2,8); plot(t,sum(induf),'.-'); hold on; title('total induf'); 
+            ax5_2 = subplot(5,2,10); plot(t,sum(indvinculin),'.-'); hold on; title('total indvinculin'); 
+        else
+            plot(ax1_2, t,sum(indub),'.-');
+            plot(ax2_2, t,sum(indb1),'.-');
+            plot(ax3_2, t,sum(indb2),'.-');
+            plot(ax4_2, t,sum(induf),'.-');
+            plot(ax5_2, t,sum(indvinculin),'.-');
+        end
+    end
+    
     %We now reset the folding vector for the unbound clutches:
     folding(indub) = 0;
 
@@ -228,6 +252,7 @@ mnb1 = mean(nb1); % Mean number of bound clutches
 mnb2 = mean(nb2); % Mean number of bound clutches
 mdint1 = mean(dint1t); % Mean density, integrin 1
 mdint2 = mean(dint2t); % Mean density, integrin 2
+end
 
 % mf = mean(f); %Mean force on substrate
 % mv = mean(v); %Mean rearward speed
