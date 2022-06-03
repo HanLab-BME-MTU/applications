@@ -38,7 +38,7 @@ for i=startFrames
     vel = Md{i}(:,4:-1:3)-Md{i}(:,2:-1:1);
     pos = Md{i}(:,2:-1:1);
     
-    % surface normal vectors are too detailed. will make it smooth toremove
+    % surface normal vectors are too detailed. will make it smooth to remove
     % the details.
     curMask = mask(:,:,i);
     curMask = bwmorph(curMask,'close',20);
@@ -79,18 +79,20 @@ for i=startFrames
     
     % Reshape
     iMap=i;
-    curField.pos = pos;
-    curField.vec = protSpeed;
-    [X,Y]=meshgrid(min(pos(:,1)):max(pos(:,1)),min(pos(:,2)):max(pos(:,2)));
+    [X,Y]=meshgrid(floor(min(pos(:,1))):floor(max(pos(:,1))),floor(min(pos(:,2))):floor(max(pos(:,2))));
 %     [X,Y]=meshgrid(1:size(currMask,2),1:size(currMask,1));
-    curProtSpeedMap = griddata(pos(:,1),pos(:,2),protSpeed,X,Y);
-    curProtSpeedMap(isnan(curProtSpeedMap)) = 0;
-    curProtSpeedMapWhole = double(currMask);
-    curProtSpeedMapWhole(min(pos(:,2)):max(pos(:,2)),min(pos(:,1)):max(pos(:,1))) = curProtSpeedMap;
+%     curProtSpeedMap = griddata(pos(:,1),pos(:,2),protSpeed,X,Y,'cubic');
+    F = scatteredInterpolant(pos(:,1),pos(:,2),protSpeed,'linear','linear');
+    curProtSpeedMap = F(X,Y);
+%     curProtSpeedMap(isnan(curProtSpeedMap)) = 0;
+    curProtSpeedMapWhole = NaN(size(currMask));
+    curProtSpeedMapWhole(floor(min(pos(:,2))):floor(max(pos(:,2))),floor(min(pos(:,1))):floor(max(pos(:,1)))) = curProtSpeedMap;
     
     % Transform to nm/min
     curProtSpeedMapWhole=curProtSpeedMapWhole*(60/sampling)*pixelSize;
     
     % Use union of masks
-    protSpeedMap{iMap} = curProtSpeedMapWhole .* curMask;
+    nanMask = double(mask(:,:,i));
+    nanMask(nanMask==0) = NaN;
+    protSpeedMap{iMap} = curProtSpeedMapWhole .* nanMask;
 end
