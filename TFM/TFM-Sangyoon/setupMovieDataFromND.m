@@ -17,7 +17,7 @@ while ~dataFolderSelectionDone
         groupNames{ii} = finalFolder;
     end
 end
-%% Now you choose specific dv files of interest per folder
+%% Now you choose specific nd2 files of interest per folder
 numFolder = numel(pathProject);
 orgPath=pwd;
 for k=1:numFolder
