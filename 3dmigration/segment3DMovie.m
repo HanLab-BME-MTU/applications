@@ -120,16 +120,16 @@ ppChan = 2;%Channel associated with post-processing logging
 %% ------ Input ----- %%
 
 
-if ~isa(movieData,'MovieData3D')
-    error('The first input argument must be a valid MovieData object for a 3D movie!')
-end
+% if ~isa(movieData,'MovieData3D')
+%     error('The first input argument must be a valid MovieData object for a 3D movie!')
+% end
 
 %Check for existing seg processes
-iSegProc = movieData.getProcessIndex('SegmentationProcess3D',1,0);
+iSegProc = movieData.getProcessIndex('SegmentationProcess',1,0);
 
 if isempty(iSegProc)
     iSegProc = numel(movieData.processes_)+1;
-    movieData.addProcess(SegmentationProcess3D(movieData));
+    movieData.addProcess(SegmentationProcess(movieData));
 end
 
 if nargin < 2
@@ -196,7 +196,7 @@ for iImage = 1:nImages
     %Load and combine the current image(s)
     for iChan = 1:nChanSeg
         if iChan == 1            
-            currIm = zeros([movieData.imSize_ movieData.nSlices_],imClass);            
+            currIm = zeros([movieData.imSize_ movieData.zSize_],imClass);            
         end
         %Whats the best way to do this? Normalize and then average? How
         %best to normalizE?? This will have to do for now... TEMP HLE
