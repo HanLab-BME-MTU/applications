@@ -38,10 +38,11 @@ title(['Speed ' num2str(num) ' segments'])
 subtitle([ti]);
 xlabel('Time (seconds)');
 hold on
-for i=1:num
+for i=floor(linspace(1,m,20))
 plot([1:length(speed(i,:))],speed(i,:));
 end
 hold off
+
 %%FFT
 figure()
 title(['Power Spectrum ' num2str(num) ' segments']);
@@ -50,15 +51,22 @@ xlabel("Frequency (Hz)");
 ylabel("Power")
 hold on
 %tiledlayout(floor((length(speed(i,:))+1)/4),4)
-for i=1:num
-%    nexttile
-    l=length(speed(i,:));
-    ff=fft(speed(i,:));
-    p=abs(ff).^2;
-    p1=p(1:floor((n+1)/2));
-    p1(1)=0;
-    f=fs/l*(0:floor((l-1)/2));
-    plot(f,p1);
-
+for j=floor(linspace(1,m,floor(m/20))) 
+    figure()
+    title(['Power Spectrum ' num2str(j) '-' num2str(j+20) ' segments']);
+    subtitle([ti]);
+    xlabel("Frequency (Hz)");
+    ylabel("Power")
+    hold on
+    for i=[j:j+20]%floor(linspace(1,m,20))
+    %    nexttile
+        l=length(speed(i,:));
+        ff=fft(speed(i,:));
+        p=abs(ff).^2;
+        p1=p(1:floor((n+1)/2));
+        p1(1)=0;
+        f=fs/l*(0:floor((l-1)/2));
+        plot(f,p1);
+    
+    end
 end
-
