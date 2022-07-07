@@ -36,13 +36,13 @@ mnb1 = zeros(numKsub,1);
 mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
+kof1 = 0.9;
 %% talin2 shRNA: intadd=0: same as chan and odde
 ion = 'cm'; %'cm';
 nc = nc10; %Number of molecular clutches
 v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 dActin = 1e4; % density of actin at the leading edge #/um
-kof1 = 0.9;
 % nm = 750; fm1 = -2e-12; vu = -120e-9; 
 % kc = 5e-3; % Clutch spring constant (N/m)
 % pt = 0.073; % fraction of force experienced by talin 0.073
