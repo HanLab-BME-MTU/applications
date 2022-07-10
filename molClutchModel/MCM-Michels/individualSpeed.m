@@ -33,6 +33,8 @@ speed=squeeze(speedCell(:,1,:));
 num=m;%20;
 fs=1/(6);
 
+%speed=detrend(speed,2);
+
 figure()
 title(['Speed ' num2str(num) ' segments'])
 subtitle([ti]);

@@ -1,7 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
     clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal,d,verbose)
+                            v_actin, dActin, tTotal,d,verbose,actinRate)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -97,6 +97,14 @@ xc_prev = zeros(nc,1); %displacement of each clutch in previous time step
 Fc = zeros(nc,1); % Force in each clutch
 dint1i = dint1; %Density of integrin type 1 before reinforcement
 dint2i = dint2; %Density of integrin type 2 before reinforcement
+
+%aElon=1.72; %um/s rate of elongation
+%maxActin=actinRate*(aElon*ts*10e-6)/L; % (rate of elongation * interval * um to m)/Length of individual actin molecule
+%timeActin=(aElon*10e-6)^-1*L;
+%ts=timeActin;
+
+
+
 timeStepAll = 0:ts:tTotal;
 nTimeSteps = numel(timeStepAll);
 f = zeros(1,nTimeSteps); %Total force on the substrate as a function of time
@@ -114,6 +122,10 @@ NallAll = zeros(1,nTimeSteps);
 k_actinAll = zeros(1,nTimeSteps);
 %% Simulation through time
 p = 0;
+
+
+
+
 if verbose
     f100=figure; f100.Position=[500,0,500 1000];
 end
@@ -272,7 +284,7 @@ for t=timeStepAll
     % stiffness-dependence)
 
     aElon=1.72; %um/s rate of elongation
-    maxActin=(aElon*ts*10e-6)/L; % (rate of elongation * interval * um to m)/Length of individual actin molecule
+    maxActin=actinRate*(aElon*ts*10e-6)/L; % (rate of elongation * interval * um to m)/Length of individual actin molecule
 
     Nnew_cur=0;
     FcNext=max(abs(Fc));
@@ -283,17 +295,17 @@ for t=timeStepAll
         Nnew_cur=Nnew_cur+1;
     end
 
-    if Nnew_cur>0;Nnew_cur=Nnew_cur-1;end
+    if Nnew_cur>1;Nnew_cur=Nnew_cur-1;end
 
         %Nnew_cur = round((prevXcMax+d-q*L*Nall)*pNnew/(q*L*Nall));
 
     Nnew = Nnew + Nnew_cur;
     Nall = Norg + Nnew;
     Nc = sum(boundbin);
-    if (Nc==0)
-        boundbin(1)=1;
-        Nc=1;
-    end 
+%     if (Nc==0)
+%         boundbin(1)=1;
+%         Nc=1;
+%     end 
     xc(~boundbin) = 0;
     if Nc>0
         xc(boundbin) = k_actin*Nnew*(ksub+kc*Nc)*L/(ksub*kc*Nall*Nc + k_actin*(ksub+Nc*kc)); % clutch position
@@ -301,11 +313,12 @@ for t=timeStepAll
         % k_actin update is needed for next round
 %         k_actin = k_actin + (pK*Nnew*L-max(xc))*a*k_actin/(pK*Nnew*L); 
     else %Nc==0, then it slips, and by added actin springs (i.e., Nnew), the edge advances
-        xc = zeros(nc,1)+1e-12;
+        xc = zeros(nc,1);%+1e-12;
         vf = Nnew_cur*L/ts;
 %         k_actin = dActin * k_basicActin; % actin polymer elasticity
         Nnew = 0;
         %Nall=Norg;
+        %Nall=Nnew+Nnew_cur;
     end
 %     xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
     
@@ -346,7 +359,7 @@ for t=timeStepAll
     xc_prev = xc;
     k_actinAll(p) = k_actin;
 end
-if(Nnew_cur<maxActin)
+if(Nnew_cur>=maxActin)
     disp(['Maximum Actin Reached']);
 else
     disp(['Stall Force Reached'])
@@ -368,6 +381,9 @@ if verbose
 end
 
 mf = mean(f); %Mean force on substrate
+
+%v(1)=0;
+
 mv = mean(v); %Mean rearward speed
 mnb1 = mean(nb1); % Mean number of bound clutches
 mnb2 = mean(nb2); % Mean number of bound clutches

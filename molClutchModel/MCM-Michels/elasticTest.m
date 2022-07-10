@@ -3,7 +3,10 @@ clc
 nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-12; % Stall force of 1 motor (N)
 vu = -110e-9; % Unloaded myosin motor velocity (m/s)
-kc = 1; % Clutch spring constant (N/m)
+
+kc = 100; % Clutch spring constant (N/m)
+actinRate=1;
+
 pt = 0.073; % fraction of force experienced by talin 0.073
 konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
@@ -21,7 +24,6 @@ intaddctrl = 24; % At 1000 s: 4 at 100 s: 24
 nc10 = 1200; %Number of molecular clutches for 10 ug/ml fn 1200
 nc1 = 750; %Number of molecular clutches for 1 ug/ml fn 800
 nc100 = 1650; %Number of molecular clutches for 100 ug/ml fn
-tTotal = 100;
 % 10 ug/ml
 
 % 10 ug/ml depleted
@@ -32,7 +34,7 @@ mnb1 = zeros(numKsub,1);
 mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
-ion = 'cm'; %'cm';
+ion = 'mg'; %'cm';
 nc = nc10; %Number of molecular clutches
 v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
@@ -45,24 +47,24 @@ intadd = 0; % Number of integrins added per sq. micron every time reinforcement 
 dActin = 1e6; % density of actin at the leading edge #/um
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 9; % from 90 previously (5/26/2022)
-kof2 = 9; % from 90 previously (5/26/2022)
+kof1 = 45;%9; % from 90 previously (5/26/2022)
+kof2 = 45; % from 90 previously (5/26/2022)
 dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
-ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
-timeTotal = 10; % sec
+
+timeTotal = 1; % sec
 d = 1e-6; % distance from the edge in m.
 verbose = 0;
-numTrials=1;
+numTrials=25;
 
-Arp_Inh=1;
+Arp_Inh=0;
 int_actin=8; 
 
 
 
 dActinRange=[dActin];
 if Arp_Inh
-    dActinRange=[2*dActin,0.7*dActin,0]
+    dActinRange=[2*dActin,0.7*dActin,0];
     %dActinRange=flip([0:2*dActin/int_actin:2*dActin]);
 end
 v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
@@ -88,7 +90,7 @@ for jj=1:numTrials
     for ii=1:numKsub
         [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
             clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
-            kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose);
+            kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate);
     %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
     %        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
     %        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
