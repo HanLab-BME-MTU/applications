@@ -49,7 +49,7 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 % Sangyoon Han, December 2020
 
 %% Initialize variables:
-verbose = false; %1; 
+verbose = true; %false; %1; 
 verboseEach = false; %true; %false;
 Fs = nm.*fm1; %Stall force of the system 
 kB = 1.38064852e-23; %m2 kg s-2 K-1
