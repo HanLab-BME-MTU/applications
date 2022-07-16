@@ -4,7 +4,7 @@ nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-12; % Stall force of 1 motor (N)
 vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 
-kc = 100; % Clutch spring constant (N/m)
+kc = 1000; % Clutch spring constant (N/m)
 actinRate=1;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
@@ -54,8 +54,8 @@ dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
 
 timeTotal = 1; % sec
 d = 1e-6; % distance from the edge in m.
-verbose = 0;
-numTrials=25;
+verbose = 1;
+numTrials=1;
 
 Arp_Inh=0;
 int_actin=8; 
@@ -89,7 +89,7 @@ for jj=1:numTrials
     disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
     for ii=1:numKsub
         [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
-            clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
+            clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
             kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate);
     %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
     %        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
