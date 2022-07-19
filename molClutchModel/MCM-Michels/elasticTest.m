@@ -4,11 +4,11 @@ nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-12; % Stall force of 1 motor (N)
 vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 
-kc = 1000; % Clutch spring constant (N/m)
+kc = 2.5e-4; % Clutch spring constant (N/m)
 actinRate=1;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
-konv = 1e8; % on-rate of vinculin to unfolded talin
+konv = 1e12; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
@@ -36,23 +36,19 @@ mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 ion = 'mg'; %'cm';
 nc = nc10; %Number of molecular clutches
-v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
-intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e4; % density of actin at the leading edge #/um
-kof1 = 0.9;
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e6; % density of actin at the leading edge #/um
+dActin = 1e4; % density of actin at the leading edge #/um
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
 kof1 = 45;%9; % from 90 previously (5/26/2022)
 kof2 = 45; % from 90 previously (5/26/2022)
-dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
-dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
+dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 100;   %Density of integrin molecules, type 2 (integrins/um2).
 
-timeTotal = 1; % sec
+timeTotal = 31*6; % sec
 d = 1e-6; % distance from the edge in m.
 verbose = 1;
 numTrials=1;
@@ -64,8 +60,8 @@ int_actin=8;
 
 dActinRange=[dActin];
 if Arp_Inh
-    dActinRange=[2*dActin,0.7*dActin,0];
-    %dActinRange=flip([0:2*dActin/int_actin:2*dActin]);
+    %dActinRange=[2*dActin,0.7*dActin,0];
+    dActinRange=flip([0:2*dActin/int_actin:2*dActin]);
 end
 v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
 mf_blebbi_actinSlowdown = zeros(numKsub,numTrials);
