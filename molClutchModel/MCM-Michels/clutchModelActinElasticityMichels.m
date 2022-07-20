@@ -287,18 +287,14 @@ for t=timeStepAll
     % Space-based Nnew_cur addition (instead force-based, which didn't produce
     % stiffness-dependence)
 
-    aElon=1.72; %um/s rate of elongation
-    maxActin=actinRate*(aElon*ts*10e-6)/L; % (rate of elongation * interval * um to m)/Length of individual actin molecule
+
+%%start of model
     Nnew_cur=0;
-    FcNext=max(abs(Fc));
     maxActin=(20*ts)/(5e-3);
     %Nnew_cur=(FcNext/(L*k_actin))*(Nall-1);
-    rA=7.4*ts*60;
-    Fa_l=Fa_last;
-    while (max(Fc)<Fs_actin&&Nnew_cur<maxActin)
+    while (max(Fc)<Fs_actin&&Nnew_cur<maxActin) %actin addition
         %FcNext=max(abs(Fc))+Nnew_cur/(Nall+Nnew_cur)*L*k_actin;
         Fa0_l=(Nnew+Nnew_cur)*L*k_actin/(Nall+Nnew_cur);
-
         Fa_l=Fa0_l*(1-exp(-k0*boundTime/pot));
         maxActin=maxActin*(1-Fa_l/Fs_actin);
         Nnew_cur=Nnew_cur+1;
@@ -316,11 +312,10 @@ for t=timeStepAll
     %         Nc=1;
     %     end 
     
-        mActin=6.9743e-23; %mass in kg
     
         xc(~boundbin) = 0;
-        if Nc>0
-            
+        if Nc>0 %if no slip
+        
             unboundTime=0;
             Fa0=Nnew*L*k_actin/(Nall);
             Fa=Fa0*(1-exp(-k0*boundTime/pot));
@@ -368,6 +363,10 @@ for t=timeStepAll
     %     xc(bound == 0) = xsub;
         f(p) = xsub*ksub;  % Force on substrate
         v(p) = vf;          % Actin rearward speed
+        Fc = kc.*(xc - xsub); % Force in each clutch
+
+
+        
         nb1(p) = sum(bound == 1); % Number of bound clutches (integrin 1)
         nb2(p) = sum(bound == 2); % Number of bound clutches (integrin 2)
     
@@ -378,7 +377,7 @@ for t=timeStepAll
             dint1t(p) = dint1;
             dint2t(p) = dint2;
         end
-        Fc = kc.*(xc - xsub); % Force in each clutch
+        
         FcAll(p) = max(Fc); % Force at clutch
         prevXcMax = max(xc);
         xcAll(p) = max(xc); % xc at clutch
