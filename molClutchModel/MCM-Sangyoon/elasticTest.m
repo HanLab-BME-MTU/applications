@@ -1,0 +1,129 @@
+clear
+clc
+nm = 800; %Number of myosin motors, optimal fit 800
+fm1 = -2e-12; % Stall force of 1 motor (N)
+vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+kc = 1; % Clutch spring constant (N/m)
+pt = 0.073; % fraction of force experienced by talin 0.073
+konv = 1e8; % on-rate of vinculin to unfolded talin
+mr = 300*50;  % Maximum integrin density for each integrin
+% intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
+a =1700e-9; % Radius of adhesion (m) 1500e-9
+ion = 'b3_lateslip'; %'cm';
+ksub = 10.^(-0.1:0.1:1.9).*1e-3; %Range of substrate stiffness
+kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
+kont2 = 0; % True on-rate (um2/s), 2nd integrin type
+kof2 = 1.5;
+E = 9*ksub./(4*pi*a);
+dint1 = 300; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
+intaddctrl = 24; % At 1000 s: 4 at 100 s: 24
+nc10 = 1200; %Number of molecular clutches for 10 ug/ml fn 1200
+nc1 = 750; %Number of molecular clutches for 1 ug/ml fn 800
+nc100 = 1650; %Number of molecular clutches for 100 ug/ml fn
+tTotal = 100;
+% 10 ug/ml
+
+% 10 ug/ml depleted
+numKsub = length(ksub);
+mf = zeros(numKsub,1);
+mv = zeros(numKsub,1);
+mnb1 = zeros(numKsub,1);
+mnb2 = zeros(numKsub,1);
+mdint1 = zeros(numKsub,1);
+mdint2 = zeros(numKsub,1);
+ion = 'cm'; %'cm';
+nc = nc10; %Number of molecular clutches
+v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 1e4; % density of actin at the leading edge #/um
+kof1 = 0.9;
+%% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
+vu = 0; % zero myosin contraction produces zero shortening velocity
+v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 1e6; % density of actin at the leading edge #/um
+kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kont2 = 0; % True on-rate (um2/s), 2nd integrin type
+kof1 = 9; % from 90 previously (5/26/2022)
+kof2 = 9; % from 90 previously (5/26/2022)
+dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
+ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+d = 1e-6; % distance from the edge in m.
+
+timeTotal = 10; % sec
+verbose = 0; %figures for individual plots
+numTrials=5; %number of trials 
+Arp_Inh=1; %binary for range of actin densities
+int_actin=5; %number of actin densities tested, ranges from zero to twice the dActin as defined above
+
+
+
+dActinRange=[dActin];
+if Arp_Inh
+    dActinRange=[0:2*dActin/int_actin:2*dActin];
+end
+v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
+mf_blebbi_actinSlowdown = zeros(numKsub,numTrials);
+mdint1_blebbi_actinSlowdown = zeros(numKsub,numTrials);
+P_blebbi_actinSlowdown = zeros(numKsub,numTrials);
+
+tf=figure;
+hold on
+legend('Location','bestoutside')
+ff=figure;
+hold on
+legend('Location','bestoutside')
+
+
+for kk=1:length(dActinRange)
+    dActin=dActinRange(kk);
+    disp(['Actin Range ' int2str(kk) ' of ' int2str(length(dActinRange))])
+    disp(['dActin :: ' int2str(dActin)])
+
+for jj=1:numTrials
+    disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
+    for ii=1:numKsub
+        [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+            clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
+            kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose);
+    %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+    %        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
+    %        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
+        mf(ii) = mfi;
+        mv(ii) = mvi;
+        mnb1(ii) = mnb1i;
+        mnb2(ii) = mnb2i;
+        mdint1(ii) = mdint1i;
+        mdint2(ii) = mdint2i;
+        disp(['Trial ' int2str(jj) '::' num2str(100*ii/numKsub) '% done...'])
+    end
+
+    v_blebbi_actinSlowdown(:,jj) = mv;
+    mf_blebbi_actinSlowdown(:,jj) = mf;
+    mdint1_blebbi_actinSlowdown(:,jj) = mdint1;
+
+    P_blebbi_actinSlowdown(:,jj) = mf_blebbi_actinSlowdown(:,jj)/(pi*a^2);
+    if verbose
+        figure, semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-')
+        xlabel('K'), ylabel('Mean traction (Pa)')
+        title(['Blebbi, ion: ' ion ', no intadd'])
+        %savefig('blebbi_actinElas_Traction.fig')
+        figure, semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e9,'o-')
+        xlabel('K'), ylabel('Mean flow speed (nm/s)')
+        title(['Blebbi, flow speed, ion: ' ion ', no intadd'])
+        %savefig('blebbi_actinElas_Flow.fig')
+    end
+end
+figure(tf)
+errorbar(ksub,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['dActin:' int2str(dActinRange(kk))]);
+set(gca,'XScale','log');
+xlabel('K'), ylabel('Mean traction (Pa)')
+title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
+figure(ff)
+errorbar(ksub,abs(mean(v_blebbi_actinSlowdown,2))*1e9,(std(v_blebbi_actinSlowdown,0,2))/2*1e9,'o-','DisplayName',['dActin:' int2str(dActinRange(kk))]);
+set(gca,'XScale','log');
+xlabel('K'), ylabel('Mean flow speed (nm/s)')
+title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
+end

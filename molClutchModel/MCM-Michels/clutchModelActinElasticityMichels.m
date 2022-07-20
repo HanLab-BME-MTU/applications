@@ -106,8 +106,8 @@ dint2i = dint2; %Density of integrin type 2 before reinforcement
 %timeActin=(aElon*10e-6)^-1*L;
 %ts=timeActin;
 pot=1;
-k0=10000;
-vf_last=0;
+k0=k_actin;
+vf_last=1e-5;
 
 timeStepAll = 0:ts:tTotal;
 nTimeSteps = numel(timeStepAll);
@@ -291,15 +291,16 @@ for t=timeStepAll
     maxActin=actinRate*(aElon*ts*10e-6)/L; % (rate of elongation * interval * um to m)/Length of individual actin molecule
     Nnew_cur=0;
     FcNext=max(abs(Fc));
-    maxActin=20;
+    maxActin=(20*ts)/(5e-3);
     %Nnew_cur=(FcNext/(L*k_actin))*(Nall-1);
     rA=7.4*ts*60;
     Fa_l=Fa_last;
     while (max(Fc)<Fs_actin&&Nnew_cur<maxActin)
         %FcNext=max(abs(Fc))+Nnew_cur/(Nall+Nnew_cur)*L*k_actin;
         Fa0_l=(Nnew+Nnew_cur)*L*k_actin/(Nall+Nnew_cur);
-        maxActin=maxActin*(1-Fa0_l/Fs_actin);
+
         Fa_l=Fa0_l*(1-exp(-k0*boundTime/pot));
+        maxActin=maxActin*(1-Fa_l/Fs_actin);
         Nnew_cur=Nnew_cur+1;
     end
     

@@ -40,7 +40,7 @@ nc = nc10; %Number of molecular clutches
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e4; % density of actin at the leading edge #/um
+dActin = 1e5; % density of actin at the leading edge #/um
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
 kof1 = 45;%9; % from 90 previously (5/26/2022)
@@ -48,12 +48,12 @@ kof2 = 45; % from 90 previously (5/26/2022)
 dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 100;   %Density of integrin molecules, type 2 (integrins/um2).
 
-timeTotal = 31*6; % sec
-d = 1e-6; % distance from the edge in m.
-verbose = 1;
-numTrials=1;
+timeTotal = 1%31*6; % sec
+d = .5e-6; % distance from the edge in m.
+verbose = 0;
+numTrials=10;
 
-Arp_Inh=0;
+Arp_Inh=1;
 int_actin=8; 
 
 
