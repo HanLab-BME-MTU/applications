@@ -103,9 +103,10 @@ dint2i = dint2; %Density of integrin type 2 before reinforcement
 
 %aElon=1.72; %um/s rate of elongation
 %maxActin=actinRate*(aElon*ts*10e-6)/L; % (rate of elongation * interval * um to m)/Length of individual actin molecule
-%timeActin=(aElon*10e-6)^-1*L;
+%timeAct
+% in=(aElon*10e-6)^-1*L;
 %ts=timeActin;
-pot=1;
+pot=0.05e-3;
 k0=k_actin;
 vf_last=1e-5;
 
@@ -290,17 +291,18 @@ for t=timeStepAll
 
 %%start of model
     Nnew_cur=0;
-    maxActin=(20*ts)/(5e-3);
+    maxActin_0=(10*ts)/(5e-3);
+    maxActin=maxActin_0;
     %Nnew_cur=(FcNext/(L*k_actin))*(Nall-1);
-    while (max(Fc)<Fs_actin&&Nnew_cur<maxActin) %actin addition
+    while (Nnew_cur<maxActin) %actin addition
         %FcNext=max(abs(Fc))+Nnew_cur/(Nall+Nnew_cur)*L*k_actin;
         Fa0_l=(Nnew+Nnew_cur)*L*k_actin/(Nall+Nnew_cur);
-        Fa_l=Fa0_l*(1-exp(-k0*boundTime/pot));
-        maxActin=maxActin*(1-Fa_l/Fs_actin);
+        Fa_l=Fa0_l*(1-exp(-k0*(boundTime+ts)/pot));
+        maxActin=maxActin_0*(1-Fa_l/Fs_actin)^0.5;
         Nnew_cur=Nnew_cur+1;
     end
     
-    if Nnew_cur>1;Nnew_cur=Nnew_cur-1;end
+    if Nnew_cur>=1;Nnew_cur=Nnew_cur-1;end
     
             %Nnew_cur = round((prevXcMax+d-q*L*Nall)*pNnew/(q*L*Nall));
     
@@ -388,11 +390,11 @@ for t=timeStepAll
         xc_prev = xc;
         k_actinAll(p) = k_actin;
 end
-if(Nnew_cur>=maxActin)
-    disp(['Maximum Actin Reached']);
-else
-    disp(['Stall Force Reached'])
-end
+% if(Nnew_cur>=maxActin)
+%     disp(['Maximum Actin Reached']);
+% else
+%     disp(['Stall Force Reached'])
+%end
 q=1000;
 a =1700e-9; % Radius of adhesion (m) 1500e-9
 if verbose 
