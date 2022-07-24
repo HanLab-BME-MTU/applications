@@ -55,9 +55,9 @@ dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
 timeTotal = 1; % sec
 d = 1e-6; % distance from the edge in m.
 verbose = 0;
-numTrials=25;
+numTrials=1;
 
-Arp_Inh=0;
+Arp_Inh=1;
 int_actin=8; 
 
 
@@ -87,7 +87,7 @@ for kk=1:length(dActinRange)
 
 for jj=1:numTrials
     disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
-    for ii=1:numKsub
+    parfor ii=1:numKsub
         [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
             clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
             kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate);
@@ -126,8 +126,8 @@ set(gca,'XScale','log');
 xlabel('K'), ylabel('Mean traction (Pa)')
 title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 figure(ff)
-errorbar(ksub,abs(mean(v_blebbi_actinSlowdown,2))*1e9,(std(v_blebbi_actinSlowdown,0,2))/2*1e9,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin)]);
+errorbar(ksub,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e9,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin)]);
 set(gca,'XScale','log');
-xlabel('K'), ylabel('Mean flow speed (nm/s)')
+xlabel('K'), ylabel('Mean flow speed (\mum/min)')
 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 end
