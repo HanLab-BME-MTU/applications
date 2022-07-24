@@ -106,8 +106,8 @@ dint2i = dint2; %Density of integrin type 2 before reinforcement
 %timeAct
 % in=(aElon*10e-6)^-1*L;
 %ts=timeActin;
-pot=0.05e-3;
-k0=k_actin;
+pot=25;%7.5e-5;
+%k0=k_actin;
 vf_last=1e-5;
 
 timeStepAll = 0:ts:tTotal;
@@ -132,7 +132,7 @@ p = 0;
 
 
 if verbose
-    f100=figure; f100.Position=[500,0,500 1000];
+    f100=figure; f100.Position=[500,0,2000 1000];
 end
 
 for t=timeStepAll
@@ -291,15 +291,19 @@ for t=timeStepAll
 
 %%start of model
     Nnew_cur=0;
-    maxActin_0=(10*ts)/(5e-3);
+    maxActin_0=actinRate*(10*ts)/(5e-3);
     maxActin=maxActin_0;
     %Nnew_cur=(FcNext/(L*k_actin))*(Nall-1);
+
     while (Nnew_cur<maxActin) %actin addition
         %FcNext=max(abs(Fc))+Nnew_cur/(Nall+Nnew_cur)*L*k_actin;
+        k0=k_actin/(Nall+Nnew_cur);
         Fa0_l=(Nnew+Nnew_cur)*L*k_actin/(Nall+Nnew_cur);
         Fa_l=Fa0_l*(1-exp(-k0*(boundTime+ts)/pot));
-        maxActin=maxActin_0*(1-Fa_l/Fs_actin)^0.5;
+        maxActin=maxActin_0*(1-Fa_l/Fs_actin);
+        %maxActin=maxActin_0*(coth(1-Fa_l/Fs_actin)-1);
         Nnew_cur=Nnew_cur+1;
+
     end
     
     if Nnew_cur>=1;Nnew_cur=Nnew_cur-1;end
@@ -309,6 +313,7 @@ for t=timeStepAll
         Nnew = Nnew + Nnew_cur;
         Nall = Norg + Nnew;
         Nc = sum(boundbin);
+        k0=k_actin/Nall;
     %     if (Nc==0)
     %         boundbin(1)=1;
     %         Nc=1;
@@ -321,7 +326,7 @@ for t=timeStepAll
             unboundTime=0;
             Fa0=Nnew*L*k_actin/(Nall);
             Fa=Fa0*(1-exp(-k0*boundTime/pot));
-            xc(boundbin)=Fa*(kc*Nc+ksub)/(kc*Nc*ksub);
+            xc(boundbin)=Fa*(kc*Nc+ksub)/(kc*ksub);
             boundTime=boundTime+ts;
             Fa_last=Fa;
             maxBound=boundTime;
@@ -332,8 +337,6 @@ for t=timeStepAll
     %         k_actin = k_actin + (pK*Nnew*L-max(xc))*a*k_actin/(pK*Nnew*L); 
         else %Nc==0, then it slips, and by added actin springs (i.e., Nnew), the edge advances
             boundTime=0;
-            
-            Fa=Fa_last*exp(-k_actin*unboundTime/pot);
             %xc(boundbin)=Fa/(kc*Nc-(kc*Nc)^2/(kc*Nc+ksub));
             unboundTime=unboundTime+ts;
             %vf=ts*Fa/(mActin*Nall);
@@ -349,7 +352,7 @@ for t=timeStepAll
         end
     %     xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
         
-        xsub = sum(Nc*kc*xc)/(ksub+Nc*kc); %Substrate position
+        xsub = sum(kc*xc*Nc)/(ksub+Nc*kc); %Substrate position
         if verboseEach 
             if p==1 
                 ax3_1 = subplot(6,2,11); plot(t,xc,'k.'); hold on; title('x_c'); 

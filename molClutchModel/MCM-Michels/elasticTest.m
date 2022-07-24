@@ -1,9 +1,9 @@
 clear
 clc
 nm = 800; %Number of myosin motors, optimal fit 800
-fm1 = -2e-12; % Stall force of 1 motor (N)
+fm1 = -2e-8; % Stall force of 1 motor (N)
 
-kc = 5e-4; % Clutch spring constant (N/m)
+kc = 6e-5; % Clutch spring constant (N/m)
 actinRate=1;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
@@ -32,35 +32,35 @@ mnb1 = zeros(numKsub,1);
 mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
-ion = 'mg'; %'cm';
+ion = 'mg_earlyslip'; %'cm';
 nc = nc10; %Number of molecular clutches
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
-dActin = 1e5; % density of actin at the leading edge #/um
+dActin = 10e6; % density of actin at the leading edge #/um
 
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 150;%9; % from 90 previously (5/26/2022)
-kof2 = 150; % from 90 previously (5/26/2022)
+kof1 = 90;%9; % from 90 previously (5/26/2022)
+kof2 = 90; % from 90 previously (5/26/2022)
 dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
-
-timeTotal = 60;%31*6; % sec
 d = 1e-6; % distance from the edge in m.
-verbose = 0;
-numTrials=5;
 
-Arp_Inh=1;
+timeTotal = 20;%31*6; % sec
+verbose = 1;
+numTrials=1;
+
+Arp_Inh=0;
 int_actin=8; 
 
 
 
 dActinRange=[dActin];
 if Arp_Inh
-    dActinRange=[0.5*dActin,0.05*dActin];
+    dActinRange=[0.4*dActin,0.2*dActin];
     %dActinRange=flip([0:dActin/int_actin:dActin]);
 end
 v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
@@ -117,12 +117,12 @@ for jj=1:numTrials
 end
 figure(tf)
 k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
-errorbar(ksub,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin)]);
+errorbar(ksub,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc)]);
 set(gca,'XScale','log');
 xlabel('K'), ylabel('Mean traction (Pa)')
 title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 figure(ff)
-errorbar(ksub,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin)]);
+errorbar(ksub,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc)]);
 set(gca,'XScale','log');
 xlabel('K'), ylabel('Mean flow speed (\mu m/min)')
 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
