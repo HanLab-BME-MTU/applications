@@ -83,7 +83,7 @@ for kk=1:length(dActinRange)
 
 for jj=1:numTrials
     disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
-    for ii=1:numKsub
+    parfor ii=1:numKsub
         [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
             clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
             kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate);
