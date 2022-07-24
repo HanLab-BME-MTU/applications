@@ -2,17 +2,15 @@ clear
 clc
 nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-12; % Stall force of 1 motor (N)
-vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 
-kc = 100; % Clutch spring constant (N/m)
+kc = 5e-4; % Clutch spring constant (N/m)
 actinRate=1;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
-konv = 1e8; % on-rate of vinculin to unfolded talin
+konv = 1e12; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
-ion = 'b3_lateslip'; %'cm';
 ksub = 10.^(-0.1:0.1:1.9).*1e-3; %Range of substrate stiffness
 kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
@@ -36,26 +34,25 @@ mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 ion = 'mg'; %'cm';
 nc = nc10; %Number of molecular clutches
-v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
-intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e4; % density of actin at the leading edge #/um
-kof1 = 0.9;
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e6; % density of actin at the leading edge #/um
+
+dActin = 1e5; % density of actin at the leading edge #/um
+
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 45;%9; % from 90 previously (5/26/2022)
-kof2 = 45; % from 90 previously (5/26/2022)
+kof1 = 150;%9; % from 90 previously (5/26/2022)
+kof2 = 150; % from 90 previously (5/26/2022)
 dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
 
-timeTotal = 1; % sec
+timeTotal = 60;%31*6; % sec
 d = 1e-6; % distance from the edge in m.
 verbose = 0;
-numTrials=1;
+
+numTrials=5;
 
 Arp_Inh=1;
 int_actin=8; 
@@ -64,8 +61,8 @@ int_actin=8;
 
 dActinRange=[dActin];
 if Arp_Inh
-    dActinRange=[2*dActin,0.7*dActin,0];
-    %dActinRange=flip([0:2*dActin/int_actin:2*dActin]);
+    dActinRange=[0.5*dActin,0.05*dActin];
+    %dActinRange=flip([0:dActin/int_actin:dActin]);
 end
 v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
 mf_blebbi_actinSlowdown = zeros(numKsub,numTrials);
@@ -89,7 +86,7 @@ for jj=1:numTrials
     disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
     parfor ii=1:numKsub
         [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
-            clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
+            clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
             kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate);
     %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
     %        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
@@ -126,8 +123,9 @@ set(gca,'XScale','log');
 xlabel('K'), ylabel('Mean traction (Pa)')
 title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 figure(ff)
-errorbar(ksub,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e9,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin)]);
+errorbar(ksub,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin)]);
 set(gca,'XScale','log');
-xlabel('K'), ylabel('Mean flow speed (\mum/min)')
+xlabel('K'), ylabel('Mean flow speed (\mu m/min)')
+>>>>>>> bd1ff83bf9559a1b1e80a7daf3a47881155a1f30
 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 end
