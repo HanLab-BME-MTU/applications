@@ -3,11 +3,11 @@ clc
 nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-8; % Stall force of 1 motor (N)
 
-kc = 6e-5; % Clutch spring constant (N/m)
-actinRate=1;
+kc = 3.5e-4; % Clutch spring constant (N/m)
+actinRate=2;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
-konv = 1e12; % on-rate of vinculin to unfolded talin
+konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
@@ -39,7 +39,7 @@ vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
-dActin = 10e6; % density of actin at the leading edge #/um
+dActin = 0.9e4; % density of actin at the leading edge #/um
 
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
@@ -49,9 +49,9 @@ dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
 d = 1e-6; % distance from the edge in m.
 
-timeTotal = 20;%31*6; % sec
-verbose = 1;
-numTrials=1;
+timeTotal = 100;%31*6; % sec
+verbose = 0;
+numTrials=5;
 
 Arp_Inh=0;
 int_actin=8; 

@@ -106,7 +106,7 @@ dint2i = dint2; %Density of integrin type 2 before reinforcement
 %timeAct
 % in=(aElon*10e-6)^-1*L;
 %ts=timeActin;
-pot=25;%7.5e-5;
+pot=0.01e-8;
 %k0=k_actin;
 vf_last=1e-5;
 
