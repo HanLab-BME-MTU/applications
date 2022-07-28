@@ -1,7 +1,7 @@
-function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
+function [mf,mv,mnb1,mnb2,mdint1,mdint2,mfc] = ...
     clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal,d,verbose,actinRate)
+                            v_actin, dActin, tTotal,d,verbose,actinRate,pot)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -106,7 +106,7 @@ dint2i = dint2; %Density of integrin type 2 before reinforcement
 %timeAct
 % in=(aElon*10e-6)^-1*L;
 %ts=timeActin;
-pot=0.01e-8;
+%pot=0.01e-4;
 %k0=k_actin;
 vf_last=1e-5;
 
@@ -132,11 +132,10 @@ p = 0;
 
 
 if verbose
-    f100=figure; f100.Position=[500,0,2000 1000];
+    f100=figure('Name',num2str(ksub)); f100.Position=[500,0,2000 1000];
 end
 
 for t=timeStepAll
-    reachedMax=0;
     p = p + 1;
     koff1 = kof1*koffcb(Fc,ion); % koff 1 in each clutch
     koff2 = kof2*koffcb(Fc,ion); %koff 2 in each clutch
@@ -343,6 +342,7 @@ for t=timeStepAll
             %vf_last=vf;
             xc = zeros(nc,1);%+1e-12;
             vf = Nnew_cur*L/ts;
+            %vf=vf_last;
     
             %vf = (max(xc) - max(xc_prev))/ts;
     %         k_actin = dActin * k_basicActin; % actin polymer elasticity
@@ -413,7 +413,7 @@ if verbose
     subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (ms)'); ylabel('k actin (N/m)')
     drawnow
 end
-
+% figure; plot(timeStepAll,abs(FcAll));  title(['Fc | Ksub : ' num2str(ksub)]); xlabel('Time (ms)'); ylabel('FcAll')
 mf = mean(f); %Mean force on substrate
 
 %v(1)=0;
@@ -423,6 +423,7 @@ mnb1 = mean(nb1); % Mean number of bound clutches
 mnb2 = mean(nb2); % Mean number of bound clutches
 mdint1 = mean(dint1t); % Mean density, integrin 1
 mdint2 = mean(dint2t); % Mean density, integrin 2
+mfc=mean(FcAll);
 return
 
 nm = 800; %Number of myosin motors, optimal fit 800
