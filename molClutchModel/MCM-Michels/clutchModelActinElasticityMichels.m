@@ -1,7 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2,mfc] = ...
     clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal,d,verbose,actinRate,pot)
+                            v_actin, dActin, tTotal,d,verbose,actinRate,pot,slip)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -342,8 +342,9 @@ for t=timeStepAll
             %vf_last=vf;
             xc = zeros(nc,1);%+1e-12;
             vf = Nnew_cur*L/ts;
-            %vf=vf_last;
-    
+            if ~slip
+                vf=vf_last;
+            end
             %vf = (max(xc) - max(xc_prev))/ts;
     %         k_actin = dActin * k_basicActin; % actin polymer elasticity
             Nnew = 0;
@@ -411,6 +412,13 @@ if verbose
     subplot(3,4,8); plot(timeStepAll,NnewAll);  title('Nnew'); xlabel('Time (ms)'); ylabel('N')
     subplot(3,4,9); plot(timeStepAll,NallAll);  title('Nall'); xlabel('Time (ms)'); ylabel('N')
     subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (ms)'); ylabel('k actin (N/m)')
+    l=length(1e9*abs(v));
+    ff=fft(1e9*abs(v));
+    pf=abs(ff).^2;
+    p1=pf(1:floor((l+1)/2));
+    p1(1)=0;
+    fff=1/(l*ts)*(0:floor((l-1)/2));
+    subplot(3,4,11); plot(fff,p1);  title('Velocity FFT'); xlabel('Frequency (Hz)'); ylabel('Power')
     drawnow
 end
 % figure; plot(timeStepAll,abs(FcAll));  title(['Fc | Ksub : ' num2str(ksub)]); xlabel('Time (ms)'); ylabel('FcAll')
