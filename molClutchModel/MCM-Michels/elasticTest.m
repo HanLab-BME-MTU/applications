@@ -36,15 +36,15 @@ mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 mfc = zeros(numKsub,1);
-ion = 'mg_earlyslip'; %'cm';
+ion = 'mg_earlyslipmore'; %'cm';
 nc = nc10; %Number of molecular clutches
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
-dActin = 0.9e4; % density of actin at the leading edge #/um
-pot=0.04e-4;%0.0003;
+dActin = 1000*0.9e4; % density of actin at the leading edge #/um
+pot=0.04e-8;%0.0003;
 
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
@@ -64,11 +64,11 @@ numTrials=1;
 
 Arp_Inh=0;%n
 int_actin=10; 
-maxA=2;
+maxA=10;
 
 kRange=0;%n
 int_kc=10;
-maxC=2;
+maxC=100;
 
 potIt=0;%n
 int_pot=10;
@@ -133,8 +133,8 @@ for mm=1:length(actinRange)
                 
                 for jj=1:numTrials
                     disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
-                    parfor ii=1:numKsub
-                        [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i,mfci] = ...
+                    for ii=1:numKsub
+                        [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i,mfci,sffti{1}] = ...
                             clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate,pot,slip);
                     %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
@@ -147,6 +147,7 @@ for mm=1:length(actinRange)
                         mdint1(ii) = mdint1i;
                         mdint2(ii) = mdint2i;
                         mfc(ii)=mfci;
+                        sfft(ii)=sffti;
                         disp(['Trial ' int2str(jj) '::' num2str(100*ii/numKsub) '% done...'])
                     end
                 
@@ -170,6 +171,8 @@ for mm=1:length(actinRange)
                     xlabel('E (kPa)'), ylabel('Force Clutch (N)')
                     title(['Mean Force Clutch, ion: ' ion ', no intadd'])
                 end
+
+
                 figure(tf)
                 errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:));
                 set(gca,'XScale','log');

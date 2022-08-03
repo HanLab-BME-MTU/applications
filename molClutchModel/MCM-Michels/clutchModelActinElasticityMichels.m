@@ -1,4 +1,4 @@
-function [mf,mv,mnb1,mnb2,mdint1,mdint2,mfc] = ...
+function [mf,mv,mnb1,mnb2,mdint1,mdint2,mfc,sfft] = ...
     clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
                             v_actin, dActin, tTotal,d,verbose,actinRate,pot,slip)
@@ -325,7 +325,7 @@ for t=timeStepAll
             unboundTime=0;
             Fa0=Nnew*L*k_actin/(Nall);
             Fa=Fa0*(1-exp(-k0*boundTime/pot));
-            xc(boundbin)=Fa*(kc*Nc+ksub)/(kc*ksub);
+            xc(boundbin)=Fa*(kc*Nc+ksub)/(nc*kc*ksub);
             boundTime=boundTime+ts;
             Fa_last=Fa;
             maxBound=boundTime;
@@ -401,6 +401,15 @@ end
 %end
 q=1000;
 a =1700e-9; % Radius of adhesion (m) 1500e-9
+
+lf=length(1e9*abs(v));
+ff=fft(1e9*(abs(v)-mean(abs(v))));
+pf=abs(ff).^2;
+p1=pf(1:floor((lf+1)/2));
+%p1(1)=0;
+fff=1/(lf*ts)*(0:floor((lf-1)/2));
+sfft={p1,fff};
+
 if verbose 
     subplot(3,4,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
     subplot(3,4,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (ms)'); ylabel('Velocity (nm/s)')
@@ -412,12 +421,7 @@ if verbose
     subplot(3,4,8); plot(timeStepAll,NnewAll);  title('Nnew'); xlabel('Time (ms)'); ylabel('N')
     subplot(3,4,9); plot(timeStepAll,NallAll);  title('Nall'); xlabel('Time (ms)'); ylabel('N')
     subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (ms)'); ylabel('k actin (N/m)')
-    l=length(1e9*abs(v));
-    ff=fft(1e9*abs(v));
-    pf=abs(ff).^2;
-    p1=pf(1:floor((l+1)/2));
-    p1(1)=0;
-    fff=1/(l*ts)*(0:floor((l-1)/2));
+
     subplot(3,4,11); plot(fff,p1);  title('Velocity FFT'); xlabel('Frequency (Hz)'); ylabel('Power')
     drawnow
 end
