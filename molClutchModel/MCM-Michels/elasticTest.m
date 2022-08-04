@@ -59,7 +59,7 @@ k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 slip=0;
 
 timeTotal = 50; % sec
-verbose = 1;
+verbose = 0;
 numTrials=1;
 
 Arp_Inh=0;%n
@@ -184,6 +184,29 @@ for mm=1:length(actinRange)
                 xlabel('E (kPa)'), ylabel('Mean flow speed (\mu m/min)')
                 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 
+                spectrum=zeros(length(sfft{1}{1}),length(sfft));
+                for ff =[1:length(sfft)]
+                    spectrum(:,ff)=flip(sfft{ff}{2});
+
+                end
+                spec=figure;
+                numX=15;
+                numY=10;
+                image(spectrum,'CDataMapping','scaled');
+                colormap(gca, "turbo")
+                cb=colorbar(gca, "eastoutside");
+                cb.Label.String="Power";
+                ylabel("Frequency (Hz)");
+                xlabel("Trial");
+                flabels=cellfun(@(f) sprintf('%0.1f',f),num2cell(sfft{1}{1}),'UniformOutput',false);
+                elabels=cellfun(@(f) sprintf('%0.1f',f),num2cell(E),'UniformOutput',false);
+                elabels=elabels(1:floor(length(E)/numX):end);
+                flabels=flabels(1:floor(length(flabels)/numY):end);
+                set(gca,'Ytick',linspace(1,length(sfft{1}{1}),numY));
+                set(gca,'YTickLabels',flabels(end:-1:1));
+                set(gca,'XTick',linspace(1,length(E),numX));
+                set(gca,'XTickLabels',elabels(1:end));
+                
                 cmi=cmi+1;
             end
         end

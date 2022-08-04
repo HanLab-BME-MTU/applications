@@ -406,7 +406,7 @@ pf=abs(ff).^2;
 p1=pf(1:floor((lf+1)/2));
 %p1(1)=0;
 fff=1/(lf*ts)*(0:floor((lf-1)/2));
-sfft={p1,fff};
+sfft={fff,p1};
 
 if verbose 
     subplot(3,4,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
