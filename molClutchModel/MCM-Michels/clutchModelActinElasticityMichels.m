@@ -1,7 +1,7 @@
-function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
+function [mf,mv,mnb1,mnb2,mdint1,mdint2,mfc,sfft] = ...
     clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal,d,verbose,actinRate)
+                            v_actin, dActin, tTotal,d,verbose,actinRate,pot,slip)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -106,8 +106,8 @@ dint2i = dint2; %Density of integrin type 2 before reinforcement
 %timeAct
 % in=(aElon*10e-6)^-1*L;
 %ts=timeActin;
-pot=0.05e-3;
-k0=k_actin;
+%pot=0.01e-4;
+%k0=k_actin;
 vf_last=1e-5;
 
 timeStepAll = 0:ts:tTotal;
@@ -132,11 +132,10 @@ p = 0;
 
 
 if verbose
-    f100=figure; f100.Position=[500,0,500 1000];
+    f100=figure('Name',num2str(ksub)); f100.Position=[500,0,2000 1000];
 end
 
 for t=timeStepAll
-    reachedMax=0;
     p = p + 1;
     koff1 = kof1*koffcb(Fc,ion); % koff 1 in each clutch
     koff2 = kof2*koffcb(Fc,ion); %koff 2 in each clutch
@@ -291,15 +290,19 @@ for t=timeStepAll
 
 %%start of model
     Nnew_cur=0;
-    maxActin_0=(10*ts)/(5e-3);
+    maxActin_0=actinRate*(10*ts)/(5e-3);
     maxActin=maxActin_0;
     %Nnew_cur=(FcNext/(L*k_actin))*(Nall-1);
+
     while (Nnew_cur<maxActin) %actin addition
         %FcNext=max(abs(Fc))+Nnew_cur/(Nall+Nnew_cur)*L*k_actin;
+        k0=k_actin/(Nall+Nnew_cur);
         Fa0_l=(Nnew+Nnew_cur)*L*k_actin/(Nall+Nnew_cur);
         Fa_l=Fa0_l*(1-exp(-k0*(boundTime+ts)/pot));
-        maxActin=maxActin_0*(1-Fa_l/Fs_actin)^0.5;
+        maxActin=maxActin_0*(1-Fa_l/Fs_actin);
+        %maxActin=maxActin_0*(coth(1-Fa_l/Fs_actin)-1);
         Nnew_cur=Nnew_cur+1;
+
     end
     
     if Nnew_cur>=1;Nnew_cur=Nnew_cur-1;end
@@ -309,6 +312,7 @@ for t=timeStepAll
         Nnew = Nnew + Nnew_cur;
         Nall = Norg + Nnew;
         Nc = sum(boundbin);
+        k0=k_actin/Nall;
     %     if (Nc==0)
     %         boundbin(1)=1;
     %         Nc=1;
@@ -321,7 +325,7 @@ for t=timeStepAll
             unboundTime=0;
             Fa0=Nnew*L*k_actin/(Nall);
             Fa=Fa0*(1-exp(-k0*boundTime/pot));
-            xc(boundbin)=Fa*(kc*Nc+ksub)/(kc*Nc*ksub);
+            xc(boundbin)=Fa*(kc*Nc+ksub)/(nc*kc*ksub);
             boundTime=boundTime+ts;
             Fa_last=Fa;
             maxBound=boundTime;
@@ -332,15 +336,15 @@ for t=timeStepAll
     %         k_actin = k_actin + (pK*Nnew*L-max(xc))*a*k_actin/(pK*Nnew*L); 
         else %Nc==0, then it slips, and by added actin springs (i.e., Nnew), the edge advances
             boundTime=0;
-            
-            Fa=Fa_last*exp(-k_actin*unboundTime/pot);
             %xc(boundbin)=Fa/(kc*Nc-(kc*Nc)^2/(kc*Nc+ksub));
             unboundTime=unboundTime+ts;
             %vf=ts*Fa/(mActin*Nall);
             %vf_last=vf;
             xc = zeros(nc,1);%+1e-12;
             vf = Nnew_cur*L/ts;
-    
+            if ~slip
+                vf=vf_last;
+            end
             %vf = (max(xc) - max(xc_prev))/ts;
     %         k_actin = dActin * k_basicActin; % actin polymer elasticity
             Nnew = 0;
@@ -348,10 +352,10 @@ for t=timeStepAll
             %Nall=Nnew+Nnew_cur;
         end
         xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
-        
+
 %         xsub = sum(Nc*kc*xc)/(ksub+Nc*kc); %Substrate position
 %         xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
-        if verboseEach 
+
             if p==1 
                 ax3_1 = subplot(6,2,11); plot(t,xc,'k.'); hold on; title('x_c'); 
                 ax3_2 = subplot(6,2,12); plot(t,xsub,'b.'); hold on; title('x_{sub}');
@@ -395,6 +399,15 @@ end
 %end
 q=1000;
 a =1700e-9; % Radius of adhesion (m) 1500e-9
+
+lf=length(1e9*abs(v));
+ff=fft(1e9*(abs(v)-mean(abs(v))));
+pf=abs(ff).^2;
+p1=pf(1:floor((lf+1)/2));
+%p1(1)=0;
+fff=1/(lf*ts)*(0:floor((lf-1)/2));
+sfft={p1,fff};
+
 if verbose 
     subplot(3,4,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
     subplot(3,4,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (ms)'); ylabel('Velocity (nm/s)')
@@ -406,9 +419,11 @@ if verbose
     subplot(3,4,8); plot(timeStepAll,NnewAll);  title('Nnew'); xlabel('Time (ms)'); ylabel('N')
     subplot(3,4,9); plot(timeStepAll,NallAll);  title('Nall'); xlabel('Time (ms)'); ylabel('N')
     subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (ms)'); ylabel('k actin (N/m)')
+
+    subplot(3,4,11); plot(fff,p1);  title('Velocity FFT'); xlabel('Frequency (Hz)'); ylabel('Power')
     drawnow
 end
-
+% figure; plot(timeStepAll,abs(FcAll));  title(['Fc | Ksub : ' num2str(ksub)]); xlabel('Time (ms)'); ylabel('FcAll')
 mf = mean(f); %Mean force on substrate
 
 %v(1)=0;
@@ -418,6 +433,7 @@ mnb1 = mean(nb1); % Mean number of bound clutches
 mnb2 = mean(nb2); % Mean number of bound clutches
 mdint1 = mean(dint1t); % Mean density, integrin 1
 mdint2 = mean(dint2t); % Mean density, integrin 2
+mfc=mean(FcAll);
 return
 
 nm = 800; %Number of myosin motors, optimal fit 800
