@@ -202,6 +202,59 @@ v_ck666 = mv;
 mf_ck666 = mf;
 mdint1_ck666 = mdint1;
 
+%% testing actin-elasticity-based model
+% close all
+nc = nc10; %Number of molecular clutches
+nm=5; vu = 0;
+v_actin = -6e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded actin poly velocity (m/s)
+intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 9e5; % density of actin at the leading edge #/um
+kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kont2 = 0; % True on-rate (um2/s), 2nd integrin type
+kof1 = 1; % from 90 previously (5/26/2022)
+kof2 = 1; % from 90 previously (5/26/2022)
+dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
+ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+timeTotal = 50; % milisec
+d = 1e-6 ; % distance from the edge in m.
+verbose = 1;
+tTotal=10;
+for ii=1:numKsub
+    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+        clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
+        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose);
+    mf(ii) = mfi;
+    mv(ii) = mvi;
+    mnb1(ii) = mnb1i;
+    mnb2(ii) = mnb2i;
+    mdint1(ii) = mdint1i;
+    mdint2(ii) = mdint2i;
+    disp([num2str(100*ii/numKsub) '% done...'])
+end
+
+v_blebbi_actinSlowdown = mv;
+mf_blebbi_actinSlowdown = mf;
+mdint1_blebbi_actinSlowdown = mdint1;
+
+P_blebbi_actinSlowdown = mf_blebbi_actinSlowdown/(pi*a^2);
+
+figure, 
+semilogx(ksub, abs(Pctrl10),'ko-'); hold on
+semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean traction (Pa)')
+title('Traction WT vs BBS')
+legend('WT','BBS','location','best')
+% title(['Blebbi, ion: ' ion ', no intadd'])
+% savefig('blebbi_actinElas_Traction.fig')
+figure, 
+semilogx(ksub, abs(vctrl10)*1e6*60,'ko-'); hold on
+semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e6*60,'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean flow speed (\mum/min)')
+title('Flow speed WT vs BBS')
+legend('WT','BBS','location','best')
+
+
 %% Arp2/3 inhibition: with more unclutches
 ion = 'mg_earlyslip'; %'cm';
 kof1 = 30; % from 30

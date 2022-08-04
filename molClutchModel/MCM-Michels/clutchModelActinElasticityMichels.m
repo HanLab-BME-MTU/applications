@@ -347,9 +347,10 @@ for t=timeStepAll
             %Nall=Norg;
             %Nall=Nnew+Nnew_cur;
         end
-    %     xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
+        xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
         
-        xsub = sum(Nc*kc*xc)/(ksub+Nc*kc); %Substrate position
+%         xsub = sum(Nc*kc*xc)/(ksub+Nc*kc); %Substrate position
+%         xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
         if verboseEach 
             if p==1 
                 ax3_1 = subplot(6,2,11); plot(t,xc,'k.'); hold on; title('x_c'); 
@@ -359,15 +360,12 @@ for t=timeStepAll
                 plot(ax3_2, t,xsub,'b.');
             end
         end
-        %xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
         %position need to be compared with the expression result above
         
-    %     xc(bound == 0) = xsub;
+        xc(bound == 0) = xsub;
         f(p) = xsub*ksub;  % Force on substrate
         v(p) = vf;          % Actin rearward speed
         Fc = kc.*(xc - xsub); % Force in each clutch
-
-
         
         nb1(p) = sum(bound == 1); % Number of bound clutches (integrin 1)
         nb2(p) = sum(bound == 2); % Number of bound clutches (integrin 2)

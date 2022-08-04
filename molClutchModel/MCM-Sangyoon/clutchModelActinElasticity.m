@@ -72,19 +72,26 @@ T = 278; %K
 % deltaActin = 2.7e-9; % m
 c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for sphere, maybe 1 for a flat edge. 
 C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: This is assumption for now 
-R = 1e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
-Fs_actin = C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addition
+R = 10e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
+Fs_actin = 5e-11; %C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addition
 L = 2e-9; % m, the length of each actin monomer spring segment. 
 Norg = d/L; % The number of actin springs in-between the membrane and adhesion
 Nnew = 0; % Newly-added actin springs at the membrane in front of the adhesion
 Nall = Norg + Nnew; % all new actin
+NnMax = 1; % max N_curnew
 
 k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 k_actin = dActin * k_basicActin; % actin polymer elasticity
 a = 0.0001; %Adaptation factor for k_actin
 pK = 0.6; %Max contraction limit: There should be an ultimate strain per spring.
-pNnew = 2; %proportion of distance difference for space for new actin addition.
+pNnew = 1; %proportion of distance difference for space for new actin addition.
 q = 0.1; % Max conpression limit of the spring
+
+pot=0.05e-3;% From Etienne's model
+k0=k_actin; % From Etienne's model
+boundTime=0;
+unboundTime=0;
+Fa_last=0;
 
 
 ts = 5e-3; % Time step used for calculation
@@ -115,7 +122,7 @@ k_actinAll = zeros(1,nTimeSteps);
 %% Simulation through time
 p = 0;
 if verbose
-    f100=figure; f100.Position(3:4)=[500 1000];
+    f100=figure; f100.Position(3:4)=[900 600];
 end
 
 for t=timeStepAll
@@ -253,23 +260,42 @@ for t=timeStepAll
 
 %     xc = xc + vf.*ts.*boundbin; %Position of each clutch
     % Determining xc based on force balance. 
-%     FcMax = max(abs(Fc)); % Total tension within F_actin (same as force in adhesion)
+    % Space-based Nnew_cur addition (instead force-based, which didn't produce
+    % stiffness-dependence)
+    
+    FcMax = max(abs(Fc)); % Total tension within F_actin (same as force in adhesion)
 %     if FcMax >= abs(Fs_actin) %this case, actin monomer can be added
 %         Nnew_cur=0;
 %     elseif FcMax >= 4/5*abs(Fs_actin)
-%         Nnew_cur=1;
+%         Nnew_cur=0.1;
 %     elseif FcMax >= 3/5*abs(Fs_actin)
-%         Nnew_cur=2;
+%         Nnew_cur=0.2;
 %     elseif FcMax >= 2/5*abs(Fs_actin)
-%         Nnew_cur=3;
+%         Nnew_cur=0.3;
 %     elseif FcMax >= 1/5*abs(Fs_actin)
-%         Nnew_cur=4;
+%         Nnew_cur=0.4;
 %     else
-%         Nnew_cur=5;
+%         Nnew_cur=0.5;
 %     end
-    % Space-based Nnew_cur addition (instead force-based, which didn't produce
-    % stiffness-dependence)
-    Nnew_cur = round((prevXcMax+d-q*L*Nall)*pNnew/(q*L*Nall));
+
+    Nnew_cur = NnMax - NnMax/Fs_actin*FcMax;
+%     Nnew_cur = ((prevXcMax+d-q*L*Nall)*pNnew/(q*L*Nall));
+    while Nnew_cur<0
+        Nnew_cur = Nnew_cur+0.1;
+    end
+%     Nnew_cur=0;
+%     maxActin_0=(10*ts)/(5e-3);
+%     maxActin=maxActin_0;
+%     %Nnew_cur=(FcNext/(L*k_actin))*(Nall-1);
+%     while (Nnew_cur<maxActin) %actin addition
+%         %FcNext=max(abs(Fc))+Nnew_cur/(Nall+Nnew_cur)*L*k_actin;
+%         Fa0_l=(Nnew+Nnew_cur)*L*k_actin/(Nall+Nnew_cur);
+%         Fa_l=Fa0_l*(1-exp(-k0*(boundTime+ts)/pot));
+%         maxActin=maxActin_0*(1-Fa_l/Fs_actin)^0.5;
+%         Nnew_cur=Nnew_cur+1;
+%     end
+%     
+%     if Nnew_cur>=1;Nnew_cur=Nnew_cur-1;end
 
     Nnew = Nnew + Nnew_cur;
     Nall = Norg + Nnew;
@@ -300,7 +326,7 @@ for t=timeStepAll
     %xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
     %position need to be compared with the expression result above
     
-%     xc(bound == 0) = xsub;
+    xc(bound == 0) = xsub;
     f(p) = xsub*ksub;  % Force on substrate
     v(p) = vf;          % Actin rearward speed
     nb1(p) = sum(bound == 1); % Number of bound clutches (integrin 1)
@@ -314,7 +340,7 @@ for t=timeStepAll
         dint2t(p) = dint2;
     end
     Fc = kc.*(xc - xsub); % Force in each clutch
-    FcAll(p) = max(Fc); % Force at clutch
+    FcAll(p) = max(abs(Fc)); % Force at clutch
     prevXcMax = max(xc);
     xcAll(p) = max(xc); % xc at clutch
     xcSumAll(p) = sum(xc); % xc at clutch
