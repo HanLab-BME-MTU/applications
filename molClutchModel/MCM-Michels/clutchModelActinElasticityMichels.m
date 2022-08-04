@@ -355,7 +355,7 @@ for t=timeStepAll
 
 %         xsub = sum(Nc*kc*xc)/(ksub+Nc*kc); %Substrate position
 %         xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
-
+        if verboseEach
             if p==1 
                 ax3_1 = subplot(6,2,11); plot(t,xc,'k.'); hold on; title('x_c'); 
                 ax3_2 = subplot(6,2,12); plot(t,xsub,'b.'); hold on; title('x_{sub}');
