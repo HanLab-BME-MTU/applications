@@ -74,7 +74,9 @@ c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for 
 C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: This is assumption for now 
 R = 1e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
 Fs_actin = C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addition
-L = 2e-9; % m, the length of each actin monomer spring segment. 
+
+L = 2e-12; % m, the length of each actin monomer spring segment. 
+
 Norg = d/L; % The number of actin springs in-between the membrane and adhesion
 Nnew = 0; % Newly-added actin springs at the membrane in front of the adhesion
 Nall = Norg + Nnew; % all new actin
@@ -299,7 +301,7 @@ for t=timeStepAll
         k0=k_actin/(Nall+Nnew_cur);
         Fa0_l=(Nnew+Nnew_cur)*L*k_actin/(Nall+Nnew_cur);
         Fa_l=Fa0_l*(1-exp(-k0*(boundTime+ts)/pot));
-        maxActin=maxActin_0*(1-Fa_l/Fs_actin);
+        maxActin=maxActin_0*(1-exp(-100*(1-Fa_l/Fs_actin)));
         %maxActin=maxActin_0*(coth(1-Fa_l/Fs_actin)-1);
         Nnew_cur=Nnew_cur+1;
 
@@ -351,10 +353,11 @@ for t=timeStepAll
             %Nall=Norg;
             %Nall=Nnew+Nnew_cur;
         end
-        xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
+        %xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
 
 %         xsub = sum(Nc*kc*xc)/(ksub+Nc*kc); %Substrate position
 %         xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
+          xsub=(nc*kc*xc)/(ksub+nc*kc);
         if verboseEach
             if p==1 
                 ax3_1 = subplot(6,2,11); plot(t,xc,'k.'); hold on; title('x_c'); 
@@ -366,8 +369,8 @@ for t=timeStepAll
         end
         %position need to be compared with the expression result above
         
-        xc(bound == 0) = xsub;
-        f(p) = xsub*ksub;  % Force on substrate
+        %xc(bound == 0) = xsub;
+        f(p) = max(xsub*ksub);  % Force on substrate
         v(p) = vf;          % Actin rearward speed
         Fc = kc.*(xc - xsub); % Force in each clutch
         
@@ -409,21 +412,29 @@ fff=1/(lf*ts)*(0:floor((lf-1)/2));
 sfft={fff,p1};
 
 if verbose 
-    subplot(3,4,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
-    subplot(3,4,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (ms)'); ylabel('Velocity (nm/s)')
-    subplot(3,4,3); plot(timeStepAll,nb1);  title('Bound integrin'); xlabel('Time (ms)'); ylabel('Number (1)')
-    subplot(3,4,4); plot(timeStepAll,abs(FcAll));  title('FcAll'); xlabel('Time (ms)'); ylabel('FcAll')
-    subplot(3,4,5); plot(timeStepAll,xcAll);  title('xcAll'); xlabel('Time (ms)'); ylabel('xcAll')
-    subplot(3,4,6); plot(timeStepAll,xcSumAll);  title('xcSumAll'); xlabel('Time (ms)'); ylabel('xcSumAll')
-    subplot(3,4,7); plot(timeStepAll,Nnew_curAll);  title('Nnew_{cur}'); xlabel('Time (ms)'); ylabel('N')
-    subplot(3,4,8); plot(timeStepAll,NnewAll);  title('Nnew'); xlabel('Time (ms)'); ylabel('N')
-    subplot(3,4,9); plot(timeStepAll,NallAll);  title('Nall'); xlabel('Time (ms)'); ylabel('N')
-    subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (ms)'); ylabel('k actin (N/m)')
+    subplot(3,4,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (sec)'); ylabel('Traction (Pa)')
+    subplot(3,4,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (sec)'); ylabel('Velocity (nm/s)')
+    subplot(3,4,3); plot(timeStepAll,nb1);  title('Bound integrin'); xlabel('Time (sec)'); ylabel('Number (1)')
+    subplot(3,4,4); plot(timeStepAll,abs(FcAll));  title('FcAll'); xlabel('Time (sec)'); ylabel('FcAll')
+    subplot(3,4,5); plot(timeStepAll,xcAll);  title('xcAll'); xlabel('Time (sec)'); ylabel('xcAll')
+    subplot(3,4,6); plot(timeStepAll,xcSumAll);  title('xcSumAll'); xlabel('Time (sec)'); ylabel('xcSumAll')
+    subplot(3,4,7); plot(timeStepAll,Nnew_curAll);  title('Nnew_{cur}'); xlabel('Time (sec)'); ylabel('N')
+    subplot(3,4,8); plot(timeStepAll,NnewAll);  title('Nnew'); xlabel('Time (sec)'); ylabel('N')
+    subplot(3,4,9); plot(timeStepAll,NallAll);  title('Nall'); xlabel('Time (sec)'); ylabel('N')
+    subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (sec)'); ylabel('k actin (N/m)')
 
     subplot(3,4,11); plot(fff,p1);  title('Velocity FFT'); xlabel('Frequency (Hz)'); ylabel('Power')
     drawnow
+    eImg={dir('*.tif').name};
+    eImg=cellfun(@(f) str2double(f(1:end-4)),eImg,'UniformOutput',false);
+    if (isempty(eImg))
+        nameImg=0;
+    else
+        nameImg=max([eImg{:}])+1;
+    end
+    saveas(f100,[num2str(nameImg) '.tif'])
 end
-% figure; plot(timeStepAll,abs(FcAll));  title(['Fc | Ksub : ' num2str(ksub)]); xlabel('Time (ms)'); ylabel('FcAll')
+% figure; plot(timeStepAll,abs(FcAll));  title(['Fc | Ksub : ' num2str(ksub)]); xlabel('Time (sec)'); ylabel('FcAll')
 mf = mean(f); %Mean force on substrate
 
 %v(1)=0;
