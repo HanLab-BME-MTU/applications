@@ -15,7 +15,7 @@ konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
-ksub = 10.^(-0.1:0.2:1.9).*1e-3; %Range of substrate stiffness
+ksub = 10.^(-0.1:0.2:1.5).*1e-3; %Range of substrate stiffness
 kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
 kof2 = 1.5;
@@ -192,7 +192,8 @@ for mm=1:length(actinRange)
                 %         %savefig('blebbi_actinElas_Flow.fig')
                     end
                     figure(cc)
-                    semilogx(E*10^-3,abs(mfc),'Marker','o','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:))
+                    %semilogx(E*10^-3,abs(mfc),'Marker','o','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:))
+                    plot(E*10^-3,abs(mfc),'Marker','o','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:))
                     xlabel('E (kPa)'), ylabel('Force Clutch (N)')
                     title(['Mean Force Clutch, ion: ' ion ', no intadd'])
                 end
@@ -200,12 +201,12 @@ for mm=1:length(actinRange)
 
                 figure(tf)
                 errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:));
-                set(gca,'XScale','log');
+                %set(gca,'XScale','log');
                 xlabel('E (kPa)'), ylabel('Mean traction (Pa)')
                 title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
                 figure(ff)
                 errorbar(E*10^-3,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:));
-                set(gca,'XScale','log');
+                %set(gca,'XScale','log');
                 xlabel('E (kPa)'), ylabel('Mean flow speed (\mu m/min)')
                 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 
