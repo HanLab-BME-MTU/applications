@@ -1,7 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2,mfc,sfft] = ...
     clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal,d,verbose,actinRate,pot,slip)
+                            v_actin, dActin, tTotal,d,verbose,actinRate,pot,slip,L)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -75,7 +75,7 @@ C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: Thi
 R = 1e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
 Fs_actin = C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addition
 
-L = .3e-12; % m, the length of each actin monomer spring segment. 
+
 
 Norg = d/L; % The number of actin springs in-between the membrane and adhesion
 Nnew = 0; % Newly-added actin springs at the membrane in front of the adhesion
