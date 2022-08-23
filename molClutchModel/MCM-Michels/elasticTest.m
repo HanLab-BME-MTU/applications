@@ -1,9 +1,13 @@
 clear
 clc
+
+figures=[];
+figNames=[];
+
 nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-8; % Stall force of 1 motor (N)
 
-kc = 20*15e-5; % Clutch spring constant (N/m)
+kc = 15e-5; % Clutch spring constant (N/m)
 actinRate=2;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
@@ -11,7 +15,7 @@ konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
-ksub = 10.^(-0.1:0.05:1.9).*1e-3; %Range of substrate stiffness
+ksub = 10.^(-0.1:0.2:1.9).*1e-3; %Range of substrate stiffness
 kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
 kof2 = 1.5;
@@ -43,42 +47,52 @@ vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
-dActin = 500*100*0.7e3*1000*0.9e4; % density of actin at the leading edge #/um
+dActin = 100*0.7e3*1000*0.9e4; % density of actin at the leading edge #/um
 pot=0.04e-8;%0.0003;    
 
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 0.7*250;%200;%9; % from 90 previously (5/26/2022)
-kof2 = 0.7*250;%200; % from 90 previously (5/26/2022)
+kof1 = 250;%250;%200;%9; % from 90 previously (5/26/2022)
+kof2 = 250;%250;%200; % from 90 previously (5/26/2022)
 dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
 d = 1e-6; % distance from the edge in m.
 k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 
 
-slip=0;
+
+%% TRIAL SETTINGS 
+
+slip=0; %if zero uses previous time steps velocity when clutch slips, prevents jumping velocity
+L = .3e-12; % m, the length of each actin monomer spring segment. 
 
 timeTotal = 50; % sec
-verbose = 0;
-saveVerbose=0;
-showFreq=1;
-numTrials=5;
+verbose = 0; % time based figures for each trial, if enabled will open and save 
+showFreq=1; % if 1, will open frequency plots
+numTrials=5; % number of trials to average for figures
 
-Arp_Inh=1;
-int_actin=5; 
-maxA=10;
+%% Iterate dActin
+dActinIt=1; % if 1 will iterate over the specified parameter
+int_actin=5; % number of steps to iterate for 
+maxA=10; % multiplier for value 
 
-kRange=0;
+%% Iterate k Clutch
+kcIt=0;
 int_kc=10;
 maxC=1;
 
+%% Iterate pot clutch
 potIt=0;
 int_pot=5;
 maxP=10e11;
 
+%% Iterate max Actin per time step
 mIt=0;
 int_m=1;
 maxM=10;
+
+
+
 
 actinRange=[actinRate];
 if mIt
@@ -87,12 +101,12 @@ end
 
 
 kcRange=[kc];
-if kRange
+if kcIt
     kcRange=flip([0:maxC*kc/int_kc:maxC*kc]);
 end
 
 dActinRange=[dActin];
-if Arp_Inh
+if dActinIt
     %dActinRange=[0.4*dActin,0.2*dActin];
     dActinRange=flip([0:maxA*dActin/int_actin:maxA*dActin]);
 end
@@ -110,12 +124,18 @@ P_blebbi_actinSlowdown = zeros(numKsub,numTrials);
 %set(0, 'DefaultFigureWindowStyle', 'docked');
 
 tf=figure;
+figures=[figures(:);tf];
+figNames=[figNames(:);"Mean_Traction"];
 hold on
 legend('Location','bestoutside')
 ff=figure;
+figures=[figures(:);ff];
+figNames=[figNames(:);"Mean_Flow_Speed"];
 hold on
 legend('Location','bestoutside')
 cc=figure;
+figures=[figures(:);cc];
+figNames=[figNames(:);"Mean_Clutch_Force"];
 hold on
 legend('Location','bestoutside')
 
@@ -140,7 +160,7 @@ for mm=1:length(actinRange)
                     for ii=1:numKsub
                         [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i,mfci,sffti{1}] = ...
                             clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
-                            kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate,pot,slip);
+                            kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate,pot,slip,L);
                     %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
                     %        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
                     %        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
@@ -200,7 +220,7 @@ for mm=1:length(actinRange)
                         end
                         sfft{tt,2}=mean(powers);
                     end
-                    numfreq=100;
+                    numfreq=50;
                     spectrum=zeros(numfreq,length(sfft));
     
                     for tt =[1:length(sfft)]
@@ -208,6 +228,8 @@ for mm=1:length(actinRange)
                     end
                     % 2d histogram/density plot
                     spec=figure;
+                    figures=[figures(:);spec];
+                    figNames=[figNames(:);string(['Freq_Spectrum_' num2str(dActinRange(kk)*k_basicActin) '_' num2str(kc)  '_' num2str(pot)])];
                     numX=15;
                     numY=numfreq;
                     image(spectrum,'CDataMapping','scaled');
@@ -226,10 +248,11 @@ for mm=1:length(actinRange)
                     set(spec.CurrentAxes,'XTickLabels',elabels(1:end));
                     
                     ap=figure;
+                    figures=[figures(:);ap];
+                    figNames=[figNames(:);string(['Freq_Area_' num2str(dActinRange(kk)*k_basicActin) '_' num2str(kc)  '_' num2str(pot)])];
                     hold on;
                     cmap=turbo(length(E));
                     for aa=[1:length(E)]
-                        
                         area(sfft{aa,1}(1:numfreq),normalize(sfft{aa,2}(1:numfreq)),'FaceColor',cmap(aa,:),'FaceAlpha',.5,'DisplayName',[num2str(E(aa))])
                     end
                     xlabel('Frequency (Hz)');
@@ -244,3 +267,12 @@ for mm=1:length(actinRange)
         end
     end
 end
+folderName=replace(char(datetime(now,'ConvertFrom','datenum')),[" ";":"],'-');
+mkdir(folderName);
+cd(folderName);
+for fig = [1:length(figures)]
+    exportgraphics(figures(fig),[char(figNames(fig)) '.jpg'])
+end
+save('workspace.mat')
+cd ..
+
