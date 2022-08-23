@@ -3,7 +3,7 @@ clc
 nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-8; % Stall force of 1 motor (N)
 
-kc = 15e-5; % Clutch spring constant (N/m)
+kc = 20*15e-5; % Clutch spring constant (N/m)
 actinRate=2;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
@@ -36,20 +36,20 @@ mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 mfc = zeros(numKsub,1);
-ion = 'mg_earlyslipmore'; %'cm';
+ion = 'mg_earlyslip'; %'cm';
 nc = nc10; %Number of molecular clutches
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
-dActin = 1000*0.9e4; % density of actin at the leading edge #/um
-pot=0.04e-8;%0.0003;
+dActin = 500*100*0.7e3*1000*0.9e4; % density of actin at the leading edge #/um
+pot=0.04e-8;%0.0003;    
 
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 90;%9; % from 90 previously (5/26/2022)
-kof2 = 90; % from 90 previously (5/26/2022)
+kof1 = 0.7*250;%200;%9; % from 90 previously (5/26/2022)
+kof2 = 0.7*250;%200; % from 90 previously (5/26/2022)
 dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
 d = 1e-6; % distance from the edge in m.
@@ -59,23 +59,25 @@ k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 slip=0;
 
 timeTotal = 50; % sec
-verbose = 1;
-numTrials=1;
+verbose = 0;
+saveVerbose=0;
+showFreq=1;
+numTrials=5;
 
-Arp_Inh=0;%n
-int_actin=10; 
+Arp_Inh=1;
+int_actin=5; 
 maxA=10;
 
-kRange=0;%n
+kRange=0;
 int_kc=10;
-maxC=100;
+maxC=1;
 
-potIt=0;%n
-int_pot=10;
-maxP=2;
+potIt=0;
+int_pot=5;
+maxP=10e11;
 
 mIt=0;
-int_m=10;
+int_m=1;
 maxM=10;
 
 actinRange=[actinRate];
@@ -104,6 +106,8 @@ v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
 mf_blebbi_actinSlowdown = zeros(numKsub,numTrials);
 mdint1_blebbi_actinSlowdown = zeros(numKsub,numTrials);
 P_blebbi_actinSlowdown = zeros(numKsub,numTrials);
+
+%set(0, 'DefaultFigureWindowStyle', 'docked');
 
 tf=figure;
 hold on
@@ -147,14 +151,15 @@ for mm=1:length(actinRange)
                         mdint1(ii) = mdint1i;
                         mdint2(ii) = mdint2i;
                         mfc(ii)=mfci;
-                        sfft(ii)=sffti;
+                        sfftt(ii)=sffti;
                         disp(['Trial ' int2str(jj) '::' num2str(100*ii/numKsub) '% done...'])
                     end
                 
                     v_blebbi_actinSlowdown(:,jj) = mv;
                     mf_blebbi_actinSlowdown(:,jj) = mf;
                     mdint1_blebbi_actinSlowdown(:,jj) = mdint1;
-                
+                    sffta(:,jj)=sfftt;
+
                     P_blebbi_actinSlowdown(:,jj) = mf_blebbi_actinSlowdown(:,jj)/(pi*a^2);
                     if verbose
                 %         figure, semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-')
@@ -184,6 +189,56 @@ for mm=1:length(actinRange)
                 xlabel('E (kPa)'), ylabel('Mean flow speed (\mu m/min)')
                 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 
+                drawnow
+                if (showFreq)
+                    sfft=cell(length(sffta),2);
+                    sfft(1:length(sffta))=(sffta{1,1}(1));
+                    for tt=[1:length(sfft)]
+                        powers=zeros(numTrials,length(sffta{1,1}{2}));
+                        for ttt=[1:numTrials]
+                            powers(ttt,:)=sffta{tt,ttt}{2}(1:end);
+                        end
+                        sfft{tt,2}=mean(powers);
+                    end
+                    numfreq=100;
+                    spectrum=zeros(numfreq,length(sfft));
+    
+                    for tt =[1:length(sfft)]
+                        spectrum(:,tt)=normalize(flip(sfft{tt,2}(1:numfreq)));
+                    end
+                    % 2d histogram/density plot
+                    spec=figure;
+                    numX=15;
+                    numY=numfreq;
+                    image(spectrum,'CDataMapping','scaled');
+                    colormap(spec, "turbo")
+                    cb=colorbar(spec.CurrentAxes,"eastoutside");
+                    cb.Label.String="Power";
+                    ylabel("Frequency (Hz)");
+                    xlabel("E (kPa)");
+                    flabels=cellfun(@(f) sprintf('%f',f),num2cell(sfft{1,1}(1:numfreq)),'UniformOutput',false);
+                    elabels=cellfun(@(f) sprintf('%0.1f',f),num2cell(E),'UniformOutput',false);
+                    elabels=elabels(1:floor(length(E)/numX):end);
+                    flabels=flabels(1:floor(length(flabels)/numY):end);
+                    set(spec.CurrentAxes,'Ytick',linspace(0,numfreq,numY));
+                    set(spec.CurrentAxes,'YTickLabels',flabels(end:-1:1));
+                    set(spec.CurrentAxes,'XTick',linspace(0,length(E),numX));
+                    set(spec.CurrentAxes,'XTickLabels',elabels(1:end));
+                    
+                    ap=figure;
+                    hold on;
+                    cmap=turbo(length(E));
+                    for aa=[1:length(E)]
+                        
+                        area(sfft{aa,1}(1:numfreq),normalize(sfft{aa,2}(1:numfreq)),'FaceColor',cmap(aa,:),'FaceAlpha',.5,'DisplayName',[num2str(E(aa))])
+                    end
+                    xlabel('Frequency (Hz)');
+                    ylabel('Normalised Power');
+                    apl=legend;
+                    title(apl,['E (kPa)']);
+                    hold off;
+                    drawnow;
+                end
                 cmi=cmi+1;
             end
         end
