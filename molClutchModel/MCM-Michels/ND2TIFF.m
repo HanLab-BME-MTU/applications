@@ -9,28 +9,28 @@ ip.parse(varargin{:});
 ret = bfopen(ip.Results.inputPath);
 raw=ret{1,1}(:,1);
 meta=ret{1,4};
-conPlane=[];
 nz=meta.getPixelsSizeZ(0).getValue();
 nc=meta.getChannelCount(0);
-if(ip.Results.zStack==true)
+if nz>1 %(ip.Results.zStack==true)
     channels=reshape(raw,[],nc)';
     [r,c] = size(channels);
+    conPlane=cell(1,c);
     
-    for i=1:r
-        inCol=channels(1,:);
+    for i=1:r %per channel
+        inCol=channels(i,:);
         stackCol=reshape(inCol,nz,[]);
-        [n,m]=size(stackCol);
-        meanCol=[];
-        for j=1:m
-            temp=uint16(zeros(512,512));
+        [w, h] = size(stackCol{1,1});
+        [n,m]=size(stackCol); % n is the number of layers per stack.
+        meanCol=cell(1,m);
+        for j=1:m % per frame
+            temp = zeros(w,h,n);
             for k=1:n
-                temp=temp+reshape(cell2mat(stackCol(k,j)),512,512);
-                %pause(0.01);
+                temp(:,:,n)=cell2mat(stackCol(k,j));
             end
-            temp={temp./nz};
-            meanCol=[meanCol;temp];
+            meanCol{j}=mean(temp,3);
         end
-        conPlane=cat(1,conPlane,meanCol);
+
+        conPlane(1+(i-1)*m:i*m)=meanCol; %cat(1,conPlane,
     end
     toInt = @(x) javaObject('ome.xml.model.primitives.PositiveInteger', ...
                         javaObject('java.lang.Integer', x));
