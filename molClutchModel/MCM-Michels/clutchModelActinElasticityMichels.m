@@ -356,8 +356,8 @@ for t=timeStepAll
         %xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
 
 %         xsub = sum(Nc*kc*xc)/(ksub+Nc*kc); %Substrate position
-%         xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
-          xsub=(nc*kc*xc)/(ksub+nc*kc);
+        xsub = kc.*sum(xc.*boundbin)./(ksub+sum(boundbin).*kc); %Substrate
+%           xsub=(nc*kc*xc)/(ksub+nc*kc);
         if verboseEach
             if p==1 
                 ax3_1 = subplot(6,2,11); plot(t,xc,'k.'); hold on; title('x_c'); 

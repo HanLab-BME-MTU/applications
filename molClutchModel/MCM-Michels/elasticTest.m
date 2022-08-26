@@ -1,4 +1,5 @@
 clear
+close all
 clc
 
 figures=[];
@@ -40,36 +41,36 @@ mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 mfc = zeros(numKsub,1);
-ion = 'mg_earlyslip'; %'cm';
+ion = 'mg'; %'mg_earlyslip'; %'cm';
 nc = nc10; %Number of molecular clutches
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
-dActin = 100*0.7e3*1000*0.9e4; % density of actin at the leading edge #/um
+dActin = 10*0.7e3*1000*0.9e4; % density of actin at the leading edge #/um
 pot=0.04e-8;%0.0003;    
 
 kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 250;%250;%200;%9; % from 90 previously (5/26/2022)
+kof1 = 9; %250;%250;%200;%9; % from 90 previously (5/26/2022)
 kof2 = 250;%250;%200; % from 90 previously (5/26/2022)
 dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
 d = 1e-6; % distance from the edge in m.
-k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
+k_basicActin = 2e-7; % basic actin elasiticity: currently totally ambiguous.
 
 
 
 %% TRIAL SETTINGS 
 
 slip=0; %if zero uses previous time steps velocity when clutch slips, prevents jumping velocity
-L = .3e-12; % m, the length of each actin monomer spring segment. 
+L = .3e-9; %.3e-12; % m, the length of each actin monomer spring segment. 
 
 timeTotal = 50; % sec
 verbose = 0; % time based figures for each trial, if enabled will open and save 
 showFreq=1; % if 1, will open frequency plots
-numTrials=5; % number of trials to average for figures
+numTrials=2; % number of trials to average for figures
 
 %% Iterate dActin
 dActinIt=1; % if 1 will iterate over the specified parameter
