@@ -49,8 +49,8 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 % Sangyoon Han, December 2020
 
 %% Initialize variables:
-verbose = true; % false; %1; 
-verboseEach = true; %false;
+verbose = false; %true; % false; %1; 
+verboseEach = false; %true; %false;
 Fs = nm.*fm1; %Stall force of the system 
 kB = 1.38064852e-23; %m2 kg s-2 K-1
 T = 278; %K
@@ -95,9 +95,11 @@ end
 Fs_actin = -C_actin/(4*R);
 
 % Write a video file 
-vidObj = VideoWriter('testSimulation.m4v','MPEG-4');
-open(vidObj);
-set(gca,'nextplot','replacechildren');
+if verboseEach
+    vidObj = VideoWriter('testSimulation.m4v','MPEG-4');
+    open(vidObj);
+    set(gca,'nextplot','replacechildren');
+end
 
 for t=timeStepAll
     p = p + 1;
@@ -294,7 +296,9 @@ if verbose
     drawnow
 end
 % Close the file.
-close(vidObj);
+if verboseEach
+    close(vidObj);
+end
 
 mf = mean(f); %Mean force on substrate
 mv = mean(v); %Mean rearward speed

@@ -1,7 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
-    clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
+    clutchModelActinElasticity(nm,fm1,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal,d,verbose)
+                            dActin, L, tTotal,d, eta, verbose)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -17,7 +17,8 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 % Input Parameters of the model (default values from chan and odde listed):
 %       nm      Number of myosin motors (= 75)
 %       fm1     Stall force of 1 motor (N) (= -2e-12) 
-%       vu      Unloaded myosin motor velocity (m/s) (= -120e-9)
+%       vu      Unloaded myosin motor velocity (m/s) (= -120e-9) (not used
+%               here)
 %       nc      Number of molecular clutches (fibronectin molecules) (= 75)
 %       dint1:  Density of integrin molecules, type 1 (integrins/um2).
 %       dint2:  Density of integrin molecules, type 2 (integrins/um2).
@@ -37,16 +38,19 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 %       mr      Maximum integrin density for each integrin
 %       intadd  Number of integrins added per sq. micron every time reinforcement happens.
 %       ion     mn or mg, to take corresponding koff data from kong et al JCB paper
-%       v_actin Unloaded actin-polymerization-driven actin flow speed
+%       v_actin Unloaded actin-polymerization-driven actin flow speed (not
+%               used in this model)
 %       dActin  Density of F-actin molecules (which can be low for
 %               Arp2/3-inhibited actin and intermediate for
 %               Formin-inhibited actin). (Need a reference, 300 for now for
 %               control). This will also determine the elasticity of actin
 %               by k_actin = dActin * k_basicActin where k_basicActin is
 %               calibrated by a published article (?)
+%       L       The length of each actin monomer spring segment, in m
 %       tTotal  Total time of simulation (default: 100 s)
 %       d       Distance of the adhesion from cell membrane. This will determine how many
 %               monomers are in-between. (m). Default: 2 um = 2e-6 m.
+%       eta     Damper coefficient, i.e., viscosity, of the actin material.
 % 
 % Output parameters
 %       mf              Mean force on substrate (N)
@@ -74,7 +78,7 @@ c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for 
 C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: This is assumption for now 
 R = 10e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
 Fs_actin = 5e-11; %C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addition
-L = 2e-9; % m, the length of each actin monomer spring segment. 
+% L = 2e-9; % m, the length of each actin monomer spring segment. 
 Norg = d/L; % The number of actin springs in-between the membrane and adhesion
 Nnew = 0; % Newly-added actin springs at the membrane in front of the adhesion
 Nall = Norg + Nnew; % all new actin
@@ -301,15 +305,31 @@ for t=timeStepAll
     Nall = Norg + Nnew;
     Nc = sum(boundbin);
     if Nc>0
-        xc(boundbin) = k_actin*Nnew*(ksub+kc*Nc)*L/(ksub*kc*Nall*Nc + k_actin*(ksub+Nc*kc)); % clutch position
+        % elasticity-only considered
+%         xc(boundbin) = k_actin*Nnew*(ksub+kc*Nc)*L/(ksub*kc*Nall*Nc + k_actin*(ksub+Nc*kc)); % clutch position
+        % viscoelasticity-considered
+        % Now we have to count unbound clutches that are undergoing
+        % relaxation
+        
+        xc_dot = 1/eta*(k_actin/Nall*(Nnew*L-xc(boundbin)) - ...
+            Nc*kc*ksub*xc(boundbin)/(Nc*kc+ksub));
+        xc(boundbin) = xc(boundbin) + xc_dot*ts;
         vf = (max(xc) - max(xc_prev))/ts;
         % k_actin update is needed for next round
 %         k_actin = k_actin + (pK*Nnew*L-max(xc))*a*k_actin/(pK*Nnew*L); 
     else %Nc==0, then it slips, and by added actin springs (i.e., Nnew), the edge advances
-        xc = zeros(nc,1);
-        vf = Nnew*L/ts;
+%         xc = zeros(nc,1);
+%         vf = Nnew*L/ts;
 %         k_actin = dActin * k_basicActin; % actin polymer elasticity
         Nnew = 0;
+        Nall = Norg + Nnew;
+        % For any previous bound clutches
+        prev_bound = xc>0;
+        % viscoelasticity-considered
+        xc_dot = 1/eta*(k_actin/Nall*(Nnew*L-xc(prev_bound)) - ...
+            Nc*kc*ksub*xc(prev_bound)/(Nc*kc+ksub));
+        xc(prev_bound) = xc(prev_bound) + xc_dot*ts;
+        vf = (max(xc) - max(xc_prev))/ts;        
     end
 %     xsub = k_actin*kc*Nnew*L*Nc/(ksub*kc*Nall*Nc+k_actin*(ksub+kc*Nc)); %Substrate position
     xc(~boundbin) = 0;
@@ -364,6 +384,7 @@ if verbose
     subplot(3,4,9); plot(timeStepAll,NallAll);  title('Nall'); xlabel('Time (ms)'); ylabel('N')
     subplot(3,4,10); plot(timeStepAll,k_actinAll);  title('k_{actin}'); xlabel('Time (ms)'); ylabel('k actin (N/m)')
     drawnow
+    savefig(['ksub' num2str(ksub) 'dActin' num2str(dActin) '.fig'])
 end
 
 mf = mean(f); %Mean force on substrate
