@@ -5,10 +5,10 @@ clc
 figures=[];
 figNames=[];
 
-nm = 800; %Number of myosin motors, optimal fit 800
+nm = 5; %Number of myosin motors, optimal fit 800
 fm1 = -2e-8; % Stall force of 1 motor (N)
 
-kc = 15e-5; % Clutch spring constant (N/m)
+kc = 1; % Clutch spring constant (N/m)
 actinRate=2;
 
 pt = 0.073; % fraction of force experienced by talin 0.073
@@ -16,7 +16,7 @@ konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
-ksub = 10.^(-0.1:0.2:1.5).*1e-3; %Range of substrate stiffness
+ksub = 10.^(-0.1:0.1:1.5).*1e-3; %Range of substrate stiffness
 kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
 kof2 = 1.5;
@@ -41,36 +41,37 @@ mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 mfc = zeros(numKsub,1);
-ion = 'mg'; %'mg_earlyslip'; %'cm';
+ion = 'b3_lateslip'; %'mg_earlyslip'; %'cm';
 nc = nc10; %Number of molecular clutches
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
-v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+v_actin = -6e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
-dActin = 10*0.7e3*1000*0.9e4; % density of actin at the leading edge #/um
-pot=0.04e-8;%0.0003;    
+ 
 
-kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 9; %250;%250;%200;%9; % from 90 previously (5/26/2022)
-kof2 = 250;%250;%200; % from 90 previously (5/26/2022)
-dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
-dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
+kof1 = 3; %250;%250;%200;%9; % from 90 previously (5/26/2022)
+kof2 = 1;%250;%200; % from 90 previously (5/26/2022)
+dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
 d = 1e-6; % distance from the edge in m.
-k_basicActin = 2e-7; % basic actin elasiticity: currently totally ambiguous.
+k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 
 
 
 %% TRIAL SETTINGS 
 
 slip=0; %if zero uses previous time steps velocity when clutch slips, prevents jumping velocity
-L = .3e-9; %.3e-12; % m, the length of each actin monomer spring segment. 
+L = 3.2e-11; %.3e-12; % m, the length of each actin monomer spring segment. 
+dActin = 1e11; % density of actin at the leading edge #/um
+eta=0.1;%0.0003;   
 
-timeTotal = 50; % sec
+timeTotal = 10; % sec
 verbose = 0; % time based figures for each trial, if enabled will open and save 
 showFreq=1; % if 1, will open frequency plots
-numTrials=2; % number of trials to average for figures
+numTrials=1; % number of trials to average for figures
 
 %% Iterate dActin
 dActinIt=1; % if 1 will iterate over the specified parameter
@@ -82,12 +83,12 @@ kcIt=0;
 int_kc=10;
 maxC=1;
 
-%% Iterate pot clutch
-potIt=0;
-int_pot=5;
+%% Iterate eta clutch
+etaIt=0;
+int_eta=5;
 maxP=10e11;
 
-%% Iterate max Actin per time step
+%% NOT IN USE -- Iterate max Actin per time step -- NOT IN USE
 mIt=0;
 int_m=1;
 maxM=10;
@@ -112,9 +113,9 @@ if dActinIt
     dActinRange=flip([0:maxA*dActin/int_actin:maxA*dActin]);
 end
 
-potRange=[pot];
-if potIt
-    potRange=flip([0:maxP*pot/int_pot:maxP*pot]);
+etaRange=[eta];
+if etaIt
+    etaRange=flip([0:maxP*eta/int_eta:maxP*eta]);
 end
 
 v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
@@ -140,13 +141,13 @@ figNames=[figNames(:);"Mean_Clutch_Force"];
 hold on
 legend('Location','bestoutside')
 
-cm=turbo(length(kcRange)*length(actinRange)*length(dActinRange)*length(potRange));
+cm=turbo(length(kcRange)*length(actinRange)*length(dActinRange)*length(etaRange));
 cmi=1;
 
 for mm=1:length(actinRange)
     actinRate=actinRange(mm);
-    for pp=1:length(potRange)
-        pot=potRange(pp);
+    for pp=1:length(etaRange)
+        eta=etaRange(pp);
         for ll=1:length(kcRange)
             kc=kcRange(ll);
             disp(['Kc Range ' int2str(ll) ' of ' int2str(length(kcRange))])
@@ -160,8 +161,8 @@ for mm=1:length(actinRange)
                     disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
                     for ii=1:numKsub
                         [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i,mfci,sffti{1}] = ...
-                            clutchModelActinElasticityMichels(nm,fm1,vu,nc,dint1,dint2,kont1,...
-                            kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose,actinRate,pot,slip,L);
+                            clutchModelActinElasticityMichels(nm,fm1,nc,dint1,dint2,kont1,...
+                            kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,dActin,timeTotal,d,verbose,actinRate,eta,slip,L);
                     %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
                     %        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
                     %        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
@@ -193,20 +194,20 @@ for mm=1:length(actinRange)
                 %         %savefig('blebbi_actinElas_Flow.fig')
                     end
                     figure(cc)
-                    %semilogx(E*10^-3,abs(mfc),'Marker','o','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:))
-                    plot(E*10^-3,abs(mfc),'Marker','o','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:))
+                    %semilogx(E*10^-3,abs(mfc),'Marker','o','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(eta)],'Color',cm(cmi,:))
+                    plot(E*10^-3,abs(mfc),'Marker','o','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(eta)],'Color',cm(cmi,:))
                     xlabel('E (kPa)'), ylabel('Force Clutch (N)')
                     title(['Mean Force Clutch, ion: ' ion ', no intadd'])
                 end
 
 
                 figure(tf)
-                errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:));
+                errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(eta)],'Color',cm(cmi,:));
                 %set(gca,'XScale','log');
                 xlabel('E (kPa)'), ylabel('Mean traction (Pa)')
                 title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
                 figure(ff)
-                errorbar(E*10^-3,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(pot)],'Color',cm(cmi,:));
+                errorbar(E*10^-3,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(eta)],'Color',cm(cmi,:));
                 %set(gca,'XScale','log');
                 xlabel('E (kPa)'), ylabel('Mean flow speed (\mu m/min)')
                 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
@@ -220,7 +221,7 @@ for mm=1:length(actinRange)
                         for ttt=[1:numTrials]
                             powers(ttt,:)=sffta{tt,ttt}{2}(1:end);
                         end
-                        sfft{tt,2}=mean(powers);
+                        sfft{tt,2}=mean(powers,1);
                     end
                     numfreq=50;
                     spectrum=zeros(numfreq,length(sfft));
@@ -231,7 +232,7 @@ for mm=1:length(actinRange)
                     % 2d histogram/density plot
                     spec=figure;
                     figures=[figures(:);spec];
-                    figNames=[figNames(:);string(['Freq_Spectrum_' num2str(dActinRange(kk)*k_basicActin) '_' num2str(kc)  '_' num2str(pot)])];
+                    figNames=[figNames(:);string(['Freq_Spectrum_' num2str(dActinRange(kk)*k_basicActin) '_' num2str(kc)  '_' num2str(eta)])];
                     numX=15;
                     numY=numfreq;
                     image(spectrum,'CDataMapping','scaled');
@@ -251,7 +252,7 @@ for mm=1:length(actinRange)
                     
                     ap=figure;
                     figures=[figures(:);ap];
-                    figNames=[figNames(:);string(['Freq_Area_' num2str(dActinRange(kk)*k_basicActin) '_' num2str(kc)  '_' num2str(pot)])];
+                    figNames=[figNames(:);string(['Freq_Area_' num2str(dActinRange(kk)*k_basicActin) '_' num2str(kc)  '_' num2str(eta)])];
                     hold on;
                     cmap=turbo(length(E));
                     for aa=[1:length(E)]
