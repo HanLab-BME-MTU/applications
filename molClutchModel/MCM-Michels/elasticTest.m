@@ -1,5 +1,5 @@
 clear
-close all
+%close all
 clc
 
 figures=[];
@@ -41,7 +41,7 @@ mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 mfc = zeros(numKsub,1);
-ion = 'b3_lateslip'; %'mg_earlyslip'; %'cm';
+ion = 'mg'; %'mg_earlyslip'; %'cm';
 nc = nc10; %Number of molecular clutches
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
@@ -68,15 +68,15 @@ L = 3.2e-11; %.3e-12; % m, the length of each actin monomer spring segment.
 dActin = 1e11; % density of actin at the leading edge #/um
 eta=0.1;%0.0003;   
 
-timeTotal = 10; % sec
+timeTotal = 25; % sec
 verbose = 0; % time based figures for each trial, if enabled will open and save 
 showFreq=1; % if 1, will open frequency plots
-numTrials=1; % number of trials to average for figures
+numTrials=3; % number of trials to average for figures
 
 %% Iterate dActin
 dActinIt=1; % if 1 will iterate over the specified parameter
-int_actin=5; % number of steps to iterate for 
-maxA=10; % multiplier for value 
+int_actin=10; % number of steps to iterate for 
+maxA=1.5; % multiplier for value 
 
 %% Iterate k Clutch
 kcIt=0;
@@ -86,7 +86,7 @@ maxC=1;
 %% Iterate eta clutch
 etaIt=0;
 int_eta=5;
-maxP=10e11;
+maxP=1;
 
 %% NOT IN USE -- Iterate max Actin per time step -- NOT IN USE
 mIt=0;
@@ -110,7 +110,8 @@ end
 dActinRange=[dActin];
 if dActinIt
     %dActinRange=[0.4*dActin,0.2*dActin];
-    dActinRange=flip([0:maxA*dActin/int_actin:maxA*dActin]);
+    %dActinRange=flip([0:maxA*dActin/int_actin:maxA*dActin]);
+    dActinRange=flip(logspace(0,log10(maxA*dActin),int_actin));
 end
 
 etaRange=[eta];
@@ -157,6 +158,8 @@ for mm=1:length(actinRange)
                 disp(['Actin Range ' int2str(kk) ' of ' int2str(length(dActinRange))])
                 disp(['dActin :: ' int2str(dActin)])
                 
+                %eta=0.1-(1e-12*dActin)^2;
+
                 for jj=1:numTrials
                     disp(['Starting Trial ' num2str(jj) ' of ' int2str(numTrials)])
                     for ii=1:numKsub
@@ -203,12 +206,12 @@ for mm=1:length(actinRange)
 
                 figure(tf)
                 errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(eta)],'Color',cm(cmi,:));
-                %set(gca,'XScale','log');
+                set(gca,'XScale','log');
                 xlabel('E (kPa)'), ylabel('Mean traction (Pa)')
                 title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
                 figure(ff)
                 errorbar(E*10^-3,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' kc:' num2str(kc) ' \eta:' num2str(eta)],'Color',cm(cmi,:));
-                %set(gca,'XScale','log');
+                set(gca,'XScale','log');
                 xlabel('E (kPa)'), ylabel('Mean flow speed (\mu m/min)')
                 title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 

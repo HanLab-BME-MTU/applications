@@ -69,6 +69,7 @@ verboseEach = false; %true; %false;
 Fs = nm.*fm1; %Stall force of the system 
 kB = 1.38064852e-23; %m2 kg s-2 K-1
 T = 278; %K
+
 % deltaActin = 2.7e-9; % m
 c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for sphere, maybe 1 for a flat edge. 
 C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: This is assumption for now 
