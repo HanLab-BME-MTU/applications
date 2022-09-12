@@ -1,5 +1,5 @@
 clear
-%close all
+close all
 clc
 
 figures=[];
@@ -143,23 +143,14 @@ hold on
 legend('Location','bestoutside')
 
 %dActinRange=[150000000000.000,1000144031.2649682,15297839.3229872];
-dActinRange=[152978390.3229872];
-
-%dActinRange=[150000000000.000,1000144031.2649682,1529783900.3229872,152978390.3229872];
-
+%dActinRange=[152978390.3229872];
+dActinRange=[150000000000.000,1000144031.2649682,1529783900.3229872,12*1529783900.3229872];
+etaRange=[0.1,0.1,1.08,16];
 cm=turbo(length(kcRange)*length(actinRange)*length(dActinRange)*length(etaRange));
 cmi=1;
-
-for mm=1:length(actinRange)
-    actinRate=actinRange(mm);
-    for pp=1:length(etaRange)
-        eta=etaRange(pp);
-        for ll=1:length(kcRange)
-            kc=kcRange(ll);
-            disp(['Kc Range ' int2str(ll) ' of ' int2str(length(kcRange))])
-            disp(['Kc :: ' int2str(kc)])
             for kk=1:length(dActinRange)
                 dActin=dActinRange(kk);
+                eta=etaRange(kk);
                 disp(['Actin Range ' int2str(kk) ' of ' int2str(length(dActinRange))])
                 disp(['dActin :: ' int2str(dActin)])
                 
@@ -275,9 +266,7 @@ for mm=1:length(actinRange)
                 end
                 cmi=cmi+1;
             end
-        end
-    end
-end
+
 folderName=replace(char(datetime(now,'ConvertFrom','datenum')),[" ";":"],'-');
 mkdir(folderName);
 cd(folderName);
