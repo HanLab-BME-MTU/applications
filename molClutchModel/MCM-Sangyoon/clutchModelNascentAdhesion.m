@@ -49,7 +49,7 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 % Sangyoon Han, December 2020
 
 %% Initialize variables:
-verbose = false; %1; 
+verbose = false; %true; % false; %1; 
 verboseEach = false; %true; %false;
 Fs = nm.*fm1; %Stall force of the system 
 kB = 1.38064852e-23; %m2 kg s-2 K-1
@@ -74,6 +74,11 @@ timeStepAll = 0:ts:tTotal;
 nTimeSteps = numel(timeStepAll);
 f = zeros(1,nTimeSteps); %Total force on the substrate as a function of time
 v = zeros(1,nTimeSteps);  %Rearward speed as a function of time
+Fc_ser = zeros(1,nTimeSteps);
+k_ser = zeros(1,nTimeSteps);
+k1_ser = zeros(1,nTimeSteps);
+kvuf_ser = zeros(1,nTimeSteps);
+
 nb1 = zeros(1,nTimeSteps); % Total number of bound clutches, integrin 1
 nb2 = zeros(1,nTimeSteps); % Total number of bound clutches, integrin 2
 dint1t = zeros(1,nTimeSteps); % Density of integrin type 1 as a function of time
@@ -84,7 +89,17 @@ p = 0;
 if verbose
     f100=figure; f100.Position(3:4)=[500 1000];
 end
+if verboseEach
+    f101=figure(101); f101.Position(3:4)=[600 400];
+end
 Fs_actin = -C_actin/(4*R);
+
+% Write a video file 
+if verboseEach
+    vidObj = VideoWriter('testSimulation.m4v','MPEG-4');
+    open(vidObj);
+    set(gca,'nextplot','replacechildren');
+end
 
 for t=timeStepAll
     p = p + 1;
@@ -120,19 +135,45 @@ for t=timeStepAll
     k1(indunbound) = kont1*dint1;
     k2(indunbound) = kont2*dint2;
 
+    tSeriesUptoNow = 0:ts:t;
+    k_ser(p) = mean(k(k>0));
+    k1_ser(p) = mean(k1(k1>0));
+    kvuf_ser(p) = mean(kvuf(kvuf>0));
     if verboseEach 
+        figure(101)
         if p==1 
-            ax1 = subplot(5,2,1); plot(t,sum(k),'.-'); hold on; title('k, unbinding'); 
-            ax2 = subplot(5,2,3); plot(t,sum(k1),'.-'); hold on; title('k1, binding');
-            ax3 = subplot(5,2,5); plot(t,sum(kvuf),'.-'); hold on; title('kvuf, unfolding');
-            ax4 = subplot(5,2,7); plot(t,sum(kvf),'.-'); hold on; title('konv, refolding'); 
-            ax5 = subplot(5,2,9); plot(t,sum(konv),'.-'); hold on; title('konv, vinculin binding'); 
-        else
-            plot(ax1, t,sum(k),'.-');
-            plot(ax2, t,sum(k1),'.-');
-            plot(ax3, t,sum(kvuf),'.-');
-            plot(ax4, t,sum(kvf),'.-');
-            plot(ax5, t,sum(konv),'.-');
+            ax1 = subplot(3,2,1); plot(tSeriesUptoNow,k_ser(1:p),'k.-'); title('k, unbinding'); 
+            ax2 = subplot(3,2,3); plot(tSeriesUptoNow,k1_ser(1:p),'k.-'); title('k1, binding');
+            ax3 = subplot(3,2,5); plot(tSeriesUptoNow,kvuf_ser(1:p),'k.-'); title('kvuf, unfolding');
+%             ax1 = subplot(5,2,1); plot(t,sum(k),'k.-'); hold on; title('k, unbinding'); 
+%             ax2 = subplot(5,2,3); plot(t,sum(k1),'k.-'); hold on; title('k1, binding');
+%             ax3 = subplot(5,2,5); plot(t,sum(kvuf),'k.-'); hold on; title('kvuf, unfolding');
+%             ax4 = subplot(5,2,7); plot(t,sum(kvf),'k.-'); hold on; title('konv, refolding'); 
+%             ax5 = subplot(5,2,9); plot(t,sum(konv),'k.-'); hold on; title('konv, vinculin binding'); 
+        elseif mod(p,20)==0
+            plot(ax1, tSeriesUptoNow,k_ser(1:p),'k.-'); title(ax1, 'k, unbinding');  
+            try
+                ylim(ax1,[quantile(k_ser(1:p),0) quantile(k_ser(1:p),0.90)*1.3])
+            catch
+                ylim auto
+            end
+            plot(ax2, tSeriesUptoNow,k1_ser(1:p),'k.-'); title(ax2, 'k1, binding');
+            try
+                ylim(ax2,[quantile(k1_ser(1:p),0) quantile(k1_ser(1:p),0.90)*1.3])
+            catch
+                ylim auto
+            end
+            plot(ax3, tSeriesUptoNow,kvuf_ser(1:p),'k.-'); title(ax3, 'kvuf, unfolding');
+            try
+                ylim(ax3,[quantile(kvuf_ser(1:p),0) quantile(kvuf_ser(1:p),0.90)*1.3])
+            catch
+                ylim auto
+            end
+%             plot(ax1, t,sum(k),'k.-');
+%             plot(ax2, t,sum(k1),'k.-');
+%             plot(ax3, t,sum(kvuf),'k.-');
+%             plot(ax4, t,sum(kvf),'k.-');
+%             plot(ax5, t,sum(konv),'k.-');
         end
     end
     
@@ -192,26 +233,10 @@ for t=timeStepAll
         dint2 = mr;
     end
     indub = (teventub < ts);
-    indb1 = (teventb1 < ts);
-    indb2 = (teventb2 < ts);
-    induf = (teventuf < ts);
-    indvinculin = (teventuf + teventvinc < ts);
-
-    if verboseEach 
-        if p==1 
-            ax1_2 = subplot(5,2,2); plot(t,sum(indub),'.-'); hold on; title('total indub'); 
-            ax2_2 = subplot(5,2,4); plot(t,sum(indb1),'.-'); hold on; title('total, indb1');
-            ax3_2 = subplot(5,2,6); plot(t,sum(indb2),'.-'); hold on; title('total indb2');
-            ax4_2 = subplot(5,2,8); plot(t,sum(induf),'.-'); hold on; title('total induf'); 
-            ax5_2 = subplot(5,2,10); plot(t,sum(indvinculin),'.-'); hold on; title('total indvinculin'); 
-        else
-            plot(ax1_2, t,sum(indub),'.-');
-            plot(ax2_2, t,sum(indb1),'.-');
-            plot(ax3_2, t,sum(indb2),'.-');
-            plot(ax4_2, t,sum(induf),'.-');
-            plot(ax5_2, t,sum(indvinculin),'.-');
-        end
-    end
+%     indb1 = (teventb1 < ts);
+%     indb2 = (teventb2 < ts);
+%     induf = (teventuf < ts);
+%     indvinculin = (teventuf + teventvinc < ts);
     
     %We now reset the folding vector for the unbound clutches:
     folding(indub) = 0;
@@ -235,15 +260,44 @@ for t=timeStepAll
         dint2t(p) = dint2;
     end
     Fc = kc.*(xc - xsub); % Force in each clutch
-    
+    Fc_ser(p) = mean(Fc<0);
+    if verboseEach 
+        if p==1 
+            figure(101)
+            ax1_2 = subplot(3,2,2); plot(tSeriesUptoNow,-f(1:p),'k.-'); title('traction (N)'); 
+            ax2_2 = subplot(3,2,4); plot(tSeriesUptoNow,-v(1:p),'k.-'); title('flow speed (m)');
+            ax3_2 = subplot(3,2,6); plot(tSeriesUptoNow,Fc_ser(1:p),'k.-'); title('force on clutch (N)');
+%             ax4_2 = subplot(5,2,8); plot(t,sum(induf),'k.-'); hold on; title('total induf'); 
+%             ax5_2 = subplot(5,2,10); plot(t,sum(indvinculin),'k.-'); hold on; title('total indvinculin'); 
+            drawnow  
+            currFrame = getframe(f101);
+            writeVideo(vidObj,currFrame);        
+        elseif mod(p,20)==0
+%             plot(ax1_2, t,sum(indub),'k.-');
+%             plot(ax2_2, t,sum(indb1),'k.-');
+%             plot(ax3_2, t,sum(indb2),'k.-');
+            plot(ax1_2, tSeriesUptoNow,f(1:p),'k.-'); title(ax1_2, 'traction (N)'); 
+            plot(ax2_2, tSeriesUptoNow,v(1:p),'k.-'); title(ax2_2, 'flow speed (m)');
+            plot(ax3_2, tSeriesUptoNow,Fc_ser(1:p),'k.-'); title(ax3_2, 'force on clutch (N)');
+%             plot(ax4_2, t,sum(induf),'k.-');
+%             plot(ax5_2, t,sum(indvinculin),'k.-');
+            drawnow  
+            currFrame = getframe(f101);
+            writeVideo(vidObj,currFrame);        
+        end
+    end
 end
-q=1000;
+% q=1000;
 a =1700e-9; % Radius of adhesion (m) 1500e-9
 if verbose 
     subplot(3,1,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (ms)'); ylabel('Traction (Pa)')
     subplot(3,1,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (ms)'); ylabel('Velocity (nm/s)')
     subplot(3,1,3); plot(timeStepAll,nb1);  title('Bound integrin'); xlabel('Time (ms)'); ylabel('Number (1)')
     drawnow
+end
+% Close the file.
+if verboseEach
+    close(vidObj);
 end
 
 mf = mean(f); %Mean force on substrate

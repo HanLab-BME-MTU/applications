@@ -1,7 +1,3 @@
-%% Experimental values:
-
-% load('experimental data.mat');
-
 %% Common parameters:
 
 nm = 800; %Number of myosin motors, optimal fit 800
@@ -15,7 +11,6 @@ mr = 300*50;  % Maximum integrin density for each integrin
 a =1700e-9; % Radius of adhesion (m) 1500e-9
 ion = 'b3_lateslip'; %'cm';
 ksub = 10.^(-0.1:0.1:2).*1e-3; %Range of substrate stiffness
-kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
 kof2 = 1.5;
 E = 9*ksub./(4*pi*a);
@@ -30,67 +25,22 @@ tTotal = 100;
 
 % 10 ug/ml depleted
 numKsub = length(ksub);
-mf = zeros(numKsub,1);
-mv = zeros(numKsub,1);
-mnb1 = zeros(numKsub,1);
-mnb2 = zeros(numKsub,1);
-mdint1 = zeros(numKsub,1);
-mdint2 = zeros(numKsub,1);
-%% talin2 shRNA: intadd=0: same as chan and odde
-ion = 'cm'; %'cm';
-nc = nc10; %Number of molecular clutches
-v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
-intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e4; % density of actin at the leading edge #/um
-kof1 = 0.9;
-% nm = 750; fm1 = -2e-12; vu = -120e-9; 
-% kc = 5e-3; % Clutch spring constant (N/m)
-% pt = 0.073; % fraction of force experienced by talin 0.073
-% konv = 0; % on-rate of vinculin to unfolded talin
-% mr = 300*50;  % Maximum integrin density for each integrin
-% a = 1700e-9; % Radius of adhesion (m) 1500e-9
-% ion = 'cm';
-% kont1 = 0.001; %3.33e-4; % True on-rate (um2/s), 1st integrin type
-% kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-% kof1 = 0.9;
-% kof2 = 0.8;
-% ksub = 10.^(-3:0.5:2); %Range of substrate stiffness
-% E = 9*ksub./(4*pi*a);
-% dint1 = 30; %Density of integrin molecules, type 1 (integrins/um2).
-% dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
-
-
-for ii=1:numKsub
-    
-   [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = clutchModelNascentAdhesion(nm,...
-       fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,kc,ksub(ii),konv,pt,...
-       mr,intadd,ion,v_actin,dActin);
-    mf(ii) = mfi;
-    mv(ii) = mvi;
-    mnb1(ii) = mnb1i;
-    mnb2(ii) = mnb2i;
-    mdint1(ii) = mdint1i;
-    mdint2(ii) = mdint2i;
-    disp([num2str(100*ii/numKsub) '% done...'])
-end
-% mf: Mean force on substrate (N)
-% mv: Mean rearward speed (m/s)
-% mnb1, mnb2: Mean number of bound clutches for both integrins
-% mdint1, mdint2: Mean densities of both integrin types
-
-vdep10 = mv;
-mfdep10 = mf;
-mdint1dep10 = mdint1;
-Pdep10 = mfdep10./(pi*a.^2);
-figure, semilogx(ksub, abs(Pdep10),'o-')
-xlabel('K'), ylabel('Mean traction (Pa)')
-title('talin2 shRNA, ion: cm')
 %% control: intaddctrl = 24; % At 1000 s: 4 at 100 s: 24
-
+close all
+ion = 'cm';
+nm = 1200; %Number of myosin motors, optimal fit 800
+vu = -20e-9; % Unloaded myosin motor velocity (m/s)
 nc = nc10; %Number of molecular clutches
-intadd = intaddctrl; % Number of integrins added per sq. micron every time reinforcement happens.
-v_actin = 0; %-(2.6e-6)/60; %um/min
+% nc = nc1; %Number of molecular clutches
+intadd = intaddctrl/10; % Number of integrins added per sq. micron every time reinforcement happens.
+v_actin = 0; %m/s
 dActin = 1e6; % density of actin at the leading edge #/um
+tTotal = 20; % 5 sec to not allow the saturation to a stall force
+kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
+kof1 = 0.4;
+kof2 = 2.5;
+dint1 = 300; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
 
 mf = zeros(numKsub,1);
 mv = zeros(numKsub,1);
@@ -98,92 +48,107 @@ mnb1 = zeros(numKsub,1);
 mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
+nExp = 3;
+mfGroup = cell(1,nExp);
+mvGroup = cell(1,nExp);
+mnb1Group = cell(1,nExp);
+mnb2Group = cell(1,nExp);
+mdint1Group = cell(1,nExp);
+mdint2Group = cell(1,nExp);
 
-for ii=1:numKsub
-    
-   [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
-       clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,...
-       kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,tTotal);
-    mf(ii) = mfi;
-    mv(ii) = mvi;
-    mnb1(ii) = mnb1i;
-    mnb2(ii) = mnb2i;
-    mdint1(ii) = mdint1i;
-    mdint2(ii) = mdint2i;
-    disp([num2str(100*ii/numKsub) '% done...'])
+%Will do five replicate experiments
+for p=1:nExp
+    for ii=1:numKsub
+
+       [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+           clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,...
+           kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,tTotal);
+        mf(ii) = mfi;
+        mv(ii) = mvi;
+        mnb1(ii) = mnb1i;
+        mnb2(ii) = mnb2i;
+        mdint1(ii) = mdint1i;
+        mdint2(ii) = mdint2i;
+        disp([num2str(100*ii/numKsub) '% done...'])
+    end
+    mfGroup{p} = mf;
+    mvGroup{p} = mv;
+    mnb1Group{p} = mnb1;
+    mnb2Group{p} = mnb2;
+    mdint1Group{p} = mdint1;
+    mdint2Group{p} = mdint2;
 end
-
-% matlabpool close;
-
-vctrl10 = mv;
-mfctrl10 = mf;
-mdint1ctrl10 = mdint1;
+% plotting
+vctrl10 = mean(cell2mat(mvGroup),2);
+mfctrl10 = mean(cell2mat(mfGroup),2);
 
 Pctrl10 = mfctrl10./(pi*a.^2);
 figure, semilogx(ksub, abs(Pctrl10),'o-')
 xlabel('K'), ylabel('Mean traction (Pa)')
-title('Control, ion: cm, intaddctrl')
-savefig('Control_Traction.fig')
+title(['Traction, Control, ion: ' ion ', nc: ' num2str(nc)])
+% savefig('Control_Traction.fig')
 
-figure, semilogx(ksub, abs(vctrl10)*1e9,'o-')
+figure, semilogx(ksub, abs(vctrl10)*1e6*60,'o-')
 xlabel('K'), ylabel('Mean flow speed (nm/min)')
-title('Control, flow, ion: cm, intaddctrl')
-savefig('Control_Flow.fig')
+title(['Flow, Control, ion: ' ion ', nc: ' num2str(nc)])
+% savefig('Control_Flow.fig')
 
 %% testing Roca-cusach's own blebbi simulation via nm
-nm = 180; %Number of myosin motors, optimal fit 800
-vu = -110e-9; % Unloaded myosin motor velocity (m/s)
-v_actin = 0; %-2.6e-6/60; %um/min
-intadd = intaddctrl; % Number of integrins added per sq. micron every time reinforcement happens.
-
-for ii=1:numKsub
-    
-   [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
-       clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
-       kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,1);
-    mf(ii) = mfi;
-    mv(ii) = mvi;
-    mnb1(ii) = mnb1i;
-    mnb2(ii) = mnb2i;
-    mdint1(ii) = mdint1i;
-    mdint2(ii) = mdint2i;
-    disp([num2str(100*ii/numKsub) '% done...'])
-end
-
-v_blebbiRC = mv;
-mf_blebbiRC = mf;
-mdint1_blebbiRC = mdint1;
-
-P_blebbiRC = mf_blebbiRC/(pi*a^2);
-figure, semilogx(ksub, abs(P_blebbiRC),'o-')
-xlabel('K'), ylabel('Mean traction (Pa)')
-title('Blebbi, ion: cm, intaddctrl')
-figure, semilogx(ksub, abs(v_blebbiRC),'o-')
-xlabel('K'), ylabel('Mean flow speed')
-title('Blebbi, flow speed, ion: cm, intaddctrl')
+% nm = 180; %Number of myosin motors, optimal fit 800
+% vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+% v_actin = 0; %-2.6e-6/60; %um/min
+% intadd = intaddctrl; % Number of integrins added per sq. micron every time reinforcement happens.
+% 
+% for ii=1:numKsub
+%     
+%    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+%        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
+%        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,1);
+%     mf(ii) = mfi;
+%     mv(ii) = mvi;
+%     mnb1(ii) = mnb1i;
+%     mnb2(ii) = mnb2i;
+%     mdint1(ii) = mdint1i;
+%     mdint2(ii) = mdint2i;
+%     disp([num2str(100*ii/numKsub) '% done...'])
+% end
+% 
+% v_blebbiRC = mv;
+% mf_blebbiRC = mf;
+% mdint1_blebbiRC = mdint1;
+% 
+% P_blebbiRC = mf_blebbiRC/(pi*a^2);
+% figure, semilogx(ksub, abs(P_blebbiRC),'o-')
+% xlabel('K'), ylabel('Mean traction (Pa)')
+% title('Blebbi, ion: cm, intaddctrl')
+% figure, semilogx(ksub, abs(v_blebbiRC),'o-')
+% xlabel('K'), ylabel('Mean flow speed')
+% title('Blebbi, flow speed, ion: cm, intaddctrl')
 
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
-vu = 0; % zero myosin contraction produces zero shortening velocity
-v_actin = -12e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+% close all
+nm=5; vu = 0;
+v_actin = -6e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded actin poly velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e6; % density of actin at the leading edge #/um
-kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+dActin = 9e5; % density of actin at the leading edge #/um
+kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 9; % from 90 previously (5/26/2022)
-kof2 = 9; % from 90 previously (5/26/2022)
-dint1 = 200; %Density of integrin molecules, type 1 (integrins/um2).
-dint2 = 200;   %Density of integrin molecules, type 2 (integrins/um2).
+kof1 = 1.0; % from 90 previously (5/26/2022)
+kof2 = 1; % from 90 previously (5/26/2022)
+dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
 ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
 timeTotal = 10; % sec
 d = 1e-6; % distance from the edge in m.
 verbose = 1;
+tTotal=10;
 for ii=1:numKsub
-    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
-        clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
-        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose);
 %     [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
-%        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
-%        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
+%         clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,...
+%         kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,timeTotal,d,verbose);
+    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+       clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
+       kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,tTotal);
     mf(ii) = mfi;
     mv(ii) = mvi;
     mnb1(ii) = mnb1i;
@@ -199,29 +164,31 @@ mdint1_blebbi_actinSlowdown = mdint1;
 
 P_blebbi_actinSlowdown = mf_blebbi_actinSlowdown/(pi*a^2);
 
-figure, semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-')
-xlabel('K'), ylabel('Mean traction (Pa)')
-title(['Blebbi, ion: ' ion ', no intadd'])
-savefig('blebbi_actinElas_Traction.fig')
-figure, semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e9,'o-')
-xlabel('K'), ylabel('Mean flow speed (nm/s)')
-title(['Blebbi, flow speed, ion: ' ion ', no intadd'])
-savefig('blebbi_actinElas_Flow.fig')
+figure, 
+semilogx(ksub, abs(Pctrl10),'ko-'); hold on
+semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean traction (Pa)')
+title('Traction WT vs BBS')
+legend('WT','BBS','location','best')
+% title(['Blebbi, ion: ' ion ', no intadd'])
+% savefig('blebbi_actinElas_Traction.fig')
+figure, 
+semilogx(ksub, abs(vctrl10)*1e6*60,'ko-'); hold on
+semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e6*60,'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean flow speed (\mum/min)')
+title('Flow speed WT vs BBS')
+legend('WT','BBS','location','best')
+% title(['Blebbi, flow speed, ion: ' ion ', no intadd'])
+% savefig('blebbi_actinElas_Flow.fig')
 %% Arp2/3 + myosin inhibition
-vu = 0; % zero myosin contraction produces zero shortening velocity
+%Here we keep most parameters and change only F-v sensitivity
 v_actin = -12e-9; % same so far
-dActin = 8e5; % the only parameter decreased
-dint1 = 50; %Density of integrin molecules, type 1 (integrins/um2).
-ion = 'mg'; %'mg_earlyslipmore'; % 'cm' doesn't makes sense. Why koff goes up with less force?
-kont1 = 2.11e-3; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
-kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 9; % from 1.3
-kc = 0.1;
-% tTotal=1000;
-parfor ii=1:numKsub
+dActin = 1e5; % the only parameter decreased
+tTotal=5;
+for ii=1:numKsub
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
-       kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin);
+       kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,tTotal);
     mf(ii) = mfi;
     mv(ii) = mvi;
     mnb1(ii) = mnb1i;
@@ -235,17 +202,117 @@ v_ck666 = mv;
 mf_ck666 = mf;
 mdint1_ck666 = mdint1;
 
+%% testing actin-elasticity-based model
+close all
+nc = nc10; %Number of molecular clutches
+nm=5; vu = 0;
+v_actin = -6e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded actin poly velocity (m/s)
+intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 1e11; % density of actin at the leading edge #/um
+kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kont2 = 0; % True on-rate (um2/s), 2nd integrin type
+kof1 = 3; % from 90 previously (5/26/2022)
+kof2 = 1; % from 90 previously (5/26/2022)
+dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
+ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+timeTotal = 10; % milisec
+L = 3.2e-11; % m, the length of each actin monomer spring segment. 
+d = 1e-6 ; % distance from the edge in m.
+eta = 0.1; %viscosity of the dashpot of the F-actin
+verbose = 1;
+tTotal=10;
+folderName=replace(char(datetime(now,'ConvertFrom','datenum')),[" ";":"],'-');
+mkdir(folderName);
+cd(folderName);
+
+for ii=1:numKsub
+    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+        clutchModelActinElasticity(nm,fm1,nc,dint1,dint2,kont1,...
+        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,dActin,L,...
+        timeTotal,d,eta, verbose);
+    mf(ii) = mfi;
+    mv(ii) = mvi;
+    mnb1(ii) = mnb1i;
+    mnb2(ii) = mnb2i;
+    mdint1(ii) = mdint1i;
+    mdint2(ii) = mdint2i;
+    disp([num2str(100*ii/numKsub) '% done...'])
+end
+
+v_blebbi_actinSlowdown = mv;
+mf_blebbi_actinSlowdown = mf;
+mdint1_blebbi_actinSlowdown = mdint1;
+
+P_blebbi_actinSlowdown = mf_blebbi_actinSlowdown/(pi*a^2);
+
+f1=figure; 
+f1.Units = 'inches';
+f1.Position(3:4) = [4 3];
+semilogx(ksub, abs(Pctrl10),'ko-'); hold on
+semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean traction (Pa)')
+title('Traction WT vs BBS')
+legend('WT','BBS','location','best')
+% title(['Blebbi, ion: ' ion ', no intadd'])
+savefig('blebbi_actinElas_Traction.fig')
+
+f2 = figure;
+f2.Units = 'inches';
+f2.Position(3:4) = [4 3];
+semilogx(ksub, abs(vctrl10)*1e6*60,'ko-'); hold on
+semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e6*60,'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean flow speed (\mum/min)')
+title('Flow speed WT vs BBS')
+legend('WT','BBS','location','best')
+savefig('blebbi_actinElas_Flow.fig')
+save('workspace.mat')
+%% Arp2/3 inhibition: with more unclutches
+ion = 'mg_earlyslip'; %'cm';
+kof1 = 30; % from 30
+% tTotal=1000;
+for ii=1:numKsub
+   [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+       clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
+       kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,v_actin,dActin,tTotal);
+    mf(ii) = mfi;
+    mv(ii) = mvi;
+    mnb1(ii) = mnb1i;
+    mnb2(ii) = mnb2i;
+    mdint1(ii) = mdint1i;
+    mdint2(ii) = mdint2i;
+    disp([num2str(100*ii/numKsub) '% done...'])
+end
+
+v_ck666_2 = mv;
+mf_ck666_2 = mf;
+mdint1_ck666_2 = mdint1;
+
+P_ck666_2 = mf_ck666_2/(pi*a^2);
 P_ck666 = mf_ck666/(pi*a^2);
-figure, semilogx(ksub, abs(P_ck666),'o-')
+
+figure, 
+semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-','Color',[254/255, 110/255,0])
+hold on
+semilogx(ksub, abs(P_ck666),'o-','Color',[0/255, 102/255,204/255])
+semilogx(ksub, abs(P_ck666_2),'o-','Color',[153/255, 0/255,153/255])
 xlabel('K'), ylabel('Mean traction (Pa)')
-title(['CK666+BBS, ion: ' ion ', no intadd'])
-figure, semilogx(ksub, abs(v_ck666),'o-')
-xlabel('K'), ylabel('Mean flow speed')
-title(['CK666+BBS, flow speed, ion: ' ion ', no intadd'])
+% title(['CK666+BBS, ion: ' ion ', no intadd'])
+title(['CK666+BBS vs BBS'])
+legend('BBS','CK666+BBS','CK666+BBS+slip','location','best')
+
+figure, 
+semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e6*60,'o-','Color',[254/255, 110/255,0])
+hold on
+semilogx(ksub, abs(v_ck666)*1e6*60,'o-','Color',[0/255, 102/255,204/255])
+semilogx(ksub, abs(v_ck666_2)*1e6*60,'o-','Color',[153/255, 0/255,153/255])
+xlabel('Spring constant (N/m)'), ylabel('Mean flow speed (\mum/min)')
+title('Flow speed BBS vs CK666')
+%title(['CK666+BBS, flow speed, ion: ' ion ', no intadd'])
 %% Arp2/3 inhibition: only kon koff control
 v_actin = -1e-9; % same so far
 kont1 = 2.11e-4; % same as 2.11e-4 True on-rate (um2/s), 1st integrin type
-kof1 = 0.5e0; % from 1.3
+kof1 = 0.5e0; % from 30
 % tTotal=1000;
 for ii=1:numKsub
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
@@ -359,6 +426,53 @@ mf_blebbi = mf;
 mdint1_blebbi = mdint1;
 
 P_blebbi = mf_blebbi/(pi*a^2);
+%% talin2 shRNA: intadd=0: same as chan and odde
+ion = 'cm'; %'cm';
+nc = nc10; %Number of molecular clutches
+v_actin = -1.5e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
+intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 1e4; % density of actin at the leading edge #/um
+% nm = 750; fm1 = -2e-12; vu = -120e-9; 
+% kc = 5e-3; % Clutch spring constant (N/m)
+% pt = 0.073; % fraction of force experienced by talin 0.073
+% konv = 0; % on-rate of vinculin to unfolded talin
+% mr = 300*50;  % Maximum integrin density for each integrin
+% a = 1700e-9; % Radius of adhesion (m) 1500e-9
+% ion = 'cm';
+% kont1 = 0.001; %3.33e-4; % True on-rate (um2/s), 1st integrin type
+% kont2 = 0; % True on-rate (um2/s), 2nd integrin type
+% kof1 = 0.9;
+% kof2 = 0.8;
+% ksub = 10.^(-3:0.5:2); %Range of substrate stiffness
+% E = 9*ksub./(4*pi*a);
+% dint1 = 30; %Density of integrin molecules, type 1 (integrins/um2).
+% dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
+
+for ii=1:numKsub
+    
+   [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = clutchModelNascentAdhesion(nm,...
+       fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,kc,ksub(ii),konv,pt,...
+       mr,intadd,ion,v_actin,dActin, tTotal);
+    mf(ii) = mfi;
+    mv(ii) = mvi;
+    mnb1(ii) = mnb1i;
+    mnb2(ii) = mnb2i;
+    mdint1(ii) = mdint1i;
+    mdint2(ii) = mdint2i;
+    disp([num2str(100*ii/numKsub) '% done...'])
+end
+% mf: Mean force on substrate (N)
+% mv: Mean rearward speed (m/s)
+% mnb1, mnb2: Mean number of bound clutches for both integrins
+% mdint1, mdint2: Mean densities of both integrin types
+
+vdep10 = mv;
+mfdep10 = mf;
+mdint1dep10 = mdint1;
+Pdep10 = mfdep10./(pi*a.^2);
+figure, semilogx(ksub, abs(Pdep10),'o-')
+xlabel('K'), ylabel('Mean traction (Pa)')
+title('talin2 shRNA, ion: cm')
 %% 1 ug/ml
 
 nc = nc1; %Number of molecular clutches best fit: 285
