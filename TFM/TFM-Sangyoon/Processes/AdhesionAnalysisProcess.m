@@ -132,11 +132,16 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     % relocate metaTrackData.trackFolderPath with current
                     % directory
                     [prevProcessPath,trackIndividualName] = fileparts(metaTrackData.trackFolderPath);
+                    % temporary: it is possible that the path is messed
+                    % up during relocation. Need to redefine
+                    % trackFolderPath
                     currentProcessPath = fileparts(obj.outFilePaths_{1,iChan});
-                    if ~strcmp(prevProcessPath,currentProcessPath)
+                    if ~strcmp(prevProcessPath,currentProcessPath) || ~exist([prevProcessPath filesep trackIndividualName],'dir')
+                        trackIndividualName = 'trackIndividual';
                         metaTrackData.trackFolderPath=[currentProcessPath filesep trackIndividualName];
                         save(obj.outFilePaths_{1,iChan},'metaTrackData');
                     end
+                
                     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
                     if isempty(idSelected)
                         loadingSequence=metaTrackData.numTracks:-1:1;
