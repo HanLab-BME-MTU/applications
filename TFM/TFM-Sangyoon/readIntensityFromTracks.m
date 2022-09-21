@@ -155,7 +155,7 @@ else
 end
 
 if ~extraReadingOnly
-    parfor k=1:numTracks
+    for k=1:numTracks
 %     parfor (k=1:numTracks, parforArg)
 %     for k=1:numTracks
 %     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA))-extraLength);
