@@ -226,7 +226,11 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                     end
                 elseif strcmp(output,'dMapRef')
                     if noStackRequired
-                        varargout{1} = curMapRef; % need to take care of this curMap
+                        try
+                            varargout{1} = curMapRef; % need to take care of this curMap
+                        catch
+                            varargout{1}=dMapMapRef(:,:,iFrame);
+                        end
                     else
                         varargout{1}=dMapMapRef(:,:,iFrame);
                     end
