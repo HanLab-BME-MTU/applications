@@ -1,7 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2,mfc,sfft] = ...
     clutchModelActinElasticityMichels(nm,fm1,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            dActin, tTotal,d,verbose,actinRate,eta,slip,L)
+                            dActin, tTotal,d,verbose,actinRate,eta,slip,L,NnMax)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelActinElasticity(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -66,6 +66,7 @@ elseif nargin<21
 end
 % verbose = false; %1; 
 verboseEach = false; %true; %false;
+showSpeeds=false;
 Fs = nm.*fm1; %Stall force of the system 
 kB = 1.38064852e-23; %m2 kg s-2 K-1
 T = 278; %K
@@ -79,7 +80,7 @@ Fs_actin = 5e-11; %C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addit
 Norg = d/L; % The number of actin springs in-between the membrane and adhesion
 Nnew = 0; % Newly-added actin springs at the membrane in front of the adhesion
 Nall = Norg + Nnew; % all new actin
-NnMax = 1; % max N_curnew
+%NnMax = 5; % max N_curnew
 
 k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 k_actin = dActin * k_basicActin; % actin polymer elasticity
@@ -386,6 +387,8 @@ fff=1/(lf*ts)*(0:floor((lf-1)/2));
 sfft={fff,p1};
 saveFreq=0;
 
+
+
 if verbose 
     subplot(3,4,1); plot(timeStepAll,abs(f)/(pi*a^2),'.-'); title('Traction'); xlabel('Time (sec)'); ylabel('Traction (Pa)')
     subplot(3,4,2); plot(timeStepAll,1e9*abs(v));  title('Flow velocity'); xlabel('Time (sec)'); ylabel('Velocity (nm/s)')
@@ -411,7 +414,13 @@ if verbose
         saveas(f100,[num2str(nameImg) '.tif'])
     end
 end
-% figure; plot(timeStepAll,abs(FcAll));  title(['Fc | Ksub : ' num2str(ksub)]); xlabel('Time (sec)'); ylabel('FcAll')
+if showSpeeds
+    a =1700e-9; % Radius of adhesion (m) 1500e-9
+    E = 9*ksub./(4*pi*a);
+    figure()
+    plot(timeStepAll,abs(v)*1e6*60);  title('Flow velocity'); xlabel('Time (sec)'); ylabel('Velocity (\mum/min)')
+    title(num2str(E*10^-3))
+end
 mf = mean(f); %Mean force on substrate
 
 %v(1)=0;

@@ -71,7 +71,7 @@ eta=0.1;%0.0003;
 timeTotal = 25; % sec
 verbose = 0; % time based figures for each trial, if enabled will open and save 
 showFreq=1; % if 1, will open frequency plots
-numTrials=5; % number of trials to average for figures
+numTrials=3; % number of trials to average for figures
 
 %% Iterate dActin
 dActinIt=0; % if 1 will iterate over the specified parameter
@@ -84,7 +84,7 @@ int_kc=10;
 maxC=2;
 
 %% Iterate eta clutch
-etaIt=1;
+etaIt=0;
 int_eta=5;
 maxP=20;
 
@@ -211,12 +211,26 @@ for mm=1:length(actinRange)
 
                 figure(tf)
                 errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' \eta:' num2str(eta)],'Color',cm(cmi,:));
+                regTract=fit((E*10^-3)',abs(mean(P_blebbi_actinSlowdown,2)),'power2');
+                lim=ylim;
+                vals=coeffvalues(regTract);
+                regT=plot(regTract);
+                set(regT,'DisplayName',sprintf('T(x)=%.3f*E^{%.3f}+%.3f',vals))
+                ylim([0,lim(2)]);
                 %set(gca,'XScale','log');
                 xlabel('E (kPa)'), ylabel('Mean traction (Pa)')
                 %title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
                 figure(ff)
                 errorbar(E*10^-3,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' \eta:' num2str(eta)],'Color',cm(cmi,:));
                 %set(gca,'XScale','log');
+                md=fittype('a*exp(-b*t)+c','indep','t');
+                regSpeed=fit((E*10^-3)',abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,md);
+                lim=ylim;
+                vals=coeffvalues(regSpeed);
+                regS=plot(regSpeed);
+                set(regS,'DisplayName',sprintf('V(x)=%.3f*e^{%.3f*E}+%.3f',vals))
+                ylim([0,lim(2)]);
+
                 xlabel('E (kPa)'), ylabel('Mean flow speed (\mu m/min)')
                 %title(['Blebbi, flow speed, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
 
