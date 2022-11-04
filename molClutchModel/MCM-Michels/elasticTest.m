@@ -16,13 +16,7 @@ konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
-ksub = 10.^(-0.1:0.1:1.5).*1e-3; %Range of substrate stiffness
-kont1 = 2.11e-4; %3.33e-4; % True on-rate (um2/s), 1st integrin type
-kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof2 = 1.5;
-
-dint1 = 300; %Density of integrin molecules, type 1 (integrins/um2).
-dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
+ksub = 0.0025:0.0025:0.05; %10.^(-0.1:0.1:1.5).*1e-3; %Range of substrate stiffness
 intaddctrl = 24; % At 1000 s: 4 at 100 s: 24
 nc10 = 1200; %Number of molecular clutches for 10 ug/ml fn 1200
 nc1 = 750; %Number of molecular clutches for 1 ug/ml fn 800
@@ -41,42 +35,38 @@ mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
 mfc = zeros(numKsub,1);
-ion = 'b3_lateslip'; %'mg_earlyslip'; %'cm';
+ion = 'mg'; %'b3_lateslip'; %'mg'; %'b3_lateslip'; %'mg_earlyslip'; %'cm';
 nc = nc10; %Number of molecular clutches
 %% testing actin-only mechanosensitivity (blebbi) with no integrin reinforcement
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -6e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
 
- 
-
 kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 3; %250;%250;%200;%9; % from 90 previously (5/26/2022)
+kof1 = 3; %3 %250;%250;%200;%9; % from 90 previously (5/26/2022)
 kof2 = 1;%250;%200; % from 90 previously (5/26/2022)
 dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
 d = 1e-6; % distance from the edge in m.
-k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
-
-
+k_basicActin = 1e-6; % was 1e-6% basic actin elasiticity: currently totally ambiguous.
 
 %% TRIAL SETTINGS 
 
-slip=0; %if zero uses previous time steps velocity when clutch slips, prevents jumping velocity
+slip=1; %if zero uses previous time steps velocity when clutch slips, prevents jumping velocity
 L = 3.2e-11; %.3e-12; % m, the length of each actin monomer spring segment. 
-dActin = 1e11; % density of actin at the leading edge #/um
-eta=0.1;%0.0003;   
+dActin = 1e9; % density of actin at the leading edge #/um
+eta=1;%0.0003;   
 
-timeTotal = 10; % sec
-verbose = 0; % time based figures for each trial, if enabled will open and save 
+timeTotal = 100; % sec
+verbose = 1; % time based figures for each trial, if enabled will open and save 
 showFreq=1; % if 1, will open frequency plots
-numTrials=1; % number of trials to average for figures
+numTrials=5; % number of trials to average for figures
 
 %% Iterate dActin
 dActinIt=1; % if 1 will iterate over the specified parameter
 int_actin=5; % number of steps to iterate for 
-maxA=10; % multiplier for value 
+maxA = 1; %0.012; % multiplier for value 
 
 %% Iterate k Clutch
 kcIt=0;
@@ -94,8 +84,6 @@ int_m=1;
 maxM=10;
 
 
-
-
 actinRange=[actinRate];
 if mIt
     actinRange=flip([0:maxM*actinRate/int_m:maxM*actinRate]);
@@ -111,6 +99,10 @@ dActinRange=[dActin];
 if dActinIt
     %dActinRange=[0.4*dActin,0.2*dActin];
     dActinRange=flip([0:maxA*dActin/int_actin:maxA*dActin]);
+
+    dActinRange(end) = dActinRange(end-1)/2;
+    dActinRange(end+1) = dActinRange(end)/2;
+    dActinRange(end+1) = 0;
 end
 
 etaRange=[eta];
