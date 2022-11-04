@@ -510,7 +510,13 @@ parfor k = 1:nPoints
         % interpolation from discrete scores - Sangyoon
         %         if norm(maxV)<1 && norm(maxV)>1e-5
         % new vF and vP (around maxV)
-        halfCorL=(corL-1)/2;
+
+        % Nov 2022 - figured that the accuracy can be much more improved if
+        % we narrow down the template size, essentially around only one
+        % bead in the middle. Will try with narrowingFactor, say 0.3 as
+        % default - Sangyoon 
+        narrowFactor = 0.3; % This should be an input from the dialog box.
+        halfCorL= round((corL-1)/2 * narrowFactor);
         refineFactor = 10;%round(10*20/corL); % by this, the pixel value will be magnified.
         refineRange = 1.0; % in pixel
         incFactor2 = 1;
