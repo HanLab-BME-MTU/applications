@@ -57,7 +57,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             ip.addParameter('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.addParameter('useCache',true,@islogical);
             ip.addParameter('noStackRequired',false,@islogical) % 
-            if ~isa(varargin{2},'char')         %when called from segmentation package args contain extra int in first cell, sanatised here.
+            if ~isempty(varargin) && ~isa(varargin{2},'char')         %when called from segmentation package args contain extra int in first cell, sanatised here.
                 varargin=varargin(2:end);
             end
             ip.parse(obj,varargin{:})

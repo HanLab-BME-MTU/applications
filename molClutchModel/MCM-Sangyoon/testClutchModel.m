@@ -9,7 +9,6 @@ konv = 1e8; % on-rate of vinculin to unfolded talin
 mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
-ion = 'b3_lateslip'; %'cm';
 ksub = 10.^(-0.1:0.1:2).*1e-3; %Range of substrate stiffness
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
 kof2 = 1.5;
@@ -48,7 +47,7 @@ mnb1 = zeros(numKsub,1);
 mnb2 = zeros(numKsub,1);
 mdint1 = zeros(numKsub,1);
 mdint2 = zeros(numKsub,1);
-nExp = 3;
+nExp = 1;
 mfGroup = cell(1,nExp);
 mvGroup = cell(1,nExp);
 mnb1Group = cell(1,nExp);
@@ -182,9 +181,10 @@ legend('WT','BBS','location','best')
 % savefig('blebbi_actinElas_Flow.fig')
 %% Arp2/3 + myosin inhibition
 %Here we keep most parameters and change only F-v sensitivity
-v_actin = -12e-9; % same so far
-dActin = 1e5; % the only parameter decreased
-tTotal=5;
+v_actin = -6e-9; % same so far
+dActin = 9e4; % the only parameter decreased
+kof1 = 0.5; % 
+tTotal=10;
 for ii=1:numKsub
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
        clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
@@ -202,74 +202,10 @@ v_ck666 = mv;
 mf_ck666 = mf;
 mdint1_ck666 = mdint1;
 
-%% testing actin-elasticity-based model
-close all
-nc = nc10; %Number of molecular clutches
-nm=5; vu = 0;
-v_actin = -6e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded actin poly velocity (m/s)
-intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
-dActin = 1e11; % density of actin at the leading edge #/um
-kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
-kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 3; % from 90 previously (5/26/2022)
-kof2 = 1; % from 90 previously (5/26/2022)
-dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
-dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
-ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
-timeTotal = 10; % milisec
-L = 3.2e-11; % m, the length of each actin monomer spring segment. 
-d = 1e-6 ; % distance from the edge in m.
-eta = 0.1; %viscosity of the dashpot of the F-actin
-verbose = 1;
-tTotal=10;
-folderName=replace(char(datetime(now,'ConvertFrom','datenum')),[" ";":"],'-');
-mkdir(folderName);
-cd(folderName);
-
-for ii=1:numKsub
-    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
-        clutchModelActinElasticity(nm,fm1,nc,dint1,dint2,kont1,...
-        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,dActin,L,...
-        timeTotal,d,eta, verbose);
-    mf(ii) = mfi;
-    mv(ii) = mvi;
-    mnb1(ii) = mnb1i;
-    mnb2(ii) = mnb2i;
-    mdint1(ii) = mdint1i;
-    mdint2(ii) = mdint2i;
-    disp([num2str(100*ii/numKsub) '% done...'])
-end
-
-v_blebbi_actinSlowdown = mv;
-mf_blebbi_actinSlowdown = mf;
-mdint1_blebbi_actinSlowdown = mdint1;
-
-P_blebbi_actinSlowdown = mf_blebbi_actinSlowdown/(pi*a^2);
-
-f1=figure; 
-f1.Units = 'inches';
-f1.Position(3:4) = [4 3];
-semilogx(ksub, abs(Pctrl10),'ko-'); hold on
-semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-','Color',[254/255, 110/255,0])
-xlabel('Spring constant (N/m)'), ylabel('Mean traction (Pa)')
-title('Traction WT vs BBS')
-legend('WT','BBS','location','best')
-% title(['Blebbi, ion: ' ion ', no intadd'])
-savefig('blebbi_actinElas_Traction.fig')
-
-f2 = figure;
-f2.Units = 'inches';
-f2.Position(3:4) = [4 3];
-semilogx(ksub, abs(vctrl10)*1e6*60,'ko-'); hold on
-semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e6*60,'o-','Color',[254/255, 110/255,0])
-xlabel('Spring constant (N/m)'), ylabel('Mean flow speed (\mum/min)')
-title('Flow speed WT vs BBS')
-legend('WT','BBS','location','best')
-savefig('blebbi_actinElas_Flow.fig')
-save('workspace.mat')
 %% Arp2/3 inhibition: with more unclutches
-ion = 'mg_earlyslip'; %'cm';
-kof1 = 30; % from 30
+close all
+ion = 'mg';%'mg_earlyslip'; %'cm';
+kof1 = 8; % from 30
 % tTotal=1000;
 for ii=1:numKsub
    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
@@ -332,6 +268,75 @@ mf_ck666_2 = mf;
 mdint1_ck666_2 = mdint1;
 
 P_ck666_2 = mf_ck666_2/(pi*a^2);
+%% testing actin-elasticity-based model
+close all
+nc = nc10; %Number of molecular clutches
+nm=5; vu = 0;
+v_actin = -6e-9; %-2.6um/min e-6/60 = -4.5e-8 m/s vu = -110e-9; % Unloaded actin poly velocity (m/s)
+intadd = 0; % Number of integrins added per sq. micron every time reinforcement happens.
+dActin = 1e11; % density of actin at the leading edge #/um
+kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
+kont2 = 0; % True on-rate (um2/s), 2nd integrin type
+kof1 = 3; % from 90 previously (5/26/2022)
+kof2 = 1; % from 90 previously (5/26/2022)
+dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
+dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
+ion = 'mg'; %'mg'; %'mg'; % 'cm' doesn't makes sense. Why koff goes up with less force?
+timeTotal = 10; % milisec
+L = 3.2e-11; % m, the length of each actin monomer spring segment. 
+d = 1e-6 ; % distance from the edge in m.
+eta = 0.1; %viscosity of the dashpot of the F-actin
+verbose = 1;
+tTotal=10;
+folderName=replace(char(datetime(now,'ConvertFrom','datenum')),[" ";":"],'-');
+mkdir(folderName);
+cd(folderName);
+
+for ii=1:numKsub
+    [mfi,mvi,mnb1i,mnb2i,mdint1i,mdint2i] = ...
+        clutchModelActinElasticity(nm,fm1,nc,dint1,dint2,kont1,...
+        kont2,kof1,kof2,kc,ksub(ii),konv,pt,mr,intadd,ion,dActin,L,...
+        timeTotal,d,eta, verbose);
+    mf(ii) = mfi;
+    mv(ii) = mvi;
+    mnb1(ii) = mnb1i;
+    mnb2(ii) = mnb2i;
+    mdint1(ii) = mdint1i;
+    mdint2(ii) = mdint2i;
+    disp([num2str(100*ii/numKsub) '% done...'])
+end
+
+v_blebbi_actinSlowdown = mv;
+mf_blebbi_actinSlowdown = mf;
+mdint1_blebbi_actinSlowdown = mdint1;
+
+P_blebbi_actinSlowdown = mf_blebbi_actinSlowdown/(pi*a^2);
+
+f1=figure; 
+f1.Units = 'inches';
+f1.Position(3:4) = [4 3];
+% semilogx(ksub, abs(Pctrl10),'ko-'); hold on
+% semilogx(ksub, abs(P_blebbi_actinSlowdown),'o-','Color',[254/255, 110/255,0])
+plot(ksub, abs(Pctrl10),'ko-'); hold on
+plot(ksub, abs(P_blebbi_actinSlowdown),'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean traction (Pa)')
+title('Traction WT vs BBS')
+legend('WT','BBS','location','best')
+% title(['Blebbi, ion: ' ion ', no intadd'])
+savefig('blebbi_actinElas_Traction.fig')
+
+f2 = figure;
+f2.Units = 'inches';
+f2.Position(3:4) = [4 3];
+plot(ksub, abs(vctrl10)*1e6*60,'ko-'); hold on
+plot(ksub, abs(v_blebbi_actinSlowdown)*1e6*60,'o-','Color',[254/255, 110/255,0])
+% semilogx(ksub, abs(vctrl10)*1e6*60,'ko-'); hold on
+% semilogx(ksub, abs(v_blebbi_actinSlowdown)*1e6*60,'o-','Color',[254/255, 110/255,0])
+xlabel('Spring constant (N/m)'), ylabel('Mean flow speed (\mum/min)')
+title('Flow speed WT vs BBS')
+legend('WT','BBS','location','best')
+savefig('blebbi_actinElas_Flow.fig')
+save('workspace.mat')
 %% Formin inhibition
 vu = 0; % zero myosin contraction produces zero shortening velocity
 v_actin = -1e-9; % same so far

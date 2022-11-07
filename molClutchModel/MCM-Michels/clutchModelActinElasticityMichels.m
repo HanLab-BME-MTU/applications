@@ -125,7 +125,7 @@ k_actinAll = zeros(1,nTimeSteps);
 %% Simulation through time
 p = 0;
 if verbose
-    f100=figure; f100.Position(3:4)=[900 600];
+    f100=figure(100); f100.Position(3:4)=[900 600];
 end
 
 for t=timeStepAll

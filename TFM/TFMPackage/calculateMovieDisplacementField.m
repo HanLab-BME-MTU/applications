@@ -139,6 +139,9 @@ else
 end
 firstMask = refFrame>0 & firstImage>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
+if all(tempMask(:)) && ~isempty(movieData.roiMaskPath_) % in case there is full ones there
+    tempMask = imread(movieData.roiMaskPath_);
+end
 % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 ref_obj = imref2d(size(refFrame));
 % tempMask2 = false(size(refFrame));
