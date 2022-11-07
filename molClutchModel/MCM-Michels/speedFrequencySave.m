@@ -42,6 +42,8 @@ function speedFrequencySave(varargin)
     
     
     speed=squeeze(speedCell(:,1,:));
+    r=input("Range:");
+    speed=speed(r,:);
     [m, n]=size(speed);
     
     num=20;%m;
@@ -102,7 +104,7 @@ function speedFrequencySave(varargin)
             
         end
     end
-    speedOut=speed(1:20,:);
+    speedOut=speed;
     
     name=input("Name:",'s');
 
