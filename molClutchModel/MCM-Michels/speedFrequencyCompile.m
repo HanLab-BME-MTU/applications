@@ -83,7 +83,11 @@ title("Power Spectrum of Blebbistatin Speed")
 title(leg,'Substrate Stiffness')
 bl=structCell(:,2);
 for i=[1:length(structCell)]
-    plot(bl{i}.ps{1}{1},bl{i}.ps{1}{2},'DisplayName',['' char(stiffness(i)) 'kPa'])
+    allFreq=[];
+    for j=[1:length(bl{i}.ps)]
+        allFreq(j,:)=rmmissing(bl{i}.ps{j}{2});
+    end
+    area(bl{i}.ps{1}{1},rescale(mean(allFreq)),'DisplayName',['' char(stiffness(i)) 'kPa'],'FaceAlpha',.5)
 end
 
 %% BLEBBI ONLY FIG
