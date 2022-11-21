@@ -1,32 +1,25 @@
 clear; clc;
-drugs=["Wild Type" "Blebbi" "Blebbi CK666" "Smifh2" "LatA"];
+drugs=["Blebbi"];
 stiffness=["0.6","1.3","2.6","6","12.7"];
 numDrugs=length(drugs);
 numStiff=length(stiffness);
-structCell=cell(numStiff,numDrugs);
+%structCell=cell(numStiff,numDrugs);
 
-for d=[1:numDrugs]
+%for d=[1:numDrugs]
     for s=[1:numStiff]
         if usejava('desktop')
-            [fileSFolders, pathSFolders] = uigetfile('*.mat',['Select ' char(drugs(d)) ' ' char(stiffness(s))]);
-        else
-            disp({'Enter Path to MovieData (.mat)';
-                ['Your current path: ' pwd]});
-            rawPath = input(': ','s');
-            if isempty(rawPath)
-                pathSFolders = 0;
-            else
-                [pathSFolders, fileSFolders] = fileparts(rawPath);
-            end
-        end
-        
+            %[fileSFolders, pathSFolders] = uigetfile('*.mat',['Select ' char(drugs(d)) ' ' char(stiffness(s))]);
+            stiffnessFolder=uigetdir('title',['Select ' char(drugs(1)) ' ' char(stiffness(s))]);
         try 
-            structCell{s,d}=load(append(pathSFolders,fileSFolders));
+            f=dir(append(stiffnessFolder,'/*.mat'));
+            for d=[1:length(f)]
+                structCell{s,d}=load(append(stiffnessFolder,'/',f(d).name));
+            end
         catch
-            disp(['Error :: failed to load file '  fileSFolders])
+            disp(['Error :: failed to load file '  stiffnessFolder])
+        end
         end
     end
-end
 
 %%SPEED PLOT
 
@@ -81,9 +74,13 @@ ylabel("Power")
 leg=legend('Location','eastoutside');
 title("Power Spectrum of Blebbistatin Speed")
 title(leg,'Substrate Stiffness')
-bl=structCell(:,2);
+bl=structCell(:,1);
 for i=[1:length(structCell)]
-    plot(bl{i}.ps{1}{1},bl{i}.ps{1}{2},'DisplayName',['' char(stiffness(i)) 'kPa'])
+    allFreq=[];
+    for j=[1:length(bl{i}.ps)]
+        allFreq(j,:)=rmmissing(bl{i}.ps{j}{2});
+    end
+    area(bl{i}.ps{1}{1},rescale(mean(allFreq)),'DisplayName',['' char(stiffness(i)) 'kPa'],'FaceAlpha',.5)
 end
 
 %% BLEBBI ONLY FIG
@@ -101,13 +98,19 @@ for j=[1:numStiff]
     axs2(j).YLabel.String = ("Speed");
     axs2(j).YLim=[0,2000];
     hold(axs2(j),'on')
-    for i=[1:20]%floor(linspace(1,m,20))
-        plot(axs2(j),t,structCell{j,2}.speedOut(i,:));
+    
+    for k=[1:length(structCell(j,:))]
+        if isempty(structCell{j,k})
+            continue
+        end
+        [n,m]=size(structCell{j,k}.speedOut);
+        for i=[1:n]%floor(linspace(1,m,20))
+            plot(axs2(j),t,structCell{j,k}.speedOut(i,:));
+        end
+    %hold(axs2(j),'off')
     end
-    hold(axs2(j),'off')
+ylabel(lay2,[char(drugs(1)) ])
 end
-ylabel(lay2,[char(drugs(2)) ])
-
 exportapp(f2,'blebbi_speed.pdf')
 %% BOX PLOT
 
@@ -136,7 +139,7 @@ for i=[1:numStiff]
 %         stack=[stack nonzeros(structCell{i,j}.box)];
 %     end
 %     boxD{i}=cat(1,stack{:});
-    blebbi=structCell{i,2}.box;
+    blebbi=structCell{i,1}.box;
     stack=blebbi;
     boxD{i}=cat(1,stack);
 end

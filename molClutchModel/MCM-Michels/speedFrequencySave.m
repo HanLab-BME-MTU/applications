@@ -1,4 +1,4 @@
-function speedsave(varargin)
+function speedFrequencySave(varargin)
     p=inputParser;
     addOptional(p,'path',0,@ischar)
     parse(p,varargin{:})
@@ -29,7 +29,7 @@ function speedsave(varargin)
         try 
             MD=MovieData.load(importedPath);
         catch
-            disp(['Error :: failed to load imported path' importedPath ])
+            disp(['Error :: failed to load imported path ' importedPath ])
         end
         path=importedPath;
     end
@@ -42,6 +42,8 @@ function speedsave(varargin)
     
     
     speed=squeeze(speedCell(:,1,:));
+    r=input("Range:");
+    speed=speed(r,:);
     [m, n]=size(speed);
     
     num=20;%m;
@@ -75,13 +77,12 @@ function speedsave(varargin)
     %     ylabel("Power")
     %     hold on
     %     peaks=cell(20,1);
-        for i=[1:20];%[j:j+20]%floor(linspace(1,m,20))
+        for i=[1:length(speed)];%[j:j+20]%floor(linspace(1,m,20))
         %    nexttile
             l=length(speed(i,:));
-            ff=fft(speed(i,:));
+            ff=fft(speed(i,:)-mean(speed(i,:)));
             p=abs(ff).^2;
             p1=p(1:floor((n+1)/2));
-            p1(1)=0;
             f=fs/l*(0:floor((l-1)/2));
             %plot(f,p1);
             
@@ -97,13 +98,13 @@ function speedsave(varargin)
     end
     
     box=[];
-    for i=[1:20]
+    for i=[1:length(speed)]
         for j=[1:length(peaks{i})]
             box=[box,peaks{i}(j)];
             
         end
     end
-    speedOut=speed(1:20,:);
+    speedOut=speed;
     
     name=input("Name:",'s');
 

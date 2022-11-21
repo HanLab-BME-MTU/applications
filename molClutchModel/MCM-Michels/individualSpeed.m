@@ -63,12 +63,23 @@ for j=floor(linspace(1,m,floor(m/20)))
     for i=[j:j+20]%floor(linspace(1,m,20))
     %    nexttile
         l=length(speed(i,:));
-        ff=fft(speed(i,:));
+        ff=fft(speed(i,:)-mean(speed(i,:)));
         p=abs(ff).^2;
         p1=p(1:floor((n+1)/2));
-        p1(1)=0;
         f=fs/l*(0:floor((l-1)/2));
         plot(f,p1);
     
     end
+end
+
+figure()
+hold on;
+
+for i=[1:length(speed(1,:))]
+        l=length(speed(i,:));
+        ff=fft(speed(i,:)-mean(speed(i,:)));
+        p=abs(ff).^2;
+        p1=p(1:floor((n+1)/2));
+        f=fs/l*(0:floor((l-1)/2));
+        plot(f,p1);
 end
