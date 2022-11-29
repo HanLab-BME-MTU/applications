@@ -60,7 +60,7 @@ images=images(1:(length(images)/2));
 img=cell(1,length(images));
 %imshow(cell2mat(images(1)),[]);
 
-segmentNum=186; %199
+segmentNum=30; %199
 windowSize=50;
 
 
@@ -79,8 +79,8 @@ vectorIn=cell(1,n);
 
 ti=strrep(fileSFolders,'_','\_');
 figure()
-title(['Speed of Segment ' num2str(segmentNum)])
-subtitle([ti]);
+title({['Speed of Segment ' num2str(segmentNum)]; ti})
+% subtitle([ti]);
 xlabel('Time (seconds)');
 hold on
 plot([1:length(speed(segmentNum,:))],speed(segmentNum,:),'LineWidth',2);
