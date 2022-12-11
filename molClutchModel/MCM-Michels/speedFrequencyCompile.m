@@ -1,3 +1,5 @@
+%%load data
+
 clear; clc;
 drugs=["Blebbi"];
 stiffness=["0.6","1.3","2.6","6","12.7"];
@@ -9,6 +11,7 @@ numStiff=length(stiffness);
     for s=[1:numStiff]
         if usejava('desktop')
             %[fileSFolders, pathSFolders] = uigetfile('*.mat',['Select ' char(drugs(d)) ' ' char(stiffness(s))]);
+       
             stiffnessFolder=uigetdir('title',['Select ' char(drugs(1)) ' ' char(stiffness(s))]);
         try 
             f=dir(append(stiffnessFolder,'/*.mat'));
@@ -21,7 +24,7 @@ numStiff=length(stiffness);
         end
     end
 
-%%SPEED PLOT
+%% SPEED PLOT
 
 t=[0:30]*6;
 f=uifigure('Position',[0,0,1000,1000]);
