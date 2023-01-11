@@ -27,7 +27,7 @@ function speedFrequencySave(varargin)
         path=append(pathSFolders,fileSFolders);
     else
         try 
-            MD=MovieData.load(importedPath);
+            MD=MovieData.loadMatFile(importedPath);
         catch
             disp(['Error :: failed to load imported path ' importedPath ])
         end
