@@ -77,7 +77,7 @@ function speedFrequencySave(varargin)
     %     ylabel("Power")
     %     hold on
     %     peaks=cell(20,1);
-        for i=[1:length(speed)];%[j:j+20]%floor(linspace(1,m,20))
+        for i=[1:size(speed,1)];%[j:j+20]%floor(linspace(1,m,20))
         %    nexttile
             l=length(speed(i,:));
             ff=fft(speed(i,:)-mean(speed(i,:)));
@@ -98,7 +98,7 @@ function speedFrequencySave(varargin)
     end
     
     box=[];
-    for i=[1:length(speed)]
+    for i=[1:size(speed,1)]
         for j=[1:length(peaks{i})]
             box=[box,peaks{i}(j)];
             
