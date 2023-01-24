@@ -121,8 +121,8 @@ function [mm] = hhtSpeed(speed,fig,c)
         end
         for p=1:6
             
-            m(i,p)=mean(instFreq_time(p,:)); 
-            st(i,p)=std(instFreq_time(p,:));
+            m(i,p)=mean(instFreq_time(p,:),'omitnan'); 
+            st(i,p)=std(instFreq_time(p,:),'omitnan');
         end
     end
     [l,~]=size(m);
@@ -136,7 +136,7 @@ function [mm] = hhtSpeed(speed,fig,c)
     axis([0.5 6.5 0-0.005 fs/2+0.005]);
     set(gca, 'XTick', [1:6], 'XTickLabel', [1:6]);
     set(gca, 'FontSize', 20); 
-    mm=mean(m);
+    mm=mean(m,'omitnan');
 end
 
 
@@ -152,13 +152,13 @@ function [p1,f,d] = windowFFT(speed)
             end
             for i=1:n
                 l=m;
-                ff=fft(speed(i,:)-mean(speed(i,:)));
+                ff=fft(speed(i,:)-mean(speed(i,:),'omitnan'));
                 p=abs(ff);
                 %p=normalize(p);
                 pp(i,:)=p(1:floor((l+1)/2));
                 f=fs/l*(0:floor((l-1)/2));
             end
             d=sum(pp,1,'omitnan');
-            p1=mean(pp);
+            p1=mean(pp,'omitnan');
             %d=downsample(d,100);
 end
