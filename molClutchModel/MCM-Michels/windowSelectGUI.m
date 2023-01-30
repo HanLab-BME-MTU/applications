@@ -86,7 +86,7 @@ function loadImage(btn,ax)
     try 
         MD=MovieData.load(ml{list.Value});
     catch
-        disp(['Error :: failed to load file '  fileSFolders])
+        disp(['Error :: failed to load file '  ml{list.Value}])
     end
     
     disp(['Loaded MovieData ::' MD.movieDataFileName_])

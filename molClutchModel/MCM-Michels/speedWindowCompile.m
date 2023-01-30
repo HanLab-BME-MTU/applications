@@ -22,12 +22,13 @@ cmap=jet(5);
         end
     end
 
-
+len=zeros(1,numStiff);
 for i=1:numStiff
     for j=1:length(structCell{i})
         directory=path2dir(structCell{i}(j).file);
         speed=load([directory '/WindowingPackage/window_sampling/Speed map - channel 1.mat']);
         speedOut = selectWindows(speed,structCell{i}(j).selected);
+        len(i)=len(i)+size(structCell{1}(1).selected,2);
         [pp(j,:),ff(j,:),dd(j,:)]=windowFFT(speedOut);
     end
     d(i,:)=sum(dd,1);
@@ -35,7 +36,7 @@ for i=1:numStiff
 end
 
 figure();
-for p=1:length(numStiff)
+for p=1:numStiff
     tt=plot(ff(1,:),normalize(fp(p,:)),'Color',cmap(p,:),'LineWidth',2,'Marker','o');
     uistack(tt,'top')
 end
@@ -44,6 +45,32 @@ xlabel("Frequency (Hz)")
 lab={['0.6'  'kPa'],['1.3'  'kPa'],['2.6' 'kPa'],['6'  'kPa'],['12.7' 'kPa']};
 legend(lab,'Location','eastoutside')
 
+d=round(d);
+maxLength=max(sum(d,2));
+density=nan(5,maxLength);
+for i = 1:5
+    k=1;
+    for j = 1:length(d(i,:))
+        density(i,k:k+d(i,j)-1)=ff(i,j);
+        k=k+d(i,j);
+    end
+end
+
+n=size(density,1);
+densityCell=cell(1,n);
+names={'0.6','1.3','2.6','6','12.7'};
+
+
+for i=1:n
+    nDen=density(i,:);
+    nDen=imresize(nDen(~isnan(nDen)),[1,len(i)*16]);
+    densityCell{i}=nDen;
+end
+figure();
+
+boxPlotCellArray(densityCell,names,1,1,1);
+xlabel('Stiffness (kPa)');
+ylabel('Frequency');
 
 
 
