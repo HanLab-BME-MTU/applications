@@ -22,6 +22,8 @@ cmap=jet(5);
         end
     end
 
+%% Figures
+    
 len=zeros(1,numStiff);
 for i=1:numStiff
     for j=1:length(structCell{i})
@@ -36,6 +38,7 @@ for i=1:numStiff
 end
 
 figure();
+hold on;
 for p=1:numStiff
     tt=plot(ff(1,:),normalize(fp(p,:)),'Color',cmap(p,:),'LineWidth',2,'Marker','o');
     uistack(tt,'top')
