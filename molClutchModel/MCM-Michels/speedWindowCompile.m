@@ -26,15 +26,20 @@ cmap=jet(5);
     
 len=zeros(1,numStiff);
 for i=1:numStiff
+    mm=[];
     for j=1:length(structCell{i})
         directory=path2dir(structCell{i}(j).file);
         speed=load([directory '/WindowingPackage/window_sampling/Speed map - channel 1.mat']);
         speedOut = selectWindows(speed,structCell{i}(j).selected);
-        len(i)=len(i)+size(structCell{1}(1).selected,2);
-        [pp(j,:),ff(j,:),dd(j,:)]=windowFFT(speedOut);
+        if ~isempty(speedOut)
+            len(i)=len(i)+size(structCell{1}(1).selected,2);
+            [pp(j,:),ff(j,:),dd(j,:),m]=windowFFT(speedOut);
+            mm=[mm,m];
+        end
     end
     d(i,:)=sum(dd,1);
     fp(i,:)=mean(pp,'omitnan');
+    mom{i}=mm;
 end
 
 figure();
@@ -70,14 +75,19 @@ for i=1:n
     densityCell{i}=nDen;
 end
 figure();
+boxPlotCellArray(mom,names,1,1,1);
+%boxPlotCellArray(densityCell,names,1,1,1);
+xlabel('Stiffness (kPa)');
+ylabel('Frequency');
 
-boxPlotCellArray(densityCell,names,1,1,1);
+figure();
+errorBarPlotCellArray(mom,names,1);
+
 xlabel('Stiffness (kPa)');
 ylabel('Frequency');
 
 
-
-
+%% functions
 function [directory] = path2dir(path)
     directory=strsplit(path,filesep);
     directory=directory(1:end-1);
@@ -170,7 +180,7 @@ function [mm] = hhtSpeed(speed,fig,c)
 end
 
 
-function [p1,f,d] = windowFFT(speed)
+function [p1,f,d,mp] = windowFFT(speed)
             fs=1/6;
            
             [n,m]=size(speed);
@@ -187,7 +197,10 @@ function [p1,f,d] = windowFFT(speed)
                 %p=normalize(p);
                 pp(i,:)=p(1:floor((l+1)/2));
                 f=fs/l*(0:floor((l-1)/2));
+                
             end
+            mp=sum((f.*pp)./sum(pp,2),2);
+            mp=mp(~isnan(mp))';
             d=sum(pp,1,'omitnan');
             p1=mean(pp,'omitnan');
             %d=downsample(d,100);
