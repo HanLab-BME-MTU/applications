@@ -83,7 +83,7 @@ i=1;
                 %xlim([cx-windowSize,cx+windowSize]);
                 %ylim([cy-windowSize,cy+windowSize]);
             
-                plot(poly{i},"FaceColor",c(6-l,:),EdgeColor=c(6-l,:));
+                plot(poly{i},"FaceColor",c(6-l,:),'EdgeColor',c(6-l,:));
             end
             drawnow;
         end
