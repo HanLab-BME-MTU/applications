@@ -54,7 +54,7 @@ intadd = 0; % Number of integrins added per sq. micron every time reinforcement 
 
 kont1 = 2.11e-4; %increased from 2.11e-4 True on-rate (um2/s), 1st integrin type
 kont2 = 0; % True on-rate (um2/s), 2nd integrin type
-kof1 = 1.7;%0.4; %250;%250;%200;%9; % from 90 previously (5/26/2022)
+kof1 = 1.5;%0.4; %250;%250;%200;%9; % from 90 previously (5/26/2022)
 kof2 = 1;%250;%200; % from 90 previously (5/26/2022)
 dint1 = 100; %Density of integrin molecules, type 1 (integrins/um2).
 dint2 = 0;   %Density of integrin molecules, type 2 (integrins/um2).
@@ -72,8 +72,8 @@ eta=0.1;%0.0003;
 
 timeTotal = 200; % sec
 verbose = 0; % time based figures for each trial, if enabled will open and save 
-showFreq=1; % if 1, will open frequency plots
-numTrials=1; % number of trials to average for figures
+showFreq=0; % if 1, will open frequency plots
+numTrials=5; % number of trials to average for figures
 NnMax=1;
 
 
@@ -138,31 +138,32 @@ legend('Location','bestoutside')
 %etaRange=[0.1];
 
 %%Params for blebbi and ck666
-
-% dActinRange=[8*0.01e11 0.01e11];
-% etaRange=[0.1 0.1];
 % 
-% offset=["0.1" "0.05"];
+% dActinRange=[11*0.01e11 0.015e11];
+% etaRange=[0.175 0.175];
+% 
+% offset=["0.10" "0.10"];
 % kof1Range=[1.7 3];
 % NnMaxRange=[1,1];
 
 %%params for ck666, smifh2, and LatA
 
-%dActinRange=[0.1000e10    0.15e10    0.1e10];
-%etaRange=[0.1000    1.0800   1.0000];
+dActinRange=[0.1500e10    0.115e10    0.1e10];
+etaRange=[0.175    1.0800   0.8];
 
-%offset=["0.05" "0.05" "0.02"];
-%kof1Range=[3 3 3];
-%NnMaxRange=[1,1,0.5];
+offset=["0.1" "0.02" "0.02"];
+kof1Range=[3 3 3];
+NnMaxRange=[1,1,0.5];
+
 
 %%params for blebbi figs
-
-dActinRange=[8*0.01e11];
-etaRange=[0.1];
-
-offset=["0.1" ];
-kof1Range=[1.7 ];
-NnMaxRange=[1];
+% 
+% dActinRange=[8*0.01e11];
+% etaRange=[0.1];
+% 
+% offset=["0.1" ];
+% kof1Range=[1.7 ];
+% NnMaxRange=[1];
 
 
 
@@ -224,7 +225,7 @@ cmi=1;
 
 
                 figure(tf)
-                errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2))/2,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' \eta:' num2str(eta)],'Color',cm(cmi,:),'LineStyle','none');
+                errorbar(E*10^-3,abs(mean(P_blebbi_actinSlowdown,2)),(std(P_blebbi_actinSlowdown,0,2)),'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' \eta:' num2str(eta)],'Color',cm(cmi,:),'LineStyle','none');
                 regTract=fit((E*10^-3)',abs(mean(P_blebbi_actinSlowdown,2)),'power1');
                 lim=ylim;
                 vals=coeffvalues(regTract);
@@ -236,7 +237,7 @@ cmi=1;
                 xlabel('E (kPa)'), ylabel('Mean traction (Pa)')
                 %title(['Blebbi, ion: ' ion ', no intadd', ' Trials:',int2str(numTrials),' Time Period:',int2str(timeTotal)])
                 figure(ff)
-                errorbar(E*10^-3,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))/2*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' \eta:' num2str(eta)],'Color',cm(cmi,:),'LineStyle','none');
+                errorbar(E*10^-3,abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,(std(v_blebbi_actinSlowdown,0,2))*1e6*60,'o-','DisplayName',['k Actin:' num2str(dActinRange(kk)*k_basicActin) ' \eta:' num2str(eta)],'Color',cm(cmi,:),'LineStyle','none');
                 %set(gca,'XScale','log');
                 md=fittype(['a*exp(b*t)+' char(offset(kk)) ],'indep','t');
                 regSpeed=fit((E*10^-3)',abs(mean(v_blebbi_actinSlowdown,2))*1e6*60,md);
