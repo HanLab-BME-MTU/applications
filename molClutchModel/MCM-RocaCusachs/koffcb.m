@@ -111,7 +111,12 @@ return
 % for comparison
 f=10.^(-15:0.01:-9);
 figure
-loglog(f, koffcb(f,'mg'));
+loglog(f, koffcb(f,'mg'),'k','LineWidth',2);
+xlabel('F_c')
+ylabel('k_{off}')
+ylim([0 1e20])
+xlim([1e-14 1e-9])
+
 hold on
 loglog(f, koffcb(f,'mg_earlyslipmore'));
 loglog(f, koffcb(f,'mg_earlyslip'));
