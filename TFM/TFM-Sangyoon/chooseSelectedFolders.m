@@ -98,7 +98,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
         return
     end
     specificName = strjoin(groupNames);
-    rootAnalysis = pathAnalysisAll{1};
+    rootAnalysis = pwd; %pathAnalysisAll{1};
     refDirTif = [];
 %     save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 else
