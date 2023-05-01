@@ -263,11 +263,11 @@ for j=1:movieData.nFrames_
     
     maskAdhesionFA = logical(labelAdhesionFA);
     maskAdhesionFC = maskAdhesion2 .* ~maskAdhesionFA;
-
-    indInside=maskVectors(xNA,yNA,bwmorph(maskAdhesion2,'dilate',10)); 
+        
     % Now point sources too close to FAs will be disregarded.
-    indTrueNAs=~indInside;
     if ~isempty(pstruct)
+        indInside=maskVectors(xNA,yNA,bwmorph(maskAdhesion2,'dilate',10)); 
+        indTrueNAs=~indInside;
         idxSigCCP = pstruct.A>0 & indTrueNAs';
 
         nascentAdhInfo(j).xCoord = [round(pstruct.x(idxSigCCP)'), round(pstruct.x_pstd(idxSigCCP)')];
@@ -386,29 +386,58 @@ for j=1:movieData.nFrames_
                 forceNA{j}(ii) = mean(curTmap(curAdhMaskDilated));
             end
             % Finally BG
-            maskAdhesion2dilated = bwmorph(maskAdhesion2,'dilate',10);
-            maskNAsDil = bwmorph(maskNAs,'dilate',10);
-            cellMask = roiMask(:,:,j) & mask;
-            bgMask = roiMask(:,:,j) & ~mask;
-            areaThres = round(mean(focalAdhInfo(j).area));
-            curForceBGinCell = curTmap(~maskAdhesion2dilated & ~maskNAsDil & cellMask)';
-            for ii=1:floor(length(curForceBGinCell)/areaThres)
-                if ii<floor(length(curForceBGinCell)/areaThres)
-                    forceBGinCell{j}(ii) = mean(curForceBGinCell((ii-1)*areaThres+1:(ii)*areaThres));
+            neighborDistUm = 1; % in um
+            curForceBGinCell = [];
+            while isempty(curForceBGinCell)
+                neighborDistUm = neighborDistUm/2; % in um
+                neighborDistPix = round(neighborDistUm/(movieData.pixelSize_*0.001)); % in pixel
+
+                maskAdhesion2dilated = bwmorph(maskAdhesion2,'dilate',neighborDistPix);
+                maskNAsDil = bwmorph(maskNAs,'dilate',neighborDistPix);
+                cellMask = roiMask(:,:,j) & mask;
+                bgMask = roiMask(:,:,j) & ~mask;
+                areaThres = mean(focalAdhInfo(j).area); %there was a round function.
+                curForceBGinCell = curTmap(~maskAdhesion2dilated & ~maskNAsDil & cellMask)';
+            end
+            if areaThres>1
+                areaThres = round(areaThres);
+                if ~isempty(curForceBGinCell)
+                    for ii=1:floor(length(curForceBGinCell)/areaThres)
+                        if ii<floor(length(curForceBGinCell)/areaThres)
+                            forceBGinCell{j}(ii) = mean(curForceBGinCell((ii-1)*areaThres+1:(ii)*areaThres));
+                        else
+                            forceBGinCell{j}(ii) = mean(curForceBGinCell((ii-1)*areaThres+1:end));
+                        end
+                    end
+                end
+            else
+                nDS = round(numel(curForceBGinCell)/600);
+                if nDS>1
+                    forceBGinCell{j} = downsample(curForceBGinCell,nDS);
                 else
-                    forceBGinCell{j}(ii) = mean(curForceBGinCell((ii-1)*areaThres+1:end));
+                    forceBGinCell{j} = curForceBGinCell;
                 end
             end
-            
             curForceBGoutCell = curTmap(~maskAdhesion2dilated & bgMask)';
-            for ii=1:floor(length(curForceBGoutCell)/areaThres)
-                if ii<floor(length(curForceBGoutCell)/areaThres)
-                    forceBGoutCell{j}(ii) = mean(curForceBGoutCell((ii-1)*areaThres+1:(ii)*areaThres));
-                else
-                    forceBGoutCell{j}(ii) = mean(curForceBGoutCell((ii-1)*areaThres+1:end));
+            % curForceBGoutCell can be many, say more than 1000,000. Will
+            % need to downsample.
+            if areaThres>1
+                areaThres = round(areaThres);
+                for ii=1:floor(length(curForceBGoutCell)/areaThres)
+                    if ii<floor(length(curForceBGoutCell)/areaThres)
+                        forceBGoutCell{j}(ii) = mean(curForceBGoutCell((ii-1)*areaThres+1:(ii)*areaThres));
+                    else
+                        forceBGoutCell{j}(ii) = mean(curForceBGoutCell((ii-1)*areaThres+1:end));
+                    end
                 end
-            end
-            
+            else
+                nDS = round(numel(curForceBGoutCell)/600);
+                if nDS>1
+                    forceBGoutCell{j} = downsample(curForceBGoutCell,nDS);
+                else
+                    forceBGoutCell{j} = curForceBGoutCell;
+                end
+            end            
         end
         % For the other channel
         if ~isempty(iAdditionalChan)
