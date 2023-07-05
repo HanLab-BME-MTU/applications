@@ -1,4 +1,4 @@
-function [imgStack, tMap, imgStack2] = getAnyStacks(MD)
+function [imgStack, tMap, imgStack2, labelAdhesion] = getAnyStacks(MD)
 % Load FA package
 FAPack=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
 % Load classification process
@@ -83,3 +83,21 @@ if nargout>2
         end
     end
 end
+%% FA mask
+% iFAseg = MD.getProcessIndex('FocalAdhesionSegmentationProcess');
+% FASegProc = MD.getProcess(iFAseg);
+% for ii=1:nFrames
+%     maskFAs = FASegProc.loadChannelOutput(iChan,ii);
+%     maskFAs = imtranslate(maskFAs,T(ii,2:-1:1));
+% end
+faAnalProc = FAPack.getProcess(7);
+p = faAnalProc.funParams_;
+labelTifPath = [p.OutputDirectory filesep 'labelTifs'];
+iiformat = ['%.' '3' 'd'];
+labelAdhesion = zeros(size(imgStack,1),size(imgStack,2),size(imgStack,3));
+for ii=1:nFrames
+    maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
+    labelAdhesion(:,:,ii) = bwlabel(maskAdhesion,4);
+end
+
+

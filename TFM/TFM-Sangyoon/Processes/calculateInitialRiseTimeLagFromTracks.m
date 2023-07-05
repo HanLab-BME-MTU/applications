@@ -882,10 +882,31 @@ end
     numTracks=numel(tracksNA);
     tIntMin=MD.timeInterval_/60;
     tRangeSelectedAssem = cell(numTracks,1);
+    
+    %% Lifetime analysis
+    idxEmer = false(numel(tracksNA),1);
+    idxDis = false(numel(tracksNA),1);
+    for k=1:numel(tracksNA)
+        % look for tracks that had a state of 'BA' and become 'NA'
+        firstNAidx = find(tracksNA(k).state==2,1,'first');
+        % see if the state is 'BA' before 'NA' state
+        if (~isempty(firstNAidx) && firstNAidx>1 && (tracksNA(k).state(firstNAidx-1)==1)) || (~isempty(firstNAidx) &&firstNAidx==1)
+            idxEmer(k) = true;
+            tracksNA(k).emerging = true;
+            tracksNA(k).emergingFrame = firstNAidx;
+        else
+            tracksNA(k).emerging = false;
+        end        
+        % look for tracks that had a state of 'ANA' 
+        disassembling = any(tracksNA(k).state==5);
+        idxDis(k) = disassembling;
+        tracksNA(k).disassembling = disassembling;
+    end
+    
     R2criteria = 0.5;
-    for kk=1:numTracks
+    for kk=find(idxEmer')
         curTrack=tracksNA(kk);
-        [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal');%'amp');
+        [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp'); %'ampTotal');%
         if ~isnan(curAssemRate)
             if bestSummaryAssem.adjRsquared<R2criteria %something about too short TS?
                 curAssemRate = NaN;
@@ -920,10 +941,10 @@ end
     end
     disp('Calculating disassembly rates'); tic
     tRangeSelectedDisassem = cell(numel(tracksNA),1);
-    parfor kk=1:numTracks
+    parfor kk=find(idxDis')
 %     for kk=1:numTracks
         curTrack=tracksNA(kk);
-        [curDisassemRate,~,bestSummaryDisassem,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal'); %'amp');
+        [curDisassemRate,~,bestSummaryDisassem,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'amp'); %'ampTotal'); %
         if ~isnan(curDisassemRate)
             if bestSummaryDisassem.adjRsquared<R2criteria
                 curDisassemRate = NaN;
