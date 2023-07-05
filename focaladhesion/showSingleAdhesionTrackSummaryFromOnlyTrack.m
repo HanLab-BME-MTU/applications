@@ -32,17 +32,17 @@ end
 % This is for testing and improvement. I want to re-track the curTrack and
 % see how the bkgAmp is estimated.
 
-curTrack2 = reestimateBkgFromTracks(curTrack, imgStack, labelFAs);
-figure('Position',[50 100 600 700]); 
-subplot(3,2,1), plot(curTrack.bkgAmp),title('bkgAmp')
-subplot(3,2,3), plot(curTrack.amp), title('Amp')
-subplot(3,2,5), plot(curTrack.ampTotal), title('AmpTotal')
+% curTrack2 = reestimateBkgFromTracks(curTrack, imgStack, labelFAs);
+% figure('Position',[50 100 600 700]); 
+% subplot(3,2,1), plot(curTrack.bkgAmp),title('bkgAmp')
+% subplot(3,2,3), plot(curTrack.amp), title('Amp')
+% subplot(3,2,5), plot(curTrack.ampTotal), title('AmpTotal')
+% 
+% subplot(3,2,2), plot(curTrack2.bkgAmp),title('bkgAmp')
+% subplot(3,2,4), plot(curTrack2.amp), title('Amp')
+% subplot(3,2,6), plot(curTrack2.ampTotal), title('AmpTotal')
 
-subplot(3,2,2), plot(curTrack2.bkgAmp),title('bkgAmp')
-subplot(3,2,4), plot(curTrack2.amp), title('Amp')
-subplot(3,2,6), plot(curTrack2.ampTotal), title('AmpTotal')
-
-h2 = showSingleAdhesionTrackSummaryRateConstFitting(MD,curTrack2,imgStack,tMap,imgStack2);
+h2 = showSingleAdhesionTrackSummaryRateConstFitting(MD,curTrack,imgStack,tMap,imgStack2);
 % function [h2, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave] = ...
 %     showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, ...
 %     gPath,additionalName,imgStackBS,imgStackBS2)
