@@ -54,6 +54,9 @@ tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 % numChans = numel(p.ChannelIndex);
 %% Doublecheck if amp has similar range as amp2 and read it again at least for the extra part
 % find one examplary track that has intermediate starting point
+tic
+[imgStack, ~, ~, labelFAs] = getAnyStacks(MD);
+toc
 startingFrameExtraAll = arrayfun(@(x) x.startingFrameExtra,tracksNA);
 startingFrameExtraExtraAll = arrayfun(@(x) x.startingFrameExtraExtra,tracksNA);
 intermedTrackIDs = find(startingFrameExtraExtraAll<(startingFrameExtraAll-10));
@@ -64,9 +67,6 @@ if ~isempty(intermedTrackIDs)
     if isnan(trackInspected.amp(trackInspected.startingFrameExtraExtra+1))
         % then we need to read this amp again
         disp('Reading image stack again to read extra time regime of amp...')
-        tic
-        imgStack = getAnyStacks(MD);
-        toc
         disp('Reading from tracks'); tic
         tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true); toc;
         disp('Saving the tracks...'); tic
@@ -438,6 +438,9 @@ save([dataPath filesep 'BccGroups.mat'],'BccGroups','indexValidBccInTracks');
 % plotted. If there are also ampTotal2, then everything will be aligned to
 % the p.mainSlave
 % In case of only forceMag
+
+tracksNA = reestimateBkgFromTracks(tracksNA, imgStack, labelFAs);
+
 for k=1:numClasses
     initialLagTogether = initialLagGroups(k,existingSlaveIDs);
     peakLagTogether = peakLagGroups(k,existingSlaveIDs);
@@ -874,6 +877,8 @@ end
     save([p.OutputDirectory filesep 'data' filesep 'ampTotal.mat'],'ampTotal','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/ampTotalAllGroups'),'-v7.3'); close(h2)
+    %% 
+
     %% Look at feature difference per each group - assemRate
     if ~isfield(tracksNA,'assemRate')
         tracksNA(end).assemRate=[];
@@ -904,7 +909,7 @@ end
     end
     
     R2criteria = 0.5;
-    for kk=find(idxEmer')
+    parfor kk=1:numTracks  %find(idxEmer')
         curTrack=tracksNA(kk);
         [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp'); %'ampTotal');%
         if ~isnan(curAssemRate)
@@ -916,6 +921,9 @@ end
         tRangeSelectedAssem{kk} = tRangeSelected;
         tracksNA(kk)=curTrack;
 %         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
+    end
+    for kk = find(~idxEmer')
+        tracksNA(kk).assemRate = NaN;
     end
     toc
     assemRate{1} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{1}));
@@ -941,7 +949,7 @@ end
     end
     disp('Calculating disassembly rates'); tic
     tRangeSelectedDisassem = cell(numel(tracksNA),1);
-    parfor kk=find(idxDis')
+    parfor kk=1:numTracks %find(idxDis')
 %     for kk=1:numTracks
         curTrack=tracksNA(kk);
         [curDisassemRate,~,bestSummaryDisassem,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'amp'); %'ampTotal'); %
@@ -954,6 +962,9 @@ end
         tRangeSelectedDisassem{kk} = tRangeSelected;
         tracksNA(kk)=curTrack;
 %         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
+    end
+    for kk = find(~idxDis')
+        tracksNA(kk).disassemRate = NaN;
     end
     toc
     disassemRate{1} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroups{1}));
