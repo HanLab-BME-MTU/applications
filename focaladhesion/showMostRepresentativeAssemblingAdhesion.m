@@ -168,6 +168,8 @@ curClass=iRepClass;
             %calculate noise-filtered and background-subtracted image
             imgStackBS2(:,:,ii) = curImg - cast(imageBackground,imgClass);
         end
+    else
+        imgStackBS2 = [];
     end
 
     

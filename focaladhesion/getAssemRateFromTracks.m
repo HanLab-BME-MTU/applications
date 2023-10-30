@@ -24,7 +24,7 @@ if nargin<5
     plotFit=false;
 end
 %% Setting
-tRange = curTrack.startingFrameExtra:curTrack.endingFrameExtra;
+tRange = curTrack.startingFrameExtraExtra:curTrack.endingFrameExtraExtra;
 % curAmpTotal =  curTrack.ampTotal(tRange);
 if nargin<6
     tRangeSelected=tRange;
@@ -49,8 +49,9 @@ end
 
 % There is a case where the first element is negative. In that case, we
 % elevate the entire sereis above zero.
-if curAmpTotal(1)<0
-    curAmpTotal = curAmpTotal - curAmpTotal(1) + 0.1*nanstd(curAmpTotal);
+minAmp = min(curAmpTotal);
+if minAmp<0
+    curAmpTotal = curAmpTotal - minAmp + 0.1*nanstd(curAmpTotal);
 end
 %% GET IT
 if length(tRange)<minLifeTime+1

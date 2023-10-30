@@ -1,4 +1,6 @@
-function [h2, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave] = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, gPath,additionalName,imgStackBS,imgStackBS2)
+function [h2, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave] = ...
+    showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, ...
+    gPath,additionalName,imgStackBS,imgStackBS2)
 % h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
 % This function shows big picture, montage, and time series of fluorescence
 % intensity and traction.
@@ -256,7 +258,7 @@ numChosenFrames = length(chosenStartFrame:chosenEndFrame);
 montInterval = ceil(numChosenFrames/maxMontageNum);
 if montInterval>1
     %Check if peakFrameForce is included in the range
-    if isfield(curTrack,'forcePeakness')
+    if isfield(curTrack,'forcePeakness') && curTrack.forcePeakness
         modShift=mod(peakFrameForce-chosenStartFrame,montInterval);
         indiceRange=1+modShift:montInterval:numChosenFrames;
     else

@@ -1,5 +1,5 @@
 function [h2] = showSingleAdhesionTrackSummaryRateConstFitting(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, gPath,additionalName)
-% h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
+% h2 = showSingleAdhesionTrackSummaryRateConstFitting(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
 % This function shows big picture, montage, and time series of fluorescence
 % intensity and traction.
 % Sangyoon Han, Jun 2015
@@ -14,12 +14,12 @@ curEndFrame=curTrack.endingFrameExtra;
 if length(curTrack.amp)<curEndFrame
     curEndFrame=length(curTrack.amp);
 end
-curStartFrame = curTrack.startingFrameExtra;
+curStartFrame = curTrack.startingFrameExtraExtra; %curTrack.startingFrameExtra;
 curEndFrameEE=curTrack.endingFrameExtraExtra;
 if length(curTrack.amp)<curEndFrameEE
     curEndFrameEE=length(curTrack.amp);
 end
-curStartFrameEE = max(1,curStartFrame-5); %This needs to be updated in calculatePeakTimeLagFromTracks %curTrack.startingFrameExtraExtra;
+curStartFrameEE = curTrack.startingFrameExtraExtra; %max(1,curStartFrame-5); %This needs to be updated in calculatePeakTimeLagFromTracks %curTrack.startingFrameExtraExtra;
 curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
@@ -28,8 +28,8 @@ chosenFRange = curFrameRange;
 
 splineParam = 0.01;
 try
-%     d = curTrack.amp(curStartFrameEE:curEndFrameEE);
-    d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
+    d = curTrack.amp(curStartFrameEE:curEndFrameEE);
+%     d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
     tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 catch
 %     curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
@@ -37,7 +37,8 @@ catch
 %     if ~isempty(imgMap2)
 %         curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);
 %     end   
-    d = curTrack.ampTotal(curStartFrame:curEndFrame);
+%     d = curTrack.ampTotal(curStartFrame:curEndFrame);
+    d = curTrack.amp(curStartFrame:curEndFrame);
     tRange = curTrack.iFrame(curStartFrame:curEndFrame);
 end    
 sd_spline= csaps(tRange,d,splineParam);
@@ -71,6 +72,9 @@ bRightBig = min(imgWidth,meanX+r_pixBig);
 bBottomBig = max(1,meanY-r_pixBig);
 bTopBig = min(imgHeight,meanY+r_pixBig);
 % make a new figure
+if nargin<6
+    IDtoInspect = 1;
+end
 h2=figure('Name', strcat('trackID',num2str(IDtoInspect)));
 % Depending on input, figure might have to be bigger
 figWidth = 600+200; % addtinal 200 is for new graph place.
@@ -313,8 +317,8 @@ if ~isempty(imgMap2)
 else
     ax8=axes('Position',[50/figWidth, 50/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
-plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'k'), hold on    
-% plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'k'), hold on    
+% plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'k'), hold on    
+plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'k'), hold on    
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
 set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 
@@ -324,7 +328,7 @@ else
     axA=axes('Position',[50/figWidth, 170/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
-[assemRate,bestModelAssem,bestSummaryAssem,yEntireAssem,tRangeSelectedAssem] = getAssemRateFromTracks(curTrack,tIntervalMin,'ampTotal');
+[assemRate,bestModelAssem,bestSummaryAssem,yEntireAssem,tRangeSelectedAssem] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp'); %'ampTotal');
 % bestModelAssem.plot
 if ~isempty(bestModelAssem)
     plot(bestModelAssem.Variables.x1*60 - curStartFrameEE*tInterval,bestModelAssem.Variables.y, 'bx-.')
@@ -348,7 +352,7 @@ else
     axB=axes('Position',[50/figWidth, 290/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
-[disassemRate,bestModelDis,bestSummaryDis,yEntireDis,tRangeSelectedDisassem] = getDisassemRateFromTracks(curTrack,tIntervalMin,'ampTotal');
+[disassemRate,bestModelDis,bestSummaryDis,yEntireDis,tRangeSelectedDisassem] = getDisassemRateFromTracks(curTrack,tIntervalMin,'amp'); %'ampTotal');
 % bestModelAssem.plot
 if ~isempty(bestModelDis)
     plot(bestModelDis.Variables.x1*60 - curStartFrameEE*tInterval,bestModelDis.Variables.y, 'bx-.')
@@ -380,16 +384,16 @@ if isempty(imgMap2) % Now this is for ampSlope and earlyAmpSlope
     lastFrameOneMin = min(curTrack.endingFrameExtraExtra,sF+oneMinPeriod+prePeriodFrame-1);
     lastFrameFromOneOneMin = lastFrameOneMin - sF+1;
     curTRange = tIntervalMin*(1:lastFrameFromOne);
-    curTSnorm = curTrack.ampTotal(sF:lastFrame);
-%     curTSnorm = curTrack.amp(sF:lastFrame);
+%     curTSnorm = curTrack.ampTotal(sF:lastFrame);
+    curTSnorm = curTrack.amp(sF:lastFrame);
     
     try
         statModel = fitlm(curTRange, curTSnorm);
         earlyAmpSlope = statModel.Coefficients.Estimate(2);
         
         curTRange2 = tIntervalMin*(1:lastFrameFromOneOneMin);
-%         curTSnorm2 = curTrack.amp(sF:lastFrameOneMin);
-        curTSnorm2 = curTrack.ampTotal(sF:lastFrameOneMin);
+        curTSnorm2 = curTrack.amp(sF:lastFrameOneMin);
+%         curTSnorm2 = curTrack.ampTotal(sF:lastFrameOneMin);
         statModel2 = fitlm(curTRange2, curTSnorm2);
         ampSlope = statModel2.Coefficients.Estimate(2);       
         
@@ -600,12 +604,27 @@ if ~isempty(imgMap2)
 else
     timeLagMasterAgainstMainSlave = NaN;
 end
-%% saving
 
-if exist('gPath','var')
-    print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.eps'),'-depsc2')
-    print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.png'),'-dpng')
-    savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.fig'))
+%Additional plot
+h3=figure;
+figWidth = 250; % addtinal 200 is for new graph place.
+figHeight = 600;
+set(h3,'Position',[560,250,figWidth,figHeight])
+
+subplot(3,1,3), plot(curTrack.bkgAmp),title('bkgAmp')
+subplot(3,1,1), plot(curTrack.amp), title('Amp')
+subplot(3,1,2), plot(curTrack.ampTotal), title('AmpTotal')
+%% saving
+% figure(h2)
+if ~exist('gPath','var')
+    gPath = [MD.getPath filesep 'FocalAdhesionPackage' filesep 'RepTracks'];
+    if ~exist(gPath, 'dir')
+        mkdir(gPath)
+    end
 end
+    
+print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.eps'),'-depsc2')
+print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.png'),'-dpng')
+savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.fig'))
 disp('Marker: yellow (track start), green (initial rise), blue(track end), white (peak)')
 end

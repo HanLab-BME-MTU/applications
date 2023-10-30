@@ -28,19 +28,24 @@ TSnorm = TS/TS(1);
 TSnorm(TSnorm < 0) = NaN;
 
 pp=0;
-fitSummary(maxSdInd-minLength+1)=struct('adjRsquared',NaN,'rSquared',NaN,'pValue',NaN,'slope',NaN,'time_length',NaN,'image_count',NaN); 
-statModel = cell(1,maxSdInd-minLength+1);
-for ii= minLength:maxSdInd
-    pp=pp+1;
-    statModel{pp} = fitlm(tRangeMin(1:ii), log(TSnorm(1:ii)));
-    % thisModel2 = fitlm(tRangeMin(1:ii), TS(1:ii));
+N = maxSdInd-minLength+1;
+Ncumul = N*(N+1)/2;
+fitSummary(Ncumul)=struct('adjRsquared',NaN,'rSquared',NaN,'pValue',NaN,'slope',NaN,'time_length',NaN,'image_count',NaN); 
+statModel = cell(1,Ncumul);
+for ii= minLength:maxSdInd %This was changing only the last point, not the start point. 
+    for jj=1:(ii-minLength+1)
+        pp=pp+1;
+        TSnorm = TS/TS(jj);
+        statModel{pp} = fitlm(tRangeMin(jj:ii), log(TSnorm(jj:ii)));
+        % thisModel2 = fitlm(tRangeMin(1:ii), TS(1:ii));
 
-    fitSummary(pp).adjRsquared = statModel{pp}.Rsquared.Adjusted;
-    fitSummary(pp).rSquared = statModel{pp}.Rsquared.Ordinary;
-    fitSummary(pp).pValue = statModel{pp}.Coefficients.pValue(2);
-    fitSummary(pp).slope = statModel{pp}.Coefficients.Estimate(2);
-    fitSummary(pp).time_length = tRangeMin(ii);
-    fitSummary(pp).image_count = ii;
+        fitSummary(pp).adjRsquared = statModel{pp}.Rsquared.Adjusted;
+        fitSummary(pp).rSquared = statModel{pp}.Rsquared.Ordinary;
+        fitSummary(pp).pValue = statModel{pp}.Coefficients.pValue(2);
+        fitSummary(pp).slope = statModel{pp}.Coefficients.Estimate(2);
+        fitSummary(pp).time_length = tRangeMin(ii);
+        fitSummary(pp).image_count = ii;
+    end
 end
 
 %% Find the best models
@@ -66,8 +71,19 @@ if assemRate<0
     return
 end
 
-iiRange = minLength:maxSdInd;
-tRangeSelected=1:iiRange(chosenFrame);
+pp=0;
+for ii= minLength:maxSdInd %This was changing only the last point, not the start point. 
+    for jj=1:(ii-minLength+1)
+        pp=pp+1;
+        if pp==chosenFrame
+            startFrame = jj;
+            endFrame = ii;
+            break
+        end
+    end
+end
+% iiRange = minLength:maxSdInd;
+tRangeSelected=startFrame:endFrame;
 
     
     
