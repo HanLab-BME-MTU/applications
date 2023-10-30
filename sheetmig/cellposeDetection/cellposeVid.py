@@ -17,7 +17,14 @@ from scipy.spatial import ConvexHull
 from tqdm import tqdm
 import cv2 as cv
 dir = os.path.dirname(os.path.realpath(__file__))+'/'
+from matplotlib.colors import hsv_to_rgb
 
+def get_color_from_angle(angle):
+    """Get a color corresponding to an angle using HSV colormap"""
+    # Convert angle from [-180, 180] to [0, 1]
+    hue = (angle + 180) / 360.0
+    # Convert hue to RGB color
+    return hsv_to_rgb((hue, 1, 1))
 
 def approxEllipseFromArea(img,frameNum):
     ds={"y":0,"x":0,"theta":0,"width":0,"height":0,"ap":0,"thetarads":0,"thetaunshifted":0}
@@ -173,30 +180,45 @@ class MainWindow(QWidget):
         fig2,ax2=plt.subplots(1,2,tight_layout=True,figsize=(10,5))
         theta=[]
         ratio=[]
-        for i,r in self.df.query("frame=={}".format(0)).iterrows():
-            theta.append(np.round(np.deg2rad(r["theta"]),2))
-            #ma=max((r["height"],r["width"]))
-            #mi=min((r["height"],r["width"]))
-            #ratio.append(ma/mi)
-            shiftedTheta = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedTheta)
+        # for i,r in self.df.query("frame=={}".format(0)).iterrows():
+        #     theta.append(np.round(np.deg2rad(r["theta"]),2))
+        #     #ma=max((r["height"],r["width"]))
+        #     #mi=min((r["height"],r["width"]))
+        #     #ratio.append(ma/mi)
+        #     shiftedTheta = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
+        #     e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedTheta)
+        #     ax2[0].add_artist(e)
+        # ax[0].hist(theta,width=2*np.pi/20,bins=20)
+        # ax2[0].set_axis_off()
+        # ax2[0].imshow(self.frames[0])
+        # theta=[]
+        # ratio=[]
+        # for i,r in self.df.query("frame=={}".format(len(self.frames)-1)).iterrows():
+        #     theta.append(np.round(np.deg2rad(r["theta"]),2))
+        #     #ma=max((r["height"],r["width"]))
+        #     #mi=min((r["height"],r["width"]))
+        #     #ratio.append(ma/mi)
+        #     shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
+        #     e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedThetaFinal,alpha=0.5)
+        #     ax2[1].add_artist(e)
+        # ax[1].hist(theta,width=2*np.pi/20,bins=20)
+        # ax2[1].set_axis_off()
+        # ax2[1].imshow(self.frames[-1])
+        for i, r in self.df.query("frame=={}".format(0)).iterrows():
+            shiftedTheta = r['theta'] + 90
+            color = get_color_from_angle(r['theta'])
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+                                facecolor='none')
             ax2[0].add_artist(e)
-        ax[0].hist(theta,width=2*np.pi/20,bins=20)
-        ax2[0].set_axis_off()
-        ax2[0].imshow(self.frames[0])
-        theta=[]
-        ratio=[]
-        for i,r in self.df.query("frame=={}".format(len(self.frames)-1)).iterrows():
-            theta.append(np.round(np.deg2rad(r["theta"]),2))
-            #ma=max((r["height"],r["width"]))
-            #mi=min((r["height"],r["width"]))
-            #ratio.append(ma/mi)
-            shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedThetaFinal,alpha=0.5)
+        ax2[0].imshow(self.frames[0], cmap='gray')  # Convert the image to grayscale
+
+        for i, r in self.df.query("frame=={}".format(len(self.frames) - 1)).iterrows():
+            shiftedThetaFinal = r['theta'] + 90
+            color = get_color_from_angle(r['theta'])
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
+                                facecolor='none', alpha=0.5)
             ax2[1].add_artist(e)
-        ax[1].hist(theta,width=2*np.pi/20,bins=20)
-        ax2[1].set_axis_off()
-        ax2[1].imshow(self.frames[-1])
+        ax2[1].imshow(self.frames[-1], cmap='gray')  # Convert the image to grayscale
 
         fig3,ax3=plt.subplots(1,1,tight_layout=True,figsize=(5,5))
         y=[]
