@@ -280,27 +280,29 @@ class MainWindow(QWidget):
         #FRAME ONE
         for i,r in self.df.query("frame=={}".format(0)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
-            #ma=max((r["height"],r["width"]))
-            #mi=min((r["height"],r["width"]))
             shiftedTheta = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedTheta)
+            color = get_color_from_angle(r['theta'])
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+                                facecolor='none')
             ax6[0].add_artist(e)
         ax6[0].set_axis_off()
-        ax6[0].imshow(self.frames[0])
+        ax6[0].imshow(self.frames[0], cmap='gray')
         ax6[0].set_title("Frame #1")
         theta=[]
+
+
         #FRAME N*1/5
         frame_n1 = int(np.floor(frame_last * 1 / 4))
         for i,r in self.df.query("frame=={}".format(frame_n1)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
-            #ma=max((r["height"],r["width"]))
-            #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedThetaFinal,alpha=0.5)
+            color = get_color_from_angle(r['theta'])
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+                                facecolor='none')
             ax6[1].add_artist(e)
         ax6[1].set_axis_off()
         ax6[1].imshow(self.frames[frame_n1])
-        ax6[1].set_title("Frame #{}".format(frame_n1))
+        ax6[1].set_title("Frame #{}".format(frame_n1), cmap='gray')
         theta=[]
         #FRAME N*2/5
         frame_n2 = int(np.floor(frame_last * 2 / 4))
@@ -309,10 +311,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedThetaFinal,alpha=0.5)
+            color = get_color_from_angle(r['theta'])
+	    e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+                                facecolor='none')
             ax6[2].add_artist(e)
         ax6[2].set_axis_off()
-        ax6[2].imshow(self.frames[frame_n2])
+        ax6[2].imshow(self.frames[frame_n2], cmap='gray')
         ax6[2].set_title("Frame #{}".format(frame_n2))
         theta=[]
         #FRAME N*3/4
@@ -322,10 +326,11 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedThetaFinal,alpha=0.5)
-            ax6[3].add_artist(e)
+            color = get_color_from_angle(r['theta'])
+	    e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+                                facecolor='none')            ax6[3].add_artist(e)
         ax6[3].set_axis_off()
-        ax6[3].imshow(self.frames[frame_n3])
+        ax6[3].imshow(self.frames[frame_n3], cmap='gray')
         ax6[3].set_title("Frame #{}".format(frame_n3))
         theta=[]
         #FRAME N-1
@@ -334,10 +339,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedThetaFinal,alpha=0.5)
+            color = get_color_from_angle(r['theta'])
+	    e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+                                facecolor='none')
             ax6[4].add_artist(e)
         ax6[4].set_axis_off()
-        ax6[4].imshow(self.frames[-1])
+        ax6[4].imshow(self.frames[-1], cmap='gray')
         ax6[4].set_title("Frame #{}".format(frame_last))
         plt.show()
 
