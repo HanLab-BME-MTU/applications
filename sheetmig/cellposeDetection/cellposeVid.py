@@ -312,7 +312,7 @@ class MainWindow(QWidget):
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-	    e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none')
             ax6[2].add_artist(e)
         ax6[2].set_axis_off()
@@ -327,8 +327,9 @@ class MainWindow(QWidget):
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-	    e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
-                                facecolor='none')            ax6[3].add_artist(e)
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+                                facecolor='none')            
+            ax6[3].add_artist(e)
         ax6[3].set_axis_off()
         ax6[3].imshow(self.frames[frame_n3], cmap='gray')
         ax6[3].set_title("Frame #{}".format(frame_n3))
@@ -340,7 +341,7 @@ class MainWindow(QWidget):
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-	    e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none')
             ax6[4].add_artist(e)
         ax6[4].set_axis_off()
