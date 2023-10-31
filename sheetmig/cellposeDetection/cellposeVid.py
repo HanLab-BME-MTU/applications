@@ -405,11 +405,13 @@ class MainWindow(QWidget):
         # Create the colorbar
         # Assuming cbar_ax is where you want to show the colorbar
         # Compute min and max values of apTheta for normalization
-        vmin, vmax = min(all_apTheta), max(all_apTheta)
+        # vmin, vmax = min(all_apTheta), max(all_apTheta)
 
         # Create a colormap
         cmap = plt.get_cmap("hsv")
-        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        cmin = 0
+        cmax = 360
+        norm = mpl.colors.Normalize(vmin=cmin, vmax=cmax)
 
         # Create a fake scalar mappable for the colorbar
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -417,9 +419,8 @@ class MainWindow(QWidget):
 
         cbar = plt.colorbar(sm, ax=ax6[5])
         cbar.ax.set_ylabel('Angle (degrees)')
-        cbar.ax.text(1, vmin, f'{vmin:.1f}', transform=cbar.ax.transAxes, verticalalignment='bottom')
-        cbar.ax.text(1, vmax, f'{vmax:.1f}', transform=cbar.ax.transAxes, verticalalignment='top')
-
+        cbar.ax.text(1, vmin, f'{cmin}', transform=cbar.ax.transAxes, verticalalignment='bottom')
+        cbar.ax.text(1, vmax, f'{cmax}', transform=cbar.ax.transAxes, verticalalignment='top')
 
         # Display the min and max values on the colorbar
         cbar.ax.set_yticklabels(
