@@ -275,7 +275,7 @@ class MainWindow(QWidget):
         ax5.set_ylim(-1.1,1.1)
         
         frame_last = len(self.frames)
-        fig6,ax6=plt.subplots(1,5,tight_layout=True,figsize=(25,5))
+        fig6,ax6=plt.subplots(1,6,tight_layout=True,figsize=(24,4))
         theta=[]
         # Create a list to store the apTheta values for each frame
         all_apTheta = []
@@ -294,8 +294,8 @@ class MainWindow(QWidget):
         mu = np.mean(self.frames[0])
         sigma = np.std(self.frames[0])
         # Set a constant factor for contrast adjustment
-        c = 2.5
-        vmin = mu - c * sigma
+        c = 2
+        vmin = mu - c * 1.2 * sigma
         vmax = mu + c * sigma
         # Display the self.frames[0] matrix with the determined contrast values
         ax6[0].imshow(self.frames[0], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
@@ -319,8 +319,7 @@ class MainWindow(QWidget):
         mu = np.mean(self.frames[frame_n1])
         sigma = np.std(self.frames[frame_n1])
         # Set a constant factor for contrast adjustment
-        c = 2.5
-        vmin = mu - c * sigma
+        vmin = mu - c * 1.2 * sigma
         vmax = mu + c * sigma
         # Display the self.frames[0] matrix with the determined contrast values
         ax6[1].imshow(self.frames[frame_n1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
@@ -345,8 +344,7 @@ class MainWindow(QWidget):
         mu = np.mean(self.frames[frame_n2])
         sigma = np.std(self.frames[frame_n2])
         # Set a constant factor for contrast adjustment
-        c = 2.5
-        vmin = mu - c * sigma
+        vmin = mu - c * 1.2 * sigma
         vmax = mu + c * sigma
         # Display the self.frames[0] matrix with the determined contrast values
         ax6[2].imshow(self.frames[frame_n2], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
@@ -372,8 +370,7 @@ class MainWindow(QWidget):
         mu = np.mean(self.frames[frame_n3])
         sigma = np.std(self.frames[frame_n3])
         # Set a constant factor for contrast adjustment
-        c = 2.5
-        vmin = mu - c * sigma
+        vmin = mu - c * 1.2 * sigma
         vmax = mu + c * sigma
         # Display the self.frames[0] matrix with the determined contrast values
         ax6[3].imshow(self.frames[frame_n3], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
@@ -398,21 +395,33 @@ class MainWindow(QWidget):
         mu = np.mean(self.frames[-1])
         sigma = np.std(self.frames[-1])
         # Set a constant factor for contrast adjustment
-        c = 2.5
-        vmin = mu - c * sigma
+        vmin = mu - c * 1.2 * sigma
         vmax = mu + c * sigma
         # Display the self.frames[0] matrix with the determined contrast values
         im = ax6[4].imshow(self.frames[-1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
-
-        # ax6[4].imshow(self.frames[-1], cmap='gray')
         ax6[4].set_title("Frame #{}".format(frame_last))
 
         # Create an axis for the colorbar next to ax6
-        cbar_ax = fig6.add_axes([0.92, 0.15, 0.02, 0.25])  # [left, bottom, width, height]
+        cbar_ax = fig6.add_axes([0.95, 0.15, 0.02, 0.70])  # [left, bottom, width, height]
 
         # Create the colorbar
-        cbar = fig6.colorbar(im, cax=cbar_ax, orientation='vertical', ticks=[min(all_apTheta), max(all_apTheta)])
-        cbar.set_label('Angle (degrees)')
+        # Assuming cbar_ax is where you want to show the colorbar
+        # Compute min and max values of apTheta for normalization
+        vmin, vmax = min(all_apTheta), max(all_apTheta)
+
+        # Create a colormap
+        cmap = plt.get_cmap("hsv")
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+
+        # Create a fake scalar mappable for the colorbar
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])  # This is necessary because we won't display the mappable
+
+        cbar = plt.colorbar(sm, ax=cbar_ax)
+        cbar.ax.set_ylabel('Angle (degrees)')
+        cbar.ax.text(1, vmin, f'{vmin:.1f}', transform=cbar.ax.transAxes, verticalalignment='bottom')
+        cbar.ax.text(1, vmax, f'{vmax:.1f}', transform=cbar.ax.transAxes, verticalalignment='top')
+
 
         # Display the min and max values on the colorbar
         cbar.ax.set_yticklabels(
