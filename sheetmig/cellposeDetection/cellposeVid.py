@@ -429,7 +429,7 @@ class MainWindow(QWidget):
 
         # Plot your image and ellipses
         # Create a new axis for the color wheel
-        rect = [0.9, 0.1, 0.08, 0.5]]
+        rect = [0.9, 0.1, 0.08, 0.5]
         ax_colorwheel = fig6.add_axes(rect, projection='polar', frame_on=False)
 
         # Create the color wheel data
