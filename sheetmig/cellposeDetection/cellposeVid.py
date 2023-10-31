@@ -290,7 +290,6 @@ class MainWindow(QWidget):
         ax6[0].set_title("Frame #1")
         theta=[]
 
-
         #FRAME N*1/5
         frame_n1 = int(np.floor(frame_last * 1 / 4))
         for i,r in self.df.query("frame=={}".format(frame_n1)).iterrows():
@@ -301,7 +300,7 @@ class MainWindow(QWidget):
                                 facecolor='none', alpha=0.5)
             ax6[1].add_artist(e)
         ax6[1].set_axis_off()
-        ax6[1].imshow(self.frames[frame_n1])
+        ax6[1].imshow(self.frames[frame_n1], cmap='gray')
         ax6[1].set_title("Frame #{}".format(frame_n1))
         theta=[]
         #FRAME N*2/5
@@ -347,6 +346,19 @@ class MainWindow(QWidget):
         ax6[4].set_axis_off()
         ax6[4].imshow(self.frames[-1], cmap='gray')
         ax6[4].set_title("Frame #{}".format(frame_last))
+
+        # Create an axis for the colorbar next to ax6
+        angle = (180 / np.pi) * np.angle(h)
+        cbar_ax = fig6.add_axes([0.92, 0.15, 0.02, 0.25])  # [left, bottom, width, height]
+
+        # Create the colorbar
+        cbar = fig6.colorbar(im, cax=cbar_ax, orientation='vertical', ticks=[angle.min(), angle.max()])
+        cbar.set_label('Angle (degrees)')
+
+        # Display the min and max values on the colorbar
+        cbar.ax.set_yticklabels(
+            [f'{angle.min():.2f}', f'{angle.max():.2f}'])  # Display with two decimal places
+
         plt.show()
 
 
