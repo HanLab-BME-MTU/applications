@@ -416,7 +416,7 @@ class MainWindow(QWidget):
 
         # Display the min and max values on the colorbar
         cbar.ax.set_yticklabels(
-            [f'{angle.min():.2f}', f'{angle.max():.2f}'])  # Display with two decimal places
+            [f'{min(all_apTheta):.1f}', f'{max(all_apTheta):.1f}'])  # Display with two decimal places
 
         plt.show()
 
