@@ -22,7 +22,7 @@ from matplotlib.colors import hsv_to_rgb
 def get_color_from_angle(angle):
     """Get a color corresponding to an angle using HSV colormap"""
     # Convert angle from [-180, 180] to [0, 1]
-    hue = (angle + 180) / 360.0
+    hue = (angle - 90) / 360.0
     # Convert hue to RGB color
     return hsv_to_rgb((hue, 1, 1))
 
@@ -206,7 +206,7 @@ class MainWindow(QWidget):
         # ax2[1].imshow(self.frames[-1])
         for i, r in self.df.query("frame=={}".format(0)).iterrows():
             shiftedTheta = r['theta'] + 90
-            color = get_color_from_angle(r['theta'])
+            color = get_color_from_angle(r['apTheta'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax2[0].add_artist(e)
@@ -214,7 +214,7 @@ class MainWindow(QWidget):
 
         for i, r in self.df.query("frame=={}".format(len(self.frames) - 1)).iterrows():
             shiftedThetaFinal = r['theta'] + 90
-            color = get_color_from_angle(r['theta'])
+            color = get_color_from_angle(r['apTheta'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax2[1].add_artist(e)
@@ -277,14 +277,18 @@ class MainWindow(QWidget):
         frame_last = len(self.frames)
         fig6,ax6=plt.subplots(1,5,tight_layout=True,figsize=(25,5))
         theta=[]
+        # Create a list to store the apTheta values for each frame
+        all_apTheta = []
         #FRAME ONE
         for i,r in self.df.query("frame=={}".format(0)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             shiftedTheta = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['theta'])
+            color = get_color_from_angle(r['apTheta'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[0].add_artist(e)
+            # Append the apTheta values to the list
+            all_apTheta.append(r['apTheta'])
         ax6[0].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[0])
@@ -304,10 +308,12 @@ class MainWindow(QWidget):
         for i,r in self.df.query("frame=={}".format(frame_n1)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['theta'])
+            color = get_color_from_angle(r['apTheta'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[1].add_artist(e)
+            # Append the apTheta values to the list
+            all_apTheta.append(r['apTheta'])
         ax6[1].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[frame_n1])
@@ -328,10 +334,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['theta'])
+            color = get_color_from_angle(r['apTheta'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[2].add_artist(e)
+            # Append the apTheta values to the list
+            all_apTheta.append(r['apTheta'])
         ax6[2].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[frame_n2])
@@ -353,10 +361,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['theta'])
+            color = get_color_from_angle(r['apTheta'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[3].add_artist(e)
+            # Append the apTheta values to the list
+            all_apTheta.append(r['apTheta'])
         ax6[3].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[frame_n3])
@@ -377,10 +387,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['theta'])
+            color = get_color_from_angle(r['apTheta'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[4].add_artist(e)
+            # Append the apTheta values to the list
+            all_apTheta.append(r['apTheta'])
         ax6[4].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[-1])
@@ -396,11 +408,10 @@ class MainWindow(QWidget):
         ax6[4].set_title("Frame #{}".format(frame_last))
 
         # Create an axis for the colorbar next to ax6
-        angle = (180 / np.pi) * np.angle(h)
         cbar_ax = fig6.add_axes([0.92, 0.15, 0.02, 0.25])  # [left, bottom, width, height]
 
         # Create the colorbar
-        cbar = fig6.colorbar(im, cax=cbar_ax, orientation='vertical', ticks=[angle.min(), angle.max()])
+        cbar = fig6.colorbar(im, cax=cbar_ax, orientation='vertical', ticks=[all_apTheta.min(), all_apTheta.max()])
         cbar.set_label('Angle (degrees)')
 
         # Display the min and max values on the colorbar
