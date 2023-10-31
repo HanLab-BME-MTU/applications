@@ -23,7 +23,7 @@ from matplotlib.colors import hsv_to_rgb
 def get_color_from_angle(angle):
     """Get a color corresponding to an angle using HSV colormap"""
     # Convert angle from [-180, 180] to [0, 1]
-    hue = (angle) / 360.0
+    hue = (angle) / 180.0
     # Convert hue to RGB color
     return hsv_to_rgb((hue, 1, 1))
 
