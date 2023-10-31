@@ -244,7 +244,7 @@ class MainWindow(QWidget):
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             shiftedTheta = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], r['theta'], edgecolor=color,
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[0].add_artist(e)
             # Append the apTheta values to the list
@@ -269,7 +269,7 @@ class MainWindow(QWidget):
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], r['theta'], edgecolor=color,
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[1].add_artist(e)
             # Append the apTheta values to the list
@@ -294,7 +294,7 @@ class MainWindow(QWidget):
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], r['theta'], edgecolor=color,
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[2].add_artist(e)
             # Append the apTheta values to the list
@@ -320,7 +320,7 @@ class MainWindow(QWidget):
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], r['theta'], edgecolor=color,
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[3].add_artist(e)
             # Append the apTheta values to the list
@@ -345,7 +345,7 @@ class MainWindow(QWidget):
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
             color = get_color_from_angle(r['theta'])
-            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], r['theta'], edgecolor=color,
+            e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[4].add_artist(e)
             # Append the apTheta values to the list
