@@ -417,14 +417,29 @@ class MainWindow(QWidget):
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])  # This is necessary because we won't display the mappable
 
-        cbar = plt.colorbar(sm, ax=ax6[5])
-        cbar.ax.set_ylabel('Angle (degrees)')
+        # cbar = plt.colorbar(sm, ax=ax6[5])
+        # cbar.ax.set_ylabel('Angle (degrees)')
         # cbar.ax.text(1, cmin, f'{cmin}', transform=cbar.ax.transAxes, verticalalignment='bottom')
         # cbar.ax.text(1, cmax, f'{cmax}', transform=cbar.ax.transAxes, verticalalignment='top')
         #
         # # Display the min and max values on the colorbar
         # cbar.ax.set_yticklabels(
         #     [f'{cmin:.1f}', f'{cmax:.1f}'])  # Display with two decimal places
+        # Calculate the orientation data (based on your previous code)
+
+        # Plot your image and ellipses
+        # Create a new axis for the color wheel
+        rect = [0.9, 0.1, 0.08, 0.5]]
+        ax_colorwheel = fig6.add_axes(rect, projection='polar', frame_on=False)
+
+        # Create the color wheel data
+        theta = np.linspace(0, 2 * np.pi, 256)
+        radius = np.linspace(0.5, 1, 2)
+        Theta, Radius = np.meshgrid(theta, radius)
+        values = Theta / (2 * np.pi)
+        ax_colorwheel.pcolormesh(Theta, Radius, values, cmap='hsv', shading='auto')
+        ax_colorwheel.set_yticks([])
+        fig6.delaxes(ax6[5])
 
         plt.show()
 
