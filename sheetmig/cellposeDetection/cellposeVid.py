@@ -411,7 +411,7 @@ class MainWindow(QWidget):
         cbar_ax = fig6.add_axes([0.92, 0.15, 0.02, 0.25])  # [left, bottom, width, height]
 
         # Create the colorbar
-        cbar = fig6.colorbar(im, cax=cbar_ax, orientation='vertical', ticks=[all_apTheta.min(), all_apTheta.max()])
+        cbar = fig6.colorbar(im, cax=cbar_ax, orientation='vertical', ticks=[min(all_apTheta), max(all_apTheta)])
         cbar.set_label('Angle (degrees)')
 
         # Display the min and max values on the colorbar
