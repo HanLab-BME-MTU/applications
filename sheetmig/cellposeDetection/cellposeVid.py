@@ -206,7 +206,7 @@ class MainWindow(QWidget):
         # ax2[1].imshow(self.frames[-1])
         for i, r in self.df.query("frame=={}".format(0)).iterrows():
             shiftedTheta = r['theta'] + 90
-            color = get_color_from_angle(r['apTheta'])
+            color = get_color_from_angle(r['thetaunshifted'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax2[0].add_artist(e)
@@ -214,7 +214,7 @@ class MainWindow(QWidget):
 
         for i, r in self.df.query("frame=={}".format(len(self.frames) - 1)).iterrows():
             shiftedThetaFinal = r['theta'] + 90
-            color = get_color_from_angle(r['apTheta'])
+            color = get_color_from_angle(r['thetaunshifted'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedThetaFinal, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax2[1].add_artist(e)
@@ -283,12 +283,12 @@ class MainWindow(QWidget):
         for i,r in self.df.query("frame=={}".format(0)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             shiftedTheta = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['apTheta'])
+            color = get_color_from_angle(r['thetaunshifted'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[0].add_artist(e)
             # Append the apTheta values to the list
-            all_apTheta.append(r['apTheta'])
+            all_apTheta.append(r['thetaunshifted'])
         ax6[0].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[0])
@@ -308,12 +308,12 @@ class MainWindow(QWidget):
         for i,r in self.df.query("frame=={}".format(frame_n1)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['apTheta'])
+            color = get_color_from_angle(r['thetaunshifted'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[1].add_artist(e)
             # Append the apTheta values to the list
-            all_apTheta.append(r['apTheta'])
+            all_apTheta.append(r['thetaunshifted'])
         ax6[1].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[frame_n1])
@@ -334,12 +334,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['apTheta'])
+            color = get_color_from_angle(r['thetaunshifted'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[2].add_artist(e)
             # Append the apTheta values to the list
-            all_apTheta.append(r['apTheta'])
+            all_apTheta.append(r['thetaunshifted'])
         ax6[2].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[frame_n2])
@@ -361,12 +361,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['apTheta'])
+            color = get_color_from_angle(r['thetaunshifted'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[3].add_artist(e)
             # Append the apTheta values to the list
-            all_apTheta.append(r['apTheta'])
+            all_apTheta.append(r['thetaunshifted'])
         ax6[3].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[frame_n3])
@@ -387,12 +387,12 @@ class MainWindow(QWidget):
             #ma=max((r["height"],r["width"]))
             #mi=min((r["height"],r["width"]))
             shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-            color = get_color_from_angle(r['apTheta'])
+            color = get_color_from_angle(r['thetaunshifted'])
             e = patches.Ellipse((r['y'], r['x']), r['width'], r['height'], shiftedTheta, edgecolor=color,
                                 facecolor='none', alpha=0.5)
             ax6[4].add_artist(e)
             # Append the apTheta values to the list
-            all_apTheta.append(r['apTheta'])
+            all_apTheta.append(r['thetaunshifted'])
         ax6[4].set_axis_off()
         # Compute the mean and standard deviation for the self.frames[0] matrix
         mu = np.mean(self.frames[-1])
