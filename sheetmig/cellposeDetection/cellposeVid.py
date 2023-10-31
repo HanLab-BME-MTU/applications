@@ -411,7 +411,7 @@ class MainWindow(QWidget):
 
         # Create a colormap
         cmap = plt.get_cmap("hsv")
-        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        norm = plt.colors.Normalize(vmin=vmin, vmax=vmax)
 
         # Create a fake scalar mappable for the colorbar
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
