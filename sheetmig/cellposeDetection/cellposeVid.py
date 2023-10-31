@@ -55,24 +55,6 @@ def approxEllipseFromArea(img,frameNum):
             ds['ap']=np.nan
             print("No ellipse was created for contour. Total contour points: ",len(cnt[i]))
             print("Ellipse creation failed on frame: ",frameNum)
-#        if all(el):
-#            ds['y']=el[0][0]
-#            ds['x']=el[0][1]
-#            ds['theta'] = ((el[2] - 270) % 360) - 180 #rotate theta 90 degrees clockwise such that 0 degrees corresponds to a cell pointing along flow direction (due east)
-#            #ds['theta']=el[2]
-#            ds['width']=el[1][0]
-#            ds['height']=el[1][1]
-#            apTheta = (el[2] - 90) % 360
-#            apRads = np.deg2rad(apTheta)
-#            ds['ap']= 2 * (np.cos(apTheta) ** 2 - 0.5)
-#        else:
-#            ds['y']=np.nan
-#            ds['x']=np.nan
-#            ds['theta']=np.nan
-#            ds['width']=np.nan
-#            ds['height']=np.nan
-#            ds['ap']=np.nan
-#            print("No ellipse was created for contour",cnt[i])
     return ds
 
 
@@ -181,30 +163,6 @@ class MainWindow(QWidget):
         fig2,ax2=plt.subplots(1,2,tight_layout=True,figsize=(10,5))
         theta=[]
         ratio=[]
-        # for i,r in self.df.query("frame=={}".format(0)).iterrows():
-        #     theta.append(np.round(np.deg2rad(r["theta"]),2))
-        #     #ma=max((r["height"],r["width"]))
-        #     #mi=min((r["height"],r["width"]))
-        #     #ratio.append(ma/mi)
-        #     shiftedTheta = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-        #     e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedTheta)
-        #     ax2[0].add_artist(e)
-        # ax[0].hist(theta,width=2*np.pi/20,bins=20)
-        # ax2[0].set_axis_off()
-        # ax2[0].imshow(self.frames[0])
-        # theta=[]
-        # ratio=[]
-        # for i,r in self.df.query("frame=={}".format(len(self.frames)-1)).iterrows():
-        #     theta.append(np.round(np.deg2rad(r["theta"]),2))
-        #     #ma=max((r["height"],r["width"]))
-        #     #mi=min((r["height"],r["width"]))
-        #     #ratio.append(ma/mi)
-        #     shiftedThetaFinal = r['theta'] + 90 #shift ellipse angle by 90 degrees to realign
-        #     e=patches.Ellipse((r['y'],r['x']), r['width'], r['height'],shiftedThetaFinal,alpha=0.5)
-        #     ax2[1].add_artist(e)
-        # ax[1].hist(theta,width=2*np.pi/20,bins=20)
-        # ax2[1].set_axis_off()
-        # ax2[1].imshow(self.frames[-1])
         for i, r in self.df.query("frame=={}".format(0)).iterrows():
             shiftedTheta = r['theta'] + 90
             color = get_color_from_angle(r['thetaunshifted'])
@@ -402,11 +360,6 @@ class MainWindow(QWidget):
         im = ax6[4].imshow(self.frames[-1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
         ax6[4].set_title("Frame #{}".format(frame_last))
 
-        # Create the colorbar
-        # Assuming cbar_ax is where you want to show the colorbar
-        # Compute min and max values of apTheta for normalization
-        # vmin, vmax = min(all_apTheta), max(all_apTheta)
-
         # Create a colormap
         cmap = plt.get_cmap("hsv")
         cmin = 0
@@ -417,17 +370,6 @@ class MainWindow(QWidget):
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])  # This is necessary because we won't display the mappable
 
-        # cbar = plt.colorbar(sm, ax=ax6[5])
-        # cbar.ax.set_ylabel('Angle (degrees)')
-        # cbar.ax.text(1, cmin, f'{cmin}', transform=cbar.ax.transAxes, verticalalignment='bottom')
-        # cbar.ax.text(1, cmax, f'{cmax}', transform=cbar.ax.transAxes, verticalalignment='top')
-        #
-        # # Display the min and max values on the colorbar
-        # cbar.ax.set_yticklabels(
-        #     [f'{cmin:.1f}', f'{cmax:.1f}'])  # Display with two decimal places
-        # Calculate the orientation data (based on your previous code)
-
-        # Plot your image and ellipses
         # Create a new axis for the color wheel
         rect = [0.9, 0.1, 0.08, 0.5]
         ax_colorwheel = fig6.add_axes(rect, projection='polar', frame_on=False)
