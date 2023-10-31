@@ -402,9 +402,6 @@ class MainWindow(QWidget):
         im = ax6[4].imshow(self.frames[-1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
         ax6[4].set_title("Frame #{}".format(frame_last))
 
-        # Create an axis for the colorbar next to ax6
-        cbar_ax = fig6.add_axes([0.95, 0.15, 0.02, 0.70])  # [left, bottom, width, height]
-
         # Create the colorbar
         # Assuming cbar_ax is where you want to show the colorbar
         # Compute min and max values of apTheta for normalization
@@ -418,7 +415,7 @@ class MainWindow(QWidget):
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])  # This is necessary because we won't display the mappable
 
-        cbar = plt.colorbar(sm, ax=cbar_ax)
+        cbar = plt.colorbar(sm, ax=ax6[5])
         cbar.ax.set_ylabel('Angle (degrees)')
         cbar.ax.text(1, vmin, f'{vmin:.1f}', transform=cbar.ax.transAxes, verticalalignment='bottom')
         cbar.ax.text(1, vmax, f'{vmax:.1f}', transform=cbar.ax.transAxes, verticalalignment='top')
