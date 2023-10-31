@@ -286,7 +286,16 @@ class MainWindow(QWidget):
                                 facecolor='none', alpha=0.5)
             ax6[0].add_artist(e)
         ax6[0].set_axis_off()
-        ax6[0].imshow(self.frames[0], cmap='gray')
+        # Compute the mean and standard deviation for the self.frames[0] matrix
+        mu = np.mean(self.frames[0])
+        sigma = np.std(self.frames[0])
+        # Set a constant factor for contrast adjustment
+        c = 2.5
+        vmin = mu - c * sigma
+        vmax = mu + c * sigma
+        # Display the self.frames[0] matrix with the determined contrast values
+        ax6[0].imshow(self.frames[0], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
+
         ax6[0].set_title("Frame #1")
         theta=[]
 
@@ -300,7 +309,16 @@ class MainWindow(QWidget):
                                 facecolor='none', alpha=0.5)
             ax6[1].add_artist(e)
         ax6[1].set_axis_off()
-        ax6[1].imshow(self.frames[frame_n1], cmap='gray')
+        # Compute the mean and standard deviation for the self.frames[0] matrix
+        mu = np.mean(self.frames[frame_n1])
+        sigma = np.std(self.frames[frame_n1])
+        # Set a constant factor for contrast adjustment
+        c = 2.5
+        vmin = mu - c * sigma
+        vmax = mu + c * sigma
+        # Display the self.frames[0] matrix with the determined contrast values
+        ax6[1].imshow(self.frames[frame_n1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
+        # ax6[1].imshow(self.frames[frame_n1], cmap='gray')
         ax6[1].set_title("Frame #{}".format(frame_n1))
         theta=[]
         #FRAME N*2/5
@@ -315,7 +333,17 @@ class MainWindow(QWidget):
                                 facecolor='none', alpha=0.5)
             ax6[2].add_artist(e)
         ax6[2].set_axis_off()
-        ax6[2].imshow(self.frames[frame_n2], cmap='gray')
+        # Compute the mean and standard deviation for the self.frames[0] matrix
+        mu = np.mean(self.frames[frame_n2])
+        sigma = np.std(self.frames[frame_n2])
+        # Set a constant factor for contrast adjustment
+        c = 2.5
+        vmin = mu - c * sigma
+        vmax = mu + c * sigma
+        # Display the self.frames[0] matrix with the determined contrast values
+        ax6[2].imshow(self.frames[frame_n2], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
+
+        # ax6[2].imshow(self.frames[frame_n2], cmap='gray')
         ax6[2].set_title("Frame #{}".format(frame_n2))
         theta=[]
         #FRAME N*3/4
@@ -330,7 +358,17 @@ class MainWindow(QWidget):
                                 facecolor='none', alpha=0.5)
             ax6[3].add_artist(e)
         ax6[3].set_axis_off()
-        ax6[3].imshow(self.frames[frame_n3], cmap='gray')
+        # Compute the mean and standard deviation for the self.frames[0] matrix
+        mu = np.mean(self.frames[frame_n3])
+        sigma = np.std(self.frames[frame_n3])
+        # Set a constant factor for contrast adjustment
+        c = 2.5
+        vmin = mu - c * sigma
+        vmax = mu + c * sigma
+        # Display the self.frames[0] matrix with the determined contrast values
+        ax6[3].imshow(self.frames[frame_n3], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
+
+        # ax6[3].imshow(self.frames[frame_n3], cmap='gray')
         ax6[3].set_title("Frame #{}".format(frame_n3))
         theta=[]
         #FRAME N-1
@@ -344,7 +382,17 @@ class MainWindow(QWidget):
                                 facecolor='none', alpha=0.5)
             ax6[4].add_artist(e)
         ax6[4].set_axis_off()
-        ax6[4].imshow(self.frames[-1], cmap='gray')
+        # Compute the mean and standard deviation for the self.frames[0] matrix
+        mu = np.mean(self.frames[-1])
+        sigma = np.std(self.frames[-1])
+        # Set a constant factor for contrast adjustment
+        c = 2.5
+        vmin = mu - c * sigma
+        vmax = mu + c * sigma
+        # Display the self.frames[0] matrix with the determined contrast values
+        ax6[4].imshow(self.frames[-1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
+
+        # ax6[4].imshow(self.frames[-1], cmap='gray')
         ax6[4].set_title("Frame #{}".format(frame_last))
 
         # Create an axis for the colorbar next to ax6
