@@ -419,12 +419,12 @@ class MainWindow(QWidget):
 
         cbar = plt.colorbar(sm, ax=ax6[5])
         cbar.ax.set_ylabel('Angle (degrees)')
-        cbar.ax.text(1, vmin, f'{cmin}', transform=cbar.ax.transAxes, verticalalignment='bottom')
-        cbar.ax.text(1, vmax, f'{cmax}', transform=cbar.ax.transAxes, verticalalignment='top')
-
-        # Display the min and max values on the colorbar
-        cbar.ax.set_yticklabels(
-            [f'{min(all_apTheta):.1f}', f'{max(all_apTheta):.1f}'])  # Display with two decimal places
+        # cbar.ax.text(1, cmin, f'{cmin}', transform=cbar.ax.transAxes, verticalalignment='bottom')
+        # cbar.ax.text(1, cmax, f'{cmax}', transform=cbar.ax.transAxes, verticalalignment='top')
+        #
+        # # Display the min and max values on the colorbar
+        # cbar.ax.set_yticklabels(
+        #     [f'{cmin:.1f}', f'{cmax:.1f}'])  # Display with two decimal places
 
         plt.show()
 
