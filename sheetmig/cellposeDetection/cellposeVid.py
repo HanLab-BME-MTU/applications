@@ -37,11 +37,12 @@ def approxEllipseFromArea(img,frameNum):
             el=cv.fitEllipse(cnt[i])
             ds['y']=el[0][0]
             ds['x']=el[0][1]
-            ds['theta'] = ((el[2] - 270) % 360) - 180 #rotate theta 90 degrees clockwise such that 0 degrees corresponds to a cell pointing along flow direction (due east)
+            # ds['theta'] = ((el[2] - 270) % 360) - 180 #rotate theta 90 degrees clockwise such that 0 degrees corresponds to a cell pointing along flow direction (due east)
+            ds['theta'] = ((el[2] + 90) % 180)  #rotate theta 90 degrees clockwise such that 0 degrees corresponds to a cell pointing along flow direction (due east)
             #ds['theta']=el[2]
             ds['width']=el[1][0]
             ds['height']=el[1][1]
-            apTheta = (el[2] - 90) % 360
+            apTheta = (el[2] - 90) % 180
             ds['thetaunshifted'] = apTheta
             apRads = np.deg2rad(apTheta)
             ds['thetarads'] = apRads
@@ -375,12 +376,19 @@ class MainWindow(QWidget):
         ax_colorwheel = fig6.add_axes(rect, projection='polar', frame_on=False)
 
         # Create the color wheel data
-        theta = np.linspace(0, 2 * np.pi, 256)
+        theta = np.linspace(0, 2 * np.pi, 512)  # Modified to fill the full circle
         radius = np.linspace(0.5, 1, 2)
         Theta, Radius = np.meshgrid(theta, radius)
-        values = Theta / (2 * np.pi)
+
+        # Repeat the values from 0 to pi for the complete circle
+        values = (Theta % np.pi) / np.pi  # Use modulo to repeat values
+
         ax_colorwheel.pcolormesh(Theta, Radius, values, cmap='hsv', shading='auto')
+
+        # Make the color wheel visually appealing
         ax_colorwheel.set_yticks([])
+        ax_colorwheel.set_theta_zero_location('E')
+        ax_colorwheel.set_theta_direction(-1)
         fig6.delaxes(ax6[5])
 
         plt.show()
