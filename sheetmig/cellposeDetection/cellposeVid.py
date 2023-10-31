@@ -388,7 +388,7 @@ class MainWindow(QWidget):
         # Make the color wheel visually appealing
         ax_colorwheel.set_yticks([])
         ax_colorwheel.set_theta_zero_location('E')
-        ax_colorwheel.set_theta_direction(-1)
+        ax_colorwheel.set_theta_direction(1)
         fig6.delaxes(ax6[5])
 
         plt.show()
