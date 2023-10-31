@@ -2,6 +2,7 @@ from cellpose import models
 from cellpose.io import imread
 from matplotlib import pyplot as plt
 from matplotlib import patches
+import matplotlib as mpl
 import os 
 import sys
 from PyQt5.QtWidgets import QFileDialog, QDialog,QPushButton,QVBoxLayout,QWidget,QApplication,QLabel,QProgressBar,QTextEdit
@@ -411,7 +412,7 @@ class MainWindow(QWidget):
 
         # Create a colormap
         cmap = plt.get_cmap("hsv")
-        norm = plt.colors.Normalize(vmin=vmin, vmax=vmax)
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
         # Create a fake scalar mappable for the colorbar
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
