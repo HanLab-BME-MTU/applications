@@ -402,7 +402,7 @@ class MainWindow(QWidget):
         vmin = mu - c * sigma
         vmax = mu + c * sigma
         # Display the self.frames[0] matrix with the determined contrast values
-        ax6[4].imshow(self.frames[-1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
+        im = ax6[4].imshow(self.frames[-1], cmap='gray', aspect='auto', interpolation='none', vmin=vmin, vmax=vmax)
 
         # ax6[4].imshow(self.frames[-1], cmap='gray')
         ax6[4].set_title("Frame #{}".format(frame_last))
