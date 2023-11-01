@@ -18,7 +18,7 @@ from scipy.spatial import ConvexHull
 from tqdm import tqdm
 import cv2 as cv
 import pickle
-import dill
+# import dill
 dir = os.path.dirname(os.path.realpath(__file__))+'/'
 from matplotlib.colors import hsv_to_rgb
 
