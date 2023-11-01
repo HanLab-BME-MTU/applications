@@ -17,6 +17,7 @@ import trackpy as tp
 from scipy.spatial import ConvexHull
 from tqdm import tqdm
 import cv2 as cv
+import pickle
 dir = os.path.dirname(os.path.realpath(__file__))+'/'
 from matplotlib.colors import hsv_to_rgb
 
@@ -339,6 +340,9 @@ class MainWindow(QWidget):
         ax6[3].set_title("Frame #{}".format(frame_n3))
         theta=[]
         #FRAME N-1
+        with open('self.pkl', 'wb') as f:
+            pickle.dump(self, f)
+
         for i,r in self.df.query("frame=={}".format(frame_last-1)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             #ma=max((r["height"],r["width"]))
