@@ -18,13 +18,20 @@ from scipy.spatial import ConvexHull
 from tqdm import tqdm
 import cv2 as cv
 import pickle
+import dill
 dir = os.path.dirname(os.path.realpath(__file__))+'/'
 from matplotlib.colors import hsv_to_rgb
 
 def get_color_from_angle(angle):
     """Get a color corresponding to an angle using HSV colormap"""
+
+    # Check if angle is NaN or not a number
+    if angle is None or (isinstance(angle, (float, int)) and np.isnan(angle)):
+        return (0, 0, 0)  # Return black color for NaN or None
+
     # Convert angle from [0, 180] to [0, 1]
     hue = (angle % 180) / 180.0
+
     # Convert hue to RGB color
     return hsv_to_rgb((hue, 1, 1))
 
@@ -339,18 +346,17 @@ class MainWindow(QWidget):
         # ax6[3].imshow(self.frames[frame_n3], cmap='gray')
         ax6[3].set_title("Frame #{}".format(frame_n3))
         theta=[]
+
+        # try:
+        #     with open('self.pkl', 'wb') as f:
+        #         pickle.dump(self, f)
+        # except Exception as e:
+        #     print(f"Error during pickling: {e}")
+        #
+        # with open('self_dill.pkl', 'wb') as f2:
+        #     dill.dump(self, f2)
+
         #FRAME N-1
-        try:
-            with open('self.pkl', 'wb') as f:
-                pickle.dump(self, f)
-        except Exception as e:
-            print(f"Error during pickling: {e}")
-
-        import dill
-
-        with open('self_dill.pkl', 'wb') as f2:
-            dill.dump(self, f2)
-
         for i,r in self.df.query("frame=={}".format(frame_last-1)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
             #ma=max((r["height"],r["width"]))
