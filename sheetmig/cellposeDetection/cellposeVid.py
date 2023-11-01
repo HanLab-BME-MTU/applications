@@ -340,8 +340,16 @@ class MainWindow(QWidget):
         ax6[3].set_title("Frame #{}".format(frame_n3))
         theta=[]
         #FRAME N-1
-        with open('self.pkl', 'wb') as f:
-            pickle.dump(self, f)
+        try:
+            with open('self.pkl', 'wb') as f:
+                pickle.dump(self, f)
+        except Exception as e:
+            print(f"Error during pickling: {e}")
+
+        import dill
+
+        with open('self_dill.pkl', 'wb') as f2:
+            dill.dump(self, f2)
 
         for i,r in self.df.query("frame=={}".format(frame_last-1)).iterrows():
             theta.append(np.round(np.deg2rad(r["theta"]),2))
