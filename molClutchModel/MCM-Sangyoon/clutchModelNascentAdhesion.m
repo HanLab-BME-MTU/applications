@@ -1,7 +1,7 @@
 function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
     clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,...
                             kont2,kof1,kof2,kc,ksub,konv,pt,mr,intadd,ion,...
-                            v_actin, dActin, tTotal)
+                            v_actin, nActin, tTotal)
 % function [mf,mv,mnb1,mnb2,mdint1,mdint2] =
 % clutchModelNascentAdhesion(nm,fm1,vu,nc,dint1,dint2,kont1,kont2,kof1,kof2,
 %                            kc,ksub,konv,pt,mr,intadd,ion) 
@@ -34,7 +34,7 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 %       intadd  Number of integrins added per sq. micron every time reinforcement happens.
 %       ion     mn or mg, to take corresponding koff data from kong et al JCB paper
 %       v_actin Unloaded actin-polymerization-driven actin flow speed
-%       dActin  Density of F-actin molecules (which can be low for
+%       nActin  The number of F-actin molecules (which can be low for
 %               Arp2/3-inhibited actin and intermediate for
 %               Formin-inhibited actin). (Need a reference, 300 for now for
 %               control)
@@ -52,12 +52,26 @@ function [mf,mv,mnb1,mnb2,mdint1,mdint2] = ...
 verbose = false; %true; % false; %1; 
 verboseEach = false; %true; %false;
 Fs = nm.*fm1; %Stall force of the system 
-kB = 1.38064852e-23; %m2 kg s-2 K-1
-T = 278; %K
-% deltaActin = 2.7e-9; % m
-c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for sphere, maybe 1 for a flat edge. 
-C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: This is assumption for now 
-R = 1e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
+% c = 0.8; %c is a coefficient that accounts for geometrical effects: 0.13 is for sphere, maybe 1 for a flat edge. 
+% C_actin = kB*T*c*nActin; %constant for force-velocity relationship in actin: This is assumption for now 
+% R = 1e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
+% Fs_actin = -C_actin/(4*R);
+kB = 1.38064852e-23; %m2 kg s-2 K-1, Boltsmann Constant
+T = 293; %K, it was 278K before. The absolute temperature
+deltaActin = 2.7e-9; % m
+C = 100; %uM, the concentration of monomers, Podolski JL, Steck TL (1990) J Biol Chem 265
+Ccrit = 0.12; %uM, the critical concentration for polymerization, Pollard 1986.
+Fmax = kB*T/deltaActin*log(C/Ccrit); % a stall force by a single actin filament
+% Need to adjust the nActin proportional to dActin.
+% For dActin=7e5, Fs_actin = kB*T*c*dActin/(4*R) = 5.6634e-10
+% For the new Fs_actin, Fs_actin = nActin * Fmax
+% = nActin *  kB*T/deltaActin*log(C/Ccrit)=1.0076e-11 * nActin
+% Thus, nActin should be 5.6634e-10/1.0076e-11 = 56.2068
+% for dActin=7e5. Thus, the proportional factor should be
+% nActin = dActin * pFactor where pFactor = 56.2068/7e5 = 8.0295e-05
+pFactor = 8.0295e-05;
+nActinReal = nActin * pFactor;
+Fs_actin = nActinReal * Fmax; % maximum force required to stall the actin flow by n_{af} actin filaments
 
 ts = 5e-3; % Time step used for calculation
 if nargin<20
@@ -92,7 +106,6 @@ end
 if verboseEach
     f101=figure(101); f101.Position(3:4)=[600 400];
 end
-Fs_actin = -C_actin/(4*R);
 
 % Write a video file 
 if verboseEach
