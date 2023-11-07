@@ -1,6 +1,6 @@
 %% Common parameters:
 clear
-nm = 800; %Number of myosin motors, optimal fit 800
+% nm = 800; %Number of myosin motors, optimal fit 800
 fm1 = -2e-12; % Stall force of 1 motor (N)
 vu = -110e-9; % Unloaded myosin motor velocity (m/s)
 kc = 1; % Clutch spring constant (N/m)
