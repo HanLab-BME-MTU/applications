@@ -199,25 +199,18 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                 end
                 if strcmp(output,'dMap')
                     if noStackRequired
-                        varargout{1} = curMap; % need to take care of this curMap
+                        varargout{1} = curMap;
                     else
                         varargout{1}=dMapMap(:,:,iFrame);
                     end
                 elseif strcmp(output,'dMapRef')
                     if noStackRequired
-                        try
-                            varargout{1} = curMapRef; % need to take care of this curMap
-                        catch
-                            varargout{1}=dMapMapRef(:,:,iFrame);
-                        end
+                        varargout{1} = curMapRef;
                     else
                         varargout{1}=dMapMapRef(:,:,iFrame);
                     end
                 else %This is for unshifted (in the size of raw channels)
                     sampleRawChanImg = obj.owner_.channels_(1).loadImage(1);
-                    if ~noStackRequired
-                        curMap=dMapMap(:,:,iFrame);
-                    end
                     ref_obj = imref2d(size(sampleRawChanImg));
                     iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
                     tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
@@ -232,27 +225,38 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
                         if length(iFrame)>1
-                            curMap2 = zeros(size(curMap));
+                            if noStackRequired
+                                curMap2 = zeros(size(curMap));
+                            else
+                                curMap2 = zeros(size(dMapMap(:,:,iFrame)));
+                            end
                             for ii=fliplr(iFrame)
                                 Tr = affine2d([1 0 0; 0 1 0; (T(ii, :)) 1]);
                                 invTr = invert(Tr);
-                                curMap2(:,:,ii) = imwarp(curMap(:,:,ii),invTr,'OutputView',ref_obj);
+                                if noStackRequired
+                                    curMap2 = imwarp(curMap,invTr,'OutputView',ref_obj);
+                                else
+                                    curMap2(:,:,ii) = imwarp(dMapMap(:,:,ii),invTr,'OutputView',ref_obj);
+                                end
                             end
                             varargout{1} = curMap2;
                         else
                             Tr = affine2d([1 0 0; 0 1 0; fliplr(T(iFrame, :)) 1]);
                             invTr = invert(Tr);
-                            varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                            if noStackRequired
+                                if ~exist('curMap','var') % this is because tMapMap was there.
+                                    curMap = dMapMap(:,:,iFrame);
+                                end
+                                varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
+                            else
+                                varargout{1} = imwarp(dMapMap(:,:,iFrame),invTr,'OutputView',ref_obj);
+                            end
                         end
-                        
-                        Tr = affine2d([1 0 0; 0 1 0; fliplr(T(iFrame, :)) 1]);
-                        invTr = invert(Tr);
-                        varargout{1} = imwarp(curMap,invTr,'OutputView',ref_obj);
                     else
-                        if ~noStackRequired
-                            varargout{1}=dMapMap(:,:,iFrame);
-                        else
+                        if noStackRequired
                             varargout{1} = curMap;
+                        else
+                            varargout{1}=dMapMap(:,:,iFrame);
                         end
                     end
                 end
