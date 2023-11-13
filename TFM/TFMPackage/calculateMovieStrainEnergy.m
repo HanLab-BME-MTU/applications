@@ -170,6 +170,7 @@ else
     disp('No iCorrectedDisplFieldProc found. Trying to use displacementField from step 2...')
     iCalculatedDisplFieldProc = 2;
     CalculatedDisplFieldProc=TFMPackage.processes_{iCalculatedDisplFieldProc};
+    dispProc = CalculatedDisplFieldProc;
     if ~isempty(CalculatedDisplFieldProc)
         dMap=CalculatedDisplFieldProc.loadChannelOutput('output','dMap');
     else
