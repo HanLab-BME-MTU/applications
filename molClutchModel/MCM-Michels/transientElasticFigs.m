@@ -66,14 +66,14 @@ k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
 %% TRIAL SETTINGS 
 
 slip=0; %if zero uses previous time steps velocity when clutch slips, prevents jumping velocity
-L = 3.2e-11; %.3e-12; % m, the length of each actin monomer spring segment. 
+L = 32e-9; %m, thus 32 nm %3.2e-11; %.3e-12; % m, the length of each actin monomer spring segment. 
 dActin = 1e11; % density of actin at the leading edge #/um
 eta=0.1;%0.0003;   
 
 timeTotal = 200; % sec
 verbose = 0; % time based figures for each trial, if enabled will open and save 
 showFreq=0; % if 1, will open frequency plots
-numTrials=5; % number of trials to average for figures
+numTrials=2; % 5 % number of trials to average for figures
 NnMax=1;
 
 

@@ -77,12 +77,20 @@ C_actin = kB*T*c*dActin; %constant for force-velocity relationship in actin: Thi
 R = 10e-6; % m, the radius of curvature of edge. Given normal cell, it can be ~ 10-30 um
 Fs_actin = 5e-11; %C_actin/(4*R); %-C_actin/(4*R); % stall force for actin addition
 % L = 2e-9; % m, the length of each actin monomer spring segment. 
-Norg = d/L; % The number of actin springs in-between the membrane and adhesion
+Leff = L/1000; % We assume that the effective length that affect the compression 
+               % is 0.1% of the actin unit: This accounts for three things
+               % in a simple way: 1) edge protrusion occurring from the
+               % addition of the actin unit; 2) time step effect,
+               % potentially time step of 5 microsecond is too short for a
+               % mesocale actin unit being added; 3) After addition, there
+               % can be creep-based flow by constant membrane tension
+               % application. 
+Norg = d/Leff; % The number of actin springs in-between the membrane and adhesion
 Nnew = 0; % Newly-added actin springs at the membrane in front of the adhesion
 Nall = Norg + Nnew; % all new actin
 %NnMax = 5; % max N_curnew
 
-k_basicActin = 1e-6; % basic actin elasiticity: currently totally ambiguous.
+k_basicActin = 1e-6; % N/m basic actin elasiticity: currently totally ambiguous.
 k_actin = dActin * k_basicActin; % actin polymer elasticity
 disp(['K Actin :: ' num2str(k_actin)])
 a = 0.0001; %Adaptation factor for k_actin
@@ -311,7 +319,7 @@ for t=timeStepAll
         % Now we have to count unbound clutches that are undergoing
         % relaxation
         
-        xc_dot = 1/eta*(k_actin/Nall*(Nnew*L-xc(boundbin)) - ...
+        xc_dot = 1/eta*(k_actin/Nall*(Nnew*Leff-xc(boundbin)) - ...
             Nc*kc*ksub*xc(boundbin)/(Nc*kc+ksub));
         xc(boundbin) = xc(boundbin) + xc_dot*ts;
         vf = (max(xc) - max(xc_prev))/ts;
@@ -326,7 +334,7 @@ for t=timeStepAll
         % For any previous bound clutches
         prev_bound = xc>0;
         % viscoelasticity-considered
-        xc_dot = 1/eta*(k_actin/Nall*(Nnew*L-xc(prev_bound)) - ...
+        xc_dot = 1/eta*(k_actin/Nall*(Nnew*Leff-xc(prev_bound)) - ...
             Nc*kc*ksub*xc(prev_bound)/(Nc*kc+ksub));
         xc(prev_bound) = xc(prev_bound) + xc_dot*ts;
         vf = (max(xc) - max(xc_prev))/ts;        
