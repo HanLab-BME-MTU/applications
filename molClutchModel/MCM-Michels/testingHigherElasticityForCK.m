@@ -1,6 +1,20 @@
-%script used to generate the stiffness dependent figures, uses clutchModelActinElasticityMichels
+% testingHigherElasticityForCK.m is a script that test higher kactin from
+% BBS+CK666 inhibition case using clutchModelActinElasticityMichels
+% function. 
+% The main parameters that will be modulated will be:
+% dActinRange=[0.1500e10    0.115e10    0.1e10];
+% etaRange=[0.175    1.0800   0.8];
+% offset=["0.1" "0.02" "0.02"];
+% kof1Range=[3 3 3];
+% NnMaxRange=[1,1,0.5];
+% The main one is dActinRange. I will change it to 
+% dActinRange=[1.5e9    0.5e9    0.3e9];
+% With this, I might have to adjust eta and kof
+% I'll try with the current set first
+% etaRange=[0.175    1.0800   0.8];
+% kof1Range=[3 3 3];
 
-
+%% initialization
 clear
 close all
 clc
@@ -20,7 +34,7 @@ mr = 300*50;  % Maximum integrin density for each integrin
 % intadd = 2.4; % Number of integrins added per sq. micron every time reinforcement happens.
 a =1700e-9; % Radius of adhesion (m) 1500e-9
 
-ksub = 10.^(-0.1:0.1:1.5).*1e-3; %Range of substrate stiffness (full)
+% ksub = 10.^(-0.1:0.1:1.5).*1e-3; %Range of substrate stiffness (full)
 
 ksub=[0.6 1.3 2.6 6 12.7]*(4*pi*a)/9*10^3; %Range of substrate stiffness (match experiments)
 
@@ -94,23 +108,7 @@ maxP=20;
 
 
 
-%%set arrays for iteration
-kcRange=[kc];
-if kcIt
-    kcRange=flip([0:maxC*kc/int_kc:maxC*kc]);
-end
-
-dActinRange=[dActin];
-if dActinIt
-    %dActinRange=[0.4*dActin,0.2*dActin];
-    %dActinRange=flip([0:maxA*dActin/int_actin:maxA*dActin]);
-    dActinRange=flip(logspace(0,log10(maxA*dActin),int_actin));
-end
-
-etaRange=[eta];
-if etaIt
-    etaRange=flip([0:maxP*eta/int_eta:maxP*eta]);
-end
+%% set arrays for iteration
 
 v_blebbi_actinSlowdown = zeros(numKsub,numTrials);
 mf_blebbi_actinSlowdown = zeros(numKsub,numTrials);
@@ -133,10 +131,6 @@ figNames=[figNames(:);"Mean_Clutch_Force"];
 hold on
 legend('Location','bestoutside')
 
-
-%dActinRange=[8*0.01e11];
-%etaRange=[0.1];
-
 %% Params for blebbi and ck666
 % 
 % dActinRange=[11*0.01e11 0.015e11];
@@ -148,7 +142,8 @@ legend('Location','bestoutside')
 
 %%params for ck666, smifh2, and LatA
 
-dActinRange=[0.1500e10    0.115e10    0.1e10];
+% dActinRange=[0.1500e10    0.115e10    0.1e10];
+dActinRange=[1.5e9    0.5e9    0.3e9];
 etaRange=[0.175    1.0800   0.8];
 
 offset=["0.1" "0.02" "0.02"];
