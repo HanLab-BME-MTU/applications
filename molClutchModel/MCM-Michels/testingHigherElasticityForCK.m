@@ -149,7 +149,7 @@ etaRange=[0.175    1.0800   0.8];
 offset=["0.1" "0.02" "0.02"];
 kof1Range=[3 3 3];
 NnMaxRange=[1,1,0.5];
-
+kcRange=[kc];
 
 %% params for blebbi figs
 % 
