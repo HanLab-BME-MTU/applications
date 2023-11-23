@@ -8,11 +8,11 @@
 % kof1Range=[1.7 3];
 % NnMaxRange=[1,1];
 % The main one is dActinRange. I will change it to 
-% dActinRange=[1.5e9    0.5e9    0.3e9];
+% dActinRange=[11e9 4e9];
 % With this, I might have to adjust eta and kof
 % I'll try with the current set first
 % etaRange=[0.175    1.0800   0.8];
-% kof1Range=[3 3 3];
+% kof1Range=[1.7 3];
 
 %% initialization
 clear
