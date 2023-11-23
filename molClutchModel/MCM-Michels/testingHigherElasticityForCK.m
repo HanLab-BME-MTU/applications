@@ -2,11 +2,11 @@
 % BBS+CK666 inhibition case using clutchModelActinElasticityMichels
 % function. 
 % The main parameters that will be modulated will be:
-% dActinRange=[0.1500e10    0.115e10    0.1e10];
-% etaRange=[0.175    1.0800   0.8];
-% offset=["0.1" "0.02" "0.02"];
-% kof1Range=[3 3 3];
-% NnMaxRange=[1,1,0.5];
+% dActinRange=[11*0.01e11 0.015e11];
+% etaRange=[0.175 0.175];
+% offset=["0.10" "0.10"];
+% kof1Range=[1.7 3];
+% NnMaxRange=[1,1];
 % The main one is dActinRange. I will change it to 
 % dActinRange=[1.5e9    0.5e9    0.3e9];
 % With this, I might have to adjust eta and kof
@@ -105,8 +105,7 @@ maxC=2;
 etaIt=1;
 int_eta=5;
 maxP=20;
-
-
+kcRange=[kc];
 
 %% set arrays for iteration
 
@@ -132,24 +131,23 @@ hold on
 legend('Location','bestoutside')
 
 %% Params for blebbi and ck666
+
+dActinRange=[11e9 4e9];
+etaRange=[0.175 0.175];
+
+offset=["0.10" "0.10"];
+kof1Range=[1.7 3];
+NnMaxRange=[1,1];
+
+%% Params for ck666, smifh2, and LatA
+
+% % dActinRange=[0.1500e10    0.115e10    0.1e10];
+% dActinRange=[1.5e9    0.5e9    0.3e9];
+% etaRange=[0.175    1.0800   0.8];
 % 
-% dActinRange=[11*0.01e11 0.015e11];
-% etaRange=[0.175 0.175];
-% 
-% offset=["0.10" "0.10"];
-% kof1Range=[1.7 3];
-% NnMaxRange=[1,1];
-
-%%params for ck666, smifh2, and LatA
-
-% dActinRange=[0.1500e10    0.115e10    0.1e10];
-dActinRange=[1.5e9    0.5e9    0.3e9];
-etaRange=[0.175    1.0800   0.8];
-
-offset=["0.1" "0.02" "0.02"];
-kof1Range=[3 3 3];
-NnMaxRange=[1,1,0.5];
-kcRange=[kc];
+% offset=["0.1" "0.02" "0.02"];
+% kof1Range=[3 3 3];
+% NnMaxRange=[1,1,0.5];
 
 %% params for blebbi figs
 % 
@@ -305,7 +303,14 @@ folderName=replace(char(datetime(now,'ConvertFrom','datenum')),[" ";":"],'-');
 mkdir(folderName);
 cd(folderName);
 for fig = [1:length(figures)]
-    exportgraphics(figures(fig),[char(figNames(fig)) '.jpg'])
+    try
+        exportgraphics(figures(fig),[char(figNames(fig)) '.jpg'])
+        savefig(figures(fig),[char(figNames(fig)) '.fig'])
+        print(figures(fig),char(figNames(fig)),'-djpeg')
+    catch
+        savefig(figures(fig),[char(figNames(fig)) '.fig'])
+        print(figures(fig),char(figNames(fig)),'-djpeg')
+    end
 end
 save('workspace.mat')
 cd ..

@@ -412,7 +412,10 @@ if verbose
     subplot(3,4,11); plot(fff,p1);  title('Velocity FFT'); xlabel('Frequency (Hz)'); ylabel('Power')
     drawnow
     if saveFreq
-        eImg={dir('*.tif').name};
+%         eImg={dir('*.tif').name};
+        files = dir('*.tif');  % This will return a structure array
+        fileNames = {files.name};  % Extracting the 'name' field from each structure in the array
+
         eImg=cellfun(@(f) str2double(f(1:end-4)),eImg,'UniformOutput',false);
         if (isempty(eImg))
             nameImg=0;
