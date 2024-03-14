@@ -1,4 +1,4 @@
-function [croppedField] = cropField(inputField, nRows, cardDir);
+function [croppedField] = cropField(inputField, nRows, cardDir)
 % CROPFIELD takes an input displacement or force field and crops it by the
 % value nRows in the cardinal direction specified by cardDir
 %
