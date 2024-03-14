@@ -18,10 +18,10 @@ function [croppedField] = cropField(inputField, nRows, cardDir)
 %   of the matrix and produce the croppedField as an output.
 %
 
-if ~isfield(inputField,'pos') || ~isfield(inputField,'vec')
-    error('Input field is incompatible, please input a structure which contains the pos and vec fields, and only those fields.')
-else
-    mustBePositive(nRows)
+arguments
+    inputField {mustBeField}
+    nRows {mustBePositive,mustBeInteger}
+    cardDir {mustBeTextScalar}
 end
 
 paredX = unique(inputField.pos(:,1));
@@ -51,7 +51,7 @@ elseif strcmp(cardDir,'W') || strcmp(cardDir,'w')
     inputField.pos(inputField.pos(:,1) <= xmin,:) = [];
     inputField.vec(inputField.pos(:,1) <= xmin,:) = [];
 else
-    error('Invalid direction identifier, must be (N, S, E, or W) or (n, s, e, or w)')
+    error('Invalid direction identifier, must be (N, S, E, or W) or (n, s, e, or w) string scalar')
 end
 
 croppedField = inputField;
