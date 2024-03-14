@@ -91,7 +91,7 @@ force_z = [];
 
 
 % //Generate model container **********************************************
-structModel=createpde('structural','static-solid');
+abaqusModel=createpde('structural','static-solid');
 
 % //Define geometry *******************************************************
 if ~multiForce
@@ -180,18 +180,36 @@ elseif multiForce
     
 end
 
-structModel.Geometry=g;
+abaqusModel.Geometry=g;
+modelMesh = generateMesh(abaqusModel,'Hmax',40,'Hmin',1,'Hgrad',1.2);
+topFaceNodeIDs = findNodes(modelMesh,'box',[-halfSide-1 halfSide+1],[-halfSide-1 halfSide+1],[thickness thickness]);
+bottomFaceNodeIDs = findNodes(modelMesh,'box',[-halfSide-1 halfSide+1],[-halfSide-1 halfSide+1],[-thickness -thickness]);
 
-pdegplot(structModel)
+topFaceNodes = modelMesh.Nodes(:,topFaceNodeIDs);
+bottomFaceNodes = modelMesh.Nodes(:,bottomFaceNodeIDs);
+nonBCNodeIDs = 1:length(modelMesh.Nodes);
+nonBCNodeIDs([topFaceNodeIDs,bottomFaceNodeIDs]) = [];
+nonBCNodes = modelMesh.Nodes(:,nonBCNodeIDs);
+
+topFaceElementIDs = findElements(modelMesh,'attached',topFaceNodeIDs);
+bottomFaceElementIDs = findElements(modelMesh,'attached',bottomFaceNodeIDs);
+
+%testing limit%
+
+topFaceElements = modelMesh.Elements(:,topFaceElementIDs);
+bottomFaceElements = modelMesh.Elements(:,bottomFaceElementIDs);
+
+
+%pdegplot(abaqusModel)
 
 % //Specify material properties *******************************************
-structuralProperties(structModel,'YoungsModulus',E,'PoissonsRatio',v);
+structuralProperties(abaqusModel,'YoungsModulus',E,'PoissonsRatio',v);
 
 % //Apply boundary constraints *******************************************
 if multiForce
-    structuralBC(structModel,'Face',1,'Constraint','fixed'); %New face ID for the bottom.
+    structuralBC(abaqusModel,'Face',1,'Constraint','fixed'); %New face ID for the bottom.
 elseif ~multiForce
-    structuralBC(structModel,'Face',1:5,'Constraint','fixed'); %New face ID for the bottom.
+    structuralBC(abaqusModel,'Face',1:5,'Constraint','fixed'); %New face ID for the bottom.
 end
 
 % //Apply force distribution on face 2 ************************************
@@ -222,25 +240,25 @@ elseif multiForce
 end
 
 % //Generate mesh for model ***********************************************
-generateMesh(structModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
+generateMesh(abaqusModel,'Hmax',40, 'Hmin',1, 'Hgrad', 1.2);
 % pdeplot3D(structModel)
 
 %pass function handle and define BCs
 if multiForce
-    structuralBoundaryLoad(structModel,'Face',21,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
+    structuralBoundaryLoad(abaqusModel,'Face',21,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
 elseif ~multiForce
-    structuralBoundaryLoad(structModel,'Face',6:10,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
+    structuralBoundaryLoad(abaqusModel,'Face',6:10,'SurfaceTraction',hydrogelForce,'Vectorize','on'); %New face ID (F8)
 end
 
 % //Solving structural model **********************************************
-structModelResults=solve(structModel);
+structModelResults=solve(abaqusModel);
 
 % //Visualizing results ***************************************************
 figure(2)
-pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
+pdeplot3D(abaqusModel,'ColorMapData',structModelResults.Displacement.Magnitude, ...
     'Deformation',structModelResults.Displacement,'DeformationScaleFactor',1)
 figure(4)
-pdeplot3D(structModel,'ColorMapData',structModelResults.Displacement.Magnitude,'Mesh','on')
+pdeplot3D(abaqusModel,'ColorMapData',structModelResults.Displacement.Magnitude,'Mesh','on')
 
 % //Shifting bead locations to apply interpDisp at those locations ********
 %2D
