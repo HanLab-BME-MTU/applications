@@ -1,4 +1,4 @@
-function [] = protrusivityBatch
+% function [] = protrusivityBatch
 %% open necessary MLs
 [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
 if ~ischar(pathSFolders) && pathSFolders==0
@@ -114,7 +114,7 @@ h1=figure;
 % barPlotCellArray(protVelCondition,nameList',1)
 % top20pProt = cellfun(@(x) cellfun(@(y) quantile(y,.75:0.001:.99),x, 'unif',false),protSpeedGroup,'unif',false);
 % fractionProtGroupArray = cellfun(@(y) cell2mat(y),fractionProtGroup,'unif',false);
-boxPlotCellArray(fractionProtGroup,nameList,1,false,true,true)
+boxPlotCellArray(fractionProtGroup,nameList,1,false,true)
 % barPlotCellArray(fractionProtGroup,nameList,1)
 ylabel('fractionProtGroupArray')
 title('fractionProtGroupArray')
@@ -144,7 +144,7 @@ h1=figure;
 % barPlotCellArray(protVelCondition,nameList',1)
 % top20pProt = cellfun(@(x) cellfun(@(y) quantile(y,.75:0.001:.99),x, 'unif',false),protSpeedGroup,'unif',false);
 % fractionProtGroupArray = cellfun(@(y) cell2mat(y),fractionProtGroup,'unif',false);
-boxPlotCellArray(fractionQuietGroup,nameList,1,false,true,true)
+boxPlotCellArray(fractionQuietGroup,nameList,1,false,true)
 % barPlotCellArray(fractionProtGroup,nameList,1)
 ylabel('fractionQuietGroup')
 title('fractionQuietGroup')
@@ -213,6 +213,9 @@ print(h1,strcat(figPath,'/protDist.tif'),'-dtiff')
 tableProtDist=table(protDistGroupArray','RowNames',nameList');
 writetable(tableProtDist,strcat(dataPath,'/protDist.csv'),'WriteRowNames',true)
 
+%% save entire workspace for later
+save([dataPath filesep 'allData.mat'])
+
 %% Ploting - protVelCondition
 % h1=figure; 
 % % barPlotCellArray(protVelCondition,nameList,1)
@@ -226,7 +229,7 @@ writetable(tableProtDist,strcat(dataPath,'/protDist.csv'),'WriteRowNames',true)
 % tableRet=table(retrVelCondition,'RowNames',nameList);
 % writetable(tableRet,strcat(dataPath,'/retrVelCondition.csv'),'WriteRowNames',true)
 
-end
+% end
 %% nested function callSteps
 % function dataSet = callSteps(ML,exclude,plotYes,labels)
 % 

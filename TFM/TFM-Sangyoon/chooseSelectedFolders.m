@@ -1,4 +1,5 @@
-function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,specificName,refDirTif]=chooseSelectedFolders
+function [pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,...
+    specificName,refDirTif, MLdirect]=chooseSelectedFolders
 %function [pathAnalysisAll, MLNames, groupNames,
 %usedSelectedFoldersMat]=chooseSelectedFolders let users choose predefined
 %selectedfolder.mat or directly choose ML files to perform many batch
@@ -23,6 +24,8 @@ else
 end
 
 groupNames=[];
+MLdirect=false;
+refDirTif=[];
 
 if ~ischar(pathSFolders) && pathSFolders==0
     analysisFolderSelectionDone = false;
@@ -33,7 +36,7 @@ if ~ischar(pathSFolders) && pathSFolders==0
         if isDesktopAvail
             curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
         else
-            disp({'Select each analysis folder that contains movieList.mat.  If do not have one, push enter';
+            disp({'Type each analysis folder that contains movieList.mat.  If do not have one, push enter';
                 ['Your current path: ' pwd]});
             rawPath = input(': ','s');
             if isempty(rawPath)
@@ -42,10 +45,11 @@ if ~ischar(pathSFolders) && pathSFolders==0
                 curPathProject = rawPath;
             end
         end
-%         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
         if ~ischar(curPathProject) && curPathProject==0
             analysisFolderSelectionDone=true;
+            MLdirectNeeded=true;
         else
+%             analysisFolderSelectionDone=true;
             [curPathProject2,finalFolder] = fileparts(curPathProject);
             pathAnalysisAll{ii} = curPathProject;
             if isempty(finalFolder)
@@ -53,10 +57,10 @@ if ~ischar(pathSFolders) && pathSFolders==0
             end
             groupNames{ii} = finalFolder;
             MLNames{ii} = 'movieList.mat';
-            MLdirect=true;
+            MLdirectNeeded=false;
         end
     end
-    if ~analysisFolderSelectionDone && ii==1
+    if ii==1 && MLdirectNeeded
         MLSelectionDone = false;
         ii=0;
         while ~MLSelectionDone
@@ -89,15 +93,21 @@ if ~ischar(pathSFolders) && pathSFolders==0
         end
         MLdirect=true;
     end
+    if isempty(groupNames)
+        disp('Nothing is happening')
+        return
+    end
     specificName = strjoin(groupNames);
-    rootAnalysis = pathAnalysisAll{1};
+    rootAnalysis = pwd; %pathAnalysisAll{1};
     refDirTif = [];
-    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
+%     save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 else
     usedSelectedFoldersMat=true;    
     selectedFolders=load([pathSFolders filesep fileSFolders]);
     pathAnalysisAll=selectedFolders.pathAnalysisAll;
-    specificName=fileSFolders(16:end);
+    specificName=fileSFolders(16:end-4);
+    groupNames=selectedFolders.groupNames;
+    rootAnalysis = selectedFolders.rootAnalysis;
     if isfield(selectedFolders,'refDirTifAll')
         refDirTif = selectedFolders.refDirTifAll;
     else
@@ -110,6 +120,22 @@ else
         for k=1:numel(pathAnalysisAll)
             MLNames{k} = 'movieList.mat';
         end
-        
     end
 end
+
+% Asking user
+disp('The current names are: ')
+nameList = groupNames';
+disp(nameList)
+namesOK = input('Do you want to rename your condition names? (y/n)','s');
+if strcmp(namesOK, 'y')
+    for ii=1:numel(nameList)
+        curName = input(['For ' nameList{ii} ': '], 's');
+        if ~isempty(curName)
+            nameList{ii} = curName;
+        end
+    end
+    specificName = strjoin(nameList, '_');
+end
+groupNames = nameList';
+save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')

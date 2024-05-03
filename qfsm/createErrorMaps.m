@@ -37,10 +37,10 @@ for i=1:nMaps
     SNRmap=zeros(imSize);
     
     % Put errors
-    ind=sub2ind(imSize,E{i}(:,1),E{i}(:,2));
+    ind=sub2ind(imSize,round(E{i}(:,1)),round(E{i}(:,2)));
     match(ind)=31./E{i}(:,3);
     
-    ind=sub2ind(imSize,S{i}(:,1),S{i}(:,2));
+    ind=sub2ind(imSize,round(S{i}(:,1)),round(S{i}(:,2)));
     SNRmap(ind)=31.*S{i}(:,3);
     
     % Calculate the approximate mean error distance and sigma for the gaussian kernel

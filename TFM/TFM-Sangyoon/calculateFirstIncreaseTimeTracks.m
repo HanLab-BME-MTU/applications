@@ -45,8 +45,20 @@ bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
 differentInitialMargin=50;
 ampIncreasingAll=false(numel(tracksNA),1);
+wantUpdatedTracks = nargout>6;
+
+if wantUpdatedTracks
+    %Have to make the new fields
+    tracksNA(end).forceTransmitting=false;
+    tracksNA(end).firstIncreaseTimeInt=NaN; % in sec
+    tracksNA(end).firstIncreaseTimeForce = NaN;
+    tracksNA(end).bkgMaxInt = NaN;
+    tracksNA(end).bkgMaxSlave = NaN;
+    tracksNA(end).firstIncreseTimeIntAgainstForce = NaN;
+end
 
 for ii=1:numel(tracksNA)
+% parfor ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
 %     curEarlyAmpSlope = curTrack.earlyAmpSlope; if isnan(curEarlyAmpSlope); curEarlyAmpSlope=-1000; end
     curTrack.lifeTime = curTrack.endingFrameExtra-curTrack.startingFrameExtra;
@@ -66,6 +78,14 @@ for ii=1:numel(tracksNA)
 %         sF5before = max(effectiveSF-numPreSigStart,effectiveSF-numPreFrames);
 %         sF10before = max(sFEE,effectiveSF-3*numPreFrames);
 %     end
+    if curTrack.endingFrameExtra>find(~isnan(curTrack.amp),1,'last')
+        curTrack.endingFrameExtra = find(~isnan(curTrack.amp),1,'last');
+    end
+    if curTrack.startingFrameExtra<find(~isnan(curTrack.amp),1)
+        curTrack.startingFrameExtra = find(~isnan(curTrack.amp),1);
+    end
+    curTrack.lifeTime = curTrack.endingFrameExtra - curTrack.startingFrameExtra;
+
     effectiveSF = curTrack.startingFrameExtra; 
     sFEE = max(1,curTrack.startingFrameExtra-differentInitialMargin); %curTrack.startingFrameExtraExtra;
     sF5before = max(sFEE,effectiveSF -1); % So the variabl name should be sF1before
@@ -80,19 +100,21 @@ for ii=1:numel(tracksNA)
 %     end
     pp=0;
     lastPeriod = min(curTrack.lifeTime+1, 100);
-    firstPeriod = 20; pStep=20;
+    firstPeriod = min(lastPeriod,20); pStep=20;
     nSlopes = floor((lastPeriod-firstPeriod)/pStep);
     curEarlyAmpSlope = NaN(nSlopes,1);
     for  initialTime=firstPeriod:pStep:lastPeriod
         pp=pp+1;
-        ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
-        [~,curEarlyAmpSlope(pp)] = regression((1:ealryFrames),curTrack.ampTotal(sF10before:sF10before+ealryFrames-1));
+        earlyFrames = min(initialTime, curTrack.endingFrameExtra-sF5before+1);
+%         curModel = fitlm((1:ealryFrames),curTrack.ampTotal(sF5before:sF5before+ealryFrames-1));
+%         curEarlyAmpSlope(pp) = curModel.Coefficients.Estimate(2);
+        [~,curEarlyAmpSlope(pp)] = regression((1:earlyFrames),curTrack.amp(sF5before:sF5before+earlyFrames-1));
     end
 %     [~,curForceSlope] = regression((1:curTrack.lifeTime+1),curTrack.forceMag(curTrack.startingFrameExtra:curTrack.endingFrameExtra));
 
 %     sFEE = curTrack.startingFrameExtraExtra;
 %         sF5before = max(curTrack.startingFrameExtraExtra,curTrack.startingFrameExtra-5);
-    if any(curEarlyAmpSlope>0) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
+    if any(curEarlyAmpSlope>-std(curTrack.amp)/(earlyFrames)) %&& (numFramesBefore>1) % && curForceSlope>0 % intensity should increase. We are not 
         % interested in decreasing intensity which will 
         d = tracksNA(ii).amp;
         nTime = length(d);
@@ -137,7 +159,7 @@ for ii=1:numel(tracksNA)
             bkgMaxInt = nanmax(sd(sF10before:sF5before));
             firstIncreaseTimeInt = find(sd>bkgMaxInt & 1:length(sd)>sF5before,1);
         else
-            bkgMaxInt = max(d(sF10before:sF5before));
+            bkgMaxInt = nanmax(d(sF10before:sF5before));
             firstIncreaseTimeInt = find(d>bkgMaxInt & 1:nTime>sF5before,1);
         end
 %         firstIncreseTimeInt = curTrack.startingFrameExtra;
@@ -152,8 +174,8 @@ for ii=1:numel(tracksNA)
                 curEarlyForceSlope = NaN(5,1);
                 for  initialTime=10:10:50
                     pp=pp+1;
-                    ealryFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
-                    [~,curEarlyForceSlope(pp)] = regression((1:ealryFrames),curSlave(sF10before:sF10before+ealryFrames-1));
+                    earlyFrames = min(initialTime, curTrack.endingFrameExtra-sF10before+1);
+                    [~,curEarlyForceSlope(pp)] = regression((1:earlyFrames),curSlave(sF10before:sF10before+earlyFrames-1));
                 end
                 
                 if any(curEarlyForceSlope>0) && sum(~isnan(curSlave))>1
@@ -202,7 +224,7 @@ for ii=1:numel(tracksNA)
     else
         disp(''); %disp('Amplitude not increasing')
     end
-    if nargout>6
+    if wantUpdatedTracks
         tracksNA(ii).forceTransmitting=forceTransmittingAll(ii);
         tracksNA(ii).firstIncreaseTimeInt=firstIncreaseTimeIntAll(ii); % in sec
         tracksNA(ii).firstIncreaseTimeForce = firstIncreaseTimeSlaveAll(ii);

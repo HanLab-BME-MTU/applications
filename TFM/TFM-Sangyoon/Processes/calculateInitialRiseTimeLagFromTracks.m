@@ -54,6 +54,9 @@ tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 % numChans = numel(p.ChannelIndex);
 %% Doublecheck if amp has similar range as amp2 and read it again at least for the extra part
 % find one examplary track that has intermediate starting point
+tic
+[imgStack, ~, ~, labelFAs] = getAnyStacks(MD);
+toc
 startingFrameExtraAll = arrayfun(@(x) x.startingFrameExtra,tracksNA);
 startingFrameExtraExtraAll = arrayfun(@(x) x.startingFrameExtraExtra,tracksNA);
 intermedTrackIDs = find(startingFrameExtraExtraAll<(startingFrameExtraAll-10));
@@ -64,9 +67,6 @@ if ~isempty(intermedTrackIDs)
     if isnan(trackInspected.amp(trackInspected.startingFrameExtraExtra+1))
         % then we need to read this amp again
         disp('Reading image stack again to read extra time regime of amp...')
-        tic
-        imgStack = getAnyStacks(MD);
-        toc
         disp('Reading from tracks'); tic
         tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true); toc;
         disp('Saving the tracks...'); tic
@@ -202,6 +202,23 @@ for i = existingSlaveIDs
     outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 timeLagProc.setOutFilePaths(outputFile);
+%% Backup the original vectors to backup folder
+if exist(outputFile{2,p.ChannelIndex(1)},'file')
+    disp('Backing up the original data')
+    backupFolder = [p.OutputDirectory ' Backup']; % name]);
+    if exist(p.OutputDirectory,'dir')
+        ii = 1;
+        while exist(backupFolder,'dir')
+            backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+            ii=ii+1;
+        end
+        mkdir(backupFolder);
+        copyfile(p.OutputDirectory, backupFolder,'f')
+    end
+    mkClrDir(p.OutputDirectory);
+else
+    mkClrDir(p.OutputDirectory);
+end
 
 %% I. Time series analyses
 p.numWinSize=0; %frames
@@ -234,7 +251,7 @@ for jj=existingSlaveIDs
     endingIntAgainstSlaveAll{jj}=curEndingIntAgainstSlave;
     disp(['Median of endingIntAgainstSlaveAll' curSlave 'All = ' num2str(nanmedian(endingIntAgainstSlaveAll{jj}))])
     % 4. Cross-correlation: score and 5. lag
-    for k=1:numel(tracksNA)
+    parfor k=1:numel(tracksNA)
         presIdx = tracksNA(k).startingFrameExtra:tracksNA(k).endingFrameExtra;%logical(tracksNA(k).presence);
         maxLag = ceil(tracksNA(k).lifeTime/2);
         [curCC,~,curLag]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),...
@@ -267,8 +284,8 @@ end
 % idxLateAmpLow = lateAmpTotalG1<meanAmpMaximum;
 % idGroup1f = idxLateAmpLow & idxIncreasingAmpG1 & idxLowInitForceG1;
 
-iForceReadProc = 10;
-forceReadProc = FAPack.processes_{iForceReadProc};
+% iForceReadProc = 10;
+% forceReadProc = FAPack.processes_{iForceReadProc};
 if ~isempty(forceReadProc)
     % Filtering for group1
     idGroup1FT = getForceTransmittingG1(idGroup1,tracksNA(idGroup1));
@@ -288,6 +305,66 @@ if ~isempty(forceReadProc)
 else
     idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 end
+
+if ~isempty(theOtherReadProc)
+    % Here we want to filter out noisy tracks that are 1) nearly invisible
+    % by eye (via sigma); 2) not enough pre-signal period; 3) no
+    % amp2-increasing (via SlaveTransmittingAll{jj})
+    % It'll overwrite the idGroups from force-based
+    startingFrameG1 = arrayfun(@(x) x.startingFrameExtra, tracksNA);
+    % amp and amp2 should be also near zero at pre-signal period
+    preAmp = arrayfun(@(x) x.amp(x.startingFrameExtraExtra:x.startingFrameExtra),tracksNA,'unif',false);
+    preAmp2 = arrayfun(@(x) x.amp2(x.startingFrameExtraExtra:x.startingFrameExtra),tracksNA,'unif',false);
+    % 
+    preMeanAmp1 = cellfun(@nanmean,preAmp);
+    ampThres = nanstd(cell2mat(preAmp'));
+    nearZeroAmp1 = preMeanAmp1<ampThres;
+    nearZeroAmp1(isnan(nearZeroAmp1))=0;
+    
+    preMeanAmp2 = cellfun(@nanmean,preAmp2);
+    amp2Thres = nanstd(cell2mat(preAmp2'));
+    nearZeroAmp2 = preMeanAmp2<amp2Thres;
+    nearZeroAmp2(isnan(nearZeroAmp2))=0;
+%     nearZeroAmp2 = cellfun(@ttest,preAmp2);
+%     nearZeroAmp2(isnan(nearZeroAmp2))=1;
+%     nearZeroAmp2 = ~nearZeroAmp2;
+    
+    idGroup1clean = idGroup1 & startingFrameG1>20 & nearZeroAmp1 & nearZeroAmp2; %& SlaveTransmittingAll{2};
+    
+    idGroup2clean = idGroup2 & startingFrameG1>20 & nearZeroAmp1 & nearZeroAmp2; %SlaveTransmittingAll{2};
+                
+%     %Plotting
+%     hold off
+%     for ii=find(idGroup1clean')
+%         plot(tracksNA(ii).amp)
+%         hold on
+%     end
+%     %Plotting
+%     hold off
+%     for ii=find(idGroup2clean')
+%         plot(tracksNA(ii).amp)
+%         hold on
+%     end
+    %saving
+    tracksG1 = tracksNA(idGroup1clean);
+    tracksG2 = tracksNA(idGroup2clean);
+    
+    save([dataPath filesep 'tracksG1.mat'],'tracksG1')
+    save([dataPath filesep 'tracksG2.mat'],'tracksG2')
+
+    if ~isempty(forceReadProc)
+        idGroup1f = idGroup1f & idGroup1clean;
+        idGroup2f = idGroup2f & idGroup2clean;
+        
+        idGroups = {idGroup1f,idGroup2f,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+    else
+        idGroup1 = idGroup1 & idGroup1clean;
+        idGroup2 = idGroup2 & idGroup2clean;
+        
+        idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
+    end
+end
+
 save([dataPath filesep 'idGroups.mat'],'idGroups');
 
 %% Get the fraction of how many adhesions are
@@ -361,6 +438,9 @@ save([dataPath filesep 'BccGroups.mat'],'BccGroups','indexValidBccInTracks');
 % plotted. If there are also ampTotal2, then everything will be aligned to
 % the p.mainSlave
 % In case of only forceMag
+
+tracksNA = reestimateBkgFromTracks(tracksNA, imgStack, labelFAs);
+
 for k=1:numClasses
     initialLagTogether = initialLagGroups(k,existingSlaveIDs);
     peakLagTogether = peakLagGroups(k,existingSlaveIDs);
@@ -412,7 +492,7 @@ for k=1:numClasses
     end
     
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(initialLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(initialLagTogetherAdjusted,nameList2,1,false,true,'ax',ax); 
     nameTitle=['initialLag Class' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -421,7 +501,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(zeroBccTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(zeroBccTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['zeroBccTogetherAdjusted' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -430,7 +510,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(halfBccTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(halfBccTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['halfBccTogetherAdjusted' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -439,7 +519,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax=axes(h2);
-    boxPlotCellArray(oneBccTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(oneBccTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['oneBccTogetherAdjusted' num2str(k)];
     title(ax,nameTitle); ylabel(ax,'Time (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -714,7 +794,7 @@ for k=1:numClasses
 %  
     
     h2=figure; ax = axes(h2); 
-    boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(peakLagTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['peakLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -723,7 +803,7 @@ for k=1:numClasses
     close(h2)
 
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(endingLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(endingLagTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['endingLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -732,7 +812,7 @@ for k=1:numClasses
     close(h2)
     
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(ccLagTogetherAdjusted,nameList2,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(ccLagTogetherAdjusted,nameList2,1,false,true,'ax',ax);
     nameTitle=['ccLag Class' num2str(k)];
     title(nameTitle); ylabel('Time lag (s)')
     hgexport(h2,strcat(figPath,filesep,nameTitle),hgexport('factorystyle'),'Format','eps')
@@ -755,7 +835,7 @@ end
     distToEdge{9} =arrayfun(@(x) mean(x.distToEdge),tracksNA(idGroup9));
     groupNameList={'g1','g2','g3','g4','g5','g6','g7','g8','g9'};
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(distToEdge,groupNameList,pixSize,false,true,false,5,'ax',ax);
+    boxPlotCellArray(distToEdge,groupNameList,pixSize,false,true,'ax',ax);
     title(ax,'Distance to edge')
     ylabel(ax,'Distance to edge (um)')
     save([p.OutputDirectory filesep 'data' filesep 'distToEdge.mat'],'distToEdge','-v7.3')
@@ -773,7 +853,7 @@ end
     advanceDist{9} =arrayfun(@(x) mean(x.advanceDist),tracksNA(idGroup9));
 
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(advanceDist,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(advanceDist,groupNameList,1,false,true,'ax',ax);
     title(ax,'Adhesion advancement forward')
     ylabel(ax,'Adhesion advancement (um)')
     save([p.OutputDirectory filesep 'data' filesep 'advanceDist.mat'],'advanceDist','-v7.3')
@@ -790,14 +870,62 @@ end
     ampTotal{8} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup8));
     ampTotal{9} =arrayfun(@(x) nanmean(x.ampTotal),tracksNA(idGroup9));
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(ampTotal,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(ampTotal,groupNameList,1,false,true,'ax',ax);
 
     title(ax,'ampTotal')
     ylabel(ax,'Fluorescence intensity (A.U.)')
     save([p.OutputDirectory filesep 'data' filesep 'ampTotal.mat'],'ampTotal','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'ampTotalAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/ampTotalAllGroups'),'-v7.3'); close(h2)
+    %% 
+
     %% Look at feature difference per each group - assemRate
+    if ~isfield(tracksNA,'assemRate')
+        tracksNA(end).assemRate=[];
+    end
+    disp('Calculating assembly rates'); tic
+    numTracks=numel(tracksNA);
+    tIntMin=MD.timeInterval_/60;
+    tRangeSelectedAssem = cell(numTracks,1);
+    
+    %% Lifetime analysis
+    idxEmer = false(numel(tracksNA),1);
+    idxDis = false(numel(tracksNA),1);
+    for k=1:numel(tracksNA)
+        % look for tracks that had a state of 'BA' and become 'NA'
+        firstNAidx = find(tracksNA(k).state==2,1,'first');
+        % see if the state is 'BA' before 'NA' state
+        if (~isempty(firstNAidx) && firstNAidx>1 && (tracksNA(k).state(firstNAidx-1)==1)) || (~isempty(firstNAidx) &&firstNAidx==1)
+            idxEmer(k) = true;
+            tracksNA(k).emerging = true;
+            tracksNA(k).emergingFrame = firstNAidx;
+        else
+            tracksNA(k).emerging = false;
+        end        
+        % look for tracks that had a state of 'ANA' 
+        disassembling = any(tracksNA(k).state==5);
+        idxDis(k) = disassembling;
+        tracksNA(k).disassembling = disassembling;
+    end
+    
+    R2criteria = 0.5;
+    parfor kk=1:numTracks  %find(idxEmer')
+        curTrack=tracksNA(kk);
+        [curAssemRate,~,bestSummaryAssem,~,tRangeSelected]  = getAssemRateFromTracks(curTrack,tIntMin,'amp'); %'ampTotal');%
+        if ~isnan(curAssemRate)
+            if bestSummaryAssem.adjRsquared<R2criteria %something about too short TS?
+                curAssemRate = NaN;
+            end
+        end
+        curTrack.assemRate = curAssemRate;
+        tRangeSelectedAssem{kk} = tRangeSelected;
+        tracksNA(kk)=curTrack;
+%         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
+    end
+    for kk = find(~idxEmer')
+        tracksNA(kk).assemRate = NaN;
+    end
+    toc
     assemRate{1} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{1}));
     assemRate{2} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroups{2}));
     assemRate{3} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup3));
@@ -808,26 +936,37 @@ end
     assemRate{8} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup8));
     assemRate{9} =arrayfun(@(x) nanmean(x.assemRate),tracksNA(idGroup9));
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(assemRate,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(assemRate,groupNameList,1,false,true,'ax',ax);
 
     title(ax,'assemRate')
     ylabel(ax,'Assembly Rate(1/min)')
     save([p.OutputDirectory filesep 'data' filesep 'assemRate.mat'],'assemRate','-v7.3')
     print('-depsc','-loose',[p.OutputDirectory filesep 'eps' filesep 'assemRateAllGroups.eps']);% histogramPeakLagVinVsTal -transparent
     hgsave(strcat(figPath,'/assemRateAllGroups'),'-v7.3'); close(h2)
-    %% Look at feature difference per each group - assemRate
-%     if ~isfield(tracksNA,'disassemRate')
-%         tracksNA(end).disassemRate=[];
-%     end
-%     disp('Calculating disassembly rates'); tic
-%     parfor kk=1:numTracks
-%         curTrack=tracksNA(kk);
-%         curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin);
-%         curTrack.disassemRate = curDisassemRate;
-%         tracksNA(kk)=curTrack;
-% %         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
-%     end
-%     toc
+    %% Look at feature difference per each group - disassemRate
+    if ~isfield(tracksNA,'disassemRate')
+        tracksNA(end).disassemRate=[];
+    end
+    disp('Calculating disassembly rates'); tic
+    tRangeSelectedDisassem = cell(numel(tracksNA),1);
+    parfor kk=1:numTracks %find(idxDis')
+%     for kk=1:numTracks
+        curTrack=tracksNA(kk);
+        [curDisassemRate,~,bestSummaryDisassem,~,tRangeSelected]  = getDisassemRateFromTracks(curTrack,tIntMin,'amp'); %'ampTotal'); %
+        if ~isnan(curDisassemRate)
+            if bestSummaryDisassem.adjRsquared<R2criteria
+                curDisassemRate = NaN;
+            end
+        end
+        curTrack.disassemRate = curDisassemRate;
+        tRangeSelectedDisassem{kk} = tRangeSelected;
+        tracksNA(kk)=curTrack;
+%         progressText(kk/numTracks,'Calculating disassembly rates') % Update text
+    end
+    for kk = find(~idxDis')
+        tracksNA(kk).disassemRate = NaN;
+    end
+    toc
     disassemRate{1} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroups{1}));
     disassemRate{2} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroups{2}));
     disassemRate{3} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroup3));
@@ -838,7 +977,7 @@ end
     disassemRate{8} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroup8));
     disassemRate{9} =arrayfun(@(x) nanmean(x.disassemRate),tracksNA(idGroup9));
     h2=figure; ax = axes(h2);
-    boxPlotCellArray(disassemRate,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(disassemRate,groupNameList,1,false,true,'ax',ax);
 
     title(ax,'disassemRate')
     ylabel(ax,'Disssembly Rate(1/min)')
@@ -857,7 +996,7 @@ end
         ampTotal2{8} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup8));
         ampTotal2{9} =arrayfun(@(x) nanmean(x.ampTotal2),tracksNA(idGroup9));
         h2=figure; ax = axes(h2);
-        boxPlotCellArray(ampTotal2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(ampTotal2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'ampTotal2')
         ylabel(ax,'Fluorescence intensity (A.U.)')
@@ -878,11 +1017,22 @@ end
             disp('Calculating assembly/disassembly rates'); tic
             parfor kk=1:numTracks
                 curTrack=tracksNA(kk);
-                curAssemRate = getAssemRateFromTracks(curTrack,tIntMin,'amp2');
+                [curAssemRate,~,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntMin,'ampTotal2',15,0,tRangeSelectedAssem{kk});
+                if ~isnan(curAssemRate)
+                    if (bestSummaryAssem2.adjRsquared<0.125*R2criteria && abs(curAssemRate) > 0.5) || isnan(curTrack.assemRate)
+                        curAssemRate = NaN;
+                    end
+                end
                 curTrack.assemRate2 = curAssemRate;
-                curDisassemRate = getDisassemRateFromTracks(curTrack,tIntMin,'amp2');
+                [curDisassemRate,~,bestSummaryDisassem2] = getDisassemRateFromTracks(curTrack,tIntMin,'ampTotal2',25,0,tRangeSelectedDisassem{kk});
+                if ~isnan(curDisassemRate)
+                    if (bestSummaryDisassem2.adjRsquared<0.125*R2criteria && abs(curDisassemRate) > 0.5) || isnan(curTrack.disassemRate)
+                        curDisassemRate = NaN;
+                    end
+                end
                 curTrack.disassemRate2 = curDisassemRate;
                 tracksNA(kk)=curTrack;
+                progressText(kk/numTracks,'assem/Disassem calculation');
             end
             toc
             
@@ -896,7 +1046,7 @@ end
             assemRate2{8} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup8));
             assemRate2{9} =arrayfun(@(x) nanmean(x.assemRate2),tracksNA(idGroup9));
             h2=figure; ax = axes(h2);
-            boxPlotCellArray(assemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+            boxPlotCellArray(assemRate2,groupNameList,1,false,true,'ax',ax);
 
             title(ax,'assemRate2')
             ylabel(ax,'Assembly Rate 2 (1/min)')
@@ -915,7 +1065,7 @@ end
             disassemRate2{8} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup8));
             disassemRate2{9} =arrayfun(@(x) nanmean(x.disassemRate2),tracksNA(idGroup9));
             h2=figure; ax = axes(h2);
-            boxPlotCellArray(disassemRate2,groupNameList,1,false,true,false,5,'ax',ax);
+            boxPlotCellArray(disassemRate2,groupNameList,1,false,true,'ax',ax);
 
             title(ax,'disassemRate2')
             ylabel(ax,'Disssembly Rate 2 (1/min)')
@@ -939,7 +1089,7 @@ end
     startingAmpTotal{8} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup8));
     startingAmpTotal{9} =arrayfun(@(x) (x.ampTotal(x.startingFrameExtra)),tracksNA(idGroup9));
     hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(startingAmpTotal,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(startingAmpTotal,groupNameList,1,false,true,'ax',ax);
     title(ax,'Starting Amplitude')
     ylabel(ax,'Fluorescence intensity (A.U.)')
     save([p.OutputDirectory filesep 'data' filesep 'startingAmpTotal.mat'],'startingAmpTotal','-v7.3')
@@ -957,7 +1107,7 @@ end
         startingAmpTotal2{8} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup8));
         startingAmpTotal2{9} =arrayfun(@(x) x.ampTotal2(x.startingFrameExtra),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(startingAmpTotal2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(startingAmpTotal2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'startingAmpTotal2')
         ylabel(ax,'Fluorescence intensity (A.U.)')
@@ -981,7 +1131,7 @@ end
     edgeAdvanceDistChange{8} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup8));
     edgeAdvanceDistChange{9} =arrayfun(@(x) (x.edgeAdvanceDistChange2min(x.endingFrameExtra)),tracksNA(idGroup9));
     hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(edgeAdvanceDistChange,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(edgeAdvanceDistChange,groupNameList,1,false,true,'ax',ax);
     title(ax,'edgeAdvanceDistChange at the end of tracks (to see g7 has nearly zero edge advance)')
     ylabel(ax,'edgeAdvanceDistChange (um)')
     save([p.OutputDirectory filesep 'data' filesep 'edgeAdvanceDistChange.mat'],'edgeAdvanceDistChange','-v7.3')
@@ -999,7 +1149,7 @@ end
         startingForceMag{8} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup8));
         startingForceMag{9} =arrayfun(@(x) (x.forceMag(x.startingFrameExtra)),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(startingForceMag,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(startingForceMag,groupNameList,1,false,true,'ax',ax);
         title(ax,'startingForceMag (to see g1,2,3,7 start nearly at similar force)')
         ylabel(ax,'startingForceMag (Pa)')
         save([p.OutputDirectory filesep 'data' filesep 'startingForceMag.mat'],'startingForceMag','-v7.3')
@@ -1080,7 +1230,7 @@ end
     %     set(findobj(gca,'tag','Median'),'LineWidth',2)
     % %     ylim([-2 50])
     hFig=figure; ax=axes(hFig);
-    boxPlotCellArray(earlyAmpSlope,groupNameList,1,false,true,false,5,'ax',ax);
+    boxPlotCellArray(earlyAmpSlope,groupNameList,1,false,true,'ax',ax);
     title(ax,'earlyAmpSlope (this shows that g7 has the same early slope as g3).')
     ylabel(ax,'earlyAmpSlope (A.U./min)')
     hgsave(strcat(figPath,'/earlyAmpSlopeAllGroups'),'-v7.3')
@@ -1100,7 +1250,7 @@ end
         earlyAmpSlope2{8} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup8));
         earlyAmpSlope2{9} =arrayfun(@(x) x.earlyAmpSlope2,tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(earlyAmpSlope2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(earlyAmpSlope2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'earlyAmpSlope2')
         ylabel(ax,'AmpSlope (A.U./min)')
@@ -1120,7 +1270,7 @@ end
         ampSlope2{8} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup8));
         ampSlope2{9} =arrayfun(@(x) x.ampSlope2,tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(ampSlope2,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(ampSlope2,groupNameList,1,false,true,'ax',ax);
 
         title(ax,'ampSlope2')
         ylabel(ax,'AmpSlope (A.U./min)')
@@ -1144,7 +1294,7 @@ end
         forceSlope{8} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup8));
         forceSlope{9} =arrayfun(@(x) (x.forceSlope),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(forceSlope,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(forceSlope,groupNameList,1,false,true,'ax',ax);
         title(ax,'forceSlope (all nascent adhesions (g1,2,3,7) show the same force slopes).')
         ylabel(ax,'forceSlope (Pa/min)')
         hgsave(strcat(figPath,'/forceSlopeAllGroups'),'-v7.3')
@@ -1163,7 +1313,7 @@ end
         earlyForceSlope{8} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup8));
         earlyForceSlope{9} =arrayfun(@(x) (x.earlyForceSlope),tracksNA(idGroup9));
         hFig=figure; ax=axes(hFig);
-        boxPlotCellArray(earlyForceSlope,groupNameList,1,false,true,false,5,'ax',ax);
+        boxPlotCellArray(earlyForceSlope,groupNameList,1,false,true,'ax',ax);
         title(ax,'earlyForceSlope')
         ylabel(ax,'earlyForceSlope (Pa/min)')
         hgsave(strcat(figPath,'/earlyForceSlopeAllGroups'),'-v7.3')
@@ -1210,6 +1360,57 @@ end
     %     fileStoreG9 = [epsPath filesep 'ampForcePlotG9.eps'];
     %     [~,h]=plotIntensityForce(tracksNA(idGroup9),fileStoreG9,false,false); if ~isempty(h); close(h); end
     end
+    %% average profile for the first n frames
+    [tracksNA, idFailing,idMaturing] = ...
+        separateMatureAdhesionTracks(tracksNA);
+    tracksNAfailing = tracksNA(idFailing);
+    tracksNAmaturing = tracksNA(idMaturing);
+%     idMaturingExisting = arrayfun(@(x) isfield(x,'maturing'), tracksNA);
+%     idMaturing = arrayfun(@(x) x.maturing,tracksNA(idMaturingExisting));
+%     idFailing = arrayfun(@(x) ~x.maturing,tracksNA(idMaturingExisting));
+    idEmergingExisting = arrayfun(@(x) isfield(x,'emerging'),tracksNA);
+    idEmerging = arrayfun(@(x) x.emerging,tracksNA(idEmergingExisting));
+    
+    nSampleFrames = 25;
+    ampMaturingArray = NaN(sum(idMaturing),nSampleFrames);
+    ampFailingArray = NaN(sum(idFailing),nSampleFrames);
+    ampEmergingArray = NaN(sum(idEmerging),nSampleFrames);
+    
+%     tracksMatureExt = tracksNA(idMaturingExisting);
+    for k=1:numel(tracksNAmaturing)
+        curProfileMaturing = tracksNAmaturing(k).amp;
+        fmax = min(nSampleFrames, length(curProfileMaturing));
+        ampMaturingArray(k,1:fmax) = curProfileMaturing(1:fmax);
+    end
+    for k=1:numel(tracksNAfailing)
+        curProfileFailing = tracksNAfailing(k).amp;
+        fmax = min(nSampleFrames, length(curProfileFailing));
+        ampFailingArray(k,1:fmax) = curProfileFailing(1:fmax);
+    end
+    tracksEmegExt = tracksNA(idEmergingExisting);
+
+    pp=0;
+    for k=find(idEmerging)'
+        pp=pp+1;
+        curProfileEmerging = tracksEmegExt(k).amp;
+        fmax = min(nSampleFrames, length(curProfileEmerging));
+        ampEmergingArray(pp,1:fmax) = curProfileEmerging(1:fmax);
+    end
+    save([p.OutputDirectory filesep 'data' filesep 'ampArrays.mat'],'ampEmergingArray','ampFailingArray','ampMaturingArray','-v7.3')
+    
+    t = (0:nSampleFrames-1)*tInterval;
+    maturingAmpAvg = nanmean(ampMaturingArray,1)';
+    failingAmpAvg = nanmean(ampFailingArray,1)';
+    
+    h1=figure;
+    hold on
+    plot(t,ampFailingArray','Color',[255/255, 204/255, 103/255])
+    plot(t,ampMaturingArray','Color',[181/255, 217/255, 148/255])
+    plot(t,failingAmpAvg','Color',[248/255, 152/255, 56/255],'LineWidth',2)
+    plot(t,maturingAmpAvg','Color',[13/255, 159/255, 73/255],'LineWidth',2)
+    
+    hgsave(strcat(figPath,'/ampArrays'),'-v7.3'); 
+    close(h1)
 %% G3 vs. G7 comparison
     %% export tracksG1, G2, G3 and G7 separately
 %     tracksG1 = tracksNA(idGroup1);

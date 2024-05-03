@@ -6,6 +6,7 @@ classdef FlowAnalysisProcess < DataProcessingProcess
     properties (SetAccess = protected)  
         flowLimits_
         speedMapLimits_ 
+        protSpeedMapLimits_
     end
     
     methods
@@ -40,7 +41,7 @@ classdef FlowAnalysisProcess < DataProcessingProcess
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
-            outputList = {'speedMap','Md','Ms','E','S','img3C_map','img3C_SNR'};
+            outputList = {'speedMap','Md','Ms','E','S','img3C_map','img3C_SNR','protSpeedMap'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -78,6 +79,10 @@ classdef FlowAnalysisProcess < DataProcessingProcess
         
         function setSpeedMapLimits(obj,speedMapLimits)
             obj.speedMapLimits_=speedMapLimits;
+        end
+        
+        function setProtSpeedMapLimits(obj,speedMapLimits)
+            obj.protSpeedMapLimits_=speedMapLimits;
         end
         
         function setFlowLimits(obj,flowLimits)
@@ -125,6 +130,13 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             output(7).formatData=[];
             output(7).type='image';
             output(7).defaultDisplayMethod=@ImageDisplay;
+            
+            output(8).name='Protrusion Speed map';
+            output(8).var='protSpeedMap';
+            output(8).formatData=[];
+            output(8).type='image';
+            output(8).defaultDisplayMethod=@(x)ImageDisplay('Colormap',BlueBlackRedColorMap,...
+                'Colorbar','on','Units',obj.getUnits,'CLim',obj.protSpeedMapLimits_{x}); %speedMapLimits_{x}); %
         end  
         
     end
@@ -160,6 +172,7 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             funParams.gridSize = 11;
             funParams.noise = 1;
             funParams.error = 1;
+            funParams.driftCorrection = false;
         end 
         function units = getUnits(varargin)
             units = 'Speed (nm/min)';

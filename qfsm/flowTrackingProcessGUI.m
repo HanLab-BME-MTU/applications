@@ -22,7 +22,7 @@ function varargout = flowTrackingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help flowTrackingProcessGUI
 
-% Last Modified by GUIDE v2.5 29-Nov-2011 10:45:04
+% Last Modified by GUIDE v2.5 11-Apr-2022 23:32:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -82,6 +82,8 @@ end
 % Outlier parameters
 detectOutliers = ~isempty(funParams.outlierThreshold);
 set(handles.checkbox_filterOutliers,'Value',detectOutliers);
+set(handles.checkbox_PIV,'Value',funParams.usePIV);
+
 if detectOutliers
     set(handles.edit_outlierThreshold,'String',funParams.outlierThreshold,...
         'Enable','on');
@@ -200,6 +202,9 @@ else
     funParams.outlierThreshold=[];
 end
 
+% Use PIV Suite or not
+funParams.usePIV = handles.checkbox_PIV.Value;
+
 % Set parameters and update main window
 setLastImage =@(x) parseProcessParams(x,struct('lastImage',...
     min(x.funParams_.lastImageNum,x.owner_.nFrames_)));
@@ -240,3 +245,12 @@ if get(hObject,'Value'),
 else
     set(handles.edit_numStBgForAvg,'Enable','on');
 end
+
+
+% --- Executes on button press in checkbox_PIV.
+function checkbox_PIV_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_PIV (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_PIV

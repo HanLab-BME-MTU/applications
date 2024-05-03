@@ -106,7 +106,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
             ip =inputParser;
             ip.addRequired('obj');
             ip.addRequired('iChan', @(x) obj.checkChanNum(x));
-            ip.addOptional('iFrame', [] ,@(x) obj.checkFrameNum(x));
+            ip.addOptional('iFrame', obj.owner_.nFrames_ ,@(x) obj.checkFrameNum(x));
             ip.addParameter('useCache',true,@islogical);
             ip.addParameter('output', outputList{3}, @(x) all(ismember(x,outputList)));
             ip.parse(obj,iChan,varargin{:})

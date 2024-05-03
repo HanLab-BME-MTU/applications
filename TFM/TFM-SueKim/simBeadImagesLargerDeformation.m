@@ -1,6 +1,7 @@
-%% Preparing synthetic bead images
+%% set up
 clc
-clear all
+clear
+%% Preparing synthetic bead images
 meshPtsFwdSol=2^9;
 xmax=meshPtsFwdSol;
 ymax=meshPtsFwdSol;
@@ -132,8 +133,8 @@ background = ~foreground;
 force_x = (maxFnoise*rand(ymax,xmax)).*background + force_x;
 force_y = (maxFnoise*rand(ymax,xmax)).*background + force_y;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
-figure, imshow(fnorm_org,[0 5100]), colormap jet
-
+figure, imshow(fnorm_org,[0 12000]), colormap jet
+save('forceGTlarger.mat','force_x','force_y');
 %% displacement field
 % figure 2
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
@@ -199,7 +200,8 @@ end
 beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
 
 %% saving
-dataPath='/storage/network/TFM_Development/TFM2D/PIVimprovement/simulation';
+% dataPath='/storage/network/TFM_Development/TFM2D/PIVimprovement/simulation';
+dataPath=pwd;
 %PIVImprovement - simulation folder
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];

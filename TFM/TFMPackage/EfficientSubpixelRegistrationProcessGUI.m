@@ -60,6 +60,7 @@ nframes = userData.MD.nFrames_;
 frameSelStr = arrayfun(@(x) ['Frame #: ' num2str(x)], 1:nframes, 'UniformOutput',false);
 frameSelStr = ['Image Path', frameSelStr];
 set(handles.referenceFrame_popupmenu,'String',frameSelStr);
+set(handles.referenceFrame_popupmenu,'Value',funParams.referenceFrameNum+1);
 
 % set(handles.referenceFrame_popupmenu,'Callback',@frameSelStr);
 
@@ -151,12 +152,10 @@ end
 if handles.referenceFrame_popupmenu.Value == 1 %,== 'Select Image Path')
     % Retrieve reference frame path
     funParams.referenceFramePath=get(handles.edit_referenceFramePath,'String');    
-    funParams.referenceFrameNum = 0;
 else
-    funParams.referenceFramePath='';
-    funParams.referenceFrameNum = handles.referenceFrame_popupmenu.Value + 1; % Assumes first one is path selection
-    
+    funParams.referenceFramePath='';    
 end
+funParams.referenceFrameNum = handles.referenceFrame_popupmenu.Value - 1; % Assumes first one is path selection
 
 if handles.referenceFrame_popupmenu.Value == 1 && isempty(funParams.referenceFramePath)
     errordlg('No reference frame selected, please select path or choose frame #.')

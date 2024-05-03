@@ -61,10 +61,11 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                     adhAnalProc = faPack.processes_{7};
                 end
                 idSelected=ip.Results.idSelected;
+                p7 = adhAnalProc.funParams_;
                 if isempty(idSelected)
-                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA','wantFullTrack',true);
+                    tracksNA=adhAnalProc.loadChannelOutput(p7.ChannelIndex,'output','tracksNA','wantFullTrack',true);
                 else
-                    tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA','idSelected',idSelected,'wantFullTrack',true);
+                    tracksNA=adhAnalProc.loadChannelOutput(p7.ChannelIndex,'output','tracksNA','idSelected',idSelected,'wantFullTrack',true);
                 end
                 % numChans = numel(p.ChannelIndex);
 
@@ -133,10 +134,14 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
 
                 forceReadProc=FAPack.processes_{iForceRead};
                 if ~isempty(forceReadProc)
-                    idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
-                    if ~isfield(idxTracksObj,'idxTracks')
+                    try
+                        idxTracksObj = load(forceReadProc.outFilePaths_{6,p.ChannelIndex},'idxTracks');
+                        if ~isfield(idxTracksObj,'idxTracks')
+                            idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
+                            disp('Reading idxTracks from other source. OK!')
+                        end
+                    catch
                         idxTracksObj = load(forceReadProc.outFilePaths_{2,p.ChannelIndex},'idxTracks');
-                        disp('Reading idxTracks from other source. OK!')
                     end
                     idxTracks = idxTracksObj.idxTracks;
                 end

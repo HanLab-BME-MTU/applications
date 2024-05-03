@@ -23,6 +23,20 @@ slaveSource=ip.Results.slaveSource;
 peakTimeIntAgainstForceAll=NaN(numel(tracksNA),1);
 peakTimeIntAll=NaN(numel(tracksNA),1);
 peakTimeForceAll=NaN(numel(tracksNA),1);
+
+wantUpdatedTracks = nargout>3;
+
+if wantUpdatedTracks
+    %Have to make the new fields
+    tracksNA(end).forcePeakness=false;
+    tracksNA(end).forcePeakMag=NaN; % in sec
+    tracksNA(end).forcePeakFrame = NaN;
+    tracksNA(end).forcePeakMagRel = NaN;
+    tracksNA(end).intenPeakness = false;
+    tracksNA(end).intenPeakFrame = NaN;
+end
+
+% parfor ii=1:numel(tracksNA)
 for ii=1:numel(tracksNA)
     sF = max(1,tracksNA(ii).startingFrameExtra-50);
     tRange = sF:tracksNA(ii).endingFrameExtraExtra;
@@ -51,17 +65,21 @@ for ii=1:numel(tracksNA)
     if ismember(curFrameMaxAmp,curFrameLocMaxes) && curFrameMaxAmp>tRange(1) && ...
             curFrameMaxAmp<tRange(end) && isfield(tracksNA(ii),slaveSource)
         peakTimeIntAll(ii) = curFrameMaxAmp;
-        tracksNA(ii).intenPeakness = true;
-        tracksNA(ii).intenPeakFrame = curFrameMaxAmp;
+        if wantUpdatedTracks
+            tracksNA(ii).intenPeakness = true;
+            tracksNA(ii).intenPeakFrame = curFrameMaxAmp;
+        end
 
 %         curForce=d;
         curForce = getfield(tracksNA(ii),{1},slaveSource,{tRange});
         if all(isnan(curForce))
             disp(['There is something wrong with ' slaveSource '. Please run the associated process again and run the step 11.'])
             peakTimeForceAll(ii) = NaN;
-            tracksNA(ii).forcePeakMag = NaN; 
-            tracksNA(ii).forcePeakFrame = NaN; 
-            tracksNA(ii).forcePeakMagRel = NaN; % this is a relative difference
+            if wantUpdatedTracks
+                tracksNA(ii).forcePeakMag = NaN; 
+                tracksNA(ii).forcePeakFrame = NaN; 
+                tracksNA(ii).forcePeakMagRel = NaN; % this is a relative difference
+            end
             peakTimeIntAgainstForceAll(ii) = NaN; %
             continue;
         end
@@ -79,17 +97,21 @@ for ii=1:numel(tracksNA)
             weightForceMag = (forceMagLMCand - min(sCurForce_sd))/(max(forceMagLMCand) - min(sCurForce_sd));
             [forceMacMax,indMaxForceAmongLMs] = min((abs(curForceLocMaxes-curFrameMaxAmp)).^0.5/length(tracksNA(ii).lifeTime)./weightForceMag);
 %                 [forceMacMax,indMaxForceAmongLMs] = min(abs(curForceLocMaxes-curFrameMaxAmp)./weightForceMag);
-            tracksNA(ii).forcePeakness = true;
             peakTimeForceAll(ii) = curForceLocMaxes(indMaxForceAmongLMs);
-            tracksNA(ii).forcePeakMag = forceMacMax; 
-            tracksNA(ii).forcePeakMagRel = forceMacMax - min(sCurForce_sd); % this is a relative difference
-            tracksNA(ii).forcePeakFrame = peakTimeForceAll(ii); % this is a relative difference
+            if wantUpdatedTracks
+                tracksNA(ii).forcePeakness = true;
+                tracksNA(ii).forcePeakMag = forceMacMax; 
+                tracksNA(ii).forcePeakMagRel = forceMacMax - min(sCurForce_sd); % this is a relative difference
+                tracksNA(ii).forcePeakFrame = peakTimeForceAll(ii); % this is a relative difference
+            end
             peakTimeIntAgainstForceAll(ii) = -peakTimeForceAll(ii)*tInterval + peakTimeIntAll(ii)*tInterval; % - means intensity comes first; + means force peak comes first
         else
             peakTimeForceAll(ii) = NaN;
-            tracksNA(ii).forcePeakMag = NaN; 
-            tracksNA(ii).forcePeakFrame = NaN; 
-            tracksNA(ii).forcePeakMagRel = NaN; % this is a relative difference
+            if wantUpdatedTracks
+                tracksNA(ii).forcePeakMag = NaN; 
+                tracksNA(ii).forcePeakFrame = NaN; 
+                tracksNA(ii).forcePeakMagRel = NaN; % this is a relative difference
+            end
             peakTimeIntAgainstForceAll(ii) = NaN; %
         end
     end

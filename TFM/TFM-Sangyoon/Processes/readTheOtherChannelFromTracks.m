@@ -384,7 +384,32 @@ for iCurChan = iChanSlave
             'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
             'endingFrame','amp','sigma'});
         essentialTracks = rmfield(tracksNA,unnecFields);
-        addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,iReadingCode); % 5 means ampTotal2 from the other channel
+        % Trying background subtraction here
+        disp('Performing smart background subtraction ...')
+        tic
+        imgClass = class(imgStack);
+        imgStackBS = zeros(size(imgStack));
+        parfor ii=1:nFrames
+            curImg = imgStack(:,:,ii);
+            % Getting adhesion mask
+            blobMask = blobSegmentThresholdGeneral(curImg,'rosin',1,1,3); %1,'I');
+            % Make adhesion-deleted image
+            blobMask2 = bwmorph(blobMask,'dilate',3);
+            %imageBlobSubtracted = blobMask .* curImg;
+            % Get X Y for blobMask
+            [rows,columns] = ind2sub(size(curImg),find(~blobMask2));
+            fnInterp = scatteredInterpolant(columns,rows,curImg(~blobMask2),'nearest','nearest');
+            [X, Y] = meshgrid(1:size(curImg,2),1:size(curImg,1));%ind2sub(size(curImg),find(curImg>0));
+            % Interpolate images
+            imgFilled = fnInterp(X,Y);
+            % blur this img
+            imageBackground = filterGauss2D(imgFilled,50);
+            %calculate noise-filtered and background-subtracted image
+            imgStackBS(:,:,ii) = curImg - cast(imageBackground,imgClass);
+        end
+        toc
+        
+        addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,iReadingCode,'imgStackBS',imgStackBS); % 5 means ampTotal2 from the other channel
     else
         addedTracksNA = readIntensityFromTracks(addedTracksNA,imgStack,iReadingCode); % 6 means ampTotal3 from the other channel
     end

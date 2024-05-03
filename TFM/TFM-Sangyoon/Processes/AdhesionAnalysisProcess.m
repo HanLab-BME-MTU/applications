@@ -132,44 +132,63 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                     % relocate metaTrackData.trackFolderPath with current
                     % directory
                     [prevProcessPath,trackIndividualName] = fileparts(metaTrackData.trackFolderPath);
+                    % temporary: it is possible that the path is messed
+                    % up during relocation. Need to redefine
+                    % trackFolderPath
                     currentProcessPath = fileparts(obj.outFilePaths_{1,iChan});
-                    if ~strcmp(prevProcessPath,currentProcessPath)
+                    if ~strcmp(prevProcessPath,currentProcessPath) || ~exist([prevProcessPath filesep trackIndividualName],'dir')
+                        trackIndividualName = 'trackIndividual';
                         metaTrackData.trackFolderPath=[currentProcessPath filesep trackIndividualName];
                         save(obj.outFilePaths_{1,iChan},'metaTrackData');
                     end
+                
                     trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
                     if isempty(idSelected)
                         loadingSequence=metaTrackData.numTracks:-1:1;
                     else
                         loadingSequence=idSelected;
                     end
-                    
+                    firstFrame = loadingSequence(1);
+                    numTracks = metaTrackData.numTracks;
                     jj=0;
                     if size(loadingSequence,1)>1
                         loadingSequence=loadingSequence';
                     end
-                    for ii=loadingSequence
-                        if ~isempty(idSelected)
-                            jj=jj+1;
-                            progressText((jj)/numel(loadingSequence),'Loading tracksNA') % Update text
-                        else
-                            jj=ii;
-                            progressText((numel(loadingSequence)-ii)/numel(loadingSequence),'Loading tracksNA') % Update text
-                        end
-                        try
-                            curTrackObj = load(trackIndPath(ii),'curTrack');
-                        catch
-                            continue
-                        end
-                        if ii~=loadingSequence(1)
-                            potentialExtraFields = setdiff(fieldnames(curTrackObj.curTrack),fieldnames(tracksNA));
-                            if ~isempty(potentialExtraFields)
-                                for pp=1:numel(potentialExtraFields)
-                                    tracksNA(end).(potentialExtraFields{pp})=[];
-                                end
+                    % Initialize tracksNA
+                    curTrackObj1 = load(trackIndPath(firstFrame),'curTrack');
+                    tracksNA(numel(loadingSequence),1)=curTrackObj1.curTrack;
+%                     potentialExtraFields = setdiff(fieldnames(curTrackObj.curTrack),fieldnames(tracksNA));
+%                     if ~isempty(potentialExtraFields)
+%                         for pp=1:numel(potentialExtraFields)
+%                             tracksNA(end).(potentialExtraFields{pp})=[];
+%                         end
+%                     end
+
+                    if isempty(idSelected)
+                        for ii=1:numTracks
+                            try
+                                curTrackObj = load(feval(trackIndPath,ii),'curTrack');
+                            catch
+                                continue
                             end
+                            tracksNA(ii) = curTrackObj.curTrack;
                         end
-                        tracksNA(jj,1) = curTrackObj.curTrack;
+                    else
+                        for ii=loadingSequence
+%                             if ~isempty(idSelected)
+                                jj=jj+1;
+                                progressText((jj)/numel(loadingSequence),'Loading tracksNA') % Update text
+%                             else
+%                                 jj=ii;
+%                                 progressText((numel(loadingSequence)-ii)/numel(loadingSequence),'Loading tracksNA') % Update text
+%                             end
+                            try
+                                curTrackObj = load(trackIndPath(ii),'curTrack');
+                            catch
+                                continue
+                            end
+                            tracksNA(jj) = curTrackObj.curTrack;
+                        end
                     end
                     % Might need to filter out failed tracks
                     indEmptyTracks = arrayfun(@(x) isempty(x.xCoord),tracksNA);
@@ -306,11 +325,8 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                         curAdhBound = bwboundaries(labelAdhesion==ii,4,'noholes');
                         adhBound{ii} = curAdhBound{1}; % strongly assumes each has only one boundary
                     end
-                    try
-                        validAdhState = refineFAID(validState,iFrame); 
-                    catch
-                        validAdhState = cellfun(@(x) x(iFrame),refineFAID(validState));
-                    end
+
+                    validAdhState = cellfun(@(x) x(iFrame),refineFAID(validState)); %refineFAID(validState,iFrame); 
                     
                     varargout{iout} = adhBound(validAdhState); %table2struct(table(adhBoundary, number(validState),'VariableNames',{'adhBoundary', 'number'}));                                 
                 else

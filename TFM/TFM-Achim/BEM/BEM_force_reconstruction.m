@@ -470,7 +470,7 @@ else
 end
 
 %Evaluation of the solution:
-display('4.) Evaluate solution:... ')
+disp('4.) Evaluate solution:... ')
 tic;
 if nargin >= 10 && strcmp(method,'fast') && ~strictBEM
     [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
@@ -488,7 +488,7 @@ else
     end
 end
 toc;
-display('Done: solution!')
+disp('Done: solution!')
 
 function Lap = buildLaplacian(forceMesh)
 nBasis = forceMesh.numBasis;
@@ -588,7 +588,7 @@ ip.parse(varargin{:});
 lcornerOptimal = ip.Results.lcornerOptimal;
 
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-4.5:1.25/LcurveFactor:log10(L)+2.5);
+alphas=10.^(log10(L)-3:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));

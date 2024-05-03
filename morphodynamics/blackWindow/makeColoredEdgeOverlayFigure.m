@@ -80,6 +80,8 @@ if nChan == 1
 elseif nargin < 4 || isempty(iChan)
     [iChan OK] = listdlg('ListString',arrayfun(@num2str,1:nChan,'Unif',false),'SelectionMode','single',...
         'PromptString','Select a channel to display image from:','ListSize',[300 400]);
+else
+    OK = true;
 end
 if ~OK
     return
@@ -101,6 +103,7 @@ prot = MD.processes_{iProt}.loadChannelOutput;
 %% ----- Figure Making ------ %%
 
 figHan = figure;
+ax = axes;
 imshow(im,[]);
 hold on
 nFramesSel = numel(iEdgeFrames);
@@ -112,5 +115,6 @@ end
 
 if nargout > 0
     varargout{1} = figHan;
+    varargout{2} = ax;
 end
 

@@ -1,143 +1,41 @@
 %% open necessary MLs
-MLdirect=false;
-isDesktopAvail = usejava('desktop');
-usedSelectedFoldersMat=false;
-
-if isDesktopAvail
-    [fileSFolders, pathSFolders] = uigetfile('*.mat','Select selectedFolders.mat.  If do not have one, click cancel');
-else
-    disp({'Type selectedFolders.mat.  If do not have one, push enter';
-        ['Your current path: ' pwd]});
-    rawPath = input(': ','s');
-    if isempty(rawPath)
-        pathSFolders = 0;
-    else
-        [pathSFolders, fileSFolders] = fileparts(rawPath);
+[pathAnalysisAll, MLNames, groupNames, usedSelectedFoldersMat,...
+    specificName,~,MLdirect]=chooseSelectedFolders;
+% Asking user
+disp('The current names are: ')
+nameList = groupNames';
+disp(nameList)
+namesOK = input('Do you want to rename your condition names? (y/n)','s');
+if strcmp(namesOK, 'y')
+    for ii=1:numel(nameList)
+        curName = input(['For ' nameList{ii} ': '], 's');
+        if ~isempty(curName)
+            nameList{ii} = curName;
+        end
     end
+    specificName = strjoin(nameList);
 end
-
-groupNames=[];
-
-if ~ischar(pathSFolders) && pathSFolders==0
-    analysisFolderSelectionDone = false;
-    ii=0;
-    rootFolder=pwd;
-    while ~analysisFolderSelectionDone
-        ii=ii+1;
-        if isDesktopAvail
-            curPathProject = uigetdir(rootFolder,'Select each analysis folder that contains movieList.mat (Click Cancel when no more)');
-        else
-            disp({'Select each analysis folder that contains movieList.mat.  If do not have one, push enter';
-                ['Your current path: ' pwd]});
-            rawPath = input(': ','s');
-            if isempty(rawPath)
-                curPathProject = 0;
-            else
-                curPathProject = rawPath;
-            end
-        end
-%         [curMLFile,curPathProject] = uigetfile('*.mat','Select the movie list file one per each attempt (Click Cancel when no more)');
-        if ~ischar(curPathProject) && curPathProject==0
-            analysisFolderSelectionDone=true;
-        else
-            [curPathProject2,finalFolder] = fileparts(curPathProject);
-            pathAnalysisAll{ii} = curPathProject;
-            if isempty(finalFolder)
-                [~,finalFolder] = fileparts(curPathProject2);
-            end
-            groupNames{ii} = finalFolder;
-            MLNames{ii} = 'movieList';
-            MLFileNamesAll{ii} = 'movieList.mat';
-            MLdirect=true;
-        end
-    end
-    if ~analysisFolderSelectionDone && ii==1
-        MLSelectionDone = false;
-        ii=0;
-        while ~MLSelectionDone
-            ii=ii+1;
-            if isDesktopAvail
-                [nameML, curPathML] = uigetfile('*.mat','Select each movieList (Click Cancel when no more)');
-            else
-                disp({'Select each movieList.  If do not have one, push enter';
-                    ['Your current path: ' pwd]});
-                rawPath = input(': ','s');
-                if isempty(rawPath)
-                    curPathML = rawPath;
-                else
-                    [curPathML, nameML] = fileparts(rawPath);
-                end
-            end
-            if ~ischar(curPathML) || isempty(curPathML)
-                MLSelectionDone=true;
-            else
-                curML = load(fullfile(curPathML,nameML),'ML'); curML=curML.ML;
-                pathAnalysisAll{ii} = curML.getPath;
-                try
-                    groupNames{ii} = nameML(10:end-4); %Excluding first 'movieList' and last '.mat'
-                catch % when movieList is just movieList.mat, use the name of the containing folder
-                    [~,finalFolder] = fileparts(pathAnalysisAll{ii});
-                    groupNames{ii} = finalFolder;
-                end
-                MLNames{ii} = nameML;
-            end
-        end
-        MLdirect=true;
-    end
-    specificName = strjoin(groupNames);
-    rootAnalysis = pathAnalysisAll{1};
-    save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
-else
-    usedSelectedFoldersMat=true;    
-    selectedFolders=load([pathSFolders filesep fileSFolders]);
-    pathAnalysisAll=selectedFolders.pathAnalysisAll;
-    specificName=fileSFolders(16:end);
-    MLNames = selectedFolders.MLNames;%'movieList.mat';
-%    MLFileNamesAll = MLNames;
-    for k=1:numel(pathAnalysisAll)
-        MLFileNamesAll{k} = [selectedFolders.MLNames{k} '.mat'];%'movieList.mat';
-    end
+%% Output
+rootAnalysis = fileparts(pathAnalysisAll{1});
+% rootAnalysis = pathAnalysisAll{1};
+summaryPath = [rootAnalysis '/AnalysisSummary_AdhesionDynamic' specificName];
+ii=0;
+while exist(summaryPath, 'dir')
+    ii=ii+1;
+    summaryPath = [rootAnalysis '/AnalysisSummary_AdhesionDynamic' specificName num2str(ii)];
 end
+figPath = [summaryPath '/Figs'];
+mkdir(figPath)
+dataPath = [summaryPath '/Data'];
+mkdir(dataPath)
+save([rootAnalysis filesep 'selectedFolders' specificName '.mat'], 'rootAnalysis','pathAnalysisAll','MLNames','groupNames')
 
-%% Load movieLists for each condition
-numConditions = numel(pathAnalysisAll);
+%% Loading
+numConditions=numel(pathAnalysisAll);
 
 for k=1:numConditions
-    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLFileNamesAll{k}]);
+    MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
 end
-%% setting up group name
-if MLdirect && isempty(groupNames)
-%     if strcmp(MLFileNamesAll{1}(end-7:end-4),'List')
-    groupNames=MLFileNamesAll;
-elseif isempty(groupNames)
-    for ii=1:numConditions
-        [pathFolder, finalFolder]=fileparts(pathAnalysisAll{ii});
-        if isempty(finalFolder)
-            [~, finalFolder]=fileparts(pathFolder);
-        end
-        groupNames{ii} = finalFolder;
-    end
-end
-nameList=groupNames'; %{'pLVX' 'P29S'};
-
-% Asking user
-disp('Do you want to rename your condition names? The current names are: ')
-disp(nameList)
-for ii=1:numel(nameList)
-    curName = input(['For ' nameList{ii} ': '], 's');
-    if ~isempty(curName)
-        nameList{ii} = curName;
-    end
-end
-specificName = strjoin(nameList);
-
-%% Output
-% rootAnalysis = fileparts(pathAnalysisAll{1});
-rootAnalysis = pathAnalysisAll{1};
-figPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Figs'];
-mkdir(figPath)
-dataPath = [rootAnalysis '/AnalysisSummary_Adhesion' specificName '/Data'];
-mkdir(dataPath)
 %% Collecting general adhesion-reated features
 numClasses=9;
 N=zeros(numConditions,1);
@@ -180,6 +78,10 @@ assemRate2Group = cell(numConditions,1);
 disassemRate2Group = cell(numConditions,1);
 nucleatingNARatioGroup = cell(numConditions,1);
 disassemNARatioGroup = cell(numConditions,1);
+
+ampEmergingArrayGroup = cell(numConditions,1);
+ampFailingArrayGroup = cell(numConditions,1);
+ampMaturingArrayGroup = cell(numConditions,1);
 
 numG1Group = cell(numConditions,1);
 numG2Group = cell(numConditions,1);
@@ -271,25 +173,29 @@ for ii=1:numConditions
     meanNucleatingNARatio=cell(N(ii),1);
     meanDisassemNARatio=cell(N(ii),1);
     
-    numG1=zeros(N(ii),1);
-    numG2=zeros(N(ii),1);
-    numG3=zeros(N(ii),1);
-    numG4=zeros(N(ii),1);
-    numG5=zeros(N(ii),1);
-    numG6=zeros(N(ii),1);
-    numG7=zeros(N(ii),1);
-    numG8=zeros(N(ii),1);
-    numG9=zeros(N(ii),1);
+    ampMaturingArray=cell(N(ii),1);
+    ampFailingArray=cell(N(ii),1);
+    ampEmergingArray=cell(N(ii),1);
     
-    meanRelativePopG1=zeros(N(ii),1);
-    meanRelativePopG2=zeros(N(ii),1);
-    meanRelativePopG3=zeros(N(ii),1);
-    meanRelativePopG4=zeros(N(ii),1);
-    meanRelativePopG5=zeros(N(ii),1);
-    meanRelativePopG6=zeros(N(ii),1);
-    meanRelativePopG7=zeros(N(ii),1);
-    meanRelativePopG8=zeros(N(ii),1);
-    meanRelativePopG9=zeros(N(ii),1);
+    numG1=NaN(N(ii),1);
+    numG2=NaN(N(ii),1);
+    numG3=NaN(N(ii),1);
+    numG4=NaN(N(ii),1);
+    numG5=NaN(N(ii),1);
+    numG6=NaN(N(ii),1);
+    numG7=NaN(N(ii),1);
+    numG8=NaN(N(ii),1);
+    numG9=NaN(N(ii),1);
+    
+    meanRelativePopG1=NaN(N(ii),1);
+    meanRelativePopG2=NaN(N(ii),1);
+    meanRelativePopG3=NaN(N(ii),1);
+    meanRelativePopG4=NaN(N(ii),1);
+    meanRelativePopG5=NaN(N(ii),1);
+    meanRelativePopG6=NaN(N(ii),1);
+    meanRelativePopG7=NaN(N(ii),1);
+    meanRelativePopG8=NaN(N(ii),1);
+    meanRelativePopG9=NaN(N(ii),1);
     
     meanAdhDensityG1=cell(N(ii),1);
     meanAdhDensityG2=cell(N(ii),1);
@@ -516,7 +422,18 @@ for ii=1:numConditions
                 try
                     initOutFolder = fileparts(initRiseProc.outFilePaths_{2,iForceSlave});
                 catch
-                    initOutFolder = fileparts(initRiseProc.outFilePaths_{1,iForceSlave});
+                    try
+                        initOutFolder = fileparts(initRiseProc.outFilePaths_{1,iForceSlave});
+                    catch
+                        % get whatever that's not empty
+                        iFilledOutput = find(~cellfun(@isempty,initRiseProc.outFilePaths_));
+                        if ~isempty(iFilledOutput)
+                            initOutFolder = fileparts(initRiseProc.outFilePaths_{iFilledOutput(1)});
+                        else
+                            disp('No init rise process results! Skipping ...')
+                            continue
+                        end
+                    end
                 end
                 initDataPath = [initOutFolder filesep 'data'];
 
@@ -615,6 +532,16 @@ for ii=1:numConditions
                     assemRate2EachClass{pp}{k} = [];
                     disassemRate2EachClass{pp}{k} = [];                    
                 end
+                % Amp profile related
+                if pp==1 % this needs only once
+                    ampArrayPath=[initDataPath filesep 'ampArrays.mat'];
+                    if exist(ampArrayPath,'file')
+                        ampArrayStr=load(ampArrayPath);
+                        ampEmergingArray{k}=ampArrayStr.ampEmergingArray;
+                        ampFailingArray{k}=ampArrayStr.ampFailingArray;
+                        ampMaturingArray{k}=ampArrayStr.ampMaturingArray;
+                    end
+                end
             end
         end
     end
@@ -640,6 +567,10 @@ for ii=1:numConditions
     end
     nucleatingNARatioGroup{ii,1}=meanNucleatingNARatio;
     disassemNARatioGroup{ii,1}=meanDisassemNARatio;
+    
+    ampEmergingArrayGroup{ii,1} = ampEmergingArray;
+    ampFailingArrayGroup{ii,1} = ampFailingArray;
+    ampMaturingArrayGroup{ii,1} = ampMaturingArray;
     
     numG1Group{ii,1}=numG1;
     numG2Group{ii,1}=numG2;
@@ -710,7 +641,7 @@ if ~isempty(initRiseProc) && exist('initRiseStruct','var')
     for ii=1:numSlaves
         for curGroup=1:9
             try
-                initRiseGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) y{ii},x{curGroup}','unif',false)),initRiseGroup,'unif',false);
+                initRiseGroupEach = cellfun(@(x) cell2mat(cellfun(@(y) y{ii},x{curGroup}(~cellfun(@isempty,x{curGroup}))','unif',false)),initRiseGroup,'unif',false);
                 h1=figure; 
                 boxPlotCellArray(initRiseGroupEach,nameList,1,false,true);
                 ylabel(['Initial rise in group ' num2str(curGroup) ' (sec): ' initRiseStruct.nameList2{ii}])
@@ -754,7 +685,7 @@ if ~isempty(initRiseProc) && exist('earlyAmpSlopeGroup','var') && ~isempty(early
             earlyAmpSlopeGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),earlyAmpSlopeGroup,'unif',false);
             h1=figure; 
             boxPlotCellArray(earlyAmpSlopeGroupEach,nameList,1,false,true);
-            ylabel(['earlyAmpSlope ' num2str(curGroup) ' (sec)'])
+            ylabel(['earlyAmpSlope ' num2str(curGroup) ' (a.u./min)'])
             title(['earlyAmpSlope in group ' num2str(curGroup)])
             hgexport(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
             hgsave(h1,[figPath filesep 'earlyAmpSlope' num2str(curGroup)],'-v7.3')
@@ -792,7 +723,7 @@ if ~isempty(initRiseProc) && exist('earlyAmpSlopeGroup','var') && ~isempty(early
     end
     h1=figure; 
     boxPlotCellArray(earlyAmpSlopeG1G2,nameListG1G2,1,false,true);
-    ylabel('earlyAmpSlope (a.u./sec)')
+    ylabel('earlyAmpSlope (a.u./min)')
     title('earlyAmpSlope in G1 vs. G2')
     hgexport(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'earlyAmpSlopeG1G2' num2str(curGroup)],'-v7.3')
@@ -844,10 +775,14 @@ if ~isempty(initRiseProc) && ~isempty(curFAPackage.getProcess(10))
     for ii=1:numConditions
         curFractionForceTransmitting = fractionForceTransmittingGroup{ii,1};
         curNumEachGroupForceTransmitting = numEachGroupForceTransmittingGroup{ii,1};
-        groupLabel = arrayfun(@(x,y) ['G' num2str(x) '(M=' num2str(numel(y{1})) ',N=' num2str(sum(y{1})) ')'],1:9,curNumEachGroupForceTransmitting,'unif',false);
+        try
+            groupLabel = arrayfun(@(x,y) ['G' num2str(x) '(M=' num2str(numel(y{1})) ',N=' num2str(sum(y{1})) ')'],1:9,curNumEachGroupForceTransmitting,'unif',false);
+        catch
+            groupLabel = arrayfun(@(x,y) ['G' num2str(x) '(M=' num2str(numel(y{1})) ',N=' num2str(sum(y{1})) ')'],1:9,curNumEachGroupForceTransmitting','unif',false);
+        end
         
         h1=figure; 
-        plotSuccess=boxPlotCellArray(curFractionForceTransmitting,groupLabel,1,false,true);
+        plotSuccess=boxPlotCellArray(curFractionForceTransmitting,groupLabel',1,false,true);
         if plotSuccess
             ylabel('Fraction of force transmitting NAs (1)')
             title(['Fraction of force transmitting NAs. ' groupNames{ii}])
@@ -1050,8 +985,11 @@ if plotSuccess
     writetable(tableAll,[dataPath filesep 'meanAdhDenAllGroup.csv'],'WriteRowNames',true)
 end
 %% cell area - 
+convertL=curMovie.pixelSize_/1000; %um/pix
+convertArea = convertL^2;
+
 h1=figure; 
-plotSuccess=boxPlotCellArray(cellAreaGroup,nameList,1,false,true);
+plotSuccess=boxPlotCellArray(cellAreaGroup,nameList,convertArea,false,true);
 if plotSuccess
     ylabel(['Cell spread area (um^2)'])
     title(['Cell spread area'])
@@ -1065,9 +1003,9 @@ end
 %% FA area - 
 FAareaGroupCell = cellfun(@(x) cell2mat(x),FAareaGroup,'unif',false);
 h1=figure; 
-plotSuccess=boxPlotCellArray(FAareaGroupCell,nameList,1,false,true);
+plotSuccess=boxPlotCellArray(FAareaGroupCell,nameList,convertArea,false,true);
 if plotSuccess
-    ylabel(['Focal adhesion area (um^2)'])
+    ylabel(['Focal adhesion area (\mum^2)'])
     title(['Focal adhesion area'])
     hgexport(h1,[figPath filesep 'faArea'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'faArea'],'-v7.3')
@@ -1086,7 +1024,7 @@ for ii=1:numel(FAareaGroupCell)
 end
 
 h1=figure;
-plotSuccess=boxPlotCellArray(FAareaGroupCellSmall,nameList,1,false,true);
+plotSuccess=boxPlotCellArray(FAareaGroupCellSmall,nameList,convertArea,false,true);
 if plotSuccess
     ylabel(['Focal adhesion area (um^2)'])
     title(['Focal adhesion area (top ' num2str(percLT) ' percentile)'])
@@ -1100,9 +1038,9 @@ end
 %% FA length - 
 FAlengthGroupCell = cellfun(@(x) cell2mat(x),FAlengthGroup,'unif',false);
 h1=figure; 
-plotSuccess=boxPlotCellArray(FAlengthGroupCell,nameList,1,false,true);
+plotSuccess=boxPlotCellArray(FAlengthGroupCell,nameList,convertL,false,true);
 if plotSuccess
-    ylabel(['Focal adhesion length (um)'])
+    ylabel(['Focal adhesion length (\mum)'])
     title(['Focal adhesion length'])
     hgexport(h1,[figPath filesep 'faLength'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'faLength'],'-v7.3')
@@ -1111,12 +1049,21 @@ if plotSuccess
     tableFALength=table(FAlengthGroupCell,'RowNames',nameList);
     writetable(tableFALength,[dataPath filesep 'faLength.csv'],'WriteRowNames',true)
 end
+%% FA length - bar plot
+h1=figure;
+barPlotCellArray(FAlengthGroupCell,nameList,convertL);
+ylabel(['Focal adhesion length (\mum)'])
+title(['Focal adhesion length - bar'])
+hgexport(h1,[figPath filesep 'faLengthBar'],hgexport('factorystyle'),'Format','eps')
+hgsave(h1,[figPath filesep 'faLengthBar'],'-v7.3')
+print(h1,[figPath filesep 'faLengthBar'],'-dtiff')
+
 %% NA density
 NADensityGroupCell = cellfun(@(x) cell2mat(x),NADensityGroup,'unif',false);
 h1=figure; 
 plotSuccess=boxPlotCellArray(NADensityGroupCell,nameList,1,false,true);
 if plotSuccess
-    ylabel(['NA density (#/um^2)'])
+    ylabel(['NA density (#/\mum^2)'])
     title(['NA density'])
     hgexport(h1,[figPath filesep 'naDensity'],hgexport('factorystyle'),'Format','eps')
     hgsave(h1,[figPath filesep 'naDensity'],'-v7.3')
@@ -1380,8 +1327,80 @@ if plotSuccess
     tableNucleatingNARatio=table(nucleatingNARatioGroup,'RowNames',nameList);
     writetable(tableNucleatingNARatio,[dataPath filesep 'nucleatingNARatio.csv'],'WriteRowNames',true)
 end
-%% Profile plot
-% fraction of each class
+%% Profile plot  - ampMature
+ampArrayAllMature = cellfun(@(x) cell2mat(x),ampMaturingArrayGroup,'unif',false);
+h1=figure; hold on
+colorList{1} = [255/255, 204/255, 103/255];
+colorList{2} = [181/255, 217/255, 148/255];
+colorList{3} = [20/255, 110/255, 255/255];
+colorList{4} = [255/255, 128/255, 255/255];
+
+colorMeanList{1} = [248/255, 152/255, 56/255];
+colorMeanList{2} = [13/255, 159/255, 73/255];
+colorMeanList{3} = [10/255, 60/255, 200/255];
+colorMeanList{4} = [180/255, 72/255, 180/255];
+
+nSampleFrames = size(ampArrayAllMature{1},2);
+t = (0:nSampleFrames-1)*curMovie.timeInterval_;
+
+
+for ii=1:numel(ampArrayAllMature)
+    plot(t,ampArrayAllMature{ii}','Color',colorList{ii})
+end
+% For mean
+for ii=1:numel(ampArrayAllMature)
+    curAmpAvg = nanmean(ampArrayAllMature{ii},1)';
+    pM(ii)=plot(t,curAmpAvg','Color',colorMeanList{ii},'LineWidth',2);
+end
+legend(pM,nameList')
+ylabel('Amplitude (a.u.)')
+xlabel('Time (sec)')
+title({'Amplitude timeseries for'; ...
+    ['first ' num2str(round(nSampleFrames*curMovie.timeInterval_/60)) ' min at maturing NAs']})
+hgsave(h1,[figPath filesep 'ampArrayMature'],'-v7.3')
+print(h1,[figPath filesep 'ampArrayMature'],'-dtiff')
+close(h1)
+%% Profile plot  - ampFail
+ampArrayAllFail = cellfun(@(x) cell2mat(x),ampFailingArrayGroup,'unif',false);
+h1=figure; hold on
+
+for ii=1:numel(ampArrayAllFail)
+    plot(t,ampArrayAllFail{ii}','Color',colorList{ii})
+end
+% For mean
+for ii=1:numel(ampArrayAllFail)
+    curAmpAvg = nanmean(ampArrayAllFail{ii},1)';
+    pM(ii)=plot(t,curAmpAvg','Color',colorMeanList{ii},'LineWidth',2);
+end
+legend(pM,nameList')
+ylabel('Amplitude (a.u.)')
+xlabel('Time (sec)')
+title({'Amplitude timeseries for'; ...
+    ['first ' num2str(round(nSampleFrames*curMovie.timeInterval_/60)) ' min at failing NAs']})
+hgsave(h1,[figPath filesep 'ampArrayFail'],'-v7.3')
+print(h1,[figPath filesep 'ampArrayFail'],'-dtiff')
+close(h1)
+%% Profile plot  - ampEmerg
+ampArrayAllEmerge = cellfun(@(x) cell2mat(x),ampEmergingArrayGroup,'unif',false);
+h1=figure; hold on
+
+for ii=1:numel(ampArrayAllEmerge)
+    plot(t,ampArrayAllEmerge{ii}','Color',colorList{ii})
+end
+% For mean
+for ii=1:numel(ampArrayAllEmerge)
+    curAmpAvg = nanmean(ampArrayAllEmerge{ii},1)';
+    pM(ii)=plot(t,curAmpAvg','Color',colorMeanList{ii},'LineWidth',2);
+end
+legend(pM,nameList')
+ylabel('Amplitude (a.u.)')
+xlabel('Time (sec)')
+title({'Amplitude timeseries for'; ...
+    ['first ' num2str(round(nSampleFrames*curMovie.timeInterval_/60)) ' min at all emerging NAs']})
+hgsave(h1,[figPath filesep 'ampArrayEmerge'],'-v7.3')
+print(h1,[figPath filesep 'ampArrayEmerge'],'-dtiff')
+close(h1)
+%% fraction of each class
 allNumGroup = cellfun(@(a,b,c,d,e,f,g,h,i) arrayfun(@(a2,b2,c2,d2,e2,f2,g2,h2,i2) ...
     a2+b2+c2+d2+e2+f2+g2+h2+i2,a,b,c,d,e,f,g,h,i),numG1Group,numG2Group,numG3Group,...
     numG4Group,numG5Group,numG6Group,numG7Group,numG8Group,numG9Group,'unif',false);
@@ -1469,7 +1488,7 @@ if plotSuccess
     tableAssemRate2Group=table(assemRate2Group,'RowNames',nameList);
     writetable(tableAssemRate2Group,[dataPath filesep 'assemRate2All.csv'],'WriteRowNames',true)
 end
-%% disassemRateGroup for all
+%% disassemRateGroup2 for all
 disassemRate2GroupCell = cellfun(@(x) cell2mat(x'),disassemRate2Group,'unif',false);
 h1=figure; 
 plotSuccess=boxPlotCellArray(disassemRate2GroupCell,nameList,1,false,true);
@@ -1533,8 +1552,10 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
         try
             assemRateGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRateEachGroup,'unif',false);
             % Discarding not assemblying adhesions
+            noAssembling = cell(numel(assemRateGroupEach),1);
             for ii=1:numel(assemRateGroupEach)
-                assemRateGroupEach{ii}(assemRateGroupEach{ii}<=0)=[];
+                noAssembling{ii} = assemRateGroupEach{ii}<=0;
+                assemRateGroupEach{ii}(noAssembling{ii})=[];
             end
             h1=figure; 
             boxPlotCellArray(assemRateGroupEach,nameList,1,false,true);
@@ -1550,13 +1571,30 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         end
     end
+    %% assemRate for all - again from step 11 quantification
+    assemRateAll = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x,'unif',false)),assemRateEachGroup,'unif',false); %need to work on this
+    % Discarding not assemblying adhesions
+    noAssembling = cell(numel(assemRateAll),1);
+    h1=figure; 
+    boxPlotCellArray(assemRateAll,nameList,1,false,true);
+    ylabel('Assembly rate (1/min)')
+    title(['Assembly rate in all groups'])
+    hgexport(h1,[figPath filesep 'assemRateAll'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'assemRateAll'],'-v7.3')
+    print(h1,[figPath filesep 'assemRateAll'],'-dtiff')
+
+    tableAssemRate=table(assemRateAll,'RowNames',nameList);
+    writetable(tableAssemRate,[dataPath filesep 'assemRateAll.csv'],'WriteRowNames',true)
+    
     %% disassemRateGroup
     for curGroup=find(nonZeroGroups)'
         try
             disassemRateGroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRateEachGroup,'unif',false);
             % Discarding not-disassemblying adhesions
+            noDisassembling = cell(numel(disassemRateGroupEach),1);
             for ii=1:numel(disassemRateGroupEach)
-                disassemRateGroupEach{ii}(disassemRateGroupEach{ii}<=0)=[];
+                noDisassembling{ii} = disassemRateGroupEach{ii}<=0;
+                disassemRateGroupEach{ii}(noDisassembling{ii})=[];
             end
             h1=figure; 
             boxPlotCellArray(disassemRateGroupEach,nameList,1,false,true);
@@ -1572,57 +1610,106 @@ if ~isempty(initRiseProc) && ~isempty(assemRateEachGroup{1}{1})
             disp(['Nothing in ' num2str(curGroup) 'th group'])
         end
     end
+    %% disassemRate for all - again from step 11 quantification
+    disassemRateAll = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x,'unif',false)),disassemRateEachGroup,'unif',false); %need to work on this
+    h1=figure; 
+    boxPlotCellArray(disassemRateAll,nameList,1,false,true);
+    ylabel('disassembly rate (1/min)')
+    title('disassembly rate in all groups ')
+    hgexport(h1,[figPath filesep 'disassemRateAll'],hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,[figPath filesep 'disassemRateAll'],'-v7.3')
+    print(h1,[figPath filesep 'disassemRateAll'],'-dtiff')
+
+    tableDisassemRate=table(disassemRateAll,'RowNames',nameList);
+    writetable(tableDisassemRate,[dataPath filesep 'disassemRateAll.csv'],'WriteRowNames',true)
     %% assemRate2Group
-    try
-        nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup{1});
-    catch
-        nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup); %This will anyway generates 0
-    end
+    if exist('assemRate2EachGroup','var') && any(~cellfun(@isempty,assemRate2EachGroup))
+        try
+            nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup{1});
+        catch
+            nonZeroGroups2 = ~cellfun(@isempty, assemRate2EachGroup); %This will anyway generates 0
+        end
 
-    for curGroup=find(nonZeroGroups2)'
-        %try
-            assemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRate2EachGroup,'unif',false);
-            % Discarding not assemblying adhesions
-            for ii=1:numel(assemRate2GroupEach)
-                assemRate2GroupEach{ii}(assemRate2GroupEach{ii}<=0)=[];
-            end
-            h1=figure; 
-            boxPlotCellArray(assemRate2GroupEach,nameList,1,false,true);
-            ylabel('assembly rate (1/min)')
-            title(['assembly rate in group ' num2str(curGroup) ' of the other channel'])
-            hgexport(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
-            hgsave(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-v7.3')
-            print(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-dtiff')
+        for curGroup=find(nonZeroGroups2)
+            %try
+                assemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),assemRate2EachGroup,'unif',false);
+    %             % Discarding not assemblying adhesions - this doesn't make
+    %             sense because the other channel might not necessarily
+    %             correlate with the main adhesion channel.
+                for ii=1:numel(assemRate2GroupEach)
+                    assemRate2GroupEach{ii}(noAssembling{ii})=[];
+                end
+                h1=figure; 
+                boxPlotCellArray(assemRate2GroupEach,nameList,1,false,true);
+                ylabel('assembly rate (1/min)')
+                title(['assembly rate in group ' num2str(curGroup) ' of the other channel'])
+                hgexport(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+                hgsave(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-v7.3')
+                print(h1,[figPath filesep 'assemRate2_G' num2str(curGroup)],'-dtiff')
 
-            tableAssemRate2=table(assemRate2GroupEach,'RowNames',nameList);
-            writetable(tableAssemRate2,[dataPath filesep 'assemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
-        %catch
-            disp(['Nothing in ' num2str(curGroup) 'th group'])
-        %end
-    end
-    %% disassemRate2Group
-    for curGroup=find(nonZeroGroups2)'
-        %try
-            disassemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRate2EachGroup,'unif',false);
-            % Discarding not-disassemblying adhesions
-            for ii=1:numel(disassemRate2GroupEach)
-                disassemRate2GroupEach{ii}(disassemRate2GroupEach{ii}<=0)=[];
-            end
-            h1=figure; 
-            boxPlotCellArray(disassemRate2GroupEach,nameList,1,false,true);
-            ylabel('disassembly rate (1/min)')
-            title(['disassembly rate in group ' num2str(curGroup) ' of the other channel'])
-            hgexport(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
-            hgsave(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-v7.3')
-            print(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-dtiff')
+                tableAssemRate2=table(assemRate2GroupEach,'RowNames',nameList);
+                writetable(tableAssemRate2,[dataPath filesep 'assemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
+            %catch
+                disp(['Nothing in ' num2str(curGroup) 'th group'])
+            %end
+        end
+    
+    %% assemRate for all - again from step 11 quantification
+        assemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),assemRate2EachGroup,'unif',false); %need to work on this
+        % Discarding not assemblying adhesions
+        noAssembling = cell(numel(assemRate2All),1);
+        h1=figure; 
+        boxPlotCellArray(assemRate2All,nameList,1,false,true);
+        ylabel('Assembly rate (1/min)')
+        title(['Assembly rate in all groups of the other channel'])
+        hgexport(h1,[figPath filesep 'assemRate2All'],hgexport('factorystyle'),'Format','eps')
+        hgsave(h1,[figPath filesep 'assemRate2All'],'-v7.3')
+        print(h1,[figPath filesep 'assemRate2All'],'-dtiff')
 
-            tableDisassem2Rate=table(disassemRateGroupEach,'RowNames',nameList);
-            writetable(tableDisassem2Rate,[dataPath filesep 'disassemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
-        %catch
-            disp(['Nothing in ' num2str(curGroup) 'th group'])
-        %end
+        tableAssemRate2=table(assemRate2All,'RowNames',nameList);
+        writetable(tableAssemRate2,[dataPath filesep 'assemRate2All.csv'],'WriteRowNames',true)
+
+        %% disassemRate2Group
+        for curGroup=find(nonZeroGroups2)
+            %try
+                disassemRate2GroupEach = cellfun(@(x) cell2mat(x{curGroup}'),disassemRate2EachGroup,'unif',false);
+    %             % Discarding not-disassemblying adhesions- this doesn't make
+    %             sense because the other channel might not necessarily
+    %             correlate with the main adhesion channel.
+                for ii=1:numel(disassemRate2GroupEach)
+                    disassemRate2GroupEach{ii}(noDisassembling{ii})=[];
+                end
+                h1=figure; 
+                boxPlotCellArray(disassemRate2GroupEach,nameList,1,false,true);
+                ylabel('disassembly rate (1/min)')
+                title(['disassembly rate in group ' num2str(curGroup) ' of the other channel'])
+                hgexport(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],hgexport('factorystyle'),'Format','eps')
+                hgsave(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-v7.3')
+                print(h1,[figPath filesep 'disassemRate2_G' num2str(curGroup)],'-dtiff')
+
+                tableDisassem2Rate=table(disassemRateGroupEach,'RowNames',nameList);
+                writetable(tableDisassem2Rate,[dataPath filesep 'disassemRate2_G' num2str(curGroup) '.csv'],'WriteRowNames',true)
+            %catch
+                disp(['Nothing in ' num2str(curGroup) 'th group'])
+            %end
+        end
+        %% disassemRate for all - again from step 11 quantification
+        disassemRate2All = cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(y'),x','unif',false)),disassemRate2EachGroup,'unif',false); %need to work on this
+        % Discarding not disassemblying adhesions
+        nodisassembling = cell(numel(disassemRate2All),1);
+        h1=figure; 
+        boxPlotCellArray(disassemRate2All,nameList,1,false,true);
+        ylabel('Disassembly rate (1/min)')
+        title(['Disassembly rate in all groups of the other channel'])
+        hgexport(h1,[figPath filesep 'disassemRate2All'],hgexport('factorystyle'),'Format','eps')
+        hgsave(h1,[figPath filesep 'disassemRate2All'],'-v7.3')
+        print(h1,[figPath filesep 'disassemRate2All'],'-dtiff')
+
+        tableDisassemRate2=table(disassemRate2All,'RowNames',nameList);
+        writetable(tableDisassemRate2,[dataPath filesep 'disassemRate2All.csv'],'WriteRowNames',true)
     end
 end
 %% save entire workspace for later
+close all
 save([dataPath filesep 'allData.mat'])
 disp('Done plotting data!')

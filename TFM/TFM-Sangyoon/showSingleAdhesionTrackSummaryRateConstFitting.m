@@ -1,5 +1,5 @@
 function [h2] = showSingleAdhesionTrackSummaryRateConstFitting(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, gPath,additionalName)
-% h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
+% h2 = showSingleAdhesionTrackSummaryRateConstFitting(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
 % This function shows big picture, montage, and time series of fluorescence
 % intensity and traction.
 % Sangyoon Han, Jun 2015
@@ -11,9 +11,15 @@ tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 
 curEndFrame=curTrack.endingFrameExtra;
-curStartFrame = curTrack.startingFrameExtra;
+if length(curTrack.amp)<curEndFrame
+    curEndFrame=length(curTrack.amp);
+end
+curStartFrame = curTrack.startingFrameExtraExtra; %curTrack.startingFrameExtra;
 curEndFrameEE=curTrack.endingFrameExtraExtra;
-curStartFrameEE = max(1,curStartFrame-5); %This needs to be updated in calculatePeakTimeLagFromTracks %curTrack.startingFrameExtraExtra;
+if length(curTrack.amp)<curEndFrameEE
+    curEndFrameEE=length(curTrack.amp);
+end
+curStartFrameEE = curTrack.startingFrameExtraExtra; %max(1,curStartFrame-5); %This needs to be updated in calculatePeakTimeLagFromTracks %curTrack.startingFrameExtraExtra;
 curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
@@ -23,15 +29,18 @@ chosenFRange = curFrameRange;
 splineParam = 0.01;
 try
     d = curTrack.amp(curStartFrameEE:curEndFrameEE);
+%     d = curTrack.ampTotal(curStartFrameEE:curEndFrameEE);
+    tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 catch
 %     curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
 %     curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
 %     if ~isempty(imgMap2)
 %         curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);
 %     end   
+%     d = curTrack.ampTotal(curStartFrame:curEndFrame);
     d = curTrack.amp(curStartFrame:curEndFrame);
+    tRange = curTrack.iFrame(curStartFrame:curEndFrame);
 end    
-tRange = curTrack.iFrame(curStartFrameEE:curEndFrameEE);
 sd_spline= csaps(tRange,d,splineParam);
 sd=ppval(sd_spline,tRange);
 
@@ -63,6 +72,9 @@ bRightBig = min(imgWidth,meanX+r_pixBig);
 bBottomBig = max(1,meanY-r_pixBig);
 bTopBig = min(imgHeight,meanY+r_pixBig);
 % make a new figure
+if nargin<6
+    IDtoInspect = 1;
+end
 h2=figure('Name', strcat('trackID',num2str(IDtoInspect)));
 % Depending on input, figure might have to be bigger
 figWidth = 600+200; % addtinal 200 is for new graph place.
@@ -78,7 +90,7 @@ set(h2,'Renderer','painters')
 set(h2,'InvertHardcopy','off')
 
 genFontSize = 7;
-genFontUnit = 'points';
+genFontUnit = 'pixels';
 % Overall shots 
 imgBigXLim = [bLeftBig, bRightBig];
 imgBigYLim = [bBottomBig, bTopBig];
@@ -303,8 +315,9 @@ end
 if ~isempty(imgMap2)
     ax8=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (430+80+40)/figHeight, 155/figWidth,80/figHeight]);
 else
-    ax8=axes('Position',[50/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
+    ax8=axes('Position',[50/figWidth, 50/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
+% plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal(curStartFrame:curEndFrame),'k'), hold on    
 plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp(curStartFrame:curEndFrame),'k'), hold on    
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
 set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
@@ -312,45 +325,107 @@ set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 if ~isempty(imgMap2)
     axA=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (330+80+40)/figHeight, 155/figWidth,80/figHeight]);
 else
-    axA=axes('Position',[50/figWidth, 200/figHeight, 150/figWidth-marginX,130/figHeight]);
+    axA=axes('Position',[50/figWidth, 170/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
-[assemRate,bestModelAssem,bestSummaryAssem,yEntireAssem] = getAssemRateFromTracks(curTrack,tIntervalMin);
+[assemRate,bestModelAssem,bestSummaryAssem,yEntireAssem,tRangeSelectedAssem] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp'); %'ampTotal');
 % bestModelAssem.plot
 if ~isempty(bestModelAssem)
-    plot(bestModelAssem.Variables.x1*60,bestModelAssem.Variables.y, 'bx-.')
+    plot(bestModelAssem.Variables.x1*60 - curStartFrameEE*tInterval,bestModelAssem.Variables.y, 'bx-.')
     hold on
-    plot(bestModelAssem.Variables.x1*60,bestModelAssem.Fitted, 'r-')
+    plot(bestModelAssem.Variables.x1*60 - curStartFrameEE*tInterval,bestModelAssem.Fitted, 'r-')
 
     xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
-    ylabel('Log[I/Io]','FontUnits',genFontUnit,'FontSize',genFontSize)
-    text(bestModelAssem.Variables.x1(1)*60, (bestModelAssem.Fitted(1)+2*bestModelAssem.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem.adjRsquared) ];['K_{assem}=' num2str(assemRate)]})
+    ylabel('Log[I/I_o]','FontUnits',genFontUnit,'FontSize',genFontSize)
+    hTxt = text(bestModelAssem.Variables.x1(1)*60 - curStartFrameEE*tInterval, (bestModelAssem.Fitted(1)+2*bestModelAssem.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem.adjRsquared) ];['K_{assem}=' num2str(assemRate)]});
+    hTxt.FontSize=6; hTxt.FontUnits='pixels';
 else
     text(0,0.5,{'Failed assembly rate'; 'estimation'})
 end
 set(axA,'FontUnits',genFontUnit,'FontSize',genFontSize)
+title('Assembly rate')
 
 
 if ~isempty(imgMap2)
     axB=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (240+80+40)/figHeight, 155/figWidth,70/figHeight]);
 else
-    axB=axes('Position',[50/figWidth, 100/figHeight, 150/figWidth-marginX,80/figHeight]);
+    axB=axes('Position',[50/figWidth, 290/figHeight, 300/figWidth-marginX,90/figHeight]);
 end
 tIntervalMin = MD.timeInterval_/60;
-[disassemRate,bestModelDis,bestSummaryDis,yEntireDis] = getDisassemRateFromTracks(curTrack,tIntervalMin);
+[disassemRate,bestModelDis,bestSummaryDis,yEntireDis,tRangeSelectedDisassem] = getDisassemRateFromTracks(curTrack,tIntervalMin,'amp'); %'ampTotal');
 % bestModelAssem.plot
 if ~isempty(bestModelDis)
-    plot(bestModelDis.Variables.x1*60,bestModelDis.Variables.y, 'bx-.')
+    plot(bestModelDis.Variables.x1*60 - curStartFrameEE*tInterval,bestModelDis.Variables.y, 'bx-.')
     hold on
-    plot(bestModelDis.Variables.x1*60,bestModelDis.Fitted, 'r-')
+    plot(bestModelDis.Variables.x1*60 - curStartFrameEE*tInterval,bestModelDis.Fitted, 'r-')
     
     xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
-    ylabel('Log[Io/I]','FontUnits',genFontUnit,'FontSize',genFontSize)
-    text(bestModelDis.Variables.x1(2)*60, (bestModelDis.Fitted(1)+2*bestModelDis.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis.adjRsquared) ];['K_{disassem}=' num2str(disassemRate)]})
+    ylabel('Log[I_o/I]','FontUnits',genFontUnit,'FontSize',genFontSize)
+    hTxt = text(bestModelDis.Variables.x1(2)*60 - curStartFrameEE*tInterval, (bestModelDis.Fitted(1)+2.5*bestModelDis.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis.adjRsquared) ];['K_{disassem}=' num2str(disassemRate)]});
+    hTxt.FontSize=5; hTxt.FontUnits='pixels';
 else
     text(0,0.5,{'Failed disassembly rate'; 'estimation'})
 end
 set(axB,'FontUnits',genFontUnit,'FontSize',genFontSize)
+title('Disassembly rate')
+
+if isempty(imgMap2) % Now this is for ampSlope and earlyAmpSlope
+    axC=axes('Position',[400/figWidth, 170/figHeight, 150/figWidth-marginX,90/figHeight]);
+    prePeriodFrame = ceil(10/tInterval); %pre-10 sec
+    sF=max(curTrack.startingFrameExtra-prePeriodFrame,curTrack.startingFrameExtraExtra);
+    curLT = curTrack.lifeTime;
+    halfLT = ceil(curLT/2);
+    earlyPeriod = min(halfLT,floor(30/tInterval)); % frames per 30 sec or half life time
+    oneMinPeriod = min(halfLT,floor(60/tInterval)); % frames per a minute or half life time
+
+    lastFrame = min(curTrack.endingFrameExtraExtra,sF+earlyPeriod+prePeriodFrame-1);
+    lastFrameFromOne = lastFrame - sF+1;
+
+    lastFrameOneMin = min(curTrack.endingFrameExtraExtra,sF+oneMinPeriod+prePeriodFrame-1);
+    lastFrameFromOneOneMin = lastFrameOneMin - sF+1;
+    curTRange = tIntervalMin*(1:lastFrameFromOne);
+%     curTSnorm = curTrack.ampTotal(sF:lastFrame);
+    curTSnorm = curTrack.amp(sF:lastFrame);
+    
+    try
+        statModel = fitlm(curTRange, curTSnorm);
+        earlyAmpSlope = statModel.Coefficients.Estimate(2);
+        
+        curTRange2 = tIntervalMin*(1:lastFrameFromOneOneMin);
+        curTSnorm2 = curTrack.amp(sF:lastFrameOneMin);
+%         curTSnorm2 = curTrack.ampTotal(sF:lastFrameOneMin);
+        statModel2 = fitlm(curTRange2, curTSnorm2);
+        ampSlope = statModel2.Coefficients.Estimate(2);       
+        
+    catch
+        statModel = [];
+    end
+
+    % bestModelAssem.plot
+    if ~isempty(statModel)
+%         plot(statModel.Variables.x1*60 - curStartFrameEE*tInterval,statModel.Variables.y, 'bx-.')
+        plot(statModel2.Variables.x1*60 - curStartFrameEE*tInterval,statModel2.Variables.y, 'bx-.')
+        hold on
+%         plot(statModel.Variables.x1*60 - curStartFrameEE*tInterval,statModel.Fitted, 'g-')
+
+        xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
+        ylabel('I (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
+%         hTxt = text(statModel.Variables.x1(1)*60 - curStartFrameEE*tInterval, ...
+%             (statModel.Fitted(1)+2*statModel.Fitted(end))/3, ...
+%             {['early slope=' num2str(earlyAmpSlope)]});
+%         hTxt.FontSize=5; hTxt.FontUnits='pixels';
+        
+        plot(statModel2.Variables.x1*60 - curStartFrameEE*tInterval,statModel2.Fitted, 'r-')
+        hTxt = text(statModel2.Variables.x1(1)*60 - curStartFrameEE*tInterval, ...
+            (statModel2.Fitted(1)+2*statModel2.Fitted(end))/3, ...
+            {['R^2_{adj}=' num2str(statModel2.Rsquared.Adjusted) ];['slope=' num2str(ampSlope) 'au/min']});
+        hTxt.FontSize=5; hTxt.FontUnits='pixels';
+    else
+        text(0,0.5,{'Failed slope '; 'estimation'})
+    end
+    set(axC,'FontUnits',genFontUnit,'FontSize',genFontSize)
+    title('Slope of amplitude')
+end
 
 % force time series
 if ~isempty(tMap)
@@ -476,23 +551,34 @@ if ~isempty(imgMap2)
 
     ax16=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (490+175+80+70)/figHeight, 155/figWidth,80/figHeight]);
 %     plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrameEE:curEndFrameEE),'k'), hold on
-    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrame:curEndFrame),'m')
+
+    try
+        plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrame:curEndFrame),'m')
+%         plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrame:curEndFrame),'m')
+    catch
+        plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.amp2(curStartFrame:curEndFrame),'m')
+%         plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.ampTotal2(curStartFrame:curEndFrame),'m')
+    end
     
     xlabel('Time (s)'); ylabel('amp 2 (A.U.)')
     set(ax16,'FontUnits',genFontUnit,'FontSize',genFontSize)
 
     % Assembly for amp2
     ax17=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (410+175+80+70)/figHeight, 155/figWidth,60/figHeight]);
-    [assemRate2,bestModelAssem2,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntervalMin,'amp2');
+    if ~isempty(bestModelAssem)
+        [assemRate2,bestModelAssem2,bestSummaryAssem2] = getAssemRateFromTracks(curTrack,tIntervalMin,'ampTotal2',15,0,tRangeSelectedAssem);
+    else
+        bestModelAssem2 = [];
+    end
     % bestModelAssem.plot
     if ~isempty(bestModelAssem2)
-        plot(bestModelAssem2.Variables.x1*60,bestModelAssem2.Variables.y, 'bx-.')
+        plot(bestModelAssem2.Variables.x1*60 - curStartFrameEE*tInterval,bestModelAssem2.Variables.y, 'bx-.')
         hold on
-        plot(bestModelAssem2.Variables.x1*60,bestModelAssem2.Fitted, 'r-')
+        plot(bestModelAssem2.Variables.x1*60 - curStartFrameEE*tInterval,bestModelAssem2.Fitted, 'r-')
 
         xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
-        ylabel('Log[I/Io]','FontUnits',genFontUnit,'FontSize',genFontSize)
-        text(bestModelAssem2.Variables.x1(1)*60, (bestModelAssem2.Fitted(1)+2*bestModelAssem2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem2.adjRsquared) ];['K_{assem}=' num2str(assemRate2)]})
+        ylabel('Log[I/I_o]','FontUnits',genFontUnit,'FontSize',genFontSize)
+        text(bestModelAssem2.Variables.x1(1)*60 - curStartFrameEE*tInterval, (bestModelAssem2.Fitted(1)+2*bestModelAssem2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryAssem2.adjRsquared) ];['K_{assem}=' num2str(assemRate2)]})
     else
         text(0,0.5,{'Failed assembly rate'; 'estimation'})
     end
@@ -500,16 +586,16 @@ if ~isempty(imgMap2)
 
     % Disassembly rate
     ax18=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (320+175+80+70)/figHeight, 155/figWidth,60/figHeight]);
-    [disassemRate2,bestModelDis2,bestSummaryDis2,~] = getDisassemRateFromTracks(curTrack,tIntervalMin,'amp2');
+    [disassemRate2,bestModelDis2,bestSummaryDis2,~] = getDisassemRateFromTracks(curTrack,tIntervalMin,'ampTotal2',25,0,tRangeSelectedDisassem);
     % bestModelAssem.plot
     if ~isempty(bestModelDis2)
-        plot(bestModelDis2.Variables.x1*60,bestModelDis2.Variables.y, 'bx-.')
+        plot(bestModelDis2.Variables.x1*60- curStartFrameEE*tInterval,bestModelDis2.Variables.y, 'bx-.')
         hold on
-        plot(bestModelDis2.Variables.x1*60,bestModelDis2.Fitted, 'r-')
+        plot(bestModelDis2.Variables.x1*60- curStartFrameEE*tInterval,bestModelDis2.Fitted, 'r-')
 
         xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); 
-        ylabel('Log[Io/I]','FontUnits',genFontUnit,'FontSize',genFontSize)
-        text(bestModelDis2.Variables.x1(2)*60, (bestModelDis2.Fitted(1)+2*bestModelDis2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis2.adjRsquared) ];['K_{disassem}=' num2str(disassemRate2)]})
+        ylabel('Log[I_o/I]','FontUnits',genFontUnit,'FontSize',genFontSize)
+        text(bestModelDis2.Variables.x1(2)*60 - curStartFrameEE*tInterval, (bestModelDis2.Fitted(1)+2*bestModelDis2.Fitted(end))/3, {['R^2_{adj}=' num2str(bestSummaryDis2.adjRsquared) ];['K_{disassem}=' num2str(disassemRate2)]})
     else
         text(0,0.5,{'Failed disassembly rate'; 'estimation'})
     end
@@ -518,12 +604,27 @@ if ~isempty(imgMap2)
 else
     timeLagMasterAgainstMainSlave = NaN;
 end
-%% saving
 
-if exist('gPath','var')
-    print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.eps'),'-depsc2')
-    print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.png'),'-dpng')
-    savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.fig'))
+%Additional plot
+h3=figure;
+figWidth = 250; % addtinal 200 is for new graph place.
+figHeight = 600;
+set(h3,'Position',[560,250,figWidth,figHeight])
+
+subplot(3,1,3), plot(curTrack.bkgAmp),title('bkgAmp')
+subplot(3,1,1), plot(curTrack.amp), title('Amp')
+subplot(3,1,2), plot(curTrack.ampTotal), title('AmpTotal')
+%% saving
+% figure(h2)
+if ~exist('gPath','var')
+    gPath = [MD.getPath filesep 'FocalAdhesionPackage' filesep 'RepTracks'];
+    if ~exist(gPath, 'dir')
+        mkdir(gPath)
+    end
 end
+    
+print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.eps'),'-depsc2')
+print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.png'),'-dpng')
+savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),'rateConstant.fig'))
 disp('Marker: yellow (track start), green (initial rise), blue(track end), white (peak)')
 end

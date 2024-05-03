@@ -18,6 +18,15 @@ idxFinalTracks=false(numel(tracks),1);
 idOtherOverlappingTracks=zeros(numel(tracks),1);
 allX = arrayfun(@(x) x.xCoord,tracks,'UniformOutput',false);
 allY = arrayfun(@(x) x.yCoord,tracks,'UniformOutput',false);
+maxLifeFrame = max(cellfun(@(x) length(x),allX));
+%if maxLifeFrame is the same as, or less than numOverFrames, reduce
+%numOverFrames (to get any tracks and get out of the while loop)
+if numOverFrames>=maxLifeFrame
+    numOverFrames=floor(maxLifeFrame/2);
+end
+if numOverFrames<1
+    numOverFrames=1; 
+end
 while any(idxlTracksLeft)
 %     pp=pp+1;
     curInd = find(idxlTracksLeft,1);

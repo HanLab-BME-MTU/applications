@@ -180,20 +180,58 @@ for i = 1:numel(p.ChannelIndex)
         firstFrame=firstFrames(j);
         frameRange =firstFrame:firstFrame+p.timeWindow-1;
         
-        % Call the main flow tracking routine using speckles positions in xy
-        % coordinate system
-        [v,corLen] = trackStackFlow(stack(:,:,frameRange),...
-            speckles{firstFrame}(:,2:-1:1),p.minCorLength,p.maxCorLength,...
-            'maxSpd',p.maxFlowSpeed,'bgMask',bgMask(:,:,frameRange), ...
-            'bgAvgImg',bgAvgImg(:,:,firstFrame:firstFrame+nStBgFrames-1),...
-            'minFeatureSize',p.minFeatureSize);
-        allCorLen{j}=corLen;
-        
-        % Concatenate flow as a [pos1 pos2] matrix into image coordinate system
-        flow = [speckles{firstFrame} v(:,2:-1:1)];
-        
-        % Set infinite flow to nan
-        flow(isinf(v(:,1)),3:4)=NaN;
+        if p.usePIV
+            % Just in case there is a path problem
+            addpath('~/matlab/extern/PIVsuite/PIVsuite v.0.81')
+
+            pivPar = [];      % variable for settings
+            pivData = [];     % variable for storing results
+
+            [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
+            % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
+    %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
+            nextPow2max=nextpow2(p.maxCorLength);
+            nextPow2min=nextpow2(p.minCorLength);
+
+            sizeArray=2.^([nextPow2max nextPow2max round((nextPow2max+nextPow2min)/2) nextPow2min]);
+            stepArray=sizeArray;
+            pivPar.anNpasses = length(stepArray);
+            pivPar.iaSizeX = sizeArray;     % size of interrogation area in X 
+            pivPar.iaStepX = stepArray;     % grid spacing of velocity vectors in X
+            pivPar.iaSizeY = sizeArray;     % size of interrogation area in X 
+            pivPar.iaStepY = stepArray;    % grid spacing of velocity vectors in X
+            pivPar.ccMaxDisplacement = 0.7;%p.maxFlowSpeed/sizeArray(end);   % This filter is relatively narrow and will 
+            %pivPar.ccWindow = 'Gauss2';   %will use Welch, which is default.
+            pivPar.smMethod = 'none';
+            pivPar.iaMethod = 'defspline';
+            pivPar.iaImageInterpolationMethod = 'spline';
+            pivPar.imMask1=bgMask(:,:,frameRange(1));
+            pivPar.imMask2=bgMask(:,:,frameRange(end));
+
+            [pivData] = pivAnalyzeImagePair(stack(:,:,frameRange(1)),...
+                stack(:,:,frameRange(end)),pivData,pivPar);
+            validV = true(size(pivData.V));
+
+            flow=[pivData.Y(validV) pivData.X(validV) ...
+                pivData.V(validV) pivData.U(validV)];       
+            
+            corLen = pivData.iaSizeX;
+            allCorLen{j}=corLen;
+        else
+            % Call the main flow tracking routine using speckles positions in xy
+            % coordinate system
+            [v,corLen] = trackStackFlow(stack(:,:,frameRange),...
+                speckles{firstFrame}(:,2:-1:1),p.minCorLength,p.maxCorLength,...
+                'maxSpd',p.maxFlowSpeed,'bgMask',bgMask(:,:,frameRange), ...
+                'bgAvgImg',bgAvgImg(:,:,firstFrame:firstFrame+nStBgFrames-1),...
+                'minFeatureSize',p.minFeatureSize);
+            allCorLen{j}=corLen;
+            % Concatenate flow as a [pos1 pos2] matrix into image coordinate system
+            flow = [speckles{firstFrame} v(:,2:-1:1)];
+
+            % Set infinite flow to nan
+            flow(isinf(v(:,1)),3:4)=NaN;
+        end        
                 
         % Filter vector field outliers
         if ~isempty(p.outlierThreshold)

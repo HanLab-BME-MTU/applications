@@ -139,6 +139,7 @@ classdef FlowTrackingProcess < ImageAnalysisProcess
             funParams.maxFlowSpeed =10;
             funParams.outlierThreshold = 2;
             funParams.ROI = [1 1;owner.imSize_];
+            funParams.usePIV = false;
         end
     end
 end

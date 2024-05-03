@@ -130,6 +130,7 @@ logMsg = @(chan) ['Please wait, analyzing flow for channel ' num2str(chan)];
 outFile=@(chan,frame) [outputDir{chan} filesep 'flowMaps_' numStr(frame) '.mat'];
 
 speedMapLimits=cell(1,nChan);
+protSpeedMapLimits=cell(1,nChan);
 flowLimits=cell(1,nChan);
 channelLog=cell(1,numel(p.ChannelIndex));
 
@@ -169,6 +170,24 @@ for i=1:numel(p.ChannelIndex)
             end           
     end
     
+    % Drift correction
+    if p.driftCorrection
+        velField = cellfun(@(x) [x(:,4)-x(:,2),x(:,3)-x(:,1)],flow,'unif',false);
+        meanVel = cellfun(@(x) mean(x),velField,'unif',false);
+        %Subtract meanVel from velField
+        velFieldCorrected = cellfun(@(x,y) [x(:,1)-y(1), x(:,2)-y(2)],velField,meanVel,...
+            'unif',false);
+%         figure, quiver(flow{1}(:,2),flow{1}(:,1),...
+%             flow{1}(:,4)-flow{1}(:,2),flow{1}(:,3)-flow{1}(:,1))
+%         hold on
+%         quiver(flow{1}(:,2),flow{1}(:,1),...
+%             velFieldCorrected{1}(:,1),velFieldCorrected{1}(:,2))
+        % Put it back to flow
+        for ii=1:numel(flow)
+            flow{ii}(:,3:4) = flow{ii}(:,1:2)+velFieldCorrected{ii}(:,2:-1:1); %#ok<NASGU>
+        end
+    end
+    
     % Interpolate field
     if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
     [Md,Ms,E,S,stats] =  analyzeFlow(flow,p.timeWindow,p.corrLength,...
@@ -184,16 +203,20 @@ for i=1:numel(p.ChannelIndex)
         E{j}(outlierIndex,:)=[];
         S{j}(outlierIndex,:)=[];
     end
-
+    
     % Create speed maps
     if ishandle(wtBar), waitbar(.5,wtBar,['Generating speed maps for channel ' num2str(iChan)']); end
     speedMap = createSpeedMaps(flow,p.timeWindow,p.corrLength,movieData.timeInterval_,...
         movieData.pixelSize_,movieData.imSize_,p.gridSize,mask);
     
     % Create error mapss
-    if ishandle(wtBar), waitbar(.75,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
+    if ishandle(wtBar), waitbar(.6,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
     [img3C_map img3C_SNR]=createErrorMaps(stack,E,S); %#ok<ASGLU,NASGU>
-    
+
+    % Create protrusive flow speed (with sign)
+    if ishandle(wtBar), waitbar(.75,wtBar,['Generating protrusive speed maps for channel ' num2str(iChan)']); end
+    protSpeedMap = createProtrusiveSpeedMaps(Md,mask,movieData.pixelSize_,movieData.timeInterval_,p.gridSize); 
+        
     % Fill output structure for each frame and save it
     disp('Results will be saved under:')
     disp(flowAnProc.outFilePaths_{1,iChan});
@@ -205,6 +228,7 @@ for i=1:numel(p.ChannelIndex)
         s.speedMap=speedMap{j};
         s.img3C_map=img3C_map{j};
         s.img3C_SNR=img3C_SNR{j};
+        s.protSpeedMap=protSpeedMap{j};
         
         save(outFile(iChan,j),'-struct','s');
     end
@@ -213,6 +237,10 @@ for i=1:numel(p.ChannelIndex)
     allMaps = vertcat(speedMap{:});
     speedMapLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
     
+    % Store protrusive flow speed maps and flow limits
+    allMapsProt = vertcat(protSpeedMap{:});
+    protSpeedMapLimits{iChan}=[min(allMapsProt(:)) max(allMapsProt(:))];
+
     allFlow = vertcat(Md{:});
     
     flowLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
@@ -237,6 +265,7 @@ for i=1:numel(p.ChannelIndex)
     
 end
 flowAnProc.setSpeedMapLimits(speedMapLimits)
+flowAnProc.setProtSpeedMapLimits(protSpeedMapLimits)
 flowAnProc.setFlowLimits(flowLimits);
 
 % Close waitbar

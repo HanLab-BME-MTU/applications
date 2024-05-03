@@ -69,16 +69,19 @@ ip.addRequired('stack',@(x) isnumeric(x) && size(x,3)>=2);
 ip.addRequired('points',@(x) isnumeric(x) && size(x,2)==2);
 ip.addRequired('minCorL',@isscalar);
 ip.addOptional('maxCorL',minCorL,@isscalar);
-ip.addParamValue('maxSpd',40,@isscalar);
-ip.addParamValue('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
-ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
-ip.addParamValue('minFeatureSize',11,@isscalar);
-ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
-ip.addParamValue('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
-ip.addParamValue('hardCandidates',[],@(x) iscell(x) || isempty(x))
+ip.addParameter('maxSpd',40,@isscalar);
+ip.addParameter('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
+ip.addParameter('bgAvgImg', zeros(size(stack)),@isnumeric);
+ip.addParameter('minFeatureSize',11,@isscalar);
+ip.addParameter('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'})); %This is about interpolation method
+ip.addParameter('scoreCalculation','xcorr',@(x) ismember(x,{'xcorr','difference'}));
+ip.addParameter('hardCandidates',[],@(x) iscell(x) || isempty(x))
 % ip.addParamValue('hardCandidateDists',[],@(x) isnumeric(x) || isempty(x))
-ip.addParamValue('magDiffThreshold',2,@isscalar);
-ip.addParamValue('angDiffThreshold',1,@isscalar);
+ip.addParameter('magDiffThreshold',2,@isscalar);
+ip.addParameter('angDiffThreshold',1,@isscalar);
+ip.addParameter('enlargeFactor',1,@isscalar);
+ip.addParameter('useNeighbors',true,@islogical);
+
 % ip.addParamValue('usePIVSuite',false,@islogical);
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
@@ -91,6 +94,8 @@ scoreCalculation=ip.Results.scoreCalculation;
 closeNeiVecs = ip.Results.hardCandidates;
 magDiffThreshold = ip.Results.magDiffThreshold;
 angDiffThreshold = ip.Results.angDiffThreshold;
+enlargeFactor = ip.Results.enlargeFactor;
+useNeighbors = ip.Results.useNeighbors;
 % neighDists = ip.Results.hardCandidateDists;
 
 %medianNeiVecs = cellfun(@(x) (magDiffThreshold+angDiffThreshold)*quantile(x,0.25),closeNeiVecs,'Unif',false);   %changed from mean to median
@@ -101,7 +106,7 @@ angDiffThreshold = ip.Results.angDiffThreshold;
 % stdNeiVecs = neighDists;
 magNeiVecs = cellfun(@(x) (x(:,1).^2+x(:,2).^2).^0.5,closeNeiVecs,'Unif',false);
 medianMagNeiVecs = cellfun(@(x) median(x),magNeiVecs);   %changed from mean to median
-medianNeiVecs = cellfun(@(x) median(x),closeNeiVecs,'unif',false);
+medianNeiVecs = cellfun(@(x) enlargeFactor * median(x),closeNeiVecs,'unif',false); % This is the model vector
 
 stdNeiVecs = cellfun(@(x) std(x),magNeiVecs);
 orienNeiVecs = cell(numel(closeNeiVecs),1);
@@ -251,7 +256,7 @@ if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 
 % xI = round(x);
 % yI = round(y); inqryLogicInd=false(size(yI));
-% inqX=[277 255]; inqY=[273 278];
+% inqX=[249]; inqY=[240];
 % for ii=1:numel(inqX)
 %     inqryLogicInd=inqryLogicInd | (xI==inqX(ii) & yI==inqY(ii));    
 % end
@@ -374,7 +379,7 @@ parfor k = 1:nPoints
             % maximum score.
             [pass,locMaxI,sigtVal,locMaxI_moreGenerous,sigVal_moreGen] = findMaxScoreI(score.*maskSearchInterest,zeroI,minFeatureSize,0.6);
             
-            if pass==0 && ~isempty(curNeiMag)
+            if pass==0 && ~isempty(curNeiMag) && useNeighbors
                 % Here I use the best candidate
                 % Get the candidate vectors
                 locMaxV = [vP(locMaxI_moreGenerous(:,1)).' vF(locMaxI_moreGenerous(:,2)).'];
@@ -387,6 +392,10 @@ parfor k = 1:nPoints
                 orienDiff = arrayfun(@(x) acos(locMaxV(x,:)*curCandVecRot'/(norm(locMaxV(x,:))*norm(curCandVecRot))),options{1});
 %                 distToMaxV2 = sqrt(sum((locMaxV-ones(size(locMaxV,1),1)*curCandVec).^2,2));
                 magDiff = cellfun(@norm,vecDiff);
+                %We give a penalty for the one that has smaller mag - SH
+                %Apr 2021
+                innerProd = cellfun(@(x) curCandVecRot*x',vecDiff);
+                magDiff(innerProd<0)=magDiff(innerProd<0)*10;
                 
                 [~,indDist]=sort(magDiff); %.*orienDiff.^2);
                 ind = indDist(1);
@@ -430,9 +439,14 @@ parfor k = 1:nPoints
         % interpolation from discrete scores - Sangyoon
         %         if norm(maxV)<1 && norm(maxV)>1e-5
         % new vF and vP (around maxV)
-        halfCorL=(corL-1)/2;
+
+        narrowFactor = 1; %0.34; % This should be an input from the dialog box.
+        halfCorL= round((corL-1)/2 * narrowFactor);
         refineFactor = 10;%round(10*20/corL); % by this, the pixel value will be magnified.
         refineRange = 1.0; % in pixel
+%         halfCorL=(corL-1)/2;
+%         refineFactor = 10;%round(10*20/corL); % by this, the pixel value will be magnified.
+%         refineRange = 1.0; % in pixel
         if pass==1 || pass==2
             incFactor=1;
         end

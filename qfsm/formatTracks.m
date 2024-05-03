@@ -11,6 +11,52 @@ maxY = ceil(max(abs(T(:, 1))));
 newTracks(numel(tracks),1) = struct('xCoord', [], 'yCoord', [],'iFrame',[],'presence',[],'amp',[],'bkgAmp',[]);
 % BA: before adhesion, NA: nascent adh, FC: focal complex, FA: focal adh,
 % ANA: after NA (failed to be matured.
+
+% xCoord:   1xN matrix of x coordinates of the trajectory of curTrack 
+% yCoord:   1xN matrix of y coordinates of the trajectory of curTrack 
+% state:    1xN matrix of state of the trajectory of curTrack: 
+%           1: BA: before adhesion, 
+%           2: NA: nascent adh, 
+%           3: FC: focal complex, 
+%           4: FA: focal adh,
+%           5: ANA: after NA (failed to be matured)
+% iFrame:   1xN matrix of frame number within the trajectory of curTrack
+% presence: 1xN matrix of logical values per frame of curTrack. 
+% amp:      1xN matrix of the gaussian-fitted amplitude (intensity -
+%           bkgAmp)
+% bkgAmp:   1xN matrix of the background from gaussian fit of the signal
+% sigma:    1xN matrix of standard deviation of the gaussian
+% startingFrame:    Starting frame number when there is initial particle
+%                   detection (from Utrack output)
+% endingFrame:      Final frame number of final particle detection (from Utrack output)
+% startingFrameExtra:       Starting frame number after re-tracking of the
+%                           trajectory
+% startingFrameExtraExtra:  Starting frame number after re-tracking of the
+%                           trajectory, further subtracted by preset number
+%                           of frames, e.g., 30 frames
+% endingFrameExtra:         Ending frame number after re-tracking of the
+%                           trajectory
+% endingFrameExtraExtra:    Ending frame number after re-tracking of the
+%                           trajectory, further subtracted by preset number
+%                           of frames, e.g., 30 frames
+% ampTotal:     1xN matrix of the absolute intensity of the particle center
+%               of the detected trajectory
+% refineFAID:   1xN matrix of ID of focal adhesion segmentation, recorded
+%               in the FA label, refined version
+% faID:         1xN matrix of ID of focal adhesion segmentation, recorded
+%               in the FA label matrix
+% area:         1xN matrix of area of focal adhesion segmentation, valid
+%               only status of FC or FA
+% distToEdge:   1xN matrix of the distance from the center to the closest
+%               edge
+% closestBdPoint:   Nx2 matrix of (x,y) points of closest boundary per
+%                   frame
+% lifeTime:     endingFrameExtra - startingFrameExtra
+% ampSlope: 
+
+
+
+
 for i = 1:numel(tracks)
     % Get the x and y coordinate of all compound tracks
     startNA = true;
@@ -63,7 +109,7 @@ for i = 1:numel(tracks)
             end
         end
             
-        if isfield(tracks, 'label'),
+        if isfield(tracks, 'label')
             newTracks(iTrack).label = tracks(i).label;
         end
     end

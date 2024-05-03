@@ -30,7 +30,7 @@ endingTimeSlaveAll=NaN(numel(tracksNA),1);
 bkgMaxIntAll=NaN(numel(tracksNA),1);
 bkgMaxSlaveAll=NaN(numel(tracksNA),1);
 %% Calculation
-for ii=1:numel(tracksNA)
+parfor ii=1:numel(tracksNA)
     curTrack = tracksNA(ii);
     sFEE = curTrack.startingFrameExtraExtra;
     eFEE = curTrack.endingFrameExtraExtra;

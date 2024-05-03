@@ -1,10 +1,15 @@
 function [strainEnergy,totalIntSelecChan,pixelTraction,pixelIntSelecChan] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,tmax,varargin )
-%generateHeatmapFromTFMPackage generates heatmap from forcefield stored in
-%movieData.
-% input:    pathForTheMovieDataFile:    path to the movieData file
+%[strainEnergy,totalIntSelecChan,pixelTraction,pixelIntSelecChan] =
+%generateHeatmapFromTFMPackage(pathForTheMovieDataFile,band,tmax,varargin)
+%generates heatmap from forcefield stored in movieData.
+% input:    pathForTheMovieDataFile:    path to the movieData file or MD
+%                                       itself
 %           band:                       band width for cutting border
-%           (default=4)
-%           a certain point (default = false)
+%                                       (default=4)
+%           tmax:                       maximum traction, if not indicated,
+%                                       80% of the true global maximum will
+%                                       be used.
+% 
 % output:   
 %           strainEnergy: 1/2*integral(traction*u) in femtoJ (10^-15 Joule)
 %           images of heatmap stored in pathForTheMovieDataFile/heatmap
@@ -103,22 +108,18 @@ if ~isempty(iSDCProc)
             'Please apply stage drift correction to all needed channels before '...
             'running displacement field calclation tracking!'])
     end
-    if length(SDCProc.funParams_.ChannelIndex)>1
-        iChan = 2;
-    elseif length(SDCProc.funParams_.ChannelIndex) == 1
-        iChan = SDCProc.funParams_.ChannelIndex;
+
+    iBeadChan = SDCProc.funParams_.iBeadChannel;
+    if iBeadChan==2
+        iChan=1;
     else
-        error('No channel associated with SDC process!')
-    end
-    if iChan==2
-        iBeadChan=1;
-    else
-        iBeadChan = SDCProc.funParams_.ChannelIndex(1);
+        iChan=2;
     end
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
 else
     iChan = 2;
+    iBeadChan=1;
 end
 
 iDisplFieldCalProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
@@ -160,7 +161,7 @@ end
 % band width for cutting border
 %     band=4;
 if isempty(tmax)
-    display('Estimating maximum force magnitude ...')
+    disp('Estimating maximum force magnitude ...')
     tic
     tmax = 0;
     for ii = 1:nFrames
@@ -223,8 +224,8 @@ if ~isempty(iMask)
         maxX = ceil(max(abs(T(:, 2))));
         maxY = ceil(max(abs(T(:, 1))));
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-        I = padarray(bwPI4, [maxY, maxX]);
-        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+%         I = padarray(bwPI4, [maxY, maxX]);
+        bwPI4 = imtransform(bwPI4, Tr, 'XData',[1 size(bwPI4, 2)],'YData', [1 size(bwPI4, 1)]);
     else
         iMask = movieData.getProcessIndex('ThresholdProcess');
         maskProc = movieData.getProcess(iMask);
@@ -233,13 +234,17 @@ if ~isempty(iMask)
             maxX = ceil(max(abs(T(:, 2))));
             maxY = ceil(max(abs(T(:, 1))));
             Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-            I = padarray(bwPI4, [maxY, maxX]);
-            bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+%             I = padarray(bwPI4, [maxY, maxX]);
+            bwPI4 = imtransform(bwPI4, Tr, 'XData',[1 size(bwPI4, 2)],'YData', [1 size(bwPI4, 1)]);
         end
     end
 else
     % if there was no cell mask, just use the entire pixel as a mask
-    firstBeadImg=SDCProc.loadChannelOutput(iBeadChan,1);
+    if ~isempty(iSDCProc)
+        firstBeadImg=SDCProc.loadChannelOutput(iBeadChan,1);
+    else
+        firstBeadImg=movieData.channels_(iBeadChan).loadImage(1);
+    end
     bwPI4 = true(size(firstBeadImg,1),size(firstBeadImg,2));
 end
 strainEnergy = zeros(nFrames,1);
@@ -327,8 +332,9 @@ for ii=1:nFrames
     pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
     forceScale=0.1*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
 %     hq = quiver(pos_vecx,pos_vecy, tmat_vecx./forceScale,tmat_vecy./forceScale,0,'k');
-    hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx./forceScale,vectorScale*tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
-    hq.ShowArrowHead = 'off';
+    hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx./forceScale,vectorScale*tmat_vecy./forceScale,0,'Color',[200/255 200/255 200/255]);
+%     hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), vectorScale*tmat_vecx./forceScale,vectorScale*tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
+%     hq.ShowArrowHead = 'off';
 %     hq.LineWidth=0.5;
 %     anno=hq.Annotation;
 %     anno.LegendInformation
@@ -339,13 +345,15 @@ for ii=1:nFrames
 %     hq.HeadStyle = 'cback2';
 %     hq.HeadLength = 15; % does not work!
     % boundary
-    bwPI4 = maskProc.loadChannelOutput(iChan,ii);
-    if ~isempty(iSDCProc)
-        maxX = ceil(max(abs(T(:, 2))));
-        maxY = ceil(max(abs(T(:, 1))));
-        Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-        I = padarray(bwPI4, [maxY, maxX]);
-        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    if ~exist('bwPI4','var') || isempty(bwPI4)
+        bwPI4 = maskProc.loadChannelOutput(iChan,ii);
+        if ~isempty(iSDCProc)
+            maxX = ceil(max(abs(T(:, 2))));
+            maxY = ceil(max(abs(T(:, 1))));
+            Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+%             I = padarray(bwPI4, [maxY, maxX]);
+            bwPI4 = imtransform(bwPI4, Tr, 'XData',[1 size(bwPI4, 2)],'YData', [1 size(bwPI4, 1)]);
+        end
     end
     
     maskCrop = bwPI4(reg_grid(1,1,2):reg_grid(end,end,2),reg_grid(1,1,1):reg_grid(end,end,1));
@@ -363,6 +371,12 @@ for ii=1:nFrames
     text(10,30,[num2str(scale), ' um.'],'Color','w');
 %     disp(['Scale bar: ', num2str(scale), ' um.'])
 %     end
+
+    % Force Scale bar: whatever the mean is
+    nearestTensofForce = 10^ceil(log10(forceScale));
+    quiver(10,imSizeY-15, vectorScale*nearestTensofForce/forceScale, 0,0,'Color',[1,1,1]);
+    text(10,imSizeY-30,[num2str(nearestTensofForce), ' Pa'],'Color','w');
+    
     axis off
     hold off
     subplot('Position',[0.8 0.1 0.1 0.8])
@@ -383,7 +397,7 @@ for ii=1:nFrames
     %     paxImageCropped = paxImage(indULy+spacing*band:indBRy-spacing*band,indULx+spacing*band:indBRx-spacing*band);
         secondImageCropped = secondImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         %Scale bar
-        secondImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
+        secondImageCropped(15:16,10:10+round(scale*1000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
         imwrite(secondImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
         % composite for both channels
         compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
@@ -412,7 +426,7 @@ for ii=1:nFrames
         secondImageCropped = secondImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         thirdImageCropped = thirdImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         %Scale bar
-        secondImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
+        secondImageCropped(15:16,10:10+round(scale*1000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
         thirdPath = [outputFilePath filesep 'thirdChannel'];
         if ~exist(thirdPath,'dir') 
             mkdir(thirdPath);
@@ -435,12 +449,13 @@ for ii=1:nFrames
         thirdImageInverted=(ones(size(thirdImageLog)))*max(thirdImageLog(:))-thirdImageLog;
         
 %         imshow(thirdImageInverted,[minThird+0.3*maxThird maxThird]), hold on
-        imshow(thirdImageInverted,[minThird maxThird])
-        hold on
+        ax2=axes(h2);
+        imshow(thirdImageInverted,[minThird maxThird],'Parent',ax2)
+        hold(ax2,'on')
 %         colormap jet;
         for kk=1:nCBD
             boundary = cB{kk};
-            plot(boundary(:,2), boundary(:,1), 'k', 'LineWidth', 1) % cell boundary
+            plot(ax2,boundary(:,2), boundary(:,1), 'y', 'LineWidth', 1) % cell boundary
         end
         % saving
         I2 = getframe(h2);

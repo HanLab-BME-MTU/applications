@@ -1,4 +1,6 @@
-function [h2, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave] = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, gPath,additionalName)
+function [h2, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave] = ...
+    showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2,IDtoInspect, ...
+    gPath,additionalName,imgStackBS,imgStackBS2)
 % h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
 % This function shows big picture, montage, and time series of fluorescence
 % intensity and traction.
@@ -12,22 +14,22 @@ scaleBar = 1; %micron
 ampReSampled=false;
 
 if ~isfield(curTrack,'amp')
-    curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+    curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false,'imgStackBS',imgStackBS);
     ampReSampled=true;
 end
 
-if (~isfield(curTrack,'forceMag') && ~isempty(tMap)) || (isfield(curTrack,'forceMag') && sum(~isnan(curTrack.forceMag)) ~= sum(~isnan(curTrack.amp)))
+if (~isfield(curTrack,'forceMag') && ~isempty(tMap)) || (isfield(curTrack,'forceMag') && sum(~isnan(curTrack.forceMag)) < sum(~isnan(curTrack.amp)))
     if ~ampReSampled
         curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
         ampReSampled=true;
     end
     curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
 end
-if (~isempty(imgMap2) && ~isfield(curTrack,'amp2')) || (isfield(curTrack,'amp2') && sum(~isnan(curTrack.amp2)) ~= sum(~isnan(curTrack.amp)))
+if (~isempty(imgMap2) && ~isfield(curTrack,'amp2')) || (isfield(curTrack,'amp2') && sum(~isnan(curTrack.amp2)) < sum(~isnan(curTrack.amp)))
     if ~ampReSampled
         curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
     end
-    curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD);
+    curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD,'imgStackBS',imgStackBS2);
 %     if length(curTrack.amp) ~= length(curTrack.amp2)
 %     end
 end   
@@ -256,7 +258,7 @@ numChosenFrames = length(chosenStartFrame:chosenEndFrame);
 montInterval = ceil(numChosenFrames/maxMontageNum);
 if montInterval>1
     %Check if peakFrameForce is included in the range
-    if isfield(curTrack,'forcePeakness')
+    if isfield(curTrack,'forcePeakness') && curTrack.forcePeakness
         modShift=mod(peakFrameForce-chosenStartFrame,montInterval);
         indiceRange=1+modShift:montInterval:numChosenFrames;
     else

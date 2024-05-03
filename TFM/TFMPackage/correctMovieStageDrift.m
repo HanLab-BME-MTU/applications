@@ -126,7 +126,7 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     selfCorr = normxcorr2(croppedRefFrame,refFrame);
     trueSelfCorr = selfCorr(heightCrop+1:end-heightCrop,widthCrop+1:end-widthCrop); %(hH:end-hH,hW:end-hW);
     [maxAutoScore , imax] = max(abs(trueSelfCorr(:))); %selfCorr(:)));
-    [rowPosInRef, colPosInRef] = ind2sub(size(selfCorr),imax(1));
+    [rowPosInRef, colPosInRef] = ind2sub(size(trueSelfCorr),imax(1));
 
     if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
     for j= 1:nFrames       

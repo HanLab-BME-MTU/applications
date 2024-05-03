@@ -38,7 +38,9 @@ function [v,corLength,sigtValues] = trackStackFlow(stack,points,minCorL,varargin
 %    'minFeatureSize': The minimum feature size in the image. This is 
 %                      measured as the diameter of features.
 %                      Default, 11 pixels (typical speckle size).
-%
+%    'sigCrit': Tolerance of the significance determination. Less (e.g. 0.3) is more
+%               strict, more (e.g. 0.9) is more generous. Default: 0.5
+% 
 % OUTPUT :
 %    v      : velocity vector of (size nP x2) expressed in the xy
 %             coordinate system.
@@ -53,11 +55,32 @@ function [v,corLength,sigtValues] = trackStackFlow(stack,points,minCorL,varargin
 %
 % References:
 % J. Li & G. Danuser, J. of microscopy, 220 150-167, 2005.
-
+%
+% Copyright (C) 2021, Han Lab - Michigan Tech & Danuser Lab - UTSouthwestern  
+% 
+% This file is part of TFM_Package.
+% 
+% TFM_Package is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% TFM_Package is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with TFM_Package.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% Adapted from imFlowTrack.m
 % Lin Ji, 2005
 % Sebastien Besson, May 2011 (last modified Nov 2011)
 % Adapted from imFlowTrack.m
-% Sangyoon Han, October 2012 (last modified July 2013)
+% Sangyoon Han, October 2012 (last modified Jan 2021)
+% Fix nested for-loop variable 'incFactor' not supported in parfor-loops issue for
+% matlab version R2019b and after. - Debugged by Jenny
+%
 
 % Input check
 ip= inputParser;
@@ -140,20 +163,6 @@ backSpc =repmat('\b',1,L);
 % each point.
 startTime = clock;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
-
-% poolobj = gcp('nocreate'); % If no pool, do not create new one.
-% if isempty(poolobj)
-%     poolsize = feature('numCores');
-% else
-%     poolsize = poolobj.NumWorkers;
-% end
-% if isempty(gcp('nocreate'))
-%     try
-%         parpool('local',poolsize)
-%     catch
-%         disp('Please use matlab version 2015a or higher to use parallel computing') %matlabpool
-%     end
-% end % we don't need this any more.
 
 % if feature('ShowFigureWindows'), parfor_progress(nPoints); end
 parfor k = 1:nPoints
@@ -501,7 +510,17 @@ parfor k = 1:nPoints
         % interpolation from discrete scores - Sangyoon
         %         if norm(maxV)<1 && norm(maxV)>1e-5
         % new vF and vP (around maxV)
-        halfCorL=(corL-1)/2;
+
+        % Nov 2022 - figured that the accuracy can be much more improved if
+        % we narrow down the template size, essentially around only one
+        % bead in the middle. Will try with narrowingFactor, say 0.3 as
+        % default - Sangyoon 
+        
+	narrowFactor = 1; %0.34; % This should be an input from the dialog box.
+        % Turned out that narrowFactor introduces more errors to the
+        % displacement field. So make it to 1 by default. -2022.11.9. SJH
+
+        halfCorL= round((corL-1)/2 * narrowFactor);
         refineFactor = 10;%round(10*20/corL); % by this, the pixel value will be magnified.
         refineRange = 1.0; % in pixel
         incFactor2 = 1;

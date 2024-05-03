@@ -39,7 +39,11 @@ spreadArea_Group = cell(numConditions,1);
 SEDen_CellPeri_Group = cell(numConditions,1);
 SEDen_CellInside_Group = cell(numConditions,1);
 
-isCellSeg = true;
+avgForce_Cell_Group = cell(numConditions,1);
+avgForce_CellPeri_Group = cell(numConditions,1);
+avgForce_CellInside_Group = cell(numConditions,1);
+
+isCellSeg = false;
 
 for ii=1:numConditions
     curML=MLAll(ii);
@@ -68,6 +72,10 @@ for ii=1:numConditions
     curSpreadAreaGroup = cell(N(ii),1);
     curSEDenCellPeriGroup = cell(N(ii),1);
     curSEDenCellInsideGroup = cell(N(ii),1);
+    
+    curAvgForceCellGroup = cell(N(ii),1);
+    curAvgForceCellPeriGroup = cell(N(ii),1);
+    curAvgForceCellInsideGroup = cell(N(ii),1);
     
     for k=1:N(ii)
         % get the tracksNA
@@ -114,8 +122,11 @@ for ii=1:numConditions
             curTotalDispCellInsideGroup{k} = seCellStruct.totalForceCellInside; %in um3
             curAvgDispCellPeriGroup{k} = seCellStruct.avgDispCellPeri; %in um
             curAvgDispCellInsideGroup{k} = seCellStruct.avgDispCellInside; %in um
-        else
-            isCellSeg = false;
+
+            curAvgForceCellGroup{k} = seCellStruct.avgTractionCell; % in Pa
+            curAvgForceCellPeriGroup{k} = seCellStruct.avgTractionCellPeri; % in Pa
+            curAvgForceCellInsideGroup{k} = seCellStruct.avgTractionCellInside; % in Pa
+            isCellSeg = true;
         end
         % 3. FOV
         seFOVStruct=load(curSEProc.outFilePaths_{1});
@@ -160,6 +171,10 @@ for ii=1:numConditions
         spreadArea_Group{ii,1}=curSpreadAreaGroup;
         SEDen_CellPeri_Group{ii,1}=curSEDenCellPeriGroup;
         SEDen_CellInside_Group{ii,1}=curSEDenCellInsideGroup;
+        
+        avgForce_Cell_Group{ii,1}=curAvgForceCellGroup;
+        avgForce_CellPeri_Group{ii,1}=curAvgForceCellPeriGroup;
+        avgForce_CellInside_Group{ii,1}=curTotalForceCellInsideGroup;
     end
 end
 disp('Done')
@@ -386,20 +401,20 @@ writetable(tableTotalForce_FB,strcat(dataPath,'/totalForce_ForceBlobs.csv'),'Wri
 forceFBCellCellArray = avgForce_FBindiv_Group;%cellfun(@(x) cell2mat(x),avgForce_FBindiv_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(forceFBCellCellArray,nameList,1,false,true)
-ylabel('Avereage force (nN)')
-title('Average force in force blobs in Cells (per force blob)')
+ylabel('Avereage traction (Pa)')
+title('Average traction in force blobs in Cells (per force blob)')
 hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
 print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
 
 tableAvgForceAllFBinCell=table(forceFBCellCellArray,'RowNames',nameList);
 writetable(tableAvgForceAllFBinCell,strcat(dataPath,'/forceAllFBs.csv'),'WriteRowNames',true)
-%% avg force of average force blob in Cell
+%% avg traction of average force blob in Cell
 avgforceFBCellArray = avgForce_FB_Group;%cellfun(@(x) cell2mat(x),avgForce_FB_Group,'unif',false);
 h1=figure; 
 boxPlotCellArray(avgforceFBCellArray,nameList,1,false,true)
-ylabel('Avereage force (nN)')
-title('Average force of force blobs in cell per cell')
+ylabel('Avereage traction (Pa)')
+title('Average traction of force blobs in cell per cell')
 hgexport(h1,strcat(figPath,'/avgForceFBinCell'),hgexport('factorystyle'),'Format','eps')
 hgsave(h1,strcat(figPath,'/avgForceFBinCell'),'-v7.3')
 print(h1,strcat(figPath,'/avgForceFBinCell.tif'),'-dtiff')
@@ -446,7 +461,11 @@ if isCellSeg
 end
 %% Integrated Displacement - CellPeri
 if isCellSeg
-    totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellPeri_Group,'unif',false);
+    try
+        totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellPeri_Group,'unif',false);
+    catch
+        totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellPeri_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totalDispCellPeri_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totalDispCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellPeri_Group,'unif',false);
@@ -464,7 +483,11 @@ if isCellSeg
 end
 %% Integrated Displacement - CellInside
 if isCellSeg
-    totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellInside_Group,'unif',false);
+    try
+        totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellInside_Group,'unif',false);
+    catch 
+        totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellInside_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totalDispCellInside_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totalDispCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),totalDisp_CellInside_Group,'unif',false);
@@ -554,7 +577,11 @@ if isCellSeg
 end
 %% Total force - CellPeri
 if isCellSeg
-    totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellPeri_Group,'unif',false);
+    try
+        totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellPeri_Group,'unif',false);
+    catch
+        totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellPeri_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totForceCellPeri_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totForceCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_CellPeri_Group,'unif',false);
@@ -572,7 +599,11 @@ if isCellSeg
 end
 %% Total force - CellInside
 if isCellSeg
-    totForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellInside_Group,'unif',false);
+    try
+        totForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellInside_Group,'unif',false);
+    catch
+        totForceCellInside_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellInside_Group,'unif',false);
+    end
     samNum=cellfun(@numel,totForceCellInside_CellArray);
     if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
         totForceCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),totalForce_CellInside_Group,'unif',false);
@@ -604,7 +635,69 @@ print(h1,strcat(figPath,'/totForceFOV.tif'),'-dtiff')
 
 tableTotalForce_FOV=table(totForceFOV_CellArray,'RowNames',nameList);
 writetable(tableTotalForce_FOV,strcat(dataPath,'/totalForce_FOV.csv'))
-%% Total force - Spread Area
+%% Avg force - Cell
+if isCellSeg
+    avgForceCell_CellArray = cellfun(@(x) cell2mat(x),avgForce_Cell_Group,'unif',false);
+    samNum=cellfun(@numel,avgForceCell_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        avgForceCell_CellArray = cellfun(@(x) cellfun(@mean,x),avgForce_Cell_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(avgForceCell_CellArray,nameList,1,false,true)
+    ylabel('Average traction (Pa)')
+    title('Average traction in a cell')
+    hgexport(h1,strcat(figPath,'/avgForceCell'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgForceCell'),'-v7.3')
+    print(h1,strcat(figPath,'/avgForceCell.tif'),'-dtiff')
+
+    tableAvgForce_Cell=table(avgForceCell_CellArray,'RowNames',nameList);
+    writetable(tableAvgForce_Cell,strcat(dataPath,'/avgForce_Cell.csv'),'WriteRowNames',true)
+end
+%% Avg force - CellPeri
+if isCellSeg
+    try
+        avgForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),avgForce_CellPeri_Group,'unif',false);
+    catch
+        avgForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),avgForce_CellPeri_Group,'unif',false);
+    end
+    samNum=cellfun(@numel,avgForceCellPeri_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        avgForceCellPeri_CellArray = cellfun(@(x) cellfun(@mean,x),avgForce_CellPeri_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(avgForceCellPeri_CellArray,nameList,1,false,true)
+    ylabel('Avg traction (Pa)')
+    title('Average traction in a cell periphery')
+    hgexport(h1,strcat(figPath,'/avgForceCellPeri'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgForceCellPeri'),'-v7.3')
+    print(h1,strcat(figPath,'/avgForceCellPeri.tif'),'-dtiff')
+
+    tableAvgForce_CellPeri=table(avgForceCellPeri_CellArray,'RowNames',nameList);
+    writetable(tableAvgForce_CellPeri,strcat(dataPath,'/AvgForce_CellPeri.csv'),'WriteRowNames',true)
+end
+%% Average force - CellInside
+if isCellSeg
+    try
+        avgForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),avgForce_CellInside_Group,'unif',false);
+    catch
+        avgForceCellInside_CellArray = cellfun(@(x) cell2mat(x),avgForce_CellInside_Group,'unif',false);
+    end
+    samNum=cellfun(@numel,avgForceCellInside_CellArray);
+    if length(samNum)>1 && (samNum(1)>10*samNum(2) || samNum(2)>10*samNum(1))
+        avgForceCellInside_CellArray = cellfun(@(x) cellfun(@mean,x),avgForce_CellInside_Group,'unif',false);
+    end
+    h1=figure; 
+    boxPlotCellArray(avgForceCellInside_CellArray,nameList,1,false,true)
+    ylabel('Average traction (Pa)')
+    title('Average force in a cell interior')
+    hgexport(h1,strcat(figPath,'/avgForceCellInside'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/avgForceCellInside'),'-v7.3')
+    print(h1,strcat(figPath,'/avgForceCellInside.tif'),'-dtiff')
+
+    tableAvgForce_CellInside=table(avgForceCellInside_CellArray,'RowNames',nameList);
+    writetable(tableAvgForce_CellInside,strcat(dataPath,'/avgForce_CellInside.csv'),'WriteRowNames',true)
+end
+%% Spread Area - all frames
 if isCellSeg
     spreadArea_CellArray = cellfun(@(x) cell2mat(x),spreadArea_Group,'unif',false);
     samNum=cellfun(@numel,spreadArea_CellArray);
@@ -614,6 +707,21 @@ if isCellSeg
     h1=figure; 
     boxPlotCellArray(spreadArea_CellArray,nameList,1,false,true)
     ylabel('Spread area (um2)')
+    title('Cell spread area')
+    hgexport(h1,strcat(figPath,'/spreadArea'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/spreadArea'),'-v7.3')
+    print(h1,strcat(figPath,'/spreadArea.tif'),'-dtiff')
+
+    tableSpreadArea=table(spreadArea_CellArray,'RowNames',nameList);
+    writetable(tableSpreadArea,strcat(dataPath,'/spreadArea.csv'),'WriteRowNames',true)
+end
+%% Spread Area - sampling mean per each movie
+if isCellSeg
+    spreadArea_Mean = cellfun(@(x) cellfun(@mean,x),spreadArea_Group,'unif',false);
+    samNumMean=cellfun(@numel,spreadArea_Mean);
+    h1=figure; 
+    barPlotCellArray(spreadArea_Mean,nameList',1)
+    ylabel('Spread area (\mum^2)')
     title('Cell spread area')
     hgexport(h1,strcat(figPath,'/spreadArea'),hgexport('factorystyle'),'Format','eps')
     hgsave(h1,strcat(figPath,'/spreadArea'),'-v7.3')

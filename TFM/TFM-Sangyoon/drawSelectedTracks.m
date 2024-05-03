@@ -19,6 +19,8 @@ if isfield(idSelected,'idGroup1Selected')
     idGroup{7} = intersect(idSelected.idGroup7Selected', idCurrent);
     idGroup{8} = intersect(idSelected.idGroup8Selected', idCurrent);
     idGroup{9} = intersect(idSelected.idGroup9Selected', idCurrent);
+elseif iscell(idSelected)
+    idGroup = idSelected;
 else
     idCurrent = arrayfun(@(x) x.startingFrameExtra<=iFrame & x.endingFrameExtra>=iFrame,tracksNA);
     idGroup{1} = idSelected.idGroup1 & idCurrent;

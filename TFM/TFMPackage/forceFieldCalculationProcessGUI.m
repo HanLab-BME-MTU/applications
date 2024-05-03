@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 03-Oct-2018 10:48:37
+% Last Modified by GUIDE v2.5 05-Apr-2021 00:28:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -75,12 +75,19 @@ set(handles.popupmenu_method,'String',methodString,...
 set(handles.edit_regParam, 'Value', funParams.regParam);
 
 set(handles.useLcurve, 'Value', funParams.useLcurve);
+set(handles.checkbox_everyframe, 'Value', funParams.useLcurveEveryFrame);
+set(handles.lcorner, 'Value', strcmp(funParams.lcornerOptimal,'lcorner'));
+set(handles.optimal, 'Value', strcmp(funParams.lcornerOptimal,'optimal'));
 if funParams.useLcurve
-    set(handles.lcorner, 'Value', strcmp(funParams.lcornerOptimal,'lcorner'));
-    set(handles.optimal, 'Value', strcmp(funParams.lcornerOptimal,'optimal'));
+    set(handles.checkbox_everyframe, 'Enable', 'on');
+    set(handles.groupCornerOptimal.Children,  'Enable', 'on');
+else
+    set(handles.checkbox_everyframe, 'Enable', 'off');
+    set(handles.groupCornerOptimal.Children,  'Enable', 'off');
 end
 
 set(handles.checkbox_lastToFirst, 'Value', funParams.lastToFirst);
+
 try
     set(handles.edit_tolx,'String',funParams.tolx);
 catch
@@ -192,6 +199,7 @@ catch
     funParams.solMethodBEM=props{1}{1};
 end
 funParams.useLcurve = get(handles.useLcurve, 'Value');
+funParams.useLcurveEveryFrame = get(handles.checkbox_everyframe, 'Value');
 funParams.lastToFirst = get(handles.checkbox_lastToFirst, 'Value');
 funParams.tolx = str2double(get(handles.edit_tolx,'String'));
 
@@ -319,11 +327,13 @@ function useLcurve_Callback(hObject, eventdata, handles)
 useLcurve=get(handles.useLcurve,{'UserData','Value'});
 if useLcurve{2}
 %     set(handles.edit_regParam,'Enable','off');
+    set(handles.checkbox_everyframe, 'Enable', 'on');
     set(handles.edit_LcurveFactor,'Enable','on');
     set(handles.lcorner,'Enable','on');
     set(handles.optimal,'Enable','on');
 else
 %     set(handles.edit_regParam,'Enable','on');
+    set(handles.checkbox_everyframe, 'Enable', 'off');
     set(handles.edit_LcurveFactor,'Enable','off');
 %     set(handles.groupCornerOptimal,'Enable','off');
     set(handles.lcorner,'Enable','off');
@@ -387,3 +397,12 @@ function setROIfromForcemap_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to setROIfromForcemap (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+
+% --- Executes on button press in checkbox_everyframe.
+function checkbox_everyframe_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_everyframe (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_everyframe
