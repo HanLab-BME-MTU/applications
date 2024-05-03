@@ -306,7 +306,11 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
                         curAdhBound = bwboundaries(labelAdhesion==ii,4,'noholes');
                         adhBound{ii} = curAdhBound{1}; % strongly assumes each has only one boundary
                     end
-                    validAdhState = refineFAID(validState,iFrame); %cellfun(@(x) x(iFrame),refineFAID(validState));
+                    try
+                        validAdhState = refineFAID(validState,iFrame); 
+                    catch
+                        validAdhState = cellfun(@(x) x(iFrame),refineFAID(validState));
+                    end
                     
                     varargout{iout} = adhBound(validAdhState); %table2struct(table(adhBoundary, number(validState),'VariableNames',{'adhBoundary', 'number'}));                                 
                 else
