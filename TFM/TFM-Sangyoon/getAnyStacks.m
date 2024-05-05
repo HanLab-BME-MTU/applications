@@ -77,7 +77,11 @@ if nargout>2
         end
     else
         if numel(MD.channels_)>2
-            imgStack2 = MD.channels_(iChan+1).loadImage(1:nFrames);
+            imgStack2 = zeros(MD.imSize_(1),MD.imSize_(2),nFrames);
+            for ii=1:nFrames
+                imgStack2(:,:,ii) = MD.channels_(iChan+1).loadImage(ii);
+            end
+            % imgStack2 = MD.channels_(iChan+1).loadImage(1:nFrames);
         else
             imgStack2 = [];
         end

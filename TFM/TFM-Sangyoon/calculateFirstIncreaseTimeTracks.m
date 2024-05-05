@@ -30,7 +30,7 @@ ip.addOptional('numAveragingWind',5,@isscalar)
 ip.addOptional('preDetecPeriod',60,@(x)isscalar(x)) % in second
 ip.addOptional('tInterval',1,@(x)isscalar(x))
 ip.addOptional('plotEachTrack',false,@(x)islogical(x)||isempty(x))
-ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','amp2','amp3','ampTotal2','ampTotal3'})); % collect NA tracks that ever close to cell edge
+ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','amp2','amp3','ampTotal2','ampTotal3','fret'})); % collect NA tracks that ever close to cell edge
 ip.parse(tracksNA,numAveragingWind,preDetecPeriod,tInterval,varargin{:}); %splineParamInit,preDetecParam
 slaveSource=ip.Results.slaveSource;
 useSmoothing=false;

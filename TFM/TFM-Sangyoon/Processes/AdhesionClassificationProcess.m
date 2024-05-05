@@ -44,7 +44,7 @@ classdef AdhesionClassificationProcess < DataProcessingProcess
                     assert(iProc < length(obj.owner_.processes_), 'Invalid Process # for Cell Mask Process');
                     assert(isa(obj.owner_.getProcess(iProc), 'MaskRefinementProcess'), ['Process: ' num2str(iProc) ' not a MaskRefinementProcess!']);
                     maskProc = obj.owner_.getProcess(iProc);
-                    assert(maskProc.checkChannelOutput(obj.funParams_.ChannelIndex), 'Cell Segmentation Mask Output Not found');
+                    assert(maskProc.checkChannelOutput(maskProc.funParams_.ChannelIndex), 'Cell Segmentation Mask Output Not found');
                     % iProc = obj.owner_.getProcessIndex('MaskProcess', 'askUser', false, 'nDesired', Inf);
                 else
                     iProc = obj.owner_.getProcessIndex('MaskRefinementProcess');   

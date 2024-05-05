@@ -57,52 +57,57 @@ tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
 tic
 [imgStack, ~, ~, labelFAs] = getAnyStacks(MD);
 toc
-startingFrameExtraAll = arrayfun(@(x) x.startingFrameExtra,tracksNA);
-startingFrameExtraExtraAll = arrayfun(@(x) x.startingFrameExtraExtra,tracksNA);
-intermedTrackIDs = find(startingFrameExtraExtraAll<(startingFrameExtraAll-10));
-if ~isempty(intermedTrackIDs)
-    trackInspected = tracksNA(intermedTrackIDs(1));
-    % See if amp is NaN before startingFrameExtra (after
-    % startingFrameExtraExtra)
-    if isnan(trackInspected.amp(trackInspected.startingFrameExtraExtra+1))
-        % then we need to read this amp again
-        disp('Reading image stack again to read extra time regime of amp...')
-        disp('Reading from tracks'); tic
-        tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true); toc;
-        disp('Saving the tracks...'); tic
-        numTracks=numel(tracksNA);
-        fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
-        numStr = @(trackNum) num2str(trackNum,fString);
-        trackFolderPath = [adhAnalProc.funParams_.OutputDirectory filesep 'trackIndividual'];
-        trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-        
-        parfor k=1:numTracks
-            curTrack=tracksNA(k);
-            parsave(feval(trackIndPath,k),curTrack)
-        end
-        toc
-    end
-else
-    disp('All tracks have the same or similar starting points')
-end
+% startingFrameExtraAll = arrayfun(@(x) x.startingFrameExtra,tracksNA);
+% startingFrameExtraExtraAll = arrayfun(@(x) x.startingFrameExtraExtra,tracksNA);
+% intermedTrackIDs = find(startingFrameExtraExtraAll<(startingFrameExtraAll-10));
+% if ~isempty(intermedTrackIDs)
+%     trackInspected = tracksNA(intermedTrackIDs(1));
+%     % See if amp is NaN before startingFrameExtra (after
+%     % startingFrameExtraExtra)
+%     if isnan(trackInspected.amp(trackInspected.startingFrameExtraExtra+1))
+%         % then we need to read this amp again
+%         disp('Reading image stack again to read extra time regime of amp...')
+%         disp('Reading from tracks'); tic
+%         tracksNA = readIntensityFromTracks(tracksNA,imgStack,1,'extraReadingOnly',true); toc;
+%         disp('Saving the tracks...'); tic
+%         numTracks=numel(tracksNA);
+%         fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
+%         numStr = @(trackNum) num2str(trackNum,fString);
+%         trackFolderPath = [adhAnalProc.funParams_.OutputDirectory filesep 'trackIndividual'];
+%         trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
+% 
+%         parfor k=1:numTracks
+%             curTrack=tracksNA(k);
+%             parsave(feval(trackIndPath,k),curTrack)
+%         end
+%         toc
+%     end
+% else
+%     disp('All tracks have the same or similar starting points')
+% end
 
 %% Now we have to combine this with readings from step 9 and 10
 iTheOtherProc=9; 
 theOtherReadProc=FAPack.processes_{iTheOtherProc};
-
+pTOC = theOtherReadProc.funParams_;
 if ~isempty(theOtherReadProc)
-    ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
-    tracksAmpTotal = ampObj.tracksAmpTotal;
-%     tracksAmpTotal = theOtherReadProc.loadChannelOutput(p.ChannelIndex);
-    
-    if isfield(tracksAmpTotal,'ampTotal2')
-        [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
-    end
-    if isfield(tracksAmpTotal,'amp2')
-        [tracksNA(:).amp2] = tracksAmpTotal.amp2;
-    end
-    if isfield(tracksAmpTotal,'ampTotal3')
-        [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
+    for ii=1:numel(pTOC.ProcessIndex)
+        ampObj = load(theOtherReadProc.outFilePaths_{ii,pTOC.ChannelIndex{ii},1},'tracksAmpTotal'); % the later channel has the most information.
+        tracksAmpTotal = ampObj.tracksAmpTotal;
+    %     tracksAmpTotal = theOtherReadProc.loadChannelOutput(p.ChannelIndex);
+        
+        if isfield(tracksAmpTotal,'ampTotal2')
+            [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
+        end
+        if isfield(tracksAmpTotal,'amp2')
+            [tracksNA(:).amp2] = tracksAmpTotal.amp2;
+        end
+        if isfield(tracksAmpTotal,'ampTotal3')
+            [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
+        end
+        if isfield(tracksAmpTotal,'fret')
+            [tracksNA(:).fret] = tracksAmpTotal.fret;
+        end
     end
 end
 
@@ -180,7 +185,7 @@ tifPath=[p.OutputDirectory filesep 'tif'];mkClrDir(tifPath);
 
 %% Initial force-increase time quantification! - time
 tInterval = MD.timeInterval_;
-potentialSlaves = {'forceMag','ampTotal2','ampTotal3'};
+potentialSlaves = {'forceMag','ampTotal2','ampTotal3','fret'};
 existingSlaveIDs = isfield(tracksNA,potentialSlaves);
 
 for ii=1:numel(tracksNA)

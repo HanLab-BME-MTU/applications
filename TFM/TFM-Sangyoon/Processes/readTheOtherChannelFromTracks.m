@@ -46,7 +46,45 @@ theOtherChanReadProc.setPara(p)
 % iChanMaster=p.ChannelIndex;
 iChanSlave=p.iChanSlave;
 
-%% Reading tracks from master channel
+%% Data Set up
+% Set up the output file path for master channel
+% outputFile = cell(2, numel(MD.channels_));
+% for i = [p.ChannelIndex iChanSlave]
+%     [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
+%     outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
+%     outputFile{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
+% 
+%     outFilename = [chanDirName '_Chan' num2str(i) '_ampTotal2PerNAFCFA'];
+%     outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
+% end
+% theOtherChanReadProc.setOutFilePaths(outputFile);
+nChan = cellfun(@numel,p.ChannelIndex);
+nInput = sum(nChan);
+imSize = MD.imSize_;
+
+mkClrDirWithBackup(p.OutputDirectory);
+nFrames = MD.nFrames_;
+
+%Set up and store the output directories for the window samples.
+outFilePaths =cell(numel(p.ProcessIndex),numel(MD.channels_),2);
+for i=1:numel(p.ProcessIndex)
+    iProc = p.ProcessIndex{i};
+    if isempty(iProc)
+        pString='Raw images - channel ';
+    else
+        parentOutput = MD.processes_{iProc}.getDrawableOutput;
+        iOutput = strcmp(p.OutputName{i},{parentOutput.var});
+        pString=[parentOutput(iOutput).name ' - channel '];
+    end
+    for j=1:numel(p.ChannelIndex{i})
+        iChan = p.ChannelIndex{i}(j);
+        outFilePaths{i,iChan,1} =  [p.OutputDirectory filesep pString num2str(iChan) '.mat'];
+        outFilePaths{i,iChan,2} =  [p.OutputDirectory filesep pString num2str(iChan) '-intensities.mat'];
+    end
+end
+theOtherChanReadProc.setOutFilePaths(outFilePaths);
+
+%% Loading tracks from master channel
 % Use the previous analysis folder structure
 % try
 %     iAdhProc = MD.getProcessIndex('AdhesionClassificationProcess');
@@ -60,194 +98,60 @@ iChanSlave=p.iChanSlave;
 % tracksNA.
 iAdhProc = MD.getProcessIndex('AdhesionAnalysisProcess');
 adhAnalProc = MD.getProcess(iAdhProc);
-tracksNA=adhAnalProc.loadChannelOutput(p.ChannelIndex,'output','tracksNA');
+pAdh = adhAnalProc.funParams_;
+tracksNA=adhAnalProc.loadChannelOutput(pAdh.ChannelIndex,'output','tracksNA');
+%% Code matching
+% Depending on the input we need to separate the codes for the image stack
+% to read from. 
+iPureChan = 0; %counting pure other channel(s) 
+codeSet = []; %for storing codes
+chanSet = []; %for sotring corresponding channel id
+outputNameSet = {}; %for output names
+procSet = [];
 
-% numChans = numel(p.ChannelIndex);
-% s = load(adhAnalProc.outFilePaths_{1,p.ChannelIndex},'metaTrackData');
-% metaTrackData = s.metaTrackData;
-% fString = ['%0' num2str(floor(log10(metaTrackData.numTracks))+1) '.f'];
-% numStr = @(trackNum) num2str(trackNum,fString);
-% trackIndPath = @(trackNum) [metaTrackData.trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
-% for ii=metaTrackData.numTracks:-1:1
-%     curTrackObj = load(trackIndPath(ii),'curTrack');
-%     tracksNA(ii,1) = curTrackObj.curTrack;
-%     progressText((metaTrackData.numTracks-ii)/metaTrackData.numTracks,'Loading tracksNA') % Update text
-% end
-% end    
-%% the other channel map stack - iChanSlave
-% Build the interpolated TFM matrix first and then go through each track
-% First build overall TFM images
-% We don't need to build traction map again if this one is already built
-% during force field calculation process.
+for i=1:numel(p.ProcessIndex)
+    iProc = p.ProcessIndex{i};
+    for j=1:numel(p.ChannelIndex{i})
+        iChan = p.ChannelIndex{i}(j);
+        iInput = sum(nChan(1:i-1))+j;
 
-% Go through each channel and if one is related to TFM, we skip it. It will
-% be dealt in the next process, 'ColocalizationWithTFMProcess'.
-% Find out which channel was used for TFMPackage
-% (Since it is 1 that is used for beads, I'll just check if there is
-% TFMPackage run).
-iTFMPackage = MD.getPackageIndex('TFMPackage');
-if ~isempty(iTFMPackage)
-%     curTfmPackage = MD.getPackage(iTFMPackage);
-    iForceProc = MD.getProcessIndex('ForceFieldCalculationProcess');
-    if ~isempty(iForceProc)
-        forceProc = MD.getProcess(iForceProc);
-        if forceProc.success_
-            iChanSlave=setdiff(iChanSlave,1);
+        if ~isempty(iProc)
+            procName = MD.processes_{iProc}.getName;
+            if strcmpi(procName,'Ratioing')
+                iReadingCode = 3; %fret
+                codeSet = [codeSet iReadingCode];
+                chanSet = [chanSet iChan];
+                outputNameSet = [outputNameSet p.OutputName(i)];
+                procSet = [procSet i];
+            else
+                error('Code for TFM or qFSM reading is not established yet. Unselect them from the setting.')
+            end
+            % stack2sample(:,:,iInput) = MD.processes_{iProc}.loadChannelOutput(iChan,iFrame,'output',p.OutputName{i});
+        else
+            iPureChan=iPureChan+1;
+            if iPureChan==1
+                iReadingCode=5;
+                codeSet = [codeSet iReadingCode];
+                chanSet = [chanSet iChan];
+                outputNameSet = [outputNameSet p.OutputName(i)];
+                procSet = [procSet i];
+            elseif iPureChan==2
+                iReadingCode=6;
+                codeSet = [codeSet iReadingCode];
+                chanSet = [chanSet iChan];
+                outputNameSet = [outputNameSet p.OutputName(i)];
+                procSet = [procSet i];
+            else
+                error('the current code doesn not support more than 2 channels to read. Please choose less channels in the setting')
+            end           
+            % stack2sample(:,:,iInput) = MD.channels_(iChan).loadImage(iFrame);
         end
     end
-end
-%% Data Set up
-% Set up the output file path for master channel
-outputFile = cell(2, numel(MD.channels_));
-for i = [p.ChannelIndex iChanSlave]
-    [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
-    outFilename = [chanDirName '_Chan' num2str(i) '_tracksNA'];
-    outputFile{1,i} = [p.OutputDirectory filesep outFilename '.mat'];
-
-    outFilename = [chanDirName '_Chan' num2str(i) '_ampTotal2PerNAFCFA'];
-    outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
-end
-theOtherChanReadProc.setOutFilePaths(outputFile);
-mkClrDirWithBackup(p.OutputDirectory);
-nFrames = MD.nFrames_;
+end 
 %% Slave to Master registration using PIV
 % p.doMultimodalRegistration = true;
 % p.doFAregistration = false;
-if p.doFAregistration
-%     % Find the FA locations in the master channel at t=1
-%     iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
-%     FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
-%     SDCProc=FAPackage.processes_{iSDCProc};
-% 
-%     iFAsegProc = MD.getProcessIndex('FocalAdhesionSegmentationProcess');
-%     FASegProc = MD.getProcess(iFAsegProc);
-%     maskFAs = FASegProc.loadChannelOutput(p.ChannelIndex,1);
-%     if ~isempty(SDCProc)
-%         iBeadChan = 1; % might need to be updated based on asking TFMPackage..
-%         s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
-%         T = s.T;
-%         
-%         maskFAs = imtranslate(maskFAs,T(1,2:-1:1));
-%         mainI = SDCProc.loadChannelOutput(p.ChannelIndex,1);
-%         subI = SDCProc.loadChannelOutput(p.iChanSlave,1);
-%     else
-%         mainI = MD.getChannel(p.ChannelIndex).loadImage(1);
-%         subI = MD.getChannel(p.iChanSlave).loadImage(1);
-%     end
-%     % Do the PIV from FA locations
-%     % Track beads displacement in the xy coordinate system
-%     xNA=arrayfun(@(x) x.xCoord(1),tracksNA);
-%     yNA=arrayfun(@(x) x.yCoord(1),tracksNA);
-% 
-%     maskAdhesion = refineAdhesionSegmentation(maskFAs>0,mainI,xNA,yNA);
-%     indivAdhs = regionprops(bwconncomp(maskAdhesion,4),mainI,'Centroid','Area','BoundingBox','MajorAxisLength','MeanIntensity');
-% %     lengthAll = arrayfun(@(x) x.MajorAxisLength,indivAdhs);
-%     indivSubAdhs = regionprops(bwconncomp(maskAdhesion,4),subI,'MeanIntensity');
-%     orthoLengthAll = arrayfun(@(x) max(x.BoundingBox(3:4)),indivAdhs);
-%     areaAll = arrayfun(@(x) x.Area,indivAdhs);
-%     intensityAll = arrayfun(@(x) x.MeanIntensity,indivAdhs);
-%     intensitySubAll = arrayfun(@(x) x.MeanIntensity,indivSubAdhs);
-%     maxFlowSpeed = 5;
-%     % Filter out segmentation near image boundary
-%     dispMatX = arrayfun(@(x) x.Centroid(1),indivAdhs);
-%     dispMatY = arrayfun(@(x) x.Centroid(2),indivAdhs);
-%     bwstackImg = true(size(maskFAs));
-%     bwstackImg = bwmorph(bwstackImg,'erode',maxFlowSpeed+10);
-%     
-%     [insideIdx] = maskVectors(dispMatX,dispMatY,bwstackImg); 
-% 
-%     % We go from obvious FAs that have high enough intensity and area but
-%     % exclude too large FAs
-%     idxStrongFAs = areaAll>20 & intensityAll>(mean(intensityAll)-std(intensityAll)) ...
-%         & insideIdx & intensitySubAll>(mean(intensitySubAll)-1*std(intensitySubAll)); % ...
-% %                    & orthoLengthAll<(mean(orthoLengthAll)+3*std(orthoLengthAll));
-%     
-%     numSFAs = sum(idxStrongFAs);
-%     deformAll = zeros(numSFAs,4);
-%     indexFAs = find(idxStrongFAs)';
-%     addDist = 10;
-% 
-%     pivPar = [];      % variable for settings
-%     pivData = [];     % variable for storing results
-%     [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
-%     [pivData] = pivAnalyzeImagePair(mainI,subI,pivData,pivPar);
-%     % show the FA segmentation
-%     labelAdh = bwlabel(maskAdhesion,4);
-%     % Show boundaries with only in indexFAs
-%     labelAdh2 = labelAdh.*ismember(labelAdh,indexFAs);
-%     bdryAdh = boundarymask(labelAdh2);
-%     figure, imshow(imoverlay(uint8(mainI),bdryAdh,'cyan'), []), hold on
-%     quiver(pivData.X,pivData.Y,pivData.U,pivData.V,0,'r')
-%     
-%     
-%     % Decided go from each area with variable area
-%     for ii=1:numSFAs
-%         curAdh = indivAdhs(indexFAs(ii));
-%         deformAll(ii,1:2) = curAdh.Centroid;
-%         deformAll(ii,3)=interp2(pivData.X,pivData.Y,pivData.U,curAdh.Centroid(1),curAdh.Centroid(2));
-%         deformAll(ii,4)=interp2(pivData.X,pivData.Y,pivData.V,curAdh.Centroid(1),curAdh.Centroid(2));
-%     end
-%     quiver(deformAll(:,1),deformAll(:,2),deformAll(:,3),deformAll(:,4),0,'y')
-%     
-%     % Make the transformation matrix (2d projective) out of deformAll
-%     idxNoNaN = ~isnan(deformAll(:,3));
-%     movingPoints = deformAll(idxNoNaN,1:2)+deformAll(idxNoNaN,3:4);
-%     fixedPoints = deformAll(idxNoNaN,1:2);
-%     curXform = fitgeotrans(movingPoints,fixedPoints,'nonreflectivesimilarity'); %'projective');%'affine'); %
-%     invCurXform = curXform.invert;
-%     disp('Projective transform has been found!')
-% 
-%     % Apply to the slave channel
-%     ref_obj = imref2d(size(subI));
-%     imageFileNames = MD.getImageFileNames;
-% %     newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
-%     
-%     % Overwrite the side channel
-%     if ~isempty(SDCProc)
-%         % back up
-%         backupFolder = [SDCProc.outFilePaths_{1,p.iChanSlave} ' Original']; 
-%         if ~exist(backupFolder,'dir')
-%             mkdir(backupFolder);
-%         end
-%         % Anonymous functions for reading input/output
-%         outFile=@(chan,frame) [SDCProc.outFilePaths_{1,chan} filesep imageFileNames{chan}{frame}];
-%         for ii=1:nFrames
-%             subI = SDCProc.loadChannelOutput(p.iChanSlave,ii);
-%             newSubI = imwarp(subI, curXform, 'OutputView', ref_obj);
-%             copyfile(outFile(p.iChanSlave, ii),backupFolder,'f')
-%             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
-%             
-%             if ii==1
-%                 mainI = SDCProc.loadChannelOutput(p.iChanMaster,ii);
-%                 hFig = figure;
-%                 hAx  = subplot(1,2,1);
-%                 C = imfuse(mainI,subI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
-%                 imshow(C,[],'Parent', hAx);
-%                 
-%                 title('Original result: red, ch 1, green, ch 2')
-%                 hAx2  = subplot(1,2,2);
-%                 C2 = imfuse(mainI,newSubI,'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
-%                 imshow(C2,[],'Parent', hAx2);
-%                 title('Aligned result: red, ch 1, green, adjusted ch 2')
-%             end
-%         end
-%         disp(['Channel has been overwritten in ' SDCProc.outFilePaths_{1,p.iChanSlave}])
-%     else
-%         backupFolder = [MD.getChannel(p.iChanSlave).getPath ' Original']; 
-%         if ~exist(backupFolder,'dir')
-%             mkdir(backupFolder);
-%         end
-%         % Anonymous functions for reading input/output
-%         outFile=@(chan,frame) [MD.getChannel(chan) filesep imageFileNames{chan}{frame}];
-%         for ii=1:nFrames
-%             subI = MD.getChannel(p.iChanSlave).loadImage(ii);
-%             newSubI = imwarp(subI, invCurXform, 'OutputView', ref_obj);
-%             copyfile(outFile(p.iChanSlave, ii),backupFolder)
-%             imwrite(uint16(newSubI), outFile(p.iChanSlave, ii));
-%         end
-%         disp(['Channel has been overwritten in ' MD.getChannel(chan)])
-%     end
-% elseif p.doMultimodalRegistration
+if p.doFAregistration && iPureChan==1
     % Get the images
     iFAPack = MD.getPackageIndex('FocalAdhesionPackage');
     FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
@@ -326,7 +230,7 @@ if p.doFAregistration
         imshow(C2,[],'Parent', hAx2);
         title('Aligned result: red, ch 1, green, adjusted ch 2')
 
-        iMainChan=p.ChannelIndex; iSlaveChan = p.iChanSlave;
+        iMainChan=pAdh.ChannelIndex; iSlaveChan = iPureChan;
         parfor ii=2:nFrames
             mainI = SDCProc.loadChannelOutput(iMainChan,ii);
             subI = SDCProc.loadChannelOutput(iSlaveChan,ii);
@@ -358,23 +262,36 @@ else
     FAPackage=MD.packages_{iFAPack}; iSDCProc=1;
     SDCProc=FAPackage.processes_{iSDCProc};
 end
-%% Reading
-iReadingCode=4;
-for iCurChan = iChanSlave
-    iReadingCode = iReadingCode+1;
-    [h,w]=size(MD.channels_(iCurChan).loadImage(1));
-    imgStack = zeros(h,w,nFrames);
-    
-    if ~isempty(SDCProc)
-        for ii=1:nFrames
-            imgStack(:,:,ii)=SDCProc.loadChannelOutput(iCurChan,ii);
+
+%% Image Stack building
+%iReadingCode is used in readIntensity function
+% 1: ampTotal, 
+% 2: forceMag, 
+% 3: fret, 
+% 4: flowSpeed, 
+% 5: ampTotal2 and 
+% 6: ampTotal3
+readingCodeNames ={'ampTotal','forceMag','fret','flowSpeed','ampTotal2','ampTotal3'};
+kk=0;
+for iReadingCode = codeSet
+    kk=kk+1;
+    imgStack = zeros(imSize(1),imSize(2),nFrames);
+    if iReadingCode > 4 % if it is about raw image
+        if ~isempty(SDCProc)
+            for ii=1:nFrames
+                imgStack(:,:,ii)=SDCProc.loadChannelOutput(chanSet(kk),ii);
+            end
+        else
+            for ii=1:nFrames
+                imgStack(:,:,ii)=MD.channels_(chanSet(kk)).loadImage(ii); 
+            end
         end
     else
         for ii=1:nFrames
-            imgStack(:,:,ii)=MD.channels_(iCurChan).loadImage(ii); 
-        end
+            imgStack(:,:,ii) = MD.processes_{iProc}.loadChannelOutput(chanSet(kk),ii,'output',outputNameSet{i});
+        end        
     end
-    %% Read force from imgStack
+    %% Read signal from imgStack
     % get the intensity
     disp('Reading the other channel...')
     tic
@@ -382,7 +299,7 @@ for iCurChan = iChanSlave
         fieldsAll = fieldnames(tracksNA);
         unnecFields = setdiff(fieldsAll,{'xCoord','yCoord','startingFrameExtraExtra',...
             'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
-            'endingFrame','amp','sigma'});
+            'endingFrame','amp','sigma','state','FAPixelList'});
         essentialTracks = rmfield(tracksNA,unnecFields);
         % Trying background subtraction here
         disp('Performing smart background subtraction ...')
@@ -410,31 +327,35 @@ for iCurChan = iChanSlave
         toc
         
         addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,iReadingCode,'imgStackBS',imgStackBS); % 5 means ampTotal2 from the other channel
+        intensitiesInNAs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==2)),tracksNA,addedTracksNA);
+        intensitiesInFCs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==3)),tracksNA,addedTracksNA);
+        intensitiesInFAs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==4)),tracksNA,addedTracksNA);
+        intensityGroup={intensitiesInNAs, intensitiesInFCs, intensitiesInFAs};
+    
+        amplitudeInNAs = arrayfun(@(x,y) nanmean(y.amp2(x.state==2)),tracksNA,addedTracksNA);
+        amplitudeInFCs = arrayfun(@(x,y) nanmean(y.amp2(x.state==3)),tracksNA,addedTracksNA);
+        amplitudeInFAs = arrayfun(@(x,y) nanmean(y.amp2(x.state==4)),tracksNA,addedTracksNA);
+        amplitudeGroup={amplitudeInNAs, amplitudeInFCs, amplitudeInFAs};
+        save(outFilePaths{procSet(kk),chanSet(kk), 2},'intensityGroup','amplitudeGroup');
     else
-        addedTracksNA = readIntensityFromTracks(addedTracksNA,imgStack,iReadingCode); % 6 means ampTotal3 from the other channel
+        addedTracksNA = readIntensityFromTracks(essentialTracks,imgStack,iReadingCode); % 6 means ampTotal3 from the other channel amplitudeInNAs = arrayfun(@(x,y) nanmean(y.amp2(x.state==2)),tracksNA,addedTracksNA);
+        intensitiesInNAs = arrayfun(@(x) nanmean(x.(readingCodeNames{iReadingCode})(x.state==2)),addedTracksNA);
+        intensitiesInFCs = arrayfun(@(x) nanmean(x.(readingCodeNames{iReadingCode})(x.state==3)),addedTracksNA);
+        intensitiesInFAs = arrayfun(@(x) nanmean(x.(readingCodeNames{iReadingCode})(x.state==4)),addedTracksNA);
+        intensityGroup={intensitiesInNAs, intensitiesInFCs, intensitiesInFAs};
+        save(outFilePaths{procSet(kk),chanSet(kk), 2},'intensityGroup');
     end
     tracksAmpTotal = rmfield(addedTracksNA,{'xCoord','yCoord','startingFrameExtraExtra',...
     'startingFrameExtra','startingFrame','endingFrameExtraExtra','endingFrameExtra',...
     'endingFrame','amp','sigma'});
     toc
     %% Add report of mean intensity of the other channel per status
-%     indNAs = arrayfun(@(x) sum(x.state(x.startingFrameExtra:x.endingFrameExtra)==2)...
-%         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
-%     indFCs = arrayfun(@(x) sum(x.state(x.startingFrameExtra:x.endingFrameExtra)==3)...
-%         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
-%     indFAs = arrayfun(@(x) sum(x.state(x.startingFrameExtra:x.endingFrameExtra)==4)...
-%         /(x.endingFrameExtra-x.startingFrameExtra+1)>0.9, tracksNA);
-    intensitiesInNAs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==2)),tracksNA,addedTracksNA);
-    intensitiesInFCs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==3)),tracksNA,addedTracksNA);
-    intensitiesInFAs = arrayfun(@(x,y) nanmean(y.ampTotal2(x.state==4)),tracksNA,addedTracksNA);
-    intensityGroup={intensitiesInNAs, intensitiesInFCs, intensitiesInFAs};
-%     save(outputFile{2,iChanSlave},'intensityGroup');
-
-    amplitudeInNAs = arrayfun(@(x,y) nanmean(y.amp2(x.state==2)),tracksNA,addedTracksNA);
-    amplitudeInFCs = arrayfun(@(x,y) nanmean(y.amp2(x.state==3)),tracksNA,addedTracksNA);
-    amplitudeInFAs = arrayfun(@(x,y) nanmean(y.amp2(x.state==4)),tracksNA,addedTracksNA);
-    amplitudeGroup={amplitudeInNAs, amplitudeInFCs, amplitudeInFAs};
-    save(outputFile{2,iChanSlave},'intensityGroup','amplitudeGroup');
+    disp('Saving...')
+    try
+        save(outFilePaths{procSet(kk),chanSet(kk), 1},'tracksAmpTotal');
+    catch
+        save(outFilePaths{procSet(kk),chanSet(kk), 1},'tracksAmpTotal','-v7.3');
+    end
 end
 %% protrusion/retraction information - most of these are now done in analyzeAdhesionsMaturation
 % time after protrusion onset (negative value if retraction, based
@@ -442,12 +363,7 @@ end
 % First I have to quantify when the protrusion and retraction onset take
 % place.
 
-disp('Saving...')
-try
-    save(outputFile{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
-catch
-    save(outputFile{1,p.ChannelIndex},'tracksAmpTotal','-v7.3');
-end
+
 disp('Done!')
 end
 %

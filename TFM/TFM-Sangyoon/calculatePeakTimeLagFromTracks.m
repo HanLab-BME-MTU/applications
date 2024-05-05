@@ -16,7 +16,7 @@ ip =inputParser;
 ip.addRequired('tracksNA',@isstruct)
 ip.addOptional('splineParam',0.1,@isscalar)
 ip.addOptional('tInterval',1,@(x)isscalar(x))
-ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','ampTotal2','ampTotal3'})); % collect NA tracks that ever close to cell edge
+ip.addParamValue('slaveSource','forceMag',@(x)ismember(x,{'forceMag','ampTotal2','ampTotal3','fret'})); % collect NA tracks that ever close to cell edge
 ip.parse(tracksNA,splineParam,tInterval,varargin{:});
 slaveSource=ip.Results.slaveSource;
 

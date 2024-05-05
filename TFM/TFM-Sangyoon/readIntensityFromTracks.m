@@ -1,9 +1,14 @@
 function tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute, varargin)
 % tracksNA = readIntensityFromTracks(tracksNA,imgStack, attribute) records
-% pixel intensity from imgStack for entire track, even after ANA state in the last x,y
-% position, and store it to attribute in tracksNA (1 means ampTotal, 2
-% means forceMag, 3 for fret, 4 for flowSpeed, 5 for ampTotal2 and 6 for
-% ampTotal3) assumes that tracks reflects coordinates from
+% pixel intensity from imgStack for entire track, even after ANA state in
+% the last x,y position, and store it to attribute in tracksNA (
+% 1: ampTotal, 
+% 2: forceMag, 
+% 3: fret, 
+% 4: flowSpeed, 
+% 5: ampTotal2 and 
+% 6: ampTotal3
+% ) assumes that tracks reflects coordinates from
 % stage-drift-corrected images. imgStack is also from SDC output.
 % Set 'reTrack' to be true if you didn't retrack using paxillin image
 % stack and want to read values from other stacks.
@@ -747,20 +752,25 @@ if ~extraReadingOnly
                 end
             end
         elseif attribute==3 || attribute==4 %This time it uses FA area
-            startFrame = curTrack.startingFrame;
-            endFrame = curTrack.endingFrame;
+            startFrame = curTrack.startingFrameExtraExtra;
+            endFrame = curTrack.endingFrameExtraExtra;
             frameRange = startFrame:endFrame;
+            if attribute==3
+                curTrack.fret = NaN(1,numFrames);
+            else
+                curTrack.flowSpeed = NaN(1,numFrames);
+            end
             for ii=frameRange
                 curImg = imgStack(:,:,ii);
                 if attribute==3
                     curImg(curImg==0)=NaN; %assuming FA value
                 end
     %             if strcmp(curTrack.state(ii),'FA') || strcmp(curTrack.state(ii),'FC') % this is FA
-                if curTrack.state(ii)==4 || curTrack.state(ii)==3 %'FA','FC') % this is FA
-                    pixelList=curTrack.FApixelList{ii};
-                    pixelIdxList = sub2ind(size(curImg),pixelList(:,2),pixelList(:,1));
-                    curAmpTotal = curImg(pixelIdxList);
-                else
+                % if curTrack.state(ii)==4 || curTrack.state(ii)==3 %'FA','FC') % this is FA
+                %     pixelList=curTrack.FApixelList{ii};
+                %     pixelIdxList = sub2ind(size(curImg),pixelList(:,2),pixelList(:,1));
+                %     curAmpTotal = curImg(pixelIdxList);
+                % else
                     x = curTrack.xCoord(ii);
                     y = curTrack.yCoord(ii);
                     xi = round(x);
@@ -768,7 +778,7 @@ if ~extraReadingOnly
                     xRange = max(1,xi-halfWidth):min(xi+halfWidth,size(curImg,2));
                     yRange = max(1,yi-halfHeight):min(yi+halfHeight,size(curImg,1));
                     curAmpTotal = curImg(yRange,xRange);
-                end
+                % end
                 if attribute==3
                     curTrack.fret(ii) = nanmean(curAmpTotal(:));
                 elseif attribute==4

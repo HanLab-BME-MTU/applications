@@ -72,12 +72,32 @@ classdef TheOtherChannelReadingProcess < DataProcessingProcess
                @(x) all(owner.checkChanNum(x)));
             ip.addParameter('doFAregistration', true, @islogical);
             ip.parse(owner,varargin{:})
+            outputDir=ip.Results.outputDir;
             
             % Set default parameters
-            funParams.OutputDirectory = [ip.Results.outputDir filesep 'TheOtherChannelReading'];
-            funParams.ChannelIndex = ip.Results.ChannelIndex;
+            funParams.OutputDirectory = [outputDir filesep 'TheOtherChannelReading'];
+            % funParams.ChannelIndex = ip.Results.ChannelIndex;
             funParams.iChanSlave = ip.Results.iChanSlave;
             funParams.doFAregistration = ip.Results.doFAregistration;
+
+            % Set default parameters
+            funParams.ChannelIndex = []; %1:numel(owner.channels_);%Default is to sample no channels
+            funParams.ProcessIndex = [];%Default is to use raw images
+            funParams.SegProcessIndex = [];%Default is to use masks which were used in windowing.
+            funParams.MaskChannelIndex = [];%Default is to use channel which was used for windowing.
+            funParams.OutputName = '';%Default is to use raw images
+            funParams.BatchMode = false;
+        end
+
+        function samplableInput = getSamplableInput()
+            % List process output that can be sampled
+            processNames = horzcat('Raw images','DoubleProcessingProcess',...
+                repmat({'KineticAnalysisProcess'},1,3),repmat({'FlowAnalysisProcess'},1,2)...
+                ,'ForceFieldCalculationProcess');
+            samplableOutput = {'','','netMap','polyMap','depolyMap','speedMap',...
+                'protSpeedMap','tMapUnshifted'};
+            samplableInput=cell2struct(vertcat(processNames,samplableOutput),...
+                {'processName','samplableOutput'});  
         end
         
         function h = GUI()

@@ -700,6 +700,9 @@ else
         % groups with smaller number (especially indexG2)
         indexAll={indexG1, indexG2, indexG3, indexG4, indexG5, indexG6, indexG7, indexG8, indexG9};
         meanSampleNum = round(median(cellfun(@numel,indexAll))); %mean([numel(indexG1) numel(indexG2) numel(indexG3) numel(indexG5)]));
+        if meanSampleNum==0 % in case there are many classes with zero samples
+            meanSampleNum = round(mean(cellfun(@numel,indexAll)));
+        end
         for ii=1:9
             for jj=ii+1:9
                 indCommon = intersect(indexAll{ii},indexAll{jj});
