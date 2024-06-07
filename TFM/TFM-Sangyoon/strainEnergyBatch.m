@@ -463,6 +463,7 @@ end
 if isCellSeg
     try
         totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellPeri_Group,'unif',false);
+        boxPlotCellArray(totalDispCellPeri_CellArray,nameList,1,false,true)
     catch
         totalDispCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellPeri_Group,'unif',false);
     end
@@ -485,6 +486,7 @@ end
 if isCellSeg
     try
         totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalDisp_CellInside_Group,'unif',false);
+        boxPlotCellArray(totalDispCellInside_CellArray,nameList,1,false,true)
     catch 
         totalDispCellInside_CellArray = cellfun(@(x) cell2mat(x),totalDisp_CellInside_Group,'unif',false);
     end
@@ -579,6 +581,7 @@ end
 if isCellSeg
     try
         totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellPeri_Group,'unif',false);
+        boxPlotCellArray(totForceCellPeri_CellArray,nameList,1,false,true)
     catch
         totForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellPeri_Group,'unif',false);
     end
@@ -601,6 +604,7 @@ end
 if isCellSeg
     try
         totForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),totalForce_CellInside_Group,'unif',false);
+        boxPlotCellArray(totForceCellInside_CellArray,nameList,1,false,true)
     catch
         totForceCellInside_CellArray = cellfun(@(x) cell2mat(x),totalForce_CellInside_Group,'unif',false);
     end
@@ -657,6 +661,7 @@ end
 if isCellSeg
     try
         avgForceCellPeri_CellArray = cellfun(@(x) cell2mat(x'),avgForce_CellPeri_Group,'unif',false);
+        boxPlotCellArray(avgForceCellPeri_CellArray,nameList,1,false,true)
     catch
         avgForceCellPeri_CellArray = cellfun(@(x) cell2mat(x),avgForce_CellPeri_Group,'unif',false);
     end
@@ -679,6 +684,7 @@ end
 if isCellSeg
     try
         avgForceCellInside_CellArray = cellfun(@(x) cell2mat(x'),avgForce_CellInside_Group,'unif',false);
+        boxPlotCellArray(avgForceCellInside_CellArray,nameList,1,false,true)
     catch
         avgForceCellInside_CellArray = cellfun(@(x) cell2mat(x),avgForce_CellInside_Group,'unif',false);
     end

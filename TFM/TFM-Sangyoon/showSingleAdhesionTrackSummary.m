@@ -4,6 +4,7 @@ function [h2, timeLagMasterAgainstForce,timeLagMasterAgainstMainSlave] = ...
 % h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,IDtoInspect, gPath,additionalName)
 % This function shows big picture, montage, and time series of fluorescence
 % intensity and traction.
+% Instead of traction, fret activity map (fretMap can be entered as tMap. 
 % Sangyoon Han, Jun 2015
 imgWidth = size(imgMap,2);
 imgHeight = size(imgMap,1);
@@ -13,27 +14,54 @@ tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 ampReSampled=false;
 
-if ~isfield(curTrack,'amp')
-    curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false,'imgStackBS',imgStackBS);
-    ampReSampled=true;
-end
-
-if (~isfield(curTrack,'forceMag') && ~isempty(tMap)) || (isfield(curTrack,'forceMag') && sum(~isnan(curTrack.forceMag)) < sum(~isnan(curTrack.amp)))
-    if ~ampReSampled
-        curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+reReadingEverything = false;
+if reReadingEverything
+    if ~isfield(curTrack,'amp')
+        curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false,'imgStackBS',imgStackBS);
         ampReSampled=true;
     end
-    curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
-end
-if (~isempty(imgMap2) && ~isfield(curTrack,'amp2')) || (isfield(curTrack,'amp2') && sum(~isnan(curTrack.amp2)) < sum(~isnan(curTrack.amp)))
-    if ~ampReSampled
-        curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+    
+    if (~isfield(curTrack,'forceMag') && ~isempty(tMap)) || (isfield(curTrack,'forceMag') && sum(~isnan(curTrack.forceMag)) < sum(~isnan(curTrack.amp)))
+        if ~ampReSampled
+            curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+            ampReSampled=true;
+        end
+        curTrack=readIntensityFromTracks(curTrack,tMap,2,'extraLength',120,'movieData',MD);
     end
-    curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD,'imgStackBS',imgStackBS2);
-%     if length(curTrack.amp) ~= length(curTrack.amp2)
-%     end
-end   
-
+    
+    if (~isfield(curTrack,'fret') && ~isempty(tMap)) || ...
+            (isfield(curTrack,'fret') && sum(~isnan(curTrack.fret)) < sum(~isnan(curTrack.amp)))
+        if ~ampReSampled
+            curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+            ampReSampled=true;
+        end
+        curTrack=readIntensityFromTracks(curTrack,tMap,3,'extraLength',120,'movieData',MD);
+    end
+    
+    if (~isempty(imgMap2) && ~isfield(curTrack,'amp2')) || (isfield(curTrack,'amp2') && ...
+            sum(~isnan(curTrack.amp2)) < sum(~isnan(curTrack.amp)))
+        if ~ampReSampled
+            curTrack=readIntensityFromTracks(curTrack,imgMap,1,'extraLength',120,'movieData',MD,'reTrack',false);
+        end
+        if nargin <10
+            if ~isempty(imgMap2)
+                imgClass = class(imgMap2);
+                imgStackBS2=zeros(size(imgMap2));
+                for ii=1:size(imgMap2,3)
+                    curImg=imgMap2(:,:,ii);
+                    imageBackground = filterGauss2D(curImg,30);
+                    %calculate noise-filtered and background-subtracted image
+                    imgStackBS2(:,:,ii) = curImg - cast(imageBackground,imgClass);
+                end
+            end
+            curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD,'imgStackBS',imgStackBS2);
+        else
+            curTrack=readIntensityFromTracks(curTrack,imgMap2,5,'extraLength',120,'movieData',MD,'imgStackBS',imgStackBS2);
+        end
+    %     if length(curTrack.amp) ~= length(curTrack.amp2)
+    %     end
+    end   
+end
 curEndFrame=curTrack.endingFrameExtra;
 curStartFrame = curTrack.startingFrameExtra;
 curEndFrameEE=curTrack.endingFrameExtraExtra;
@@ -41,6 +69,7 @@ curStartFrameEE = curTrack.startingFrameExtraExtra; %max(1,curStartFrame-50); %T
 curFrameRange= curStartFrameEE:curEndFrameEE;
 chosenStartFrame = curStartFrameEE;
 chosenEndFrame = curEndFrameEE;
+    
 
 numAvgWindows=0; % Chose to use no smoothing
 preDetecFactor=60; %sec; Changed.
@@ -184,15 +213,21 @@ txtAx3= text(bRightBig-40, bBottomBig+12,[num2str(midEndFrameAdjusted*tInterval,
 set(txtAx3,'horizontalAlignment','right')
 set(txtAx3,'position',[bRightBig-mgScale,bBottomBig+12])
 set(findobj(ax3,'Type','text'),'FontUnits',genFontUnit,'FontSize',genFontSize)
-if isfield(curTrack,'forceMag')
+if isfield(curTrack,'forceMag') || isfield(curTrack,'fret')
+    if isfield(curTrack, 'fret') 
+        ff = 'fret';
+    else
+        ff = 'forceMag';
+    end
     % ax4: initial point with traction
     %     tMap2 = tMap(:,:,[chosenStartFrame,peakFrame,chosenEndFrame]);
     tMap2 = tMap(:,:,[midStartFrame,middleFrame,midEndFrame]);
     tMapROI = tMap2(bBottomBig:bTopBig,bLeftBig:bRightBig,:);
     % tmax= min(tCropMax*3,max(tMapROI(:))*0.9);
     % tmin= tCropMin*0.1;
-    tmax= max(tMapROI(:))*0.9;
-    tmin= min(tMapROI(:));
+    maskROI = tMapROI>0;
+    tmax= quantile(tMapROI(maskROI),0.9); % max(tMapROI(:))*0.9;
+    tmin= min(tMapROI(maskROI));
 
     ax4=subplot('Position',[marginX, 250/figHeight+marginY, 175/figWidth,175/figHeight]);
     imshow(tMap2(:,:,1),[tmin tmax]), hold on
@@ -239,10 +274,11 @@ if isfield(curTrack,'forceMag')
     % Fix the individual montage size and determine the number
     % tCropMax = max(curTrack.forceMag(chosenStartFrame:chosenEndFrame))*1.1;
     % tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
-    tCropMax = max(cropTmap(:))*0.9;
-    tCropMin = min(cropTmap(:));
+    maskCropROI = cropTmap>0;
+    tCropMax= quantile(cropTmap(maskCropROI),0.95); % max(cropTmap(:))*0.9;
+    tCropMin = min(cropTmap(maskCropROI));
     % find a traction peak
-    [~,peakFrameForce] = max(curTrack.forceMag(chosenFRange));
+    [~,peakFrameForce] = max(curTrack.(ff)(chosenFRange));
     peakFrameForce = chosenFRange(peakFrameForce);
     if isfield(curTrack,'forcePeakness') && curTrack.forcePeakness
         peakFrameForce = curTrack.forcePeakFrame;
@@ -331,7 +367,7 @@ for ii= indiceRange
 %         plot(curTrack.xCoord(chosenStartFrame+ii-1)-bLeft+(iCol)*monImgW+1,curTrack.yCoord(chosenStartFrame+ii-1)-bBottom+q*monImgH+1,'ro','MarkerSize',8, 'LineWidth', 0.5)
 end
 
-if isfield(curTrack, 'forceMag')
+if isfield(curTrack, 'forceMag') || isfield(curTrack, 'fret')
     ax7=subplot('Position',[marginX, 200/figHeight, 540/figWidth-marginX,50/figHeight]);
     % tCropMax = max(curTrack.forceMag(chosenStartFrame:chosenEndFrame))*1.1;
     % tCropMin = min(curTrack.forceMag(chosenStartFrame:chosenEndFrame));
@@ -404,24 +440,31 @@ end
 xlabel('Time (s)','FontUnits',genFontUnit,'FontSize',genFontSize); ylabel('Fluorescence intensity (a.u.)','FontUnits',genFontUnit,'FontSize',genFontSize)
 set(ax8,'FontUnits',genFontUnit,'FontSize',genFontSize)
 % force time series
-if isfield(curTrack, 'forceMag')
+if isfield(curTrack, 'forceMag') || isfield(curTrack, 'fret')
+    if isfield(curTrack, 'fret') 
+        ff = 'fret';
+    else
+        ff = 'forceMag';
+    end
+
     if ~isempty(imgMap2)
         ax9=axes('Position',[4*marginX+(3*175+60+30)/figWidth, (200+80+70)/figHeight, 155/figWidth,80/figHeight]);
     else
         ax9=axes('Position',[250/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
     end
-    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
-    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack1.forceMag(curStartFrameEE:curEndFrameEE),'k'), hold on
-    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.forceMag(curStartFrame:curEndFrame),'r')
-    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack1.forceMag(curStartFrame:curEndFrame),'r')
-    if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && frameFTI<=length(curTrack.forceMag)
-        plot((frameFTI-curStartFrameEE)*tInterval,curTrack.forceMag(frameFTI),'o','MarkerFaceColor','r','MarkerEdgeColor','w')
-        text((frameFTI-curStartFrameEE)*tInterval+12,curTrack.forceMag(frameFTI)+5,[num2str((frameFTI-curStartFrameEE)*tInterval) ' s'])
+    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack.(ff)(curStartFrameEE:curEndFrameEE),'k'), hold on
+    plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curTrack1.(ff)(curStartFrameEE:curEndFrameEE),'k'), hold on
+    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack.(ff)(curStartFrame:curEndFrame),'r')
+    plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curTrack1.(ff)(curStartFrame:curEndFrame),'r')
+    if isfield(curTrack1,'forceTransmitting') && curTrack1.forceTransmitting && frameFTI<=length(curTrack.(ff))
+        plot((frameFTI-curStartFrameEE)*tInterval,curTrack.(ff)(frameFTI),'o','MarkerFaceColor','r','MarkerEdgeColor','w')
+        text((frameFTI-curStartFrameEE)*tInterval+12,curTrack.(ff)(frameFTI)+5,[num2str((frameFTI-curStartFrameEE)*tInterval) ' s'])
     end
     if isfield(curTrack1,'bkgMaxSlave') && ~isempty(curTrack1.bkgMaxSlave)
         line([0 (curEndFrameEE-curStartFrameEE)*tInterval],[curTrack1.bkgMaxSlave curTrack1.bkgMaxSlave],'LineStyle',':','Color','k')
     end
-    xlabel('Time (s)'); ylabel('Traction (Pa)')
+    xlabel('Time (s)'); 
+    ylabel(ff)
     set(ax9,'FontUnits',genFontUnit,'FontSize',genFontSize)
 
     % Cross variance plot
@@ -430,7 +473,7 @@ if isfield(curTrack, 'forceMag')
     else
         ax12=axes('Position',[450/figWidth, 50/figHeight, 150/figWidth-marginX,130/figHeight]);
     end
-    [curBcc, bgBcc] = crossVariance(curTrack.amp,curTrack.forceMag,9);
+    [curBcc, bgBcc] = crossVariance(curTrack.amp,curTrack.(ff),9);
 
     plot((curStartFrameEE-curStartFrameEE:curEndFrameEE-curStartFrameEE)*tInterval,curBcc(curStartFrameEE:curEndFrameEE),'k'), hold on
     plot((curStartFrame-curStartFrameEE:curEndFrame-curStartFrameEE)*tInterval,curBcc(curStartFrame:curEndFrame),'g')
@@ -474,13 +517,13 @@ title(['Track ' num2str(IDtoInspect)])
 %     plot((curTrack.forcePeakFrame-curStartFrameEE)*tInterval,sCurForce(curTrack.forcePeakFrame-curStartFrameEE+1),'o',...
 %         'MarkerFaceColor','w','MarkerEdgeColor',[229/255 84/255 84/255])
 % end
-if isfield(curTrack, 'forceMag')
+if isfield(curTrack, 'forceMag') || isfield(curTrack, 'fret')
     axes(ax9)
     title(['\Deltat_{force-F.I.} = ' num2str(-curTrack1.firstIncreseTimeIntAgainstForce,'% 10.1f')])
 
     % force map colorbar
     ax10=axes('Position',[3*marginX+3*175/figWidth, 260/figHeight+marginY, 60/figWidth,145/figHeight]);
-    caxis([tmin tmax]); axis off
+    clim([tmin tmax]); axis off
     %     if isempty(hc)
     axis tight
     hcb1 = colorbar('West');
@@ -492,7 +535,7 @@ if isfield(curTrack, 'forceMag')
     % force colorbar mini for montage
     ax11=axes('Position',[540/figWidth, 203/figHeight, 60/figWidth, 50/figHeight]);
     axis tight
-    caxis([tCropMin, tCropMax]), axis off
+    clim([tCropMin, tCropMax]), axis off
     %     if isempty(hc)
     hcb2 = colorbar('West');
     hcb2.Position = [ax11.Position(1)+10/figWidth ax11.Position(2)*1.01 ax11.Position(3)*0.15 ax11.Position(4)*0.9];

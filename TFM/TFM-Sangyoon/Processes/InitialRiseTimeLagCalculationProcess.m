@@ -75,22 +75,25 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                 theOtherReadProc=FAPack.processes_{iTheOtherProc};
                 forceReadProc=FAPack.processes_{iForceRead};
 
+                pTOC = theOtherReadProc.funParams_;
                 if ~isempty(theOtherReadProc)
-                    ampObj = load(theOtherReadProc.outFilePaths_{1,p.ChannelIndex},'tracksAmpTotal'); % the later channel has the most information.
-                    tracksAmpTotal = ampObj.tracksAmpTotal;
-                    if ~isempty(idSelected)
-                        tracksAmpTotal = tracksAmpTotal(idSelected);
-                    end
-                %     tracksAmpTotal = theOtherReadProc.loadChannelOutput(p.ChannelIndex);
-
-                    if isfield(tracksAmpTotal,'ampTotal2')
-                        [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
-                    end
-                    if isfield(tracksAmpTotal,'amp2')
-                        [tracksNA(:).amp2] = tracksAmpTotal.amp2;
-                    end
-                    if isfield(tracksAmpTotal,'ampTotal3')
-                        [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
+                    for ii=1:numel(pTOC.ProcessIndex)
+                        ampObj = load(theOtherReadProc.outFilePaths_{ii,pTOC.ChannelIndex{ii},1},'tracksAmpTotal'); % the later channel has the most information.
+                        tracksAmpTotal = ampObj.tracksAmpTotal;
+                    %     tracksAmpTotal = theOtherReadProc.loadChannelOutput(p.ChannelIndex);
+                        
+                        if isfield(tracksAmpTotal,'ampTotal2')
+                            [tracksNA(:).ampTotal2] = tracksAmpTotal.ampTotal2;
+                        end
+                        if isfield(tracksAmpTotal,'amp2')
+                            [tracksNA(:).amp2] = tracksAmpTotal.amp2;
+                        end
+                        if isfield(tracksAmpTotal,'ampTotal3')
+                            [tracksNA(:).ampTotal3] = tracksAmpTotal.ampTotal3;
+                        end
+                        if isfield(tracksAmpTotal,'fret')
+                            [tracksNA(:).fret] = tracksAmpTotal.fret;
+                        end
                     end
                 end
 

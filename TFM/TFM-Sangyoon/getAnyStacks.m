@@ -1,4 +1,4 @@
-function [imgStack, tMap, imgStack2, labelAdhesion] = getAnyStacks(MD)
+function [imgStack, tMap, imgStack2, labelAdhesion, fretMap] = getAnyStacks(MD)
 % Load FA package
 FAPack=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
 % Load classification process
@@ -103,5 +103,14 @@ for ii=1:nFrames
     maskAdhesion = imread(strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'));
     labelAdhesion(:,:,ii) = bwlabel(maskAdhesion,4);
 end
+%% fretMap
+iProc = MD.getProcessIndex('DoubleProcessingProcess',1,0);
+p = MD.processes_{iProc}.funParams_;
 
+iChan = p.ChannelIndex;
+
+fretMap = zeros(size(imgStack,1),size(imgStack,2),size(imgStack,3));
+for ii=1:nFrames
+    fretMap(:,:,ii) = MD.processes_{iProc}.loadChannelOutput(iChan(1),ii);
+end  
 
