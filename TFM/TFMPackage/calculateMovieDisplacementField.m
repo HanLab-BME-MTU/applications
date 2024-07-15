@@ -417,7 +417,7 @@ for j= firstFrame:nFrames
         nextPow2corLeng=nextpow2(p.minCorLength);
         
         sizeArray=2.^([nextPow2max nextPow2max nextPow2max nextPow2max]);
-        stepArray=2.^([nextPow2corLeng nextPow2corLeng:-1:nextPow2corLeng-2]);
+        stepArray=2.^([nextPow2corLeng nextPow2corLeng nextPow2corLeng nextPow2corLeng-1]); % chaned from going down to -2
         pivPar.anNpasses = length(stepArray);
         pivPar.iaSizeX = sizeArray;     % size of interrogation area in X 
         pivPar.iaStepX = stepArray;     % grid spacing of velocity vectors in X
