@@ -26,7 +26,7 @@ figure, imshow(refimg2,[])
 
 % bead images
 %% displacement field
-E=8000;  %Young's modulus, unit: Pa
+E=8000;  %Youngs modulus, unit: Pa
 forceType = 'groupForce';
 
 gridSpacing = 1;
