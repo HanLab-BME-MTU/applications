@@ -162,12 +162,20 @@ for i=1:numel(p.ChannelIndex)
             flow=arrayfun(@(i)M(M(:,1,i)~=0 & M(:,3,i)~=0,:,i),1:size(M,3),'Unif',false);
         case 'FlowTrackingProcess'
             flow = flowProc.loadChannelOutput(iChan,'output','flow');
-            flow=flow(1:end-1);
+            flow=flow(1:end-flowProc.funParams_.timeWindow+1);
             
             % Remove NaNs 
             for j=find(~cellfun(@isempty,flow))
                 flow{j}=flow{j}(~isnan(flow{j}(:,3)),:);
-            end           
+            end       
+
+            if flowProc.funParams_.timeWindow>2
+                nFlows = numel(flow);
+                % copy the last entry to the rest of the frames
+                for ii=1:nFrames-nFlows
+                    flow(nFlows+ii)=flow(nFlows);
+                end
+            end
     end
     
     % Drift correction
@@ -215,7 +223,14 @@ for i=1:numel(p.ChannelIndex)
 
     % Create protrusive flow speed (with sign)
     if ishandle(wtBar), waitbar(.75,wtBar,['Generating protrusive speed maps for channel ' num2str(iChan)']); end
-    protSpeedMap = createProtrusiveSpeedMaps(Md,mask,movieData.pixelSize_,movieData.timeInterval_,p.gridSize); 
+    % see if there are multi segmentations in the mask
+    props = regionprops(mask(:,:,1),'Area');
+    if numel(props)>2
+        disp('there are multiple segmentations in the mask. Cannot proceed with protrusion analysis. Assigning errormap to protrusive map')
+        protSpeedMap = E;
+    else
+        protSpeedMap = createProtrusiveSpeedMaps(Md,mask,movieData.pixelSize_,movieData.timeInterval_,p.gridSize); 
+    end
         
     % Fill output structure for each frame and save it
     disp('Results will be saved under:')

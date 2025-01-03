@@ -450,10 +450,10 @@ for j= firstFrame:nFrames
             displField(j).pos=[pivData.X(validV), pivData.Y(validV)];
             displField(j).vec=[pivData.U(validV)+residualT(j,2), pivData.V(validV)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
         else
-            v2 = [pivData.U, pivData.V];
+            v2 = [pivData.U(:), pivData.V(:)];
             if j== firstFrame
-                cumulativeV_forV = zeros(size(pivData.U,1),2);
-                cumulativeV_forBeads = zeros(size(pivData.U,1),2);
+                cumulativeV_forV = zeros(size(pivData.U,1)*size(pivData.U,2),2);
+                cumulativeV_forBeads = zeros(size(pivData.U,1)*size(pivData.U,2),2);
             else
                 cumulativeV_forV = cumulativeV_forV+v2;
                 v2(~validV,1)=0; v2(~validV,2)=0;
