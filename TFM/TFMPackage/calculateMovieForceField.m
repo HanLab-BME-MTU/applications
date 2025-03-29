@@ -219,7 +219,7 @@ if min(min(maskArray(:,:,1))) == 0
             T = s.T;
             meanYShift = round(T(1,1));
             meanXShift = round(T(1,2));
-            firstMask = circshift(tempMask,[meanYShift meanXShift]);
+            firstMask = circshift(firstMask,[meanYShift meanXShift]);
             % Now I blacked out erroneously circularaly shifted bead image
             % portion - SH 20171008
             if meanYShift>=0 %shifted downward
