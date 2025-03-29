@@ -535,6 +535,7 @@ elseif strcmpi(p.method,'FEM') % FEMTFM
     if ishandle(wtBar)
         waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
     end
+    %add p.useBL2
     if p.useLcurve
         [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
             reg_FEM_TFM(grid_mat, displField, i, ...

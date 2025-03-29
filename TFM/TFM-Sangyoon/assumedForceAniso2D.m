@@ -45,7 +45,7 @@ if j==1
             % cutting out outside of area
             force = wx*aniso2DMask(xshift, yshift, adh_ry, adh_rx, theta, x, y).*force;
         case 'pointForce'
-            force=wx*(x==xshift || y==yshift);
+            force=wx*(x==xshift | y==yshift);
         case 'smoothForce'
             force = anisoGaussian2DMatrix(xshift, yshift, stdy, stdx, theta, x, y);
             % cutting out outside of area
@@ -58,7 +58,7 @@ elseif j==2
             % cutting out outside of area
             force = wy*aniso2DMask(xshift, yshift, adh_ry, adh_rx, theta, x, y).*force;
         case 'pointForce'
-            force=wy*(x==xshift || y==yshift);
+            force=wy*(x==xshift | y==yshift);
         case 'smoothForce'
             force = anisoGaussian2DMatrix(xshift, yshift, stdy, stdx, theta, x, y);
             % cutting out outside of area

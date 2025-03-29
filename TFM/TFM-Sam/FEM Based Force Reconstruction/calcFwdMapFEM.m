@@ -31,7 +31,7 @@ try
     basisClassTblData=load(basisClassTblPath);
     basisClassTbl=basisClassTblData.basisClassTbl;
     addAtLeastOneToTbl=0;
-catch ME
+catch %ME
     basisClassTbl=struct([]) ;
     addAtLeastOneToTbl=1;
 end
@@ -78,8 +78,8 @@ M=NaN(2*numPts,2*numBasis);
 
 % here actually each basis function hast to be evaluated twice, which means
 % it actually give two values:
-ux=zeros(length(x_vec_u),2*numBasis);
-uy=zeros(length(y_vec_u),2*numBasis);
+%ux=zeros(length(x_vec_u),2*numBasis);
+%uy=zeros(length(y_vec_u),2*numBasis);
 
 % To make sure that the range over which the solution is calculated,
 % take the double of the initial x and y ranges:
@@ -92,251 +92,516 @@ dy=ymax-ymin;
 % calculated:
 xrangeReq=[-dx dx]';
 yrangeReq=[-dy dy]';
-    
-% calculate the basis solution for all basis classes:
-numClass=length(forceMesh.basisClass);
-for class=1:numClass
-    display(['Work on class: ',num2str(class),' of: ',num2str(numClass),'. Each class [~2x2min]:... ']);
-    
-    % Integration bounds used in the refine step, in case the fwdSolution
-    % has to be calculated:
-    xbd_min=min(forceMesh.basisClass(class).neighPos(:,1));
-    xbd_max=max(forceMesh.basisClass(class).neighPos(:,1));
-    ybd_min=min(forceMesh.basisClass(class).neighPos(:,2));
-    ybd_max=max(forceMesh.basisClass(class).neighPos(:,2));
 
-    % try to find the basis class in the table base:
-    basisClassIn=forceMesh.basisClass(class);
-    [idBestMatch]=findBasisClassInTbl(basisClassTbl,basisClassIn,xrangeReq,yrangeReq,meshPtsFwdSol);
+dxSol=max(imgCols,dx);
+dySol=max(imgRows,dy);
+
+xrangeSol=[-dxSol dxSol]';
+yrangeSol=[-dySol dySol]';
+
+[nodePtsX, nodePtsY] = meshgrid(linspace(min(allNodes(:,1)),max(allNodes(:,1)),numel(unique(allNodes(:,1)))),linspace(min(allNodes(:,1)),max(allNodes(:,1)),numel(unique(allNodes(:,1)))));
+
+grooveWidth = 50; %should be 1/2 of the groove width that is given in fwdSolution OR MAYBE NOT??
+fprintf('calcFwdMapFEM groove width: %1.1f micron \n',grooveWidth/10);
+numPix_x = abs(xrangeSol(1))+xrangeSol(2);
+halfSide = xrangeSol(2);
+%numGrooves = floor(ceil(numPix_x / grooveWidth)/2); %determine number of grooves
+% edgePad = mod(numPix_x,grooveWidth)/2; %calculate dead space at edges of substrate where no full groove can fit
+% grooveEdges = -halfSide+edgePad-grooveWidth/2:grooveWidth:halfSide-edgePad+grooveWidth/2; %calculate groove edges in x-direction
+% if ~mod(numel(grooveEdges), 2) == 0 && grooveWidth ~= 8 %if number of groove edges is odd we have to refine
+%     grooveEdges = -halfSide+edgePad:grooveWidth:halfSide-edgePad;
+%     numGrooves = numGrooves - 1;
+% end
+% if grooveWidth == 20
+%     grooveEdges = grooveEdges(3:end-2);
+%     numGrooves = numGrooves - 1;
+% elseif grooveWidth == 8
+%     grooveEdges = grooveEdges(3:end-2);
+%     numGrooves = numGrooves - 1;
+% else
+%     grooveEdges = grooveEdges(2:end-1); %ensure a groove is placed directly in the center of the substrate
+% end
+% 
+% %calculate number of grooves touched by force area
+% numPreservedGrooves = 1; %desired number of extra grooves adjacent to outermost force-touched groove
+% if grooveWidth / 2 <= xmax || grooveWidth / 2 <= ymax
+%     overlap = ceil((xmax / grooveWidth)) / 2 - 1;
+%     numPreservedGrooves = overlap + numPreservedGrooves;
+% end
+% %numPreservedGrooves must always be 2 or a multiple of 2
+% numPreservedGrooves = numPreservedGrooves * 2; 
+% if numPreservedGrooves == 1
+%     numPreservedGrooves = numPreservedGrooves + 1;
+% end
+% %trim outer grooves beyond substrate area
+% if ~grooveEdges(1) < xrangeSol(1)
+%     grooveEdges = grooveEdges(length(grooveEdges)/2 - numPreservedGrooves:length(grooveEdges)/2 + 1 + numPreservedGrooves);
+%     numGrooves = length(grooveEdges) / 2;
+% end
+
+grooveEdges = [-grooveWidth/2, grooveWidth/2];
+grooveFront = grooveWidth/2;
+numGrooves = 1;
+while grooveFront < dx/2
+    grooveEdges = [-grooveFront - 2*grooveWidth, -grooveFront - grooveWidth, grooveEdges, grooveFront + grooveWidth, grooveFront + 2*grooveWidth];
+    numGrooves = numGrooves + 2;
+    grooveFront = grooveFront + 2*grooveWidth;
+end
+grooveEdges = grooveEdges + halfSide/2;
+
+% grooveSet = flip(grooveEdges(1:length(grooveEdges)/2));
+% grooveSet = flip([grooveSet; grooveEdges(length(grooveEdges)/2+1:end)]);
+
+ptsOnGrooves = false(size(allNodes(:,1)));
+groovePolysUnfuzzed{numGrooves} = []; g = 1;
+for i = 1:2:length(grooveEdges)
+    groovePolysUnfuzzed{g} = polyshape([grooveEdges(i), grooveEdges(i), grooveEdges(i+1), grooveEdges(i+1)],[halfSide, -halfSide, -halfSide, halfSide]);
+    xv = groovePolysUnfuzzed{g}.Vertices(:,1);
+    yv = groovePolysUnfuzzed{g}.Vertices(:,2);
+    ptsOnGrooves = ptsOnGrooves | inpolygon(allNodes(:,1),allNodes(:,2),xv,yv);
+    g = g + 1;
+end
+ptsInGrooves = ~ptsOnGrooves;
+
+% temp = ptsInGrooves;
+% ptsInGrooves = ptsOnGrooves;
+% ptsOnGrooves = temp;
+
+figure,
+scatter(allNodes(ptsOnGrooves,1),allNodes(ptsOnGrooves,2),'ko')
+hold on
+scatter(allNodes(ptsInGrooves,1),allNodes(ptsInGrooves,2),'b.')
+hold off
+
+disp('Begin new multi-geometric fwdsol test')
+
+class = 1;
+xbd_min=min(forceMesh.basisClass(class).neighPos(:,1));
+xbd_max=max(forceMesh.basisClass(class).neighPos(:,1));
+ybd_min=min(forceMesh.basisClass(class).neighPos(:,2));
+ybd_max=max(forceMesh.basisClass(class).neighPos(:,2));
+
+for oneORtwo = 1:2
+    [ux_model, uy_model, x_model, y_model]=fwdSolution(xrangeSol,yrangeSol,E,...
+        xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,...
+        'FEM','noIntp',meshPtsFwdSol,thickness,v,false,false);
     
-    % now run through the x/y-comp. and either pull the fwdSol from the
-    % table base or calculate it from scratch. The latter will be saved in
-    % the basisClassTbl for later use
-    for oneORtwo=1:2        
-        if ~isempty(idBestMatch)
-            % Then we can use the stored solution.
-            % scale the basis solution with the right Youngs modulus. This
-            % works for the boussinesq-BCs but might fail for more general BCs:
-            scaleE = basisClassTbl(end).uSol.E/E; % for details see Landau Lifschitz p32.
-            ux_model_pix = scaleE*double(basisClassTbl(idBestMatch).uSol.comp(oneORtwo).ux);
-            uy_model_pix = scaleE*double(basisClassTbl(idBestMatch).uSol.comp(oneORtwo).uy);
-            x_model_pix  = double(basisClassTbl(idBestMatch).uSol.x);
-            y_model_pix  = double(basisClassTbl(idBestMatch).uSol.y);
+    if strcmp(method,'direct') || strcmp(method,'*cubic')
+        % This works perfectly for all mesh types as long as the
+        % displacment and force nodes are defined at integer positions!
+        x_spacing=x_model(2,2)-x_model(1,1);
+        y_spacing=y_model(2,2)-y_model(1,1);
+        if x_spacing<=1 && y_spacing<=1
+            % Only if the spacing is <1 we have oversampled, interpolate to
+            % integer positions:
+            x_model_pix=x_model(1,1):1:x_model(end,end);
+            y_model_pix=y_model(1,1):1:y_model(end,end);
+            
+            [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
+            
+            %interpolate the solution to the integer positions:
+            ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix); %, 'direct'); There is no such thing as direct, but only 'linear'  %This is ux(:,j)
+            uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix); %, 'direct');  %This is uy(:,j)
         else
-            display('Could not find a good match in the tablebase! Have to calculate the solution!')
-            % no good match has been found in the table, we have to calculate the
-            % solution from scratch. Here we could force xrangeSol>xrangeReq
-            % and meshPtsFwdSol>meshPtsFwdSol_min, such that it is more
-            % likely that this solution can be used in the future. We will
-            % store this solution only for method='direct'!
-            if forceSpan==1
-                dxSol=max(imgCols,dx);
-                dySol=max(imgRows,dy);
-                
-                xrangeSol=[-dxSol dxSol]';
-                yrangeSol=[-dySol dySol]';
-            else
-                xrangeSol=xrangeReq;
-                yrangeSol=yrangeReq;
-            end               
-            % calculate the solution:
-            % Here we use finite thickness for calculating Green's function
-            [ux_model, uy_model, x_model, y_model]=fwdSolution(xrangeSol,yrangeSol,E,...
-                xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,...
-                'FEM','noIntp',meshPtsFwdSol,thickness,v); %'fft_finite','noIntp',meshPtsFwdSol,thickness);
-            % check if the sampling is fine enough for method 'direct':
-            if strcmp(method,'direct') || strcmp(method,'*cubic')
-                % This works perfectly for all mesh types as long as the
-                % displacment and force nodes are defined at integer positions!
-                x_spacing=x_model(2,2)-x_model(1,1);
-                y_spacing=y_model(2,2)-y_model(1,1);
-                if x_spacing<=1 && y_spacing<=1
-                    % Only if the spacing is <1 we have oversampled, interpolate to
-                    % integer positions:
-                    x_model_pix=x_model(1,1):1:x_model(end,end);
-                    y_model_pix=y_model(1,1):1:y_model(end,end);
-                    
-                    [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
-                    
-                    %interpolate the solution to the integer positions:
-                    ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix); %, 'direct'); There is no such thing as direct, but only 'linear'  %This is ux(:,j)
-                    uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix); %, 'direct');  %This is uy(:,j)
-                else
-                    disp('Have switched over to *cubic. But is this really necessary? It might well be that even if undersampled the upper search will produce the same result as an interpolation')
-                    method='*cubic';
-                    pizInterval_x = round(x_spacing);
-                    pizInterval_y = round(y_spacing);
-                    x_model_pix=x_model(1,1):pizInterval_x:x_model(end,end);
-                    y_model_pix=y_model(1,1):pizInterval_y:y_model(end,end);
-                    
-                    [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
-                    
-                    %interpolate the solution to the integer positions:
-                    ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix, 'cubic');  %This is ux(:,j)
-                    uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix, 'cubic');  %This is uy(:,j)
-                end
-            end
+            disp('Have switched over to *cubic. But is this really necessary? It might well be that even if undersampled the upper search will produce the same result as an interpolation')
+            method='*cubic';
+            pizInterval_x = round(x_spacing);
+            pizInterval_y = round(y_spacing);
+            x_model_pix=x_model(1,1):pizInterval_x:x_model(end,end);
+            y_model_pix=y_model(1,1):pizInterval_y:y_model(end,end);
+            
+            [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
+            
+            %interpolate the solution to the integer positions:
+            ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix, 'cubic');  %This is ux(:,j)
+            uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix, 'cubic');  %This is uy(:,j)
         end
-        
-        toDoBasis=find(vertcat(forceMesh.basis.class)==class)';
-        lgthToDoBasis=length(toDoBasis);
-        disp(['Evaluate ',num2str(lgthToDoBasis),' basis functions'])
-        
-        
-        logMsg = 'Please wait, interpolating basis solutions';
-        timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
-        tic;
-        if ishandle(wtBar)
-            wtBar = waitbar(0,wtBar,logMsg);
+    end
+    
+    grooveHeight = 0;
+    [ux_model_flat, uy_model_flat, x_model_flat, y_model_flat]=fwdSolutionFEM(grooveHeight,xrangeSol,yrangeSol,E,...
+        xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,...
+        'FEM','noIntp',meshPtsFwdSol,thickness,v,false,false);
+    
+    if strcmp(method,'direct') || strcmp(method,'*cubic')
+        % This works perfectly for all mesh types as long as the
+        % displacment and force nodes are defined at integer positions!
+        x_spacing_flat=x_model_flat(2,2)-x_model_flat(1,1);
+        y_spacing_flat=y_model_flat(2,2)-y_model_flat(1,1);
+        if x_spacing_flat<=1 && y_spacing_flat<=1
+            % Only if the spacing is <1 we have oversampled, interpolate to
+            % integer positions:
+            x_model_pix_flat=x_model_flat(1,1):1:x_model_flat(end,end);
+            y_model_pix_flat=y_model_flat(1,1):1:y_model_flat(end,end);
+            
+            [x_model_pix_flat,y_model_pix_flat]=meshgrid(x_model_pix_flat,y_model_pix_flat);
+            
+            %interpolate the solution to the integer positions:
+            ux_model_pix_flat= interp2(x_model_flat, y_model_flat, ux_model_flat, x_model_pix_flat, y_model_pix_flat); %, 'direct'); There is no such thing as direct, but only 'linear'  %This is ux(:,j)
+            uy_model_pix_flat= interp2(x_model_flat, y_model_flat, uy_model_flat, x_model_pix_flat, y_model_pix_flat); %, 'direct');  %This is uy(:,j)
+        else
+            disp('Have switched over to *cubic. But is this really necessary? It might well be that even if undersampled the upper search will produce the same result as an interpolation')
+            method='*cubic';
+            pizInterval_x_flat = round(x_spacing_flat);
+            pizInterval_y_flat = round(y_spacing_flat);
+            x_model_pix_flat=x_model_flat(1,1):pizInterval_x_flat:x_model_flat(end,end);
+            y_model_pix_flat=y_model_flat(1,1):pizInterval_y_flat:y_model_flat(end,end);
+            
+            [x_model_pix_flat,y_model_pix_flat]=meshgrid(x_model_pix_flat,y_model_pix_flat);
+            
+            %interpolate the solution to the integer positions:
+            ux_model_pix_flat= interp2(x_model_flat, y_model_flat, ux_model_flat, x_model_pix_flat, y_model_pix_flat, 'cubic');  %This is ux(:,j)
+            uy_model_pix_flat= interp2(x_model_flat, y_model_flat, uy_model_flat, x_model_pix_flat, y_model_pix_flat, 'cubic');  %This is uy(:,j)
+        end
+    end
+    
+    toDoBasis=find(vertcat(forceMesh.basis.class)==class)';
+    lgthToDoBasis=length(toDoBasis);
+    disp(['Evaluate ',num2str(lgthToDoBasis),' basis functions'])
+    
+    
+    logMsg = 'Please wait, interpolating basis solutions';
+    timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
+    tic;
+    if ishandle(wtBar)
+        wtBar = waitbar(0,wtBar,logMsg);
 %         elseif feature('ShowFigureWindows'),
 %             wtBar = waitbar(0,logMsg);
-        end
-        
-        x_spacing=x_model_pix(2,2)-x_model_pix(1,1);
-        y_spacing=y_model_pix(2,2)-y_model_pix(1,1);
-        if x_spacing>1 || y_spacing>1
-            method = '*cubic';
-        end
-        
-        for i=1:numel(toDoBasis)
-            basisID=toDoBasis(i);
-            % lgthToDoBasis=length(toDoBasis);
-            % displayText=[num2str(basisID),' of ',num2str(lgthToDoBasis)];
-            % progressText(basisID/lgthToDoBasis,displayText);
-            % Interpolate the basis-solution:
-            xShift = forceMesh.basis(basisID).node(1);
-            yShift = forceMesh.basis(basisID).node(2);
-            
-            if strcmp(method,'direct')
-                % Instead of interpolation we can simply search for the
-                % correct values in the matrix:
-                xmin_pix=x_model_pix(1,1)+xShift;
-                ymin_pix=y_model_pix(1,1)+yShift;
-                
-                % shift the x,y values to indices:
-                px=x_vec_u-xmin_pix+1; % +1 because the matrix index starts at 1.
-                py=y_vec_u-ymin_pix+1; % +1 because the matrix index starts at 1.
-                
-                % get the indices:
-                [ptInd]=sub2ind(size(x_model_pix),py,px);
-                
-                if oneORtwo==1
-                    M(1:numPts    ,basisID)          = ux_model_pix(ptInd);
-                    M(numPts+1:end,basisID)          = uy_model_pix(ptInd);
-                elseif oneORtwo==2
-                    M(1:numPts    ,basisID+numBasis) = ux_model_pix(ptInd);
-                    M(numPts+1:end,basisID+numBasis) = uy_model_pix(ptInd);
-                end
-                
-%                 % This might be a bit more robust but is slower:
-%                 forceNearest=0;
-%                 if forceNearest==1
-%                     if oneORtwo==1
-%                         % Then the interpolants of the first function are:
-%                         M(1:numPts    ,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, '*nearest');  %This is ux(:,j)
-%                         M(numPts+1:end,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, '*nearest');  %This is uy(:,j)
-%                     elseif oneORtwo==2
-%                         % Then the interpolants of the second function are:  (:,j+numBasis)
-%                         M(1:numPts    ,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, '*nearest');  %This is ux(:,j+numBasis)
-%                         M(numPts+1:end,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, '*nearest');  %This is uy(:,j+numBasis)
-%                     end
-%                 end
-            elseif strcmp(method,'*cubic') && ~isempty(idBestMatch)
-                if oneORtwo==1
-                    % Then the interpolants of the first function are:
-                    M(1:numPts    ,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j)
-                    M(numPts+1:end,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j)
-                elseif oneORtwo==2
-                    % Then the interpolants of the second function are:  (:,j+numBasis)
-                    M(1:numPts    ,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j+numBasis)
-                    M(numPts+1:end,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j+numBasis)
-                end
-            else % we almost do not need this condition! SH
-                if oneORtwo==1
-                    % Then the interpolants of the first function are:
-                    M(1:numPts    ,basisID)          = interp2(x_model+xShift, y_model+yShift, ux_model, x_vec_u, y_vec_u, method);  %This is ux(:,j)
-                    M(numPts+1:end,basisID)          = interp2(x_model+xShift, y_model+yShift, uy_model, x_vec_u, y_vec_u, method);  %This is uy(:,j)
-                elseif oneORtwo==2
-                    % Then the interpolants of the second function are:  (:,j+numBasis)
-                    M(1:numPts    ,basisID+numBasis) = interp2(x_model+xShift, y_model+yShift, ux_model, x_vec_u, y_vec_u, method);  %This is ux(:,j+numBasis)
-                    M(numPts+1:end,basisID+numBasis) = interp2(x_model+xShift, y_model+yShift, uy_model, x_vec_u, y_vec_u, method);  %This is uy(:,j+numBasis)
-                end
-            end
-            
-            % Update the waitbar
-            if mod(i,5)==1 && ishandle(wtBar)
-                ti=toc;
-                waitbar(i/lgthToDoBasis,wtBar,...
-                    sprintf([logMsg timeMsg(ti*lgthToDoBasis/i-ti)]));
-            end
-            
-        end
-%         % Close waitbar if generated by the function
-%         if ishandle(wtBar) && ~ishandle(ip.Results.wtBar), 
-%             close(wtBar); 
-%         end
-%         
-        if isempty(idBestMatch) %&& strcmp(method,'direct')
-            % Then we have either calculated a previously unknown basis
-            % Solution, or we have improved one (by increasing the range or
-            % by increasing the meshPtsFwdSol). Enter a new entry only if
-            % we are working on the x-comp. The y-comp will be treated in
-            % the next loop and will be sorted in into the same
-            % basisClassTbl-id:
+    end
+    
+    x_spacing=x_model_pix(2,2)-x_model_pix(1,1);
+    y_spacing=y_model_pix(2,2)-y_model_pix(1,1);
+    if x_spacing>1 || y_spacing>1
+        method = '*cubic';
+    end
+    
+    collatedxshifts = [];
+    collatedyshifts = [];
+
+    for i=1:numel(toDoBasis)
+        basisID=toDoBasis(i);
+        % lgthToDoBasis=length(toDoBasis);
+        % displayText=[num2str(basisID),' of ',num2str(lgthToDoBasis)];
+        % progressText(basisID/lgthToDoBasis,displayText);
+        % Interpolate the basis-solution:
+        xShift = forceMesh.basis(basisID).node(1);
+        collatedxshifts = [collatedxshifts, xShift];
+        yShift = forceMesh.basis(basisID).node(2);
+        collatedyshifts = [collatedyshifts, yShift];
+        if ptsInGrooves(i)
             if oneORtwo==1
-                numClassTbl=length(basisClassTbl);
-                currBasisClass=forceMesh.basisClass(class);
-                % strip of the basisFunc entry. We don't need this
-                % information!
-                basisClassTbl(numClassTbl+1).centerPos  = currBasisClass.centerPos;
-                basisClassTbl(numClassTbl+1).numNeigh   = currBasisClass.numNeigh;
-                basisClassTbl(numClassTbl+1).neighPos   = currBasisClass.neighPos;
-                basisClassTbl(numClassTbl+1).dtBaseSup  = currBasisClass.dtBaseSup;
-                basisClassTbl(numClassTbl+1).unitVolume = currBasisClass.unitVolume;
+                % Then the interpolants of the first function are:
+                M(1:numPts    ,basisID)          = interp2(x_model_pix_flat+xShift, y_model_pix_flat+yShift, ux_model_pix_flat, x_vec_u, y_vec_u, method);  %This is ux(:,j)
+                M(numPts+1:end,basisID)          = interp2(x_model_pix_flat+xShift, y_model_pix_flat+yShift, uy_model_pix_flat, x_vec_u, y_vec_u, method);  %This is uy(:,j)
+            elseif oneORtwo==2
+                % Then the interpolants of the second function are:  (:,j+numBasis)
+                M(1:numPts    ,basisID+numBasis) = interp2(x_model_pix_flat+xShift, y_model_pix_flat+yShift, ux_model_pix_flat, x_vec_u, y_vec_u, method);  %This is ux(:,j+numBasis)
+                M(numPts+1:end,basisID+numBasis) = interp2(x_model_pix_flat+xShift, y_model_pix_flat+yShift, uy_model_pix_flat, x_vec_u, y_vec_u, method);  %This is uy(:,j+numBasis)
             end
-            % enter the basis solutions:
-            % Scale the basis solution with the right Youngs modulus. This
-            % works for the boussinesq-BCs but might fail for more general BCs:
-            % To store the forward solution, single precision should be
-            % sufficient. x/y positions are integer anyways, store them in
-            % int16 format:
-            basisClassTbl(end).uSol.comp(oneORtwo).ux = single(ux_model_pix*E); % the factor E is to scale the solution to u(E=1,f)
-            basisClassTbl(end).uSol.comp(oneORtwo).uy = single(uy_model_pix*E); % the factor E is to scale the solution to u(E=1,f)
-            basisClassTbl(end).uSol.x = int16(x_model_pix);
-            basisClassTbl(end).uSol.y = int16(y_model_pix);
-            
-            % enter parameters:
-            basisClassTbl(end).uSol.xrange       = xrangeSol;
-            basisClassTbl(end).uSol.yrange       = yrangeSol;
-            basisClassTbl(end).uSol.E                = 1; % this could be more general!
-            basisClassTbl(end).uSol.method       ='fft';
-            basisClassTbl(end).uSol.meshPtsFwdSol= meshPtsFwdSol;
-            basisClassTbl(end).uSol.gelHeight   = thickness; % this could be more general!
-            addAtLeastOneToTbl=1;
+        elseif ptsOnGrooves(i)
+            if oneORtwo==1
+                % Then the interpolants of the first function are:
+                M(1:numPts    ,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j)
+                M(numPts+1:end,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j)
+            elseif oneORtwo==2
+                % Then the interpolants of the second function are:  (:,j+numBasis)
+                M(1:numPts    ,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j+numBasis)
+                M(numPts+1:end,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j+numBasis)
+            end
         end
-    end    
+        
+        % Update the waitbar
+        if mod(i,5)==1 && ishandle(wtBar)
+            ti=toc;
+            waitbar(i/lgthToDoBasis,wtBar,...
+                sprintf([logMsg timeMsg(ti*lgthToDoBasis/i-ti)]));
+        end
+        
+    end
 end
+
+
+
+
+
+
+
+
+
+% 
+% % calculate the basis solution for all basis classes:
+% numClass=length(forceMesh.basisClass);
+% for class=1:numClass
+%     disp(['Work on class: ',num2str(class),' of: ',num2str(numClass),'. Each class [~2x2min]:... ']);
+% 
+%     % Integration bounds used in the refine step, in case the fwdSolution
+%     % has to be calculated:
+%     xbd_min=min(forceMesh.basisClass(class).neighPos(:,1));
+%     xbd_max=max(forceMesh.basisClass(class).neighPos(:,1));
+%     ybd_min=min(forceMesh.basisClass(class).neighPos(:,2));
+%     ybd_max=max(forceMesh.basisClass(class).neighPos(:,2));
+% 
+%     % try to find the basis class in the table base:
+%     basisClassIn=forceMesh.basisClass(class);
+%     [idBestMatch]=findBasisClassInTbl(basisClassTbl,basisClassIn,xrangeReq,yrangeReq,meshPtsFwdSol);
+% 
+%     % now run through the x/y-comp. and either pull the fwdSol from the
+%     % table base or calculate it from scratch. The latter will be saved in
+%     % the basisClassTbl for later use
+%     for oneORtwo=1:2        
+%         if ~isempty(idBestMatch)
+%             % Then we can use the stored solution.
+%             % scale the basis solution with the right Youngs modulus. This
+%             % works for the boussinesq-BCs but might fail for more general BCs:
+%             scaleE = basisClassTbl(end).uSol.E/E; % for details see Landau Lifschitz p32.
+%             ux_model_pix = scaleE*double(basisClassTbl(idBestMatch).uSol.comp(oneORtwo).ux);
+%             uy_model_pix = scaleE*double(basisClassTbl(idBestMatch).uSol.comp(oneORtwo).uy);
+%             x_model_pix  = double(basisClassTbl(idBestMatch).uSol.x);
+%             y_model_pix  = double(basisClassTbl(idBestMatch).uSol.y);
+%         else
+%             disp('Could not find a good match in the tablebase! Have to calculate the solution!')
+%             % no good match has been found in the table, we have to calculate the
+%             % solution from scratch. Here we could force xrangeSol>xrangeReq
+%             % and meshPtsFwdSol>meshPtsFwdSol_min, such that it is more
+%             % likely that this solution can be used in the future. We will
+%             % store this solution only for method='direct'!
+%             if forceSpan==1
+%                 dxSol=max(imgCols,dx);
+%                 dySol=max(imgRows,dy);
+% 
+%                 xrangeSol=[-dxSol dxSol]';
+%                 yrangeSol=[-dySol dySol]';
+%             else
+%                 xrangeSol=xrangeReq;
+%                 yrangeSol=yrangeReq;
+%             end               
+% 
+%             %{ 
+%             for the current basisClass (there is a basis class for each
+%             different basis topology, it seems in our case there will only 
+%             ever be one basisClass)
+% 
+%             we will calculate the fwdSolution for the current basis
+%             function which is either x direction or y direction force, this
+%             will yield the solution for the top of grooves since the basis
+%             fucntion is centered at 0,0 and the grooves are default to have
+%             a groove along the centerline
+% 
+%             next we need to calculate the solution for the basis functions
+%             which lie within groove valleys (we can tell where a basis
+%             function is based on the forceMesh.p structure which contains
+%             the force mesh points where all basis functions are located)
+%             however some basis functions are excluded because they lie on
+%             the boundary, the true set of basis functions is defined in
+%             forceMesh.basis(:).node
+%             access the nodes this way 
+%             allNodes = vertcat(forceMesh.basis(:).node);
+%             for each node we need to determine if it is within a groove 
+%             valley or on top of a groove peak (there may also be need to
+%             determine if the node is in the vertical boundary between peak
+%             and valley)
+% 
+%             conservatively we would only need to calculate the forward
+%             solution 4 times, once for each of x,y on groove peak and x,y 
+%             in groove valley
+% 
+%             however two more may be needed for edge case of force mesh node
+%             on groove boundary
+% 
+% 
+%             can I use a modified basis class for the new fwdSol
+%             calculations by only chaning the coordinates of the basis and
+%             shifting it into a groove
+% 
+%             or should I use a continuous substrate assumption for groove
+%             valleys and use a basisClass shifting to indicate that and
+%             change to grooveheight to zero within the fwd solution by
+%             checking basisclass location via if statement
+%             %}
+% 
+%             % calculate the solution:
+%             % Here we use finite thickness for calculating Green's function
+%             %x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h,v,refine,useSameSampling,node
+%             [ux_model, uy_model, x_model, y_model]=fwdSolutionFEM(xrangeSol,yrangeSol,E,...
+%                 xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,...
+%                 'FEM','noIntp',meshPtsFwdSol,thickness,v,false,false,forceMesh); %'fft_finite','noIntp',meshPtsFwdSol,thickness);
+%             % check if the sampling is fine enough for method 'direct':
+%             if strcmp(method,'direct') || strcmp(method,'*cubic')
+%                 % This works perfectly for all mesh types as long as the
+%                 % displacment and force nodes are defined at integer positions!
+%                 x_spacing=x_model(2,2)-x_model(1,1);
+%                 y_spacing=y_model(2,2)-y_model(1,1);
+%                 if x_spacing<=1 && y_spacing<=1
+%                     % Only if the spacing is <1 we have oversampled, interpolate to
+%                     % integer positions:
+%                     x_model_pix=x_model(1,1):1:x_model(end,end);
+%                     y_model_pix=y_model(1,1):1:y_model(end,end);
+% 
+%                     [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
+% 
+%                     %interpolate the solution to the integer positions:
+%                     ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix); %, 'direct'); There is no such thing as direct, but only 'linear'  %This is ux(:,j)
+%                     uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix); %, 'direct');  %This is uy(:,j)
+%                 else
+%                     disp('Have switched over to *cubic. But is this really necessary? It might well be that even if undersampled the upper search will produce the same result as an interpolation')
+%                     method='*cubic';
+%                     pizInterval_x = round(x_spacing);
+%                     pizInterval_y = round(y_spacing);
+%                     x_model_pix=x_model(1,1):pizInterval_x:x_model(end,end);
+%                     y_model_pix=y_model(1,1):pizInterval_y:y_model(end,end);
+% 
+%                     [x_model_pix,y_model_pix]=meshgrid(x_model_pix,y_model_pix);
+% 
+%                     %interpolate the solution to the integer positions:
+%                     ux_model_pix= interp2(x_model, y_model, ux_model, x_model_pix, y_model_pix, 'cubic');  %This is ux(:,j)
+%                     uy_model_pix= interp2(x_model, y_model, uy_model, x_model_pix, y_model_pix, 'cubic');  %This is uy(:,j)
+%                 end
+%             end
+%         end
+% 
+%         toDoBasis=find(vertcat(forceMesh.basis.class)==class)';
+%         lgthToDoBasis=length(toDoBasis);
+%         disp(['Evaluate ',num2str(lgthToDoBasis),' basis functions'])
+% 
+% 
+%         logMsg = 'Please wait, interpolating basis solutions';
+%         timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
+%         tic;
+%         if ishandle(wtBar)
+%             wtBar = waitbar(0,wtBar,logMsg);
+% %         elseif feature('ShowFigureWindows'),
+% %             wtBar = waitbar(0,logMsg);
+%         end
+% 
+%         x_spacing=x_model_pix(2,2)-x_model_pix(1,1);
+%         y_spacing=y_model_pix(2,2)-y_model_pix(1,1);
+%         if x_spacing>1 || y_spacing>1
+%             method = '*cubic';
+%         end
+% 
+%         collatedxshifts = [];
+%         collatedyshifts = [];
+% 
+%         for i=1:numel(toDoBasis)
+%             basisID=toDoBasis(i);
+%             % lgthToDoBasis=length(toDoBasis);
+%             % displayText=[num2str(basisID),' of ',num2str(lgthToDoBasis)];
+%             % progressText(basisID/lgthToDoBasis,displayText);
+%             % Interpolate the basis-solution:
+%             xShift = forceMesh.basis(basisID).node(1);
+%             collatedxshifts = [collatedxshifts, xShift];
+%             yShift = forceMesh.basis(basisID).node(2);
+%             collatedyshifts = [collatedyshifts, yShift];
+% 
+%             if strcmp(method,'direct')
+%                 % Instead of interpolation we can simply search for the
+%                 % correct values in the matrix:
+%                 xmin_pix=x_model_pix(1,1)+xShift;
+%                 ymin_pix=y_model_pix(1,1)+yShift;
+% 
+%                 % shift the x,y values to indices:
+%                 px=x_vec_u-xmin_pix+1; % +1 because the matrix index starts at 1.
+%                 py=y_vec_u-ymin_pix+1; % +1 because the matrix index starts at 1.
+% 
+% 
+%                 %%
+%                 %USE PDEMRESULTS DIRECTLY AND INTERPOLATE HERE INSTEAD OF
+%                 %IN FWDSOL 
+%                 %%
+% 
+%                 % get the indices:
+%                 [ptInd]=sub2ind(size(x_model_pix),py,px);
+% 
+%                 if oneORtwo==1
+%                     M(1:numPts    ,basisID)          = ux_model_pix(ptInd);
+%                     M(numPts+1:end,basisID)          = uy_model_pix(ptInd);
+%                 elseif oneORtwo==2
+%                     M(1:numPts    ,basisID+numBasis) = ux_model_pix(ptInd);
+%                     M(numPts+1:end,basisID+numBasis) = uy_model_pix(ptInd);
+%                 end
+% 
+%             elseif strcmp(method,'*cubic') && ~isempty(idBestMatch)
+%                 if oneORtwo==1
+%                     % Then the interpolants of the first function are:
+%                     M(1:numPts    ,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j)
+%                     M(numPts+1:end,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j)
+%                 elseif oneORtwo==2
+%                     % Then the interpolants of the second function are:  (:,j+numBasis)
+%                     M(1:numPts    ,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j+numBasis)
+%                     M(numPts+1:end,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j+numBasis)
+%                 end
+%             end
+% 
+%             % Update the waitbar
+%             if mod(i,5)==1 && ishandle(wtBar)
+%                 ti=toc;
+%                 waitbar(i/lgthToDoBasis,wtBar,...
+%                     sprintf([logMsg timeMsg(ti*lgthToDoBasis/i-ti)]));
+%             end
+% 
+%         end
+% 
+%         if isempty(idBestMatch) %&& strcmp(method,'direct')
+%             % Then we have either calculated a previously unknown basis
+%             % Solution, or we have improved one (by increasing the range or
+%             % by increasing the meshPtsFwdSol). Enter a new entry only if
+%             % we are working on the x-comp. The y-comp will be treated in
+%             % the next loop and will be sorted in into the same
+%             % basisClassTbl-id:
+%             if oneORtwo==1
+%                 numClassTbl=length(basisClassTbl);
+%                 currBasisClass=forceMesh.basisClass(class);
+%                 % strip of the basisFunc entry. We don't need this
+%                 % information!
+%                 basisClassTbl(numClassTbl+1).centerPos  = currBasisClass.centerPos;
+%                 basisClassTbl(numClassTbl+1).numNeigh   = currBasisClass.numNeigh;
+%                 basisClassTbl(numClassTbl+1).neighPos   = currBasisClass.neighPos;
+%                 basisClassTbl(numClassTbl+1).dtBaseSup  = currBasisClass.dtBaseSup;
+%                 basisClassTbl(numClassTbl+1).unitVolume = currBasisClass.unitVolume;
+%             end
+%             % enter the basis solutions:
+%             % Scale the basis solution with the right Youngs modulus. This
+%             % works for the boussinesq-BCs but might fail for more general BCs:
+%             % To store the forward solution, single precision should be
+%             % sufficient. x/y positions are integer anyways, store them in
+%             % int16 format:
+%             basisClassTbl(end).uSol.comp(oneORtwo).ux = single(ux_model_pix*E); % the factor E is to scale the solution to u(E=1,f)
+%             basisClassTbl(end).uSol.comp(oneORtwo).uy = single(uy_model_pix*E); % the factor E is to scale the solution to u(E=1,f)
+%             basisClassTbl(end).uSol.x = int16(x_model_pix);
+%             basisClassTbl(end).uSol.y = int16(y_model_pix);
+% 
+%             % enter parameters:
+%             basisClassTbl(end).uSol.xrange       = xrangeSol;
+%             basisClassTbl(end).uSol.yrange       = yrangeSol;
+%             basisClassTbl(end).uSol.E                = 1; % this could be more general!
+%             basisClassTbl(end).uSol.method       ='fft';
+%             basisClassTbl(end).uSol.meshPtsFwdSol= meshPtsFwdSol;
+%             basisClassTbl(end).uSol.gelHeight   = thickness; % this could be more general!
+%             addAtLeastOneToTbl=1;
+%         end
+%     end    
+% end
 % save the new table base
 if addAtLeastOneToTbl
     save(basisClassTblPath, 'basisClassTbl','-v7.3');
 end
 
-% plot an example to see if it works correctly
-if doPlot==1
-    ind=1;
-    if forceMesh.numBasis>ind-1
-        xmin=min(x_vec_u);
-        ymin=min(y_vec_u);
-        xmax=max(x_vec_u);
-        ymax=max(y_vec_u);
-        ux = basisClassTbl(end).uSol.comp(oneORtwo).ux;
-        uy = basisClassTbl(end).uSol.comp(oneORtwo).uy;
-        figure(11)
-        quiver(x_vec_u,y_vec_u,ux(:,ind),uy(:,ind))
-        hold on
-        quiver(x_vec_u,y_vec_u,ux(:,ind+forceMesh.numBasis),uy(:,ind+forceMesh.numBasis))
-        xlim([xmin xmax])
-        ylim([ymin ymax])
-        hold off
-    end
-end
+% % plot an example to see if it works correctly
+% if doPlot==1
+%     ind=1;
+%     if forceMesh.numBasis>ind-1
+%         xmin=min(x_vec_u);
+%         ymin=min(y_vec_u);
+%         xmax=max(x_vec_u);
+%         ymax=max(y_vec_u);
+%         ux = basisClassTbl(end).uSol.comp(oneORtwo).ux;
+%         uy = basisClassTbl(end).uSol.comp(oneORtwo).uy;
+%         figure(11)
+%         quiver(x_vec_u,y_vec_u,ux(:,ind),uy(:,ind))
+%         hold on
+%         quiver(x_vec_u,y_vec_u,ux(:,ind+forceMesh.numBasis),uy(:,ind+forceMesh.numBasis))
+%         xlim([xmin xmax])
+%         ylim([ymin ymax])
+%         hold off
+%     end
+% end

@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 05-Apr-2021 00:28:57
+% Last Modified by GUIDE v2.5 05-Dec-2024 14:54:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,6 +78,7 @@ set(handles.useLcurve, 'Value', funParams.useLcurve);
 set(handles.checkbox_everyframe, 'Value', funParams.useLcurveEveryFrame);
 set(handles.lcorner, 'Value', strcmp(funParams.lcornerOptimal,'lcorner'));
 set(handles.optimal, 'Value', strcmp(funParams.lcornerOptimal,'optimal'));
+set(handles.diffmin, 'Value', strcmp(funParams.lcornerOptimal,'diffmin'));
 if funParams.useLcurve
     set(handles.checkbox_everyframe, 'Enable', 'on');
     set(handles.groupCornerOptimal.Children,  'Enable', 'on');

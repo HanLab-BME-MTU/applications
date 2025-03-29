@@ -150,6 +150,132 @@ elseif inflection==3 % mininum Curvature point which represents the rapid drop o
     ireg_corner= minKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
     reg_corner = lambda_cut(minKappaIdx);
     disp(['Mininum Curvature point which represents the rapid drop of semi-norm: ' num2str(reg_corner)])
+elseif inflection == 4
+    disp('Inverted max curvature detection')
+    %regTypes = ['normalized','crosspoint'];
+    regType = 'crosspoint';
+    switch regType
+        case 'normalized'
+            disp('Normalize radius of curvature based') %#ok<*UNRCH>
+            %radius of curvature based method by fitting a circle
+            maya = log10(rho);
+            syl = log10(eta);
+            
+            % mayapts = linspace(maya(1),maya(end),length(maya));
+            % sylpts = linspace(syl(1),syl(end),length(syl));
+            % syl = interp1(maya,syl,mayapts);
+            % maya = interp1(syl,maya,sylpts);
+            % 
+            % figure,plot(mayainterp,sylinterp,'.')
+    
+            x1 = maya(1:end-2);
+            x2 = maya(2:end-1);
+            x3 = maya(3:end);
+            y1 = syl(1:end-2);
+            y2 = syl(2:end-1);
+            y3 = syl(3:end);
+    
+            for i = 1:length(x1)
+                x = normalize([x1(i),x2(i),x3(i)]);
+                y = normalize([y1(i),y2(i),y3(i)]);
+    
+                K(i) = 2*abs((x(2)-x(1)).*(y(3)-y(1))-(x(3)-x(1)).*(y(2)-y(1))) ./ ...
+                    sqrt(((x(2)-x(1)).^2+(y(2)-y(1)).^2).*((x(3)-x(1)).^2+(y(3)-y(1)).^2).*((x(3)-x(2)).^2+(y(3)-y(2)).^2));
+            end
+            %figure,plot(K,'.')
+            
+            % r = nan(length(x1)-2,1);
+            % for i = 2:length(x1)-1
+            %     pt = [x1(i-1), y1(i-1); x2(i), y2(i); x3(i+1), y3(i+1);];
+            %     %pt = normalize(pt);
+            %     [r(i-1), ~] = fitCircleByThreePts(pt);
+            % end
+            % r = nan(length(x1),1);
+            % for i = 1:length(x1)-1
+            %     pt = [x1(i), y1(i); x2(i), y2(i); x3(i), y3(i);];
+            %     [r(i), ~] = fitCircleByThreePts(pt);
+            % end
+            %figure,plot(r,'.')
+            %r = r * -1;
+            %figure,plot(r,'.')
+    
+            [~,idx] = findpeaks(K(5:end-5)); %find all local maxima
+            ireg_corner = idx(end) + 3;%5; % take index of rightmost maxima and +4 to correct for findpeaks shrinkage and +1 to correct for curvature windowing
+            reg_corner = lambda(ireg_corner);
+            
+            % [~,idx] = findpeaks(r(5:end-5)); %find all local maxima
+            % ireg_corner = idx(end) + 6; % take index of rightmost maxima and +4 to correct for findpeaks shrinkage and +1 to correct for curvature windowing
+            % reg_corner = lambda(ireg_corner);
+
+        otherwise
+            disp('Triangular area based')
+            %calculated by triangular area method
+            maya = log10(rho);
+            syl = log10(eta);
+            %figure,plot(maya,syl,'.')
+    
+            x1 = maya(1:end-2);
+            x2 = maya(2:end-1);
+            x3 = maya(3:end);
+            y1 = syl(1:end-2);
+            y2 = syl(2:end-1);
+            y3 = syl(3:end);
+        
+    
+            K = 2*abs((x2-x1).*(y3-y1)-(x3-x1).*(y2-y1)) ./ ...
+                sqrt(((x2-x1).^2+(y2-y1).^2).*((x3-x1).^2+(y3-y1).^2).*((x3-x2).^2+(y3-y2).^2));
+            %figure,plot(K,'.')
+        
+            [~,idx] = findpeaks(K(5:end-5)); %find all local maxima
+            ireg_corner = idx(end) + 5; % take index of rightmost maxima and +4 to correct for findpeaks shrinkage and +1 to correct for curvature windowing
+            reg_corner = lambda(ireg_corner);
+    end
+    
+    % figure,plot(log10(rho),'.'),title('Residual Norm Log')
+    % maya = diff(log10(rho))./1; %partial derivative of residual norm log
+    % figure,plot(maya,'.'),title('Residual Norm Log Diff')
+    % syl = diff(log10(eta))./1; 
+    % % figure,plot(syl,'.'),title('Solution Norm Log Diff')
+    % %syl2 = diff(syl)./1;
+    % % figure,plot(syl2,'.'),title('Solution Norm Log Diff 2')
+    % %syl3 = diff(syl2)./1;
+    % % figure,plot(syl3,'.'),title('Solution Norm Log Diff 2')
+    % [vals,locs] = findpeaks(maya(length(maya)/2:end));
+    % if isempty(vals)
+    %     [vals,locs] = findpeaks(syl(length(syl)/2:end));
+    %     if isempty(vals)
+    %         disp('Differential norm failed to find local maximum, using Lcorner')
+    %         inflectionIdx = find(kappa<=0 & (1:nPoints)'>maxKappaIdx,1,'first');
+    %         ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+    %         reg_corner = lambda_cut(inflectionIdx);
+    %         % [~,ireg_corner] = max(syl); %find index of maximum value
+    %         % reg_corner = lambda(ireg_corner + 1); %the index of the maximum value is the best reg parameter (add one to account for diff usage)
+    %     else
+    %         locs = locs + length(syl)/2;
+    %         [~,idx] = max(vals);
+    %         %[~,ireg_corner] = max(maya); %find index of maximum value
+    %         ireg_corner = locs(idx) + 1; %(add one to account for diff usage)
+    %         reg_corner = lambda(ireg_corner); %the index of the maximum value is the best reg parameter
+    %     end
+    % else
+    %     locs = locs + length(maya)/2;
+    %     [~,idx] = max(vals);
+    %     %[~,ireg_corner] = max(maya); %find index of maximum value
+    %     ireg_corner = locs(idx);
+    %     reg_corner = lambda(ireg_corner); %the index of the maximum value is the best reg parameter
+    % end
+    % [vals,locs] = findpeaks(maya(length(maya)/2:end));
+    % if isempty(vals)
+    %     [~,ireg_corner] = max(maya); %find index of maximum value
+    %     reg_corner = lambda(ireg_corner); %the index of the maximum value is the best reg parameter
+    % else
+    %     locs = locs + length(maya)/2;
+    %     [~,idx] = max(vals);
+    %     %[~,ireg_corner] = max(maya); %find index of maximum value
+    %     ireg_corner = locs(idx);
+    %     reg_corner = lambda(ireg_corner); %the index of the maximum value is the best reg parameter
+    % end
+
 else
     if maxKappaIdx==1 || sum(kappa>0)/length(kappa)>0.8 % if kappa is assymtotically approaching to zero from large positive...
         [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,lambda);
@@ -249,6 +375,9 @@ if manualSelection
 %     end
 %     reg_corner = lambda(ireg_corner);
 end
+
+end
+
 % % fit it in 5th order polynomial - fitting with polynomial is dangerous!
 % f = fit(x(numCutPoints+1:end), y(numCutPoints+1:end),  'poly5');
 % hold on, plot(f)
@@ -275,6 +404,5 @@ end
 % % print(h,[dataPath filesep 'Lcurve.eps'],'-depsc')
 % close(h)
 % find a positive peak in curvature (diff based, discrete)
-
 
 
