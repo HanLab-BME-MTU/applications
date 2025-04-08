@@ -105,7 +105,7 @@ for ii=1:nFrames
 end
 %% fretMap
 iProc = MD.getProcessIndex('DoubleProcessingProcess',1,0);
-if ~isempty(iProc)
+if ~isempty(iProc) && ~contains(MD.getProcessTags(iProc),'OutputTFMProcess')
     p = MD.processes_{iProc}.funParams_;
 
     iChan = p.ChannelIndex;
