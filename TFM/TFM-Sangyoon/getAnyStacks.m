@@ -105,12 +105,16 @@ for ii=1:nFrames
 end
 %% fretMap
 iProc = MD.getProcessIndex('DoubleProcessingProcess',1,0);
-p = MD.processes_{iProc}.funParams_;
+if ~isempty(iProc)
+    p = MD.processes_{iProc}.funParams_;
 
-iChan = p.ChannelIndex;
+    iChan = p.ChannelIndex;
 
-fretMap = zeros(size(imgStack,1),size(imgStack,2),size(imgStack,3));
-for ii=1:nFrames
-    fretMap(:,:,ii) = MD.processes_{iProc}.loadChannelOutput(iChan(1),ii);
-end  
+    fretMap = zeros(size(imgStack,1),size(imgStack,2),size(imgStack,3));
+    for ii=1:nFrames
+        fretMap(:,:,ii) = MD.processes_{iProc}.loadChannelOutput(iChan(1),ii);
+    end  
+else
+    fretMap = [];
+end
 
