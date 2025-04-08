@@ -90,7 +90,12 @@ for ii=1:numel(tracksNA)
     sFEE = max(1,curTrack.startingFrameExtra-differentInitialMargin); %curTrack.startingFrameExtraExtra;
     sF5before = max(sFEE,effectiveSF -1); % So the variabl name should be sF1before
     sF10before = max(sFEE,effectiveSF - round(preDetecPeriod/tInterval)); % So the variabl name should be sF1before
-    
+    % In case where iInterval is too large, sF10before can be larger than sF5before. In that case, 
+    % I will have SF10before the same as sF5before
+    if sF10before > sF5before
+        sF10before = sF5before;
+    end
+
 %     while sF5before==sF10before
 %         numFramesBefore = effectiveSF - sFEE;
 %         numPreFrames = max(1,floor(preDetecFactor*numFramesBefore));
