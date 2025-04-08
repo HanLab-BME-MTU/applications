@@ -89,8 +89,8 @@ toc
 %% Now we have to combine this with readings from step 9 and 10
 iTheOtherProc=9; 
 theOtherReadProc=FAPack.processes_{iTheOtherProc};
-pTOC = theOtherReadProc.funParams_;
 if ~isempty(theOtherReadProc)
+    pTOC = theOtherReadProc.funParams_;
     for ii=1:numel(pTOC.ProcessIndex)
         ampObj = load(theOtherReadProc.outFilePaths_{ii,pTOC.ChannelIndex{ii},1},'tracksAmpTotal'); % the later channel has the most information.
         tracksAmpTotal = ampObj.tracksAmpTotal;
