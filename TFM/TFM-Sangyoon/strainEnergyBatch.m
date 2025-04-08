@@ -8,7 +8,7 @@ for k=1:numConditions
     MLAll(k) = MovieList.load([pathAnalysisAll{k} filesep MLNames{k}]);
 end
 %% Output
-rootAnalysis = pathAnalysisAll{1};
+rootAnalysis = pwd; %pathAnalysisAll{1};
 figPath = [rootAnalysis '/AnalysisSummary_TFM' specificName '/Figs'];
 mkdir(figPath)
 dataPath = [rootAnalysis '/AnalysisSummary_TFM' specificName '/Data'];
