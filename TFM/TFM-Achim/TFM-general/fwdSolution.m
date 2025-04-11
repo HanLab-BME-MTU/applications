@@ -66,9 +66,9 @@ elseif strcmpi(method,'FEM')
     %thickness = 800; 
     halfSide = x0(2);
     %set groove dimensions
-    grooveWidth = 50; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
+    grooveWidth = 5; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
     fprintf('fwdSolution groove width: %1.1f micron \n',grooveWidth/10);
-    grooveHeight = 0;
+    grooveHeight = 0; %5 default for all cases
     
     vx = linspace(x0(1),x0(2),meshPtsFwdSol);
     vy = linspace(y0(1),y0(2),meshPtsFwdSol);
@@ -285,9 +285,21 @@ elseif strcmpi(method,'FEM')
                 generateMesh(pdem,'Hmax',30, 'Hmin',2, 'Hgrad', 2);
                 pdemResults=solve(pdem);
             catch
-                disp('Final mesh refinement, densest mesh selected.')
-                generateMesh(pdem,'Hmax',25, 'Hmin',1.6, 'Hgrad', 1.6);
-                pdemResults=solve(pdem);
+                try
+                    disp('Final mesh refinement, densest mesh selected.')
+                    generateMesh(pdem,'Hmax',25, 'Hmin',1.6, 'Hgrad', 1.6);
+                    pdemResults=solve(pdem);
+                catch
+                    try
+                        disp('Dire mesh situation...')
+                        generateMesh(pdem,'Hmax',20, 'Hmin',1.25, 'Hgrad', 1.25);
+                        pdemResults=solve(pdem);
+                    catch
+                        disp('Worst case mesh scenario, extremely dense.')
+                        generateMesh(pdem,'Hmax',20, 'Hmin',0.25, 'Hgrad', 1.25);
+                        pdemResults=solve(pdem);
+                    end
+                end
             end
         end
     end

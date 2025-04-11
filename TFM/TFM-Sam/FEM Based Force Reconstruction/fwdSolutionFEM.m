@@ -36,7 +36,7 @@ if strcmpi(method,'FEM')
     thickness = x0(2)/2;
     halfSide = x0(2);
     %set groove dimensions
-    grooveWidth = 50; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
+    grooveWidth = 5; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
     %fprintf('Groove width: %1.1f micron \n',grooveWidth/10);
     %grooveHeight = 5;
     
