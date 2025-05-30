@@ -103,7 +103,7 @@ yrangeSol=[-dySol dySol]';
 
 %[nodePtsX, nodePtsY] = meshgrid(linspace(min(allNodes(:,1)),max(allNodes(:,1)),numel(unique(allNodes(:,1)))),linspace(min(allNodes(:,1)),max(allNodes(:,1)),numel(unique(allNodes(:,1)))));
 
-grooveWidth = 5; %should be 1/2 of the groove width that is given in fwdSolution OR MAYBE NOT??
+grooveWidth = 8; %should be 1/2 of the groove width that is given in fwdSolution OR MAYBE NOT??
 fprintf('calcFwdMapFEM groove width: %1.1f micron \n',grooveWidth/10);
 %numPix_x = abs(xrangeSol(1))+xrangeSol(2);
 halfSide = xrangeSol(2);
@@ -207,6 +207,7 @@ for oneORtwo = 1:2
             x_model_pix_flat  = double(basisClassTbl(idBestMatch).uSol.flatx);
             y_model_pix_flat  = double(basisClassTbl(idBestMatch).uSol.flaty);
         catch ME
+            disp('Saved basis class from non-FEM solution, rerun an FEM solution to generate an appropriate basis class.')
             msg = 'Saved basis class from non-FEM solution, rerun an FEM solution to generate an appropriate basis class.';
             causeException = MException('MATLAB:myCode:basisclassMismatch',msg);
             ME = addCause(ME,causeException);

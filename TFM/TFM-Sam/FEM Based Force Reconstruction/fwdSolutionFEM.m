@@ -26,6 +26,8 @@ if strcmpi(method,'FEM')
     % -= GROOVE FEM =-
     tic
     %% Create traction values and substrate bounds
+    doPlot = false;
+    doSave = false;
     %set force parameters
     forceOffsetX = 0; forceOffsetY = 0;
     %2 micron = 20 pixels, 0.1 um/pxl
@@ -36,7 +38,7 @@ if strcmpi(method,'FEM')
     thickness = x0(2)/2;
     halfSide = x0(2);
     %set groove dimensions
-    grooveWidth = 5; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
+    grooveWidth = 10; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
     %fprintf('Groove width: %1.1f micron \n',grooveWidth/10);
     %grooveHeight = 5;
     
@@ -167,11 +169,15 @@ if strcmpi(method,'FEM')
     end
     ns = ns'; %flip name-space to column orientation
     [dl,~] = decsg(gd,sf,ns); %decompose geometry
-    figure,pdegplot(dl,'EdgeLabels','on','FaceLabels','on')
+    if doPlot
+        figure,pdegplot(dl,'EdgeLabels','on','FaceLabels','on')
+    end
     
     temp = createpde; %create pde to contain geometry
     gtemp = geometryFromEdges(temp,dl); %convert edges into pdetool geometry description
-    figure,pdegplot(temp)
+    if doPlot
+        figure,pdegplot(temp)
+    end
     facets = facetAnalyticGeometry(temp,gtemp,0); %grab facets from the geometry
     gm = analyticToDiscrete(facets); %discretize facets to prep for extrusion
     temp.Geometry = gm; %reassociate discretized geometry
@@ -179,7 +185,9 @@ if strcmpi(method,'FEM')
     pdem = createpde('structural','static-solid'); %create main pde
     g = extrude(gm,thickness-grooveHeight); %initial extrusion of bulk substrate
     pdem.Geometry = g; %reassociate extruded geometry
-    figure,pdegplot(pdem,'FaceLabels','on','FaceAlpha',0.5)
+    if doPlot
+        figure,pdegplot(pdem,'FaceLabels','on','FaceAlpha',0.5)
+    end
     if grooveHeight ~= 0
         if grooveWidth == 50
             grooveFaceIDs = [11,12,14,16];
@@ -192,7 +200,9 @@ if strcmpi(method,'FEM')
     end
 
     pdem.Geometry = g; %reassociate grooved geometry
-    figure,pdegplot(pdem,'FaceLabels','on')
+    if doPlot
+        figure,pdegplot(pdem,'FaceLabels','on')
+    end
 
     % FLAT SUBSTRATE GEOMETRY
     % bound = [3; 4; -halfSide; halfSide; halfSide; -halfSide; halfSide; halfSide; -halfSide; -halfSide];
@@ -248,14 +258,16 @@ if strcmpi(method,'FEM')
     disp('Grooved Basis Solution Calculated Successfully!')
 
     %% Visualize results
-    mapPad = 50;
-    figure,
-    pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude, ...
-        'Deformation',pdemResults.Displacement,'DeformationScaleFactor',1);
-    view(0,90)
-    xlim([128-mapPad 128+mapPad]), ylim([128-mapPad 128+mapPad])
-    figure,
-    pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude,'Mesh','on')
+    if doPlot
+        mapPad = 50;
+        figure,
+        pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude, ...
+            'Deformation',pdemResults.Displacement,'DeformationScaleFactor',1);
+        view(0,90)
+        xlim([128-mapPad 128+mapPad]), ylim([128-mapPad 128+mapPad])
+        figure,
+        pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude,'Mesh','on')
+    end
 
     %% Interpolate results
     z_mat = thickness*ones(size(x_grid));
@@ -264,28 +276,32 @@ if strcmpi(method,'FEM')
     ux = interpdresults.ux;
     ux = reshape(ux,size(x_grid));
     ux(isnan(ux)) = 0;
-    figure, imshow(ux,[])
+
 
     uy = interpdresults.uy;
     uy = reshape(uy,size(y_grid));
     uy(isnan(uy)) = 0;
-    figure, imshow(uy,[])
+    if doPlot
+        figure, imshow(ux,[])
+        figure, imshow(uy,[])
+    end
     
     %% Save fwdSol ux and uy maps
-    if grooveHeight ~= 0
-        if oneORtwo == 1
-            save('FEMOutputsXforce.mat','ux','uy')
-        elseif oneORtwo == 0
-            save('FEMOutputsYforce.mat','ux','uy')
-        end
-    else
-        if oneORtwo == 1
-            save('FEMflatOutputsXforce.mat','ux','uy')
-        elseif oneORtwo == 0
-            save('FEMflatOutputsYforce.mat','ux','uy')
+    if doSave
+        if grooveHeight ~= 0
+            if oneORtwo == 1
+                save('FEMOutputsXforce.mat','ux','uy')
+            elseif oneORtwo == 0
+                save('FEMOutputsYforce.mat','ux','uy')
+            end
+        else
+            if oneORtwo == 1
+                save('FEMflatOutputsXforce.mat','ux','uy')
+            elseif oneORtwo == 0
+                save('FEMflatOutputsYforce.mat','ux','uy')
+            end
         end
     end
-
     toc
 end
 

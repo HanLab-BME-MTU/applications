@@ -46,7 +46,7 @@ elseif nargin<10 || strcmpi(method,'conv')
             integrandx = @(x,y) boussinesqGreens(1,1,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_x(i,jj) + boussinesqGreens(1,2,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_y(i,jj);
             integrandy = @(x,y) boussinesqGreens(2,1,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_x(i,jj) + boussinesqGreens(2,2,x0(i,jj)-x,y0(i,jj)-y,E,v).*force_y(i,jj);
 
-            ux(i,jj) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+            ux(i,jj) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10); %#ok<*AGROW> % RelTol sucks! 'RelTol',5e-13);
             uy(i,jj) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
         end
     end
@@ -56,6 +56,8 @@ elseif strcmpi(method,'FEM')
     % -= GROOVE FEM =-
     tic
     %% Create traction values and substrate bounds
+    doPlot = false;
+    doSave = false;
     %set force parameters
     forceOffsetX = 0; forceOffsetY = 0;
     %2 micron = 20 pixels, 0.1 um/pxl
@@ -66,9 +68,9 @@ elseif strcmpi(method,'FEM')
     %thickness = 800; 
     halfSide = x0(2);
     %set groove dimensions
-    grooveWidth = 5; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
+    grooveWidth = 8; %5 groove width = 0.5 um = 500 nm, 50 pxl groove width = 5 um
     fprintf('fwdSolution groove width: %1.1f micron \n',grooveWidth/10);
-    grooveHeight = 0; %5 default for all cases
+    grooveHeight = 5; %5 default for all cases
     
     vx = linspace(x0(1),x0(2),meshPtsFwdSol);
     vy = linspace(y0(1),y0(2),meshPtsFwdSol);
@@ -88,10 +90,37 @@ elseif strcmpi(method,'FEM')
                                     force_x(location.x,location.y);]; %forceInterpz is dummy variable for now  
     end
     
-    [xLoc,yLoc]=meshgrid(linspace(x0(1),x0(2),meshPtsFwdSol+1),linspace(x0(1),x0(2),meshPtsFwdSol+1));
+    [xLoc,yLoc]=meshgrid(linspace(x0(1),x0(2),2*meshPtsFwdSol+1),linspace(x0(1),x0(2),2*meshPtsFwdSol+1));
     xLin = xLoc(:); yLin = yLoc(:);
 
+    grooveEdges = [-grooveWidth/2, grooveWidth/2];
+    grooveFront = grooveWidth/2;
+    numGrooves = 1;
+    grooveLimit = 5; %total number of grooves (including one middle groove to draw on substrate) (multiple of 2 plus 1 [3,5,7 etc])
+    while grooveFront < halfSide/2 && numGrooves < grooveLimit
+        grooveEdges = [-grooveFront - 2*grooveWidth, -grooveFront - grooveWidth, grooveEdges, grooveFront + grooveWidth, grooveFront + 2*grooveWidth]; 
+        numGrooves = numGrooves + 2;
+        grooveFront = grooveFront + 2*grooveWidth;
+    end
+
+    %check to make sure the force mesh spacing is not too close to groove
+    %width which would cause mesh failure due to small geometries
     r = xmax + 1;
+    thresh = 3; %0.75
+    grooveDist = r - grooveEdges;
+    for i = length(grooveDist)/2:length(grooveDist)
+	    dist = grooveDist(i);
+	    if dist < thresh && dist > -thresh
+		    r = grooveEdges(i) + thresh;
+		    break
+	    end
+    end
+    % rErr = r - grooveWidth * 1.5;
+    % rErrThresh = 0.5;
+    % if rErr <= rErrThresh && rErr > 0
+    %     r = rErrThresh + grooveWidth * 1.5 + 0.5;
+    % end
+
     [xCirc,yCirc]=meshgrid(linspace(-r,r,r*4),linspace(-r,r,r*4));
     radiusFuzz = r / 50;
     xc = forceOffsetX; yc = forceOffsetY; n = 100; r = r - radiusFuzz;
@@ -110,16 +139,6 @@ elseif strcmpi(method,'FEM')
     circ = [1; forceOffsetX; forceOffsetY; r; 0; 0; 0; 0; 0; 0];
     ns = char('bound','circ');
     sf = '(bound+circ)';
-    
-    grooveEdges = [-grooveWidth/2, grooveWidth/2];
-    grooveFront = grooveWidth/2;
-    numGrooves = 1;
-    grooveLimit = 5; %total number of grooves (including one middle groove to draw on substrate) (multiple of 2 plus 1 [3,5,7 etc])
-    while grooveFront < halfSide/2 && numGrooves < grooveLimit
-        grooveEdges = [-grooveFront - 2*grooveWidth, -grooveFront - grooveWidth, grooveEdges, grooveFront + grooveWidth, grooveFront + 2*grooveWidth]; %#ok<AGROW>
-        numGrooves = numGrooves + 2;
-        grooveFront = grooveFront + 2*grooveWidth;
-    end
 
     %generate groove limits based on geometry size and groove dimensions
     % numGrooves = floor(ceil(numPix_x / grooveWidth)/2); %determine number of grooves
@@ -198,7 +217,7 @@ elseif strcmpi(method,'FEM')
     %fill the shape logic and name-space variables with numbered grooves
     if grooveHeight ~= 0
         for i = 1:numGrooves
-            sf = [sf,'+groo',num2str(i)]; %#ok<AGROW>
+            sf = [sf,'+groo',num2str(i)]; 
             ns = char(ns,['groo',num2str(i)]);
         end
         gd = [bound,circ,grooves]; %combine geometry descriptions
@@ -207,11 +226,15 @@ elseif strcmpi(method,'FEM')
     end
     ns = ns'; %flip name-space to column orientation
     [dl,~] = decsg(gd,sf,ns); %decompose geometry
-    figure,pdegplot(dl,'EdgeLabels','on','FaceLabels','on')
-    
+    if doPlot
+        figure,pdegplot(dl,'EdgeLabels','on','FaceLabels','on') %#ok<*UNRCH>
+    end
+
     temp = createpde; %create pde to contain geometry
     gtemp = geometryFromEdges(temp,dl); %convert edges into pdetool geometry description
-    figure,pdegplot(temp)
+    if doPlot
+        figure,pdegplot(temp)
+    end
     facets = facetAnalyticGeometry(temp,gtemp,0); %grab facets from the geometry
     gm = analyticToDiscrete(facets); %discretize facets to prep for extrusion
     temp.Geometry = gm; %reassociate discretized geometry
@@ -219,7 +242,9 @@ elseif strcmpi(method,'FEM')
     pdem = createpde('structural','static-solid'); %create main pde
     g = extrude(gm,thickness-grooveHeight); %initial extrusion of bulk substrate
     pdem.Geometry = g; %reassociate extruded geometry
-    figure,pdegplot(pdem,'FaceLabels','on','FaceAlpha',0.5)
+    if doPlot
+        figure,pdegplot(pdem,'FaceLabels','on','FaceAlpha',0.5)
+    end
     if grooveHeight ~= 0
         % below commented section was needed for 5 micron groove case at one point
         % grooveFaceIDs = [16,17,18,20,22,24];
@@ -230,7 +255,9 @@ elseif strcmpi(method,'FEM')
     end
 
     pdem.Geometry = g; %reassociate grooved geometry
-    figure,pdegplot(pdem,'FaceLabels','on')
+    if doPlot
+        figure,pdegplot(pdem,'FaceLabels','on')
+    end
 
     % FLAT SUBSTRATE GEOMETRY
     % bound = [3; 4; -halfSide; halfSide; halfSide; -halfSide; halfSide; halfSide; -halfSide; -halfSide];
@@ -269,6 +296,9 @@ elseif strcmpi(method,'FEM')
     %% Substrate material properties
     v = 0.49;
     structuralProperties(pdem,'YoungsModulus',E,'PoissonsRatio',v);
+    figure,pdegplot(pdem,'FaceLabels','on','FaceAlpha',0.5)
+    generateMesh(pdem,'Hmax',20, 'Hmin',1);
+    pdemesh(pdem)
 
     %% Generate mesh and solve
     try
@@ -303,18 +333,22 @@ elseif strcmpi(method,'FEM')
             end
         end
     end
-    figure,pdemesh(pdem)
+    if doPlot
+        figure,pdemesh(pdem)
+    end
     disp('Grooved forward solution finished successfully!')
 
     %% Visualize results
-    mapPad = 50;
-    figure,
-    pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude, ...
-        'Deformation',pdemResults.Displacement,'DeformationScaleFactor',1);
-    view(0,90)
-    xlim([128-mapPad 128+mapPad]), ylim([128-mapPad 128+mapPad])
-    figure,
-    pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude,'Mesh','on')
+    if doPlot
+        mapPad = 50;
+        figure,
+        pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude, ...
+            'Deformation',pdemResults.Displacement,'DeformationScaleFactor',1);
+        view(0,90)
+        xlim([128-mapPad 128+mapPad]), ylim([128-mapPad 128+mapPad])
+        figure,
+        pdeplot3D(pdem,'ColorMapData',pdemResults.Displacement.Magnitude,'Mesh','on')
+    end
 
     %% Interpolate results
     z_mat = thickness*ones(size(x_grid));
@@ -323,25 +357,30 @@ elseif strcmpi(method,'FEM')
     ux = interpdresults.ux;
     ux = reshape(ux,size(x_grid));
     ux(isnan(ux)) = 0;
-    figure, imshow(ux,[])
 
     uy = interpdresults.uy;
     uy = reshape(uy,size(y_grid));
     uy(isnan(uy)) = 0;
-    figure, imshow(uy,[])
+    if doPlot
+        figure, imshow(ux,[])
+        figure, imshow(uy,[])
+    end
+    
     
     %% Save fwdSol ux and uy maps
-    if grooveHeight ~= 0
-        if oneORtwo == 1
-            save('FEMOutputsXforce.mat','ux','uy')
-        elseif oneORtwo == 0
-            save('FEMOutputsYforce.mat','ux','uy')
-        end
-    else
-        if oneORtwo == 1
-            save('FEMflatOutputsXforce.mat','ux','uy')
-        elseif oneORtwo == 0
-            save('FEMflatOutputsYforce.mat','ux','uy')
+    if doSave
+        if grooveHeight ~= 0
+            if oneORtwo == 1
+                save('FEMOutputsXforce.mat','ux','uy')
+            elseif oneORtwo == 0
+                save('FEMOutputsYforce.mat','ux','uy')
+            end
+        else
+            if oneORtwo == 1
+                save('FEMflatOutputsXforce.mat','ux','uy')
+            elseif oneORtwo == 0
+                save('FEMflatOutputsYforce.mat','ux','uy')
+            end
         end
     end
 
@@ -785,7 +824,7 @@ return;
 %x0_vec=linspace(-5,20,30);
 %y0_vec=linspace(1,6,15);
 
-x0_vec=linspace(-50,200,51); %#ok<UNRCH>
+x0_vec=linspace(-50,200,51); 
 y0_vec=linspace(0,600,61);
 
 [x0 y0]=meshgrid(x0_vec,y0_vec);

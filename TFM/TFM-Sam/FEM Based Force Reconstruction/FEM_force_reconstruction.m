@@ -615,7 +615,7 @@ function [sol_coef,reg_corner] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveData
             disp('L-corner will be chosen')
             [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
         elseif strcmp(lcornerOptimal,'diffmin')
-            regType = 'crosspoint'; %bl2 or gcv or crosspoint
+            regType = 'other'; %bl2 or gcv or crosspoint
             switch regType
                 case 'bl2'
                     %code adapted from:

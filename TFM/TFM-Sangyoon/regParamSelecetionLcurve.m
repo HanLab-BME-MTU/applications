@@ -153,7 +153,7 @@ elseif inflection==3 % mininum Curvature point which represents the rapid drop o
 elseif inflection == 4
     disp('Inverted max curvature detection')
     %regTypes = ['normalized','crosspoint'];
-    regType = 'crosspoint';
+    regType = 'normalized';
     switch regType
         case 'normalized'
             disp('Normalize radius of curvature based') %#ok<*UNRCH>
