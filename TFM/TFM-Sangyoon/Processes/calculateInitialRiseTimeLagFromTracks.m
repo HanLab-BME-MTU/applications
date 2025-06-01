@@ -193,17 +193,18 @@ for ii=1:numel(tracksNA)
 end
 %% Another output setup
 existingSlaveIDs=find(existingSlaveIDs);
+masterName = 'ampTotal';
 for i = existingSlaveIDs
-    [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
-    outFilename = [chanDirName '_initialTimeDelayIntAgainst_' potentialSlaves{i}];
+    % [~, chanDirName, ~] = fileparts(MD.getChannelPaths{i});
+    outFilename = [masterName '_initialTimeDelayIntAgainst_' potentialSlaves{i}];
     outputFile{2,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName 'peakTimeIntAgainst_' potentialSlaves{i}];
+    outFilename = [masterName 'peakTimeIntAgainst_' potentialSlaves{i}];
     outputFile{3,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName '_endingIntAgainst_' potentialSlaves{i}];
+    outFilename = [masterName '_endingIntAgainst_' potentialSlaves{i}];
     outputFile{4,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName '_crossCorrelationScore_' potentialSlaves{i}];
+    outFilename = [masterName '_crossCorrelationScore_' potentialSlaves{i}];
     outputFile{5,i} = [p.OutputDirectory filesep outFilename '.mat'];
-    outFilename = [chanDirName '_crossCorrelationTimeLag_' potentialSlaves{i}];
+    outFilename = [masterName '_crossCorrelationTimeLag_' potentialSlaves{i}];
     outputFile{6,i} = [p.OutputDirectory filesep outFilename '.mat'];
 end
 timeLagProc.setOutFilePaths(outputFile);

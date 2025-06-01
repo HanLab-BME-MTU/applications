@@ -104,7 +104,7 @@ for ii=1:nFrames
     labelAdhesion(:,:,ii) = bwlabel(maskAdhesion,4);
 end
 %% fretMap
-iProc = MD.getProcessIndex('DoubleProcessingProcess',1,0);
+iProc = MD.getProcessIndex('RatioProcess',1,0); %('DoubleProcessingProcess',1,0);
 if ~isempty(iProc) && ~contains(MD.getProcessTags{iProc},'OutputTFMProcess')
     p = MD.processes_{iProc}.funParams_;
 
