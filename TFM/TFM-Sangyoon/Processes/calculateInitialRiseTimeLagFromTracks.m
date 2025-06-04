@@ -260,14 +260,19 @@ for jj=existingSlaveIDs
     parfor k=1:numel(tracksNA)
         presIdx = tracksNA(k).startingFrameExtra:tracksNA(k).endingFrameExtra;%logical(tracksNA(k).presence);
         maxLag = ceil(tracksNA(k).lifeTime/2);
-        [curCC,~,curLag]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),...
-            getfield(tracksNA(k),{1},curSlave,{presIdx}),'corrType','Pearson','maxLag',maxLag);
-        [CCscoreMax(k), curMaxInd] = max(curCC);
-        CCmaxLag(k)=curLag(curMaxInd)*tInterval; % in sec
+        if all(isnan(getfield(tracksNA(k),{1},curSlave,{presIdx})))
+            CCmaxLag(k) = NaN;
+            CCscoreMax(k) = NaN;
+        else
+            [curCC,~,curLag]  = nanCrossCorrelation(tracksNA(k).ampTotal(presIdx),...
+                getfield(tracksNA(k),{1},curSlave,{presIdx}),'corrType','Pearson','maxLag',maxLag);
+            [CCscoreMax(k), curMaxInd] = max(curCC);
+            CCmaxLag(k)=curLag(curMaxInd)*tInterval; % in sec
+        end
     end
     CCscoreMaxAll{jj} = CCscoreMax;
     CClagAll{jj} = CCmaxLag;
-    disp(['Median of CCmaxLag' curSlave 'All = ' num2str(median(CCmaxLag))])
+    disp(['Median of CCmaxLag' curSlave 'All = ' num2str(median(CCmaxLag,"omitmissing"))])
     % Save these shortly
     save(outputFile{2,jj},'curFirstIncreseTimeIntAgainstSlave','-v7.3'); 
     save(outputFile{3,jj},'curPeakTimeIntAgainstSlave','-v7.3'); 
