@@ -65,6 +65,7 @@ set(handles.listbox_maskChannels,'String',props{1},'UserData',props{1});
 
 % Store the image directories and filterSigma values (for multi-channel)
 userData.filterSigma = funParams.filterSigma;
+set(handles.edit_filterSigma,'String',num2str(userData.filterSigma))
 
 % Update status of noise parameter fields
 userData.noiseParams={'I0','sDN','GaussRatio'};
@@ -162,10 +163,10 @@ funParams.paramSpeckles=[get(handles.popupmenu_speckleOrder,'Value')...
     str2double(get(handles.edit_percEdit, 'String'))];
 % Save the filterSigma if different from psfSigma
 % In order not to override filterSigma in batch movie set up
+userData.filterSigma = str2double(get(handles.edit_filterSigma,"String"));
 if ~isequal(userData.filterSigma,[userData.MD.channels_.psfSigma_])
     funParams.filterSigma = userData.filterSigma;
 end
-
 
 if isempty(userData.crtPackage.processes_{1})
     for i=1:numel(userData.noiseParams)

@@ -462,6 +462,11 @@ for c1=1:length(cands)
     
     % imgO is the original filtered image
     Imin = mean(nonzeros([imgO(indBkg1(c1)), imgO(indBkg2(c1)), imgO(indBkg3(c1))]));
+    % If there is no nonzeros in img0 in any indBkgs, Imin becomes NaN,
+    % I'll make it zero for the next step. - Sangyoon June 4, 2025 
+    if isnan(Imin)
+        Imin = 0;
+    end
     
     [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status]=...
         testSpeckleSignificance(Imax,Imin,k,sigmaD,PoissonNoise,I0);
