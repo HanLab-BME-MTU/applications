@@ -273,7 +273,7 @@ if ~(value>0),
 else
     % Update the sigma value in the stored array-
     userData.filterSigma(chanIndx) = value;
-    set(handles.edit_filterSigma, 'String', num2str(value));
+    % set(handles.edit_filterSigma, 'String', num2str(value));
     guidata(hObject, handles);
 end
 % --- Executes on button press in pushbutton_done.
@@ -310,9 +310,10 @@ funParams.lastImage=userData.lastImage;
 
 % Save the filterSigma if different from psfSigma
 % In order not to override filterSigma in batch movie set up
+userData.filterSigma = str2double(get(handles.edit_filterSigma,'String'));
 if ~isequal(userData.filterSigma,[userData.MD.channels_.psfSigma_])
     % funParams.filterSigma = userData.filterSigma;
-    funParams.filterSigma = str2double(get(handles.edit_filterSigma,'String'));
+    funParams.filterSigma = userData.filterSigma;
 end
 
 % Set parameters and update main window

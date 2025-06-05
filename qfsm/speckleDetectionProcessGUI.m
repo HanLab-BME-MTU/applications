@@ -61,8 +61,9 @@ set(handles.edit_percEdit,'String',funParams.paramSpeckles(2));
 
 % Set the same channels for the masks as for the detectable channels
 props=get(handles.listbox_selectedChannels,{'String','UserData'});
-set(handles.listbox_maskChannels,'String',props{1},'UserData',props{1});  
-
+set(handles.listbox_maskChannels,'Value', props{2}, 'String',props{1},'UserData',props{1});  
+% Added 'Value', props{2} to limit the mask channels to be the same as
+% selectedChannels.
 % Store the image directories and filterSigma values (for multi-channel)
 userData.filterSigma = funParams.filterSigma;
 set(handles.edit_filterSigma,'String',num2str(userData.filterSigma))
