@@ -18,6 +18,7 @@ ip.addParameter('drawingOnly',false, @islogical); %This is used only when you wa
 ip.addParameter('Property','earlyAmpSlope', @ischar); %0 for all classes and pick manually
 ip.addParameter('PropRange',[-1 1], @isnumeric);
 ip.addParameter('Colormap',jet, @(x) isnumeric(x) && size(x,2)==3); 
+ip.addParameter('gPath',[], @ischar);
 ip.parse(tracksNA, imgMap, varargin{:});
 % pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
@@ -35,6 +36,7 @@ drawingOnly=ip.Results.drawingOnly;
 Property=ip.Results.Property;
 PropRange=ip.Results.PropRange;
 Colormap=ip.Results.Colormap;
+gPath=ip.Results.gPath;
 %% Load processed data
 % movieData to find out pixel size
 if isempty(MD)
@@ -231,7 +233,7 @@ function pushInspectAdhesion(~,~)
         if isempty(tMap)
             tMap = fretMap;
         end
-        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);        
+        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect,gPath);        
         
         % Display the threshold of the currently assigned class
         

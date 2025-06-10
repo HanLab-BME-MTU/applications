@@ -138,6 +138,11 @@ curClass=iRepClass;
     % unlabed ones with white color. Get the right classes per newly selected
     % adhesions
     if PickManually
+        gPath = [faPackage.outputDirectory_ filesep 'RepTracks'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
+
         waitHan = msgbox({'You will see the cell window and classified adhesion tracks with color';
         'label. After closing this window, you can select ';
         ', by using Data Tips icon, a colored (classified)';
@@ -145,7 +150,7 @@ curClass=iRepClass;
 
         uiwait(waitHan);    
         pickAdhesionTracksInteractive(tracksNA, imgStack,...
-            'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2,'fretMap',fretMap, 'idSelected',iClasses);
+            'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2,'fretMap',fretMap, 'gPath', gPath,'idSelected',iClasses);
     end
 
     %% background substraction
