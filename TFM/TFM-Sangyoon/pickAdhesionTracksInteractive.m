@@ -12,6 +12,7 @@ ip.addParameter('iChan',2,@isscalar); % This is the master channle index.
 ip.addParameter('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the slave channle index.
 ip.addParameter('tMap',[],@(x) (isnumeric(x))); % This is the master channle index.
 ip.addParameter('imgMap2',[],@(x) (isnumeric(x))); % This is the master channle index.
+ip.addParameter('fretMap',[],@(x) (isnumeric(x))); % This is the master channle index.
 ip.addParameter('idSelected',[],@(x) (isstruct(x) | iscell(x))); % This is the master channle index.
 ip.addParameter('drawingOnly',false, @islogical); %This is used only when you want to show the movie with tracks overlaid
 ip.addParameter('Property','earlyAmpSlope', @ischar); %0 for all classes and pick manually
@@ -27,6 +28,7 @@ iChan=ip.Results.iChan;
 iChanSlave=ip.Results.iChanSlave;
 imgMap=ip.Results.imgMap;
 tMap=ip.Results.tMap;
+fretMap=ip.Results.fretMap;
 imgMap2=ip.Results.imgMap2;
 idSelected=ip.Results.idSelected;
 drawingOnly=ip.Results.drawingOnly;
@@ -226,6 +228,9 @@ function pushInspectAdhesion(~,~)
         end
         curTrack = tracksNA(IDtoInspect);
 
+        if isempty(tMap)
+            tMap = fretMap;
+        end
         h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);        
         
         % Display the threshold of the currently assigned class
