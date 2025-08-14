@@ -12,11 +12,13 @@ ip.addParameter('iChan',2,@isscalar); % This is the master channle index.
 ip.addParameter('iChanSlave',[],@(x) (isscalar(x) | isempty(x))); % This is the slave channle index.
 ip.addParameter('tMap',[],@(x) (isnumeric(x))); % This is the master channle index.
 ip.addParameter('imgMap2',[],@(x) (isnumeric(x))); % This is the master channle index.
+ip.addParameter('fretMap',[],@(x) (isnumeric(x))); % This is the master channle index.
 ip.addParameter('idSelected',[],@(x) (isstruct(x) | iscell(x))); % This is the master channle index.
 ip.addParameter('drawingOnly',false, @islogical); %This is used only when you want to show the movie with tracks overlaid
 ip.addParameter('Property','earlyAmpSlope', @ischar); %0 for all classes and pick manually
 ip.addParameter('PropRange',[-1 1], @isnumeric);
 ip.addParameter('Colormap',jet, @(x) isnumeric(x) && size(x,2)==3); 
+ip.addParameter('gPath',[], @ischar);
 ip.parse(tracksNA, imgMap, varargin{:});
 % pathForColocalization=ip.Results.pathForColocalization;
 tracksNA=ip.Results.tracksNA;
@@ -27,12 +29,14 @@ iChan=ip.Results.iChan;
 iChanSlave=ip.Results.iChanSlave;
 imgMap=ip.Results.imgMap;
 tMap=ip.Results.tMap;
+fretMap=ip.Results.fretMap;
 imgMap2=ip.Results.imgMap2;
 idSelected=ip.Results.idSelected;
 drawingOnly=ip.Results.drawingOnly;
 Property=ip.Results.Property;
 PropRange=ip.Results.PropRange;
 Colormap=ip.Results.Colormap;
+gPath=ip.Results.gPath;
 %% Load processed data
 % movieData to find out pixel size
 if isempty(MD)
@@ -226,7 +230,10 @@ function pushInspectAdhesion(~,~)
         end
         curTrack = tracksNA(IDtoInspect);
 
-        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect);        
+        if isempty(tMap)
+            tMap = fretMap;
+        end
+        h2 = showSingleAdhesionTrackSummary(MD,curTrack,imgMap,tMap,imgMap2, IDtoInspect,gPath);        
         
         % Display the threshold of the currently assigned class
         

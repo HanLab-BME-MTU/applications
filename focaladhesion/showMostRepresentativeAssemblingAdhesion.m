@@ -41,7 +41,7 @@ TimeShiftFromMedian=ip.Results.TimeShiftFromMedian;
 iSlave=ip.Results.iSlave;
 
 tInterval = MD.timeInterval_;
-potentialSlaves = {'forceMag','amp2','amp3'};
+potentialSlaves = {'forceMag','amp2','amp3','fret'};
 % existingSlaveIDs = isfield(tracksNA,potentialSlaves);
 if mod(TimeShiftFromMedian,tInterval)>0
     disp(['Previous time shift was ' num2str(TimeShiftFromMedian) '.'])
@@ -55,7 +55,7 @@ classProc = faPackage.getProcess(8);
 iChan = find(classProc.checkChannelOutput);
 
 %% persistent set up for large memory-requiring variable
-persistent imgStack tMap imgStack2 tracksNA curChanPath
+persistent imgStack tMap imgStack2 fretMap tracksNA curChanPath
 %% Load tracksNA
 finalProc = faPackage.getProcess(11);
 
@@ -131,13 +131,18 @@ curClass=iRepClass;
     end    
     
     if isempty(imgStack) || ~strcmp(curChanPath, MD.channels_(1).channelPath_)
-        [imgStack, tMap, imgStack2] = getAnyStacks(MD);
+        [imgStack, tMap, imgStack2, fretMap] = getAnyStacks(MD);
         curChanPath = MD.channels_(1).channelPath_;
     end
     %% Launch pickAdhesion window with labeled adhesions with a right color and
     % unlabed ones with white color. Get the right classes per newly selected
     % adhesions
     if PickManually
+        gPath = [faPackage.outputDirectory_ filesep 'RepTracks'];
+        if ~exist(gPath,'dir')
+            mkdir(gPath)
+        end
+
         waitHan = msgbox({'You will see the cell window and classified adhesion tracks with color';
         'label. After closing this window, you can select ';
         ', by using Data Tips icon, a colored (classified)';
@@ -145,7 +150,7 @@ curClass=iRepClass;
 
         uiwait(waitHan);    
         pickAdhesionTracksInteractive(tracksNA, imgStack,...
-            'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2, 'idSelected',iClasses);
+            'movieData',MD,'tMap',tMap, 'imgMap2',imgStack2,'fretMap',fretMap, 'gPath', gPath,'idSelected',iClasses);
     end
 
     %% background substraction
