@@ -55,7 +55,7 @@ classdef AdhBoundaryDisplay < MovieDataDisplay
                     end
                 end
             end
-            set(h,'Tag',tag);
+            % set(h,'Tag',tag);
         end
 
         function updateDraw(obj, h, data, varargin)
