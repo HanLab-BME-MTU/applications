@@ -70,10 +70,14 @@ end
 if nargout>2
     if ~isempty(SDCProc_FA)
         tOtherProc = FAPack.getProcess(9);
-        iTheOtherChan = find(tOtherProc.checkChannelOutput);
-        if ismember(iTheOtherChan, find(SDCProc_FA.checkChannelOutput)) && ...
-                ~isempty(FAPack.getProcess(9))
-            imgStack2 = SDCProc_FA.loadOutStack(iTheOtherChan);
+        if ~isempty(tOtherProc)
+            iTheOtherChan = find(tOtherProc.checkChannelOutput);
+            if ismember(iTheOtherChan, find(SDCProc_FA.checkChannelOutput)) && ...
+                    ~isempty(FAPack.getProcess(9))
+                imgStack2 = SDCProc_FA.loadOutStack(iTheOtherChan);
+            else
+                imgStack2 = [];
+            end
         else
             imgStack2 = [];
         end

@@ -16,7 +16,7 @@ ip.addParameter('fretMap',[],@(x) (isnumeric(x))); % This is the master channle 
 ip.addParameter('idSelected',[],@(x) (isstruct(x) | iscell(x))); % This is the master channle index.
 ip.addParameter('drawingOnly',false, @islogical); %This is used only when you want to show the movie with tracks overlaid
 ip.addParameter('Property','earlyAmpSlope', @ischar); %0 for all classes and pick manually
-ip.addParameter('PropRange',[-1 1], @isnumeric);
+ip.addParameter('PropRange',[-1 1], @(x) (ischar(x) | isnumeric(x)));
 ip.addParameter('Colormap',jet, @(x) isnumeric(x) && size(x,2)==3); 
 ip.addParameter('gPath',[], @ischar);
 ip.parse(tracksNA, imgMap, varargin{:});
@@ -144,15 +144,15 @@ imshow(imgMap(:,:,startFrame),[]), hold on
 hL1 = line([10 10+scaleBarLargeView*1000/pixSize],[10 10],'LineWidth',2,'Color',[1,1,1]);
 hT4 = text(10,20,[num2str(scaleBarLargeView) ' \mum']); hT4.Color='w'; hT4.FontSize=5;
 if drawingOnly
-    drawTracksColormap(tracksNA,1,Property,PropRange,Colormap);
+    [~,PropRange] = drawTracksColormap(tracksNA,1,Property,PropRange,Colormap);
     % colorbar
     handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
-    lineBox = repmat(PropRange(1):PropRange(2),20,1);
+    lineBox = repmat(linspace(PropRange(1),PropRange(2),100),20,1);
     imshow(lineBox,PropRange);
     colormap(handles.axes3, jet)
     hT1 = text(-0.1,1,num2str(PropRange(1))); hT1.Units='normalized'; hT1.Position=[-0.1 2 0]; hT1.Color='w'; hT1.FontSize=6;
     hT2 = text(1.4,1,num2str(PropRange(2))); hT2.Units='normalized'; hT2.Position=[0.9 2 0]; hT2.Color='w'; hT2.FontSize=6;
-    hT3 = text(50,60,Property); hT3.Units='normalized'; hT3.Position=[0.15 3 0];     hT3.Color='w'; hT3.FontSize=6;
+    hT3 = text(0.5,1,Property); hT3.Units='normalized'; hT3.Position=[0.5 2.8 0];     hT3.Color='w'; hT3.FontSize=7; hT3.HorizontalAlignment='center';
 else
     if ~isempty(idSelected)
         htrackG = drawSelectedTracks(tracksNA,idSelected,1,gca);
@@ -468,12 +468,12 @@ function XListenerCallBack
         drawTracksColormap(tracksNA,1,Property,PropRange,Colormap);
         % colorbar
         handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
-        lineBox = repmat(PropRange(1):PropRange(2),20,1);
+        lineBox = repmat(linspace(PropRange(1),PropRange(2),100),20,1);
         imshow(lineBox,PropRange);
         colormap(handles.axes3, jet)
         hT1 = text(-0.1,1,num2str(PropRange(1))); hT1.Units='normalized'; hT1.Position=[-0.1 2 0]; hT1.Color='w';  hT1.FontSize=6;
         hT2 = text(1.4,1,num2str(PropRange(2))); hT2.Units='normalized'; hT2.Position=[0.9 2 0]; hT2.Color='w'; hT2.FontSize=6;
-        hT3 = text(50,60,Property); hT3.Units='normalized'; hT3.Position=[0.15 3 0];     hT3.Color='w'; hT3.FontSize=6;
+        hT3 = text(0.5,1,Property); hT3.Units='normalized'; hT3.Position=[0.5 2.8 0];     hT3.Color='w'; hT3.FontSize=7; hT3.HorizontalAlignment='center';
     else    
         if ~isempty(idSelected)
             htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);
@@ -538,12 +538,12 @@ function XSliderCallback(~,~)
         drawTracksColormap(tracksNA,CurrentFrame,Property,PropRange,Colormap);
         % colorbar
         handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
-        lineBox = repmat(PropRange(1):PropRange(2),30,1);
+        lineBox = repmat(linspace(PropRange(1),PropRange(2),100),20,1);
         imshow(lineBox,PropRange);
         colormap(handles.axes3, jet)
         hT1 = text(-0.1,1,num2str(PropRange(1))); hT1.Units='normalized'; hT1.Position=[-0.1 2 0]; hT1.Color='w'; hT1.FontSize=6;
         hT2 = text(1.4,1,num2str(PropRange(2))); hT2.Units='normalized'; hT2.Position=[0.9 2 0]; hT2.Color='w'; hT2.FontSize=6;
-        hT3 = text(50,60,Property); hT3.Units='normalized'; hT3.Position=[0.15 3 0];     hT3.Color='w'; hT3.FontSize=6;
+        hT3 = text(0.5,1,Property); hT3.Units='normalized'; hT3.Position=[0.5 2.8 0];     hT3.Color='w'; hT3.FontSize=7; hT3.HorizontalAlignment='center';
     else
         if ~isempty(idSelected)
             htrackG = drawSelectedTracks(tracksNA,idSelected,CurrentFrame,gca);

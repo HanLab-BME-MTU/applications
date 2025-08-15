@@ -1,4 +1,4 @@
-function h = drawTracksColormap(tracksNA,iFrame,Property,PropRange,Colormap)
+function [h,PropRange] = drawTracksColormap(tracksNA,iFrame,Property,PropRange,Colormap)
 % h = drawTracksColormap(tracksNA,iFrame,Property,PropRange,Colormap) draws
 % trajectories of adhesions on top of an existing figure, colorcoded w.r.t.
 % Property with PropRange.
@@ -15,10 +15,16 @@ lineWidth = 1;
 nColors = size(Colormap,1);
 
 intensity= arrayfun(@(x) x.(Property),tracksNA); %(u.^2+v.^2).^(1/2);
+if strcmp(PropRange,'auto')
+    clear PropRange
+    PropRange=[min(intensity,[],"omitnan") max(intensity,[], "omitnan")];
+end
 vColor=floor(scaleContrast(intensity,PropRange,[1 nColors]));
 vColor(vColor<1)=1;
 vColor(vColor>nColors)=nColors;
 vIndex= unique(vColor);
+% Removing NaNs
+vIndex = vIndex(~isnan(vIndex));
 hold on
 % Create array of quiverplots
 for i=1:numel(vIndex)
@@ -27,10 +33,10 @@ for i=1:numel(vIndex)
     xmat = cell2mat(arrayfun(@(x) x.xCoord(1:iFrame),tracksNA(idx),'UniformOutput',false));
     ymat = cell2mat(arrayfun(@(x) x.yCoord(1:iFrame),tracksNA(idx),'UniformOutput',false));
     if size(xmat,2)==1
-        h{i}=plot(xmat',ymat','.','Color',Colormap(vIndex(i),:),'MarkerSize',markerSize);
+        h{i}=plot(xmat',ymat','o','Color',Colormap(vIndex(i),:),'MarkerSize',markerSize);
     else
         h{i}=plot(xmat',ymat','Color',Colormap(vIndex(i),:),'LineWidth',lineWidth);
-        plot(xmat(:,end)',ymat(:,end)','.','Color',Colormap(vIndex(i),:),'LineWidth',lineWidth/2,'MarkerSize',markerSize);
+        plot(xmat(:,end)',ymat(:,end)','o','Color',Colormap(vIndex(i),:),'LineWidth',lineWidth/2,'MarkerSize',markerSize);
 %         idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA) & vColor==vIndex(i);
 %         idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
 %         idAdh = find(idAdhLogic);

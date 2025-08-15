@@ -354,6 +354,36 @@ if ~foundTracks
         % get rid of tracks that have out of bands...
         disp(['Total ' num2str(sum(trackIdx)) ' tracks.'])
         tracksNA = tracksNA(trackIdx);
+    else
+        %Need to have mask
+        % Cell Boundary Mask 
+        masterMask=zeros(MD.imSize_(1),MD.imSize_(2),nFrames);
+        for ii=1:nFrames
+            if ApplyCellSegMask        
+                if sum(maskProc.checkChannelOutput)>1
+                    %Combine the the multiple masks to one
+                    if ii==1
+                        disp('All channels are combined for cell mask')
+                    end
+                    maskEach = arrayfun(@(x) maskProc.loadChannelOutput(x,ii),find(maskProc.checkChannelOutput),'UniformOutput',false);
+                    maskAll=reshape(cell2mat(maskEach),size(I,1),size(I,2),[]);
+                    mask = any(maskAll,3);
+                elseif find(maskProc.checkChannelOutput)~=iChan
+                    if ii==1
+                        disp('The channel other than adhesion channel is used for cell mask')
+                    end
+                    mask = maskProc.loadChannelOutput(find(maskProc.checkChannelOutput),ii); % 1 is CCP channel
+                elseif nChans==1 || find(maskProc.checkChannelOutput)==iChan
+                    if ii==1
+                        disp('Adhesion channel is used for mask')
+                    end
+                    mask = maskProc.loadChannelOutput(iChan,ii); % 1 is CCP channel
+                end
+            else
+                mask = true(MD.imSize_);
+            end
+            masterMask(:,:,ii)=mask;
+        end        
     end
     %% add intensity of tracks including before and after NA status
     % get the movie stack
@@ -410,6 +440,7 @@ if ~foundTracks
     numTracks=numel(tracksNA);
     fString = ['%0' num2str(floor(log10(numTracks))+1) '.f'];
     numStr = @(trackNum) num2str(trackNum,fString);
+    trackFolderPath = [p.OutputDirectory filesep 'trackIndividual'];
     trackIndPath = @(trackNum) [trackFolderPath filesep 'track' numStr(trackNum) '.mat'];
     
     %% SDC application to tracksNA
@@ -632,7 +663,8 @@ if ~foundTracks && ~isfield(tracksNA,'faID')
 %             else
 %                 imwrite(uint16(labelAdhesion), strcat(labelTifPath,'/label',num2str(ii,iiformat),'.tif'),'Compression','none');
 %             end
-%             for k=1:numTracks
+            % for k=1:numTracks
+            
             parfor k=1:numTracks
                 curTrack=tracksNA(k);
                 if curTrack.presence(ii)
