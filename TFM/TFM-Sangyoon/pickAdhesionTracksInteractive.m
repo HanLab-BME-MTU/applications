@@ -106,6 +106,8 @@ tInterval = MD.timeInterval_; % time interval in sec
 scaleBar = 1; %micron
 scaleBarLargeView = 5; %micron
 
+faPackage=MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
+adhAnalProc = faPackage.getProcess(7);
 trainerInitially = false;
 allDataClass = [];
 % if ~isempty(T)
@@ -144,7 +146,7 @@ imshow(imgMap(:,:,startFrame),[]), hold on
 hL1 = line([10 10+scaleBarLargeView*1000/pixSize],[10 10],'LineWidth',2,'Color',[1,1,1]);
 hT4 = text(10,20,[num2str(scaleBarLargeView) ' \mum']); hT4.Color='w'; hT4.FontSize=5;
 if drawingOnly
-    [~,PropRange] = drawTracksColormap(tracksNA,1,Property,PropRange,Colormap);
+    [~,PropRange] = drawTracksColormap(tracksNA,1,Property,PropRange,Colormap,adhAnalProc);
     % colorbar
     handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
     lineBox = repmat(linspace(PropRange(1),PropRange(2),100),20,1);
@@ -465,7 +467,7 @@ function XListenerCallBack
         'LineWidth',2,'Color',[1,1,1]);
     hT4 = text(prevXLim(1)+10,prevYLim(1)+20,[num2str(scaleBarLargeView) '\mum']); hT4.Color='w';  hT4.FontSize=5;
     if drawingOnly
-        drawTracksColormap(tracksNA,1,Property,PropRange,Colormap);
+        drawTracksColormap(tracksNA,1,Property,PropRange,Colormap,adhAnalProc);
         % colorbar
         handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
         lineBox = repmat(linspace(PropRange(1),PropRange(2),100),20,1);
@@ -535,7 +537,7 @@ function XSliderCallback(~,~)
     hT4 = text(prevXLim(1)+10,prevYLim(1)+20,[num2str(scaleBarLargeView) '\mum']); hT4.Color='w';  hT4.FontSize=5;
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
     if drawingOnly
-        drawTracksColormap(tracksNA,CurrentFrame,Property,PropRange,Colormap);
+        drawTracksColormap(tracksNA,CurrentFrame,Property,PropRange,Colormap,adhAnalProc);
         % colorbar
         handles.axes3 = axes('Units','normalized','Position',[0.2 0.06 0.6 0.03]);
         lineBox = repmat(linspace(PropRange(1),PropRange(2),100),20,1);
