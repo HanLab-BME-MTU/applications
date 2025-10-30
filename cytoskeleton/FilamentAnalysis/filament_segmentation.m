@@ -136,6 +136,12 @@ if(length(funParams.StPace_Size)==1 && numel(movieData.channels_)>1)
     funParams.training_sample_number = funParams.training_sample_number*ones_array;
 end
 
+% ---- Units from movieData.pixelSize (nm/pixel) ----
+if isfield(movieData,'pixelSize') && ~isempty(movieData.pixelSize) && movieData.pixelSize > 0
+    pxPerUm = 1000 / movieData.pixelSize;   % pixels per micron
+else
+    pxPerUm = [];                            % fall back: curvature in 1/pixel
+end
 
 %% Output Directories
 
@@ -194,7 +200,7 @@ funParams_st=movieData.processes_{indexSteerabeleProcess}.funParams_;
 BaseSteerableFilterSigma = funParams_st.BaseSteerableFilterSigma;
 Levelsofsteerablefilters = funParams_st.Levelsofsteerablefilters;
 ImageFlattenFlag = funParams_st.ImageFlattenFlag;
-
+% showPlots = funParams.savestepfigures;
 indexFlattenProcess = 0;
 for i = 1 : nProcesses
     if(strcmp(movieData.processes_{i}.getName,'Image Flatten')==1)
@@ -527,14 +533,14 @@ for iChannel = selected_channels
         %
         %         median_nms = median(nms(:));
         %         quarter_nms = median(nms(find(nms>median_nms)));
-         if ~strcmp(Combine_Way,'int_only')
+        if ~strcmp(Combine_Way,'int_only')
        
-        open_nms = imopen(nms, ones(2,2));
-        eroded_nms = nms-open_nms;
-        
-        %use the opened image;
-        nms = eroded_nms;
-         end
+            open_nms = imopen(nms, ones(2,2));
+            eroded_nms = nms-open_nms;
+            
+            %use the opened image;
+            nms = eroded_nms;
+        end
          
         stophere=1;
         
@@ -578,7 +584,7 @@ for iChannel = selected_channels
                 %                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound*0.7,0,Whole_movie_stat_cell{iChannel}.otsu_ST);
                 %                 [level2, NMS_Segment ] = thresholdLocalSeg(nms,'Rosin',StPatch_Size,StPace_Size,Stlowerbound*1.3,0,Whole_movie_stat_cell{iChannel}.otsu_NMS);
                 [level1, SteerabelRes_Segment ] = thresholdLocalSeg(MAX_st_res,'Otsu',StPatch_Size,StPace_Size,Stlowerbound*0.7,'showPlots',0);
-                [level2, NMS_Segment ] = thresholdLocalSeg(nms,'Rosin',StPatch_Size,StPace_Size,Stlowerbound*1.3,showPlots,0);
+                [level2, NMS_Segment ] = thresholdLocalSeg(nms,'Rosin',StPatch_Size,StPace_Size,Stlowerbound*1.3,'showPlots',0);
                 current_seg = imdilateWithScale(NMS_Segment,scaleMap,BaseSteerableFilterSigma.*(2.^((1:Levelsofsteerablefilters)-1)))...
                     .*SteerabelRes_Segment;
                 
@@ -762,29 +768,148 @@ for iChannel = selected_channels
         MaskCell=MaskCell>0;
         current_seg = current_seg.*MaskCell;
         
-         if ~strcmp(Combine_Way,'int_only')
+        if ~strcmp(Combine_Way,'int_only')
        
-        %%
-        % A smoothing done only at the steerable filtering results, if only intensity only, then the same
-        orienation_map_filtered = OrientationSmooth(orienation_map, SteerabelRes_Segment);
-        
-        %%
-        % % Voting of the orientation field for the non-steerable filter
-        % % segmented places.
-        
-        % % the voting is not in use
-        % OrientationVoted = OrientationVote(orienation_map,SteerabelRes_Segment,3,45);
-        OrientationVoted= orienation_map_filtered;
-        
-        intensity_addon = current_seg - SteerabelRes_Segment ==1;
-        if (~isempty(max(max(intensity_addon))>0))
-            orienation_map_filtered(find(intensity_addon>0)) = OrientationVoted(find(intensity_addon>0));
+            %%
+            % A smoothing done only at the steerable filtering results, if only intensity only, then the same
+            orientation_map_filtered = OrientationSmooth(orienation_map, SteerabelRes_Segment);
+            
+            %%
+            % % Voting of the orientation field for the non-steerable filter
+            % % segmented places.
+            
+            % % the voting is not in use
+            % OrientationVoted = OrientationVote(orienation_map,SteerabelRes_Segment,3,45);
+            OrientationVoted= orientation_map_filtered;
+            
+            intensity_addon = current_seg - SteerabelRes_Segment ==1;
+            if (~isempty(max(max(intensity_addon))>0))
+                orientation_map_filtered(find(intensity_addon>0)) = OrientationVoted(find(intensity_addon>0));
+            end
+        else
+            orientation_map_filtered = ones(size(current_seg));
+            nms = zeros(size(current_seg));
         end
-         else
-             orienation_map_filtered = ones(size(current_seg));
-             nms = zeros(size(current_seg));
-         end
          
+        %% ===== Curvature on THICK segmentation using existing centerlines =====
+        % Units from movieData.pixelSize (nm/pixel) ? 1/µm
+        if isfield(movieData,'pixelSize_') && ~isempty(movieData.pixelSize_) && movieData.pixelSize_>0
+            pxPerUm = 1000 / movieData.pixelSize_;  % pixels per micron
+        else
+            pxPerUm = [];
+        end
+        
+        % 0) Build centerline mask from your existing centerlines
+        if exist('current_model','var') && ~isempty(current_model)
+            % Use your model centerlines (preferred)
+            [Vif_digital_model, ~, ~, ~, ~] = filament_model_to_digital_with_orientation(current_model);
+            centerMask = Vif_digital_model > 0;
+        elseif exist('NMS_Segment','var') && any(NMS_Segment(:))
+            % Fall back to NMS thin lines if available
+            centerMask = NMS_Segment > 0;
+        elseif exist('current_seg','var') && any(current_seg(:))
+            % Last resort: use your thick segmentation (we'll thin once for ordering)
+            centerMask = current_seg > 0;
+        else
+            centerMask = false(size(orientation_map_filtered));
+        end
+        
+        %% ===== Build centerlines from STEERABLE NMS (no thinning) =====
+        % Prefer your existing NMS_Segment if present; otherwise extract from nms map.
+        if exist('NMS_Segment','var') && any(NMS_Segment(:))
+            centerMask = NMS_Segment > 0;              % already thin from your pipeline
+        else
+            % Limit NMS to the filament footprint
+            nmsMasked = nms;
+            if exist('current_seg','var') && ~isempty(current_seg)
+                nmsMasked(~logical(current_seg)) = 0;
+            end
+        
+            % Robust hysteresis thresholds from non-zero NMS values
+            nz = nmsMasked(nmsMasked>0);
+            if ~isempty(nz)
+                tLow  = prctile(nz, 60);                % tune (50?70)
+                tHigh = prctile(nz, 80);                % tune (75?90)
+            else
+                tLow = 0; tHigh = 0;
+            end
+        
+            % Hysteresis using morphological reconstruction (no width change)
+            seeds = nmsMasked > tHigh;
+            mask  = nmsMasked > tLow;
+            centerMask = imreconstruct(seeds, mask);    % logical, 1-px ridges if NMS is proper
+        
+            % Clean up without thinning: spurs (short dead ends), small gaps, noise
+            centerMask = bwmorph(centerMask,'bridge');  % bridge isolated single-pixel gaps
+            centerMask = bwmorph(centerMask,'clean');   % remove isolated pixels
+            centerMask = bwmorph(centerMask,'spur',2);  % trim tiny spurs (2 iterations)
+            centerMask = bwareaopen(centerMask, 6);     % drop tiny fragments
+        end
+        %% ===== End: centerlines from NMS =====
+        
+        % 1) Curvature (|kappa|) along ordered centerline paths
+        Lcc = bwlabel(centerMask,8);
+        curv_center = nan(size(centerMask),'single');          % only at centerline pixels
+        win = 9;                                              % sliding circle-fit window (odd)
+        
+        for cc = 1:max(Lcc(:))
+            comp = (Lcc == cc);
+            if ~any(comp,'all'), continue; end
+            [yy, xx] = find(comp);
+            [xo, yo] = local_order_path(xx, yy);              % helper at end of file
+            P = [xo(:) yo(:)];
+            if size(P,1) < win, continue; end
+            [~, kappa] = local_curvature_polyline(P, win);    % 1/pixel (NaNs near ends are OK)
+            % Light smoothing of NaN gaps along the path (optional but helps visuals)
+            if any(~isfinite(kappa))
+                kappa = fillmissing(kappa, 'linear', 'EndValues','nearest');
+            end
+            ind = sub2ind(size(centerMask), P(:,2), P(:,1));
+            curv_center(ind) = abs(kappa);
+        end
+        
+        % 2) Propagate centerline curvature across the THICK segmentation (nearest-centerline)
+        [~, idxNearest] = bwdist(centerMask, 'euclidean');
+        curv_thick = nan(size(centerMask),'single');
+        curv_thick(current_seg>0) = curv_center(idxNearest(current_seg>0));
+        
+        % 3) Unit conversion to 1/µm (if movieData.pixelSize was available)
+        if ~isempty(pxPerUm)
+            curv_thick = curv_thick .* pxPerUm;     % 1/µm
+            curvUnits  = '1/\mu m';
+        else
+            curvUnits  = '1/pixel';
+        end
+        
+        % 4) Robust color limits for this frame, visualize and save overlays
+        vals = curv_thick(~isnan(curv_thick) & curv_thick>0);
+        if isempty(vals), clow = 0; chigh = 1; else, clow = prctile(vals,5); chigh = prctile(vals,95); end
+        curv_clip = min(max(curv_thick, clow), chigh);
+        
+        curvRGB   = ind2rgb(normalize_to_uint8(curv_clip,[clow chigh]), turbo(256));
+        alphaMap  = single(current_seg>0) * 0.85;
+        
+        baseGray  = im2double(uint8(currentImg)); baseGray = baseGray/255;
+        baseRGB   = repmat(baseGray,[1 1 3]);
+        
+        overlay_dark  = baseRGB .* (1 - alphaMap) + curvRGB .* alphaMap;
+        whiteBase     = 1 - baseRGB;
+        overlay_white = whiteBase .* (1 - alphaMap) + curvRGB .* alphaMap;
+        
+        % 5) Save outputs
+        for sub_i = 1:Sub_Sample_Num
+            if iFrame + sub_i - 1 <= nFrame
+                imwrite(uint16(rescale_nan(curv_thick, 0, 65535)), ...
+                    [HeatEnhOutputDir,filesep,'curvature_map_THICK_', filename_short_strs{iFrame+sub_i-1}, '.tif']);
+                imwrite(uint8(255*overlay_dark),  ...
+                    [HeatEnhOutputDir,filesep,'curvature_heat_THICK_',       filename_short_strs{iFrame+sub_i-1}, '.tif']);
+                imwrite(uint8(255*overlay_white), ...
+                    [HeatEnhOutputDir,filesep,'white_curvature_heat_THICK_', filename_short_strs{iFrame+sub_i-1}, '.tif']);
+            end
+        end
+        %% ===== End curvature on THICK segmentation using existing centerlines =====
+
+
         if(~strcmp(Combine_Way,'geo_based'))
             % if the segmentation is not done with geo_based method, do
             % some geometry based checking on the results
@@ -801,7 +926,7 @@ for iChannel = selected_channels
             % for now the parameters are set here, without adaptiveness
             for i_area = 1 : length(obAreas)
                 if obAreas(i_area) < 100
-                    angle_area{i_area} = orienation_map_filtered(find(labelMask==i_area));
+                    angle_area{i_area} = orientation_map_filtered(find(labelMask==i_area));
                     [h_area, bin] = hist(angle_area{i_area},-pi/2:5/180*pi:pi/2);
                     ind_t = find(h_area==max(h_area));
                     temp = mod((angle_area{i_area} - bin(ind_t(1)) + pi/2), pi) - pi/2;
@@ -884,9 +1009,18 @@ for iChannel = selected_channels
                     [FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 if(SaveFigures_movie==1)                    
-                    imwrite(orienation_map_filtered.*single(current_seg), ...
-                        [OrientationOutputDir,filesep,'segment_orientation_',...
-                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                    % imwrite(orienation_map_filtered.*single(current_seg), ...
+                    %     [OrientationOutputDir,filesep,'segment_orientation_',...
+                    %     filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                    
+                    % (If not strictly in [0,1], use rescale)
+                    im16 = uint16(round(rescale(orientation_map_filtered,0,65535)));
+                    
+                    % Apply mask:
+                    im16(~current_seg) = 0;
+                    
+                    imwrite(im16, [OrientationOutputDir,filesep,'segment_orientation_',...
+                       filename_short_strs{iFrame+ sub_i-1},'.tif']);
                 end
             end
         end
@@ -907,11 +1041,11 @@ for iChannel = selected_channels
             OO_flip(OO_flip<-pi/2)=OO_flip(OO_flip<-pi/2)+pi;
             OO_flip(OO_flip>pi/2)=OO_flip(OO_flip>pi/2)-pi;
             
-            orienation_map_filtered(sub2ind(size(currentImg), VIF_YY,VIF_XX))=OO_flip;
+            orientation_map_filtered(sub2ind(size(currentImg), VIF_YY,VIF_XX))=OO_flip;
         end
         
         currentImg = uint8(currentImg/1);
-        Hue = (-orienation_map_filtered(:)+pi/2)/(pi)-0.2;
+        Hue = (-orientation_map_filtered(:)+pi/2)/(pi)-0.2;
         Hue(find(Hue>=1)) = Hue(find(Hue>=1)) -1;
         Hue(find(Hue<0)) = Hue(find(Hue<0)) +1;
         
@@ -995,11 +1129,11 @@ for iChannel = selected_channels
             RGB_seg_orient_heat_map = RGB_seg_orient_heat_map_nms;
         end
         
-        current_seg_orientation = current_seg.*orienation_map_filtered;
+        current_seg_orientation = current_seg.*orientation_map_filtered;
         current_seg_orientation(find(current_seg==0)) = nan;
         end_points_map = bwmorph(current_seg,'endpoints');
         
-        tip_orientation = single(end_points_map).*single(orienation_map_filtered);
+        tip_orientation = single(end_points_map).*single(orientation_map_filtered);
         tip_int = single(end_points_map).*single(currentImg);
         tip_NMS = single(end_points_map).*single(nms);
         tip_orientation(find(end_points_map==0)) = nan;
@@ -1022,7 +1156,7 @@ for iChannel = selected_channels
                     
                 save([DataOutputDir,filesep,'filament_seg_', ...
                     filename_short_strs{iFrame+ sub_i-1},'.mat'],...
-                    'currentImg','orienation_map_filtered','OrientationVoted','orienation_map','RGB_seg_orient_heat_map','RGB_seg_orient_heat_map_nms', ...
+                    'currentImg','orientation_map_filtered','OrientationVoted','orienation_map','RGB_seg_orient_heat_map','RGB_seg_orient_heat_map_nms', ...
                     'current_seg','Intensity_Segment','SteerabelRes_Segment','NMS_Segment', ...
                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation','tip_orientation',...
                     'tip_int','tip_NMS',...
@@ -1070,13 +1204,86 @@ for iChannel = selected_channels
     
 end
 
-
-
-%% For Gelfand Lab, outgrowth calculation
+% For Gelfand Lab, outgrowth calculation
 if(VIF_Outgrowth_Flag==1)
     VIF_outgrowth_measurement(movieData);
 end
 
+end
 
+function out = iff(cond, a, b)
+if cond, out = a; else, out = b; end
+end
+
+function [xs, ys] = local_order_path(x, y)
+% Order 8-connected pixels into a single path (greedy from endpoint).
+P = [x(:) y(:)];
+xmin=min(P(:,1)); xmax=max(P(:,1));
+ymin=min(P(:,2)); ymax=max(P(:,2));
+A = false(ymax-ymin+1, xmax-xmin+1);
+xo = P(:,1)-xmin+1; yo = P(:,2)-ymin+1;
+A(sub2ind(size(A), yo, xo)) = true;
+
+deg = conv2(double(A), ones(3), 'same') - double(A);
+ends = find(deg==1);
+[H,W] = size(A);
+if isempty(ends), s = find(A,1); else, s = ends(1); end
+[sy,sx] = ind2sub([H W], s);
+nbr = [-1 -1;-1 0;-1 1; 0 -1;0 1; 1 -1;1 0;1 1];
+
+xs = []; ys = []; cur = [sy sx];
+while A(cur(1),cur(2))
+    ys(end+1)=cur(1); xs(end+1)=cur(2);
+    A(cur(1),cur(2)) = false;
+    moved=false;
+    for i=1:8
+        n = cur + nbr(i,:);
+        if all(n>=1) && n(1)<=H && n(2)<=W && A(n(1),n(2))
+            cur = n; moved=true; break;
+        end
+    end
+    if ~moved, break; end
+end
+xs = xs + xmin - 1; ys = ys + ymin - 1;
+end
+
+function [s, kappa] = local_curvature_polyline(P, win)
+% |kappa| via sliding circle fit along ordered polyline P(:,[x y]).
+if nargin<2, win=9; end
+if size(P,1) < win, s=[]; kappa=[]; return; end
+ds = [0; hypot(diff(P(:,1)), diff(P(:,2)))];
+s  = cumsum(ds);
+half = floor(win/2); kappa = nan(size(P,1),1);
+for i = 1+half : size(P,1)-half
+    pts = P(i-half:i+half, :);
+    x = pts(:,1); y = pts(:,2);
+    x = x - mean(x); y = y - mean(y);
+    Suu=sum(x.^2); Svv=sum(y.^2); Suv=sum(x.*y);
+    Suuu=sum(x.^3); Svvv=sum(y.^3);
+    Suvv=sum(x.*y.^2); Svuu=sum(y.*x.^2);
+    A=[Suu Suv; Suv Svv]; b=0.5*[Suuu+Suvv; Svvv+Svuu];
+    c = A\b; R = mean(sqrt((x-c(1)).^2 + (y-c(2)).^2));
+    if R>0, kappa(i)=1/R; end
+end
+end
+
+function U = normalize_to_uint8(X, clim)
+% Map X (with NaNs) to [0,255] using clim=[min max]
+U = zeros(size(X),'uint8');
+mask = ~isnan(X);
+if ~any(mask,'all'), return; end
+Xn = (X(mask) - clim(1)) ./ max(eps, clim(2)-clim(1));
+U(mask) = uint8(255*min(max(Xn,0),1));
+end
+
+function I16 = rescale_nan(X, lo, hi)
+% Rescale finite X to [lo,hi], keeping NaNs as zeros
+mask = isfinite(X);
+if ~any(mask,'all'), I16 = zeros(size(X),'uint16'); return; end
+xmin = min(X(mask)); xmax = max(X(mask));
+if xmax==xmin, I16 = zeros(size(X),'uint16'); return; end
+Xn = (X - xmin) / (xmax - xmin);
+Xn(~mask) = 0; I16 = uint16(lo + (hi-lo) * Xn);
+end
 
 
