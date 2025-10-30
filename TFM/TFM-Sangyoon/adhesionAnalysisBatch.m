@@ -84,6 +84,10 @@ for ii=1:numConditions
             curFAlength{k} = curFAstruct.length;
             curFAdensity(k) = curFAstruct.FAdensity;
             NAstruct(k) = curNAstruct;
+            if isfield(FAstruct,'ampTheOther') && ~isfield(curFAstruct,'ampTheOther')
+                FAstruct = rmfield(FAstruct,'ampTheOther');
+            end
+            FAstruct = orderfields(FAstruct, curFAstruct);
             FAstruct(k) = curFAstruct;
             % FAdensity at cell periphery
             curFAdensityPeri(k) = mean(arrayfun(@(x) x.FAdensityPeri,curFAstruct));
