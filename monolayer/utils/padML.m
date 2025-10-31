@@ -1,4 +1,4 @@
-function [ipad] = pad(i,digits)
+function [ipad] = padML(i,digits)
 
 if nargin < 2 || digits < 2
     ipad = sprintf('%d',i);
