@@ -146,7 +146,7 @@ try
 catch
     FAareaCell=cellfun(@(x) cell2mat(x'),FAarea,'Unif',false);
 end
-h1=figure('Visible','off'); 
+h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 barPlotCellArray(FAareaCell,nameList,1,1)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
@@ -165,7 +165,7 @@ catch
 end
 writetable(tableFAarea,strcat(dataPath,'/FAarea.csv'))
 %% FA area - boxplot
-h1=figure('Visible','off'); 
+h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 boxPlotCellArray(FAareaCell,nameList,1,false,true)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
@@ -175,7 +175,7 @@ title('FA area')
 print(h1,strcat(figPath,'/FAareaBoxPlot'),'-deps')
 savefig(h1,strcat(figPath,'/FAareaBoxPlot'),'-v7.3')
 %% FA density
-h2=figure('Visible','off'); 
+h2=figure; 
 barPlotCellArray(FAdensity,nameList)
 
 title('FA density')
@@ -186,7 +186,7 @@ savefig(h2,strcat(figPath,'/FAdensity'),'-v7.3')
 tableFAdensity=table(FAdensity,'RowNames',nameList);
 writetable(tableFAdensity,strcat(dataPath,'/FAdensity.csv'))
 %% FA density at Periphery
-h2=figure('Visible','off'); 
+h2=figure; 
 barPlotCellArray(FAdensityPeri,nameList)
 
 title({'FA density in the cell periphery'; ['(up to ' num2str(bandNA) ' um from the cell edge)']})
@@ -197,7 +197,7 @@ tableFAdensityPeri=table(FAdensityPeri,'RowNames',nameList);
 writetable(tableFAdensityPeri,strcat(dataPath,'/FAdensityPeri.csv'))
 %% FA area - cell periphery
 faAreaPeri = cellfun(@(x) cell2mat(arrayfun(@(y) y.FAareaPeri,x,'unif',false)'),FAstructGroup','unif',false);
-h1=figure('Visible','off'); 
+h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 boxPlotCellArray(faAreaPeri',nameList,1,false,true)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
@@ -207,7 +207,7 @@ title({'FA area in the cell periphery'; ['(up to ' num2str(bandNA) ' um from the
 print(h1,strcat(figPath,'/FAareaPeri'),'-deps')
 savefig(h1,strcat(figPath,'/FAareaPeri'),'-v7.3')
 %% FA area periphery bar plot
-h1=figure('Visible','off'); 
+h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 barPlotCellArray(faAreaPeri',nameList,1,true)
 % ylim([0 max(mean(FAareaCtrl),mean(FAareaGamma))*convertArea*1.2])
@@ -218,7 +218,7 @@ print(h1,strcat(figPath,'/FAareaPeriBar'),'-deps')
 savefig(h1,strcat(figPath,'/FAareaPeriBar'),'-v7.3')
 %% FA length - cell periphery
 faLengthPeri = cellfun(@(x) cell2mat(arrayfun(@(y) y.FAlengthPeri,x,'unif',false)'),FAstructGroup','unif',false);
-h1=figure('Visible','off'); 
+h1=figure; 
 % faAreaConverted=cellfun(@(x) x*convertArea,FAarea,'uniformoutput',false);
 boxPlotCellArray(faLengthPeri',nameList,1,false,true)
 ylabel('FA length (\mum)')
@@ -227,7 +227,7 @@ title({'FA length in the cell periphery'; ['(up to ' num2str(bandNA) ' um from t
 print(h1,strcat(figPath,'/FAlengthPeri'),'-deps')
 savefig(h1,strcat(figPath,'/FAlengthPeri'),'-v7.3')
 %% FA density Inside
-h2=figure('Visible','off'); 
+h2=figure; 
 barPlotCellArray(FAdensityInside,nameList)
 
 title('FA density inside a cell (from the center to the 5 um from the edge)')
@@ -237,7 +237,7 @@ savefig(h2,strcat(figPath,'/FAdensityInside'),'-v7.3')
 tableFAdensityInside=table(FAdensityInside,'RowNames',nameList);
 writetable(tableFAdensityInside,strcat(dataPath,'/FAdensityInside.csv'))
 %% NA density
-h3=figure('Visible','off'); 
+h3=figure; 
 barPlotCellArray(NAdensity,nameList,1)
 
 title('NA density')
@@ -247,7 +247,7 @@ savefig(h3,strcat(figPath,'/NAdensity'),'-v7.3')
 tableNAdensity=table(NAdensity,'RowNames',nameList);
 writetable(tableNAdensity,strcat(dataPath,'/NAdensity.csv'))
 %% NA density- boxplot
-h3=figure('Visible','off'); 
+h3=figure; 
 boxPlotCellArray(NAdensity,nameList,1,false,true);
 
 title('NA density')
@@ -260,14 +260,14 @@ try
 catch
     FAlengthCell=cellfun(@(x) cell2mat(x'),FAlength,'Unif',false);
 end
-h4=figure('Visible','off'); 
+h4=figure; 
 barPlotCellArray(FAlengthCell,nameList,1)
 title('FA length')
 ylabel('FA length (\mum)')
 print(h4,strcat(figPath,'/FAlength'),'-deps')
 savefig(h4,strcat(figPath,'/FAlength'),'-v7.3')
 %% FA length - boxplot
-h1=figure('Visible','off'); 
+h1=figure; 
 boxPlotCellArray(FAlengthCell,nameList,1,false,true)
 title('FA length')
 ylabel('FA length (um)')
@@ -292,7 +292,7 @@ for ii=1:numel(FAlengthCell)
     quantile(faAreaPeri{ii},(1-perc)+(perc-0.0001)*rand(1,round((perc-0.0001)*sum(~isnan(FAlengthCell{ii})))));
 end
 %% FA length - boxplot -top 10 percentile
-h1=figure('Visible','off');
+h1=figure;
 plotSuccess=boxPlotCellArray(FAlengthCellSmall,nameList,1,false,true);
 if plotSuccess
     ylabel(['Focal adhesion length (\mum)'])
@@ -305,7 +305,7 @@ if plotSuccess
     writetable(faAreaTop20,[dataPath filesep 'faLengthTop' num2str(percLT) '.csv'],'WriteRowNames',true)    
 end
 %% FA area - boxplot -top 10 percentile
-h1=figure('Visible','off');
+h1=figure;
 plotSuccess=boxPlotCellArray(FAareaCellSmall,nameList,1,false,true);
 if plotSuccess
     ylabel(['Focal adhesion area (\mum^2)'])
@@ -318,7 +318,7 @@ if plotSuccess
     writetable(faAreaTop10,[dataPath filesep 'faAreaTop' num2str(percLT) '.csv'],'WriteRowNames',true)    
 end
 %% FA area - barplot -top 10 percentile
-h1=figure('Visible','off');
+h1=figure;
 barPlotCellArray(FAareaCellSmall,nameList,1,true);
 ylabel('Focal adhesion area (\mum^2)')
 title(['Focal adhesion area (top ' num2str(percLT) ' percentile)'])
@@ -327,7 +327,7 @@ print(h1,[figPath filesep 'faAreaTopBar' num2str(percLT)],'-deps')
 savefig(h1,[figPath filesep 'faAreaTopBar' num2str(percLT)],'-v7.3')
 print(h1,[figPath filesep 'faAreaTopBar' num2str(percLT)],'-dtiff')
 %% FA area peri- boxplot -top 10 percentile
-h1=figure('Visible','off');
+h1=figure;
 boxPlotCellArray(FAareaPeriSmall,nameList,1,false,true);
 ylabel(['Focal adhesion area (\mum^2)'])
 title(['Focal adhesion area at periphery (top ' num2str(percLT) ' percentile)'])
@@ -338,7 +338,7 @@ print(h1,[figPath filesep 'faAreaPeriTopBox' num2str(percLT)],'-dtiff')
 faAreaPeriTopBox10=table(FAareaPeriSmall,'RowNames',nameList);
 writetable(faAreaPeriTopBox10,[dataPath filesep 'faAreaPeriTopBox' num2str(percLT) '.csv'],'WriteRowNames',true)    
 %% FA area peri- barplot -top 10 percentile
-h1=figure('Visible','off');
+h1=figure;
 boxPlotCellArray(FAareaPeriSmall,nameList,1,false,true); %Now we don't need to convert again.
 ylabel(['Focal adhesion area (\mum^2)'])
 title(['Focal adhesion area at periphery (top ' num2str(percLT) ' percentile)'])
@@ -357,7 +357,7 @@ for ii=1:numConditions
     end
 end
 %% Plotting Ratio of FA over NA
-h4=figure('Visible','off'); 
+h4=figure; 
 try
     barPlotCellArray(FAtoNAratio,nameList);
 catch
@@ -379,7 +379,7 @@ for ii=1:numConditions
     end
 end
 %% Overal adhesion area per cell area plotting
-h4=figure('Visible','off'); 
+h4=figure; 
 barPlotCellArray(FAareaToCellArea,nameList)
 title('FA area over cell area')
 ylabel('FA area over cell area (\mum^2)')
@@ -396,7 +396,7 @@ for ii=1:numConditions
         cellArea{ii} = [cellArea{ii}; FAstructGroup{ii}(k).cellArea];
     end
 end
-h4=figure('Visible','off'); 
+h4=figure; 
 barPlotCellArray(cellArea,nameList)
 title('Cell area')
 ylabel('Cell area (\mum^2)')
@@ -408,7 +408,7 @@ writetable(tableFAareaToCellArea,strcat(dataPath,'/FAareaToCellArea.csv'))
 %% FA quantity
 % numFA = cellfun(@(x,y) x.*y,FAdensity,cellArea,'unif',false);
 numFA = cellfun(@(x) cell2mat(arrayfun(@(y) y.numberFA, x,'unif',false)'),FAstructGroup','unif',false)';
-h2=figure('Visible','off'); 
+h2=figure; 
 barPlotCellArray(numFA,nameList)
 
 title('FA quantity per cell')
@@ -422,7 +422,7 @@ writetable(tableFAquantity,strcat(dataPath,'/FAquantity.csv'))
 % numNA = cellfun(@(x,y) x.*y,NAdensity,cellArea,'unif',false);
 numNA = cellfun(@(x) cell2mat(arrayfun(@(y) y.numberNA, x,'unif',false)'),NAstructGroup','unif',false)';
 % bandAreaNA = cellfun(@(x) cell2mat(arrayfun(@(y) y.bandArea, x,'unif',false)'),NAstructGroup','unif',false);
-h2=figure('Visible','off'); 
+h2=figure; 
 barPlotCellArray(numNA,nameList)
 % boxPlotCellArray(numNA,nameList,1,0,1,1)
 
@@ -437,7 +437,7 @@ tableNAquantity=table(numNA,'RowNames',nameList);
 writetable(tableNAquantity,strcat(dataPath,'/NAquantity.csv'))
 %% Adhesion eccentricity
 eccCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.ecc, x,'unif',false)'),FAstructGroup','unif',false);
-h4=figure('Visible','off'); 
+h4=figure; 
 boxPlotCellArray(eccCell,nameList',1,0,1)
 title('Adhesion eccentricity')
 ylabel('Eccentricity (1)')
@@ -456,7 +456,7 @@ for ii=1:numel(eccCell)
     eccCellSmall{ii,1} = ...
     quantile(eccCell{ii},percInd);
 end
-h4=figure('Visible','off'); 
+h4=figure; 
 boxPlotCellArray(eccCellSmall,nameList,1,0,1), ylim auto
 title(['Adhesion eccentricity top ' num2str(percLT) ' percentile'])
 ylabel('Eccentricity (1)')
@@ -464,7 +464,7 @@ print(h4,strcat(figPath,'/eccT', num2str(percLT), 'P'),'-deps')
 savefig(h4,strcat(figPath,'/eccT', num2str(percLT), 'P'),'-v7.3')
 
 %% Eccentricity barplot
-h4=figure('Visible','off'); 
+h4=figure; 
 barPlotCellArray(eccCell,nameList',1)
 title('Adhesion eccentricity')
 ylabel('Eccentricity (1)')
@@ -473,7 +473,7 @@ savefig(h4,strcat(figPath,'/eccBar'))
 
 %% Adhesion width
 widthCell = cellfun(@(x) cell2mat(arrayfun(@(y) y.width, x,'unif',false)'),FAstructGroup','unif',false);
-h4=figure('Visible','off'); 
+h4=figure; 
 boxPlotCellArray(widthCell,nameList',1,0,1)
 title('Adhesion width')
 ylabel('width (\mum)')
@@ -490,7 +490,7 @@ for ii=1:numel(widthCell)
     widthCellSmall{ii,1} = ...
     quantile(widthCell{ii},(perc)+0.2*(perc)*randn(1,round((perc-0.0001)*sum(~isnan(widthCell{ii})))));
 end
-h4=figure('Visible','off'); 
+h4=figure; 
 boxPlotCellArray(widthCellSmall,nameList,1,0,1); ylim auto
 title(['Adhesion width bottom ' num2str(percLT) ' percentile'])
 ylabel('width (\mum)')
@@ -498,7 +498,7 @@ print(h4,strcat(figPath,'/FAwidthB',num2str(percLT),'P'),'-deps')
 savefig(h4,strcat(figPath,'/FAwidthB',num2str(percLT),'P'),'-v7.3')
 
 %% Width barplot
-h5=figure('Visible','off'); 
+h5=figure; 
 barPlotCellArray(widthCell,nameList',convertL)
 title('Adhesion width')
 ylabel('width (\mum)')
@@ -510,7 +510,7 @@ try
 catch
     forcesFACell = cellfun(@(x) cell2mat(arrayfun(@(y) cell2mat(y.forceFA), x,'unif',false)),forceAllGroup','unif',false);
 end
-h4=figure('Visible','off'); 
+h4=figure; 
 boxPlotCellArray(forcesFACell,nameList',1,0,1)
 title('Traction per FA')
 ylabel('Traction (Pa)')
@@ -523,7 +523,7 @@ try
 catch
     forcesFCCell = cellfun(@(x) cell2mat(arrayfun(@(y) cell2mat(y.forceFC), x,'unif',false)),forceAllGroup','unif',false);
 end
-h4=figure('Visible','off'); 
+h4=figure; 
 boxPlotCellArray(forcesFCCell,nameList',1,0,1)
 title('Traction per FC')
 ylabel('Traction (Pa)')
@@ -535,7 +535,7 @@ try
 catch
     forcesNACell = cellfun(@(x) cell2mat(arrayfun(@(y) cell2mat(y.forceNA), x, 'unif', false)),forceAllGroup','unif',false);
 end
-h4=figure('Visible','off'); 
+h4=figure; 
 boxPlotCellArray(forcesNACell,nameList',1,0,1)
 title('Traction per NA')
 ylabel('Traction (Pa)')
@@ -549,7 +549,7 @@ if isfield(FAstructGroup{1}(1),'ampTheOther')
         indCell = cellfun(@(x) cell2mat(arrayfun(@(y) iscell(y.ampTheOtherFA), x, 'unif', false)),ampTheOtherAllGroup','unif',false);
         ampTheOtherFACell = cellfun(@(x,z) cell2mat(arrayfun(@(y) cell2mat(y.ampTheOtherFA), x(z), 'unif', false)),ampTheOtherAllGroup',indCell,'unif',false);
     end
-    h4=figure('Visible','off'); 
+    h4=figure; 
     boxPlotCellArray(ampTheOtherFACell,nameList',1,0,1)
     title('The amplitude (background-subtracted) of the third channel per FA')
     ylabel('The amplitude (a.u.)')
@@ -564,7 +564,7 @@ if isfield(FAstructGroup{1}(1),'ampTheOther')
         indCell = cellfun(@(x) cell2mat(arrayfun(@(y) iscell(y.ampTheOtherFC), x, 'unif', false)),ampTheOtherAllGroup','unif',false);
         ampTheOtherFCCell = cellfun(@(x,z) cell2mat(arrayfun(@(y) cell2mat(y.ampTheOtherFC), x(z), 'unif', false)),ampTheOtherAllGroup',indCell,'unif',false);
     end
-    h4=figure('Visible','off'); 
+    h4=figure; 
     boxPlotCellArray(ampTheOtherFCCell,nameList',1,0,1)
     title('The amplitude (background-subtracted) of the third channel per FC')
     ylabel('The amplitude (a.u.)')
@@ -579,7 +579,7 @@ if isfield(FAstructGroup{1}(1),'ampTheOther')
         indCell = cellfun(@(x) cell2mat(arrayfun(@(y) iscell(y.ampTheOtherNA), x, 'unif', false)),ampTheOtherAllGroup','unif',false);
         ampTheOtherNACell = cellfun(@(x,z) cell2mat(arrayfun(@(y) cell2mat(y.ampTheOtherNA), x(z), 'unif', false)),ampTheOtherAllGroup',indCell,'unif',false);
     end
-    h4=figure('Visible','off'); 
+    h4=figure; 
     boxPlotCellArray(ampTheOtherNACell,nameList',1,0,1)
     title('The amplitude (background-subtracted) of the third channel per NA')
     ylabel('The amplitude (a.u.)')
@@ -589,7 +589,7 @@ end
 %% Plotting the other channel amplitudes
 if isfield(FAstructGroup{1}(1),'ampTheOther')
     ampTheOther = cellfun(@(x) cell2mat(arrayfun(@(y) y.ampTheOther, x','unif',false)'),FAstructGroup','unif',false);
-    h4=figure('Visible','off'); 
+    h4=figure; 
     boxPlotCellArray(ampTheOther,nameList',1,0,1)
     title('Amplitude of the other channel')
     ylabel('Fluorescence amplitude (a.u.)')
@@ -620,7 +620,7 @@ if exist('ampTheOtherNACell','var')
             amplitudeGroupAll{3*p+jj,1} = amplitudeGroup{jj}{ii};
         end
     end
-    h1=figure('Visible','off'); 
+    h1=figure; 
     plotSuccess=boxPlotCellArray(amplitudeGroupAll,nameListAdhComb,1,false,true);
     if plotSuccess
         ylabel('Fluorescence amplitude (a.u.)')
@@ -632,7 +632,7 @@ if exist('ampTheOtherNACell','var')
 end
 %% amplitude the other bar plot
 if isfield(FAstructGroup{1}(1),'ampTheOther') && ~isempty(amplitudeGroupAll{1})
-    h1=figure('Visible','off'); 
+    h1=figure; 
     barPlotCellArray(amplitudeGroupAll,nameListAdhComb);
     ylabel('Fluorescence amplitude (a.u.)')
     title('Background-subtracted amplitude of the other channel')
@@ -648,7 +648,7 @@ for ii=1:numel(forcesNACell)
         forceGroupAll{3*p+jj,1} = forceGroup{jj}{ii};
     end
 end
-h1=figure('Visible','off'); 
+h1=figure; 
 boxPlotCellArray(forceGroupAll,nameListAdhComb,1,false,true);
 title('Traction at all adhesions')
 ylabel('Traction (Pa)')
