@@ -396,8 +396,10 @@ for ii=1:numConditions
         cellArea{ii} = [cellArea{ii}; FAstructGroup{ii}(k).cellArea];
     end
 end
+
 h4=figure; 
-barPlotCellArray(cellArea,nameList)
+boxPlotCellArray(cellArea,nameList,1,0,1)
+% barPlotCellArray(cellArea,nameList)
 title('Cell area')
 ylabel('Cell area (\mum^2)')
 print(h4,strcat(figPath,'/CellArea'),'-deps')

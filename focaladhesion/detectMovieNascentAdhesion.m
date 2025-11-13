@@ -154,7 +154,7 @@ pixSize = movieData.pixelSize_;
 convertL = pixSize/1000;
 convertArea = (pixSize/1000)^2;
 minSize = round((500/pixSize)*(100/pixSize)); %adhesion limit=0.25 um2
-minLengthFC = 800/pixSize; %This is temporary. %500/pixSize;
+minLengthFC = 500/pixSize; %This is temporary. %500/pixSize;
 minLengthFA = 2000/pixSize;
 maxLengthFA = 30000/pixSize; % I set this up to filter outlier.
 % minEcc = 0.7;
@@ -225,11 +225,10 @@ for j=1:movieData.nFrames_
 %     maxIntBg=quantile(pixelIntenMargin,0.9999);
 %     psInt = pstruct.A+pstruct.c;
 %     idxSigCCP = psInt>maxIntBg;
-    if ~isempty(pstruct)
+
+    if useRefinement && ~isempty(pstruct)
         xNA=pstruct.x;
         yNA=pstruct.y;
-    end
-    if useRefinement
         maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA); %,mask);
     else
         maskAdhesion2 = maskAdhesion;
@@ -263,10 +262,11 @@ for j=1:movieData.nFrames_
     
     maskAdhesionFA = logical(labelAdhesionFA);
     maskAdhesionFC = maskAdhesion2 .* ~maskAdhesionFA;
+    maskAdhesionAll = maskAdhesionFA | maskAdhesionFC;
         
     % Now point sources too close to FAs will be disregarded.
     if ~isempty(pstruct)
-        indInside=maskVectors(xNA,yNA,bwmorph(maskAdhesion2,'dilate',10)); 
+        indInside=maskVectors(xNA,yNA,bwmorph(maskAdhesionAll,'dilate',10)); 
         indTrueNAs=~indInside;
         idxSigCCP = pstruct.A>0 & indTrueNAs';
 
@@ -413,7 +413,8 @@ for j=1:movieData.nFrames_
             else
                 nDS = round(numel(curForceBGinCell)/600);
                 if nDS>1
-                    forceBGinCell{j} = downsample(curForceBGinCell,nDS);
+                    forceBGinCell{j} = curForceBGinCell(:, 1:nDS:end);
+                    % forceBGinCell{j} = downsample(curForceBGinCell,nDS);
                 else
                     forceBGinCell{j} = curForceBGinCell;
                 end
@@ -433,7 +434,7 @@ for j=1:movieData.nFrames_
             else
                 nDS = round(numel(curForceBGoutCell)/600);
                 if nDS>1
-                    forceBGoutCell{j} = downsample(curForceBGoutCell,nDS);
+                    forceBGoutCell{j} = curForceBGoutCell(:, 1:nDS:end); %downsample(curForceBGoutCell,nDS);
                 else
                     forceBGoutCell{j} = curForceBGoutCell;
                 end
@@ -627,7 +628,10 @@ for j=1:movieData.nFrames_
         hold off
         
         if ~isempty(iTFM) && plotGraphTFM
-            imshow(curTmap, [0 2000]), colormap jet
+            min1 = quantile(curTmap(:),0.01);
+            max90 = quantile(curTmap(:),0.99);
+
+            imshow(curTmap, [min1 max90]), colormap jet
             hC=colorbar('east');
             hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
             hold on
