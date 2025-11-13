@@ -154,7 +154,7 @@ pixSize = movieData.pixelSize_;
 convertL = pixSize/1000;
 convertArea = (pixSize/1000)^2;
 minSize = round((500/pixSize)*(100/pixSize)); %adhesion limit=0.25 um2
-minLengthFC = 800/pixSize; %This is temporary. %500/pixSize;
+minLengthFC = 500/pixSize; %This is temporary. %500/pixSize;
 minLengthFA = 2000/pixSize;
 maxLengthFA = 30000/pixSize; % I set this up to filter outlier.
 % minEcc = 0.7;
@@ -225,11 +225,10 @@ for j=1:movieData.nFrames_
 %     maxIntBg=quantile(pixelIntenMargin,0.9999);
 %     psInt = pstruct.A+pstruct.c;
 %     idxSigCCP = psInt>maxIntBg;
-    if ~isempty(pstruct)
+
+    if useRefinement && ~isempty(pstruct)
         xNA=pstruct.x;
         yNA=pstruct.y;
-    end
-    if useRefinement
         maskAdhesion2 = refineAdhesionSegmentation(maskAdhesion,I,xNA,yNA); %,mask);
     else
         maskAdhesion2 = maskAdhesion;
@@ -263,10 +262,11 @@ for j=1:movieData.nFrames_
     
     maskAdhesionFA = logical(labelAdhesionFA);
     maskAdhesionFC = maskAdhesion2 .* ~maskAdhesionFA;
+    maskAdhesionAll = maskAdhesionFA | maskAdhesionFC;
         
     % Now point sources too close to FAs will be disregarded.
     if ~isempty(pstruct)
-        indInside=maskVectors(xNA,yNA,bwmorph(maskAdhesion2,'dilate',10)); 
+        indInside=maskVectors(xNA,yNA,bwmorph(maskAdhesionAll,'dilate',10)); 
         indTrueNAs=~indInside;
         idxSigCCP = pstruct.A>0 & indTrueNAs';
 
@@ -413,7 +413,8 @@ for j=1:movieData.nFrames_
             else
                 nDS = round(numel(curForceBGinCell)/600);
                 if nDS>1
-                    forceBGinCell{j} = downsample(curForceBGinCell,nDS);
+                    forceBGinCell{j} = curForceBGinCell(:, 1:nDS:end);
+                    % forceBGinCell{j} = downsample(curForceBGinCell,nDS);
                 else
                     forceBGinCell{j} = curForceBGinCell;
                 end
@@ -433,7 +434,7 @@ for j=1:movieData.nFrames_
             else
                 nDS = round(numel(curForceBGoutCell)/600);
                 if nDS>1
-                    forceBGoutCell{j} = downsample(curForceBGoutCell,nDS);
+                    forceBGoutCell{j} = curForceBGoutCell(:, 1:nDS:end); %downsample(curForceBGoutCell,nDS);
                 else
                     forceBGoutCell{j} = curForceBGoutCell;
                 end
@@ -504,7 +505,7 @@ for j=1:movieData.nFrames_
         % 10. colocalization analysis
         if ~isempty(iTFM)
             curTmap = tMap(:,:,j);
-%             hScatter = figure; plot(I(:),curTmap(:),'.')
+%             hScatter = figure('Visible','off'); plot(I(:),curTmap(:),'.')
             cellMask2 = bwmorph(cellMask,'dilate',5) & roiMask(:,:,j);
             [~,xBins] = histcounts(I(cellMask2));  [~,yBins] = histcounts(curTmap(cellMask2));
             % Correlation - Pearson
@@ -517,7 +518,7 @@ for j=1:movieData.nFrames_
             MOC=sum(products(:))/sqrt(sum(redsq(:))*sum(greensq(:)));
             
             if plotGraphTFM
-                hHist2D = figure; hold on
+                hHist2D = figure('Visible','off'); hold on
                 densityplot(I(cellMask2), curTmap(cellMask2), xBins, yBins,'DisplayFunction', @log);
                 colormap jet
                 hCBar = colorbar;
@@ -532,8 +533,8 @@ for j=1:movieData.nFrames_
                 hHist2D.Units='inch';
                 hHist2D.Position(3)=3; hHist2D.Position(4)=2.5;
 
-                hgexport(hHist2D,[figPath filesep 'scatter2Dhist'],hgexport('factorystyle'),'Format','eps')
-                hgsave(hHist2D,[figPath filesep 'scatter2Dhist'],'-v7.3')
+                print(hHist2D,[figPath filesep 'scatter2Dhist.eps'])
+                savefig(hHist2D,[figPath filesep 'scatter2Dhist'],'-v7.3')
                 print(hHist2D,[figPath filesep 'scatter2Dhist'],'-dtiff')
                 close(hHist2D)
             end
@@ -558,7 +559,7 @@ for j=1:movieData.nFrames_
             focalAdhInfo(j).fractionBlobInside = fractionBlobInside;
             focalAdhInfo(j).fractionBlobOutside = fractionBlobOutside;
             if plotGraphTFM
-                hBarFrac = figure; bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
+                hBarFrac = figure('Visible','off'); bar(categorical({'Inside','Outside'}), [fractionBlobInside fractionBlobOutside])
                 hBarFrac.Units='inch';
                 hBarFrac.Position(3)=3; hBarFrac.Position(4)=2.5;
                 ylim([0 1]); title({'fraction of force blobs'; 'inside the cell or outside'})
@@ -567,14 +568,14 @@ for j=1:movieData.nFrames_
                 combI(:,:,1) = 0.4*maskForceBlob.*cellMask + 0.6*cellMask;
                 combI(:,:,2) = 0.7*maskForceBlob.*~cellMask + 0.6*cellMask - 0.5*maskForceBlob.*cellMask;
                 combI(:,:,3) = -0.5*maskForceBlob.*cellMask + 0.6*cellMask;
-                hBlob=figure; imshow(combI,[]); hold on
-                hgexport(hBlob,[figPath filesep 'forceBlobOverlay'],hgexport('factorystyle'),'Format','eps')
-                hgsave(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
+                hBlob=figure('Visible','off'); imshow(combI,[]); hold on
+                print(hBlob,[figPath filesep 'forceBlobOverlay.eps'])
+                savefig(hBlob,[figPath filesep 'forceBlobOverlay'],'-v7.3')
                 print(hBlob,[figPath filesep 'forceBlobOverlay'],'-dtiff')
                 close(hBarFrac)
 
                 % Show force blobs on TFM image
-                hTFMBlob=figure;
+                hTFMBlob=figure('Visible','off');
                 imshow(curTmap, [0 tMax]), colormap jet
                 hC=colorbar('east');
                 hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
@@ -589,8 +590,8 @@ for j=1:movieData.nFrames_
                     boundary = forceBlobIndiv{kk};
                     plot(boundary(:,2), boundary(:,1), 'Color','m', 'LineWidth', 2) % cell boundary
                 end
-                hgexport(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],hgexport('factorystyle'),'Format','eps')
-                hgsave(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-v7.3')
+                print(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs.eps'])
+                savefig(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-v7.3')
                 print(hTFMBlob,[figPath filesep 'tractionMapWithForceBlobs'],'-dtiff')
                 close(hTFMBlob)
             end
@@ -599,7 +600,7 @@ for j=1:movieData.nFrames_
 
     % plotting detected adhesions
     if plotGraph
-        h1=figure;
+        h1=figure('Visible','on');
         maxI=quantile(I(:),0.999); minI=quantile(I(:),0.01);
         dI = (double(I)-minI)/(maxI-minI);
         combI(:,:,1) = ~maskAdhesionFA.*dI+maskAdhesionFA.*(0.4*dI+double(maskAdhesionFA)*.5);
@@ -619,12 +620,15 @@ for j=1:movieData.nFrames_
         if ~isempty(pstruct)
             plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'yo','MarkerSize',4)
         end
-        hgexport(h1,strcat(tifPath,'/imgNAFA',num2str(j,jformat)),hgexport('factorystyle'),'Format','tiff')
-        hgsave(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')
+        print(h1,strcat(tifPath,'/imgNAFA',num2str(j,jformat)), '-dtiff')
+        savefig(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')
         hold off
         
         if ~isempty(iTFM) && plotGraphTFM
-            imshow(curTmap, [0 2000]), colormap jet
+            min1 = quantile(curTmap(:),0.01);
+            max90 = quantile(curTmap(:),0.99);
+
+            imshow(curTmap, [min1 max90]), colormap jet
             hC=colorbar('east');
             hC.Color='w'; hC.Position(3:4)=[0.03 0.8];hC.Position(2)=0.1;
             hold on
@@ -646,8 +650,8 @@ for j=1:movieData.nFrames_
             if ~isempty(pstruct)
                 plot(pstruct.x(idxSigCCP),pstruct.y(idxSigCCP),'yo')
             end
-            hgexport(h1,[figPath filesep 'tractionMapWithAdhesions'],hgexport('factorystyle'),'Format','eps')
-            hgsave(h1,[figPath filesep 'tractionMapWithAdhesions'],'-v7.3')
+            print(h1,[figPath filesep 'tractionMapWithAdhesions.eps'])
+            savefig(h1,[figPath filesep 'tractionMapWithAdhesions'],'-v7.3')
             print(h1,[figPath filesep 'tractionMapWithAdhesions'],'-dtiff')
         end
         close(h1)
@@ -665,13 +669,13 @@ if ~isempty(iTFM)
     nameList = {'FA', 'FC', 'NA', 'BG_inside', 'BG_outside'};
     forceGroupCell = cellfun(@(x) cell2mat(x),forceGroup,'unif',false);
     if plotGraphTFM
-        h1=figure; 
+        h1=figure('Visible','off'); 
 
         boxPlotCellArray(forceGroupCell,nameList,1,false,false);
         ylabel('Force magnitude (Pa)')
         title('Force per adhesion type')
-        hgexport(h1,[figPath filesep 'forcePerAdhesionType'],hgexport('factorystyle'),'Format','eps')
-        hgsave(h1,[figPath filesep 'forcePerAdhesionType'],'-v7.3')
+        print(h1,[figPath filesep 'forcePerAdhesionType.eps'])
+        savefig(h1,[figPath filesep 'forcePerAdhesionType'],'-v7.3')
         print(h1,[figPath filesep 'forcePerAdhesionType'],'-dtiff')
         close(h1)
     end
