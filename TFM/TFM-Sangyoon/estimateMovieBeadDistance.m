@@ -26,14 +26,16 @@ for ii=1:numMovies
     iTFM = curMD.getPackageIndex('TFMPackage');
     if isempty(iTFM)
         disp(['No TFM was done in this movie: ' curMD.getFilename '.'])
-        continue
+        disp('Using the first channel for bead image');
+        %continue
+        iBeadChan = 1;
+    else
+        tPack = curMD.getPackage(iTFM);
+        % Get the channel
+        dispCalProc = tPack.getProcess(2);
+        iBeadChan = dispCalProc.checkChannelOutput;
     end
-    tPack = curMD.getPackage(iTFM);
-    % Get the channel
-    dispCalProc = tPack.getProcess(2);
-    iBeadChan = dispCalProc.checkChannelOutput;
     beadChan = curMD.getChannel(iBeadChan);
-    % run the function
     [beadDistAll,beadDensity] = estimateBeadDistance(beadChan.loadImage(1),curMD.pixelSize_,beadChan.psfSigma_);
     % save the results
     beadDistAllCell{ii}=beadDistAll;

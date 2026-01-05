@@ -714,9 +714,9 @@ if isCellSeg
     boxPlotCellArray(spreadArea_CellArray,nameList,1,false,true)
     ylabel('Spread area (um2)')
     title('Cell spread area')
-    hgexport(h1,strcat(figPath,'/spreadArea'),hgexport('factorystyle'),'Format','eps')
-    hgsave(h1,strcat(figPath,'/spreadArea'),'-v7.3')
-    print(h1,strcat(figPath,'/spreadArea.tif'),'-dtiff')
+    hgexport(h1,strcat(figPath,'/spreadAreaBox'),hgexport('factorystyle'),'Format','eps')
+    hgsave(h1,strcat(figPath,'/spreadAreaBox'),'-v7.3')
+    print(h1,strcat(figPath,'/spreadAreaBox.tif'),'-dtiff')
 
     tableSpreadArea=table(spreadArea_CellArray,'RowNames',nameList);
     writetable(tableSpreadArea,strcat(dataPath,'/spreadArea.csv'),'WriteRowNames',true)

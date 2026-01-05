@@ -50,12 +50,18 @@ function edge_max_coordinates(arr_ROI)
 // ----------------------------------------------------------------------------------------------------------------------
 function diff_arrays(arr_max, arr_min)
 {
-     arr_diff = newArray();
-     for (x = 0; x< arr_max.length-1; x++)
-     {
-           arr_diff = Array.concat(arr_diff, arr_max [x] - arr_min [x]);
-     }
-     return arr_diff;
+    arr_diff = newArray();
+
+    // Use the shorter of the two arrays to avoid out-of-range indexing
+    len = arr_max.length;
+    if (arr_min.length < len)
+        len = arr_min.length;
+
+    for (x = 0; x < len; x++)
+    {
+        arr_diff = Array.concat(arr_diff, arr_max[x] - arr_min[x]);
+    }
+    return arr_diff;
 }
 
 
@@ -104,9 +110,6 @@ function diagonal_fixed(diagonal, angle)
 macro 'Wound healing Size Stacks Tool - C000Da8Da9Db9DcbDddDecDedDeeC9abD31C68aD23Dc0CcddDbfC566DbbCbbbDffC89bD12D25D4eD55D61DbdDd7CeeeD37D70D71D72D73D74D75D77D78D7aD80D81D83D84D86D87D88D89D8aD8bD8cD8dDf0Df1Df2Df3C112DaaDcaCaacD5bC79aD2eD4dD53D60D6cDe1CdddD4cD67D7cD93Df4C666Db8CbcdD33C9abD1cD22D26D29D3eD46D62D7bD92Db4Db6Dc2Dd4DdaDe2De3C111DccC9acD16D19D28D2bD3cD6dD95Db5Dc8C78aD14D1dD32CdddD13D85D90Da1C579D1aDd0CbcdD35D45Dc3DcfDd3C89bD17Da6C444D97CabcD42D4aD6eDd5C89bD02D10D1bD3bD43D68Da0Dc6De4CddeD2fD52D64D79D8fDa5Df6C777Df7CccdD0fD1eD21D27D39D44D4fD5cD5fD6aD6fD7dD82Db3Dd8CaaaD9fC000De9C9abD15D47D49D6bD91Da3Dd6De5C78aD06D07D34D36D3aD40D4bD51D69D7eDa4DceDe6CdddD1fD24D2aD3fD63D76D7fD8eC469D0aCbccD3dD5eDbcDc1C89bD48D57D59D66Db0Db1Db7C223Da7CabcD04D2dD54D5aD65C79bDd2C68aD0cD38Da2Dd9C111D98D99D9aD9bD9cD9dD9eC67aD03D0bDc4Dc7De0C8abD5dC555Df8Df9DfaDfbDfcDfdDfeCbbcDdfC89aDc9CaabDafC9abD11CcddD41D58Dc5Df5C358D0dCbccD01D56D94DbeC122De7C68aD09D20D50C579D05D18C444DdeC000DbaDdcDe8DebC579D00D0eD30C334DaeCabcDd1CaaaDefC557DdbCbbcD2cD96C000DeaC469Db2C333DabDacC578DcdC123DadC57aD08'
 
 {
-
-
-
    run("Select None");
    Width = newArray();
    StandarDeviation = newArray();
@@ -115,95 +118,96 @@ macro 'Wound healing Size Stacks Tool - C000Da8Da9Db9DcbDddDecDedDeeC9abD31C68aD
    height_total=getHeight();
    width_total=getWidth();
 
-    run("Wound healing size tool options");
-    run("Options...", " black");
-    roiManager("reset");
+   run("Wound healing size tool options");
+   run("Options...", " black");
+   roiManager("reset");
    
-    getPixelSize(unit, pw, ph);
-   for (n = 1; n< nSlices+1; n++)
-   {
-   setSlice(n);
-   Stack.setSlice(n);
+   getPixelSize(unit, pw, ph);
+   getPixelSize(unit, pw, ph);
+   title = getTitle();
 
-    
-   	run("Duplicate...", n );
-    setForegroundColor(0, 0, 0);
-    setBackgroundColor(255, 255, 255);
-    roiManager("reset");
-    roiManager("Associate", "true");
-    
-    
-	run("8-bit");
-	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
-   run("Enhance Contrast...", "saturated="+sat_pix+" normalize");
-   run("Variance...", "radius="+filter_radius+" stack"); 
-   setThreshold(0, threshold);
-   run("Convert to Mask", "black");
-   run("Fill Holes");
-   run("Select All");
-   
-   run("Analyze Particles...", 
-          "size="+min_area+"-Infinity circularity=0.00-1.00 show=Nothing add stack");
-   run("Revert"); 
-   roiManager("Show None");
-   close();
-   
-   if (roiManager("count")>1)
-   {
-       area_large = newArray(roiManager("count"));
-       for (i = 0; i<(roiManager("count")); i++)
-       {
-           roiManager("select", i);
-           getStatistics(area_large[i], mean, min, max, std, histogram);
+   for (t = 1; t <= nSlices; t++) {
+       setSlice(t);
+
+       // Work on a temporary copy of this slice only
+       run("Duplicate...", "title=tmp");
+       selectWindow("tmp");
+
+       setForegroundColor(0, 0, 0);
+       setBackgroundColor(255, 255, 255);
+       roiManager("reset");
+       roiManager("Associate", "false"); // we only care about this slice
+
+       run("8-bit");
+       run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+       run("Enhance Contrast...", "saturated="+sat_pix+" normalize");
+       run("Variance...", "radius="+filter_radius); // NOTE: no 'stack' here
+       setThreshold(0, threshold);
+       run("Convert to Mask", "black");
+       run("Fill Holes");
+       run("Select All");
+
+       // Analyze only this slice
+       run("Analyze Particles...",
+           "size="+min_area+"-Infinity circularity=0.00-1.00 show=Nothing add");
+
+       count = roiManager("count");
+       if (count == 0) {
+           // No wound found on this frame
+           print("No wound ROI found on slice " + t + " – skipping.");
+           close("tmp");
+           selectWindow(title);
+
+           // Record zeros or NaNs as you prefer:
+           Area           = Array.concat(Area, 0);
+           AreaFraction   = Array.concat(AreaFraction, 0);
+           Width          = Array.concat(Width, 0);
+           StandarDeviation = Array.concat(StandarDeviation, 0);
+           continue;
        }
-       largest = 0;
-       for (i = 0; i<(roiManager("count")); i++)
-       {
-           if (area_large[i]>largest)
-           {
-               largest = area_large[i];
-               large = i;
+
+       // If multiple ROIs, pick the largest as wound
+       if (count > 1) {
+           area_large = newArray(count);
+           for (i = 0; i < count; i++) {
+               roiManager("select", i);
+               getStatistics(aTmp, mean, min, max, std, histogram);
+               area_large[i] = aTmp;
            }
+           largest = 0;
+           large   = 0;
+           for (i = 0; i < count; i++) {
+               if (area_large[i] > largest) {
+                   largest = area_large[i];
+                   large = i;
+               }
+           }
+           roiManager("select", large);
+       } else {
+           roiManager("select", 0);
        }
-       roiManager("select", large);
-   }
-   else
-   {
-       roiManager("select", 0);
-   }
-   
-   roiManager("Set Color", "cyan");
-   roiManager("Associate", "true");
-   
-   Roi.getContainedPoints(xpoints, ypoints);
-   min_x = edge_min_coordinates(xpoints);
-   max_x = edge_max_coordinates(xpoints);
-   diff_vec = diff_arrays(max_x , min_x);
 
-   Array.getStatistics(diff_vec, low, high, avg_widthp, std_distp);
-  
-   
-   List.setMeasurements;  
-   angle = List.getValue("Angle");
-   correct_angle = diagonal_fixed(diagonal, angle);
-   
-   Width = Array.concat(Width,(avg_widthp*pw)*correct_angle);
-   StandarDeviation = Array.concat(StandarDeviation,(std_distp*pw));
+       // --- EDGE SHAPE / WIDTH ---
+       Roi.getContainedPoints(xpoints, ypoints);
+       min_x   = edge_min_coordinates(xpoints);
+       max_x   = edge_max_coordinates(xpoints);
+       diff_vec = diff_arrays(max_x, min_x);
+       Array.getStatistics(diff_vec, low, high, avg_widthp, std_distp);
 
-   
-   run("Set Scale...", "distance=1 known="+pw+" unit=" + unit);
-   run("Set Measurements...", "redirect=None decimal=3");
-   getStatistics(area2, mean, min, max, std, histogram);
+       // --- AREA of that wound on this slice ---
+       run("Set Measurements...", "area redirect=None decimal=3");
+       getStatistics(area2, mean, min, max, std, histogram);
 
-   total_area=(height_total*pw)*(width_total*pw);
-   Area=Array.concat(Area,area2);
-   AreaFraction=Array.concat(AreaFraction,((area2/total_area)*100));
+       // Clean up temp window and go back to original
+       close("tmp");
+       selectWindow(title);
 
-    roiManager("Show None");
-	roiManager("Show All");
-
-
-
+       // Convert to physical units and store
+       total_area = (height_total * pw) * (width_total * pw);
+       Area           = Array.concat(Area, area2);
+       AreaFraction   = Array.concat(AreaFraction, (area2 / total_area) * 100.0);
+       Width          = Array.concat(Width, (avg_widthp * pw));
+       StandarDeviation = Array.concat(StandarDeviation, (std_distp * pw));
    }
    roiManager("Show None");
    Array.show("Results (row numbers)", Area,AreaFraction,Width,StandarDeviation);
