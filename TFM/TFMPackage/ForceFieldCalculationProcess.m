@@ -46,7 +46,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField','forceFieldShifted','forceFieldShiftedColor','forceFieldUnshifted',...
+            outputList = {'forceField','forceFieldShifted','forceFieldShiftedColor','forceFieldUnshifted','forceFieldUnshiftedColor',...
                 'tMap','tMapX','tMapY','tMapUnshifted'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
@@ -73,7 +73,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            if ismember(output,outputList(1:4))
+            if ismember(output,outputList(1:5))
                 iOut=1;
                 if ismember(output,outputList(1:3)) 
                     if ismember(output,outputList(1:2)) 
@@ -91,7 +91,9 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                     tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
                     SDCProc=tfmPackageHere.processes_{iSDCProc};
                     if ~isempty(SDCProc)
-                        s = load(SDCProc.outFilePaths_{3,1},'T');
+                        pSDC = SDCProc.funParams_;
+                        iBeadChan = pSDC.iBeadChannel;
+                        s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');
                         T = s.T;
                         Tr = affine2d([1 0 0; 0 1 0; fliplr(T(1, :)) 1]);
                         invTr = invert(Tr);
@@ -109,7 +111,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
 %                 % Set up the output directories
 %                 outputDir = fullfile(OutputDirectory,tMapFolder);
 %                 outFileTMap=@(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-            elseif ismember(output,outputList(5:8))
+            elseif ismember(output,outputList(6:9))
                 iOut=2;
                 if isempty(lastFinishTime)
                     lastFinishTime = clock; % assigning current time.. This will be definitely different from obj.finishTime_
@@ -126,8 +128,8 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         numStr = @(frame) num2str(frame,fString);
                         outputDir = fullfile(obj.funParams_.OutputDirectory,'tractionMaps');
                         outFileTMap = @(frame) [outputDir filesep 'tractionMap' numStr(frame) '.mat'];
-                        if isfield(s,outputList{5}) || isfield(s,'tMapObj')
-                            tMapObj = s.(outputList{5});
+                        if isfield(s,outputList{6}) || isfield(s,'tMapObj')
+                            tMapObj = s.(outputList{6});
                             if ~isstruct(tMapObj)
                                 mkdir(outputDir);
                                 % This means that the data is is stored in an old
@@ -242,16 +244,16 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                         lastFinishTime = obj.finishTime_;
                     end
                 end
-                if ismember(output,outputList(5:7)) 
-                    if strcmp(output,outputList(5))
+                if ismember(output,outputList(6:8)) 
+                    if strcmp(output,outputList(6))
                         if noStackRequired
                             varargout{1} = curMap;
                         else
                             varargout{1}=tMapMap(:,:,iFrame);
                         end
-                    elseif strcmp(output,outputList(6))
-                        varargout{1}=tMapMapX(:,:,iFrame);
                     elseif strcmp(output,outputList(7))
+                        varargout{1}=tMapMapX(:,:,iFrame);
+                    elseif strcmp(output,outputList(8))
                         varargout{1}=tMapMapY(:,:,iFrame);
                     end
                 else %This is for unshifted (in the size of raw channels)
@@ -437,6 +439,12 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             output(7).formatData=@(x) [x.pos x.vec(:,1)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
             output(7).type='movieOverlay';
             output(7).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[125/255 50/255 210/255]);
+
+            output(8).name='FF SDC unshifted (c)';
+            output(8).var='forceFieldUnshiftedColor';
+            output(8).formatData=@(x) [x.pos x.vec(:,1) x.vec(:,2)];
+            output(8).type='movieOverlay';
+            output(8).defaultDisplayMethod=@(x) VectorFieldDisplay('Colormap',jet,'Linewidth',1);
                 %% TODO -- Ensure outputs are generated and available for display
                 % output(6).name='Prediction Err map';
                 % output(6).var='dErrMap';

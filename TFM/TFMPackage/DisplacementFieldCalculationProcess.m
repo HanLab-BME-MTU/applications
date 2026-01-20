@@ -137,13 +137,20 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
                             displFieldObj = cached.load(dMapObj.displFieldPath, '-useCache', ip.Results.useCache, 'displField');
                             displField = displFieldObj.displField;
                             [dMapIn, ~, ~, cropInfo] = generateHeatmapShifted(displField(iFrame),displField(iFrame),0);
+                            [dMapInRef, ~, ~, cropInfoRef] = generateHeatmapShifted(displField(iFrame),0,0);
+                            iTFMPack = obj.owner_.getPackageIndex('TFMPackage');
+                            tfmPackageHere=obj.owner_.packages_{iTFMPack}; iSDCProc=1;
+                            SDCProc=tfmPackageHere.processes_{iSDCProc};
                             pp=numel(iFrame)+1;
                             for ii=fliplr(iFrame)
                                 pp=pp-1;
                                 curMap = zeros(dMapObj.firstMaskSize);
                                 curMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = dMapIn{pp};
+                                curMapRef = zeros(size(SDCProc.loadOutImage(1,1)));
+                                curMapRef(cropInfoRef(2):cropInfoRef(4),cropInfoRef(1):cropInfoRef(3)) = dMapInRef{pp};
                                 if ~noStackRequired
                                     dMapMap(:,:,ii) = curMap;
+                                    dMapMapRef(:,:,ii) = curMapRef;
                                 end
 %                                     progressText((obj.owner_.nFrames_-ii)/obj.owner_.nFrames_,'One-time traction map loading') % Update text
                             end
@@ -342,17 +349,23 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             output(1).type='movieOverlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
 
-            output(2).name='Displacement map (in cell coord)';
+            output(2).name='Disp. map (in ref, deformed)';
             output(2).var='dMap';
             output(2).formatData=[];
             output(2).type='image';
             output(2).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet','Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
 
-            output(3).name='Displacement map (in ref coord)';
+            output(3).name='Disp. map (from ref)';
             output(3).var='dMapRef';
             output(3).formatData=[];
             output(3).type='image';
             output(3).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet','Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
+
+            output(4).name='Disp. map unshifted';
+            output(4).var='dMapUnshifted';
+            output(4).formatData=[];
+            output(4).type='image';
+            output(4).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet','Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
         end
         
     end

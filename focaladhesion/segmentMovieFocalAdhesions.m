@@ -142,6 +142,12 @@ for iChan = 1:nChanSeg
         
         %Load the current image        
         currImage = movieData.channels_(p.ChannelIndex(iChan)).loadImage(iImage);
+
+        % If there is nothing in the image, skip it:
+        if max(currImage(:))<1
+            disp([num2str(iImage) 'th frame is black. Skipping it...'])
+            continue
+        end
         
         %Load cell mask here
         if existSegmentation

@@ -189,7 +189,7 @@ if foundTracks || startFromIntermediate % If this part above is already processe
         load(dataPath_focalAdhInfo, 'focalAdhInfo')
     end
     try
-        tracksNA = thisProc.loadChannelOutput(iChan,'output','tracksNA');
+        tracksNA = thisProc.loadChannelOutput(iChan,[],'output','tracksNA');
     catch
         progressText(0,'Loading tracksNA') % Create text & waitbar popup
         for ii=metaTrackData.numTracks:-1:1
@@ -879,6 +879,9 @@ if 1
                     yCropped = curTrack.yCoord(ii);
                     % Make the line out of the fit (along the major moving
                     % direction of the adhesion
+                    if isempty(allBdPoints)
+                        continue;
+                    end
                     xmin=min(allBdPoints(:,1)); xmax=max(allBdPoints(:,1));
                     x2=xmin:xmax;
                     y2=fitobj(x2)';
@@ -915,6 +918,14 @@ if 1
                     allBdPoints = allBdPointsAll{ii};
                     xCropped = curTrack.xCoord(ii);
                     yCropped = curTrack.yCoord(ii);
+                    if isempty(allBdPoints)
+                        curTrack.distToEdge(ii) = NaN;
+                        curTrack.distToEdgeNaive(ii) = NaN;
+                        curTrack.closestBdPoint(ii,:) = [NaN NaN]; % this is lab frame of reference. (not relative to adhesion position)
+                        curTrack.closestBdPointNaive(ii,:) = [NaN NaN]; % this is lab frame of reference. (not relative to adhesion position)
+                        continue
+                    end
+                        
                     distToAdh = sqrt(sum((allBdPoints- ...
                         ones(size(allBdPoints,1),1)*[xCropped, yCropped]).^2,2));
                     [minDistToBd,indMinBdPoint] = min(distToAdh);
@@ -938,8 +949,10 @@ if 1
 
     if getEdgeRelatedFeatures
         for k=1:numTracks
-            idxZeros = tracksNA(k).closestBdPoint(:,1)==0 & tracksNA(k).closestBdPoint(:,2)==0;
-            tracksNA(k).closestBdPoint(idxZeros,:)=NaN(sum(idxZeros),2);
+            if ~isnan(any(tracksNA(k).closestBdPoint(:,1)))
+                idxZeros = tracksNA(k).closestBdPoint(:,1)==0 & tracksNA(k).closestBdPoint(:,2)==0;
+                tracksNA(k).closestBdPoint(idxZeros,:)=NaN(sum(idxZeros),2);
+            end
         end
     end
 
