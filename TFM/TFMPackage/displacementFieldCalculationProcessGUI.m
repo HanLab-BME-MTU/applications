@@ -209,6 +209,8 @@ else
     funParams.mode = 'fast';
 end
 
+% Set parameters
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 
 % Process Sanity check ( only check underlying data )
 try
@@ -220,8 +222,6 @@ catch ME
     return;
 end
 
-% Set parameters
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 
 
 % --- Executes on button press in pushbutton_selectReferenceFrame.
