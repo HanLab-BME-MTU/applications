@@ -51,7 +51,7 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
                 
 %                 [~,iOutput] =ismember(ip.Results.output,{outputList.var});
                 iOutput = find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
-                iChanRef = ~isempty(obj.outFilePaths_(iOutput,:));
+                iChanRef = cellfun(@(x) ~isempty(x),obj.outFilePaths_(iOutput,:));
                 data = imread(obj.outFilePaths_{iOutput,iChanRef});
 
                 if ~isempty(outputList(iOutput).formatData)
