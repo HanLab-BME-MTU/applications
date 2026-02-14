@@ -9,7 +9,7 @@ end
 
 nMovies = numel(ML.movieDataFile_);
 MDAll = ML.movies_;
-for ii=1:nMovies
+parfor ii=1:nMovies
     curMD = MDAll{ii};
     tfmRun(curMD)
 end

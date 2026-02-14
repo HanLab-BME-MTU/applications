@@ -42,6 +42,8 @@ p.addParameter('BgOuterRadiusPx', 40, @(x)isnumeric(x)&&isscalar(x));    % bg ri
 % CellMask (optional; helps avoid ring spilling into empty field)
 p.addParameter('UseCellMask', true, @(x)islogical(x)&&isscalar(x));
 p.addParameter('CellMaskDilatePx', 10, @(x)isnumeric(x)&&isscalar(x));
+p.addParameter('DapiProjMode', 'trimmedMean', @(s)ischar(s)||isstring(s)); 
+p.addParameter('DapiTrimTopFrac', 0.02, @(x)isnumeric(x)&&isscalar(x)&&x>=0&&x<1);
 
 % Display/QC options
 p.addParameter('Verbose', true, @(x)islogical(x)&&isscalar(x));
@@ -62,21 +64,49 @@ dapiStack = im2double(r.loadStack(prm.ChDAPI, t));
 % Projections
 % -----------------------
 % --- DAPI projection (replace MIP/mean with top-K mean for robustness)
-K = 3; % top-K planes; 3 is a good default for 10x IF
-Ds = sort(dapiStack, 3, 'descend');
-K = min(K, size(Ds,3));
-D  = mean(Ds(:,:,1:K), 3);
+% -----------------------
+% Projections (DAPI)
+% -----------------------
+switch lower(string(prm.DapiProjMode))
+    case "topk"
+        K = 3;
+        Ds = sort(dapiStack, 3, 'descend');
+        Rs = sort(nfkbStack, 3, 'descend');
+        Gs = sort(phalStack, 3, 'descend');
+        K = min(K, size(Ds,3));
+        D  = mean(Ds(:,:,1:K), 3);
+        R  = mean(Rs(:,:,1:K), 3);
+        G  = mean(Gs(:,:,1:K), 3);
+        
+    case "mip"
+        D = max(dapiStack, [], 3);
+        R = max(nfkbStack, [], 3);
+        G = max(phalStack, [], 3);
 
-switch lower(string(prm.UseNFkBProj))
     case "mean"
+        D = mean(dapiStack, 3);
         R = mean(nfkbStack, 3);
-    case "sum"
-        R = sum(nfkbStack, 3);
+        G = mean(phalStack, 3);
+
+    case "trimmedmean"
+        ZsD = sort(dapiStack,3,'ascend');
+        ZsR = sort(nfkbStack,3,'ascend');
+        ZsG = sort(phalStack,3,'ascend');
+        zN = size(ZsD,3);
+        hi = max(1, round((1-prm.DapiTrimTopFrac)*zN)); % keep bottom (1-frac)
+        D  = mean(ZsD(:,:,1:hi), 3);
+        R  = mean(ZsR(:,:,1:hi), 3);
+        G  = mean(ZsG(:,:,1:hi), 3);
+
+        % [rangeFocus,D] = findBestFocusFromStack(dapiStack);
+        % R = mean(nfkbStack(:,:,rangeFocus),3);
+        % G = mean(phalStack(:,:,rangeFocus),3);
+        
     otherwise
-        error("UseNFkBProj must be 'mean' or 'sum'.");
+        error("Unknown DapiProjMode. Use 'topK','mip','mean','trimmedMean'.");
 end
 
-G = mean(phalStack, 3);
+% G = mean(phalStack, 3);
 
 % Mild denoise (analysis uses these)
 Dg = imgaussfilt(D, 1);

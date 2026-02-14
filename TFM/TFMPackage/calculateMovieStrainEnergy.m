@@ -171,12 +171,16 @@ else
     iCalculatedDisplFieldProc = 2;
     CalculatedDisplFieldProc=TFMPackage.processes_{iCalculatedDisplFieldProc};
     dispProc = CalculatedDisplFieldProc;
-    if ~isempty(CalculatedDisplFieldProc)
-        dMap=CalculatedDisplFieldProc.loadChannelOutput('output','dMap');
-    else
-        disp('Assuming displacement proportional to tMap because there were no dmaps found')
-        dMap=cellfun(@(x) x/(yModulus),tMap,'UniformOutput',false);
-    end
+    % ws = warning;                 % save current warning state
+    % warning('off','all');         % or off for a specific ID (better; see below)
+    % if ~isempty(CalculatedDisplFieldProc)
+    %     dMap=CalculatedDisplFieldProc.loadChannelOutput('output','dMap');
+    % else
+    %     disp('Assuming displacement proportional to tMap because there were no dmaps found')
+    %     dMap=cellfun(@(x) x/(yModulus),tMap,'UniformOutput',false);
+    % end
+    % warning(ws);                  % restore
+    % We don't need this.
 end
 %% Calculate strain energy for FOV
 % gridSpacing=1;
@@ -301,10 +305,15 @@ if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for ii=1:nFrames
     % Make sure if each tmap has its contents
 %     curTMap=tMap(:,:,ii);
+    ws = warning;                 % save current warning state
+    warning('off','all');         % or off for a specific ID (better; see below)
+
     curTMap=forceFieldProc.loadChannelOutput('output','tMapUnshifted','iFrame',ii,'noStackRequired',true);
 
 %     curDMap=dMap(:,:,ii);
     curDMap=dispProc.loadChannelOutput('output','dMapUnshifted','iFrame',ii,'noStackRequired',true);
+    warning(ws);                  % restore
+
     if isempty(curTMap)
         try
             curTMap=load(outFileTMap(ii),'cur_tMap');
