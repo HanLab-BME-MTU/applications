@@ -1,9 +1,9 @@
 function setupTFMPackageForMovieList(movieListPath, tfmParams)
 % setupTFMPackageForMovieList
-% MovieList ? ?? MD? ?? TFMPackage? ??? ????? ????.
+% MovieList ? ?? MD? TFMPackage? ??.
 %
 % movieListPath: ".../movieList.mat"
-% tfmParams: struct (?? ?? ??)
+% tfmParams: struct (??)
 
 movieListPath = char(movieListPath);
 assert(exist(movieListPath,'file')==2, 'movieListPath not found: %s', movieListPath);
@@ -11,7 +11,7 @@ assert(exist(movieListPath,'file')==2, 'movieListPath not found: %s', movieListP
 ML = MovieList.load(movieListPath);
 nMovies = numel(ML.movieDataFile_);
 
-% ???? ???
+% ?? ????
 p = defaultTFMParams();
 if nargin >= 2 && ~isempty(tfmParams)
     fn = fieldnames(tfmParams);
@@ -20,18 +20,18 @@ end
 
 for i = 1:nMovies
     MD = ML.getMovie(i);
+
     % ---- Ensure frame rate exists (required by TFMPackage sanityCheck) ----
     if isempty(MD.timeInterval_) || ~(MD.timeInterval_ > 0)
         MD.timeInterval_ = p.timeInterval;   % seconds per frame
     end
     if isempty(MD.pixelSize_) || ~(MD.pixelSize_ > 0)
-        MD.pixelSize_ = p.pixelSize;   % seconds per frame
+        MD.pixelSize_ = p.pixelSize;         % nm/pixel
     end
     MD.save;
 
-    % reference image path (? MD output ?? ? reference/ref_beads_bestZ.tif)
-    refImgPath = fullfile(MD.outputDirectory_, 'reference', 'ref_beads_bestZ.tif');
-    assert(exist(refImgPath,'file')==2, 'Reference image missing: %s', refImgPath);
+    % ---- Flexible reference bestZ path resolution ----
+    refImgPath = resolveRefBestZPath(MD.outputDirectory_, true); % strict=true
 
     % --- TFMPackage ?? ---
     iPack = MD.getPackageIndex('TFMPackage');
@@ -41,49 +41,49 @@ for i = 1:nMovies
     end
     tfmPack = MD.getPackage(iPack);
 
-    % --- Process 1: EfficientSubpixelRegistration (Stage drift correction) ---
+    % --- Process 1: EfficientSubpixelRegistration ---
     if isempty(tfmPack.processes_{1})
         tfmPack.createDefaultProcess(1);
     end
     proc1 = tfmPack.getProcess(1);
     fp = proc1.funParams_;
-    
+
     % Apply shift to ALL channels
     if isfield(fp,'ChannelIndex')
         fp.ChannelIndex = 1:numel(MD.channels_);
     end
-    
+
     % Use bead channel to compute shift
     if isfield(fp,'iBeadChannel')
-        fp.iBeadChannel = p.beadChan;   % p.beadChan = 2
+        fp.iBeadChannel = p.beadChan;
     elseif isfield(fp,'BeadChannelIndex')
         fp.BeadChannelIndex = p.beadChan;
     elseif isfield(fp,'refChannel')
         fp.refChannel = p.beadChan;
     end
-    
+
     % Reference image (bestZ slice)
     if isfield(fp,'referenceFramePath')
         fp.referenceFramePath = refImgPath;
     elseif isfield(fp,'referenceFrame')
         fp.referenceFrame = refImgPath;
     end
-    
-    % Registration accuracy (if exists)
+
     if isfield(fp,'usfac')
         fp.usfac = p.usfac;
     end
-    
+
     proc1.setPara(fp);
 
     % --- Process 2: Displacement field ---
     if isempty(tfmPack.processes_{2}), tfmPack.createDefaultProcess(2); end
     proc2 = tfmPack.getProcess(2);
     fp = proc2.funParams_;
-    fp.referenceFramePath = refImgPath;
-    if isfield(fp,'ChannelIndex'); fp.ChannelIndex = p.beadChan; end
 
-    % (?? ??? ? tfmBatch.m?? ??? ???)
+    if isfield(fp,'referenceFramePath'); fp.referenceFramePath = refImgPath; end
+    if isfield(fp,'referenceFrame');     fp.referenceFrame     = refImgPath; end
+    if isfield(fp,'ChannelIndex');       fp.ChannelIndex       = p.beadChan; end
+
     if isfield(fp,'alpha'); fp.alpha = p.alpha; end
     if isfield(fp,'minCorLength'); fp.minCorLength = p.minCorLength; end
     if isfield(fp,'addNonLocMaxBeads'); fp.addNonLocMaxBeads = p.addNonLocMaxBeads; end
@@ -96,13 +96,7 @@ for i = 1:nMovies
 
     proc2.setPara(fp);
 
-    % --- Process 3: Displacement post-processing ---
-    % if isempty(tfmPack.processes_{3}), tfmPack.createDefaultProcess(3); end
-    % proc3 = tfmPack.getProcess(3);
-    % fp = proc3.funParams_;
-    % if isfield(fp,'outlierThreshold'); fp.outlierThreshold = p.outlierThreshold; end
-    % if isfield(fp,'fillVectors'); fp.fillVectors = p.fillVectors; end
-    % proc3.setPara(fp);
+    % --- Process 3: Displacement post-processing (delete if exists) ---
     if ~isempty(tfmPack.processes_{3})
         MD.deleteProcess(tfmPack.processes_{3})
         MD.save
@@ -114,19 +108,18 @@ for i = 1:nMovies
     fp = proc4.funParams_;
 
     if isfield(fp,'YoungModulus'); fp.YoungModulus = p.YoungModulus; end
-    if isfield(fp,'regParam'); fp.regParam = p.regParam; end
-    if isfield(fp,'method'); fp.method = p.method; end
+    if isfield(fp,'regParam');     fp.regParam     = p.regParam; end
+    if isfield(fp,'method');       fp.method       = p.method; end
     if isfield(fp,'solMethodBEM'); fp.solMethodBEM = p.solMethodBEM; end
-    if isfield(fp,'useLcurve'); fp.useLcurve = p.useLcurve; end
+    if isfield(fp,'useLcurve');    fp.useLcurve    = p.useLcurve; end
 
-    % basis table (FastBEM?? ??? ? ??)
     if isfield(fp,'basisClassTblPath') && ~isempty(p.basisClassTblPath)
         fp.basisClassTblPath = p.basisClassTblPath;
     end
 
     proc4.setPara(fp);
 
-    % --- Process 5: Strain energy (???) ---
+    % --- Process 5: Strain energy (if present) ---
     if numel(tfmPack.processes_) >= 5
         if isempty(tfmPack.processes_{5}), tfmPack.createDefaultProcess(5); end
         proc5 = tfmPack.getProcess(5);
@@ -140,16 +133,81 @@ end
 
 end
 
+%% ===================== Helper: resolve ref bestZ path =====================
+function refImgPath = resolveRefBestZPath(mdOutDir, strict)
+% Looks for reference bestZ image under:
+%   <mdOutDir>/reference/
+% Priority:
+%   1) ref_beads_bestZ.tif
+%   2) ref_beads_bestZ_series*.tif
+%   3) *bestZ*.tif
+% strict=true => error on missing or ambiguous matches
+
+if nargin < 2, strict = true; end
+
+refDir = fullfile(mdOutDir, 'reference');
+assert(exist(refDir,'dir')==7, 'Reference folder missing: %s', refDir);
+
+p1 = fullfile(refDir, 'ref_beads_bestZ.tif');
+if exist(p1,'file')==2
+    refImgPath = p1;
+    return;
+end
+
+cands = [];
+d = dir(fullfile(refDir, 'ref_beads_bestZ_series*.tif'));
+d = d(~[d.isdir]);
+if ~isempty(d), cands = d; end
+
+if isempty(cands)
+    d = dir(fullfile(refDir, '*bestZ*.tif'));
+    d = d(~[d.isdir]);
+    cands = d;
+end
+
+if isempty(cands)
+    msg = sprintf('Reference image missing in: %s (expected ref_beads_bestZ.tif or ref_beads_bestZ_series*.tif)', refDir);
+    if strict, error(msg); else, warning(msg); end
+    refImgPath = p1; % placeholder
+    return;
+end
+
+if numel(cands) > 1
+    % If multiple, try to pick the best candidate by name score; still error if strict.
+    names = string({cands.name});
+    score = zeros(numel(names),1);
+    score = score + 5*contains(lower(names),'ref_beads_bestz_series');
+    score = score + 3*contains(lower(names),'beads');
+    score = score + 3*contains(lower(names),'bestz');
+
+    [~,idx] = max(score);
+    picked = cands(idx);
+
+    if strict
+        error('Ambiguous reference bestZ files in %s. Found: %s. Please keep only one, or rename to ref_beads_bestZ.tif', ...
+            refDir, strjoin(names, ", "));
+    else
+        warning('Multiple candidates in %s. Using: %s', refDir, picked.name);
+        refImgPath = fullfile(picked.folder, picked.name);
+        return;
+    end
+else
+    picked = cands(1);
+    refImgPath = fullfile(picked.folder, picked.name);
+end
+
+end
+
 function p = defaultTFMParams()
-% ? tfmBatch.m ??? ?? + ?? ????? ???
+% tfmBatch.m ??? ??? + ??
 
 p = struct();
-p.beadChan = 2;          % ? ?? ?? bead channel
+p.beadChan = 2;
 p.usfac = 20;
 
 % Displacement params
 p.alpha = 0.05;
-p.minCorLength = 7;
+p.minCorLength = 17;
 p.addNonLocMaxBeads = true;
 p.maxFlowSpeed = 20;
 p.highRes = true;
@@ -163,12 +221,14 @@ p.outlierThreshold = 2;
 p.fillVectors = false;
 
 % Force recon
-p.YoungModulus = 5000;   % Pa (??? ?? ??)
-p.regParam = 1e-5;       % ??? ??
-p.method = 'FTTC';    % 'FastBEM' or 'FTTC'
-p.solMethodBEM = 'QR';   % ?: 'QR' or '1NormReg'
+p.YoungModulus = 2700;   % Pa
+p.regParam = 0.005;      % <<< enforce your desired value here
+p.method = 'FTTC';
+p.solMethodBEM = 'QR';
 p.useLcurve = false;
-p.basisClassTblPath = ''; % FastBEM?? ?? ?? ?? (??? ''?)
+p.basisClassTblPath = '';
+
+% Metadata defaults
 p.timeInterval = 120;  % seconds per frame
-p.pixelSize = 325;
+p.pixelSize = 325;     % nm/pixel
 end

@@ -42,6 +42,15 @@ SEDen_CellInside_Group = cell(numConditions,1);
 avgForce_Cell_Group = cell(numConditions,1);
 avgForce_CellPeri_Group = cell(numConditions,1);
 avgForce_CellInside_Group = cell(numConditions,1);
+avgTraction_CellInside_Group = cell(numConditions,1);        % per-movie time series (Pa)
+dAvgTraction_CellInside_Group = cell(numConditions,1);       % per-movie delta (last-first) (Pa)
+% ==== TNF addition timing ====
+tnfAddFrame = 11;   % TNF? added after 30 min; frame 11 is first frame after addition
+preEndFrame = tnfAddFrame - 1; % 10
+dAvgTractionPre_CellInside_Group  = cell(numConditions,1); % frame10 - frame1
+dAvgTractionPost_CellInside_Group = cell(numConditions,1); % last - frame11
+stepAvgTraction_CellInside_Group  = cell(numConditions,1); % frame11 - frame10 (optional)
+
 
 isCellSeg = false;
 
@@ -76,6 +85,10 @@ for ii=1:numConditions
     curAvgForceCellGroup = cell(N(ii),1);
     curAvgForceCellPeriGroup = cell(N(ii),1);
     curAvgForceCellInsideGroup = cell(N(ii),1);
+    curdAvgTractionCellInsideGroup = zeros(N(ii),1);
+    curdAvgTractionPre_CellInside  = nan(N(ii),1);
+    curdAvgTractionPost_CellInside = nan(N(ii),1);
+    curStepAvgTraction_CellInside  = nan(N(ii),1); % optional
     
     for k=1:N(ii)
         % get the tracksNA
@@ -127,6 +140,39 @@ for ii=1:numConditions
             curAvgForceCellPeriGroup{k} = seCellStruct.avgTractionCellPeri; % in Pa
             curAvgForceCellInsideGroup{k} = seCellStruct.avgTractionCellInside; % in Pa
             isCellSeg = true;
+
+            % --- NEW: avg traction time-series (cell interior) and delta (last-first) ---
+            v = seCellStruct.avgTractionCellInside;   % [nFrames x 1] (Pa)
+        
+            % delta = last - first (ignore NaNs)
+            v2 = v(isfinite(v));
+            if numel(v2) >= 2
+                curdAvgTractionCellInsideGroup(k) = v2(end) - v2(1);
+            elseif isscalar(v2)
+                curdAvgTractionCellInsideGroup(k) = NaN; % not enough frames
+            else
+                curdAvgTractionCellInsideGroup(k) = NaN;
+            end
+            nF = numel(v);
+            f1 = 1;
+            f10 = min(preEndFrame, nF);
+            f11 = min(tnfAddFrame, nF);
+            fEnd = nF;
+        
+            % require valid indices and finite values
+            if f10 >= 2 && isfinite(v(f1)) && isfinite(v(f10))
+                curdAvgTractionPre_CellInside(k) = v(f10) - v(f1);
+            end
+        
+            if fEnd > f11 && isfinite(v(f11)) && isfinite(v(fEnd))
+                curdAvgTractionPost_CellInside(k) = v(fEnd) - v(f11);
+            end
+        
+            % optional step change at addition boundary
+            if f11 <= nF && f10 <= nF && isfinite(v(f10)) && isfinite(v(f11))
+                curStepAvgTraction_CellInside(k) = v(f11) - v(f10);
+            end
+
         end
         % 3. FOV
         seFOVStruct=load(curSEProc.outFilePaths_{1});
@@ -175,6 +221,11 @@ for ii=1:numConditions
         avgForce_Cell_Group{ii,1}=curAvgForceCellGroup;
         avgForce_CellPeri_Group{ii,1}=curAvgForceCellPeriGroup;
         avgForce_CellInside_Group{ii,1}=curTotalForceCellInsideGroup;
+        dAvgTraction_CellInside_Group{ii,1}  = curdAvgTractionCellInsideGroup;
+
+        dAvgTractionPre_CellInside_Group{ii,1}  = curdAvgTractionPre_CellInside;
+        dAvgTractionPost_CellInside_Group{ii,1} = curdAvgTractionPost_CellInside;
+        stepAvgTraction_CellInside_Group{ii,1}  = curStepAvgTraction_CellInside; % optional
     end
 end
 disp('Done')
@@ -195,6 +246,12 @@ disp('Done')
                     [~,nameList{ii}] = fileparts(curPath);
                 end
             end
+        end
+        % seek if there are multiplicate names:
+        [uniqueNames, ~, idx] = unique(nameList,'stable');
+        counts = accumarray(idx(:),1);
+        if counts>1 %Then swtich nameList with groupNames2
+            nameList = groupNames2';
         end
     else
         nameList=groupNames'; 
@@ -703,6 +760,66 @@ if isCellSeg
     tableAvgForce_CellInside=table(avgForceCellInside_CellArray,'RowNames',nameList);
     writetable(tableAvgForce_CellInside,strcat(dataPath,'/avgForce_CellInside.csv'),'WriteRowNames',true)
 end
+%% Change in mean traction (CellInside): last frame - first frame
+if isCellSeg
+    dAvgTractionCellInside_CellArray = cellfun(@(x) x(:), dAvgTraction_CellInside_Group, 'unif', false);
+
+    h1 = figure;
+    boxPlotCellArray(dAvgTractionCellInside_CellArray, nameList, 1, false, true);
+    ylabel('\Delta mean traction (Pa)  (last - first)');
+    title('Change in mean traction in a cell interior');
+
+    hgexport(h1, strcat(figPath,'/dAvgTractionCellInside'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/dAvgTractionCellInside'), '-v7.3');
+    print(h1, strcat(figPath,'/dAvgTractionCellInside.tif'), '-dtiff');
+
+    table_dAvgTraction_CellInside = table(dAvgTractionCellInside_CellArray, 'RowNames', nameList);
+    writetable(table_dAvgTraction_CellInside, strcat(dataPath,'/dAvgTractionCellInside.csv'), 'WriteRowNames', true);
+end
+
+    %% Pre (frame10 - frame1): baseline drift/vehicle period
+if isCellSeg    
+    dPre_CellArray = cellfun(@(x) x(:), dAvgTractionPre_CellInside_Group, 'unif', false);
+    figure('Color','w');
+    boxPlotCellArray(dPre_CellArray, nameList, 1, false, true);
+    ylabel('\Delta mean traction (Pa)  (frame10 - frame1)');
+    title('Baseline change in mean traction (0-30 min)');
+    hgexport(h1, strcat(figPath,'/dAvgTractionPre_CellInside'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/dAvgTractionPre_CellInside'), '-v7.3');
+    print(h1, strcat(figPath,'/dAvgTractionPre_CellInside.tif'), '-dtiff');
+
+    table_dAvgTractionPre_CellInside = table(dPre_CellArray, 'RowNames', nameList);
+    writetable(table_dAvgTractionPre_CellInside, strcat(dataPath,'/dAvgTractionPre_CellInside.csv'), 'WriteRowNames', true);
+end
+%% post (last - frame11): after TNFa addition
+if isCellSeg
+    dAvgTractionPost_CellInside_CellArray = cellfun(@(x) x(:), dAvgTractionPost_CellInside_Group, 'unif', false);
+    figure('Color','w');
+    boxPlotCellArray(dAvgTractionPost_CellInside_CellArray, nameList, 1, false, true);
+    ylabel('\Delta mean traction (Pa)  (last - frame11)');
+    title('Post-TNF\alpha change in mean traction (30 min - end)');
+    hgexport(h1, strcat(figPath,'/dAvgTractionPost_CellInside'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/dAvgTractionPost_CellInside'), '-v7.3');
+    print(h1, strcat(figPath,'/dAvgTractionPost_CellInside.tif'), '-dtiff');
+
+    table_dAvgTractionPost_CellInside = table(dAvgTractionPost_CellInside_CellArray, 'RowNames', nameList);
+    writetable(table_dAvgTractionPost_CellInside, strcat(dataPath,'/dAvgTractionPost_CellInside.csv'), 'WriteRowNames', true);
+end    
+    %% optional: immediate step at TNF? addition (frame11 - frame10)
+if isCellSeg
+    dStep_CellArray = cellfun(@(x) x(:), stepAvgTraction_CellInside_Group, 'unif', false);
+    figure('Color','w');
+    boxPlotCellArray(dStep_CellArray, nameList, 1, false, true);
+    ylabel('\Delta mean traction (Pa)  (frame11 - frame10)');
+    title('Immediate change at TNF\alpha addition');
+    hgexport(h1, strcat(figPath,'/stepAvgTraction_CellInside'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/stepAvgTraction_CellInside'), '-v7.3');
+    print(h1, strcat(figPath,'/stepAvgTraction_CellInside.tif'), '-dtiff');
+
+    table_stepAvgTraction_CellInside = table(dStep_CellArray, 'RowNames', nameList);
+    writetable(table_stepAvgTraction_CellInside, strcat(dataPath,'/stepAvgTraction_CellInside.csv'), 'WriteRowNames', true);
+end
+
 %% Spread Area - all frames
 if isCellSeg
     spreadArea_CellArray = cellfun(@(x) cell2mat(x),spreadArea_Group,'unif',false);

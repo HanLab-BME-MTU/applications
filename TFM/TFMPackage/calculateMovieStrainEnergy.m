@@ -269,6 +269,16 @@ else
     iMaskProcess=movieData.getProcessIndex('MaskRefinementProcess');
     if ~isempty(iMaskProcess)
         maskProc = movieData.getProcess(iMaskProcess);
+        if ~maskProc.success_
+            iMaskProcess=movieData.getProcessIndex('ThresholdProcess');
+            maskProc = movieData.getProcess(iMaskProcess);
+            existMask = true;
+        else
+            existMask = true;
+        end
+    else
+        iMaskProcess=movieData.getProcessIndex('ThresholdProcess');
+        maskProc = movieData.getProcess(iMaskProcess);
         existMask = true;
     end
 end
@@ -308,10 +318,10 @@ for ii=1:nFrames
     ws = warning;                 % save current warning state
     warning('off','all');         % or off for a specific ID (better; see below)
 
-    curTMap=forceFieldProc.loadChannelOutput('output','tMapUnshifted','iFrame',ii,'noStackRequired',true);
+    curTMap=forceFieldProc.loadChannelOutput(ii,'output','tMapUnshifted','noStackRequired',true);
 
 %     curDMap=dMap(:,:,ii);
-    curDMap=dispProc.loadChannelOutput('output','dMapUnshifted','iFrame',ii,'noStackRequired',true);
+    curDMap=dispProc.loadChannelOutput(ii,'output','dMapUnshifted','iFrame',ii,'noStackRequired',true);
     warning(ws);                  % restore
 
     if isempty(curTMap)
