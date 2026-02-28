@@ -149,7 +149,7 @@ p.usfac = 20;
 
 % Displacement params
 p.alpha = 0.05;
-p.minCorLength = 7;
+p.minCorLength = 15;
 p.addNonLocMaxBeads = true;
 p.maxFlowSpeed = 20;
 p.highRes = true;
