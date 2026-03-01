@@ -21,9 +21,12 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_OutputFcn',  @otherChannelSamplingProcessGUI_OutputFcn, ...
                    'gui_LayoutFcn',  @otherChannelSamplingProcessGUI_LayoutFcn, ...
                    'gui_Callback',   []);
+
+
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
+
 if nargout
     [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
 else
@@ -57,8 +60,17 @@ if ~isfield(funParams,'BaselineFrames') || isempty(funParams.BaselineFrames)
     funParams.BaselineFrames = 1;
 end
 
+<<<<<<< HEAD
 % Populate UI
 set(handles.edit_channelIndex, 'String', num2str(funParams.ChannelIndex));
+=======
+%% ===================== LAYOUT =====================
+function hFig = otherChannelSamplingProcessGUI_LayoutFcn(gui_SingletonOpt)
+% NOTE: gui_mainfcn calls LayoutFcn with one input (gui_SingletonOpt).
+% We do not use it, but we must accept it to avoid "Too many input arguments".
+% (Keeping GUIDE-compatible signature.)
+%#ok<*INUSD>
+>>>>>>> 49c8fd4efa1b8962ed07507993325b889bf04754
 
 m = lower(string(funParams.Measure));
 if m == "median"
