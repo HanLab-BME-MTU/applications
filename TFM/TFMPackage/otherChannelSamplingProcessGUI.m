@@ -43,6 +43,16 @@ function otherChannelSamplingProcessGUI_OpeningFcn(hObject, eventdata, handles, 
 
 processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 
+% Ensure handles contains all GUI component fields (GUIDE sometimes passes empty handles).
+handles = guihandles(hObject);
+
+
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
+
+% Refresh handles after processGUI_OpeningFcn may have updated guidata
+handles = guidata(hObject);
+
+
 % Repurpose labels / hide unused widgets (we keep the FIG but retitle controls)
 set(handles.figure1, 'Name', 'Setting - Other Channel Sampling');
 
@@ -162,10 +172,92 @@ guidata(hObject, handles);
 % (handles updated)
 end
 
+% Output directory
+if isfield(funParams, 'OutputDirectory')
+    set(handles.edit_basisClassTblPath, 'String', funParams.OutputDirectory);
+end
+
+% Build channel popup
+try
+    MD = userData.MD;
+catch
+    MD = [];
+end
+if isempty(MD)
+    % processGUI_OpeningFcn usually sets userData.MD; but keep safe fallback
+    try
+        MD = userData.crtProc.getOwner();
+    catch
+        MD = [];
+    end
+end
+
+[chString, chData] = buildChannelList(MD);
+set(handles.popupmenu_method, 'String', chString, 'UserData', chData);
+
+if isfield(funParams,'ChannelIndex') && ~isempty(funParams.ChannelIndex) && funParams.ChannelIndex >= 1 && funParams.ChannelIndex <= numel(chData)
+    set(handles.popupmenu_method, 'Value', funParams.ChannelIndex);
+else
+    set(handles.popupmenu_method, 'Value', 1);
+end
+
+% Build mask-process popup
+[maskString, maskData] = buildMaskProcessList(MD);
+set(handles.popupmenu_solMethodBEM, 'String', maskString, 'UserData', maskData);
+
+% Set mask selection
+if isfield(funParams,'MaskProcessName') && ~isempty(funParams.MaskProcessName)
+    v = find(strcmp(funParams.MaskProcessName, maskData), 1, 'first');
+    if ~isempty(v), set(handles.popupmenu_solMethodBEM, 'Value', v); end
+else
+    set(handles.popupmenu_solMethodBEM, 'Value', 1);
+end
+
+% Mask channel index
+if isfield(funParams,'MaskChannelIndex')
+    set(handles.edit_meshPtsFwdSol, 'String', num2str(funParams.MaskChannelIndex));
+else
+    set(handles.edit_meshPtsFwdSol, 'String', '1');
+end
+
+% Checkboxes
+safeSetValue(handles, 'checkbox_lastToFirst', getFieldOr(funParams,'UseStageDriftCorrection',false));
+safeSetValue(handles, 'checkbox_everyframe', getFieldOr(funParams,'SavePerFrameTifPreview',false));
+safeSetValue(handles, 'useLcurve', getFieldOr(funParams,'UseLabeling',false));
+safeSetValue(handles, 'setROIfromForcemap', getFieldOr(funParams,'ComputeDFF0',false));
+
+% Min area
+if isfield(funParams,'MinAreaPix')
+    set(handles.edit_PoissonRatio, 'String', num2str(funParams.MinAreaPix));
+else
+    set(handles.edit_PoissonRatio, 'String', '50');
+end
+
+% Baseline frames
+if isfield(funParams,'BaselineFrames')
+    bf = funParams.BaselineFrames;
+    if isnumeric(bf)
+        if isscalar(bf)
+            bfStr = num2str(bf);
+        else
+            bfStr = mat2str(bf);
+        end
+    else
+        bfStr = bf;
+    end
+    set(handles.edit_LcurveFactor, 'String', bfStr);
+else
+    set(handles.edit_LcurveFactor, 'String', '1');
+end
+
+guidata(hObject, handles);
+
 % --- Outputs from this function are returned to the command line.
 function varargout = otherChannelSamplingProcessGUI_OutputFcn(~, ~, handles)
 varargout{1} = handles.output;
+
 end
+
 
 % --- Executes on key press with focus on figure1 and none of its controls.
 function figure1_KeyPressFcn(~, eventdata, handles)
@@ -173,6 +265,7 @@ if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
 end
+
 
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
@@ -344,6 +437,8 @@ if isfield(handles, tag)
     try, set(handles.(tag), 'String', str); end %#ok<TRYNC>
 end
 end
+
+
 
 function safeSetVisible(handles, tag, vis)
 if isfield(handles, tag)
@@ -567,3 +662,7 @@ try
 catch
 end
 end
+
+
+
+
