@@ -52,13 +52,13 @@ classdef TFMPackage < Package
         
         function m = getDependencyMatrix(i,j)
   
-            m = [0 0 0 0 0 0 0; ...
-     2 0 0 0 0 0 0; ...
-     2 1 0 0 0 0 0; ...
-     2 1 2 0 0 0 0; ...
-     0 1 2 1 0 0 0; ...
-     2 0 0 0 0 0 0; ... % OtherChannelSamplingProcess (optional StageDrift)
-     0 1 2 1 0 0 0];  %6 OutputTFMProcess [optional]
+            m = [0 0 0 0 0 0 0;   %1 StageDriftCorrectionProcess [optional]
+                 2 0 0 0 0 0 0;   %2 DisplacementFieldCalculationProcess
+                 0 1 0 0 0 0 0;   %3 DisplacementFieldCorrectionProcess [optional]
+                 0 1 2 0 0 0 0;   %4 ForceFieldCalculationProcess
+                 0 1 2 1 0 0 0;   %5 StrainEnergyCalculationProcess [optional]
+                 0 1 2 1 0 0 0;   %6 OutputTFMProcess [optional]
+                 0 1 2 1 0 0 0];  %7 OtherChannelSamplingProcess [optional]  %6 OutputTFMProcess [optional]
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
             m=m(i,j);
@@ -76,9 +76,12 @@ classdef TFMPackage < Package
                 @DisplacementFieldCorrectionProcess,...
                 @ForceFieldCalculationProcess,...
                 @StrainEnergyCalculationProcess,...
-                @OutputTFMProcess};
-            
+                @OutputTFMProcess,...
+                @OtherChannelSamplingProcess};
+
             if nargin==0, index=1:numel(TFMProcConstr); end
+            procConstr=TFMProcConstr(index);
+        end
             procConstr=TFMProcConstr(index);
         end
         function classes = getProcessClassNames(index)
@@ -87,9 +90,13 @@ classdef TFMPackage < Package
                 'DisplacementFieldCalculationProcess',...
                 'DisplacementFieldCorrectionProcess',...
                 'ForceFieldCalculationProcess',...
-                'StrainEnergyCalculationProcess'...
-                'OutputTFMProcess'};
+                'StrainEnergyCalculationProcess',...
+                'OutputTFMProcess',...
+                'OtherChannelSamplingProcess'};
+
             if nargin==0, index=1:numel(TFMClasses); end
+            classes=TFMClasses(index);
+        end
             classes=TFMClasses(index);
         end
     end
