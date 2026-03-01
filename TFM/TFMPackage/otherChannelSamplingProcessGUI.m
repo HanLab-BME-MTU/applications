@@ -32,7 +32,11 @@ end
 end
 
 %% ===================== LAYOUT =====================
-function hFig = otherChannelSamplingProcessGUI_LayoutFcn()
+function hFig = otherChannelSamplingProcessGUI_LayoutFcn(gui_SingletonOpt)
+% NOTE: gui_mainfcn calls LayoutFcn with one input (gui_SingletonOpt).
+% We do not use it, but we must accept it to avoid "Too many input arguments".
+% (Keeping GUIDE-compatible signature.)
+%#ok<*INUSD>
 
 hFig = figure('Units','pixels', ...
     'Position',[300 200 620 360], ...
