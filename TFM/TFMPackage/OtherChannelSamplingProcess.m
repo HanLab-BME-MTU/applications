@@ -1,75 +1,87 @@
-
 classdef OtherChannelSamplingProcess < DataProcessingProcess
     % OtherChannelSamplingProcess
-    % Samples intensity statistics from an arbitrary MovieData channel
-    % (e.g., Fluo-4 Ca2+ channel) inside an existing binary mask per frame.
     %
-    % Outputs:
-    %   - otherChannelSampling.mat (per-frame summary + optional per-object stats)
+    % Samples intensity statistics from a specified channel inside a binary mask
+    % for each frame. Calls sampleMovieOtherChannel().
     %
-    % Sangyoon Han lab - added 2026
-
-    properties (Constant)
-        % Required by packageGUI: a function handle that launches the GUI.
-        GUI = @otherChannelSamplingProcessGUI;
-    end
+    % 2026 - Sangyoon Han lab
 
     methods
         function obj = OtherChannelSamplingProcess(owner, varargin)
-            % obj = OtherChannelSamplingProcess(owner, outputDir, funParams)
-            ip = inputParser;
-            ip.addRequired('owner', @(x) isa(x,'MovieData'));
-            ip.addOptional('outputDir', '', @(x) ischar(x) || isstring(x));
-            ip.addOptional('funParams', [], @(x) isempty(x) || isstruct(x));
-            ip.parse(owner, varargin{:});
 
-            outputDir = char(ip.Results.outputDir);
-            funParamsIn = ip.Results.funParams;
+            if nargin == 0
+                super_args = {};
+            else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner', @(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir', owner.outputDirectory_, @ischar);
+                ip.addOptional('funParams', [], @isstruct);
+                ip.parse(owner, varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
 
-            if isempty(outputDir)
-                outputDir = fullfile(owner.outputDirectory_, 'otherChannelSampling');
-            end
+                % Define arguments for superclass constructor
+                super_args{1} = owner;
+                super_args{2} = OtherChannelSamplingProcess.getName;
+                super_args{3} = @sampleMovieOtherChannel;
 
-            funParams = OtherChannelSamplingProcess.getDefaultParams(owner, outputDir);
-            if ~isempty(funParamsIn)
-                fn = fieldnames(funParamsIn);
-                for k = 1:numel(fn)
-                    funParams.(fn{k}) = funParamsIn.(fn{k});
+                if isempty(funParams)
+                    funParams = OtherChannelSamplingProcess.getDefaultParams(owner, outputDir);
                 end
+                super_args{4} = funParams;
             end
 
-            obj@DataProcessingProcess(owner, OtherChannelSamplingProcess.getName(), ...
-                @sampleMovieOtherChannel, funParams);
+            obj = obj@DataProcessingProcess(super_args{:});
+        end
+
+        function status = checkChannelOutput(obj, varargin)
+            % Single output .mat file
+            status = false;
+            try
+                status = logical(~isempty(obj.outFilePaths_) && exist(obj.outFilePaths_{1}, 'file'));
+            catch
+                status = false;
+            end
         end
     end
 
     methods (Static)
         function name = getName()
-            name = 'Other Channel Sampling';
+            name = 'OtherChannelSamplingProcess';
         end
 
-        function funParams = getDefaultParams(owner, outputDir) %#ok<INUSD>
-            funParams.OutputDirectory   = outputDir;
+        function funParams = getDefaultParams(owner, varargin)
+            % Input check
+            ip = inputParser;
+            ip.addRequired('owner', @(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir', owner.outputDirectory_, @ischar);
+            ip.parse(owner, varargin{:});
+            outputDir = ip.Results.outputDir;
 
-            % Channel to sample (e.g., Ca2+ channel)
-            funParams.ChannelIndex      = 1;
+            % Defaults
+            funParams.OutputDirectory = [outputDir filesep 'otherChannelSampling'];
 
-            % Mask source:
-            %  - if empty, auto-detect MaskIntersectionProcess, MaskRefinementProcess, or ThresholdProcess
-            funParams.MaskProcessName   = '';   % e.g., 'MaskRefinementProcess'
-            funParams.MaskChannelIndex  = 1;    % which channel the mask corresponds to
-            funParams.UseStageDriftCorrection = true; % warp masks using SDC transforms if available
+            % Target channel to sample
+            funParams.ChannelIndex = 1;
 
-            % Per-object stats (connected components per frame)
-            funParams.UseLabeling       = true;
-            funParams.MinAreaPix        = 50;
+            % Mask source (process class name and channel index)
+            funParams.MaskProcessName = '';  % if empty, auto-detect in sampleMovieOtherChannel
+            funParams.MaskChannelIndex = 1;
+
+            % Optional dependencies / options
+            funParams.UseStageDriftCorrection = false;
+
+            % Save preview images with mask outline
+            funParams.SavePerFrameTifPreview = false;
+
+            % Per-object stats using connected components on mask
+            funParams.UseLabeling = false;
+            funParams.MinAreaPix = 50;
 
             % dF/F0
-            funParams.ComputeDFF0       = true;
-            funParams.BaselineFrames    = 1:10;  % used for F0
-
-            % Saving
-            funParams.SavePerFrameTifPreview = false; % optional debugging
+            funParams.ComputeDFF0 = false;
+            funParams.BaselineFrames = 1;
         end
     end
 end
