@@ -50,6 +50,10 @@ classdef OtherChannelSamplingProcess < DataProcessingProcess
         function name = getName()
             name = 'OtherChannelSamplingProcess';
         end
+        
+        function h = GUI()
+            h= @otherChannelSamplingProcessGUI;
+        end
 
         function funParams = getDefaultParams(owner, varargin)
             % Input check

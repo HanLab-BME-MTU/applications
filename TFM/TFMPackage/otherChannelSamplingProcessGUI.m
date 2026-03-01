@@ -56,19 +56,6 @@ userData = get(handles.figure1, 'UserData');
 stageDriftCorrProc = userData.crtPackage.processes_{1};
 
 if ~isempty(stageDriftCorrProc) 
-    set(handles.edit_referenceFramePath, 'String',stageDriftCorrProc.funParams_.referenceFramePath)
-    set(handles.edit_referenceFramePath,'Enable','off');
-    set(handles.pushbutton_selectReferenceFrame,'Enable','off');
-end
-    
-if ~isempty(stageDriftCorrProc) && strcmp(stageDriftCorrProc.name_, 'Bead Tracking Drift Correction')
-    if isempty(userData.crtPackage.processes_{userData.procID}) 
-        set(handles.edit_alpha,'String', stageDriftCorrProc.funParams_.alpha);
-    end
-end
-
-
-if ~isempty(stageDriftCorrProc) 
     channelString = userData.MD.getChannelPaths(stageDriftCorrProc.funParams_.iBeadChannel);
 
     set(handles.listbox_selectedChannels,'String',channelString,...
@@ -77,17 +64,8 @@ end
 
 % Set process parameters
 funParams = userData.crtProc.funParams_;
-set(handles.edit_referenceFramePath,'String',funParams.referenceFramePath);
-userData.numParams ={'alpha','minCorLength', 'maxFlowSpeed'};
-cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
-    userData.numParams);
-if ~isempty(userData.MD.timeInterval_)
-    set(handles.edit_maxFlowSpeedNmMin,'String',...
-        funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
-else
-    set(handles.edit_maxFlowSpeedNmMin,'String',...
-        funParams.maxFlowSpeed*userData.MD.pixelSize_);
-end
+% cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
+    % userData.numParams);
 
 % Override default channels callback function
 set(handles.checkbox_all,'Callback',@(hObject,eventdata)...
@@ -104,8 +82,6 @@ handles.output = hObject;
 set(hObject, 'UserData', userData);
 guidata(hObject, handles);
 
-% Update value of psf sigma
-update_psfSigma(handles);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -163,32 +139,24 @@ else
     funParams.ChannelIndex = channelIndex;
 end
 
-% Retrieve reference frame path
-if strcmpi(get(handles.edit_referenceFramePath,'Enable'),'on')
-    funParams.referenceFramePath=get(handles.edit_referenceFramePath,'String');
-    if isempty(funParams.referenceFramePath)
-        errordlg('Please select a reference frame.','Setting Error','modal')
-        return;
-    end
-end
 
 % Read numeric information
-for i = 1:numel(userData.numParams),
-    value = get(handles.(['edit_' userData.numParams{i}]),'String');
-    if isempty(value)
-        errordlg(['Please enter a valid value for '...
-            get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
-            'Setting Error','modal')
-        return;
-    end
-    funParams.(userData.numParams{i})=str2double(value); 
-end
-
-if get(handles.checkbox_mode, 'Value'),
-    funParams.mode = 'accurate';
-else
-    funParams.mode = 'fast';
-end
+% for i = 1:numel(userData.numParams),
+%     value = get(handles.(['edit_' userData.numParams{i}]),'String');
+%     if isempty(value)
+%         errordlg(['Please enter a valid value for '...
+%             get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
+%             'Setting Error','modal')
+%         return;
+%     end
+%     funParams.(userData.numParams{i})=str2double(value); 
+% end
+% 
+% if get(handles.checkbox_mode, 'Value'),
+%     funParams.mode = 'accurate';
+% else
+%     funParams.mode = 'fast';
+% end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
@@ -208,29 +176,16 @@ end
 function selectChannel(hObject, eventdata, handles)
 
 selectChannel_Callback(hObject, eventdata, handles);
-update_psfSigma(handles);
+
 
 
 function deleteChannel(hObject, eventdata, handles)
 
 deleteChannel_Callback(hObject, eventdata, handles);
-update_psfSigma(handles);
+
 
 function checkallChannels(hObject, eventdata, handles)
 
 checkallChannels_Callback(hObject, eventdata, handles);
-update_psfSigma(handles);
 
-
-%--- Executes during object creation, after setting all properties.
-function edit_sigCrit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_sigCrit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
