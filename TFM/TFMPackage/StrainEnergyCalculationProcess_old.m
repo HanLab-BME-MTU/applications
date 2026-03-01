@@ -193,17 +193,6 @@ classdef StrainEnergyCalculationProcess < DataProcessingProcess
             funParams.subcellularTFM=false;
             funParams.bandWidth=2; % in micron
 
-            % ===== Calcium quantification options (optional) =====
-            % If readCalcium is true, calculateMovieStrainEnergy can also
-            % compute calcium intensity metrics (e.g., mean intensity and dF/F0)
-            % within each segmented cell mask per frame.
-            funParams.readCalcium = false;        % enable calcium readout
-            funParams.iCalciumChannel = 1;        % channel index for calcium (e.g., Fluo-4)
-            funParams.calciumMeasure = 'mean';    % 'mean' (default) or 'median' or 'sum'
-            funParams.calciumDoDFF0 = true;       % compute dF/F0 in addition to raw intensity
-            funParams.calciumBaselineFrames = 1:10; % baseline frames for F0 (can be vector)
-            funParams.calciumBackground = 'none'; % 'none' or 'ring' (future)
-
         end
 %         function units = getUnits(varargin)
 %             units = 'Traction (Pa)';
