@@ -128,6 +128,38 @@ funParams.exportCSV=get(handles.checkbox_exportCSV,'Value');
 funParams.subcellularTFM=get(handles.checkbox_peripheryAnalysis,'Value');
 funParams.bandWidth=get(handles.edit_bandWidth,'Value');
 
+
+% ===== Calcium quantification options (optional) =====
+% These UI controls are optional. If they do not exist in the .fig, we keep
+% default values already present in funParams.
+if isfield(handles,'checkbox_readCalcium') && ishghandle(handles.checkbox_readCalcium)
+    funParams.readCalcium = logical(get(handles.checkbox_readCalcium,'Value'));
+end
+if isfield(handles,'edit_calciumChan') && ishghandle(handles.edit_calciumChan)
+    funParams.iCalciumChannel = str2double(get(handles.edit_calciumChan,'String'));
+end
+if isfield(handles,'checkbox_calciumDFF0') && ishghandle(handles.checkbox_calciumDFF0)
+    funParams.calciumDoDFF0 = logical(get(handles.checkbox_calciumDFF0,'Value'));
+end
+if isfield(handles,'edit_calciumBaselineFrames') && ishghandle(handles.edit_calciumBaselineFrames)
+    s = strtrim(get(handles.edit_calciumBaselineFrames,'String'));
+    if ~isempty(s)
+        try
+            % examples: '1:10' or '1 2 3 4 5'
+            funParams.calciumBaselineFrames = eval(s); %#ok<EVLDIR>
+        catch
+            warning('Invalid baseline frame expression: %s. Keeping existing value.', s);
+        end
+    end
+end
+if isfield(handles,'popupmenu_calciumMeasure') && ishghandle(handles.popupmenu_calciumMeasure)
+    items = get(handles.popupmenu_calciumMeasure,'String');
+    val   = get(handles.popupmenu_calciumMeasure,'Value');
+    if iscell(items) && val>=1 && val<=numel(items)
+        funParams.calciumMeasure = items{val};
+    end
+end
+
 % Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
