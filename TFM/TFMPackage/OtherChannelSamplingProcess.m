@@ -9,6 +9,11 @@ classdef OtherChannelSamplingProcess < DataProcessingProcess
     %
     % Sangyoon Han lab - added 2026
 
+    properties (Constant)
+        % Required by packageGUI: a function handle that launches the GUI.
+        GUI = @otherChannelSamplingProcessGUI;
+    end
+
     methods
         function obj = OtherChannelSamplingProcess(owner, varargin)
             % obj = OtherChannelSamplingProcess(owner, outputDir, funParams)
